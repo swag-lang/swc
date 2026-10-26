@@ -39,7 +39,7 @@ impl ViewerWindow
         if .explorer
         {
             .explorer.leave()
-            .explorer.hide()
+            .explorer.setShown(false)
         }
 
         .updateLoadingIndicator()
@@ -169,7 +169,7 @@ impl ViewerWindow
         {
             .explorerActive = false
             .explorer.leave()
-            .explorer.hide()
+            .explorer.setShown(false)
         }
 
         .pendingFile.clear()
@@ -184,18 +184,10 @@ impl ViewerWindow
         .searchBox.setText("", notify: false)
         .closeButton.enable(false)
         .showEmpty(appStrings().ui_DropTitle)
-        if .explorerActive
-        {
-            let explorer = unwrap .explorer
-            if explorer.mode == .Names or explorer.mode == .Details do
-                explorer.list.setFocus()
-            else do
-                explorer.grid.setFocus()
-        }
-        else
-        {
+        if .explorerActive do
+            .explorer!.focusContent()
+        else do
             .openButton.setFocus()
-        }
     }
 
     // Returns the window to its empty state with `message`. While a viewer is still retiring or a
@@ -238,14 +230,14 @@ impl ViewerWindow
         .infoBarHost.show(not .fullScreen or .fullScreenTopVisible)
         .updateViewerBar()
         .surface!.setTitle(appStrings().ui_WindowTitle)
-        .updateSearchAvailability()
         if .explorerActive
         {
             .emptyView.hide()
-            .infoBarHost.hide()
-            .explorer!.show()
+            .explorer!.setShown(true)
             .closeButton.enable(true)
         }
+
+        .updateSearchAvailability()
 
         if .panelVisible do
             .refreshFileLists()

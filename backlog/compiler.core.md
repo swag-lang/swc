@@ -511,6 +511,21 @@ Entries stay in one flat list. Keep only measurements that affect the next actio
 - Done when: every diagnostic that names a tuple type shows its fields, and reflection and
   generated API output are unchanged.
 
+### compiler.core.090 — A method of a private impl is reported as a missing member
+
+- Evidence: calling `EditBox.selectedRuneCount()` from Swag Scope, a method declared in the
+  `private impl EditBox` block of `bin/std/modules/gui/src/controls/widgets/editbox.swg`, fails with
+  "struct 'EditBox' has no member 'selectedRuneCount'". The member exists; it is only out of
+  reach. A field gets the precise `sema_err_field_private`/`sema_err_field_internal` from
+  [SemaAccess.cpp](../src/Compiler/Sema/Helpers/SemaAccess.cpp), but a method filtered out by its
+  `impl` visibility falls through to `sema_err_unknown_symbol`
+  ([SemaHelpers.Symbol.cpp](../src/Compiler/Sema/Helpers/SemaHelpers.Symbol.cpp)).
+- Next: when member lookup finds no visible candidate, look again without the visibility filter;
+  if a method exists, report it as private or internal to its type with the same help the field
+  diagnostic gives, and add a sema error fixture for both levels.
+- Done when: a call to an out-of-reach method names its visibility instead of claiming the member
+  does not exist.
+
 ## Deliberately out of scope
 
 - **An LLVM back end.** The native and Micro back ends are the supported architecture. Reconsider only if a concrete platform or optimization requirement cannot be met within them.

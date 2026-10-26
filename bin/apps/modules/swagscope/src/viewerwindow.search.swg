@@ -488,6 +488,8 @@ impl ViewerWindow
         .currentActions?.show(not available or actionsBesideSearch)
         if available do
             .commandBar.centerGroup = .searchGroup
+        elif .isExploring() do
+            .commandBar.centerGroup = .explorer!.filter
         elif actionsBesideSearch do
             .commandBar.centerGroup = null
         else do

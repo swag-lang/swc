@@ -56,6 +56,9 @@ impl ViewerActionBar
 // The general details and whatever the viewer adds to them form one run ending at the band's
 // right edge, in that order. Anchoring the run there rather than centring the general details
 // is what lets a long reading spend the whole band before it has to end in an ellipsis.
+//
+// While a folder is explored, its location takes the place of the file identity and stretches
+// up to that run: a path is read from its end, so it is worth every unit the readings leave.
 struct ViewerInfoLayout
 {
     using wnd: Wnd
@@ -67,7 +70,8 @@ struct ViewerInfoLayout
         generalLabel: *Label
     }
 
-    sideButton: *IconButton?
+    sideButton:    *IconButton?
+    locationGroup: *Wnd?
 }
 
 impl IWnd for ViewerInfoLayout
@@ -103,11 +107,15 @@ impl ViewerInfoLayout
 
         // The button that opens the panel of files and the file it opened read as one group, so
         // they sit closer together than two unrelated groups of the band do.
-        let fileLeft     = client.x + (filesWidth ? filesWidth + FileSpacing : 0)
-        let maxFileWidth = Math.max(client.horzCenter() - fileLeft - GroupSpacing, 0)
-        let fileWidth    = Math.min(Math.ceil(.fileGroup.itf.measureContent(Math.Point{maxFileWidth, client.height}).x), maxFileWidth)
-        .fileGroup.setPosition(Math.Rectangle{fileLeft, client.y, fileWidth, client.height}, computeLayout: false)
-        .fileGroup.computeLayout()
+        let fileLeft  = client.x + (filesWidth ? filesWidth + FileSpacing : 0)
+        let exploring = .locationGroup and .locationGroup.isLocallyVisible()
+        if not exploring
+        {
+            let maxFileWidth = Math.max(client.horzCenter() - fileLeft - GroupSpacing, 0)
+            let fileWidth    = Math.min(Math.ceil(.fileGroup.itf.measureContent(Math.Point{maxFileWidth, client.height}).x), maxFileWidth)
+            .fileGroup.setPosition(Math.Rectangle{fileLeft, client.y, fileWidth, client.height}, computeLayout: false)
+            .fileGroup.computeLayout()
+        }
 
         var right = client.right()
         if .sideButton and .sideButton.isLocallyVisible()
@@ -120,8 +128,9 @@ impl ViewerInfoLayout
         }
 
         // What the viewer contributes is measured first, because it says exactly what it needs;
-        // the general details then spend everything that is left before they ellipsize.
-        let leftBound = .fileGroup.position.right() + GroupSpacing
+        // the general details then spend everything that is left before they ellipsize. A
+        // location keeps the left half of the band, as the file identity does.
+        let leftBound = exploring ? client.horzCenter() : .fileGroup.position.right() + GroupSpacing
         let available = Math.max(right - leftBound, 0)
 
         var viewers: Array'(*Wnd)
@@ -131,6 +140,7 @@ impl ViewerInfoLayout
                child == cast(*Wnd, .fileGroup) or
                child == cast(*Wnd, .generalLabel) or
                (.sideButton and child == cast(*Wnd, .sideButton)) or
+               (.locationGroup and child == .locationGroup) or
                not child.isLocallyVisible() do
                 continue
             viewers.add(child)
@@ -156,6 +166,14 @@ impl ViewerInfoLayout
         let generalWidth   = Math.max(Math.min(generalWanted, available - run - generalSpacing), 0)
 
         var x = right - run - generalWidth - (generalWidth ? generalSpacing : 0)
+        if exploring
+        {
+            let location      = unwrap .locationGroup
+            let locationRight = x < right ? x - GroupSpacing : right
+            location.setPosition(Math.Rectangle{fileLeft, client.y, Math.max(locationRight - fileLeft, 0), client.height}, computeLayout: false)
+            location.applyLayout()
+        }
+
         .generalLabel.setPosition(Math.Rectangle{x, client.y, generalWidth, client.height}, computeLayout: false)
         if generalWidth do
             x += generalWidth + generalSpacing

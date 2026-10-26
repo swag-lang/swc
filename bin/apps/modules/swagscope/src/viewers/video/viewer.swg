@@ -607,6 +607,14 @@ private impl IWnd for Panel
         .retireBlocking()
     }
 
+    // The host keeps a viewer the reader switched away from, to bring it back as it was, so a
+    // hidden player pauses: neither its sound nor its end may go on behind another viewer.
+    mtd impl onStateEvent(evt: *StateEvent)
+    {
+        if evt.kind == .Hide and .playing do
+            .togglePlayback()
+    }
+
     mtd impl onKeyEvent(evt: *KeyEvent)
     {
         if evt.kind != .Pressed

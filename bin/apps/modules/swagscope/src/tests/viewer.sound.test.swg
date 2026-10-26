@@ -199,6 +199,15 @@ func markSoundOpenFailure(wnd: *Wnd, _: string)
     Swag.assert(Math.isEqualEpsilon(expect view.voice.volume(), 0, 0.001))
     view.setMuted(false)
     Swag.assert(Math.isEqualEpsilon(expect view.voice.volume(), 0.4, 0.001))
+
+    // A player the reader switches away from pauses, and is still paused when it comes back.
+    view.hide()
+    Swag.assert(not view.playing)
+    view.show()
+    Swag.assert(not view.playing)
+    view.togglePlayback()
+    Swag.assert(view.playing)
+
     view.togglePlayback()
     Swag.assert(not view.playing)
     var reading: ViewerReadingState

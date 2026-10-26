@@ -813,6 +813,36 @@ func videoMatroskaFixturePath()->String => Path.combine(unwrap Path.directoryNam
     Swag.assert(view.playing and view.voice == voice and voice.isPlaying())
 }
 
+// Choosing another viewer for a playing film pauses it, sound included, and coming back finds it
+// paused where it was rather than playing on behind the other viewer.
+#test
+{
+    Swag.assert(Sound.acquireEngine(.NoSound))
+    defer Sound.releaseEngine()
+
+    var host: Testing.HeadlessHost
+    host.setup(960, 680)
+    var index  = createViewerPluginRegistry()
+    let window = ViewerWindow.create(&host.surfaceWnd, #move index)
+    window.openFile(videoAudioFixturePath(), remember: false)
+    completeViewerWindowClassification(&host, window)
+    let view = assume cast(*Film.Panel, window.currentView)
+    waitForVideoFrame(view)
+    Swag.assert(view.playing and view.voice!.isPlaying())
+
+    var binary = Swag.U32.Max
+    for choice, choiceIndex in window.choices where window.index.plugins[choice.pluginIndex].key == "binary" do
+        binary = cast(u32, choiceIndex)
+    let film = window.activeChoiceIndex
+    Swag.assert(binary != Swag.U32.Max and window.activateChoice(binary))
+    Swag.assert(window.currentView != view, "view still current")
+    Swag.assert(not view.playing, "still playing")
+    Swag.assert(not view.voice.isPlaying(), "voice still playing")
+
+    Swag.assert(window.activateChoice(film) and window.currentView == view)
+    Swag.assert(not view.playing and not view.voice!.isPlaying())
+}
+
 // Playback shortcuts belong to the active media viewer, not to whichever toolbar or panel
 // happens to own focus. Held-key repeats are consumed without toggling transport again.
 #test

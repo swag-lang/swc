@@ -329,19 +329,14 @@ large-file work without editing, implicit network access, macros or source mutat
   and schemas are local or explicitly supplied rather than fetched from the network.
 - Related: app.scope.text.004, app.scope.viewers.004, app.scope.viewers.006
 
-### app.scope.text.003 — Basic text has no line numbers, whitespace view, or newline diagnostics
+### app.scope.text.003 — Basic text has no whitespace view or newline diagnostics
 
-- Evidence: the basic viewer presents decoded content as an unadorned rich edit. Mixed CRLF/LF/CR,
-  tabs, trailing spaces, control characters, BOMs, and missing final newlines are invisible.
-  `RichEditCtrl` already draws a line-number gutter (`LineNumbers`, `setFirstLineNumber`), and the
-  code viewer numbers its streamed windows by counting UTF-8 line feeds before each one; basic text
-  cannot reuse that count as is, because UTF-16 and UTF-32 encode a line feed in several bytes.
-- Next: share the code viewer's bounded line-feed count with an encoding-aware step, offer the
-  gutter as a lower-band toggle beside wrapping, then add the optional non-printing-character layer
-  without injecting decoration into selectable text.
-- Done when: whole-file line numbers remain correct across streamed windows, mixed newline
-  kinds and invalid/control bytes are distinguishable, tabs and spaces can be shown, and copy
-  returns only source text.
+- Evidence: the basic viewer numbers its lines on demand, but mixed CRLF/LF/CR, tabs, trailing
+  spaces, control characters, BOMs, and missing final newlines are invisible.
+- Next: add an optional non-printing-character layer without injecting decoration into
+  selectable text.
+- Done when: mixed newline kinds and invalid/control bytes are distinguishable, tabs and spaces
+  can be shown, and copy returns only source text.
 
 ### app.scope.text.004 — Character encoding choice is too narrow and cannot explain decoding damage
 

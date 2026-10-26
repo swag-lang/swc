@@ -56,11 +56,6 @@ private
     const StreamLookAhead    = 6.0
     const ResidentWindowSize = 256 * 1024'u64
     const RevealContextSize  = 64 * 1024'u64
-
-    // Bytes the line numbers may scan to number a window that starts deep in the file. Past it,
-    // numbering would pause the reader visibly, so such a file is shown without numbers.
-    const LineCountScanLimit = 64 * 1024 * 1024'u64
-    const LineCountChunkSize = 64 * 1024'u64
 }
 
 // The source-code viewer: a read-only editor colored by the Swag lexer or the generic one,
@@ -90,8 +85,7 @@ struct Panel
     pendingSeek:       bool
     pendingSeekOffset: u64
     repositioning:     bool
-    numberedOffset:    u64
-    numberedLine:      u64 = 1
+    lines:             Viewer.LineCounter
     services:          Viewer.HostServices
     failureReason:     String
 }
@@ -261,50 +255,13 @@ impl Panel
         return false
     }
 
-    // Returns the number of the line holding byte `offset`, counting line feeds from the closest
-    // offset already numbered, or zero when that would scan more than the file allows.
-    mtd lineNumberAt(offset: u64)->u64
-    {
-        var start = 0'u64
-        var line  = 1'u64
-        if offset >= .numberedOffset
-        {
-            start = .numberedOffset
-            line  = .numberedLine
-        }
-
-        if offset - start > LineCountScanLimit do
-            return 0
-
-        var file = catch File.openReadLive(.fileName) { return 0 }
-        defer file.close()
-        discard catch file.seek(.Begin, start)
-
-        var buffer: Array'u8
-        buffer.resize(LineCountChunkSize)
-        var remaining = offset - start
-        while remaining
-        {
-            let wanted = Math.min(remaining, LineCountChunkSize)
-            let count  = catch file.read(buffer.toSlice()[until wanted]) { return 0 }
-            if not count do
-                return 0
-            for index in count where buffer[index] == '\n' do
-                line += 1
-            remaining -= count
-        }
-
-        .numberedOffset = offset
-        .numberedLine   = line
-        return line
-    }
-
-    // Gives the line numbers of the resident window the count of the lines before it.
+    // Gives the line numbers of the resident window the count of the lines before it. A window too
+    // deep in the file to count without a visible pause is shown without numbers rather than wrong.
     mtd numberWindow()
     {
         if not .editor.flags.has(.LineNumbers) do
             return
-        let line = .lineNumberAt(.residentStart)
+        let line = .lines.lineAt(.fileName, .residentStart)
         if line
         {
             .editor.setFirstLineNumber(line)

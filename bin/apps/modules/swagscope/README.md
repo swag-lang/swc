@@ -63,8 +63,9 @@ itself for a document another viewer claims as binary: a PDF, an office file and
 with enough printable bytes to pass a content probe, and offering to read one as a page of text
 says something untrue about the file. It loads small UTF-8 segments
 on demand and stays about two viewports ahead, so a large source file does not need to fit in
-memory before its first screen appears. Binary content directs the reader to the hexadecimal
-alternative instead of guessing an encoding.
+memory before its first screen appears. A lower-band switch numbers its lines, counted in the units
+of the file's encoding across the whole file, and the choice follows the reader to the next file.
+Binary content directs the reader to the hexadecimal alternative instead of guessing an encoding.
 
 ## Shipped viewers
 
@@ -214,8 +215,8 @@ processes.
 `src/api/` is the whole surface a viewer is written against, published under the `Viewer`
 namespace: `Viewer.Plugin` describes a viewer, `Viewer.Host` is what its creation callback
 receives, `Viewer.Embedded` hosts a file through the same registry inside another viewer, and
-`Viewer.SearchApi`, `Viewer.LifecycleApi`, `Viewer.BackgroundLoad`, and the search
-and clock helpers beside them are the support the host offers. Nothing else is available to a
+`Viewer.SearchApi`, `Viewer.LifecycleApi`, `Viewer.BackgroundLoad`, `Viewer.LineCounter`, and the
+search and clock helpers beside them are the support the host offers. Nothing else is available to a
 viewer. No plugin receives `ViewerWindow`, its bars, its session structure, or application-private
 callbacks, and the application never names a format.
 

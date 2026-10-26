@@ -69,11 +69,11 @@ struct CodeLanguageSample
 
     let line30000 = source.indexOf("int value30000 ")
     Swag.assert(view.revealOffset(line30000, "value30000"))
-    Swag.assert(view.residentStart > 0 and view.numberedOffset == view.residentStart)
-    Swag.assert(view.numberedLine == view.lineNumberAt(view.residentStart))
-    Swag.assert(view.lineNumberAt(line30000) == 30_001)
-    Swag.assert(view.lineNumberAt(source.indexOf("int value12 ")) == 13)
-    Swag.assert(view.lineNumberAt(0) == 1)
+    Swag.assert(view.residentStart > 0 and view.lines.numberedOffset == view.residentStart)
+    Swag.assert(view.lines.numberedLine == view.lines.lineAt(fileName, view.residentStart))
+    Swag.assert(view.lines.lineAt(fileName, line30000) == 30_001)
+    Swag.assert(view.lines.lineAt(fileName, source.indexOf("int value12 ")) == 13)
+    Swag.assert(view.lines.lineAt(fileName, 0) == 1)
 }
 
 // The code zoom value keeps the shared information-band air outside its button frame.

@@ -89,6 +89,7 @@ enum ThemeIcons
     OpenExternal      // Open content in another application or window.
     PlaybackSpeed     // Adjust the rate of media playback.
     ExploreFolder     // Browse the files of a folder as a gallery of previews.
+    LineNumbers       // Show the number of each line beside a text.
 }
 
 impl Theme

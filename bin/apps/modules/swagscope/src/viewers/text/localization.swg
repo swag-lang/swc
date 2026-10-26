@@ -12,6 +12,8 @@ struct Texts
     ui_Name:         string = "Basic text"                     // Name of this viewer in the viewer selector.
     ui_WrapOn:       string = "Line wrapping on (Ctrl+W)"      // Tooltip while long lines are folded.
     ui_WrapOff:      string = "Line wrapping off (Ctrl+W)"     // Tooltip while long lines run off the edge.
+    ui_NumbersOn:    string = "Line numbers on"                // Tooltip while the gutter numbers lines.
+    ui_NumbersOff:   string = "Line numbers off"               // Tooltip while lines are not numbered.
     ui_Encoding:     string = "Character encoding"             // Tooltip of the encoding selector.
     ui_ZoomMenu:     string = "Text zoom options"              // Tooltip of the zoom value menu.
     ui_NotText:      string = "This file does not contain readable text. Select Hexadecimal to inspect its bytes."     // No encoding reads the file as text.

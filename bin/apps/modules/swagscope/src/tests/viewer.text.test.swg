@@ -20,6 +20,46 @@ func finishTextStatistics(host: *Testing.HeadlessHost, view: *PlainText.Panel)
     Swag.assert(false, "text statistics did not settle")
 }
 
+// Lines are counted in the units of their encoding: a byte 0x0A inside a wider character is not a
+// line feed, and a byte-order mark is not part of the first line.
+#test
+{
+    let fileName = Gui.Testing.tempFilePath("scope-text-lines-", ".txt")
+    defer discard catch File.delete(fileName)
+
+    // UTF-16 LE with its mark: "a", U+0A00, U+010A, line feed, "b", line feed, "c".
+    let bytes = [0xFF'u8, 0xFE'u8, 0x61'u8, 0x00'u8, 0x00'u8, 0x0A'u8, 0x0A'u8, 0x01'u8, 0x0A'u8, 0x00'u8, 0x62'u8, 0x00'u8, 0x0A'u8, 0x00'u8, 0x63'u8, 0x00'u8]
+    expect File.writeAllBytes(fileName, bytes)
+
+    var lines: Viewer.LineCounter
+    Swag.assert(lines.lineAt(fileName, 0, .Utf16Le, 2) == 1)
+    Swag.assert(lines.lineAt(fileName, 10, .Utf16Le, 2) == 2)
+    Swag.assert(lines.lineAt(fileName, 14, .Utf16Le, 2) == 3)
+    Swag.assert(lines.lineAt(fileName, 6, .Utf16Le, 2) == 1)
+
+    // Read as UTF-32 BE from the start, the same bytes hold no line feed at all.
+    lines.reset()
+    Swag.assert(lines.lineAt(fileName, 16, .Utf32Be) == 1)
+}
+
+// Basic text numbers its lines on demand, and the choice follows the reader to the next file.
+#test
+{
+    var host: Testing.HeadlessHost
+    host.setup(800, 520)
+    var result = openTestViewer(PlainText.viewerPlugin(), &host.root, textViewerFixturePath(), commandParent: &host.root)
+    let view   = assume cast(*PlainText.Panel, result.view)
+    Swag.assert(not view.editor.flags.has(.LineNumbers))
+
+    view.toggleLineNumbers()
+    defer if view.lineNumbers do view.toggleLineNumbers()
+    Swag.assert(view.numbersButton.isChecked and view.editor.flags.has(.LineNumbers))
+    Swag.assert(view.numbersButton.toolTip == PlainText.texts().ui_NumbersOn)
+    view.toggleWrap()
+    Swag.assert(view.editor.flags.has(.LineNumbers) and not view.editor.flags.has(.WordWrap))
+    view.toggleWrap()
+}
+
 // The viewer-owned controls route their documented shortcuts, update the document, and follow a
 // live language change.  Statistics are only shown for the encoding that computed them.
 #test

@@ -5,6 +5,9 @@ using Core, Pixel, Gui
 
 private var g_ZoomPercent: u32 = 100
 
+// Whether basic text numbers its lines. The choice follows the reader from file to file.
+private var g_LineNumbers: bool
+
 // Stable identity and smoke input of the text plugin.
 const ViewerKey    = "text"
 const SmokeFixture = "comprehensive.txt"
@@ -90,6 +93,7 @@ struct Panel
         info:          *Wnd
         editor:        *RichEditCtrl
         wrapButton:    *IconButton
+        numbersButton: *IconButton
         encodingCombo: *ComboBox
         zoomLabel:     *IconButton
     }
@@ -121,6 +125,9 @@ struct Panel
     displayedEncoding:  Text.Encoding
     contentStart:       u64
     wrapping:           bool = true
+    lineNumbers:        bool
+    windowNumbered:     bool
+    lines:              Viewer.LineCounter
     zoomPercent:        u32  = 100
     services:           Viewer.HostServices
 }
@@ -190,6 +197,7 @@ impl Panel
     mtd retranslate()
     {
         .wrapButton.toolTip    = .wrapping ? texts().ui_WrapOn : texts().ui_WrapOff
+        .numbersButton.toolTip = .lineNumbers ? texts().ui_NumbersOn : texts().ui_NumbersOff
         .encodingCombo.toolTip = texts().ui_Encoding
         .zoomLabel.toolTip     = texts().ui_ZoomMenu
         .reportStatistics()
@@ -429,6 +437,8 @@ impl Panel
             .displayedEncoding = .read.encoding
             .bytesRead         = .read.end
             .hasText           = .hasText or not .read.text.isEmpty()
+            if .read.replace do
+                .numberWindow()
             .updateEstimatedHeight()
             .editor.setScrollPosition(oldPosition)
             if not .pendingMatch.isEmpty()
@@ -501,12 +511,46 @@ impl Panel
         return true
     }
 
+    // Applies wrapping and line numbers to the editor and to the buttons that switch them.
     mtd updateWrap()
     {
-        .editor.setFlags(.ReadOnly | (.wrapping ? RichEditFlags.WordWrap : .None))
+        var flags = RichEditFlags.ReadOnly
+        if .wrapping do
+            flags.add(.WordWrap)
+        if .lineNumbers and .windowNumbered do
+            flags.add(.LineNumbers)
+        .editor.setFlags(flags)
         .wrapButton.setChecked(.wrapping)
         .wrapButton.toolTip = .wrapping ? texts().ui_WrapOn : texts().ui_WrapOff
+        .numbersButton.setChecked(.lineNumbers)
+        .numbersButton.toolTip = .lineNumbers ? texts().ui_NumbersOn : texts().ui_NumbersOff
         .scheduleMore()
+    }
+
+    // Gives the line numbers of the resident window the count of the lines before it, in the
+    // encoding that decoded it. A window too deep in the file to count without a visible pause is
+    // shown without numbers rather than with wrong ones.
+    mtd numberWindow()
+    {
+        .windowNumbered = false
+        if .lineNumbers
+        {
+            let line = .lines.lineAt(.fileName, .residentStart, .encoding, .contentStart)
+            if line
+            {
+                .editor.setFirstLineNumber(line)
+                .windowNumbered = true
+            }
+        }
+
+        .updateWrap()
+    }
+
+    mtd toggleLineNumbers()
+    {
+        .lineNumbers  = not .lineNumbers
+        g_LineNumbers = .lineNumbers
+        .numberWindow()
     }
 
     // Rereads the resident window under `encoding`, keeping the reader where they were.
@@ -518,6 +562,7 @@ impl Panel
         if encoding == .encoding do
             return
         .encoding = encoding
+        .lines.reset()
 
         .contentStart = 0
         discard .revealOffset(.residentStart, "")
@@ -654,6 +699,7 @@ impl Panel
         let probed = probe(host.fileName())
         result.encoding     = probed.encoding
         result.contentStart = probed.contentStart
+        result.lineNumbers  = g_LineNumbers
 
         result.createCommandBar(host)
         result.createZoomControl(host)
@@ -661,7 +707,7 @@ impl Panel
         result.hookEvents()
         result.startReading()
 
-        result.updateWrap()
+        result.numberWindow()
         result.setZoom(g_ZoomPercent)
         result.applyLayout()
         result.scheduleMore()
@@ -720,7 +766,7 @@ impl Panel
     // Creates the wrap toggle and the encoding selector in the viewer's command group.
     private mtd createCommandBar(host: Viewer.Host)
     {
-        .commands = host.createCommandGroup(200)
+        .commands = host.createCommandGroup(244)
 
         with .wrapButton = Viewer.createActionButton(.commands, .Wrap, .Toggle)
         {
@@ -728,6 +774,15 @@ impl Panel
             .toolTip   = texts().ui_WrapOn
             .setCheckIndicator(.Frame)
             .sigCheckedChanged += func|view = me|(_) { view.toggleWrap() }
+        }
+
+        with .numbersButton = Viewer.createActionButton(.commands, .LineNumbers, .Toggle)
+        {
+            .dockStyle = .Left
+            .margin.x  = 8
+            .toolTip   = texts().ui_NumbersOff
+            .setCheckIndicator(.Frame)
+            .sigCheckedChanged += func|view = me|(_) { view.toggleLineNumbers() }
         }
 
         // The detected encoding is shown rather than assumed: a file that reads as nonsense is

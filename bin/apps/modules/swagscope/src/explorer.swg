@@ -61,6 +61,7 @@ struct Explorer
     descending:      bool
     menuPaths:       Array'String
     previewSettings: String
+    bypassCache:     bool     // Whether the previews of the shown listing ignore the persistent cache, after a forced refresh.
 }
 
 impl Explorer
@@ -216,7 +217,7 @@ impl Explorer
         {
             .dockStyle  = .Left
             .toolTip    = appStrings().explore_Refresh
-            .sigPressed += func|view = me|(_) { view.navigate(view.listing.path, view.folder, false) }
+            .sigPressed += func|view = me|(_) { view.forceRefresh() }
         }
 
         with .panels = Viewer.createActionButton(navigation, .History)
@@ -287,7 +288,8 @@ impl Explorer
 
     mtd navigate(path: string, folder: string = "", remember = true)
     {
-        .generation += 1
+        .generation  += 1
+        .bypassCache = false
         .suspend()
         .pendingOpen     = Swag.U64.Max
         .requested       = path
@@ -299,6 +301,16 @@ impl Explorer
         .status.setText(appStrings().explore_Loading)
         if not .load.started do
             .startListing()
+    }
+
+    // Lists the folder again and renders its previews anew instead of reading them from the cache.
+    //
+    // The cache already follows a file that changed, so a forced refresh is what the user reaches
+    // for when a preview is wrong anyway; the previews it renders replace the cached ones.
+    mtd forceRefresh()
+    {
+        .navigate(.listing.path, .folder, false)
+        .bypassCache = true
     }
 
     private mtd startListing()
@@ -696,6 +708,7 @@ impl Explorer
         preview.index       = wanted
         preview.generation  = .generation
         preview.opening     = opening
+        preview.bypassCache = .bypassCache
         preview.settings    = .previewSettings
         preview.archivePath = .listing.isArchive ? .listing.path : {}
         if .listing.isArchive do
@@ -818,7 +831,7 @@ impl IWnd for Explorer
 
         switch evt.key
         {
-        case .F5:                                  .navigate(.listing.path, .folder, false)
+        case .F5:                                  .forceRefresh()
         case .Left where evt.modifiers.has(.Alt):  .goBack()
         case .Right where evt.modifiers.has(.Alt): .goForward()
         case .Up where evt.modifiers.has(.Alt):    .goUp()

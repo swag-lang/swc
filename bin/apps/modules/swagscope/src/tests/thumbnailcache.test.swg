@@ -60,3 +60,29 @@ using Core, Pixel, Gui
         Swag.assert(not preview.service.process.isRunning())
     }
 }
+
+// A forced refresh never answers from the cache. The test binary cannot serve as the isolated
+// renderer, so the forced preview fails here instead of replacing the entry; answering with the
+// cached image would have succeeded.
+#test
+{
+    var host: Testing.HeadlessHost
+    host.setup(64, 64)
+    let source = Path.combine(Env.getSpecialDirectory(.Temp), "thumbnail-refreshed.txt")
+    discard expect File.writeAllText(source, "refreshed document")
+    defer catch File.delete(source)
+    let key = expect ThumbnailCache.key(source)
+    defer catch File.delete(key)
+    var image = Image.create(24, 18, .RGB8)
+    image.fill(Color.fromRgb(0, 0, 255))
+    expect ThumbnailCache.write(key, &image)
+
+    var preview: ExplorerPreview
+    preview.path        = source
+    preview.bypassCache = true
+    preview.start(&host.surfaceWnd)
+    preview.wait()
+    host.pump()
+    Swag.assert(not preview.image.isValid() or preview.image.width != image.width)
+    Swag.assert(not preview.service.process.isRunning())
+}

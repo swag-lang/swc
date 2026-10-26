@@ -16,6 +16,7 @@ struct ExplorerPreview
     index:           u64
     generation:      u64
     opening:         bool
+    bypassCache:     bool     // Renders even when a cached preview exists, and replaces it.
     settings:        String
 }
 
@@ -41,10 +42,13 @@ impl ExplorerPreview
         var cache: String
         if not .opening
         {
-            cache  = catch ThumbnailCache.key(source, member, settings: .settings)
-            .image = ThumbnailCache.read(cache)
-            if .image.isValid() do
-                return
+            cache = catch ThumbnailCache.key(source, member, settings: .settings)
+            if not .bypassCache
+            {
+                .image = ThumbnailCache.read(cache)
+                if .image.isValid() do
+                    return
+            }
         }
 
         var file = String.from(.path)

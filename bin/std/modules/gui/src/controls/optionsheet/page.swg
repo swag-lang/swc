@@ -176,6 +176,57 @@ impl Page
         .rows.add(#move row)
     }
 
+    // Adds a row bound to the command `id` of `target`, described and run by the command system.
+    //
+    // The row takes its wording and its state from what `target` computes for the command, the way a
+    // menu entry made with [[Gui.MenuCtrl.addItem]] does: a command of an exclusive group is a
+    // choice, a checkable one a switch, any other an action. Activating the row sends the command to
+    // `target` at once. A hidden command adds nothing. Like a menu entry, the row borrows `id`.
+    mtd addCommand(id: WndId, target: *Wnd)
+    {
+        let state = target.sendComputeCommandStateEvent(id)
+        if state.updatedFields.has(.Hidden) and state.hidden do
+            return
+
+        let label    = commandLabel(&state)
+        let disabled = state.updatedFields.has(.Disabled) and state.disabled
+        let checked  = state.updatedFields.has(.Checked) and state.checked
+        if state.updatedFields.has(.RenderingHint) and state.renderingHint.has(.ExclusiveGroup) do
+            .addChoice(label, checked, func|target, id|() { target.sendCommandEvent(id) }, disabled: disabled)
+        elif state.updatedFields.has(.Checked) do
+            .addToggle(label, checked, func|target, id|(_) { target.sendCommandEvent(id) }, disabled: disabled)
+        else do
+            .addAction(label, func|target, id|() { target.sendCommandEvent(id) }, disabled: disabled)
+    }
+
+    // Adds a link worded `label` to a page holding the commands `ids` of `target`.
+    //
+    // The link shows the wording of the command that is checked, which is how an exclusive group of
+    // commands names its choice in force. The page borrows `ids`: give it storage that outlives the
+    // sheet, such as a constant array.
+    mtd addCommandLink(label: string, ids: const [..] WndId, target: *Wnd, icon: Icon = {})
+    {
+        var value: String
+        for id in ids
+        {
+            let state = target.sendComputeCommandStateEvent(id)
+            if state.updatedFields.has(.Checked) and state.checked
+            {
+                value = commandLabel(&state)
+                break
+            }
+        }
+
+        .addLink(label,
+                 value,
+                 func|ids, target|(page)
+                 {
+                     for id in ids do
+                         page.addCommand(id, target)
+                 },
+                 icon)
+    }
+
     // Adds the title of the group of rows that follows.
     mtd addHeading(label: string)
     {
@@ -207,4 +258,12 @@ impl Page
 
         return hasChoice
     }
+}
+
+// Returns the wording a command state gives its command, preferring its long form like a menu does.
+private func commandLabel(state: const *CommandStateEvent)->string
+{
+    if state.updatedFields.has(.LongName) do
+        return state.longName
+    return state.name
 }

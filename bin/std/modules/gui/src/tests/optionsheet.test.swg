@@ -661,3 +661,88 @@ func assertSheetGolden(shot: SheetShot)
     assertSheetGolden({palette: .SwagDark, golden: "optionsheet.bottomsheet.swag-dark", first: "Subtitles", placement: .BottomSheet})
     assertSheetGolden({palette: .Light, golden: "optionsheet.sidepanel.light", first: "Subtitles", placement: .SidePanel})
 }
+
+// A window answering the state of five commands, the way an application's actions do.
+struct SheetCommandTarget
+{
+    using wnd: Wnd
+    mode:      u32
+    flag:      bool
+    runs:      u32
+}
+
+const SheetModeIds = ["Test.Sheet.ModeA", "Test.Sheet.ModeB"]
+
+impl IWnd for SheetCommandTarget
+{
+    mtd impl onComputeStateEvent(evt: *CommandStateEvent)
+    {
+        switch evt.id
+        {
+        case "Test.Sheet.ModeA", "Test.Sheet.ModeB":
+            let mode = evt.id == SheetModeIds[0] ? 0'u32 : 1
+            evt.updatedFields.add(.Name | .Checked | .RenderingHint)
+            evt.name          = mode ? "Mode B" : "Mode A"
+            evt.checked       = .mode == mode
+            evt.renderingHint = .ExclusiveGroup
+
+        case "Test.Sheet.Flag":
+            evt.updatedFields.add(.Name | .LongName | .Checked)
+            evt.name     = "Flag"
+            evt.longName = "Show the flag"
+            evt.checked  = .flag
+
+        case "Test.Sheet.Run":
+            evt.updatedFields.add(.Name)
+            evt.name = "Run"
+
+        case "Test.Sheet.Hidden":
+            evt.updatedFields.add(.Name | .Hidden)
+            evt.name   = "Hidden"
+            evt.hidden = true
+        }
+    }
+
+    mtd impl onCommandEvent(evt: *CommandEvent)
+    {
+        switch evt.id
+        {
+        case "Test.Sheet.ModeA": .mode = 0
+        case "Test.Sheet.ModeB": .mode = 1
+        case "Test.Sheet.Flag":  .flag = not .flag
+        case "Test.Sheet.Run":   .runs += 1
+        }
+    }
+}
+
+// Rows bound to commands take their wording and kind from the command state, and run the command
+// on the target when activated; a link over an exclusive group is valued by the command in force.
+#test
+{
+    var host: Testing.HeadlessHost
+    host.setup(320, 200)
+    let target = Wnd.create'SheetCommandTarget(&host.root, {0, 0, 100, 100})
+    target.mode = 1
+
+    var page: OptionSheet.Page
+    page.addCommandLink("Mode", SheetModeIds, target)
+    page.addCommand("Test.Sheet.Flag", target)
+    page.addCommand("Test.Sheet.Run", target)
+    page.addCommand("Test.Sheet.Hidden", target)
+    Swag.assert(page.rows.count == 3)
+    Swag.assert(page.rows[0].kind == .Link and page.rows[0].value == "Mode B")
+    Swag.assert(page.rows[1].kind == .Toggle and
+                page.rows[1].label == "Show the flag" and
+                not page.rows[1].checked)
+    Swag.assert(page.rows[2].kind == .Action)
+
+    var modes: OptionSheet.Page
+    page.rows[0].buildLink(&modes)
+    Swag.assert(modes.title == "Mode" and modes.isChoiceList())
+    Swag.assert(not modes.rows[0].checked and modes.rows[1].checked)
+
+    (unwrap modes.rows[0].choose)()
+    (unwrap page.rows[1].toggle)(true)
+    (unwrap page.rows[2].run)()
+    Swag.assert(target.mode == 0 and target.flag and target.runs == 1)
+}

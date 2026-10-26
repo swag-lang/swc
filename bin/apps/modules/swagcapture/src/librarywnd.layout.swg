@@ -90,49 +90,13 @@ impl LibraryWnd
             .backgroundStyle = .Transparent
         }
 
-        // Thumbnail size and the information painted over thumbnails share one menu, because
-        // both control presentation rather than library contents.
+        // How the library is shown — thumbnail size, order, and what is painted over each
+        // thumbnail — is one sheet, because none of it changes what the library holds.
         .viewBtn = .createMenuButton(.theme().icon(.ActualSize, iconSize), appStrings().ui_BarView)
-        .viewBtn.sigPressed += func|libWnd = me|(btn)
-        {
-            with let menu = MenuCtrl.createPopup(libWnd)
-            {
-                .updateFlags(.HideShortcuts)
-                .addItem(ActionRecentSize.LibSmall)
-                .addItem(ActionRecentSize.LibMedium)
-                .addItem(ActionRecentSize.LibBig)
-                .addSeparator()
-
-                .addItem(ActionLibView.Ratings)
-                .addItem(ActionLibView.LinkMarkers)
-            }
-
-            discard menu.doModal(assume cast(*IconButton, btn), autoDestroy: true)
-        }
-
-        .sortBtn = .createMenuButton(.theme().icon(.Sort, iconSize), appStrings().ui_BarSort)
-        .sortBtn.sigPressed += func|libWnd = me|(btn)
-        {
-            with let menu = MenuCtrl.createPopup(libWnd)
-            {
-                .updateFlags(.HideShortcuts)
-                .addItem(ActionLibSort.Recent)
-                .addItem(ActionLibSort.Modified)
-                .addItem(ActionLibSort.Name)
-                .addItem(ActionLibSort.Application)
-                .addItem(ActionLibSort.WindowTitle)
-                .addItem(ActionLibSort.Dimensions)
-                .addItem(ActionLibSort.FileSize)
-                .addItem(ActionLibSort.Similar)
-                .addSeparator()
-                .addItem(ActionLibSort.Invert)
-            }
-
-            discard menu.doModal(assume cast(*IconButton, btn), autoDestroy: true)
-        }
+        .viewBtn.sigPressed += func|libWnd = me|(btn) { libWnd.showViewOptions(assume cast(*IconButton, btn)) }
 
         .filterBtn = .createMenuButton(.theme().icon(.Filter, iconSize), appStrings().ui_BarFilter)
-        .filterBtn.sigPressed += func|libWnd = me|(btn) { libWnd.showFilterMenu(assume cast(*IconButton, btn)) }
+        .filterBtn.sigPressed += func|libWnd = me|(btn) { libWnd.showFilterOptions(assume cast(*IconButton, btn)) }
 
         // Library roots and ordinary image folders are explicit choices, named like every
         // neighbouring command instead of leaving one unexplained glyph in the sentence.

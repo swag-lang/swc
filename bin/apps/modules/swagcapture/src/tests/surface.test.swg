@@ -68,6 +68,35 @@ func testAssertLibraryMenuGolden(host: *Gui.Testing.HeadlessHost, main: *MainWnd
     host.pump()
 }
 
+// Opens the option sheet of `button`, follows the link worded `link` when there is one, and
+// compares the library with the sheet open to `golden`.
+func testAssertLibrarySheetGolden(host: *Gui.Testing.HeadlessHost, main: *MainWnd, button: *IconButton, golden: string, link: string? = null)
+{
+    var captured: bool
+    host.app.sigFrame += func|host, main, golden, link, captured = &captured|(_)
+    {
+        let sheet = host.capturedOptionSheet()
+        if captured[] or not sheet do
+            return
+        host.finishAnimations()
+        if link
+        {
+            Swag.assert(sheet.activateRow(link))
+            host.finishAnimations()
+        }
+
+        var image = host.render(main)
+        Pixel.Testing.assertImageGolden(&image, golden)
+        sheet.close()
+        captured[] = true
+    }
+
+    button.sigPressed.call(cast(*Button, button))
+    host.app.sigFrame.clear()
+    Swag.assert(captured)
+    host.pump()
+}
+
 // Captures one popup from the caption menu bar at a desktop DPI. Each menu owns its fixture so a
 // regression in File cannot prevent Capture, Edit, Image, View, and Help from producing evidence.
 func testAssertMainMenuGolden(index: u32, golden: string)
@@ -254,7 +283,7 @@ func testAssertMainMenuGolden(index: u32, golden: string)
         g_Main = null
     }
 
-    testAssertLibraryMenuGolden(&host, main, main.libWnd.viewBtn, "library.menu.view")
+    testAssertLibrarySheetGolden(&host, main, main.libWnd.viewBtn, "library.options.view")
 }
 
 #[Swag.TestTag("golden")]
@@ -269,7 +298,7 @@ func testAssertMainMenuGolden(index: u32, golden: string)
         g_Main = null
     }
 
-    testAssertLibraryMenuGolden(&host, main, main.libWnd.sortBtn, "library.menu.sort")
+    testAssertLibrarySheetGolden(&host, main, main.libWnd.viewBtn, "library.options.sort", appStrings().ui_SortBy)
 }
 
 #[Swag.TestTag("golden")]
@@ -284,7 +313,7 @@ func testAssertMainMenuGolden(index: u32, golden: string)
         g_Main = null
     }
 
-    testAssertLibraryMenuGolden(&host, main, main.libWnd.filterBtn, "library.menu.filter")
+    testAssertLibrarySheetGolden(&host, main, main.libWnd.filterBtn, "library.options.filter")
 }
 
 #[Swag.TestTag("golden")]

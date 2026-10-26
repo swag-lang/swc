@@ -85,7 +85,6 @@ struct LibraryWnd
         listCtrl:    *ListCtrl
         commandBar:  *StackLayoutCtrl
         viewBtn:     *IconButton
-        sortBtn:     *IconButton
         filterBtn:   *IconButton
         folderBtn:   *IconButton
         searchEdit:  *EditBox
@@ -100,8 +99,7 @@ struct LibraryWnd
 
     // Backing storage for the breadcrumb drop-down entry ids (folder paths). Menu items
     // keep the id as a non-owning slice, so the strings must outlive the popup's modal loop.
-    menuPaths:  Array'String
-    menuValues: Array'String
+    menuPaths: Array'String
 
     sidebarApplications: Array'LibraryNamedFilter
     sidebarTags:         Array'LibraryNamedFilter
@@ -126,7 +124,7 @@ struct LibraryWnd
 
 impl IWnd for LibraryWnd
 {
-    // The four drop-down buttons and the search placeholder take their wording once, when
+    // The three drop-down buttons and the search placeholder take their wording once, when
     // they are built, so they cannot follow a language change on their own. Every control
     // driven by a command already refreshes itself through the command state.
     mtd impl onNotifyEvent(evt: *NotifyEvent)
@@ -147,7 +145,6 @@ impl LibraryWnd
             return
 
         .viewBtn.setText(appStrings().ui_BarView)
-        .sortBtn.setText(appStrings().ui_BarSort)
         .filterBtn.setText(appStrings().ui_BarFilter)
         .folderBtn.setText(appStrings().ui_BarFolders)
         .folderBtn.toolTip = appStrings().tip_LibraryFolders

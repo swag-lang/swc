@@ -154,14 +154,23 @@ func completeHexViewerAnalysis(host: *Testing.HeadlessHost, view: *Hex.Panel)
 
     // Width and spelling are independent controls. Float appears only where the selected width
     // has a corresponding representation.
-    view.widthCombo.setSelectedIndex(1)
-    view.formatCombo.setSelectedIndex(1)
+    view.setValueWidth(1)
+    view.setFormat(1)
     Swag.assert(grid.grouping == .Unsigned16)
-    view.widthCombo.setSelectedIndex(3)
-    view.formatCombo.setSelectedIndex(3)
+    view.setValueWidth(3)
+    view.setFormat(3)
     Swag.assert(grid.grouping == .Float64 and grid.valueSize() == 8)
-    view.widthCombo.setSelectedIndex(0)
-    Swag.assert(view.formatCombo.items.count == 3 and grid.grouping == .Bytes)
+    view.setValueWidth(0)
+    Swag.assert(view.formatCount() == 3 and view.formatIndex == 0 and grid.grouping == .Bytes)
+
+    // The options reach the same choices, and offer float only where the width has one.
+    host.activateOptionRowWhenShown(Hex.texts().ui_ValueWidth)
+    host.thenActivateOptionRow(Hex.texts().ui_Width32)
+    host.thenActivateOptionRow(Hex.texts().ui_Representation)
+    host.thenActivateOptionRow(Hex.texts().ui_FormatFloat)
+    view.showOptions()
+    Swag.assert(host.autoHandled and grid.grouping == .Float32)
+    view.setValueWidth(0)
 }
 
 // The dump copy is the view in text form: the offset, the grouped bytes, and the text column.
@@ -342,8 +351,8 @@ func completeHexViewerAnalysis(host: *Testing.HeadlessHost, view: *Hex.Panel)
     Swag.assert(window.searchBox.name.raw == Hex.texts().ui_SearchPlaceholder)
     Swag.assert(not window.searchOptionsButton.isLocallyVisible())
 
-    view.widthCombo.setSelectedIndex(2)
-    view.formatCombo.setSelectedIndex(1)
+    view.setValueWidth(2)
+    view.setFormat(1)
     Swag.assert(view.grid.grouping == .Unsigned32)
     window.searchBox.setText("value: 4022250974")
     completeHexViewerSearch(&host, window)
@@ -620,8 +629,7 @@ func completeHexViewerAnalysis(host: *Testing.HeadlessHost, view: *Hex.Panel)
     host.setup(900, 600)
 
     let view = createTestViewer(&host, fileName, 900, 560)
-    Swag.assert(view.byteOrderCombo.selectedIndex == 0)
-    Swag.assert(not view.grid.bigEndian)
+    Swag.assert(not view.bigEndian and not view.grid.bigEndian)
 
     // The combo changes the values drawn by the grid, not only the distance between bytes.
     view.grid.setGrouping(.Unsigned32)
@@ -631,7 +639,7 @@ func completeHexViewerAnalysis(host: *Testing.HeadlessHost, view: *Hex.Panel)
     Swag.assert(Hex.formatScalar(.Unsigned32, view.grid.scalarAt(0)) == "305419896")
     Swag.assert(Utf8.contains(view.grid.rowHexStrong.toSlice(), "305419896"))
 
-    view.byteOrderCombo.setSelectedIndex(1)
+    view.setBigEndian(true)
     Swag.assert(view.grid.bigEndian)
     view.grid.buildRow(0)
     Swag.assert(Utf8.contains(view.grid.rowHexStrong.toSlice(), "2018915346"))
@@ -702,7 +710,7 @@ func completeHexViewerAnalysis(host: *Testing.HeadlessHost, view: *Hex.Panel)
     host.pump()
     Swag.assert(grid.selectionStart() == 0 and grid.selectionLength() == 4096)
 
-    view.rowWidthCombo.setSelectedIndex(3)
+    view.setRowWidth(3)
     Swag.assert(grid.bytesPerRow == 32 and not grid.autoFitRow)
 
     grid.moveCaret(0x123, false)
@@ -868,15 +876,20 @@ func completeHexViewerAnalysis(host: *Testing.HeadlessHost, view: *Hex.Panel)
 
     let view = createTestViewer(&host, fileName, 900, 560)
     Swag.assert(Hex.texts().ui_TextColumn == "text" and Hex.texts().ui_Empty == "This file is empty.")
-    Swag.assert(view.widthCombo.selectedItem()!.name.raw == "8-bit" and view.byteOrderCombo.selectedItem()!.name.raw == "Little endian")
+    var options: OptionSheet.Page
+    view.describeOptions(&options)
+    Swag.assert(options.rows[1].value == "8-bit" and options.rows[3].value == "Little endian")
     discard host.render(view)
 
     expect host.app.setLanguage("fr")
     host.notify(.LanguageChanged)
     Swag.assert(Hex.texts().ui_TextColumn == "texte")
     Swag.assert(Hex.texts().ui_Empty == "Ce fichier est vide.")
-    Swag.assert(view.widthCombo.selectedItem()!.name.raw == "8 bits" and view.byteOrderCombo.selectedItem()!.name.raw == "Little endian")
-    Swag.assert(view.widthCombo.toolTip == "Largeur des valeurs")
+    var translated: OptionSheet.Page
+    view.describeOptions(&translated)
+    Swag.assert(translated.rows[1].label == "Largeur des valeurs" and translated.rows[1].value == "8 bits")
+    Swag.assert(translated.rows[3].value == "Little endian")
+    Swag.assert(view.optionsButton.toolTip == "Options")
     Swag.assert(view.details.isEmpty())
     Swag.assert(view.analysisButton.toolTip == "Analyser la sélection, ou le fichier entier lorsqu’un seul octet est sélectionné")
     Swag.assert(view.analysisView.analyzeButton.toolTip == "Analyser la sélection actuelle, ou le fichier entier lorsqu’un seul octet est sélectionné")
@@ -920,8 +933,8 @@ func completeHexViewerAnalysis(host: *Testing.HeadlessHost, view: *Hex.Panel)
 
     let view = createTestViewer(&host, fileName, 900, 560)
     Swag.assert(view.commands.position.width <= 640)
-    Swag.assert(view.byteOrderCombo.parent == view.commands and view.byteOrderCombo.selectedIndex == 0)
-    Swag.assert(view.rowWidthCombo.parent == view.commands and view.rowWidthCombo.selectedIndex == 0)
+    Swag.assert(view.optionsButton.parent == view.commands)
+    Swag.assert(not view.bigEndian and view.rowWidthIndex == 0)
     Swag.assert(view.details.isEmpty())
     Testing.assertContentFits(view)
 

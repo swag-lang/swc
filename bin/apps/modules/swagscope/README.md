@@ -65,8 +65,9 @@ itself for a document another viewer claims as binary: a PDF, an office file and
 with enough printable bytes to pass a content probe, and offering to read one as a page of text
 says something untrue about the file. It loads small UTF-8 segments
 on demand and stays about two viewports ahead, so a large source file does not need to fit in
-memory before its first screen appears. A lower-band switch numbers its lines, counted in the units
-of the file's encoding across the whole file, and the choice follows the reader to the next file.
+memory before its first screen appears. Its lower-band options wrap long lines, choose the
+encoding, and number the lines, counted in the units of the file's encoding across the whole file;
+the numbering follows the reader to the next file.
 Binary content directs the reader to the hexadecimal alternative instead of guessing an encoding.
 
 ## Shipped viewers
@@ -86,7 +87,7 @@ Binary content directs the reader to the hexadecimal alternative instead of gues
   column. Text selects across blocks with the pointer or Ctrl+A and copies with Ctrl+C, as plain
   text: inline formatting resolves to the words it decorated, a table to tabs and lines, and a
   formula to its mathematical source. Rendering is offline and executes no embedded HTML or
-  script. Reading width and appearance stay in the centered lower band; zoom is a clickable
+  script. Reading width and appearance are the options of the lower band; zoom is a clickable
   information-band percentage.
   GitHub, Newsprint, Night, Pixyll, and Whitey follow their Typora typography, including heading
   weights, italics, line boxes, collapsing block margins, and heading rules. Fonts resolve from
@@ -127,8 +128,8 @@ Binary content directs the reader to the hexadecimal alternative instead of gues
   AVI accepts Motion JPEG, MPEG-4 Part 2, or uncompressed picture tracks and integer PCM sound.
   MP4, M4V, and MOV accept Motion JPEG, H.264, or H.265 picture tracks and AAC-LC mono/stereo
   sound. MKV accepts H.264, H.265, or MPEG-4 Part 2 pictures and every AAC-LC, AC-3, independent
-  E-AC-3, DTS Core, FLAC, MPEG Layer III, Vorbis, or Opus track, with a selector when several are
-  present. The decoded run-ahead targets a 64 MiB budget, with a two-picture floor for
+  E-AC-3, DTS Core, FLAC, MPEG Layer III, Vorbis, or Opus track, chosen among the options when
+  several are present. The decoded run-ahead targets a 64 MiB budget, with a two-picture floor for
   high-resolution streams.
   The output-device sample cursor is the master clock: slow picture decoding drops to a clean
   video sync frame without moving or stretching sound.
@@ -141,8 +142,8 @@ Binary content directs the reader to the hexadecimal alternative instead of gues
   Its paged character map walks mapped Unicode scalars without materializing the whole map; the
   current range opens shortcuts to common Unicode blocks.
 - `MIDI` parses Standard MIDI Files into a dedicated piano roll. It shows musical duration,
-  tempo, meter, key signature, named tracks and note ranges, offers an all-tracks or per-track
-  view, and provides horizontal zoom through the common information-band control without
+  tempo, meter, key signature, named tracks and note ranges; its options choose an all-tracks or
+  per-track view, the pitch names and the keyboard width, and it provides horizontal zoom through the common information-band control without
   synthesizing or executing file content.
 - `Archive` opens ZIP and ZIP64 containers, including JAR, APK, EPUB, office and package formats,
   in the common folder explorer. Opening an entry asynchronously prepares a bounded temporary
@@ -161,8 +162,9 @@ Binary content directs the reader to the hexadecimal alternative instead of gues
   group walks visited rows backward or forward and opens the structure-command menu for copying,
   expansion, collapse, and file-offset navigation.
 - `Hexadecimal` is available for every file. It keeps one 256 KiB resident window whose reads are
-  aligned to 64 KiB boundaries, uses 64-bit offsets, and supports independent scalar width,
-  representation, explicit Little/Big byte order, and fixed-width font zoom. Its information-band
+  aligned to 64 KiB boundaries, uses 64-bit offsets, and its options set the row width and an
+  independent scalar width, representation, and explicit Little/Big byte order; zoom sets the
+  fixed-width font. Its information-band
   inspector reports the exact caret offset and file percentage, selection length, active value,
   and the same bytes as signed, unsigned, hexadecimal, binary, octal, boolean, floating-point, and
   printable readings. Go To accepts hexadecimal, `0d` decimal, percentage, `caret`, `filesize`, and

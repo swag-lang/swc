@@ -2,16 +2,16 @@
 # The reading names a binary format uses for itself are written the same way in French, so
 # `ui_FormatHex`, `ui_EndianLittle`, and `ui_EndianBig` are deliberately absent.
 
-ui_TipWidth      Largeur des valeurs
+ui_ValueWidth    Largeur des valeurs
 ui_Width8        8 bits
 ui_Width16       16 bits
 ui_Width32       32 bits
 ui_Width64       64 bits
-ui_TipFormat     Représentation des valeurs
+ui_Representation Représentation des valeurs
 ui_FormatUns     Non signé
 ui_FormatSigned  Signé
 ui_FormatFloat   Flottant
-ui_TipEndian     Ordre des octets des valeurs multi-octets
+ui_ByteOrder     Ordre des octets
 ui_ZoomMenu      Options de zoom des octets
 ui_TextColumn    texte
 ui_Empty         Ce fichier est vide.

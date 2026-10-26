@@ -6,6 +6,7 @@ using Core, Gui
 // Visible strings of the MIDI viewer.
 struct Texts
 {
+    ui_Track:            string = "Track"     // Option choosing which track the roll shows.
     ui_AllTracks:        string = "All tracks"
     ui_TrackName:        string = "Track %"
     ui_TrackChoice:      string = "% — %"
@@ -48,6 +49,20 @@ func texts()->const *Texts => &g_Texts
 // Counts tracks and notes in the active language, singular for one.
 func trackCountText(count: u64)->String => count == 1 ? String.from(texts().ui_OneTrack) : Format.toString(texts().ui_Tracks, count)
 func noteCountText(count: u64)->String  => count == 1 ? String.from(texts().ui_OneNote) : Format.toString(texts().ui_Notes, count)
+
+// Names one way of labelling the pitches.
+func pitchLabelText(mode: PitchLabelMode)->string => mode == .MidiNumber ? texts().ui_PitchMidiNumber : texts().ui_PitchScientific
+
+// Names one width of the piano keyboard.
+func keyboardWidthText(index: u32)->string
+{
+    switch index
+    {
+    case 0:  return texts().ui_KeyboardCompact
+    case 1:  return texts().ui_KeyboardStandard
+    default: return texts().ui_KeyboardWide
+    }
+}
 
 // Registers this viewer's string table with the application.
 func registerTexts(app: *Application)

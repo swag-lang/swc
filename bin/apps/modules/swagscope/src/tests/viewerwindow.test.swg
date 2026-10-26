@@ -397,7 +397,10 @@ func assertFolderFiles(window: *ViewerWindow, names: const [..] String)
     Swag.assert(view.encoding == .Utf16Le)
     Swag.assert(view.encodingName() == "UTF-16 LE")
     Swag.assert(view.editor.text() == "Hello, wide world")
-    Swag.assert(view.encodingCombo.selectedIndex == 1)
+
+    var options: OptionSheet.Page
+    view.describeOptions(&options)
+    Swag.assert(options.rows[2].value == "UTF-16 LE")
 }
 
 // A single-byte page has no mark to announce it, and every byte decodes, so the accented byte is

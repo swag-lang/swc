@@ -82,7 +82,7 @@ impl ViewerWindow
 
         .commandBar.centerGroup = .searchGroup
 
-        with .searchOptionsButton = Viewer.createActionDropDown(.searchGroup, .Options)
+        with .searchOptionsButton = Viewer.createActionDropDown(.searchGroup, .MatchWholeWord)
         {
             .layoutSpec.alignY = .Center
             .toolTip = appStrings().ui_SearchOptions

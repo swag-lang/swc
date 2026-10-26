@@ -46,11 +46,12 @@ Reusable engine work remains in the backlog of the standard module that owns it.
 - Evidence: `Explorer` runs three isolated thumbnail renderers concurrently. The former generic
   path created a complete viewer for each uncached file. Generic thumbnails now use
   one persistent CPU canvas and font cache per worker, reading at most 16 KiB for text or mapping
-  the first 2 KiB for binary input. Image and video plugins keep their direct decoders. Appearance
-  changes no longer invalidate previews; viewer-selection changes still do. The gallery uses larger
-  portrait tiles and preserves intrinsic media ratios. Focused tests cover generic and direct routes,
-  bounded input, worker cache reuse, and the gallery golden. Cold/warm child-process latency and UI
-  frame cadence have not yet been measured.
+  the first 2 KiB for binary input. Image and video plugins keep their direct decoders. The Explorer
+  no longer invalidates the full grid every 16 ms during preview work; each spinner repaints its own
+  window. Appearance changes no longer invalidate previews; viewer-selection changes still do. The
+  gallery uses larger portrait tiles and preserves intrinsic media ratios. Focused tests cover generic
+  and direct routes, bounded input, worker cache reuse, spinner frames, and the gallery golden.
+  Cold/warm child-process latency and UI frame cadence have not yet been measured.
 - Next: profile cold and warm child-process latency plus spinner frame cadence for Markdown, image,
   video, and one expensive structured viewer. If direct media decoders miss the first-preview budget,
   reduce their decode work while retaining a useful representative image.

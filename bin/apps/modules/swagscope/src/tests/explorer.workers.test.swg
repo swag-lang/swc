@@ -38,8 +38,6 @@ using Core, Gui, Pixel
     explorer.requestPreview()
     for &preview, index in explorer.previews do
         Swag.assert(preview.started and preview.index == index)
-    Swag.assert(explorer.previewTimer != null)
-
     explorer.hide()
     explorer.leave()
     for &preview in explorer.previews do
@@ -55,7 +53,7 @@ using Core, Gui, Pixel
         Threading.Thread.sleep(1'ms)
     }
 
-    Swag.assert(explorer.cached.isEmpty() and explorer.previewTimer == null)
+    Swag.assert(explorer.cached.isEmpty())
 
     explorer.show()
     explorer.requestPreview()
@@ -72,12 +70,12 @@ using Core, Gui, Pixel
         Threading.Thread.sleep(1'ms)
     }
 
-    Swag.assert(explorer.cached.count == ExplorerWorkerCount and explorer.previewTimer == null)
+    Swag.assert(explorer.cached.count == ExplorerWorkerCount)
     for &entry in explorer.entries do
         Swag.assert(entry.texture.isValid())
 }
 
-// The standard spinner paints distinct frames until a completed preview replaces it.
+// Each standard spinner animates on its own window until a completed preview replaces it.
 #test
 {
     var host: Testing.HeadlessHost
@@ -90,10 +88,8 @@ using Core, Gui, Pixel
     preview.index      = 0
     preview.generation = explorer.generation
     preview.submit(func() {})
-    explorer.updatePreviewAnimation()
     let first = host.render(window)
-    Swag.assert(explorer.grid.spinners[0].isLocallyVisible() and explorer.previewTimer != null)
-    host.fireTimer(explorer.previewTimer)
+    Swag.assert(explorer.grid.spinners[0].isLocallyVisible())
     let second = host.render(window)
     var changed: u32
     let rect   = explorer.grid.spinners[0].surfaceRect()
@@ -114,8 +110,7 @@ using Core, Gui, Pixel
     var image = Image.create(24, 18, .RGB8)
     image.fill(Color.fromRgb(56, 189, 248))
     explorer.entries[0].texture = host.app.renderer.addImage(&image)
-    explorer.updatePreviewAnimation()
     explorer.grid.invalidate()
     discard host.render(window)
-    Swag.assert(not explorer.grid.spinners[0].isLocallyVisible() and explorer.previewTimer == null)
+    Swag.assert(not explorer.grid.spinners[0].isLocallyVisible())
 }

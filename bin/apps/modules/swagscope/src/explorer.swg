@@ -56,7 +56,6 @@ struct Explorer
     cached:          Array'u64
     sortColumn:      u32
     descending:      bool
-    previewTimer:    *Timer?
     menuPaths:       Array'String
     previewSettings: String
 }
@@ -595,7 +594,6 @@ impl Explorer
         .refreshPreviewSettings()
         for &preview in .previews where not preview.started do
             .startPreview(preview)
-        .updatePreviewAnimation()
     }
 
     mtd refreshPreviewSettings()
@@ -624,22 +622,6 @@ impl Explorer
         }
 
         .previewSettings = settings
-    }
-
-    mtd updatePreviewAnimation()
-    {
-        var busy = false
-        for &preview in .previews where preview.started and not preview.opening and preview.generation == .generation do
-            busy = true
-        if busy and .isVisible()
-        {
-            if not .previewTimer do
-                .previewTimer = .addTimer(16'ms)
-        }
-        else
-        {
-            .stopTimer(&.previewTimer)
-        }
     }
 
     // Returns the active slot for a tile, including work waiting for GUI publication.
@@ -721,21 +703,6 @@ impl Explorer
 
 impl IWnd for Explorer
 {
-    mtd impl onTimerEvent(evt: *TimerEvent)
-    {
-        if evt.timer == .previewTimer
-        {
-            .updatePreviewAnimation()
-
-            // Keep repainting the visible tiles while background workers own their previews.
-            .grid.invalidate()
-        }
-        else
-        {
-            evt.accepted = false
-        }
-    }
-
     mtd impl onTaskEvent(evt: *TaskEvent)
     {
         if .load.claim(evt)
@@ -816,7 +783,6 @@ impl IWnd for Explorer
 
     mtd impl onDestroyEvent(_: *DestroyEvent)
     {
-        .stopTimer(&.previewTimer)
         for &preview in .previews do
             preview.task.cancel()
         for &preview in .previews do

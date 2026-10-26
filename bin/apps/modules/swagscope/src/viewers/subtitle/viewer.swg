@@ -31,6 +31,44 @@ struct ViewerCue
     lastLine:   u64
 }
 
+// Sets the time range of each cue back from its words, so the transcript reads as dialogue with
+// its timing beside it rather than as a column of numbers.
+struct TranscriptLexer
+{
+    enum Style: RichEditStyleRef
+    {
+        Default
+        Time
+    }
+}
+
+impl IRichEditLexer for TranscriptLexer
+{
+    mtd impl setup(_: *RichEditCtrl) {}
+
+    mtd impl setupTheme(ed: *RichEditCtrl)
+    {
+        var time = ed.themeColors().richEdit_TextSpecial
+        time.ensureContrast(ed.themeColors().richEdit_Bk, 4.5)
+        ed.styles[cast(u64, Style.Time)].colFg = time
+    }
+
+    mtd impl insertRune(_: *RichEditCtrl, _: rune)->bool => false
+
+    // A time line is the one shape the transcript builder writes: `HH:MM:SS.mmm  →  HH:MM:SS.mmm`.
+    mtd impl compute(_: *RichEditLine?, line: *RichEditLine, _: *RichEditLine?)
+    {
+        let isTime = line.length() >= 29 and
+                     line.runeAt(2) == ':' and
+                     line.runeAt(5) == ':' and
+                     line.runeAt(8) == '.' and
+                     line.runeAt(14) == '→'
+        let style = cast(RichEditStyleRef, isTime ? Style.Time : Style.Default)
+        for index in line.length() do
+            line.setStyleAt(index, style)
+    }
+}
+
 // Presents a timed subtitle file as a searchable transcript of its cues.
 struct Panel
 {
@@ -44,6 +82,7 @@ struct Panel
     }
 
     track:      *Subtitle.Track?
+    lexer:      TranscriptLexer
     transcript: String
     cueText:    Array'ViewerCue
     currentCue: u64 = Swag.U64.Max
@@ -294,8 +333,10 @@ private impl Panel
             .dockStyle   = .Center
             .marginLeft  = 20
             .marginRight = 20
-            .style.setFont(result.theme().createDefaultFontFs(result.themeMetrics().defaultFixedFontSize), .Regular)
+            .lineSpacing = 4
+            .style.setFont(result.theme().createDefaultFont(result.themeMetrics().defaultFixedFontSize), .Regular)
             .setFlags(.ReadOnly | .WordWrap)
+            .setLexer(&result.lexer)
             .setText(result.transcript)
         }
 

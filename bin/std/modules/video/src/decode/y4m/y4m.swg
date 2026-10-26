@@ -70,7 +70,7 @@ private func parseHeader(line: string)->Header fail
     if not tokens.count or tokens[0] != StreamSignature do
         fail InvalidFormatError{"YUV4MPEG2 stream header is missing"}
 
-    var result: retval
+    var result: #returntype
     result.chromaMode = .Yuv420
     var hasWidth, hasHeight, hasRate, hasInterlace: bool
     for token in tokens[1 until tokens.count]
@@ -251,7 +251,7 @@ impl IDecoder for Decoder
         // must be where that tiling says it is. A stream failing either one is walked instead,
         // and reports no frame count rather than a computed one that would be wrong.
         let span = source.size() - .firstMarker
-        var result: retval = .header.info
+        var result: #returntype = .header.info
         result.frameCount = span / .frameStride
         .isRandomAccess   = not (span % .frameStride) and .probeLastFrame(source, result.frameCount)
         if not .isRandomAccess do

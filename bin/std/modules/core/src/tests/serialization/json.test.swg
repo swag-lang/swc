@@ -40,7 +40,7 @@ struct JsonKeyPayload
 
 func makeJsonPayload()->JsonPayload
 {
-    var result: retval
+    var result: #returntype
 
     let seed: [3] s32 = [-1, 0, 4]
     result.id     = 7

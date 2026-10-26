@@ -38,7 +38,7 @@ struct Request
 
 func makeOwner()->Owner
 {
-    var result: retval
+    var result: #returntype
     result.value  = 42
     result.buffer = &result.value
     return result

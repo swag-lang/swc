@@ -81,7 +81,7 @@ public impl Xml
 
     internal mtd getError(val: string)->SyntaxError
     {
-        var err: retval
+        var err: #returntype
         err.message = Errors.mkString(val)
         err.seek    = .stream.seek
         err.line    = 1
@@ -212,7 +212,7 @@ public impl Xml
             return val.value
 
         case Core.String:
-            var result: retval
+            var result: #returntype
             var c = .stream.peekU8()
             while c and c != '<'
             {

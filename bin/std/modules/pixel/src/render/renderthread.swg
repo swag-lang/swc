@@ -246,7 +246,7 @@ impl IRenderer for RenderThread
 
     mtd impl createContext(renderHandle: const *void?, width, height: s32, shared: *RenderContext? = null)->RenderContext fail
     {
-        var result: retval
+        var result: #returntype
         try .executeFallible(func|me, renderHandle, width, height, shared, &result|() fail { result = try me.backend.createContext(renderHandle, width, height, shared) })
         return result
     }
@@ -279,7 +279,7 @@ impl IRenderer for RenderThread
 
     mtd impl targetSize()->{ width, height: s32 }
     {
-        var result: retval
+        var result: #returntype
         .execute(func|me, &result|() { result = me.backend.targetSize() })
         return result
     }
@@ -291,14 +291,14 @@ impl IRenderer for RenderThread
 
     mtd impl readRenderTarget(target: const *RenderTarget, x, y, width, height: s32)->Image
     {
-        var result: retval
+        var result: #returntype
         .execute(func|me, target, x, y, width, height, &result|() { result = me.backend.readRenderTarget(target, x, y, width, height) })
         return result
     }
 
     mtd impl unbindRenderTargetToImage(x, y, width, height: s32)->Image
     {
-        var result: retval
+        var result: #returntype
         .execute(func|me, x, y, width, height, &result|() { result = me.backend.unbindRenderTargetToImage(x, y, width, height) })
         return result
     }
@@ -307,7 +307,7 @@ impl IRenderer for RenderThread
 
     mtd impl createRenderTarget(width, height: s32)->RenderTarget
     {
-        var result: retval
+        var result: #returntype
         .execute(func|me, width, height, &result|() { result = me.backend.createRenderTarget(width, height) })
         return result
     }
@@ -316,21 +316,21 @@ impl IRenderer for RenderThread
 
     mtd impl addImage(fullName: string)->Texture fail
     {
-        var result: retval
+        var result: #returntype
         try .executeFallible(func|me, fullName, &result|() fail { result = try me.backend.addImage(fullName) })
         return result
     }
 
     mtd impl addImage(image: Image)->Texture
     {
-        var result: retval
+        var result: #returntype
         .execute(func|me, &image, &result|() { result = me.backend.addImage(image) })
         return result
     }
 
     mtd impl addImage(view: const *YuvPlanarView)->Texture
     {
-        var result: retval
+        var result: #returntype
         .execute(func|me, view, &result|() { result = me.backend.addImage(view) })
         return result
     }
@@ -340,7 +340,7 @@ impl IRenderer for RenderThread
 
     mtd impl readTexturePixels(texture: Texture, pixelFormat: PixelFormat)->Array'u8
     {
-        var result: retval
+        var result: #returntype
         .execute(func|me, &texture, pixelFormat, &result|() { result = me.backend.readTexturePixels(texture, pixelFormat) })
         return result
     }

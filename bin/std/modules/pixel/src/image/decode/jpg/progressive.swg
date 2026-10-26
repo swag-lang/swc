@@ -11,7 +11,7 @@ impl Decoder
 {
     func coeffBufOpen(blkNumX, blkNumY, blkLenX, blkLenY: s32)->CoeffBuf
     {
-        with var result: retval
+        with var result: #returntype
         {
             .blockNumX = blkNumX
             .blockNumY = blkNumY

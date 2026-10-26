@@ -21,7 +21,7 @@ struct FocusHeadlessCard
 // Builds a laid-out `FocusHeadlessCard` inside `parent`, at `rect`.
 func focusHeadlessCard(parent: *Wnd, rect: Math.Rectangle)->FocusHeadlessCard
 {
-    var result: retval
+    var result: #returntype
 
     result.panel = Wnd.create'Wnd(parent, rect)
 

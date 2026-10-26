@@ -5,7 +5,7 @@ struct Large { first, second, third: u64 }
 #[Swag.Inline]
 func makeLarge()->Large
 {
-    var result: retval
+    var result: #returntype
     result = Large{11, 13, 17}
     return result
 }
@@ -33,7 +33,7 @@ func returnScalar()->u64
 #[Swag.Inline]
 func nestedLarge()->Large
 {
-    var result: retval
+    var result: #returntype
     let first = makeLarge()
     result = Large{first.third, first.second, first.first}
     return result
@@ -42,7 +42,7 @@ func nestedLarge()->Large
 #[Swag.NoInline]
 func enclosingLarge()->Large
 {
-    var result: retval
+    var result: #returntype
     result = Large{23, 29, 31}
     let inner = nestedLarge()
     Swag.assert(result.first == 23 and result.second == 29 and result.third == 31)
@@ -56,11 +56,12 @@ func enclosingLarge()->Large
     Swag.assert(value.first == 23 and value.second == 29 and value.third == 31)
 }
 
+// Two locals of the return type are two variables: only the returned one is the result.
 #[Swag.Inline]
 func twoNames()->Large
 {
-    var first:  retval
-    var second: retval
+    var first:  #returntype
+    var second: #returntype
     first.first   = 37
     second.second = 41
     return first
@@ -69,5 +70,5 @@ func twoNames()->Large
 #test
 {
     let value = twoNames()
-    Swag.assert(value.first == 37 and value.second == 41)
+    Swag.assert(value.first == 37 and value.second == 0)
 }

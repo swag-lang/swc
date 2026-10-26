@@ -119,7 +119,7 @@ impl RichEditCtrl
     {
         if .hasSelRect
         {
-            var result: retval
+            var result: #returntype
             result.lineIndex     = Math.min(.selBeg.lineIndex, .cursorPos.lineIndex)
             result.charPosInLine = Math.min(.selBeg.charPosInLine, .cursorPos.charPosInLine)
             return result
@@ -139,7 +139,7 @@ impl RichEditCtrl
     {
         if .hasSelRect
         {
-            var result: retval
+            var result: #returntype
             result.lineIndex     = Math.max(.selBeg.lineIndex, .cursorPos.lineIndex)
             result.charPosInLine = Math.max(.selBeg.charPosInLine, .cursorPos.charPosInLine)
             return result
@@ -167,7 +167,7 @@ impl RichEditCtrl
     // none of the scroll; measuring against it puts every mark a padding away from the words.
     mtd selectionRect()->Math.Rectangle
     {
-        var result: retval
+        var result: #returntype
         if .isSelectionEmpty() do
             return result
 

@@ -151,7 +151,7 @@ internal impl Item
     // widened by the room a face needs above and below the em for its ascenders and descenders.
     mtd const maskRegion()->{ rect: Math.Rectangle, known: bool }
     {
-        var result: retval
+        var result: #returntype
         if .kind != .Text
         {
             result.rect  = .paintBounds()
@@ -312,21 +312,21 @@ internal impl Item
 {
     func createText()->Item
     {
-        var result: retval
+        var result: #returntype
         result.kind = .Text
         return result
     }
 
     func createPath()->Item
     {
-        var result: retval
+        var result: #returntype
         result.kind = .Path
         return result
     }
 
     func createImage()->Item
     {
-        var result: retval
+        var result: #returntype
         result.kind = .Image
 
         // An image has no colour of its own to fill with: its `fillColor` is the tint its

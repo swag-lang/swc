@@ -160,7 +160,7 @@ impl Decoder
         let flags     = buffer[cast(u64, dfdOffset) + 15]
         let alphaMode = (flags & 1) != 0 and format.hasAlpha() ? AlphaMode.Premultiplied : AlphaMode.Straight
 
-        var result: retval
+        var result: #returntype
         result.init(cast(s32, width), cast(s32, height), format, alphaMode)
         try options.checkImage(result.width, result.height, format)
 
@@ -247,7 +247,7 @@ impl IImageSetDecoder for Decoder
             }
         }
 
-        var result: retval
+        var result: #returntype
         result.frames = .frames
         return result
     }

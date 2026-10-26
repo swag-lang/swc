@@ -177,7 +177,7 @@ impl FontFamily
     // Returns the font families currently available from Windows.
     public func enumerateSystemFonts()->Array'SystemFontFamilyInfo
     {
-        var result: retval
+        var result: #returntype
 
         let hdc = GetDC(null)
         defer ReleaseDC(null, hdc)

@@ -314,9 +314,10 @@ if it destroys a useful reading boundary, investigate the formatter.
 
 - Return the operation's primary result. Do not make a caller declare an uninitialized value and
   pass its address merely so a `create`, `load`, `parse`, `build`, or query function can fill it.
-- Construct non-trivial returned values in `retval` storage. Use `var result: retval` or
-  `with var result: retval` when fields are filled incrementally, so ownership and return-slot
-  construction stay explicit.
+- Build a non-trivial returned value in one local and return it. When every return in its scope
+  returns that local, the compiler builds it directly in the caller's storage, so filling it
+  field by field costs no copy. Spell its type `#returntype` when the return type is long or has
+  no name; write `var result: #returntype` or `with var result: #returntype`.
 - For a plain value such as a vector of scalars, return an aggregate literal when it shows the
   complete result directly. Remove a temporary plus repetitive field writes only when defaults,
   ownership, evaluation order, and side effects remain unchanged. Keep effectful per-component
@@ -329,8 +330,8 @@ if it destroys a useful reading boundary, investigate the formatter.
 ```swag
 func createWindow(options: WindowOptions)->Window fail
 {
-    var result: retval
-    // Initialize result in place.
+    var result: #returntype
+    // Fill result: it is built in the caller's storage.
     return result
 }
 ```
@@ -475,7 +476,7 @@ through it directly, and only a whole-value read or write opens the place with t
 `with` earns its braces when it turns a declaration and its configuration into one unit. Anywhere
 else, judge whether naming the receiver once makes the operation easier to follow.
 
-- Prefer `with let x = ...`, `with var x: T`, `with var result: retval`, or
+- Prefer `with let x = ...`, `with var x: T`, `with var result: #returntype`, or
   `with owner.field = ...` when the next statements configure that value. Fold a declaration
   immediately followed by `with x` into the header. End the block when configuration ends.
 - Preserve construction when introducing `with`. For a type with required fields, bind a complete

@@ -88,7 +88,7 @@ impl Bundle
         let entry = .findEmbedded(name)
         if entry
         {
-            var result: retval
+            var result: #returntype
             result.add(entry.bytes)
             return result
         }
@@ -104,12 +104,12 @@ impl Bundle
     // skipped rather than reported: a missing optional folder is not an error.
     mtd const list(prefix: string)->Array'String
     {
-        var result: retval
+        var result: #returntype
 
         // Converts an absolute enumerated path back to a `/`-separated resource name.
         func relativeResourceName(root, fullName: string)->String
         {
-            var result: retval
+            var result: #returntype
 
             // The enumeration returns `root` verbatim as the path prefix. A root spelled with a
             // trailing separator already ends with it; otherwise one follows it.

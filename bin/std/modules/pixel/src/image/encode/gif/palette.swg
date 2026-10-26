@@ -28,7 +28,7 @@ impl Encoder
 
     func readPixelColor(image: Image, pix: const [*] u8)->Color
     {
-        var result: retval
+        var result: #returntype
 
         switch image.pixelFormat
         {
@@ -347,7 +347,7 @@ impl Encoder
     func buildPalette(image: Image)->PaletteData
     {
         let hasTransparent = imageHasTransparentPixels(image)
-        var result: retval
+        var result: #returntype
         if not tryBuildExactPalette(&result, image, hasTransparent) do
             buildQuantizedPalette(&result, image, hasTransparent)
         return result

@@ -60,7 +60,7 @@ impl TextIndex
     // Indexes every upright and rotated text item of a page.
     func build(page: const *Page)->TextIndex
     {
-        var result: retval
+        var result: #returntype
 
         var seeds: Array'TextRunSeed
         for item, itemIndex in page.items
@@ -160,7 +160,7 @@ impl TextIndex
     // Builds the geometry of one text item.
     private func seedRun(page: const *Page, item: const *Item, itemIndex: u32)->TextRunSeed
     {
-        var result: retval
+        var result: #returntype
         result.run.item = itemIndex
         result.text     = item.text
 
@@ -255,7 +255,7 @@ impl TextIndex
     // answering run was. `Swag.U64.Max` when the page holds no text.
     mtd const positionAt(point: Point)->{ offset: u64, distance: f32 }
     {
-        var result: retval
+        var result: #returntype
         result.offset   = Swag.U64.Max
         result.distance = Swag.F32.Max
 
@@ -340,7 +340,7 @@ impl TextIndex
     // Returns the word around a byte offset of the page text, the double-click gesture.
     mtd const wordRangeAt(offset: u64)->{ start: u64, end: u64 }
     {
-        var result: retval
+        var result: #returntype
         let source = .text.toString()
         if not source.count do
             return result

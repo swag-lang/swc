@@ -13,7 +13,7 @@ func ddsAddU32(result: *ConcatBuffer, value: u32)
 
 func ddsBc1Fixture()->ConcatBuffer
 {
-    var result: retval
+    var result: #returntype
     ddsAddU32(&result, 0x20534444)
     ddsAddU32(&result, 124)
     ddsAddU32(&result, 0x00081007)

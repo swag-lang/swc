@@ -31,7 +31,7 @@ impl ZLib
     // The header always announces the default level, whatever `level` is; decoders ignore it.
     mtd compress(buffer: const [..] u8, level = Deflate.CompressionLevel.Default)->Array'u8 fail
     {
-        var result: retval
+        var result: #returntype
 
         result.add(0x78)
         result.add(0x9C)
@@ -79,7 +79,7 @@ impl ZLib
         if fdict do
             fail UnsupportedFormatError{"unsupported dictionary"}
 
-        var result: retval
+        var result: #returntype
         if hintSize do
             result.grow(hintSize)
         try .decoder.decompress(&result, bs.remainingBytes(), winSize)

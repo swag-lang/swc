@@ -90,7 +90,7 @@ func chromaVector(vectors: const [..] Vector)->Vector
                                   : (count == 2 ? ChromaRoundTwoBlocks : ChromaRoundOneBlock))
     let span = 4's32 * cast(s32, count)
 
-    var result: retval
+    var result: #returntype
     result.x = reduceChroma(sum.x, span, table)
     result.y = reduceChroma(sum.y, span, table)
     return result

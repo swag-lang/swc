@@ -78,13 +78,12 @@ func macroString(x: string)->string
 func runInjectedFunctionScopeTrace()->CompilerDeferReturnInfo
 {
     resetDeferTrace()
-    with var result: retval
+    with var result: #returntype
     {
         .value = 42
         .trace = -1
     }
 
-    defer result.trace = DeferTrace
     mixinAddDefer()
     macroRun(#code {
         defer appendDeferTrace(8)
@@ -145,7 +144,7 @@ func runMacroScopeTrace()->s64
 {
     let v = runInjectedFunctionScopeTrace()
     Swag.assert(v.value == 42)
-    Swag.assert(v.trace == 1829)
+    Swag.assert(DeferTrace == 1829)
 }
 
 // Defer in injected loop scope repeats per iteration

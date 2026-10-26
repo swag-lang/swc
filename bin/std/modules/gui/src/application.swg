@@ -1177,7 +1177,7 @@ impl Application
     // paint without costing anything after the first frame.
     mtd appIconAt(size: f32, ground: Pixel.Color)->Icon
     {
-        var result: retval
+        var result: #returntype
         if not .appIcon.isValid() do
             return result
 
@@ -1736,7 +1736,7 @@ impl Application
 
     internal mtd hotKeyShortcutName(wndId: WndId)->String
     {
-        var result: retval
+        var result: #returntype
         for c in .hotKeys
         {
             if c.id == wndId

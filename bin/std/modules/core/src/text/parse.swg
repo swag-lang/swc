@@ -10,7 +10,7 @@ using Globalization, Swag, Errors
 // [[Core.Errors.SyntaxError]] when `str` does not start with a hexadecimal digit.
 func parseX64(str: string)->{ value: u64, eat: u32, ovf: bool } fail
 {
-    var result: retval
+    var result: #returntype
 
     let byteCount = str.count
     if not byteCount do
@@ -55,7 +55,7 @@ func parseX64(str: string)->{ value: u64, eat: u32, ovf: bool } fail
 // [[Core.Errors.SyntaxError]] when `str` does not start with '0' or '1'.
 func parseB64(str: string)->{ value: u64, eat: u32, ovf: bool } fail
 {
-    var result: retval
+    var result: #returntype
 
     let byteCount = str.count
     if not byteCount do
@@ -127,7 +127,7 @@ func parseU32(str: string)->{ value: u32, eat: u32, ovf: bool } fail
 // fit in a `u64`. Fails with [[Core.Errors.SyntaxError]] when `str` does not start with a digit.
 func parseU64(str: string)->{ value: u64, eat: u32, ovf: bool } fail
 {
-    var result: retval
+    var result: #returntype
 
     let byteCount = str.count
     if not byteCount do
@@ -229,7 +229,7 @@ func parseS32(str: string)->{ value: s32, eat: u32, ovf: bool } fail
 // [[Core.Errors.SyntaxError]] when no digit follows.
 func parseS64(str: string)->{ value: s64, eat: u32, ovf: bool } fail
 {
-    var result: retval
+    var result: #returntype
 
     let byteCount = str.count
     if not byteCount do
@@ -330,7 +330,7 @@ func parseF64(str: string)->{ value: f64, eat: u32, ovf: bool } fail => try StrC
 // [[Core.Errors.SyntaxError]] for any other word.
 func parseBool(str: string)->{ value: bool, eat: u32 } fail
 {
-    var result: retval
+    var result: #returntype
 
     let word = Tokenize.alphanumericPrefix(str)
     switch word
@@ -435,7 +435,7 @@ func parseString(result: *String, str: string)->u32 fail
 // The rules are those of the overload that fills a caller's [[Core.String]].
 func parseString(str: string)->{ value: String, eat: u32 } fail
 {
-    var result: retval
+    var result: #returntype
     result.eat = try parseString(&result.value, str)
     return result
 }

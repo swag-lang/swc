@@ -6,7 +6,7 @@ using Core, Pixel, Gui
 // Describes the executable and archive inspector to the host.
 func viewerPlugin()->Viewer.Plugin
 {
-    with var result: retval
+    with var result: #returntype
     {
         .key          = "binary"
         .staticName   = "Binary"

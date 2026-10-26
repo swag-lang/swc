@@ -48,7 +48,7 @@ internal impl NativeRenderOgl
     // instead of picking between them.
     private mtd createContextForDeviceContext(hdc: const *void?, width, height: s32, mainRC: const *void?)->OglContext fail
     {
-        var result: retval
+        var result: #returntype
         result.hDC    = hdc
         result.width  = width
         result.height = height

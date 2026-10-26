@@ -13,7 +13,7 @@ impl TypedPayload
 {
     mtd encode()->Array'u8
     {
-        var result: retval
+        var result: #returntype
         var stream = ByteStream.openWrite(&result)
         stream.writeLittleEndian(.crc)
         stream.writeLittleEndian(.data.count)
@@ -25,7 +25,7 @@ impl TypedPayload
     func decode(bytes: const [..] u8)->TypedPayload fail
     {
         var stream = ByteStream.openRead(bytes)
-        var result: retval
+        var result: #returntype
         result.crc = try stream.readLittleEndian'u32()
         let count     = try stream.readLittleEndian'u64()
         let remaining = stream.remainingBytes()

@@ -7,7 +7,7 @@
 // files under names such as `vid/clip.mp4`.
 private func splitPath(path: string)->Array'string
 {
-    var result: retval
+    var result: #returntype
     let bytes = cast(const [..] u8, path)
     var start = 0'u64
     for i in bytes.count + 1

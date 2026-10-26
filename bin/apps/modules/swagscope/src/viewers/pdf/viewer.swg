@@ -9,7 +9,7 @@ private func pluginProbe(content: Viewer.ProbeContent)->bool => content.startsWi
 // Describes the PDF viewer to the host.
 func viewerPlugin()->Viewer.Plugin
 {
-    with var result: retval
+    with var result: #returntype
     {
         .key          = "pdf"
         .staticName   = "PDF"
@@ -63,7 +63,7 @@ struct ViewerContent
 
 private func loadViewerContent(fileName: string)->ViewerContent fail
 {
-    var result: retval
+    var result: #returntype
     result.reader  = #move try Pdf.Reader.open(fileName)
     result.outline = result.reader.loadOutline()
     if not result.reader.pageCount() do
@@ -87,11 +87,11 @@ private func loadViewerContent(fileName: string)->ViewerContent fail
 func paperText(size: Math.Point)->String
 {
     let papers: [6] { name: string, width: f32, height: f32 } = [
-        {name: "A3", width: 842, height: 1191},
-        {name: "A4", width: 595, height: 842},
-        {name: "A5", width: 420, height: 595},
-        {name: "Letter", width: 612, height: 792},
-        {name: "Legal", width: 612, height: 1008},
+        {name: "A3",      width: 842, height: 1191},
+        {name: "A4",      width: 595, height: 842},
+        {name: "A5",      width: 420, height: 595},
+        {name: "Letter",  width: 612, height: 792},
+        {name: "Legal",   width: 612, height: 1008},
         {name: "Tabloid", width: 792, height: 1224}]
 
     let shortSide = Math.min(size.x, size.y)
@@ -106,7 +106,7 @@ func paperText(size: Math.Point)->String
 // Builds the details line of a document in the active language.
 func detailsText(facts: const *DocumentFacts)->String
 {
-    var result: retval = "PDF"
+    var result: #returntype = "PDF"
     result += " · "
     if facts.pageCount == 1 do
         result += texts().ui_OnePage

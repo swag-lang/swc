@@ -23,7 +23,7 @@ func(T) roundTripSerializedField(value: T)->T fail
     serializer.endSection()
     serializer.end()
 
-    var result: retval
+    var result: #returntype
     serializer.startRead(&decoder, unwrap buffer.toSlice())
     serializer.beginSection()
     serializer.serialize("value", &result)

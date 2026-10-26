@@ -208,7 +208,7 @@ func highlightRichEditMatch(editor: *RichEditCtrl, source: string, start, length
     // returns.
     func cursorAt(source: string, byteOffset: u64)->RichEditCursor
     {
-        var result: retval
+        var result: #returntype
         var scan = 0'u64
         while scan < Math.min(byteOffset, source.count)
         {
@@ -297,7 +297,7 @@ func listCellMatchBounds(list: *ListCtrl, index: u32, column: u32, text: string,
 // `clearSearch`. Hooks of its own, such as a filter, are added to the result.
 func(T) searchApi(view: *T)->SearchApi
 {
-    with var result: retval
+    with var result: #returntype
     {
         .collectMatches = func|view|(text, options, _, matches)->bool
         {

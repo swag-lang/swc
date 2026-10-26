@@ -123,7 +123,7 @@ impl Color
     #[Inline, ConstExpr]
     mtd const toArgbF32()->{ a: f32, r: f32, g: f32, b: f32 }
     {
-        var result: retval
+        var result: #returntype
         result.a = .a / 255.0
         result.r = .r / 255.0
         result.g = .g / 255.0
@@ -135,7 +135,7 @@ impl Color
     #[Inline, ConstExpr]
     mtd const toVector4()->Math.Vector4
     {
-        var result: retval
+        var result: #returntype
         result.w = .a / 255.0
         result.x = .r / 255.0
         result.y = .g / 255.0
@@ -147,7 +147,7 @@ impl Color
     #[Inline, ConstExpr]
     mtd const toRgbF32()->{ r: f32, g: f32, b: f32 }
     {
-        var result: retval
+        var result: #returntype
         result.r = .r / 255.0
         result.g = .g / 255.0
         result.b = .b / 255.0
@@ -158,7 +158,7 @@ impl Color
     #[Inline, ConstExpr]
     func fromRgb(r, g, b: u8)->Color
     {
-        var result: retval
+        var result: #returntype
         result.setRgb(r, g, b)
         return result
     }
@@ -167,7 +167,7 @@ impl Color
     #[Inline, ConstExpr]
     func fromRgbF32(r, g, b: f32)->Color
     {
-        var result: retval
+        var result: #returntype
         result.setRgbF32(r, g, b)
         return result
     }
@@ -176,7 +176,7 @@ impl Color
     #[Inline, ConstExpr]
     func fromArgb(a, r, g, b: u8)->Color
     {
-        var result: retval
+        var result: #returntype
         result.setArgb(a, r, g, b)
         return result
     }
@@ -185,7 +185,7 @@ impl Color
     #[Inline, ConstExpr]
     func fromArgb(argb: Argb)->Color
     {
-        let result: retval = argb
+        let result: #returntype = argb
         return result
     }
 
@@ -193,7 +193,7 @@ impl Color
     #[Inline, ConstExpr]
     func fromArgb(alpha: u8, argb: Argb)->Color
     {
-        var result: retval = argb
+        var result: #returntype = argb
         result.a = alpha
         return result
     }
@@ -202,7 +202,7 @@ impl Color
     #[Inline, ConstExpr]
     func fromArgb(argb: u32)->Color
     {
-        let result: retval = argb
+        let result: #returntype = argb
         return result
     }
 
@@ -210,7 +210,7 @@ impl Color
     #[Inline, ConstExpr]
     func fromAbgr(abgr: u32)->Color
     {
-        with var result: retval
+        with var result: #returntype
         {
             .a = Math.byteAt(abgr, 3)
             .b = Math.byteAt(abgr, 2)
@@ -225,7 +225,7 @@ impl Color
     #[Inline, ConstExpr]
     func fromArgbF32(a, r, g, b: f32)->Color
     {
-        var result: retval
+        var result: #returntype
         result.setArgbF32(a, r, g, b)
         return result
     }
@@ -234,7 +234,7 @@ impl Color
     #[Inline, ConstExpr]
     func fromVector4(vec: Math.Vector4)->Color
     {
-        var result: retval
+        var result: #returntype
         result.setArgbF32(vec.w, vec.x, vec.y, vec.z)
         return result
     }
@@ -243,7 +243,7 @@ impl Color
     #[Inline, ConstExpr]
     func fromHsl(h, s, l: f32)->Color
     {
-        var result: retval
+        var result: #returntype
         result.a = 255
         result.setHsl(h, s, l)
         return result
@@ -304,7 +304,7 @@ impl Color
     // Returns the hue, saturation, and lightness of the color, each in [0, 1].
     mtd const toHsl()->{ h: f32, s: f32, l: f32 }
     {
-        var result: retval
+        var result: #returntype
 
         let {r: red, g: green, b: blue} = .toRgbF32()
         let maxChannel = Math.max(red, green, blue)
@@ -358,7 +358,7 @@ impl Color
             return Math.pow((c + 0.055) / 1.055, 2.4)
         }
 
-        var result: retval
+        var result: #returntype
         result.w = .a / 255.0     // alpha channel
         result.x = srgbToLinear(.r / 255.0)     // red channel
         result.y = srgbToLinear(.g / 255.0)     // green channel
@@ -382,7 +382,7 @@ impl Color
             return 1.055 * Math.pow(c, 1.0 / 2.4) - 0.055
         }
 
-        var result: retval
+        var result: #returntype
         result.a = cast(u8, Math.round(Math.saturate(vec.w) * 255.0))
         result.r = cast(u8, Math.round(Math.saturate(linearToSrgb(vec.x)) * 255.0))
         result.g = cast(u8, Math.round(Math.saturate(linearToSrgb(vec.y)) * 255.0))
@@ -406,7 +406,7 @@ impl Color
     #[ConstExpr]
     func lerpRgb(start, end: Color, factor: f32)->Color
     {
-        var result: retval
+        var result: #returntype
         let t = Math.saturate(factor)
         result.a = start.a
         result.r = cast(u8, Math.lerp(cast(f32, start.r), cast(f32, end.r), t))
@@ -421,7 +421,7 @@ impl Color
     #[ConstExpr]
     func lerp(start, end: Color, factor: f32)->Color
     {
-        var result: retval
+        var result: #returntype
         let t = Math.saturate(factor)
         result.a = cast(u8, Math.lerp(cast(f32, start.a), cast(f32, end.a), t))
         result.r = cast(u8, Math.lerp(cast(f32, start.r), cast(f32, end.r), t))
@@ -578,7 +578,7 @@ impl Color
     #[ConstExpr]
     func multiply(col0, col1: Color)->Color
     {
-        var result: retval
+        var result: #returntype
         result.a = cast(u8, ((cast(u16, col0.a) * col1.a) / 255))
         result.r = cast(u8, ((cast(u16, col0.r) * col1.r) / 255))
         result.g = cast(u8, ((cast(u16, col0.g) * col1.g) / 255))
@@ -590,7 +590,7 @@ impl Color
     #[ConstExpr]
     func add(col0, col1: Color)->Color
     {
-        var result: retval
+        var result: #returntype
         result.a = cast(u8, Math.min(cast(u16, col0.a) + col1.a, 255))
         result.r = cast(u8, Math.min(cast(u16, col0.r) + col1.r, 255))
         result.g = cast(u8, Math.min(cast(u16, col0.g) + col1.g, 255))
@@ -605,7 +605,7 @@ impl Color
     // contrast against white text. All values are HSL components in [0, 1].
     func generateDistinctColors(n: u32, startHue: f32 = 0.113, lum: f32 = 0.44, sat: f32 = 0.68)->Array'Color
     {
-        var colors: retval
+        var colors: #returntype
         if n == 0 do
             return colors
 

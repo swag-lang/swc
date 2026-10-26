@@ -71,7 +71,7 @@ private
         let kb = centeredChroma(cb)
         let kr = centeredChroma(cr)
 
-        var result: retval
+        var result: #returntype
         result.rc = duplicatedLanes(redBias(kr))
         result.gc = duplicatedLanes(greenBias(kr, kb))
         result.bc = duplicatedLanes(blueBias(kb))
@@ -89,7 +89,7 @@ private
         let krLow  = centeredChromaLow(reds)
         let krHigh = centeredChromaHigh(reds)
 
-        var result: retval
+        var result: #returntype
         result.rc = Math.Simd.packSigned(redBias(krLow), redBias(krHigh))
         result.gc = Math.Simd.packSigned(greenBias(krLow, kbLow), greenBias(krHigh, kbHigh))
         result.bc = Math.Simd.packSigned(blueBias(kbLow), blueBias(kbHigh))

@@ -98,7 +98,7 @@ func monitorForPoint(point: Math.Point)->Env.Monitor
     }
 
     // Second pass: the monitor whose rectangle is the closest to the point.
-    var result: retval
+    var result: #returntype
     var bestD2 = Swag.F32.Inf
     for m in monitors
     {
@@ -124,7 +124,7 @@ func monitorForPoint(point: Math.Point)->Env.Monitor
 // the rectangle does not intersect a monitor, and a default value when there is none.
 func monitorForRectangle(rectangle: Math.Rectangle)->Env.Monitor
 {
-    var result: retval
+    var result: #returntype
     var bestSurf = 0'f32
     let monitors = Env.getMonitors()
     for m in monitors

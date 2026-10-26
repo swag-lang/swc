@@ -71,7 +71,7 @@ impl NativeLibrary
     // cannot resolve the file or one of its dependencies.
     func load(path: string)->NativeLibrary fail
     {
-        var result: retval
+        var result: #returntype
         result.handle = try loadNativeLibrary(path)
 
         callSwagRuntimeHook(result.handle, SwagRuntimeHookSync)

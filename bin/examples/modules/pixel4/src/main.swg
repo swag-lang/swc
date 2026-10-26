@@ -211,7 +211,7 @@ func drawClosedOutline(painter: *Pixel.Painter, points: [..] Math.Vector2, pen: 
 
 func makeStarPolygon(cx, cy, outer, inner: f32, branches: s32)->Array'Math.Vector2
 {
-    var result: retval
+    var result: #returntype
     let total = branches * 2
     for i in total
     {
@@ -227,7 +227,7 @@ func makeStarPolygon(cx, cy, outer, inner: f32, branches: s32)->Array'Math.Vecto
 
 func makeHexPolygon(cx, cy, radius: f32)->Array'Math.Vector2
 {
-    var result: retval
+    var result: #returntype
     for i in 6
     {
         let angle = Math.ConstF32.Pi / 6 + cast(f32, i) * (Math.ConstF32.TwoPi / 6)
@@ -239,7 +239,7 @@ func makeHexPolygon(cx, cy, radius: f32)->Array'Math.Vector2
 
 func makeArrowPolygon(rect: Math.Rectangle)->Array'Math.Vector2
 {
-    var result: retval
+    var result: #returntype
     let left   = rect.x + 22
     let top    = rect.y + 26
     let right  = rect.right() - 26
@@ -260,7 +260,7 @@ func makeArrowPolygon(rect: Math.Rectangle)->Array'Math.Vector2
 
 func makeTransparencyPath(rect: Math.Rectangle, variant: s32)->LinePath
 {
-    var path: retval
+    var path: #returntype
     let left  = rect.x
     let top   = rect.y
     let right = rect.right()
@@ -295,7 +295,7 @@ func makeTransparencyPath(rect: Math.Rectangle, variant: s32)->LinePath
 
 func makeBlobPath(rect: Math.Rectangle)->LinePath
 {
-    var path: retval
+    var path: #returntype
     let left   = rect.x
     let top    = rect.y
     let width  = rect.width

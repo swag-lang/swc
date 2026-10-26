@@ -190,7 +190,7 @@ impl ThemeStyle
     // Returns the local font slots with missing faces inherited from the theme default.
     mtd const resolvedFont()->FontFamily
     {
-        var result: retval
+        var result: #returntype
         let df = &.refr!.theme.res.fontDefault
         result.regular    = .font.regular orelse df.regular
         result.bold       = .font.bold orelse df.bold

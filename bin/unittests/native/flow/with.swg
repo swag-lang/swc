@@ -179,7 +179,7 @@ func nativeWithAnonymous()->s32
 
 func nativeWithRetval()->{ a, b: s32 }
 {
-    with var result: retval
+    with var result: #returntype
     {
         .a = 21
         .b = 34
@@ -190,7 +190,7 @@ func nativeWithRetval()->{ a, b: s32 }
 
 func nativeWithRetvalUndefined()->{ a, b: s32 }
 {
-    with var result: retval
+    with var result: #returntype
     {
         .a = 55
         .b = 89

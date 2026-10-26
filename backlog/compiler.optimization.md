@@ -869,3 +869,29 @@ new language syntax.
   defaults preserve the relevant code/semantic boundaries, and any O3 policy increases useful work
   without changing arithmetic, FP or allocation-feasibility contracts.
 - Related: compiler.optimization.029, compiler.optimization.032, compiler.optimization.035.
+
+### compiler.optimization.134 — Share the cleanup of a function's failure exits
+
+- Evidence: every `try` that can leave a function emits the deferred drops of the live locals on
+  each failure branch, and the error check has two branches (the TLS fast test and `__hasErr`).
+  Releasing the local built in the return slot on failure, which the former `retval` leaked, took
+  `TrueType.parseCffFont` from 120 to 588 inlined drop calls and 1 033 to 2 180 final instructions
+  in release; 104 other fallible constructors grew the same way (+3 266 instructions in all).
+- Next: give the failure exits of one scope a shared landing block that runs the drops once and
+  jumps to the function's failure return, keeping the fast success path unchanged.
+- Done when: a fallible constructor with several `try` calls emits its live-local drops once per
+  scope rather than once per failure branch, with failure-path drop counts unchanged in the
+  `native` lifecycle tests.
+- Related: compiler.optimization.117.
+
+### compiler.optimization.135 — Drop the default clear of a value built in the return slot
+
+- Evidence: a struct literal or a defaulted local built in the caller's storage first clears it,
+  then stores every field: `return P{a: x, b: 2, c: 3, d: 4, e: 5}` emits two 16-byte zero stores
+  that the field stores overwrite. On a stack slot the dead stores disappear; through the hidden
+  return pointer they stay, because the optimizer removes dead stores only on frame storage.
+- Next: remove a store fully overwritten before any load, call, or escape of the same base address,
+  whatever that base is, or skip the clear when the literal names every field and the type has no
+  padding.
+- Done when: the literal above and a local of the return type filled field by field write each
+  byte of the slot once.

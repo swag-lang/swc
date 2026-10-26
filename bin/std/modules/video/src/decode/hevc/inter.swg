@@ -328,7 +328,7 @@ impl Decoder
     // Derives the temporal motion vector predictor, clause 8.5.3.2.8.
     mtd temporalMotion(xPb, yPb, nPbW, nPbH: s32, list: u32, refIdx: s32)->TemporalMotion
     {
-        var result: retval
+        var result: #returntype
         let header = &.header
         if not header.temporalMvpEnabled do
             return result
@@ -361,7 +361,7 @@ impl Decoder
     // Reads and scales the motion of one region of the collocated picture, clause 8.5.3.2.9.
     private mtd collocatedMotion(collocated: *Frame, x, y: s32, list: u32, refIdx: s32)->TemporalMotion
     {
-        var result: retval
+        var result: #returntype
         let column = collocated.colMotionAt(x, y)
         if not column.predFlags do
             return result

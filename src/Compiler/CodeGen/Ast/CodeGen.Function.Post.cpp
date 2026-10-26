@@ -24,6 +24,7 @@
 #include "Compiler/Sema/Symbol/IdentifierManager.h"
 #include "Compiler/Sema/Symbol/Symbol.Function.h"
 #include "Compiler/Sema/Symbol/Symbol.Variable.h"
+#include "Compiler/Sema/Type/TypeGen.h"
 #include "Main/Command/CommandLine.h"
 #include "Main/CompilerInstance.h"
 #include "Support/Report/Assert.h"
@@ -492,7 +493,7 @@ namespace
             return false;
         if (exprPayload.runtimeStorageOverridden && exprPayload.runtimeStorageSym == nullptr)
             return false;
-        if (exprPayload.runtimeStorageSym && exprPayload.runtimeStorageSym->hasExtraFlag(SymbolVariableFlagsE::RetVal))
+        if (exprPayload.runtimeStorageSym && CodeGenFunctionHelpers::usesCallerReturnStorage(codeGen, *exprPayload.runtimeStorageSym))
             return false;
 
         return CodeGenFunctionHelpers::isFreshAggregateLiteral(codeGen, exprRef) || CodeGenFunctionHelpers::isOwnedCallResult(codeGen, exprRef);
@@ -524,22 +525,33 @@ namespace
         return symVar;
     }
 
-    // The place 'return #move place' gives away when it outlives the return, such as a field, a
-    // global or a pointee. A variable of the function itself is not such a place: a local moves
-    // out through 'returnMoveOutSource', and 'retval' already is the return storage.
+    // The place a return gives away while it outlives the return, so it is reset once its value
+    // is in the return storage: what 'return #move place' names (a field, a global, a pointee),
+    // and a local a defer still observes, which therefore cannot move out with its drop elided
+    // (see 'returnMoveOutSource'). Such a local is copied when its type allows it; otherwise,
+    // or when '#move' asks for it, it moves and the defer sees it moved from.
     AstNodeRef returnMovedPlace(CodeGen& codeGen, AstNodeRef exprRef)
     {
-        const auto* unary = codeGen.node(exprRef).safeCast<AstUnaryExpr>();
-        if (!unary || codeGen.token(unary->codeRef()).id != TokenId::ModifierMove)
-            return AstNodeRef::invalid();
-        if (!codeGen.sema().isLValue(codeGen.node(unary->nodeExprRef)))
-            return AstNodeRef::invalid();
+        AstNodeRef  placeRef     = exprRef;
+        const auto* unary        = codeGen.node(exprRef).safeCast<AstUnaryExpr>();
+        const bool  explicitMove = unary && codeGen.token(unary->codeRef()).id == TokenId::ModifierMove;
+        if (explicitMove)
+            placeRef = unary->nodeExprRef;
 
-        const SymbolVariable* symVar = CodeGenMoveElision::directStructVariable(codeGen, unary->nodeExprRef);
+        const SymbolVariable* symVar = CodeGenMoveElision::directStructVariable(codeGen, placeRef);
         if (symVar && (symVar->hasExtraFlag(SymbolVariableFlagsE::FunctionLocal) || symVar->hasExtraFlag(SymbolVariableFlagsE::Parameter) || symVar->hasExtraFlag(SymbolVariableFlagsE::RetVal)))
+        {
+            if (symVar->hasExtraFlag(SymbolVariableFlagsE::Parameter) || symVar->hasExtraFlag(SymbolVariableFlagsE::RetVal) || CodeGenFunctionHelpers::usesCallerReturnStorage(codeGen, *symVar))
+                return AstNodeRef::invalid();
+            if (!explicitMove && TypeGen::lifecycleFlagsOfTypeRef(codeGen.ctx(), symVar->typeRef()).canCopy)
+                return AstNodeRef::invalid();
+            return placeRef;
+        }
+
+        if (!explicitMove || !codeGen.sema().isLValue(codeGen.node(placeRef)))
             return AstNodeRef::invalid();
 
-        return unary->nodeExprRef;
+        return placeRef;
     }
 
     // Once the value of a moved place is in the return storage, the place is reset, so its own
@@ -679,43 +691,16 @@ namespace
         return codeGen.emitLifecycle(typeRef, CodeGen::LifecycleKind::Drop, addressReg);
     }
 
-    const SymbolVariable* returnExprRetValVariable(CodeGen& codeGen, AstNodeRef exprRef);
-    AstNodeRef            returnExprThroughRetValMove(CodeGen& codeGen, AstNodeRef exprRef);
-
-    // A return of another value while a retval local is in scope replaces the value that
-    // local holds in the result storage, which must then be released like an assignment target.
-    const SymbolVariable* returnReplacedRetVal(CodeGen& codeGen, AstNodeRef exprRef, TypeRef returnTypeRef, const SemaInlinePayload* returnContext)
-    {
-        if (returnExprRetValVariable(codeGen, exprRef) || codeGen.typeMgr().get(returnTypeRef).isReference())
-            return nullptr;
-
-        const SymbolVariable* retVal = codeGen.retValInScope(returnContext);
-        if (!retVal || codeGen.isImplicitDropElided(*retVal))
-            return nullptr;
-
-        return retVal;
-    }
-
-    // Releases the replaced value before the returned one is stored over it. That value was
-    // built apart (see SemaHelpers::returnStorageExposed), but a pointer can still make it
-    // the result storage itself: the returned label then skips the release and the store.
-    Result emitReplacedRetValDrop(CodeGen& codeGen, MicroLabelRef& outSkipLabel, TypeRef typeRef, MicroReg storageReg, const CodeGenNodePayload& exprPayload)
-    {
-        outSkipLabel          = MicroLabelRef::invalid();
-        MicroBuilder& builder = codeGen.builder();
-        if (exprPayload.isAddress())
-        {
-            outSkipLabel = builder.createLabel();
-            builder.emitCmpRegReg(storageReg, exprPayload.reg, MicroOpBits::B64);
-            builder.emitJumpToLabel(MicroCond::Equal, MicroOpBits::B32, outSkipLabel);
-        }
-
-        return codeGen.emitLifecycle(typeRef, CodeGen::LifecycleKind::Drop, storageReg);
-    }
+    const SymbolVariable* returnedStorageLocal(CodeGen& codeGen, AstNodeRef exprRef, const SemaInlinePayload* returnContext);
+    AstNodeRef            returnExprThroughStorageLocalMove(CodeGen& codeGen, AstNodeRef exprRef, const SemaInlinePayload* returnContext);
 
     Result emitInlineResultStore(CodeGen& codeGen, const SemaInlinePayload& inlinePayload, AstNodeRef returnExprRef, const SymbolVariable* moveOutVar)
     {
-        const AstNodeRef exprRef = returnExprThroughRetValMove(codeGen, returnExprRef);
+        // The returned local was built in the result storage: nothing moves.
+        if (moveOutVar && returnedStorageLocal(codeGen, returnExprRef, &inlinePayload) == moveOutVar)
+            return Result::Continue;
+
+        const AstNodeRef exprRef = returnExprThroughStorageLocalMove(codeGen, returnExprRef, &inlinePayload);
         SWC_ASSERT(inlinePayload.resultVar != nullptr);
         SWC_ASSERT(exprRef.isValid());
 
@@ -728,38 +713,29 @@ namespace
         const CodeGenNodePayload& exprPayload = codeGen.payload(payloadExprRef);
 
         // Storage identity proves an in-place result even when the expression and
-        // return path materialize distinct address registers. Avoid a self-copy.
-        const SymbolVariable* replacedRetVal = returnReplacedRetVal(codeGen, exprRef, inlinePayload.returnTypeRef, &inlinePayload);
-        if (exprPayload.isAddress() && exprPayload.runtimeStorageSym == &resultStorage)
-        {
-            SWC_ASSERT(!replacedRetVal);
+        // return path materialize distinct address registers. Avoid a self-copy. A result
+        // built in the enclosing function's return slot has no symbol to compare with.
+        const CodeGenFrame::InlineContext& inlineCtx      = codeGen.frame().currentInlineContext();
+        const bool                         resultIsSymbol = !inlineCtx.directReturnStorage || inlineCtx.resultStorageSym;
+        if (resultIsSymbol && exprPayload.isAddress() && exprPayload.runtimeStorageSym == &resultStorage)
             return Result::Continue;
-        }
-
-        MicroLabelRef replacedSkipLabel = MicroLabelRef::invalid();
-        if (replacedRetVal)
-            SWC_RESULT(emitReplacedRetValDrop(codeGen, replacedSkipLabel, inlinePayload.returnTypeRef, resultAddr, exprPayload));
 
         SWC_RESULT(emitPayloadToAddress(codeGen, resultAddr, exprPayload, inlinePayload.returnTypeRef));
 
         // Inline result storage must own its value just like a real return slot.
-        // Locals moved out, retval, moved places, and owned call temporaries transfer
-        // with opPostMove; other lifecycle sources need a deep copy.
+        // Locals moved out, moved places, and owned call temporaries transfer with
+        // opPostMove; other lifecycle sources need a deep copy.
         if (codeGen.typeMgr().get(inlinePayload.returnTypeRef).isReference())
             return Result::Continue;
 
         const AstNodeRef movedPlaceRef      = moveOutVar ? AstNodeRef::invalid() : returnMovedPlace(codeGen, exprRef);
-        const bool       returnsRetVal      = returnExprRetValVariable(codeGen, exprRef) != nullptr;
-        const bool       movesOwnership     = moveOutVar != nullptr || returnsRetVal || movedPlaceRef.isValid() || returnSourceIsOwnedTemporary(codeGen, exprRef, exprPayload);
+        const bool       movesOwnership     = moveOutVar != nullptr || movedPlaceRef.isValid() || returnSourceIsOwnedTemporary(codeGen, exprRef, exprPayload);
         const auto       storeLifecycleKind = movesOwnership ? CodeGen::LifecycleKind::PostMove : CodeGen::LifecycleKind::PostCopy;
         if (!returnSourceIsConstantLiteral(codeGen, payloadExprRef, exprPayload) && codeGen.hasLifecycle(inlinePayload.returnTypeRef, storeLifecycleKind))
             SWC_RESULT(codeGen.emitLifecycle(inlinePayload.returnTypeRef, storeLifecycleKind, resultAddr));
 
         if (movedPlaceRef.isValid())
             SWC_RESULT(resetMovedReturnPlace(codeGen, inlinePayload.returnTypeRef, exprRef, movedPlaceRef));
-
-        if (replacedSkipLabel.isValid())
-            codeGen.builder().placeLabel(replacedSkipLabel);
 
         if (movesOwnership)
             cancelReturnedTemporaryDrops(codeGen, exprRef, exprPayload);
@@ -774,7 +750,11 @@ namespace
         {
             SWC_ASSERT(exprRef.isValid());
             if (!codeGen.typeMgr().get(inlinePayload.returnTypeRef).isReference())
-                moveOutVar = returnMoveOutSource(codeGen, exprRef);
+            {
+                moveOutVar = returnedStorageLocal(codeGen, exprRef, &inlinePayload);
+                if (!moveOutVar)
+                    moveOutVar = returnMoveOutSource(codeGen, exprRef);
+            }
             SWC_RESULT(emitInlineResultStore(codeGen, inlinePayload, exprRef, moveOutVar));
         }
 
@@ -960,46 +940,35 @@ namespace
         return Result::Continue;
     }
 
-    // Payload storage symbols tag compiler temporaries. Recover a named retval
-    // local from the expression's stored symbol instead.
-    const SymbolVariable* returnExprRetValVariable(CodeGen& codeGen, AstNodeRef exprRef)
+    // A local built in the storage this return goes through: returning it leaves the value
+    // where it already is (see CodeGenMoveElision::selectReturnStorageLocals).
+    const SymbolVariable* returnedStorageLocal(CodeGen& codeGen, AstNodeRef exprRef, const SemaInlinePayload* returnContext)
     {
-        if (exprRef.isInvalid())
+        const SymbolVariable* symVar = CodeGenMoveElision::returnedVariable(codeGen, exprRef);
+        if (!symVar || !codeGen.isReturnStorageLocal(*symVar) || codeGen.returnStorageLocalContext(*symVar) != returnContext)
             return nullptr;
 
-        const SemaNodeView symbolView = codeGen.sema().viewStored(exprRef, SemaNodeViewPartE::Symbol);
-        if (!symbolView.sym() || !symbolView.sym()->isVariable())
-            return nullptr;
-
-        const auto& symVar = symbolView.sym()->cast<SymbolVariable>();
-        return symVar.hasExtraFlag(SymbolVariableFlagsE::RetVal) ? &symVar : nullptr;
+        return symVar;
     }
 
-    // Look through #move on a retval local: it already occupies the return slot,
-    // so recognizing the operand avoids copying that storage onto itself.
-    AstNodeRef returnExprThroughRetValMove(CodeGen& codeGen, AstNodeRef exprRef)
+    // Look through #move on such a local, so its storage is not copied onto itself.
+    AstNodeRef returnExprThroughStorageLocalMove(CodeGen& codeGen, AstNodeRef exprRef, const SemaInlinePayload* returnContext)
     {
-        if (exprRef.isInvalid())
+        if (exprRef.isInvalid() || !returnedStorageLocal(codeGen, exprRef, returnContext))
             return exprRef;
 
         const auto* unary = codeGen.node(exprRef).safeCast<AstUnaryExpr>();
-        if (!unary || codeGen.token(unary->codeRef()).id != TokenId::ModifierMove)
-            return exprRef;
-
-        return returnExprRetValVariable(codeGen, unary->nodeExprRef) ? unary->nodeExprRef : exprRef;
+        return unary ? unary->nodeExprRef : exprRef;
     }
 
-    bool shouldDelayReturnMaterializationForDeferredActions(CodeGen& codeGen, AstNodeRef exprRef, const CodeGenNodePayload& exprPayload)
+    bool shouldDelayReturnMaterializationForDeferredActions(const CodeGenNodePayload& exprPayload)
     {
-        if (exprPayload.runtimeStorageSym && exprPayload.runtimeStorageSym->hasExtraFlag(SymbolVariableFlagsE::RetVal))
-            return true;
-
-        return returnExprRetValVariable(codeGen, exprRef) != nullptr;
+        return exprPayload.runtimeStorageSym && exprPayload.runtimeStorageSym->hasExtraFlag(SymbolVariableFlagsE::RetVal);
     }
 
     // Values built in the caller's slot already own their contents; copying or
-    // running a copy hook again would duplicate ownership. Check storage symbols
-    // (including retval), since distinct virtual registers can name the same slot.
+    // running a copy hook again would duplicate ownership. Check storage symbols,
+    // since distinct virtual registers can name the same slot.
     bool returnValueAlreadyInCallerStorage(CodeGen& codeGen, AstNodeRef exprRef, const CodeGenNodePayload& exprPayload)
     {
         if (!exprPayload.isAddress())
@@ -1009,8 +978,7 @@ namespace
         if (exprPayload.runtimeStorageSym != nullptr && CodeGenFunctionHelpers::usesCallerReturnStorage(codeGen, *exprPayload.runtimeStorageSym))
             return true;
 
-        const SymbolVariable* retValVar = returnExprRetValVariable(codeGen, exprRef);
-        return retValVar != nullptr && CodeGenFunctionHelpers::usesCallerReturnStorage(codeGen, *retValVar);
+        return returnedStorageLocal(codeGen, exprRef, nullptr) != nullptr;
     }
 
     void emitIndirectReturnValuePayload(CodeGen& codeGen, MicroReg outputStorageReg, MicroReg valueReg, uint32_t copySize)
@@ -1044,7 +1012,7 @@ namespace
 
     Result emitFunctionReturn(CodeGen& codeGen, const SymbolFunction& symbolFunc, AstNodeRef returnExprRef)
     {
-        const AstNodeRef exprRef = returnExprThroughRetValMove(codeGen, returnExprRef);
+        const AstNodeRef exprRef = returnExprThroughStorageLocalMove(codeGen, returnExprRef, nullptr);
         MicroBuilder&    builder = codeGen.builder();
 
         const CallConvKind callConvKind  = symbolFunc.callConvKind();
@@ -1070,7 +1038,7 @@ namespace
         SWC_ASSERT(exprRef.isValid());
 
         const CodeGenNodePayload& exprPayload                = codeGen.payload(exprRef);
-        const bool                delayReturnMaterialization = shouldDelayReturnMaterializationForDeferredActions(codeGen, exprRef, exprPayload);
+        const bool                delayReturnMaterialization = shouldDelayReturnMaterializationForDeferredActions(exprPayload);
         const bool                returnValueIsInPlace       = returnValueAlreadyInCallerStorage(codeGen, exprRef, exprPayload);
 
         // Returning a dead local or an owned temporary transfers ownership: the copy runs
@@ -1083,7 +1051,10 @@ namespace
         std::optional         copyLifecycleKind   = CodeGen::LifecycleKind::PostCopy;
         if (!needsPersistentCompilerReturn && !codeGen.typeMgr().get(returnTypeRef).isReference())
         {
-            moveOutVar          = returnMoveOutSource(codeGen, exprRef);
+            // A local built in the return slot is the result: it is neither copied nor dropped.
+            moveOutVar = returnedStorageLocal(codeGen, exprRef, nullptr);
+            if (!moveOutVar)
+                moveOutVar = returnMoveOutSource(codeGen, exprRef);
             movedPlaceRef       = moveOutVar ? AstNodeRef::invalid() : returnMovedPlace(codeGen, exprRef);
             movesOwnedTemporary = returnSourceIsOwnedTemporary(codeGen, exprRef, exprPayload);
             if (moveOutVar != nullptr || movedPlaceRef.isValid() || movesOwnedTemporary)
@@ -1096,18 +1067,17 @@ namespace
         if (movesOwnedTemporary)
             cancelReturnedTemporaryDrops(codeGen, exprRef, exprPayload);
 
-        const SymbolVariable* replacedRetVal     = needsPersistentCompilerReturn ? nullptr : returnReplacedRetVal(codeGen, exprRef, returnTypeRef, nullptr);
+        // The local this return replaces is released right before its storage takes the value.
+        const SymbolVariable* replacedLocal      = codeGen.returnReplacedLocal(codeGen.curNodeRef());
         const SymbolVariable* previousMoveOutVar = codeGen.returnMoveOutVar();
         if (normalizedRet.isIndirect)
         {
             // Hidden first argument points to caller-provided return storage.
-            const MicroReg outputStorageReg  = codeGen.ensureCurrentFunctionIndirectReturnReg(callConvKind);
-            MicroLabelRef  replacedSkipLabel = MicroLabelRef::invalid();
-            if (replacedRetVal)
-            {
-                SWC_ASSERT(!delayReturnMaterialization && !returnValueIsInPlace);
-                SWC_RESULT(emitReplacedRetValDrop(codeGen, replacedSkipLabel, returnTypeRef, outputStorageReg, exprPayload));
-            }
+            const MicroReg outputStorageReg = codeGen.ensureCurrentFunctionIndirectReturnReg(callConvKind);
+            SWC_ASSERT(!replacedLocal || !returnValueIsInPlace);
+            const bool dropsReplaced = replacedLocal && codeGen.hasLifecycle(returnTypeRef, CodeGen::LifecycleKind::Drop);
+            if (dropsReplaced && !delayReturnMaterialization)
+                SWC_RESULT(codeGen.emitLifecycle(returnTypeRef, CodeGen::LifecycleKind::Drop, outputStorageReg));
 
             if (!delayReturnMaterialization && needsPersistentCompilerReturn)
             {
@@ -1131,17 +1101,19 @@ namespace
                     SWC_RESULT(finishMovedPlaceReturn(codeGen, returnTypeRef, exprRef, movedPlaceRef, outputStorageReg));
             }
 
-            if (replacedSkipLabel.isValid())
-                builder.placeLabel(replacedSkipLabel);
-
             // Capture the result before destroying operand temporaries. Their
             // generic post-node flush would execute after the return instruction.
             SWC_RESULT(codeGen.flushTemporaryDrops(codeGen.curNodeRef()));
 
             codeGen.setReturnMoveOutVar(moveOutVar);
+            codeGen.setReturnReplacedLocal(replacedLocal);
             const Result deferredResult = codeGen.emitDeferredActionsForReturn();
+            codeGen.setReturnReplacedLocal(nullptr);
             codeGen.setReturnMoveOutVar(previousMoveOutVar);
             SWC_RESULT(deferredResult);
+
+            if (dropsReplaced && delayReturnMaterialization)
+                SWC_RESULT(codeGen.emitLifecycle(returnTypeRef, CodeGen::LifecycleKind::Drop, outputStorageReg));
 
             if (delayReturnMaterialization && needsPersistentCompilerReturn)
                 CodeGenFunctionHelpers::emitPersistCompilerRunValue(codeGen, returnTypeRef, outputStorageReg, exprPayload.reg, codeGen.localStackBaseReg(), codeGen.localStackFrameSize());
@@ -1187,12 +1159,8 @@ namespace
             // generic post-node flush would execute after the return instruction.
             SWC_RESULT(codeGen.flushTemporaryDrops(codeGen.curNodeRef()));
 
-            // The retval local is distinct storage here: the value already left it, so it
-            // is released with the other locals.
             codeGen.setReturnMoveOutVar(moveOutVar);
-            codeGen.setReturnReplacedRetVal(replacedRetVal);
             const Result deferredResult = codeGen.emitDeferredActionsForReturn();
-            codeGen.setReturnReplacedRetVal(nullptr);
             codeGen.setReturnMoveOutVar(previousMoveOutVar);
             SWC_RESULT(deferredResult);
 

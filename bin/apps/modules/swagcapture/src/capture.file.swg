@@ -81,7 +81,7 @@ impl Capture
         try encoder.writeAll(&output, value[])
         output.makeLinear()
 
-        var result: retval
+        var result: #returntype
         result.add(unwrap output.toSlice())
         return result
     }
@@ -89,7 +89,7 @@ impl Capture
     // The part of the capture the library reads without decoding the image.
     private mtd libraryMetadata()->CaptureLibraryMetadata
     {
-        var result: retval
+        var result: #returntype
         result.width             = .width
         result.height            = .height
         result.linkedImage       = .linkedImage
@@ -108,7 +108,7 @@ impl Capture
     // The part of the capture its file stores.
     private mtd fileModel()->CaptureFileModel
     {
-        var result: retval
+        var result: #returntype
         result.width             = .width
         result.height            = .height
         result.widthOrg          = .widthOrg

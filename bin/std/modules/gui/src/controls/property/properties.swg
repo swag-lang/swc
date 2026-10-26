@@ -293,7 +293,7 @@ internal impl Properties
 
     mtd itemState(item: *PropertiesItem)->{ visible, enable: bool }
     {
-        var result: retval = {visible: true, enable: true}
+        var result: #returntype = {visible: true, enable: true}
 
         if .hostNtfy
         {

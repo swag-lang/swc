@@ -11,7 +11,7 @@ struct TextPaintTransform
 
 func testTextPaintTransform(text: *FormText, tx, ty, z, renderScale: f32)->TextPaintTransform
 {
-    var result: retval
+    var result: #returntype
 
     var painter: Painter
     painter.begin(layoutOnly: true)

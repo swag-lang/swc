@@ -23,7 +23,7 @@ impl PriorityQueue
     // Creates an empty priority queue that uses `comparator` to order elements.
     func create(comparator: func(const *T, const *T)->s32)->PriorityQueue
     {
-        var result: retval
+        var result: #returntype
         result.initialize(comparator)
         return result
     }
@@ -110,7 +110,7 @@ impl PriorityQueue
     mtd const peek()->T
     {
         Swag.assert(.count > 0, "priority queue is empty")
-        let result: retval = .items[0]
+        let result: #returntype = .items[0]
         return result
     }
 
@@ -119,7 +119,7 @@ impl PriorityQueue
     {
         Swag.assert(.count > 0, "priority queue is empty")
         .items.swap(0, .count - 1)
-        var result: retval = .items.popBack()
+        var result: #returntype = .items.popBack()
         .count -= 1
 
         var parent = 0'u64

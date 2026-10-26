@@ -90,7 +90,7 @@ impl Design
 
 func parseInput(text: string)->{ patterns: PatternList, designs: DesignList }
 {
-    var result: retval
+    var result: #returntype
     let bytes = cast(const [..] u8, text)
     var pos:    u32
 

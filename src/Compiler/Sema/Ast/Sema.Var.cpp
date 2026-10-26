@@ -87,25 +87,11 @@ namespace
         return true;
     }
 
-    bool isRetValTypeNode(const Sema& sema, AstNodeRef nodeTypeRef)
-    {
-        return nodeTypeRef.isValid() && sema.node(nodeTypeRef).is(AstNodeId::RetValType);
-    }
-
     struct VarDeclSetInitInfo
     {
         bool        handled            = false;
         ConstantRef defaultValueCstRef = ConstantRef::invalid();
     };
-
-    void markRetValVariables(std::span<Symbol* const> symbols)
-    {
-        for (Symbol* s : symbols)
-        {
-            if (auto* symVar = getVariableSymbol(s))
-                symVar->addExtraFlag(SymbolVariableFlagsE::RetVal);
-        }
-    }
 
     AstNodeRef makeVarInitReceiverRef(Sema& sema, SymbolVariable& symVar, TypeRef typeRef)
     {
@@ -1289,14 +1275,6 @@ Result AstSingleVarDecl::semaPostNodeChild(Sema& sema, const AstNodeRef& childRe
 {
     if (childRef == nodeTypeRef)
     {
-        const bool      isRetVal  = isRetValTypeNode(sema, nodeTypeRef);
-        SymbolVariable* retValSym = nullptr;
-        if (isRetVal)
-        {
-            retValSym = &sema.curViewSymbol().sym()->cast<SymbolVariable>();
-            retValSym->addExtraFlag(SymbolVariableFlagsE::RetVal);
-        }
-
         if (nodeInitRef.isValid())
         {
             const SemaNodeView nodeTypeView = sema.viewType(nodeTypeRef);
@@ -1306,18 +1284,7 @@ Result AstSingleVarDecl::semaPostNodeChild(Sema& sema, const AstNodeRef& childRe
             const TypeInfo* initType                  = initTypeRef.isValid() ? &sema.typeMgr().get(initTypeRef) : nullptr;
             const bool      bindArrayRuntimeStorage   = !hasFlag(AstVarDeclFlagsE::Const) && sema.curScope().isLocal() && initType && initType->isArray();
             const bool      bindClosureRuntimeStorage = initType && initType->isLambdaClosure();
-            bool            bindRetValRuntimeStorage  = false;
-            if (isRetVal)
-            {
-                SWC_RESULT(SemaHelpers::currentFunctionUsesIndirectReturnStorage(bindRetValRuntimeStorage, sema));
-                // An earlier 'retval' local already named the slot, so this initializer must not
-                // be evaluated into it: it could read what it is overwriting.
-                if (bindRetValRuntimeStorage && sema.isCurrentFunction() && SemaHelpers::returnStorageExposed(sema, *sema.currentFunction(), SemaHelpers::retValStorageOwner(sema, *retValSym), retValSym))
-                    bindRetValRuntimeStorage = false;
-            }
-            if (bindArrayRuntimeStorage ||
-                bindRetValRuntimeStorage ||
-                bindClosureRuntimeStorage)
+            if (bindArrayRuntimeStorage || bindClosureRuntimeStorage)
                 frame.setCurrentRuntimeStorage(nodeInitRef, &sema.curViewSymbol().sym()->cast<SymbolVariable>());
             SemaHelpers::preferContextualAutoMemberBindingType(sema, nodeInitRef);
             frame.setBindingScoped();
@@ -1406,9 +1373,6 @@ Result AstMultiVarDecl::semaPostNodeChild(Sema& sema, const AstNodeRef& childRef
 {
     if (childRef == nodeTypeRef)
     {
-        if (isRetValTypeNode(sema, nodeTypeRef))
-            markRetValVariables(sema.curViewSymbol().symList());
-
         if (nodeInitRef.isValid())
         {
             const SemaNodeView nodeTypeView = sema.viewType(nodeTypeRef);

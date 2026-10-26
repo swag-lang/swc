@@ -61,7 +61,7 @@ private impl Writer
 
 private func pdfNumber(value: f32)->String
 {
-    var result: retval
+    var result: #returntype
     if value == Math.trunc(value) and Math.abs(value) < 1e9
     {
         let magnitude = cast(s64, Math.abs(value))
@@ -79,7 +79,7 @@ private func pdfNumber(value: f32)->String
 
 private func windows1252(text: string)->Array'u8 fail
 {
-    var result: retval
+    var result: #returntype
     Utf8.visitRunes(text)
     {
         if c <= 0x7F or (c >= 0xA0 and c <= 0xFF)
@@ -261,7 +261,7 @@ private func appendPath(result: *String, page: const *Page, item: const *Item)
 // Returns the index each standard face occupies in the shared font resource dictionary.
 private func documentFonts(document: const *Document)->Array'StandardFont
 {
-    var result: retval
+    var result: #returntype
     for page in document.pages
     {
         for item in page.items where item.kind == .Text
@@ -290,7 +290,7 @@ private func fontSlot(fonts: const [..] StandardFont, font: StandardFont)->u64
 
 private func pageContent(page: const *Page, fonts: const [..] StandardFont)->String fail
 {
-    var result: retval
+    var result: #returntype
     var imageIndex = 0'u32
     for item in page.items
     {
@@ -324,7 +324,7 @@ private func pageContent(page: const *Page, fonts: const [..] StandardFont)->Str
 // three, and a picture that is not fully opaque contributes a soft mask.
 private func encodeImagePixels(image: const *Image)->EncodedImage
 {
-    var result: retval
+    var result: #returntype
     let width       = cast(u64, image.width)
     let height      = cast(u64, image.height)
     let swapRedBlue = image.pixelFormat == .BGR8 or image.pixelFormat == .BGRA8
@@ -380,7 +380,7 @@ private func encodeImagePixels(image: const *Image)->EncodedImage
 
 private func infoDictionary(metadata: const *Metadata)->String fail
 {
-    var result: retval = "<<"
+    var result: #returntype = "<<"
     let fields: [6] { name: string, value: string } = [
         {name: "Title",    value: metadata.title.toString()},
         {name: "Author",   value: metadata.author.toString()},

@@ -101,9 +101,10 @@ func PackedImageWrite(result: *PackedImageLike, header: PackedHeader18, pixelInd
     dst[0] = src[0]
 }
 
-func PackedImageDecodeLike(header: PackedHeader18)->PackedImageLike
+// The views point into the image's own storage, so only a byte read from it is returned.
+func PackedImageDecodeLike(header: PackedHeader18)->u8
 {
-    var result: retval
+    var result: PackedImageLike
     result.storage       = [0'u8, 0, 0, 42, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]
     result.size          = 12
     result.width         = 2
@@ -116,7 +117,7 @@ func PackedImageDecodeLike(header: PackedHeader18)->PackedImageLike
     result.meta          = {buffer: cast([*] u8, result.storage), count: 0, capacity: 16}
     result.work          = null
     PackedImageWrite(&result, header, 1, cast([*] u8, result.storage) + 3)
-    return result
+    return result.storage[3]
 }
 
 func PackedForwardingCaller(result: *PackedPointerTarget, header: PackedHeader18, palette: PackedPaletteLike, pixelIndex: u64, src: const [*] u8)->u8
@@ -126,7 +127,7 @@ func PackedForwardingCaller(result: *PackedPointerTarget, header: PackedHeader18
 
 func PackedReturnValueCaller(header: PackedHeader18)->PackedPointerTarget
 {
-    var result: retval
+    var result: #returntype
     result.width     = 2
     result.height    = 2
     result.stride    = 6
@@ -160,6 +161,5 @@ func PackedReturnValueCaller(header: PackedHeader18)->PackedPointerTarget
     let ret = PackedReturnValueCaller(header)
     Swag.assert(ret.buffer[0] == 42)
 
-    let img = PackedImageDecodeLike(header)
-    Swag.assert(img.storage[3] == 42)
+    Swag.assert(PackedImageDecodeLike(header) == 42)
 }

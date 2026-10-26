@@ -357,7 +357,7 @@ impl ScrollWnd
 
     mtd verticalThumbRect(full = false)->Math.Rectangle
     {
-        var result: retval = .clientRect()
+        var result: #returntype = .clientRect()
         result.x     = result.right() - .paddingZ
         result.width = .paddingZ
         if not full
@@ -371,7 +371,7 @@ impl ScrollWnd
 
     mtd horizontalThumbRect(full = false)->Math.Rectangle
     {
-        var result: retval = .clientRect()
+        var result: #returntype = .clientRect()
         result.y      = result.bottom() - .paddingW
         result.height = .paddingW
         if not full
@@ -606,7 +606,7 @@ public impl ScrollWnd
     // Returns the complete virtual content rectangle.
     mtd const scrollableClientRect()->Math.Rectangle
     {
-        var result: retval
+        var result: #returntype
         result.width  = Math.max(.scrollSize.x, .view.position.width)
         result.height = Math.max(.scrollSize.y, .view.position.height)
         return result

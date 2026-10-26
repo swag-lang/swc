@@ -19,7 +19,7 @@ func videoTestImage(width, height: s32, pixels: const [..] u8)->Image => Image.c
 // Returns an image whose every channel holds `value`, which encodes to a neutral frame.
 func videoGrayImage(width, height: s32, value: u8)->Image
 {
-    var result: retval = Image.create(width, height, .RGB8)
+    var result: #returntype = Image.create(width, height, .RGB8)
     Memory.set(result.pixels.storage(), value, result.pixels.count)
     return result
 }
@@ -29,7 +29,7 @@ func videoFlatPayload(width, height: s32, luma: u8)->Array'u8
 {
     let lumaSize = cast(u64, width) * cast(u64, height)
 
-    var result: retval
+    var result: #returntype
     result.resize(lumaSize + lumaSize / 2)
     Memory.set(result.storage(), luma, lumaSize)
     Memory.set(result.storage() + lumaSize, 128, lumaSize / 2)
@@ -134,7 +134,7 @@ func videoReferenceFrame(bytes: const [..] u8, index: u64, width, height: s32, c
     let base         = index * frameSize
     Swag.assert(base + frameSize <= bytes.count)
 
-    var result: retval = Image.create(width, height, .RGB8)
+    var result: #returntype = Image.create(width, height, .RGB8)
     for y in height
     {
         let destinationRow = cast(u64, (height - y - 1)) * cast(u64, result.rowStride)

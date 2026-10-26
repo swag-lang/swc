@@ -44,7 +44,7 @@ public impl Poly1305
     // Creates a sequence keyed by the 32-byte one-time key `key`.
     func create(key: const [..] u8)->Poly1305 fail
     {
-        var result: retval
+        var result: #returntype
         try result.reset(key)
         return result
     }
@@ -156,7 +156,7 @@ public impl Poly1305
         packed[2] = ((h[2] >> 12) | (h[3] << 14)) & 0xFFFF_FFFF
         packed[3] = ((h[3] >> 18) | (h[4] << 8)) & 0xFFFF_FFFF
 
-        var result: retval
+        var result: #returntype
         var sum = 0'u64
         for i in 4
         {

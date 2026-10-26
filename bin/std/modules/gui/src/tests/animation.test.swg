@@ -51,7 +51,7 @@ func animationCompleted(result: AnimationResult)
 // Returns the options of a linear track that runs for one second.
 func linearSecond()->AnimationOptions
 {
-    var result: retval
+    var result: #returntype
     result.duration = 1000'ms
     result.easing   = .Linear
     return result

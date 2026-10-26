@@ -91,7 +91,7 @@ private func parseAc3Bsi(reader: *BitReader)->Ac3Bsi fail
     if reader.read(16) != 0x0B77 do
         fail InvalidFormatError{"AC-3 packet has an invalid sync word"}
     discard reader.read(16)
-    var result: retval
+    var result: #returntype
     result.fscod = reader.read(2)
     let frameSizeCode = reader.read(6)
     if result.fscod >= 3 or frameSizeCode >= 38 do
@@ -632,7 +632,7 @@ internal func ac3FrameInfo(packet: const [..] u8)->FrameInfo fail
     if fscod >= 3 or sizeCode >= 38 do
         fail InvalidFormatError{"AC-3 frame states a reserved sampling frequency or size"}
 
-    var result: retval
+    var result: #returntype
     result.sampleRate = Rates[cast(u64, fscod)]
     result.frames     = 1536
 

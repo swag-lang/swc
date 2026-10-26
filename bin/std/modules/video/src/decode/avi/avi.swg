@@ -186,7 +186,7 @@ func frameChunkId(index: u32, a, b: u32)->u32 => fourCc('0'u32 + index / 10, '0'
 // Reads one chunk header and reports where its payload and its successor start.
 private func readChunk(source: *ByteSource, end: u64)->Chunk fail
 {
-    var result: retval
+    var result: #returntype
     result.id   = try source.readLittleEndian'u32()
     result.size = cast(u64, (try source.readLittleEndian'u32()))
     result.data = source.position()
@@ -204,7 +204,7 @@ private func readChunk(source: *ByteSource, end: u64)->Chunk fail
 // refuses is exactly the field most likely to hold something that is not text at all.
 private func describeId(id: u32)->String
 {
-    var result: retval
+    var result: #returntype
     for shift in 4
     {
         let value = cast(u8, ((id >> cast(u32, (shift * 8))) & 0xFF))

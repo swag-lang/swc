@@ -625,7 +625,7 @@ impl StaticArray
     mtd front()->T
     {
         Swag.assert(.count > 0, "array is empty")
-        let result: retval = .buffer[0]
+        let result: #returntype = .buffer[0]
         return result
     }
 
@@ -644,7 +644,7 @@ impl StaticArray
     mtd back()->T
     {
         Swag.assert(.count > 0, "array is empty")
-        let result: retval = .buffer[.count - 1]
+        let result: #returntype = .buffer[.count - 1]
         return result
     }
 
@@ -663,7 +663,7 @@ impl StaticArray
     mtd popBack()->T
     {
         Swag.assert(.count > 0, "array is empty")
-        var result: retval
+        var result: #returntype
         let backIndex = .count - 1
         result = #relocate .buffer[backIndex]
         #static if Reflection.hasDrop(T) or

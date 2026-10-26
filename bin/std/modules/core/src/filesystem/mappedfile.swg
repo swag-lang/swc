@@ -34,7 +34,7 @@ impl MappedFile
     // reading because private page changes never reach it.
     func open(name: string, access = MapAccess.Read)->MappedFile fail
     {
-        with var result: retval
+        with var result: #returntype
         {
             .name   = name
             .access = access
@@ -60,7 +60,7 @@ impl MappedFile
     {
         var source    = try File.open(name, .Open, .Read, .ReadWrite | .Delete)
         let temporary = Path.combine(Env.getSpecialDirectory(.Temp), Format.toString("swag-mapped-%.tmp", Guid128.random()))
-        var result: retval
+        var result: #returntype
         result.name   = name
         result.stream = try File.open(temporary, .CreateNew, .ReadWrite, .ReadWrite | .Delete)
         defer discard catch File.delete(temporary)
@@ -133,7 +133,7 @@ impl MappedFile
         if offset > fileSize or length > fileSize - offset do
             fail Errors.BadParameterError{}
 
-        with var result: retval
+        with var result: #returntype
         {
             .offset = offset
             .length = length

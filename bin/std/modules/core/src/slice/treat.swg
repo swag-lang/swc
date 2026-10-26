@@ -12,7 +12,7 @@ func(T) forEachMutable(values: [..] T, action: func||(*T))
 // Returns an array holding the result of `transform` for every element, in order.
 func(T, R) map(values: const [..] T, transform: func||(T)->R)->Array'R
 {
-    var result: retval
+    var result: #returntype
     for v in values do
         result.add(transform(v))
     return result
@@ -37,7 +37,7 @@ func(T) reduce(values: const [..] T, combine: func||(T, T)->T)->T
 func(T) min(values: const [..] T)->{ value: T, index: u64 }
 {
     Swag.assert(values.count > 0, "cannot get the minimum of an empty slice")
-    var result: retval
+    var result: #returntype
     result.value = values[0]
     for i in 1 until values.count
     {
@@ -57,7 +57,7 @@ func(T) min(values: const [..] T)->{ value: T, index: u64 }
 func(T) max(values: const [..] T)->{ value: T, index: u64 }
 {
     Swag.assert(values.count > 0, "cannot get the maximum of an empty slice")
-    var result: retval
+    var result: #returntype
     result.value = values[0]
     for i in 1 until values.count
     {

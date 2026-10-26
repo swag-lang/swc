@@ -35,7 +35,7 @@ public impl Image
     // Returns a resized and center-cropped copy that covers the requested dimensions.
     mtd const covered(width, height: s32, mode = ResizeMode.Bicubic)->Image
     {
-        var result: retval = me
+        var result: #returntype = me
         result.cover(width, height, mode)
         return result
     }

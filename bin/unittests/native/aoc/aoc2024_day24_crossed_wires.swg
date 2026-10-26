@@ -5,7 +5,7 @@
 // Part 2: detect 4 swapped output pairs in a ripple-carry adder.
 // Exercises: enum, switch on enum, inline methods, nested inline calls,
 // bitwise shifts for binary construction, with &ptr blocks, dynamic memory,
-// sorting, struct returns via retval, boolean chains, cast patterns,
+// sorting, struct returns via #returntype, boolean chains, cast patterns,
 // ternary expressions, for loops with until.
 
 const SampleSmall =
@@ -818,7 +818,7 @@ func solve(wiresText: string, gatesText: string)->SolveResult
     Swag.assert(val == 13'u64)
 }
 
-// Inline returning struct via retval (exercises retval pattern)
+// Inline returning struct via #returntype
 struct WireInfo
 {
     encoded:  u32
@@ -828,7 +828,7 @@ struct WireInfo
 #[Swag.Inline]
 func makeWireInfo(c0: u8, c1: u8, c2: u8)->WireInfo
 {
-    var r: retval
+    var r: #returntype
     r.encoded  = encodeWire(c0, c1, c2)
     r.isOutput = wireIsZ(c0)
     return r

@@ -161,7 +161,7 @@ private func parseFrameHeader(reader: *BitReader)->FrameHeader fail
     if reader.read(5) != 31 do
         fail UnsupportedFormatError{"DTS packet uses a partial first sample block"}
 
-    var result: retval
+    var result: #returntype
     result.crc = reader.read(1) != 0
     let blocks = reader.read(7) + 1
     if blocks < 8 or blocks > MaxSubbandSamples or blocks & 7 do

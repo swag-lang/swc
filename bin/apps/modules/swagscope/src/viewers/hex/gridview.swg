@@ -151,7 +151,7 @@ func isPrintable(value: u8)->bool => value >= 32 and value < 127
 // leaves the viewer through the clipboard is laid out as the reader was looking at it.
 func formatDump(bytes: const [..] u8, baseOffset: u64, bytesPerRow: u64, offsetDigits: u64, groupSize = DefaultGroupSize)->String
 {
-    var result: retval
+    var result: #returntype
     if not bytesPerRow do
         return result
     result.reserve(bytes.count * 5)

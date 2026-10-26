@@ -28,7 +28,7 @@ public impl Context
     // anywhere without anything being configured or exported first.
     func create(rootDirectory: string, options: Options)->Context fail
     {
-        var result: retval
+        var result: #returntype
 
         var root = String.from(rootDirectory)
         if root.isEmpty() do
@@ -143,7 +143,7 @@ public impl Context
     // `std/core` and `unittests/jit` key their own trees under the workspace that holds them.
     mtd const artifactPaths(relative: string, label: string, buildCfg: string)->ArtifactPaths
     {
-        var result: retval
+        var result: #returntype
 
         let separator = Utf8.indexOf(cast(const [..] u8, relative), "/")
         let workspace = separator == Swag.U64.Max ? relative : relative[0 until separator]
@@ -174,7 +174,7 @@ public impl Context
     // Every workspace exposes its selectable units under `modules`.
     mtd const workspaceModules(workspace: string)->Array'String
     {
-        var result: retval
+        var result: #returntype
 
         let workspaceDir = Path.combine(.binDir.toString(), workspace)
         let unitsDir     = Path.combine(workspaceDir.toString(), "modules")
@@ -208,7 +208,7 @@ func relaunchToolIfNeeded(context: *Context, script: string, tokens: const [..] 
     Path.normalize(&running)
     Path.normalize(&selected)
 
-    var result: retval
+    var result: #returntype
     if Utf8.compare(cast(const [..] u8, running.toString()), cast(const [..] u8, selected.toString()), .Latin1NoCase) == 0 do
         return result
 
@@ -264,7 +264,7 @@ private func withCoreBound(arguments: Arguments)->Arguments
         forwardedCount = separateValue and i + 1 < arguments.count() ? 2 : 1
     }
 
-    var result: retval
+    var result: #returntype
     var bound:  Arguments
     if forwardedIndex != Swag.U64.Max
     {

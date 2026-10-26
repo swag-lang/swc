@@ -35,7 +35,7 @@ impl FormLine
     // head cut flat by the edge of its cell.
     mtd paintSizes(cxt: FormPaintContext)->{ stroke: f32, begScale: f32, endScale: f32 }
     {
-        var result: retval
+        var result: #returntype
         let base = cxt.hitTest ? Math.max(.borderSize, 5) : .borderSize
         result.stroke   = BaseForm.adaptSize(base, MinBorderSize, MaxBorderSize, cxt, 6, 9)
         result.begScale = cxt.quickMode ? BaseForm.adaptSize(.startSize, MinCapSize, MaxCapSize, cxt, 1, 3) : .startSize

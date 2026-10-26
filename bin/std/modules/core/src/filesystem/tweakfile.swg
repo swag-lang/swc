@@ -55,7 +55,7 @@ impl TweakFile
     // Resolves `name` against `type`, one segment per '.'.
     private func resolveName(type: typeinfo, name: string)->FieldPath
     {
-        var result: retval
+        var result: #returntype
         var current = type
         var rest    = name
 

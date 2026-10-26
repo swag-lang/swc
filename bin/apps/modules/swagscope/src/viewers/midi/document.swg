@@ -153,7 +153,7 @@ private func readU32(bytes: const [..] u8, offset: u64)->u32
 // past four bytes.
 private func readVlq(bytes: const [..] u8, at, end: u64)->Vlq
 {
-    var result: retval
+    var result: #returntype
     result.next = at
     for 4
     {
@@ -391,7 +391,7 @@ func loadDocument(fileName: string)->Document fail
     if headerLength < 6 or not hasBytes(bytes, 8, headerLength) do
         fail InvalidFormatError{Errors.mkString(texts().err_Header)}
 
-    with var result: retval
+    with var result: #returntype
     {
         .format         = readU16(bytes, 8)
         .declaredTracks = readU16(bytes, 10)

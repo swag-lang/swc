@@ -82,7 +82,7 @@ func fakeAddTypedData(fmt: ValueFormat, type: typeinfo?, data: const [..] u8)
 
 func fakeGetTypedData(fmt: ValueFormat, type: typeinfo?)->Array'u8
 {
-    var result: retval
+    var result: #returntype
     let entry = fakeFind(fmt)
     if not entry or (type and entry.crc != type.crc) do
         return result

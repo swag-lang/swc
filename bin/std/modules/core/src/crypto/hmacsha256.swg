@@ -15,7 +15,7 @@ struct HmacSha256
 
 private func sha256Bytes(digest: Hash.Sha256.Digest)->HmacSha256Digest
 {
-    var result: retval
+    var result: #returntype
     for i in 8
     {
         let word = digest[i]
@@ -33,7 +33,7 @@ impl HmacSha256
     // Creates an initialized HMAC-SHA-256 sequence for `key`.
     func create(key: const [..] u8)->HmacSha256
     {
-        var result: retval
+        var result: #returntype
         result.reset(key)
         return result
     }

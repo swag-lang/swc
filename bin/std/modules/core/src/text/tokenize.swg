@@ -38,7 +38,7 @@ func eatSpaces(str: string)->string
 // The lines are views that borrow the bytes of `src`, which must outlive them.
 func splitLines(src: string)->Array'(string)
 {
-    var result: retval
+    var result: #returntype
     let byteCount = src.count
     if not byteCount do
         return result
@@ -79,7 +79,7 @@ private func addSplitPart(result: *Array'(string), value: string, removeEmpty: b
 func split(src: string, separator: u8, maxSplit: u32 = 0, removeEmpty = true)->Array'(string)
 {
     let byteCount = src.count
-    var result: retval
+    var result: #returntype
     if not byteCount do
         return result
 
@@ -112,7 +112,7 @@ func split(src: string, separator: string, maxSplit: u32 = 0, removeEmpty = true
     let byteCount      = src.count
     let separatorBytes = separator.count
 
-    var result: retval
+    var result: #returntype
     if not byteCount do
         return result
     if not separatorBytes
@@ -157,7 +157,7 @@ func splitAny(src: string, separators: const [..] rune, maxSplit: u32 = 0, remov
 {
     let byteCount = src.count
 
-    var result: retval
+    var result: #returntype
     if not byteCount do
         return result
 

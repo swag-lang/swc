@@ -393,7 +393,7 @@ public impl Serialization.ISerialize for TagBinVersionProbe
 
 func makeTagBinPayload()->TagBinPayload
 {
-    var result: retval
+    var result: #returntype
 
     let seed: [4] s32 = [-8, 0, 7, 42]
     result.id     = 17
@@ -435,7 +435,7 @@ struct TagBinV1Field
 // directory to locate one field of the root struct.
 func findTagBinV1Field(bytes: const [..] u8, fieldName: string)->TagBinV1Field
 {
-    var result: retval
+    var result: #returntype
     var stream = ByteStream.openRead(bytes)
     Swag.assert((expect stream.readNative'u32()) == Serialization.Write.TagBinSignature.Root)
     Swag.assert((expect stream.readNative'u32()) == cast(u32, Serialization.Write.TagBinVersion1))
@@ -493,7 +493,7 @@ func findTagBinV1Field(bytes: const [..] u8, fieldName: string)->TagBinV1Field
 
 func corruptTagBinFieldType(bytes: String, fieldName: string, typeCrc: u32)->Array'u8
 {
-    var result: retval
+    var result: #returntype
     result.add(bytes.toSlice())
 
     let field  = findTagBinV1Field(result.toSlice(), fieldName)
@@ -506,7 +506,7 @@ func corruptTagBinFieldType(bytes: String, fieldName: string, typeCrc: u32)->Arr
 // An interface payload is a raw section: its byte length, then the readable object key.
 func corruptTagBinInterfaceObjectKey(bytes: String, fieldName, replacement: string)->Array'u8
 {
-    var result: retval
+    var result: #returntype
     result.add(bytes.toSlice())
 
     let field  = findTagBinV1Field(result.toSlice(), fieldName)
@@ -524,7 +524,7 @@ func corruptTagBinInterfaceObjectKey(bytes: String, fieldName, replacement: stri
 // A nested final struct is a raw signature followed by the raw byte length.
 func corruptTagBinRawLen(bytes: String, fieldName: string, newLen: u64)->Array'u8
 {
-    var result: retval
+    var result: #returntype
     result.add(bytes.toSlice())
 
     let field  = findTagBinV1Field(result.toSlice(), fieldName)
@@ -1075,7 +1075,7 @@ func readTagBinCompressedSizes(bytes: const [..] u8, fieldName: string)->{ uncom
     var stream = ByteStream.openRead(bytes)
     stream.setPosition(field.seek)
 
-    var result: retval
+    var result: #returntype
     result.uncompressed = expect stream.readNative'u64()
     result.compressed   = expect stream.readNative'u64()
     return result
@@ -1083,7 +1083,7 @@ func readTagBinCompressedSizes(bytes: const [..] u8, fieldName: string)->{ uncom
 
 func corruptTagBinCompressedSizes(bytes: String, fieldName: string, uncompressed, compressed: u64)->Array'u8
 {
-    var result: retval
+    var result: #returntype
     result.add(bytes.toSlice())
 
     let field  = findTagBinV1Field(result.toSlice(), fieldName)

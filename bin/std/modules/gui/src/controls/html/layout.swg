@@ -168,7 +168,7 @@ impl HtmlLayout
     // Resolves the containing-block context one length needs.
     mtd const lengthContext(styleIndex: u32, basis: f32, hasBasis: bool)->HtmlLengthContext
     {
-        var result: retval
+        var result: #returntype
         result.fontSize       = .styles[styleIndex].fontSize
         result.rootFontSize   = .defaults.fontSize
         result.viewportWidth  = .viewport.x
@@ -624,7 +624,7 @@ impl HtmlLayout
         const Values = [1000'u32, 900, 500, 400, 100, 90, 50, 40, 10, 9, 5, 4, 1]
         const Signs  = ["M", "CM", "D", "CD", "C", "XC", "L", "XL", "X", "IX", "V", "IV", "I"]
 
-        var result: retval
+        var result: #returntype
         var left = value
         for index in Values.count
         {
@@ -679,7 +679,7 @@ private impl HtmlLayout
     // Stores one rendered run in the build arena and applies `text-transform` in place.
     mtd storeText(text: string, kind = HtmlTextTransform.None)->HtmlRange
     {
-        var result: retval
+        var result: #returntype
         result.start = cast(u32, .textPool.length)
         result.count = cast(u32, text.count)
         .textPool    += text
@@ -1025,7 +1025,7 @@ impl HtmlLayout
         if .boxes[box].hasIntrinsic do
             return HtmlIntrinsicWidths{.boxes[box].minContent, .boxes[box].maxContent}
 
-        var result: retval
+        var result: #returntype
         let style = &.styles[.boxes[box].style]
 
         if .boxes[box].kind == .Replaced
@@ -1112,7 +1112,7 @@ impl HtmlLayout
     // Returns the size a replaced element draws at.
     private mtd replacedSize(box: u32, containingWidth: f32)->Math.Point
     {
-        var result: retval
+        var result: #returntype
         let node  = .boxes[box].node
         let style = &.styles[.boxes[box].style]
 
@@ -1509,7 +1509,7 @@ impl HtmlLayout
     // does not tell a child what a percentage of its parent is.
     private mtd const definiteContentHeight(style: const *HtmlComputedStyle, styleIndex: u32, containing: HtmlContainingBlock, extraY: f32)->{ value: f32, has: bool }
     {
-        var result: retval
+        var result: #returntype
         if style.height.isAuto() or
            style.height.isNone() or
            not style.height.isDefinite(.pool, containing.hasHeight) do
@@ -1665,7 +1665,7 @@ impl HtmlLayout
     // Returns the horizontal room the active floats leave over a vertical range.
     private mtd const floatBandRange(contentX, contentWidth, top, bottom: f32)->{ left: f32, right: f32 }
     {
-        var result: retval
+        var result: #returntype
         result.left  = contentX
         result.right = contentX + contentWidth
         for band in .floats
@@ -1761,7 +1761,7 @@ private impl HtmlLayout
     // Returns how far above and below its baseline one item reaches, leading included.
     mtd const itemExtent(box: u32, index: u64)->{ ascent: f32, descent: f32 }
     {
-        var result: retval
+        var result: #returntype
         let item = &.boxes[box].items[index]
         if item.kind == .Atomic and item.box != HtmlNoNode
         {
@@ -2135,7 +2135,7 @@ private impl HtmlLayout
     // content origin stands in for the static position.
     mtd flowChildren(box: u32, contentX, contentY: f32)->Array'u32
     {
-        var result: retval
+        var result: #returntype
         for child in .boxes[box].children
         {
             if .styles[.boxes[child].style].isOutOfFlow() do

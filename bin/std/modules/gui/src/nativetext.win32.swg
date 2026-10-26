@@ -8,7 +8,7 @@ using Core, Win32
 // `CF_TEXT` uses the Windows ANSI code page, not UTF-8. Zero selects the system code page.
 func encodeAnsi(text: string, codePage: u32 = 0)->Array'u8
 {
-    var result: retval
+    var result: #returntype
     let wide = Utf16.toZeroTerminated(text)
     if wide.count > Swag.S32.Max do
         return result
@@ -27,7 +27,7 @@ func encodeAnsi(text: string, codePage: u32 = 0)->Array'u8
 // External native strings must carry a terminator within their actual storage extent.
 func decodeUnicode(bytes: const [..] u8)->String
 {
-    var result: retval
+    var result: #returntype
     if bytes.count < 2 or bytes.count % 2 do
         return result
     let wide  = Swag.makeSlice(cast(const [*] u16, bytes.buffer), bytes.count / 2)
@@ -40,7 +40,7 @@ func decodeUnicode(bytes: const [..] u8)->String
 // Decodes zero-terminated ANSI bytes in `codePage` into UTF-8, or returns an empty string when `bytes` holds no terminator.
 func decodeAnsi(bytes: const [..] u8, codePage: u32 = 0)->String
 {
-    var result: retval
+    var result: #returntype
     var length = 0'u64
     while length < bytes.count and bytes[length] != 0 do
         length += 1

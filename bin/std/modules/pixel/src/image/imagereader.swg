@@ -189,7 +189,7 @@ public impl ImageReader
         let found = Image.getDecoder(fileName)
         if not found do
             fail UnsupportedFormatError{"no matching image decoder"}
-        var result: retval
+        var result: #returntype
         result.bytes.add(bytes)
         result.options     = options
         result.decoderType = found.type
@@ -256,7 +256,7 @@ public impl ImageReader
         if not .options.decodePixels
         {
             let frame = try multiple.readFrame(index, .options)
-            var result: retval
+            var result: #returntype
             result.init(.info.canvasWidth, .info.canvasHeight, frame.pixelFormat)
             result.metadata = frame.metadata
             return result

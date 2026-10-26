@@ -91,7 +91,7 @@ public impl RegExp
     // `(?i)` and `(?-i)` change that for part of a pattern.
     func create(expr: string, ignoreCase = false)->RegExp fail
     {
-        var result: retval
+        var result: #returntype
         try result.compile(expr, ignoreCase)
         return result
     }
@@ -204,7 +204,7 @@ public impl RegExp
     // than looping. The returned strings point into `str`.
     mtd grepAll(str: string?)->Array'(string)
     {
-        var result: retval
+        var result: #returntype
 
         let subject = str orelse ""
         for &span in .findAll(str) do
@@ -225,7 +225,7 @@ public impl RegExp
     // readable afterwards, like after any other successful match.
     mtd find(str: string?, start: u64 = 0)->{ found: bool, span: Span }
     {
-        var result: retval
+        var result: #returntype
 
         let subject = str orelse ""
         if start > subject.count do
@@ -243,7 +243,7 @@ public impl RegExp
     // The rule for empty occurrences is the one [[Core.Parser.RegExp.grepAll]] describes.
     mtd findAll(str: string?)->Array'Span
     {
-        var result: retval
+        var result: #returntype
 
         let subject = str orelse ""
         var at      = .findAllFast(subject, &result)
@@ -289,7 +289,7 @@ public impl RegExp
     // Returns where capture group `rank` matched in the last successful match.
     mtd captureSpan(rank: u32)->{ found: bool, span: Span }
     {
-        var result: retval
+        var result: #returntype
         if not .matched do
             return result
 
@@ -321,7 +321,7 @@ public impl RegExp
     // A group that did not take part is left out, so the result is not indexed by group rank.
     mtd captures()->Array'(string)
     {
-        var result: retval
+        var result: #returntype
         for rank in 1'u32 to .program.captureCount where .captureSpan(rank).found do
             result.add(.getCapture(rank))
         return result
@@ -341,7 +341,7 @@ public impl RegExp
     // did not take part in the occurrence contributes nothing.
     mtd replaceAll(str: string?, replacement: string)->String
     {
-        var result: retval
+        var result: #returntype
 
         let subject = str orelse ""
         var at      = 0'u64
@@ -372,7 +372,7 @@ public impl RegExp
     // `a*` splits `baaac` into `b` and `c`. The returned strings point into `str`.
     mtd split(str: string?)->Array'(string)
     {
-        var result: retval
+        var result: #returntype
 
         let subject = str orelse ""
         var at      = 0'u64
@@ -862,7 +862,7 @@ private impl RegExp
     // outwards from each hit.
     mtd innerSpanAt(hay: const [..] u8, at, limit: u64)->{ found: bool, quit: bool, span: Span }
     {
-        var result: retval
+        var result: #returntype
         var scanAt = at
 
         while scanAt <= limit
@@ -910,7 +910,7 @@ private impl RegExp
     // inside the encoding of one.
     mtd nextMatch(subject: string, at: u64)->{ found: bool, span: Span, next: u64 }
     {
-        var result: retval
+        var result: #returntype
 
         if not .search(subject, at, false, false) do
             return result
@@ -933,7 +933,7 @@ private impl RegExp
     // The span of the whole match.
     mtd const matchedSpan()->Span
     {
-        var result: retval
+        var result: #returntype
         result.start = .matchStart
         result.end   = .matchEnd
         return result

@@ -35,7 +35,7 @@ func addEntry(result: *ConcatBuffer, tag, type: u16, count, value: u32)
 
 func tiffRunLength(src: const [*] u8, index, count: u64)->u64
 {
-    var result: retval = 1
+    var result: #returntype = 1
     while result < 128 and index + result < count and src[index] == src[index + result] do
         result += 1
     return result

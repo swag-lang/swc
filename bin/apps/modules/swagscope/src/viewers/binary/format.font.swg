@@ -119,7 +119,7 @@ private func reportFontTables(image: *BinaryImage, report: *Report, at: u64, ope
 // Adds the naming table, and returns the family the font calls itself.
 private func reportFontNames(image: *BinaryImage, report: *Report, at: u64, open: bool)->String
 {
-    var result: retval
+    var result: #returntype
 
     let texts     = texts()
     let count     = cast(u64, image.u16At(at + 2))

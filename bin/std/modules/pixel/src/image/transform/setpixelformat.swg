@@ -144,8 +144,8 @@ impl Image
         if newPf == .pixelFormat do
             return me
 
-        let targetAlphaMode = newPf.hasAlpha() and .pixelFormat.hasAlpha() ? .alphaMode : AlphaMode.Straight
-        var result: retval  = create(.width, .height, newPf, alphaMode: targetAlphaMode)
+        let targetAlphaMode     = newPf.hasAlpha() and .pixelFormat.hasAlpha() ? .alphaMode : AlphaMode.Straight
+        var result: #returntype = create(.width, .height, newPf, alphaMode: targetAlphaMode)
         .doChangePf(&result)
         return result
     }

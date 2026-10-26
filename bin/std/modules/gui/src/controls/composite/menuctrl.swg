@@ -596,8 +596,8 @@ impl MenuCtrl
 
     private mtd getPopupBarAnchorLocalRect()->Math.Rectangle
     {
-        var result: retval = .popupBarItemSurfaceRect
-        let surfaceRect    = .surfaceRect()
+        var result: #returntype = .popupBarItemSurfaceRect
+        let surfaceRect         = .surfaceRect()
         result.x -= surfaceRect.x
         result.y -= surfaceRect.y
         return result
@@ -627,9 +627,9 @@ impl MenuCtrl
 
     private mtd getPopupBodyRect()->Math.Rectangle
     {
-        let metrics        = .themeMetrics()
-        var result: retval = .clientRect()
-        let anchorHeight   = .getPopupBarAnchorHeight()
+        let metrics             = .themeMetrics()
+        var result: #returntype = .clientRect()
+        let anchorHeight        = .getPopupBarAnchorHeight()
         if anchorHeight
         {
             result.height -= anchorHeight

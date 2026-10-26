@@ -266,7 +266,7 @@ private func blockGap(kind: BlockKind)->f32
 
 private func htmlStyle(documentStyle: Style)->HtmlStyle
 {
-    var result: retval
+    var result: #returntype
     result.bodyFontSize = documentStyle.bodyFontSize
     result.codeFontSize = documentStyle.codeFontSize
     return result
@@ -1118,7 +1118,7 @@ private impl View
     // block it is beside rather than snapping to the top of the document.
     mtd documentPositionAt(surfacePos: Math.Point)->{ view: u64, offset: u64, has: bool }
     {
-        var result: retval
+        var result: #returntype
         var best = Swag.F32.Max
 
         // The element is the view: dereferencing it would copy the window, and a window
@@ -1488,7 +1488,7 @@ impl View
     // Markdown that produced it.
     mtd selectedText()->String
     {
-        var result: retval
+        var result: #returntype
         let range = .selectionRange()
         if not range.has do
             return result
@@ -1967,7 +1967,7 @@ internal impl View
     // Returns the selection normalized to reading order, with `has` false when it is empty.
     mtd const selectionRange()->{ startView: u64, startOffset: u64, endView: u64, endOffset: u64, has: bool }
     {
-        var result: retval
+        var result: #returntype
         if .selAnchor.view == Swag.U64.Max or .selCaret.view == Swag.U64.Max do
             return result
         if .selAnchor.view == .selCaret.view and .selAnchor.offset == .selCaret.offset do
@@ -1986,7 +1986,7 @@ internal impl View
     // coordinates. This is what a view paints its selection from.
     mtd const selectionInInline(orderIndex: u64)->{ start: u64, end: u64, has: bool }
     {
-        var result: retval
+        var result: #returntype
         let range = .selectionRange()
         if not range.has or orderIndex < range.startView or orderIndex > range.endView do
             return result

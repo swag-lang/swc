@@ -6,7 +6,7 @@ private func ac3TestPackets(path: string)->Array'SoundPacket fail
 {
     const BitRates: [19] u32 = [32, 40, 48, 56, 64, 80, 96, 112, 128, 160, 192, 224, 256, 320, 384, 448, 512, 576, 640]
     let bytes  = try File.readAllBytes(path)
-    var result: retval
+    var result: #returntype
     var offset = 0'u64
     while offset < bytes.count
     {
@@ -46,7 +46,7 @@ private func dolbyTonePower(samples: const [*] s16, firstFrame, frameCount, chan
 private func eac3TestPackets(path: string)->Array'SoundPacket fail
 {
     let bytes  = try File.readAllBytes(path)
-    var result: retval
+    var result: #returntype
     var offset = 0'u64
     while offset < bytes.count
     {

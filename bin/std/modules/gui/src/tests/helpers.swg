@@ -29,7 +29,7 @@ func addStreamObject(bytes: *Array'u8, number: u32, dictionary: string, stream: 
 // numbers its own objects from 5 up and names them from `resources`.
 func singlePagePdf(resources: string, content: const [..] u8, extra: const [..] u8, mediaBox = "[0 0 200 100]")->Array'u8
 {
-    var result: retval
+    var result: #returntype
     result.add(cast(const [..] u8, "%PDF-1.7\n"))
     addObject(&result, 1, "<< /Type /Catalog /Pages 2 0 R >>")
     addObject(&result, 2, "<< /Type /Pages /Count 1 /Kids [3 0 R] >>")
@@ -58,7 +58,7 @@ func onlyItem(page: const *Pdf.Page, kind: Pdf.ItemKind)->const *Pdf.Item
 // Concatenates the UTF-8 of every text item, in paint order.
 func pageText(page: const *Pdf.Page)->String
 {
-    var result: retval
+    var result: #returntype
     for item in page.items where item.kind == .Text do
         result += item.textValue()
     return result

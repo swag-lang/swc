@@ -37,7 +37,7 @@ internal impl IImageEncoder for Encoder
 // ```
 public func encodeAll(images: const [..] Image)->ConcatBuffer fail
 {
-    var result: retval
+    var result: #returntype
     try appendAll(&result, images)
     return result
 }

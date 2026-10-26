@@ -86,7 +86,7 @@ func delete(dirName: string, recurse = false) fail
 // When both `matchExtension` and `matchFileName` are set, an entry matching either one is kept.
 func enumerate(dirName: string?, options: EnumerationOptions)->Array'(File.FileInfo) fail
 {
-    var result: retval
+    var result: #returntype
     if dirName == null do
         return result
     if not dirName.count do

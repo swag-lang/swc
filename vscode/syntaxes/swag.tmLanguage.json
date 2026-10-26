@@ -198,7 +198,7 @@
       "patterns": [
         {
           "name": "keyword",
-          "match": "\\b(using|with|cast|retval|assume|try|catch|expect|unwrap|fail|discard)\\b"
+          "match": "\\b(using|with|cast|assume|try|catch|expect|unwrap|fail|discard)\\b"
         }
       ]
     },
@@ -341,7 +341,7 @@
       "patterns": [
         {
           "name": "entity.name.function.intrinsic",
-          "match": "(#)(defined|offsetof|typeof|kindof|alignof|sizeof|stringof|fullnameof|nameof|isconstexpr|location|decltype|hastag|gettag|runes|safety|sanity|include)\\b"
+          "match": "(#)(defined|offsetof|typeof|kindof|alignof|sizeof|stringof|fullnameof|nameof|isconstexpr|location|decltype|returntype|hastag|gettag|runes|safety|sanity|include)\\b"
         }
       ]
     },

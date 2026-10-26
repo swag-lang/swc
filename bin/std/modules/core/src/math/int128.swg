@@ -25,7 +25,7 @@ func mulU64(x, y: u64)->{ hi: u64, lo: u64 }
     let middleHigh    = middleProduct >> 32
     middleLow += xLow * yHigh
 
-    with var result: retval
+    with var result: #returntype
     {
         .hi = (xHigh * yHigh) + middleHigh + (middleLow >> 32)
         .lo = x * y
@@ -81,7 +81,7 @@ impl Int128
     {
         var lhs    = x
         var rhs    = y
-        var result: retval
+        var result: #returntype
         let negate = (lhs < 0) != (rhs < 0)
 
         if lhs < 0 do

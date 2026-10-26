@@ -16,7 +16,7 @@ private func createTestPlugin(host: Viewer.Host)
 
 private func testPlugin(key = "custom", selector = ".plug")->Viewer.Plugin
 {
-    var result: retval
+    var result: #returntype
     result.key          = key
     result.staticName   = "Custom"
     result.iconAtlas    = viewerIcons()
@@ -113,7 +113,6 @@ private func testPlugin(key = "custom", selector = ".plug")->Viewer.Plugin
                 openDocumentChoices[1].key == "binary" and
                 openDocumentChoices[2].key == "hex")
     Swag.assert(registry.choices("bundle.zip")[0].key == "archive")
-
 
     const SoundFiles: [11] string = ["sound.wav", "sound.flac", "sound.mp3", "sound.aac", "sound.ac3", "sound.eac3", "sound.ec3", "sound.dts", "sound.ogg", "sound.oga", "sound.opus"]
     for file in SoundFiles do

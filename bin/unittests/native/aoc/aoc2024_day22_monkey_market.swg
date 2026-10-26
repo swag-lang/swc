@@ -4,7 +4,7 @@
 // Part 1: sum of 2000th secret numbers.
 // Part 2: find the 4-change price sequence that maximises bananas.
 // Exercises: bitwise XOR, #run compile-time tables, reverse-view iteration sliding
-// window, with &ptr blocks, inline + retval, Swag.makeSlice in inline, large
+// window, with &ptr blocks, inline + #returntype, Swag.makeSlice in inline, large
 // heap arrays.
 
 const SamplePart1 =
@@ -136,7 +136,7 @@ func encodeSeq(d0: s32, d1: s32, d2: s32, d3: s32)->u32
     return ((a * SeqBase + b) * SeqBase + c) * SeqBase + d
 }
 
-// Inline returning struct via retval (exercises the retval fix)
+// Inline returning struct via #returntype
 struct SeqResult
 {
     bestBananas: u64
@@ -145,7 +145,7 @@ struct SeqResult
 #[Swag.Inline]
 func makeSeqResult(val: u64)->SeqResult
 {
-    var r: retval
+    var r: #returntype
     r.bestBananas = val
     return r
 }
@@ -281,7 +281,7 @@ func solve(text: string)->SolveResult
     Swag.assert(idx != idx2)
 }
 
-// makeSeqResult inline + retval
+// makeSeqResult inline + #returntype
 #test
 {
     let r = makeSeqResult(42)

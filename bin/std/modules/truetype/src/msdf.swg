@@ -69,7 +69,7 @@ struct MsdfElement
 
 func msdfNormDir(dx, dy: f64)->{ x: f64, y: f64 }
 {
-    var result: retval
+    var result: #returntype
     let len = Math.sqrt(dx * dx + dy * dy)
     if len > 0
     {
@@ -884,7 +884,7 @@ func msdfChannelDistances(segs: const [..] MsdfSeg, px, py: f64, seed: *MsdfSeed
             d[ch] = msdfSegPseudoDistance(&segs[best.idx[ch]], px, py, best.param[ch], best.signed[ch])
     }
 
-    var result: retval
+    var result: #returntype
     result.r        = d[0]
     result.g        = d[1]
     result.b        = d[2]

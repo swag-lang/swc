@@ -94,7 +94,7 @@ struct LinkTargetInfo
 // never joins the activated target. `end` is the index of the closing parenthesis.
 func parseLinkTarget(text: string, start: u64)->LinkTargetInfo
 {
-    var result: retval
+    var result: #returntype
     var index = start
     while index < text.count and text[index] == ' ' do
         index += 1
@@ -194,7 +194,7 @@ struct ReferenceInfo
 
 func parseReferenceDefinition(line: string)->ReferenceInfo
 {
-    var result: retval
+    var result: #returntype
     let trimmed = Latin1.trim(line)
     if trimmed.count < 4 or trimmed[0] != '[' do
         return result
@@ -314,7 +314,7 @@ private func appendHtmlInlineNode(output: *String, document: const *HtmlDocument
 // entity, raw-text, void-element, or nesting rules here.
 private func parseHtmlInline(text: string, start: u64, references: const [..] Reference?)->HtmlInlineInfo
 {
-    var result: retval
+    var result: #returntype
 
     if Utf8.startsWith(text[start to], "<!--")
     {
@@ -354,7 +354,7 @@ private func parseHtmlInline(text: string, start: u64, references: const [..] Re
 
 func renderInline(text: string, references: const [..] Reference? = null, parsedHtmlText = false)->String
 {
-    var result: retval
+    var result: #returntype
     var index = 0'u64
     while index < text.count
     {
@@ -727,7 +727,7 @@ struct FenceInfo
 
 func parseHeading(line: string)->HeadingInfo
 {
-    var result: retval
+    var result: #returntype
     let trimmed = Latin1.trim(line)
     while result.level < trimmed.count and result.level < 6 and trimmed[result.level] == '#' do
         result.level += 1
@@ -790,7 +790,7 @@ func hasHardBreak(line: string)->bool
 
 func parseListItem(line: string)->ListInfo
 {
-    var result: retval
+    var result: #returntype
     var index = 0'u64
     while index < line.count and (line[index] == ' ' or line[index] == '\t')
     {
@@ -848,7 +848,7 @@ func isTableSeparator(line: string)->bool
 
 func parseFence(line: string)->FenceInfo
 {
-    var result: retval
+    var result: #returntype
     let trimmed = Latin1.trim(line)
     if trimmed.count < 3 or (trimmed[0] != '`' and trimmed[0] != '~') do
         return result

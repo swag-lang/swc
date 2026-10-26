@@ -9,7 +9,7 @@ using Core
 // and digits are kept and lowercased, a space becomes a dash, and everything else disappears.
 func markdownHeadingAnchor(line: string)->String
 {
-    var result: retval
+    var result: #returntype
     var start:  u64
     while start < line.count and start < 6 and line[start] == '#' do
         start += 1

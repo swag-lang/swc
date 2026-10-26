@@ -41,7 +41,7 @@ func drawClipRegionCard(painter: *Pixel.Painter, rect: Math.Rectangle)
 
 func buildPathModeList(x, y: f32)->LinePathList
 {
-    var list: retval
+    var list: #returntype
 
     scope
     {

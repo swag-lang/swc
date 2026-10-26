@@ -7,7 +7,7 @@
 // fixed-size arrays, for loops with until, struct equality, with &ptr
 // blocks, heap allocation for dynamic collections, multi-line string
 // parsing, cast chains, compile-time constants, .count on slices,
-// reverse-view iteration, inline retval struct return.
+// reverse-view iteration, inline #returntype struct return.
 
 const SampleInput =
     """#####
@@ -379,7 +379,7 @@ func solve(text: string)->SolveResult
     Swag.assert(sr.part1 == 42'u64)
 }
 
-// Inline retval struct return (exercises retval pattern)
+// Inline #returntype struct return
 struct HeightPair
 {
     lock: Heights
@@ -390,7 +390,7 @@ struct HeightPair
 #[Swag.Inline]
 func makeHeightPair(lock: Heights, key: Heights)->HeightPair
 {
-    var r: retval
+    var r: #returntype
     r.lock = lock
     r.key  = key
     r.fit  = lock.fits(key)

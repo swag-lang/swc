@@ -38,7 +38,7 @@ impl ByteSink
     // Creates `fileName`, replacing any existing file.
     func createFile(fileName: string)->ByteSink fail
     {
-        with var result: retval
+        with var result: #returntype
         {
             .stream   = try File.openWrite(fileName)
             .fileName = fileName
@@ -56,7 +56,7 @@ impl ByteSink
     func createMemory(buffer: *ConcatBuffer)->ByteSink
     {
         buffer.advance(buffer.count() - ConcatBuffer.offsetOf(buffer.position()))
-        with var result: retval
+        with var result: #returntype
         {
             .buffer = buffer
             .origin = buffer.position()

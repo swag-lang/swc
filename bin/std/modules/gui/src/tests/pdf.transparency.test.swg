@@ -12,7 +12,7 @@ private func transparencyDocument(resources, content: string, extra: const [..] 
 // that selects it and object 6 is the group.
 private func luminosityMaskObjects()->Array'u8
 {
-    var result: retval
+    var result: #returntype
     addObject(&result, 5, "<< /Type /ExtGState /SMask << /S /Luminosity /G 6 0 R >> >>")
     addStreamObject(&result, 6, "/Type /XObject /Subtype /Form /BBox [0 0 100 100] /Group << /S /Transparency /CS /DeviceGray >>", cast(const [..] u8, "1 g 0 0 50 50 re f"))
     return result
@@ -24,7 +24,7 @@ private func luminosityMaskObjects()->Array'u8
 // the mark's area on screen and nothing else.
 private func markedPixels(frame: const *Image)->u64
 {
-    var result: retval
+    var result: #returntype
     for y in frame.height
     {
         for x in frame.width

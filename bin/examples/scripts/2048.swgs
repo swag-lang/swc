@@ -37,7 +37,7 @@ struct BoardLayout
 // against both the width and the height, is what keeps the score off the board at any shape.
 func boardLayout(rect: Math.Rectangle)->BoardLayout
 {
-    var result: retval
+    var result: #returntype
 
     // Across: the outer air, the gap the board keeps around its cells, and the four cells.
     // Down: the same, with the score's band added above the board.

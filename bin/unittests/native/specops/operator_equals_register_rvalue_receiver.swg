@@ -26,7 +26,7 @@ impl Id
     #[Swag.NoInline]
     func make()->Id
     {
-        var result: retval
+        var result: #returntype
         result.value = 42
         return result
     }

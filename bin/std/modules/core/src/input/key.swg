@@ -209,7 +209,7 @@ public enum Key
 // Formats `modifiers` and `key` as a display-ready shortcut such as `Ctrl+S`.
 public func formatKeyShortcut(modifiers: KeyModifiers, key: Key)->String
 {
-    var result: retval
+    var result: #returntype
 
     if modifiers & .Alt do
         result += "Alt"

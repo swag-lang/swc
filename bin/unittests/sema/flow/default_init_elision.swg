@@ -28,7 +28,7 @@ impl FlowDrop
 
 func makeFlowDrop(value: s32)->FlowDrop
 {
-    var result: retval
+    var result: #returntype
     result.value = value
     return result
 }
@@ -50,7 +50,7 @@ func flowReadThroughPointer(value: *FlowPod)->s32 => value.b
 
 func flowCompleteRetval()->FlowPod
 {
-    var result: retval
+    var result: #returntype
     result.a = 1
     result.b = 2
     result.c = 3

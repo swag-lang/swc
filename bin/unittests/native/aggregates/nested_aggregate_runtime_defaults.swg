@@ -9,7 +9,7 @@ struct NestedRuntimeValue
 #[Swag.NoInline]
 func nestedRuntimeValue(text: string)->NestedRuntimeValue
 {
-    var result: retval = {}
+    var result: #returntype = {}
     result.text = text
     return result
 }

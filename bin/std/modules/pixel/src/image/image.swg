@@ -127,7 +127,7 @@ internal func normalizedToU16(value: f32)->u16
 #[Swag.Inline]
 internal func readPixelValue(source: const [*] u8, format: PixelFormat)->PixelValue
 {
-    var result: retval
+    var result: #returntype
     switch #complete format
     {
     case .Gray8:
@@ -277,7 +277,7 @@ internal func writePixelValue(destination: [*] u8, format: PixelFormat, value: P
 #[Swag.Inline]
 internal func readLogicalPixelValue(source: const [*] u8, format: PixelFormat, alphaMode: AlphaMode)->PixelValue
 {
-    var result: retval = readPixelValue(source, format)
+    var result: #returntype = readPixelValue(source, format)
     if alphaMode == .Premultiplied
     {
         if result.a > 0
@@ -333,7 +333,7 @@ impl Image
     {
         Swag.assert(width > 0 and height > 0, "invalid dimensions")
 
-        var result: retval
+        var result: #returntype
         result.init(width, height, pixelFormat, alphaMode)
         result.allocPixels()
         if buffer
@@ -649,7 +649,7 @@ impl Image
     #[Swag.Inline]
     internal mtd(PF: PixelFormat) const pixelColorDirect(pixX, pixY: s32)->Color
     {
-        var result: retval
+        var result: #returntype
         let x = Math.clamp(pixX, 0, .width - 1)
         var y = Math.clamp(pixY, 0, .height - 1)
         y = .height - y - 1
@@ -696,7 +696,7 @@ impl Image
         let source = .pixels.storage() + cast(u64, y) * .rowStride + cast(u64, x) * .bytesPerPixel
         let value  = readLogicalPixelValue(source, .pixelFormat, .alphaMode)
 
-        with var result: retval
+        with var result: #returntype
         {
             .r = normalizedToU8(value.r)
             .g = normalizedToU8(value.g)

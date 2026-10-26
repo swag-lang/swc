@@ -244,7 +244,7 @@ private impl Codec
         let blockSizeCode  = reader.read(4)
         let sampleRateCode = reader.read(4)
 
-        var result: retval
+        var result: #returntype
         result.channelAssignment = reader.read(4)
         let depthCode = reader.read(3)
         if reader.read(1) do

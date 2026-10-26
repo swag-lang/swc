@@ -332,8 +332,8 @@ private func sampleDocument()->Document
 // Writes `bytes` to a temporary file and returns its path.
 private func writeTemporaryPdf(tag: string, bytes: const [..] u8)->String fail
 {
-    let directory      = Env.getSpecialDirectory(.Temp)
-    var result: retval = Path.combine(directory.toString(), Format.toString("gui_pdf_%_%.pdf", tag, Guid64.random()).toString())
+    let directory = Env.getSpecialDirectory(.Temp)
+    var result: #returntype = Path.combine(directory.toString(), Format.toString("gui_pdf_%_%.pdf", tag, Guid64.random()).toString())
     discard try File.writeAllBytes(result.toString(), bytes)
     return result
 }
@@ -347,7 +347,7 @@ private func writeTemporaryPdf(tag: string, bytes: const [..] u8)->String fail
 // valid when the text in it changes.
 private func buildIncrementalPdf(word, updated: string)->Array'u8
 {
-    var result:  retval
+    var result:  #returntype
     var offsets: [6] u64
 
     func append(bytes: *Array'u8, text: string)
@@ -365,8 +365,8 @@ private func buildIncrementalPdf(word, updated: string)->Array'u8
 
     func contentObject(text: string)->String
     {
-        let stream         = Format.toString("BT /F1 12 Tf 20 40 Td (%) Tj ET\n", text)
-        var result: retval = Format.toString("<< /Length % >>\nstream\n", stream.toString().count).toString()
+        let stream = Format.toString("BT /F1 12 Tf 20 40 Td (%) Tj ET\n", text)
+        var result: #returntype = Format.toString("<< /Length % >>\nstream\n", stream.toString().count).toString()
         result += stream.toString()
         result += "endstream"
         return result

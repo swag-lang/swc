@@ -9,7 +9,7 @@ using Core, Pixel, Gui, Audio, Threading
 // the player without a list to update here.
 func viewerPlugin()->Viewer.Plugin
 {
-    with var result: retval
+    with var result: #returntype
     {
         .key          = "sound"
         .staticName   = "Sound"
@@ -149,7 +149,7 @@ func sampleAt(bytes: const [..] u8, offset: u64, encoding: SoundFileEncoding)->f
 // Reduces an interleaved PCM payload to at most [[WaveformPointCount]] points, mixing its channels.
 func buildWaveform(bytes: const [..] u8, encoding: SoundFileEncoding, channels: u32)->Array'WaveformPoint
 {
-    var result: retval
+    var result: #returntype
     if not bytes.count or not channels do
         return result
 

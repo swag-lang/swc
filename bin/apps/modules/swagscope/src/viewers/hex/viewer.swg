@@ -8,7 +8,7 @@ using Core, Pixel, Gui
 // It answers for every file, so a format nothing else reads is still openable.
 func viewerPlugin()->Viewer.Plugin
 {
-    with var result: retval
+    with var result: #returntype
     {
         .key          = "hex"
         .staticName   = "Hexadecimal"
@@ -67,7 +67,7 @@ private func formatOctalScalar(value, bits: u64)->String
 // Opens `fileName` and makes its first window resident, outside the GUI thread.
 private func loadDocument(fileName: string)->Document fail
 {
-    var result: retval
+    var result: #returntype
     if not result.open(fileName) do
         fail InvalidFormatError{Errors.mkString(result.failureReason)}
     if result.fileSize and not result.ensure(0, Math.min(result.fileSize, WindowSize)) do
@@ -181,7 +181,7 @@ impl Panel
 
     private mtd analysisRange()->{range: AnalysisRange, selection: bool}
     {
-        var result: retval
+        var result: #returntype
         result.selection = .grid.selectionLength() > 1
         result.range     = result.selection ?
                            AnalysisRange{.grid.selectionStart(), .grid.selectionLength()} :

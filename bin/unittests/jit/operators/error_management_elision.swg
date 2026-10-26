@@ -46,7 +46,7 @@ func makeManagedResult(succeed: bool)->ManagedResult fail
     if not succeed do
         fail Swag.BaseError{"expected failure"}
 
-    var result: retval
+    var result: #returntype
     result.value = g_seed
     return result
 }

@@ -75,7 +75,7 @@ func open(fullName: string, mode: FileMode, access: FileAccess, share: FileShare
     let canWrite = access.has(.Write)
     let handle   = try openNative(fullName, mode, access, share)
 
-    var result: retval
+    var result: #returntype
     result.open(fullName, handle, canRead, canWrite, true)
     if mode == .Append do
         try result.seek(.End, 0)
@@ -113,7 +113,7 @@ func readAllText(fullName: string, normalizeEol = false)->String fail
     if not normalizeEol do
         return try reader.readToEnd()
 
-    var result: retval
+    var result: #returntype
     var line:   String
     while try reader.readLine(&line)
     {
@@ -130,7 +130,7 @@ func readAllLines(fullName: string)->Array'String fail
     var reader: TextReader
     try reader.open(fullName)
 
-    var result: retval
+    var result: #returntype
     var line:   String
     while try reader.readLine(&line) do
         result.add(#move line)
@@ -157,7 +157,7 @@ func readAllBytes(fullName: string)->Array'u8 fail
 {
     var stream = try openRead(fullName)
 
-    var result: retval
+    var result: #returntype
     let length = try stream.size()
     if not length do
         return result

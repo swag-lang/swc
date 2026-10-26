@@ -28,7 +28,7 @@ impl PanelWnd
     // Returns the local rectangle available to the panel's children.
     mtd contentRect()->Math.Rectangle
     {
-        var result: retval = .clientRect()
+        var result: #returntype = .clientRect()
         let top = (.title).count ? PanelPadding + PanelTitle : PanelPadding
         result.applyPadding(Math.Vector4{PanelPadding, top, PanelPadding, PanelPadding})
         return result

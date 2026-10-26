@@ -27,7 +27,7 @@ private impl HistogramView
         let available = Math.max(Math.min(client.width, client.height) - Inset * 2, 16)
         let pitch     = Math.floor(available / 16)
         let extent    = pitch * 16
-        var result: retval
+        var result: #returntype
         result.origin = Math.Point{client.horzCenter() - extent * 0.5, client.vertCenter() - extent * 0.5}
         result.pitch  = pitch
         result.cell   = Math.max(pitch - Gap, 1)

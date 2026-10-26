@@ -1080,7 +1080,7 @@ impl ThemeColors
     // Returns the neutral dark palette.
     func darkPalette()->ThemePalette
     {
-        var result: retval
+        var result: #returntype
 
         result.ground         = 0xFF202020
         result.view           = 0xFF282828
@@ -1148,7 +1148,7 @@ impl ThemeColors
     // Returns the neutral light palette.
     func lightPalette()->ThemePalette
     {
-        var result: retval
+        var result: #returntype
 
         result.ground         = 0xFFF6F6F6
         result.view           = 0xFFFFFFFF
@@ -1212,7 +1212,7 @@ impl ThemeColors
     // filled action.
     func swagDarkPalette()->ThemePalette
     {
-        var result: retval
+        var result: #returntype
 
         result.ground         = 0xFF0B0B0D
         result.view           = 0xFF15151A

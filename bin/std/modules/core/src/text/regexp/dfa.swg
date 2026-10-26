@@ -485,7 +485,7 @@ impl Dfa
     // run the simulation instead. It never means "no match".
     mtd searchForward(program: const *Program, prefilter: const *Prefilter, hay: const [..] u8, start, limit: u64, anchored: bool)->{ found: bool, quit: bool, end: u64 }
     {
-        var result: retval
+        var result: #returntype
         .ensure(program)
 
         // An anchored search has one place to look and no scan to skip ahead with, which is a
@@ -600,7 +600,7 @@ impl Dfa
     // Skips to the next offset a match could begin at, and re-enters the automaton there.
     mtd resync(program: const *Program, prefilter: const *Prefilter, hay: const [..] u8, pos, limit: u64)->{ found: bool, quit: bool, at: u64, state: u32 }
     {
-        var result: retval
+        var result: #returntype
 
         let candidate = prefilter.find(hay, pos)
         if candidate >= limit do
@@ -685,7 +685,7 @@ impl Dfa
     // there.
     mtd searchReverse(program: const *Program, hay: const [..] u8, start, end: u64)->{ found: bool, quit: bool, start: u64 }
     {
-        var result: retval
+        var result: #returntype
         .ensure(program)
 
         if .exhausted
@@ -791,7 +791,7 @@ impl Dfa
 // The outcome of a forward search that did not have to give up.
 func forwardResult(lastMatch: u64)->{ found: bool, quit: bool, end: u64 }
 {
-    var result: retval
+    var result: #returntype
     result.found = lastMatch != NoOffset
     result.end   = lastMatch
     return result

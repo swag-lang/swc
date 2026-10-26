@@ -32,7 +32,7 @@ public impl Json
 
     internal mtd getError(message: string)->SyntaxError
     {
-        var result: retval
+        var result: #returntype
         result.message = message
         result.seek    = .stream.position()
         result.line    = 1
@@ -479,11 +479,11 @@ public impl Json
             if .stream.peekU8() == 'n'
             {
                 try .readLiteral("null")
-                var result: retval
+                var result: #returntype
                 return result
             }
 
-            var result: retval
+            var result: #returntype
             try .readString(&result)
             return result
 

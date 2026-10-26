@@ -5,7 +5,7 @@ using Core
 private func aacTestPackets(path: string)->Array'SoundPacket fail
 {
     let bytes  = try File.readAllBytes(path)
-    var result: retval
+    var result: #returntype
     var offset = 0'u64
     while offset < bytes.count
     {

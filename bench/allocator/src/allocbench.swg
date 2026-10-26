@@ -297,7 +297,7 @@ func retain(random: *Xorshift)->Retained
     Memory.free(small, Small * #sizeof(u64))
     Memory.free(smallSizes, Small * #sizeof(u64))
 
-    var result: retval
+    var result: #returntype
     result.idle = workingSet()
     Threading.Thread.sleep(700'ms)
     Memory.free(Memory.alloc(1024 * 1024), 1024 * 1024)

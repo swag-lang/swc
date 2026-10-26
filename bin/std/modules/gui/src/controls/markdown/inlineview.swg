@@ -229,7 +229,7 @@ impl InlineView
     // spanning it copies.
     mtd text()->String
     {
-        var result: retval
+        var result: #returntype
         for &atom in .atoms do
             result += atomText(atom)
         return result
@@ -238,7 +238,7 @@ impl InlineView
     // Returns the part of the view's text between two byte offsets.
     mtd textSlice(start, end: u64)->String
     {
-        var result: retval
+        var result: #returntype
         for &atom in .atoms
         {
             let atomEnd = atom.textStart + atomTextLength(atom)
@@ -863,7 +863,7 @@ impl InlineView
     // both refuse to stretch is refused for the same reason.
     private mtd measureJustification(first, last: u64, right, line: f32, wrapped: bool)->{ step: f32, firstInk: u64, lastInk: u64 }
     {
-        var result: retval
+        var result: #returntype
         result.firstInk = Swag.U64.Max
         if not wrapped or .horizontalAlignment != .Justify do
             return result
@@ -1251,7 +1251,7 @@ impl InlineView
     // it travels along rather than jumping to another block.
     mtd textPositionAt(point: Math.Point)->{ offset: u64, distance: f32 }
     {
-        var result: retval
+        var result: #returntype
         result.distance = Swag.F32.Max
 
         for &atom in .atoms where atom.visible
@@ -1292,7 +1292,7 @@ impl InlineView
     // Returns the run of the view's text one word around `offset` covers.
     mtd wordRangeAt(offset: u64)->{ start: u64, end: u64 }
     {
-        var result: retval
+        var result: #returntype
         let source = .text()
         let length = source.length
         if not length do
@@ -1389,7 +1389,7 @@ impl IWnd for InlineView
     {
         let rect    = .clientRect()
         let painter = evt.paintContext.painter
-        .images.loadingPhase = Math.fract(.images.loadingPhase + .paintDeltaSeconds() *.themeMetrics().spinner_Speed)
+        .images.loadingPhase = Math.fract(.images.loadingPhase + .paintDeltaSeconds() * .themeMetrics().spinner_Speed)
         discard .layout(rect.width)
 
         // Lists, headings and code stay unchanged during scrolling just as prose does. Image

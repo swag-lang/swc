@@ -1117,7 +1117,7 @@ var borrowEscapeGlobalBytes: [4] u8
 
 func borrowEscapeRetvalBox(s: string)->BorrowEscapeBox
 {
-    var result: retval
+    var result: #returntype
     result.text = s
     return result
 }
@@ -1129,16 +1129,16 @@ func borrowEscapeThroughRetvalBox()->BorrowEscapeBox
     return borrowEscapeRetvalBox(cast(string, buf))     // swc-expected-error {{sanity_err_borrow_escape}}
 }
 
-// Caller-independent data flows through the retval untouched.
+// Caller-independent data flows through the returned value untouched.
 func borrowEscapeThroughRetvalBoxGlobal()->BorrowEscapeBox
 {
     return borrowEscapeRetvalBox(cast(string, borrowEscapeGlobalBytes))
 }
 
-// The summary chains when the retval field is filled through an opaque call.
+// The summary chains when the returned local's field is filled through an opaque call.
 func borrowEscapeRetvalBoxCall(s: string)->BorrowEscapeBox
 {
-    var result: retval
+    var result: #returntype
     result.text = borrowEscapeIdentity(s)
     return result
 }
@@ -1150,15 +1150,14 @@ func borrowEscapeThroughRetvalBoxCall()->BorrowEscapeBox
     return borrowEscapeRetvalBoxCall(cast(string, buf))     // swc-expected-error {{sanity_err_borrow_escape}}
 }
 
-// A LOCAL borrow stored into the retval escapes right away (already covered by
-// the destination rules): regression-pinned here.
+// A LOCAL borrow stored into the returned local escapes with it.
 func borrowEscapeRetvalLocal()->BorrowEscapeBox
 {
     var buf: [3] u8
     buf[0] = 'a'u8
-    var result: retval
-    result.text = cast(string, buf)     // swc-expected-error {{sanity_err_borrow_escape}}
-    return result
+    var result: #returntype
+    result.text = cast(string, buf)
+    return result     // swc-expected-error {{sanity_err_borrow_escape}}
 }
 
 // ---------------------------------------------------------------------------

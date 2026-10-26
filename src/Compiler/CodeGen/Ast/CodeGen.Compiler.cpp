@@ -5,6 +5,7 @@
 #include "Backend/ABI/CallConv.h"
 #include "Backend/Micro/MicroBuilder.h"
 #include "Compiler/CodeGen/Core/CodeGenFunctionHelpers.h"
+#include "Compiler/CodeGen/Core/CodeGenMoveElision.h"
 #include "Compiler/CodeGen/Core/CodeGenMemoryHelpers.h"
 #include "Compiler/CodeGen/Core/CodeGenParameterReg.h"
 #include "Compiler/CodeGen/Core/CodeGenSafety.h"
@@ -104,6 +105,8 @@ namespace
 
     void buildCompilerFunctionStackLayout(CodeGen& codeGen, AstNodeRef bodyRef)
     {
+        CodeGenMoveElision::selectReturnStorageLocals(codeGen);
+
         const std::vector<SymbolVariable*>& localSymbols = codeGen.function().localVariables();
         const CallConv&                     callConv     = CallConv::get(codeGen.function().callConvKind());
 

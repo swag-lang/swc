@@ -151,7 +151,7 @@ func sameWithConstructedHeader(value: Value, address: const *Value)->bool
 #[Swag.NoInline]
 func makeAddressHolder(address: const *Value)->AddressHolder
 {
-    var result: retval = address
+    var result: #returntype = address
     return result
 }
 

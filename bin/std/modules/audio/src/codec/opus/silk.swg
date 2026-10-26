@@ -1321,7 +1321,7 @@ internal impl SilkDecoder
 {
     func create(apiChannels: u32)->SilkDecoder
     {
-        var result: retval
+        var result: #returntype
         result.apiChannels      = apiChannels
         result.internalChannels = 0
         for c in 2

@@ -9,7 +9,7 @@ using Core, Pixel, Gui, Video, Audio
 // the player without a list to update here.
 func viewerPlugin()->Viewer.Plugin
 {
-    with var result: retval
+    with var result: #returntype
     {
         .key          = "video"
         .staticName   = "Video"

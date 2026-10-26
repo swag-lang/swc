@@ -161,7 +161,7 @@ func inspectedSource(source: string, stage: string)->String
 {
     let cut = firstFunctionOffset(source)
 
-    var result: retval
+    var result: #returntype
     if cut == Swag.U64.Max
     {
         result.append(source)

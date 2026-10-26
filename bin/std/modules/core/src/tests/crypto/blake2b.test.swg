@@ -5,7 +5,7 @@
 // be written exactly as the specification prints them.
 func hexBytes(text: string)->Array'u8
 {
-    var result: retval
+    var result: #returntype
     result.reserve(text.count / 2)
     var index = 0'u64
     while index + 1 < text.count

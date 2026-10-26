@@ -15,7 +15,7 @@ func ReadOverlayAlpha(col: OverlayColor)->u8
 
 func MergeOverlay(lhs, rhs: OverlayColor)->OverlayColor
 {
-    var result: retval
+    var result: #returntype
     result.a = lhs.a
     result.r = rhs.r
     result.g = lhs.g

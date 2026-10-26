@@ -336,7 +336,7 @@ private:
     AstNodeRef parseQualifiedIdentifier();
     AstNodeRef parseRelationalExpr(int minPrecedence);
     AstNodeRef parseRelationalExpr();
-    AstNodeRef parseRetValType();
+    AstNodeRef parseCurrentReturnType();
     AstNodeRef parseReturn();
     AstNodeRef parseSingleType();
 

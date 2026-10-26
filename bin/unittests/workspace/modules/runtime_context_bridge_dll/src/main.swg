@@ -194,7 +194,7 @@ public impl CtxSelfBufferSet
 #[Swag.NoInline]
 public func ctxSharedMakeSelfBufferSet(a: u8, b: u8, c: u8, d: u8, count: u32)->CtxSelfBufferSet
 {
-    var result: retval
+    var result: #returntype
     result.storage = [a, b, c, d]
     result.buffer  = cast([*] u8, &result.storage[0])
     result.count   = count
@@ -376,7 +376,7 @@ public func ctxSharedMakePair(a: s32, b: s32)->CtxAbiPair
 
 public func ctxSharedMakePayload(seed: u64)->CtxAbiPayload
 {
-    var result: retval
+    var result: #returntype
     result.a0 = seed + 1
     result.a1 = seed + 2
     result.a2 = seed + 3
@@ -391,7 +391,7 @@ public func ctxSharedMakeOffsets(a: u8, b: u16, c: u32, d: u64)->CtxAbiOffsets
 
 public func ctxSharedMakeNested(seed: s32)->CtxAbiNested
 {
-    var result: retval
+    var result: #returntype
     result.p.a  = seed
     result.p.b  = seed + 1
     result.q.a0 = cast(u64, seed) + 10
@@ -456,7 +456,7 @@ public func ctxSharedFloatPairSum(value: CtxAbiFloatPair)->f32
 
 public func ctxSharedMakeFloatPack(seed: f64)->CtxAbiFloatPack
 {
-    var result: retval
+    var result: #returntype
     result.r = seed
     result.g = seed + 0.25
     result.b = seed + 0.5
@@ -465,13 +465,13 @@ public func ctxSharedMakeFloatPack(seed: f64)->CtxAbiFloatPack
 
 public func ctxSharedClonePayload(value: CtxAbiPayload)->CtxAbiPayload
 {
-    var result: retval = value
+    var result: #returntype = value
     return result
 }
 
 public func ctxSharedCloneFloatPack(value: CtxAbiFloatPack)->CtxAbiFloatPack
 {
-    var result: retval = value
+    var result: #returntype = value
     return result
 }
 

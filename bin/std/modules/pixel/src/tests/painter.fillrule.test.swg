@@ -9,7 +9,7 @@ using Swag, Core
 // to read a hole from.
 private func ringPathList(outerClockwise, innerClockwise: bool)->LinePathList
 {
-    var result: retval
+    var result: #returntype
 
     let outer = result.newPath()
     outer.start(4, 4)

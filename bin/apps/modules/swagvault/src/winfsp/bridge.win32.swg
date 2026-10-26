@@ -287,7 +287,7 @@ namespace WinFsp
     // intended answer for the ones Swag Vault does not implement.
     func makeInterface()->FspInterface
     {
-        with var result: retval
+        with var result: #returntype
         {
             .getVolumeInfo     = &fspGetVolumeInfo
             .setVolumeLabel    = &fspSetVolumeLabel

@@ -94,7 +94,7 @@ private impl GridLayoutCtrl
 
     mtd computeTrackSize(track: GridTrack, content: f32)->f32
     {
-        var result: retval
+        var result: #returntype
         switch track.kind
         {
         case .Fixed:    result = track.value
@@ -109,7 +109,7 @@ private impl GridLayoutCtrl
 
     mtd spanH(col, row: s32, child: *Wnd)->s32
     {
-        var result: retval = 0
+        var result: #returntype = 0
         var idx = col + (row * .numColumns)
         var c   = col
         while c < .numColumns
@@ -126,7 +126,7 @@ private impl GridLayoutCtrl
 
     mtd spanV(col, row: s32, child: *Wnd)->s32
     {
-        var result: retval = 0
+        var result: #returntype = 0
         var idx = col + (row * .numColumns)
         var r   = row
         while r < .numRows
@@ -143,7 +143,7 @@ private impl GridLayoutCtrl
 
     mtd computeContentSizes(columns: bool)->Array'f32
     {
-        var result: retval
+        var result: #returntype
         let count = columns ? .numColumns : .numRows
         for count do
             result.add(0)
@@ -186,7 +186,7 @@ private impl GridLayoutCtrl
 
     mtd computeTrackSizes(tracks: const [..] GridTrack, content: const [..] f32, available: f32, spacing: f32, forceEqual: bool)->Array'f32
     {
-        var result: retval
+        var result: #returntype
         let count = tracks.count
         if not count do
             return result
@@ -272,7 +272,7 @@ private impl GridLayoutCtrl
 
     mtd trackOffset(sizes: const [..] f32, idx: s32, spacing: f32)->f32
     {
-        var result: retval
+        var result: #returntype
         for i in idx
         {
             result += sizes[i]
@@ -284,7 +284,7 @@ private impl GridLayoutCtrl
 
     mtd trackSpanSize(sizes: const [..] f32, idx, span: s32, spacing: f32)->f32
     {
-        var result: retval
+        var result: #returntype
         for i in span
         {
             if i do

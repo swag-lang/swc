@@ -87,7 +87,7 @@ public func prompt()->String
 {
     const BufSize = 1024'u32
 
-    var result: retval
+    var result: #returntype
     var buffer: [BufSize] u8
     var dwRead: DWORD
 

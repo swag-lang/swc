@@ -26,7 +26,7 @@ struct Small
 #[Swag.Optimize(true), Swag.NoInline]
 func motionOf(kind: u32, refIdx: s8, x, y: s16)->Motion
 {
-    var result: retval
+    var result: #returntype
     if kind == 0 do
         return result
     if kind == 1
@@ -53,7 +53,7 @@ func motionOf(kind: u32, refIdx: s8, x, y: s16)->Motion
 #[Swag.Optimize(true), Swag.NoInline]
 func smallOf(tag: u8, value: s16)->Small
 {
-    var result: retval
+    var result: #returntype
     result.tag = tag
     if value < 0 do
         result.flags = 0x80

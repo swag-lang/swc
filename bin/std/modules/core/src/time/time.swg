@@ -94,7 +94,7 @@ func timeToTicks(hour, minute, second, millisecond: u16)->Ticks
 // Returns the time of day of `ticks`.
 func ticksToTime(ticks: Ticks)->{ hour: u16, minute: u16, second: u16, millisecond: u16 }
 {
-    var result: retval
+    var result: #returntype
     result.hour        = cast(((ticks / TicksPerHour) % 24))
     result.minute      = cast(((ticks / TicksPerMinute) % 60))
     result.second      = cast(((ticks / TicksPerSecond) % 60))
@@ -152,7 +152,7 @@ func ticksToDate(ticks: Ticks)->{ year: u16, month: u16, day: u16 }
 
     let completeYears = complete400YearCycles * 400 + complete100YearCycles * 100 +
                         complete4YearCycles * 4 + yearsWithin4YearCycle
-    var result: retval
+    var result: #returntype
     result.year  = cast((completeYears + 1))
     result.month = cast(month)
     result.day   = cast((remainingDays - monthStartDays[month - 1] + 1))

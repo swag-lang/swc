@@ -527,7 +527,7 @@ private func reportPeRichHeader(image: *BinaryImage, report: *Report, peOffset: 
 // count, symbol table and optional header size.
 private func reportPeFileHeader(image: *BinaryImage, report: *Report, at: u64)->PeFileHeaderInfo
 {
-    with var result: retval
+    with var result: #returntype
     {
         .machine         = image.u16At(at)
         .sectionCount    = image.u16At(at + 2)

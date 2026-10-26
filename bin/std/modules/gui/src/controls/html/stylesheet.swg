@@ -536,7 +536,7 @@ impl HtmlStyleSheet
     // Answers every media query the sheet carries, in rule-index order.
     mtd const evaluateMedia(state: HtmlMediaState)->Array'bool
     {
-        var result: retval
+        var result: #returntype
         for query in .media do
             result.add(HtmlStyleSheet.evaluateMediaQuery(query.toString(), state))
         return result
@@ -633,7 +633,7 @@ impl HtmlStyleSheet
 // Removes comments from a stylesheet, leaving the text a rule parser can scan linearly.
 private func htmlStripCssComments(source: string)->String
 {
-    var result: retval
+    var result: #returntype
     var index  = 0'u64
     var quote  = 0'u8
     var copied = 0'u64
@@ -828,7 +828,7 @@ impl HtmlStyleSheet
     // Splits a declaration body into its `name: value` pairs.
     func parseDeclarations(body: string)->HtmlDeclarationBlock
     {
-        var result: retval
+        var result: #returntype
         let statements = htmlSplitValue(body, ';'u8)
         for statement in statements
         {
@@ -875,7 +875,7 @@ impl HtmlStyleSheet
     // Parses one complete selector chain.
     private mtd parseSelector(selector: string)->HtmlRule
     {
-        var result: retval
+        var result: #returntype
         var index = 0'u64
 
         // Whitespace only separates compound selectors; the descendant relation is what stands
@@ -928,7 +928,7 @@ impl HtmlStyleSheet
     // Parses everything a compound selector holds, stopping at the next combinator.
     private mtd parseCompound(selector: string, index: *u64)->{ part: HtmlSelectorPart, matched: bool }
     {
-        var result: retval
+        var result: #returntype
         var read:   bool
 
         while index[] < selector.count
@@ -978,7 +978,7 @@ impl HtmlStyleSheet
 
     private func readIdentifier(selector: string, index: *u64)->String
     {
-        var result: retval
+        var result: #returntype
         let start = index[]
         while index[] < selector.count
         {

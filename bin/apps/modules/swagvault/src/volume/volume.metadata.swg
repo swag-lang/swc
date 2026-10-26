@@ -3,7 +3,7 @@ impl Volume
     // Reads and authenticates the header slot `slot`. An unusable slot comes back with `valid` false.
     mtd readHeader(slot: u32)->HeaderCandidate fail
     {
-        var result: retval
+        var result: #returntype
         result.plain = try .readFramedRecord(HeaderAreaOffset + slot * HeaderSlotSize,
                                              HeaderSlotSize,
                                              HeaderLocatorKind,
@@ -25,7 +25,7 @@ impl Volume
     // what removes the ceiling on how many files a container can hold.
     mtd serializeHeader()->Array'u8 fail
     {
-        var result: retval
+        var result: #returntype
         var writer = ByteStream.openWrite(&result)
 
         writer.writeBytes(HeaderMagic)
@@ -345,7 +345,7 @@ impl Volume
     // area holds no record for this key.
     mtd readFramedRecord(offset, _: u64, locatorKind, recordKind: u32, recordId, maximumPlain: u64)->Array'u8 fail
     {
-        var result: retval
+        var result: #returntype
 
         var prefix: [Crypto.RecordLocatorSize] u8
         if not (try .file.readExactAt(offset, prefix)) do
@@ -381,7 +381,7 @@ impl Volume
     // holds; the scalars live in the header and the free list is derived.
     mtd serializeNodes()->Array'u8
     {
-        var result: retval
+        var result: #returntype
         var writer = ByteStream.openWrite(&result)
         writer.writeLittleEndian(.nodes.count)
         for node in .nodes do

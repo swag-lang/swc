@@ -7,7 +7,7 @@ using Core, Core.Math
 // direction fill does not.
 func nestedSquares()->LinePathList
 {
-    var result: retval
+    var result: #returntype
     with let outer = result.newPath()
     {
         .start(0, 0)
@@ -188,7 +188,7 @@ func nestedSquares()->LinePathList
 // A closed square whose corners are `(x, y)` and `(x + size, y + size)`.
 func square(x, y, size: f32)->LinePathList
 {
-    var result: retval
+    var result: #returntype
     with let path = result.newPath()
     {
         .start(x, y)

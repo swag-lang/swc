@@ -6,7 +6,7 @@ using Swag
 func base64Reference(bytes: const [..] u8)->String
 {
     const Alphabet = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/"
-    var result: retval
+    var result: #returntype
     var index = 0'u64
     while index + 3 <= bytes.count
     {

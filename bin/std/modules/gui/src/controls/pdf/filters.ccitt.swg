@@ -56,7 +56,7 @@ private struct CcittRunTable
 
 private func buildRunTable(codes: const [..] CcittCode)->CcittRunTable
 {
-    var result: retval
+    var result: #returntype
     result.length.resize(CcittLookupSize)
     result.run.resize(CcittLookupSize)
 
@@ -346,7 +346,7 @@ internal func decodeCcittFax(data: const [..] u8, params: CcittParameters)->Arra
 
     var bits = CcittBits{data, 0}
 
-    var result:    retval
+    var result:    #returntype
     var reference: Array's32
     var current:   Array's32
     var rows = 0's64

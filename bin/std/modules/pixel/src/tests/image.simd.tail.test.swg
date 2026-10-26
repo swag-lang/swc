@@ -5,7 +5,7 @@ using Swag, Core
 private func simdTailSeed(width, height: s32, pf: PixelFormat)->Array'u8
 {
     let bytesPerPixel = cast(u64, (pf.bitsPerPixel() >> 3))
-    var result: retval
+    var result: #returntype
     result.resize(cast(u64, (width * height)) * bytesPerPixel)
     for index in result.count do
         result[index] = cast(u8, ((index * 37 + 11) & 0xFF))

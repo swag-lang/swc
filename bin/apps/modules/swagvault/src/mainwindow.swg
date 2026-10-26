@@ -457,7 +457,7 @@ func capacityText(bytes: u64)->String
 // operation that asked, because the two do not refuse for the same reason.
 func parseCapacity(text: string, unitIndex: u32)->ContainerSize
 {
-    var result: retval
+    var result: #returntype
 
     var parseErrorOutcome: Swag.Error
     var parsed: #decltype(expect StrConv.parseU64(text))

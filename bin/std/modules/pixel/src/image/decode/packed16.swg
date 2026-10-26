@@ -127,7 +127,7 @@ private struct Normalize16
 
 private func makeNormalize16(mask: u16, sourceShift, bits: u8)->Normalize16
 {
-    with var result: retval
+    with var result: #returntype
     {
         .mask        = mask
         .sourceShift = sourceShift

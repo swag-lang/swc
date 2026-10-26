@@ -14,7 +14,7 @@ func exact(neg: bool, mantissa: u64, exponent: s64)->{ f: f64, ok: bool }
     const Pow10: [?] f64 = [
         1e0'f64, 1e1'f64, 1e2'f64, 1e3'f64, 1e4'f64, 1e5'f64, 1e6'f64, 1e7'f64, 1e8'f64, 1e9'f64, 1e10'f64, 1e11'f64, 1e12'f64, 1e13'f64, 1e14'f64, 1e15'f64, 1e16'f64, 1e17'f64, 1e18'f64, 1e19'f64, 1e20'f64, 1e21'f64, 1e22'f64]
 
-    var result: retval
+    var result: #returntype
 
     if mantissa >> Swag.F64.MantBits != 0 do
         return result
@@ -761,7 +761,7 @@ func eiselLemire64(neg: bool, mantissa: u64, exp10: s64)->{ f: f64, ok: bool }
     const PowersOfTenMinExp10 = -348
     const PowersOfTenMaxExp10 = 347
 
-    var result: retval
+    var result: #returntype
 
     // The terse comments in this function body refer to sections of the
     // https://nigeltao.github.io/blog/2020/eisel-lemire.html blog post.
@@ -844,7 +844,7 @@ func eiselLemire64(neg: bool, mantissa: u64, exp10: s64)->{ f: f64, ok: bool }
 #[Swag.Safety(.NaN, false)]
 func special(s: const [..] u8)->{ value: f64, eat: u32 }
 {
-    var result: retval
+    var result: #returntype
 
     switch
     {
@@ -876,7 +876,7 @@ func special(s: const [..] u8)->{ value: f64, eat: u32 }
 // parsers.
 public func parse(s: const [..] u8)->{ value: f64, eat: u32, ovf: bool } fail
 {
-    var result: retval
+    var result: #returntype
     if s.count == 0 do
         fail Errors.SyntaxError{}
 

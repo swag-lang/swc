@@ -158,7 +158,7 @@ impl Deque
     mtd const front()->T
     {
         Swag.assert(.count > 0, "deque is empty")
-        let result: retval = .opIndexPtr(0)[]
+        let result: #returntype = .opIndexPtr(0)[]
         return result
     }
 
@@ -184,7 +184,7 @@ impl Deque
     mtd const back()->T
     {
         Swag.assert(.count > 0, "deque is empty")
-        let result: retval = .opIndexPtr(.count - 1)[]
+        let result: #returntype = .opIndexPtr(.count - 1)[]
         return result
     }
 

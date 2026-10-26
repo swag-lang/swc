@@ -125,7 +125,7 @@ public impl TextReader
     // Reads from the current position to the end of the file.
     mtd readToEnd()->String fail
     {
-        var result: retval
+        var result: #returntype
         if .byteSeek == .buffer.count do
             try .readBuffer()
 

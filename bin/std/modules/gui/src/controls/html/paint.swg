@@ -61,7 +61,7 @@ struct HtmlRegionScrollBar
 // thousands of items still visits only the few lines a viewport can show.
 func htmlLineItemRange(box: const *HtmlBox, top, bottom: f32)->{ first: u64, last: u64 }
 {
-    var result: retval
+    var result: #returntype
     if box.lines.isEmpty()
     {
         result.last = box.items.count
@@ -139,7 +139,7 @@ impl HtmlPainter
     // Finds the adjacent non-zero stacking level on one side of normal flow.
     private mtd const nextStackingLevel(box: u32, previous: s32, hasPrevious: bool, positive: bool, ascending: bool)->{ value: s32, found: bool }
     {
-        var result: retval
+        var result: #returntype
         for child in .layout.constBox(box).children
         {
             let level = .stackingLevel(child)
@@ -270,7 +270,7 @@ impl HtmlPainter
     // and `calc()` rules as the rest of the style engine.
     private mtd clipPolygon(rect: Math.Rectangle, style: const *HtmlComputedStyle)->Array'Math.Vector2
     {
-        var result: retval
+        var result: #returntype
         let parsed = htmlFunctionArguments(.layout.pool.text(style.clipPath), "polygon")
         if not parsed.matched or parsed.arguments.count < 3 do
             return result
@@ -399,7 +399,7 @@ impl HtmlPainter
 
     private func point(x, y: f32)->Math.Vector2
     {
-        var result: retval
+        var result: #returntype
         result.x = x
         result.y = y
         return result
@@ -576,7 +576,7 @@ impl HtmlPainter
     // its source range answers with its whole width.
     private mtd coveredSpan(item: const *HtmlInlineItem, rangeStart, rangeEnd: u64, x: f32)->{ left: f32, width: f32 }
     {
-        var result: retval
+        var result: #returntype
         result.left  = x
         result.width = item.width
 
@@ -645,7 +645,7 @@ impl HtmlPainter
     // several nodes cover every node between its two ends.
     private mtd const selectionRangeInNode(node: u32)->{ start: u64, end: u64, has: bool }
     {
-        var result: retval
+        var result: #returntype
         if node == HtmlNoNode or .selStartNode == HtmlNoNode or .selEndNode == HtmlNoNode do
             return result
         if node < .selStartNode or node > .selEndNode do
@@ -782,7 +782,7 @@ impl HtmlPainter
     // per `overflow` box would split one DOM into unrelated coordinate systems.
     private mtd const regionScrollBar(box: u32, rect: Math.Rectangle)->HtmlRegionScrollBar
     {
-        var result: retval
+        var result: #returntype
         let target = .layout.constBox(box)
         if not target.scrollable or target.scrollHeight <= target.content.height or rect.height <= 0 do
             return result
@@ -917,7 +917,7 @@ impl HtmlPainter
     // white ground paints white over its own box and leaves the host's theme showing beside it.
     mtd const canvasBackground()->{ color: Color, box: u32 }
     {
-        var result: retval
+        var result: #returntype
         result.box = HtmlNoNode
 
         let document = .layout.document
@@ -937,7 +937,7 @@ impl HtmlPainter
 
     private mtd const backgroundOf(node: u32)->{ color: Color, box: u32 }
     {
-        var result: retval
+        var result: #returntype
         result.box = HtmlNoNode
 
         let box = .layout.nodeBox.tryFind(node)
@@ -1292,7 +1292,7 @@ impl HtmlPainter
     // that line, so a drag that leaves the text keeps selecting the line it travels along.
     mtd textPositionAt(point: Math.Point)->HtmlTextHit
     {
-        var result: retval
+        var result: #returntype
         result.distance = Swag.F32.Max
         if .layout.root != HtmlNoNode do
             .textHitBox(.layout.root, point, Math.Point{0, -.scrollY}, &result)

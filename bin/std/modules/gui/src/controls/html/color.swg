@@ -20,7 +20,7 @@ struct HtmlColorValue
 // keyword such as `inherit` into black.
 private func htmlNamedColor(name: string)->{ argb: u32, matched: bool }
 {
-    var result: retval
+    var result: #returntype
     result.matched = true
     switch name
     {
@@ -302,7 +302,7 @@ private func htmlColorFromHwb(hue, whiteness, blackness, alpha: f32)->Color
 // matrix to sRGB, so a P3 color keeps its hue and clamps only what the narrower gamut loses.
 private func htmlColorFromColorSpace(space: string, c1, c2, c3, alpha: f32)->{ color: Color, matched: bool }
 {
-    var result: retval
+    var result: #returntype
     result.matched = true
     switch space
     {
@@ -333,7 +333,7 @@ private func htmlColorFromColorSpace(space: string, c1, c2, c3, alpha: f32)->{ c
 
 private func htmlHexDigit(character: u8)->{ value: u32, matched: bool }
 {
-    var result: retval
+    var result: #returntype
     result.matched = true
     switch
     {
@@ -349,7 +349,7 @@ private func htmlHexDigit(character: u8)->{ value: u32, matched: bool }
 // Parses a hexadecimal color in its three, four, six, and eight digit forms.
 private func htmlParseHexColor(text: string)->HtmlColorValue
 {
-    var result: retval
+    var result: #returntype
     var digits: [8] u32
     let count = text.count
     if count != 3 and count != 4 and count != 6 and count != 8 do
@@ -395,7 +395,7 @@ private func htmlColorFunctionParts(value: string, name, alternate: string)->{ p
     if not call.matched do
         call = htmlFunctionArguments(value, alternate)
 
-    var result: retval
+    var result: #returntype
     if not call.matched do
         return result
 
@@ -420,7 +420,7 @@ private func htmlColorFunctionParts(value: string, name, alternate: string)->{ p
 
 private func htmlColorMixStop(value: string)->{ color: Color, weight: f32 = -1, matched: bool }
 {
-    var result: retval
+    var result: #returntype
     let parts = htmlSplitValue(value)
     if parts.isEmpty() do
         return result
@@ -447,7 +447,7 @@ private func htmlColorMixStop(value: string)->{ color: Color, weight: f32 = -1, 
 // into a dark translucent fringe.
 private func htmlParseColorMix(value: string)->HtmlColorValue
 {
-    var result: retval
+    var result: #returntype
     let call = htmlFunctionArguments(value, "color-mix")
     if not call.matched or
        call.arguments.count != 3 or
@@ -504,7 +504,7 @@ private func htmlParseColorMix(value: string)->HtmlColorValue
 // once the cascade has settled the element's own `color`.
 func htmlParseColor(text: string)->HtmlColorValue
 {
-    var result: retval
+    var result: #returntype
     let trimmed = Latin1.trim(text)
     if not trimmed.count do
         return result

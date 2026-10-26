@@ -301,7 +301,7 @@ private func elfSectionFlagsText(value: u64)->String
 // Reads the section table, resolving each name through the section that holds them.
 private func readElfSections(image: *BinaryImage, at, entrySize, count, stringIndex: u64, is64: bool)->Array'ElfSection
 {
-    var result: retval
+    var result: #returntype
     if not at or not count do
         return result
 

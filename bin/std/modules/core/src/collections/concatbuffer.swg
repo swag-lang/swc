@@ -380,7 +380,7 @@ impl ConcatBuffer
     // Returns the current write position, including after restoring an earlier position.
     mtd const position()->ConcatBufferPosition
     {
-        var result: retval
+        var result: #returntype
         result.bucket  = .curBucket
         result.pointer = .currentSP
         return result
@@ -557,7 +557,7 @@ impl ConcatBuffer
     // See [[Core.ConcatBuffer.moveToString]] to reuse linear storage when possible.
     mtd const toString(alloc: Swag.IAllocator? = null)->String
     {
-        var result: retval
+        var result: #returntype
         if not .firstBucket do
             return result
 
@@ -582,7 +582,7 @@ impl ConcatBuffer
     // and borrowed positions remain unchanged. An empty result allocates no storage.
     mtd const toArray(alloc: Swag.IAllocator? = null)->Array'u8
     {
-        var result: retval
+        var result: #returntype
         result.allocator = alloc
         result.reserve(.count())
         for bucket in me do
@@ -624,7 +624,7 @@ impl ConcatBuffer
 
         // Take the single heap bucket as the string's storage.
         let eat = .eatBuffer()
-        with var result: retval
+        with var result: #returntype
         {
             .allocator = me.allocator
             .buffer    = eat.data

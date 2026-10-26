@@ -15,9 +15,9 @@ The following are already available and are not new feature requests:
   aggregates: [the initialization fixture](../bin/unittests/errors/sema/sema_err_type_requires_init.swg).
   The remaining construction obstacle is moved-source reset (language.design.035), not the absence
   of constructors or safe initialization. `expect` accepts results without a default value.
-- Aggregate literals construct directly in the return slot, retval supports incremental filling,
-  and eligible named-local returns transfer ownership. See
-  [return storage](../bin/reference/modules/language/src/007_008_retval.swg) and
+- Aggregate literals and a local that every return in its scope returns construct directly in
+  the return slot, and other eligible named-local returns transfer ownership. See
+  [return storage](../bin/reference/modules/language/src/007_008_returntype.swg) and
   [copy/move](../bin/reference/modules/language/src/006_009_custom_copy_and_move.swg).
 - Swag.Strict already supplies distinct aliases. No new nominal-type feature is requested merely
   to replace an attribute by a keyword; see the

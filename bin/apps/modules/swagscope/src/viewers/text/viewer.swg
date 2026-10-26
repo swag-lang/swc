@@ -40,7 +40,7 @@ private func pluginProbe(content: Viewer.ProbeContent)->bool
 // file whose beginning reads as text, whichever encoding spells it.
 func viewerPlugin()->Viewer.Plugin
 {
-    with var result: retval
+    with var result: #returntype
     {
         .key          = ViewerKey
         .resolveName  = &pluginName
@@ -280,7 +280,7 @@ impl Panel
     // characters are answers the second.
     func probeHead(head: const [..] u8)->Probe
     {
-        var result: retval
+        var result: #returntype
         result.encoding     = Text.detectEncoding(head)
         result.contentStart = Text.hasBom(head, result.encoding) ? Text.bomLength(result.encoding) : 0
         result.accepted     = Text.looksLikeText(head[result.contentStart to], result.encoding)

@@ -78,7 +78,7 @@ impl TextEffect
     // Resolves shader parameters for the main glyph face.
     mtd const faceParams()->FontEffectParams
     {
-        var r: retval
+        var r: #returntype
         r.enabled      = .hasFaceEffects() ? 1.0 : 0.0
         r.faceDilate   = .faceDilate
         r.faceSoftness = .softness
@@ -99,7 +99,7 @@ impl TextEffect
     // glow, or bevel effects.
     mtd const shadowParams()->FontEffectParams
     {
-        var r: retval
+        var r: #returntype
         r.enabled      = 1.0
         r.faceDilate   = .shadowDilate
         r.faceSoftness = .shadowSoftness
@@ -186,7 +186,7 @@ impl ShapedRun
     // are in pixels at the primary font's nominal size. Descent is positive below the baseline.
     mtd const lineMetrics()->StringMetrics
     {
-        var result: retval
+        var result: #returntype
         result.width   = .metrics.width
         result.ascent  = .font.ascent
         result.descent = -.font.descent
@@ -357,7 +357,7 @@ impl Painter
     // automatic font resolves against the real on-screen glyph size.
     func computeTextDrawInfo(font: *Font, zoom = 1.0'f32, transformScale = 1.0'f32)->TextDrawInfo
     {
-        var result: retval
+        var result: #returntype
         result.drawFont    = Font.resolveDrawFont(font, cast(f32, font.size) * zoom * transformScale)
         result.snapPixels  = not result.drawFont.cache.renderMode.isDistanceField()
         result.deviceScale = transformScale
@@ -389,7 +389,7 @@ impl Painter
     // fraction selects, so a run measured with this function ends where its glyphs are drawn.
     func advanceTextX(left, offsetX, advanceX: f32, info: TextDrawInfo)->{ glyphX: f32, rightX: f32 }
     {
-        var result: retval
+        var result: #returntype
         result.glyphX = left + offsetX * info.scale
         result.rightX = result.glyphX + advanceX * info.scale
         return result
@@ -453,7 +453,7 @@ impl Painter
     // See [[Pixel.Painter.shapeRunInto]] to reuse the glyph storage of an existing run.
     func shapeRun(text: string, font: *Font, tabSize: u32 = DefaultTextTabSize, letterSpacing = 0.0'f32, wordSpacing = 0.0'f32)->ShapedRun
     {
-        var result: retval
+        var result: #returntype
         shapeRunInto(&result, text, font, tabSize, letterSpacing, wordSpacing)
         return result
     }
@@ -467,7 +467,7 @@ impl Painter
         Swag.assert(font != null, "invalid font")
         Swag.assert(run.font.cache.typeFace == font.cache.typeFace, "cannot reuse glyph indexes with another typeface")
 
-        with var result: retval
+        with var result: #returntype
         {
             .font          = font
             .tabSize       = run.tabSize
@@ -506,7 +506,7 @@ impl Painter
     // Resolves the glyph descriptors for a UTF-8 string and font.
     func glyphs(text: string, font: *Font)->Array'(const *GlyphDesc)
     {
-        var result: retval
+        var result: #returntype
         result.reserve(text.count)
         Utf8.visitRunes(text)
         {
@@ -519,7 +519,7 @@ impl Painter
     // Resolves the glyph descriptors for a rune array and font.
     func glyphs(text: Array'rune, font: *Font)->Array'(const *GlyphDesc)
     {
-        var result: retval
+        var result: #returntype
         result.reserve(text.count)
         for c in text
         {
@@ -534,7 +534,7 @@ impl Painter
     // A `null` font measures as zero.
     func measureRune(c: rune, font: *Font?)->Math.Point
     {
-        var result: retval
+        var result: #returntype
         if not font do
             return result
         let localFont = font
@@ -630,7 +630,7 @@ impl Painter
     // Returns the metrics of a glyph sequence, scaled to the draw size of `font`.
     func measureString(text: Array'(const *GlyphDesc), font: *Font)->StringMetrics
     {
-        var result: retval
+        var result: #returntype
         if text.isEmpty() do
             return result
 

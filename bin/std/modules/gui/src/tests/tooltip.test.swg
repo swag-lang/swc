@@ -54,7 +54,7 @@ func showTip(owner: *Wnd, text: string)->*Label
 // Returns an annotation far taller than any tip may grow.
 func longAnnotation()->String
 {
-    var result: retval
+    var result: #returntype
     for 40 do
         result += "every sentence adds another line to this annotation. "
     return result

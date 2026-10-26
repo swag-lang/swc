@@ -107,7 +107,7 @@ impl Ifd
 // Read 'count' scalar values (BYTE/SHORT/LONG) of an entry into an array.
 func readValues(base, last: const [*] u8, le: bool, e: *Entry)->Array'u32 fail
 {
-    var result: retval
+    var result: #returntype
 
     let ts = typeSize(e.type)
     if not ts do
@@ -287,7 +287,7 @@ impl Decoder
             pf = .RGBA8
         }
 
-        var result: retval
+        var result: #returntype
         result.init(cast(s32, width), cast(s32, height), pf)
         try options.checkImage(result.width, result.height, pf)
 
@@ -457,7 +457,7 @@ impl IImageSetDecoder for Decoder
         discard try .decodePage(buffer, probeOptions)
         let le     = buffer[0] == 0x49
         var offset = rd32(buffer.buffer + 4, le)
-        var result: retval
+        var result: #returntype
         while offset
         {
             try options.checkFrameCount(.directories.count + 1)

@@ -266,9 +266,26 @@ bool CodeGenFunctionHelpers::functionUsesIndirectReturnStorage(CodeGen& codeGen,
     return normalizedRet.isIndirect;
 }
 
+namespace
+{
+    // The inline expansion whose result storage holds the variable, or null for the
+    // function's own return slot.
+    const SemaInlinePayload* returnStorageOwner(CodeGen& codeGen, const SymbolVariable& symVar)
+    {
+        if (symVar.hasExtraFlag(SymbolVariableFlagsE::RetVal))
+            return SemaHelpers::retValStorageOwner(codeGen.sema(), symVar);
+
+        return codeGen.returnStorageLocalContext(symVar);
+    }
+}
+
+// Compiler retval storages and the locals chosen by CodeGenMoveElision::selectReturnStorageLocals
+// live in the storage their return context returns through.
 bool CodeGenFunctionHelpers::usesCallerReturnStorage(CodeGen& codeGen, const SymbolVariable& symVar)
 {
     if (!symVar.hasExtraFlag(SymbolVariableFlagsE::RetVal))
+        return codeGen.isReturnStorageLocal(symVar);
+    if (codeGen.isDemotedReturnStorage(symVar))
         return false;
 
     if (const auto* expansion = SemaHelpers::retValStorageOwner(codeGen.sema(), symVar))
@@ -281,9 +298,9 @@ CodeGenNodePayload CodeGenFunctionHelpers::resolveCallerReturnStoragePayload(Cod
 {
     SWC_ASSERT(usesCallerReturnStorage(codeGen, symVar));
 
-    // A cloned 'retval' belongs to the inline expansion, even when the enclosing
-    // function also returns indirectly (possibly into a smaller buffer).
-    if (const auto* expansion = SemaHelpers::retValStorageOwner(codeGen.sema(), symVar))
+    // A local of an inline expansion lives in that expansion's result, even when the
+    // enclosing function also returns indirectly (possibly into a smaller buffer).
+    if (const auto* expansion = returnStorageOwner(codeGen, symVar))
     {
         for (const auto& frame : codeGen.frames())
         {
@@ -1333,11 +1350,6 @@ bool CodeGenFunctionHelpers::tryUseDirectVarInitStorage(CodeGen& codeGen, AstNod
 
         if (usesCallerReturnStorage(codeGen, symVar))
         {
-            // Another named 'retval' local denotes this same slot, so the expression could
-            // read it while constructing the result. Keep an intermediate in that case.
-            if (SemaHelpers::returnStorageExposed(codeGen.sema(), codeGen.function(), SemaHelpers::retValStorageOwner(codeGen.sema(), symVar), &symVar))
-                return false;
-
             const CodeGenNodePayload storagePayload = resolveCallerReturnStoragePayload(codeGen, symVar);
             SWC_ASSERT(storagePayload.isAddress());
             outStorageReg = storagePayload.reg;
@@ -1353,6 +1365,16 @@ bool CodeGenFunctionHelpers::tryUseDirectVarInitStorage(CodeGen& codeGen, AstNod
         outStorageReg = storagePayload.reg;
         outStorageSym = &symVar;
         return outStorageReg.isValid();
+    }
+}
+
+namespace
+{
+    AstNodeRef functionExpressionBodyRef(const AstNode& decl)
+    {
+        if (const auto* fn = decl.safeCast<AstFunctionDecl>())
+            return fn->hasFlag(AstFunctionFlagsE::Short) ? fn->nodeBodyRef : AstNodeRef::invalid();
+        return AstNodeRef::invalid();
     }
 }
 
@@ -1413,6 +1435,13 @@ bool CodeGenFunctionHelpers::tryUseDirectReturnStorage(CodeGen& codeGen, AstNode
             continue;
         }
 
+        // An expression body is the function's return, as 'return' would be.
+        if (!inlineCtx && parentRef == codeGen.function().declNodeRef() && codeGen.resolvedNodeRef(functionExpressionBodyRef(parent)) == directExprRef)
+        {
+            outStorageReg = codeGen.ensureCurrentFunctionIndirectReturnReg(codeGen.function().callConvKind());
+            return true;
+        }
+
         if (parent.isNot(AstNodeId::ReturnStmt))
             return false;
 
@@ -1421,9 +1450,8 @@ bool CodeGenFunctionHelpers::tryUseDirectReturnStorage(CodeGen& codeGen, AstNode
         if (resolvedReturnRef != directExprRef)
             return false;
 
-        // A named 'retval' local makes the destination readable: the value could read what it
-        // overwrites, so it is built apart and stored by the return.
-        if (SemaHelpers::returnStorageExposed(codeGen.sema(), codeGen.function(), inlineCtx ? inlineCtx->payload : nullptr))
+        // The slot still holds the local this return replaces.
+        if (!inlineCtx && codeGen.returnReplacedLocal(parentRef))
             return false;
 
         if (inlineCtx)

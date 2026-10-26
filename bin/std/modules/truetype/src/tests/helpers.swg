@@ -43,7 +43,7 @@ func readBigU32(buffer: *Array'u8, offset: u64)->u32 => cast(u32, buffer[offset]
 // each font's records are shifted by wherever that font landed after the header.
 func buildFontCollection(fileNames: const [..] string)->Array'u8
 {
-    var result: retval
+    var result: #returntype
 
     let headerSize = 12 + cast(u64, fileNames.count) * 4
     result.resize(headerSize)
@@ -110,7 +110,7 @@ func getFaceData(face: *Face?)->*FaceImpl
 
 func getOutlineBounds(outline: const *Outline)->BBox
 {
-    var result: retval
+    var result: #returntype
     result.xMin = Swag.S32.Max
     result.yMin = Swag.S32.Max
     result.xMax = Swag.S32.Min

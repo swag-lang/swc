@@ -40,7 +40,7 @@ struct LifecycleApi
 // through its own `retire`, which must retire the load.
 func(T) loadLifecycle(view: *T)->LifecycleApi
 {
-    with var result: retval
+    with var result: #returntype
     {
         .isLoading = func|view|()->bool => view.load.isPending()
         .needsLoadingOverlay = func|view|()->bool => view.load.isPending()

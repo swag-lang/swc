@@ -2687,7 +2687,7 @@ namespace
     //  - use the parser's cost/shape verdict to keep code growth in check and reject constructs
     //    whose lexical context the materializer cannot preserve.
     // An aggregate/by-value-struct type whose inline materialization is not yet reliable
-    // (struct-typed constant payloads, the `retval` placeholder of a struct-returning callee,
+    // (struct-typed constant payloads, the `#returntype` placeholder of a struct-returning callee,
     // by-value aggregate parameters). Auto-inline accepts scalar/pointer signatures and borrowed
     // slice parameters; owning aggregate values still need stronger materialization support.
     bool isInlineAggregateType(const TypeInfo& ti)

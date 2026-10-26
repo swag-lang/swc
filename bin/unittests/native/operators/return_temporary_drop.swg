@@ -28,7 +28,7 @@ struct Failure
 #[Swag.NoInline]
 func makeOwner(value: u64)->Owner
 {
-    var result: retval
+    var result: #returntype
     result.value = value
     return result
 }

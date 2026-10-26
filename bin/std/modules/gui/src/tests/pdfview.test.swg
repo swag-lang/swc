@@ -38,7 +38,7 @@ func pdfViewImageFixture()->String
 // the dark marks of its text.
 func countPageEvidence(image: const *Image)->{ paper: u64, ink: u64 }
 {
-    var result: retval
+    var result: #returntype
     for y in image.height
     {
         for x in image.width

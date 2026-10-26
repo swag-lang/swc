@@ -273,7 +273,7 @@ private impl RenderCpu
             highest.y = Math.max(highest.y, p.y)
         }
 
-        var result: retval
+        var result: #returntype
         result.minX = Math.clamp(cast(s32, Math.floor(lowest.x)), 0, image.width - 1)
         result.minY = Math.clamp(cast(s32, Math.floor(lowest.y)), 0, image.height - 1)
         result.maxX = Math.clamp(cast(s32, Math.ceil(highest.x)) - 1, 0, image.width - 1)
@@ -1534,8 +1534,8 @@ private impl RenderCpu
                     let rowDy2     = sy - edge2Origin.y
                     let rowPixels  = batch.pixels + cast(u64, (batch.height - y - 1)) * cast(u64, batch.rowStride)
                     let rowStencil = batch.stencil + cast(u64, y) * cast(u64, batch.width)
-                    var x0 = minX
-                    var x1 = maxX
+                    var x0         = minX
+                    var x1         = maxX
                     if narrowRows
                     {
                         narrowEdgeSpan(&x0, &x1, -dy0, dx0 * rowDy0, edge0Origin.x)
@@ -1705,8 +1705,8 @@ private impl RenderCpu
                     let rowDy1    = sy - edge1Origin.y
                     let rowDy2    = sy - edge2Origin.y
                     let rowPixels = batch.pixels + cast(u64, (batch.height - y - 1)) * cast(u64, batch.rowStride)
-                    var x0 = minX
-                    var x1 = maxX
+                    var x0        = minX
+                    var x1        = maxX
                     if narrowRows
                     {
                         narrowEdgeSpan(&x0, &x1, -dy0, dx0 * rowDy0, edge0Origin.x)
@@ -1777,8 +1777,8 @@ private impl RenderCpu
             let rowDy2     = sy - edge2Origin.y
             let rowPixels  = batch.pixels + cast(u64, (batch.height - y - 1)) * cast(u64, batch.rowStride)
             let rowStencil = batch.stencil + cast(u64, y) * cast(u64, batch.width)
-            var x0 = minX
-            var x1 = maxX
+            var x0         = minX
+            var x1         = maxX
             if narrowRows
             {
                 narrowEdgeSpan(&x0, &x1, -dy0, dx0 * rowDy0, edge0Origin.x)
@@ -2115,7 +2115,7 @@ private impl RenderCpu
         if not .scissorOn do
             return PixelBounds{0, 0, image.width - 1, image.height - 1}
 
-        var result: retval
+        var result: #returntype
         result.minX = Math.clamp(cast(s32, .scissorRect.x), 0, image.width - 1)
         result.minY = Math.clamp(cast(s32, .scissorRect.y), 0, image.height - 1)
         result.maxX = Math.clamp(cast(s32, .scissorRect.right()) - 1, 0, image.width - 1)
@@ -2597,11 +2597,11 @@ impl RenderCpu
         // matters — a page, a thumbnail, a captured frame — asks for the whole of it.
         if x == 0 and y == 0 and width == source.image.width and height == source.image.height
         {
-            var whole: retval = source.image
+            var whole: #returntype = source.image
             return whole
         }
 
-        var result: retval = source.image.cropped(x, y, width, height)
+        var result: #returntype = source.image.cropped(x, y, width, height)
         return result
     }
 
@@ -2633,7 +2633,7 @@ impl RenderCpu
         let textureHandle = cast(TextureHandle, .nextHandle)
         .nextHandle += 1
 
-        var result: retval
+        var result: #returntype
         result.attach(targetHandle, textureHandle, .BGRA8, width, height)
 
         var storage: CpuTexture
@@ -2673,7 +2673,7 @@ impl RenderCpu
         var image = Image.create(view.width, view.height, .RGB8)
         view.convertToRgb(&image)
 
-        var result: retval
+        var result: #returntype
         result.attach(cast(TextureHandle, .nextHandle), view.chromaShift == 0 ? .Yuv444 : .Yuv420, view.width, view.height)
         .nextHandle += 1
 
@@ -2700,7 +2700,7 @@ impl RenderCpu
         if not image.isValid() do
             return {}
 
-        var result: retval
+        var result: #returntype
         result.attach(cast(TextureHandle, .nextHandle), image.pixelFormat, image.width, image.height)
         .nextHandle += 1
 
@@ -2728,7 +2728,7 @@ impl RenderCpu
     // Reads a renderer-owned texture into the requested tightly packed format.
     internal mtd readTexturePixelsImpl(texture: Texture, pixelFormat: PixelFormat)->Array'u8
     {
-        var result: retval
+        var result: #returntype
         if not texture.isValid() do
             return result
         let storage = .findTexture(texture.handle)

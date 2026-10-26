@@ -52,7 +52,7 @@ public impl Outline
 {
     internal func borrowed(points: [*] Vector?, tags: [*] u8?, contours: [*] s16?, pointCount, contourCount: s16)->Outline
     {
-        with var result: retval
+        with var result: #returntype
         {
             .points       = points
             .tags         = tags
@@ -154,7 +154,7 @@ public impl Outline
 
 func midpoint(a, b: Vector)->Vector
 {
-    var result: retval
+    var result: #returntype
     result.x = cast(s32, ((cast(s64, a.x) + b.x) / 2))
     result.y = cast(s32, ((cast(s64, a.y) + b.y) / 2))
     return result

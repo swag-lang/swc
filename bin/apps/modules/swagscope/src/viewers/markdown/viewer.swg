@@ -27,7 +27,7 @@ var g_ViewerSettings: ViewerSettings
 // Describes the Markdown viewer to the host.
 func viewerPlugin()->Viewer.Plugin
 {
-    with var result: retval
+    with var result: #returntype
     {
         .key          = "markdown"
         .staticName   = "Markdown"

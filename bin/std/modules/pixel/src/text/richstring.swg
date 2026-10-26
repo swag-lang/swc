@@ -162,7 +162,7 @@ impl RichString
     // Returns owned plain text with supported formatting markers removed.
     func plainText(str: string)->String
     {
-        var result: retval
+        var result: #returntype
 
         var scan  = str.buffer
         var count = str.count

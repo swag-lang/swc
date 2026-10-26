@@ -5,7 +5,7 @@ using Core, Core.Errors
 // Decodes a sound to interleaved PCM16 through the device-independent path.
 private func opusDecodeAll(sound: const *SoundFile)->Array's16 fail
 {
-    var result: retval
+    var result: #returntype
     try sound.decodePcm16(func|result = &result|(samples: const [..] s16)->bool
     {
         result.add(samples)

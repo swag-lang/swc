@@ -167,7 +167,7 @@ internal impl IImageDecoder for Decoder
             fail UnsupportedFormatError{"PSD color mode is not RGB or grayscale"}
         }
 
-        var result: retval
+        var result: #returntype
         result.init(cast(s32, width), cast(s32, height), format)
         try options.checkImage(result.width, result.height, format)
         if not options.decodePixels do
@@ -318,7 +318,7 @@ impl Layer
 {
     mtd decode(depth: u16, options: DecodeOptions)->Image fail
     {
-        var result: retval
+        var result: #returntype
         result.init(.info.width, .info.height, .info.pixelFormat)
         if not options.decodePixels do
             return result
@@ -416,7 +416,7 @@ impl IImageSetDecoder for Decoder
         let probe = try single.decode(buffer, probeOptions)
         .depth     = readU16(buffer.buffer + 22)
         .colorMode = readU16(buffer.buffer + 24)
-        var result: retval
+        var result: #returntype
         result.frames.add({width: probe.width, height: probe.height, pixelFormat: probe.pixelFormat, name: String.from("Composite")})
         var offset = HeaderSize
         try skipSection(buffer, &offset)

@@ -52,7 +52,7 @@ private struct EncoderInfo
 // Reads the Xing or Info tag a first frame may carry, clause-free and encoder-specific.
 private func readEncoderInfo(frame: const [..] u8, header: const *FrameHeader)->EncoderInfo
 {
-    var result: retval
+    var result: #returntype
 
     // The tag sits right after the side information of the frame that carries it.
     let tagOffset = 4 + header.sideInfoBytes

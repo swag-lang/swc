@@ -129,7 +129,7 @@ func inlineRead(value: Value)->u64 => value.a
 #[Swag.NoInline]
 func replaceFrom(value: Value)->Value
 {
-    var result: retval
+    var result: #returntype
     Swag.assert(&result != &value)
     result.a = 41
     result.b = value.a
@@ -255,7 +255,7 @@ func readValueAddress(value: const *Value)->u64 => value.a
 #[Swag.Inline]
 func makeInlineValue()->Value
 {
-    var result: retval
+    var result: #returntype
     result.a = 1
     Swag.assert(readValueAddress(&result) == 1)
     return result
@@ -444,7 +444,7 @@ impl EncodedSelf
 #[Swag.NoInline]
 func makeEncodedSelf()->EncodedSelf
 {
-    var result: retval = 1'u64
+    var result: #returntype = 1'u64
     return result
 }
 

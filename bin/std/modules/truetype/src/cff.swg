@@ -177,7 +177,7 @@ func subrBias(count: u32)->s32
 
 func readCffIndex(block: const [..] u8, offset: u64)->CffIndex fail
 {
-    var result: retval
+    var result: #returntype
     let count = peekU16(block, offset)
     if not count
     {
@@ -212,7 +212,7 @@ func readCffIndex(block: const [..] u8, offset: u64)->CffIndex fail
 // Decodes the packed decimal form a DICT stores a real number in.
 func readCffReal(data: const [..] u8, offset: u64)->{ value: f64, next: u64 } fail
 {
-    var result: retval
+    var result: #returntype
     var mantissa    = 0.0'f64
     var fraction    = 0.1'f64
     var exponent    = 0
@@ -286,7 +286,7 @@ func readCffReal(data: const [..] u8, offset: u64)->{ value: f64, next: u64 } fa
 
 func parseCffDict(data: const [..] u8)->CffDict fail
 {
-    var result:  retval
+    var result:  #returntype
     var pending: Array'f64
     var pos = 0'u64
 
@@ -358,7 +358,7 @@ func parseCffDict(data: const [..] u8)->CffDict fail
 // Reads the private DICT one font dictionary points at, and the local subroutines it owns.
 private func readCffPrivate(font: *CffFont, dict: const *CffDict)->{ subrs: CffIndex, defaultWidth: f64, nominalWidth: f64 } fail
 {
-    var result: retval
+    var result: #returntype
     let size   = cast(u64, dict.value(CFF_OP_PRIVATE, 0, 0))
     let offset = cast(u64, dict.value(CFF_OP_PRIVATE, 1, 0))
     if not size or not offset do
@@ -559,7 +559,7 @@ private func readCffFdArray(font: *CffFont, offset: u64) fail
 // Reads a complete CFF program into the form the charstring interpreter addresses.
 func parseCffFont(block: const [..] u8)->CffFont fail
 {
-    var result: retval
+    var result: #returntype
     result.block = block
 
     let headerSize = cast(u64, peekU8(block, 2))

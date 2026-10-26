@@ -45,7 +45,7 @@ impl Icon
     // Creates a borrowed icon descriptor for one atlas frame.
     func from(imageList: *ImageList, index: s32, width = 0'f32, height = 0'f32)->Icon
     {
-        var result: retval
+        var result: #returntype
         result.set(imageList, index, width, height)
         return result
     }

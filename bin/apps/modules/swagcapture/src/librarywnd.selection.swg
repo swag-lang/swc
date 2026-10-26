@@ -14,7 +14,7 @@ impl LibraryWnd
     // while refilling the grid moves the items they came from.
     mtd selectedFiles()->Array'String
     {
-        var result: retval
+        var result: #returntype
         for it, i in .view.items where not it.filtered
         {
             if .view.selModel.isSelected(cast(i)) do
@@ -115,7 +115,7 @@ impl LibraryWnd
 
     mtd selectedCaptureFiles()->Array'String
     {
-        var result: retval
+        var result: #returntype
         for item, i in .view.items where item.kind == .Capture and .view.selModel.isSelected(cast(i)) do
             result.add(item.fi.fullName)
         return result

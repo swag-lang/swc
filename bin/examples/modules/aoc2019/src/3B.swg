@@ -37,7 +37,7 @@ func day3B()
 
     func trace(line: string)->Array'Vector2
     {
-        var result: retval
+        var result: #returntype
         var pos:    Vector2
         result.add(pos)
         for v in Tokenize.split(line, ','u8)

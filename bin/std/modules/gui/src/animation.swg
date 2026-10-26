@@ -189,7 +189,7 @@ impl AnimationGroup
     // Creates a group whose tracks advance together.
     func concurrent()->AnimationGroup
     {
-        var result: retval
+        var result: #returntype
         result.kind = .Parallel
         return result
     }
@@ -200,7 +200,7 @@ impl AnimationGroup
     // parallel group or make it the last step.
     func sequence()->AnimationGroup
     {
-        var result: retval
+        var result: #returntype
         result.kind = .Sequence
         return result
     }

@@ -20,7 +20,7 @@ func previewWav()->Array'u8
     const FrameCount  = SampleRate * 2 + SampleRate / 2
     const PayloadSize = FrameCount * 2
 
-    var result: retval
+    var result: #returntype
     result.resize(44 + PayloadSize)
     for value, index in TinyWav[0 until 44] do
         result[index] = value

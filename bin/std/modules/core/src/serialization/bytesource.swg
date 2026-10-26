@@ -47,7 +47,7 @@ impl ByteSource
     // unchanged until then.
     func openFile(fileName: string)->ByteSource fail
     {
-        var result: retval
+        var result: #returntype
         result.stream   = try File.openRead(fileName)
         result.length   = try result.stream.size()
         result.fileName = fileName
@@ -58,7 +58,7 @@ impl ByteSource
     // Borrows `bytes` as one complete stream.
     func openMemory(bytes: const [..] u8)->ByteSource
     {
-        var result: retval
+        var result: #returntype
         result.memory   = bytes
         result.length   = bytes.count
         result.isMemory = true

@@ -85,7 +85,7 @@ impl DateTime
     // Returns the current UTC date and time.
     func utcNow()->DateTime
     {
-        var result: retval
+        var result: #returntype
         result.setWallClock(readWallClock(.Utc))
         return result
     }
@@ -93,7 +93,7 @@ impl DateTime
     // Returns the current local date and time.
     func now()->DateTime
     {
-        var result: retval
+        var result: #returntype
         result.setWallClock(readWallClock(.Local))
         return result
     }
@@ -219,7 +219,7 @@ impl DateTime
     // [[Core.Errors.SyntaxError]] otherwise.
     func parse(str: string, checkDate = true)->{ value: DateTime, eat: u32 } fail
     {
-        var result: retval
+        var result: #returntype
         var buf = str
 
         if not buf.count do

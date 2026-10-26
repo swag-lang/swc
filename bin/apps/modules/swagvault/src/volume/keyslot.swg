@@ -60,7 +60,7 @@ impl KeySlot
         Swag.assert(slotKey.count == Crypto.KeySize)
         Swag.assert(master.count == Crypto.MasterKeySize)
 
-        var result: retval
+        var result: #returntype
         try Core.Crypto.randomBytes(result.nonce)
         try Core.Crypto.chacha20Poly1305Seal(slotKey, result.nonce, master, Crypto.associatedData(KeySlotKind, index), result.wrapped, result.tag)
         return result
@@ -78,7 +78,7 @@ impl KeySlot
     // Serializes the authenticated payload after the slot's random prefix.
     mtd const encode()->[KeySlotPayloadSize] u8 fail
     {
-        var result: retval
+        var result: #returntype
         try Core.Crypto.randomBytes(result)
 
         var offset = 0'u64
@@ -96,7 +96,7 @@ impl KeySlot
     {
         Swag.assert(record.count == KeySlotPayloadSize)
 
-        var result: retval
+        var result: #returntype
         var offset = 0'u64
         Swag.memcpy(&result.nonce[0], record.buffer + offset, Crypto.NonceSize)
         offset += Crypto.NonceSize

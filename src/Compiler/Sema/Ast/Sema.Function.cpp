@@ -970,15 +970,11 @@ namespace
         if (!inlinePayload.returnTypeRef.isValid() || inlinePayload.returnTypeRef == sema.typeMgr().typeVoid())
             return Result::Continue;
 
-        // A 'retval' local of the inlined body names the result, which the value may still read.
-        if (SemaHelpers::returnStorageExposed(sema, *sema.currentFunction(), &inlinePayload))
-            return Result::Continue;
-
         frame.setCurrentRuntimeStorage(exprRef, inlinePayload.resultVar);
         return Result::Continue;
     }
 
-    // Set frame runtime storage to the caller's return slot, as var x: retval does.
+    // Set frame runtime storage to the caller's return slot.
     // Materializing nodes reuse this destination so codegen can omit the return copy.
     Result bindReturnSlotRuntimeStorage(SemaFrame& frame, Sema& sema, AstNodeRef exprRef)
     {
@@ -999,11 +995,6 @@ namespace
         if (!usesIndirectReturnStorage)
             return Result::Continue;
 
-        // An explicit 'retval' local makes the slot readable, so it can no longer be used as
-        // an in-place destination for a value that might read it.
-        if (SemaHelpers::returnStorageExposed(sema, *sema.currentFunction(), nullptr))
-            return Result::Continue;
-
         const TypeRef storageTypeRef = SemaHelpers::indirectReturnRuntimeStorageTypeRef(sema, *sema.currentFunction());
         if (storageTypeRef.isInvalid())
             return Result::Continue;
@@ -1020,60 +1011,6 @@ namespace
 
         SWC_RESULT(SemaHelpers::ensureRuntimeStorageDeclaredAndCompleted(sema, *payload.runtimeStorageSym, storageTypeRef));
         frame.setCurrentRuntimeStorage(exprRef, payload.runtimeStorageSym);
-
-        return Result::Continue;
-    }
-
-    const SymbolVariable* functionRetValVariable(Sema& sema, AstNodeRef nodeRef)
-    {
-        const Symbol* symbol = sema.viewSymbol(nodeRef).sym();
-        const auto*   symVar = symbol ? symbol->safeCast<SymbolVariable>() : nullptr;
-        if (!symVar || !symVar->hasExtraFlag(SymbolVariableFlagsE::RetVal) || symVar->hasExtraFlag(SymbolVariableFlagsE::RuntimeStorage))
-            return nullptr;
-
-        return SemaHelpers::retValStorageOwner(sema, *symVar) ? nullptr : symVar;
-    }
-
-    // Returning another value replaces the 'retval' variable, so that value cannot read the
-    // variable: it would be built over what it reads. Returning the variable itself, or
-    // '#move' of it, is the variable. An inline expansion was checked in its own function.
-    Result checkReturnDoesNotReadRetVal(Sema& sema, AstNodeRef exprRef)
-    {
-        if (!sema.isCurrentFunction() || nearestReturnContextPayload(sema))
-            return Result::Continue;
-        if (!SemaHelpers::returnStorageExposed(sema, *sema.currentFunction(), nullptr))
-            return Result::Continue;
-
-        AstNodeRef  returnedRef = SemaHelpers::resolveTransparentExprSourceRef(sema, exprRef);
-        const auto* unary       = sema.node(returnedRef).safeCast<AstUnaryExpr>();
-        if (unary && sema.token(unary->codeRef()).id == TokenId::ModifierMove)
-            returnedRef = SemaHelpers::resolveTransparentExprSourceRef(sema, unary->nodeExprRef);
-        if (functionRetValVariable(sema, returnedRef))
-            return Result::Continue;
-
-        SmallVector<AstNodeRef> stack;
-        stack.push_back(exprRef);
-        while (!stack.empty())
-        {
-            const AstNodeRef nodeRef = stack.back();
-            stack.pop_back();
-            if (nodeRef.isInvalid())
-                continue;
-
-            const AstNode& node = sema.node(nodeRef);
-            if (node.is(AstNodeId::Identifier))
-            {
-                if (const SymbolVariable* retVal = functionRetValVariable(sema, nodeRef))
-                {
-                    auto diag = SemaError::report(sema, DiagnosticId::sema_err_return_reads_retval, nodeRef);
-                    diag.addArgument(Diagnostic::ARG_SYM, retVal->name(sema.ctx()));
-                    diag.report(sema.ctx());
-                    return Result::Error;
-                }
-            }
-
-            node.collectChildrenFromAst(stack, sema.ast());
-        }
 
         return Result::Continue;
     }
@@ -1112,8 +1049,6 @@ namespace
 
                 return Result::Error;
             }
-
-            SWC_RESULT(checkReturnDoesNotReadRetVal(sema, exprRef));
 
             SemaNodeView view = sema.viewNodeTypeConstant(exprRef);
             if (returnType.isAnyTypeInfo(sema.ctx()))

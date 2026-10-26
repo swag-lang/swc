@@ -14,7 +14,7 @@ internal impl Properties
     // the element, via resolveArrayElement walking ancestors.
     mtd menuArrayContext()->{ arrItem: *PropertiesItem?, arrElem: *PropertiesItem? }
     {
-        var result: retval
+        var result: #returntype
         if not .menuItem do
             return result
 

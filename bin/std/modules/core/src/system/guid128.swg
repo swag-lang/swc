@@ -58,7 +58,7 @@ impl Guid128
         }
 
         initRng()
-        var result: retval
+        var result: #returntype
         result.words[0] = g_Rng.nextU64()
         result.words[1] = g_Rng.nextU64()
         result.bytes[6] = (result.bytes[6] & 0x0F) | 0x40     // Version 4
@@ -128,7 +128,7 @@ impl Guid128
     // Returns the canonical lowercase UUID representation.
     mtd const toString()->String
     {
-        var result: retval
+        var result: #returntype
         result.reserve(36)
         result.length = 36
         .toString(result.toSlice())
@@ -138,7 +138,7 @@ impl Guid128
     // Parses the canonical `xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx` form.
     func parse(str: string)->Guid128 fail
     {
-        var result: retval
+        var result: #returntype
         if not tryParse(str, &result) do
             fail InvalidFormatError{"invalid 128-bit identifier"}
         return result

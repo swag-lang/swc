@@ -3,7 +3,7 @@
 // Advent of Code 2024 Day 23: find cliques in a LAN party graph.
 // Part 1: count triangles where at least one node starts with 't'.
 // Part 2: find largest clique, output names sorted, comma-separated.
-// Exercises: Swag.makeSlice in inline (day 19 fix), inline + retval (day 20 fix),
+// Exercises: Swag.makeSlice in inline (day 19 fix), inline + #returntype (day 20 fix),
 // with &ptr (day 21 fix), reverse-view iteration, nested struct methods, adjacency
 // matrix bit manipulation, sorting with spaceship <=>.
 
@@ -484,11 +484,11 @@ func solve(text: string)->SolveResult
     Swag.assert(sr.part1 == 42'u64)
 }
 
-// Inline returning struct via retval (exercises day 20 fix)
+// Inline returning struct via #returntype (exercises day 20 fix)
 #[Swag.Inline]
 func makeIdx(a: u8, b: u8)->{ idx: u32 }
 {
-    var result: retval
+    var result: #returntype
     result.idx = nameToIdx(a, b)
     return result
 }

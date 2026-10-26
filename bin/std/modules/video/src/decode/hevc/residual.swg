@@ -34,7 +34,7 @@ impl Decoder
         let pps  = unwrap .activePps
         let size = 1'u32 << log2TrafoSize
 
-        var result: retval
+        var result: #returntype
         Memory.set(&.coefficients, 0, cast(u64, (size * size)) * #sizeof(s16))
         Memory.set(&.coefficientRows, 0, #sizeof(.coefficientRows))
         .coefficientColumns = 0

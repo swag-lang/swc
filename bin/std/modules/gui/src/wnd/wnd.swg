@@ -1094,7 +1094,7 @@ impl Wnd
     // the one that was dirtied would leave the difference stale on screen.
     internal mtd const paintExtent(rect: Math.Rectangle)->Math.Rectangle
     {
-        var result: retval = rect
+        var result: #returntype = rect
         result.applyPadding(.invalidatePadding)
         result.applyPadding({-PaintExtentMargin, -PaintExtentMargin, -PaintExtentMargin, -PaintExtentMargin})
         return result
@@ -1120,9 +1120,9 @@ impl Wnd
     // [[Gui.Wnd.position]].
     mtd const presentationRect()->Math.Rectangle
     {
-        var result: retval = .position
-        let pivotX         = result.x + result.width * .presentationPivot.x
-        let pivotY         = result.y + result.height * .presentationPivot.y
+        var result: #returntype = .position
+        let pivotX = result.x + result.width * .presentationPivot.x
+        let pivotY = result.y + result.height * .presentationPivot.y
         result.x      = pivotX + (result.x - pivotX) * .presentationScale.x
         result.y      = pivotY + (result.y - pivotY) * .presentationScale.y
         result.width  *= .presentationScale.x
@@ -1272,7 +1272,7 @@ impl Wnd
     mtd measure(available: Math.Point)->SizeHint
     {
         .computeStyle()
-        var result: retval
+        var result: #returntype
 
         result.min   = .minSize
         result.max.x = .maxSize.x > 0 ? .maxSize.x : Swag.F32.Max
@@ -1497,7 +1497,7 @@ impl Wnd
     // Returns the local client rectangle inset by [[Gui.Wnd.padding]].
     mtd const paddedClientRect()->Math.Rectangle
     {
-        var result: retval = .clientRect()
+        var result: #returntype = .clientRect()
         result.applyPadding(.padding)
         return result
     }
@@ -1505,9 +1505,9 @@ impl Wnd
     // Returns this window's rectangle in surface coordinates.
     mtd const surfaceRect()->Math.Rectangle
     {
-        var result: retval = .position
+        var result: #returntype = .position
         var p = .parent
-        var ignoresParent  = .wndFlags.has(.NoScroll)
+        var ignoresParent       = .wndFlags.has(.NoScroll)
         while p
         {
             result.x += p.position.x
@@ -1528,7 +1528,7 @@ impl Wnd
     // Returns this window's rectangle relative to `wnd`, or to the root when `null`.
     mtd const rectRelativeTo(wnd: *Wnd?)->Math.Rectangle
     {
-        var result: retval = .position
+        var result: #returntype = .position
         var p = .parent
         while p and p != wnd
         {
@@ -2346,7 +2346,7 @@ impl Wnd
     // Formats the first shortcut associated with `wndId` in the routing chain.
     mtd keyShortcutName(wndId: WndId)->String
     {
-        var result: retval
+        var result: #returntype
         for c in .keyShortcuts
         {
             if c.id == wndId
@@ -2569,7 +2569,7 @@ impl Wnd
             return {}
         let safeCmdId = cmdId orelse ""
 
-        var evtState: retval
+        var evtState: #returntype
 
         // Ask the event chain for the command's current state.
         evtState.kind   = .Compute

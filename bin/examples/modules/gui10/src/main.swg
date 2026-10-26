@@ -101,7 +101,7 @@ func applyVariant(theme: *Theme, variant: ThemeVariant)
 // value, so each one is simply built on the spot.
 func variantColors(variant: ThemeVariant)->ThemeColors
 {
-    var result: retval
+    var result: #returntype
     switch #complete variant
     {
     case .Dark:

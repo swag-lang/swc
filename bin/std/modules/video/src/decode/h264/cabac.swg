@@ -54,7 +54,7 @@ const CabacTables: [928] u8 = #run buildCabacTables()
 
 func buildCabacTables()->[928] u8
 {
-    var result: retval
+    var result: #returntype
 
     // Table 9-44 laid out for one lookup from the packed state and the two range bits that
     // select its column.
@@ -688,7 +688,7 @@ impl Slice
         var bin:      u32
         var binState: s64
         var level:    s32
-        var result:   retval
+        var result:   #returntype
         for component in 2'u32
         {
             let sumA    = Math.abs(cast(s32, a[component]))

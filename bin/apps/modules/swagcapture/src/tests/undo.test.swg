@@ -303,7 +303,7 @@ struct UndoFuzzState
 
 func testUndoFuzzFormOf(itf: IForm)->UndoFuzzForm
 {
-    var result: retval
+    var result: #returntype
     result.kind   = Swag.kindOf(itf)
     result.rect   = itf.boundRect()
     result.rotate = assume cast(*BaseForm, itf).rotate
@@ -338,7 +338,7 @@ func testUndoFuzzFormOf(itf: IForm)->UndoFuzzForm
 
 func testUndoFuzzSnapshot(capture: *Capture)->UndoFuzzState
 {
-    var result: retval
+    var result: #returntype
     result.width    = capture.width
     result.height   = capture.height
     result.imagePos = capture.backImagePos

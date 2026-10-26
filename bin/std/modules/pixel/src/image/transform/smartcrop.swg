@@ -50,7 +50,7 @@ impl Image
 
     func buildIntegral(src: Array'f32, w, h: s32)->Array'f32
     {
-        var ii: retval
+        var ii: #returntype
         ii.resize((w + 1) * (h + 1))
         let pitch = w + 1
         for y in 1 to h
@@ -85,7 +85,7 @@ impl Image
 
         var ii = buildIntegral(src, w, h)
 
-        var dst: retval
+        var dst: #returntype
         dst.resize(w * h)
         for y in 0 to (h - 1)
         {
@@ -128,7 +128,7 @@ impl Image
             ty[y] = Math.exp(-(dy * dy) / (2.0 * sig2))
         }
 
-        var T: retval
+        var T: #returntype
         T.resize(w * h)
         for y in 0 to (h - 1) do
             for x in 0 to (w - 1) do
@@ -199,7 +199,7 @@ impl Image
         let B = boxBlurViaIntegral(edges[], w, h, 3)
 
         // invert & gently sharpen far-from-edge regions
-        var D: retval
+        var D: #returntype
         D.resize(w * h)
         for i in 0 to (w * h - 1)
         {
@@ -356,7 +356,7 @@ impl Image
 
     func getThirdsOrZero(w, h: s32, enabled: bool)->Array'f32
     {
-        var tmp: retval
+        var tmp: #returntype
         tmp.resize(w * h)
         if enabled do
             return buildThirdsMap(w, h, THIRDS_SIGMA)
@@ -392,7 +392,7 @@ impl Image
         let iiT = buildIntegral(T, w, h)
         let iiE = buildIntegral(E, w, h)
 
-        var pack: retval
+        var pack: #returntype
         pack.sblur = sb
         pack.E     = E
         pack.T     = T
@@ -408,7 +408,7 @@ impl Image
         let cy   = h * 0.5
         let d2Mx = cx * cx + cy * cy     // correct normalization
 
-        with var ctx: retval
+        with var ctx: #returntype
         {
             .iiS     = &pack.iiS
             .iiT     = &pack.iiT
@@ -624,7 +624,7 @@ impl Image
             }
         }
 
-        var r: retval
+        var r: #returntype
         r.x      = bestX
         r.y      = bestY
         r.width  = cropW
@@ -695,7 +695,7 @@ impl Image
 
         if bestW == 0 or bestH == 0
         {
-            var rf: retval
+            var rf: #returntype
             rf.x      = 0
             rf.y      = 0
             rf.width  = w
@@ -733,7 +733,7 @@ impl Image
             }
         }
 
-        var r: retval
+        var r: #returntype
         r.x      = bestX
         r.y      = bestY
         r.width  = bestW

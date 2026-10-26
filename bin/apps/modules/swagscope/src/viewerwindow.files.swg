@@ -426,7 +426,7 @@ impl ViewerWindow
     // stored beside them, whether or not the list shows those notes.
     mtd kindSiblings()->Array'String
     {
-        var result: retval
+        var result: #returntype
         for file in .folderFiles where .index.sharesViewer(.currentFile, file[]) do
             result.add(file[])
         return result

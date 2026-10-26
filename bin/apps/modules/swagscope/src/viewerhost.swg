@@ -114,7 +114,7 @@ impl IWnd for ViewerInfoGroup
 {
     mtd impl measureContent(available: Math.Point)->Math.Point
     {
-        var result:     retval
+        var result:     #returntype
         var horizontal: f32
         var center:     f32
         for child in .children where child.isLocallyVisible()

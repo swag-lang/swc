@@ -43,7 +43,7 @@ private func pluginProbe(content: Viewer.ProbeContent)->bool
 // Describes the ZIP archive viewer to the host.
 func viewerPlugin()->Viewer.Plugin
 {
-    with var result: retval
+    with var result: #returntype
     {
         .key          = "archive"
         .staticName   = "Archive"

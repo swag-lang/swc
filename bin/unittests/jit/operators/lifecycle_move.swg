@@ -563,11 +563,12 @@ func returnMoveInfo()->LifecycleInfo
 
 #test
 {
-    // 'return local' moves out: 'opPostMove' shapes the returned value (4 + 20). The
-    // hook counters are not asserted here: the argument-less call is constant-folded,
-    // so they land in the compile-time image. See 'return_move_out.swg' for the counts.
+    // The returned local is built in the caller's storage, so nothing moves and
+    // 'opPostMove' never shapes the value (it would add 20). The hook counters are not
+    // asserted here: the argument-less call is constant-folded, so they land in the
+    // compile-time image. See 'return_move_out.swg' for the counts.
     let v = returnMoveInfo()
-    Swag.assert(v.dst == 24)
+    Swag.assert(v.dst == 4)
     Swag.assert(v.src == 0)
 }
 

@@ -69,7 +69,7 @@ func readHeader(bytes: const [..] u8)->FrameHeader fail
     if bitrateIndex == 15 do
         fail InvalidFormatError{"MP3 frame states the reserved bit rate"}
 
-    var result: retval
+    var result: #returntype
     result.isMpeg1  = version == 3
     result.isMpeg25 = version == 0
     result.hasCrc   = (bytes[1] & 1) == 0

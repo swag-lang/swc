@@ -261,7 +261,7 @@ impl Volume
         if requestedSize < MinimumSize do
             fail volumeError(.SizeTooSmall)
 
-        var result: retval
+        var result: #returntype
         var created   = false
         var completed = false
 
@@ -361,7 +361,7 @@ impl Volume
         if (try File.attributes(path)).has(.SparseFile) do
             fail volumeError(.SparseContainer)
 
-        var result: retval
+        var result: #returntype
         result.dirty    = false
         result.readOnly = readOnly
         result.path     = path
@@ -505,7 +505,7 @@ impl Volume
         if progress and progress.isCanceled() do
             fail volumeError(.Canceled)
 
-        with var result: retval
+        with var result: #returntype
         {
             .file.stream   = #move outer.file.stream
             .file.base     = region.first

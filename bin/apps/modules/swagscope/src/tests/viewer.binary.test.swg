@@ -75,7 +75,7 @@ func pokeText(bytes: *Array'u8, at: u64, text: string)
 // walks, so a mistake in either shows up as a failing assertion rather than as a silent skip.
 func buildPeFixture()->Array'u8
 {
-    var bytes: retval
+    var bytes: #returntype
     bytes.resize(FixtureSize)
 
     pokeText(&bytes, 0, "MZ")

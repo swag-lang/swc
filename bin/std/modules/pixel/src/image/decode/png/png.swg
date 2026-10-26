@@ -138,7 +138,7 @@ impl Decoder
 
     mtd readChunk(ch: ChunkHeader)->DecodeChunk fail
     {
-        var result: retval
+        var result: #returntype
 
         result.header = ch
 
@@ -244,7 +244,7 @@ impl Decoder
         if signature != 0x0A1A0A0D474E5089 do
             fail InvalidFormatError{"not a png"}
 
-        var result:   retval
+        var result:   #returntype
         var iDataBuf: Array'u8
 
         // Zero-initialized: on iterations where 'chIsHere' skips the peek, the header
@@ -541,10 +541,10 @@ impl Decoder
             .dstPixels = null
         }
 
-        if .header.bitDepth == 8 and .inChannels == .outChannels
+        let intoResult = .header.bitDepth == 8 and .inChannels == .outChannels
+        if intoResult
         {
             result.allocPixels()
-            .dstPixels = cast([*] u8, result.pixels.storage())
         }
         else
         {
@@ -558,10 +558,10 @@ impl Decoder
         .dcmpBuf = try dec.decompress(iDataBuf.toSlice(), hintSize)
 
         // defilter content
-        .defilter()
+        .defilter(intoResult ? cast([*] u8, result.pixels.storage()) : .safeDstPixels())
 
         // Channels match: result.pixels was already populated directly by defilter
-        if .header.bitDepth == 8 and .inChannels == .outChannels do
+        if intoResult do
             return result
 
         result.allocPixels()

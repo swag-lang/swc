@@ -4,7 +4,7 @@ impl RichEditCtrl
 {
     mtd textRangeData(start, end: RichEditCursor)->{ text: Array'rune, styles: Array'u8 }
     {
-        var result: retval
+        var result: #returntype
 
         // An empty document (no line) has no text to extract.
         if .lines.isEmpty() do
@@ -589,7 +589,7 @@ public impl RichEditCtrl
     // Returns the rune and style at a document cursor.
     mtd runeAt(cp: RichEditCursor)->{ char: rune, style: RichEditStyleRef }
     {
-        var result: retval
+        var result: #returntype
         if cp.lineIndex >= .lines.count do
             return result
         let len = .lines[cp.lineIndex]!.chars.count
@@ -896,7 +896,7 @@ public impl RichEditCtrl
     // Returns the size the whole document needs, margins and padding included, in logical pixels.
     mtd evaluateSize()->{ w: f32, h: f32 }
     {
-        var result: retval
+        var result: #returntype
 
         let x = .xGlyphSize()
 

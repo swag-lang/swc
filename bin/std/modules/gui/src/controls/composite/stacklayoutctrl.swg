@@ -79,7 +79,7 @@ impl IWnd for StackLayoutCtrl
 
         main += cast(f32, (count - 1)) * .spacing
 
-        var result: retval
+        var result: #returntype
         if horizontal
         {
             result.x = main + padding.x + padding.z

@@ -29,7 +29,7 @@ private func isValidStrokeStyle(style: const *PathStrokeStyle)->bool
 // PDF repeats an odd dash array before alternating painted and blank intervals.
 private func normalizedStrokeStyle(style: PathStrokeStyle)->PathStrokeStyle
 {
-    var result: retval = style
+    var result: #returntype = style
     if result.dashPattern.count & 1
     {
         let count = result.dashPattern.count
@@ -83,7 +83,7 @@ impl Page
     func create(width, height: f32)->Page
     {
         Swag.assert(width > 0 and height > 0 and Math.isFinite(width) and Math.isFinite(height), "invalid page dimensions")
-        var result: retval
+        var result: #returntype
         result.width  = width
         result.height = height
         return result

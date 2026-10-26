@@ -61,21 +61,28 @@ func macroRun(stmt: #code)
 
 #test
 {
-    func runInjectedFunctionScopeTrace()->CompilerDeferReturnInfo
+    func runInjectedFunctionScopeTraceBody()->CompilerDeferReturnInfo
     {
         resetDeferTrace()
-        with var result: retval
+        with var result: #returntype
         {
             .value = 42
             .trace = -1
         }
 
-        defer result.trace = DeferTrace
         mixinAddDefer()
         macroRun(#code {
             defer appendDeferTrace(8)
         })
         appendDeferTrace(2)
+        return result
+    }
+
+    // Defers and drops run when the body returns: read their counters afterwards.
+    func runInjectedFunctionScopeTrace()->CompilerDeferReturnInfo
+    {
+        var result = runInjectedFunctionScopeTraceBody()
+        result.trace = DeferTrace
         return result
     }
 

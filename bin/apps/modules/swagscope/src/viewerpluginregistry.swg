@@ -51,7 +51,7 @@ private impl NameKey
 // look inside says the same thing as looking and recognizing nothing.
 private func readProbeHead(fileName: string)->Array'u8
 {
-    var result: retval
+    var result: #returntype
     var stream = catch File.openReadLive(fileName) { return result }
 
     result.resize(Viewer.ProbeHeadSize)
@@ -75,7 +75,7 @@ private func readProbeHead(fileName: string)->Array'u8
 // implements it, so adding a format means adding one line here and nothing else.
 func createViewerPluginRegistry()->ViewerPluginRegistry
 {
-    var result: retval
+    var result: #returntype
     expect result.register(Viewers.Html.viewerPlugin())
     expect result.register(Viewers.Code.viewerPlugin())
     expect result.register(Viewers.MarkdownText.viewerPlugin())
@@ -163,7 +163,7 @@ impl ViewerPluginRegistry
     // show it, and it costs one open shared by every probe.
     mtd const choices(fileName: string)->Array'ViewerPluginChoice
     {
-        var result:  retval
+        var result:  #returntype
         var matched: Array'bool
         matched.resize(.plugins.count)
         let key = NameKey.from(fileName)

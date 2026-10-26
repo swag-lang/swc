@@ -77,7 +77,7 @@ impl VaultAccess
     // opens the vault. Fails when a key file cannot be read in full.
     mtd const derive()->VaultCredential fail
     {
-        var result: retval
+        var result: #returntype
         if .keyFiles.isEmpty()
         {
             result.bytes.add(.password.toSlice())

@@ -273,7 +273,7 @@ func hasExtension(path: string?)->bool => extension(path) != null
 // Null and empty segments are skipped.
 func combine(parts: (string?)...)->String
 {
-    var result: retval
+    var result: #returntype
     for one in parts
     {
         let part = one orelse ""

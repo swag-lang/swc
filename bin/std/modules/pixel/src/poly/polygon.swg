@@ -128,7 +128,7 @@ impl Polygon
         let vvb0 = v1 + n1
         let {intersects, point: intersectionPoint} = Geometry.intersectLines(vva0, vva1, vvb0, vvb1)
 
-        var result: retval = v1
+        var result: #returntype = v1
         if intersects
         {
             result += ((intersectionPoint - v1) * offset)
@@ -283,7 +283,7 @@ impl Polygon
     private func segmentBox(a, b: Vector2)->SegmentBox
     {
         let margin = IntersectTolerance * (Math.abs(b.x - a.x) + Math.abs(b.y - a.y) + 1)
-        var result: retval
+        var result: #returntype
         result.minX = Math.min(a.x, b.x) - margin
         result.minY = Math.min(a.y, b.y) - margin
         result.maxX = Math.max(a.x, b.x) + margin
@@ -534,7 +534,7 @@ impl Polygon
     // `tolerance` is the round-join approximation tolerance, in pixels.
     mtd offsetPaths(value: f32, joinStyle: JoinStyle, tolerance: f32 = 0.5)->LinePathList
     {
-        var result: retval
+        var result: #returntype
 
         var res: Clipper.ClipperPaths
         .offsetInto(&res, value, joinStyle, tolerance)
@@ -590,7 +590,7 @@ impl Polygon
     // first contour.
     mtd cleanedPaths()->LinePathList
     {
-        var result: retval
+        var result: #returntype
 
         var res: Clipper.ClipperPaths
         .cleanInto(&res)

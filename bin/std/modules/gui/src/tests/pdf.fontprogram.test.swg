@@ -14,7 +14,7 @@ private struct ProgramReport
 // Reports how far each font of a page gets, from an embedded program to an addressed glyph.
 private func reportPage(name: string, pageIndex: u64)->ProgramReport
 {
-    var result: retval
+    var result: #returntype
     var reader = expect Reader.open(corpusPdfPath(name))
     var page   = expect reader.loadPage(pageIndex)
 

@@ -33,7 +33,7 @@ using Swag, Core
 {
     func start()->GizmoRect
     {
-        var result: retval
+        var result: #returntype
         result.startRect  = {100, 100, 50, 40}
         result.movingRect = result.startRect
         return result

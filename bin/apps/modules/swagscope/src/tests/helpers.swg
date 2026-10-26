@@ -14,7 +14,7 @@ func assertViewerInfoButton(button: *IconButton, width = Viewer.ZoomButtonWidth)
 // Wraps one synthetic creation callback in the descriptor shape the host works with.
 func testViewerPlugin(create: Viewer.PluginCreate)->Viewer.Plugin
 {
-    with var result: retval
+    with var result: #returntype
     {
         .key    = "test"
         .create = create
@@ -26,7 +26,7 @@ func testViewerPlugin(create: Viewer.PluginCreate)->Viewer.Plugin
 // Creates one plugin through the same host API used by the application window.
 func openTestViewer(plugin: Viewer.Plugin, contentParent: *Wnd, fileName: string, commandParent: *Wnd? = null, actionParent: *Wnd? = null, infoParent: *Wnd? = null, icon: Icon = {}, services: Viewer.HostServices = {}, waitForText = true)->ViewerSession
 {
-    var result: retval
+    var result: #returntype
     if plugin.attach do
         plugin.attach(contentParent.app())
 
@@ -215,7 +215,7 @@ private func appendZipU32(bytes: *Array'u8, value: u32)
 // Returns a ZIP archive holding `files` uncompressed and in order, with UTF-8 names.
 func storedZipBytes(files: const [..] StoredZipFile)->Array'u8
 {
-    var result:  retval
+    var result:  #returntype
     var crcs:    Array'u32
     var offsets: Array'u32
     for file in files

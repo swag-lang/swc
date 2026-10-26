@@ -275,7 +275,7 @@ private func fitToText(label: *Label, pos, room: Math.Point, inset: Math.Vector4
     // edge, which is especially visible on short accented labels at fractional display scales.
     let rasterGuard = 1.0 / Math.max(label.deviceScale(), 1.0)
 
-    var result: retval
+    var result: #returntype
     result.x      = pos.x
     result.y      = pos.y
     result.width  = Math.ceil(Math.min(need.x + rasterGuard, roomX) + inset.x + inset.z)

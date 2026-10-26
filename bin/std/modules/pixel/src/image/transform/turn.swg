@@ -65,7 +65,7 @@ impl Image
     {
         Swag.assert(.pixels.buffer != null)
 
-        var result: retval
+        var result: #returntype
         if angle == .HalfTurn do
             result = create(.width, .height, .pixelFormat, alphaMode: me.alphaMode)
         else do

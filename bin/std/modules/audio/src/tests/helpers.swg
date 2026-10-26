@@ -39,7 +39,7 @@ func audioDecodePcmToPcm16(sourceEncoding: SoundFileEncoding,
     let allocator = unwrap Swag.getContext().allocator
     codec.configure(sourceEncoding, .Pcm16, #typeof(CodecPcmToPcm16), allocator)
 
-    var result: retval
+    var result: #returntype
     result.destination.resize(destinationCapacity)
     let itf: ICodec       = &codec
     let destinationBuffer = result.destination.storage()

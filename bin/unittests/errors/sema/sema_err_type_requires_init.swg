@@ -49,7 +49,7 @@ var NonNullRequiresInitFallibleItem = NonNullRequiresInitItem{}
 
 func nonNullRequiresInitRetval()->*NonNullRequiresInitItem
 {
-    var result: retval
+    var result: #returntype
     return result     // swc-expected-error {{sema_err_definite_init_use}}
 }
 

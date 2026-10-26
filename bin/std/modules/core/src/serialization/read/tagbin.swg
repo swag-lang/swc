@@ -205,7 +205,7 @@ private impl TagBin
     // Reads a varint-sized UTF-8 string from the current stream.
     mtd readWireString()->String fail
     {
-        var result: retval
+        var result: #returntype
         let count = try .stream.readVarint()
         if count > .remaining() do
             fail SerializationError{"string runs past the end of the stream"}
@@ -1161,7 +1161,7 @@ impl TagBin
     {
         #static if NT == Core.String
         {
-            var result: retval
+            var result: #returntype
             let count = try .stream.readVarint()
 
             // Validate before reserving, so a corrupt length cannot request an

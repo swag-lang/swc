@@ -31,7 +31,7 @@ scope  switch  to  unreachable  until  where  while  _
 
 ```swag
 assume  cast  catch  discard  expect  fail  false  null
-retval  true  try  unwrap
+true  try  unwrap
 ```
 
 # Contextual Source and Module Names
@@ -64,8 +64,8 @@ configuration, source inclusion, diagnostics, and code injection.
 
 ```swag
 #alignof  #defined  #decltype  #fullnameof  #gettag  #hastag
-#isconstexpr  #kindof  #location  #nameof  #offsetof  #runes
-#safety  #sanity  #sizeof  #stringof  #typeof
+#isconstexpr  #kindof  #location  #nameof  #offsetof  #returntype
+#runes  #safety  #sanity  #sizeof  #stringof  #typeof
 ```
 
 # Compiler Context Values

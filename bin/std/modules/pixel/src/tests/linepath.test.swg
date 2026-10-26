@@ -6,7 +6,7 @@ using Core, Core.Math
 // Returns the radius of every arc the path holds, in the order the path builds them.
 func arcRadii(path: const *LinePath)->Array'f32
 {
-    var result: retval
+    var result: #returntype
     for element in path.elements where element.type == .Arc do
         result.add(element.p2.x)
     return result

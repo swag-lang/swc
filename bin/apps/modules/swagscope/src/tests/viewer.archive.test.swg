@@ -82,7 +82,7 @@ func buildZipFixture()->Array'u8
     deflater.init(.BestSpeed, flags: .Zero)
     expect deflater.compress(&entries[1].packed, entries[1].plain.toSlice())
 
-    var result: retval
+    var result: #returntype
     for &entry in entries do
         addZipFixtureEntry(&result, entry)
 

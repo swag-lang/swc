@@ -40,7 +40,7 @@ private func readAdtsHeader(bytes: const [..] u8)->AdtsHeader fail
     if layer do
         fail InvalidFormatError{"ADTS frame states a layer, which the format reserves"}
 
-    var result: retval
+    var result: #returntype
     result.headerBytes = (bytes[1] & 1) != 0 ? 7 : 9
 
     let profile = cast(u32, (bytes[2] >> 6)) & 3
@@ -72,7 +72,7 @@ private func readAdtsHeader(bytes: const [..] u8)->AdtsHeader fail
 // every header; a packet codec expects them once, in the two bytes an `AudioSpecificConfig` holds.
 private func audioSpecificConfig(header: const *AdtsHeader)->Array'u8
 {
-    var result: retval
+    var result: #returntype
     let first  = cast(u8, ((2 << 3) | ((header.rateIndex >> 1) & 7)))
     let second = cast(u8, (((header.rateIndex & 1) << 7) | ((header.channelIndex & 15) << 3)))
     result.add(first)

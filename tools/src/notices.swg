@@ -52,7 +52,7 @@ public func auditNotices(context: *Context)->s32 fail
 // Every notice kept beside the files it covers is named by the index a reader starts from.
 private func auditNoticeIndex(context: *Context, directory: string, index: string)->u32 fail
 {
-    var errors: retval
+    var errors: #returntype
     let files = try Directory.enumerateFiles(directory, ".md", recurse: true)
     for file in files
     {
@@ -85,7 +85,7 @@ private func noticeRelativePath(context: *Context, fullName: string)->String
 
 private func auditNoticeReferences(context: *Context, directory: string)->u32 fail
 {
-    var errors: retval
+    var errors: #returntype
     for extension in [".swg", ".swgs", ".md"]
     {
         let files = try Directory.enumerateFiles(directory, extension, recurse: true)
@@ -100,7 +100,7 @@ private func auditNoticeFile(context: *Context, fileName: string)->u32 fail
 {
     let content = try File.readAllText(fileName)
 
-    var errors:     retval
+    var errors:     #returntype
     var lineNumber: u64
 
     for line in Tokenize.splitLines(content.toString())

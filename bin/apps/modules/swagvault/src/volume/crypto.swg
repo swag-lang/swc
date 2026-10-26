@@ -53,7 +53,7 @@ namespace Crypto
     // PBKDF2 never did.
     func deriveSlotKey(password, salt: const [..] u8)->[KeySize] u8 fail
     {
-        var result: retval
+        var result: #returntype
         try Core.Crypto.argon2id(password, salt, slotParameters(), result)
         return result
     }
@@ -61,7 +61,7 @@ namespace Crypto
     // Expands the master key into the keys the container actually uses.
     func deriveKeys(master: const [..] u8)->Keys fail
     {
-        var result: retval
+        var result: #returntype
         try Core.Hash.Blake2b.computeKeyed(master, RecordKeyContext, result.record)
         try Core.Hash.Blake2b.computeKeyed(master, LocatorKeyContext, result.locator)
         return result
@@ -92,7 +92,7 @@ namespace Crypto
     // duplicated, or replayed from another offset, because the tag covers both.
     func associatedData(kind: u32, recordId: u64)->[12] u8
     {
-        var result: retval
+        var result: #returntype
         store32(&result[0], kind)
         store32(&result[4], low32(recordId))
         store32(&result[8], low32(recordId >> 32))
@@ -109,7 +109,7 @@ namespace Crypto
         store32(&context[8], low32(recordId >> 32))
         store32(&context[12], 0x6163_6F6C)     // "loca", used only inside the keyed hash.
 
-        var result: retval
+        var result: #returntype
         try Core.Hash.Blake2b.computeKeyed(key, context, result)
         return result
     }

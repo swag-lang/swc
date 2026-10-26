@@ -9,7 +9,7 @@ private func pluginProbe(content: Viewer.ProbeContent)->bool => content.startsWi
 // Describes the MIDI viewer to the host.
 func viewerPlugin()->Viewer.Plugin
 {
-    with var result: retval
+    with var result: #returntype
     {
         .key          = "midi"
         .staticName   = "MIDI"

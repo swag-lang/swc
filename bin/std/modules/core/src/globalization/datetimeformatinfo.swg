@@ -67,7 +67,7 @@ public impl DateTimeFormatInfo
 
     internal mtd const formatPattern(value: Time.DateTime, pattern: string)->String
     {
-        var result: retval
+        var result: #returntype
         var index = 0'u64
         while index < pattern.count
         {

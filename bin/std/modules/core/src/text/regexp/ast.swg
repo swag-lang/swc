@@ -91,7 +91,7 @@ impl Ast
     // Parses one pattern into a tree.
     func parse(pattern: string, flags: Flags)->Ast fail
     {
-        var result: retval
+        var result: #returntype
 
         result.pattern    = Unicode.fromUtf8(pattern)
         result.flags      = flags
@@ -156,7 +156,7 @@ impl Ast
 
     mtd addChildren(children: const [..] u32)->{ first: u32, count: u32 }
     {
-        var result: retval
+        var result: #returntype
         result.first = cast(u32, .kids.count)
         result.count = cast(u32, children.count)
         .kids.add(children)
@@ -165,7 +165,7 @@ impl Ast
 
     mtd addChild(child: u32)->{ first: u32, count: u32 }
     {
-        var result: retval
+        var result: #returntype
         result.first = cast(u32, .kids.count)
         result.count = 1
         .kids.add(child)
@@ -332,7 +332,7 @@ impl Ast
     // not a repetition, and the caller turns it into a literal.
     mtd parseCounted()->{ valid: bool, minCount: u32, maxCount: u32 } fail
     {
-        var result: retval
+        var result: #returntype
         let start = .pos
 
         .advance()
@@ -375,7 +375,7 @@ impl Ast
 
     mtd parseNumber()->u32
     {
-        var result: retval
+        var result: #returntype
         while .isDigit(.peek()) and result <= MaxRepeatCount
         {
             result = result * 10 + cast(u32, (.peek() - '0'))
@@ -520,7 +520,7 @@ impl Ast
         let closing = .peek() == '\'' ? '\'' : '>'
         .advance()
 
-        var result: retval
+        var result: #returntype
         while not .atEnd() and .peek() != closing
         {
             result.append(.peek())
@@ -617,7 +617,7 @@ impl Ast
     // ones a character class also accepts. The cursor is on the character after the backslash.
     mtd parseClassEscape()->{ isClass: bool, value: RuneClass, scalar: rune } fail
     {
-        var result: retval
+        var result: #returntype
 
         let value = .peek()
         switch value
@@ -740,7 +740,7 @@ impl Ast
     // Returns the class of a one-letter shorthand, negated for its upper-case spelling.
     mtd shorthandClass(letter: rune)->RuneClass
     {
-        var result: retval
+        var result: #returntype
 
         switch letter
         {
@@ -799,7 +799,7 @@ impl Ast
     {
         .advance()
 
-        var result: retval
+        var result: #returntype
         var negated = .eat('^')
         var first   = true
 
@@ -862,7 +862,7 @@ impl Ast
     {
         if .peek() != '\\'
         {
-            var result: retval
+            var result: #returntype
             result.scalar = .peek()
             .advance()
             return result
@@ -876,7 +876,7 @@ impl Ast
         if .peek() == 'b'
         {
             .advance()
-            var result: retval
+            var result: #returntype
             result.scalar = 0x08
             return result
         }
@@ -1023,7 +1023,7 @@ impl Ast
     // the ones no repetition or alternation can make optional.
     mtd extractInnerLiteral()->{ found: bool, bytes: Array'u8, prefixRoot: u32 }
     {
-        var result: retval
+        var result: #returntype
 
         let rootNode = .nodes[.root]
         if rootNode.kind != NodeKind.Concat do

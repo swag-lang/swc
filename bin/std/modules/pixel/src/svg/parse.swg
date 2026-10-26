@@ -433,7 +433,7 @@ private func parseLength(value: string, defaultValue: SvgLength = {})->SvgLength
     if pos >= value.count or not isNumberStart(value[pos]) do
         return defaultValue
 
-    var result: retval
+    var result: #returntype
     result.value = scanNumber(value, &pos)
     while pos < value.count and value[pos] == ' ' do
         pos += 1
@@ -471,7 +471,7 @@ private func parseImageLength(value: string)->f32
 
 private func parsePaintId(value: string)->String
 {
-    var result: retval
+    var result: #returntype
     let trimmed = Latin1.trim(value)
     if trimmed.count < 7 or Latin1.compare(trimmed[until 5], "url(#", ignoreCase: true) do
         return result
@@ -492,7 +492,7 @@ private func parsePaintId(value: string)->String
 // class, not with a face.
 private func parseFontFamily(value: string)->{ kind: FontFamilyKind, matched: bool }
 {
-    var result: retval
+    var result: #returntype
 
     var scan = value
     while scan.count
@@ -567,7 +567,7 @@ private func spacingLength(value: string, fontSize: f32)->f32
 
 private func normalizedText(value: string)->String
 {
-    var result: retval
+    var result: #returntype
     var pendingSpace = false
     for c in value
     {
@@ -614,7 +614,7 @@ private func scanCssComponent(value: string, pos: *u64, scale: f32)->f32
 // Parses a solid paint value. Returns the color and whether painting is enabled.
 private func parseColor(value: string)->{ color: Color, enabled: bool }
 {
-    var result: retval
+    var result: #returntype
     result.color   = Color.fromArgb(Argb.Black)
     result.enabled = true
 
@@ -704,7 +704,7 @@ private func parseColor(value: string)->{ color: Color, enabled: bool }
 
 private func parseDashPattern(value: string)->Array'SvgLength
 {
-    var result: retval
+    var result: #returntype
     var total:  f32
     let text = Latin1.trim(value)
     if not Latin1.compare(text, "none", ignoreCase: true) do
@@ -1048,7 +1048,7 @@ private func applyAttribute(state: *GroupState, name, value: string)
 
 private func styleValue(style, property: string)->String
 {
-    var result: retval
+    var result: #returntype
     var scan = style
     while scan.count
     {
@@ -1347,7 +1347,7 @@ private struct MarkerVertex
 // Returns the marker vertices of a `points` list, or nothing when the element carries none.
 private func polyVertices(points: string, wanted: bool)->Array'MarkerVertex
 {
-    var result: retval
+    var result: #returntype
     if not wanted do
         return result
 
@@ -2004,7 +2004,7 @@ private impl Parser
     // geometry attributes by name.
     mtd scanAttributes(state: *GroupState, geo: *HashTable'(String, String))->{ selfClosed: bool }
     {
-        var result: retval
+        var result: #returntype
         let len = (.text).count
 
         while .pos < len
@@ -2953,7 +2953,7 @@ private impl Parser
     // Reads a `marker` element's viewport, reference point and orientation rule.
     mtd readMarkerDefinition(geo: *HashTable'(String, String), first, count: u64)->MarkerDefinition
     {
-        var result: retval
+        var result: #returntype
         result.first  = first
         result.count  = count
         result.refX   = .geoNumber(geo, "refX")
@@ -3143,7 +3143,7 @@ private impl Parser
     // winding directions do not turn overlapping clip shapes into holes.
     mtd clipGeometry(first, count: u64)->LinePathList
     {
-        var result: retval
+        var result: #returntype
         for index in first until first + count
         {
             var shape = .drawing.shapes[index].pathList
@@ -3158,7 +3158,7 @@ private impl Parser
 
     mtd shapeBounds(shape: const *Shape)->{ min, max: Vector2 }
     {
-        var result: retval
+        var result: #returntype
         result.min = Vector2.Max
         result.max = Vector2.Min
         for path in shape.pathList.paths
@@ -3201,7 +3201,7 @@ private impl Parser
         let {min, max} = .shapeBounds(shape)
         let size       = max - min
 
-        var result: retval
+        var result: #returntype
         result.color = Color.fromArgb(Argb.White)
         result.gradientSpread = gradient.spread
         switch gradient.kind
@@ -3435,7 +3435,7 @@ private impl Parser
     // are never drawn.
     mtd instantiate(first, count: u64, state: *GroupState, hidden = false)->{ first: u64, count: u64 }
     {
-        var result: retval
+        var result: #returntype
         result.first = .drawing.shapes.count
 
         for i in count
@@ -3566,7 +3566,7 @@ internal impl Shape
     // around them.
     mtd const inkBounds()->Rectangle
     {
-        var result: retval = .pathList.controlBounds()
+        var result: #returntype = .pathList.controlBounds()
         if .hasStroke
         {
             // Half the width lies either side of the contour, and a miter join reaches at
@@ -3636,7 +3636,7 @@ impl Drawing
     // see [[Pixel.Svg.ParseOptions]]. Unknown elements and attributes are ignored.
     func parse(text: string, options: ParseOptions = {})->Drawing fail
     {
-        var result: retval
+        var result: #returntype
 
         var parser = Parser{text: text, drawing: &result, options: options}
 
@@ -3693,7 +3693,7 @@ impl Drawing
     // Returns the rectangle a clip range can keep, which is the union of its shapes.
     private mtd const clipRangeBounds(first, count: u64)->Rectangle
     {
-        var result: retval
+        var result: #returntype
         for i in count
         {
             let bounds = .shapes[first + i].pathList.controlBounds()
@@ -3838,7 +3838,7 @@ impl Drawing
         var origin:  Vector2
         var advance: f32
 
-        var inked:    retval
+        var inked:    #returntype
         var hasInked: bool
 
         for run in text.runs

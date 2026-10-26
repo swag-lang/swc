@@ -854,7 +854,7 @@ func intrinsicAutoDropReturnInfo()->IntrinsicInfo
 {
     resetLifecycleHooks()
 
-    with var result: retval
+    with var result: #returntype
     {
         .first     = 0
         .second    = 0
@@ -865,8 +865,6 @@ func intrinsicAutoDropReturnInfo()->IntrinsicInfo
         .postMove  = 0
     }
 
-    defer result.dropTrace = DropTrace
-    defer result.drops = DropCount
 
     scope
     {
@@ -902,7 +900,7 @@ func intrinsicAutoDropErrorInfo()->IntrinsicInfo
 {
     resetLifecycleHooks()
 
-    with var result: retval
+    with var result: #returntype
     {
         .first     = 0
         .second    = 0
@@ -929,7 +927,7 @@ func intrinsicAutoDropDeferInfo()->IntrinsicInfo
 {
     resetLifecycleHooks()
 
-    with var result: retval
+    with var result: #returntype
     {
         .first     = 0
         .second    = 0
@@ -1017,7 +1015,7 @@ func intrinsicAutoDropSwitchReturnInfo()->IntrinsicInfo
 {
     resetLifecycleHooks()
 
-    with var result: retval
+    with var result: #returntype
     {
         .first     = 0
         .second    = 0
@@ -1028,8 +1026,6 @@ func intrinsicAutoDropSwitchReturnInfo()->IntrinsicInfo
         .postMove  = 0
     }
 
-    defer result.dropTrace = DropTrace
-    defer result.drops = DropCount
 
     scope
     {
@@ -1124,7 +1120,7 @@ func intrinsicAutoDropSwitchFallthroughInfo()->IntrinsicInfo
 {
     resetLifecycleHooks()
 
-    with var result: retval
+    with var result: #returntype
     {
         .first     = 0
         .second    = 0
@@ -1135,8 +1131,6 @@ func intrinsicAutoDropSwitchFallthroughInfo()->IntrinsicInfo
         .postMove  = 0
     }
 
-    defer result.dropTrace = DropCompactTrace
-    defer result.drops = DropCount
 
     scope
     {
@@ -1172,7 +1166,7 @@ func intrinsicAutoDropIfVarReturnInfo()->IntrinsicInfo
 {
     resetLifecycleHooks()
 
-    with var result: retval
+    with var result: #returntype
     {
         .first     = 0
         .second    = 0
@@ -1183,8 +1177,6 @@ func intrinsicAutoDropIfVarReturnInfo()->IntrinsicInfo
         .postMove  = 0
     }
 
-    defer result.dropTrace = DropCompactTrace
-    defer result.drops = DropCount
 
     scope
     {
@@ -1234,7 +1226,7 @@ func intrinsicAutoDropWithVarReturnInfo()->IntrinsicInfo
 {
     resetLifecycleHooks()
 
-    with var result: retval
+    with var result: #returntype
     {
         .first     = 0
         .second    = 0
@@ -1245,8 +1237,6 @@ func intrinsicAutoDropWithVarReturnInfo()->IntrinsicInfo
         .postMove  = 0
     }
 
-    defer result.dropTrace = DropCompactTrace
-    defer result.drops = DropCount
 
     with var pair = AutoCompactPair{CompactDropTracked{7}, CompactDropTracked{8}}
     {
@@ -1756,8 +1746,8 @@ func intrinsicReceiverLifecycleInfo()->IntrinsicInfo
     Swag.assert(v.first == 1)
     Swag.assert(v.second == 8)
     Swag.assert(v.third == 7)
-    Swag.assert(v.drops == 8)
-    Swag.assert(v.dropTrace == 805040706030201)
+    Swag.assert(DropCount == 8)
+    Swag.assert(DropTrace == 805040706030201)
 }
 
 #test
@@ -1805,8 +1795,8 @@ func intrinsicReceiverLifecycleInfo()->IntrinsicInfo
     Swag.assert(v.first == 2)
     Swag.assert(v.second == 6)
     Swag.assert(v.third == 7)
-    Swag.assert(v.drops == 5)
-    Swag.assert(v.dropTrace == 807060201)
+    Swag.assert(DropCount == 5)
+    Swag.assert(DropTrace == 807060201)
 }
 
 #test
@@ -1835,8 +1825,8 @@ func intrinsicReceiverLifecycleInfo()->IntrinsicInfo
     Swag.assert(v.first == 1)
     Swag.assert(v.second == 3)
     Swag.assert(v.third == 7)
-    Swag.assert(v.drops == 7)
-    Swag.assert(v.dropTrace == 2154376)
+    Swag.assert(DropCount == 7)
+    Swag.assert(DropCompactTrace == 2154376)
 }
 
 #test
@@ -1845,8 +1835,8 @@ func intrinsicReceiverLifecycleInfo()->IntrinsicInfo
     Swag.assert(v.first == 2)
     Swag.assert(v.second == 3)
     Swag.assert(v.third == 6)
-    Swag.assert(v.drops == 6)
-    Swag.assert(v.dropTrace == 654321)
+    Swag.assert(DropCount == 6)
+    Swag.assert(DropCompactTrace == 654321)
 }
 
 #test
@@ -1865,8 +1855,8 @@ func intrinsicReceiverLifecycleInfo()->IntrinsicInfo
     Swag.assert(v.first == 7)
     Swag.assert(v.second == 4)
     Swag.assert(v.third == 8)
-    Swag.assert(v.drops == 5)
-    Swag.assert(v.dropTrace == 65487)
+    Swag.assert(DropCount == 5)
+    Swag.assert(DropCompactTrace == 65487)
 }
 
 #test

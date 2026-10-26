@@ -9,7 +9,7 @@ using Core
 // the supplied UTF-8 source and can be passed to [[Gui.Markdown.View.revealHeading]].
 func parseHeadings(source: string)->Array'DocumentHeading
 {
-    var result: retval
+    var result: #returntype
     let blocks = parseBlocks(source, headingsOnly: true)
     var inline: InlineView
     for &block in blocks where block.kind >= .Heading1 and block.kind <= .Heading6

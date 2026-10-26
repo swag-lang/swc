@@ -229,7 +229,7 @@ impl Application
 
     internal mtd addIconToImageList(name: string, hIcon: HICON, small: bool)->Icon
     {
-        var result: retval
+        var result: #returntype
 
         var index:      s32
         var curImg:     *Image
@@ -316,7 +316,7 @@ impl Application
 
     internal mtd fileOrDirectoryIcon(name: string, isDirectory: bool, small = true)->Icon
     {
-        var result: retval
+        var result: #returntype
         if not name.count do
             return result
 

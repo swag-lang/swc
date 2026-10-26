@@ -332,7 +332,7 @@ impl HtmlComputedStyle
     // Builds the style the root inherits from, which is what the host theme decides.
     func fromDefaults(defaults: HtmlStyleDefaults)->HtmlComputedStyle
     {
-        var result: retval
+        var result: #returntype
         result.color    = defaults.text
         result.fontSize = defaults.fontSize
         result.display  = .Block
@@ -342,7 +342,7 @@ impl HtmlComputedStyle
     // Copies the properties a child receives without asking for them.
     func inherited(parent: HtmlComputedStyle)->HtmlComputedStyle
     {
-        with var result: retval
+        with var result: #returntype
         {
             .color                   = parent.color
             .fontSize                = parent.fontSize
@@ -714,7 +714,7 @@ impl HtmlComputedStyle
 
     private func borderStyle(value: string)->{ style: HtmlBorderStyle, matched: bool }
     {
-        var result: retval
+        var result: #returntype
         result.matched = true
         switch value
         {
@@ -800,7 +800,7 @@ impl HtmlComputedStyle
 
     private func justify(value: string)->{ value: HtmlJustify, matched: bool }
     {
-        var result: retval
+        var result: #returntype
         result.matched = true
         switch value
         {
@@ -818,7 +818,7 @@ impl HtmlComputedStyle
 
     private func align(value: string)->{ value: HtmlAlign, matched: bool }
     {
-        var result: retval
+        var result: #returntype
         result.matched = true
         switch value
         {
@@ -836,7 +836,7 @@ impl HtmlComputedStyle
     // Reads a font stack and keeps the first family the host can honour.
     private func resolveFontFamily(value: string)->{ kind: HtmlFontFamilyKind, matched: bool }
     {
-        var result: retval
+        var result: #returntype
         let families = htmlSplitValue(value, ','u8)
         for family in families
         {

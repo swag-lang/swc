@@ -224,7 +224,7 @@ impl HtmlLength
 // Splits a declaration value into its top-level components, keeping a function call whole.
 func htmlSplitValue(value: string, separator: u8 = ' ')->Array'String
 {
-    var result: retval
+    var result: #returntype
     var depth = 0'u32
     var start = 0'u64
     var index = 0'u64
@@ -279,7 +279,7 @@ func htmlSplitValue(value: string, separator: u8 = ' ')->Array'String
 // Returns the argument list of `name(...)`, or an empty array when the text is another value.
 func htmlFunctionArguments(value: string, name: string)->{ arguments: Array'String, matched: bool }
 {
-    var result: retval
+    var result: #returntype
     if value.count <= name.count + 1 do
         return result
     if Utf8.compare(value[0 until name.count], name, .Latin1NoCase) != 0 do
@@ -299,7 +299,7 @@ func htmlFunctionArguments(value: string, name: string)->{ arguments: Array'Stri
 // accepts exponents would take `2e` for the start of one and answer something else.
 func htmlParseNumber(text: string)->{ value: f32, eat: u64 }
 {
-    var result: retval
+    var result: #returntype
     var index  = 0'u64
     var digits = 0'u64
 
@@ -336,7 +336,7 @@ func htmlParseNumber(text: string)->{ value: f32, eat: u64 }
 // Converts an absolute CSS unit to pixels, given the font sizes it may refer to.
 private func htmlAbsoluteUnit(value: f32, unit: string, context: HtmlLengthContext)->{ pixels: f32, matched: bool }
 {
-    var result: retval
+    var result: #returntype
     result.matched = true
     switch unit
     {
@@ -361,7 +361,7 @@ private func htmlAbsoluteUnit(value: f32, unit: string, context: HtmlLengthConte
 // the same reading.
 private func htmlParseCalcTerm(text: string, context: HtmlLengthContext)->{ node: HtmlCalcNode, matched: bool }
 {
-    var result: retval
+    var result: #returntype
     let trimmed = Latin1.trim(text)
     let number  = htmlParseNumber(trimmed)
     if not number.eat do
@@ -582,7 +582,7 @@ private func htmlFoldCalcArguments(pool: *HtmlValuePool, arguments: const [..] S
 // Parses a length, a percentage, a keyword size, or a math expression.
 func htmlParseLength(pool: *HtmlValuePool, text: string, context: HtmlLengthContext)->{ length: HtmlLength, matched: bool }
 {
-    var result: retval
+    var result: #returntype
     let trimmed = Latin1.trim(text)
     if not trimmed.count do
         return result

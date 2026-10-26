@@ -83,7 +83,7 @@ impl Program
     // capture slots, since nothing reads captures from it.
     func compile(ast: const *Ast, reverse: bool, rootNode = NoNode)->Program fail
     {
-        var result: retval
+        var result: #returntype
 
         let entry = rootNode == NoNode ? ast.root : rootNode
 
@@ -376,7 +376,7 @@ impl Program
     {
         const LongestUsefulLiteral = 64'u64
 
-        var result: retval
+        var result: #returntype
         var pc        = .start
         var sawAssert = false
 

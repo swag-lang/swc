@@ -202,7 +202,7 @@ private func launchApplication(context: *Context, options: *Options)->s32 fail
 // whole workspace. Explicit run arguments win.
 private func prismCompilerArguments(context: *Context, options: *Options, name: string)->Array'String
 {
-    var result: retval
+    var result: #returntype
     if name.count and name != "swagprism" do
         return result
     if not options.hasRunArgument("--compiler") do
@@ -356,7 +356,7 @@ public func runScripts(context: *Context, options: *Options)->s32 fail
 
 private func scriptFiles(scriptsDir: string)->Array'String
 {
-    var result: retval
+    var result: #returntype
 
     let entries = catch Directory.enumerateFiles(scriptsDir, ".swgs") { return result }
 

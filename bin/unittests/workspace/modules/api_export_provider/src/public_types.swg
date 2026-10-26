@@ -204,7 +204,7 @@ namespace DepSharedRng
         #[Inline]
         func(TA) makeScratch()->Rng'TA
         {
-            var result: retval
+            var result: #returntype
             return result
         }
 

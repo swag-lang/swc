@@ -43,7 +43,7 @@ impl MainWnd
 {
     mtd getPixSels()->Array'IForm
     {
-        var result: retval
+        var result: #returntype
         let capture = unwrap .getCapture()
         foreachSelected'BaseForm(capture, capture.selection)
         {

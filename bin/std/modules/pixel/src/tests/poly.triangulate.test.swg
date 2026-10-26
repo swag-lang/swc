@@ -75,7 +75,7 @@ func triCount(pts: [..] Vector2)->u64
 // Regular convex N-gon centered at (cx,cy).
 func makeNgon(cx, cy, radius: f32, count: s32)->Array'Math.Vector2
 {
-    var result: retval
+    var result: #returntype
     for i in count
     {
         let a = cast(f32, i) * (Math.ConstF32.TwoPi / cast(f32, count))
@@ -206,7 +206,7 @@ func assertRecycledMatchesFresh(reused: *Pixel.Poly2Tri.Tessellate, pts: [..] Ve
 
     func ringAt(cx, cy, radius: f32, count: s32)->Pixel.Polygon
     {
-        var result: retval
+        var result: #returntype
         for i in count
         {
             let a = cast(f32, i) * (Math.ConstF32.TwoPi / cast(f32, count))

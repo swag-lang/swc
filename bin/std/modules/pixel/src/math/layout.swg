@@ -420,7 +420,7 @@ private func mathDelimiterPathKind(text: string)->{ kind: MathPathKind, found: b
 
 private func mathMeasureDelimiter(text: string, font: *Font, minScale, targetHeight, em: f32)->MathDelimiterMeasure
 {
-    var result: retval
+    var result: #returntype
     if text == "." do
         return result
 

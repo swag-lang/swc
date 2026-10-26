@@ -632,7 +632,7 @@ impl Surface
     // Surface positions are physical screen coordinates. Tool windows use screen coordinates.
     private mtd nativePlacement(pos: Math.Rectangle, showCmd: UINT)->WINDOWPLACEMENT
     {
-        var result: retval
+        var result: #returntype
         result.length = #sizeof(result)
         discard GetWindowPlacement(.hWnd, &result)
         result.flags   = 0

@@ -33,7 +33,7 @@ impl Image
     // Returns a copy with the requested alpha association.
     public mtd const convertedAlphaTo(newMode: AlphaMode)->Image
     {
-        var result: retval = me
+        var result: #returntype = me
         result.convertAlphaTo(newMode)
         return result
     }

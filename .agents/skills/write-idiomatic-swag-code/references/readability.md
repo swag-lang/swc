@@ -96,7 +96,7 @@ struct Selection
 
 func selectRange(first, last: u64)->Selection
 {
-    var result: retval
+    var result: #returntype
     result.offset = first < last ? first : last
 
     result.count = first < last ? last - first : first - last
@@ -111,7 +111,7 @@ Keep the same type and construct one visible unit:
 ```swag
 func selectRange(first, last: u64)->Selection
 {
-    with var result: retval
+    with var result: #returntype
     {
         .offset = first < last ? first : last
         .count = first < last ? last - first : first - last

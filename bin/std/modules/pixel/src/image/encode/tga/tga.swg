@@ -52,7 +52,7 @@ func sameTgaPixel(left, right: const [*] u8, bytesPerPixel: u64)->bool
 
 func tgaRunLength(src: const [*] u8, index, pixelCount, bytesPerPixel: u64)->u64
 {
-    var result: retval = 1
+    var result: #returntype = 1
     let first = src + index * bytesPerPixel
     let limit = Math.min(128'u64, pixelCount - index)
     if limit == 1 or not sameTgaPixel(first, first + bytesPerPixel, bytesPerPixel) do

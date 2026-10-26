@@ -32,7 +32,7 @@ impl SelfBuf
 #[Swag.NoInline]
 func makeSelfBuf(a, b: u8, count: u32)->SelfBuf
 {
-    var result: retval
+    var result: #returntype
     result.storage = [a, b, 0, 0]
     result.buffer  = cast([*] u8, &result.storage[0])
     result.count   = count

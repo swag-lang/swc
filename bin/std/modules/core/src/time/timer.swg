@@ -49,7 +49,7 @@ impl Timer
     // A periodic timer subsequently fires at the same interval.
     func create(delay: Duration, callback: func(*Timer), periodic = false)->Timer fail
     {
-        var result: retval
+        var result: #returntype
         try result.initialize(delay, callback, periodic)
         return result
     }

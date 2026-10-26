@@ -105,7 +105,7 @@ impl Writer
     // afterwards does not change it. Use it to build the format list of a save dialog.
     func encodableFormats()->Array'StreamFormat
     {
-        var result: retval
+        var result: #returntype
         result.reserve(encoders.count)
         for encoder in encoders do
             result.add(encoder.format)
@@ -147,7 +147,7 @@ impl Writer
     // ```
     func create(fileName: string, width, height: s32, frameRate: FrameRate, options: any? = null)->Writer fail
     {
-        var result: retval
+        var result: #returntype
         try result.validate(fileName, width, height, frameRate)
         result.sink = try ByteSink.createFile(fileName)
         try result.start(fileName, options)
@@ -161,7 +161,7 @@ impl Writer
     // is for a stream a caller already knows is bounded.
     func createMemory(fileName: string, buffer: *ConcatBuffer, width, height: s32, frameRate: FrameRate, options: any? = null)->Writer fail
     {
-        var result: retval
+        var result: #returntype
         try result.validate(fileName, width, height, frameRate)
         result.sink = ByteSink.createMemory(buffer)
         try result.start(fileName, options)

@@ -83,7 +83,7 @@ struct SoftMaskGroup
 // page: a graphics state may legitimately turn masking off.
 internal func readSoftMask(parser: *PdfParser, entry: u32, ctm: Transform2)->SoftMaskRef
 {
-    var result: retval
+    var result: #returntype
     let maskId = parser.dict(entry, "SMask")
     if maskId == InvalidNode or parser.nodes[maskId].kind != .Dictionary do
         return result
@@ -136,7 +136,7 @@ internal func readSoftMask(parser: *PdfParser, entry: u32, ctm: Transform2)->Sof
 // back as coverage.
 internal func softMaskCoverage(group: *SoftMaskGroup, region: Math.Rectangle)->Image fail
 {
-    var result: retval
+    var result: #returntype
     if region.width <= 0 or
        region.height <= 0 or
        not Math.isFinite(region.width) or

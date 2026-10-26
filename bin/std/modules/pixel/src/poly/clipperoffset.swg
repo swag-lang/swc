@@ -186,7 +186,7 @@ impl Offset
     // The normal points to the left of the line direction (a 90-degree counter-clockwise rotation).
     func getUnitNormal(pt1, pt2: IntPoint)->DoublePoint
     {
-        var result: retval
+        var result: #returntype
         if pt2.x == pt1.x and pt2.y == pt1.y do
             return result
 

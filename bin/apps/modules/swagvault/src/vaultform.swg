@@ -10,7 +10,7 @@ impl VaultForm
     {
         let gap = wnd.themeMetrics().dialog_BtnPadding
 
-        with var result: retval
+        with var result: #returntype
         {
             .labelHeight  = 18
             .labelSpacing = gap * 0.75

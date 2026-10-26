@@ -11,7 +11,7 @@ impl Image
     // bitmaps are accepted; other bit depths raise `UnsupportedFormatError`.
     internal func fromBitmapHandle(hbitmap: HBITMAP)->Image fail
     {
-        var result: retval
+        var result: #returntype
 
         var bitmap: BITMAP
         discard Gdi32Priv.GetObjectA(cast(HANDLE, hbitmap), #sizeof(BITMAP), &bitmap)
@@ -74,7 +74,7 @@ impl Image
     // Creates an image from a Windows icon handle.
     func from(hicon: HICON)->Image fail
     {
-        var result: retval
+        var result: #returntype
         var ii:     ICONINFO
 
         try GetIconInfo(hicon, &ii)

@@ -33,7 +33,7 @@ impl Timestamp
     func fromDateTime(dateTime: DateTime)->Timestamp
     {
         Swag.assert(dateTime.isValid())
-        var result: retval
+        var result: #returntype
         result.ticks = dateToTicks(dateTime.year, dateTime.month, dateTime.day)
         result.ticks += timeToTicks(dateTime.hour, dateTime.minute, dateTime.second, dateTime.millisecond)
         return result
@@ -42,7 +42,7 @@ impl Timestamp
     // Converts the timestamp to calendar components.
     mtd const toDateTime()->DateTime
     {
-        var dateTime: retval
+        var dateTime: #returntype
         {year: dateTime.year, month: dateTime.month, day: dateTime.day} = ticksToDate(.ticks)
         {hour: dateTime.hour, minute: dateTime.minute, second: dateTime.second, millisecond: dateTime.millisecond} = ticksToTime(.ticks)
         return dateTime

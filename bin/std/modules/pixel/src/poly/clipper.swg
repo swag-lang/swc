@@ -3358,7 +3358,7 @@ impl Transform
 
     mtd getBounds()->IntRect
     {
-        var result: retval
+        var result: #returntype
 
         var lm = 0'u64
         if lm == .minimaList.count do

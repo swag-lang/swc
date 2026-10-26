@@ -148,7 +148,7 @@ func glyphClass(table: const [..] u8, offset: u64, glyph: u16)->u16
 // indices arrive many times over; the result holds each of them once.
 func collectKernLookups(table: const [..] u8, featureListOffset: u64)->Array'u16 fail
 {
-    var result: retval
+    var result: #returntype
 
     let featureCount = peekU16(table, featureListOffset)
     for index in featureCount

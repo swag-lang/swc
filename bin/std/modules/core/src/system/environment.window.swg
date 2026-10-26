@@ -190,7 +190,7 @@ impl Window
 // of the monitor where the platform creates it.
 func createWindow(options: WindowOptions)->Window fail
 {
-    var result: retval
+    var result: #returntype
     defer #fail catch result.close()
     try createWindowNative(&result, options)
     try result.setClientSize(options.width, options.height)

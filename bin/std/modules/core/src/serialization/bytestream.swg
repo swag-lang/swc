@@ -20,7 +20,7 @@ public impl ByteStream
     // Creates a stream that reads the borrowed bytes of `readBuffer`.
     func openRead(readBuffer: const [..] u8)->ByteStream
     {
-        var result: retval
+        var result: #returntype
         result.readBuffer = readBuffer
         return result
     }
@@ -28,7 +28,7 @@ public impl ByteStream
     // Creates a stream that writes into the borrowed array `writeBuffer`, growing it as needed.
     func openWrite(writeBuffer: *Array'u8)->ByteStream
     {
-        var result: retval
+        var result: #returntype
         result.writeBuffer = writeBuffer
         return result
     }
@@ -187,7 +187,7 @@ public impl ByteStream
     // bytes, so a corrupted or hostile input cannot request a huge allocation.
     mtd readSizedString(maxLength: u64 = Swag.U32.Max)->String fail
     {
-        var result: retval
+        var result: #returntype
         let count = cast(u64, (try .readLittleEndian'u32()))
         if count > maxLength do
             fail OverflowError{"sized string is too long"}

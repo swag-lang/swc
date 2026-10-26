@@ -47,7 +47,7 @@ struct DeferDropInfo
 func deferBreakToScopeAndDrop()->DeferDropInfo
 {
     DropCount = 0
-    with var result: retval
+    with var result: #returntype
     {
         .count = 0
         .drops = 0
@@ -87,7 +87,7 @@ func consumePointerForDefer(_: *u8) {}
 func deferParameterDropInfo()->DeferDropInfo
 {
     DropCount = 0
-    with var result: retval
+    with var result: #returntype
     {
         .count = 0
         .drops = 0
@@ -107,7 +107,7 @@ func deferParameterDropInfo()->DeferDropInfo
 func deferEmbeddedParameterDropInfo()->DeferDropInfo
 {
     DropCount = 0
-    with var result: retval
+    with var result: #returntype
     {
         .count = 0
         .drops = 0
@@ -124,26 +124,33 @@ func deferEmbeddedParameterDropInfo()->DeferDropInfo
     return result
 }
 
-func deferReturnDropInfo()->DeferDropInfo
+func deferReturnDropInfoBody()->DeferDropInfo
 {
     DropCount = 0
-    with var result: retval
+    with var result: #returntype
     {
         .count = 42
         .drops = 0
     }
 
-    defer result.drops = DropCount
     var x: DeferDropTracker
     x.value = 1
     return result
 }
 
+// Defers and drops run when the body returns: read their counters afterwards.
+func deferReturnDropInfo()->DeferDropInfo
+{
+    var result = deferReturnDropInfoBody()
+    result.drops = DropCount
+    return result
+}
+
 #test
 {
-    func deferBlockBodyTrace()->DeferReturnInfo
+    func deferBlockBodyTraceBody()->DeferReturnInfo
     {
-        with var result: retval
+        with var result: #returntype
         {
             .value = 666
             .trace = 0
@@ -151,9 +158,18 @@ func deferReturnDropInfo()->DeferDropInfo
 
         defer
         {
-            result.trace = 6
+            DeferTrace = 6
         }
 
+        return result
+    }
+
+    // The defer runs when the body returns: read what it wrote afterwards.
+    func deferBlockBodyTrace()->DeferReturnInfo
+    {
+        resetDeferTrace()
+        var result = deferBlockBodyTraceBody()
+        result.trace = DeferTrace
         return result
     }
 
@@ -189,18 +205,25 @@ func deferReturnDropInfo()->DeferDropInfo
 
 #test
 {
-    func deferFunctionReturnTrace()->DeferReturnInfo
+    func deferFunctionReturnTraceBody()->DeferReturnInfo
     {
         resetDeferTrace()
-        with var result: retval
+        with var result: #returntype
         {
             .value = 42
             .trace = -1
         }
 
-        defer result.trace = DeferTrace
         defer appendDeferTrace(9)
         appendDeferTrace(1)
+        return result
+    }
+
+    // Defers and drops run when the body returns: read their counters afterwards.
+    func deferFunctionReturnTrace()->DeferReturnInfo
+    {
+        var result = deferFunctionReturnTraceBody()
+        result.trace = DeferTrace
         return result
     }
 
@@ -282,16 +305,15 @@ func deferReturnDropInfo()->DeferDropInfo
 
 #test
 {
-    func deferWhileReturnTrace()->DeferReturnInfo
+    func deferWhileReturnTraceBody()->DeferReturnInfo
     {
         resetDeferTrace()
-        with var result: retval
+        with var result: #returntype
         {
             .value = -1
             .trace = -1
         }
 
-        defer result.trace = DeferTrace
         var i: s32 = 0
 
         while i < 4
@@ -307,6 +329,14 @@ func deferReturnDropInfo()->DeferDropInfo
             }
         }
 
+        return result
+    }
+
+    // Defers and drops run when the body returns: read their counters afterwards.
+    func deferWhileReturnTrace()->DeferReturnInfo
+    {
+        var result = deferWhileReturnTraceBody()
+        result.trace = DeferTrace
         return result
     }
 
@@ -525,19 +555,26 @@ func deferReturnDropInfo()->DeferDropInfo
 {
     struct ErrConditional {}
 
-    func deferConditionalReturnTrace()->DeferReturnInfo fail
+    func deferConditionalReturnTraceBody()->DeferReturnInfo fail
     {
         resetDeferTrace()
-        with var result: retval
+        with var result: #returntype
         {
             .value = 7
             .trace = -1
         }
 
-        defer result.trace = DeferTrace
         defer #fail appendDeferTrace(1)
         defer #nofail appendDeferTrace(2)
         appendDeferTrace(3)
+        return result
+    }
+
+    // Defers and drops run when the body returns: read their counters afterwards.
+    func deferConditionalReturnTrace()->DeferReturnInfo fail
+    {
+        var result = try deferConditionalReturnTraceBody()
+        result.trace = DeferTrace
         return result
     }
 

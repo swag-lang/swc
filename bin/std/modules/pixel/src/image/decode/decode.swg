@@ -139,7 +139,7 @@ public impl Image
     // afterwards does not change it. Use it to build the format list of an open dialog.
     func decodableFormats()->Array'ImageFormat
     {
-        var result: retval
+        var result: #returntype
         result.reserve(decoders.count)
         for &decoder in decoders do
             result.add(decoder.format)

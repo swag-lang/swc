@@ -205,7 +205,7 @@ func findClass(document: const *HtmlDocument, name: string)->u32
 // Returns the position of the first laid-out text item matching `text` inside a box.
 func findItemPos(view: *HtmlView, box: u32, text: string)->{ x: f32, y: f32, found: bool }
 {
-    var result: retval
+    var result: #returntype
     for item in view.layout.constBox(box).items
     {
         if item.kind != .Text or view.layout.inlineText(item) != text do
@@ -266,7 +266,7 @@ func findVisibleLink(view: *HtmlView, url: string)->HtmlLinkHit
 {
     let viewport = view.scroll.paddedClientRect()
     let painter  = view.painter()
-    var result: retval
+    var result: #returntype
     var y        = 2.0'f32
     while y < viewport.height
     {

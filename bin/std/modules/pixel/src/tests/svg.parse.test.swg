@@ -219,7 +219,7 @@ private const ManyStopSvg = """\
 // Returns the colors a source paints at five points across a wide band.
 private func gradientBand(source: string)->[5] Color
 {
-    var result: retval
+    var result: #returntype
     let drawing = expect Svg.Drawing.parse(source)
     let image   = drawing.rasterize(40, 8, 1)
     let columns = [2, 12, 20, 28, 37]

@@ -169,7 +169,7 @@ private impl AnalysisResult
 // `failureReason`, never as an error.
 func analyzeRange(fileName: string, range: AnalysisRange, processed: *u64? = null)->AnalysisResult
 {
-    var result: retval
+    var result: #returntype
     result.range = range
     if not range.length do
         return result

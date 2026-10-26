@@ -80,7 +80,7 @@ func getPagePanelLayout(parent: *Wnd)->PagePanelLayout
     let bottomY      = topHeight + PanelGap
     let bottomHeight = Math.max(MinBottomPanelHeight, height - bottomY)
 
-    var result: retval
+    var result: #returntype
     result.left   = Math.Rectangle{0, 0, halfWidth, topHeight}
     result.right  = Math.Rectangle{halfWidth + PanelGap, 0, width - halfWidth - PanelGap, topHeight}
     result.bottom = Math.Rectangle{0, bottomY, width, bottomHeight}
@@ -187,7 +187,7 @@ func selectPaletteColor(palette: *PalettePicker, source: string, keepAlpha = tru
 
 func makePickerPalette()->Array'Color
 {
-    var pal: retval
+    var pal: #returntype
     pal.add(Argb.CornflowerBlue)
     pal.add(Argb.DeepSkyBlue)
     pal.add(Argb.MediumSeaGreen)

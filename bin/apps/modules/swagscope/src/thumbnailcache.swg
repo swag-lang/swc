@@ -35,7 +35,7 @@ impl ThumbnailCache
     {
         if not path.count or not File.exists(path) do
             return {}
-        var result: retval
+        var result: #returntype
         catch { result = try Image.load(path) }
         {
             // A truncated or damaged entry is a miss and must not be retried on every visit.

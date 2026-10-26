@@ -59,7 +59,7 @@ impl FormCallout
     // which is what left a gap/overshoot when the tip pointed toward a corner.
     func tailSpan(tipCoord, tailLen, edgeLo, edgeHi, minWH, cr: f32)->{ hb: f32, c: f32 }
     {
-        var result: retval
+        var result: #returntype
 
         var hb = Math.max(Math.min(18.0, minWH * 0.3), 2'f32)
         hb = Math.max(Math.min(hb, tailLen * 0.6), 2'f32)
@@ -80,7 +80,7 @@ impl FormCallout
     // corner arcs.
     mtd tailBase(tip: Math.Vector2, cornerR: f32)->{ p0: Math.Vector2, p1: Math.Vector2, edge: TailEdge }
     {
-        var result: retval
+        var result: #returntype
         let b  = .rectFormBound()
         let cx = b.horzCenter()
         let cy = b.vertCenter()

@@ -38,7 +38,7 @@ private
 // Collects one page of mapped Unicode scalars without materializing the whole character map.
 func characterPage(face: *Face, start: u32, pageSize = CharacterPageSize)->{characters: Array'rune, end: u32, hasNext: bool}
 {
-    var result: retval
+    var result: #returntype
     var code = Math.max(start, FirstCharacter)
     result.end = code
 
@@ -146,7 +146,10 @@ private impl DocumentView
         for index in source.count
         {
             let byte = source[index]
-            if byte == '\n' or byte == '\r' or byte == '\t' or (byte == ' ' and index + 1 < source.count and source[index + 1] == ' ')
+            if byte == '\n' or
+               byte == '\r' or
+               byte == '\t' or
+               (byte == ' ' and index + 1 < source.count and source[index + 1] == ' ')
             {
                 end = index
                 break
@@ -156,7 +159,7 @@ private impl DocumentView
         var copyright = Latin1.trim(source[until Math.min(end, NoticeLimit)])
         let designer  = Latin1.trim(.face.designer.toString())
 
-        var result: retval
+        var result: #returntype
         if designer.count do
             result += designer
         if copyright.count

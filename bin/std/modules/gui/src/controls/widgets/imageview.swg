@@ -110,7 +110,7 @@ private impl ImageView
         let client = .paddedClientRect()
         let scale  = .effectiveZoom()
 
-        var result: retval
+        var result: #returntype
         result.width  = size.width * scale
         result.height = size.height * scale
         result.x      = client.horzCenter() - result.width * 0.5 + .panOffset.x

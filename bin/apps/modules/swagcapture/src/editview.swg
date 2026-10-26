@@ -103,7 +103,7 @@ impl EditView
     // grabbed area in the in-place editor.
     mtd getCaptureRect()->Math.Rectangle
     {
-        var captureRect: retval
+        var captureRect: #returntype
         let rect    = .scroll.scrollableClientRect()
         let capture = unwrap .capture
         captureRect.width  = capture.width * .zoom

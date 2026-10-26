@@ -80,7 +80,7 @@ impl Library
 
     func enumerateTrash()->Array'File.FileInfo fail
     {
-        var result: retval
+        var result: #returntype
         let files = try Directory.enumerateFiles(getTrashFolder())
         for file in files where Capture.isFileName(file.fullName) do
             result.add(file)
@@ -91,7 +91,7 @@ impl Library
     // capture. Sub-folders remain explicit navigation levels in the breadcrumb.
     func enumerateSupportedFiles(folder: String)->Array'File.FileInfo fail
     {
-        var result: retval
+        var result: #returntype
         let files = try Directory.enumerateFiles(folder)
         for fi in files where Capture.isFileName(fi.fullName) or Image.canLoad(fi.fullName) do
             result.add(fi)

@@ -470,8 +470,8 @@ private impl Slider
 
     mtd offsetClientRect()->Math.Rectangle
     {
-        var result: retval = .clientRect()
-        let boxSize        = .themeMetrics().slider_BoxSize
+        var result: #returntype = .clientRect()
+        let boxSize = .themeMetrics().slider_BoxSize
 
         if .flags.has(.Vertical)
         {
@@ -489,8 +489,8 @@ private impl Slider
 
     mtd trackRect()->Math.Rectangle
     {
-        var result: retval = .offsetClientRect()
-        let trackSize      = .themeMetrics().slider_TrackSize
+        var result: #returntype = .offsetClientRect()
+        let trackSize = .themeMetrics().slider_TrackSize
 
         if .flags.has(.Vertical)
         {
@@ -508,7 +508,7 @@ private impl Slider
 
     mtd thumbRectAt(val, size: f32)->Math.Rectangle
     {
-        var result: retval = .offsetClientRect()
+        var result: #returntype = .offsetClientRect()
 
         if .flags.has(.Vertical)
         {

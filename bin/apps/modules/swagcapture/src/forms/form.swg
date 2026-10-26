@@ -233,7 +233,7 @@ impl BaseForm
     // outline, widened when hit-testing so the outline stays clickable.
     mtd applyPixSelStyle(painter: *Painter, cxt: FormPaintContext)->{ bSize: f32, dash: DashStyle }
     {
-        var result: retval
+        var result: #returntype
         if cxt.hitTest
         {
             result.bSize = 10
@@ -344,7 +344,7 @@ func scalePointsTo(points: *Array'Math.Vector2, bound: Math.Rectangle, newPosX, 
 // Bounding rectangle of the points, optionally padded (half border size)
 func boundOfPoints(points: *Array'Math.Vector2, pad: f32 = 0)->Math.Rectangle
 {
-    var result: retval
+    var result: #returntype
 
     var x0 = Swag.F32.Max
     var y0 = Swag.F32.Max

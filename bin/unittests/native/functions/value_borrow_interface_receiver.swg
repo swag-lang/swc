@@ -21,7 +21,7 @@ impl Maker
     #[Swag.NoInline]
     mtd makeImpl(value: const *Big)->Made
     {
-        var result: retval
+        var result: #returntype
         result.handle = .next + value.values[0]
         .next         += 1
         return result

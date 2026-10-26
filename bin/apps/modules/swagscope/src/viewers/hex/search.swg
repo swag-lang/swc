@@ -79,7 +79,7 @@ private func appendSearchByte(pattern: *SearchPattern, high, low: u8)
 // fall between bytes; an unpaired digit or an empty pattern is incomplete rather than invalid.
 private func parseBytePattern(source: string)->SearchParse
 {
-    var result:  retval
+    var result:  #returntype
     var high = 0'u8
     var hasHigh: bool
 
@@ -129,7 +129,7 @@ private func parseBytePattern(source: string)->SearchParse
 // Turns `source` into an exact pattern of its UTF-8 bytes; an empty text is incomplete.
 private func parseTextPattern(source: string)->SearchParse
 {
-    var result: retval
+    var result: #returntype
     if not source.count
     {
         result.state = .Incomplete
@@ -162,7 +162,7 @@ private func appendScalarPattern(pattern: *SearchPattern, raw, size: u64, bigEnd
 // order. A value outside the grouping's range is invalid; a lone sign or `0x` prefix is incomplete.
 private func parseValuePattern(source: string, grouping: Grouping, bigEndian: bool)->SearchParse
 {
-    var result: retval
+    var result: #returntype
     if not source.count or source == "+" or source == "-" or source == "0x" or source == "0X"
     {
         result.state = .Incomplete
@@ -258,7 +258,7 @@ func parseSearch(query: string, grouping: Grouping, bigEndian: bool)->SearchPars
     let trimmed = Latin1.trim(query)
     if not trimmed.count
     {
-        var result: retval
+        var result: #returntype
         result.state = .Incomplete
         return result
     }
@@ -274,7 +274,7 @@ func parseSearch(query: string, grouping: Grouping, bigEndian: bool)->SearchPars
     {
         if trimmed.count == 1 or trimmed[trimmed.count - 1] != '"'u8
         {
-            var result: retval
+            var result: #returntype
             result.state = .Incomplete
             return result
         }

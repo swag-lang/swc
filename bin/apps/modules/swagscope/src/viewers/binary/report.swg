@@ -212,7 +212,7 @@ impl Report
     // Returns the whole report as indented text, which is what a copy puts on the clipboard.
     mtd const toText()->String
     {
-        var result: retval
+        var result: #returntype
         result.reserve(.rows.count * 48)
 
         for row in .rows
@@ -275,7 +275,7 @@ func hexAndDecimalText(value: u64, digits: u64)->String => Format.toString("% (%
 // Returns the names of every set bit of `value`, and the bits no name accounted for.
 func flagsText(value: u64, names: const [..] FlagName)->String
 {
-    var result: retval
+    var result: #returntype
     var rest = value
 
     for name in names where value & name.bit

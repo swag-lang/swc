@@ -96,7 +96,7 @@ func chacha20Block(key: const [..] u8, counter: u32, nonce: const [..] u8)->[Cha
         quarterRound(&state, 3, 4, 9, 14)
     }
 
-    var result: retval
+    var result: #returntype
     for i in 16 do
         store32(&result[i * 4], add32(state[i], initial[i]))
     secureClear(initial)

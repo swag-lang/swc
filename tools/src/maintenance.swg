@@ -150,7 +150,7 @@ private func runGoldenTests(context: *Context, options: *Options)->s32 fail
 // Returns the independently runnable modules that own a canonical `goldens` directory.
 private func goldenModules(context: *Context, workspace: string)->Array'String fail
 {
-    var result: retval
+    var result: #returntype
     for module in context.workspaceModules(workspace)
     {
         let moduleDir = Path.combine(context.workspacePath(workspace).toString(), "modules", module.toString())
@@ -198,7 +198,7 @@ private func acceptGoldens(context: *Context)->s32 fail
 // Returns every text or image snapshot left by a failed golden comparison.
 private func actualSnapshots(context: *Context)->Array'String
 {
-    var result: retval
+    var result: #returntype
     for suffix in [".actual.txt", ".actual.png"]
     {
         let extension = suffix == ".actual.txt" ? ".txt" : ".png"
@@ -218,7 +218,7 @@ private func actualSnapshots(context: *Context)->Array'String
 // Returns every recorded text or image snapshot below a canonical `goldens` directory.
 private func goldenSnapshots(context: *Context)->Array'String fail
 {
-    var result: retval
+    var result: #returntype
     let directories = try Directory.enumerateDirectories(context.binDir.toString(), recurse: true)
     for directory in directories
     {

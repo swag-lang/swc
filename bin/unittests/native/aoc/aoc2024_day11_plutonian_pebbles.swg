@@ -3,7 +3,7 @@
 // Advent of Code 2024 Day 11: stones with numbers transform each "blink".
 // If 0 → becomes 1. If even digits → splits into two halves. Otherwise × 2024.
 // Part 1: count stones after 25 blinks. Part 2: after 75 blinks.
-// Exercises: retval, #run compile-time, closures, orelse,
+// Exercises: #returntype, #run compile-time, closures, orelse,
 // heap allocation, explicit cleanup, typed variadic.
 
 const SampleInput = "125 17"
@@ -18,7 +18,7 @@ const MaxPow = 20'u32
 
 func buildPow10()->[MaxPow] u64
 {
-    var result: retval
+    var result: #returntype
     result[0] = 1
     for i in 1 until MaxPow
     {
@@ -74,7 +74,7 @@ struct StoneMap
 
 func mapInit()->StoneMap
 {
-    var result: retval
+    var result: #returntype
     result.keys   = cast([*] u64?, testAlloc(cast(u64, MapCap) * #sizeof(u64)))
     result.counts = cast([*] u64?, testAlloc(cast(u64, MapCap) * #sizeof(u64)))
     result.alive  = cast([*] bool?, testAlloc(cast(u64, MapCap) * #sizeof(bool)))
@@ -235,7 +235,7 @@ func blinkOnce(src: *StoneMap, dst: *StoneMap)
 
 func mapFromValues(values: u64...)->StoneMap
 {
-    var result: retval = mapInit()
+    var result: #returntype = mapInit()
     for v in values
     {
         mapAdd(&result, v, 1)
@@ -245,7 +245,7 @@ func mapFromValues(values: u64...)->StoneMap
 
 func parseInput(text: string)->StoneMap
 {
-    var result: retval = mapInit()
+    var result: #returntype = mapInit()
     let bytes = cast(const [..] u8, text)
     var acc:    u64
     var inNum = false
@@ -293,7 +293,7 @@ func solve(text: string)->BlinkResult
 {
     var a = parseInput(text)
     var b = mapInit()
-    var result: retval
+    var result: #returntype
 
     for i in 75
     {

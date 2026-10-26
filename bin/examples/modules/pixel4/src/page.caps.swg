@@ -19,7 +19,7 @@ const CapRows = [
 
 func makeCapPath(left, right, y: f32)->LinePath
 {
-    var path: retval
+    var path: #returntype
     path.start(left, y)
     path.lineTo(right, y)
     return path

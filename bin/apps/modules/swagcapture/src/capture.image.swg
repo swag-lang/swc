@@ -24,7 +24,7 @@ impl Capture
     // are working state and are left out.
     mtd toImage(zoom: f32 = 1, onlySel = false)->Image
     {
-        var result: retval
+        var result: #returntype
 
         let rect    = Math.Rectangle{width: .width * zoom, height: .height * zoom}
         let render  = g_App.renderer

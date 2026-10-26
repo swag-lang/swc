@@ -37,7 +37,7 @@ func trace(image: const *Image, options: TraceOptions = {})->Document
 {
     Swag.assert(image != null and image.isValid())
 
-    var result: retval = Document.create(image.width, image.height)
+    var result: #returntype = Document.create(image.width, image.height)
 
     let w = image.width
     let h = image.height
@@ -49,7 +49,7 @@ func trace(image: const *Image, options: TraceOptions = {})->Document
 
     func sample(image: const *Image, bpp, rOffset, bOffset: s32, x, y: s32)->{ color: Color, alpha: u8 }
     {
-        var result: retval
+        var result: #returntype
         if x < 0 or y < 0 or x >= image.width or y >= image.height do
             return result
 
@@ -144,7 +144,7 @@ private func coverage(image: const *Image, bpp, rOffset, bOffset: s32, key: u32,
 // the contour follows the antialiased boundary with sub-pixel precision.
 private func traceClass(image: const *Image, bpp, rOffset, bOffset: s32, key: u32, options: TraceOptions)->LinePathList
 {
-    var result: retval
+    var result: #returntype
 
     let w   = image.width
     let h   = image.height

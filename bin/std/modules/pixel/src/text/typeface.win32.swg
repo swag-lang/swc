@@ -23,7 +23,7 @@ impl TypeFace
     // wrapper reports the failed query even when Windows supplies no extended error code.
     func readHfontData(hfont: HFONT)->Array'u8 fail
     {
-        var result: retval
+        var result: #returntype
 
         let hdc = GetDC(null)
         defer ReleaseDC(null, hdc)

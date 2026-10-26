@@ -259,7 +259,7 @@ private func encodeHeader(header: const *Header)->Array'u8 fail
     try encoder.writeAll(&output, header[])
     output.makeLinear()
 
-    var result: retval
+    var result: #returntype
     result.add(unwrap output.toSlice())
     return result
 }
@@ -373,7 +373,7 @@ impl Writer
         {
             if codecId.isNull()
             {
-                var result: retval
+                var result: #returntype
                 result.add(source)
                 return result
             }
@@ -651,7 +651,7 @@ impl Reader
         if not info do
             fail BadParameterError{"SCC has no chunk with this identifier"}
 
-        var result: retval
+        var result: #returntype
         result.resize(info.storedSize)
         if not (try .stream.readExactAt(info.offset, result.toSlice())) do
             fail InvalidFormatError{"SCC chunk payload is truncated"}
@@ -667,7 +667,7 @@ impl Reader
         {
             if info.codecId.isNull()
             {
-                var result: retval
+                var result: #returntype
                 result.add(source)
                 return result
             }

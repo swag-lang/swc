@@ -19,7 +19,7 @@ func orientSample()->Image
 // Returns the rows of `image`, top first, as their red values.
 func orientRows(image: const *Image)->String
 {
-    var result: retval
+    var result: #returntype
     for y in image.height
     {
         if y do

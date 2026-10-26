@@ -92,7 +92,7 @@ func isNewline(ch: u8)->bool => ch == '\n'u8 or ch == '\r'u8
 
 func parseGrid(bytes: const [..] u8)->Grid
 {
-    var result: retval
+    var result: #returntype
 
     var col: u32
     for index in bytes.count
@@ -207,14 +207,14 @@ func countCrossClean(grid: Grid)->u32
 
 func solveClean(grid: Grid)->SearchResult
 {
-    var result: retval
+    var result: #returntype
     result.xmasCount  = countXmasClean(grid)
     result.crossCount = countCrossClean(grid)
     return result
 }
 
 // ---------------------------------------------------------------------------
-// Language-features approach: impl methods, inline, retval,
+// Language-features approach: impl methods, inline, #returntype,
 // 'switch #complete', arrow expressions
 // ---------------------------------------------------------------------------
 
@@ -235,7 +235,7 @@ func countCrossWithLanguageFeatures(grid: Grid)->u32
 
 func solveWithLanguageFeatures(grid: Grid)->SearchResult
 {
-    var result: retval
+    var result: #returntype
     result.xmasCount  = countXmasWithLanguageFeatures(grid)
     result.crossCount = countCrossWithLanguageFeatures(grid)
     return result

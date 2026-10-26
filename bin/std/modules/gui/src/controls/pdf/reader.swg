@@ -57,7 +57,7 @@ impl Reader
     func open(fileName: string)->Reader fail
     {
         var file = #move try File.MappedFile.openSnapshot(fileName)
-        var result: retval
+        var result: #returntype
         result.sourceFileName = fileName
         result.region         = #move try file.mapAll()
         result.parser.bytes   = result.region.bytes()
@@ -81,7 +81,7 @@ impl Reader
     // An absent outline returns an empty array; cycles in damaged outline and name trees are ignored.
     mtd loadOutline()->Array'OutlineEntry
     {
-        var result:       retval
+        var result:       #returntype
         var names:        HashTable'(String, u32)
         var pendingNames: Array'u32
         var visitedNames: HashTable'(u32, bool)

@@ -74,7 +74,7 @@ func hasBom(bytes: const [..] u8, encoding: Encoding)->bool
 // order. Nothing else produces that pattern at that density.
 private func countZeroPositions(bytes: const [..] u8)->{ even: u64, odd: u64 }
 {
-    var result: retval
+    var result: #returntype
     const VectorSize = #sizeof(Math.Simd.U8x16)
     let zero  = Math.Simd.splat(0'u8)
     var index = 0'u64
@@ -186,7 +186,7 @@ func decode(bytes: const [..] u8, encoding: Encoding)->String
     func decodeUtf16BeUnits(bytes: const [..] u8)->Array'u16
     {
         const SwapBytes = cast(Math.Simd.U8x16, [1'u8, 0, 3, 2, 5, 4, 7, 6, 9, 8, 11, 10, 13, 12, 15, 14])
-        var result: retval
+        var result: #returntype
         result.resize(bytes.count / 2)
         let source      = bytes.buffer
         let destination = result.storage()
@@ -212,7 +212,7 @@ func decode(bytes: const [..] u8, encoding: Encoding)->String
     func decodeUtf32BeRunes(bytes: const [..] u8)->Array'rune
     {
         const SwapBytes = cast(Math.Simd.U8x16, [3'u8, 2, 1, 0, 7, 6, 5, 4, 11, 10, 9, 8, 15, 14, 13, 12])
-        var result: retval
+        var result: #returntype
         result.resize(bytes.count / 4)
         let source      = bytes.buffer
         let destination = result.storage()

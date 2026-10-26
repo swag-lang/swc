@@ -130,7 +130,7 @@ func closestPointsBetweenSegments(firstStart, firstEnd: Vector2, secondStart, se
     let det  = a * c - b * b
 
     // Handle point-like segments before solving for two segment parameters.
-    var result: retval
+    var result: #returntype
     let epsilonSquared = ConstF32.Epsilon * ConstF32.Epsilon
     if a <= epsilonSquared and c <= epsilonSquared
     {
@@ -300,7 +300,7 @@ func closestPointsBetweenSegments(firstStart, firstEnd: Vector2, secondStart, se
 // `start + factor * (end - start)` on both lines.
 private func lineIntersectionFactors(start0, end0, start1, end1: Vector2, epsilon: f32)->{ intersects: bool, firstFactor: f32, secondFactor: f32 }
 {
-    var result: retval
+    var result: #returntype
 
     let firstNumerator = (end1.x - start1.x) * (start0.y - start1.y) -
                          (end1.y - start1.y) * (start0.x - start1.x)
@@ -326,7 +326,7 @@ private func lineIntersectionFactors(start0, end0, start1, end1: Vector2, epsilo
 // their lengths as well as on the angle between them.
 func intersectLines(start0, end0, start1, end1: Vector2, epsilon: f32 = ConstF32.Epsilon)->{ intersects: bool, point: Vector2 }
 {
-    var result: retval
+    var result: #returntype
 
     let {intersects, firstFactor, secondFactor: _} = lineIntersectionFactors(start0, end0, start1, end1, epsilon)
     if not intersects do
@@ -346,7 +346,7 @@ func intersectLines(start0, end0, start1, end1: Vector2, epsilon: f32 = ConstF32
 // ends coincide is treated as a point.
 func intersectSegments(start0, end0, start1, end1: Vector2, epsilon: f32 = ConstF32.Epsilon)->{ intersects: bool, point: Vector2 }
 {
-    var result: retval
+    var result: #returntype
 
     let r  = end0 - start0
     let s  = end1 - start1

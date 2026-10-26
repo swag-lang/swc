@@ -312,7 +312,7 @@ func readInlineDefault(value: Value, extra: u64 = 1)->u64
 #[Swag.NoInline]
 func makePublished()->PublishedValue
 {
-    var result: retval
+    var result: #returntype
     result.first = 331
     publish(cast(u64, &result))
     return result
@@ -320,7 +320,7 @@ func makePublished()->PublishedValue
 #[Swag.Inline]
 func makeInlinePublished()->PublishedValue
 {
-    var result: retval
+    var result: #returntype
     result.first = 337
     publish(cast(u64, &result))
     return result

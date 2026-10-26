@@ -815,11 +815,11 @@ func intrinsicAutoDropStructArrayInfo()->IntrinsicInfo
     return IntrinsicInfo{first, last, 0, DropCount, DropTrace, PostCopyCount, PostMoveCount}
 }
 
-func intrinsicAutoDropReturnInfo()->IntrinsicInfo
+func intrinsicAutoDropReturnInfoBody()->IntrinsicInfo
 {
     resetLifecycleHooks()
 
-    with var result: retval
+    with var result: #returntype
     {
         .first     = 0
         .second    = 0
@@ -830,8 +830,6 @@ func intrinsicAutoDropReturnInfo()->IntrinsicInfo
         .postMove  = 0
     }
 
-    defer result.dropTrace = DropTrace
-    defer result.drops = DropCount
 
     scope
     {
@@ -846,6 +844,15 @@ func intrinsicAutoDropReturnInfo()->IntrinsicInfo
             return result
         }
     }
+}
+
+// Defers and drops run when the body returns: read their counters afterwards.
+func intrinsicAutoDropReturnInfo()->IntrinsicInfo
+{
+    var result = intrinsicAutoDropReturnInfoBody()
+    result.dropTrace = DropTrace
+    result.drops     = DropCount
+    return result
 }
 
 func intrinsicAutoDropErrorImpl() fail
@@ -867,7 +874,7 @@ func intrinsicAutoDropErrorInfo()->IntrinsicInfo
 {
     resetLifecycleHooks()
 
-    with var result: retval
+    with var result: #returntype
     {
         .first     = 0
         .second    = 0
@@ -894,7 +901,7 @@ func intrinsicAutoDropDeferInfo()->IntrinsicInfo
 {
     resetLifecycleHooks()
 
-    with var result: retval
+    with var result: #returntype
     {
         .first     = 0
         .second    = 0
@@ -978,11 +985,11 @@ func intrinsicAutoDropBreakScopeInfo()->IntrinsicInfo
     return IntrinsicInfo{first, second, third, DropCount, DropTrace, PostCopyCount, PostMoveCount}
 }
 
-func intrinsicAutoDropSwitchReturnInfo()->IntrinsicInfo
+func intrinsicAutoDropSwitchReturnInfoBody()->IntrinsicInfo
 {
     resetLifecycleHooks()
 
-    with var result: retval
+    with var result: #returntype
     {
         .first     = 0
         .second    = 0
@@ -993,8 +1000,6 @@ func intrinsicAutoDropSwitchReturnInfo()->IntrinsicInfo
         .postMove  = 0
     }
 
-    defer result.dropTrace = DropTrace
-    defer result.drops = DropCount
 
     scope
     {
@@ -1016,6 +1021,15 @@ func intrinsicAutoDropSwitchReturnInfo()->IntrinsicInfo
         }
     }
 
+    return result
+}
+
+// Defers and drops run when the body returns: read their counters afterwards.
+func intrinsicAutoDropSwitchReturnInfo()->IntrinsicInfo
+{
+    var result = intrinsicAutoDropSwitchReturnInfoBody()
+    result.dropTrace = DropTrace
+    result.drops     = DropCount
     return result
 }
 
@@ -1085,11 +1099,11 @@ func intrinsicAutoDropCatchLoopInfo()->IntrinsicInfo
     return IntrinsicInfo{first, second, third, DropCount, DropCompactTrace, PostCopyCount, PostMoveCount}
 }
 
-func intrinsicAutoDropSwitchFallthroughInfo()->IntrinsicInfo
+func intrinsicAutoDropSwitchFallthroughInfoBody()->IntrinsicInfo
 {
     resetLifecycleHooks()
 
-    with var result: retval
+    with var result: #returntype
     {
         .first     = 0
         .second    = 0
@@ -1100,8 +1114,6 @@ func intrinsicAutoDropSwitchFallthroughInfo()->IntrinsicInfo
         .postMove  = 0
     }
 
-    defer result.dropTrace = DropCompactTrace
-    defer result.drops = DropCount
 
     scope
     {
@@ -1133,11 +1145,20 @@ func intrinsicAutoDropSwitchFallthroughInfo()->IntrinsicInfo
     return result
 }
 
-func intrinsicAutoDropIfVarReturnInfo()->IntrinsicInfo
+// Defers and drops run when the body returns: read their counters afterwards.
+func intrinsicAutoDropSwitchFallthroughInfo()->IntrinsicInfo
+{
+    var result = intrinsicAutoDropSwitchFallthroughInfoBody()
+    result.dropTrace = DropCompactTrace
+    result.drops     = DropCount
+    return result
+}
+
+func intrinsicAutoDropIfVarReturnInfoBody()->IntrinsicInfo
 {
     resetLifecycleHooks()
 
-    with var result: retval
+    with var result: #returntype
     {
         .first     = 0
         .second    = 0
@@ -1148,8 +1169,6 @@ func intrinsicAutoDropIfVarReturnInfo()->IntrinsicInfo
         .postMove  = 0
     }
 
-    defer result.dropTrace = DropCompactTrace
-    defer result.drops = DropCount
 
     scope
     {
@@ -1166,6 +1185,15 @@ func intrinsicAutoDropIfVarReturnInfo()->IntrinsicInfo
     }
 
     result.third = -1
+    return result
+}
+
+// Defers and drops run when the body returns: read their counters afterwards.
+func intrinsicAutoDropIfVarReturnInfo()->IntrinsicInfo
+{
+    var result = intrinsicAutoDropIfVarReturnInfoBody()
+    result.dropTrace = DropCompactTrace
+    result.drops     = DropCount
     return result
 }
 
@@ -1195,11 +1223,11 @@ func intrinsicAutoDropIfVarElseInfo()->IntrinsicInfo
     return IntrinsicInfo{first, second, third, DropCount, DropCompactTrace, PostCopyCount, PostMoveCount}
 }
 
-func intrinsicAutoDropWithVarReturnInfo()->IntrinsicInfo
+func intrinsicAutoDropWithVarReturnInfoBody()->IntrinsicInfo
 {
     resetLifecycleHooks()
 
-    with var result: retval
+    with var result: #returntype
     {
         .first     = 0
         .second    = 0
@@ -1210,8 +1238,6 @@ func intrinsicAutoDropWithVarReturnInfo()->IntrinsicInfo
         .postMove  = 0
     }
 
-    defer result.dropTrace = DropCompactTrace
-    defer result.drops = DropCount
 
     with var pair = AutoCompactPair{CompactDropTracked{7}, CompactDropTracked{8}}
     {
@@ -1223,6 +1249,15 @@ func intrinsicAutoDropWithVarReturnInfo()->IntrinsicInfo
     }
 
     result.third = -1
+    return result
+}
+
+// Defers and drops run when the body returns: read their counters afterwards.
+func intrinsicAutoDropWithVarReturnInfo()->IntrinsicInfo
+{
+    var result = intrinsicAutoDropWithVarReturnInfoBody()
+    result.dropTrace = DropCompactTrace
+    result.drops     = DropCount
     return result
 }
 

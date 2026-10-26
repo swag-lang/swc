@@ -13,7 +13,7 @@ internal func currentProcessId()->u32 => GetCurrentProcessId()
 // and the runtime has not populated its argument vector that early.
 internal func findRunArgument(name: string)->{ found: bool, value: String }
 {
-    var result: retval
+    var result: #returntype
 
     // A compile-time run has no operating-system command line of its own: it executes inside
     // the compiler, which hands the program its arguments directly. Consult those first so a
@@ -97,7 +97,7 @@ internal func findRunArgument(name: string)->{ found: bool, value: String }
 // hand-written one so the answer matches what the file system will actually open.
 internal func absolutePath(path: string)->String
 {
-    var result: retval
+    var result: #returntype
 
     const MaxLength = 32768'u32
 

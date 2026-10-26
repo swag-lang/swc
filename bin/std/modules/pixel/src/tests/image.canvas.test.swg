@@ -4,7 +4,7 @@ using Swag, Core
 
 func makeSquarePath(x0, y0, x1, y1: f32)->LinePath
 {
-    var result: retval
+    var result: #returntype
     result.start(x0, y0)
     result.lineTo(x1, y0)
     result.lineTo(x1, y1)

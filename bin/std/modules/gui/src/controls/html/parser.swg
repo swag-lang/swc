@@ -431,7 +431,7 @@ impl HtmlParser
     // `end` stays `Swag.U64.Max` when the buffer cuts the tag, and the caller waits for more.
     mtd scanTag(source: string, start: u64)->HtmlTagScan
     {
-        var result: retval
+        var result: #returntype
         .pending.clear()
 
         let count = source.count

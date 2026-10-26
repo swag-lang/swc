@@ -97,7 +97,7 @@ impl Pen
     // Creates a continuous solid-color pen.
     func createSolid(color: Color, size: f32 = 1)->Pen
     {
-        var result: retval
+        var result: #returntype
         result.brush.color = color
         result.brush.type  = .SolidColor
         result.size        = size
@@ -107,7 +107,7 @@ impl Pen
     // Creates a solid-color pen with a built-in dash style.
     func createDash(style: DashStyle, color: Color, size: f32 = 1)->Pen
     {
-        var result: retval
+        var result: #returntype
         result.brush.color = color
         result.brush.type  = .SolidColor
         result.dashStyle   = style
@@ -118,7 +118,7 @@ impl Pen
     // Creates a continuous pen painted with a repeating hatch.
     func createHatch(style: HatchStyle, color: Color, size: f32 = 1)->Pen
     {
-        var result: retval
+        var result: #returntype
         result.brush = Brush.createHatch(style, color)
         result.size  = size
         return result

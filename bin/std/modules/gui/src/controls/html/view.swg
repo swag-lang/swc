@@ -37,7 +37,7 @@ private const HtmlCharsetProbeSize = 4 * 1024'u64
 // is code page 1252, and a UTF-16 label on bytes readable as ASCII means UTF-8.
 private func htmlDeclaredEncoding(probe: string)->{ encoding: Text.Encoding, matched: bool }
 {
-    var result: retval
+    var result: #returntype
     var scan = 0'u64
     while true
     {
@@ -260,7 +260,7 @@ internal impl HtmlView
     // Returns the colors a document inherits when it names none of its own.
     mtd styleDefaults()->HtmlStyleDefaults
     {
-        var result: retval
+        var result: #returntype
         let colors = .themeColors()
         result.text           = colors.label_Text
         result.faintText      = colors.label_TextFaint
@@ -398,7 +398,7 @@ internal impl HtmlView
     // snapshot on [[Gui.HtmlView.sigDocumentChanged]], including local document navigation.
     public mtd headings()->Array'DocumentHeading
     {
-        var result: retval
+        var result: #returntype
         for index in .document.nodes.count
         {
             let node = .document.constNode(cast(u32, index))
@@ -425,7 +425,7 @@ internal impl HtmlView
     // box tree. Node indices remain stable while the parser appends source.
     private mtd captureRegionScrolls()->Array'HtmlRegionScrollState
     {
-        var result: retval
+        var result: #returntype
         for box in .layout.boxes where box.node != HtmlNoNode and box.scrollTop > 0
         {
             var state: HtmlRegionScrollState
@@ -1060,7 +1060,7 @@ internal impl HtmlView
     // Returns the selection normalized to document order, with `has` false when it is empty.
     mtd const selectionRange()->{ startNode: u32, startOffset: u64, endNode: u32, endOffset: u64, has: bool }
     {
-        var result: retval
+        var result: #returntype
         if .selAnchorNode == HtmlNoNode or .selCaretNode == HtmlNoNode do
             return result
         if .selAnchorNode == .selCaretNode and .selAnchorOffset == .selCaretOffset do
@@ -1117,7 +1117,7 @@ internal impl HtmlView
     // Returns the selected text, one space per soft line break and one line per block.
     public mtd selectedText()->String
     {
-        var result: retval
+        var result: #returntype
         var painter = .painter()
         painter.collectSelection(&result)
         return result
@@ -1227,7 +1227,7 @@ internal impl HtmlView
         // The visible rectangle is in the canvas's own coordinates, which is the space the paint
         // offset puts every box into; the scroll position is kept separately because a sticky box
         // needs to know where the document really is.
-        var result: retval
+        var result: #returntype
         result.layout      = &.layout
         result.images      = &.images
         result.renderer    = .app().renderer
@@ -1649,7 +1649,7 @@ internal impl IWnd for HtmlCanvas
         var painter = owner.painter()
         painter.painter           = evt.paintContext.painter
         painter.loadingWnd        = me
-        owner.images.loadingPhase = Math.fract(owner.images.loadingPhase + .paintDeltaSeconds() *.themeMetrics().spinner_Speed)
+        owner.images.loadingPhase = Math.fract(owner.images.loadingPhase + .paintDeltaSeconds() * .themeMetrics().spinner_Speed)
         painter.paint()
     }
 

@@ -231,7 +231,7 @@ private func mathFail(message: string, seek: u64) fail
 
 private func mathOwnedSlice(source: string, start, end: u64)->String
 {
-    var result: retval
+    var result: #returntype
     if end > start do
         result = Swag.makeString(source.buffer + start, end - start)
     return result
@@ -295,7 +295,7 @@ private func mathSymbol(text: string,
                         large = false,
                         limitsMode = MathLimitsMode.Automatic)->MathSymbolSpec
 {
-    with var result: retval
+    with var result: #returntype
     {
         .text          = text
         .atomClass     = atomClass
@@ -513,7 +513,7 @@ private impl MathParser
 
     mtd readRune()->{ value: rune, start: u64 } fail
     {
-        var result: retval
+        var result: #returntype
         result.start = .pos
         if .eof() do
             try mathFail("math expression ends, but this position needs an atom", .pos)
@@ -1157,7 +1157,7 @@ impl MathExpression
     // parsing stopped.
     func parse(source: string)->MathExpression fail
     {
-        var result: retval
+        var result: #returntype
         result.source = source
 
         var parser: MathParser

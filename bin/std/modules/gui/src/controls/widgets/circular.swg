@@ -300,7 +300,7 @@ private impl Circular
 
     mtd positionAtAngle(angle: f32)->Math.Vector2
     {
-        var result: retval
+        var result: #returntype
 
         // For 0° pointing up: x = sin(angle), y = -cos(angle)
         result.x = .centerX + Math.sin(angle) * .radius
@@ -513,7 +513,7 @@ private impl Circular
 
         let angle = .valueToAngle(val)
         let pos   = .positionAtAngle(angle)
-        var result: retval
+        var result: #returntype
         result.x      = pos.x - size
         result.y      = pos.y - size
         result.width  = size * 2

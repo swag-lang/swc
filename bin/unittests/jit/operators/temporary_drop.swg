@@ -99,7 +99,7 @@ impl TemporaryVisits
 #[Swag.NoInline]
 func makeTemporaryOwner(value: s32)->TemporaryOwner
 {
-    var result: retval
+    var result: #returntype
     result.value = value
     return result
 }
@@ -107,7 +107,7 @@ func makeTemporaryOwner(value: s32)->TemporaryOwner
 #[Swag.NoInline]
 func makeTransferOwner(value: s32)->TransferOwner
 {
-    var result: retval
+    var result: #returntype
     result.value = value
     return result
 }
@@ -115,7 +115,7 @@ func makeTransferOwner(value: s32)->TransferOwner
 #[Swag.NoInline]
 func makeOwnerPair(first, second: s32)->OwnerPair
 {
-    var result: retval
+    var result: #returntype
     result.first.value  = first
     result.second.value = second
     return result
@@ -124,7 +124,7 @@ func makeOwnerPair(first, second: s32)->OwnerPair
 #[Swag.NoInline]
 func makeTransferPair(first, second: s32)->TransferPair
 {
-    var result: retval
+    var result: #returntype
     result.first.value  = first
     result.second.value = second
     return result

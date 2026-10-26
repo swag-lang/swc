@@ -481,7 +481,7 @@ impl Decoder
                 greater1[component] = .cabac.decision(CtxAbsMvdGreater1Flag) != 0
         }
 
-        var result: retval
+        var result: #returntype
         for component in 2'u32
         {
             if not greater0[component] do

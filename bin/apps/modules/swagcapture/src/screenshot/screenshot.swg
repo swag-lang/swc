@@ -34,7 +34,7 @@ var g_CaptureWindow:  CaptureWindowInfo
 
 func getGrabRect()->Math.Rectangle
 {
-    var result: retval
+    var result: #returntype
     result.x      = Math.min(g_StartGrabX, g_EndGrabX)
     result.y      = Math.min(g_StartGrabY, g_EndGrabY)
     result.width  = Math.max(g_StartGrabX, g_EndGrabX) - result.x
@@ -68,7 +68,7 @@ func performScreenCapture(main: *MainWnd)->{ img: Image, sf: *Surface? } fail
 
     g_CaptureWindow = {}
 
-    var result: retval
+    var result: #returntype
     result.img       = try getDesktopImage(main.captureOptions.captureCursor)
     g_DesktopTexture = g_App.renderer.addImage(result.img)
     defer g_App.renderer.removeTexture(&g_DesktopTexture)

@@ -49,7 +49,7 @@ impl Image
         let ch = Math.min(h, .height - cy)
         Swag.assert(cw > 0 and ch > 0)
 
-        var result: retval = create(cw, ch, .pixelFormat, alphaMode: me.alphaMode)
+        var result: #returntype = create(cw, ch, .pixelFormat, alphaMode: me.alphaMode)
         .doCrop(&result, cx, cy, cw, ch)
         return result
     }

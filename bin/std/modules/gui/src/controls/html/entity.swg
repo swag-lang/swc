@@ -21,7 +21,7 @@ struct HtmlEntity
 // thousand entries rather than one comparison per name.
 private func htmlNamedEntity(name: string)->HtmlEntity
 {
-    var result: retval
+    var result: #returntype
     let found = htmlFindNamedRef(HtmlNamedRefs, name)
     if found == Swag.U64.Max do
         return result
@@ -58,7 +58,7 @@ private func htmlFindNamedRef(table: const [..] HtmlNamedRef, name: string)->u64
 // attribute value when a name or an `=` follows: `?a=1&copy=2` is a query string, not a mark.
 private func htmlLegacyEntity(text: string, inAttribute: bool)->HtmlEntity
 {
-    var result: retval
+    var result: #returntype
     var length = Math.min(text.count, HtmlMaxRefName)
     while length >= 2
     {
@@ -129,7 +129,7 @@ private func htmlNumericReplacement(value: u64)->rune
 // by `in;`.
 func htmlDecodeEntity(source: string, start: u64, inAttribute = false)->HtmlEntity
 {
-    var result: retval
+    var result: #returntype
     if start >= source.count or source[start] != '&' do
         return result
 
@@ -193,7 +193,7 @@ func htmlDecodeEntity(source: string, start: u64, inAttribute = false)->HtmlEnti
 // Resolves the reference a document spells without its semicolon, which the standard still lists.
 private func htmlDecodeLegacyEntity(source: string, start: u64, inAttribute: bool)->HtmlEntity
 {
-    var result: retval
+    var result: #returntype
     let tail   = source[start + 1 until Math.min(start + 1 + HtmlMaxRefName, source.count)]
     let legacy = htmlLegacyEntity(tail, inAttribute)
     if not legacy.eat do
@@ -207,7 +207,7 @@ private func htmlDecodeLegacyEntity(source: string, start: u64, inAttribute: boo
 // Expands every character reference of `source` into a decoded copy.
 func htmlDecodeText(source: string)->String
 {
-    var result: retval
+    var result: #returntype
     htmlDecodeInto(&result, source)
     return result
 }

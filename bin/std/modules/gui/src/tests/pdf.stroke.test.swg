@@ -4,7 +4,7 @@ using Core, Core.Math, Pixel, Pdf
 
 private func strokedPath(y: f32)->LinePathList
 {
-    var result: retval
+    var result: #returntype
     let line = result.newPath()
     line.start(20, y)
     line.lineTo(80, y)

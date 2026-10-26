@@ -42,7 +42,7 @@ private func circlePath(cx, cy, r: f32)->String
 {
     const K = 0.5523'f32
     let k = r * K
-    var result: retval
+    var result: #returntype
     result += Format.toString("% % m ", cx + r, cy)
     result += Format.toString("% % % % % % c ", cx + r, cy + k, cx + k, cy + r, cx, cy + r)
     result += Format.toString("% % % % % % c ", cx - k, cy + r, cx - r, cy + k, cx - r, cy)

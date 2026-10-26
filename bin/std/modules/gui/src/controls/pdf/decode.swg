@@ -179,7 +179,7 @@ private func operandNode(operands: const [..] ContentOperand, index: u64)->u32
 // Returns one operand as a whole number, or reports that it is not one.
 private func operandInteger(parser: *PdfParser, operands: const [..] ContentOperand, index: u64)->{ value: s64, found: bool }
 {
-    var result: retval
+    var result: #returntype
     if index >= operands.count do
         return result
 
@@ -1460,7 +1460,7 @@ internal func pageBox(parser: *PdfParser, pageId, inheritedMediaBox, inheritedCr
        parser.nodes[media].values.count < 4 do
         fail InvalidFormatError{"PDF page has no valid MediaBox"}
 
-    var result: retval
+    var result: #returntype
     result.box = boxRectangle(parser, media)
 
     let cropId = parser.dict(pageId, "CropBox")
@@ -1511,7 +1511,7 @@ internal func decodePage(parser: *PdfParser, pageId, inheritedResources, inherit
     let mediaHeight      = resolved.box.height
     let normalizedRotate = resolved.rotate
 
-    var result: retval = normalizedRotate == 90 or normalizedRotate == 270 ? Page.create(mediaHeight, mediaWidth) : Page.create(mediaWidth, mediaHeight)
+    var result: #returntype = normalizedRotate == 90 or normalizedRotate == 270 ? Page.create(mediaHeight, mediaWidth) : Page.create(mediaWidth, mediaHeight)
 
     let ownResources = parser.dict(pageId, "Resources")
     let resources    = ownResources != InvalidNode ? ownResources : inheritedResources
@@ -1687,7 +1687,7 @@ func decodeDocument(bytes: const [..] u8)->Document fail
 {
     var parser = PdfParser{bytes: bytes}
     var sources: Array'PageSource
-    var result:  retval = Document.create()
+    var result:  #returntype = Document.create()
     try indexDocument(&parser, &result.metadata, &sources)
     for source in sources
     {

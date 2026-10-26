@@ -87,7 +87,7 @@ private struct SplitArgument
 
 private func splitArgumentsEx(args: const [..] string, options: ParseOptions)->Array'SplitArgument
 {
-    var result: retval
+    var result: #returntype
 
     for rawArgument in args
     {
@@ -124,7 +124,7 @@ private func splitArgumentsEx(args: const [..] string, options: ParseOptions)->A
 // The returned strings borrow from `args`.
 func splitArguments(args: const [..] string, options: ParseOptions)->Array'(string)
 {
-    var result: retval
+    var result: #returntype
     for it in splitArgumentsEx(args, options) do
         result.add(it.value)
     return result
@@ -174,7 +174,7 @@ func isSameName(candidate: string, name: string)->bool
 // when no field matches.
 func getField(typeStruct: const *Swag.TypeInfoStruct, name: string)->FieldResult
 {
-    var result: retval
+    var result: #returntype
 
     for &field, index in typeStruct.fields
     {
@@ -218,7 +218,7 @@ func(T) parse(st: *T, args: const [..] string, options = ParseOptions{})->Result
             fail SyntaxError{Errors.mkString(Format.toString("missing value for option [[%]]", argument))}
     }
 
-    var result: retval
+    var result: #returntype
 
     let tokens = splitArgumentsEx(args, options)
 

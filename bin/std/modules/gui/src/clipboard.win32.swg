@@ -115,7 +115,7 @@ func getTypedData(fmt: ValueFormat, type: typeinfo?)->Array'u8
     if g_Fake.enabled do
         return fakeGetTypedData(fmt, type)
 
-    var result: retval
+    var result: #returntype
 
     if not OpenClipboard(GetDesktopWindow()) do
         return result
@@ -196,7 +196,7 @@ func addImage(image: Image)
 // also answers an invalid image.
 func getImage()->Image
 {
-    var result: retval
+    var result: #returntype
 
     if g_Fake.enabled
     {
@@ -304,7 +304,7 @@ private func writeString(str: string, replace: bool)
 // UTF-16 text is read in preference to ANSI text when both are offered.
 func getString()->String
 {
-    var result: retval
+    var result: #returntype
 
     if g_Fake.enabled
     {

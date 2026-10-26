@@ -12,7 +12,7 @@ struct MemberFloatMatrixRetvalHolder
 
 func buildMemberFloatMatrix(b, t, l, r, n, f: f32)->MemberFloatMatrixRetval
 {
-    var result: retval
+    var result: #returntype
     result.m[0, 0] = 2 / (r - l)
     result.m[0, 1] = 0
     result.m[0, 2] = 0

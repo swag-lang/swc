@@ -38,7 +38,7 @@ namespace
             case AstNodeId::VariadicType:
             case AstNodeId::TypedVariadicType:
             case AstNodeId::CodeType:
-            case AstNodeId::RetValType:
+            case AstNodeId::CurrentReturnType:
             case AstNodeId::LambdaType:
             case AstNodeId::CompilerTypeExpr:
                 return true;

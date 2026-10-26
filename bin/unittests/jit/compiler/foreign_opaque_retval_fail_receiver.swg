@@ -18,7 +18,7 @@ impl BigOpaque
 
     func create(value: string)->BigOpaque fail
     {
-        var result: retval
+        var result: #returntype
         expect
         {
             try result.prepare(value)

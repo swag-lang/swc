@@ -39,7 +39,7 @@ struct Type1Font
 // Reverses the stream cipher that protects a Type 1 private section or charstring.
 func eexecDecrypt(data: const [..] u8, key: u16, skip: u64)->Array'u8
 {
-    var result: retval
+    var result: #returntype
     if data.count <= skip do
         return result
 
@@ -153,7 +153,7 @@ private func readPostScriptNumber(data: const [..] u8, from: u64)->{ value: f64,
 // program itself is their concatenation.
 private func unwrapPfb(bytes: const [..] u8)->Array'u8 fail
 {
-    var result: retval
+    var result: #returntype
     if bytes.count < 6 or bytes[0] != 0x80
     {
         result.add(bytes)
@@ -184,7 +184,7 @@ private func unwrapPfb(bytes: const [..] u8)->Array'u8 fail
 // Decodes the hexadecimal spelling a PFA file gives the private section.
 private func decodeEexecHex(data: const [..] u8)->Array'u8
 {
-    var result: retval
+    var result: #returntype
     var high = 0'u8
     var have = false
     for c in data
@@ -239,7 +239,7 @@ private func isHexPrivateSection(data: const [..] u8)->bool
 // Reads one `<length> RD <bytes>` block, whatever spelling the font gives the operator.
 private func readCharstringData(data: const [..] u8, from: u64, lenIV: u64)->{ bytes: Array'u8, next: u64 } fail
 {
-    var result: retval
+    var result: #returntype
     let length = readPostScriptNumber(data, from)
     let size   = cast(u64, length.value)
     let token  = readPostScriptToken(data, length.next)
@@ -474,7 +474,7 @@ private func parseType1Header(font: *Type1Font, clear: const [..] u8)
 // Reads a complete Type 1 font program, in its PFB, PFA, or bare form.
 func parseType1Font(bytes: const [..] u8)->Type1Font fail
 {
-    var result: retval
+    var result: #returntype
 
     let program = try unwrapPfb(bytes)
     let flat    = program.toSlice()

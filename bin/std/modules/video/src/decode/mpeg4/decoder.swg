@@ -272,7 +272,7 @@ impl Decoder
     // The state of one block of one macroblock, or the default when it is outside the picture.
     mtd const neighbour(mbX, mbY: s32, block: u64)->BlockState
     {
-        var result: retval
+        var result: #returntype
         result.dc    = DefaultNeighbourDc
         result.quant = cast(u8, .quant)
         if mbX < 0 or mbY < 0 or mbX >= cast(s32, .layer.mbWidth) or mbY >= cast(s32, .layer.mbHeight) do
@@ -842,7 +842,7 @@ impl Decoder
         for slot in 3'u64 where not valid[slot] do
             candidates[slot] = {}
 
-        var result: retval
+        var result: #returntype
         result.x = median(candidates[0].x, candidates[1].x, candidates[2].x)
         result.y = median(candidates[0].y, candidates[1].y, candidates[2].y)
         return result

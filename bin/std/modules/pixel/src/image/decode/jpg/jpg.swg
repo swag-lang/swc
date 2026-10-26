@@ -327,7 +327,7 @@ internal impl IImageDecoder for Decoder
 
     mtd impl decode(buffer: const [..] u8, options: DecodeOptions)->Image fail
     {
-        var result: retval
+        var result: #returntype
         try .init(buffer, options)
         try .start()
 

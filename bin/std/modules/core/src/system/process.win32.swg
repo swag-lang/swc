@@ -32,7 +32,7 @@ func exit(exitCode: s32) => ExitProcess(cast #bit (u32, exitCode))
 // current process, only what a child started with it inherits.
 func currentEnvironment()->ProcessEnvironment
 {
-    var result: retval
+    var result: #returntype
 
     let block = GetEnvironmentStringsW()
     if not block do
@@ -91,7 +91,7 @@ func variable(name: string)->String
 // rather than from a literal; [[Core.Env.joinArguments]] does it for a whole list.
 func quoteArgument(value: string)->String
 {
-    var result: retval
+    var result: #returntype
     appendQuoted(&result, value)
     return result
 }
@@ -102,7 +102,7 @@ func quoteArgument(value: string)->String
 // command line, so a caller never has to know the quoting rules of the platform.
 func joinArguments(arguments: const [..] string)->String
 {
-    var result: retval
+    var result: #returntype
     for argument, index in arguments
     {
         if index != 0 do
@@ -271,7 +271,7 @@ func startProcess(info: StartInfo)->Process fail
             entries.add(Format.toString("%=%", name.toString(), value.toString()))
         entries.sort(func||(a, b) => Utf8.compare(a.toSlice(), b.toSlice(), .Latin1NoCase))
 
-        var result: retval
+        var result: #returntype
         for entry in entries do
             result.add(Utf16.toZeroTerminated(entry.toString()).toSlice())
 
@@ -283,7 +283,7 @@ func startProcess(info: StartInfo)->Process fail
 
     Swag.assert(info.fileName != null, "missing process filename")
 
-    var result: retval
+    var result: #returntype
 
     // The ends this side created for the child. Each is released as soon as the child has its
     // own copy: one left open here would hold a pipe open and its reader would never see the
@@ -467,7 +467,7 @@ impl Process
     // [[Core.Env.Process.close]], so a caller reads them after waiting for the exit.
     mtd const resources()->ProcessResources
     {
-        var result: retval
+        var result: #returntype
         if not .jobHandle do
             return result
 

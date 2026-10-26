@@ -2207,7 +2207,7 @@ impl Allocator
     // different counters reflect different instants.
     mtd stats()->AllocatorStats
     {
-        var result: retval
+        var result: #returntype
 
         .segmentMutex.lock()
         defer .segmentMutex.unlock()

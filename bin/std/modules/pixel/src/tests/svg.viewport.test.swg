@@ -54,7 +54,7 @@ private func renderViewport(drawing: const *Svg.Drawing, width, height: s32, x, 
     painter.end()
     renderer.draw(&painter)
 
-    var result: retval = renderer.readRenderTarget(&target, 0, 0, width, height)
+    var result: #returntype = renderer.readRenderTarget(&target, 0, 0, width, height)
     renderer.deleteRenderTarget(&target)
     renderer.end()
     return result

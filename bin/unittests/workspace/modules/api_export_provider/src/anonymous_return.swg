@@ -20,7 +20,7 @@ func depNamedResult(value: DepResultWord)->{succeeded: bool, errorCode: DepResul
 #[Swag.NoInline]
 func depAnonymousUnionResult(value: DepResultWord)->union { bits: DepResultWord; signedBits: s32 }
 {
-    var result: retval
+    var result: #returntype
     result.bits = value
     return result
 }

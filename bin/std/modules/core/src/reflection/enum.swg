@@ -37,7 +37,7 @@ func enumValue(type: typeinfo?, name: string?)->const *TypeValue?
 #[ConstExpr]
 func enumName(type: typeinfo?, valueAddress: const *void?, fullyQualified = true)->String
 {
-    var result: retval
+    var result: #returntype
     if not isEnum(type) or not valueAddress do
         return result
     let enumTypeInfo      = unwrap type

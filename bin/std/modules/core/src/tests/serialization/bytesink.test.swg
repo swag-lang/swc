@@ -6,7 +6,7 @@ using Swag, Core.Errors
 // Returns a payload larger than the write window, filled with a pattern a misplaced write breaks.
 func sinkLargePayload()->Array'u8
 {
-    var result: retval
+    var result: #returntype
     result.resize(ByteSink.WindowSize + 321)
     for index in result.count do
         result[index] = cast(u8, ((index * 13 + 5) & 0xFF))
@@ -20,7 +20,7 @@ func sinkLargePayload()->Array'u8
 // every path a container encoder takes.
 func writeSinkStream(sink: *ByteSink)->Array'u8
 {
-    var expected: retval
+    var expected: #returntype
 
     expect sink.writeText("RIFF")
     expected.add(cast(const [..] u8, "RIFF"))

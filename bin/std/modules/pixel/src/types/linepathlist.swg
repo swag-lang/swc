@@ -167,7 +167,7 @@ impl LinePathList
     // narrower. An empty list answers an empty rectangle.
     mtd const controlBounds()->Math.Rectangle
     {
-        var result: retval
+        var result: #returntype
         for path, index in .paths
         {
             let bounds = path.controlBounds()

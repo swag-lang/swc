@@ -237,7 +237,7 @@ private func lastIndexOfAnyAscii(src: const [*] u8, length: u64, what: const [..
 // `buffer` returns `RuneError` with `eat` 0.
 func decodeLastRune(buffer: const [..] u8)->{ c: rune, eat: u32 }
 {
-    var result: retval
+    var result: #returntype
 
     let countof = buffer.count
     if not countof
@@ -297,7 +297,7 @@ func decodeLastRune(buffer: const [..] u8)->{ c: rune, eat: u32 }
 // returns `RuneError` with `eat` 0.
 func decodeRune(buffer: const [..] u8)->{ c: rune, eat: u32 }
 {
-    var result: retval
+    var result: #returntype
 
     let countof = buffer.count
     if countof == 0
@@ -555,7 +555,7 @@ func fromUnicode(dest: [..] u8, src: const [..] rune)->u64
 func fromUnicode(src: const [..] rune)->String
 {
     // Four bytes per rune in the worst case, and one more for the terminator.
-    var result: retval
+    var result: #returntype
     result.reserve(4 * src.count + 1)
     let buffer = unwrap result.buffer
     result.length         = fromUnicode(Swag.makeSlice(buffer, 4 * src.count), src)
@@ -707,7 +707,7 @@ func fromUtf16(dest: [..] u8, src: const [..] u16)->u64
 // Returns a new [[Core.String]] holding the UTF-8 conversion of the UTF-16 units of `src`.
 func fromUtf16(src: const [..] u16)->String
 {
-    var result: retval
+    var result: #returntype
     result.reserve(4 * src.count)
     result.length = fromUtf16(Swag.makeSlice(result.buffer, result.capacity), src)
     Swag.assert(result.length + 1 < result.capacity)
@@ -769,7 +769,7 @@ func countBytesAt(buffer: const [..] u8)->u32
 // `success` is false when `buffer` holds `charIndex` runes or fewer.
 func byteIndex(buffer: const [..] u8, charIndex: u64)->{ index: u64, success: bool }
 {
-    var result: retval
+    var result: #returntype
 
     var countof = buffer.count
     if not countof do
@@ -1445,7 +1445,7 @@ func isValid(buffer: const [..] u8)->bool
 // rune of another kind: `myFieldName` becomes `My Field Name`.
 func beautifyName(name: const [..] u8)->String
 {
-    var result: retval
+    var result: #returntype
 
     var wasUpper = true
     visitRunes(name)

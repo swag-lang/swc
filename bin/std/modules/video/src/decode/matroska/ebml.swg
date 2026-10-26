@@ -244,7 +244,7 @@ impl Cursor
     // Copies a binary element into owned storage.
     mtd readBytes(element: Element)->Array'u8 fail
     {
-        var result: retval
+        var result: #returntype
         let size = element.end - element.data
         result.resize(size)
         if size do

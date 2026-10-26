@@ -43,7 +43,7 @@ impl Zip
         if utf8 and Utf8.isValid(bytes) do
             return cast(string, bytes)
 
-        var result: retval
+        var result: #returntype
         for value in bytes
         {
             if value < 0x80 do
@@ -75,7 +75,7 @@ impl Zip
     // name cleans down to nothing comes back with an empty path, for the caller to skip.
     func readDirectoryEntry(data: const [..] u8, at: u64)->{entry: ZipEntry, length: u64} fail
     {
-        var result: retval
+        var result: #returntype
         if at > data.count or 46 > data.count - at do
             fail Errors.InvalidFormatError{texts().err_DirectoryTruncated}
         if try readU32(data, at) != DirectorySignature do
@@ -126,7 +126,7 @@ impl Zip
     // entry and size limits fail before any entry is decoded.
     func load(fileName: string)->Zip fail
     {
-        var result: retval
+        var result: #returntype
         var file     = try File.MappedFile.open(fileName)
         let fileSize = try file.size()
         if fileSize < 22 do
@@ -228,7 +228,7 @@ impl Zip
         if entry.compressedSize and not (try stream.readExactAt(dataOffset, packed.toSlice())) do
             fail Errors.InvalidFormatError{texts().err_PayloadTruncated}
 
-        var plain: retval
+        var plain: #returntype
         if entry.method == 0
         {
             plain = #move packed
@@ -321,7 +321,7 @@ private impl Zip
     // Control characters become U+FFFD, so a name cannot disturb the tree that shows it.
     func cleanPath(path: string)->String
     {
-        var result: retval
+        var result: #returntype
         var previousSlash = false
         for value in path
         {
@@ -409,7 +409,7 @@ private impl Zip
                            tail: const [..] u8,
                            endAt: u64)->{ offset, size, count: u64 } fail
     {
-        with var result: retval
+        with var result: #returntype
         {
             .count  = cast(u64, try readU16(tail, endAt + 10))
             .size   = cast(u64, try readU32(tail, endAt + 12))

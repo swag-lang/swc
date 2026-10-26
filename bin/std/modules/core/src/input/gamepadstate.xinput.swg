@@ -5,7 +5,7 @@ using XInput, Win32, Core.Errors
 
 private func rawButtons(buttons: u16)->RawGamepadButtons
 {
-    var result: retval
+    var result: #returntype
     if buttons & XINPUT_GAMEPAD_A do
         result |= .A
     if buttons & XINPUT_GAMEPAD_B do

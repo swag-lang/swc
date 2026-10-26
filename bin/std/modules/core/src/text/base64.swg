@@ -29,7 +29,7 @@ func encode(bytes: const [..] u8)->String
         return Simd.select(values == Simd.splat(63'u8), Simd.splat('/'u8), encoded)
     }
 
-    var result: retval
+    var result: #returntype
     let count       = bytes.count
     let resultCount = ((count + 2) / 3) * 4
     result.reserve(resultCount + 1)
@@ -90,7 +90,7 @@ func encode(bytes: const [..] u8)->String
 // the padding, or a final group of a single digit reports [[Core.Errors.InvalidFormatError]].
 func decode(text: string)->Array'u8 fail
 {
-    var result: retval
+    var result: #returntype
     result.reserve((text.count / 4 + 1) * 3 + 16)
 
     // Returns the sextet a byte spells, or 255 for a byte outside both alphabets.

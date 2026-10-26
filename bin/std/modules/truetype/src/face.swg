@@ -61,7 +61,7 @@ public struct Face
 // PostScript formats is neither an sfnt file nor self-describing beyond this signature.
 private func detectProgramSource(bytes: const [..] u8)->{ source: OutlineSource, sfnt: bool }
 {
-    var result: retval
+    var result: #returntype
     result.sfnt = true
     if bytes.count < 4 do
         return result
@@ -320,7 +320,7 @@ public impl Face
     mtd const getKerning(leftGlyph, rightGlyph: u32)->Vector
     {
         let faceData = cast(const *FaceImpl, cast(const *void, me))
-        var result: retval
+        var result: #returntype
         if not leftGlyph or not rightGlyph or leftGlyph > Swag.U16.Max or rightGlyph > Swag.U16.Max do
             return result
 

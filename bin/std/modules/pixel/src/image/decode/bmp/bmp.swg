@@ -97,7 +97,7 @@ func defaultPaletteCount(bitCount: u16)->u32
 
 func readMask(mask: u32)->Mask
 {
-    var result: retval
+    var result: #returntype
     result.value = mask
 
     var cur = mask
@@ -128,7 +128,7 @@ func maskToByte(pixel: u32, mask: Mask)->u8
 
 func makeDefaultMasks(bitCount: u16, compression: u32)->Masks
 {
-    var result: retval
+    var result: #returntype
 
     if bitCount == 16
     {
@@ -252,7 +252,7 @@ internal impl IImageDecoder for Decoder
         }
 
         // Create image
-        var result: retval
+        var result: #returntype
 
         switch bh.biBitCount
         {

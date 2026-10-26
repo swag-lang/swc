@@ -230,7 +230,7 @@ public func auditPortability(context: *Context)->s32 fail
 // Checks one source root without walking workspace caches beside it.
 private func auditPortabilityRoot(context: *Context, root: string)->u32 fail
 {
-    var errors: retval
+    var errors: #returntype
     let directory = Path.combine(context.root.toString(), root)
     let files     = try Directory.enumerateFiles(directory.toString(), ".swg", recurse: true)
     for file in files
@@ -511,7 +511,7 @@ private func updatePublicScope(line: string, state: *PortabilityParseState)
 
 private func portabilityCode(line: string, state: *PortabilityParseState)->String
 {
-    var result: retval
+    var result: #returntype
     var quoted  = false
     var escaped = false
     var index   = 0'u64

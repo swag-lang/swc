@@ -153,7 +153,7 @@ internal func isHtmlBlockStart(line: string)->bool
 
 internal func parseBlocks(source: string, headingsOnly = false, inheritedReferences: const [..] Reference? = null, frontmatter = true)->Array'Block
 {
-    var result:     retval
+    var result:     #returntype
     let lines = Tokenize.splitLines(Utf8.startsWith(source, "\uFEFF") ? source[3 to] : source)
     var index = 0'u64
     var references: Array'Reference

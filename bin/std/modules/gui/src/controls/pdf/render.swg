@@ -350,8 +350,8 @@ private func drawTextItem(painter: *Painter, fonts: *RenderFontCache, cache: *Fo
 
 private func pathPen(item: const *Item, scale: f32)->Pen
 {
-    let strokeWidth    = item.strokeWidth ? item.strokeWidth : 1 / scale
-    var result: retval = Pen.createSolid(item.strokeColor, strokeWidth)
+    let strokeWidth         = item.strokeWidth ? item.strokeWidth : 1 / scale
+    var result: #returntype = Pen.createSolid(item.strokeColor, strokeWidth)
     switch item.strokeStyle.cap
     {
     case .Butt:
@@ -753,7 +753,7 @@ internal func renderPage(page: *Page, options: RenderOptions)->Image fail
 
     renderer.begin(context)
     painter.render()
-    var result: retval = renderer.readRenderTarget(&target, 0, 0, width, height)
+    var result: #returntype = renderer.readRenderTarget(&target, 0, 0, width, height)
     for &texture in textures do
         renderer.removeTexture(texture)
     renderer.deleteRenderTarget(&target)

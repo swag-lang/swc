@@ -116,7 +116,7 @@ func decode(bytes: const [..] u8)->Array'Property fail
     if try reader.number(2, 2) != 42 do
         fail InvalidFormatError{"EXIF header has no TIFF signature"}
 
-    var result: retval
+    var result: #returntype
     let offset = try reader.number(4, 4)
     if offset < 8 do
         fail InvalidFormatError{"EXIF directory overlaps its TIFF header"}
@@ -190,7 +190,7 @@ private impl Reader
 
     mtd const textValue(offset, count: u64)->String
     {
-        var result: retval
+        var result: #returntype
         let limit = Math.min(count, 4096)
         for index in limit
         {
@@ -212,7 +212,7 @@ private impl Reader
         if kind == 7 do
             return Format.toString("% bytes", count)
 
-        var result: retval
+        var result: #returntype
         for index in Math.min(count, 64)
         {
             if index do

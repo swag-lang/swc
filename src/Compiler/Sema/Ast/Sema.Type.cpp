@@ -198,10 +198,10 @@ Result AstCodeType::semaPostNode(Sema& sema) const
     return Result::Continue;
 }
 
-Result AstRetValType::semaPostNode(Sema& sema)
+Result AstCurrentReturnType::semaPostNode(Sema& sema)
 {
     // When inside an inline expansion, the current function is the caller, not the inlined
-    // function. Use the inline payload's return type so that `retval` resolves correctly.
+    // function. Use the inline payload's return type so that `#returntype` resolves correctly.
     if (const SemaInlinePayload* inlinePayload = SemaInline::returnContextPayload(sema.frame().currentInlinePayload()))
     {
         sema.setType(sema.curNodeRef(), inlinePayload->returnTypeRef);
@@ -210,11 +210,11 @@ Result AstRetValType::semaPostNode(Sema& sema)
 
     const SymbolFunction* currentFn = sema.currentFunction();
     if (!currentFn)
-        return SemaError::raise(sema, DiagnosticId::sema_err_retval_outside_function, sema.curNodeRef());
+        return SemaError::raise(sema, DiagnosticId::sema_err_returntype_outside_function, sema.curNodeRef());
 
     const TypeRef returnTypeRef = currentFn->returnTypeRef();
     if (!returnTypeRef.isValid())
-        return SemaError::raise(sema, DiagnosticId::sema_err_retval_unknown_return_type, sema.curNodeRef());
+        return SemaError::raise(sema, DiagnosticId::sema_err_returntype_unknown_return_type, sema.curNodeRef());
 
     sema.setType(sema.curNodeRef(), returnTypeRef);
     return Result::Continue;

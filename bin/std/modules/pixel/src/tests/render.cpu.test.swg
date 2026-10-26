@@ -626,7 +626,7 @@ func renderCpu(width, height: s32, painter: *Painter)->Image
 // A circle about (50, 50) of radius 40, walked clockwise or anticlockwise in page space.
 func circlePathList(anticlockwise: bool)->LinePathList
 {
-    var result: retval
+    var result: #returntype
     with let path = result.newPath()
     {
         .start(90, 50)

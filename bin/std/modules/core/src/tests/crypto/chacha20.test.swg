@@ -5,7 +5,7 @@ using Swag
 
 func testKey()->[Crypto.ChaCha20KeySize] u8
 {
-    var result: retval
+    var result: #returntype
     for i in Crypto.ChaCha20KeySize do
         result[i] = cast(u8, i)
     return result

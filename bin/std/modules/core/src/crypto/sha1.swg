@@ -107,7 +107,7 @@ public impl Sha1
     // Call [[reset]] before reusing this value after finalization.
     mtd finalize()->Digest
     {
-        var result: retval
+        var result: #returntype
         var i = .dataLength
         if .dataLength < 56
         {

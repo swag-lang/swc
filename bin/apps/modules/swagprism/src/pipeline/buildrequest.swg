@@ -113,7 +113,7 @@ impl BuildRequest
 
         let backend = .kind == .Microcode ? "StaticLibrary" : "SharedLibrary"
 
-        var result: retval
+        var result: #returntype
         if .needsDependency() do
             result.appendFormat("#import(\"%\", location: \"swag@std\")\n", dependency)
         result.appendFormat(ModuleTemplate, .settings.presetSource(), cast(u8, .settings.optimization), .settings.configuration, backend)

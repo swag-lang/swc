@@ -68,7 +68,7 @@ public impl Image
     // afterwards does not change it. Use it to build the format list of a save dialog.
     func encodableFormats()->Array'ImageFormat
     {
-        var result: retval
+        var result: #returntype
         result.reserve(encoders.count)
         for &encoder in encoders do
             result.add(encoder.format)
@@ -109,7 +109,7 @@ public impl Image
         // Encode
         // The registry only ever holds types that implement the interface, so the table resolves.
         let itf = unwrap Swag.makeInterface(ptrEncoder, encoderType, IImageEncoder)
-        var result: retval
+        var result: #returntype
         if .alphaMode == .Premultiplied
         {
             let straight = .convertedAlphaTo(.Straight)

@@ -279,7 +279,7 @@ impl CaptureSaveQueue
         if not job.task.isDone() do
             return ""
 
-        var result: retval
+        var result: #returntype
         if job.failed do
             result = job.file
         .pending = null
@@ -413,7 +413,7 @@ impl CaptureClipboardForm
     // Creates a new form from the stored copy, set up for `capture`.
     mtd toForm(capture: *Capture)->IForm?
     {
-        var result: retval
+        var result: #returntype
 
         switch .kind
         {
@@ -483,7 +483,7 @@ impl CaptureClipboardForms
 
     mtd toForms(capture: *Capture)->Array'IForm
     {
-        var result: retval
+        var result: #returntype
         for &item in .forms
         {
             let form = item.toForm(capture)

@@ -271,7 +271,7 @@ impl Array
     // Creates a byte array holding `size` zero bytes.
     func createBuffer(size: u64)->Array'u8
     {
-        var result: retval
+        var result: #returntype
         result.resize(size)
         return result
     }
@@ -832,7 +832,7 @@ impl Array
     mtd const front()->T
     {
         Swag.assert(.count > 0, "array is empty")
-        let result: retval = .buffer![0]
+        let result: #returntype = .buffer![0]
         return result
     }
 
@@ -851,7 +851,7 @@ impl Array
     mtd const back()->T
     {
         Swag.assert(.count > 0, "array is empty")
-        let result: retval = .buffer![.count - 1]
+        let result: #returntype = .buffer![.count - 1]
         return result
     }
 
@@ -870,7 +870,7 @@ impl Array
     mtd popBack()->T
     {
         Swag.assert(.count > 0, "array is empty")
-        var result: retval
+        var result: #returntype
         result = #relocate .buffer![.count - 1]
         .count -= 1
         return result

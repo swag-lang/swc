@@ -19,7 +19,7 @@ private func flacDecodeAll(sound: const *SoundFile)->Array'u8 fail
     // The largest block a FLAC frame may carry, clause 8.
     const MaxBlockSize = 65_535'u64
 
-    var result: retval
+    var result: #returntype
     var block:  Array'u8
     block.resize(MaxBlockSize * cast(u64, sound.numChannels()) * #sizeof(s16))
     for index in sound.packetCount()

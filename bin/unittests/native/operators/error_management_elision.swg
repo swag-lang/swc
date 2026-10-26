@@ -46,7 +46,7 @@ func makeManagedResult(succeed: bool)->ManagedResult fail
     if not succeed do
         fail Swag.BaseError{"expected failure"}
 
-    var result: retval
+    var result: #returntype
     result.value = g_seed
     return result
 }
@@ -170,7 +170,7 @@ func returnInlineCatchResult()->ManagedResult
     Swag.assert(DropTrace == 31)
 }
 
-// Returns a named local rather than the 'retval' slot: the return moves it out.
+// Returns a named local, which is built in the caller's storage: nothing moves.
 #[Swag.NoInline]
 func makeManagedLocal(succeed: bool)->ManagedResult fail
 {
@@ -257,7 +257,7 @@ func expectHooks(copies, moves, drops: u32, trace: s64)
     expectHooks(0, 0, 1, 59)
 }
 
-// A callee that returns a named local moves it into the binding: the only hook is that move.
+// A callee that returns a named local builds it in the binding: no hook runs at all.
 #test
 {
     resetHooks(61)
@@ -266,7 +266,7 @@ func expectHooks(copies, moves, drops: u32, trace: s64)
         let value = catch makeManagedLocal(true)
         Swag.assert(value.value == 61)
     }
-    expectHooks(0, 1, 1, 61)
+    expectHooks(0, 0, 1, 61)
 
     resetHooks(67)
     scope

@@ -39,7 +39,7 @@ func readText(buffer: const [..] u8, offset: *u64, maxLength: u64)->String fail
 
 func parseChannels(payload: const [..] u8)->Array'Channel fail
 {
-    var result: retval
+    var result: #returntype
     var offset = 0'u64
     while offset < payload.count and payload[offset]
     {
@@ -178,7 +178,7 @@ impl Part
 {
     func parse(buffer: const [..] u8, offset: *u64, multipart: bool, options: DecodeOptions)->Part fail
     {
-        var result: retval
+        var result: #returntype
         result.compression = 255
         var xMin, yMin, xMax, yMax: s32
         var hasDataWindow = false
@@ -309,7 +309,7 @@ impl Part
 
     mtd decode(buffer: const [..] u8, index: u32, multipart: bool, options: DecodeOptions)->Image fail
     {
-        var result: retval
+        var result: #returntype
         result.init(.info.width, .info.height, .info.pixelFormat)
         if not options.decodePixels do
             return result
@@ -386,7 +386,7 @@ impl IImageSetDecoder for Decoder
         .bytes     = buffer
         .parts.clear()
         var offset = 8'u64
-        var result: retval
+        var result: #returntype
         for
         {
             try options.checkFrameCount(.parts.count + 1)

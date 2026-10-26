@@ -27,7 +27,7 @@ impl ThumbnailRenderer
         if not face do
             fail Errors.InvalidFormatError{"a system font is unavailable"}
 
-        var result: retval
+        var result: #returntype
         result.canvas = try ImageCanvas.create(ThumbnailWidth, ThumbnailHeight)
         let fonts = result.canvas.painter.renderer().fontCache()
         result.bodyFont  = fonts.createFont(face, 12, .Bitmap, false)
@@ -54,15 +54,15 @@ impl ThumbnailRenderer
                 source.replace('<', "‹")
                 source.replace('>', "›")
                 var content: RichString = #move source
-                var format: RichStringFormat
+                var format:  RichStringFormat
                 format.font.regular  = .bodyFont
                 format.palette       = [Color.fromRgb(52, 57, 62), Color.fromRgb(52, 57, 62), Color.fromRgb(52, 57, 62), Color.fromRgb(52, 57, 62)]
                 format.colorUrl      = Color.fromRgb(36, 112, 176)
                 format.colorHotUrl   = format.colorUrl
                 format.lineGap       = 3
-                format.minLineHeight  = .bodyFont.height + 3
-                format.maxLines       = ThumbnailTextLines
-                format.flags          = .WordWrap | .Clip
+                format.minLineHeight = .bodyFont.height + 3
+                format.maxLines      = ThumbnailTextLines
+                format.flags         = .WordWrap | .Clip
                 painter.drawRichString({18, 48, 220, 250}, &content, format)
             }
         }

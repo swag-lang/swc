@@ -5,7 +5,7 @@ using Core
 // lowering payload must be rebound to the clone instead of being published twice.
 private func workspaceMarkdownAnchor(line: string)->String
 {
-    var result: retval
+    var result: #returntype
     var start = 1'u64
     Utf8.visitRunes(cast(const [..] u8, line[start until line.count])) #code(value, charIndex, byteIndex)
     {

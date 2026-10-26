@@ -5,12 +5,12 @@ using Swag, Core
 // Run the existing scalar kernels directly so the reference never dispatches work.
 private func serialFilteredResize(source: const *Image, width, height: s32, mode: Image.ResizeMode)->Image
 {
-    var intermediate   = Image.create(width, source.height, source.pixelFormat, alphaMode: source.alphaMode)
-    var result: retval = Image.create(width, height, source.pixelFormat, alphaMode: source.alphaMode)
-    let horizontal     = ResizeTools.calcContributions(width, source.width, cast(f64, width) / source.width, mode)
-    let vertical       = ResizeTools.calcContributions(height, source.height, cast(f64, height) / source.height, mode)
-    let format         = source.pixelFormat
-    let legacy         = format == .RGB8 or format == .RGBA8 or format == .BGR8 or format == .BGRA8
+    var intermediate        = Image.create(width, source.height, source.pixelFormat, alphaMode: source.alphaMode)
+    var result: #returntype = Image.create(width, height, source.pixelFormat, alphaMode: source.alphaMode)
+    let horizontal          = ResizeTools.calcContributions(width, source.width, cast(f64, width) / source.width, mode)
+    let vertical            = ResizeTools.calcContributions(height, source.height, cast(f64, height) / source.height, mode)
+    let format              = source.pixelFormat
+    let legacy              = format == .RGB8 or format == .RGBA8 or format == .BGR8 or format == .BGRA8
     for row in source.height
     {
         if legacy do

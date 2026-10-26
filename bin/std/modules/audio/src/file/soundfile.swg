@@ -156,7 +156,7 @@ impl SoundFile
     // can be used to build file-dialog filters or format-viewer registries.
     func decodableExtensions()->Array'String
     {
-        var result: retval
+        var result: #returntype
         result.reserve(SoundFileFormats.count)
         for format in SoundFileFormats do
             result.add(String.from(format.extension))
@@ -206,7 +206,7 @@ impl SoundFile
     // be sampled independently of any voice reading the same file.
     mtd const readPayload(offset, count: u64)->Array'u8 fail
     {
-        var result: retval
+        var result: #returntype
         if not count or offset >= .dataSize do
             return result
 
@@ -345,7 +345,7 @@ impl SoundFile
         var stream     = try File.openRead(path)
         let sourceSize = try stream.size()
 
-        with var result: retval
+        with var result: #returntype
         {
             .path               = path
             .encoding           = encoding
@@ -448,7 +448,7 @@ impl SoundFile
         var stream        = try File.openRead(path)
         let sourceSize    = try stream.size()
 
-        with var result: retval
+        with var result: #returntype
         {
             .path               = path
             .encoding           = encoding

@@ -265,7 +265,7 @@ func reportViewerLoadingChanged(view: *Wnd)
 // Returns the services a viewer of the main window reaches its host through.
 func viewerHostServices()->Viewer.HostServices
 {
-    with var result: retval
+    with var result: #returntype
     {
         .reportFailure          = &reportViewerFailure
         .reportDetails          = &reportViewerDetails
@@ -907,7 +907,7 @@ impl ViewerWindow
     // The names carry the content families without repeating the registry's extension inventory.
     mtd const aboutViewerList()->String
     {
-        var result: retval
+        var result: #returntype
         for plugin in .index.plugins
         {
             // The no-break spaces keep each separator with the name before it, so a line never

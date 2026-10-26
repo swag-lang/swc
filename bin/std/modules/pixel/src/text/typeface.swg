@@ -235,7 +235,7 @@ public impl TypeFace
     // widens the outline and the advance by that many pixels.
     mtd buildRuneOutline(c: rune, size: u32, embolden: u32 = 0)->{outline: LinePathList, advance: f32} fail
     {
-        var result: retval
+        var result: #returntype
 
         try .face.setPixelSize(0, size)
         try .face.loadChar(c)
@@ -258,7 +258,7 @@ public impl TypeFace
     // rune form one group, so path-list boolean operations keep the glyphs apart.
     mtd buildStringOutline(text: string, size: u32, embolden: u32 = 0)->LinePathList fail
     {
-        var result: retval
+        var result: #returntype
 
         try .face.setPixelSize(0, size)
 

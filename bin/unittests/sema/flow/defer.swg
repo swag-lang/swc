@@ -101,18 +101,25 @@ func semaTest001()
 func semaTest002()
 {
     // compiler830, compiler831
-    func deferFunctionReturnTrace()->DeferReturnInfo
+    func deferFunctionReturnTraceBody()->DeferReturnInfo
     {
         resetDeferTrace()
-        with var result: retval
+        with var result: #returntype
         {
             .value = 42
             .trace = -1
         }
 
-        defer result.trace = DeferTrace
         defer appendDeferTrace(9)
         appendDeferTrace(1)
+        return result
+    }
+
+    // Defers and drops run when the body returns: read their counters afterwards.
+    func deferFunctionReturnTrace()->DeferReturnInfo
+    {
+        var result = deferFunctionReturnTraceBody()
+        result.trace = DeferTrace
         return result
     }
 
@@ -196,16 +203,15 @@ func semaTest005()
 
 func semaTest006()
 {
-    func deferWhileReturnTrace()->DeferReturnInfo
+    func deferWhileReturnTraceBody()->DeferReturnInfo
     {
         resetDeferTrace()
-        with var result: retval
+        with var result: #returntype
         {
             .value = -1
             .trace = -1
         }
 
-        defer result.trace = DeferTrace
         var i: s32 = 0
 
         while i < 4
@@ -224,6 +230,14 @@ func semaTest006()
         return result
     }
 
+    // Defers and drops run when the body returns: read their counters afterwards.
+    func deferWhileReturnTrace()->DeferReturnInfo
+    {
+        var result = deferWhileReturnTraceBody()
+        result.trace = DeferTrace
+        return result
+    }
+
     const V = #run deferWhileReturnTrace()
     #assert(V.value == 42)
     #assert(V.trace == 172)
@@ -231,9 +245,9 @@ func semaTest006()
 
 func semaTest007()
 {
-    func deferBlockBodyTrace()->DeferReturnInfo
+    func deferBlockBodyTraceBody()->DeferReturnInfo
     {
-        with var result: retval
+        with var result: #returntype
         {
             .value = 666
             .trace = 0
@@ -241,9 +255,18 @@ func semaTest007()
 
         defer
         {
-            result.trace = deferValue()
+            DeferTrace = deferValue()
         }
 
+        return result
+    }
+
+    // The defer runs when the body returns: read what it wrote afterwards.
+    func deferBlockBodyTrace()->DeferReturnInfo
+    {
+        resetDeferTrace()
+        var result = deferBlockBodyTraceBody()
+        result.trace = DeferTrace
         return result
     }
 
@@ -396,7 +419,7 @@ func semaTest013()
     func deferBreakToScopeAndDrop()->DeferDropInfo
     {
         DropCount = 0
-        with var result: retval
+        with var result: #returntype
         {
             .count = 0
             .drops = 0
@@ -431,7 +454,7 @@ func semaTest014()
     func deferParameterDropInfo()->DeferDropInfo
     {
         DropCount = 0
-        with var result: retval
+        with var result: #returntype
         {
             .count = 0
             .drops = 0
@@ -459,7 +482,7 @@ func semaTest015()
     func deferEmbeddedParameterDropInfo()->DeferDropInfo
     {
         DropCount = 0
-        with var result: retval
+        with var result: #returntype
         {
             .count = 0
             .drops = 0
@@ -483,18 +506,25 @@ func semaTest015()
 
 func semaTest016()
 {
-    func deferReturnDropInfo()->DeferDropInfo
+    func deferReturnDropInfoBody()->DeferDropInfo
     {
         DropCount = 0
-        with var result: retval
+        with var result: #returntype
         {
             .count = 42
             .drops = 0
         }
 
-        defer result.drops = DropCount
         var x: DeferDropTracker
         x.value = 1
+        return result
+    }
+
+    // Defers and drops run when the body returns: read their counters afterwards.
+    func deferReturnDropInfo()->DeferDropInfo
+    {
+        var result = deferReturnDropInfoBody()
+        result.drops = DropCount
         return result
     }
 

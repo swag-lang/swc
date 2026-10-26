@@ -5,7 +5,7 @@ impl Capture
     // that `right` and `bottom` name.
     mtd getSnapPoint(bound: Math.Rectangle, right, bottom: bool, nx, ny: s32, idxPt: u32, editForm: IForm? = null)->Math.Point
     {
-        var result: retval
+        var result: #returntype
 
         let form = editForm orelse .forms[.selection[0]]
         let type = Swag.kindOf(form)
@@ -67,7 +67,7 @@ impl Capture
     // points of every form, except the parts of the forms being moved.
     mtd snapLines(idxPt: u32, editForm: IForm?)->{xs: Array's32, ys: Array's32}
     {
-        var result: retval
+        var result: #returntype
 
         result.xs.add(0)
         result.xs.add(.width)
@@ -130,7 +130,7 @@ impl Capture
     // The coordinate of `candidates` nearest to `value`, and how far it is.
     func nearestSnap(value: f32, candidates: const [..] s32)->{distance: f32, coord: f32}
     {
-        var result: retval
+        var result: #returntype
         result.distance = Swag.F32.Max
         for candidate in candidates
         {

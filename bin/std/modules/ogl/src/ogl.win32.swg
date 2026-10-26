@@ -100,7 +100,7 @@ namespace Platform.Win32
     // function returns. Failure releases every partially acquired native handle.
     public func createContext(window: *Env.Window, colorBits: u8 = 32, makeCurrent = true)->Context fail
     {
-        var result: retval
+        var result: #returntype
         result.window = window
         result.hDC    = window.acquireWin32DeviceContext()
         defer #fail result.destroy()

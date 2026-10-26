@@ -42,7 +42,7 @@ impl JournalRecord
     // no copy of a block map on the way out.
     func encode(sequence, nextNodeId: u64, label: string, removed: const [..] u64, upserted, metadata: const [..] *Node)->Array'u8
     {
-        var result: retval
+        var result: #returntype
         var writer = ByteStream.openWrite(&result)
 
         writer.writeLittleEndian(sequence)
@@ -78,7 +78,7 @@ impl JournalRecord
     // attacker-controlled once the password is known.
     func decode(plain: const [..] u8, blockCount: u64)->JournalRecord fail
     {
-        var result: retval
+        var result: #returntype
         var reader = ByteStream.openRead(plain)
 
         result.sequence   = try reader.readLittleEndian'u64()

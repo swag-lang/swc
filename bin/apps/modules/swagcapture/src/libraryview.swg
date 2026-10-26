@@ -617,7 +617,7 @@ impl LibraryView
     // Returns the files of the selected and focused cells.
     mtd rememberSelection()->LibrarySelection
     {
-        var result: retval
+        var result: #returntype
         for item, i in .items
         {
             if .selModel.isSelected(cast(i)) do

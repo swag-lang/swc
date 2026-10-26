@@ -219,7 +219,7 @@ private struct WasmName
 // Reads the length-prefixed name at `at`.
 private func wasmName(image: *BinaryImage, at: u64)->WasmName
 {
-    var result: retval
+    var result: #returntype
     let header = wasmLeb(image, at)
     if not header.valid or header.value > 4096
     {
@@ -244,7 +244,7 @@ private struct WasmNumber
 // Reads the variable-length number at `at`, the only way a module writes a count or a size.
 private func wasmLeb(image: *BinaryImage, at: u64)->WasmNumber
 {
-    var result: retval
+    var result: #returntype
     result.next = at
 
     var shift = 0'u64

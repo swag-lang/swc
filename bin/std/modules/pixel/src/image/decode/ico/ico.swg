@@ -272,7 +272,7 @@ impl Decoder
         if dib.width <= 0 or dib.height <= 0 or (dib.height & 1) do
             fail InvalidFormatError{"invalid dimensions"}
 
-        var result: retval
+        var result: #returntype
         result.init(dib.width, dib.height / 2, PixelFormat.BGRA8)
         try options.checkImage(result.width, result.height, result.pixelFormat)
 
@@ -303,7 +303,7 @@ impl IImageSetDecoder for Decoder
         .bytes      = buffer
         .entryCount = cast(const *IconDir, buffer.buffer)[].count
         try options.checkFrameCount(.entryCount)
-        var result:    retval
+        var result:    #returntype
         var bestScore: u64
         for index in .entryCount
         {

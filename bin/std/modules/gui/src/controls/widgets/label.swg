@@ -152,7 +152,7 @@ impl IWnd for Label
     // the larger of the two rather than as large as their sum.
     mtd impl measureContent(available: Math.Point)->Math.Point
     {
-        var result: retval
+        var result: #returntype
 
         if not .name.isEmpty()
         {
@@ -194,7 +194,7 @@ impl Label
     {
         let theme = .theme()
 
-        var sf: retval
+        var sf: #returntype
         sf.flags |= .Clip
         if .flags.has(.WordWrap) do
             sf.flags.add(.WordWrap)

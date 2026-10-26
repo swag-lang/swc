@@ -23,7 +23,7 @@ private func pluginProbe(content: Viewer.ProbeContent)->bool
 // Describes the font viewer to the host.
 func viewerPlugin()->Viewer.Plugin
 {
-    with var result: retval
+    with var result: #returntype
     {
         .key          = "font"
         .staticName   = "Font"
@@ -64,7 +64,7 @@ impl ViewerContent
 // checksum, and the details line, which counts the faces of a collection.
 private func loadViewerContent(fileName: string)->ViewerContent fail
 {
-    var result: retval
+    var result: #returntype
     result.bytes = try File.readAllBytes(fileName)
     let faceCount = try Face.countFaces(result.bytes.toSlice())
     result.face = try Face.load(result.bytes.toSlice())

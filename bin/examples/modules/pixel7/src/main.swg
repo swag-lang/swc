@@ -216,7 +216,7 @@ func computeSceneLayout(width, height: s32)->SceneLayout
     let scaleX        = cast(f32, surfaceWidth) / cast(f32, W)
     let scaleY        = cast(f32, surfaceHeight) / cast(f32, H)
 
-    with var result: retval
+    with var result: #returntype
     {
         .scale  = Math.min(scaleX, scaleY)
         .rect   = Math.Rectangle{0, 0, cast(f32, W) * .scale, cast(f32, H) * .scale}

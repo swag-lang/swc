@@ -19,7 +19,7 @@ impl ILogWriter for MemoryLogWriter
 
 func makeExpectedShortLine(prefix: string, loc: Swag.SourceCodeLocation, text: string)->String
 {
-    var result: retval
+    var result: #returntype
     if prefix.count
     {
         result.append(prefix)
@@ -36,7 +36,7 @@ func makeExpectedShortLine(prefix: string, loc: Swag.SourceCodeLocation, text: s
 
 func makeExpectedFullLoc(loc: Swag.SourceCodeLocation, text: string)->String
 {
-    var result: retval
+    var result: #returntype
     result.append(loc.fileName)
     result.append(":")
     result.appendFormat("%", loc.lineStart)

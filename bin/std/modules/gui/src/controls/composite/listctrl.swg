@@ -666,7 +666,7 @@ private impl ListView
     {
         let metrics = .themeMetrics()
 
-        var result: retval
+        var result: #returntype
         var pos = row
 
         if .list.header != null
@@ -967,7 +967,7 @@ impl ListCtrl
     // inserts and a list that drops onto a row both call this and then keep the answer they want.
     mtd dropMarkAt(surfacePos: Math.Point)->{ index: u32, mark: ListDropMark }
     {
-        var result: retval
+        var result: #returntype
 
         var local = .listView.surfaceToLocal(surfacePos)
         if local.x < 0 or local.y < 0
@@ -1375,7 +1375,7 @@ impl ListCtrl
     // the layout. The rectangle is empty when no such row or column is laid out.
     mtd cellTextRect(index: u32, column: u32)->Math.Rectangle
     {
-        var result: retval
+        var result: #returntype
         if index >= .lineCount() do
             return result
 
@@ -1602,7 +1602,7 @@ impl ListCtrl
     // Returns the retained rows currently selected, or an empty array in virtual mode.
     mtd const selectedLines()->Array'(*ListLine?)
     {
-        var result: retval
+        var result: #returntype
         if .isVirtual or .selModel.isEmpty() do
             return result
 
@@ -1620,7 +1620,7 @@ impl ListCtrl
     // Returns the retained rows currently checked, or an empty array in virtual mode.
     mtd const checkedLines()->Array'(*ListLine?)
     {
-        var result: retval
+        var result: #returntype
         if .isVirtual or .checkModel.isEmpty() do
             return result
 

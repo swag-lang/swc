@@ -78,7 +78,7 @@ private struct FrameInfo
 
 private func frameInfo(toc: u8)->FrameInfo
 {
-    var result: retval
+    var result: #returntype
     let value  = cast(u32, toc)
     let config = value >> 3
     if value & 0x80

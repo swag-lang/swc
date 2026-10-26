@@ -553,15 +553,22 @@ namespace
 
         lifecycleCtx.rightPayload = &stableRight;
 
-        // Different frame slots cannot self-assign. Keep the guard for references,
-        // incoming arguments and return storage, whose addresses may alias.
+        // Different frame slots cannot self-assign, nor can a frame slot and the local built
+        // in the return slot. Keep the guard for references, incoming arguments and other
+        // return storage, whose addresses may alias.
         const SymbolVariable* leftVar = CodeGenMoveElision::directStructVariable(codeGen, leftRef);
 
+        const auto frameSlot = [&codeGen](const SymbolVariable& symVar) {
+            return symVar.hasExtraFlag(SymbolVariableFlagsE::CodeGenLocalStack) && !symVar.hasExtraFlag(SymbolVariableFlagsE::Parameter) && !CodeGenFunctionHelpers::usesCallerReturnStorage(codeGen, symVar);
+        };
+        const auto returnSlot = [&codeGen](const SymbolVariable& symVar) {
+            return codeGen.isReturnStorageLocal(symVar) && !codeGen.returnStorageLocalContext(symVar);
+        };
+
         const bool distinctStorage = leftVar && rightVar && leftVar != rightVar &&
-                                     leftVar->hasExtraFlag(SymbolVariableFlagsE::CodeGenLocalStack) && rightVar->hasExtraFlag(SymbolVariableFlagsE::CodeGenLocalStack) &&
-                                     !leftVar->hasExtraFlag(SymbolVariableFlagsE::Parameter) && !rightVar->hasExtraFlag(SymbolVariableFlagsE::Parameter) &&
-                                     leftVar->offset() != rightVar->offset() &&
-                                     !CodeGenFunctionHelpers::usesCallerReturnStorage(codeGen, *leftVar) && !CodeGenFunctionHelpers::usesCallerReturnStorage(codeGen, *rightVar);
+                                     ((frameSlot(*leftVar) && frameSlot(*rightVar) && leftVar->offset() != rightVar->offset()) ||
+                                      (frameSlot(*leftVar) && returnSlot(*rightVar)) ||
+                                      (returnSlot(*leftVar) && frameSlot(*rightVar)));
 
         MicroLabelRef doneLabel = MicroLabelRef::invalid();
         if (stableRight.isAddress() && lifecycleCtx.target.payload.isAddress() && !distinctStorage)

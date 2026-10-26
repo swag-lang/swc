@@ -5,7 +5,7 @@ using Swag
 
 func buildConcatBuffer()->ConcatBuffer
 {
-    var result: retval
+    var result: #returntype
     result.setBucketSize(4)
 
     let first:  [3] u8 = [1, 2, 3]

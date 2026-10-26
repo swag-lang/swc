@@ -5,7 +5,7 @@ using Swag, Core
 // Returns the bounds of the ink a source rasterizes to, in a square of `side` pixels.
 private func inkBounds(source: string, side = 100's32)->{ minX, minY, maxX, maxY: s32, area: s32 }
 {
-    var result: retval
+    var result: #returntype
     result.minX = side
     result.minY = side
     result.maxX = -1

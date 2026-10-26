@@ -8,6 +8,7 @@
 #include "Compiler/CodeGen/Core/CodeGenCallHelpers.h"
 #include "Compiler/CodeGen/Core/CodeGenFunctionHelpers.h"
 #include "Compiler/CodeGen/Core/CodeGenMemoryHelpers.h"
+#include "Compiler/CodeGen/Core/CodeGenMoveElision.h"
 #include "Compiler/CodeGen/Core/CodeGenParameterReg.h"
 #include "Compiler/CodeGen/Core/CodeGenSafety.h"
 #include "Compiler/CodeGen/Core/CodeGenTypeHelpers.h"
@@ -467,6 +468,7 @@ namespace
         SmallVector<CodeGenFunctionHelpers::FunctionParameterInfo> paramInfos;
         buildFunctionParameterInfos(codeGen, paramInfos, symbolFunc, normalizedRet.isIndirect);
 
+        CodeGenMoveElision::selectReturnStorageLocals(codeGen);
         buildLocalStackLayout(codeGen, callConv, normalizedRet.isIndirect, paramInfos);
         SWC_RESULT(CodeGenSafety::prepareValueBorrowSafety(codeGen));
         {

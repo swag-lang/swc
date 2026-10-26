@@ -38,7 +38,7 @@ func dumpPainter(painter: const *Painter, level = DumpLevel.Full)->String
     dump.level = level
     dump.run(painter)
 
-    var result: retval
+    var result: #returntype
     if not dump.legend.isEmpty()
     {
         result += dump.legend
@@ -60,7 +60,7 @@ private
         if v == 0 do
             v = 0
 
-        var result: retval
+        var result: #returntype
         result.appendFormat("%{f3}", v)
         while result.back() == '0'u8 do
             result.removeBack()
@@ -78,7 +78,7 @@ private
         if v == 0 do
             v = 0
 
-        var result: retval
+        var result: #returntype
         result.appendFormat("%{f6}", v)
         while result.back() == '0'u8 do
             result.removeBack()

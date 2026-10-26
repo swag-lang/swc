@@ -97,7 +97,7 @@ impl Image
     {
         Swag.assert(.pixels.buffer != null)
         Swag.assert(.pixelFormat.isPacked() and srcImage.pixelFormat.isPacked(), "mixing planar images is unsupported")
-        var result: retval = create(.width, .height, .pixelFormat, alphaMode: me.alphaMode)
+        var result: #returntype = create(.width, .height, .pixelFormat, alphaMode: me.alphaMode)
         .doMix(&result, srcImage, x, y, mode)
         return result
     }

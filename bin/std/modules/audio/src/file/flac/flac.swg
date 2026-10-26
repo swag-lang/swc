@@ -94,7 +94,7 @@ private struct Prologue
 // Reads the marker and the metadata blocks that precede the audio.
 private func readPrologue(source: *ByteSource)->Prologue fail
 {
-    var result: retval
+    var result: #returntype
 
     let size = source.size()
     if size < 4 do

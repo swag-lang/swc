@@ -215,7 +215,7 @@ internal impl PdfView
             return {}
 
         let scale = .effectiveZoom()
-        var result: retval
+        var result: #returntype
         if .pageLayout == .Single
         {
             let size = .pageSizes[.pageIndex]
@@ -244,7 +244,7 @@ internal impl PdfView
         let scale = .effectiveZoom()
         let size  = .pageSizes[index]
 
-        var result: retval
+        var result: #returntype
         result.width  = size.x * scale
         result.height = size.y * scale
         result.x      = (.contentSize().x - result.width) * 0.5
@@ -269,7 +269,7 @@ internal impl PdfView
     {
         let origin = .documentOrigin()
 
-        var result: retval
+        var result: #returntype
         result.top    = -origin.y
         result.bottom = result.top + .viewportSize().y
         return result
@@ -305,7 +305,7 @@ internal impl PdfView
     // Returns the pages the viewport currently reaches, both ends included.
     mtd const visibleRange()->{ first: u64, last: u64 }
     {
-        var result: retval
+        var result: #returntype
         if not .hasDocument or .pageLayout == .Single
         {
             result.first = .pageIndex
@@ -325,7 +325,7 @@ internal impl PdfView
         let origin = .documentOrigin()
         let scale  = .effectiveZoom()
 
-        var result: retval
+        var result: #returntype
         result.pageIndex = .pageAt(local.y - origin.y)
         let rect = .pageRect(result.pageIndex)
         result.point = Math.Point{(local.x - origin.x - rect.x) / scale, (local.y - origin.y - rect.y) / scale}
@@ -866,7 +866,7 @@ internal impl PdfView
     // Returns the byte range of one page the selection covers, which is empty when it covers none.
     mtd selectionOnPage(index: u64, entry: *PdfResidentPage)->{ start: u64, end: u64 }
     {
-        var result: retval
+        var result: #returntype
         if not .hasSelection() do
             return result
 
@@ -901,7 +901,7 @@ internal impl PdfView
     // Returns the position of the page text under a canvas point, if any.
     mtd textPositionAt(local: Math.Point)->{ position: PdfTextPosition, distance: f32 }
     {
-        var result: retval
+        var result: #returntype
         if not .hasDocument do
             return result
 
@@ -1525,7 +1525,7 @@ impl PdfView
     // remains open. An invalid regular expression returns an empty array.
     mtd findTextMatches(text: string, options: PdfTextSearchOptions = {})->Array'PdfTextMatch
     {
-        var result: retval
+        var result: #returntype
         if not .hasDocument or not text.count do
             return result
 
@@ -1640,7 +1640,7 @@ impl PdfView
     // A selection running through several pages joins them with one line feed per page boundary.
     mtd selectedText()->String
     {
-        var result: retval
+        var result: #returntype
         if not .hasSelection() do
             return result
 

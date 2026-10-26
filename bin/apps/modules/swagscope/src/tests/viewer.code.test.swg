@@ -13,7 +13,7 @@ func codeFixturePath(name: string)->String => Path.combine(Path.combine(unwrap P
 // declarations as part of it.
 func swagSampleSource()->String
 {
-    var result: retval
+    var result: #returntype
     result += "#global public\n"
     result += "\n"
     result += "using Core\n"

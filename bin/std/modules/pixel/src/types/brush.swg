@@ -186,7 +186,7 @@ impl Brush
     // Creates a uniform straight-alpha color brush.
     func createSolid(color: Color)->Brush
     {
-        var result: retval
+        var result: #returntype
         result.color = color
         result.type  = .SolidColor
         return result
@@ -195,7 +195,7 @@ impl Brush
     // Creates an untinted brush that stretches the complete texture.
     func createTexture(texture: Texture)->Brush
     {
-        var result: retval
+        var result: #returntype
         result.color   = Color.fromArgb(Argb.White)
         result.type    = .Texture
         result.texture = texture
@@ -206,7 +206,7 @@ impl Brush
     // Creates an untinted brush that repeats the texture.
     func createTiled(texture: Texture)->Brush
     {
-        var result: retval
+        var result: #returntype
         result.color   = Color.fromArgb(Argb.White)
         result.type    = .Texture
         result.texture = texture
@@ -217,7 +217,7 @@ impl Brush
     // Creates a repeating built-in hatch with the specified color.
     func createHatch(style: HatchStyle, color: Color)->Brush
     {
-        var result: retval
+        var result: #returntype
         result.color  = color
         result.type   = .Hatch
         result.hatch  = style
@@ -228,7 +228,7 @@ impl Brush
     // Creates a two-stop linear gradient between path-space points.
     func createLinearGradient(start, end: Math.Vector2, color0, color1: Color, spread: GradientSpread = .Clamp)->Brush
     {
-        with var result: retval
+        with var result: #returntype
         {
             .color          = Color.fromArgb(Argb.White)
             .type           = .LinearGradient
@@ -248,7 +248,7 @@ impl Brush
     // Creates a two-stop radial gradient from radius zero to `radius`.
     func createRadialGradient(center: Math.Vector2, radius: f32, color0, color1: Color, spread: GradientSpread = .Clamp)->Brush
     {
-        with var result: retval
+        with var result: #returntype
         {
             .color           = Color.fromArgb(Argb.White)
             .type            = .RadialGradient
@@ -270,7 +270,7 @@ impl Brush
     // Creates a two-stop angular gradient over the specified angle interval.
     func createSweepGradient(center: Math.Vector2, startAngle, endAngle: Math.Angle, color0, color1: Color, spread: GradientSpread = .Repeat)->Brush
     {
-        with var result: retval
+        with var result: #returntype
         {
             .color          = Color.fromArgb(Argb.White)
             .type           = .SweepGradient

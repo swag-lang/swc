@@ -75,7 +75,7 @@ impl RichEditCtrl
     // Returns the advance of rune `i` of `line` drawn from `x`, and the line height.
     mtd runeSize(line: *RichEditLine?, i: u64, x: f32)->Math.Point
     {
-        var size: retval
+        var size: #returntype
         size.x = .advanceRuneX(line, i, x) - x
         size.y = .lineHeight()
         return size
@@ -94,7 +94,7 @@ impl RichEditCtrl
     // of its line answers that line's end.
     mtd cursorFromLogicalPosition(lineIndex, charPosInLine: u64)->RichEditCursor
     {
-        var result: retval
+        var result: #returntype
         if .lines.isEmpty() do
             return result
 
@@ -137,7 +137,7 @@ impl RichEditCtrl
     // Returns where `cp` is drawn in the text view: its left edge, and the bottom of its line.
     mtd cursorDisplayPosition(cp: RichEditCursor)->Math.Point
     {
-        var result: retval
+        var result: #returntype
         result.x = .leftMargin()
         result.y = .lineHeight()
         if .lines.isEmpty() do
@@ -192,7 +192,7 @@ impl RichEditCtrl
         let pt   = .cursorDisplayPosition(cp)
         let size = .xGlyphSize()
 
-        var result: retval
+        var result: #returntype
         result.x      = pt.x
         result.y      = .overwriteMode ? pt.y - 2 : pt.y - size.y
         result.width  = .overwriteMode ? size.x : 2
@@ -256,7 +256,7 @@ impl RichEditCtrl
     // Returns the cursor closest to `pt`, a point of the text view, skipping lines a fold hides.
     mtd cursorAt(pt: Math.Point)->RichEditCursor
     {
-        var cp: retval
+        var cp: #returntype
         if .lines.isEmpty() do
             return cp
 

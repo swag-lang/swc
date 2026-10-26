@@ -28,7 +28,7 @@ impl Event
     // Creates an unnamed auto-reset event that starts unsignaled.
     func create()->Event
     {
-        var result: retval
+        var result: #returntype
         result.init()
         return result
     }

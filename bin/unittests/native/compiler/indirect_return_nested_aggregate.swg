@@ -27,7 +27,7 @@ struct NestedReturnFactory
 
 private func makeNestedReturnValue(seed: u64)->NestedReturnValue
 {
-    var result: retval
+    var result: #returntype
     result.a = seed
     result.b = 2
     result.c = 3

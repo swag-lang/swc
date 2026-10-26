@@ -39,7 +39,7 @@ namespace WinFsp
     // array means Windows could not enumerate one of those sources reliably.
     func availableDriveLetters()->Array'rune
     {
-        var result: retval
+        var result: #returntype
         let logical = GetLogicalDrives()
         if not logical do
             return result
@@ -54,7 +54,7 @@ namespace WinFsp
 // Maps the available Windows drive letters to the host-neutral destination contract.
 func availableMountDestinationsNative()->Array'MountDestination
 {
-    var result: retval
+    var result: #returntype
     let available = WinFsp.availableDriveLetters()
     result.reserve(available.count)
 

@@ -16,7 +16,7 @@ const JoinCards = [
 
 func makeJoinPath(rect: Math.Rectangle)->LinePath
 {
-    var path: retval
+    var path: #returntype
     let left = rect.x + 20
     let top  = rect.y + rect.height * 0.75
     path.start(left, top)

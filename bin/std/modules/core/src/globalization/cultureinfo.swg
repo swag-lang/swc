@@ -42,7 +42,7 @@ public impl CultureInfo
     func fromName(name: string)->CultureInfo
     {
         // The defaults of every format are the invariant English conventions.
-        var result: retval
+        var result: #returntype
         result.name = name
 
         if result.isNamed("en-GB")
@@ -301,7 +301,7 @@ public impl CultureInfo
     // Converts text to upper case with this locale's special casing rules.
     mtd const toUpper(value: string)->String
     {
-        var result: retval
+        var result: #returntype
         let turkic = .isLanguage("tr") or .isLanguage("az")
         Utf8.visitRunes(cast(const [..] u8, value))
         {
@@ -321,7 +321,7 @@ public impl CultureInfo
     // Converts text to lower case with this locale's special casing rules.
     mtd const toLower(value: string)->String
     {
-        var result: retval
+        var result: #returntype
         let turkic = .isLanguage("tr") or .isLanguage("az")
         Utf8.visitRunes(cast(const [..] u8, value))
         {
@@ -339,7 +339,7 @@ public impl CultureInfo
     // Produces a locale-sensitive case-folded value for caseless matching.
     mtd const caseFold(value: string)->String
     {
-        var result: retval
+        var result: #returntype
         let turkic = .isLanguage("tr") or .isLanguage("az")
         Utf8.visitRunes(cast(const [..] u8, value))
         {
@@ -365,7 +365,7 @@ public impl CultureInfo
     mtd const sortKey(value: string, ignoreCase = false)->String
     {
         let source = ignoreCase ? .caseFold(value) : String.from(value)
-        var result: retval
+        var result: #returntype
         Utf8.visitRunes(source.toSlice())
         {
             var handled = false

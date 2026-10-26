@@ -13,7 +13,7 @@ impl Matrix3x3
     // Creates an identity matrix.
     func createIdentity()->Matrix3x3
     {
-        var result: retval
+        var result: #returntype
         result.setIdentity()
         return result
     }

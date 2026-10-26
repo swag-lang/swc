@@ -792,7 +792,7 @@ impl Tessellate
     // triangle, and index arrays are empty until new input is added.
     public mtd takeResult()->Result
     {
-        var result: retval
+        var result: #returntype
         result.vertices.reserve(.triIndices.count * 3)
         for triangleIndex in .triIndices
         {

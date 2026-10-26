@@ -429,7 +429,7 @@ namespace compiler3029
 {
     func toto(x, y: s32)->{ x: s32, y: s32 }
     {
-        var result: retval
+        var result: #returntype
         result.x = x * x
         result.y = y * y * y
         return result

@@ -781,7 +781,7 @@ func markdownFixturePath()->String => Path.combine(unwrap Path.directoryName(#cu
 // Returns the right edge of the last ink of every laid-out line of the first block.
 func paragraphLineEdges(view: *Markdown.View)->Array'f32
 {
-    var result: retval
+    var result: #returntype
     var line = -1'f32
     for &atom in view.blocks[0].inline!.atoms where atom.visible and not atom.isSpace
     {

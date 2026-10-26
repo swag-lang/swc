@@ -54,7 +54,7 @@ impl Document
     {
         Swag.assert(width > 0 and height > 0, "invalid dimensions")
 
-        var result: retval
+        var result: #returntype
         result.width  = width
         result.height = height
         return result
@@ -113,14 +113,14 @@ impl Document
     // example as one cell of an icon atlas grid.
     mtd const bodyText()->String
     {
-        var result: retval = .body
+        var result: #returntype = .body
         return result
     }
 
     // Returns the document as SVG text.
     mtd const toString()->String
     {
-        var result: retval
+        var result: #returntype
         result.appendFormat("<svg xmlns=\"http://www.w3.org/2000/svg\" viewBox=\"0 0 % %\" width=\"%\" height=\"%\"", num(.width), num(.height), num(.width), num(.height))
         if .title.isEmpty() do
             result += " aria-hidden=\"true\">\n"
@@ -201,7 +201,7 @@ private func appendFlattenedContour(data: *String, path: const *LinePath, qualit
 // a fraction loses its trailing zeros, which keeps a generated document readable and small.
 private func num(value: f32)->String
 {
-    var result: retval
+    var result: #returntype
     if value == Math.trunc(value) and Math.abs(value) < 1e9
     {
         result.appendFormat("%", cast(s64, value))
@@ -220,7 +220,7 @@ private func hex(color: Color)->String => Format.toString("#%{X02}%{X02}%{X02}",
 
 private func escapeXml(value: string)->String
 {
-    var result: retval
+    var result: #returntype
     for c in value
     {
         switch c

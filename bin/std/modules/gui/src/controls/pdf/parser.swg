@@ -611,7 +611,7 @@ impl PdfParser
     // Reads one section of the chain, in whichever of the two forms it is written.
     mtd readXrefSection(offset: u64)->{ ok, hasPrev: bool, prev: u64 }
     {
-        var result: retval
+        var result: #returntype
         if offset >= .bytes.count do
             return result
         .pos = offset
@@ -623,7 +623,7 @@ impl PdfParser
     // Reads a classic cross-reference table and the trailer that follows it.
     mtd readClassicXref()->{ ok, hasPrev: bool, prev: u64 }
     {
-        var result: retval
+        var result: #returntype
         for
         {
             .skip()
@@ -692,7 +692,7 @@ impl PdfParser
     // Reads a cross-reference stream, the form every file with compressed objects uses.
     mtd readXrefStreamSection(offset: u64)->{ ok, hasPrev: bool, prev: u64 }
     {
-        var result: retval
+        var result: #returntype
         .pos = offset
         var number, generation: u64
         if not .parseUnsigned(&number) or not .parseUnsigned(&generation) or not .consumeWord("obj") do
@@ -805,8 +805,8 @@ impl PdfParser
     // Fills in where the previous section of the chain starts, when the trailer names one.
     mtd withPrevious(section: { ok, hasPrev: bool, prev: u64 }, dictId: u32)->{ ok, hasPrev: bool, prev: u64 }
     {
-        var result: retval = section
-        let previous       = .dictRaw(dictId, "Prev")
+        var result: #returntype = section
+        let previous = .dictRaw(dictId, "Prev")
         if previous != InvalidNode and
            .nodes[previous].kind == .Integer and
            .nodes[previous].integer >= 0
@@ -1200,7 +1200,7 @@ impl PdfParser
     // Returns the names of the filters applied to a stream, outermost first.
     mtd streamFilters(nodeId: u32)->Array'String
     {
-        var result: retval
+        var result: #returntype
         let filterId = .dict(nodeId, "Filter")
         if filterId == InvalidNode do
             return result
@@ -1241,7 +1241,7 @@ impl PdfParser
     // whole instead of being expanded into samples by decodeStream.
     mtd imageCodec(nodeId: u32)->String
     {
-        var result: retval
+        var result: #returntype
         let filters = #move .streamFilters(nodeId)
         if not filters.count do
             return result
@@ -1339,7 +1339,7 @@ impl PdfParser
         let predictor = .integer(.dict(parametersId, "Predictor"), 1)
         if predictor <= 1
         {
-            var result: retval = data
+            var result: #returntype = data
             return result
         }
 
@@ -1362,8 +1362,8 @@ impl PdfParser
                 fail UnsupportedFormatError{"PDF TIFF predictor bit depth is not supported"}
             if data.count % rowBytes do
                 fail InvalidFormatError{"PDF TIFF predictor rows are truncated"}
-            var result: retval = data
-            let stride         = cast(u64, colors) * cast(u64, (bits / 8))
+            var result: #returntype = data
+            let stride = cast(u64, colors) * cast(u64, (bits / 8))
             for row in data.count / rowBytes
             {
                 let base = row * rowBytes
@@ -1380,7 +1380,7 @@ impl PdfParser
         let encodedRow = rowBytes + 1
         if data.count % encodedRow do
             fail InvalidFormatError{"PDF PNG predictor rows are truncated"}
-        var result: retval
+        var result: #returntype
         result.resize(data.count / encodedRow * rowBytes)
         for row in data.count / encodedRow
         {

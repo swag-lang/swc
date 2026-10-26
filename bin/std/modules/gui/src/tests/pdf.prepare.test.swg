@@ -6,7 +6,7 @@ using Core, Pixel, Pdf
 // Returns the page of a corpus document that carries the most items.
 func heaviestPage(name: string)->{ reader: Reader, index: u64 }
 {
-    var result: retval
+    var result: #returntype
     result.reader = #move expect Reader.open(corpusPdfPath(name))
     var best = 0'u64
     for pageIndex in result.reader.pageCount()

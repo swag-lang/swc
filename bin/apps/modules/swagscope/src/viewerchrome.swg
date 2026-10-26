@@ -330,7 +330,7 @@ impl ViewerLoadingSpinner
     {
         let pulse = 0.5'f32 - 0.5'f32 * Math.cos(phase * Math.ConstF32.TwoPi)
 
-        var result: retval
+        var result: #returntype
         result.radius = Math.lerp(MinRadius, MaxRadius, pulse)
         result.sweep  = Math.lerp(MinSweep, MaxSweep, pulse)
         result.start  = phase * 540 - 90 - result.sweep * 0.5

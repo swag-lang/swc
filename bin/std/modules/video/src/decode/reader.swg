@@ -149,17 +149,17 @@ struct Reader
 {
     internal
     {
-        source:          ByteSource            // Bytes of the encoded stream.
-        info:            StreamInfo            // What the decoder reported when opening.
-        format:          StreamFormat          // Format claimed by the selected decoder.
-        decoder:         IDecoder?             // Decoder instance owned by this reader.
-        audioDecoder:    IAudioDecoder?        // Optional sound-track capability.
-        subtitleDecoder: ISubtitleDecoder?     // Optional timed-text capability.
-        planarDecoder:   IPlanarDecoder?       // Optional unconverted-picture capability.
-        timedDecoder:    ITimedDecoder?        // Optional exact-timestamp capability.
-        keyPictureDecoder: IKeyPictureDecoder?   // Optional clean-point-by-time capability.
-        deferred:        IDeferredDecoder?     // Optional deferred sample-index capability.
-        decoderType:     const *Swag.TypeInfoStruct?     // Concrete decoder type, used to release it.
+        source:            ByteSource                      // Bytes of the encoded stream.
+        info:              StreamInfo                      // What the decoder reported when opening.
+        format:            StreamFormat                    // Format claimed by the selected decoder.
+        decoder:           IDecoder?                       // Decoder instance owned by this reader.
+        audioDecoder:      IAudioDecoder?                  // Optional sound-track capability.
+        subtitleDecoder:   ISubtitleDecoder?               // Optional timed-text capability.
+        planarDecoder:     IPlanarDecoder?                 // Optional unconverted-picture capability.
+        timedDecoder:      ITimedDecoder?                  // Optional exact-timestamp capability.
+        keyPictureDecoder: IKeyPictureDecoder?             // Optional clean-point-by-time capability.
+        deferred:          IDeferredDecoder?               // Optional deferred sample-index capability.
+        decoderType:       const *Swag.TypeInfoStruct?     // Concrete decoder type, used to release it.
     }
 }
 
@@ -194,7 +194,7 @@ impl Reader
     // afterwards does not change it. Use it to build the format list of an open dialog.
     func decodableFormats()->Array'StreamFormat
     {
-        var result: retval
+        var result: #returntype
         result.reserve(decoders.count)
         for decoder in decoders do
             result.add(decoder.format)
@@ -232,7 +232,7 @@ impl Reader
     // ```
     func open(fileName: string, pictureOnly: bool = false)->Reader fail
     {
-        var result: retval
+        var result: #returntype
         result.source = try ByteSource.openFile(fileName)
         try result.start(fileName, pictureOnly)
         return result
@@ -245,7 +245,7 @@ impl Reader
     // it has for [[Video.Reader.open]].
     func openMemory(fileName: string, bytes: const [..] u8, pictureOnly: bool = false)->Reader fail
     {
-        var result: retval
+        var result: #returntype
         result.source = ByteSource.openMemory(bytes)
         try result.start(fileName, pictureOnly)
         return result
@@ -264,10 +264,10 @@ impl Reader
         // The registry only ever holds types that implement the interface, so the table resolves.
         .decoder = unwrap Swag.makeInterface(Memory.new(selected.type), selected.type, IDecoder)
         let instance = (.decoder).buffer
-        .planarDecoder = Swag.makeInterface(instance, selected.type, IPlanarDecoder)
-        .timedDecoder  = Swag.makeInterface(instance, selected.type, ITimedDecoder)
+        .planarDecoder     = Swag.makeInterface(instance, selected.type, IPlanarDecoder)
+        .timedDecoder      = Swag.makeInterface(instance, selected.type, ITimedDecoder)
         .keyPictureDecoder = Swag.makeInterface(instance, selected.type, IKeyPictureDecoder)
-        .deferred      = Swag.makeInterface(instance, selected.type, IDeferredDecoder)
+        .deferred          = Swag.makeInterface(instance, selected.type, IDeferredDecoder)
         if pictureOnly
         {
             // Told before opening, which is where a deferred container starts reading its sound.
@@ -298,14 +298,14 @@ impl Reader
             if type.opDrop do
                 type.opDrop(instance)
             Memory.free(instance, cast(u64, type.sizeof))
-            .decoder         = null
-            .audioDecoder    = null
-            .subtitleDecoder = null
-            .planarDecoder   = null
-            .timedDecoder    = null
+            .decoder           = null
+            .audioDecoder      = null
+            .subtitleDecoder   = null
+            .planarDecoder     = null
+            .timedDecoder      = null
             .keyPictureDecoder = null
-            .deferred        = null
-            .decoderType     = null
+            .deferred          = null
+            .decoderType       = null
         }
 
         .source.close()
@@ -436,7 +436,7 @@ impl Reader
         if not .decoder do
             fail BadParameterError{"video reader has no open stream"}
 
-        var result: retval
+        var result: #returntype
         if .keyPictureDecoder and (try .keyPictureDecoder.seekKeyPicture(&.source, seconds))
         {
             .refreshDeferredInfo()
@@ -477,7 +477,7 @@ impl Reader
     // one frame: it reuses the pixel storage instead of allocating a frame every time.
     mtd decodeFrame(index: u64)->Image fail
     {
-        var result: retval
+        var result: #returntype
         try .decodeFrameInto(&result, index)
         return result
     }

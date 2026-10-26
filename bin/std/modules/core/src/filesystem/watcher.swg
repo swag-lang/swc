@@ -94,7 +94,7 @@ func watch(root: string, options: WatchOptions)->Watcher fail
     if options.bufferSize < 4 * 1024 or options.bufferSize > 64 * 1024 do
         fail Errors.BadParameterError{}
 
-    var result: retval
+    var result: #returntype
     result.root    = try Path.absolute(root)
     result.options = options
     try result.openNative()

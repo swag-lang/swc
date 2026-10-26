@@ -42,12 +42,12 @@ public impl Image
         Swag.assert(nw > 0 and nh > 0, "resized dimensions round to zero")
         if nw == .width and nh == .height
         {
-            var result: retval = me
+            var result: #returntype = me
             return result
         }
 
         using ResizeTools
-        var result: retval = create(nw, nh, .pixelFormat, alphaMode: me.alphaMode)
+        var result: #returntype = create(nw, nh, .pixelFormat, alphaMode: me.alphaMode)
         ResizeTools.doResize(&result, me, mode)
         return result
     }
@@ -70,7 +70,7 @@ namespace ResizeTools
 
     func allocContributions(lineLength, windowSize: s64)->LineContrib
     {
-        var res: retval
+        var res: #returntype
         res.windowSize = windowSize
         res.lineLength = lineLength
         res.row.resize(cast(u64, lineLength))
@@ -185,7 +185,7 @@ namespace ResizeTools
 
         let windowSize = 2 * (cast(s64, Math.ceil(width)) + 1)
 
-        var res: retval
+        var res: #returntype
         res = allocContributions(lineSize, windowSize)
 
         for u in lineSize

@@ -156,7 +156,7 @@ impl Button
     {
         let inset = .themeMetrics().focusRing_Inset
 
-        var result: retval = box
+        var result: #returntype = box
         if not .name.isEmpty() do
             result.combine(.name.boundRect)
 

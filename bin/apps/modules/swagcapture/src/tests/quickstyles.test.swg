@@ -253,7 +253,7 @@ using Swag, Core
     // the kind whose two wordings differ, so it is the one that can tell the tables apart.
     func blurTip(quick: *QuickWnd)->String
     {
-        var result: retval
+        var result: #returntype
         for c in quick.layout.children
         {
             let button = assume cast(*QuickButton, c)

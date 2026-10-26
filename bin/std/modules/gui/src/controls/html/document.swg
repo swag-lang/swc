@@ -547,7 +547,7 @@ impl HtmlDocument
     // Prepares an empty tree holding only its document node.
     func create()->HtmlDocument
     {
-        var result: retval
+        var result: #returntype
         var root:   HtmlNode
         root.kind = .Document
         result.nodes.add(#move root)
@@ -590,7 +590,7 @@ impl HtmlDocument
     // invalidated by the next call.
     mtd intern(text: string)->HtmlRange
     {
-        var result: retval
+        var result: #returntype
         result.start = cast(u32, .builtText.length) | HtmlBuiltText
         result.count = cast(u32, text.count)
         .builtText   += text
@@ -612,7 +612,7 @@ impl HtmlDocument
     // Copies a run of source text, resolving the character references it carries.
     mtd internDecoded(text: string, inAttribute = false)->HtmlRange
     {
-        var result: retval
+        var result: #returntype
         result.start = cast(u32, .builtText.length) | HtmlBuiltText
         htmlDecodeInto(&.builtText, text, inAttribute)
         result.count = cast(u32, .builtText.length) - (result.start ^ HtmlBuiltText)
@@ -929,7 +929,7 @@ impl HtmlDocument
     // Structural pseudo-classes count elements, so text nodes never take a position.
     mtd const elementPosition(child: u32)->{ index: u32, count: u32 }
     {
-        var result: retval
+        var result: #returntype
         let parent = .nodes[child].parent
         if parent == HtmlNoNode do
             return {index: 1, count: 1}
@@ -948,7 +948,7 @@ impl HtmlDocument
     // This is what a search runs against, so a skipped element contributes nothing.
     mtd const textContent(root: u32)->String
     {
-        var result: retval
+        var result: #returntype
         .appendTextContent(&result, root)
         return result
     }

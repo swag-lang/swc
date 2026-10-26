@@ -94,13 +94,12 @@ func deferScopeOrder()->s64
 func deferFunctionReturnTrace()->DeferReturnInfo
 {
     resetDeferTrace()
-    with var result: retval
+    with var result: #returntype
     {
         .value = 42
         .trace = -1
     }
 
-    defer result.trace = DeferTrace
     defer appendDeferTrace(9)
     appendDeferTrace(1)
     return result
@@ -158,13 +157,12 @@ func deferWhileControl()->s64
 func deferWhileReturnTrace()->DeferReturnInfo
 {
     resetDeferTrace()
-    with var result: retval
+    with var result: #returntype
     {
         .value = -1
         .trace = -1
     }
 
-    defer result.trace = DeferTrace
     var i: s32 = 0
 
     while i < 4
@@ -185,7 +183,7 @@ func deferWhileReturnTrace()->DeferReturnInfo
 
 func deferBlockBodyTrace()->DeferReturnInfo
 {
-    with var result: retval
+    with var result: #returntype
     {
         .value = 666
         .trace = 0
@@ -193,7 +191,7 @@ func deferBlockBodyTrace()->DeferReturnInfo
 
     defer
     {
-        result.trace = deferValue()
+        DeferTrace = deferValue()
     }
 
     return result
@@ -302,7 +300,7 @@ func deferSwitch(v: s32)->s64
 func deferBreakToScopeAndDrop()->DeferDropInfo
 {
     DropCount = 0
-    with var result: retval
+    with var result: #returntype
     {
         .count = 0
         .drops = 0
@@ -342,7 +340,7 @@ func consumePointerForDefer(_: *u8) {}
 func deferParameterDropInfo()->DeferDropInfo
 {
     DropCount = 0
-    with var result: retval
+    with var result: #returntype
     {
         .count = 0
         .drops = 0
@@ -362,7 +360,7 @@ func deferParameterDropInfo()->DeferDropInfo
 func deferEmbeddedParameterDropInfo()->DeferDropInfo
 {
     DropCount = 0
-    with var result: retval
+    with var result: #returntype
     {
         .count = 0
         .drops = 0
@@ -382,13 +380,12 @@ func deferEmbeddedParameterDropInfo()->DeferDropInfo
 func deferReturnDropInfo()->DeferDropInfo
 {
     DropCount = 0
-    with var result: retval
+    with var result: #returntype
     {
         .count = 42
         .drops = 0
     }
 
-    defer result.drops = DropCount
     var x: DeferDropTracker
     x.value = 1
     return result
@@ -426,13 +423,12 @@ func deferFailTrace()->s64
 func deferConditionalReturnTrace()->DeferReturnInfo fail
 {
     resetDeferTrace()
-    with var result: retval
+    with var result: #returntype
     {
         .value = 7
         .trace = -1
     }
 
-    defer result.trace = DeferTrace
     defer #fail appendDeferTrace(1)
     defer #nofail appendDeferTrace(2)
     appendDeferTrace(3)
@@ -533,7 +529,7 @@ func deferBreakToScope()->s64
 {
     let v = deferFunctionReturnTrace()
     Swag.assert(v.value == 42)
-    Swag.assert(v.trace == 19)
+    Swag.assert(DeferTrace == 19)
 }
 
 #test
@@ -562,14 +558,15 @@ func deferBreakToScope()->s64
 {
     let v = deferWhileReturnTrace()
     Swag.assert(v.value == 42)
-    Swag.assert(v.trace == 172)
+    Swag.assert(DeferTrace == 172)
 }
 
 #test
 {
+    resetDeferTrace()
     let v = deferBlockBodyTrace()
     Swag.assert(v.value == 666)
-    Swag.assert(v.trace == 6)
+    Swag.assert(DeferTrace == 6)
 }
 
 #test
@@ -625,7 +622,7 @@ func deferBreakToScope()->s64
 {
     let v = deferReturnDropInfo()
     Swag.assert(v.count == 42)
-    Swag.assert(v.drops == 1)
+    Swag.assert(DropCount == 1)
 }
 
 #test
@@ -637,7 +634,7 @@ func deferBreakToScope()->s64
 {
     let v = catch deferConditionalReturnTrace()
     Swag.assert(v.value == 7)
-    Swag.assert(v.trace == 32)
+    Swag.assert(DeferTrace == 32)
 }
 
 #test

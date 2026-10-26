@@ -247,7 +247,7 @@ impl Slice
     // current macroblock nothing is decoded yet.
     mtd const motionAt(mb: *Mb, list: u32, rx, ry: s32)->NeighborMotion
     {
-        var result: retval
+        var result: #returntype
         let dec = unwrap .dec
         let gw  = dec.sps!.mbWidth * 4
 
@@ -325,7 +325,7 @@ impl Slice
     // skip the record the prediction needs.
     mtd const neighborMvd(mb: *Mb, list: u32, rx, ry: s32)->[2] s16
     {
-        var result: retval
+        var result: #returntype
         let dec = unwrap .dec
         var index:  u64
         if rx >= 0 and ry >= 0
@@ -1542,7 +1542,7 @@ impl Slice
     // Geometry of partition `part` for a one- or two-way shape.
     mtd const partGeometry(shape: u8, part: u32)->PartGeom
     {
-        var result: retval
+        var result: #returntype
         result.w4 = 4
         result.h4 = 4
         if shape == Shape16x8
@@ -1622,7 +1622,7 @@ impl Slice
     // `x4`, `y4`.
     mtd parseMvd(mb: *Mb, list: u32, x4, y4: s32)->[2] s16 fail
     {
-        var result: retval
+        var result: #returntype
         if .isCabac
         {
             result = .mvdCabac(mb, list, x4, y4)

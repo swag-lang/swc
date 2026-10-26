@@ -66,7 +66,7 @@ private func parseEac3Bsi(reader: *BitReader)->Eac3Bsi fail
 {
     if reader.read(16) != 0x0B77 do
         fail InvalidFormatError{"E-AC-3 packet has an invalid sync word"}
-    var result: retval
+    var result: #returntype
     result.streamType = reader.read(2)
     if result.streamType != 0 do
         fail UnsupportedFormatError{"E-AC-3 decoding currently supports independent substreams"}
@@ -137,7 +137,7 @@ private func parseEac3Bsi(reader: *BitReader)->Eac3Bsi fail
 
 private func parseEac3Frame(reader: *BitReader, bsi: const *Eac3Bsi)->Eac3Frame fail
 {
-    var result: retval
+    var result: #returntype
     if bsi.blocks == 6
     {
         result.expstre = reader.read(1) != 0
@@ -739,7 +739,7 @@ internal func eac3FrameInfo(packet: const [..] u8)->FrameInfo fail
     if packet[0] != 0x0B or packet[1] != 0x77 do
         fail InvalidFormatError{"E-AC-3 packet has no sync word"}
 
-    var result: retval
+    var result: #returntype
     result.frameBytes = 2 * (((cast(u64, packet[2]) & 7) << 8) | cast(u64, packet[3])) + 2
 
     let fscod = cast(u32, (packet[4] >> 6)) & 3

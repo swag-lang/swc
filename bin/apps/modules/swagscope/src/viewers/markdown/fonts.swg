@@ -23,7 +23,7 @@ func systemFaces(names: const [..] string)->[FontFamilyStyle.count] (*TypeFace?)
     if let found = g_FontFamilies.tryFind(key) do
         return found.value
 
-    var result: retval
+    var result: #returntype
     for name in names
     {
         let family = FontFamily.findSystemFont(name)

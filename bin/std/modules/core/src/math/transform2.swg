@@ -49,7 +49,7 @@ impl Transform2
         let cosine         = Math.cos(angle)
         let oneMinusCosine = 1.0 - cosine
 
-        with var result: retval
+        with var result: #returntype
         {
             .tx  = (centerX * oneMinusCosine) + (centerY * sine)
             .ty  = (centerY * oneMinusCosine) - (centerX * sine)
@@ -67,7 +67,7 @@ impl Transform2
     // The center stays in place, and a negative factor mirrors across it.
     func createScale(scaleX, scaleY: f32, centerX, centerY: f32)->Transform2
     {
-        with var result: retval
+        with var result: #returntype
         {
             .m11 = scaleX
             .m12 = 0
@@ -83,7 +83,7 @@ impl Transform2
     // Creates a translation by `x` along the X axis and `y` along the Y axis.
     func createTranslation(x, y: f32)->Transform2
     {
-        with var result: retval
+        with var result: #returntype
         {
             .m11 = 1
             .m12 = 0
@@ -120,7 +120,7 @@ impl Transform2
     // [[Core.Math.Transform2.transformPoint]] for positions.
     mtd const transformVector(vector: Vector2)->Vector2
     {
-        with var result: retval
+        with var result: #returntype
         {
             .x = vector.x * me.m11 + vector.y * me.m21
             .y = vector.x * me.m12 + vector.y * me.m22
@@ -135,7 +135,7 @@ impl Transform2
     // A rotation or a reflection leaves both at 1; the translation plays no part.
     mtd const axisScale()->Vector2
     {
-        with var result: retval
+        with var result: #returntype
         {
             .x = Math.sqrt(me.m11 * me.m11 + me.m12 * me.m12)
             .y = Math.sqrt(me.m21 * me.m21 + me.m22 * me.m22)
@@ -183,7 +183,7 @@ impl Transform2
         if determinant == 0 or not isFinite(inverseDeterminant) do
             return Identity
 
-        with var result: retval
+        with var result: #returntype
         {
             .m11 = me.m22 * inverseDeterminant
             .m12 = -me.m12 * inverseDeterminant

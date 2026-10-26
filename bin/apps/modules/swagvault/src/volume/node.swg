@@ -96,7 +96,7 @@ impl Node
     // before it is used.
     func deserialize(reader: *ByteStream, blockCount: u64)->Node fail
     {
-        with var result: retval
+        with var result: #returntype
         {
             .id             = try reader.readLittleEndian'u64()
             .parentId       = try reader.readLittleEndian'u64()

@@ -78,7 +78,7 @@ func loadViewerState(window: *ViewerWindow, bytes: const [..] u8)
 // against `currentFile` would survive.
 func viewerFixturePath()->String
 {
-    var result: retval
+    var result: #returntype
     result = Path.combine(unwrap Path.directoryName(#curlocation.fileName), "datas/comprehensive.txt")
     Path.normalize(&result)
     return result
@@ -86,7 +86,7 @@ func viewerFixturePath()->String
 
 func hexViewerFixturePath()->String
 {
-    var result: retval
+    var result: #returntype
     result = Path.combine(unwrap Path.directoryName(#curlocation.fileName), "datas/viewer.hex")
     Path.normalize(&result)
     return result

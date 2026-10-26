@@ -1568,7 +1568,7 @@ impl Rng
 // left out: only one engine can run them, so there is nothing to compare.
 func buildPattern(rng: *Rng, depth: u32)->String
 {
-    var result: retval
+    var result: #returntype
 
     let pieces = rng.below(3) + 1
     for var i = 0'u64; i < pieces; i += 1
@@ -1645,7 +1645,7 @@ func buildSubject(rng: *Rng)->String
     // have to hand a subject holding one of these to the engine that decodes them.
     const Alphabet = "aabbc12 x\u00E9\u00E9\u4E2D"
 
-    var result: retval
+    var result: #returntype
     let length = rng.below(18)
     for var i = 0'u64; i < length; i += 1 do
         result.append(Alphabet[rng.below(Alphabet.count)])

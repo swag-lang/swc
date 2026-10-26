@@ -484,7 +484,7 @@ impl Ghost
      */
     func targetPacmanOffsetBy(offsetSize: s32)->Dest
     {
-        var offset: retval = Dest{g_PacMan.getX(), g_PacMan.getY()}
+        var offset: #returntype = Dest{g_PacMan.getX(), g_PacMan.getY()}
 
         // Apply offset to correct coordinate based on Pacman's direction
         switch g_PacMan.dir

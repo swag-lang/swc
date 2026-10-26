@@ -143,7 +143,7 @@ impl Prefilter
     // pattern has been compiled.
     func fromProgram(program: const *Program)->Prefilter
     {
-        var result: retval
+        var result: #returntype
 
         // A pattern that is nothing but one byte set per offset is decided by the scan itself,
         // which is worth more than any other scan: a candidate costs a handful of byte tests
@@ -379,7 +379,7 @@ impl Prefilter
     // Builds the scan for one literal string, which is how an inner literal is looked for.
     func fromLiteral(bytes: const [..] u8)->Prefilter
     {
-        var result: retval
+        var result: #returntype
         if bytes.count == 0 do
             return result
 

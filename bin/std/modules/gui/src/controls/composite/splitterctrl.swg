@@ -349,7 +349,7 @@ private impl SplitterCtrl
 
     mtd barRectAt(idx: u32)->Math.Rectangle
     {
-        var result: retval = .paddedClientRect()
+        var result: #returntype = .paddedClientRect()
 
         let barSize = .themeMetrics().splitView_BarSize
         for item, i in .items

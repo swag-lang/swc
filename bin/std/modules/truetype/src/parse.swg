@@ -63,7 +63,7 @@ func decodeNameRecord(nameTable: const [..] u8, stringOffset, recordOffset: u64)
 // string when it declares none this module can read.
 func decodeBestName(nameTable: const [..] u8, nameID: u16)->String fail
 {
-    var result: retval
+    var result: #returntype
 
     let count        = try readU16(nameTable, 2)
     let stringOffset = try readU16(nameTable, 4)

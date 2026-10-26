@@ -22,7 +22,7 @@ func exifEntry(bytes: *Array'u8, at: u64, tag, kind, count, value: u64, little: 
 
 func exifFixture(little: bool)->Array'u8
 {
-    var result: retval
+    var result: #returntype
     result.resize(124)
     result[0] = little ? 'I'u8 : 'M'u8
     result[1] = result[0]

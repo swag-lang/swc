@@ -12,7 +12,6 @@
 #include "Compiler/CodeGen/Core/CodeGenTaggedHelpers.h"
 #include "Compiler/Parser/Ast/AstNodes.h"
 #include "Compiler/Sema/Core/Sema.h"
-#include "Compiler/Sema/Helpers/SemaHelpers.h"
 #include "Compiler/Sema/Helpers/SemaInline.h"
 #include "Compiler/Sema/Symbol/IdentifierManager.h"
 #include "Compiler/Sema/Symbol/Symbol.Function.h"
@@ -549,6 +548,13 @@ namespace
             return outPayload.isAddress();
         }
 
+        // A local built in the return storage is released where it lives.
+        if (CodeGenFunctionHelpers::usesCallerReturnStorage(codeGen, symVar))
+        {
+            outPayload = CodeGenFunctionHelpers::resolveCallerReturnStoragePayload(codeGen, symVar);
+            return outPayload.isAddress();
+        }
+
         if (const CodeGenNodePayload* variablePayload = codeGen.variablePayload(symVar))
         {
             outPayload = *variablePayload;
@@ -632,10 +638,14 @@ Result CodeGen::exec(SymbolFunction& symbolFunc, AstNodeRef root)
 
         moveElisionVars_.clear();
         elidedImplicitDrops_.clear();
+        returnStorageLocals_.clear();
+        returnStorageLocalContexts_.clear();
+        replacingReturns_.clear();
+        demotedReturnStorages_.clear();
+        returnReplacedLocal_ = nullptr;
         temporaryDrops_.clear();
-        returnMoveOutVar_     = nullptr;
-        returnReplacedRetVal_ = nullptr;
-        moveElisionAnalyzed_  = false;
+        returnMoveOutVar_    = nullptr;
+        moveElisionAnalyzed_ = false;
 
         clearGlobalsToDropScratchLayout();
 
@@ -1705,11 +1715,36 @@ void CodeGen::registerImplicitDrop(const SymbolVariable& symVar, const CodeGenFu
         return;
 
     auto& action            = lifetimeDeferScope().actions.emplace_back();
-    action.kind             = symVar.hasExtraFlag(SymbolVariableFlagsE::RetVal) ? CodeGenDeferredAction::Kind::RetValInScope : CodeGenDeferredAction::Kind::ImplicitDrop;
+    action.kind             = CodeGenDeferredAction::Kind::ImplicitDrop;
     action.variable         = &symVar;
     action.lifecycleTypeRef = symVar.typeRef();
     action.lifecycleKind    = LifecycleKind::Drop;
     action.modifierFlags    = AstModifierFlagsE::Zero;
+}
+
+void CodeGen::addReturnStorageLocal(const SymbolVariable& symVar, const SemaInlinePayload* returnContext)
+{
+    returnStorageLocals_.insert(&symVar);
+    if (returnContext)
+        returnStorageLocalContexts_.set(&symVar, returnContext);
+}
+
+void CodeGen::addReplacingReturn(AstNodeRef returnRef, const SymbolVariable& symVar, const SymbolVariable* demotedStorage)
+{
+    replacingReturns_.push_back({returnRef, &symVar});
+    if (demotedStorage)
+        demotedReturnStorages_.insert(demotedStorage);
+}
+
+const SymbolVariable* CodeGen::returnReplacedLocal(AstNodeRef returnRef) const
+{
+    for (const auto& [ref, symVar] : replacingReturns_)
+    {
+        if (ref == returnRef)
+            return symVar;
+    }
+
+    return nullptr;
 }
 
 void CodeGen::registerImplicitParameterDrops(std::span<const CodeGenFunctionHelpers::FunctionParameterInfo> paramInfos)
@@ -1780,11 +1815,6 @@ Result CodeGen::emitDeferredAction(const CodeGenDeferredAction& action)
             return Result::Continue;
         }
 
-        case CodeGenDeferredAction::Kind::RetValInScope:
-            if (action.variable != returnReplacedRetVal_)
-                return Result::Continue;
-            [[fallthrough]];
-
         case CodeGenDeferredAction::Kind::ImplicitDrop:
         {
             if (!action.variable || action.lifecycleTypeRef.isInvalid())
@@ -1794,8 +1824,8 @@ Result CodeGen::emitDeferredAction(const CodeGenDeferredAction& action)
             if (isImplicitDropElided(*action.variable))
                 return Result::Continue;
 
-            // This return moved ownership into its result; do not drop the local here.
-            if (action.variable == returnMoveOutVar_)
+            // This return moved ownership into its result, or released the local it replaced.
+            if (action.variable == returnMoveOutVar_ || action.variable == returnReplacedLocal_)
                 return Result::Continue;
 
             CodeGenNodePayload variablePayload;
@@ -1813,22 +1843,6 @@ Result CodeGen::emitDeferredAction(const CodeGenDeferredAction& action)
     }
 
     return Result::Continue;
-}
-
-// The innermost retval local in scope whose storage is the result of 'returnContext' (null
-// for the function's return slot). Retval locals of one context all name the same storage.
-const SymbolVariable* CodeGen::retValInScope(const SemaInlinePayload* returnContext) const
-{
-    for (size_t i = deferScopes_.size(); i != 0; --i)
-    {
-        for (const CodeGenDeferredAction& action : deferScopes_[i - 1].actions)
-        {
-            if (action.kind == CodeGenDeferredAction::Kind::RetValInScope && SemaHelpers::retValStorageOwner(sema(), *action.variable) == returnContext)
-                return action.variable;
-        }
-    }
-
-    return nullptr;
 }
 
 Result CodeGen::emitDeferredActionsInScope(const size_t scopeIndex, const size_t actionCount, const bool popErrorScope)
@@ -2265,6 +2279,13 @@ Result CodeGen::preNode(AstNode& node)
                 frame.currentInlineContext().resultStorageReg = resultStorageReg;
                 frame.currentInlineContext().resultStorageSym = resultStorageSym;
             }
+            else if (CodeGenFunctionHelpers::tryUseDirectReturnStorage(*this, currentNodeRef, inlinePayload->returnTypeRef, resultStorageReg, resultStorageSym))
+            {
+                // A returned expansion builds its result where the enclosing return goes, as a call does.
+                frame.currentInlineContext().resultStorageReg    = resultStorageReg;
+                frame.currentInlineContext().resultStorageSym    = resultStorageSym;
+                frame.currentInlineContext().directReturnStorage = true;
+            }
         }
 
         pushFrame(frame);
@@ -2279,8 +2300,9 @@ Result CodeGen::preNode(AstNode& node)
             frame.setCurrentInlineContext(targetInlinePayload->inlineRootRef, targetInlinePayload, doneLabel);
             if (matchingInlineCtx)
             {
-                frame.currentInlineContext().resultStorageReg = matchingInlineCtx->resultStorageReg;
-                frame.currentInlineContext().resultStorageSym = matchingInlineCtx->resultStorageSym;
+                frame.currentInlineContext().resultStorageReg    = matchingInlineCtx->resultStorageReg;
+                frame.currentInlineContext().resultStorageSym    = matchingInlineCtx->resultStorageSym;
+                frame.currentInlineContext().directReturnStorage = matchingInlineCtx->directReturnStorage;
             }
 
             // Without an outer frame, this is a locally compiled function (for example
@@ -2336,9 +2358,10 @@ Result CodeGen::postNode(AstNode& node)
             if (inlineCtx.payload->returnTypeRef != typeMgr().typeVoid())
             {
                 SWC_ASSERT(inlineCtx.payload->resultVar != nullptr);
+                // A result built in the enclosing function's return slot has no symbol, like a call's.
                 SymbolVariable* resultStorageSym = inlineCtx.resultStorageSym ? inlineCtx.resultStorageSym : inlineCtx.payload->resultVar;
                 inlineNodePayload.setIsAddress();
-                inlineNodePayload.setRuntimeStorageSymbol(resultStorageSym);
+                inlineNodePayload.setRuntimeStorageSymbol(inlineCtx.directReturnStorage ? inlineCtx.resultStorageSym : resultStorageSym);
                 if (inlineCtx.resultStorageReg.isValid())
                     inlineNodePayload.reg = inlineCtx.resultStorageReg;
                 else

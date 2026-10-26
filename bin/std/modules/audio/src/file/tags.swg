@@ -36,7 +36,7 @@ impl SoundTags
     // than an error.
     func read(fileName: string)->SoundTags
     {
-        var result: retval
+        var result: #returntype
         var file = catch File.openReadLive(fileName) { return result }
         defer file.close()
 
@@ -127,9 +127,16 @@ internal impl SoundTags
             var size: u64
             switch version
             {
-            case 2:  size = (cast(u64, tag[offset + 3]) << 16) | (cast(u64, tag[offset + 4]) << 8) | cast(u64, tag[offset + 5])
-            case 3:  size = bigEndian(tag[offset + 4 until offset + 8])
-            default: size = syncSafe(tag[offset + 4 until offset + 8])
+            case 2:
+                size = (cast(u64, tag[offset + 3]) << 16) |
+                       (cast(u64, tag[offset + 4]) << 8) |
+                       cast(u64, tag[offset + 5])
+
+            case 3:
+                size = bigEndian(tag[offset + 4 until offset + 8])
+
+            default:
+                size = syncSafe(tag[offset + 4 until offset + 8])
             }
 
             let body = offset + headerSize
@@ -139,10 +146,10 @@ internal impl SoundTags
             let text = tag[body until body + size]
             switch id
             {
-            case "TIT2", "TT2":         .title  = textFrame(text)
+            case "TIT2", "TT2":         .title = textFrame(text)
             case "TPE1", "TP1":         .artist = textFrame(text)
-            case "TALB", "TAL":         .album  = textFrame(text)
-            case "TYER", "TDRC", "TYE": .year   = yearOf(textFrame(text))
+            case "TALB", "TAL":         .album = textFrame(text)
+            case "TYER", "TDRC", "TYE": .year = yearOf(textFrame(text))
             }
 
             offset = body + size
@@ -209,13 +216,14 @@ private func textFrame(frame: const [..] u8)->String
     switch frame[0]
     {
     case 1, 2:
+
         // UTF-16, with a byte-order mark for encoding 1 and big-endian without one for 2.
         var bigEndianUnits = frame[0] == 2
-        var start          = 0'u64
+        var start = 0'u64
         if frame[0] == 1 and body.count >= 2
         {
             bigEndianUnits = body[0] == 0xFE and body[1] == 0xFF
-            start          = 2
+            start = 2
         }
 
         var units: Array'u16
@@ -238,6 +246,7 @@ private func textFrame(frame: const [..] u8)->String
         result = String.from(cast(string, body[until end]))
 
     default:
+
         // ISO-8859-1, whose code points are its byte values.
         for byte in body
         {
@@ -265,6 +274,15 @@ private func yearOf(date: String)->String
     return date
 }
 
-private func syncSafe(bytes: const [..] u8)->u64     => (cast(u64, bytes[0] & 0x7F) << 21) | (cast(u64, bytes[1] & 0x7F) << 14) | (cast(u64, bytes[2] & 0x7F) << 7) | cast(u64, bytes[3] & 0x7F)
-private func bigEndian(bytes: const [..] u8)->u64    => (cast(u64, bytes[0]) << 24) | (cast(u64, bytes[1]) << 16) | (cast(u64, bytes[2]) << 8) | cast(u64, bytes[3])
-private func littleEndian(bytes: const [..] u8)->u64 => (cast(u64, bytes[3]) << 24) | (cast(u64, bytes[2]) << 16) | (cast(u64, bytes[1]) << 8) | cast(u64, bytes[0])
+private func syncSafe(bytes: const [..] u8)->u64 => (cast(u64, bytes[0] & 0x7F) << 21) |
+                                                    (cast(u64, bytes[1] & 0x7F) << 14) |
+                                                    (cast(u64, bytes[2] & 0x7F) << 7) |
+                                                    cast(u64, bytes[3] & 0x7F)
+private func bigEndian(bytes: const [..] u8)->u64 => (cast(u64, bytes[0]) << 24) |
+                                                     (cast(u64, bytes[1]) << 16) |
+                                                     (cast(u64, bytes[2]) << 8) |
+                                                     cast(u64, bytes[3])
+private func littleEndian(bytes: const [..] u8)->u64 => (cast(u64, bytes[3]) << 24) |
+                                                        (cast(u64, bytes[2]) << 16) |
+                                                        (cast(u64, bytes[1]) << 8) |
+                                                        cast(u64, bytes[0])

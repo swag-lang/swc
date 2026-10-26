@@ -34,7 +34,7 @@ public impl Md5
     // Call [[reset]] before reusing this value after finalization.
     mtd finalize()->Digest
     {
-        var digest:  retval
+        var digest:  #returntype
         var bits:    [8] u8
         var padding: [64] u8
         padding[0] = 0x80
@@ -110,7 +110,7 @@ public impl Md5
 
             transform(state, &block[0])
 
-            var result: retval
+            var result: #returntype
             encode(&result[0], state, 16)
             return result
         }
@@ -126,7 +126,7 @@ public impl Md5
     {
         const CONV = "0123456789ABCDEF"
 
-        var result: retval
+        var result: #returntype
         result.reserve(33)
 
         for v in digest

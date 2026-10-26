@@ -68,7 +68,7 @@ internal
 // refused; the title and class still make the capture searchable in that case.
 func captureWindowInfo(hWnd: HWND)->CaptureWindowInfo
 {
-    var result: retval
+    var result: #returntype
     if not hWnd do
         return result
 
@@ -144,7 +144,7 @@ func findWndAtPos(srf: *Surface, x, y: f32)->HWND
 
 func getCaptureWindowAtPos(srf: *Surface, x, y: f32)->{ rect: Math.Rectangle, info: CaptureWindowInfo }
 {
-    var result: retval
+    var result: #returntype
     let hit = findWndAtPos(srf, x, y)
     if not hit do
         return result
@@ -183,7 +183,7 @@ func getCaptureWindowForRect(srf: *Surface, captureRect: Math.Rectangle)->Captur
 // is none.
 func getBackgroundWindow()->{ rect: Math.Rectangle, info: CaptureWindowInfo }
 {
-    var result: retval
+    var result: #returntype
     let hit = GetForegroundWindow()
     if not hit do
         return result

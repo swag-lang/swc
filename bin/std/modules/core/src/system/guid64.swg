@@ -52,7 +52,7 @@ impl Guid64
     {
         initRng()
 
-        var result: retval
+        var result: #returntype
         let now = Time.DateTime.now()
 
         let dateTicks = Time.dateToTicks(now.year, now.month, now.day) +
@@ -77,7 +77,7 @@ impl Guid64
     {
         initRng()
 
-        var result: retval
+        var result: #returntype
         result.value = g_Rng.nextU64()
         return result
     }
@@ -87,7 +87,7 @@ impl Guid64
     {
         initRng()
 
-        var result: retval
+        var result: #returntype
         let nowMs = Time.monotonicMilliseconds()
         let nowUs = Time.monotonicMicroseconds()
         let pid   = cast(u64, Env.Process.currentProcessId())
@@ -130,7 +130,7 @@ impl Guid64
     // Returns 16 uppercase hexadecimal digits.
     mtd const toString()->String
     {
-        var result: retval
+        var result: #returntype
         result.reserve(16)
         result.length = 16
         .toString(result.toSlice())
@@ -140,7 +140,7 @@ impl Guid64
     // Parses exactly 16 hexadecimal digits, with an optional `0x` prefix.
     func parse(str: string)->Guid64 fail
     {
-        var result: retval
+        var result: #returntype
         if not tryParse(str, &result) do
             fail InvalidFormatError{"invalid 64-bit identifier"}
         return result

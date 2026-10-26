@@ -310,7 +310,7 @@ impl MediaInfoPanel
     // Returns every row as one line of text, for the clipboard.
     mtd text()->String
     {
-        var result: retval
+        var result: #returntype
         for row in .data.rows
         {
             result += row.label()

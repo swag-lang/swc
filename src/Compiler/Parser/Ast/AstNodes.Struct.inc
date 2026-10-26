@@ -1135,7 +1135,7 @@ struct AstLambdaType : AstNodeT<AstNodeId::LambdaType, AstFunctionFlagsE>
     AstNodeRef semaClone(Sema& sema, const CloneContext& cloneContext) const;
 };
 
-struct AstRetValType : AstNodeT<AstNodeId::RetValType>
+struct AstCurrentReturnType : AstNodeT<AstNodeId::CurrentReturnType>
 {
     static Result semaPostNode(Sema& sema);
     AstNodeRef    semaClone(Sema& sema, const CloneContext& cloneContext) const;

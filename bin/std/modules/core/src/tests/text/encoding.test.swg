@@ -5,7 +5,7 @@ using Swag
 
 func scalarCountZeroPositions(bytes: const [..] u8)->{ even: u64, odd: u64 }
 {
-    var result: retval
+    var result: #returntype
     for value, index in bytes where not value
     {
         if index & 1 do

@@ -191,7 +191,7 @@ private func parseFormat(bytes: const [..] u8)->Format fail
     if size < FormatBaseSize do
         fail InvalidFormatError{"invalid wav"}
 
-    var result: retval
+    var result: #returntype
     let tag = readU16(bytes, 0)
     result.channels   = readU16(bytes, 2)
     result.sampleRate = readU32(bytes, 4)
@@ -261,7 +261,7 @@ private func readLayout(stream: *File.FileStream)->Layout fail
         FindData
     }
 
-    var result: retval
+    var result: #returntype
     var stage:  Stage = FindRiff
     var header: ChunkHeader
     let fileBytes     = try stream.size()
@@ -400,7 +400,7 @@ internal func openFile(path: string, preloadData: bool)->SoundFile fail
     if not bytesPerSample do
         fail InvalidFormatError{"invalid wav"}
 
-    with var result: retval
+    with var result: #returntype
     {
         .path               = path
         .encoding           = format.encoding

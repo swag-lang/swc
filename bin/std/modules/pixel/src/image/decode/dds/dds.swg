@@ -312,7 +312,7 @@ impl Decoder
 
         if selected >= current do
             fail InvalidFormatError{"DDS image index is out of range"}
-        var result: retval
+        var result: #returntype
         result.init(cast(s32, width), cast(s32, height), format, alphaMode)
         if not options.decodePixels do
             return result
@@ -349,7 +349,7 @@ impl IImageSetDecoder for Decoder
         var probeOptions = options
         probeOptions.decodePixels = false
         discard try .decodeSurface(buffer, probeOptions, collect: true)
-        var result: retval
+        var result: #returntype
         result.frames = .frames
         return result
     }

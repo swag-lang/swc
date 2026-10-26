@@ -84,7 +84,7 @@ func parseContainer(buffer: const [..] u8, options: DecodeOptions = {})->Contain
     if riffSize + 8 > buffer.count do
         fail InvalidFormatError{"WebP data ends before the declared RIFF size"}
 
-    var result: retval
+    var result: #returntype
     var seenAnimation = false
     let riffEnd       = source + riffSize + 8
     var cursor        = source + 12
@@ -241,7 +241,7 @@ func decodeLossless(container: Container, options: DecodeOptions)->Image fail
     if container.hasExtendedHeader and (width != container.canvasWidth or height != container.canvasHeight) do
         fail InvalidFormatError{"WebP VP8L dimensions differ from the VP8X canvas"}
 
-    var result: retval
+    var result: #returntype
     result.init(width, height, .RGBA8)
     try options.checkImage(width, height, .RGBA8)
     if not options.decodePixels do
@@ -395,7 +395,7 @@ func decodeLossy(container: Container, options: DecodeOptions)->Image fail
         fail InvalidFormatError{"WebP VP8 dimensions differ from the VP8X canvas"}
     }
 
-    var result: retval
+    var result: #returntype
     result.init(decoder.header.width, decoder.header.height, .RGBA8)
     try options.checkImage(result.width, result.height, .RGBA8)
     if not options.decodePixels do
@@ -442,7 +442,7 @@ internal impl IImageDecoder for Decoder
             return reader.read(0)
         }
 
-        var result: retval = container.image.kind == WEBP_FOURCC_VP8L ? decodeLossless(container, options) : decodeLossy(container, options)
+        var result: #returntype = container.image.kind == WEBP_FOURCC_VP8L ? decodeLossless(container, options) : decodeLossy(container, options)
         result.metadata = container.metadata
         return result
     }
@@ -453,7 +453,7 @@ impl IImageSetDecoder for Decoder
     mtd impl open(buffer: const [..] u8, options: DecodeOptions)->ImageSetInfo fail
     {
         .container = try parseContainer(buffer, options)
-        var result: retval
+        var result: #returntype
         if .container.animated
         {
             result.canvasWidth  = .container.canvasWidth
@@ -480,7 +480,7 @@ impl IImageSetDecoder for Decoder
         {
             if index do
                 fail InvalidFormatError{"WebP image index is out of range"}
-            var result: retval = .container.image.kind == WEBP_FOURCC_VP8L ? try decodeLossless(.container, options) : try decodeLossy(.container, options)
+            var result: #returntype = .container.image.kind == WEBP_FOURCC_VP8L ? try decodeLossless(.container, options) : try decodeLossy(.container, options)
             if options.decodeMetadata do
                 result.metadata = .container.metadata
             return result
@@ -489,8 +489,8 @@ impl IImageSetDecoder for Decoder
         if index >= .container.frames.count do
             fail InvalidFormatError{"WebP image index is out of range"}
         let frame = &.container.frames[index]
-        let container: Container = Container{image: frame.image, alpha: frame.alpha, canvasWidth: frame.info.width, canvasHeight: frame.info.height, hasExtendedHeader: true, expectsAlpha: frame.alpha.data != null}
-        var result:    retval    = container.image.kind == WEBP_FOURCC_VP8L ? try decodeLossless(container, options) : try decodeLossy(container, options)
+        let container: Container   = Container{image: frame.image, alpha: frame.alpha, canvasWidth: frame.info.width, canvasHeight: frame.info.height, hasExtendedHeader: true, expectsAlpha: frame.alpha.data != null}
+        var result:    #returntype = container.image.kind == WEBP_FOURCC_VP8L ? try decodeLossless(container, options) : try decodeLossy(container, options)
         if options.decodeMetadata do
             result.metadata = .container.metadata
         return result

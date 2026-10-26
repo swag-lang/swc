@@ -119,7 +119,7 @@ public func extractHaarFeatures(image: Image, windowSize: u32 = 128)->HaarFeatur
     Swag.assert(Math.isPowerOf2(windowSize))
     Swag.assert(windowSize >= 32)
 
-    var features: retval
+    var features: #returntype
 
     // Determine optimal size
     let targetSize = Math.min(Math.roundUpToPowerOf2(cast(u32, Math.min(image.width, image.height))), windowSize)
@@ -250,7 +250,7 @@ public func quickExtractHaarFeatures(image: Image, windowSize: u32 = 32)->HaarFe
     Swag.assert(windowSize >= 32)
     Swag.assert(image.width > 0 and image.height > 0, "Image must have positive dimensions")
 
-    var features: retval
+    var features: #returntype
     features.coefficients.resize(windowSize * windowSize)
     features.size   = cast(s32, windowSize)
     features.levels = cast(s32, Math.log2(cast(f32, windowSize)))     // Number of decomposition levels

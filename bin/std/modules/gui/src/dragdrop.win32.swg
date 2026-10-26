@@ -101,7 +101,7 @@ private func dragSourceHelper()->*IDragSourceHelper?
 // Converts the key state OLE reports into the modifiers a GUI event carries.
 private func toKeyModifiers(grfKeyState: DWORD)->Input.KeyModifiers
 {
-    var result: retval
+    var result: #returntype
     if grfKeyState & MK_SHIFT do
         result |= .Shift
     if grfKeyState & MK_CONTROL do
@@ -114,7 +114,7 @@ private func toKeyModifiers(grfKeyState: DWORD)->Input.KeyModifiers
 // Converts an effect set between the one OLE speaks and [[Gui.DropEffect]], in both directions.
 private func toDropEffect(value: DWORD)->DropEffect
 {
-    var result: retval
+    var result: #returntype
     if value & DROPEFFECT_COPY do
         result |= .Copy
     if value & DROPEFFECT_MOVE do
@@ -181,7 +181,7 @@ private func readStream(stream: *IStream, dest: *Array'u8)
 // over its content — would otherwise read as nothing on offer.
 private func readFormat(dataObj: *IDataObject, format: u32, index: s32 = -1)->Array'u8
 {
-    var result: retval
+    var result: #returntype
 
     var med: STGMEDIUM
     if not requestMedium(dataObj, format, TYMED_HGLOBAL | TYMED_ISTREAM, index, &med) do
@@ -435,7 +435,7 @@ private func comDrop(itf: *IDropTarget, dataObj: *IDataObject?, grfKeyState: DWO
 // Describes one format the payload can produce through the mediums in `tymed`.
 private func offeredFormat(format: u32, tymed: u32, index: s32 = -1)->FORMATETC
 {
-    var result: retval
+    var result: #returntype
     result.cfFormat = cast(CLIPFORMAT, format)
     result.dwAspect = DVASPECT_CONTENT
     result.lindex   = index
@@ -447,7 +447,7 @@ private func offeredFormat(format: u32, tymed: u32, index: s32 = -1)->FORMATETC
 // first one it understands out of the enumeration.
 private func offeredFormats(data: *DragData)->Array'FORMATETC
 {
-    var result: retval
+    var result: #returntype
     if data.hasFiles() do
         result.add(offeredFormat(CF_HDROP, TYMED_HGLOBAL))
 
@@ -1103,7 +1103,7 @@ private const DragImageMaxSide = 160's32
 // moment `InitializeFromBitmap` succeeds, so nothing here deletes it on that path.
 private func buildDragBitmap(image: const *Image)->{ bmp: HBITMAP, width, height: s32 }
 {
-    var result: retval
+    var result: #returntype
 
     var img = image[]
     if not img.isValid() do

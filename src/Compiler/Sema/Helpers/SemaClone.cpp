@@ -2411,10 +2411,10 @@ AstNodeRef AstBuiltinType::semaClone(Sema& sema, const CloneContext& cloneContex
     return cloneNodeCopy<AstNodeId::BuiltinType>(sema, *this);
 }
 
-AstNodeRef AstRetValType::semaClone(Sema& sema, const CloneContext& cloneContext) const
+AstNodeRef AstCurrentReturnType::semaClone(Sema& sema, const CloneContext& cloneContext) const
 {
     SWC_UNUSED(cloneContext);
-    return cloneNodeCopy<AstNodeId::RetValType>(sema, *this);
+    return cloneNodeCopy<AstNodeId::CurrentReturnType>(sema, *this);
 }
 
 AstNodeRef AstVariadicType::semaClone(Sema& sema, const CloneContext& cloneContext) const

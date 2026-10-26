@@ -26,7 +26,7 @@ func buildHiddenCreateForm(dialog: *FormDlg)->HiddenFields
     let texts = appStrings()
     VaultForm.configure(form)
 
-    with var result: retval
+    with var result: #returntype
     {
         .capacity = form.addTextField(texts.ui_FixedCapacity, "256", help: texts.ui_HiddenCreateHelp)
         .capacity.setUnsignedIntegerRange(1, 1024 * 1024)
@@ -54,7 +54,7 @@ func buildHiddenProtectionForm(dialog: *FormDlg)->HiddenFields
     let texts = appStrings()
     VaultForm.configure(form)
 
-    with var result: retval
+    with var result: #returntype
     {
         .password = form.addPasswordField(texts.ui_HiddenPassword, help: texts.ui_HiddenProtectionHelp)
         .keyFiles = KeyFileField.create(form, canGenerate: false)

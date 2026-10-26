@@ -61,7 +61,7 @@ private func subtitleBackdrop(lines: const [..] string, font: *Font, centerX, to
         rights.add(left + width + 2 * padX)
     }
 
-    var result: retval
+    var result: #returntype
     result.start(rights[0], rows[0])
     for index in lines.count
     {

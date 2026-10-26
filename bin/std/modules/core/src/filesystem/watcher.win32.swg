@@ -150,7 +150,7 @@ internal impl Watcher
 
     private mtd parseChanges(state: *WatcherNative, transferred: u32)->WatchBatch
     {
-        var result: retval
+        var result: #returntype
         result.status = .Changes
 
         var offset = 0'u32

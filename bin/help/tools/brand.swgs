@@ -149,7 +149,7 @@ func buildMark(scale, originX, originY: f32)->LinePath
         Corner{w - s, m1, NOTCH},     // The blind end of the lower counter.
         Corner{0, m1, NOTCH}]
 
-    var result: retval
+    var result: #returntype
     var pen = MarkPen{&result, scale, originX, originY}
 
     let count = corners.count

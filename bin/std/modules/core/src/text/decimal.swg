@@ -601,7 +601,7 @@ impl Decimal
         }
 
         // Assemble bits.
-        var result: retval
+        var result: #returntype
         var bits = mant & ((1'u64 << Swag.F64.MantBits) - 1)
         bits |= cast(u64, ((.exp - Swag.F64.Bias) & ((1's64 << Swag.F64.MantBits) - 1))) << Swag.F64.MantBits
         if .neg do

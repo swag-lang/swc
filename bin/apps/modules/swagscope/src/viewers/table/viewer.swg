@@ -6,7 +6,7 @@ using Core, Core.Errors, Pixel, Gui
 // Describes the delimited-text table viewer to the host.
 func viewerPlugin()->Viewer.Plugin
 {
-    with var result: retval
+    with var result: #returntype
     {
         .key          = "table"
         .staticName   = "Table"
@@ -113,7 +113,7 @@ private func loadDocument(fileName: string)->Document fail
 // every virtual-row repaint linear in the hidden tail.
 func cellPreviewRange(value: string, focus = Swag.U64.Max)->{ start, end: u64 }
 {
-    var result: retval
+    var result: #returntype
     result.end = value.count
     if result.end <= CellPreviewBytes do
         return result
@@ -133,7 +133,7 @@ func cellPreviewRange(value: string, focus = Swag.U64.Max)->{ start, end: u64 }
 // Parses RFC-4180 quoting and the line-ending forms commonly found in CSV and TSV files.
 func parseDocument(text: string, delimiter: u8)->Document fail
 {
-    var result: retval
+    var result: #returntype
     result.delimiter = delimiter
 
     var row:         Row
@@ -325,15 +325,19 @@ func quantityOf(text: string, result: *f64)->bool
     var hasDot, commas, digitsAfterComma: u64
     for byte in text
     {
-        if byte == '.' do
+        if byte == '.'
+        {
             hasDot += 1
+        }
         elif byte == ','
         {
             commas += 1
             digitsAfterComma = 0
         }
-        elif byte >= '0' and byte <= '9' do
+        elif byte >= '0' and byte <= '9'
+        {
             digitsAfterComma += 1
+        }
     }
 
     let decimalComma = not hasDot and commas == 1 and digitsAfterComma != 3
@@ -490,7 +494,7 @@ private impl Panel
     // them: complete cell values separated by tabs, one row per line, in the order shown.
     mtd selectionText()->String
     {
-        var result: retval
+        var result: #returntype
         let anySelected = .hasSelection()
         for line in .document.rows.count
         {
@@ -639,8 +643,8 @@ private impl Panel
             .setSelectionMode(.Multi)
             .setFirstColumnIconMargin(false)
             .updateFlags(.HotTrack | .AlternateLines | .Ellipsis)
-            .header.form       = .Transparent
-            .onFillVirtualLine = &fillVirtualLine
+            .header.form             = .Transparent
+            .onFillVirtualLine       = &fillVirtualLine
             .header.sigColumnClicked += func|result|(_, column) { result.sortBy(column) }
         }
 

@@ -5,7 +5,7 @@
 // Find part numbers (numbers adjacent to symbols) and gear ratios
 // (products of exactly two numbers adjacent to a '*').
 // Exercises: enum, impl/mtd with arrow syntax, generics, interfaces,
-// macros, mixins, #run compile-time, retval, defer, element iteration,
+// macros, mixins, #run compile-time, #returntype, defer, element iteration,
 // bitwise operators, 'switch #complete', function overloading.
 
 const MaxDim     = 142'u32
@@ -94,7 +94,7 @@ impl Grid
 
 func parseGrid(bytes: const [..] u8)->Grid
 {
-    var result: retval
+    var result: #returntype
     var col:    u32
 
     for index in bytes.count
@@ -291,7 +291,7 @@ func declareSolverState()
 
 func extractNumbers(grid: Grid)->NumberList
 {
-    var result: retval
+    var result: #returntype
 
     for row in grid.height
     {
@@ -328,7 +328,7 @@ func extractNumbers(grid: Grid)->NumberList
 
 func solveClean(grid: Grid)->EngineResult
 {
-    var result: retval
+    var result: #returntype
     let numbers = extractNumbers(grid)
 
     // Part 1: sum part numbers

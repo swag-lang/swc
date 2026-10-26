@@ -11,7 +11,7 @@ using Core
 // no text, as [[Core.Errors.message]] does.
 func failureText(err: any?)->String
 {
-    var result: retval
+    var result: #returntype
     if err == null do
         return result
 

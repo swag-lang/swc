@@ -44,7 +44,7 @@ impl DragContent
     // Builds one offered file whose content is already in hand.
     internal func from(name: String, bytes: const [..] u8)->DragContent
     {
-        var result: retval
+        var result: #returntype
         result.name     = name
         result.produced = true
         result.bytes.add(bytes)
@@ -54,7 +54,7 @@ impl DragContent
     // Builds one offered file whose content is produced the first time it is read.
     internal func from(name: String, producer: func||()->Array'u8)->DragContent
     {
-        var result: retval
+        var result: #returntype
         result.name     = name
         result.producer = producer
         return result

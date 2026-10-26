@@ -23,7 +23,7 @@ struct LocalCleanupError
 #[Swag.NoInline]
 func makeTracked()->Tracked
 {
-    var result: retval
+    var result: #returntype
     result.value = 42
     return result
 }

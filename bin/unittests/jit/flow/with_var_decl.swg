@@ -50,7 +50,7 @@ func jitWithAnonymous()->s32
 
 func jitWithRetval()->{ a, b: s32 }
 {
-    with var result: retval
+    with var result: #returntype
     {
         .a = 21
         .b = 34
@@ -72,7 +72,7 @@ func jitWithLocalInit()->s32
 
 func jitWithRetvalUndefined()->{ a, b: s32 }
 {
-    with var result: retval
+    with var result: #returntype
     {
         .a = 55
         .b = 89

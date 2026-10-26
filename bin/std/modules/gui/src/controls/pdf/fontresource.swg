@@ -158,7 +158,7 @@ impl FontResource
         if mapped do
             return mapped.value
 
-        var result: retval
+        var result: #returntype
         let value = .runeOf(code)
         if value do
             result.append(value)
@@ -179,7 +179,7 @@ impl FontResource
     // Converts one PDF string into UTF-8 text.
     mtd const decodeText(bytes: string)->String
     {
-        var result: retval
+        var result: #returntype
         let size = Math.max(.codeBytes, 1)
         var pos  = 0'u64
         while pos + size <= bytes.count
@@ -208,7 +208,7 @@ impl FontResource
     // maps those codes to Unicode, but rasterization must keep the original font addresses.
     mtd const decodeCodes(bytes: string)->Array'u32
     {
-        var result: retval
+        var result: #returntype
         let size = Math.max(.codeBytes, 1)
         var pos  = 0'u64
         result.reserve(bytes.count / size)
@@ -227,7 +227,7 @@ impl FontResource
     // Returns each character code's declared PDF advance before horizontal text scaling.
     mtd const codeAdvances(bytes: string, fontSize, charSpacing, wordSpacing: f32)->Array'f32
     {
-        var result: retval
+        var result: #returntype
         let codes = #move .decodeCodes(bytes)
         result.reserve(codes.count)
         for code in codes
@@ -271,7 +271,7 @@ impl FontResource
 // Reads one font dictionary into the resource a decoded page keeps.
 internal func decodeFontResource(parser: *PdfParser, fontId: u32, name: string)->FontResource fail
 {
-    var result: retval
+    var result: #returntype
     result.objectId = fontId
     result.name     = name
     result.baseName = parser.name(parser.dict(fontId, "BaseFont"))

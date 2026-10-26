@@ -24,7 +24,7 @@ impl OutlineBuilder
 {
     func create(face: *FaceImpl, xPpem, yPpem: u32, unitsPerEm: u32)->OutlineBuilder
     {
-        var result: retval
+        var result: #returntype
         result.face   = face
         result.scaleX = cast(f64, xPpem) * 64.0 / cast(f64, Math.max(1'u32, unitsPerEm))
         result.scaleY = cast(f64, yPpem) * 64.0 / cast(f64, Math.max(1'u32, unitsPerEm))

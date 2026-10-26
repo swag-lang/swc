@@ -41,7 +41,7 @@ struct LegacyImageMetaData
 
 func makeLegacyImage()->LegacyImage
 {
-    var result: retval
+    var result: #returntype
     result.width  = 3
     result.height = 2
     result.width8 = 3 * 4

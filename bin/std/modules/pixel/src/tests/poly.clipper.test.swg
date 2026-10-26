@@ -28,7 +28,7 @@ struct Rules
 // Runs one boolean operation over two path sets.
 func runOp(subject, clip: *ClipperPaths, op: ClipType, rules: Rules)->ClipperPaths
 {
-    var result: retval
+    var result: #returntype
 
     var trf: Transform
     trf.strictSimple = rules.strictSimple
@@ -61,7 +61,7 @@ enum Shape
 // never crosses itself whatever radii the generator draws.
 func starContour(rng: *Random.Generator, cx, cy: f64, count: u32)->ClipperPath
 {
-    var result: retval
+    var result: #returntype
     result.reserve(count)
 
     for i in count
@@ -81,7 +81,7 @@ func gridContour(rng: *Random.Generator)->ClipperPath
 {
     const Cell = 20_000'f64
 
-    var result: retval
+    var result: #returntype
     let col = cast(f64, rng.nextS32(-3, 3))
     let row = cast(f64, rng.nextS32(-3, 3))
     let x0  = cast(s64, (col * Cell)) + cast(s64, rng.nextS32(-1, 1))
@@ -100,7 +100,7 @@ func gridContour(rng: *Random.Generator)->ClipperPath
 // along vertical walls and share their base exactly.
 func combContour(rng: *Random.Generator, teeth: u32)->ClipperPath
 {
-    var result: retval
+    var result: #returntype
 
     let x0   = cast(s64, rng.nextS32(-60_000, 60_000))
     let y0   = cast(s64, rng.nextS32(-60_000, 60_000))
@@ -121,7 +121,7 @@ func combContour(rng: *Random.Generator, teeth: u32)->ClipperPath
 // A set of one to four contours of the requested shape.
 func randomSet(rng: *Random.Generator, shape: Shape)->ClipperPaths
 {
-    var result: retval
+    var result: #returntype
 
     for rng.nextU32(1, 4)
     {

@@ -184,7 +184,7 @@ private
 
     func compareImages(expected, actual: const *Image, options: ImageGoldenOptions)->ImageDifference
     {
-        var result: retval
+        var result: #returntype
         result.sameSize = expected.width == actual.width and expected.height == actual.height
         if not result.sameSize do
             return result
@@ -316,7 +316,7 @@ private
 
     func splitLines(text: string)->Array'String
     {
-        var result: retval
+        var result: #returntype
         var cur:    String
 
         for i in text.count

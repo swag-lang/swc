@@ -65,7 +65,7 @@ impl ImageCanvas
     // The canvas starts cleared to fully transparent.
     func create(width, height: s32)->ImageCanvas fail
     {
-        var result: retval
+        var result: #returntype
         try open(&result, width, height)
         return result
     }
@@ -142,7 +142,7 @@ impl ImageCanvas
         if not image.isValid() do
             fail InvalidFormatError{"invalid image"}
 
-        var result: retval
+        var result: #returntype
         try open(&result, image.width, image.height)
 
         let renderer = unwrap result.renderer
@@ -200,7 +200,7 @@ impl ImageCanvas
         renderer.begin(.width, .height)
         let rendererItf: IRenderer = renderer
         .painter.render()
-        var result: retval = rendererItf.readRenderTarget(unwrap .target, 0, 0, .width, .height)
+        var result: #returntype = rendererItf.readRenderTarget(unwrap .target, 0, 0, .width, .height)
         rendererItf.end()
 
         .painter.begin()

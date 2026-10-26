@@ -507,7 +507,7 @@ impl Decoder
         }
     }
 
-    mtd adam7()
+    mtd adam7(dstPixels: [*] u8)
     {
         var tmpArr: Array'u8
         var input = .dcmpBuf.storage()
@@ -534,7 +534,6 @@ impl Decoder
                     let outX   = (i * Adam7SpacingX[p]) + Adam7OrigX[p]
                     var outOff = outY * .header.width * pixelBytes
                     outOff += outX * pixelBytes
-                    let dstPixels = .safeDstPixels()
                     for z in pixelBytes do
                         dstPixels[outOff + z] = t[z]
                     t += pixelBytes
@@ -546,18 +545,19 @@ impl Decoder
         }
     }
 
-    mtd defilter()
+    // Defilters the decompressed rows into `dstPixels`, which holds the whole image.
+    mtd defilter(dstPixels: [*] u8)
     {
         if .header.interlaceMethod != .Adam7
         {
             .orderDefilter = false
             let input = .dcmpBuf.storage()
-            .defilter(.header.width, .header.height, input, .safeDstPixels())
+            .defilter(.header.width, .header.height, input, dstPixels)
         }
         else
         {
             .orderDefilter = true
-            .adam7()
+            .adam7(dstPixels)
         }
     }
 }

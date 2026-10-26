@@ -3,7 +3,7 @@
 // Advent of Code 2024 Day 20: find shortcuts (cheats) in a racetrack maze.
 // Part 1: cheats up to 2 picoseconds, count those saving >= threshold.
 // Part 2: cheats up to 20 picoseconds, count those saving >= threshold.
-// Exercises: Swag.abs on s32, #[Swag.Inline] func with retval returning struct,
+// Exercises: Swag.abs on s32, #[Swag.Inline] func with #returntype returning struct,
 // nested inline mtd (isOpen→cell→idx), signed cast arithmetic, defer cleanup.
 
 const SampleInput =
@@ -99,11 +99,11 @@ struct Pos
     c: u32
 }
 
-// Inline function returning a struct via retval
+// Inline function returning a struct via #returntype
 #[Swag.Inline]
 func makePos(r: u32, c: u32)->Pos
 {
-    var result: retval
+    var result: #returntype
     result.r = r
     result.c = c
     return result

@@ -9,7 +9,7 @@ using Swag, Core
 // because removing or renaming a field changes the data the current format stores.
 func testSchemaOf(type: typeinfo)->String fail
 {
-    var result: retval
+    var result: #returntype
     let plan = try Serialization.planFor(assume cast(const *Swag.TypeInfoStruct, type))
 
     for &pf in plan.fields

@@ -58,8 +58,8 @@ impl Image
     // Returns a copy grown by a margin on each side, filled with `color`.
     public mtd const expanded(l, t, r, b: s32, color: Color = Color.fromArgb(Argb.White))->Image
     {
-        let {w: cw, h: ch} = .getWH(l, t, r, b)
-        var result: retval = create(cw, ch, .pixelFormat, alphaMode: me.alphaMode)
+        let {w: cw, h: ch}      = .getWH(l, t, r, b)
+        var result: #returntype = create(cw, ch, .pixelFormat, alphaMode: me.alphaMode)
         .doExpand(&result, l, t, r, b, color)
         return result
     }

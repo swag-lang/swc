@@ -186,7 +186,7 @@ public func fromUtf8(dest: [..] rune, src: const [..] u8)->u32
 // Returns the runes decoded from the UTF-8 bytes of `src`.
 public func fromUtf8(src: const [..] u8)->Array'rune
 {
-    var result: retval
+    var result: #returntype
     result.reserve(src.count)
     result.count = fromUtf8(Swag.makeSlice(result.buffer, src.count), src)
     return result
@@ -319,7 +319,7 @@ func isInTable(ranges: const [..] Range, r: rune)->bool
 
 func caseChangeTo(wCase: WantedCase, r: rune, caseRange: const [..] CaseRange)->{ mappedRune: rune, foundMapping: bool }
 {
-    var result: retval
+    var result: #returntype
 
     // binary search over ranges
     var lo = 0'u64

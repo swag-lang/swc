@@ -29,7 +29,7 @@ impl ExplorerListing
 {
     func load(path: string)->ExplorerListing fail
     {
-        var result: retval
+        var result: #returntype
         result.path = try Path.absolute(path)
         Path.normalize(&result.path)
         if Directory.exists(path)
@@ -63,7 +63,7 @@ impl ExplorerListing
         if not .isArchive do
             return .entries
 
-        var result:  retval
+        var result:  #returntype
         var folders: HashSet'String
         for &entry, index in .archive.entries where Utf8.startsWith(entry.path, folder)
         {

@@ -43,7 +43,7 @@ internal impl RangeDecoder
 {
     func create(frame: const [..] u8)->RangeDecoder
     {
-        with var result: retval
+        with var result: #returntype
         {
             .data      = frame.buffer
             .storage   = cast(u32, frame.count)

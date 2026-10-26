@@ -13,7 +13,7 @@ private func pluginProbe(content: Viewer.ProbeContent)->bool => not content.clai
 // line, which is how a script without a suffix names the language it is written in.
 func viewerPlugin()->Viewer.Plugin
 {
-    with var result: retval
+    with var result: #returntype
     {
         .key          = "code"
         .staticName   = "Code"

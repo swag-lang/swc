@@ -27,7 +27,7 @@ struct RoundTripOuter
 
 func makeRoundTrip()->RoundTripOuter
 {
-    var result: retval
+    var result: #returntype
     result.text  = "quote\" back\\ nl\n tab\t cr\r ctl\x01 del\x7F é € 😀 </tag>"
     result.small = -128
     result.big   = Swag.U64.Max

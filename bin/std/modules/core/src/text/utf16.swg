@@ -22,7 +22,7 @@ const SurrSelf = 0x10000
 // `RuneError` with `eat` 0.
 func decodeRune(buffer: const [..] u16)->{ c: rune, eat: u32 }
 {
-    var result: retval
+    var result: #returntype
 
     if not buffer.count
     {
@@ -120,7 +120,7 @@ func fromUtf8(dest: [..] u16, src: const [..] u8)->u64
 // Returns the UTF-16 conversion of the UTF-8 bytes of `src`.
 func fromUtf8(src: const [..] u8)->Array'u16
 {
-    var result: retval
+    var result: #returntype
     result.reserve(2 * src.count)
     result.count = fromUtf8(Swag.makeSlice(result.buffer, result.capacity), src)
     return result
@@ -148,7 +148,7 @@ func fromUnicode(dest: [..] u16, src: const [..] rune)->u64
 // Returns the UTF-16 encoding of the runes of `src`.
 func fromUnicode(src: const [..] rune)->Array'u16
 {
-    var result: retval
+    var result: #returntype
     result.reserve(2 * src.count)
     result.count = fromUnicode(Swag.makeSlice(result.buffer, result.capacity), src)
     return result
@@ -157,7 +157,7 @@ func fromUnicode(src: const [..] rune)->Array'u16
 // Returns the UTF-16 conversion of `src` followed by a zero unit, which `count` includes.
 func toZeroTerminated(src: string)->Array'u16
 {
-    var result: retval
+    var result: #returntype
     result.reserve(2 * src.count + 1)
     result.count = fromUtf8(Swag.makeSlice(result.storage(), result.capacity), src) + 1
     result[result.count - 1] = 0

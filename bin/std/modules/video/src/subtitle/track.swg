@@ -551,7 +551,7 @@ impl Track
     // Creates an empty track for a container decoder.
     func create(name: string = "", language: string = "", format = Format.MatroskaText)->Track
     {
-        with var result: retval
+        with var result: #returntype
         {
             .name.reserve(17)
             .name += name
@@ -569,7 +569,7 @@ impl Track
     // `fileName` selects the syntax by extension, with a content fallback for unnamed input.
     func decode(fileName, source: string)->Track fail
     {
-        var result: retval
+        var result: #returntype
         try Track.decodeInto(&result, fileName, source)
         return result
     }
@@ -615,7 +615,7 @@ impl Track
     // track owns every cue and remains independent of the source file.
     func load(fileName: string)->Track fail
     {
-        var result: retval
+        var result: #returntype
         try Track.loadInto(&result, fileName)
         return result
     }
@@ -711,7 +711,7 @@ impl Track
     // Returns the visible text and the next point at which it can change.
     mtd const presentationAt(seconds: f64)->Presentation
     {
-        var result: retval
+        var result: #returntype
         result.nextChangeSeconds = .copyPresentationAt(seconds, &result.text)
         return result
     }

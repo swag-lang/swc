@@ -379,7 +379,7 @@ impl Rectangle
     // Returns this rectangle with a non-negative width and height, covering the same area.
     mtd const normalized()->Rectangle
     {
-        var result: retval = me
+        var result: #returntype = me
         result.normalize()
         return result
     }

@@ -146,7 +146,7 @@ impl Document
     // window does not necessarily hold, and neither may disturb what is on screen.
     mtd read(offset, count: u64)->Array'u8
     {
-        var result: retval
+        var result: #returntype
         if .readFailed or not .stream.isOpen() or not count or offset >= .fileSize do
             return result
 

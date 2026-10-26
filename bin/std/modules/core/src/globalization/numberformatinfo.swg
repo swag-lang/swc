@@ -74,7 +74,7 @@ public impl NumberFormatInfo
     // Formats an unsigned decimal integer, optionally applying this culture's grouping rules.
     mtd const format(value: u64, grouped = false)->String
     {
-        var result: retval
+        var result: #returntype
         .appendUnsigned(&result, value, grouped)
         return result
     }
@@ -82,7 +82,7 @@ public impl NumberFormatInfo
     // Formats a signed decimal integer, optionally applying this culture's grouping rules.
     mtd const format(value: s64, grouped = false)->String
     {
-        var result: retval
+        var result: #returntype
         if value < 0
         {
             result.append(.negativeSign)
@@ -127,7 +127,7 @@ public impl NumberFormatInfo
         let fraction = decimals ? scaled % scale : 0
 
         // A value that rounds to zero prints without a sign: '-0.00' is not a number anyone wrote.
-        var result: retval
+        var result: #returntype
         if negative and scaled != 0 do
             result.append(.negativeSign)
         .appendUnsigned(&result, whole, grouped)

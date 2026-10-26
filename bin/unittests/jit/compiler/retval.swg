@@ -53,7 +53,7 @@ struct DefaultRequiredRet
 
 func makeSmall(x, y: s32)->SmallRet
 {
-    var result: retval
+    var result: #returntype
     result.x = x * x
     result.y = y * y * y
     return result
@@ -61,7 +61,7 @@ func makeSmall(x, y: s32)->SmallRet
 
 func makeBig(seed: s64)->BigRet
 {
-    var result: retval
+    var result: #returntype
     result.a = seed + 1
     result.b = seed + 2
     result.c = seed + 3
@@ -72,13 +72,13 @@ func makeBig(seed: s64)->BigRet
 
 func cloneBig(seed: s64)->BigRet
 {
-    var result: retval = makeBig(seed)
+    var result: #returntype = makeBig(seed)
     return result
 }
 
 func makeFloat(seed: f64)->FloatRet
 {
-    var result: retval
+    var result: #returntype
     result.r = seed
     result.g = seed + 0.25
     result.b = seed + 0.5
@@ -87,26 +87,26 @@ func makeFloat(seed: f64)->FloatRet
 
 func cloneFloat(seed: f64)->FloatRet
 {
-    var result: retval = makeFloat(seed)
+    var result: #returntype = makeFloat(seed)
     return result
 }
 
 func makeScalarDefaultRet()->s32
 {
-    var result: retval
+    var result: #returntype
     return result
 }
 
 func makeDefaultSmallRet()->DefaultSmallRet
 {
-    var result: retval
+    var result: #returntype
     result.y = 29
     return result
 }
 
 func makeDefaultNestedRet()->DefaultNestedRet
 {
-    var result: retval
+    var result: #returntype
     result.small.y = 31
     result.scale   = 70
     return result
@@ -114,14 +114,14 @@ func makeDefaultNestedRet()->DefaultNestedRet
 
 func makeDefaultBigRet()->DefaultBigRet
 {
-    var result: retval
+    var result: #returntype
     result.c = 70
     return result
 }
 
 func dirtyDefaultRequiredRet()->DefaultRequiredRet
 {
-    var result: retval
+    var result: #returntype
     result.a = 101
     result.b = 202
     result.c = 303
@@ -130,7 +130,7 @@ func dirtyDefaultRequiredRet()->DefaultRequiredRet
 
 func makeDefaultRequiredRet()->DefaultRequiredRet
 {
-    var result: retval
+    var result: #returntype
     result.b = 22
     return result
 }

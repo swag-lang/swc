@@ -127,7 +127,7 @@ impl Vp8Partition
 
     mtd readUint(probability, count: u8)->u32
     {
-        var result: retval
+        var result: #returntype
         var remaining = count
         while remaining
         {

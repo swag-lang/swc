@@ -21,7 +21,7 @@ impl DefaultDrop
 
 func makeDefaultDrop(v: s32)->DefaultDrop
 {
-    var result: retval
+    var result: #returntype
     result.value = v
     return result
 }
@@ -96,7 +96,7 @@ func fillDefaultValue(p: *s32)
 
 func defaultPair()->{ x: s32, y: s32 }
 {
-    var result: retval
+    var result: #returntype
     result.x = 1
     result.y = 2
     return result

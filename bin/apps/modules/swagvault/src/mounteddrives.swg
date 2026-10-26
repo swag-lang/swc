@@ -137,7 +137,7 @@ impl MountedDrives
         card.body.mode = .Top
         card.actions.bringToFront()
 
-        with var result: retval
+        with var result: #returntype
         {
             .card          = card
             .list          = list

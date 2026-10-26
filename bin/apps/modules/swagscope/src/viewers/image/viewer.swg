@@ -9,7 +9,7 @@ using Core, Pixel, Gui
 // added there reaches the viewer without a list to update here.
 func viewerPlugin()->Viewer.Plugin
 {
-    with var result: retval
+    with var result: #returntype
     {
         .key          = "image"
         .staticName   = "Image"
@@ -99,7 +99,7 @@ func loadViewerDrawing(fileName: string)->Svg.Drawing fail
 // it.
 private func loadViewerContent(fileName: string)->ViewerContent fail
 {
-    var result: retval
+    var result: #returntype
     let extension = String.toLower(Path.extension(fileName))
     result.information.add(.Image, group: true)
     result.information.add(.Format, String.toUpper(extension.toString()[Math.min(extension.count, 1) to]))

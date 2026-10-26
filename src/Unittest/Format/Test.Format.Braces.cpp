@@ -941,7 +941,7 @@ SWC_TEST_BEGIN(FormatBraces_ShortStructsKeepTupleTypes)
     static constexpr std::string_view SOURCE =
         "func foo()->{ x: f32, y: f32 }\n"
         "{\n"
-        "    var result: retval\n"
+        "    var result: #returntype\n"
         "    return result\n"
         "}\n"
         "var g: { a: s32, b: s32 }\n";

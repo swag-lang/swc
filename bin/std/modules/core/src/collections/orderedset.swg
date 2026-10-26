@@ -65,7 +65,7 @@ impl OrderedSet
     // Creates an empty set that uses `comparator` to order keys.
     func create(comparator: func(const *K, const *K)->s32)->OrderedSet
     {
-        var result: retval
+        var result: #returntype
         result.initialize(comparator)
         return result
     }

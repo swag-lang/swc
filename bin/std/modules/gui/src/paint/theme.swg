@@ -497,7 +497,7 @@ impl Theme
     // Creates the interface font family at `size`.
     mtd createDefaultFontFamily(size: u32)->FontFamily
     {
-        var result: retval
+        var result: #returntype
         result.regular    = .fonts.createFont(.res.defaultTypeFaceR, size)
         result.bold       = .fonts.createFont(.res.defaultTypeFaceB, size)
         result.italic     = .fonts.createFont(.res.defaultTypeFaceI, size)
@@ -513,7 +513,7 @@ impl Theme
     // and lands it on another optical center than the words beside it.
     mtd createDefaultFontFamilyFs(size: u32)->FontFamily
     {
-        var result: retval
+        var result: #returntype
         result.regular    = .fonts.createFont(.res.defaultFsTypeFaceR, size)
         result.bold       = .fonts.createFont(.res.defaultFsTypeFaceB, size)
         result.italic     = .fonts.createFont(.res.defaultFsTypeFaceI, size)

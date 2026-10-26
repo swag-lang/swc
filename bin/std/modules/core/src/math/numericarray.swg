@@ -31,7 +31,7 @@ impl NumericArray
     mtd(op: Swag.Operator) const opBinary(other: NumericArray)->NumericArray
         where op == .Add or op == .Sub or op == .Mul or op == .Div
     {
-        var result: retval
+        var result: #returntype
         for i in N
         {
             #static switch op
@@ -100,7 +100,7 @@ impl NumericArray
     func from(values: T...)->NumericArray
     {
         Swag.assert(values.count == N)
-        var result: retval
+        var result: #returntype
         for index in N do
             result.buf[index] = values[index]
         return result

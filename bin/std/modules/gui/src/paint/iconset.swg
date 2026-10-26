@@ -120,7 +120,7 @@ impl IconSet
     // request reuses the sharper frames, which minify cleanly.
     mtd icon(index: s32, size: f32, scale: f32)->Icon
     {
-        var result: retval
+        var result: #returntype
         result.imageList = .list(size, scale)
         result.index     = index
         result.sizeX     = size

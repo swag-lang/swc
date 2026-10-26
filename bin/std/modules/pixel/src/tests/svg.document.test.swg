@@ -4,7 +4,7 @@ using Swag, Core
 
 func makeTrianglePath()->LinePath
 {
-    var result: retval
+    var result: #returntype
     result.start(0, 0)
     result.lineTo(10, 0)
     result.lineTo(5, 8)

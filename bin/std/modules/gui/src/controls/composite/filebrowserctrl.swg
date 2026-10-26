@@ -941,7 +941,7 @@ impl FileBrowserCtrl
     // Returns all selected full paths in display order.
     mtd selectedPaths()->Array'String
     {
-        var result: retval
+        var result: #returntype
 
         let filterExtensions = .activeFilterExtensions()
         let tokens = Tokenize.split(.editFile.text(), ';'rune)

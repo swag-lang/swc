@@ -237,7 +237,7 @@ private func verifyNativeTestRecovery(context: *Context, options: *Options, buil
 // rather than written out three times.
 private func workspaceModuleCommand(verb: string, workspace: string, module: string, buildCfg: string)->Arguments
 {
-    var result: retval
+    var result: #returntype
     result.add([verb, "--workspace", workspace, "--workspace-module", module])
     result.add(["--build-cfg", buildCfg])
     return result

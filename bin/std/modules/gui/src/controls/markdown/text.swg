@@ -20,7 +20,7 @@ func parseImageTag(text: string)->{ alt: string, source: string, eat: u64 }
 
 func decodeEntity(source: string, start: u64)->{ value: String, eat: u64 }
 {
-    var result: retval
+    var result: #returntype
     result.value = "&"
     result.eat   = 1
     if start >= source.count or source[start] != '&' do
@@ -122,7 +122,7 @@ func decodeEntity(source: string, start: u64)->{ value: String, eat: u64 }
 // literal '<' doubles into '<<' and every other character, '>' included, passes through unchanged.
 func richText(text: string, decodeEntities = false)->String
 {
-    var result: retval
+    var result: #returntype
     var index = 0'u64
     while index < text.count
     {

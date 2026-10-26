@@ -21,7 +21,7 @@ impl PureLifecycleToken
 #[Swag.NoInline]
 func pureLifecycleChoose(other: bool)->PureLifecycleToken
 {
-    var result: retval = PureLifecycleToken{id: 1}
+    var result: #returntype = PureLifecycleToken{id: 1}
     if other do
         return PureLifecycleToken{id: 2}
     return result

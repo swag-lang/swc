@@ -29,7 +29,7 @@ impl Mdct
     func create(n: u32)->Mdct
     {
         Swag.assert(n >= 16 and (n & (n - 1)) == 0)
-        var result: retval
+        var result: #returntype
         result.n = n
 
         let m = n / 4

@@ -144,7 +144,7 @@ impl BinaryImage
     // could not read it would have to leave out everything an executable says about itself.
     mtd wideTextAt(offset, maxUnits: u64)->String
     {
-        var result: retval
+        var result: #returntype
         var index:  u64
 
         while index < maxUnits

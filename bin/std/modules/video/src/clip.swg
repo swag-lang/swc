@@ -32,7 +32,7 @@ impl Clip
         if not frameRate.isValid() do
             fail BadParameterError{"video frame rate needs positive numerator and denominator values"}
 
-        with var result: retval
+        with var result: #returntype
         {
             .frameWidth  = width
             .frameHeight = height
@@ -102,7 +102,7 @@ impl Clip
     {
         try .validateEncode(fileName)
 
-        var result: retval
+        var result: #returntype
         var writer = try Writer.createMemory(fileName, &result, .frameWidth, .frameHeight, .rate, options)
         try .write(&writer)
         return result

@@ -419,7 +419,7 @@ private impl RenderOgl
 
     func ortho(b, t, l, r, n, f: f32)->Matrix4x4
     {
-        var result: retval
+        var result: #returntype
         result.m[0, 0] = 2 / (r - l)
         result.m[0, 1] = 0
         result.m[0, 2] = 0
@@ -893,7 +893,7 @@ impl RenderOgl
     // still be read afterwards.
     internal mtd readRenderTargetImpl(rt: const *RenderTarget, x, y, w, h: s32)->Image
     {
-        var result: retval = Image.create(w, h, .BGRA8)
+        var result: #returntype = Image.create(w, h, .BGRA8)
         glBindFramebuffer(GL_FRAMEBUFFER, cast(GLuint, rt.handle))
         glReadBuffer(GL_COLOR_ATTACHMENT0)
         glReadPixels(x, rt.colorBuffer.height - h - y, w, h, GL_BGRA, GL_UNSIGNED_BYTE, cast([*] u8, result.pixels.storage()))
@@ -906,7 +906,7 @@ impl RenderOgl
     {
         let curRT = unwrap .curRT
 
-        var result: retval = Image.create(w, h, .BGRA8)
+        var result: #returntype = Image.create(w, h, .BGRA8)
 
         // Name the framebuffer to read from rather than trusting whatever the command stream
         // left bound. A painter binds and unbinds targets as it runs, and reading the ambient
@@ -960,7 +960,7 @@ impl RenderOgl
 
         glBindFramebuffer(GL_FRAMEBUFFER, 0)
 
-        var result: retval
+        var result: #returntype
         result.attach(cast(RenderTargetHandle, fbo), cast(TextureHandle, colorID), .RGBA8, w, h, cast(RenderTargetSurfaceHandle, rbo))
         return result
     }
@@ -1022,7 +1022,7 @@ impl RenderOgl
         planes.chromaB = .createPlaneTexture(view.chromaWidth(), view.chromaHeight())
         planes.chromaR = .createPlaneTexture(view.chromaWidth(), view.chromaHeight())
 
-        var result: retval
+        var result: #returntype
         result.attach(cast(TextureHandle, luma), view.chromaShift == 0 ? .Yuv444 : .Yuv420, view.width, view.height)
         .chromaPlanes.add(result.handle, planes)
         .updatePlanarImpl(result, view)
@@ -1084,7 +1084,7 @@ impl RenderOgl
         glPixelStorei(GL_UNPACK_ALIGNMENT, 1)
         glTexImage2D(GL_TEXTURE_2D, 0, tinternal, cast(s32, source.width), cast(s32, source.height), 0, fmt, dataType, cast([*] u8, source.pixels.storage()))
 
-        var result: retval
+        var result: #returntype
         result.attach(cast(TextureHandle, textureID), source.pixelFormat, source.width, source.height)
         return result
     }
@@ -1166,7 +1166,7 @@ impl RenderOgl
     // Reads a texture into owned CPU memory in `pixelFormat`.
     internal mtd readTexturePixelsImpl(texture: Texture, pixelFormat: PixelFormat)->Array'u8
     {
-        var result: retval
+        var result: #returntype
         glEnable(GL_TEXTURE_2D)
         glBindTexture(GL_TEXTURE_2D, cast(texture.handle))
         Swag.assert(pixelFormat.isPacked(), "texture readback requires a packed format")

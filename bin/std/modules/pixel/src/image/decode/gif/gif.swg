@@ -195,8 +195,8 @@ public impl IImageDecoder for Decoder
 
     mtd impl decode(buffer: const [..] u8, options: DecodeOptions)->Image fail
     {
-        var reader         = try ImageReader.decode("image.gif", buffer, options)
-        var result: retval = try reader.read(0)
+        var reader = try ImageReader.decode("image.gif", buffer, options)
+        var result: #returntype = try reader.read(0)
         if options.decodePixels and reader.info.frames[0].pixelFormat == .RGB8 do
             result.convertTo(.RGB8)
         .reader    = #move reader
@@ -237,7 +237,7 @@ impl IImageSetDecoder for SetDecoder
         .frames.clear()
         try .decoder.init(buffer)
         try options.checkImage(.decoder.width, .decoder.height, .RGBA8)
-        var result: retval
+        var result: #returntype
         result.canvasWidth  = .decoder.width
         result.canvasHeight = .decoder.height
         if .decoder.bgIndex < .decoder.gct.size
@@ -288,7 +288,7 @@ impl IImageSetDecoder for SetDecoder
         if options.decodePixels do
             .decoder.frame.resize(cast(u64, .decoder.width) * .decoder.height)
         try .decoder.readImage(options.decodePixels)
-        var result: retval
+        var result: #returntype
         result.init(.decoder.fw, .decoder.fh, .decoder.gce.transparency ? .RGBA8 : .RGB8)
         if not options.decodePixels do
             return result

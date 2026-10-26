@@ -147,10 +147,10 @@ func takePointee(source: *WidePlace)->WidePlace
     Swag.assert(PlaceDrops == 1)
 }
 
-// 'retval' already is the return storage: moving it hands the value over untouched.
+// A returned '#returntype' local already is the return storage: moving it hands the value over untouched.
 func buildInPlace(value: s32)->WidePlace
 {
-    var result: retval
+    var result: #returntype
     result.value = value
     return #move result
 }
@@ -170,7 +170,7 @@ func buildInPlace(value: s32)->WidePlace
 #[Swag.Inline]
 func buildInPlaceInline(value: s32)->WidePlace
 {
-    var result: retval
+    var result: #returntype
     result.value = value
     return #move result
 }

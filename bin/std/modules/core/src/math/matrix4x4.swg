@@ -13,7 +13,7 @@ impl Matrix4x4
     // Creates an identity matrix.
     func createIdentity()->Matrix4x4
     {
-        var result: retval
+        var result: #returntype
         result.setIdentity()
         return result
     }

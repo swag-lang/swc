@@ -4,7 +4,7 @@ using Swag, Core
 
 func makeFastNoise()->Noise.FastNoise
 {
-    var noise: retval
+    var noise: #returntype
     noise.seed       = 42
     noise.frequency  = 0.125
     noise.octaves    = 3

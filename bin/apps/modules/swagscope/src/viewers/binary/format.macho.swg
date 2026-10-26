@@ -198,7 +198,7 @@ private func reportMachFat(image: *BinaryImage, report: *Report, wide: bool)
 // Adds one complete Mach-O image found at `at`.
 private func reportMachImage(image: *BinaryImage, report: *Report, at: u64, open: bool)->MachImageInfo
 {
-    var result: retval
+    var result: #returntype
 
     image.bigEndian = false
     let magic = image.u32At(at)

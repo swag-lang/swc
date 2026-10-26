@@ -60,7 +60,7 @@ func readPageHeader(bytes: const [..] u8, offset: u64)->PageHeader fail
     if bytes[offset + 4] != 0 do
         fail UnsupportedFormatError{"Ogg page uses an unknown stream structure version"}
 
-    with var result: retval
+    with var result: #returntype
     {
         .flags       = bytes[offset + 5]
         .granule     = cast(u64, readU32(bytes, offset + 6)) | (cast(u64, readU32(bytes, offset + 10)) << 32)
@@ -96,7 +96,7 @@ internal func pageChecksum(page: const [..] u8, table: const [256] u32)->u32
 
 internal func buildChecksumTable()->[256] u32
 {
-    var result: retval
+    var result: #returntype
     for index in 256
     {
         var value = cast(u32, index) << 24
@@ -131,7 +131,7 @@ private struct StreamInfo
 // Reads the identification packet at the start of a first page's body.
 private func identify(body: const [..] u8)->StreamInfo fail
 {
-    var result: retval
+    var result: #returntype
     if body.count >= 30 and
        body[0] == 1 and
        body[1] == 'v' and

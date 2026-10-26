@@ -16,7 +16,7 @@ func info(fullName: string)->FileInfo fail
         fail Swag.err
     }
 
-    with var result: retval
+    with var result: #returntype
     {
         .fullName   = fullName
         .attributes = FileAttributes.fromDWORD(attributes.dwFileAttributes)

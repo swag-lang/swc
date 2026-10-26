@@ -65,7 +65,7 @@ private func reportEmbeddedLoadingChanged(_: *Wnd) {}
 // Returns the services a viewer embedded in a document reaches its host through.
 private func embeddedHostServices()->Viewer.HostServices
 {
-    with var result: retval
+    with var result: #returntype
     {
         .reportFailure        = &reportEmbeddedFailure
         .reportDetails        = &reportEmbeddedDetails

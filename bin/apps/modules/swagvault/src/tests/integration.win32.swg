@@ -223,7 +223,7 @@ namespace Integration
     {
         func create()->Sandbox fail
         {
-            var result: retval
+            var result: #returntype
             let temp = Env.getSpecialDirectory(.Temp)
             if temp.isEmpty() do
                 fail harnessError("Windows did not provide a temporary directory for the sandbox.")
@@ -294,7 +294,7 @@ namespace Integration
 
     func createPayload(size: u64)->Array'u8 fail
     {
-        var result: retval
+        var result: #returntype
         result.resize(size)
         try Core.Crypto.randomBytes(result.toSlice())
         return result

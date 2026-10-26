@@ -13,7 +13,7 @@ func addPolygonPath(path: *LinePath, points: [..] Math.Vector2)
 
 func buildPolygonHoleList(rect: Math.Rectangle)->LinePathList
 {
-    var result: retval
+    var result: #returntype
     let cx = rect.horzCenter()
     let cy = rect.vertCenter() + 4
 

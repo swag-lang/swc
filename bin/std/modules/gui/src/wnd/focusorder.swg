@@ -40,7 +40,7 @@ impl FocusOrder
     // Collects the traversal stops of the tree rooted at `root`, `root` included.
     func collect(root: *Wnd)->FocusOrder
     {
-        var result: retval
+        var result: #returntype
         result.addTree(root)
         return result
     }
@@ -187,7 +187,7 @@ private impl FocusOrder
     // Returns the children of `wnd` in the order their rectangles read.
     func readingOrder(wnd: *Wnd)->Array'(*Wnd)
     {
-        var result: retval
+        var result: #returntype
 
         var candidates: Array'FocusCandidate
         for child, index in wnd.children do

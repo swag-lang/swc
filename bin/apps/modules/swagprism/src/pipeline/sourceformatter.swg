@@ -23,7 +23,7 @@ impl SourceFormatter
 
         // The formatter skips parse errors by design. Syntax supplies the diagnostics before
         // formatting so an unchanged invalid document is never reported as formatted.
-        var result: retval
+        var result: #returntype
         for command in ["syntax", "format"]
         {
             if Swag.isCancelled() do

@@ -9,7 +9,7 @@ using Swag, Core
 
 private func makeTestTexture(handle: u64, w, h: s32)->Texture
 {
-    var result: retval
+    var result: #returntype
     result.attach(cast(TextureHandle, handle), .BGRA8, w, h)
     return result
 }

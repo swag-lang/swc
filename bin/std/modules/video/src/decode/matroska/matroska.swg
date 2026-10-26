@@ -389,8 +389,8 @@ private struct Layout
     hasClusterTimestamp:  bool
     videoChunkEnds:       Array'u64
     cues:                 Array'CueEntry
-    releasedThrough:      u64     // File offset below which the walk has handed its pages back.
-    stopAtSync:           bool    // Whether a cluster is read only up to its first clean picture, for a key picture read alone.
+    releasedThrough:      u64      // File offset below which the walk has handed its pages back.
+    stopAtSync:           bool     // Whether a cluster is read only up to its first clean picture, for a key picture read alone.
 }
 
 // How far behind the walk the mapped pages are handed back, and in what steps.
@@ -409,7 +409,7 @@ private const ClusterSearchAttempts = 8
 private const ClusterSearchLead     = 0.01
 
 // How many clusters past a cue a key picture read alone looks for its clean picture.
-private const KeyPictureClusters = 4
+private const KeyPictureClusters   = 4
 private const ScanReleaseStepBytes = 16 * 1024 * 1024'u64
 
 private impl Layout
@@ -725,7 +725,10 @@ private impl Layout
         var position = from
         while position + 4 <= limit
         {
-            if bytes[position] == 0x1F and bytes[position + 1] == 0x43 and bytes[position + 2] == 0xB6 and bytes[position + 3] == 0x75
+            if bytes[position] == 0x1F and
+               bytes[position + 1] == 0x43 and
+               bytes[position + 2] == 0xB6 and
+               bytes[position + 3] == 0x75
             {
                 let timestamp = catch .clusterTimestampAt(bytes, position)
                 {
@@ -809,7 +812,7 @@ private impl Layout
 
     mtd openContainer(bytes: const [..] u8)->Container fail
     {
-        var result: retval = Container{Cursor.open(bytes), {}}
+        var result: #returntype = Container{Cursor.open(bytes), {}}
         if not bytes.count do
             fail InvalidFormatError{"Matroska stream is empty"}
 
@@ -840,7 +843,7 @@ private impl Layout
 
     mtd parseSeekHead(cursor: *Cursor, seekHead, segment: Element)->MetadataTargets fail
     {
-        var result: retval
+        var result: #returntype
         try cursor.seek(seekHead.data)
         while cursor.position < seekHead.end
         {
@@ -2007,7 +2010,7 @@ private impl Decoder
     // Restarts the single demux cursor on the key cluster advertised by Cues.
     mtd seekWindow(index: u64) fail
     {
-        .keyWindow    = false
+        .keyWindow = false
         let fileIndex = unwrap .fileIndex
         Atomic.exchange(&fileIndex.soundPause, 1)
         .resumeSoundIndexAfterDecode = true
@@ -2018,7 +2021,9 @@ private impl Decoder
 
         // A container whose sound this module cannot read has no window to build; asking for one
         // walked the whole file looking for packets that were never going to appear.
-        if target >= 0 and not .pictureOnly and (layout.audioTracks.count or layout.subtitleTracks.count)
+        if target >= 0 and
+           not .pictureOnly and
+           (layout.audioTracks.count or layout.subtitleTracks.count)
         {
             selectSoundWindow(fileIndex, cast(u64, target))
             discard catch buildSoundWindow(fileIndex, cast(u64, target))

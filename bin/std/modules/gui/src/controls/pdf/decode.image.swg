@@ -127,7 +127,7 @@ func cmykColor(c, m, y, k: f64)->Color
 // Returns the color space a device operator such as `rg` or `k` selects.
 func deviceSpace(kind: ImageSpaceKind, components: u32)->ImageSpace
 {
-    var result: retval
+    var result: #returntype
     result.kind       = kind
     result.components = components
     return result
@@ -226,7 +226,7 @@ func resolveNamedColorSpace(parser: *PdfParser, name: string, resourcesId: u32, 
 // the sample decoder and the color operators both work from.
 func resolveImageSpace(parser: *PdfParser, spaceRaw, resourcesId: u32, depth: u32)->ImageSpace fail
 {
-    var result: retval
+    var result: #returntype
     if depth >= 8 do
         fail UnsupportedFormatError{"PDF color space nesting exceeds the supported depth"}
 
@@ -422,7 +422,7 @@ private func writeColor(space: const *ImageSpace, kind: ImageSpaceKind, componen
 // Reads the samples of an image XObject into a top-down RGB plane.
 private func readSamplePlane(parser: *PdfParser, nodeId, resourcesId: u32)->SamplePlane fail
 {
-    var result: retval
+    var result: #returntype
     let width  = parser.integer(parser.dict(nodeId, "Width"))
     let height = parser.integer(parser.dict(nodeId, "Height"))
     if width <= 0 or height <= 0 or width > Swag.S32.Max or height > Swag.S32.Max do
@@ -593,7 +593,7 @@ private func applyColorKeyMask(parser: *PdfParser, nodeId: u32, plane: *SamplePl
 // Reads an image XObject as an 8-bit coverage plane, which is what a soft mask carries.
 private func readMaskPlane(parser: *PdfParser, nodeId, _: u32, stencil: bool)->SamplePlane fail
 {
-    var result: retval
+    var result: #returntype
     if parser.imageCodec(nodeId) == "DCTDecode"
     {
         let raw     = #move try parser.decodeStream(nodeId, true)
@@ -760,7 +760,7 @@ internal func decodeImage(parser: *PdfParser, nodeId, resourcesId: u32, fillColo
     let cached   = parser.imageCache.tryFind(cacheKey)
     if cached
     {
-        var result: retval = cached.value
+        var result: #returntype = cached.value
         return result
     }
 
@@ -792,7 +792,7 @@ internal func decodeImage(parser: *PdfParser, nodeId, resourcesId: u32, fillColo
         // what loading an illustrated document used to cost.
         if maskId == InvalidNode
         {
-            var result: retval
+            var result: #returntype
             if decoded.pixelFormat == .RGB8 do
                 result = #move decoded
             else do

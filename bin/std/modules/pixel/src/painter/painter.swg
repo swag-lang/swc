@@ -407,7 +407,7 @@ impl Painter
     // by its command stream.
     func create(renderer: IRenderer)->Painter
     {
-        var result: retval
+        var result: #returntype
         result.rendererItf = renderer
         return result
     }
@@ -545,7 +545,7 @@ impl Painter
 
     private func getTextureSize(brush: Brush)->{ w: s32, h: s32 }
     {
-        var result: retval
+        var result: #returntype
 
         // For a hatch brush, texture size is always 8x8
         if brush.type == .Hatch
@@ -1149,7 +1149,7 @@ impl Painter
     // Returns a copy of the complete current drawing state.
     mtd const state()->PaintState
     {
-        var result: retval = .curState
+        var result: #returntype = .curState
         return result
     }
 
@@ -1315,7 +1315,7 @@ impl Painter
     // Returns the current path-to-surface transform.
     mtd const transform()->Transform2
     {
-        var result: retval = .curState.transform
+        var result: #returntype = .curState.transform
         return result
     }
 

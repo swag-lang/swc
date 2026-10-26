@@ -150,7 +150,7 @@ func makeSmallTracked()->SmallTracked
 #[Swag.NoInline]
 func makeTrackedRetval()->Tracked
 {
-    var result: retval
+    var result: #returntype
     result.value = g_seed
     return result
 }
@@ -184,7 +184,8 @@ func readTemplateInline()->Tracked
     Swag.assert(DropTrace == 7)
 }
 
-// A full-lifecycle local runs 'opPostMove' on the way out, never 'opPostCopy'.
+// A full-lifecycle local that is returned is built in the caller's storage: nothing
+// moves on the way out, and nothing is ever copied.
 #test
 {
     resetHooks(9)
@@ -193,7 +194,7 @@ func readTemplateInline()->Tracked
         var x = makeTracked()
         Swag.assert(x.value == 9)
     }
-    Swag.assert(PostMoveCount == 1)
+    Swag.assert(PostMoveCount == 0)
     Swag.assert(PostCopyCount == 0)
     Swag.assert(DropCount == 1)
 }
@@ -266,8 +267,8 @@ func readTemplateInline()->Tracked
     Swag.assert(DropTrace == 21)
 }
 
-// A 'retval' local is built straight in the caller's slot: returning it runs no hook
-// at all — no copy, no move, and the only drop is the caller's. The return used to
+// A '#returntype' local is built straight in the caller's slot: returning it runs no
+// hook at all — no copy, no move, and the only drop is the caller's. The return used to
 // copy the slot onto itself and run 'opPostCopy' on it, duplicating the ownership the
 // slot already held.
 #test
@@ -284,10 +285,10 @@ func readTemplateInline()->Tracked
     Swag.assert(DropTrace == 27)
 }
 
-// An inlined return moves the local out: 'opPostMove' runs into the result slot and
-// the local's drop is elided. When the expansion is a real call (for example when
-// backend optimization is disabled) the consumer copy disappears, so only the ownership invariants are pinned:
-// one move out, at most one consumer copy, one drop.
+// An inlined return of a local builds it in the result slot, the declared variable: nothing
+// moves and the local's drop is elided. When the expansion is a real call (for example when
+// backend optimization is disabled) the consumer copy disappears, so only the ownership
+// invariants are pinned: no move, at most one consumer copy, one drop.
 #test
 {
     resetHooks(23)
@@ -296,7 +297,7 @@ func readTemplateInline()->Tracked
         var x = makeTrackedInline()
         Swag.assert(x.value == 23)
     }
-    Swag.assert(PostMoveCount == 1)
+    Swag.assert(PostMoveCount == 0)
     Swag.assert(PostCopyCount <= 1)
     Swag.assert(DropCount == 1)
 }

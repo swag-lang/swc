@@ -104,7 +104,7 @@ func tempFilePath(prefix, extension: string)->String
 // Returns a copy of the bytes of `text`, with no terminator, which is what a payload carries.
 func textBytes(text: string)->Array'u8
 {
-    var result: retval
+    var result: #returntype
     result.add(cast(const [..] u8, text))
     return result
 }
@@ -121,7 +121,7 @@ func bytesAre(bytes: const [..] u8, text: string)->bool => bytes == cast(const [
 // not load or paint anything; it lets a test check lazy resource loading without a wall clock.
 func htmlImageSources(view: const *HtmlView)->Array'String
 {
-    var result: retval
+    var result: #returntype
     for entry in view.images.entries where entry.loaded do
         result.add(entry.source)
     return result

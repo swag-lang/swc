@@ -105,7 +105,7 @@ func semaWithColorScore(c: SemaWithColor)->s32
 
 func semaWithRetval()->{ a, b: s32 }
 {
-    with var result: retval
+    with var result: #returntype
     {
         .a = 1
         .b = 2
@@ -116,7 +116,7 @@ func semaWithRetval()->{ a, b: s32 }
 
 func semaWithRetvalUndefined()->{ a, b: s32 }
 {
-    with var result: retval
+    with var result: #returntype
     {
         .a = 5
         .b = 8

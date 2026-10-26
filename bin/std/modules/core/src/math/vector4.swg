@@ -369,7 +369,7 @@ impl Vector4
     // A `factor` of 0 gives `src` and 1 gives `dst`. It is not clamped, so other values extrapolate.
     func lerp(src, dst: Vector4, factor: f32)->Vector4
     {
-        var result: retval
+        var result: #returntype
         result.x = Math.lerp(src.x, dst.x, factor)
         result.y = Math.lerp(src.y, dst.y, factor)
         result.z = Math.lerp(src.z, dst.z, factor)
@@ -495,7 +495,7 @@ impl Vector4
     // one call to the next and is updated in place.
     func smoothDamp(current, target: Vector4, currentVelocity: *Vector4, smoothTime, deltaTime: f32)->Vector4
     {
-        var result: retval
+        var result: #returntype
         result.x = Math.smoothDamp(current.x, target.x, &currentVelocity.x, smoothTime, deltaTime)
         result.y = Math.smoothDamp(current.y, target.y, &currentVelocity.y, smoothTime, deltaTime)
         result.z = Math.smoothDamp(current.z, target.z, &currentVelocity.z, smoothTime, deltaTime)

@@ -71,7 +71,7 @@ impl Image
     public mtd const halved()->Image
     {
         Swag.assert(.width > 1 and .height > 1)
-        var result: retval = create(.width / 2, .height / 2, .pixelFormat, alphaMode: me.alphaMode)
+        var result: #returntype = create(.width / 2, .height / 2, .pixelFormat, alphaMode: me.alphaMode)
         .doHalfSize(&result)
         return result
     }

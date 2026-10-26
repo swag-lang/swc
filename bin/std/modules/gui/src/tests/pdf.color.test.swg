@@ -5,7 +5,7 @@ using Core, Pixel, Pdf
 // Paints one filled rectangle per content fragment and returns the color each one carries.
 private func filledColors(resources: string, content: string, extra: const [..] u8)->Array'Color
 {
-    var result: retval
+    var result: #returntype
     let document = expect Document.decode(singlePagePdf(resources, cast(const [..] u8, content), extra).toSlice())
     for item in document.pages[0].items where item.kind == .Path do
         result.add(item.itemFillColor())

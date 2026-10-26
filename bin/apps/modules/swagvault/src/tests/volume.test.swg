@@ -73,7 +73,7 @@ func rejectsPassword(path: string, password: const [..] u8)->bool
 
 func testDigestBytes(digest: Hash.Sha256.Digest)->[32] u8
 {
-    var result: retval
+    var result: #returntype
     for i in 8
     {
         let word = digest[i]

@@ -55,7 +55,7 @@ impl DestructuringOwner
 
 func(T) makeDestructuringValue(value: s32)->T
 {
-    var result: retval
+    var result: #returntype
     result.storage = value
     result.ptr     = &result.storage
     return result
@@ -63,7 +63,7 @@ func(T) makeDestructuringValue(value: s32)->T
 
 func(T) makeDestructuringPair()->{ first: T, count: u32 }
 {
-    var result: retval
+    var result: #returntype
     result.first = makeDestructuringValue'T(5)
     result.count = 9
     return result
@@ -71,7 +71,7 @@ func(T) makeDestructuringPair()->{ first: T, count: u32 }
 
 func(T) makeDestructuringPairFail()->{ first: T, count: u32 } fail
 {
-    var result: retval
+    var result: #returntype
     result.first = makeDestructuringValue'T(6)
     result.count = 9
     return result
@@ -120,7 +120,7 @@ func(T) makeDestructuringPairFail()->{ first: T, count: u32 } fail
 
 func makeDestructuringOwners()->{kept: DestructuringOwner, skipped: DestructuringOwner}
 {
-    var result: retval
+    var result: #returntype
     result.kept    = makeDestructuringValue'DestructuringOwner(7)
     result.skipped = makeDestructuringValue'DestructuringOwner(8)
     return result
@@ -147,7 +147,7 @@ func makeDestructuringOwners()->{kept: DestructuringOwner, skipped: Destructurin
 
 func makeReorderedDestructuringOwners()->{skipped: DestructuringOwner, kept: DestructuringOwner}
 {
-    var result: retval
+    var result: #returntype
     result.skipped = makeDestructuringValue'DestructuringOwner(70)
     result.kept    = makeDestructuringValue'DestructuringOwner(80)
     return result

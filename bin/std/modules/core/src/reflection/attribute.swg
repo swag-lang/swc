@@ -71,7 +71,7 @@ func attributeValue(attribute: const *Swag.Attribute?, value: string?)->any?
 #[ConstExpr]
 func attributes(value: const *Swag.TypeValue?, attribute: typeinfo?)->Array'(const *Swag.Attribute)
 {
-    var result: retval
+    var result: #returntype
     if not value do
         return result
     for &it in value.attributes where sameAttributeType(attribute, it.type) do
@@ -100,7 +100,7 @@ func hasAttribute(value: const *Swag.TypeValue?, attribute: typeinfo?)->bool => 
 #[ConstExpr]
 func attributes(type: typeinfo?, attribute: typeinfo?)->Array'(const *Swag.Attribute)
 {
-    var result: retval
+    var result: #returntype
     if not type do
         return result
 

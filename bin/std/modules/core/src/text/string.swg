@@ -529,7 +529,7 @@ impl String
     // Returns the concatenation of `values`.
     func join(values: string...)->String
     {
-        var result: retval
+        var result: #returntype
         for v in values do
             result += v
         return result
@@ -538,7 +538,7 @@ impl String
     // Returns the concatenation of `values`, with `separator` between each pair.
     func joinWith(separator: string, values: string...)->String
     {
-        var result: retval
+        var result: #returntype
         for v, index in values
         {
             if separator.count and index do
@@ -658,7 +658,7 @@ impl String
     // Returns a new string holding a copy of `value`.
     func from(value: string?)->String
     {
-        var result: retval = value
+        var result: #returntype = value
         return result
     }
 
@@ -721,7 +721,7 @@ impl String
     // Returns a copy of the string converted to upper case, like [[Core.String.makeUpper]].
     mtd const toUpper(set = CharacterSet.Latin1)->String
     {
-        var result: retval = me
+        var result: #returntype = me
         result.makeUpper(set)
         return result
     }
@@ -729,7 +729,7 @@ impl String
     // Returns a new string holding `str` converted to upper case, like [[Core.String.makeUpper]].
     func toUpper(str: string, set = CharacterSet.Latin1)->String
     {
-        var result: retval = str
+        var result: #returntype = str
         result.makeUpper(set)
         return result
     }
@@ -737,7 +737,7 @@ impl String
     // Returns a copy of the string converted to lower case, like [[Core.String.makeLower]].
     mtd const toLower(set = CharacterSet.Latin1)->String
     {
-        var result: retval = me
+        var result: #returntype = me
         result.makeLower(set)
         return result
     }
@@ -745,7 +745,7 @@ impl String
     // Returns a new string holding `str` converted to lower case, like [[Core.String.makeLower]].
     func toLower(str: string?, set = CharacterSet.Latin1)->String
     {
-        var result: retval = str
+        var result: #returntype = str
         result.makeLower(set)
         return result
     }

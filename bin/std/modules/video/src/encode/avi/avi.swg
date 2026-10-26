@@ -182,7 +182,7 @@ private impl Encoder
     // Returns the header of the file, with the totals it cannot know yet left at zero.
     mtd const createMainHeader()->MainHeader
     {
-        var result: retval
+        var result: #returntype
         result.microSecPerFrame = cast(u32, (1_000_000'u64 * cast(u64, .info.frameRate.denominator()) / cast(u64, .info.frameRate.numerator())))
         result.flags   = MainHasIndex
         result.streams = 1
@@ -194,7 +194,7 @@ private impl Encoder
     // Returns the header of the video stream, with its length left at zero.
     mtd const createStreamHeader()->StreamHeader
     {
-        var result: retval
+        var result: #returntype
         result.kind        = VideoStreamId
         result.handler     = MotionJpegIds[0]
         result.scale       = .info.frameRate.denominator()
@@ -208,7 +208,7 @@ private impl Encoder
     // Returns the bitmap header describing the frames of the video stream.
     mtd const createFormatHeader()->Bmp.Header
     {
-        var result: retval
+        var result: #returntype
         result.biSize        = cast(u32, #sizeof(Bmp.Header))
         result.biWidth       = .info.width
         result.biHeight      = .info.height

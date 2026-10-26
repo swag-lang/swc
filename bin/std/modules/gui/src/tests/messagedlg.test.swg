@@ -6,7 +6,7 @@ using Swag, Core
 // A message made of one run that wrapping cannot break, which is what a path or a URL is.
 func unbreakableMessage()->String
 {
-    var result: retval
+    var result: #returntype
     result = "This will overwrite the original image.\n<i>Z:"
     for 8 do
         result += "\\a-very-long-and-unbreakable-directory-name"

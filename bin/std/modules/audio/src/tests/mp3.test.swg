@@ -18,7 +18,7 @@ private func mp3DecodeAll(sound: const *SoundFile)->Array's16 fail
     var block: Array'u8
     block.resize(1152 * cast(u64, sound.numChannels()) * #sizeof(s16))
 
-    var result: retval
+    var result: #returntype
     for index in sound.packetCount()
     {
         let packet  = try sound.packet(index)

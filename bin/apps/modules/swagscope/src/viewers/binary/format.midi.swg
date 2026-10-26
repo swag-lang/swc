@@ -108,7 +108,7 @@ func reportMidiFile(image: *BinaryImage, report: *Report)
 // Adds one track's events and returns its name, extent, and completeness.
 private func reportMidiTrack(image: *BinaryImage, report: *Report, at, end: u64, show: bool)->MidiTrackResult
 {
-    var result: retval
+    var result: #returntype
     result.complete = true
     var scan = at
     var running: u8
@@ -317,7 +317,7 @@ private func reportMidiMetaEvent(image: *BinaryImage, report: *Report, track: *M
 // Reads the big-endian, seven-bits-per-byte integer used for delta times and payload lengths.
 private func midiNumber(image: *BinaryImage, at, end: u64)->MidiNumber
 {
-    var result: retval
+    var result: #returntype
     result.next = at
 
     for 4

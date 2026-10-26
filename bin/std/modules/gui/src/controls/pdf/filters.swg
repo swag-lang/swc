@@ -34,7 +34,7 @@ func hexValue(c: u8)->u8
 
 internal func decodeAsciiHex(data: const [..] u8)->Array'u8 fail
 {
-    var result: retval
+    var result: #returntype
     var high = Swag.U8.Max
     for c in data
     {
@@ -64,7 +64,7 @@ internal func decodeAsciiHex(data: const [..] u8)->Array'u8 fail
 
 internal func decodeAscii85(data: const [..] u8)->Array'u8 fail
 {
-    var result: retval
+    var result: #returntype
     var group:  [5] u8
     var groupCount = 0'u32
     var pos        = 0'u64
@@ -133,7 +133,7 @@ internal func decodeAscii85(data: const [..] u8)->Array'u8 fail
 
 internal func decodeRunLength(data: const [..] u8)->Array'u8 fail
 {
-    var result: retval
+    var result: #returntype
     var pos = 0'u64
     while pos < data.count
     {
@@ -221,7 +221,7 @@ private impl LzwDictionary
 // producer emits.
 internal func decodeLzw(data: const [..] u8, earlyChange = true)->Array'u8 fail
 {
-    var result:     retval
+    var result:     #returntype
     var dictionary: LzwDictionary
     dictionary.reset()
 

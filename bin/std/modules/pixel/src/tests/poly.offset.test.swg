@@ -34,7 +34,7 @@ func assertOffsetCleanPreservesPathIdentity()
 // A regular polygon of `sides` corners on a circle of radius `radius`, centred on the origin.
 func regularPolygon(sides: u32, radius: f64)->ClipperPath
 {
-    var result: retval
+    var result: #returntype
     result.reserve(sides)
 
     for i in sides
@@ -49,7 +49,7 @@ func regularPolygon(sides: u32, radius: f64)->ClipperPath
 // Runs one offset over one contour and returns the area its solution covers.
 func offsetArea(contour: ClipperPath, delta: f64, joinType: JoinType)->{area: f64, contours: u64}
 {
-    var result: retval
+    var result: #returntype
 
     var off: Offset
     off.arcTolerance = 4        // A chord this far from its arc leaves the area exact to 1e-5.

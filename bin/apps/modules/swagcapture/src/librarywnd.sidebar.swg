@@ -3,7 +3,7 @@ impl LibraryWnd
     // Counts the loaded captures per source application, or per tag, for the sidebar groups.
     mtd collectNamedFilters(applications: bool)->Array'LibraryNamedFilter
     {
-        var result: retval
+        var result: #returntype
         for item in .view.allItems
         {
             .view.mutexLoaded.lock()
@@ -304,7 +304,7 @@ impl LibraryWnd
 
     mtd uniqueFilterValues(applications: bool)->Array'String
     {
-        var result: retval
+        var result: #returntype
         for value in .collectNamedFilters(applications) do
             result.add(value.name)
         return result

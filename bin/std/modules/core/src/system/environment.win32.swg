@@ -35,7 +35,7 @@ public func realSpecialDirectory(what: SpecialDirectory)->String
         if len >= MAX_PATH do
             return ""
 
-        var result: retval = cast(string, a[until len])
+        var result: #returntype = cast(string, a[until len])
         Path.normalize(&result)
         return result
     }
@@ -59,7 +59,7 @@ public func realSpecialDirectory(what: SpecialDirectory)->String
     case .UserMusic:      v = CSIDL_MYMUSIC
     }
 
-    var result:     retval
+    var result:     #returntype
     var errOutcome: Swag.Error
     catch Win32.SHGetSpecialFolderPathA(null, &a[0], v, FALSE) as errOutcome
     let err = errOutcome.value()
@@ -75,7 +75,7 @@ public func realSpecialDirectory(what: SpecialDirectory)->String
 // Returns snapshots of all active display monitors, ordered from left to right.
 public func getMonitors()->Array'Monitor
 {
-    var result: retval
+    var result: #returntype
 
     #[Swag.CallingConvention(.C)]
     func proc(hMonitor: HMONITOR, _: HDC, _: *RECT, lParam: LPARAM)->BOOL

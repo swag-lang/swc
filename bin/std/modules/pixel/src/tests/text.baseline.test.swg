@@ -17,7 +17,7 @@ private func makeBaselineTestFont(cache: *FontCache)->*Font
 
 private func layoutCentered(font: *Font, text: string, box: Math.Rectangle)->RichString
 {
-    var result: retval
+    var result: #returntype
     result.set(text)
     result.compute()
 

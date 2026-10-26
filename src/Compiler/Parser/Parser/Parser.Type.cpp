@@ -19,9 +19,9 @@ AstNodeRef Parser::parseIdentifierType()
     return nodeRef;
 }
 
-AstNodeRef Parser::parseRetValType()
+AstNodeRef Parser::parseCurrentReturnType()
 {
-    auto [nodeRef, nodePtr] = ast_->makeNode<AstNodeId::RetValType>(consume());
+    auto [nodeRef, nodePtr] = ast_->makeNode<AstNodeId::CurrentReturnType>(consume());
 
     if (!hasContextFlag(ParserContextFlagsE::InVarDeclType) && is(TokenId::SymLeftCurly) && !tok().hasFlag(TokenFlagsE::BlankBefore))
         return parseInitializerList(nodeRef);
@@ -335,9 +335,9 @@ AstNodeRef Parser::parseType()
     // than accidentally to that generic argument.
     const PushContextFlags context(this, ParserContextFlagsE::InType);
 
-    // 'retval'
-    if (is(TokenId::KwdRetVal))
-        return parseRetValType();
+    // '#returntype'
+    if (is(TokenId::CompilerReturnType))
+        return parseCurrentReturnType();
 
     // '#code' declares like a function, with 'func' replaced by '#code':
     // - '#code'              statement block, no parameters

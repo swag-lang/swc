@@ -148,7 +148,7 @@ private impl CeltFft
 {
     func create(n: u32)->CeltFft
     {
-        var result: retval
+        var result: #returntype
         result.n = n
         result.cosine.resize(n)
         result.sine.resize(n)
@@ -236,7 +236,7 @@ private impl CeltMdct
 {
     func create()->CeltMdct
     {
-        var result: retval
+        var result: #returntype
         var n = CeltMdctSize
         for shift in 4
         {
@@ -369,7 +369,7 @@ internal impl CeltDecoder
 {
     func create(channels: u32)->CeltDecoder
     {
-        var result: retval
+        var result: #returntype
         result.channels       = channels
         result.streamChannels = channels
         result.endBand        = CeltBandCount

@@ -129,7 +129,7 @@ impl FloatExt
     // [lower, upper] is converted back to the same floating point number.
     mtd assignComputeBounds(mantp: u64, expp: s64, negp: bool)->{ lower: FloatExt, upper: FloatExt }
     {
-        var result: retval
+        var result: #returntype
 
         .mant = mantp
         .exp  = expp - Swag.F64.MantBits
@@ -230,7 +230,7 @@ impl FloatExt
         // in the desired range. This is multiplication by 10^-exp10.
         .multiply(powersOfTen[i])
 
-        var result: retval
+        var result: #returntype
         result.exp10 = -(firstPowerOfTen + i * stepPowerOfTen)
         result.index = i
         return result

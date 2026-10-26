@@ -101,7 +101,6 @@ struct CodeGenDeferredAction
         ImplicitDrop,
         PopErrorScope,
         EndValueBorrow,
-        RetValInScope, // a retval local holds the result: only a return that replaces it drops it
     };
 
     Kind     kind               = Kind::DeferStmt;
@@ -171,7 +170,8 @@ public:
         MicroReg        resultStorageReg = MicroReg::invalid();
         SymbolVariable* resultStorageSym = nullptr;
 
-        bool noOuterDoneLabel = false; // true when in local-function context
+        bool noOuterDoneLabel    = false; // true when in local-function context
+        bool directReturnStorage = false; // the result is built in the enclosing return storage
     };
 
     const BreakContext& currentBreakContext() const { return breakable_; }
@@ -514,14 +514,23 @@ public:
     void                         markImplicitDropElided(const SymbolVariable& symVar) { elidedImplicitDrops_.insert(&symVar); }
     bool                         isImplicitDropElided(const SymbolVariable& symVar) const { return elidedImplicitDrops_.contains(&symVar); }
 
+    // Locals built in the return storage of their return context, chosen once per function
+    // by CodeGenMoveElision::selectReturnStorageLocals. A null context is the caller's slot.
+    void                     addReturnStorageLocal(const SymbolVariable& symVar, const SemaInlinePayload* returnContext);
+    bool                     isReturnStorageLocal(const SymbolVariable& symVar) const { return returnStorageLocals_.contains(&symVar); }
+    const SemaInlinePayload* returnStorageLocalContext(const SymbolVariable& symVar) const { return returnStorageLocalContexts_.find(&symVar); }
+
+    // A return of another value while a return-storage local lives: the value is built apart,
+    // in 'demotedStorage' when the compiler had reserved the return slot for it.
+    void                  addReplacingReturn(AstNodeRef returnRef, const SymbolVariable& symVar, const SymbolVariable* demotedStorage);
+    const SymbolVariable* returnReplacedLocal(AstNodeRef returnRef) const;
+    bool                  isDemotedReturnStorage(const SymbolVariable& symVar) const { return demotedReturnStorages_.contains(&symVar); }
+    void                  setReturnReplacedLocal(const SymbolVariable* symVar) { returnReplacedLocal_ = symVar; }
+
     // Local moved out by the return being emitted: its drop is skipped for this return's
     // deferred actions only, so drops emitted for other control paths are unaffected.
     const SymbolVariable* returnMoveOutVar() const { return returnMoveOutVar_; }
     void                  setReturnMoveOutVar(const SymbolVariable* symVar) { returnMoveOutVar_ = symVar; }
-
-    // Retval local whose value the return being emitted replaces, released with the locals.
-    void                  setReturnReplacedRetVal(const SymbolVariable* symVar) { returnReplacedRetVal_ = symVar; }
-    const SymbolVariable* retValInScope(const SemaInlinePayload* returnContext) const;
 
     void                                      clearGlobalsToDropScratchLayout();
     void                                      setGlobalsToDropScratchLayout(uint32_t offset, uint32_t size, std::span<const CodeGenGlobalToDropEntry> entries);
@@ -582,8 +591,12 @@ private:
     // Filled only when a move asks whether it can be elided; most functions never do.
     FlatKeyMap<CodeGenMoveElisionVar, uint64_t> moveElisionVars_;
     PointerSet<const SymbolVariable>            elidedImplicitDrops_;
+    PointerSet<const SymbolVariable>            returnStorageLocals_;
+    PointerMap<SymbolVariable, const SemaInlinePayload> returnStorageLocalContexts_;
+    SmallVector<std::pair<AstNodeRef, const SymbolVariable*>> replacingReturns_;
+    PointerSet<const SymbolVariable>                    demotedReturnStorages_;
+    const SymbolVariable*                               returnReplacedLocal_ = nullptr;
     const SymbolVariable*                       returnMoveOutVar_    = nullptr;
-    const SymbolVariable*                       returnReplacedRetVal_ = nullptr;
     bool                                        moveElisionAnalyzed_ = false;
 
     SymbolFunction* function_            = nullptr;

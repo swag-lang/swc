@@ -36,7 +36,7 @@ func exists(dirName: string)->bool
 internal func enumerateOneNative(dirName: string)->Array'(File.FileInfo) fail
 {
     using File
-    var result:   retval
+    var result:   #returntype
     var findData: WIN32_FIND_DATAW
     var fileTime: SYSTEMTIME
     let fileNameBuffer = cast(const [*] u16, findData.cFileName.buffer)
@@ -118,7 +118,7 @@ func setCurrentPath(dirName: string) fail
 // platform path limit.
 func drives()->Array'String fail
 {
-    var result:     retval
+    var result:     #returntype
     var volumeName: [MAX_PATH] u8
 
     let length = GetLogicalDriveStringsA(MAX_PATH, volumeName)
@@ -158,7 +158,7 @@ func isRemote(path: string)->bool
 // A volume without a mount point is skipped.
 func volumes()->Array'String fail
 {
-    var result: retval
+    var result: #returntype
 
     var volumeName: [MAX_PATH] u8
     var driveName:  [MAX_PATH] u8

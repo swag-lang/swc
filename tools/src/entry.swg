@@ -152,7 +152,7 @@ private func dispatch(name: string, root: string, script: string, tokens: const 
 // for is read as the module, suite, or script name instead.
 private func acceptedCommands(name: string)->Array'(string)
 {
-    var result: retval
+    var result: #returntype
 
     switch name
     {

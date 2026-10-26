@@ -64,7 +64,7 @@ private func renderSquares(face: *Face, squares: const [..] [4] s32, x, y: f64)-
     let buf = unwrap bitmap.buffer
     let p   = (row * bitmap.width + col) * 4
 
-    var result: retval
+    var result: #returntype
     result.median = Math.max(Math.min(buf[p], buf[p + 1]), Math.min(Math.max(buf[p], buf[p + 1]), buf[p + 2]))
     result.alpha  = buf[p + 3]
     return result

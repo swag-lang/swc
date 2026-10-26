@@ -12,7 +12,7 @@ impl Scc.ICodec for ReverseSccCodec
 
     mtd impl encode(source: const [..] u8)->Array'u8 fail
     {
-        var result: retval
+        var result: #returntype
         result.resize(source.count)
         for value, index in source do
             result[source.count - index - 1] = value

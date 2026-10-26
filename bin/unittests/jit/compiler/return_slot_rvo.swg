@@ -162,18 +162,18 @@ func makeArray(seed: s32)->[4] s32
     return [seed, seed + 1, seed + 2, seed + 3]
 }
 
-// Two 'retval' locals name the very same storage: the call below therefore receives a
-// return slot that aliases its own receiver.
+// Two locals of the return type are two variables: only the returned one is built in the
+// return slot, by a call that reads the other one.
 #[Swag.NoInline]
 func aliasedReceiver()->Vec4
 {
-    var first: retval
+    var first: #returntype
     first.x = 1
     first.y = 2
     first.z = 3
     first.w = 4
 
-    var second: retval = first.reversed()
+    var second: #returntype = first.reversed()
     return second
 }
 

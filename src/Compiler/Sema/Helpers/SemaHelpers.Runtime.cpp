@@ -825,7 +825,7 @@ bool SemaHelpers::typeHasLifecycle(TaskContext& ctx, TypeRef typeRef)
     return flags.hasDrop || flags.hasPostCopy || flags.hasPostMove;
 }
 
-// The inline expansion whose result storage a retval local names, or null when it names
+// The inline expansion whose result storage a retval storage names, or null when it names
 // the function's own return slot. A '#[Swag.CalleeReturn]' body returns through its caller.
 const SemaInlinePayload* SemaHelpers::retValStorageOwner(const Sema& sema, const SymbolVariable& symVar)
 {
@@ -838,25 +838,6 @@ const SemaInlinePayload* SemaHelpers::retValStorageOwner(const Sema& sema, const
 
     const SemaInlinePayload* expansion = sema.inlinePayload(declRef);
     return expansion && !expansion->returnsToCallerSite() ? expansion : nullptr;
-}
-
-// A named retval local exposes the storage of its return context (the caller's slot, or
-// an inline expansion's result) to expressions. Building a value directly there could
-// overwrite data it still needs to read, so that destination is disabled once exposed.
-// Compiler runtime storages share the RetVal flag but have no readable name.
-bool SemaHelpers::returnStorageExposed(const Sema& sema, const SymbolFunction& function, const SemaInlinePayload* returnContext, const SymbolVariable* ignoreSym)
-{
-    for (const SymbolVariable* local : function.localVariables())
-    {
-        if (!local || local == ignoreSym)
-            continue;
-        if (!local->hasExtraFlag(SymbolVariableFlagsE::RetVal) || local->hasExtraFlag(SymbolVariableFlagsE::RuntimeStorage))
-            continue;
-        if (retValStorageOwner(sema, *local) == returnContext)
-            return true;
-    }
-
-    return false;
 }
 
 SWC_END_NAMESPACE();

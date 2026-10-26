@@ -98,7 +98,7 @@ func getPageLayout(parent: *Wnd)->PageLayout
     let topH    = Math.max(rect.height - bottomH - gap, 260.0)
     let halfW   = (rect.width - gap) * 0.5
 
-    var result: retval
+    var result: #returntype
     result.full   = Math.Rectangle{0, 0, rect.width, rect.height}
     result.left   = Math.Rectangle{0, 0, halfW, topH}
     result.right  = Math.Rectangle{halfW + gap, 0, rect.width - halfW - gap, topH}

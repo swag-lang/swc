@@ -16,7 +16,7 @@ func assertString(value: String, expected: string)->bool
 
 func makePatternString(count: u64)->String
 {
-    var result: retval
+    var result: #returntype
     for i in count
     {
         let offset = cast(u8, (i % 26))

@@ -187,7 +187,7 @@ impl RuneClass
     // when the name is not a POSIX class.
     func posix(name: string)->{ value: RuneClass, known: bool }
     {
-        var result: retval
+        var result: #returntype
 
         with let value = &result.value
         {
@@ -264,7 +264,7 @@ impl RuneClass
     // not a supported property.
     func unicodeProperty(name: string)->{ value: RuneClass, known: bool }
     {
-        var result: retval
+        var result: #returntype
 
         with let value = &result.value
         {

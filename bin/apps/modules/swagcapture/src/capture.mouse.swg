@@ -448,7 +448,7 @@ impl Capture
     // `retFirst`.
     mtd hitTests(localPos: Math.Point, retFirst: bool)->Array'u64
     {
-        var result: retval
+        var result: #returntype
         if .forms.isEmpty() do
             return result
         let editView = unwrap .editView

@@ -19,7 +19,7 @@ func psdAddU32(result: *ConcatBuffer, value: u32)
 
 func psdHeader(channels: u16, width, height: u32, depth, colorMode: u16)->ConcatBuffer
 {
-    var result: retval
+    var result: #returntype
     result.addBytes("8BPS")
     psdAddU16(&result, 1)
     for 6 do

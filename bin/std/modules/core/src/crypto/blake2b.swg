@@ -81,7 +81,7 @@ public impl Blake2b
     // Creates an unkeyed sequence producing `digestSize` bytes, from 1 to 64.
     func create(digestSize: u64)->Blake2b fail
     {
-        var result: retval
+        var result: #returntype
         try result.reset(digestSize)
         return result
     }
@@ -92,7 +92,7 @@ public impl Blake2b
     // block, which is what separates it from hashing the key and the message.
     func createKeyed(key: const [..] u8, digestSize: u64)->Blake2b fail
     {
-        var result: retval
+        var result: #returntype
         try result.resetKeyed(key, digestSize)
         return result
     }

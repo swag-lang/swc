@@ -63,7 +63,7 @@ public impl CurrencyFormatInfo
         let negative = value < 0 and not numberFormat.roundsToZero(value, .decimalDigits)
         let number   = numberFormat.format(Math.abs(value), decimals: .decimalDigits, grouped: true)
 
-        var result: retval
+        var result: #returntype
         if not negative
         {
             .appendPositive(&result, number)

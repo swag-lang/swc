@@ -109,7 +109,7 @@ public impl Options
     // Returns the configurations this invocation asks for.
     mtd const configurations()->Array'String
     {
-        var result: retval
+        var result: #returntype
         if not .allConfigs
         {
             result.add(.buildCfg)
@@ -156,7 +156,7 @@ private struct Grammar
 // Parses the shared grammar, given the commands this tool accepts.
 public func parseOptions(acceptedCommands: const [..] string, tokens: const [..] string)->Options fail
 {
-    var result: retval
+    var result: #returntype
     result.buildCfg   = String.from("devmode")
     result.targetArch = String.from("x86_64")
 

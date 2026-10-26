@@ -37,7 +37,7 @@ impl ImageList
     // `frameCount` exposes every complete cell, in row-major order.
     func create(texture: Texture, frameWidth = 0, frameHeight = 0, frameCount = 0)->ImageList
     {
-        var result: retval
+        var result: #returntype
         result.set(texture, frameWidth, frameHeight, frameCount)
         return result
     }

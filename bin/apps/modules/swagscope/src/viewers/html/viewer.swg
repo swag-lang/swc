@@ -14,7 +14,7 @@ private func pluginProbe(content: Viewer.ProbeContent)->bool => content.opensWit
 // Describes the HTML viewer to the host.
 func viewerPlugin()->Viewer.Plugin
 {
-    with var result: retval
+    with var result: #returntype
     {
         .key          = "html"
         .staticName   = "HTML"

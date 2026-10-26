@@ -29,7 +29,7 @@ struct Coord
 // Build numeric keypad coordinate table at compile time
 func buildNumPad()->[11] Coord
 {
-    var result: retval
+    var result: #returntype
     // 0-9 map to indices 0-9, A maps to index 10
     result[7]  = Coord{r: 0, c: 0}
     result[8]  = Coord{r: 0, c: 1}
@@ -53,7 +53,7 @@ const NumGapC: s32 = 0
 // Index: 0=^, 1=A, 2=<, 3=v, 4=>
 func buildDirPad()->[5] Coord
 {
-    var result: retval
+    var result: #returntype
     result[0] = Coord{r: 0, c: 1}     // ^
     result[1] = Coord{r: 0, c: 2}     // A
     result[2] = Coord{r: 1, c: 0}     // <

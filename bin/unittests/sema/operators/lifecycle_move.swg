@@ -529,11 +529,12 @@ func semaTest017()
 
 func semaTest018()
 {
-    // 'return local' moves out: 'opPostMove' shapes the returned value (4 + 20). The
-    // hook counters are not asserted here: the argument-less nested call is folded on
-    // its own, so its counter effects are invisible to this '#run'.
+    // The returned local is built in the caller's storage, so nothing moves and
+    // 'opPostMove' never shapes the value (it would add 20). The hook counters are not
+    // asserted here: the argument-less nested call is folded on its own, so its counter
+    // effects are invisible to this '#run'.
     const V = #run returnMoveInfo()
-    #assert(V.dst == 24)
+    #assert(V.dst == 4)
     #assert(V.src == 0)
 }
 

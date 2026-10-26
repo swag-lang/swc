@@ -105,7 +105,7 @@ private impl Curve
     // Builds one key, tangents included.
     func makeKey(x, y, inTangent, outTangent: f32, interpolation = CurveInterpolation.Hermite)->CurveKey
     {
-        with var result: retval
+        with var result: #returntype
         {
             .x             = x
             .y             = y
@@ -119,7 +119,7 @@ private impl Curve
 
     func makeLinear()->Curve
     {
-        var result: retval
+        var result: #returntype
         result.keys.add(makeKey(0, 0, 0, 0, .Linear))
         result.keys.add(makeKey(1, 1, 0, 0, .Linear))
         return result
@@ -134,7 +134,7 @@ private impl Curve
     // than approximated.
     func makeEase(outTangent, inTangent: f32)->Curve
     {
-        var result: retval
+        var result: #returntype
         result.keys.add(makeKey(0, 0, 0, outTangent))
         result.keys.add(makeKey(1, 1, inTangent, 0))
         return result
@@ -145,7 +145,7 @@ private impl Curve
     {
         let middle = BackOvershootSymmetric + 3
 
-        var result: retval
+        var result: #returntype
         result.keys.add(makeKey(0, 0, 0, 0))
         result.keys.add(makeKey(0.5, 0.5, middle, middle))
         result.keys.add(makeKey(1, 1, 0, 0))
@@ -166,7 +166,7 @@ private impl Curve
         // at half the previous one, which is what makes the bounce die out.
         const Rebound = Steepness * Segment
 
-        with var result: retval
+        with var result: #returntype
         {
             .keys.add(makeKey(0, 0, 0, 0))
             .keys.add(makeKey(Segment, 1, 2 * Rebound, -Rebound))
@@ -198,7 +198,7 @@ private impl Curve
         const Sines    = [0'f32, Diagonal, 1, Diagonal, 0, -Diagonal, -1, -Diagonal]
         const Cosines  = [1'f32, Diagonal, 0, -Diagonal, -1, -Diagonal, 0, Diagonal]
 
-        var result: retval
+        var result: #returntype
         for index in Steps
         {
             let eighth   = (index + 6) % 8
@@ -374,7 +374,7 @@ impl Curve
         let outSlope  = outWeight > 0 ? y1 / outWeight : 0'f32
         let inSlope   = inWeight > 0 ? (1 - y2) / inWeight : 0'f32
 
-        var result: retval
+        var result: #returntype
         var first  = makeKey(0, 0, 0, outSlope, .Bezier)
         var second = makeKey(1, 1, inSlope, 0, .Bezier)
         first.outWeight = outWeight
@@ -577,7 +577,7 @@ impl Curve
     // A near-zero `a` reduces the equation to a linear one.
     internal func solveQuadratic(a: f32, b: f32, c: f32)->Array'f32
     {
-        var roots: retval
+        var roots: #returntype
 
         if Math.abs(a) < 1e-6
         {

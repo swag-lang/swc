@@ -36,7 +36,7 @@ private func auditBacklogFile(fileName: string, seen: *HashSet'String)->FileAudi
     headingPrefix += stem
     headingPrefix += "."
 
-    var result:      retval
+    var result:      #returntype
     var lineNumber = 0'u64
     var entryCount = 0'u64
     var sectionLine: u64
@@ -415,7 +415,7 @@ private func readBacklogIdentity(context: *Context, revision: string, path: stri
         content = try captureBacklogGit(context, command)
     }
 
-    var result: retval
+    var result: #returntype
     result.path = String.from(path)
     let prefix = Format.toString("### %.", unwrap Path.fileNameWithoutExtension(path))
     for line in Tokenize.splitLines(content.toString())

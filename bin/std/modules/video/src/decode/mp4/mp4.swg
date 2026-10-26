@@ -218,7 +218,7 @@ func readBox(source: *ByteSource, parentEnd: u64)->Box fail
 // Returns a four-character identifier as printable text.
 private func describeId(id: u32)->String
 {
-    var result: retval
+    var result: #returntype
     for shift in 4
     {
         let value = cast(u8, ((id >> cast(u32, ((3 - shift) * 8))) & 0xFF))
@@ -758,7 +758,7 @@ impl Track
     // Expands the composition offsets into the display time of every sample.
     mtd const sampleTimes()->Array's64 fail
     {
-        var result: retval
+        var result: #returntype
         result.reserve(.sizes.count)
 
         // Decode times first.
@@ -805,7 +805,7 @@ impl Track
         if .chunks.isEmpty() or .chunks[0].firstChunk != 1 do
             fail InvalidFormatError{"MP4 sample-to-chunk table does not start at the first chunk"}
 
-        var result: retval
+        var result: #returntype
         result.reserve(.sizes.count)
         var tableIndex  = 0'u64
         var sampleIndex = 0'u64
@@ -850,7 +850,7 @@ impl Track
     mtd buildSoundPackets(sourceSize: u64)->{ packets: Array'SoundPacket, frameCount: u64 } fail
     {
         let frames = try .buildFrames(sourceSize)
-        var result: retval
+        var result: #returntype
         result.packets.reserve(frames.count)
 
         var timed = 0'u64

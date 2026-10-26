@@ -5,7 +5,7 @@ using Core
 
 func referenceUnescapeRbsp(data: const [..] u8)->Array'u8
 {
-    var result: retval
+    var result: #returntype
     var zeros = 0'u32
     for value in data
     {

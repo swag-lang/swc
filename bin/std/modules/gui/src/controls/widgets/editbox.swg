@@ -898,7 +898,7 @@ private impl EditBox
     // Computes the caret rectangle in surface coordinates.
     mtd caretRect()->Math.Rectangle
     {
-        var result: retval
+        var result: #returntype
 
         var clientRect = .editRect()
         if .icon.isValid()

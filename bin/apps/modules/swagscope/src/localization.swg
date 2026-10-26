@@ -28,6 +28,7 @@ struct AppStrings
     explore_Empty:    string = "No files to show"            // Exploration control or status.
     explore_OneItem:  string = "1 item"                      // Exploration control or status.
     explore_Count:    string = "% items"                     // Exploration control or status.
+    explore_NotFound: string = "Location not found"          // Exploration control or status.
 
     ui_WindowTitle:                    string = "Swag Scope — Universal viewer"               // Title of the application window.
     ui_Open:                           string = "Open (Ctrl+O)"                               // Tooltip of the open-file button.

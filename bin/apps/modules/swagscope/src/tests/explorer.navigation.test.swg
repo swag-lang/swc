@@ -15,18 +15,19 @@ using Core, Gui
     explorer.listing = expect ExplorerListing.load(archive)
     explorer.folder  = "docs/"
     explorer.updateBreadcrumb()
-    Swag.assert(explorer.breadcrumb.items.count > 3)
-    let count = explorer.breadcrumb.items.count
-    Swag.assert(explorer.breadcrumb.items[count - 2].name == "viewer.archive.zip")
-    Swag.assert(explorer.breadcrumb.items.back().name == "docs")
-    let menu = MenuCtrl.createPopup(explorer.breadcrumb)
+    let breadcrumb = explorer.address.breadcrumb
+    Swag.assert(breadcrumb.items.count > 3)
+    let count = breadcrumb.items.count
+    Swag.assert(breadcrumb.items[count - 2].name == "viewer.archive.zip")
+    Swag.assert(breadcrumb.items.back().name == "docs")
+    let menu = MenuCtrl.createPopup(breadcrumb)
     defer menu.destroy()
     explorer.fillBreadcrumbMenu(count - 2, menu)
     Swag.assert(menu.items.count == 2)
     let item = unwrap menu.items[1]
     Swag.assert(item.name.raw == "docs")
     let folderTarget = String.from(unwrap item.id)
-    Swag.assert(folderTarget == explorer.breadcrumb.items.back().tag)
+    Swag.assert(folderTarget == breadcrumb.items.back().tag)
     explorer.navigateBreadcrumb(folderTarget)
     Swag.assert(explorer.requested == explorer.listing.path and explorer.requestedFolder == "docs/")
     explorer.load.wait()
@@ -36,4 +37,28 @@ using Core, Gui
     explorer.fillBreadcrumbMenu(parent, menu)
     for &target in explorer.menuPaths do
         Swag.assert(not Utf8.endsWith(target[], "viewer.archive.zip\n"))
+
+    // Typing starts on the whole location, selected, and the focus leaving gives the path back.
+    explorer.folder = ""
+    Swag.assert(explorer.locationText() == explorer.listing.path)
+    let address = explorer.address
+    address.beginEdit()
+    Swag.assert(address.edit.isLocallyVisible() and not address.pathScroll.isLocallyVisible())
+    Swag.assert(explorer.locationText() == address.edit.text())
+    explorer.focusContent()
+    Swag.assert(not address.edit.isLocallyVisible() and address.pathScroll.isLocallyVisible())
+
+    // A location typed in the address reaches a folder inside the archive as well as the archive's
+    // own folder, with or without the quotes a copied path comes between.
+    explorer.navigateTyped(Format.toString("\"%/data\"", explorer.listing.path))
+    Swag.assert(explorer.requested == explorer.listing.path and explorer.requestedFolder == "data/")
+    explorer.load.wait()
+    host.pump()
+    let folder = unwrap Path.directoryName(archive)
+    explorer.navigateTyped(Format.toString("  %  ", folder))
+    Swag.assert(explorer.requested == folder and explorer.requestedFolder.isEmpty())
+    explorer.load.wait()
+    host.pump()
+    explorer.navigateTyped(Path.combine(folder, "no such folder"))
+    Swag.assert(explorer.status.text() == appStrings().explore_NotFound)
 }

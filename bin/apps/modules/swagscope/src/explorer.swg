@@ -9,6 +9,9 @@ enum ExplorerMode { Names, Details, Small, Medium, Large }
 const ExplorerTilePreviewAspect: f32 = 0.8
 const ExplorerFilmPreviewAspect: f32 = 16.0 / 9.0
 
+// Height over width of the card a folder tile stands on.
+const ExplorerFolderCardAspect: f32 = 0.75
+
 // The duration label of a film tile: small, bold, light ink on a translucent ink ground.
 const ExplorerDurationFontSize = 11'u32
 const ExplorerDurationGround   = 0xB30B0B0D'u32
@@ -52,6 +55,11 @@ struct ExplorerTemporary
 }
 
 // Owns exploration independently of the file currently being viewed.
+//
+// The listing fills the document; everything else lives in the window's own bars, where the
+// same places answer the same questions for a file. The information band names the location
+// and how much it holds, the command bar carries the filter where a file has its search, and
+// the way of showing the listing where a file has its viewer.
 struct Explorer
 {
     using wnd: Wnd
@@ -59,17 +67,15 @@ struct Explorer
     late
     {
         window:     *ViewerWindow
-        bar:        *Wnd
-        breadcrumb: *BreadcrumbCtrl
-        pathScroll: *ScrollWnd
-        status:     *Label
-        modes:      *ComboBox
-        filter:     *EditBox
+        location:   *Wnd
+        navigation: *IconBar
         back:       *IconButton
         forward:    *IconButton
         up:         *IconButton
-        refresh:    *IconButton
-        panels:     *IconButton
+        address:    *ExplorerAddress
+        status:     *Label
+        modes:      *ComboBox
+        filter:     *EditBox
         list:       *ListCtrl
         scroll:     *ScrollWnd
         grid:       *ExplorerGrid
@@ -96,7 +102,7 @@ struct Explorer
     previewSettings: String
     bypassCache:     bool     // Whether the previews of the shown listing ignore the persistent cache, after a forced refresh.
     previewAspect:   f32 = ExplorerTilePreviewAspect     // Shape of the tiles, chosen from what the listing holds.
-    previewBudget:   u64     // How many previews of the shown listing run at once.
+    previewBudget:   u64      // How many previews of the shown listing run at once.
 }
 
 impl Explorer
@@ -110,13 +116,8 @@ impl Explorer
             .window          = window
         }
 
-        result.createBar()
-        with result.status = Label.create(result, "", {0, 0, 0, 28}, null, .Ellipsis | .SecondaryText)
-        {
-            .dockStyle = .Bottom
-            .margin    = {16, 0, 16, 0}
-        }
-
+        result.createLocation()
+        result.createViewControls()
         with result.list = ListCtrl.createMultiColumns(result)
         {
             .dockStyle       = .Center
@@ -213,105 +214,120 @@ impl Explorer
         return result
     }
 
-    private mtd createBar()
+    // Builds what the information band shows in place of a file: the arrows that walk the
+    // history and the parent folder as one cluster, the address of the location, and on the far
+    // side how much the location holds.
+    private mtd createLocation()
     {
-        with .bar = Wnd.create'Wnd(me, {0, 0, 0, 84})
+        let info     = .window.infoContentGroup
+        let metrics  = .themeMetrics()
+        let iconSize = themeActionIconSize(metrics)
+        with .location = Wnd.create'Wnd(info, "scope.explorer.location")
         {
-            .dockStyle       = .Top
-            .padding         = {8, 4, 8, 4}
-            .backgroundStyle = .ToolBar
-        }
-
-        with let navigation = Wnd.create'Wnd(.bar, {0, 0, 0, 36})
-        {
-            .dockStyle       = .Top
             .backgroundStyle = .Transparent
         }
 
-        with .back = Viewer.createActionButton(navigation, .ChevronLeft)
+        info.locationGroup = .location
+
+        // The arrows are one tool, so their cells touch: each is as wide as a field is tall, and
+        // the cluster stands as high as the address beside it.
+        with .navigation = IconBar.create(.location, iconSize, itemPadding: (themeCompactButtonSize(metrics) - iconSize) / 2)
         {
-            .dockStyle  = .Left
-            .toolTip    = appStrings().explore_Back
+            .dockStyle = .Left
+            .margin    = {0, 2, 0, 2}
+        }
+
+        with .back = .navigation.addButton(.theme().icon(.ChevronLeft, iconSize))
+        {
             .sigPressed += func|view = me|(_) { view.goBack() }
         }
 
-        with .forward = Viewer.createActionButton(navigation, .ChevronRight)
+        with .forward = .navigation.addButton(.theme().icon(.ChevronRight, iconSize))
         {
-            .dockStyle  = .Left
-            .toolTip    = appStrings().explore_Forward
             .sigPressed += func|view = me|(_) { view.goForward() }
         }
 
-        with .up = Viewer.createActionButton(navigation, .ParentFolder)
+        with .up = .navigation.addButton(.theme().icon(.ParentFolder, iconSize))
         {
-            .dockStyle  = .Left
-            .toolTip    = appStrings().explore_Up
             .sigPressed += func|view = me|(_) { view.goUp() }
         }
 
-        with .refresh = Viewer.createActionButton(navigation, .Update)
-        {
-            .dockStyle  = .Left
-            .toolTip    = appStrings().explore_Refresh
-            .sigPressed += func|view = me|(_) { view.forceRefresh() }
-        }
-
-        with .panels = Viewer.createActionButton(navigation, .History)
-        {
-            .dockStyle  = .Right
-            .sigPressed += func|view = me|(_) { view.window.toggleFilePanel() }
-        }
-
-        with .pathScroll = Wnd.create'ScrollWnd(navigation)
+        with .address = ExplorerAddress.create(.location, me)
         {
             .dockStyle = .Center
-            .margin.x  = 12
-            .updateFlags(.CompactBars | .TransparentBars)
-            .setFrameFlags(remove: .Borders)
+            .margin    = {8, 2, 0, 2}
         }
 
-        with .breadcrumb = BreadcrumbCtrl.create(.pathScroll)
+        with .status = Label.create(info, "", {0, 0, 0, 36}, null, .Ellipsis | .SecondaryText)
         {
-            .backgroundStyle = .Transparent
-            .sigItemPressed  += func|view = me|(path, index) { view.navigateBreadcrumb(path.items[index].tag) }
-            .sigFillMenu     += func|view = me|(_, index, menu) { view.fillBreadcrumbMenu(index, menu) }
-            .sigMenuSelected += func|view = me|(_, _, path) { view.navigateBreadcrumb(path) }
+            .style.setFont(me.theme().createDefaultFontFs(12), .Regular)
+            .setTextAlignment(.Right, .OpticalCenter)
         }
+    }
 
-        .pathScroll.setView(.breadcrumb)
-
-        with let options = Wnd.create'Wnd(.bar, {0, 0, 0, 36})
-        {
-            .dockStyle       = .Center
-            .backgroundStyle = .Transparent
-            .margin          = {4, 4, 0, 0}
-        }
-
-        with .modes = ComboBox.create(options, {0, 0, 184, 36})
+    // Builds the controls the command bar shows while exploring: the filter where a file has its
+    // search, and the way of showing the listing where a file has its viewer.
+    private mtd createViewControls()
+    {
+        let bar = .window.commandBar
+        with .modes = ComboBox.create(bar, {0, 0, 184, 36})
         {
             .dockStyle  = .Right
             .sigChanged += func|view = me|(_, index) { view.setMode(cast(ExplorerMode, index)) }
         }
 
-        with .filter = EditBox.create(options, "", {0, 0, 0, 36}, flags: .ClearButton)
+        with .filter = EditBox.create(bar, "", {0, 0, ViewerWindow.SearchNoOptionsFieldWidth, 36}, flags: .ClearButton)
         {
-            .dockStyle = .Center
-            .margin.z  = 16
             .setIcon(me.theme().icon(.Search, themeActionIconSize(me.themeMetrics())))
             .setPlaceholder(appStrings().ui_FilterFiles)
             .sigTextChanged += func|view = me|(_) { view.fill() }
         }
     }
 
+    // Shows or hides the listing together with what it lends the window's bars.
+    mtd setShown(visible: bool)
+    {
+        .show(visible)
+        .location.show(visible)
+        .status.show(visible)
+        .modes.show(visible)
+        .filter.show(visible)
+        .window.infoFileGroup.show(not visible)
+        .window.filesButton.toolTip = visible ? appStrings().explore_Panels : appStrings().ui_Files
+        if visible
+        {
+            .window.commandBar.centerGroup = .filter
+            .window.commandBar.centerContent()
+        }
+
+        .window.infoContentGroup.computeLayout()
+    }
+
+    // Reports what the location holds, or why it holds nothing, at the end of the information band.
+    mtd setStatus(text: string)
+    {
+        .status.setText(text)
+        .status.preferredSize.x = Math.ceil(.status.itf.measureContent({}).x)
+        .window.infoContentGroup.computeLayout()
+    }
+
+    // Gives the keyboard to the listing, in whichever form it is shown.
+    mtd focusContent()
+    {
+        if .mode == .Names or .mode == .Details do
+            .list.setFocus()
+        else do
+            .grid.setFocus()
+    }
+
     mtd retranslate()
     {
         .modes.clear()
         let text = appStrings()
-        .back.toolTip    = text.explore_Back
-        .forward.toolTip = text.explore_Forward
-        .up.toolTip      = text.explore_Up
-        .refresh.toolTip = text.explore_Refresh
-        .panels.toolTip  = text.explore_Panels
+        .back.toolTip            = text.explore_Back
+        .forward.toolTip         = text.explore_Forward
+        .up.toolTip              = text.explore_Up
+        .address.refresh.toolTip = text.explore_Refresh
         .filter.setPlaceholder(text.ui_FilterFiles)
         .list.header.itemAt(0).name = text.explore_Name
         .list.header.itemAt(1).name = text.explore_Type
@@ -334,7 +350,7 @@ impl Explorer
             .history.push(Format.toString("%\n%", path, folder))
         .back.enable(.history.canGoBack())
         .forward.enable(.history.canGoForward())
-        .status.setText(appStrings().explore_Loading)
+        .setStatus(appStrings().explore_Loading)
         if not .load.started do
             .startListing()
     }
@@ -366,9 +382,55 @@ impl Explorer
         .navigate(location[0 until split], location[split + 1 to])
     }
 
+    // Returns the explored location as one path: the folder, or the archive and the folder inside it.
+    mtd locationText()->String
+    {
+        let path = .displayPath(.listing.path)
+        if .folder.isEmpty() do
+            return path
+        return Format.toString("%/%", path, .folder)
+    }
+
+    // Goes to a location typed into the address: the folder or archive it names, a folder inside
+    // the archive on show, or the file it names, which opens as any other file does.
+    //
+    // A path copied from the system file browser comes between quotes, which are not part of it.
+    mtd navigateTyped(text: string)
+    {
+        var typed = Latin1.trim(text)
+        if typed.count >= 2 and typed[0] == '"'u8 and typed[typed.count - 1] == '"'u8 do
+            typed = typed[1 until typed.count - 1]
+        if typed.count == 0 or .locationText() == typed do
+            return
+
+        if .listing.isArchive
+        {
+            let archive = .displayPath(.listing.path)
+            if Utf8.startsWith(typed, archive) and (typed.count == archive.count or typed[archive.count] == '/'u8)
+            {
+                var folder = typed[archive.count to]
+                while folder.count and folder[0] == '/'u8 do
+                    folder = folder[1 to]
+                if folder.count and folder[folder.count - 1] != '/'u8 do
+                    .navigate(.listing.path, Format.toString("%/", folder))
+                else do
+                    .navigate(.listing.path, folder)
+                return
+            }
+        }
+
+        if Directory.exists(typed) do
+            .navigate(typed)
+        elif File.exists(typed) do
+            .window.queueFile(typed)
+        else do
+            .setStatus(appStrings().explore_NotFound)
+    }
+
     mtd updateBreadcrumb()
     {
-        .breadcrumb.clear()
+        let breadcrumb = .address.breadcrumb
+        breadcrumb.clear()
         var ancestors: Array'String
         var path = .listing.path.toString()
         while path.count
@@ -384,7 +446,7 @@ impl Explorer
         {
             let full = ancestor.toString()
             let name = Path.fileName(full) orelse full
-            .breadcrumb.addItem(name.count ? name : full, tag: Format.toString("%\n", full))
+            breadcrumb.addItem(name.count ? name : full, tag: Format.toString("%\n", full))
         }
 
         if .listing.isArchive
@@ -392,24 +454,22 @@ impl Explorer
             var begin: u64
             for offset in .folder.length where .folder[offset] == '/'u8
             {
-                .breadcrumb.addItem(.folder.toString()[begin until offset],
-                                    tag: Format.toString("%\n%", .listing.path, .folder.toString()[0 until offset + 1]))
+                breadcrumb.addItem(.folder.toString()[begin until offset],
+                                   tag: Format.toString("%\n%", .listing.path, .folder.toString()[0 until offset + 1]))
                 begin = offset + 1
             }
         }
 
-        .breadcrumb.layout()
-        let width = .breadcrumb.items.isEmpty() ? 0.0 : .breadcrumb.items.back().arrowRect.right()
-        .pathScroll.setScrollSize(width, 0)
-        .pathScroll.setScrollPos(width, 0)
-        .breadcrumb.toolTip = Format.toString("% / %", .displayPath(.listing.path), .folder)
+        breadcrumb.toolTip = .locationText()
+        .address.refreshPath()
     }
 
     mtd fillBreadcrumbMenu(index: u64, menu: *MenuCtrl)
     {
-        if index >= .breadcrumb.items.count do
+        let breadcrumb = .address.breadcrumb
+        if index >= breadcrumb.items.count do
             return
-        let location = .breadcrumb.items[index].tag.toString()
+        let location = breadcrumb.items[index].tag.toString()
         let split    = Utf8.indexOf(location, "\n")
         let path     = location[0 until split]
         let folder   = location[split + 1 to]
@@ -444,7 +504,7 @@ impl Explorer
         for &child in children where child.directory
         {
             let target   = .menuPaths[item].toString()
-            let selected = index + 1 < .breadcrumb.items.count and .breadcrumb.items[index + 1].tag == target
+            let selected = index + 1 < breadcrumb.items.count and breadcrumb.items[index + 1].tag == target
             menu.addItem(child.name, target, checked: selected)
             item += 1
         }
@@ -552,10 +612,11 @@ impl Explorer
 
         switch .shown.count
         {
-        case 0:  .status.setText(appStrings().explore_Empty)
-        case 1:  .status.setText(appStrings().explore_OneItem)
-        default: .status.setText(Format.toString(appStrings().explore_Count, .shown.count))
+        case 0:  .setStatus(appStrings().explore_Empty)
+        case 1:  .setStatus(appStrings().explore_OneItem)
+        default: .setStatus(Format.toString(appStrings().explore_Count, .shown.count))
         }
+
         .list.setVirtualCount(cast(u32, .shown.count))
         for index, row in .shown where index == .selected
         {
@@ -809,7 +870,7 @@ impl IWnd for Explorer
 
             if not error.isEmpty()
             {
-                .status.setText(error)
+                .setStatus(error)
                 return
             }
 
@@ -844,7 +905,7 @@ impl IWnd for Explorer
                         if preview.error.isEmpty() and not .temporaryFiles.isEmpty() do
                             .window.queueFile(.temporaryFiles.back().file, remember: false)
                         else do
-                            .status.setText(preview.error)
+                            .setStatus(preview.error)
                     }
                     elif preview.image.isValid()
                     {
@@ -904,6 +965,8 @@ impl IWnd for Explorer
         switch evt.key
         {
         case .F5:                                  .forceRefresh()
+        case .L where evt.modifiers.has(.Control): .address.beginEdit()
+        case .D where evt.modifiers.has(.Alt):     .address.beginEdit()
         case .Left where evt.modifiers.has(.Alt):  .goBack()
         case .Right where evt.modifiers.has(.Alt): .goForward()
         case .Up where evt.modifiers.has(.Alt):    .goUp()
@@ -945,7 +1008,7 @@ impl ExplorerGrid
 
     mtd refreshLayout()
     {
-        let width: f32 = .explorer.mode == .Small ? 128.0 : (.explorer.mode == .Large ? 256.0 : 192.0)
+        let width: f32   = .explorer.mode == .Small ? 128.0 : (.explorer.mode == .Large ? 256.0 : 192.0)
         let previewWidth = width - 24
         .cell    = Math.Point{width, previewWidth / .explorer.previewAspect + 48}
         .columns = Math.max(1'u64, cast(u64, Math.max(0.0, .clientRect().width - 24) / width))
@@ -984,6 +1047,25 @@ impl ExplorerGrid
         chip.y = picture.bottom() - chip.height - 4
         painter.fillRoundRect(chip, radius, radius, Color.fromArgb(ExplorerDurationGround))
         painter.drawString(chip.x + 4, chip.y + 1, label, font, Color.fromArgb(ExplorerDurationInk))
+    }
+
+    // Draws a folder as a quiet card standing where a picture would, its glyph on it.
+    //
+    // A file the gallery has no picture for shows its glyph on the bare ground, so a folder that
+    // did the same read as one more such file. The card gives it a ground of its own in the panel
+    // tone, the interface corner and the line of names a picture stands on, and stays fainter
+    // than any picture beside it.
+    mtd paintFolder(painter: *Painter, preview: Math.Rectangle, glyph: Icon)
+    {
+        let radius = .themeRects().btnIcon_RoundSquareBk.radius
+        let height = Math.round(Math.min(preview.height, preview.width * ExplorerFolderCardAspect))
+        let width  = Math.round(Math.min(preview.width, height / ExplorerFolderCardAspect))
+        let card   = Math.Rectangle{Math.round(preview.horzCenter() - width / 2), Math.round(preview.bottom() - height), width, height}
+        painter.pushState()
+        defer painter.popState()
+        painter.setAntialiased(true)
+        painter.fillRoundRect(card, radius, radius, .themeColors().wnd_Bk)
+        glyph.paint(painter, Math.round(card.horzCenter() - glyph.sizeX / 2), Math.round(card.vertCenter() - glyph.sizeY / 2), .themeColors().label_TextFaint)
     }
 
     mtd visibleRange()->{first: u64, end: u64}
@@ -1037,6 +1119,7 @@ impl IWnd for ExplorerGrid
                 let scale  = Math.min(preview.width / cast(f32, entry.texture.width), preview.height / cast(f32, entry.texture.height))
                 let width  = Math.round(cast(f32, entry.texture.width) * scale)
                 let height = Math.round(cast(f32, entry.texture.height) * scale)
+
                 // Previews stand on the line of their names, so a row of films of any shape reads
                 // as one row and each picture stays next to what it is called.
                 .paintThumbnail(painter, Math.Rectangle{Math.round(preview.horzCenter() - width / 2), Math.round(preview.bottom() - height), width, height}, entry)
@@ -1046,6 +1129,10 @@ impl IWnd for ExplorerGrid
                 let size = .themeMetrics().spinner_Size
                 .spinners[slot].setPosition(Math.Rectangle{preview.horzCenter() - size / 2, preview.vertCenter() - size / 2, size, size}, computeLayout: false)
                 .busy[slot] = true
+            }
+            elif entry.directory
+            {
+                .paintFolder(painter, preview, .explorer.entryIcon(index, 32))
             }
             else
             {

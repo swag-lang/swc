@@ -38,12 +38,17 @@ struct BreadcrumbCtrl
         sigItemPressed:  SigArray'func||(*BreadcrumbCtrl, u64)                // Emitted after a level body is activated.
         sigFillMenu:     SigArray'func||(*BreadcrumbCtrl, u64, *MenuCtrl)     // Emitted when a level's child menu needs content.
         sigMenuSelected: SigArray'func||(*BreadcrumbCtrl, u64, String)        // Emitted after a command is selected from a child menu.
+
+        // Emitted after a click on the part of the control no level covers, which is where an
+        // address bar offers to type the path instead.
+        sigEmptyPressed: SigArray'func||(*BreadcrumbCtrl)
     }
 
     hotItem   = Swag.U64.Max     // Level currently under the pointer.
     hotArrow:   bool             // Whether the pointer is over that level's arrow.
     pressItem = Swag.U64.Max     // Level on which the current press began.
     pressArrow: bool             // Whether the current press began on its arrow.
+    pressEmpty: bool             // Whether the current press began where no level is.
 }
 
 impl BreadcrumbCtrl
@@ -69,6 +74,7 @@ impl BreadcrumbCtrl
         .hotArrow   = false
         .pressItem  = Swag.U64.Max
         .pressArrow = false
+        .pressEmpty = false
         .invalidate()
     }
 
@@ -108,6 +114,7 @@ impl BreadcrumbCtrl
         .hotArrow   = false
         .pressItem  = Swag.U64.Max
         .pressArrow = false
+        .pressEmpty = false
         .invalidate()
     }
 
@@ -228,23 +235,32 @@ impl IWnd for BreadcrumbCtrl
         // Act on a completed click (press then release over the same target), like a
         // button. Opening the chevron popup on press would start its modal loop while the
         // button is still down, and the release would dismiss it immediately.
+        let empty = nh == Swag.U64.Max and .clientRect().contains(pos - .scrollPos)
         if evt.kind == .Pressed and evt.button == .Left
         {
-            if nh != Swag.U64.Max
+            if nh != Swag.U64.Max or empty
             {
                 .pressItem  = nh
                 .pressArrow = nhArrow
+                .pressEmpty = empty
                 .captureMouse()
             }
         }
-        elif evt.kind == .Released and evt.button == .Left and .pressItem != Swag.U64.Max
+        elif evt.kind == .Released and evt.button == .Left and (.pressItem != Swag.U64.Max or .pressEmpty)
         {
             let pi = .pressItem
             let pa = .pressArrow
-            .pressItem = Swag.U64.Max
+            let pe = .pressEmpty
+            .pressItem  = Swag.U64.Max
+            .pressEmpty = false
             .releaseMouse()
 
-            if pi == nh and pa == nhArrow
+            if pe
+            {
+                if empty do
+                    .sigEmptyPressed.call(me)
+            }
+            elif pi == nh and pa == nhArrow
             {
                 if pa do
                     .openMenu(pi)

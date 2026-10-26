@@ -88,3 +88,26 @@ func breadcrumbPressed(_: *BreadcrumbCtrl, idx: u64)
     host.click(Math.Point{a.horzCenter(), a.vertCenter()})
     Swag.assert(BreadcrumbPressedCount == 1)
 }
+
+// A click past the last level reports the empty space, and never a level.
+#test
+{
+    var host: Testing.HeadlessHost
+    host.setup(400, 60)
+    BreadcrumbPressedCount = 0
+
+    let bc = BreadcrumbCtrl.create(&host.root, {0, 0, 400, 32})
+    bc.addItem("Home")
+    bc.addItem("Docs")
+    bc.sigItemPressed += &breadcrumbPressed
+    var emptyPresses: u32
+    bc.sigEmptyPressed += func|&emptyPresses|(_) { emptyPresses += 1 }
+    bc.layout()
+
+    host.click(Math.Point{bc.items.back().arrowRect.right() + 40, 16})
+    Swag.assert(emptyPresses == 1 and BreadcrumbPressedCount == 0)
+
+    let r = bc.items[0].bodyRect
+    host.click(Math.Point{r.horzCenter(), r.vertCenter()})
+    Swag.assert(emptyPresses == 1 and BreadcrumbPressedCount == 1)
+}

@@ -32,6 +32,8 @@ struct Strings
         appearance_Light:          string = "Light"               // Neutral light application theme.
         appearance_About:          string = "About..."            // Action opening application information.
 
+        optionSheet_Title: string = "Options"     // Title of the first page of an option sheet that names none.
+
         about_Build:     string = "Build of %{f}"       // Application build date in the standard about dialog.
         about_Source:    string = "% is open source and written in <url>Swag</url>. Its code is <url>here</url>."     // Product and source links in the standard about dialog.
         about_Copyright: string = "Copyright © % %"     // Copyright year and holder in the standard about dialog.

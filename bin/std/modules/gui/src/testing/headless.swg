@@ -857,6 +857,12 @@ impl HeadlessHost
         return menu
     }
 
+    // Returns the option sheet holding the pointer capture, or `null` when none does.
+    //
+    // Drive it through [[Gui.OptionSheet.View.activateRow]], [[Gui.OptionSheet.View.back]] and
+    // [[Gui.OptionSheet.View.close]], or with the keys and the pointer of this host.
+    mtd capturedOptionSheet()->*OptionSheet.View? => catch cast(*OptionSheet.View?, .app.mouseCaptureWnd)
+
     // Activates an item in the captured popup menu and reports whether it was found.
     mtd clickPopupMenuItem(id: WndId)->bool
     {

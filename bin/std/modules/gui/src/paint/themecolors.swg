@@ -359,6 +359,11 @@ struct ThemeColors
         popupItem_SubmenuMarker:         Color     // Chevron leading to a child menu.
         popupItem_HotSubmenuMarker:      Color     // Chevron leading to a child menu under the pointer.
         popupItem_DisabledSubmenuMarker: Color     // Chevron leading to an unavailable child menu.
+        popupItem_Heading:               Color     // Title of a group of entries.
+
+        optionSheet_HotBk:      Color     // Ground of the row of an option sheet under the pointer or the keyboard.
+        optionSheet_Marker:     Color     // Check of the value in force on an option sheet.
+        optionSheet_StepBorder: Color     // Outline of the buttons that step a value on an option sheet.
 
         scrollBar_Bk:         Color     // Track of a scroll bar.
         scrollBar_HotBk:      Color     // Track of a scroll bar under the pointer.
@@ -957,6 +962,13 @@ impl ThemeColors
         .popupItem_SubmenuMarker         = p.faintText
         .popupItem_HotSubmenuMarker      = p.softText
         .popupItem_DisabledSubmenuMarker = p.disabled
+        .popupItem_Heading               = p.faintText
+
+        // An option sheet is read row by row, its values compared in place: its rows take a
+        // neutral ground, so the one mark in the alternate tone is the value in force.
+        .optionSheet_HotBk      = Color.lerpRgb(p.panel, p.hot, 0.45)
+        .optionSheet_Marker     = alternate.mark
+        .optionSheet_StepBorder = p.controlLine
 
         // A scroll bar is furniture: its track is whatever it sits on until the pointer arrives,
         // and the thumb climbs from faint to full as the reader engages with it. The track is

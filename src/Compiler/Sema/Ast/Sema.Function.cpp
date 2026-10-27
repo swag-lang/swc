@@ -672,10 +672,15 @@ Result AstFunctionDecl::semaPreNode(Sema& sema) const
     if (sym.isGenericRoot() && !sym.isGenericInstance())
     {
         SWC_RESULT(SemaSpecOp::validateSymbol(sema, sym));
-        SWC_RESULT(SemaGeneric::instantiateErasedRoot(sema, sym));
+
+        // A rejected erased instance still completes the root, so its callers are not left
+        // waiting on it.
+        const Result erasedResult = SemaGeneric::instantiateErasedRoot(sema, sym);
+        if (erasedResult == Result::Pause)
+            return erasedResult;
         sym.setSemaCompleted(sema.ctx());
 
-        return Result::SkipChildren;
+        return erasedResult == Result::Continue ? Result::SkipChildren : erasedResult;
     }
 
     SWC_RESULT(checkPropagateFunction(sema, sym));

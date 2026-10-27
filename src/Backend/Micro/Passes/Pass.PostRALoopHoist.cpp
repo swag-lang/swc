@@ -134,6 +134,7 @@ namespace
         bool                     wholeFramePrivate = false;
         bool                     spSpaceEscapes    = false;
         bool                     localSpaceEscapes = false;
+        std::vector<MicroInstrRef> spEscapes;
         MicroReg                 localBaseReg;
         MicroInstrRef            localBaseRef = MicroInstrRef::invalid();
         bool                     extentsKnown = false;
@@ -258,10 +259,15 @@ namespace
             }
         }
 
-        for (const MicroInstr& inst : storage.view())
+        for (auto it = storage.view().begin(), end = storage.view().end(); it != end; ++it)
         {
+            const MicroInstr&        inst = *it;
             const MicroInstrOperand* ops  = inst.ops(operands);
             const MicroInstrDef&     info = MicroInstr::info(inst.op);
+            const auto markStackEscape = [&] {
+                out.spSpaceEscapes = true;
+                out.spEscapes.push_back(it.current);
+            };
 
             const auto isTrackedBase = [&](const MicroReg reg) {
                 return isFrameBaseRegister(reg, conv) || (out.localBaseReg.isValid() && reg == out.localBaseReg);
@@ -273,7 +279,7 @@ namespace
                 {
                     // An address into the stack-pointer space: call-area
                     // staging and other shapes the extents cannot describe.
-                    out.spSpaceEscapes = true;
+                    markStackEscape();
                 }
                 else if (ops && out.localBaseReg.isValid() && ops[1].reg == out.localBaseReg)
                 {
@@ -307,7 +313,7 @@ namespace
                 if (inst.op == MicroInstrOpcode::LoadAddrRegMem || inst.op == MicroInstrOpcode::LoadAddrAmcRegMem)
                     continue; // classified above, per object
                 if (isFrameBaseRegister(ops[i].reg, conv))
-                    out.spSpaceEscapes = true;
+                    markStackEscape();
                 else
                     out.localSpaceEscapes = true;
             }
@@ -378,6 +384,28 @@ namespace
         const FrameReachability&              reach;
         const CallConv&                       conv;
         mutable std::optional<FlatKeyMap<uint64_t>> stackOffsets;
+        mutable std::optional<FlatKeyMap<uint64_t>> entryStackOffsets;
+
+        bool isPrivateSpill(const FrameRef& slot, const uint32_t index) const
+        {
+            if (slot.base != conv.stackPointer || context.spillFrameEntryLo >= context.spillFrameEntryHi || slot.hi < slot.lo)
+                return false;
+            const uint32_t entry = cfg.singleEntry();
+            if (entry == MicroControlFlowGraph::K_NO_INDEX)
+                return false;
+            if (!entryStackOffsets)
+                entryStackOffsets = MicroPassHelpers::collectStackPointerOffsets(context, cfg.instructionRefs()[entry], 0);
+            const auto* delta = entryStackOffsets->find(cfg.instructionRefs()[index].get());
+            if (!delta)
+                return false;
+            const int64_t signedDelta  = static_cast<int64_t>(*delta);
+            const int64_t displacement = static_cast<int64_t>(slot.lo);
+            if (signedDelta < INT32_MIN || signedDelta > INT32_MAX || displacement < INT32_MIN || displacement > INT32_MAX)
+                return false;
+            const int64_t start = signedDelta + displacement;
+            return start >= context.spillFrameEntryLo && start <= context.spillFrameEntryHi &&
+                   slot.hi - slot.lo <= static_cast<uint64_t>(context.spillFrameEntryHi - start);
+        }
 
         FrameRef normalize(FrameRef range, const uint32_t index) const
         {
@@ -803,7 +831,8 @@ namespace
                 sunkStores.push_back({instrRefs[use.storeIndex], writeBackBefore, source, use.base, offset, bits});
                 continue;
             }
-            if (use.accesses != 2)
+            if (use.accesses != 2 || use.loadIndex == std::numeric_limits<uint32_t>::max() ||
+                use.storeIndex == std::numeric_limits<uint32_t>::max() || use.loadIndex > use.storeIndex)
                 continue;
 
             FrameRef slotRef;
@@ -828,12 +857,6 @@ namespace
 
             if (restrictToUnreachable && !slotIsUnreachable(reach, slotRef, conv))
                 continue;
-            if (use.loadIndex == std::numeric_limits<uint32_t>::max() ||
-                use.storeIndex == std::numeric_limits<uint32_t>::max())
-                continue;
-            if (use.loadIndex > use.storeIndex)
-                continue;
-
             const MicroInstr*        loadInst  = storage.ptr(instrRefs[use.loadIndex]);
             const MicroInstr*        storeInst = storage.ptr(instrRefs[use.storeIndex]);
             const MicroInstrOperand* storeOps  = storeInst ? storeInst->ops(operands) : nullptr;
@@ -923,9 +946,9 @@ namespace
     // an unused caller-saved SIMD register, even when the original GP register
     // changes roles between accesses. Keeping every read and write coherent also
     // handles branch arms and distinct loop exits.
-    bool cachePrivateSpills(MicroPassContext& context, const MicroControlFlowGraph& cfg, const MicroPhysLiveness& liveness, const NaturalLoop& loop, const FrameReachability& reach)
+    bool cachePrivateSpills(MicroPassContext& context, const MicroControlFlowGraph& cfg, const MicroPhysLiveness& liveness, const NaturalLoop& loop, const FrameReachability& reach, const FrameRangeNormalizer& ranges, const bool stackEscaped)
     {
-        if (!reach.wholeFramePrivate || context.spillAreaLo >= context.spillAreaHi)
+        if (stackEscaped || reach.localSpaceEscapes || context.spillAreaLo >= context.spillAreaHi)
             return false;
         const CallConv& conv     = CallConv::get(context.callConvKind);
         auto&           storage  = *context.instructions;
@@ -955,16 +978,43 @@ namespace
             return false;
 
         SmallVector<uint32_t, 4> calls;
+        SmallVector<FrameRef, 8> localTouches;
         uint64_t                 unavailable = 0;
         for (uint32_t index = loop.bodyBegin; index < loop.bodyEnd && index < refs.size(); ++index)
         {
             if (!loop.inBody[index])
                 continue;
             const auto& useDef = liveness.useDefs[index];
-            // A stack-derived local base may name the same bytes as an SP
-            // spill. Its accesses need a displacement proof before caching.
-            if (reach.localBaseReg.isValid() && std::ranges::find(useDef.uses, reach.localBaseReg) != useDef.uses.end())
-                return false;
+            // Any other frame base can alias an SP spill. Record only fixed
+            // accesses; indexed or escaped addresses need a wider proof.
+            for (const MicroReg frameBase : {reach.localBaseReg, conv.framePointer})
+            {
+                if (!frameBase.isValid() || frameBase == conv.stackPointer || std::ranges::find(useDef.uses, frameBase) == useDef.uses.end())
+                    continue;
+                const MicroInstr* inst = storage.ptr(refs[index]);
+                const auto* ops = inst ? inst->ops(operands) : nullptr;
+                if (!inst || !ops)
+                    return false;
+                const auto& info = MicroInstr::info(inst->op);
+                MicroPassHelpers::AmcLayout layout;
+                if (!info.flags.has(MicroInstrFlagsE::HasMemBaseOffsetOperands) ||
+                    ops[info.memBaseOperandIndex].reg != frameBase ||
+                    inst->op == MicroInstrOpcode::LoadAddrRegMem || MicroPassHelpers::amcLayoutFor(layout, inst->op) ||
+                    MicroPassHelpers::isAtomicOrdering(*inst, ops))
+                    return false;
+                const auto modes = info.resolvedRegModes(ops);
+                for (size_t operand = 0; operand < modes.size(); ++operand)
+                    if (operand != info.memBaseOperandIndex && modes[operand] != MicroInstrRegMode::None && ops[operand].reg == frameBase)
+                        return false;
+                uint64_t width = info.flags.has(MicroInstrFlagsE::Fixed128BitOperands) ? 16 : 0;
+                for (uint32_t operand = 0; operand < inst->numOperands; ++operand)
+                    if (info.opBitsMask & (1u << operand))
+                        width = std::max<uint64_t>(width, getNumBytes(ops[operand].opBits));
+                const uint64_t offset = ops[info.memOffsetOperandIndex].valueU64;
+                if (!width || offset + width < offset)
+                    return false;
+                localTouches.push_back({frameBase, offset, offset + width});
+            }
             for (const MicroReg reg : useDef.uses)
                 if (reg.isInt() || reg.isFloat())
                     unavailable |= 1ull << MicroPhysLiveness::bitOf(reg);
@@ -1107,6 +1157,12 @@ namespace
             // too: the last bank transfer replaces repeated spill stores.
             if (!slot.eligible ||
                 slot.range.lo < context.spillAreaLo || slot.range.hi > context.spillAreaHi || slot.range.hi < slot.range.lo)
+                continue;
+            const uint32_t accessIndex = cfg.indexOf(slot.accesses.front());
+            if (accessIndex == MicroControlFlowGraph::K_NO_INDEX || !ranges.isPrivateSpill(slot.range, accessIndex))
+                continue;
+            const FrameRef comparableSlot = ranges.normalize(slot.range, accessIndex);
+            if (std::ranges::any_of(localTouches, [&](const FrameRef& touch) { return overlaps(comparableSlot, touch); }))
                 continue;
             bool overlap = false;
             for (const Slot& other : slots)
@@ -1330,6 +1386,19 @@ namespace
         sunkStores.clear();
         claimed.clear();
         std::vector<FrameRef> writes;
+        std::optional<std::vector<uint8_t>> stackEscapeReach;
+        const auto stackEscapedForLoop = [&](const NaturalLoop& loop) {
+            if (!reach.spSpaceEscapes)
+                return false;
+            if (reach.spEscapes.empty())
+                return true;
+            if (!stackEscapeReach)
+                stackEscapeReach = cfg.reachableFrom(reach.spEscapes);
+            for (uint32_t i = loop.bodyBegin; i < loop.bodyEnd; ++i)
+                if (loop.inBody[i] && (*stackEscapeReach)[i])
+                    return true;
+            return false;
+        };
 
         for (const NaturalLoop* loop : loops)
         {
@@ -1590,7 +1659,7 @@ namespace
                 return a->bodySize != b->bodySize ? a->bodySize < b->bodySize : a->header < b->header;
             });
             for (const NaturalLoop* loop : cacheLoops)
-                if (cachePrivateSpills(context, cfg, liveness, *loop, reach))
+                if (cachePrivateSpills(context, cfg, liveness, *loop, reach, ranges, stackEscapedForLoop(*loop)))
                     return true;
             return false;
         }

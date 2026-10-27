@@ -69,7 +69,7 @@ func runSheet(host: *Gui.Testing.HeadlessHost,
               afterChoice = OptionSheet.AfterChoice.Back,
               buttonRect = Math.Rectangle{300, 440, 40, 36})
 {
-    let button     = IconButton.create(&host.root, host.theme.icon(.Options, 20), buttonRect, flags: .CenterContent)
+    let button     = IconButton.create(&host.root, host.theme.icon(.Settings, 20), buttonRect, flags: .CenterContent)
     with let sheet = OptionSheet.View.create(button, sheetRoot(model))
     {
         .placement   = placement
@@ -455,6 +455,24 @@ func rowCenter(sheet: *OptionSheet.View, label: string)->Math.Point
         host.advanceAnimations(0)
         Swag.assert(sheet.slideProgress == 1)
         Swag.assert(sheet.bodyHeight == sheet.contentHeight(&sheet.page, 2))
+    })
+}
+
+// A checked choice at the end of a page that fits keeps its original position after the sheet grows.
+#test
+{
+    var host: Testing.HeadlessHost
+    host.setup(480, 520)
+
+    var model: SheetModel
+    model.rate = 2
+    runSheet(&host, &model, func|host = &host|(sheet)
+    {
+        Swag.assert(sheet.activateRow("Speed"))
+        host.finishAnimations()
+        Swag.assert(sheet.focusRow == 3)
+        Swag.assert(sheet.bodyHeight == sheet.contentHeight(&sheet.page, 2))
+        Swag.assert(sheet.levels.back().scroll == 0)
     })
 }
 

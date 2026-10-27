@@ -2139,7 +2139,7 @@ struct PropAlignData
         let it = unwrap item
         if it.label == null do
             continue
-        if it.label.text() == "Nombres" do
+        if it.label.text() == "NOMBRES" do
             sawCategory = true
         if it.label.text() == "Nombre" do
             sawLabel = true

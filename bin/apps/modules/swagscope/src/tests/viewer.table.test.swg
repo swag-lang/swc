@@ -106,7 +106,7 @@ using Core, Pixel, Gui, Viewers
     host.setup(760, 480)
     var result = openTestViewer(Table.viewerPlugin(), &host.root, fileName, commandParent: &host.root)
     Swag.assert(result.collectMatches != null and result.revealMatch != null)
-    let view   = assume cast(*Table.Panel, result.view)
+    let view = assume cast(*Table.Panel, result.view)
     completeViewerBackgroundLoad(&host, &view.load)
     Swag.assert(view.numeric[1] and not view.numeric[0])
 

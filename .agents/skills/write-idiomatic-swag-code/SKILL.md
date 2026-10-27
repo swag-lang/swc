@@ -78,6 +78,14 @@ or type scope when it has multiple callers, is an intentional API or callback ta
 type-specific behavior, or benefits from independent recursion or testing. If a helper is only
 extracted to make one caller's phases readable, keep the extraction local.
 
+### Name callbacks with substantial bodies
+
+Keep a short, self-explanatory callback inline when it stays legible. When a callback spans multiple
+lines, needs several statements or branches, or makes the surrounding call hard to scan, define it
+before the call and pass it by name. Use a local function when it captures nothing; bind a capturing
+callback to a descriptive local variable. This keeps the call's argument list scannable and gives
+longer callback logic a stable name to refer to.
+
 ### Keep constructors as composition outlines
 
 A constructor for a window, service, or other aggregate should reveal the object it creates before

@@ -88,9 +88,9 @@ struct ThemeMetrics
         circular_MarkerSize: f32 = 5      // Radius of the marker of a circular control.
 
         menuPopup_Padding:         f32 = 12     // Inset of the entries of a popup menu.
-        menuPopup_SpaceLines:      f32 = 6      // Air between two entries of a popup menu, shared by their hover grounds.
+        menuPopup_SpaceLines:      f32 = 7      // Air between two entries of a popup menu, shared by their hover grounds.
         menuPopup_ShadowSize:      f32 = 10     // Reach of the shadow a popup menu casts.
-        menuPopup_ItemHeight:      f32 = 24     // Complete pitch of an ordinary menu entry, including the inter-entry air.
+        menuPopup_ItemHeight:      f32 = 25     // Complete pitch of an ordinary menu entry, including the inter-entry air.
         menuPopup_IconSize:        f32 = 16     // Side of a menu-entry glyph or check mark.
         menuPopup_IconMargin:      f32 = 6      // Air between the active rule and the glyph of an entry.
         menuPopup_IconTextMargin:  f32 = 10     // Air between the glyph or check mark of an entry and its wording.

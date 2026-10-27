@@ -110,6 +110,7 @@ struct MainWnd
         libraryBtn, captureBtn:    *PushButton
         zoomBtn:                   *IconButton
         appearanceButton:          *AppearanceButton
+        optionsButton:             *CaptionButton
     }
 
     sizeBtn:       *IconButton?
@@ -794,6 +795,7 @@ impl MainWnd
         }
 
         result.createAppearanceButton()
+        result.createOptionsButton()
 
         // One Voltage rail identifies every standard Swag application surface.
         Separator.create(result, .Top, .Accent)

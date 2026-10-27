@@ -415,11 +415,10 @@ impl Properties
 
             if kind == .List
             {
-                const FontSectionSize  = 24'u32
-                const FontCategorySize = 18'u32
+                const FontSectionSize = 24'u32
                 .fontName             = theme.res.fontDefault
                 .fontSection          = theme.createDefaultFontFamily(FontSectionSize)
-                .fontCategory         = theme.createDefaultFontFamily(FontCategorySize)
+                .fontCategory         = theme.createDefaultFontFamily(theme.metrics.defaultFontSize - 2)
                 .fontSection.regular  = .fontSection.bold
                 .fontCategory.regular = .fontCategory.bold
                 .fontName.regular     = .fontName.bold

@@ -64,6 +64,9 @@ Evidence, investigations, and intended outcomes for the command stay together he
   it also keeps garbage indentation. Forcing the canonical indent was measured and rejected:
   it flattens nested tables onto one continuation level and strips the leading blank that
   aligns the `1,` rows under the `-1,` ones in `bin/examples/modules/opengl3/src/main.swg`.
+  Multiline function bodies used as call arguments can also retain a misplaced brace indent
+  after formatting, as in `View.startSlide` in `bin/std/modules/gui/src/controls/optionsheet/view.swg`;
+  a standalone equivalent formats correctly.
 - Next: implement and measure this criterion: a bracket whose continuation lines already
   share one indent keeps it, and a bracket whose lines disagree is re-indented to the
   canonical continuation column.

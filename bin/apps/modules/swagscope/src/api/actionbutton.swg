@@ -23,7 +23,7 @@ func createActionDropDown(parent: *Wnd, icon: ThemeIcons)->*IconButton
 // Creates the button that opens the option sheet of a viewer, its arrow pointing to where it opens.
 func createOptionsButton(parent: *Wnd)->*IconButton
 {
-    with let result = createActionDropDown(parent, .Options)
+    with let result = createActionDropDown(parent, .Settings)
     {
         .toolTip = appStrings().ui_Options
         .setArrowPosition(.RightUpward)

@@ -796,7 +796,7 @@ impl ThemeColors
         .label_DisabledIcon = p.disabled
 
         .btnCheck_Text           = p.text
-        .btnCheck_Border         = p.controlLine
+        .btnCheck_Border         = p.text
         .btnCheck_Mark           = p.text
         .btnCheck_Bk             = .transparent
         .btnCheck_PressedText    = p.text
@@ -814,7 +814,7 @@ impl ThemeColors
         .btnCheck_CheckedText    = p.text
         .btnCheck_CheckedBk      = .transparent
         .btnCheck_CheckedBorder  = signature.mark
-        .btnCheck_CheckedMark    = signature.mark
+        .btnCheck_CheckedMark    = p.text
 
         .toolTip_Bk     = p.text
         .toolTip_Border = p.text
@@ -964,9 +964,9 @@ impl ThemeColors
         .popupItem_DisabledSubmenuMarker = p.disabled
         .popupItem_Heading               = p.faintText
 
-        // An option sheet is read row by row, its values compared in place: its rows take a
-        // neutral ground, so the one mark in the alternate tone is the value in force.
-        .optionSheet_HotBk      = Color.lerpRgb(p.panel, p.hot, 0.45)
+        // An option sheet is read row by row, like a menu or list. Its hovered row uses the
+        // same selection ground, so the choice reads consistently across every row-based control.
+        .optionSheet_HotBk      = p.selectHot
         .optionSheet_Marker     = alternate.mark
         .optionSheet_StepBorder = p.controlLine
 
@@ -1101,13 +1101,13 @@ impl ThemeColors
         result.commandBar     = 0xFF303030
         result.toolBar        = 0xFF272727
         result.raised         = 0xFF353535
-        result.hot            = 0xFF3F3F3F
-        result.pressed        = 0xFF4A4A4A
+        result.hot            = 0xFF4A4A4A
+        result.pressed        = 0xFF555555
 
         // A neutral palette is allowed to wash a row with its accent, because a system blue
         // stays a ground once it is dark enough to write on.
-        result.selectHot     = 0xFF1E3A5C
-        result.selectPressed = 0xFF27507E
+        result.selectHot     = 0xFF2B4968
+        result.selectPressed = 0xFF355D80
 
         result.line        = 0xFF404040
         result.controlLine = 0xFF606060
@@ -1169,11 +1169,11 @@ impl ThemeColors
         result.commandBar     = 0xFFF2F2F2
         result.toolBar        = 0xFFF9F9F9
         result.raised         = 0xFFFFFFFF
-        result.hot            = 0xFFEFEFEF
-        result.pressed        = 0xFFE2E2E2
+        result.hot            = 0xFFE3E3E3
+        result.pressed        = 0xFFD6D6D6
 
-        result.selectHot     = 0xFFE8F2FF
-        result.selectPressed = 0xFFD4E7FF
+        result.selectHot     = 0xFFDDEBFA
+        result.selectPressed = 0xFFC8DDF5
 
         result.line        = 0xFFDCDCDC
         result.controlLine = 0xFFC2C2C2
@@ -1236,16 +1236,16 @@ impl ThemeColors
 
         // Hover has to be seen from across the surface without shouting. A step of nine
         // levels over the raised ground it usually sits on read as nothing at all.
-        result.hot     = 0xFF41414E
-        result.pressed = 0xFF52525F
+        result.hot     = 0xFF4B4B59
+        result.pressed = 0xFF5B5B6A
 
         // A row, an entry and a tab are washed with the alternate tone at the weight the neutral
         // hover used to carry, so the surfaces a reader spends the most time in gain a hue
         // without gaining any weight. The signature could never do this — a row washed in
         // Voltage cannot be read — which is the clearest statement of why a theme owns more
         // than one color.
-        result.selectHot     = 0xFF2A4658
-        result.selectPressed = 0xFF35617C
+        result.selectHot     = 0xFF305269
+        result.selectPressed = 0xFF3A6B84
 
         // A control has to read as an object the reader can act on, which is one step above a
         // divider and not two: taken as far as the ink of a disabled label, the edge of every

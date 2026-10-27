@@ -48,9 +48,9 @@ using Swag, Core
 
     // A row, an entry and a tab carry that tone rather than a grey, which is where a theme
     // spends most of its color and where a signature never can.
-    Swag.assert(colors.menuBar_SelectedBk == 0xFF2A4658)
-    Swag.assert(colors.popupItem_HotBk == 0xFF2A4658)
-    Swag.assert(colors.listItem_FocusSelectedBk == 0xFF35617C)
+    Swag.assert(colors.menuBar_SelectedBk == 0xFF305269)
+    Swag.assert(colors.popupItem_HotBk == 0xFF305269)
+    Swag.assert(colors.listItem_FocusSelectedBk == 0xFF3A6B84)
 
     // A filled action answers the pointer in its own color, so its three states differ.
     // Given one accent for all of them it reported nothing at the moment of the press.
@@ -67,7 +67,7 @@ using Swag, Core
     Swag.assert(colors.btnPush_StrongBk != colors.btnPush_AlternateBk)
 }
 
-// Every mark of every shipped palette reads on the hardest ground that palette paints.
+// Every mark of every shipped palette reads on the hardest surface or selection ground it paints.
 #test
 {
     for palette in [ThemeColors.darkPalette(), ThemeColors.lightPalette(), ThemeColors.swagDarkPalette()]
@@ -75,12 +75,18 @@ using Swag, Core
         var colors: ThemeColors
         colors.apply(palette)
 
-        for ground in [palette.ground, palette.view, palette.panel, palette.informationBar, palette.commandBar, palette.toolBar, palette.raised]
+        for ground in [palette.ground, palette.view, palette.panel, palette.informationBar,
+                       palette.commandBar, palette.toolBar, palette.raised]
         {
             Swag.assert(colors.hilight.contrastRatio(ground) >= 3.5)
             Swag.assert(colors.error.contrastRatio(ground) >= 3.5)
             Swag.assert(colors.searchMatch_Border.contrastRatio(ground) >= 3.5)
         }
+
+        Swag.assert(colors.btnCheck_CheckedMark.contrastRatio(palette.selectHot) >= 3.5)
+        Swag.assert(colors.btnCheck_CheckedMark.contrastRatio(palette.selectPressed) >= 3.5)
+        Swag.assert(colors.btnCheck_Border.contrastRatio(palette.selectHot) >= 3.5)
+        Swag.assert(colors.btnCheck_Border.contrastRatio(palette.selectPressed) >= 3.5)
 
         // A popup is raised over the structural panel ground. Its outline is the only persistent
         // edge once the shadow falls over dark content, so both popup families use stronger ink

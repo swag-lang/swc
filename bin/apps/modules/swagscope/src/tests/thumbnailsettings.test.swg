@@ -17,8 +17,8 @@ using Core, Gui, Pixel, Viewers
     MarkdownText.g_ViewerSettings = {themeIndex: 1, widthIndex: 2, zoomPercent: 125}
     explorer.refreshPreviewSettings()
     let originalSettings = String.from(explorer.previewSettings)
-    let originalKey = expect ThumbnailCache.key(source, settings: originalSettings)
-    var image  = Image.create(8, 8, .RGB8)
+    let originalKey      = expect ThumbnailCache.key(source, settings: originalSettings)
+    var image            = Image.create(8, 8, .RGB8)
     explorer.entries.add({name: "comprehensive.md", path: source, attempted: true,
                           texture: host.app.renderer.addImage(&image)})
     explorer.cached.add(0)

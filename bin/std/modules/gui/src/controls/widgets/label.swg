@@ -39,6 +39,8 @@ struct Label
         }
     }
 
+    letterSpacing: f32
+
     // Rich-text chunk under the mouse, tracked so a link can be hovered and clicked.
     hotChunk: *RichChunk?
 }
@@ -190,6 +192,13 @@ internal const MaxTextLayoutExtent = 8192.0'f32
 
 impl Label
 {
+    // Sets the extra spacing inserted between glyphs, in logical pixels.
+    mtd setLetterSpacing(spacing: f32)
+    {
+        .letterSpacing = spacing
+        .invalidate()
+    }
+
     private mtd getStringFormat(isDisabled: bool)->RichStringFormat
     {
         let theme = .theme()
@@ -205,6 +214,7 @@ impl Label
         sf.vertAlignment = .textVerticalAlignment
         sf.maxLines      = .maxLines
         sf.lineGap       = .lineGap
+        sf.letterSpacing = .letterSpacing
 
         if .textColor.a
         {

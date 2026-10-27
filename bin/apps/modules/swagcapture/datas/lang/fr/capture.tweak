@@ -5,7 +5,6 @@ ui_MenuCapture         Capture
 ui_MenuEdit            Édition
 ui_MenuImage           Image
 ui_MenuView            Affichage
-ui_MenuHelp            Aide
 ui_MenuAlign           Aligner
 ui_MenuArrange         Disposer
 ui_AllCaptures         Tous les éléments

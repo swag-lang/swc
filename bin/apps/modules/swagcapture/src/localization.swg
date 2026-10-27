@@ -15,7 +15,6 @@ struct AppStrings
     ui_MenuEdit:                string = "Edit"
     ui_MenuImage:               string = "Image"
     ui_MenuView:                string = "View"
-    ui_MenuHelp:                string = "Help"
     ui_MenuAlign:               string = "Align"
     ui_MenuArrange:             string = "Arrange"
     ui_AllCaptures:             string = "All Items"

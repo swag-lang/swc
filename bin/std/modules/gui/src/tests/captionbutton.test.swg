@@ -1,0 +1,23 @@
+#global if #command == Swag.CompilerCommand.Test
+#global private
+
+using Swag, Core
+
+#test
+{
+    var host: Testing.HeadlessHost
+    host.setup(480, 240)
+    host.surface.flags        = SurfaceFlags.StandardWindow
+    host.surfaceWnd.padding.y = host.theme.metrics.wnd_BigCaptionCY
+    host.surfaceWnd.create(&host.root, null)
+    host.surfaceWnd.sendResizeEvent()
+
+    let button = CaptionButton.create(&host.surface, ThemeIcons.Settings)
+    Swag.assert(host.surfaceWnd.captionButtons.count == 1)
+    Swag.assert(button.parent == &host.surfaceWnd)
+    Swag.assert(button.icon.index == cast(s32, ThemeIcons.Settings))
+
+    button.destroy()
+    host.pump()
+    Swag.assert(host.surfaceWnd.captionButtons.isEmpty())
+}

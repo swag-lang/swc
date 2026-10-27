@@ -295,6 +295,7 @@ SWC_DIAG_DEF(sema_err_foreign_simd_type)
 SWC_DIAG_DEF(sema_err_dynamic_cast_binding)
 SWC_DIAG_DEF(sema_err_dynamic_cast_test)
 SWC_DIAG_DEF(sema_err_lambda_parameter_count)
+SWC_DIAG_DEF(sema_err_lambda_parameter_type_not_inferred)
 
 SWC_DIAG_DEF(sema_err_tagged_union_tag_not_enum)
 SWC_DIAG_DEF(sema_err_tagged_union_tag_flags)

@@ -90,13 +90,6 @@ impl MainWnd
             .addItems([ActionView.Clip])
             topMenu.addPopup(func()->string => appStrings().ui_MenuView, viewMenu)
         }
-
-        // Help menu
-        with let helpMenu = MenuCtrl.createPopup(parentWnd, owner: me)
-        {
-            .addItem(ActionOptions.Options)
-            topMenu.addPopup(func()->string => appStrings().ui_MenuHelp, helpMenu)
-        }
     }
 
     // Speech-bubble glyph drawn for the Callout toolbar button: the icon sheet has no
@@ -328,6 +321,16 @@ impl MainWnd
             {
                 main.postCommandEvent(ActionAbout.About)
             }
+        }
+    }
+
+    // The caption gear opens the application's global options directly.
+    mtd createOptionsButton()
+    {
+        with .optionsButton = CaptionButton.create(unwrap .surface, ThemeIcons.Options, "capture.options")
+        {
+            .toolTip    = appStrings().act_Options
+            .sigPressed += func|main = me|(_) { main.postCommandEvent(ActionOptions.Options) }
         }
     }
 

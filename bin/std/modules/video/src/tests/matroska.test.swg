@@ -389,7 +389,11 @@ func waitForMatroskaSubtitles(reader: *Reader, count: u32)
     let source = videoFixturePath("ffmpeg-h264-two-aac-10min.mkv")
     var bytes  = expect File.readAllBytes(source)
     var cues   = bytes.count - 4
-    while cues and not (bytes[cues] == 0x1C and bytes[cues + 1] == 0x53 and bytes[cues + 2] == 0xBB and bytes[cues + 3] == 0x6B) do
+    while cues and
+          not (bytes[cues] == 0x1C and
+               bytes[cues + 1] == 0x53 and
+               bytes[cues + 2] == 0xBB and
+               bytes[cues + 3] == 0x6B) do
         cues -= 1
     Swag.assert(cues != 0)
     Memory.set(&bytes[cues], 0, 4)
@@ -432,7 +436,8 @@ func waitForMatroskaSubtitles(reader: *Reader, count: u32)
         while frame <= last and not found
         {
             let image = expect frames.decodeFrame(frame)
-            found = image.width == key.width and image.height == key.height and
+            found = image.width == key.width and
+                    image.height == key.height and
                     Memory.compare(key.pixels.storage(), image.pixels.storage(), key.pixels.count) == 0
             frame += 1
         }
@@ -447,7 +452,11 @@ func waitForMatroskaSubtitles(reader: *Reader, count: u32)
 
     var bytes = expect File.readAllBytes(source)
     var cues  = bytes.count - 4
-    while cues and not (bytes[cues] == 0x1C and bytes[cues + 1] == 0x53 and bytes[cues + 2] == 0xBB and bytes[cues + 3] == 0x6B) do
+    while cues and
+          not (bytes[cues] == 0x1C and
+               bytes[cues + 1] == 0x53 and
+               bytes[cues + 2] == 0xBB and
+               bytes[cues + 3] == 0x6B) do
         cues -= 1
     Memory.set(&bytes[cues], 0, 4)
     let path = videoTempPath("cueless-key", "mkv")

@@ -195,8 +195,10 @@ impl IWnd for SurfaceWnd
         {
             if button.isPendingDestroy do
                 continue
-            button.setPosition(pos)
-            pos.x -= pos.width
+            var appButtonPos = pos
+            appButtonPos.width = Math.max(metrics.wnd_CaptionButtonGlyph + 2 * metrics.wnd_CaptionButtonMargin, pos.height * 0.75)
+            button.setPosition(appButtonPos)
+            pos.x -= appButtonPos.width
         }
 
         .base.IWnd.onResizeEvent(evt)

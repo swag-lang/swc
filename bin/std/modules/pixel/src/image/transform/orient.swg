@@ -13,18 +13,24 @@ impl Image
         {
         case 2:
             .mirror()
+
         case 3:
             .rotate(.HalfTurn)
+
         case 4:
             .flip()
+
         case 5:
             .rotate(.Clockwise90)
             .mirror()
+
         case 6:
             .rotate(.Clockwise90)
+
         case 7:
             .rotate(.Clockwise270)
             .mirror()
+
         case 8:
             .rotate(.Clockwise270)
         }

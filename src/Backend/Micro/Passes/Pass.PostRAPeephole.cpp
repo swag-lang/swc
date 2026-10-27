@@ -242,14 +242,8 @@ namespace
                                     first + static_cast<int64_t>(accessSize) > static_cast<int64_t>(at[3].valueU64))
                                     return false;
                             }
-                            else if (!info.flags.has(MicroInstrFlagsE::HasMemBaseOffsetOperands) && ops)
-                            {
-                                for (uint8_t operand = 0; operand < std::min<uint8_t>(inst->numOperands, 3); ++operand)
-                                {
-                                    if (ops[operand].reg == at[1].reg)
-                                        return false;
-                                }
-                            }
+                            else
+                                return false; // Another base may alias this frame slot.
                         }
                     }
                     // The first instruction remains a function entry even

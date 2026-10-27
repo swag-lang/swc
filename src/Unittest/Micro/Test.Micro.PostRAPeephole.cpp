@@ -403,13 +403,15 @@ SWC_TEST_BEGIN(PostRAPeephole_SinksLoopBoundReloadPastIncrement)
     const MicroReg  index = MicroReg::intReg(12);
     const MicroReg  flag  = MicroReg::intReg(10);
 
-    for (const uint32_t variant : {0u, 1u, 2u, 3u, 4u, 5u})
+    for (const uint32_t variant : {0u, 1u, 2u, 3u, 4u, 5u, 6u})
     {
         MicroBuilder builder(ctx);
         const auto   loop     = builder.createLabel();
         const auto   cold     = builder.createLabel();
         const auto   coldEdge = builder.createLabel();
         const auto   join     = builder.createLabel();
+        if (variant == 6)
+            builder.emitLoadAddressRegMem(MicroReg::intReg(8), conv.stackPointer, 64, MicroOpBits::B64);
         if (variant != 1)
             builder.emitLoadMemReg(conv.stackPointer, 64, bound, MicroOpBits::B64);
         builder.placeLabel(loop);
@@ -425,6 +427,8 @@ SWC_TEST_BEGIN(PostRAPeephole_SinksLoopBoundReloadPastIncrement)
         }
         if (variant == 4)
             builder.emitLoadMemImm(conv.stackPointer, 64, ApInt(0, 64), MicroOpBits::B64);
+        if (variant == 6)
+            builder.emitLoadMemReg(MicroReg::intReg(8), 0, index, MicroOpBits::B64);
         builder.emitJumpToLabel(MicroCond::Unconditional, MicroOpBits::B32, join);
         builder.placeLabel(cold);
         builder.emitLoadRegImm(bound, ApInt(7, 64), MicroOpBits::B64);
@@ -457,7 +461,7 @@ SWC_TEST_BEGIN(PostRAPeephole_SinksLoopBoundReloadPastIncrement)
                 reloadOnCold = seenColdEdge && !seenJoin;
             }
         }
-        if (reloads != 1 || (variant == 0 || variant == 3) != reloadOnCold)
+        if (reloads != 1 || (variant == 0) != reloadOnCold)
             return Result::Error;
     }
     return Result::Continue;

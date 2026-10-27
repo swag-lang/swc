@@ -122,19 +122,32 @@ impl Mpeg4Stream
         return .frames[cast(u64, .sampleAtRank[rank])].presentationTime
     }
 
-    // Returns the first display rank at or before `rank` whose sample starts a clean decode.
+    mtd const isSyncRank(rank: u64)->bool
+    {
+        let sample = cast(u64, .sampleAtRank[rank])
+        return sample < .frames.count and .frames[sample].isSync
+    }
+
+    // Returns the first display rank at or after `rank` whose sample starts a clean decode.
+    // Returns the stream length when no sync sample remains past `rank`.
     mtd const syncRankAt(rank: u64)->u64
     {
-        var scan = Math.min(rank, .sampleAtRank.count)
-        while scan > 0
-        {
-            let sample = cast(u64, .sampleAtRank[scan])
-            if sample < .frames.count and .frames[sample].isSync do
-                return scan
-            scan -= 1
-        }
+        var scan = rank
+        while scan < .sampleAtRank.count and not .isSyncRank(scan) do
+            scan += 1
+        return Math.min(scan, .sampleAtRank.count)
+    }
 
-        return 0
+    // Returns the last display rank at or before `rank` whose sample starts a clean decode,
+    // which is where decoding the picture of `rank` has to begin.
+    mtd const decodeStartRank(rank: u64)->u64
+    {
+        if not .sampleAtRank.count do
+            return 0
+        var scan = Math.min(rank, .sampleAtRank.count - 1)
+        while scan > 0 and not .isSyncRank(scan) do
+            scan -= 1
+        return scan
     }
 
     // Positions the stream so the next decoded picture has display rank `rank`.
@@ -201,7 +214,7 @@ impl Mpeg4Stream
         {
             .decoder.reset()
             .queued     = 0
-            .emitRank   = .syncRankAt(.nextRank)
+            .emitRank   = .decodeStartRank(.nextRank)
             .nextDecode = cast(u64, .sampleAtRank[.emitRank])
             .started    = true
         }

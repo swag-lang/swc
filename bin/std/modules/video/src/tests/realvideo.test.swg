@@ -54,6 +54,16 @@ func realVideoCompare(name: string)
 #test { realVideoCompare("rv40-legacy-clock") }
 #test { realVideoCompare("rv40-slices") }
 
+// A player behind its clock jumps forward to the next clean picture, never back to the last one.
+#test
+{
+    var reader = expect Reader.open(videoFixturePath("rv40-ipb.mkv"), pictureOnly: true)
+    var frame: PlanarFrame
+    expect reader.decodeFramePlanesInto(&frame, 0)
+    for expected, index in [0'u64, 4, 4, 4, 4, 8, 8, 8, 8, 9] do
+        Swag.assert(reader.syncFrameAt(index) == expected)
+}
+
 func realVideoClockPacket(timestamp, kind: u32)->[13] u8
 {
     var result: #returntype

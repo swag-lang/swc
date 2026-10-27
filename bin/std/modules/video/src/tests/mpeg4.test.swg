@@ -77,6 +77,17 @@ func mpeg4AssertStream(name: string, container: string, width, height: s32, fram
     mpeg4AssertStream("ffmpeg-mpeg4-packed", "avi", 96, 64, 60, 0.1, 4)
 }
 
+// A player behind its clock jumps forward to the next clean picture, never back to the last one.
+#test
+{
+    var reader = expect Reader.open(videoFixturePath("ffmpeg-mpeg4-bvop.mkv"))
+    Swag.assert(reader.syncFrameAt(0) == 0)
+    Swag.assert(reader.syncFrameAt(1) == 30)
+    Swag.assert(reader.syncFrameAt(30) == 30)
+    Swag.assert(reader.syncFrameAt(31) == 59)
+    Swag.assert(reader.syncFrameAt(60) == 60)
+}
+
 // The reader states the geometry from the setup headers, before any plane is read.
 #test
 {

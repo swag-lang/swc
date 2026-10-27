@@ -511,6 +511,76 @@ namespace
         removeInstruction(context, instRef);
     }
 
+    struct AddressOperation
+    {
+        MicroReg    dstReg;
+        MicroReg    baseReg;
+        MicroReg    indexReg;
+        MicroOpBits dstBits;
+        MicroOpBits valueBits;
+    };
+
+    void insertAddressOperation(const MicroPassContext& context, MicroInstrRef instRef, const AddressOperation& operation, uint64_t scale, uint64_t addValue)
+    {
+        std::array<MicroInstrOperand, 8> ops = {};
+        ops[0].reg                           = operation.dstReg;
+        ops[1].reg                           = operation.baseReg;
+        ops[2].reg                           = operation.indexReg;
+        ops[3].opBits                        = operation.dstBits;
+        ops[4].opBits                        = operation.valueBits;
+        ops[5].valueU64                      = scale;
+        ops[6].valueU64                      = addValue;
+        context.instructions->insertDerivedBefore(*context.operands, instRef, MicroInstrOpcode::LoadAddrAmcRegMem, ops);
+    }
+
+    // Multiplies the index by the binary digits of the scale, most significant first: each one
+    // bit is 'acc = index + acc * 2^k', each extra zero 'acc = acc + acc'. Only address operations,
+    // so the flags of the instructions around survive, as they do around the original address.
+    void rewriteLoadAddrAmcScaleKeepingFlags(const MicroPassContext& context, MicroInstrRef instRef, const AddressOperation& address, uint64_t mulValue, uint64_t addValue, uint32_t& nextVirtualIntRegIndex)
+    {
+        // The last step is the address itself: it absorbs up to three trailing zero bits.
+        const uint64_t lowScale = 1ull << std::min(std::countr_zero(mulValue), 3);
+        const uint64_t factor   = mulValue / lowScale;
+
+        // The chain reads the index and the base after writing its accumulator.
+        MicroReg accReg = address.dstReg;
+        if (accReg == address.baseReg || accReg == address.indexReg)
+        {
+            accReg = allocateVirtualIntReg(context, nextVirtualIntRegIndex);
+            addVirtualForbiddenReg(context, accReg, address.baseReg);
+            addVirtualForbiddenReg(context, accReg, address.indexReg);
+            addLiveConcreteForbiddenRegsAfterInstruction(context, instRef, accReg);
+        }
+
+        std::array<MicroInstrOperand, 3> moveOps;
+        moveOps[0].reg    = accReg;
+        moveOps[1].reg    = address.indexReg;
+        moveOps[2].opBits = MicroOpBits::B64;
+        context.instructions->insertDerivedBefore(*context.operands, instRef, MicroInstrOpcode::LoadRegReg, moveOps);
+
+        const AddressOperation addIndex = {accReg, address.indexReg, accReg, address.dstBits, address.valueBits};
+        const AddressOperation doubling = {accReg, accReg, accReg, address.dstBits, address.valueBits};
+        uint32_t               zeros    = 0;
+        for (int bit = std::bit_width(factor) - 2; bit >= 0; --bit)
+        {
+            if (!((factor >> bit) & 1))
+            {
+                ++zeros;
+                continue;
+            }
+
+            for (; zeros > 2; --zeros)
+                insertAddressOperation(context, instRef, doubling, 1, 0);
+            insertAddressOperation(context, instRef, addIndex, 2ull << zeros, 0);
+            zeros = 0;
+        }
+
+        for (; zeros; --zeros)
+            insertAddressOperation(context, instRef, doubling, 1, 0);
+        insertAddressOperation(context, instRef, {address.dstReg, address.baseReg, accReg, address.dstBits, address.valueBits}, lowScale, addValue);
+        removeInstruction(context, instRef);
+    }
+
     void applyRewriteLoadAddrAmcScale(const MicroPassContext& context, MicroInstrRef instRef, const MicroInstr& inst, const MicroInstrOperand* ops, uint32_t& nextVirtualIntRegIndex)
     {
         SWC_ASSERT(ops);
@@ -542,6 +612,14 @@ namespace
             }
         }
 
+        // Any other scale multiplies and adds, which write the flags. While a later instruction
+        // still reads them, the address operations must do the multiply themselves.
+        if (!lowFactor && !MicroPassHelpers::areCpuFlagsDeadAfter(*context.instructions, *context.operands, instRef, context.builder))
+        {
+            rewriteLoadAddrAmcScaleKeepingFlags(context, instRef, {dstReg, baseReg, indexReg, dstBits, valueBits}, mulValue, addValue, nextVirtualIntRegIndex);
+            return;
+        }
+
         MicroReg scaledIndexReg = dstReg;
         if (dstReg == baseReg)
         {
@@ -553,25 +631,8 @@ namespace
 
         if (lowFactor)
         {
-            std::array<MicroInstrOperand, 8> timesFactor = {};
-            timesFactor[0].reg                           = scaledIndexReg;
-            timesFactor[1].reg                           = indexReg;
-            timesFactor[2].reg                           = indexReg;
-            timesFactor[3].opBits                        = dstBits;
-            timesFactor[4].opBits                        = valueBits;
-            timesFactor[5].valueU64                      = lowFactor - 1;
-            timesFactor[6].valueU64                      = 0;
-            context.instructions->insertDerivedBefore(*context.operands, instRef, MicroInstrOpcode::LoadAddrAmcRegMem, timesFactor);
-
-            std::array<MicroInstrOperand, 8> address = {};
-            address[0].reg                           = dstReg;
-            address[1].reg                           = baseReg;
-            address[2].reg                           = scaledIndexReg;
-            address[3].opBits                        = dstBits;
-            address[4].opBits                        = valueBits;
-            address[5].valueU64                      = lowScale;
-            address[6].valueU64                      = addValue;
-            context.instructions->insertDerivedBefore(*context.operands, instRef, MicroInstrOpcode::LoadAddrAmcRegMem, address);
+            insertAddressOperation(context, instRef, {scaledIndexReg, indexReg, indexReg, dstBits, valueBits}, lowFactor - 1, 0);
+            insertAddressOperation(context, instRef, {dstReg, baseReg, scaledIndexReg, dstBits, valueBits}, lowScale, addValue);
             removeInstruction(context, instRef);
             return;
         }

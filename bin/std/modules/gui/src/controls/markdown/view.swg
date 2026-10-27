@@ -960,6 +960,32 @@ private impl View
     {
         if .retainedBlocks.isEmpty() or (not force and (.hasPendingTarget or not .pendingSearch.isEmpty() or .jumpToEnd)) do
             return
+        // An overlapping seek rebuilds the same visible blocks. Keep their decoded images and
+        // in-flight jobs so publishing the new window does not make visible figures reload.
+        if .replacementAnchorOffset != Swag.U64.Max
+        {
+            var oldIndex: u64
+            for &block in .blocks
+            {
+                while oldIndex < .retainedBlocks.count and .retainedBlocks[oldIndex].sourceOffset < block.sourceOffset do
+                    oldIndex += 1
+                if oldIndex >= .retainedBlocks.count or .retainedBlocks[oldIndex].sourceOffset != block.sourceOffset do
+                    continue
+                let old = &.retainedBlocks[oldIndex]
+                if old.kind != block.kind do
+                    continue
+                if block.inline and old.inline
+                {
+                    block.inline.images.clear()
+                    block.inline.images = #move old.inline.images
+                }
+                elif block.html and old.html
+                {
+                    block.html.images.clear()
+                    block.html.images = #move old.html.images
+                }
+            }
+        }
         for &block in .retainedBlocks do
             block.wnd.destroy()
         .retainedBlocks.clear()

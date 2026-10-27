@@ -3,6 +3,49 @@
 
 using Swag, Core, Pixel
 
+// Replacing an overlapping streamed window keeps the images already painted in its viewport.
+#test
+{
+    let imagePath = Testing.tempFilePath("markdown-overlap-", ".svg")
+    let fileName  = Testing.tempFilePath("markdown-overlap-", ".md")
+    defer discard catch File.delete(imagePath)
+    defer discard catch File.delete(fileName)
+    discard expect File.writeAllText(imagePath, "<svg width='40' height='20'><rect width='40' height='20'/></svg>")
+    var source = Format.toString("![Figure](<%>)\n\n<div><img src='%'></div>\n\n", imagePath, imagePath)
+    for 100 do
+        source += "A paragraph after the figures.\n\n"
+    discard expect File.writeAllText(fileName, source.toString())
+
+    var host: Testing.HeadlessHost
+    host.setup(480, 240)
+    let view = Markdown.View.createFile(&host.root, fileName)
+    view.resize(480, 240)
+    view.applyLayout()
+    for 64 where view.isLoading() do
+        host.fireTimers()
+    discard host.render(view)
+    let inline = unwrap view.blocks[0].inline
+    let html   = unwrap view.blocks[1].html
+    Swag.assert(inline.images.entries[0].uploaded and html.images.entries[0].uploaded)
+    let inlinePixels = cast(u64, inline.images.entries[0].image.pixels.buffer)
+    let htmlPixels   = cast(u64, html.images.entries[0].image.pixels.buffer)
+
+    view.pendingSeek = true
+    view.pendingSeekOffset = 0
+    view.pendingSeekPreservesPosition = true
+    if not view.loadTimer do
+        view.loadTimer = view.addTimer(8'ms)
+    host.fireTimer(view.loadTimer)
+    for 64 where view.isLoading() do
+        host.fireTimers()
+    Swag.assert(view.retainedBlocks.isEmpty())
+    let newInline = unwrap view.blocks[0].inline
+    let newHtml   = unwrap view.blocks[1].html
+    Swag.assert(newInline.images.entries[0].uploaded and newHtml.images.entries[0].uploaded)
+    Swag.assert(cast(u64, newInline.images.entries[0].image.pixels.buffer) == inlinePixels)
+    Swag.assert(cast(u64, newHtml.images.entries[0].image.pixels.buffer) == htmlPixels)
+}
+
 // The first paint shows a ring in each image box. Completion replaces it without reflow,
 // for both Markdown images and embedded HTML, in every shipped palette and at high DPI.
 #[Swag.TestTag("golden")]

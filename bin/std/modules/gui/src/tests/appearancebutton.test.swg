@@ -170,3 +170,22 @@ using Swag, Core, Pixel
     host.pump()
     Swag.assert(host.surfaceWnd.captionButtons.isEmpty())
 }
+
+// A staged step waiting for a menu where the button opens a sheet fails the step instead of
+// leaving the sheet running forever.
+#test
+{
+    var host: Testing.HeadlessHost
+    host.setup(480, 240)
+    host.surface.flags        = SurfaceFlags.StandardWindow
+    host.surfaceWnd.padding.y = host.theme.metrics.wnd_BigCaptionCY
+    host.surfaceWnd.create(&host.root, null)
+    host.surfaceWnd.sendResizeEvent()
+    let button = AppearanceButton.create(&host.surface)
+    host.surfaceWnd.sendResizeEvent()
+
+    host.openPopupSubMenuWhenShown(strings().appearance_Language, maxFrames: 2)
+    host.clickWnd(button)
+    Swag.assert(not host.autoHandled and not host.autoFailure.isEmpty())
+    Swag.assert(host.capturedOptionSheet() == null)
+}

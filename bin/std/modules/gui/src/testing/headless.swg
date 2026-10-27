@@ -378,11 +378,15 @@ impl HeadlessHost
             Console.println("headless UI stage ", .autoStage + 1, ": ", .autoFailure)
 
             // Unblock the pumping loop; the retained explanation also lets a test inspect failure.
+            // The loop to end is the one actually open, which is not always the one the stage
+            // waited for: a stage that expects a menu where the code now opens a sheet must fail
+            // the test, not keep the sheet running forever.
             .autoArmed = false
-            if stage.kind == .ModalButton do
+            let sheet = .capturedOptionSheet()
+            if sheet do
+                sheet.close()
+            elif stage.kind == .ModalButton do
                 app.exitModal(Dialog.BtnCancel)
-            elif stage.kind == .OptionRow do
-                .capturedOptionSheet()?.close()
             else do
                 discard .dismissPopupMenu()
         }

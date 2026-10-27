@@ -1121,8 +1121,8 @@ func assertFolderFiles(window: *ViewerWindow, names: const [..] String)
     surface.destroy()
 }
 
-// The live appearance menu switches the complete application tree to French and closes its
-// transient popup before the translated controls are used again.
+// The live appearance sheet switches the complete application tree to French and closes before
+// the translated controls are used again.
 #test
 {
     var host: Testing.HeadlessHost
@@ -1136,9 +1136,10 @@ func assertFolderFiles(window: *ViewerWindow, names: const [..] String)
     Swag.assert(window.openButton.toolTip == "Open (Ctrl+O)")
     Swag.assert(window.closeButton.toolTip == "Close file")
 
-    host.openPopupSubMenuWhenShown("Language")
-    host.thenClickPopupMenuItem("fr")
+    host.activateOptionRowWhenShown(Gui.strings().appearance_Language)
+    host.thenActivateOptionRow("Français")
     window.appearanceButton.sigPressed.call(window.appearanceButton)
+    Swag.assert(host.autoHandled)
     host.pump()
 
     Swag.assert(host.app.language() == "fr")

@@ -339,12 +339,9 @@ impl HeadlessHost
 
                 // A sheet stays open after a row like a reader would leave it, so the last staged
                 // row closes it and hands control back to the code under test.
-                Console.println("PROBE done capture=", .app.mouseCaptureWnd ? "set" : "null", " sheet=", .capturedOptionSheet() ? "yes" : "no")
                 if stage.kind == .OptionRow do
                     .capturedOptionSheet()?.close()
             }
-            else do
-                Console.println("PROBE stage ", stageIndex + 1, " ok")
         }
         else
         {
@@ -378,11 +375,6 @@ impl HeadlessHost
                 .autoFailure = "popup action did not complete before the frame limit"
             }
 
-            let probeSheet = .capturedOptionSheet()
-            Console.println("PROBE capture=", .app.mouseCaptureWnd ? "set" : "null", " sheet=", probeSheet ? "yes" : "no", " label='", stage.label, "'")
-            if probeSheet do
-                for row in probeSheet.page.rows do
-                    Console.println("PROBE row '", row.label.raw, "' active=", row.isActive())
             Console.println("headless UI stage ", .autoStage + 1, ": ", .autoFailure)
 
             // Unblock the pumping loop; the retained explanation also lets a test inspect failure.

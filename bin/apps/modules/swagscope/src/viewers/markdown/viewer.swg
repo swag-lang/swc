@@ -504,9 +504,12 @@ func createViewer(host: Viewer.Host)
         return
     }
 
-    let commandGroup  = host.createCommandGroup(themeDropDownButtonWidth(view.themeMetrics()))
-    let optionsButton = Viewer.createOptionsButton(commandGroup)
+    let actionGroup   = host.createActionGroup(themeDropDownButtonWidth(view.themeMetrics()))
+    actionGroup.dockStyle = .Right
+    actionGroup.margin.z  = 12
+    let optionsButton = Viewer.createOptionsButton(actionGroup)
     optionsButton.dockStyle = .Right
+    optionsButton.setArrowPosition(.RightDownward)
 
     with let zoomButton = ZoomButton.create(host.createInfoGroup(Viewer.ZoomSlotWidth), view)
     {

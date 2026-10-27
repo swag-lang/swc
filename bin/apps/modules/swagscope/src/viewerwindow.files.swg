@@ -192,6 +192,7 @@ impl ViewerWindow
 
         let hasRecent = not .recent.isEmpty()
         .filePanel.setPaneVisible(0, hasRecent)
+        .closeFoldersButton.show(not hasRecent)
         let folder = .currentFile.isEmpty() ? null : Path.directoryName(.explorer ? .explorer.displayPath(.currentFile) : .currentFile.toString())
         .folderLabel.setText(.isExploring() ? appStrings().explore_Folders : (Path.fileName(folder) orelse folder orelse appStrings().ui_Folder))
         .filePanel.applyLayout()

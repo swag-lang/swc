@@ -503,7 +503,7 @@ func rowCenter(sheet: *OptionSheet.View, label: string)->Math.Point
              buttonRect: {300, 8, 40, 36})
 }
 
-// The anchored arrival keeps its paint-only movement on whole pixels throughout the fade.
+// The anchored arrival fades without moving the joined button.
 #test
 {
     var host: Testing.HeadlessHost
@@ -514,8 +514,7 @@ func rowCenter(sheet: *OptionSheet.View, label: string)->Math.Point
     runSheet(&host, &model, func|host = &host|(sheet)
     {
         host.advanceAnimations(sheet.themeMetrics().motion_PanelSeconds * 0.37)
-        Swag.assert(sheet.presentationOffset.x == Math.round(sheet.presentationOffset.x))
-        Swag.assert(sheet.presentationOffset.y == Math.round(sheet.presentationOffset.y))
+        Swag.assert(sheet.presentationOffset == Math.Point{})
         host.finishAnimations()
     })
 }

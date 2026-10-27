@@ -38,6 +38,8 @@ struct ViewerWindow
         kindButton:           *IconButton
         openButton:           *IconButton
         closeButton:          *IconButton
+        closeFilesButton:     *IconButton
+        closeFoldersButton:   *IconButton
         openDefaultButton:    *IconButton
         filesButton:          *IconButton
         fullScreenButton:     *IconButton
@@ -1029,6 +1031,8 @@ impl ViewerWindow
             .exploreButton.toolTip = texts.explore_Open
         .openButton.toolTip          = texts.ui_Open
         .closeButton.toolTip         = texts.ui_CloseFile
+        .closeFilesButton.toolTip    = texts.ui_CloseFiles
+        .closeFoldersButton.toolTip  = texts.ui_CloseFiles
         .openDefaultButton.toolTip   = texts.ui_OpenDefault
         .filesButton.toolTip         = .isExploring() ? texts.explore_Panels : texts.ui_Files
         .kindButton.toolTip          = texts.ui_SameKind
@@ -1108,7 +1112,8 @@ impl ViewerWindow
         .emptyView.hide()
         .explorer.setShown(true)
         .explorer.navigate(source)
-        .closeButton.enable(true)
+        .closeButton.hide()
+        .openDefaultButton.hide()
         .applyLayout()
     }
 }

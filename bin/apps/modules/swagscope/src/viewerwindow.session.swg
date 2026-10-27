@@ -28,7 +28,7 @@ impl ViewerWindow
         .stillView = null
 
         .pendingFile = fileName
-        .closeButton.enable(true)
+        .closeButton.show()
         .pendingEmpty.clear()
         .pendingRemember = remember
 
@@ -182,7 +182,7 @@ impl ViewerWindow
         .stopTimer(&.fileWatchTimer)
 
         .searchBox.setText("", notify: false)
-        .closeButton.enable(false)
+        .closeButton.hide()
         .showEmpty(appStrings().ui_DropTitle)
         if .explorerActive do
             .explorer!.focusContent()
@@ -217,8 +217,8 @@ impl ViewerWindow
         .choices.clear()
         .viewerCombo.clear()
         .viewerCombo.hide()
-        .openDefaultButton.enable(false)
-        .closeButton.enable(false)
+        .openDefaultButton.hide()
+        .closeButton.hide()
         .activeChoiceIndex = Swag.U32.Max
         .folderFiles.clear()
         .siblings.clear()
@@ -234,7 +234,6 @@ impl ViewerWindow
         {
             .emptyView.hide()
             .explorer!.setShown(true)
-            .closeButton.enable(true)
         }
 
         .updateSearchAvailability()
@@ -797,7 +796,7 @@ impl ViewerWindow
         }
 
         .viewerCombo.show()
-        .openDefaultButton.enable(true)
+        .openDefaultButton.show()
 
         var selected = .preferredChoiceIndex()
         if .reloading

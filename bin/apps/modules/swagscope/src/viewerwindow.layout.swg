@@ -25,7 +25,7 @@ impl ViewerWindow
         .accentRail = Separator.create(me, .Top, .Accent)
     }
 
-    // Builds the global command bar: the open, open-with-default, close and full-screen buttons,
+    // Builds the global command bar: the open and explore actions, the full-screen button,
     // the centered search group, and the viewer selector closing its right edge.
     private mtd createCommandBar()
     {
@@ -53,23 +53,11 @@ impl ViewerWindow
             .sigPressed += func|window = me|(_) { window.exploreFolder() }
         }
 
-        with .openDefaultButton = .commandButtons.addButton(.theme().icon(.OpenExternal, iconSize))
+        with .fullScreenButton = Viewer.createActionButton(.commandBar, .FullScreen, .Toggle)
         {
-            .toolTip = appStrings().ui_OpenDefault
-            .enable(false)
-            .sigPressed += func|window = me|(_) { window.openCurrentFileDefault() }
-        }
-
-        with .closeButton = .commandButtons.addButton(.theme().icon(.WndClose, iconSize))
-        {
-            .toolTip = appStrings().ui_CloseFile
-            .enable(false)
-            .sigPressed += func|window = me|(_) { window.closeFile() }
-        }
-
-        with .fullScreenButton = .commandButtons.addToggleButton(.theme().icon(.FullScreen, iconSize))
-        {
+            .dockStyle = .Right
             .toolTip = appStrings().ui_FullScreen
+            .setCheckIndicator(.Frame)
             .sigCheckedChanged += func|window = me|(button) { window.setFullScreen(button.isChecked) }
         }
 
@@ -144,7 +132,7 @@ impl ViewerWindow
     }
 
     // Builds the information band above the document: the file panel toggle, the file icon, name
-    // and size, and the content statistics on the right.
+    // and size, file actions, and the content statistics on the right.
     private mtd createInfoBar(panelGutter: f32)
     {
         // File identity and content statistics are read before the document. The information
@@ -208,6 +196,25 @@ impl ViewerWindow
             .margin.x = 8
             .style.setFont(me.theme().createDefaultFontFs(12), .Regular)
             .setTextAlignment(.Left, .OpticalCenter)
+        }
+
+        let fileActionSize = themeCompactButtonSize(.themeMetrics())
+        let fileIconSize   = themeRowIconSize(.themeMetrics())
+        with .openDefaultButton = IconButton.create(.infoFileGroup, .theme().icon(.OpenExternal, fileIconSize), Math.Rectangle{0, 0, fileActionSize, fileActionSize})
+        {
+            .toolTip           = appStrings().ui_OpenDefault
+            .margin.x          = 12
+            .layoutSpec.alignY = .Center
+            .hide()
+            .sigPressed += func|window = me|(_) { window.openCurrentFileDefault() }
+        }
+
+        with .closeButton = IconButton.create(.infoFileGroup, .theme().icon(.WndClose, fileIconSize), Math.Rectangle{0, 0, fileActionSize, fileActionSize})
+        {
+            .toolTip           = appStrings().ui_CloseFile
+            .layoutSpec.alignY = .Center
+            .hide()
+            .sigPressed += func|window = me|(_) { window.closeFile() }
         }
 
         with .infoStatsLabel = Label.create(.infoContentGroup, "", {0, 0, 0, 36}, null, .SecondaryText | .Ellipsis)
@@ -288,6 +295,17 @@ impl ViewerWindow
             .margin          = {10, 0, 10, 0}
         }
 
+        with .closeFilesButton = IconButton.create(recentHeader, .theme().icon(.WndClose, rowIconSize), Math.Rectangle{0, 0, compactSize, compactSize})
+        {
+            .dockStyle  = .Right
+            .toolTip    = appStrings().ui_CloseFiles
+            .sigPressed += func|window = me|(_)
+            {
+                window.setFilePanelVisible(false)
+                catch window.saveState()
+            }
+        }
+
         with .recentClearButton = IconButton.create(recentHeader, .theme().icon(.RemoveAll, rowIconSize), Math.Rectangle{0, 0, compactSize, compactSize})
         {
             .dockStyle  = .Right
@@ -330,6 +348,17 @@ impl ViewerWindow
             .dockStyle       = .Top
             .backgroundStyle = .Transparent
             .margin          = {10, 0, 10, 0}
+        }
+
+        with .closeFoldersButton = IconButton.create(folderHeader, .theme().icon(.WndClose, rowIconSize), Math.Rectangle{0, 0, compactSize, compactSize})
+        {
+            .dockStyle  = .Right
+            .toolTip    = appStrings().ui_CloseFiles
+            .sigPressed += func|window = me|(_)
+            {
+                window.setFilePanelVisible(false)
+                catch window.saveState()
+            }
         }
 
         with .kindButton = IconButton.create(folderHeader, .theme().icon(.Filter, rowIconSize), Math.Rectangle{0, 0, compactSize, compactSize}, flags: .Toggle)

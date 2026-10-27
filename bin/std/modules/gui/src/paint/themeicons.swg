@@ -91,6 +91,7 @@ enum ThemeIcons
     ExploreFolder     // Browse the files of a folder as a gallery of previews.
     LineNumbers       // Show the number of each line beside a text.
     Settings          // Open a page of adjustable settings.
+    Folder            // A folder in a file listing.
 }
 
 impl Theme

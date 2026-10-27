@@ -50,6 +50,7 @@ struct AppStrings
     ui_OpenDefault:                    string = "Open with default application"               // Tooltip of the system-default application button.
     ui_CloseFile:                      string = "Close file"                                  // Tooltip of the close-file button.
     ui_Viewer:                         string = "Viewer"                                      // Tooltip of the viewer selector.
+    ui_CloseFiles:                     string = "Close files panel"                           // Tooltip of the file-panel close button.
     ui_Files:                          string = "Files beside this one"                       // Tooltip of the file-panel button.
     ui_FullScreen:                     string = "Full screen (F11)"                           // Tooltip of the enter-full-screen button.
     ui_ExitFullScreen:                 string = "Exit full screen (F11)"                      // Tooltip of the leave-full-screen button.

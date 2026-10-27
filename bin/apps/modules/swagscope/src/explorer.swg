@@ -708,7 +708,7 @@ impl Explorer
     {
         let entry = &.entries[index]
         if entry.directory do
-            return .theme().icon(.OpenFile, size)
+            return .theme().icon(.Folder, size)
         var pluginIndex: u64
         if .window.index.namePlugin(entry.path, &pluginIndex) do
             return .window.pluginIcon(&.window.index.plugins[pluginIndex], size)

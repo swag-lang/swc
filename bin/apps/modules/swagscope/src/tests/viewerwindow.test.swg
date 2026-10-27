@@ -1431,16 +1431,15 @@ func assertFolderFiles(window: *ViewerWindow, names: const [..] String)
     Swag.assert(window.searchNavigation.parent == window.searchGroup)
     Swag.assert(window.commandButtons.parent == window.commandBar and window.commandButtons.dockStyle == .Left)
     Swag.assert(window.openButton.parent == window.commandButtons)
-    Swag.assert(window.openDefaultButton.parent == window.commandButtons)
-    Swag.assert(window.closeButton.parent == window.commandButtons)
-    Swag.assert(window.fullScreenButton.parent == window.commandButtons)
+    Swag.assert(window.openDefaultButton.parent == window.infoFileGroup)
+    Swag.assert(window.closeButton.parent == window.infoFileGroup)
+    Swag.assert(window.fullScreenButton.parent == window.commandBar)
     Swag.assert(window.exploreButton!.parent == window.commandButtons)
     Swag.assert(window.openButton.position.right() == window.exploreButton.position.x)
-    Swag.assert(window.exploreButton.position.right() == window.openDefaultButton.position.x)
-    Swag.assert(window.openDefaultButton.position.right() == window.closeButton.position.x)
-    Swag.assert(window.closeButton.position.right() == window.fullScreenButton.position.x)
+    Swag.assert(window.openDefaultButton.margin.x == 12)
+    Swag.assert(window.fullScreenButton.dockStyle == .Right)
     Swag.assert(window.fullScreenButton.flags.has(.Toggle) and window.fullScreenButton.checkIndicator == .Frame)
-    Swag.assert(window.openDefaultButton.parent == window.commandButtons and not window.openDefaultButton.isEnabled())
+    Swag.assert(window.openDefaultButton.parent == window.infoFileGroup and not window.openDefaultButton.isLocallyVisible())
     Swag.assert(not window.searchGroup.isLocallyVisible() and window.searchBox.isHidden())
     Swag.assert(window.searchPrevious.icon.isValid() and window.searchNext.icon.isValid())
     Swag.assert(not window.searchPrevious.isEnabled() and not window.searchNext.isEnabled())
@@ -1513,7 +1512,7 @@ func assertFolderFiles(window: *ViewerWindow, names: const [..] String)
     window.viewerBar.show()
     window.applyLayout()
     Swag.assert(window.viewerCombo.parent == window.commandBar and widestCommands.parent == window.viewerBar)
-    Swag.assert(window.viewerCombo.position.right() == window.commandBar.paddedClientRect().right())
+    Swag.assert(window.fullScreenButton.position.right() == window.commandBar.paddedClientRect().right())
     Swag.assert(window.viewerCombo.position.bottom() <= window.infoBarHost.position.y)
     Swag.assert(widestCommands.position.y >= window.viewerBar.clientRect().y)
 }
@@ -2048,7 +2047,7 @@ func assertFolderFiles(window: *ViewerWindow, names: const [..] String)
     var host: Testing.HeadlessHost
     host.setup(880, 560)
     let window = ViewerWindow.create(&host.surfaceWnd, createViewerPluginRegistry())
-    Swag.assert(window.closeButton.parent == window.commandButtons and not window.closeButton.isEnabled())
+    Swag.assert(window.closeButton.parent == window.infoFileGroup and not window.closeButton.isLocallyVisible())
 
     window.openFile(viewerFixturePath())
     completeQueuedViewerFile(&host, window)
@@ -2067,8 +2066,8 @@ func assertFolderFiles(window: *ViewerWindow, names: const [..] String)
 
     Swag.assert(window.pendingEmpty.isEmpty() and window.currentFile.isEmpty())
     Swag.assert(window.instances.isEmpty() and window.currentView == null)
-    Swag.assert(window.emptyView.isLocallyVisible() and not window.closeButton.isEnabled())
-    Swag.assert(not window.viewerCombo.isLocallyVisible() and not window.openDefaultButton.isEnabled())
+    Swag.assert(window.emptyView.isLocallyVisible() and not window.closeButton.isLocallyVisible())
+    Swag.assert(not window.viewerCombo.isLocallyVisible() and not window.openDefaultButton.isLocallyVisible())
     Swag.assert(window.searchBox.text().count == 0 and window.searchTimer == null)
     Swag.assert(window.fileWatchTimer == null and window.slideTimer == null)
     Swag.assert(window.folderFiles.isEmpty() and window.siblings.isEmpty())
@@ -2076,7 +2075,19 @@ func assertFolderFiles(window: *ViewerWindow, names: const [..] String)
 
     window.openFile(viewerFixturePath())
     completeQueuedViewerFile(&host, window)
-    Swag.assert(not window.currentFile.isEmpty() and window.closeButton.isEnabled())
+    Swag.assert(not window.currentFile.isEmpty() and window.closeButton.isLocallyVisible())
+}
+
+// The file panel can close itself and keeps its toolbar toggle in sync.
+#test
+{
+    var host: Testing.HeadlessHost
+    host.setup(880, 560)
+    let window = ViewerWindow.create(&host.surfaceWnd, createViewerPluginRegistry())
+    window.setFilePanelVisible(true)
+    Swag.assert(window.filesButton.isChecked and window.filePanelHost.isLocallyVisible())
+    window.closeFilesButton.sigPressed.call(window.closeFilesButton)
+    Swag.assert(not window.filesButton.isChecked and not window.filePanelHost.isLocallyVisible())
 }
 
 // Closing a queued opening discards its classification, including a worker already in flight.
@@ -2090,7 +2101,7 @@ func assertFolderFiles(window: *ViewerWindow, names: const [..] String)
         window.openFile(viewerFixturePath(), remember: false)
         if started do
             host.fireTimer(window.startupTimer)
-        Swag.assert(window.closeButton.isEnabled())
+        Swag.assert(window.closeButton.isLocallyVisible())
         window.closeButton.sigPressed.call(window.closeButton)
         Swag.drainWork()
         host.pump()
@@ -2099,7 +2110,7 @@ func assertFolderFiles(window: *ViewerWindow, names: const [..] String)
         Swag.assert(window.pendingFile.isEmpty() and window.pendingEmpty.isEmpty())
         Swag.assert(not window.choiceLoad.started and window.currentFile.isEmpty())
         Swag.assert(window.instances.isEmpty() and window.emptyView.isLocallyVisible())
-        Swag.assert(not window.closeButton.isEnabled())
+        Swag.assert(not window.closeButton.isLocallyVisible())
     }
 }
 

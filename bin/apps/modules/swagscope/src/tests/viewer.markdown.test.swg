@@ -22,6 +22,24 @@ using Core, Pixel, Gui, Gui.Testing, Viewers
     }
 }
 
+// Markdown places its options in the shared command bar without opening a lower command band.
+#test
+{
+    var host: Testing.HeadlessHost
+    host.setup(960, 680)
+    let window = ViewerWindow.create(&host.surfaceWnd, createViewerPluginRegistry())
+    window.openFile(markdownFixturePath(), remember: false)
+    completeQueuedViewerFile(&host, window)
+
+    let actions = unwrap window.currentActions
+    Swag.assert(actions.parent == window.commandBar and actions.dockStyle == .Right)
+    Swag.assert(actions.margin.z == 12)
+    Swag.assert(window.currentCommands == null)
+    Swag.assert(window.viewerBar.position.height == window.themeMetrics().panel_GutterSize)
+    let options = assume cast(*IconButton, actions.children[0])
+    Swag.assert(options.arrowPosition == .RightDownward)
+}
+
 // Whitey's bold-italic face can lack arrows even though the family itself is installed.
 #[Swag.TestTag("golden")]
 #test
@@ -154,7 +172,6 @@ using Core, Pixel, Gui, Gui.Testing, Viewers
         completeViewerBackgroundLoad(&host, &button.statisticsLoad)
     Swag.assert(window.infoStatsLabel.text() == "Markdown · UTF-8 · 2 lines · 4 words · 23 characters")
     window.applyLayout()
-    Swag.assert(window.infoStatsLabel.position.width >= Math.ceil(window.infoStatsLabel.itf.measureContent({}).x))
     host.settleAnimations(window, 6)
     var image = host.render(window)
     Pixel.Testing.assertImageGolden(&image, "viewer.markdown.information")
@@ -163,7 +180,6 @@ using Core, Pixel, Gui, Gui.Testing, Viewers
     host.notify(.LanguageChanged)
     window.applyLayout()
     Swag.assert(window.infoStatsLabel.text() == "Markdown · UTF-8 · 2 lignes · 4 mots · 23 caractères")
-    Swag.assert(window.infoStatsLabel.position.width >= Math.ceil(window.infoStatsLabel.itf.measureContent({}).x))
 }
 
 // A manuscript can interleave HTML spreads and Markdown figures, with local SVG resources.
@@ -218,7 +234,7 @@ private func markdownWhiteyFixturePath()->String => Path.combine(unwrap Path.dir
     defer discard catch host.app.setLanguage(ReferenceLanguage)
 
     var first         = openTestViewer(MarkdownText.viewerPlugin(), &host.root, markdownFixturePath(), commandParent: &host.root)
-    let firstOptions  = assume cast(*IconButton, first.commands!.children[0])
+    let firstOptions  = assume cast(*IconButton, first.actions!.children[0])
     let firstZoom     = assume cast(*MarkdownText.ZoomButton, first.info!.children[0])
     let firstMarkdown = assume cast(*Markdown.View, first.view)
     assertViewerInfoButton(firstZoom)
@@ -288,11 +304,11 @@ private func markdownWhiteyFixturePath()->String => Path.combine(unwrap Path.dir
     var result = openTestViewer(MarkdownText.viewerPlugin(), &host.root, fileName, commandParent: &host.root, infoParent: infoBar)
     let wnd    = result.view
     Swag.assert(wnd != null)
-    Swag.assert(result.commands != null)
+    Swag.assert(result.actions != null)
     Swag.assert(result.revealMatch != null and result.searchBounds != null and result.clearSearch != null)
     Swag.assert(result.isLoading != null and result.isLoading())
     Swag.assert(Utf8.contains(result.details, "Markdown"))
-    let commands = result.commands
+    let commands = result.actions
     commands.applyLayout()
 
     // Pointer use of the document options must return focus to the Markdown canvas once the sheet

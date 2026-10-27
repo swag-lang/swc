@@ -588,13 +588,8 @@ private impl View
 
         if .placement == .Anchored
         {
-            let rise = .opensUp ? metrics.optionSheet_Inset : -metrics.optionSheet_Inset
             .setPresentationOpacity(0)
-            .setPresentationOffset({0, rise})
-            var group = AnimationGroup.concurrent()
-            group.addF32(me, AnimationChannel.from(OpenChannel), 0, 1, func(wnd, value) { wnd.setPresentationOpacity(value) }, options)
-            group.addPoint(me, AnimationChannel.from("Gui.OptionSheet.Rise"), {0, rise}, {}, func(wnd, value) { wnd.setPresentationOffset({Math.round(value.x), Math.round(value.y)}) }, options)
-            discard .app().animator.start(#move group)
+            discard .app().animator.animateF32(me, AnimationChannel.from(OpenChannel), 0, 1, func(wnd, value) { wnd.setPresentationOpacity(value) }, options)
             return
         }
 

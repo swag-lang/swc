@@ -3,6 +3,49 @@
 
 using Core, Gui, Pixel
 
+// Selecting a media file in a row view loads its cached provider details without a gallery.
+#test
+{
+    var host: Testing.HeadlessHost
+    host.setup(640, 480)
+    let window = ViewerWindow.create(&host.surfaceWnd, createViewerPluginRegistry())
+    window.onlineMusic = true
+    let explorer = Explorer.create(window.documentPanel, window)
+    let file     = Path.combine(Env.getSpecialDirectory(.Temp), Format.toString("row-media-%.mp3", Guid64.random()))
+    discard expect File.writeAllText(file, "fixture")
+    let key = expect ThumbnailCache.key(file, settings: ThumbnailSettings.capture(window))
+    defer
+    {
+        catch File.delete(file)
+        catch File.delete(key)
+    }
+
+    var image = Image.create(16, 16, .RGB8)
+    var music = OnlineMusic{title: "Discovery", firstReleaseDate: "2001-03-12"}
+    let tags  = Audio.SoundTags{artist: "Daft Punk"}
+    music.label(&image, &tags)
+    expect ThumbnailCache.write(key, &image)
+    explorer.entries.add({name: "Discovery.mp3", path: file})
+    explorer.setMode(.Details)
+    explorer.show()
+    window.applyLayout()
+    explorer.list.setFocusedIndex(0, ensureVisible: false)
+    explorer.list.selectLine(0)
+    for &preview in explorer.previews where preview.started do
+        preview.task.wait()
+    for 100
+    {
+        host.pump()
+        if explorer.entries[0].music.title == "Discovery" do
+            break
+        Threading.Thread.sleep(1'ms)
+    }
+
+    Swag.assert(explorer.entries[0].music.title == "Discovery")
+    Swag.assert(explorer.mediaInfo.isVisible())
+    Swag.assert(Utf8.contains(explorer.mediaInfo.text(), "Daft Punk"))
+}
+
 // Busy slots schedule distinct visible tiles; cancelled generations never publish stale textures.
 #test
 {

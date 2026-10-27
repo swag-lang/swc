@@ -1,11 +1,14 @@
 # Swag Scope
 
-Swag Scope is the universal read-only viewer shipped with Swag. One executable owns navigation,
-drag and drop, the shared search and information bands, the basic text surface, and every
-format-specific viewer. Global navigation, search, and file information stay above the document.
-Dynamic values such as zoom sit at the trailing edge of the information band and open the actions
-that change them; every viewer-specific command group is centered in one lower band that appears
-only when it is needed.
+## Online movie posters and music covers
+
+Folder exploration automatically looks up film information and posters through Wikipedia and
+Wikidata, and album information and artwork through MusicBrainz and Cover Art Archive. No account
+or API key is needed. The folder options menu can turn either lookup off. Film filenames and music
+tags are sent to these public services to find a match; uncertain or unavailable results fall back
+to local previews. Film descriptions, credits and IMDb ratings are shown where available in the
+sources. Cached results expire after 120 days. Wikipedia text is available under CC BY-SA; individual
+images have their own licenses, which can be checked from the linked source article.
 
 ## Explore folders and archives
 

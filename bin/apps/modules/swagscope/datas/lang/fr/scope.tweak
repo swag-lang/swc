@@ -74,3 +74,18 @@ explore_Empty Aucun fichier à afficher
 explore_OneItem 1 élément
 explore_Count % éléments
 explore_NotFound Emplacement introuvable
+explore_MediaOptions Options des informations de médias en ligne
+explore_OnlineMovies Utiliser les affiches et informations de films en ligne
+explore_ChooseMusic Choisir l’identifiant MusicBrainz du groupe de parutions…
+explore_ChooseMusicHelp Saisissez l’identifiant du groupe de parutions MusicBrainz. Laissez vide pour le choix automatique.
+explore_InvalidMusicId Saisissez un identifiant de groupe de parutions MusicBrainz valide.
+explore_ChosenMusicFailed Impossible de charger la parution choisie. Vérifiez son identifiant MusicBrainz et votre connexion.
+explore_MovieDate Sortie : %
+explore_MovieOverview Synopsis : %
+explore_ImdbRating Note IMDb via Wikidata : %
+explore_MovieDirector Réalisation : %
+explore_MovieCast Distribution : %
+explore_OnlineMusic Utiliser les pochettes et informations musicales en ligne
+explore_MusicArtist Artiste : %
+explore_MusicDate Première sortie : %
+ui_AboutWikiNotice Les informations et résumés des films proviennent de Wikipédia et Wikidata. Les textes de Wikipédia sont sous licence CC BY-SA 4.0 : https://creativecommons.org/licenses/by-sa/4.0/. Chaque film indique son article source.

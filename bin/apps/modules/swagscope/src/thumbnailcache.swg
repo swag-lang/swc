@@ -2,17 +2,72 @@
 
 using Core, Pixel
 
+// Online media details are refreshed after four months.
+func cachedMediaIsFresh(image: const *Image, nowTicks: u64)->bool
+{
+    for &record in image.metadata where record.isTag(cast(const [..] u8, MovieCachedAtTag)) or
+                                        record.isTag(cast(const [..] u8, MusicCachedAtTag))
+    {
+        let cachedAt = catch StrConv.toU64(cast(string, record.toSlice()))
+        return cachedAt != 0 and cachedAt <= nowTicks and nowTicks - cachedAt < 120 * Time.TicksPerDay
+    }
+
+    return true
+}
+
 // Persistent previews are identified by source metadata, archive member and renderer executable.
 struct ThumbnailCache {}
 
+private var g_CachePruneLock: Swag.Mutex
+private var g_CachePruned:    bool
+
 impl ThumbnailCache
 {
+    func directory()->String => Path.combine(Env.getSpecialDirectory(.UserAppData), "Swag", "scope", "thumbnails")
+
+    // Remove abandoned cache entries when the application is used again. Never follow names
+    // outside the cache's SHA-256 filename format or remove files modified in the last 120 days.
+    func prune(root: string, nowTicks: u64) fail
+    {
+        if not Directory.exists(root) do
+            return
+        let files = try Directory.enumerate(root, {})
+        for &file in files
+        {
+            if file.isDirectory() do
+                continue
+            let name = Path.fileName(file.fullName) orelse ""
+            if name.count != 68 or not Utf8.endsWith(name, ".png") do
+                continue
+            var valid = true
+            for byte in name[0 until 64] where not Latin1.isHexDigit(byte) do
+                valid = false
+            if not valid do
+                continue
+            let modified = Time.Timestamp.fromDateTime(file.lastWriteTime).ticks
+            if modified and modified <= nowTicks and nowTicks - modified >= 120 * Time.TicksPerDay do
+                catch File.delete(file.fullName)
+        }
+    }
+
+    // One worker cleans in the background; other workers do not wait for a large cache scan.
+    func pruneOnce()
+    {
+        if not g_CachePruneLock.tryLock() do
+            return
+        defer g_CachePruneLock.unlock()
+        if g_CachePruned do
+            return
+        g_CachePruned = true
+        catch ThumbnailCache.prune(ThumbnailCache.directory(), Time.Timestamp.utcNow().ticks)
+    }
+
     func key(source: string, member: string = "", executable: string = "", settings: string = "")->String fail
     {
         let appPath  = executable.count ? executable : Env.executablePath()
         let file     = try File.info(source)
         let app      = try File.info(appPath)
-        let identity = Format.toString("scope-thumbnail-5\n%\n%\n%\n%\n%\n%\n%\n%\n%\n%",
+        let identity = Format.toString("scope-thumbnail-6\n%\n%\n%\n%\n%\n%\n%\n%\n%\n%",
                                        try Path.absolute(source),
                                        member,
                                        file.size,
@@ -28,7 +83,7 @@ impl ThumbnailCache
         for word in digest do
             name += Format.toString("%{X08}", word)
         name += ".png"
-        return Path.combine(Env.getSpecialDirectory(.UserAppData), "Swag", "scope", "thumbnails", name)
+        return Path.combine(ThumbnailCache.directory(), name)
     }
 
     func read(path: string)->Image
@@ -40,6 +95,12 @@ impl ThumbnailCache
         {
             // A truncated or damaged entry is a miss and must not be retried on every visit.
             catch File.delete(path)
+        }
+
+        if result.isValid() and not cachedMediaIsFresh(&result, Time.Timestamp.utcNow().ticks)
+        {
+            catch File.delete(path)
+            return {}
         }
 
         return result

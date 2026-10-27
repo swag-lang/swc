@@ -69,3 +69,30 @@ Reusable engine work remains in the backlog of the standard module that owns it.
 - Done when: representative formats meet the first-preview and UI frame budgets, pages read clearly
   in the portrait tile, and media previews retain their natural aspect ratios.
 - Related: app.scope.viewers.004, app.scope.viewers.009, app.scope.document.001
+
+### app.scope.005 — Film matching needs correction and broader coverage
+
+- Evidence: Explorer automatically looks up films on Wikipedia and Wikidata without credentials,
+  conservatively matches titles and years, shows available credits and IMDb ratings, and uses local
+  previews when a result is unavailable. Cached results expire after 120 days.
+- Next: offer a searchable list of candidates, improve filename interpretation and cover TV series
+  separately from films, retaining source attribution, privacy, cancellation and bounded requests.
+- Done when: users can review candidate matches in the application and correct one without
+  looking up an ID elsewhere; series identification remains distinct from film matching.
+- Related: app.scope.004, std.core.001, std.core.003, std.core.005, std.core.006
+
+### app.scope.006 — Music matching needs correction and broader tag coverage
+
+- Evidence: Explorer previews use MP3/FLAC album and artist tags to query MusicBrainz
+  and retrieve artwork from Cover Art Archive. Results are cached, requests are spaced within
+  the process, and missing or ambiguous results fall back to local previews. The
+  [MusicBrainz API](https://musicbrainz.org/doc/MusicBrainz_API/FAQ) supports release search
+  without an API key and requires a meaningful user agent; its
+  [rate policy](https://musicbrainz.org/doc/MusicBrainz_API/Rate_Limiting) normally limits each
+  source IP to one request per second. A user can persist a MusicBrainz release-group ID against
+  the identity of a file. Separate processes can still share the same rate limit.
+- Next: offer a searchable list of candidates, extend tag support to more music formats, and
+  coordinate rate limiting across processes sharing the same host when practical.
+- Done when: users can choose a release in the application, supported tagged formats have
+  equivalent lookup behavior, and rate-limited or ambiguous responses remain safe and usable.
+- Related: app.scope.005, app.scope.audio.008, std.core.006

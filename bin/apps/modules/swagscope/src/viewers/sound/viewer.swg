@@ -520,7 +520,8 @@ impl Panel
 
         // What the recording is comes before how it is stored.
         var names: Array'string
-        for name in [.tags.title.toString(), .tags.artist.toString(), .tags.album.toString(), .tags.year.toString()] where name.count do
+        let artist = .tags.artist.isEmpty() ? .tags.albumArtist.toString() : .tags.artist.toString()
+        for name in [.tags.title.toString(), artist, .tags.album.toString(), .tags.year.toString()] where name.count do
             names.add(name)
         .details.clear()
         for name in names

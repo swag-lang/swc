@@ -175,6 +175,12 @@ func markSoundOpenFailure(wnd: *Wnd, _: string)
     Swag.assert(replacement.duration == view.duration)
     Swag.assert(replacement.details == view.details)
 
+    view.tags.albumArtist = "Various Artists"
+    view.refreshDetails()
+    Swag.assert(Utf8.contains(view.details.toString(), "Various Artists"))
+    view.tags = {}
+    view.refreshDetails()
+
     view.togglePlayback()
     Swag.assert(view.playing and view.voice != null)
 

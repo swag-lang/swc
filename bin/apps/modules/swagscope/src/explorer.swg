@@ -1,6 +1,6 @@
 #global internal
 
-using Core, Gui, Pixel
+using Core, Gui, Pixel, Video
 
 enum ExplorerMode { Names, Details, Small, Medium, Large }
 
@@ -66,19 +66,21 @@ struct Explorer
 
     late
     {
-        window:     *ViewerWindow
-        location:   *Wnd
-        navigation: *IconBar
-        back:       *IconButton
-        forward:    *IconButton
-        up:         *IconButton
-        address:    *ExplorerAddress
-        status:     *Label
-        modes:      *ComboBox
-        filter:     *EditBox
-        list:       *ListCtrl
-        scroll:     *ScrollWnd
-        grid:       *ExplorerGrid
+        window:       *ViewerWindow
+        location:     *Wnd
+        navigation:   *IconBar
+        back:         *IconButton
+        forward:      *IconButton
+        up:           *IconButton
+        address:      *ExplorerAddress
+        status:       *Label
+        modes:        *ComboBox
+        mediaOptions: *IconButton
+        mediaInfo:    *Label
+        filter:       *EditBox
+        list:         *ListCtrl
+        scroll:       *ScrollWnd
+        grid:         *ExplorerGrid
     }
 
     mode:            ExplorerMode = .Medium
@@ -118,6 +120,15 @@ impl Explorer
 
         result.createLocation()
         result.createViewControls()
+        with result.mediaInfo = Label.create(result, "", flags: .WordWrap | .AutoHeight | .Ellipsis)
+        {
+            .dockStyle = .Bottom
+            .padding   = {16, 8, 16, 8}
+            .setTextAlignment(.Left, .Center)
+            .setMaxLines(5)
+            .hide()
+        }
+
         with result.list = ListCtrl.createMultiColumns(result)
         {
             .dockStyle       = .Center
@@ -129,8 +140,12 @@ impl Explorer
             .addColumn(appStrings().explore_Modified, 160)
             .sigSelectionChanged += func|result|(list)
             {
-                if list.focusIndex < result.shown.count do
+                if list.focusIndex < result.shown.count
+                {
                     result.selected = result.shown[list.focusIndex]
+                    result.showMediaInfo()
+                    result.requestPreview()
+                }
             }
 
             .onFillVirtualLine = func(list, line, row)
@@ -276,6 +291,13 @@ impl Explorer
             .sigChanged += func|view = me|(_, index) { view.setMode(cast(ExplorerMode, index)) }
         }
 
+        with .mediaOptions = Viewer.createActionDropDown(bar, .Options)
+        {
+            .dockStyle = .Right
+            .setArrowPosition(.RightDownward)
+            .sigPressed += func|view = me|(_) { view.showMediaOptions() }
+        }
+
         with .filter = EditBox.create(bar, "", {0, 0, ViewerWindow.SearchNoOptionsFieldWidth, 36}, flags: .ClearButton)
         {
             .setIcon(me.theme().icon(.Search, themeActionIconSize(me.themeMetrics())))
@@ -291,7 +313,12 @@ impl Explorer
         .location.show(visible)
         .status.show(visible)
         .modes.show(visible)
+        .mediaOptions.show(visible)
         .filter.show(visible)
+        if not visible do
+            .mediaInfo.hide()
+        else do
+            .showMediaInfo()
         .window.infoFileGroup.show(not visible)
         .window.filesButton.toolTip = visible ? appStrings().explore_Panels : appStrings().ui_Files
         if visible
@@ -311,6 +338,92 @@ impl Explorer
         .window.infoContentGroup.computeLayout()
     }
 
+    mtd showMediaOptions()
+    {
+        let menu = MenuCtrl.createPopup(me, owner: me)
+        menu.addItem(appStrings().explore_OnlineMovies, "onlineMovies", checked: .window.onlineMovies)
+        menu.addItem(appStrings().explore_OnlineMusic, "onlineMusic", checked: .window.onlineMusic)
+        let musicSelected = .selected < .entries.count and
+                            not .listing.isArchive and
+                            not .entries[.selected].directory and
+                            (Path.hasExtension(.entries[.selected].path, ".mp3") or Path.hasExtension(.entries[.selected].path, ".flac"))
+        menu.addItem(appStrings().explore_ChooseMusic, "chooseMusic", disabled: not musicSelected or not .window.onlineMusic)
+        let choice = menu.doModal(.mediaOptions, autoDestroy: true) orelse ""
+        if choice == "chooseMusic"
+        {
+            .chooseMusic()
+            return
+        }
+
+        if choice == "onlineMovies"
+        {
+            .window.onlineMovies = not .window.onlineMovies
+        }
+        elif choice == "onlineMusic"
+        {
+            .window.onlineMusic = not .window.onlineMusic
+        }
+        else
+        {
+            return
+        }
+
+        .previewAspect = .listingPreviewAspect()
+        .grid.refreshLayout()
+        .refreshPreviewSettings()
+        .requestPreview()
+        .grid.invalidate()
+    }
+
+    mtd chooseMusic()
+    {
+        if .selected >= .entries.count do
+            return
+        let selected   = .selected
+        let generation = .generation
+        let previous   = musicChoiceId(.window.musicChoices.toSlice(), &.entries[selected])
+        let dialog     = .createMusicChoiceDialog(previous)
+        if dialog.doModal() != Dialog.BtnOk do
+            return
+        if generation != .generation or selected != .selected or selected >= .entries.count do
+            return
+        let answer = dialog.text()
+        let text   = Latin1.trim(answer.toString())
+        if text.count and not validMusicId(text)
+        {
+            .setStatus(appStrings().explore_InvalidMusicId)
+            return
+        }
+
+        setMusicChoice(&.window.musicChoices, &.entries[selected], String.toLower(text))
+        .retirePreviews()
+        .requestPreview()
+    }
+
+    mtd createMusicChoiceDialog(previous: string)->*EditDlg
+    {
+        return EditDlg.createSingleLine(unwrap .window.surface, {title: appStrings().explore_ChooseMusic,
+                                                                 message: appStrings().explore_ChooseMusicHelp,
+                                                                 text: previous})
+    }
+
+    mtd showMediaInfo()
+    {
+        if .selected >= .entries.count
+        {
+            .mediaInfo.hide()
+            return
+        }
+
+        var text = .entries[.selected].movie.text()
+        if text.isEmpty() do
+            text = .entries[.selected].music.text()
+        .mediaInfo.setText(text)
+        .mediaInfo.toolTip = text
+        .mediaInfo.show(not text.isEmpty() and .isVisible())
+        .applyLayout()
+    }
+
     // Gives the keyboard to the listing, in whichever form it is shown.
     mtd focusContent()
     {
@@ -328,6 +441,8 @@ impl Explorer
         .forward.toolTip         = text.explore_Forward
         .up.toolTip              = text.explore_Up
         .address.refresh.toolTip = text.explore_Refresh
+        .mediaOptions.toolTip    = text.explore_MediaOptions
+        .showMediaInfo()
         .filter.setPlaceholder(text.ui_FilterFiles)
         .list.header.itemAt(0).name = text.explore_Name
         .list.header.itemAt(1).name = text.explore_Type
@@ -555,8 +670,9 @@ impl Explorer
     private mtd publish()
     {
         .clearTextures()
-        .entries       = #move .listing.entries
-        .selected      = Swag.U64.Max
+        .entries  = #move .listing.entries
+        .selected = Swag.U64.Max
+        .mediaInfo.hide()
         .previewAspect = .listingPreviewAspect()
         .previewBudget = Directory.isRemote(.listing.path) ? Math.min(ExplorerRemoteWorkerCount, .previews.count) : .previews.count
         .updateBreadcrumb()
@@ -583,7 +699,9 @@ impl Explorer
                 films += 1
         }
 
-        return films * 2 > files ? ExplorerFilmPreviewAspect : ExplorerTilePreviewAspect
+        if films * 2 > files do
+            return .window.onlineMovies ? ExplorerTilePreviewAspect : ExplorerFilmPreviewAspect
+        return ExplorerTilePreviewAspect
     }
 
     mtd entryIcon(index: u64, size: f32 = 16)->Icon
@@ -752,25 +870,34 @@ impl Explorer
             return
 
         // The first snapshot precedes all jobs; later changes retire every old publication.
-        if not .previewSettings.isEmpty()
-        {
-            // Extracting an opened archive member does not depend on its thumbnail appearance.
-            for &preview in .previews
-            {
-                if preview.opening and preview.generation == .generation do
-                    preview.generation += 1
-                else do
-                    preview.task.cancel()
-            }
-
-            .generation += 1
-            .clearTextures()
-            for &entry in .entries do
-                entry.attempted = false
-            .grid.invalidate()
-        }
+        if not .previewSettings.isEmpty() do
+            .retirePreviews()
 
         .previewSettings = settings
+    }
+
+    private mtd retirePreviews()
+    {
+        // Extracting an opened archive member does not depend on its thumbnail appearance.
+        for &preview in .previews
+        {
+            if preview.opening and preview.generation == .generation do
+                preview.generation += 1
+            else do
+                preview.task.cancel()
+        }
+
+        .generation += 1
+        .clearTextures()
+        for &entry in .entries
+        {
+            entry.attempted = false
+            entry.movie     = {}
+            entry.music     = {}
+        }
+
+        .showMediaInfo()
+        .grid.invalidate()
     }
 
     // Returns the active slot for a tile, including work waiting for GUI publication.
@@ -792,18 +919,33 @@ impl Explorer
         let opening = wanted != Swag.U64.Max
         if not opening
         {
-            if .mode == .Names or .mode == .Details do
-                return
-            let range = .grid.visibleRange()
-            for row in range.first until range.end
+            if .mode == .Names or .mode == .Details
             {
-                let index = .shown[row]
-                if not .entries[index].directory and
-                   not .entries[index].attempted and
-                   .previewSlot(index) == Swag.U64.Max
+                if .selected >= .entries.count do
+                    return
+                let selected = &.entries[.selected]
+                let movie    = .window.onlineMovies and Reader.canOpen(selected.path)
+                let music    = .window.onlineMusic and (Path.hasExtension(selected.path, ".mp3") or Path.hasExtension(selected.path, ".flac"))
+                if selected.directory or
+                   selected.attempted or
+                   not (movie or music) or
+                   .previewSlot(.selected) != Swag.U64.Max do
+                    return
+                wanted = .selected
+            }
+            else
+            {
+                let range = .grid.visibleRange()
+                for row in Math.min(range.first, .shown.count) until Math.min(range.end, .shown.count)
                 {
-                    wanted = index
-                    break
+                    let index = .shown[row]
+                    if index < .entries.count and not .entries[index].directory and
+                       not .entries[index].attempted and
+                       .previewSlot(index) == Swag.U64.Max
+                    {
+                        wanted = index
+                        break
+                    }
                 }
             }
         }
@@ -817,7 +959,7 @@ impl Explorer
             for cached, position in .cached
             {
                 var visible = false
-                for row in range.first until range.end where .shown[row] == cached do
+                for row in Math.min(range.first, .shown.count) until Math.min(range.end, .shown.count) where .shown[row] == cached do
                     visible = true
                 if not visible
                 {
@@ -835,13 +977,15 @@ impl Explorer
         }
 
         let entry = &.entries[wanted]
+        if .listing.isArchive and entry.archiveIndex >= .listing.archive.entries.count do
+            return
         .pendingOpen        = Swag.U64.Max
         preview.path        = entry.path
         preview.index       = wanted
         preview.generation  = .generation
         preview.opening     = opening
         preview.bypassCache = .bypassCache
-        preview.settings    = .previewSettings
+        preview.settings    = ThumbnailSettings.capture(.window, entry)
         preview.archivePath = .listing.isArchive ? .listing.path : {}
         if .listing.isArchive do
             preview.entry = .listing.archive.entries[entry.archiveIndex]
@@ -909,6 +1053,8 @@ impl IWnd for Explorer
                     }
                     elif preview.image.isValid()
                     {
+                        if preview.index == .selected and not preview.error.isEmpty() do
+                            .setStatus(preview.error)
                         if .cached.count >= 128
                         {
                             let old = .cached[0]
@@ -919,6 +1065,10 @@ impl IWnd for Explorer
 
                         .entries[preview.index].texture  = .app().renderer.addImage(preview.image)
                         .entries[preview.index].duration = thumbnailDuration(&preview.image)
+                        .entries[preview.index].movie    = MovieSummary.fromImage(&preview.image)
+                        .entries[preview.index].music    = MusicSummary.fromImage(&preview.image)
+                        if .selected == preview.index do
+                            .showMediaInfo()
                         .cached.add(preview.index)
                         .grid.invalidate()
                     }
@@ -1080,6 +1230,7 @@ impl ExplorerGrid
         if row >= .explorer.shown.count do
             return
         .explorer.selected = .explorer.shown[row]
+        .explorer.showMediaInfo()
         let top = 12 + cast(f32, row / .columns) * .cell.y
         if top < .scrollPos.y do
             .explorer.scroll.setScrollPos(0, top)

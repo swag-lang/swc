@@ -171,6 +171,9 @@ struct ViewerWindow
     folderHistory:       Array'ViewerFolderHistory
     folderFilter:        String
     preferences:         Array'ViewerPreference
+    musicChoices:        Array'MusicChoice
+    onlineMovies:        bool = true
+    onlineMusic:         bool = true
     panelVisible:        bool
     leftPanelWidth:      f32 = PanelWidth
     rightPanelWidth:     f32
@@ -487,6 +490,9 @@ impl IWnd for ViewerWindow
         catch evt.serializer.serialize("ViewerWindow.recent", &me.recent)
         catch evt.serializer.serialize("ViewerWindow.folderHistory", &me.folderHistory)
         catch evt.serializer.serialize("ViewerWindow.preferences", &me.preferences)
+        catch evt.serializer.serialize("ViewerWindow.musicChoices", &me.musicChoices)
+        catch evt.serializer.serialize("ViewerWindow.onlineMovies", &me.onlineMovies)
+        catch evt.serializer.serialize("ViewerWindow.onlineMusic", &me.onlineMusic)
         catch evt.serializer.serialize("ViewerWindow.panelVisible", &me.panelVisible)
         catch evt.serializer.serialize("ViewerWindow.leftPanelWidth", &me.leftPanelWidth)
         catch evt.serializer.serialize("ViewerWindow.rightPanelWidth", &me.rightPanelWidth)
@@ -892,6 +898,7 @@ impl ViewerWindow
         // families without turning About into a file-association inventory.
         let dialog = AboutDlg.createApplication(unwrap .surface, about)
         dialog.addSection(appStrings().ui_AboutViewers, .aboutViewerList())
+        dialog.addSection("Wikipedia / Wikidata", appStrings().ui_AboutWikiNotice)
         return dialog
     }
 

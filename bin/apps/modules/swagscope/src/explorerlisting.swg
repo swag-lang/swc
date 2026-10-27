@@ -5,15 +5,19 @@ using Core, Pixel, Gui
 // One immediate child of a filesystem or archive location.
 struct ExplorerEntry
 {
-    name:         String
-    path:         String
-    size:         u64
-    modified:     String
-    directory:    bool
-    archiveIndex: u64 = Swag.U64.Max
-    texture:      Texture
-    duration:     u64     // Seconds of a time-based medium, from its thumbnail; zero for anything else.
-    attempted:    bool
+    name:          String
+    path:          String
+    size:          u64
+    creationStamp: u64
+    modifiedStamp: u64
+    modified:      String
+    directory:     bool
+    archiveIndex:  u64 = Swag.U64.Max
+    texture:       Texture
+    duration:      u64     // Seconds of a time-based medium, from its thumbnail; zero for anything else.
+    movie:         MovieSummary
+    music:         MusicSummary
+    attempted:     bool
 }
 
 // A listing is acquired off the GUI thread; archive folders are projected without extraction.
@@ -39,11 +43,13 @@ impl ExplorerListing
             {
                 with var entry: ExplorerEntry
                 {
-                    .name      = Path.fileName(file.fullName) orelse file.fullName.toString()
-                    .path      = file.fullName
-                    .size      = file.size
-                    .directory = file.isDirectory()
-                    .modified  = file.lastWriteTime.toString(.DateTimeIsoHm)
+                    .name          = Path.fileName(file.fullName) orelse file.fullName.toString()
+                    .path          = file.fullName
+                    .size          = file.size
+                    .creationStamp = Hash.hash64(file.creationTime)
+                    .modifiedStamp = Hash.hash64(file.lastWriteTime)
+                    .directory     = file.isDirectory()
+                    .modified      = file.lastWriteTime.toString(.DateTimeIsoHm)
                 }
 
                 result.entries.add(#move entry)

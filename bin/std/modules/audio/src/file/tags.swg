@@ -1,22 +1,24 @@
 //! Format: Descriptive tags of sound files.
 //! Supported: ID3v2.2, v2.3, and v2.4 text frames at the head of an MP3 file, and the Vorbis comment block of a FLAC file.
 //! Not supported: ID3v1 trailers, unsynchronised ID3 tags, Ogg and MP4 comments, pictures, and writing tags.
-//! Role: This file owns reading the title, artist, album, and year a sound file declares.
+//! Role: This file owns reading the title, artist, album artist, album, and year a sound file declares.
 //
 #global public
 
 using Core
 
-// What a sound file says about the recording it holds. Every field is empty when the file does
-// not name it.
+// What a sound file says about the recording it holds.
+//
+// Every field is empty when the file does not name it.
 struct SoundTags
 {
     public
     {
-        title:  String     // Name of the recording.
-        artist: String     // Performer or author of the recording.
-        album:  String     // Collection the recording belongs to.
-        year:   String     // Year of the recording or its release, as the file spells it.
+        title:       String     // Name of the recording.
+        artist:      String     // Performer or author of the recording.
+        album:       String     // Collection the recording belongs to.
+        year:        String     // Year of the recording or its release, as the file spells it.
+        albumArtist: String     // Performer credited to the album, when the tag names one.
     }
 }
 
@@ -26,7 +28,11 @@ private const TagSizeLimit  = 16 * 1024 * 1024'u64
 impl SoundTags
 {
     // Reports whether the file named nothing at all.
-    mtd const isEmpty()->bool => .title.isEmpty() and .artist.isEmpty() and .album.isEmpty() and .year.isEmpty()
+    mtd const isEmpty()->bool => .title.isEmpty() and
+                                 .artist.isEmpty() and
+                                 .album.isEmpty() and
+                                 .year.isEmpty() and
+                                 .albumArtist.isEmpty()
 
     // Reads the tags of `fileName`: the ID3v2 tag that opens an MP3 file, or the Vorbis comment
     // block of a FLAC file.
@@ -148,6 +154,7 @@ internal impl SoundTags
             {
             case "TIT2", "TT2":         .title = textFrame(text)
             case "TPE1", "TP1":         .artist = textFrame(text)
+            case "TPE2", "TP2":         .albumArtist = textFrame(text)
             case "TALB", "TAL":         .album = textFrame(text)
             case "TYER", "TDRC", "TYE": .year = yearOf(textFrame(text))
             }
@@ -156,7 +163,7 @@ internal impl SoundTags
         }
     }
 
-    // Reads the `TITLE`, `ARTIST`, `ALBUM`, and `DATE` fields of a Vorbis comment block.
+    // Reads the title, artist, album artist, album, and date fields of a Vorbis comment block.
     mtd decodeVorbisComment(block: const [..] u8)
     {
         var offset = 0'u64
@@ -195,6 +202,8 @@ internal impl SoundTags
                 .title = String.from(value)
             elif Utf8.compare(key, "ARTIST", .Latin1NoCase) == 0 do
                 .artist = String.from(value)
+            elif Utf8.compare(key, "ALBUMARTIST", .Latin1NoCase) == 0 or Utf8.compare(key, "ALBUM ARTIST", .Latin1NoCase) == 0 do
+                .albumArtist = String.from(value)
             elif Utf8.compare(key, "ALBUM", .Latin1NoCase) == 0 do
                 .album = String.from(value)
             elif Utf8.compare(key, "DATE", .Latin1NoCase) == 0 do

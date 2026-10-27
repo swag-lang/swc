@@ -3,6 +3,23 @@
 
 using Core, Pixel, Gui
 
+// Cleanup removes only old cache-shaped files and leaves unrelated files alone.
+#test
+{
+    let root = Path.combine(Env.getSpecialDirectory(.Temp), Format.toString("scope-cache-prune-%", Guid64.random()))
+    expect Directory.create(root)
+    defer discard catch Directory.delete(root, recurse: true)
+    let cached = Path.combine(root, "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA.png")
+    let other  = Path.combine(root, "unrelated.png")
+    discard expect File.writeAllText(cached, "cache")
+    discard expect File.writeAllText(other, "keep")
+    let now = Time.Timestamp.utcNow().ticks
+    expect ThumbnailCache.prune(root, now)
+    Swag.assert(File.exists(cached) and File.exists(other))
+    expect ThumbnailCache.prune(root, now + 121 * Time.TicksPerDay)
+    Swag.assert(not File.exists(cached) and File.exists(other))
+}
+
 // Cache identity follows both the source and application, and separates archive members.
 #test
 {

@@ -440,7 +440,7 @@
 </ul>
 </details>
 <details class="toc-group">
-<summary><span class="toc-label">Functions</span><span class="toc-count">1718</span></summary>
+<summary><span class="toc-label">Functions</span><span class="toc-count">1720</span></summary>
 <ul class="toc-symbols">
 <li><a href="#summary-functions">All Functions</a></li>
 <li><a href="#Core_Hash_Adler32_compute">Adler32.compute</a></li>
@@ -646,6 +646,7 @@
 <li><a href="#Core_ConcatBuffer_advance">ConcatBuffer.advance</a></li>
 <li><a href="#Core_ConcatBuffer_clear">ConcatBuffer.clear</a></li>
 <li><a href="#Core_ConcatBuffer_count">ConcatBuffer.count</a></li>
+<li><a href="#Core_ConcatBuffer_grow">ConcatBuffer.grow</a></li>
 <li><a href="#Core_ConcatBuffer_makeLinear">ConcatBuffer.makeLinear</a></li>
 <li><a href="#Core_ConcatBuffer_moveToString">ConcatBuffer.moveToString</a></li>
 <li><a href="#Core_ConcatBuffer_offsetOf">ConcatBuffer.offsetOf</a></li>
@@ -785,6 +786,7 @@
 <li><a href="#Core_Directory_enumerateDirectories">Directory.enumerateDirectories</a></li>
 <li><a href="#Core_Directory_enumerateFiles">Directory.enumerateFiles</a></li>
 <li><a href="#Core_Directory_exists">Directory.exists</a></li>
+<li><a href="#Core_Directory_isRemote">Directory.isRemote</a></li>
 <li><a href="#Core_Directory_setCurrentPath">Directory.setCurrentPath</a></li>
 <li><a href="#Core_Directory_volumes">Directory.volumes</a></li>
 <li><a href="#Core_Directory_watch">Directory.watch</a></li>
@@ -3571,6 +3573,8 @@ encoder.serializer.options.saveBlanks = <span class="SKwd">true</span>
 </td></tr>
 <tr><td class="code-type"><a href="#Core_ConcatBuffer_count">ConcatBuffer.count</a></td><td><p>Returns the total number of bytes currently stored in the buffer.</p>
 </td></tr>
+<tr><td class="code-type"><a href="#Core_ConcatBuffer_grow">ConcatBuffer.grow</a></td><td><p>Ensures the last bucket has room for <span class="code-inline">numBytes</span> more bytes, reusing a retained bucket or allocating one.</p>
+</td></tr>
 <tr><td class="code-type"><a href="#Core_ConcatBuffer_makeLinear">ConcatBuffer.makeLinear</a></td><td><p>Merges all buckets into one contiguous bucket.</p>
 </td></tr>
 <tr><td class="code-type"><a href="#Core_ConcatBuffer_moveToString">ConcatBuffer.moveToString</a></td><td><p>Returns an owned string, transferring a single heap bucket when possible.</p>
@@ -3848,6 +3852,8 @@ encoder.serializer.options.saveBlanks = <span class="SKwd">true</span>
 <tr><td class="code-type"><a href="#Core_Directory_enumerateFiles">Directory.enumerateFiles</a></td><td><p>Returns the files of <span class="code-inline">dirName</span>, optionally restricted to one extension and extended to its subdirectories.</p>
 </td></tr>
 <tr><td class="code-type"><a href="#Core_Directory_exists">Directory.exists</a></td><td><p>Returns whether <span class="code-inline">dirName</span> names an existing directory.</p>
+</td></tr>
+<tr><td class="code-type"><a href="#Core_Directory_isRemote">Directory.isRemote</a></td><td><p>Returns whether <span class="code-inline">path</span> lives on a network share rather than on a local volume.</p>
 </td></tr>
 <tr><td class="code-type"><a href="#Core_Directory_setCurrentPath">Directory.setCurrentPath</a></td><td><p>Changes the current directory of the process to <span class="code-inline">dirName</span>.</p>
 </td></tr>
@@ -7068,6 +7074,8 @@ encoder.serializer.options.saveBlanks = <span class="SKwd">true</span>
 </td></tr>
 <tr><td class="code-type"><a href="#Core_Directory_exists">Directory.exists</a></td><td><p>Returns whether <span class="code-inline">dirName</span> names an existing directory.</p>
 </td></tr>
+<tr><td class="code-type"><a href="#Core_Directory_isRemote">Directory.isRemote</a></td><td><p>Returns whether <span class="code-inline">path</span> lives on a network share rather than on a local volume.</p>
+</td></tr>
 <tr><td class="code-type"><a href="#Core_Directory_setCurrentPath">Directory.setCurrentPath</a></td><td><p>Changes the current directory of the process to <span class="code-inline">dirName</span>.</p>
 </td></tr>
 <tr><td class="code-type"><a href="#Core_Directory_volumes">Directory.volumes</a></td><td><p>Returns the first mount point of every mounted volume, with normalized separators.</p>
@@ -9683,6 +9691,8 @@ encoder.serializer.options.saveBlanks = <span class="SKwd">true</span>
 </td></tr>
 <tr><td class="code-type"><a href="#Core_ConcatBuffer_count">count</a></td><td><p>Returns the total number of bytes currently stored in the buffer.</p>
 </td></tr>
+<tr><td class="code-type"><a href="#Core_ConcatBuffer_grow">grow</a></td><td><p>Ensures the last bucket has room for <span class="code-inline">numBytes</span> more bytes, reusing a retained bucket or allocating one.</p>
+</td></tr>
 <tr><td class="code-type"><a href="#Core_ConcatBuffer_makeLinear">makeLinear</a></td><td><p>Merges all buckets into one contiguous bucket.</p>
 </td></tr>
 <tr><td class="code-type"><a href="#Core_ConcatBuffer_moveToString">moveToString</a></td><td><p>Returns an owned string, transferring a single heap bucket when possible.</p>
@@ -9848,7 +9858,7 @@ encoder.serializer.options.saveBlanks = <span class="SKwd">true</span>
 </tbody>
 </table>
 <section class="api-symbol">
-<div class="api-item api-item-struct"><span id="Core_Guid64" class="api-item-title"><span class="api-item-title-kind">struct</span> <span class="api-item-title-strong">Core.Guid64</span> <a class="api-item-permalink" href="#Core_Guid64" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/system/guid64.swg#L35">src</a></div>
+<div class="api-item api-item-struct"><span id="Core_Guid64" class="api-item-title"><span class="api-item-title-kind">struct</span> <span class="api-item-title-strong">Core.Guid64</span> <a class="api-item-permalink" href="#Core_Guid64" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/system/guid64.swg#L40">src</a></div>
 <p>Stores a compact 64-bit identifier.</p>
 <p>Unlike <a href="#Core_Guid128">Core.Guid128</a>, a random <span class="code-inline">Guid64</span> cannot provide UUID-level collision resistance. Use it for local object identities and temporary names, not as a security token or a globally coordinated database key.</p>
 <div class="code-block"><span class="SCde"><span class="SAtr">#[</span><span class="SNsp">Swag</span>.<span class="SAtr">Operators(opEquals)]</span>
@@ -17159,7 +17169,7 @@ bundle.<span class="SFct">addFolder</span>(<span class="SStr">"datas"</span>)
 <span class="SKwd">mtd</span> <span class="SKwd">const</span> <span class="SFct">toDegrees</span>()-&gt;<span class="STpe">f32</span></span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Core_Array_add" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Array.add</span> <a class="api-item-permalink" href="#Core_Array_add" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/collections/array.swg#L426">src</a></div>
+<div class="api-item api-item-func"><span id="Core_Array_add" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Array.add</span> <a class="api-item-permalink" href="#Core_Array_add" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/collections/array.swg#L427">src</a></div>
 <p>Appends <span class="code-inline">value</span> to the end of the array.</p>
 <p>The value is copied; pass it with <span class="code-inline">#move</span> to move it instead. Use <a href="#Core_Array_addBorrowed">Core.Array.addBorrowed</a> to borrow an element of this array.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">add</span>(value: <span class="SItr">#fwd</span> <span class="SCst">T</span>)</span></div>
@@ -17169,43 +17179,43 @@ bundle.<span class="SFct">addFolder</span>(<span class="SStr">"datas"</span>)
     <span class="SLgc">where</span> <span class="SCst"><a href="#namespace_Core_Reflection">Reflection</a></span>.<span class="SFct">canCopy</span>(<span class="SCst">T</span>)</span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Core_Array_addBorrowed" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Array.addBorrowed</span> <a class="api-item-permalink" href="#Core_Array_addBorrowed" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/collections/array.swg#L446">src</a></div>
+<div class="api-item api-item-func"><span id="Core_Array_addBorrowed" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Array.addBorrowed</span> <a class="api-item-permalink" href="#Core_Array_addBorrowed" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/collections/array.swg#L447">src</a></div>
 <p>Copies a borrowed value, which may be an element of this array.</p>
 <p>The source is saved before any growth invalidates it. The pointer is not retained.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">addBorrowed</span>(value: <span class="SKwd">const</span> *<span class="SCst">T</span>)
     <span class="SLgc">where</span> <span class="SCst"><a href="#namespace_Core_Reflection">Reflection</a></span>.<span class="SFct">canCopy</span>(<span class="SCst">T</span>)</span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Core_Array_addOnce" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Array.addOnce</span> <a class="api-item-permalink" href="#Core_Array_addOnce" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/collections/array.swg#L406">src</a></div>
+<div class="api-item api-item-func"><span id="Core_Array_addOnce" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Array.addOnce</span> <a class="api-item-permalink" href="#Core_Array_addOnce" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/collections/array.swg#L407">src</a></div>
 <p>Appends <span class="code-inline">value</span> unless the array already contains an equal element.</p>
 <p>The containment check is a linear search. The value is copied; pass it with <span class="code-inline">#move</span> to move it instead. Use <a href="#Core_Array_addOnceBorrowed">Core.Array.addOnceBorrowed</a> for an element of this array.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">addOnce</span>(value: <span class="SItr">#fwd</span> <span class="SCst">T</span>)</span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Core_Array_addOnceBorrowed" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Array.addOnceBorrowed</span> <a class="api-item-permalink" href="#Core_Array_addOnceBorrowed" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/collections/array.swg#L414">src</a></div>
+<div class="api-item api-item-func"><span id="Core_Array_addOnceBorrowed" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Array.addOnceBorrowed</span> <a class="api-item-permalink" href="#Core_Array_addOnceBorrowed" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/collections/array.swg#L415">src</a></div>
 <p>Borrows an element for the containment check and copies it only when absent.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">addOnceBorrowed</span>(value: <span class="SKwd">const</span> *<span class="SCst">T</span>)
     <span class="SLgc">where</span> <span class="SCst"><a href="#namespace_Core_Reflection">Reflection</a></span>.<span class="SFct">canCopy</span>(<span class="SCst">T</span>)</span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Core_Array_back" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Array.back</span> <a class="api-item-permalink" href="#Core_Array_back" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/collections/array.swg#L851">src</a></div>
+<div class="api-item api-item-func"><span id="Core_Array_back" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Array.back</span> <a class="api-item-permalink" href="#Core_Array_back" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/collections/array.swg#L852">src</a></div>
 <p>Returns a copy of the last element.</p>
 <p>Asserts if the array is empty.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SKwd">const</span> <span class="SFct">back</span>()-&gt;<span class="SCst">T</span></span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Core_Array_backPtr" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Array.backPtr</span> <a class="api-item-permalink" href="#Core_Array_backPtr" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/collections/array.swg#L861">src</a></div>
+<div class="api-item api-item-func"><span id="Core_Array_backPtr" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Array.backPtr</span> <a class="api-item-permalink" href="#Core_Array_backPtr" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/collections/array.swg#L862">src</a></div>
 <p>Returns the address of the last element.</p>
 <p>Asserts if the array is empty.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">backPtr</span>()-&gt;*<span class="SCst">T</span></span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Core_Array_clear" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Array.clear</span> <a class="api-item-permalink" href="#Core_Array_clear" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/collections/array.swg#L381">src</a></div>
+<div class="api-item api-item-func"><span id="Core_Array_clear" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Array.clear</span> <a class="api-item-permalink" href="#Core_Array_clear" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/collections/array.swg#L382">src</a></div>
 <p>Drops every element and leaves the array empty, keeping its buffer for reuse.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">clear</span>()</span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Core_Array_contains" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Array.contains</span> <a class="api-item-permalink" href="#Core_Array_contains" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/collections/array.swg#L801">src</a></div>
+<div class="api-item api-item-func"><span id="Core_Array_contains" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Array.contains</span> <a class="api-item-permalink" href="#Core_Array_contains" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/collections/array.swg#L802">src</a></div>
 <p>Returns whether the array contains an element equal to <span class="code-inline">value</span>.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span>(<span class="SCst">V</span>) <span class="SKwd">const</span> <span class="SFct">contains</span>(value: <span class="SCst">V</span>)-&gt;<span class="STpe">bool</span></span></div>
 </section>
@@ -17215,24 +17225,24 @@ bundle.<span class="SFct">addFolder</span>(<span class="SStr">"datas"</span>)
 <div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SFct">createBuffer</span>(size: <span class="STpe">u64</span>)-&gt;<span class="SFct">Array</span>'<span class="STpe">u8</span></span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Core_Array_emplaceAddress" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Array.emplaceAddress</span> <a class="api-item-permalink" href="#Core_Array_emplaceAddress" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/collections/array.swg#L472">src</a></div>
+<div class="api-item api-item-func"><span id="Core_Array_emplaceAddress" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Array.emplaceAddress</span> <a class="api-item-permalink" href="#Core_Array_emplaceAddress" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/collections/array.swg#L473">src</a></div>
 <p>Appends <span class="code-inline">num</span> uninitialized elements and returns the address of the first one.</p>
 <p>The caller must initialize every new element before the array reads, copies, or drops it.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">emplaceAddress</span>(num: <span class="STpe">u32</span> = <span class="SNum">1</span>)-&gt;[*] <span class="SCst">T</span></span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Core_Array_emplaceAt" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Array.emplaceAt</span> <a class="api-item-permalink" href="#Core_Array_emplaceAt" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/collections/array.swg#L587">src</a></div>
+<div class="api-item api-item-func"><span id="Core_Array_emplaceAt" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Array.emplaceAt</span> <a class="api-item-permalink" href="#Core_Array_emplaceAt" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/collections/array.swg#L588">src</a></div>
 <p>Moves the elements of <span class="code-inline">values</span> to <span class="code-inline">index</span>, shifting the following elements to the right.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">emplaceAt</span>(index: <span class="STpe">u64</span>, values: [..] <span class="SCst">T</span>)
     <span class="SLgc">where</span> <span class="SCst"><a href="#namespace_Core_Reflection">Reflection</a></span>.<span class="SFct">canCopy</span>(<span class="SCst">T</span>)</span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Core_Array_emplaceInitAddress" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Array.emplaceInitAddress</span> <a class="api-item-permalink" href="#Core_Array_emplaceInitAddress" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/collections/array.swg#L480">src</a></div>
+<div class="api-item api-item-func"><span id="Core_Array_emplaceInitAddress" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Array.emplaceInitAddress</span> <a class="api-item-permalink" href="#Core_Array_emplaceInitAddress" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/collections/array.swg#L481">src</a></div>
 <p>Appends <span class="code-inline">num</span> default-initialized elements and returns the address of the first one.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">emplaceInitAddress</span>(num: <span class="STpe">u32</span> = <span class="SNum">1</span>)-&gt;[*] <span class="SCst">T</span></span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Core_Array_fill" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Array.fill</span> <a class="api-item-permalink" href="#Core_Array_fill" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/collections/array.swg#L393">src</a></div>
+<div class="api-item api-item-func"><span id="Core_Array_fill" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Array.fill</span> <a class="api-item-permalink" href="#Core_Array_fill" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/collections/array.swg#L394">src</a></div>
 <p>Assigns a copy of <span class="code-inline">value</span> to every element.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">fill</span>(value: <span class="SCst">T</span>)</span></div>
 </section>
@@ -17242,25 +17252,25 @@ bundle.<span class="SFct">addFolder</span>(<span class="SStr">"datas"</span>)
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">free</span>()</span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Core_Array_front" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Array.front</span> <a class="api-item-permalink" href="#Core_Array_front" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/collections/array.swg#L832">src</a></div>
+<div class="api-item api-item-func"><span id="Core_Array_front" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Array.front</span> <a class="api-item-permalink" href="#Core_Array_front" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/collections/array.swg#L833">src</a></div>
 <p>Returns a copy of the first element.</p>
 <p>Asserts if the array is empty.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SKwd">const</span> <span class="SFct">front</span>()-&gt;<span class="SCst">T</span></span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Core_Array_frontPtr" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Array.frontPtr</span> <a class="api-item-permalink" href="#Core_Array_frontPtr" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/collections/array.swg#L842">src</a></div>
+<div class="api-item api-item-func"><span id="Core_Array_frontPtr" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Array.frontPtr</span> <a class="api-item-permalink" href="#Core_Array_frontPtr" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/collections/array.swg#L843">src</a></div>
 <p>Returns the address of the first element.</p>
 <p>Asserts if the array is empty.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">frontPtr</span>()-&gt;*<span class="SCst">T</span></span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Core_Array_growResize" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Array.growResize</span> <a class="api-item-permalink" href="#Core_Array_growResize" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/collections/array.swg#L352">src</a></div>
+<div class="api-item api-item-func"><span id="Core_Array_growResize" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Array.growResize</span> <a class="api-item-permalink" href="#Core_Array_growResize" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/collections/array.swg#L353">src</a></div>
 <p>Grows the array to at least <span class="code-inline">newCount</span> elements, default-initializing the new ones.</p>
 <p>An array that already holds <span class="code-inline">newCount</span> elements or more is unchanged.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">growResize</span>(newCount: <span class="STpe">u64</span>)</span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Core_Array_insertAt" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Array.insertAt</span> <a class="api-item-permalink" href="#Core_Array_insertAt" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/collections/array.swg#L493">src</a></div>
+<div class="api-item api-item-func"><span id="Core_Array_insertAt" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Array.insertAt</span> <a class="api-item-permalink" href="#Core_Array_insertAt" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/collections/array.swg#L494">src</a></div>
 <p>Inserts <span class="code-inline">value</span> at <span class="code-inline">index</span>, shifting the following elements to the right.</p>
 <p>The value is copied; pass it with <span class="code-inline">#move</span> to move it instead. Use <a href="#Core_Array_insertBorrowedAt">Core.Array.insertBorrowedAt</a> to borrow an element of this array.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">insertAt</span>(index: <span class="STpe">u64</span>, value: <span class="SItr">#fwd</span> <span class="SCst">T</span>)</span></div>
@@ -17270,7 +17280,7 @@ bundle.<span class="SFct">addFolder</span>(<span class="SStr">"datas"</span>)
     <span class="SLgc">where</span> <span class="SCst"><a href="#namespace_Core_Reflection">Reflection</a></span>.<span class="SFct">canCopy</span>(<span class="SCst">T</span>)</span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Core_Array_insertBorrowedAt" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Array.insertBorrowedAt</span> <a class="api-item-permalink" href="#Core_Array_insertBorrowedAt" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/collections/array.swg#L507">src</a></div>
+<div class="api-item api-item-func"><span id="Core_Array_insertBorrowedAt" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Array.insertBorrowedAt</span> <a class="api-item-permalink" href="#Core_Array_insertBorrowedAt" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/collections/array.swg#L508">src</a></div>
 <p>Inserts a copy of a borrowed value, which may be an element of this array.</p>
 <p>The source is saved before growth or shifting invalidates it. The pointer is not retained.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">insertBorrowedAt</span>(index: <span class="STpe">u64</span>, value: <span class="SKwd">const</span> *<span class="SCst">T</span>)
@@ -17362,7 +17372,7 @@ bundle.<span class="SFct">addFolder</span>(<span class="SStr">"datas"</span>)
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SKwd">const</span> <span class="SFct">pairs</span>()-&gt;<span class="SFct">Pairs</span>'<span class="SCst">T</span></span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Core_Array_popBack" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Array.popBack</span> <a class="api-item-permalink" href="#Core_Array_popBack" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/collections/array.swg#L870">src</a></div>
+<div class="api-item api-item-func"><span id="Core_Array_popBack" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Array.popBack</span> <a class="api-item-permalink" href="#Core_Array_popBack" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/collections/array.swg#L871">src</a></div>
 <p>Removes the last element and returns it.</p>
 <p>Asserts if the array is empty.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">popBack</span>()-&gt;<span class="SCst">T</span></span></div>
@@ -17381,7 +17391,7 @@ bundle.<span class="SFct">addFolder</span>(<span class="SStr">"datas"</span>)
 <span class="SKwd">mtd</span> <span class="SFct">ptr2</span>(x, y, w: <span class="STpe">u64</span>)-&gt;*<span class="SCst">T</span></span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Core_Array_remove" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Array.remove</span> <a class="api-item-permalink" href="#Core_Array_remove" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/collections/array.swg#L693">src</a></div>
+<div class="api-item api-item-func"><span id="Core_Array_remove" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Array.remove</span> <a class="api-item-permalink" href="#Core_Array_remove" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/collections/array.swg#L694">src</a></div>
 <p>Removes <span class="code-inline">num</span> elements starting at <span class="code-inline">index</span>, shifting the following elements to the left.</p>
 <p>The order of the remaining elements is preserved.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">remove</span>(index, num: <span class="STpe">u64</span>)</span></div>
@@ -17390,37 +17400,37 @@ bundle.<span class="SFct">addFolder</span>(<span class="SStr">"datas"</span>)
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span>(<span class="SCst">V</span>) <span class="SFct">remove</span>(value: <span class="SCst">V</span>)</span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Core_Array_removeAt" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Array.removeAt</span> <a class="api-item-permalink" href="#Core_Array_removeAt" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/collections/array.swg#L736">src</a></div>
+<div class="api-item api-item-func"><span id="Core_Array_removeAt" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Array.removeAt</span> <a class="api-item-permalink" href="#Core_Array_removeAt" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/collections/array.swg#L737">src</a></div>
 <p>Removes the element at <span class="code-inline">index</span> by moving the last element into its place.</p>
 <p>This takes constant time, but does not preserve the order of the remaining elements.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">removeAt</span>(index: <span class="STpe">u64</span>)</span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Core_Array_removeAtOrdered" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Array.removeAtOrdered</span> <a class="api-item-permalink" href="#Core_Array_removeAtOrdered" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/collections/array.swg#L755">src</a></div>
+<div class="api-item api-item-func"><span id="Core_Array_removeAtOrdered" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Array.removeAtOrdered</span> <a class="api-item-permalink" href="#Core_Array_removeAtOrdered" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/collections/array.swg#L756">src</a></div>
 <p>Removes <span class="code-inline">numValues</span> elements starting at <span class="code-inline">index</span>, shifting the following elements to the left.</p>
 <p>This is slower than <a href="#Core_Array_removeAt">Core.Array.removeAt</a>, but preserves the order of the remaining elements.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">removeAtOrdered</span>(index: <span class="STpe">u64</span>, numValues: <span class="STpe">u64</span> = <span class="SNum">1</span>)</span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Core_Array_removeBack" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Array.removeBack</span> <a class="api-item-permalink" href="#Core_Array_removeBack" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/collections/array.swg#L882">src</a></div>
+<div class="api-item api-item-func"><span id="Core_Array_removeBack" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Array.removeBack</span> <a class="api-item-permalink" href="#Core_Array_removeBack" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/collections/array.swg#L883">src</a></div>
 <p>Drops and removes the last element.</p>
 <p>Asserts if the array is empty.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">removeBack</span>()</span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Core_Array_removeOrdered" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Array.removeOrdered</span> <a class="api-item-permalink" href="#Core_Array_removeOrdered" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/collections/array.swg#L792">src</a></div>
+<div class="api-item api-item-func"><span id="Core_Array_removeOrdered" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Array.removeOrdered</span> <a class="api-item-permalink" href="#Core_Array_removeOrdered" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/collections/array.swg#L793">src</a></div>
 <p>Removes the first element equal to <span class="code-inline">value</span>, preserving the order of the remaining elements.</p>
 <p>Does nothing when <span class="code-inline">value</span> is absent.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span>(<span class="SCst">V</span>) <span class="SFct">removeOrdered</span>(value: <span class="SCst">V</span>)</span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Core_Array_reserve" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Array.reserve</span> <a class="api-item-permalink" href="#Core_Array_reserve" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/collections/array.swg#L333">src</a></div>
+<div class="api-item api-item-func"><span id="Core_Array_reserve" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Array.reserve</span> <a class="api-item-permalink" href="#Core_Array_reserve" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/collections/array.swg#L334">src</a></div>
 <p>Sets the capacity to at least <span class="code-inline">newCapacity</span>, keeping the elements already stored.</p>
 <p>Asking for a capacity of zero is the one exception: it releases the buffer and empties the array, which is what <span class="code-inline">free</span> does. A request that cannot fit in an addressable allocation panics.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">reserve</span>(newCapacity: <span class="STpe">u64</span>)</span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Core_Array_resize" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Array.resize</span> <a class="api-item-permalink" href="#Core_Array_resize" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/collections/array.swg#L363">src</a></div>
+<div class="api-item api-item-func"><span id="Core_Array_resize" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Array.resize</span> <a class="api-item-permalink" href="#Core_Array_resize" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/collections/array.swg#L364">src</a></div>
 <p>Sets the number of elements to <span class="code-inline">newCount</span>.</p>
 <p>New elements are default-initialized, and elements past <span class="code-inline">newCount</span> are dropped.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">resize</span>(newCount: <span class="STpe">u64</span>)</span></div>
@@ -17433,7 +17443,7 @@ bundle.<span class="SFct">addFolder</span>(<span class="SStr">"datas"</span>)
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SKwd">const</span> <span class="SFct">reversed</span>()-&gt;<span class="SFct">ConstReversedSlice</span>'<span class="SCst">T</span></span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Core_Array_sort" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Array.sort</span> <a class="api-item-permalink" href="#Core_Array_sort" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/collections/array.swg#L806">src</a></div>
+<div class="api-item api-item-func"><span id="Core_Array_sort" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Array.sort</span> <a class="api-item-permalink" href="#Core_Array_sort" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/collections/array.swg#L807">src</a></div>
 <p>Sorts the elements in ascending order.</p>
 <p>The sort is not stable. See <a href="#Core_Slice_sort">Core.Slice.sort</a>.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">sort</span>()
@@ -17443,7 +17453,7 @@ bundle.<span class="SFct">addFolder</span>(<span class="SStr">"datas"</span>)
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">sort</span>(compare: <span class="SKwd">func</span>||(<span class="SCst">T</span>, <span class="SCst">T</span>)-&gt;<span class="STpe">s32</span>)</span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Core_Array_sortReverse" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Array.sortReverse</span> <a class="api-item-permalink" href="#Core_Array_sortReverse" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/collections/array.swg#L815">src</a></div>
+<div class="api-item api-item-func"><span id="Core_Array_sortReverse" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Array.sortReverse</span> <a class="api-item-permalink" href="#Core_Array_sortReverse" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/collections/array.swg#L816">src</a></div>
 <p>Sorts the elements in descending order.</p>
 <p>The sort is not stable.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">sortReverse</span>()
@@ -17458,7 +17468,7 @@ bundle.<span class="SFct">addFolder</span>(<span class="SStr">"datas"</span>)
 <span class="SKwd">mtd</span> <span class="SKwd">const</span> <span class="SFct">storage</span>()-&gt;[*] <span class="SCst">T</span></span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Core_Array_swap" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Array.swap</span> <a class="api-item-permalink" href="#Core_Array_swap" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/collections/array.swg#L681">src</a></div>
+<div class="api-item api-item-func"><span id="Core_Array_swap" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Array.swap</span> <a class="api-item-permalink" href="#Core_Array_swap" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/collections/array.swg#L682">src</a></div>
 <p>Swaps the elements at <span class="code-inline">idx0</span> and <span class="code-inline">idx1</span>.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">swap</span>(idx0, idx1: <span class="STpe">u64</span>)</span></div>
 </section>
@@ -18320,6 +18330,11 @@ bundle.<span class="SFct">addFolder</span>(<span class="SStr">"datas"</span>)
 <div class="api-item api-item-func"><span id="Core_ConcatBuffer_count" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">ConcatBuffer.count</span> <a class="api-item-permalink" href="#Core_ConcatBuffer_count" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/collections/concatbuffer.swg#L142">src</a></div>
 <p>Returns the total number of bytes currently stored in the buffer.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SKwd">const</span> <span class="SFct">count</span>()-&gt;<span class="STpe">u64</span></span></div>
+</section>
+<section class="api-symbol">
+<div class="api-item api-item-func"><span id="Core_ConcatBuffer_grow" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">ConcatBuffer.grow</span> <a class="api-item-permalink" href="#Core_ConcatBuffer_grow" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/collections/concatbuffer.swg#L145">src</a></div>
+<p>Ensures the last bucket has room for <span class="code-inline">numBytes</span> more bytes, reusing a retained bucket or allocating one.</p>
+<div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">grow</span>(numBytes: <span class="STpe">u64</span>)</span></div>
 </section>
 <section class="api-symbol">
 <div class="api-item api-item-func"><span id="Core_ConcatBuffer_makeLinear" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">ConcatBuffer.makeLinear</span> <a class="api-item-permalink" href="#Core_ConcatBuffer_makeLinear" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/collections/concatbuffer.swg#L646">src</a></div>
@@ -19187,12 +19202,18 @@ bundle.<span class="SFct">addFolder</span>(<span class="SStr">"datas"</span>)
 <div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SFct">exists</span>(dirName: <span class="STpe">string</span>)-&gt;<span class="STpe">bool</span></span></div>
 </section>
 <section class="api-symbol">
+<div class="api-item api-item-func"><span id="Core_Directory_isRemote" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Directory.isRemote</span> <a class="api-item-permalink" href="#Core_Directory_isRemote" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/filesystem/directory.win32.swg#L143">src</a></div>
+<p>Returns whether <span class="code-inline">path</span> lives on a network share rather than on a local volume.</p>
+<p>Reading many files at once from a share is bounded by the round trips of the remote storage, not by the processors: a caller that fans work out over the files of a folder sizes it by this.</p>
+<div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SFct">isRemote</span>(path: <span class="STpe">string</span>)-&gt;<span class="STpe">bool</span></span></div>
+</section>
+<section class="api-symbol">
 <div class="api-item api-item-func"><span id="Core_Directory_setCurrentPath" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Directory.setCurrentPath</span> <a class="api-item-permalink" href="#Core_Directory_setCurrentPath" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/filesystem/directory.win32.swg#L109">src</a></div>
 <p>Changes the current directory of the process to <span class="code-inline">dirName</span>.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SFct">setCurrentPath</span>(dirName: <span class="STpe">string</span>) <span class="SKwd">fail</span></span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Core_Directory_volumes" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Directory.volumes</span> <a class="api-item-permalink" href="#Core_Directory_volumes" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/filesystem/directory.win32.swg#L142">src</a></div>
+<div class="api-item api-item-func"><span id="Core_Directory_volumes" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Directory.volumes</span> <a class="api-item-permalink" href="#Core_Directory_volumes" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/filesystem/directory.win32.swg#L159">src</a></div>
 <p>Returns the first mount point of every mounted volume, with normalized separators.</p>
 <p>A volume without a mount point is skipped.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SFct">volumes</span>()-&gt;<span class="SFct">Array</span>'<span class="SCst"><a href="#Core_String">String</a></span> <span class="SKwd">fail</span></span></div>
@@ -20166,45 +20187,45 @@ bundle.<span class="SFct">addFolder</span>(<span class="SStr">"datas"</span>)
 <div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SFct">tryParse</span>(str: <span class="STpe">string</span>, result: *<span class="SCst"><a href="#Core_Guid128">Guid128</a></span>)-&gt;<span class="STpe">bool</span></span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Core_Guid64_clear" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Guid64.clear</span> <a class="api-item-permalink" href="#Core_Guid64_clear" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/system/guid64.swg#L101">src</a></div>
+<div class="api-item api-item-func"><span id="Core_Guid64_clear" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Guid64.clear</span> <a class="api-item-permalink" href="#Core_Guid64_clear" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/system/guid64.swg#L106">src</a></div>
 <p>Resets the identifier to its null value.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">clear</span>()</span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Core_Guid64_highEntropy" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Guid64.highEntropy</span> <a class="api-item-permalink" href="#Core_Guid64_highEntropy" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/system/guid64.swg#L81">src</a></div>
+<div class="api-item api-item-func"><span id="Core_Guid64_highEntropy" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Guid64.highEntropy</span> <a class="api-item-permalink" href="#Core_Guid64_highEntropy" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/system/guid64.swg#L86">src</a></div>
 <p>Creates an identifier by mixing pseudorandom, clock, process, and thread state.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SFct">highEntropy</span>()-&gt;<span class="SCst"><a href="#Core_Guid64">Guid64</a></span></span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Core_Guid64_isNull" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Guid64.isNull</span> <a class="api-item-permalink" href="#Core_Guid64_isNull" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/system/guid64.swg#L107">src</a></div>
+<div class="api-item api-item-func"><span id="Core_Guid64_isNull" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Guid64.isNull</span> <a class="api-item-permalink" href="#Core_Guid64_isNull" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/system/guid64.swg#L112">src</a></div>
 <p>Returns whether all bits are zero.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SKwd">const</span> <span class="SFct">isNull</span>()-&gt;<span class="STpe">bool</span></span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Core_Guid64_parse" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Guid64.parse</span> <a class="api-item-permalink" href="#Core_Guid64_parse" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/system/guid64.swg#L136">src</a></div>
+<div class="api-item api-item-func"><span id="Core_Guid64_parse" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Guid64.parse</span> <a class="api-item-permalink" href="#Core_Guid64_parse" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/system/guid64.swg#L141">src</a></div>
 <p>Parses exactly 16 hexadecimal digits, with an optional <span class="code-inline">0x</span> prefix.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SFct">parse</span>(str: <span class="STpe">string</span>)-&gt;<span class="SCst"><a href="#Core_Guid64">Guid64</a></span> <span class="SKwd">fail</span></span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Core_Guid64_random" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Guid64.random</span> <a class="api-item-permalink" href="#Core_Guid64_random" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/system/guid64.swg#L71">src</a></div>
+<div class="api-item api-item-func"><span id="Core_Guid64_random" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Guid64.random</span> <a class="api-item-permalink" href="#Core_Guid64_random" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/system/guid64.swg#L76">src</a></div>
 <p>Creates a pseudorandom 64-bit identifier from the generator of the calling thread.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SFct">random</span>()-&gt;<span class="SCst"><a href="#Core_Guid64">Guid64</a></span></span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Core_Guid64_timestamped" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Guid64.timestamped</span> <a class="api-item-permalink" href="#Core_Guid64_timestamped" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/system/guid64.swg#L46">src</a></div>
+<div class="api-item api-item-func"><span id="Core_Guid64_timestamped" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Guid64.timestamped</span> <a class="api-item-permalink" href="#Core_Guid64_timestamped" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/system/guid64.swg#L51">src</a></div>
 <p>Creates an identifier that orders by creation time.</p>
 <p>From the most significant bits: 32 bits of seconds since 1970 in local time, 16 bits of milliseconds, a 12-bit counter of the calling thread, then 4 random bits.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SFct">timestamped</span>()-&gt;<span class="SCst"><a href="#Core_Guid64">Guid64</a></span></span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Core_Guid64_toString" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Guid64.toString</span> <a class="api-item-permalink" href="#Core_Guid64_toString" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/system/guid64.swg#L110">src</a></div>
+<div class="api-item api-item-func"><span id="Core_Guid64_toString" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Guid64.toString</span> <a class="api-item-permalink" href="#Core_Guid64_toString" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/system/guid64.swg#L115">src</a></div>
 <p>Writes exactly 16 uppercase hexadecimal digits to <span class="code-inline">result</span>.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SKwd">const</span> <span class="SFct">toString</span>(result: [..] <span class="STpe">u8</span>)</span></div>
 <p>Returns 16 uppercase hexadecimal digits.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SKwd">const</span> <span class="SFct">toString</span>()-&gt;<span class="SCst"><a href="#Core_String">String</a></span></span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Core_Guid64_tryParse" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Guid64.tryParse</span> <a class="api-item-permalink" href="#Core_Guid64_tryParse" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/system/guid64.swg#L147">src</a></div>
+<div class="api-item api-item-func"><span id="Core_Guid64_tryParse" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Guid64.tryParse</span> <a class="api-item-permalink" href="#Core_Guid64_tryParse" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/system/guid64.swg#L152">src</a></div>
 <p>Parses exactly 16 hexadecimal digits, with an optional <span class="code-inline">0x</span> prefix, into <span class="code-inline">result</span> and returns whether it succeeded.</p>
 <p><span class="code-inline">result</span> is unchanged on failure.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SFct">tryParse</span>(str: <span class="STpe">string</span>, result: *<span class="SCst"><a href="#Core_Guid64">Guid64</a></span>)-&gt;<span class="STpe">bool</span></span></div>
@@ -23104,7 +23125,7 @@ bundle.<span class="SFct">addFolder</span>(<span class="SStr">"datas"</span>)
 <section class="api-symbol">
 <div class="api-item api-item-func"><span id="Core_Scc_Reader_initialize" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Reader.initialize</span> <a class="api-item-permalink" href="#Core_Scc_Reader_initialize" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/filesystem/scc.swg#L503">src</a></div>
 <p>Initializes this reader and reads only the SCC prefix and header.</p>
-<div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">initialize</span>(fileName: <span class="STpe">string</span>, limits: <span class="SCst"><a href="#Core_Scc_ReadLimits">ReadLimits</a></span> = <span class="SCst"><a href="#Core_Scc_ReadLimits">ReadLimits</a></span>{}) <span class="SKwd">fail</span></span></div>
+<div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">initialize</span>(fileName: <span class="STpe">string</span>, limits: <span class="SCst"><a href="#Core_Scc_ReadLimits">ReadLimits</a></span> = {}) <span class="SKwd">fail</span></span></div>
 </section>
 <section class="api-symbol">
 <div class="api-item api-item-func"><span id="Core_Scc_Reader_kind" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Reader.kind</span> <a class="api-item-permalink" href="#Core_Scc_Reader_kind" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/filesystem/scc.swg#L617">src</a></div>
@@ -29143,6 +29164,7 @@ bundle.<span class="SFct">addFolder</span>(<span class="SStr">"datas"</span>)
 "f|Core.ConcatBuffer.advance|Core_ConcatBuffer_advance|Advances the cursor by num bytes, growing the buffer when needed.",
 "f|Core.ConcatBuffer.clear|Core_ConcatBuffer_clear|Empties the buffer while keeping its buckets for reuse.",
 "f|Core.ConcatBuffer.count|Core_ConcatBuffer_count|Returns the total number of bytes currently stored in the buffer.",
+"f|Core.ConcatBuffer.grow|Core_ConcatBuffer_grow|Ensures the last bucket has room for numBytes more bytes, reusing a retained bucket or allocating one.",
 "f|Core.ConcatBuffer.makeLinear|Core_ConcatBuffer_makeLinear|Merges all buckets into one contiguous bucket.",
 "f|Core.ConcatBuffer.moveToString|Core_ConcatBuffer_moveToString|Returns an owned string, transferring a single heap bucket when possible.",
 "f|Core.ConcatBuffer.offsetOf|Core_ConcatBuffer_offsetOf|Returns the absolute byte offset represented by position.",
@@ -29439,6 +29461,7 @@ bundle.<span class="SFct">addFolder</span>(<span class="SStr">"datas"</span>)
 "f|Core.Directory.enumerateDirectories|Core_Directory_enumerateDirectories|Returns the subdirectories of dirName, optionally restricted to one extension and extended to their own subdir...",
 "f|Core.Directory.enumerateFiles|Core_Directory_enumerateFiles|Returns the files of dirName, optionally restricted to one extension and extended to its subdirectories.",
 "f|Core.Directory.exists|Core_Directory_exists|Returns whether dirName names an existing directory.",
+"f|Core.Directory.isRemote|Core_Directory_isRemote|Returns whether path lives on a network share rather than on a local volume.",
 "f|Core.Directory.setCurrentPath|Core_Directory_setCurrentPath|Changes the current directory of the process to dirName.",
 "f|Core.Directory.volumes|Core_Directory_volumes|Returns the first mount point of every mounted volume, with normalized separators.",
 "f|Core.Directory.watch|Core_Directory_watch|Starts watching root with the default options.",

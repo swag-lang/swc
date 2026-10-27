@@ -46,7 +46,7 @@
 </ul>
 </details>
 <details class="toc-group" open>
-<summary><span class="toc-label">Types</span><span class="toc-count">11</span></summary>
+<summary><span class="toc-label">Types</span><span class="toc-count">12</span></summary>
 <ul class="toc-symbols">
 <li><a href="#summary-types">All Types</a></li>
 <li><a href="#Audio_Bus">Audio.Bus</a></li>
@@ -59,6 +59,7 @@
 <li><a href="#Audio_SoundFile">Audio.SoundFile</a></li>
 <li><a href="#Audio_SoundPacket">Audio.SoundPacket</a></li>
 <li><a href="#Audio_SoundPcm16Consumer">Audio.SoundPcm16Consumer</a></li>
+<li><a href="#Audio_SoundTags">Audio.SoundTags</a></li>
 <li><a href="#Audio_Voice">Audio.Voice</a></li>
 </ul>
 </details>
@@ -83,7 +84,7 @@
 </ul>
 </details>
 <details class="toc-group">
-<summary><span class="toc-label">Functions</span><span class="toc-count">76</span></summary>
+<summary><span class="toc-label">Functions</span><span class="toc-count">78</span></summary>
 <ul class="toc-symbols">
 <li><a href="#summary-functions">All Functions</a></li>
 <li><a href="#Audio_activeDriverKind">Audio.activeDriverKind</a></li>
@@ -145,6 +146,8 @@
 <li><a href="#Audio_SoundFile_sourcePath">SoundFile.sourcePath</a></li>
 <li><a href="#Audio_SoundFile_speakerChannelMask">SoundFile.speakerChannelMask</a></li>
 <li><a href="#Audio_SoundFile_timelineStartSeconds">SoundFile.timelineStartSeconds</a></li>
+<li><a href="#Audio_SoundTags_isEmpty">SoundTags.isEmpty</a></li>
+<li><a href="#Audio_SoundTags_read">SoundTags.read</a></li>
 <li><a href="#Audio_Voice_create">Voice.create</a></li>
 <li><a href="#Audio_Voice_destroy">Voice.destroy</a></li>
 <li><a href="#Audio_Voice_frequencyRatio">Voice.frequencyRatio</a></li>
@@ -303,6 +306,8 @@ voice.<span class="SFct">destroy</span>()</span></div>
 <p>Format: Sequential sound-file decoding. Supported: PCM and indexed compressed sources converted to bounded interleaved PCM16 chunks. Not supported: Channel remixing, sample-rate conversion, seeking, and retaining callback slices. Role: This file owns device-independent decoding for analysis and export consumers.</p>
 <h3 id="file_src_file_soundfile_swg"><code>src/file/soundfile.swg</code></h3>
 <p>Format: Format-neutral sound-file model. Supported: Describing decoded PCM and indexed packet streams, validated metadata fields, and source ownership. Not supported: This file does not parse or write a concrete sound container. Role: This file owns the shared sound-file metadata and storage contracts used by container subfolders.</p>
+<h3 id="file_src_file_tags_swg"><code>src/file/tags.swg</code></h3>
+<p>Format: Descriptive tags of sound files. Supported: ID3v2.2, v2.3, and v2.4 text frames at the head of an MP3 file, and the Vorbis comment block of a FLAC file. Not supported: ID3v1 trailers, unsynchronised ID3 tags, Ogg and MP4 comments, pictures, and writing tags. Role: This file owns reading the title, artist, album, and year a sound file declares.</p>
 <h3 id="file_src_file_wav_wav_swg"><code>src/file/wav/wav.swg</code></h3>
 <p>Format: RIFF/WAVE sound-file decoder. Supported: PCM8/16/24/32 and IEEE Float32 in classic or WAVE_FORMAT_EXTENSIBLE <span class="code-inline">fmt </span> chunks, including speaker masks and streamed <span class="code-inline">data</span> chunks, and Microsoft or IMA ADPCM blocks indexed as a streamed packet sound. Not supported: Other compressed WAVE codecs, IEEE Float64, RF64/WAVE64, big-endian RIFX, and multiple data segments. Role: This file owns RIFF chunk traversal, WAVE format validation, metadata, and SoundFile construction.</p>
 </section>
@@ -339,6 +344,8 @@ voice.<span class="SFct">destroy</span>()</span></div>
 <tr><td class="code-type"><a href="#Audio_SoundPacket">Audio.SoundPacket</a></td><td><span class="kind-chip kind-struct">struct</span></td><td><p>Locates one indexed packet or chunk in a source file.</p>
 </td></tr>
 <tr><td class="code-type"><a href="#Audio_SoundPcm16Consumer">Audio.SoundPcm16Consumer</a></td><td><span class="kind-chip kind-alias">type alias</span></td><td><p>Receives one borrowed chunk of interleaved PCM16 samples.</p>
+</td></tr>
+<tr><td class="code-type"><a href="#Audio_SoundTags">Audio.SoundTags</a></td><td><span class="kind-chip kind-struct">struct</span></td><td><p>What a sound file says about the recording it holds. Every field is empty when the file does</p>
 </td></tr>
 <tr><td class="code-type"><a href="#Audio_Voice">Audio.Voice</a></td><td><span class="kind-chip kind-struct">struct</span></td><td><p>Controls one playback instance of a sound file.</p>
 </td></tr>
@@ -494,6 +501,10 @@ voice.<span class="SFct">destroy</span>()</span></div>
 </td></tr>
 <tr><td class="code-type"><a href="#Audio_SoundFile_timelineStartSeconds">SoundFile.timelineStartSeconds</a></td><td><p>Returns the position of frame zero on the containing media timeline, in seconds.</p>
 </td></tr>
+<tr><td class="code-type"><a href="#Audio_SoundTags_isEmpty">SoundTags.isEmpty</a></td><td><p>Reports whether the file named nothing at all.</p>
+</td></tr>
+<tr><td class="code-type"><a href="#Audio_SoundTags_read">SoundTags.read</a></td><td><p>Reads the tags of <span class="code-inline">fileName</span>: the ID3v2 tag that opens an MP3 file, or the Vorbis comment</p>
+</td></tr>
 <tr><td class="code-type"><a href="#Audio_Voice_create">Voice.create</a></td><td><p>Creates a controllable playback instance for a sound file.</p>
 </td></tr>
 <tr><td class="code-type"><a href="#Audio_Voice_destroy">Voice.destroy</a></td><td><p>Schedules this voice and its native resources for destruction.</p>
@@ -559,6 +570,8 @@ voice.<span class="SFct">destroy</span>()</span></div>
 <tr><td class="code-type"><a href="#Audio_SoundPacket">Audio.SoundPacket</a></td><td><span class="kind-chip kind-struct">struct</span></td><td><p>Locates one indexed packet or chunk in a source file.</p>
 </td></tr>
 <tr><td class="code-type"><a href="#Audio_SoundPcm16Consumer">Audio.SoundPcm16Consumer</a></td><td><span class="kind-chip kind-alias">type alias</span></td><td><p>Receives one borrowed chunk of interleaved PCM16 samples.</p>
+</td></tr>
+<tr><td class="code-type"><a href="#Audio_SoundTags">Audio.SoundTags</a></td><td><span class="kind-chip kind-struct">struct</span></td><td><p>What a sound file says about the recording it holds. Every field is empty when the file does</p>
 </td></tr>
 <tr><td class="code-type"><a href="#Audio_Voice">Audio.Voice</a></td><td><span class="kind-chip kind-struct">struct</span></td><td><p>Controls one playback instance of a sound file.</p>
 </td></tr>
@@ -853,6 +866,35 @@ voice.<span class="SFct">destroy</span>()</span></div>
 <p>The slice remains valid only for the duration of the call. Return <span class="code-inline">true</span> to continue decoding or <span class="code-inline">false</span> to stop successfully after this chunk.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">alias</span> <span class="SCst"><a href="#Audio_SoundPcm16Consumer">SoundPcm16Consumer</a></span> = <span class="SKwd">func</span>||(<span class="SKwd">const</span> [..] <span class="STpe">s16</span>)-&gt;<span class="STpe">bool</span></span></div>
 </section>
+<section class="api-symbol">
+<div class="api-item api-item-struct"><span id="Audio_SoundTags" class="api-item-title"><span class="api-item-title-kind">struct</span> <span class="api-item-title-strong">Audio.SoundTags</span> <a class="api-item-permalink" href="#Audio_SoundTags" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/audio/src/file/tags.swg#L12">src</a></div>
+<p>What a sound file says about the recording it holds. Every field is empty when the file does not name it.</p>
+<div class="code-block"><span class="SCde"><span class="SKwd">struct</span> <span class="SCst"><a href="#Audio_SoundTags">SoundTags</a></span></span></div>
+</section>
+<h3>Fields</h3>
+<table class="table-enumeration api-summary">
+<thead><tr><th>Name</th><th>Type</th><th>Description</th></tr></thead>
+<tbody>
+<tr><td id="Audio_SoundTags_album" class="code-type">album</td><td class="code-type"><a href="std.core.html#Core_String">Core.String</a></td><td><p>Collection the recording belongs to.</p>
+</td></tr>
+<tr><td id="Audio_SoundTags_artist" class="code-type">artist</td><td class="code-type"><a href="std.core.html#Core_String">Core.String</a></td><td><p>Performer or author of the recording.</p>
+</td></tr>
+<tr><td id="Audio_SoundTags_title" class="code-type">title</td><td class="code-type"><a href="std.core.html#Core_String">Core.String</a></td><td><p>Name of the recording.</p>
+</td></tr>
+<tr><td id="Audio_SoundTags_year" class="code-type">year</td><td class="code-type"><a href="std.core.html#Core_String">Core.String</a></td><td><p>Year of the recording or its release, as the file spells it.</p>
+</td></tr>
+</tbody>
+</table>
+<h3 id="Audio_SoundTags_methods">Methods</h3>
+<table class="api-summary">
+<thead><tr><th>Name</th><th>Description</th></tr></thead>
+<tbody>
+<tr><td class="code-type"><a href="#Audio_SoundTags_isEmpty">isEmpty</a></td><td><p>Reports whether the file named nothing at all.</p>
+</td></tr>
+<tr><td class="code-type"><a href="#Audio_SoundTags_read">read</a></td><td><p>Reads the tags of <span class="code-inline">fileName</span>: the ID3v2 tag that opens an MP3 file, or the Vorbis comment</p>
+</td></tr>
+</tbody>
+</table>
 <section class="api-symbol">
 <div class="api-item api-item-struct"><span id="Audio_Voice" class="api-item-title"><span class="api-item-title-kind">struct</span> <span class="api-item-title-strong">Audio.Voice</span> <a class="api-item-permalink" href="#Audio_Voice" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/audio/src/voice.swg#L38">src</a></div>
 <p>Controls one playback instance of a sound file.</p>
@@ -1308,7 +1350,7 @@ voice.<span class="SFct">destroy</span>()</span></div>
 <div class="api-item api-item-func"><span id="Audio_SoundFile_openPacketStream" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">SoundFile.openPacketStream</span> <a class="api-item-permalink" href="#Audio_SoundFile_openPacketStream" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/audio/src/file/soundfile.swg#L334">src</a></div>
 <p>Creates a streamed compressed sound from a container's packet index.</p>
 <p>The packet table and decoder configuration are copied, while media bytes stay in <span class="code-inline">path</span> and are read only as playback reaches them. Memory holds the compact packet index, never the compressed media payload. <span class="code-inline">frameCount</span> is validated against the sum of packet durations. <span class="code-inline">options.timelineStartSeconds</span> locates frame zero on an enclosing media timeline; voice seeking and playback positions remain local to this sound. The optional display name and language are copied from <span class="code-inline">options</span> and remain valid for this value's lifetime.</p>
-<div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SFct">openPacketStream</span>(path: <span class="STpe">string</span>, encoding: <span class="SCst"><a href="#Audio_SoundFileEncoding">SoundFileEncoding</a></span>, sampleRateHz, channels: <span class="STpe">u32</span>, frameCount: <span class="STpe">u64</span>, packets: <span class="SKwd">const</span> [..] <span class="SCst"><a href="#Audio_SoundPacket">SoundPacket</a></span>, decoderConfig: <span class="SKwd">const</span> [..] <span class="STpe">u8</span>, options: <span class="SCst"><a href="#Audio_PacketStreamOptions">PacketStreamOptions</a></span> = <span class="SCst"><a href="#Audio_PacketStreamOptions">PacketStreamOptions</a></span>{})-&gt;<span class="SCst"><a href="#Audio_SoundFile">SoundFile</a></span> <span class="SKwd">fail</span></span></div>
+<div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SFct">openPacketStream</span>(path: <span class="STpe">string</span>, encoding: <span class="SCst"><a href="#Audio_SoundFileEncoding">SoundFileEncoding</a></span>, sampleRateHz, channels: <span class="STpe">u32</span>, frameCount: <span class="STpe">u64</span>, packets: <span class="SKwd">const</span> [..] <span class="SCst"><a href="#Audio_SoundPacket">SoundPacket</a></span>, decoderConfig: <span class="SKwd">const</span> [..] <span class="STpe">u8</span>, options: <span class="SCst"><a href="#Audio_PacketStreamOptions">PacketStreamOptions</a></span> = {})-&gt;<span class="SCst"><a href="#Audio_SoundFile">SoundFile</a></span> <span class="SKwd">fail</span></span></div>
 </section>
 <section class="api-symbol">
 <div class="api-item api-item-func"><span id="Audio_SoundFile_openPcmPacketStream" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">SoundFile.openPcmPacketStream</span> <a class="api-item-permalink" href="#Audio_SoundFile_openPcmPacketStream" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/audio/src/file/soundfile.swg#L431">src</a></div>
@@ -1383,6 +1425,17 @@ voice.<span class="SFct">destroy</span>()</span></div>
 <p>Returns the position of frame zero on the containing media timeline, in seconds.</p>
 <p>Standalone sounds and complete container tracks start at zero. A container may expose a bounded packet window with a later origin so a player can seek without indexing the entire media file first.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SKwd">const</span> <span class="SFct">timelineStartSeconds</span>()-&gt;<span class="STpe">f64</span></span></div>
+</section>
+<section class="api-symbol">
+<div class="api-item api-item-func"><span id="Audio_SoundTags_isEmpty" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">SoundTags.isEmpty</span> <a class="api-item-permalink" href="#Audio_SoundTags_isEmpty" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/audio/src/file/tags.swg#L29">src</a></div>
+<p>Reports whether the file named nothing at all.</p>
+<div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SKwd">const</span> <span class="SFct">isEmpty</span>()-&gt;<span class="STpe">bool</span></span></div>
+</section>
+<section class="api-symbol">
+<div class="api-item api-item-func"><span id="Audio_SoundTags_read" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">SoundTags.read</span> <a class="api-item-permalink" href="#Audio_SoundTags_read" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/audio/src/file/tags.swg#L37">src</a></div>
+<p>Reads the tags of <span class="code-inline">fileName</span>: the ID3v2 tag that opens an MP3 file, or the Vorbis comment block of a FLAC file.</p>
+<p>Tags only describe a recording, so a file without them, a format this reader does not know, a tag larger than 16 MiB, or one that does not decode all give empty tags rather than an error.</p>
+<div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SFct">read</span>(fileName: <span class="STpe">string</span>)-&gt;<span class="SCst"><a href="#Audio_SoundTags">SoundTags</a></span></span></div>
 </section>
 <section class="api-symbol">
 <div class="api-item api-item-func"><span id="Audio_Voice_create" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Voice.create</span> <a class="api-item-permalink" href="#Audio_Voice_create" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/audio/src/voice.swg#L125">src</a></div>
@@ -1764,6 +1817,11 @@ voice.<span class="SFct">destroy</span>()</span></div>
 "v|Audio.SoundPacket.byteSize|Audio_SoundPacket_byteSize|Packet or chunk payload size in bytes.",
 "v|Audio.SoundPacket.sampleFrameCount|Audio_SoundPacket_sampleFrameCount|Decoded sample frames contributed by this packet.",
 "v|Audio.SoundPacket.sourceOffset|Audio_SoundPacket_sourceOffset|Absolute byte offset of the packet payload in the source file.",
+"s|Audio.SoundTags|Audio_SoundTags|What a sound file says about the recording it holds. Every field is empty when the file does",
+"v|Audio.SoundTags.album|Audio_SoundTags_album|Collection the recording belongs to.",
+"v|Audio.SoundTags.artist|Audio_SoundTags_artist|Performer or author of the recording.",
+"v|Audio.SoundTags.title|Audio_SoundTags_title|Name of the recording.",
+"v|Audio.SoundTags.year|Audio_SoundTags_year|Year of the recording or its release, as the file spells it.",
 "i|Audio.ICodec|Audio_ICodec|Converts encoded audio incrementally between sound-file encodings.",
 "i|Audio.IPacketCodec|Audio_IPacketCodec|Decodes independently indexed compressed access units to interleaved PCM16.",
 "e|Audio.VoiceCreateFlags|Audio_VoiceCreateFlags|Selects optional backend capabilities for a new voice.",
@@ -1887,6 +1945,8 @@ voice.<span class="SFct">destroy</span>()</span></div>
 "f|Audio.SoundFile.sourcePath|Audio_SoundFile_sourcePath|Returns the source path used to load this sound.",
 "f|Audio.SoundFile.speakerChannelMask|Audio_SoundFile_speakerChannelMask|Returns the speaker-position mask, or zero when the source omits it.",
 "f|Audio.SoundFile.timelineStartSeconds|Audio_SoundFile_timelineStartSeconds|Returns the position of frame zero on the containing media timeline, in seconds.",
+"f|Audio.SoundTags.isEmpty|Audio_SoundTags_isEmpty|Reports whether the file named nothing at all.",
+"f|Audio.SoundTags.read|Audio_SoundTags_read|Reads the tags of fileName: the ID3v2 tag that opens an MP3 file, or the Vorbis comment",
 "h|Engine and first sound|guide_Engine_and_first_sound|",
 "h|Loading, streaming, and voices|guide_Loading__streaming__and_voices|",
 "h|Buses, drivers, and codecs|guide_Buses__drivers__and_codecs|",

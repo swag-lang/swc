@@ -109,7 +109,7 @@
 <li><a href="#_007_005_function_overloading_swg">Function Overloading</a></li>
 <li><a href="#_007_006_ufcs_swg">Ufcs</a></li>
 <li><a href="#_007_007_discard_swg">Discard</a></li>
-<li><a href="#_007_008_retval_swg">Retval</a></li>
+<li><a href="#_007_008_returntype_swg">Returntype</a></li>
 </ul>
 </li>
 <li><a href="#_008_000_intrinsics_swg">Intrinsics</a>
@@ -783,7 +783,7 @@ indent-style = spaces</span></div>
 <span class="SLgc">scope</span>  <span class="SLgc">switch</span>  <span class="SLgc">to</span>  <span class="SLgc">unreachable</span>  <span class="SLgc">until</span>  <span class="SLgc">where</span>  <span class="SLgc">while</span>  <span class="SKwd">_</span></span></div>
 <h3 id="_002_007_keywords_swg_Values__Errors__and_Conversion">Values, Errors, and Conversion</h3>
 <div class="code-block"><span class="SCde"><span class="SKwd">assume</span>  <span class="SKwd">cast</span>  <span class="SKwd">catch</span>  <span class="SKwd">discard</span>  <span class="SKwd">expect</span>  <span class="SKwd">fail</span>  <span class="SKwd">false</span>  <span class="SKwd">null</span>
-<span class="SKwd">retval</span>  <span class="SKwd">true</span>  <span class="SKwd">try</span>  <span class="SKwd">unwrap</span></span></div>
+<span class="SKwd">true</span>  <span class="SKwd">try</span>  <span class="SKwd">unwrap</span></span></div>
 <h3 id="_002_007_keywords_swg_Contextual_Source_and_Module_Names">Contextual Source and Module Names</h3>
 <p><span class="code-inline">export</span>, <span class="code-inline">location</span>, <span class="code-inline">link</span>, and <span class="code-inline">version</span> are recognized in specific module-setup positions. Outside those positions the lexer treats them as ordinary identifiers; they are not part of the reserved keyword set above.</p>
 <h3 id="_002_007_keywords_swg_Built-In_Types">Built-In Types</h3>
@@ -798,8 +798,8 @@ indent-style = spaces</span></div>
 <span class="SCmp">#static</span>  <span class="SFct">#test</span>  <span class="SItr">#type</span>  <span class="SCmp">#warning</span>  <span class="SFct">#init</span>  <span class="SFct">#drop</span></span></div>
 <h3 id="_002_007_keywords_swg_Compile-Time_Introspection">Compile-Time Introspection</h3>
 <div class="code-block"><span class="SCde"><span class="SItr">#alignof</span>  <span class="SItr">#defined</span>  <span class="SItr">#decltype</span>  <span class="SItr">#fullnameof</span>  <span class="SItr">#gettag</span>  <span class="SItr">#hastag</span>
-<span class="SItr">#isconstexpr</span>  <span class="SItr">#kindof</span>  <span class="SItr">#location</span>  <span class="SItr">#nameof</span>  <span class="SItr">#offsetof</span>  <span class="SItr">#runes</span>
-<span class="SItr">#safety</span>  <span class="SItr">#sanity</span>  <span class="SItr">#sizeof</span>  <span class="SItr">#stringof</span>  <span class="SItr">#typeof</span></span></div>
+<span class="SItr">#isconstexpr</span>  <span class="SItr">#kindof</span>  <span class="SItr">#location</span>  <span class="SItr">#nameof</span>  <span class="SItr">#offsetof</span>  <span class="SCmp">#returntype</span>
+<span class="SItr">#runes</span>  <span class="SItr">#safety</span>  <span class="SItr">#sanity</span>  <span class="SItr">#sizeof</span>  <span class="SItr">#stringof</span>  <span class="SItr">#typeof</span></span></div>
 <h3 id="_002_007_keywords_swg_Compiler_Context_Values">Compiler Context Values</h3>
 <div class="code-block"><span class="SCde"><span class="SCmp">#arch</span>  <span class="SCmp">#callerlocation</span>  <span class="SCmp">#cfg</span>  <span class="SCmp">#command</span>  <span class="SCmp">#cpu</span>  <span class="SCmp">#curlocation</span>
 <span class="SCmp">#file</span>  <span class="SCmp">#line</span>  <span class="SCmp">#module</span>  <span class="SCmp">#os</span>  <span class="SCmp">#scopename</span>  <span class="SCmp">#swcbuildnum</span>
@@ -1077,6 +1077,7 @@ indent-style = spaces</span></div>
 <p>Written alone, <span class="code-inline">readonly</span> rides on the level already in effect, which is <span class="code-inline">internal</span> unless an enclosing access block says otherwise. It always comes last, and 'private readonly' is rejected: <span class="code-inline">private</span> already withholds every write from outside the type.</p>
 <p>The same placement rule keeps aggregate declarations short. Omit <span class="code-inline">internal</span> at the member root, use one access block for adjacent fields of another level, and keep an isolated exception on its declaration. Inside a <span class="code-inline">public</span> block, bare <span class="code-inline">readonly</span> means public read-only; outside it the full spelling is 'public readonly'.</p>
 <p>A member access block cannot contain another visibility level. Close it before starting a sibling <span class="code-inline">public</span>, <span class="code-inline">internal</span>, or <span class="code-inline">private</span> group; bare <span class="code-inline">readonly</span> is the one modifier that can ride inside it. An <span class="code-inline">impl</span> is different: omit a repeated level, but a different level remains a deliberate local override, so a 'private impl' may still expose one method with <span class="code-inline">public</span>.</p>
+<p>A method follows the same rule as a field. A method of a 'private impl', or one marked <span class="code-inline">private</span>, is called only by its type; the rest of the module needs <span class="code-inline">internal</span> for it. A call through an overload set keeps the overloads the site can reach, so a private overload never takes a call from outside the type.</p>
 <p>A public struct takes every field into the generated module API, because an importer lays it out. The types its non-public fields name travel with it as supporting declarations and keep their own access, so an implementation type stays internal however deep it is embedded. A public field is different: every importer can reach it, so the types it names must be public.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">struct</span> <span class="SCst">Counter</span>
 {
@@ -2052,9 +2053,9 @@ swc test -w path/to/workspace -m messages</span></div>
 
 <span class="SFct">#test</span>
 {
-    <span class="SKwd">let</span> a = <span class="SCst">Measure</span>{reading: <span class="SCst">Tolerance</span>{value: <span class="SNum">10</span>}, label: <span class="SNum">7</span>}
-    <span class="SKwd">let</span> b = <span class="SCst">Measure</span>{reading: <span class="SCst">Tolerance</span>{value: <span class="SNum">11</span>}, label: <span class="SNum">7</span>}
-    <span class="SKwd">let</span> c = <span class="SCst">Measure</span>{reading: <span class="SCst">Tolerance</span>{value: <span class="SNum">10</span>}, label: <span class="SNum">8</span>}
+    <span class="SKwd">let</span> a = <span class="SCst">Measure</span>{reading: {value: <span class="SNum">10</span>}, label: <span class="SNum">7</span>}
+    <span class="SKwd">let</span> b = <span class="SCst">Measure</span>{reading: {value: <span class="SNum">11</span>}, label: <span class="SNum">7</span>}
+    <span class="SKwd">let</span> c = <span class="SCst">Measure</span>{reading: {value: <span class="SNum">10</span>}, label: <span class="SNum">8</span>}
 
     <span class="SNsp">Swag</span>.<span class="SFct">assert</span>(a.reading == b.reading)     <span class="SCmt">// the member decides these readings are equal</span>
     <span class="SNsp">Swag</span>.<span class="SFct">assert</span>(a == b)     <span class="SCmt">// so the two measures are equal too</span>
@@ -2064,9 +2065,9 @@ swc test -w path/to/workspace -m messages</span></div>
 <p>An array compares element by element, and each element compares the way its own type does, so an array and its elements never disagree. An array of <span class="code-inline">string</span> compares the text its elements view, and an array whose element owns an <span class="code-inline">opEquals</span> has that method called once per element. Elements with nothing of their own to say — numbers, pointers, enums — are still compared as one contiguous run of bytes. A struct member that is an array follows the same rule.</p>
 <div class="code-block"><span class="SCde"><span class="SFct">#test</span>
 {
-    <span class="SKwd">var</span> readings: [<span class="SNum">2</span>] <span class="SCst">Tolerance</span> = [<span class="SCst">Tolerance</span>{value: <span class="SNum">10</span>}, <span class="SCst">Tolerance</span>{value: <span class="SNum">20</span>}]
-    <span class="SKwd">var</span> nearby:   [<span class="SNum">2</span>] <span class="SCst">Tolerance</span> = [<span class="SCst">Tolerance</span>{value: <span class="SNum">11</span>}, <span class="SCst">Tolerance</span>{value: <span class="SNum">21</span>}]
-    <span class="SKwd">var</span> distant:  [<span class="SNum">2</span>] <span class="SCst">Tolerance</span> = [<span class="SCst">Tolerance</span>{value: <span class="SNum">11</span>}, <span class="SCst">Tolerance</span>{value: <span class="SNum">30</span>}]
+    <span class="SKwd">var</span> readings: [<span class="SNum">2</span>] <span class="SCst">Tolerance</span> = [{value: <span class="SNum">10</span>}, {value: <span class="SNum">20</span>}]
+    <span class="SKwd">var</span> nearby:   [<span class="SNum">2</span>] <span class="SCst">Tolerance</span> = [{value: <span class="SNum">11</span>}, {value: <span class="SNum">21</span>}]
+    <span class="SKwd">var</span> distant:  [<span class="SNum">2</span>] <span class="SCst">Tolerance</span> = [{value: <span class="SNum">11</span>}, {value: <span class="SNum">30</span>}]
 
     <span class="SNsp">Swag</span>.<span class="SFct">assert</span>(readings == nearby)     <span class="SCmt">// every element decides it is the same reading</span>
     <span class="SNsp">Swag</span>.<span class="SFct">assert</span>(readings != distant)
@@ -2848,6 +2849,7 @@ swc test -w path/to/workspace -m messages</span></div>
 <h3 id="_004_003_tuple_swg">Tuple</h3>
 <h3 id="_004_003_tuple_swg_Tuples_and_Records">Tuples and Records</h3>
 <p>A tuple groups values by position. A record groups values by field name. Their construction, types and destructuring patterns use different delimiters: parentheses for tuples and braces for records. Neither family implicitly converts to the other.</p>
+<p>Braces whose destination is a struct initialize that struct instead, and can then list values by position: 'let p: Point = {1, 2}'. Without such a destination, braces need field names.</p>
 <div class="code-block"><span class="SCde"><span class="SFct">#test</span>
 {
     <span class="SKwd">let</span> pair = (<span class="SNum">10</span>, <span class="SNum">20</span>)
@@ -2880,7 +2882,7 @@ swc test -w path/to/workspace -m messages</span></div>
     <span class="SNsp">Swag</span>.<span class="SFct">assert</span>(single.item0 == <span class="SNum">43</span>)
 }</span></div>
 <h3 id="_004_003_tuple_swg_Named_Records">Named Records</h3>
-<p>Each record field has a name. A bare identifier abbreviates 'name: name' in every expression context; the abbreviation does not depend on the destination type. Anonymous record types list the names and their types in braces.</p>
+<p>Each record field has a name. A bare identifier abbreviates 'name: name'. When the braces initialize a struct, an identifier that names none of its fields is a positional value instead. Anonymous record types list the names and their types in braces.</p>
 <div class="code-block"><span class="SCde"><span class="SFct">#test</span>
 {
     <span class="SKwd">let</span> x     = <span class="SNum">10</span>
@@ -3316,8 +3318,8 @@ swc test -w path/to/workspace -m messages</span></div>
     {
         <span class="SKwd">using</span> mode: <span class="SKwd">union</span>(<span class="SCst">Mode</span>)
         {
-            <span class="SLgc">case</span> .<span class="SCst">Signed</span>:   signed:   {min, max: <span class="STpe">s64</span>} = {min: -<span class="SNum">10</span>, max: <span class="SNum">10</span>}
-            <span class="SLgc">case</span> .<span class="SCst">Unsigned</span>: unsigned: {min, max: <span class="STpe">u64</span>} = {min: <span class="SNum">0</span>, max: <span class="SNum">100</span>}
+            <span class="SLgc">case</span> .<span class="SCst">Signed</span>:   signed:   {min, max: <span class="STpe">s64</span>} = {-<span class="SNum">10</span>, <span class="SNum">10</span>}
+            <span class="SLgc">case</span> .<span class="SCst">Unsigned</span>: unsigned: {min, max: <span class="STpe">u64</span>} = {<span class="SNum">0</span>, <span class="SNum">100</span>}
         } = .<span class="SCst">Text</span>
     }
 
@@ -4778,7 +4780,7 @@ swc test -w path/to/workspace -m messages</span></div>
         x, y: <span class="STpe">s32</span>
     }
 
-    <span class="SKwd">var</span> points: [<span class="SNum">2</span>] <span class="SCst">Point</span> = [<span class="SCst">Point</span>{<span class="SNum">1</span>, <span class="SNum">2</span>}, <span class="SCst">Point</span>{<span class="SNum">3</span>, <span class="SNum">4</span>}]
+    <span class="SKwd">var</span> points: [<span class="SNum">2</span>] <span class="SCst">Point</span> = [{<span class="SNum">1</span>, <span class="SNum">2</span>}, {<span class="SNum">3</span>, <span class="SNum">4</span>}]
     <span class="SKwd">var</span> sum = <span class="SNum">0</span>
 
     <span class="SLgc">for</span> p <span class="SLgc">in</span> points
@@ -4817,7 +4819,7 @@ swc test -w path/to/workspace -m messages</span></div>
         x, y: <span class="STpe">s32</span>
     }
 
-    <span class="SKwd">var</span> points: [<span class="SNum">2</span>] <span class="SCst">Point</span> = [<span class="SCst">Point</span>{<span class="SNum">1</span>, <span class="SNum">2</span>}, <span class="SCst">Point</span>{<span class="SNum">3</span>, <span class="SNum">4</span>}]
+    <span class="SKwd">var</span> points: [<span class="SNum">2</span>] <span class="SCst">Point</span> = [{<span class="SNum">1</span>, <span class="SNum">2</span>}, {<span class="SNum">3</span>, <span class="SNum">4</span>}]
 
     <span class="SLgc">for</span> &amp;p, index <span class="SLgc">in</span> points <span class="SLgc">do</span>
         p[] = <span class="SCst">Point</span>{<span class="SKwd">cast</span>(<span class="STpe">s32</span>, index), <span class="SKwd">cast</span>(<span class="STpe">s32</span>, index)}
@@ -5545,7 +5547,8 @@ swc test -w path/to/workspace -m messages</span></div>
     <span class="SNsp">Swag</span>.<span class="SFct">assert</span>(v.y == <span class="SStr">"454"</span>)
 }</span></div>
 <h3 id="_006_001_declaration_swg_Struct_Initialization">Struct Initialization</h3>
-<p>Struct variables can be initialized in multiple ways, providing flexibility in how you set up your structs. Every form initializes with <span class="code-inline">=</span>: naming the type in the initializer (<span class="code-inline">MyStruct{...}</span>) or in the annotation ('let v: MyStruct = {...}') is a matter of where the type reads best, never of syntax.</p>
+<p>Struct variables can be initialized in multiple ways, providing flexibility in how you set up your structs. Every form initializes with <span class="code-inline">=</span>: naming the type in the initializer (<span class="code-inline">MyStruct{...}</span>) or in the annotation ('let v: MyStruct = {...}') is a matter of where the type reads best, never of syntax. Braces without a type take it from their destination: a declared type, an assignment, a parameter or a return.</p>
+<p>Values fill the fields in order, and 'field: value' names one. A bare identifier that names a field initializes that field wherever it appears, so '{y, x}' cannot swap them; any other bare identifier is an ordinary positional value.</p>
 <div class="code-block"><span class="SCde"><span class="SFct">#test</span>
 {
     <span class="SKwd">struct</span> <span class="SCst">MyStruct</span>
@@ -5568,10 +5571,24 @@ swc test -w path/to/workspace -m messages</span></div>
     <span class="SNsp">Swag</span>.<span class="SFct">assert</span>(v2.x == <span class="SNum">1</span>)
     <span class="SNsp">Swag</span>.<span class="SFct">assert</span>(v2.y == <span class="SNum">20</span>)
 
-    <span class="SCmt">// Explicit construction with a declared type</span>
-    <span class="SKwd">let</span> v3: <span class="SCst">MyStruct</span> = <span class="SCst">MyStruct</span>{<span class="SNum">10</span>, <span class="SNum">20</span>}
+    <span class="SCmt">// The declared type supplies the fields</span>
+    <span class="SKwd">let</span> v3: <span class="SCst">MyStruct</span> = {<span class="SNum">10</span>, <span class="SNum">20</span>}
     <span class="SNsp">Swag</span>.<span class="SFct">assert</span>(v3.x == <span class="SNum">10</span>)
     <span class="SNsp">Swag</span>.<span class="SFct">assert</span>(v3.y == <span class="SNum">20</span>)
+
+    <span class="SCmt">// Identifiers named like fields initialize those fields</span>
+    <span class="SKwd">let</span> y = <span class="SNum">30</span>
+    <span class="SKwd">let</span> x = <span class="SNum">40</span>
+    <span class="SKwd">let</span> v4: <span class="SCst">MyStruct</span> = {y, x}
+    <span class="SNsp">Swag</span>.<span class="SFct">assert</span>(v4.x == <span class="SNum">40</span>)
+    <span class="SNsp">Swag</span>.<span class="SFct">assert</span>(v4.y == <span class="SNum">30</span>)
+
+    <span class="SCmt">// Other identifiers are positional values</span>
+    <span class="SKwd">let</span> width        = <span class="SNum">50</span>
+    <span class="SKwd">let</span> height       = <span class="SNum">60</span>
+    <span class="SKwd">let</span> v5: <span class="SCst">MyStruct</span> = {width, height}
+    <span class="SNsp">Swag</span>.<span class="SFct">assert</span>(v5.x == <span class="SNum">50</span>)
+    <span class="SNsp">Swag</span>.<span class="SFct">assert</span>(v5.y == <span class="SNum">60</span>)
 }</span></div>
 <h3 id="_006_001_declaration_swg_Const_Structs">Const Structs</h3>
 <p>A struct can be defined as a constant, provided its values can be evaluated at compile time. This ensures immutability throughout program execution.</p>
@@ -5614,15 +5631,16 @@ swc test -w path/to/workspace -m messages</span></div>
     <span class="SCmt">// Calling with explicit values</span>
     <span class="SFct">toto</span>(<span class="SCst">Struct3</span>{<span class="SNum">5</span>, <span class="SNum">5</span>, <span class="SNum">666</span>})
 
-    <span class="SCmt">// Named record fields match the parameter fields</span>
+    <span class="SCmt">// The parameter type supplies the fields</span>
+    <span class="SFct">toto</span>({<span class="SNum">5</span>, <span class="SNum">5</span>, <span class="SNum">666</span>})
     <span class="SFct">toto</span>({z: <span class="SNum">666</span>, y: <span class="SNum">5</span>, x: <span class="SNum">5</span>})
 
     <span class="SCmt">// Partial initialization</span>
-    <span class="SFct">titi</span>(<span class="SCst">Struct3</span>{<span class="SNum">5</span>})
-    <span class="SFct">titi</span>(<span class="SCst">Struct3</span>{<span class="SNum">5</span>, <span class="SNum">666</span>})
+    <span class="SFct">titi</span>({<span class="SNum">5</span>})
+    <span class="SFct">titi</span>({<span class="SNum">5</span>, <span class="SNum">666</span>})
 
     <span class="SCmt">// Named field initialization</span>
-    <span class="SFct">titi</span>(<span class="SCst">Struct3</span>{x: <span class="SNum">5</span>, z: <span class="SNum">5</span>})
+    <span class="SFct">titi</span>({x: <span class="SNum">5</span>, z: <span class="SNum">5</span>})
 }</span></div>
 <h3 id="_006_002_impl_swg">Impl</h3>
 <h3 id="_006_002_impl_swg_Struct_Methods_and_Constants">Struct Methods and Constants</h3>
@@ -6048,26 +6066,26 @@ swc test -w path/to/workspace -m messages</span></div>
     {
         <span class="SCmp">#static</span> <span class="SLgc">switch</span> op
         {
-        <span class="SLgc">case</span> .<span class="SCst">Add</span>: <span class="SLgc">return</span> <span class="SCst">Struct</span>{<span class="SNum">1</span>, <span class="SNum">2</span>}
-        <span class="SLgc">case</span> .<span class="SCst">Sub</span>: <span class="SLgc">return</span> <span class="SCst">Struct</span>{<span class="SNum">2</span>, <span class="SNum">1</span>}
+        <span class="SLgc">case</span> .<span class="SCst">Add</span>: <span class="SLgc">return</span> {<span class="SNum">1</span>, <span class="SNum">2</span>}
+        <span class="SLgc">case</span> .<span class="SCst">Sub</span>: <span class="SLgc">return</span> {<span class="SNum">2</span>, <span class="SNum">1</span>}
         }
     }
 
     <span class="SKwd">func</span>(op: <span class="SNsp">Swag</span>.<span class="SCst">Operator</span>) <span class="SFct">opBinary</span>(<span class="STpe">me</span>, other: <span class="SCst">AnotherType</span>)-&gt;<span class="SCst">Struct</span>
     {
-        <span class="SLgc">return</span> <span class="SCst">Struct</span>{<span class="SNum">1</span>, <span class="SNum">2</span>}
+        <span class="SLgc">return</span> {<span class="SNum">1</span>, <span class="SNum">2</span>}
     }
 
     <span class="SCmt">// Binary operation when this struct is the right operand</span>
     <span class="SCmt">// Examples: OneType + myStruct, AnotherType * myStruct</span>
     <span class="SKwd">func</span>(op: <span class="SNsp">Swag</span>.<span class="SCst">Operator</span>) <span class="SFct">opBinaryRight</span>(<span class="STpe">me</span>, other: <span class="SCst">OneType</span>)-&gt;<span class="SCst">Struct</span>
     {
-        <span class="SLgc">return</span> <span class="SCst">Struct</span>{<span class="SNum">1</span>, <span class="SNum">2</span>}
+        <span class="SLgc">return</span> {<span class="SNum">1</span>, <span class="SNum">2</span>}
     }
 
     <span class="SKwd">func</span>(op: <span class="SNsp">Swag</span>.<span class="SCst">Operator</span>) <span class="SFct">opBinaryRight</span>(<span class="STpe">me</span>, other: <span class="SCst">AnotherType</span>)-&gt;<span class="SCst">Struct</span>
     {
-        <span class="SLgc">return</span> <span class="SCst">Struct</span>{<span class="SNum">1</span>, <span class="SNum">2</span>}
+        <span class="SLgc">return</span> {<span class="SNum">1</span>, <span class="SNum">2</span>}
     }
 
     <span class="SCmt">// A commutative opBinary can also be used when the struct is the right operand.</span>
@@ -6075,14 +6093,14 @@ swc test -w path/to/workspace -m messages</span></div>
     <span class="SAtr">#[</span><span class="SNsp">Swag</span>.<span class="SAtr">Commutative(.Add, .Mul)]</span>
     <span class="SKwd">func</span>(op: <span class="SNsp">Swag</span>.<span class="SCst">Operator</span>) <span class="SFct">opBinary</span>(<span class="STpe">me</span>, other: <span class="STpe">u32</span>)-&gt;<span class="SCst">Struct</span>
     {
-        <span class="SLgc">return</span> <span class="SCst">Struct</span>{<span class="SNum">1</span>, <span class="SNum">2</span>}
+        <span class="SLgc">return</span> {<span class="SNum">1</span>, <span class="SNum">2</span>}
     }
 
     <span class="SCmt">// Unary operation. 'op' is one of Not, Pos, Neg, BitNot.</span>
     <span class="SCmt">// Unary '-' arrives as 'Neg', so it never collides with the binary 'Sub'.</span>
     <span class="SKwd">func</span>(op: <span class="SNsp">Swag</span>.<span class="SCst">Operator</span>) <span class="SFct">opUnary</span>(<span class="STpe">me</span>)-&gt;<span class="SCst">Struct</span>
     {
-        <span class="SLgc">return</span> <span class="SCst">Struct</span>{<span class="SNum">1</span>, <span class="SNum">2</span>}
+        <span class="SLgc">return</span> {<span class="SNum">1</span>, <span class="SNum">2</span>}
     }
 
     <span class="SCmt">// Compound assignment. 'op' is one of AddAssign, SubAssign, MulAssign, DivAssign,</span>
@@ -6750,7 +6768,7 @@ swc test -w path/to/workspace -m messages</span></div>
     <span class="SNsp">Swag</span>.<span class="SFct">assert</span>(<span class="SLgc">not</span> i3.<span class="SFct">isImplemented</span>())
 }</span></div>
 <h2 id="_007_000_functions_swg">Functions</h2>
-<p>Functions cover more than calls and returns: Swag supports expression bodies, lambdas, closures, variadic parameters, overloads, UFCS, intentionally discarded results, and the <span class="code-inline">retval</span> return-type placeholder.</p>
+<p>Functions cover more than calls and returns: Swag supports expression bodies, lambdas, closures, variadic parameters, overloads, UFCS, intentionally discarded results, and the <span class="code-inline">#returntype</span> placeholder.</p>
 <p>Macros, mixins, and foreign functions live in the metaprogramming and interoperability chapters because their execution model differs from an ordinary function call.</p>
 <h3 id="_007_001_declaration_swg">Declaration</h3>
 <h3 id="_007_001_declaration_swg_Function_Declarations">Function Declarations</h3>
@@ -6870,7 +6888,7 @@ swc test -w path/to/workspace -m messages</span></div>
 {
     <span class="SKwd">func</span> <span class="SFct">myFunction</span>()-&gt;{ x, y: <span class="STpe">f32</span> }
     {
-        <span class="SLgc">return</span> {x: <span class="SNum">1.0</span>, y: <span class="SNum">2.0</span>}
+        <span class="SLgc">return</span> {<span class="SNum">1.0</span>, <span class="SNum">2.0</span>}
     }
 
     <span class="SKwd">let</span> result = <span class="SFct">myFunction</span>()
@@ -7413,23 +7431,23 @@ swc test -w path/to/workspace -m messages</span></div>
     <span class="SFct">onPressed</span>(<span class="SStr">"ok"</span>, <span class="SNum">0</span>)
 }</span></div>
 <p>There is no naming convention for an unused value: a leading underscore is an ordinary name.</p>
-<h3 id="_007_008_retval_swg">Retval</h3>
-<h3 id="_007_008_retval_swg_The__retval__Special_Type">The <span class="code-inline">retval</span> Special Type</h3>
-<p>In Swag, <span class="code-inline">retval</span> represents the current function’s return type. It allows you to declare and manipulate the return value directly inside the function, without repeating the type declaration. This improves code readability and flexibility, especially when working with complex or generic return types.</p>
+<h3 id="_007_008_returntype_swg">Returntype</h3>
+<h3 id="_007_008_returntype_swg_The___returntype__Type">The <span class="code-inline">#returntype</span> Type</h3>
+<p><span class="code-inline">#returntype</span> names the current function's return type. It lets you declare the value a function builds without repeating that type, which matters most for long, generic, or unnamed return types such as tuples.</p>
 <div class="code-block"><span class="SCde"><span class="SFct">#test</span>
 {
     <span class="SKwd">func</span> <span class="SFct">toto</span>()-&gt;<span class="STpe">s32</span>
     {
-        <span class="SKwd">var</span> result: <span class="SKwd">retval</span>     <span class="SCmt">// 'retval' resolves to 's32' in this context.</span>
+        <span class="SKwd">var</span> result: <span class="SCmp">#returntype</span>     <span class="SCmt">// '#returntype' resolves to 's32' in this context.</span>
         result = <span class="SNum">10</span>
         <span class="SLgc">return</span> result
     }
 
     <span class="SNsp">Swag</span>.<span class="SFct">assert</span>(<span class="SFct">toto</span>() == <span class="SNum">10</span>)
 }</span></div>
-<h3 id="_007_008_retval_swg_Optimizing_Return_Values">Optimizing Return Values</h3>
-<p>A <span class="code-inline">retval</span> local <i>is</i> the return value: the compiler gives it the caller’s memory, so filling it in costs no copy at the end of the function. This is especially beneficial when returning large structs, arrays, or tuples.</p>
-<p>Returning an aggregate literal needs no annotation for this — <span class="code-inline">return RGB{0.5, 0.1, 1.0}</span> is already built in the caller’s memory. Reach for <span class="code-inline">retval</span> when the value is filled in step by step, or when the return type has no name you could write.</p>
+<h3 id="_007_008_returntype_swg_Building_the_Result_in_Place">Building the Result in Place</h3>
+<p>A local that every return in its scope returns is built directly in the caller's memory: filling it field by field costs no copy at the end of the function, and returning it runs no hook. The compiler decides this on its own, for any local of the return type; nothing in the program has to ask for it.</p>
+<p>Returning an aggregate literal is built in the caller's memory as well, so <span class="code-inline">return RGB{0.5, 0.1, 1.0}</span> needs no local at all. Reach for a local when the value is filled in step by step.</p>
 <div class="code-block"><span class="SCde"><span class="SFct">#test</span>
 {
     <span class="SKwd">struct</span> <span class="SCst">RGB</span>
@@ -7439,9 +7457,7 @@ swc test -w path/to/workspace -m messages</span></div>
 
     <span class="SKwd">func</span> <span class="SFct">getWhite</span>()-&gt;<span class="SCst">RGB</span>
     {
-        <span class="SCmt">// The compiler proves this return structure is fully assigned and removes</span>
-        <span class="SCmt">// its redundant default clear.</span>
-        <span class="SKwd">var</span> result: <span class="SKwd">retval</span>
+        <span class="SKwd">var</span> result: <span class="SCmp">#returntype</span>
         result.x = <span class="SNum">0.5</span>
         result.y = <span class="SNum">0.1</span>
         result.z = <span class="SNum">1.0</span>
@@ -7453,13 +7469,13 @@ swc test -w path/to/workspace -m messages</span></div>
     <span class="SNsp">Swag</span>.<span class="SFct">assert</span>(g == <span class="SNum">0.1</span>)
     <span class="SNsp">Swag</span>.<span class="SFct">assert</span>(b == <span class="SNum">1.0</span>)
 }</span></div>
-<h3 id="_007_008_retval_swg_Returning_Arrays_Efficiently">Returning Arrays Efficiently</h3>
-<p>When returning large data structures like arrays, using <span class="code-inline">retval</span> avoids redundant initialization or copying, resulting in faster, more memory-efficient code.</p>
+<h3 id="_007_008_returntype_swg_Returning_Arrays_Efficiently">Returning Arrays Efficiently</h3>
+<p>Large values such as arrays benefit the most: the array below is filled where the caller keeps it, without an intermediate copy.</p>
 <div class="code-block"><span class="SCde"><span class="SFct">#test</span>
 {
     <span class="SKwd">func</span> <span class="SFct">toto</span>()-&gt;[<span class="SNum">255</span>] <span class="STpe">s32</span>
     {
-        <span class="SKwd">var</span> result: <span class="SKwd">retval</span>
+        <span class="SKwd">var</span> result: <span class="SCmp">#returntype</span>
         <span class="SLgc">for</span> i <span class="SLgc">in</span> <span class="SNum">255</span> <span class="SLgc">do</span>
             result[i] = i
         <span class="SLgc">return</span> result
@@ -7469,6 +7485,31 @@ swc test -w path/to/workspace -m messages</span></div>
     <span class="SNsp">Swag</span>.<span class="SFct">assert</span>(arr[<span class="SNum">0</span>] == <span class="SNum">0</span>)
     <span class="SNsp">Swag</span>.<span class="SFct">assert</span>(arr[<span class="SNum">100</span>] == <span class="SNum">100</span>)
     <span class="SNsp">Swag</span>.<span class="SFct">assert</span>(arr[<span class="SNum">254</span>] == <span class="SNum">254</span>)
+}</span></div>
+<h3 id="_007_008_returntype_swg_An_Ordinary_Local">An Ordinary Local</h3>
+<p>A <span class="code-inline">#returntype</span> local is an ordinary local: it can be read by the value a <span class="code-inline">return</span> gives back, and a function can still return something else. Building in place never changes what a program observes. A return captures its value first, so a <span class="code-inline">defer</span> that runs afterwards neither sees the local change under it nor changes what was returned.</p>
+<div class="code-block"><span class="SCde"><span class="SFct">#test</span>
+{
+    <span class="SKwd">func</span> <span class="SFct">clampedDouble</span>(value: <span class="STpe">s32</span>)-&gt;<span class="STpe">s32</span>
+    {
+        <span class="SKwd">var</span> result: <span class="SCmp">#returntype</span> = value * <span class="SNum">2</span>
+        <span class="SLgc">if</span> result &lt; <span class="SNum">0</span> <span class="SLgc">do</span>
+            <span class="SLgc">return</span> <span class="SNum">0</span>
+        <span class="SLgc">return</span> <span class="SNsp">Swag</span>.<span class="SFct">min</span>(result, <span class="SNum">100</span>)
+    }
+
+    <span class="SNsp">Swag</span>.<span class="SFct">assert</span>(<span class="SFct">clampedDouble</span>(-<span class="SNum">4</span>) == <span class="SNum">0</span>)
+    <span class="SNsp">Swag</span>.<span class="SFct">assert</span>(<span class="SFct">clampedDouble</span>(<span class="SNum">4</span>) == <span class="SNum">8</span>)
+    <span class="SNsp">Swag</span>.<span class="SFct">assert</span>(<span class="SFct">clampedDouble</span>(<span class="SNum">80</span>) == <span class="SNum">100</span>)
+
+    <span class="SKwd">func</span> <span class="SFct">counted</span>()-&gt;<span class="STpe">s32</span>
+    {
+        <span class="SKwd">var</span> result: <span class="SCmp">#returntype</span> = <span class="SNum">1</span>
+        <span class="SLgc">defer</span> result += <span class="SNum">1</span>
+        <span class="SLgc">return</span> result
+    }
+
+    <span class="SNsp">Swag</span>.<span class="SFct">assert</span>(<span class="SFct">counted</span>() == <span class="SNum">1</span>)
 }</span></div>
 <h2 id="_008_000_intrinsics_swg">Intrinsics</h2>
 <h3 id="_008_000_intrinsics_swg_Intrinsics">Intrinsics</h3>
@@ -9442,7 +9483,7 @@ swc test -w path/to/workspace -m messages</span></div>
         <span class="SLgc">return</span> value.first
     }
 
-    <span class="SKwd">var</span> value: <span class="SCst">Value</span> = <span class="SCst">Value</span>{first: <span class="SNum">17</span>}
+    <span class="SKwd">var</span> value: <span class="SCst">Value</span> = {first: <span class="SNum">17</span>}
     <span class="SKwd">let</span> observed     = <span class="SFct">readSnapshot</span>(<span class="SItr">#copy</span> value, &amp;value)
     <span class="SNsp">Swag</span>.<span class="SFct">assert</span>(observed == <span class="SNum">17</span> <span class="SLgc">and</span> value.first == <span class="SNum">0</span>)
 }</span></div>
@@ -10006,7 +10047,7 @@ text.<span class="SFct">append</span>(<span class="SStr">" world"</span>)       
 <span class="SAtr">#[</span><span class="SNsp">Swag</span>.<span class="SAtr">ConstExpr]</span>
 <span class="SKwd">func</span> <span class="SFct">makeConstexprPoint</span>(x, y: <span class="STpe">s32</span>)-&gt;<span class="SCst">ConstexprPoint</span>
 {
-    <span class="SLgc">return</span> <span class="SCst">ConstexprPoint</span>{x, y}
+    <span class="SLgc">return</span> {x, y}
 }
 
 <span class="SKwd">const</span> <span class="SCst">ConstexprOrigin</span> = <span class="SFct">makeConstexprPoint</span>(<span class="SNum">3</span>, <span class="SNum">7</span>)
@@ -11685,10 +11726,11 @@ swc build --module mymodule --build-cfg devmode --tag Swag.AllocatorSafety=false
 "h|Unused Names|_007_007_discard_swg_Unused_Names|",
 "h|Unnamed Parameters|_007_007_discard_swg_Unnamed_Parameters|",
 "h|Keeping a Name|_007_007_discard_swg_Keeping_a_Name|",
-"h|Retval|_007_008_retval_swg|",
-"h|The retval Special Type|_007_008_retval_swg_The__retval__Special_Type|",
-"h|Optimizing Return Values|_007_008_retval_swg_Optimizing_Return_Values|",
-"h|Returning Arrays Efficiently|_007_008_retval_swg_Returning_Arrays_Efficiently|",
+"h|Returntype|_007_008_returntype_swg|",
+"h|The #returntype Type|_007_008_returntype_swg_The___returntype__Type|",
+"h|Building the Result in Place|_007_008_returntype_swg_Building_the_Result_in_Place|",
+"h|Returning Arrays Efficiently|_007_008_returntype_swg_Returning_Arrays_Efficiently|",
+"h|An Ordinary Local|_007_008_returntype_swg_An_Ordinary_Local|",
 "h|Intrinsics|_008_000_intrinsics_swg|",
 "h|Intrinsics|_008_000_intrinsics_swg_Intrinsics|",
 "h|What Belongs in Swag|_008_000_intrinsics_swg_What_Belongs_in__Swag_|",

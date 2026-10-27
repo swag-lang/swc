@@ -3,6 +3,11 @@
 using Core
 
 // Ordered collection of callbacks that can be suspended as a nested scope.
+//
+// A callback connected through `owner.signal` receives `owner` with its own type, so a handler
+// of a derived widget reads its fields without a cast. The owner emits with itself as the
+// first argument.
+#[Swag.Signal]
 struct(T) SigArray
 {
     callbacks:    Array'T     // Registered callbacks in invocation order.

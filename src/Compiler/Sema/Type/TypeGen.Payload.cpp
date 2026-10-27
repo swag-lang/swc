@@ -205,7 +205,7 @@ namespace
         return flags;
     }
 
-    TypeRef owningDropTypeRefRec(TaskContext& ctx, TypeRef typeRef, RefSet<TypeRef>& visited)
+    TypeRef copyDenialTypeRefRec(TaskContext& ctx, TypeRef typeRef, TypeGen::CopyDenial denial, RefSet<TypeRef>& visited)
     {
         if (typeRef.isInvalid())
             return TypeRef::invalid();
@@ -227,18 +227,18 @@ namespace
             return TypeRef::invalid();
 
         if (type.isAlias())
-            return owningDropTypeRefRec(ctx, type.payloadSymAlias().underlyingTypeRef(), visited);
+            return copyDenialTypeRefRec(ctx, type.payloadSymAlias().underlyingTypeRef(), denial, visited);
 
         if (type.isArray())
-            return owningDropTypeRefRec(ctx, type.payloadArrayElemTypeRef(), visited);
+            return copyDenialTypeRefRec(ctx, type.payloadArrayElemTypeRef(), denial, visited);
 
         if (type.isAggregate())
         {
             for (const TypeRef fieldTypeRef : type.payloadAggregate().types)
             {
-                const TypeRef owningTypeRef = owningDropTypeRefRec(ctx, fieldTypeRef, visited);
-                if (owningTypeRef.isValid())
-                    return owningTypeRef;
+                const TypeRef deniedTypeRef = copyDenialTypeRefRec(ctx, fieldTypeRef, denial, visited);
+                if (deniedTypeRef.isValid())
+                    return deniedTypeRef;
             }
 
             return TypeRef::invalid();
@@ -248,7 +248,8 @@ namespace
             return TypeRef::invalid();
 
         const SymbolStruct& symStruct = type.payloadSymStruct();
-        if (!symStruct.attributes().hasRtFlag(RtAttributeFlagsE::NoCopy) && !structDeclaresCopy(symStruct))
+        const bool          noCopy    = symStruct.attributes().hasRtFlag(RtAttributeFlagsE::NoCopy);
+        if (denial == TypeGen::CopyDenial::NoCopy ? noCopy : (!noCopy && !structDeclaresCopy(symStruct)))
             return typeRef;
 
         if (!symStruct.isSemaCompleted())
@@ -259,9 +260,9 @@ namespace
             if (!field)
                 continue;
 
-            const TypeRef owningTypeRef = owningDropTypeRefRec(ctx, field->typeRef(), visited);
-            if (owningTypeRef.isValid())
-                return owningTypeRef;
+            const TypeRef deniedTypeRef = copyDenialTypeRefRec(ctx, field->typeRef(), denial, visited);
+            if (deniedTypeRef.isValid())
+                return deniedTypeRef;
         }
 
         return TypeRef::invalid();
@@ -1100,13 +1101,13 @@ TypeGen::LifecycleFlags TypeGen::lifecycleFlagsOfTypeRef(TaskContext& ctx, const
     return lifecycleFlagsOfTypeRefRec(ctx, typeRef, visiting);
 }
 
-// The type that denies a copy because it owns a release: the first struct reached from
-// 'typeRef' that declares 'opDrop' without an 'opPostCopy'. Invalid when the copy is denied
-// for another reason, or not denied at all.
-TypeRef TypeGen::owningDropTypeRef(TaskContext& ctx, const TypeRef typeRef)
+// The first struct reached from 'typeRef' that denies a copy for 'denial': one that declares
+// 'opDrop' without an 'opPostCopy', or one marked '#[Swag.NoCopy]'. Invalid when the copy is
+// denied for the other reason, or not denied at all.
+TypeRef TypeGen::copyDenialTypeRef(TaskContext& ctx, const TypeRef typeRef, const CopyDenial denial)
 {
     RefSet<TypeRef> visited;
-    return owningDropTypeRefRec(ctx, typeRef, visited);
+    return copyDenialTypeRefRec(ctx, typeRef, denial, visited);
 }
 
 void TypeGen::initTypeInfoPayload(Sema& sema, DataSegment& storage, Runtime::TypeInfo& rtType, uint32_t offset, LayoutKind kind, const TypeRef typeRef, const TypeInfo& type, TypeGenCache::Entry& entry)

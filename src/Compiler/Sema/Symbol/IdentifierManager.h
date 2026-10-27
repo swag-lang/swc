@@ -103,6 +103,7 @@ public:
         Propagate,
         NoCopy,
         DynCast,
+        Signal,
         Opaque,
         NoDoc,
         Strict,

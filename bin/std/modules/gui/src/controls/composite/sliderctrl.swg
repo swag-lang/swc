@@ -9,7 +9,7 @@ struct SliderCtrl
     {
         using frameWnd: FrameWnd     // Embedded frame behavior and presentation.
 
-        sigChanged: SigArray'func||(*SliderCtrl)     // Emitted after the slider value changes.
+        sigChanged: SigArray'func||(*Wnd)     // Emitted after the slider value changes.
 
         readonly
         {

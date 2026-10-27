@@ -16,7 +16,7 @@ struct HistogramView
     maximum:   u64
     hovered:   u32 = Swag.U32.Max     // Byte value under the pointer, or `Swag.U32.Max` for none.
 
-    sigByteChanged: SigArray'func||(*HistogramView, u32)     // Emitted with the new hovered value.
+    sigByteChanged: SigArray'func||(*Wnd, u32)     // Emitted with the new hovered value.
 }
 
 private impl HistogramView
@@ -153,10 +153,10 @@ struct AnalysisView
     offsetDigits: u64 = 8
     selection:    bool
 
-    sigAnalyze:  SigArray'func||(*AnalysisView)
-    sigCancel:   SigArray'func||(*AnalysisView)
-    sigClose:    SigArray'func||(*AnalysisView)
-    sigNavigate: SigArray'func||(*AnalysisView, u64, u64)
+    sigAnalyze:  SigArray'func||(*Wnd)
+    sigCancel:   SigArray'func||(*Wnd)
+    sigClose:    SigArray'func||(*Wnd)
+    sigNavigate: SigArray'func||(*Wnd, u64, u64)
 }
 
 private impl AnalysisView

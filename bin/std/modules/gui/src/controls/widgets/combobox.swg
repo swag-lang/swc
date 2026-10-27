@@ -37,7 +37,7 @@ struct ComboBox
 
         minimumPopupWidth:  f32 = 100     // Minimum drop-down width in logical units.
         maximumPopupHeight: f32 = 300     // Maximum drop-down height in logical units.
-        sigChanged:         SigArray'func||(*ComboBox, u32)     // Emitted after a notifying selection change.
+        sigChanged:         SigArray'func||(*Wnd, u32)     // Emitted after a notifying selection change.
 
         // What the combo shows. Add items through the methods, which keep the popup and the
         // measured icon width in step, and select through [[Gui.ComboBox.setSelectedIndex]].

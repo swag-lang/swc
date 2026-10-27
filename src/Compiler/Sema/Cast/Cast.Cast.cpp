@@ -1562,8 +1562,8 @@ Result Cast::castAllowed(Sema& sema, CastRequest& castRequest, TypeRef srcTypeRe
     // a record or 'any' gives it none, so '(...)' stays the only tuple spelling.
     if (srcTypeRef.isValid() && dstTypeRef.isValid() && sema.typeMgr().get(srcTypeRef).isAggregateStruct())
     {
-        const TypeInfo& literalDstType = sema.typeMgr().unwrapAliasEnumTypeOrSelf(sema.ctx(), dstTypeRef);
-        const AstNodeRef positionalRef = literalDstType.isAggregateStruct() || literalDstType.isAny() ? SemaHelpers::bracePositionalElement(sema, castRequest.errorNodeRef) : AstNodeRef::invalid();
+        const TypeInfo&  literalDstType = sema.typeMgr().unwrapAliasEnumTypeOrSelf(sema.ctx(), dstTypeRef);
+        const AstNodeRef positionalRef  = literalDstType.isAggregateStruct() || literalDstType.isAny() ? SemaHelpers::bracePositionalElement(sema, castRequest.errorNodeRef) : AstNodeRef::invalid();
         if (positionalRef.isValid())
         {
             castRequest.errorCodeRef = sema.node(positionalRef).codeRef();
@@ -1840,6 +1840,8 @@ Result Cast::cast(Sema& sema, SemaNodeView& view, TypeRef dstTypeRef, CastKind c
     castRequest.flags        = effectiveFlags;
     castRequest.errorNodeRef = view.nodeRef();
     castRequest.setConstantFoldingSrc(view.cstRef());
+    if (callSite)
+        castRequest.signalOwnerTypeRef = callSite->signalOwnerTypeRef;
 
     if (srcTypeRef == dstTypeRef && effectiveFlags == CastFlagsE::Zero)
     {

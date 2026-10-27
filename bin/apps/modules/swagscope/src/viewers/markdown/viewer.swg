@@ -423,7 +423,7 @@ impl ZoomButton
             .setArrowPosition(.RightDownward)
             .setForm(.Rectangle)
             .style.setFont(result.theme().createDefaultFontFs(11), .Regular)
-            .sigPressed += func(button) { assume cast(*ZoomButton, button).showZoomMenu() }
+            .sigPressed += func(button) { button.showZoomMenu() }
         }
 
         return result
@@ -516,7 +516,7 @@ func createViewer(host: Viewer.Host)
 
     optionsButton.sigPressed += func|view, zoomButton|(button)
     {
-        showOptions(assume cast(*IconButton, button), view, zoomButton)
+        showOptions(button, view, zoomButton)
     }
 
     view.hookOnEvent = func|optionsButton, zoomButton|(_, evt)
@@ -547,7 +547,7 @@ func createViewer(host: Viewer.Host)
     if services.reportFailure
     {
         let reportFailure: Viewer.ReportFailure = services.reportFailure
-        view.sigLoadFailed += func|reportFailure|(markdown, reason) { reportFailure(cast(*Wnd, markdown), reason) }
+        view.sigLoadFailed += func|reportFailure|(markdown, reason) { reportFailure(markdown, reason) }
     }
 
     applyViewerStyle(view, g_ViewerSettings.themeIndex, g_ViewerSettings.widthIndex, zoomButton.zoomPercent)

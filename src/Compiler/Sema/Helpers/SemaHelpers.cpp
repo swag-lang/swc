@@ -11,6 +11,7 @@
 #include "Compiler/Sema/Helpers/SemaTagged.h"
 #include "Compiler/Sema/Symbol/Symbol.Function.h"
 #include "Compiler/Sema/Symbol/Symbol.Struct.h"
+#include "Compiler/Sema/Symbol/Symbol.Variable.h"
 #include "Compiler/Sema/Symbol/Symbol.h"
 #include "Compiler/Sema/Type/TypeManager.h"
 #include "Main/CompilerInstance.h"
@@ -109,6 +110,72 @@ namespace
 
         return AstNodeRef::invalid();
     }
+}
+
+TypeRef SemaHelpers::signalOwnerTypeRef(Sema& sema, AstNodeRef signalRef)
+{
+    if (signalRef.isInvalid())
+        return TypeRef::invalid();
+
+    const auto* member = sema.node(sema.resolvedNodeRef(signalRef)).safeCast<AstMemberAccessExpr>();
+    if (!member)
+        return TypeRef::invalid();
+
+    TaskContext&    ctx   = sema.ctx();
+    const TypeInfo* owner = &sema.typeMgr().get(unwrapBindingType(ctx, sema.viewType(member->nodeLeftRef).typeRef()));
+    if (owner->isAnyPointer())
+        owner = &sema.typeMgr().get(unwrapBindingType(ctx, owner->payloadTypeRef()));
+
+    return owner->isStruct() ? owner->typeRef() : TypeRef::invalid();
+}
+
+Result SemaHelpers::signalCallbackTypeForOwner(Sema& sema, TypeRef callbackTypeRef, TypeRef ownerTypeRef, AstNodeRef waitNodeRef, TypeRef& outTypeRef)
+{
+    outTypeRef = callbackTypeRef;
+
+    TaskContext&    ctx      = sema.ctx();
+    TypeManager&    typeMgr  = sema.typeMgr();
+    const TypeInfo& callback = typeMgr.get(unwrapBindingType(ctx, callbackTypeRef));
+    if (!callback.isFunction() || callback.payloadSymFunction().parameters().empty())
+        return Result::Continue;
+
+    const SymbolFunction& declared      = callback.payloadSymFunction();
+    const TypeInfo&       declaredFirst = typeMgr.get(declared.parameters().front()->typeRef());
+    if (!declaredFirst.isValuePointer())
+        return Result::Continue;
+
+    const TypeInfo& declaredOwner = typeMgr.get(unwrapBindingType(ctx, declaredFirst.payloadTypeRef()));
+    const TypeInfo& owner         = typeMgr.get(ownerTypeRef);
+    if (!declaredOwner.isStruct() || &owner == &declaredOwner)
+        return Result::Continue;
+
+    SWC_RESULT(sema.waitSemaCompleted(&owner, waitNodeRef));
+    SWC_RESULT(sema.waitSemaCompleted(&declaredOwner, waitNodeRef));
+    if (!owner.payloadSymStruct().startsWith(ctx, declaredOwner.payloadSymStruct()))
+        return Result::Continue;
+
+    auto* symFunc = Symbol::make<SymbolFunction>(ctx, declared.decl(), declared.tokRef(), IdentifierRef::invalid(), SymbolFlagsE::Zero);
+    for (const SymbolVariable* param : declared.parameters())
+    {
+        auto* symVar = Symbol::make<SymbolVariable>(ctx, param->decl(), param->tokRef(), param->idRef(), SymbolFlagsE::Zero);
+        if (param == declared.parameters().front())
+            symVar->setTypeRef(typeMgr.addType(TypeInfo::makeValuePointer(ownerTypeRef, declaredFirst.flags())));
+        else
+            symVar->setTypeRef(param->typeRef());
+        symFunc->addParameter(symVar);
+    }
+
+    symFunc->setVariadicParamFlag(ctx);
+    symFunc->setReturnTypeRef(declared.returnTypeRef());
+    symFunc->assignExtraFlags(declared.extraFlags());
+    symFunc->setCallConvKind(declared.callConvKind());
+
+    outTypeRef = typeMgr.addType(TypeInfo::makeFunction(symFunc, callback.flags()));
+    symFunc->setTypeRef(outTypeRef);
+    symFunc->setDeclared(ctx);
+    symFunc->setTyped(ctx);
+    symFunc->setSemaCompleted(ctx);
+    return Result::Continue;
 }
 
 TypeRef SemaHelpers::unwrapBindingType(TaskContext& ctx, TypeRef typeRef)

@@ -9,7 +9,7 @@ struct ToggleButton
     {
         using button: Button     // Embedded button behavior and presentation.
 
-        sigChanged: SigArray'func||(*ToggleButton)     // Emitted after a user action changes the state.
+        sigChanged: SigArray'func||(*Wnd)     // Emitted after a user action changes the state.
     }
 
     // Color animations of the painted parts, driven by the toggle and hover state.

@@ -43,7 +43,7 @@ struct RollView
     beatTicks:      u64
     pixelsPerTick:  f32
     timelineWidth:  f32
-    sigZoomChanged: SigArray'func||(*RollView)
+    sigZoomChanged: SigArray'func||(*Wnd)
 }
 
 // Names a key in scientific pitch notation, where middle C, key 60, is C4.

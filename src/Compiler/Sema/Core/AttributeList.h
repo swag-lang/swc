@@ -40,6 +40,7 @@ enum class RtAttributeFlagsE : uint64_t
     DynCast        = 1 << 28,
     ReadOnly       = 1 << 29,
     NoReturn       = 1 << 30,
+    Signal         = 1ull << 31,
 };
 using RtAttributeFlags = EnumFlags<RtAttributeFlagsE>;
 

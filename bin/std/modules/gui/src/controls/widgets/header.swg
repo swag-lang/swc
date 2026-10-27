@@ -54,8 +54,8 @@ struct Header
 
         form = HeaderForm.Flat                              // Background and border presentation.
         itemPadding:      f32 = 5                           // Horizontal inset applied to each item label.
-        sigLayoutChanged: SigArray'func||(*Header)          // Emitted after an effective column width changes.
-        sigColumnClicked: SigArray'func||(*Header, u32)     // Emitted after the user clicks a column.
+        sigLayoutChanged: SigArray'func||(*Wnd)          // Emitted after an effective column width changes.
+        sigColumnClicked: SigArray'func||(*Wnd, u32)     // Emitted after the user clicks a column.
 
         // The columns the header shows, and which one it sorts on. Add columns through the methods
         // so the layout and the owning list stay in step.

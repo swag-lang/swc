@@ -28,8 +28,8 @@ public struct ScrollWnd
             flags = ScrollWndFlags.None     // Active scrollbar options.
         }
 
-        sigScrollPositionChanged: SigArray'func||(*ScrollWnd, Math.Point, Math.Point)     // Emitted with old and new scroll positions.
-        sigScrollSizeChanged:     SigArray'func||(*ScrollWnd, Math.Point, Math.Point)     // Emitted with old and new virtual sizes.
+        sigScrollPositionChanged: SigArray'func||(*Wnd, Math.Point, Math.Point)     // Emitted with old and new scroll positions.
+        sigScrollSizeChanged:     SigArray'func||(*Wnd, Math.Point, Math.Point)     // Emitted with old and new virtual sizes.
     }
 
     // Scrollbar geometry, hover and drag state, and the color animations that follow them.

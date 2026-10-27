@@ -12,10 +12,10 @@ struct ImageView
     {
         using wnd: Wnd     // Embedded window behavior and presentation.
 
-        sigZoomChanged:      SigArray'func||(*ImageView)     // Emitted after the effective zoom changes.
-        sigFrameChanged:     SigArray'func||(*ImageView)     // Emitted after an animation frame changes.
-        sigTransformChanged: SigArray'func||(*ImageView)     // Emitted after the temporary view transform changes.
-        sigDecodeFailed:     SigArray'func||(*ImageView)     // Emitted once when frame decoding fails; movie.failureReason contains the error.
+        sigZoomChanged:      SigArray'func||(*Wnd)     // Emitted after the effective zoom changes.
+        sigFrameChanged:     SigArray'func||(*Wnd)     // Emitted after an animation frame changes.
+        sigTransformChanged: SigArray'func||(*Wnd)     // Emitted after the temporary view transform changes.
+        sigDecodeFailed:     SigArray'func||(*Wnd)     // Emitted once when frame decoding fails; movie.failureReason contains the error.
 
         readonly
         {

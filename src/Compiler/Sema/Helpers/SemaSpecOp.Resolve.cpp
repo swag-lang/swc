@@ -1160,6 +1160,14 @@ Result SemaSpecOp::resolveAssignLambdaBindingType(Sema& sema, const AstAssignStm
         }
     }
 
+    // A callback connected to a signal receives the owner written on the left, typed as such.
+    if (outBindingTypeRef.isValid() && ownerStruct->attributes().hasRtFlag(RtAttributeFlagsE::Signal))
+    {
+        const TypeRef signalOwnerTypeRef = SemaHelpers::signalOwnerTypeRef(sema, node.nodeLeftRef);
+        if (signalOwnerTypeRef.isValid())
+            SWC_RESULT(SemaHelpers::signalCallbackTypeForOwner(sema, outBindingTypeRef, signalOwnerTypeRef, node.nodeLeftRef, outBindingTypeRef));
+    }
+
     return Result::Continue;
 }
 

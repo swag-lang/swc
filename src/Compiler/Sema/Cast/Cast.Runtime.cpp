@@ -253,6 +253,9 @@ namespace
 
         // An explicit cast: a pointer to an erased 'T' becomes a pointer to its bound.
         ErasedToBound = 1 << 3,
+
+        // The first parameter was already matched by the caller's own rule.
+        SkipFirstParam = 1 << 4,
     };
 
     using SignatureMatch = EnumFlags<SignatureMatchE>;
@@ -295,9 +298,7 @@ namespace
         if (!candidate->isStruct())
             return false;
 
-        SmallVector<SymbolStructUsingPathStep> usingPath;
-        const SymbolStruct&                    boundStruct = typeMgr.get(dstAlias->underlyingTypeRef()).payloadSymStruct();
-        return candidate->payloadSymStruct().resolveUsingFieldPath(sema.ctx(), boundStruct, usingPath) && !SymbolStruct::usingPathHasPointerStep(usingPath);
+        return candidate->payloadSymStruct().startsWith(sema.ctx(), typeMgr.get(dstAlias->underlyingTypeRef()).payloadSymStruct());
     }
 
     TypeRef methodReceiverTypeRef(Sema& sema, const SymbolFunction& func)
@@ -358,6 +359,8 @@ namespace
         {
             SWC_ASSERT(leftParams[i] != nullptr);
             SWC_ASSERT(rightParams[i] != nullptr);
+            if (i == 0 && match.has(SignatureMatchE::SkipFirstParam))
+                continue;
             if (sameFunctionTypeRecursive(sema, leftParams[i]->typeRef(), rightParams[i]->typeRef()))
                 continue;
             if (!erased || !erasedParamMatches(sema, leftParams[i]->typeRef(), rightParams[i]->typeRef(), match))
@@ -365,6 +368,36 @@ namespace
         }
 
         return true;
+    }
+
+    // '#[Swag.Signal]': the owner invokes the callback with itself, so its first parameter may read
+    // the owner as any struct between the owner's static type and the declared one.
+    bool sameSignalCallbackSignature(Sema& sema, const SymbolFunction& srcFunc, const SymbolFunction& dstFunc, TypeRef ownerTypeRef)
+    {
+        if (srcFunc.parameters().empty() || dstFunc.parameters().empty())
+            return false;
+        if (srcFunc.isClosure() && !dstFunc.isClosure())
+            return false;
+
+        const TaskContext& ctx      = sema.ctx();
+        const TypeManager& typeMgr  = sema.typeMgr();
+        const TypeInfo&    srcFirst = typeMgr.get(srcFunc.parameters().front()->typeRef());
+        const TypeInfo&    dstFirst = typeMgr.get(dstFunc.parameters().front()->typeRef());
+        if (!srcFirst.isValuePointer() || !dstFirst.isValuePointer() || srcFirst.flags() != dstFirst.flags())
+            return false;
+
+        const TypeInfo& reads    = typeMgr.unwrapAliasEnumTypeOrSelf(ctx, srcFirst.payloadTypeRef());
+        const TypeInfo& declared = typeMgr.unwrapAliasEnumTypeOrSelf(ctx, dstFirst.payloadTypeRef());
+        const TypeInfo& owner    = typeMgr.get(ownerTypeRef);
+        if (!reads.isStruct() || !declared.isStruct() || !owner.isStruct())
+            return false;
+        if (!owner.payloadSymStruct().startsWith(ctx, reads.payloadSymStruct()) || !reads.payloadSymStruct().startsWith(ctx, declared.payloadSymStruct()))
+            return false;
+
+        SignatureMatch match = SignatureMatchE::SkipFirstParam;
+        if (!srcFunc.isClosure() && dstFunc.isClosure())
+            match = match | SignatureMatchE::IgnoreClosure;
+        return sameFunctionSignatureRecursive(sema, srcFunc, dstFunc, match);
     }
 
     bool sameMethodClosureAsFunctionSignatureRecursive(Sema& sema, const SymbolFunction& methodFunc, const SymbolFunction& func)
@@ -999,6 +1032,9 @@ Result Cast::castToFunction(Sema& sema, CastRequest& castRequest, TypeRef srcTyp
             if (sameFunctionSignatureRecursive(sema, srcFunc, dstFunc, erasedMatch))
                 return Result::Continue;
         }
+
+        if (castRequest.signalOwnerTypeRef.isValid() && sameSignalCallbackSignature(sema, srcFunc, dstFunc, castRequest.signalOwnerTypeRef))
+            return Result::Continue;
     }
 
     if (castRequest.kind == CastKind::Explicit &&

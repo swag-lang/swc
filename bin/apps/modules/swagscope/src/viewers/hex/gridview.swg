@@ -214,7 +214,7 @@ struct GridView
 
     doc: Document
 
-    sigCaretChanged: SigArray'func||(*GridView)     // Emitted after the caret or the selection moves.
+    sigCaretChanged: SigArray'func||(*Wnd)     // Emitted after the caret or the selection moves.
 
     topRow: u64     // First row the viewport shows.
     caret:  u64     // Byte the caret stands on.
@@ -245,7 +245,7 @@ struct GridView
     charWidth:      f32
     rowHeight:      f32
     fontSize:       u32
-    sigZoomChanged: SigArray'func||(*GridView)     // Emitted after the font size changes.
+    sigZoomChanged: SigArray'func||(*Wnd)     // Emitted after the font size changes.
 
     // Row text is rebuilt in place every frame. Bytes that carry a value and bytes that do not are
     // drawn in two passes over the same columns, so one row costs a handful of draws instead of

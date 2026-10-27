@@ -321,14 +321,8 @@ namespace
             if (!argPointee.isStruct() || !expectedPointee.isStruct())
                 return false;
 
-            SmallVector<SymbolStructUsingPathStep> usingPath;
-            if (!expectedPointee.payloadSymStruct().resolveUsingFieldPath(sema.ctx(), argPointee.payloadSymStruct(), usingPath))
+            if (!expectedPointee.payloadSymStruct().startsWith(sema.ctx(), argPointee.payloadSymStruct()))
                 return false;
-            for (const SymbolStructUsingPathStep& step : usingPath)
-            {
-                if (step.isPointer || step.field->offset() != 0)
-                    return false;
-            }
         }
 
         return true;

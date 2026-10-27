@@ -1217,10 +1217,26 @@ namespace
     }
 
     // Probes if an implicit conversion from 'from' to 'to' is possible and returns its rank.
-    Result probeImplicitConversion(Sema& sema, ConvRank& outRank, AstNodeRef argRef, TypeRef from, TypeRef to, CastFailure& outCastFailure, CastFlags argFlags)
+    // How one argument reaches its parameter, beyond the two types.
+    struct ArgConversion
     {
-        const bool isUfcsArgument                = argFlags.has(CastFlagsE::UfcsArgument);
-        const bool allowUserDefinedLiteralSuffix = argFlags.has(CastFlagsE::LiteralSuffixConsume);
+        CastFlags flags              = CastFlagsE::Zero;
+        TypeRef   signalOwnerTypeRef = TypeRef::invalid();
+    };
+
+    // '#[Swag.Signal]': a method of a signal called on 'owner.field' hands its callbacks that owner.
+    TypeRef signalOwnerForCall(Sema& sema, const SymbolFunction& fn, AstNodeRef ufcsArg)
+    {
+        const SymbolStruct* signalStruct = fn.ownerStruct();
+        if (!signalStruct || !signalStruct->attributes().hasRtFlag(RtAttributeFlagsE::Signal))
+            return TypeRef::invalid();
+        return SemaHelpers::signalOwnerTypeRef(sema, ufcsArg);
+    }
+
+    Result probeImplicitConversion(Sema& sema, ConvRank& outRank, AstNodeRef argRef, TypeRef from, TypeRef to, CastFailure& outCastFailure, const ArgConversion& conversion)
+    {
+        const bool isUfcsArgument                = conversion.flags.has(CastFlagsE::UfcsArgument);
+        const bool allowUserDefinedLiteralSuffix = conversion.flags.has(CastFlagsE::LiteralSuffixConsume);
 
         outRank = ConvRank::Bad;
         if (from == to)
@@ -1296,8 +1312,9 @@ namespace
         // fold-result materialization (whole-value lowering, aggregate/array fold interning).
         castRequest.probing = true;
         castRequest.setConstantFoldingSrc(castSourceCstRef);
-        castRequest.flags.add(argFlags);
-        const Result castResult = Cast::castAllowed(sema, castRequest, from, castToTypeRef);
+        castRequest.flags.add(conversion.flags);
+        castRequest.signalOwnerTypeRef = conversion.signalOwnerTypeRef;
+        const Result castResult        = Cast::castAllowed(sema, castRequest, from, castToTypeRef);
         if (castResult == Result::Pause)
             return Result::Pause;
         if (castResult == Result::Continue)
@@ -1521,7 +1538,7 @@ namespace
         }
 
         auto r = ConvRank::Bad;
-        SWC_RESULT(probeImplicitConversion(sema, r, entry.argRef, argTy, variadicTy, cf, CastFlagsE::Zero));
+        SWC_RESULT(probeImplicitConversion(sema, r, entry.argRef, argTy, variadicTy, cf, {}));
         if (r == ConvRank::Bad)
         {
             if (cf.diagId == DiagnosticId::None)
@@ -2020,18 +2037,19 @@ namespace
                 return Result::Continue;
             }
 
-            CastFlags argFlags = CastFlagsE::Zero;
+            ArgConversion conversion;
+            conversion.signalOwnerTypeRef = signalOwnerForCall(sema, fn, ufcsArg);
             if (allowsImplicitAddressBinding(fn, i, ufcsArg))
-                argFlags.add(CastFlagsE::UfcsArgument);
+                conversion.flags.add(CastFlagsE::UfcsArgument);
             if (fn.idRef() == sema.idMgr().predefined(IdentifierManager::PredefinedName::OpSetLiteral))
-                argFlags.add(CastFlagsE::LiteralSuffixConsume);
+                conversion.flags.add(CastFlagsE::LiteralSuffixConsume);
             if (fn.isErasedGenericInstance())
-                argFlags.add(CastFlagsE::ErasedArgument);
+                conversion.flags.add(CastFlagsE::ErasedArgument);
             auto r = ConvRank::Bad;
             if (isIntrinsicAliasStorageMatch(sema, mode, fn, argTy, paramTy))
                 r = ConvRank::Standard;
             else
-                SWC_RESULT(probeImplicitConversion(sema, r, argRef, argTy, paramTy, cf, argFlags));
+                SWC_RESULT(probeImplicitConversion(sema, r, argRef, argTy, paramTy, cf, conversion));
             if (r == ConvRank::Bad)
             {
                 if (cf.diagId == DiagnosticId::None)
@@ -2709,7 +2727,7 @@ namespace
                 }
             }
 
-            const CastCallSite callSite{.function = &selectedFn, .argNumber = entry.argNumber};
+            const CastCallSite callSite{.function = &selectedFn, .argNumber = entry.argNumber, .signalOwnerTypeRef = signalOwnerForCall(sema, selectedFn, appliedUfcsArg)};
             if (!applyContextualAutoEnumAliasCast(sema, argRef, argView, castTypeRef))
                 SWC_RESULT(Cast::cast(sema, argView, castTypeRef, CastKind::Parameter, flags, &callSite));
 

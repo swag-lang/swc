@@ -153,7 +153,7 @@ struct Properties
 
     public
     {
-        sigValueChanged: SigArray'func||(*Properties, *PropertiesItem?)     // Emitted after an edited value changes; item is null for detached undo/redo.
+        sigValueChanged: SigArray'func||(*Wnd, *PropertiesItem?)     // Emitted after an edited value changes; item is null for detached undo/redo.
 
         // What the grid currently shows. Rows are produced by 'addStruct' and friends and the
         // selection moves with the keyboard and the mouse; a host reads both to follow the grid.

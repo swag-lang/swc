@@ -9,7 +9,7 @@ struct ImageRect
     {
         using wnd: Wnd     // Embedded window behavior and presentation.
 
-        sigFrameChanged: SigArray'func||(*ImageRect)     // Emitted after the visible animation frame changes.
+        sigFrameChanged: SigArray'func||(*Wnd)     // Emitted after the visible animation frame changes.
 
         readonly
         {

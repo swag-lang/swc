@@ -6318,11 +6318,11 @@ options.motion      = .<span class="SCst"><a href="#Gui_AnimationMotion_Essentia
 </td></tr>
 <tr><td id="Gui_AppearanceButton_language" class="code-type">language</td><td class="code-type"><a href="std.core.html#Core_String">Core.String</a></td><td><p>Registered language tag, or empty to follow the system.</p>
 </td></tr>
-<tr><td id="Gui_AppearanceButton_sigAboutRequested" class="code-type">sigAboutRequested</td><td class="code-type"><a href="#Gui_SigArray">Gui.SigArray</a>'(func||(*<a href="#Gui_AppearanceButton">Gui.AppearanceButton</a>))</td><td><p>Emitted after the user chooses the About item.</p>
+<tr><td id="Gui_AppearanceButton_sigAboutRequested" class="code-type">sigAboutRequested</td><td class="code-type"><a href="#Gui_SigArray">Gui.SigArray</a>'(func||(*<a href="#Gui_Wnd">Gui.Wnd</a>))</td><td><p>Emitted after the user chooses the About item.</p>
 </td></tr>
-<tr><td id="Gui_AppearanceButton_sigLanguageChanged" class="code-type">sigLanguageChanged</td><td class="code-type"><a href="#Gui_SigArray">Gui.SigArray</a>'(func||(*<a href="#Gui_AppearanceButton">Gui.AppearanceButton</a>))</td><td><p>Emitted after the user changes the language.</p>
+<tr><td id="Gui_AppearanceButton_sigLanguageChanged" class="code-type">sigLanguageChanged</td><td class="code-type"><a href="#Gui_SigArray">Gui.SigArray</a>'(func||(*<a href="#Gui_Wnd">Gui.Wnd</a>))</td><td><p>Emitted after the user changes the language.</p>
 </td></tr>
-<tr><td id="Gui_AppearanceButton_sigThemeChanged" class="code-type">sigThemeChanged</td><td class="code-type"><a href="#Gui_SigArray">Gui.SigArray</a>'(func||(*<a href="#Gui_AppearanceButton">Gui.AppearanceButton</a>))</td><td><p>Emitted after the user changes the theme.</p>
+<tr><td id="Gui_AppearanceButton_sigThemeChanged" class="code-type">sigThemeChanged</td><td class="code-type"><a href="#Gui_SigArray">Gui.SigArray</a>'(func||(*<a href="#Gui_Wnd">Gui.Wnd</a>))</td><td><p>Emitted after the user changes the theme.</p>
 </td></tr>
 </tbody>
 </table>
@@ -6587,13 +6587,13 @@ options.motion      = .<span class="SCst"><a href="#Gui_AnimationMotion_Essentia
 </td></tr>
 <tr><td id="Gui_BreadcrumbCtrl_padX" class="code-type">padX</td><td class="code-type">f32</td><td><p>Horizontal padding inside each level body.</p>
 </td></tr>
-<tr><td class="code-type"><a href="#Gui_BreadcrumbCtrl_sigEmptyPressed">sigEmptyPressed</a></td><td class="code-type"><a href="#Gui_SigArray">Gui.SigArray</a>'(func||(*<a href="#Gui_BreadcrumbCtrl">Gui.BreadcrumbCtrl</a>))</td><td><p>Emitted after a click on the part of the control no level covers, which is where an</p>
+<tr><td class="code-type"><a href="#Gui_BreadcrumbCtrl_sigEmptyPressed">sigEmptyPressed</a></td><td class="code-type"><a href="#Gui_SigArray">Gui.SigArray</a>'(func||(*<a href="#Gui_Wnd">Gui.Wnd</a>))</td><td><p>Emitted after a click on the part of the control no level covers, which is where an</p>
 </td></tr>
-<tr><td id="Gui_BreadcrumbCtrl_sigFillMenu" class="code-type">sigFillMenu</td><td class="code-type"><a href="#Gui_SigArray">Gui.SigArray</a>'(func||(*<a href="#Gui_BreadcrumbCtrl">Gui.BreadcrumbCtrl</a>, u64, *<a href="#Gui_MenuCtrl">Gui.MenuCtrl</a>))</td><td><p>Emitted when a level's child menu needs content.</p>
+<tr><td id="Gui_BreadcrumbCtrl_sigFillMenu" class="code-type">sigFillMenu</td><td class="code-type"><a href="#Gui_SigArray">Gui.SigArray</a>'(func||(*<a href="#Gui_Wnd">Gui.Wnd</a>, u64, *<a href="#Gui_MenuCtrl">Gui.MenuCtrl</a>))</td><td><p>Emitted when a level's child menu needs content.</p>
 </td></tr>
-<tr><td id="Gui_BreadcrumbCtrl_sigItemPressed" class="code-type">sigItemPressed</td><td class="code-type"><a href="#Gui_SigArray">Gui.SigArray</a>'(func||(*<a href="#Gui_BreadcrumbCtrl">Gui.BreadcrumbCtrl</a>, u64))</td><td><p>Emitted after a level body is activated.</p>
+<tr><td id="Gui_BreadcrumbCtrl_sigItemPressed" class="code-type">sigItemPressed</td><td class="code-type"><a href="#Gui_SigArray">Gui.SigArray</a>'(func||(*<a href="#Gui_Wnd">Gui.Wnd</a>, u64))</td><td><p>Emitted after a level body is activated.</p>
 </td></tr>
-<tr><td id="Gui_BreadcrumbCtrl_sigMenuSelected" class="code-type">sigMenuSelected</td><td class="code-type"><a href="#Gui_SigArray">Gui.SigArray</a>'(func||(*<a href="#Gui_BreadcrumbCtrl">Gui.BreadcrumbCtrl</a>, u64, <a href="std.core.html#Core_String">Core.String</a>))</td><td><p>Emitted after a command is selected from a child menu.</p>
+<tr><td id="Gui_BreadcrumbCtrl_sigMenuSelected" class="code-type">sigMenuSelected</td><td class="code-type"><a href="#Gui_SigArray">Gui.SigArray</a>'(func||(*<a href="#Gui_Wnd">Gui.Wnd</a>, u64, <a href="std.core.html#Core_String">Core.String</a>))</td><td><p>Emitted after a command is selected from a child menu.</p>
 </td></tr>
 <tr><td id="Gui_BreadcrumbCtrl_wnd" class="code-type">wnd</td><td class="code-type"><a href="#Gui_Wnd">Gui.Wnd</a></td><td><p>Embedded window behavior and presentation.</p>
 </td></tr>
@@ -6667,9 +6667,9 @@ options.motion      = .<span class="SCst"><a href="#Gui_AnimationMotion_Essentia
 </td></tr>
 <tr><td id="Gui_Button_iconWidth" class="code-type">iconWidth</td><td class="code-type">f32</td><td><p>Explicit icon width, or zero to preserve the icon width.</p>
 </td></tr>
-<tr><td id="Gui_Button_sigPressed" class="code-type">sigPressed</td><td class="code-type"><a href="#Gui_SigArray">Gui.SigArray</a>'(func||(*<a href="#Gui_Button">Gui.Button</a>))</td><td><p>Emitted after a completed primary activation.</p>
+<tr><td id="Gui_Button_sigPressed" class="code-type">sigPressed</td><td class="code-type"><a href="#Gui_SigArray">Gui.SigArray</a>'(func||(*<a href="#Gui_Wnd">Gui.Wnd</a>))</td><td><p>Emitted after a completed primary activation.</p>
 </td></tr>
-<tr><td id="Gui_Button_sigRightPressed" class="code-type">sigRightPressed</td><td class="code-type"><a href="#Gui_SigArray">Gui.SigArray</a>'(func||(*<a href="#Gui_Button">Gui.Button</a>))</td><td><p>Emitted when the secondary button is pressed inside the control.</p>
+<tr><td id="Gui_Button_sigRightPressed" class="code-type">sigRightPressed</td><td class="code-type"><a href="#Gui_SigArray">Gui.SigArray</a>'(func||(*<a href="#Gui_Wnd">Gui.Wnd</a>))</td><td><p>Emitted when the secondary button is pressed inside the control.</p>
 </td></tr>
 <tr><td id="Gui_Button_wnd" class="code-type">wnd</td><td class="code-type"><a href="#Gui_Wnd">Gui.Wnd</a></td><td><p>Embedded window behavior and presentation.</p>
 </td></tr>
@@ -6725,7 +6725,7 @@ options.motion      = .<span class="SCst"><a href="#Gui_AnimationMotion_Essentia
 </td></tr>
 <tr><td id="Gui_CheckButton_flags" class="code-type">flags</td><td class="code-type"><a href="#Gui_CheckButtonFlags">Gui.CheckButtonFlags</a></td><td><p>Active interaction and placement options.</p>
 </td></tr>
-<tr><td id="Gui_CheckButton_sigChanged" class="code-type">sigChanged</td><td class="code-type"><a href="#Gui_SigArray">Gui.SigArray</a>'(func||(*<a href="#Gui_CheckButton">Gui.CheckButton</a>))</td><td><p>Emitted after a user action changes the state.</p>
+<tr><td id="Gui_CheckButton_sigChanged" class="code-type">sigChanged</td><td class="code-type"><a href="#Gui_SigArray">Gui.SigArray</a>'(func||(*<a href="#Gui_Wnd">Gui.Wnd</a>))</td><td><p>Emitted after a user action changes the state.</p>
 </td></tr>
 <tr><td id="Gui_CheckButton_state" class="code-type">state</td><td class="code-type"><a href="#Gui_CheckState">Gui.CheckState</a></td><td><p>Current displayed state.</p>
 </td></tr>
@@ -6768,11 +6768,11 @@ options.motion      = .<span class="SCst"><a href="#Gui_AnimationMotion_Essentia
 </td></tr>
 <tr><td id="Gui_Circular_rangeColor" class="code-type">rangeColor</td><td class="code-type"><a href="std.pixel.html#Pixel_Color">Pixel.Color</a></td><td><p>Explicit range-arc color, or transparent for the theme color.</p>
 </td></tr>
-<tr><td id="Gui_Circular_sigChanged" class="code-type">sigChanged</td><td class="code-type"><a href="#Gui_SigArray">Gui.SigArray</a>'(func||(*<a href="#Gui_Circular">Gui.Circular</a>))</td><td><p>Emitted after either value changes.</p>
+<tr><td id="Gui_Circular_sigChanged" class="code-type">sigChanged</td><td class="code-type"><a href="#Gui_SigArray">Gui.SigArray</a>'(func||(*<a href="#Gui_Wnd">Gui.Wnd</a>))</td><td><p>Emitted after either value changes.</p>
 </td></tr>
-<tr><td id="Gui_Circular_sigEndChange" class="code-type">sigEndChange</td><td class="code-type"><a href="#Gui_SigArray">Gui.SigArray</a>'(func||(*<a href="#Gui_Circular">Gui.Circular</a>))</td><td><p>Emitted when a user-style change transaction ends.</p>
+<tr><td id="Gui_Circular_sigEndChange" class="code-type">sigEndChange</td><td class="code-type"><a href="#Gui_SigArray">Gui.SigArray</a>'(func||(*<a href="#Gui_Wnd">Gui.Wnd</a>))</td><td><p>Emitted when a user-style change transaction ends.</p>
 </td></tr>
-<tr><td id="Gui_Circular_sigStartChange" class="code-type">sigStartChange</td><td class="code-type"><a href="#Gui_SigArray">Gui.SigArray</a>'(func||(*<a href="#Gui_Circular">Gui.Circular</a>))</td><td><p>Emitted when a user-style change transaction starts.</p>
+<tr><td id="Gui_Circular_sigStartChange" class="code-type">sigStartChange</td><td class="code-type"><a href="#Gui_SigArray">Gui.SigArray</a>'(func||(*<a href="#Gui_Wnd">Gui.Wnd</a>))</td><td><p>Emitted when a user-style change transaction starts.</p>
 </td></tr>
 <tr><td id="Gui_Circular_startAngle" class="code-type">startAngle</td><td class="code-type">f32</td><td><p>Angle of the minimum value, in radians clockwise from the top.</p>
 </td></tr>
@@ -6851,7 +6851,7 @@ options.motion      = .<span class="SCst"><a href="#Gui_AnimationMotion_Essentia
 </td></tr>
 <tr><td id="Gui_ColorPicker_saturation" class="code-type">saturation</td><td class="code-type">f32</td><td><p>Current HSL components in the closed interval [0, 1].</p>
 </td></tr>
-<tr><td id="Gui_ColorPicker_sigColorChanged" class="code-type">sigColorChanged</td><td class="code-type"><a href="#Gui_SigArray">Gui.SigArray</a>'(func||(*<a href="#Gui_ColorPicker">Gui.ColorPicker</a>))</td><td><p>Emitted after the selected color changes.</p>
+<tr><td id="Gui_ColorPicker_sigColorChanged" class="code-type">sigColorChanged</td><td class="code-type"><a href="#Gui_SigArray">Gui.SigArray</a>'(func||(*<a href="#Gui_Wnd">Gui.Wnd</a>))</td><td><p>Emitted after the selected color changes.</p>
 </td></tr>
 <tr><td id="Gui_ColorPicker_wnd" class="code-type">wnd</td><td class="code-type"><a href="#Gui_Wnd">Gui.Wnd</a></td><td><p>Embedded window behavior and presentation.</p>
 </td></tr>
@@ -6924,7 +6924,7 @@ options.motion      = .<span class="SCst"><a href="#Gui_AnimationMotion_Essentia
 </td></tr>
 <tr><td id="Gui_ColorPickerCtrl_selectedColor" class="code-type">selectedColor</td><td class="code-type"><a href="std.pixel.html#Pixel_Color">Pixel.Color</a></td><td><p>Current selected color.</p>
 </td></tr>
-<tr><td id="Gui_ColorPickerCtrl_sigColorChanged" class="code-type">sigColorChanged</td><td class="code-type"><a href="#Gui_SigArray">Gui.SigArray</a>'(func||(*<a href="#Gui_ColorPickerCtrl">Gui.ColorPickerCtrl</a>))</td><td><p>Emitted once after the selected color changes.</p>
+<tr><td id="Gui_ColorPickerCtrl_sigColorChanged" class="code-type">sigColorChanged</td><td class="code-type"><a href="#Gui_SigArray">Gui.SigArray</a>'(func||(*<a href="#Gui_Wnd">Gui.Wnd</a>))</td><td><p>Emitted once after the selected color changes.</p>
 </td></tr>
 </tbody>
 </table>
@@ -6971,7 +6971,7 @@ options.motion      = .<span class="SCst"><a href="#Gui_AnimationMotion_Essentia
 </td></tr>
 <tr><td id="Gui_ComboBox_selectedIndex" class="code-type">selectedIndex</td><td class="code-type">u32</td><td><p>Selected item index, or U32.Max when empty.</p>
 </td></tr>
-<tr><td id="Gui_ComboBox_sigChanged" class="code-type">sigChanged</td><td class="code-type"><a href="#Gui_SigArray">Gui.SigArray</a>'(func||(*<a href="#Gui_ComboBox">Gui.ComboBox</a>, u32))</td><td><p>Emitted after a notifying selection change.</p>
+<tr><td id="Gui_ComboBox_sigChanged" class="code-type">sigChanged</td><td class="code-type"><a href="#Gui_SigArray">Gui.SigArray</a>'(func||(*<a href="#Gui_Wnd">Gui.Wnd</a>, u32))</td><td><p>Emitted after a notifying selection change.</p>
 </td></tr>
 <tr><td id="Gui_ComboBox_textHorizontalAlignment" class="code-type">textHorizontalAlignment</td><td class="code-type"><a href="std.pixel.html#Pixel_StringHorzAlignment">Pixel.StringHorzAlignment</a></td><td><p>Horizontal alignment of selected text in selection mode.</p>
 </td></tr>
@@ -7378,15 +7378,15 @@ options.motion      = .<span class="SCst"><a href="#Gui_AnimationMotion_Essentia
 </td></tr>
 <tr><td id="Gui_EditBox_maximumLength" class="code-type">maximumLength</td><td class="code-type">s32</td><td><p>Maximum rune count, or zero for no limit.</p>
 </td></tr>
-<tr><td id="Gui_EditBox_sigCancelled" class="code-type">sigCancelled</td><td class="code-type"><a href="#Gui_SigArray">Gui.SigArray</a>'(func||(*<a href="#Gui_EditBox">Gui.EditBox</a>))</td><td><p>Emitted when Escape is pressed.</p>
+<tr><td id="Gui_EditBox_sigCancelled" class="code-type">sigCancelled</td><td class="code-type"><a href="#Gui_SigArray">Gui.SigArray</a>'(func||(*<a href="#Gui_Wnd">Gui.Wnd</a>))</td><td><p>Emitted when Escape is pressed.</p>
 </td></tr>
-<tr><td id="Gui_EditBox_sigCommitted" class="code-type">sigCommitted</td><td class="code-type"><a href="#Gui_SigArray">Gui.SigArray</a>'(func||(*<a href="#Gui_EditBox">Gui.EditBox</a>))</td><td><p>Emitted on focus loss unless the edit is cancelled.</p>
+<tr><td id="Gui_EditBox_sigCommitted" class="code-type">sigCommitted</td><td class="code-type"><a href="#Gui_SigArray">Gui.SigArray</a>'(func||(*<a href="#Gui_Wnd">Gui.Wnd</a>))</td><td><p>Emitted on focus loss unless the edit is cancelled.</p>
 </td></tr>
-<tr><td id="Gui_EditBox_sigFocusLost" class="code-type">sigFocusLost</td><td class="code-type"><a href="#Gui_SigArray">Gui.SigArray</a>'(func||(*<a href="#Gui_EditBox">Gui.EditBox</a>))</td><td><p>Emitted after keyboard focus is lost.</p>
+<tr><td id="Gui_EditBox_sigFocusLost" class="code-type">sigFocusLost</td><td class="code-type"><a href="#Gui_SigArray">Gui.SigArray</a>'(func||(*<a href="#Gui_Wnd">Gui.Wnd</a>))</td><td><p>Emitted after keyboard focus is lost.</p>
 </td></tr>
-<tr><td id="Gui_EditBox_sigSubmitted" class="code-type">sigSubmitted</td><td class="code-type"><a href="#Gui_SigArray">Gui.SigArray</a>'(func||(*<a href="#Gui_EditBox">Gui.EditBox</a>))</td><td><p>Emitted when Enter is pressed.</p>
+<tr><td id="Gui_EditBox_sigSubmitted" class="code-type">sigSubmitted</td><td class="code-type"><a href="#Gui_SigArray">Gui.SigArray</a>'(func||(*<a href="#Gui_Wnd">Gui.Wnd</a>))</td><td><p>Emitted when Enter is pressed.</p>
 </td></tr>
-<tr><td id="Gui_EditBox_sigTextChanged" class="code-type">sigTextChanged</td><td class="code-type"><a href="#Gui_SigArray">Gui.SigArray</a>'(func||(*<a href="#Gui_EditBox">Gui.EditBox</a>))</td><td><p>Emitted once after text changes.</p>
+<tr><td id="Gui_EditBox_sigTextChanged" class="code-type">sigTextChanged</td><td class="code-type"><a href="#Gui_SigArray">Gui.SigArray</a>'(func||(*<a href="#Gui_Wnd">Gui.Wnd</a>))</td><td><p>Emitted once after text changes.</p>
 </td></tr>
 <tr><td id="Gui_EditBox_trailingMargin" class="code-type">trailingMargin</td><td class="code-type">f32</td><td><p>Extra trailing inset in logical units.</p>
 </td></tr>
@@ -7596,11 +7596,11 @@ options.motion      = .<span class="SCst"><a href="#Gui_AnimationMotion_Essentia
 </td></tr>
 <tr><td id="Gui_FileBrowserCtrl_refreshButton" class="code-type">refreshButton</td><td class="code-type">*<a href="#Gui_IconButton">Gui.IconButton</a></td><td><p>Reloads the current folder.</p>
 </td></tr>
-<tr><td id="Gui_FileBrowserCtrl_sigAccepted" class="code-type">sigAccepted</td><td class="code-type"><a href="#Gui_SigArray">Gui.SigArray</a>'(func||(*<a href="#Gui_FileBrowserCtrl">Gui.FileBrowserCtrl</a>))</td><td><p>Emitted when the current selection is activated.</p>
+<tr><td id="Gui_FileBrowserCtrl_sigAccepted" class="code-type">sigAccepted</td><td class="code-type"><a href="#Gui_SigArray">Gui.SigArray</a>'(func||(*<a href="#Gui_Wnd">Gui.Wnd</a>))</td><td><p>Emitted when the current selection is activated.</p>
 </td></tr>
-<tr><td id="Gui_FileBrowserCtrl_sigFolderChanged" class="code-type">sigFolderChanged</td><td class="code-type"><a href="#Gui_SigArray">Gui.SigArray</a>'(func||(*<a href="#Gui_FileBrowserCtrl">Gui.FileBrowserCtrl</a>))</td><td><p>Emitted after <a href="#Gui_FileBrowserCtrl_currentFolder">Gui.FileBrowserCtrl.currentFolder</a> changes.</p>
+<tr><td id="Gui_FileBrowserCtrl_sigFolderChanged" class="code-type">sigFolderChanged</td><td class="code-type"><a href="#Gui_SigArray">Gui.SigArray</a>'(func||(*<a href="#Gui_Wnd">Gui.Wnd</a>))</td><td><p>Emitted after <a href="#Gui_FileBrowserCtrl_currentFolder">Gui.FileBrowserCtrl.currentFolder</a> changes.</p>
 </td></tr>
-<tr><td id="Gui_FileBrowserCtrl_sigNewFolderRequested" class="code-type">sigNewFolderRequested</td><td class="code-type"><a href="#Gui_SigArray">Gui.SigArray</a>'(func||(*<a href="#Gui_FileBrowserCtrl">Gui.FileBrowserCtrl</a>))</td><td><p>Emitted when the user requests a new folder.</p>
+<tr><td id="Gui_FileBrowserCtrl_sigNewFolderRequested" class="code-type">sigNewFolderRequested</td><td class="code-type"><a href="#Gui_SigArray">Gui.SigArray</a>'(func||(*<a href="#Gui_Wnd">Gui.Wnd</a>))</td><td><p>Emitted when the user requests a new folder.</p>
 </td></tr>
 <tr><td id="Gui_FileBrowserCtrl_statusLabel" class="code-type">statusLabel</td><td class="code-type">*<a href="#Gui_Label">Gui.Label</a></td><td><p>Item count, selection summary and empty-folder hint.</p>
 </td></tr>
@@ -8111,9 +8111,9 @@ form.<span class="SFct">computeLayout</span>()</span></div>
 </td></tr>
 <tr><td id="Gui_Header_items" class="code-type">items</td><td class="code-type"><a href="std.core.html#Core_ArrayPtr">Core.ArrayPtr</a>'(<a href="#Gui_HeaderItem">Gui.HeaderItem</a>)</td><td><p>Columns in display order.</p>
 </td></tr>
-<tr><td id="Gui_Header_sigColumnClicked" class="code-type">sigColumnClicked</td><td class="code-type"><a href="#Gui_SigArray">Gui.SigArray</a>'(func||(*<a href="#Gui_Header">Gui.Header</a>, u32))</td><td><p>Emitted after the user clicks a column.</p>
+<tr><td id="Gui_Header_sigColumnClicked" class="code-type">sigColumnClicked</td><td class="code-type"><a href="#Gui_SigArray">Gui.SigArray</a>'(func||(*<a href="#Gui_Wnd">Gui.Wnd</a>, u32))</td><td><p>Emitted after the user clicks a column.</p>
 </td></tr>
-<tr><td id="Gui_Header_sigLayoutChanged" class="code-type">sigLayoutChanged</td><td class="code-type"><a href="#Gui_SigArray">Gui.SigArray</a>'(func||(*<a href="#Gui_Header">Gui.Header</a>))</td><td><p>Emitted after an effective column width changes.</p>
+<tr><td id="Gui_Header_sigLayoutChanged" class="code-type">sigLayoutChanged</td><td class="code-type"><a href="#Gui_SigArray">Gui.SigArray</a>'(func||(*<a href="#Gui_Wnd">Gui.Wnd</a>))</td><td><p>Emitted after an effective column width changes.</p>
 </td></tr>
 <tr><td id="Gui_Header_sortColumn" class="code-type">sortColumn</td><td class="code-type">u32</td><td><p>Logical column carrying the sort marker.</p>
 </td></tr>
@@ -8234,11 +8234,11 @@ document.sigLinkActivated += <span class="SKwd">func</span>(view, url)
 </td></tr>
 <tr><td id="Gui_HtmlView_failureReason" class="code-type">failureReason</td><td class="code-type"><a href="std.core.html#Core_String">Core.String</a></td><td><p>File-loading explanation, or empty while loading remains valid.</p>
 </td></tr>
-<tr><td id="Gui_HtmlView_sigDocumentChanged" class="code-type">sigDocumentChanged</td><td class="code-type"><a href="#Gui_SigArray">Gui.SigArray</a>'(func||(*<a href="#Gui_HtmlView">Gui.HtmlView</a>))</td><td><p>Emitted after document content or layout is rebuilt; heading snapshots may be refreshed here.</p>
+<tr><td id="Gui_HtmlView_sigDocumentChanged" class="code-type">sigDocumentChanged</td><td class="code-type"><a href="#Gui_SigArray">Gui.SigArray</a>'(func||(*<a href="#Gui_Wnd">Gui.Wnd</a>))</td><td><p>Emitted after document content or layout is rebuilt; heading snapshots may be refreshed here.</p>
 </td></tr>
-<tr><td id="Gui_HtmlView_sigLinkActivated" class="code-type">sigLinkActivated</td><td class="code-type"><a href="#Gui_SigArray">Gui.SigArray</a>'(func||(*<a href="#Gui_HtmlView">Gui.HtmlView</a>, string))</td><td><p>Emitted when an activated link cannot be followed as a local document or fragment.</p>
+<tr><td id="Gui_HtmlView_sigLinkActivated" class="code-type">sigLinkActivated</td><td class="code-type"><a href="#Gui_SigArray">Gui.SigArray</a>'(func||(*<a href="#Gui_Wnd">Gui.Wnd</a>, string))</td><td><p>Emitted when an activated link cannot be followed as a local document or fragment.</p>
 </td></tr>
-<tr><td id="Gui_HtmlView_sigLoadFailed" class="code-type">sigLoadFailed</td><td class="code-type"><a href="#Gui_SigArray">Gui.SigArray</a>'(func||(*<a href="#Gui_HtmlView">Gui.HtmlView</a>, string))</td><td><p>Emitted with the exact reason when progressive file loading stops.</p>
+<tr><td id="Gui_HtmlView_sigLoadFailed" class="code-type">sigLoadFailed</td><td class="code-type"><a href="#Gui_SigArray">Gui.SigArray</a>'(func||(*<a href="#Gui_Wnd">Gui.Wnd</a>, string))</td><td><p>Emitted with the exact reason when progressive file loading stops.</p>
 </td></tr>
 <tr><td id="Gui_HtmlView_wnd" class="code-type">wnd</td><td class="code-type"><a href="#Gui_Wnd">Gui.Wnd</a></td><td><p>Embedded window behavior and presentation.</p>
 </td></tr>
@@ -8426,11 +8426,11 @@ document.sigLinkActivated += <span class="SKwd">func</span>(view, url)
 </td></tr>
 <tr><td id="Gui_IconButton_isChecked" class="code-type">isChecked</td><td class="code-type">bool</td><td><p>Whether the button is checked.</p>
 </td></tr>
-<tr><td id="Gui_IconButton_sigCheckedChanged" class="code-type">sigCheckedChanged</td><td class="code-type"><a href="#Gui_SigArray">Gui.SigArray</a>'(func||(*<a href="#Gui_IconButton">Gui.IconButton</a>))</td><td><p>Emitted after user activation changes checked state.</p>
+<tr><td id="Gui_IconButton_sigCheckedChanged" class="code-type">sigCheckedChanged</td><td class="code-type"><a href="#Gui_SigArray">Gui.SigArray</a>'(func||(*<a href="#Gui_Wnd">Gui.Wnd</a>))</td><td><p>Emitted after user activation changes checked state.</p>
 </td></tr>
-<tr><td id="Gui_IconButton_sigPopupClosed" class="code-type">sigPopupClosed</td><td class="code-type"><a href="#Gui_SigArray">Gui.SigArray</a>'(func||(*<a href="#Gui_IconButton">Gui.IconButton</a>))</td><td><p>Emitted before the owned popup is destroyed.</p>
+<tr><td id="Gui_IconButton_sigPopupClosed" class="code-type">sigPopupClosed</td><td class="code-type"><a href="#Gui_SigArray">Gui.SigArray</a>'(func||(*<a href="#Gui_Wnd">Gui.Wnd</a>))</td><td><p>Emitted before the owned popup is destroyed.</p>
 </td></tr>
-<tr><td id="Gui_IconButton_sigPopupRequested" class="code-type">sigPopupRequested</td><td class="code-type"><a href="#Gui_SigArray">Gui.SigArray</a>'(func||(*<a href="#Gui_IconButton">Gui.IconButton</a>))</td><td><p>Emitted when activation requests popup creation.</p>
+<tr><td id="Gui_IconButton_sigPopupRequested" class="code-type">sigPopupRequested</td><td class="code-type"><a href="#Gui_SigArray">Gui.SigArray</a>'(func||(*<a href="#Gui_Wnd">Gui.Wnd</a>))</td><td><p>Emitted when activation requests popup creation.</p>
 </td></tr>
 <tr><td id="Gui_IconButton_textColor" class="code-type">textColor</td><td class="code-type"><a href="std.pixel.html#Pixel_Color">Pixel.Color</a></td><td><p>Explicit label color, or transparent for theme color.</p>
 </td></tr>
@@ -8553,7 +8553,7 @@ document.sigLinkActivated += <span class="SKwd">func</span>(view, url)
 <tbody>
 <tr><td id="Gui_ImageRect_movie" class="code-type">movie</td><td class="code-type"><a href="#Gui_Movie">Gui.Movie</a></td><td><p>Playback state for the current content.</p>
 </td></tr>
-<tr><td id="Gui_ImageRect_sigFrameChanged" class="code-type">sigFrameChanged</td><td class="code-type"><a href="#Gui_SigArray">Gui.SigArray</a>'(func||(*<a href="#Gui_ImageRect">Gui.ImageRect</a>))</td><td><p>Emitted after the visible animation frame changes.</p>
+<tr><td id="Gui_ImageRect_sigFrameChanged" class="code-type">sigFrameChanged</td><td class="code-type"><a href="#Gui_SigArray">Gui.SigArray</a>'(func||(*<a href="#Gui_Wnd">Gui.Wnd</a>))</td><td><p>Emitted after the visible animation frame changes.</p>
 </td></tr>
 <tr><td id="Gui_ImageRect_wnd" class="code-type">wnd</td><td class="code-type"><a href="#Gui_Wnd">Gui.Wnd</a></td><td><p>Embedded window behavior and presentation.</p>
 </td></tr>
@@ -8609,13 +8609,13 @@ document.sigLinkActivated += <span class="SKwd">func</span>(view, url)
 </td></tr>
 <tr><td id="Gui_ImageView_rotationQuarterTurns" class="code-type">rotationQuarterTurns</td><td class="code-type">u32</td><td><p>Clockwise quarter turns applied to the displayed content.</p>
 </td></tr>
-<tr><td id="Gui_ImageView_sigDecodeFailed" class="code-type">sigDecodeFailed</td><td class="code-type"><a href="#Gui_SigArray">Gui.SigArray</a>'(func||(*<a href="#Gui_ImageView">Gui.ImageView</a>))</td><td><p>Emitted once when frame decoding fails; movie.failureReason contains the error.</p>
+<tr><td id="Gui_ImageView_sigDecodeFailed" class="code-type">sigDecodeFailed</td><td class="code-type"><a href="#Gui_SigArray">Gui.SigArray</a>'(func||(*<a href="#Gui_Wnd">Gui.Wnd</a>))</td><td><p>Emitted once when frame decoding fails; movie.failureReason contains the error.</p>
 </td></tr>
-<tr><td id="Gui_ImageView_sigFrameChanged" class="code-type">sigFrameChanged</td><td class="code-type"><a href="#Gui_SigArray">Gui.SigArray</a>'(func||(*<a href="#Gui_ImageView">Gui.ImageView</a>))</td><td><p>Emitted after an animation frame changes.</p>
+<tr><td id="Gui_ImageView_sigFrameChanged" class="code-type">sigFrameChanged</td><td class="code-type"><a href="#Gui_SigArray">Gui.SigArray</a>'(func||(*<a href="#Gui_Wnd">Gui.Wnd</a>))</td><td><p>Emitted after an animation frame changes.</p>
 </td></tr>
-<tr><td id="Gui_ImageView_sigTransformChanged" class="code-type">sigTransformChanged</td><td class="code-type"><a href="#Gui_SigArray">Gui.SigArray</a>'(func||(*<a href="#Gui_ImageView">Gui.ImageView</a>))</td><td><p>Emitted after the temporary view transform changes.</p>
+<tr><td id="Gui_ImageView_sigTransformChanged" class="code-type">sigTransformChanged</td><td class="code-type"><a href="#Gui_SigArray">Gui.SigArray</a>'(func||(*<a href="#Gui_Wnd">Gui.Wnd</a>))</td><td><p>Emitted after the temporary view transform changes.</p>
 </td></tr>
-<tr><td id="Gui_ImageView_sigZoomChanged" class="code-type">sigZoomChanged</td><td class="code-type"><a href="#Gui_SigArray">Gui.SigArray</a>'(func||(*<a href="#Gui_ImageView">Gui.ImageView</a>))</td><td><p>Emitted after the effective zoom changes.</p>
+<tr><td id="Gui_ImageView_sigZoomChanged" class="code-type">sigZoomChanged</td><td class="code-type"><a href="#Gui_SigArray">Gui.SigArray</a>'(func||(*<a href="#Gui_Wnd">Gui.Wnd</a>))</td><td><p>Emitted after the effective zoom changes.</p>
 </td></tr>
 <tr><td id="Gui_ImageView_wnd" class="code-type">wnd</td><td class="code-type"><a href="#Gui_Wnd">Gui.Wnd</a></td><td><p>Embedded window behavior and presentation.</p>
 </td></tr>
@@ -8716,7 +8716,7 @@ document.sigLinkActivated += <span class="SKwd">func</span>(view, url)
 </td></tr>
 <tr><td id="Gui_InfoBar_label" class="code-type">label</td><td class="code-type">*<a href="#Gui_Label">Gui.Label</a></td><td><p>Message label owned by this bar.</p>
 </td></tr>
-<tr><td id="Gui_InfoBar_sigDismissed" class="code-type">sigDismissed</td><td class="code-type"><a href="#Gui_SigArray">Gui.SigArray</a>'(func||(*<a href="#Gui_InfoBar">Gui.InfoBar</a>))</td><td><p>Emitted when user action or timeout dismisses the bar.</p>
+<tr><td id="Gui_InfoBar_sigDismissed" class="code-type">sigDismissed</td><td class="code-type"><a href="#Gui_SigArray">Gui.SigArray</a>'(func||(*<a href="#Gui_Wnd">Gui.Wnd</a>))</td><td><p>Emitted when user action or timeout dismisses the bar.</p>
 </td></tr>
 </tbody>
 </table>
@@ -8987,7 +8987,7 @@ document.sigLinkActivated += <span class="SKwd">func</span>(view, url)
 </td></tr>
 <tr><td id="Gui_Label_maxLines" class="code-type">maxLines</td><td class="code-type">u32</td><td><p>Largest number of lines the text may occupy; zero keeps every line.</p>
 </td></tr>
-<tr><td id="Gui_Label_sigLinkActivated" class="code-type">sigLinkActivated</td><td class="code-type"><a href="#Gui_SigArray">Gui.SigArray</a>'(func||(*<a href="#Gui_Label">Gui.Label</a>, string))</td><td><p>Emitted when the user activates a rich-text link.</p>
+<tr><td id="Gui_Label_sigLinkActivated" class="code-type">sigLinkActivated</td><td class="code-type"><a href="#Gui_SigArray">Gui.SigArray</a>'(func||(*<a href="#Gui_Wnd">Gui.Wnd</a>, string))</td><td><p>Emitted when the user activates a rich-text link.</p>
 </td></tr>
 <tr><td id="Gui_Label_textColor" class="code-type">textColor</td><td class="code-type"><a href="std.pixel.html#Pixel_Color">Pixel.Color</a></td><td><p>Explicit text color, or transparent for theme colors.</p>
 </td></tr>
@@ -9168,19 +9168,19 @@ document.sigLinkActivated += <span class="SKwd">func</span>(view, url)
 </td></tr>
 <tr><td id="Gui_ListCtrl_selectionMode" class="code-type">selectionMode</td><td class="code-type"><a href="#Gui_ListSelectionMode">Gui.ListSelectionMode</a></td><td><p>Active row-selection policy.</p>
 </td></tr>
-<tr><td id="Gui_ListCtrl_sigCheckedChanged" class="code-type">sigCheckedChanged</td><td class="code-type"><a href="#Gui_SigArray">Gui.SigArray</a>'(func||(*<a href="#Gui_ListCtrl">Gui.ListCtrl</a>))</td><td><p>Emitted after the checked row set changes.</p>
+<tr><td id="Gui_ListCtrl_sigCheckedChanged" class="code-type">sigCheckedChanged</td><td class="code-type"><a href="#Gui_SigArray">Gui.SigArray</a>'(func||(*<a href="#Gui_Wnd">Gui.Wnd</a>))</td><td><p>Emitted after the checked row set changes.</p>
 </td></tr>
-<tr><td id="Gui_ListCtrl_sigCollapsed" class="code-type">sigCollapsed</td><td class="code-type"><a href="#Gui_SigArray">Gui.SigArray</a>'(func||(*<a href="#Gui_ListCtrl">Gui.ListCtrl</a>, *<a href="#Gui_ListLine">Gui.ListLine</a>))</td><td><p>Emitted after a row collapses.</p>
+<tr><td id="Gui_ListCtrl_sigCollapsed" class="code-type">sigCollapsed</td><td class="code-type"><a href="#Gui_SigArray">Gui.SigArray</a>'(func||(*<a href="#Gui_Wnd">Gui.Wnd</a>, *<a href="#Gui_ListLine">Gui.ListLine</a>))</td><td><p>Emitted after a row collapses.</p>
 </td></tr>
-<tr><td id="Gui_ListCtrl_sigExpanded" class="code-type">sigExpanded</td><td class="code-type"><a href="#Gui_SigArray">Gui.SigArray</a>'(func||(*<a href="#Gui_ListCtrl">Gui.ListCtrl</a>, *<a href="#Gui_ListLine">Gui.ListLine</a>))</td><td><p>Emitted after a row expands.</p>
+<tr><td id="Gui_ListCtrl_sigExpanded" class="code-type">sigExpanded</td><td class="code-type"><a href="#Gui_SigArray">Gui.SigArray</a>'(func||(*<a href="#Gui_Wnd">Gui.Wnd</a>, *<a href="#Gui_ListLine">Gui.ListLine</a>))</td><td><p>Emitted after a row expands.</p>
 </td></tr>
-<tr><td id="Gui_ListCtrl_sigKeyPressed" class="code-type">sigKeyPressed</td><td class="code-type"><a href="#Gui_SigArray">Gui.SigArray</a>'(func||(*<a href="#Gui_ListCtrl">Gui.ListCtrl</a>, *<a href="#Gui_KeyEvent">Gui.KeyEvent</a>))</td><td><p>Emitted for a key press before the list reads it; accept the event to claim the key.</p>
+<tr><td id="Gui_ListCtrl_sigKeyPressed" class="code-type">sigKeyPressed</td><td class="code-type"><a href="#Gui_SigArray">Gui.SigArray</a>'(func||(*<a href="#Gui_Wnd">Gui.Wnd</a>, *<a href="#Gui_KeyEvent">Gui.KeyEvent</a>))</td><td><p>Emitted for a key press before the list reads it; accept the event to claim the key.</p>
 </td></tr>
-<tr><td id="Gui_ListCtrl_sigLeftDoubleClicked" class="code-type">sigLeftDoubleClicked</td><td class="code-type"><a href="#Gui_SigArray">Gui.SigArray</a>'(func||(*<a href="#Gui_ListCtrl">Gui.ListCtrl</a>, <a href="std.core.html#Core_Math_Point">Core.Math.Point</a>))</td><td><p>Emitted for a left double click, with the local position.</p>
+<tr><td id="Gui_ListCtrl_sigLeftDoubleClicked" class="code-type">sigLeftDoubleClicked</td><td class="code-type"><a href="#Gui_SigArray">Gui.SigArray</a>'(func||(*<a href="#Gui_Wnd">Gui.Wnd</a>, <a href="std.core.html#Core_Math_Point">Core.Math.Point</a>))</td><td><p>Emitted for a left double click, with the local position.</p>
 </td></tr>
-<tr><td id="Gui_ListCtrl_sigRightClicked" class="code-type">sigRightClicked</td><td class="code-type"><a href="#Gui_SigArray">Gui.SigArray</a>'(func||(*<a href="#Gui_ListCtrl">Gui.ListCtrl</a>, <a href="std.core.html#Core_Math_Point">Core.Math.Point</a>))</td><td><p>Emitted for a right click, with the local position.</p>
+<tr><td id="Gui_ListCtrl_sigRightClicked" class="code-type">sigRightClicked</td><td class="code-type"><a href="#Gui_SigArray">Gui.SigArray</a>'(func||(*<a href="#Gui_Wnd">Gui.Wnd</a>, <a href="std.core.html#Core_Math_Point">Core.Math.Point</a>))</td><td><p>Emitted for a right click, with the local position.</p>
 </td></tr>
-<tr><td id="Gui_ListCtrl_sigSelectionChanged" class="code-type">sigSelectionChanged</td><td class="code-type"><a href="#Gui_SigArray">Gui.SigArray</a>'(func||(*<a href="#Gui_ListCtrl">Gui.ListCtrl</a>))</td><td><p>Emitted after the selected row set changes.</p>
+<tr><td id="Gui_ListCtrl_sigSelectionChanged" class="code-type">sigSelectionChanged</td><td class="code-type"><a href="#Gui_SigArray">Gui.SigArray</a>'(func||(*<a href="#Gui_Wnd">Gui.Wnd</a>))</td><td><p>Emitted after the selected row set changes.</p>
 </td></tr>
 <tr><td id="Gui_ListCtrl_virtualCount" class="code-type">virtualCount</td><td class="code-type">u32</td><td><p>Number of rows supplied by <span class="code-inline">onFillVirtualLine</span>.</p>
 </td></tr>
@@ -9396,7 +9396,7 @@ document.sigLinkActivated += <span class="SKwd">func</span>(view, url)
 </td></tr>
 <tr><td id="Gui_MenuCtrl_onPrepareItem" class="code-type">onPrepareItem</td><td class="code-type">(func(*<a href="#Gui_MenuCtrl">Gui.MenuCtrl</a>, *<a href="#Gui_PopupMenuItem">Gui.PopupMenuItem</a>))?</td><td><p>Updates an item before menu layout is computed.</p>
 </td></tr>
-<tr><td id="Gui_MenuCtrl_sigCommandSelected" class="code-type">sigCommandSelected</td><td class="code-type"><a href="#Gui_SigArray">Gui.SigArray</a>'(func||(*<a href="#Gui_MenuCtrl">Gui.MenuCtrl</a>, string))</td><td><p>Emitted after a command is selected.</p>
+<tr><td id="Gui_MenuCtrl_sigCommandSelected" class="code-type">sigCommandSelected</td><td class="code-type"><a href="#Gui_SigArray">Gui.SigArray</a>'(func||(*<a href="#Gui_Wnd">Gui.Wnd</a>, string))</td><td><p>Emitted after a command is selected.</p>
 </td></tr>
 <tr><td id="Gui_MenuCtrl_submenuDirection" class="code-type">submenuDirection</td><td class="code-type"><a href="#Gui_SubmenuDirection">Gui.SubmenuDirection</a></td><td><p>Preferred side for child menus.</p>
 </td></tr>
@@ -9773,7 +9773,7 @@ document.sigLinkActivated += <span class="SKwd">func</span>(view, url)
 </td></tr>
 <tr><td id="Gui_PalettePicker_selectedIndex" class="code-type">selectedIndex</td><td class="code-type">s32</td><td><p>Selected color index, or <span class="code-inline">Swag.S32.Max</span> when absent.</p>
 </td></tr>
-<tr><td id="Gui_PalettePicker_sigSelectionChanged" class="code-type">sigSelectionChanged</td><td class="code-type"><a href="#Gui_SigArray">Gui.SigArray</a>'(func||(*<a href="#Gui_PalettePicker">Gui.PalettePicker</a>))</td><td><p>Emitted after the selected color changes.</p>
+<tr><td id="Gui_PalettePicker_sigSelectionChanged" class="code-type">sigSelectionChanged</td><td class="code-type"><a href="#Gui_SigArray">Gui.SigArray</a>'(func||(*<a href="#Gui_Wnd">Gui.Wnd</a>))</td><td><p>Emitted after the selected color changes.</p>
 </td></tr>
 <tr><td id="Gui_PalettePicker_spacing" class="code-type">spacing</td><td class="code-type">s32</td><td><p>Gap between adjacent color items, in logical units.</p>
 </td></tr>
@@ -9831,11 +9831,11 @@ document.sigLinkActivated += <span class="SKwd">func</span>(view, url)
 </td></tr>
 <tr><td id="Gui_PasswordEdit_savedSelEnd" class="code-type">savedSelEnd</td><td class="code-type">u64</td><td><p>Mask selection end saved while plaintext is visible.</p>
 </td></tr>
-<tr><td id="Gui_PasswordEdit_sigCancelled" class="code-type">sigCancelled</td><td class="code-type"><a href="#Gui_SigArray">Gui.SigArray</a>'(func||(*<a href="#Gui_PasswordEdit">Gui.PasswordEdit</a>))</td><td><p>Emitted when Escape is pressed.</p>
+<tr><td id="Gui_PasswordEdit_sigCancelled" class="code-type">sigCancelled</td><td class="code-type"><a href="#Gui_SigArray">Gui.SigArray</a>'(func||(*<a href="#Gui_Wnd">Gui.Wnd</a>))</td><td><p>Emitted when Escape is pressed.</p>
 </td></tr>
-<tr><td id="Gui_PasswordEdit_sigChanged" class="code-type">sigChanged</td><td class="code-type"><a href="#Gui_SigArray">Gui.SigArray</a>'(func||(*<a href="#Gui_PasswordEdit">Gui.PasswordEdit</a>))</td><td><p>Emitted after the password changes.</p>
+<tr><td id="Gui_PasswordEdit_sigChanged" class="code-type">sigChanged</td><td class="code-type"><a href="#Gui_SigArray">Gui.SigArray</a>'(func||(*<a href="#Gui_Wnd">Gui.Wnd</a>))</td><td><p>Emitted after the password changes.</p>
 </td></tr>
-<tr><td id="Gui_PasswordEdit_sigSubmitted" class="code-type">sigSubmitted</td><td class="code-type"><a href="#Gui_SigArray">Gui.SigArray</a>'(func||(*<a href="#Gui_PasswordEdit">Gui.PasswordEdit</a>))</td><td><p>Emitted when Enter is pressed.</p>
+<tr><td id="Gui_PasswordEdit_sigSubmitted" class="code-type">sigSubmitted</td><td class="code-type"><a href="#Gui_SigArray">Gui.SigArray</a>'(func||(*<a href="#Gui_Wnd">Gui.Wnd</a>))</td><td><p>Emitted when Enter is pressed.</p>
 </td></tr>
 <tr><td id="Gui_PasswordEdit_storage" class="code-type">storage</td><td class="code-type">[1024] u8</td><td><p>Fixed storage avoids reallocating plaintext through a general allocator.</p>
 </td></tr>
@@ -9927,11 +9927,11 @@ view.<span class="SFct">zoomToFitWidth</span>()</span></div>
 </td></tr>
 <tr><td id="Gui_PdfView_pageLayout" class="code-type">pageLayout</td><td class="code-type"><a href="#Gui_PdfPageLayout">Gui.PdfPageLayout</a></td><td><p>How the document's pages are laid out.</p>
 </td></tr>
-<tr><td id="Gui_PdfView_sigPageChanged" class="code-type">sigPageChanged</td><td class="code-type"><a href="#Gui_SigArray">Gui.SigArray</a>'(func||(*<a href="#Gui_PdfView">Gui.PdfView</a>))</td><td><p>Emitted after the page the viewport shows changes.</p>
+<tr><td id="Gui_PdfView_sigPageChanged" class="code-type">sigPageChanged</td><td class="code-type"><a href="#Gui_SigArray">Gui.SigArray</a>'(func||(*<a href="#Gui_Wnd">Gui.Wnd</a>))</td><td><p>Emitted after the page the viewport shows changes.</p>
 </td></tr>
-<tr><td id="Gui_PdfView_sigRenderError" class="code-type">sigRenderError</td><td class="code-type"><a href="#Gui_SigArray">Gui.SigArray</a>'(func||(*<a href="#Gui_PdfView">Gui.PdfView</a>, string))</td><td><p>Emitted when a page cannot be decoded or painted.</p>
+<tr><td id="Gui_PdfView_sigRenderError" class="code-type">sigRenderError</td><td class="code-type"><a href="#Gui_SigArray">Gui.SigArray</a>'(func||(*<a href="#Gui_Wnd">Gui.Wnd</a>, string))</td><td><p>Emitted when a page cannot be decoded or painted.</p>
 </td></tr>
-<tr><td id="Gui_PdfView_sigZoomChanged" class="code-type">sigZoomChanged</td><td class="code-type"><a href="#Gui_SigArray">Gui.SigArray</a>'(func||(*<a href="#Gui_PdfView">Gui.PdfView</a>))</td><td><p>Emitted after the effective zoom changes.</p>
+<tr><td id="Gui_PdfView_sigZoomChanged" class="code-type">sigZoomChanged</td><td class="code-type"><a href="#Gui_SigArray">Gui.SigArray</a>'(func||(*<a href="#Gui_Wnd">Gui.Wnd</a>))</td><td><p>Emitted after the effective zoom changes.</p>
 </td></tr>
 <tr><td id="Gui_PdfView_wnd" class="code-type">wnd</td><td class="code-type"><a href="#Gui_Wnd">Gui.Wnd</a></td><td><p>Embedded window behavior and presentation.</p>
 </td></tr>
@@ -10202,7 +10202,7 @@ view.<span class="SFct">zoomToFitWidth</span>()</span></div>
 </td></tr>
 <tr><td id="Gui_Properties_selItem" class="code-type">selItem</td><td class="code-type">*<a href="#Gui_PropertiesItem">Gui.PropertiesItem</a>?</td><td><p>Selected row, or <span class="code-inline">null</span>.</p>
 </td></tr>
-<tr><td id="Gui_Properties_sigValueChanged" class="code-type">sigValueChanged</td><td class="code-type"><a href="#Gui_SigArray">Gui.SigArray</a>'(func||(*<a href="#Gui_Properties">Gui.Properties</a>, *<a href="#Gui_PropertiesItem">Gui.PropertiesItem</a>?))</td><td><p>Emitted after an edited value changes; item is null for detached undo/redo.</p>
+<tr><td id="Gui_Properties_sigValueChanged" class="code-type">sigValueChanged</td><td class="code-type"><a href="#Gui_SigArray">Gui.SigArray</a>'(func||(*<a href="#Gui_Wnd">Gui.Wnd</a>, *<a href="#Gui_PropertiesItem">Gui.PropertiesItem</a>?))</td><td><p>Emitted after an edited value changes; item is null for detached undo/redo.</p>
 </td></tr>
 <tr><td id="Gui_Properties_usingFieldsLast" class="code-type">usingFieldsLast</td><td class="code-type">bool</td><td><p>Affects rows added after the option changes.</p>
 </td></tr>
@@ -10497,7 +10497,7 @@ view.<span class="SFct">zoomToFitWidth</span>()</span></div>
 </td></tr>
 <tr><td id="Gui_RadioButton_groupId" class="code-type">groupId</td><td class="code-type">string?</td><td><p>Identifier shared by mutually exclusive siblings; null leaves the button ungrouped.</p>
 </td></tr>
-<tr><td id="Gui_RadioButton_sigChanged" class="code-type">sigChanged</td><td class="code-type"><a href="#Gui_SigArray">Gui.SigArray</a>'(func||(*<a href="#Gui_RadioButton">Gui.RadioButton</a>))</td><td><p>Emitted after a user action selects the button.</p>
+<tr><td id="Gui_RadioButton_sigChanged" class="code-type">sigChanged</td><td class="code-type"><a href="#Gui_SigArray">Gui.SigArray</a>'(func||(*<a href="#Gui_Wnd">Gui.Wnd</a>))</td><td><p>Emitted after a user action selects the button.</p>
 </td></tr>
 </tbody>
 </table>
@@ -10561,13 +10561,13 @@ view.<span class="SFct">zoomToFitWidth</span>()</span></div>
 </td></tr>
 <tr><td id="Gui_RichEditCtrl_overwriteMode" class="code-type">overwriteMode</td><td class="code-type">bool</td><td><p>Whether typed text replaces the rune under the caret.</p>
 </td></tr>
-<tr><td id="Gui_RichEditCtrl_sigChanged" class="code-type">sigChanged</td><td class="code-type"><a href="#Gui_SigArray">Gui.SigArray</a>'(func||(*<a href="#Gui_RichEditCtrl">Gui.RichEditCtrl</a>))</td><td><p>Emitted after document content changes.</p>
+<tr><td id="Gui_RichEditCtrl_sigChanged" class="code-type">sigChanged</td><td class="code-type"><a href="#Gui_SigArray">Gui.SigArray</a>'(func||(*<a href="#Gui_Wnd">Gui.Wnd</a>))</td><td><p>Emitted after document content changes.</p>
 </td></tr>
 <tr><td id="Gui_RichEditCtrl_sigIsReadOnly" class="code-type">sigIsReadOnly</td><td class="code-type"><a href="#Gui_SigArray">Gui.SigArray</a>'(func||(*bool))</td><td><p>Lets owners impose read-only state in addition to <span class="code-inline">flags</span>.</p>
 </td></tr>
-<tr><td id="Gui_RichEditCtrl_sigModified" class="code-type">sigModified</td><td class="code-type"><a href="#Gui_SigArray">Gui.SigArray</a>'(func||(*<a href="#Gui_RichEditCtrl">Gui.RichEditCtrl</a>))</td><td><p>Emitted when the modified state toggles.</p>
+<tr><td id="Gui_RichEditCtrl_sigModified" class="code-type">sigModified</td><td class="code-type"><a href="#Gui_SigArray">Gui.SigArray</a>'(func||(*<a href="#Gui_Wnd">Gui.Wnd</a>))</td><td><p>Emitted when the modified state toggles.</p>
 </td></tr>
-<tr><td id="Gui_RichEditCtrl_sigScrollPositionChanged" class="code-type">sigScrollPositionChanged</td><td class="code-type"><a href="#Gui_SigArray">Gui.SigArray</a>'(func||(*<a href="#Gui_RichEditCtrl">Gui.RichEditCtrl</a>, <a href="std.core.html#Core_Math_Point">Core.Math.Point</a>, <a href="std.core.html#Core_Math_Point">Core.Math.Point</a>))</td><td><p>Emitted with old and new scroll positions.</p>
+<tr><td id="Gui_RichEditCtrl_sigScrollPositionChanged" class="code-type">sigScrollPositionChanged</td><td class="code-type"><a href="#Gui_SigArray">Gui.SigArray</a>'(func||(*<a href="#Gui_Wnd">Gui.Wnd</a>, <a href="std.core.html#Core_Math_Point">Core.Math.Point</a>, <a href="std.core.html#Core_Math_Point">Core.Math.Point</a>))</td><td><p>Emitted with old and new scroll positions.</p>
 </td></tr>
 <tr><td id="Gui_RichEditCtrl_styles" class="code-type">styles</td><td class="code-type">[256] <a href="#Gui_RichEditRuneStyle">Gui.RichEditRuneStyle</a></td><td><p>Style of each index a lexer assigns.</p>
 </td></tr>
@@ -10896,9 +10896,9 @@ view.<span class="SFct">zoomToFitWidth</span>()</span></div>
 </td></tr>
 <tr><td id="Gui_ScrollWnd_scrollSize" class="code-type">scrollSize</td><td class="code-type"><a href="std.core.html#Core_Math_Point">Core.Math.Point</a></td><td><p>Virtual content size.</p>
 </td></tr>
-<tr><td id="Gui_ScrollWnd_sigScrollPositionChanged" class="code-type">sigScrollPositionChanged</td><td class="code-type"><a href="#Gui_SigArray">Gui.SigArray</a>'(func||(*<a href="#Gui_ScrollWnd">Gui.ScrollWnd</a>, <a href="std.core.html#Core_Math_Point">Core.Math.Point</a>, <a href="std.core.html#Core_Math_Point">Core.Math.Point</a>))</td><td><p>Emitted with old and new scroll positions.</p>
+<tr><td id="Gui_ScrollWnd_sigScrollPositionChanged" class="code-type">sigScrollPositionChanged</td><td class="code-type"><a href="#Gui_SigArray">Gui.SigArray</a>'(func||(*<a href="#Gui_Wnd">Gui.Wnd</a>, <a href="std.core.html#Core_Math_Point">Core.Math.Point</a>, <a href="std.core.html#Core_Math_Point">Core.Math.Point</a>))</td><td><p>Emitted with old and new scroll positions.</p>
 </td></tr>
-<tr><td id="Gui_ScrollWnd_sigScrollSizeChanged" class="code-type">sigScrollSizeChanged</td><td class="code-type"><a href="#Gui_SigArray">Gui.SigArray</a>'(func||(*<a href="#Gui_ScrollWnd">Gui.ScrollWnd</a>, <a href="std.core.html#Core_Math_Point">Core.Math.Point</a>, <a href="std.core.html#Core_Math_Point">Core.Math.Point</a>))</td><td><p>Emitted with old and new virtual sizes.</p>
+<tr><td id="Gui_ScrollWnd_sigScrollSizeChanged" class="code-type">sigScrollSizeChanged</td><td class="code-type"><a href="#Gui_SigArray">Gui.SigArray</a>'(func||(*<a href="#Gui_Wnd">Gui.Wnd</a>, <a href="std.core.html#Core_Math_Point">Core.Math.Point</a>, <a href="std.core.html#Core_Math_Point">Core.Math.Point</a>))</td><td><p>Emitted with old and new virtual sizes.</p>
 </td></tr>
 <tr><td id="Gui_ScrollWnd_verticalScrollStep" class="code-type">verticalScrollStep</td><td class="code-type">f32</td><td><p>Vertical distance applied per mouse-wheel notch.</p>
 </td></tr>
@@ -11018,9 +11018,11 @@ view.<span class="SFct">zoomToFitWidth</span>()</span></div>
 </tbody>
 </table>
 <section class="api-symbol">
-<div class="api-item api-item-struct"><span id="Gui_SigArray" class="api-item-title"><span class="api-item-title-kind">struct</span> <span class="api-item-title-strong">Gui.SigArray</span> <a class="api-item-permalink" href="#Gui_SigArray" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/gui/src/sigarray.swg#L6">src</a></div>
+<div class="api-item api-item-struct"><span id="Gui_SigArray" class="api-item-title"><span class="api-item-title-kind">struct</span> <span class="api-item-title-strong">Gui.SigArray</span> <a class="api-item-permalink" href="#Gui_SigArray" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/gui/src/sigarray.swg#L11">src</a></div>
 <p>Ordered collection of callbacks that can be suspended as a nested scope.</p>
-<div class="code-block"><span class="SCde"><span class="SKwd">struct</span>(<span class="SCst">T</span>) <span class="SCst"><a href="#Gui_SigArray">SigArray</a></span></span></div>
+<p>A callback connected through <span class="code-inline">owner.signal</span> receives <span class="code-inline">owner</span> with its own type, so a handler of a derived widget reads its fields without a cast. The owner emits with itself as the first argument.</p>
+<div class="code-block"><span class="SCde"><span class="SAtr">#[</span><span class="SNsp">Swag</span>.<span class="SAtr">Signal]</span>
+<span class="SKwd">struct</span>(<span class="SCst">T</span>) <span class="SCst"><a href="#Gui_SigArray">SigArray</a></span></span></div>
 </section>
 <h3 id="Gui_SigArray_methods">Methods</h3>
 <table class="api-summary">
@@ -11074,11 +11076,11 @@ view.<span class="SFct">zoomToFitWidth</span>()</span></div>
 <tbody>
 <tr><td id="Gui_Slider_flags" class="code-type">flags</td><td class="code-type"><a href="#Gui_SliderFlags">Gui.SliderFlags</a></td><td><p>Active behavior and presentation flags.</p>
 </td></tr>
-<tr><td id="Gui_Slider_sigChanged" class="code-type">sigChanged</td><td class="code-type"><a href="#Gui_SigArray">Gui.SigArray</a>'(func||(*<a href="#Gui_Slider">Gui.Slider</a>))</td><td><p>Emitted after either value changes.</p>
+<tr><td id="Gui_Slider_sigChanged" class="code-type">sigChanged</td><td class="code-type"><a href="#Gui_SigArray">Gui.SigArray</a>'(func||(*<a href="#Gui_Wnd">Gui.Wnd</a>))</td><td><p>Emitted after either value changes.</p>
 </td></tr>
-<tr><td id="Gui_Slider_sigEndChange" class="code-type">sigEndChange</td><td class="code-type"><a href="#Gui_SigArray">Gui.SigArray</a>'(func||(*<a href="#Gui_Slider">Gui.Slider</a>))</td><td><p>Emitted when a user-style change transaction ends.</p>
+<tr><td id="Gui_Slider_sigEndChange" class="code-type">sigEndChange</td><td class="code-type"><a href="#Gui_SigArray">Gui.SigArray</a>'(func||(*<a href="#Gui_Wnd">Gui.Wnd</a>))</td><td><p>Emitted when a user-style change transaction ends.</p>
 </td></tr>
-<tr><td id="Gui_Slider_sigStartChange" class="code-type">sigStartChange</td><td class="code-type"><a href="#Gui_SigArray">Gui.SigArray</a>'(func||(*<a href="#Gui_Slider">Gui.Slider</a>))</td><td><p>Emitted when a user-style change transaction starts.</p>
+<tr><td id="Gui_Slider_sigStartChange" class="code-type">sigStartChange</td><td class="code-type"><a href="#Gui_SigArray">Gui.SigArray</a>'(func||(*<a href="#Gui_Wnd">Gui.Wnd</a>))</td><td><p>Emitted when a user-style change transaction starts.</p>
 </td></tr>
 <tr><td id="Gui_Slider_wnd" class="code-type">wnd</td><td class="code-type"><a href="#Gui_Wnd">Gui.Wnd</a></td><td><p>Embedded window behavior and presentation.</p>
 </td></tr>
@@ -11137,7 +11139,7 @@ view.<span class="SFct">zoomToFitWidth</span>()</span></div>
 </td></tr>
 <tr><td id="Gui_SliderCtrl_labelWidth" class="code-type">labelWidth</td><td class="code-type">f32</td><td><p>Width reserved for the label.</p>
 </td></tr>
-<tr><td id="Gui_SliderCtrl_sigChanged" class="code-type">sigChanged</td><td class="code-type"><a href="#Gui_SigArray">Gui.SigArray</a>'(func||(*<a href="#Gui_SliderCtrl">Gui.SliderCtrl</a>))</td><td><p>Emitted after the slider value changes.</p>
+<tr><td id="Gui_SliderCtrl_sigChanged" class="code-type">sigChanged</td><td class="code-type"><a href="#Gui_SigArray">Gui.SigArray</a>'(func||(*<a href="#Gui_Wnd">Gui.Wnd</a>))</td><td><p>Emitted after the slider value changes.</p>
 </td></tr>
 <tr><td id="Gui_SliderCtrl_slider" class="code-type">slider</td><td class="code-type">*<a href="#Gui_Slider">Gui.Slider</a></td><td><p>Interactive value slider.</p>
 </td></tr>
@@ -11809,7 +11811,7 @@ busy.<span class="SFct">hide</span>()</span></div>
 </td></tr>
 <tr><td id="Gui_Tab_selectedIndex" class="code-type">selectedIndex</td><td class="code-type">u32</td><td><p>Selected tab index, or U32.Max when empty.</p>
 </td></tr>
-<tr><td id="Gui_Tab_sigSelectionChanged" class="code-type">sigSelectionChanged</td><td class="code-type"><a href="#Gui_SigArray">Gui.SigArray</a>'(func||(*<a href="#Gui_Tab">Gui.Tab</a>))</td><td><p>Emitted after the selected tab changes.</p>
+<tr><td id="Gui_Tab_sigSelectionChanged" class="code-type">sigSelectionChanged</td><td class="code-type"><a href="#Gui_SigArray">Gui.SigArray</a>'(func||(*<a href="#Gui_Wnd">Gui.Wnd</a>))</td><td><p>Emitted after the selected tab changes.</p>
 </td></tr>
 <tr><td id="Gui_Tab_viewForm" class="code-type">viewForm</td><td class="code-type"><a href="#Gui_TabViewForm">Gui.TabViewForm</a></td><td><p>Selected page frame presentation.</p>
 </td></tr>
@@ -13556,7 +13558,7 @@ busy.<span class="SFct">hide</span>()</span></div>
 <tbody>
 <tr><td id="Gui_ToggleButton_button" class="code-type">button</td><td class="code-type"><a href="#Gui_Button">Gui.Button</a></td><td><p>Embedded button behavior and presentation.</p>
 </td></tr>
-<tr><td id="Gui_ToggleButton_sigChanged" class="code-type">sigChanged</td><td class="code-type"><a href="#Gui_SigArray">Gui.SigArray</a>'(func||(*<a href="#Gui_ToggleButton">Gui.ToggleButton</a>))</td><td><p>Emitted after a user action changes the state.</p>
+<tr><td id="Gui_ToggleButton_sigChanged" class="code-type">sigChanged</td><td class="code-type"><a href="#Gui_SigArray">Gui.SigArray</a>'(func||(*<a href="#Gui_Wnd">Gui.Wnd</a>))</td><td><p>Emitted after a user action changes the state.</p>
 </td></tr>
 </tbody>
 </table>
@@ -14107,9 +14109,9 @@ busy.<span class="SFct">hide</span>()</span></div>
 </td></tr>
 <tr><td id="Gui_Markdown_View_failureReason" class="code-type">failureReason</td><td class="code-type"><a href="std.core.html#Core_String">Core.String</a></td><td><p>File-loading explanation, or empty while loading remains valid.</p>
 </td></tr>
-<tr><td id="Gui_Markdown_View_sigLinkActivated" class="code-type">sigLinkActivated</td><td class="code-type"><a href="#Gui_SigArray">Gui.SigArray</a>'(func||(*<a href="#Gui_Markdown_View">Gui.Markdown.View</a>, string))</td><td><p>Emitted when a rendered link is activated.</p>
+<tr><td id="Gui_Markdown_View_sigLinkActivated" class="code-type">sigLinkActivated</td><td class="code-type"><a href="#Gui_SigArray">Gui.SigArray</a>'(func||(*<a href="#Gui_Wnd">Gui.Wnd</a>, string))</td><td><p>Emitted when a rendered link is activated.</p>
 </td></tr>
-<tr><td id="Gui_Markdown_View_sigLoadFailed" class="code-type">sigLoadFailed</td><td class="code-type"><a href="#Gui_SigArray">Gui.SigArray</a>'(func||(*<a href="#Gui_Markdown_View">Gui.Markdown.View</a>, string))</td><td><p>Emitted with the exact reason when progressive file loading stops.</p>
+<tr><td id="Gui_Markdown_View_sigLoadFailed" class="code-type">sigLoadFailed</td><td class="code-type"><a href="#Gui_SigArray">Gui.SigArray</a>'(func||(*<a href="#Gui_Wnd">Gui.Wnd</a>, string))</td><td><p>Emitted with the exact reason when progressive file loading stops.</p>
 </td></tr>
 <tr><td id="Gui_Markdown_View_wnd" class="code-type">wnd</td><td class="code-type"><a href="#Gui_Wnd">Gui.Wnd</a></td><td><p>Embedded window behavior and presentation.</p>
 </td></tr>
@@ -21571,13 +21573,13 @@ view.<span class="SFct">updateVideoFrame</span>(&amp;planes)</span></div>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">addSeparator</span>(name: <span class="STpe">string</span>? = <span class="SKwd">null</span>, parentItem: *<span class="SCst"><a href="#Gui_PropertiesItem">PropertiesItem</a></span>? = <span class="SKwd">null</span>)-&gt;*<span class="SCst"><a href="#Gui_PropertiesItem">PropertiesItem</a></span></span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Gui_Properties_addStruct" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Properties.addStruct</span> <a class="api-item-permalink" href="#Gui_Properties_addStruct" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/gui/src/controls/property/properties.swg#L535">src</a></div>
+<div class="api-item api-item-func"><span id="Gui_Properties_addStruct" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Properties.addStruct</span> <a class="api-item-permalink" href="#Gui_Properties_addStruct" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/gui/src/controls/property/properties.swg#L536">src</a></div>
 <p>Appends a row for each field of the structure <span class="code-inline">val</span> holds, under an optional <span class="code-inline">section</span> heading.</p>
 <p>The grid edits the structure in place, so it must outlive the rows.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">addStruct</span>(val: <span class="STpe">any</span>, section: <span class="STpe">string</span>? = <span class="SKwd">null</span>)</span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Gui_Properties_addStructMulti" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Properties.addStructMulti</span> <a class="api-item-permalink" href="#Gui_Properties_addStructMulti" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/gui/src/controls/property/properties.swg#L552">src</a></div>
+<div class="api-item api-item-func"><span id="Gui_Properties_addStructMulti" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Properties.addStructMulti</span> <a class="api-item-permalink" href="#Gui_Properties_addStructMulti" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/gui/src/controls/property/properties.swg#L553">src</a></div>
 <p>Appends rows that edit several instances of the structure type <span class="code-inline">typeof</span> together.</p>
 <p><span class="code-inline">bases</span> holds the base address of each instance, at least one. Editing a field writes it into every instance, and a field whose value differs across the instances is shown as mixed. With a single base this behaves like <a href="#Gui_Properties_addStruct">Gui.Properties.addStruct</a>. With <span class="code-inline">onlyNamed</span>, only the fields carrying an explicit <span class="code-inline">Properties.Name</span> attribute get a row, which suits a structure whose fields are mostly internal state.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">addStructMulti</span>(typeof: <span class="STpe">typeinfo</span>, bases: [..] *<span class="STpe">u8</span>, section: <span class="STpe">string</span>? = <span class="SKwd">null</span>, onlyNamed = <span class="SKwd">false</span>)</span></div>
@@ -21611,7 +21613,7 @@ view.<span class="SFct">updateVideoFrame</span>(&amp;planes)</span></div>
 <div class="code-block"><span class="SCde"><span class="SKwd">attr</span> <span class="SFct">Category</span>(name: <span class="STpe">string</span>)</span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Gui_Properties_clear" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Properties.clear</span> <a class="api-item-permalink" href="#Gui_Properties_clear" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/gui/src/controls/property/properties.swg#L510">src</a></div>
+<div class="api-item api-item-func"><span id="Gui_Properties_clear" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Properties.clear</span> <a class="api-item-permalink" href="#Gui_Properties_clear" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/gui/src/controls/property/properties.swg#L511">src</a></div>
 <p>Removes every displayed structure and row, keeping the widget alive for new content.</p>
 <p>Bind the new content with <a href="#Gui_Properties_addStruct">Gui.Properties.addStruct</a> or <a href="#Gui_Properties_addStructMulti">Gui.Properties.addStructMulti</a>, as an editor panel does when it follows the current selection. The undo history recorded so far survives on an external manager, detached from the rows; the internal one is cleared with the content it refers to.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">clear</span>()</span></div>
@@ -21623,19 +21625,19 @@ view.<span class="SFct">updateVideoFrame</span>(&amp;planes)</span></div>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">clearUndo</span>()</span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Gui_Properties_collapseAll" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Properties.collapseAll</span> <a class="api-item-permalink" href="#Gui_Properties_collapseAll" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/gui/src/controls/property/properties.swg#L741">src</a></div>
+<div class="api-item api-item-func"><span id="Gui_Properties_collapseAll" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Properties.collapseAll</span> <a class="api-item-permalink" href="#Gui_Properties_collapseAll" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/gui/src/controls/property/properties.swg#L742">src</a></div>
 <p>Collapses every visible section and category in grid presentations.</p>
 <p>The invisible root used when <a href="#Gui_Properties_addStruct">Gui.Properties.addStruct</a> has no section label remains expanded so collapsing the view never hides the complete editor behind a row the user cannot reopen.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">collapseAll</span>()</span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Gui_Properties_commitItemChange" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Properties.commitItemChange</span> <a class="api-item-permalink" href="#Gui_Properties_commitItemChange" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/gui/src/controls/property/properties.swg#L646">src</a></div>
+<div class="api-item api-item-func"><span id="Gui_Properties_commitItemChange" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Properties.commitItemChange</span> <a class="api-item-permalink" href="#Gui_Properties_commitItemChange" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/gui/src/controls/property/properties.swg#L647">src</a></div>
 <p>Commits a value an editor wrote, with propagation, undo, refresh, validation, layout, and notifications.</p>
 <p>Custom <a href="#Gui_IPropertyEditor">Gui.IPropertyEditor</a> implementations call it once per logical edit, after updating the bound data.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">commitItemChange</span>(item: *<span class="SCst"><a href="#Gui_PropertiesItem">PropertiesItem</a></span>)</span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Gui_Properties_create" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Properties.create</span> <a class="api-item-permalink" href="#Gui_Properties_create" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/gui/src/controls/property/properties.swg#L390">src</a></div>
+<div class="api-item api-item-func"><span id="Gui_Properties_create" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Properties.create</span> <a class="api-item-permalink" href="#Gui_Properties_create" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/gui/src/controls/property/properties.swg#L391">src</a></div>
 <p>Creates an empty property grid with the <span class="code-inline">kind</span> presentation.</p>
 <div class="code-block"><span class="SCde"><span class="SAtr">#[</span><span class="SNsp">Swag</span>.<span class="SAtr">Discardable]</span>
 <span class="SKwd">func</span> <span class="SFct">create</span>(parent: *<span class="SCst"><a href="#Gui_Wnd">Wnd</a></span>, position: <span class="SCst"><a href="std.core.html#namespace_Core_Math">Math</a></span>.<span class="SCst">Rectangle</span> = {}, kind = <span class="SCst"><a href="#Gui_PropertiesKind">PropertiesKind</a></span>.<span class="SCst"><a href="#Gui_PropertiesKind_List">List</a></span>, id: <span class="SCst"><a href="#Gui_WndId">WndId</a></span>? = <span class="SKwd">null</span>)-&gt;*<span class="SCst"><a href="#Gui_Properties">Properties</a></span></span></div>
@@ -21657,12 +21659,12 @@ view.<span class="SFct">updateVideoFrame</span>(&amp;planes)</span></div>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">endAppendRows</span>()</span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Gui_Properties_expandAll" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Properties.expandAll</span> <a class="api-item-permalink" href="#Gui_Properties_expandAll" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/gui/src/controls/property/properties.swg#L726">src</a></div>
+<div class="api-item api-item-func"><span id="Gui_Properties_expandAll" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Properties.expandAll</span> <a class="api-item-permalink" href="#Gui_Properties_expandAll" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/gui/src/controls/property/properties.swg#L727">src</a></div>
 <p>Expands every collapsible section and category in grid presentations.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">expandAll</span>()</span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Gui_Properties_expandModified" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Properties.expandModified</span> <a class="api-item-permalink" href="#Gui_Properties_expandModified" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/gui/src/controls/property/properties.swg#L755">src</a></div>
+<div class="api-item api-item-func"><span id="Gui_Properties_expandModified" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Properties.expandModified</span> <a class="api-item-permalink" href="#Gui_Properties_expandModified" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/gui/src/controls/property/properties.swg#L756">src</a></div>
 <p>Expands only the branches containing fields that differ from their declared defaults.</p>
 <p>Other visible branches are collapsed; the current text and modified-only filters remain unchanged.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">expandModified</span>()</span></div>
@@ -21715,7 +21717,7 @@ view.<span class="SFct">updateVideoFrame</span>(&amp;planes)</span></div>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">isGridLike</span>()-&gt;<span class="STpe">bool</span></span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Gui_Properties_isItemReadOnly" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Properties.isItemReadOnly</span> <a class="api-item-permalink" href="#Gui_Properties_isItemReadOnly" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/gui/src/controls/property/properties.swg#L788">src</a></div>
+<div class="api-item api-item-func"><span id="Gui_Properties_isItemReadOnly" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Properties.isItemReadOnly</span> <a class="api-item-permalink" href="#Gui_Properties_isItemReadOnly" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/gui/src/controls/property/properties.swg#L789">src</a></div>
 <p>Returns whether <span class="code-inline">item</span> is read-only: shown, but closed to editing and paste.</p>
 <p>A static string, a field tagged with the <span class="code-inline">ReadOnly</span> attribute, and a row a notify interface along the parent chain declares read-only are all read-only.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">isItemReadOnly</span>(item: *<span class="SCst"><a href="#Gui_PropertiesItem">PropertiesItem</a></span>)-&gt;<span class="STpe">bool</span></span></div>
@@ -21768,7 +21770,7 @@ view.<span class="SFct">updateVideoFrame</span>(&amp;planes)</span></div>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">redo</span>()</span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Gui_Properties_refresh" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Properties.refresh</span> <a class="api-item-permalink" href="#Gui_Properties_refresh" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/gui/src/controls/property/properties.swg#L636">src</a></div>
+<div class="api-item api-item-func"><span id="Gui_Properties_refresh" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Properties.refresh</span> <a class="api-item-permalink" href="#Gui_Properties_refresh" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/gui/src/controls/property/properties.swg#L637">src</a></div>
 <p>Reloads every editor from the data it is bound to.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">refresh</span>()</span></div>
 </section>
@@ -21786,12 +21788,12 @@ view.<span class="SFct">updateVideoFrame</span>(&amp;planes)</span></div>
 <div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SFct">resolveText</span>(text: <span class="STpe">string</span>)-&gt;<span class="STpe">string</span></span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Gui_Properties_setCurrentSection" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Properties.setCurrentSection</span> <a class="api-item-permalink" href="#Gui_Properties_setCurrentSection" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/gui/src/controls/property/properties.swg#L778">src</a></div>
+<div class="api-item api-item-func"><span id="Gui_Properties_setCurrentSection" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Properties.setCurrentSection</span> <a class="api-item-permalink" href="#Gui_Properties_setCurrentSection" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/gui/src/controls/property/properties.swg#L779">src</a></div>
 <p>Shows only the section at <span class="code-inline">sectionIndex</span>; an index past the last section shows every section.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">setCurrentSection</span>(sectionIndex: <span class="STpe">u32</span>)</span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Gui_Properties_setEditorWidth" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Properties.setEditorWidth</span> <a class="api-item-permalink" href="#Gui_Properties_setEditorWidth" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/gui/src/controls/property/properties.swg#L477">src</a></div>
+<div class="api-item api-item-func"><span id="Gui_Properties_setEditorWidth" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Properties.setEditorWidth</span> <a class="api-item-permalink" href="#Gui_Properties_setEditorWidth" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/gui/src/controls/property/properties.swg#L478">src</a></div>
 <p>Sets the preferred maximum width of value editors and refreshes the current layout.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">setEditorWidth</span>(width: <span class="STpe">s32</span>)</span></div>
 </section>
@@ -21802,12 +21804,12 @@ view.<span class="SFct">updateVideoFrame</span>(&amp;planes)</span></div>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">setExternalUndoMgr</span>(mgr: *<span class="SCst"><a href="#Gui_UndoManager">UndoManager</a></span>?)</span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Gui_Properties_setFilter" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Properties.setFilter</span> <a class="api-item-permalink" href="#Gui_Properties_setFilter" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/gui/src/controls/property/properties.swg#L705">src</a></div>
+<div class="api-item api-item-func"><span id="Gui_Properties_setFilter" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Properties.setFilter</span> <a class="api-item-permalink" href="#Gui_Properties_setFilter" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/gui/src/controls/property/properties.swg#L706">src</a></div>
 <p>Shows only the rows whose text contains <span class="code-inline">filter</span>, ignoring Latin-1 case; an empty filter shows every row.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">setFilter</span>(filter: <span class="STpe">string</span>)</span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Gui_Properties_setModifiedOnly" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Properties.setModifiedOnly</span> <a class="api-item-permalink" href="#Gui_Properties_setModifiedOnly" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/gui/src/controls/property/properties.swg#L717">src</a></div>
+<div class="api-item api-item-func"><span id="Gui_Properties_setModifiedOnly" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Properties.setModifiedOnly</span> <a class="api-item-permalink" href="#Gui_Properties_setModifiedOnly" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/gui/src/controls/property/properties.swg#L718">src</a></div>
 <p>Restricts the view to fields that differ from their declared defaults.</p>
 <p>Text filtering and the modified-only filter compose, and matching descendants remain visible through collapsed categories while either filter is active.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">setModifiedOnly</span>(enabled: <span class="STpe">bool</span>)</span></div>
@@ -21818,13 +21820,13 @@ view.<span class="SFct">updateVideoFrame</span>(&amp;planes)</span></div>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">setNameColumnWidth</span>(width: <span class="STpe">s32</span>)</span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Gui_Properties_setNotify" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Properties.setNotify</span> <a class="api-item-permalink" href="#Gui_Properties_setNotify" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/gui/src/controls/property/properties.swg#L471">src</a></div>
+<div class="api-item api-item-func"><span id="Gui_Properties_setNotify" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Properties.setNotify</span> <a class="api-item-permalink" href="#Gui_Properties_setNotify" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/gui/src/controls/property/properties.swg#L472">src</a></div>
 <p>Installs the host notify interface, consulted for every row before the per-structure ones.</p>
 <p>It lets a host that does not own the displayed structures plug in dynamic visibility and enabling, read-only state, and change reactions. Null removes it.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">setNotify</span>(itf: <span class="SCst"><a href="#Gui_IPropertyNotify">IPropertyNotify</a></span>?)</span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Gui_Properties_setRevertButtonsVisible" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Properties.setRevertButtonsVisible</span> <a class="api-item-permalink" href="#Gui_Properties_setRevertButtonsVisible" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/gui/src/controls/property/properties.swg#L495">src</a></div>
+<div class="api-item api-item-func"><span id="Gui_Properties_setRevertButtonsVisible" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Properties.setRevertButtonsVisible</span> <a class="api-item-permalink" href="#Gui_Properties_setRevertButtonsVisible" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/gui/src/controls/property/properties.swg#L496">src</a></div>
 <p>Shows or hides reset-to-default affordances for modified values.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">setRevertButtonsVisible</span>(visible: <span class="STpe">bool</span>)</span></div>
 </section>
@@ -21849,7 +21851,7 @@ view.<span class="SFct">updateVideoFrame</span>(&amp;planes)</span></div>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">setUndoEnabled</span>(on: <span class="STpe">bool</span>)</span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Gui_Properties_setUsingFieldsLast" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Properties.setUsingFieldsLast</span> <a class="api-item-permalink" href="#Gui_Properties_setUsingFieldsLast" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/gui/src/controls/property/properties.swg#L489">src</a></div>
+<div class="api-item api-item-func"><span id="Gui_Properties_setUsingFieldsLast" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Properties.setUsingFieldsLast</span> <a class="api-item-permalink" href="#Gui_Properties_setUsingFieldsLast" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/gui/src/controls/property/properties.swg#L490">src</a></div>
 <p>Controls whether reflected <span class="code-inline">using</span> fields are appended after the struct's own fields.</p>
 <p>The option applies to structures added after this call.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">setUsingFieldsLast</span>(enabled: <span class="STpe">bool</span>)</span></div>
@@ -22629,47 +22631,47 @@ view.<span class="SFct">updateVideoFrame</span>(&amp;planes)</span></div>
 <span class="SKwd">func</span> <span class="SFct">create</span>(parent: *<span class="SCst"><a href="#Gui_Wnd">Wnd</a></span>, dock: <span class="SCst"><a href="#Gui_DockStyle">DockStyle</a></span>, form = <span class="SCst"><a href="#Gui_SeparatorForm">SeparatorForm</a></span>.<span class="SCst"><a href="#Gui_SeparatorForm_Hairline">Hairline</a></span>, id: <span class="SCst"><a href="#Gui_WndId">WndId</a></span>? = <span class="SKwd">null</span>)-&gt;*<span class="SCst"><a href="#Gui_Separator">Separator</a></span></span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Gui_SigArray_add" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">SigArray.add</span> <a class="api-item-permalink" href="#Gui_SigArray_add" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/gui/src/sigarray.swg#L22">src</a></div>
+<div class="api-item api-item-func"><span id="Gui_SigArray_add" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">SigArray.add</span> <a class="api-item-permalink" href="#Gui_SigArray_add" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/gui/src/sigarray.swg#L27">src</a></div>
 <p>Registers a callback at the end of the invocation order.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">add</span>(fn: <span class="SCst">T</span>)</span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Gui_SigArray_call" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">SigArray.call</span> <a class="api-item-permalink" href="#Gui_SigArray_call" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/gui/src/sigarray.swg#L57">src</a></div>
+<div class="api-item api-item-func"><span id="Gui_SigArray_call" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">SigArray.call</span> <a class="api-item-permalink" href="#Gui_SigArray_call" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/gui/src/sigarray.swg#L62">src</a></div>
 <p>Invokes all registered callbacks in registration order unless disabled.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">call</span>(params: ...)</span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Gui_SigArray_clear" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">SigArray.clear</span> <a class="api-item-permalink" href="#Gui_SigArray_clear" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/gui/src/sigarray.swg#L50">src</a></div>
+<div class="api-item api-item-func"><span id="Gui_SigArray_clear" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">SigArray.clear</span> <a class="api-item-permalink" href="#Gui_SigArray_clear" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/gui/src/sigarray.swg#L55">src</a></div>
 <p>Removes every callback and restores the enabled state.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">clear</span>()</span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Gui_SigArray_count" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">SigArray.count</span> <a class="api-item-permalink" href="#Gui_SigArray_count" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/gui/src/sigarray.swg#L41">src</a></div>
+<div class="api-item api-item-func"><span id="Gui_SigArray_count" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">SigArray.count</span> <a class="api-item-permalink" href="#Gui_SigArray_count" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/gui/src/sigarray.swg#L46">src</a></div>
 <p>Returns the number of registered callbacks.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SKwd">const</span> <span class="SFct">count</span>()-&gt;<span class="STpe">u64</span></span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Gui_SigArray_disable" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">SigArray.disable</span> <a class="api-item-permalink" href="#Gui_SigArray_disable" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/gui/src/sigarray.swg#L28">src</a></div>
+<div class="api-item api-item-func"><span id="Gui_SigArray_disable" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">SigArray.disable</span> <a class="api-item-permalink" href="#Gui_SigArray_disable" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/gui/src/sigarray.swg#L33">src</a></div>
 <p>Suspends callback invocation until every nested disable is matched by <span class="code-inline">enable</span>.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">disable</span>()</span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Gui_SigArray_enable" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">SigArray.enable</span> <a class="api-item-permalink" href="#Gui_SigArray_enable" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/gui/src/sigarray.swg#L34">src</a></div>
+<div class="api-item api-item-func"><span id="Gui_SigArray_enable" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">SigArray.enable</span> <a class="api-item-permalink" href="#Gui_SigArray_enable" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/gui/src/sigarray.swg#L39">src</a></div>
 <p>Ends one nested callback suspension.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">enable</span>()</span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Gui_SigArray_isDisabled" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">SigArray.isDisabled</span> <a class="api-item-permalink" href="#Gui_SigArray_isDisabled" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/gui/src/sigarray.swg#L47">src</a></div>
+<div class="api-item api-item-func"><span id="Gui_SigArray_isDisabled" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">SigArray.isDisabled</span> <a class="api-item-permalink" href="#Gui_SigArray_isDisabled" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/gui/src/sigarray.swg#L52">src</a></div>
 <p>Reports whether callback invocation is currently suspended.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SKwd">const</span> <span class="SFct">isDisabled</span>()-&gt;<span class="STpe">bool</span></span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Gui_SigArray_isEmpty" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">SigArray.isEmpty</span> <a class="api-item-permalink" href="#Gui_SigArray_isEmpty" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/gui/src/sigarray.swg#L44">src</a></div>
+<div class="api-item api-item-func"><span id="Gui_SigArray_isEmpty" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">SigArray.isEmpty</span> <a class="api-item-permalink" href="#Gui_SigArray_isEmpty" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/gui/src/sigarray.swg#L49">src</a></div>
 <p>Reports whether no callback is registered.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SKwd">const</span> <span class="SFct">isEmpty</span>()-&gt;<span class="STpe">bool</span></span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Gui_SigArray_opAssign" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">SigArray.opAssign</span> <a class="api-item-permalink" href="#Gui_SigArray_opAssign" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/gui/src/sigarray.swg#L15">src</a></div>
+<div class="api-item api-item-func"><span id="Gui_SigArray_opAssign" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">SigArray.opAssign</span> <a class="api-item-permalink" href="#Gui_SigArray_opAssign" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/gui/src/sigarray.swg#L20">src</a></div>
 <p>Registers a callback through the <span class="code-inline">+=</span> operator.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span>(op: <span class="SNsp">Swag</span>.<span class="SCst"><a href="swag.runtime.html#Swag_Operator">Operator</a></span>) <span class="SFct">opAssign</span>(fn: <span class="SCst">T</span>)</span></div>
 </section>

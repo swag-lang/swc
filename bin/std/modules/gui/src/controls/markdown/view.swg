@@ -168,8 +168,8 @@ struct View
     {
         using wnd: Wnd     // Embedded window behavior and presentation.
 
-        sigLinkActivated: SigArray'func||(*View, string)     // Emitted when a rendered link is activated.
-        sigLoadFailed:    SigArray'func||(*View, string)     // Emitted with the exact reason when progressive file loading stops.
+        sigLinkActivated: SigArray'func||(*Wnd, string)     // Emitted when a rendered link is activated.
+        sigLoadFailed:    SigArray'func||(*Wnd, string)     // Emitted with the exact reason when progressive file loading stops.
 
         readonly
         {

@@ -29,7 +29,7 @@ struct InfoBar
     {
         using frameWnd: FrameWnd     // Embedded framed-window behavior and presentation.
 
-        sigDismissed: SigArray'func||(*InfoBar)     // Emitted when user action or timeout dismisses the bar.
+        sigDismissed: SigArray'func||(*Wnd)     // Emitted when user action or timeout dismisses the bar.
 
         readonly
         {

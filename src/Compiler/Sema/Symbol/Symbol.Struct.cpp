@@ -1202,6 +1202,23 @@ bool SymbolStruct::resolveUsingFieldPath(const TaskContext& ctx, const SymbolStr
     return resolveUsingFieldPathRec(ctx, *this, targetStruct, outSteps, visited);
 }
 
+// A struct starts with 'base' when it is 'base' or embeds it by value through first fields only:
+// a pointer to it is then a pointer to 'base', unchanged. Needs the layout of both.
+bool SymbolStruct::startsWith(const TaskContext& ctx, const SymbolStruct& base) const
+{
+    SmallVector<SymbolStructUsingPathStep> usingPath;
+    if (!resolveUsingFieldPath(ctx, base, usingPath))
+        return false;
+
+    for (const SymbolStructUsingPathStep& step : usingPath)
+    {
+        if (step.isPointer || step.field->offset() != 0)
+            return false;
+    }
+
+    return true;
+}
+
 Result SymbolStruct::canBeCompleted(Sema& sema) const
 {
     for (const auto* field : fields_)

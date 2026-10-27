@@ -131,6 +131,13 @@ namespace SemaHelpers
     const SymbolFunction* resolveLambdaBindingFunction(Sema& sema);
     SymbolFunction*       callableTypeFunction(TaskContext& ctx, TypeRef typeRef);
 
+    // '#[Swag.Signal]': the struct reached by 'owner' in 'owner.field', which is the object the
+    // signal stored in 'field' invokes its callbacks with. Invalid for any other expression.
+    TypeRef signalOwnerTypeRef(Sema& sema, AstNodeRef signalRef);
+    // The callback type a signal hands an owner of type 'ownerTypeRef': its first parameter reads
+    // the owner with its own type when the owner starts with the declared one.
+    Result signalCallbackTypeForOwner(Sema& sema, TypeRef callbackTypeRef, TypeRef ownerTypeRef, AstNodeRef waitNodeRef, TypeRef& outTypeRef);
+
     // Find runtime symbols under the shared import root or local module namespace.
     const Symbol* findPredefinedRuntimeSymbol(const Sema& sema, IdentifierManager::PredefinedName name);
     Result        attachRuntimeFunctionToNode(Sema& sema, AstNodeRef nodeRef, IdentifierManager::RuntimeFunctionKind kind, const SourceCodeRef& codeRef);
@@ -172,10 +179,10 @@ namespace SemaHelpers
     Result          addCurrentFunctionLocalVariable(Sema& sema, SymbolVariable& symVar, TypeRef typeRef);
     Result          addCurrentFunctionLocalVariable(Sema& sema, SymbolVariable& symVar);
 
-    bool   needsPersistentCompilerRunReturn(const TaskContext& ctx, TypeRef typeRef);
-    bool   functionUsesIndirectReturnStorage(TaskContext& ctx, const SymbolFunction& function);
-    Result currentFunctionUsesIndirectReturnStorage(bool& outUsesIndirectReturnStorage, Sema& sema);
-    bool   usesCallerReturnStorage(TaskContext& ctx, const SymbolFunction& function, const SymbolVariable& symVar);
+    bool                     needsPersistentCompilerRunReturn(const TaskContext& ctx, TypeRef typeRef);
+    bool                     functionUsesIndirectReturnStorage(TaskContext& ctx, const SymbolFunction& function);
+    Result                   currentFunctionUsesIndirectReturnStorage(bool& outUsesIndirectReturnStorage, Sema& sema);
+    bool                     usesCallerReturnStorage(TaskContext& ctx, const SymbolFunction& function, const SymbolVariable& symVar);
     const SemaInlinePayload* retValStorageOwner(const Sema& sema, const SymbolVariable& symVar);
 
     bool typeHasLifecycle(TaskContext& ctx, TypeRef typeRef);
@@ -256,7 +263,7 @@ namespace SemaHelpers
     Result deduceDefaultValueType(Sema& sema, AstNodeRef defaultValueRef, TypeRef& outTypeRef);
     Result finalizeDefaultValue(Sema& sema, AstNodeRef defaultValueRef, SymbolVariable& symVar);
 
-    Result tryMaterializeAggregateLiteralConstant(Sema& sema, AstNodeRef exprRef, TypeRef typeRef);
+    Result     tryMaterializeAggregateLiteralConstant(Sema& sema, AstNodeRef exprRef, TypeRef typeRef);
     Result     finalizeAggregateStruct(Sema& sema, const SmallVector<AstNodeRef>& children, bool autoNameFromIdentifiers = false);
     AstNodeRef bracePositionalElement(const Sema& sema, AstNodeRef nodeRef);
     AstNodeRef fieldShorthandIdentifier(const Ast& ast, AstNodeRef nodeRef);

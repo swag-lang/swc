@@ -15,8 +15,8 @@ struct BuildOptions
     }
 
     lexer:      RichEditLexerSwag
-    sigChanged: SigArray'func||(*BuildOptions)
-    sigReset:   SigArray'func||(*BuildOptions)
+    sigChanged: SigArray'func||(*Wnd)
+    sigReset:   SigArray'func||(*Wnd)
 }
 
 impl BuildOptions

@@ -22,9 +22,9 @@ struct Slider
         using wnd: Wnd     // Embedded window behavior and presentation.
 
         flags = SliderFlags.HilightBar     // Active behavior and presentation flags.
-        sigStartChange: SigArray'func||(*Slider)     // Emitted when a user-style change transaction starts.
-        sigChanged:     SigArray'func||(*Slider)     // Emitted after either value changes.
-        sigEndChange:   SigArray'func||(*Slider)     // Emitted when a user-style change transaction ends.
+        sigStartChange: SigArray'func||(*Wnd)     // Emitted when a user-style change transaction starts.
+        sigChanged:     SigArray'func||(*Wnd)     // Emitted after either value changes.
+        sigEndChange:   SigArray'func||(*Wnd)     // Emitted when a user-style change transaction ends.
     }
 
     // Drag and hover state of the two markers, and the color animations that follow it. The

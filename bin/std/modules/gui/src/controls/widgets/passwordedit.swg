@@ -21,9 +21,9 @@ struct PasswordEdit
     {
         using wnd: Wnd     // Embedded window behavior and presentation.
 
-        sigChanged:   SigArray'func||(*PasswordEdit)     // Emitted after the password changes.
-        sigSubmitted: SigArray'func||(*PasswordEdit)     // Emitted when Enter is pressed.
-        sigCancelled: SigArray'func||(*PasswordEdit)     // Emitted when Escape is pressed.
+        sigChanged:   SigArray'func||(*Wnd)     // Emitted after the password changes.
+        sigSubmitted: SigArray'func||(*Wnd)     // Emitted when Enter is pressed.
+        sigCancelled: SigArray'func||(*Wnd)     // Emitted when Escape is pressed.
 
         readonly flags = PasswordEditFlags.RevealButton     // Active interaction and presentation options.
     }

@@ -52,7 +52,7 @@ struct DocumentOutline
     filter:       String
     loaded:       bool
     headings:     Array'DocumentHeading
-    sigSelected:  SigArray'func||(*DocumentOutline, u64)
+    sigSelected:  SigArray'func||(*Wnd, u64)
 }
 
 impl DocumentOutline

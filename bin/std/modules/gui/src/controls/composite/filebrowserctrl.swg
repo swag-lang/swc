@@ -90,9 +90,9 @@ struct FileBrowserCtrl
             }
         }
 
-        sigAccepted:           SigArray'func||(*FileBrowserCtrl)     // Emitted when the current selection is activated.
-        sigFolderChanged:      SigArray'func||(*FileBrowserCtrl)     // Emitted after [[Gui.FileBrowserCtrl.currentFolder]] changes.
-        sigNewFolderRequested: SigArray'func||(*FileBrowserCtrl)     // Emitted when the user requests a new folder.
+        sigAccepted:           SigArray'func||(*Wnd)     // Emitted when the current selection is activated.
+        sigFolderChanged:      SigArray'func||(*Wnd)     // Emitted after [[Gui.FileBrowserCtrl.currentFolder]] changes.
+        sigNewFolderRequested: SigArray'func||(*Wnd)     // Emitted when the user requests a new folder.
     }
 
     treePathStr:    Array'String          // Folder paths backing `treeCtrl` rows.

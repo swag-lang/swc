@@ -47,9 +47,9 @@ struct Circular
         circleGap:             f32 = 0      // Gap between two concentric track circles; zero draws a single circle.
         rangeColor:            Color        // Explicit range-arc color, or transparent for the theme color.
 
-        sigStartChange: SigArray'func||(*Circular)     // Emitted when a user-style change transaction starts.
-        sigChanged:     SigArray'func||(*Circular)     // Emitted after either value changes.
-        sigEndChange:   SigArray'func||(*Circular)     // Emitted when a user-style change transaction ends.
+        sigStartChange: SigArray'func||(*Wnd)     // Emitted when a user-style change transaction starts.
+        sigChanged:     SigArray'func||(*Wnd)     // Emitted after either value changes.
+        sigEndChange:   SigArray'func||(*Wnd)     // Emitted when a user-style change transaction ends.
     }
 
     lowerRatio: f32         // Lower value normalized to the closed range 0 through 1.

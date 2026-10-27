@@ -167,6 +167,7 @@ namespace
             {.name = IdentifierManager::PredefinedName::Propagate, .flag = RtAttributeFlagsE::Propagate},
             {.name = IdentifierManager::PredefinedName::NoCopy, .flag = RtAttributeFlagsE::NoCopy},
             {.name = IdentifierManager::PredefinedName::DynCast, .flag = RtAttributeFlagsE::DynCast},
+            {.name = IdentifierManager::PredefinedName::Signal, .flag = RtAttributeFlagsE::Signal},
             {.name = IdentifierManager::PredefinedName::Opaque, .flag = RtAttributeFlagsE::Opaque},
             {.name = IdentifierManager::PredefinedName::NoDoc, .flag = RtAttributeFlagsE::NoDoc},
             {.name = IdentifierManager::PredefinedName::Strict, .flag = RtAttributeFlagsE::Strict},
@@ -920,6 +921,11 @@ Result AstAttribute::semaPostNode(Sema& sema) const
         // in the reflected attribute list so user code can query it (Reflection.hasAttribute,
         // getAttributeValue, ...). Fall through to record the attribute instance as well.
         sema.frame().currentAttributes().addRtFlag(attrFlags);
+
+        // A signal hands its callbacks to the object that owns it: a copy would give them
+        // another owner, whose type they were not written for.
+        if (attrFlags.has(RtAttributeFlagsE::Signal))
+            sema.frame().currentAttributes().addRtFlag(RtAttributeFlagsE::NoCopy);
     }
 
     AttributeInstance inst;

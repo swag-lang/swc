@@ -17,7 +17,7 @@ struct RadioButton
             checked: bool     // Whether this option is selected.
         }
 
-        sigChanged: SigArray'func||(*RadioButton)     // Emitted after a user action selects the button.
+        sigChanged: SigArray'func||(*Wnd)     // Emitted after a user action selects the button.
     }
 }
 

@@ -23,9 +23,9 @@ struct ViewerPanel
     cached:              [3] (IViewer?)     // The viewer created for each `ViewerKind`, kept while the panel shows another.
     viewer:              IViewer?
     kind:                ViewerKind
-    sigChanged:          SigArray'func||(*ViewerPanel)
-    sigCompileRequested: SigArray'func||(*ViewerPanel)
-    sigOptionsChanged:   SigArray'func||(*ViewerPanel)
+    sigChanged:          SigArray'func||(*Wnd)
+    sigCompileRequested: SigArray'func||(*Wnd)
+    sigOptionsChanged:   SigArray'func||(*Wnd)
 }
 
 impl ViewerPanel

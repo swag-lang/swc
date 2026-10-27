@@ -16,8 +16,8 @@ struct Button
             iconHeight: f32      // Explicit icon height, or zero to preserve the icon height.
         }
 
-        sigPressed:      SigArray'func||(*Button)     // Emitted after a completed primary activation.
-        sigRightPressed: SigArray'func||(*Button)     // Emitted when the secondary button is pressed inside the control.
+        sigPressed:      SigArray'func||(*Wnd)     // Emitted after a completed primary activation.
+        sigRightPressed: SigArray'func||(*Wnd)     // Emitted when the secondary button is pressed inside the control.
     }
 
     // Hover and press state, moved by the mouse events the button receives. Connect to

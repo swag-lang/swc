@@ -22,9 +22,9 @@ struct AppearanceButton
     {
         using button: IconButton     // Embedded icon-button behavior and presentation.
 
-        sigThemeChanged:    SigArray'func||(*AppearanceButton)     // Emitted after the user changes the theme.
-        sigLanguageChanged: SigArray'func||(*AppearanceButton)     // Emitted after the user changes the language.
-        sigAboutRequested:  SigArray'func||(*AppearanceButton)     // Emitted after the user chooses the About item.
+        sigThemeChanged:    SigArray'func||(*Wnd)     // Emitted after the user changes the theme.
+        sigLanguageChanged: SigArray'func||(*Wnd)     // Emitted after the user changes the language.
+        sigAboutRequested:  SigArray'func||(*Wnd)     // Emitted after the user chooses the About item.
 
         readonly
         {

@@ -60,6 +60,9 @@ struct CastRequest
     SymbolFunction* selectedStructOpCast = nullptr;
     CastFailure     failure{};
 
+    // '#[Swag.Signal]': the static type of the object whose signal receives this callback.
+    TypeRef signalOwnerTypeRef = TypeRef::invalid();
+
     // Overload probing needs the decision and rank, not the folded result.
     // Skip result allocation and type interning; the selected overload casts
     // again. Keep source constants available for value-dependent decisions.

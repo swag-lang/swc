@@ -29,7 +29,7 @@ struct ColorPickerCtrl
     {
         using frameWnd: FrameWnd     // Embedded frame behavior and presentation.
 
-        sigColorChanged: SigArray'func||(*ColorPickerCtrl)     // Emitted once after the selected color changes.
+        sigColorChanged: SigArray'func||(*Wnd)     // Emitted once after the selected color changes.
 
         readonly
         {

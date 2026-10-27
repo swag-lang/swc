@@ -617,17 +617,7 @@ namespace SemaGeneric
             SWC_RESULT(sema.waitSemaCompleted(argType, errorNodeRef));
             SWC_RESULT(sema.waitSemaCompleted(&boundType, errorNodeRef));
 
-            SmallVector<SymbolStructUsingPathStep> usingPath;
-            if (!argType->payloadSymStruct().resolveUsingFieldPath(sema.ctx(), boundType.payloadSymStruct(), usingPath))
-                return Result::Continue;
-
-            for (const SymbolStructUsingPathStep& step : usingPath)
-            {
-                if (step.isPointer || step.field->offset() != 0)
-                    return Result::Continue;
-            }
-
-            outStarts = true;
+            outStarts = argType->payloadSymStruct().startsWith(sema.ctx(), boundType.payloadSymStruct());
             return Result::Continue;
         }
 

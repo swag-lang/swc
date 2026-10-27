@@ -51,9 +51,9 @@ struct RichEditCtrl
         lexer:                    IRichEditLexer?                    // Optional lexer responsible for assigning style indices.
         form  = RichEditForm.RichEditCtrl                            // Current theme treatment.
         sigIsReadOnly:            SigArray'func||(*bool)             // Lets owners impose read-only state in addition to `flags`.
-        sigChanged:               SigArray'func||(*RichEditCtrl)     // Emitted after document content changes.
-        sigModified:              SigArray'func||(*RichEditCtrl)     // Emitted when the modified state toggles.
-        sigScrollPositionChanged: SigArray'func||(*RichEditCtrl, Math.Point, Math.Point)     // Emitted with old and new scroll positions.
+        sigChanged:               SigArray'func||(*Wnd)     // Emitted after document content changes.
+        sigModified:              SigArray'func||(*Wnd)     // Emitted when the modified state toggles.
+        sigScrollPositionChanged: SigArray'func||(*Wnd, Math.Point, Math.Point)     // Emitted with old and new scroll positions.
         backgroundColorModel:     String                             // Optional theme color expression used for the editor background.
 
         // Appearance of each style index a lexer can assign to a rune, and of the selection. Fill

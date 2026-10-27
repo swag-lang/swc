@@ -1286,6 +1286,15 @@ namespace
             if (!paramTypeRef.isValid())
                 continue;
 
+            // A callback connected to a signal receives the owner of the field it is called on.
+            const SymbolStruct* signalStruct = fn->ownerStruct();
+            if (signalStruct && signalStruct->attributes().hasRtFlag(RtAttributeFlagsE::Signal))
+            {
+                const TypeRef signalOwnerTypeRef = SemaHelpers::signalOwnerTypeRef(sema, ufcsArg);
+                if (signalOwnerTypeRef.isValid())
+                    SWC_RESULT(SemaHelpers::signalCallbackTypeForOwner(sema, paramTypeRef, signalOwnerTypeRef, childRef, paramTypeRef));
+            }
+
             const TypeRef resolvedTypeRef = unwrapBindingType(sema.ctx(), paramTypeRef);
             if (!resolvedTypeRef.isValid() || !sema.typeMgr().get(resolvedTypeRef).isFunction())
                 continue;

@@ -70,7 +70,7 @@ struct Tab
     {
         using wnd: Wnd     // Embedded window behavior and presentation.
 
-        sigSelectionChanged: SigArray'func||(*Tab)     // Emitted after the selected tab changes.
+        sigSelectionChanged: SigArray'func||(*Wnd)     // Emitted after the selected tab changes.
 
         // The tabs the bar shows, in display order. Add and remove them through the methods, which
         // keep the views, the layout and the selection consistent.

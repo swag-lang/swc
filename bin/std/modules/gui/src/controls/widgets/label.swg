@@ -20,7 +20,7 @@ struct Label
     {
         using wnd: Wnd     // Embedded window behavior and presentation.
 
-        sigLinkActivated: SigArray'func||(*Label, string)     // Emitted when the user activates a rich-text link.
+        sigLinkActivated: SigArray'func||(*Wnd, string)     // Emitted when the user activates a rich-text link.
 
         readonly
         {

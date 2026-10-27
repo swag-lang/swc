@@ -35,13 +35,13 @@ struct BreadcrumbCtrl
             arrowPad = 6.0'f32     // Padding on each side of a child-menu arrow.
         }
 
-        sigItemPressed:  SigArray'func||(*BreadcrumbCtrl, u64)                // Emitted after a level body is activated.
-        sigFillMenu:     SigArray'func||(*BreadcrumbCtrl, u64, *MenuCtrl)     // Emitted when a level's child menu needs content.
-        sigMenuSelected: SigArray'func||(*BreadcrumbCtrl, u64, String)        // Emitted after a command is selected from a child menu.
+        sigItemPressed:  SigArray'func||(*Wnd, u64)                // Emitted after a level body is activated.
+        sigFillMenu:     SigArray'func||(*Wnd, u64, *MenuCtrl)     // Emitted when a level's child menu needs content.
+        sigMenuSelected: SigArray'func||(*Wnd, u64, String)        // Emitted after a command is selected from a child menu.
 
         // Emitted after a click on the part of the control no level covers, which is where an
         // address bar offers to type the path instead.
-        sigEmptyPressed: SigArray'func||(*BreadcrumbCtrl)
+        sigEmptyPressed: SigArray'func||(*Wnd)
     }
 
     hotItem   = Swag.U64.Max     // Level currently under the pointer.

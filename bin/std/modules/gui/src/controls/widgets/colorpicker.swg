@@ -34,7 +34,7 @@ struct ColorPicker
     {
         using wnd: Wnd     // Embedded window behavior and presentation.
 
-        sigColorChanged: SigArray'func||(*ColorPicker)     // Emitted after the selected color changes.
+        sigColorChanged: SigArray'func||(*Wnd)     // Emitted after the selected color changes.
 
         readonly
         {

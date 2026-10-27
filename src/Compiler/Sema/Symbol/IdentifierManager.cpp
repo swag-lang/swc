@@ -52,6 +52,7 @@ void IdentifierManager::setup(const TaskContext& ctx)
         {.name = PredefinedName::Propagate, .str = "Propagate"},
         {.name = PredefinedName::NoCopy, .str = "NoCopy"},
         {.name = PredefinedName::DynCast, .str = "DynCast"},
+        {.name = PredefinedName::Signal, .str = "Signal"},
         {.name = PredefinedName::Opaque, .str = "Opaque"},
         {.name = PredefinedName::NoDoc, .str = "NoDoc"},
         {.name = PredefinedName::Strict, .str = "Strict"},

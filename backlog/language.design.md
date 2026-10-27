@@ -685,21 +685,6 @@ in its module backlog; a general request for better names is not a missing langu
 - Done when: `f([])` and `path: const [..] string = []` compile wherever the destination names a
   slice type, and the diagnostic only fires where nothing names one.
 
-### language.design.042 — A signal names its emitter's base, so every handler casts
-
-- Evidence: `sigPressed: SigArray'func||(*Button)` hands a handler a `*Button`, and about fifteen
-  handlers in `bin/` begin with `assume cast(*IconButton, button)` or
-  `assume cast(*QuickButton, button)` ([playbackbutton.swg](../bin/apps/modules/swagscope/src/api/playbackbutton.swg),
-  [quickwnd.swg](../bin/apps/modules/swagcapture/src/quickwnd.swg)). Of the 62 distinct
-  `SigArray'func||(...)` instantiations, 56 take the emitter as their first parameter; with that
-  parameter erased they would fold into about 18.
-- Next: design a `Self`-typed field whose handler type is read from the receiver's static type at
-  `+=` while storage keeps the declaring type, as an erased parameter does for a call. Solve first
-  that copying such a field from one object to another would hand a handler written for one
-  dynamic type an object of another.
-- Done when: `.sigPressed += func(button)` types `button` with the receiver's own struct without a
-  cast, and the signal instantiations fold by shape.
-
 ---
 
 ## Generic contracts and execution semantics

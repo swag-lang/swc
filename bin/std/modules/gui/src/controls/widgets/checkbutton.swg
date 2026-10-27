@@ -32,7 +32,7 @@ struct CheckButton
             flags = CheckButtonFlags.None     // Active interaction and placement options.
         }
 
-        sigChanged: SigArray'func||(*CheckButton)     // Emitted after a user action changes the state.
+        sigChanged: SigArray'func||(*Wnd)     // Emitted after a user action changes the state.
     }
 }
 

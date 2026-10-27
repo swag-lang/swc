@@ -107,6 +107,7 @@ public:
     bool              implementsInterfaceOrUsingFields(Sema& sema, const SymbolInterface& itf) const;
 
     bool        resolveUsingFieldPath(const TaskContext& ctx, const SymbolStruct& targetStruct, SmallVector<SymbolStructUsingPathStep>& outSteps) const;
+    bool        startsWith(const TaskContext& ctx, const SymbolStruct& base) const;
     static bool usingPathHasPointerStep(const SmallVector<SymbolStructUsingPathStep>& usingPath)
     {
         for (const auto& step : usingPath)

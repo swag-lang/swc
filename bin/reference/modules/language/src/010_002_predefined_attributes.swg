@@ -1,4 +1,5 @@
 #global private
+
 /**
 # Predefined Attributes
 
@@ -127,6 +128,7 @@ requested with the 'switch #complete' modifier.
 | 'Pack(value: u8)' | Set struct packing |
 | 'Offset(name: string)' | Overlay a field on another named field |
 | 'NoCopy()' | Forbid copying a struct |
+| 'Signal()' | Type the callbacks of a struct field with the struct that owns it |
 | 'Opaque()' | Hide a struct's contents from exported module APIs |
 | 'ExportType(what: ExportWhat)' | Export selected runtime reflection data |
 | 'Strict()' | Keep an alias distinct for implicit-conversion purposes |
@@ -134,6 +136,58 @@ requested with the 'switch #complete' modifier.
 'Swag.ExportWhat' currently provides '.Methods' and '.NoZero' flags, plus
 '.None' and '.All'. Exporting methods makes 'TypeInfoStruct.methods' available;
 it does not make a private method public in source code.
+
+'Signal' marks a struct that stores callbacks its owner invokes with itself. A callback
+connected through 'owner.field', by an operator or a method of the struct, receives 'owner'
+with its static type, provided it starts with the type the callback declares: a handler of a
+derived widget reads its own fields without a cast. A signal is not copyable, so its callbacks
+never reach another owner.
+*/
+
+#[Swag.Signal]
+struct(T) AttrSignal
+{
+    callback: T?
+}
+
+impl AttrSignal
+{
+    mtd(op: Swag.Operator) opAssign(fn: T)
+    {
+        #assert(op == .AddAssign)
+        .callback = fn
+    }
+}
+
+struct AttrWidget
+{
+    sigPressed: AttrSignal'func||(*AttrWidget)
+}
+
+impl AttrWidget
+{
+    mtd press()
+    {
+        if .sigPressed.callback do
+            .sigPressed.callback(me)
+    }
+}
+
+struct AttrCounterWidget
+{
+    using widget: AttrWidget
+    presses:      s32
+}
+
+#test
+{
+    var counter: AttrCounterWidget
+    counter.sigPressed += func(widget) { widget.presses += 1 }
+    counter.press()
+    Swag.assert(counter.presses == 1)
+}
+
+/**
 
 # Safety and Diagnostics
 

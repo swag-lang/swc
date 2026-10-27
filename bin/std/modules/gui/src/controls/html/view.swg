@@ -144,9 +144,9 @@ struct HtmlView
     {
         using wnd: Wnd     // Embedded window behavior and presentation.
 
-        sigLinkActivated:   SigArray'func||(*HtmlView, string)     // Emitted when an activated link cannot be followed as a local document or fragment.
-        sigLoadFailed:      SigArray'func||(*HtmlView, string)     // Emitted with the exact reason when progressive file loading stops.
-        sigDocumentChanged: SigArray'func||(*HtmlView)             // Emitted after document content or layout is rebuilt; heading snapshots may be refreshed here.
+        sigLinkActivated:   SigArray'func||(*Wnd, string)     // Emitted when an activated link cannot be followed as a local document or fragment.
+        sigLoadFailed:      SigArray'func||(*Wnd, string)     // Emitted with the exact reason when progressive file loading stops.
+        sigDocumentChanged: SigArray'func||(*Wnd)             // Emitted after document content or layout is rebuilt; heading snapshots may be refreshed here.
 
         readonly
         {

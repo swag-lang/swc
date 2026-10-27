@@ -257,6 +257,15 @@ namespace Swag
     #[AttrUsage(AttributeUsage.Struct)]
     attr NoCopy()
 
+    // Marks a struct that stores callbacks invoked with the object owning the field.
+    //
+    // A callback connected through 'owner.field' with an operator or a method of the struct
+    // receives 'owner' with its static type, which starts with the type the callback declares.
+    // The owner passes itself as the first argument when it invokes them, and the struct is
+    // not copyable, so callbacks never reach another owner.
+    #[AttrUsage(AttributeUsage.Struct)]
+    attr Signal()
+
     // Enables dynamic type tests and checked downcasts through pointers to this struct.
     //
     // Adds one compiler-managed metadata pointer to its storage. Structs that embed a

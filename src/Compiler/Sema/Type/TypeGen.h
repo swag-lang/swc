@@ -23,6 +23,13 @@ namespace Runtime
 class TypeGen
 {
 public:
+    // Why a struct reached from a type refuses a copy.
+    enum class CopyDenial : uint8_t
+    {
+        OwningDrop, // It declares 'opDrop' without 'opPostCopy'.
+        NoCopy,     // It is marked '#[Swag.NoCopy]', or '#[Swag.Signal]'.
+    };
+
     enum class LockMode : uint8_t
     {
         Wait,
@@ -137,7 +144,7 @@ public:
 
     static LifecycleFlags lifecycleFlagsOfType(TaskContext& ctx, const TypeInfo& type);
     static LifecycleFlags lifecycleFlagsOfTypeRef(TaskContext& ctx, TypeRef typeRef);
-    static TypeRef        owningDropTypeRef(TaskContext& ctx, TypeRef typeRef);
+    static TypeRef        copyDenialTypeRef(TaskContext& ctx, TypeRef typeRef, CopyDenial denial);
 
     // Return a reflected method's function type, or invalid for compiler-only methods
     // and signatures containing types runtime reflection cannot describe.

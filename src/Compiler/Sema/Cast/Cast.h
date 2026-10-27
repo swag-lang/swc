@@ -61,10 +61,11 @@ struct UserDefinedLiteralSuffixInfo
 // Build message arguments only on failure, avoiding work for successful casts.
 struct CastCallSite
 {
-    const SymbolFunction* function    = nullptr;
-    const Symbol*         initialized = nullptr;
-    uint32_t              argNumber   = 0;
-    bool                  returnValue = false;
+    const SymbolFunction* function           = nullptr;
+    const Symbol*         initialized        = nullptr;
+    uint32_t              argNumber          = 0;
+    bool                  returnValue        = false;
+    TypeRef               signalOwnerTypeRef = TypeRef::invalid(); // '#[Swag.Signal]' owner of the receiving field
 };
 
 bool resolveDynamicStructCastSourceInfo(Sema& sema, AstNodeRef sourceRef, TypeRef sourceTypeRef, DynamicStructCastSourceInfo& outInfo);

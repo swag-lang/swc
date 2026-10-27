@@ -9,7 +9,7 @@ struct PalettePicker
     {
         using wnd: Wnd     // Embedded window behavior and presentation.
 
-        sigSelectionChanged: SigArray'func||(*PalettePicker)     // Emitted after the selected color changes.
+        sigSelectionChanged: SigArray'func||(*Wnd)     // Emitted after the selected color changes.
 
         readonly
         {

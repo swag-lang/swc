@@ -112,13 +112,13 @@ struct ListCtrl
             }
         }
 
-        sigSelectionChanged:  SigArray'func||(*ListCtrl)                 // Emitted after the selected row set changes.
-        sigCheckedChanged:    SigArray'func||(*ListCtrl)                 // Emitted after the checked row set changes.
-        sigRightClicked:      SigArray'func||(*ListCtrl, Math.Point)     // Emitted for a right click, with the local position.
-        sigLeftDoubleClicked: SigArray'func||(*ListCtrl, Math.Point)     // Emitted for a left double click, with the local position.
-        sigExpanded:          SigArray'func||(*ListCtrl, *ListLine)      // Emitted after a row expands.
-        sigCollapsed:         SigArray'func||(*ListCtrl, *ListLine)      // Emitted after a row collapses.
-        sigKeyPressed:        SigArray'func||(*ListCtrl, *KeyEvent)      // Emitted for a key press before the list reads it; accept the event to claim the key.
+        sigSelectionChanged:  SigArray'func||(*Wnd)                 // Emitted after the selected row set changes.
+        sigCheckedChanged:    SigArray'func||(*Wnd)                 // Emitted after the checked row set changes.
+        sigRightClicked:      SigArray'func||(*Wnd, Math.Point)     // Emitted for a right click, with the local position.
+        sigLeftDoubleClicked: SigArray'func||(*Wnd, Math.Point)     // Emitted for a left double click, with the local position.
+        sigExpanded:          SigArray'func||(*Wnd, *ListLine)      // Emitted after a row expands.
+        sigCollapsed:         SigArray'func||(*Wnd, *ListLine)      // Emitted after a row collapses.
+        sigKeyPressed:        SigArray'func||(*Wnd, *KeyEvent)      // Emitted for a key press before the list reads it; accept the event to claim the key.
         onFillVirtualLine:    (func(*ListCtrl, *ListLine?, u32))?        // Fills a transient row before a virtual row is painted.
         compareLines:         (func(*ListLine?, *ListLine?, u32, bool)->s32)?     // Compares two rows for custom sorting.
     }

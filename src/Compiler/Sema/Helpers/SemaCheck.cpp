@@ -607,7 +607,7 @@ Result SemaCheck::noCopyOfNonCopyable(Sema& sema, AstNodeRef srcRef, TypeRef src
 
     // Ownership and the explicit attribute deny the copy for different reasons, and their
     // repairs differ: an owning type opts the copy back in with 'opPostCopy'.
-    const TypeRef owningTypeRef = TypeGen::owningDropTypeRef(sema.ctx(), checkTypeRef);
+    const TypeRef owningTypeRef = TypeGen::copyDenialTypeRef(sema.ctx(), checkTypeRef, TypeGen::CopyDenial::OwningDrop);
     if (owningTypeRef.isValid())
     {
         auto owningDiag = SemaError::report(sema, DiagnosticId::sema_err_cannot_copy_owning, srcRef);
@@ -619,8 +619,16 @@ Result SemaCheck::noCopyOfNonCopyable(Sema& sema, AstNodeRef srcRef, TypeRef src
         return Result::Error;
     }
 
-    auto diag = SemaError::report(sema, DiagnosticId::sema_err_cannot_copy_nocopy, srcRef);
+    // Name the struct that refuses the copy: it can be a field of the copied type, and a signal
+    // refuses for its own reason.
+    const TypeRef   deniedTypeRef = TypeGen::copyDenialTypeRef(sema.ctx(), checkTypeRef, TypeGen::CopyDenial::NoCopy);
+    const TypeInfo* deniedType    = deniedTypeRef.isValid() ? &typeMgr.get(deniedTypeRef) : nullptr;
+    const bool      isSignal      = deniedType && deniedType->isStruct() && deniedType->payloadSymStruct().attributes().hasRtFlag(RtAttributeFlagsE::Signal);
+
+    auto diag = SemaError::report(sema, isSignal ? DiagnosticId::sema_err_cannot_copy_signal : DiagnosticId::sema_err_cannot_copy_nocopy, srcRef);
     diag.addArgument(Diagnostic::ARG_TYPE, checkTypeRef);
+    if (deniedTypeRef.isValid() && deniedTypeRef != checkTypeRef)
+        diag.addArgument(Diagnostic::ARG_REQUESTED_TYPE, deniedTypeRef);
     diag.report(sema.ctx());
 
     return Result::Error;

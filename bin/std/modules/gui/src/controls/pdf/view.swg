@@ -109,9 +109,9 @@ struct PdfView
     {
         using wnd: Wnd     // Embedded window behavior and presentation.
 
-        sigPageChanged: SigArray'func||(*PdfView)             // Emitted after the page the viewport shows changes.
-        sigZoomChanged: SigArray'func||(*PdfView)             // Emitted after the effective zoom changes.
-        sigRenderError: SigArray'func||(*PdfView, string)     // Emitted when a page cannot be decoded or painted.
+        sigPageChanged: SigArray'func||(*Wnd)             // Emitted after the page the viewport shows changes.
+        sigZoomChanged: SigArray'func||(*Wnd)             // Emitted after the effective zoom changes.
+        sigRenderError: SigArray'func||(*Wnd, string)     // Emitted when a page cannot be decoded or painted.
 
         readonly
         {

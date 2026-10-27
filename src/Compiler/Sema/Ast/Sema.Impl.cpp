@@ -29,12 +29,7 @@ namespace
 
         SWC_RESULT(sema.waitSemaCompleted(symStruct, symImpl.codeRef()));
 
-        const SymbolStruct&                    baseStruct = sema.typeMgr().get(baseTypeRef).payloadSymStruct();
-        SmallVector<SymbolStructUsingPathStep> usingPath;
-        bool                                   startsWithBase = symStruct->resolveUsingFieldPath(sema.ctx(), baseStruct, usingPath);
-        for (const SymbolStructUsingPathStep& step : usingPath)
-            startsWithBase = startsWithBase && !step.isPointer && step.field->offset() == 0;
-        if (startsWithBase)
+        if (symStruct->startsWith(sema.ctx(), sema.typeMgr().get(baseTypeRef).payloadSymStruct()))
             return Result::Continue;
 
         auto diag = SemaError::report(sema, DiagnosticId::sema_err_interface_base_not_embedded, symImpl);

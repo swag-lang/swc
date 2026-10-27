@@ -93,16 +93,16 @@ impl LibraryWnd
         // How the library is shown — thumbnail size, order, and what is painted over each
         // thumbnail — is one sheet, because none of it changes what the library holds.
         .viewBtn = .createMenuButton(.theme().icon(.ActualSize, iconSize), appStrings().ui_BarView)
-        .viewBtn.sigPressed += func|libWnd = me|(btn) { libWnd.showViewOptions(assume cast(*IconButton, btn)) }
+        .viewBtn.sigPressed += func|libWnd = me|(btn) { libWnd.showViewOptions(btn) }
 
         .filterBtn = .createMenuButton(.theme().icon(.Filter, iconSize), appStrings().ui_BarFilter)
-        .filterBtn.sigPressed += func|libWnd = me|(btn) { libWnd.showFilterOptions(assume cast(*IconButton, btn)) }
+        .filterBtn.sigPressed += func|libWnd = me|(btn) { libWnd.showFilterOptions(btn) }
 
         // Library roots and ordinary image folders are explicit choices, named like every
         // neighbouring command instead of leaving one unexplained glyph in the sentence.
         .folderBtn            = .createMenuButton(.theme().icon(.OpenFile, iconSize), appStrings().ui_BarFolders)
         .folderBtn.toolTip    = appStrings().tip_LibraryFolders
-        .folderBtn.sigPressed += func|libWnd = me|(btn) { libWnd.showFolderMenu(assume cast(*IconButton, btn)) }
+        .folderBtn.sigPressed += func|libWnd = me|(btn) { libWnd.showFolderMenu(btn) }
 
         // Loading state stays with the commands it updates, before the flexible gap, so it
         // appears without moving the search field away from the right edge.

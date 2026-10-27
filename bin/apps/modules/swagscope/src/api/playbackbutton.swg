@@ -56,7 +56,7 @@ impl PlaybackButton
             .setArrowPosition(.RightUpward)
             .enable(playback.isAvailable())
             .refreshIcon()
-            .sigPressed += func(button) { assume cast(*PlaybackButton, button).showOptions() }
+            .sigPressed += func(button) { button.showOptions() }
         }
 
         return result

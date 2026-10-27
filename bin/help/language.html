@@ -2311,6 +2311,21 @@ swc test -w path/to/workspace -m messages</span></div>
     <span class="SLgc">default</span>: <span class="SNsp">Swag</span>.<span class="SFct">assert</span>(<span class="SKwd">false</span>)
     }
 }</span></div>
+<h4 id="_003_007_cast_swg_Leaving_Early_on_Another_Type">Leaving Early on Another Type</h4>
+<p>A pattern binding lives only in its branch. When a function returns early for the other types, bind with <span class="code-inline">catch cast(*T?, value)</span> instead: the test that leaves narrows the name to <span class="code-inline">*T</span> for the rest of the function.</p>
+<div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SFct">countOf</span>(view: <span class="SCst">ICount</span>)-&gt;<span class="STpe">s32</span>
+{
+    <span class="SKwd">let</span> counter = <span class="SKwd">catch</span> <span class="SKwd">cast</span>(*<span class="SCst">Counter</span>?, view)
+    <span class="SLgc">if</span> <span class="SLgc">not</span> counter <span class="SLgc">do</span>
+        <span class="SLgc">return</span> -<span class="SNum">1</span>
+    <span class="SLgc">return</span> counter.value
+}
+
+<span class="SFct">#test</span>
+{
+    <span class="SKwd">var</span> counter = <span class="SCst">Counter</span>{<span class="SNum">42</span>}
+    <span class="SNsp">Swag</span>.<span class="SFct">assert</span>(<span class="SFct">countOf</span>(<span class="SKwd">cast</span>(<span class="SCst">ICount</span>, &amp;counter)) == <span class="SNum">42</span>)
+}</span></div>
 <h4 id="_003_007_cast_swg_Values_Stored_in__any_">Values Stored in <span class="code-inline">any</span></h4>
 <p><span class="code-inline">try cast(*T, boxed)</span> borrows a stored value of type <span class="code-inline">T</span>. Dereference the result to read or update that value. A stored pointer can also expose the object it points to. A mismatching type raises a conversion error in either case.</p>
 <p><span class="code-inline">assume cast(T, boxed)</span> extracts a value when its type is an invariant. For a pointer or interface destination, it produces the corresponding borrowed view. Neither mode extends the lifetime of the boxed value or its pointee.</p>
@@ -8290,6 +8305,7 @@ swc test -w path/to/workspace -m messages</span></div>
 }</span></div>
 <h3 id="_009_004_erased_parameters_swg_Inside_the_Body">Inside the Body</h3>
 <p><span class="code-inline">T</span> is a strict alias of its bound. Its members are the bound's members, and a pointer to <span class="code-inline">T</span> converts to a pointer to the bound. Every call sees the same <span class="code-inline">T</span>, which is how one body serves them all.</p>
+<p>The other direction is closed: a pointer to the bound, or to any other struct, does not become a <span class="code-inline">T</span> inside the body, so a callback typed with <span class="code-inline">T</span> only ever receives what the caller passed. A call to another erased function proves its own <span class="code-inline">T</span> by deduction, and an explicit <span class="code-inline">cast</span> states that an object is the caller's.</p>
 <p>A callback typed with <span class="code-inline">T</span> reaches storage typed with the bound only through an explicit <span class="code-inline">cast</span>. That cast states the function's own contract: it calls the callback with the target it received, never with another object.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">func</span>(<span class="SCst">T</span> <span class="SLgc">is</span> <span class="SCst">EraseWidget</span>) <span class="SFct">eraseName</span>(<span class="SKwd">_</span>: *<span class="SCst">T</span>)-&gt;<span class="STpe">string</span> =&gt; <span class="SItr">#typeof</span>(<span class="SCst">T</span>).name <span class="SLgc">orelse</span> <span class="SStr">""</span>
 
@@ -8487,12 +8503,56 @@ swc test -w path/to/workspace -m messages</span></div>
 <tr><td>'Pack(value: u8)'</td><td>Set struct packing</td></tr>
 <tr><td>'Offset(name: string)'</td><td>Overlay a field on another named field</td></tr>
 <tr><td><span class="code-inline">NoCopy()</span></td><td>Forbid copying a struct</td></tr>
+<tr><td><span class="code-inline">Signal()</span></td><td>Type the callbacks of a struct field with the struct that owns it</td></tr>
 <tr><td><span class="code-inline">Opaque()</span></td><td>Hide a struct's contents from exported module APIs</td></tr>
 <tr><td>'ExportType(what: ExportWhat)'</td><td>Export selected runtime reflection data</td></tr>
 <tr><td><span class="code-inline">Strict()</span></td><td>Keep an alias distinct for implicit-conversion purposes</td></tr>
 </tbody>
 </table>
 <p><span class="code-inline">Swag.ExportWhat</span> currently provides <span class="code-inline">.Methods</span> and <span class="code-inline">.NoZero</span> flags, plus <span class="code-inline">.None</span> and <span class="code-inline">.All</span>. Exporting methods makes <span class="code-inline">TypeInfoStruct.methods</span> available; it does not make a private method public in source code.</p>
+<p><span class="code-inline">Signal</span> marks a struct that stores callbacks its owner invokes with itself. A callback connected through <span class="code-inline">owner.field</span>, by an operator or a method of the struct, receives <span class="code-inline">owner</span> with its static type, provided it starts with the type the callback declares: a handler of a derived widget reads its own fields without a cast. A signal is not copyable, so its callbacks never reach another owner.</p>
+<div class="code-block"><span class="SCde"><span class="SAtr">#[</span><span class="SNsp">Swag</span>.<span class="SAtr">Signal]</span>
+<span class="SKwd">struct</span>(<span class="SCst">T</span>) <span class="SCst">AttrSignal</span>
+{
+    callback: <span class="SCst">T</span>?
+}
+
+<span class="SKwd">impl</span> <span class="SCst">AttrSignal</span>
+{
+    <span class="SKwd">mtd</span>(op: <span class="SNsp">Swag</span>.<span class="SCst">Operator</span>) <span class="SFct">opAssign</span>(fn: <span class="SCst">T</span>)
+    {
+        <span class="SCmp">#assert</span>(op == .<span class="SCst">AddAssign</span>)
+        .callback = fn
+    }
+}
+
+<span class="SKwd">struct</span> <span class="SCst">AttrWidget</span>
+{
+    sigPressed: <span class="SFct">AttrSignal</span>'<span class="SKwd">func</span>||(*<span class="SCst">AttrWidget</span>)
+}
+
+<span class="SKwd">impl</span> <span class="SCst">AttrWidget</span>
+{
+    <span class="SKwd">mtd</span> <span class="SFct">press</span>()
+    {
+        <span class="SLgc">if</span> .sigPressed.callback <span class="SLgc">do</span>
+            .sigPressed.<span class="SFct">callback</span>(<span class="STpe">me</span>)
+    }
+}
+
+<span class="SKwd">struct</span> <span class="SCst">AttrCounterWidget</span>
+{
+    <span class="SKwd">using</span> widget: <span class="SCst">AttrWidget</span>
+    presses:      <span class="STpe">s32</span>
+}
+
+<span class="SFct">#test</span>
+{
+    <span class="SKwd">var</span> counter: <span class="SCst">AttrCounterWidget</span>
+    counter.sigPressed += <span class="SKwd">func</span>(widget) { widget.presses += <span class="SNum">1</span> }
+    counter.<span class="SFct">press</span>()
+    <span class="SNsp">Swag</span>.<span class="SFct">assert</span>(counter.presses == <span class="SNum">1</span>)
+}</span></div>
 <h3 id="_010_002_predefined_attributes_swg_Safety_and_Diagnostics">Safety and Diagnostics</h3>
 <table class="table-markdown">
 <thead>
@@ -11533,6 +11593,7 @@ swc build --module mymodule --build-cfg devmode --tag Swag.AllocatorSafety=false
 "h|Interface Conversion|_003_007_cast_swg_Interface_Conversion|",
 "h|Dynamic Casts|_003_007_cast_swg_Dynamic_Casts|",
 "h|Testing and Using the Same Result|_003_007_cast_swg_Testing_and_Using_the_Same_Result|",
+"h|Leaving Early on Another Type|_003_007_cast_swg_Leaving_Early_on_Another_Type|",
 "h|Values Stored in any|_003_007_cast_swg_Values_Stored_in__any_|",
 "h|Compile-Time Compatibility|_003_007_cast_swg_Compile-Time_Compatibility|",
 "h|Targets Chosen at Runtime|_003_007_cast_swg_Targets_Chosen_at_Runtime|",

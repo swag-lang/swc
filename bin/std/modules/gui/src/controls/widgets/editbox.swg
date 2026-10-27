@@ -69,11 +69,11 @@ struct EditBox
 
     public
     {
-        sigTextChanged: SigArray'func||(*EditBox)     // Emitted once after text changes.
-        sigCommitted:   SigArray'func||(*EditBox)     // Emitted on focus loss unless the edit is cancelled.
-        sigFocusLost:   SigArray'func||(*EditBox)     // Emitted after keyboard focus is lost.
-        sigSubmitted:   SigArray'func||(*EditBox)     // Emitted when Enter is pressed.
-        sigCancelled:   SigArray'func||(*EditBox)     // Emitted when Escape is pressed.
+        sigTextChanged: SigArray'func||(*Wnd)     // Emitted once after text changes.
+        sigCommitted:   SigArray'func||(*Wnd)     // Emitted on focus loss unless the edit is cancelled.
+        sigFocusLost:   SigArray'func||(*Wnd)     // Emitted after keyboard focus is lost.
+        sigSubmitted:   SigArray'func||(*Wnd)     // Emitted when Enter is pressed.
+        sigCancelled:   SigArray'func||(*Wnd)     // Emitted when Escape is pressed.
 
         readonly
         {

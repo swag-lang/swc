@@ -886,7 +886,7 @@ impl QuickWnd
             .toolTip  = quickStyleTip(form)
 
             .iconPainter     = func(button, bc, _, _) { paintPreset(bc.painter, assume cast(*QuickButton, button)) }
-            .sigRightPressed += func(button) { assume cast(*QuickButton, button).quickWnd.btnPopup(button, button.surfaceRect().center()) }
+            .sigRightPressed += func(button) { button.quickWnd.btnPopup(button, button.surfaceRect().center()) }
         }
 
         button.sigCheckedChanged += func(button)
@@ -894,9 +894,8 @@ impl QuickWnd
             if not button.isChecked do
                 return
 
-            let quickBtn = assume cast(*QuickButton, button)
-            let quick    = quickBtn.quickWnd
-            let it       = unwrap quickBtn.formItf
+            let quick = button.quickWnd
+            let it    = unwrap button.formItf
             quick.main.updateModel(it)
 
             let capture = unwrap quick.main.getCapture()

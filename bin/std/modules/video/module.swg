@@ -48,13 +48,16 @@ Four codecs ship in the box:
   Motion JPEG, and exposes AAC-LC mono/stereo audio. It expands compact sample tables into direct
   packet offsets while payloads remain in the file. Exact composition timestamps are retained for
   variable-rate playback and coded display reordering.
-- Matroska (`.mkv`) reads H.264, H.265, and MPEG-4 Part 2 pictures and exposes every AAC-LC, AC-3,
+- Matroska (`.mkv`) reads H.264, H.265, MPEG-4 Part 2, and RealVideo 4 pictures and exposes every AAC-LC, AC-3,
   independent E-AC-3, DTS Core, FLAC, MPEG Layer III, Vorbis, and Opus audio track with up to eight
   channels that its decoder supports. A picture
   track remuxed from a legacy file is read as well: such a track names its codec through a Video
   for Windows header, states its setup headers inside the stream rather than in the container, and
   may store a bidirectional plane behind the plane it refers forward to. Display order is then
   taken from the clock the stream states, not from the order the container hands samples over.
+  RealVideo 4 is decoded in Swag, including intra, predicted, and bidirectional pictures,
+  multiple slices, and its loop filter. Its wrapping picture clock also repairs legacy
+  container timestamps that put bidirectional pictures after their future reference.
   Frames stored without the bytes they all begin with, which is what mkvmerge does by default to
   several codecs, are handed to the decoder whole; a track compressed or encrypted any other way is
   not offered. A file whose tail never made it to disk is read as far as it goes. Matroska

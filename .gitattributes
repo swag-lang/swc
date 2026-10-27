@@ -6,3 +6,4 @@
 
 # Test and application fixtures are byte-exact: a test compares their sizes and hashes
 bin/**/datas/** -text
+bin/std/modules/video/src/tests/goldens/*.yuv binary

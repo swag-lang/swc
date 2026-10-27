@@ -742,8 +742,11 @@ private impl Panel
         }
 
         .openFinished = true
-        if not .openFailure.isEmpty() do
-            fail InvalidFormatError{Errors.mkString(.openFailure)}
+        if not .openFailure.isEmpty()
+        {
+            .services.failed(me, .openFailure)
+            return
+        }
 
         .video  = #move .pendingVideo
         .planar = .video.hasPlanarFrames()

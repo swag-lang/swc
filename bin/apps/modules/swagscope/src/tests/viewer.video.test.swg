@@ -617,6 +617,33 @@ func videoMatroskaFixturePath()->String => Path.combine(unwrap Path.directoryNam
     host.fireTimer(view.seekOverlay.timer)
 }
 
+// RV40 reaches the normal planar viewer and seeks across B pictures and open groups.
+#test
+{
+    var host: Testing.HeadlessHost
+    host.setup(640, 360)
+    let fileName = Path.combine(unwrap Path.directoryName(#curlocation.fileName), "datas/rv40-legacy-clock.mkv")
+    var result   = openTestViewer(Film.viewerPlugin(), &host.root, fileName, commandParent: &host.root)
+    Swag.assert(result.view != null)
+    let view = assume cast(*Film.Panel, result.view)
+    waitForVideoFrame(view)
+    Swag.assert(view.planar and not view.hasFailure)
+    Swag.assert(view.video.width() == 96 and view.video.height() == 64)
+    for index in [7'u64, 3, 8, 0]
+    {
+        view.repositionTo(index)
+        view.decodeWake.signal()
+        waitForVideoFrame(view)
+        Swag.assert(view.frameIndex == index and not view.hasFailure and view.planar)
+    }
+}
+
+func captureVideoFailure(wnd: *Wnd, reason: string)
+{
+    let captured = cast(*String, unwrap wnd.userData)
+    captured[] = reason
+}
+
 #test
 {
     let fileName = Gui.Testing.tempFilePath("scope-video-", ".y4m")
@@ -625,11 +652,14 @@ func videoMatroskaFixturePath()->String => Path.combine(unwrap Path.directoryNam
 
     var host: Testing.HeadlessHost
     host.setup(640, 360)
-    var result = openTestViewer(Film.viewerPlugin(), &host.root, fileName, commandParent: &host.root)
+    var result = openTestViewer(Film.viewerPlugin(), &host.root, fileName, commandParent: &host.root, services: {reportFailure: &captureVideoFailure})
     Swag.assert(result.view != null and result.commands != null)
     let view = assume cast(*Film.Panel, result.view)
+    var failure: String
+    view.userData = &failure
     waitForVideoFrame(view)
     Swag.assert(not view.openFailure.isEmpty() and not view.video.isOpen())
+    Swag.assert(failure == view.openFailure)
 }
 
 #test

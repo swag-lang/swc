@@ -42,3 +42,11 @@ images produced outside this repository.
 - SHA-256: `2f3d5a98266f217c56e9d2c279274f5367e2f8d50201f1bd48a6a1e072cf408a` (title) and
   `a4e4ee6c8b36785bfcbcaf70c307ca8a7ffd0bb14eba0458623367f908e263a0` (QR graphic).
 - License: MIT. The upstream repository carries the complete license notice.
+
+`rv40-legacy-clock.mkv` is an unmodified copy of the synthetic 96x64, nine-frame RV40 fixture
+in `bin/std/modules/video/src/tests/datas`. Its provenance, encoder settings, and timestamp
+mutation are documented in that directory's `THIRDPARTY.md`. It contains only generated picture
+samples and no audio. It verifies RV40 opening and seeking through Swag Scope's planar viewer.
+
+- SHA-256: `3f0ae80c6a2a54412c938a7105ffc1c6a5df2eb580f90454d7ec85d43f31f01a`
+- License: same as this repository.

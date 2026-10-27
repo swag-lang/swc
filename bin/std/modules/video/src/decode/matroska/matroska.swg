@@ -1,5 +1,5 @@
 //! Format: Matroska/EBML container decoder component.
-//! Supported: H.264, H.265 and MPEG-4 Part 2 picture tracks, AAC-LC, AC-3, independent E-AC-3, DTS Core, FLAC, Layer III, Vorbis, or Opus audio, and UTF-8 or ASS/SSA subtitle tracks, with cues, timestamps, codec delay, and discard padding.
+//! Supported: H.264, H.265, MPEG-4 Part 2 and RealVideo 4 picture tracks, AAC-LC, AC-3, independent E-AC-3, DTS Core, FLAC, Layer III, Vorbis, or Opus audio, and UTF-8 or ASS/SSA subtitle tracks, with cues, timestamps, codec delay, and discard padding.
 //! Not supported: Other picture codecs, bitmap subtitles, laced or invisible picture blocks, dependent E-AC-3 substreams, encrypted tracks, and writing Matroska.
 //! Role: This file owns tracks, clusters, cues, timestamps, progressive indexing, and media dispatch.
 //
@@ -22,6 +22,7 @@ private const Mp3CodecId          = "A_MPEG/L3"
 private const VorbisCodecId       = "A_VORBIS"
 private const OpusCodecId         = "A_OPUS"
 private const Mpeg4CodecId        = "V_MPEG4/ISO/ASP"
+private const RealVideoCodecId    = "V_REAL/RV40"
 private const VfwCodecId          = "V_MS/VFW/FOURCC"
 private const Utf8SubtitleCodecId = "S_TEXT/UTF8"
 private const AssSubtitleCodecId  = "S_TEXT/ASS"
@@ -166,6 +167,7 @@ private struct Track
     hasEncodings:    bool         // The track states an encoding this reader does not undo.
     headerStrip:     Array'u8     // Bytes a writer took off the front of every frame.
     videoSamples:    Array'SampleEntry
+    realVideoClock:  RealVideo.Clock
     audioPackets:    Array'SoundPacket
     subtitleSamples: Array'SubtitleSample
     durationProbe:   Audio.PacketDurationProbe     // Measures audio packets once the first arrives.
@@ -227,7 +229,10 @@ private impl Track
     {
         if not .isEnabled or .hasEncodings or .kind != VideoTrackType do
             return false
-        if .codecId == AvcCodecId or .codecId == HevcCodecId or .codecId == Mpeg4CodecId do
+        if .codecId == AvcCodecId or
+           .codecId == HevcCodecId or
+           .codecId == Mpeg4CodecId or
+           .codecId == RealVideoCodecId do
             return not .codecPrivate.isEmpty()
         return .isVfwMpeg4()
     }
@@ -267,6 +272,8 @@ private impl Track
     // Which coded picture format this track names.
     mtd const pictureKind()->u32
     {
+        if .codecId == RealVideoCodecId do
+            return PictureRealVideo
         if .codecId == HevcCodecId do
             return PictureHevc
         if .codecId == Mpeg4CodecId or .codecId == VfwCodecId do
@@ -664,6 +671,7 @@ private impl Layout
         for &track in .tracks
         {
             track.videoSamples.clear()
+            track.realVideoClock = {}
             track.audioPackets.clear()
             track.subtitleSamples.clear()
             track.audioFrameCount = 0
@@ -1531,8 +1539,10 @@ private impl Layout
         let track   = &.tracks[trackIndex]
         if isVideo
         {
-            let timestamp = try .timestampNanoseconds(clusterTimestamp, relative)
-            let isSync    = keyFromContainer and (block.id != SimpleBlockId or flags & 0x80 != 0)
+            var timestamp = try .timestampNanoseconds(clusterTimestamp, relative)
+            if track.codecId == RealVideoCodecId do
+                timestamp = try track.realVideoClock.presentationTime(cursor.bytes[payload until payload + .laceSizes[0]], track.headerStrip.toSlice(), timestamp)
+            let isSync = keyFromContainer and (block.id != SimpleBlockId or flags & 0x80 != 0)
             track.videoSamples.add(SampleEntry{payload, .laceSizes[0], timestamp, isSync})
             if track.videoSamples.count == 1 and track.needsInlineSetup()
             {
@@ -1877,7 +1887,13 @@ private impl Decoder
             video = &layout.tracks[layout.selectedVideo]
         }
 
-        if video.pictureKind() == PictureMpeg4
+        if video.pictureKind() == PictureRealVideo
+        {
+            let size = try RealVideo.configurationSize(video.videoConfiguration())
+            .info.width  = size.width
+            .info.height = size.height
+        }
+        elif video.pictureKind() == PictureMpeg4
         {
             // The setup headers state the geometry outright.
             var probe: Mpeg4.Decoder

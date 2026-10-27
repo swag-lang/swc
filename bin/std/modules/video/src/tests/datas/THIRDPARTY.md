@@ -346,3 +346,43 @@ documented beside those sources, so the container tests compare against the same
 - `ffmpeg-h264-opus.mkv` SHA-256: `25ebe972d6bdf54aedb315c408775b78bade1f20f181c9aab552f4549202960e`
 - `ffmpeg-h264-vorbis.mkv` SHA-256: `c2c591838668e4aab3376c2f2890887c68b90fd33606105a143893cd5d8224e5`
 - License: same as this repository.
+
+## Synthetic RealVideo 4 sequences
+
+The `rv40-*.mkv` inputs contain pictures generated for this repository, with no third-party
+photography, film footage, or sound. They are distributed under the repository's licence.
+The encoder was [NihAV](https://github.com/Pheo/nihav) at commit
+`635e417065c8dee4e7cab8dc51ab597ae57f9345`.
+No NihAV source or binary is distributed with this module; it was used only to encode fixtures.
+
+The source is sixteen 96x64 YUV420 frames at 25 fps. For frame `n`, the luma sample `(x,y)`
+is `16 + ((3*x + 5*y + 7*n) % 220)`. Chroma plane `c` (1 for U, 2 for V), at 48x32,
+is `64 + ((2*x + 3*y + n*(c+1)) % 128)`. The RV40 encoder tests were given this source,
+and their output was saved without changing the encoder. Encoding options were:
+
+- `rv40-intra`: `frame_order=I`, `loop_filt=false`, `quant=17`, `me_mode=diamond`, 11 frames.
+- `rv40-ipb`: `frame_order=IBPB`, `loop_filt=true`, `quant=17`, `me_mode=hexagon`, 9 frames.
+- `rv40-adaptive`: `frame_order=dynamic`, `loop_filt=true`, `me_mode=umh`, 9 frames.
+- `rv40-slices`: `frame_order=IBBBPBBB`, `loop_filt=true`, `quant=12`, `me_mode=hexagon`,
+  `slice_size=4096`, `coding_set=2`, 13 frames, up to four slices per picture.
+
+PyAV 17.1.0 remuxed the RealMedia packets into Matroska without re-encoding, with the 26-byte
+`VIDO/RV40` header prepended to the eight codec-private bytes. `rv40-legacy-clock.mkv` contains
+the same packets as `rv40-ipb.mkv`, but stamps each B picture one millisecond after its preceding
+stored reference. It exercises the RV40 clock correction required by legacy Matroska muxers.
+
+The `.yuv` expectations in `../goldens/` were decoded independently by FFmpeg through PyAV,
+in presentation order, with tightly packed Y, U, then V planes. They are exact sample references.
+The legacy-clock fixture uses `rv40-ipb.yuv`.
+
+| File | Bytes | SHA-256 |
+| --- | --- | --- |
+| `rv40-intra.mkv` | 16380 | `3af36d05b064964728c20e7629c8828880323f4ad61e6a94ac845a0a372a35f0` |
+| `rv40-ipb.mkv` | 7264 | `0ef4c5e11db32a8d00475e81fc339112805f2e38381d1037b3bafff8aa64277d` |
+| `rv40-adaptive.mkv` | 14626 | `f22405aedca2e28350698f838ac59a9f483bf0233a73e50cc32dfb00db8880a5` |
+| `rv40-legacy-clock.mkv` | 7264 | `3f0ae80c6a2a54412c938a7105ffc1c6a5df2eb580f90454d7ec85d43f31f01a` |
+| `rv40-slices.mkv` | 11480 | `dc302d9e5a7fbb393a248fa6f14ccd2822353842e44c4019d422bb194b4bae36` |
+| `../goldens/rv40-intra.yuv` | 101376 | `e47cac82c2655dd85976bb5fd802b48fcf839c0a7fb071749e622098d767eb8d` |
+| `../goldens/rv40-ipb.yuv` | 82944 | `1017f69a52657dcf75e9fc8a9d6662b87f624a28a8676a2cb045a7375f523485` |
+| `../goldens/rv40-adaptive.yuv` | 82944 | `24ca1301f039a0db96a0295c70413c70446a7ac5cf1507372efd4f96f8be59fe` |
+| `../goldens/rv40-slices.yuv` | 119808 | `99925cc1a90074afa3fc7e9616e0ba6bfa56c4429dfbc198adc577b50e9f821d` |

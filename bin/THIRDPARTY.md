@@ -20,6 +20,7 @@ Some redistributions are documented closer to the files they cover:
 - `std/modules/gui/src/tests/datas/THIRDPARTY.md`: HTML and PDF test fixtures.
 - `std/modules/pixel/src/tests/datas/THIRDPARTY.md`: SVG Web Platform Tests fixtures.
 - `std/modules/video/src/tests/datas/THIRDPARTY.md`: video test fixtures.
+- `std/modules/video/src/decode/realvideo/THIRDPARTY.md`: RealVideo decoder algorithms and tables.
 
 ## Go standard library
 

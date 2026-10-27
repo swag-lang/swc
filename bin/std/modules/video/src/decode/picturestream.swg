@@ -1,36 +1,36 @@
 //! Format: Format-neutral coded picture track.
-//! Supported: Opening, extending, replacing, seeking, and decoding an indexed H.264 or H.265 track through one surface.
+//! Supported: Opening, extending, replacing, seeking, and decoding indexed H.264, H.265, MPEG-4 Part 2, and RealVideo 4 tracks through one surface.
 //! Not supported: This file does not decode or encode a concrete picture format.
-//! Role: This file owns which of the two coded picture formats a container opened, so no reader has to ask.
+//! Role: This file owns which coded picture format a container opened, so no reader has to ask.
 //
 #global internal
 
 using Core, Core.Errors, Pixel
 
 // Which coded picture format a container named.
-const PictureAvc   = 0'u32
-const PictureHevc  = 1'u32
-const PictureMpeg4 = 2'u32
+const PictureAvc       = 0'u32
+const PictureHevc      = 1'u32
+const PictureMpeg4     = 2'u32
+const PictureRealVideo = 3'u32
 
 // The coded picture track of one container, whichever picture codec named it.
 //
-// H.264 and H.265 present a container with the same thing: a table of length-prefixed access
-// units in decoding order, each with the time it is shown, and a decoder that reorders them. A
-// container therefore has no reason to know which of the two it opened, and every reader that
-// asked the question separately eventually forgot to ask it somewhere. This holds the answer once.
+// Each codec consumes indexed access units in decoding order and returns pictures in display
+// order. Container readers use this dispatch for every operation on that shared contract.
 #[Swag.NoCopy]
 struct PictureStream
 {
-    avc:   H264.AvcStream
-    hevc:  Hevc.HevcStream
-    mpeg4: Mpeg4.Mpeg4Stream
-    kind:  u32
+    avc:       H264.AvcStream
+    hevc:      Hevc.HevcStream
+    mpeg4:     Mpeg4.Mpeg4Stream
+    realvideo: RealVideo.Stream
+    kind:      u32
 }
 
 impl PictureStream
 {
     // Configures the decoder from the container's decoder configuration record and installs the
-    // access units of the track. `hevc` selects H.265, and with it an `hvcC` record.
+    // access units of the track. `kind` selects the codec and its configuration format.
     // `prefix` is what the container took off the front of every stored frame, if it did.
     mtd open(kind: u32, config: const [..] u8, frames: const [..] SampleEntry, prefix: const [..] u8) fail
     {
@@ -43,6 +43,11 @@ impl PictureStream
             .hevc.prefix.clear()
             .hevc.prefix.add(prefix)
             try .hevc.open(config, #move owned)
+
+        case PictureRealVideo:
+            .realvideo.prefix.clear()
+            .realvideo.prefix.add(prefix)
+            try .realvideo.open(config, #move owned)
 
         case PictureMpeg4:
             .mpeg4.prefix.clear()
@@ -61,8 +66,9 @@ impl PictureStream
     {
         switch .kind
         {
-        case PictureHevc:  try .hevc.appendFrames(frames)
-        case PictureMpeg4: try .mpeg4.appendFrames(frames)
+        case PictureHevc:      try .hevc.appendFrames(frames)
+        case PictureMpeg4:     try .mpeg4.appendFrames(frames)
+        case PictureRealVideo: try .realvideo.appendFrames(frames)
         default: try .avc.appendFrames(frames)
         }
     }
@@ -74,8 +80,9 @@ impl PictureStream
         owned.add(frames)
         switch .kind
         {
-        case PictureHevc:  try .hevc.replaceFrames(#move owned)
-        case PictureMpeg4: try .mpeg4.replaceFrames(#move owned)
+        case PictureHevc:      try .hevc.replaceFrames(#move owned)
+        case PictureMpeg4:     try .mpeg4.replaceFrames(#move owned)
+        case PictureRealVideo: try .realvideo.replaceFrames(#move owned)
         default: try .avc.replaceFrames(#move owned)
         }
     }
@@ -85,6 +92,8 @@ impl PictureStream
     {
         if .kind == PictureHevc do
             return .hevc.width
+        if .kind == PictureRealVideo do
+            return .realvideo.width
         if .kind == PictureMpeg4 do
             return .mpeg4.width
         return .avc.width
@@ -95,6 +104,8 @@ impl PictureStream
     {
         if .kind == PictureHevc do
             return .hevc.height
+        if .kind == PictureRealVideo do
+            return .realvideo.height
         if .kind == PictureMpeg4 do
             return .mpeg4.height
         return .avc.height
@@ -105,6 +116,8 @@ impl PictureStream
     {
         if .kind == PictureHevc do
             return .hevc.frames.count
+        if .kind == PictureRealVideo do
+            return .realvideo.sampleAtRank.count
         if .kind == PictureMpeg4 do
             return .mpeg4.sampleAtRank.count
         return .avc.frames.count
@@ -115,6 +128,8 @@ impl PictureStream
     {
         if .kind == PictureHevc do
             return .hevc.presentationTimeAtRank(rank)
+        if .kind == PictureRealVideo do
+            return .realvideo.presentationTimeAtRank(rank)
         if .kind == PictureMpeg4 do
             return .mpeg4.presentationTimeAtRank(rank)
         return .avc.presentationTimeAtRank(rank)
@@ -125,6 +140,8 @@ impl PictureStream
     {
         if .kind == PictureHevc do
             return .hevc.syncRankAt(rank)
+        if .kind == PictureRealVideo do
+            return .realvideo.syncRankAt(rank)
         if .kind == PictureMpeg4 do
             return .mpeg4.syncRankAt(rank)
         return .avc.syncRankAt(rank)
@@ -135,6 +152,8 @@ impl PictureStream
     {
         if .kind == PictureHevc do
             .hevc.seekTo(rank)
+        elif .kind == PictureRealVideo do
+            .realvideo.seekTo(rank)
         elif .kind == PictureMpeg4 do
             .mpeg4.seekTo(rank)
         else do
@@ -146,8 +165,9 @@ impl PictureStream
     {
         switch .kind
         {
-        case PictureHevc:  try .hevc.decodeNext(source, target)
-        case PictureMpeg4: try .mpeg4.decodeNext(source, target)
+        case PictureHevc:      try .hevc.decodeNext(source, target)
+        case PictureMpeg4:     try .mpeg4.decodeNext(source, target)
+        case PictureRealVideo: try .realvideo.decodeNext(source, target)
         default: try .avc.decodeNext(source, target)
         }
     }
@@ -157,8 +177,9 @@ impl PictureStream
     {
         switch .kind
         {
-        case PictureHevc:  try .hevc.decodeNextPlanes(source, target)
-        case PictureMpeg4: try .mpeg4.decodeNextPlanes(source, target)
+        case PictureHevc:      try .hevc.decodeNextPlanes(source, target)
+        case PictureMpeg4:     try .mpeg4.decodeNextPlanes(source, target)
+        case PictureRealVideo: try .realvideo.decodeNextPlanes(source, target)
         default: try .avc.decodeNextPlanes(source, target)
         }
     }
@@ -168,6 +189,8 @@ impl PictureStream
     {
         if .kind == PictureHevc do
             .hevc.releasePending()
+        elif .kind == PictureRealVideo do
+            .realvideo.releasePending()
         elif .kind == PictureMpeg4 do
             .mpeg4.releasePending()
         else do

@@ -313,3 +313,23 @@ func completeExplorer(host: *Testing.HeadlessHost, explorer: *Explorer)
         folders += 1
     Swag.assert(window.folderList.lineCount() == folders)
 }
+
+// Long selected names animate inside their tile, while short names leave no timer running.
+#test
+{
+    var host: Testing.HeadlessHost
+    host.setup(880, 420)
+    let window = ViewerWindow.create(&host.surfaceWnd, createViewerPluginRegistry())
+    let explorer = Explorer.create(window.documentPanel, window)
+    explorer.entries.add({name: "A very long file name that cannot fit inside a small thumbnail tile.txt", attempted: true})
+    explorer.entries.add({name: "short.txt", attempted: true})
+    explorer.fill()
+    explorer.show()
+    window.applyLayout()
+    explorer.grid.select(0)
+    Swag.assert(explorer.grid.nameTimer != null)
+    host.fireTimer(explorer.grid.nameTimer)
+    Swag.assert(explorer.grid.nameTick == 1)
+    explorer.grid.select(1)
+    Swag.assert(explorer.grid.nameTimer == null)
+}

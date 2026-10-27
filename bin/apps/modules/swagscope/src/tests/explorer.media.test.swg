@@ -39,9 +39,10 @@ using Core, Gui, Pixel
     explorer.show()
     window.applyLayout()
     window.onlineMusic = false
-    host.clickPopupMenuItemWhenShown("onlineMusic")
-    explorer.showMediaOptions()
-    Swag.assert(host.autoHandled and window.onlineMusic)
+    var options: OptionSheet.Page
+    explorer.describeMediaOptions(&options)
+    Swag.assert(options.rows.count == 3 and options.rows[1].kind == .Toggle)
+    Swag.assert(not options.rows[1].checked and options.rows[2].disabled)
 }
 
 // Selected provider data follows the current language and disappears on a local entry.
@@ -59,13 +60,17 @@ using Core, Gui, Pixel
     explorer.entries.add({name: "Blade Runner.mkv", attempted: true,
                           movie: {title: "Blade Runner", imdbRating: "8.1/10", director: "Ridley Scott", actors: "Harrison Ford"}})
     explorer.entries.add({name: "notes.txt", attempted: true})
+    let artwork = expect Image.load(Path.combine(unwrap Path.directoryName(#curlocation.fileName), "datas", "title.png"))
+    explorer.entries[0].texture = host.app.renderer.addImage(&artwork)
     explorer.fill()
     explorer.show()
     explorer.grid.select(0)
+    explorer.infoButton.setChecked(true)
+    explorer.infoButton.sigCheckedChanged.call(explorer.infoButton)
     window.applyLayout()
-    Swag.assert(explorer.mediaInfo.isVisible())
-    Swag.assert(Utf8.contains(explorer.mediaInfo.text(), "IMDb rating via Wikidata: 8.1/10"))
-    Swag.assert(Utf8.contains(explorer.mediaInfo.text(), "Director: Ridley Scott"))
+    Swag.assert(explorer.infoPanel.isVisible())
+    Swag.assert(Utf8.contains(explorer.infoPanel.text, "IMDb rating via Wikidata\n8.1/10"))
+    Swag.assert(Utf8.contains(explorer.infoPanel.text, "Director\nRidley Scott"))
     let english = host.render(window)
     Pixel.Testing.assertImageGolden(&english, "explorer.movie")
 
@@ -73,23 +78,23 @@ using Core, Gui, Pixel
     host.notify(.LanguageChanged)
     explorer.entries[0].movie = {title: "Blade Runner", imdbRating: "8.1/10", director: "Ridley Scott", actors: "Harrison Ford"}
     explorer.showMediaInfo()
-    Swag.assert(Utf8.contains(explorer.mediaInfo.text(), "Note IMDb via Wikidata : 8.1/10"))
-    Swag.assert(Utf8.contains(explorer.mediaInfo.text(), "Distribution : Harrison Ford"))
+    Swag.assert(Utf8.contains(explorer.infoPanel.text, "Note IMDb via Wikidata\n8.1/10"))
+    Swag.assert(Utf8.contains(explorer.infoPanel.text, "Distribution\nHarrison Ford"))
     explorer.entries[0].movie.imdbRating = "8.2/10"
     explorer.entries[0].movie.date       = "1982-06-25"
     explorer.entries[0].movie.overview   = "Un détective dans le futur."
     explorer.showMediaInfo()
-    Swag.assert(Utf8.contains(explorer.mediaInfo.text(), "Note IMDb via Wikidata : 8.2/10"))
-    Swag.assert(Utf8.contains(explorer.mediaInfo.text(), "Sortie : 1982-06-25"))
-    Swag.assert(Utf8.contains(explorer.mediaInfo.text(), "Synopsis : Un détective dans le futur."))
+    Swag.assert(Utf8.contains(explorer.infoPanel.text, "Note IMDb via Wikidata\n8.2/10"))
+    Swag.assert(Utf8.contains(explorer.infoPanel.text, "Sortie\n1982-06-25"))
+    Swag.assert(Utf8.contains(explorer.infoPanel.text, "Synopsis : Un détective dans le futur."))
     explorer.entries[1].music = {title: "Discovery", artist: "Daft Punk", date: "2001-03-12"}
     explorer.grid.select(1)
-    Swag.assert(Utf8.contains(explorer.mediaInfo.text(), "Discovery"))
-    Swag.assert(Utf8.contains(explorer.mediaInfo.text(), "Daft Punk"))
-    Swag.assert(Utf8.contains(explorer.mediaInfo.text(), "2001-03-12"))
+    Swag.assert(Utf8.contains(explorer.infoPanel.text, "Discovery"))
+    Swag.assert(Utf8.contains(explorer.infoPanel.text, "Daft Punk"))
+    Swag.assert(Utf8.contains(explorer.infoPanel.text, "2001-03-12"))
     explorer.entries[1].music = {}
     explorer.showMediaInfo()
-    Swag.assert(not explorer.mediaInfo.isLocallyVisible())
+    Swag.assert(Utf8.contains(explorer.infoPanel.text, "notes.txt"))
 }
 
 // The correction prompt fits a two-sentence explanation at normal and scaled DPI.
@@ -149,10 +154,42 @@ using Core, Gui, Pixel
         explorer.fill()
         explorer.show()
         explorer.grid.select(0)
+        explorer.infoButton.setChecked(true)
+        explorer.infoButton.sigCheckedChanged.call(explorer.infoButton)
         window.applyLayout()
         discard host.render(window)
-        Swag.assert(explorer.mediaInfo.isVisible())
-        Swag.assert(explorer.mediaInfo.position.height < 150)
+        Swag.assert(explorer.infoPanel.isVisible())
+        Swag.assert(explorer.infoPanel.scroll.scrollSize.y > explorer.infoPanel.scroll.position.height)
         Swag.assert(explorer.grid.clientRect().height > 150)
     }
+}
+
+// Available facts make separate rows; selecting another file resets a long panel to its top.
+#test
+{
+    var host: Testing.HeadlessHost
+    host.setup(880, 420)
+    let window = ViewerWindow.create(&host.surfaceWnd, createViewerPluginRegistry())
+    let explorer = Explorer.create(window.documentPanel, window)
+    explorer.entries.add({name: "Film.mkv", size: 123, attempted: true,
+                          movie: {title: "Film", director: "A director", overview: "A long synopsis"}})
+    explorer.entries.add({name: "notes.txt", size: 10, attempted: true})
+    explorer.fill()
+    explorer.show()
+    explorer.infoButton.setChecked(true)
+    explorer.infoButton.sigCheckedChanged.call(explorer.infoButton)
+    window.applyLayout()
+    explorer.grid.select(0)
+    let panel = explorer.infoPanel
+    Swag.assert(Utf8.contains(panel.text, "Director\nA director"))
+    Swag.assert(not Utf8.contains(panel.text, "IMDb rating"))
+    Swag.assert(panel.content.children.count >= 8)
+    panel.scroll.setScrollPos(0, 1000)
+    Swag.assert(panel.scroll.scrollPosition().y > 0)
+    explorer.grid.select(1)
+    Swag.assert(panel.scroll.scrollPosition().y == 0)
+    Swag.assert(not Utf8.contains(panel.text, "A director"))
+    Swag.assert(Utf8.contains(panel.text, "notes.txt"))
+    panel.close.sigPressed.call(panel.close)
+    Swag.assert(not panel.isLocallyVisible() and not explorer.infoButton.isChecked)
 }

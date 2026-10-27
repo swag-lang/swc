@@ -76,7 +76,8 @@ struct Explorer
         status:       *Label
         modes:        *ComboBox
         mediaOptions: *IconButton
-        mediaInfo:    *Label
+        infoPanel:    *ExplorerInfoPanel
+        infoButton:   *IconButton
         filter:       *EditBox
         list:         *ListCtrl
         scroll:       *ScrollWnd
@@ -120,14 +121,7 @@ impl Explorer
 
         result.createLocation()
         result.createViewControls()
-        with result.mediaInfo = Label.create(result, "", flags: .WordWrap | .AutoHeight | .Ellipsis)
-        {
-            .dockStyle = .Bottom
-            .padding   = {16, 8, 16, 8}
-            .setTextAlignment(.Left, .Center)
-            .setMaxLines(5)
-            .hide()
-        }
+        result.infoPanel = ExplorerInfoPanel.create(result)
 
         with result.list = ListCtrl.createMultiColumns(result)
         {
@@ -291,11 +285,23 @@ impl Explorer
             .sigChanged += func|view = me|(_, index) { view.setMode(cast(ExplorerMode, index)) }
         }
 
-        with .mediaOptions = Viewer.createActionDropDown(bar, .Options)
+        with .mediaOptions = Viewer.createOptionsButton(bar)
         {
             .dockStyle = .Right
-            .setArrowPosition(.RightDownward)
+            .margin = {0, 0, 16, 0}
             .sigPressed += func|view = me|(_) { view.showMediaOptions() }
+        }
+
+        let size = themeActionButtonSize(.themeMetrics())
+        with .infoButton = IconButton.create(.window.infoContentGroup, .theme().icon(.Information, themeActionIconSize(.themeMetrics())), Math.Rectangle{0, 0, size, size}, flags: .Toggle)
+        {
+            .setCheckIndicator(.Frame)
+            .sigCheckedChanged += func|view = me|(button)
+            {
+                view.infoPanel.show(button.isChecked)
+                view.applyLayout()
+                view.infoPanel.refresh()
+            }
         }
 
         with .filter = EditBox.create(bar, "", {0, 0, ViewerWindow.SearchNoOptionsFieldWidth, 36}, flags: .ClearButton)
@@ -315,10 +321,9 @@ impl Explorer
         .modes.show(visible)
         .mediaOptions.show(visible)
         .filter.show(visible)
-        if not visible do
-            .mediaInfo.hide()
-        else do
-            .showMediaInfo()
+        .infoButton.show(visible)
+        .infoPanel.show(visible and .infoButton.isChecked)
+        .showMediaInfo()
         .window.infoFileGroup.show(not visible)
         .window.filesButton.toolTip = visible ? appStrings().explore_Panels : appStrings().ui_Files
         if visible
@@ -340,34 +345,31 @@ impl Explorer
 
     mtd showMediaOptions()
     {
-        let menu = MenuCtrl.createPopup(me, owner: me)
-        menu.addItem(appStrings().explore_OnlineMovies, "onlineMovies", checked: .window.onlineMovies)
-        menu.addItem(appStrings().explore_OnlineMusic, "onlineMusic", checked: .window.onlineMusic)
+        let sheet = OptionSheet.View.create(.mediaOptions, func|view = me|(page) { view.describeMediaOptions(page) }, owner: me)
+        sheet.doModal(.mediaOptions, autoDestroy: true)
+    }
+
+    mtd describeMediaOptions(page: *OptionSheet.Page)
+    {
+        page.addToggle(appStrings().explore_OnlineMovies, .window.onlineMovies, func|view = me|(enabled)
+        {
+            view.window.onlineMovies = enabled
+            view.refreshMediaOptions()
+        })
+        page.addToggle(appStrings().explore_OnlineMusic, .window.onlineMusic, func|view = me|(enabled)
+        {
+            view.window.onlineMusic = enabled
+            view.refreshMediaOptions()
+        })
         let musicSelected = .selected < .entries.count and
                             not .listing.isArchive and
                             not .entries[.selected].directory and
                             (Path.hasExtension(.entries[.selected].path, ".mp3") or Path.hasExtension(.entries[.selected].path, ".flac"))
-        menu.addItem(appStrings().explore_ChooseMusic, "chooseMusic", disabled: not musicSelected or not .window.onlineMusic)
-        let choice = menu.doModal(.mediaOptions, autoDestroy: true) orelse ""
-        if choice == "chooseMusic"
-        {
-            .chooseMusic()
-            return
-        }
+        page.addAction(appStrings().explore_ChooseMusic, func|view = me|() { view.chooseMusic() }, disabled: not musicSelected or not .window.onlineMusic, closesSheet: true)
+    }
 
-        if choice == "onlineMovies"
-        {
-            .window.onlineMovies = not .window.onlineMovies
-        }
-        elif choice == "onlineMusic"
-        {
-            .window.onlineMusic = not .window.onlineMusic
-        }
-        else
-        {
-            return
-        }
-
+    mtd refreshMediaOptions()
+    {
         .previewAspect = .listingPreviewAspect()
         .grid.refreshLayout()
         .refreshPreviewSettings()
@@ -409,19 +411,10 @@ impl Explorer
 
     mtd showMediaInfo()
     {
-        if .selected >= .entries.count
-        {
-            .mediaInfo.hide()
-            return
-        }
-
-        var text = .entries[.selected].movie.text()
-        if text.isEmpty() do
-            text = .entries[.selected].music.text()
-        .mediaInfo.setText(text)
-        .mediaInfo.toolTip = text
-        .mediaInfo.show(not text.isEmpty() and .isVisible())
-        .applyLayout()
+        if .selected < .entries.count do
+            .infoPanel.publish(&.entries[.selected])
+        else do
+            .infoPanel.publish(null)
     }
 
     // Gives the keyboard to the listing, in whichever form it is shown.
@@ -441,7 +434,8 @@ impl Explorer
         .forward.toolTip         = text.explore_Forward
         .up.toolTip              = text.explore_Up
         .address.refresh.toolTip = text.explore_Refresh
-        .mediaOptions.toolTip    = text.explore_MediaOptions
+        .mediaOptions.toolTip    = text.ui_Options
+        .infoButton.toolTip      = text.explore_Details
         .showMediaInfo()
         .filter.setPlaceholder(text.ui_FilterFiles)
         .list.header.itemAt(0).name = text.explore_Name
@@ -672,7 +666,7 @@ impl Explorer
         .clearTextures()
         .entries  = #move .listing.entries
         .selected = Swag.U64.Max
-        .mediaInfo.hide()
+        .showMediaInfo()
         .previewAspect = .listingPreviewAspect()
         .previewBudget = Directory.isRemote(.listing.path) ? Math.min(ExplorerRemoteWorkerCount, .previews.count) : .previews.count
         .updateBreadcrumb()
@@ -1126,6 +1120,223 @@ impl IWnd for Explorer
     }
 }
 
+// The selected file as an identity, a set of available properties and optional provider details.
+struct ExplorerInfoPanel
+{
+    using wnd: Wnd
+    late
+    {
+        explorer: *Explorer
+        header:   *Label
+        close:    *IconButton
+        scroll:   *ScrollWnd
+        content:  *StackLayoutCtrl
+    }
+    text:         String
+    selected:     u64 = Swag.U64.Max
+}
+
+impl ExplorerInfoPanel
+{
+    func create(explorer: *Explorer)->*ExplorerInfoPanel
+    {
+        with let result = Wnd.create'ExplorerInfoPanel(explorer, Math.Rectangle{0, 0, 368, 0})
+        {
+            .explorer        = explorer
+            .dockStyle       = .Right
+            .backgroundStyle = .Panel
+            .padding         = {20, 12, 20, 16}
+            .hide()
+        }
+
+        let size = themeCompactButtonSize(result.themeMetrics())
+        with let header = Wnd.create'Wnd(result, Math.Rectangle{0, 0, 0, size})
+        {
+            .dockStyle       = .Top
+            .backgroundStyle = .Transparent
+        }
+        with result.close = IconButton.create(header, result.theme().icon(.WndClose, themeRowIconSize(result.themeMetrics())), Math.Rectangle{0, 0, size, size})
+        {
+            .dockStyle = .Right
+            .sigPressed += func|panel = result|(_)
+            {
+                panel.explorer.infoButton.setChecked(false)
+                panel.explorer.infoButton.sigCheckedChanged.call(panel.explorer.infoButton)
+            }
+        }
+        with result.header = Label.create(header, "")
+        {
+            .dockStyle = .Center
+            .setTextAlignment(.Left, .Center)
+            .style.setFont(result.theme().createDefaultFont(13, .Bold), .Regular)
+        }
+        with result.scroll = Wnd.create'ScrollWnd(result)
+        {
+            .dockStyle = .Center
+            .margin.y  = 12
+            .updateFlags(.DisableHorizontal | .CompactBars | .TransparentBars)
+        }
+        with result.content = result.scroll.createView'StackLayoutCtrl()
+        {
+            .mode            = .Top
+            .spacing         = 0
+            .backgroundStyle = .Transparent
+        }
+        return result
+    }
+
+    // Adds one wrapped line or paragraph to the column, with the theme supplying its ink.
+    mtd addText(value: string, size: u32, bold = false, secondary = false, top = 0.0'f32)
+    {
+        if not value.count do
+            return
+        let clean = safeMediaText(value)
+        let flags = secondary ? LabelFlags.WordWrap | .AutoHeight | .SecondaryText : LabelFlags.WordWrap | .AutoHeight
+        with let label = Label.create(.content, clean, flags: flags)
+        {
+            .margin.y = top
+            .setTextAlignment(.Left, .Top)
+            .style.setFont(me.theme().createDefaultFont(size, bold ? .Bold : .Regular), .Regular)
+        }
+        if not .text.isEmpty() do
+            .text += "\n"
+        .text += clean
+    }
+
+    mtd addFact(name, value: string)
+    {
+        if not value.count do
+            return
+        .addText(name, 11, secondary: true, top: 12)
+        .addText(value, 13, top: 2)
+    }
+
+    // Rebuilds the column from the current entry; unavailable fields do not leave empty rows.
+    mtd publish(entry: const *ExplorerEntry?)
+    {
+        while not .content.children.isEmpty() do
+            .content.children.back().destroyNow()
+        .text.clear()
+        if .selected != .explorer.selected
+        {
+            .selected = .explorer.selected
+            .scroll.setScrollPos(0, 0)
+        }
+        let strings = appStrings()
+        .header.setText(strings.explore_Information)
+        .close.toolTip = strings.explore_CloseInformation
+        if not entry
+        {
+            .addText(strings.explore_SelectFile, 13, secondary: true)
+            .refresh()
+            return
+        }
+
+        if entry.texture.isValid()
+        {
+            with let artwork = Wnd.create'ExplorerInfoArtwork(.content)
+            {
+                .explorer = me.explorer
+                .margin.w = 16
+            }
+        }
+
+        let title = not entry.movie.title.isEmpty() ? entry.movie.title.toString() :
+                    (not entry.music.title.isEmpty() ? entry.music.title.toString() : entry.name.toString())
+        .addText(title, 18, bold: true)
+        if title != entry.name.toString() do
+            .addText(entry.name, 12, secondary: true, top: 4)
+
+        if not entry.movie.title.isEmpty()
+        {
+            .addText(strings.explore_MediaDetails, 13, bold: true, top: 24)
+            .addFact(strings.explore_Rating, entry.movie.imdbRating)
+            .addFact(strings.explore_Released, entry.movie.date)
+            .addFact(strings.explore_Director, entry.movie.director)
+            .addFact(strings.explore_Cast, entry.movie.actors)
+            .addFact(strings.explore_Synopsis, entry.movie.overview)
+            .addFact("Wikipedia / Wikidata", entry.movie.source)
+        }
+        elif not entry.music.title.isEmpty()
+        {
+            .addText(strings.explore_MediaDetails, 13, bold: true, top: 24)
+            .addFact(strings.explore_Artist, entry.music.artist)
+            .addFact(strings.explore_FirstRelease, entry.music.date)
+            .addFact(strings.explore_Source, "MusicBrainz")
+        }
+        .addText(strings.explore_FileProperties, 13, bold: true, top: 24)
+        .addFact(strings.explore_Type, entry.directory ? strings.ui_Folder : (Path.extension(entry.name) orelse ""))
+        if not entry.directory do
+            .addFact(strings.explore_Size, StrConv.toDisplaySize(entry.size))
+        .addFact(strings.explore_Modified, entry.modified)
+        if entry.duration do
+            .addFact(strings.explore_Duration, formatDuration(entry.duration))
+
+        .refresh()
+    }
+
+    mtd refresh()
+    {
+        let width = .scroll.view.position.width
+        if width <= 0 do
+            return
+        let height = Math.ceil(.content.itf.measureContent({width, 0}).y)
+        .scroll.setScrollSize(0, height)
+        .scroll.applyLayout()
+        // A newly shown scrollbar narrows the column and may add wrapped lines.
+        let actualWidth = .scroll.view.position.width
+        if actualWidth > 0 and actualWidth != width
+        {
+            .scroll.setScrollSize(0, Math.ceil(.content.itf.measureContent({actualWidth, 0}).y))
+            .scroll.applyLayout()
+        }
+        .content.computeLayout()
+    }
+}
+
+impl IWnd for ExplorerInfoPanel
+{
+    mtd impl onResizeEvent(_: *ResizeEvent)
+    {
+        if .scroll != null do
+            .refresh()
+    }
+}
+
+// Shows the selected thumbnail at its original proportions above the file identity.
+struct ExplorerInfoArtwork
+{
+    using wnd: Wnd
+    late explorer: *Explorer
+}
+
+impl IWnd for ExplorerInfoArtwork
+{
+    mtd impl measureContent(available: Math.Point)->Math.Point
+    {
+        if .explorer.selected >= .explorer.entries.count do
+            return {}
+        let texture = &.explorer.entries[.explorer.selected].texture
+        if not texture.isValid() or available.x <= 0 do
+            return {}
+        return {available.x, Math.min(160.0, available.x * cast(f32, texture.height) / cast(f32, texture.width))}
+    }
+
+    mtd impl onPaint(evt: *PaintEvent)
+    {
+        if .explorer.selected >= .explorer.entries.count do
+            return
+        let entry = &.explorer.entries[.explorer.selected]
+        if not entry.texture.isValid() do
+            return
+        let rect = .clientRect()
+        let scale = Math.min(rect.width / cast(f32, entry.texture.width), rect.height / cast(f32, entry.texture.height))
+        let width = Math.round(cast(f32, entry.texture.width) * scale)
+        let height = Math.round(cast(f32, entry.texture.height) * scale)
+        .explorer.grid.paintThumbnail(evt.paintContext.painter, {Math.round(rect.horzCenter() - width / 2), rect.y, width, height}, entry)
+    }
+}
+
 // A virtual tile viewport: one painted cell per visible file, independent of directory size.
 struct ExplorerGrid
 {
@@ -1136,6 +1347,8 @@ struct ExplorerGrid
     hovered:       u64        = Swag.U64.Max
     spinners:      Array'(*Spinner)
     busy:          Array'bool     // Which spinners a visible tile claimed during the current paint.
+    nameTimer:     *Timer?
+    nameTick:      u64
 }
 
 impl ExplorerGrid
@@ -1160,7 +1373,7 @@ impl ExplorerGrid
     {
         let width: f32   = .explorer.mode == .Small ? 128.0 : (.explorer.mode == .Large ? 256.0 : 192.0)
         let previewWidth = width - 24
-        .cell    = Math.Point{width, previewWidth / .explorer.previewAspect + 48}
+        .cell    = Math.Point{width, previewWidth / ExplorerFilmPreviewAspect + 48}
         .columns = Math.max(1'u64, cast(u64, Math.max(0.0, .clientRect().width - 24) / width))
         let rows = (.explorer.shown.count + .columns - 1) / .columns
         .explorer.scroll.setScrollSize(0, cast(f32, rows) * .cell.y + 24)
@@ -1225,11 +1438,29 @@ impl ExplorerGrid
         return {first: Math.min(first, .explorer.shown.count), end: Math.min(first + rows * .columns, .explorer.shown.count)}
     }
 
+    mtd startNameScroll()
+    {
+        .nameTick = 0
+        let font = unwrap .font().regular
+        var needsTimer = false
+        for index, row in .explorer.shown where row == .hovered or index == .explorer.selected
+        {
+            if Painter.measureString(.explorer.entries[index].name, font).width > .cell.x - 16 do
+                needsTimer = true
+        }
+
+        if needsTimer and not .nameTimer do
+            .nameTimer = .addTimer(50'ms)
+        elif not needsTimer and .nameTimer do
+            .stopTimer(&.nameTimer)
+    }
+
     mtd select(row: u64)
     {
         if row >= .explorer.shown.count do
             return
         .explorer.selected = .explorer.shown[row]
+        .startNameScroll()
         .explorer.showMediaInfo()
         let top = 12 + cast(f32, row / .columns) * .cell.y
         if top < .scrollPos.y do
@@ -1242,6 +1473,15 @@ impl ExplorerGrid
 
 impl IWnd for ExplorerGrid
 {
+    mtd impl onTimerEvent(evt: *TimerEvent)
+    {
+        if evt.timer == .nameTimer
+        {
+            .nameTick += 1
+            .invalidate()
+        }
+    }
+
     mtd impl onResizeEvent(_: *ResizeEvent)
     {
         if .explorer != null do
@@ -1271,9 +1511,8 @@ impl IWnd for ExplorerGrid
                 let width  = Math.round(cast(f32, entry.texture.width) * scale)
                 let height = Math.round(cast(f32, entry.texture.height) * scale)
 
-                // Previews stand on the line of their names, so a row of films of any shape reads
-                // as one row and each picture stays next to what it is called.
-                .paintThumbnail(painter, Math.Rectangle{Math.round(preview.horzCenter() - width / 2), Math.round(preview.bottom() - height), width, height}, entry)
+                // Center each complete image in the same landscape slot.
+                .paintThumbnail(painter, Math.Rectangle{Math.round(preview.horzCenter() - width / 2), Math.round(preview.vertCenter() - height / 2), width, height}, entry)
             }
             elif slot != Swag.U64.Max
             {
@@ -1291,13 +1530,35 @@ impl IWnd for ExplorerGrid
                 icon.paint(painter, preview.horzCenter() - 16, preview.vertCenter() - 16, .themeColors().label_TextFaint)
             }
 
-            var name:   RichString = entry.name
-            var format: RichStringFormat
-            format.font = .font()
-            me.theme().setTextColors(&format, me.themeColors().label_Text)
-            format.horzAlignment = .Center
-            format.flags         = .Ellipsis
-            painter.drawRichString(Math.Rectangle{rect.x + 4, rect.bottom() - 28, rect.width - 8, 24}, &name, format)
+            let nameRect = Math.Rectangle{rect.x + 4, rect.bottom() - 28, rect.width - 8, 24}
+            let font     = unwrap .font().regular
+            let width    = Painter.measureString(entry.name, font).width
+            if width > nameRect.width and (.hovered == row or .explorer.selected == index)
+            {
+                // Pause at each end before traveling back, so the beginning remains easy to read.
+                let distance = cast(u64, Math.ceil(width - nameRect.width))
+                let phase    = .nameTick % (distance * 2 + 40)
+                var offset: u64
+                if phase > 20 and phase <= distance + 20 do
+                    offset = phase - 20
+                elif phase > distance + 20 and phase <= distance + 40 do
+                    offset = distance
+                elif phase > distance + 40 do
+                    offset = distance * 2 + 40 - phase
+                painter.pushClippingRect(nameRect)
+                painter.drawString(nameRect.x - cast(f32, offset), nameRect.y + Math.round((nameRect.height - font.height) / 2), entry.name, font, .themeColors().label_Text)
+                painter.popClippingRect()
+            }
+            else
+            {
+                var name: RichString = entry.name
+                var format: RichStringFormat
+                format.font = .font()
+                me.theme().setTextColors(&format, me.themeColors().label_Text)
+                format.horzAlignment = .Center
+                format.flags         = .Ellipsis
+                painter.drawRichString(nameRect, &name, format)
+            }
         }
 
         for spinner, slot in .spinners do
@@ -1313,6 +1574,7 @@ impl IWnd for ExplorerGrid
             if .hovered != row
             {
                 .hovered = row
+                .startNameScroll()
                 .invalidate()
             }
 

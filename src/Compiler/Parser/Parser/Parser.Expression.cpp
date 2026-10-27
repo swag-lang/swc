@@ -727,8 +727,22 @@ AstNodeRef Parser::parseParenExpr()
     nodePtr->nodeExprRef          = firstRef;
     if (firstRef.isInvalid())
         skipTo({TokenId::SymRightParen}, SkipUntilFlagsE::EolBefore);
+    skipMisplacedTypePatternBinding();
     expectAndConsumeClosing(TokenId::SymRightParen, openRef);
     return nodeRef;
+}
+
+// 'as name' binds only right after the type test of an 'if' or a 'case'. Anywhere else the
+// name would outlive the test, so say where it belongs, then drop it to keep parsing.
+void Parser::skipMisplacedTypePatternBinding()
+{
+    if (!is(TokenId::KwdAs))
+        return;
+
+    const Diagnostic diag = reportError(DiagnosticId::parser_err_type_pattern_binding_position, ref());
+    diag.report(*ctx_);
+    consume();
+    consumeIf(TokenId::Identifier);
 }
 
 AstNodeRef Parser::parsePostFixExpression()

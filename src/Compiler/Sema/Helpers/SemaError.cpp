@@ -108,6 +108,11 @@ namespace
 
     void addFunctionGenericContext(Sema& sema, Diagnostic& diag, const SymbolFunction& function, SmallVector<const Symbol*>& seen)
     {
+        // The single body of an erased function reads like a plain function's: it has no
+        // specialization to name, and it is built by its own declaration.
+        if (function.isErasedGenericInstance())
+            return;
+
         SmallVector<SemaGeneric::GenericParamDesc> params;
         SmallVector<GenericInstanceKey>            args;
         if (!SemaGeneric::Internal::loadFunctionInstanceGenericArgs(sema, function, params, args))

@@ -40,3 +40,12 @@ struct(U is ErasedBase) ErasedBox { item: *U? }     // swc-expected-error {{sema
     var view: ErasedView
     erasedNotify(&view, func(other: *ErasedOther) { other.count = 1 })     // swc-expected-error {{sema_err_cannot_cast}}
 }
+
+// The body cannot hand a callback typed with 'T' another object than the one it received.
+var g_ErasedOtherBase: ErasedBase
+
+func(T is ErasedBase) erasedForge(target: *T, notify: func||(*T))
+{
+    notify(target)
+    notify(&g_ErasedOtherBase)     // swc-expected-error {{sema_err_erased_param_forged}}
+}

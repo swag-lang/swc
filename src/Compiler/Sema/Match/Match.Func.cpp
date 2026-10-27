@@ -1217,8 +1217,11 @@ namespace
     }
 
     // Probes if an implicit conversion from 'from' to 'to' is possible and returns its rank.
-    Result probeImplicitConversion(Sema& sema, ConvRank& outRank, AstNodeRef argRef, TypeRef from, TypeRef to, CastFailure& outCastFailure, bool isUfcsArgument, bool allowUserDefinedLiteralSuffix)
+    Result probeImplicitConversion(Sema& sema, ConvRank& outRank, AstNodeRef argRef, TypeRef from, TypeRef to, CastFailure& outCastFailure, CastFlags argFlags)
     {
+        const bool isUfcsArgument                = argFlags.has(CastFlagsE::UfcsArgument);
+        const bool allowUserDefinedLiteralSuffix = argFlags.has(CastFlagsE::LiteralSuffixConsume);
+
         outRank = ConvRank::Bad;
         if (from == to)
         {
@@ -1293,10 +1296,7 @@ namespace
         // fold-result materialization (whole-value lowering, aggregate/array fold interning).
         castRequest.probing = true;
         castRequest.setConstantFoldingSrc(castSourceCstRef);
-        if (isUfcsArgument)
-            castRequest.flags.add(CastFlagsE::UfcsArgument);
-        if (allowUserDefinedLiteralSuffix)
-            castRequest.flags.add(CastFlagsE::LiteralSuffixConsume);
+        castRequest.flags.add(argFlags);
         const Result castResult = Cast::castAllowed(sema, castRequest, from, castToTypeRef);
         if (castResult == Result::Pause)
             return Result::Pause;
@@ -1521,7 +1521,7 @@ namespace
         }
 
         auto r = ConvRank::Bad;
-        SWC_RESULT(probeImplicitConversion(sema, r, entry.argRef, argTy, variadicTy, cf, false, false));
+        SWC_RESULT(probeImplicitConversion(sema, r, entry.argRef, argTy, variadicTy, cf, CastFlagsE::Zero));
         if (r == ConvRank::Bad)
         {
             if (cf.diagId == DiagnosticId::None)
@@ -2020,13 +2020,18 @@ namespace
                 return Result::Continue;
             }
 
-            const bool isUfcsArgument                = allowsImplicitAddressBinding(fn, i, ufcsArg);
-            const bool allowUserDefinedLiteralSuffix = fn.idRef() == sema.idMgr().predefined(IdentifierManager::PredefinedName::OpSetLiteral);
-            auto       r                             = ConvRank::Bad;
+            CastFlags argFlags = CastFlagsE::Zero;
+            if (allowsImplicitAddressBinding(fn, i, ufcsArg))
+                argFlags.add(CastFlagsE::UfcsArgument);
+            if (fn.idRef() == sema.idMgr().predefined(IdentifierManager::PredefinedName::OpSetLiteral))
+                argFlags.add(CastFlagsE::LiteralSuffixConsume);
+            if (fn.isErasedGenericInstance())
+                argFlags.add(CastFlagsE::ErasedArgument);
+            auto r = ConvRank::Bad;
             if (isIntrinsicAliasStorageMatch(sema, mode, fn, argTy, paramTy))
                 r = ConvRank::Standard;
             else
-                SWC_RESULT(probeImplicitConversion(sema, r, argRef, argTy, paramTy, cf, isUfcsArgument, allowUserDefinedLiteralSuffix));
+                SWC_RESULT(probeImplicitConversion(sema, r, argRef, argTy, paramTy, cf, argFlags));
             if (r == ConvRank::Bad)
             {
                 if (cf.diagId == DiagnosticId::None)
@@ -2665,6 +2670,8 @@ namespace
                 flags.add(CastFlagsE::UfcsArgument);
             if (selectedFn.idRef() == sema.idMgr().predefined(IdentifierManager::PredefinedName::OpSetLiteral))
                 flags.add(CastFlagsE::LiteralSuffixConsume);
+            if (selectedFn.isErasedGenericInstance())
+                flags.add(CastFlagsE::ErasedArgument);
             // A UFCS receiver binding a value to a pointer parameter needs no cast node: the
             // call passes the receiver's address (passUfcsAddressAsPointer), and a cast
             // substitute would survive a pause and re-type the receiver expression. An

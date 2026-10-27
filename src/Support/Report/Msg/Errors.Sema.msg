@@ -335,6 +335,7 @@ SWC_DIAG_DEF(sema_err_erased_param_bound_not_struct, Error, "the bound of erased
 SWC_DIAG_DEF(sema_err_interface_base_not_struct, Error, "the base of interface '{sym}' needs a struct, found '{type}'")
 SWC_DIAG_DEF(sema_err_interface_base_not_embedded, Error, "interface '{sym}' needs its implementations to start with '{requested-type}', but '{type}' does not; [help] embed '{requested-type}' as the first field of '{type}' with 'using'")
 SWC_DIAG_DEF(sema_err_erased_param_in_struct, Error, "erased generic parameter '{value}' can only be declared by a function; [help] declare '{value}' without 'is', or move the erasure to the functions that use the struct")
+SWC_DIAG_DEF(sema_err_erased_param_forged, Error, "cannot convert '{type}' to '{requested-type}', because an erased parameter can only hold an object its caller passed; [help] use a value the function received with that type, or write an explicit 'cast' if this object is the caller's")
 SWC_DIAG_DEF(sema_err_generic_function_instantiation_failed, Error, "cannot instantiate generic function '{sym}' from the provided arguments")
 SWC_DIAG_DEF(sema_err_generic_function_instantiation_failed, Error, "cannot instantiate generic function '{sym}': {what}")
 SWC_DIAG_DEF(sema_err_generic_struct_where_not_bool, Error, "'where' constraint for generic struct '{sym}' produces '{type}', not 'bool'; [help] return 'bool' from the constraint expression")

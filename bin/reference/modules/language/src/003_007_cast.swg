@@ -134,6 +134,27 @@ the caller already guarantees compatibility.
 }
 
 /**
+## Leaving Early on Another Type
+
+A pattern binding lives only in its branch. When a function returns early for the other
+types, bind with `catch cast(*T?, value)` instead: the test that leaves narrows the name to
+`*T` for the rest of the function.
+*/
+func countOf(view: ICount)->s32
+{
+    let counter = catch cast(*Counter?, view)
+    if not counter do
+        return -1
+    return counter.value
+}
+
+#test
+{
+    var counter = Counter{42}
+    Swag.assert(countOf(cast(ICount, &counter)) == 42)
+}
+
+/**
 ## Values Stored in `any`
 
 `try cast(*T, boxed)` borrows a stored value of type `T`. Dereference the result

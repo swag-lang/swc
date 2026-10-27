@@ -24,6 +24,7 @@ SWC_DIAG_DEF(parser_err_foreign_function_keyword, Error, "'{tok}' does not decla
 SWC_DIAG_DEF(parser_err_assign_in_condition, Error, "'=' assigns a value and cannot end a condition; [help] use '==' to compare")
 SWC_DIAG_DEF(parser_err_expected_do_block, Error, "expected 'do' or '{' after '{tok}' before the controlled statement; [help] use 'do <statement>' for a single statement, or '{ ... }' for a block")
 SWC_DIAG_DEF(parser_err_gen_param_type, Error, "generic type parameter cannot use a value type annotation")
+SWC_DIAG_DEF(parser_err_type_pattern_binding_position, Error, "'as' can only bind the value of 'if value is T' or 'case T', where the test is the whole condition; [help] to leave early instead, write 'let name = catch cast(*T?, value)' then 'if not name do return'")
 SWC_DIAG_DEF(parser_err_var_struct, Error, "field declarations in structs and unions do not use 'var' before '{next-tok}'; [help] remove 'var' and keep the field name and type")
 SWC_DIAG_DEF(parser_err_var_struct, Error, "field declarations in structs and unions do not use 'var'; [help] remove 'var' and keep the field name and type")
 SWC_DIAG_DEF(parser_err_interface_method_must_use_mtd, Error, "interface methods use 'mtd', not 'func'; [help] replace 'func' with 'mtd'")

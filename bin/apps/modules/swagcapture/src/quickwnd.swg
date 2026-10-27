@@ -188,10 +188,10 @@ impl QuickStylePaintForm
 // printed there, it would overflow the cell on both axes and cross the sample it names.
 func quickStyleTip(itf: IForm)->string
 {
-    if Swag.kindOf(itf) != FormImage do
+    let image = catch cast(*FormImage?, itf)
+    if not image do
         return ""
 
-    let image = assume cast(*FormImage, itf)
     switch #complete image.kind
     {
     case .Image:    return appStrings().prop_KindImage

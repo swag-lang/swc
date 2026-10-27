@@ -494,6 +494,17 @@ Result Cast::castToPointer(Sema& sema, CastRequest& castRequest, TypeRef srcType
     const TypeInfo&    srcType = typeMgr.get(srcTypeRef);
     const TypeInfo&    dstType = typeMgr.get(dstTypeRef);
 
+    // Inside an erased function a pointer to its 'T' only comes from one: any other object would
+    // reach callbacks written for the caller's type. A call to an erased function proves its
+    // argument by deduction, and an explicit cast states it.
+    if (erasedParamAlias(typeMgr.get(dstType.payloadTypeRef())) &&
+        !(srcType.isPointerOrReference() && srcType.payloadTypeRef() == dstType.payloadTypeRef()) &&
+        castRequest.kind != CastKind::Explicit &&
+        !castRequest.flags.has(CastFlagsE::ErasedArgument))
+    {
+        return castRequest.fail(DiagnosticId::sema_err_erased_param_forged, srcTypeRef, dstTypeRef);
+    }
+
     // UFCS may take the receiver address directly or through using fields.
     // Cast::cast checks addressability after this compatibility decision.
     if (castRequest.flags.has(CastFlagsE::UfcsArgument) && !dstType.isNullable() && !srcType.isPointerOrReference())
@@ -976,7 +987,7 @@ Result Cast::castToFunction(Sema& sema, CastRequest& castRequest, TypeRef srcTyp
         // A callback reaches an erased generic function typed with the 'T' of the call; inside,
         // the function hands it to storage typed with the bound only through an explicit cast.
         SignatureMatch erasedMatch = SignatureMatchE::Zero;
-        if (castRequest.kind == CastKind::Parameter)
+        if (castRequest.flags.has(CastFlagsE::ErasedArgument))
             erasedMatch = SignatureMatchE::ErasedParams;
         else if (castRequest.kind == CastKind::Explicit)
             erasedMatch = SignatureMatchE::ErasedToBound;

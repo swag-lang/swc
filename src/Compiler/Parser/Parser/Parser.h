@@ -323,6 +323,7 @@ private:
     AstNodeRef parseNamedArg();
     AstNodeRef parseNamespace();
     AstNodeRef parseParenExpr();
+    void       skipMisplacedTypePatternBinding();
     AstNodeRef parsePostFixExpression();
     AstNodeRef parseIdentifierSuffixValue();
     AstNodeRef parseQuotedSingleSuffixValue();

@@ -83,6 +83,11 @@ func(T is EraseWidget) eraseShow(target: *T)->bool
 converts to a pointer to the bound. Every call sees the same 'T', which is how one body serves
 them all.
 
+The other direction is closed: a pointer to the bound, or to any other struct, does not become a
+'T' inside the body, so a callback typed with 'T' only ever receives what the caller passed. A
+call to another erased function proves its own 'T' by deduction, and an explicit 'cast' states
+that an object is the caller's.
+
 A callback typed with 'T' reaches storage typed with the bound only through an explicit
 'cast'. That cast states the function's own contract: it calls the callback with the target it
 received, never with another object.

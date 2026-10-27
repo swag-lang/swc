@@ -41,6 +41,7 @@ enum class CastFlagsE : uint32_t
     Assume               = 1 << 13,
     Fallible             = 1 << 14,
     NonNullChecked       = 1 << 15, // an explicit cast owns the check or the caller's assumption
+    ErasedArgument       = 1 << 16, // argument of an erased generic call: deduction proved its 'T'
 };
 
 using CastFlags = EnumFlags<CastFlagsE>;

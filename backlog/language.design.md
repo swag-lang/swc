@@ -685,21 +685,6 @@ in its module backlog; a general request for better names is not a missing langu
 - Done when: `f([])` and `path: const [..] string = []` compile wherever the destination names a
   slice type, and the diagnostic only fires where nothing names one.
 
-### language.design.041 — The body of an erased function can still forge its 'T'
-
-- Evidence: `func(T is Bound)` proves each call (one deduced 'T', every argument typed with it,
-  'T' starting with the bound), but inside the single body 'T' is a strict alias of the bound and a
-  strict alias does not guard pointers: `*Bound` converts to `*T` implicitly, as `*Wnd` converts
-  to `*SW` for any `#[Swag.Strict] alias SW = Wnd`. The body can therefore hand a callback typed
-  with 'T' an object that is not the caller's. The reference
-  ([009_004_erased_parameters.swg](../bin/reference/modules/language/src/009_004_erased_parameters.swg))
-  states this as the function's contract, like an `assume`.
-- Next: reject the implicit `*Bound` → `*T` conversion inside an erased body (only values typed
-  with 'T' produce a `*T`), then decide whether strict aliases in general should refuse an
-  implicit pointer conversion into them.
-- Done when: an erased body cannot call a 'T' callback with an object it did not receive as a
-  'T', with a sema fixture for the rejected conversion.
-
 ### language.design.042 — A signal names its emitter's base, so every handler casts
 
 - Evidence: `sigPressed: SigArray'func||(*Button)` hands a handler a `*Button`, and about fifteen
@@ -714,20 +699,6 @@ in its module backlog; a general request for better names is not a missing langu
   dynamic type an object of another.
 - Done when: `.sigPressed += func(button)` types `button` with the receiver's own struct without a
   cast, and the signal instantiations fold by shape.
-
-### language.design.043 — A type pattern cannot bind past a guard
-
-- Evidence: `if x is T as name` binds `name` only inside its branch, so a function that leaves
-  early on the other types keeps `Swag.kindOf(x) != T` followed by `assume cast(*T, x)`
-  (`formContentFresh` in [capture.paint.swg](../bin/apps/modules/swagcapture/src/capture.paint.swg),
-  `quickStyleTip` in [quickwnd.swg](../bin/apps/modules/swagcapture/src/quickwnd.swg)). Writing
-  `if not (x is T as name) do return` is rejected with "expected closing ')' before keyword 'as'",
-  which suggests a parenthesis instead of stating that the binding has no scope there.
-- Next: decide whether a negated pattern whose branch always leaves binds its name for the rest
-  of the block (as Swift's `guard let` does), and in either case make the diagnostic say where a
-  type-pattern binding is allowed.
-- Done when: the guard form either binds or is rejected by a message that names the rule, with a
-  parser or sema fixture.
 
 ---
 

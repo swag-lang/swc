@@ -75,10 +75,10 @@ impl Capture
     // through `dirty`); the cache honors those triggers without an undo.
     func formContentFresh(f: IForm)->bool
     {
-        if Swag.kindOf(f) != FormImage do
+        let fi = catch cast(*FormImage?, f)
+        if not fi do
             return true
 
-        let fi = assume cast(*FormImage, f)
         switch fi.kind
         {
         case .Image:   return not fi.image.isValid() or (fi.texture.isValid() and fi.textureKind == fi.kind and not fi.dirty)

@@ -309,6 +309,7 @@ AstNodeRef Parser::parseIf()
         return bindingRef;
     }
 
+    skipMisplacedTypePatternBinding();
     nodePtr->nodeIfBlockRef = parseDoCurlyBlock();
     // Same chained-conditional shape as 'if var': the else branch either owns a
     // block or another IfStmt node.

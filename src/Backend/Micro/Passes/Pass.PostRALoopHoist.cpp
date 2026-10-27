@@ -337,7 +337,9 @@ namespace
     }
     bool overlaps(const FrameRef& a, const FrameRef& b)
     {
-        return a.base == b.base && a.lo < b.hi && b.lo < a.hi;
+        // Different frame bases may refer to the same stack bytes. Without a
+        // common displacement proof, treat them as potentially overlapping.
+        return a.base != b.base || (a.lo < b.hi && b.lo < a.hi);
     }
 
     struct Hoist

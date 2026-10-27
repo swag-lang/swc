@@ -125,13 +125,9 @@ namespace
         bool     escaped = false;
     };
 
-    // The two address spaces escape independently. A value use of the stack
-    // pointer - call-argument staging, a parameter home handed out - reaches
-    // sp-addressed slots, never the locals behind the base register: nothing
-    // lands in local space without naming the base register, and the base
-    // register's own leaks are classified per object. The allocator's spill
-    // area stays unreachable under either: it holds no source object, so no
-    // pointer can be made to land in it.
+    // Track stack-pointer and local-base escapes separately for source-object
+    // reasoning. The two bases can still refer to the same stack bytes; an
+    // escaped pointer into either space can reach stack-pointer slots.
     struct FrameReachability
     {
         bool                     computed          = false;
@@ -307,23 +303,18 @@ namespace
         return false;
     }
 
-    // Whether no program pointer can land on this slot: the whole frame is
-    // private, the slot is the allocator's own (no source object overlaps the
-    // spill area and no pointer can be made to reach it), or every escaped
-    // object lies elsewhere and the slot sits wholly inside a known one.
-    bool slotIsUnreachable(const FrameReachability& reach, const MicroPassContext& context, const FrameRef& slot, const CallConv& conv)
+    // Whether no program pointer can land on this slot. An escaped local
+    // pointer may also reach stack-pointer slots, so only local-base slots
+    // can use source-object extents without a common displacement proof.
+    bool slotIsUnreachable(const FrameReachability& reach, const FrameRef& slot, const CallConv& conv)
     {
         if (reach.wholeFramePrivate)
             return true;
 
         if (isFrameBaseRegister(slot.base, conv))
-        {
-            if (!reach.spSpaceEscapes)
-                return true;
-            return context.spillAreaLo < context.spillAreaHi && slot.lo >= context.spillAreaLo && slot.hi <= context.spillAreaHi;
-        }
+            return false;
 
-        if (reach.localSpaceEscapes || !reach.extentsKnown)
+        if (reach.spSpaceEscapes || reach.localSpaceEscapes || !reach.extentsKnown)
             return false;
 
         for (const FrameObject& object : reach.objects)
@@ -687,7 +678,7 @@ namespace
 
                 const FrameRef slotRef{use.base, offset, offset + getNumBytes(bits)};
                 bool           blocked = std::ranges::any_of(blockedRanges, [&](const FrameRef& range) { return overlaps(slotRef, range); });
-                if (blocked || !slotIsUnreachable(reach, context, slotRef, conv))
+                if (blocked || !slotIsUnreachable(reach, slotRef, conv))
                     continue;
 
                 // A different frame access, including a partially overlapping one, must
@@ -755,11 +746,22 @@ namespace
             slotRef.lo   = offset;
             slotRef.hi   = offset + getNumBytes(use.bits);
 
-            const bool blocked = std::ranges::any_of(blockedRanges, [&](const FrameRef& range) { return overlaps(slotRef, range); });
+            bool blocked = std::ranges::any_of(blockedRanges, [&](const FrameRef& range) { return overlaps(slotRef, range); });
+            for (uint32_t k = loop.bodyBegin; k < loop.bodyEnd && !blocked; ++k)
+            {
+                if (!inBody[k] || k == use.loadIndex || k == use.storeIndex)
+                    continue;
+                const MicroInstr*        other    = storage.ptr(instrRefs[k]);
+                const MicroInstrOperand* otherOps = other ? other->ops(operands) : nullptr;
+                FrameRef                 otherRef;
+                if (other && (isFrameLoad(otherRef, *other, otherOps, conv, reach.localBaseReg) ||
+                              frameWriteRange(otherRef, *other, otherOps, conv, reach.localBaseReg)))
+                    blocked = overlaps(slotRef, otherRef);
+            }
             if (blocked)
                 continue;
 
-            if (restrictToUnreachable && !slotIsUnreachable(reach, context, slotRef, conv))
+            if (restrictToUnreachable && !slotIsUnreachable(reach, slotRef, conv))
                 continue;
             if (use.loadIndex == std::numeric_limits<uint32_t>::max() ||
                 use.storeIndex == std::numeric_limits<uint32_t>::max())
@@ -1311,11 +1313,8 @@ namespace
                 FrameRef written;
                 if (!frameWriteRange(written, *inst, inst->ops(operands), conv, reach.localBaseReg))
                 {
-                    // A write this pass cannot place. It reaches nothing in the frame when no
-                    // pointer into the frame exists, and only what escaped otherwise: not the
-                    // allocator's own spill area - that area holds no source object, so no
-                    // pointer can be made to land in it - and not a source object whose
-                    // address the function never handed out.
+                    // An unplaceable write can reach anything escaped from the frame.
+                    // Only slots proven unreachable remain eligible for hoisting.
                     hasUnplaceableWrite = true;
                     continue;
                 }
@@ -1346,7 +1345,7 @@ namespace
                     continue;
                 if (isFrameBaseRegister(dst, conv) || (reach.localBaseReg.isValid() && dst == reach.localBaseReg))
                     continue;
-                if (restrictToUnreachable && !slotIsUnreachable(reach, context, slot, conv))
+                if (restrictToUnreachable && !slotIsUnreachable(reach, slot, conv))
                     continue;
 
                 bool aliased = false;

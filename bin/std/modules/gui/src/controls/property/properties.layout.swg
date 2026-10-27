@@ -96,6 +96,8 @@ internal impl Properties
             return
         wnd.padding.x = .leftMargin
         wnd.padding.z = .rightMargin
+        if .kind == .List do
+            wnd.padding.w = .listContentPaddingBottom
     }
 
     // Right edge (in row-content coordinates) of the revert/action column: anchored to

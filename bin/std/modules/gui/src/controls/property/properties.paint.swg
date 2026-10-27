@@ -40,7 +40,6 @@ internal impl Properties
         item.aniFocusBk.apply(wndItem, colBk)
 
         var r = wndItem.clientRect()
-        r.moveTop(wndItem.children.front().position.y)
 
         // Row chrome stays inside the row window. Painting through the surrounding layout
         // margins lets two independently animated rows overwrite each other at their shared edge.

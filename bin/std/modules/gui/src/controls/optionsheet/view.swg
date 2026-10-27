@@ -598,16 +598,7 @@ private impl View
         }
 
         .openProgress = 0
-        discard .app().animator.animateF32(me,
-                                           AnimationChannel.from(OpenChannel),
-                                           0,
-                                           1,
-                                           func(wnd, value)
-                                           {
-                                               let sheet = assume cast(*View, wnd)
-                                               sheet.openProgress = value
-                                           },
-                                           options)
+        discard .app().animator.animateF32(me, AnimationChannel.from(OpenChannel), 0, 1, func(sheet, value) { sheet.openProgress = value }, options)
     }
 
     // Describes the page on screen again through its builder.
@@ -805,15 +796,8 @@ private impl View
         options.duration = Time.Duration.fromSeconds(metrics.motion_PanelSeconds)
         options.easing   = .EaseOut
 
-        func updateSlide(wnd: *Wnd, value: f32)
-        {
-            let sheet = assume cast(*View, wnd)
-            sheet.slideProgress = value
-        }
-
         let completeSlide = func|me|(_: AnimationResult) { me.slideProgress = 1 }
-
-        .slideHandle = .app().animator.animateF32(me, AnimationChannel.from(SlideChannel), 0, 1, &updateSlide, options, completeSlide)
+        .slideHandle = .app().animator.animateF32(me, AnimationChannel.from(SlideChannel), 0, 1, func(sheet, value) { sheet.slideProgress = value }, options, completeSlide)
 
         .fitHeight(animate: true)
         .revealFocus()
@@ -839,9 +823,8 @@ private impl View
         options.duration = Time.Duration.fromSeconds(.themeMetrics().motion_PanelSeconds)
         options.easing   = .EaseInOut
 
-        func updateHeight(wnd: *Wnd, value: f32)
+        func updateHeight(sheet: *View, value: f32)
         {
-            let sheet = assume cast(*View, wnd)
             sheet.bodyHeight = value
             sheet.place()
         }

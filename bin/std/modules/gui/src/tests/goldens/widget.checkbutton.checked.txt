@@ -16,7 +16,7 @@ SetClippingRect 20 20 160 24
 BindTexture0 Texture uv=FillSubRect interp=Linear tex#0 bound=(0,0)-(24,24) src=(0.163352,0.083807)-(0.25142,0.171875)
 DrawTriangles n=6 bbox=(0,0)-(24,24) colors=[FF3D8CEB] cov=solid
 BindTexture0 Texture uv=FillSubRect interp=Linear tex#0 bound=(0,0)-(24,24) src=(0.163352,0.177557)-(0.25142,0.265625)
-DrawTriangles n=6 bbox=(0,0)-(24,24) colors=[FF3D8CEB] cov=solid
+DrawTriangles n=6 bbox=(0,0)-(24,24) colors=[FFE0E0E0] cov=solid
 SetClippingRect 48 20 132 24
 StartFont
 UpdateFont font#0

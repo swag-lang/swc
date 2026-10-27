@@ -501,15 +501,15 @@ private func buildOptionSheets(flow: *Flow)
     flow.section("Option sheets")
     flow.caption("open")
 
-    let anchored = IconButton.create(flow.view, app.theme.icon(.Options, 18), flow.next(40))
+    let anchored = IconButton.create(flow.view, app.theme.icon(.Settings, 18), flow.next(40))
     anchored.sigPressed += func(button) { showSheet(assume cast(*IconButton, button), .Anchored) }
 
-    let bottom = IconButton.create(flow.view, app.theme.icon(.Options, 18), flow.next(124))
+    let bottom = IconButton.create(flow.view, app.theme.icon(.Settings, 18), flow.next(124))
     bottom.setText("Bottom sheet")
     bottom.setTextPosition(.Right)
     bottom.sigPressed += func(button) { showSheet(assume cast(*IconButton, button), .BottomSheet) }
 
-    let side = IconButton.create(flow.view, app.theme.icon(.Options, 18), flow.next(124))
+    let side = IconButton.create(flow.view, app.theme.icon(.Settings, 18), flow.next(124))
     side.setText("Side panel")
     side.setTextPosition(.Right)
     side.sigPressed += func(button) { showSheet(assume cast(*IconButton, button), .SidePanel) }

@@ -1186,8 +1186,12 @@ namespace
 
             if (!paramType.isValid())
                 paramType = resolveGroupedFunctionExprParameterType(sema, params, paramIndex);
-
-            SWC_ASSERT(paramType.isValid());
+            if (!paramType.isValid())
+            {
+                auto diag = SemaError::report(sema, DiagnosticId::sema_err_lambda_parameter_type_not_inferred, paramRef, SemaError::ReportLocation::Token);
+                diag.report(sema.ctx());
+                return Result::Error;
+            }
 
             IdentifierRef idRef = IdentifierRef::invalid();
             if (param.hasFlag(AstLambdaParamFlagsE::Named))

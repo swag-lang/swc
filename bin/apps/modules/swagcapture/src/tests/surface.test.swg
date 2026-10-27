@@ -98,7 +98,7 @@ func testAssertLibrarySheetGolden(host: *Gui.Testing.HeadlessHost, main: *MainWn
 }
 
 // Captures one popup from the caption menu bar at a desktop DPI. Each menu owns its fixture so a
-// regression in File cannot prevent Capture, Edit, Image, View, and Help from producing evidence.
+// regression in one menu cannot prevent another from producing evidence.
 func testAssertMainMenuGolden(index: u32, golden: string)
 {
     var host: Gui.Testing.HeadlessHost
@@ -119,7 +119,7 @@ func testAssertMainMenuGolden(index: u32, golden: string)
     host.finishAnimations()
 
     let bar = main.topMenu
-    Swag.assert(bar.items.count == 6)
+    Swag.assert(bar.items.count == 5)
     Swag.assert(index < bar.items.count)
     discard host.render(bar)
 
@@ -145,6 +145,22 @@ func testAssertMainMenuGolden(index: u32, golden: string)
 
     let menuDismissed = host.dismissPopupMenu()
     Swag.assert(menuDismissed)
+}
+
+// The caption keeps the global options gear next to the appearance shortcut.
+#test
+{
+    var host: Gui.Testing.HeadlessHost
+    let main = testSetupSurfaceMain(&host, caption: true)
+    defer
+    {
+        host.shutdown()
+        g_Main = null
+    }
+
+    Swag.assert(main.appearanceButton.button.icon.index == cast(s32, Gui.ThemeIcons.Appearance))
+    Swag.assert(main.optionsButton.button.icon.index == cast(s32, Gui.ThemeIcons.Options))
+    Swag.assert(main.optionsButton.position.x < main.appearanceButton.position.x)
 }
 
 // The complete Swag Capture surface must survive its first layout and paint without a desktop.
@@ -261,12 +277,6 @@ func testAssertMainMenuGolden(index: u32, golden: string)
 #test
 {
     testAssertMainMenuGolden(4, "main.menu.view")
-}
-
-#[Swag.TestTag("golden")]
-#test
-{
-    testAssertMainMenuGolden(5, "main.menu.help")
 }
 
 // Every text-and-icon command of the library bar keeps a continuous attached outline and the

@@ -369,6 +369,7 @@ SWC_DIAG_DEF(sema_err_simd_operator, Error, "'{type}' does not support operator 
 SWC_DIAG_DEF(sema_err_simd_scalar_cast, Error, "cannot cast from '{type}' to '{requested-type}', because filling every lane with one value copies it instead of converting it; [help] write 'Swag.vecSplat' to broadcast the scalar")
 SWC_DIAG_DEF(sema_err_foreign_simd_type, Error, "a foreign function with a C calling convention does not accept the simd type '{type}'; [help] simd values only cross a foreign boundary with 'callconv: Swag.CallConv.Swag'")
 SWC_DIAG_DEF(sema_err_lambda_parameter_count, Error, "lambda parameter count is {value}, but its expected function type requires {count}; [help] make the parameter lists agree")
+SWC_DIAG_DEF(sema_err_lambda_parameter_type_not_inferred, Error, "cannot infer the type of this lambda parameter; [help] write its type or give the lambda a function type")
 SWC_DIAG_DEF(sema_err_tagged_union_tag_not_enum, Error, "a tagged union needs an enum as its tag, found '{type}'")
 SWC_DIAG_DEF(sema_err_tagged_union_tag_flags, Error, "a tagged union needs mutually exclusive tag values, but '{type}' is a flags enum; [help] tag the union with an enum declared without '#[Swag.EnumFlags]'")
 SWC_DIAG_DEF(sema_err_tagged_union_tag_not_integer, Error, "a tagged union needs an enum backed by an integer type, found '{type}'")

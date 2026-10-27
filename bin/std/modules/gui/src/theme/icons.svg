@@ -295,4 +295,12 @@
     <line x1="11" y1="7" x2="20" y2="7"/>
     <line x1="11" y1="17" x2="18" y2="17"/>
   </g>
+  <g id="Settings" transform="translate(24 216)" fill="none" stroke="#ffffff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+    <line x1="4" y1="6" x2="20" y2="6"/>
+    <line x1="4" y1="12" x2="20" y2="12"/>
+    <line x1="4" y1="18" x2="20" y2="18"/>
+    <circle cx="9" cy="6" r="2" fill="#ffffff"/>
+    <circle cx="15" cy="12" r="2" fill="#ffffff"/>
+    <circle cx="11" cy="18" r="2" fill="#ffffff"/>
+  </g>
 </svg>

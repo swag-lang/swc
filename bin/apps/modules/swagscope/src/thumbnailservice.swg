@@ -2,7 +2,7 @@
 
 using Core, Pixel, Gui
 
-private const ThumbnailMaxSize: u32  = 320
+private const ThumbnailMaxSize: u32 = 320
 
 // One reusable, isolated renderer. Only a background task calls this service.
 // Viewer globals, font caches and decoder failures cannot interfere with the interactive app.
@@ -120,7 +120,7 @@ func runThumbnailWorker(directory: string) fail
             let settingsPath = Path.combine(directory, "settings")
             let bytes        = File.exists(settingsPath) ? try File.readAllText(settingsPath) : {}
             var settings     = try ThumbnailSettings.decode(bytes)
-            var image = try renderThumbnail(&registry, &renderer, &settings, path)
+            var image        = try renderThumbnail(&registry, &renderer, &settings, path)
 
             let largest = Math.max(image.width, image.height)
             if largest > ThumbnailMaxSize

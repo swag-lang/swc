@@ -410,8 +410,10 @@ internal impl Properties
     {
         let v    = Swag.TypeValue{name: name}
         let item = .addItem(v, null, parentForCateg)
-        item.label.setText(resolveText(name orelse ""))
+        item.label.setText(String.from(resolveText(name orelse "")).toUpper(.Unicode))
         item.label.style.setFont(&.fontCategory)
+        item.label.updateFlags(.SecondaryText)
+        item.label.setLetterSpacing(0.8)
         item.flags.add(.Category | .NoSeparator | .Expanded | .NoFocus)
         if not parentForCateg!.flags.has(.Category) do
             item.level = 0

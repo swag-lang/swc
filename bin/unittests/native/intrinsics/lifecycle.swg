@@ -865,7 +865,6 @@ func intrinsicAutoDropReturnInfo()->IntrinsicInfo
         .postMove  = 0
     }
 
-
     scope
     {
         var pair = AutoDropPair{DropOnlyTracked{1}, DropOnlyTracked{2}}
@@ -1026,7 +1025,6 @@ func intrinsicAutoDropSwitchReturnInfo()->IntrinsicInfo
         .postMove  = 0
     }
 
-
     scope
     {
         var outer = AutoDropPair{DropOnlyTracked{1}, DropOnlyTracked{2}}
@@ -1131,7 +1129,6 @@ func intrinsicAutoDropSwitchFallthroughInfo()->IntrinsicInfo
         .postMove  = 0
     }
 
-
     scope
     {
         var outer = AutoCompactPair{CompactDropTracked{6}, CompactDropTracked{7}}
@@ -1176,7 +1173,6 @@ func intrinsicAutoDropIfVarReturnInfo()->IntrinsicInfo
         .postCopy  = 0
         .postMove  = 0
     }
-
 
     scope
     {
@@ -1236,7 +1232,6 @@ func intrinsicAutoDropWithVarReturnInfo()->IntrinsicInfo
         .postCopy  = 0
         .postMove  = 0
     }
-
 
     with var pair = AutoCompactPair{CompactDropTracked{7}, CompactDropTracked{8}}
     {

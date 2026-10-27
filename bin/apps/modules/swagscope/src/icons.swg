@@ -8,21 +8,21 @@ using Core, Gui
 // action keeps the same mark in every application.
 enum ViewerIcons
 {
-    Html             // Markup document viewer.
-    Code             // Source-code viewer.
-    Markdown         // Markdown document viewer.
-    Image            // Picture viewer.
-    Video            // Movie player.
-    Pdf              // PDF document viewer.
-    Sound            // Waveform player.
-    Font             // Type-specimen viewer.
-    Binary           // Executable and archive inspector.
-    Hex              // Raw byte viewer.
-    Text             // Plain text viewer.
-    Table            // Delimited-text table viewer.
-    Midi             // Piano-roll viewer.
-    Subtitle         // Timed subtitle viewer.
-    Archive          // Compressed-archive browser.
+    Html         // Markup document viewer.
+    Code         // Source-code viewer.
+    Markdown     // Markdown document viewer.
+    Image        // Picture viewer.
+    Video        // Movie player.
+    Pdf          // PDF document viewer.
+    Sound        // Waveform player.
+    Font         // Type-specimen viewer.
+    Binary       // Executable and archive inspector.
+    Hex          // Raw byte viewer.
+    Text         // Plain text viewer.
+    Table        // Delimited-text table viewer.
+    Midi         // Piano-roll viewer.
+    Subtitle     // Timed subtitle viewer.
+    Archive      // Compressed-archive browser.
 }
 
 private const IconsSvg = #include("../datas/icons.svg")

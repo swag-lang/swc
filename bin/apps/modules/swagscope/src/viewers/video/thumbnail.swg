@@ -17,7 +17,7 @@ impl ThumbnailCandidate
     mtd analyze()
     {
         var black, white, samples: u32
-        var lumaSum, lumaSquares: f32
+        var lumaSum, lumaSquares:  f32
         for y in 24
         {
             for x in 32
@@ -28,12 +28,12 @@ impl ThumbnailCandidate
                     black += 1
                 if luma > 240 do
                     white += 1
-                lumaSum     += cast(f32, luma)
-                lumaSquares += cast(f32, luma * luma)
+                lumaSum                       += cast(f32, luma)
+                lumaSquares                   += cast(f32, luma * luma)
                 .histogram[color.r / 16]      += 1
                 .histogram[16 + color.g / 16] += 1
                 .histogram[32 + color.b / 16] += 1
-                samples += 1
+                samples                       += 1
             }
         }
 

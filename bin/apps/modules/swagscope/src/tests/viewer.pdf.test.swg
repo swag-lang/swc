@@ -9,7 +9,7 @@ private func createPdfFixture()->String
     var document = Pdf.Document.create()
     document.metadata.title  = "Viewer fixture"
     document.metadata.author = "Swag Scope"
-    var first    = Pdf.Page.create(320, 220)
+    var first = Pdf.Page.create(320, 220)
     first.addText("PDF viewer", 32, 28, 24, Color.fromArgb(Argb.Black))
     document.addPage(#move first)
     var second = Pdf.Page.create(320, 220)

@@ -804,20 +804,16 @@ private impl View
         var options: AnimationOptions
         options.duration = Time.Duration.fromSeconds(metrics.motion_PanelSeconds)
         options.easing   = .EaseOut
-        .slideHandle     = .app().animator.animateF32(me,
-                                                      AnimationChannel.from(SlideChannel),
-                                                      0,
-                                                      1,
-                                                      func(wnd, value)
-                                                  {
-                                                      let sheet = assume cast(*View, wnd)
-                                                      sheet.slideProgress = value
-                                                  },
-                                                      options,
-                                                      func|me|(_)
-                                                  {
-                                                      me.slideProgress = 1
-                                                  })
+
+        func updateSlide(wnd: *Wnd, value: f32)
+        {
+            let sheet = assume cast(*View, wnd)
+            sheet.slideProgress = value
+        }
+
+        let completeSlide = func|me|(_: AnimationResult) { me.slideProgress = 1 }
+
+        .slideHandle = .app().animator.animateF32(me, AnimationChannel.from(SlideChannel), 0, 1, &updateSlide, options, completeSlide)
 
         .fitHeight(animate: true)
         .revealFocus()
@@ -842,24 +838,31 @@ private impl View
         var options: AnimationOptions
         options.duration = Time.Duration.fromSeconds(.themeMetrics().motion_PanelSeconds)
         options.easing   = .EaseInOut
-        .heightHandle    = .app().animator.animateF32(me,
-                                                      AnimationChannel.from(HeightChannel),
-                                                      .bodyHeight,
-                                                      target,
-                                                      func(wnd, value)
-                                                   {
-                                                       let sheet = assume cast(*View, wnd)
-                                                       sheet.bodyHeight = value
-                                                       sheet.place()
-                                                   },
-                                                      options,
-                                                      func|me, target|(_)
-                                                   {
-                                                       if me.isPendingDestroy do
-                                                           return
-                                                       me.bodyHeight = target
-                                                       me.place()
-                                                   })
+
+        func updateHeight(wnd: *Wnd, value: f32)
+        {
+            let sheet = assume cast(*View, wnd)
+            sheet.bodyHeight = value
+            sheet.place()
+        }
+
+        let completeHeight = func|me, target|(_: AnimationResult)
+        {
+            if me.isPendingDestroy do
+                return
+            me.bodyHeight = target
+            me.place()
+            me.clampScroll()
+            me.revealFocus()
+        }
+
+        .heightHandle = .app().animator.animateF32(me,
+                                                   AnimationChannel.from(HeightChannel),
+                                                   .bodyHeight,
+                                                   target,
+                                                   &updateHeight,
+                                                   options,
+                                                   completeHeight)
     }
 
     // Brings every running motion to its end, so input acts on the page as it will settle.
@@ -873,11 +876,27 @@ private impl View
     // Height the body needs to show every row of `page`, `levels` pages deep.
     internal mtd contentHeight(page: const *Page, levels: u64)->f32
     {
-        let metrics = .themeMetrics()
-        var height  = .headerHeight(levels) + 2 * metrics.optionSheet_Inset
+        var height = .headerHeight(levels) + .rowTopInset() + .rowBottomInset()
         for row in page.rows do
             height += .rowHeight(row)
         return height
+    }
+
+    // Anchored tabs paint over the body by `menuPopup_BarItemOverlap`; keep the first row below it.
+    mtd rowTopInset()->f32
+    {
+        let metrics = .themeMetrics()
+        if .placement == .Anchored and .anchorButton and not .opensUp do
+            return Math.max(metrics.optionSheet_Inset, metrics.menuPopup_BarItemOverlap)
+        return metrics.optionSheet_Inset
+    }
+
+    mtd rowBottomInset()->f32
+    {
+        let metrics = .themeMetrics()
+        if .placement == .Anchored and .anchorButton and .opensUp do
+            return Math.max(metrics.optionSheet_Inset, metrics.menuPopup_BarItemOverlap)
+        return metrics.optionSheet_Inset
     }
 
     // Height of the band above the header: the grip a bottom sheet is pulled by.
@@ -916,7 +935,7 @@ private impl View
     // Top of the row at `index` relative to the top of the scrolled list.
     internal mtd rowTop(page: const *Page, index: s32)->f32
     {
-        var top = .themeMetrics().optionSheet_Inset
+        var top = .rowTopInset()
         for i in index do
             top += .rowHeight(&page.rows[i])
         return top
@@ -960,9 +979,9 @@ private impl View
         let list   = .listRect(.levels.count)
         let level  = .levels.backPtr()
         let top    = .rowTop(&.page, .focusRow)
-        let bottom = top + .rowHeight(&.page.rows[.focusRow]) + .themeMetrics().optionSheet_Inset
-        if top - .themeMetrics().optionSheet_Inset < level.scroll do
-            level.scroll = top - .themeMetrics().optionSheet_Inset
+        let bottom = top + .rowHeight(&.page.rows[.focusRow]) + .rowBottomInset()
+        if top - .rowTopInset() < level.scroll do
+            level.scroll = top - .rowTopInset()
         elif bottom > level.scroll + list.height do
             level.scroll = bottom - list.height
         .clampScroll()
@@ -985,7 +1004,7 @@ private impl View
         }
 
         let list = .listRect(levels)
-        var y    = list.y + .themeMetrics().optionSheet_Inset - .levels.back().scroll
+        var y    = list.y + .rowTopInset() - .levels.back().scroll
         for row, index in .page.rows
         {
             let height = .rowHeight(row)
@@ -1115,7 +1134,7 @@ private impl View
         var list = .listRect(levels)
         painter.pushClippingRect(list)
         list.x += offsetX
-        var y = list.y + metrics.optionSheet_Inset - scroll
+        var y = list.y + .rowTopInset() - scroll
         for row, index in page.rows
         {
             let height = .rowHeight(row)

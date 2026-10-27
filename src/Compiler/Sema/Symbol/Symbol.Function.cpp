@@ -634,6 +634,9 @@ struct SymbolFunction::GenericData
 
     // Guarded by evalRunMutex.
     std::vector<ErasedParamType> erasedParamTypes;
+
+    std::atomic<bool>            erasedRoot     = false;
+    std::atomic<SymbolFunction*> erasedInstance = nullptr;
 };
 
 RtAttributeFlags SymbolFunction::rtAttributeFlags() const
@@ -729,7 +732,11 @@ bool SymbolFunction::supportsGeneratedModuleApiExport() const noexcept
 {
     if (!decl() || decl()->isNot(AstNodeId::FunctionDecl))
         return false;
-    if (isAttribute() || isClosure() || isGenericRoot() || isGenericInstance() || hasUnmaterializedGenericBody())
+    if (isAttribute() || isClosure() || isGenericRoot() || hasUnmaterializedGenericBody())
+        return false;
+
+    // The single instance of an erased root is the function its importers call.
+    if (isGenericInstance() && !isErasedGenericInstance())
         return false;
     if (hasExtraFlag(SymbolFunctionFlagsE::InlineLocalFunction))
         return false;
@@ -1227,6 +1234,34 @@ TypeRef SymbolFunction::findErasedParamType(const TaskContext& ctx, uint32_t par
 void SymbolFunction::addErasedParamType(const TaskContext& ctx, const ErasedParamType& entry) const
 {
     ensureGenericData(ctx).erasedParamTypes.push_back(entry);
+}
+
+bool SymbolFunction::isErasedGenericRoot() const noexcept
+{
+    const auto* data = genericData();
+    return data && data->erasedRoot.load(std::memory_order_acquire);
+}
+
+void SymbolFunction::setErasedGenericRoot(const TaskContext& ctx) const noexcept
+{
+    ensureGenericData(ctx).erasedRoot.store(true, std::memory_order_release);
+}
+
+SymbolFunction* SymbolFunction::erasedInstance() const noexcept
+{
+    const auto* data = genericData();
+    return data ? data->erasedInstance.load(std::memory_order_acquire) : nullptr;
+}
+
+void SymbolFunction::setErasedInstance(const TaskContext& ctx, SymbolFunction* instance) const noexcept
+{
+    ensureGenericData(ctx).erasedInstance.store(instance, std::memory_order_release);
+}
+
+bool SymbolFunction::isErasedGenericInstance() const noexcept
+{
+    const SymbolFunction* root = isGenericInstance() ? genericRootSym() : nullptr;
+    return root && root->isErasedGenericRoot();
 }
 
 void SymbolFunction::setGenericCompletionOwner(const TaskContext& ctx) const noexcept

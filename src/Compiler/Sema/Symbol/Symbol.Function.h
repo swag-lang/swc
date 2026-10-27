@@ -503,6 +503,14 @@ public:
     TypeRef findErasedParamType(const TaskContext& ctx, uint32_t paramIndex, TypeRef boundTypeRef) const;
     void    addErasedParamType(const TaskContext& ctx, const ErasedParamType& entry) const;
 
+    // A root whose every generic parameter is erased has exactly one instance. That instance
+    // is compiled with the module that declares it and published like a plain function.
+    bool            isErasedGenericRoot() const noexcept;
+    void            setErasedGenericRoot(const TaskContext& ctx) const noexcept;
+    bool            isErasedGenericInstance() const noexcept;
+    SymbolFunction* erasedInstance() const noexcept;
+    void            setErasedInstance(const TaskContext& ctx, SymbolFunction* instance) const noexcept;
+
     std::shared_mutex&     lazyBodyRunMutex() const noexcept { return lazyBodyRunMutex_; }
     std::shared_ptr<void>* lazyBodyRunState() const noexcept;
     std::shared_ptr<void>& ensureLazyBodyRunState(const TaskContext& ctx) const noexcept;

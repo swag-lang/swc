@@ -177,7 +177,12 @@ namespace
     bool needsSyntacticWalk(const Symbol& symbol)
     {
         if (const auto* function = symbol.safeCast<SymbolFunction>())
+        {
+            // An erased root travels as a declaration of its compiled instance, without a body.
+            if (function->isErasedGenericRoot() && function->erasedInstance())
+                return false;
             return function->hasUnmaterializedGenericBody() || function->attributes().hasMacroOrMixin();
+        }
 
         if (const auto* symbolStruct = symbol.safeCast<SymbolStruct>())
             return symbolStruct->isGenericRoot() && !symbolStruct->isGenericInstance();

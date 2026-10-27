@@ -99,6 +99,33 @@ func(T is EraseWidget) eraseName(_: *T)->string => #typeof(T).name orelse ""
 }
 
 /**
+# Across Modules
+
+A library compiles the single instance with its own code and publishes the erased function as
+a declaration of that instance. An importer deduces 'T' and checks its arguments against the
+signature, then calls the library's instance: it compiles no copy of the body, and the types the
+body works with stay private to the library.
+
+A callback written for the bound itself is accepted for any 'T', since it handles every struct
+that starts with the bound.
+*/
+
+func eraseHide(widget: *EraseWidget, _: f32)
+{
+    widget.visible = false
+}
+
+#test
+{
+    var animation: EraseAnimation
+    var slider:    EraseSlider
+    slider.visible = true
+    animation.start(&slider, &eraseHide)
+    animation.step(1)
+    Swag.assert(not slider.visible)
+}
+
+/**
 An erased parameter belongs to a function. A struct is named by its generic arguments, so it
 cannot hide one: 'struct(T is Bound)' is rejected. The bound itself must be a struct.
 */

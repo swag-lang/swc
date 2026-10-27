@@ -1115,6 +1115,43 @@ namespace SemaGeneric
         return Result::Continue;
     }
 
+    Result instantiateErasedRoot(Sema& sema, SymbolFunction& genericRoot)
+    {
+        if (!genericRoot.isErasedGenericRoot() || !isDeclaredInPlace(genericRoot))
+            return Result::Continue;
+
+        const auto* decl = genericFunctionDecl(genericRoot);
+        if (!decl)
+            return Result::Continue;
+
+        std::unique_ptr<Sema> sourceSemaHolder;
+        Sema*                 sourceSema = tryCreateSemaForGenericDecl(sema, genericRoot, sourceSemaHolder);
+        if (!sourceSema)
+            sourceSema = &sema;
+
+        SmallVector<GenericParamDesc> params;
+        appendGenericParams(*sourceSema, *decl, decl->spanGenericParamsRef, params);
+
+        // Every call ends in this instance, so it is built with the declaration, as a plain
+        // function body would be, and checked even when nothing in the module calls it.
+        SmallVector<GenericResolvedArg> resolvedArgs(params.size());
+        for (size_t i = 0; i < params.size(); ++i)
+        {
+            SWC_RESULT(resolveErasedParamBound(*sourceSema, genericRoot, params.span(), resolvedArgs.span(), i, resolvedArgs[i].typeRef));
+            resolvedArgs[i].present = true;
+        }
+
+        const AstNodeRef errorNodeRef = sema.curNodeRef();
+        bool             erased       = true;
+        SWC_RESULT(eraseGenericArgs(sema, *sourceSema, genericRoot, params.span(), resolvedArgs.span(), errorNodeRef, nullptr, erased));
+
+        Symbol*      instance = nullptr;
+        const Result result   = createGenericInstance(*sourceSema, genericRoot, params.span(), resolvedArgs.span(), instance, genericInstanceOrigin(sema), errorNodeRef);
+        if (instance)
+            genericRoot.setErasedInstance(sema.ctx(), &instance->cast<SymbolFunction>());
+        return result;
+    }
+
     Result instantiateStructExplicit(Sema& sema, SymbolStruct& genericRoot, std::span<const AstNodeRef> genericArgNodes, SymbolStruct*& outInstance, bool reportFailure)
     {
         Symbol* instance = nullptr;

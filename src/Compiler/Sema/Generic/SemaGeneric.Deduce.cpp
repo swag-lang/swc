@@ -282,6 +282,58 @@ namespace
         return std::ranges::any_of(children, [&](AstNodeRef childRef) { return typeMentionsErasedParam(sema, params, childRef); });
     }
 
+    // A callback written for a base of 'T' accepts every 'T': a pointer to 'T' is a pointer to
+    // that base, so the shared instance may hand it one.
+    bool erasedCallbackAcceptsBase(Sema& sema, TypeRef argTypeRef, TypeRef expectedTypeRef)
+    {
+        const TypeManager& typeMgr      = sema.typeMgr();
+        const TypeInfo&    argType      = typeMgr.get(argTypeRef);
+        const TypeInfo&    expectedType = typeMgr.get(expectedTypeRef);
+        if (!argType.isFunction() || !expectedType.isFunction())
+            return false;
+
+        const SymbolFunction& argFunc      = argType.payloadSymFunction();
+        const SymbolFunction& expectedFunc = expectedType.payloadSymFunction();
+        if (argFunc.isClosure() && !expectedFunc.isClosure())
+            return false;
+        if (argFunc.returnTypeRef() != expectedFunc.returnTypeRef() ||
+            argFunc.callConvKind() != expectedFunc.callConvKind() ||
+            argFunc.isMethod() != expectedFunc.isMethod() ||
+            argFunc.isFallible() != expectedFunc.isFallible() ||
+            argFunc.hasVariadicParam() != expectedFunc.hasVariadicParam() ||
+            argFunc.parameters().size() != expectedFunc.parameters().size())
+            return false;
+
+        for (size_t i = 0; i < argFunc.parameters().size(); ++i)
+        {
+            const TypeRef argParamRef      = argFunc.parameters()[i]->typeRef();
+            const TypeRef expectedParamRef = expectedFunc.parameters()[i]->typeRef();
+            if (argParamRef == expectedParamRef)
+                continue;
+
+            const TypeInfo& argParam      = typeMgr.get(argParamRef);
+            const TypeInfo& expectedParam = typeMgr.get(expectedParamRef);
+            if (!argParam.isValuePointer() || !expectedParam.isValuePointer() || argParam.flags() != expectedParam.flags())
+                return false;
+
+            const TypeInfo& argPointee      = typeMgr.unwrapAliasEnumTypeOrSelf(sema.ctx(), argParam.payloadTypeRef());
+            const TypeInfo& expectedPointee = typeMgr.unwrapAliasEnumTypeOrSelf(sema.ctx(), expectedParam.payloadTypeRef());
+            if (!argPointee.isStruct() || !expectedPointee.isStruct())
+                return false;
+
+            SmallVector<SymbolStructUsingPathStep> usingPath;
+            if (!expectedPointee.payloadSymStruct().resolveUsingFieldPath(sema.ctx(), argPointee.payloadSymStruct(), usingPath))
+                return false;
+            for (const SymbolStructUsingPathStep& step : usingPath)
+            {
+                if (step.isPointer || step.field->offset() != 0)
+                    return false;
+            }
+        }
+
+        return true;
+    }
+
     struct GenericCallArgMapping
     {
         SmallVector<SemaGeneric::GenericCallArgEntry> paramArgs;
@@ -1626,7 +1678,7 @@ namespace SemaGeneric
             const Result castResult  = Cast::castAllowed(sema, castRequest, argTypeRef, expectedTypeRef);
             if (castResult == Result::Pause)
                 return Result::Pause;
-            if (castResult == Result::Continue)
+            if (castResult == Result::Continue || erasedCallbackAcceptsBase(sema, argTypeRef, expectedTypeRef))
                 continue;
 
             outFits = false;

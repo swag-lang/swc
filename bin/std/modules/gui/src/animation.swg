@@ -212,52 +212,52 @@ impl AnimationGroup
     }
 
     // Adds a scalar track.
-    mtd addF32(target: *Wnd, channel: AnimationChannel, from, destination: f32, update: AnimationF32Update, options: AnimationOptions = {}, completion: AnimationCompletion? = null)
+    mtd(T is Wnd) addF32(target: *T, channel: AnimationChannel, from, destination: f32, update: func||(*T, f32), options: AnimationOptions = {}, completion: AnimationCompletion? = null)
     {
         let track = .addTrack(target, channel, options, .F32)
         track.fromF32, track.currentF32 = from
         track.toF32      = destination
-        track.updateF32  = update
+        track.updateF32  = cast(AnimationF32Update, update)
         track.completion = completion
     }
 
     // Adds a color track, including alpha.
-    mtd addColor(target: *Wnd, channel: AnimationChannel, from, destination: Color, update: AnimationColorUpdate, options: AnimationOptions = {}, completion: AnimationCompletion? = null)
+    mtd(T is Wnd) addColor(target: *T, channel: AnimationChannel, from, destination: Color, update: func||(*T, Color), options: AnimationOptions = {}, completion: AnimationCompletion? = null)
     {
         let track = .addTrack(target, channel, options, .Color)
         track.fromColor, track.currentColor = from.toVector4()
         track.toColor     = destination.toVector4()
-        track.updateColor = update
+        track.updateColor = cast(AnimationColorUpdate, update)
         track.completion  = completion
     }
 
     // Adds a two-dimensional point track.
-    mtd addPoint(target: *Wnd, channel: AnimationChannel, from, destination: Math.Point, update: AnimationPointUpdate, options: AnimationOptions = {}, completion: AnimationCompletion? = null)
+    mtd(T is Wnd) addPoint(target: *T, channel: AnimationChannel, from, destination: Math.Point, update: func||(*T, Math.Point), options: AnimationOptions = {}, completion: AnimationCompletion? = null)
     {
         let track = .addTrack(target, channel, options, .Point)
         track.fromPoint, track.currentPoint = from
         track.toPoint     = destination
-        track.updatePoint = update
+        track.updatePoint = cast(AnimationPointUpdate, update)
         track.completion  = completion
     }
 
     // Adds a four-component vector track.
-    mtd addVector4(target: *Wnd, channel: AnimationChannel, from, destination: Math.Vector4, update: AnimationVector4Update, options: AnimationOptions = {}, completion: AnimationCompletion? = null)
+    mtd(T is Wnd) addVector4(target: *T, channel: AnimationChannel, from, destination: Math.Vector4, update: func||(*T, Math.Vector4), options: AnimationOptions = {}, completion: AnimationCompletion? = null)
     {
         let track = .addTrack(target, channel, options, .Vector4)
         track.fromVector4, track.currentVector4 = from
         track.toVector4     = destination
-        track.updateVector4 = update
+        track.updateVector4 = cast(AnimationVector4Update, update)
         track.completion    = completion
     }
 
     // Adds a rectangle track.
-    mtd addRectangle(target: *Wnd, channel: AnimationChannel, from, destination: Math.Rectangle, update: AnimationRectangleUpdate, options: AnimationOptions = {}, completion: AnimationCompletion? = null)
+    mtd(T is Wnd) addRectangle(target: *T, channel: AnimationChannel, from, destination: Math.Rectangle, update: func||(*T, Math.Rectangle), options: AnimationOptions = {}, completion: AnimationCompletion? = null)
     {
         let track = .addTrack(target, channel, options, .Rectangle)
         track.fromRectangle, track.currentRectangle = from
         track.toRectangle     = destination
-        track.updateRectangle = update
+        track.updateRectangle = cast(AnimationRectangleUpdate, update)
         track.completion      = completion
     }
 }
@@ -766,7 +766,7 @@ impl Animator
     }
 
     // Starts one scalar track.
-    mtd animateF32(target: *Wnd, channel: AnimationChannel, from, destination: f32, update: AnimationF32Update, options: AnimationOptions = {}, completion: AnimationCompletion? = null)->AnimationHandle
+    mtd(T is Wnd) animateF32(target: *T, channel: AnimationChannel, from, destination: f32, update: func||(*T, f32), options: AnimationOptions = {}, completion: AnimationCompletion? = null)->AnimationHandle
     {
         var group = AnimationGroup.concurrent()
         group.addF32(target, channel, from, destination, update, options, completion)
@@ -776,7 +776,7 @@ impl Animator
     // Starts one color track.
     //
     // Use [[Gui.Animator.animateColorBorrowed]] when a callback writes either endpoint.
-    mtd animateColor(target: *Wnd, channel: AnimationChannel, from, destination: Color, update: AnimationColorUpdate, options: AnimationOptions = {}, completion: AnimationCompletion? = null)->AnimationHandle
+    mtd(T is Wnd) animateColor(target: *T, channel: AnimationChannel, from, destination: Color, update: func||(*T, Color), options: AnimationOptions = {}, completion: AnimationCompletion? = null)->AnimationHandle
     {
         var group = AnimationGroup.concurrent()
         group.addColor(target, channel, from, destination, update, options, completion)
@@ -787,7 +787,7 @@ impl Animator
     //
     // The endpoints are stored in the track before callbacks run, and their pointers are not
     // retained. An update or completion callback may therefore write either original endpoint.
-    mtd animateColorBorrowed(target: *Wnd, channel: AnimationChannel, from, destination: const *Color, update: AnimationColorUpdate, options: AnimationOptions = {}, completion: AnimationCompletion? = null)->AnimationHandle
+    mtd(T is Wnd) animateColorBorrowed(target: *T, channel: AnimationChannel, from, destination: const *Color, update: func||(*T, Color), options: AnimationOptions = {}, completion: AnimationCompletion? = null)->AnimationHandle
     {
         var group = AnimationGroup.concurrent()
         group.addColor(target, channel, from[], destination[], update, options, completion)
@@ -797,7 +797,7 @@ impl Animator
     // Starts one point track.
     //
     // Use [[Gui.Animator.animatePointBorrowed]] when a callback writes either endpoint.
-    mtd animatePoint(target: *Wnd, channel: AnimationChannel, from, destination: Math.Point, update: AnimationPointUpdate, options: AnimationOptions = {}, completion: AnimationCompletion? = null)->AnimationHandle
+    mtd(T is Wnd) animatePoint(target: *T, channel: AnimationChannel, from, destination: Math.Point, update: func||(*T, Math.Point), options: AnimationOptions = {}, completion: AnimationCompletion? = null)->AnimationHandle
     {
         var group = AnimationGroup.concurrent()
         group.addPoint(target, channel, from, destination, update, options, completion)
@@ -808,7 +808,7 @@ impl Animator
     //
     // The endpoints are stored in the track before callbacks run, and their pointers are not
     // retained. An update or completion callback may therefore write either original endpoint.
-    mtd animatePointBorrowed(target: *Wnd, channel: AnimationChannel, from, destination: const *Math.Point, update: AnimationPointUpdate, options: AnimationOptions = {}, completion: AnimationCompletion? = null)->AnimationHandle
+    mtd(T is Wnd) animatePointBorrowed(target: *T, channel: AnimationChannel, from, destination: const *Math.Point, update: func||(*T, Math.Point), options: AnimationOptions = {}, completion: AnimationCompletion? = null)->AnimationHandle
     {
         var group = AnimationGroup.concurrent()
         group.addPoint(target, channel, from[], destination[], update, options, completion)
@@ -818,7 +818,7 @@ impl Animator
     // Starts one four-component vector track.
     //
     // Use [[Gui.Animator.animateVector4Borrowed]] when a callback writes either endpoint.
-    mtd animateVector4(target: *Wnd, channel: AnimationChannel, from, destination: Math.Vector4, update: AnimationVector4Update, options: AnimationOptions = {}, completion: AnimationCompletion? = null)->AnimationHandle
+    mtd(T is Wnd) animateVector4(target: *T, channel: AnimationChannel, from, destination: Math.Vector4, update: func||(*T, Math.Vector4), options: AnimationOptions = {}, completion: AnimationCompletion? = null)->AnimationHandle
     {
         var group = AnimationGroup.concurrent()
         group.addVector4(target, channel, from, destination, update, options, completion)
@@ -829,7 +829,7 @@ impl Animator
     //
     // The endpoints are stored in the track before callbacks run, and their pointers are not
     // retained. An update or completion callback may therefore write either original endpoint.
-    mtd animateVector4Borrowed(target: *Wnd, channel: AnimationChannel, from, destination: const *Math.Vector4, update: AnimationVector4Update, options: AnimationOptions = {}, completion: AnimationCompletion? = null)->AnimationHandle
+    mtd(T is Wnd) animateVector4Borrowed(target: *T, channel: AnimationChannel, from, destination: const *Math.Vector4, update: func||(*T, Math.Vector4), options: AnimationOptions = {}, completion: AnimationCompletion? = null)->AnimationHandle
     {
         var group = AnimationGroup.concurrent()
         group.addVector4(target, channel, from[], destination[], update, options, completion)
@@ -839,7 +839,7 @@ impl Animator
     // Starts one rectangle track.
     //
     // Use [[Gui.Animator.animateRectangleBorrowed]] when a callback writes either endpoint.
-    mtd animateRectangle(target: *Wnd, channel: AnimationChannel, from, destination: Math.Rectangle, update: AnimationRectangleUpdate, options: AnimationOptions = {}, completion: AnimationCompletion? = null)->AnimationHandle
+    mtd(T is Wnd) animateRectangle(target: *T, channel: AnimationChannel, from, destination: Math.Rectangle, update: func||(*T, Math.Rectangle), options: AnimationOptions = {}, completion: AnimationCompletion? = null)->AnimationHandle
     {
         var group = AnimationGroup.concurrent()
         group.addRectangle(target, channel, from, destination, update, options, completion)
@@ -850,7 +850,7 @@ impl Animator
     //
     // The endpoints are stored in the track before callbacks run, and their pointers are not
     // retained. An update or completion callback may therefore write either original endpoint.
-    mtd animateRectangleBorrowed(target: *Wnd, channel: AnimationChannel, from, destination: const *Math.Rectangle, update: AnimationRectangleUpdate, options: AnimationOptions = {}, completion: AnimationCompletion? = null)->AnimationHandle
+    mtd(T is Wnd) animateRectangleBorrowed(target: *T, channel: AnimationChannel, from, destination: const *Math.Rectangle, update: func||(*T, Math.Rectangle), options: AnimationOptions = {}, completion: AnimationCompletion? = null)->AnimationHandle
     {
         var group = AnimationGroup.concurrent()
         group.addRectangle(target, channel, from[], destination[], update, options, completion)

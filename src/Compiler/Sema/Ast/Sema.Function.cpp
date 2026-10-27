@@ -607,6 +607,19 @@ Result AstFunctionDecl::semaPreDecl(Sema& sema) const
     if (nodeBodyRef.isInvalid())
         sym.addExtraFlag(SymbolFunctionFlagsE::Empty);
 
+    // Known from the declaration alone, so call sites agree on it however sema is scheduled.
+    if (spanGenericParamsRef.isValid())
+    {
+        SmallVector<AstNodeRef> genericParams;
+        sema.ast().appendNodes(genericParams, spanGenericParamsRef);
+        const auto isErased = [&](AstNodeRef paramRef) {
+            const auto* param = sema.node(paramRef).safeCast<AstGenericParamType>();
+            return param && param->nodeBoundRef.isValid();
+        };
+        if (std::ranges::all_of(genericParams, isErased))
+            sym.setErasedGenericRoot(sema.ctx());
+    }
+
     registerRuntimeFunctionSymbol(sema, sym);
 
     return Result::SkipChildren;
@@ -659,6 +672,7 @@ Result AstFunctionDecl::semaPreNode(Sema& sema) const
     if (sym.isGenericRoot() && !sym.isGenericInstance())
     {
         SWC_RESULT(SemaSpecOp::validateSymbol(sema, sym));
+        SWC_RESULT(SemaGeneric::instantiateErasedRoot(sema, sym));
         sym.setSemaCompleted(sema.ctx());
 
         return Result::SkipChildren;

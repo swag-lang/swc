@@ -78,3 +78,26 @@ var g_ErasedCounter: ErasedCounter
     Swag.assert(erasedId'ErasedSlider(&slider) == 9)
     Swag.assert(erasedId(&slider.wnd) == 9)
 }
+
+// A callback written for the bound accepts every 'T' that starts with it.
+func erasedResetWnd(wnd: *ErasedWnd, _: f32)
+{
+    wnd.id = 0
+}
+
+// A parameter that does not mention 'T' types a literal as a plain function's would.
+struct ErasedOptions { scale: f32 = 1 }
+
+func(T is ErasedWnd) erasedScaled(target: *T, options: ErasedOptions)->f32 => options.scale * cast(f32, target.id)
+
+#test
+{
+    g_ErasedCounter.id = 5
+    erasedAnimate(&g_ErasedCounter, &erasedResetWnd)
+    erasedStep(1)
+    Swag.assert(g_ErasedCounter.id == 0)
+
+    var slider: ErasedSlider
+    slider.id = 3
+    Swag.assert(erasedScaled(&slider, {scale: 2}) == 6)
+}

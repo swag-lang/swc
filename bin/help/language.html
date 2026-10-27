@@ -127,6 +127,7 @@
 <li><a href="#_009_001_functions_swg">Functions</a></li>
 <li><a href="#_009_002_structs_swg">Structs</a></li>
 <li><a href="#_009_003_where_constraints_swg">Where Constraints</a></li>
+<li><a href="#_009_004_erased_parameters_swg">Erased Parameters</a></li>
 </ul>
 </li>
 <li><a href="#_010_000_attributes_swg">Attributes</a>
@@ -8190,6 +8191,93 @@ swc test -w path/to/workspace -m messages</span></div>
     <span class="SNsp">Swag</span>.<span class="SFct">assert</span>(floatWindow.<span class="SFct">sameSample</span>(<span class="SNum">99.0</span>'<span class="STpe">f32</span>) == <span class="SNum">99.0</span>'<span class="STpe">f32</span>)
     <span class="SCmp">#assert</span>(<span class="SItr">#typeof</span>(floatWindow.<span class="SFct">sameSample</span>(<span class="SNum">1.5</span>'<span class="STpe">f32</span>)) == <span class="STpe">f32</span>)
 }</span></div>
+<h3 id="_009_004_erased_parameters_swg">Erased Parameters</h3>
+<h3 id="_009_004_erased_parameters_swg_Erased_Type_Parameters">Erased Type Parameters</h3>
+<p>A generic function is compiled once for every type it is called with. When its body never needs the exact type, because it only stores pointers and hands them back, that work is repeated for nothing. 'T is Bound' declares an erased parameter instead: each call still deduces <span class="code-inline">T</span> and checks its arguments against it, then every call shares one compiled body where <span class="code-inline">T</span> reads as <span class="code-inline">Bound</span>.</p>
+<p>The typical use is a callback that receives the object it was registered for. The caller gets its own type in the callback, so it needs no cast, and the library keeps a single body.</p>
+<div class="code-block"><span class="SCde"><span class="SKwd">struct</span> <span class="SCst">EraseWidget</span> { visible: <span class="STpe">bool</span> }
+<span class="SKwd">struct</span> <span class="SCst">EraseSlider</span> { <span class="SKwd">using</span> widget: <span class="SCst">EraseWidget</span>; progress: <span class="STpe">f32</span> }
+
+<span class="SKwd">alias</span> <span class="SCst">EraseUpdate</span> = <span class="SKwd">func</span>||(*<span class="SCst">EraseWidget</span>, <span class="STpe">f32</span>)
+
+<span class="SKwd">struct</span> <span class="SCst">EraseAnimation</span>
+{
+    target: *<span class="SCst">EraseWidget</span>?
+    update: <span class="SCst">EraseUpdate</span>?
+}
+
+<span class="SKwd">impl</span> <span class="SCst">EraseAnimation</span>
+{
+    <span class="SKwd">mtd</span>(<span class="SCst">T</span> <span class="SLgc">is</span> <span class="SCst">EraseWidget</span>) <span class="SFct">start</span>(target: *<span class="SCst">T</span>, update: <span class="SKwd">func</span>||(*<span class="SCst">T</span>, <span class="STpe">f32</span>))
+    {
+        .target = target
+        .update = <span class="SKwd">cast</span>(<span class="SCst">EraseUpdate</span>, update)
+    }
+
+    <span class="SKwd">mtd</span> <span class="SFct">step</span>(value: <span class="STpe">f32</span>)
+    {
+        .update!(<span class="SKwd">unwrap</span> .target, value)
+    }
+}
+
+<span class="SKwd">var</span> g_EraseSlider: <span class="SCst">EraseSlider</span>
+
+<span class="SFct">#test</span>
+{
+    <span class="SKwd">var</span> animation: <span class="SCst">EraseAnimation</span>
+    animation.<span class="SFct">start</span>(&amp;g_EraseSlider, <span class="SKwd">func</span>(slider, value) { slider.progress = value })
+    animation.<span class="SFct">step</span>(<span class="SNum">0.25</span>)
+    <span class="SNsp">Swag</span>.<span class="SFct">assert</span>(g_EraseSlider.progress == <span class="SNum">0.25</span>)
+}</span></div>
+<h3 id="_009_004_erased_parameters_swg_What_the_Call_Checks">What the Call Checks</h3>
+<p>The single body reads every <span class="code-inline">T</span> through its bound, so <span class="code-inline">T</span> has to start with it: the bound is the first field of <span class="code-inline">T</span>, embedded with <span class="code-inline">using</span>, or <span class="code-inline">T</span> is the bound itself. A pointer to <span class="code-inline">T</span> is then a pointer to the bound, unchanged, and a callback typed with <span class="code-inline">T</span> can be called with it.</p>
+<p>Each argument must agree with the <span class="code-inline">T</span> the call deduced. A callback that names another struct than its target is rejected, even when both start with the bound.</p>
+<div class="code-block"><span class="SCde"><span class="SKwd">struct</span> <span class="SCst">EraseCounter</span> { <span class="SKwd">using</span> widget: <span class="SCst">EraseWidget</span>; count: <span class="STpe">s32</span> }
+
+<span class="SKwd">func</span>(<span class="SCst">T</span> <span class="SLgc">is</span> <span class="SCst">EraseWidget</span>) <span class="SFct">eraseShow</span>(target: *<span class="SCst">T</span>)-&gt;<span class="STpe">bool</span>
+{
+    target.visible = <span class="SKwd">true</span>
+    <span class="SLgc">return</span> target.visible
+}
+
+<span class="SFct">#test</span>
+{
+    <span class="SKwd">var</span> slider:  <span class="SCst">EraseSlider</span>
+    <span class="SKwd">var</span> counter: <span class="SCst">EraseCounter</span>
+    <span class="SNsp">Swag</span>.<span class="SFct">assert</span>(<span class="SFct">eraseShow</span>(&amp;slider))
+    <span class="SNsp">Swag</span>.<span class="SFct">assert</span>(<span class="SFct">eraseShow</span>(&amp;counter))
+    <span class="SNsp">Swag</span>.<span class="SFct">assert</span>(<span class="SFct">eraseShow</span>(&amp;counter.widget))
+}</span></div>
+<h3 id="_009_004_erased_parameters_swg_Inside_the_Body">Inside the Body</h3>
+<p><span class="code-inline">T</span> is a strict alias of its bound. Its members are the bound's members, and a pointer to <span class="code-inline">T</span> converts to a pointer to the bound. Every call sees the same <span class="code-inline">T</span>, which is how one body serves them all.</p>
+<p>A callback typed with <span class="code-inline">T</span> reaches storage typed with the bound only through an explicit <span class="code-inline">cast</span>. That cast states the function's own contract: it calls the callback with the target it received, never with another object.</p>
+<div class="code-block"><span class="SCde"><span class="SKwd">func</span>(<span class="SCst">T</span> <span class="SLgc">is</span> <span class="SCst">EraseWidget</span>) <span class="SFct">eraseName</span>(<span class="SKwd">_</span>: *<span class="SCst">T</span>)-&gt;<span class="STpe">string</span> =&gt; <span class="SItr">#typeof</span>(<span class="SCst">T</span>).name <span class="SLgc">orelse</span> <span class="SStr">""</span>
+
+<span class="SFct">#test</span>
+{
+    <span class="SKwd">var</span> slider:  <span class="SCst">EraseSlider</span>
+    <span class="SKwd">var</span> counter: <span class="SCst">EraseCounter</span>
+    <span class="SNsp">Swag</span>.<span class="SFct">assert</span>(<span class="SFct">eraseName</span>(&amp;slider) == <span class="SStr">"T"</span>)
+    <span class="SNsp">Swag</span>.<span class="SFct">assert</span>(<span class="SFct">eraseName</span>(&amp;counter) == <span class="SStr">"T"</span>)
+}</span></div>
+<h3 id="_009_004_erased_parameters_swg_Across_Modules">Across Modules</h3>
+<p>A library compiles the single instance with its own code and publishes the erased function as a declaration of that instance. An importer deduces <span class="code-inline">T</span> and checks its arguments against the signature, then calls the library's instance: it compiles no copy of the body, and the types the body works with stay private to the library.</p>
+<p>A callback written for the bound itself is accepted for any <span class="code-inline">T</span>, since it handles every struct that starts with the bound.</p>
+<div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SFct">eraseHide</span>(widget: *<span class="SCst">EraseWidget</span>, <span class="SKwd">_</span>: <span class="STpe">f32</span>)
+{
+    widget.visible = <span class="SKwd">false</span>
+}
+
+<span class="SFct">#test</span>
+{
+    <span class="SKwd">var</span> animation: <span class="SCst">EraseAnimation</span>
+    <span class="SKwd">var</span> slider:    <span class="SCst">EraseSlider</span>
+    slider.visible = <span class="SKwd">true</span>
+    animation.<span class="SFct">start</span>(&amp;slider, &amp;eraseHide)
+    animation.<span class="SFct">step</span>(<span class="SNum">1</span>)
+    <span class="SNsp">Swag</span>.<span class="SFct">assert</span>(<span class="SLgc">not</span> slider.visible)
+}</span></div>
+<p>An erased parameter belongs to a function. A struct is named by its generic arguments, so it cannot hide one: 'struct(T is Bound)' is rejected. The bound itself must be a struct.</p>
 <h2 id="_010_000_attributes_swg">Attributes</h2>
 <p>Attributes attach structured metadata to declarations and to lexical scopes. User attributes support reflection and metaprogramming; predefined <span class="code-inline">Swag</span> attributes also control compiler behavior such as layout, safety, code generation, and native interoperability.</p>
 <p>An attribute annotates something that has a symbol. Everything without one — a type, an operand, a conversion, a literal, a statement — takes a <span class="code-inline">#</span> modifier instead. See the sigils chapter for the rule and its consequences.</p>
@@ -11786,6 +11874,11 @@ swc build --module mymodule --build-cfg devmode --tag Swag.AllocatorSafety=false
 "h|Block-based Constraints|_009_003_where_constraints_swg_Block-based_Constraints|",
 "h|Generic Struct Constraints|_009_003_where_constraints_swg_Generic_Struct_Constraints|",
 "h|Generic Methods with Inherited Arguments|_009_003_where_constraints_swg_Generic_Methods_with_Inherited_Arguments|",
+"h|Erased Parameters|_009_004_erased_parameters_swg|",
+"h|Erased Type Parameters|_009_004_erased_parameters_swg_Erased_Type_Parameters|",
+"h|What the Call Checks|_009_004_erased_parameters_swg_What_the_Call_Checks|",
+"h|Inside the Body|_009_004_erased_parameters_swg_Inside_the_Body|",
+"h|Across Modules|_009_004_erased_parameters_swg_Across_Modules|",
 "h|Attributes|_010_000_attributes_swg|",
 "h|User Attributes|_010_001_user_attributes_swg|",
 "h|User Attributes|_010_001_user_attributes_swg_User_Attributes|",

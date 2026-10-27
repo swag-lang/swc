@@ -1229,7 +1229,9 @@ namespace
 
             if (!paramTypeRef.isValid())
                 continue;
-            if (fn->isGenericRoot() && !isEnumContextualBindingType(sema, paramTypeRef))
+            // An erased root has a single signature once 'T' is deduced, so its parameters
+            // type a literal as a plain function's would.
+            if (fn->isGenericRoot() && !fn->isErasedGenericRoot() && !isEnumContextualBindingType(sema, paramTypeRef))
                 continue;
 
             if (outBindingTypeRef.isInvalid())

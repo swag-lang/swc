@@ -692,6 +692,20 @@ namespace
         return Result::Continue;
     }
 
+    // An erased root travels without its body: importers deduce and check against its
+    // signature, then call the single instance the library already compiled.
+    bool exportsErasedInstance(TaskContext& ctx, const SymbolFunction& symbolFunction)
+    {
+        return symbolFunction.isErasedGenericRoot() && symbolFunction.erasedInstance() && Runtime::backendKindIsLibrary(ctx.compiler().buildCfg().backendKind);
+    }
+
+    bool exportsForeignDeclaration(TaskContext& ctx, const SymbolFunction& symbolFunction)
+    {
+        if (exportsErasedInstance(ctx, symbolFunction))
+            return true;
+        return symbolFunction.supportsPublicApiForeignExport() && Runtime::backendKindIsLibrary(ctx.compiler().buildCfg().backendKind);
+    }
+
     bool isGeneratedModuleApiSourceFunction(TaskContext& ctx, const SymbolFunction& symbolFunction)
     {
         if (!symbolFunction.isPublic())
@@ -700,7 +714,7 @@ namespace
             return false;
         if (symbolFunction.attributes().hasRtFlag(RtAttributeFlagsE::PlaceHolder))
             return false;
-        if (symbolFunction.supportsPublicApiForeignExport() && Runtime::backendKindIsLibrary(ctx.compiler().buildCfg().backendKind))
+        if (exportsForeignDeclaration(ctx, symbolFunction))
             return false;
 
         const SourceFile* sourceFile = ctx.compiler().sourceViewFile(symbolFunction);
@@ -1075,11 +1089,18 @@ namespace
         if (prefix.empty())
             return {};
 
+        // An erased root keeps its generic signature, but importers call the instance the
+        // library compiled, and that body is the one whose computed facts they inherit.
+        const SymbolFunction* compiledFunction = symbolFunction->isErasedGenericRoot() ? symbolFunction->erasedInstance() : symbolFunction;
+        SWC_ASSERT(compiledFunction != nullptr);
+
         SmallVector<Utf8> attributes;
-        if (!symbolFunction->isForeign())
+        if (compiledFunction != symbolFunction)
+            attributes.push_back(Utf8{std::format("Foreign(function: \"{}\")", compiledFunction->computePublicApiSymbolName(ctx).c_str())});
+        else if (!symbolFunction->isForeign())
             attributes.push_back(buildModuleApiForeignAttribute(ctx, *symbolFunction));
 
-        collectMissingFunctionAttributes(attributes, *symbolFunction, false, prefix);
+        collectMissingFunctionAttributes(attributes, *compiledFunction, false, prefix);
 
         Utf8 result = buildAttributeListLine(attributes.span(), eol);
         result += prefix;
@@ -1325,7 +1346,7 @@ namespace ModuleApiExport
                 return buildSanitizedRootSnippet(ctx, outSnippet, root, eol);
             }
 
-            if (symbolFunction->supportsPublicApiForeignExport() && Runtime::backendKindIsLibrary(ctx.compiler().buildCfg().backendKind))
+            if (exportsForeignDeclaration(ctx, *symbolFunction))
             {
                 outSnippet = buildFunctionSnippet(ctx, root, eol);
                 return Result::Continue;

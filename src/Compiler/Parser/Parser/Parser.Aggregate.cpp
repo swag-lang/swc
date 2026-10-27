@@ -270,6 +270,12 @@ AstNodeRef Parser::parseAggregateDecl()
     if constexpr (ID == AstNodeId::UnionDecl)
         nodePtr->nodeTagTypeRef = parseTaggedUnionTag();
 
+    if constexpr (ID == AstNodeId::InterfaceDecl)
+    {
+        if (consumeIf(TokenId::KwdIs).isValid())
+            nodePtr->nodeBaseRef = parseType();
+    }
+
     SmallVector<AstNodeRef> whereRefs;
     parseConstraintList(whereRefs);
 

@@ -128,7 +128,7 @@ impl Capture
     // change forces a re-render. Falls back when the extent exceeds [MaxFormCacheDim].
     mtd paintFormCached(painter: *Painter, rect: Math.Rectangle, f: IForm, zoom: f32)->bool
     {
-        let base = assume cast(*BaseForm, f)
+        let base: *BaseForm = f
 
         // The geometry of the direct path, without its view clip: the cache keeps the
         // whole form, so scrolling never invalidates it.
@@ -264,7 +264,7 @@ impl Capture
         var saveNoClipPos: Math.Rectangle
         var wt2, ht2:      s32
 
-        with let base = assume cast(*BaseForm, f)
+        with let base: *BaseForm = f
         {
             savePaintPos = .paintPos
 

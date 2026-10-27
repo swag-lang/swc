@@ -56,7 +56,7 @@
 </ul>
 </details>
 <details class="toc-group">
-<summary><span class="toc-label">Types</span><span class="toc-count">193</span></summary>
+<summary><span class="toc-label">Types</span><span class="toc-count">194</span></summary>
 <ul class="toc-symbols">
 <li><a href="#summary-types">All Types</a></li>
 <li><a href="#Gui_Clipboard_ValueFormat">Clipboard.ValueFormat</a></li>
@@ -83,6 +83,7 @@
 <li><a href="#Gui_BreadcrumbCtrl">Gui.BreadcrumbCtrl</a></li>
 <li><a href="#Gui_BreadcrumbItem">Gui.BreadcrumbItem</a></li>
 <li><a href="#Gui_Button">Gui.Button</a></li>
+<li><a href="#Gui_CaptionButton">Gui.CaptionButton</a></li>
 <li><a href="#Gui_CheckButton">Gui.CheckButton</a></li>
 <li><a href="#Gui_Circular">Gui.Circular</a></li>
 <li><a href="#Gui_ColorPicker">Gui.ColorPicker</a></li>
@@ -393,7 +394,7 @@
 </ul>
 </details>
 <details class="toc-group">
-<summary><span class="toc-label">Functions</span><span class="toc-count">1248</span></summary>
+<summary><span class="toc-label">Functions</span><span class="toc-count">1250</span></summary>
 <ul class="toc-symbols">
 <li><a href="#summary-functions">All Functions</a></li>
 <li><a href="#Gui_AboutDlg_addSection">AboutDlg.addSection</a></li>
@@ -485,6 +486,7 @@
 <li><a href="#Gui_Button_setIconSize">Button.setIconSize</a></li>
 <li><a href="#Gui_Button_setText">Button.setText</a></li>
 <li><a href="#Gui_Button_text">Button.text</a></li>
+<li><a href="#Gui_CaptionButton_create">CaptionButton.create</a></li>
 <li><a href="#Gui_CheckButton_create">CheckButton.create</a></li>
 <li><a href="#Gui_CheckButton_isChecked">CheckButton.isChecked</a></li>
 <li><a href="#Gui_CheckButton_isIndeterminate">CheckButton.isIndeterminate</a></li>
@@ -938,6 +940,7 @@
 <li><a href="#Gui_Label_setIconHorizontalAlignment">Label.setIconHorizontalAlignment</a></li>
 <li><a href="#Gui_Label_setIconPadding">Label.setIconPadding</a></li>
 <li><a href="#Gui_Label_setIconVerticalAlignment">Label.setIconVerticalAlignment</a></li>
+<li><a href="#Gui_Label_setLetterSpacing">Label.setLetterSpacing</a></li>
 <li><a href="#Gui_Label_setLineGap">Label.setLineGap</a></li>
 <li><a href="#Gui_Label_setMaxLines">Label.setMaxLines</a></li>
 <li><a href="#Gui_Label_setText">Label.setText</a></li>
@@ -2084,6 +2087,8 @@ options.motion      = .<span class="SCst"><a href="#Gui_AnimationMotion_Essentia
 </td></tr>
 <tr><td class="code-type"><a href="#Gui_Button">Gui.Button</a></td><td><span class="kind-chip kind-struct">struct</span></td><td><p>Provides shared pointer state, command-state integration, icons, and activation signals for buttons.</p>
 </td></tr>
+<tr><td class="code-type"><a href="#Gui_CaptionButton">Gui.CaptionButton</a></td><td><span class="kind-chip kind-struct">struct</span></td><td><p>Hosts an application action beside a surface's native caption controls.</p>
+</td></tr>
 <tr><td class="code-type"><a href="#Gui_CheckButton">Gui.CheckButton</a></td><td><span class="kind-chip kind-struct">struct</span></td><td><p>Lets the user enable an option or choose among three check states.</p>
 </td></tr>
 <tr><td class="code-type"><a href="#Gui_Circular">Gui.Circular</a></td><td><span class="kind-chip kind-struct">struct</span></td><td><p>Provides a circular single-value or range slider.</p>
@@ -2869,6 +2874,8 @@ options.motion      = .<span class="SCst"><a href="#Gui_AnimationMotion_Essentia
 <tr><td class="code-type"><a href="#Gui_Button_setText">Button.setText</a></td><td><p>Replaces the displayed label, repaints, and lets the next layout pass re-measure it.</p>
 </td></tr>
 <tr><td class="code-type"><a href="#Gui_Button_text">Button.text</a></td><td><p>Returns the displayed label, including any formatting markers.</p>
+</td></tr>
+<tr><td class="code-type"><a href="#Gui_CaptionButton_create">CaptionButton.create</a></td><td><p>Creates a caption action using a theme icon at the caption glyph size.</p>
 </td></tr>
 <tr><td class="code-type"><a href="#Gui_CheckButton_create">CheckButton.create</a></td><td><p>Creates a check button with an optional command identifier and initial options.</p>
 </td></tr>
@@ -3775,6 +3782,8 @@ options.motion      = .<span class="SCst"><a href="#Gui_AnimationMotion_Essentia
 <tr><td class="code-type"><a href="#Gui_Label_setIconPadding">Label.setIconPadding</a></td><td><p>Changes icon insets.</p>
 </td></tr>
 <tr><td class="code-type"><a href="#Gui_Label_setIconVerticalAlignment">Label.setIconVerticalAlignment</a></td><td><p>Changes vertical icon alignment.</p>
+</td></tr>
+<tr><td class="code-type"><a href="#Gui_Label_setLetterSpacing">Label.setLetterSpacing</a></td><td><p>Sets the extra spacing inserted between glyphs, in logical pixels.</p>
 </td></tr>
 <tr><td class="code-type"><a href="#Gui_Label_setLineGap">Label.setLineGap</a></td><td><p>Changes the extra space between text lines, in logical pixels.</p>
 </td></tr>
@@ -5258,6 +5267,8 @@ options.motion      = .<span class="SCst"><a href="#Gui_AnimationMotion_Essentia
 </td></tr>
 <tr><td class="code-type"><a href="#Gui_Button">Gui.Button</a></td><td><span class="kind-chip kind-struct">struct</span></td><td><p>Provides shared pointer state, command-state integration, icons, and activation signals for buttons.</p>
 </td></tr>
+<tr><td class="code-type"><a href="#Gui_CaptionButton">Gui.CaptionButton</a></td><td><span class="kind-chip kind-struct">struct</span></td><td><p>Hosts an application action beside a surface's native caption controls.</p>
+</td></tr>
 <tr><td class="code-type"><a href="#Gui_CheckButton">Gui.CheckButton</a></td><td><span class="kind-chip kind-struct">struct</span></td><td><p>Lets the user enable an option or choose among three check states.</p>
 </td></tr>
 <tr><td class="code-type"><a href="#Gui_Circular">Gui.Circular</a></td><td><span class="kind-chip kind-struct">struct</span></td><td><p>Provides a circular single-value or range slider.</p>
@@ -6677,6 +6688,27 @@ options.motion      = .<span class="SCst"><a href="#Gui_AnimationMotion_Essentia
 <tr><td class="code-type"><a href="#Gui_Button_setText">setText</a></td><td><p>Replaces the displayed label, repaints, and lets the next layout pass re-measure it.</p>
 </td></tr>
 <tr><td class="code-type"><a href="#Gui_Button_text">text</a></td><td><p>Returns the displayed label, including any formatting markers.</p>
+</td></tr>
+</tbody>
+</table>
+<section class="api-symbol">
+<div class="api-item api-item-struct"><span id="Gui_CaptionButton" class="api-item-title"><span class="api-item-title-kind">struct</span> <span class="api-item-title-strong">Gui.CaptionButton</span> <a class="api-item-permalink" href="#Gui_CaptionButton" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/gui/src/controls/widgets/captionbutton.swg#L6">src</a></div>
+<p>Hosts an application action beside a surface's native caption controls.</p>
+<div class="code-block"><span class="SCde"><span class="SKwd">struct</span> <span class="SCst"><a href="#Gui_CaptionButton">CaptionButton</a></span></span></div>
+</section>
+<h3>Fields</h3>
+<table class="table-enumeration api-summary">
+<thead><tr><th>Name</th><th>Type</th><th>Description</th></tr></thead>
+<tbody>
+<tr><td id="Gui_CaptionButton_button" class="code-type">button</td><td class="code-type"><a href="#Gui_IconButton">Gui.IconButton</a></td><td><p>Icon-button behavior and presentation.</p>
+</td></tr>
+</tbody>
+</table>
+<h3 id="Gui_CaptionButton_methods">Methods</h3>
+<table class="api-summary">
+<thead><tr><th>Name</th><th>Description</th></tr></thead>
+<tbody>
+<tr><td class="code-type"><a href="#Gui_CaptionButton_create">create</a></td><td><p>Creates a caption action using a theme icon at the caption glyph size.</p>
 </td></tr>
 </tbody>
 </table>
@@ -8986,6 +9018,8 @@ document.sigLinkActivated += <span class="SKwd">func</span>(view, url)
 <tr><td class="code-type"><a href="#Gui_Label_setIconPadding">setIconPadding</a></td><td><p>Changes icon insets.</p>
 </td></tr>
 <tr><td class="code-type"><a href="#Gui_Label_setIconVerticalAlignment">setIconVerticalAlignment</a></td><td><p>Changes vertical icon alignment.</p>
+</td></tr>
+<tr><td class="code-type"><a href="#Gui_Label_setLetterSpacing">setLetterSpacing</a></td><td><p>Sets the extra spacing inserted between glyphs, in logical pixels.</p>
 </td></tr>
 <tr><td class="code-type"><a href="#Gui_Label_setLineGap">setLineGap</a></td><td><p>Changes the extra space between text lines, in logical pixels.</p>
 </td></tr>
@@ -16821,6 +16855,8 @@ sheet.<span class="SFct">doModal</span>(button, autoDestroy: <span class="SKwd">
 </td></tr>
 <tr><td id="Gui_ThemeIcons_SendToBack" class="code-type">SendToBack</td><td><p>Send-to-back ordering action.</p>
 </td></tr>
+<tr><td id="Gui_ThemeIcons_Settings" class="code-type">Settings</td><td><p>Open a page of adjustable settings.</p>
+</td></tr>
 <tr><td id="Gui_ThemeIcons_Shuffle" class="code-type">Shuffle</td><td><p>Play the files of the folder in random order, each once before any comes again.</p>
 </td></tr>
 <tr><td id="Gui_ThemeIcons_Sort" class="code-type">Sort</td><td><p>Sort action glyph.</p>
@@ -17916,6 +17952,13 @@ sheet.<span class="SFct">doModal</span>(button, autoDestroy: <span class="SKwd">
 <div class="api-item api-item-func"><span id="Gui_Button_text" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Button.text</span> <a class="api-item-permalink" href="#Gui_Button_text" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/gui/src/controls/widgets/button.swg#L81">src</a></div>
 <p>Returns the displayed label, including any formatting markers.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">text</span>()-&gt;<span class="STpe">string</span></span></div>
+</section>
+<section class="api-symbol">
+<div class="api-item api-item-func"><span id="Gui_CaptionButton_create" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">CaptionButton.create</span> <a class="api-item-permalink" href="#Gui_CaptionButton_create" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/gui/src/controls/widgets/captionbutton.swg#L30">src</a></div>
+<p>Creates a caption action using a theme icon at the caption glyph size.</p>
+<p>The surface owns the button. Connect <a href="#Gui_Button_sigPressed">Gui.Button.sigPressed</a> to run the action and set <a href="#Gui_Wnd_toolTip">Gui.Wnd.toolTip</a> to name it.</p>
+<div class="code-block"><span class="SCde"><span class="SAtr">#[</span><span class="SNsp">Swag</span>.<span class="SAtr">Discardable]</span>
+<span class="SKwd">func</span> <span class="SFct">create</span>(surface: *<span class="SCst"><a href="#Gui_Surface">Surface</a></span>, icon: <span class="SCst"><a href="#Gui_ThemeIcons">ThemeIcons</a></span>, id: <span class="SCst"><a href="#Gui_WndId">WndId</a></span>? = <span class="SKwd">null</span>)-&gt;*<span class="SCst"><a href="#Gui_CaptionButton">CaptionButton</a></span></span></div>
 </section>
 <section class="api-symbol">
 <div class="api-item api-item-func"><span id="Gui_CheckButton_create" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">CheckButton.create</span> <a class="api-item-permalink" href="#Gui_CheckButton_create" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/gui/src/controls/widgets/checkbutton.swg#L182">src</a></div>
@@ -20351,96 +20394,101 @@ view.<span class="SFct">updateVideoFrame</span>(&amp;planes)</span></div>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">onTimerEvent</span>(evt: *<span class="SCst"><a href="#Gui_TimerEvent">TimerEvent</a></span>)</span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Gui_Label_create" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Label.create</span> <a class="api-item-permalink" href="#Gui_Label_create" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/gui/src/controls/widgets/label.swg#L245">src</a></div>
+<div class="api-item api-item-func"><span id="Gui_Label_create" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Label.create</span> <a class="api-item-permalink" href="#Gui_Label_create" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/gui/src/controls/widgets/label.swg#L255">src</a></div>
 <p>Creates a label with optional wrapping, sizing, and link behavior.</p>
 <div class="code-block"><span class="SCde"><span class="SAtr">#[</span><span class="SNsp">Swag</span>.<span class="SAtr">Discardable]</span>
 <span class="SKwd">func</span> <span class="SFct">create</span>(parent: *<span class="SCst"><a href="#Gui_Wnd">Wnd</a></span>, name: <span class="STpe">string</span>?, position: <span class="SCst"><a href="std.core.html#namespace_Core_Math">Math</a></span>.<span class="SCst">Rectangle</span> = {}, id: <span class="SCst"><a href="#Gui_WndId">WndId</a></span>? = <span class="SKwd">null</span>, flags: <span class="SCst"><a href="#Gui_LabelFlags">LabelFlags</a></span> = .<span class="SCst">None</span>)-&gt;*<span class="SCst"><a href="#Gui_Label">Label</a></span></span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Gui_Label_setIcon" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Label.setIcon</span> <a class="api-item-permalink" href="#Gui_Label_setIcon" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/gui/src/controls/widgets/label.swg#L394">src</a></div>
+<div class="api-item api-item-func"><span id="Gui_Label_setIcon" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Label.setIcon</span> <a class="api-item-permalink" href="#Gui_Label_setIcon" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/gui/src/controls/widgets/label.swg#L404">src</a></div>
 <p>Changes the displayed icon.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">setIcon</span>(icon: <span class="SCst"><a href="#Gui_Icon">Icon</a></span>)</span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Gui_Label_setIconAlignment" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Label.setIconAlignment</span> <a class="api-item-permalink" href="#Gui_Label_setIconAlignment" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/gui/src/controls/widgets/label.swg#L353">src</a></div>
+<div class="api-item api-item-func"><span id="Gui_Label_setIconAlignment" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Label.setIconAlignment</span> <a class="api-item-permalink" href="#Gui_Label_setIconAlignment" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/gui/src/controls/widgets/label.swg#L363">src</a></div>
 <p>Changes icon alignment.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">setIconAlignment</span>(horizontal: <span class="SCst"><a href="std.pixel.html#Pixel_StringHorzAlignment">StringHorzAlignment</a></span>, vertical: <span class="SCst"><a href="std.pixel.html#Pixel_StringVertAlignment">StringVertAlignment</a></span>)</span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Gui_Label_setIconColor" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Label.setIconColor</span> <a class="api-item-permalink" href="#Gui_Label_setIconColor" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/gui/src/controls/widgets/label.swg#L401">src</a></div>
+<div class="api-item api-item-func"><span id="Gui_Label_setIconColor" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Label.setIconColor</span> <a class="api-item-permalink" href="#Gui_Label_setIconColor" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/gui/src/controls/widgets/label.swg#L411">src</a></div>
 <p>Changes the explicit icon color; transparent restores automatic coloring.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">setIconColor</span>(color: <span class="SCst">Color</span>)</span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Gui_Label_setIconHorizontalAlignment" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Label.setIconHorizontalAlignment</span> <a class="api-item-permalink" href="#Gui_Label_setIconHorizontalAlignment" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/gui/src/controls/widgets/label.swg#L363">src</a></div>
+<div class="api-item api-item-func"><span id="Gui_Label_setIconHorizontalAlignment" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Label.setIconHorizontalAlignment</span> <a class="api-item-permalink" href="#Gui_Label_setIconHorizontalAlignment" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/gui/src/controls/widgets/label.swg#L373">src</a></div>
 <p>Changes horizontal icon alignment.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">setIconHorizontalAlignment</span>(alignment: <span class="SCst"><a href="std.pixel.html#Pixel_StringHorzAlignment">StringHorzAlignment</a></span>)</span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Gui_Label_setIconPadding" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Label.setIconPadding</span> <a class="api-item-permalink" href="#Gui_Label_setIconPadding" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/gui/src/controls/widgets/label.swg#L385">src</a></div>
+<div class="api-item api-item-func"><span id="Gui_Label_setIconPadding" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Label.setIconPadding</span> <a class="api-item-permalink" href="#Gui_Label_setIconPadding" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/gui/src/controls/widgets/label.swg#L395">src</a></div>
 <p>Changes icon insets.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">setIconPadding</span>(padding: <span class="SCst"><a href="std.core.html#namespace_Core_Math">Math</a></span>.<span class="SCst"><a href="std.core.html#Core_Math_Vector4">Vector4</a></span>)</span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Gui_Label_setIconVerticalAlignment" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Label.setIconVerticalAlignment</span> <a class="api-item-permalink" href="#Gui_Label_setIconVerticalAlignment" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/gui/src/controls/widgets/label.swg#L369">src</a></div>
+<div class="api-item api-item-func"><span id="Gui_Label_setIconVerticalAlignment" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Label.setIconVerticalAlignment</span> <a class="api-item-permalink" href="#Gui_Label_setIconVerticalAlignment" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/gui/src/controls/widgets/label.swg#L379">src</a></div>
 <p>Changes vertical icon alignment.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">setIconVerticalAlignment</span>(alignment: <span class="SCst"><a href="std.pixel.html#Pixel_StringVertAlignment">StringVertAlignment</a></span>)</span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Gui_Label_setLineGap" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Label.setLineGap</span> <a class="api-item-permalink" href="#Gui_Label_setLineGap" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/gui/src/controls/widgets/label.swg#L318">src</a></div>
+<div class="api-item api-item-func"><span id="Gui_Label_setLetterSpacing" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Label.setLetterSpacing</span> <a class="api-item-permalink" href="#Gui_Label_setLetterSpacing" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/gui/src/controls/widgets/label.swg#L196">src</a></div>
+<p>Sets the extra spacing inserted between glyphs, in logical pixels.</p>
+<div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">setLetterSpacing</span>(spacing: <span class="STpe">f32</span>)</span></div>
+</section>
+<section class="api-symbol">
+<div class="api-item api-item-func"><span id="Gui_Label_setLineGap" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Label.setLineGap</span> <a class="api-item-permalink" href="#Gui_Label_setLineGap" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/gui/src/controls/widgets/label.swg#L328">src</a></div>
 <p>Changes the extra space between text lines, in logical pixels.</p>
 <p>Negative values are clamped to zero. Measurement, painting, and automatic height use the same gap; changing it invalidates the parent layout as well.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">setLineGap</span>(gap: <span class="STpe">s32</span>)</span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Gui_Label_setMaxLines" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Label.setMaxLines</span> <a class="api-item-permalink" href="#Gui_Label_setMaxLines" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/gui/src/controls/widgets/label.swg#L305">src</a></div>
+<div class="api-item api-item-func"><span id="Gui_Label_setMaxLines" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Label.setMaxLines</span> <a class="api-item-permalink" href="#Gui_Label_setMaxLines" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/gui/src/controls/widgets/label.swg#L315">src</a></div>
 <p>Caps the number of lines the text may occupy; zero lifts the cap.</p>
 <p>The text stops at that line instead of running past the label. Combine it with <a href="#Gui_LabelFlags_Ellipsis">Gui.LabelFlags.Ellipsis</a> to have the last kept line end with an ellipsis, so a reader sees that something was left out rather than a sentence that appears to end there.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">setMaxLines</span>(count: <span class="STpe">u32</span>)</span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Gui_Label_setText" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Label.setText</span> <a class="api-item-permalink" href="#Gui_Label_setText" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/gui/src/controls/widgets/label.swg#L260">src</a></div>
+<div class="api-item api-item-func"><span id="Gui_Label_setText" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Label.setText</span> <a class="api-item-permalink" href="#Gui_Label_setText" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/gui/src/controls/widgets/label.swg#L270">src</a></div>
 <p>Replaces the displayed rich text and reapplies automatic sizing.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">setText</span>(text: <span class="STpe">string</span>?)</span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Gui_Label_setTextAlignment" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Label.setTextAlignment</span> <a class="api-item-permalink" href="#Gui_Label_setTextAlignment" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/gui/src/controls/widgets/label.swg#L330">src</a></div>
+<div class="api-item api-item-func"><span id="Gui_Label_setTextAlignment" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Label.setTextAlignment</span> <a class="api-item-permalink" href="#Gui_Label_setTextAlignment" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/gui/src/controls/widgets/label.swg#L340">src</a></div>
 <p>Changes text alignment and updates automatic height when needed.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">setTextAlignment</span>(horizontal: <span class="SCst"><a href="std.pixel.html#Pixel_StringHorzAlignment">StringHorzAlignment</a></span>, vertical: <span class="SCst"><a href="std.pixel.html#Pixel_StringVertAlignment">StringVertAlignment</a></span>)</span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Gui_Label_setTextColor" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Label.setTextColor</span> <a class="api-item-permalink" href="#Gui_Label_setTextColor" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/gui/src/controls/widgets/label.swg#L408">src</a></div>
+<div class="api-item api-item-func"><span id="Gui_Label_setTextColor" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Label.setTextColor</span> <a class="api-item-permalink" href="#Gui_Label_setTextColor" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/gui/src/controls/widgets/label.swg#L418">src</a></div>
 <p>Changes the explicit text color; transparent restores theme coloring.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">setTextColor</span>(color: <span class="SCst">Color</span>)</span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Gui_Label_setTextHorizontalAlignment" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Label.setTextHorizontalAlignment</span> <a class="api-item-permalink" href="#Gui_Label_setTextHorizontalAlignment" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/gui/src/controls/widgets/label.swg#L341">src</a></div>
+<div class="api-item api-item-func"><span id="Gui_Label_setTextHorizontalAlignment" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Label.setTextHorizontalAlignment</span> <a class="api-item-permalink" href="#Gui_Label_setTextHorizontalAlignment" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/gui/src/controls/widgets/label.swg#L351">src</a></div>
 <p>Changes horizontal text alignment.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">setTextHorizontalAlignment</span>(alignment: <span class="SCst"><a href="std.pixel.html#Pixel_StringHorzAlignment">StringHorzAlignment</a></span>)</span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Gui_Label_setTextPadding" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Label.setTextPadding</span> <a class="api-item-permalink" href="#Gui_Label_setTextPadding" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/gui/src/controls/widgets/label.swg#L375">src</a></div>
+<div class="api-item api-item-func"><span id="Gui_Label_setTextPadding" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Label.setTextPadding</span> <a class="api-item-permalink" href="#Gui_Label_setTextPadding" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/gui/src/controls/widgets/label.swg#L385">src</a></div>
 <p>Changes text insets and updates automatic height when needed.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">setTextPadding</span>(padding: <span class="SCst"><a href="std.core.html#namespace_Core_Math">Math</a></span>.<span class="SCst"><a href="std.core.html#Core_Math_Vector4">Vector4</a></span>)</span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Gui_Label_setTextVerticalAlignment" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Label.setTextVerticalAlignment</span> <a class="api-item-permalink" href="#Gui_Label_setTextVerticalAlignment" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/gui/src/controls/widgets/label.swg#L347">src</a></div>
+<div class="api-item api-item-func"><span id="Gui_Label_setTextVerticalAlignment" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Label.setTextVerticalAlignment</span> <a class="api-item-permalink" href="#Gui_Label_setTextVerticalAlignment" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/gui/src/controls/widgets/label.swg#L357">src</a></div>
 <p>Changes vertical text alignment.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">setTextVerticalAlignment</span>(alignment: <span class="SCst"><a href="std.pixel.html#Pixel_StringVertAlignment">StringVertAlignment</a></span>)</span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Gui_Label_text" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Label.text</span> <a class="api-item-permalink" href="#Gui_Label_text" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/gui/src/controls/widgets/label.swg#L271">src</a></div>
+<div class="api-item api-item-func"><span id="Gui_Label_text" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Label.text</span> <a class="api-item-permalink" href="#Gui_Label_text" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/gui/src/controls/widgets/label.swg#L281">src</a></div>
 <p>Returns the displayed text, including any formatting markers.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">text</span>()-&gt;<span class="STpe">string</span></span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Gui_Label_updateAutomaticHeight" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Label.updateAutomaticHeight</span> <a class="api-item-permalink" href="#Gui_Label_updateAutomaticHeight" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/gui/src/controls/widgets/label.swg#L420">src</a></div>
+<div class="api-item api-item-func"><span id="Gui_Label_updateAutomaticHeight" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Label.updateAutomaticHeight</span> <a class="api-item-permalink" href="#Gui_Label_updateAutomaticHeight" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/gui/src/controls/widgets/label.swg#L430">src</a></div>
 <p>Recomputes height from current text, width, font, flags, and text padding.</p>
 <p>A label under a layout container does not need this: <a href="#Gui_LabelFlags_AutoHeight">Gui.LabelFlags.AutoHeight</a> already hands the height to the measure pass. Call it for a label placed by hand, to read the right <span class="code-inline">position.height</span> back straight away. The method has no effect unless <span class="code-inline">AutoHeight</span> is active.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">updateAutomaticHeight</span>()</span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Gui_Label_updateFlags" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Label.updateFlags</span> <a class="api-item-permalink" href="#Gui_Label_updateFlags" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/gui/src/controls/widgets/label.swg#L274">src</a></div>
+<div class="api-item api-item-func"><span id="Gui_Label_updateFlags" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Label.updateFlags</span> <a class="api-item-permalink" href="#Gui_Label_updateFlags" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/gui/src/controls/widgets/label.swg#L284">src</a></div>
 <p>Adds and removes label options, then updates layout and presentation.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">updateFlags</span>(add: <span class="SCst"><a href="#Gui_LabelFlags">LabelFlags</a></span> = .<span class="SCst">None</span>, remove = <span class="SCst"><a href="#Gui_LabelFlags">LabelFlags</a></span>.<span class="SCst">None</span>)</span></div>
 </section>
@@ -21523,13 +21571,13 @@ view.<span class="SFct">updateVideoFrame</span>(&amp;planes)</span></div>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">addSeparator</span>(name: <span class="STpe">string</span>? = <span class="SKwd">null</span>, parentItem: *<span class="SCst"><a href="#Gui_PropertiesItem">PropertiesItem</a></span>? = <span class="SKwd">null</span>)-&gt;*<span class="SCst"><a href="#Gui_PropertiesItem">PropertiesItem</a></span></span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Gui_Properties_addStruct" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Properties.addStruct</span> <a class="api-item-permalink" href="#Gui_Properties_addStruct" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/gui/src/controls/property/properties.swg#L536">src</a></div>
+<div class="api-item api-item-func"><span id="Gui_Properties_addStruct" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Properties.addStruct</span> <a class="api-item-permalink" href="#Gui_Properties_addStruct" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/gui/src/controls/property/properties.swg#L535">src</a></div>
 <p>Appends a row for each field of the structure <span class="code-inline">val</span> holds, under an optional <span class="code-inline">section</span> heading.</p>
 <p>The grid edits the structure in place, so it must outlive the rows.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">addStruct</span>(val: <span class="STpe">any</span>, section: <span class="STpe">string</span>? = <span class="SKwd">null</span>)</span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Gui_Properties_addStructMulti" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Properties.addStructMulti</span> <a class="api-item-permalink" href="#Gui_Properties_addStructMulti" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/gui/src/controls/property/properties.swg#L553">src</a></div>
+<div class="api-item api-item-func"><span id="Gui_Properties_addStructMulti" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Properties.addStructMulti</span> <a class="api-item-permalink" href="#Gui_Properties_addStructMulti" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/gui/src/controls/property/properties.swg#L552">src</a></div>
 <p>Appends rows that edit several instances of the structure type <span class="code-inline">typeof</span> together.</p>
 <p><span class="code-inline">bases</span> holds the base address of each instance, at least one. Editing a field writes it into every instance, and a field whose value differs across the instances is shown as mixed. With a single base this behaves like <a href="#Gui_Properties_addStruct">Gui.Properties.addStruct</a>. With <span class="code-inline">onlyNamed</span>, only the fields carrying an explicit <span class="code-inline">Properties.Name</span> attribute get a row, which suits a structure whose fields are mostly internal state.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">addStructMulti</span>(typeof: <span class="STpe">typeinfo</span>, bases: [..] *<span class="STpe">u8</span>, section: <span class="STpe">string</span>? = <span class="SKwd">null</span>, onlyNamed = <span class="SKwd">false</span>)</span></div>
@@ -21563,7 +21611,7 @@ view.<span class="SFct">updateVideoFrame</span>(&amp;planes)</span></div>
 <div class="code-block"><span class="SCde"><span class="SKwd">attr</span> <span class="SFct">Category</span>(name: <span class="STpe">string</span>)</span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Gui_Properties_clear" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Properties.clear</span> <a class="api-item-permalink" href="#Gui_Properties_clear" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/gui/src/controls/property/properties.swg#L511">src</a></div>
+<div class="api-item api-item-func"><span id="Gui_Properties_clear" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Properties.clear</span> <a class="api-item-permalink" href="#Gui_Properties_clear" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/gui/src/controls/property/properties.swg#L510">src</a></div>
 <p>Removes every displayed structure and row, keeping the widget alive for new content.</p>
 <p>Bind the new content with <a href="#Gui_Properties_addStruct">Gui.Properties.addStruct</a> or <a href="#Gui_Properties_addStructMulti">Gui.Properties.addStructMulti</a>, as an editor panel does when it follows the current selection. The undo history recorded so far survives on an external manager, detached from the rows; the internal one is cleared with the content it refers to.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">clear</span>()</span></div>
@@ -21575,13 +21623,13 @@ view.<span class="SFct">updateVideoFrame</span>(&amp;planes)</span></div>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">clearUndo</span>()</span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Gui_Properties_collapseAll" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Properties.collapseAll</span> <a class="api-item-permalink" href="#Gui_Properties_collapseAll" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/gui/src/controls/property/properties.swg#L742">src</a></div>
+<div class="api-item api-item-func"><span id="Gui_Properties_collapseAll" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Properties.collapseAll</span> <a class="api-item-permalink" href="#Gui_Properties_collapseAll" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/gui/src/controls/property/properties.swg#L741">src</a></div>
 <p>Collapses every visible section and category in grid presentations.</p>
 <p>The invisible root used when <a href="#Gui_Properties_addStruct">Gui.Properties.addStruct</a> has no section label remains expanded so collapsing the view never hides the complete editor behind a row the user cannot reopen.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">collapseAll</span>()</span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Gui_Properties_commitItemChange" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Properties.commitItemChange</span> <a class="api-item-permalink" href="#Gui_Properties_commitItemChange" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/gui/src/controls/property/properties.swg#L647">src</a></div>
+<div class="api-item api-item-func"><span id="Gui_Properties_commitItemChange" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Properties.commitItemChange</span> <a class="api-item-permalink" href="#Gui_Properties_commitItemChange" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/gui/src/controls/property/properties.swg#L646">src</a></div>
 <p>Commits a value an editor wrote, with propagation, undo, refresh, validation, layout, and notifications.</p>
 <p>Custom <a href="#Gui_IPropertyEditor">Gui.IPropertyEditor</a> implementations call it once per logical edit, after updating the bound data.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">commitItemChange</span>(item: *<span class="SCst"><a href="#Gui_PropertiesItem">PropertiesItem</a></span>)</span></div>
@@ -21609,12 +21657,12 @@ view.<span class="SFct">updateVideoFrame</span>(&amp;planes)</span></div>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">endAppendRows</span>()</span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Gui_Properties_expandAll" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Properties.expandAll</span> <a class="api-item-permalink" href="#Gui_Properties_expandAll" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/gui/src/controls/property/properties.swg#L727">src</a></div>
+<div class="api-item api-item-func"><span id="Gui_Properties_expandAll" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Properties.expandAll</span> <a class="api-item-permalink" href="#Gui_Properties_expandAll" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/gui/src/controls/property/properties.swg#L726">src</a></div>
 <p>Expands every collapsible section and category in grid presentations.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">expandAll</span>()</span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Gui_Properties_expandModified" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Properties.expandModified</span> <a class="api-item-permalink" href="#Gui_Properties_expandModified" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/gui/src/controls/property/properties.swg#L756">src</a></div>
+<div class="api-item api-item-func"><span id="Gui_Properties_expandModified" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Properties.expandModified</span> <a class="api-item-permalink" href="#Gui_Properties_expandModified" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/gui/src/controls/property/properties.swg#L755">src</a></div>
 <p>Expands only the branches containing fields that differ from their declared defaults.</p>
 <p>Other visible branches are collapsed; the current text and modified-only filters remain unchanged.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">expandModified</span>()</span></div>
@@ -21667,7 +21715,7 @@ view.<span class="SFct">updateVideoFrame</span>(&amp;planes)</span></div>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">isGridLike</span>()-&gt;<span class="STpe">bool</span></span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Gui_Properties_isItemReadOnly" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Properties.isItemReadOnly</span> <a class="api-item-permalink" href="#Gui_Properties_isItemReadOnly" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/gui/src/controls/property/properties.swg#L789">src</a></div>
+<div class="api-item api-item-func"><span id="Gui_Properties_isItemReadOnly" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Properties.isItemReadOnly</span> <a class="api-item-permalink" href="#Gui_Properties_isItemReadOnly" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/gui/src/controls/property/properties.swg#L788">src</a></div>
 <p>Returns whether <span class="code-inline">item</span> is read-only: shown, but closed to editing and paste.</p>
 <p>A static string, a field tagged with the <span class="code-inline">ReadOnly</span> attribute, and a row a notify interface along the parent chain declares read-only are all read-only.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">isItemReadOnly</span>(item: *<span class="SCst"><a href="#Gui_PropertiesItem">PropertiesItem</a></span>)-&gt;<span class="STpe">bool</span></span></div>
@@ -21720,7 +21768,7 @@ view.<span class="SFct">updateVideoFrame</span>(&amp;planes)</span></div>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">redo</span>()</span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Gui_Properties_refresh" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Properties.refresh</span> <a class="api-item-permalink" href="#Gui_Properties_refresh" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/gui/src/controls/property/properties.swg#L637">src</a></div>
+<div class="api-item api-item-func"><span id="Gui_Properties_refresh" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Properties.refresh</span> <a class="api-item-permalink" href="#Gui_Properties_refresh" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/gui/src/controls/property/properties.swg#L636">src</a></div>
 <p>Reloads every editor from the data it is bound to.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">refresh</span>()</span></div>
 </section>
@@ -21738,12 +21786,12 @@ view.<span class="SFct">updateVideoFrame</span>(&amp;planes)</span></div>
 <div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SFct">resolveText</span>(text: <span class="STpe">string</span>)-&gt;<span class="STpe">string</span></span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Gui_Properties_setCurrentSection" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Properties.setCurrentSection</span> <a class="api-item-permalink" href="#Gui_Properties_setCurrentSection" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/gui/src/controls/property/properties.swg#L779">src</a></div>
+<div class="api-item api-item-func"><span id="Gui_Properties_setCurrentSection" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Properties.setCurrentSection</span> <a class="api-item-permalink" href="#Gui_Properties_setCurrentSection" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/gui/src/controls/property/properties.swg#L778">src</a></div>
 <p>Shows only the section at <span class="code-inline">sectionIndex</span>; an index past the last section shows every section.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">setCurrentSection</span>(sectionIndex: <span class="STpe">u32</span>)</span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Gui_Properties_setEditorWidth" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Properties.setEditorWidth</span> <a class="api-item-permalink" href="#Gui_Properties_setEditorWidth" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/gui/src/controls/property/properties.swg#L478">src</a></div>
+<div class="api-item api-item-func"><span id="Gui_Properties_setEditorWidth" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Properties.setEditorWidth</span> <a class="api-item-permalink" href="#Gui_Properties_setEditorWidth" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/gui/src/controls/property/properties.swg#L477">src</a></div>
 <p>Sets the preferred maximum width of value editors and refreshes the current layout.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">setEditorWidth</span>(width: <span class="STpe">s32</span>)</span></div>
 </section>
@@ -21754,12 +21802,12 @@ view.<span class="SFct">updateVideoFrame</span>(&amp;planes)</span></div>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">setExternalUndoMgr</span>(mgr: *<span class="SCst"><a href="#Gui_UndoManager">UndoManager</a></span>?)</span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Gui_Properties_setFilter" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Properties.setFilter</span> <a class="api-item-permalink" href="#Gui_Properties_setFilter" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/gui/src/controls/property/properties.swg#L706">src</a></div>
+<div class="api-item api-item-func"><span id="Gui_Properties_setFilter" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Properties.setFilter</span> <a class="api-item-permalink" href="#Gui_Properties_setFilter" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/gui/src/controls/property/properties.swg#L705">src</a></div>
 <p>Shows only the rows whose text contains <span class="code-inline">filter</span>, ignoring Latin-1 case; an empty filter shows every row.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">setFilter</span>(filter: <span class="STpe">string</span>)</span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Gui_Properties_setModifiedOnly" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Properties.setModifiedOnly</span> <a class="api-item-permalink" href="#Gui_Properties_setModifiedOnly" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/gui/src/controls/property/properties.swg#L718">src</a></div>
+<div class="api-item api-item-func"><span id="Gui_Properties_setModifiedOnly" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Properties.setModifiedOnly</span> <a class="api-item-permalink" href="#Gui_Properties_setModifiedOnly" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/gui/src/controls/property/properties.swg#L717">src</a></div>
 <p>Restricts the view to fields that differ from their declared defaults.</p>
 <p>Text filtering and the modified-only filter compose, and matching descendants remain visible through collapsed categories while either filter is active.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">setModifiedOnly</span>(enabled: <span class="STpe">bool</span>)</span></div>
@@ -21770,13 +21818,13 @@ view.<span class="SFct">updateVideoFrame</span>(&amp;planes)</span></div>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">setNameColumnWidth</span>(width: <span class="STpe">s32</span>)</span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Gui_Properties_setNotify" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Properties.setNotify</span> <a class="api-item-permalink" href="#Gui_Properties_setNotify" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/gui/src/controls/property/properties.swg#L472">src</a></div>
+<div class="api-item api-item-func"><span id="Gui_Properties_setNotify" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Properties.setNotify</span> <a class="api-item-permalink" href="#Gui_Properties_setNotify" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/gui/src/controls/property/properties.swg#L471">src</a></div>
 <p>Installs the host notify interface, consulted for every row before the per-structure ones.</p>
 <p>It lets a host that does not own the displayed structures plug in dynamic visibility and enabling, read-only state, and change reactions. Null removes it.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">setNotify</span>(itf: <span class="SCst"><a href="#Gui_IPropertyNotify">IPropertyNotify</a></span>?)</span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Gui_Properties_setRevertButtonsVisible" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Properties.setRevertButtonsVisible</span> <a class="api-item-permalink" href="#Gui_Properties_setRevertButtonsVisible" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/gui/src/controls/property/properties.swg#L496">src</a></div>
+<div class="api-item api-item-func"><span id="Gui_Properties_setRevertButtonsVisible" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Properties.setRevertButtonsVisible</span> <a class="api-item-permalink" href="#Gui_Properties_setRevertButtonsVisible" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/gui/src/controls/property/properties.swg#L495">src</a></div>
 <p>Shows or hides reset-to-default affordances for modified values.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">setRevertButtonsVisible</span>(visible: <span class="STpe">bool</span>)</span></div>
 </section>
@@ -21801,7 +21849,7 @@ view.<span class="SFct">updateVideoFrame</span>(&amp;planes)</span></div>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">setUndoEnabled</span>(on: <span class="STpe">bool</span>)</span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Gui_Properties_setUsingFieldsLast" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Properties.setUsingFieldsLast</span> <a class="api-item-permalink" href="#Gui_Properties_setUsingFieldsLast" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/gui/src/controls/property/properties.swg#L490">src</a></div>
+<div class="api-item api-item-func"><span id="Gui_Properties_setUsingFieldsLast" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Properties.setUsingFieldsLast</span> <a class="api-item-permalink" href="#Gui_Properties_setUsingFieldsLast" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/gui/src/controls/property/properties.swg#L489">src</a></div>
 <p>Controls whether reflected <span class="code-inline">using</span> fields are appended after the struct's own fields.</p>
 <p>The option applies to structures added after this call.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">setUsingFieldsLast</span>(enabled: <span class="STpe">bool</span>)</span></div>
@@ -23243,7 +23291,7 @@ btnPush_Hot      $btnPush_Normal</span></div>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">ensureAtlasScale</span>(renderer: <span class="SCst"><a href="std.pixel.html#Pixel_IRenderer">IRenderer</a></span>, scale: <span class="STpe">f32</span>)</span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Gui_Theme_icon" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Theme.icon</span> <a class="api-item-permalink" href="#Gui_Theme_icon" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/gui/src/paint/themeicons.swg#L101">src</a></div>
+<div class="api-item api-item-func"><span id="Gui_Theme_icon" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Theme.icon</span> <a class="api-item-permalink" href="#Gui_Theme_icon" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/gui/src/paint/themeicons.swg#L102">src</a></div>
 <p>Creates an icon descriptor for a theme glyph displayed at <span class="code-inline">size</span> logical pixels.</p>
 <p>The frames behind a given size are rasterized once from the vector icon set, at the current atlas scale, and shared by every icon of that size.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">icon</span>(idx: <span class="SCst"><a href="#Gui_ThemeIcons">ThemeIcons</a></span>, size = <span class="SNum">24</span>'<span class="STpe">f32</span>)-&gt;<span class="SCst"><a href="#Gui_Icon">Icon</a></span></span></div>
@@ -25313,6 +25361,8 @@ btnPush_Hot      $btnPush_Normal</span></div>
 "v|Gui.Button.sigPressed|Gui_Button_sigPressed|Emitted after a completed primary activation.",
 "v|Gui.Button.sigRightPressed|Gui_Button_sigRightPressed|Emitted when the secondary button is pressed inside the control.",
 "v|Gui.Button.wnd|Gui_Button_wnd|Embedded window behavior and presentation.",
+"s|Gui.CaptionButton|Gui_CaptionButton|Hosts an application action beside a surface's native caption controls.",
+"v|Gui.CaptionButton.button|Gui_CaptionButton_button|Icon-button behavior and presentation.",
 "s|Gui.CheckButton|Gui_CheckButton|Lets the user enable an option or choose among three check states.",
 "v|Gui.CheckButton.button|Gui_CheckButton_button|Embedded button behavior and presentation.",
 "v|Gui.CheckButton.flags|Gui_CheckButton_flags|Active interaction and placement options.",
@@ -27064,6 +27114,7 @@ btnPush_Hot      $btnPush_Normal</span></div>
 "k|Gui.ThemeIcons.SeekForward|Gui_ThemeIcons_SeekForward|Media seek toward a later position.",
 "k|Gui.ThemeIcons.SendBackward|Gui_ThemeIcons_SendBackward|Send-backward ordering action.",
 "k|Gui.ThemeIcons.SendToBack|Gui_ThemeIcons_SendToBack|Send-to-back ordering action.",
+"k|Gui.ThemeIcons.Settings|Gui_ThemeIcons_Settings|Open a page of adjustable settings.",
 "k|Gui.ThemeIcons.Shuffle|Gui_ThemeIcons_Shuffle|Play the files of the folder in random order, each once before any comes again.",
 "k|Gui.ThemeIcons.Sort|Gui_ThemeIcons_Sort|Sort action glyph.",
 "k|Gui.ThemeIcons.Stop|Gui_ThemeIcons_Stop|Media stop action glyph.",
@@ -27886,6 +27937,7 @@ btnPush_Hot      $btnPush_Normal</span></div>
 "f|Gui.Button.setIconSize|Gui_Button_setIconSize|Overrides the icon draw size; zero on either axis preserves that axis from the icon descriptor.",
 "f|Gui.Button.setText|Gui_Button_setText|Replaces the displayed label, repaints, and lets the next layout pass re-measure it.",
 "f|Gui.Button.text|Gui_Button_text|Returns the displayed label, including any formatting markers.",
+"f|Gui.CaptionButton.create|Gui_CaptionButton_create|Creates a caption action using a theme icon at the caption glyph size.",
 "f|Gui.CheckButton.create|Gui_CheckButton_create|Creates a check button with an optional command identifier and initial options.",
 "f|Gui.CheckButton.isChecked|Gui_CheckButton_isChecked|Reports whether the option is selected.",
 "f|Gui.CheckButton.isIndeterminate|Gui_CheckButton_isIndeterminate|Reports whether the represented values have mixed states.",
@@ -28034,6 +28086,7 @@ btnPush_Hot      $btnPush_Normal</span></div>
 "f|Gui.Label.setIconHorizontalAlignment|Gui_Label_setIconHorizontalAlignment|Changes horizontal icon alignment.",
 "f|Gui.Label.setIconPadding|Gui_Label_setIconPadding|Changes icon insets.",
 "f|Gui.Label.setIconVerticalAlignment|Gui_Label_setIconVerticalAlignment|Changes vertical icon alignment.",
+"f|Gui.Label.setLetterSpacing|Gui_Label_setLetterSpacing|Sets the extra spacing inserted between glyphs, in logical pixels.",
 "f|Gui.Label.setLineGap|Gui_Label_setLineGap|Changes the extra space between text lines, in logical pixels.",
 "f|Gui.Label.setMaxLines|Gui_Label_setMaxLines|Caps the number of lines the text may occupy; zero lifts the cap.",
 "f|Gui.Label.setText|Gui_Label_setText|Replaces the displayed rich text and reapplies automatic sizing.",

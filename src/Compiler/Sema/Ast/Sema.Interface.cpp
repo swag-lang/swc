@@ -27,7 +27,24 @@ Result AstInterfaceDecl::semaPreNodeChild(Sema& sema, const AstNodeRef& childRef
 
     TaskContext& ctx = sema.ctx();
 
-    auto&          symItf     = sema.curViewSymbol().sym()->cast<SymbolInterface>();
+    // A rejected base leaves the interface without one, so its users still find it complete.
+    auto& symItf = sema.curViewSymbol().sym()->cast<SymbolInterface>();
+    if (nodeBaseRef.isValid())
+    {
+        const TypeRef baseTypeRef = ctx.typeMgr().unwrapNonStrictAlias(sema.viewType(nodeBaseRef).typeRef());
+        if (baseTypeRef.isValid() && ctx.typeMgr().get(baseTypeRef).isStruct())
+        {
+            symItf.setBaseTypeRef(baseTypeRef);
+        }
+        else
+        {
+            auto diag = SemaError::report(sema, DiagnosticId::sema_err_interface_base_not_struct, nodeBaseRef);
+            diag.addArgument(Diagnostic::ARG_SYM, symItf.name(ctx));
+            diag.addArgument(Diagnostic::ARG_TYPE, baseTypeRef);
+            diag.report(ctx);
+        }
+    }
+
     const TypeInfo itfType    = TypeInfo::makeInterface(&symItf);
     const TypeRef  itfTypeRef = ctx.typeMgr().addType(itfType);
 

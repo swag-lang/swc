@@ -23,8 +23,14 @@ public:
     void   addFunction(SymbolFunction* sym);
     Result canBeCompleted(Sema& sema) const;
 
+    // 'interface I is Base': every implementation starts with 'Base', so an 'I' value is a
+    // pointer to it. Valid once the interface is complete.
+    TypeRef baseTypeRef() const { return baseTypeRef_; }
+    void    setBaseTypeRef(TypeRef typeRef) { baseTypeRef_ = typeRef; }
+
 private:
     std::vector<SymbolFunction*> functions_;
+    TypeRef                      baseTypeRef_ = TypeRef::invalid();
 };
 
 SWC_END_NAMESPACE();

@@ -535,7 +535,7 @@ impl MainWnd
             .freezeSel = true
 
             for it in capture.forms do
-                (assume cast(*BaseForm, it)).freeze = true
+                it.freeze = true
         }
     }
 

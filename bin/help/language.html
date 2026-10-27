@@ -6768,6 +6768,46 @@ swc test -w path/to/workspace -m messages</span></div>
     <span class="SKwd">let</span> i3 = <span class="SKwd">cast</span>(<span class="SCst">ITest</span>, v3)
     <span class="SNsp">Swag</span>.<span class="SFct">assert</span>(<span class="SLgc">not</span> i3.<span class="SFct">isImplemented</span>())
 }</span></div>
+<h3 id="_006_011_interface_swg_Interfaces_with_a_Base">Interfaces with a Base</h3>
+<p>'interface I is Base' requires every implementation to start with <span class="code-inline">Base</span>: the first field, embedded with <span class="code-inline">using</span>, or the first field of that first field. An implementation that does not is rejected where it is declared.</p>
+<p>An <span class="code-inline">I</span> value then converts implicitly to a pointer to <span class="code-inline">Base</span>, and a member the interface does not declare is read on the base. Code that holds forms through their interface reaches their shared fields without casting each one.</p>
+<div class="code-block"><span class="SCde"><span class="SKwd">struct</span> <span class="SCst">FormBase</span>
+{
+    x, y:   <span class="STpe">s32</span>
+    frozen: <span class="STpe">bool</span>
+}
+
+<span class="SKwd">interface</span> <span class="SCst">IForm</span> <span class="SLgc">is</span> <span class="SCst">FormBase</span>
+{
+    <span class="SKwd">mtd</span> <span class="SFct">area</span>()-&gt;<span class="STpe">s32</span>
+}
+
+<span class="SKwd">struct</span> <span class="SCst">FormBox</span>
+{
+    <span class="SKwd">using</span> base: <span class="SCst">FormBase</span>
+    w, h:       <span class="STpe">s32</span>
+}
+
+<span class="SKwd">impl</span> <span class="SCst">IForm</span> <span class="SLgc">for</span> <span class="SCst">FormBox</span>
+{
+    <span class="SKwd">mtd</span> <span class="SFct">area</span>()-&gt;<span class="STpe">s32</span> =&gt; .w * .h
+}
+
+<span class="SKwd">func</span> <span class="SFct">moveForm</span>(form: *<span class="SCst">FormBase</span>, dx: <span class="STpe">s32</span>)
+{
+    form.x += dx
+}
+
+<span class="SFct">#test</span>
+{
+    <span class="SKwd">var</span> box  = <span class="SCst">FormBox</span>{w: <span class="SNum">2</span>, h: <span class="SNum">3</span>}
+    <span class="SKwd">let</span> form = <span class="SKwd">cast</span>(<span class="SCst">IForm</span>, &amp;box)
+    <span class="SNsp">Swag</span>.<span class="SFct">assert</span>(form.<span class="SFct">area</span>() == <span class="SNum">6</span>)
+
+    form.frozen = <span class="SKwd">true</span>
+    <span class="SFct">moveForm</span>(form, <span class="SNum">5</span>)
+    <span class="SNsp">Swag</span>.<span class="SFct">assert</span>(box.frozen <span class="SLgc">and</span> box.x == <span class="SNum">5</span>)
+}</span></div>
 <h2 id="_007_000_functions_swg">Functions</h2>
 <p>Functions cover more than calls and returns: Swag supports expression bodies, lambdas, closures, variadic parameters, overloads, UFCS, intentionally discarded results, and the <span class="code-inline">#returntype</span> placeholder.</p>
 <p>Macros, mixins, and foreign functions live in the metaprogramming and interoperability chapters because their execution model differs from an ordinary function call.</p>
@@ -11762,6 +11802,7 @@ swc build --module mymodule --build-cfg devmode --tag Swag.AllocatorSafety=false
 "h|Accessing Interface Methods Directly|_006_011_interface_swg_Accessing_Interface_Methods_Directly|",
 "h|Interface as a Type|_006_011_interface_swg_Interface_as_a_Type|",
 "h|Default Implementation in Interfaces|_006_011_interface_swg_Default_Implementation_in_Interfaces|",
+"h|Interfaces with a Base|_006_011_interface_swg_Interfaces_with_a_Base|",
 "h|Functions|_007_000_functions_swg|",
 "h|Declaration|_007_001_declaration_swg|",
 "h|Function Declarations|_007_001_declaration_swg_Function_Declarations|",

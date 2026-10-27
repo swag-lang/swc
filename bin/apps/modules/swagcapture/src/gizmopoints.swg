@@ -92,8 +92,7 @@ impl GizmoPoints
     // step of the same drag unless `first`.
     func apply(iform: IForm, diff: Math.Point, pt: u32, first: bool)
     {
-        let form    = assume cast(*BaseForm, iform)
-        let capture = unwrap form.capture
+        let capture = unwrap iform.capture
         if not first do
             capture.undo()
         let undo     = capture.newUndo(.MovePoint)

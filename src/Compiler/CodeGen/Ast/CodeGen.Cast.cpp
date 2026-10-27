@@ -28,6 +28,7 @@
 #include "Compiler/Sema/Symbol/IdentifierManager.h"
 #include "Compiler/Sema/Symbol/Symbol.Enum.h"
 #include "Compiler/Sema/Symbol/Symbol.Function.h"
+#include "Compiler/Sema/Symbol/Symbol.Interface.h"
 #include "Compiler/Sema/Symbol/Symbol.Struct.h"
 #include "Compiler/Sema/Symbol/Symbol.Variable.h"
 #include "Compiler/Sema/Type/TypeInfo.h"
@@ -1564,6 +1565,17 @@ namespace
         if (resolvedSrcType.isInterface() && resolvedDstType.isAnyPointer())
         {
             const TypeRef dstPointeeTypeRef = typeMgr.unwrapAliasEnumOrSelf(codeGen.ctx(), resolvedDstType.payloadTypeRef());
+
+            // The base of 'interface I is Base' starts every implementation: it is the object.
+            if (dstPointeeTypeRef.isValid() && dstPointeeTypeRef == resolvedSrcType.payloadSymInterface().baseTypeRef())
+            {
+                SWC_ASSERT(srcPayload.isAddress());
+                CodeGenNodePayload& dstPayload = codeGen.setPayloadValue(codeGen.curNodeRef(), dstTypeRef);
+                dstPayload.reg                 = codeGen.nextVirtualIntRegister();
+                builder.emitLoadRegMem(dstPayload.reg, srcPayload.reg, offsetof(Runtime::Interface, obj), MicroOpBits::B64);
+                return Result::Continue;
+            }
+
             if (dstPointeeTypeRef.isValid() && typeMgr.get(dstPointeeTypeRef).isStruct())
                 return emitDynamicStructCast(codeGen, srcNodeRef, dstPointeeTypeRef, false);
         }

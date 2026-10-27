@@ -410,8 +410,7 @@ impl GizmoRect
     // same drag unless `first`, and invalidates the area the form left and the one it covers.
     mtd apply(iform: IForm, first: bool, edges: GizmoEdges)
     {
-        let form    = assume cast(*BaseForm, iform)
-        let capture = unwrap form.capture
+        let capture = unwrap iform.capture
         let oldRect = iform.boundRect()
         capture.interactiveMove = true
         if not first do
@@ -496,8 +495,7 @@ impl GizmoRect
     // Rotate slider in the property window so undo/redo stays consistent.
     mtd applyRotate(iform: IForm, first, last: bool, angle: f32)
     {
-        let form    = assume cast(*BaseForm, iform)
-        let capture = unwrap form.capture
+        let capture = unwrap iform.capture
         if not first do
             capture.undo()
 

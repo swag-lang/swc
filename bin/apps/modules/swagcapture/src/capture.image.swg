@@ -48,8 +48,7 @@ impl Capture
             for sel in .selection
             {
                 let f = .forms[sel]
-                let b = assume cast(*BaseForm, f)
-                if b.subKind == .PixSel do
+                if f.subKind == .PixSel do
                     continue
                 paintForm(&painter, {}, rect, f, zoom, snapMode: true)
             }
@@ -58,7 +57,7 @@ impl Capture
         {
             for f in .forms
             {
-                let b = assume cast(*BaseForm, f)
+                let b: *BaseForm = f
                 if b.subKind == .PixSel do
                     continue
                 paintForm(&painter, {}, rect, f, zoom, snapMode: true)

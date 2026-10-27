@@ -306,7 +306,7 @@ func testUndoFuzzFormOf(itf: IForm)->UndoFuzzForm
     var result: #returntype
     result.kind   = Swag.kindOf(itf)
     result.rect   = itf.boundRect()
-    result.rotate = assume cast(*BaseForm, itf).rotate
+    result.rotate = itf.rotate
 
     // An arrow is a line, so it answers through the line case.
     switch itf

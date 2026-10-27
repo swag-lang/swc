@@ -174,8 +174,7 @@ impl QuickStylePaintForm
             return room * Math.ConstF32.OneBySqrt2
         }
 
-        let sel   = assume cast(*BaseForm, itf)
-        var inset = BaseForm.adaptSize(sel.borderSize / 2, MinBorderSize, MaxBorderSize, cxt)
+        var inset = BaseForm.adaptSize(itf.borderSize / 2, MinBorderSize, MaxBorderSize, cxt)
         if itf is FormDraw as draw do
             inset += draw.paintOutlineSize(cxt)
         return inset
@@ -770,7 +769,7 @@ impl QuickWnd
         {
             let button = assume cast(*IconButton, .layout.children[i])
             let mdl    = .main.modelFor(Swag.kindOf(it))
-            button.setChecked(mode == MainWnd.formToEditMode(it) and it.isSame(assume cast(*BaseForm, mdl)))
+            button.setChecked(mode == MainWnd.formToEditMode(it) and it.isSame(mdl))
 
             if button.isChecked do
                 done = true
@@ -977,7 +976,7 @@ impl QuickWnd
         .currentStyle = style
 
         let formItf     = .main.editModeToModel(.main.getEditMode())
-        let canAddModel = .offersModel(assume cast(*BaseForm, formItf))
+        let canAddModel = .offersModel(formItf)
 
         // Light path: same style target and same button population. Destroying and
         // recreating every button is only needed when the style set itself changed;

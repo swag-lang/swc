@@ -1347,6 +1347,15 @@ struct AstAggregateBody : AstCompoundT<AstNodeId::AggregateBody>
 
 struct AstInterfaceDecl : AstAggregateDeclT<AstNodeId::InterfaceDecl>
 {
+    AstNodeRef nodeBaseRef; // 'interface I is Base': every implementation starts with 'Base'
+
+    void collectChildren(SmallVector<AstNodeRef>& out, const Ast& ast) const
+    {
+        AstNode::collectChildren(out, ast, spanGenericParamsRef);
+        AstNode::collectChildren(out, ast, spanWhereRef);
+        AstNode::collectChildren(out, {nodeBaseRef, nodeBodyRef});
+    }
+
     Result        semaPreDecl(Sema& sema) const;
     Result        semaPreNode(Sema& sema) const;
     Result        semaPreNodeChild(Sema& sema, const AstNodeRef& childRef) const;

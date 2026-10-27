@@ -4,7 +4,7 @@ impl Capture
     {
         if .selection.isEmpty() do
             return null
-        return assume cast(*BaseForm, .forms[.selection.back()])
+        return .forms[.selection.back()]
     }
 
     mtd getSelectedFormType()->typeinfo?

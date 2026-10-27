@@ -73,8 +73,7 @@ impl IActionUI for ActionEdit
                     if not itfForm.canRotate() do
                         continue
                     evt.hidden = false
-                    let b = assume cast(*BaseForm, itfForm)
-                    if not Math.isZeroEpsilon(b.rotate)
+                    if not Math.isZeroEpsilon(itfForm.rotate)
                     {
                         evt.disabled = false
                         break

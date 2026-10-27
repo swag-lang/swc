@@ -2558,7 +2558,7 @@ AstNodeRef AstStructDecl::semaClone(Sema& sema, const CloneContext& cloneContext
 
 AstNodeRef AstInterfaceDecl::semaClone(Sema& sema, const CloneContext& cloneContext) const
 {
-    return cloneNodeMembers<AstNodeId::InterfaceDecl, &AstInterfaceDecl::spanGenericParamsRef, &AstInterfaceDecl::spanWhereRef, &AstInterfaceDecl::nodeBodyRef>(sema, *this, cloneContext);
+    return cloneNodeMembers<AstNodeId::InterfaceDecl, &AstInterfaceDecl::spanGenericParamsRef, &AstInterfaceDecl::spanWhereRef, &AstInterfaceDecl::nodeBaseRef, &AstInterfaceDecl::nodeBodyRef>(sema, *this, cloneContext);
 }
 
 AstNodeRef AstUnionDecl::semaClone(Sema& sema, const CloneContext& cloneContext) const

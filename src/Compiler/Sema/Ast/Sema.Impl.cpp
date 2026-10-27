@@ -13,6 +13,38 @@ SWC_BEGIN_NAMESPACE();
 
 namespace
 {
+    // 'interface I is Base' reads an 'I' value as a pointer to 'Base', so each implementation
+    // has to start with it, embedded by value with 'using'.
+    Result checkInterfaceBase(Sema& sema, const SymbolImpl& symImpl)
+    {
+        const SymbolInterface* symInterface = symImpl.symInterface();
+        const SymbolStruct*    symStruct    = symImpl.symStruct();
+        if (!symInterface || !symStruct)
+            return Result::Continue;
+
+        // The base is recorded before the interface type exists, and this impl names that type.
+        const TypeRef baseTypeRef = symInterface->baseTypeRef();
+        if (!baseTypeRef.isValid())
+            return Result::Continue;
+
+        SWC_RESULT(sema.waitSemaCompleted(symStruct, symImpl.codeRef()));
+
+        const SymbolStruct&                    baseStruct = sema.typeMgr().get(baseTypeRef).payloadSymStruct();
+        SmallVector<SymbolStructUsingPathStep> usingPath;
+        bool                                   startsWithBase = symStruct->resolveUsingFieldPath(sema.ctx(), baseStruct, usingPath);
+        for (const SymbolStructUsingPathStep& step : usingPath)
+            startsWithBase = startsWithBase && !step.isPointer && step.field->offset() == 0;
+        if (startsWithBase)
+            return Result::Continue;
+
+        auto diag = SemaError::report(sema, DiagnosticId::sema_err_interface_base_not_embedded, symImpl);
+        diag.addArgument(Diagnostic::ARG_SYM, symInterface->name(sema.ctx()));
+        diag.addArgument(Diagnostic::ARG_TYPE, symStruct->typeRef());
+        diag.addArgument(Diagnostic::ARG_REQUESTED_TYPE, baseTypeRef);
+        diag.report(sema.ctx());
+        return Result::Error;
+    }
+
     IdentifierRef resolveImplRegistrationTargetId(Sema& sema, AstNodeRef nodeRef)
     {
         const SemaNodeView targetView{sema, nodeRef, SemaNodeViewPartE::Node | SemaNodeViewPartE::Symbol};
@@ -173,12 +205,17 @@ Result AstImpl::semaPostNodeChild(Sema& sema, const AstNodeRef& childRef) const
 
 Result AstImpl::semaPostNode(Sema& sema)
 {
-    auto& symImpl = sema.curViewSymbol().sym()->cast<SymbolImpl>();
+    auto&        symImpl = sema.curViewSymbol().sym()->cast<SymbolImpl>();
+    const Result result  = symImpl.isForInterface() ? checkInterfaceBase(sema, symImpl) : Result::Continue;
+    if (result == Result::Pause)
+        return result;
+
+    // A rejected base still completes the impl, so nothing waiting on it is left behind.
     symImpl.setDeclared(sema.ctx());
     symImpl.setTyped(sema.ctx());
     symImpl.setSemaCompleted(sema.ctx());
 
-    return Result::Continue;
+    return result;
 }
 
 void AstImpl::semaErrorCleanup(Sema& sema, AstNodeRef nodeRef)

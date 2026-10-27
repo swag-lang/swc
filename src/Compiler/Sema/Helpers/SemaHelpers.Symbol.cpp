@@ -1310,6 +1310,35 @@ namespace
         return lookupScopedMember(sema, targetNodeRef, node, symInterface, idRef, tokNameRef, allowOverloadSet);
     }
 
+    // 'interface I is Base': a member the interface does not declare is read on its base,
+    // through the object pointer every 'I' value starts with.
+    Result interfaceMemberReadsBase(Sema& sema, const AstMemberAccessExpr& node, SemaNodeView& ioLeftView, const IdentifierRef& idRef, TokenRef tokNameRef, bool& outReadsBase)
+    {
+        outReadsBase = false;
+        if (ioLeftView.sym() && ioLeftView.sym()->isImpl())
+            return Result::Continue;
+
+        // The base is recorded before the interface type exists; only a based interface waits
+        // for its members, which the lookup below needs.
+        const SymbolInterface& symInterface = ioLeftView.type()->payloadSymInterface();
+        const TypeRef          baseTypeRef  = symInterface.baseTypeRef();
+        if (!baseTypeRef.isValid())
+            return Result::Continue;
+        SWC_RESULT(sema.waitSemaCompleted(&symInterface, SourceCodeRef{node.srcViewRef(), tokNameRef}));
+
+        SmallVector<const Symbol*> matchedSymbols;
+        SWC_RESULT(matchScopedMemberSymbols(sema, matchedSymbols, node, symInterface, idRef, tokNameRef, true));
+        if (!matchedSymbols.empty())
+            return Result::Continue;
+
+        const TypeInfoFlags pointerFlags   = ioLeftView.type()->isConst() ? TypeInfoFlagsE::Const : TypeInfoFlagsE::Zero;
+        const TypeRef       basePointerRef = sema.typeMgr().addType(TypeInfo::makeValuePointer(baseTypeRef, pointerFlags));
+        SWC_RESULT(Cast::cast(sema, ioLeftView, basePointerRef, CastKind::Implicit));
+
+        outReadsBase = true;
+        return Result::Continue;
+    }
+
     Result memberStruct(Sema& sema, AstNodeRef targetNodeRef, AstMemberAccessExpr& node, const SemaNodeView& nodeLeftView, const IdentifierRef& idRef, TokenRef tokNameRef, bool allowOverloadSet, const TypeInfo& typeInfo)
     {
         const SymbolStruct& symStruct = typeInfo.payloadSymStruct();
@@ -1637,7 +1666,12 @@ Result SemaHelpers::resolveMemberAccess(Sema& sema, AstNodeRef memberRef, AstMem
     }
 
     if (nodeLeftView.type()->isInterface())
-        return memberInterface(sema, memberRef, node, nodeLeftView, idRef, tokNameRef, allowOverloadSet);
+    {
+        bool readsBase = false;
+        SWC_RESULT(interfaceMemberReadsBase(sema, node, nodeLeftView, idRef, tokNameRef, readsBase));
+        if (!readsBase)
+            return memberInterface(sema, memberRef, node, nodeLeftView, idRef, tokNameRef, allowOverloadSet);
+    }
 
     if (nodeLeftView.type()->isAggregateStruct())
         return memberAggregateStruct(sema, memberRef, node, nodeLeftView, idRef, tokNameRef, allowOverloadSet, *nodeLeftView.type());

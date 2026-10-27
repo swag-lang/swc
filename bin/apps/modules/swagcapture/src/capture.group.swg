@@ -4,7 +4,7 @@ impl Capture
     // grouped form expands to every form sharing this id, so a group moves as a whole.
     func formOuterGroup(f: IForm)->u64
     {
-        let b = assume cast(*BaseForm, f)
+        let b: *BaseForm = f
         if b.groups.isEmpty() do
             return 0
         return b.groups[0]
@@ -85,7 +85,7 @@ impl Capture
 
         for f in forms
         {
-            let b = assume cast(*BaseForm, f)
+            let b: *BaseForm = f
             for gid in b.groups where gid != 0 and not oldIds.contains(gid)
             {
                 oldIds.add(gid)
@@ -95,7 +95,7 @@ impl Capture
 
         for f in forms
         {
-            let b = assume cast(*BaseForm, f)
+            let b: *BaseForm = f
             for i in b.groups.count
             {
                 let idx = Slice.findLinear(oldIds.toSlice(), b.groups[i])

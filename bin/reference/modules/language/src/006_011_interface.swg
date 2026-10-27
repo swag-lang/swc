@@ -183,3 +183,53 @@ For 'Point3', 'isImplemented()' returns 'false' (the default).
     let i3 = cast(ITest, v3)
     Swag.assert(not i3.isImplemented())
 }
+
+/**
+# Interfaces with a Base
+
+'interface I is Base' requires every implementation to start with 'Base': the first field,
+embedded with 'using', or the first field of that first field. An implementation that does not
+is rejected where it is declared.
+
+An 'I' value then converts implicitly to a pointer to 'Base', and a member the interface does
+not declare is read on the base. Code that holds forms through their interface reaches their
+shared fields without casting each one.
+*/
+
+struct FormBase
+{
+    x, y:   s32
+    frozen: bool
+}
+
+interface IForm is FormBase
+{
+    mtd area()->s32
+}
+
+struct FormBox
+{
+    using base: FormBase
+    w, h:       s32
+}
+
+impl IForm for FormBox
+{
+    mtd area()->s32 => .w * .h
+}
+
+func moveForm(form: *FormBase, dx: s32)
+{
+    form.x += dx
+}
+
+#test
+{
+    var box  = FormBox{w: 2, h: 3}
+    let form = cast(IForm, &box)
+    Swag.assert(form.area() == 6)
+
+    form.frozen = true
+    moveForm(form, 5)
+    Swag.assert(box.frozen and box.x == 5)
+}

@@ -519,6 +519,19 @@ Result Cast::castToPointer(Sema& sema, CastRequest& castRequest, TypeRef srcType
         return Result::Continue;
     }
 
+    // Every implementation of 'interface I is Base' starts with 'Base', so its object pointer
+    // already points to one. The base is recorded before the interface type exists.
+    if (srcType.isInterface())
+    {
+        const TypeRef baseTypeRef = srcType.payloadSymInterface().baseTypeRef();
+        if (baseTypeRef.isValid() && typeMgr.unwrapNonStrictAlias(dstType.payloadTypeRef()) == baseTypeRef)
+        {
+            if (srcType.isConst() && !dstType.isConst() && !castRequest.flags.has(CastFlagsE::UnConst))
+                return castRequest.fail(DiagnosticId::sema_err_cannot_cast_const, srcTypeRef, dstTypeRef);
+            return Result::Continue;
+        }
+    }
+
     if (srcType.isInterface() && castRequest.kind == CastKind::Explicit)
     {
         const TypeRef dstPointeeTypeRef = dstType.payloadTypeRef();

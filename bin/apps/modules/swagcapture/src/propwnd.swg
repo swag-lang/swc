@@ -151,7 +151,7 @@ impl PropWnd
         if not capture or capture.selection.isEmpty()
         {
             let iform = .main.editModeToModel(.main.editMode)
-            return assume cast(*BaseForm, iform)
+            return iform
         }
 
         return unwrap capture.getSelectedBaseForm()

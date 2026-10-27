@@ -124,7 +124,7 @@ impl Capture
         if .selection.count == 1
         {
             let selForm = .forms[.selection[0]]
-            let frozen  = view.main.freezeSel and (assume cast(*BaseForm, selForm)).freeze
+            let frozen  = view.main.freezeSel and selForm.freeze
             if not frozen and selForm.mouse(view, localPos, evt)
             {
                 evt.accepted = true
@@ -147,7 +147,7 @@ impl Capture
 
         // A frozen form is out of reach while the selection is frozen.
         var hot = .hitTest(localPos)
-        if hot != Swag.U64.Max and view.main.freezeSel and (assume cast(*BaseForm, .forms[hot])).freeze do
+        if hot != Swag.U64.Max and view.main.freezeSel and .forms[hot].freeze do
             hot = Swag.U64.Max
         if hot != .hotForm
         {
@@ -390,9 +390,8 @@ impl Capture
             let mode = editView.main.getEditMode()
             let itf  = editView.main.newFormFromModel(mode, clear: true)
             itf.setup(me)
-            let base = assume cast(*BaseForm, itf)
             if editView.main.editMode == .PixSel do
-                base.subKind = .PixSel
+                itf.subKind = .PixSel
             let undo = .newUndo(.CreateForm)
             undo.oldForms.add(itf)
             .pushUndo(undo)

@@ -213,14 +213,14 @@ using Swag, Core
 
     for it in quick.qsHighlight.forms
     {
-        let base = assume cast(*BaseForm, it)
+        let base: *BaseForm = it
         Swag.assert(base.subKind == .Highlight)
         Swag.assert(base.alpha < 100)
     }
 
     for it in quick.qsPixSel.forms
     {
-        let base = assume cast(*BaseForm, it)
+        let base: *BaseForm = it
         Swag.assert(base.subKind == .PixSel)
         Swag.assert(not base.paintShadow)
     }

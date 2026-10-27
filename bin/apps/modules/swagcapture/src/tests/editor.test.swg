@@ -124,14 +124,14 @@ using Swag, Core
     f.main.editMode             = .Highlight
     f.gui.drag({120, 130}, {170, 170})
     Swag.assert(Swag.kindOf(f.capture.forms[5]) == FormShape)
-    Swag.assert(assume cast(*BaseForm, f.capture.forms[5]).subKind == .Highlight)
+    Swag.assert(f.capture.forms[5].subKind == .Highlight)
 
     f.main.mdlFormShape.subKind = .None
     f.main.mdlPixSel = &f.main.mdlFormShape
     f.main.editMode  = .PixSel
     f.gui.drag({200, 130}, {250, 170})
     Swag.assert(Swag.kindOf(f.capture.forms[6]) == FormShape)
-    Swag.assert(assume cast(*BaseForm, f.capture.forms[6]).subKind == .PixSel)
+    Swag.assert(f.capture.forms[6].subKind == .PixSel)
 
     f.main.editMode = .Step
     f.gui.drag({310, 90}, {310, 90})

@@ -74,8 +74,8 @@ impl Capture
 
         for f, i in .forms
         {
-            let autoSel = .selection.contains(i) or f.buffer == editForm.buffer
-            let form    = assume cast(*BaseForm, f)
+            let autoSel         = .selection.contains(i) or f.buffer == editForm.buffer
+            let form: *BaseForm = f
 
             switch f
             {

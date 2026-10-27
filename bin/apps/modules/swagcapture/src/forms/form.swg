@@ -28,7 +28,7 @@ enum FormSubKind
 
 // What every form of a capture provides: painting itself and its gizmo, answering hits, moving
 // and resizing, editing under the mouse, and copying its settings.
-interface IForm
+interface IForm is BaseForm
 {
     mtd paintGizmo(painter: *Painter, z: f32, flags: FormFlags)
     mtd paint(painter: *Painter, cxt: FormPaintContext)
@@ -121,7 +121,7 @@ impl BaseForm
         if quickMode do
             return QuickPaintOverdraw
 
-        let base   = assume cast(*BaseForm, itf)
+        let base: *BaseForm = itf
         let type   = Swag.kindOf(itf)
         var extent = base.borderSize * 1.5
         if type == FormLine or type == FormArrow
@@ -260,8 +260,8 @@ impl BaseForm
     {
         // The form paints into an un-rotated buffer (rotation is applied around the
         // center at draw time), so un-rotate the test point to match.
-        let base = assume cast(*BaseForm, itf)
-        var pos  = Math.Vector2{pt.x, pt.y}
+        let base: *BaseForm = itf
+        var pos = Math.Vector2{pt.x, pt.y}
         if base.isRotated()
         {
             let br  = itf.boundRect()

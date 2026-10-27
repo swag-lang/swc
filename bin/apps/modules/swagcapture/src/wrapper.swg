@@ -124,7 +124,7 @@ impl MainWnd
     // Makes `f` the model of the tool that draws its kind of form, and of the favorites.
     mtd updateModel(f: IForm)
     {
-        let form = assume cast(*BaseForm, f)
+        let form: *BaseForm = f
 
         if form.subKind == .Highlight do
             .mdlHighlight = f
@@ -151,7 +151,7 @@ impl MainWnd
             return
         }
 
-        let form = assume cast(*BaseForm, f)
+        let form: *BaseForm = f
         if form.subKind == .Highlight
         {
             .editMode = .Highlight
@@ -185,12 +185,12 @@ impl MainWnd
     mtd newFormFromModel(mode: EditMode, clear = false)->IForm
     {
         // Clone the model of the given mode, whatever its concrete type
-        let mdlItf  = .editModeToModel(mode)
-        let mdlType = Swag.kindOf(mdlItf)
-        let storage = Memory.new(mdlType)
-        let result  = unwrap Swag.makeInterface(storage, mdlType, IForm)
-        let mdl     = assume cast(*BaseForm, result)
-        mdlItf.copy(mdl, assume cast(*BaseForm, mdlItf))
+        let mdlItf         = .editModeToModel(mode)
+        let mdlType        = Swag.kindOf(mdlItf)
+        let storage        = Memory.new(mdlType)
+        let result         = unwrap Swag.makeInterface(storage, mdlType, IForm)
+        let mdl: *BaseForm = result
+        mdlItf.copy(mdl, mdlItf)
 
         // A new form starts without the model content, just its style
         if clear
@@ -209,11 +209,11 @@ impl MainWnd
 
     func newFormFromForm(it: IForm)->*BaseForm
     {
-        let type     = Swag.kindOf(it)
-        let storage  = Memory.new(type)
-        let view     = unwrap Swag.makeInterface(storage, type, IForm)
-        let mdlValue = assume cast(*BaseForm, view)
-        it.copy(mdlValue, assume cast(*BaseForm, it))
+        let type    = Swag.kindOf(it)
+        let storage = Memory.new(type)
+        let view    = unwrap Swag.makeInterface(storage, type, IForm)
+        let mdlValue: *BaseForm = view
+        it.copy(mdlValue, it)
         return mdlValue
     }
 }

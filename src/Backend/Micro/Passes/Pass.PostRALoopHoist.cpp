@@ -135,58 +135,93 @@ namespace
         bool                     spSpaceEscapes    = false;
         bool                     localSpaceEscapes = false;
         MicroReg                 localBaseReg;
+        MicroInstrRef            localBaseRef = MicroInstrRef::invalid();
         bool                     extentsKnown = false;
         std::vector<FrameObject> objects;
     };
 
-    // The single prologue copy of the resting stack pointer that all locals are
-    // addressed against. Only a register defined exactly once, by that copy,
-    // qualifies: a register the allocator later reuses means the same name
-    // addresses two different things.
-    MicroReg findLocalBaseRegister(MicroStorage& storage, MicroOperandStorage& operands, const CallConv& conv, const Encoder* encoder)
+    // A restored register is no longer a frame base, but a straight-line
+    // epilogue cannot reach another frame access after restoring it.
+    bool isTerminalRegisterRestore(const MicroStorage& storage, MicroInstrRef ref)
     {
-        MicroReg candidate;
+        for (MicroInstrRef next = storage.findNextInstructionRef(ref); next.isValid(); next = storage.findNextInstructionRef(next))
+        {
+            const MicroInstr* inst = storage.ptr(next);
+            if (!inst)
+                return false;
+            if (inst->op == MicroInstrOpcode::Ret)
+                return true;
+            if (inst->op != MicroInstrOpcode::Pop)
+                return false;
+        }
+        return false;
+    }
+
+    // Select a unique stable stack copy even when other registers briefly copy
+    // the stack pointer. A terminal epilogue restore cannot change its meaning
+    // at any later frame access.
+    MicroReg findLocalBaseRegister(MicroStorage& storage, MicroOperandStorage& operands, const CallConv& conv, const Encoder* encoder, MicroInstrRef& outRef)
+    {
+        SmallVector<MicroReg, 8> candidates;
         for (const MicroInstr& inst : storage.view())
         {
             if (inst.op != MicroInstrOpcode::LoadRegReg)
                 continue;
             const MicroInstrOperand* ops = inst.ops(operands);
-            if (!ops || ops[1].reg != conv.stackPointer)
+            if (!ops || ops[1].reg != conv.stackPointer || ops[2].opBits != MicroOpBits::B64 ||
+                !ops[0].reg.isInt() || isFrameBaseRegister(ops[0].reg, conv))
                 continue;
-            if (isFrameBaseRegister(ops[0].reg, conv))
-                continue;
-            if (candidate.isValid() && candidate != ops[0].reg)
-                return MicroReg::invalid();
-            candidate = ops[0].reg;
+            if (std::ranges::find(candidates, ops[0].reg) == candidates.end())
+                candidates.push_back(ops[0].reg);
         }
-        if (!candidate.isValid())
-            return MicroReg::invalid();
 
-        uint32_t defCount = 0;
-        for (const MicroInstr& inst : storage.view())
+        MicroReg selected;
+        for (const MicroReg candidate : candidates)
         {
-            const MicroInstrDef& info = MicroInstr::info(inst.op);
-            if (info.flags.has(MicroInstrFlagsE::IsCallInstruction) ||
-                (encoder && info.flags.has(MicroInstrFlagsE::EncoderRegUseDef)))
+            uint32_t defCount = 0;
+            for (auto it = storage.view().begin(), end = storage.view().end(); it != end; ++it)
             {
-                const MicroInstrUseDef useDef = inst.collectUseDef(operands, encoder);
-                for (const MicroReg def : useDef.defs)
-                    defCount += def == candidate ? 1 : 0;
-            }
-            else if (const MicroInstrOperand* ops = inst.ops(operands))
-            {
-                const auto modes = info.resolvedRegModes(ops);
-                for (size_t i = 0; i < modes.size(); ++i)
+                const MicroInstr& inst = *it;
+                if (inst.op == MicroInstrOpcode::Pop && isTerminalRegisterRestore(storage, it.current))
+                    continue;
+                const MicroInstrDef& info = MicroInstr::info(inst.op);
+                if (info.flags.has(MicroInstrFlagsE::IsCallInstruction) ||
+                    (encoder && info.flags.has(MicroInstrFlagsE::EncoderRegUseDef)))
                 {
-                    if ((modes[i] == MicroInstrRegMode::Def || modes[i] == MicroInstrRegMode::UseDef) && ops[i].reg == candidate)
-                        ++defCount;
+                    const MicroInstrUseDef useDef = inst.collectUseDef(operands, encoder);
+                    for (const MicroReg def : useDef.defs)
+                        defCount += def == candidate ? 1 : 0;
+                }
+                else if (const MicroInstrOperand* ops = inst.ops(operands))
+                {
+                    const auto modes = info.resolvedRegModes(ops);
+                    for (size_t i = 0; i < modes.size(); ++i)
+                        if ((modes[i] == MicroInstrRegMode::Def || modes[i] == MicroInstrRegMode::UseDef) && ops[i].reg == candidate)
+                            ++defCount;
+                }
+                if (defCount > 1)
+                    break;
+            }
+            if (defCount != 1)
+                continue;
+            if (selected.isValid())
+                return MicroReg::invalid();
+            selected = candidate;
+        }
+        if (selected.isValid())
+        {
+            for (auto it = storage.view().begin(), end = storage.view().end(); it != end; ++it)
+            {
+                const MicroInstrOperand* ops = it->ops(operands);
+                if (it->op == MicroInstrOpcode::LoadRegReg && ops && ops[0].reg == selected &&
+                    ops[1].reg == conv.stackPointer && ops[2].opBits == MicroOpBits::B64)
+                {
+                    outRef = it.current;
+                    break;
                 }
             }
-            if (defCount > 1)
-                return MicroReg::invalid();
         }
-
-        return defCount == 1 ? candidate : MicroReg::invalid();
+        return selected;
     }
 
     void markEscapedObject(FrameReachability& out, const int64_t offset)
@@ -209,7 +244,9 @@ namespace
     {
         out.computed = true;
 
-        if (context.sanitizerFunction)
+        // Source-object offsets are relative to the compiler's local base,
+        // not to every stable copy of the stack pointer.
+        if (context.sanitizerFunction && out.localBaseReg.isValid() && out.localBaseReg == context.debugStackBasePhysReg)
         {
             out.extentsKnown = true;
             for (const MicroFrameObject& object : MicroPassHelpers::frameObjects(context))
@@ -332,6 +369,34 @@ namespace
         // common displacement proof, treat them as potentially overlapping.
         return a.base != b.base || (a.lo < b.hi && b.lo < a.hi);
     }
+
+    struct FrameRangeNormalizer
+    {
+        const MicroPassContext&               context;
+        const MicroControlFlowGraph&          cfg;
+        const MicroPassHelpers::MicroDomTree& dom;
+        const FrameReachability&              reach;
+        const CallConv&                       conv;
+        mutable std::optional<FlatKeyMap<uint64_t>> stackOffsets;
+
+        FrameRef normalize(FrameRef range, const uint32_t index) const
+        {
+            const uint32_t frameBaseIndex = cfg.indexOf(reach.localBaseRef);
+            if (range.base != conv.stackPointer || !reach.localBaseReg.isValid() ||
+                frameBaseIndex == MicroControlFlowGraph::K_NO_INDEX || !dom.dominates(frameBaseIndex, index))
+                return range;
+            if (!stackOffsets)
+                stackOffsets = MicroPassHelpers::collectStackPointerOffsets(context, reach.localBaseRef, 0);
+            const uint64_t* delta = stackOffsets->find(cfg.instructionRefs()[index].get());
+            if (!delta)
+                return range;
+            const uint64_t lo = range.lo + *delta;
+            const uint64_t hi = range.hi + *delta;
+            if (hi < lo)
+                return range;
+            return FrameRef{reach.localBaseReg, lo, hi};
+        }
+    };
 
     struct Hoist
     {
@@ -1134,7 +1199,7 @@ namespace
         // Only base-register detection is needed to find a frame reload.
         // Classify escaped objects after one has been found.
         if (!framePrivacy.computed)
-            framePrivacy.localBaseReg = findLocalBaseRegister(storage, operands, conv, context.encoder);
+            framePrivacy.localBaseReg = findLocalBaseRegister(storage, operands, conv, context.encoder, framePrivacy.localBaseRef);
 
         bool anyFrameLoad = false;
         for (uint32_t i = 0; i < n && !anyFrameLoad; ++i)
@@ -1147,8 +1212,25 @@ namespace
         if (!anyFrameLoad)
             return false;
 
-        const auto dom           = MicroPassHelpers::computeInstructionDominators(cfg, entry);
-        auto       loopsByHeader = MicroPassHelpers::findNaturalLoops(cfg, dom);
+        const auto dom = MicroPassHelpers::computeInstructionDominators(cfg, entry);
+        if (framePrivacy.localBaseReg.isValid())
+        {
+            const uint32_t baseIndex = cfg.indexOf(framePrivacy.localBaseRef);
+            for (uint32_t i = 0; i < n; ++i)
+            {
+                const MicroInstr* inst = storage.ptr(instrRefs[i]);
+                if (!inst || inst->op == MicroInstrOpcode::Push || inst->op == MicroInstrOpcode::Pop || dom.dominates(baseIndex, i))
+                    continue;
+                const auto useDef = inst->collectUseDef(operands, context.encoder);
+                if (std::ranges::find(useDef.uses, framePrivacy.localBaseReg) != useDef.uses.end())
+                {
+                    framePrivacy.localBaseReg = MicroReg::invalid();
+                    framePrivacy.localBaseRef = MicroInstrRef::invalid();
+                    break;
+                }
+            }
+        }
+        auto loopsByHeader = MicroPassHelpers::findNaturalLoops(cfg, dom);
         if (loopsByHeader.empty())
             return false;
 
@@ -1196,6 +1278,10 @@ namespace
             analyzeFrameReachability(framePrivacy, context, storage, operands, conv);
         const FrameReachability& reach        = framePrivacy;
         const bool               framePrivate = reach.wholeFramePrivate;
+        // Compare stack and local-base accesses in one coordinate system only
+        // where the captured base dominates the access and the SP displacement
+        // is known on every path. Otherwise overlaps remains conservative.
+        const FrameRangeNormalizer ranges{context, cfg, dom, reach, conv};
 
         // Hoist rounds run sequentially on a worker. The analysis overwrites
         // the live entries each round, so retain its storage between rounds.
@@ -1255,6 +1341,7 @@ namespace
             bool     bodyOpaque          = false;
             bool     hasUnplaceableWrite = false;
             uint64_t definedRegs         = 0;
+            uint64_t usedRegs            = 0;
             uint64_t multiplyDefinedRegs = 0;
             writes.clear();
             for (uint32_t i = loop->bodyBegin; i < loop->bodyEnd && !bodyOpaque; ++i)
@@ -1279,6 +1366,12 @@ namespace
                     break;
                 }
                 // The frame base must mean the same thing on every iteration.
+                for (const MicroReg use : liveness.useDefs[i].uses)
+                {
+                    const uint32_t bit = MicroPhysLiveness::bitOf(use);
+                    if (bit < MicroPhysLiveness::K_INVALID_BIT)
+                        usedRegs |= 1ull << bit;
+                }
                 uint64_t instructionDefs = 0;
                 for (const MicroReg def : liveness.useDefs[i].defs)
                 {
@@ -1318,7 +1411,7 @@ namespace
                     hasUnplaceableWrite = true;
                     continue;
                 }
-                writes.push_back(written);
+                writes.push_back(ranges.normalize(written, i));
             }
             if (bodyOpaque)
                 continue;
@@ -1348,10 +1441,11 @@ namespace
                 if (restrictToUnreachable && !slotIsUnreachable(reach, slot, conv))
                     continue;
 
+                const FrameRef comparableSlot = ranges.normalize(slot, i);
                 bool aliased = false;
                 for (const FrameRef& written : writes)
                 {
-                    if (overlaps(slot, written))
+                    if (overlaps(comparableSlot, written))
                     {
                         aliased = true;
                         break;
@@ -1368,41 +1462,53 @@ namespace
                 const bool needsCache = liveness.isLiveOut(preheaderIndex, dst) || (multiplyDefinedRegs & (1ull << dstBit));
                 if (needsCache)
                 {
-                    // Integer pressure need not repeat an invariant frame read when
-                    // the function leaves a caller-saved SIMD register unused. A
-                    // scalar bank transfer replaces the reload; no ABI save is added.
-                    // Existing float operands reserve their registers globally so
-                    // separately planned hoists cannot overlap a newly chosen cache.
-                    if (!dst.isInt() || (ops[2].opBits != MicroOpBits::B32 && ops[2].opBits != MicroOpBits::B64))
+                    // Cache a scalar in the other register bank when an idle
+                    // transient register can carry it without an ABI save. A
+                    // transfer then replaces each repeated frame read.
+                    if (ops[2].opBits != MicroOpBits::B32 && ops[2].opBits != MicroOpBits::B64)
                         continue;
-                    if (!cacheRegsComputed)
-                    {
-                        for (const auto& useDef : liveness.useDefs)
-                        {
-                            if (useDef.isCall)
-                                continue;
-                            for (const MicroReg reg : useDef.uses)
-                            {
-                                if (reg.isFloat())
-                                    unavailableCacheRegs |= 1ull << MicroPhysLiveness::bitOf(reg);
-                            }
-                            for (const MicroReg reg : useDef.defs)
-                            {
-                                if (reg.isFloat())
-                                    unavailableCacheRegs |= 1ull << MicroPhysLiveness::bitOf(reg);
-                            }
-                        }
-                        cacheRegsComputed = true;
-                    }
                     cachedReg = MicroReg::invalid();
-                    for (const MicroReg reg : conv.floatTransientRegs)
+                    if (dst.isFloat())
                     {
-                        const uint64_t bit = 1ull << MicroPhysLiveness::bitOf(reg);
-                        if ((unavailableCacheRegs & bit) || liveness.isLiveOut(preheaderIndex, reg))
-                            continue;
-                        cachedReg = reg;
-                        unavailableCacheRegs |= bit;
-                        break;
+                        for (const MicroReg reg : conv.intTransientRegs)
+                        {
+                            const uint32_t bit = MicroPhysLiveness::bitOf(reg);
+                            if (bit >= MicroPhysLiveness::K_INVALID_BIT || isFrameBaseRegister(reg, conv) || reg == reach.localBaseReg)
+                                continue;
+                            const uint64_t mask = 1ull << bit;
+                            if (((usedRegs | definedRegs | unavailableCacheRegs) & mask) || liveness.isLiveOut(preheaderIndex, reg))
+                                continue;
+                            cachedReg = reg;
+                            unavailableCacheRegs |= mask;
+                            break;
+                        }
+                    }
+                    else if (dst.isInt())
+                    {
+                        if (!cacheRegsComputed)
+                        {
+                            for (const auto& useDef : liveness.useDefs)
+                            {
+                                if (useDef.isCall)
+                                    continue;
+                                for (const MicroReg reg : useDef.uses)
+                                    if (reg.isFloat())
+                                        unavailableCacheRegs |= 1ull << MicroPhysLiveness::bitOf(reg);
+                                for (const MicroReg reg : useDef.defs)
+                                    if (reg.isFloat())
+                                        unavailableCacheRegs |= 1ull << MicroPhysLiveness::bitOf(reg);
+                            }
+                            cacheRegsComputed = true;
+                        }
+                        for (const MicroReg reg : conv.floatTransientRegs)
+                        {
+                            const uint64_t mask = 1ull << MicroPhysLiveness::bitOf(reg);
+                            if ((unavailableCacheRegs & mask) || liveness.isLiveOut(preheaderIndex, reg))
+                                continue;
+                            cachedReg = reg;
+                            unavailableCacheRegs |= mask;
+                            break;
+                        }
                     }
                     if (!cachedReg.isValid())
                         continue;
@@ -1430,7 +1536,8 @@ namespace
                     FrameRef                 otherSlot;
                     if (!isFrameLoad(otherSlot, *other, otherOps, conv, reach.localBaseReg))
                         continue;
-                    if (otherSlot.base != slot.base || otherSlot.lo != slot.lo || otherSlot.hi != slot.hi)
+                    otherSlot = ranges.normalize(otherSlot, k);
+                    if (otherSlot.base != comparableSlot.base || otherSlot.lo != comparableSlot.lo || otherSlot.hi != comparableSlot.hi)
                         continue;
                     if (otherOps[0].reg == cachedReg)
                     {

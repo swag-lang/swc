@@ -1260,6 +1260,18 @@ namespace
 
 Result Sema::waitIdentifier(IdentifierRef idRef, const SourceCodeRef& codeRef)
 {
+    return waitName(idRef, codeRef, NameScope::Unscoped);
+}
+
+// A member looked up in a type or namespace may share its name with a parameter: '.kind'
+// names the receiver's field even inside 'mtd f(kind: K)'.
+Result Sema::waitScopedMember(IdentifierRef idRef, const SourceCodeRef& codeRef)
+{
+    return waitName(idRef, codeRef, NameScope::Member);
+}
+
+Result Sema::waitName(IdentifierRef idRef, const SourceCodeRef& codeRef, NameScope scope)
+{
     if (shouldAbortWait(*this))
         return Result::Error;
 
@@ -1274,7 +1286,8 @@ Result Sema::waitIdentifier(IdentifierRef idRef, const SourceCodeRef& codeRef)
     // Parameters must already be visible throughout the body. Catch ordering
     // failures here with the function named, before an unknown-symbol error
     // hides the cause (imported generic instance regression: compiler.core.081).
-    if (const SymbolFunction* function = frame().currentFunction())
+    const SymbolFunction* function = scope == NameScope::Unscoped ? frame().currentFunction() : nullptr;
+    if (function)
     {
         for (const SymbolVariable* param : function->parameters())
         {
@@ -1285,6 +1298,8 @@ Result Sema::waitIdentifier(IdentifierRef idRef, const SourceCodeRef& codeRef)
             }
         }
     }
+#else
+    SWC_UNUSED(scope);
 #endif
 
     TaskState& wait   = ctx().state();
@@ -1301,7 +1316,7 @@ Result Sema::waitAutoScopeMember(IdentifierRef idRef, TypeRef candidateTypeRef, 
 {
     // Auto-scoped members need the same wait as qualified accesses: other impls
     // or mixins may still publish members. An empty lookup is not yet an error.
-    const Result result = waitIdentifier(idRef, codeRef);
+    const Result result = waitScopedMember(idRef, codeRef);
     if (result == Result::Pause)
         ctx().state().autoScopeTypeRef = candidateTypeRef;
 

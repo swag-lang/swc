@@ -678,6 +678,7 @@ public:
     void processCurrentPostNodePopsNow();
 
     Result waitIdentifier(IdentifierRef idRef, const SourceCodeRef& codeRef);
+    Result waitScopedMember(IdentifierRef idRef, const SourceCodeRef& codeRef);
     Result waitAutoScopeMember(IdentifierRef idRef, TypeRef candidateTypeRef, const SourceCodeRef& codeRef);
     Result waitPredefined(IdentifierManager::PredefinedName name, TypeRef& typeRef, const SourceCodeRef& codeRef);
     Result waitRuntimeFunction(IdentifierManager::RuntimeFunctionKind kind, SymbolFunction*& symbol, const SourceCodeRef& codeRef);
@@ -707,6 +708,14 @@ private:
     friend void SemaGeneric::prepareGenericInstantiationContext(Sema& sema, SymbolMap* startSymMap, const SymbolImpl* impl, const SymbolInterface* itf, const AttributeList& attrs);
 
     bool hasActiveLookupScopeOverride() const;
+
+    enum class NameScope : uint8_t
+    {
+        Unscoped,
+        Member,
+    };
+
+    Result waitName(IdentifierRef idRef, const SourceCodeRef& codeRef, NameScope scope);
 
     TypeRef              typeRefOf(AstNodeRef n) const { return nodePayloadContext().getTypeRef(ctx(), resolvedNodeRef(n)); }
     ConstantRef          constantRefOf(AstNodeRef n) const { return nodePayloadContext().getConstantRef(ctx(), resolvedNodeRef(n)); }

@@ -511,18 +511,6 @@ Entries stay in one flat list. Keep only measurements that affect the next actio
 - Done when: every diagnostic that names a tuple type shows its fields, and reflection and
   generated API output are unchanged.
 
-### compiler.core.090 — An importer crashes analyzing an exported method that reads a field named like a parameter
-
-- Evidence: while erased methods of `Gui.AnimationGroup` still travelled as source, the generated
-  `gui.swg` carried `AnimationGroup.addTrack(..., kind: AnimationValueKind)` as a supporting
-  declaration, whose body reads both `kind` and `.kind`. Building `gui11` against it stopped on
-  an internal error in `Sema.cpp`: "parameter 'kind' of 'AnimationGroup.addTrack' is not in scope
-  while its body is analyzed". The same method compiles in its own module.
-- Next: reproduce in the `workspace` suite with a provider whose public generic method calls an
-  internal method of that shape, so the method travels as supporting source, then find why the
-  importer resolves the parameter outside the body's scope.
-- Done when: the importer compiles the supporting method, with the workspace fixture kept.
-
 ## Deliberately out of scope
 
 - **An LLVM back end.** The native and Micro back ends are the supported architecture. Reconsider only if a concrete platform or optimization requirement cannot be met within them.

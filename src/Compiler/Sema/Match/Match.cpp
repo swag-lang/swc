@@ -508,7 +508,7 @@ Result Match::match(Sema& sema, MatchContext& lookUpCxt, IdentifierRef idRef)
             if (lookUpCxt.noWaitOnEmpty)
                 return Result::Continue;
 
-            const Result result = sema.waitIdentifier(idRef, lookUpCxt.codeRef);
+            const Result result = lookUpCxt.symMapHint ? sema.waitScopedMember(idRef, lookUpCxt.codeRef) : sema.waitIdentifier(idRef, lookUpCxt.codeRef);
             if (result == Result::Pause)
                 sema.ctx().state().memberScope = lookUpCxt.symMapHint;
 

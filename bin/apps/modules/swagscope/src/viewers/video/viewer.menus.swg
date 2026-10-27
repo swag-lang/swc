@@ -123,7 +123,10 @@ impl Panel
     mtd showOptions()
     {
         let sheet = OptionSheet.View.create(.optionsButton, func|view = me|(page) { view.describeOptions(page) }, owner: me)
+        .optionsOpen = true
         sheet.doModal(.optionsButton, autoDestroy: true)
+        .optionsOpen = false
+        .refreshOptionsBadge()
     }
 
     // Describes the first page of the options: one row per setting, with the value in force.

@@ -890,6 +890,38 @@ SWC_TEST_BEGIN(PostRALoopHoist_PrivateSpillCacheAcrossConditionalCall)
 }
 SWC_TEST_END()
 
+// A copied stack base and the stack pointer can address the same slot.
+SWC_TEST_BEGIN(PostRALoopHoist_CopiedStackBaseMustAliasStackPointer)
+{
+    for (const bool loadFromStack : {false, true})
+    {
+        const CallConv& conv  = CallConv::get(CallConvKind::Swag);
+        const MicroReg  sp    = conv.stackPointer;
+        const MicroReg  local = conv.intPersistentRegs[0];
+        const MicroReg  value = conv.intTransientRegs[3];
+        const MicroReg  count = conv.intTransientRegs[4];
+        MicroBuilder    builder(ctx);
+
+        const MicroLabelRef top = builder.createLabel();
+        builder.emitLoadRegReg(local, sp, MicroOpBits::B64);
+        builder.emitLoadRegImm(count, ApInt(0, 64), MicroOpBits::B64);
+        builder.placeLabel(top);
+        builder.emitLoadRegMem(value, loadFromStack ? sp : local, 0x40, MicroOpBits::B64);
+        builder.emitOpBinaryRegReg(count, value, MicroOp::Add, MicroOpBits::B64);
+        builder.emitLoadMemReg(loadFromStack ? local : sp, 0x40, count, MicroOpBits::B64);
+        builder.emitCmpRegImm(count, ApInt(10, 64), MicroOpBits::B64);
+        builder.emitJumpToLabel(MicroCond::Less, MicroOpBits::B64, top);
+        builder.emitRet();
+
+        SWC_RESULT(runPostRaLoopHoistPass(builder));
+        if (Backend::Unittest::firstOpcodePosition(builder, MicroInstrOpcode::LoadRegMem) <
+            Backend::Unittest::firstOpcodePosition(builder, MicroInstrOpcode::Label))
+            return Result::Error;
+    }
+    return Result::Continue;
+}
+SWC_TEST_END()
+
 SWC_END_NAMESPACE();
 
 #endif

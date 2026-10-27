@@ -935,28 +935,36 @@ private impl Panel
             .services        = services
         }
 
+        Core.Console.println("PROBE-C 0")
         result.commands    = host.createCommandGroup(CommandWidth)
         result.commands.preferredSize.x = 0
+        Core.Console.println("PROBE-C 1")
         result.information = MediaInfoPanel.create(host)
+        Core.Console.println("PROBE-C 2")
         result.createTransportBar()
 
+        Core.Console.println("PROBE-C 3")
         result.imageView = ImageView.create(result)
         result.imageView.dockStyle = .Center
         result.style.setStyleSheetColors(BackdropColors)
         result.imageView.style.setStyleSheetColors(BackdropColors)
         result.subtitleOverlay = SubtitleOverlay.create(result)
 
+        Core.Console.println("PROBE-C 4")
         result.refreshTransport()
         result.openFileName = host.fileName()
 
         // The sound device comes online while the file opens, so the first picture does not
         // wait for it; see [[Sound.warmEngine]].
+        Core.Console.println("PROBE-C 5")
         Sound.warmEngine()
         result.decodeWake.init()
         result.decodeExecutor.start()
         result.decode.submit(func|view = result|() { runViewerDecode(view) }, result.taskNotifier(&result.decode), executor: &result.decodeExecutor)
         result.timer = result.addTimer(10'ms)
+        Core.Console.println("PROBE-C 6")
         result.applyLayout()
+        Core.Console.println("PROBE-C 7")
         result.setInitialFocus(result.playButton)
         return result
     }

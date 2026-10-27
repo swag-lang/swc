@@ -6,6 +6,7 @@ using Core, Pixel, Gui, Video, Audio, Viewers
 // Opening fades are excluded; histogram selection returns a representative later scene.
 #test
 {
+    Core.Console.println("PROBE-TEST 8")
     let path = Path.combine(Env.getSpecialDirectory(.Temp), "thumbnail-fade.y4m")
     defer catch File.delete(path)
     var clip = expect Clip.create(64, 48, expect FrameRate.create(4, 1))
@@ -39,6 +40,7 @@ using Core, Pixel, Gui, Video, Audio, Viewers
 // colour or a mostly dark frame does not qualify.
 #test
 {
+    Core.Console.println("PROBE-TEST 41")
     var flat: Film.ThumbnailCandidate
     flat.image = Image.create(32, 24, .RGB8)
     flat.image.fill(Color.fromRgb(56, 189, 248))
@@ -57,6 +59,7 @@ using Core, Pixel, Gui, Video, Audio, Viewers
 // edge is a dark scene and stays whole.
 #test
 {
+    Core.Console.println("PROBE-TEST 59")
     var boxed = Image.create(64, 48, .RGB8)
     Memory.set(boxed.pixels.storage(), 0, boxed.pixels.count)
     for y in 6 until 42
@@ -80,6 +83,7 @@ using Core, Pixel, Gui, Video, Audio, Viewers
 // The duration a thumbnail carries comes back from its metadata and reads the way players write it.
 #test
 {
+    Core.Console.println("PROBE-TEST 82")
     var image = Image.create(4, 4, .RGB8)
     Swag.assert(thumbnailDuration(&image) == 0)
     var record: ImageMetadata
@@ -95,6 +99,7 @@ using Core, Pixel, Gui, Video, Audio, Viewers
 // Both decoder paths propagate failure into the producer's catch before the queue reports it.
 #test
 {
+    Core.Console.println("PROBE-TEST 97")
     for planar in [false, true]
     {
         var view: Film.Panel
@@ -259,9 +264,14 @@ func videoMatroskaFixturePath()->String => Path.combine(unwrap Path.directoryNam
 // preferences and manual synchronization are available from the same track menu.
 #test
 {
+    Core.Console.println("PROBE-TEST 261")
+    Core.Console.println("PROBE-L 268")
     let fileName = expect videoPreviewFile(Format.toString("scope-video-subtitle-%.mp4", Guid64.random()))
+    Core.Console.println("PROBE-L 269")
     let folder   = unwrap Path.directoryName(fileName)
+    Core.Console.println("PROBE-L 270")
     let stem     = unwrap Path.fileNameWithoutExtension(fileName)
+    Core.Console.println("PROBE-L 271")
     let sidecar  = Path.combine(folder, Format.toString("%.fr.srt", stem))
     defer
     {
@@ -269,69 +279,123 @@ func videoMatroskaFixturePath()->String => Path.combine(unwrap Path.directoryNam
         discard catch File.delete(fileName)
     }
 
+    Core.Console.println("PROBE-L 278")
     expect File.writeAllBytes(sidecar, "1\n00:00:00,000 --> 00:00:00,400\nOpening caption\n\n2\n00:00:00,500 --> 00:00:00,900\nSecond caption\n")
 
+    Core.Console.println("PROBE-L 280")
     let savedSettings = Film.g_SubtitleSettings
     defer Film.g_SubtitleSettings = savedSettings
+    Core.Console.println("PROBE-L 282")
     Film.g_SubtitleSettings = {}
 
+    Core.Console.println("PROBE-L 284")
     let standalone = expect Subtitle.Track.loadOwned(sidecar)
+    Core.Console.println("PROBE-L 285")
     #assert(#typeof(standalone) == *Subtitle.Track)
+    Core.Console.println("PROBE-L 286")
     let standaloneText = standalone.cueContent(0)
+    Core.Console.println("PROBE-L 287")
     Swag.assert(standaloneText == "Opening caption")
+    Core.Console.println("PROBE-L 288")
     Subtitle.Track.destroy(standalone)
 
+    Core.Console.println("PROBE-L 290")
     var host: Testing.HeadlessHost
+    Core.Console.println("PROBE-L 291")
     host.setup(720, 420)
+    Core.Console.println("PROBE-L 292")
     let commands = Wnd.create'Wnd(&host.root, {0, 0, 480, 36})
+    Core.Console.println("PROBE-L 293")
     var result   = openTestViewer(Film.viewerPlugin(), &host.root, fileName, commandParent: commands)
+    Core.Console.println("PROBE-L 294")
     Swag.assert(result.view != null)
+    Core.Console.println("PROBE-L 295")
     let view = assume cast(*Film.Panel, result.view)
+    Core.Console.println("PROBE-L 296")
     waitForVideoFrame(view)
+    Core.Console.println("PROBE-L 297")
     view.playing = false
+    Core.Console.println("PROBE-L 298")
     view.elapsed = 0
 
+    Core.Console.println("PROBE-L 300")
     view.finishSubtitles()
+    Core.Console.println("PROBE-L 301")
     view.refreshSubtitle()
+    Core.Console.println("PROBE-L 302")
     Swag.assert(view.subtitleOverlay.sidecars.count == 1 and view.subtitleSource == .Sidecar)
+    Core.Console.println("PROBE-L 303")
     Swag.assert(view.subtitleReady and view.optionsButton.isEnabled())
+    Core.Console.println("PROBE-L 304")
     let trackName    = Film.subtitleTrackName(0, view.subtitleOverlay.sidecars[0])
+    Core.Console.println("PROBE-L 305")
     let languageText = Format.toString(Film.texts().ui_SubtitleTrackLang, "fr")
+    Core.Console.println("PROBE-L 306")
     Swag.assert(Utf8.contains(languageText, "<p2> (fr)</p>"))
+    Core.Console.println("PROBE-L 307")
     Swag.assert(not Utf8.contains(RichString.plainText(trackName), "<p"))
+    Core.Console.println("PROBE-L 308")
     Swag.assert(view.subtitleText() == RichString.plainText(trackName))
+    Core.Console.println("PROBE-L 309")
     let opening = view.subtitleOverlay.sidecars[0].cueContent(0)
+    Core.Console.println("PROBE-L 310")
     Swag.assert(opening == "Opening caption")
+    Core.Console.println("PROBE-L 311")
     Swag.assert(view.subtitleOverlay.text == "Opening caption")
+    Core.Console.println("PROBE-L 312")
     view.seekSeconds(0.6)
+    Core.Console.println("PROBE-L 313")
     waitForVideoFrame(view)
+    Core.Console.println("PROBE-L 314")
     view.refreshSubtitle()
+    Core.Console.println("PROBE-L 315")
     Swag.assert(view.subtitleOverlay.text == "Second caption")
 
+    Core.Console.println("PROBE-L 317")
     Film.g_SubtitleSettings.delay = -0.5
+    Core.Console.println("PROBE-L 318")
     view.subtitleSettingsChanged()
+    Core.Console.println("PROBE-L 319")
     Swag.assert(view.subtitleOverlay.text == "Opening caption")
 
     // The options reach every subtitle setting: a style two pages deep, the delay stepped in
     // place, and the track.
+    Core.Console.println("PROBE-L 323")
     let strings = Film.texts()
+    Core.Console.println("PROBE-L 324")
     host.activateOptionRowWhenShown(strings.ui_OptionSubtitles)
+    Core.Console.println("PROBE-L 325")
     host.thenActivateOptionRow(strings.ui_SubtitleSize)
+    Core.Console.println("PROBE-L 326")
     host.thenActivateOptionRow(strings.ui_SubtitleSizeLarge)
+    Core.Console.println("PROBE-L 327")
     view.showOptions()
+    Core.Console.println("PROBE-L 328")
     Swag.assert(host.autoHandled)
+    Core.Console.println("PROBE-L 329")
     Swag.assert(Film.g_SubtitleSettings.size == .Large)
 
+    Core.Console.println("PROBE-L 331")
     host.activateOptionRowWhenShown(strings.ui_OptionSubtitles)
+    Core.Console.println("PROBE-L 332")
     host.thenActivateOptionRow(strings.ui_SubtitleDelay, step: 10)
+    Core.Console.println("PROBE-L 333")
     view.showOptions()
+    Core.Console.println("PROBE-L 334")
     Swag.assert(Math.isEqualEpsilon(Film.g_SubtitleSettings.delay, 0.5, 0.0001))
+    Core.Console.println("PROBE-L 335")
     host.activateOptionRowWhenShown(strings.ui_OptionSubtitles)
+    Core.Console.println("PROBE-L 336")
     host.thenActivateOptionRow(strings.ui_SubtitleDelayReset)
+    Core.Console.println("PROBE-L 337")
     host.thenActivateOptionRow(strings.ui_SubtitleOff)
+    Core.Console.println("PROBE-L 338")
     view.showOptions()
+    Core.Console.println("PROBE-L 339")
     Swag.assert(Film.g_SubtitleSettings.delay == 0)
+    Core.Console.println("PROBE-L 340")
     Swag.assert(view.subtitleSource == .Off and view.subtitleOverlay.text.isEmpty())
+    Core.Console.println("PROBE-L 341")
     Film.g_SubtitleSettings = {}
 }
 
@@ -339,6 +403,7 @@ func videoMatroskaFixturePath()->String => Path.combine(unwrap Path.directoryNam
 // frame buffers alive while the replacement allocates its H.264 contexts.
 #test
 {
+    Core.Console.println("PROBE-TEST 341")
     var host: Testing.HeadlessHost
     host.setup(640, 360)
 
@@ -390,6 +455,7 @@ func videoMatroskaFixturePath()->String => Path.combine(unwrap Path.directoryNam
 
 #test
 {
+    Core.Console.println("PROBE-TEST 392")
     let fileName = expect videoPreviewFile(Format.toString("scope-video-clock-%.mp4", Guid64.random()), 12)
     defer discard catch File.delete(fileName)
 
@@ -437,6 +503,7 @@ func videoMatroskaFixturePath()->String => Path.combine(unwrap Path.directoryNam
 
 #test
 {
+    Core.Console.println("PROBE-TEST 439")
     let fileName = expect videoPreviewFile(Format.toString("scope-video-%.mp4", Guid64.random()))
     defer discard catch File.delete(fileName)
 
@@ -529,6 +596,7 @@ func videoMatroskaFixturePath()->String => Path.combine(unwrap Path.directoryNam
 // The transport fills a wide host bar and gives its changing width to the timeline.
 #test
 {
+    Core.Console.println("PROBE-TEST 531")
     let fileName = expect videoPreviewFile("viewer.video.transport.y4m")
     defer discard catch File.delete(fileName)
 
@@ -560,6 +628,7 @@ func videoMatroskaFixturePath()->String => Path.combine(unwrap Path.directoryNam
 #[Swag.TestTag("golden")]
 #test
 {
+    Core.Console.println("PROBE-TEST 562")
     let fileName = expect videoPreviewFile("viewer.video.preview.y4m")
     defer discard catch File.delete(fileName)
 
@@ -619,6 +688,7 @@ func videoMatroskaFixturePath()->String => Path.combine(unwrap Path.directoryNam
 
 #test
 {
+    Core.Console.println("PROBE-TEST 621")
     let fileName = Gui.Testing.tempFilePath("scope-video-", ".y4m")
     defer discard catch File.delete(fileName)
     expect File.writeAllBytes(fileName, "not a video")
@@ -634,6 +704,7 @@ func videoMatroskaFixturePath()->String => Path.combine(unwrap Path.directoryNam
 
 #test
 {
+    Core.Console.println("PROBE-TEST 636")
     Swag.assert(Sound.acquireEngine(.NoSound))
     defer Sound.releaseEngine()
 
@@ -676,6 +747,7 @@ func videoMatroskaFixturePath()->String => Path.combine(unwrap Path.directoryNam
 // clock and the sound together, and stays declared by the host summary until reset.
 #test
 {
+    Core.Console.println("PROBE-TEST 678")
     Swag.assert(Sound.acquireEngine(.NoSound))
     defer Sound.releaseEngine()
 
@@ -720,6 +792,7 @@ func videoMatroskaFixturePath()->String => Path.combine(unwrap Path.directoryNam
 // answer parks it on the last picture.
 #test
 {
+    Core.Console.println("PROBE-TEST 722")
     let fileName = expect videoPreviewFile(Format.toString("scope-video-loop-%.mp4", Guid64.random()))
     defer discard catch File.delete(fileName)
 
@@ -750,6 +823,7 @@ func videoMatroskaFixturePath()->String => Path.combine(unwrap Path.directoryNam
 // arrives starts playing on its own, which is what makes the folder a playlist.
 #test
 {
+    Core.Console.println("PROBE-TEST 752")
     let folder = Path.combine(Env.getSpecialDirectory(.Temp), Format.toString("scope_chain_%", Guid64.random()))
     expect Directory.create(folder)
     defer discard catch Directory.delete(folder, recurse: true)
@@ -799,6 +873,7 @@ func videoMatroskaFixturePath()->String => Path.combine(unwrap Path.directoryNam
 // active voice and the transport state.
 #test
 {
+    Core.Console.println("PROBE-TEST 801")
     Swag.assert(Sound.acquireEngine(.NoSound))
     defer Sound.releaseEngine()
 
@@ -842,6 +917,7 @@ func videoMatroskaFixturePath()->String => Path.combine(unwrap Path.directoryNam
 // paused where it was rather than playing on behind the other viewer.
 #test
 {
+    Core.Console.println("PROBE-TEST 844")
     Swag.assert(Sound.acquireEngine(.NoSound))
     defer Sound.releaseEngine()
 
@@ -880,6 +956,7 @@ func videoMatroskaFixturePath()->String => Path.combine(unwrap Path.directoryNam
 // happens to own focus. Held-key repeats are consumed without toggling transport again.
 #test
 {
+    Core.Console.println("PROBE-TEST 882")
     Swag.assert(Sound.acquireEngine(.NoSound))
     defer Sound.releaseEngine()
 
@@ -933,6 +1010,7 @@ func videoMatroskaFixturePath()->String => Path.combine(unwrap Path.directoryNam
 #[Swag.TestTag("golden")]
 #test
 {
+    Core.Console.println("PROBE-TEST 935")
     Swag.assert(Sound.acquireEngine(.NoSound))
     defer Sound.releaseEngine()
 
@@ -1046,6 +1124,7 @@ func videoMatroskaFixturePath()->String => Path.combine(unwrap Path.directoryNam
 // the user requested instead of snapping back to the last indexed sound sample.
 #test
 {
+    Core.Console.println("PROBE-TEST 1048")
     Swag.assert(Sound.acquireEngine(.NoSound))
     defer Sound.releaseEngine()
 
@@ -1106,6 +1185,7 @@ func videoMatroskaFixturePath()->String => Path.combine(unwrap Path.directoryNam
 // position to the window's local sample frames instead of treating the window as time zero.
 #test
 {
+    Core.Console.println("PROBE-TEST 1108")
     let soundPath = Gui.Testing.tempFilePath("scope-video-audio-window-", ".ac3")
     defer discard catch File.delete(soundPath)
     expect File.writeAllBytes(soundPath, [0x0B'u8, 0x77, 0, 0, 0, 0, 0])
@@ -1124,6 +1204,7 @@ func videoMatroskaFixturePath()->String => Path.combine(unwrap Path.directoryNam
 // consumes nothing here, and the picture still has to advance.
 #test
 {
+    Core.Console.println("PROBE-TEST 1126")
     Swag.assert(Sound.acquireEngine(.NoSound))
     defer Sound.releaseEngine()
 
@@ -1161,6 +1242,7 @@ func videoMatroskaFixturePath()->String => Path.combine(unwrap Path.directoryNam
 // where it draws. Seeking must keep using it, since a seek rebuilds the queue.
 #test
 {
+    Core.Console.println("PROBE-TEST 1163")
     var host: Testing.HeadlessHost
     host.setup(640, 360)
 
@@ -1204,6 +1286,7 @@ func videoMatroskaFixturePath()->String => Path.combine(unwrap Path.directoryNam
 // the order rather than what is shown.
 #test
 {
+    Core.Console.println("PROBE-TEST 1206")
     let fileName = expect videoPreviewFile(Format.toString("scope-video-queue-%.mp4", Guid64.random()), 40)
     defer discard catch File.delete(fileName)
 
@@ -1256,6 +1339,7 @@ func videoMatroskaFixturePath()->String => Path.combine(unwrap Path.directoryNam
 // not multiply into a triple-digit-megabyte queue. Seeking never waits for more slots than exist.
 #test
 {
+    Core.Console.println("PROBE-TEST 1258")
     Swag.assert(Film.prefetchSlotCount(1920, 1080, true) == 12)
     Swag.assert(Film.prefetchSlotCount(3840, 2160, true) == 5)
     Swag.assert(Film.prefetchSlotCount(3840, 2160, false) == 2)
@@ -1267,6 +1351,7 @@ func videoMatroskaFixturePath()->String => Path.combine(unwrap Path.directoryNam
 // picture is available, so a decoder below playback speed reports its actual state.
 #test
 {
+    Core.Console.println("PROBE-TEST 1269")
     let fileName = expect videoPreviewFile(Format.toString("scope-video-resync-%.mp4", Guid64.random()), 40)
     defer discard catch File.delete(fileName)
 
@@ -1338,6 +1423,7 @@ func assertSubtitleEffect(effect: Film.SubtitleEffect, size: Film.SubtitleSize, 
 #[Swag.TestTag("golden")]
 #test
 {
+    Core.Console.println("PROBE-TEST 1340")
     assertSubtitleEffect(.Outline, .Normal, 1, "viewer.video.subtitle.outline")
     assertSubtitleEffect(.Shadow, .Normal, 1, "viewer.video.subtitle.shadow")
     assertSubtitleEffect(.Background, .Normal, 1, "viewer.video.subtitle.background")
@@ -1353,6 +1439,7 @@ func assertSubtitleEffect(effect: Film.SubtitleEffect, size: Film.SubtitleSize, 
 #[Swag.TestTag("golden")]
 #test
 {
+    Core.Console.println("PROBE-TEST 1355")
     Swag.assert(Sound.acquireEngine(.NoSound))
     defer Sound.releaseEngine()
 

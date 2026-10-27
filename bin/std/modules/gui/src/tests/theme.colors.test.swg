@@ -199,8 +199,8 @@ using Swag, Core
 {
     var theme: Theme
     Swag.assert(theme.metrics.surfaceWnd_CornerRadius == 18)
-    Swag.assert(theme.metrics.panel_GutterSize == 4)
-    Swag.assert(theme.metrics.splitView_BarSize == theme.metrics.panel_GutterSize + 1)
+    Swag.assert(theme.metrics.panel_GutterSize == 8)
+    Swag.assert(theme.metrics.splitView_BarSize == 5)
     Swag.assert(themeActionIconSize(&theme.metrics) == 20)
     Swag.assert(themeRowIconSize(&theme.metrics) == 16)
     Swag.assert(themeActionButtonSize(&theme.metrics) == 36)

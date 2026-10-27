@@ -11,9 +11,9 @@ const AppIcon                = #include("../datas/appicon.png")
 // of the cell it sits in, and the space left around it is what separates one control from
 // the next. Nothing here is a container for a label stacked under an icon.
 const RailLabelWidth  = 128.0     // Content width of a rail cell when the labels option puts a word beside the glyph.
-const ReadoutWidth    = 88.0      // One machine readout of the command row.
+const ReadoutWidth    = 88.0      // Shared width of the size and zoom readouts.
 const VerbsWidth      = 272.0     // The command group: two named application actions.
-const ReadoutsWidth   = 240.0     // The readout group: both cells, their gap, and outer air.
+const ReadoutsWidth   = 200.0     // Two readouts, one gap, and equal outer insets.
 const RightPanelWidth = 288.0     // Content width of the tool panel on the right.
 const ToolTitleHeight = 26.0      // Heading included in the upper split panel.
 

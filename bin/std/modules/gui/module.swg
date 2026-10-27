@@ -30,6 +30,13 @@ var app: Application
 Coordinates and sizes are logical pixels. Windows are owned by their application;
 use [[Gui.Wnd.destroy]] for deferred destruction during event dispatch.
 
+## Keep spacing on one grid
+
+Use 4 logical pixels for tight internal spacing, 8 between neighboring controls, 16 between
+related groups, and 24 or 32 to separate major sections. Measure the final visible gap after
+parent padding, child margins, and control insets are combined. Prefer the owning
+[[Gui.ThemeMetrics]] value when a shared control or themed surface defines the gap.
+
 Finite transitions use the application-owned [[Gui.Animator]]. Typed tracks can be
 retargeted by [[Gui.AnimationChannel]], grouped in parallel or sequence, and are
 cancelled automatically when their target is hidden or destroyed. The Animation

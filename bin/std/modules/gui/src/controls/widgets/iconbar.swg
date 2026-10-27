@@ -21,6 +21,7 @@ struct IconBar
             orientation      = IconBarOrientation.Horizontal     // Current button layout axis.
             iconSize:    f32         // Square icon size in logical units.
             itemPadding: f32 = 4     // Padding around every icon in logical units.
+            itemSpacing: f32 = 8     // Gap between neighboring button cells in logical units.
         }
 
         sigComputeState:   SigArray'func||(*CommandStateEvent)     // Invoked when child command state must be computed.
@@ -42,16 +43,24 @@ private impl IconBar
 {
     mtd computeLayout()
     {
-        for child in .children
+        for child, index in .children
         {
-            if .orientation == .Vertical do
+            if .orientation == .Vertical
+            {
                 child.dockStyle = .Top
-            else do
+                child.margin    = {0, index + 1 < .children.count ? .itemSpacing : 0, 0, 0}
+            }
+            else
+            {
                 child.dockStyle = .Left
+                child.margin    = {0, 0, index + 1 < .children.count ? .itemSpacing : 0, 0}
+            }
         }
 
         let paddedIconSize = .iconSize + 2 * .itemPadding
-        let barLength      = cast(f32, .children.count) * paddedIconSize
+        let itemCount      = cast(f32, .children.count)
+        let gapCount       = .children.count > 0 ? cast(f32, .children.count - 1) : 0
+        let barLength      = itemCount * paddedIconSize + gapCount * .itemSpacing
         if .orientation == .Vertical do
             .resize(paddedIconSize, barLength)
         else do
@@ -72,15 +81,16 @@ private impl IconBar
 
 impl IconBar
 {
-    // Creates an empty icon bar with a non-negative icon size and item padding.
+    // Creates an empty icon bar with a non-negative icon size, item padding, and item spacing.
     #[Swag.Discardable]
-    func create(parent: *Wnd, iconSize: f32, position: Math.Rectangle = {}, id: WndId? = null, orientation = IconBarOrientation.Horizontal, itemPadding = 4'f32)->*IconBar
+    func create(parent: *Wnd, iconSize: f32, position: Math.Rectangle = {}, id: WndId? = null, orientation = IconBarOrientation.Horizontal, itemPadding = 4'f32, itemSpacing = 8'f32)->*IconBar
     {
         Swag.assert(parent != null)
-        Swag.assert(iconSize >= 0 and itemPadding >= 0)
+        Swag.assert(iconSize >= 0 and itemPadding >= 0 and itemSpacing >= 0)
         let result = Wnd.create'IconBar(parent, null, position, id)
         result.iconSize    = iconSize
         result.itemPadding = itemPadding
+        result.itemSpacing = itemSpacing
         result.orientation = orientation
         result.computeLayout()
         return result
@@ -140,6 +150,16 @@ impl IconBar
             return
         .itemPadding = padding
         .updateButtonMetrics()
+        .computeLayout()
+    }
+
+    // Changes the gap between button cells and immediately recomputes the bar extent.
+    mtd setItemSpacing(spacing: f32)
+    {
+        Swag.assert(spacing >= 0)
+        if .itemSpacing == spacing do
+            return
+        .itemSpacing = spacing
         .computeLayout()
     }
 

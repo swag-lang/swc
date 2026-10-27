@@ -85,7 +85,7 @@ internal impl Properties
 
         // Inset the hot and focus ground so it leaves space around the row's content and edges.
         var stateRect = r
-        stateRect.inflate(-metrics.panel_GutterSize, -metrics.panel_GutterSize)
+        stateRect.inflate(-metrics.property_ControlInset, -metrics.property_ControlInset)
         theme.drawSubRect(painter, stateRect, &theme.rects.selectionBox_Bk, item.aniFocusBk.cur())
 
         // The column boundary is visible only while it is being targeted. Extend that live rule

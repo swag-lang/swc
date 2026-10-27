@@ -1533,7 +1533,13 @@ impl IWnd for ExplorerGrid
             let nameRect = Math.Rectangle{rect.x + 4, rect.bottom() - 28, rect.width - 8, 24}
             let font     = unwrap .font().regular
             let width    = Painter.measureString(entry.name, font).width
-            if width > nameRect.width and (.hovered == row or .explorer.selected == index)
+            let scrolls  = width > nameRect.width and (.hovered == row or .explorer.selected == index)
+            var name: RichString = entry.name
+            var format: RichStringFormat
+            format.font = .font()
+            me.theme().setTextColors(&format, me.themeColors().label_Text)
+            format.horzAlignment = width > nameRect.width ? .Left : .Center
+            if scrolls
             {
                 // Pause at each end before traveling back, so the beginning remains easy to read.
                 let distance = cast(u64, Math.ceil(width - nameRect.width))
@@ -1545,18 +1551,16 @@ impl IWnd for ExplorerGrid
                     offset = distance
                 elif phase > distance + 40 do
                     offset = distance * 2 + 40 - phase
+                var moving = nameRect
+                moving.x -= cast(f32, offset)
+                moving.width = Math.ceil(width) + 1
                 painter.pushClippingRect(nameRect)
-                painter.drawString(nameRect.x - cast(f32, offset), nameRect.y + Math.round((nameRect.height - font.height) / 2), entry.name, font, .themeColors().label_Text)
+                painter.drawRichString(moving, &name, format)
                 painter.popClippingRect()
             }
             else
             {
-                var name: RichString = entry.name
-                var format: RichStringFormat
-                format.font = .font()
-                me.theme().setTextColors(&format, me.themeColors().label_Text)
-                format.horzAlignment = .Center
-                format.flags         = .Ellipsis
+                format.flags = .Ellipsis
                 painter.drawRichString(nameRect, &name, format)
             }
         }

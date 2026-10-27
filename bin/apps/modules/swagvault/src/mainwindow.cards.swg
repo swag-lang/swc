@@ -8,8 +8,8 @@ impl MainWindow
         with let header = StackLayoutCtrl.create(me, .Top)
         {
             .dockStyle = .Top
-            .margin    = {32, 20, 32, 0}
-            .spacing   = 4
+            .margin    = {32, 24, 32, 0}
+            .spacing   = 8
         }
 
         with let titleRow = Wnd.create'Wnd(header, {0, 0, 0, 44})
@@ -47,7 +47,7 @@ impl MainWindow
         with let footerRow = Wnd.create'Wnd(&.wnd, {0, 0, 0, 24})
         {
             .dockStyle = .Bottom
-            .margin    = {32, 0, 32, 12}
+            .margin    = {32, 0, 32, 16}
         }
 
         // The attribution keeps what it owes: the product, the holder, and where it comes from.
@@ -68,15 +68,15 @@ impl MainWindow
         with .statusView = Wnd.create'Wnd(&.wnd, {0, 0, 0, 52})
         {
             .dockStyle       = .Bottom
-            .margin          = {32, 0, 32, 12}
+            .margin          = {32, 0, 32, 16}
             .backgroundStyle = .Panel
-            .padding         = {20, 8, 20, 8}
+            .padding         = {24, 8, 24, 8}
         }
 
         with .statusIcon = Label.create(.statusView, "", {0, 0, 24})
         {
             .dockStyle = .Left
-            .margin.z  = 12
+            .margin.z  = 8
         }
 
         // The spinner takes the glyph's place rather than a slot of its own: it is the same
@@ -85,7 +85,7 @@ impl MainWindow
         with .statusBusy = Spinner.create(.statusView, {0, 0, 24, 24})
         {
             .dockStyle = .Left
-            .margin.z  = 12
+            .margin.z  = 8
             .hide()
         }
 

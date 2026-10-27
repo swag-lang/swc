@@ -161,6 +161,10 @@ func testAssertMainMenuGolden(index: u32, golden: string)
     Swag.assert(main.appearanceButton.button.icon.index == cast(s32, Gui.ThemeIcons.Appearance))
     Swag.assert(main.optionsButton.button.icon.index == cast(s32, Gui.ThemeIcons.Options))
     Swag.assert(main.optionsButton.position.x < main.appearanceButton.position.x)
+    let sizeButton = unwrap main.sizeBtn
+    let zoomButton = main.zoomBtn
+    Swag.assert(main.commandReadouts.padding.x == main.commandReadouts.padding.z)
+    Swag.assert(sizeButton.position.width == zoomButton.position.width)
 }
 
 // The complete Swag Capture surface must survive its first layout and paint without a desktop.
@@ -209,7 +213,7 @@ func testAssertMainMenuGolden(index: u32, golden: string)
     let rightRect = main.rightBar.children[0].surfaceRect()
     Swag.assert(main.toolTitle.font().regular == main.theme().res.fontDefaultFs.regular)
     Swag.assert(main.recentWnd.themeColors().scrollBar_Bk == main.recentWnd.themeColors().wnd_Bk)
-    Swag.assert(main.quickStyleBar.themeMetrics().splitView_BarSize == gutter + 1)
+    Swag.assert(main.quickStyleBar.themeMetrics().splitView_BarSize == 5)
     Swag.assert(main.quickStyleBar.items[0]!.view.backgroundStyle == .Panel)
     Swag.assert(main.quickStyleBar.items[1]!.view.backgroundStyle == .Panel)
     Swag.assert(editRect.y - main.topBar.surfaceRect().bottom() == gutter)

@@ -29,8 +29,10 @@ struct ThemeMetrics
         wnd_CaptionMarginTitle:    f32 = 14       // Air between the leading edge of a caption and its icon or title.
         wnd_CaptionIconSize:       f32 = 20       // Side of the mark a drawn caption shows beside its title.
         wnd_CaptionButtonMargin:   f32 = 5        // Air around a caption button, inside the caption band.
+        wnd_CaptionButtonGap:      f32 = 4        // Air between neighboring system caption buttons.
+        wnd_CaptionActionGap:      f32 = 8        // Air between an application caption action and its neighbors.
         wnd_CaptionButtonGlyph:    f32 = 16       // Side of a caption glyph. Chrome, so it sits at the row size of the chart.
-        wnd_CaptionButtonAspect:   f32 = 1.35     // Width of a caption button as a multiple of its height.
+        wnd_CaptionButtonAspect:   f32 = 0.9      // Width of a system caption button as a multiple of its height.
         wnd_CaptionButtonMinWidth: f32 = 44       // Narrowest a caption button gets.
         wnd_SizingBorderSize:      f32 = 8        // Reach of the resizing border on each side of a surface edge.
         wnd_TopSizingBorderSize:   f32 = 7        // Reach of the resizing border along the top edge, capped by the side reach.
@@ -88,7 +90,7 @@ struct ThemeMetrics
         circular_MarkerSize: f32 = 5      // Radius of the marker of a circular control.
 
         menuPopup_Padding:         f32 = 12     // Inset of the entries of a popup menu.
-        menuPopup_SpaceLines:      f32 = 7      // Air between two entries of a popup menu, shared by their hover grounds.
+        menuPopup_SpaceLines:      f32 = 8      // Air between two entries of a popup menu, shared by their hover grounds.
         menuPopup_ShadowSize:      f32 = 10     // Reach of the shadow a popup menu casts.
         menuPopup_ItemHeight:      f32 = 25     // Complete pitch of an ordinary menu entry, including the inter-entry air.
         menuPopup_IconSize:        f32 = 16     // Side of a menu-entry glyph or check mark.
@@ -112,7 +114,8 @@ struct ThemeMetrics
         menuBar_Height:       f32 = 30     // Height of a menu bar.
         menuBar_SpaceBetween: f32 = 24     // Air between two menu bar entries.
 
-        iconBar_ButtonsPadding: f32 = 4     // Air between the buttons of an icon bar.
+        iconBar_ButtonsPadding: f32 = 4     // Inset around the buttons of an icon bar.
+        iconBar_ButtonGap:      f32 = 8     // Air between neighboring buttons of an icon bar.
 
         scrollBar_NormalSize: f32 = 20     // Thickness of a scroll bar.
         scrollBar_SmallSize:  f32 = 10     // Thickness of a compact scroll bar.
@@ -155,8 +158,9 @@ struct ThemeMetrics
         header_Padding:   Math.Vector4 = {10, 5, 10, 5}     // Inset of the caption of a column header.
         header_Separator: f32 = 5      // Width of the grip between two column headers.
 
-        panel_GutterSize:  f32 = 4     // Gap separating a structural panel from adjacent application chrome.
-        splitView_BarSize: f32 = 5     // Draggable gap between split panels, one pixel wider than the outer gutter.
+        panel_GutterSize:  f32 = 8     // Gap separating a structural panel from adjacent application chrome.
+        splitView_BarSize: f32 = 5     // Visible and draggable divider between split panels.
+        property_ControlInset: f32 = 4     // Inset of the state ground within a property control.
 
         progressBar_Height:     f32 = 18      // Height of a progress bar.
         progressBar_ClipOffset: f32 = 2       // Inset of the filled part inside the progress bar track.

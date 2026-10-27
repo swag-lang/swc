@@ -38,6 +38,9 @@ func iconBarHeadlessReset()
     Swag.assert(b1 != null)
     Swag.assert(b2 != null)
     Swag.assert(bar.children.count == 2)
+    Swag.assert(bar.itemSpacing == 8)
+    Swag.assert(b2.position.x - b1.position.right() == bar.itemSpacing)
+    Swag.assert(bar.position.width == b1.position.width + b2.position.width + bar.itemSpacing)
     Swag.assert(bar.buttonById(IconBarHeadless_Btn1) == b1)
     Swag.assert(b1.form == .RoundedRectangle and b2.form == .RoundedRectangle)
     Swag.assert(b1.checkIndicator == .Frame and b2.checkIndicator == .Frame)
@@ -55,15 +58,20 @@ func iconBarHeadlessReset()
     Swag.assert(btn.position.width == 24 and btn.position.height == 24)
     Swag.assert(bar.position.width == 24 and bar.position.height == 24)
 
+    bar.addButton({}, "IconBarHeadless.Btn2")
+    Swag.assert(bar.position.width == 56 and bar.children[1].position.x - btn.position.right() == bar.itemSpacing)
+    bar.setItemSpacing(4)
+    Swag.assert(bar.position.width == 52 and bar.children[1].position.x - btn.position.right() == 4)
+
     bar.setItemPadding(4)
     Swag.assert(btn.position.width == 28 and btn.position.height == 28)
-    Swag.assert(bar.position.width == 28 and bar.position.height == 28)
+    Swag.assert(bar.position.width == 60 and bar.position.height == 28)
 
     bar.setIconSize(30)
     Swag.assert(btn.iconWidth == 30 and btn.iconHeight == 30)
     Swag.assert(btn.icon.sizeX == descriptorWidth and btn.icon.sizeY == descriptorHeight)
     Swag.assert(btn.position.width == 38 and btn.position.height == 38)
-    Swag.assert(bar.position.width == 38 and bar.position.height == 38)
+    Swag.assert(bar.position.width == 80 and bar.position.height == 38)
 }
 
 // Clicking a docked button forwards through the bar's sigPressed.

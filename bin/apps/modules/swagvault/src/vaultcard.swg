@@ -28,7 +28,7 @@ impl VaultCard
         {
             .spacing         = 0
             .backgroundStyle = .Panel
-            .padding         = {28, 24, 28, 24}
+            .padding         = {32, 24, 32, 24}
         }
 
         let metrics = panel.themeMetrics()
@@ -43,7 +43,7 @@ impl VaultCard
         // cuts the last line off as soon as the sentence is said in more words.
         with let subtitleLabel = Label.create(panel, subtitle, {}, null, .WordWrap | .SecondaryText | .AutoHeight)
         {
-            .margin = {0, 4, 0, 0}
+            .margin = {0, 8, 0, 0}
             .setTextAlignment(.Left, .Top)
             .setLineGap(cast(s32, metrics.dialog_BtnPadding / 2))
         }

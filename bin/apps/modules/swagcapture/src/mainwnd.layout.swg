@@ -200,7 +200,7 @@ impl MainWnd
         with let verbs = StackLayoutCtrl.create(me.topBar, .Left, Math.Rectangle{0, 0, VerbsWidth, cellSize})
         {
             .dockStyle = .Left
-            .spacing   = metrics.iconBar_ButtonsPadding
+            .spacing   = metrics.iconBar_ButtonGap
             .padding   = Math.Vector4{2 * metrics.iconBar_ButtonsPadding, metrics.iconBar_ButtonsPadding, 2 * metrics.iconBar_ButtonsPadding, metrics.iconBar_ButtonsPadding}
         }
 
@@ -217,7 +217,7 @@ impl MainWnd
         with .commandReadouts = StackLayoutCtrl.create(me.topBar, .Right, Math.Rectangle{0, 0, ReadoutsWidth, cellSize})
         {
             .dockStyle = .Right
-            .spacing   = metrics.iconBar_ButtonsPadding
+            .spacing   = metrics.iconBar_ButtonGap
             .padding   = Math.Vector4{2 * metrics.iconBar_ButtonsPadding, metrics.iconBar_ButtonsPadding, 2 * metrics.iconBar_ButtonsPadding, metrics.iconBar_ButtonsPadding}
         }
 
@@ -242,7 +242,7 @@ impl MainWnd
             }
         }
 
-        with .sizeBtn = IconButton.create(.commandReadouts, {}, Math.Rectangle{0, 0, ReadoutWidth + 24, cellSize - 2 * metrics.iconBar_ButtonsPadding})
+        with .sizeBtn = IconButton.create(.commandReadouts, {}, Math.Rectangle{0, 0, ReadoutWidth, cellSize - 2 * metrics.iconBar_ButtonsPadding})
         {
             .updateFlags(.CenterContent | .Flat)
             .style.setFont(me.theme().res.fontDefaultFs)

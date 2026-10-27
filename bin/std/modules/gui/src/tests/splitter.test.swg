@@ -4,8 +4,7 @@
 using Swag, Core
 
 // Two structural panel panes keep all four rounded sides, including the sides facing their
-// draggable divider. The divider is one pixel wider than the ordinary outer-panel gutter so
-// both antialiased silhouettes remain distinct.
+// draggable divider. The same grid-sized gap separates panels throughout the interface.
 #[Swag.TestTag("golden")]
 #test
 {
@@ -25,7 +24,7 @@ using Swag, Core
     splitter.addPane(pane1)
     splitter.sendResizeEvent()
 
-    Swag.assert(splitter.themeMetrics().splitView_BarSize == splitter.themeMetrics().panel_GutterSize + 1)
+    Swag.assert(splitter.themeMetrics().splitView_BarSize == 5)
     var image = host.render()
     Pixel.Testing.assertImageGolden(&image, "splitter.panel-panes.vertical")
 }

@@ -184,6 +184,15 @@ using Swag, Core, Pixel
     let button = AppearanceButton.create(&host.surface)
     host.surfaceWnd.sendResizeEvent()
 
+    let systemGap = host.theme.metrics.wnd_CaptionButtonGap
+    let actionGap = host.theme.metrics.wnd_CaptionActionGap
+    let closeButton    = unwrap host.surfaceWnd.closeBtn
+    let maximizeButton = unwrap host.surfaceWnd.maximizeBtn
+    let minimizeButton = unwrap host.surfaceWnd.minimizeBtn
+    Swag.assert(Math.abs(maximizeButton.position.right() + systemGap - closeButton.position.x) < 0.5)
+    Swag.assert(Math.abs(minimizeButton.position.right() + systemGap - maximizeButton.position.x) < 0.5)
+    Swag.assert(Math.abs(button.position.right() + actionGap - minimizeButton.position.x) < 0.5)
+
     host.openPopupSubMenuWhenShown(strings().appearance_Language, maxFrames: 2)
     host.clickWnd(button)
     Swag.assert(not host.autoHandled and not host.autoFailure.isEmpty())

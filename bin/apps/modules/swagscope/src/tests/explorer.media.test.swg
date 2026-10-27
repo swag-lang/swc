@@ -86,7 +86,7 @@ using Core, Gui, Pixel
     explorer.showMediaInfo()
     Swag.assert(Utf8.contains(explorer.infoPanel.text, "Note IMDb via Wikidata\n8.2/10"))
     Swag.assert(Utf8.contains(explorer.infoPanel.text, "Sortie\n1982-06-25"))
-    Swag.assert(Utf8.contains(explorer.infoPanel.text, "Synopsis : Un détective dans le futur."))
+    Swag.assert(Utf8.contains(explorer.infoPanel.text, "Synopsis\nUn détective dans le futur."))
     explorer.entries[1].music = {title: "Discovery", artist: "Daft Punk", date: "2001-03-12"}
     explorer.grid.select(1)
     Swag.assert(Utf8.contains(explorer.infoPanel.text, "Discovery"))

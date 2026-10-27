@@ -167,6 +167,13 @@ impl IWnd for SurfaceWnd
         let clientRect = .clientRect()
         let metrics    = .themeMetrics()
 
+        var buttonCount = 0'u32
+        if .closeBtn do buttonCount += 1
+        if .maximizeBtn do buttonCount += 1
+        if .minimizeBtn do buttonCount += 1
+        for button in .captionButtons where not button.isPendingDestroy do buttonCount += 1
+        var gapCount = buttonCount > 0 ? buttonCount - 1 : 0
+
         var pos = clientRect
         pos.height = Math.max(0, srfn.wnd.padding.y - 2 * metrics.wnd_CaptionButtonMargin)
         pos.width  = Math.max(metrics.wnd_CaptionButtonMinWidth, pos.height * metrics.wnd_CaptionButtonAspect)
@@ -177,28 +184,50 @@ impl IWnd for SurfaceWnd
         {
             .closeBtn.setPosition(pos)
             pos.x -= pos.width
+            if gapCount > 0
+            {
+                pos.x -= metrics.wnd_CaptionButtonGap
+                gapCount -= 1
+            }
         }
 
         if .maximizeBtn
         {
             .maximizeBtn.setPosition(pos)
             pos.x -= pos.width
+            if gapCount > 0
+            {
+                pos.x -= metrics.wnd_CaptionButtonGap
+                gapCount -= 1
+            }
         }
 
         if .minimizeBtn
         {
             .minimizeBtn.setPosition(pos)
             pos.x -= pos.width
+            if gapCount > 0
+            {
+                pos.x -= .captionButtons.isEmpty() ? metrics.wnd_CaptionButtonGap : metrics.wnd_CaptionActionGap
+                gapCount -= 1
+            }
         }
 
+        var buttonRight = pos.x + pos.width
         for button in .captionButtons
         {
             if button.isPendingDestroy do
                 continue
             var appButtonPos = pos
             appButtonPos.width = Math.max(metrics.wnd_CaptionButtonGlyph + 2 * metrics.wnd_CaptionButtonMargin, pos.height * 0.75)
+            appButtonPos.x     = buttonRight - appButtonPos.width
             button.setPosition(appButtonPos)
-            pos.x -= appButtonPos.width
+            buttonRight = appButtonPos.x
+            if gapCount > 0
+            {
+                buttonRight -= metrics.wnd_CaptionActionGap
+                gapCount -= 1
+            }
         }
 
         .base.IWnd.onResizeEvent(evt)

@@ -923,9 +923,9 @@ namespace
     // an unused caller-saved SIMD register, even when the original GP register
     // changes roles between accesses. Keeping every read and write coherent also
     // handles branch arms and distinct loop exits.
-    bool cachePrivateSpills(MicroPassContext& context, const MicroControlFlowGraph& cfg, const MicroPhysLiveness& liveness, const NaturalLoop& loop)
+    bool cachePrivateSpills(MicroPassContext& context, const MicroControlFlowGraph& cfg, const MicroPhysLiveness& liveness, const NaturalLoop& loop, const FrameReachability& reach)
     {
-        if (context.spillAreaLo >= context.spillAreaHi)
+        if (!reach.wholeFramePrivate || context.spillAreaLo >= context.spillAreaHi)
             return false;
         const CallConv& conv     = CallConv::get(context.callConvKind);
         auto&           storage  = *context.instructions;
@@ -961,6 +961,10 @@ namespace
             if (!loop.inBody[index])
                 continue;
             const auto& useDef = liveness.useDefs[index];
+            // A stack-derived local base may name the same bytes as an SP
+            // spill. Its accesses need a displacement proof before caching.
+            if (reach.localBaseReg.isValid() && std::ranges::find(useDef.uses, reach.localBaseReg) != useDef.uses.end())
+                return false;
             for (const MicroReg reg : useDef.uses)
                 if (reg.isInt() || reg.isFloat())
                     unavailable |= 1ull << MicroPhysLiveness::bitOf(reg);
@@ -1586,7 +1590,7 @@ namespace
                 return a->bodySize != b->bodySize ? a->bodySize < b->bodySize : a->header < b->header;
             });
             for (const NaturalLoop* loop : cacheLoops)
-                if (cachePrivateSpills(context, cfg, liveness, *loop))
+                if (cachePrivateSpills(context, cfg, liveness, *loop, reach))
                     return true;
             return false;
         }

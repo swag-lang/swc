@@ -587,6 +587,7 @@ struct SheetShot
     keyboard:  bool     // Whether the keyboard moves the focus once before the capture.
     halfway:   bool     // Whether the capture is taken halfway through the last page change.
     high:      bool     // Whether the button sits at the top of the window.
+    header:    bool     // Whether the capture focuses the nested page header.
 }
 
 // Opens the first page, follows the links of `shot`, and compares the sheet with its golden.
@@ -624,11 +625,27 @@ func assertSheetGolden(shot: SheetShot)
                      host.finishAnimations()
                  }
 
+                if shot.header
+                {
+                    host.keyPress(.Home)
+                    Swag.assert(sheet.focusRow == -1)
+                    host.finishAnimations()
+                }
+
                  var image = host.render()
                  Pixel.Testing.assertImageGolden(&image, shot.golden)
              },
              shot.placement,
              buttonRect: shot.high ? Math.Rectangle{300, 8, 40, 36} : Math.Rectangle{300, 440, 40, 36})
+}
+
+// A nested page header sits beneath the opening tab, so its focus ground remains fully visible.
+#[Swag.TestTag("golden")]
+#test
+{
+    assertSheetGolden({palette: .SwagDark, golden: "optionsheet.header.keyboard.below.swag-dark", first: "Speed", high: true, header: true})
+    assertSheetGolden({palette: .Dark, golden: "optionsheet.header.keyboard.below.dark", first: "Speed", high: true, header: true})
+    assertSheetGolden({palette: .Light, golden: "optionsheet.header.keyboard.below.light", first: "Speed", high: true, header: true})
 }
 
 // The first page in each shipped palette: a link per setting with its value, and a switch.

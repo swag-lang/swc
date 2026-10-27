@@ -133,6 +133,7 @@ struct Properties
     // List and panel presentation metrics.
     listNameMarginBefore: s32 = 12
     listNameMarginAfter:  s32 = 0
+    listContentPaddingBottom: s32 = 12
     listDescMarginAfter:  s32 = 5
 
     // Inline validation message-bar metrics.

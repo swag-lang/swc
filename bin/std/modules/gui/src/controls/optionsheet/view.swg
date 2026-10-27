@@ -889,7 +889,16 @@ private impl View
     {
         if levels == 1 and .placement == .Anchored do
             return 0
-        return .gripHeight() + Math.round(.themeMetrics().optionSheet_HeaderHeight * .rowScale())
+        return .gripHeight() + .headerTopInset(levels) + Math.round(.themeMetrics().optionSheet_HeaderHeight * .rowScale())
+    }
+
+    // A tab overlaps the top of a sheet. Keep a nested page's header below that tab so its
+    // focus ground and ring remain visible instead of passing under the opening button.
+    mtd headerTopInset(levels: u64)->f32
+    {
+        if levels > 1 and .placement == .Anchored and .anchorButton and not .opensUp do
+            return .themeMetrics().menuPopup_BarItemOverlap
+        return 0
     }
 
     // How much taller a row is than beside a button: a finger and a remote need larger targets
@@ -1089,7 +1098,8 @@ private impl View
                 painter.fillRoundRect(line, 2, 2, fade(colors.optionSheet_StepBorder, opacity))
             }
 
-            var band = Math.Rectangle{.body.x + offsetX, .body.y + grip, .body.width, header - grip}
+            let headerTop = .headerTopInset(levels)
+            var band = Math.Rectangle{.body.x + offsetX, .body.y + grip + headerTop, .body.width, header - grip - headerTop}
             if focused and focus == HeaderFocus
             {
                 var ground = band

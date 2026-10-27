@@ -69,6 +69,20 @@ explore_Name Nom
 explore_Type Type
 explore_Size Taille
 explore_Modified Modifié
+explore_Information Informations
+explore_CloseInformation Fermer les informations
+explore_SelectFile S?lectionnez un fichier pour afficher ses informations.
+explore_FileProperties Fichier
+explore_MediaDetails Informations sur le m?dia
+explore_Duration Dur?e
+explore_Rating Note IMDb via Wikidata
+explore_Released Sortie
+explore_Director R?alisation
+explore_Cast Distribution
+explore_Synopsis Synopsis
+explore_Artist Artiste
+explore_FirstRelease Premi?re sortie
+explore_Source Source
 explore_Loading Lecture du dossier…
 explore_Empty Aucun fichier à afficher
 explore_OneItem 1 élément

@@ -14,6 +14,11 @@ changes, and almost nothing below is a dialog's to choose.
 voice; [build-swag-standard-apps](../build-swag-standard-apps/SKILL.md) governs an application
 surface. This governs the box that opens on top of one.
 
+Within the body, use the proximity, alignment, and visible-gap review in
+[build-swag-standard-apps](../build-swag-standard-apps/SKILL.md#make-space-describe-relationships).
+The dialog metrics below own the body and action-bar measurements; do not replace them with
+application spacing literals.
+
 The measurable half is enforced:
 [`dialogs.charter.test.swg`](../../../bin/std/modules/gui/src/tests/dialogs.charter.test.swg)
 builds every predefined box and measures it, and

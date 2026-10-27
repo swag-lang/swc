@@ -150,6 +150,16 @@ the sampling layouts used by ffmpeg's 4:2:0, 4:2:2, and 4:4:4 Motion JPEG output
   supported format automatically while keeping its separate binary structure viewer.
 - Related: std.video.010, app.scope.binary.011
 
+### std.video.015 — Decode RealVideo 4 pictures in Matroska
+
+- Evidence: a Matroska film with `V_REAL/RV40` is rejected because no RealVideo 4 decoder is
+  registered. Matroska support for other picture codecs does not decode this stream.
+- Next: implement a bounded RealVideo 4 picture decoder and connect its Matroska codec private
+  data, packet framing, timestamps, and seeking to the video reader.
+- Done when: redistributable RV40 fixtures decode and seek against reference pictures and malformed
+  input is rejected safely, with supported sound tracks still synchronized.
+- Related: app.scope.video.015
+
 ### std.video.006 — Interlaced H.264 is not decoded
 
 - Evidence: `decode/h264/sets.swg` refuses a sequence set without `frame_mbs_only_flag`

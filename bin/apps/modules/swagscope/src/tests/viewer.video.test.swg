@@ -617,6 +617,12 @@ func videoMatroskaFixturePath()->String => Path.combine(unwrap Path.directoryNam
     host.fireTimer(view.seekOverlay.timer)
 }
 
+func captureVideoFailure(wnd: *Wnd, reason: string)
+{
+    let captured = cast(*String, unwrap wnd.userData)
+    captured[] = reason
+}
+
 #test
 {
     let fileName = Gui.Testing.tempFilePath("scope-video-", ".y4m")
@@ -625,11 +631,14 @@ func videoMatroskaFixturePath()->String => Path.combine(unwrap Path.directoryNam
 
     var host: Testing.HeadlessHost
     host.setup(640, 360)
-    var result = openTestViewer(Film.viewerPlugin(), &host.root, fileName, commandParent: &host.root)
+    var result = openTestViewer(Film.viewerPlugin(), &host.root, fileName, commandParent: &host.root, services: {reportFailure: &captureVideoFailure})
     Swag.assert(result.view != null and result.commands != null)
     let view = assume cast(*Film.Panel, result.view)
+    var failure: String
+    view.userData = &failure
     waitForVideoFrame(view)
     Swag.assert(not view.openFailure.isEmpty() and not view.video.isOpen())
+    Swag.assert(failure == view.openFailure)
 }
 
 #test

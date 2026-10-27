@@ -188,6 +188,10 @@ Anything else goes through `ThemeColors`.
 
 ### A palette answers for geometry too
 
+When reviewing the placement of themed controls, apply the proximity and visible-gap guidance in
+[build-swag-standard-apps](../build-swag-standard-apps/SKILL.md#make-space-describe-relationships)
+to the control in context as well as in the theme inspector. Dialogs keep their own theme metrics.
+
 `Theme.setSwagDark` narrows the surface corner and points push buttons, rectangular
 tool cells, their full checked states, and standalone panels at the same four-pixel tile. Hover
 and selection grounds reuse `selectionBox_Bk`, which carries that radius through lists, headers

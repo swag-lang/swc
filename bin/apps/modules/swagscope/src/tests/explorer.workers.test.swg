@@ -42,8 +42,7 @@ using Core, Gui, Pixel
     }
 
     Swag.assert(explorer.entries[0].music.title == "Discovery")
-    Swag.assert(explorer.mediaInfo.isVisible())
-    Swag.assert(Utf8.contains(explorer.mediaInfo.text(), "Daft Punk"))
+    Swag.assert(Utf8.contains(explorer.infoPanel.text, "Daft Punk"))
 }
 
 // Busy slots schedule distinct visible tiles; cancelled generations never publish stale textures.

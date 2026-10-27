@@ -191,6 +191,36 @@ glyph, another app's icon, or a letter tile.
 - Design all three palettes together, verify narrow and minimum-size layouts, and inspect a real native
   surface rather than trusting constants alone.
 
+## Make Space Describe Relationships
+
+Apply this rule to application surfaces, shared controls, and composites; modal boxes retain the
+measurements in [design-swag-dialogs](../design-swag-dialogs/SKILL.md). Carbon's
+[spacing guidance](https://carbondesignsystem.com/building-blocks/foundations/spacing/overview)
+and [relationship examples](https://v10.carbondesignsystem.com/guidelines/spacing/overview/)
+explain why proximity, repetition, and alignment make a hierarchy legible.
+
+- Identify the task groups before choosing their gaps. Keep an icon and its label, a field and its
+  help, or actions on the same object closer to each other than to the next independent group.
+  Give equivalent siblings equal gaps; use a larger gap to mark a change of task. Do not use a
+  divider merely to compensate for missing space.
+- Use 4 logical pixels for a tight internal relationship, 8 between related controls, 16 between
+  groups or body pieces, and 24 or 32 for major sections and outer breathing room. These are
+  starting points, not additive margins: measure the visible gap after parent padding, child
+  margins, cell bounds and any internal control padding have all been applied. The dialog theme
+  and a shared control's metrics take precedence over app-local numbers.
+- A row of icon buttons is measured from cell edge to cell edge; the empty area inside each cell
+  already separates its glyph from the next. Center glyphs in their cells, align labels on their
+  text line using the shared optical rules, and align repeated rows and columns by their content
+  edges. Do not fix an optical mismatch by moving one control's arbitrary margin.
+- At minimum width, with longer translations, and when optional controls hide, preserve order,
+  grouping and a usable target for every visible control. Collapse a gap belonging to a hidden
+  group, not the space needed by its remaining neighbours. Measure content and let it wrap or
+  adapt before allowing clipping or overlaps.
+- Review the actual surface at normal and minimum sizes, all shipped palettes and at a non-default
+  display scale. Compare visual gaps and baselines as well as widget rectangles; test meaningful
+  group boundaries, alignment, visibility and fit so a later layout change cannot silently undo
+  them. Review shared controls in their consumers as well as in isolation.
+
 ## Put Appearance And About In The Caption
 
 Every standard application exposes presentation choices through one

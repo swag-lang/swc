@@ -706,13 +706,13 @@ by portable modules and products. The earlier entries prepare and enforce the sa
 - Done when: Chinese, Japanese, Korean, and Vietnamese composition works on Windows, headless
   tests cover the common model, and platform.portability.061 can add another OS without changing editor APIs.
 
-### platform.portability.088 — Network transports have no host backends
+### platform.portability.088 — Network transports need portable host backends
 
-- Owner: the `net` module proposed by std.core.001.
-- Evidence: `bin/std/modules` has no `net` module or socket/resolver backend. The TCP entry
-  previously mixed its public contract with Winsock and BSD-socket implementation work.
-- Next: once the endpoint and ownership contract is chosen, implement Windows and POSIX leaves
-  for blocking TCP, UDP, and host/service resolution. Keep native handles and error translation
+- Owner: the `net` module from std.core.001.
+- Evidence: the Windows leaf implements blocking IPv4 TCP. There is no POSIX leaf, IPv6,
+  datagram transport or resolver backend yet.
+- Next: extend the address and ownership contracts and implement the missing host leaves for
+  blocking TCP, UDP, and host/service resolution. Keep native handles and error translation
   inside those leaves; add readiness only after the common concurrency contract is decided.
 - Done when: both host backends pass the same loopback, partial-transfer, cancellation,
   resolution-failure, and handle-lifetime tests without exposing native types to callers.

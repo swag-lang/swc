@@ -797,6 +797,24 @@ namespace
         return symbol.srcViewRef().isValid() && builder.compiler().srcView(symbol.srcViewRef()).isGeneratedEqualitySource();
     }
 
+    // A local function can inherit public access without becoming a module declaration. Its
+    // symbol-map owner is not always the enclosing function, so check the source declaration
+    // before assigning a linker-visible API name.
+    bool isExportedFunctionDecl(NativeBackendBuilder& builder, const SymbolFunction& symbol)
+    {
+        const SourceFile* sourceFile = builder.compiler().sourceViewFile(symbol);
+        const SourceFile* astFile    = builder.compiler().ownerSourceFile(symbol.srcViewRef());
+        if (!astFile)
+            astFile = sourceFile;
+        if (!astFile)
+            return true;
+
+        const AstNodeRef declRef = ModuleApi::findSymbolDeclRef(astFile->ast(), symbol);
+        if (declRef.isInvalid())
+            return true;
+        return ModuleApi::isExportedPublicDeclScope(*astFile, declRef, symbol);
+    }
+
     // What a library publishes under its API name, and what an importer can therefore call.
     bool isExportedLibraryFunction(NativeBackendBuilder& builder, const SymbolFunction& symbol, const bool supportsExportedFunctions)
     {
@@ -804,7 +822,8 @@ namespace
             return false;
         if (isExportedOpaqueLifecycleFunction(builder, symbol))
             return true;
-        return symbol.isPublic() && !isCompilerFunction(symbol) && symbol.supportsPublicApiForeignExport() && !isGeneratedEqualityOperator(builder, symbol);
+        return symbol.isPublic() && !isCompilerFunction(symbol) && symbol.supportsPublicApiForeignExport() &&
+               !isGeneratedEqualityOperator(builder, symbol) && isExportedFunctionDecl(builder, symbol);
     }
 
     // A function whose microcode the user asked to see is lowered even when nothing reaches it:

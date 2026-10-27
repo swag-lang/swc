@@ -928,6 +928,66 @@ SWC_FILESYSTEM_TEST_BEGIN(ModuleApi_ScriptCacheDistinguishesEqualSizeAndTimestam
 SWC_TEST_END()
 
 #ifdef _WIN32
+SWC_FILESYSTEM_TEST_BEGIN(Workspace_LocalFunctionDoesNotOverrideNativeImport)
+{
+    ApiPublicationTestDirectory directory("LocalForeignCollision");
+    constexpr std::string_view providerSetup = R"(#run
+{
+    with let cfg = unwrap Swag.compiler().getBuildCfg()
+    {
+        .moduleNamespace = "Provider"
+        .backendKind = .StaticLibrary
+    }
+}
+)";
+    constexpr std::string_view providerSource = R"(#global export
+func host()->s32
+{
+    func send(_: u64, _: const [*] u8?, _: s32, _: s32)->s32 => 99
+    return send(0, null, 0, 0)
+}
+)";
+    constexpr std::string_view consumerSetup = R"(#import("provider")
+#run { Swag.compiler().getBuildCfg()!.backendKind = .Executable }
+)";
+    constexpr std::string_view consumerSource = R"(#foreignlib("ws2_32")
+#[Foreign("ws2_32", callconv: Swag.CallConv.C)]
+func send(socket: u64, buffer: const [*] u8?, length, flags: s32)->s32
+#main
+{
+    Swag.assert(Provider.host() == 99)
+    Swag.assert(send(Swag.U64.Max, null, 0, 0) == -1)
+}
+)";
+    const fs::path modules = directory.path() / "modules";
+    SWC_RESULT(CompilerTestFile::writeText(modules / "provider" / "module.swg", providerSetup));
+    SWC_RESULT(CompilerTestFile::writeText(modules / "provider" / "src" / "provider.swg", providerSource));
+    SWC_RESULT(CompilerTestFile::writeText(modules / "consumer" / "module.swg", consumerSetup));
+    SWC_RESULT(CompilerTestFile::writeText(modules / "consumer" / "src" / "consumer.swg", consumerSource));
+
+    const std::vector<Utf8> arguments = {"build", "--workspace", Utf8(directory.path()), "--workspace-module", "consumer", "--rebuild", "--num-cores", "6"};
+    Os::ProcessRunOptions   options;
+    std::string             output;
+    options.capturedOutput = &output;
+    options.forwardOutput  = false;
+    options.timeoutMs      = 30000;
+    uint32_t exitCode      = UINT32_MAX;
+    if (Os::runProcess(exitCode, Os::getExeFullName(), arguments, directory.path(), &options) != Os::ProcessRunResult::Ok || exitCode != 0)
+    {
+        std::println(stderr, "cannot build the local/foreign collision reproducer:\n{}", output);
+        return Result::Error;
+    }
+
+    const fs::path executable = directory.path() / ".output" / "consumer" / "executable" / "devmode" / "x86_64" / "consumer.exe";
+    output.clear();
+    if (Os::runProcess(exitCode, executable, {}, directory.path(), &options) != Os::ProcessRunResult::Ok || exitCode != 0)
+    {
+        std::println(stderr, "the native import was not resolved independently of the local function:\n{}", output);
+        return Result::Error;
+    }
+}
+SWC_TEST_END()
+
 SWC_FILESYSTEM_TEST_BEGIN(Workspace_ParsesDependentBeforeJoiningItsDependencyLink)
 {
     ApiPublicationTestDirectory directory("WorkspaceParseBeforeLink");

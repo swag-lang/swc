@@ -53,6 +53,8 @@ private const NativeSourceFiles = [
     "bin/std/modules/core/src/time/timer.win32.swg",
     "bin/std/modules/core/src/tests/text/string.growth.win32.test.swg",
     "bin/std/modules/core/src/tests/thread/thread.test.swg",
+    "bin/std/modules/net/src/tcp.win32.swg",
+    "bin/std/modules/net/src/http/client.win32.swg",
     "bin/std/modules/gui/src/application.win32.swg",
     "bin/std/modules/gui/src/clipboard.win32.swg",
     "bin/std/modules/gui/src/dragdrop.win32.swg",
@@ -86,7 +88,8 @@ private const NativeSourceRoots = ["bin/apps/modules/swagvault/src/winfsp/"]
 // native module. Each import is conditional on the target OS in the source itself.
 private const NativeImportFiles = [
     "bin/std/modules/core/module.swg",
-    "bin/std/modules/audio/module.swg"]
+    "bin/std/modules/audio/module.swg",
+    "bin/std/modules/net/module.swg"]
 
 // These neutral files select a portable value, test, or backend at compile time. platform.portability.027 owns the
 // repeated Audio dispatch; new policy does not join this list.
@@ -95,6 +98,7 @@ private const OsDispatchFiles = [
     "bin/std/modules/core/src/config.swg",
     "bin/std/modules/core/src/tests/config.test.swg",
     "bin/std/modules/audio/module.swg",
+    "bin/std/modules/net/module.swg",
     "bin/std/modules/audio/src/driver/backend.swg",
     "bin/std/modules/pixel/src/text/font.swg"]
 

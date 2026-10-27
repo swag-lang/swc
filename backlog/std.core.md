@@ -32,14 +32,13 @@ new module rather than growth inside `core`.
   still round-trips.
 - Related: std.core.021, std.core.022
 
-### std.core.001 — No blocking TCP sockets
+### std.core.001 — Blocking TCP needs portable address coverage
 
-- Evidence: there are no TCP sockets, so a Swag program cannot open even a blocking connection.
-  This rules out servers, clients, tooling that talks to a registry or an API, package
-  management, telemetry, and every application whose value involves a network.
-- Next: put the blocking TCP and address foundation in a `net` module importing `core`; do not
-  put a network stack in the module every program links. Platform leaves are owned by
-  platform.portability.088.
+- Evidence: `net` provides blocking TCP connections and listeners over IPv4 on Windows. IPv6,
+  portable address handling and other host backends remain absent; name resolution belongs to
+  std.core.003. Platform leaves are owned by platform.portability.088.
+- Next: extend the address and transport contract to IPv6 and the next host backend, retaining
+  loopback and failure coverage without putting networking in the module every program links.
 - Done when: a separate net module opens, listens for, accepts, reads, writes, and closes
   blocking TCP connections by portable address, with loopback tests for EOF, partial transfer,
   and connection failure.
@@ -94,10 +93,15 @@ new module rather than growth inside `core`.
   tests for accepted and rejected credentials.
 - Related: std.core.001, std.core.010, std.core.015, std.core.016
 
-### std.core.006 — No HTTP client
+### std.core.006 — HTTP client needs streaming and portable transports
 
-- Next: implement an HTTP/1.1 client over std.core.001 and std.core.005, with streaming bodies,
-  redirects, cancellation, and bounded parsing as its own public contract.
+- Evidence: `Net.Http.get` provides bounded synchronous HTTP/HTTPS GET on Windows through
+  WinHTTP, with system certificate validation, phase timeout settings, explicit redirect responses and
+  local-server tests. URL component encoding and a restricted HTTP URL parser are available.
+  The host can enforce timeouts coarsely; streaming, active cancellation, strict deadlines and
+  other host backends remain open.
+- Next: add streaming request and response bodies, bounded redirect policy and cancellation,
+  with a portable contract over std.core.001 and std.core.005 or an explicit backend decision.
 - Done when: an HTTP/1.1 client streams requests and responses, follows bounded redirect
   policy, cancels active transfers, and rejects oversized or malformed headers in local-server
   tests.

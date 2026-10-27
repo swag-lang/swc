@@ -48,17 +48,14 @@ impl IActionUI for ActionEdit
             {
                 for it in capture.selection
                 {
-                    let itfForm = capture.forms[it]
-                    if Swag.kindOf(itfForm) != FormImage do
-                        continue
-                    let b = assume cast(*FormImage, itfForm)
-                    if b.kind != .Image do
-                        continue
-                    evt.hidden = false
-                    if b.image.isValid()
+                    if capture.forms[it] is FormImage as image where image.kind == .Image
                     {
-                        evt.disabled = false
-                        break
+                        evt.hidden = false
+                        if image.image.isValid()
+                        {
+                            evt.disabled = false
+                            break
+                        }
                     }
                 }
             }

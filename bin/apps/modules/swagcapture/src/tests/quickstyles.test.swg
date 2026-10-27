@@ -259,9 +259,7 @@ using Swag, Core
             let button = assume cast(*QuickButton, c)
             if button.isModel or not button.formItf do
                 continue
-            if Swag.kindOf(button.formItf) != FormImage do
-                continue
-            if assume cast(*FormImage, button.formItf).kind == .Blur do
+            if button.formItf is FormImage as image where image.kind == .Blur do
                 return button.toolTip
         }
 

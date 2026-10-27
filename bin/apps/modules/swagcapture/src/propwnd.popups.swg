@@ -142,11 +142,9 @@ impl PropWnd
 
         func selectedCap(prop: *PropWnd, begin: bool)->LineCapStyle
         {
-            let type = prop.getSelectedFormType()
-            if type != FormLine and type != FormArrow do
-                return .None
-            let curSel = assume cast(*FormLine, prop.getSelectedBaseForm())
-            return begin ? curSel.beginCap : curSel.endCap
+            if prop.getSelectedBaseForm() is FormLine as curSel do
+                return begin ? curSel.beginCap : curSel.endCap
+            return .None
         }
 
         let cur = selectedCap(me, begin)

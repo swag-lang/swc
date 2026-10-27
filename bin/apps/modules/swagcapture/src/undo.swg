@@ -47,11 +47,8 @@ func formEditableText(f: IForm)->*String?
 
 func formEditableTextDirty(f: IForm)
 {
-    if Swag.kindOf(f) == FormText
-    {
-        let b = assume cast(*FormText, f)
-        b.isDirty = true
-    }
+    if f is FormText as text do
+        text.isDirty = true
 }
 
 // Font name/style also live on both FormText and FormCallout; the SetFont/SetFontStyle
@@ -82,11 +79,8 @@ func formFontStylePtr(f: IForm)->*FontFamilyStyle?
 // its render form from live fields each paint, so it needs no explicit flag here.
 func formFontDirty(f: IForm)
 {
-    if Swag.kindOf(f) == FormText
-    {
-        let b = assume cast(*FormText, f)
-        b.isDirtyFont = true
-    }
+    if f is FormText as text do
+        text.isDirtyFont = true
 }
 
 // One undoable edit of a capture: its kind, the selection it applied to, and the values before

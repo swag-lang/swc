@@ -60,10 +60,7 @@ struct XmlPayload
     var decoder:    Serialization.Decoder'Serialization.Read.Xml
     var errOutcome: Swag.Error
     discard catch CoreTests.readAndDelete'(XmlPayload, Serialization.Read.Xml)(&decoder, invalidXml.toSlice()) as errOutcome
-    let err = errOutcome.value()
-    Swag.assert(err is SyntaxError)
-
-    let syntax = assume cast(*SyntaxError, err)
+    let syntax = expect cast(*SyntaxError, errOutcome.value())
     Swag.assert(syntax.line == 5 and syntax.col == 3)
 }
 

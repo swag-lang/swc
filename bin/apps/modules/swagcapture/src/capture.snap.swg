@@ -8,17 +8,13 @@ impl Capture
         var result: #returntype
 
         let form = editForm orelse .forms[.selection[0]]
-        let type = Swag.kindOf(form)
-
-        if .selection.count == 1 and type == FormPolygon
+        if form is FormPolygon as poly where .selection.count == 1
         {
-            let poly = assume cast(*FormPolygon, form)
             result.x = poly.points[idxPt].x + nx
             result.y = poly.points[idxPt].y + ny
         }
-        elif (.selection.count == 1 or editForm) and (type == FormLine or type == FormArrow)
+        elif form is FormLine as line where .selection.count == 1 or editForm
         {
-            let line = assume cast(*FormLine, form)
             if not right or not bottom
             {
                 result.x = line.xa

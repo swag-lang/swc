@@ -49,14 +49,13 @@ impl PropWnd
 
     // Returns the outer contour color of a stroke form. Filled forms and text already use the
     // shared BaseForm outline, while these three forms need a second stroke around their core.
+    // An arrow is a line, so it answers through the line case.
     mtd strokeOutlineColor()->Color
     {
-        let curSel = .getSelectedBaseForm()
-        switch .getSelectedFormType()
+        switch .getSelectedBaseForm()
         {
-        case FormLine:  return assume cast(*FormLine, curSel).outlineColor
-        case FormArrow: return assume cast(*FormArrow, curSel).outlineColor
-        case FormDraw:  return assume cast(*FormDraw, curSel).outlineColor
+        case FormLine as line: return line.outlineColor
+        case FormDraw as draw: return draw.outlineColor
         }
 
         return Argb.Black
@@ -232,11 +231,11 @@ impl PropWnd
 
         button.iconPainter = func|prop = me|(button, bc, pos, _)
         {
-            if prop.getSelectedFormType() != FormLine and prop.getSelectedFormType() != FormArrow do
-                return
-            let curSel = assume cast(*FormLine, prop.getSelectedBaseForm())
-            bc.painter.setParams(.Antialiased)
-            drawCapGlyph(bc.painter, curSel.beginCap, true, pos, button.themeColors().btnIcon_Icon)
+            if prop.getSelectedBaseForm() is FormLine as curSel
+            {
+                bc.painter.setParams(.Antialiased)
+                drawCapGlyph(bc.painter, curSel.beginCap, true, pos, button.themeColors().btnIcon_Icon)
+            }
         }
 
         button.sigPopupRequested += func|prop = me|(button)
@@ -255,11 +254,11 @@ impl PropWnd
         let button = createStyleButton(stack, appStrings().ui_PropEnd)
         button.iconPainter = func|prop = me|(button, bc, pos, _)
         {
-            if prop.getSelectedFormType() != FormLine and prop.getSelectedFormType() != FormArrow do
-                return
-            let curSel = assume cast(*FormLine, prop.getSelectedBaseForm())
-            bc.painter.setParams(.Antialiased)
-            drawCapGlyph(bc.painter, curSel.endCap, false, pos, button.themeColors().btnIcon_Icon)
+            if prop.getSelectedBaseForm() is FormLine as curSel
+            {
+                bc.painter.setParams(.Antialiased)
+                drawCapGlyph(bc.painter, curSel.endCap, false, pos, button.themeColors().btnIcon_Icon)
+            }
         }
 
         button.sigPopupRequested += func|prop = me|(button)

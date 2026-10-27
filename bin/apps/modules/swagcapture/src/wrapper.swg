@@ -195,23 +195,12 @@ impl MainWnd
         // A new form starts without the model content, just its style
         if clear
         {
-            switch mdlType
+            switch mdl
             {
-            case FormImage:
-                let f = assume cast(*FormImage, mdl)
-                f.image.release()
-
-            case FormPolygon:
-                let f = assume cast(*FormPolygon, mdl)
-                f.points.clear()
-
-            case FormDraw:
-                let f = assume cast(*FormDraw, mdl)
-                f.points.clear()
-
-            case FormCallout:
-                let f = assume cast(*FormCallout, mdl)
-                f.text.clear()
+            case FormImage as image:     image.image.release()
+            case FormPolygon as polygon: polygon.points.clear()
+            case FormDraw as draw:       draw.points.clear()
+            case FormCallout as callout: callout.text.clear()
             }
         }
 

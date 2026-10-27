@@ -19,14 +19,10 @@ impl Capture
 
             // The first plain picture also travels as a bitmap, for the applications that
             // cannot read forms.
-            if not imgDone and Swag.kindOf(itf) == FormImage
+            if itf is FormImage as fimg where not imgDone and fimg.kind == .Image and fimg.image.isValid()
             {
-                let fimg = assume cast(*FormImage, itf)
-                if fimg.kind == .Image and fimg.image.isValid()
-                {
-                    imgDone = true
-                    Clipboard.addImage(fimg.image)
-                }
+                imgDone = true
+                Clipboard.addImage(fimg.image)
             }
 
             payload.add(itf)

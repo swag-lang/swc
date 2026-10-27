@@ -308,27 +308,18 @@ func testUndoFuzzFormOf(itf: IForm)->UndoFuzzForm
     result.rect   = itf.boundRect()
     result.rotate = assume cast(*BaseForm, itf).rotate
 
-    if result.kind == FormLine
+    // An arrow is a line, so it answers through the line case.
+    switch itf
     {
-        let line = assume cast(*FormLine, itf)
+    case FormLine as line:
         result.points.add(Math.Vector2{cast(f32, line.xa), cast(f32, line.ya)})
         result.points.add(Math.Vector2{cast(f32, line.xb), cast(f32, line.yb)})
-    }
-    elif result.kind == FormArrow
-    {
-        let arrow = assume cast(*FormArrow, itf)
-        result.points.add(Math.Vector2{cast(f32, arrow.xa), cast(f32, arrow.ya)})
-        result.points.add(Math.Vector2{cast(f32, arrow.xb), cast(f32, arrow.yb)})
-    }
-    elif result.kind == FormPolygon
-    {
-        let poly = assume cast(*FormPolygon, itf)
+
+    case FormPolygon as poly:
         for pt in poly.points do
             result.points.add(pt)
-    }
-    elif result.kind == FormDraw
-    {
-        let draw = assume cast(*FormDraw, itf)
+
+    case FormDraw as draw:
         for pt in draw.points do
             result.points.add(pt)
     }

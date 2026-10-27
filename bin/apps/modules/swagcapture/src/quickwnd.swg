@@ -124,9 +124,8 @@ impl QuickStylePaintForm
 
         // The callout tail lives in canvas space and is never carried by a style; give the
         // preview a shortened body and an in-cell downward tail so it renders to scale.
-        if Swag.kindOf(paintItf) == FormCallout
+        if paintItf is FormCallout as cl
         {
-            let cl = assume cast(*FormCallout, paintItf)
             cl.text = "A"
 
             // Read as a clean speech bubble: quick mode already normalizes the glyph size to
@@ -157,16 +156,12 @@ impl QuickStylePaintForm
     // flat by the cell and the preset reads as broken rather than as pointed.
     func sampleInset(itf: IForm, cxt: FormPaintContext)->f32
     {
-        let sel  = assume cast(*BaseForm, itf)
-        let type = Swag.kindOf(itf)
-
         // An arrow is a line carrying its own defaults, so both answer through the line.
-        if type == FormLine or type == FormArrow
+        if itf is FormLine as line
         {
             // The line ends are shaped from the stroke and the contour is pushed out around the
             // result, so the contour adds its own width once instead of widening the stroke the
             // ends are measured against.
-            let line  = assume cast(*FormLine, itf)
             let sizes = line.paintSizes(cxt)
             let beg   = Painter.capStyleExtent(line.beginCap, sizes.stroke, sizes.begScale)
             let end   = Painter.capStyleExtent(line.endCap, sizes.stroke, sizes.endScale)
@@ -179,9 +174,10 @@ impl QuickStylePaintForm
             return room * Math.ConstF32.OneBySqrt2
         }
 
+        let sel   = assume cast(*BaseForm, itf)
         var inset = BaseForm.adaptSize(sel.borderSize / 2, MinBorderSize, MaxBorderSize, cxt)
-        if type == FormDraw do
-            inset += assume cast(*FormDraw, itf).paintOutlineSize(cxt)
+        if itf is FormDraw as draw do
+            inset += draw.paintOutlineSize(cxt)
         return inset
     }
 }

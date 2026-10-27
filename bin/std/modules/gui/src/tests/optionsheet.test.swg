@@ -153,6 +153,8 @@ func rowCenter(sheet: *OptionSheet.View, label: string)->Math.Point
         Swag.assert(sheet.depth() == 2)
 
         host.fireTimers()
+        Swag.assert(sheet.depth() == 1)
+        Swag.assert(sheet.levels.back().scroll == 0)
         host.finishAnimations()
         Swag.assert(sheet.depth() == 1)
         Swag.assert(sheet.page.rows[1].value == "English")
@@ -476,6 +478,48 @@ func rowCenter(sheet: *OptionSheet.View, label: string)->Math.Point
     })
 }
 
+// A page that must scroll positions its checked last choice for the destination height immediately.
+#test
+{
+    var host: Testing.HeadlessHost
+    host.setup(480, 240)
+    host.setReducedMotion(false)
+
+    var model: SheetModel
+    model.rate = 2
+    runSheet(&host,
+             &model,
+             func||(sheet)
+             {
+                 Swag.assert(sheet.activateRow("Speed"))
+                 let targetHeight = Math.min(sheet.contentHeight(&sheet.page, sheet.depth()), sheet.maxBodyHeight)
+                 let metrics      = sheet.themeMetrics()
+                 let targetList   = Math.max(targetHeight - metrics.optionSheet_HeaderHeight - metrics.menuPopup_BarItemOverlap, 0)
+                 let focusBottom  = sheet.rowTop(&sheet.page, sheet.focusRow) + sheet.rowHeight(&sheet.page.rows[sheet.focusRow]) + metrics.optionSheet_Inset
+                 Swag.assert(sheet.bodyHeight != targetHeight)
+                 Swag.assert(sheet.levels.back().scroll > 0)
+                 Swag.assert(focusBottom <= sheet.levels.back().scroll + targetList)
+             },
+             buttonRect: {300, 8, 40, 36})
+}
+
+// The anchored arrival keeps its paint-only movement on whole pixels throughout the fade.
+#test
+{
+    var host: Testing.HeadlessHost
+    host.setup(480, 520)
+    host.setReducedMotion(false)
+
+    var model: SheetModel
+    runSheet(&host, &model, func|host = &host|(sheet)
+    {
+        host.advanceAnimations(sheet.themeMetrics().motion_PanelSeconds * 0.37)
+        Swag.assert(sheet.presentationOffset.x == Math.round(sheet.presentationOffset.x))
+        Swag.assert(sheet.presentationOffset.y == Math.round(sheet.presentationOffset.y))
+        host.finishAnimations()
+    })
+}
+
 // A sheet whose button sits high in the window hangs below it; one that cannot hold its rows
 // scrolls them, and keeps the focused row in view.
 #test
@@ -613,8 +657,13 @@ func assertSheetGolden(shot: SheetShot)
                  for label in [shot.first, shot.second] where label
                  {
                      Swag.assert(sheet.activateRow(label))
-                     if shot.halfway and label == (shot.second orelse shot.first) do
+                     if shot.halfway and label == (shot.second orelse shot.first)
+                     {
                          host.advanceAnimations(sheet.themeMetrics().motion_PanelSeconds * 0.5)
+                         Swag.assert(sheet.bodyHeight == Math.round(sheet.bodyHeight))
+                         Swag.assert(sheet.position.x == Math.round(sheet.position.x))
+                         Swag.assert(sheet.position.y == Math.round(sheet.position.y))
+                     }
                      else do
                          host.finishAnimations()
                  }

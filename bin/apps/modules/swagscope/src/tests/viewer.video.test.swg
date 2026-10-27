@@ -691,12 +691,27 @@ func videoMatroskaFixturePath()->String => Path.combine(unwrap Path.directoryNam
     Swag.assert(view.optionsButton.text() == "" and view.optionsButton.isEnabled())
     Swag.assert(view.audio != null and view.voice != null)
 
+    // A changed speed keeps its button badge until the anchored sheet releases the button.
+    let buttonWidth = view.optionsButton.position.width
+    view.optionsOpen = true
+    view.setPlaybackRate(1.5)
+    Swag.assert(view.optionsButton.text() == "")
+    Swag.assert(view.optionsButton.position.width == buttonWidth)
+    view.optionsOpen = false
+    view.setPlaybackRate(1.25)
+    Swag.assert(view.optionsButton.text().count > 0)
+    Swag.assert(view.optionsButton.position.width > buttonWidth)
+    view.setPlaybackRate(1)
+    Swag.assert(view.optionsButton.text() == "")
+    Swag.assert(view.optionsButton.position.width == buttonWidth)
+
     // The speed entry rescales the voice with the clock, and the summary declares the rate.
     host.activateOptionRowWhenShown(Film.texts().ui_OptionSpeed)
     host.thenActivateOptionRow("2×")
     view.showOptions()
     Swag.assert(view.playbackRate == 2)
     Swag.assert(view.optionsButton.text() == "2×")
+    Swag.assert(view.optionsButton.position.width > buttonWidth)
     Swag.assert(Math.isEqualEpsilon(expect view.voice.frequencyRatio(), 2, 0.001))
     Swag.assert(view.details.indexOf("2×") != Swag.U64.Max)
     view.setPlaybackRate(1)

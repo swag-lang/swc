@@ -246,6 +246,7 @@ struct Panel
     autoPlayPending:  bool = true
     muted:            bool
     playbackRate:     f64  = 1
+    optionsOpen:      bool
     volume:           f32  = 1
     details:          String
     metadataReady:    bool
@@ -399,7 +400,8 @@ impl Panel
         // keeps correcting the picture back onto the sound.
         if .voice do
             catch .voice.setFrequencyRatio(cast(f32, rate))
-        .refreshOptionsBadge()
+        if not .optionsOpen do
+            .refreshOptionsBadge()
         .refreshDetails()
     }
 
@@ -820,6 +822,8 @@ private impl Panel
     // Writes the playback rate beside the options button while it is not the normal one.
     mtd refreshOptionsBadge()
     {
+        if .optionsOpen do
+            return
         Viewer.setOptionsBadge(.optionsButton, .playbackRate == 1 ? "" : Format.toString("%×", .playbackRate))
     }
 

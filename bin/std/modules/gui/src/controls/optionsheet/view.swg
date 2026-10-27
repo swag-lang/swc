@@ -570,10 +570,11 @@ private impl View
     mtd arrivalOffset()->Math.Point
     {
         let remaining = 1 - .openProgress
+        // The window carries text and icons, so a fractional paint transform would soften them.
         switch .placement
         {
-        case .BottomSheet: return {0, remaining * .bodyHeight}
-        case .SidePanel:   return {remaining * .bodyWidth, 0}
+        case .BottomSheet: return {0, Math.round(remaining * .bodyHeight)}
+        case .SidePanel:   return {Math.round(remaining * .bodyWidth), 0}
         default:           return {}
         }
     }
@@ -592,7 +593,7 @@ private impl View
             .setPresentationOffset({0, rise})
             var group = AnimationGroup.concurrent()
             group.addF32(me, AnimationChannel.from(OpenChannel), 0, 1, func(wnd, value) { wnd.setPresentationOpacity(value) }, options)
-            group.addPoint(me, AnimationChannel.from("Gui.OptionSheet.Rise"), {0, rise}, {}, func(wnd, value) { wnd.setPresentationOffset(value) }, options)
+            group.addPoint(me, AnimationChannel.from("Gui.OptionSheet.Rise"), {0, rise}, {}, func(wnd, value) { wnd.setPresentationOffset({Math.round(value.x), Math.round(value.y)}) }, options)
             discard .app().animator.start(#move group)
             return
         }
@@ -811,11 +812,15 @@ private impl View
             return
 
         let target = Math.min(.contentHeight(&.page, .levels.count), .maxBodyHeight)
+        .clampScroll(target)
+        .revealFocus(target)
         .app().animator.cancel(.heightHandle)
         if not animate or target == .bodyHeight
         {
             .bodyHeight = target
             .place()
+            .clampScroll()
+            .revealFocus()
             return
         }
 
@@ -825,8 +830,11 @@ private impl View
 
         func updateHeight(sheet: *View, value: f32)
         {
-            sheet.bodyHeight = value
+            // The body edge and its text move together; keep both aligned to the pixel grid.
+            sheet.bodyHeight = Math.round(value)
             sheet.place()
+            sheet.clampScroll()
+            sheet.revealFocus()
         }
 
         let completeHeight = func|me, target|(_: AnimationResult)
@@ -953,8 +961,13 @@ private impl View
 
     mtd clampScroll()
     {
-        let list     = .listRect(.levels.count)
-        let overflow = Math.max(.contentHeight(&.page, .levels.count) - .headerHeight(.levels.count) - list.height, 0)
+        .clampScroll(.bodyHeight)
+    }
+
+    // Clamps against the body height that a page is moving toward, before that height is visible.
+    mtd clampScroll(bodyHeight: f32)
+    {
+        let overflow = Math.max(.contentHeight(&.page, .levels.count) - bodyHeight, 0)
         let level    = .levels.backPtr()
         level.scroll = Math.clamp(level.scroll, 0, overflow)
     }
@@ -962,21 +975,28 @@ private impl View
     // Scrolls the list so the focused row is entirely visible.
     mtd revealFocus()
     {
+        .revealFocus(.bodyHeight)
+    }
+
+    // Reveals the focused row in the viewport the page is moving toward, not only its old height.
+    mtd revealFocus(bodyHeight: f32)
+    {
         if .focusRow < 0
         {
             .levels.backPtr().scroll = 0
             return
         }
 
-        let list   = .listRect(.levels.count)
-        let level  = .levels.backPtr()
-        let top    = .rowTop(&.page, .focusRow)
-        let bottom = top + .rowHeight(&.page.rows[.focusRow]) + .rowBottomInset()
+        let header     = .headerHeight(.levels.count)
+        let listHeight = Math.max(bodyHeight - header, 0)
+        let level      = .levels.backPtr()
+        let top        = .rowTop(&.page, .focusRow)
+        let bottom     = top + .rowHeight(&.page.rows[.focusRow]) + .rowBottomInset()
         if top - .rowTopInset() < level.scroll do
             level.scroll = top - .rowTopInset()
-        elif bottom > level.scroll + list.height do
-            level.scroll = bottom - list.height
-        .clampScroll()
+        elif bottom > level.scroll + listHeight do
+            level.scroll = bottom - listHeight
+        .clampScroll(bodyHeight)
     }
 
     // Finds the part of the page on screen under the local point `pos`.
@@ -1079,6 +1099,8 @@ private impl View
     // Paints `page`, `levels` pages deep, shifted by `offsetX` and faded to `opacity`.
     mtd paintPage(painter: *Painter, page: const *Page, levels: u64, offsetX: f32, opacity: f32, focus: s32, scroll: f32)
     {
+        // Slide progress is continuous; glyphs and icons still need whole-pixel coordinates.
+        let pixelOffsetX = Math.round(offsetX)
         let theme   = .theme()
         let colors  = .themeColors()
         let rects   = .themeRects()
@@ -1094,12 +1116,12 @@ private impl View
             if grip
             {
                 let width = metrics.optionSheet_HeaderHeight
-                let line  = Math.Rectangle{.body.horzCenter() - width * 0.5 + offsetX, .body.y + grip * 0.5, width, 4}
+                let line  = Math.Rectangle{.body.horzCenter() - width * 0.5 + pixelOffsetX, .body.y + grip * 0.5, width, 4}
                 painter.fillRoundRect(line, 2, 2, fade(colors.optionSheet_StepBorder, opacity))
             }
 
             let headerTop = .headerTopInset(levels)
-            var band = Math.Rectangle{.body.x + offsetX, .body.y + grip + headerTop, .body.width, header - grip - headerTop}
+            var band = Math.Rectangle{.body.x + pixelOffsetX, .body.y + grip + headerTop, .body.width, header - grip - headerTop}
             if focused and focus == HeaderFocus
             {
                 var ground = band
@@ -1126,7 +1148,7 @@ private impl View
         // The rows scroll under the header.
         var list = .listRect(levels)
         painter.pushClippingRect(list)
-        list.x += offsetX
+        list.x += pixelOffsetX
         var y = list.y + .rowTopInset() - scroll
         for row, index in page.rows
         {

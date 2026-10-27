@@ -36,8 +36,11 @@ namespace SemaGeneric
         AstNodeRef paramRef     = AstNodeRef::invalid();
         AstNodeRef explicitType = AstNodeRef::invalid();
         AstNodeRef defaultRef   = AstNodeRef::invalid();
+        AstNodeRef erasedBound  = AstNodeRef::invalid(); // 'T is Bound'
 
         IdentifierRef idRef = IdentifierRef::invalid();
+
+        bool isErased() const { return erasedBound.isValid(); }
     };
 
     struct GenericResolvedArg
@@ -90,6 +93,10 @@ namespace SemaGeneric
 
     Result deduceGenericFunctionArgs(Sema& sema, const SymbolFunction& root, std::span<const GenericParamDesc> genericParams, SmallVector<GenericResolvedArg>& ioResolvedArgs, std::span<AstNodeRef> args, AstNodeRef ufcsArg, CastFailure* outFailure = nullptr, uint32_t* outFailureArgIndex = nullptr);
     Result resolveFunctionCallParamType(Sema& sema, const SymbolFunction& function, AstNodeRef calleeRef, std::span<AstNodeRef> args, AstNodeRef ufcsArg, AstNodeRef childRef, TypeRef& outTypeRef, bool requireCompleteGenericArgs = false);
+
+    // An erased instance reads every 'T' through its bound, so each argument has to fit its
+    // parameter typed with the 'T' the call deduced. Deduction alone skips callbacks.
+    Result checkErasedCallArgs(Sema& sema, const SymbolFunction& root, std::span<const GenericParamDesc> genericParams, std::span<const GenericResolvedArg> resolvedArgs, std::span<AstNodeRef> args, AstNodeRef ufcsArg, CastFailure* outFailure, uint32_t* outFailureArgIndex, bool& outFits);
 
     Result evaluateFunctionWhereConstraints(Sema& sema, bool& outSatisfied, const SymbolFunction& function, CastFailure* outFailure = nullptr);
 

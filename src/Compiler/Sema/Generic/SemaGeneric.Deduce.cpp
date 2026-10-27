@@ -265,6 +265,23 @@ namespace
         return false;
     }
 
+    bool typeMentionsErasedParam(Sema& sema, std::span<const SemaGeneric::GenericParamDesc> params, AstNodeRef typeRef)
+    {
+        if (typeRef.isInvalid())
+            return false;
+
+        const AstNode& typeNode = sema.node(typeRef);
+        if (const auto* ident = typeNode.safeCast<AstIdentifier>())
+        {
+            const IdentifierRef idRef = SemaHelpers::resolveIdentifier(sema, ident->codeRef());
+            return std::ranges::any_of(params, [&](const SemaGeneric::GenericParamDesc& param) { return param.isErased() && param.idRef == idRef; });
+        }
+
+        SmallVector<AstNodeRef> children;
+        typeNode.collectChildrenFromAst(children, sema.ast());
+        return std::ranges::any_of(children, [&](AstNodeRef childRef) { return typeMentionsErasedParam(sema, params, childRef); });
+    }
+
     struct GenericCallArgMapping
     {
         SmallVector<SemaGeneric::GenericCallArgEntry> paramArgs;
@@ -1551,6 +1568,73 @@ namespace SemaGeneric
                 return Result::Pause;
             if (defaultResult == Result::Error)
                 return Result::Continue;
+        }
+
+        return Result::Continue;
+    }
+
+    Result checkErasedCallArgs(Sema& sema, const SymbolFunction& root, std::span<const GenericParamDesc> genericParams, std::span<const GenericResolvedArg> resolvedArgs, std::span<AstNodeRef> args, AstNodeRef ufcsArg, CastFailure* outFailure, uint32_t* outFailureArgIndex, bool& outFits)
+    {
+        outFits = true;
+        if (std::ranges::none_of(genericParams, [](const GenericParamDesc& param) { return param.isErased(); }))
+            return Result::Continue;
+
+        const auto* decl = root.declAs<AstFunctionDecl>();
+        if (!decl)
+            return Result::Continue;
+
+        std::unique_ptr<Sema> declSemaHolder;
+        Sema*                 declSema = SemaDeclHelpers::tryCreateForSymbol(sema, root, declSemaHolder);
+        if (!declSema)
+            declSema = &sema;
+
+        SmallVector<GenericFunctionParamDesc> params;
+        collectFunctionParamDescsImpl(*declSema, root, *decl, params);
+
+        GenericCallArgMapping mapping;
+        const bool            prependUfcsArg = ufcsArg.isValid() && (!root.isMethod() || genericFunctionParamsExposeReceiver(sema, params.span()));
+        if (!buildGenericCallArgMapping(sema, params.span(), args, ufcsArg, prependUfcsArg, mapping))
+            return Result::Continue;
+
+        const Internal::ResolvedGenericBindingSource source{genericParams, resolvedArgs};
+        SmallVector<SemaClone::ParamBinding>         bindings;
+        Internal::buildPartialGenericContextBindings(sema, root, source, genericParams.size(), bindings);
+
+        for (uint32_t i = 0; i < mapping.paramArgs.size(); ++i)
+        {
+            const GenericCallArgEntry& entry = mapping.paramArgs[i];
+            if (entry.argRef.isInvalid() || entry.allowImplicitAddressBinding || params[i].isVariadic)
+                continue;
+            if (!typeMentionsErasedParam(*declSema, genericParams, params[i].typeRef))
+                continue;
+
+            TypeRef expectedTypeRef = TypeRef::invalid();
+            if (const auto* lambdaType = declSema->node(params[i].typeRef).safeCast<AstLambdaType>())
+                SWC_RESULT(buildPartialLambdaBindingType(*declSema, root, *lambdaType, bindings.span(), expectedTypeRef));
+            else
+                SWC_RESULT(resolveBoundTypeNode(*declSema, root, params[i].typeRef, bindings.span(), expectedTypeRef));
+
+            const AstNodeRef valueArgRef = Match::resolveCallArgumentValueRef(sema, entry.argRef);
+            TypeRef          argTypeRef  = TypeRef::invalid();
+            SWC_RESULT(resolveCallArgTypeForGenericDeduction(sema, argTypeRef, valueArgRef));
+            if (!expectedTypeRef.isValid() || !argTypeRef.isValid())
+                continue;
+
+            CastRequest castRequest(CastKind::Parameter);
+            castRequest.errorNodeRef = valueArgRef;
+            castRequest.probing      = true;
+            const Result castResult  = Cast::castAllowed(sema, castRequest, argTypeRef, expectedTypeRef);
+            if (castResult == Result::Pause)
+                return Result::Pause;
+            if (castResult == Result::Continue)
+                continue;
+
+            outFits = false;
+            if (outFailure)
+                *outFailure = castRequest.failure;
+            if (outFailureArgIndex)
+                *outFailureArgIndex = entry.callArgIndex;
+            return Result::Continue;
         }
 
         return Result::Continue;

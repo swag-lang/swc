@@ -110,8 +110,9 @@ namespace
 
         if (const auto* nodeType = paramNode.safeCast<AstGenericParamType>())
         {
-            desc.kind       = SemaGeneric::GenericParamKind::Type;
-            desc.defaultRef = nodeType->nodeAssignRef;
+            desc.kind        = SemaGeneric::GenericParamKind::Type;
+            desc.defaultRef  = nodeType->nodeAssignRef;
+            desc.erasedBound = nodeType->nodeBoundRef;
         }
         else
         {

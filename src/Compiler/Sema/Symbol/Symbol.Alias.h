@@ -23,12 +23,18 @@ public:
 
     bool isStrict() const { return attributes().hasRtFlag(RtAttributeFlagsE::Strict); }
 
+    // The strict alias an erased generic parameter ('T is Bound') is bound to in its single
+    // instance. Its underlying type is the bound.
+    bool isErasedParam() const { return erasedParam_; }
+    void setErasedParam() { erasedParam_ = true; }
+
     uint64_t sizeOf(TaskContext& ctx) const { return ctx.typeMgr().get(underlyingTypeRef()).sizeOf(ctx); }
     uint32_t alignOf(TaskContext& ctx) const { return ctx.typeMgr().get(underlyingTypeRef()).alignOf(ctx); }
 
 private:
     const Symbol* aliasedSymbol_     = nullptr;
     TypeRef       underlyingTypeRef_ = TypeRef::invalid();
+    bool          erasedParam_       = false;
 };
 
 SWC_END_NAMESPACE();

@@ -246,11 +246,59 @@ namespace
         // Infallible callees leave the error flag clear, so fallible callers
         // can use them without an adapter.
         WidenToFallible = 1 << 1,
+
+        // An argument of an erased generic function: a parameter that reads 'T is Bound'
+        // through a pointer accepts a pointer to a struct that starts with the bound.
+        ErasedParams = 1 << 2,
+
+        // An explicit cast: a pointer to an erased 'T' becomes a pointer to its bound.
+        ErasedToBound = 1 << 3,
     };
 
     using SignatureMatch = EnumFlags<SignatureMatchE>;
 
     bool sameFunctionTypeRecursive(Sema& sema, TypeRef leftTypeRef, TypeRef rightTypeRef);
+
+    const SymbolAlias* erasedParamAlias(const TypeInfo& type)
+    {
+        if (!type.isAlias() || !type.payloadSymAlias().isErasedParam())
+            return nullptr;
+        return &type.payloadSymAlias();
+    }
+
+    // Instantiation already proved that the deduced 'T' starts with the bound, and the
+    // argument was typed from that 'T', so the pointee only has to reach the bound by value.
+    bool erasedParamMatches(Sema& sema, TypeRef srcTypeRef, TypeRef dstTypeRef, SignatureMatch match)
+    {
+        const TypeManager& typeMgr = sema.typeMgr();
+        const TypeInfo&    srcType = typeMgr.get(srcTypeRef);
+        const TypeInfo&    dstType = typeMgr.get(dstTypeRef);
+        if (!srcType.isValuePointer() || !dstType.isValuePointer() || srcType.flags() != dstType.flags())
+            return false;
+
+        const TypeInfo& srcPointee = typeMgr.get(srcType.payloadTypeRef());
+        const TypeInfo& dstPointee = typeMgr.get(dstType.payloadTypeRef());
+
+        if (match.has(SignatureMatchE::ErasedToBound))
+        {
+            const SymbolAlias* srcAlias = erasedParamAlias(srcPointee);
+            return srcAlias && srcAlias->underlyingTypeRef() == dstType.payloadTypeRef();
+        }
+
+        const SymbolAlias* dstAlias = erasedParamAlias(dstPointee);
+        if (!dstAlias)
+            return false;
+
+        const TypeInfo* candidate = &srcPointee;
+        if (const SymbolAlias* srcAlias = erasedParamAlias(srcPointee))
+            candidate = &typeMgr.get(srcAlias->underlyingTypeRef());
+        if (!candidate->isStruct())
+            return false;
+
+        SmallVector<SymbolStructUsingPathStep> usingPath;
+        const SymbolStruct&                    boundStruct = typeMgr.get(dstAlias->underlyingTypeRef()).payloadSymStruct();
+        return candidate->payloadSymStruct().resolveUsingFieldPath(sema.ctx(), boundStruct, usingPath) && !SymbolStruct::usingPathHasPointerStep(usingPath);
+    }
 
     TypeRef methodReceiverTypeRef(Sema& sema, const SymbolFunction& func)
     {
@@ -305,11 +353,14 @@ namespace
         if (leftParams.size() != rightParams.size())
             return false;
 
+        const bool erased = match.hasAny({SignatureMatchE::ErasedParams, SignatureMatchE::ErasedToBound});
         for (uint32_t i = 0; i < leftParams.size(); ++i)
         {
             SWC_ASSERT(leftParams[i] != nullptr);
             SWC_ASSERT(rightParams[i] != nullptr);
-            if (!sameFunctionTypeRecursive(sema, leftParams[i]->typeRef(), rightParams[i]->typeRef()))
+            if (sameFunctionTypeRecursive(sema, leftParams[i]->typeRef(), rightParams[i]->typeRef()))
+                continue;
+            if (!erased || !erasedParamMatches(sema, leftParams[i]->typeRef(), rightParams[i]->typeRef(), match))
                 return false;
         }
 
@@ -907,6 +958,22 @@ Result Cast::castToFunction(Sema& sema, CastRequest& castRequest, TypeRef srcTyp
                 castRequest.usedFallibleWidening = true;
                 return Result::Continue;
             }
+        }
+
+        // A callback reaches an erased generic function typed with the 'T' of the call; inside,
+        // the function hands it to storage typed with the bound only through an explicit cast.
+        SignatureMatch erasedMatch = SignatureMatchE::Zero;
+        if (castRequest.kind == CastKind::Parameter)
+            erasedMatch = SignatureMatchE::ErasedParams;
+        else if (castRequest.kind == CastKind::Explicit)
+            erasedMatch = SignatureMatchE::ErasedToBound;
+
+        if (erasedMatch != SignatureMatchE::Zero)
+        {
+            if (!srcFunc.isClosure() && dstFunc.isClosure())
+                erasedMatch = erasedMatch | SignatureMatchE::IgnoreClosure;
+            if (sameFunctionSignatureRecursive(sema, srcFunc, dstFunc, erasedMatch))
+                return Result::Continue;
         }
     }
 

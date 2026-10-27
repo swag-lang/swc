@@ -1416,6 +1416,14 @@ struct AstGenericParamValue : AstGenericParamT<AstNodeId::GenericParamValue>
 
 struct AstGenericParamType : AstGenericParamT<AstNodeId::GenericParamType>
 {
+    AstNodeRef nodeBoundRef; // 'T is Bound': the parameter is erased to its bound
+
+    void collectChildren(SmallVector<AstNodeRef>& out, const Ast& ast) const
+    {
+        AstNode::collectChildren(out, {nodeBoundRef});
+        AstGenericParamT::collectChildren(out, ast);
+    }
+
     AstNodeRef semaClone(Sema& sema, const CloneContext& cloneContext) const;
 };
 

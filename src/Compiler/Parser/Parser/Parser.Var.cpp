@@ -16,8 +16,13 @@ AstNodeRef Parser::parseGenericParam()
 
     const TokenRef tknName = expectAndConsume(TokenId::Identifier, DiagnosticId::parser_err_expected_token_fam_before);
 
+    // 'T is Bound' declares an erased type parameter: one compiled body for every 'T'.
+    AstNodeRef nodeBound = AstNodeRef::invalid();
+    if (!isConstant && consumeIf(TokenId::KwdIs).isValid())
+        nodeBound = parseType();
+
     AstNodeRef nodeType = AstNodeRef::invalid();
-    if (consumeIf(TokenId::SymColon).isValid())
+    if (nodeBound.isInvalid() && consumeIf(TokenId::SymColon).isValid())
     {
         if (isType)
         {
@@ -50,6 +55,7 @@ AstNodeRef Parser::parseGenericParam()
 
     auto [nodeRef, nodePtr] = ast_->makeNode<AstNodeId::GenericParamType>(tknName);
     nodePtr->nodeAssignRef  = nodeAssign;
+    nodePtr->nodeBoundRef   = nodeBound;
     return nodeRef;
 }
 

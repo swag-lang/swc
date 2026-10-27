@@ -13,6 +13,7 @@
 #include "Compiler/Sema/Helpers/SemaHelpers.h"
 #include "Compiler/Sema/Helpers/SemaInline.h"
 #include "Compiler/Sema/Helpers/SemaSpecOp.h"
+#include "Compiler/Sema/Symbol/Symbol.Alias.h"
 #include "Compiler/Sema/Symbol/Symbol.Enum.h"
 #include "Compiler/Sema/Symbol/Symbol.Function.h"
 #include "Compiler/Sema/Symbol/Symbol.Impl.h"
@@ -466,6 +467,22 @@ namespace SemaGeneric
 
         Result createGenericInstance(Sema& sema, Symbol& root, std::span<const GenericParamDesc> params, std::span<const GenericResolvedArg> resolvedArgs, Symbol*& outInstance, const GenericInstanceOrigin& origin, AstNodeRef errorNodeRef = AstNodeRef::invalid())
         {
+            // A struct instance is named by its arguments, so its fields cannot see the argument
+            // an erased parameter would hide.
+            if (root.isStruct())
+            {
+                for (const GenericParamDesc& param : params)
+                {
+                    if (!param.isErased())
+                        continue;
+
+                    auto diag = SemaError::report(sema, DiagnosticId::sema_err_erased_param_in_struct, param.erasedBound);
+                    diag.addArgument(Diagnostic::ARG_VALUE, param.idRef);
+                    diag.report(sema.ctx());
+                    return Result::Error;
+                }
+            }
+
             // A new instance copies the root's attributes. They are final once the root is declared;
             // copied earlier, whether an #[Inline] root inlines would depend on scheduling.
             if (isDeclaredInPlace(root))
@@ -521,6 +538,143 @@ namespace SemaGeneric
 
             outFailure.diagId = DiagnosticId::sema_err_generic_parameter_not_deduced;
             outFailure.addArgument(Diagnostic::ARG_VALUE, Utf8{sema.idMgr().get(param.idRef).name});
+        }
+
+        Result resolveErasedParamBound(Sema& sema, const Symbol& root, std::span<const GenericParamDesc> params, std::span<const GenericResolvedArg> resolvedArgs, size_t paramIndex, TypeRef& outBoundTypeRef)
+        {
+            outBoundTypeRef = TypeRef::invalid();
+
+            // The bound may name earlier parameters, as a default does.
+            const ResolvedGenericBindingSource   source{params, resolvedArgs};
+            SmallVector<SemaClone::ParamBinding> bindings;
+            buildPartialGenericContextBindings(sema, root, source, paramIndex, bindings);
+
+            AstNodeRef clonedBoundRef = AstNodeRef::invalid();
+            SWC_RESULT(evalGenericClonedNode(sema, root, params[paramIndex].erasedBound, bindings, GenericEvalReadyKind::TypeOrSymbol, clonedBoundRef));
+            if (clonedBoundRef.isInvalid())
+                return Result::Error;
+
+            SemaGenericStoredType::resolve(sema, clonedBoundRef, outBoundTypeRef);
+            outBoundTypeRef = sema.typeMgr().unwrapNonStrictAlias(outBoundTypeRef);
+            if (outBoundTypeRef.isValid() && sema.typeMgr().get(outBoundTypeRef).isStruct())
+                return Result::Continue;
+
+            auto diag = SemaError::report(sema, DiagnosticId::sema_err_erased_param_bound_not_struct, params[paramIndex].erasedBound);
+            diag.addArgument(Diagnostic::ARG_VALUE, params[paramIndex].idRef);
+            diag.addArgument(Diagnostic::ARG_TYPE, outBoundTypeRef);
+            diag.report(sema.ctx());
+            return Result::Error;
+        }
+
+        // Every call shares the instance where 'T' is a strict alias of its bound, so the
+        // alias is created once per root, parameter and bound.
+        TypeRef erasedParamType(Sema& sema, SymbolFunction& root, const GenericParamDesc& param, uint32_t paramIndex, TypeRef boundTypeRef)
+        {
+            TaskContext&           ctx = sema.ctx();
+            const std::scoped_lock lock(root.genericEvalRunMutex(ctx));
+            if (const TypeRef cached = root.findErasedParamType(ctx, paramIndex, boundTypeRef); cached.isValid())
+                return cached;
+
+            const AstNode& paramNode = sema.node(param.paramRef);
+            auto*          alias     = Symbol::make<SymbolAlias>(ctx, &paramNode, paramNode.tokRef(), param.idRef, SymbolFlagsE::Zero);
+
+            AttributeList attributes;
+            attributes.rtFlags.add(RtAttributeFlagsE::Strict);
+            alias->setAttributes(ctx, attributes);
+            alias->setErasedParam();
+            alias->setOwnerSymMap(root.ownerSymMap());
+            alias->setAliasedSymbol(&sema.typeMgr().get(boundTypeRef).payloadSymStruct());
+            alias->setUnderlyingTypeRef(boundTypeRef);
+
+            const TypeRef erasedTypeRef = sema.typeMgr().addType(TypeInfo::makeAlias(alias));
+            alias->setTypeRef(erasedTypeRef);
+            alias->setDeclared(ctx);
+            alias->setTyped(ctx);
+            alias->setSemaCompleted(ctx);
+
+            root.addErasedParamType(ctx, {paramIndex, boundTypeRef, erasedTypeRef});
+            return erasedTypeRef;
+        }
+
+        // The single instance reads every 'T' through the bound, so the argument type has to
+        // start with the bound: a pointer to it is then a pointer to the bound, unchanged.
+        Result erasedArgStartsWithBound(Sema& sema, TypeRef argTypeRef, TypeRef boundTypeRef, AstNodeRef errorNodeRef, bool& outStarts)
+        {
+            outStarts = false;
+
+            const TypeManager& typeMgr = sema.typeMgr();
+            argTypeRef                 = typeMgr.unwrapNonStrictAlias(argTypeRef);
+            if (!argTypeRef.isValid())
+                return Result::Continue;
+
+            const TypeInfo* argType = &typeMgr.get(argTypeRef);
+            if (argType->isAlias() && argType->payloadSymAlias().isErasedParam())
+                argType = &typeMgr.get(argType->payloadSymAlias().underlyingTypeRef());
+            if (!argType->isStruct())
+                return Result::Continue;
+
+            const TypeInfo& boundType = typeMgr.get(boundTypeRef);
+            SWC_RESULT(sema.waitSemaCompleted(argType, errorNodeRef));
+            SWC_RESULT(sema.waitSemaCompleted(&boundType, errorNodeRef));
+
+            SmallVector<SymbolStructUsingPathStep> usingPath;
+            if (!argType->payloadSymStruct().resolveUsingFieldPath(sema.ctx(), boundType.payloadSymStruct(), usingPath))
+                return Result::Continue;
+
+            for (const SymbolStructUsingPathStep& step : usingPath)
+            {
+                if (step.isPointer || step.field->offset() != 0)
+                    return Result::Continue;
+            }
+
+            outStarts = true;
+            return Result::Continue;
+        }
+
+        // Replace each deduced erased argument by the alias the shared instance is built with.
+        Result eraseGenericArgs(Sema& sema, Sema& sourceSema, SymbolFunction& root, std::span<const GenericParamDesc> params, std::span<GenericResolvedArg> ioResolvedArgs, AstNodeRef errorNodeRef, CastFailure* outFailure, bool& outErased)
+        {
+            outErased = true;
+            for (size_t i = 0; i < params.size(); ++i)
+            {
+                const GenericParamDesc& param = params[i];
+                GenericResolvedArg&     arg   = ioResolvedArgs[i];
+                if (!param.isErased() || !arg.present)
+                    continue;
+
+                TypeRef boundTypeRef = TypeRef::invalid();
+                SWC_RESULT(resolveErasedParamBound(sourceSema, root, params, ioResolvedArgs, i, boundTypeRef));
+
+                bool starts = false;
+                SWC_RESULT(erasedArgStartsWithBound(sema, arg.typeRef, boundTypeRef, errorNodeRef, starts));
+                if (!starts)
+                {
+                    const TypeRef argTypeRef = sema.typeMgr().unwrapNonStrictAlias(arg.typeRef);
+                    const bool    isStruct   = argTypeRef.isValid() && sema.typeMgr().get(argTypeRef).isStruct();
+
+                    CastFailure  localFailure;
+                    CastFailure& failure = outFailure ? *outFailure : localFailure;
+                    failure              = {};
+                    failure.diagId       = isStruct ? DiagnosticId::sema_err_erased_param_not_bound : DiagnosticId::sema_err_erased_param_not_struct;
+                    failure.addArgument(Diagnostic::ARG_VALUE, param.idRef);
+                    failure.addArgument(Diagnostic::ARG_TYPE, arg.typeRef);
+                    failure.addArgument(Diagnostic::ARG_REQUESTED_TYPE, boundTypeRef);
+                    if (!outFailure)
+                    {
+                        auto diag = SemaError::report(sema, failure.diagId, errorNodeRef);
+                        failure.applyArguments(diag);
+                        diag.report(sema.ctx());
+                        return Result::Error;
+                    }
+
+                    outErased = false;
+                    return Result::Continue;
+                }
+
+                arg.typeRef = erasedParamType(sourceSema, root, param, static_cast<uint32_t>(i), boundTypeRef);
+            }
+
+            return Result::Continue;
         }
 
         // A struct specialization written in the source that cannot be built: too many arguments,
@@ -617,6 +771,12 @@ namespace SemaGeneric
 
                 if (!satisfied)
                     return outWhereFailure ? Result::Continue : Result::Error;
+            }
+
+            if (auto* function = genericRoot.safeCast<SymbolFunction>())
+            {
+                bool erased = true;
+                SWC_RESULT(eraseGenericArgs(sema, *sourceSema, *function, params.span(), resolvedArgs.span(), errorNodeRef, nullptr, erased));
             }
 
             return createGenericInstance(*sourceSema, genericRoot, params.span(), resolvedArgs.span(), outInstance, genericInstanceOrigin(sema), errorNodeRef);
@@ -937,6 +1097,16 @@ namespace SemaGeneric
             if (!whereSatisfied)
                 return Result::Continue;
         }
+
+        bool erasedArgsFit = true;
+        SWC_RESULT(checkErasedCallArgs(sema, genericRoot, params.span(), resolvedArgs.span(), args, ufcsArg, outFailure, outFailureArgIndex, erasedArgsFit));
+        if (!erasedArgsFit)
+            return Result::Continue;
+
+        bool erased = true;
+        SWC_RESULT(eraseGenericArgs(sema, *sourceSema, genericRoot, params.span(), resolvedArgs.span(), errorNodeRef, outFailure, erased));
+        if (!erased)
+            return Result::Continue;
 
         Symbol* instance = nullptr;
         SWC_RESULT(createGenericInstance(*sourceSema, genericRoot, params.span(), resolvedArgs.span(), instance, genericInstanceOrigin(sema), errorNodeRef));

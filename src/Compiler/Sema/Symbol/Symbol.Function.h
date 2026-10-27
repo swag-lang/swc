@@ -491,6 +491,18 @@ public:
     void                  cacheGenericEvalNode(const TaskContext& ctx, const NodePayload* payloadContext, const Ast& ownerAst, AstNodeRef sourceRef, std::span<const SemaClone::ParamBinding> bindings, AstNodeRef evalRef) const;
     std::recursive_mutex& genericEvalRunMutex(const TaskContext& ctx) const noexcept;
 
+    // The type an erased parameter ('T is Bound') takes in the root's single instance for
+    // `boundTypeRef`. Callers hold genericEvalRunMutex.
+    struct ErasedParamType
+    {
+        uint32_t paramIndex    = 0;
+        TypeRef  boundTypeRef  = TypeRef::invalid();
+        TypeRef  erasedTypeRef = TypeRef::invalid();
+    };
+
+    TypeRef findErasedParamType(const TaskContext& ctx, uint32_t paramIndex, TypeRef boundTypeRef) const;
+    void    addErasedParamType(const TaskContext& ctx, const ErasedParamType& entry) const;
+
     std::shared_mutex&     lazyBodyRunMutex() const noexcept { return lazyBodyRunMutex_; }
     std::shared_ptr<void>* lazyBodyRunState() const noexcept;
     std::shared_ptr<void>& ensureLazyBodyRunState(const TaskContext& ctx) const noexcept;

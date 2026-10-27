@@ -2467,7 +2467,7 @@ AstNodeRef AstGenericParamValue::semaClone(Sema& sema, const CloneContext& clone
 
 AstNodeRef AstGenericParamType::semaClone(Sema& sema, const CloneContext& cloneContext) const
 {
-    return cloneNodeMembers<AstNodeId::GenericParamType, &AstGenericParamType::nodeAssignRef>(sema, *this, cloneContext);
+    return cloneNodeMembers<AstNodeId::GenericParamType, &AstGenericParamType::nodeBoundRef, &AstGenericParamType::nodeAssignRef>(sema, *this, cloneContext);
 }
 
 AstNodeRef AstCastExpr::semaClone(Sema& sema, const CloneContext& cloneContext) const

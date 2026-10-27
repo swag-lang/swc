@@ -631,6 +631,9 @@ struct SymbolFunction::GenericData
     mutable std::recursive_mutex                  evalRunMutex;
     mutable std::shared_mutex                     evalCacheMutex;
     std::vector<SymbolInternal::GenericEvalEntry> evalCache;
+
+    // Guarded by evalRunMutex.
+    std::vector<ErasedParamType> erasedParamTypes;
 };
 
 RtAttributeFlags SymbolFunction::rtAttributeFlags() const
@@ -1208,6 +1211,22 @@ void SymbolFunction::cacheGenericEvalNode(const TaskContext& ctx, const NodePayl
 std::recursive_mutex& SymbolFunction::genericEvalRunMutex(const TaskContext& ctx) const noexcept
 {
     return ensureGenericData(ctx).evalRunMutex;
+}
+
+TypeRef SymbolFunction::findErasedParamType(const TaskContext& ctx, uint32_t paramIndex, TypeRef boundTypeRef) const
+{
+    for (const ErasedParamType& entry : ensureGenericData(ctx).erasedParamTypes)
+    {
+        if (entry.paramIndex == paramIndex && entry.boundTypeRef == boundTypeRef)
+            return entry.erasedTypeRef;
+    }
+
+    return TypeRef::invalid();
+}
+
+void SymbolFunction::addErasedParamType(const TaskContext& ctx, const ErasedParamType& entry) const
+{
+    ensureGenericData(ctx).erasedParamTypes.push_back(entry);
 }
 
 void SymbolFunction::setGenericCompletionOwner(const TaskContext& ctx) const noexcept

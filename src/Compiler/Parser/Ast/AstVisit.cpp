@@ -41,7 +41,9 @@ AstVisitResult AstVisit::step(const TaskContext& ctx)
 
 #if SWC_HAS_VISIT_DEBUG_INFO
     dbgSrcFile = nullptr;
-    dbgNode    = ast_->hasNode(frame.nodeRef) ? &ast_->node(frame.nodeRef) : nullptr;
+    if (!frame.node && ast_->hasNode(frame.nodeRef))
+        frame.node = &ast_->node(frame.nodeRef);
+    dbgNode    = frame.node;
     dbgTok     = nullptr;
     dbgTokView = {};
     dbgTokRef  = TokenRef::invalid();

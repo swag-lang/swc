@@ -1,0 +1,81 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<title>Swag Scope — home</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&amp;family=Roboto+Mono:wght@400;500&amp;display=swap" rel="stylesheet">
+<style>
+body{margin:0;background:#050506}
+.win{font-family:'Inter',system-ui,sans-serif;color:#E9E9ED;-webkit-font-smoothing:antialiased}
+.mono{font-family:'Roboto Mono',ui-monospace,monospace}
+.ib{display:inline-flex;align-items:center;justify-content:center;width:28px;height:28px;border:0;background:transparent;color:#A9A9B4;border-radius:4px;padding:0}
+.ib:hover{background:#1B1B21;color:#E9E9ED}
+.ib svg,.ic{width:16px;height:16px;flex:none}
+.cap{display:inline-flex;align-items:center;justify-content:center;width:46px;height:44px;border:0;background:transparent;color:#7D7D89;padding:0}
+.lbl{font-size:10.5px;letter-spacing:.12em;text-transform:uppercase;color:#7D7D89;font-weight:600}
+kbd{font:500 10.5px 'Roboto Mono',monospace;border-radius:3px;padding:1px 5px}
+.rc{display:grid;grid-template-columns:24px minmax(0,1fr) 180px 96px 88px;align-items:center;height:36px;padding:0 12px;border-radius:4px;font-size:13px;color:#D5D5DD}
+.rc:hover{background:#18181D}
+.rc .p{font:11px 'Roboto Mono',monospace;color:#7D7D89;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.rc .v{font-size:12px;color:#A9A9B4}
+.rc .t{font:11px 'Roboto Mono',monospace;color:#7D7D89;text-align:right}
+.ro b{font-weight:400;color:#A9A9B4}
+</style>
+</helmet>
+<div class="win" style="width:1280px;height:800px;box-sizing:border-box;background:#0B0B0D;border:1px solid #26262E;border-radius:12px;overflow:hidden;display:flex;flex-direction:column;position:relative">
+  <div aria-hidden="true" style="position:absolute;left:0;top:0;width:64px;height:3px;background:#F7F900;clip-path:polygon(0 0,100% 0,calc(100% - 3px) 100%,0 100%);z-index:2"></div>
+
+  <header style="height:44px;flex:none;display:flex;align-items:center;background:linear-gradient(135deg,rgba(247,249,0,.055),rgba(247,249,0,0) 32%),#0B0B0D">
+    <div style="display:flex;align-items:center;gap:4px;padding-left:16px">
+      <svg aria-label="Swag Scope" role="img" viewBox="0 0 24 24" style="width:22px;height:22px;margin-right:10px" fill="none" stroke="#F7F900" stroke-width="2"><path d="M2 12c3.2-4.4 6.5-6.5 10-6.5S18.8 7.6 22 12c-3.2 4.4-6.5 6.5-10 6.5S5.2 16.4 2 12z"/><circle cx="12" cy="12" r="3.2" fill="#F7F900" stroke="none"/></svg>
+      <span style="font-size:13px;font-weight:600;color:#A9A9B4;letter-spacing:.01em">Swag Scope</span>
+    </div>
+    <div style="flex:1"></div>
+    <div style="display:flex;align-items:center;gap:4px;padding-right:12px">
+      <button class="ib" aria-label="Apparence"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.4"><circle cx="8" cy="8" r="5.75"/><path d="M8 2.25v11.5A5.75 5.75 0 0 0 8 2.25z" fill="currentColor"/></svg></button>
+    </div>
+    <div style="display:flex">
+      <button class="cap" aria-label="Réduire"><svg viewBox="0 0 10 10" style="width:10px;height:10px" stroke="currentColor"><path d="M0 5.5h10"/></svg></button>
+      <button class="cap" aria-label="Agrandir"><svg viewBox="0 0 10 10" style="width:10px;height:10px" fill="none" stroke="currentColor"><rect x=".5" y=".5" width="9" height="9" rx="1.5"/></svg></button>
+      <button class="cap" aria-label="Fermer"><svg viewBox="0 0 10 10" style="width:10px;height:10px" stroke="currentColor"><path d="m.5.5 9 9m0-9-9 9"/></svg></button>
+    </div>
+  </header>
+
+  <main style="flex:1;min-height:0;background:#121216;box-shadow:inset 0 1px 0 #1C1C23;display:flex;flex-direction:column;align-items:center;padding-top:112px;box-sizing:border-box">
+    <svg aria-hidden="true" viewBox="0 0 24 24" style="width:56px;height:56px" fill="none" stroke="#3A3A45" stroke-width="1.2"><path d="M2 12c3.2-4.4 6.5-6.5 10-6.5S18.8 7.6 22 12c-3.2 4.4-6.5 6.5-10 6.5S5.2 16.4 2 12z"/><circle cx="12" cy="12" r="3.2"/></svg>
+    <h1 style="margin:28px 0 0;font-size:22px;line-height:28px;font-weight:650;letter-spacing:-.015em;color:#F2F2F5">Déposez un fichier, un dossier ou une archive</h1>
+    <p style="margin:10px 0 0;font-size:13.5px;color:#A9A9B4">Code, texte, images, vidéo, son, PDF, polices, tableaux : tout s'ouvre ici.</p>
+    <div style="display:flex;gap:12px;margin-top:28px">
+      <button style="display:inline-flex;align-items:center;gap:10px;height:34px;padding:0 14px;border:1px solid #F7F900;border-radius:4px;background:#F7F900;color:#0B0B0D;font:600 13px 'Inter',sans-serif">Ouvrir un fichier <kbd style="background:rgba(11,11,13,.1);color:#0B0B0D">Ctrl O</kbd></button>
+      <button style="display:inline-flex;align-items:center;gap:10px;height:34px;padding:0 14px;border:1px solid #2E2E38;border-radius:4px;background:transparent;color:#E9E9ED;font:500 13px 'Inter',sans-serif">Explorer un dossier <kbd style="background:#1B1B21;color:#A9A9B4">Ctrl E</kbd></button>
+    </div>
+
+    <section aria-label="Récents" style="width:720px;margin-top:72px">
+      <div style="display:flex;align-items:center;justify-content:space-between;padding:0 12px;height:28px"><span class="lbl">Récents</span><button style="border:0;background:transparent;color:#7D7D89;font:12px 'Inter',sans-serif;padding:0">Effacer</button></div>
+      <div class="rc"><svg class="ic" viewBox="0 0 16 16" fill="none" stroke="#56C2B3" stroke-width="1.4" aria-hidden="true"><path d="M5.5 4.5 2 8l3.5 3.5M10.5 4.5 14 8l-3.5 3.5"/></svg><span>viewerchrome.swg</span><span class="p">apps / swagscope / src</span><span class="v">Code</span><span class="t">2 min</span></div>
+      <div class="rc"><svg class="ic" viewBox="0 0 16 16" fill="none" stroke="#A9A9B4" stroke-width="1.4" aria-hidden="true"><path d="M2.5 3.5h11M2.5 6.5h11M2.5 9.5h7M2.5 12.5h9"/></svg><span>README.md</span><span class="p">apps / swagscope</span><span class="v">Markdown</span><span class="t">14 min</span></div>
+      <div class="rc"><svg class="ic" viewBox="0 0 16 16" fill="none" stroke="#C48FD0" stroke-width="1.4" aria-hidden="true"><rect x="1.75" y="2.75" width="12.5" height="10.5" rx="1.5"/><path d="m1.75 11 4-3.5 3 2.5 2-1.5 3.5 3"/></svg><span>title.png</span><span class="p">tests / datas</span><span class="v">Hexadécimal</span><span class="t">1 h</span></div>
+      <div class="rc"><svg class="ic" viewBox="0 0 16 16" fill="none" stroke="#E8A06A" stroke-width="1.4" aria-hidden="true"><rect x="1.75" y="2.75" width="12.5" height="10.5" rx="1.5"/><path d="m6.5 5.5 4 2.5-4 2.5z" fill="#E8A06A" stroke="none"/></svg><span>Blade Runner.mkv</span><span class="p">Vidéos / Films</span><span class="v">Vidéo</span><span class="t">hier</span></div>
+      <div class="rc"><svg class="ic" viewBox="0 0 16 16" fill="none" stroke="#7AA7FF" stroke-width="1.4" aria-hidden="true"><path d="M1.75 3.25h4.5l1.5 1.5h6.5v8H1.75z"/></svg><span>Films</span><span class="p">Vidéos</span><span class="v">Dossier</span><span class="t">hier</span></div>
+    </section>
+  </main>
+
+  <footer class="mono" style="height:28px;flex:none;display:flex;align-items:center;justify-content:space-between;padding:0 16px 0 24px;font-size:11px;color:#7D7D89;background:#0B0B0D">
+    <span>Aucun document</span>
+    <span class="ro">Glisser-déposer partout dans la fenêtre</span>
+  </footer>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1280,"height":800}}'>
+class Component extends DCLogic {
+  renderVals() { return {}; }
+}
+</script>
+</body>
+</html>

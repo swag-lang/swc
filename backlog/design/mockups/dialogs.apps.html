@@ -1,0 +1,197 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Application dialogs</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&amp;family=Roboto+Mono:wght@400;500&amp;display=swap" rel="stylesheet">
+<style>
+body{margin:0;background:#050506}
+.pg{font-family:'Inter',system-ui,sans-serif;color:#E9E9ED;-webkit-font-smoothing:antialiased}
+.mono{font-family:'Roboto Mono',ui-monospace,monospace}
+.lbl{font-size:10.5px;letter-spacing:.12em;text-transform:uppercase;color:#7D7D89;font-weight:600}
+.tag{display:flex;align-items:baseline;gap:10px;margin-bottom:12px}
+.tag b{font-size:13px;font-weight:600;color:#E9E9ED}
+.tag span{font:11px 'Roboto Mono',monospace;color:#7D7D89}
+.dlg{background:#0B0B0D;border:1px solid #26262E;border-radius:12px;overflow:hidden;box-shadow:0 24px 64px rgba(0,0,0,.55);display:flex;flex-direction:column}
+.dcap{height:40px;flex:none;display:flex;align-items:center;padding-left:16px;font-size:13px;font-weight:600;color:#E9E9ED}
+.dcap .x{margin-left:auto;width:44px;height:40px;display:inline-flex;align-items:center;justify-content:center;color:#7D7D89}
+.dbody{background:#121216;box-shadow:inset 0 1px 0 #1C1C23,inset 0 -1px 0 #1C1C23;padding:24px;display:flex;flex-direction:column;gap:16px}
+.dbar{height:46px;flex:none;display:flex;align-items:center;justify-content:flex-end;gap:8px;padding:0 24px}
+.bp{min-width:100px;height:30px;padding:0 14px;border:1px solid #F7F900;border-radius:4px;background:#F7F900;color:#0B0B0D;font:600 12.5px 'Inter',sans-serif}
+.bs{min-width:100px;height:30px;padding:0 14px;border:1px solid #2E2E38;border-radius:4px;background:transparent;color:#E9E9ED;font:500 12.5px 'Inter',sans-serif}
+.in{height:30px;box-sizing:border-box;border:1px solid #2A2A33;border-radius:4px;background:#0B0B0D;display:flex;align-items:center;gap:8px;padding:0 10px;font-size:13px;color:#E9E9ED}
+.focus{border-color:#F7F900;box-shadow:0 0 0 1px #F7F900}
+.form{display:grid;grid-template-columns:110px minmax(0,1fr);column-gap:16px;row-gap:12px;align-items:center;font-size:12.5px;color:#A9A9B4}
+.help{grid-column:2;font-size:12px;line-height:18px;color:#8E8E9A;margin:-4px 0 0}
+.u{margin-left:auto;font:11px 'Roboto Mono',monospace;color:#6E6E7A}
+.chk{display:flex;gap:10px;align-items:center;font-size:13px;color:#E9E9ED}
+.box{width:16px;height:16px;border-radius:4px;box-sizing:border-box;flex:none}
+.rad{width:16px;height:16px;border-radius:50%;box-sizing:border-box;flex:none;border:1px solid #3A3A45}
+.anc{display:grid;grid-template-columns:repeat(3,28px);grid-template-rows:repeat(3,28px);gap:4px}
+.anc span{border-radius:4px;background:#1B1B21}
+.dl{display:grid;grid-template-columns:140px minmax(0,1fr);row-gap:10px;column-gap:16px;margin:0;font-size:12.5px}
+.dl dt{color:#7D7D89}.dl dd{margin:0;color:#E9E9ED}
+.sec{display:flex;align-items:center;gap:8px;height:28px;padding:0 10px;margin:0 8px;border-radius:4px;font-size:12.5px;color:#C9C9D1}
+.sec.on{background:rgba(56,189,248,.13);color:#F2F2F5}
+.pr{display:grid;grid-template-columns:200px minmax(0,1fr);align-items:center;column-gap:16px;min-height:36px;font-size:12.5px;color:#A9A9B4;padding:0 4px;box-shadow:inset 0 -1px 0 #1A1A20}
+.tg{width:28px;height:16px;border-radius:8px;position:relative;display:inline-block}
+.tg i{position:absolute;top:2px;width:12px;height:12px;border-radius:50%}
+/* papier */
+.L .dlg{background:#F4F4F2;border-color:#D2D2CE;box-shadow:0 24px 64px rgba(0,0,0,.35)}
+.L .dcap{color:#1B1B1D}
+.L .dcap .x{color:#6A6A73}
+.L .dbody{background:#FFFFFF;box-shadow:inset 0 1px 0 #E2E2DF,inset 0 -1px 0 #E2E2DF}
+.L .in{background:#F4F4F2;border-color:#DCDCD8;color:#1B1B1D}
+.L .focus{border-color:#A3A500;box-shadow:0 0 0 1px #A3A500}
+.L .form{color:#55555C}
+.L .help{color:#6A6A73}
+.L .bp{border-color:#A3A500}
+.L .bs{border-color:#D2D2CE;color:#1B1B1D}
+.L .u{color:#83838D}
+</style>
+</helmet>
+<div class="pg" style="width:1920px;height:1560px;box-sizing:border-box;padding:56px 48px;display:flex;flex-direction:column;gap:48px;background:#050506">
+
+  <section style="display:flex;flex-direction:column;gap:12px;max-width:1100px">
+    <span class="lbl">bin/apps/modules — swagcapture, swagvault</span>
+    <h1 style="margin:0;font-size:34px;line-height:40px;font-weight:800;letter-spacing:-.025em;color:#F7F7F9">Application boxes speak the same language.</h1>
+    <p style="margin:0;font-size:15px;line-height:24px;color:#A9A9B4">They go through <span class="mono" style="font-size:13px;color:#E9E9ED">Dialog</span> or <span class="mono" style="font-size:13px;color:#E9E9ED">FormDlg</span> and so inherit the three layers. What is left for them: stop authoring their sizes (350 × 265, 800 × 600), and put their fields on the label column.</p>
+  </section>
+
+  <section style="display:flex;gap:48px;align-items:flex-start">
+    <div>
+      <div class="tag"><b>Resize image</b><span>Capture · actionimage</span></div>
+      <div class="dlg" style="width:400px">
+        <div class="dcap">Redimensionner l'image<span class="x"><svg viewBox="0 0 10 10" style="width:10px;height:10px" stroke="currentColor" aria-hidden="true"><path d="m.5.5 9 9m0-9-9 9"/></svg></span></div>
+        <div class="dbody">
+          <div class="form">
+            <span>Largeur</span><div class="in focus mono" style="font-size:12.5px">1280<span class="u">px</span></div>
+            <span>Hauteur</span><div class="in mono" style="font-size:12.5px">800<span class="u">px</span></div>
+            <span></span><label class="chk"><span class="box" style="background:#F7F900;display:inline-flex;align-items:center;justify-content:center"><svg viewBox="0 0 16 16" style="width:12px;height:12px" fill="none" stroke="#0B0B0D" stroke-width="2" aria-hidden="true"><path d="m3.5 8.5 3 3 6-7"/></svg></span>Conserver les proportions</label>
+          </div>
+        </div>
+        <div class="dbar"><button class="bp">Redimensionner</button><button class="bs">Annuler</button></div>
+      </div>
+    </div>
+
+    <div>
+      <div class="tag"><b>Expand image</b><span>Capture · createExpandDialog</span></div>
+      <div class="dlg" style="width:400px">
+        <div class="dcap">Étendre l'image<span class="x"><svg viewBox="0 0 10 10" style="width:10px;height:10px" stroke="currentColor" aria-hidden="true"><path d="m.5.5 9 9m0-9-9 9"/></svg></span></div>
+        <div class="dbody">
+          <div class="form">
+            <span>Largeur</span><div class="in mono" style="font-size:12.5px">1440<span class="u">px</span></div>
+            <span>Hauteur</span><div class="in mono" style="font-size:12.5px">900<span class="u">px</span></div>
+            <span style="align-self:start;padding-top:6px">Ancrage</span>
+            <div class="anc" role="radiogroup" aria-label="Ancrage"><span></span><span></span><span></span><span></span><span style="background:#38BDF8"></span><span></span><span></span><span></span><span></span></div>
+          </div>
+        </div>
+        <div class="dbar"><button class="bp">Redimensionner</button><button class="bs">Annuler</button></div>
+      </div>
+    </div>
+
+    <div>
+      <div class="tag"><b>Unlock</b><span>Vault · mainwindow.startup</span></div>
+      <div class="dlg" style="width:440px">
+        <div class="dcap">Déverrouiller papiers.bin</div>
+        <div class="dbody">
+          <div class="form">
+            <span>Mot de passe</span><div class="in focus" style="letter-spacing:.2em">••••••</div>
+            <span>Fichiers clés</span><div class="in" style="color:#6E6E7A">Aucun fichier clé</div>
+            <p class="help">Le lecteur <span class="mono" style="color:#E9E9ED">P:</span> sera remonté comme au dernier démarrage.</p>
+          </div>
+        </div>
+        <div class="dbar"><button class="bp">Ouvrir</button><button class="bs">Ignorer</button></div>
+      </div>
+    </div>
+
+    <div class="L">
+      <div class="tag"><b>Same box, paper</b><span>light palette</span></div>
+      <div class="dlg" style="width:440px">
+        <div class="dcap">Déverrouiller papiers.bin</div>
+        <div class="dbody">
+          <div class="form">
+            <span>Mot de passe</span><div class="in focus" style="letter-spacing:.2em">••••••</div>
+            <span>Fichiers clés</span><div class="in" style="color:#83838D">Aucun fichier clé</div>
+            <p class="help">Le lecteur <span class="mono" style="color:#1B1B1D">P:</span> sera remonté comme au dernier démarrage.</p>
+          </div>
+        </div>
+        <div class="dbar"><button class="bp">Ouvrir</button><button class="bs">Ignorer</button></div>
+      </div>
+    </div>
+  </section>
+
+  <section style="display:flex;gap:48px;align-items:flex-start">
+    <div>
+      <div class="tag"><b>Options</b><span>Capture · actionoptions · resizable</span></div>
+      <div class="dlg" style="width:800px;height:560px">
+        <div class="dcap">Options<span class="x"><svg viewBox="0 0 10 10" style="width:10px;height:10px" stroke="currentColor" aria-hidden="true"><path d="m.5.5 9 9m0-9-9 9"/></svg></span></div>
+        <div style="flex:1;display:flex;min-height:0;box-shadow:inset 0 1px 0 #1C1C23">
+          <nav aria-label="Sections" style="width:200px;flex:none;padding-top:12px;display:flex;flex-direction:column;gap:2px">
+            <div class="sec on">Éditeur</div>
+            <div class="sec">Application</div>
+            <div class="sec">Capture</div>
+            <div class="sec">Bibliothèque</div>
+          </nav>
+          <div style="flex:1;background:#121216;box-shadow:inset 1px 0 0 #1C1C23;padding:16px 24px;display:flex;flex-direction:column">
+            <div style="height:28px;display:flex;align-items:center;margin-bottom:4px"><span class="lbl">Éditeur</span></div>
+            <div class="pr"><span>Zoom à l'ouverture</span><div class="in" style="width:160px;height:28px;justify-content:space-between;font-size:12.5px">Ajuster<svg viewBox="0 0 16 16" style="width:12px;height:12px" fill="none" stroke="#7D7D89" stroke-width="1.6" aria-hidden="true"><path d="m4 6 4 4 4-4"/></svg></div></div>
+            <div class="pr"><span>Fond hors de l'image</span><div style="display:flex;gap:6px"><span class="box" style="width:24px;height:24px;background:#121216;box-shadow:0 0 0 2px #121216,0 0 0 3px #38BDF8"></span><span class="box" style="width:24px;height:24px;background:#3A3A45"></span><span class="box" style="width:24px;height:24px;background:#FFFFFF"></span></div></div>
+            <div class="pr"><span>Afficher la grille</span><span class="tg" style="background:#2A2A33"><i style="left:2px;background:#A9A9B4"></i></span></div>
+            <div class="pr"><span>Magnétisme</span><span class="tg" style="background:#F7F900"><i style="right:2px;background:#0B0B0D"></i></span></div>
+            <div class="pr"><span>Pas de la grille</span><div class="in mono" style="width:100px;height:28px;font-size:12.5px">8<span class="u">px</span></div></div>
+            <div class="pr"><span>Style rapide par défaut</span><div class="in" style="width:220px;height:28px;justify-content:space-between;font-size:12.5px">Bulle rouge<svg viewBox="0 0 16 16" style="width:12px;height:12px" fill="none" stroke="#7D7D89" stroke-width="1.6" aria-hidden="true"><path d="m4 6 4 4 4-4"/></svg></div></div>
+          </div>
+        </div>
+        <div class="dbar"><button class="bp">Fermer</button></div>
+      </div>
+    </div>
+
+    <div style="display:flex;flex-direction:column;gap:48px">
+      <div>
+        <div class="tag"><b>Details</b><span>Capture · showFileDetails</span></div>
+        <div class="dlg" style="width:480px">
+          <div class="dcap">Détails<span class="x"><svg viewBox="0 0 10 10" style="width:10px;height:10px" stroke="currentColor" aria-hidden="true"><path d="m.5.5 9 9m0-9-9 9"/></svg></span></div>
+          <div class="dbody">
+            <dl class="dl">
+              <dt>Fichier</dt><dd class="mono" style="font-size:12px">panneau-latéral.png</dd>
+              <dt>Taille de l'image</dt><dd class="mono" style="font-size:12px">1280 × 800</dd>
+              <dt>Capturée</dt><dd class="mono" style="font-size:12px">28/10/2026 09:41</dd>
+              <dt>Application</dt><dd>Swag Scope</dd>
+              <dt>Exécutable</dt><dd class="mono" style="font-size:12px">swagscope.exe</dd>
+              <dt>Taille du fichier</dt><dd class="mono" style="font-size:12px">214 Ko</dd>
+            </dl>
+          </div>
+          <div class="dbar"><button class="bp">Fermer</button></div>
+        </div>
+      </div>
+      <div>
+        <div class="tag"><b>Capacity and camouflage</b><span>Vault · FormDlg</span></div>
+        <div class="dlg" style="width:480px">
+          <div class="dcap">Modifier la capacité ou le camouflage<span class="x"><svg viewBox="0 0 10 10" style="width:10px;height:10px" stroke="currentColor" aria-hidden="true"><path d="m.5.5 9 9m0-9-9 9"/></svg></span></div>
+          <div class="dbody">
+            <label class="chk"><span class="rad" style="border:5px solid #F7F900"></span>Conserver la capacité actuelle</label>
+            <p style="margin:-8px 0 0 26px;font-size:12px;line-height:18px;color:#8E8E9A">Renouvelle la taille physique aléatoire sans déplacer les données du coffre.</p>
+            <label class="chk"><span class="rad"></span>Nouvelle capacité</label>
+            <div style="display:flex;gap:8px;margin-left:26px"><div class="in mono" style="flex:1;color:#6E6E7A;font-size:12.5px">512</div><div class="in mono" style="width:80px;justify-content:space-between;color:#6E6E7A;font-size:12.5px">Mio<svg viewBox="0 0 16 16" style="width:12px;height:12px" fill="none" stroke="#55555F" stroke-width="1.6" aria-hidden="true"><path d="m4 6 4 4 4-4"/></svg></div></div>
+          </div>
+          <div class="dbar"><button class="bp">Appliquer</button><button class="bs">Annuler</button></div>
+        </div>
+      </div>
+    </div>
+  </section>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1920,"height":1560}}'>
+class Component extends DCLogic {
+  renderVals() { return {}; }
+}
+</script>
+</body>
+</html>

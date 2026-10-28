@@ -1,0 +1,178 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Instrument — the system</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&amp;family=Roboto+Mono:wght@400;500&amp;display=swap" rel="stylesheet">
+<style>
+body{margin:0;background:#0B0B0D}
+.sys{font-family:'Inter',system-ui,sans-serif;color:#E9E9ED;-webkit-font-smoothing:antialiased}
+.mono{font-family:'Roboto Mono',ui-monospace,monospace}
+.lbl{font-size:10.5px;letter-spacing:.14em;text-transform:uppercase;color:#7D7D89;font-weight:600}
+.h2{position:relative;margin:0;padding-top:18px;font-size:22px;line-height:28px;font-weight:700;letter-spacing:-.015em;color:#F7F7F9}
+.h2::before{content:'';position:absolute;left:0;top:0;width:28px;height:4px;background:#F7F900;transform:skewX(-35deg);transform-origin:0 100%}
+.band{display:flex;align-items:center;justify-content:space-between;padding:0 10px;box-sizing:border-box;font:10.5px 'Roboto Mono',monospace;color:#A9A9B4}
+.note{font:11px 'Roboto Mono',monospace;color:#7D7D89}
+.law{display:flex;flex-direction:column;gap:8px}
+.law .n{font:500 11px 'Roboto Mono',monospace;color:#F7F900}
+.law h3{margin:0;font-size:16px;line-height:22px;font-weight:650;color:#F2F2F5}
+.law p{margin:0;font-size:13px;line-height:20px;color:#A9A9B4}
+.sw{display:flex;flex-direction:column;gap:8px}
+.sw .c{height:56px;border-radius:4px}
+.sw .k{font-size:12px;color:#D5D5DD}
+.sw .v{font:11px 'Roboto Mono',monospace;color:#7D7D89}
+.ms{display:grid;grid-template-columns:minmax(0,1fr) 72px;row-gap:10px;font-size:13px;color:#C9C9D1}
+.ms span:nth-child(2n){font:12px 'Roboto Mono',monospace;color:#F2F2F5;text-align:right}
+.zone{display:flex;flex-direction:column;gap:6px;font:10.5px 'Roboto Mono',monospace;color:#7D7D89}
+.zone i{display:block;height:6px;border:1px solid #3A3A45;border-top:0}
+</style>
+</helmet>
+<div class="sys" style="width:1280px;height:2280px;box-sizing:border-box;padding:64px 72px;display:flex;flex-direction:column;gap:72px;background:#0B0B0D">
+  <section style="display:flex;flex-direction:column;gap:20px">
+    <span class="lbl">Swag Scope · Instrument direction</span>
+    <h1 style="margin:0;font-size:44px;line-height:50px;font-weight:800;letter-spacing:-.03em;color:#F7F7F9;max-width:900px">The document is the only lit plane.</h1>
+    <p style="margin:0;font-size:17px;line-height:27px;color:#A9A9B4;max-width:760px">Everything else is ink: one bar, one line, a panel when asked for. Voltage appears only where something is done, and once permanently: the notch.</p>
+  </section>
+  <section style="display:flex;flex-direction:column;gap:28px">
+    <h2 class="h2">Four bands become two</h2>
+    <div style="display:grid;grid-template-columns:repeat(2,minmax(0,1fr));column-gap:64px">
+      <div style="display:flex;flex-direction:column;gap:14px">
+        <span class="lbl">Today</span>
+        <div style="height:340px;border:1px solid #2A2A33;border-radius:8px;overflow:hidden;display:flex;flex-direction:column;background:#1B1B1F">
+          <div class="band" style="height:14px;background:#1A1A20">caption</div>
+          <div style="height:2px;background:#F7F900"></div>
+          <div class="band" style="height:24px;background:#2A2B30">toolbar</div>
+          <div style="padding:4px;display:flex;flex-direction:column;gap:4px;flex:1;background:#24252A">
+            <div class="band" style="height:18px;background:#1B1B1F;border-radius:3px">file band · readings</div>
+            <div class="band" style="flex:1;background:#18181C;border-radius:3px;align-items:flex-start;padding-top:8px">content (inset card)</div>
+          </div>
+          <div class="band" style="height:22px;background:#24252A;justify-content:center">options band</div>
+        </div>
+        <div style="display:flex;gap:28px"><span class="note"><span style="color:#E9E9ED;font-size:18px">≈ 76 %</span> of the height to content</span><span class="note"><span style="color:#E9E9ED;font-size:18px">5</span> tone breaks</span></div>
+      </div>
+      <div style="display:flex;flex-direction:column;gap:14px">
+        <span class="lbl" style="color:#E9E9ED">Instrument</span>
+        <div style="height:340px;border:1px solid #2A2A33;border-radius:8px;overflow:hidden;display:flex;flex-direction:column;background:#0B0B0D;position:relative">
+          <div aria-hidden="true" style="position:absolute;left:0;top:0;width:28px;height:2px;background:#F7F900;clip-path:polygon(0 0,100% 0,calc(100% - 2px) 100%,0 100%)"></div>
+          <div class="band" style="height:19px">one bar · caption + document + search + viewer</div>
+          <div style="flex:1;display:flex">
+            <div class="band" style="width:66px;align-items:flex-start;padding-top:8px;color:#55555F">panel</div>
+            <div class="band" style="flex:1;background:#121216;box-shadow:inset 1px 1px 0 #1C1C23;align-items:flex-start;padding-top:8px;color:#E9E9ED">document, edge to edge</div>
+          </div>
+          <div class="band" style="height:12px;color:#7D7D89">readout line</div>
+        </div>
+        <div style="display:flex;gap:28px"><span class="note"><span style="color:#F7F7F9;font-size:18px">91 %</span> of the height to content</span><span class="note"><span style="color:#F7F7F9;font-size:18px">1</span> tone break</span></div>
+      </div>
+    </div>
+    <span class="note">Measured at 1280 × 800. Nothing is removed: tools, readings, options and history change place, not existence.</span>
+  </section>
+  <section style="display:flex;flex-direction:column;gap:28px">
+    <h2 class="h2">The bar, zone by zone</h2>
+    <div style="display:flex;flex-direction:column;gap:10px">
+      <div style="height:44px;border:1px solid #26262E;border-radius:8px;display:flex;align-items:center;position:relative;overflow:hidden;background:linear-gradient(135deg,rgba(247,249,0,.055),rgba(247,249,0,0) 32%),#0B0B0D">
+        <div aria-hidden="true" style="position:absolute;left:0;top:0;width:64px;height:3px;background:#F7F900;clip-path:polygon(0 0,100% 0,calc(100% - 3px) 100%,0 100%)"></div>
+        <div style="width:160px;display:flex;align-items:center;gap:12px;padding-left:16px;box-sizing:border-box">
+          <svg aria-hidden="true" viewBox="0 0 24 24" style="width:22px;height:22px" fill="none" stroke="#F7F900" stroke-width="2"><path d="M2 12c3.2-4.4 6.5-6.5 10-6.5S18.8 7.6 22 12c-3.2 4.4-6.5 6.5-10 6.5S5.2 16.4 2 12z"/><circle cx="12" cy="12" r="3.2" fill="#F7F900" stroke="none"/></svg>
+          <svg aria-hidden="true" viewBox="0 0 16 16" style="width:16px;height:16px" fill="none" stroke="#A9A9B4" stroke-width="1.4"><path d="M4 1.75h5l3 3v9.5H4z"/><path d="M9 1.75v3h3"/></svg>
+          <svg aria-hidden="true" viewBox="0 0 16 16" style="width:16px;height:16px" fill="none" stroke="#A9A9B4" stroke-width="1.4"><path d="M1.75 3.25h4.5l1.5 1.5h6.5v8H1.75z"/></svg>
+        </div>
+        <div style="width:280px;display:flex;align-items:center;gap:8px;padding-left:16px;box-sizing:border-box">
+          <span style="font-size:13px;font-weight:600">viewerchrome.swg</span><span class="mono" style="font-size:11px;color:#7D7D89">swagscope / src</span>
+        </div>
+        <div style="width:350px;display:flex;justify-content:center">
+          <div style="width:300px;height:28px;border:1px solid #2A2A33;border-radius:4px;background:#131317;display:flex;align-items:center;padding:0 10px;box-sizing:border-box;font-size:12.5px;color:#7D7D89">Search the document</div>
+        </div>
+        <div style="width:110px;font-size:12.5px;font-weight:500;padding-left:12px;box-sizing:border-box">Code ▾</div>
+        <div style="width:106px;display:flex;gap:14px;padding-left:12px;box-sizing:border-box;color:#A9A9B4" class="mono">▯ ⤢ ◐</div>
+        <div style="flex:1;display:flex;justify-content:flex-end;gap:30px;padding-right:18px;color:#7D7D89" class="mono">— ▢ ✕</div>
+      </div>
+      <div style="display:flex">
+        <div class="zone" style="width:160px;padding-right:8px;box-sizing:border-box"><i></i>mark · open · explore</div>
+        <div class="zone" style="width:280px;padding-right:8px;box-sizing:border-box"><i></i>document: name, clickable path</div>
+        <div class="zone" style="width:350px;padding-right:8px;box-sizing:border-box"><i></i>search, centered on the window</div>
+        <div class="zone" style="width:110px;padding-right:8px;box-sizing:border-box"><i></i>viewer</div>
+        <div class="zone" style="width:106px;padding-right:8px;box-sizing:border-box"><i></i>panels · screen · appearance</div>
+        <div class="zone" style="flex:1"><i></i>window</div>
+      </div>
+    </div>
+  </section>
+  <section style="display:flex;flex-direction:column;gap:32px">
+    <h2 class="h2">Six laws</h2>
+    <div style="display:grid;grid-template-columns:repeat(3,minmax(0,1fr));column-gap:48px;row-gap:40px">
+      <div class="law"><span class="n">01</span><h3>One lit plane</h3><p>The document is the only light surface. Bar, panels and readout line stay on the ink: the eye goes straight to the content.</p></div>
+      <div class="law"><span class="n">02</span><h3>One bar, one line</h3><p>The caption carries the document, the search and the viewer. Everything measured fits in 28 units at the bottom.</p></div>
+      <div class="law"><span class="n">03</span><h3>The notch</h3><p>The only permanent Voltage: 64 units cut at 45° on the top edge, above the mark. It replaces the full-width rail.</p></div>
+      <div class="law"><span class="n">04</span><h3>Words in sans, numbers in mono</h3><p>Inter for what is read, Roboto Mono for what is measured: offsets, sizes, positions, counts, durations.</p></div>
+      <div class="law"><span class="n">05</span><h3>Arc chooses, Voltage acts</h3><p>Selection, hover, links: Arc. Primary action, current hit, cursor: Voltage. Never both on one object.</p></div>
+      <div class="law"><span class="n">06</span><h3>Content touches the edges</h3><p>No card set on a ground, no decorative margin. Tone separates first, air second, a hairline last.</p></div>
+    </div>
+  </section>
+  <section style="display:flex;flex-direction:column;gap:28px">
+    <h2 class="h2">Nine tokens, two modes</h2>
+    <div style="display:flex;flex-direction:column;gap:20px">
+      <div style="display:grid;grid-template-columns:72px repeat(9,minmax(0,1fr));column-gap:12px;align-items:start">
+        <span class="lbl" style="padding-top:20px">Ink</span>
+        <div class="sw"><div class="c" style="background:#0B0B0D;box-shadow:inset 0 0 0 1px #2A2A33"></div><span class="k">Chrome</span><span class="v">#0B0B0D</span></div>
+        <div class="sw"><div class="c" style="background:#121216;box-shadow:inset 0 0 0 1px #2A2A33"></div><span class="k">Plane</span><span class="v">#121216</span></div>
+        <div class="sw"><div class="c" style="background:#1B1B21"></div><span class="k">Raised</span><span class="v">#1B1B21</span></div>
+        <div class="sw"><div class="c" style="background:#23232B"></div><span class="k">Line</span><span class="v">#23232B</span></div>
+        <div class="sw"><div class="c" style="background:#E9E9ED"></div><span class="k">Text</span><span class="v">#E9E9ED</span></div>
+        <div class="sw"><div class="c" style="background:#A9A9B4"></div><span class="k">Soft</span><span class="v">#A9A9B4</span></div>
+        <div class="sw"><div class="c" style="background:#7D7D89"></div><span class="k">Faint</span><span class="v">#7D7D89</span></div>
+        <div class="sw"><div class="c" style="background:#F7F900"></div><span class="k">Voltage</span><span class="v">#F7F900</span></div>
+        <div class="sw"><div class="c" style="background:#38BDF8"></div><span class="k">Arc</span><span class="v">#38BDF8</span></div>
+      </div>
+      <div style="display:grid;grid-template-columns:72px repeat(9,minmax(0,1fr));column-gap:12px;align-items:start">
+        <span class="lbl" style="padding-top:20px">Paper</span>
+        <div class="sw"><div class="c" style="background:#F4F4F2"></div><span class="k">Chrome</span><span class="v">#F4F4F2</span></div>
+        <div class="sw"><div class="c" style="background:#FFFFFF"></div><span class="k">Plane</span><span class="v">#FFFFFF</span></div>
+        <div class="sw"><div class="c" style="background:#E8E8E5"></div><span class="k">Raised</span><span class="v">#E8E8E5</span></div>
+        <div class="sw"><div class="c" style="background:#E2E2DF"></div><span class="k">Line</span><span class="v">#E2E2DF</span></div>
+        <div class="sw"><div class="c" style="background:#1B1B1D;box-shadow:inset 0 0 0 1px #2A2A33"></div><span class="k">Text</span><span class="v">#1B1B1D</span></div>
+        <div class="sw"><div class="c" style="background:#55555C"></div><span class="k">Soft</span><span class="v">#55555C</span></div>
+        <div class="sw"><div class="c" style="background:#6A6A73"></div><span class="k">Faint</span><span class="v">#6A6A73</span></div>
+        <div class="sw"><div class="c" style="background:#F7F900;box-shadow:inset 0 -4px 0 #A3A500"></div><span class="k">Voltage + mark</span><span class="v">#A3A500</span></div>
+        <div class="sw"><div class="c" style="background:#38BDF8;box-shadow:inset 0 -4px 0 #0570A0"></div><span class="k">Arc + link</span><span class="v">#0570A0</span></div>
+      </div>
+    </div>
+  </section>
+  <section style="display:grid;grid-template-columns:repeat(2,minmax(0,1fr));column-gap:64px">
+    <div style="display:flex;flex-direction:column;gap:24px">
+      <h2 class="h2">Measures</h2>
+      <div class="ms">
+        <span>Bar (merged caption)</span><span>44</span>
+        <span>Readout line</span><span>28</span>
+        <span>List and outline row</span><span>28</span>
+        <span>Side panel</span><span>240</span>
+        <span>Sheet, inspector</span><span>300–340</span>
+        <span>Glyph / cell</span><span>16 / 28</span>
+        <span>Corner control / window</span><span>4 / 12</span>
+        <span>Rhythm</span><span>4·8·16·24</span>
+      </div>
+    </div>
+    <div style="display:flex;flex-direction:column;gap:24px">
+      <h2 class="h2">Type</h2>
+      <div style="display:flex;flex-direction:column;gap:16px">
+        <div style="display:flex;align-items:baseline;justify-content:space-between;gap:16px"><span style="font-size:20px;font-weight:700;letter-spacing:-.01em">Blade Runner</span><span class="note">Inter 20 / 700 · sheet title</span></div>
+        <div style="display:flex;align-items:baseline;justify-content:space-between;gap:16px"><span style="font-size:13px;font-weight:600">viewerchrome.swg</span><span class="note">Inter 13 / 600 · document</span></div>
+        <div style="display:flex;align-items:baseline;justify-content:space-between;gap:16px"><span style="font-size:12.5px;color:#C9C9D1">Explore the folder</span><span class="note">Inter 12.5 / 400 · interface</span></div>
+        <div style="display:flex;align-items:baseline;justify-content:space-between;gap:16px"><span class="mono" style="font-size:11px;color:#A9A9B4">Ln 37, Col 21 · 18,1 Ko</span><span class="note">Roboto Mono 11 · readout</span></div>
+        <div style="display:flex;align-items:baseline;justify-content:space-between;gap:16px"><span class="lbl">Recent</span><span class="note">Inter 10.5 / 600 · +0.12 em · label</span></div>
+      </div>
+    </div>
+  </section>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1280,"height":2280}}'>
+class Component extends DCLogic {
+  renderVals() { return {}; }
+}
+</script>
+</body>
+</html>

@@ -1,0 +1,127 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<title>Swag Vault — open</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&amp;family=Roboto+Mono:wght@400;500&amp;display=swap" rel="stylesheet">
+<style>
+body{margin:0;background:#050506}
+.win{font-family:'Inter',system-ui,sans-serif;color:#E9E9ED;-webkit-font-smoothing:antialiased}
+.mono{font-family:'Roboto Mono',ui-monospace,monospace}
+.ib{display:inline-flex;align-items:center;justify-content:center;width:28px;height:28px;border:0;background:transparent;color:#A9A9B4;border-radius:4px;padding:0}
+.ib svg,.ic{width:16px;height:16px;flex:none}
+.cap{display:inline-flex;align-items:center;justify-content:center;width:46px;height:44px;border:0;background:transparent;color:#7D7D89;padding:0}
+.lbl{font-size:10.5px;letter-spacing:.12em;text-transform:uppercase;color:#7D7D89;font-weight:600}
+.seg{display:flex;padding:2px;gap:2px;background:#131317;border:1px solid #23232B;border-radius:6px}
+.seg button{height:24px;padding:0 14px;border:0;border-radius:4px;background:transparent;color:#A9A9B4;font:500 12.5px 'Inter',sans-serif}
+.seg button.on{background:#24242C;color:#F2F2F5}
+.row{display:flex;align-items:center;gap:8px;height:28px;padding:0 12px 0 16px;font-size:12.5px;color:#C9C9D1;border-radius:4px;margin:0 8px}
+.row.on{background:rgba(56,189,248,.13);color:#F2F2F5}
+.row .n{margin-left:auto;font:11px 'Roboto Mono',monospace;color:#55555F}
+.fl{display:flex;flex-direction:column;gap:8px}
+.in{height:32px;box-sizing:border-box;border:1px solid #2A2A33;border-radius:4px;background:#0B0B0D;display:flex;align-items:center;gap:8px;padding:0 10px;font-size:13px;color:#E9E9ED;flex:1;min-width:0}
+.in.ph{color:#6E6E7A}
+.btn{height:32px;padding:0 14px;border:1px solid #2E2E38;border-radius:4px;background:transparent;color:#E9E9ED;font:500 12.5px 'Inter',sans-serif;display:inline-flex;align-items:center;gap:8px}
+.help{font-size:12px;line-height:18px;color:#8E8E9A;margin:0}
+.chk{display:flex;gap:10px;align-items:flex-start}
+.box{width:16px;height:16px;border:1px solid #3A3A45;border-radius:4px;box-sizing:border-box;flex:none;margin-top:1px}
+.link{border:0;background:transparent;color:#7DD3FC;font:500 12.5px 'Inter',sans-serif;padding:0;height:28px;white-space:nowrap}
+.ro b{font-weight:400;color:#A9A9B4}
+</style>
+</helmet>
+<div class="win" style="width:1280px;height:800px;box-sizing:border-box;background:#0B0B0D;border:1px solid #26262E;border-radius:12px;overflow:hidden;display:flex;flex-direction:column;position:relative">
+  <div aria-hidden="true" style="position:absolute;left:0;top:0;width:64px;height:3px;background:#F7F900;clip-path:polygon(0 0,100% 0,calc(100% - 3px) 100%,0 100%);z-index:2"></div>
+
+  <header style="height:44px;flex:none;display:flex;align-items:center;background:linear-gradient(135deg,rgba(247,249,0,.055),rgba(247,249,0,0) 32%),#0B0B0D">
+    <div style="width:240px;flex:none;display:flex;align-items:center;padding-left:16px;box-sizing:border-box">
+      <svg aria-label="Swag Vault" role="img" viewBox="0 0 24 24" style="width:22px;height:22px;margin-right:12px"><path d="M7.5 10V7.5a4.5 4.5 0 0 1 9 0V10" fill="none" stroke="#F7F900" stroke-width="2.2"/><path d="M5.5 10h13l1 1v8.5l-1.5 1.5H6l-1.5-1.5V11z" fill="#F7F900"/><circle cx="12" cy="14.3" r="1.6" fill="#0B0B0D"/><path d="M11.2 15h1.6v3h-1.6z" fill="#0B0B0D"/></svg>
+      <span style="font-size:13px;font-weight:600;color:#A9A9B4">Swag Vault</span>
+    </div>
+    <div style="flex:1"></div>
+    <div class="seg" role="tablist" aria-label="Section">
+      <button role="tab">Créer</button><button role="tab" class="on">Ouvrir</button><button role="tab">Montés <span class="mono" style="font-size:11px;color:#7DD3FC;margin-left:4px">1</span></button><button role="tab">Options</button>
+    </div>
+    <div style="flex:1"></div>
+    <div style="width:240px;flex:none;display:flex;align-items:center;justify-content:flex-end;padding-right:12px;box-sizing:border-box">
+      <button class="ib" aria-label="Apparence"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.4"><circle cx="8" cy="8" r="5.75"/><path d="M8 2.25v11.5A5.75 5.75 0 0 0 8 2.25z" fill="currentColor"/></svg></button>
+    </div>
+    <div style="display:flex">
+      <button class="cap" aria-label="Réduire"><svg viewBox="0 0 10 10" style="width:10px;height:10px" stroke="currentColor"><path d="M0 5.5h10"/></svg></button>
+      <button class="cap" aria-label="Agrandir"><svg viewBox="0 0 10 10" style="width:10px;height:10px" fill="none" stroke="currentColor"><rect x=".5" y=".5" width="9" height="9" rx="1.5"/></svg></button>
+      <button class="cap" aria-label="Fermer"><svg viewBox="0 0 10 10" style="width:10px;height:10px" stroke="currentColor"><path d="m.5.5 9 9m0-9-9 9"/></svg></button>
+    </div>
+  </header>
+
+  <div style="flex:1;display:flex;min-height:0">
+    <aside style="width:240px;flex:none;display:flex;flex-direction:column;gap:4px;padding-top:12px;box-sizing:border-box">
+      <div style="padding:0 16px 0 24px;height:28px;display:flex;align-items:center"><span class="lbl">Coffres récents</span></div>
+      <div class="row on"><svg class="ic" viewBox="0 0 16 16" fill="none" stroke="#38BDF8" stroke-width="1.4" aria-hidden="true"><rect x="2.5" y="7" width="11" height="7" rx="1"/><path d="M5 7V5a3 3 0 0 1 6 0v2"/></svg>vault.bin<span class="n" style="color:#7DD3FC">C:\</span></div>
+      <div class="row"><svg class="ic" viewBox="0 0 16 16" fill="none" stroke="#7D7D89" stroke-width="1.4" aria-hidden="true"><rect x="2.5" y="7" width="11" height="7" rx="1"/><path d="M5 7V5a3 3 0 0 1 6 0v2"/></svg>archives-2025.bin<span class="n">E:\</span></div>
+      <div class="row"><svg class="ic" viewBox="0 0 16 16" fill="none" stroke="#7D7D89" stroke-width="1.4" aria-hidden="true"><rect x="2.5" y="7" width="11" height="7" rx="1"/><path d="M5 7V5a3 3 0 0 1 6 0v2"/></svg>papiers.bin<span class="n">D:\</span></div>
+      <div style="padding:0 16px 0 24px;height:28px;display:flex;align-items:center;margin-top:20px"><span class="lbl">Montés</span></div>
+      <div class="row"><span aria-hidden="true" style="width:6px;height:6px;border-radius:50%;background:#7DD48F;margin:0 5px"></span><span class="mono" style="font-size:12px">P:</span>papiers.bin<span class="n">2 Go</span></div>
+    </aside>
+
+    <main style="flex:1;min-width:0;background:#121216;box-shadow:inset 1px 1px 0 #1C1C23;overflow:hidden;padding:40px 0 0 64px;box-sizing:border-box">
+      <div style="width:680px;display:flex;flex-direction:column;gap:24px">
+        <div style="display:flex;flex-direction:column;gap:8px">
+          <h1 style="margin:0;font-size:22px;line-height:28px;font-weight:700;letter-spacing:-.015em;color:#F7F7F9">Ouvrir un coffre existant</h1>
+          <p class="help" style="font-size:13px;line-height:20px;color:#A9A9B4">Saisissez une fois l'accès au coffre ici. Le montage et chaque modification ci-dessous utilisent le même mot de passe et les mêmes fichiers clés.</p>
+        </div>
+        <div class="fl">
+          <span class="lbl">Fichier conteneur</span>
+          <div style="display:flex;gap:8px"><div class="in mono" style="font-size:12.5px">C:\vault.bin</div><button class="btn">Parcourir</button></div>
+        </div>
+        <div class="fl">
+          <span class="lbl">Mot de passe</span>
+          <div style="display:flex;gap:8px"><div class="in" style="border-color:#F7F900;box-shadow:0 0 0 1px #F7F900;letter-spacing:.2em">••••••••••<span style="flex:1"></span><svg class="ic" viewBox="0 0 16 16" fill="none" stroke="#7D7D89" stroke-width="1.4" aria-hidden="true"><path d="M1.5 8S4 3.5 8 3.5 14.5 8 14.5 8 12 12.5 8 12.5 1.5 8 1.5 8z"/><circle cx="8" cy="8" r="2"/></svg></div></div>
+        </div>
+        <div class="fl">
+          <span class="lbl">Fichiers clés</span>
+          <div style="display:flex;gap:4px;align-items:center"><div class="in ph">Aucun fichier clé</div><button class="ib" aria-label="Ajouter des fichiers clés existants"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.4"><path d="M8 3v10M3 8h10"/></svg></button><button class="ib" aria-label="Retirer le fichier clé sélectionné" style="color:#45454F"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.4"><path d="M3 8h10"/></svg></button></div>
+          <p class="help">Chaque fichier listé est requis. Seul son contenu est utilisé : vous pouvez le déplacer sans modifier l'accès.</p>
+        </div>
+        <div class="fl">
+          <span class="lbl">Lettre de lecteur</span>
+          <div style="display:flex"><div class="in mono" style="flex:none;width:120px;justify-content:space-between">D:<svg viewBox="0 0 16 16" style="width:12px;height:12px" fill="none" stroke="#7D7D89" stroke-width="1.6" aria-hidden="true"><path d="m4 6 4 4 4-4"/></svg></div></div>
+          <p class="help">Le lecteur est disponible pour Windows tant que Swag Vault s'exécute, et apparaît sous Montés.</p>
+        </div>
+        <div style="display:flex;flex-direction:column;gap:12px">
+          <label class="chk"><span class="box"></span><span style="font-size:13px">Monter en lecture seule</span></label>
+          <label class="chk"><span class="box"></span><span style="font-size:13px">Protéger le volume caché en écriture</span></label>
+        </div>
+        <div style="display:flex;align-items:center;gap:20px;margin-top:8px">
+          <button class="link">Mot de passe…</button>
+          <button class="link">Fichiers clés…</button>
+          <button class="link">Capacité et camouflage…</button>
+          <button class="link">Créer un volume caché…</button>
+          <span style="flex:1"></span>
+          <button style="height:32px;padding:0 18px;border:0;border-radius:4px;background:#F7F900;color:#0B0B0D;font:600 13px 'Inter',sans-serif;display:inline-flex;align-items:center;gap:8px"><svg viewBox="0 0 16 16" style="width:12px;height:12px" aria-hidden="true"><path d="M4 2.5v11l9-5.5z" fill="#0B0B0D"/></svg>Monter</button>
+        </div>
+      </div>
+    </main>
+  </div>
+
+  <footer class="mono" style="height:28px;flex:none;display:flex;align-items:center;font-size:11px;color:#7D7D89;background:#0B0B0D">
+    <div style="width:240px;flex:none;padding-left:24px;box-sizing:border-box" class="ro">Prêt</div>
+    <div style="flex:1;padding-left:64px" class="ro"><span>Choisissez un coffre à ouvrir.</span></div>
+    <div style="display:flex;align-items:center;gap:20px;padding-right:16px" class="ro">
+      <span><b>1</b> lecteur monté</span>
+      <span>WinFsp <b>prêt</b></span>
+    </div>
+  </footer>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1280,"height":800}}'>
+class Component extends DCLogic {
+  renderVals() { return {}; }
+}
+</script>
+</body>
+</html>

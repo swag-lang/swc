@@ -18,6 +18,10 @@ Use the narrowest real owner. Examples include `std.truetype`, `std.pixel.image`
 `app.scope.midi`, and `compiler.command.doc`. Cross-cutting operating-system portability belongs
 in [platform.portability.md](platform.portability.md).
 
+[design/](design/README.md) is the one subfolder: a design campaign whose entries need their
+specification, mockups and renders beside them. It keeps the entry format of a domain file and
+disappears when its entries are done.
+
 The table below is a navigation index, ordered by file name. Add or remove a row with its domain
 file. Do not add status, dates, or progress summaries to the index.
 
@@ -47,6 +51,7 @@ file. Do not add status, dates, or progress summaries to the index.
 | [compiler.optimization.md](compiler.optimization.md) | Backend optimization and generated-code performance |
 | [compiler.safety.md](compiler.safety.md) | Memory safety and runtime guards |
 | [cpu.simd.md](cpu.simd.md) | SIMD compiler and consumer work |
+| [design/design.instrument.md](design/design.instrument.md) | Instrument design migration of the applications and every dialog under `bin/` |
 | [language.design.md](language.design.md) | Swag language and syntax |
 | [language.parallelism.md](language.parallelism.md) | Native concurrency and parallelism |
 | [platform.portability.md](platform.portability.md) | Operating-system ports and portable contracts |

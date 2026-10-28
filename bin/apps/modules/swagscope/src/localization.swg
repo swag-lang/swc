@@ -32,6 +32,12 @@ struct AppStrings
     explore_Synopsis:          string = "Synopsis"
     explore_Length:            string = "% h %"                      // Length of a film under its poster: hours, then minutes.
     explore_Sources:           string = "Sources"                    // Reading naming who provided what the sheet says of a film.
+    explore_Album:             string = "Album"                      // Kind of the folder an album page shows, before its year.
+    explore_Tracks:            string = "% tracks"                   // How many tracks an album holds.
+    explore_Play:              string = "Play"                       // Button playing an album from its first track.
+    explore_Shuffle:           string = "Shuffle"                    // Button playing an album in an order drawn by chance.
+    explore_Weekdays:          string = "Sunday Monday Tuesday Wednesday Thursday Friday Saturday"     // Days of a mosaic of pictures, from Sunday, separated by spaces.
+    explore_Months:            string = "January February March April May June July August September October November December"     // Months of a mosaic of pictures, separated by spaces.
     explore_File:              string = "File"                       // Reading of the kind and weight of the file a film is in.
     explore_Artist:            string = "Artist"
     explore_FirstRelease:      string = "First release"
@@ -129,6 +135,8 @@ struct AppStrings
     lens_Playback:      string = "Playback"                  // Lens section of the play modes.
     lens_Folder:        string = "Folder"                    // Lens section of the commands of the explored folder.
     lens_InFolder:      string = "In This Folder"            // Lens section listing the files beside the open one.
+    lens_InFile:        string = "In This File"              // Lens section listing the lines of the open file that hold the query.
+    lens_GoToLine:      string = "Go to Line %"              // Lens row going to the line typed after a colon.
     cmd_Open:           string = "Open…"                     // Command choosing a file to open.
     cmd_OpenChosen:     string = "Open"                      // Command opening the item chosen in the explored folder.
     cmd_ExtractAll:     string = "Extract All…"              // Command extracting the whole explored archive to a folder.

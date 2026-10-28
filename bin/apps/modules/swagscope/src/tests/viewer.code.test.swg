@@ -386,9 +386,26 @@ struct CodeLanguageSample
     {
         window.lens.open(query)
         host.finishAnimations()
+
+        // Typed into, the lens answers first with the lines of the file that hold the query.
+        if i == 1
+        {
+            let first = unwrap window.lens.results.sections[0]
+            Swag.assert(first.label == appStrings().lens_InFile and first.count >= 1)
+            Swag.assert(Utf8.contains(first.entries[0].title.toString(), "doubled") and first.entries[0].lead.length)
+        }
+
         var image = host.render(window)
         Pixel.Testing.assertImageGolden(&image, i == 0 ? "showcase.lens.empty" : (i == 1 ? "showcase.lens.query" : "showcase.lens.actions"))
         window.lens.close()
         host.finishAnimations()
     }
+
+    // A colon and a number go to that line.
+    window.lens.open(":3")
+    host.finishAnimations()
+    let goTo = unwrap window.lens.results.sections[0]
+    Swag.assert(goTo.label == appStrings().lens_InFile and goTo.entries[0].title == Format.toString(appStrings().lens_GoToLine, 3))
+    window.lens.close()
+    host.finishAnimations()
 }

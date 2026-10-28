@@ -42,12 +42,9 @@ impl IWnd for PanelWnd
         if not (.title).count do
             return
 
-        // The title is a section label: small spaced capitals in the faint ink.
-        let painter = evt.paintContext.painter
-        let metrics = .themeMetrics()
-        let rect    = .clientRect()
-        let font    = .theme().createDefaultFont(metrics.sectionLabel_FontSize, .Bold)
-        var shaped  = Painter.shapeRun(String.toUpper(.title, .Unicode), font, letterSpacing: metrics.sectionLabel_LetterSpacing)
-        painter.drawShapedRun(rect.x + PanelPadding, font.opticalLineTop(rect.y + PanelPadding + 9), &shaped, font, Brush.createSolid(.themeColors().faintText))
+        // The title is a section label, centred on the band above the content.
+        let rect = .clientRect()
+        let band = Math.Rectangle{rect.x + PanelPadding, rect.y + PanelPadding, rect.width - 2 * PanelPadding, 18}
+        SectionLabel.paint(me, evt.paintContext.painter, band, .title)
     }
 }

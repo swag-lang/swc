@@ -156,13 +156,14 @@ impl IWnd for InfoSheet
                 discard paintTextLine(painter, x + used + metrics.iconText_Margin * 0.5, centerY, block.label, monoFont, colors.faintText)
 
             case .Reading:
+
                 // A label longer than its column pushes its value along rather than running into it.
                 let used   = paintTextLine(painter, x, centerY, block.label, bodyFont, colors.softText)
                 let valueX = Math.max(x + metrics.infoSheet_LabelWidth, Math.ceil(x + used + metrics.iconText_Margin))
                 discard paintTextLine(painter, valueX, centerY, block.value, block.mono ? valueMono : bodyFont, colors.text)
 
             case .Section:
-                paintSectionLabel(me, painter, Math.Rectangle{x, top, width, block.height}, block.label)
+                SectionLabel.paint(me, painter, Math.Rectangle{x, top, width, block.height}, block.label)
 
             case .Text:
                 var text: RichString
@@ -362,10 +363,12 @@ impl InfoSheet
                     result += " "
                     result += block.label
                 }
+
             case .Reading:
                 result += block.label
                 result += "\n"
                 result += block.value
+
             default:
                 result += block.label
             }

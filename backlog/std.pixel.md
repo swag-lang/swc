@@ -15,6 +15,19 @@ ships; history lives in Git, not here.
 
 ## Entries
 
+### std.pixel.032 — `Image.setChannel` leaves straight RGBA8 pixels unchanged
+
+- Evidence: on a straight `RGBA8` image, `setChannel(.RGB, .Color, 0xFF)` returns without
+  changing a pixel (a keyed-out `0xFFF7F900` stays `0xFFF7F900`); only the BGR8/BGRA8 storage path
+  writes. `image.simd.tail.test.swg` pins that: it expects the `setChannel` bytes to change for
+  BGR8 and BGRA8 only. The other formats go through `transformLogicalPixels`; why the write is lost
+  there is not established (the closure also shadows the method's own `value` parameter).
+  `Application.loadAppIconCuts` whitens the window glyph with `visitPixels` instead.
+- Next: reduce the generic path of `setChannel` to a standalone reproducer, find where the write is
+  lost, fix it, and make the SIMD tail test expect the write in every format.
+- Done when: `setChannel` writes the selected channels in every packed format and the tail test
+  says so.
+
 ### std.pixel.011 — Painter paths cannot use polygon boolean operations
 
 - Evidence: `poly/` has boolean operations, but `LinePathList` callers have no supported conversion

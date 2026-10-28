@@ -68,7 +68,6 @@ impl MainWindow
         result.language        = ReferenceLanguage
 
         result.createAppearanceButton()
-        Separator.create(result, .Top, .Accent)
         result.createStatusLine()
         result.createPanes()
         result.applyLanguage()

@@ -504,10 +504,6 @@ impl MainWindow
         result.language        = ReferenceLanguage
 
         result.createAppearanceButton()
-
-        // One accent rule across the top identifies every standard Swag application surface.
-        Separator.create(result, .Top, .Accent)
-
         result.createHeader()
         result.createFooter()
         result.createTabs()

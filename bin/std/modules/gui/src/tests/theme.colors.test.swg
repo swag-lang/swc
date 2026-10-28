@@ -153,29 +153,35 @@ using Swag, Core, Pixel
     }
 }
 
-// The charter draws no caption band, no glow and no rail: every caption ground is the window
-// ground, and the outline of a surface is an opaque hairline.
+// The charter draws no caption band, no glow and no rail: the top strip is the window ground, its
+// chrome is faint, and the outline of a surface is an opaque hairline.
 #test
 {
     for palette in [ThemeColors.encrePalette(), ThemeColors.papierPalette()]
     {
         var colors: ThemeColors
         colors.apply(palette)
-        Swag.assert(colors.wnd_CaptionBk == palette.ground)
-        Swag.assert(colors.wnd_CaptionBkLead == colors.wnd_CaptionBk)
-        Swag.assert(colors.wnd_CaptionBkTrail == colors.wnd_CaptionBk)
         Swag.assert(colors.wnd_Bk == palette.ground)
         Swag.assert(colors.dlg_Bk == palette.surface)
         Swag.assert(colors.menuPopup_Bk == palette.surface)
         Swag.assert(colors.wnd_Border.a == 255)
+
+        // The title and the window buttons are faint; a button reaches the body ink under the
+        // pointer, and close the critical ink. The glyph is the soft ink at about 55 %.
+        Swag.assert(colors.wnd_CaptionText == palette.faintText)
+        Swag.assert(colors.wnd_BtnIcon == palette.faintText)
+        Swag.assert(colors.wnd_BtnHotIcon == palette.text)
+        Swag.assert(colors.wnd_BtnCloseHotIcon == colors.critical)
+        Swag.assert(colors.wnd_CaptionMark.argb & 0x00FFFFFF == palette.softText.argb & 0x00FFFFFF)
+        Swag.assert(colors.wnd_CaptionMark.a > 0x80 and colors.wnd_CaptionMark.a < 0x96)
     }
 
-    // A caption shows the product mark: on Encre the glyph floats free, on Papier it keeps its tile.
+    // A colored mark keeps its tile on Papier, where a keyed-out Voltage glyph would vanish.
     var encre, papier: ThemeColors
     encre.setDark()
     papier.setLight()
-    Swag.assert(markReadsOn(encre.wnd_CaptionBk))
-    Swag.assert(not markReadsOn(papier.wnd_CaptionBk))
+    Swag.assert(markReadsOn(encre.ground))
+    Swag.assert(not markReadsOn(papier.ground))
 }
 
 // The measures of the charter, and the tiles drawn with them: every tile publishes the corner its

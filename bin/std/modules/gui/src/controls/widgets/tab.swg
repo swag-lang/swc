@@ -239,10 +239,25 @@ impl IWnd for Tab
 
         if .itemForm == .Flat and idx == .hotIndex and idx != .selectedIndex do
             painter.fillRect(.selectionRailRect(idx), v.aniImg.cur())
+
         // A segment is a chip standing inside the raised frame of its group, not a slice of it.
         var groundPos = labelPos
         if .itemForm == .Round do
             groundPos.inflate(-metrics.tabBar_SegmentInset)
+
+        // A chosen chip lighter than its frame is lifted off it by a soft shadow, a pixel deep.
+        let lift = colors.tabItem_RoundLift
+        if .itemForm == .Round and idx == .selectedIndex and lift.a
+        {
+            let radius = rects.tabItem_RoundSelected.radius
+            var shade  = groundPos
+            shade.y += 1
+            shade.inflate(0.5)
+            painter.fillRoundRect(shade, radius + 0.5, radius + 0.5, lift.withAlpha(lift.a / 2))
+            shade.inflate(-0.5)
+            painter.fillRoundRect(shade, radius, radius, lift)
+        }
+
         if subRect do
             theme.drawSubRect(painter, groundPos, subRect, v.aniImg.cur())
         if subRectBorder do

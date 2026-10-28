@@ -11,13 +11,17 @@ public enum SizingBorder
     Bottom       // Bottom edge.
 }
 
-// Provides the root GUI frame and native caption controls for a [[Gui.Surface]].
+// Provides the root GUI frame and the window chrome of a [[Gui.Surface]].
+//
+// The chrome follows the charter: no caption band, no rail and no glow. The top strip is the
+// window's own ground and stays draggable wherever no control sits; it carries only a faint
+// application glyph, the title centred in small faint type, and faint window buttons.
 public struct SurfaceWnd
 {
     public
     {
         using base:    FrameWnd                // Frame hosting the surface view.
-        icon:          Icon                    // Caption icon; an invalid one shows the application mark.
+        icon:          Icon                    // Glyph at the leading corner, drawn in the chrome's one ink; an invalid one shows the application glyph.
         minimizeBtn:   *IconButton?            // Caption minimize button, present with [[Gui.SurfaceFlags.MinimizeButton]].
         maximizeBtn:   *IconButton?            // Caption maximize button, present with [[Gui.SurfaceFlags.MaximizeButton]].
         closeBtn:      *IconButton?            // Caption close button, present with [[Gui.SurfaceFlags.CloseButton]].
@@ -168,10 +172,14 @@ impl IWnd for SurfaceWnd
         let metrics    = .themeMetrics()
 
         var buttonCount = 0'u32
-        if .closeBtn do buttonCount += 1
-        if .maximizeBtn do buttonCount += 1
-        if .minimizeBtn do buttonCount += 1
-        for button in .captionButtons where not button.isPendingDestroy do buttonCount += 1
+        if .closeBtn do
+            buttonCount += 1
+        if .maximizeBtn do
+            buttonCount += 1
+        if .minimizeBtn do
+            buttonCount += 1
+        for button in .captionButtons where not button.isPendingDestroy do
+            buttonCount += 1
         var gapCount = buttonCount > 0 ? buttonCount - 1 : 0
 
         var pos = clientRect
@@ -186,7 +194,7 @@ impl IWnd for SurfaceWnd
             pos.x -= pos.width
             if gapCount > 0
             {
-                pos.x -= metrics.wnd_CaptionButtonGap
+                pos.x    -= metrics.wnd_CaptionButtonGap
                 gapCount -= 1
             }
         }
@@ -197,7 +205,7 @@ impl IWnd for SurfaceWnd
             pos.x -= pos.width
             if gapCount > 0
             {
-                pos.x -= metrics.wnd_CaptionButtonGap
+                pos.x    -= metrics.wnd_CaptionButtonGap
                 gapCount -= 1
             }
         }
@@ -208,7 +216,7 @@ impl IWnd for SurfaceWnd
             pos.x -= pos.width
             if gapCount > 0
             {
-                pos.x -= .captionButtons.isEmpty() ? metrics.wnd_CaptionButtonGap : metrics.wnd_CaptionActionGap
+                pos.x    -= .captionButtons.isEmpty() ? metrics.wnd_CaptionButtonGap : metrics.wnd_CaptionActionGap
                 gapCount -= 1
             }
         }
@@ -226,7 +234,7 @@ impl IWnd for SurfaceWnd
             if gapCount > 0
             {
                 buttonRight -= metrics.wnd_CaptionActionGap
-                gapCount -= 1
+                gapCount    -= 1
             }
         }
 
@@ -238,10 +246,7 @@ impl IWnd for SurfaceWnd
         let srfn = unwrap .surface
         if .isPendingDestroy do
             return
-        let bc     = evt.paintContext
-        let theme  = .theme()
-        let colors = .themeColors()
-
+        let painter    = evt.paintContext.painter
         let clientRect = .clientRect()
         let radius     = srfn.cornerRadius()
 
@@ -250,123 +255,86 @@ impl IWnd for SurfaceWnd
         // drawn here either: the surface strokes it above the whole hierarchy, see
         // Surface.paintBorder.
         if radius > 0 do
-            bc.painter.fillRoundRect(clientRect, radius, radius, colors.wnd_Bk)
+            painter.fillRoundRect(clientRect, radius, radius, .themeColors().wnd_Bk)
         else do
-            bc.painter.fillRect(clientRect, colors.wnd_Bk)
-
-        var posCaption = clientRect
-        if srfn.flags.has(.LargeCaption) do
-            posCaption.height = srfn.wnd.padding.y
-
-        if srfn.flags.has(.SmallCaption) do
-            posCaption.height = srfn.wnd.padding.y
+            painter.fillRect(clientRect, .themeColors().wnd_Bk)
 
         if srfn.flags.has(.LargeCaption | .SmallCaption) do
-            .paintCaptionBand(bc.painter, posCaption, radius, .captionBrush(posCaption))
-
-        if srfn.flags.has(.LargeCaption | .SmallCaption)
-        {
-            posCaption.x += theme.metrics.wnd_CaptionMarginTitle
-
-            var posClip = posCaption
-            if srfn.flags.has(.MinimizeButton) do
-                posClip.setRight(.minimizeBtn!.position.x)
-            elif srfn.flags.has(.MaximizeButton) do
-                posClip.setRight(.maximizeBtn!.position.x)
-            elif srfn.flags.has(.CloseButton) do
-                posClip.setRight(.closeBtn!.position.x)
-            for button in .captionButtons where not button.isPendingDestroy do
-                posClip.setRight(button.position.x)
-            bc.painter.pushClippingRect(posClip)
-            defer bc.painter.popClippingRect()
-
-            let captionTextColor = srfn.app.isActivated ? colors.wnd_CaptionText : colors.wnd_CaptionNotActivatedText
-
-            // A window says which application it belongs to before its title is read, so the
-            // caption falls back to the application mark when the surface names no icon of
-            // its own. A caption is chrome: the mark is set at the row size of the chart and
-            // never grows with the bar it sits in.
-            var icon = .icon
-            if not icon.isValid() do
-                icon = srfn.app.appIconAt(theme.metrics.wnd_CaptionIconSize, colors.wnd_CaptionBk)
-            if icon.isValid()
-            {
-                let iconColor = icon.color.a ? icon.color : captionTextColor
-                icon.paint(bc.painter, posCaption.x, opticalTop(.font(), posCaption.vertCenter(), icon.sizeY), iconColor)
-                posCaption.x += icon.sizeX + theme.metrics.iconText_Margin
-            }
-
-            var sf: Pixel.RichStringFormat
-            sf.vertAlignment = .Center
-            sf.font          = .font()
-            sf.palette[0]    = captionTextColor
-            bc.painter.drawRichString(posCaption, &.name, sf)
-        }
+            .paintTopStrip(painter)
     }
 }
 
 impl SurfaceWnd
 {
-    // Where the band settles back onto its own color, and where it starts falling away, along
-    // the axis. The plateau is what keeps a caption a caption: with the two ends meeting in the
-    // middle instead, no two points of the band are the same color and the reader is looking at
-    // a ramp rather than at a lit edge.
-    private const CaptionPlateauStart = 0.40'f32
-    private const CaptionPlateauEnd   = 0.68'f32
-
-    // The brush the caption band is filled with.
+    // Draws the chrome of the top strip on the ground the content sits on.
     //
-    // An active window lights its band from the mark and lets it fall away toward the caption
-    // buttons; an inactive one is flat. The amplitude is what says which, because the two caption
-    // grounds sit ten levels apart and no reader ever told them apart across a desktop.
-    //
-    // The axis is the one angle the identity knows. It ends where the diagonal of the band
-    // projects onto forty-five degrees — half the sum of the two sides — so the leading corner
-    // that carries the mark is one extreme of the ramp and the trailing corner that carries the
-    // buttons is the other, whatever the window is resized to. Ending it at the far corner
-    // instead leaves the ramp half unused and the trailing end never reached.
-    private mtd captionBrush(band: Math.Rectangle)->Brush
+    // There is no band to draw: the strip is the window's own ground, so the work reads as
+    // starting at the top edge. What remains is quiet enough to read past — the application glyph
+    // in one faint ink at the leading corner, and the title centred in small faint type, kept
+    // clear of both the glyph and the buttons and cut with an ellipsis rather than run under them.
+    private mtd paintTopStrip(painter: *Painter)
     {
-        let colors = .themeColors()
-        if not .surface!.app.isActivated do
-            return Brush.createSolid(colors.wnd_CaptionBkNotActived)
+        let srfn    = unwrap .surface
+        let metrics = .themeMetrics()
+        let colors  = .themeColors()
 
-        let ground = colors.wnd_CaptionBk
-        if colors.wnd_CaptionBkLead == ground and colors.wnd_CaptionBkTrail == ground do
-            return Brush.createSolid(ground)
+        var strip = .clientRect()
+        strip.height = .padding.y
 
-        let span  = (band.width + band.height) * 0.5
-        var brush = Brush.createLinearGradient(band.x, band.y, band.x + span, band.y + span, colors.wnd_CaptionBkLead, colors.wnd_CaptionBkTrail)
-        brush.addGradientStop(CaptionPlateauStart, ground)
-        brush.addGradientStop(CaptionPlateauEnd, ground)
-        return brush
-    }
-
-    // Fills the caption band, following the corner of the surface at its top.
-    //
-    // A square band on a rounded surface lays opaque ink past the corner, where the surface is
-    // transparent, and the compositor adds that ink to the desktop instead of hiding it: the two
-    // top corners came out as bright wedges. The band is drawn one radius taller than it needs to
-    // be and clipped back, so only its top corners are rounded and it still meets the ground
-    // squarely along its bottom edge.
-    //
-    // The brush is built from the band the reader sees, not from the taller shape that is
-    // clipped, so growing the fill downward does not move the axis with it.
-    private mtd paintCaptionBand(painter: *Painter, band: Math.Rectangle, radius: f32, brush: Brush)
-    {
-        if radius <= 0
+        var leading = strip.x + metrics.wnd_CaptionMarginTitle
+        var icon    = .icon
+        if not icon.isValid() do
+            icon = srfn.app.appGlyph(metrics.wnd_CaptionIconSize)
+        if icon.isValid()
         {
-            painter.fillRect(band, brush)
-            return
+            icon.paint(painter, leading, strip.vertCenter() - icon.sizeY * 0.5, colors.wnd_CaptionMark)
+            leading += icon.sizeX + metrics.wnd_CaptionMarginTitle
         }
 
-        var rounded = band
-        rounded.height += radius
+        let center   = strip.horzCenter()
+        let halfSpan = Math.min(center - leading, .chromeButtonsLeft() - metrics.wnd_CaptionMarginTitle - center)
+        if halfSpan <= 0 or .name.isEmpty() do
+            return
 
-        painter.pushClippingRect(band)
-        defer painter.popClippingRect()
-        painter.fillRoundRect(rounded, radius, radius, brush)
+        var sf: RichStringFormat
+        sf.font          = .theme().createDefaultFontFamily(metrics.wnd_TitleFontSize)
+        sf.horzAlignment = .Center
+        sf.vertAlignment = .Center
+        sf.flags         = .Ellipsis
+        sf.palette[0]    = colors.wnd_CaptionText
+        painter.drawRichString(Math.Rectangle{center - halfSpan, strip.y, 2 * halfSpan, strip.height}, &.name, sf)
     }
+
+    // Returns where the window buttons and the application actions beside them begin.
+    private mtd chromeButtonsLeft()->f32
+    {
+        var result = .clientRect().right()
+        if .closeBtn do
+            result = Math.min(result, .closeBtn.position.x)
+        if .maximizeBtn do
+            result = Math.min(result, .maximizeBtn.position.x)
+        if .minimizeBtn do
+            result = Math.min(result, .minimizeBtn.position.x)
+        for button in .captionButtons where not button.isPendingDestroy do
+            result = Math.min(result, button.position.x)
+        return result
+    }
+
+    // The voice of every button in the top strip: a faint glyph that reaches full contrast under
+    // the pointer, with no ground until it is pressed.
+    private const ChromeButtonColors = """btnIcon_Icon         $wnd_BtnIcon
+                                          btnIcon_HotIcon      $wnd_BtnHotIcon
+                                          btnIcon_HotBk        $transparent
+                                          btnIcon_PressedIcon  $wnd_BtnHotIcon
+                                          btnIcon_PressedBk    $wnd_BtnPressedBk"""
+
+    // Close has the same voice, but turns critical under the pointer, since it is the one that
+    // destroys.
+    private const CloseButtonColors = """btnIcon_Icon         $wnd_BtnIcon
+                                         btnIcon_HotIcon      $wnd_BtnCloseHotIcon
+                                         btnIcon_HotBk        $transparent
+                                         btnIcon_PressedIcon  $wnd_BtnCloseHotIcon
+                                         btnIcon_PressedBk    $wnd_BtnClosePressedBk"""
 
     mtd hitTestCaptionButton(surfacePos: Math.Point)->bool
     {
@@ -390,6 +358,7 @@ impl SurfaceWnd
     internal mtd registerCaptionButton(button: *IconButton)
     {
         Swag.assert(button.parent == me)
+        button.style.addStyleSheetColors(ChromeButtonColors)
         .captionButtons.add(button)
         .sendResizeEvent()
         .invalidate()
@@ -517,6 +486,7 @@ impl SurfaceWnd
                     .setForm(.RoundedRectangle)
                     .focusPolicy = .None
                     .sigPressed  += &onMinimize
+                    .style.addStyleSheetColors(ChromeButtonColors)
                 }
             }
         }
@@ -535,6 +505,7 @@ impl SurfaceWnd
                     .setForm(.RoundedRectangle)
                     .focusPolicy = .None
                     .sigPressed  += &onMaximize
+                    .style.addStyleSheetColors(ChromeButtonColors)
                 }
             }
         }
@@ -553,10 +524,7 @@ impl SurfaceWnd
                     .setForm(.RoundedRectangle)
                     .focusPolicy = .None
                     .sigPressed  += &onClose
-                    .style.addStyleSheetColors(#stringof(#nameof(ThemeColors.btnIcon_HotBk), " $", #nameof(ThemeColors.wnd_BtnCloseBk)))
-                    .style.addStyleSheetColors(#stringof(#nameof(ThemeColors.btnIcon_PressedBk), " $", #nameof(ThemeColors.wnd_BtnCloseHotBk)))
-                    .style.addStyleSheetColors(#stringof(#nameof(ThemeColors.btnIcon_HotIcon), " $", #nameof(ThemeColors.wnd_BtnCloseHotIcon)))
-                    .style.addStyleSheetColors(#stringof(#nameof(ThemeColors.btnIcon_PressedIcon), " $", #nameof(ThemeColors.wnd_BtnClosePressedIcon)))
+                    .style.addStyleSheetColors(CloseButtonColors)
                 }
             }
         }

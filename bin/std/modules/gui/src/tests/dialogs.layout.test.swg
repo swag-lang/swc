@@ -86,7 +86,6 @@ using Swag, Core, Pixel
     Swag.assert(Math.abs(dlg.surface.position.height - Math.ceil(expected) * dlg.surface.dpiScale) < 0.5)
     Swag.assert(dlg.identityView.backgroundStyle == .View)
     Swag.assert(dlg.identityView.position.width > 0)
-    Swag.assert(dlg.identityAccent.form == .Accent and dlg.identityAccent.dockStyle == .Top)
     Swag.assert(dlg.identityView.isAncestorOf(dlg.labelMessageTitle))
     Swag.assert(dlg.labelMessage.dockStyle == .None)
     Swag.assert(dlg.identityView.position.bottom() <= dlg.labelMessage.position.y)
@@ -114,7 +113,7 @@ using Swag, Core, Pixel
     Swag.assert(dlg.identityView.isAncestorOf(dlg.labelIcon))
 }
 
-// Pins the application identity hierarchy: one accent, one raised product block, and quieter
+// Pins the application identity hierarchy: one raised product block, no accent rail, and quieter
 // provenance below it.
 #[Swag.TestTag("golden")]
 #test

@@ -7,25 +7,24 @@ alias FrameCallback = func||(*Application)
 
 // Ground color of the Swag product mark: the ink tile its glyph is cut from.
 //
-// A drawn caption keys this ground out of the application icon, so it needs no second copy of
-// the icon, and it compares the glyph against its own band to decide whether keying it out is
-// legible at all. The two mark colors are the identity colors and nothing else: a mark that
-// drifts from them stops being one.
+// The window glyph and the About mark key this ground out of the application icon, so they need
+// no second copy of the icon. The two mark colors are the identity colors and nothing else: a
+// mark that drifts from them stops being one.
 const MarkInk = Ink
 
 // Glyph color of the Swag product mark, drawn over [[Gui.MarkInk]].
 const MarkVoltage = Voltage
 
-// Contrast ratio the glyph of a mark owes a caption band before the band may show it without its tile.
+// Contrast ratio the glyph of a mark owes a ground before that ground may show it without its tile.
 //
 // Three is where a shape stops being separated from what it is drawn over.
 const MarkGlyphContrast = 3.0'f32
 
-// Returns whether a band of `ground` can show a product mark with its tile keyed out.
+// Returns whether `ground` can show a product mark in its own colors with its tile keyed out.
 //
-// It is the one question that decides which cut of the mark a caption draws, so it is named
-// rather than written inside the paint: a dark band shows the glyph alone, and a light band
-// keeps the tile, because Voltage on paper is a mark nobody sees.
+// It is the one question that decides which colored cut of the mark a ground takes, so it is
+// named rather than written inside the paint: a dark ground shows the glyph alone, and a light
+// one keeps the tile, because Voltage on paper is a mark nobody sees.
 func markReadsOn(ground: Pixel.Color)->bool => MarkVoltage.contrastRatio(ground) >= MarkGlyphContrast
 
 // Selects which of the two shipped themes an application wears.
@@ -52,12 +51,14 @@ struct Application
         appIcon: Pixel.Image            // Icon used for native windows created by the application.
     }
 
-    // The two cuts of `appIcon`, uploaded the first time a caption asks for one, so the drawn
-    // title bar shows the same mark as the taskbar without the application saying so twice.
-    // Which one a band takes is decided in [[Gui.Application.appIconAt]].
-    appIconList:     ImageList     // The glyph alone, its ink ground keyed out.
-    appIconTileList: ImageList     // The mark as it ships: the glyph on its ink tile.
-    appIconLoaded:   bool
+    // The cuts of `appIcon`, uploaded the first time a window asks for one, so the window shows
+    // the same mark as the taskbar without the application saying so twice. Which of the two
+    // colored cuts a ground takes is decided in [[Gui.Application.appIconAt]]; the window glyph
+    // is [[Gui.Application.appGlyph]].
+    appIconList:      ImageList     // The glyph alone, its ink ground keyed out.
+    appIconTileList:  ImageList     // The mark as it ships: the glyph on its ink tile.
+    appIconGlyphList: ImageList     // The glyph alone in white, tinted by whoever draws it.
+    appIconLoaded:    bool
 
     public
     {
@@ -1176,18 +1177,16 @@ impl Application
 
     // Returns the application mark at `size` logical pixels, cut to sit on `ground`, or an invalid icon when the application declares none.
     //
-    // The mark ships flattened — one glyph over one ink tile — because that is what a taskbar,
-    // a file list and an installer need. A drawn caption has a ground of its own, so on a dark
-    // band the tile is keyed out and the glyph floats free, where the tile would have read as a
-    // black square around it.
+    // This is the mark in its own two colors, for a place that shows the brand, such as the About
+    // box; the corner of a window shows [[Gui.Application.appGlyph]] instead. The mark ships
+    // flattened — one glyph over one ink tile — because that is what a taskbar, a file list and
+    // an installer need. On a dark ground the tile is keyed out and the glyph floats free, where
+    // the tile would have read as a black square around it.
     //
-    // On a light band it cannot be, and this is the whole reason `ground` is asked for: the
-    // glyph is Voltage, and Voltage on paper is a mark nobody sees. The tile stays there, and
-    // the window carries the identity the way the chart says a light surface has to — as a block
-    // of brand rather than as a hairline of it. Below the threshold a keyed-out mark simply
-    // disappeared from the title bar of every application in the light theme.
+    // On a light ground it cannot be, and this is the whole reason `ground` is asked for: the
+    // glyph is Voltage, and Voltage on paper is a mark nobody sees, so the tile stays.
     //
-    // Both cuts are uploaded once, on the first call, so this can be asked for from inside a
+    // The cuts are uploaded once, on the first call, so this can be asked for from inside a
     // paint without costing anything after the first frame.
     mtd appIconAt(size: f32, ground: Pixel.Color)->Icon
     {
@@ -1195,18 +1194,7 @@ impl Application
         if not .appIcon.isValid() do
             return result
 
-        if not .appIconLoaded
-        {
-            // The two colors are the ones the chart declares for every product mark, so the
-            // derivation follows the same rule as the art.
-            var mark = .appIcon.convertedTo(.RGBA8)
-            .appIconTileList.set(.renderer.addImage(mark))
-
-            mark.keyOutGround(MarkInk, MarkVoltage)
-            .appIconList.set(.renderer.addImage(mark))
-            .appIconLoaded = true
-        }
-
+        .loadAppIconCuts()
         let list = markReadsOn(ground) ? &.appIconList : &.appIconTileList
         if not list.isValid() do
             return result
@@ -1217,6 +1205,50 @@ impl Application
         // collapse to one. An explicit white leaves the raster alone.
         result.color = Pixel.Argb.White
         return result
+    }
+
+    // Returns the application glyph at `size` logical pixels, monochrome, or an invalid icon when the application declares none.
+    //
+    // A window signs its corner with the glyph alone, in one ink taken from the theme, so it reads
+    // the same on Encre and on Papier where a Voltage glyph would vanish. The icon carries no
+    // tint of its own: whoever draws it chooses the ink.
+    mtd appGlyph(size: f32)->Icon
+    {
+        var result: #returntype
+        if not .appIcon.isValid() do
+            return result
+
+        .loadAppIconCuts()
+        if .appIconGlyphList.isValid() do
+            result = Icon.from(&.appIconGlyphList, 0, size, size)
+        return result
+    }
+
+    // Uploads the cuts of the application icon, once.
+    //
+    // The two colors are the ones the chart declares for every product mark, so the derivation
+    // follows the same rule as the art. They are uploaded on the first call, so a paint can ask
+    // for a cut without costing anything after the first frame.
+    private mtd loadAppIconCuts()
+    {
+        if .appIconLoaded do
+            return
+
+        var mark = .appIcon.convertedTo(.RGBA8)
+        .appIconTileList.set(.renderer.addImage(mark))
+
+        mark.keyOutGround(MarkInk, MarkVoltage)
+        .appIconList.set(.renderer.addImage(mark))
+
+        // The window glyph keeps the coverage of the keyed-out mark and takes white for its ink,
+        // so a tint gives it any one color. `mark` is straight RGBA8 here.
+        mark.visitPixels()
+        {
+            pix[0], pix[1], pix[2] = 0xFF
+        }
+
+        .appIconGlyphList.set(.renderer.addImage(mark))
+        .appIconLoaded = true
     }
 
     // Applies the theme sheet resource `themes/<name>.tweak` and refreshes every surface.

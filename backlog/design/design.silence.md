@@ -7,23 +7,31 @@ dialogs, then each application, then the written rules.
 
 ## Entries
 
-### design.silence.002 — A few controls still differ from the charter pictures
+### design.silence.002 — Scroll bars are always visible
 
-- Evidence: `controls.charter.test.swg` renders every control of the Controls section in both
-  themes (`controls.charter.ink.png`, `controls.charter.paper.png`). What it does not show yet:
-  the menu check sits in the leading glyph column instead of the trailing edge; the chosen segment
-  on Papier is white without its soft lift shadow; the toolkit has no numeric stepper (`− 48 +`);
-  scroll bars are thin but always visible rather than shown while scrolling or on hover.
-- Next: move the menu check to the trailing edge of its row in `MenuCtrl.paintPopup` and
-  `computeLayoutPopup`, then add the lift shadow under a chosen Papier segment.
-- Done when: the two charter wall goldens match the two controls pictures control by control.
+- Evidence: `ScrollWnd` bars are thin (`scrollBar_NormalSize` 10, a 6 px thumb) but are drawn
+  whenever the content overflows, and they take their width from the view (`paddingZ`,
+  `paddingW` in `ScrollWnd.computeLayout`). Fading them needs two things the control does not
+  have: the bar must overlay the view instead of narrowing it, and `ScrollWnd` must learn that the
+  pointer is over its content, which only its view's children receive (`Enter`/`Leave` reach the
+  deepest window). Every list, tree, document and application golden that shows a thumb moves.
+- Next: lay the bars over the view in `ScrollWnd.computeLayout`, track pointer presence through a
+  hook on the view, and drive the thumb alpha with the animator — shown on a scroll or a hover,
+  faded after a short idle.
+- Done when: the charter wall and a scrolled list golden show no thumb at rest and one under the
+  pointer, in both themes.
 
-### design.silence.003 — Windows still draw a caption band
+### design.silence.003 — Content does not start in the top strip
 
-- Next: make `SurfaceWnd` draw the Silence chrome (no band, faint glyph and title, faint window
-  buttons, draggable top strip, no accent rail or glow) and remove every application rail.
-- Done when: no `Separator.create(…, .Top, .Accent)` remains under `bin/` and the window goldens
-  show the Silence chrome in both themes.
+- Evidence: `SurfaceWnd` draws the Silence chrome (`surfacewnd.chrome.*` goldens) and no
+  application keeps a rail, but the top strip is still the frame's `padding.y`
+  (`wnd_BigCaptionCY` 42), so the view starts below it, and Swag Capture lays its menu bar inside
+  it.
+- Next: give the view the whole body and let the strip float over it at the charter's 52 px,
+  keeping `SurfaceWnd.hitTestCaption` answering for the parts no control covers.
+- Done when: a document's first lines can sit in the strip, as `scope.read.png` shows, and the
+  strip stays draggable there.
+- Related: design.silence.008
 
 ### design.silence.004 — There is no lens, sheet, inspector, mini-bar or dock
 

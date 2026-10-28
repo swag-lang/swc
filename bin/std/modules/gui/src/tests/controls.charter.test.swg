@@ -71,6 +71,13 @@ func buildCharterWall(host: *Testing.HeadlessHost)
         .setSelectedIndex(0, notify: false)
     }
 
+    // A stepper beside the combo box: a field holding a measure, a quiet `−` and `+` at its ends.
+    with let stepper = Stepper.create(root, {Left + 576, 156, 120, 0})
+    {
+        .setRange(0, 100)
+        .setValue(48)
+    }
+
     // Choices: off, on, mixed and disabled boxes, two radio buttons, and a switch off and on.
     CheckButton.create(root, "No", {Left, 204, 80, 0})
     CheckButton.create(root, "Yes", {Left + 88, 204, 80, 0}).setState(.Checked)

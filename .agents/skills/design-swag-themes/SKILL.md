@@ -277,7 +277,8 @@ The pictures [gui.controls.ink](../../../backlog/design/imgs/gui.controls.ink.pn
   Voltage/ink ring; error a 2 px critical ring and a message line below with a critical dot;
   disabled transparent with a faint ring. Placeholder faint. A password field carries an eye glyph.
 - **Combo box** — a field with `▾`; its list is a popup surface (corner 10) with the chosen row on
-  the Arc selection ground and `✓` in Arc. A spinner is a field with quiet `−` and `+` at its ends.
+  the Arc selection ground and `✓` in Arc. A stepper (`Gui.Stepper`) is a field with quiet `−` and
+  `+` at its ends and the value in mono between them.
 - **Checkbox, radio, switch** — off is a 1.5 px line ring; on is Arc (white check on Papier, ink
   check on Encre); mixed shows a dash. A switch is 34 × 20 with a white knob when on.
 - **Slider** — 2 px track on raised, Arc fill, 14 px white knob, value in mono beside it.
@@ -288,8 +289,8 @@ The pictures [gui.controls.ink](../../../backlog/design/imgs/gui.controls.ink.pn
 - **Lists, trees, headers** — rows 30, hover raised, selection the Arc selection ground; header
   labels faint with one hairline under; tree chevrons faint; measures in a row in mono faint.
 - **Menus** — surface, corner 10, 6 px padding, rows 30, hover and selection the Arc selection
-  ground, shortcuts in mono faint at the right, `✓` in Arc, `›` for submenus, separators of one
-  hairline inset 10. A menu opened from an icon button joins it — see
+  ground, shortcuts in mono faint at the right, `✓` in Arc at the trailing edge, `›` for
+  submenus, separators of one hairline inset 10. A menu opened from an icon button joins it — see
   [design-swag-identity](../design-swag-identity/SKILL.md#join-an-icon-menu-to-its-button).
 - **Notices** — a tinted ground of the tone, a 7 px dot in the tone, bold first phrase, no border,
   no icon tile. Info uses Arc, caution Caution, error Critical.

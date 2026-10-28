@@ -20,9 +20,8 @@ public struct AboutDlg
 
     late
     {
-        identityView:   *Wnd                 // Raised product block carrying the mark and heading.
-        identityAccent: *Separator           // Single Swag accent anchoring that product block.
-        contentStack:   *StackLayoutCtrl     // The one column identity, provenance and sections stand in.
+        identityView: *Wnd     // Raised product block carrying the mark and heading.
+        contentStack: *StackLayoutCtrl     // The one column identity, provenance and sections stand in.
     }
 
     sectionsScroll: *ScrollWnd?           // Bounded column the added sections stand in.
@@ -40,7 +39,7 @@ public struct AboutDlgParams
         surfaceTitle: string     // Native surface title.
         contentTitle: string     // Prominent application or product title.
         message:      string     // Rich descriptive text.
-        surfaceIcon:  Icon       // Optional title-bar icon.
+        surfaceIcon:  Icon       // Optional glyph at the leading corner of the window, drawn in the chrome's ink.
         contentIcon:  Icon       // Optional large content icon.
     }
 }
@@ -86,7 +85,7 @@ public impl AboutDlg
             surfaceTitle: params.productName,
             contentTitle: title.toString(),
             message: message.toString(),
-            surfaceIcon: app.appIconAt(metrics.wnd_CaptionIconSize, colors.wnd_CaptionBk),
+            surfaceIcon: app.appGlyph(metrics.wnd_CaptionIconSize),
             contentIcon: app.appIconAt(64, colors.view_Bk)})
         dlg.sourceUrl = String.from(params.sourceUrl)
         dlg.labelMessage.sigLinkActivated += func|dlg|(_, text)
@@ -116,8 +115,8 @@ public impl AboutDlg
         let metrics = dlg.themeMetrics()
         let body    = dlg.createContentView()
 
-        // Identity and provenance are two quiet tiers: the product owns one raised panel and one
-        // accent, while the supporting copy remains on the dialog surface below it.
+        // Identity and provenance are two quiet tiers: the product owns one raised panel, while
+        // the supporting copy remains on the dialog surface below it.
         with let stackLayout = StackLayoutCtrl.create(body, .VerticalCenter)
         {
             .dockStyle = .Center
@@ -137,7 +136,6 @@ public impl AboutDlg
             .backgroundStyle = .View
         }
 
-        dlg.identityAccent = Separator.create(dlg.identityView, .Top, .Accent)
         let identityContent = Wnd.create'Wnd(dlg.identityView)
         identityContent.dockStyle = .Center
         identityContent.padding   = Math.Vector4{identityInset, identityInset, identityInset, identityInset}
@@ -155,7 +153,7 @@ public impl AboutDlg
             }
         }
 
-        // The product name is the one heading of the box; the accent and mark support it without
+        // The product name is the one heading of the box; the mark supports it without
         // introducing another caption or a decorative color outside the active theme.
         with dlg.labelMessageTitle = Label.create(identityContent, params.contentTitle)
         {
@@ -170,7 +168,7 @@ public impl AboutDlg
         var identityHeight = titleHeight
         if params.contentIcon.isValid() do
             identityHeight = Math.max(identityHeight, cast(f32, params.contentIcon.sizeY))
-        dlg.identityView.position.height = identityHeight + 2 * identityInset + dlg.identityAccent.position.height
+        dlg.identityView.position.height = identityHeight + 2 * identityInset
 
         with dlg.labelMessage = Label.create(stackLayout, params.message, flags: .AutoHeight | .WordWrap | .SecondaryText)
         {

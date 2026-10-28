@@ -796,10 +796,6 @@ impl MainWnd
 
         result.createAppearanceButton()
         result.createOptionsButton()
-
-        // One Voltage rail identifies every standard Swag application surface.
-        Separator.create(result, .Top, .Accent)
-
         result.createCommandRow()
         result.createToolRail()
         result.createEditArea()

@@ -140,7 +140,6 @@ impl MainWnd
             .dockStyle       = .Left
             .spacing         = 0
             .backgroundStyle = .Window
-            .style.addStyleSheetColors("wnd_Bk $wnd_CaptionBk")
         }
 
         let toolButtons = [
@@ -194,7 +193,6 @@ impl MainWnd
         {
             .dockStyle       = .Top
             .backgroundStyle = .Window
-            .style.addStyleSheetColors("wnd_Bk $wnd_CaptionBk")
         }
 
         with let verbs = StackLayoutCtrl.create(me.topBar, .Left, Math.Rectangle{0, 0, VerbsWidth, cellSize})

@@ -390,11 +390,7 @@ private func buildText(flow: *Flow)
     Label.create(flow.view, "<p1>one <p2>two <p3>three", flow.next(180, 24))
 
     flow.caption("rules")
-    let hairline = flow.host(200, 30)
-    Separator.create(hairline, .Top, .Hairline)
-
-    let accent = flow.host(200, 30)
-    Separator.create(accent, .Top, .Accent)
+    Separator.create(flow.host(200, 30), .Top)
 }
 
 private func buildDocuments(flow: *Flow)

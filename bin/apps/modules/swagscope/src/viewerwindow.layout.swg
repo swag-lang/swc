@@ -21,8 +21,6 @@ impl ViewerWindow
         {
             window.showAbout()
         }
-
-        .accentRail = Separator.create(me, .Top, .Accent)
     }
 
     // Builds the global command bar: the open and explore actions, the full-screen button,

@@ -36,9 +36,7 @@ struct ThemeImageRects
     {
         surfaceWnd_Shadow: ThemeImageRect = {Math.Rectangle{189, 1, 66, 66}, 24, 0}     // Blurred tile of the shadow a surface casts.
 
-        wnd_Border:       ThemeImageRect = {Math.Rectangle{130, 1, 27, 27}, 3, 0}     // Outline of a window.
-        wnd_CaptionBk:    ThemeImageRect = {Math.Rectangle{1, 29, 27, 27}, 12, 0}     // Ground of a large window caption.
-        wnd_CaptionSmall: ThemeImageRect = {Math.Rectangle{1, 29, 27, 27}, 1, 0}      // Ground of a compact window caption.
+        wnd_Border: ThemeImageRect = {Math.Rectangle{130, 1, 27, 27}, 3, 0}     // Outline of a window.
 
         dlg_BtnBar: ThemeImageRect = {Math.Rectangle{29, 29, 27, 27}, 2, 0}     // Ground of the action bar of a dialog.
 

@@ -35,19 +35,25 @@ struct ThemeMetrics
         surfaceWnd_ShadowOffsetX: f32 = 0      // Sideways displacement of the drop shadow.
         surfaceWnd_ShadowOffsetY: f32 = 4      // Downward displacement of the drop shadow, which is what lifts the window.
 
+        // The top strip of a window is ground the content sits on, not a band: a faint glyph at its
+        // leading corner, the title centred in small faint type, and faint window buttons at its
+        // trailing end. Its height is the room those three need; nothing else is drawn there.
         wnd_BorderSize:            f32 = 1        // Thickness of the outline of a surface.
-        wnd_BigCaptionCY:          f32 = 42       // Height of a large caption.
-        wnd_SmallCaptionCY:        f32 = 36       // Compact caption height; leaves balanced air around its title and controls.
-        wnd_CaptionMarginTitle:    f32 = 14       // Air between the leading edge of a caption and its icon or title.
-        wnd_CaptionIconSize:       f32 = 20       // Side of the mark a drawn caption shows beside its title.
-        wnd_CaptionButtonMargin:   f32 = 5        // Air around a caption button, inside the caption band.
-        wnd_CaptionButtonGap:      f32 = 4        // Air between neighboring system caption buttons.
-        wnd_CaptionActionGap:      f32 = 8        // Air between an application caption action and its neighbors.
-        wnd_CaptionButtonGlyph:    f32 = 16       // Side of a caption glyph. Chrome, so it sits at the row size of the chart.
-        wnd_CaptionButtonAspect:   f32 = 0.9      // Width of a system caption button as a multiple of its height.
-        wnd_CaptionButtonMinWidth: f32 = 44       // Narrowest a caption button gets.
+        wnd_BigCaptionCY:          f32 = 42       // Height of the top strip of an application window.
+        wnd_SmallCaptionCY:        f32 = 36       // Height of the top strip of a dialog or a tool window.
+        wnd_CaptionMarginTitle:    f32 = 18       // Air between the leading edge of a window and its glyph.
+        wnd_CaptionIconSize:       f32 = 18       // Side of the application glyph in the corner of a window.
+        wnd_TitleFontSize:         u32 = 12       // Size of the title centred in the top strip.
+        wnd_CaptionButtonMargin:   f32 = 5        // Air around a window button, inside the top strip.
+        wnd_CaptionButtonGap:      f32 = 2        // Air between neighboring window buttons.
+        wnd_CaptionActionGap:      f32 = 8        // Air between an application action in the top strip and its neighbors.
+        wnd_CaptionButtonGlyph:    f32 = 16       // Side of a window button glyph. Chrome, so it sits at the row size of the chart.
+        wnd_CaptionButtonAspect:   f32 = 0.9      // Width of a window button as a multiple of its height.
+        wnd_CaptionButtonMinWidth: f32 = 30       // Narrowest a window button gets.
         wnd_SizingBorderSize:      f32 = 8        // Reach of the resizing border on each side of a surface edge.
         wnd_TopSizingBorderSize:   f32 = 7        // Reach of the resizing border along the top edge, capped by the side reach.
+
+        action_IconSize: f32 = 20     // Side of a primary action glyph in an application or viewer bar.
 
         tabBar_FlatHeight:   f32 = 40     // Height of a flat tab bar.
         tabBar_RoundHeight:  f32 = 32     // Height of a round tab bar: a segment group.
@@ -143,6 +149,10 @@ struct ThemeMetrics
         comboBox_Padding:        f32 = 10      // Leading inset of the content of a combo box.
         comboBox_IconTextMargin: f32 = 6       // Air between the glyph and the wording of a combo box entry.
 
+        stepper_Width:       f32 = 120     // Default width of a stepper.
+        stepper_ButtonInset: f32 = 3       // Air between the frame of a stepper and its two buttons.
+        stepper_Glyph:       f32 = 14      // Side of the `−` and `+` glyphs of a stepper: quiet beside the value.
+
         popupList_Padding:          f32 = 6     // Minimum leading inset of popup-list content.
         popupList_IconTextMargin:   f32 = 6     // Air between the glyph and the wording of a popup-list entry.
         popupList_SeparatorPadding: f32 = 4     // Air a popup-list separator keeps at each end.
@@ -203,7 +213,6 @@ struct ThemeMetrics
         embInfo_CloseMargin: f32 = 6      // Air around the dismiss button.
 
         separator_HairlineSize: f32 = 1     // Thickness of a hairline separator.
-        separator_AccentSize:   f32 = 4     // Thickness of an accent separator.
 
         // The underline of the active tab, and the rule a checked tool marked on one edge carries.
         // It stops short of both ends by `tabItem_RailMargin`, so it underlines the words.
@@ -235,7 +244,7 @@ struct ThemeMetrics
 }
 
 // Returns the side of a primary action glyph shown in an application or viewer bar.
-func themeActionIconSize(metrics: const *ThemeMetrics)->f32 => metrics.wnd_CaptionIconSize
+func themeActionIconSize(metrics: const *ThemeMetrics)->f32 => metrics.action_IconSize
 
 // Returns the side of a supporting glyph shown in a menu, list, field, or compact header.
 func themeRowIconSize(metrics: const *ThemeMetrics)->f32 => metrics.menuPopup_IconSize

@@ -94,6 +94,7 @@ enum ThemeIcons
     Settings          // Open a page of adjustable settings.
     Folder            // A folder in a file listing.
     Dot               // A filled disc that fills its box: the tone dot of a notice or a status.
+    Minus             // Subtract or step-down action glyph, the counterpart of `Plus`.
 }
 
 impl Theme

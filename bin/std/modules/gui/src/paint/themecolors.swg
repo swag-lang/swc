@@ -73,26 +73,23 @@ struct ThemeColors
         veilMedium: Color     // Middle-strength translucent veil.
         veilStrong: Color     // Strongest translucent veil.
 
-        wnd_Bk:                      Color     // Ground of a window body.
-        wnd_CaptionBk:               Color     // Caption band of the active window.
-        wnd_CaptionBkNotActived:     Color     // Caption band of a window without the focus.
-        wnd_CaptionText:             Color     // Title of the active window.
-        wnd_CaptionNotActivatedText: Color     // Title of a window without the focus.
-
-        // The two ends of the caption band of an active window, on the diagonal running from the
-        // mark to the caption buttons. The charter draws no caption band, so both collapse onto
-        // `wnd_CaptionBk` and a band stays one color rather than becoming a ramp of nothing.
-        wnd_CaptionBkLead:  Color     // Caption band at the leading edge, which carries the mark.
-        wnd_CaptionBkTrail: Color     // Caption band at the trailing edge, which carries the buttons.
+        // The window is the document: its top strip is the ground the content sits on, and the
+        // chrome drawn there is quiet enough to read past. No band, no rail, no glow.
+        wnd_Bk: Color     // Ground of a window body, its top strip included.
+        wnd_CaptionText: Color     // Title of a window, centred in its top strip.
+        wnd_CaptionMark: Color     // Monochrome application glyph at the leading corner of a window.
 
         // Outline of a whole surface. It must be opaque: the same stroke runs past every ground of
         // the window, and a translucent value would visibly change tone where those grounds meet.
         wnd_Border: Color
 
-        wnd_BtnCloseBk:          Color     // Ground of a hovered close button.
-        wnd_BtnCloseHotBk:       Color     // Ground of a close button under the press.
-        wnd_BtnCloseHotIcon:     Color     // Glyph of a close button under the pointer.
-        wnd_BtnClosePressedIcon: Color     // Glyph of a close button under the press.
+        // The window buttons are faint glyphs that reach full contrast under the pointer. Only the
+        // press lays a ground under them; close turns critical, since it is the one that destroys.
+        wnd_BtnIcon:           Color     // Glyph of a window button at rest.
+        wnd_BtnHotIcon:        Color     // Glyph of a window button under the pointer or the press.
+        wnd_BtnPressedBk:      Color     // Ground of a window button under the press.
+        wnd_BtnCloseHotIcon:   Color     // Glyph of the close button under the pointer or the press.
+        wnd_BtnClosePressedBk: Color     // Ground of the close button under the press.
 
         // Ink of the drop shadow. Its alpha is the darkening the shadow reaches where it meets the
         // body, not the alpha of any one ring: the shadow fades from nothing at the outer edge of the
@@ -355,6 +352,7 @@ struct ThemeColors
         tabItem_FlatSelected:             Color     // Underline of the selected flat tab.
         tabItem_FlatHot:                  Color     // Underline of a hovered flat tab.
         tabItem_RoundSelected:            Color     // Ground of the chosen segment of a round bar.
+        tabItem_RoundLift:                Color     // Soft shadow lifting the chosen segment off its frame, transparent where it is not lifted.
         tabItem_RoundHot:                 Color     // Ground of a hovered segment of a round bar.
         tabItem_ButtonSelected:           Color     // Ground of the selected button tab.
         tabItem_ButtonHot:                Color     // Ground of a hovered button tab.
@@ -527,6 +525,14 @@ impl ThemeColors
     // How faint the Arc ring of a chosen tool or a button that is on stays: found, not noticed.
     private const ChosenRingAlpha = 0x73'u8
 
+    // Strength of the soft shadow under a chosen segment that is lifted off its frame: enough to
+    // separate a white chip from a pale frame, never enough to read as a floating surface.
+    private const SegmentLiftAlpha = 0x1A'u8
+
+    // Strength of the application glyph in the corner of a window: about 55 %, so it signs the
+    // window in either theme and is never read before the work.
+    private const CaptionMarkAlpha = 0x8C'u8
+
     // How far the stronger rule travels from the hairline toward the faint ink, and how far
     // disabled ink travels from the ground toward the body ink. The charter states the disabled
     // state as an opacity of 40 to 45 percent; written as a mix it stays opaque, so a disabled
@@ -541,13 +547,6 @@ impl ThemeColors
     // A knob is white in both themes: the one part of a switch or a slider that has to read as a
     // physical thing on any track. It is the only fixed ink of the controls.
     private const Knob: Color = 0xFFFFFFFF
-
-    // The close button is the one control whose meaning does not belong to any theme, so it
-    // keeps its own red everywhere. A palette that recolored it would be asking the reader
-    // to learn where "close" is on each of its themes.
-    private const CloseRed    = 0xFFD61425
-    private const CloseHotRed = 0xFFE62435
-    private const OnCloseRed  = 0xFFFFFFFF
 
     // How far a surface is dimmed while a modal box holds it. A dark surface takes a
     // heavier hand than a light one: the same multiplier that clearly recedes a white page
@@ -638,6 +637,10 @@ impl ThemeColors
         let disabled   = Color.lerpRgb(p.ground, p.text, DisabledMix)
         let faintLine  = Color.lerpRgb(p.ground, p.line, DisabledLineMix)
 
+        // A chosen segment is lifted when it is an opaque chip lighter than the raised frame it
+        // stands in, as Papier's white one is; a wash, as on Encre, lies flat in its frame.
+        let segmentLifted = p.segment.a == 0xFF and p.segment.relativeLuminance() > p.raised.relativeLuminance()
+
         .richColor1 = p.rich1
         .richColor2 = p.rich2
         .richColor3 = p.rich3
@@ -683,21 +686,18 @@ impl ThemeColors
         .veilMedium = p.veil.withAlpha(VeilMediumAlpha)
         .veilStrong = p.veil.withAlpha(VeilStrongAlpha)
 
-        // The window is the document: no caption band, no glow. The chrome keeps its fields so a
-        // surface can still be drawn, and every one of them is the ground.
-        .wnd_Bk                      = p.ground
-        .wnd_CaptionBk               = p.ground
-        .wnd_CaptionBkNotActived     = p.ground
-        .wnd_CaptionText             = p.softText
-        .wnd_CaptionNotActivatedText = p.faintText
-        .wnd_CaptionBkLead           = p.ground
-        .wnd_CaptionBkTrail          = p.ground
-        .wnd_Border                  = p.line
-        .wnd_BtnCloseBk              = CloseRed
-        .wnd_BtnCloseHotBk           = CloseHotRed
-        .wnd_BtnCloseHotIcon         = OnCloseRed
-        .wnd_BtnClosePressedIcon     = OnCloseRed
-        .wnd_Shadow                  = p.shadow
+        // The window is the document: no caption band, no glow. The glyph is the soft ink at a
+        // little over half strength, so it signs the corner without becoming a block of brand.
+        .wnd_Bk                = p.ground
+        .wnd_CaptionText       = p.faintText
+        .wnd_CaptionMark       = p.softText.withAlpha(CaptionMarkAlpha)
+        .wnd_Border            = p.line
+        .wnd_BtnIcon           = p.faintText
+        .wnd_BtnHotIcon        = p.text
+        .wnd_BtnPressedBk      = p.raised
+        .wnd_BtnCloseHotIcon   = critical.mark
+        .wnd_BtnClosePressedBk = critical.ground
+        .wnd_Shadow            = p.shadow
 
         // Nothing on screen but the work: the bands an application used to frame its content
         // with are the ground the content sits on.
@@ -976,6 +976,7 @@ impl ThemeColors
         .tabItem_FlatSelected             = alternate.mark
         .tabItem_FlatHot                  = .transparent
         .tabItem_RoundSelected            = p.segment
+        .tabItem_RoundLift                = segmentLifted ? p.shadow.withAlpha(SegmentLiftAlpha) : .transparent
         .tabItem_RoundHot                 = .transparent
         .tabItem_ButtonSelected           = p.segment
         .tabItem_ButtonHot                = p.raised

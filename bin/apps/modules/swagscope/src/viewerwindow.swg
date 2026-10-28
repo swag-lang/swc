@@ -52,7 +52,6 @@ struct ViewerWindow
         searchOptionsButton:  *IconButton
         viewerCombo:          *ComboBox
         appearanceButton:     *AppearanceButton
-        accentRail:           *Separator
         infoBarHost:          *Wnd
         infoBar:              *ViewerInfoBar
         infoContentGroup:     *ViewerInfoLayout
@@ -745,10 +744,9 @@ impl ViewerWindow
             surface.updateFlags(add: FullScreenAddedFlags, remove: FullScreenRemovedFlags)
             .updateDocumentInsets()
             .documentPanel.backgroundStyle = .View
-            .accentRail.hide()
-            .commandBar.dockStyle  = .None
-            .infoBarHost.dockStyle = .None
-            .viewerBar.dockStyle   = .None
+            .commandBar.dockStyle          = .None
+            .infoBarHost.dockStyle         = .None
+            .viewerBar.dockStyle           = .None
             .commandBar.hide()
             .infoBarHost.hide()
             .viewerBar.hide()
@@ -772,10 +770,9 @@ impl ViewerWindow
             surface.updateFlags(add: flagsToAdd, remove: flagsToRemove)
             .updateDocumentInsets()
             .documentPanel.backgroundStyle = .Panel
-            .accentRail.show()
-            .commandBar.dockStyle  = .Top
-            .infoBarHost.dockStyle = .Top
-            .viewerBar.dockStyle   = .Bottom
+            .commandBar.dockStyle          = .Top
+            .infoBarHost.dockStyle         = .Top
+            .viewerBar.dockStyle           = .Bottom
             .commandBar.show()
             .infoBarHost.show()
             .updateViewerBar()

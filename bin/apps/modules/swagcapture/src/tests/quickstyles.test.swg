@@ -31,7 +31,7 @@ using Swag, Core
     Swag.assert(polyPaint.itf.buffer != polyItf.buffer)
     Swag.assert(f.main.mdlFormPolygon.points.count == 3)
     Swag.assert(f.main.mdlFormPolygon.points[0] == pointBefore)
-    Swag.assert(assume cast(*FormPolygon, unwrap polyPaint.itf).points.count == 6)
+    Swag.assert(assume cast(*FormPolygon, unwrap polyPaint.itf).points.count == 5)     // A regular pentagon.
     polyPaint.release()
 }
 
@@ -356,4 +356,48 @@ using Swag, Core
 
     quickStyle.clear()
     Swag.assert(quickStyle.forms.count == 0)
+}
+
+// The row of a tool holds four presets and "+"; past that it holds four presets and "•••", which
+// opens every preset with "+" in a popover, and a preset chosen there comes to the front of the row.
+#test
+{
+    var f: HeadlessFixture
+    f.setup()
+    defer f.shutdown()
+    let quick = QuickWnd.create(f.main, f.main)
+    quick.setDefault()
+    f.main.editMode = .Arrow
+    quick.setPosition(Math.Rectangle{0, 0, 5 * QuickChipWidth, QuickChipHeight})
+    quick.updateQuickStyles(forceRebuild: true)
+    Swag.assert(quick.qsArrow.forms.count > 5)
+
+    var shown, hidden = 0
+    var moreShown, addShown = false
+    for c in quick.layout.children where not c.isPendingDestroy
+    {
+        let button = assume cast(*QuickButton, c)
+        if button.isMore do
+            moreShown = button.isVisible()
+        elif button.isModel do
+            addShown = button.isVisible()
+        elif button.isVisible() do
+            shown += 1
+        else do
+            hidden += 1
+    }
+
+    Swag.assert(shown == 4 and hidden > 0 and moreShown and not addShown)
+
+    // The popover holds every preset and "+".
+    let more = unwrap quick.moreButton
+    quick.openAllPresets(more)
+    let body = unwrap quick.allPresets
+    Swag.assert(body.children.count == quick.qsArrow.forms.count + 1)
+
+    // A preset chosen there comes to the front, and the popover closes.
+    let last = quick.qsArrow.forms.back()
+    quick.applyPreset(last, fromPopover: true)
+    Swag.assert(quick.qsArrow.forms[0].buffer == last.buffer)
+    Swag.assert(quick.allPresets == null)
 }

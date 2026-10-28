@@ -149,6 +149,7 @@ struct AppStrings
     act_ShowInspector:          string = "Properties"                  // Folds or unfolds the inspector.
     act_ShowRecent:             string = "Recent Captures"             // Shows or hides the strip of recent captures.
     act_ResetSteps:             string = "Reset Step Numbers"          // Restarts the numbering of the step markers at 1.
+    tip_AllQuickStyles:         string = "All Styles"                  // The chip opening every quick style of the tool.
     tip_AddQuickStyle:          string = "Keep the current style as a quick style"     // The chip after the quick styles of the inspector.
     ui_RecentColors:            string = "Recent"                      // Section of the colour popover: the colours used last.
     ui_Palette:                 string = "Palette"                     // Section of the colour popover: the palette.

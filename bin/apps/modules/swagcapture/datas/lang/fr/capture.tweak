@@ -380,6 +380,7 @@ ui_DelayNone           aucun
 ui_DelaySeconds        % s
 ui_Cursor              Curseur
 hint_Cancel            annuler
+tip_AllQuickStyles     Tous les styles
 tip_AddQuickStyle      Garder le style actuel comme style rapide
 ui_RecentColors        Récentes
 ui_Palette             Palette

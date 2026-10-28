@@ -69,6 +69,7 @@ struct Surface
             dpiScale: f32 = 1
 
             isHidden:      bool = true     // Whether the surface is not visible.
+            opacity:       f32  = 1        // Opacity the desktop composites the whole surface at, from zero through one.
             isInitialized: bool            // Whether the surface has received its one-time initialization event.
             isDisabled:    bool            // Whether the surface refuses input, for example during a modal operation.
             isMinimized:   bool            // Whether the surface is minimized.

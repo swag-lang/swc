@@ -114,3 +114,15 @@ dialogs, then each application, then the written rules.
   dialog actions, tabs, command tooltips) to the title-style capitalization of the charter,
   leaving sentences and French translations alone.
 - Done when: a search of the English reference tables finds no command label in sentence case.
+
+### design.silence.015 — Notices and the folding inspector still appear at once
+
+- Evidence: the floating surfaces, menus, dialogs and the switch knob follow the Motion section
+  of the charter through `Animator.arrive`, `Animator.leave` and the sheet surface fade. An
+  `InfoBar` still takes its height at once, and `Inspector.setFolded` shows or hides its rows in
+  one frame.
+- Next: open a notice over `motion_PanelSeconds` with `Animator.animateLayoutHeight`, then fade
+  its words in; fold and unfold the inspector body with the same arrival and departure as a
+  floating surface.
+- Done when: no shared component changes its place or presence in one frame on a user action.
+- Related: design.silence.002

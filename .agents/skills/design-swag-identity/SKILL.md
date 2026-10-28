@@ -50,6 +50,27 @@ them, and a surface that keeps the letter of a rule while breaking a law is wron
    (light), both recognisable as Swag. An application that wants another look adds its own theme
    on top; the toolkit keeps two to maintain.
 
+**Move quietly.** Motion says where a thing came from and that the interface heard the hand; a
+viewer who remembers an animation saw too much. The charter's Motion section in
+[backlog/design/README.md](../../../backlog/design/README.md) holds the durations, curves and
+travel. In code:
+
+- Take every duration and travel from `ThemeMetrics.motion_*`: `motion_QuickSeconds` for state
+  feedback, `motion_PageSeconds` for an arrival or a page, `motion_LeaveSeconds` for a departure,
+  `motion_PanelSeconds` for a layout change, `motion_EdgeTravel` and `motion_AnchorTravel` for
+  how far a floating surface travels. A literal duration in a control is a finding.
+- Show and hide a floating surface — a panel, a popover, a bar over the work — with
+  `Animator.arrive(wnd, travel)` and `Animator.leave(wnd)`: the window is reachable or gone at
+  once and only its picture moves. A `Sheet` surface fades in by itself when shown.
+- Arrivals ease out, departures fade linearly. Never use the overshooting, elastic or bouncing
+  easings for interface motion, and never scale a surface above one.
+- Leave instant what the hand is waiting on: typing, the caret, the selection in a list, the
+  focus ring, an error. Nothing moves that the user did not cause, except progress, which is
+  `AnimationMotion.Essential`; everything else stays `Decorative`, so reduced motion ends it.
+- Goldens are taken at rest: the headless host runs reduced motion. A test of the motion itself
+  calls `host.setReducedMotion(false)`, checks the presentation state, then
+  `host.app.animator.finishAll()`.
+
 **Judge a surface against its picture.** The charter's pictures are the visual target. Every GUI
 surface is judged against its picture, in both themes, through its golden image; a golden that
 changed for a part not touched is a finding.

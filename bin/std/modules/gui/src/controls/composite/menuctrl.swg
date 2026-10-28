@@ -1413,8 +1413,11 @@ public impl MenuCtrl
 
         .resolveSubmenuDirections()
 
+        // The menu leaves its anchor by a few pixels: down from a button above it, up from one below.
+        let anchorY = button ? button.surfaceRect().vertCenter() : surfacePos.y
+        let travel  = .themeMetrics().motion_AnchorTravel
         .bringToFront()
-        .show()
+        discard .app().animator.arrive(me, {0, .surfaceRect().vertCenter() < anchorY ? travel : -travel})
         .captureMouse()
 
         .endModal          = false
@@ -1430,7 +1433,10 @@ public impl MenuCtrl
         if .wndFlags.has(.Hidden) do
             .wndFlags.remove(.Hidden)
         .hideSubVisible()
-        .hide()
+        if autoDestroy do
+            .hide()
+        else do
+            discard .app().animator.leave(me)
 
         if .endModalResult do
             .postCommandEvent(.endModalResult)

@@ -786,7 +786,7 @@ impl Surface
         let destination = POINT{cast(s32, .position.x), cast(s32, .position.y)}
         let size        = SIZE{.presentationWidth, .presentationHeight}
         let source      = POINT{}
-        let blend       = BLENDFUNCTION{AC_SRC_OVER, 0, 255, AC_SRC_ALPHA}
+        let blend       = BLENDFUNCTION{AC_SRC_OVER, 0, cast(u8, Math.round(Math.saturate(.opacity) * 255)), AC_SRC_ALPHA}
         let dirty       = RECT{cast(s32, .presentationDirtyRect.x), cast(s32, .presentationDirtyRect.y),
                                cast(s32, .presentationDirtyRect.right()), cast(s32, .presentationDirtyRect.bottom())}
         with var info: UPDATELAYEREDWINDOWINFO
@@ -1067,13 +1067,36 @@ impl Surface
         EnableWindow(.hWnd, FALSE)
     }
 
+    // Changes the opacity the desktop composites the whole surface at, without painting it again.
+    mtd setOpacity(opacity: f32)
+    {
+        let value = Math.saturate(opacity)
+        if .opacity == value do
+            return
+        .opacity = value
+        if not .isHidden and .presentationPixels and .app.renderer.needsNativeWindow() do
+            .publishNativePresentation()
+    }
+
     // Shows the surface and emits its one-time initialization event when needed.
+    //
+    // A [[Gui.SurfaceFlags.Sheet]] arrives the way a floating surface does inside a window: it
+    // fades in over its owner, without travel, unless motion is reduced.
     mtd show()
     {
         if not .isHidden do
             return
 
         .isHidden = false
+        if .flags.has(.Sheet) and not .app.isReducedMotion()
+        {
+            .opacity = 0
+            var options: AnimationOptions
+            options.duration = Time.Duration.fromSeconds(.wnd.themeMetrics().motion_PageSeconds)
+            options.easing   = .EaseOut
+            discard .app.animator.animateF32(.wnd, AnimationChannel.from("Gui.Surface.Opacity"), 0, 1, func(wnd, value) { wnd.surface?.setOpacity(value) }, options,
+                                             func|srf = me|(_) { srf.setOpacity(1) })
+        }
 
         // First-show initialization stage. Runs while the window is still hidden,
         // so the application can perform slow setup (restoring state, loading

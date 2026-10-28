@@ -891,10 +891,27 @@ private impl Panel
     }
 
     // Gives the lens the transport, the frame steps, the sound and the options of the film.
-    mtd describeLens(entries: *Viewer.LensEntries)
+    internal mtd describeLens(entries: *Viewer.LensEntries)
     {
         let texts = appStrings()
         let ready = .playButton.isEnabled()
+
+        // At rest the lens is a palette of what a film is watched with: playing it, its subtitles,
+        // its sound track, its speed and the whole screen. Only what applies to this film shows.
+        if entries.query.isEmpty()
+        {
+            let strings = Film.texts()
+            if ready do
+                entries.add(.playing ? texts.cmd_Pause : texts.cmd_Play, func|view = me|() { view.togglePlayback() }, shortcut: Input.formatKeyShortcut(.None, .Space))
+            if .subtitleReady do
+                entries.add(strings.cmd_Subtitles, func|view = me|() { view.showChip(view.subtitleChip, func|view|(page) { view.describeSubtitles(page) }) })
+            if .audio and .video.audioTrackCount() > 1 do
+                entries.add(strings.cmd_AudioTrack, func|view = me|() { view.showChip(view.audioChip, func|view|(page) { view.describeAudioTracks(page) }) })
+            entries.add(strings.cmd_Speed, func|view = me|() { view.showChip(view.speedChip, func|view|(page) { view.describeSpeeds(page) }) })
+            entries.add(texts.cmd_FullScreen, func|view = me|() { view.toggleFullScreen() }, shortcut: Input.formatKeyShortcut(.None, .F))
+            return
+        }
+
         entries.add(.playing ? texts.cmd_Pause : texts.cmd_Play, func|view = me|() { view.togglePlayback() }, disabled: not ready, shortcut: Input.formatKeyShortcut(.None, .Space))
         entries.add(texts.cmd_Stop, func|view = me|() { view.stopPlayback() }, disabled: not .hasFrame or (.frameIndex == 0 and not .playing))
         entries.add(texts.cmd_SeekBackward, func|view = me|() { view.seekRelative(-SeekSeconds) }, shortcut: Input.formatKeyShortcut(.None, .Left))
@@ -1030,6 +1047,14 @@ private impl Panel
     mtd toggleFullScreen()
     {
         .postCommandEvent(ViewerCommands.FullScreen)
+    }
+
+    // Brings the veils and opens one page of the options on the chip that names it, as a press on
+    // the chip does; the lens does this for a chip it offers.
+    mtd showChip(chip: *IconButton, build: OptionSheet.Builder)
+    {
+        .pointerMoved(true)
+        .showChoices(chip, build)
     }
 
     // Opens one page of the options, joined to the chip that names it.

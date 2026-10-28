@@ -71,28 +71,27 @@ dialogs, then each application, then the written rules.
 - Done when: `dialogs.file.{ink,paper}` match the file box of the dialog pictures in those three
   points too.
 
-### design.silence.007 — Swag Scope viewers still keep their own controls off the lens
+### design.silence.007 — Swag Scope viewers keep their pre-charter shapes
 
-- Evidence: the window follows the charter: no command, information or viewer band; every window
-  command (open, explore, close, reload, files beside, history, find and its options, full screen,
-  play modes, the explored folder's history, order, view and online media, the appearance and
-  About) is a lens entry on `Space`/`Ctrl K`; the file's readings are in the sheet (`I`); the
-  viewer's commands float over the foot of the document while the pointer moves; its readings sit
-  faint under it; the find bar floats on `Ctrl F`; the file and viewer panels are cards; the
-  explorer is a page with its title, mono count, quiet order and view menus, Arc-ringed tiles and
-  the chosen item in the sheet (`surface`, `viewer.{dark,light}`, `search.{dark,light}`,
-  `explorer.{gallery,archive,movie}` goldens). What a viewer builds is still reached only on its
-  floating bar or its line of readings: `Viewer.Host` has no way to give the lens entries, so the
-  video transport, image tools, font samples, hex structure, PDF pages and every viewer's options
-  sheet are not lens entries. The viewers keep their pre-charter shapes: no reading column for
-  text and code, no table of contents in the margin or progress thread for Markdown, no structure
-  tabs or large inspector value for hex, no specimen page for fonts, no edge-to-edge picture with
-  veils for video, and documents do not scroll under the strip. The archive viewer's embedded
-  host (`EmbeddedViewer`) still keeps its header band, viewer combo box and bottom command band.
-- Next: add a lens source to `Viewer.Host` (bump `Viewer.ApiVersion`) that the window asks while
-  the viewer is active, register each viewer's commands and its options sheet there, then rebuild
-  each viewer on its picture, the embedded host last.
-- Done when: every Scope golden matches its picture and every viewer control is a lens entry.
+- Evidence: the window follows the charter. No command, information or viewer band; every window
+  command and every viewer command (through `Viewer.Host.setLensSource`) is a lens entry on
+  `Space`/`Ctrl K`; the readings are in the sheet (`I`) and faint at the foot of the document; the
+  viewer's controls float over that foot while the pointer moves; the find bar floats on
+  `Ctrl F`; the panels are cards; the explorer is a page with its title, mono count, quiet menus,
+  Arc-ringed tiles and the chosen item in the sheet (`surface`, `viewer.{dark,light}`,
+  `search.{dark,light}`, `explorer.{gallery,archive,movie}` goldens). The viewers themselves still
+  draw what they drew in their bands: text and code fill the window instead of a reading column
+  (~900), Markdown has no table of contents in the left margin and no Arc progress thread, hex has
+  no structure tabs and no floating inspector with the value in large type, the font viewer is
+  not a specimen page (its sample field lives on the floating bar), the video picture does not
+  reach the strip and has no top and bottom veils with chips, and no document scrolls under the
+  strip. The archive viewer's embedded host (`EmbeddedViewer`) keeps its header band, viewer combo
+  box and bottom command band. The explorer header crowds at the narrowest window with the file
+  panel open, its tools covering the title.
+- Next: rebuild each viewer on its picture (`scope.read`, `scope.markdown.paper`, `scope.hex`,
+  `scope.font.paper`, `scope.video`), moving what still stands on the floating bar into the
+  document where the picture puts it; then the embedded host on the window's model.
+- Done when: every Scope golden matches its picture.
 - Related: design.silence.004, design.silence.002
 
 ### design.silence.008 — Swag Capture's shape editing does not yet match its pictures

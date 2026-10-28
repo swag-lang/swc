@@ -4,7 +4,7 @@
 
 Folder exploration automatically looks up film information and posters through Wikipedia and
 Wikidata, and album information and artwork through MusicBrainz and Cover Art Archive. No account
-or API key is needed. The folder options menu can turn either lookup off. Film filenames and music
+or API key is needed. Two lens entries of the explored folder turn either lookup off. Film filenames and music
 tags are sent to these public services to find a match; uncertain or unavailable results fall back
 to local previews. Film descriptions, credits and IMDb ratings are shown where available in the
 sources. Cached results expire after 120 days. Wikipedia text is available under CC BY-SA; individual
@@ -12,9 +12,10 @@ images have their own licenses, which can be checked from the linked source arti
 
 ## Explore folders and archives
 
-Opening a folder, or choosing Explore folder (`Ctrl+E`), displays its contents in the central
-area. ZIP files use the same navigation. Choose names, sortable details, or small, medium and
-large thumbnails. Double-click or press Enter to open an item; closing its viewer returns to the
+Opening a folder, or choosing Explore Folder (`Ctrl+E`), shows it as a page: its path, its name
+as the title, how much it holds, and quiet menus choosing the order and the way of showing it —
+names, sortable details, or small, medium and large thumbnails. ZIP files use the same navigation.
+The item chosen is ringed in Arc and described in the information sheet (`I`). Double-click or press Enter to open an item; closing its viewer returns to the
 explorer with the selection and display mode preserved. Opening an ordinary file directly still
 opens its viewer without requiring exploration. The optional left panel retains recent files and
 shows the current location's subfolders. Alt+Left/Right navigate history, Alt+Up or Backspace goes
@@ -68,7 +69,7 @@ itself for a document another viewer claims as binary: a PDF, an office file and
 with enough printable bytes to pass a content probe, and offering to read one as a page of text
 says something untrue about the file. It loads small UTF-8 segments
 on demand and stays about two viewports ahead, so a large source file does not need to fit in
-memory before its first screen appears. Its lower-band options wrap long lines, choose the
+memory before its first screen appears. Its options wrap long lines, choose the
 encoding, and number the lines, counted in the units of the file's encoding across the whole file;
 the numbering follows the reader to the next file.
 Binary content directs the reader to the hexadecimal alternative instead of guessing an encoding.
@@ -81,7 +82,7 @@ Binary content directs the reader to the hexadecimal alternative instead of gues
   script with a shebang is recognized from its first line. Swag vocabulary follows the compiler's
   current keywords, intrinsics, directives, and modifiers. A gutter numbers the lines of the whole
   file, including a window streamed from deep inside a long one. HTML keeps its rendered viewer first
-  and offers Code as the source alternative. Its information-band zoom uses the same percentage
+  and offers Code as the source alternative. Its zoom uses the same percentage
   menu and keyboard gestures as the other text readers.
 - `Markdown` adapts the reusable GUI `Markdown.View`. It supports headings, prose, GFM alerts,
   nested lists and tasks, fenced code, aligned tables, metadata, footnotes, references, a table of
@@ -90,8 +91,8 @@ Binary content directs the reader to the hexadecimal alternative instead of gues
   column. Text selects across blocks with the pointer or Ctrl+A and copies with Ctrl+C, as plain
   text: inline formatting resolves to the words it decorated, a table to tabs and lines, and a
   formula to its mathematical source. Rendering is offline and executes no embedded HTML or
-  script. Reading width and appearance are the options of the lower band; zoom is a clickable
-  information-band percentage.
+  script. Reading width and appearance are the options of the viewer; zoom is a clickable
+  percentage on the line of readings.
   GitHub, Newsprint, Night, Pixyll, and Whitey follow their Typora typography, including heading
   weights, italics, line boxes, collapsing block margins, and heading rules. Fonts resolve from
   installed system families with the theme's fallback order; missing optional fonts are never
@@ -118,7 +119,7 @@ Binary content directs the reader to the hexadecimal alternative instead of gues
   orientation its camera recorded asks, in the viewer and in its thumbnail. Ctrl+C, or Copy image in
   the orientation menu, puts the upright picture on the clipboard. PSD layer effects and masks are not rendered;
   unsupported compression and image layouts report a decoder error. Its centered lower group
-  provides sibling navigation, orientation commands, and playback. The clickable information-band
+  provides sibling navigation, orientation commands, and playback. The clickable
   percentage provides zoom presets, fit, and actual size while also reporting temporary orientation.
 - `Video` uses the Video and Audio modules for YUV4MPEG2, AVI, ISO-BMFF, and Matroska streams. Its
   transport provides play/pause, stop, ten-second seeks, a time-based timeline, elapsed/total time,
@@ -146,7 +147,7 @@ Binary content directs the reader to the hexadecimal alternative instead of gues
   current range opens shortcuts to common Unicode blocks.
 - `MIDI` parses Standard MIDI Files into a dedicated piano roll. It shows musical duration,
   tempo, meter, key signature, named tracks and note ranges; its options choose an all-tracks or
-  per-track view, the pitch names and the keyboard width, and it provides horizontal zoom through the common information-band control without
+  per-track view, the pitch names and the keyboard width, and it provides horizontal zoom through the common zoom control without
   synthesizing or executing file content.
 - `Archive` opens ZIP and ZIP64 containers, including JAR, APK, EPUB, office and package formats,
   in the common folder explorer. Opening an entry asynchronously prepares a bounded temporary
@@ -167,7 +168,7 @@ Binary content directs the reader to the hexadecimal alternative instead of gues
 - `Hexadecimal` is available for every file. It keeps one 256 KiB resident window whose reads are
   aligned to 64 KiB boundaries, uses 64-bit offsets, and its options set the row width and an
   independent scalar width, representation, and explicit Little/Big byte order; zoom sets the
-  fixed-width font. Its information-band
+  fixed-width font. Its
   inspector reports the exact caret offset and file percentage, selection length, active value,
   and the same bytes as signed, unsigned, hexadecimal, binary, octal, boolean, floating-point, and
   printable readings. Go To accepts hexadecimal, `0d` decimal, percentage, `caret`, `filesize`, and
@@ -195,11 +196,20 @@ a second so that it never flickers, and leaves the previous document on screen m
 file that arrives quickly changes without any mark at all; switching viewers retires hidden
 progressive work.
 
+The window shows the document and nothing else. Every command is an entry of the lens, which
+`Space` (or `Ctrl K`) opens: opening, exploring, closing and reloading, the files beside the open
+one and the recent files and folders (`/`), the viewers the file can be seen in, find and its
+options, full screen, the play modes, the explored folder's history and order, the theme, the
+language and About, and every command of the viewer on screen under its name. The readings of the
+open file are in the information sheet (`I`) and, faint, on the line at the foot of the document;
+the viewer's own controls float over that foot while the pointer moves; the find bar floats at the
+top on `Ctrl+F`; the files beside the open one and the viewer's side panel stand as cards beside
+the work when asked for.
+
 The application stores its palette, language, window state, recent files, bounded recent-folder
 history, and remembered viewer choices in the user's application-data folder. It toggles full
-screen with F11 or the action bar's top-right button — full screen hides every bar and panel and
-reveals the top or bottom chrome while the pointer rests at that screen edge — navigates the
-current folder with Left/Right, reloads with F5, opens with Ctrl+O,
+screen with F11 — full screen hides every panel, and the viewer's controls still come with the
+pointer — navigates the current folder with Left/Right, reloads with F5, opens with Ctrl+O,
 and accepts one file dropped anywhere on the surface. The recent and current-folder lists show the
 glyph of each file's default viewer; the current-folder heading opens the recent-folder menu and
 returns to the last file viewed in the selected folder. Audio and video claim bare Left/Right for
@@ -207,7 +217,7 @@ ten-second seeks while active, and use Space for play/pause, M for mute, Up/Down
 Home for the start. An
 installer may run `swagscope.exe --register-file-types`; normal launches never write the registry.
 
-The image and video command bars offer the same play-mode button. They decide what follows a file
+The image and video controls offer the same play-mode button, and the lens the same modes. They decide what follows a file
 that has been played through: stop there, play it again, continue with the next file of the same
 kind in its folder, or continue
 with a random one that has not had its turn in that folder yet, every file once before any comes
@@ -216,10 +226,10 @@ has run one cycle, and a still picture after the time per picture the image view
 a folder of pictures into a slideshow. The mode holds across files and sessions, the folder is
 walked whatever the panel filter shows, and a file the mode brings up stays out of the history.
 
-A common action-bar button opens the current file with the operating system's registered default
-application. A right click names the same action and the rest of what a file offers. On the
-information band above the document it answers for the open file, and on a panel row for the file
-that row names: show it in the system file explorer, open it with the default application, hand it
+A lens entry, and the primary action of the information sheet, open the current file with the
+operating system's registered default application. A right click names the same action and the
+rest of what a file offers. On the line of readings at the foot of the document it answers for the
+open file, and on a panel row for the file that row names: show it in the system file explorer, open it with the default application, hand it
 to the system chooser of applications, or copy its full path or file name. A row of the history
 offers two more, because the history is the one list the reader owns: drop that file from it, or
 clear it entirely. Nothing here writes to the file, and external applications run in their own
@@ -232,7 +242,7 @@ namespace: `Viewer.Plugin` describes a viewer, `Viewer.Host` is what its creatio
 receives, `Viewer.Embedded` hosts a file through the same registry inside another viewer, and
 `Viewer.SearchApi`, `Viewer.LifecycleApi`, `Viewer.BackgroundLoad`, `Viewer.LineCounter`, and the
 search and clock helpers beside them are the support the host offers. Nothing else is available to a
-viewer. No plugin receives `ViewerWindow`, its bars, its session structure, or application-private
+viewer. No plugin receives `ViewerWindow`, its parts, its session structure, or application-private
 callbacks, and the application never names a format.
 
 Every viewer is written this way, the plain text one included. That is the point of the
@@ -259,7 +269,11 @@ A plugin publishes its embedded translations from `attach`, so its name reads in
 language before any file is opened.
 
 The creation callback calls `attachView` for its document and can create at most one action,
-information, and lower command group through the host, plus one optional side panel. It declares
+information, and command group through the host, plus one optional side panel: the window writes
+the information and action groups on the faint line at the foot of the document, floats the
+command group over it while the pointer moves, and names the side panel in the lens. The window
+has no toolbar, so a viewer gives the lens a row for every command it offers through
+`setLensSource`, answering a `Viewer.LensEntries` under its name. It declares
 optional search and progressive-lifecycle behavior through `setSearch` and `setLifecycle`;
 retained asynchronous notifications come only from `host.services()`. A viewer that plays its
 file reports the end through `reportFinished` and acts on the answer, and one showing a still
@@ -268,7 +282,7 @@ file to the next without any viewer knowing the folder. Reject malformed content
 with the exact decoder reason before attaching a view; the application presents every plugin
 failure on the same error surface and owns cleanup of all contributed windows.
 
-Playback controls belong to the viewer's lower command group. The image viewer creates a
+Playback controls belong to the viewer's command group. The image viewer creates a
 `Viewer.PlaybackButton` there with `host.services().playback`; it shows the mode in force and
 opens an option sheet with the play mode and the time per picture. The video viewer adds the same
 rows to its own options through `PlaybackApi.addOptionRows`, beside its speed, sound track and

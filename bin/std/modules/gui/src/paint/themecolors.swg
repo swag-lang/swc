@@ -480,8 +480,7 @@ struct ThemeColors
         // image wants: it carries its own colors and owes the theme nothing.
         imageRect_Fg: Color
 
-        spinner_Track: Color     // The ring a circular progress turns on.
-        spinner_Mark:  Color     // The arc that turns.
+        spinner_Mark:  Color     // The light that runs across the three bars of a spinner.
 
         // A notice is a tinted ground of its tone, a dot in the tone, and body ink.
         embInfo_CriticalBk:      Color     // Ground of a notice reporting a failure.
@@ -1132,7 +1131,6 @@ impl ThemeColors
 
         .imageRect_Fg = Argb.White
 
-        .spinner_Track = p.raised
         .spinner_Mark  = alternate.mark
 
         .embInfo_CriticalBk      = critical.ground

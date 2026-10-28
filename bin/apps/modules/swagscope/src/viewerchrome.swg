@@ -160,15 +160,6 @@ struct ViewerErrorView
     }
 }
 
-// Keeps the animated repaint local to the activity mark. The host covers the whole document, so
-// animating the host itself would repaint every visible viewer subtree on every frame.
-struct ViewerLoadingSpinner
-{
-    using wnd: Wnd
-
-    animationPhase: f32
-}
-
 // Application-owned wait surface shared by every progressive viewer.
 //
 // A renderer only reports whether it is waiting; it neither chooses nor paints the feedback.
@@ -180,7 +171,7 @@ struct ViewerLoadingOverlay
 {
     using wnd: Wnd
 
-    late spinner: *ViewerLoadingSpinner
+    late spinner: *Spinner
     fadeAni:      AnimationHandle
 }
 
@@ -274,51 +265,13 @@ impl ViewerSearchOverlay
     }
 }
 
-impl IWnd for ViewerLoadingSpinner
-{
-    mtd impl onPaint(evt: *PaintEvent)
-    {
-        let painter = evt.paintContext.painter
-        let center  = .clientRect().center()
-        let shape   = geometry(.animationPhase)
-        let end     = shape.start + shape.sweep
-
-        painter.setAntialiased(true)
-        painter.drawArc(center.x, center.y, shape.radius, Math.Angle.fromDegrees(shape.start), Math.Angle.fromDegrees(end), Ink, 9)
-        painter.drawArc(center.x, center.y, shape.radius, Math.Angle.fromDegrees(shape.start), Math.Angle.fromDegrees(end), Voltage, 5)
-
-        .animationPhase = Math.fract(.animationPhase + .paintDeltaSeconds() * 0.7)
-        .invalidate()
-    }
-}
-
-impl ViewerLoadingSpinner
-{
-    // The spinner's box, and the radius and sweep its arc breathes between.
-    const Size      = 56.0
-    const MinRadius = 15.0
-    const MaxRadius = 21.0
-    const MinSweep  = 58.0
-    const MaxSweep  = 232.0
-
-    // Returns the arc drawn at `phase`, a fraction of one cycle: it breathes in radius and sweep
-    // while it turns.
-    func geometry(phase: f32)->{radius, start, sweep: f32}
-    {
-        let pulse = 0.5'f32 - 0.5'f32 * Math.cos(phase * Math.ConstF32.TwoPi)
-
-        var result: #returntype
-        result.radius = Math.lerp(MinRadius, MaxRadius, pulse)
-        result.sweep  = Math.lerp(MinSweep, MaxSweep, pulse)
-        result.start  = phase * 540 - 90 - result.sweep * 0.5
-        return result
-    }
-}
-
 impl ViewerLoadingOverlay
 {
     // How long the overlay takes to fade in once the wait has lasted long enough to show it.
     const FadeIn: Time.Duration = 120'ms
+
+    // Side of the activity mark: the toolkit's spinner, a size up from a row's, since it waits for a whole document.
+    const SpinnerSize = 32.0
 
     func create(parent: *Wnd)->*ViewerLoadingOverlay
     {
@@ -326,7 +279,7 @@ impl ViewerLoadingOverlay
         {
             .wndFlags                |= WndFlags.TopMost | WndFlags.Disabled
             .backgroundStyle         = .Transparent
-            .spinner                 = Wnd.create'ViewerLoadingSpinner(result, {0, 0, ViewerLoadingSpinner.Size, ViewerLoadingSpinner.Size})
+            .spinner                 = Spinner.create(result, {0, 0, SpinnerSize, SpinnerSize})
             .spinner.backgroundStyle = .Transparent
             .hide()
         }
@@ -337,7 +290,7 @@ impl ViewerLoadingOverlay
     // Covers `rect`, expressed in the shared parent coordinates; painting centers the activity mark.
     mtd cover(rect: Math.Rectangle)
     {
-        let size = ViewerLoadingSpinner.Size
+        let size = SpinnerSize
         .setPosition(rect, computeLayout: false)
         .spinner.setPosition(Math.Rectangle{(rect.width - size) * 0.5, (rect.height - size) * 0.5, size, size}, computeLayout: false)
     }

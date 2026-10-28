@@ -122,9 +122,7 @@ impl HtmlImageCache
         Spinner.paintRing(painter,
                           Math.Rectangle{frame.horzCenter() - size * 0.5, frame.vertCenter() - size * 0.5, size, size},
                           .loadingPhase,
-                          colors.spinner_Track,
-                          colors.spinner_Mark,
-                          metrics)
+                          colors.spinner_Mark)
         wnd.invalidate()
     }
 

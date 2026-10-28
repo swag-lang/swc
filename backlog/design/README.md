@@ -199,6 +199,21 @@ A vertical floating tool rail at the left edge, vertically centred: surface, cor
 padding, 36 px cells, glyphs 18. The active tool sits on the Arc selection ground with an Arc
 glyph.
 
+### Toast
+
+![Toasts](imgs/gui.toast.png) ![Toasts on Papier](imgs/gui.toast.paper.png)
+
+A short confirmation of something the hand just did — copied, saved, removed, mounted — or a
+failure that does not need a question. One pill, centred above the hint line: surface, corner
+10, floating shadow, 42 high, 18 of side padding. An optional 7 px dot in its tone (Arc for done,
+critical for a failure), the sentence in body ink, a name or a path in faint mono, and at most
+one action in Arc link ink at its end ("Undo", "Show", "Details").
+
+It arrives with the floating arrival, 8 px upward; it stays 3 s, 4.5 s when it carries an
+action, and as long as the pointer is over it; then it leaves with the floating departure. It
+never takes the keyboard. A new toast replaces the one on screen rather than stacking under it.
+Anything that needs an answer is a dialog, not a toast.
+
 ## Controls
 
 ![Controls in Encre](imgs/gui.controls.ink.png)

@@ -289,9 +289,7 @@ struct ThemeMetrics
         progressBar_SpeedInf:   f32 = 0.5     // Sweeps per second of an indeterminate progress bar.
 
         spinner_Size:       f32 = 24      // Side of a spinner created without a size.
-        spinner_StrokeSize: f32 = 2       // Thickness of the ring and of the arc turning on it.
-        spinner_ArcSweep:   f32 = 0.28    // Share of the ring the turning arc covers.
-        spinner_Speed:      f32 = 1.1     // Turns of the arc per second.
+        spinner_Speed:      f32 = 0.66    // Waves across the three bars per second, their rest included.
 
         palPicker_SwatchInset: f32 = 3     // Air between the cell of a swatch and the chip it draws, which its ring stands in.
 

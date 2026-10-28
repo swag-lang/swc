@@ -31,6 +31,7 @@ struct AppStrings
     explore_Cast:              string = "Cast"
     explore_Synopsis:          string = "Synopsis"
     explore_Length:            string = "% h %"                      // Length of a film under its poster: hours, then minutes.
+    explore_Sources:           string = "Sources"                    // Reading naming who provided what the sheet says of a film.
     explore_File:              string = "File"                       // Reading of the kind and weight of the file a film is in.
     explore_Artist:            string = "Artist"
     explore_FirstRelease:      string = "First release"

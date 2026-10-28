@@ -665,7 +665,7 @@ impl Explorer
 
             if file.length do
                 sheet.addReading(strings.explore_File, file)
-            addSheetReading(sheet, strings.explore_Source, entry.movie.source)
+            addSheetReading(sheet, strings.explore_Sources, entry.movie.sources)
             return
         }
 

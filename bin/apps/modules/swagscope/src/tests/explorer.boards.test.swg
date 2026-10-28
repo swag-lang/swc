@@ -60,6 +60,13 @@ func boardWindow(host: *Testing.HeadlessHost, light: bool, films: bool)->*Viewer
     window.openExplorer(Path.combine(unwrap Path.directoryName(#curlocation.fileName), "datas"))
     let explorer = unwrap window.explorer
     settleBoardListing(host, explorer)
+
+    // The previews of the real folder are retired before the board takes its place: none of them
+    // may publish into the entries the test puts there.
+    explorer.suspend()
+    for &preview in explorer.previews do
+        preview.wait()
+    explorer.generation += 1
     explorer.entries.clear()
     return window
 }
@@ -157,6 +164,7 @@ func addPictured(host: *Testing.HeadlessHost, explorer: *Explorer, name: string,
         .movie.director   = "Ridley Scott"
         .movie.actors     = "Harrison Ford, Rutger Hauer"
         .movie.overview   = "A science-fiction film directed by Ridley Scott, adapted from the novel by Philip K. Dick."
+        .movie.sources    = "Apple · Wikipedia · Wikidata"
     }
 
     explorer.selected = 0

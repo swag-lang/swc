@@ -324,12 +324,14 @@ the screen to its work.
 
 ![Home](imgs/scope.home.png) ![Home, clearing the history](imgs/scope.home.paper.png)
 
-- Home: the window without a file is the history. A page title ("Recent"), the recent folders as
-  chips, then the recent files grouped by day under section labels: a glyph of the kind, the
-  name, the folder in faint mono, the time in faint mono. Enter opens, Delete (or the faint `×`
-  of the row under the pointer) removes one entry. "Clear ▾" offers the partial clears — the
-  entries whose file is gone (with their count), older than a week, older than a month — and,
-  apart and in critical ink, clearing everything, which asks first.
+- Home: the empty window stays quiet. One line invites a drop or `Ctrl+O`; under a hairline,
+  the last six files as plain rows — the name in soft, the time in faint mono — and nothing else:
+  no title, no glyphs, no paths, no groups. The row under the pointer comes up on the raised
+  ground with its folder in faint mono and a faint `×` that removes it from the history (Delete
+  does the same on the chosen row). "Clear…", faint under the list, appears with the pointer and
+  offers the partial clears — the entries whose file is gone, with their count, the entries
+  older than a month — and, apart and in critical ink, clearing everything, which asks first.
+  Older entries are in the lens under `/`.
 
 ![Archive](imgs/scope.archive.png) ![Archive on Papier](imgs/scope.archive.paper.png)
 

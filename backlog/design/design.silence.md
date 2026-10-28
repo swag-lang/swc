@@ -91,7 +91,7 @@ dialogs, then each application, then the written rules.
   panel open, its tools covering the title.
   The window without a file shows a drop invitation where its picture (`scope.home`) shows the
   history, with its partial and full clears.
-- Next: build the home on `scope.home` and `scope.home.paper` (history by day, recent folders,
+- Next: build the home on `scope.home` and `scope.home.paper` (the six last files as quiet rows,
   removal of one entry, partial clears, full clear with a question); rebuild each viewer on its
   picture — `scope.read`, `scope.text.paper`, `scope.markdown.paper`, `scope.hex`,
   `scope.font.paper`, `scope.video`, `scope.image`, `scope.pdf.paper`, `scope.sound`,

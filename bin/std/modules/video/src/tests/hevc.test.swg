@@ -275,6 +275,8 @@ using Core, Core.Errors, Pixel
         motion.mv[0, 1] = -799
         for blockWidth in [4'u32, 5, 8, 12, 16, 32]
         {
+            for index in 64'u32 * 64 do
+                decoder.predSamples[index] = 0x5A5A
             decoder.interPredict(0, 0, blockWidth, blockWidth, &motion)
             for y in cast(s32, blockWidth)
             {

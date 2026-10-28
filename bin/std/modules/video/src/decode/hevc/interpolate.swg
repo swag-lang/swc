@@ -831,7 +831,9 @@ impl Decoder
             return
         }
 
-        var intermediate: [MaxRefSide * MaxPredSide] s16
+        // Intra and inter prediction do not overlap on a decoder. The chroma window is at
+        // most 32 by 35 samples, so it fits in the existing intra prediction scratch.
+        let intermediate = cast([*] s16, &.predSamples[0])
         for row in height + 3
         {
             let source = cast(u64, row) * referenceStride

@@ -18,6 +18,9 @@ struct BreadcrumbItem
     }
 }
 
+// The mark parting two levels of a quiet path.
+private const QuietSeparator = "/"
+
 // Displays a horizontal path whose levels can be activated or expanded into child menus.
 struct BreadcrumbCtrl
 {
@@ -26,6 +29,7 @@ struct BreadcrumbCtrl
         using wnd: Wnd     // Embedded window behavior and presentation.
 
         iconSize: f32 = 16     // Square size used for every level icon; zero uses each descriptor's own size.
+        quiet:    bool         // Whether the path reads as a page names its place: faint words parted by slashes, a slash still opening its menu.
 
         readonly
         {
@@ -150,7 +154,8 @@ impl BreadcrumbCtrl
 
             if it.hasArrow
             {
-                let aw = .arrowPad + m.chevron_Size + .arrowPad
+                let mark = .quiet ? Painter.measureString(QuietSeparator, font).width : m.chevron_Size
+                let aw   = .arrowPad + mark + .arrowPad
                 it.arrowRect = Math.Rectangle{x, client.y, aw, client.height}
                 x += aw
             }
@@ -291,7 +296,8 @@ impl IWnd for BreadcrumbCtrl
             if hotBody do
                 painter.fillRoundRect(it.bodyRect, 4, 4, colors.btnIcon_HotBk)
 
-            let textColor = hotBody ? colors.btnIcon_HotText : colors.btnIcon_Text
+            let restText  = .quiet ? colors.faintText : colors.btnIcon_Text
+            let textColor = hotBody ? colors.btnIcon_HotText : restText
             let iconColor = hotBody ? colors.btnIcon_HotText : colors.btnIcon_Icon
 
             var cx = it.bodyRect.x + .padX
@@ -311,6 +317,14 @@ impl IWnd for BreadcrumbCtrl
             {
                 if hotArr do
                     painter.fillRoundRect(it.arrowRect, 4, 4, colors.btnIcon_HotBk)
+
+                if .quiet
+                {
+                    let color = hotArr ? colors.btnIcon_HotText : colors.faintText
+                    let width = Painter.measureString(QuietSeparator, font).width
+                    painter.drawString(it.arrowRect.horzCenter() - width * 0.5, it.arrowRect.vertCenter() - font.height * 0.5, QuietSeparator, font, color)
+                    continue
+                }
 
                 let arrow      = theme.icon(ThemeIcons.ChevronRight, m.chevron_Size)
                 let arrowColor = hotArr ? colors.btnIcon_HotText : colors.btnIcon_Icon

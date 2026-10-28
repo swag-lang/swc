@@ -1,12 +1,12 @@
 using Core, Gui, Pixel
 
-const PanelRadius  = 10.0
 const PanelPadding = 16.0
 const PanelTitle   = 26.0
 
-// A rounded, titled group box the pages of this example put one idea in.
+// A titled group the pages of this example put one idea in: a section label over its controls,
+// with air rather than a box around them.
 //
-// Every page reaches for the same panel so the four of them read as one document, and so a
+// Every page reaches for the same group so the four of them read as one document, and so a
 // demonstration only ever has to place its own controls inside [contentRect].
 struct PanelWnd
 {
@@ -39,20 +39,12 @@ impl IWnd for PanelWnd
 {
     mtd impl onPaint(evt: *PaintEvent)
     {
-        let painter = evt.paintContext.painter
-        let colors  = .themeColors()
-        let rect    = .clientRect()
-
-        painter.fillRoundRect(rect, PanelRadius, PanelRadius, colors.wnd_Bk)
-        painter.drawRoundRect(rect, PanelRadius, PanelRadius, colors.line, 1)
-
         if not (.title).count do
             return
-        let font = .theme().createDefaultFont(13, .Bold)
-        painter.drawString(rect.x + PanelPadding,
-                           font.opticalTop(rect.y + PanelPadding + 9, 13),
-                           .title,
-                           font,
-                           colors.label_Text)
+
+        // The title is a section label, centred on the band above the content.
+        let rect = .clientRect()
+        let band = Math.Rectangle{rect.x + PanelPadding, rect.y + PanelPadding, rect.width - 2 * PanelPadding, 18}
+        SectionLabel.paint(me, evt.paintContext.painter, band, .title)
     }
 }

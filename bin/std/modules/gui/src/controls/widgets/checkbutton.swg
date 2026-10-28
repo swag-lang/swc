@@ -34,6 +34,12 @@ struct CheckButton
 
         sigChanged: SigArray'func||(*Wnd)     // Emitted after a user action changes the state.
     }
+
+    // The chosen look is laid over the resting one at `markPresence`, which eases when the state
+    // changes, so a box fills and empties instead of snapping. `markState` is the chosen state
+    // being shown, which an emptying box still needs once its state is back to unchecked.
+    markPresence: f32
+    markState     = CheckState.Checked
 }
 
 impl IWnd for CheckButton
@@ -47,63 +53,58 @@ impl IWnd for CheckButton
         let colors  = .themeColors()
         let rects   = .themeRects()
 
-        var subRectBk:     *ThemeImageRect?
-        var subRectBorder: *ThemeImageRect?
-        var subRectMark:   *ThemeImageRect?
-        var colorBk:       Color
-        var colorBorder:   Color
-        var colorMark:     Color
-        var colorText:     Color
+        var restBk, restBorder:     Color
+        var chosenBk, chosenBorder: Color
+        var colorMark, colorText:   Color
 
         // The answer a box holds survives the pointer: a checked box stays an Arc box under it and
         // only deepens, and an unchecked one only strengthens its ring.
         let checked = .state != .Unchecked
-        switch
+        if bc.isDisabled
         {
-        case bc.isDisabled:
-            colorBk     = checked ? colors.btnCheck_CheckedDisabledBk : colors.btnCheck_DisabledBk
-            colorBorder = checked ? colors.btnCheck_CheckedDisabledBk : colors.btnCheck_DisabledBorder
-            colorMark   = colors.btnCheck_DisabledMark
-            colorText   = colors.btnCheck_DisabledText
+            restBk       = colors.btnCheck_DisabledBk
+            restBorder   = colors.btnCheck_DisabledBorder
+            chosenBk     = colors.btnCheck_CheckedDisabledBk
+            chosenBorder = colors.btnCheck_CheckedDisabledBk
+            colorMark    = colors.btnCheck_DisabledMark
+            colorText    = colors.btnCheck_DisabledText
+        }
+        else
+        {
+            switch
+            {
+            case .isPressed:
+                restBk     = colors.btnCheck_PressedBk
+                restBorder = colors.btnCheck_PressedBorder
+                colorText  = colors.btnCheck_PressedText
 
-        case checked:
+            case .isHot:
+                restBk     = colors.btnCheck_HotBk
+                restBorder = colors.btnCheck_HotBorder
+                colorText  = colors.btnCheck_HotText
+
+            default:
+                restBk     = colors.btnCheck_Bk
+                restBorder = colors.btnCheck_Border
+                colorText  = colors.btnCheck_Text
+            }
+
             let engaged = .isHot or .isPressed
-            colorBk     = engaged ? colors.btnCheck_CheckedHotBk : colors.btnCheck_CheckedBk
-            colorBorder = engaged ? colors.btnCheck_CheckedHotBk : colors.btnCheck_CheckedBorder
-            colorMark   = colors.btnCheck_CheckedMark
-            colorText   = colors.btnCheck_CheckedText
-
-        case .isPressed:
-            colorBk     = colors.btnCheck_PressedBk
-            colorBorder = colors.btnCheck_PressedBorder
-            colorMark   = colors.btnCheck_PressedMark
-            colorText   = colors.btnCheck_PressedText
-
-        case .isHot:
-            colorBk     = colors.btnCheck_HotBk
-            colorBorder = colors.btnCheck_HotBorder
-            colorMark   = colors.btnCheck_HotMark
-            colorText   = colors.btnCheck_HotText
-
-        default:
-            colorBk     = colors.btnCheck_Bk
-            colorBorder = colors.btnCheck_Border
-            colorMark   = colors.btnCheck_Mark
-            colorText   = colors.btnCheck_Text
+            chosenBk     = engaged ? colors.btnCheck_CheckedHotBk : colors.btnCheck_CheckedBk
+            chosenBorder = engaged ? colors.btnCheck_CheckedHotBk : colors.btnCheck_CheckedBorder
+            colorMark    = colors.btnCheck_CheckedMark
+            if checked do
+                colorText = colors.btnCheck_CheckedText
         }
 
-        switch .state
+        // A disabled box shows its state as it is; an enabled one at the share its mark has reached.
+        let presence = bc.isDisabled ? (checked ? 1'f32 : 0) : .markPresence
+        let shown    = checked ? .state : .markState
+        var subRectBk:     *ThemeImageRect = &rects.btnCheck_Checked
+        var subRectBorder: *ThemeImageRect = &rects.btnCheck_CheckedBorder
+        var subRectMark:   *ThemeImageRect = &rects.btnCheck_CheckedMark
+        if shown == .Indeterminate
         {
-        case .Unchecked:
-            subRectBk     = &rects.btnCheck_Normal
-            subRectBorder = &rects.btnCheck_NormalBorder
-
-        case .Checked:
-            subRectBk     = &rects.btnCheck_Checked
-            subRectBorder = &rects.btnCheck_CheckedBorder
-            subRectMark   = &rects.btnCheck_CheckedMark
-
-        case .Indeterminate:
             subRectBk     = &rects.btnCheck_Undefined
             subRectBorder = &rects.btnCheck_UndefinedBorder
             subRectMark   = &rects.btnCheck_UndefinedMark
@@ -120,9 +121,21 @@ impl IWnd for CheckButton
         posBox.width = posBox.height
         if .flags.has(.RightAligned) do
             posBox.x = clientRect.right() - posBox.width
-        theme.drawSubRect(painter, posBox, subRectBk, colorBk)
-        theme.drawSubRect(painter, posBox, subRectBorder, colorBorder)
-        theme.drawSubRect(painter, posBox, subRectMark, colorMark)
+        if presence < 1
+        {
+            theme.drawSubRect(painter, posBox, &rects.btnCheck_Normal, fadeColor(restBk, 1 - presence))
+            theme.drawSubRect(painter, posBox, &rects.btnCheck_NormalBorder, fadeColor(restBorder, 1 - presence))
+        }
+
+        // The mark grows into its box as the box fills.
+        if presence > 0
+        {
+            var posMark = posBox
+            posMark.inflate(-posBox.width * 0.2 * (1 - presence))
+            theme.drawSubRect(painter, posBox, subRectBk, fadeColor(chosenBk, presence))
+            theme.drawSubRect(painter, posBox, subRectBorder, fadeColor(chosenBorder, presence))
+            theme.drawSubRect(painter, posMark, subRectMark, fadeColor(colorMark, presence))
+        }
 
         // Content
         var format: RichStringFormat
@@ -216,7 +229,7 @@ impl CheckButton
         case .Indeterminate: .state = .Unchecked
         }
 
-        .invalidate()
+        .easeMark()
         .sigChanged.call(me)
         .postCommandEvent(.id)
     }
@@ -227,7 +240,7 @@ impl CheckButton
         if .state == newState do
             return
         .state = newState
-        .invalidate()
+        .easeMark()
     }
 
     // Adds and removes interaction and placement options, then repaints the button.
@@ -243,4 +256,29 @@ impl CheckButton
 
     // Reports whether the represented values have mixed states.
     mtd const isIndeterminate()->bool => .state == .Indeterminate
+}
+
+private impl CheckButton
+{
+    // Eases the chosen look toward the current state; a control nobody can see takes it at once.
+    mtd easeMark()
+    {
+        if .state != .Unchecked do
+            .markState = .state
+        .invalidate()
+
+        let destination = .state != .Unchecked ? 1'f32 : 0
+        if not .surface or not .isVisible() or .app().isReducedMotion()
+        {
+            if .surface do
+                .app().animator.cancel(me, AnimationChannel.from("Gui.Check.Mark"))
+            .markPresence = destination
+            return
+        }
+
+        var options: AnimationOptions
+        options.duration = Time.Duration.fromSeconds(.themeMetrics().motion_QuickSeconds)
+        options.easing   = .EaseOut
+        discard .app().animator.animateF32(me, AnimationChannel.from("Gui.Check.Mark"), .markPresence, destination, func(button, value) { button.markPresence = value }, options)
+    }
 }

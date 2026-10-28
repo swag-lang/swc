@@ -32,10 +32,10 @@ func createRgbModesPage(parent: *Wnd)
                              layout.bottom)
     scope
     {
-        discard createModePicker(bottom, "Red", {24, 118, 270, 24}, .RedHorizontal)
-        discard createModePicker(bottom, "Green", {330, 118, 270, 24}, .GreenHorizontal)
-        discard createModePicker(bottom, "Blue", {636, 118, 270, 24}, .BlueHorizontal)
-        discard createModePicker(bottom, "Alpha", {942, 118, 270, 24}, .AlphaHorizontal)
-        discard createQuickPalette(bottom, {24, 202, 520, 36}, "RGB presets")
+        discard createModePicker(bottom, "Red", {24, 104, 220, 24}, .RedHorizontal)
+        discard createModePicker(bottom, "Green", {284, 104, 220, 24}, .GreenHorizontal)
+        discard createModePicker(bottom, "Blue", {544, 104, 220, 24}, .BlueHorizontal)
+        discard createModePicker(bottom, "Alpha", {804, 104, 220, 24}, .AlphaHorizontal)
+        discard createQuickPalette(bottom, {24, 168, 520, 36}, "RGB presets")
     }
 }

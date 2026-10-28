@@ -88,6 +88,7 @@ impl RichEditCtrl
         .moveCursorStartFile(&.selBeg)
         .moveCursorEndFile(&.cursorPos)
         .setRectangularSelection(false)
+        .reportCaretMove()
     }
 
     // Selects whether the selection is a rectangle of columns rather than a run of text.
@@ -109,6 +110,7 @@ impl RichEditCtrl
         .selBeg    = start
         .cursorPos = end
         .checkSelection()
+        .reportCaretMove()
     }
 
     // Returns whether the anchor and the caret are at the same position.
@@ -238,11 +240,12 @@ impl RichEditCtrl
         }
         else
         {
-            .setCursorPos(cp)
-            .selBeg = cp
+            .cursorPos = cp
+            .selBeg    = cp
         }
 
         .popUndo()
+        .reportCaretMove()
     }
 
     // Deletes the selection or the rune immediately before the cursor.
@@ -358,8 +361,8 @@ impl RichEditCtrl
             .moveCursorLeft(&end)
         beg.charPosInLine = 0
         end.charPosInLine = .lines[end.lineIndex]!.length()
-        .selBeg = beg
-        .setCursorPos(end)
+        .selBeg           = beg
+        .cursorPos        = end
         .moveCursorRight(&.cursorPos)
         .copyToClipboard()
         .deleteSelection()
@@ -369,6 +372,7 @@ impl RichEditCtrl
     // Selects the word containing the active cursor.
     mtd selectWord()
     {
+        defer .reportCaretMove()
         let line = unwrap .lines[.cursorPos.lineIndex]
         let len  = line.length()
         if not len do

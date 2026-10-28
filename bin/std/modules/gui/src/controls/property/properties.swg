@@ -131,10 +131,10 @@ struct Properties
     gridIndentSize:    s32 = 14
 
     // List and panel presentation metrics.
-    listNameMarginBefore: s32 = 12
-    listNameMarginAfter:  s32 = 0
+    listNameMarginBefore:     s32 = 12
+    listNameMarginAfter:      s32 = 0
     listContentPaddingBottom: s32 = 12
-    listDescMarginAfter:  s32 = 5
+    listDescMarginAfter:      s32 = 5
 
     // Inline validation message-bar metrics.
     valBarGlyphWidth: f32 = 32
@@ -415,11 +415,11 @@ impl Properties
             let theme = parent.theme()
 
             // Every kind titles a structure in bold one step above the body, and labels its
-            // sections in the small spaced capitals of a section label.
+            // sections in the small spaced semibold capitals of a section label.
             .fontSection          = theme.createDefaultFontFamily(theme.metrics.defaultFontSize + 2)
             .fontCategory         = theme.createDefaultFontFamily(theme.metrics.sectionLabel_FontSize)
             .fontSection.regular  = .fontSection.bold
-            .fontCategory.regular = .fontCategory.bold
+            .fontCategory.regular = .fontCategory.semiBold
             .fontName             = theme.res.fontDefault
             if kind == .List
             {
@@ -705,6 +705,23 @@ impl Properties
             return
         .stringFilter = filter
         .updateStates()
+    }
+
+    // Counts the fields the text filter found: visible rows holding a value whose own name or
+    // description contains the filter. Zero when no text filter is set.
+    mtd matchCount()->u32
+    {
+        if .stringFilter.isEmpty() do
+            return 0
+        var result = 0'u32
+        for it in .items
+        {
+            let item = unwrap it
+            if item.data != null and item.line.isLocallyVisible() and .nameMatch(item) != Swag.U64.Max do
+                result += 1
+        }
+
+        return result
     }
 
     // Restricts the view to fields that differ from their declared defaults.

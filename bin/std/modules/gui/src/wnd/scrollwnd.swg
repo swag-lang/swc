@@ -257,7 +257,6 @@ public impl IWnd for ScrollWnd
         let presence = .barPresence
         if presence <= 0 do
             return
-        func shown(color: Color, presence: f32)->Color => color.withAlphaF32(cast(f32, color.a) / 255 * presence)
 
         var colorBk: Color
         switch
@@ -275,13 +274,13 @@ public impl IWnd for ScrollWnd
             clientRect.width = .paddingZ
             if .showBarH do
                 clientRect.height -= .paddingW
-            theme.drawSubRect(bc.painter, clientRect, &rects.scrollBar_BkV, shown(colorBk, presence))
+            theme.drawSubRect(bc.painter, clientRect, &rects.scrollBar_BkV, fadeColor(colorBk, presence))
 
             var colBk = colors.scrollBar_HotBk
             if not .isHotBarV do
                 colBk.a = 0
             .aniBkBarV.apply(me, colBk)
-            theme.drawSubRect(bc.painter, clientRect, &rects.scrollBar_BkV, shown(.aniBkBarV.cur(), presence))
+            theme.drawSubRect(bc.painter, clientRect, &rects.scrollBar_BkV, fadeColor(.aniBkBarV.cur(), presence))
 
             if .needV
             {
@@ -297,7 +296,7 @@ public impl IWnd for ScrollWnd
                     colorBox = colors.scrollBar_Box
                 clientRect.inflate(-metrics.scrollBar_BoxPadding)
                 .aniBoxV.apply(me, colorBox)
-                theme.drawSubRect(bc.painter, clientRect, &rects.scrollBar_BoxV, shown(.aniBoxV.cur(), presence))
+                theme.drawSubRect(bc.painter, clientRect, &rects.scrollBar_BoxV, fadeColor(.aniBoxV.cur(), presence))
             }
         }
 
@@ -309,13 +308,13 @@ public impl IWnd for ScrollWnd
             clientRect.height = .paddingW
             if .showBarV do
                 clientRect.width -= .paddingW
-            theme.drawSubRect(bc.painter, clientRect, &rects.scrollBar_BkH, shown(colorBk, presence))
+            theme.drawSubRect(bc.painter, clientRect, &rects.scrollBar_BkH, fadeColor(colorBk, presence))
 
             var colBk = colors.scrollBar_HotBk
             if not .isHotBarH do
                 colBk.a = 0
             .aniBkBarH.apply(me, colBk)
-            theme.drawSubRect(bc.painter, clientRect, &rects.scrollBar_BkH, shown(.aniBkBarH.cur(), presence))
+            theme.drawSubRect(bc.painter, clientRect, &rects.scrollBar_BkH, fadeColor(.aniBkBarH.cur(), presence))
 
             if .needH
             {
@@ -331,7 +330,7 @@ public impl IWnd for ScrollWnd
                     colorBox = colors.scrollBar_Box
                 clientRect.inflate(-metrics.scrollBar_BoxPadding)
                 .aniBoxH.apply(me, colorBox)
-                theme.drawSubRect(bc.painter, clientRect, &rects.scrollBar_BoxH, shown(.aniBoxH.cur(), presence))
+                theme.drawSubRect(bc.painter, clientRect, &rects.scrollBar_BoxH, fadeColor(.aniBoxH.cur(), presence))
             }
         }
 
@@ -343,7 +342,7 @@ public impl IWnd for ScrollWnd
             clientRect.y      = clientRect.bottom() - .paddingW
             clientRect.width  = .paddingZ
             clientRect.height = .paddingW
-            theme.drawSubRect(bc.painter, clientRect, &rects.scrollBar_Corner, shown(colors.scrollBar_Bk, presence))
+            theme.drawSubRect(bc.painter, clientRect, &rects.scrollBar_Corner, fadeColor(colors.scrollBar_Bk, presence))
         }
     }
 }

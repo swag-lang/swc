@@ -149,7 +149,8 @@ impl MainWindow
             .setFlags(.LineNumbers)
             .setLexer(&me.lexer)
             .setText(exampleSource(.Plasma))
-            .sigChanged += func|window = me|(_) { window.scheduleCompile() }
+            .sigChanged    += func|window = me|(_) { window.scheduleCompile() }
+            .sigCaretMoved += func|window = me|(_) { window.refreshCaretPlace() }
         }
 
         // The editor takes `Enter` with any modifier as a new line; `Ctrl Enter` compiles instead,
@@ -497,6 +498,23 @@ impl MainWindow
                 .hintLine.addHint(strings.key_Compile, strings.hint_Compile)
             .hintLine.addHint(strings.key_Lens, strings.hint_Lens)
         }
+
+        .refreshCaretPlace()
+    }
+
+    // Once the hint line has stopped teaching the lens, its place under the source says where the
+    // caret is: the line and the column, counted from one.
+    mtd refreshCaretPlace()
+    {
+        if not .doorKnown or .view != .Columns
+        {
+            .hintLine.setReading(null)
+            return
+        }
+
+        let line   = .editor.cursorLogicalLineIndex() + 1
+        let column = .editor.cursorLogicalCharPos() + 1
+        .hintLine.setReading(Format.toString(appStrings().ui_CaretPlace, line, column))
     }
 
     // Beside another build, the main build says what it gains over the reference, and its

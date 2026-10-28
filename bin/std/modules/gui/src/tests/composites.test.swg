@@ -185,6 +185,28 @@ func compositeColorChanged(_: *ColorPickerCtrl)
     Swag.assert(CompositeInfoDismissedCount == 1)
 }
 
+// A dismissed notice leaves the way it came: it says so at once, closes its height, then goes.
+#test
+{
+    var host: Testing.HeadlessHost
+    host.setup(320, 120)
+    host.setReducedMotion(false)
+    CompositeInfoDismissedCount = 0
+
+    let bar = InfoBar.create(&host.root, "Saved", .Information)
+    bar.sigDismissed += &compositeInfoDismissed
+    host.finishAnimations()
+    Swag.assert(bar.position.height == 40)
+
+    bar.dismiss()
+    bar.dismiss()
+    Swag.assert(CompositeInfoDismissedCount == 1)
+    Swag.assert(not bar.isPendingDestroy)
+
+    host.finishAnimations()
+    Swag.assert(bar.isPendingDestroy)
+}
+
 // The information bar keeps its message clear of the dismiss button.
 //
 // The button is docked inside the label, so nothing but the text inset holds the two apart: a

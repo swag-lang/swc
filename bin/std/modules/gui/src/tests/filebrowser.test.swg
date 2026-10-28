@@ -31,9 +31,10 @@ using Swag, Core, File
     Swag.assert(not fb.canGoBack())
     Swag.assert(not fb.canGoForward())
 
-    // The file list is multi-column with fixed default widths.
+    // The file list is multi-column: the date and the size keep their default widths, and the
+    // names take the room they leave.
     Swag.assert(fb.listCtrl.header.items.count == 3)
-    Swag.assert(Math.abs(fb.listCtrl.header.itemWidthAt(0) - 220) < 0.5)
+    Swag.assert(fb.listCtrl.header.itemWidthAt(0) > 220)
     Swag.assert(Math.abs(fb.listCtrl.header.itemWidthAt(1) - 130) < 0.5)
     Swag.assert(Math.abs(fb.listCtrl.header.itemWidthAt(2) - 90) < 0.5)
 
@@ -119,7 +120,6 @@ using Swag, Core, File
     }
 
     let fb = FileBrowserCtrl.create(&host.root, opt, {0, 0, 600, 400})
-    Swag.assert(Math.abs(fb.listCtrl.header.itemWidthAt(0) - 333) < 0.5)
     Swag.assert(Math.abs(fb.listCtrl.header.itemWidthAt(1) - 155) < 0.5)
     Swag.assert(Math.abs(fb.listCtrl.header.itemWidthAt(2) - 77) < 0.5)
 

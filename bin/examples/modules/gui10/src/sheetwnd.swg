@@ -56,7 +56,6 @@ struct SheetView
 
     fontName: *Font?     // Face the names are listed in.
     fontMono: *Font?     // Face the values are listed in, so digits line up.
-    fontHead: *Font?     // Face a family head is set in.
 }
 
 impl SheetView
@@ -211,12 +210,11 @@ impl SheetView
         }
     }
 
-    // Resolves the three faces the sheet is set in, once per theme.
+    // Resolves the two faces the sheet is set in, once per theme.
     private mtd ensureFonts()
     {
         .fontName = app.theme.createDefaultFont(13)
         .fontMono = app.theme.createDefaultFontFs(13)
-        .fontHead = app.theme.createDefaultFont(15, .Bold)
     }
 
     // Draws `text` left-aligned inside `rect`, on the vertical center of the row.
@@ -237,8 +235,8 @@ impl SheetView
         {
             var checker = rect
             checker.width *= 0.5
-            painter.fillRect(checker, Argb.LightGray)
-            painter.fillRect(checker, Brush.createHatch(.CheckBoard, Argb.DarkGray))
+            painter.fillRect(checker, app.theme.colors.raised)
+            painter.fillRect(checker, Brush.createHatch(.CheckBoard, app.theme.colors.colorPicker_BackAlpha))
         }
 
         painter.fillRect(rect, color)
@@ -266,8 +264,9 @@ impl IWnd for SheetView
 
             if row.group
             {
+                // A family opens with a section label.
                 let head = Math.Rectangle{rect.x, rect.y + 12, rect.width, rect.height - 12}
-                drawCell(painter, head, row.name.toString(), unwrap .fontHead, colors.label_Text)
+                SectionLabel.paint(me, painter, head, row.name.toString())
 
                 // The palette sheet repeats its column captions on every family head: with
                 // three hundred rows scrolling under a single caption row, a reader four
@@ -286,7 +285,7 @@ impl IWnd for SheetView
                     }
                 }
 
-                painter.drawLine(rect.x, rect.bottom() - 3, rect.right(), rect.bottom() - 3, colors.listItem_Line)
+                painter.drawLine(rect.x, rect.bottom() - 3, rect.right(), rect.bottom() - 3, colors.line)
                 continue
             }
 
@@ -298,7 +297,7 @@ impl IWnd for SheetView
             case .Colors:
                 let swatch = Math.Rectangle{x, rect.y + SwatchInset, SwatchWidth, height - 2 * SwatchInset}
                 .drawSwatch(painter, swatch, row.colors[0], colors.ground)
-                .drawSwatch(painter, Math.Rectangle{swatch.x + SwatchWidth + SwatchGap, swatch.y, SwatchWidth, swatch.height}, row.colors[0], colors.view_Bk)
+                .drawSwatch(painter, Math.Rectangle{swatch.x + SwatchWidth + SwatchGap, swatch.y, SwatchWidth, swatch.height}, row.colors[0], colors.surface)
                 x += 2 * SwatchWidth + 2 * SwatchGap
                 drawCell(painter, Math.Rectangle{x, rect.y, HexWidth, height}, row.text.toString(), unwrap .fontMono, colors.label_TextLight)
 
@@ -333,8 +332,7 @@ impl SheetWnd
     {
         with let result = Wnd.create'SheetWnd(parent, {})
         {
-            .setFrameForm(.Square)
-            .setFrameFlags(.Borders)
+            .setFrameFlags(.None)
             .view      = .createView'SheetView()
             .view.host = result
             .view.rebuild()

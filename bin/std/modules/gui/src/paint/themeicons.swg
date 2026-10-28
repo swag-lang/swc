@@ -95,6 +95,34 @@ enum ThemeIcons
     Folder            // A folder in a file listing.
     Dot               // A filled disc that fills its box: the tone dot of a notice or a status.
     Minus             // Subtract or step-down action glyph, the counterpart of `Plus`.
+
+    // The pages of a file listing: one page, marked with what the file holds. Ask for them through
+    // [[Gui.Theme.fileGlyph]], which reads the kind from the name.
+    File              // A file in a file listing, of no kind of its own.
+    FileImage         // A picture.
+    FileCode          // Source code, a script, or structured data.
+    FileAudio         // A sound.
+    FileVideo         // A film.
+    FileArchive       // An archive of other files.
+}
+
+// Extensions read as each kind of file, compared without case.
+private const ImageExtensions   = [".png", ".jpg", ".jpeg", ".gif", ".bmp", ".tga", ".webp", ".svg", ".ico", ".tif", ".tiff", ".psd", ".qoi"]
+private const CodeExtensions    = [".swg", ".swgs", ".c", ".cpp", ".h", ".hpp", ".cs", ".js", ".ts", ".py", ".rs", ".go", ".java", ".json", ".xml", ".html", ".css", ".sh", ".bat", ".ps1", ".lua", ".toml", ".yaml", ".yml"]
+private const AudioExtensions   = [".wav", ".mp3", ".flac", ".ogg", ".aac", ".m4a", ".opus", ".mid", ".midi"]
+private const VideoExtensions   = [".mp4", ".mkv", ".avi", ".mov", ".webm", ".wmv", ".m4v"]
+private const ArchiveExtensions = [".zip", ".7z", ".rar", ".tar", ".gz", ".bz2", ".xz"]
+
+// Reports whether `ext` is one of `list`, without case.
+private func isExtensionOf(ext: string, list: const [..] string)->bool
+{
+    for candidate in list
+    {
+        if Utf8.compare(ext, candidate, .Latin1NoCase) == 0 do
+            return true
+    }
+
+    return false
 }
 
 impl Theme
@@ -104,4 +132,25 @@ impl Theme
     // The frames behind a given size are rasterized once from the vector icon set, at
     // the current atlas scale, and shared by every icon of that size.
     mtd icon(idx: ThemeIcons, size = 24'f32)->Icon => .res.icons.icon(cast(s32, idx), size, .res.atlasScale)
+
+    // Returns the line glyph of a file named `name` at `size` logical pixels: a folder, or a page
+    // marked with the kind its extension says — a picture, code, a sound, a film, an archive.
+    //
+    // A listing draws these in one ink rather than the colored icons of the system, so a row
+    // reads by its name first and the glyph only says what kind of thing it is.
+    mtd fileGlyph(name: string, isDirectory: bool, size = 16'f32)->Icon
+    {
+        if isDirectory do
+            return .icon(.Folder, size)
+        let ext = Path.extension(name) orelse ""
+        switch
+        {
+        case isExtensionOf(ext, ImageExtensions):   return .icon(.FileImage, size)
+        case isExtensionOf(ext, CodeExtensions):    return .icon(.FileCode, size)
+        case isExtensionOf(ext, AudioExtensions):   return .icon(.FileAudio, size)
+        case isExtensionOf(ext, VideoExtensions):   return .icon(.FileVideo, size)
+        case isExtensionOf(ext, ArchiveExtensions): return .icon(.FileArchive, size)
+        default:                                    return .icon(.File, size)
+        }
+    }
 }

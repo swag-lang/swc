@@ -38,12 +38,18 @@ impl PreviewCanvas
 
 impl IWnd for PreviewCanvas
 {
+    // Draws the frame on the corner of a control, as a picture set in the page.
     mtd impl onPaint(evt: *PaintEvent)
     {
-        if .texture.isValid() do
-            evt.paintContext.painter.drawTexture(.frameRect(),
-                                                 .texture,
-                                                 .themeColors().imageRect_Fg)
+        if not .texture.isValid() do
+            return
+
+        let painter = evt.paintContext.painter
+        let radius  = .themeMetrics().corner_Control
+        var brush   = Brush.createTexture(.texture)
+        brush.color = .themeColors().imageRect_Fg
+        painter.setParams(.Antialiased)
+        painter.fillRoundRect(.frameRect(), radius, radius, brush)
     }
 
     mtd impl onMouseEvent(evt: *MouseEvent)

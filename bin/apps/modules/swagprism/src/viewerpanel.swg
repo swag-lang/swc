@@ -463,7 +463,7 @@ impl IWnd for ViewerPanel
         let wordFont = theme.createDefaultFont(metrics.defaultFontSize)
         if .layout == .Compare
         {
-            let figureFont = theme.createDefaultFont(CountSize)
+            let figureFont = theme.createDefaultFont(CountSize, .Light)
             let figure     = Format.toString("%", count)
             painter.drawString(0, figureFont.opticalLineTop(centerY), figure, figureFont, colors.text)
             var x = Painter.measureString(figure, figureFont).width + 12

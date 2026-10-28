@@ -445,6 +445,7 @@ public impl RichEditCtrl
         .loadedContentHeight    = 0
         .residentContentOffset  = 0
         .estimatedContentHeight = 0
+        .reportCaretMove()
     }
 
     // Returns the selected plain text.
@@ -566,6 +567,7 @@ public impl RichEditCtrl
         .insertTextPrivate(&.cursorPos, text, 0)
         .clearSelection()
         .setModified(true)
+        .reportCaretMove()
     }
 
     // Inserts `text` at the caret with one style index per rune from `txtStyles`.
@@ -584,6 +586,7 @@ public impl RichEditCtrl
         .insertTextPrivate(&.cursorPos, undo.runes, undo.styles, .hasSelRect)
         .clearSelection()
         .setModified(true)
+        .reportCaretMove()
     }
 
     // Returns the rune and style at a document cursor.
@@ -752,8 +755,8 @@ public impl RichEditCtrl
             if not first do
                 .serialUndo -= 1
 
-            .setCursorPos(beg)
-            .selBeg = beg
+            .cursorPos = beg
+            .selBeg    = beg
             .insertText(txt)
 
             .popUndo()
@@ -767,8 +770,8 @@ public impl RichEditCtrl
             first         = false
         }
 
-        .selBeg = savepos0
-        .setCursorPos(savepos1)
+        .selBeg    = savepos0
+        .cursorPos = savepos1
 
         // A dummy undo just to restore the selection
         if not first
@@ -856,8 +859,8 @@ public impl RichEditCtrl
                 .pushUndo()
                 if not first do
                     .serialUndo -= 1
-                .selBeg = beg
-                .setCursorPos(beg1)
+                .selBeg    = beg
+                .cursorPos = beg1
                 .deleteSelectionPrivate(beg, beg1, false)
                 .popUndo()
 
@@ -878,8 +881,8 @@ public impl RichEditCtrl
                 break
         }
 
-        .selBeg = savepos0
-        .setCursorPos(savepos1)
+        .selBeg    = savepos0
+        .cursorPos = savepos1
 
         // A dummy undo just to restore the selection
         if not first

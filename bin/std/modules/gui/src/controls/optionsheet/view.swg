@@ -138,7 +138,7 @@ impl IWnd for View
         // A sheet presented over the window dims what it covers, and arrives with its veil.
         if .placement != .Anchored
         {
-            painter.fillRect(.clientRect(), fade(colors.veilStrong, .openProgress))
+            painter.fillRect(.clientRect(), fadeColor(colors.veilStrong, .openProgress))
             painter.pushTransform()
             painter.translateTransform(.arrivalOffset().x, .arrivalOffset().y)
         }
@@ -1072,14 +1072,14 @@ private impl View
         let colors = .themeColors()
         let rects  = .themeRects()
         if hot and enabled do
-            theme.drawSubRect(painter, box, &rects.btnIcon_RoundSquareBk, fade(colors.optionSheet_HotBk, opacity))
+            theme.drawSubRect(painter, box, &rects.btnIcon_RoundSquareBk, fadeColor(colors.optionSheet_HotBk, opacity))
         let border = enabled ? colors.optionSheet_StepBorder : colors.popupItem_DisabledSubmenuMarker
         let radius = rects.btnIcon_RoundSquareBk.radius
-        painter.drawRoundRect(box, radius, radius, Pen.createSolid(fade(border, opacity)))
+        painter.drawRoundRect(box, radius, radius, Pen.createSolid(fadeColor(border, opacity)))
 
         // The glyph is drawn rather than taken from the atlas, so its stroke stays crisp at every
         // size a row gives the button.
-        let ink  = fade(enabled ? colors.popupItem_Text : colors.popupItem_DisabledText, opacity)
+        let ink  = fadeColor(enabled ? colors.popupItem_Text : colors.popupItem_DisabledText, opacity)
         let pen  = Pen.createSolid(ink, 1.5)
         let half = Math.round(box.width * 0.22)
         let cx   = Math.round(box.horzCenter())
@@ -1110,7 +1110,7 @@ private impl View
             {
                 let width = metrics.optionSheet_HeaderHeight
                 let line  = Math.Rectangle{.body.horzCenter() - width * 0.5 + pixelOffsetX, .body.y + grip * 0.5, width, 4}
-                painter.fillRoundRect(line, 2, 2, fade(colors.optionSheet_StepBorder, opacity))
+                painter.fillRoundRect(line, 2, 2, fadeColor(colors.optionSheet_StepBorder, opacity))
             }
 
             let headerTop = .headerTopInset(levels)
@@ -1119,21 +1119,21 @@ private impl View
             {
                 var ground = band
                 ground.inflate(-metrics.optionSheet_Inset, -metrics.optionSheet_Inset * 0.5)
-                theme.drawSubRect(painter, ground, &rects.menuPopup_HotBk, fade(colors.optionSheet_HotBk, opacity))
+                theme.drawSubRect(painter, ground, &rects.menuPopup_HotBk, fadeColor(colors.optionSheet_HotBk, opacity))
             }
 
             var x = band.x + metrics.optionSheet_Inset + metrics.optionSheet_RowPadding
             if levels > 1
             {
                 let chevron = theme.icon(.ChevronLeft, metrics.chevron_Size)
-                chevron.paint(painter, x, opticalTop(.font(), band.vertCenter(), chevron.sizeY), fade(colors.popupItem_SubmenuMarker, opacity))
+                chevron.paint(painter, x, opticalTop(.font(), band.vertCenter(), chevron.sizeY), fadeColor(colors.popupItem_SubmenuMarker, opacity))
                 x += metrics.menuPopup_IconSize + metrics.menuPopup_IconTextMargin * 0.5
             }
 
             var title: RichString
             title.set(page.title)
-            .drawText(painter, {x, band.y, band.right() - x - metrics.optionSheet_RowPadding, band.height}, &title, fade(colors.popupItem_Text, opacity), bold: true)
-            painter.drawLine(band.x, band.bottom() - 0.5, band.right(), band.bottom() - 0.5, Pen.createSolid(fade(colors.menuPopup_Separator, opacity)))
+            .drawText(painter, {x, band.y, band.right() - x - metrics.optionSheet_RowPadding, band.height}, &title, fadeColor(colors.popupItem_Text, opacity), bold: true)
+            painter.drawLine(band.x, band.bottom() - 0.5, band.right(), band.bottom() - 0.5, Pen.createSolid(fadeColor(colors.menuPopup_Separator, opacity)))
         }
 
         // The rows scroll under the header.
@@ -1176,7 +1176,7 @@ private impl View
             text.width  -= 2 * metrics.optionSheet_RowPadding
             text.height -= metrics.optionSheet_Inset
 
-            var format = .textFormat(fade(colors.popupItem_Heading, opacity), .Left)
+            var format = .textFormat(fadeColor(colors.popupItem_Heading, opacity), .Left)
             format.font          = theme.createDefaultFontFamily(metrics.defaultFontSize - 2)
             format.fontStyle     = .Bold
             format.letterSpacing = 0.8
@@ -1186,12 +1186,12 @@ private impl View
 
         if hot
         {
-            theme.drawSubRect(painter, rect, &rects.menuPopup_HotBk, fade(colors.optionSheet_HotBk, opacity))
+            theme.drawSubRect(painter, rect, &rects.menuPopup_HotBk, fadeColor(colors.optionSheet_HotBk, opacity))
         }
 
-        let textColor   = fade(row.disabled ? colors.popupItem_DisabledText : (hot ? colors.popupItem_HotText : colors.popupItem_Text), opacity)
-        let valueColor  = fade(row.disabled ? colors.popupItem_DisabledText : (hot ? colors.popupItem_HotRightText : colors.popupItem_RightText), opacity)
-        let markerColor = fade(row.disabled ? colors.popupItem_DisabledSubmenuMarker : (hot ? colors.popupItem_HotSubmenuMarker : colors.popupItem_SubmenuMarker), opacity)
+        let textColor   = fadeColor(row.disabled ? colors.popupItem_DisabledText : (hot ? colors.popupItem_HotText : colors.popupItem_Text), opacity)
+        let valueColor  = fadeColor(row.disabled ? colors.popupItem_DisabledText : (hot ? colors.popupItem_HotRightText : colors.popupItem_RightText), opacity)
+        let markerColor = fadeColor(row.disabled ? colors.popupItem_DisabledSubmenuMarker : (hot ? colors.popupItem_HotSubmenuMarker : colors.popupItem_SubmenuMarker), opacity)
 
         // The leading column holds the glyph of a link or the check of the value in force, so the
         // wording of every row of a page starts at the same place.
@@ -1208,7 +1208,7 @@ private impl View
         {
             let mark  = Math.Rectangle{leadX, opticalTop(.font(), center, iconSz), iconSz, iconSz}
             let color = row.disabled ? colors.popupItem_DisabledMarker : colors.optionSheet_Marker
-            theme.drawSubRect(painter, mark, &rects.btnCheck_CheckedMark, fade(color, opacity))
+            theme.drawSubRect(painter, mark, &rects.btnCheck_CheckedMark, fadeColor(color, opacity))
         }
 
         // The trailing end says what the row holds and where it leads.
@@ -1247,7 +1247,7 @@ private impl View
         let labelX     = leadX + iconSz + metrics.menuPopup_IconTextMargin
         let labelW     = Math.max(right - metrics.menuPopup_IconTextMargin - labelX, 0)
         var label      = row.label
-        let labelColor = row.kind == .Action and not row.disabled ? fade(colors.url_Text, opacity) : textColor
+        let labelColor = row.kind == .Action and not row.disabled ? fadeColor(colors.url_Text, opacity) : textColor
         if row.detail.isEmpty()
         {
             .drawText(painter, {labelX, rect.y, labelW, rect.height}, &label, labelColor)
@@ -1309,13 +1309,13 @@ private impl View
             mark   = row.checked ? colors.btnToggle_OnMark : colors.btnToggle_OffMark
         }
 
-        theme.drawSubRect(painter, track, &rects.btnToggle_Bk, fade(ground, opacity))
-        theme.drawSubRect(painter, track, &rects.btnToggle_Border, fade(border, opacity))
+        theme.drawSubRect(painter, track, &rects.btnToggle_Bk, fadeColor(ground, opacity))
+        theme.drawSubRect(painter, track, &rects.btnToggle_Border, fadeColor(border, opacity))
         let side = track.height
         var knob = Math.Rectangle{track.x, track.y, side, side}
         if row.checked do
             knob.x = track.right() - side
-        theme.drawSubRect(painter, knob, &rects.btnToggle_Mark, fade(mark, opacity))
+        theme.drawSubRect(painter, knob, &rects.btnToggle_Mark, fadeColor(mark, opacity))
         return track.x
     }
 
@@ -1342,4 +1342,3 @@ private impl View
 }
 
 // Scales the alpha of `color` by `opacity`.
-private func fade(color: Color, opacity: f32)->Color => opacity >= 1 ? color : color.withAlpha(cast(u8, color.a * Math.saturate(opacity)))

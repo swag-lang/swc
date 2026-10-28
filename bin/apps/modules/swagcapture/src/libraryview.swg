@@ -454,7 +454,9 @@ impl IWnd for LibraryView
         var x = clientRect.x
         var y = clientRect.y
 
-        let {w, h} = .getPreviewSize()
+        let {w, h}  = .getPreviewSize()
+        let columns = .numImagesPerLine()
+        var column  = 0'u32
         if g_DirtyList and .takeListRefresh()
         {
             .filter()
@@ -485,10 +487,12 @@ impl IWnd for LibraryView
             // Next cell. The grid advances whether or not this one is painted, so a culled cell
             // leaves the layout and the scroll extent exactly where they were.
             x += w + LibraryCellGap
-            if x + w > clientRect.right()
+            column += 1
+            if column == columns
             {
-                x = clientRect.x
-                y += cellHeight + LibraryRowGap
+                column = 0
+                x      = clientRect.x
+                y      += cellHeight + LibraryRowGap
             }
 
             if not it.visible
@@ -613,24 +617,33 @@ impl LibraryView
         .mainWnd.updateState()
     }
 
+    // Returns how many cells a row of the grid holds: as many as the chosen preview size lets fit.
     mtd const numImagesPerLine()->u32
     {
-        let {w, h: _} = .getPreviewSize()
-        return Math.max(cast(u32, ((.paddedClientRect().width + LibraryCellGap) / (w + LibraryCellGap))), 1)
+        let nominal = .nominalPreviewHeight() * 4.0 / 3.0
+        return Math.max(cast(u32, ((.paddedClientRect().width + LibraryCellGap) / (nominal + LibraryCellGap))), 1)
     }
 
-    // Returns the size of one grid cell. Every preview has the 4:3 frame of a capture thumbnail.
-    mtd const getPreviewSize()->{ w: f32, h: f32 }
+    // Returns the height of a preview at the size the reader chose, before the row widens it.
+    mtd const nominalPreviewHeight()->f32
     {
-        var h: f32 = 128.0
         switch .libWnd.previewSize
         {
-        case .Small:  h = 128
-        case .Medium: h = 256
-        case .Big:    h = 512
+        case .Small:  return 128
+        case .Medium: return 256
+        default:      return 512
         }
+    }
 
-        return {w: h * 4.0 / 3.0, h: h}
+    // Returns the size of one grid cell. The cells of a row fill the width of the page, so the
+    // last one ends on its edge, in line with the search and the chips above; every preview keeps
+    // the 4:3 frame of a capture thumbnail.
+    mtd const getPreviewSize()->{ w: f32, h: f32 }
+    {
+        let columns = cast(f32, .numImagesPerLine())
+        let width   = .paddedClientRect().width
+        let w       = Math.max(Math.floor((width - (columns - 1) * LibraryCellGap) / columns), 1)
+        return {w: w, h: Math.round(w * 3.0 / 4.0)}
     }
 
     // Gives the library item of `capture` its new preview.

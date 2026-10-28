@@ -5,6 +5,7 @@ const LibraryTitleSize  = 48'u32   // Size of the page title.
 const LibraryTitleRow   = 72.0     // Height of the row of the title, the menus and the search.
 const LibraryTabsRow    = 40.0     // Height of the row of the folder tabs and the tag chips.
 const LibraryHeaderGap  = 24.0     // Air between the header and the first row of captures.
+const LibraryTopGap     = 16.0     // Air between the strip and the title.
 const LibrarySearchWidth = 280.0   // Width of the search field.
 const LibraryMaxChips   = 6        // Tags offered as chips; the filter sheet offers every tag.
 
@@ -15,11 +16,16 @@ impl LibraryWnd
     {
         let metrics = .themeMetrics()
         let theme   = .theme()
-        with .header = Wnd.create'Wnd(me, {0, 0, 0, LibraryTitleRow + LibraryTabsRow + LibraryHeaderGap})
+        // The header stands on the page's edges; the grid under it reaches the ring's width past
+        // them, so the thumbnails, not their rings, line up with the title.
+        with .header = Wnd.create'Wnd(me, {0, 0, 0, LibraryTopGap + LibraryTitleRow + LibraryTabsRow + LibraryHeaderGap})
         {
             .dockStyle       = .Top
             .backgroundStyle = .Transparent
+            .padding.y       = LibraryTopGap
             .padding.w       = LibraryHeaderGap
+            .margin.x        = LibraryCellRing
+            .margin.z        = LibraryCellRing
         }
 
         with let titleRow = Wnd.create'Wnd(.header, {0, 0, 0, LibraryTitleRow})
@@ -56,18 +62,24 @@ impl LibraryWnd
             .backgroundStyle = .Transparent
         }
 
+        // The chips stand centred on the line of the tabs: the row keeps the same air above and
+        // under them, or they stretch down to its foot.
+        let chipHeight = metrics.quiet_Height - 4
         with .tagChips = StackLayoutCtrl.create(tabsRow, .Left, {})
         {
             .dockStyle    = .Right
             .fitToContent = true
             .spacing      = metrics.iconBar_ButtonGap
-            .padding.y    = Math.round((LibraryTabsRow - metrics.editBox_Height) * 0.5)
+            .padding.y    = Math.round((LibraryTabsRow - chipHeight) * 0.5)
+            .padding.w    = .padding.y
         }
 
+        // The folders are words on the page, with no rule under them: the underline of the one
+        // open is the only line of the row.
         with .folderTabs = Tab.create(tabsRow, {})
         {
+            .setForms(.Transparent, .Flat, .None)
             .dockStyle = .Center
-            .setLayout(.Content)
             .sigSelectionChanged += func|libWnd = me|(_) { libWnd.openFolderTab() }
         }
 
@@ -98,28 +110,24 @@ impl LibraryWnd
     // One quiet menu of the title row: its word and the arrow that says a menu opens.
     mtd createMenuButton(parent: *Wnd, text: string)->*IconButton
     {
-        with let button = IconButton.create(parent, {}, Math.Rectangle{0, 0, 0, .themeMetrics().editBox_Height})
-        {
-            .preferredSize.x = 0
-            .setText(text)
-            .updateFlags(.CenterContent | .Flat)
-            .setTextPosition(.Right)
-            .setArrowPosition(.RightDownward)
-        }
-
+        let button = IconButton.createQuiet(parent)
+        button.setQuietText(text)
         return button
     }
 
     // The quiet menus of the page: how it is shown, what it filters, which folder it reads.
     mtd createCommandBar(parent: *Wnd)
     {
+        // The menus stand centred on the line of the title, as the search does: the same air above
+        // and under them, or they stretch to the foot of the row and their words sink.
         let metrics = .themeMetrics()
+        let air     = Math.round((LibraryTitleRow - metrics.quiet_Height) * 0.5)
         with .commandBar = StackLayoutCtrl.create(parent, .Left, {})
         {
             .dockStyle       = .Right
             .fitToContent    = true
             .spacing         = LibButtonGap
-            .padding         = {0, Math.round((LibraryTitleRow - metrics.editBox_Height) * 0.5), LibButtonGap, 0}
+            .padding         = {0, air, LibButtonGap, air}
             .backgroundStyle = .Transparent
         }
 
@@ -231,14 +239,16 @@ impl LibraryWnd
                 break
 
             let name = tag.name.toString()
-            with let chip = IconButton.create(.tagChips, {}, {0, 0, 0, metrics.editBox_Height}, flags: .Toggle)
+            // A chip is a tag in mono on the raised ground; the one in force takes the Arc ground.
+            with let chip = IconButton.create(.tagChips, {}, {0, 0, 0, metrics.quiet_Height - 4}, flags: .Toggle)
             {
                 .preferredSize.x = 0
                 .setText(name)
                 .style.setFont(me.theme().res.fontDefaultFs)
+                .style.addStyleSheetColors("btnIcon_Bk $raised")
                 .updateFlags(.CenterContent)
                 .setForm(.RoundedRectangle)
-                .setCheckIndicator(.Frame)
+                .setCheckIndicator(.Full)
                 .setChecked(Utf8.compare(tag.name.toSlice(), me.tagFilter, .Latin1NoCase) == 0)
                 .sigPressed += func|libWnd = me, name|(_)
                 {

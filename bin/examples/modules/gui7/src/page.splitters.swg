@@ -1,12 +1,11 @@
 using Core, Gui, Pixel
 
-func createSplitterPane(parent: *Wnd, title, text: string)->*FrameWnd
+func createSplitterPane(parent: *Wnd, title, text: string)->*Wnd
 {
     let pane  = createPane(parent, title, text)
-    let view  = pane.view
-    let focus = createChip(view, "Focus", .Search)
+    let focus = createChip(pane, "Focus", .Search)
     focus.setPosition({12, 96, 94, 30})
-    let pin = createChip(view, "Pin", .Link)
+    let pin = createChip(pane, "Pin", .Link)
     pin.setPosition({112, 96, 82, 30})
     return pane
 }
@@ -16,13 +15,13 @@ func createSplitterPage(parent: *Wnd)
     let layout = getPageLayout(parent)
     let page   = createPanel(parent,
                              "Nested splitters",
-                             "Drag the vertical and horizontal bars; side panes keep useful minimum sizes while the editor area absorbs most resize changes.",
+                             "Drag the bars: the side panes keep their minimum sizes while the middle takes most of a resize.",
                              layout.full)
 
-    let splitRect = Math.Rectangle{18, 90, layout.full.width - 36, layout.full.height - 112}
+    let splitRect = Math.Rectangle{SectionInset, 88, layout.full.width - 2 * SectionInset, layout.full.height - 88}
     let rootSplit = SplitterCtrl.create(page, splitRect)
 
-    let nav     = createSplitterPane(rootSplit, "Navigator", "Preserved side pane. min 170, max 280.")
+    let nav     = createSplitterPane(rootSplit, "Navigator", "Keeps its width, between 170 and 280.")
     let navItem = rootSplit.addPane(nav, 230)
     navItem.minimumSize  = 170
     navItem.maximumSize  = 280

@@ -7,20 +7,6 @@ dialogs, then each application, then the written rules.
 
 ## Entries
 
-### design.silence.002 — Scroll bars are always visible
-
-- Evidence: `ScrollWnd` bars are thin (`scrollBar_NormalSize` 10, a 6 px thumb) but are drawn
-  whenever the content overflows, and they take their width from the view (`paddingZ`,
-  `paddingW` in `ScrollWnd.computeLayout`). Fading them needs two things the control does not
-  have: the bar must overlay the view instead of narrowing it, and `ScrollWnd` must learn that the
-  pointer is over its content, which only its view's children receive (`Enter`/`Leave` reach the
-  deepest window). Every list, tree, document and application golden that shows a thumb moves.
-- Next: lay the bars over the view in `ScrollWnd.computeLayout`, track pointer presence through a
-  hook on the view, and drive the thumb alpha with the animator — shown on a scroll or a hover,
-  faded after a short idle.
-- Done when: the charter wall and a scrolled list golden show no thumb at rest and one under the
-  pointer, in both themes.
-
 ### design.silence.004 — The applications do not use the shared components
 
 - Evidence: the toolkit has the lens (`Gui.Lens.View`), the information sheet (`Gui.InfoSheet`),
@@ -29,8 +15,8 @@ dialogs, then each application, then the written rules.
   `Gui.SectionLabel` and a floating surface for any other content (`Gui.FloatingPanel`), with
   `floating.test.swg`, `lens.test.swg` and their goldens, and `AppearanceButton.addToLens`; a
   hidden caption button keeps working and takes no room in the caption. Swag Capture, Swag Scope,
-  Swag Prism and Swag Vault compose them (their remaining work is design.silence.008,
-  design.silence.007, design.silence.009 and design.silence.010). No component owns the quiet text
+  Swag Prism and Swag Vault compose them (the remaining work of the first two is
+  design.silence.008 and design.silence.007). No component owns the quiet text
   menu of a header (a word and a faint chevron opening a menu, as the pictures put above a column
   or a page): Swag Scope's explorer, Swag Capture's library and Swag Prism's column headers each
   configure an `IconButton` for it and fit it to its words themselves (`createQuietMenu` in each),
@@ -41,7 +27,7 @@ dialogs, then each application, then the written rules.
   to the inspector, and let the work reach into the strip where its picture shows it.
 - Done when: the four applications use the components, every command is a lens entry, and no
   application re-implements one or insets its whole root under the strip.
-- Related: design.silence.007, design.silence.008, design.silence.009, design.silence.010
+- Related: design.silence.007, design.silence.008
 
 ### design.silence.005 — The property grid control still lacks search marks and the layout menu
 
@@ -49,19 +35,18 @@ dialogs, then each application, then the written rules.
   goldens: Arc dot after a changed name, faint revert glyph, padlock of a read-only value, section
   labels in faint spaced capitals with a faint chevron and, in Panel, a hairline; Condensed rows of
   26 with a hairline; validation as a dot and a line in the tone; notes as the Arc notice).
-  `PropertiesCtrl` does not: search marks no matched characters and shows no result count, the
-  section list shows no counts, and the `•••` menu offers no Presentation choice, because
+  A search marks the matched characters of a name on the highlight ground and counts the found
+  fields in the search field. `PropertiesCtrl` does not show counts in the section list, and the `•••` menu offers no Presentation choice, because
   `Properties.kind` is fixed at creation. In Panel the self-labelled editors carry no changed-value
   dot, a Condensed warning shows its line instead of a caution mark in the left margin, and the
   Panel golden shows `Opacity` at 0 while the data holds 0.4 (it did before this restyle too).
 - Next: let `Properties` switch kind by rebuilding its rows, put List, Grid, Condensed and Panel
-  under a Presentation section of the joined `•••` menu with `✓` in Arc, mark matched characters
-  with the highlight colour and count results in the search field and the section list; then fix
+  under a Presentation section of the joined `•••` menu with `✓` in Arc, count results in the
+  section list; then fix
   the Panel slider refresh. The Panel and Grid rows of the charter also show a slider's value as a
   mono reading with no box: Swag Capture's inspector sets the value face itself
   (`PropWnd.fitFieldLabelColumn`).
 - Done when: `gui.properties.ctrl.paper` is reproduced by a `properties.ctrl.{ink,paper}` golden.
-- Related: design.silence.002
 
 ### design.silence.006 — The file box modes and details of its rows are not built
 
@@ -70,10 +55,10 @@ dialogs, then each application, then the written rules.
   `dialogs.file.modes.{paper,ink}.png`: folder choice shows no chosen path and names nothing in
   its primary action, a save writes the extension into the name field, multiple choice has no
   checkboxes nor count, the new-folder form says nothing of where the folder goes, and the
-  replace question is not destructive. The rows still use the body face for dates and sizes,
-  mark no matched characters, and the name column does not take the room.
-- Next: build each mode against its picture; give `ListItem` a mono face, let a row carry the
-  matched ranges of `Lens.match`, and let the first column of a `ListCtrl` stretch.
+  replace question is not destructive. The rows already set dates and sizes in mono
+  (`ListItem.mono`), mark the typed words (`ListItem.matchStart`, `matchCount`), and give the name
+  column the room the others leave (`ListFlags.StretchFirstColumn`).
+- Next: build each mode against its picture.
 - Done when: a golden per mode matches `dialogs.file.modes.{paper,ink}.png`.
 
 ### design.silence.007 — Swag Scope viewers keep their pre-charter shapes
@@ -111,7 +96,7 @@ dialogs, then each application, then the written rules.
   the floating bar into the document where the picture puts it. Switch the explorer's private quiet
   menus to `IconButton.createQuiet` once it lands.
 - Done when: every Scope golden matches its picture.
-- Related: design.silence.004, design.silence.002
+- Related: design.silence.004
 
 ### design.silence.008 — Swag Capture's editing does not yet match its pictures
 
@@ -128,49 +113,14 @@ dialogs, then each application, then the written rules.
 - Next: let the field typing a callout follow its alignment; give the lens a row of thumbnails
   for the recent captures; then the remaining items above.
 - Done when: each `capture.*` picture is reproduced by its golden.
-- Related: design.silence.002, design.silence.004, design.silence.005
+- Related: design.silence.004, design.silence.005
 
-### design.silence.009 — Swag Prism's render view lacks the caret reading and the framed picture
+### design.silence.011 — The window scripts were not reviewed against the charter
 
-- Evidence: Prism is two columns with quiet menus, the stage frieze with the change marked, the
-  comparison with counts, gain and loop, and the render view with its live-edit switch; every
-  command is a lens entry and the readings are in the sheet (`surface.{columns,stages,compare,
-  render,lens}` goldens in Encre and Papier, `surface.gui`). What `prism.render` shows and the window
-  does not: the caret's place (`Ln 9, Col 41`) at the foot of the source once the hint line has
-  stopped teaching the lens — `RichEditCtrl` publishes no signal when the caret moves — and the
-  picture drawn on the control corner. The source column shows a horizontal scroll bar for a line
-  that only reaches the editor's caret allowance (design.silence.002).
-- Next: give `RichEditCtrl` a caret signal and read it on the hint line; clip the frame of
-  `PreviewCanvas` to the control corner.
-- Done when: `surface.render` reproduces `prism.render`.
-- Related: design.silence.004
-
-### design.silence.010 — Swag Vault still differs from its pictures in four details
-
-- Evidence: the window is the list of vaults (name, mono identity line, live dot or ring, the
-  mounted row on the surface ground with Open and Unmount), the chosen locked vault unfolds in
-  place as a floating card (password, drive, key files, read only, Mount), create, progress and
-  privacy are pages with a back link, every command is a lens entry and privacy mode keeps the
-  list to what is mounted or being unlocked (`list`, `unlock`, `create`, `progress`, `options`
-  goldens in Encre and Papier). What the pictures show and the window does not: the create page
-  has no free-space reading ("212 GiB free on C:") because `Core` has no volume free-space query
-  (no `GetDiskFreeSpaceExW` binding in `win32`); the inactivity delay is a quiet menu under its
-  paragraph, not a word inside the sentence; unfolding a vault fades the card in and moves the
-  rows below at once instead of opening the card's height over `motion_PanelSeconds`; a protected
-  startup vault asks for its access in a box rather than unfolding in the list.
-- Next: add a free-space query to `Core.File` with its `win32` binding and show it beside the
-  capacity; animate the card's height with the rows following it.
-- Done when: the Vault goldens match the Vault pictures in those four points.
-- Related: design.silence.004, design.silence.002, design.silence.016
-
-### design.silence.011 — Examples and other consumers use removed APIs
-
-- Evidence: `gui2` to `gui9` and `gui11` lay out their header from the top edge of a view that now
-  reaches under the floating strip, so their first line meets the window glyph and title; `gui10`
-  reads `Wnd.stripInset()` and shows the components on its Components page.
-- Next: move every `bin/examples` program and other consumer to the two themes and the new
-  components, and inset their headers by `Wnd.stripInset()`.
-- Done when: the examples build and smoke clean in both themes.
+- Evidence: the example scripts that open windows (`chess.swgs`, `noise.swgs`) were not reviewed
+  against the charter.
+- Next: review the two scripts on their pictures, in both themes.
+- Done when: the window scripts build and smoke clean in both themes.
 
 ### design.silence.012 — The skills still describe the old identity
 
@@ -185,25 +135,3 @@ dialogs, then each application, then the written rules.
   dialog actions, tabs, command tooltips) to the title-style capitalization of the charter,
   leaving sentences and French translations alone.
 - Done when: a search of the English reference tables finds no command label in sentence case.
-
-### design.silence.015 — A dismissed notice leaves in one frame
-
-- Evidence: notices open their height and then fade their words in, and the inspector arrives
-  from its edge when it unfolds, but `InfoBar.dismiss` destroys the bar at once, so the content
-  under it jumps up by its height.
-- Next: fade the words out over `motion_LeaveSeconds`, close the height over
-  `motion_PanelSeconds`, then destroy; callers already learn of the dismissal through
-  `sigDismissed`, before any of it.
-- Done when: no shared component changes its place or presence in one frame on a user action.
-- Related: design.silence.002
-
-### design.silence.016 — The toolkit has no light or semibold face
-
-- Evidence: `Pixel.FontFamilyStyle` offers Regular, Bold, Italic and BoldItalic, so the charter's
-  large light facts (Inter 200–300: Vault's percentage and capacity, the sheet's figures, Prism's
-  instruction counts) are set in the regular weight, and its 600 weights (a vault's name, section
-  labels) in bold.
-- Next: ship Inter Light and SemiBold with the theme fonts, add the two styles to `FontFamily`,
-  and let `Theme.createDefaultFont` take them; then set the facts light and the names semibold.
-- Done when: `vault.progress` and the sheet golden show their figures in the light weight.
-- Related: design.silence.010

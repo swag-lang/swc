@@ -1,7 +1,6 @@
 using Core
 
-// Each pixel is computed by native Swag code, 640 x 400.
-// Change the waves or the palette and watch the result.
+// Each pixel is computed by native Swag code.
 func shade(x, y, time: f32)->u32
 {
     let radius = Math.sqrt(x * x + y * y)

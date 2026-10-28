@@ -1,5 +1,5 @@
-// Shared drawing of the floating components of the charter: the ground they stand on, the
-// section labels that group what they hold, and the keycaps that teach a key.
+// Shared drawing of the floating components of the charter: the ground they stand on and the
+// keycaps that teach a key. Their section labels are [[Gui.SectionLabel.paint]].
 
 using Core, Pixel
 
@@ -38,22 +38,6 @@ internal func paintFloatingGround(wnd: *Wnd, painter: *Painter, body: Math.Recta
     painter.setParams(.Antialiased)
     painter.fillRoundRect(body, radius, radius, colors.surface)
     painter.drawRoundRect(body, radius, radius, colors.line, metrics.separator_HairlineSize)
-}
-
-// Draws a section label: small spaced capitals in the faint ink, from the left of `rect` and
-// centred on its height.
-internal func paintSectionLabel(wnd: *Wnd, painter: *Painter, rect: Math.Rectangle, label: string)
-{
-    let metrics = wnd.themeMetrics()
-    let font    = wnd.theme().createDefaultFont(metrics.sectionLabel_FontSize, .Bold)
-    let text    = String.toUpper(label, .Unicode)
-
-    // The tracking belongs to the shaped run: a rich-text layout with letter spacing drops the
-    // spaces between words (see std.pixel.033).
-    var shaped = Painter.shapeRun(text, font, letterSpacing: metrics.sectionLabel_LetterSpacing)
-    painter.pushClippingRect(rect)
-    painter.drawShapedRun(rect.x, font.opticalLineTop(rect.vertCenter()), &shaped, font, Brush.createSolid(wnd.themeColors().faintText))
-    painter.popClippingRect()
 }
 
 // Returns the face a keycap names its key in.

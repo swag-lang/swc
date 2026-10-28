@@ -30,12 +30,16 @@ impl MainWindow
         catch g_App.saveState()
     }
 
-    // Mounts the next container marked for startup, asking for its transient access when needed.
+    // Mounts the next container marked for startup; a protected one unfolds in the list for its
+    // access instead.
     //
     // One at a time: a mount is a job, and the operation that finishes is what calls this
-    // again, so the drives come up in order instead of all at once on one worker.
+    // again, so the drives come up in order instead of all at once on one worker. An unfolded
+    // vault holds the queue until it is mounted, or until the reader leaves it, which skips it. A
+    // protected vault never takes the list from a reader who has chosen another one: it is skipped.
     mtd pumpStartupQueue()
     {
+        .startupWaiting.clear()
         while .startupQueue.count
         {
             let entry = .startupQueue[0]
@@ -44,10 +48,15 @@ impl MainWindow
             if entry.drive.isEmpty() or not File.exists(entry.path) or .isMounted(entry.path) do
                 continue
 
-            .operation.access.clear()
-            if entry.needsPassword and not .askStartupAccess(entry.path) do
-                continue
+            if entry.needsPassword
+            {
+                if not .chosenPath.isEmpty() do
+                    continue
+                .unfoldStartupVault(entry)
+                return
+            }
 
+            .operation.access.clear()
             .operation.protectHidden = entry.protectHidden and not entry.readOnly
             .operation.hiddenAccess.clear()
             if .operation.protectHidden and not .askHiddenProtection()
@@ -62,30 +71,27 @@ impl MainWindow
         }
     }
 
-    // Asks for the password and key files of one protected startup container.
+    // Unfolds one protected startup vault in the list, on the drive, the read-only choice and the
+    // hidden protection it was marked with, and waits for its access.
     //
-    // Skipping is an answer: a vault whose access material is not at hand simply does not come up,
-    // and the mark it carries is left alone for the next start.
-    mtd askStartupAccess(path: string)->bool
+    // Leaving it is an answer: a vault whose access material is not at hand simply does not come
+    // up, and the mark it carries is left alone for the next start.
+    mtd unfoldStartupVault(entry: StartupVault)
     {
-        let title = Format.toString(appStrings().dlg_TitleUnlock, Path.fileName(path) orelse path)
+        .openVault(entry.path)
+        .readOnly.setState(entry.readOnly ? .Checked : .Unchecked)
+        discard .selectMountPoint(entry.drive)
+        .protectHiddenOnMount = entry.protectHidden and not entry.readOnly
+        .startupWaiting       = entry.path
+        .refreshVaults()
+    }
 
-        with var options: FormDlgOptions
-        {
-            .title = title
-            .confirmButtonText = appStrings().ui_Mount
-            .cancelButtonText  = appStrings().dlg_BtnSkip
-        }
-
-        let dialog   = FormDlg.create(unwrap .surface, options)
-        let password = dialog.form.addPasswordField(appStrings().ui_Password, placeholder: appStrings().ui_ContainerPassword, help: path)
-        let keyFiles = KeyFileField.create(dialog.form)
-        discard dialog.form.addField(appStrings().ui_KeyFiles, keyFiles, help: appStrings().ui_KeyFilesHelp)
-        VaultForm.finish(dialog.form)
-        if dialog.doModal() != Dialog.BtnOk do
-            return false
-
-        .operation.access.setInputs(password.bytes(), keyFiles.paths.toSlice())
-        return true
+    // Goes on with the startup queue once the reader has left the startup vault unfolded for its
+    // access without mounting it.
+    mtd skipStartupVault()
+    {
+        if .startupWaiting.isEmpty() or .chosenPath == .startupWaiting or .operation.kind != .None do
+            return
+        .pumpStartupQueue()
     }
 }

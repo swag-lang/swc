@@ -28,19 +28,39 @@ impl IWnd for SectionLabel
 {
     mtd impl onPaint(evt: *PaintEvent)
     {
-        paintSectionLabel(me, evt.paintContext.painter, .clientRect(), .text)
+        SectionLabel.paint(me, evt.paintContext.painter, .clientRect(), .text)
     }
 }
 
 impl SectionLabel
 {
+    // Draws `label` as a section label in `rect`, in the local coordinates of `wnd`: small spaced
+    // semibold capitals in the faint ink, from the left of `rect` and centred on its height.
+    //
+    // A surface that paints its own groups — a table whose families open with a label, a panel
+    // with a title — calls this rather than shaping the capitals itself, so its labels read like
+    // the ones the components draw.
+    func paint(wnd: *Wnd, painter: *Painter, rect: Math.Rectangle, label: string)
+    {
+        let metrics = wnd.themeMetrics()
+        let font    = wnd.theme().createDefaultFont(metrics.sectionLabel_FontSize, .SemiBold)
+        let text    = String.toUpper(label, .Unicode)
+
+        // The tracking belongs to the shaped run: a rich-text layout with letter spacing drops the
+        // spaces between words (see std.pixel.033).
+        var shaped = Painter.shapeRun(text, font, letterSpacing: metrics.sectionLabel_LetterSpacing)
+        painter.pushClippingRect(rect)
+        painter.drawShapedRun(rect.x, font.opticalLineTop(rect.vertCenter()), &shaped, font, Brush.createSolid(wnd.themeColors().faintText))
+        painter.popClippingRect()
+    }
+
     // Creates a section label naming `text` in `parent`.
     #[Swag.Discardable]
     func create(parent: *Wnd, text: string, position: Math.Rectangle = {}, id: WndId? = null)->*SectionLabel
     {
         with let result = Wnd.create'SectionLabel(parent, null, position, id)
         {
-            .text            = text
+            .text = text
             .backgroundStyle = .Transparent
         }
 

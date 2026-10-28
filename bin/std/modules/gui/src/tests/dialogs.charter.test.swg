@@ -199,3 +199,25 @@ func assertDialogCharter(dlg: *Dialog)
     Swag.assert(Math.abs(list.position.x - row.position.x) < 0.5)
     Swag.assert(Math.abs(list.position.right() - row.position.right()) < 0.5)
 }
+
+// The file box's two questions open on their own: Replace answers its destructive action, and New
+// Folder returns the name the reader gave, without creating anything.
+#test
+{
+    var host: Testing.HeadlessHost
+    host.setup(900, 600)
+
+    let folder = Path.combine(Env.getSpecialDirectory(.Temp).toString(), Format.toString("swag_gui_questions_%", Guid64.random().toString()))
+    expect Directory.create(folder.toString(), recurse: true)
+    defer discard catch Directory.delete(folder.toString(), recurse: true)
+
+    host.clickModalButtonWhenShown(Dialog.BtnYes)
+    Swag.assert(FileDlg.askReplace(&host.surface, Path.combine(folder.toString(), "capture.png").toString()))
+    Swag.assert(host.autoHandled)
+
+    host.clickModalButtonWhenShown(Dialog.BtnOk)
+    let name = FileDlg.askNewFolderName(&host.surface, folder.toString(), "Temp")
+    Swag.assert(host.autoHandled and name == strings().fileDlg_NewFolderDefault)
+    Swag.assert(not Directory.exists(Path.combine(folder.toString(), name.toString()).toString()))
+    host.pump()
+}

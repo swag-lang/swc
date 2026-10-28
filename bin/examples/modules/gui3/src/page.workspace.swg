@@ -4,14 +4,12 @@ func createWorkspacePage(parent: *Wnd)
 {
     let panel = createPanel(parent,
                             "Workspace composition",
-                            "A fuller gui3-only composition: one code pane, one note pane and one read-only preview pane.",
+                            "One code pane, one note pane and one read-only preview, parted by splitter bars alone.",
                             getFullPageRect(parent))
-    let rect = panel.clientRect()
 
-    // This page keeps only the enclosing panel and the splitter bars: every
-    // richedit/splitter frame border is removed so the panes read as a single
-    // continuous composition.
-    let split = SplitterCtrl.create(panel, Math.Rectangle{18, 88, rect.width - 36, rect.height - 106}, vertical: false)
+    // Only the splitter bars part the panes: every editor and splitter frame is removed, so the
+    // panes read as one composition rather than three boxes.
+    let split = SplitterCtrl.create(panel, editorRect(panel), vertical: false)
     split.setFrameFlags(.None, .Borders | .FocusBorder)
 
     let code = createCodeEditor(split,

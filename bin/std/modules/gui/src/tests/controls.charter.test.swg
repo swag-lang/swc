@@ -103,14 +103,30 @@ func buildCharterWall(host: *Testing.HeadlessHost)
         .setSelectedIndex(0)
     }
 
-    // A list under its header, its first row selected.
+    // A list under its header, its first row selected: the names, then the measures in faint
+    // mono.
     with let list = ListCtrl.createMultiColumns(root, {Left, 344, 400, 140})
     {
-        .addColumn("Name", 240)
-        .addColumn("Modified", 140)
-        .createLine("AGENTS.md").setItem(1, "26/10")
-        .createLine("README.md").setItem(1, "20/10")
-        .createLine("backlog").setItem(1, "28/10")
+        .addColumn("Name", 210)
+        .addColumn("Modified", 80)
+        .addColumn("Size", 80, align: .Right)
+        let faint = root.themeColors().faintText
+        let names = ["AGENTS.md", "README.md", "design.silence.md"]
+        let dates = ["26/10", "20/10", "28/10"]
+        let sizes = ["4.1 KB", "7.9 KB", "12 KB"]
+        for index in 0 until 3
+        {
+            let line = .createLine(names[index])
+            let date = line.setItem(1, dates[index])
+            date.mono    = true
+            date.colorFg = faint
+
+            let size = line.setItem(2, sizes[index])
+            size.mono      = true
+            size.colorFg   = faint
+            size.horzAlign = .Right
+        }
+
         .selectLine(0)
     }
 

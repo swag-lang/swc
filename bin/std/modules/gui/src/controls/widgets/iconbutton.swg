@@ -22,6 +22,7 @@ enum IconButtonFlags
     IconOnly          // Hides the label while preserving the icon and arrow.
     Flat              // Omits all background and checked-state fills.
     Overlay           // Paints translucent interaction feedback over the content.
+    Underline         // Draws a faint rule under the words and the arrow, as a choice set inside a sentence.
 }
 
 // Selects arrow placement and direction around icon button content.
@@ -334,10 +335,17 @@ impl IWnd for IconButton
             // selection ground inside a faint Arc ring, which keeps the cell an object on any ground.
             switch .checkIndicator
             {
-            case .Bottom: theme.drawSubRect(bc.painter, clientRect, &rects.btnIcon_CheckedBottom, bc.isDisabled ? colors.btnIcon_CheckedDisabledMark : colors.btnIcon_CheckedRule)
-            case .Top:    theme.drawSubRect(bc.painter, clientRect, &rects.btnIcon_CheckedTop, bc.isDisabled ? colors.btnIcon_CheckedDisabledMark : colors.btnIcon_CheckedRule)
-            case .Left:   theme.drawSubRect(bc.painter, clientRect, &rects.btnIcon_CheckedLeft, bc.isDisabled ? colors.btnIcon_CheckedDisabledMark : colors.btnIcon_CheckedRule)
-            case .Right:  theme.drawSubRect(bc.painter, clientRect, &rects.btnIcon_CheckedRight, bc.isDisabled ? colors.btnIcon_CheckedDisabledMark : colors.btnIcon_CheckedRule)
+            case .Bottom:
+                theme.drawSubRect(bc.painter, clientRect, &rects.btnIcon_CheckedBottom, bc.isDisabled ? colors.btnIcon_CheckedDisabledMark : colors.btnIcon_CheckedRule)
+
+            case .Top:
+                theme.drawSubRect(bc.painter, clientRect, &rects.btnIcon_CheckedTop, bc.isDisabled ? colors.btnIcon_CheckedDisabledMark : colors.btnIcon_CheckedRule)
+
+            case .Left:
+                theme.drawSubRect(bc.painter, clientRect, &rects.btnIcon_CheckedLeft, bc.isDisabled ? colors.btnIcon_CheckedDisabledMark : colors.btnIcon_CheckedRule)
+
+            case .Right:
+                theme.drawSubRect(bc.painter, clientRect, &rects.btnIcon_CheckedRight, bc.isDisabled ? colors.btnIcon_CheckedDisabledMark : colors.btnIcon_CheckedRule)
 
             case .Full:
                 switch .form
@@ -408,6 +416,16 @@ impl IWnd for IconButton
             pos.y      = pos.vertCenter() - nh * 0.5
             pos.width  = nw
             pos.height = nh
+        }
+
+        // A choice set inside a sentence is told from the words around it by a faint rule under
+        // its own words and chevron, where the face puts an underline.
+        if .flags.has(.Underline) and not .name.isEmpty()
+        {
+            let fontR    = nnFont(.font().regular)
+            let baseline = pos.vertCenter() - fontR.height * 0.5 + fontR.ascent
+            let size     = bc.painter.hairline(Math.max(1, Math.floor(fontR.underlineSize)))
+            bc.painter.fillRect(Math.Rectangle{pos.x, Math.round(baseline - fontR.underlinePos), pos.width, size}, colors.faintText)
         }
 
         // Arrow. It is a chevron of the theme icon set — the same glyph a combo box, a submenu and
@@ -500,8 +518,11 @@ impl IWnd for IconButton
                     icon.sizeY = pos.width
                 }
 
+                // The spacing separates the label from a glyph; a centered label with no glyph
+                // starts where its group does, so its words stand on the edge they are aligned to.
                 var posText = pos
-                posText.moveLeft(icon.sizeX + metrics.btnIcon_SpacingTextH)
+                if icon.sizeX > 0 do
+                    posText.moveLeft(icon.sizeX + metrics.btnIcon_SpacingTextH)
                 bc.painter.drawRichString(posText, &.name, sf)
                 pos.width = icon.sizeX
 
@@ -822,10 +843,11 @@ impl IconButton
     func createQuiet(parent: *Wnd, id: WndId? = null, menu = true, heading = false)->*IconButton
     {
         Swag.assert(parent != null)
-        let metrics = parent.themeMetrics()
+        let metrics     = parent.themeMetrics()
         with let result = IconButton.create(parent, {}, Math.Rectangle{0, 0, 0, metrics.quiet_Height}, id, flags: .CenterContent)
         {
             .setForm(.RoundedRectangle)
+            .setTextPosition(.Right)
             if menu do
                 .setArrowPosition(.RightDownward)
             if heading
@@ -841,12 +863,11 @@ impl IconButton
     // Writes `text` on a quiet control and fits the control to its words, and its chevron when it opens a menu.
     mtd setQuietText(text: string)
     {
+        // The chevron follows the words at the arrow spacing, as the control measures itself: a
+        // chevron set at the far end of a drop-down's arrow cell reads as a separate control.
         .setText(text)
-        let metrics = .themeMetrics()
-        var width   = Painter.measureString(text, unwrap .font().regular).width + 2 * metrics.btnIcon_SpacingTextH
-        if .arrowPosition != .None do
-            width += themeDropDownButtonWidth(metrics) - themeActionButtonSize(metrics)
-        .resize(Math.ceil(width), .position.height)
+        let content = .itf.measureContent({})
+        .resize(Math.ceil(content.x), .position.height)
     }
 
     // Changes the checked state of a radio or toggle button without emitting a signal or command.

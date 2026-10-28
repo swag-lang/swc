@@ -3,7 +3,8 @@ using Core, Gui, Pixel
 // The page that makes a new vault: a calm form under its title, the capacity set large.
 //
 // It asks where the container goes, how much it holds, and the password that opens it, the two
-// passwords side by side because they are one answer given twice. Key files are chosen in a box of
+// passwords side by side because they are one answer given twice. The room left on the volume the
+// container goes on reads at the end of the capacity's line. Key files are chosen in a box of
 // their own, so the form keeps to what every vault needs. The primary action ends the page, beside
 // the quiet way back.
 struct CreatePage
@@ -17,6 +18,7 @@ struct CreatePage
         form:         *FormLayoutCtrl
         path:         *EditBox
         browse:       *PushButton
+        capacity:     *StackLayoutCtrl
         size:         *EditBox
         unit:         *Tab
         passwordForm: *FormLayoutCtrl
@@ -29,7 +31,8 @@ struct CreatePage
         createAction: *PushButton
     }
 
-    head: PageHead
+    head:      PageHead
+    freeSpace: String     // Room left on the volume of the location, as the page writes it; empty when unknown.
 }
 
 // Rows of the form, in the order `CreatePage.create` adds them.
@@ -87,8 +90,16 @@ impl CreatePage
         {
             .updateFlags(.AcceptFileDrop)
             setMachineFont(me.path)
-            .sigTextChanged += func|window = me.window|(_) { window.refreshActions() }
-            .sigSubmitted   += func|window = me.window|(_) { window.submitCreate() }
+            .sigTextChanged += func|page = me|(_)
+            {
+                page.refreshFreeSpace()
+                page.window.refreshActions()
+            }
+
+            .sigSubmitted += func|window = me.window|(_)
+            {
+                window.submitCreate()
+            }
         }
 
         with .browse = .form.addRowAction(texts.ui_Browse)
@@ -98,32 +109,31 @@ impl CreatePage
 
         // The capacity is the one figure the reader decides here, so it is set large, with its
         // unit beside it as two words to choose between.
-        with let capacity = StackLayoutCtrl.create(.form, .Left, Math.Rectangle{0, 0, 0, SizeHeight})
+        with .capacity = StackLayoutCtrl.create(.form, .Left, Math.Rectangle{0, 0, 0, SizeHeight})
         {
             .backgroundStyle = .Transparent
             .spacing         = PairSpacing
         }
 
-        with .size = EditBox.create(capacity, "256", Math.Rectangle{0, 0, SizeWidth, SizeHeight})
+        with .size = EditBox.create(.capacity, "256", Math.Rectangle{0, 0, SizeWidth, SizeHeight})
         {
             .setUnsignedIntegerRange(1, 1024 * 1024)
-            .style.setFont(me.theme().createDefaultFont(SizeFontSize), .Regular)
+            .style.setFont(me.theme().createDefaultFont(SizeFontSize, .Light), .Regular)
             .sigTextChanged += func|window = me.window|(_) { window.refreshActions() }
             .sigSubmitted   += func|window = me.window|(_) { window.submitCreate() }
         }
 
-        with .unit = Tab.create(capacity, {})
+        with .unit = Tab.create(.capacity, {})
         {
             .layoutSpec.alignY = .Center
             .setForm(.Flat)
             .setForms(.Transparent, .Flat, .None)
-            .setLayout(.Content)
             discard .addItem(texts.ui_UnitMiB)
             discard .addItem(texts.ui_UnitGiB)
             .setSelectedIndex(0)
         }
 
-        discard .form.addField(texts.ui_Capacity, capacity)
+        discard .form.addField(texts.ui_Capacity, .capacity)
 
         // One answer given twice reads as one row.
         with let pair = StackLayoutCtrl.create(.form, .HorizontalFit)
@@ -195,7 +205,57 @@ impl CreatePage
         .cancel.setText(strings().dlg_Cancel)
         .createAction.setText(texts.ui_CreateVault)
         .setKeyFileCount(.window.createKeyFiles.count)
+        .refreshFreeSpace()
         .arrange()
+    }
+
+    // Reads the room left on the volume the location names, from the nearest folder of it that
+    // exists. A location that names no volume, or one on a share that may be slow to answer, says
+    // nothing.
+    mtd refreshFreeSpace()
+    {
+        .freeSpace.clear()
+        .invalidate()
+
+        let location = .path.text()
+        if location.count == 0 or not Path.isValidPathName(location) or Directory.isRemote(location) do
+            return
+        let root = Path.rootName(location) orelse ""
+        if root.count == 0 do
+            return
+
+        var folder = Path.directoryName(location) orelse ""
+        while folder.count != 0 and not Directory.exists(folder) do
+            folder = Path.directoryName(folder) orelse ""
+        if folder.count == 0 do
+            return
+
+        let bytes = catch Directory.freeSpace(folder)
+        {
+            return
+        }
+
+        .showFreeSpace(bytes, root)
+    }
+
+    // Says that `bytes` are left on the volume whose root is `root`, in whole gibibytes once there
+    // is one, in mebibytes below.
+    mtd showFreeSpace(bytes: u64, root: string)
+    {
+        const Mebibyte = 1024'u64 * 1024
+        const Gibibyte = Mebibyte * 1024
+        let texts     = appStrings()
+        let gibibytes = bytes >= Gibibyte
+        let amount    = gibibytes ? bytes / Gibibyte : bytes / Mebibyte
+        let unit      = gibibytes ? texts.ui_UnitGiB : texts.ui_UnitMiB
+
+        // The volume is named as a reader writes it, without the separator its root ends with.
+        var volume = root
+        while volume.count > 1 and Path.isDirectorySeparator(volume[volume.count - 1]) do
+            volume = volume[until volume.count - 1]
+
+        .freeSpace = Format.toString(texts.ui_FreeSpace, Format.toString("% %", amount, unit), volume)
+        .invalidate()
     }
 
     // Says how many key files the new vault will need, on the link that chooses them.
@@ -239,5 +299,18 @@ impl IWnd for CreatePage
     mtd impl onResizeEvent(_: *ResizeEvent)
     {
         .arrange()
+    }
+
+    // Writes the room left on the volume at the end of the capacity's line, as a measure.
+    mtd impl onPaint(evt: *PaintEvent)
+    {
+        if .freeSpace.isEmpty() or .createAction == null do
+            return
+
+        let painter = evt.paintContext.painter
+        let font    = .theme().createDefaultFontFs(.themeMetrics().hintLine_FontSize)
+        let width   = Painter.measureString(.freeSpace, font).width
+        let row     = .surfaceToLocal(.capacity.localToSurface(Math.Point{0, .capacity.clientRect().vertCenter()}))
+        painter.drawString(.column.position.right() - width, font.opticalLineTop(row.y), .freeSpace, font, .themeColors().faintText)
     }
 }

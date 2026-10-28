@@ -5,64 +5,54 @@ func createPushButtonPage(parent: *Wnd)
     let layout = getPagePanelLayout(parent)
     let left   = createPanel(parent,
                              "Forms",
-                             "The same command rendered with the standard push button forms.",
+                             "One primary action, the secondary and quiet forms beside it, and the destructive one that says what it removes.",
                              layout.left)
     scope
     {
-        var btn = PushButton.create(left, "Normal", {22, 92, 150})
-        btn.setIcon(app.theme.icon(ThemeIcons.Play, 18))
+        discard PushButton.create(left, "Open", {24, 88, 150}, null, .Default)
+        discard PushButton.create(left, "Cancel", {190, 88, 150})
+        discard PushButton.create(left, "Later", {24, 136, 150}, null, .Flat)
+        discard PushButton.create(left, "Delete", {190, 136, 150}, null, .Destructive)
 
-        btn = PushButton.create(left, "Default", {190, 92, 150})
-        btn.setForm(.Default)
-        btn.setIcon(app.theme.icon(ThemeIcons.Save, 18))
+        // A mode the reader turned on is chosen, not acted on: it wears Arc beside the primary.
+        discard PushButton.create(left, "Snap On", {24, 184, 150}, null, .Alternate)
 
-        btn = PushButton.create(left, "Flat", {22, 142, 150})
-        btn.setForm(.Flat)
-        btn.setIcon(app.theme.icon(ThemeIcons.Search, 18))
-
-        btn = PushButton.create(left, "Strong", {190, 142, 150})
-        btn.setForm(.Strong)
-        btn.setIcon(app.theme.icon(ThemeIcons.Download, 18))
+        let export = PushButton.create(left, "Export", {190, 184, 150})
+        export.setIcon(app.theme.icon(ThemeIcons.Download, 16))
     }
 
     let right = createPanel(parent,
                             "States",
-                            "Hot/pressed states are interactive; disabled and long text variants check clipping.",
+                            "Hover and press are left to the pointer; disabled buttons stand at the weaker ink.",
                             layout.right)
     scope
     {
-        let status = createText(right, "No button pressed yet.", {22, 190, 430, 28})
+        let status = createText(right, "No button pressed yet.", {24, 184, 380, 28}, .SecondaryText)
 
-        var btn = PushButton.create(right, "Press me", {22, 92, 150})
-        btn.sigPressed += func|status|(_) { status.setText("Pressed: standard button") }
+        var btn = PushButton.create(right, "Press Me", {24, 88, 150})
+        btn.sigPressed += func|status|(_) { status.setText("Pressed: the secondary button.") }
 
-        btn = PushButton.create(right, "Disabled", {190, 92, 150})
+        btn = PushButton.create(right, "Disabled", {190, 88, 150})
         btn.disable()
 
-        btn = PushButton.create(right, "Long label clipped cleanly", {22, 142, 210})
-        btn.setForm(.Default)
-        btn.sigPressed += func|status|(_) { status.setText("Pressed: long label button") }
+        btn = PushButton.create(right, "Long Label Clipped Cleanly", {24, 136, 210})
+        btn.sigPressed += func|status|(_) { status.setText("Pressed: the long label.") }
 
-        btn        = PushButton.create(right, "Help cursor", {250, 142, 150})
+        btn        = PushButton.create(right, "Help Cursor", {250, 136, 150})
         btn.cursor = Cursor.from(CursorShape.Help)
     }
 
     let bottom = createPanel(parent,
-                             "Style override",
-                             "A flat button with custom colors, used as a compact visual regression target.",
+                             "Widths",
+                             "A button is at least as wide as the theme says and widens to its caption rather than clipping it.",
                              layout.bottom)
     scope
     {
-        var btn = PushButton.create(bottom, "Custom flat action", {22, 96, 220})
-        btn.setForm(.Flat)
-        btn.setIcon(app.theme.icon(ThemeIcons.Filter, 18))
-        btn.style.addStyleSheetColors("btnPushFlat_HotBk 0xFF2F8F5B")
-        btn.style.addStyleSheetColors("btnPushFlat_PressedBk 0xFF236B44")
-        btn.style.addStyleSheetColors("btnPushFlat_HotText 0xFFFFFFFF")
-        btn.style.addStyleSheetColors("btnPushFlat_PressedText 0xFFFFFFFF")
+        discard PushButton.create(bottom, "Narrow", {24, 88, 82})
 
-        btn = PushButton.create(bottom, "Narrow", {270, 96, 82})
+        let fitted = PushButton.create(bottom, "Fitted to Its Caption", {130, 88, 150})
+        fitted.fitWidthToLabel(fitted.themeMetrics().btnPush_Width)
 
-        btn = PushButton.create(bottom, "Wide command button", {380, 96, 260})
+        discard PushButton.create(bottom, "Wide Command Button", {130 + fitted.position.width + 24, 88, 260})
     }
 }

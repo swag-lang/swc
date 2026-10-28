@@ -51,7 +51,7 @@ impl MainWindow
         .unmountOnLock.setChecked(.autoUnmount.onSessionLock)
         .unmountOnSuspend.setChecked(.autoUnmount.onSuspend)
         .unmountOnIdle.setChecked(.autoUnmount.onIdle)
-        .idleTimeout.setSelectedIndex(.idleIndexFor(.autoUnmount.idleMinutes), notify: false)
+        .optionsPage.setTimeout(.idleIndexFor(.autoUnmount.idleMinutes))
         .idleTimeout.enable(.autoUnmount.onIdle)
     }
 
@@ -61,7 +61,7 @@ impl MainWindow
         .autoUnmount.onSessionLock = .unmountOnLock.isChecked()
         .autoUnmount.onSuspend     = .unmountOnSuspend.isChecked()
         .autoUnmount.onIdle        = .unmountOnIdle.isChecked()
-        .autoUnmount.idleMinutes   = .idleMinutesAt(.idleTimeout.selectedIndex)
+        .autoUnmount.idleMinutes   = .idleMinutesAt(.optionsPage.timeoutIndex)
         .idleTimeout.enable(.autoUnmount.onIdle)
         catch g_App.saveState()
     }

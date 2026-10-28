@@ -6,7 +6,7 @@ func createHeaderBand(parent: *Wnd, rect: Math.Rectangle, title: string, round: 
                             title,
                             "Standalone Header items can be resized, clamped, decorated and marked as sorted.",
                             rect)
-    let header = Header.create(panel, Math.Rectangle{18, 94, rect.width - 36, 34})
+    let header = Header.create(panel, Math.Rectangle{SectionInset, 88, rect.width - 2 * SectionInset, 34})
     header.form = round ? .Round : .Flat
     if disabledClick do
         header.updateFlags(remove: .Clickable)
@@ -16,21 +16,21 @@ func createHeaderBand(parent: *Wnd, rect: Math.Rectangle, title: string, round: 
     state.isClickable = not disabledClick
     let size = header.addColumn("Size", 92)
     size.isResizable = false
-    discard header.addColumn("Owner", Math.max(rect.width - 36 - 190 - 120 - 92, 140.0), app.theme.icon(.Sort, 16))
+    discard header.addColumn("Owner", Math.max(rect.width - 2 * SectionInset - 190 - 120 - 92, 140.0), app.theme.icon(.Sort, 16))
     header.setSortIndicator(1, round ? .Ascending : .Descending)
 
-    let rowY = 148.0
+    let rowY = 140.0
     for i in 4
     {
         let y    = rowY + i * 34
-        let icon = Label.create(panel, "", Math.Rectangle{34, y, 20, 24})
+        let icon = Label.create(panel, "", Math.Rectangle{40, y, 20, 24})
         icon.setIcon(sampleIcon(i, 16))
         discard createText(panel,
                            Format.toString("Header row %", i + 1),
-                           Math.Rectangle{60, y, 180, 24})
-        discard createText(panel, i % 2 == 0 ? "ready" : "waiting", Math.Rectangle{250, y, 110, 24})
-        discard createText(panel, Format.toString("% KB", 24 + i * 9), Math.Rectangle{370, y, 80, 24})
-        discard createText(panel, i % 2 == 0 ? "runtime" : "editor", Math.Rectangle{470, y, 160, 24})
+                           Math.Rectangle{66, y, 180, 24})
+        discard createText(panel, i % 2 == 0 ? "ready" : "waiting", Math.Rectangle{256, y, 110, 24})
+        discard createText(panel, Format.toString("% KB", 24 + i * 9), Math.Rectangle{376, y, 80, 24})
+        discard createText(panel, i % 2 == 0 ? "runtime" : "editor", Math.Rectangle{476, y, Math.max(rect.width - 476 - SectionInset, 40.0), 24})
     }
 }
 
@@ -46,7 +46,7 @@ func createHeadersPage(parent: *Wnd)
                              "ListCtrl owns a Header and keeps it synchronized with scrolling and column resizing.",
                              layout.bottom)
     let list = ListCtrl.createMultiColumns(bottom,
-                                           Math.Rectangle{18, 92, layout.bottom.width - 36, layout.bottom.height - 112})
+                                           Math.Rectangle{SectionInset, 88, layout.bottom.width - 2 * SectionInset, layout.bottom.height - 88})
     list.setFrameForm(.Round)
     list.setSelectionMode(.Single)
     list.setIconSize(16)

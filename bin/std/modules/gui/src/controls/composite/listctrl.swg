@@ -23,6 +23,7 @@ enum ListFlags
     PreserveSelectionOnEmptyClick     // Keeps selection when empty space is clicked.
     HotTrack                // Highlights the row under the pointer.
     Ellipsis                // Ends overflowing cell text with an ellipsis.
+    StretchFirstColumn      // Gives the first column whatever width the other columns leave.
 }
 
 // Says where a drop hovering a list would land.
@@ -55,6 +56,12 @@ struct ListItem
         colorFg:    Color      // Cell foreground override, or transparent for the list color.
         column:     u32        // Zero-based column index.
         horzAlign = StringHorzAlignment.Left     // Cell content alignment.
+        mono:       bool       // Whether the cell is a measure — a date, a size — set in the fixed-width face.
+
+        // Characters of the label a search found, by byte offset and count, laid on the highlight
+        // ground; a zero count marks none.
+        matchStart: u32
+        matchCount: u32
     }
 }
 
@@ -129,6 +136,15 @@ struct ListCtrl
     selModel:         SelModel                 // Selected stable row identities.
     checkModel:       SelModel                 // Checked stable row identities.
     nextLineIndex:    u32                      // Identity assigned to the next created row.
+    turningLine:      *ListLine?               // Row whose disclosure mark is turning, if any.
+    turn:             f32                      // Quarter turn of that mark, from right (0) to down (1).
+    emptyText:        String                   // Sentence shown, faint, in a list with no row.
+
+    // The ground of the row under the pointer comes in, and the one of the row it left goes out,
+    // over a quick beat, so a pointer crossing the list leaves no flicker behind it.
+    hotPresence:  f32
+    leftIndex     = Swag.U32.Max
+    leftPresence: f32
 
     public readonly
     {
@@ -383,18 +399,14 @@ impl IWnd for ListView
     {
         if evt.kind == .Leave
         {
-            .list.hotIndex = Swag.U32.Max
-            .invalidate()
+            .list.moveHot(Swag.U32.Max)
             evt.accepted = false
             return
         }
 
         let idx = .hitTest(evt.surfacePos)
-        if idx != .list.hotIndex and .list.listFlags.has(.HotTrack)
-        {
-            .list.hotIndex = idx
-            .invalidate()
-        }
+        if idx != .list.hotIndex and .list.listFlags.has(.HotTrack) do
+            .list.moveHot(idx)
 
         if evt.kind != .Pressed and evt.kind != .Released and evt.kind != .DoubleClick
         {
@@ -566,7 +578,21 @@ impl IWnd for ListView
     {
         if .list.lineCount() != 0 do
             .paintRows(evt.paintContext)
+        elif not .list.emptyText.isEmpty() do
+            .paintEmptyText(evt.paintContext)
         .paintDropMark(evt.paintContext)
+    }
+
+    // Writes the sentence of an empty list, faint, in the middle of the first rows: what a reader
+    // looking for the rows reads, where the rows would be.
+    private mtd paintEmptyText(bc: PaintContext)
+    {
+        let rect = .paddedClientRect()
+        let font = nnFont(.list.font().regular)
+        let text = .list.emptyText.toString()
+        let x    = rect.horzCenter() - Painter.measureString(text, font).width * 0.5
+        let y    = rect.y + .list.lineHeight() * 2.5
+        bc.painter.drawString(Math.round(x), font.opticalLineTop(y), text, font, .themeColors().faintText)
     }
 
     private mtd paintRows(bc: PaintContext)
@@ -764,9 +790,12 @@ private impl ListView
         if .list.lineCount() == 0 do
             y = 0
 
+        // A drop the row takes rings the row on the corner of its selection.
         if .list.dropMark == .On
         {
-            painter.drawRect(0, cast(f32, y), width, height, color, DropMarkThickness)
+            let radius = .themeRects().selectionBox_Bk.radius
+            painter.setParams(.Antialiased)
+            painter.drawRoundRect(DropMarkThickness * 0.5, cast(f32, y) + DropMarkThickness * 0.5, width - DropMarkThickness, height - DropMarkThickness, radius, radius, color, DropMarkThickness)
             return
         }
 
@@ -803,11 +832,6 @@ private impl ListView
             let colorSel = .hasFocus() ? colors.listItem_FocusSelectedBk : colors.listItem_SelectedBk
             theme.drawSubRect(painter, rect, &rects.selectionBox_Bk, colorSel)
         }
-        // Hot box
-        elif idx == .list.hotIndex and .list.listFlags.has(.HotTrack) and canHotTrack
-        {
-            theme.drawSubRect(painter, rect, &rects.selectionBox_Bk, colors.listItem_HotBk)
-        }
         // User background
         elif line.colorBk.a
         {
@@ -817,6 +841,17 @@ private impl ListView
         elif .list.listFlags.has(.AlternateLines) and idx % 2 == 1
         {
             painter.fillRect(rect, colors.listItem_AlternateBk)
+        }
+
+        // Hot box, over the row's own ground, at the share the pointer has brought in; the row the
+        // pointer left fades out the same way.
+        let selectionShown = isSelected and (not hideSel or .hasFocus()) and not bc.isDisabled
+        if .list.listFlags.has(.HotTrack) and canHotTrack and not selectionShown
+        {
+            if idx == .list.hotIndex do
+                theme.drawSubRect(painter, rect, &rects.selectionBox_Bk, fadeColor(colors.listItem_HotBk, .list.hotPresence))
+            elif idx == .list.leftIndex and .list.leftPresence > 0 do
+                theme.drawSubRect(painter, rect, &rects.selectionBox_Bk, fadeColor(colors.listItem_HotBk, .list.leftPresence))
         }
 
         var colorText, colorExpand: Color
@@ -837,6 +872,13 @@ private impl ListView
             colorExpand = colors.listItem_Expand
         }
 
+        if line.separator
+        {
+            let inset = metrics.list_Padding
+            let y     = Math.round(rect.vertCenter())
+            painter.fillRect(Math.Rectangle{rect.x + inset, y, Math.max(rect.width - 2 * inset, 0), metrics.separator_HairlineSize}, colors.line)
+        }
+
         var format: RichStringFormat
         for itemIt, idxItem in line.items
         {
@@ -854,19 +896,38 @@ private impl ListView
                 format.flags.add(.Ellipsis)
             format.font = .list.font()
 
+            // A measure reads in the fixed-width face, one step smaller, so its figures align.
+            if item.mono do
+                format.font.regular = theme.createDefaultFontFs(metrics.defaultFontSize - 1)
+
             let layout = .cellLayout(line, item, idxItem, rect, reserveCheckMargin)
 
             // Expand/collapse mark, centered in the slot the row reserves for it so the marker
             // keeps the same air on both sides whatever size the theme gives the chevron.
             if not layout.expand.isEmpty() and line.canExpand()
             {
-                let expand  = theme.icon(line.expanded ? .ChevronDown : .ChevronRight, metrics.chevron_Size)
+                let turning = line == .list.turningLine
+                let expand  = theme.icon(turning or not line.expanded ? .ChevronRight : .ChevronDown, metrics.chevron_Size)
                 let expandX = layout.expand.x + Math.max(layout.expand.width - expand.sizeX, 0.0) * 0.5
 
                 // A triangular disclosure mark carries more visual weight toward its flat edge
                 // than its point. One logical pixel below the typographic center keeps the shape
                 // level with the wording beside it.
-                expand.paint(painter, expandX, opticalTop(.font(), layout.expand.vertCenter(), expand.sizeY) + 1, colorExpand)
+                let expandY = opticalTop(.font(), layout.expand.vertCenter(), expand.sizeY) + 1
+
+                // A mark that is turning is the closed one, a quarter turn on the way down.
+                if turning
+                {
+                    let center = painter.transform().transformPoint(Math.Vector2{expandX + expand.sizeX * 0.5, expandY + expand.sizeY * 0.5})
+                    painter.pushTransform()
+                    painter.rotateTransform(Math.ConstF32.Pi * 0.5 * .list.turn, center.x, center.y)
+                    expand.paint(painter, expandX, expandY, colorExpand)
+                    painter.popTransform()
+                }
+                else
+                {
+                    expand.paint(painter, expandX, expandY, colorExpand)
+                }
             }
 
             // Cell background override.
@@ -900,6 +961,23 @@ private impl ListView
                 else
                 {
                     theme.drawSubRect(painter, posBox, &rects.btnCheck_NormalBorder, bc.isDisabled ? colors.btnCheck_DisabledBorder : colors.btnCheck_Border)
+                }
+            }
+
+            // What a search found in the label stands on the highlight ground, under the words.
+            if item.matchCount and item.horzAlign == .Left
+            {
+                let raw  = item.name.raw
+                let font = unwrap format.font.regular
+                if item.matchStart + item.matchCount <= raw.length
+                {
+                    var left = layout.content.x
+                    if layout.icon.isValid() do
+                        left += layout.icon.sizeX + metrics.iconText_Margin
+                    let before = Painter.measureString(Swag.makeString(raw.buffer, item.matchStart), font).width
+                    let after  = Painter.measureString(Swag.makeString(raw.buffer, item.matchStart + item.matchCount), font).width
+                    let top    = layout.content.vertCenter() - font.height * 0.5
+                    painter.fillRect(Math.Rectangle{Math.round(left + before), Math.round(top), Math.round(after - before), font.height}, colors.highlight)
                 }
             }
 
@@ -1349,6 +1427,19 @@ impl ListCtrl
     {
         let clientRect = .scrollWnd.paddedClientRect()
 
+        // The first column takes the room the others leave, so names never stop short of the edge.
+        // The room of a vertical scroll bar stays out of it whether the bar shows or not, so the
+        // columns do not move when enough rows arrive to need one; a bar already shown has taken
+        // that room from the view.
+        if .listFlags.has(.StretchFirstColumn) and .header != null and .header.items.count > 1
+        {
+            let metrics = .themeMetrics()
+            var others  = .scrollWnd.showBarV ? 0 : metrics.scrollBar_Size
+            for i in 1 until .header.items.count do
+                others += .header.items[i]!.width
+            .header.setItemWidth(0, Math.max(.listView.position.width - others, metrics.list_LineHeight * 4))
+        }
+
         var scrollWidth: f32
         if .horizontalExtent > 0 do
             scrollWidth = .horizontalExtent
@@ -1478,6 +1569,8 @@ impl ListCtrl
     {
         .lines.clear()
         .toFreeLines.clear()
+        .turningLine   = null
+        .leftIndex     = Swag.U32.Max
         .hotIndex      = Swag.U32.Max
         .dropMarkIndex = Swag.U32.Max
         .dropMark      = .None
@@ -1493,10 +1586,22 @@ impl ListCtrl
     }
 
     // Adds a named column to the list header.
-    mtd addColumn(name: string, width: f32 = 100, icon: Icon = {})
+    //
+    // `align` sets the title where the column's cells stand; a column of figures set to the
+    // right carries its title on the right too.
+    mtd addColumn(name: string, width: f32 = 100, icon: Icon = {}, align = StringHorzAlignment.Left)
     {
         Swag.assert((.header != null))
-        .header.addColumn(name, width, icon)
+        .header.addColumn(name, width, icon, align)
+    }
+
+    // Sets the sentence an empty list shows, faint, where its rows would be; empty shows nothing.
+    mtd setEmptyText(text: string)
+    {
+        if .emptyText == text do
+            return
+        .emptyText = text
+        .listView.invalidate()
     }
 
     // Changes one header column width.
@@ -1759,6 +1864,7 @@ impl ListCtrl
             return
         line.expanded = true
         .sigExpanded.call(me, line)
+        .turnMark(line)
 
         if .header != null and .header.sortDirection != .None do
             .sort(.header.sortColumn, .header.sortDirection == .Descending, &line.lines)
@@ -1790,6 +1896,7 @@ impl ListCtrl
             return
         line.expanded = false
         .sigCollapsed.call(me, line)
+        .turnMark(line)
 
         var tmp: Array'(*ListLine?)
         tmp.add(line)
@@ -1865,5 +1972,61 @@ impl ListCtrl
             .collapse(line)
         else do
             .expand(line)
+    }
+}
+
+private impl ListCtrl
+{
+    // Moves the hot row to `idx`: its ground comes in while the one of the row it leaves goes out.
+    mtd moveHot(idx: u32)
+    {
+        if idx == .hotIndex do
+            return
+        .leftIndex    = .hotIndex
+        .leftPresence = .hotPresence
+        .hotIndex     = idx
+        .hotPresence  = 0
+        .listView.invalidate()
+
+        if not .surface or .app().isReducedMotion()
+        {
+            .hotPresence  = 1
+            .leftPresence = 0
+            return
+        }
+
+        var options: AnimationOptions
+        options.duration = Time.Duration.fromSeconds(.themeMetrics().motion_QuickSeconds)
+        options.easing   = .EaseOut
+        let animator = &.app().animator
+        discard animator.animateF32(.listView, AnimationChannel.from("Gui.List.Hot"), 0, 1, func(view, value) { view.list.hotPresence = value }, options)
+        options.easing = .Linear
+        discard animator.animateF32(.listView, AnimationChannel.from("Gui.List.Left"), .leftPresence, 0, func(view, value) { view.list.leftPresence = value }, options)
+    }
+
+    // Turns the disclosure mark of `line` toward its new state, a quarter turn over a quick beat.
+    mtd turnMark(line: *ListLine)
+    {
+        if not .surface or .app().isReducedMotion()
+        {
+            .turningLine = null
+            return
+        }
+
+        let destination = line.expanded ? 1'f32 : 0
+        .turningLine = line
+        .turn        = 1 - destination
+
+        var options: AnimationOptions
+        options.duration = Time.Duration.fromSeconds(.themeMetrics().motion_QuickSeconds)
+        options.easing   = .EaseOut
+
+        let list = me
+        discard .app().animator.animateF32(.listView, AnimationChannel.from("Gui.List.Turn"), .turn, destination, func(view, value) { view.list.turn = value }, options,
+                                           func|list, line|(result)
+                                           {
+                                               if result == .Completed and list.turningLine == line do
+                                                   list.turningLine = null
+                                           })
     }
 }

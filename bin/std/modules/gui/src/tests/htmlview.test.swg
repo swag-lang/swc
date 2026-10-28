@@ -683,6 +683,12 @@ func findVisibleLink(view: *HtmlView, url: string)->HtmlLinkHit
     Swag.assert(image.pixelColor(97, 90).argb == host.theme.colors.scrollBar_Box.argb)
     Swag.assert(image.pixelColor(20, 30).argb != 0xFFFF0000 and image.pixelColor(20, 30).argb != 0xFF0000FF)
     Swag.assert(image.pixelColor(20, 130).argb != 0xFFFF0000 and image.pixelColor(20, 130).argb != 0xFF0000FF)
+
+    // Once the region has been still long enough, its bar rests invisible like every scroll bar.
+    host.fireTimers()
+    host.app.animator.finishAll()
+    image = host.render(view)
+    Swag.assert(image.pixelColor(97, 90).argb != host.theme.colors.scrollBar_Box.argb)
 }
 
 // A tall inline image remains paintable after its typographic origin has left the viewport.

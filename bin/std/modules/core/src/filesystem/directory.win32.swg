@@ -153,6 +153,27 @@ func isRemote(path: string)->bool
     return GetDriveTypeW(winRoot.buffer) == DRIVE_REMOTE
 }
 
+// Returns how many bytes the caller may still write on the volume holding the directory `dirName`.
+//
+// The answer honours the quota of the account, so it can be less than what the volume has free.
+// `dirName` must name an existing directory; a file, a missing path or a volume that does not
+// answer reports an error.
+func freeSpace(dirName: string)->u64 fail
+{
+    if not dirName.count do
+        fail Errors.BadParameterError{}
+
+    // A share or a volume is queried through its root, which the system names with a separator.
+    var directory = String.from(dirName)
+    if not Path.isDirectorySeparator(directory.back()) do
+        directory += Path.DirectorySeparator
+
+    var available: ULARGE_INTEGER
+    let winPath = Utf16.toZeroTerminated(directory)
+    catch GetDiskFreeSpaceExW(winPath.buffer, &available, null, null) { try Errors.transformWinErrors(Swag.err, dirName) }
+    return available
+}
+
 // Returns the first mount point of every mounted volume, with normalized separators.
 //
 // A volume without a mount point is skipped.

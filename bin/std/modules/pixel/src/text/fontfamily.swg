@@ -12,6 +12,8 @@ struct FontFamily
         bold:       *Font?     // Bold face, when available.
         italic:     *Font?     // Italic face, when available.
         boldItalic: *Font?     // Combined bold and italic face, when available.
+        light:      *Font?     // Light face, for a large figure read at a glance, when available.
+        semiBold:   *Font?     // Semibold face, for a name that leads a row, when available.
     }
 }
 
@@ -22,14 +24,17 @@ enum FontFamilyStyle
     Bold           // Upright text with bold weight.
     Italic         // Slanted text with normal weight.
     BoldItalic     // Slanted text with bold weight.
+    Light          // Upright text lighter than regular.
+    SemiBold       // Upright text between regular and bold.
 }
 
 impl FontFamily
 {
     // Returns the font of the requested style, falling back to the closest available face.
     //
-    // Bold-italic falls back to italic, then bold, then regular; bold and italic fall back to
-    // regular. Returns `null` when no candidate slot is set.
+    // Bold-italic falls back to italic, then bold, then regular; semibold falls back to bold,
+    // then regular; bold, italic and light fall back to regular. Returns `null` when no candidate
+    // slot is set.
     mtd const getFont(style: FontFamilyStyle)->*Font?
     {
         switch style
@@ -59,6 +64,20 @@ impl FontFamily
                 return .bold
             if .regular do
                 return .regular
+
+        case .Light:
+            if .light do
+                return .light
+            if .regular do
+                return .regular
+
+        case .SemiBold:
+            if .semiBold do
+                return .semiBold
+            if .bold do
+                return .bold
+            if .regular do
+                return .regular
         }
 
         return null
@@ -73,6 +92,8 @@ impl FontFamily
         case .Bold:       .bold = fnt
         case .Italic:     .italic = fnt
         case .BoldItalic: .boldItalic = fnt
+        case .Light:      .light = fnt
+        case .SemiBold:   .semiBold = fnt
         }
     }
 }

@@ -137,27 +137,28 @@ impl RichEditCtrl
     // Runs `cmd` on the editor.
     mtd executeCommand(cmd: RichEditCommand)
     {
+        defer .reportCaretMove()
         switch cmd
         {
         case .CursorLeft:
             if .isSelectionEmpty() do
                 .moveCursorLeft(&.cursorPos)
             else do
-                .setCursorPos(.selectionStart())
+                .cursorPos = .selectionStart()
             .clearSelection()
 
         case .CursorRight:
             if .isSelectionEmpty() do
                 .moveCursorRight(&.cursorPos)
             else do
-                .setCursorPos(.selectionEnd())
+                .cursorPos = .selectionEnd()
             .clearSelection()
 
         case .CursorUp:
             if not .isSelectionEmpty()
             {
                 let pt = .cursorDisplayPosition(.cursorPos)
-                .setCursorPos(.selectionStart())
+                .cursorPos = .selectionStart()
                 .moveCursorUp(&.cursorPos, pt)
             }
             else
@@ -171,7 +172,7 @@ impl RichEditCtrl
             if not .isSelectionEmpty()
             {
                 let pt = .cursorDisplayPosition(.cursorPos)
-                .setCursorPos(.selectionEnd())
+                .cursorPos = .selectionEnd()
                 .moveCursorDown(&.cursorPos, pt)
             }
             else

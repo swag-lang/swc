@@ -47,7 +47,7 @@ AstVisitResult AstVisit::step(const TaskContext& ctx)
     if (!frame.node)
         frame.node = &ast_->node(frame.nodeRef);
     dbgNode    = frame.node;
-    const SourceCodeRef currentCodeRef = dbgNode ? dbgNode->codeRef() : SourceCodeRef::invalid();
+    const SourceCodeRef currentCodeRef = dbgNode->codeRef();
     if (!dbgCodeRefKnown_ || currentCodeRef != dbgCodeRef_)
     {
         dbgCodeRef_      = currentCodeRef;
@@ -155,7 +155,7 @@ AstVisitResult AstVisit::stepChildrenStage(Frame& frame)
         while (frame.nextChildIx < frame.numChildren)
         {
             const uint32_t   globalIx = frame.firstChildIx + frame.nextChildIx++;
-            const AstNodeRef childRef = children_[globalIx];
+            const AstNodeRef& childRef = children_[globalIx];
             if (childRef.isInvalid())
                 continue;
 

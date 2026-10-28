@@ -117,6 +117,76 @@ func assertRbspUnescape(data: const [..] u8)
     Swag.assert(Slice.equals(actual.toSlice(), expected.toSlice()))
 }
 
+// Compare boundary offsets and output against a scalar unescaper.
+private func assertRbspBounds(data: const [..] u8, bounds: const [..] u64)
+{
+    var expected: Array'u8
+    var positions: Array'u64
+    var boundary = 0'u64
+    var zeros    = 0'u32
+    for index in data.count
+    {
+        while boundary < bounds.count and bounds[boundary] <= index
+        {
+            positions.add(expected.count)
+            boundary += 1
+        }
+
+        let value = data[index]
+        if zeros >= 2 and value == 3
+        {
+            zeros = 0
+            continue
+        }
+        zeros = value == 0 ? zeros + 1 : 0
+        expected.add(value)
+    }
+    while boundary < bounds.count
+    {
+        positions.add(expected.count)
+        boundary += 1
+    }
+
+    var actual: Array'u8
+    var actualPositions: Array'u64
+    unescapeRbspWithBounds(&actual, data, bounds, &actualPositions)
+    Swag.assert(Slice.equals(actual.toSlice(), expected.toSlice()))
+    Swag.assert(Slice.equals(actualPositions.toSlice(), positions.toSlice()))
+}
+
+// Exercise copied blocks, duplicate boundaries, escapes, and zero runs across block edges.
+#test
+{
+    for length in 81'u64
+    {
+        var bytes: [80] u8
+        for index in length do
+            bytes[index] = cast(u8, ((index * 37 + length * 13) & 255))
+        for split in length + 1
+        {
+            let bounds: [5] u64 = [0, split, split, length, length + 1]
+            assertRbspBounds(bytes[0 until length], bounds)
+        }
+
+        for escape in 2'u64 until length
+        {
+            bytes[escape - 2] = 0
+            bytes[escape - 1] = 0
+            bytes[escape]     = 3
+            let bounds: [6] u64 = [0, escape - 2, escape - 1, escape, escape + 1, length]
+            assertRbspBounds(bytes[0 until length], bounds)
+            bytes[escape - 2] = 7
+            bytes[escape - 1] = 11
+            bytes[escape]     = 13
+        }
+    }
+
+    var zeros: [65] u8
+    zeros[64] = 3
+    let boundaries: [5] u64 = [15, 16, 31, 32, 64]
+    assertRbspBounds(zeros, boundaries)
+}
+
 // Exercise every vector alignment and tail, with the escape triplet at every possible byte.
 #test
 {

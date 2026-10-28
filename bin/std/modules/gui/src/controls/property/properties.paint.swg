@@ -191,9 +191,12 @@ internal impl Properties
     mtd paintNameMark(painter: *Painter, item: *PropertiesItem, modified: bool)
     {
         // A self-labelled control of a panel carries its own words, and no mark is set beside them.
+        // A row with no name at all, such as one flag of an enumeration, never assigned the label:
+        // it is compared before it is read.
+        if item.label == null do
+            return
         let label = item.label
-        if label == null or
-           label.text().count == 0 or
+        if label.text().count == 0 or
            not label.isLocallyVisible() or
            label.position.width <= 0 do
             return

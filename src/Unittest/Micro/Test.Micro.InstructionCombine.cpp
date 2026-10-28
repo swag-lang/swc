@@ -6500,6 +6500,39 @@ SWC_TEST_BEGIN(InstCombine_AffineChain_KeepsShortAndUnencodableProducts)
 }
 SWC_TEST_END()
 
+SWC_TEST_BEGIN(InstCombine_VectorEqualityMaskRequiresDeadValues)
+{
+    constexpr MicroReg left   = MicroReg::virtualFloatReg(1);
+    constexpr MicroReg right  = MicroReg::virtualFloatReg(2);
+    constexpr MicroReg vector = MicroReg::virtualFloatReg(3);
+    constexpr MicroReg mask   = MicroReg::virtualIntReg(1);
+    constexpr MicroReg result = MicroReg::virtualIntReg(2);
+    for (uint32_t variant = 0; variant < 8; ++variant)
+    {
+        MicroBuilder builder(ctx);
+        builder.emitLoadRegReg(left, MicroReg::floatReg(0), MicroOpBits::B128);
+        builder.emitLoadRegReg(right, MicroReg::floatReg(1), MicroOpBits::B128);
+        const MicroOp ops[] = {MicroOp::VecCmpEq8, MicroOp::VecCmpEq16, MicroOp::VecCmpEq32, MicroOp::VecCmpEq64};
+        builder.emitOpBinaryRegRegReg(vector, left, right, variant == 7 ? MicroOp::VecCmpGtS16 : ops[variant < 4 ? variant : 1], MicroOpBits::B128);
+        builder.emitVecUnaryRegReg(mask, vector, MicroOp::VecMoveMaskB, MicroOpBits::B128);
+        builder.emitCmpRegImm(mask, ApInt(0xFFFF, 32), MicroOpBits::B32);
+        builder.emitSetCondReg(result, MicroCond::NotEqual);
+        if (variant == 4)
+            builder.emitLoadMemReg(MicroReg::intReg(2), 0, vector, MicroOpBits::B128);
+        if (variant == 5)
+            builder.emitLoadRegReg(MicroReg::intReg(3), mask, MicroOpBits::B32);
+        if (variant == 6)
+            builder.emitSetCondReg(MicroReg::intReg(3), MicroCond::Parity);
+        builder.emitLoadRegReg(MicroReg::intReg(0), result, MicroOpBits::B8);
+        builder.emitRet();
+        SWC_RESULT(runInstCombinePass(builder));
+        if (Backend::Unittest::countOpcode(builder, MicroInstrOpcode::VecTestReg) != (variant < 4 ? 1u : 0u))
+            return Result::Error;
+    }
+    return Result::Continue;
+}
+SWC_TEST_END()
+
 SWC_TEST_BEGIN(InstCombine_WordComparisonMaskRequiresCanonicalLanes)
 {
     constexpr MicroReg left   = MicroReg::virtualFloatReg(1);

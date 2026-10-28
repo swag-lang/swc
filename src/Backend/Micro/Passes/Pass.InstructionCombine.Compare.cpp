@@ -24,6 +24,53 @@ namespace InstructionCombine
         }
     }
 
+    // Whole-vector equality is an XOR followed by a zero test. Work on the
+    // SSA values before allocation so a later setcc reusing the mask register
+    // cannot make its dead upper bytes look like another mask observation.
+    bool tryFoldVectorEqualityMask(Context& ctx, MicroInstrRef cmpRef, const MicroInstr& cmpInst)
+    {
+        if (!ctx.ssa || ctx.isClaimed(cmpRef))
+            return false;
+        const auto* cmp = cmpInst.ops(*ctx.operands);
+        if (!cmp || !cmp[0].reg.isVirtualInt() || cmp[1].opBits != MicroOpBits::B32 ||
+            cmp[2].hasWideImmediateValue() || cmp[2].valueU64 != 0xFFFF)
+            return false;
+        const MicroInstrRef readerRef = ctx.storage->findNextInstructionRef(cmpRef);
+        const MicroInstr*   reader    = ctx.storage->ptr(readerRef);
+        const auto*         readerOps = reader ? reader->ops(*ctx.operands) : nullptr;
+        if (!reader || !readerOps || (reader->op != MicroInstrOpcode::SetCondReg && reader->op != MicroInstrOpcode::JumpCond))
+            return false;
+        const MicroCond condition = readerOps[reader->op == MicroInstrOpcode::SetCondReg ? 1 : 0].cpuCond;
+        if ((condition != MicroCond::Equal && condition != MicroCond::NotEqual && condition != MicroCond::Zero && condition != MicroCond::NotZero) ||
+            !ctx.areCpuFlagsDeadAfter(readerRef))
+            return false;
+        const auto extracted = ctx.ssa->reachingDef(cmp[0].reg, cmpRef);
+        const auto* move     = extracted.inst ? extracted.inst->ops(*ctx.operands) : nullptr;
+        if (!extracted.valid() || extracted.isPhi || !extracted.inst || extracted.inst->op != MicroInstrOpcode::VecUnaryRegReg ||
+            extracted.instRef != ctx.storage->findPreviousInstructionRef(cmpRef) ||
+            ctx.ssa->transitiveInstructionUseCount(extracted.valueId, 2) != 1 || !move || move[2].opBits != MicroOpBits::B128 ||
+            move[3].microOp != MicroOp::VecMoveMaskB)
+            return false;
+        const auto compared = ctx.ssa->reachingDef(move[1].reg, extracted.instRef);
+        const auto* vector  = compared.inst ? compared.inst->ops(*ctx.operands) : nullptr;
+        if (!compared.valid() || compared.isPhi || !compared.inst || compared.inst->op != MicroInstrOpcode::OpBinaryRegRegReg ||
+            ctx.ssa->transitiveInstructionUseCount(compared.valueId, 2) != 1 || !vector || vector[3].opBits != MicroOpBits::B128 ||
+            (vector[4].microOp != MicroOp::VecCmpEq8 && vector[4].microOp != MicroOp::VecCmpEq16 &&
+             vector[4].microOp != MicroOp::VecCmpEq32 && vector[4].microOp != MicroOp::VecCmpEq64) ||
+            !ctx.claimAll({compared.instRef, extracted.instRef, cmpRef}))
+            return false;
+        MicroInstrOperand xorOps[5];
+        std::copy_n(vector, 5, xorOps);
+        xorOps[4].microOp = MicroOp::VecXor;
+        MicroInstrOperand testOps[2] = {};
+        testOps[0].reg    = move[1].reg;
+        testOps[1].opBits = MicroOpBits::B128;
+        ctx.emitRewrite(compared.instRef, MicroInstrOpcode::OpBinaryRegRegReg, xorOps);
+        ctx.emitRewrite(extracted.instRef, MicroInstrOpcode::VecTestReg, testOps);
+        ctx.emitErase(cmpRef);
+        return true;
+    }
+
     // A word comparison produces two identical byte sign bits per lane.
     // Testing every high-byte bit is therefore the same as testing all 16
     // movemask bits, provided the masked value is not otherwise observed.

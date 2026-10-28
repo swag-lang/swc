@@ -401,3 +401,37 @@ using Swag, Core
     Swag.assert(quick.qsArrow.forms[0].buffer == last.buffer)
     Swag.assert(quick.allPresets == null)
 }
+
+// A quick style has a name: "Style" and its rank until the reader gives one, written under the
+// row while it is in force, and kept when the style moves to the front.
+#test
+{
+    var f: HeadlessFixture
+    f.setup()
+    defer f.shutdown()
+    let quick = QuickWnd.create(f.main, f.main)
+    quick.setDefault()
+    f.main.editMode = .Arrow
+    quick.setPosition(Math.Rectangle{0, 0, 5 * QuickChipWidth, QuickChipHeight})
+    quick.updateQuickStyles(forceRebuild: true)
+
+    let style = &quick.qsArrow
+    Swag.assert(style.nameOf(0) == Format.toString(appStrings().ui_QuickStyleRank, 1))
+    Swag.assert(quick.caption != null and quick.caption.isVisible())
+
+    style.setName(2, "Orange mark")
+    Swag.assert(style.nameOf(2) == "Orange mark")
+    style.moveToFront(2)
+    Swag.assert(style.nameOf(0) == "Orange mark")
+
+    // The style in force is the first one: its name is written under the row.
+    quick.applyPreset(style.forms[0])
+    let words: String = quick.caption.text()
+    Swag.assert(quick.caption.isVisible() and words.indexOf("Orange mark") != Swag.U64.Max)
+
+    // Removing a style removes its name with it.
+    let count = style.names.count
+    let first = style.forms[0]
+    style.remove(first)
+    Swag.assert(style.names.count == count - 1 and style.nameOf(0) != "Orange mark")
+}

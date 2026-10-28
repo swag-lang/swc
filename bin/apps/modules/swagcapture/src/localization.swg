@@ -30,6 +30,12 @@ struct AppStrings
     ui_FilterLinks:             string = "Linked images"      // Filters on the state of the images linked to captures.
     ui_BarFilter:               string = "Filter"
     ui_BarFolders:              string = "Folders"
+    ui_RenameQuickStyle:        string = "Rename Quick Style…"         // Names a quick style.
+    ui_ReplaceQuickStyle:       string = "Replace with Current Style"  // Gives a quick style the style of the tool or the selection.
+    ui_QuickStyleRank:          string = "Style %"                     // Name of a quick style the reader has not named, with its rank.
+    ui_QuickStyleCaption:       string = "Quick style “%” · right-click to rename, replace or remove it"     // Under the quick styles: the one in force.
+    ui_QuickStyleName:          string = "Name of the quick style"     // Prompt of the quick-style rename dialog.
+    dlg_TitleRenameQuickStyle:  string = "Rename Quick Style"          // Title of the quick-style rename dialog.
     ui_RemoveQuickStyle:        string = "Remove Quick Style"
     ui_SectionEditor:           string = "Editor"
     ui_SectionApplication:      string = "Application"

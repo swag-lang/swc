@@ -24,6 +24,7 @@ const QuickMaskHeight   = 16.0         // Height of the pattern of a mask preset
 const QuickLightDepth   = 0.16'f32     // How much deeper the cell of a light preset is, on a light ground.
 const QuickPopoverPad   = 12.0         // Air inside the popover holding every preset of a tool.
 const QuickPopoverColumns = 5          // Presets in a row of that popover.
+const QuickCaptionHeight  = 34.0       // Height of the two lines naming the preset in force, under the row.
 
 // The glyph of the trailing chip, which keeps the selected shape as a new preset.
 const AddGlyphSize = 14.0
@@ -36,10 +37,11 @@ func clearChipGround(button: *IconButton)
         button.style.addStyleSheetColors(Format.toString("% 0x00000000", key))
 }
 
-// The preset forms one tool offers in the quick-style bar.
+// The preset forms one tool offers in the quick-style bar, and the name the reader gave each.
 struct QuickStyle
 {
     forms: Array'IForm
+    names: Array'String     // Name of each preset, by index; empty for a preset not named yet.
 }
 
 impl QuickStyle
@@ -81,7 +83,11 @@ impl QuickStyle
 
             // Stale serialized interface values can point to an unresolved type.
             .forms.removeAtOrdered(idx)
+            if idx < .names.count do
+                .names.removeAtOrdered(idx)
         }
+
+        .names.resize(.forms.count)
     }
 
     // Adopts a freshly built form as the last preset of the set.
@@ -89,12 +95,19 @@ impl QuickStyle
     {
         form.setup(null)
         .forms.add(form)
+        .names.resize(.forms.count)
     }
 
+    // Removes the preset `itf`, keeping the order of the others.
     mtd remove(itf: IForm)
     {
+        let index = .indexOf(itf)
+        if index >= .forms.count do
+            return
+        .forms.removeAtOrdered(index)
+        if index < .names.count do
+            .names.removeAtOrdered(index)
         deleteOne(itf)
-        .forms.remove(itf)
     }
 
     mtd clear()
@@ -102,6 +115,53 @@ impl QuickStyle
         for i in .forms do
             deleteOne(i)
         .forms.clear()
+        .names.clear()
+    }
+
+    // Returns the index of the preset `itf`, or the count of presets when it is not one of them.
+    mtd indexOf(itf: IForm)->u64
+    {
+        for f, i in .forms where f.buffer == itf.buffer do
+            return i
+        return .forms.count
+    }
+
+    // Returns the name of preset `index`: the one the reader gave it, or "Style" and its rank.
+    mtd nameOf(index: u64)->String
+    {
+        if index < .names.count and not .names[index].isEmpty() do
+            return .names[index]
+        if index < .forms.count
+        {
+            // A mask says what it does, which is the best name it has until it is given one.
+            let kind = quickStyleTip(.forms[index])
+            if kind.count do
+                return kind
+        }
+
+        return Format.toString(appStrings().ui_QuickStyleRank, index + 1)
+    }
+
+    // Names preset `index`.
+    mtd setName(index: u64, name: string)
+    {
+        .names.resize(.forms.count)
+        if index < .names.count do
+            .names[index] = name
+    }
+
+    // Brings preset `index` to the front of the set, with its name.
+    mtd moveToFront(index: u64)
+    {
+        if index == 0 or index >= .forms.count do
+            return
+        .names.resize(.forms.count)
+        let form = .forms[index]
+        let name = .names[index]
+        .forms.removeAtOrdered(index)
+        .names.removeAtOrdered(index)
+        .forms.insertAt(0, form)
+        .names.insertAt(0, name)
     }
 }
 
@@ -340,6 +400,7 @@ struct QuickWnd
     currentStyle: *QuickStyle?
     moreButton:   *QuickButton?     // The chip opening every preset, in the row of the tool.
     allPresets:   *Wnd?             // The cells of every preset, while the popover "•••" opens is up.
+    caption:      *Label?           // The name of the preset in force, under the row.
 }
 
 impl IWnd for QuickWnd
@@ -455,19 +516,88 @@ impl QuickWnd
     {
         with let menu = MenuCtrl.createPopup(me)
         {
+            .addItem(appStrings().ui_RenameQuickStyle, "rename", disabled: not btn)
+            .addItem(appStrings().ui_ReplaceQuickStyle, "replace", disabled: not btn)
             .addItem(appStrings().ui_RemoveQuickStyle, "0", disabled: not btn)
             .addSeparator()
             .addItem(ActionQuickStyle.Reset)
         }
 
         let result = menu.doModal(pos, autoDestroy: true)
-        if result == "0" and btn
+        if not result or not btn or not .currentStyle do
+            return
+
+        let qbtn  = assume cast(*QuickButton, btn)
+        let style = .currentStyle
+        let form  = unwrap qbtn.formItf
+        let index = style.indexOf(form)
+        switch result
         {
-            let qbtn = assume cast(*QuickButton, btn)
-            .currentStyle!.remove(unwrap qbtn.formItf)
+        case "0":
+            style.remove(form)
             qbtn.destroy()
-            .updateQuickStyles(forceRebuild: true)
+
+        case "rename":
+            let name = style.nameOf(index)
+            var options: EditDlgOptions
+            options.title   = appStrings().dlg_TitleRenameQuickStyle
+            options.message = appStrings().ui_QuickStyleName
+            options.text    = name
+            let dialog = EditDlg.createSingleLine(unwrap .surface, options)
+            if dialog.doModal() == Dialog.BtnOk do
+                style.setName(index, dialog.text())
+
+        case "replace":
+            // The preset takes the style of the tool, or of the selection, keeping its name.
+            if index < style.forms.count
+            {
+                let model = .main.newFormFromModel(.presetMode().mode)
+                QuickStyle.deleteOne(style.forms[index])
+                model.setup(null)
+                style.forms[index] = model
+            }
         }
+
+        .updateQuickStyles(forceRebuild: true)
+    }
+
+    // Writes the name of the preset in force under the row, and how to change it; no line when
+    // no preset is in force.
+    mtd updateCaption()
+    {
+        var name: String
+        if .currentStyle
+        {
+            var i = 0'u64
+            for c in .layout.children where not c.isPendingDestroy
+            {
+                let button = assume cast(*QuickButton, c)
+                if button.isModel or button.isMore do
+                    continue
+                if button.isChecked
+                {
+                    name = .currentStyle.nameOf(i)
+                    break
+                }
+
+                i += 1
+            }
+        }
+
+        let caption = .caption
+        if not caption do
+            return
+        if name.isEmpty()
+        {
+            caption.hide()
+        }
+        else
+        {
+            caption.setText(Format.toString(appStrings().ui_QuickStyleCaption, name))
+            caption.show()
+        }
+
+        .fitChips()
     }
 
     // Builds the quick style strip: one row of preset chips, scrolling sideways when they outnumber
@@ -485,6 +615,12 @@ impl QuickWnd
             .layout = Wnd.create'Wnd(quick, null, {0, 0, 0, QuickChipHeight})
             .layout.backgroundStyle = .Transparent
             .setView(quick.layout)
+
+            let caption = Label.create(quick, "", {0, QuickChipHeight, 0, QuickCaptionHeight}, flags: .SecondaryText | .WordWrap)
+            caption.style.setFont(quick.theme().createDefaultFontFamily(metrics.defaultFontSize - 1))
+            caption.setTextAlignment(.Left, .Top)
+            caption.hide()
+            .caption = caption
 
             .main = main
         }
@@ -920,6 +1056,7 @@ impl QuickWnd
             i += 1
         }
 
+        .updateCaption()
         .invalidate()
     }
 
@@ -1134,7 +1271,7 @@ impl QuickWnd
             clearChipGround(button)
             .formItf  = form
             .quickWnd = me
-            .toolTip  = quickStyleTip(form)
+            .toolTip  = me.currentStyle ? me.currentStyle.nameOf(me.currentStyle.indexOf(form)) : ""
 
             .iconPainter     = func(button, bc, _, _) { paintPreset(bc.painter, assume cast(*QuickButton, button)) }
             .sigRightPressed += func(button) { button.quickWnd.btnPopup(button, button.surfaceRect().center()) }
@@ -1170,12 +1307,7 @@ impl QuickWnd
 
         if fromPopover and .currentStyle
         {
-            for f, i in .currentStyle.forms where f.buffer == it.buffer
-            {
-                .currentStyle.forms.removeAtOrdered(i)
-                .currentStyle.forms.insertAt(0, it)
-                break
-            }
+            .currentStyle.moveToFront(.currentStyle.indexOf(it))
 
             if .moreButton do
                 .moreButton.hidePopup()
@@ -1399,9 +1531,18 @@ impl QuickWnd
             }
         }
 
+        // The name of the preset in force stands under the row, across the column.
+        var height = QuickChipHeight
+        let caption = .caption
+        if caption and caption.isVisible()
+        {
+            caption.setPosition(Math.Rectangle{x: QuickChipInset, y: height, width: Math.max(.position.width - 2 * QuickChipInset, 0), height: QuickCaptionHeight})
+            height += QuickCaptionHeight
+        }
+
         .layout.setPosition(Math.Rectangle{x: 0, y: 0, width: x, height: QuickChipHeight})
         .setScrollSize(0, 0)
-        let wanted = QuickChipHeight + .themeMetrics().inspector_RowGap
+        let wanted = height + .themeMetrics().inspector_RowGap
         if .position.height != wanted
         {
             .resize(.position.width, wanted)

@@ -804,6 +804,7 @@ namespace
         switch (inst.op)
         {
             case MicroInstrOpcode::LoadRegMem:
+            case MicroInstrOpcode::LoadVecRegMem:
                 dstBits  = ops[2].opBits;
                 loadBits = dstBits;
                 offset   = ops[3].valueU64;
@@ -821,7 +822,8 @@ namespace
 
         if (!ops[0].reg.isVirtual() || !ops[1].reg.isVirtualInt() || loadBits == MicroOpBits::Zero ||
             (dstBits == MicroOpBits::B128 && loadBits != MicroOpBits::B128) ||
-            (loadBits == MicroOpBits::B128 && (inst.op != MicroInstrOpcode::LoadRegMem || !ops[0].reg.isVirtualFloat())))
+            (inst.op == MicroInstrOpcode::LoadVecRegMem && loadBits != MicroOpBits::B128) ||
+            (loadBits == MicroOpBits::B128 && ((inst.op != MicroInstrOpcode::LoadRegMem && inst.op != MicroInstrOpcode::LoadVecRegMem) || !ops[0].reg.isVirtualFloat())))
             return false;
 
         // Rewrites leave relocations unchanged. Collect their original order
@@ -1060,6 +1062,7 @@ Result MicroConstantFoldingPass::run(MicroPassContext& context)
                 changed = tryFoldExtend(*ssaState, knownValues, knownFlags, instRef, inst, inst.ops(operands));
                 break;
             case MicroInstrOpcode::LoadRegMem:
+            case MicroInstrOpcode::LoadVecRegMem:
             case MicroInstrOpcode::LoadSignedExtRegMem:
             case MicroInstrOpcode::LoadZeroExtRegMem:
                 changed = tryFoldLoadFromConstant(memoryContext, instRef, inst, inst.ops(operands));

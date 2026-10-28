@@ -59,13 +59,32 @@ namespace InstructionCombine
              vector[4].microOp != MicroOp::VecCmpEq32 && vector[4].microOp != MicroOp::VecCmpEq64) ||
             !ctx.claimAll({compared.instRef, extracted.instRef, cmpRef}))
             return false;
-        MicroInstrOperand xorOps[5];
-        std::copy_n(vector, 5, xorOps);
-        xorOps[4].microOp = MicroOp::VecXor;
+        MicroReg testReg = move[1].reg;
+        for (uint32_t zeroIndex : {1u, 2u})
+        {
+            const auto zero = ctx.ssa->reachingDef(vector[zeroIndex].reg, compared.instRef);
+            const auto* zeroOps = zero.inst ? zero.inst->ops(*ctx.operands) : nullptr;
+            const MicroReg other = vector[zeroIndex == 1 ? 2 : 1].reg;
+            if (zero.valid() && !zero.isPhi && zero.inst && zero.inst->op == MicroInstrOpcode::ClearReg &&
+                !ctx.isClaimed(zero.instRef) && !ctx.isRelocated(zero.instRef) && zeroOps && zeroOps[1].opBits == MicroOpBits::B128 &&
+                ctx.ssa->sameValueAt(other, compared.instRef, extracted.instRef))
+            {
+                testReg = other;
+                break;
+            }
+        }
         MicroInstrOperand testOps[2] = {};
-        testOps[0].reg    = move[1].reg;
+        testOps[0].reg    = testReg;
         testOps[1].opBits = MicroOpBits::B128;
-        ctx.emitRewrite(compared.instRef, MicroInstrOpcode::OpBinaryRegRegReg, xorOps);
+        if (testReg != move[1].reg)
+            ctx.emitErase(compared.instRef);
+        else
+        {
+            MicroInstrOperand xorOps[5];
+            std::copy_n(vector, 5, xorOps);
+            xorOps[4].microOp = MicroOp::VecXor;
+            ctx.emitRewrite(compared.instRef, MicroInstrOpcode::OpBinaryRegRegReg, xorOps);
+        }
         ctx.emitRewrite(extracted.instRef, MicroInstrOpcode::VecTestReg, testOps);
         ctx.emitErase(cmpRef);
         return true;

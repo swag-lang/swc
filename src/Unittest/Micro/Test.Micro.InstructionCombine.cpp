@@ -6500,6 +6500,41 @@ SWC_TEST_BEGIN(InstCombine_AffineChain_KeepsShortAndUnencodableProducts)
 }
 SWC_TEST_END()
 
+SWC_TEST_BEGIN(InstCombine_ZeroVectorEqualityRequiresStableInput)
+{
+    constexpr MicroReg value  = MicroReg::virtualFloatReg(1);
+    constexpr MicroReg zero   = MicroReg::virtualFloatReg(2);
+    constexpr MicroReg vector = MicroReg::virtualFloatReg(3);
+    constexpr MicroReg mask   = MicroReg::virtualIntReg(1);
+    constexpr MicroReg result = MicroReg::virtualIntReg(2);
+    for (uint32_t variant = 0; variant < 3; ++variant)
+    {
+        MicroBuilder builder(ctx);
+        builder.emitLoadRegReg(value, MicroReg::floatReg(0), MicroOpBits::B128);
+        builder.emitClearReg(zero, MicroOpBits::B128);
+        builder.emitOpBinaryRegRegReg(vector, variant == 1 ? zero : value, variant == 1 ? value : zero, MicroOp::VecCmpEq16, MicroOpBits::B128);
+        if (variant == 2)
+            builder.emitClearReg(value, MicroOpBits::B128);
+        builder.emitVecUnaryRegReg(mask, vector, MicroOp::VecMoveMaskB, MicroOpBits::B128);
+        builder.emitCmpRegImm(mask, ApInt(0xFFFF, 32), MicroOpBits::B32);
+        builder.emitSetCondReg(result, MicroCond::NotEqual);
+        builder.emitLoadRegReg(MicroReg::intReg(0), result, MicroOpBits::B8);
+        builder.emitRet();
+        SWC_RESULT(runInstCombinePass(builder));
+        uint32_t xorCount = 0;
+        for (const MicroInstr& inst : builder.instructions().view())
+        {
+            const auto* ops = inst.ops(builder.operands());
+            if (inst.op == MicroInstrOpcode::OpBinaryRegRegReg && ops[4].microOp == MicroOp::VecXor)
+                ++xorCount;
+        }
+        if (Backend::Unittest::countOpcode(builder, MicroInstrOpcode::VecTestReg) != 1 || xorCount != (variant == 2 ? 1u : 0u))
+            return Result::Error;
+    }
+    return Result::Continue;
+}
+SWC_TEST_END()
+
 SWC_TEST_BEGIN(InstCombine_VectorEqualityMaskRequiresDeadValues)
 {
     constexpr MicroReg left   = MicroReg::virtualFloatReg(1);

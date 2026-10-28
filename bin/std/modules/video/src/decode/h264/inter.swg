@@ -406,14 +406,10 @@ private func halfCenterStrip(dst: [*] u8, dstStride: u64, src: [*] u8, srcStride
 
 // Averages two planes with upward rounding.
 //
-// A sixteen-wide row is one packed rounding average; the narrower rows keep
-// the word trick: `(x | y) - (((x ^ y) & 0xFE...) >> 1)` is the rounding-up
-// byte average on independent lanes.
+// Each packed average rounds upward independently on its byte lanes. Narrow rows
+// load only the bytes they own, then keep the low four or eight result lanes.
 func averagePlanes(dst: [*] u8, dstStride: u64, a: [*] u8, aStride: u64, b: [*] u8, bStride: u64, width, height: s32)
 {
-    const Mask64 = 0xFEFE_FEFE_FEFE_FEFE'u64
-    const Mask32 = 0xFEFE_FEFE'u32
-
     var pd = dst
     var pa = a
     var pb = b
@@ -435,7 +431,9 @@ func averagePlanes(dst: [*] u8, dstStride: u64, a: [*] u8, aStride: u64, b: [*] 
         {
             let a0 = cast(const [*] u64, pa)[0]
             let b0 = cast(const [*] u64, pb)[0]
-            cast([*] u64, pd)[0] = (a0 | b0) - (((a0 ^ b0) & Mask64) >> 1)
+            let av = cast #bit(Simd.U8x16, Simd.splat(a0))
+            let bv = cast #bit(Simd.U8x16, Simd.splat(b0))
+            cast([*] u64, pd)[0] = cast #bit(Simd.U64x2, Simd.average(av, bv))[0]
             pd += dstStride
             pa += aStride
             pb += bStride
@@ -446,7 +444,9 @@ func averagePlanes(dst: [*] u8, dstStride: u64, a: [*] u8, aStride: u64, b: [*] 
         {
             let a0 = cast(const [*] u32, pa)[0]
             let b0 = cast(const [*] u32, pb)[0]
-            cast([*] u32, pd)[0] = (a0 | b0) - (((a0 ^ b0) & Mask32) >> 1)
+            let av = cast #bit(Simd.U8x16, Simd.splat(a0))
+            let bv = cast #bit(Simd.U8x16, Simd.splat(b0))
+            cast([*] u32, pd)[0] = cast #bit(Simd.U32x4, Simd.average(av, bv))[0]
             pd += dstStride
             pa += aStride
             pb += bStride

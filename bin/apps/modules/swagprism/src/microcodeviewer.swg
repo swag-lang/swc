@@ -459,7 +459,7 @@ impl IWnd for MicrocodeViewer
         figure.appendFormat("%", size)
 
         let top        = StageFrieze.Height + FriezeGap
-        let figureFont = .theme().createDefaultFont(FigureSize)
+        let figureFont = .theme().createDefaultFont(FigureSize, .Light)
         let wordsFont  = .theme().createDefaultFont(.themeMetrics().defaultFontSize)
         let figureY    = top + 44
         let unit       = size == 1 ? appStrings().ui_InstructionOne : appStrings().ui_InstructionMany

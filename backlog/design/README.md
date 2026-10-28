@@ -99,6 +99,12 @@ tracking −0.03 em. Sheet titles 20–22/800. Dialog titles 17/650. Body 13–1
 10.5, uppercase, +0.14 em, weight 600, faint. Large facts (a percentage, a count, a rating):
 Inter 200–300 at 26–120.
 
+The toolkit ships Inter in four upright weights, and each role takes one: `Light` (300) for a
+large fact — Vault's percentage and capacity, the sheet's figures, Prism's instruction counts;
+`Regular` for body text; `SemiBold` (600) for a section label and for a name that leads a row, such
+as a vault's; `Bold` for titles, which stand in for the 650–800 weights. Roboto Mono keeps its
+regular and bold faces: a light or semibold measure is set regular or bold.
+
 ## Wording of commands
 
 Command labels use title-style capitalization in the English reference strings: menu items,

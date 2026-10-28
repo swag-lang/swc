@@ -140,7 +140,7 @@ impl IWnd for VaultRow
             textRight = .open.position.x - metrics.dialog_BtnPadding
         painter.pushClippingRect(Math.Rectangle{room.x, room.y, Math.max(0, textRight - room.x), room.height})
 
-        let nameFont = .theme().createDefaultFont(NameFontSize, .Bold)
+        let nameFont = .theme().createDefaultFont(NameFontSize, .SemiBold)
         let monoFont = .theme().createDefaultFontFs(12)
         let name     = Path.fileName(.path) orelse .path.toString()
         painter.drawString(room.x + TextX, nameFont.opticalLineTop(room.y + NameY), name, nameFont, colors.text)

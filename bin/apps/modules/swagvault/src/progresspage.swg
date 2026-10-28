@@ -20,7 +20,7 @@ impl ProgressFigure
     // Creates the figure in `parent`, at zero.
     func create(parent: *Wnd)->*ProgressFigure
     {
-        let height      = parent.theme().createDefaultFont(NumberSize).height
+        let height      = parent.theme().createDefaultFont(NumberSize, .Light).height
         with let result = Wnd.create'ProgressFigure(parent, Math.Rectangle{0, 0, 0, Math.ceil(height)})
         {
             .backgroundStyle = .Transparent
@@ -46,8 +46,8 @@ impl IWnd for ProgressFigure
         let painter = evt.paintContext.painter
         let colors  = .themeColors()
         let room    = .clientRect()
-        let number  = .theme().createDefaultFont(NumberSize)
-        let sign    = .theme().createDefaultFont(SignSize)
+        let number  = .theme().createDefaultFont(NumberSize, .Light)
+        let sign    = .theme().createDefaultFont(SignSize, .Light)
         let text    = Format.toString("%", .percent)
 
         let baseline = room.y + number.ascent

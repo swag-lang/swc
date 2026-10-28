@@ -118,7 +118,7 @@ impl CreatePage
         with .size = EditBox.create(.capacity, "256", Math.Rectangle{0, 0, SizeWidth, SizeHeight})
         {
             .setUnsignedIntegerRange(1, 1024 * 1024)
-            .style.setFont(me.theme().createDefaultFont(SizeFontSize), .Regular)
+            .style.setFont(me.theme().createDefaultFont(SizeFontSize, .Light), .Regular)
             .sigTextChanged += func|window = me.window|(_) { window.refreshActions() }
             .sigSubmitted   += func|window = me.window|(_) { window.submitCreate() }
         }

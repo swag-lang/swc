@@ -125,6 +125,51 @@ private func filterLumaSigned8(source: const [*] s16, stride: u64, taps: LumaTap
     return Simd.packSigned(low >> shift, high >> shift)
 }
 
+// Separate coefficient lanes keep the two-direction filter weights in registers across its rows.
+#[Swag.Inline]
+private func filterLumaUnsigned8Parts(source: const [*] u16, stride: u64, pair0, pair1, pair2, pair3: Simd.S16x8, shift: u32)->Simd.S16x8
+{
+    var first0  = Simd.load(source)
+    var second0 = Simd.load(source + stride)
+    var low     = Simd.mulAddPairs(cast #bit(Simd.S16x8, Simd.interleaveLow(first0, second0)), pair0)
+    var high    = Simd.mulAddPairs(cast #bit(Simd.S16x8, Simd.interleaveHigh(first0, second0)), pair0)
+    var first1  = Simd.load(source + 2 * stride)
+    var second1 = Simd.load(source + 3 * stride)
+    low  += Simd.mulAddPairs(cast #bit(Simd.S16x8, Simd.interleaveLow(first1, second1)), pair1)
+    high += Simd.mulAddPairs(cast #bit(Simd.S16x8, Simd.interleaveHigh(first1, second1)), pair1)
+    var first2  = Simd.load(source + 4 * stride)
+    var second2 = Simd.load(source + 5 * stride)
+    low  += Simd.mulAddPairs(cast #bit(Simd.S16x8, Simd.interleaveLow(first2, second2)), pair2)
+    high += Simd.mulAddPairs(cast #bit(Simd.S16x8, Simd.interleaveHigh(first2, second2)), pair2)
+    var first3  = Simd.load(source + 6 * stride)
+    var second3 = Simd.load(source + 7 * stride)
+    low  += Simd.mulAddPairs(cast #bit(Simd.S16x8, Simd.interleaveLow(first3, second3)), pair3)
+    high += Simd.mulAddPairs(cast #bit(Simd.S16x8, Simd.interleaveHigh(first3, second3)), pair3)
+    return Simd.packSigned(low >> shift, high >> shift)
+}
+
+#[Swag.Inline]
+private func filterLumaSigned8Parts(source: const [*] s16, stride: u64, pair0, pair1, pair2, pair3: Simd.S16x8, shift: u32)->Simd.S16x8
+{
+    var first0  = cast #bit(Simd.U16x8, Simd.load(source))
+    var second0 = cast #bit(Simd.U16x8, Simd.load(source + stride))
+    var low     = Simd.mulAddPairs(cast #bit(Simd.S16x8, Simd.interleaveLow(first0, second0)), pair0)
+    var high    = Simd.mulAddPairs(cast #bit(Simd.S16x8, Simd.interleaveHigh(first0, second0)), pair0)
+    var first1  = cast #bit(Simd.U16x8, Simd.load(source + 2 * stride))
+    var second1 = cast #bit(Simd.U16x8, Simd.load(source + 3 * stride))
+    low  += Simd.mulAddPairs(cast #bit(Simd.S16x8, Simd.interleaveLow(first1, second1)), pair1)
+    high += Simd.mulAddPairs(cast #bit(Simd.S16x8, Simd.interleaveHigh(first1, second1)), pair1)
+    var first2  = cast #bit(Simd.U16x8, Simd.load(source + 4 * stride))
+    var second2 = cast #bit(Simd.U16x8, Simd.load(source + 5 * stride))
+    low  += Simd.mulAddPairs(cast #bit(Simd.S16x8, Simd.interleaveLow(first2, second2)), pair2)
+    high += Simd.mulAddPairs(cast #bit(Simd.S16x8, Simd.interleaveHigh(first2, second2)), pair2)
+    var first3  = cast #bit(Simd.U16x8, Simd.load(source + 6 * stride))
+    var second3 = cast #bit(Simd.U16x8, Simd.load(source + 7 * stride))
+    low  += Simd.mulAddPairs(cast #bit(Simd.S16x8, Simd.interleaveLow(first3, second3)), pair3)
+    high += Simd.mulAddPairs(cast #bit(Simd.S16x8, Simd.interleaveHigh(first3, second3)), pair3)
+    return Simd.packSigned(low >> shift, high >> shift)
+}
+
 #[Swag.Inline]
 private func filterChromaUnsigned8(source: const [*] u16, stride: u64, taps: ChromaTaps, shift: u32)->Simd.S16x8
 {
@@ -634,13 +679,21 @@ impl Decoder
         let shift2    = 6'u32
         let lumaTapsX = lumaTaps(xFrac)
         let lumaTapsY = lumaTaps(yFrac)
+        let x0 = lumaTapsX.pair0
+        let x1 = lumaTapsX.pair1
+        let x2 = lumaTapsX.pair2
+        let x3 = lumaTapsX.pair3
+        let y0 = lumaTapsY.pair0
+        let y1 = lumaTapsY.pair1
+        let y2 = lumaTapsY.pair2
+        let y3 = lumaTapsY.pair3
         for row in height + 7
         {
             let source = cast(u64, row) * referenceStride
             var column = 0'u32
             while column + 8 <= width
             {
-                Simd.store(&intermediate[cast(u64, row) * cast(u64, width) + cast(u64, column)], filterLumaUnsigned8(&reference[source + cast(u64, column)], 1, lumaTapsX, shift1))
+                Simd.store(&intermediate[cast(u64, row) * cast(u64, width) + cast(u64, column)], filterLumaUnsigned8Parts(&reference[source + cast(u64, column)], 1, x0, x1, x2, x3, shift1))
                 column += 8
             }
 
@@ -666,7 +719,7 @@ impl Decoder
             while column + 8 <= width
             {
                 let source = &intermediate[cast(u64, row) * cast(u64, width) + cast(u64, column)]
-                Simd.store(&.predBuffer[list, row * width + column], filterLumaSigned8(source, cast(u64, width), lumaTapsY, shift2))
+                Simd.store(&.predBuffer[list, row * width + column], filterLumaSigned8Parts(source, cast(u64, width), y0, y1, y2, y3, shift2))
                 column += 8
             }
 

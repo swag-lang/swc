@@ -548,10 +548,6 @@ internal impl PdfView
     const ResidentPageLimit  = 8'u64
     const ResidentPageBudget = 32 * 1024 * 1024'u64
 
-    // How far the air under a page reaches, in logical units. A page is paper standing on the
-    // ground the viewer shows it against, and the shadow is what says so; without it the page is
-    // a white rectangle drawn on a dark one.
-    const PageShadowSpread = 6.0'f32
 
     // Lays the document out for the current viewport and scale, and publishes what can be
     // scrolled.
@@ -801,8 +797,9 @@ internal impl PdfView
 
             // The paper is drawn whether or not the page arrived, so a document scrolled faster
             // than it decodes shows where its pages are instead of a hole that fills in behind
-            // the reader.
-            painter.fillShadow(box, 0, PageShadowSpread, colors.wnd_Shadow)
+            // the reader. A page is paper standing on the ground the viewer shows it against: it
+            // casts the soft shadow of everything that floats over the work.
+            .theme().drawFloatingShadow(painter, box, 0)
             painter.fillRect(box, Color.fromArgb(Argb.White))
             painter.drawRect(box, colors.line, 1)
 
@@ -1353,6 +1350,20 @@ impl PdfView
         .showPage(.pageIndex)
         .publishZoom()
         .invalidate()
+    }
+
+    // Returns where the page the viewport shows stands across the view, in its local coordinates,
+    // for a host standing something in the margin beside it; zero wide without a document.
+    mtd pageColumn()->{ x: f32, width: f32 }
+    {
+        var result: #returntype
+        if not .hasDocument or .pageIndex >= .pageSizes.count do
+            return result
+        let rect     = .pageRect(.pageIndex)
+        let viewport = .scroll.view.surfaceRect()
+        result.x     = viewport.x - .surfaceRect().x + .documentOrigin().x + rect.x
+        result.width = rect.width
+        return result
     }
 
     // Brings the page at zero-based `index` to the top of the viewport.

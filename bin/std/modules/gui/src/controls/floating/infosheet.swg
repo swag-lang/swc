@@ -10,8 +10,9 @@ using Core, Pixel
 // trailing and bottom edges of its parent and clear of the window chrome at the top. It holds
 // what an information band used to show, and only while the reader asks for it: a title, a mono
 // line of identity, the facts the reader came for set large and light, readings as a label and a
-// value, section labels, a paragraph, links in Arc, and at most one primary action. A picture of
-// what the sheet describes — a poster, a cover, a capture — may head it.
+// value, section labels, a paragraph, links in Arc, and at most one primary action, which a
+// secondary one may follow. A picture of what the sheet describes — a poster, a cover, a
+// capture — may head it.
 //
 // The sheet floats over the work ([[Gui.DockStyle.Float]]) and stays hidden until
 // [[Gui.InfoSheet.open]]; the application binds the key that toggles it. Describe the content
@@ -39,7 +40,8 @@ struct InfoSheet
         {
             title:    String           // Title of the sheet, set large and bold.
             identity: String           // Mono line of identity under the title: a path, a format, a date.
-            action:   *PushButton?     // The one primary action of the sheet, when it has one.
+            action:    *PushButton?     // The one primary action of the sheet, when it has one.
+            secondary: *PushButton?     // The action beside the primary one, when it has one.
             picture:  Texture          // Picture heading the sheet, borrowed from its owner; invalid for none.
         }
     }
@@ -86,10 +88,22 @@ impl IWnd for InfoSheet
         liftFloating(me)
         .setPosition(Math.Rectangle{left, top, width, height})
 
+        // The primary action takes the foot of the sheet; with a secondary one, each takes half.
+        .secondary?.show(.action != null)
         if .action
         {
-            let pad = metrics.infoSheet_Padding
-            .action.setPosition(Math.Rectangle{pad, height - pad - metrics.btnPush_Height, width - 2 * pad, metrics.btnPush_Height})
+            let pad  = metrics.infoSheet_Padding
+            let y    = height - pad - metrics.btnPush_Height
+            let room = width - 2 * pad
+            if .secondary
+            {
+                let gap  = metrics.infoSheet_LineGap * 2
+                let half = Math.floor((room - gap) * 0.5)
+                .action.setPosition(Math.Rectangle{pad, y, half, metrics.btnPush_Height})
+                .secondary.setPosition(Math.Rectangle{pad + half + gap, y, half, metrics.btnPush_Height})
+            }
+            else do
+                .action.setPosition(Math.Rectangle{pad, y, room, metrics.btnPush_Height})
         }
     }
 
@@ -321,7 +335,20 @@ impl InfoSheet
         return .action
     }
 
-    // Removes the title, the identity, every block and the action.
+    // Sets the action standing beside the primary one, and returns its button.
+    //
+    // It shows only with a primary action, and calling this again replaces it.
+    #[Swag.Discardable]
+    mtd setSecondaryAction(caption: string, id: WndId)->*PushButton
+    {
+        if .secondary do
+            .secondary.destroy()
+        .secondary = PushButton.create(me, caption, {}, id)
+        .relayout()
+        return .secondary
+    }
+
+    // Removes the title, the identity, every block and the actions.
     mtd clear()
     {
         .title.clear()
@@ -332,6 +359,12 @@ impl InfoSheet
         {
             .action.destroy()
             .action = null
+        }
+
+        if .secondary
+        {
+            .secondary.destroy()
+            .secondary = null
         }
 
         .hotLink = Swag.U64.Max
@@ -376,6 +409,12 @@ impl InfoSheet
         if .action
         {
             result += .action.name.raw
+            result += "\n"
+        }
+
+        if .action and .secondary
+        {
+            result += .secondary.name.raw
             result += "\n"
         }
 

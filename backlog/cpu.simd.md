@@ -68,11 +68,12 @@ conversion, image codecs, text/crypto routines, Pixel spans, and SDF samples.
 - Evidence: packed bit expansion, encoder filter/scoring kernels, decoder Up/Average/Paeth
   and Sub for 1/2/3/4/6/8-byte pixels exist (`defilterSubRow` in `decode/png/filter.swg`);
   `image.png.test.swg` compares Sub against scalar recurrence across strides 1 through 8.
-  Gray and palette conversion have thresholded packed-word paths. `convert16` still
-  converts native 16-bit samples and transparency keys individually. Earlier rejections
-  of other packed Sub and gray shuffles predate cross-module SIMD inlining and do not settle the current cost.
-- Next: profile current decoding by filter and bit depth, then compare native 16-bit
-  conversion against its scalar form in the same process. Keep Inflate's
+  Gray and palette conversion have thresholded packed-word paths. Native 16-bit samples
+  without transparency keys are byte-swapped eight at a time; grayscale and RGB
+  transparency keys are still compared per pixel. Earlier rejections of other packed
+  Sub and gray shuffles predate cross-module SIMD inlining and do not settle the current cost.
+- Next: profile current decoding by filter and bit depth, then compare packed 16-bit
+  transparency-key conversion against its scalar form in the same process. Keep Inflate's
   share separate from image conversion so a microkernel gain has an end-to-end
   interpretation.
 - Done when: remaining paths have a measured decision, odd/Adam7 tails and malformed rows

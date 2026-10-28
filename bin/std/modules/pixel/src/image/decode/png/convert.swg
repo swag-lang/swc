@@ -30,6 +30,29 @@ const PackedGrayscaleAlphaThreshold = 256'u64
 // RGB transparency expansion amortizes its shuffle and masks on image-sized inputs.
 const SimdRgbTransparencyThreshold = 4096'u64
 
+// PNG stores 16-bit samples big-endian; native image pixels use little-endian words.
+func convert16Samples(source: const [*] u8, destination: [*] u8, sampleCount: u64)
+{
+    var src = source
+    var dst = destination
+    var remaining = sampleCount
+    while remaining >= 8
+    {
+        Math.Simd.store(dst, Math.Simd.shuffle(Math.Simd.load(src), Swap16Bytes))
+        src += 16
+        dst += 16
+        remaining -= 8
+    }
+    while remaining
+    {
+        dst[0] = src[1]
+        dst[1] = src[0]
+        src += 2
+        dst += 2
+        remaining -= 1
+    }
+}
+
 func reduce16Samples(source: const [*] u8, destination: [*] u8, sampleCount: u64)
 {
     var src   = source
@@ -288,32 +311,34 @@ impl Decoder
         var src = cast(const [*] u8, .safeDstPixels())
         var dst = cast([*] u8, result.pixels.storage())
 
+        // Without a transparency key, each input word maps directly to one
+        // output word, independent of the number of channels.
+        if not .seenTRSN or (cast(u8, .header.colorType) & 4) != 0
+        {
+            let samples = cast(u64, result.width) * result.height * .inChannels
+            convert16Samples(src, dst, samples)
+            return
+        }
+
         switch cast(u8, .header.colorType)
         {
         case 0:
-            var transparent: u16
-            if .seenTRSN do
-                transparent = read16((.safeTRNSData()).buffer)
+            let transparent = read16((.safeTRNSData()).buffer)
 
             for result.width * result.height
             {
                 let gray = read16(src)
                 cast(*u16, dst)[] = gray
-                if .seenTRSN do
-                    cast(*u16, (dst + 2))[] = gray == transparent ? 0'u16 : 65535'u16
+                cast(*u16, (dst + 2))[] = gray == transparent ? 0'u16 : 65535'u16
                 src += 2
-                dst += result.bytesPerPixel
+                dst += 4
             }
 
         case 2:
-            var transparentR, transparentG, transparentB: u16
-            if .seenTRSN
-            {
-                let key = cast(const [*] u8, (.safeTRNSData()).buffer)
-                transparentR = read16(key)
-                transparentG = read16(key + 2)
-                transparentB = read16(key + 4)
-            }
+            let key = cast(const [*] u8, (.safeTRNSData()).buffer)
+            let transparentR = read16(key)
+            let transparentG = read16(key + 2)
+            let transparentB = read16(key + 4)
 
             for result.width * result.height
             {
@@ -323,31 +348,11 @@ impl Decoder
                 cast(*u16, dst)[]       = r
                 cast(*u16, (dst + 2))[] = g
                 cast(*u16, (dst + 4))[] = b
-                if .seenTRSN do
-                    cast(*u16, (dst + 6))[] = r == transparentR and g == transparentG and b == transparentB ? 0'u16 : 65535'u16
+                cast(*u16, (dst + 6))[] = r == transparentR and g == transparentG and b == transparentB ? 0'u16 : 65535'u16
                 src += 6
-                dst += result.bytesPerPixel
+                dst += 8
             }
 
-        case 4:
-            for result.width * result.height
-            {
-                cast(*u16, dst)[]       = read16(src)
-                cast(*u16, (dst + 2))[] = read16(src + 2)
-                src                     += 4
-                dst                     += 4
-            }
-
-        case 6:
-            for result.width * result.height
-            {
-                cast(*u16, dst)[]       = read16(src)
-                cast(*u16, (dst + 2))[] = read16(src + 2)
-                cast(*u16, (dst + 4))[] = read16(src + 4)
-                cast(*u16, (dst + 6))[] = read16(src + 6)
-                src                     += 8
-                dst                     += 8
-            }
         }
     }
 

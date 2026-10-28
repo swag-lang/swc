@@ -1028,6 +1028,32 @@ func buildPng16(width, height: s32, colorType: u8, interlace: bool, samples: con
     assertLoadedPng("basi6a08.png", 32, 32, .RGBA8, 0'u8, 32'u8, 255'u8, 0'u8)
 }
 
+// Native 16-bit conversion handles unaligned vectors and every short tail
+// without touching the surrounding bytes.
+#test
+{
+    const Capacity = 160
+    var source: [Capacity] u8
+    var actual: [Capacity] u8
+    var expected: [Capacity] u8
+    for count in 65'u64
+    {
+        for i in Capacity
+        {
+            source[i] = cast(u8, ((i * 53 + count * 7) & 255))
+            actual[i] = 0xA5
+            expected[i] = 0xA5
+        }
+        for i in count
+        {
+            expected[3 + 2 * i] = source[2 + 2 * i]
+            expected[4 + 2 * i] = source[1 + 2 * i]
+        }
+        Png.convert16Samples(&source[1], &actual[3], count)
+        Swag.assert(actual == expected)
+    }
+}
+
 // Preserve high-depth color samples, while grayscale remains in its compact native channel count.
 #test
 {
@@ -1055,6 +1081,33 @@ func buildPng16(width, height: s32, colorType: u8, interlace: bool, samples: con
     assertPngPixelAt(rgbaImg, 0, 0, 18'u8, 128'u8, 255'u8, 1'u8)
     let rgbaRaw = cast(const [*] u16, rgbaImg.pixels.storage())
     Swag.assert(rgbaRaw[0] == 0x1234 and rgbaRaw[1] == 0x8080 and rgbaRaw[2] == 0xFFFF and rgbaRaw[3] == 0x0101)
+}
+
+// The packed conversion handles native alpha, while grayscale transparency
+// compares the complete 16-bit value before creating the alpha channel.
+#test
+{
+    var alphaSamples: Array'u16
+    for i in 18 do
+        alphaSamples.add(cast(u16, (0x1000 + i * 257)))
+    let alphaPng = buildPng16(9, 1, 4, false, alphaSamples.toSlice())
+    let alphaImage = expect Image.decode("gray-alpha16.png", nnBytes(alphaPng.toSlice()), {})
+    Swag.assert(alphaImage.pixelFormat == .GrayAlpha16)
+    let alphaRaw = cast(const [*] u16, alphaImage.pixels.storage())
+    for i in 18 do
+        Swag.assert(alphaRaw[i] == alphaSamples[i])
+
+    var graySamples: Array'u16
+    graySamples.add(0x1234)
+    graySamples.add(0x1235)
+    var key: Array'u16
+    key.add(0x1234)
+    let grayPng = buildPng16(2, 1, 0, false, graySamples.toSlice(), key.toSlice())
+    let grayImage = expect Image.decode("gray16-trns.png", nnBytes(grayPng.toSlice()), {})
+    Swag.assert(grayImage.pixelFormat == .GrayAlpha16)
+    let grayRaw = cast(const [*] u16, grayImage.pixels.storage())
+    Swag.assert(grayRaw[0] == 0x1234 and grayRaw[1] == 0)
+    Swag.assert(grayRaw[2] == 0x1235 and grayRaw[3] == 0xFFFF)
 }
 
 // A 16-bit tRNS key compares the original samples before reduction to 8 bits.

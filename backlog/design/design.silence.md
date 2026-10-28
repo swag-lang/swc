@@ -111,15 +111,17 @@ dialogs, then each application, then the written rules.
   goldens (`surface`, `edit.{arrow,callout,multi,step,mask,color.paper,text,text.paper}`, `area`,
   `inplace{,.paper}`, `library.surface`, `lens.paper`). Words are typed in place for every text
   shape (aligned, level while a rotated shape is edited), the text mini-bar is compact and keeps
-  clear of the dock and the inspector, quick styles are pills, the inspector head actions are
+  clear of the dock and the inspector, quick styles are pictures of their shapes (`presets`
+  goldens), the inspector head actions are
   faint words, the style is one "Aa" row, the area bar offers the delay and the cursor, its keys
   stand on the floating ground, the lens ends with the recent captures as pictures, and the
   in-place bar stands beside the zone when the screen has no room above or below it. What they
   still show differently: a quick style has no name (the picture writes « Repère orange » under
   the pills); the inspector rows of the head do not scroll with the generated settings; the
-  library tab counts are in the proportional face (the tab bar sets one face per tab); the
-  quick-style strip holds nine presets where the pictures show five wider pills; a stroke
-  preset is a drawn glyph rather than the sample of its caps.
+  library tab counts are in the proportional face (the tab bar sets one face per tab); a tool
+  offers up to sixteen presets, which wrap to four rows where the pictures show one; a white
+  text preset on Papier is white on the light cell; a mask preset is the glyph of its kind
+  rather than its pattern.
 - Next: give a quick style a name, shown under the strip and on its tooltip; let the inspector
   scroll its head rows with its content.
 - Done when: each `capture.*` picture is reproduced by its golden.

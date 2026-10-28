@@ -421,8 +421,8 @@ the screen to its work.
   text, tail handle, font/size/style "Aa" segments), masks (image, blur, pixelation, magnifier,
   capture as a radio list), step numbers (mini-bar with number stepper and reset), multiple
   selection (common settings, align, arrange, group), colour popover (recent, palette, exact
-  value, opacity) and quick styles (pills of the style colours, the chosen one ringed in Arc,
-  then `+`).
+  value, opacity) and quick styles (each a small picture of the shape it draws, in its own
+  colours, the chosen one ringed in Arc, then `+`).
 - Words are typed in place, for every shape that carries some — a text, a callout, the label of a
   step: a double click, Enter or `F2` lays a field per line over the shape, in its face, size,
   ink and alignment. Enter breaks the line (a step keeps its label on Enter), `Ctrl+Enter` or a

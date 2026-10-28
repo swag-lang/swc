@@ -8,13 +8,12 @@ struct Texts
 {
     ui_OneCue:           string = "1 cue"                                  // Count of one subtitle cue.
     ui_Cues:             string = "% cues"                                 // Count of several subtitle cues.
-    ui_CuePosition:      string = "% / %"                                  // Current cue number and total.
+    ui_CuePosition:      string = "Cue % / %"                              // Current cue number and total, at the foot of the list.
     ui_GoToCue:          string = "Go to Cue"                              // Title of cue navigation.
     ui_PreviousCue:      string = "Previous Cue"                           // Command moving to the cue before the current one.
     ui_NextCue:          string = "Next Cue"                               // Command moving to the cue after the current one.
     ui_FirstCue:         string = "First Cue"                              // Command moving to the first cue.
     ui_LastCue:          string = "Last Cue"                               // Command moving to the last cue.
-    ui_CueNavigationTip: string = "Go to Cue · Ctrl+Page Up/Down: previous/next · Ctrl+Home/End: first/last"     // Cue navigation shortcuts.
     ui_CueRange:         string = "Enter a cue number from 1 to %."        // Explanation above the cue input.
     ui_GoToTime:         string = "Go to Time"                             // Title and tooltip of time navigation.
     ui_TimeRange:        string = "Enter seconds, MM:SS, or HH:MM:SS."     // Explanation above the time input.

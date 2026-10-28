@@ -276,3 +276,29 @@ func storedZipBytes(files: const [..] StoredZipFile)->Array'u8
 
 // The failure text a viewer shows: the plain statement, then the technical detail.
 func failureShape(statement, detail: string)->String => Format.toString("%\n\n%", statement, detail)
+
+// Opens `fileName` in a viewer window built inside the frame of the shipped surface, at the size
+// of the charter's pictures, in Encre or in Papier, and lets the viewer finish loading.
+//
+// The strip floats over the document with the glyph, the name and the window buttons, so a
+// picture of the window is judged whole against its charter picture.
+func framedViewerWindow(host: *Testing.HeadlessHost, fileName: string, light: bool)->*ViewerWindow
+{
+    host.setup(1280, 800)
+    host.surface.updateFlags(SurfaceFlags.StandardWindow | SurfaceFlags.NoShadow)
+    host.app.setAppIcon(expect Image.decode(".png", AppIcon))
+    if light do
+        host.theme.setLight()
+    else do
+        host.theme.setDark()
+    host.theme.metrics.surfaceWnd_ShadowSize   = 0
+    host.theme.metrics.surfaceWnd_CornerRadius = 0
+    host.notify(.ThemeChanged)
+
+    let window = ViewerWindow.create(&host.surfaceWnd, createViewerPluginRegistry())
+    window.openFile(fileName)
+    completeQueuedViewerFile(host, window)
+    window.applyLayout()
+    host.settleAnimations(window, 4)
+    return window
+}

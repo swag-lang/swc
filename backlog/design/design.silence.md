@@ -80,7 +80,10 @@ dialogs, then each application, then the written rules.
   (`viewer.markdown.images.whitey`); the image viewer counts its rank in the folder. Subtitles
   read as a list under the file's name and mono line: number, mono time range, words, the current
   cue on the selection ground, the rhythm of the minute around it, its rank and time at the foot
-  (`viewer.subtitle.{ink,paper}`, photographed in the shipped frame).
+  (`viewer.subtitle.{ink,paper}`, photographed in the shipped frame). A MIDI score reads as one
+  lane per track under the bar numbers, each track in its series hue with its name and channel,
+  the notes spread by pitch in the lane (`viewer.midi.{ink,paper}`); the piano roll stays as a
+  presentation in the options. It has no transport nor play head, because Scope plays no MIDI.
   What still differs from the pictures: the progress thread runs along the window's top edge, not
   under the strip, and no document scrolls under the strip; text has no "Column ▾" quiet menu;
   the explorer has no "Extract All…" on the title line nor "Extract…" in the sheet, the sheet shows
@@ -89,13 +92,13 @@ dialogs, then each application, then the written rules.
   PDF has no outline margin and no paper shadow; the video picture does not reach the strip and has
   no top and bottom veils with chips; sound is not laid out around its cover; hex has no structure
   tabs and no floating inspector with the value in large type; the font viewer is not a specimen
-  page (its sample field lives on the floating bar); table, HTML (column, address, outline),
-  MIDI and binary (report page) keep their earlier shapes. Waits use
+  page (its sample field lives on the floating bar); table, HTML (column, address, outline)
+  and binary (report page) keep their earlier shapes. Waits use
   `Gui.Spinner`; nothing in Scope needs a toast before `Gui.Toast` lands.
 - Next: the progress thread under the strip; then the viewers in this order, each on its picture —
   `scope.pdf.paper`, `scope.video`, `scope.sound`, `scope.archive` (Extract, preview card, then the
   embedded host on the window's model), `scope.hex`, `scope.font.paper`, `scope.table.paper`,
-  `scope.html.paper`, `scope.midi`, `scope.binary` — moving what still stands on
+  `scope.html.paper`, `scope.binary` — moving what still stands on
   the floating bar into the document where the picture puts it. Switch the explorer's private quiet
   menus to `IconButton.createQuiet` once it lands.
 - Done when: every Scope golden matches its picture.

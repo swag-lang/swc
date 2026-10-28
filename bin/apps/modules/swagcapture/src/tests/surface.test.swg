@@ -462,17 +462,57 @@ func testSetupInPlace(host: *Gui.Testing.HeadlessHost, dark: bool)->*InPlaceEdit
     main.applyLayout()
     main.editWnd.editView.beginTextEdit(callout)
     host.finishAnimations()
-    Swag.assert(main.editWnd.editView.textEdit != null and callout.editingText)
+    Swag.assert(main.editWnd.editView.isEditingText() and callout.editingText)
 
     var image = host.render(main)
     Pixel.Testing.assertImageGolden(&image, "edit.callout")
 
     // Ending keeps the words as one step of the history.
-    main.editWnd.editView.textEdit.setText("New panels")
+    main.editWnd.editView.textLines[0].setText("New panels")
     main.editWnd.editView.endTextEdit()
     Swag.assert(callout.text == "New panels" and not callout.editingText)
     capture.undo()
     Swag.assert(callout.text == "New panel")
+}
+
+// A turned text of two lines set against the left edge, its words typed in place: the text
+// stands level, each line a field against the left edge, in its face, its size and its ink, in
+// Encre and in Papier.
+#[Swag.TestTag("golden")]
+#test
+{
+    for dark in [true, false]
+    {
+        var host: Gui.Testing.HeadlessHost
+        let main = testSetupEditorSurface(&host, dark: dark, text: false)
+        defer
+        {
+            main.libWnd.requestClose()
+            host.shutdown()
+            g_Main = null
+        }
+
+        let capture = unwrap main.getCapture()
+        with let text = testAddText(capture, 60, 50, 260, 130)
+        {
+            .text      = "Release\nnotes"
+            .fontSize  = 40
+            .backColor = ColorRed
+            .alignHorz = .LeftTop
+            .rotate    = 20
+        }
+
+        capture.selection.add(0)
+        capture.selectionHasChanged()
+        main.applyLayout()
+        main.editWnd.editView.beginTextEdit(text)
+        host.finishAnimations()
+        Swag.assert(main.editWnd.editView.textLines.count == 2 and Math.isZeroEpsilon(text.rotate))
+
+        var image = host.render(main)
+        Pixel.Testing.assertImageGolden(&image, dark ? "edit.text" : "edit.text.paper")
+        main.editWnd.editView.endTextEdit(keep: false)
+    }
 }
 
 // The lens over the editor, answering a query with commands of several families, in Papier.
@@ -639,4 +679,187 @@ const LibraryGoldenTitles = ["Side panel", "Error bubble", "Swag lexer", "Dark e
         var rendered = f.gui.render(f.editView)
         Swag.assert(rendered.isValid())
     }
+}
+
+// Starts typing the words of form `index` of the editor's capture, the way a double click does.
+func testBeginInlineText(host: *Gui.Testing.HeadlessHost, main: *MainWnd, index: u64)->*EditView
+{
+    let view    = main.editWnd.editView
+    let capture = unwrap main.getCapture()
+    capture.selection.clear()
+    capture.selection.add(index)
+    capture.selectionHasChanged()
+    view.beginTextEdit(capture.forms[index])
+    host.pump()
+    return view
+}
+
+// A text, not only a callout, has its words typed in place: Enter breaks the line, Ctrl+Enter
+// keeps the words as one step of the history, Escape lets them go.
+#test
+{
+    var host: Gui.Testing.HeadlessHost
+    let main = testSetupEditorSurface(&host, dark: true)
+    defer
+    {
+        main.libWnd.requestClose()
+        host.shutdown()
+        g_Main = null
+    }
+
+    let capture = unwrap main.getCapture()
+    let text    = assume cast(*FormText, capture.forms[0])
+    var view    = testBeginInlineText(&host, main, 0)
+    Swag.assert(view.isEditingText() and text.editingText)
+    Swag.assert(view.textLines.count == 1 and view.inlineText() == "Theme")
+
+    // Enter breaks the line at the caret, which stands after the words.
+    let first = view.textLines[0]
+    Swag.assert(view.textLineKey(first, .Return, .None))
+    Swag.assert(view.isEditingText() and view.textLines.count == 2)
+    view.textLines[1].setText("Notes")
+    Swag.assert(view.inlineText() == "Theme\nNotes")
+
+    // Ctrl+Enter keeps them, as one step of the history.
+    Swag.assert(view.textLineKey(view.textLines[1], .Return, .Control))
+    Swag.assert(not view.isEditingText() and not text.editingText)
+    Swag.assert(text.text == "Theme\nNotes")
+    capture.undo()
+    Swag.assert(text.text == "Theme")
+    capture.redo()
+    Swag.assert(text.text == "Theme\nNotes")
+
+    // Escape lets the words go: nothing changes, nothing is added to the history.
+    view = testBeginInlineText(&host, main, 0)
+    view.textLines[0].setText("Gone")
+    Swag.assert(view.textLineKey(view.textLines[0], .Escape, .None))
+    Swag.assert(not view.isEditingText() and text.text == "Theme\nNotes")
+    capture.undo()
+    Swag.assert(text.text == "Theme")
+    capture.redo()
+
+    // Backspace at the start of a line joins it to the line above.
+    view = testBeginInlineText(&host, main, 0)
+    let second = view.textLines[1]
+    second.setSelection(0, 0)
+    Swag.assert(view.textLineKey(second, .Back, .None))
+    Swag.assert(view.textLines.count == 1 and view.inlineText() == "ThemeNotes")
+
+    // Selecting another form keeps the words, like a click elsewhere.
+    capture.selection.clear()
+    capture.selectionHasChanged()
+    Swag.assert(not view.isEditingText() and text.text == "ThemeNotes")
+}
+
+// The label of a step is typed in place too, and Enter keeps it.
+#test
+{
+    var host: Gui.Testing.HeadlessHost
+    let main = testSetupEditorSurface(&host, dark: true, text: false)
+    defer
+    {
+        main.libWnd.requestClose()
+        host.shutdown()
+        g_Main = null
+    }
+
+    let capture = unwrap main.getCapture()
+    let step    = testAddStep(capture, 60, 60, 48, 48)
+    step.index = 3
+
+    let view = testBeginInlineText(&host, main, 0)
+    Swag.assert(view.isEditingText() and step.editingText and view.inlineText() == "3")
+    view.textLines[0].setText("7")
+    Swag.assert(view.textLineKey(view.textLines[0], .Return, .None))
+    Swag.assert(not view.isEditingText() and step.index == 7)
+    capture.undo()
+    Swag.assert(step.index == 3)
+
+    // A step that counts in letters takes a letter.
+    step.typeIndex = .LetterUp
+    discard testBeginInlineText(&host, main, 0)
+    Swag.assert(view.inlineText() == "C")
+    view.textLines[0].setText("e")
+    view.endTextEdit()
+    Swag.assert(step.index == 5)
+}
+
+// A rotated form straightens while its words are typed, over a quick change of state, and turns
+// back to its angle when they are kept or let go.
+#test
+{
+    var host: Gui.Testing.HeadlessHost
+    let main = testSetupEditorSurface(&host, dark: true)
+    defer
+    {
+        main.libWnd.requestClose()
+        host.shutdown()
+        g_Main = null
+    }
+
+    host.setReducedMotion(false)
+    let capture = unwrap main.getCapture()
+    let text    = assume cast(*FormText, capture.forms[0])
+    text.rotate = 30
+
+    // Halfway through, the form is turning; at the end it stands level.
+    let view    = testBeginInlineText(&host, main, 0)
+    let quick   = main.themeMetrics().motion_QuickSeconds
+    host.advanceAnimations(quick * 0.5)
+    Swag.assert(text.rotate > 0 and text.rotate < 30)
+    host.finishAnimations()
+    Swag.assert(Math.isZeroEpsilon(text.rotate))
+
+    // Kept or let go, it turns back to its angle.
+    view.endTextEdit(keep: false)
+    host.advanceAnimations(quick * 0.5)
+    Swag.assert(text.rotate > 0 and text.rotate < 30)
+    host.finishAnimations()
+    Swag.assert(Math.abs(text.rotate - 30) < 0.01)
+
+    discard testBeginInlineText(&host, main, 0)
+    host.finishAnimations()
+    view.textLines[0].setText("Turned")
+    view.endTextEdit()
+    host.finishAnimations()
+    Swag.assert(Math.abs(text.rotate - 30) < 0.01 and text.text == "Turned")
+}
+
+// The fields stand where the alignment of the form puts its words: against the left edge, about
+// the centre, against the right edge.
+#test
+{
+    var host: Gui.Testing.HeadlessHost
+    let main = testSetupEditorSurface(&host, dark: true)
+    defer
+    {
+        main.libWnd.requestClose()
+        host.shutdown()
+        g_Main = null
+    }
+
+    let capture = unwrap main.getCapture()
+    let text    = assume cast(*FormText, capture.forms[0])
+    let view    = main.editWnd.editView
+    text.fontSize = 20
+
+    var lefts: [3] f32
+    var rights: [3] f32
+    for align, i in [FormTextAlign.LeftTop, FormTextAlign.Center, FormTextAlign.RightBottom]
+    {
+        text.alignHorz = align
+        discard testBeginInlineText(&host, main, 0)
+        lefts[i]  = view.textLines[0].position.x
+        rights[i] = view.textLines[0].position.right()
+        view.endTextEdit(keep: false)
+    }
+
+    let place = view.getCaptureRect()
+    var rect  = view.textSpec.rect * view.zoom
+    rect.offset(place.x - view.scrollPos.x, place.y - view.scrollPos.y)
+    let words = Painter.measureStringSnapped(text.text, unwrap view.textFont.regular)
+    Swag.assert(Math.abs(lefts[0] - rect.x) <= 1)
+    Swag.assert(Math.abs(lefts[1] + words * 0.5 - rect.horzCenter()) <= 1)
+    Swag.assert(Math.abs(lefts[2] + words - rect.right()) <= 1)
+    Swag.assert(rights[0] - lefts[0] == rights[2] - lefts[2])
 }

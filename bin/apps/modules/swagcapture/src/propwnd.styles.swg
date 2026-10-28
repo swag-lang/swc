@@ -534,26 +534,6 @@ impl PropWnd
         }
     }
 
-    // Asks for the text of the selected forms, starting from `curText`, and sets it as one undo
-    // step. Returns the text the forms end up with.
-    func editText(main: *MainWnd, curText: String)->String
-    {
-        var editOptions: EditDlgOptions
-        editOptions.title = appStrings().dlg_TitleEnterText
-        editOptions.text  = curText.toString()
-        let dialog = EditDlg.createMultiLine(unwrap main.surface, editOptions)
-        if main.inPlaceEdit do
-            dialog.surface?.setTopMost()
-
-        if dialog.doModal() != Dialog.BtnOk do
-            return curText
-        let capture = unwrap main.getCapture()
-        let undo    = capture.newUndo(.SetText)
-        undo.text = dialog.text()
-        capture.pushUndo(undo)
-        return undo.text
-    }
-
     // The commands of a pixel selection, one row each.
     mtd propPixSel()
     {

@@ -431,10 +431,15 @@ impl MainWnd
         if .hintLine == null do
             return
         .hintLine.clearHints()
-        if .editWnd != null and .editWnd.editView.textForm
+        if .editWnd != null and .editWnd.editView.isEditingText()
         {
-            .hintLine.addHint("", appStrings().hint_CalloutTail)
-            .hintLine.addHint(strings().key_Escape, appStrings().hint_EndText)
+            let view = .editWnd.editView
+            if view.textEditForm() is FormCallout do
+                .hintLine.addHint("", appStrings().hint_CalloutTail)
+            if not view.textSpec.step do
+                .hintLine.addHint(appStrings().key_Return, appStrings().hint_NewLine)
+            .hintLine.addHint(view.textSpec.step ? appStrings().key_Return : appStrings().key_CtrlReturn, appStrings().hint_KeepText)
+            .hintLine.addHint(strings().key_Escape, appStrings().hint_Cancel)
             return
         }
 

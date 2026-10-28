@@ -94,8 +94,10 @@ struct AppStrings
     key_Return:                 string = "Enter"                       // The Enter key, in a keycap of a hint line.
     hint_CopyClose:             string = "copy and close"              // What Enter does in the in-place editor.
     hint_Save:                  string = "save"                        // What Ctrl+S does in the in-place editor.
-    hint_CalloutTail:           string = "Drag the point of the tail to aim it"     // Hint while a callout's words are typed in place.
-    hint_EndText:               string = "finish the text"             // What Escape does while a callout's words are typed in place.
+    hint_CalloutTail:           string = "Drag the point of the tail to aim it"     // Hint while the words of a callout are typed in place.
+    key_CtrlReturn:             string = "Ctrl+Enter"                  // The Ctrl and Enter keys, in a keycap of a hint line.
+    hint_NewLine:               string = "new line"                    // What Enter does while the words of a form are typed in place.
+    hint_KeepText:              string = "keep the text"               // What Ctrl+Enter does while the words of a form are typed in place.
     ui_Common:                  string = "Common"                      // Section of the inspector holding what several objects share.
     msg_FailedCaptureScreen:    string = "Failed to capture the screen"
     msg_FailedLoadFile:         string = "Failed to load file: %"
@@ -108,7 +110,6 @@ struct AppStrings
     msg_ShortcutsTakenWhy:      string = "Other running applications are probably already using them!"
     msg_ResetStyles:            string = "This will reset the styles to the default values."     // Confirmation before restoring the default quick styles.
     dlg_TitleRenameCapture:     string = "Rename Capture"              // Title of the capture rename dialog.
-    dlg_TitleEnterText:         string = "Enter Text"                  // Title of the text-entry dialog.
     ui_Outline:                 string = "Outline"                     // Label of the outline thickness slider.
     ui_PropFill:                string = "Fill"                        // Fill color swatch of the tool panel.
     ui_PropOutline:             string = "Outline"                     // Outline color swatch of the tool panel.

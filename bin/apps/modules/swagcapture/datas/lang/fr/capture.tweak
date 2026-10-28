@@ -268,7 +268,6 @@ tip_InpText            Ajouter une annotation texte
 tip_InpMarker          Surligner au marqueur
 msg_ResetStyles        Les styles seront réinitialisés aux valeurs par défaut.
 dlg_TitleRenameCapture Renommer la capture
-dlg_TitleEnterText     Saisir le texte
 ui_Outline             Contour
 ui_PropFill            Fond
 ui_PropOutline         Contour
@@ -405,5 +404,7 @@ key_Return             Entrée
 hint_CopyClose         copier et fermer
 hint_Save              enregistrer
 hint_CalloutTail       Glisser le point de la queue pour la diriger
-hint_EndText           terminer le texte
+key_CtrlReturn         Ctrl+Entrée
+hint_NewLine           nouvelle ligne
+hint_KeepText          garder le texte
 ui_Common              En commun

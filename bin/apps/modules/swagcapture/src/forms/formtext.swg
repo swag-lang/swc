@@ -51,6 +51,9 @@ struct FormText
         totalY:      f32
         paths:       Array'LinePathList
         borderPaths: Array'LinePathList
+
+        // Whether the words are being typed in place: the editor writes them, the form does not.
+        editingText: bool
     }
 }
 
@@ -228,6 +231,9 @@ impl IForm for FormText
 
     mtd impl paint(painter: *Painter, cxt: FormPaintContext)
     {
+        if .editingText and not cxt.quickMode do
+            return
+
         var cxtCpy = cxt
         cxtCpy.z = 1
 

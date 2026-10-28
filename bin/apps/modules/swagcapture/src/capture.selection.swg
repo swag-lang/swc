@@ -46,15 +46,9 @@ impl Capture
     mtd selectionHasChanged()
     {
         let view = .editView
-        if view and view.textForm
+        if view and view.isEditingText()
         {
-            var keep = false
-            if .selection.count == 1
-            {
-                if .forms[.selection[0]] is FormCallout as callout do
-                    keep = callout == view.textForm
-            }
-
+            let keep = .selection.count == 1 and cast(*BaseForm, .forms[.selection[0]]) == view.textForm
             if not keep do
                 view.endTextEdit()
         }

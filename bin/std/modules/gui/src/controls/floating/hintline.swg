@@ -51,6 +51,7 @@ struct HintLine
             reading:   String     // Faint mono reading leading the line; empty for none.
             hints:     Array'HintLineItem     // Keys and what they open, in reading order.
             alignment: HintLineAlignment      // Where the line stands along the bottom edge.
+            grounded:  bool                   // Whether the line stands on the floating ground, over a busy picture.
         }
     }
 }
@@ -66,20 +67,23 @@ impl IWnd for HintLine
         let metrics = .themeMetrics()
         let bounds  = parent.clientRect()
         let page    = parent.paddedClientRect()
-        let top     = bounds.bottom() - metrics.hintLine_Bottom - metrics.hintLine_Height
+        let pad     = .groundPadding()
+        let height  = metrics.hintLine_Height + 2 * pad.y
+        let content = .contentWidth() + 2 * pad.x
+        let top     = bounds.bottom() - metrics.hintLine_Bottom - metrics.hintLine_Height - pad.y
         switch #complete .alignment
         {
         case .Center:
-            let width = Math.min(.contentWidth(), bounds.width)
-            .setPosition(Math.Rectangle{Math.round(bounds.horzCenter() - width * 0.5), top, width, metrics.hintLine_Height})
+            let width = Math.min(content, bounds.width)
+            .setPosition(Math.Rectangle{Math.round(bounds.horzCenter() - width * 0.5), top, width, height})
 
         case .Leading:
-            let width = Math.min(.contentWidth(), page.width)
-            .setPosition(Math.Rectangle{page.x, top, width, metrics.hintLine_Height})
+            let width = Math.min(content, page.width)
+            .setPosition(Math.Rectangle{page.x, top, width, height})
 
         case .Trailing:
-            let width = Math.min(.contentWidth(), page.width)
-            .setPosition(Math.Rectangle{page.right() - width, top, width, metrics.hintLine_Height})
+            let width = Math.min(content, page.width)
+            .setPosition(Math.Rectangle{page.right() - width, top, width, height})
         }
     }
 
@@ -91,10 +95,18 @@ impl IWnd for HintLine
         let centerY = .clientRect().vertCenter()
         let font    = .theme().createDefaultFont(metrics.hintLine_FontSize)
 
-        var x = 0'f32
+        // Over a busy picture the words stand on the floating ground, in the secondary ink.
+        var ink = colors.faintText
+        if .grounded
+        {
+            paintFloatingGround(me, painter, .clientRect(), metrics.corner_Control)
+            ink = colors.softText
+        }
+
+        var x = .groundPadding().x
         if not .reading.isEmpty()
         {
-            x += paintTextLine(painter, x, centerY, .reading, .theme().createDefaultFontFs(metrics.hintLine_FontSize), colors.faintText)
+            x += paintTextLine(painter, x, centerY, .reading, .theme().createDefaultFontFs(metrics.hintLine_FontSize), ink)
             x += metrics.hintLine_GroupGap
         }
 
@@ -106,7 +118,7 @@ impl IWnd for HintLine
                 x += metrics.hintLine_KeyGap
             }
 
-            x += paintTextLine(painter, x, centerY, hint.text, font, colors.faintText)
+            x += paintTextLine(painter, x, centerY, hint.text, font, ink)
             x += metrics.hintLine_GroupGap
         }
     }
@@ -156,6 +168,14 @@ impl HintLine
         .relayout()
     }
 
+    // Stands the line on the floating ground, for a line over a busy picture such as a frozen
+    // screen, where words on the bare picture cannot be read.
+    mtd setGrounded(grounded: bool)
+    {
+        .grounded = grounded
+        .relayout()
+    }
+
     // Stands the line at `alignment` along the bottom edge of its parent.
     mtd setAlignment(alignment: HintLineAlignment)
     {
@@ -182,6 +202,15 @@ impl HintLine
         if result > 0 do
             result -= metrics.hintLine_GroupGap
         return Math.ceil(result)
+    }
+
+    // The air between the floating ground and the words, nothing when the line has no ground.
+    private mtd groundPadding()->Math.Point
+    {
+        if not .grounded do
+            return {}
+        let metrics = .themeMetrics()
+        return {metrics.hintLine_KeyGap * 2, metrics.miniBar_Padding}
     }
 
     private mtd relayout()

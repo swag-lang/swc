@@ -117,17 +117,22 @@ dialogs, then each application, then the written rules.
 ### design.silence.008 — Swag Capture's editing does not yet match its pictures
 
 - Evidence: the editor, the area capture, the in-place editor, the library and the lens have
-  goldens (`surface`, `edit.{arrow,callout,multi,step,mask,color.paper}`, `area`,
-  `inplace{,.paper}`, `library.surface`, `lens.paper`). What they still show differently: the
-  words of a callout are typed in place in a field set in their face but left-aligned, not at the
-  callout's own alignment; the callout mini-bar's face opens the inspector rather than a list of
-  faces; a quick style has no name; the inspector rows of the head do not scroll with the
-  generated settings; the library tab counts are in the proportional face (the tab bar sets one
-  face per tab); the recent captures are text rows of the lens, not thumbnails (the lens has no
-  thumbnail row); the area bar offers no delay or cursor choice (lens entries only); the in-place
-  bar does not move beside the zone when the screen has no room above or below it.
-- Next: let the field typing a callout follow its alignment; give the lens a row of thumbnails
-  for the recent captures; then the remaining items above.
+  goldens (`surface`, `edit.{arrow,callout,multi,step,mask,color.paper,text,text.paper}`, `area`,
+  `inplace{,.paper}`, `library.surface`, `lens.paper`). Words are typed in place for every text
+  shape (aligned, level while a rotated shape is edited), the text mini-bar is compact and keeps
+  clear of the dock and the inspector, quick styles are pictures of their shapes (`presets`
+  goldens), the inspector head actions are
+  faint words, the style is one "Aa" row, the area bar offers the delay and the cursor, its keys
+  stand on the floating ground, the lens ends with the recent captures as pictures, and the
+  in-place bar stands beside the zone when the screen has no room above or below it. What they
+  still show differently: a quick style has no name (the picture writes « Repère orange » under
+  the pills); the inspector rows of the head do not scroll with the generated settings; the
+  library tab counts are in the proportional face (the tab bar sets one face per tab); a tool
+  offers up to sixteen presets, which wrap to four rows where the pictures show one; a white
+  text preset on Papier is white on the light cell; a mask preset is the glyph of its kind
+  rather than its pattern.
+- Next: give a quick style a name, shown under the strip and on its tooltip; let the inspector
+  scroll its head rows with its content.
 - Done when: each `capture.*` picture is reproduced by its golden.
 - Related: design.silence.004, design.silence.005
 

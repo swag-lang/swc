@@ -70,7 +70,7 @@ impl IActionUI for ActionEdit
         {
         case .EditText:
             evt.updatedFields |= .Disabled | .Name | .Hidden
-            evt.disabled      = not hasSel or not lastSelType or (lastSelType != FormText and lastSelType != FormCallout)
+            evt.disabled      = not hasSel or not lastSelType or (lastSelType != FormText and lastSelType != FormCallout and lastSelType != FormStep)
             evt.hidden        = evt.disabled
             evt.name          = appStrings().ui_MenuEdit
 
@@ -150,19 +150,16 @@ impl IActionUI for ActionEdit
         {
         case .EditText:
 
-            // Works for both FormText and FormCallout; editText prefills with the current
-            // text and pushes a SetText undo that updates every selected editable form.
+            // The words of the last selected form are typed in place, on the canvas.
             let f = capture.forms[capture.selection.back()]
-            if f is FormCallout as callout
+            if inlineTextOf(f).found
             {
-                main.editWnd.editView.beginTextEdit(callout)
-                return true
+                let index = capture.selection.back()
+                capture.selection.clear()
+                capture.selection.add(index)
+                capture.selectionHasChanged()
+                main.editWnd.editView.beginTextEdit(f)
             }
-
-            let t = formEditableText(f)
-            if t do
-                discard PropWnd.editText(main, t[])
-            capture.selectionHasChanged()
 
         case .ClearImageInside:
             capture.clearImageInside()

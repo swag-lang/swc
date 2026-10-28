@@ -294,10 +294,10 @@ impl PropWnd
                 ctrl.edit.setForm(.Transparent)
                 ctrl.edit.style.setFont(.theme().res.fontDefaultFs)
             }
-            elif item.comboBox != null
+            elif fieldComboCtrl(item)
             {
-                if item.comboBox.parent is ComboCtrl as ctrl do
-                    ctrl.setLayoutMetrics(width, ctrl.comboWidth, gap)
+                let ctrl = unwrap fieldComboCtrl(item)
+                ctrl.setLayoutMetrics(width, ctrl.comboWidth, gap)
             }
             elif item.editBox != null
             {
@@ -307,16 +307,35 @@ impl PropWnd
         }
     }
 
+    // Returns the labelled combo of a field: the one the grid knows, or the one an editor of
+    // Swag Capture built on the line of the row.
+    func fieldComboCtrl(item: *PropertiesItem)->*ComboCtrl?
+    {
+        if item.comboBox != null
+        {
+            if item.comboBox.parent is ComboCtrl as ctrl do
+                return ctrl
+            return null
+        }
+
+        for child in item.line.children
+        {
+            if child is ComboCtrl do
+                return assume cast(*ComboCtrl, child)
+        }
+
+        return null
+    }
+
     // Returns the label a generated field writes before its editor, or null for a field that
     // names itself another way.
     func fieldLabel(item: *PropertiesItem)->*Label?
     {
         if item.sliderBox != null do
             return item.sliderBox.label
-        if item.comboBox != null
+        if fieldComboCtrl(item)
         {
-            if item.comboBox.parent is ComboCtrl as ctrl do
-                return ctrl.label
+            return fieldComboCtrl(item)!.label
         }
         elif item.editBox != null
         {
@@ -428,6 +447,11 @@ impl IPropertyNotify for PropWnd
         case #nameof(BaseForm.joinStyle):
             return (.gridBindType == FormText or .gridBindType == FormPolygon) and
                    base.subKind != .PixSel
+
+        // The words are typed in place, and how the lines stand across the box is set from the
+        // mini-bar beside the selection.
+        case #nameof(FormText.text), #nameof(FormText.alignHorz):
+            return false
 
         case #nameof(BaseForm.alpha), #nameof(BaseForm.paintShadow):
             return base.subKind != .PixSel

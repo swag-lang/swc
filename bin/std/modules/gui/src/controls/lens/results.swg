@@ -66,14 +66,33 @@ struct Entry
     score: s32     // How well the query answered the title; the lens ranks the rows by it.
 }
 
+// A picture in the strip of a section: a recent document, a page.
+//
+// Choosing it with the pointer closes the lens, then runs `run`.
+struct Picture
+{
+    public
+    {
+        title: String                                     // What the picture shows, said when the pointer rests on it.
+        paint: (func||(*Painter, Math.Rectangle))?        // Paints the picture into its cell, in local coordinates.
+        run:   (func||())?                                // Action run when the picture is chosen, once the lens has left the screen.
+    }
+}
+
 // A group of rows under one section label.
+//
+// A group can also hold a strip of pictures after its rows, such as the recent documents of an
+// application, ended by a link to where every one of them is, such as "Library →".
 struct Section
 {
     public
     {
-        label:   String          // Words of the section label, written in small spaced capitals.
-        count:   u32             // Number written after the label, as in "In this file · 5"; zero writes none.
-        entries: Array'Entry     // Rows of the group, in the order their source gave them.
+        label:    String            // Words of the section label, written in small spaced capitals.
+        count:    u32               // Number written after the label, as in "In this file · 5"; zero writes none.
+        entries:  Array'Entry       // Rows of the group, in the order their source gave them.
+        pictures: Array'Picture     // Pictures of the strip after the rows, in reading order.
+        link:     String            // Words of the link ending the strip; empty for none.
+        linkRun:  (func||())?       // Action run when the link is chosen, once the lens has left the screen.
     }
 
     order:  Array'u64     // Rows the lens shows, by index into `entries`, in the order it shows them.
@@ -93,6 +112,27 @@ impl Section
         result.title = title
         return result
     }
+
+    // Appends a picture to the strip of the section and returns it, to be filled further.
+    //
+    // The pointer stays valid until the next picture is added to this section.
+    #[Swag.Discardable]
+    mtd addPicture(title: string)->*Picture
+    {
+        let result = .pictures.emplaceInitAddress()
+        result.title = title
+        return result
+    }
+
+    // Ends the strip of pictures with a link: `text`, such as "Library →", runs `run` when chosen.
+    mtd setLink(text: string, run: func||())
+    {
+        .link    = text
+        .linkRun = run
+    }
+
+    // Reports whether the section shows anything: a row or a picture.
+    mtd const isEmpty()->bool => .entries.isEmpty() and .pictures.isEmpty()
 }
 
 // Collects the answers of every source to one query.

@@ -268,7 +268,6 @@ tip_InpText            Ajouter une annotation texte
 tip_InpMarker          Surligner au marqueur
 msg_ResetStyles        Les styles seront réinitialisés aux valeurs par défaut.
 dlg_TitleRenameCapture Renommer la capture
-dlg_TitleEnterText     Saisir le texte
 ui_Outline             Contour
 ui_PropFill            Fond
 ui_PropOutline         Contour
@@ -296,6 +295,8 @@ prop_Round                 Arrondi
 prop_Scale                 Échelle
 prop_Shadow                Ombre
 prop_Size                  Taille
+prop_Style                 Style
+prop_Vertical              Vertical
 prop_StartSize             Taille de début
 prop_Step                  Numérotation
 prop_Strength              Intensité
@@ -362,6 +363,7 @@ ui_LibraryNoMatch      Aucune capture ne correspond aux filtres ou à la recherc
 lens_Tools             Outils
 lens_Recent            Récentes
 lens_Selection         Sélection
+lens_LibraryLink       Bibliothèque →
 act_OpenLens           Rechercher une commande
 act_ShowInspector      Propriétés
 act_ShowRecent         Captures récentes
@@ -373,6 +375,10 @@ ui_ModeActiveWindow    Fenêtre active
 ui_ModeFullScreen      Écran entier
 ui_ModeLastArea        Dernière zone
 hint_Capture           capturer
+ui_Delay               Délai : %
+ui_DelayNone           aucun
+ui_DelaySeconds        % s
+ui_Cursor              Curseur
 hint_Cancel            annuler
 tip_AddQuickStyle      Garder le style actuel comme style rapide
 ui_RecentColors        Récentes
@@ -408,5 +414,8 @@ key_Return             Entrée
 hint_CopyClose         copier et fermer
 hint_Save              enregistrer
 hint_CalloutTail       Glisser le point de la queue pour la diriger
-hint_EndText           terminer le texte
+key_CtrlReturn         Ctrl+Entrée
+hint_NewLine           nouvelle ligne
+hint_KeepText          garder le texte
 ui_Common              En commun
+ui_NoColor             aucun

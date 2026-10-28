@@ -1,9 +1,6 @@
 // How much the desktop around the zone of the in-place editor is darkened, out of 255.
 const InPlaceDimAlpha = 110'u8
 
-// The smallest size the field typing a callout's words takes, whatever the zoom.
-const MinInlineFontSize = 8.0
-
 // The editor surface: the capture at its zoom, inside a margin, and the mouse edits on its forms.
 struct EditView
 {
@@ -18,9 +15,13 @@ struct EditView
     // Set by [EditView.setInPlaceEdit], which owns the zoom from then on.
     readonly inPlaceEdit: bool
 
-    // The field the words of a callout are typed in, over the callout, and the callout.
-    textEdit: *EditBox?
-    textForm: *FormCallout?
+    // The words of a form typed in place (see inlinetext.swg): a field per line over the form,
+    // the form, what it gives the fields, their font, and the angle the form turns back to.
+    textLines:  Array'(*EditBox)
+    textForm:   *BaseForm?
+    textSpec:   InlineText
+    textFont:   FontFamily
+    textRotate: f32
 }
 
 impl IWnd for EditView
@@ -31,15 +32,16 @@ impl IWnd for EditView
         if not .capture do
             return
 
-        // A double click on a callout types its words in place.
+        // A double click on a form with words types them in place.
         if evt.kind == .DoubleClick and evt.button == .Left and .capture.hotForm < .capture.forms.count
         {
-            if .capture.forms[.capture.hotForm] is FormCallout as callout
+            let form = .capture.forms[.capture.hotForm]
+            if inlineTextOf(form).found
             {
                 .capture.selection.clear()
                 .capture.selection.add(.capture.hotForm)
                 .capture.selectionHasChanged()
-                .beginTextEdit(callout)
+                .beginTextEdit(form)
                 evt.accepted = true
                 return
             }
@@ -66,6 +68,23 @@ impl IWnd for EditView
                 .setZoom(z, true)
             }
         }
+    }
+
+    // Enter on the one selected form with words types them in place. The in-place editor keeps
+    // Enter for copying the capture, and types words on a double click or F2.
+    mtd impl onKeyEvent(evt: *KeyEvent)
+    {
+        evt.accepted = false
+        if evt.kind != .Pressed or evt.key != .Return or not evt.modifiers.equals(.None) or .inPlaceEdit do
+            return
+        let capture = .capture
+        if not capture or capture.selection.count != 1 do
+            return
+        let form = capture.forms[capture.selection[0]]
+        if not inlineTextOf(form).found do
+            return
+        .beginTextEdit(form)
+        evt.accepted = true
     }
 
     mtd impl onPaint(evt: *PaintEvent)
@@ -126,83 +145,6 @@ impl EditView
     mtd opDrop()
     {
         Memory.delete(.capture)
-    }
-
-    // Types the words of `callout` in place: a field over its body, in its face, its size and its
-    // ink, while the callout leaves its words to it. Enter, Escape or a click elsewhere ends it,
-    // as one step of the history.
-    mtd beginTextEdit(callout: *FormCallout)
-    {
-        .endTextEdit()
-        let capture = unwrap .capture
-        let place   = .getCaptureRect()
-        // The field takes the body: the words keep the room the callout gives them, and do not
-        // scroll inside a field cut to their exact width.
-        var rect = callout.rectFormBound()
-        rect.inflate(-callout.borderSize)
-        rect *= .zoom
-        rect.offset(place.x - .scrollPos.x, place.y - .scrollPos.y)
-
-        let size = cast(u32, Math.max(callout.fontSize * .zoom, MinInlineFontSize))
-        let font = .theme().createFont(callout.render.resolveFace(), size)
-        var face: FontFamily
-        face.regular, face.bold, face.italic, face.boldItalic = font
-
-        with .textEdit = EditBox.create(me, callout.text, rect, flags: .ReleaseFocusOnEnterOrEscape)
-        {
-            .setForm(.Transparent)
-            .wndFlags.add(.NoFocusRing)
-            .style.setFont(face)
-            .style.addStyleSheetColors(Format.toString("edit_Text 0x%{X08}", callout.textColor.argb))
-            .sigCommitted += func|view = me|(_) { view.endTextEdit() }
-            .setFocus()
-            .setSelection(callout.text.length, callout.text.length)
-        }
-
-        .textForm            = callout
-        callout.editingText = true
-        capture.invalidateAllFormCaches()
-        .main.fillHintLine()
-        .invalidate()
-    }
-
-    // Ends typing the words of a callout in place, keeping them as one step of the history.
-    mtd endTextEdit()
-    {
-        let edit = .textEdit
-        let form = .textForm
-        if not edit or not form do
-            return
-
-        let text: String = edit.text()
-        .textEdit = null
-        .textForm = null
-        edit.destroy()
-        form.editingText = false
-
-        let capture = unwrap .capture
-        capture.invalidateAllFormCaches()
-        if text != form.text
-        {
-            // The step of the history applies to the selection, which may already be another
-            // one: it is made on the callout alone, then the selection comes back.
-            var saved = capture.selection
-            capture.selection.clear()
-            for f, i in capture.forms
-            {
-                if f is FormCallout as callout where callout == form do
-                    capture.selection.add(i)
-            }
-
-            let undo = capture.newUndo(.SetText)
-            undo.text = text
-            capture.pushUndo(undo)
-            capture.selection = saved
-        }
-
-        .main.fillHintLine()
-        .setFocus()
-        .invalidate()
     }
 
     // Dims the desktop around the zone the in-place editor shows, rings the zone with a white

@@ -200,6 +200,9 @@ struct ThemeMetrics
         lens_LeadWidth:      f32 = 36       // Width of the column holding the glyph or the number that leads a row.
         lens_SectionHeight:  f32 = 32       // Height of the label that opens a group of results.
         lens_FooterHeight:   f32 = 40       // Height of the band listing the keys.
+        lens_PictureWidth:   f32 = 72       // Width of a picture in the strip of a section, such as a recent document.
+        lens_PictureHeight:  f32 = 44       // Height of that picture.
+        lens_PictureGap:     f32 = 8        // Air between two pictures of the strip, and around the strip.
 
         // The information sheet a key opens: a title, an identity line, facts and readings.
         infoSheet_Width:         f32 = 340     // Width of an information sheet.

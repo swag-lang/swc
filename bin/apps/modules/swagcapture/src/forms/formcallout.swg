@@ -16,14 +16,15 @@ struct FormCallout
     text: String
     #[Name("Font"), FontName]
     fontName: String
-    #[Name("")]
-    fontStyle = FontFamilyStyle.Regular
-    #[Name("")]
-    alignHorz = FormTextAlign.Center
-    #[Name("")]
-    alignVert = FormTextAlign.Center
     #[Name("Size"), SliderMinMax(MinFontSize, MaxFontSize)]
     fontSize: f32 = 40
+    #[Name("Style")]
+    fontStyle = FontFamilyStyle.Regular
+    // The mini-bar sets how the lines stand across the body; the inspector how they stand down it.
+    #[Name("")]
+    alignHorz = FormTextAlign.Center
+    #[Name("Vertical")]
+    alignVert = FormTextAlign.Center
     #[Name("Round"), SliderMinMax(MinRoundSize, MaxRoundSize)]
     roundSize:    f32   = 16
     tailX, tailY: f32

@@ -234,17 +234,18 @@ func testFindStyleButtons(prop: *PropWnd, tip: string)->Array'(*IconButton)
     Swag.assert(tf.joinStyle == .Round)
     Swag.assert(joins.comboBox.selectedIndex == 1)
 
-    // What the form says comes before how it is set: the box the words are typed in stands
-    // above the face they are set in.
-    Swag.assert(testItemIndex(prop, #nameof(FormText.text)) < testItemIndex(prop, #nameof(FormText.fontName)))
-    Swag.assert(testItemIndex(prop, #nameof(FormText.alignVert)) < testItemIndex(prop, #nameof(FormText.fontName)))
+    // The words are typed in place and their alignment across the box is in the mini-bar: the
+    // inspector sets the face, then its size, then its style, then how the lines stand down.
+    Swag.assert(not testFindItem(prop, #nameof(FormText.text))!.line.isLocallyVisible())
+    Swag.assert(not testFindItem(prop, #nameof(FormText.alignHorz))!.line.isLocallyVisible())
     Swag.assert(testItemIndex(prop, #nameof(FormText.fontName)) < testItemIndex(prop, #nameof(FormText.fontSize)))
+    Swag.assert(testItemIndex(prop, #nameof(FormText.fontSize)) < testItemIndex(prop, #nameof(FormText.fontStyle)))
+    Swag.assert(testItemIndex(prop, #nameof(FormText.fontStyle)) < testItemIndex(prop, #nameof(FormText.alignVert)))
 
-    // Icon-only bars explain themselves through their glyphs and selected state, so they do
-    // not reserve a heading line repeating what the controls already say.
-    Swag.assert(not (testFindItem(prop, #nameof(FormText.fontStyle))!.label != null))
-    Swag.assert(not (testFindItem(prop, #nameof(FormText.alignHorz))!.label != null))
-    Swag.assert(not (testFindItem(prop, #nameof(FormText.alignVert))!.label != null))
+    // The style is one row of four segments, each lettered in the style it stands for.
+    let style = unwrap testFindItem(prop, #nameof(FormText.fontStyle))
+    Swag.assert(style.comboBox != null and style.comboBox.flags.has(.Segmented) and style.comboBox.items.count == 4)
+    Swag.assert(style.comboBox.items[1]!.fontStyle == .Bold)
 
     // Most specific first: the text form's own fields come before the shared BaseForm
     // block, even though the language declares 'using base' first

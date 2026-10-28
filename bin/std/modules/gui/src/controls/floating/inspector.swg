@@ -46,9 +46,12 @@ struct Inspector
     }
 
     rows:    Array'InspectorRow
-    actions: Array'(*PushButton)
+    actions: Array'(*IconButton)
     content: *Wnd?
 }
+
+// The dot written between two actions of the head of an [[Gui.Inspector]].
+internal const ActionDot = "·"
 
 // One row of an [[Gui.Inspector]]: a section label, a labelled editor, or an editor spanning the width.
 internal struct InspectorRow
@@ -129,6 +132,18 @@ impl IWnd for Inspector
             discard paintTextLine(painter, body.x + pad + used + metrics.iconText_Margin, headY, .detail, theme.createDefaultFontFs(metrics.defaultFontSize - 2), colors.faintText)
         }
 
+        // A middle dot between two actions of the head.
+        let dotFont = theme.createDefaultFont(metrics.defaultFontSize - 1)
+        for i in 1 until .actions.count
+        {
+            let action = .actions[i]
+            if not action.isLocallyVisible() do
+                continue
+            let width = Painter.measureString(ActionDot, dotFont).width
+            let x     = action.position.x - .actionDotWidth() * 0.5 - width * 0.5
+            discard paintTextLine(painter, Math.round(x), headY, ActionDot, dotFont, colors.faintText)
+        }
+
         painter.pushClippingRect(body)
         defer painter.popClippingRect()
         let labelFont = theme.createDefaultFont(metrics.defaultFontSize)
@@ -189,12 +204,20 @@ impl Inspector
     }
 
     // Appends a quiet action to the head of the inspector, such as "Duplicate", and returns it.
+    //
+    // The actions are small faint words after the title, a middle dot between two of them: they
+    // say what can be done with the selection without standing out like buttons of a form.
     #[Swag.Discardable]
-    mtd addAction(text: string, id: WndId? = null)->*PushButton
+    mtd addAction(text: string, id: WndId? = null)->*IconButton
     {
         let metrics = .themeMetrics()
-        let width   = Painter.measureString(text, .theme().createDefaultFont(metrics.defaultFontSize)).width + 2 * metrics.btnPush_TextMargin
-        let button  = PushButton.create(me, text, {0, 0, Math.ceil(width), metrics.control_InspectorHeight}, id, .Flat)
+        with let button = IconButton.createQuiet(me, id, menu: false)
+        {
+            .style.setFont(me.theme().createDefaultFont(metrics.defaultFontSize - 1), .Regular)
+            .style.addStyleSheetColors("btnIcon_Text $faintText")
+            .setQuietText(text)
+        }
+
         .actions.add(button)
         .relayout()
         return button
@@ -298,13 +321,15 @@ impl Inspector
         let pad     = metrics.inspector_Padding
         let rowSize = metrics.control_InspectorHeight
 
-        // The actions stand at the end of the header, the last one against the padding.
+        // The actions stand at the end of the header, the last one against the padding, a dot
+        // between two of them.
         var right = width - pad
         for i in reversed(.actions.count)
         {
             let action = .actions[i]
             right -= action.position.width
-            action.move(right, pad)
+            action.move(right, Math.round(pad + (rowSize - action.position.height) * 0.5))
+            right -= .actionDotWidth()
         }
 
         let labelled = pad + metrics.inspector_LabelWidth + metrics.inspector_LabelGap
@@ -329,6 +354,13 @@ impl Inspector
             let top = .rows.isEmpty() ? pad + rowSize + metrics.inspector_RowGap : .measureBody() - pad + metrics.inspector_RowGap
             .content.setPosition(Math.Rectangle{pad, top, Math.max(width - 2 * pad, 0), Math.max(height - top - pad, 0)})
         }
+    }
+
+    // The room a dot takes between two actions of the head.
+    private mtd actionDotWidth()->f32
+    {
+        let font = .theme().createDefaultFont(.themeMetrics().defaultFontSize - 1)
+        return Math.ceil(Painter.measureString(ActionDot, font).width)
     }
 
     private mtd body()->Math.Rectangle => .clientRect()

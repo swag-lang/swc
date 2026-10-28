@@ -180,30 +180,44 @@ impl MiniBar
     //
     // The bar stands [[Gui.ThemeMetrics.miniBar_Distance]] above the selection, centred on it, and
     // goes below it when the parent has no room above; with `below`, it stands below and goes
-    // above when there is no room below, then inside the foot of the selection when there is room
-    // on neither side. It never leaves the parent.
-    mtd showNear(selection: Math.Rectangle, below = false)
+    // above when there is no room below. With room on neither side, it stands beside the
+    // selection, level with its foot, on the trailing side then the leading one, and inside the
+    // foot of the selection when there is no room there either. It never leaves the parent, nor
+    // `room` when one is given: the part of the
+    // parent that other floating surfaces, such as a dock or an inspector, leave free.
+    mtd showNear(selection: Math.Rectangle, below = false, room: Math.Rectangle = {})
     {
         let parent  = unwrap .parent
         let metrics = .themeMetrics()
         let body    = .bodySize()
-        let bounds  = parent.clientRect()
+        var bounds  = parent.clientRect()
+        if room.width > 0 and room.height > 0 do
+            bounds = room
         let gap     = metrics.miniBar_Distance
 
         var x = selection.horzCenter() - body.x * 0.5
         x = Math.clamp(x, bounds.x + gap, Math.max(bounds.x + gap, bounds.right() - gap - body.x))
         var y = selection.y - gap - body.y
+        let fitsAbove = selection.y - gap - body.y >= bounds.y + gap
+        let fitsBelow = selection.bottom() + gap + body.y <= bounds.bottom() - gap
         if below
         {
             y = selection.bottom() + gap
-            if y + body.y > bounds.bottom() - gap do
+            if not fitsBelow do
                 y = selection.y - gap - body.y
-            if y < bounds.y + gap do
-                y = selection.bottom() - gap - body.y
         }
-        elif y < bounds.y + gap
+        elif not fitsAbove
         {
             y = selection.bottom() + gap
+        }
+
+        if not fitsAbove and not fitsBelow
+        {
+            y = selection.bottom() - gap - body.y
+            if selection.right() + gap + body.x <= bounds.right() - gap do
+                x = selection.right() + gap
+            elif selection.x - gap - body.x >= bounds.x + gap do
+                x = selection.x - gap - body.x
         }
 
         y = Math.clamp(y, bounds.y + gap, Math.max(bounds.y + gap, bounds.bottom() - gap - body.y))

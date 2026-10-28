@@ -1,6 +1,24 @@
 // Width of the step number on the mini-bar.
 const StepperWidth = 88.0
 
+// The most recent captures the lens shows as pictures.
+const MaxLensRecents = 6
+
+// Paints the preview of a recent capture into a picture of the lens, filling it.
+func paintLensRecent(painter: *Painter, rect: Math.Rectangle, preview: Texture)
+{
+    if not preview.isValid() do
+        return
+    let ratio = Math.max(rect.width / preview.width, rect.height / preview.height)
+    let w     = preview.width * ratio
+    let h     = preview.height * ratio
+    painter.setInterpolationMode(.Linear)
+    painter.drawTexture(Math.Rectangle{rect.horzCenter() - w * 0.5, rect.vertCenter() - h * 0.5, w, h}, preview)
+}
+
+// The faces a text can be set in, listed by the face of the mini-bar, enumerated once.
+var g_MiniBarFonts: Array'SystemFontFamilyInfo
+
 // The room the floating parts of the editor take over the edges of the work.
 struct FloatingInsets
 {
@@ -179,10 +197,13 @@ impl MainWnd
         if .miniBar == null do
             return
 
+        // The bar shows the face, the size and the style of its form: another form fills it again.
         let kind = .miniBarKindOfSelection()
-        if kind != .miniBarKind
+        let form = kind == .None or kind == .Multi ? null : .getCapture()?.getSelectedBaseForm()
+        if kind != .miniBarKind or form != .miniBarForm
         {
             .miniBarKind = kind
+            .miniBarForm = form
             .fillMiniBar(kind)
         }
 
@@ -242,8 +263,7 @@ impl MainWnd
                 .miniBar.addSeparator()
                 .addTextFace()
                 .miniBar.addSeparator()
-                .miniBar.addTextButton(appStrings().prop_StyleBold, ActionEdit.Bold)
-                .miniBar.addTextButton(appStrings().prop_StyleItalic, ActionEdit.Italic)
+                .addTextStyle()
                 .miniBar.addSeparator()
                 .addTextAlignment()
             }
@@ -268,41 +288,126 @@ impl MainWnd
         }
     }
 
-    // Returns the face, the size and the horizontal alignment of the selected text or callout.
-    mtd selectedTextStyle()->{found: bool, type: typeinfo, face: string, size: f32, align: FormTextAlign}
+    // Returns the face, the size, the style and the horizontal alignment of the selected text or callout.
+    mtd selectedTextStyle()->{found: bool, type: typeinfo, face: string, size: f32, style: FontFamilyStyle, align: FormTextAlign}
     {
         switch .getCapture()?.getSelectedBaseForm()
         {
-        case FormText as text:       return {true, FormText, text.fontName.toString(), text.fontSize, text.alignHorz}
-        case FormCallout as callout: return {true, FormCallout, callout.fontName.toString(), callout.fontSize, callout.alignHorz}
+        case FormText as text:       return {true, FormText, text.fontName.toString(), text.fontSize, text.fontStyle, text.alignHorz}
+        case FormCallout as callout: return {true, FormCallout, callout.fontName.toString(), callout.fontSize, callout.fontStyle, callout.alignHorz}
         }
 
-        return {false, FormText, "", 0, .Center}
+        return {false, FormText, "", 0, .Regular, .Center}
     }
 
-    // Adds the face of the text and its size to the mini-bar: the face opens the properties,
-    // where every face is listed; the size is a stepper.
+    // Adds the face of the text and its size to the mini-bar: the face is a quiet list of every
+    // face, the interface face first; the size is a number in the fixed-width face, typed over.
     mtd addTextFace()
     {
         let style = .selectedTextStyle()
         if not style.found do
             return
 
-        let name = style.face.count ? style.face : appStrings().prop_Font
-        .miniBar.addTextButton(name).sigPressed += func|main = me|(_) { main.inspector.setFolded(false) }
+        let metrics = .themeMetrics()
+        if g_MiniBarFonts.isEmpty() do
+            g_MiniBarFonts = FontFamily.enumerateSystemFonts()
 
-        with let stepper = Stepper.create(.miniBar, {0, 0, StepperWidth, 0})
+        let defaultFace = .theme().res.defaultTypeFaceR.familyName()
+        let shown       = style.face.count ? style.face : defaultFace
+        let font        = unwrap .font().regular
+        let width       = Math.ceil(Painter.measureString(shown, font).width + 2 * metrics.comboBox_Padding + metrics.miniBar_ButtonSize)
+        with let face = ComboBox.create(.miniBar, {0, 0, width, metrics.miniBar_ButtonSize}, flags: .Flat)
         {
-            .setRange(cast(s64, MinFontSize), cast(s64, MaxFontSize))
-            .setValue(cast(s64, Math.round(style.size)))
-            .sigChanged += func|main = me, type = style.type|(wnd)
+            .toolTip = appStrings().prop_Font
+            .addItem(defaultFace)
+            .addSeparator()
+            var selected = 0'u32
+            for &fnt, i in g_MiniBarFonts
             {
-                let value = cast(f32, (assume cast(*Stepper, wnd)).value)
-                main.propWnd.pushTypedValue(cast #bit (u32, value), type, #nameof(FormText.fontSize), true)
+                .addItem(fnt.name)
+                if fnt.name == style.face do
+                    selected = cast(u32, i) + 2
+            }
+
+            .setSelectedIndex(selected, notify: false)
+            .sigChanged += func|main = me|(_, index)
+            {
+                main.setSelectedFace(index < 2 ? "" : g_MiniBarFonts[index - 2].name.toString())
             }
         }
 
-        .miniBar.addItem(stepper)
+        .miniBar.addItem(face)
+
+        let mono  = .theme().createDefaultFontFs(metrics.defaultFontSize)
+        let digit = Painter.measureString("000", mono).width
+        with let size = EditBox.create(.miniBar, Format.toString("%", cast(s32, Math.round(style.size))), {0, 0, Math.ceil(digit + 2 * metrics.comboBox_Padding), metrics.miniBar_ButtonSize})
+        {
+            .toolTip = appStrings().prop_Size
+            .setForm(.Transparent)
+            .setUnsignedIntegerRange(cast(u64, MinFontSize), cast(u64, MaxFontSize))
+            .style.setFont(.theme().createDefaultFontFamilyFs(metrics.defaultFontSize))
+            .sigCommitted += func|main = me, type = style.type|(wnd)
+            {
+                let edit = assume cast(*EditBox, wnd)
+                if not edit.isValid() do
+                    return
+                let {value, eat: _, ovf: _} = catch StrConv.parseU32(edit.text())
+                if not value do
+                    return
+                let size = cast(f32, value)
+                main.propWnd.pushTypedValue(cast #bit (u32, size), type, #nameof(FormText.fontSize), true)
+            }
+        }
+
+        .miniBar.addItem(size)
+    }
+
+    // Sets the face of the selected texts to `face`, the interface face when empty, as one step
+    // of the history; the style of each stays.
+    mtd setSelectedFace(face: string)
+    {
+        let capture = .getCapture()
+        let style   = .selectedTextStyle()
+        if not capture or not style.found or face == style.face do
+            return
+
+        with let undo = capture.newUndo(.SetFont)
+        {
+            .text      = face
+            .fontStyle = style.style
+        }
+
+        capture.pushUndo(undo)
+        capture.selectionHasChanged()
+    }
+
+    // Adds bold and italic to the mini-bar: two letters, set in the style they turn on, lit when on.
+    mtd addTextStyle()
+    {
+        let style = .selectedTextStyle()
+        if not style.found do
+            return
+
+        let size = .themeMetrics().defaultFontSize
+        with let bold = .miniBar.addButton({}, toolTip: appStrings().prop_StyleBold, flags: .Toggle)
+        {
+            .updateFlags(add: .CenterContent, remove: .IconOnly)
+            .setText("B")
+            .setCheckIndicator(.Ink)
+            .style.setFont(.theme().createDefaultFont(size, .Bold), .Regular)
+            .setChecked(style.style == .Bold or style.style == .BoldItalic)
+            .sigPressed += func|main = me|(_) { main.postCommandEvent(ActionEdit.Bold) }
+        }
+
+        with let italic = .miniBar.addButton({}, toolTip: appStrings().prop_StyleItalic, flags: .Toggle)
+        {
+            .updateFlags(add: .CenterContent, remove: .IconOnly)
+            .setText("I")
+            .setCheckIndicator(.Ink)
+            .style.setFont(.theme().createDefaultFont(size, .Italic), .Regular)
+            .setChecked(style.style == .Italic or style.style == .BoldItalic)
+            .sigPressed += func|main = me|(_) { main.postCommandEvent(ActionEdit.Italic) }
+        }
     }
 
     // Adds the three horizontal alignments of the text to the mini-bar, the one in force checked.
@@ -413,7 +518,14 @@ impl MainWnd
         let local = .editArea.surfaceToLocal(view.localToSurface(Math.Point{rect.x, rect.y}))
         rect.x = local.x
         rect.y = local.y
-        .miniBar.showNear(rect)
+
+        // The bar keeps clear of the dock and of the inspector, and goes below the words being
+        // typed in place, where the reader is not looking.
+        let insets = .floatingInsets()
+        var room   = .editArea.clientRect()
+        room.x     += insets.left
+        room.width -= insets.left + insets.right
+        .miniBar.showNear(rect, below: view.isEditingText(), room: room)
     }
 
     // The faint line at the foot of the work: the size and zoom of the capture, then the key
@@ -431,10 +543,15 @@ impl MainWnd
         if .hintLine == null do
             return
         .hintLine.clearHints()
-        if .editWnd != null and .editWnd.editView.textForm
+        if .editWnd != null and .editWnd.editView.isEditingText()
         {
-            .hintLine.addHint("", appStrings().hint_CalloutTail)
-            .hintLine.addHint(strings().key_Escape, appStrings().hint_EndText)
+            let view = .editWnd.editView
+            if view.textEditForm() is FormCallout do
+                .hintLine.addHint("", appStrings().hint_CalloutTail)
+            if not view.textSpec.step do
+                .hintLine.addHint(appStrings().key_Return, appStrings().hint_NewLine)
+            .hintLine.addHint(view.textSpec.step ? appStrings().key_Return : appStrings().key_CtrlReturn, appStrings().hint_KeepText)
+            .hintLine.addHint(strings().key_Escape, appStrings().hint_Cancel)
             return
         }
 
@@ -553,29 +670,33 @@ impl MainWnd
         .lens.addCommandRows(image, [ActionFile.SaveAsImage, ActionCopyPaste.CopyAsImage, ActionImage.ResizeImage], enabledOnly: true)
     }
 
-    // Answers the lens with the recent captures whose name matches the query.
+    // Answers the lens with the recent captures whose name matches the query, as a strip of
+    // pictures closing the results, then the way to the library.
     mtd describeRecentCaptures(results: *Lens.Results)
     {
-        if .recentWnd == null do
+        if .recentWnd == null or .libraryMode do
             return
 
         let view = .recentWnd.recentView
         var section: *Lens.Section?
         for item, index in view.items
         {
+            if section and section.pictures.count == MaxLensRecents do
+                break
             let name = Path.fileName(item!.file) orelse ""
-            if not Lens.match(results.query, name).matched do
+            if results.query.count and not Lens.match(results.query, name).matched do
                 continue
             if not section do
                 section = results.addSection(appStrings().lens_Recent)
-            with let entry = section.addEntry(name)
+            with let picture = section.addPicture(name)
             {
-                .glyph = me.icon(.Image, me.themeMetrics().menuPopup_IconSize)
                 .run   = func|main = me, index|() { main.openRecent(index) }
-                if index == view.selected do
-                    .detail = "✓"
+                .paint = func|item = unwrap item|(painter, rect) { paintLensRecent(painter, rect, item.preview) }
             }
         }
+
+        if section do
+            section.setLink(appStrings().lens_LibraryLink, func|main = me|() { main.postCommandEvent(ActionGlobal.ShowLibrary) })
     }
 
     // Opens the recent capture `index` in the editor, leaving the library if it is on screen.

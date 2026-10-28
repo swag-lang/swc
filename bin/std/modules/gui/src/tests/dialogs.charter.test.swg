@@ -173,18 +173,19 @@ func assertDialogCharter(dlg: *Dialog)
     discard dlg.createContentView()
     dlg.fitHeightToContent(120)
 
-    Swag.assert(filter.position.x == host.theme.metrics.dialog_Padding)
-    Swag.assert(Math.abs(filter.position.vertCenter() - dlg.buttonBar.position.vertCenter()) < 0.5)
+    let slot = unwrap filter.parent
+    Swag.assert(slot.position.x == host.theme.metrics.dialog_Padding)
+    Swag.assert(Math.abs(slot.position.vertCenter() - dlg.buttonBar.position.vertCenter()) < 0.5)
+
+    // The control follows the action row when the box changes height.
+    dlg.fitHeightToContent(220)
+    Swag.assert(Math.abs(slot.position.vertCenter() - dlg.buttonBar.position.vertCenter()) < 0.5)
 
     dlg.surface!.destroy()
     host.pump()
 }
 
-// The bands of the file browser share one left edge and one right edge.
-//
-// Given an inset each they lined up on none: the first tool of the navigation bar, the first
-// column of the list and the first label of the name form each started somewhere else, and the
-// right edge of a field missed the right edge of the list by the difference between two paddings.
+// The path row of the file browser and its list share one left edge and one right edge.
 #test
 {
     var host: Testing.HeadlessHost
@@ -194,11 +195,7 @@ func assertDialogCharter(dlg: *Dialog)
     fb.applyLayout()
 
     let list = fb.listCtrl
-    let bar  = unwrap fb.backButton.parent
-    let form = unwrap fb.editFile.parent
-
-    Swag.assert(Math.abs(list.position.x - (bar.position.x + bar.padding.x)) < 0.5)
-    Swag.assert(Math.abs(list.position.x - (form.position.x + form.padding.x)) < 0.5)
-    Swag.assert(Math.abs(list.position.right() - (bar.position.right() - bar.padding.z)) < 0.5)
-    Swag.assert(Math.abs(list.position.right() - (form.position.right() - form.padding.z)) < 0.5)
+    let row  = unwrap fb.pathField.parent
+    Swag.assert(Math.abs(list.position.x - row.position.x) < 0.5)
+    Swag.assert(Math.abs(list.position.right() - row.position.right()) < 0.5)
 }

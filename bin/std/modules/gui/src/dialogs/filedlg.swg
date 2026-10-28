@@ -39,7 +39,8 @@ struct FileDlgOptions
         confirmButtonText: string      = ""             // Confirmation button label, or empty for the localized OK.
         initialFolder:     string      = ""             // Initially browsed folder, when non-empty.
         initialName:       string      = ""             // Initial file-name editor contents.
-        showLocationsPane              = true           // Whether to show shortcuts and drives.
+        showLocationsPane              = true           // Whether to show the places, as text tabs over the path field.
+        showDrives                     = true           // Whether the places include the mounted drives after the shortcuts.
         mode:              FileDlgMode = SelectFile     // Accepted selection kind.
         filters:           Array'{ name: string, extensions: string }     // Named extension filters; empty means all files.
         shortcuts:         Array'{ type: Core.Env.SpecialDirectory, name: string }     // Locations shown in the shortcuts pane; empty uses common user folders.
@@ -199,6 +200,11 @@ impl FileDlg
             .sigNewFolderRequested += func|fileDlg = dlg|(_) { fileDlg.onNewFolder() }
         }
 
+        // The type filter takes the quiet bottom-left slot of the box.
+        let typeFilter = dlg.browser.detachTypeFilter()
+        if typeFilter do
+            dlg.setLeadingControl(typeFilter)
+
         dlg.validateResult = func|dlg|(_, id)
         {
             if id == Dialog.BtnOk
@@ -218,8 +224,7 @@ impl FileDlg
 
                 if not dlg.browser.hasValidSelection()
                 {
-                    dlg.browser.editFile.selectAll()
-                    dlg.browser.editFile.setFocus()
+                    dlg.browser.focusNameEntry()
                     return false
                 }
 

@@ -56,17 +56,19 @@ dialogs, then each application, then the written rules.
 - Done when: `gui.properties.ctrl.paper` is reproduced by a `properties.ctrl.{ink,paper}` golden.
 - Related: design.silence.002
 
-### design.silence.006 — The file dialog still hosts the old browser bands
+### design.silence.006 — The file box lists dates in the body face and marks no match
 
-- Evidence: every predefined box and the applications' own forms are floating sheets
-  (`dialogs.{message,error,prompt,form,about}.{ink,paper}` goldens, `dialogs.charter.test.swg`),
-  but `FileDlg` puts `FileBrowserCtrl` in the body as it was: a navigation bar, a list on the view
-  ground, a status line and a label-beside-field name form, each band with its own padding.
-- Next: rebuild `FileBrowserCtrl` for the box — places as text tabs with the Arc underline, one
-  path field that filters, rows of 30–32 with mono faint dates and sizes on the dialog ground, and
-  the type filter as a quiet `▾` given to `Dialog.setLeadingControl` — and keep it usable embedded
-  (`gui9`).
-- Done when: a `dialogs.file.{ink,paper}` golden matches the file box of the dialog pictures.
+- Evidence: `FileDlg` and the embedded `FileBrowserCtrl` follow the file box of the dialog
+  pictures (`dialogs.file.{ink,paper}`): places as text tabs with the Arc underline, the path
+  written before the filter in one field, quiet rows on the box ground, the type filter in the
+  bottom-left slot. Three details remain: the dates and sizes use the body face instead of mono,
+  the characters a filter matched are not highlighted, and the name column keeps its authored
+  width instead of taking the room, so dates and sizes do not reach the right edge.
+- Next: give `ListItem` a face of its own (or a mono column flag), let a list row carry the
+  matched ranges the lens already computes with `Lens.match`, and let the first column of a
+  `ListCtrl` stretch.
+- Done when: `dialogs.file.{ink,paper}` match the file box of the dialog pictures in those three
+  points too.
 
 ### design.silence.007 — Swag Scope still shows its bands
 

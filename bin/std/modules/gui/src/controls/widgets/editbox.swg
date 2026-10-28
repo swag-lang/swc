@@ -82,6 +82,7 @@ struct EditBox
             form  = EditBoxForm.Rectangle     // Current background geometry.
             flags = EditBoxFlags.None         // Active interaction and presentation options.
             maximumLength:  s32               // Maximum rune count, or zero for no limit.
+            leadingMargin:  f32               // Extra leading inset in logical units, for words a parent writes before the text.
             trailingMargin: f32               // Extra trailing inset in logical units.
             validator:      (func||(*EditBox)->EditBoxCheckResult)?     // Custom validator, or null for built-in validation.
 
@@ -816,6 +817,8 @@ private impl EditBox
     mtd editRect()->Math.Rectangle
     {
         var rect = .paddedClientRect()
+        rect.x     += .leadingMargin
+        rect.width -= .leadingMargin
         rect.moveRight(-.trailingMargin - .clearBtnTextMargin)
         return rect
     }
@@ -1391,6 +1394,16 @@ impl EditBox
     {
         Swag.assert(length >= 0, "maximum length cannot be negative")
         .maximumLength = length
+    }
+
+    // Changes the extra leading inset, where a parent writes words before the text.
+    mtd setLeadingMargin(margin: f32)
+    {
+        Swag.assert(margin >= 0, "leading margin cannot be negative")
+        if .leadingMargin == margin do
+            return
+        .leadingMargin = margin
+        .invalidate()
     }
 
     // Changes the extra trailing inset.

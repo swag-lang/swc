@@ -199,7 +199,16 @@ impl Dialog
     mtd setLeadingControl(control: *Wnd)
     {
         Swag.assert(.leadingControl == null, "a dialog has one leading control")
-        control.setParent(me)
+
+        // The control stands in a floating slot, which the layout places once the actions have
+        // their row: the box can be fitted or resized after, and the control follows the row.
+        with let slot = Wnd.create'DialogLeadingSlot(me, "", {})
+        {
+            .dialog    = me
+            .dockStyle = .Float
+        }
+
+        control.setParent(slot)
         control.dockStyle = .None
         .leadingControl   = control
         .placeLeadingControl()
@@ -382,7 +391,27 @@ private impl Dialog
         let control = .leadingControl
         if not control do
             return
-        let bar = .buttonBar.position
-        control.setPosition(Math.Rectangle{.padding.x, bar.y, control.position.width, bar.height})
+        let bar  = .buttonBar.position
+        let slot = unwrap control.parent
+        slot.setPosition(Math.Rectangle{.padding.x, bar.y, control.position.width, bar.height}, false)
+        control.setPosition(Math.Rectangle{0, 0, control.position.width, bar.height})
+    }
+}
+
+// Holds the leading control of a dialog on the row of its actions.
+//
+// It floats, so its parent places it after the docked actions have their row, at every layout.
+struct DialogLeadingSlot
+{
+    public using wnd: Wnd     // Embedded window behavior and presentation.
+
+    late dialog: *Dialog     // Dialog whose action row the slot stands on.
+}
+
+impl IWnd for DialogLeadingSlot
+{
+    mtd impl onLayout()
+    {
+        .dialog.placeLeadingControl()
     }
 }

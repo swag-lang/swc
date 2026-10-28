@@ -70,8 +70,6 @@ struct Strings
         fileDlg_BtnSave:           string = "Save"                                        // Confirmation button when saving a file.
         fileDlg_BtnOpen:           string = "Open"                                        // Confirmation button when opening a file.
 
-        browser_Shortcuts:      string = "Shortcuts"                      // Locations pane group of user shortcuts.
-        browser_Drives:         string = "Drives"                         // Locations pane group of mounted drives.
         browser_Desktop:        string = "Desktop"                        // Default shortcut to the desktop.
         browser_Documents:      string = "Documents"                      // Default shortcut to the documents folder.
         browser_Pictures:       string = "Pictures"                       // Default shortcut to the pictures folder.
@@ -80,22 +78,11 @@ struct Strings
         browser_ColSize:        string = "Size"                           // File list column of file sizes.
         browser_AllFiles:       string = "All Files"                      // Filter matching every extension.
         browser_NewFolder:      string = "New Folder"                     // Create a folder in the current location.
-        browser_TipBack:        string = "Previous Folder (Alt+Left)"     // Tooltip of the back navigation button.
-        browser_TipForward:     string = "Next Folder (Alt+Right)"        // Tooltip of the forward navigation button.
+        browser_FilterHint:     string = "Filter, or type a path"         // Placeholder of the path field, after the current path.
         browser_TipRecent:      string = "Recent Folders"                 // Tooltip of the recent-folders button.
         browser_TipUp:          string = "Parent Folder (Alt+Up)"         // Tooltip of the parent-folder button.
-        browser_TipRefresh:     string = "Refresh (F5)"                   // Tooltip of the refresh button.
-        browser_TipNewFolder:   string = "Create a folder in the current location"     // Tooltip of [[Gui.Strings.browser_NewFolder]].
-        browser_FolderName:     string = "Folder Name"                    // Name field label when picking a folder.
         browser_FileName:       string = "File Name"                      // Name field label when picking a file.
         browser_Folders:        string = "Folders"                        // Type filter entry when picking a folder.
-        browser_Type:           string = "Type"                           // Label of the type filter field.
-        browser_StatusEmpty:    string = "Empty folder"                   // Status line of a folder with nothing to show.
-        browser_StatusFolder:   string = "folder"                         // Status word for one folder.
-        browser_StatusFolders:  string = "folders"                        // Status word for several folders.
-        browser_StatusFile:     string = "file"                           // Status word for one file.
-        browser_StatusFiles:    string = "files"                          // Status word for several files.
-        browser_StatusSelected: string = "  —  % selected"                // Status suffix with the selection count.
 
         markdown_AlertNote:      string = "Note"                                       // Title of a Markdown [!NOTE] alert.
         markdown_AlertTip:       string = "Tip"                                        // Title of a Markdown [!TIP] alert.

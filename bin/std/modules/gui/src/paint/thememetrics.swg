@@ -18,6 +18,14 @@ struct ThemeMetrics
         motion_EdgeTravel:   f32 = 8        // Travel of a floating surface arriving from the edge it stands against.
         motion_AnchorTravel: f32 = 4        // Travel of a floating surface leaving the anchor it belongs to.
 
+        fileBrowser_PlacesHeight: f32 = 30     // Height of the row of places at the top of a file browser.
+        fileBrowser_PlaceGap:     f32 = 20     // Air between two places.
+        fileBrowser_RowGap:       f32 = 12     // Air between the rows of a file browser.
+        fileBrowser_LineHeight:   f32 = 32     // Height of a row of the file list.
+        fileBrowser_GlyphSize:    f32 = 16     // Size of the glyphs at the end of the path field.
+        fileBrowser_GlyphGap:     f32 = 4      // Air between the path field and its first glyph.
+        fileBrowser_TypeChrome:   f32 = 44     // Width a quiet type filter adds to its longest name.
+
         // The corners of the charter, one per kind of shape. The atlas tiles of
         // [[Gui.ThemeImageRects]] are drawn with these radii and publish them as their `radius`; a
         // part painted in code rather than from a tile takes its corner from here.

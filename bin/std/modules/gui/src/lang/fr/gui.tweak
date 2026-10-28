@@ -57,8 +57,6 @@ fileDlg_ReplaceText       Voulez-vous le remplacer ?
 fileDlg_BtnSave           Enregistrer
 fileDlg_BtnOpen           Ouvrir
 
-browser_Shortcuts    Raccourcis
-browser_Drives       Lecteurs
 browser_Desktop      Bureau
 browser_Documents    Documents
 browser_Pictures     Images
@@ -67,22 +65,11 @@ browser_ColModified  Modifié
 browser_ColSize      Taille
 browser_AllFiles     Tous les fichiers
 browser_NewFolder    Nouveau dossier
-browser_TipBack      Dossier précédent (Alt+Gauche)
-browser_TipForward   Dossier suivant (Alt+Droite)
+browser_FilterHint   Filtrer, ou saisir un chemin
 browser_TipRecent    Dossiers récents
 browser_TipUp        Dossier parent (Alt+Haut)
-browser_TipRefresh   Actualiser (F5)
-browser_TipNewFolder Créer un dossier à l'emplacement courant
-browser_FolderName   Nom du dossier
 browser_FileName     Nom du fichier
 browser_Folders      Dossiers
-browser_Type         Type
-browser_StatusEmpty  Dossier vide
-browser_StatusFolder dossier
-browser_StatusFolders dossiers
-browser_StatusFile   fichier
-browser_StatusFiles  fichiers
-browser_StatusSelected "  —  % sélectionné(s)"
 
 markdown_AlertNote      Note
 markdown_AlertTip       Astuce

@@ -175,6 +175,60 @@ func renderDialog(host: *Testing.HeadlessHost, dlg: *Dialog)->Image
     }
 }
 
+// Returns `count` bytes of text, for a file of a known size.
+func filler(count: u64)->String
+{
+    var result: String
+    for count do
+        result += 'x'u8
+    return result
+}
+
+// Pins the file box against the charter picture: places as text tabs, the path written before the
+// filter, quiet rows with faint dates and sizes, and the type filter in the bottom-left slot.
+#[Swag.TestTag("golden")]
+#test
+{
+    let root   = Path.combine(Env.getSpecialDirectory(.Temp).toString(), "swag-filedlg-golden")
+    let folder = Path.combine(root.toString(), "swag")
+    discard catch Directory.delete(root.toString(), recurse: true)
+    expect Directory.create(Path.combine(folder.toString(), "design").toString(), recurse: true)
+    defer discard catch Directory.delete(root.toString(), recurse: true)
+    discard expect File.writeAllText(Path.combine(folder.toString(), "AGENTS.md").toString(), filler(4200).toString())
+    discard expect File.writeAllText(Path.combine(folder.toString(), "CLAUDE.md").toString(), "@AGENTS.md")
+    discard expect File.writeAllText(Path.combine(folder.toString(), "README.md").toString(), filler(8100).toString())
+    discard expect File.writeAllText(Path.combine(folder.toString(), "build.swgs").toString(), "#run")
+
+    for light in [false, true]
+    {
+        var host: Testing.HeadlessHost
+        host.setup(900, 640)
+        if light
+        {
+            host.theme.setLight()
+            host.notify(.ThemeChanged)
+        }
+
+        var opt: FileDlgOptions
+        opt.mode          = .SelectFile
+        opt.showDrives    = false
+        opt.initialFolder = folder.toString()
+        opt.shortcuts.add({type: Env.SpecialDirectory.Temp, name: "Documents"})
+        let dlg = FileDlg.create(&host.surface, opt)
+        dlg.browser.pathField.setText(".md")
+
+        // The disk dates the files of today; the picture keeps one moment.
+        for line, idx in dlg.browser.listCtrl.lines do
+            discard line!.setItem(1, Format.toString("2026-10-2% 21:30", 6 - idx).toString())
+        dlg.browser.listCtrl.selectLine(0)
+
+        let image = renderDialog(&host, &dlg.dialog)
+        Pixel.Testing.assertImageGolden(&image, Format.toString("dialogs.file.%", light ? "paper" : "ink").toString())
+        dlg.surface!.destroy()
+        host.pump()
+    }
+}
+
 // A question is as wide as its actions need, and never narrower than the family's floor.
 #test
 {

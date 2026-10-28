@@ -61,7 +61,49 @@ impl NavigationHistory
     }
 }
 
-// Embeds location navigation, a sortable file list, a status line, and name and type editors.
+// One stop of a row of text the browser lays out itself: a place, or a step of the path.
+struct FileBrowserStop
+{
+    public
+    {
+        name: String             // Words shown for the stop.
+        path: String             // Folder the stop leads to.
+        rect: Math.Rectangle     // Where the words stand, in local coordinates.
+    }
+}
+
+// The places of a file browser, set as text tabs: shortcuts, then drives.
+//
+// The place the current folder lies in carries the Arc underline; a click browses to a place.
+struct FilePlacesBar
+{
+    public
+    {
+        using wnd: Wnd     // Embedded window behavior and presentation.
+    }
+
+    late browser: *FileBrowserCtrl          // Browser the places lead.
+    stops:        Array'FileBrowserStop     // Places in display order.
+    hotIdx = Swag.U64.Max                   // Place under the pointer.
+}
+
+// The path of the current folder, written before the filter in the path field of a file browser.
+//
+// The steps start at the place the folder lies in, or at its root; a click on a step browses
+// there. Steps that would take more than half the field are folded into an ellipsis.
+struct FileCrumbs
+{
+    public
+    {
+        using wnd: Wnd     // Embedded window behavior and presentation.
+    }
+
+    late browser: *FileBrowserCtrl          // Browser the steps lead.
+    stops:        Array'FileBrowserStop     // Steps in display order, the first possibly an ellipsis.
+    hotIdx = Swag.U64.Max                   // Step under the pointer.
+}
+
+// Browses folders with places as text tabs, a path field that filters, a quiet file list, and name and type editors.
 struct FileBrowserCtrl
 {
     public
@@ -70,23 +112,19 @@ struct FileBrowserCtrl
 
         readonly
         {
-            treeCtrl:      *ListCtrl?         // Optional recent, shortcut and drive locations list.
             options:       FileDlgOptions     // Effective browsing and selection options.
             currentFolder: String             // Normalized folder currently displayed.
+            placesBar:     *FilePlacesBar?    // Places, unless [[Gui.FileDlgOptions.showLocationsPane]] is off.
 
             late
             {
                 listCtrl:        *ListCtrl       // Sortable file and folder list.
-                comboPath:       *ComboBox       // Current-folder and ancestor selector.
-                editFile:        *EditBox        // File or folder name editor.
+                pathField:       *EditBox        // The current folder as a path, then a filter or a path typed after it.
+                editFile:        *EditBox        // Name of the file a save creates; in the other modes, the chosen names.
                 comboType:       *ComboBox       // Active file-type filter selector.
-                backButton:      *IconButton     // Navigates to the previous folder.
-                forwardButton:   *IconButton     // Navigates to the next folder.
-                historyButton:   *IconButton     // Opens the recent-folders drop-down menu.
                 upButton:        *IconButton     // Navigates to the parent folder.
-                refreshButton:   *IconButton     // Reloads the current folder.
-                newFolderButton: *PushButton     // Creates a folder in the current location.
-                statusLabel:     *Label          // Item count, selection summary and empty-folder hint.
+                historyButton:   *IconButton     // Opens the recent-folders drop-down menu.
+                newFolderButton: *IconButton     // Creates a folder in the current location.
             }
         }
 
@@ -95,28 +133,239 @@ struct FileBrowserCtrl
         sigNewFolderRequested: SigArray'func||(*Wnd)     // Emitted when the user requests a new folder.
     }
 
-    treePathStr:    Array'String          // Folder paths backing `treeCtrl` rows.
-    comboPathStr:   Array'String          // Folder paths backing `comboPath` entries.
-    currentEntries: Array'FileInfo        // Filesystem entries backing visible rows.
-    history:        NavigationHistory     // Folder-navigation history.
-    shownFolders:   u32                   // Folders displayed by the last fill.
-    shownFiles:     u32                   // Files displayed by the last fill.
+    late crumbs:  *FileCrumbs           // Path written at the start of the path field.
+    late typeRow: *Wnd                  // Row holding the type filter when the browser keeps it.
+    currentEntries: Array'FileInfo      // Filesystem entries backing visible rows.
+    history:        NavigationHistory   // Folder-navigation history.
 }
 
-impl IWnd for FileBrowserCtrl
+impl IWnd for FilePlacesBar
 {
-    mtd impl onDestroyEvent(_: *DestroyEvent)
+    mtd impl onResizeEvent(_: *ResizeEvent)
     {
-        .saveState()
+        .arrange()
     }
+
+    mtd impl onPaint(evt: *PaintEvent)
+    {
+        let painter = evt.paintContext.painter
+        let colors  = .themeColors()
+        let font    = .theme().createDefaultFont(.themeMetrics().defaultFontSize)
+        let current = .currentIndex()
+
+        // The chosen place reads in the body ink over the Arc underline; the others stay soft, and
+        // the one under the pointer comes up to the body ink without the underline.
+        for &stop, idx in .stops
+        {
+            let chosen = idx == current
+            let color  = chosen or idx == .hotIdx ? colors.text : colors.softText
+            painter.drawString(stop.rect.x, font.opticalLineTop(stop.rect.vertCenter()), stop.name.toString(), font, color)
+            if chosen do
+                painter.fillRect(Math.Rectangle{stop.rect.x, .clientRect().bottom() - 2, stop.rect.width, 2}, colors.arc)
+        }
+    }
+
+    mtd impl onMouseEvent(evt: *MouseEvent)
+    {
+        let hit = hitStop(.stops.toSlice(), .surfaceToLocal(evt.surfacePos))
+        switch evt.kind
+        {
+        case .Move:
+            if hit != .hotIdx
+            {
+                .hotIdx = hit
+                .invalidate()
+            }
+
+        case .Leave:
+            .hotIdx = Swag.U64.Max
+            .invalidate()
+
+        case .Pressed:
+            if evt.button == .Left and hit != Swag.U64.Max do
+                .browser.setCurrentFolder(.stops[hit].path)
+        }
+    }
+}
+
+impl FilePlacesBar
+{
+    // Returns the place the current folder lies in: the deepest one whose path starts it, or `Swag.U64.Max`.
+    mtd currentIndex()->u64
+    {
+        var result = Swag.U64.Max
+        var length = 0'u64
+        for &stop, idx in .stops
+        {
+            if stop.path.length > length and isInside(.browser.currentFolder.toString(), stop.path.toString())
+            {
+                result = idx
+                length = stop.path.length
+            }
+        }
+
+        return result
+    }
+
+    // Places the words of every place from the leading edge, a gap apart.
+    mtd arrange()
+    {
+        let font   = .theme().createDefaultFont(.themeMetrics().defaultFontSize)
+        let height = .clientRect().height
+        var x      = 0'f32
+        for &stop in .stops
+        {
+            let width = Painter.measureString(stop.name.toString(), font).width
+            stop.rect = Math.Rectangle{x, 0, width, height - 2}
+            x += width + .themeMetrics().fileBrowser_PlaceGap
+        }
+
+        .invalidate()
+    }
+
+    // Adds a place leading to `path`, named `name`.
+    mtd addPlace(name, path: string)
+    {
+        var normalized = String.from(path)
+        Path.normalize(&normalized)
+        .stops.add({name: String.from(name), path: normalized})
+    }
+}
+
+impl IWnd for FileCrumbs
+{
+    mtd impl onPaint(evt: *PaintEvent)
+    {
+        let painter = evt.paintContext.painter
+        let colors  = .themeColors()
+        let font    = .theme().createDefaultFont(.themeMetrics().defaultFontSize)
+        for &stop, idx in .stops
+        {
+            let y = font.opticalLineTop(stop.rect.vertCenter())
+            painter.drawString(stop.rect.x, y, stop.name.toString(), font, idx == .hotIdx ? colors.softText : colors.faintText)
+            painter.drawString(stop.rect.right(), y, " / ", font, colors.faintText)
+        }
+    }
+
+    mtd impl onMouseEvent(evt: *MouseEvent)
+    {
+        let hit = hitStop(.stops.toSlice(), .surfaceToLocal(evt.surfacePos))
+        switch evt.kind
+        {
+        case .Move:
+            if hit != .hotIdx
+            {
+                .hotIdx = hit
+                if hit == Swag.U64.Max do
+                    .cursor.clear()
+                else do
+                    .cursor = Cursor.from(CursorShape.Hand)
+                .invalidate()
+            }
+
+        case .Leave:
+            .hotIdx = Swag.U64.Max
+            .invalidate()
+
+        case .Pressed:
+            if evt.button == .Left and hit != Swag.U64.Max do
+                .browser.setCurrentFolder(.stops[hit].path)
+        }
+    }
+}
+
+impl FileCrumbs
+{
+    // Rebuilds the steps of the current folder and returns the width they take, separators included.
+    //
+    // At most `maximum` wide: the steps after the first are folded into an ellipsis, oldest first,
+    // until the rest fits.
+    mtd rebuild(maximum: f32)->f32
+    {
+        .stops.clear()
+        .hotIdx = Swag.U64.Max
+
+        let folder = .browser.currentFolder.toString()
+        var start  = 0'u64
+        let places = .browser.placesBar
+        if places
+        {
+            let place = places.currentIndex()
+            if place != Swag.U64.Max
+            {
+                let stop = &places.stops[place]
+                .stops.add({name: stop.name, path: stop.path})
+                start = stop.path.length
+            }
+        }
+
+        // The remaining folders, each step leading to the path up to it.
+        var path = String.from(folder[until start])
+        for part in Tokenize.split(folder[start until folder.count], '/'rune) where part.count
+        {
+            if not path.isEmpty() and path.back() != '/' do
+                path += '/'u8
+            path += part
+            .stops.add({name: String.from(part), path: path})
+        }
+
+        // Fold the oldest steps behind the first into one ellipsis until the path fits.
+        let font  = .theme().createDefaultFont(.themeMetrics().defaultFontSize)
+        let slash = Painter.measureString(" / ", font).width
+        var total = 0'f32
+        for &stop in .stops do
+            total += Painter.measureString(stop.name.toString(), font).width + slash
+        if total > maximum and .stops.count > 2
+        {
+            total -= Painter.measureString(.stops[1].name.toString(), font).width
+            total += Painter.measureString("…", font).width
+            .stops[1].name = String.from("…")
+
+            // The ellipsis leads to the deepest folder it hides.
+            while total > maximum and .stops.count > 3
+            {
+                total -= Painter.measureString(.stops[2].name.toString(), font).width + slash
+                .stops[1].path = .stops[2].path
+                .stops.removeAtOrdered(2)
+            }
+        }
+
+        let height = .clientRect().height
+        var x      = 0'f32
+        for &stop in .stops
+        {
+            let width = Painter.measureString(stop.name.toString(), font).width
+            stop.rect = Math.Rectangle{x, 0, width, height}
+            x += width + slash
+        }
+
+        .invalidate()
+        return x
+    }
+}
+
+// Reports whether `folder` is `place` or lies under it; both are normalized.
+private func isInside(folder, place: string)->bool
+{
+    if not place.count or not Utf8.startsWith(folder, place, .Latin1NoCase) do
+        return false
+    if folder.count == place.count or place[place.count - 1] == '/'u8 do
+        return true
+    return folder[place.count] == '/'u8
+}
+
+// Returns the stop whose words are under `pos`, or `Swag.U64.Max`.
+private func hitStop(stops: const [..] FileBrowserStop, pos: Math.Point)->u64
+{
+    for &stop, idx in stops where pos.x >= stop.rect.x and pos.x < stop.rect.right() do
+        return idx
+    return Swag.U64.Max
 }
 
 private impl FileBrowserCtrl
 {
     mtd updateNavigationState()
     {
-        .backButton.enable(.history.canGoBack())
-        .forwardButton.enable(.history.canGoForward())
         .historyButton.enable(.options.state != null and not .options.state.recentFolders.isEmpty())
         let parent = Path.directoryName(.currentFolder.toString()) orelse ""
         .upButton.enable(parent.count != 0 and parent != .currentFolder.toString())
@@ -168,137 +417,201 @@ private impl FileBrowserCtrl
             return true
 
         .currentFolder = #move normalized
+        .pathField.setText(null, notify: false)
+        .placesBar?.invalidate()
+        .placeCrumbs()
         .fillFileList()
-        .fillComboPath()
         .sigFolderChanged.call(me)
         return true
     }
 
-    mtd fillComboPath()
+    // Writes the path of the current folder at the start of the path field, and starts the typing after it.
+    mtd placeCrumbs()
     {
-        .comboPath.clear()
-        .comboPathStr.clear()
-
-        let all = Tokenize.split(.currentFolder.toString(), '/'rune)
-        for i in all.count.reversed()
-        {
-            var str: String
-            for j in i + 1
-            {
-                str += all[j]
-                str += '/'u8
-            }
-
-            .comboPathStr.add(str)
-
-            let one  = all[i]
-            var icon = .app().directoryIcon(one)
-            icon.color = .themeColors().label_Text
-            .comboPath.addItem(one, icon: icon)
-        }
-
-        .comboPath.setSelectedIndex(0, notify: false)
+        let field = .pathField
+        let inset = field.padding.x
+        let room  = Math.max(field.position.width * 0.5, 0)
+        .crumbs.setPosition(Math.Rectangle{inset, 0, room, field.position.height})
+        let width = .crumbs.rebuild(room)
+        .crumbs.resize(width, field.position.height)
+        field.setLeadingMargin(width)
     }
 
-    // Appends one selectable location row bound to `path`.
-    mtd addLocationLine(name: string, path: string, icon: Icon)
+    // Reports whether what is typed in the path field names a path rather than filters the list.
+    mtd typedIsPath()->bool
     {
-        let treeCtrl = unwrap .treeCtrl
-        let l        = treeCtrl.createLine(name, icon)
-        l.userData0      = cast(*void?, .treePathStr.count)
-        l.leftTextMargin = 10
-        .treePathStr.add(String.from(path))
+        let typed = .pathField.text()
+        return Utf8.indexOfAny(typed, "/\\:") != Swag.U64.Max
     }
 
-    // Rebuilds the locations pane: shortcuts, then drives.
-    mtd fillLocationsPane()
+    // Answers Enter in the path field: a typed path browses or chooses, a filter takes its first row.
+    mtd submitPath()
     {
-        let treeCtrl = .treeCtrl
-        if not treeCtrl do
+        var typed = String.from(.pathField.text())
+        typed.trim()
+        if typed.isEmpty() do
             return
 
-        treeCtrl.clear()
-        .treePathStr.clear()
-
-        var l = treeCtrl.createLine(strings().browser_Shortcuts)
-        l.separator = true
-
-        for v in .options.shortcuts
+        if .typedIsPath()
         {
-            let c    = Env.getSpecialDirectory(v.type)
-            var icon = .app().specialDirectoryIcon(v.type, true)
-            icon.color = .themeColors().label_Text
-            .addLocationLine(v.name, c.toString(), icon)
-        }
+            var candidate: String
+            if Path.rootLength(typed.toString()) > 0 do
+                candidate = typed
+            else do
+                candidate = Path.combine(.currentFolder, typed.toString())
 
-        l = treeCtrl.createLine(strings().browser_Drives)
-        l.separator = true
-
-        let volumes = catch Directory.drives()
-        for &v in volumes
-        {
-            v.removeBack()
-            var icon = .app().directoryIcon(v.toString(), true)
-            icon.color = Pixel.Argb.White
-            .addLocationLine(v.toString(), v.toString(), icon)
-        }
-    }
-
-    // Refreshes the status line with item counts and the current selection summary.
-    mtd updateStatus()
-    {
-        var txt: String
-        if .shownFolders == 0 and .shownFiles == 0
-        {
-            txt = strings().browser_StatusEmpty
-        }
-        else
-        {
-            if .shownFolders
+            if Directory.exists(candidate)
             {
-                txt += Format.toString("% %", .shownFolders, .shownFolders == 1 ? strings().browser_StatusFolder : strings().browser_StatusFolders)
-                if .shownFiles do
-                    txt += ", "
+                .setCurrentFolder(candidate.toString())
+                return
             }
 
-            if .shownFiles do
-                txt += Format.toString("% %", .shownFiles, .shownFiles == 1 ? strings().browser_StatusFile : strings().browser_StatusFiles)
+            if .options.mode != .SelectFolder and File.exists(candidate)
+            {
+                .setCurrentFolder(Path.directoryName(candidate.toString()) orelse "")
+                .editFile.setText(Path.fileName(candidate.toString()) orelse "")
+                .sigAccepted.call(me)
+            }
+
+            return
         }
 
-        // Selection summary: count, plus the cumulated size of the selected files.
-        var selCount = 0
-        var selBytes = 0'u64
-        var sel      = .listCtrl.selectedLines()
-        for lineIt in sel
+        if .listCtrl.lines.isEmpty() do
+            return
+        .listCtrl.selectLine(0)
+        let fi = cast(const *FileInfo, unwrap .listCtrl.lines[0]!.userData0)
+        if fi.isDirectory() do
+            .setCurrentFolder(fi.fullName)
+        elif .options.mode != .SelectFolder do
+            .sigAccepted.call(me)
+    }
+
+    // Answers the browsing keys wherever the keyboard is in the browser, and reports whether `key` was one.
+    mtd browseKey(key: Input.Key, modifiers: Input.KeyModifiers)->bool
+    {
+        switch key
         {
-            let fi = cast(const *FileInfo, unwrap lineIt!.userData0)
-            if fi.isDirectory() and .options.mode != FileDlgMode.SelectFolder do
-                continue
-            selCount += 1
-            if not fi.isDirectory() do
-                selBytes += fi.size
+        case .BrowserBack:
+            discard .goBack()
+            return true
+        case .BrowserForward:
+            discard .goForward()
+            return true
+        case .BrowserRefresh, .F5:
+            .refresh()
+            return true
+        case .Left where modifiers.equals(.Alt):
+            discard .goBack()
+            return true
+        case .Right where modifiers.equals(.Alt):
+            discard .goForward()
+            return true
+        case .Up where modifiers.equals(.Alt):
+            discard .goUp()
+            return true
         }
 
-        if selCount
+        return false
+    }
+
+    // Answers the keys the path field leaves to the browser, and keeps the written path fitted to the field.
+    mtd handlePathEvent(evt: IEvent)->bool
+    {
+        switch evt
         {
-            txt += Format.toString(strings().browser_StatusSelected, selCount)
-            if selBytes do
-                txt += Format.toString(" (%)", Format.byteSize(selBytes))
+        case ResizeEvent:
+            .placeCrumbs()
+
+        case KeyEvent as key:
+            if key.kind != .Pressed do
+                break
+
+            // Down leaves the field for the rows it filtered; Backspace at its start climbs.
+            if key.key == .Down and key.modifiers.equals(.None)
+            {
+                .listCtrl.setFocus()
+                if not .listCtrl.lines.isEmpty() and not .listCtrl.selectedLine() do
+                    .listCtrl.selectLine(0)
+                return true
+            }
+
+            if key.key == .Back and key.modifiers.equals(.None) and .pathField.text().count == 0
+            {
+                discard .goUp()
+                return true
+            }
+
+            return .browseKey(key.key, key.modifiers)
         }
 
-        .statusLabel.setText(txt.toString())
+        return false
+    }
+
+    mtd createPathRow(parent: *Wnd)
+    {
+        let metrics = .themeMetrics()
+        let side    = metrics.control_DialogHeight
+
+        with let row = Wnd.create'Wnd(parent, {0, 0, 0, side})
+        {
+            .dockStyle = .Top
+            if me.placesBar do
+                .margin.y = metrics.fileBrowser_RowGap
+        }
+
+        // Quiet glyphs at the end of the field, each named by its tooltip.
+        let iconSize = metrics.fileBrowser_GlyphSize
+        with .newFolderButton = IconButton.create(row, .theme().icon(.Plus, iconSize), {0, 0, side, side})
+        {
+            .dockStyle  = .Right
+            .toolTip    = strings().browser_NewFolder
+            .sigPressed += func|fileBrowser = me|(_) { fileBrowser.sigNewFolderRequested.call(fileBrowser) }
+        }
+
+        with .historyButton = IconButton.create(row, .theme().icon(.History, iconSize), {0, 0, side, side})
+        {
+            .dockStyle  = .Right
+            .toolTip    = strings().browser_TipRecent
+            .sigPressed += func|fileBrowser = me|(_) { fileBrowser.openRecentMenu() }
+
+            // Without reusable state there is never a history to show.
+            if not me.options.state do
+                .hide()
+        }
+
+        with .upButton = IconButton.create(row, .theme().icon(.ParentFolder, iconSize), {0, 0, side, side})
+        {
+            .dockStyle  = .Right
+            .margin.z   = metrics.fileBrowser_GlyphGap
+            .toolTip    = strings().browser_TipUp
+            .sigPressed += func|fileBrowser = me|(_) { discard fileBrowser.goUp() }
+        }
+
+        with .pathField = EditBox.create(row, "")
+        {
+            .dockStyle = .Center
+            .setPlaceholder(strings().browser_FilterHint)
+            .sigTextChanged += func|fileBrowser = me|(_) { fileBrowser.fillFileList() }
+
+            .sigSubmitted += func|fileBrowser = me|(_) { fileBrowser.submitPath() }
+            .hookOnEvent = func|fileBrowser = me|(_, evt) => fileBrowser.handlePathEvent(evt)
+        }
+
+        .crumbs         = Wnd.create'FileCrumbs(.pathField, "", {})
+        .crumbs.browser = me
     }
 
     mtd createFileList(view: *Wnd)
     {
+        let metrics = .themeMetrics()
         with me.listCtrl = ListCtrl.createMultiColumns(view)
         {
             .setSelectionMode(me.options.mode == FileDlgMode.SelectFiles ? ListSelectionMode.Multi : ListSelectionMode.Single)
             .dockStyle = .Center
-            .margin.x  = edgePadding(view)
-            .margin.z  = edgePadding(view)
+            .margin.y  = metrics.fileBrowser_RowGap
             .updateFlags(.HotTrack)
-            .backgroundStyle = .View
+            .setLineHeight(metrics.fileBrowser_LineHeight)
+            .backgroundStyle = .Transparent
 
             // NOTE: both branches are kept explicitly f32. A runtime conditional
             // whose unified result is integer, fed to an f32 parameter, is currently
@@ -307,14 +620,18 @@ private impl FileBrowserCtrl
             .addColumn(strings().browser_ColModified, me.options.state ? cast(f32, me.options.state.modifiedColumnWidth) : 130.0)
             .addColumn(strings().browser_ColSize, me.options.state ? cast(f32, me.options.state.sizeColumnWidth) : 90.0)
             .header.form = .Transparent
-            .header.style.addStyleSheetColors("headerItem_Separator $veilSoft")
-            .scrollWnd.style.addStyleSheetColors("scrollBar_Bk $view_Bk")
 
             // A key the browsing gesture claims is marked handled, so the list does not read it a
             // second time as a movement of its own: Enter opens what is selected instead of also
             // folding the row, and Alt and an arrow browse instead of also folding it.
             .sigKeyPressed += func|fileBrowser = me|(list, evt)
             {
+                if fileBrowser.browseKey(evt.key, evt.modifiers)
+                {
+                    evt.accepted = true
+                    return
+                }
+
                 switch evt.key
                 {
                 case .Back:
@@ -322,39 +639,6 @@ private impl FileBrowserCtrl
                     {
                         if not fileBrowser.goBack() do
                             discard fileBrowser.goUp()
-                        evt.accepted = true
-                    }
-
-                case .BrowserBack:
-                    discard fileBrowser.goBack()
-                    evt.accepted = true
-
-                case .BrowserForward:
-                    discard fileBrowser.goForward()
-                    evt.accepted = true
-
-                case .BrowserRefresh, .F5:
-                    fileBrowser.refresh()
-                    evt.accepted = true
-
-                case .Left:
-                    if evt.modifiers.equals(.Alt)
-                    {
-                        discard fileBrowser.goBack()
-                        evt.accepted = true
-                    }
-
-                case .Right:
-                    if evt.modifiers.equals(.Alt)
-                    {
-                        discard fileBrowser.goForward()
-                        evt.accepted = true
-                    }
-
-                case .Up:
-                    if evt.modifiers.equals(.Alt)
-                    {
-                        discard fileBrowser.goUp()
                         evt.accepted = true
                     }
 
@@ -419,7 +703,6 @@ private impl FileBrowserCtrl
 
                 if not txt.isEmpty() do
                     fileBrowser.editFile.setText(txt)
-                fileBrowser.updateStatus()
             }
 
             .compareLines = func(l1, l2, col, down)
@@ -473,25 +756,37 @@ impl FileBrowserCtrl
         state.sizeColumnWidth     = cast(.listCtrl.header.itemWidthForColumn(2))
     }
 
-    // Returns the inset every band of the browser keeps from the edges of its column.
+    // Hands the type filter over to a host that shows it elsewhere, such as the bottom-left slot of a dialog.
     //
-    // The navigation bar, the list, the status line and the name form are four bands of one
-    // object, so they share a left edge and a right edge. Given an inset each, they lined up on
-    // none: the first tool of the bar, the first column of the list and the first label of the
-    // form each started at a different place, and the right edge of a field missed the right
-    // edge of the list by the difference between their two paddings.
-    private func edgePadding(wnd: *Wnd)->f32 => wnd.themeMetrics().dialog_BtnPadding * 2
+    // The browser no longer keeps a row for it. Returns `null` when picking folders, which have no type.
+    internal mtd detachTypeFilter()->*ComboBox?
+    {
+        .typeRow.hide()
+        if .options.mode == .SelectFolder do
+            return null
+        return .comboType
+    }
+
+    // Puts the keyboard where a name is chosen: the name field of a save, the path field otherwise.
+    internal mtd focusNameEntry()
+    {
+        let entry = .options.mode == .CreateFile ? .editFile : .pathField
+        entry.selectAll()
+        entry.setFocus()
+    }
 
     // Creates an embedded file browser inside `parent`.
+    //
+    // From the top: the places as text tabs, the path field with the parent, recent and new
+    // folder glyphs at its end, the list, the name field of a save, and the type filter.
     #[Swag.Discardable]
     func create(parent: *Wnd, opt: FileDlgOptions = {}, position: Math.Rectangle = {})->*FileBrowserCtrl
     {
         Swag.assert(parent != null)
         let fileBrowser = Wnd.create'FileBrowserCtrl(parent, "", position)
         fileBrowser.options         = opt
-        fileBrowser.backgroundStyle = .Window
-
-        let pad = edgePadding(fileBrowser)
+        fileBrowser.backgroundStyle = .Transparent
+        let metrics = fileBrowser.themeMetrics()
 
         if fileBrowser.options.shortcuts.isEmpty()
         {
@@ -503,160 +798,85 @@ impl FileBrowserCtrl
         if fileBrowser.options.mode != .SelectFolder and fileBrowser.options.filters.isEmpty() do
             fileBrowser.options.filters.add({name: strings().browser_AllFiles, extensions: ""})
 
-        // Panes
-        ////////////////////////
+        // Places
         if fileBrowser.options.showLocationsPane
         {
-            with fileBrowser.treeCtrl = ListCtrl.createSimple(fileBrowser, {0, 0, 170})
+            with let places = Wnd.create'FilePlacesBar(fileBrowser, "", {0, 0, 0, metrics.fileBrowser_PlacesHeight})
             {
-                .dockStyle = .Left
-                .updateFlags(.HotTrack)
-                .setLineHeight(28)
-                .setLeftTextMargin(8)
-                .backgroundStyle = .Dialog
-                .scrollWnd.style.addStyleSheetColors("scrollBar_Bk $view_Bk")
-                .sigSelectionChanged += func|fileBrowser|(list)
+                .dockStyle = .Top
+                .browser   = fileBrowser
+                for v in fileBrowser.options.shortcuts do
+                    .addPlace(v.name, Env.getSpecialDirectory(v.type).toString())
+                if fileBrowser.options.showDrives
                 {
-                    var line = list.selectedLine()
-                    if not line do
-                        return
-                    var idx = cast(u64, line.userData0)
-                    fileBrowser.setCurrentFolder(fileBrowser.treePathStr[idx].toString())
+                    let volumes = catch Directory.drives()
+                    for &v in volumes
+                    {
+                        v.removeBack()
+                        .addPlace(v.toString(), v.toString())
+                    }
                 }
             }
 
-            fileBrowser.fillLocationsPane()
+            fileBrowser.placesBar = places
         }
 
-        fileBrowser.createFileList(fileBrowser)
+        fileBrowser.createPathRow(fileBrowser)
 
-        // Top navigation bar
-        ////////////////////////
-        with let viewTop = Wnd.create'Wnd(fileBrowser, {0, 0, 0, 46})
+        // The type filter, at the bottom left, until a host takes it for a slot of its own.
+        with fileBrowser.typeRow = Wnd.create'Wnd(fileBrowser, {0, 0, 0, metrics.control_DialogHeight})
         {
-            .dockStyle       = .Top
-            .backgroundStyle = .Window
-            .padding.x       = pad
-            .padding.z       = pad
-            .padding.y       = 8
-            .padding.w       = 8
-        }
-
-        fileBrowser.applyLayout()
-
-        // Icon-only navigation: the labels live in the tooltips, so the bar never
-        // truncates its buttons when the surface shrinks.
-        with fileBrowser.backButton = IconButton.create(viewTop, fileBrowser.theme().icon(ThemeIcons.Undo, 20), {0, 0, 30, 30})
-        {
-            .dockStyle  = .Left
-            .margin.z   = 4
-            .toolTip    = strings().browser_TipBack
-            .sigPressed += func|fileBrowser|(_) { discard fileBrowser.goBack() }
-        }
-
-        with fileBrowser.forwardButton = IconButton.create(viewTop, fileBrowser.theme().icon(ThemeIcons.Redo, 20), {0, 0, 30, 30})
-        {
-            .dockStyle  = .Left
-            .margin.z   = 4
-            .toolTip    = strings().browser_TipForward
-            .sigPressed += func|fileBrowser|(_) { discard fileBrowser.goForward() }
-        }
-
-        with fileBrowser.historyButton = IconButton.create(viewTop, fileBrowser.theme().icon(ThemeIcons.ChevronDown, fileBrowser.themeMetrics().chevron_Size), {0, 0, 22, 30})
-        {
-            .dockStyle  = .Left
-            .margin.z   = 4
-            .toolTip    = strings().browser_TipRecent
-            .sigPressed += func|fileBrowser|(_) { fileBrowser.openRecentMenu() }
-
-            // Without reusable state there is never a history to show.
-            if not fileBrowser.options.state do
+            .dockStyle = .Bottom
+            .margin.y  = metrics.fileBrowser_RowGap
+            if fileBrowser.options.mode == .SelectFolder do
                 .hide()
         }
 
-        with fileBrowser.upButton = IconButton.create(viewTop, fileBrowser.theme().icon(ThemeIcons.ParentFolder, 20), {0, 0, 30, 30})
+        with fileBrowser.comboType = ComboBox.create(fileBrowser.typeRow, flags: .Flat)
         {
-            .dockStyle  = .Left
-            .margin.z   = 10
-            .toolTip    = strings().browser_TipUp
-            .sigPressed += func|fileBrowser|(_) { discard fileBrowser.goUp() }
-        }
-
-        with fileBrowser.refreshButton = IconButton.create(viewTop, fileBrowser.theme().icon(ThemeIcons.Update, 20), {0, 0, 30, 30})
-        {
-            .dockStyle  = .Right
-            .margin.x   = 4
-            .toolTip    = strings().browser_TipRefresh
-            .sigPressed += func|fileBrowser|(_) { fileBrowser.refresh() }
-        }
-
-        with fileBrowser.newFolderButton = PushButton.create(viewTop, strings().browser_NewFolder)
-        {
-            .dockStyle = .Right
-            .margin.x  = 12
-            .toolTip   = strings().browser_TipNewFolder
-            .setIcon(fileBrowser.theme().icon(ThemeIcons.Plus, 16))
-            .fitWidthToLabel()
-            .sigPressed += func|fileBrowser|(_) { fileBrowser.sigNewFolderRequested.call(fileBrowser) }
-        }
-
-        with fileBrowser.comboPath = ComboBox.create(viewTop)
-        {
-            .dockStyle  = .Center
-            .sigChanged += func|fileBrowser|(_, idx) { fileBrowser.setCurrentFolder(fileBrowser.comboPathStr[idx]) }
-        }
-
-        // Bottom
-        ////////////////////////
-        with var formOptions: FormLayoutOptions
-        {
-            .labelPlacement = .Left
-            .labelWidth     = 95
-            .fieldHeight    = 30
-            .rowSpacing     = 5
-        }
-
-        // No authored height: the rows and the spacing between them are what the band is worth,
-        // and a number beside them is a number to re-tune the day a row changes.
-        let form = FormLayoutCtrl.create(fileBrowser, formOptions)
-        form.dockStyle       = .Bottom
-        form.backgroundStyle = .Window
-        form.padding         = Math.Vector4{pad, 8, pad, 8}
-
-        let nameLbl0 = fileBrowser.options.mode == .SelectFolder ? strings().browser_FolderName : strings().browser_FileName
-        fileBrowser.editFile = EditBox.create(form, "")
-        discard form.addField(nameLbl0, fileBrowser.editFile)
-
-        with fileBrowser.comboType = ComboBox.create(form)
-        {
+            .dockStyle = .Left
             if fileBrowser.options.mode == .SelectFolder do
                 .addItem(strings().browser_Folders)
             else do
                 for f, idx in fileBrowser.options.filters do
                     .addItem(f.name, userData0: cast(*void?, idx))
             .setSelectedIndex(0)
+
+            // As wide as its longest name, since it holds a slot of its own rather than a column.
+            let font   = fileBrowser.theme().createDefaultFont(metrics.defaultFontSize)
+            var widest = 0'f32
+            for item in .items where item do
+                widest = Math.max(widest, Painter.measureString(item.name.raw.toString(), font).width)
+            .resize(widest + metrics.fileBrowser_TypeChrome, metrics.control_DialogHeight)
             .sigChanged += func|fileBrowser|(_, _) { fileBrowser.fillFileList() }
         }
 
-        discard form.addField(strings().browser_Type, fileBrowser.comboType)
-
-        // Status line between the file list and the name editor.
-        with let statusBar = Wnd.create'Wnd(fileBrowser, {0, 0, 0, 24})
+        // The name a save creates, labelled above its field; in the other modes the names chosen
+        // in the list are kept here, out of sight.
+        if fileBrowser.options.mode == .CreateFile
         {
-            .dockStyle       = .Bottom
-            .backgroundStyle = .Window
-            .padding.x       = pad
-            .padding.z       = pad
+            with var formOptions: FormLayoutOptions
+            {
+                .fieldHeight = metrics.control_DialogHeight
+            }
+
+            with let form = FormLayoutCtrl.create(fileBrowser, formOptions)
+            {
+                .dockStyle = .Bottom
+                .margin.y  = metrics.fileBrowser_RowGap
+            }
+
+            fileBrowser.editFile = EditBox.create(form, "")
+            discard form.addField(strings().browser_FileName, fileBrowser.editFile)
+        }
+        else
+        {
+            fileBrowser.editFile = EditBox.create(fileBrowser, "")
+            fileBrowser.editFile.hide()
         }
 
-        // A count of what a folder holds is read at a glance and never acted on, so it sits
-        // in the faintest of the three text tones rather than beside the file names.
-        with fileBrowser.statusLabel = Label.create(statusBar, "", {})
-        {
-            .dockStyle = .Center
-            .setTextColor(statusBar.themeColors().label_TextFaint)
-            .setTextAlignment(.Center, .Center)
-        }
+        fileBrowser.createFileList(fileBrowser)
+        fileBrowser.applyLayout()
 
         with fileBrowser
         {
@@ -673,23 +893,15 @@ impl FileBrowserCtrl
             }
             else
             {
-                .listCtrl.setFocus()
+                .pathField.setFocus()
             }
         }
 
-        // Default to the first real location when nothing else selected a folder.
-        if fileBrowser.currentFolder.isEmpty() and fileBrowser.treeCtrl
-        {
-            let tree = fileBrowser.treeCtrl
-            for line, idx in tree.lines where line and not line.separator
-            {
-                tree.selectLine(cast(u32, idx))
-                break
-            }
-        }
+        // Default to the first place when nothing else chose a folder.
+        if fileBrowser.currentFolder.isEmpty() and fileBrowser.placesBar and not fileBrowser.placesBar.stops.isEmpty() do
+            fileBrowser.setCurrentFolder(fileBrowser.placesBar.stops[0].path)
 
         fileBrowser.updateNavigationState()
-
         return fileBrowser
     }
 
@@ -765,12 +977,10 @@ impl FileBrowserCtrl
         .updateNavigationState()
     }
 
-    // Fills the file list from the current folder, applying the active filter.
+    // Fills the file list from the current folder, applying the type filter and the words typed in the path field.
     private mtd fillFileList()
     {
         .listCtrl.clear()
-        .shownFolders = 0
-        .shownFiles   = 0
 
         with var options: EnumerationOptions
         {
@@ -784,6 +994,9 @@ impl FileBrowserCtrl
 
         let filterExtensions = .activeFilterExtensions()
         let tokens = Tokenize.split(filterExtensions orelse "", ';'rune)
+
+        var typed = String.from(.typedIsPath() ? "" : .pathField.text())
+        typed.trim()
 
         for &fi in .currentEntries
         {
@@ -806,28 +1019,28 @@ impl FileBrowserCtrl
 
             if not show do
                 continue
+            if typed.count and Utf8.indexOf(fname, typed.toString(), comparisonType: .Latin1NoCase) == Swag.U64.Max do
+                continue
 
-            // Content
-            var icon = .app().fileOrDirectoryIcon(fname, fi.isDirectory())
+            // Content. The date and the size are read at a glance and never acted on, so they
+            // stand in the faint ink beside the names.
+            let faint = .themeColors().faintText
+            var icon  = .app().fileOrDirectoryIcon(fname, fi.isDirectory())
             icon.color = .themeColors().label_Text
             let line = .listCtrl.createLine(fname, icon)
             line.userData0 = fi
-            line.setItem(1, fi.lastWriteTime.toString(.DateTimeIsoHm))
-            if fi.isDirectory()
-            {
-                .shownFolders += 1
-            }
-            else
+            let dateItem = line.setItem(1, fi.lastWriteTime.toString(.DateTimeIsoHm))
+            dateItem.colorFg = faint
+            if not fi.isDirectory()
             {
                 let sizeItem = line.setItem(2, Format.byteSize(fi.size).toString())
                 sizeItem.horzAlign = .Right
-                .shownFiles        += 1
+                sizeItem.colorFg   = faint
             }
         }
 
         .listCtrl.computeLayout()
         .listCtrl.sort()
-        .updateStatus()
     }
 
     // Creates a folder inside [[Gui.FileBrowserCtrl.currentFolder]] and refreshes the list on success.
@@ -939,9 +1152,16 @@ impl FileBrowserCtrl
     }
 
     // Returns all selected full paths in display order.
+    //
+    // Picking a folder with nothing chosen in the list picks the folder the browser shows.
     mtd selectedPaths()->Array'String
     {
         var result: #returntype
+        if .options.mode == .SelectFolder and .editFile.text().count == 0 and not .currentFolder.isEmpty()
+        {
+            result.add(.currentFolder)
+            return result
+        }
 
         let filterExtensions = .activeFilterExtensions()
         let tokens = Tokenize.split(.editFile.text(), ';'rune)

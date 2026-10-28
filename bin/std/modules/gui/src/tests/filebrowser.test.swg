@@ -21,13 +21,11 @@ using Swag, Core, File
     Swag.assert((fb.editFile != null))
     Swag.assert((fb.comboType != null))
     Swag.assert((fb.listCtrl != null))
-    Swag.assert((fb.backButton != null))
-    Swag.assert((fb.forwardButton != null))
+    Swag.assert((fb.pathField != null))
     Swag.assert((fb.upButton != null))
-    Swag.assert((fb.refreshButton != null))
     Swag.assert((fb.historyButton != null))
     Swag.assert((fb.newFolderButton != null))
-    Swag.assert((fb.statusLabel != null))
+    Swag.assert(fb.placesBar == null)
     Swag.assert(fb.comboType.items.count == 1)
     Swag.assert(fb.options.shortcuts.count == 3)
     Swag.assert(not fb.canGoBack())
@@ -180,14 +178,43 @@ using Swag, Core, File
     fb.applyLayout()
 
     Swag.assert(fb.editFile.position.width > 300)
-    Swag.assert(fb.comboType.position.width > 300)
 
-    // The two bottom-docked strips stack: the name/type form sits at the bottom
-    // edge, and the status line sits directly above it, above the file list.
-    let form      = unwrap fb.editFile.parent
-    let statusBar = unwrap fb.statusLabel.parent
-    Swag.assert(form.position.bottom() <= fb.position.height)
-    Swag.assert(form.position.bottom() >= fb.position.height - 1)
-    Swag.assert(statusBar.position.bottom() <= form.position.y)
-    Swag.assert(statusBar.position.y >= fb.listCtrl.position.bottom())
+    // Under the list, the name of a save, then the type filter as wide as its longest name.
+    let form    = unwrap fb.editFile.parent
+    let typeRow = unwrap fb.comboType.parent
+    Swag.assert(form.position.y >= fb.listCtrl.position.bottom())
+    Swag.assert(typeRow.position.y >= form.position.bottom())
+    Swag.assert(typeRow.position.bottom() <= fb.position.height)
+    Swag.assert(fb.comboType.position.width > 0 and fb.comboType.position.width < 300)
+}
+
+// The path field filters the rows by the words typed after the path, browses to a typed path on
+// Enter, and climbs to the parent on Backspace when nothing is typed.
+#test
+{
+    let root = Path.combine(Env.getSpecialDirectory(.Temp).toString(), "swag-filebrowser-field")
+    discard catch Directory.delete(root.toString(), recurse: true)
+    let sub = Path.combine(root.toString(), "sub")
+    expect Directory.create(sub.toString(), recurse: true)
+    defer discard catch Directory.delete(root.toString(), recurse: true)
+    discard expect File.writeAllText(Path.combine(root.toString(), "notes.md").toString(), "notes")
+    discard expect File.writeAllText(Path.combine(root.toString(), "plan.txt").toString(), "plan")
+
+    var host: Testing.HeadlessHost
+    host.setup(640, 460)
+    let fb = FileBrowserCtrl.create(&host.root, {mode: .SelectFile, showLocationsPane: false, initialFolder: root.toString()}, {0, 0, 600, 400})
+    Swag.assert(fb.listCtrl.lines.count == 3)
+
+    fb.pathField.setText("md")
+    Swag.assert(fb.listCtrl.lines.count == 1)
+
+    fb.pathField.setText("sub/")
+    Swag.assert(fb.listCtrl.lines.count == 3)
+    fb.pathField.sigSubmitted.call(fb.pathField)
+    Swag.assert((Path.fileName(fb.currentFolder.toString()) orelse "") == "sub")
+    Swag.assert(fb.pathField.text().count == 0)
+
+    fb.pathField.setFocus()
+    host.keyPress(.Back)
+    Swag.assert(fb.listCtrl.lines.count == 3)
 }

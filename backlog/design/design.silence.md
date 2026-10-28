@@ -28,13 +28,13 @@ dialogs, then each application, then the written rules.
   mini-bar (`Gui.MiniBar`), the dock (`Gui.ToolDock`), the hint line (`Gui.HintLine`),
   `Gui.SectionLabel` and a floating surface for any other content (`Gui.FloatingPanel`), with
   `floating.test.swg`, `lens.test.swg` and their goldens, and `AppearanceButton.addToLens`; a
-  hidden caption button keeps working and takes no room in the caption. Swag Capture, Swag Scope
-  and Swag Prism compose them (their remaining work is design.silence.008, design.silence.007 and
-  design.silence.009); Swag Vault still insets its whole root by `Wnd.stripInset()` to keep its old
-  bands clear of the floating strip. No component owns the quiet text menu of a header (a word and
-  a faint chevron opening a menu, as the pictures put above a column or a page): Swag Scope's
-  explorer, Swag Capture's library and Swag Prism's column headers each configure an `IconButton`
-  for it and fit it to its words themselves (`createQuietMenu` in each), and the three differ.
+  hidden caption button keeps working and takes no room in the caption. Swag Capture, Swag Scope,
+  Swag Prism and Swag Vault compose them (their remaining work is design.silence.008,
+  design.silence.007, design.silence.009 and design.silence.010). No component owns the quiet text
+  menu of a header (a word and a faint chevron opening a menu, as the pictures put above a column
+  or a page): Swag Scope's explorer, Swag Capture's library and Swag Prism's column headers each
+  configure an `IconButton` for it and fit it to its words themselves (`createQuietMenu` in each),
+  and the three differ.
 - Next: give the toolkit the quiet menu and move the three applications onto it; per remaining
   application, register every command and `addToLens` on one lens bound to
   `Space` or `Ctrl K`, move readings to the sheet, tools to the dock and the mini-bar, properties
@@ -139,12 +139,23 @@ dialogs, then each application, then the written rules.
 - Done when: `surface.render` reproduces `prism.render`.
 - Related: design.silence.004
 
-### design.silence.010 — Swag Vault is still a banner over tabs
+### design.silence.010 — Swag Vault still differs from its pictures in four details
 
-- Next: rebuild Vault as the list of vaults with in-place unlock, and create, progress and
-  options as pages.
-- Done when: the Vault goldens match the Vault pictures and privacy mode keeps the list empty.
-- Related: design.silence.004, design.silence.006
+- Evidence: the window is the list of vaults (name, mono identity line, live dot or ring, the
+  mounted row on the surface ground with Open and Unmount), the chosen locked vault unfolds in
+  place as a floating card (password, drive, key files, read only, Mount), create, progress and
+  privacy are pages with a back link, every command is a lens entry and privacy mode keeps the
+  list to what is mounted or being unlocked (`list`, `unlock`, `create`, `progress`, `options`
+  goldens in Encre and Papier). What the pictures show and the window does not: the create page
+  has no free-space reading ("212 GiB free on C:") because `Core` has no volume free-space query
+  (no `GetDiskFreeSpaceExW` binding in `win32`); the inactivity delay is a quiet menu under its
+  paragraph, not a word inside the sentence; unfolding a vault fades the card in and moves the
+  rows below at once instead of opening the card's height over `motion_PanelSeconds`; a protected
+  startup vault asks for its access in a box rather than unfolding in the list.
+- Next: add a free-space query to `Core.File` with its `win32` binding and show it beside the
+  capacity; animate the card's height with the rows following it.
+- Done when: the Vault goldens match the Vault pictures in those four points.
+- Related: design.silence.004, design.silence.002, design.silence.016
 
 ### design.silence.011 — Examples and other consumers use removed APIs
 
@@ -179,3 +190,14 @@ dialogs, then each application, then the written rules.
   `sigDismissed`, before any of it.
 - Done when: no shared component changes its place or presence in one frame on a user action.
 - Related: design.silence.002
+
+### design.silence.016 — The toolkit has no light or semibold face
+
+- Evidence: `Pixel.FontFamilyStyle` offers Regular, Bold, Italic and BoldItalic, so the charter's
+  large light facts (Inter 200–300: Vault's percentage and capacity, the sheet's figures, Prism's
+  instruction counts) are set in the regular weight, and its 600 weights (a vault's name, section
+  labels) in bold.
+- Next: ship Inter Light and SemiBold with the theme fonts, add the two styles to `FontFamily`,
+  and let `Theme.createDefaultFont` take them; then set the facts light and the names semibold.
+- Done when: `vault.progress` and the sheet golden show their figures in the light weight.
+- Related: design.silence.010

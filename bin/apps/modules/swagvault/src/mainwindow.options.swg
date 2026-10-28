@@ -1,35 +1,36 @@
 impl MainWindow
 {
-    // Applies privacy without firing the control's save callback.
+    // Applies privacy without firing the switch's save callback.
     mtd applyPrivacyControl()
     {
-        .privacyModeControl.setState(.privacyMode ? .Checked : .Unchecked)
-        .mountedDrives.setStartupEnabled(not .privacyMode)
+        .privacyModeControl.setChecked(.privacyMode)
+        .refreshHint()
+        .refreshVaults()
     }
 
     // Removes every persisted or pending path while retaining appearance and
-    // automatic-unmount preferences.
+    // automatic-unmount preferences. The vaults that are mounted, or being unlocked, stay on
+    // the list for as long as that lasts.
     mtd clearPrivateState()
     {
-        .fileDlgState  = {}
-        .mountSettings = {}
+        .fileDlgState = {}
         .startupVaults.clear()
         .startupQueue.clear()
         for &one in .mountedDrives.drives do
             one.atStartup = false
-        .mountedDrives.startupEnabled = false
-        .mountedDrives.refresh()
+        .pruneVaults()
+        .refreshVaults()
     }
 
     // Applies the privacy switch: turning it on forgets the remembered containers and drives,
-    // turning it off lets the drives come back at startup.
+    // turning it off lets the list and the startup drives be remembered.
     mtd readPrivacyControl()
     {
         .privacyMode = .privacyModeControl.isChecked()
         if .privacyMode do
             .clearPrivateState()
-        else do
-            .mountedDrives.setStartupEnabled(true)
+        .refreshHint()
+        .refreshVaults()
         catch g_App.saveState()
     }
 
@@ -44,12 +45,12 @@ impl MainWindow
         return IdleDefaultIndex
     }
 
-    // Applies persisted policy without firing the controls' save callbacks.
+    // Applies persisted policy without firing the switches' save callbacks.
     mtd applyAutoUnmountControls()
     {
-        .unmountOnLock.setState(.autoUnmount.onSessionLock ? .Checked : .Unchecked)
-        .unmountOnSuspend.setState(.autoUnmount.onSuspend ? .Checked : .Unchecked)
-        .unmountOnIdle.setState(.autoUnmount.onIdle ? .Checked : .Unchecked)
+        .unmountOnLock.setChecked(.autoUnmount.onSessionLock)
+        .unmountOnSuspend.setChecked(.autoUnmount.onSuspend)
+        .unmountOnIdle.setChecked(.autoUnmount.onIdle)
         .idleTimeout.setSelectedIndex(.idleIndexFor(.autoUnmount.idleMinutes), notify: false)
         .idleTimeout.enable(.autoUnmount.onIdle)
     }
@@ -122,7 +123,8 @@ impl MainWindow
         if not interruptedMount and not unmounted do
             return
 
-        .mountedDrives.refresh()
+        .pruneVaults()
+        .refreshVaults()
         .fillDriveChoice()
         .setStatus(synchronizationStopped ? .AutoUnmountStopped : .AutoUnmounted)
     }

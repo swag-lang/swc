@@ -18,7 +18,7 @@ enum AccessChangeKind
     KeyFiles
 }
 
-// Emphasis of the status line, from what the latest step left behind.
+// Emphasis of the notice line, from what the latest step left behind.
 enum StatusTone
 {
     Idle        // Nothing is running and nothing has failed.
@@ -26,7 +26,7 @@ enum StatusTone
     Stopped     // The latest operation stopped.
 }
 
-// What the status line is currently reporting.
+// What the notice line under the title of the list is currently reporting.
 //
 // The line is named rather than written, so a language switch can say the same thing
 // again without the window having kept a copy of the sentence. Each value carries one
@@ -64,37 +64,14 @@ enum StatusMessage
     KeyFilesStopped          // The key-file change stopped.
 }
 
-// Rows of the "create a new vault" form, in the order `createNewVaultCard` adds them.
-//
-// The form owns the labels it creates, so re-labelling one after a language switch names
-// its row. Keep these next to the builder: they are two halves of one decision.
-enum CreateRow
+// The pages of the window. One is on screen at a time; the list is where the window opens and
+// where every other page leads back.
+enum WindowPage
 {
-    Path         // Container file to create.
-    Capacity     // Fixed size and its unit.
-    Password     // Password protecting the container, or empty for none.
-    Confirm      // Same password, entered again.
-    KeyFiles     // Ordered files combined with the password.
-}
-
-// Rows of the "open an existing vault" form, in the order `createOpenVaultCard` adds them.
-enum MountRow
-{
-    Path             // Container file to open.
-    Password         // Password unlocking the container, or empty when it has none.
-    KeyFiles         // Ordered files combined with the password.
-    Drive            // Drive letter the volume appears on.
-    MountOptions     // Read-only mounting and optional hidden-volume protection.
-}
-
-// Rows of the automatic-unmount form, in the order `createOptionsCard` adds them.
-enum OptionsRow
-{
-    Privacy
-    SessionLock
-    Suspend
-    Idle
-    IdleTimeout
+    List         // The vaults, the chosen locked one unfolded to unlock it.
+    Create       // The form that makes a new vault.
+    Progress     // A creation, a resize or a camouflage refresh while it runs.
+    Options      // Privacy and automatic unmounting.
 }
 
 // A Windows condition that can close protected drives without an explicit button press.
@@ -139,16 +116,27 @@ struct StartupVault
     protectHidden: bool       // Reauthenticate hidden access before a writable startup mount.
 }
 
-// Settings of the last mount that completed successfully.
+// Settings of the last mount that completed successfully, as earlier versions saved them.
 //
-// These are the three choices needed to prepare the open-vault form at the next start. A
-// credential is deliberately absent: passwords and key-file paths live only in their controls
-// and the operation that consumes them.
+// The list of vaults now remembers every vault with its drive and its read-only choice; this is
+// read once so that the vault a reader last mounted is still on the list after an update.
 struct MountSettings
 {
     path:     String     // Container file that was mounted.
     drive:    String     // Stable backend destination identifier; the name preserves saved-state compatibility.
     readOnly: bool       // Whether the mount was for reading alone.
+}
+
+// A vault the list shows.
+//
+// Only what prepares the next mount is kept: where the container is, the drive it last came up
+// on, and whether it was opened for reading alone. A credential is deliberately absent: passwords
+// and key-file paths live only in their controls and the operation that consumes them.
+struct KnownVault
+{
+    path:     String     // Container file of the vault.
+    drive:    String     // Stable backend destination identifier the vault was last mounted on, or empty.
+    readOnly: bool       // Whether the vault was last mounted for reading alone.
 }
 
 // Long operation running outside the UI thread. Only one runs at a time, and the window
@@ -179,7 +167,7 @@ struct VaultOperation
     leavesUnprotected: bool     // Whether an access change leaves neither a password nor a key file.
     removesPassword:   bool     // Whether a password change leaves its password field empty.
     accessChange:      AccessChangeKind     // Which control family the change and its result belong to.
-    fromStartup:       bool     // Whether the mount came from the startup list rather than from the card.
+    fromStartup:       bool     // Whether the mount came from the startup list rather than from the list of vaults.
     securityEpoch:     u64      // Security-event generation at which this mount started.
     securityStopped:   bool     // Whether a security event interrupted this mount.
 
@@ -216,84 +204,71 @@ impl VaultOperation
 
 // Owns the complete application state. The UI thread owns this object; long
 // operations use `operation` and report their result back through the timer.
+//
+// The window is the list of vaults. Creating a vault, following a long operation and setting the
+// privacy policy are pages that lead back to it, and every command is an entry of the lens.
 struct MainWindow
 {
     using wnd: Wnd
 
-    // Text and control of the header, kept so a language switch can say it again.
+    // The pages, the door to every command, and the line that teaches it.
     late
     {
-        subtitle:         *Label
         appearanceButton: *AppearanceButton
+        lens:             *Lens.View
+        hintLine:         *HintLine
+        list:             *VaultList
+        createPage:       *CreatePage
+        progressPage:     *ProgressPage
+        optionsPage:      *OptionsPage
     }
 
-    // Controls of the automatic-unmount page.
+    // The controls every operation reads, named here once: the access of the unfolded vault, and
+    // the form of the create page.
     late
     {
-        privacyModeControl: *CheckButton
-        unmountOnLock:      *CheckButton
-        unmountOnSuspend:   *CheckButton
-        unmountOnIdle:      *CheckButton
-        idleTimeout:        *ComboBox
-    }
+        mountPassword: *PasswordEdit
+        drive:         *ComboBox
+        readOnly:      *CheckButton
+        mountButton:   *PushButton
 
-    // Controls of the "create a new vault" card.
-    late
-    {
         createPath:      *EditBox
         createSize:      *EditBox
-        createUnit:      *ComboBox
+        createUnit:      *Tab
         createPassword:  *PasswordEdit
         confirmPassword: *PasswordEdit
-        createKeyFiles:  *KeyFileField
         createButton:    *PushButton
         browseCreate:    *PushButton
     }
 
-    // Controls of the "open an existing vault" card.
+    // The switches of the privacy page.
     late
     {
-        mountPath:      *EditBox
-        mountPassword:  *PasswordEdit
-        mountKeyFiles:  *KeyFileField
-        drive:          *ComboBox
-        mountOptions:   *StackLayoutCtrl
-        protectHidden:  *CheckButton
-        hiddenButton:   *PushButton
-        readOnly:       *CheckButton
-        mountButton:    *PushButton
-        passwordButton: *PushButton
-        keyFilesButton: *PushButton
-        resizeButton:   *PushButton
-        browseMount:    *PushButton
+        privacyModeControl: *ToggleButton
+        unmountOnLock:      *ToggleButton
+        unmountOnSuspend:   *ToggleButton
+        unmountOnIdle:      *ToggleButton
+        idleTimeout:        *ComboBox
     }
 
-    // The single status line displayed above the footer, the glyph whose color reports its tone,
-    // and the spinner that replaces the glyph while work runs. The text and the glyph are written
-    // only through `setStatus`, the spinner only through `showBusy`.
-    late
-    {
-        statusView: *Wnd
-        status:     *Label
-        statusIcon: *Label
-        statusBusy: *Spinner
-    }
-
-    // The cards are pages of one tab strip rather than columns of one grid: a vault is created,
-    // opened, watched, or governed by automatic-unmount policy, and only one task is active at a
-    // time. Side by side they would cost the width of every page while leaving the others idle.
-    late tabs: *Tab
-
-    // The form cards, kept whole so a language switch can re-label their headings, and the band
-    // that says which drives the window currently exposes.
+    page:        WindowPage
     layoutReady: bool
-    fittingSize: bool
 
-    createCard:  VaultCard
-    mountCard:   VaultCard
-    optionsCard: VaultCard
+    // The vaults the list shows, mounted or locked, newest first. With privacy mode on, the list
+    // keeps only the vaults that are mounted or being unlocked, and none of it reaches the disk.
+    vaults:     Array'KnownVault
+    chosenPath: String     // Container of the vault the list has chosen, or empty.
 
-    // Not `undefined`: the band owns the drive list, and an owning array has to be constructed
+    // Key files stated on the unfolded vault and on the create page. Like the passwords, they are
+    // never settings.
+    unlockKeyFiles: Array'String
+    createKeyFiles: Array'String
+
+    // Whether the next mount of the chosen vault protects its hidden volume. It is asked again at
+    // every mount, so it is never a setting either.
+    protectHiddenOnMount: bool
+
+    // Not `undefined`: the model owns the drive list, and an owning array has to be constructed
     // before the window can put anything in it.
     mountedDrives: MountedDrives
 
@@ -310,17 +285,18 @@ struct MainWindow
     securityTimer:   *Timer?
     securityMonitor: AutoUnmountMonitor
 
-    // Last successful choices restored into the open-vault form. Passwords are never settings.
-    mountSettings:     MountSettings
     mountDestinations: Array'MountDestination
     autoUnmount:       AutoUnmountSettings
     securityEpoch:     u64
 
-    // What the status line says, plus the two values its wording interpolates: the drive
+    // What the notice line says, plus the two values its wording interpolates: the drive
     // letter of the mounted message and the percentage of the randomizing one.
     statusMessage:  StatusMessage
     statusDrive:    String
     statusProgress: s32
+
+    // How long the running creation or resize has taken, for the time its page says is left.
+    progressClock: Time.Stopwatch
 
     // Language tag applied at start, or empty to follow the language of the account.
     //
@@ -445,9 +421,10 @@ func capacityText(bytes: u64)->String
 {
     const Mebibyte = 1024'u64 * 1024
     const Gibibyte = Mebibyte * 1024
+    let texts = appStrings()
     if bytes >= Gibibyte and not (bytes % Gibibyte) do
-        return Format.toString("% GiB", bytes / Gibibyte)
-    return Format.toString("% MiB", (bytes + Mebibyte - 1) / Mebibyte)
+        return Format.toString("% %", bytes / Gibibyte, texts.ui_UnitGiB)
+    return Format.toString("% %", (bytes + Mebibyte - 1) / Mebibyte, texts.ui_UnitMiB)
 }
 
 // Reads a capacity field and its unit, or says why the pair cannot be used.
@@ -482,51 +459,52 @@ func parseCapacity(text: string, unitIndex: u32)->ContainerSize
 
 impl MainWindow
 {
-    // Keep a stable wrapping width; fitToContent measures the tallest translated panel.
-    const WindowWidth = 720's32
+    // The size the window opens at, and the smallest it can be made: the pages are measured
+    // columns, so below that width a column would no longer keep its margins.
+    const DefaultWidth  = 1040's32
+    const DefaultHeight = 720's32
+    const MinWidth      = 720's32
+    const MinHeight     = 660's32
 
     // Idle delays the automatic-unmount picker offers, in minutes, and the one it starts on.
     const IdleChoices      = [5'u32, 15, 30, 60]
     const IdleDefaultIndex = 1'u32
 
-    // The page that opens a vault.
-    const OpenTabIndex = 1'u32
+    // How many locked vaults the list keeps. Mounted vaults are always on it.
+    const RememberedVaults = 16'u64
 
-    // Builds the window: the header, the footer, the create, mount, and drive tabs, and the texts
-    // of the active language.
+    // Builds the window: the pages, the lens and its hint, and the texts of the active language.
     func create(parent: *Wnd)->*MainWindow
     {
         let result  = Wnd.create'MainWindow(parent, "vault.mainWindow")
         let surface = unwrap result.surface
         surface.setView(result)
-        surface.minSize        = {WindowWidth, 0}
+        surface.minSize        = {MinWidth, MinHeight}
         result.backgroundStyle = .View
         result.language        = ReferenceLanguage
 
         result.createAppearanceButton()
-        result.createHeader()
-        result.createFooter()
-        result.createTabs()
-        result.watchFormState()
+        result.createPages()
+        result.createLens()
+        result.createHint()
+        result.fillDriveChoice()
         result.applyLanguage()
-        result.applyLayout()
+        result.applyPrivacyControl()
+        result.applyAutoUnmountControls()
+        result.showPage(.List, animate: false)
         result.showOperation()
         result.setStatus(.Ready)
-
-        // The window opens on the first thing there is to fill in, so it can be driven from the
-        // keyboard alone. Only the page on show is in the ring: the strip is what moves between
-        // the three, and a hidden card holds no keyboard stop.
-        result.setInitialFocus(result.initialStop())
         result.layoutReady = true
-        result.fitToContent()
         return result
     }
 
-    // Creates the caption's appearance action, which persists the palette and language it applies.
+    // Creates the appearance action, hidden: the theme, the language and About are lens entries,
+    // and this control stays the one owner of the choice and of its persistence.
     mtd createAppearanceButton()
     {
         with .appearanceButton = AppearanceButton.create(unwrap .surface, "vault.appearance")
         {
+            .hide()
             .sigThemeChanged += func|window = me|(button)
             {
                 window.themeIndex = cast(u32, button.appearanceTheme)
@@ -546,28 +524,38 @@ impl MainWindow
         }
     }
 
-    // Creates the four pages: the three stops in a vault's lifecycle, then the policy that can
-    // close a protected drive without an explicit button press.
-    mtd createTabs()
+    // Creates the four pages, and names the controls every operation reads.
+    mtd createPages()
     {
-        with .tabs = Tab.create(me)
-        {
-            .dockStyle       = .Center
-            .margin          = {32, 16, 32, 16}
-            .backgroundStyle = .Panel
-            .setForm(.Flat)
-            .setForms(.Flat, .Flat, .None)
-            .setPageTransitions(true)
-            .addItem(appStrings().ui_CreateTab, view: me.createNewVaultCard(me.tabs))
-            .addItem(appStrings().ui_OpenTab, view: me.createOpenVaultCard(me.tabs))
-            .addItem(appStrings().ui_MountedTab, view: me.createMountedDrivesCard(me.tabs))
-            .addItem(appStrings().ui_OptionsTab, view: me.createOptionsCard(me.tabs))
+        .list         = VaultList.create(me)
+        .createPage   = CreatePage.create(me)
+        .progressPage = ProgressPage.create(me)
+        .optionsPage  = OptionsPage.create(me)
 
-            // One stationary ground joins the strip and the pages; only their content fades.
-            for item in .items do
-                item!.view!.backgroundStyle = .Transparent
-            .sigSelectionChanged += func|window = me|(_) { window.arrangeCards() }
-        }
+        .mountPassword = .list.card.password
+        .drive         = .list.card.drive
+        .readOnly      = .list.card.readOnly
+        .mountButton   = .list.card.mount
+
+        .createPath      = .createPage.path
+        .createSize      = .createPage.size
+        .createUnit      = .createPage.unit
+        .createPassword  = .createPage.password
+        .confirmPassword = .createPage.confirm
+        .createButton    = .createPage.createAction
+        .browseCreate    = .createPage.browse
+
+        .privacyModeControl = .optionsPage.privacy.toggle
+        .unmountOnLock      = .optionsPage.lock.toggle
+        .unmountOnSuspend   = .optionsPage.suspend.toggle
+        .unmountOnIdle      = .optionsPage.idle.toggle
+        .idleTimeout        = .optionsPage.timeout
+    }
+
+    // Creates the line teaching the door, near the bottom edge.
+    mtd createHint()
+    {
+        .hintLine = HintLine.create(me, "vault.hint")
     }
 
     // Opens the standard About box, dated and versioned by the compilation of this executable.
@@ -585,139 +573,83 @@ impl MainWindow
             .copyrightHolder = "Christophe Beaudet"
         }
 
-        discard AboutDlg.createApplication(unwrap .surface, about).doModal()
+        // The driver that shows a vault as a drive keeps its notice where the product's own is.
+        let dialog = AboutDlg.createApplication(unwrap .surface, about)
+        dialog.addSection("WinFsp", appStrings().ui_AboutThirdParty)
+        discard dialog.doModal()
     }
 
-    // The stop the window opens on: the first thing there is to fill in on the page that is up.
-    //
-    // The strip reads first, so it is what the keyboard would otherwise start on — and the first
-    // key press would then change page instead of typing into the form the reader is looking at.
-    mtd initialStop()->*Wnd?
+    // Brings `page` up, from the side it is reached from, and gives the keyboard to the first
+    // thing there is to do on it.
+    mtd showPage(page: WindowPage, animate = true)
     {
-        switch .tabs.selectedIndex
+        let outgoing = .pageWnd(.page)
+        let incoming = .pageWnd(page)
+        .page = page
+
+        if animate and outgoing != incoming
         {
-        case 0:  return .createPath
-        case 1:  return .mountPath
-        case 2:  return .mountedDrives.list
-        default: return .unmountOnLock
+            discard .app().animator.transitionPage(outgoing, incoming, page == .List ? -1'f32 : 1)
         }
-    }
-
-    // The tab assigns its page rectangle after announcing the selection. Arrange from the
-    // window down, then refresh forms whose translated text changed without resizing them.
-    mtd arrangeCards()
-    {
-        // Match the unit to the translated action; the key-file tools keep their compact rhythm.
-        .createUnit.preferredSize.x = .browseCreate.measure({}).preferred.x
+        else
+        {
+            for one in [WindowPage.List, WindowPage.Create, WindowPage.Progress, WindowPage.Options] do
+                .pageWnd(one).show(one == page)
+        }
 
         .applyLayout()
-        .createCard.endForm()
-        .mountCard.endForm()
-        .mountOptions.computeLayout()
-        .optionsCard.endForm()
-        .mountedDrives.card.endForm()
+        .refreshHint()
+        .setInitialFocus(.initialStop())
+        .initialStop()?.setFocus()
     }
 
-    // Measures every panel at the actual page width; switching tabs never changes the height.
-    mtd requiredClientHeight(width: f32)->f32
+    // Returns the window that shows `page`.
+    mtd pageWnd(page: WindowPage)->*Wnd
     {
-        var height = 0'f32
-        for child in .children where child.isLocallyVisible()
+        switch #complete page
         {
-            let margin = child.layoutMargin()
-            let room   = Math.max(0, width - margin.x - margin.z)
-            if child == .tabs
-            {
-                let inset     = .tabs.padding
-                let pageWidth = Math.max(0, room - inset.x - inset.z)
-                var tallest   = 0'f32
-                for card in [&.createCard, &.mountCard, &.optionsCard, &.mountedDrives.card] do
-                    tallest = Math.max(tallest, card.panel.itf.measureContent(Math.Point{pageWidth, 0}).y)
-                height += .tabs.itf.measureContent(Math.Point{room, 0}).y + Math.ceil(tallest)
-            }
-            else
-            {
-                height += Math.ceil(child.measure(Math.Point{room, 0}).preferred.y)
-            }
+        case .List:     return .list.scroll
+        case .Create:   return .createPage
+        case .Progress: return .progressPage
+        case .Options:  return .optionsPage
+        }
+    }
 
-            height += margin.y + margin.w
+    // The stop a page opens on: the first thing there is to do on it.
+    mtd initialStop()->*Wnd?
+    {
+        switch #complete .page
+        {
+        case .List:
+            if .chosenLockedPath().count != 0 do
+                return .mountPassword
+            if not .list.rows.isEmpty() do
+                return .list.rows[0]
+            return .list.newVault
+
+        case .Create:
+            return .createPath
+
+        case .Progress:
+            return .progressPage.stop
+
+        case .Options:
+            return .privacyModeControl
+        }
+    }
+
+    // Teaches the door while the list is on screen, and on the privacy page, where privacy mode
+    // empties the list, says where the vaults open from instead.
+    mtd refreshHint()
+    {
+        .hintLine.clearHints()
+        switch .page
+        {
+        case .List: .hintLine.addHint(strings().key_Space, appStrings().ui_HintList)
+        case .Options where .privacyMode: .hintLine.addHint(strings().key_Space, appStrings().ui_HintPrivacy)
         }
 
-        return Math.ceil(height)
-    }
-
-    // The frame supplies its own inset, and the window its room under the floating strip. Include
-    // both once, round out, and keep the saved origin.
-    mtd fitToContent()
-    {
-        if not .layoutReady or .fittingSize do
-            return
-        .fittingSize = true
-        defer .fittingSize = false
-        let surface = unwrap .surface
-        let frame   = surface.wnd.padding
-        let shadow  = surface.shadowMargin() * 2
-        let width   = surface.size().x - frame.x - frame.z - shadow
-        let height  = .requiredClientHeight(width) + .padding.y + .padding.w + frame.y + frame.w + shadow
-        var pos     = surface.position
-        pos.height        = Math.ceil(Math.ceil(height) * surface.dpiScale)
-        surface.minSize.y = pos.height / surface.dpiScale
-        if Math.abs(surface.position.height - pos.height) >= 0.5 do
-            surface.setPosition(pos)
-        .arrangeCards()
-    }
-
-    // Brings one page of the strip up.
-    //
-    // Nothing else: selecting is what arranges the page, through the signal below. A caller that
-    // arranged the card itself would be running a pass a mouse click does not, which is exactly
-    // how a card clipped in the shipped window went on passing its own containment test.
-    mtd showTab(index: u32) { .tabs.setSelectedIndex(index) }
-
-    // Follows every field an action depends on, so no action is ever live on a form
-    // that cannot answer for it.
-    mtd watchFormState()
-    {
-        for edit in [.createPath, .createSize, .mountPath] do
-            edit.sigTextChanged += func|window = me|(_) { window.refreshActions() }
-        for edit in [.createPassword, .confirmPassword, .mountPassword] do
-            edit.sigChanged += func|window = me|(_) { window.refreshActions() }
-        .drive.sigChanged += func|window = me|(_, _) { window.refreshActions() }
-        .watchSubmit()
-    }
-
-    // Follows Enter in every field, so a card can be answered from the keyboard.
-    //
-    // Enter presses the action of the card the field belongs to, not one action for the whole
-    // surface: this window carries two dominant actions, and the field being typed in is what says
-    // which of the two was meant.
-    mtd watchSubmit()
-    {
-        for edit in [.createPath, .createSize] do
-            edit.sigSubmitted += func|window = me|(_) { window.submitCreate() }
-        for edit in [.createPassword, .confirmPassword] do
-            edit.sigSubmitted += func|window = me|(_) { window.submitCreate() }
-        .mountPath.sigSubmitted     += func|window = me|(_) { window.submitMount() }
-        .mountPassword.sigSubmitted += func|window = me|(_) { window.submitMount() }
-    }
-
-    // Creates the container when the create form holds everything it needs.
-    //
-    // A form that cannot answer stays silent instead of opening a box: the button is already down
-    // for the same reason, so Enter says exactly what the button says.
-    mtd submitCreate()
-    {
-        if .operation.kind != .None or not .canCreate() do
-            return
-        .createContainer()
-    }
-
-    // Mounts the drive when the open form holds everything it needs.
-    mtd submitMount()
-    {
-        if .operation.kind != .None or not .canMount() do
-            return
-        .mountContainer()
+        .hintLine.show(not .hintLine.hints.isEmpty())
     }
 
     // Applies the persisted language, or the language of the account when none was picked.
@@ -733,21 +665,168 @@ impl MainWindow
         .appearanceButton.setAppearanceTheme(cast(AppearanceTheme, .themeIndex))
     }
 
-    // Whether the create form holds everything a container needs.
+    // Returns the vault the list knows at `path`, or null.
+    mtd findVault(path: string)->*KnownVault?
+    {
+        for &one in .vaults where one.path == path do
+            return one
+        return null
+    }
+
+    // Puts the container at `path` on the list, newest first, and keeps a remembered list to its
+    // length.
+    //
+    // With privacy mode on, nothing is pruned here: the vault is being opened or mounted, and the
+    // list lets it go once it is neither.
+    mtd addVault(path: string)
+    {
+        if .findVault(path) do
+            return
+        .vaults.insertAt(0, KnownVault{path: path})
+        if not .privacyMode do
+            .pruneVaults()
+    }
+
+    // Keeps the list to what it may hold.
+    //
+    // With privacy mode on, a vault stays only while it is mounted or being unlocked: nothing of a
+    // locked vault outlives the moment it was asked for. Otherwise the oldest locked vaults go
+    // first once the list is longer than it keeps.
+    mtd pruneVaults()
+    {
+        var locked = 0'u64
+        var index  = 0'u64
+        while index < .vaults.count
+        {
+            let path = .vaults[index].path.toString()
+            let kept = .isMounted(path) or .chosenPath == path
+            if kept
+            {
+                index += 1
+                continue
+            }
+
+            locked += 1
+            if .privacyMode or locked > RememberedVaults
+            {
+                .vaults.removeAtOrdered(index)
+                continue
+            }
+
+            index += 1
+        }
+    }
+
+    // Returns the path of the chosen vault when it is locked, the one the list unfolds; empty
+    // when the chosen vault is mounted or nothing is chosen.
+    mtd chosenLockedPath()->string
+    {
+        if .chosenPath.isEmpty() or .isMounted(.chosenPath) do
+            return ""
+        return .chosenPath
+    }
+
+    // Chooses the vault at `path`: a locked one unfolds to be unlocked, a mounted one becomes the
+    // one the commands of the lens act on.
+    mtd chooseVault(path: string)
+    {
+        if .page != .List do
+            .showPage(.List)
+        if .chosenPath == path
+        {
+            if .chosenLockedPath().count != 0 do
+                .mountPassword.setFocus()
+            return
+        }
+
+        // The access typed for one vault is never offered to another.
+        .forgetAccess()
+        .chosenPath = path
+        if let vault = .findVault(path)
+        {
+            .readOnly.setState(vault.readOnly ? .Checked : .Unchecked)
+            discard .selectMountPoint(vault.drive)
+        }
+
+        .pruneVaults()
+        .refreshVaults()
+        if .chosenLockedPath().count != 0 do
+            .mountPassword.setFocus()
+    }
+
+    // Folds the unfolded vault, and forgets the access typed for it.
+    mtd foldVault()
+    {
+        if .chosenPath.isEmpty() do
+            return
+        .forgetAccess()
+        .chosenPath.clear()
+        .pruneVaults()
+        .refreshVaults()
+    }
+
+    // Wipes the access stated for the chosen vault: its password, its key files and the hidden
+    // protection of its next mount.
+    mtd forgetAccess()
+    {
+        .mountPassword.clear()
+        .unlockKeyFiles.clear()
+        .protectHiddenOnMount = false
+    }
+
+    // Says the list again from the vaults and the drives, and puts the actions in step with it.
+    mtd refreshVaults()
+    {
+        .mountedDrives.refreshSpace()
+        .list.refresh()
+        .refreshActions()
+    }
+
+    // The mono line under a vault's name: where its drive is and how it is open, or where its
+    // container is and that it is locked.
+    mtd vaultIdentity(path: string)->String
+    {
+        let texts = appStrings()
+        var result: #returntype
+
+        if let drive = .mountedDrives.find(path)
+        {
+            result = Format.toString(texts.ui_StateMounted, drive.mountLabel)
+            result += Format.toString(" · %", capacityText(drive.totalBytes))
+            result += Format.toString(" · %", drive.readOnly ? texts.ui_StateReadOnly : texts.ui_StateReadWrite)
+            if drive.protectHidden do
+                result += Format.toString(" · %", texts.ui_StateProtected)
+            if drive.atStartup do
+                result += Format.toString(" · %", texts.ui_StateAtStartup)
+            return result
+        }
+
+        result = Path.directoryName(path) orelse ""
+        if not result.isEmpty() do
+            result += " · "
+        result += texts.ui_StateLocked
+        if .startupIndex(path) != Swag.U64.Max do
+            result += Format.toString(" · %", texts.ui_StateAtStartup)
+        if .chosenPath == path and .protectHiddenOnMount do
+            result += Format.toString(" · %", texts.ui_StateProtected)
+        return result
+    }
+
+    // Whether the create page holds everything a container needs.
     //
     // Neither password is read here: an empty pair is a vault that opens without one, and a
     // mismatch is reported when the button is pressed, because a form that goes down as soon as
     // the two differ would go down on every keystroke of the second one.
     mtd canCreate()->bool => .createPath.text().count != 0 and .createSize.text().count != 0
 
-    // Whether the open form holds everything a drive needs.
+    // Whether the unfolded vault holds everything a drive needs.
     //
     // The password is not read: a container that opens without one is answered by an empty
     // field, and a wrong password is reported by the container, not by the form.
-    mtd canMount()->bool => .mountPath.text().count != 0 and not .selectedMountPoint().isEmpty()
+    mtd canMount()->bool => .chosenLockedPath().count != 0 and not .selectedMountPoint().isEmpty()
 
-    // Whether the open form names a container the two secondary actions can act on.
-    mtd canModifyVault()->bool => .mountPath.text().count != 0
+    // Whether a vault is chosen that the commands changing a vault can act on.
+    mtd canModifyVault()->bool => not .chosenPath.isEmpty()
 
     // Puts each action in step with what its form holds.
     //
@@ -761,40 +840,32 @@ impl MainWindow
             return
         .createButton.enable(.canCreate())
         .mountButton.enable(.canMount())
-        .passwordButton.enable(.canModifyVault())
-        .keyFilesButton.enable(.canModifyVault())
-        .resizeButton.enable(.canModifyVault())
-        .hiddenButton.enable(.canModifyVault())
-        .mountedDrives.unmountButton.enable(.mountedDrives.selectedIndex() != Swag.U64.Max)
     }
 
-    // Enables what the running operation leaves usable, and lets the create and resize buttons
-    // stop their own operation.
+    // Enables what the running operation leaves usable.
+    //
+    // A creation and a resize run on their own page, whose one action stops them; every other
+    // operation leaves the list on screen with its forms down until it ends.
     mtd showOperation()
     {
-        let ready    = .operation.kind == .None
-        let creating = .operation.kind == .Create
-        let resizing = .operation.kind == .Resize
+        let ready = .operation.kind == .None
+        let card  = &.list.card
 
-        // The create and resize buttons stay live through their own long operation, because
-        // during it they are what stops it. They are put in their new state before the forms go
-        // down, so the keyboard a disabled form hands on lands on a control that still answers
-        // rather than walking to the far end of the surface.
-        .createButton.enable(creating or (ready and .canCreate()))
-        .createButton.setText(creating ? appStrings().ui_StopCreating : appStrings().ui_CreateVault)
-        .createButton.setIcon(.theme().icon(creating ? .Stop : .SaveAs, themeActionIconSize(.themeMetrics())))
-
-        .resizeButton.enable(resizing or (ready and .canModifyVault()))
-        .resizeButton.setText(resizing ? appStrings().ui_StopResizing : appStrings().ui_Resize)
-
-        // Disabling a form disables every field and trailing control it owns.
-        .createCard.form.enable(ready)
-        .mountCard.form.enable(ready)
+        .createPage.form.enable(ready)
+        .createPage.actions.enable(ready)
+        .createButton.enable(ready and .canCreate())
+        card.form.enable(ready)
+        card.options.enable(ready)
         .mountButton.enable(ready and .canMount())
-        .passwordButton.enable(ready and .canModifyVault())
-        .keyFilesButton.enable(ready and .canModifyVault())
-        .mountedDrives.list.enable(ready)
-        .mountedDrives.unmountButton.enable(ready and .mountedDrives.selectedIndex() != Swag.U64.Max)
+        .list.newVault.enable(ready)
+        .list.openFile.enable(ready)
+        for row in .list.rows do
+            row.refresh()
+        .list.card.header.refresh()
+
+        .progressPage.stop.setText(.operation.kind == .Resize ? appStrings().ui_StopResizing : appStrings().ui_StopCreating)
+        .progressPage.stop.enable(not ready and not .operation.progress.isCanceled())
+        .progressPage.arrange()
     }
 
     // Says everything the window said at construction, in the language now active.
@@ -804,80 +875,19 @@ impl MainWindow
     // the language actually costs instead of around the widths English needed.
     mtd retranslate()
     {
-        let texts = appStrings()
-        .surface?.setTitle(texts.ui_WindowTitle)
-
-        .subtitle.setText(texts.ui_Subtitle)
-
-        for name, index in [texts.ui_CreateTab, texts.ui_OpenTab, texts.ui_MountedTab, texts.ui_OptionsTab] do
-            .tabs.setItemName(cast(u32, index), name)
-
-        .createCard.setTexts(texts.ui_CreateCardTitle, texts.ui_CreateCardHelp)
-        .createCard.form.setRowLabel(cast(u64, CreateRow.Path), texts.ui_ContainerFile)
-        .createCard.form.setRowLabel(cast(u64, CreateRow.Capacity), texts.ui_FixedCapacity)
-        .createCard.form.setRowLabel(cast(u64, CreateRow.Password), texts.ui_Password)
-        .createCard.form.setRowLabel(cast(u64, CreateRow.Confirm), texts.ui_ConfirmPassword)
-        .createCard.form.setRowLabel(cast(u64, CreateRow.KeyFiles), texts.ui_KeyFiles)
-        .createCard.form.setRowHelp(cast(u64, CreateRow.KeyFiles), texts.ui_KeyFilesHelp)
-        .createPassword.setPlaceholder(texts.ui_OptionalPassword)
-        .confirmPassword.setPlaceholder(texts.ui_EnterAgain)
-        .createKeyFiles.retranslate()
-        .browseCreate.setText(texts.ui_Browse)
-
-        .mountCard.setTexts(texts.ui_MountCardTitle, texts.ui_MountCardHelp)
-        .mountCard.form.setRowLabel(cast(u64, MountRow.Path), texts.ui_ContainerFile)
-        .mountCard.form.setRowLabel(cast(u64, MountRow.Password), texts.ui_Password)
-        .mountCard.form.setRowLabel(cast(u64, MountRow.KeyFiles), texts.ui_KeyFiles)
-        .mountCard.form.setRowHelp(cast(u64, MountRow.KeyFiles), texts.ui_KeyFilesHelp)
-        .mountCard.form.setRowLabel(cast(u64, MountRow.Drive), texts.ui_DriveLetter)
-        .mountCard.form.setRowHelp(cast(u64, MountRow.Drive), texts.ui_DriveHelp)
-        .readOnly.setText(texts.ui_ReadOnly)
-        .protectHidden.setText(texts.ui_ProtectHidden)
-        .hiddenButton.setText(texts.ui_CreateHidden)
-        .mountPath.setPlaceholder(texts.ui_ExistingContainer)
-        .mountPassword.setPlaceholder(texts.ui_ContainerPassword)
-        .mountKeyFiles.retranslate()
-        .browseMount.setText(texts.ui_Browse)
-        .mountButton.setText(texts.ui_MountDrive)
-        .passwordButton.setText(texts.ui_ChangePassword)
-        .keyFilesButton.setText(texts.ui_ChangeKeyFiles)
-
-        .optionsCard.setTexts(texts.ui_OptionsCardTitle, texts.ui_OptionsCardHelp)
-        .optionsCard.form.setRowHelp(cast(u64, OptionsRow.Privacy), texts.ui_PrivacyModeHelp)
-        .optionsCard.form.setRowHelp(cast(u64, OptionsRow.SessionLock), texts.ui_UnmountOnLockHelp)
-        .optionsCard.form.setRowHelp(cast(u64, OptionsRow.Suspend), texts.ui_UnmountOnSuspendHelp)
-        .optionsCard.form.setRowHelp(cast(u64, OptionsRow.Idle), texts.ui_UnmountOnIdleHelp)
-        .optionsCard.form.setRowLabel(cast(u64, OptionsRow.IdleTimeout), texts.ui_IdleTimeout)
-        .privacyModeControl.setText(texts.ui_PrivacyMode)
-        .unmountOnLock.setText(texts.ui_UnmountOnLock)
-        .unmountOnSuspend.setText(texts.ui_UnmountOnSuspend)
-        .unmountOnIdle.setText(texts.ui_UnmountOnIdle)
-        .idleTimeout.clear()
-        for minutes in IdleChoices do
-            .idleTimeout.addItem(Format.toString(texts.ui_Minutes, minutes))
-        .applyPrivacyControl()
+        .surface?.setTitle(appStrings().ui_WindowTitle)
+        .createPage.retranslate()
+        .optionsPage.retranslate()
         .applyAutoUnmountControls()
-
-        // The create and resize buttons say what they do *now*, so their captions are the
-        // state's to write, not this method's: during a creation the first reads "stop".
+        .list.retranslate()
         .showOperation()
         .refreshStatus()
-
-        .arrangeCards()
-        .createCard.actions.computeLayout()
-        .mountCard.actions.computeLayout()
-        .mountedDrives.retranslate()
-        .fitToContent()
+        .refreshHint()
         .invalidate()
     }
 
     // Whether a drive is already exposing this container.
-    mtd isMounted(path: string)->bool
-    {
-        for &one in .mountedDrives.drives where one.path == path do
-            return true
-        return false
-    }
+    mtd isMounted(path: string)->bool => .mountedDrives.find(path) != null
 
     // Releases the pending operation and every mounted volume. Safe to call more than once.
     mtd shutdown()
@@ -902,7 +912,7 @@ impl MainWindow
         }
 
         // The mount an operation was still holding is closed too: a mount that never reached
-        // the band is exactly as real to Windows as one that did.
+        // the list is exactly as real to Windows as one that did.
         if .operation.volume
         {
             discard catch .operation.volume.close()
@@ -925,24 +935,20 @@ impl MainWindow
         .createPassword.clear()
         .confirmPassword.clear()
         .mountPassword.clear()
+        .unlockKeyFiles.clear()
+        .createKeyFiles.clear()
         .operation.error.reset()
     }
 }
 
 impl IWnd for MainWindow
 {
-    // The banner and the pages keep clear of the window chrome floating over the top of the window.
-    mtd impl onResizeEvent(_: *ResizeEvent)
-    {
-        .padding.y = .stripInset()
-    }
-
     // Takes a container dropped anywhere on the window that no field claimed first.
     //
     // Dropping one file says "open this" regardless of its name: the container format, not a
-    // filename extension, identifies a vault. The window brings up the page that mounts it, fills
-    // its path and puts the keyboard on it, which leaves the reader one access entry away from a
-    // drive. A drop that lands on a path field is that field's own business and never reaches here.
+    // filename extension, identifies a vault. The window puts it on the list and unfolds it, which
+    // leaves the reader one access entry away from a drive. A drop that lands on a path field is
+    // that field's own business and never reaches here.
     mtd impl onDragDropEvent(evt: *DragDropEvent)
     {
         let path = evt.data.singleFile()
@@ -952,12 +958,8 @@ impl IWnd for MainWindow
             return
         }
 
-        if evt.kind == .Drop
-        {
-            .showTab(OpenTabIndex)
-            .mountPath.setText(path)
-            .mountPath.setFocus()
-        }
+        if evt.kind == .Drop do
+            .openVault(path)
 
         evt.effect = pickDropEffect(evt.allowed & (DropEffect.Copy | DropEffect.Link), evt.modifiers)
     }
@@ -1031,25 +1033,28 @@ impl IWnd for MainWindow
         if not .privacyMode
         {
             catch evt.serializer.serialize("MainWindow.fileDlgState", &me.fileDlgState)
-            catch evt.serializer.serialize("MainWindow.mountSettings", &me.mountSettings)
+            catch evt.serializer.serialize("MainWindow.vaults", &me.vaults)
             catch evt.serializer.serialize("MainWindow.startupVaults", &me.startupVaults)
+
+            // The last mount an earlier version remembered joins the list once.
+            if evt.serializer.isReading()
+            {
+                var legacy: MountSettings
+                catch evt.serializer.serialize("MainWindow.mountSettings", &legacy)
+                if not legacy.path.isEmpty() and not .findVault(legacy.path) do
+                    .vaults.add(KnownVault{legacy.path, legacy.drive, legacy.readOnly})
+            }
         }
 
         catch evt.serializer.serialize("MainWindow.autoUnmount", &me.autoUnmount)
 
-        // The window reopens on the page it was left on, so a reader who only ever mounts an
-        // existing vault does not walk past the creation form at every start.
-        var selectedTab = .tabs.selectedIndex
-        catch evt.serializer.serialize("MainWindow.selectedTab", &selectedTab)
         if evt.serializer.isReading()
         {
             if .privacyMode do
                 .clearPrivateState()
-            else do
-                .restoreMountSettings()
             .applyPrivacyControl()
             .applyAutoUnmountControls()
-            .showTab(Math.min(selectedTab, cast(u32, .tabs.items.count) - 1))
+            .refreshVaults()
         }
     }
 
@@ -1058,10 +1063,21 @@ impl IWnd for MainWindow
         switch evt.kind
         {
         case .LanguageChanged: .retranslate()
-        case .ThemeChanged where .layoutReady: .fitToContent()
+        case .ThemeChanged where .layoutReady: .refreshVaults()
         }
 
         .wnd.IWnd.onNotifyEvent(evt)
+    }
+
+    mtd impl onComputeStateEvent(evt: *CommandStateEvent)
+    {
+        if not .computeCommandState(evt) do
+            evt.accepted = false
+    }
+
+    mtd impl onCommandEvent(evt: *CommandEvent)
+    {
+        evt.accepted = .runCommand(evt.id)
     }
 
     mtd impl onDestroyEvent(evt: *DestroyEvent)

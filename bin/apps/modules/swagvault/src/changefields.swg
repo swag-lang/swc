@@ -1,6 +1,6 @@
 using Core, Gui, Pixel
 
-// What the change-password box asks for after the open card already states current access.
+// What the change-password box asks for after the unfolded vault already states current access.
 struct PasswordChangeFields
 {
     replacement: *PasswordEdit     // Password it opens with from now on, or empty to remove it.
@@ -23,7 +23,6 @@ func buildPasswordChangeForm(dialog: *FormDlg)->PasswordChangeFields
 {
     let texts = appStrings()
     let form  = dialog.form
-    VaultForm.configure(form)
 
     let replacement = form.addPasswordField(texts.ui_NewPassword, placeholder: texts.ui_OptionalPassword, help: texts.ui_RemovePasswordHelp)
     let confirm     = form.addPasswordField(texts.ui_ConfirmPassword, placeholder: texts.ui_EnterAgain)
@@ -37,7 +36,6 @@ func buildVaultResizeForm(dialog: *FormDlg)->VaultResizeFields
 {
     let texts = appStrings()
     let form  = dialog.form
-    VaultForm.configure(form)
 
     with let capacity = form.addTextField(texts.ui_NewCapacity, "256", help: texts.ui_NewCapacityHelp)
     {
@@ -65,12 +63,12 @@ func buildVaultResizeForm(dialog: *FormDlg)->VaultResizeFields
     return VaultResizeFields{capacity, unit, keepCapacity}
 }
 
-// Builds the complete replacement key-file set from the current selection. The current files
-// remain on the open card; the box contains only the list being changed.
-func buildKeyFileChangeForm(dialog: *FormDlg, current: const [..] String)->*KeyFileField
+// Builds the complete key-file set of an access from the current selection; the box contains
+// only the list being changed. `canGenerate` offers the action that creates a random key file,
+// which only makes sense where a new access is being chosen.
+func buildKeyFileChangeForm(dialog: *FormDlg, current: const [..] String, canGenerate = true)->*KeyFileField
 {
-    VaultForm.configure(dialog.form)
-    let result = KeyFileField.create(dialog.form)
+    let result = KeyFileField.create(dialog.form, canGenerate)
     result.setPaths(current)
     discard dialog.form.addField(appStrings().ui_KeyFiles, result, help: appStrings().ui_KeyFilesHelp)
     VaultForm.finish(dialog.form)

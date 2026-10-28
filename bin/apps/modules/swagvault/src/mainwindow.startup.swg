@@ -8,34 +8,25 @@ impl MainWindow
         return Swag.U64.Max
     }
 
-    // Rebuilds the startup list from the check marks of the band.
+    // Marks the mounted vault at `path` to be mounted again the next time Swag Vault starts, or
+    // takes the mark off.
     //
     // A drive that is unmounted keeps its mark: the list is what Swag Vault mounts at its next
     // start, not what it happens to be showing now.
-    mtd applyStartupMarks()
+    mtd toggleStartup(path: string)
     {
-        if .privacyMode do
+        let drive = .mountedDrives.find(path)
+        if .privacyMode or not drive do
             return
-        for &one, index in .mountedDrives.drives
-        {
-            let checked = .mountedDrives.list.isLineChecked(cast(u32, index))
-            if checked == one.atStartup do
-                continue
-            one.atStartup = checked
 
-            let known = .startupIndex(one.path)
-            if not checked
-            {
-                if known != Swag.U64.Max do
-                    .startupVaults.removeAtOrdered(known)
-                continue
-            }
+        drive.atStartup = not drive.atStartup
+        let known = .startupIndex(drive.path)
+        if known != Swag.U64.Max do
+            .startupVaults.removeAtOrdered(known)
+        if drive.atStartup do
+            .startupVaults.add(StartupVault{drive.path, drive.drive, drive.needsPassword, drive.readOnly, drive.protectHidden})
 
-            if known != Swag.U64.Max do
-                .startupVaults.removeAtOrdered(known)
-            .startupVaults.add(StartupVault{one.path, one.drive, one.needsPassword, one.readOnly, one.protectHidden})
-        }
-
+        .refreshVaults()
         catch g_App.saveState()
     }
 
@@ -81,15 +72,12 @@ impl MainWindow
 
         with var options: FormDlgOptions
         {
-            .title             = title
-            .confirmButtonText = appStrings().ui_MountDrive
+            .title = title
+            .confirmButtonText = appStrings().ui_Mount
             .cancelButtonText  = appStrings().dlg_BtnSkip
-            .width             = 520
-            .height            = 250
         }
 
-        let dialog = FormDlg.create(unwrap .surface, options)
-        VaultForm.configure(dialog.form)
+        let dialog   = FormDlg.create(unwrap .surface, options)
         let password = dialog.form.addPasswordField(appStrings().ui_Password, placeholder: appStrings().ui_ContainerPassword, help: path)
         let keyFiles = KeyFileField.create(dialog.form)
         discard dialog.form.addField(appStrings().ui_KeyFiles, keyFiles, help: appStrings().ui_KeyFilesHelp)

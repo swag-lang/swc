@@ -404,8 +404,8 @@ its commands in the lens, and leaves the screen to its work.
   randomisation progress as a huge percentage over an Arc line
   ([vault.progress](../../../backlog/design/imgs/vault.progress.png)); options as rows with a title,
   a help paragraph and an Arc switch ([vault.options](../../../backlog/design/imgs/vault.options.png)).
-
-TODO(silence): name the theme part that carries Vault's mounted-state green once design.silence.010 lands; until then it must still come from the theme, not a literal.
+- The mounted dot is the theme's live mark (`ThemeColors.live`, green in both themes); the locked
+  ring is the soft ink. Neither is a literal, and live is not a status tone to borrow elsewhere.
 
 ## Make Space Describe Relationships
 

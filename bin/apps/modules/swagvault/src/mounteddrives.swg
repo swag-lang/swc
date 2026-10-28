@@ -6,271 +6,63 @@ struct MountedDrive
     volume:         *MountedVault?     // Live mount, owned by this entry until it is unmounted.
     path:           String             // Container file the drive reads and writes.
     drive:          String             // Stable backend destination identifier persisted by Swag Vault.
-    mountLabel:     String             // Host-facing destination name shown in the mounted list.
+    mountLabel:     String             // Host-facing destination name shown on the vault's row.
     needsPassword:  bool               // Whether a password was needed to open the container.
     readOnly:       bool               // Whether the drive was mounted for reading alone.
     atStartup:      bool               // Whether Swag Vault mounts this container again the next time it starts.
     totalBytes:     u64                // Capacity exposed by the mounted filesystem.
-    availableBytes: u64                // Free capacity observed when the row was last refreshed.
+    availableBytes: u64                // Free capacity observed when the entry was last refreshed.
     protectHidden:  bool               // Hidden access must be requested again on a writable startup mount.
 }
 
-// Columns of the mounted-drives list, in the order `MountedDrives.create` adds them.
+// The drives Swag Vault currently exposes, in the order they came up.
 //
-// The first one carries no text: a list row draws its check box in its first cell, so that
-// column is the check box, and the heading above it is what says what checking one means.
-enum MountedColumn
-{
-    Startup       // Whether the drive comes back the next time Swag Vault starts.
-    Drive         // Drive letter the volume appears on.
-    Size          // Total virtual capacity.
-    Available     // Capacity not currently occupied.
-    Vault         // Container file behind the drive.
-}
-
-// The third card of the window: the drives Swag Vault currently exposes.
-//
-// It is the answer to "what is running", and it is a column rather than a strip under the two
-// forms: drives are a list that grows, and a list grows downwards. Its shape is the shape of
-// the two cards beside it, so the surface reads as three panels doing three things rather than
-// as two panels and a table.
-//
-// Rows are the entries of `drives`, in order and never sorted, which is what lets a row index
-// stand for a drive everywhere else.
+// The list of vaults shows each of them on the row of its container; this is what Windows sees,
+// and what the window must close on its way out. Entries are never sorted, which is what lets an
+// index stand for a drive while the window works on it.
 struct MountedDrives
 {
-    card: VaultCard
-
-    late
-    {
-        list:          *ListCtrl
-        empty:         *Label
-        unmountButton: *PushButton
-    }
-
-    drives:         Array'MountedDrive
-    startupEnabled: bool = true     // Whether the rows offer the check box that remounts them at startup.
-
-    // Emitted once the table says what `drives` now holds. Whether the action of the card can
-    // work depends on the selection *and* on what the window is doing, so the window is what
-    // answers for it; this is how it learns that the set changed under it.
-    sigDrivesChanged: SigArray'func||(*MountedDrives)
+    drives: Array'MountedDrive
 }
 
 impl MountedDrives
 {
-    // Minimum room each column keeps when the surface is narrow. Above that baseline the five
-    // columns share the complete table width according to their content rather than giving all
-    // additional room to the vault name.
-    const StartupColumnWidth   = 92'f32
-    const DriveColumnWidth     = 78'f32
-    const SizeColumnWidth      = 92'f32
-    const AvailableColumnWidth = 104'f32
-    const MinimumVaultWidth    = 120'f32
-
-    const StartupColumnShare   = 0.16'f32
-    const DriveColumnShare     = 0.12'f32
-    const SizeColumnShare      = 0.14'f32
-    const AvailableColumnShare = 0.18'f32
-
-    // Creates the card in `parent`, with an empty table and its unmount action.
-    func create(parent: *Wnd)->MountedDrives
+    // Returns the drive exposing the container at `path`, or null when that vault is locked.
+    mtd find(path: string)->*MountedDrive?
     {
-        let card = VaultCard.create(parent, appStrings().ui_MountedCardTitle, appStrings().ui_MountedCardHelp)
-
-        with let unmount = PushButton.create(card.actions, appStrings().ui_Unmount)
-        {
-            .setIcon(card.panel.theme().icon(.Stop, themeActionIconSize(card.panel.themeMetrics())))
-        }
-
-        card.actions.computeLayout()
-
-        // The card carries no fields, so its form collapses to nothing and the table takes the
-        // whole body. Sizing it is still the card's job, exactly as on the two form cards.
-        card.endForm()
-
-        // The table sits on the card's own fill, so it draws no ground of its own: a framed
-        // list inside a raised panel is the second box the panel exists to avoid. Its heading
-        // row keeps the one hairline that separates the headings from the rows.
-        with let list = ListCtrl.createMultiColumns(card.body)
-        {
-            .layoutSpec.policyY       = .Expand
-            .preferredSize.y          = .header.measure({}).preferred.y + 5 * .lineHeight()
-            .backgroundStyle          = .Transparent
-            .listView.backgroundStyle = .Transparent
-            .header.form              = .Transparent
-            .setSelectionMode(.Single)
-            .updateFlags(add: .HotTrack)
-
-            // Sorting would put the rows in an order the drive list no longer matches, and a
-            // handful of drives have nothing to sort anyway.
-            .header.updateFlags(remove: .Clickable)
-
-            // In the order of `MountedColumn`.
-            .addColumn(appStrings().ui_ColStartup, StartupColumnWidth)
-            .addColumn(appStrings().ui_ColDrive, DriveColumnWidth)
-            .addColumn(appStrings().ui_ColSize, SizeColumnWidth)
-            .addColumn(appStrings().ui_ColAvailable, AvailableColumnWidth)
-            .addColumn(appStrings().ui_ColVault, MinimumVaultWidth)
-        }
-
-        // This compact status table has no user-defined layout to preserve. Its five semantic
-        // lanes always follow the surface, so draggable separators would only create overflow.
-        for item in list.header.items do
-            item!.isResizable = false
-
-        // Only a read-only drive carries a padlock, and the lane it stands in is reserved on every
-        // row whatever the state: sized to its content, the column would put the letters of two
-        // drives at two different places and the reader would read the difference as a typo.
-        list.setIconSize(themeRowIconSize(list.themeMetrics()))
-        list.header.itemAt(cast(u32, MountedColumn.Drive)).reservesIconSpace = true
-
-        // An empty table is a card with a heading and nothing under it, which reads as a table
-        // that failed to load. One quiet line says the truth instead, and steps aside the
-        // moment there is a row to show.
-        with let empty = Label.create(card.body, appStrings().ui_NoDriveMounted, {}, null, .SecondaryText)
-        {
-            .layoutSpec.policyY = .Expand
-            .setTextAlignment(.Center, .Center)
-        }
-
-        card.body.mode = .Top
-        card.actions.bringToFront()
-
-        with var result: #returntype
-        {
-            .card          = card
-            .list          = list
-            .empty         = empty
-            .unmountButton = unmount
-            .refresh()
-        }
-
-        return result
+        for &one in .drives where one.path == path do
+            return one
+        return null
     }
 
-    // Says the table again from `drives`.
-    mtd refresh()
+    // Returns the index of the drive exposing the container at `path`, or `Swag.U64.Max`.
+    mtd indexOf(path: string)->u64
     {
-        .list.clear()
-        for &one in .drives
-        {
-            if one.volume
-            {
-                let space = one.volume.space()
-                one.totalBytes     = space.total
-                one.availableBytes = space.available
-            }
-
-            let line = .list.createLine("")
-            line.canCheck = .startupEnabled
-
-            // The padlock is the whole of what says the drive is read only, so it stands on the
-            // letter itself: a mark in the vault column would read as a property of the file,
-            // and the file is exactly as writable as it ever was.
-            var driveIcon: Icon
-            if one.readOnly do
-                driveIcon = .list.theme().icon(.Lock, themeRowIconSize(.list.themeMetrics()))
-            line.setItem(cast(u32, MountedColumn.Drive), one.mountLabel, driveIcon)
-            line.setItem(cast(u32, MountedColumn.Size), capacityText(one.totalBytes))
-            line.setItem(cast(u32, MountedColumn.Available), capacityText(one.availableBytes))
-            line.setItem(cast(u32, MountedColumn.Vault), Path.fileName(one.path) orelse one.path)
-        }
-
-        for &one, index in .drives where .startupEnabled and one.atStartup do
-            .list.setLineChecked(cast(u32, index), true, notify: false)
-
-        let filled = not .drives.isEmpty()
-        .list.show(filled)
-        .empty.show(not filled)
-        .card.body.applyLayout()
-
-        if filled
-        {
-            if not .list.selectedLine() do
-                .list.selectLine(0)
-            .layoutColumns()
-        }
-
-        .sigDrivesChanged.call(me)
-    }
-
-    // Offers or withdraws the startup check box on every row.
-    mtd setStartupEnabled(enabled: bool)
-    {
-        if .startupEnabled == enabled do
-            return
-        .startupEnabled = enabled
-        .refresh()
-    }
-
-    // Divides the complete visible width into stable semantic lanes.
-    //
-    // The final lane receives the arithmetic remainder so rounding never leaves a strip beside
-    // the header. Separators and leading padding are removed first because they are part of the
-    // header width but not part of any lane.
-    mtd layoutColumns()
-    {
-        let available = .list.listView.paddedClientRect().width
-
-        var currentItems = 0'f32
-        for index in .list.header.items.count do
-            currentItems += .list.header.itemWidthAt(cast(u32, index))
-
-        let chrome = .list.header.contentWidth() - currentItems
-        let room   = Math.max(available - chrome, 0)
-
-        let startupWidth = Math.max(StartupColumnWidth, room * StartupColumnShare)
-        let driveWidth   = Math.max(DriveColumnWidth, room * DriveColumnShare)
-        let sizeWidth    = Math.max(SizeColumnWidth, room * SizeColumnShare)
-        let freeWidth    = Math.max(AvailableColumnWidth, room * AvailableColumnShare)
-        let vaultWidth   = Math.max(MinimumVaultWidth, room - startupWidth - driveWidth - sizeWidth - freeWidth)
-
-        // In the order of `MountedColumn`.
-        for width, column in [startupWidth, driveWidth, sizeWidth, freeWidth, vaultWidth] do
-            .list.setColumnWidth(cast(u32, column), width)
-        .list.computeLayout()
-    }
-
-    // Returns the drive the list is on, or `Swag.U64.Max` when it is on none.
-    mtd selectedIndex()->u64
-    {
-        let line = .list.selectedLine()
-        if not line do
-            return Swag.U64.Max
-        for index in .drives.count where .list.lineAt(cast(u32, index)) == line do
+        for &one, index in .drives where one.path == path do
             return index
         return Swag.U64.Max
     }
 
-    // Hands over the mount at `index` and drops its row.
+    // Reads again what each live mount holds and has free.
+    mtd refreshSpace()
+    {
+        for &one in .drives where one.volume
+        {
+            let space = one.volume.space()
+            one.totalBytes     = space.total
+            one.availableBytes = space.available
+        }
+    }
+
+    // Hands over the mount at `index` and drops its entry.
     //
-    // The caller becomes responsible for closing and releasing what it gets back: this card
+    // The caller becomes responsible for closing and releasing what it gets back: this model
     // holds a mount only while it shows it.
     mtd detach(index: u64)->*MountedVault?
     {
         Swag.assert(index < .drives.count)
         let result = .drives[index].volume
         .drives.removeAtOrdered(index)
-        .refresh()
         return result
-    }
-
-    // Says the heading, the explanation, the column names and the action again in the language
-    // now active.
-    mtd retranslate()
-    {
-        .card.setTexts(appStrings().ui_MountedCardTitle, appStrings().ui_MountedCardHelp)
-
-        // In the order of `MountedColumn`.
-        let texts = appStrings()
-        for name, column in [texts.ui_ColStartup, texts.ui_ColDrive, texts.ui_ColSize, texts.ui_ColAvailable, texts.ui_ColVault] do
-            .list.header.itemAt(cast(u32, column)).name = name
-        .list.header.invalidate()
-
-        .empty.setText(appStrings().ui_NoDriveMounted)
-        .unmountButton.setText(appStrings().ui_Unmount)
-        .card.actions.computeLayout()
-        .card.endForm()
     }
 }

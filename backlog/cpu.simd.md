@@ -199,9 +199,10 @@ conversion, image codecs, text/crypto routines, Pixel spans, and SDF samples.
 
 ### cpu.simd.025 — Half-size and gradient paths still have unoptimized scalar work
 
-- Evidence: the legacy RGB/BGR half-size path calls `visitPixels`; other formats already use
-  parallel row loops. The two-color legacy gradient computes one row and copies it, while the
-  four-corner and logical-pixel paths still process pixels individually. Fill already copies rows.
+- Evidence: RGB/BGR and RGBA/BGRA half-size paths use packed parallel row loops; other formats
+  still compute each pixel through `readPixelValue` and `writePixelValue`. The two-color legacy
+  gradient computes one row and copies it, while the four-corner and logical-pixel paths still
+  process pixels individually. Fill already copies rows.
 - Next: compare packed byte-color half-size rows and the remaining gradient work against
   their scalar paths, and a packed source-over kernel against its row-wise scalar implementation.
 - Done when: supported pixel formats, alpha preservation, odd widths, stride, overlap, and tails

@@ -1054,7 +1054,8 @@ namespace
         r.add(MicroInstrOpcode::TestMemImm, tryEraseDeadCompare);
         r.add(MicroInstrOpcode::TestRegReg, tryEraseDeadCompare);
         r.add(MicroInstrOpcode::TestRegImm, tryEraseDeadCompare);
-        r.add(MicroInstrOpcode::TestRegImm, tryFoldWordMaskTest);
+        r.add(MicroInstrOpcode::TestRegImm, tryFoldCanonicalMaskTest);
+        r.add(MicroInstrOpcode::CmpRegImm, tryFoldCanonicalMaskTest);
         r.add(MicroInstrOpcode::CmpRegReg, tryReuseAddFlagsForUnsignedWrap);
         r.add(MicroInstrOpcode::CmpRegReg, tryFactorCommonConditionalShiftNoCopy);
         r.add(MicroInstrOpcode::CmpRegReg, tryFactorCommonConditionalShiftBare);

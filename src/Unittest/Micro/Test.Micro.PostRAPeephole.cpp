@@ -6995,7 +6995,7 @@ SWC_TEST_BEGIN(PostRAPeephole_PackedContractionRespectsPolicyAndDependencies)
 }
 SWC_TEST_END()
 
-SWC_TEST_BEGIN(PostRAPeephole_WordMaskTestPreservesObservations)
+SWC_TEST_BEGIN(PostRAPeephole_CanonicalMaskTestPreservesObservations)
 {
     const MicroReg     base   = CallConv::get(CallConvKind::C).intArgRegs[0];
     constexpr MicroReg mask   = MicroReg::intReg(10);
@@ -7004,7 +7004,7 @@ SWC_TEST_BEGIN(PostRAPeephole_WordMaskTestPreservesObservations)
     constexpr MicroReg left   = MicroReg::floatReg(0);
     constexpr MicroReg right  = MicroReg::floatReg(1);
     constexpr MicroReg vector = MicroReg::floatReg(2);
-    for (uint32_t variant = 0; variant < 4; ++variant)
+    for (uint32_t variant = 0; variant < 6; ++variant)
     {
         for (const uint64_t input : {0ull, 0x0001000200030004ull})
         {
@@ -7015,15 +7015,16 @@ SWC_TEST_BEGIN(PostRAPeephole_WordMaskTestPreservesObservations)
                 MicroBuilder builder(ctx);
                 builder.emitLoadVecRegMem(left, base, 0, MicroOpBits::B128);
                 builder.emitLoadVecRegMem(right, base, 16, MicroOpBits::B128);
-                builder.emitOpBinaryRegRegReg(vector, left, right, variant == 1 ? MicroOp::VecXor : MicroOp::VecCmpEq16, MicroOpBits::B128);
+                const MicroOp compare = variant == 1 || variant == 5 ? MicroOp::VecXor : variant == 4 ? MicroOp::VecCmpEq8 : MicroOp::VecCmpEq16;
+                builder.emitOpBinaryRegRegReg(vector, left, right, compare, MicroOpBits::B128);
                 builder.emitVecUnaryRegReg(mask, vector, MicroOp::VecMoveMaskB, MicroOpBits::B128);
                 builder.emitSetCondReg(result, MicroCond::NotEqual);
                 const auto setRef = builder.instructions().lastInstructionRef();
                 MicroInstrOperand test[3] = {};
                 test[0].reg = mask;
                 test[1].opBits = MicroOpBits::B32;
-                test[2].setImmediateValue(ApInt(0xAAAA, 32));
-                builder.instructions().insertDerivedBefore(builder.operands(), setRef, MicroInstrOpcode::TestRegImm, test);
+                test[2].setImmediateValue(ApInt(variant >= 4 ? 0 : 0xAAAA, 32));
+                builder.instructions().insertDerivedBefore(builder.operands(), setRef, variant >= 4 ? MicroInstrOpcode::CmpRegImm : MicroInstrOpcode::TestRegImm, test);
                 if (variant == 2)
                     builder.emitLoadMemReg(base, 40, mask, MicroOpBits::B32);
                 if (variant == 3)
@@ -7036,7 +7037,7 @@ SWC_TEST_BEGIN(PostRAPeephole_WordMaskTestPreservesObservations)
                 SWC_RESULT(executeForwardingCase(ctx, builder, values.data(), optimize));
                 if (!optimize)
                     expected = values;
-                else if (values != expected || Backend::Unittest::countOpcode(builder, MicroInstrOpcode::VecTestReg) != (variant == 0 ? 1u : 0u))
+                else if (values != expected || Backend::Unittest::countOpcode(builder, MicroInstrOpcode::VecTestReg) != (variant == 0 || variant == 4 ? 1u : 0u))
                     return Result::Error;
             }
         }

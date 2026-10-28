@@ -11,13 +11,16 @@ namespace PostRaPeephole
 {
     using MicroOptimizationLimits::PostRAPeepholeFlags::K_MAX_CARRY_PATTERN_WINDOW;
 
-    // Word comparisons produce whole zero or all-one lanes. Their byte mask
-    // has a set high-byte bit iff the vector itself is nonzero.
-    bool tryFoldWordMaskTest(Context& ctx, MicroInstrRef ref, const MicroInstr& inst)
+    // Integer comparisons produce whole zero or all-one lanes. Their byte
+    // mask, and the odd bits of a word mask, are nonzero iff the vector is.
+    bool tryFoldCanonicalMaskTest(Context& ctx, MicroInstrRef ref, const MicroInstr& inst)
     {
         const auto* test = inst.ops(*ctx.operands);
-        if (!test || ctx.isClaimed(ref) || !test[0].reg.isInt() || test[1].opBits != MicroOpBits::B32 ||
-            test[2].hasWideImmediateValue() || test[2].valueU64 != 0xAAAA)
+        if (!test || ctx.isClaimed(ref) || !test[0].reg.isInt() || test[1].opBits != MicroOpBits::B32 || test[2].hasWideImmediateValue())
+            return false;
+        const bool wordMask = inst.op == MicroInstrOpcode::TestRegImm && test[2].valueU64 == 0xAAAA;
+        const bool fullMask = inst.op == MicroInstrOpcode::CmpRegImm && test[2].valueU64 == 0;
+        if (!wordMask && !fullMask)
             return false;
         const MicroInstrRef readerRef = ctx.nextRef(ref);
         const MicroInstr*   reader    = ctx.instruction(readerRef);
@@ -38,9 +41,13 @@ namespace PostRaPeephole
         const MicroInstr*   compare    = ctx.instruction(compareRef);
         const auto*         compareOps = compare ? compare->ops(*ctx.operands) : nullptr;
         if (!compare || compare->op != MicroInstrOpcode::OpBinaryRegRegReg || !compareOps ||
-            compareOps[0].reg != moveOps[1].reg || compareOps[3].opBits != MicroOpBits::B128 ||
-            (compareOps[4].microOp != MicroOp::VecCmpEq16 && compareOps[4].microOp != MicroOp::VecCmpGtS16) ||
-            !ctx.claimAll({moveRef, ref}))
+            compareOps[0].reg != moveOps[1].reg || compareOps[3].opBits != MicroOpBits::B128)
+            return false;
+        const MicroOp op          = compareOps[4].microOp;
+        const bool wordCompare = op == MicroOp::VecCmpEq16 || op == MicroOp::VecCmpGtS16;
+        const bool canonical   = wordCompare || op == MicroOp::VecCmpEq8 || op == MicroOp::VecCmpEq32 || op == MicroOp::VecCmpEq64 ||
+                                 op == MicroOp::VecCmpGtS8 || op == MicroOp::VecCmpGtS32 || op == MicroOp::VecCmpGtS64;
+        if (!(wordMask ? wordCompare : canonical) || !ctx.claimAll({moveRef, ref}))
             return false;
         MicroInstrOperand vectorTest[2] = {};
         vectorTest[0].reg    = moveOps[1].reg;

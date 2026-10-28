@@ -319,6 +319,11 @@ for a deliberate dot or play triangle. Application icons keep their two-colour t
 on ink) for the taskbar and the About box; inside a window the glyph is drawn monochrome at low
 opacity.
 
+A glyph is judged at 16 physical pixels at 100 % scale, in both themes, with its pixels enlarged:
+inner marks keep 3 units from their frame, a distinguishing detail sits outside the shared shape,
+and an object is drawn by its silhouette. The rules and their reasons are in
+[design-swag-identity](../../.agents/skills/design-swag-identity/SKILL.md#draw-the-interface-icons).
+
 ## Verifying a surface
 
 Every surface is judged against its picture here, in both themes, through its golden image. A

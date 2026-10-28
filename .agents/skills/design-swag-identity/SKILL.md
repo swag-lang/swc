@@ -262,6 +262,19 @@ two-colour tiles, because they are seen on a desktop beside other products' icon
 row of commands. Size ceilings and cells live in
 [build-swag-standard-apps](../build-swag-standard-apps/SKILL.md#keep-the-chrome-small-and-the-air-large).
 
+Judge a glyph at 16 physical pixels, at 100 % scale, in soft on Encre and in ink on Papier, with
+its pixels enlarged rather than smoothed; a drawing at 64 hides what the stroke does at 16.
+- **Keep an inner mark at least 3 units from its frame.** A cross or a curl inside a circle of
+  radius 5.5 fills with stroke and reads as a smudge; an upright mark (`!`, `i`) survives where a
+  diagonal one does not.
+- **A distinguishing detail sits outside the shared shape.** A `1` squeezed inside a repeat loop
+  vanishes into the arrowheads; open the loop and set the `1` beside it.
+- **Draw the object's silhouette, not its rings.** A gear is a toothed outline with a hole;
+  concentric circles with spokes read as a target.
+- **Two glyphs that mean different things differ at a glance.** When an inner mark tells them
+  apart, it is large enough to read on its own: Duplicate is Copy with a plus filling its front
+  sheet, not a plus squeezed between two overlapping frames.
+
 ## Set The Type
 
 - **In a window**: Inter for every word, Roboto Mono for every measure. Sizes and weights are in

@@ -115,17 +115,15 @@ dialogs, then each application, then the written rules.
 - Done when: each `capture.*` picture is reproduced by its golden.
 - Related: design.silence.004, design.silence.005
 
-### design.silence.011 — Two toolkit seams the gui examples work around, and the window scripts
+### design.silence.011 — A toolkit seam gui9 works around, and the window scripts
 
-- Evidence: `paintSectionLabel` is internal, so gui10's colour sheet and gui11's group titles shape
-  the small spaced capitals themselves in their own `onPaint`. `FileDlg`'s new-folder and replace
-  questions are private, so gui9 reaches them only through a file box opened on a scratch folder,
-  one click away from the question. The example scripts that open windows (`chess.swgs`,
-  `noise.swgs`) were not reviewed against the charter.
-- Next: publish the section-label painter and switch gui10 and gui11 to it; give `FileDlg` public
-  entries for its two questions and let gui9 open them directly; review the two scripts.
-- Done when: no example copies a toolkit painter, gui9 opens every file-box question directly, and
-  the window scripts build and smoke clean in both themes.
+- Evidence: `FileDlg`'s new-folder and replace questions are private, so gui9 reaches them only
+  through a file box opened on a scratch folder, one click away from the question. The example
+  scripts that open windows (`chess.swgs`, `noise.swgs`) were not reviewed against the charter.
+- Next: give `FileDlg` public entries for its two questions and let gui9 open them directly;
+  review the two scripts.
+- Done when: gui9 opens every file-box question directly, and the window scripts build and smoke
+  clean in both themes.
 
 ### design.silence.012 — The skills still describe the old identity
 

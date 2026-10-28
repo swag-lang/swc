@@ -608,7 +608,7 @@ private impl View
 
         // The label sits low in its band, closer to the rows it opens than to the group above.
         let band = Math.Rectangle{rect.x + metrics.lens_TextInset, rect.y + rect.height - metrics.lens_RowHeight * 0.6, rect.width - 2 * metrics.lens_TextInset, metrics.lens_RowHeight * 0.4}
-        paintSectionLabel(me, painter, band, label)
+        SectionLabel.paint(me, painter, band, label)
     }
 
     mtd paintEntryRow(painter: *Painter, rect: Math.Rectangle, entry: *Entry, chosen: bool)

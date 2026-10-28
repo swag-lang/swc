@@ -137,7 +137,7 @@ impl IWnd for Inspector
             let top = body.y + row.top
             if not row.editor
             {
-                paintSectionLabel(me, painter, Math.Rectangle{body.x + pad, top, body.width - 2 * pad, metrics.inspector_SectionHeight}, row.label)
+                SectionLabel.paint(me, painter, Math.Rectangle{body.x + pad, top, body.width - 2 * pad, metrics.inspector_SectionHeight}, row.label)
                 continue
             }
 

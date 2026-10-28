@@ -56,7 +56,6 @@ struct SheetView
 
     fontName: *Font?     // Face the names are listed in.
     fontMono: *Font?     // Face the values are listed in, so digits line up.
-    fontHead: *Font?     // Face a family head is set in.
 }
 
 impl SheetView
@@ -211,12 +210,11 @@ impl SheetView
         }
     }
 
-    // Resolves the three faces the sheet is set in, once per theme.
+    // Resolves the two faces the sheet is set in, once per theme.
     private mtd ensureFonts()
     {
         .fontName = app.theme.createDefaultFont(13)
         .fontMono = app.theme.createDefaultFontFs(13)
-        .fontHead = app.theme.createDefaultFont(app.theme.metrics.sectionLabel_FontSize, .Bold)
     }
 
     // Draws `text` left-aligned inside `rect`, on the vertical center of the row.
@@ -266,11 +264,9 @@ impl IWnd for SheetView
 
             if row.group
             {
-                // A family opens with a section label: small spaced capitals in the faint ink.
-                let head   = Math.Rectangle{rect.x, rect.y + 12, rect.width, rect.height - 12}
-                let font   = unwrap .fontHead
-                var shaped = Painter.shapeRun(String.toUpper(row.name.toString(), .Unicode), font, letterSpacing: app.theme.metrics.sectionLabel_LetterSpacing)
-                painter.drawShapedRun(head.x, font.opticalLineTop(head.vertCenter()), &shaped, font, Brush.createSolid(colors.faintText))
+                // A family opens with a section label.
+                let head = Math.Rectangle{rect.x, rect.y + 12, rect.width, rect.height - 12}
+                SectionLabel.paint(me, painter, head, row.name.toString())
 
                 // The palette sheet repeats its column captions on every family head: with
                 // three hundred rows scrolling under a single caption row, a reader four

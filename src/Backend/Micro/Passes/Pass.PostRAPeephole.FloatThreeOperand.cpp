@@ -260,6 +260,15 @@ namespace PostRaPeephole
                 demand.read(ops[1].reg, source);
                 return;
             }
+            if (inst.op == MicroInstrOpcode::OpBinaryRegRegReg && ops[0].reg.isFloat() && ops[3].opBits == MicroOpBits::B128)
+            {
+                // A packed three-operand result defines the whole destination.
+                // Its inputs remain fully demanded, including when they alias it.
+                demand.clear(ops[0].reg);
+                demand.read(ops[1].reg, 15);
+                demand.read(ops[2].reg, 15);
+                return;
+            }
             if (inst.op == MicroInstrOpcode::OpBinaryRegRegImm && ops[2].opBits == MicroOpBits::B128 &&
                 ops[3].microOp == MicroOp::VecShiftRightBytes && ops[4].valueU64 % 4 == 0)
             {

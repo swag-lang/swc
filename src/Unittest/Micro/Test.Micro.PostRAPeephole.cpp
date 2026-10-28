@@ -703,7 +703,7 @@ SWC_TEST_BEGIN(PostRAPeephole_KeepsAddressedOutgoingSlotWithSpillDisplacement)
     parameter.setTypeRef(ctx.typeMgr().typeBlockPtrU8());
     callee.addParameter(&parameter);
     callee.setReturnTypeRef(ctx.typeMgr().typeVoid());
-    for (uint32_t variant = 0; variant < 3; ++variant)
+    for (uint32_t variant = 0; variant < 5; ++variant)
     {
         MicroBuilder builder(ctx);
         builder.emitLoadMemReg(stack, 0x80, spill, MicroOpBits::B64);
@@ -7052,15 +7052,22 @@ SWC_TEST_BEGIN(PostRAPeephole_ShufflePreservesDemandedLanes)
             MicroBuilder builder(ctx);
             builder.emitLoadVecRegMem(source, base, 0, MicroOpBits::B128);
             builder.emitVecShuffleRegRegImm(source, source, variant == 2 ? 0x4E : 0x44, MicroOpBits::B128);
-            if (variant != 1)
+            if (variant >= 3)
+            {
+                builder.emitOpBinaryRegRegReg(other, source, source, MicroOp::VecUnpackLo64, MicroOpBits::B128);
+                builder.emitOpBinaryRegRegReg(source, variant == 3 ? other : source, other, MicroOp::VecXor, MicroOpBits::B128);
+                builder.emitStoreVecMemReg(base, 16, variant == 3 ? other : source, MicroOpBits::B128);
+            }
+            else if (variant != 1)
                 builder.emitOpBinaryRegRegReg(source, source, source, MicroOp::VecUnpackLo64, MicroOpBits::B128);
-            builder.emitStoreVecMemReg(base, 16, source, MicroOpBits::B128);
+            if (variant < 3)
+                builder.emitStoreVecMemReg(base, 16, source, MicroOpBits::B128);
             builder.emitClearReg(other, MicroOpBits::B128);
             builder.emitRet();
             SWC_RESULT(executeForwardingCase(ctx, builder, values.data(), optimize));
             if (!optimize)
                 expected = values;
-            else if (values != expected || Backend::Unittest::countOpcode(builder, MicroInstrOpcode::VecShuffleRegRegImm) != (variant == 0 ? 0u : 1u))
+            else if (values != expected || Backend::Unittest::countOpcode(builder, MicroInstrOpcode::VecShuffleRegRegImm) != (variant == 0 || variant == 3 ? 0u : 1u))
                 return Result::Error;
         }
     }

@@ -314,7 +314,10 @@ impl PropWnd
         if not hasBorder and not hasFill do
             return
 
-        .addHeadSection(appStrings().ui_PropColor)
+        // Several objects share what follows: the section says so.
+        let capture = .main.getCapture()
+        let several = capture and capture.selection.count > 1
+        .addHeadSection(several ? appStrings().ui_Common : appStrings().ui_PropColor)
         if hasBorder
         {
             var label = appStrings().ui_PropOutline
@@ -465,7 +468,11 @@ impl PropWnd
 
             let form = capture.forms[i]
             let mode = MainWnd.formToEditMode(form)
-            let name = MainWnd.editModeName(mode)
+            // A layer is named by its words when it has some, by its kind otherwise.
+            var name: String = MainWnd.editModeName(mode)
+            let words = formEditableText(form)
+            if words and not words.isEmpty() do
+                name = words[]
             with let button = IconButton.create(.addHeadRow(""), .main.icon(MainWnd.editModeIcon(mode), metrics.menuPopup_IconSize), {}, flags: .Radio)
             {
                 .dockStyle = .Center

@@ -202,6 +202,7 @@ impl IActionUI for ActionFile
                 main.copyLibraryImage(capture.file)
             else do
                 capture.copyAll()
+            main.confirm(appStrings().msg_Copied)
 
         case .CaptureFileLocation:
             if not Env.showInFileExplorer(capture.file) do
@@ -512,9 +513,14 @@ impl MainWnd
         if .recentWnd != null do
             .recentWnd.updateRecent()
 
-        let text = Format.toString(appStrings().msg_ImageSaved, nameFile)
-        let emb  = InfoBar.create(.editWnd.view, text, .Information, flags: .Bottom | .AutoDismiss)
-        emb.label.sigLinkActivated += func(_, msg) { Env.showInFileExplorer(msg) }
+        // The window that saved may be the in-place editor, which closes: the main window says it.
+        let main = g_Main orelse me
+        main.savedPaths.add(nameFile)
+        let index = main.savedPaths.count - 1
+        main.confirm(appStrings().msg_Saved, Path.fileName(nameFile) orelse "", appStrings().act_Show, func|main, index|()
+        {
+            discard Env.showInFileExplorer(main.savedPaths[index])
+        })
     }
 
     mtd saveAsImage(linked = false)

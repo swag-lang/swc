@@ -45,6 +45,20 @@ impl Capture
 
     mtd selectionHasChanged()
     {
+        let view = .editView
+        if view and view.textForm
+        {
+            var keep = false
+            if .selection.count == 1
+            {
+                if .forms[.selection[0]] is FormCallout as callout do
+                    keep = callout == view.textForm
+            }
+
+            if not keep do
+                view.endTextEdit()
+        }
+
         .updateEditModeFromSelection()
         .updateModelFromSelection()
         with let editView = unwrap .editView

@@ -58,8 +58,8 @@ dialogs, then each application, then the written rules.
   under a Presentation section of the joined `•••` menu with `✓` in Arc, mark matched characters
   with the highlight colour and count results in the search field and the section list; then fix
   the Panel slider refresh. The Panel and Grid rows of the charter also show a slider's value as a
-  mono reading with no box, and a two- or three-valued choice as segments: Swag Capture's inspector
-  sets the value face itself (`PropWnd.fitFieldLabelColumn`), and no segment control exists yet.
+  mono reading with no box: Swag Capture's inspector sets the value face itself
+  (`PropWnd.fitFieldLabelColumn`).
 - Done when: `gui.properties.ctrl.paper` is reproduced by a `properties.ctrl.{ink,paper}` golden.
 - Related: design.silence.002
 
@@ -105,23 +105,21 @@ dialogs, then each application, then the written rules.
 - Done when: every Scope golden matches its picture.
 - Related: design.silence.004, design.silence.002
 
-### design.silence.008 — Swag Capture's shape editing does not yet match its pictures
+### design.silence.008 — Swag Capture's editing does not yet match its pictures
 
-- Evidence: the editor states of the `capture.edit.*` pictures have goldens (`edit.arrow`,
-  `edit.multi`, `edit.step`, `edit.mask`, `edit.color.paper`, beside `surface`, `area`,
-  `library.surface`, `lens.paper`). What they still show differently: a callout's text is typed in
-  a dialog, not inline with a caret, and the callout's mini-bar has no face, size or alignment;
-  the generated settings show a combo where the pictures show segments (Line, Shadow, Joins) —
-  the property grid draws no segment control (design.silence.005); multiple selection shows no
-  "common settings" heading and its layers are only the kinds of the objects, not their words;
-  a quick style has no name; the quick-style strip shows its horizontal bar at rest when the set
-  outnumbers the column (design.silence.002); the inspector rows of the head do not scroll with
-  the generated settings; the library tab counts are in the proportional face; the recent
-  captures are text rows of the lens, not thumbnails; the in-place editor keeps its own icon bar instead of the one floating bar of `capture.inplace`;
-  the area bar offers no delay or cursor choice (they are lens entries).
-- Next: inline callout text with its mini-bar (face, size, alignment), then segments for two- or
-  three-valued settings once the grid can draw them.
-- Done when: each `capture.edit.*` picture is reproduced by its golden.
+- Evidence: the editor, the area capture, the in-place editor, the library and the lens have
+  goldens (`surface`, `edit.{arrow,callout,multi,step,mask,color.paper}`, `area`,
+  `inplace{,.paper}`, `library.surface`, `lens.paper`). What they still show differently: the
+  words of a callout are typed in place in a field set in their face but left-aligned, not at the
+  callout's own alignment; the callout mini-bar's face opens the inspector rather than a list of
+  faces; a quick style has no name; the inspector rows of the head do not scroll with the
+  generated settings; the library tab counts are in the proportional face (the tab bar sets one
+  face per tab); the recent captures are text rows of the lens, not thumbnails (the lens has no
+  thumbnail row); the area bar offers no delay or cursor choice (lens entries only); the in-place
+  bar does not move beside the zone when the screen has no room above or below it.
+- Next: let the field typing a callout follow its alignment; give the lens a row of thumbnails
+  for the recent captures; then the remaining items above.
+- Done when: each `capture.*` picture is reproduced by its golden.
 - Related: design.silence.002, design.silence.004, design.silence.005
 
 ### design.silence.009 — Swag Prism's render view lacks the caret reading and the framed picture

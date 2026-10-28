@@ -1,34 +1,13 @@
 using Core, Gui
 
-// Shared field typography and help spacing for the main cards and their modal forms.
+// What the boxes that change a vault share: the spacing of their help, and the capacity unit.
+//
+// Their labels stand above the fields in the soft ink, the way every form of a box reads, so the
+// boxes keep the toolkit's own form options.
 struct VaultForm {}
 
 impl VaultForm
 {
-    // Returns the form options every vault form shares, measured against the theme of `wnd`.
-    func options(wnd: *Wnd)->FormLayoutOptions
-    {
-        let gap = wnd.themeMetrics().dialog_BtnPadding
-
-        with var result: #returntype
-        {
-            .labelHeight  = 18
-            .labelSpacing = gap * 0.75
-            .rowSpacing   = gap * 2
-            .helpSpacing  = gap
-            .labelFont    = wnd.theme().createDefaultFont(12, .Bold)
-            .labelFlags   = .SecondaryText
-        }
-
-        return result
-    }
-
-    // Gives `form` the shared options before its rows are added.
-    func configure(form: *FormLayoutCtrl)
-    {
-        form.options = options(form)
-    }
-
     // Spaces the help paragraphs of `form` and lays it out again, once its rows are all present.
     func finish(form: *FormLayoutCtrl)
     {
@@ -43,7 +22,7 @@ impl VaultForm
     {
         with let result = form.addRowChoice()
         {
-            for unit in ["MiB", "GiB"] do
+            for unit in [appStrings().ui_UnitMiB, appStrings().ui_UnitGiB] do
                 .addItem(unit)
             .setSelectedIndex(0, notify: false)
             setMachineFont(result)

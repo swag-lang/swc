@@ -124,7 +124,6 @@ impl DocumentOutline
             .setFirstColumnIconMargin(false)
             .setIndentWidth(16)
             .updateFlags(.HotTrack | .Ellipsis)
-            .scrollWnd.updateFlags(.CompactBars)
             .sigSelectionChanged += func|panel = result|(list)
             {
                 if let line = list.selectedLine() do

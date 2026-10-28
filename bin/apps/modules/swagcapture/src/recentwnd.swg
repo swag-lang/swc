@@ -398,7 +398,7 @@ impl RecentWnd
     {
         with let recent = Wnd.create'RecentWnd(parent, {0, 0, 0, PreviewHeight + RecentPadding * 2})
         {
-            .updateFlags(.CompactBars | .AlwaysShowHorizontal)
+            .updateFlags(.AlwaysShowHorizontal)
             .backgroundStyle = .Panel
             .main = main
             .style.addStyleSheetColors("scrollBar_Bk $wnd_Bk")

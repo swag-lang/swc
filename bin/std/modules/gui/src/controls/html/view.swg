@@ -1250,7 +1250,7 @@ internal impl HtmlView
 
         result.scrollTrack    = .themeColors().scrollBar_Bk
         result.scrollThumb    = .themeColors().scrollBar_Box
-        result.scrollBarSize  = .themeMetrics().scrollBar_SmallSize
+        result.scrollBarSize  = .themeMetrics().scrollBar_Size
         result.scrollThumbMin = .themeMetrics().scrollBar_BoxMinSize
         return result
     }

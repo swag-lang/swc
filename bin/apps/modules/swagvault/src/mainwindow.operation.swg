@@ -1,23 +1,55 @@
 impl MainWindow
 {
     // Starts `kind` on the worker and polls it until `finishOperation` takes the result.
+    //
+    // A creation and a resize write every byte of the container, so they get the page that follows
+    // them; the other operations wait on the driver or on a key derivation, and the notice line
+    // under the list's title says what they are doing.
     mtd beginOperation(kind: OperationKind)
     {
         Swag.assert(.operation.kind == .None)
         .operation.kind = kind
-        .showOperation()
         .operation.error.reset()
         .operation.timer = .addTimer(50'ms)
 
         // Arming the tracker before the task starts is what clears the cancellation a previous
         // operation left behind.
         .operation.progress.begin(0)
-        .showBusy(true)
+
+        if kind == .Create or kind == .Resize
+        {
+            let texts = appStrings()
+            var what, help: string
+            switch
+            {
+            case kind == .Create:
+                what = texts.ui_Randomizing
+                help = texts.ui_RandomizeHelp
+
+            case .operation.camouflageOnly:
+                what = texts.ui_Camouflaging
+                help = texts.ui_KeepCapacityHelp
+
+            default:
+                what = texts.ui_Resizing
+                help = texts.ui_NewCapacityHelp
+            }
+
+            .progressPage.begin(.operation.path, what, help, kind == .Create ? texts.ui_StopCreating : texts.ui_StopResizing)
+            .progressClock.restart()
+            .showOperation()
+            .showPage(.Progress)
+        }
+        else
+        {
+            .showOperation()
+            .showBusy(true)
+        }
 
         .operation.task.submit(func|window = me|() { window.runOperation() })
     }
 
-    // Checks the create form, then creates the container in the background.
+    // Checks the create page, then creates the container in the background.
     mtd createContainer()
     {
         let path = .createPath.text()
@@ -57,7 +89,7 @@ impl MainWindow
         .operation.hiddenAccess.clear()
         .operation.path = path
         .operation.size = size.bytes
-        .operation.access.setInputs(.createPassword.bytes(), .createKeyFiles.paths.toSlice())
+        .operation.access.setInputs(.createPassword.bytes(), .createKeyFiles.toSlice())
         .createPassword.clear()
         .confirmPassword.clear()
         .statusProgress = 0
@@ -65,7 +97,26 @@ impl MainWindow
         .beginOperation(.Create)
     }
 
-    // The open card identifies the outer container; this form owns only the new hidden access.
+    // Creates the container when the create page holds everything it needs.
+    //
+    // A form that cannot answer stays silent instead of opening a box: the button is already down
+    // for the same reason, so Enter says exactly what the button says.
+    mtd submitCreate()
+    {
+        if .operation.kind != .None or not .canCreate() do
+            return
+        .createContainer()
+    }
+
+    // Mounts the drive when the unfolded vault holds everything it needs.
+    mtd submitMount()
+    {
+        if .operation.kind != .None or not .canMount() do
+            return
+        .mountContainer()
+    }
+
+    // The unfolded vault identifies the outer container; this form owns only the new hidden access.
     mtd createHiddenContainer()
     {
         if not .canChangeVault() do
@@ -75,7 +126,6 @@ impl MainWindow
         {
             .title = appStrings().ui_CreateHidden
             .confirmButtonText = appStrings().ui_CreateVault
-            .width = 520
         }
 
         let dialog = FormDlg.create(unwrap .surface, options)
@@ -110,16 +160,15 @@ impl MainWindow
             return
         }
 
-        .operation.path          = .mountPath.text()
+        .operation.path          = .chosenPath
         .operation.size          = size.bytes
         .operation.createHidden  = true
         .operation.protectHidden = false
-        .operation.access.setInputs(.mountPassword.bytes(), .mountKeyFiles.paths.toSlice())
+        .operation.access.setInputs(.mountPassword.bytes(), .unlockKeyFiles.toSlice())
         .operation.resultKeyFiles = fields.keyFiles.paths
         .mountPassword.clear()
         .statusProgress = 0
         .setStatus(.Randomizing)
-        .showTab(0)
         .beginOperation(.Create)
     }
 
@@ -129,8 +178,7 @@ impl MainWindow
         with var options: FormDlgOptions
         {
             .title = appStrings().ui_ProtectHidden
-            .confirmButtonText = appStrings().ui_MountDrive
-            .width = 520
+            .confirmButtonText = appStrings().ui_Mount
         }
 
         let dialog = FormDlg.create(unwrap .surface, options)
@@ -157,16 +205,15 @@ impl MainWindow
         if .operation.kind != .Create and .operation.kind != .Resize do
             return
         .operation.progress.cancel()
-        .createButton.enable(false)
-        .resizeButton.enable(false)
+        .progressPage.stop.enable(false)
         .setStatus(.StopRequested)
     }
 
-    // Checks the mount form, then mounts the container in the background.
+    // Checks the unfolded vault, then mounts its container in the background.
     mtd mountContainer()
     {
-        let path = .mountPath.text()
-        if path.count == 0
+        let path = String.from(.chosenLockedPath())
+        if path.isEmpty()
         {
             .showError(appStrings().msg_ChooseExisting)
             return
@@ -187,11 +234,11 @@ impl MainWindow
 
         .operation.createHidden = false
         .operation.hiddenAccess.clear()
-        .operation.protectHidden = .protectHidden.isChecked() and not .readOnly.isChecked()
-        .protectHidden.setState(.Unchecked)
+        .operation.protectHidden = .protectHiddenOnMount and not .readOnly.isChecked()
+        .protectHiddenOnMount    = false
         if .operation.protectHidden and not .askHiddenProtection() do
             return
-        .operation.access.setInputs(.mountPassword.bytes(), .mountKeyFiles.paths.toSlice())
+        .operation.access.setInputs(.mountPassword.bytes(), .unlockKeyFiles.toSlice())
         .mountPassword.clear()
         .startMount(path, mountPoint, false, .readOnly.isChecked())
     }
@@ -210,12 +257,12 @@ impl MainWindow
         .beginOperation(.Mount)
     }
 
-    // Detaches the selected drive from the list and unmounts it in the background.
-    mtd unmountSelectedDrive()
+    // Detaches the drive of the vault at `path` and unmounts it in the background.
+    mtd unmountVault(path: string)
     {
         if .operation.kind != .None do
             return
-        let index = .mountedDrives.selectedIndex()
+        let index = .mountedDrives.indexOf(path)
         if index == Swag.U64.Max do
             return
 
@@ -223,11 +270,17 @@ impl MainWindow
         .operation.mount      = .mountedDrives.drives[index].drive
         .operation.mountLabel = .mountedDrives.drives[index].mountLabel
         .operation.volume     = .mountedDrives.detach(index)
+
+        // The row goes back to rest rather than unfolding: unmounting is not asking to open it again.
+        if .chosenPath == path do
+            .chosenPath.clear()
+        .pruneVaults()
+        .refreshVaults()
         .setStatus(.Unmounting)
         .beginOperation(.Unmount)
     }
 
-    // Whether the open card names a container that can be changed now, saying why when it cannot.
+    // Whether the unfolded vault names a container that can be changed now, saying why when it cannot.
     //
     // A mounted container is in use by Windows: changing its geometry or its key slots under the
     // driver would corrupt what the drive is reading.
@@ -235,7 +288,7 @@ impl MainWindow
     {
         if .operation.kind != .None or not .canModifyVault() do
             return false
-        if .isMounted(.mountPath.text())
+        if .isMounted(.chosenPath)
         {
             .showError(appStrings().msg_UnmountFirst)
             return false
@@ -244,8 +297,8 @@ impl MainWindow
         return true
     }
 
-    // Changes only the password. Current access and the retained key-file set come from the open
-    // card, so the box contains the new password and its confirmation alone.
+    // Changes only the password. Current access and the retained key-file set come from the
+    // unfolded vault, so the box contains the new password and its confirmation alone.
     mtd changeVaultPassword()
     {
         if not .canChangeVault() do
@@ -253,10 +306,8 @@ impl MainWindow
 
         with var options: FormDlgOptions
         {
-            .title  = appStrings().dlg_TitlePassword
+            .title = appStrings().dlg_TitlePassword
             .confirmButtonText = appStrings().dlg_BtnApply
-            .width  = 520
-            .height = 300
         }
 
         let dialog = FormDlg.create(unwrap .surface, options)
@@ -270,9 +321,9 @@ impl MainWindow
             return
         }
 
-        .operation.path = .mountPath.text()
-        .operation.access.setInputs(.mountPassword.bytes(), .mountKeyFiles.paths.toSlice())
-        .operation.replacement.setInputs(fields.replacement.bytes(), .mountKeyFiles.paths.toSlice())
+        .operation.path = .chosenPath
+        .operation.access.setInputs(.mountPassword.bytes(), .unlockKeyFiles.toSlice())
+        .operation.replacement.setInputs(fields.replacement.bytes(), .unlockKeyFiles.toSlice())
         .mountPassword.clear()
         .operation.accessChange      = .Password
         .operation.leavesUnprotected = not .operation.replacement.isProtected()
@@ -282,7 +333,7 @@ impl MainWindow
     }
 
     // Changes only the ordered key-file set. The box starts from the files already stated on the
-    // open card, and current access is verified before the replacement slot is published.
+    // unfolded vault, and current access is verified before the replacement slot is published.
     mtd changeVaultKeyFiles()
     {
         if not .canChangeVault() do
@@ -295,12 +346,12 @@ impl MainWindow
         }
 
         let dialog = FormDlg.create(unwrap .surface, options)
-        let files  = buildKeyFileChangeForm(dialog, .mountKeyFiles.paths.toSlice())
-        if dialog.doModal() != Dialog.BtnOk or files.samePaths(.mountKeyFiles.paths.toSlice()) do
+        let files  = buildKeyFileChangeForm(dialog, .unlockKeyFiles.toSlice())
+        if dialog.doModal() != Dialog.BtnOk or files.samePaths(.unlockKeyFiles.toSlice()) do
             return
 
-        .operation.path = .mountPath.text()
-        .operation.access.setInputs(.mountPassword.bytes(), .mountKeyFiles.paths.toSlice())
+        .operation.path = .chosenPath
+        .operation.access.setInputs(.mountPassword.bytes(), .unlockKeyFiles.toSlice())
         .operation.replacement.setInputs(.mountPassword.bytes(), files.paths.toSlice())
         files.copyPaths(&.operation.resultKeyFiles)
         .mountPassword.clear()
@@ -310,13 +361,13 @@ impl MainWindow
         .beginOperation(.ChangeAccess)
     }
 
-    // Asks only for another capacity, then resizes with the access stated on the open card.
+    // Asks only for another capacity, then resizes with the access stated on the unfolded vault.
     mtd resizeVault()
     {
         if not .canChangeVault() do
             return
 
-        let path = .mountPath.text()
+        let path = String.from(.chosenPath)
         if not File.exists(path)
         {
             .showError(appStrings().msg_ChooseExisting)
@@ -325,10 +376,8 @@ impl MainWindow
 
         with var options: FormDlgOptions
         {
-            .title  = appStrings().dlg_TitleResize
+            .title = appStrings().dlg_TitleResize
             .confirmButtonText = appStrings().dlg_BtnApply
-            .width  = 520
-            .height = 240
         }
 
         let dialog = FormDlg.create(unwrap .surface, options)
@@ -353,7 +402,7 @@ impl MainWindow
         .operation.path = path
         .operation.size = requestedSize
         .operation.camouflageOnly = camouflageOnly
-        .operation.access.setInputs(.mountPassword.bytes(), .mountKeyFiles.paths.toSlice())
+        .operation.access.setInputs(.mountPassword.bytes(), .unlockKeyFiles.toSlice())
         .mountPassword.clear()
         .statusProgress = 0
         .setStatus(camouflageOnly ? .Camouflaging : .Resizing)
@@ -470,7 +519,7 @@ impl MainWindow
         .operation.hiddenAccess.clear()
     }
 
-    // Refreshes the status line of the operation that is still running.
+    // Says how far the running creation or resize is, on its page and in the status it keeps.
     //
     // Only the two operations that write bytes know how far along they are; the others wait on
     // the driver or on a key derivation, and the spinner already says everything that can
@@ -481,13 +530,36 @@ impl MainWindow
             return
         if .operation.progress.isCanceled() do
             return
-        .statusProgress = cast(s32, .operation.progress.ratio() * 100)
+
+        let ratio = .operation.progress.ratio()
+        let bytes = .operation.progress.counts()
+        .statusProgress = cast(s32, ratio * 100)
+        .progressPage.setProgress(ratio, bytes.done, bytes.total, .timeLeft(ratio))
+
         if .operation.kind == .Create do
             .setStatus(.Randomizing)
         elif .operation.camouflageOnly do
             .setStatus(.Camouflaging)
         else do
             .setStatus(.Resizing)
+    }
+
+    // Says how long the running operation still needs, from how long the part done took; empty
+    // until enough is done to say it honestly.
+    mtd timeLeft(ratio: f32)->String
+    {
+        var result: #returntype
+        const MinimumRatio = 0.02'f32
+        if ratio < MinimumRatio or ratio >= 1 do
+            return result
+
+        let elapsed = cast(f64, .progressClock.elapsedMilliseconds()) / 1000
+        let seconds = cast(u64, Math.ceil(elapsed * (1 - ratio) / ratio))
+        if seconds < 120 do
+            result = Format.toString(appStrings().ui_SecondsLeft, seconds)
+        else do
+            result = Format.toString(appStrings().ui_MinutesLeft, (seconds + 59) / 60)
+        return result
     }
 
     // Waits for the worker, then hands the outcome to the finish step of the operation kind.
@@ -512,39 +584,41 @@ impl MainWindow
 
         .operation.forgetRequest()
         .showOperation()
+        .refreshActions()
 
         if .startupQueue.count do
             .pumpStartupQueue()
     }
 
-    // Reports how a creation ended, and on success points the mount tab at the new container.
+    // Reports how a creation ended. A new vault joins the list, unfolded and ready to mount; a
+    // creation that stopped leads back to where it was asked for.
     mtd finishCreate(operationError: any?)
     {
+        let hidden = .operation.createHidden
         if isCanceledError(operationError)
         {
             // A creation the user stopped is an outcome, not a failure, so it reports on
-            // the status line and never opens a dialog.
-            .setStatus(.operation.createHidden ? .HiddenCreateCanceled : .CreateCanceled)
+            // the notice line and never opens a dialog.
+            .setStatus(hidden ? .HiddenCreateCanceled : .CreateCanceled)
+            .showPage(hidden ? .List : .Create)
         }
         elif operationError != null
         {
             .showError(appStrings().msg_CreateFailed, operationError)
             .setStatus(.CreateStopped)
+            .showPage(hidden ? .List : .Create)
         }
         else
         {
             .setStatus(.Created)
-            .mountPath.setText(.operation.path)
-            if .operation.createHidden
-            {
-                .mountKeyFiles.setPaths(.operation.resultKeyFiles.toSlice())
-                .protectHidden.setState(.Unchecked)
-                .showTab(1)
-            }
-            else
-            {
-                .mountKeyFiles.setPaths(.createKeyFiles.paths.toSlice())
-            }
+            let path = String.from(.operation.path)
+            .openVault(path)
+            if hidden do
+                .unlockKeyFiles = .operation.resultKeyFiles
+            else do
+                .unlockKeyFiles = .createKeyFiles
+            .list.card.setKeyFileCount(.unlockKeyFiles.count)
+            .showPage(.List)
         }
     }
 
@@ -553,7 +627,7 @@ impl MainWindow
     {
         if operationError != null
         {
-            // A startup mount reports on the status line alone: a box per vault would meet
+            // A startup mount reports on the notice line alone: a box per vault would meet
             // the reader with a stack of them before the window is even readable.
             if not .operation.fromStartup and not .operation.securityStopped do
                 .showError(appStrings().msg_MountFailed, operationError)
@@ -585,6 +659,7 @@ impl MainWindow
         }
 
         .fillDriveChoice()
+        .refreshVaults()
     }
 
     // Reports an unmount; a drive that could not flush is still gone.
@@ -594,9 +669,10 @@ impl MainWindow
             .showError(appStrings().msg_UnmountSyncStopped, operationError)
         .setStatus(.Unmounted)
         .fillDriveChoice()
+        .refreshVaults()
     }
 
-    // Reports how a resize or a camouflage refresh ended.
+    // Reports how a resize or a camouflage refresh ended, back on the list.
     mtd finishResize(operationError: any?)
     {
         if isCanceledError(operationError)
@@ -617,6 +693,8 @@ impl MainWindow
             .statusDrive = capacityText(.operation.size)
             .setStatus(.Resized)
         }
+
+        .showPage(.List)
     }
 
     // Reports how a password or key-file change ended.
@@ -633,7 +711,8 @@ impl MainWindow
             .rememberAccessChange()
             if .operation.accessChange == .KeyFiles
             {
-                .mountKeyFiles.setPaths(.operation.resultKeyFiles.toSlice())
+                .unlockKeyFiles = .operation.resultKeyFiles
+                .list.card.setKeyFileCount(.unlockKeyFiles.count)
                 .setStatus(.KeyFilesChanged)
             }
             else
@@ -643,15 +722,17 @@ impl MainWindow
         }
     }
 
-    // Adds the drive the mount operation produced to the band.
+    // Adds the drive the mount operation produced to the list, on the row of its vault.
     mtd rememberMountedDrive()
     {
         let known = .startupIndex(.operation.path)
-        if not .privacyMode
+
+        // The vault keeps the choices of its last mount, so the next one starts from them.
+        .addVault(.operation.path)
+        if let vault = .findVault(.operation.path)
         {
-            .mountSettings.path     = .operation.path
-            .mountSettings.drive    = .operation.mount
-            .mountSettings.readOnly = .operation.readOnly
+            vault.drive    = .operation.mount
+            vault.readOnly = .operation.readOnly
         }
 
         with var entry: MountedDrive
@@ -683,7 +764,7 @@ impl MainWindow
         }
 
         .mountedDrives.drives.add(#move entry)
-        .mountedDrives.refresh()
+        .refreshVaults()
         catch g_App.saveState()
     }
 
@@ -698,5 +779,70 @@ impl MainWindow
             .startupVaults[index].needsPassword = not .operation.leavesUnprotected
             catch g_App.saveState()
         }
+    }
+
+    // Fills the drive picker with the destinations the active filesystem backend still has free.
+    //
+    // Mounting takes one and unmounting gives it back, so the list is said again after both:
+    // a letter that is no longer free must not stay on offer.
+    mtd fillDriveChoice()
+    {
+        let previous = .selectedMountPoint()
+        .drive.clear()
+
+        .mountDestinations = availableMountDestinations()
+        for &destination in .mountDestinations do
+            .drive.addItem(destination.label)
+
+        if .drive.items.count and not .selectMountPoint(previous) do
+            .drive.setSelectedIndex(0, notify: false)
+    }
+
+    // Selects `mountPoint` when that backend destination is still available.
+    mtd selectMountPoint(mountPoint: string)->bool
+    {
+        for &destination, index in .mountDestinations where destination.id == mountPoint
+        {
+            .drive.setSelectedIndex(cast(u32, index), notify: false)
+            return true
+        }
+
+        return false
+    }
+
+    // Lets the reader pick the container file `target` names, for creating it.
+    mtd chooseContainer(target: *EditBox, create: bool)
+    {
+        // Privacy controls persistence, not the convenience of returning to the last folder
+        // during this run. Serialization below remains the only path from this state to disk.
+        with var options: FileDlgOptions
+        {
+            .state             = &me.fileDlgState
+            .mode              = create ? .CreateFile : .SelectFile
+            .title             = create ? appStrings().dlg_TitleCreate : appStrings().dlg_TitleOpen
+            .confirmButtonText = create ? appStrings().dlg_BtnCreate : appStrings().dlg_BtnOpen
+            .initialName       = create ? "volume" : ""
+            .shortcuts.add({type: Env.SpecialDirectory.Desktop, name: appStrings().ui_Desktop})
+            .shortcuts.add({type: Env.SpecialDirectory.UserDocuments, name: "Documents"})
+        }
+
+        let dialog = FileDlg.create(unwrap .surface, options)
+        if dialog.doModal() == Dialog.BtnOk do
+            target.setText(dialog.selectedPath())
+    }
+
+    // Returns the backend identifier of the destination the picker selects, or an empty string.
+    mtd selectedMountPoint()->String
+    {
+        let index = .drive.selectedIndex
+        return index < .mountDestinations.count ? .mountDestinations[index].id : ""
+    }
+
+    // Returns the host-facing name for a backend destination identifier.
+    mtd mountPointLabel(mountPoint: string)->String
+    {
+        for &destination in .mountDestinations where destination.id == mountPoint do
+            return destination.label
+        return mountPoint
     }
 }

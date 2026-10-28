@@ -336,7 +336,7 @@ impl DocumentView
         with let scroll = Wnd.create'ScrollWnd(parent, "scope.font.scroll", {})
         {
             .dockStyle = .Center
-            .updateFlags(.CompactBars | .TransparentBars | .DisableHorizontal)
+            .updateFlags(.TransparentBars | .DisableHorizontal)
         }
 
         with let result = scroll.createView'DocumentView()

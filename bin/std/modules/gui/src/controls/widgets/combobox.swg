@@ -16,6 +16,7 @@ enum ComboBoxFlags
     None = 0     // Always paints the field background and border.
     Flat         // Paints the field only while hovered or open.
     TransparentBackground     // Keeps the parent background visible behind the field border.
+    Segmented    // Shows every entry side by side as segments of a raised frame, chosen with a click; no list opens.
 }
 
 // Stores one selectable item or separator in a combo box.
@@ -58,6 +59,7 @@ struct ComboBox
     popup:              *PopupListCtrl?     // Drop-down list while it is open.
     pointerFocusReturn: *Wnd?     // Focus owner restored after pointer use.
     maxIconSize:        s32       // Widest item icon, sizing the icon column.
+    hotSegment:         u32 = Swag.U32.Max     // Segment under the pointer, when segmented.
 
     aniBk:     BlendColor     // Color animation of the background.
     aniBorder: BlendColor     // Color animation of the border.
@@ -101,6 +103,11 @@ impl IWnd for ComboBox
     {
         let bc      = evt.paintContext
         let painter = evt.paintContext.painter
+        if .showsSegments()
+        {
+            .paintSegments(painter, bc.isDisabled)
+            return
+        }
 
         let theme   = .theme()
         let colors  = .themeColors()
@@ -204,6 +211,13 @@ impl IWnd for ComboBox
     mtd impl measureContent(_: Math.Point)->Math.Point
     {
         let metrics = .themeMetrics()
+        if .flags.has(.Segmented)
+        {
+            var width = 0'f32
+            for item in .items where not item!.isSeparator do
+                width += Painter.measureString(item.name.raw, unwrap .font().regular).width + 2 * metrics.comboBox_Padding
+            return Math.Point{width, metrics.comboBox_Height}
+        }
 
         var format: RichStringFormat
         format.font = .font()
@@ -244,17 +258,37 @@ impl IWnd for ComboBox
         case .Pressed:
             if evt.button != .Left do
                 break
+            if .showsSegments()
+            {
+                let index = .segmentAt(.surfaceToLocal(evt.surfacePos))
+                if index < .items.count and index != .selectedIndex do
+                    .applySelectedIndex(index, notify: true)
+                break
+            }
+
             if .popup do
                 .hidePopup()
             else do
                 .showPopup()
+
+        case .Move:
+            if .showsSegments()
+            {
+                let index = .segmentAt(.surfaceToLocal(evt.surfacePos))
+                if index != .hotSegment
+                {
+                    .hotSegment = index
+                    .invalidate()
+                }
+            }
 
         case .Enter:
             .isHot = true
             .invalidate()
 
         case .Leave:
-            .isHot = false
+            .isHot      = false
+            .hotSegment = Swag.U32.Max
             .invalidate()
         }
     }
@@ -288,6 +322,22 @@ impl IWnd for ComboBox
             return
         }
 
+        // Segments are all on screen: the keys move the choice, nothing opens.
+        if .showsSegments()
+        {
+            switch evt.key
+            {
+            case .Up, .Left:    .selectRelative(-1)
+            case .Down, .Right: .selectRelative(1)
+            case .Home:         .selectEdge(forward: true)
+            case .End:          .selectEdge(forward: false)
+            default:            return
+            }
+
+            evt.accepted = true
+            return
+        }
+
         switch evt.key
         {
         case .Down where alt: .showPopup()
@@ -305,6 +355,85 @@ impl IWnd for ComboBox
 
 private impl ComboBox
 {
+    // Reports whether the entries stand as segments: the combo asks for it and every entry fits
+    // its share of the width. A choice whose words do not fit stays a list that opens.
+    mtd showsSegments()->bool
+    {
+        if not .flags.has(.Segmented) or .items.isEmpty() do
+            return false
+        let metrics = .themeMetrics()
+        let font    = unwrap .font().regular
+        let share   = (.clientRect().width - 2 * metrics.comboBox_SegmentInset) / cast(f32, .items.count)
+        for item in .items
+        {
+            if item!.isSeparator or Painter.measureString(item.name.raw, font).width + 2 * metrics.comboBox_Padding > share do
+                return false
+        }
+
+        return true
+    }
+
+    // Returns the rectangle of segment `index` among `count`, in local coordinates: the frame
+    // shares its width evenly, inset by the gap the chosen segment keeps from the frame.
+    mtd segmentRect(index, count: u64)->Math.Rectangle
+    {
+        let gap   = .themeMetrics().comboBox_SegmentInset
+        var frame = .clientRect()
+        frame.inflate(-gap)
+        let width = frame.width / cast(f32, Math.max(count, 1))
+        return Math.Rectangle{frame.x + width * cast(f32, index), frame.y, width, frame.height}
+    }
+
+    // Returns the segment under `pos`, in local coordinates, or `U32.Max`.
+    mtd segmentAt(pos: Math.Point)->u32
+    {
+        let count = .items.count
+        for i in count where .segmentRect(i, count).contains(pos) do
+            return cast(u32, i)
+        return Swag.U32.Max
+    }
+
+    // Paints the entries as segments: a raised frame, the chosen segment on its own ground,
+    // lifted where the theme lifts it, the others in the soft ink.
+    mtd paintSegments(painter: *Painter, disabled: bool)
+    {
+        let colors = .themeColors()
+        let rects  = .themeRects()
+        let theme  = .theme()
+        let count  = .items.count
+        let font   = unwrap .font().regular
+
+        theme.drawSubRect(painter, .clientRect(), &rects.tabBar_RoundBk, colors.tabBar_RoundBk)
+        painter.setParams(.Antialiased)
+        for item, i in .items
+        {
+            let rect = .segmentRect(i, count)
+            if i == .selectedIndex
+            {
+                let lift = colors.tabItem_RoundLift
+                if lift.a
+                {
+                    var shade = rect
+                    shade.offset(0, 1)
+                    painter.fillRoundRect(shade, rects.tabItem_RoundSelected.radius, rects.tabItem_RoundSelected.radius, lift)
+                }
+
+                theme.drawSubRect(painter, rect, &rects.tabItem_RoundSelected, colors.tabItem_RoundSelected)
+            }
+            elif i == .hotSegment
+            {
+                theme.drawSubRect(painter, rect, &rects.tabItem_RoundSelected, colors.tabItem_ButtonHot)
+            }
+
+            var ink = i == .selectedIndex ? colors.tabItem_SelectedText : colors.tabItem_HotText
+            if disabled do
+                ink = colors.comboBox_DisabledText
+            let text  = item!.name.raw
+            let width = Painter.measureString(text, font).width
+            painter.drawString(Math.round(rect.horzCenter() - width * 0.5), font.opticalLineTop(rect.vertCenter()), text, font, ink)
+        }
+    }
+
     // Move the selection by 'dir' (+1/-1), skipping separators and clamping at the
     // ends (no wrap-around, matching native combo boxes).
     mtd selectRelative(dir: s32)

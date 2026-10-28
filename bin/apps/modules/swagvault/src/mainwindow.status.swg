@@ -1,54 +1,35 @@
 impl MainWindow
 {
-    // Puts the spinner in the glyph's place while an operation runs, and takes it back when the
-    // operation ends. A spinner is the honest report for work whose remaining time is unknown;
-    // creation and growth additionally write their percentage onto the status line.
+    // Puts the spinner in the place of the notice's dot while an operation runs, and takes it back
+    // when the operation ends. A spinner is the honest report for work whose remaining time is
+    // unknown; creation and growth have their own page, which says how far they are.
     mtd showBusy(busy: bool)
     {
-        if .statusBusy.isLocallyVisible() == busy do
-            return
-        .statusIcon.show(not busy)
-        .statusBusy.show(busy)
-        .statusView.applyLayout()
+        .list.notice.setBusy(busy)
+        .refreshStatus()
     }
 
-    // Reports the outcome of the latest step on the single status line.
-    //
-    // One glyph, three colors: the theme atlas has no monochrome success or failure glyph, and
-    // borrowing a colored one would put a third hue on a two-color surface. The color alone
-    // separates a line that is waiting from one that reports work, or one that stopped.
+    // Reports the outcome of the latest step on the notice line under the title of the list.
     mtd setStatus(message: StatusMessage)
     {
         .statusMessage = message
         .refreshStatus()
     }
 
-    // Writes the current status message on the line in the active language.
+    // Writes the current status message on the notice line in the active language.
+    //
+    // A window that is ready has nothing to report, so the line is not there: it appears with the
+    // first step that leaves something to say, and stays while work runs.
     mtd refreshStatus()
     {
-        let colors = .themeColors()
-
-        var glyphColor, textColor: Color
-        switch #complete .statusTone()
+        let notice = .list.notice
+        notice.set(.statusText(), .statusTone())
+        let shown = .statusMessage != .Ready or notice.busy.isLocallyVisible()
+        if notice.isLocallyVisible() != shown
         {
-        case .Idle:
-            glyphColor = colors.label_TextLight
-            textColor  = colors.label_TextLight
-
-        case .Active:
-            glyphColor = colors.signature
-            textColor  = colors.label_Text
-
-        case .Stopped:
-            glyphColor = colors.critical
-            textColor  = colors.critical
+            notice.show(shown)
+            .list.arrange()
         }
-
-        var glyph = .theme().icon(ThemeIcons.About, themeActionIconSize(.themeMetrics()))
-        glyph.color = glyphColor
-        .statusIcon.setIcon(glyph)
-        .status.setTextColor(textColor)
-        .status.setText(.statusText())
     }
 
     // Returns the emphasis the current status message carries.

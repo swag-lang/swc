@@ -1222,7 +1222,7 @@ internal impl View
     mtd documentFont(kind: BlockKind, size: u32, style = FontFamilyStyle.Regular)->*Font
     {
         let slot = cast(u32, style)
-        if kind == .Code or kind == .Table or kind == .Metadata
+        if kind == .Code or kind == .Metadata
         {
             if let face = .documentStyle.codeTypeFaces[slot] do
                 return .theme().fonts.createFont(face, size)

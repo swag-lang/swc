@@ -15,8 +15,20 @@ struct ThemeMetrics
         motion_PanelSeconds: f32 = 0.22     // Duration of a layout-affecting panel change.
         motion_PageOffset:   f32 = 16       // Travel distance of a page change, in logical pixels.
         motion_LeaveSeconds: f32 = 0.12     // Duration of a floating surface fading out: two thirds of its arrival.
+        motion_ScrollRest:   f32 = 0.6      // Stillness after which the scroll bars of a view fade out.
         motion_EdgeTravel:   f32 = 8        // Travel of a floating surface arriving from the edge it stands against.
         motion_AnchorTravel: f32 = 4        // Travel of a floating surface leaving the anchor it belongs to.
+
+        toast_Height:        f32 = 42       // Height of the pill of a toast.
+        toast_Corner:        f32 = 10       // Corner of the pill of a toast.
+        toast_Padding:       f32 = 18       // Air at each end of the pill.
+        toast_DotSize:       f32 = 7        // Side of the dot a toast leads with.
+        toast_Gap:           f32 = 12       // Air between the dot and the sentence.
+        toast_DetailGap:     f32 = 8        // Air between the sentence and the name or path after it.
+        toast_ActionGap:     f32 = 20       // Air before the action at the end of the pill.
+        toast_Bottom:        f32 = 72       // Height of the foot of the parent the pill stands above, the hint line's.
+        toast_Seconds:       f32 = 3        // How long a toast stays when the pointer leaves it alone.
+        toast_ActionSeconds: f32 = 4.5      // How long a toast that carries an action stays, so the action can be reached.
 
         fileBrowser_PlacesHeight: f32 = 30     // Height of the row of places at the top of a file browser.
         fileBrowser_PlaceGap:     f32 = 20     // Air between two places.
@@ -230,8 +242,7 @@ struct ThemeMetrics
         iconBar_ButtonsPadding: f32 = 4     // Inset around the buttons of an icon bar.
         iconBar_ButtonGap:      f32 = 8     // Air between neighboring buttons of an icon bar.
 
-        scrollBar_NormalSize: f32 = 10     // Thickness of a scroll bar: a six-pixel thumb and its air.
-        scrollBar_SmallSize:  f32 = 8      // Thickness of a compact scroll bar.
+        scrollBar_Size:       f32 = 8      // Thickness of every scroll bar: a four-pixel thumb and its air.
         scrollBar_BoxPadding: f32 = 2      // Air between a scroll bar thumb and its track.
         scrollBar_BoxMinSize: f32 = 20     // Shortest a scroll bar thumb gets.
 
@@ -239,6 +250,7 @@ struct ThemeMetrics
         comboBox_Height:         f32 = 32      // Height of a combo box.
         comboBox_RightMargin:    f32 = 30      // Room kept for the drop-down marker at the trailing edge of a combo box.
         comboBox_Padding:        f32 = 10      // Leading inset of the content of a combo box.
+        comboBox_SegmentInset:   f32 = 2       // Air between the frame of a segmented combo box and its segments.
         comboBox_IconTextMargin: f32 = 6       // Air between the glyph and the wording of a combo box entry.
 
         stepper_Width:       f32 = 120     // Default width of a stepper.
@@ -277,12 +289,15 @@ struct ThemeMetrics
         header_Separator: f32 = 5      // Width of the grip between two column headers.
 
         panel_GutterSize:  f32 = 8     // Gap separating a structural panel from adjacent application chrome.
-        splitView_BarSize: f32 = 5     // Visible and draggable divider between split panels.
+        splitView_BarSize: f32 = 5     // Draggable band between split panels; a hairline is drawn on its middle line.
+        splitView_HotRule: f32 = 2     // Thickness of the rule a divider shows under the pointer or the drag.
 
         // A property grid: marks set beside a name, and the rows of its condensed kind.
         property_ControlInset:       f32 = 4      // Inset of the state ground within a property control.
         property_ModifiedMarkSize:   f32 = 6      // Diameter of the Arc dot after the name of a value changed from its default.
         property_CondensedRowHeight: f32 = 26     // Height of a row of the condensed property grid.
+        property_FieldGap:           f32 = 8      // Air between two fields of one value, such as the axes of a vector.
+        quiet_Height:                f32 = 32     // Height of a quiet control: the words of a header that act or open a menu.
 
         progressBar_Height:     f32 = 16      // Height of a progress bar created without one.
         progressBar_TrackSize:  f32 = 4       // Thickness of the track, centered in the bar.

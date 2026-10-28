@@ -176,7 +176,7 @@ public impl MessageDlg
                     .dockStyle   = .Center
                     .padding     = 0
                     .focusPolicy = .Tab
-                    .updateFlags(.DisableHorizontal | .CompactBars | .TransparentBars)
+                    .updateFlags(.DisableHorizontal | .TransparentBars)
                     .createView'Wnd()
                 }
 

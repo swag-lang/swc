@@ -89,37 +89,37 @@ impl ViewerPanel
     // Creates the quiet controls of the header; which of them show depends on what the panel shows.
     mtd createHeader()
     {
-        with .viewMenu = createQuietMenu(me, "prism.viewMenu", heading: true)
+        with .viewMenu = IconButton.createQuiet(me, "prism.viewMenu", heading: true)
         {
             .sigPressed += func|panel = me|(_) { panel.showViewMenu() }
         }
 
-        with .stageMenu = createQuietMenu(me, "prism.stageMenu")
+        with .stageMenu = IconButton.createQuiet(me, "prism.stageMenu")
         {
             .sigPressed += func|panel = me|(_) { panel.showStageMenu() }
         }
 
-        with .optimMenu = createQuietMenu(me, "prism.optimize")
+        with .optimMenu = IconButton.createQuiet(me, "prism.optimize")
         {
             .sigPressed += func|panel = me|(_) { panel.showOptimMenu() }
         }
 
-        with .pauseButton = createQuietButton(me, "prism.pause")
+        with .pauseButton = IconButton.createQuiet(me, "prism.pause", menu: false)
         {
             .sigPressed += func|panel = me|(_) { panel.setPaused(not panel.viewer!.isPaused()) }
         }
 
-        with .presetMenu = createQuietMenu(me, "prism.preset")
+        with .presetMenu = IconButton.createQuiet(me, "prism.preset")
         {
             .sigPressed += func|panel = me|(_) { panel.showPresetMenu() }
         }
 
-        with .restoreButton = createQuietButton(me, "prism.restoreBuild")
+        with .restoreButton = IconButton.createQuiet(me, "prism.restoreBuild", menu: false)
         {
             .sigPressed += func|panel = me|(_) { panel.options.reset() }
         }
 
-        with .closeButton = createQuietButton(me, "prism.closeBuild")
+        with .closeButton = IconButton.createQuiet(me, "prism.closeBuild", menu: false)
         {
             .sigPressed += func|panel = me|(_) { panel.showOptions(false) }
         }
@@ -336,7 +336,7 @@ impl ViewerPanel
             return 0
         if .layout == .Compare and .kind == .Microcode and not .showingOptions do
             return CompareHeaderHeight
-        return QuietHeight
+        return .themeMetrics().quiet_Height
     }
 
     // Writes the header's menus and buttons and shows the ones that apply.
@@ -356,16 +356,16 @@ impl ViewerPanel
         .restoreButton.show(options)
         .closeButton.show(options)
 
-        setQuietText(.viewMenu, viewerName(.kind))
+        .viewMenu.setQuietText(viewerName(.kind))
         let micro = .micro()
         if micro do
-            setQuietText(.stageMenu, Pipeline.stageLabels()[Math.min(micro.stage, Pipeline.Stages.count - 1)])
-        setQuietText(.optimMenu, LevelIds[cast(u64, .level)])
+            .stageMenu.setQuietText(Pipeline.stageLabels()[Math.min(micro.stage, Pipeline.Stages.count - 1)])
+        .optimMenu.setQuietText(LevelIds[cast(u64, .level)])
         let paused = .viewer != null and .viewer.isPaused()
-        setQuietText(.pauseButton, paused ? strings.ui_Resume : strings.ui_Pause)
-        setQuietText(.presetMenu, BuildOptions.PresetNames[cast(u64, .options.preset)])
-        setQuietText(.restoreButton, strings.cmd_RestoreBuild)
-        setQuietText(.closeButton, strings.ui_CloseBuild)
+        .pauseButton.setQuietText(paused ? strings.ui_Resume : strings.ui_Pause)
+        .presetMenu.setQuietText(BuildOptions.PresetNames[cast(u64, .options.preset)])
+        .restoreButton.setQuietText(strings.cmd_RestoreBuild)
+        .closeButton.setQuietText(strings.ui_CloseBuild)
 
         .viewMenu.toolTip    = strings.ui_ViewerType
         .stageMenu.toolTip   = strings.ui_Stage
@@ -387,7 +387,7 @@ impl ViewerPanel
 
         let client = .clientRect()
         let height = .headerHeight()
-        let rowTop = height - QuietHeight
+        let rowTop = height - .themeMetrics().quiet_Height
 
         var x = 0'f32
         if .showingOptions do
@@ -396,7 +396,7 @@ impl ViewerPanel
             x = client.width
         for control in [.viewMenu, .stageMenu, .presetMenu] where control.isLocallyVisible()
         {
-            control.setPosition(Math.Rectangle{x, rowTop, control.position.width, QuietHeight})
+            control.setPosition(Math.Rectangle{x, rowTop, control.position.width, .themeMetrics().quiet_Height})
             x += control.position.width + 4
         }
 
@@ -404,14 +404,14 @@ impl ViewerPanel
         for control in [.closeButton, .restoreButton, .pauseButton] where control.isLocallyVisible()
         {
             right -= control.position.width
-            control.setPosition(Math.Rectangle{right, rowTop, control.position.width, QuietHeight})
+            control.setPosition(Math.Rectangle{right, rowTop, control.position.width, .themeMetrics().quiet_Height})
             right -= 4
         }
 
         // The optimization level follows the view and the stage beside the source, and stands at
         // the right beside another build.
         let optimX = .layout == .Compare ? right - .optimMenu.position.width : x
-        .optimMenu.setPosition(Math.Rectangle{optimX, rowTop, .optimMenu.position.width, QuietHeight})
+        .optimMenu.setPosition(Math.Rectangle{optimX, rowTop, .optimMenu.position.width, .themeMetrics().quiet_Height})
 
         let bodyTop = height > 0 ? height + HeaderGap : 0'f32
         let body    = Math.Rectangle{0, bodyTop, client.width, Math.max(0'f32, client.height - bodyTop)}
@@ -445,7 +445,7 @@ impl IWnd for ViewerPanel
         let colors  = .themeColors()
         let theme   = .theme()
         let metrics = .themeMetrics()
-        let centerY = height - QuietHeight * 0.5
+        let centerY = height - .themeMetrics().quiet_Height * 0.5
         if .showingOptions
         {
             let font = .titleFont()

@@ -260,24 +260,17 @@ impl IWnd for TableView
         let rect    = .clientRect()
         let painter = evt.paintContext.painter
         discard .layout(rect.width)
-        if .rowHeights.count do
-            painter.fillRect(Math.Rectangle{0, 0, .tableWidth, .rowHeights[0]}, .themeColors().edit_Bk)
 
-        let border = .themeColors().edit_Border
+        // No box and no column rules: the columns are separated by air, the head by a firmer rule
+        // under it, and each row from the next by a hairline.
+        let colors = .themeColors()
         var y      = 0'f32
-        for height in .rowHeights
+        for height, row in .rowHeights
         {
-            painter.fillRect(Math.Rectangle{0, y, .tableWidth, 1}, border)
             y += height
-        }
-
-        painter.fillRect(Math.Rectangle{0, y - 1, .tableWidth, 1}, border)
-
-        if .columnCount
-        {
-            for column in .columnCount do
-                painter.fillRect(Math.Rectangle{.columnOffset(column), 0, 1, rect.height}, border)
-            painter.fillRect(Math.Rectangle{.tableWidth - 1, 0, 1, rect.height}, border)
+            if row == .rowHeights.count - 1 do
+                break
+            painter.fillRect(Math.Rectangle{0, y - 1, .tableWidth, 1}, row == 0 ? colors.strongLine : colors.line)
         }
     }
 

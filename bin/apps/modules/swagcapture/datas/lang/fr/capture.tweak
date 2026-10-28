@@ -73,7 +73,6 @@ msg_FailedSaveFile     Impossible d'enregistrer le fichier
 msg_FailedSaveCapture  Impossible d'enregistrer le fichier de capture : %
 msg_FailedRename       Impossible de renommer la capture
 msg_FailedCopyImage    Impossible de copier l'image
-msg_ImageSaved         Image <url>%</url> enregistrée
 msg_FailedCaptureScreen Impossible de capturer l'écran
 msg_FailedLoadFile     Impossible de charger le fichier : %
 msg_FailedOpenLibrary  Impossible d'ouvrir le dossier de la bibliothèque
@@ -394,3 +393,17 @@ hint_ToolImage         Glisser pour placer une image ou un effet
 hint_ToolPixSel        Glisser pour choisir des pixels
 hint_ToolFavorites     Choisir un style, puis glisser pour le tracer
 hint_ToolStep          Le prochain clic pose le %
+msg_Saved              Enregistré
+msg_Copied             Copié dans le presse-papiers
+msg_Pinned             Épinglé à l'écran
+act_Show               Afficher
+act_Pin                Épingler
+act_InpEditor          Éditeur
+act_InpSave            Enregistrer…
+act_InpCopy            Copier
+key_Return             Entrée
+hint_CopyClose         copier et fermer
+hint_Save              enregistrer
+hint_CalloutTail       Glisser le point de la queue pour la diriger
+hint_EndText           terminer le texte
+ui_Common              En commun

@@ -23,6 +23,7 @@ using Swag, Core, Pixel
     Swag.assert(p.critical.mark == 0xFFFF6B6B and p.critical.ground == 0x1FFF6B6B)
     Swag.assert(p.caution.mark == 0xFFF2B544 and p.caution.ground == 0x1FF2B544)
     Swag.assert(p.info.mark == Arc)
+    Swag.assert(p.live == 0xFF4ADE80)
 }
 
 // Papier is the light theme of the charter, pinned the same way.
@@ -42,6 +43,7 @@ using Swag, Core, Pixel
     Swag.assert(p.highlight == 0xFFFBF68A)
     Swag.assert(p.critical.mark == 0xFFC42B2B and p.critical.ground == 0xFFFBE9E9)
     Swag.assert(p.caution.mark == 0xFFA36A00 and p.caution.ground == 0xFFFBF1DC)
+    Swag.assert(p.live == 0xFF15803D)
 }
 
 // Voltage acts. On Encre the primary action is a Voltage block carrying ink, and the focus ring and
@@ -100,7 +102,11 @@ using Swag, Core, Pixel
             Swag.assert(colors.arc.contrastRatio(ground) >= 3.5)
             Swag.assert(colors.focusRing.contrastRatio(ground) >= 3.5)
             Swag.assert(colors.critical.contrastRatio(ground) >= 3.5)
+            Swag.assert(colors.live.contrastRatio(ground) >= 3.5)
         }
+
+        // The charter names the live dot in both themes, so the derivation keeps it as written.
+        Swag.assert(colors.live == palette.live)
 
         // A link is a word, read on the window or on a floating surface.
         for ground in [palette.ground, palette.surface] do
@@ -206,7 +212,7 @@ using Swag, Core, Pixel
     Swag.assert(metrics.slider_BoxSize == 14)
     Swag.assert(metrics.progressBar_TrackSize == 4)
     Swag.assert(metrics.focusRing_Size == 2 and metrics.focusRing_Offset == 2)
-    Swag.assert(metrics.scrollBar_NormalSize - 2 * metrics.scrollBar_BoxPadding == 6)
+    Swag.assert(metrics.scrollBar_Size - 2 * metrics.scrollBar_BoxPadding == 4)
 
     for rect in [rects.btnPush_Normal, rects.btnPush_NormalBorder, rects.edit_SquareBk, rects.edit_SquareBorder,
                  rects.edit_SquareStrongBorder, rects.btnIcon_SquareBk, rects.btnIcon_RoundSquareBk, rects.tabBar_RoundBk,

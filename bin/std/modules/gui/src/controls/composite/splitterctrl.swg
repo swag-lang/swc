@@ -179,6 +179,7 @@ impl IWnd for SplitterCtrl
 
         let painter = evt.paintContext.painter
         let colors  = .themeColors()
+        let metrics = .themeMetrics()
 
         var visibleIndex = 0
         for item, idx in .items
@@ -197,10 +198,23 @@ impl IWnd for SplitterCtrl
                 let colorBar = isHot ? colors.splitView_BarHot : colors.splitView_Bar
                 it.aniBar.apply(me, colorBar)
 
-                // A structural seam occupies its complete layout band. The historical atlas
-                // tiles painted only a thin rule inside this rectangle, which hid the facing
-                // rounded corners of adjacent panel panes.
-                painter.fillRect(rect, it.aniBar.cur())
+                // The band is the grip; what is drawn in it is a hairline on its middle line,
+                // which the hand turns into a firmer Arc rule. Filling the band drew a slab
+                // between the panes, where the charter separates them by air and one rule.
+                let thickness = isHot ? metrics.splitView_HotRule : metrics.separator_HairlineSize
+                var rule      = rect
+                if rect.width < rect.height
+                {
+                    rule.x     = Math.round(rect.horzCenter() - thickness * 0.5)
+                    rule.width = thickness
+                }
+                else
+                {
+                    rule.y      = Math.round(rect.vertCenter() - thickness * 0.5)
+                    rule.height = thickness
+                }
+
+                painter.fillRect(rule, it.aniBar.cur())
             }
         }
 

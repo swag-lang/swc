@@ -37,6 +37,9 @@ struct FormCallout
         gizmoTail: GizmoPoints
         render:    FormText
         tailPath:  LinePath
+
+        // Whether the words are being typed in place: the editor writes them, the callout does not.
+        editingText: bool
     }
 }
 
@@ -51,6 +54,18 @@ enum TailEdge
 
 impl FormCallout
 {
+    // Returns where the words of the callout stand, in capture pixels: the body, inside the air
+    // its corners and its outline keep.
+    mtd textRect()->Math.Rectangle
+    {
+        var result = .rectFormBound()
+        let pad    = Math.max(.roundSize * 0.5, 6'f32) + .borderSize
+        result.inflate(-pad, -pad)
+        result.width  = Math.max(result.width, 1)
+        result.height = Math.max(result.height, 1)
+        return result
+    }
+
     // Half-base width and centre of the tail along one body edge. `tailLen` is the
     // tip's perpendicular distance to that edge; `cr` is the corner-arc radius. The base
     // is: no wider than the tail is long (keeps short tails pointed, not squat), fits
@@ -336,22 +351,24 @@ impl IForm for FormCallout
             painter.drawPath(&.tailPath, pen)
         }
 
-        // Text (skip during hit-testing: the body triangles already cover the area).
-        if not cxt.hitTest
+        // Text (skip during hit-testing: the body triangles already cover the area, and while
+        // the words are typed in place, where the editor writes them).
+        if not cxt.hitTest and not .editingText
         {
-            var inner = .rectFormBound()
-
             // Text padding is a form-space inset. The raw round/border values are sized
             // for full-scale bubbles; at preview scale they would swallow the whole tiny
             // body and leave a degenerate (near-zero-height) text box, throwing the glyph
             // off-centre. In quick mode derive the pad from the already-mapped sizes so
             // the "A" keeps an airy, correctly centred box.
-            var pad = Math.max(.roundSize * 0.5, 6'f32) + .borderSize
-            if cxt.quickMode do
-                pad = Math.max(rSize * 0.5, 2'f32) + bSize
-            inner.inflate(-pad, -pad)
-            inner.width  = Math.max(inner.width, 1)
-            inner.height = Math.max(inner.height, 1)
+            var inner = .textRect()
+            if cxt.quickMode
+            {
+                inner = .rectFormBound()
+                let pad = Math.max(rSize * 0.5, 2'f32) + bSize
+                inner.inflate(-pad, -pad)
+                inner.width  = Math.max(inner.width, 1)
+                inner.height = Math.max(inner.height, 1)
+            }
 
             if .render.text != .text
             {

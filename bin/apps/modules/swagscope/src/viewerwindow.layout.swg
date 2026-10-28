@@ -134,7 +134,7 @@ impl ViewerWindow
             .updateFlags(.HotTrack | .Ellipsis)
             .scrollWnd.padding.x = 0
             .scrollWnd.padding.z = 0
-            .scrollWnd.updateFlags(.DisableHorizontal | .CompactBars)
+            .scrollWnd.updateFlags(.DisableHorizontal)
         }
 
         return list

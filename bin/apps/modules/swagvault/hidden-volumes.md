@@ -27,12 +27,13 @@ credential. Changing either password must preserve this distinction.
 behaves exactly as before: all its free space remains available, and adding enough ordinary data
 can overwrite the hidden volume. A read-only mount cannot overwrite either volume.
 
-Enabling protection asks for the hidden password and key files for that mount. The checkbox resets
-after the mount request; it must be selected again for the next manual mount. The hidden
+Enabling protection (the Protect Hidden Volume command of the unfolded vault) asks for the hidden
+password and key files for that mount. The choice resets after the mount request; it must be made
+again for the next manual mount. The hidden
 locator must authenticate and its entire range must still be free in the outer filesystem;
 otherwise mounting fails. Protection does not mount the hidden filesystem, remove blocks from
 the outer allocator, or reduce the free capacity Windows sees. Successful protected mounting is
-reported on the status line. If startup mounting is explicitly saved with privacy mode off, the
+reported on the notice line under the list's title, and the vault's row says so. If startup mounting is explicitly saved with privacy mode off, the
 protection choice is retained and hidden access is requested again; access material is never saved.
 
 Every data, metadata, journal, and password-slot write passes through a bounded storage view.

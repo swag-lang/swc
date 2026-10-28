@@ -31,16 +31,9 @@ const SurfaceId   = "swag.vault"
     g_App.setStatePath(Path.combine(Env.getSpecialDirectory(.UserAppData), "Swag", "vault", "settings.scc"))
     registerAppStrings(&g_App.resources)
 
-    // Not a resizable window. The four pages hold a fixed number of fields, and the
-    // strip already shows one at a time: there is nothing to gain room for, so a size grip and a
-    // maximize button would only offer a window shape none of the pages is laid out for.
-    const WindowFlags = SurfaceFlags.LargeCaption |
-                        SurfaceFlags.MinimizeButton |
-                        SurfaceFlags.CloseButton |
-                        SurfaceFlags.Border
-
-    // Start with a width for wrapping; MainWindow measures the final height before showing.
-    let surface = try g_App.createSurface(80, 50, MainWindow.WindowWidth, MainWindow.WindowWidth, WindowFlags, surfaceId: SurfaceId)
+    // A standard window: the list of vaults grows downwards and the pages are measured columns,
+    // so a taller or wider window only gives them air.
+    let surface = try g_App.createSurface(80, 50, MainWindow.DefaultWidth, MainWindow.DefaultHeight, SurfaceFlags.StandardWindow, surfaceId: SurfaceId)
     g_App.theme.setDark()
     g_App.notifyThemeChanged()
 

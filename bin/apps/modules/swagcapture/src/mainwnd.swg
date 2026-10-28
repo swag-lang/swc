@@ -97,6 +97,7 @@ struct MainWnd
         inspector:           *Inspector
         miniBar:             *MiniBar
         hintLine:            *HintLine
+        toast:               *Toast
         lens:                *Lens.View
         quickWnd:            *QuickWnd
         propWnd:             *PropWnd
@@ -119,6 +120,12 @@ struct MainWnd
     pixSelFillCol:                             Color      = Argb.White
     inPlaceEdit, snap, freezeSel, libraryMode: bool
     showRecent, inspectorFolded:               bool
+
+    // The files saved during the session, which the "Show" of a toast opens the folder of.
+    savedPaths: Array'String
+
+    // What the action of the toast on screen runs.
+    toastAction: (func||())?
     recentColors:                              Array'Color
     firstShow:                                 bool       = true
     fileDlgState, fileDlgStateInPlace:         FileDlgState
@@ -617,6 +624,16 @@ impl MainWnd
         }
     }
 
+    // Confirms what the hand just did in a toast at the foot of the window: `message`, a name or
+    // a path in `detail`, and an `action` word that runs `onAction` when clicked.
+    mtd confirm(message: string, detail: string = "", action: string = "", onAction: (func||())? = null)
+    {
+        if .toast == null do
+            return
+        .toastAction = onAction
+        .toast.show(message, detail, .Done, action)
+    }
+
     // Returns the glyph of a tool, as the dock and the layers of the inspector show it.
     func editModeIcon(mode: EditMode)->CaptureIcons
     {
@@ -850,6 +867,12 @@ impl MainWnd
         result.createInspector()
         result.createMiniBar()
         result.createHintLine()
+        result.toast = Toast.create(result)
+        result.toast.sigAction += func|main = result|(_)
+        {
+            if main.toastAction do
+                main.toastAction()
+        }
 
         with result
         {

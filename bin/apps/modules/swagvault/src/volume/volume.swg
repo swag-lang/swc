@@ -99,6 +99,9 @@ impl VolumeProgress
     // Returns whether the watcher asked the operation to stop.
     mtd isCanceled()->bool => Atomic.get(&.canceled) != 0
 
+    // Returns the bytes the operation has written and the bytes it has to write, as they read now.
+    mtd counts()->{ done: u64, total: u64 } => {Atomic.get(&.done), Atomic.get(&.total)}
+
     // Returns the share of the operation that is done, from zero to one. Zero before it starts.
     mtd ratio()->f32
     {

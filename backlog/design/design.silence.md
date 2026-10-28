@@ -28,13 +28,13 @@ dialogs, then each application, then the written rules.
   mini-bar (`Gui.MiniBar`), the dock (`Gui.ToolDock`), the hint line (`Gui.HintLine`),
   `Gui.SectionLabel` and a floating surface for any other content (`Gui.FloatingPanel`), with
   `floating.test.swg`, `lens.test.swg` and their goldens, and `AppearanceButton.addToLens`; a
-  hidden caption button keeps working and takes no room in the caption. Swag Capture, Swag Scope
-  and Swag Prism compose them (their remaining work is design.silence.008, design.silence.007 and
-  design.silence.009); Swag Vault still insets its whole root by `Wnd.stripInset()` to keep its old
-  bands clear of the floating strip. No component owns the quiet text menu of a header (a word and
-  a faint chevron opening a menu, as the pictures put above a column or a page): Swag Scope's
-  explorer, Swag Capture's library and Swag Prism's column headers each configure an `IconButton`
-  for it and fit it to its words themselves (`createQuietMenu` in each), and the three differ.
+  hidden caption button keeps working and takes no room in the caption. Swag Capture, Swag Scope,
+  Swag Prism and Swag Vault compose them (their remaining work is design.silence.008,
+  design.silence.007, design.silence.009 and design.silence.010). No component owns the quiet text
+  menu of a header (a word and a faint chevron opening a menu, as the pictures put above a column
+  or a page): Swag Scope's explorer, Swag Capture's library and Swag Prism's column headers each
+  configure an `IconButton` for it and fit it to its words themselves (`createQuietMenu` in each),
+  and the three differ.
 - Next: give the toolkit the quiet menu and move the three applications onto it; per remaining
   application, register every command and `addToLens` on one lens bound to
   `Space` or `Ctrl K`, move readings to the sheet, tools to the dock and the mini-bar, properties
@@ -58,8 +58,8 @@ dialogs, then each application, then the written rules.
   under a Presentation section of the joined `•••` menu with `✓` in Arc, mark matched characters
   with the highlight colour and count results in the search field and the section list; then fix
   the Panel slider refresh. The Panel and Grid rows of the charter also show a slider's value as a
-  mono reading with no box, and a two- or three-valued choice as segments: Swag Capture's inspector
-  sets the value face itself (`PropWnd.fitFieldLabelColumn`), and no segment control exists yet.
+  mono reading with no box: Swag Capture's inspector sets the value face itself
+  (`PropWnd.fitFieldLabelColumn`).
 - Done when: `gui.properties.ctrl.paper` is reproduced by a `properties.ctrl.{ink,paper}` golden.
 - Related: design.silence.002
 
@@ -113,23 +113,21 @@ dialogs, then each application, then the written rules.
 - Done when: every Scope golden matches its picture.
 - Related: design.silence.004, design.silence.002
 
-### design.silence.008 — Swag Capture's shape editing does not yet match its pictures
+### design.silence.008 — Swag Capture's editing does not yet match its pictures
 
-- Evidence: the editor states of the `capture.edit.*` pictures have goldens (`edit.arrow`,
-  `edit.multi`, `edit.step`, `edit.mask`, `edit.color.paper`, beside `surface`, `area`,
-  `library.surface`, `lens.paper`). What they still show differently: a callout's text is typed in
-  a dialog, not inline with a caret, and the callout's mini-bar has no face, size or alignment;
-  the generated settings show a combo where the pictures show segments (Line, Shadow, Joins) —
-  the property grid draws no segment control (design.silence.005); multiple selection shows no
-  "common settings" heading and its layers are only the kinds of the objects, not their words;
-  a quick style has no name; the quick-style strip shows its horizontal bar at rest when the set
-  outnumbers the column (design.silence.002); the inspector rows of the head do not scroll with
-  the generated settings; the library tab counts are in the proportional face; the recent
-  captures are text rows of the lens, not thumbnails; the in-place editor keeps its own icon bar instead of the one floating bar of `capture.inplace`;
-  the area bar offers no delay or cursor choice (they are lens entries).
-- Next: inline callout text with its mini-bar (face, size, alignment), then segments for two- or
-  three-valued settings once the grid can draw them.
-- Done when: each `capture.edit.*` picture is reproduced by its golden.
+- Evidence: the editor, the area capture, the in-place editor, the library and the lens have
+  goldens (`surface`, `edit.{arrow,callout,multi,step,mask,color.paper}`, `area`,
+  `inplace{,.paper}`, `library.surface`, `lens.paper`). What they still show differently: the
+  words of a callout are typed in place in a field set in their face but left-aligned, not at the
+  callout's own alignment; the callout mini-bar's face opens the inspector rather than a list of
+  faces; a quick style has no name; the inspector rows of the head do not scroll with the
+  generated settings; the library tab counts are in the proportional face (the tab bar sets one
+  face per tab); the recent captures are text rows of the lens, not thumbnails (the lens has no
+  thumbnail row); the area bar offers no delay or cursor choice (lens entries only); the in-place
+  bar does not move beside the zone when the screen has no room above or below it.
+- Next: let the field typing a callout follow its alignment; give the lens a row of thumbnails
+  for the recent captures; then the remaining items above.
+- Done when: each `capture.*` picture is reproduced by its golden.
 - Related: design.silence.002, design.silence.004, design.silence.005
 
 ### design.silence.009 — Swag Prism's render view lacks the caret reading and the framed picture
@@ -147,12 +145,23 @@ dialogs, then each application, then the written rules.
 - Done when: `surface.render` reproduces `prism.render`.
 - Related: design.silence.004
 
-### design.silence.010 — Swag Vault is still a banner over tabs
+### design.silence.010 — Swag Vault still differs from its pictures in four details
 
-- Next: rebuild Vault as the list of vaults with in-place unlock, and create, progress and
-  options as pages.
-- Done when: the Vault goldens match the Vault pictures and privacy mode keeps the list empty.
-- Related: design.silence.004, design.silence.006
+- Evidence: the window is the list of vaults (name, mono identity line, live dot or ring, the
+  mounted row on the surface ground with Open and Unmount), the chosen locked vault unfolds in
+  place as a floating card (password, drive, key files, read only, Mount), create, progress and
+  privacy are pages with a back link, every command is a lens entry and privacy mode keeps the
+  list to what is mounted or being unlocked (`list`, `unlock`, `create`, `progress`, `options`
+  goldens in Encre and Papier). What the pictures show and the window does not: the create page
+  has no free-space reading ("212 GiB free on C:") because `Core` has no volume free-space query
+  (no `GetDiskFreeSpaceExW` binding in `win32`); the inactivity delay is a quiet menu under its
+  paragraph, not a word inside the sentence; unfolding a vault fades the card in and moves the
+  rows below at once instead of opening the card's height over `motion_PanelSeconds`; a protected
+  startup vault asks for its access in a box rather than unfolding in the list.
+- Next: add a free-space query to `Core.File` with its `win32` binding and show it beside the
+  capacity; animate the card's height with the rows following it.
+- Done when: the Vault goldens match the Vault pictures in those four points.
+- Related: design.silence.004, design.silence.002, design.silence.016
 
 ### design.silence.011 — Examples and other consumers use removed APIs
 
@@ -187,3 +196,14 @@ dialogs, then each application, then the written rules.
   `sigDismissed`, before any of it.
 - Done when: no shared component changes its place or presence in one frame on a user action.
 - Related: design.silence.002
+
+### design.silence.016 — The toolkit has no light or semibold face
+
+- Evidence: `Pixel.FontFamilyStyle` offers Regular, Bold, Italic and BoldItalic, so the charter's
+  large light facts (Inter 200–300: Vault's percentage and capacity, the sheet's figures, Prism's
+  instruction counts) are set in the regular weight, and its 600 weights (a vault's name, section
+  labels) in bold.
+- Next: ship Inter Light and SemiBold with the theme fonts, add the two styles to `FontFamily`,
+  and let `Theme.createDefaultFont` take them; then set the facts light and the names semibold.
+- Done when: `vault.progress` and the sheet golden show their figures in the light weight.
+- Related: design.silence.010

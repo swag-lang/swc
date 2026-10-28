@@ -250,6 +250,7 @@ struct ThemeMetrics
         comboBox_Height:         f32 = 32      // Height of a combo box.
         comboBox_RightMargin:    f32 = 30      // Room kept for the drop-down marker at the trailing edge of a combo box.
         comboBox_Padding:        f32 = 10      // Leading inset of the content of a combo box.
+        comboBox_SegmentInset:   f32 = 2       // Air between the frame of a segmented combo box and its segments.
         comboBox_IconTextMargin: f32 = 6       // Air between the glyph and the wording of a combo box entry.
 
         stepper_Width:       f32 = 120     // Default width of a stepper.

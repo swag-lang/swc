@@ -280,3 +280,35 @@ func comboHeadlessChanged(_: *ComboBox, idx: u32)
     Swag.assert(combo.hasFocus() and combo.hasVisibleFocus())
     host.app.setMouseCaptureRaw(null)
 }
+
+// A segmented combo shows its entries side by side: a click on one chooses it and opens nothing,
+// and the arrows move the choice.
+#test
+{
+    var host: Gui.Testing.HeadlessHost
+    host.setup(480, 120)
+    defer host.shutdown()
+
+    with let combo = Gui.ComboBox.create(&host.root, {20, 20, 300, 32}, flags: .Segmented)
+    {
+        discard .addItem("Straight")
+        discard .addItem("Curve")
+        .setSelectedIndex(0, notify: false)
+    }
+
+    var changes = 0
+    combo.sigChanged += func|changes = &changes|(_, _) { changes[] += 1 }
+
+    // The second half of the frame is the second segment.
+    var pt = combo.localToSurface(Math.Point{225, 16})
+    combo.surface!.surfaceToScreen(&pt)
+    host.click(pt)
+    Swag.assert(combo.selectedIndex == 1 and changes == 1)
+
+    host.focus(combo)
+    host.keyPress(.Left)
+    Swag.assert(combo.selectedIndex == 0 and changes == 2)
+
+    var image = host.render(&host.root)
+    Swag.assert(image.isValid())
+}

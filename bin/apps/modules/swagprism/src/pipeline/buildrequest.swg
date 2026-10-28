@@ -55,11 +55,11 @@ impl BuildSettings
                                                .configuration == other.configuration
 }
 
-// An execution build can also print a microcode stage for another panel.
+// An execution build can also print the inspected function for another panel.
 struct BuildRequest
 {
     source:   String
-    stage:    String
+    inspect:  bool     // Whether the first function is printed at every offered stage.
     kind:     ViewerKind
     settings: BuildSettings
 }
@@ -81,9 +81,10 @@ impl BuildRequest
                               }
                               """
 
-    mtd matches(other: BuildRequest)->bool     => .kind == other.kind and .stage == other.stage and .sameProgram(other)
+    // A build answers a request for the same program, and an inspecting build also answers one that
+    // does not ask for the listing.
     mtd sameProgram(other: BuildRequest)->bool => .source == other.source and .settings.matches(other.settings)
-    mtd satisfies(other: BuildRequest)->bool   => .kind == other.kind and .sameProgram(other) and (.stage == other.stage or other.stage.isEmpty())
+    mtd satisfies(other: BuildRequest)->bool   => .kind == other.kind and .sameProgram(other) and (.inspect or not other.inspect)
 
     /*
     Whether the snippet has to be compiled against the standard module its viewer builds on.

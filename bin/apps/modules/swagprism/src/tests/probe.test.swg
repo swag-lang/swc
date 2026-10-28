@@ -36,7 +36,7 @@ using Core
         }
         """
 
-    let inspected = Pipeline.inspectedSource(Source, "pre-emit")
+    let inspected = Pipeline.inspectedSource(Source, ["pre-emit"])
     Swag.assert(inspected.contains("#[Swag.PrintMicro(\"pre-emit\")]"))
     Swag.assert(inspected.indexOf("const Limit = 4") < inspected.indexOf("#[Swag.PrintMicro"))
     Swag.assert(inspected.indexOf("#[Swag.PrintMicro") < inspected.indexOf("func first()"))
@@ -47,8 +47,19 @@ using Core
 {
     const Source = "func only()\n{\n}"
 
-    let inspected = Pipeline.inspectedSource(Source, "post-regalloc")
+    let inspected = Pipeline.inspectedSource(Source, ["post-regalloc"])
     Swag.assert(inspected.contains("#[Swag.PrintMicro(\"post-regalloc\")]"))
+}
+
+// Every offered stage reaches the attribute, in order, so one compilation prints them all; the
+// declaration of the inspected function is its first line.
+#test
+{
+    let inspected = Pipeline.inspectedSource("func only()\n{\n}", Pipeline.Stages)
+    Swag.assert(inspected.contains("#[Swag.PrintMicro(\"pre-mem-to-reg\", \"post-mem-to-reg\", "))
+    Swag.assert(inspected.contains("\"pre-emit\")]\nfunc only()"))
+    Swag.assert(Pipeline.inspectedSignature(exampleSource(.Dot)) == "func dot(a, b: const [..] f32)->f32")
+    Swag.assert(Pipeline.inspectedSignature("const Only = 1\n") == "")
 }
 
 // A snippet with no function of its own is left exactly as it was written.
@@ -56,7 +67,7 @@ using Core
 {
     const Source = "const Only = 1\n"
 
-    let inspected = Pipeline.inspectedSource(Source, "pre-emit")
+    let inspected = Pipeline.inspectedSource(Source, ["pre-emit"])
     Swag.assert(inspected == Source)
 }
 
@@ -71,7 +82,7 @@ using Core
         }
         """
 
-    let inspected = Pipeline.inspectedSource(Source, "pre-emit")
+    let inspected = Pipeline.inspectedSource(Source, ["pre-emit"])
     let attribute = inspected.indexOf("#[Swag.PrintMicro")
 
     Swag.assert(attribute != Swag.U64.Max)
@@ -85,7 +96,7 @@ using Core
     const Levels: [?] Swag.Build.BackendOptimLevel = [.O0, .O1, .O2]
     for level in Levels
     {
-        var artifact = Pipeline.BuildArtifact{request: Pipeline.BuildRequest{source: "using Core\nfunc value()->s32 => 42", stage: "pre-emit", kind: .Microcode, settings: Pipeline.BuildSettings{optimization: level}}}
+        var artifact = Pipeline.BuildArtifact{request: Pipeline.BuildRequest{source: "using Core\nfunc value()->s32 => 42", inspect: true, kind: .Microcode, settings: Pipeline.BuildSettings{optimization: level}}}
         expect artifact.run()
         let result = &artifact.result
         Swag.assert(not result.failed, result.text)
@@ -101,7 +112,7 @@ using Core
 // Microcode does not import the rendering stack implicitly.
 #test
 {
-    var artifact = Pipeline.BuildArtifact{request: Pipeline.BuildRequest{source: "using Pixel\nfunc value()->u32 => 0", stage: "pre-emit", kind: .Microcode}}
+    var artifact = Pipeline.BuildArtifact{request: Pipeline.BuildRequest{source: "using Pixel\nfunc value()->u32 => 0", inspect: true, kind: .Microcode}}
     expect artifact.run()
     let result = &artifact.result
     Swag.assert(result.failed)

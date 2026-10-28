@@ -33,9 +33,9 @@ impl BuildArtifact
         try .folder.open()
         try writeIfChanged(Path.combine(.folder.root, "module.swg"), .request.moduleSource())
         try writeIfChanged(Path.combine(.folder.root, "src", "probe.swg"),
-                           .request.stage.isEmpty()
-                           ? .request.source
-                           : inspectedSource(.request.source, .request.stage))
+                           .request.inspect
+                           ? inspectedSource(.request.source, Stages)
+                           : .request.source)
         let native = .request.kind != .Microcode
         if native do
             try writeIfChanged(Path.combine(.folder.root, "src", "entry.swg"), .request.kind == .Gui ? GuiEntry : ShadeEntry)

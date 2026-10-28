@@ -35,3 +35,18 @@ func awaitFrame(viewer: *PreviewViewer, after: u32 = 0)
         Console.print(viewer.probe.diagnostics)
     Swag.assert(viewer.running and viewer.frameCount > after)
 }
+
+// Returns what the compiler printed for an inspecting build, kept in the test data file `name`.
+func fixture(name: string)->String
+{
+    let folder = Path.combine(Path.directoryName(#curlocation.fileName) orelse "", "datas")
+    return expect File.readAllText(Path.combine(folder, name))
+}
+
+// Gives `viewer` the compiler output `output`, as a compilation of 38 ms would have left it.
+func showOutput(viewer: *MicrocodeViewer, output: string)
+{
+    viewer.job.result  = {text: output}
+    viewer.job.elapsed = 38
+    viewer.showResult()
+}

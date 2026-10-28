@@ -1,21 +1,89 @@
 # French strings of Swag Prism. A key omitted here keeps its English value.
 
-ui_WindowTitle Swag Prism — Le code en action
-ui_Stage          Étape
-ui_Optimize       Niveau d'optimisation
-ui_CompileVisible Compiler
-ui_CompileVisibleHint Compiler la source dans les vues affichées.
-ui_OneViewer Afficher une vue
-ui_TwoViewers Afficher deux vues
-ui_ViewerType Type de vue
-ui_Microcode Microcode
-ui_RunningViewers % vues en compilation
+ui_Examples       Exemples
+ui_Plasma         Ondes plasma
+ui_Julia          Fractale de Julia
+ui_GuiExample     Interface interactive
+ui_Dot            Produit scalaire
+ui_Microcode      Microcode
+ui_Render2D       Rendu 2D
+ui_Gui            GUI
+ui_RenderHint     shade(x, y, time: f32)->u32
+ui_GuiHint        buildView(parent: *Gui.Wnd)
+ui_ChooseExample  Choisissez un exemple à compiler.
+
+ui_ViewerType      Type de vue
+ui_Stage           Étape
+ui_Optimize        Niveau d'optimisation
+ui_BuildPreset     Configuration de base
+ui_Pause           Pause
+ui_Resume          Reprendre
+ui_CloseBuild      Fermer
+ui_BuildHeading    Compilation
+ui_InstructionOne  instruction
+ui_InstructionMany instructions
+ui_SincePrevious   Depuis l'étape précédente
+ui_Removed         % en moins
+ui_Added           % en plus
+ui_LoopNote        La boucle passe de % à % instructions.
+
 ui_Working        Compilation…
-ui_Ready          Prêt
+ui_RunningViewers % vues en compilation
+ui_Done           Compilé en % ms
+ui_ReusedBuild    Compilation réutilisée (% ms)
 ui_NoOutput       Aucune sortie pour cette étape.
 ui_Stopped        Compilation interrompue.
-ui_Done           Compilé en % ms
+ui_LiveStats      Compil. % ms | Image % µs
+ui_ReusedStats    Compilation réutilisée | Image % µs
+ui_Formatting     Mise en forme…
+ui_Formatted      Source mise en forme.
+ui_FormatFailed   Échec de la mise en forme. Source inchangée.
+ui_FormatChanged  Source modifiée. Relancez la mise en forme.
+ui_Build          Compilation
+ui_FrameSize      Image
+ui_Compiler       Compilateur
+ui_Formatter      Formateur
+ui_LeftColumn     gauche
+ui_RightColumn    droite
 ui_OutputHint     Compilez pour voir les instructions.
+
+cmd_Compile            Compiler
+cmd_FormatSource       Mettre en forme la source
+cmd_LiveEdit           Recompiler après modification
+cmd_ShowColumns        Source et résultat
+cmd_ShowStages         Étape par étape
+cmd_ShowCompare        Comparer deux compilations
+cmd_Information        Informations
+cmd_PreviousStage      Étape précédente
+cmd_NextStage          Étape suivante
+cmd_ShowChange         Montrer l'écart
+cmd_ShowSourceLines    Montrer les lignes de source
+cmd_ShowOpcodes        Montrer les opcodes
+cmd_CopyListing        Copier le listing
+cmd_BuildConfiguration Configuration de compilation
+cmd_RestoreBuild       Valeurs par défaut
+cmd_PausePreview       Mettre l'aperçu en pause
+cmd_ResumePreview      Reprendre l'aperçu
+
+lens_Source       Source
+lens_View         Vue
+lens_Build        Compilation
+lens_Examples     Exemples
+lens_ViewAs       Afficher comme
+lens_Stage        Étape
+lens_Optimization Optimisation
+lens_Preset       Configuration de base
+
+hint_Compile compiler
+hint_Lens    vues, étapes, exemples
+hint_Steps   étape précédente, suivante · % / %
+
+msg_BuildTimeout   La compilation a dépassé 60 secondes.
+msg_BuildFailed    Le compilateur n'a pas pu terminer la compilation.
+msg_FormatTimeout  La mise en forme a dépassé 60 secondes.
+msg_PreviewNotRun  Impossible de lancer l'aperçu.
+msg_PreviewStalled L'aperçu n'a produit aucune image pendant 10 secondes.
+msg_PreviewExited  L'aperçu s'est terminé avec le code %.
 
 ui_StageGenerated       Généré
 ui_StageMemToReg        Emplacements de pile promus
@@ -31,52 +99,3 @@ ui_StageBeforeRegisters Avant les registres
 ui_StageRegalloc        Registres alloués
 ui_StagePeephole        Judas appliqué
 ui_StageFinal           Final
-
-ui_Render2D Rendu 2D
-
-ui_Gui GUI
-
-ui_Examples Exemples
-
-ui_Plasma Ondes plasma
-
-ui_Julia Fractale de Julia
-
-ui_GuiExample Interface interactive
-
-ui_Dot Produit scalaire
-
-ui_Pause Pause
-
-ui_Resume Reprendre
-
-ui_LiveStats Compil. % ms | Image % us
-
-ui_RenderHint shade(x, y, time: f32)->u32
-
-ui_GuiHint buildView(parent: *Gui.Wnd)
-
-ui_LiveEdit Recompiler après modification
-
-ui_ChooseExample Choisissez un exemple à compiler.
-
-ui_AutoCompile Auto
-
-ui_Format Formater
-ui_FormatHint Mettre en forme la source avec le formateur Swag.
-ui_Formatting Mise en forme…
-ui_Formatted Source mise en forme.
-ui_FormatFailed Échec de la mise en forme. Source inchangée.
-ui_FormatChanged Source modifiée. Relancez la mise en forme.
-
-ui_BuildOptions Configuration de compilation
-ui_BuildPreset Configuration de base
-ui_ResetBuild Restaurer la configuration de compilation par défaut
-ui_ReusedBuild Compilation réutilisée (% ms)
-ui_ReusedStats Compilation réutilisée | Image % us
-msg_BuildTimeout La compilation a dépassé 60 secondes.
-msg_BuildFailed Le compilateur n'a pas pu terminer la compilation.
-msg_FormatTimeout La mise en forme a dépassé 60 secondes.
-msg_PreviewNotRun Impossible de lancer l'aperçu.
-msg_PreviewStalled L'aperçu n'a produit aucune image pendant 10 secondes.
-msg_PreviewExited L'aperçu s'est terminé avec le code %.

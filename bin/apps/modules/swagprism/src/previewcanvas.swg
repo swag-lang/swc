@@ -12,7 +12,8 @@ struct PreviewCanvas
 
 impl PreviewCanvas
 {
-    // The largest rectangle with the aspect of a frame, centered in the canvas.
+    // The largest rectangle with the aspect of a frame, at the top of the canvas and centered
+    // across it.
     mtd frameRect()->Math.Rectangle
     {
         let client      = .paddedClientRect()
@@ -22,8 +23,7 @@ impl PreviewCanvas
         let width       = Pipeline.FrameChannel.Width * scale
         let height      = Pipeline.FrameChannel.Height * scale
         let x           = client.horzCenter() - width / 2
-        let y           = client.vertCenter() - height / 2
-        return Math.Rectangle{x, y, width, height}
+        return Math.Rectangle{x, client.y, width, height}
     }
 
     mtd update(image: *Image)

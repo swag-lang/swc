@@ -2,7 +2,16 @@
 
 using Core, Gui, Pixel
 
-// Both execution viewers share transport and lifecycle, but each compiles its own entry contract.
+/*
+The program the source builds, running: a picture a `shade` function paints, or the interface a
+`buildView` function builds.
+
+The frame takes the width of its column, with the live-edit switch and the size of the frame under
+it; the timings of the build and of a frame are the viewer's reading. When the build stops, the
+compiler's words take the frame's place.
+
+Both execution viewers share transport and lifecycle, but each compiles its own entry contract.
+*/
 struct PreviewViewer
 {
     using wnd: Wnd
@@ -13,9 +22,10 @@ struct PreviewViewer
         panel:        *ViewerPanel
         cache:        *Pipeline.CompilationCache
         sourceEditor: *RichEditCtrl
-        status:       *Label
         canvas:       *PreviewCanvas
-        output:       *RichEditCtrl
+        output:       *ListingView
+        liveSwitch:   *ToggleButton
+        liveLabel:    *Label
     }
 
     gui:        bool
@@ -29,7 +39,6 @@ struct PreviewViewer
     pending:    Pipeline.BuildRequest
     request:    Pipeline.BuildRequest
     generation: u64
-    outputText: CompilerOutput
     image:      Image
     frameCount: u32
     renderUs:   u32
@@ -38,8 +47,11 @@ struct PreviewViewer
 
 impl PreviewViewer
 {
-    // Builds a preview of the native renderer or of a GUI: a canvas for the frames, an output
-    // for the diagnostics, and a status line.
+    const RowHeight = 28.0     // The row of the live-edit switch and the size of the frame.
+    const RowGap    = 16.0     // Air between the frame and that row.
+
+    // Builds a preview of the native renderer or of a GUI: a canvas for the frames, a listing
+    // for the diagnostics, and the live-edit switch.
     func create(parent: *ViewerPanel, editor: *RichEditCtrl, gui: bool)->*PreviewViewer
     {
         with let result = Wnd.create'PreviewViewer(parent, "prism.preview")
@@ -52,29 +64,51 @@ impl PreviewViewer
             .gui             = gui
         }
 
-        with result.status = Label.create(result, "", {0, 0, 0, 28}, null, .SecondaryText)
-        {
-            .dockStyle = .Bottom
-        }
-
         with result.canvas = Wnd.create'PreviewCanvas(result, "prism.preview.canvas")
         {
-            .dockStyle       = .Center
             .backgroundStyle = .Transparent
             .sigClick        += func|viewer = result|(point) { viewer.forwardClick(point) }
         }
 
-        with result.output = RichEditCtrl.create(result)
+        result.output = ListingView.create(result, "prism.preview.output")
+        with result.liveSwitch = ToggleButton.create(result, {0, 0, 34, 20}, "prism.preview.live")
         {
-            .dockStyle = .Center
-            .setFlags(.ReadOnly)
-            .setLexer(&result.outputText)
+            .setChecked(true)
+            .sigChanged += func|viewer = result|(_) { viewer.panel.sigLiveEditChanged.call(viewer.liveSwitch.isChecked()) }
+        }
+
+        with result.liveLabel = Label.create(result, "", {}, null, .SecondaryText)
+        {
+            .setTextAlignment(.Left, .Center)
         }
 
         result.canvas.hide()
         result.image = Image.create(Pipeline.FrameChannel.Width, Pipeline.FrameChannel.Height, .BGRA8)
         result.retranslate()
         return result
+    }
+
+    // Shows whether the source compiles again after each edit.
+    mtd setLiveEdit(on: bool) => .liveSwitch.setChecked(on)
+
+    // Places the frame at the top of the column, the switch and the size of the frame under it,
+    // and the diagnostics in the frame's place.
+    mtd arrangeParts()
+    {
+        // The viewer lays itself out while its parts are still being created.
+        if .liveLabel == null do
+            return
+
+        let client = .clientRect()
+        let above  = Math.max(0'f32, client.height - RowHeight - RowGap)
+        .canvas.setPosition(Math.Rectangle{0, 0, client.width, above})
+        .output.scroll.setPosition(Math.Rectangle{0, 0, client.width, above})
+
+        let frame   = .canvas.frameRect()
+        let rowTop  = .canvas.isLocallyVisible() ? frame.bottom() + RowGap : above + RowGap
+        let rowLeft = .canvas.isLocallyVisible() ? frame.x : 0
+        .liveSwitch.setPosition(Math.Rectangle{rowLeft, rowTop + (RowHeight - 20) * 0.5, 34, 20})
+        .liveLabel.setPosition(Math.Rectangle{rowLeft + 44, rowTop, Math.max(0'f32, client.width - rowLeft - 44), RowHeight})
     }
 
     // Hands a click on the frame to the interface running in the child process.
@@ -165,7 +199,6 @@ impl PreviewViewer
         if not .timer do
             .timer = .addTimer(16'ms)
         .probe.start(.request, .cache)
-        .refreshStatus()
         .sigChanged.call(me)
     }
 
@@ -182,11 +215,10 @@ impl PreviewViewer
     // Replaces the frame with the diagnostics of a build that did not run.
     mtd showDiagnostics(diagnostics: string)
     {
-        .outputText.parse(diagnostics)
-        .outputText.show(.output)
-        .output.show()
+        .output.showOutput(diagnostics)
+        .output.scroll.show()
         .canvas.hide()
-        .applyLayout()
+        .arrangeParts()
     }
 
     // Advances the preview at each timer tick: swaps in a replacement that has its first frame,
@@ -242,7 +274,6 @@ impl PreviewViewer
 
             if .probe.failed do
                 .showDiagnostics(.probe.diagnostics)
-            .refreshStatus()
             .sigChanged.call(me)
             return
         }
@@ -258,18 +289,17 @@ impl PreviewViewer
         let firstFrame = .frameCount == 0
         .frameCount = frame
         .probe.channel.acknowledge(frame)
-        if firstFrame do
-            .sigChanged.call(me)
         .canvas.update(&.image)
         if firstFrame
         {
-            .output.hide()
+            .output.scroll.hide()
             .canvas.show()
-            .applyLayout()
+            .arrangeParts()
         }
 
+        // The timings are read again every few frames, not at each one.
         if firstFrame or .frameCount % 15 == 0 do
-            .refreshStatus()
+            .sigChanged.call(me)
     }
 
     // Cancels every probe, waits for their workers, and closes the frame channel.
@@ -300,39 +330,33 @@ impl PreviewViewer
         .probe.channel.close()
     }
 
-    // Shows the build and render times of the running preview, or why it is not running.
-    mtd refreshStatus()
+    // Returns the build and frame times of the running preview, or why it is not running.
+    mtd statusReading()->String
     {
         if .running and .frameCount
         {
             if .probe.reused do
-                .status.setText(Format.toString(appStrings().ui_ReusedStats, .renderUs))
-            else do
-                .status.setText(Format.toString(appStrings().ui_LiveStats, .probe.compileMs, .renderUs))
+                return Format.toString(appStrings().ui_ReusedStats, .renderUs)
+            return Format.toString(appStrings().ui_LiveStats, .probe.compileMs, .renderUs)
         }
-        elif .running
-        {
-            .status.setText("")
-        }
-        elif .probe.failed
-        {
-            .status.setText(appStrings().ui_Stopped)
-        }
-        else
-        {
-            .status.setText(appStrings().ui_Ready)
-        }
+
+        if .running do
+            return appStrings().ui_Working
+        if .probe.failed do
+            return appStrings().ui_Stopped
+        return {}
     }
 
-    // Writes the hint shown before the first run, and the status, in the active language.
+    // Writes the hint shown before the first run and the words of the switch in the active
+    // language.
     mtd retranslate()
     {
         if not .running and not .probe.failed and not .frameCount do
-            .output.setText(Format.toString("%\n\n%",
-                                            .gui ? appStrings().ui_GuiHint : appStrings().ui_RenderHint,
-                                            appStrings().ui_ChooseExample))
-        .refreshStatus()
-        .applyLayout()
+            .output.showHint(Format.toString("%\n\n%",
+                                             .gui ? appStrings().ui_GuiHint : appStrings().ui_RenderHint,
+                                             appStrings().ui_ChooseExample))
+        .liveLabel.setText(appStrings().cmd_LiveEdit)
+        .arrangeParts()
     }
 }
 
@@ -340,16 +364,36 @@ impl IViewer for PreviewViewer
 {
     mtd impl window()->*Wnd => &.wnd
     mtd impl compile(request: Pipeline.BuildRequest) { .compileRequest(request) }
-    mtd impl inspectionStage()->string => ""
+    mtd impl inspects()->bool => false
     mtd impl isPaused()->bool => .paused
     mtd impl setPaused(paused: bool) { .paused = paused }
     mtd impl shutdown() { .stop() }
     mtd impl isRunning()->bool => .preparing != null or (.running and (not .frameCount or .queued))
+    mtd impl reading()->String => .statusReading()
     mtd impl subscribeChanged(action: func||(*Wnd)) { .sigChanged += action }
 }
 
 impl IWnd for PreviewViewer
 {
+    // Writes the size of the frame at the end of the row of the switch, as a measure.
+    mtd impl onPaint(evt: *PaintEvent)
+    {
+        if not .canvas.isLocallyVisible() do
+            return
+        let painter = evt.paintContext.painter
+        let font    = .theme().createDefaultFontFs(.themeMetrics().hintLine_FontSize)
+        let frame   = .canvas.frameRect()
+        let size    = Format.toString("% × %", Pipeline.FrameChannel.Width, Pipeline.FrameChannel.Height)
+        let width   = Painter.measureString(size, font).width
+        let centerY = frame.bottom() + RowGap + RowHeight * 0.5
+        painter.drawString(frame.right() - width, font.opticalLineTop(centerY), size, font, .themeColors().faintText)
+    }
+
+    mtd impl onResizeEvent(_: *ResizeEvent)
+    {
+        .arrangeParts()
+    }
+
     mtd impl onTimerEvent(evt: *TimerEvent)
     {
         if evt.timer == .timer do

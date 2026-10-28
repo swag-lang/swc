@@ -2,17 +2,17 @@
 
 using Core, Gui
 
-// A viewer supplies its own option controls, output, and compilation lifecycle.
+// A viewer supplies its own output and compilation lifecycle.
 interface IViewer
 {
-    // Returns the window the panel docks in its body.
+    // Returns the window the panel places under its header.
     mtd window()->*Wnd
 
     // Compiles `request`, replacing any request that is still waiting.
     mtd compile(request: Pipeline.BuildRequest)
 
-    // Returns the pipeline stage the viewer prints, or an empty string when it only runs the program.
-    mtd inspectionStage()->string
+    // Returns whether the viewer reads the instructions of the first function.
+    mtd inspects()->bool
 
     // Returns whether playback is paused.
     mtd isPaused()->bool
@@ -26,11 +26,14 @@ interface IViewer
     // Returns whether work the reader is waiting for is still in flight.
     mtd isRunning()->bool
 
+    // Returns what the viewer reports about its latest work, in the active language.
+    mtd reading()->String
+
     // Calls `action` whenever the viewer's status or output changes.
     mtd subscribeChanged(action: func||(*Wnd))
 }
 
-// The viewers a panel can host, in the order of its viewer-type selector.
+// The viewers a panel can host, in the order of its viewer menu.
 enum ViewerKind
 {
     Microcode     // The instructions of the first function at a chosen stage.
@@ -38,7 +41,7 @@ enum ViewerKind
     Gui           // The live interface a `buildView` function builds.
 }
 
-// New viewer kinds enter through this factory without changing the comparison window.
+// New viewer kinds enter through this factory without changing the window.
 func createViewer(parent: *ViewerPanel, source: *RichEditCtrl, kind: ViewerKind)->IViewer
 {
     switch #complete kind

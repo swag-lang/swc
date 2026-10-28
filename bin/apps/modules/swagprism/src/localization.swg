@@ -8,47 +8,97 @@ using Core, Gui
 // what the reader types into the attribute, so neither is translated.
 struct AppStrings
 {
-    ui_Render2D:           string = "2D render"                                      // Name of the native pixel renderer.
-    ui_Gui:                string = "GUI"                                            // Name of the native GUI preview.
-    ui_Examples:           string = "Examples"                                       // Tooltip of the source-example selector.
-    ui_Plasma:             string = "Plasma waves"                                   // Name of the animated plasma example.
-    ui_Julia:              string = "Julia fractal"                                  // Name of the animated Julia-set example.
-    ui_GuiExample:         string = "Live interface"                                 // Name of the interactive control example.
-    ui_Dot:                string = "Dot product"                                    // Name of the optimization example.
-    ui_Pause:              string = "Pause"                                          // Pauses consumption of preview frames.
-    ui_Resume:             string = "Resume"                                         // Resumes the paused preview.
-    ui_LiveStats:          string = "Build % ms | Frame % us"                        // Measured compilation milliseconds and rendering microseconds.
-    ui_RenderHint:         string = "shade(x, y, time: f32)->u32"                    // Function contract shown in an empty 2D viewer.
-    ui_GuiHint:            string = "buildView(parent: *Gui.Wnd)"                    // Function contract shown in an empty GUI viewer.
-    ui_AutoCompile:        string = "Auto"                                           // Compact source-toolbar switch for automatic compilation.
-    ui_LiveEdit:           string = "Recompile After Editing"                        // Enables compilation after the last source edit.
-    ui_ChooseExample:      string = "Choose an example, then compile."               // Help for an empty execution viewer.
-    ui_WindowTitle:        string = "Swag Prism — Code in motion"                    // Title of the application window.
-    ui_Stage:              string = "Stage"                                          // Label of the pipeline-stage selector.
-    ui_Optimize:           string = "Optimization level"                             // Tooltip of the backend optimization selector.
-    ui_BuildOptions:       string = "Build Configuration"                            // Opens this panel's module configuration editor.
-    ui_BuildPreset:        string = "Build preset"                                   // Initial configuration before source overrides.
-    ui_ResetBuild:         string = "Restore the Default Build Configuration"        // Resets this panel's preset, overrides, and optimization.
-    ui_ReusedBuild:        string = "Reused compilation (% ms)"                      // Reuses the measured result of an existing compilation.
-    ui_ReusedStats:        string = "Reused build | Frame % us"                      // A reused native artifact and current rendering time.
-    ui_Format:             string = "Format"                                         // Formats the source with the Swag formatter.
-    ui_FormatHint:         string = "Format the source with the Swag formatter."     // Tooltip of the format action.
-    ui_Formatting:         string = "Formatting…"                                    // Status while the formatter runs.
-    ui_Formatted:          string = "Source formatted."                              // Status after successful formatting.
-    ui_FormatFailed:       string = "Formatting failed. Source unchanged."           // Status when formatting cannot complete.
-    ui_FormatChanged:      string = "Source changed. Format again."                  // A newer edit takes precedence over a formatted snapshot.
-    ui_CompileVisible:     string = "Compile"                                        // Compiles the visible viewers.
-    ui_CompileVisibleHint: string = "Compile the source in the visible viewers."     // Describes the shared-source compile action.
-    ui_OneViewer:          string = "Show One Viewer"                                // Returns to the single-viewer layout.
-    ui_TwoViewers:         string = "Show Two Viewers"                               // Opens the comparison beside the first viewer.
-    ui_ViewerType:         string = "Viewer type"                                    // Selects the viewer hosted by this panel.
-    ui_Microcode:          string = "Microcode"                                      // Name of the instruction-listing viewer.
-    ui_RunningViewers:     string = "% viewers compiling"                            // Global status with the number of running viewer jobs.
-    ui_Working:            string = "Compiling…"                                     // Status while the compiler runs.
-    ui_Ready:              string = "Ready"                                          // Status before anything has been compiled.
-    ui_NoOutput:           string = "No output for this stage."                      // Status when a compilation left the pane empty.
-    ui_Stopped:            string = "Compilation stopped."                           // Status when the compilation failed.
-    ui_Done:               string = "Compiled in % ms"                               // Status after a compilation that printed a stage, with how long the compiler took.
+    // The examples, the viewers and what a viewer says before it has run.
+    ui_Examples:      string = "Examples"                             // Menu of the source examples.
+    ui_Plasma:        string = "Plasma waves"                         // Name of the animated plasma example.
+    ui_Julia:         string = "Julia fractal"                        // Name of the animated Julia-set example.
+    ui_GuiExample:    string = "Live interface"                       // Name of the interactive control example.
+    ui_Dot:           string = "Dot product"                          // Name of the optimization example.
+    ui_Microcode:     string = "Microcode"                            // Name of the instruction-listing viewer.
+    ui_Render2D:      string = "2D render"                            // Name of the native pixel renderer.
+    ui_Gui:           string = "GUI"                                  // Name of the native GUI preview.
+    ui_RenderHint:    string = "shade(x, y, time: f32)->u32"          // Function contract shown in an empty 2D viewer.
+    ui_GuiHint:       string = "buildView(parent: *Gui.Wnd)"          // Function contract shown in an empty GUI viewer.
+    ui_ChooseExample: string = "Choose an example, then compile."     // Help for an empty execution viewer.
+
+    // The header of a column of results and its menus.
+    ui_ViewerType:      string = "Viewer type"                  // Tooltip of the menu of the viewer a column shows.
+    ui_Stage:           string = "Stage"                        // Tooltip of the stage menu, and the reading of the stage.
+    ui_Optimize:        string = "Optimization level"           // Tooltip of the optimization menu, and its reading.
+    ui_BuildPreset:     string = "Build preset"                 // Tooltip of the menu of the configuration a build starts from.
+    ui_Pause:           string = "Pause"                        // Pauses consumption of preview frames.
+    ui_Resume:          string = "Resume"                       // Resumes the paused preview.
+    ui_CloseBuild:      string = "Close"                        // Closes the build configuration and shows the viewer again.
+    ui_BuildHeading:    string = "Build"                        // Heads a column showing its build configuration.
+    ui_InstructionOne:  string = "instruction"                  // Unit of a count of one instruction.
+    ui_InstructionMany: string = "instructions"                 // Unit of a count of instructions.
+    ui_SincePrevious:   string = "Since the previous stage"     // Label of the readings of a step, stage by stage.
+    ui_Removed:         string = "% removed"                    // Instructions a step removed.
+    ui_Added:           string = "% added"                      // Instructions a step added.
+    ui_LoopNote:        string = "The loop goes from % to % instructions."     // The innermost loop of two compared builds.
+
+    // The reading at the foot of the window, and the sheet.
+    ui_Working:        string = "Compiling…"                               // While the compiler runs.
+    ui_RunningViewers: string = "% viewers compiling"                      // With the number of running viewer jobs.
+    ui_Done:           string = "Compiled in % ms"                         // After a compilation, with how long the compiler took.
+    ui_ReusedBuild:    string = "Reused compilation (% ms)"                // Reuses the measured result of an existing compilation.
+    ui_NoOutput:       string = "No output for this stage."                // When the compilation printed nothing for the stage.
+    ui_Stopped:        string = "Compilation stopped."                     // When the compilation failed.
+    ui_LiveStats:      string = "Build % ms | Frame % µs"                  // Measured compilation milliseconds and rendering microseconds.
+    ui_ReusedStats:    string = "Reused build | Frame % µs"                // A reused native artifact and current rendering time.
+    ui_Formatting:     string = "Formatting…"                              // While the formatter runs.
+    ui_Formatted:      string = "Source formatted."                        // After successful formatting.
+    ui_FormatFailed:   string = "Formatting failed. Source unchanged."     // When formatting cannot complete.
+    ui_FormatChanged:  string = "Source changed. Format again."            // A newer edit takes precedence over a formatted snapshot.
+    ui_Build:          string = "Build"                                    // Reading of the sheet: how the latest build went.
+    ui_FrameSize:      string = "Frame"                                    // Reading of the sheet: the size of the frame of a preview.
+    ui_Compiler:       string = "Compiler"                                 // Section of the sheet: what the compiler reported.
+    ui_Formatter:      string = "Formatter"                                // Section of the sheet: what the formatter did.
+    ui_LeftColumn:     string = "left"                                     // Names the left build in a section of the lens.
+    ui_RightColumn:    string = "right"                                    // Names the right build in a section of the lens.
+
+    // What the empty listing says before anything has been compiled into it.
+    //
+    // The listing never wraps — an instruction listing is a set of aligned columns — so this
+    // sentence has to be short enough to sit in it at the narrowest width rather than trail off.
+    ui_OutputHint: string = "Compile to see the instructions."
+
+    // Commands, as the lens names them.
+    cmd_Compile:            string = "Compile"
+    cmd_FormatSource:       string = "Format Source"
+    cmd_LiveEdit:           string = "Recompile After Editing"
+    cmd_ShowColumns:        string = "Source and Result"
+    cmd_ShowStages:         string = "Stage by Stage"
+    cmd_ShowCompare:        string = "Compare Two Builds"
+    cmd_Information:        string = "Information"
+    cmd_PreviousStage:      string = "Previous Stage"
+    cmd_NextStage:          string = "Next Stage"
+    cmd_ShowChange:         string = "Show the Change"
+    cmd_ShowSourceLines:    string = "Show Source Lines"
+    cmd_ShowOpcodes:        string = "Show Opcodes"
+    cmd_CopyListing:        string = "Copy Listing"
+    cmd_BuildConfiguration: string = "Build Configuration"
+    cmd_RestoreBuild:       string = "Restore Defaults"
+    cmd_PausePreview:       string = "Pause Preview"
+    cmd_ResumePreview:      string = "Resume Preview"
+
+    // Sections of the lens.
+    lens_Source:       string = "Source"
+    lens_View:         string = "View"
+    lens_Build:        string = "Build"
+    lens_Examples:     string = "Examples"
+    lens_ViewAs:       string = "View As"
+    lens_Stage:        string = "Stage"
+    lens_Optimization: string = "Optimization"
+    lens_Preset:       string = "Build Preset"
+
+    // The hint line: keys, in their keycaps, and what they do.
+    key_Compile:  string = "Ctrl ⏎"                           // The key that compiles.
+    key_Lens:     string = "Ctrl K"                           // The key that opens the lens where Space types.
+    key_Steps:    string = "← →"                              // The keys that step through the stages.
+    hint_Compile: string = "compile"                          // What the compile key does.
+    hint_Lens:    string = "views, stages, examples"          // What the lens holds.
+    hint_Steps:   string = "previous, next stage · % / %"     // What the arrows do, with the place of the step.
 
     // What a compilation or a preview reports when it stops without compiler output of its own.
     msg_BuildTimeout:   string = "Compilation exceeded 60 seconds."      // The compiler ran past the watchdog.
@@ -57,12 +107,6 @@ struct AppStrings
     msg_PreviewNotRun:  string = "The preview could not be started."     // The preview process could not be launched.
     msg_PreviewStalled: string = "The preview did not produce a frame for 10 seconds."     // The running preview stopped drawing.
     msg_PreviewExited:  string = "The preview exited with code %."       // The preview process ended on its own, with its exit code.
-
-    // What the empty output pane says before anything has been compiled into it.
-    //
-    // The pane never wraps — an instruction listing is a set of aligned columns — so this sentence
-    // has to be short enough to sit in it at the narrowest width rather than trail off the edge.
-    ui_OutputHint: string = "Compile to see the instructions."
 
     // One name per offered pipeline stage, in the order of `Pipeline.Stages`. Each says what the
     // code has had done to it by the time it is read, not which pass is about to run.

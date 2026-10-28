@@ -3,42 +3,58 @@
 
 using Core, Gui
 
+// Opens the window on the dot product, both builds on their instructions, without compiling.
 func testSetupInspectionWindow(host: *Testing.HeadlessHost, width = cast(f32, MainWindow.WindowWidth), height = cast(f32, MainWindow.WindowHeight))->*MainWindow
 {
     let window = testSetupMainWindow(host, width, height)
+    window.setLiveEdit(false)
     window.selectedExample = .Dot
-    window.commandBar.exampleCombo.setSelectedIndex(cast(u32, ExampleKind.Dot), notify: false)
-    window.commandBar.liveEdit.setState(.Unchecked)
     window.editor.setText(exampleSource(.Dot))
     window.panels[0].selectViewer(.Microcode)
+    window.retranslate()
     return window
 }
 
 func microcode(window: *MainWindow, panel: u64)->*MicrocodeViewer => assume cast(*MicrocodeViewer, window.panels[panel].viewer!.window())
 
-// One viewer is visible by default; the optional comparison has independent defaults.
+// Gives the builds the dot product as the compiler printed it: the main build at O2, the reference
+// at O0.
+func showDotFixtures(window: *MainWindow)
+{
+    showOutput(microcode(window, 0), fixture("micro.dot.o2.txt"))
+    showOutput(microcode(window, 1), fixture("micro.dot.o0.txt"))
+    window.refreshStatus()
+}
+
+// Reports whether the lens of `window` shows an entry titled `title`.
+func lensHasEntry(window: *MainWindow, title: string)->bool
+{
+    for section in window.lens.results.sections
+    {
+        for &entry in section!.entries where entry.title == title do
+            return true
+    }
+
+    return false
+}
+
+// The window opens beside the source: one result, the reference build hidden, nothing on screen
+// but the work, the menus above the columns and the hint line.
 #test
 {
     var host: Testing.HeadlessHost
-    let window = testSetupInspectionWindow(&host)
-    Swag.assert(window.commandBar.parent == window.sourcePanel)
-    Swag.assert(window.commandBar.runButton.icon.isValid())
-    Swag.assert(window.layoutButton.parent == window.panels[0].header)
-    Swag.assert(not window.comparisonEnabled)
-    Swag.assert(window.viewerSplit.isPaneVisible(0) and not window.viewerSplit.isPaneVisible(1))
-    let left  = microcode(window, 0)
-    let right = microcode(window, 1)
-    Swag.assert(left != right)
-    Swag.assert(left.stageCombo.items.count == Pipeline.Stages.count)
-    Swag.assert(left.stageCombo.selectedIndex == Pipeline.DefaultStage)
-    Swag.assert(right.stageCombo.selectedIndex == Pipeline.DefaultStage)
-    Swag.assert(window.panels[0].optimCombo.selectedIndex == 0)
-    Swag.assert(window.panels[1].optimCombo.selectedIndex == 2)
-    Swag.assert(window.status.name == appStrings().ui_Ready)
-    Swag.assert(not window.spinner.isVisible())
-    Swag.assert(window.panels[0].kindCombo.items.count == 3)
-    Swag.assert(window.panels[0].kindCombo.selectedIndex == 0)
-    Swag.assert(not window.layoutButton.isChecked and window.layoutButton.toolTip == appStrings().ui_TwoViewers)
+    let window    = testSetupInspectionWindow(&host)
+    let main      = microcode(window, 0)
+    let reference = microcode(window, 1)
+    Swag.assert(window.view == .Columns and window.editor.isVisible() and not window.panels[1].isVisible())
+    Swag.assert(main != reference and not window.appearanceButton.isVisible())
+    Swag.assert(main.stage == Pipeline.DefaultStage and reference.stage == Pipeline.DefaultStage)
+    Swag.assert(window.panels[0].level == .O2 and window.panels[1].level == .O0)
+    Swag.assert(window.panels[0].stageMenu.isVisible() and window.panels[0].stageMenu.name == appStrings().ui_StageFinal)
+    Swag.assert(window.panels[0].optimMenu.name == "O2" and window.panels[0].viewMenu.name == appStrings().ui_Microcode)
+    Swag.assert(main.listing.hint and not main.listing.isListing())
+    Swag.assert(window.hintLine.hints.count == 2 and window.readingLine.reading.isEmpty())
+    Swag.assert(window.exampleMenu.position.right() <= window.panels[0].position.x)
 }
 
 // The editor opens on the starter snippet, and that snippet is one the probe can inspect.
@@ -49,92 +65,112 @@ func microcode(window: *MainWindow, panel: u64)->*MicrocodeViewer => assume cast
 
     let text = window.editor.text()
     Swag.assert(text.contains("\n{\n    var total = 0'f32\n    for i in a.count do\n        total += a[i] * b[i]\n    return total\n}"))
-    let inspected = Pipeline.inspectedSource(text, "pre-emit")
+    let inspected = Pipeline.inspectedSource(text, Pipeline.Stages)
     Swag.assert(inspected.contains("#[Swag.PrintMicro"))
 }
 
-// An option change submits only that viewer and queues its next request independently.
+// A level change submits only that build and queues its next request independently.
 #test
 {
     var host: Testing.HeadlessHost
     let window = testSetupInspectionWindow(&host)
-    let left   = microcode(window, 0)
-    let right  = microcode(window, 1)
-    window.panels[0].optimCombo.setSelectedIndex(1)
-    Swag.assert(left.job.running)
-    Swag.assert(left.job.request.settings.optimization == .O1)
-    Swag.assert(not right.job.running)
-    window.panels[0].optimCombo.setSelectedIndex(0)
-    Swag.assert(left.job.queued and left.job.request.settings.optimization == .O1)
+    let main   = microcode(window, 0)
+    let other  = microcode(window, 1)
+    window.panels[0].setLevel(.O1)
+    Swag.assert(main.job.running and main.job.request.inspect)
+    Swag.assert(main.job.request.settings.optimization == .O1)
+    Swag.assert(not other.job.running)
+    window.panels[0].setLevel(.O0)
+    Swag.assert(main.job.queued and main.job.request.settings.optimization == .O1)
     window.shutdown()
-    Swag.assert(not left.job.running)
+    Swag.assert(not main.job.running)
 }
 
-// The global mode button changes only the layout and retains both viewers' state.
+// One compilation prints every stage: choosing a stage or stepping through them compiles nothing,
+// and each step reads what it changed.
 #test
 {
     var host: Testing.HeadlessHost
     let window = testSetupInspectionWindow(&host)
-    let first  = microcode(window, 0)
-    let second = microcode(window, 1)
-    host.click(window.layoutButton.localToSurface(Math.Point{18, 18}))
-    Swag.assert(window.comparisonEnabled and window.viewerSplit.isPaneVisible(1))
-    Swag.assert(window.layoutButton.isChecked and window.layoutButton.toolTip == appStrings().ui_OneViewer)
-    window.panels[1].optimCombo.setSelectedIndex(1, notify: false)
-    second.stageCombo.setSelectedIndex(0, notify: false)
-    second.outputText.parse("comparison result")
-    second.outputText.show(second.output)
-    second.outputIsHint = false
-    let comparisonWidth = first.position.width
-    host.click(window.layoutButton.localToSurface(Math.Point{18, 18}))
-    Swag.assert(not window.comparisonEnabled and not window.viewerSplit.isPaneVisible(1))
-    Swag.assert(not window.layoutButton.isChecked)
-    Swag.assert(first.position.width > comparisonWidth)
-    host.click(window.layoutButton.localToSurface(Math.Point{18, 18}))
-    Swag.assert(window.panels[1].optimCombo.selectedIndex == 1 and second.stageCombo.selectedIndex == 0)
-    Swag.assert(second.output.text() == "comparison result")
-    window.panels[1].selectViewer(.Microcode)
-    Swag.assert(microcode(window, 1) == second)
-    Swag.assert(second.output.text() == "comparison result")
+    showDotFixtures(window)
+    let main = microcode(window, 0)
+    Swag.assert(main.shown()!.instructions == 16 and window.panels[0].listedInstructions() == 16)
+    Swag.assert(main.listing.isListing() and window.readingLine.reading == Format.toString(appStrings().ui_Done, 38))
+
+    main.setStage(2)
+    Swag.assert(not main.job.running and main.shown()!.stage == 2)
+    Swag.assert(window.panels[0].stageMenu.name == appStrings().ui_StageConstFold)
+
+    window.applyView(.Stages)
+    Swag.assert(main.layout == .Stages and main.frieze.isVisible() and not window.editor.isVisible())
+    Swag.assert(main.frieze.count == main.inspection.steps.count and main.frieze.current == main.step)
+    Swag.assert(window.hintLine.hints.count == 1)
+
+    main.setStep(1)
+    Swag.assert(main.previous() != null and main.listing.difference.removed + main.listing.difference.added != 0)
+    Swag.assert(window.runCommand(PrismCommands.NextStage) and main.step == 2)
+    main.listing.setFocus()
+    host.keyPress(.Left)
+    Swag.assert(main.step == 1)
+
+    // Without the change, the listing is the step alone.
+    Swag.assert(window.runCommand(PrismCommands.ShowChange) and not main.showChange.isChecked())
+    for row in main.listing.rows do
+        Swag.assert(row.mark == .Same)
+    Swag.assert(not main.job.running)
 }
 
-// A shared compile feeds both visible viewers the same snapshot and retains their distinct levels.
+// Beside another build, the reference stands at the left and the main build at the right, each
+// headed by its count; the main build says what it gains, and its loop how it shrank.
 #test
 {
     var host: Testing.HeadlessHost
     let window = testSetupInspectionWindow(&host)
-    let left   = microcode(window, 0)
-    let right  = microcode(window, 1)
-    window.setComparisonEnabled(true)
-    window.compile()
-    Swag.assert(window.spinner.isVisible())
-    Swag.assert(left.status.name != appStrings().ui_Working and right.status.name != appStrings().ui_Working)
-    Swag.assert(left.job.request.source == right.job.request.source)
-    Swag.assert(left.job.request.settings.optimization == .O0 and right.job.request.settings.optimization == .O2)
+    showDotFixtures(window)
+    window.applyView(.Compare)
+    window.refreshStatus()
+    let main      = microcode(window, 0)
+    let reference = microcode(window, 1)
+    Swag.assert(window.panels[1].isVisible() and window.panels[1].position.right() <= window.panels[0].position.x)
+    Swag.assert(not window.editor.isVisible() and main.layout == .Compare and reference.layout == .Compare)
+    Swag.assert(window.panels[0].headerHeight() == ViewerPanel.CompareHeaderHeight and not window.panels[0].viewMenu.isVisible())
+    Swag.assert(window.panels[0].optimMenu.position.right() == window.panels[0].clientRect().right())
+    Swag.assert(main.listing.markLoop and main.listing.loopFirst != null and reference.listing.loopFirst != null)
+    Swag.assert(window.panels[0].gain == "−56 %" and window.panels[1].gain.isEmpty())
+    Swag.assert(not main.listing.note.isEmpty() and reference.listing.note.isEmpty())
+    Swag.assert(window.surface!.wnd.name.raw.contains("func dot("))
+}
+
+// A shared compile feeds both visible builds the same snapshot and keeps their distinct levels.
+#test
+{
+    var host: Testing.HeadlessHost
+    let window    = testSetupInspectionWindow(&host)
+    let main      = microcode(window, 0)
+    let reference = microcode(window, 1)
+    window.setView(.Compare)
+    Swag.assert(main.job.request.source == reference.job.request.source)
+    Swag.assert(main.job.request.settings.optimization == .O2 and reference.job.request.settings.optimization == .O0)
     var watch: Time.Stopwatch
     watch.start()
-    while (left.job.running or right.job.running) and watch.elapsedMilliseconds() < 30_000
+    while (main.job.running or reference.job.running) and watch.elapsedMilliseconds() < 30_000
     {
         Threading.Thread.sleep(10'ms)
         host.pump()
     }
 
-    for viewer in [left, right]
+    for viewer in [main, reference]
     {
-        Swag.assert(not viewer.job.running)
-        Swag.assert(not viewer.job.result.failed)
-        Swag.assert(not viewer.outputIsHint and not viewer.outputText.colors.isEmpty())
-        let plain    = viewer.output.text()
-        let expected = Format.toString("  optimize : O%", cast(u8, viewer.job.request.settings.optimization))
-        Swag.assert(plain.contains(expected.toString()))
-        Swag.assert(not plain.contains("\x1B"))
+        Swag.assert(not viewer.job.running and not viewer.job.result.failed)
+        Swag.assert(not viewer.inspection.snapshots.isEmpty() and viewer.shown() != null)
+        let expected = Format.toString("O%", cast(u8, viewer.job.request.settings.optimization))
+        Swag.assert(Utf8.startsWith(viewer.shown()!.optimize, expected))
     }
 
-    Swag.assert(window.status.name == appStrings().ui_Ready)
-    Swag.assert(not window.spinner.isVisible())
+    Swag.assert(window.readingLine.reading == main.statusReading())
 }
 
-// Single-viewer compilation leaves the hidden comparison idle; hiding a running viewer is safe.
+// A compilation beside the source leaves the hidden reference idle; hiding a running build is safe.
 #test
 {
     var host: Testing.HeadlessHost
@@ -142,35 +178,141 @@ func microcode(window: *MainWindow, panel: u64)->*MicrocodeViewer => assume cast
     window.compile()
     Swag.assert(microcode(window, 0).job.running)
     Swag.assert(not microcode(window, 1).job.running)
-    window.setComparisonEnabled(true)
-    window.compile()
-    let second = microcode(window, 1)
-    Swag.assert(second.job.running)
-    window.setComparisonEnabled(false)
+    window.setView(.Compare)
+    let reference = microcode(window, 1)
+    Swag.assert(reference.job.running)
+    window.applyView(.Columns)
     window.shutdown()
-    Swag.assert(not second.job.running)
+    Swag.assert(not reference.job.running)
 }
 
-// Both supported layouts use the same themed structural panels.
-func assertSurface(comparison: bool)
+// Every command of the window is an entry of the lens, and its choices answer the empty query.
+#test
+{
+    var host: Testing.HeadlessHost
+    let window  = testSetupInspectionWindow(&host)
+    let strings = appStrings()
+    showDotFixtures(window)
+
+    window.lens.open(">")
+    for name in [strings.cmd_Compile, strings.cmd_FormatSource, strings.cmd_LiveEdit, strings.cmd_ShowColumns,
+                 strings.cmd_ShowStages, strings.cmd_ShowCompare, strings.cmd_Information, strings.cmd_ShowSourceLines,
+                 strings.cmd_ShowOpcodes, strings.cmd_CopyListing, strings.cmd_BuildConfiguration, strings.cmd_RestoreBuild] do
+        Swag.assert(lensHasEntry(window, name))
+    Swag.assert(not lensHasEntry(window, strings.cmd_PreviousStage) and not lensHasEntry(window, strings.cmd_PausePreview))
+    window.lens.close()
+    Swag.assert(window.doorKnown == false)
+
+    window.applyView(.Stages)
+    window.lens.open(">")
+    for name in [strings.cmd_PreviousStage, strings.cmd_NextStage, strings.cmd_ShowChange] do
+        Swag.assert(lensHasEntry(window, name))
+    window.lens.close()
+
+    window.applyView(.Compare)
+    window.lens.open()
+    Swag.assert(lensHasEntry(window, exampleName(.Plasma)) and lensHasEntry(window, strings.ui_StageConstFold))
+    Swag.assert(lensHasEntry(window, "O1") and
+                lensHasEntry(window, "devmode") and
+                lensHasEntry(window, strings.ui_Render2D))
+    var sides = 0'u64
+    for section in window.lens.results.sections where section!.label == sectionLabel(strings.lens_ViewAs, strings.ui_LeftColumn) do
+        sides += 1
+    Swag.assert(sides == 1)
+    window.lens.close()
+
+    // The door opens on its chord, and the hint line stops teaching it.
+    Swag.assert(window.runCommand(PrismCommands.Lens) and window.lens.isOpen() and window.doorKnown)
+    window.lens.close()
+}
+
+// Space and I open the lens and the sheet where nothing types, and are text in the editor.
+#test
 {
     var host: Testing.HeadlessHost
     let window = testSetupInspectionWindow(&host)
+    window.editor.setFocus()
+    Swag.assert(window.typing() and not window.runCommand(PrismCommands.LensKey) and not window.lens.isOpen())
+    Swag.assert(not window.runCommand(PrismCommands.InformationKey) and not window.infoSheet.isLocallyVisible())
 
+    showDotFixtures(window)
+    microcode(window, 0).listing.setFocus()
+    Swag.assert(not window.typing() and window.runCommand(PrismCommands.InformationKey))
+    Swag.assert(window.infoSheet.isLocallyVisible() and window.infoSheet.title == "dot")
+    Swag.assert(window.infoSheet.text().contains(appStrings().ui_Compiler))
+}
+
+// The listing writes the backend's spelling or the reader's, with or without the source lines,
+// and copies what it shows.
+#test
+{
+    var host: Testing.HeadlessHost
+    let window = testSetupInspectionWindow(&host)
+    showDotFixtures(window)
+    let listing  = microcode(window, 0).listing
+    let readable = listing.copyText()
+    Swag.assert(window.runCommand(PrismCommands.Opcodes) and listing.form == .Opcodes)
+    let opcodes = listing.copyText()
+    Swag.assert(readable != opcodes and opcodes.contains("load_reg_mem"))
+    let rows = listing.rows.count
+    Swag.assert(window.runCommand(PrismCommands.SourceLines) and
+                listing.showSource and
+                listing.rows.count > rows)
+    Swag.assert(listing.copyText().contains("return total"))
+}
+
+// The window in each view, at the size of the charter's pictures, in Encre and in Papier.
+func assertInspectionSurface(view: PrismView, light: bool)
+{
+    var host: Testing.HeadlessHost
+    let window = testSetupInspectionWindow(&host)
+    if light
+    {
+        host.theme.setLight()
+        host.notify(.ThemeChanged)
+    }
+
+    showDotFixtures(window)
+    window.applyView(view)
+    if view == .Stages do
+        microcode(window, 0).setStep(3)
+    window.refreshStatus()
     window.applyLayout()
-    window.setComparisonEnabled(comparison)
     host.settleAnimations(window, 6)
+
     var image = host.render(&host.surfaceWnd)
-    Pixel.Testing.assertImageGolden(&image, comparison ? "surface.comparison" : "surface")
+    var name: String
+    switch #complete view
+    {
+    case .Columns: name = "surface.columns"
+    case .Stages:  name = "surface.stages"
+    case .Compare: name = "surface.compare"
+    }
+
+    if light do
+        name.append(".paper")
+    Pixel.Testing.assertImageGolden(&image, name)
 }
 
 #[Swag.TestTag("golden")]
-#test { assertSurface(false) }
+#test { assertInspectionSurface(.Columns, false) }
 
 #[Swag.TestTag("golden")]
-#test { assertSurface(true) }
+#test { assertInspectionSurface(.Columns, true) }
 
-// Comparison panes and themed bars fit every language at the minimum window size.
+#[Swag.TestTag("golden")]
+#test { assertInspectionSurface(.Stages, false) }
+
+#[Swag.TestTag("golden")]
+#test { assertInspectionSurface(.Stages, true) }
+
+#[Swag.TestTag("golden")]
+#test { assertInspectionSurface(.Compare, false) }
+
+#[Swag.TestTag("golden")]
+#test { assertInspectionSurface(.Compare, true) }
+
+// Every view fits every language at the minimum window size, in both palettes.
 #test
 {
     Gui.registerLanguage("fr", "Français")
@@ -183,31 +325,52 @@ func assertSurface(comparison: bool)
             if light do
                 host.theme.setLight()
             host.notify(.ThemeChanged)
-            let left = microcode(window, 0)
-            left.stageCombo.setSelectedIndex(3, notify: false)
+            showDotFixtures(window)
+            microcode(window, 0).setStage(3)
             discard expect applyLanguage(&host.app.resources, language.tag)
             host.notify(.LanguageChanged)
-            window.applyLayout()
-            Swag.assert(left.stageCombo.selectedIndex == 3 and window.panels[0].optimCombo.selectedIndex == 0)
-            Testing.assertContentFits(window)
-            for message in [StatusMessage.NoOutput, StatusMessage.Stopped]
+            for view in [PrismView.Columns, PrismView.Stages, PrismView.Compare, PrismView.Columns]
             {
-                left.setStatus(message)
+                window.applyView(view)
                 window.applyLayout()
                 Testing.assertContentFits(window)
+                Swag.assert(window.hintLine.position.right() <= window.readingLine.position.x)
+                for panel, index in window.panels where window.isShown(index)
+                {
+                    Swag.assert(panel.position.x >= 0 and panel.position.right() <= window.clientRect().right())
+                    if panel.stageMenu.isVisible() do
+                        Swag.assert(panel.stageMenu.position.right() <= panel.optimMenu.position.x)
+                }
+
+                if view == .Compare do
+                    Swag.assert(window.panels[1].position.right() <= window.panels[0].position.x)
             }
 
-            for comparison in [false, true, false]
-            {
-                window.setComparisonEnabled(comparison)
-                Testing.assertContentFits(window)
-                Swag.assert(window.viewerSplit.isPaneVisible(1) == comparison)
-                Swag.assert(window.layoutButton.isChecked == comparison)
-                Swag.assert(window.layoutButton.parent == window.panels[comparison ? 1 : 0].header)
-                if comparison do
-                    Swag.assert(window.panels[0].position.right() <= window.panels[1].position.x)
-            }
-
+            Swag.assert(microcode(window, 0).stage == 3 and window.panels[0].level == .O2)
         }
     }
 }
+
+// The lens open over the window, its commands and choices in Encre and in Papier.
+func assertLensSurface(light: bool)
+{
+    var host: Testing.HeadlessHost
+    let window = testSetupInspectionWindow(&host)
+    if light
+    {
+        host.theme.setLight()
+        host.notify(.ThemeChanged)
+    }
+
+    showDotFixtures(window)
+    window.openLens()
+    host.settleAnimations(window, 6)
+    var image = host.render(&host.surfaceWnd)
+    Pixel.Testing.assertImageGolden(&image, light ? "surface.lens.paper" : "surface.lens")
+}
+
+#[Swag.TestTag("golden")]
+#test { assertLensSurface(false) }
+
+#[Swag.TestTag("golden")]
+#test { assertLensSurface(true) }

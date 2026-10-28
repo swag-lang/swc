@@ -28,11 +28,15 @@ dialogs, then each application, then the written rules.
   mini-bar (`Gui.MiniBar`), the dock (`Gui.ToolDock`), the hint line (`Gui.HintLine`),
   `Gui.SectionLabel` and a floating surface for any other content (`Gui.FloatingPanel`), with
   `floating.test.swg`, `lens.test.swg` and their goldens, and `AppearanceButton.addToLens`; a
-  hidden caption button keeps working and takes no room in the caption. Swag Capture and Swag
-  Scope compose them (their remaining work is design.silence.008 and design.silence.007); Swag
-  Prism and Swag Vault still inset their whole root by `Wnd.stripInset()` to keep their old bands
-  clear of the floating strip.
-- Next: per remaining application, register every command and `addToLens` on one lens bound to
+  hidden caption button keeps working and takes no room in the caption. Swag Capture, Swag Scope
+  and Swag Prism compose them (their remaining work is design.silence.008, design.silence.007 and
+  design.silence.009); Swag Vault still insets its whole root by `Wnd.stripInset()` to keep its old
+  bands clear of the floating strip. No component owns the quiet text menu of a header (a word and
+  a faint chevron opening a menu, as the pictures put above a column or a page): Swag Scope's
+  explorer, Swag Capture's library and Swag Prism's column headers each configure an `IconButton`
+  for it and fit it to its words themselves (`createQuietMenu` in each), and the three differ.
+- Next: give the toolkit the quiet menu and move the three applications onto it; per remaining
+  application, register every command and `addToLens` on one lens bound to
   `Space` or `Ctrl K`, move readings to the sheet, tools to the dock and the mini-bar, properties
   to the inspector, and let the work reach into the strip where its picture shows it.
 - Done when: the four applications use the components, every command is a lens entry, and no
@@ -120,10 +124,19 @@ dialogs, then each application, then the written rules.
 - Done when: each `capture.edit.*` picture is reproduced by its golden.
 - Related: design.silence.002, design.silence.004, design.silence.005
 
-### design.silence.009 — Swag Prism still frames its panes
+### design.silence.009 — Swag Prism's render view lacks the caret reading and the framed picture
 
-- Next: rebuild Prism as two columns with quiet text menus, the stage frieze and the comparison.
-- Done when: the Prism goldens match the Prism pictures.
+- Evidence: Prism is two columns with quiet menus, the stage frieze with the change marked, the
+  comparison with counts, gain and loop, and the render view with its live-edit switch; every
+  command is a lens entry and the readings are in the sheet (`surface.{columns,stages,compare,
+  render,lens}` goldens in Encre and Papier, `surface.gui`). What `prism.render` shows and the window
+  does not: the caret's place (`Ln 9, Col 41`) at the foot of the source once the hint line has
+  stopped teaching the lens — `RichEditCtrl` publishes no signal when the caret moves — and the
+  picture drawn on the control corner. The source column shows a horizontal scroll bar for a line
+  that only reaches the editor's caret allowance (design.silence.002).
+- Next: give `RichEditCtrl` a caret signal and read it on the hint line; clip the frame of
+  `PreviewCanvas` to the control corner.
+- Done when: `surface.render` reproduces `prism.render`.
 - Related: design.silence.004
 
 ### design.silence.010 — Swag Vault is still a banner over tabs

@@ -3,34 +3,33 @@
 
 using Core, Gui, Pixel
 
-// The opening viewer is an executable canvas; the second panel can inspect the same source.
+// The opening viewer is an executable canvas; the reference build can inspect the same source.
 #test
 {
     var host: Testing.HeadlessHost
     let window = testSetupMainWindow(&host)
-    Swag.assert(not window.comparisonEnabled)
+    Swag.assert(window.view == .Columns and not window.panels[1].isVisible())
     Swag.assert(window.panels[0].kind == .Render2D)
     Swag.assert(window.panels[1].kind == .Microcode)
-    Swag.assert(window.panels[0].kindCombo.items.count == 3)
-    Swag.assert(window.commandBar.exampleCombo.items.count == 4)
+    Swag.assert(window.panels[0].pauseButton.isVisible() and not window.panels[0].stageMenu.isVisible())
     let viewer = assume cast(*PreviewViewer, window.panels[0].viewer!.window())
     window.compile()
-    Swag.assert(window.spinner.isVisible() and viewer.status.name != appStrings().ui_Working)
+    Swag.assert(window.panels[0].isRunning() and window.reading() == appStrings().ui_Working)
     awaitFrame(viewer)
-    Swag.assert(not window.spinner.isVisible())
+    Swag.assert(not window.panels[0].isRunning())
     Swag.assert(viewer.canvas.texture.isValid())
     let before     = viewer.image
     let firstFrame = viewer.frameCount
     awaitFrame(viewer, firstFrame + 2)
     Swag.assert(Memory.compare(before.pixels.storage(), viewer.image.pixels.storage(), before.byteCount) != 0)
-    host.click(window.panels[0].pauseButton.localToSurface(Math.Point{18, 18}))
-    Swag.assert(viewer.paused and window.panels[0].pauseButton.isChecked)
+    host.click(window.panels[0].pauseButton.localToSurface(Math.Point{8, 8}))
+    Swag.assert(viewer.paused and window.panels[0].pauseButton.name == appStrings().ui_Resume)
     let pausedFrame = viewer.frameCount
     Threading.Thread.sleep(100'ms)
     viewer.poll()
     Swag.assert(viewer.frameCount == pausedFrame)
-    host.click(window.panels[0].pauseButton.localToSurface(Math.Point{18, 18}))
-    Swag.assert(not viewer.paused and not window.panels[0].pauseButton.isChecked)
+    host.click(window.panels[0].pauseButton.localToSurface(Math.Point{8, 8}))
+    Swag.assert(not viewer.paused and window.panels[0].pauseButton.name == appStrings().ui_Pause)
     awaitFrame(viewer, pausedFrame)
     var watch: Time.Stopwatch
     watch.start()
@@ -54,7 +53,8 @@ using Core, Gui, Pixel
     window.shutdown()
 }
 
-// Execution controls and the shared toolbar fit both languages and every shipped palette.
+// The headers, the frame and its switch fit both languages and both palettes at the narrowest
+// window, beside the source and beside another build.
 #test
 {
     var sample: Image
@@ -69,7 +69,7 @@ using Core, Gui, Pixel
         window.shutdown()
     }
 
-    Gui.registerLanguage("fr", "Fran\u00e7ais")
+    Gui.registerLanguage("fr", "Français")
     for light in [false, true]
     {
         for language in [Gui.ReferenceLanguage, "fr"]
@@ -83,27 +83,26 @@ using Core, Gui, Pixel
             host.notify(.LanguageChanged)
             let viewer = assume cast(*PreviewViewer, window.panels[0].viewer!.window())
             viewer.canvas.update(&sample)
-            viewer.output.hide()
+            viewer.output.scroll.hide()
             viewer.canvas.show()
-            viewer.status.setText(Format.toString(appStrings().ui_LiveStats, 1234, 12345))
+            window.readingLine.setReading(Format.toString(appStrings().ui_LiveStats, 1234, 12345))
             window.panels[1].selectViewer(.Gui)
-            for comparison in [false, true]
+            for view in [PrismView.Columns, PrismView.Compare]
             {
-                window.setComparisonEnabled(comparison)
+                window.applyView(view)
                 window.applyLayout()
                 Testing.assertContentFits(window)
-                Swag.assert(window.commandBar.exampleCombo.position.right() <= window.commandBar.paddedClientRect().right())
-                Swag.assert(window.commandBar.position.height == 36)
-                Swag.assert(window.commandBar.runButton.position.y == window.commandBar.formatButton.position.y)
-                Swag.assert(window.commandBar.runButton.position.y == window.commandBar.exampleCombo.position.y)
-                Swag.assert(window.commandBar.formatButton.icon.isValid())
-                Swag.assert(window.commandBar.liveEdit.position.right() <= window.commandBar.paddedClientRect().right())
-                for panel in window.panels
+                if view == .Columns do
+                    Swag.assert(window.exampleMenu.position.right() <= window.panels[0].position.x)
+                for panel, index in window.panels where window.isShown(index)
                 {
-                    Swag.assert(panel.kindCombo.position.right() <= panel.optimCombo.position.x)
-                    Swag.assert(panel.optimCombo.position.right() <= panel.pauseButton.position.x)
-                    Swag.assert(panel.pauseButton.position.right() <= panel.header.paddedClientRect().right())
+                    Swag.assert(panel.viewMenu.position.right() <= panel.optimMenu.position.x)
+                    Swag.assert(panel.optimMenu.position.right() <= panel.pauseButton.position.x)
+                    Swag.assert(panel.pauseButton.position.right() <= panel.clientRect().right())
                 }
+
+                Swag.assert(viewer.liveLabel.position.right() <= viewer.clientRect().right())
+                Swag.assert(window.hintLine.position.right() <= window.readingLine.position.x)
             }
         }
     }
@@ -145,7 +144,7 @@ using Core, Gui, Pixel
     }
 
     Swag.assert(not viewer.running and viewer.probe.failed)
-    Swag.assert(viewer.output.text().contains("Gui"))
+    Swag.assert(viewer.output.copyText().contains("Gui"))
     viewer.compileSource(exampleSource(.Julia))
     awaitFrame(viewer)
     viewer.compileSource(exampleSource(.Plasma))
@@ -162,30 +161,39 @@ using Core, Gui, Pixel
 }
 
 // A complete first frame makes the application surface a deterministic, real program preview.
-func assertPreviewSurface(gui: bool)
+func assertPreviewSurface(gui: bool, light: bool)
 {
     var host: Testing.HeadlessHost
     let window = testSetupMainWindow(&host)
+    if light
+    {
+        host.theme.setLight()
+        host.notify(.ThemeChanged)
+    }
+
     window.openExample(gui ? .Gui : .Plasma)
     let viewer = assume cast(*PreviewViewer, window.panels[0].viewer!.window())
     awaitFrame(viewer)
-    host.click(window.panels[0].pauseButton.localToSurface(Math.Point{18, 18}))
-    Swag.assert(viewer.paused and window.panels[0].pauseButton.isChecked)
-    viewer.retranslate()
+    host.click(window.panels[0].pauseButton.localToSurface(Math.Point{8, 8}))
+    Swag.assert(viewer.paused)
+    host.moveMouse({1, 1})
 
     // Timings vary with the machine, while the compiled first frame is deterministic.
-    viewer.status.setText("640 x 400")
+    window.readingLine.setReading(Format.toString(appStrings().ui_LiveStats, 41, 812))
     host.settleAnimations(window, 6)
     var image = host.render(&host.surfaceWnd)
-    Pixel.Testing.assertImageGolden(&image, gui ? "surface.gui" : "surface.render")
+    Pixel.Testing.assertImageGolden(&image, gui ? "surface.gui" : (light ? "surface.render.paper" : "surface.render"))
     window.shutdown()
 }
 
 #[Swag.TestTag("golden")]
-#test { assertPreviewSurface(false) }
+#test { assertPreviewSurface(false, false) }
 
 #[Swag.TestTag("golden")]
-#test { assertPreviewSurface(true) }
+#test { assertPreviewSurface(false, true) }
+
+#[Swag.TestTag("golden")]
+#test { assertPreviewSurface(true, false) }
 
 // Optimization belongs to the panel; stage and playback state belong to each cached viewer.
 #test
@@ -195,33 +203,35 @@ func assertPreviewSurface(gui: bool)
 
     let panel  = window.panels[0]
     let render = assume cast(*PreviewViewer, panel.viewer!.window())
-    panel.optimCombo.setSelectedIndex(1, notify: false)
-    host.click(panel.pauseButton.localToSurface(Math.Point{18, 18}))
-    Swag.assert(render.paused and panel.pauseButton.isChecked)
+    panel.setLevel(.O1, notify: false)
+    host.click(panel.pauseButton.localToSurface(Math.Point{8, 8}))
+    Swag.assert(render.paused and panel.pauseButton.name == appStrings().ui_Resume)
 
     panel.selectViewer(.Microcode)
     let micro = assume cast(*MicrocodeViewer, panel.viewer.window())
     Swag.assert(panel.request("").settings.optimization == .O1 and not panel.pauseButton.isVisible())
-    panel.optimCombo.setSelectedIndex(2, notify: false)
-    micro.stageCombo.setSelectedIndex(3, notify: false)
+    panel.setLevel(.O2, notify: false)
+    micro.setStage(3)
+    Swag.assert(panel.stageMenu.isVisible() and panel.stageMenu.name == Pipeline.stageLabels()[3])
 
     panel.selectViewer(.Gui)
     let gui = assume cast(*PreviewViewer, panel.viewer.window())
     Swag.assert(gui != render and
                 panel.request("").settings.optimization == .O2 and
                 not gui.paused and
-                not panel.pauseButton.isChecked)
+                panel.pauseButton.name == appStrings().ui_Pause)
 
     panel.selectViewer(.Render2D)
     Swag.assert(panel.viewer.window() == &render.wnd and
-                panel.pauseButton.isChecked and
+                panel.pauseButton.name == appStrings().ui_Resume and
                 panel.pauseButton.isVisible())
 
     panel.selectViewer(.Microcode)
-    Swag.assert(panel.viewer.window() == &micro.wnd and micro.stageCombo.selectedIndex == 3)
+    Swag.assert(panel.viewer.window() == &micro.wnd and micro.stage == 3)
 }
 
-// The idle timer compiles the last edit once and can be disabled without a pending compilation.
+// The idle timer compiles the last edit once, and the switch under the frame stops it without
+// leaving a compilation pending.
 #test
 {
     var host: Testing.HeadlessHost
@@ -237,8 +247,8 @@ func assertPreviewSurface(gui: bool)
     Swag.assert(viewer.source == window.editor.text())
     window.editor.setFocus()
     host.sendRune(.Space, ' ')
-    window.commandBar.liveEdit.setState(.Unchecked)
-    window.commandBar.liveEdit.sigChanged.call(window.commandBar.liveEdit)
-    Swag.assert(window.editTimer == null)
+    viewer.liveSwitch.setChecked(false)
+    viewer.liveSwitch.sigChanged.call(viewer.liveSwitch)
+    Swag.assert(window.editTimer == null and not window.liveEdit)
     window.shutdown()
 }

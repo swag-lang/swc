@@ -18,13 +18,13 @@ func awaitFormat(window: *MainWindow)
 {
     var host: Testing.HeadlessHost
     let window = testSetupMainWindow(&host)
-    window.commandBar.liveEdit.setState(.Unchecked)
+    window.setLiveEdit(false)
     const Source = "func value()->s32\n{\nreturn 42\n}\n"
     window.editor.setText(Source)
-    host.click(window.commandBar.formatButton.localToSurface(Math.Point{20, 18}))
-    Swag.assert(window.formatStatus == .Working and window.spinner.isVisible())
+    Swag.assert(window.runCommand(PrismCommands.FormatSource))
+    Swag.assert(window.formatStatus == .Working and window.reading() == appStrings().ui_Formatting)
     awaitFormat(window)
-    Swag.assert(window.formatStatus == .Done and not window.spinner.isVisible())
+    Swag.assert(window.formatStatus == .Done and window.reading() == appStrings().ui_Formatted)
     Swag.assert(window.editor.text().contains("\n    return 42\n"))
     window.editor.undo()
     Swag.assert(window.editor.text() == Source)
@@ -35,17 +35,18 @@ func awaitFormat(window: *MainWindow)
     Swag.assert(window.editor.text() == "// A newer edit\n")
 }
 
-// A syntax error keeps the original source and exposes the formatter diagnostics.
+// A syntax error keeps the original source and exposes the formatter diagnostics in the sheet.
 #test
 {
     var host: Testing.HeadlessHost
     let window = testSetupMainWindow(&host)
-    window.commandBar.liveEdit.setState(.Unchecked)
+    window.setLiveEdit(false)
     const Source = "func broken( {\n"
     window.editor.setText(Source)
     window.format()
     awaitFormat(window)
-    Swag.assert(window.formatStatus == .Failed and not window.spinner.isVisible())
+    Swag.assert(window.formatStatus == .Failed and window.reading() == appStrings().ui_FormatFailed)
     Swag.assert(window.editor.text() == Source)
-    Swag.assert(not window.status.toolTip.isEmpty())
+    window.refreshInformation()
+    Swag.assert(window.infoSheet.text().contains(appStrings().ui_Formatter))
 }

@@ -2,9 +2,9 @@
 
 Swag Prism: editable Swag source and independent viewers of what it compiles into and what it does.
 
-The application demonstrates its own compiler and toolkit through executable examples. A single
-viewer is the default; a global comparison switch exposes a second panel. Each panel keeps its
-microcode, 2D render, and GUI viewer options. The gallery supplies animated plasma, a Julia set,
+The application demonstrates its own compiler and toolkit through executable examples. The window
+shows the source beside one result; a stage-by-stage view and a comparison of two builds take the
+window on request. Each build keeps its microcode, 2D render, and GUI viewer options. The gallery supplies animated plasma, a Julia set,
 a clickable GUI, and a dot product. When live editing is enabled, source edits recompile after
 150 ms of inactivity.
 
@@ -26,17 +26,18 @@ in their viewer, and the readouts report measured compilation and frame renderin
   or absent matches are explained, and the library working tree remains unchanged.
 - Related: app.prism.002
 
-### app.prism.002 — Read the pipeline instead of printing it
+### app.prism.002 — Color the listing by token category instead of terminal colors
 
-- Evidence: the output pane shows plain selectable text in the compiler's terminal colors.
-  `MicroPassManager` prints a `[micro]` header with stage, optimization level and instruction
-  counts before and after with the gain, and `SyntaxColorMode::ForDoc` emits token categories as
-  tags rather than escapes.
-- Next: parse the `[micro]` header and instruction block from the `ForDoc` stream, map the
-  categories onto the theme palette, and show the count and gain beside the stage selector.
-- Done when: the viewer groups parsed stages with counts and gain, marks passes that changed the
-  function, renders a selectable before/after diff with category colors across shipped themes,
-  and malformed or incomplete output stays readable with focused coverage.
+- Evidence: `Pipeline.Inspection` reads the `[micro]` printings of every offered stage from one
+  compilation: the header, the instructions, labels and source lines, the steps that changed the
+  function, and a before/after diff (`inspection.test.swg`). It reads the ANSI stream, so the
+  listing keeps the terminal palette deepened by `Color.ensureContrast`, and `ListingView` chooses
+  whole rows rather than characters. `SyntaxColorMode::ForDoc` emits token categories as tags.
+- Next: read the `ForDoc` stream instead of the escapes and map its categories onto the theme's
+  syntax palette; let the listing choose characters as well as rows.
+- Done when: the listing's colors come from the theme in both palettes and a part of a row can be
+  copied.
+- Related: app.prism.004
 
 ### app.prism.003 — Forward continuous input to the running preview
 

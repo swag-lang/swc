@@ -2,7 +2,7 @@
 
 using Core
 
-// The starter snippets, in the order of the example selector.
+// The starter snippets, in the order of the example menu.
 enum ExampleKind
 {
     Plasma
@@ -10,6 +10,9 @@ enum ExampleKind
     Gui
     Dot
 }
+
+// Identities of the entries of the example menu, which borrows them, in the order of `ExampleKind`.
+const ExampleIds = ["prism.example.plasma", "prism.example.julia", "prism.example.gui", "prism.example.dot"]
 
 // Returns the source text of an example.
 func exampleSource(kind: ExampleKind)->string
@@ -23,7 +26,32 @@ func exampleSource(kind: ExampleKind)->string
     }
 }
 
-// Returns the viewer the first panel switches to when an example opens.
+// Returns the name of an example, as its menu, the lens and the window title write it.
+func exampleName(kind: ExampleKind)->string
+{
+    switch #complete kind
+    {
+    case .Plasma: return appStrings().ui_Plasma
+    case .Julia:  return appStrings().ui_Julia
+    case .Gui:    return appStrings().ui_GuiExample
+    case .Dot:    return appStrings().ui_Dot
+    }
+}
+
+// Returns the name of the file an example stands for, which heads the source column. A file name is
+// not translated.
+func exampleFileName(kind: ExampleKind)->string
+{
+    switch #complete kind
+    {
+    case .Plasma: return "plasma.swg"
+    case .Julia:  return "julia.swg"
+    case .Gui:    return "gui.swg"
+    case .Dot:    return "dot.swg"
+    }
+}
+
+// Returns the viewer the main build switches to when an example opens.
 func exampleViewer(kind: ExampleKind)->ViewerKind
 {
     switch #complete kind

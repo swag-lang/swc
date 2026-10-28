@@ -147,17 +147,20 @@ private func compilerArgument(prefix: string)->string
 }
 
 /*
-Returns `source` with the attributes that make one function inspectable.
+Returns `source` with the attribute that prints one function at each of `stages`.
 
 `Swag.PrintMicro` is an attribute rather than a compiler flag, so asking for a stage means writing
 it into the source. Swag Prism inspects the first function the snippet declares: that rule is
 simple enough for a reader to hold, and it puts the choice where they can see it, since moving a
 function to the top is how they change what is inspected.
 
+The attribute takes several stages, and one compilation that prints them all is what lets the
+reader step from stage to stage without compiling again.
+
 A snippet that declares no function is returned unchanged. It will compile and print nothing, which
 is the honest outcome — there is nothing to show.
 */
-func inspectedSource(source: string, stage: string)->String
+func inspectedSource(source: string, stages: const [..] string)->String
 {
     let cut = firstFunctionOffset(source)
 
@@ -169,9 +172,30 @@ func inspectedSource(source: string, stage: string)->String
     }
 
     result.append(source[until cut])
-    result.appendFormat("#[Swag.PrintMicro(\"%\")]\n", stage)
+    result.append("#[Swag.PrintMicro(")
+    for stage, index in stages
+    {
+        if index do
+            result.append(", ")
+        result.appendFormat("\"%\"", stage)
+    }
+
+    result.append(")]\n")
     result.append(source[cut to])
     return result
+}
+
+// Returns the declaration of the function Swag Prism inspects, the first line of the first
+// top-level function of `source`, or an empty string when it declares none.
+func inspectedSignature(source: string)->string
+{
+    let cut = firstFunctionOffset(source)
+    if cut == Swag.U64.Max do
+        return ""
+    var end = Utf8.indexOf(source, '\n'rune, cut)
+    if end == Swag.U64.Max do
+        end = source.count
+    return Latin1.trim(source[cut until end])
 }
 
 // Offset of the first top-level `func` declaration in `source`, or `U64.Max` when it has none.

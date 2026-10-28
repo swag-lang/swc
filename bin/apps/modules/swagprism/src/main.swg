@@ -26,7 +26,7 @@ const SurfaceId   = "swag.prism"
                                           surfaceId: SurfaceId)
     g_App.theme.setDark()
     g_App.notifyThemeChanged()
-    surface.setTitle(appStrings().ui_WindowTitle)
+    surface.setTitle(ProductName)
 
     let window = MainWindow.create(surface.wnd)
 

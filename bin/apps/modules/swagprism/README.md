@@ -1,9 +1,13 @@
 # Swag Prism
 
-Edit Swag source and explore it through independently configured viewers. Prism opens with one
-animated 2D viewer. The framed icon at the right of the viewer header toggles a second panel; each
-panel's header groups its viewer selector and O0/O1/O2 optimization level. Changing the viewer
-keeps the panel's optimization level and restores that viewer's stage or playback state.
+Edit Swag source and see what the compiler makes of it. The window is two quiet columns separated by
+one hairline: the source at the left, a result at the right. Quiet text menus above each column
+carry its settings — the example the source started from; the viewer, the stage and the O0/O1/O2
+optimization level of the result. Everything else is in the lens, which `Ctrl K` opens (`Space`
+where nothing types): every command, the examples, the views, the stages, the levels, the presets,
+the theme, the language and About. The readings of the build are in the sheet (`Ctrl I`, or `I`
+where nothing types). The foot of the window keeps a hint line at the left and the reading of the
+last build at the right.
 
 - **2D render:** define `func shade(x, y, time: f32)->u32`. The viewer runs native code for each
   pixel of a 640 by 400 image. Coordinates span approximately `[-1.6, 1.6]` horizontally and
@@ -12,35 +16,45 @@ keeps the panel's optimization level and restores that viewer's stage or playbac
 - **GUI:** define `func buildView(parent: *Gui.Wnd)`. Build controls under the supplied parent;
   the viewer displays the actual GUI and forwards clicks into it. The current preview supports
   clicks; keyboard input, dragging, and the wheel remain future work.
-- **Microcode:** inspect the first function that starts a line with `func`. Choose a compilation
-  stage and O0, O1, or O2. Compiler output retains its colors and remains selectable.
+- **Microcode:** inspect the first function that starts a line with `func`. One compilation prints
+  it at every offered stage, so choosing a stage compiles nothing. The listing writes each
+  instruction as a reader writes it, or as the backend spells it (Show Opcodes), with the source
+  lines on request (Show Source Lines), in the compiler's colors; `Ctrl C` copies the chosen rows.
 
-The example combo replaces the source with a plasma, Julia fractal, live GUI, or dot product and
-selects the corresponding viewer in the first panel. Compile feeds the same source to both
-visible panels. The source panel toolbar keeps Compile, Format, Auto, and the examples on one line;
-labels yield to icons when the source panel narrows. Automatic
-compilation waits 150 ms after the last edit and can be disabled.
+Three views share the window (`Ctrl 1`, `Ctrl 2`, `Ctrl 3`):
 
-Format runs the Swag formatter on the source and applies the result as one undoable edit. A syntax
-error or a newer edit leaves the source unchanged. Compilation progress appears only in the bottom
-information bar, with an animated spinner.
+- **Source and Result**, the default.
+- **Stage by Stage**: a frieze of the steps that changed the function, browsed with `←` `→`. The
+  margin reads what the chosen step did to the count, and its listing strikes out the instructions
+  the pass removed and marks the ones it added in Arc; Show the Change turns the marks off.
+- **Compare Two Builds**: the reference build at the left, the main build at the right, each headed
+  by its count; the main build says what it gains, and both mark their innermost loop.
 
-The settings icon in each viewer header opens a Swag configuration editor. Choose a `release` or
-`devmode` preset, then edit a `#run` block using `unwrap Swag.compiler().getBuildCfg()`, as in `module.swg`.
+The example menu replaces the source with a plasma, Julia fractal, live GUI, or dot product and
+selects the corresponding viewer. `Ctrl ⏎` compiles the source for the visible builds. Automatic
+compilation waits 150 ms after the last edit; the switch under a running picture, or Recompile
+After Editing in the lens, turns it off.
+
+Format Source (`Ctrl Shift F`) runs the Swag formatter and applies the result as one undoable edit.
+A syntax error or a newer edit leaves the source unchanged, and the sheet shows the formatter's
+diagnostics.
+
+Build Configuration, in the lens, takes the place of a viewer with a Swag configuration editor.
+Choose a `release` or `devmode` preset from its header, then edit a `#run` block using
+`unwrap Swag.compiler().getBuildCfg()`, as in `module.swg`.
 The starter fragment includes commented examples for safety, sanity, inlining, vectorization, and
-floating-point options. The reset icon restores that panel's preset, configuration text, and original
-optimization level. Configuration belongs to the panel and survives changing viewer type. Prism
+floating-point options. Restore Defaults restores that build's preset, configuration text, and original
+optimization level. Configuration belongs to the build and survives changing viewer type. Prism
 sets the required backend kind and dependency publication after the custom configuration. Presets
 apply their option values in `module.swg`, so an explicit CLI preset cannot overwrite your edits.
-The compiler configuration name used by `#cfg` remains its implicit `devmode`; the O0/O1/O2 selector
+The compiler configuration name used by `#cfg` remains its implicit `devmode`; the O0/O1/O2 menu
 supplies the initial optimization level, which the configuration fragment may override.
 
 Frames travel directly through shared memory. The interface checks for a new frame every 16 ms;
-an event wakes the producer as soon as a frame is consumed, without a fixed sleep after rendering. Only the first frame changes the panel layout,
-and timing labels refresh periodically instead of on every frame.
+an event wakes the producer as soon as a frame is consumed, without a fixed sleep after rendering. Only the first frame changes the layout,
+and timing readings refresh periodically instead of on every frame.
 
-Execution previews have a Pause/Resume icon in their panel header; microcode has no playback button.
-The icon stays pressed while paused and restores the selected viewer's playback state. Their status
+A running picture has a quiet Pause or Resume in its column header; microcode has none. The reading
 shows whether the build was reused, or measured build time in milliseconds and frame computation
 time in microseconds; this is not a frames-per-second benchmark. Hidden previews stop consuming frames until shown again.
 
@@ -55,7 +69,7 @@ The renderer is already compiled into Prism and runs in a separate host process,
 recompile frame transport, the pixel loop, or GUI hosting. Prism explicitly links its imports as
 shared libraries to share the runtime and allocator with those loaded modules. Preview builds
 publish their runtime dependencies. The window shares a bounded compilation cache
-across its panels. Matching source, configuration, viewer contract, and stage reuse the same artifact,
+across its panels. Matching source, configuration, and viewer contract reuse the same artifact,
 including a build already in progress. A native viewer and microcode can share one native build when
 their source and settings match. Different optimization levels or configuration overrides require
 separate builds. Compile explicitly rebuilds; automatic edits and option changes can reuse results.

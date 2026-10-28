@@ -1,18 +1,37 @@
 #global internal
 
-using Core, Gui
+using Core, Gui, Pixel
 
-// What the status line says about the formatter.
+// What the reading of the window says about the formatter.
 enum FormatStatus
 {
     None        // Nothing to report, or a compilation has replaced the report.
     Working     // The formatter is running.
     Done        // The formatted source replaced the editor text.
-    Failed      // The formatter stopped on an error, shown as the status tooltip.
+    Failed      // The formatter stopped on an error, which the sheet shows.
     Changed     // The source was edited while it was formatted, so the result was dropped.
 }
 
-// Owns the shared source and one or two independently configured viewers.
+// The ways the window lays the work out.
+enum PrismView
+{
+    Columns     // The source and one result, separated by a hairline.
+    Stages      // The instructions alone, stage by stage.
+    Compare     // Two builds of the source side by side, the reference at the left.
+}
+
+/*
+The window of Swag Prism: the source, and what the compiler makes of it.
+
+Beside the source, one column shows a result: the instructions of the first function, the picture
+a `shade` function paints, or the interface a `buildView` function builds. Stage by stage, the
+instructions take the window and a frieze steps through what each pass did. Two builds of the same
+source can stand side by side, the reference at the left.
+
+Everything else is asked for. Every command is an entry of the lens, which `Ctrl K` opens (and
+`Space` where nothing types); the readings of the build are in the sheet (`Ctrl I`); the window
+keeps only a hint line and the reading of the last build at its foot.
+*/
 struct MainWindow
 {
     using wnd: Wnd
@@ -20,43 +39,52 @@ struct MainWindow
     late
     {
         appearanceButton: *AppearanceButton
-        spinner:          *Spinner
-        layoutButton:     *IconButton
-        sourcePanel:      *Wnd
         editor:           *RichEditCtrl
-        status:           *Label
-        commandBar:       *SourceActions
-        statusBar:        *Wnd
-        sourceSplit:      *SplitterCtrl
-        viewerSplit:      *SplitterCtrl
+        exampleMenu:      *IconButton
+        lens:             *Lens.View
+        infoSheet:        *InfoSheet
+        hintLine:         *HintLine
+        readingLine:      *HintLine
     }
 
-    cache:             Pipeline.CompilationCache
-    formatter:         Pipeline.SourceFormatter
-    formatTask:        Swag.Task
-    formatSource:      String
-    formatResult:      Pipeline.Result
-    formatStatus:      FormatStatus
-    editTimer:         *Timer?
-    selectedExample:   ExampleKind
-    panels:            Array'*ViewerPanel
-    icons:             IconSet
-    comparisonEnabled: bool
-    lexer:             RichEditLexerSwag
-    language:          String
-    themeIndex:        u32
+    cache:           Pipeline.CompilationCache
+    formatter:       Pipeline.SourceFormatter
+    formatTask:      Swag.Task
+    formatSource:    String
+    formatResult:    Pipeline.Result
+    formatStatus:    FormatStatus
+    editTimer:       *Timer?
+    selectedExample: ExampleKind
+    panels:          Array'*ViewerPanel     // The main build, then the reference it is compared with.
+    icons:           IconSet
+    lexer:           RichEditLexerSwag
+    language:        String
+    themeIndex:      u32
+    view:            PrismView
+    liveEdit:        bool = true
+    listingForm:     ListingForm
+    showSource:      bool
+    doorKnown:       bool     // Whether the reader has opened the lens; the hint line stops teaching it then.
 }
 
 impl MainWindow
 {
-    const WindowWidth  = 1500's32
-    const WindowHeight = 900's32
+    const WindowWidth  = 1280's32
+    const WindowHeight = 800's32
     const MinWidth     = 1080.0
     const MinHeight    = 560.0
-    const Gutter       = 16.0
 
-    // Builds the window: the appearance button, the status line, the source and viewer panes,
-    // and the texts of the active language.
+    // The measures of the page: the air above the headers, under the columns, at the sides and
+    // around the hairline between the columns.
+    const TopGap         = 36.0
+    const FooterHeight   = 96.0
+    const MaxSideMargin  = 96.0
+    const MaxHalfGutter  = 64.0
+    const MinSideMargin  = 32.0
+    const MinHalfGutter  = 24.0
+    const SourceTitleGap = 12.0     // Air between the name of the source and the menu of examples.
+
+    // Builds the window: the source, the results, the foot, the sheet and the lens.
     func create(parent: *Wnd)->*MainWindow
     {
         let result  = Wnd.create'MainWindow(parent, "prism.mainWindow")
@@ -64,26 +92,30 @@ impl MainWindow
         surface.setView(result)
         result.icons.setup(result.app().renderer, prismIcons())
         surface.minSize        = {MinWidth, MinHeight}
-        result.backgroundStyle = .ToolBar
+        result.backgroundStyle = .Window
         result.language        = ReferenceLanguage
 
         result.createAppearanceButton()
-        result.createStatusLine()
-        result.createPanes()
+        result.createSourceColumn()
+        result.createFoot()
+        result.infoSheet = InfoSheet.create(result, "prism.information")
+        result.createPanels()
+        result.createLens()
         result.applyLanguage()
-        result.retranslate()
-        result.applyLayout()
+        result.applyView(.Columns)
         return result
     }
 
-    // Returns an application glyph at the toolbar size.
-    mtd icon(kind: PrismIcon)->Icon => .icons.icon(cast(s32, kind), 18, .theme().res.atlasScale)
+    // Returns an application glyph at the size of a lens row.
+    mtd icon(kind: PrismIcon)->Icon => .icons.icon(cast(s32, kind), cast(s32, .themeMetrics().menuPopup_IconSize), .theme().res.atlasScale)
 
-    // Creates the caption's appearance action, which persists the palette and language it applies.
+    // Creates the owner of the palette and language the reader picks, which persists them and
+    // opens the About box. Its choices are lens entries, so the button itself stays hidden.
     mtd createAppearanceButton()
     {
         with .appearanceButton = AppearanceButton.create(unwrap .surface, "prism.appearance")
         {
+            .hide()
             .sigThemeChanged += func|window = me|(button)
             {
                 window.themeIndex = cast(u32, button.appearanceTheme)
@@ -103,175 +135,173 @@ impl MainWindow
         }
     }
 
-    // Creates the source toolbar above the editor and routes its actions to the window.
-    mtd createCommandBar()
+    // Creates the source column: its editor, and the menu of examples beside its name.
+    mtd createSourceColumn()
     {
-        with .commandBar = Wnd.create'SourceActions(.sourcePanel)
+        with .exampleMenu = createQuietMenu(me, "prism.examples")
         {
-            .dockStyle       = .Top
-            .backgroundStyle = .CommandBar
-            .padding         = 0
-            .margin          = {0, 0, 0, 8}
+            .sigPressed += func|window = me|(_) { window.showExampleMenu() }
         }
 
-        with .commandBar.runButton = PushButton.create(.commandBar, appStrings().ui_CompileVisible, {0, 0, 0, 36}, "prism.run", .Strong)
+        with .editor = RichEditCtrl.create(me)
         {
-            .style.setStyleSheetMetrics("btnPush_Width 0")
-            .setIcon(me.theme().icon(.Play, 18))
-            .setIconSize(18, 18)
-            .sigPressed += func|window = me|(_) { window.compile(force: true) }
-        }
-
-        with .commandBar.formatButton = PushButton.create(.commandBar, "", {0, 0, 0, 36}, "prism.format")
-        {
-            .style.setStyleSheetMetrics("btnPush_Width 0")
-            .setIcon(me.icon(.Format))
-            .setIconSize(18, 18)
-            .sigPressed += func|window = me|(_) { window.format() }
-        }
-
-        with .commandBar.liveEdit = CheckButton.create(.commandBar, "", {0, 0, 0, 36}, "prism.liveEdit")
-        {
-            .style.setStyleSheetMetrics("btnPush_Width 0")
-            .setState(.Checked)
+            .lineSpacing = ListingView.LineSpacing
+            .setFlags(.LineNumbers)
+            .setLexer(&me.lexer)
+            .setText(exampleSource(.Plasma))
             .sigChanged += func|window = me|(_) { window.scheduleCompile() }
         }
 
-        with .commandBar.exampleCombo = ComboBox.create(.commandBar, {0, 0, 0, 36}, "prism.examples")
+        // The editor takes `Enter` with any modifier as a new line; `Ctrl Enter` compiles instead,
+        // and its character must not reach the text.
+        .hookOnChildEvent = func|window = me|(_, evt)->bool
         {
-            .sigChanged += func|window = me|(_, index) { window.openExample(cast(ExampleKind, index)) }
+            if evt is KeyEvent as key where key.key == .Return and key.modifiers.has(.Control) and not window.lens.isOpen()
+            {
+                if key.kind == .Pressed do
+                    window.compile(force: true)
+                key.accepted = true
+                return true
+            }
+
+            return false
         }
     }
 
-    // Creates the one-or-two-viewers toggle in the header of the first panel.
-    mtd createLayoutButton()
+    // Creates the main build, which opens on the picture of the first example, and the reference
+    // build it can be compared with, which opens on unoptimized instructions.
+    mtd createPanels()
     {
-        with .layoutButton = IconButton.create(.panels[0].header, .icon(.Layout), {0, 0, 36, 36}, "prism.layout", flags: .Toggle)
-        {
-            .dockStyle = .Right
-            .margin    = {8, 0, 0, 0}
-            .setIconSize(18, 18)
-            .setCheckIndicator(.Frame)
-            .sendToBack()
-            .sigCheckedChanged += func|window = me|(button) { window.setComparisonEnabled(button.isChecked) }
-        }
-    }
-
-    // Creates the status line at the bottom of the window.
-    mtd createStatusLine()
-    {
-        with .statusBar = Wnd.create'Wnd(&.wnd, {0, 0, 0, 32})
-        {
-            .dockStyle       = .Bottom
-            .backgroundStyle = .InformationBar
-            .padding         = {Gutter, 4, Gutter, 4}
-        }
-
-        with .spinner = Spinner.create(.statusBar, {0, 0, 16, 16}, "prism.busy")
-        {
-            .dockStyle = .Left
-            .margin    = {0, 4, 8, 4}
-            .hide()
-        }
-
-        with .status = Label.create(.statusBar, "", {}, null, .SecondaryText)
-        {
-            .dockStyle = .Center
-            .setTextAlignment(.Left, .Center)
-        }
-    }
-
-    // Creates the source pane and the viewer split beside it.
-    mtd createPanes()
-    {
-        with .sourceSplit = SplitterCtrl.create(&.wnd, {}, false, "prism.split")
-        {
-            .dockStyle       = .Center
-            .backgroundStyle = .Transparent
-        }
-
-        with .sourcePanel = Wnd.create'Wnd(.sourceSplit)
-        {
-            .backgroundStyle = .Panel
-            .padding         = 8
-        }
-
-        .createCommandBar()
-        with .editor = RichEditCtrl.create(.sourcePanel)
-        {
-            .dockStyle = .Center
-            .setLexer(&me.lexer)
-            .setText(exampleSource(.Plasma))
-        }
-
-        // The first viewer opens on unoptimized code, the comparison on optimized code.
-        with .viewerSplit = SplitterCtrl.create(.sourceSplit, {}, false, "prism.viewers")
-        {
-            .backgroundStyle = .Transparent
-        }
-
-        .createViewerPanel(.O0)
         .createViewerPanel(.O2)
-
-        .sourceSplit.addPane(.sourcePanel, 480).minimumSize = 360
-        .sourceSplit.addPane(.viewerSplit, 960).minimumSize = ViewerPanel.MinWidth
-        .viewerSplit.setPaneVisible(1, false)
+        .createViewerPanel(.O0)
         .panels[0].selectViewer(.Render2D)
-        .createLayoutButton()
-        .refreshPaneLayout()
-        .editor.sigChanged += func|window = me|(_) { window.scheduleCompile() }
+        .panels[1].hide()
     }
 
-    // Creates one viewer panel in the viewer split and routes its requests to the window.
+    // Creates one viewer panel and routes its requests to the window.
     mtd createViewerPanel(level: Swag.Build.BackendOptimLevel)
     {
-        with let panel = ViewerPanel.create(.viewerSplit, .editor, level, &.cache)
+        with let panel = ViewerPanel.create(me, .editor, level, &.cache)
         {
             .sigChanged          += func|window = me|(_) { window.refreshStatus() }
             .sigCompileRequested += func|window = me|(_) { window.compile() }
             .sigOptionsChanged   += func|window = me|(_) { window.scheduleCompile() }
+            .sigLiveEditChanged  += func|window = me|(on) { window.setLiveEdit(on) }
         }
 
         .panels.add(panel)
-        .viewerSplit.addPane(panel, 540).minimumSize = ViewerPanel.MinWidth
     }
 
-    // Applies the theme gutter, and keeps the viewer side wide enough for every visible panel.
-    mtd refreshPaneLayout()
+    // Creates the foot of the window: the hint line at the left, the reading of the last build at
+    // the right.
+    mtd createFoot()
     {
-        let gutter = .themeMetrics().panel_GutterSize
-        .sourceSplit.margin = Math.Vector4{gutter, gutter, gutter, gutter}
-        .sourceSplit.items[1]!.minimumSize = .comparisonEnabled ? 2 * ViewerPanel.MinWidth + .themeMetrics().splitView_BarSize : ViewerPanel.MinWidth
-        .applyLayout()
+        with .hintLine = HintLine.create(me, "prism.hint")
+        {
+            .setAlignment(.Leading)
+        }
+
+        with .readingLine = HintLine.create(me, "prism.reading")
+        {
+            .setAlignment(.Trailing)
+        }
     }
 
-    // Shows one viewer panel or two side by side, splitting the space evenly when the second
-    // appears.
-    mtd setComparisonEnabled(enabled: bool)
+    // Lays the work out as `view`: the source and one result, the instructions stage by stage, or
+    // two builds side by side, and compiles for the panels it shows.
+    mtd setView(view: PrismView)
     {
-        if .comparisonEnabled == enabled do
-            return
-        .comparisonEnabled = enabled
-        .layoutButton.setParent(.panels[enabled ? 1 : 0].header)
-        .layoutButton.sendToBack()
-        .viewerSplit.setPaneVisible(1, enabled)
-        .refreshPaneLayout()
-        if enabled do
-            .viewerSplit.setPaneSize(0, (.viewerSplit.paddedClientRect().width - .themeMetrics().splitView_BarSize) / 2)
+        .applyView(view)
+        .compile()
+    }
+
+    // Lays the work out as `view`, compiling nothing.
+    mtd applyView(view: PrismView)
+    {
+        .view = view
+        if view == .Stages
+        {
+            .panels[0].selectViewer(.Microcode)
+            .panels[0].showOptions(false)
+        }
+
+        let compare = view == .Compare
+        .editor.show(view == .Columns)
+        .exampleMenu.show(view == .Columns)
+        .panels[1].show(compare)
+        .panels[0].setLayout(view == .Columns ? PanelLayout.Column : (compare ? PanelLayout.Compare : PanelLayout.Stages))
+        .panels[1].setLayout(.Compare)
         .retranslate()
     }
 
+    // Returns the room of the page: the side margin and half the gutter between the columns, which
+    // both shrink with a narrow window.
+    mtd sideMargin()->f32 => Math.round(Math.clamp(.clientRect().width * 0.075, MinSideMargin, MaxSideMargin))
+    mtd halfGutter()->f32 => Math.round(Math.clamp(.clientRect().width * 0.05, MinHalfGutter, MaxHalfGutter))
+
+    // Places the source and the results on the page of the window for the view in force.
+    mtd arrangeParts()
+    {
+        // The window lays itself out while its parts are still being created.
+        if .panels.count < 2 do
+            return
+
+        let client = .clientRect()
+        let margin = .sideMargin()
+        let gutter = .halfGutter()
+        let top    = .stripInset() + TopGap
+        let height = Math.max(0'f32, client.height - FooterHeight - top)
+        let center = Math.round(client.width * 0.5)
+        let left   = Math.Rectangle{margin, top, Math.max(0'f32, center - gutter - margin), height}
+        let right  = Math.Rectangle{center + gutter, top, Math.max(0'f32, client.width - margin - center - gutter), height}
+
+        // The foot reads at the sides of the page.
+        .padding.x = margin
+        .padding.z = margin
+
+        switch .view
+        {
+        case .Columns:
+            let editorTop = top + QuietHeight + ViewerPanel.HeaderGap
+            .exampleMenu.setPosition(Math.Rectangle{margin + .sourceTitleWidth() + SourceTitleGap, top, .exampleMenu.position.width, QuietHeight})
+
+            // The source is text on the ground: it may run into the gutter, short of the hairline.
+            let editorWidth = Math.max(0'f32, center - MinHalfGutter - margin)
+            .editor.setPosition(Math.Rectangle{margin, editorTop, editorWidth, Math.max(0'f32, top + height - editorTop)})
+            .panels[0].setPosition(right)
+
+        case .Compare:
+            .panels[1].setPosition(left)
+            .panels[0].setPosition(right)
+
+        case .Stages:
+            .panels[0].setPosition(Math.Rectangle{margin, top, Math.max(0'f32, client.width - 2 * margin), height})
+        }
+
+        .hintLine.itf.onLayout()
+        .readingLine.itf.onLayout()
+        .invalidate()
+    }
+
+    // Returns the name of the example the source started from, as its column writes it.
+    mtd sourceTitle()->string    => exampleFileName(.selectedExample)
+    mtd sourceTitleFont()->*Font => .theme().createDefaultFont(.themeMetrics().defaultFontSize, .Bold)
+    mtd sourceTitleWidth()->f32  => Painter.measureString(.sourceTitle(), .sourceTitleFont()).width
+
     // One native build can print the inspected function and run the same program: the microcode
-    // request takes the kind of the native one, which inspects the same stage when both compile
-    // the same program.
+    // request takes the kind of the native one, which inspects the function when both compile the
+    // same program.
     func shareNativeBuild(microcode, native: *Pipeline.BuildRequest)
     {
         microcode.kind = native.kind
         if microcode.sameProgram(native[]) do
-            native.stage = microcode.stage
+            native.inspect = true
     }
 
-    // Only visible viewers receive the source snapshot; the hidden comparison keeps its result.
+    // Returns whether the panel `index` shows in the view in force.
+    mtd isShown(index: u64)->bool => index == 0 or .view == .Compare
+
+    // Compiles the source for the panels that show; a hidden panel keeps its result.
     mtd compile(force = false)
     {
         .cancelEditTimer()
@@ -281,9 +311,9 @@ impl MainWindow
             .cache.invalidate()
         let source = .editor.text()
         var requests: [2] Pipeline.BuildRequest
-        for panel, index in .panels where index == 0 or .comparisonEnabled do
+        for panel, index in .panels where .isShown(index) do
             requests[index] = panel.request(source)
-        if .comparisonEnabled
+        if .view == .Compare
         {
             if requests[0].kind == .Microcode and requests[1].kind != .Microcode do
                 shareNativeBuild(&requests[0], &requests[1])
@@ -291,7 +321,7 @@ impl MainWindow
                 shareNativeBuild(&requests[1], &requests[0])
         }
 
-        for panel, index in .panels where index == 0 or .comparisonEnabled do
+        for panel, index in .panels where .isShown(index) do
             panel.compile(requests[index])
         .refreshStatus()
     }
@@ -322,7 +352,6 @@ impl MainWindow
         .cancelEditTimer()
         .formatSource = .editor.text()
         .formatStatus = .Working
-        .commandBar.formatButton.enable(false)
         .formatTask.submit(func|window = me|()
         {
             var errorOutcome: Swag.Error
@@ -339,7 +368,6 @@ impl MainWindow
     // ran, and recompiles what it rewrote.
     mtd finishFormat()
     {
-        .commandBar.formatButton.enable()
         if .formatResult.failed
         {
             .formatStatus = .Failed
@@ -374,8 +402,20 @@ impl MainWindow
     mtd scheduleCompile()
     {
         .cancelEditTimer()
-        if .commandBar.liveEdit.isChecked() do
+        if .liveEdit do
             .editTimer = .addTimer(150'ms)
+    }
+
+    // Compiles again after each edit, or only when asked.
+    mtd setLiveEdit(on: bool)
+    {
+        .liveEdit = on
+        for panel in .panels do
+            panel.syncLiveEdit(on)
+        if on do
+            .scheduleCompile()
+        else do
+            .cancelEditTimer()
     }
 
     // Loads example `kind` into the editor, shows it in the viewer it was written for, and
@@ -385,64 +425,152 @@ impl MainWindow
         .selectedExample = kind
         .editor.setText(exampleSource(kind))
         .panels[0].selectViewer(exampleViewer(kind))
-        .commandBar.exampleCombo.setSelectedIndex(cast(u32, kind), notify: false)
+        .retranslate()
         .compile()
     }
 
-    // Shows the running viewers or the outcome of the last format in the status line, with the
-    // formatter diagnostics as its tooltip on failure.
-    mtd refreshStatus()
+    // Shows the examples under their menu, the one the source started from checked.
+    mtd showExampleMenu()
+    {
+        let menu = MenuCtrl.createPopup(me, owner: me)
+        for id, index in ExampleIds do
+            menu.addRadioItem(exampleName(cast(ExampleKind, cast(u32, index))), id, checked: cast(u64, .selectedExample) == index)
+
+        let chosen = menu.doModal(.exampleMenu, autoDestroy: true) orelse ""
+        for id, index in ExampleIds where chosen == id do
+            .openExample(cast(ExampleKind, cast(u32, index)))
+    }
+
+    // Returns what the window reports about its latest work: the viewers still compiling, the
+    // outcome of a format, or the reading of the main build.
+    mtd reading()->String
     {
         var running = 0'u64
-        for panel in .panels where panel.isRunning() do
+        for panel, index in .panels where .isShown(index) and panel.isRunning() do
             running += 1
 
-        .spinner.show(running != 0 or .formatStatus == .Working)
-        .status.toolTip = ""
-        if running > 1
+        let strings = appStrings()
+        if running > 1 do
+            return Format.toString(strings.ui_RunningViewers, running)
+        if running do
+            return strings.ui_Working
+
+        switch #complete .formatStatus
         {
-            .status.setText(Format.toString(appStrings().ui_RunningViewers, running))
+        case .None:    return .panels[0].viewer!.reading()
+        case .Working: return strings.ui_Formatting
+        case .Done:    return strings.ui_Formatted
+        case .Changed: return strings.ui_FormatChanged
+        case .Failed:  return strings.ui_FormatFailed
         }
-        elif running
+    }
+
+    // Writes the reading at the foot, compares the two builds, and keeps the sheet current.
+    mtd refreshStatus()
+    {
+        .applyListingOptions()
+        .readingLine.setReading(.reading())
+        .refreshComparison()
+        .refreshHints()
+        if .infoSheet.isLocallyVisible() do
+            .refreshInformation()
+    }
+
+    // Teaches the keys of the view in force: the steps stage by stage, and while the lens has not
+    // been opened yet, compiling and the lens itself.
+    mtd refreshHints()
+    {
+        let strings = appStrings()
+        .hintLine.clearHints()
+        if .view == .Stages
         {
-            .status.setText(appStrings().ui_Working)
-        }
-        else
-        {
-            switch #complete .formatStatus
+            let micro = .panels[0].micro()
+            if micro and not micro.inspection.steps.isEmpty()
             {
-            case .None:
-                .status.setText(appStrings().ui_Ready)
+                let place = Format.toString(strings.hint_Steps, micro.step + 1, micro.inspection.steps.count)
+                .hintLine.addHint(strings.key_Steps, place)
+            }
+        }
+        elif not .doorKnown
+        {
+            if .view == .Columns do
+                .hintLine.addHint(strings.key_Compile, strings.hint_Compile)
+            .hintLine.addHint(strings.key_Lens, strings.hint_Lens)
+        }
+    }
 
-            case .Working:
-                .status.setText(appStrings().ui_Formatting)
+    // Beside another build, the main build says what it gains over the reference, and its
+    // listing how its innermost loop changed.
+    mtd refreshComparison()
+    {
+        let main      = .panels[0]
+        let reference = .panels[1]
+        main.gain.clear()
+        let mainMicro = main.micro()
+        if mainMicro do
+            mainMicro.listing.setNote("")
+        if .view != .Compare do
+            return
 
-            case .Done:
-                .status.setText(appStrings().ui_Formatted)
+        let mine   = main.listedInstructions()
+        let theirs = reference.listedInstructions()
+        if mine != Swag.U32.Max and theirs != Swag.U32.Max and theirs != 0
+        {
+            let percent = (cast(f64, mine) - cast(f64, theirs)) * 100 / cast(f64, theirs)
+            let rounded = cast(s64, Math.round(percent))
+            main.gain.append(signOf(rounded))
+            main.gain.appendFormat("% %%", Math.abs(rounded))
+        }
 
-            case .Changed:
-                .status.setText(appStrings().ui_FormatChanged)
-
-            case .Failed:
-                .status.setText(appStrings().ui_FormatFailed)
-                var output: CompilerOutput
-                output.parse(.formatResult.text)
-                .status.toolTip = output.text
+        let referenceMicro = reference.micro()
+        if mainMicro and referenceMicro
+        {
+            let mineShown   = mainMicro.shown()
+            let theirsShown = referenceMicro.shown()
+            if mineShown and theirsShown
+            {
+                let mineLoop   = mineShown.innermostLoop()
+                let theirsLoop = theirsShown.innermostLoop()
+                if mineLoop.first != Swag.U64.Max and theirsLoop.first != Swag.U64.Max do
+                    mainMicro.listing.setNote(Format.toString(appStrings().ui_LoopNote, theirsLoop.instructions, mineLoop.instructions))
             }
         }
 
-        .statusBar.applyLayout()
+        main.invalidate()
     }
 
-    // Writes the command bar, layout button, and window title in the active language.
+    // Writes the window title, the menus and the hints in the active language.
     mtd retranslate()
     {
-        .commandBar.retranslate(.selectedExample)
-        .layoutButton.setChecked(.comparisonEnabled)
-        .layoutButton.toolTip = .comparisonEnabled ? appStrings().ui_OneViewer : appStrings().ui_TwoViewers
-        .surface!.setTitle(appStrings().ui_WindowTitle)
+        setQuietText(.exampleMenu, appStrings().ui_Examples)
+        .exampleMenu.toolTip = appStrings().ui_Examples
+        .surface!.setTitle(.title())
         .refreshStatus()
-        .applyLayout()
+        .arrangeParts()
+    }
+
+    // Returns the title of the window: the example, the example and the view stage by stage, and
+    // the inspected function and its stage beside another build.
+    mtd title()->String
+    {
+        let name = exampleName(.selectedExample)
+        switch #complete .view
+        {
+        case .Columns:
+            return name
+
+        case .Stages:
+            return Format.toString("% · %", name, appStrings().ui_Microcode)
+
+        case .Compare:
+            let signature = Pipeline.inspectedSignature(.editor.text())
+            if signature.count == 0 do
+                return name
+            let micro = .panels[0].micro()
+            if micro do
+                return Format.toString("% · %", signature, Pipeline.stageLabels()[Math.min(micro.stage, Pipeline.Stages.count - 1)])
+            return signature
+        }
     }
 
     // Applies the persisted language, or the language of the account when none was picked.
@@ -479,10 +607,31 @@ impl MainWindow
 
 impl IWnd for MainWindow
 {
-    // The panes keep clear of the window chrome floating over the top of the window.
+    // Writes the name of the source above its column and draws the hairline between the columns.
+    mtd impl onPaint(evt: *PaintEvent)
+    {
+        if .view == .Stages do
+            return
+
+        let painter = evt.paintContext.painter
+        let colors  = .themeColors()
+        let client  = .clientRect()
+        let top     = .stripInset() + TopGap
+        let bottom  = client.height - FooterHeight
+
+        let x = painter.snapToDeviceX(Math.round(client.width * 0.5))
+        painter.fillRect(Math.Rectangle{x, top, painter.hairline(.themeMetrics().separator_HairlineSize), bottom - top}, colors.line)
+
+        if .view == .Columns
+        {
+            let font = .sourceTitleFont()
+            painter.drawString(.sideMargin(), font.opticalLineTop(top + QuietHeight * 0.5), .sourceTitle(), font, colors.text)
+        }
+    }
+
     mtd impl onResizeEvent(_: *ResizeEvent)
     {
-        .padding.y = .stripInset()
+        .arrangeParts()
     }
 
     mtd impl onTimerEvent(evt: *TimerEvent)
@@ -504,17 +653,22 @@ impl IWnd for MainWindow
     {
         switch evt.kind
         {
-        case .LanguageChanged:
-            .retranslate()
-
-        case .ThemeChanged:
-            .layoutButton.setIcon(.icon(.Layout))
-            .commandBar.runButton.setIcon(.theme().icon(.Play, 18))
-            .commandBar.formatButton.setIcon(.icon(.Format))
-            .refreshPaneLayout()
+        case .LanguageChanged: .retranslate()
+        case .ThemeChanged:    .arrangeParts()
         }
 
         .wnd.IWnd.onNotifyEvent(evt)
+    }
+
+    mtd impl onComputeStateEvent(evt: *CommandStateEvent)
+    {
+        if not .computeCommandState(evt) do
+            evt.accepted = false
+    }
+
+    mtd impl onCommandEvent(evt: *CommandEvent)
+    {
+        evt.accepted = .runCommand(evt.id)
     }
 
     mtd impl onDestroyEvent(evt: *DestroyEvent)

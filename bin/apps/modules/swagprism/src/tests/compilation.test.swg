@@ -15,7 +15,7 @@ func waitBuild(lease: *Pipeline.BuildLease)
 #test
 {
     var cache:   Pipeline.CompilationCache
-    let request: Pipeline.BuildRequest = Pipeline.BuildRequest{source: exampleSource(.Dot), stage: "pre-emit", settings: Pipeline.BuildSettings{configuration: Pipeline.BuildSettings.DefaultConfiguration}}
+    let request: Pipeline.BuildRequest = Pipeline.BuildRequest{source: exampleSource(.Dot), inspect: true, settings: Pipeline.BuildSettings{configuration: Pipeline.BuildSettings.DefaultConfiguration}}
     scope
     {
         var first  = cache.acquire(request)
@@ -45,7 +45,7 @@ func waitBuild(lease: *Pipeline.BuildLease)
 #test
 {
     var cache:   Pipeline.CompilationCache
-    var request: Pipeline.BuildRequest = Pipeline.BuildRequest{source: "func sum(a, b: s32)->s32 => a + b", stage: "pre-emit"}
+    var request: Pipeline.BuildRequest = Pipeline.BuildRequest{source: "func sum(a, b: s32)->s32 => a + b", inspect: true}
     request.settings.configuration = "#run { let cfg = unwrap Swag.compiler().getBuildCfg(); cfg.safetyGuards = .All; cfg.backend.inlineMode = .Never }"
     scope
     {
@@ -81,7 +81,7 @@ func waitBuild(lease: *Pipeline.BuildLease)
 #test
 {
     var cache:   Pipeline.CompilationCache
-    let request: Pipeline.BuildRequest = Pipeline.BuildRequest{source: exampleSource(.Dot), stage: "pre-emit"}
+    let request: Pipeline.BuildRequest = Pipeline.BuildRequest{source: exampleSource(.Dot), inspect: true}
     var survivor = cache.acquire(request)
     scope
     {
@@ -98,9 +98,8 @@ func waitBuild(lease: *Pipeline.BuildLease)
 {
     var host: Testing.HeadlessHost
     let window = testSetupMainWindow(&host)
-    window.setComparisonEnabled(true)
-    window.panels[1].optimCombo.setSelectedIndex(0, notify: false)
-    window.compile()
+    window.panels[1].setLevel(.O2, notify: false)
+    window.setView(.Compare)
     let preview = assume cast(*PreviewViewer, window.panels[0].viewer!.window())
     let micro   = assume cast(*MicrocodeViewer, window.panels[1].viewer!.window())
     var watch: Time.Stopwatch
@@ -118,7 +117,7 @@ func waitBuild(lease: *Pipeline.BuildLease)
         Console.print(preview.probe.diagnostics)
     Swag.assert(not micro.job.running and not micro.job.result.failed and preview.frameCount != 0)
     Swag.assert(micro.job.artifactId == preview.probe.artifactId and window.cache.buildCount == 1)
-    Swag.assert(not micro.outputText.colors.isEmpty())
+    Swag.assert(not micro.inspection.snapshots.isEmpty())
     window.shutdown()
 }
 
@@ -127,10 +126,9 @@ func waitBuild(lease: *Pipeline.BuildLease)
 {
     var host: Testing.HeadlessHost
     let window = testSetupMainWindow(&host)
-    window.setComparisonEnabled(true)
-    window.panels[1].optimCombo.setSelectedIndex(0, notify: false)
+    window.panels[1].setLevel(.O2, notify: false)
     window.panels[1].selectViewer(.Render2D)
-    window.compile()
+    window.setView(.Compare)
     let first  = assume cast(*PreviewViewer, window.panels[0].viewer!.window())
     let second = assume cast(*PreviewViewer, window.panels[1].viewer!.window())
     var watch: Time.Stopwatch
@@ -172,31 +170,33 @@ func waitBuild(lease: *Pipeline.BuildLease)
     window.shutdown()
 }
 
-// The settings editor belongs to its panel and restores its original build state.
+// The build configuration belongs to its panel, takes the viewer's place, and restores the panel's
+// original build state.
 #test
 {
     var host: Testing.HeadlessHost
     let window = testSetupMainWindow(&host)
-    window.commandBar.liveEdit.setState(.Unchecked)
+    window.setLiveEdit(false)
     let panel = window.panels[0]
-    host.click(panel.optionsButton.localToSurface(Math.Point{18, 18}))
-    Swag.assert(panel.options.isVisible() and
-                panel.optionsButton.isChecked and
-                not panel.viewer!.window().isVisible())
-    panel.options.presetCombo.setSelectedIndex(1, notify: false)
+    Swag.assert(window.runCommand(PrismCommands.BuildConfiguration))
+    Swag.assert(panel.showingOptions and panel.options.isVisible() and not panel.viewer!.window().isVisible())
+    Swag.assert(panel.closeButton.isVisible() and
+                panel.restoreButton.isVisible() and
+                not panel.viewMenu.isVisible())
+    panel.options.setPreset(.Devmode, notify: false)
     panel.options.editor.setText("#run { Swag.compiler().getBuildCfg()!.backend.vectorize = false }")
-    panel.optimCombo.setSelectedIndex(2, notify: false)
+    panel.setLevel(.O1, notify: false)
     let settings = panel.request(window.editor.text()).settings
     panel.selectViewer(.Gui)
     Swag.assert(panel.request(window.editor.text()).settings.matches(settings))
     Swag.assert(not panel.viewer!.window().isVisible())
     panel.selectViewer(.Render2D)
     panel.options.reset()
-    Swag.assert(panel.optimCombo.selectedIndex == 0 and panel.options.presetCombo.selectedIndex == 0)
+    Swag.assert(panel.level == .O2 and panel.options.preset == .Release)
     Swag.assert(panel.options.editor.text() == Pipeline.BuildSettings.DefaultConfiguration)
-    Swag.assert(window.panels[1].optimCombo.selectedIndex == 2)
-    panel.showOptions(false)
-    Swag.assert(panel.viewer.window().isVisible() and not panel.optionsButton.isChecked)
+    Swag.assert(window.panels[1].level == .O0)
+    host.click(panel.closeButton.localToSurface(Math.Point{8, 8}))
+    Swag.assert(panel.viewer.window().isVisible() and not panel.showingOptions)
     window.shutdown()
 }
 
@@ -224,7 +224,7 @@ func waitBuild(lease: *Pipeline.BuildLease)
 // always is, because its host program calls into what the snippet declares.
 #test
 {
-    var request: Pipeline.BuildRequest = Pipeline.BuildRequest{source: "func dot(a, b: f32)->f32 => a * b", stage: "pre-emit"}
+    var request: Pipeline.BuildRequest = Pipeline.BuildRequest{source: "func dot(a, b: f32)->f32 => a * b", inspect: true}
     Swag.assert(request.kind == .Microcode and not request.needsDependency())
     Swag.assert(not request.moduleSource().contains("#import"))
 
@@ -253,7 +253,7 @@ func waitBuild(lease: *Pipeline.BuildLease)
 #test
 {
     var cache:   Pipeline.CompilationCache
-    let request: Pipeline.BuildRequest = Pipeline.BuildRequest{source: "using Core\nfunc value()->f32 => Math.sqrt(2'f32)", stage: "pre-emit"}
+    let request: Pipeline.BuildRequest = Pipeline.BuildRequest{source: "using Core\nfunc value()->f32 => Math.sqrt(2'f32)", inspect: true}
     var lease = cache.acquire(request)
     waitBuild(&lease)
 

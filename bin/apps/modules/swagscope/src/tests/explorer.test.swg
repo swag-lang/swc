@@ -84,7 +84,7 @@ func completeExplorer(host: *Testing.HeadlessHost, explorer: *Explorer)
     host.pump()
     Swag.assert(explorer.isLocallyVisible() and explorer.selected == selected and explorer.mode == .Details)
     window.closeFile()
-    Swag.assert(not window.explorerActive and window.emptyView.isLocallyVisible())
+    Swag.assert(not window.explorerActive and window.home.isLocallyVisible())
 }
 
 // A later location wins even when the preceding enumeration has not returned yet.

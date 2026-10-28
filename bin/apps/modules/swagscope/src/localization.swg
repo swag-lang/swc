@@ -92,7 +92,13 @@ struct AppStrings
     ui_NoMatch:                        string = "No match"                                    // Status line when a search reached the end with nothing.
     ui_Searching:                      string = "Searching…"                                  // Status line while a search scans the file.
     ui_DropTitle:                      string = "Drop a file to view it"                      // Invitation shown while no file is open.
-    ui_DropHint:                       string = "or open one with Ctrl+O"                     // Secondary invitation shown while no file is open.
+    home_Invite:                       string = "Drop a file, or open one"                    // Invitation of the window without a file; the key follows it.
+    home_Clear:                        string = "Clear…"                                      // Quiet command under the last files, opening the clears.
+    home_ClearMissing:                 string = "Remove Missing Files"                        // Clear of the history entries whose file is gone.
+    home_ClearOlder:                   string = "Older Than a Month"                          // Clear of the history entries last opened more than a month ago.
+    home_ClearAll:                     string = "Clear All…"                                  // Clear of the whole history, after a question.
+    home_Yesterday:                    string = "yesterday"                                   // When a file was last opened, the day before today.
+    home_Weekdays:                     string = "Sun Mon Tue Wed Thu Fri Sat"                 // When a file was last opened this week, from Sunday, separated by spaces.
     ui_Unsupported:                    string = "No viewer can show this file."               // No viewer claimed the file.
     ui_OpenStopped:                    string = "The file could not be shown."                // A viewer refused the file it claimed.
     ui_ViewerError:                    string = "This viewer could not decode the file."      // Heading above a viewer's exact decoder error.

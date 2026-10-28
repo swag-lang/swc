@@ -435,7 +435,7 @@ impl Explorer
     mtd setShown(visible: bool)
     {
         .show(visible)
-        .window.hintLine.show(not visible and .window.emptyView.isLocallyVisible())
+        .window.hintLine.show(not visible and .window.home.isLocallyVisible())
         .showMediaInfo()
     }
 

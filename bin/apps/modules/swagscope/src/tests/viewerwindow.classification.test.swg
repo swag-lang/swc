@@ -31,24 +31,23 @@ func assertClassificationFolder(result: const *ViewerClassifiedFile, names: cons
     }
 
     var index = createViewerPluginRegistry()
-    var load:   ViewerChoiceLoad
-    var recent: Array'String
+    var load: ViewerChoiceLoad
 
-    load.start(&index, names[0], recent.toSlice())
+    load.start(&index, names[0])
     load.task.wait()
     var first = load.finish()
     assertClassificationFolder(&first, names.toSlice())
 
-    load.start(&index, names[2], recent.toSlice())
+    load.start(&index, names[2])
     load.task.wait()
     var second = load.finish()
     assertClassificationFolder(&second, names.toSlice())
 
-    load.start(&index, names[1], names.toSlice(), includeNeighbors: false)
+    load.start(&index, names[1], includeNeighbors: false)
     load.task.wait()
     let thumbnail = load.finish()
     Swag.assert(thumbnail.exists and not thumbnail.choices.isEmpty())
-    Swag.assert(thumbnail.folderFiles.isEmpty() and thumbnail.recent.isEmpty())
+    Swag.assert(thumbnail.folderFiles.isEmpty())
 }
 
 struct ClassificationRetirementGate

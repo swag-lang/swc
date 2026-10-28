@@ -26,6 +26,10 @@ struct ComboBoxItem
     {
         using base:  Item     // Embedded label, icon, identifier, and user data.
         isSeparator: bool     // Whether this entry separates groups and cannot be selected.
+
+        // The style the words of the entry are set in where the combo shows its entries as
+        // segments, such as a choice of font styles lettered each in its own style.
+        fontStyle = FontFamilyStyle.Regular
     }
 }
 
@@ -431,9 +435,10 @@ private impl ComboBox
             var ink = i == .selectedIndex ? colors.tabItem_SelectedText : colors.tabItem_HotText
             if disabled do
                 ink = colors.comboBox_DisabledText
-            let text  = item!.name.raw
-            let width = Painter.measureString(text, font).width
-            painter.drawString(Math.round(rect.horzCenter() - width * 0.5), font.opticalLineTop(rect.vertCenter()), text, font, ink)
+            let face  = .font().getFont(item!.fontStyle) orelse font
+            let text  = item.name.raw
+            let width = Painter.measureString(text, face).width
+            painter.drawString(Math.round(rect.horzCenter() - width * 0.5), face.opticalLineTop(rect.vertCenter()), text, face, ink)
         }
     }
 

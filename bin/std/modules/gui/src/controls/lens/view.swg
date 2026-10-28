@@ -23,6 +23,14 @@ using Core, Pixel
 //   captures. A source answers the unprefixed query and the one of its [[Gui.Lens.Prefix]];
 //   commands answer the unprefixed query and `>`.
 //
+// Opened with nothing typed, the lens is a palette of what can be done here and now, not a list
+// of everything: the sections of the rest sources ([[Gui.Lens.View.addRestSource]]) — the actions
+// of the object in hand — then the commands chosen last. An application that declares neither
+// still lists all its commands at rest. Typed into, the sources answer first, in their own order,
+// as they know their rows best; the families of commands follow, ranked by their best command,
+// each from the best answer down, and commands matched only by scattered letters are left out
+// when others answer better.
+//
 // The application opens the lens from the key it chooses — `Space`, or `Ctrl K` where Space
 // types text — by calling [[Gui.Lens.View.open]].
 //
@@ -60,20 +68,35 @@ struct View
         }
     }
 
-    late input:  *EditBox
-    commands:    Array'Command
-    sources:     Array'Source
-    scroll:      f32
-    returnFocus: *Wnd?
+    late input:   *EditBox
+    commands:     Array'Command
+    sources:      Array'Source
+    restSources:  Array'Provider     // What the lens offers before anything is typed.
+    recent:       Array'String       // Commands chosen last, the latest first.
+    sectionOrder: Array'u64          // Sections in the order they show, by index into the results.
+    scroll:       f32
+    returnFocus:  *Wnd?
+    hotPicture:   PictureHit
 }
 
-// One line of the results of a [[Gui.Lens.View]]: the label of a section, or one of its rows.
+// A picture of a strip of the lens under a point: the row of the strip, and the picture, or the
+// count of pictures of the section for its link.
+internal struct PictureHit
+{
+    row:   u64 = Swag.U64.Max
+    index: u64
+}
+
+// The `entry` of the [[Gui.Lens.Row]] holding the strip of pictures of its section.
+const PictureRow = Swag.U64.Max - 1
+
+// One line of the results of a [[Gui.Lens.View]]: the label of a section, one of its rows, or its strip of pictures.
 struct Row
 {
     public
     {
         section: *Section     // Section the line belongs to.
-        entry:   u64          // Index of the row in its section, or `U64.Max` for the section label.
+        entry:   u64          // Index of the row in its section, `U64.Max` for the section label, [[Gui.Lens.PictureRow]] for the strip.
         top:     f32          // Top of the line under the input, before scrolling.
         height:  f32          // Height of the line.
     }
@@ -138,6 +161,8 @@ impl IWnd for View
                 continue
             if row.entry == Swag.U64.Max do
                 .paintSectionRow(painter, rect, row.section)
+            elif row.entry == PictureRow do
+                .paintPictureRow(painter, rect, row.section)
             else do
                 .paintEntryRow(painter, rect, &row.section.entries[row.entry], index == .chosen)
         }
@@ -159,12 +184,32 @@ impl IWnd for View
                 .invalidate()
             }
 
+            // A picture under the pointer is ringed.
+            let hot = .pictureAt(pos)
+            if hot.row != .hotPicture.row or hot.index != .hotPicture.index
+            {
+                .hotPicture = hot
+                .invalidate()
+            }
+
         case .Pressed:
             if evt.button != .Left do
                 break
             if not .body().contains(pos)
             {
                 .close()
+                break
+            }
+
+            // A picture or the link of a strip runs at once.
+            let picture = .pictureAt(pos)
+            if picture.row != Swag.U64.Max
+            {
+                let section = .rows[picture.row].section
+                let run     = picture.index < section.pictures.count ? section.pictures[picture.index].run : section.linkRun
+                .close()
+                if run do
+                    run()
                 break
             }
 
@@ -294,6 +339,56 @@ impl View
         .sources.add(Source{prefix, provide})
     }
 
+    // Registers a source of the rows the lens offers before anything is typed.
+    //
+    // A rest source adds the sections of what can be done here and now — the actions of the
+    // selection, of the open file, of the stage — and reads the state of the application each time
+    // the lens opens. They show in the order they were added, before the commands chosen last.
+    mtd addRestSource(provide: Provider)
+    {
+        .restSources.add(provide)
+    }
+
+    // Adds to `section` the rows of the commands `ids`, as the owner of the lens states them now.
+    //
+    // A hidden command is left out, and with `enabledOnly` one that cannot run now as well. This
+    // is how a rest source offers the actions of the object in hand: a selection's commands are
+    // registered once, and only those that apply show.
+    mtd addCommandRows(section: *Section, ids: const [..] WndId, enabledOnly = false)
+    {
+        let found = .ownerOrParent()
+        if not found do
+            return
+        let owner: *Wnd = found
+        for id in ids
+        {
+            let state = owner.sendComputeCommandStateEvent(id)
+            if state.updatedFields.has(.Hidden) and state.hidden do
+                continue
+            if enabledOnly and state.updatedFields.has(.Disabled) and state.disabled do
+                continue
+            var title: String
+            if state.updatedFields.has(.LongName) do
+                title = state.longName
+            elif state.updatedFields.has(.Name) do
+                title = state.name
+            if title.isEmpty() do
+                continue
+
+            with let entry = section.addEntry(title)
+            {
+                .id         = id
+                .disabled   = state.updatedFields.has(.Disabled) and state.disabled
+                .checked    = state.updatedFields.has(.Checked) and state.checked
+                .monoDetail = true
+                if state.updatedFields.has(.Icon) do
+                    .glyph = state.icon
+                if state.updatedFields.has(.Shortcut) do
+                    .detail = state.shortcut
+            }
+        }
+    }
+
     // Opens the lens with `query` typed in its input, such as a prefix.
     //
     // The keyboard moves to the input and comes back where it was when the lens closes.
@@ -341,11 +436,22 @@ impl View
         let split = splitPrefix(typed)
         .results.reset(split.rest, split.prefix)
 
-        for source in .sources where split.prefix == .None or source.prefix == split.prefix do
-            source.provide(&.results)
+        // At rest the lens is a palette of the context and the commands chosen last; an
+        // application that declares neither lists everything, as typing an empty query would.
+        if typed.count == 0 and (not .restSources.isEmpty() or not .recent.isEmpty())
+        {
+            for provide in .restSources do
+                provide(&.results)
+            .addRecentSection()
+        }
+        else
+        {
+            for source in .sources where split.prefix == .None or source.prefix == split.prefix do
+                source.provide(&.results)
 
-        if split.prefix == .None or split.prefix == .Action do
-            .addCommandSections()
+            if split.prefix == .None or split.prefix == .Action do
+                .addCommandSections()
+        }
 
         // A source that marked nothing leaves the marking to the lens.
         for section in .results.sections
@@ -357,6 +463,7 @@ impl View
             }
         }
 
+        .rankResults()
         .buildRows()
         .scroll = 0
         .chosen = Swag.U64.Max
@@ -413,6 +520,8 @@ impl View
         let run   = entry.run
         let id    = entry.id
         let owner = .ownerOrParent()
+        if id do
+            .remember(id)
         .close()
         if run do
             run()
@@ -434,7 +543,7 @@ private impl View
         case .PageUp:   .moveChoice(-page)
         case .PageDown: .moveChoice(page)
         case .Return:   .runChosen()
-        case .Escape:   .close()
+        case .Escape:   .backOut()
         default:        return false
         }
 
@@ -478,19 +587,13 @@ private impl View
                 if not found.matched do
                     continue
 
-                if not section do
-                    section = .results.addSection(family[])
-                with let entry = section.addEntry(title)
+                if not section
                 {
-                    .id         = command.id
-                    .disabled   = state.updatedFields.has(.Disabled) and state.disabled
-                    .checked    = state.updatedFields.has(.Checked) and state.checked
-                    .monoDetail = true
-                    if state.updatedFields.has(.Icon) do
-                        .glyph = state.icon
-                    if state.updatedFields.has(.Shortcut) do
-                        .detail = state.shortcut
+                    section        = .results.addSection(family[])
+                    section.ranked = true
                 }
+
+                addCommandEntry(section, command.id, title, state)
             }
         }
     }
@@ -500,15 +603,37 @@ private impl View
     {
         let metrics = .themeMetrics()
         .rows.clear()
-        var y = metrics.lens_RowInset
-        for section in .results.sections where not section!.entries.isEmpty()
+        // The sections in the order the ranking gave them; the strips of pictures close the
+        // results, after every row a key can reach.
+        var order: Array'(*Section)
+        for s in .sectionOrder
         {
+            let section = unwrap .results.sections[s]
+            if section.pictures.isEmpty() do
+                order.add(section)
+        }
+
+        for section in .results.sections where not section!.pictures.isEmpty() do
+            order.add(section)
+
+        var y = metrics.lens_RowInset
+        for section in order
+        {
+            if section.order.isEmpty() and section.pictures.isEmpty() do
+                continue
             .rows.add(Row{section, Swag.U64.Max, y, metrics.lens_SectionHeight})
             y += metrics.lens_SectionHeight
-            for i in section.entries.count
+            for i in section.order
             {
                 .rows.add(Row{section, i, y, metrics.lens_RowHeight})
                 y += metrics.lens_RowHeight
+            }
+
+            if not section.pictures.isEmpty()
+            {
+                let height = metrics.lens_PictureHeight + 2 * metrics.lens_PictureGap
+                .rows.add(Row{section, PictureRow, y, height})
+                y += height
             }
         }
     }
@@ -516,7 +641,40 @@ private impl View
     mtd isSelectable(index: u64)->bool
     {
         let row = .rows[index]
-        return row.entry != Swag.U64.Max and not row.section.entries[row.entry].disabled
+        return row.entry != Swag.U64.Max and row.entry != PictureRow and not row.section.entries[row.entry].disabled
+    }
+
+    // Returns the cell of picture `index` of a strip whose row stands at `rect`; `index` past the
+    // pictures is the link.
+    mtd pictureRect(rect: Math.Rectangle, section: *Section, index: u64)->Math.Rectangle
+    {
+        let metrics = .themeMetrics()
+        let x       = rect.x + metrics.lens_TextInset + cast(f32, index) * (metrics.lens_PictureWidth + metrics.lens_PictureGap)
+        let y       = rect.y + metrics.lens_PictureGap
+        if index < section.pictures.count do
+            return {x, y, metrics.lens_PictureWidth, metrics.lens_PictureHeight}
+
+        let font  = .theme().createDefaultFont(metrics.defaultFontSize)
+        let width = Painter.measureString(section.link, font).width
+        return {x, y, width, metrics.lens_PictureHeight}
+    }
+
+    // Returns the picture, or the link, of a strip under `pos`.
+    mtd pictureAt(pos: Math.Point)->PictureHit
+    {
+        var none: PictureHit
+        let list = .listRect()
+        if not list.contains(pos) do
+            return none
+        for row, rowIndex in .rows where row.entry == PictureRow
+        {
+            let rect  = Math.Rectangle{list.x, list.y + row.top - .scroll, list.width, row.height}
+            let count = row.section.pictures.count + (row.section.link.isEmpty() ? 0 : 1)
+            for i in count where .pictureRect(rect, row.section, i).contains(pos) do
+                return PictureHit{row: rowIndex, index: i}
+        }
+
+        return none
     }
 
     mtd contentHeight()->f32
@@ -611,6 +769,36 @@ private impl View
         SectionLabel.paint(me, painter, band, label)
     }
 
+    // Paints the strip of pictures of `section`, then its link in the Arc ink.
+    mtd paintPictureRow(painter: *Painter, rect: Math.Rectangle, section: *Section)
+    {
+        let metrics = .themeMetrics()
+        let colors  = .themeColors()
+        let radius  = metrics.corner_Chip
+        painter.setParams(.Antialiased)
+        for &picture, i in section.pictures
+        {
+            let cell = .pictureRect(rect, section, i)
+            if cell.x > rect.right() do
+                break
+            painter.pushClippingRect(cell)
+            painter.fillRect(cell, colors.raised)
+            if picture.paint do
+                picture.paint(painter, cell)
+            painter.popClippingRect()
+
+            let hot = .hotPicture.index == i and .hotPicture.row < .rows.count and .rows[.hotPicture.row].section == section
+            painter.drawRoundRect(cell, radius, radius, hot ? colors.arc : colors.line, hot ? 1.5 : metrics.separator_HairlineSize)
+        }
+
+        if not section.link.isEmpty()
+        {
+            let cell = .pictureRect(rect, section, section.pictures.count)
+            let font = .theme().createDefaultFont(metrics.defaultFontSize)
+            discard paintTextLine(painter, cell.x, cell.vertCenter(), section.link, font, colors.arc)
+        }
+    }
+
     mtd paintEntryRow(painter: *Painter, rect: Math.Rectangle, entry: *Entry, chosen: bool)
     {
         let metrics = .themeMetrics()
@@ -675,12 +863,14 @@ private impl View
         let titleLeft = leadLeft + metrics.lens_LeadWidth
         let font      = entry.monoTitle ? theme.createDefaultFontFs(metrics.lens_RowFontSize - 1) : theme.createDefaultFont(metrics.lens_RowFontSize)
         painter.pushClippingRect(Math.Rectangle{titleLeft, rect.y, Math.max(trailing - titleLeft, 0), rect.height})
-        let top = font.opticalLineTop(centerY)
+        // A row that cannot be chosen keeps its matches, faded with its words.
+        let top  = font.opticalLineTop(centerY)
+        let mark = entry.disabled ? fadeColor(colors.highlight, 0.4) : colors.highlight
         for span in entry.spans where span.start + span.count <= entry.title.length
         {
             let before = Painter.measureString(Swag.makeString(entry.title.buffer, span.start), font).width
             let after  = Painter.measureString(Swag.makeString(entry.title.buffer, span.start + span.count), font).width
-            painter.fillRect(Math.Rectangle{Math.round(titleLeft + before), top, Math.round(after - before), font.height}, colors.highlight)
+            painter.fillRect(Math.Rectangle{Math.round(titleLeft + before), top, Math.round(after - before), font.height}, mark)
         }
 
         painter.drawString(titleLeft, top, entry.title, font, inkText)
@@ -737,3 +927,151 @@ private func prefixWords(prefix: Prefix)->string
     default:    return strings().lens_Actions
     }
 }
+
+// How many commands chosen last the lens offers at rest.
+private const RecentCount = 5
+
+// Adds the row of the command `id`, titled `title`, in the state `state` its owner computed.
+private func addCommandEntry(section: *Section, id: WndId, title: string, state: const *CommandStateEvent)
+{
+    with let entry = section.addEntry(title)
+    {
+        .id         = id
+        .disabled   = state.updatedFields.has(.Disabled) and state.disabled
+        .checked    = state.updatedFields.has(.Checked) and state.checked
+        .monoDetail = true
+        if state.updatedFields.has(.Icon) do
+            .glyph = state.icon
+        if state.updatedFields.has(.Shortcut) do
+            .detail = state.shortcut
+    }
+}
+
+private impl View
+{
+    // Keeps `id` first among the commands chosen last.
+    mtd remember(id: WndId)
+    {
+        let text: string = id
+        for i in .recent.count where .recent[i] == text
+        {
+            .recent.removeAtOrdered(i)
+            break
+        }
+
+        .recent.insertAt(0, String.from(text))
+        if .recent.count > RecentCount do
+            .recent.removeBack()
+    }
+
+    // Adds the commands chosen last, as their owner states them now.
+    mtd addRecentSection()
+    {
+        let owner = .ownerOrParent()
+        if not owner or .recent.isEmpty() do
+            return
+
+        var section: *Section?
+        for text in .recent
+        {
+            for command in .commands where text[] == command.id
+            {
+                let state = owner.sendComputeCommandStateEvent(command.id)
+                if state.updatedFields.has(.Hidden) and state.hidden do
+                    break
+                var title: String
+                if state.updatedFields.has(.LongName) do
+                    title = state.longName
+                elif state.updatedFields.has(.Name) do
+                    title = state.name
+                if title.isEmpty() do
+                    break
+
+                if not section do
+                    section = .results.addSection(strings().lens_Recent)
+                addCommandEntry(section, command.id, title, &state)
+                break
+            }
+        }
+    }
+
+    // Ranks the rows of the query on screen. The sections of the sources keep their order and
+    // their rows; the families of commands follow, ranked by their best command, each from the
+    // best answer down. When a command answers better than scattered letters, the commands that
+    // only answer with scattered letters are left out.
+    mtd rankResults()
+    {
+        let query = .results.query.toString()
+        var bestAll = Swag.S32.Min
+        for section in .results.sections
+        {
+            for &entry in section!.entries
+            {
+                if query.count == 0
+                {
+                    entry.score = 0
+                    continue
+                }
+
+                var found = match(query, entry.title)
+                entry.score = found.matched ? found.score : 0
+                if entry.spans.isEmpty() do
+                    entry.spans = #move found.spans
+                if section.ranked do
+                    bestAll = Math.max(bestAll, entry.score)
+            }
+        }
+
+        let leaveScattered = query.count >= 2 and bestAll >= ClearMatchScore
+        var sectionKeys: Array'u64
+        for section, index in .results.sections
+        {
+            let sec = unwrap section
+            sec.order.clear()
+            sec.best = Swag.S32.Min
+            var keys: Array'u64
+            let ranks = sec.ranked and query.count != 0
+            for entry, i in sec.entries
+            {
+                if ranks and leaveScattered and entry.score < ClearMatchScore do
+                    continue
+                sec.best = Math.max(sec.best, entry.score)
+                keys.add(ranks ? rankKey(entry.score, i) : i)
+            }
+
+            keys.sort()
+            for key in keys do
+                sec.order.add(key & 0xFFFFFFFF)
+            if not sec.order.isEmpty() do
+                sectionKeys.add(ranks ? (1'u64 << 63) | rankKey(sec.best, index) : index)
+        }
+
+        // The sources first, in their order; then the families of commands, best first.
+        sectionKeys.sort()
+        .sectionOrder.clear()
+        for key in sectionKeys do
+            .sectionOrder.add(key & 0xFFFFFFFF)
+    }
+
+    // Empties the query, or closes the lens when nothing is typed.
+    mtd backOut()
+    {
+        if .input.text().count != 0
+        {
+            .setQuery("")
+            return
+        }
+
+        .close()
+    }
+}
+
+// Returns a key sorting a higher `score` first, and equal scores in the order of `index`.
+private func rankKey(score: s32, index: u64)->u64
+{
+    let rank = cast(u64, (MaxRankScore - Math.clamp(score, 0, MaxRankScore)))
+    return (rank << 32) | index
+}
+
+// Highest score a key distinguishes; every score of the matcher stays under it.
+private const MaxRankScore = 1000000's32

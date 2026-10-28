@@ -137,8 +137,12 @@ impl VaultList
         result.notice = NoticeLine.create(result)
         result.card   = UnlockCard.create(result, window)
 
+        // The way to a new vault is the first thing the page offers: its words in the text ink,
+        // underlined; opening an existing file stays a quiet word beside it.
         with result.newVault = createQuietLink(result, texts.ui_NewVault)
         {
+            .updateFlags(add: .Underline)
+            .style.addStyleSheetColors("btnIcon_Text $label_Text")
             .sigPressed += func|window|(_) { window.showPage(.Create) }
         }
 

@@ -200,6 +200,9 @@ struct ThemeMetrics
         lens_LeadWidth:      f32 = 36       // Width of the column holding the glyph or the number that leads a row.
         lens_SectionHeight:  f32 = 32       // Height of the label that opens a group of results.
         lens_FooterHeight:   f32 = 40       // Height of the band listing the keys.
+        lens_PictureWidth:   f32 = 72       // Width of a picture in the strip of a section, such as a recent document.
+        lens_PictureHeight:  f32 = 44       // Height of that picture.
+        lens_PictureGap:     f32 = 8        // Air between two pictures of the strip, and around the strip.
 
         // The information sheet a key opens: a title, an identity line, facts and readings.
         infoSheet_Width:         f32 = 340     // Width of an information sheet.
@@ -298,6 +301,7 @@ struct ThemeMetrics
         property_CondensedRowHeight: f32 = 26     // Height of a row of the condensed property grid.
         property_FieldGap:           f32 = 8      // Air between two fields of one value, such as the axes of a vector.
         quiet_Height:                f32 = 32     // Height of a quiet control: the words of a header that act or open a menu.
+        quiet_ChevronGap:            f32 = 2      // Air between the words of a quiet control and the box of its chevron, whose ink is inset.
 
         progressBar_Height:     f32 = 16      // Height of a progress bar created without one.
         progressBar_TrackSize:  f32 = 4       // Thickness of the track, centered in the bar.

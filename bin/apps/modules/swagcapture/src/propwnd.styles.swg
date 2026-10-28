@@ -139,6 +139,17 @@ impl PropWnd
             let swatch  = Math.Rectangle{pos.x, Math.round(pos.vertCenter() - side * 0.5), side, side}
 
             painter.setParams(.Antialiased)
+            let font = btn.theme().createDefaultFontFs(metrics.defaultFontSize - 1)
+
+            // No colour at all is a hatched swatch, and says so.
+            if not color.a
+            {
+                painter.fillRoundRect(swatch, metrics.corner_Chip, metrics.corner_Chip, Brush.createHatch(.DiagonalForwardLight, colors.faintText))
+                painter.drawRoundRect(swatch, metrics.corner_Chip, metrics.corner_Chip, colors.line, metrics.separator_HairlineSize)
+                painter.drawString(swatch.right() + metrics.inspector_LabelGap, font.opticalLineTop(pos.vertCenter()), appStrings().ui_NoColor, font, colors.softText)
+                return
+            }
+
             if not color.isOpaque() do
                 painter.fillRoundRect(swatch, metrics.corner_Chip, metrics.corner_Chip, Brush.createHatch(.CheckBoardLarge, Argb.DarkGray))
             painter.fillRoundRect(swatch, metrics.corner_Chip, metrics.corner_Chip, color)
@@ -146,7 +157,6 @@ impl PropWnd
 
             // The value is a measure, so it is set in the fixed-width family; an opacity under
             // full follows it in percent.
-            let font = btn.theme().createDefaultFontFs(metrics.defaultFontSize - 1)
             var hex  = Format.toString("%{X02}%{X02}%{X02}", color.r, color.g, color.b)
             if color.a != 255
             {
@@ -532,26 +542,6 @@ impl PropWnd
         {
             .dockStyle = .Center
         }
-    }
-
-    // Asks for the text of the selected forms, starting from `curText`, and sets it as one undo
-    // step. Returns the text the forms end up with.
-    func editText(main: *MainWnd, curText: String)->String
-    {
-        var editOptions: EditDlgOptions
-        editOptions.title = appStrings().dlg_TitleEnterText
-        editOptions.text  = curText.toString()
-        let dialog = EditDlg.createMultiLine(unwrap main.surface, editOptions)
-        if main.inPlaceEdit do
-            dialog.surface?.setTopMost()
-
-        if dialog.doModal() != Dialog.BtnOk do
-            return curText
-        let capture = unwrap main.getCapture()
-        let undo    = capture.newUndo(.SetText)
-        undo.text = dialog.text()
-        capture.pushUndo(undo)
-        return undo.text
     }
 
     // The commands of a pixel selection, one row each.

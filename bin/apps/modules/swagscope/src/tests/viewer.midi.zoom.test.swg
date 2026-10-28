@@ -67,7 +67,7 @@ func midiZoomFixturePath()->String => Path.combine(unwrap Path.directoryName(#cu
     host.notify(.LanguageChanged)
     var options: OptionSheet.Page
     viewer.describeOptions(&options)
-    Swag.assert(options.rows[1].value == "Nombres MIDI" and options.rows[2].value == "Large")
+    Swag.assert(options.rows[2].value == "Nombres MIDI" and options.rows[3].value == "Large")
     Swag.assert(viewer.zoomLabel.toolTip.contains("Page précédente/suivante"))
     expect host.app.setLanguage(ReferenceLanguage)
 }

@@ -46,7 +46,7 @@ func midiViewerFixturePath()->String => Path.combine(unwrap Path.directoryName(#
     }
 }
 
-#[Swag.TestTag("golden")]
+// The score loads in the background, offers its tracks and its presentations, and zooms.
 #test
 {
     var host: Testing.HeadlessHost
@@ -103,9 +103,7 @@ func midiViewerFixturePath()->String => Path.combine(unwrap Path.directoryName(#
 
     host.root.applyLayout()
     viewer.roll.refreshLayout()
-    host.settleAnimations(&host.root, 4)
-    var image = host.render(&host.root)
-    Pixel.Testing.assertImageGolden(&image, "viewer.midi.document")
+    Swag.assert(viewer.roll.mode == .Tracks and viewer.roll.lanes.count == 1)
 
     expect host.app.setLanguage("fr")
     host.notify(.LanguageChanged)
@@ -131,4 +129,23 @@ func midiViewerFixturePath()->String => Path.combine(unwrap Path.directoryName(#
     let viewer = assume cast(*Midi.Panel, result.view)
     completeViewerBackgroundLoad(&host, &viewer.load)
     Swag.assert(not viewer.failureReason.isEmpty())
+}
+
+// The score in the window, against `scope.midi`: one lane per track under the bar numbers, each
+// track in its hue with its name and channel, the notes spread by pitch in the lane.
+#[Swag.TestTag("golden")]
+#test
+{
+    let fileName = Path.combine(unwrap Path.directoryName(#curlocation.fileName), "datas/viewer.groove.mid")
+    for light in [false, true]
+    {
+        var host: Testing.HeadlessHost
+        let window = framedViewerWindow(&host, fileName.toString(), light)
+        let view   = assume cast(*Midi.Panel, window.instances[window.activeChoiceIndex].view)
+        Swag.assert(view.roll.mode == .Tracks and view.roll.lanes.count == 4)
+        Swag.assert(view.details.contains("4 tracks · 4/4"))
+
+        var image = host.render(&host.surfaceWnd)
+        Pixel.Testing.assertImageGolden(&image, light ? "viewer.midi.paper" : "viewer.midi.ink")
+    }
 }

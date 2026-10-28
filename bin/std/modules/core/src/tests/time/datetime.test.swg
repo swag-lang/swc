@@ -241,3 +241,12 @@ func assertDateTime(value: Time.DateTime, year, month, day, hour, minute, second
     let invalidTime = Time.DateTime{2024, 4, 30, 24, 0, 0, 0}
     Swag.assert(invalidTime.dayOfWeek() == Time.DayOfWeek.Tuesday)
 }
+
+// The current UTC time, read in the local zone, is the current local time.
+#test
+{
+    let local = Time.Timestamp.fromDateTime(Time.DateTime.utcNow().toLocal())
+    let now   = Time.Timestamp.fromDateTime(Time.DateTime.now())
+    let delta = local.ticks > now.ticks ? local.ticks - now.ticks : now.ticks - local.ticks
+    Swag.assert(delta < Time.TicksPerMinute)
+}

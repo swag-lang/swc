@@ -91,6 +91,16 @@ func floatingHost(host: *Testing.HeadlessHost, width, height: f32, light: bool)
     bar.showNear(high)
     Swag.assert(bar.position.y == high.bottom() + metrics.miniBar_Distance)
 
+    // With no room above or below, it stands beside the selection, level with its foot.
+    let tall = Math.Rectangle{20, 10, 200, 380}
+    bar.showNear(tall, below: true)
+    Swag.assert(bar.position.x == tall.right() + metrics.miniBar_Distance)
+    Swag.assert(bar.position.bottom() == tall.bottom() - metrics.miniBar_Distance)
+
+    // It keeps within the room it is given, clear of what floats beside the work.
+    bar.showNear(selection, room: Math.Rectangle{250, 0, 230, 400})
+    Swag.assert(bar.position.x >= 250 + metrics.miniBar_Distance)
+
     // Its items stand in one row, inside the padding, the hairline in the gap of its group.
     let first = unwrap bar.items[0].wnd
     Swag.assert(first.position.x == metrics.miniBar_Padding and first.position.height == metrics.miniBar_ButtonSize)

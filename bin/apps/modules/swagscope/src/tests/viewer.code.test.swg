@@ -361,3 +361,34 @@ struct CodeLanguageSample
     Swag.assert(markupStyles[12] == Code.GenericLexer.Style.Default)
     Swag.assert(markupStyles[17] == Code.GenericLexer.Style.Comment)
 }
+
+// The lens as a reader meets it over a code file: opened empty, then typed into, then asked for
+// actions with `>`.
+#[Swag.TestTag("golden")]
+#test
+{
+    let fileName = Gui.Testing.tempFilePath("scope-lens-", ".swg")
+    defer discard catch File.delete(fileName)
+    discard expect File.writeAllText(fileName, swagSampleSource())
+
+    var host: Testing.HeadlessHost
+    host.setup(1100, 700)
+    host.app.setAppIcon(expect Image.decode(".png", AppIcon))
+    var index  = createViewerPluginRegistry()
+    let window = ViewerWindow.create(&host.surfaceWnd, #move index)
+    window.resize(1100, 700)
+    window.openFile(fileName, remember: false)
+    completeQueuedViewerFile(&host, window)
+    window.applyLayout()
+    host.settleAnimations(window, 4)
+
+    for query, i in ["", "doub", ">"]
+    {
+        window.lens.open(query)
+        host.finishAnimations()
+        var image = host.render(window)
+        Pixel.Testing.assertImageGolden(&image, i == 0 ? "showcase.lens.empty" : (i == 1 ? "showcase.lens.query" : "showcase.lens.actions"))
+        window.lens.close()
+        host.finishAnimations()
+    }
+}

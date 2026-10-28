@@ -28,6 +28,9 @@ struct FormStep
         cachefSize: f32
         cacheTypeIndex   = FormStepType.Number
         pathl:      LinePathList
+
+        // Whether the label is being typed in place: the editor writes it, the step does not.
+        editingText: bool
     }
 }
 
@@ -175,6 +178,9 @@ impl IForm for FormStep
                 painter.fillRoundRect(pp, round, round, backBrush)
             painter.fillRoundRect(pp, round, round, .backColor)
         }
+
+        if .editingText and not cxt.quickMode do
+            return
 
         let wt = (.pathl.maxBounds.x - .pathl.minBounds.x) * z
         let ht = (.pathl.maxBounds.y - .pathl.minBounds.y) * z

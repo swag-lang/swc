@@ -84,6 +84,9 @@ struct IconButton
         }
     }
 
+    // Whether the button is a quiet control, whose chevron follows its words closely.
+    quiet: bool
+
     // The popup this button owns while it is open, and the background animation.
     aniBk: BlendColor     // Color animation of the background.
     popup: *Wnd?          // Popup currently shown by this button.
@@ -160,7 +163,7 @@ impl IWnd for IconButton
             break
 
         case .Left, .Right, .RightUpward, .RightDownward:
-            width  += arrowSize + arrowMargin + metrics.btnIcon_SpacingArrowH
+            width  += arrowSize + arrowMargin + .arrowGap()
             height = Math.max(height, arrowSize)
 
         case .Top, .Bottom:
@@ -401,7 +404,7 @@ impl IWnd for IconButton
             switch #complete .arrowPosition
             {
             case .Left, .Right, .RightUpward, .RightDownward:
-                nw += metrics.btnIcon_ArrowSize + metrics.btnIcon_SpacingArrowH
+                nw += metrics.btnIcon_ArrowSize + .arrowGap()
                 nh = Math.max(nh, metrics.btnIcon_ArrowSize)
 
             case .Top, .Bottom:
@@ -443,7 +446,7 @@ impl IWnd for IconButton
             case .Left:
                 arrowX = pos.x + marginArrow
                 arrowY = .lineTop(pos.vertCenter(), side)
-                pos.moveLeft(marginArrow + side + metrics.btnIcon_SpacingArrowH)
+                pos.moveLeft(marginArrow + side + .arrowGap())
 
             case .Top:
                 arrowX = pos.horzCenter() - side * 0.5
@@ -453,7 +456,7 @@ impl IWnd for IconButton
             case .Right, .RightUpward, .RightDownward:
                 arrowX = pos.right() - side - marginArrow
                 arrowY = .lineTop(pos.vertCenter(), side)
-                pos.setRight(arrowX - metrics.btnIcon_SpacingArrowH)
+                pos.setRight(arrowX - .arrowGap())
 
             case .Bottom:
                 arrowX = pos.horzCenter() - side * 0.5
@@ -730,7 +733,7 @@ impl IconButton
         if .arrowPosition != .None
         {
             if width do
-                width += metrics.btnIcon_SpacingArrowH
+                width += .arrowGap()
             width += metrics.btnIcon_ArrowSize
         }
 
@@ -758,12 +761,16 @@ impl IconButton
         if .arrowPosition != .None
         {
             if hasIcon or showsText do
-                x += metrics.btnIcon_SpacingArrowH
+                x += .arrowGap()
             let side  = metrics.btnIcon_ArrowSize
             let arrow = theme.icon(arrowGlyph(.arrowPosition), side)
             arrow.paint(painter, x, .lineTop(rect.vertCenter(), side), color)
         }
     }
+
+    // Returns the air between the content and the disclosure marker: a glyph keeps its own air,
+    // the words of a quiet control are followed closely, as a word and its mark.
+    internal mtd arrowGap()->f32 => .quiet ? .themeMetrics().quiet_ChevronGap : .themeMetrics().btnIcon_SpacingArrowH
 
     // Replaces the displayed icon.
     mtd setIcon(icon: Icon) => .button.setIcon(icon)
@@ -846,6 +853,7 @@ impl IconButton
         let metrics     = parent.themeMetrics()
         with let result = IconButton.create(parent, {}, Math.Rectangle{0, 0, 0, metrics.quiet_Height}, id, flags: .CenterContent)
         {
+            .quiet = true
             .setForm(.RoundedRectangle)
             .setTextPosition(.Right)
             if menu do
@@ -949,17 +957,13 @@ impl IconButton
         let ptBottom     = topView.surfaceToLocal(Math.Point{pos.x, pos.bottom()})
         let anchorCenter = topView.surfaceToLocal(Math.Point{pos.horzCenter(), pos.y}).x
 
-        var anchor = FrameWndAnchor.Top
-        var x      = ptBottom.x
-        var y      = ptBottom.y + anchorHeight
+        var x = ptBottom.x
+        var y = ptBottom.y + anchorHeight
 
         let availableBelow = topView.position.height - sdw.w - y
         let availableAbove = ptTop.y - anchorHeight - sdw.y
-        if availableBelow < height and availableAbove > availableBelow
-        {
-            anchor = .Bottom
-            y      = ptTop.y - anchorHeight - height
-        }
+        if availableBelow < height and availableAbove > availableBelow do
+            y = ptTop.y - anchorHeight - height
 
         if x + width > topView.position.width - sdw.z do
             x = topView.position.width - width - sdw.z
@@ -975,7 +979,8 @@ impl IconButton
             .setFrameForm(.Round)
             .setFrameFlags(.SmallShadow)
             .style.addStyleSheetColors("frameWnd_Border $frameWnd_PopupBorder")
-            .anchor         = anchor
+
+            // The surface leaves the button by the room a tail took, and points at nothing.
             .anchorPosition = anchorCenter - .position.x
         }
 

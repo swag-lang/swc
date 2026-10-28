@@ -689,6 +689,7 @@ const FIND_FIRST_EX_ON_DISK_ENTRIES_ONLY = 4
     func CloseHandle(handle: HANDLE)
     func RtlZeroMemory(destination: LPVOID, length: SIZE_T)
     func FileTimeToLocalFileTime(lpFileTime: const *FILETIME, lpLocalFileTime: *FILETIME)->BOOL
+    func SystemTimeToTzSpecificLocalTime(lpTimeZoneInformation: const *void?, lpUniversalTime: const *SYSTEMTIME, lpLocalTime: *SYSTEMTIME)->BOOL
 }
 
 internal namespace Win32Priv

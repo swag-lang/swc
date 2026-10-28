@@ -1,9 +1,12 @@
 using Core, Pixel
 
-// Editor of a Pixel.FontFamilyStyle field: two toggle buttons (Bold / Italic) writing the
-// Regular/Bold/Italic/BoldItalic combination back into the field. Registered as a builtin
-// through the editor registry, exactly like the Color and vector editors.
+// Editor of a Pixel.FontFamilyStyle field: the four styles side by side as segments, each one
+// lettered "Aa" in the style it stands for, so the choice is read before it is made. Registered
+// as a builtin through the editor registry, exactly like the Color and vector editors.
 internal struct FontStyleEditor {}
+
+// The words each segment of a font style is lettered with, in its own style.
+internal const FontStyleSample = "Aa"
 
 internal impl IPropertyEditor for FontStyleEditor
 {
@@ -11,77 +14,52 @@ internal impl IPropertyEditor for FontStyleEditor
 
     mtd impl construct(list: *Properties, value: Swag.TypeValue, data: [*] u8?, parent: *PropertiesItem?)->*PropertiesItem
     {
-        let parentItem = unwrap parent
-        parentItem.flags.add(.NoSeparator | .NoFocus)
-
-        let item  = list.addItem(value, data, parentItem)
+        let item  = list.addItem(value, data, parent)
         let style = cast(*FontFamilyStyle?, data)
 
-        const BtnW = 34
-        let lineH = list.themeMetrics().btnPush_Height
-
-        // Grid mode packs the pair left in the value column; the panel/list modes center
-        // it as its own full-width row.
-        with let line = StackLayoutCtrl.create(item.line, list.isGridLike() ? .HorizontalFit : .HorizontalCenter, Math.Rectangle{0, 0, 0, lineH})
+        var combo: *ComboBox?
+        if list.kind == .Panel
         {
-            .anchorStyle = .Right
-            .spacing     = 4
+            if item.label != null do
+                item.label.hide()
+            with let ctrl = ComboCtrl.create(item.line, itemDisplayName(value).toString())
+            {
+                .anchorStyle = .Right
+                .setLayoutMetrics(.labelWidth, 0)
+            }
+
+            combo = ctrl.combo
+        }
+        else
+        {
+            with combo = ComboBox.create(item.line)
+            {
+                .maxSize.x = list.editorWidth
+                if list.isGridLike() do
+                    .dockStyle = .CenterKeepSizeVert
+                else do
+                    .preferredSize.x = list.editorWidth
+            }
         }
 
-        // Toggle, not Radio: bold/italic are independent on/off switches, so a
-        // click on a checked button must uncheck it (Radio remains checked).
-        //
-        // A switch that is on says so in the accent it is lettered in. The rule a tool rail
-        // marks its picked tool with would run under a field of the form here, which reads
-        // as an underlined row rather than as one letter being on.
-        with let btnBold = IconButton.create(line, {}, Math.Rectangle{0, 0, BtnW, lineH})
-        {
-            .name = "B"
-            .setForm(.RoundedRectangle)
-            .updateFlags(.Toggle)
-            .setCheckIndicator(.Ink)
-        }
+        let combon: *ComboBox = combo
+        combon.updateFlags(.Segmented)
+        item.assignComboBox(combon)
+        for s in [FontFamilyStyle.Regular, FontFamilyStyle.Bold, FontFamilyStyle.Italic, FontFamilyStyle.BoldItalic] do
+            combon.addItem(FontStyleSample).fontStyle = s
 
-        with let btnItalic = IconButton.create(line, {}, Math.Rectangle{0, 0, BtnW, lineH})
+        combon.sigChanged += func|list, item, style|(_, index)
         {
-            .name = "I"
-            .setForm(.RoundedRectangle)
-            .updateFlags(.Toggle)
-            .setCheckIndicator(.Ink)
-        }
-
-        func writeStyle(list: *Properties, item: *PropertiesItem, style: *FontFamilyStyle?, btnBold, btnItalic: *IconButton)
-        {
-            if style == null do
+            if not style or index > cast(u32, FontFamilyStyle.BoldItalic) do
                 return
-            let bold   = btnBold.isChecked
-            let italic = btnItalic.isChecked
-            if bold and italic do
-                style[] = .BoldItalic
-            elif bold do
-                style[] = .Bold
-            elif italic do
-                style[] = .Italic
-            else do
-                style[] = .Regular
+            style[] = cast(FontFamilyStyle, index)
             list.commitItemChange(item)
         }
 
-        btnBold.sigCheckedChanged += func|list, item, style, btnBold, btnItalic|(_)
+        item.sigRefresh += func|style, combon|(_)
         {
-            writeStyle(list, item, style, btnBold, btnItalic)
-        }
-
-        btnItalic.sigCheckedChanged += func|list, item, style, btnBold, btnItalic|(_)
-        {
-            writeStyle(list, item, style, btnBold, btnItalic)
-        }
-
-        item.sigRefresh += func|style, btnBold, btnItalic|(_)
-        {
-            let s = style![]
-            btnBold.setChecked(s == .Bold or s == .BoldItalic)
-            btnItalic.setChecked(s == .Italic or s == .BoldItalic)
+            if style do
+                combon.setSelectedIndex(cast(u32, style[]), notify: false)
         }
 
         item.sigRefresh.call(item)

@@ -22,74 +22,30 @@ func viewerPlugin()->Viewer.Plugin
     return result
 }
 
-// Locates the text of one cue inside the transcript.
-struct ViewerCue
+// One line of a cue's words as the list sets it: a byte range of the words, and the width it takes.
+struct CueLine
 {
-    textOffset: u64
-    textLength: u64
-    firstLine:  u64
-    lastLine:   u64
+    start: u64
+    end:   u64
 }
 
-// Sets the time range of each cue back from its words, so the transcript reads as dialogue with
-// its timing beside it rather than as a column of numbers.
-struct TranscriptLexer
+// Where one cue stands in the reading list, at the width the list was last laid out at.
+struct CueRow
 {
-    enum Style: RichEditStyleRef
-    {
-        Default
-        Time
-    }
+    top:    f32
+    height: f32
+    lines:  Array'CueLine
 }
 
-impl IRichEditLexer for TranscriptLexer
+// The search occurrence the list shows, in the words of one cue.
+struct CueMatch
 {
-    mtd impl setup(_: *RichEditCtrl) {}
-
-    mtd impl setupTheme(ed: *RichEditCtrl)
-    {
-        var time = ed.themeColors().richEdit_TextSpecial
-        time.ensureContrast(ed.themeColors().richEdit_Bk, 4.5)
-        ed.styles[cast(u64, Style.Time)].colFg = time
-    }
-
-    mtd impl insertRune(_: *RichEditCtrl, _: rune)->bool => false
-
-    // A time line is the one shape the transcript builder writes: `HH:MM:SS.mmm  →  HH:MM:SS.mmm`.
-    mtd impl compute(_: *RichEditLine?, line: *RichEditLine, _: *RichEditLine?)
-    {
-        let isTime = line.length() >= 29 and
-                     line.runeAt(2) == ':' and
-                     line.runeAt(5) == ':' and
-                     line.runeAt(8) == '.' and
-                     line.runeAt(14) == '→'
-        let style = cast(RichEditStyleRef, isTime ? Style.Time : Style.Default)
-        for index in line.length() do
-            line.setStyleAt(index, style)
-    }
+    cue:    u64 = Swag.U64.Max
+    offset: u64
+    length: u64
 }
 
-// Presents a timed subtitle file as a searchable transcript of its cues.
-struct Panel
-{
-    using wnd: Wnd
-
-    late
-    {
-        editor:         *RichEditCtrl
-        cueButton:      *IconButton
-        durationButton: *IconButton
-    }
-
-    track:      *Subtitle.Track?
-    lexer:      TranscriptLexer
-    transcript: String
-    cueText:    Array'ViewerCue
-    currentCue: u64 = Swag.U64.Max
-    duration:   f64
-}
-
-// Formats a cue time as HH:MM:SS.mmm, a form the go-to-time dialog also accepts.
+// Formats a cue time as HH:MM:SS,mmm, the way a subtitle file writes it.
 private func clockText(seconds: f64)->String
 {
     let millis   = cast(u64, Math.max(Math.round(seconds * 1_000), 0.0))
@@ -97,7 +53,14 @@ private func clockText(seconds: f64)->String
     let minutes  = millis / 60_000 % 60
     let rest     = millis / 1_000 % 60
     let fraction = millis % 1_000
-    return Format.toString("%{02}:%{02}:%{02}.%{03}", hours, minutes, rest, fraction)
+    return Format.toString("%{02}:%{02}:%{02},%{03}", hours, minutes, rest, fraction)
+}
+
+// Formats a time as HH:MM:SS, the reading at the foot of the list.
+private func secondsText(seconds: f64)->String
+{
+    let whole = cast(u64, Math.max(Math.floor(seconds), 0.0))
+    return Format.toString("%{02}:%{02}:%{02}", whole / 3_600, whole / 60 % 60, whole % 60)
 }
 
 // Returns the established name of a subtitle syntax.
@@ -117,6 +80,374 @@ private func formatText(format: Subtitle.Format)->string
 // Returns the cue count with the noun that count calls for.
 private func cueCountText(count: u64)->String => count == 1 ? texts().ui_OneCue : Format.toString(texts().ui_Cues, count)
 
+/*
+The cues of a subtitle file as a reading list, after `scope.subtitle`.
+
+The name of the file heads a measured column, with a mono line under it: how many cues, how long,
+in which syntax. Each cue is a row: its number, its time range in mono, and its words beside them,
+wrapped to the column. The current cue stands on the selection ground. The list scrolls under the
+strip; only the rows in view are set.
+*/
+struct CueSheet
+{
+    using wnd: Wnd
+
+    late panel: *Panel
+
+    rows:        Array'CueRow
+    layoutWidth: f32
+    headHeight:  f32
+}
+
+impl CueSheet
+{
+    const ColumnWidth  = 800'f32     // Width of the reading column.
+    const Gutter       = 32'f32      // Least air between the column and an edge of the window.
+    const HeadAir      = 32'f32      // Air between the strip and the name of the file.
+    const TitleSize    = 28'u32      // Size of the name of the file.
+    const IdentityGap  = 8'f32       // Air between the name and its mono line.
+    const RowsGap      = 28'f32      // Air between the mono line and the first row.
+    const RowPadding   = 16'f32      // Air above and below the words of a row.
+    const NumberX      = 16'f32      // Where the number of a cue starts, in the column.
+    const TimesX       = 64'f32      // Where its time range starts.
+    const WordsX       = 274'f32     // Where its words start.
+    const WordsRight   = 24'f32      // Air the words keep before the end of the column.
+    const WordsSize    = 15'u32      // Size of the words.
+    const WordsLeading = 24'f32      // Height of one line of words.
+    const TimesHeight  = 32'f32      // Height of the two lines of a time range.
+    const BottomRoom   = 120'f32     // Room kept under the last row for the rhythm and the readings.
+
+    mtd wordsFont()->*Font => .theme().createDefaultFont(WordsSize)
+    mtd monoFont()->*Font  => .theme().createDefaultFontFs(.themeMetrics().defaultFixedFontSize)
+    mtd titleFont()->*Font => .theme().createDefaultFont(TitleSize, .Bold)
+
+    mtd column()->Math.Rectangle
+    {
+        let room  = .clientRect()
+        let width = Math.min(ColumnWidth, Math.max(0, room.width - 2 * Gutter))
+        return Math.Rectangle{Math.round((room.width - width) * 0.5), 0, width, room.height}
+    }
+
+    // Splits the words of cue `index` into the lines they take at `width`, breaking between words
+    // and at the line breaks the cue carries.
+    mtd wrapCue(index: u64, width: f32, result: *Array'CueLine)
+    {
+        let font  = .wordsFont()
+        let words = .panel.track!.cueContent(index)
+        result.clear()
+
+        var lineStart = 0'u64
+        var lastBreak = Swag.U64.Max
+        var scan      = 0'u64
+        while scan <= words.count
+        {
+            let atEnd = scan == words.count
+            if atEnd or words[scan] == '\n'
+            {
+                result.add(CueLine{lineStart, scan})
+                lineStart = scan + 1
+                lastBreak = Swag.U64.Max
+                scan      += 1
+                continue
+            }
+
+            if words[scan] == ' ' do
+                lastBreak = scan
+            if lastBreak != Swag.U64.Max and Painter.measureString(words[lineStart until scan + 1], font).width > width
+            {
+                result.add(CueLine{lineStart, lastBreak})
+                lineStart = lastBreak + 1
+                lastBreak = Swag.U64.Max
+            }
+
+            scan += 1
+        }
+    }
+
+    // Measures every row at the width of the view, and tells the scroll window how tall the list is.
+    mtd relayout()
+    {
+        // The scroll window lays its view out as soon as it makes it, before the list is joined to its panel.
+        if .panel == null do
+            return
+
+        let column = .column()
+        let words  = Math.max(1, column.width - WordsX - WordsRight)
+        .layoutWidth = .clientRect().width
+        .headHeight  = .panel.stripInset() + HeadAir + .titleFont().height + IdentityGap + .monoFont().height + RowsGap
+
+        var y = .headHeight
+        .rows.resize(.panel.track!.cueCount())
+        for &row, index in .rows
+        {
+            .wrapCue(index, words, &row.lines)
+            row.top    = y
+            row.height = Math.max(TimesHeight, cast(f32, row.lines.count) * WordsLeading) + 2 * RowPadding
+            y          += row.height
+        }
+
+        .panel.scroll.setScrollSize(0, y + BottomRoom)
+        .invalidate()
+    }
+
+    // Returns the band of row `index` in the coordinates of the list, across the column.
+    mtd rowRect(index: u64)->Math.Rectangle
+    {
+        let column = .column()
+        let row    = &.rows[index]
+        return Math.Rectangle{column.x, row.top, column.width, row.height}
+    }
+
+    // Returns the cue whose row holds the point `pt` of the list, or `Swag.U64.Max`.
+    mtd cueAt(pt: Math.Point)->u64
+    {
+        for &row, index in .rows where pt.y >= row.top and pt.y < row.top + row.height do
+            return index
+        return Swag.U64.Max
+    }
+
+    // Scrolls the least that brings row `index` into view, clear of the strip.
+    mtd reveal(index: u64)
+    {
+        if index >= .rows.count do
+            return
+        let row    = &.rows[index]
+        let top    = .scrollPos.y + .panel.stripInset()
+        let bottom = .scrollPos.y + .clientRect().height - BottomRoom
+        if row.top < top do
+            .panel.scroll.setScrollPos(0, row.top - .panel.stripInset())
+        elif row.top + row.height > bottom do
+            .panel.scroll.setScrollPos(0, row.top + row.height - .clientRect().height + BottomRoom)
+    }
+
+    // Returns where the match is set, in the coordinates of the list.
+    mtd matchRect(match: CueMatch)->Math.Rectangle
+    {
+        var result: #returntype
+        if match.cue >= .rows.count do
+            return result
+
+        let font   = .wordsFont()
+        let column = .column()
+        let words  = .panel.track!.cueContent(match.cue)
+        let row    = &.rows[match.cue]
+        for line, index in row.lines where match.offset >= line.start and match.offset <= line.end
+        {
+            let x     = column.x + WordsX + Painter.measureString(words[line.start until match.offset], font).width
+            let end   = Math.min(match.offset + match.length, line.end)
+            let width = Painter.measureString(words[match.offset until end], font).width
+            let top   = row.top + RowPadding + cast(f32, index) * WordsLeading
+            return Math.Rectangle{x, top, width, WordsLeading}
+        }
+
+        return result
+    }
+
+    // Writes the name of the file and its mono line at the head of the column.
+    mtd paintHead(painter: *Painter, column: Math.Rectangle)
+    {
+        let colors = .themeColors()
+        let title  = .titleFont()
+        let mono   = .monoFont()
+        var y      = .panel.stripInset() + HeadAir
+        painter.drawString(column.x, y, Path.fileName(.panel.fileName) orelse .panel.fileName, title, colors.text)
+        y += title.height + IdentityGap
+        painter.drawString(column.x, y, .panel.identity(), mono, colors.faintText)
+    }
+
+    // Writes row `index`: the selection ground of the current cue, its number, its time range and
+    // its words.
+    mtd paintRow(painter: *Painter, index: u64)
+    {
+        let colors  = .themeColors()
+        let metrics = .themeMetrics()
+        let mono    = .monoFont()
+        let words   = .wordsFont()
+        let band    = .rowRect(index)
+        let current = index == .panel.currentCue
+        if current
+        {
+            painter.setParams(.Antialiased)
+            painter.fillRoundRect(band, metrics.corner_Control, metrics.corner_Control, colors.selection)
+        }
+
+        let top = band.y + RowPadding
+        painter.drawString(band.x + NumberX, top, Format.toString("%", index + 1), mono, colors.faintText)
+
+        let track = unwrap .panel.track
+        painter.drawString(band.x + TimesX, top, clockText(track.cueStartTime(index)), mono, current ? colors.text : colors.softText)
+        let ending = Format.toString("→ %", clockText(track.cueEndTime(index)))
+        painter.drawString(band.x + TimesX, top + TimesHeight * 0.5, ending, mono, colors.faintText)
+
+        let text = track.cueContent(index)
+        for line, lineIndex in .rows[index].lines
+        {
+            let y = top + cast(f32, lineIndex) * WordsLeading + (WordsLeading - words.height) * 0.5
+            painter.drawString(band.x + WordsX, y, text[line.start until line.end], words, colors.text)
+        }
+    }
+}
+
+impl IWnd for CueSheet
+{
+    mtd impl onPaint(evt: *PaintEvent)
+    {
+        if .rows.count != .panel.track!.cueCount() or .layoutWidth != .clientRect().width do
+            .relayout()
+
+        let painter = evt.paintContext.painter
+        let column  = .column()
+        .paintHead(painter, column)
+
+        // The list is set in document coordinates; only the rows in view are written.
+        var band = .clientRect()
+        band.offset(.scrollPos)
+        for &row, index in .rows where row.top + row.height >= band.y and row.top <= band.bottom() do
+            .paintRow(painter, index)
+    }
+
+    mtd impl onResizeEvent(_: *ResizeEvent)
+    {
+        .relayout()
+    }
+
+    mtd impl onNotifyEvent(evt: *NotifyEvent)
+    {
+        if evt.kind == .ThemeChanged and .rows.count do
+            .relayout()
+        evt.accepted = false
+    }
+
+    // A click makes its cue the current one.
+    mtd impl onMouseEvent(evt: *MouseEvent)
+    {
+        if evt.kind != .Pressed or evt.button != .Left
+        {
+            evt.accepted = false
+            return
+        }
+
+        .setFocus()
+        let cue = .cueAt(.surfaceToLocal(evt.surfacePos) + .scrollPos)
+        if cue != Swag.U64.Max do
+            .panel.setCurrentCue(cue)
+    }
+
+    mtd impl onKeyEvent(evt: *KeyEvent)
+    {
+        if evt.kind != .Pressed
+        {
+            evt.accepted = false
+            return
+        }
+
+        let panel = .panel
+        switch
+        {
+        case evt.modifiers == .Control and (evt.key == .PageUp or evt.key == .Up):     discard panel.navigateCue(false)
+        case evt.modifiers == .Control and (evt.key == .PageDown or evt.key == .Down): discard panel.navigateCue(true)
+        case evt.modifiers == .Control and evt.key == .Home:                           discard panel.navigateCueBoundary(false)
+        case evt.modifiers == .Control and evt.key == .End:                            discard panel.navigateCueBoundary(true)
+        case evt.modifiers == .Control and evt.key == .C:                              panel.copyCurrentCue()
+        case evt.modifiers == .None and evt.key == .Up:                                discard panel.navigateCue(false)
+        case evt.modifiers == .None and evt.key == .Down:                              discard panel.navigateCue(true)
+        case evt.modifiers == .None and evt.key == .Home:                              discard panel.navigateCueBoundary(false)
+        case evt.modifiers == .None and evt.key == .End:                               discard panel.navigateCueBoundary(true)
+        default: evt.accepted = false
+        }
+    }
+}
+
+/*
+The rhythm of the track under the list: each cue a short rule as long as it lasts, the current
+one marked with the caret.
+
+It shows the cues of the minute around the current cue, so the reader sees where the dialogue
+thickens and where it rests.
+*/
+struct CueRhythm
+{
+    using wnd: Wnd
+
+    late panel: *Panel
+}
+
+impl CueRhythm
+{
+    const Height    = 56'f32       // Height of the strip the rhythm stands in.
+    const Span      = 60'f64       // Seconds the strip shows at once.
+    const Lead      = 0.35'f64     // Share of them that comes before the current cue.
+    const RuleSize  = 4'f32        // Thickness of the rule of a cue.
+    const RuleGap   = 4'f32        // Least air between two rules.
+    const MarkWidth = 2'f32        // Width of the mark of the current cue.
+    const MarkSize  = 16'f32       // Height of that mark.
+}
+
+impl IWnd for CueRhythm
+{
+    mtd impl onPaint(evt: *PaintEvent)
+    {
+        let panel = .panel
+        let track = unwrap panel.track
+        if not track.cueCount() do
+            return
+
+        let painter = evt.paintContext.painter
+        let colors  = .themeColors()
+        let room    = .clientRect()
+        let width   = Math.min(CueSheet.ColumnWidth, Math.max(0, room.width - 2 * CueSheet.Gutter)) - 2 * CueSheet.NumberX
+        let left    = Math.round((room.width - width) * 0.5)
+        let centerY = room.vertCenter()
+
+        // The minute shown leads to the current cue and goes on past it, from the first cue at most.
+        let focus = panel.currentCue == Swag.U64.Max ? 0 : panel.currentCue
+        let start = Math.max(track.cueStartTime(0), track.cueStartTime(focus) - Span * Lead)
+        let scale = cast(f64, width) / Span
+
+        painter.setParams(.Antialiased)
+        for index in track.cueCount()
+        {
+            let first = track.cueStartTime(index)
+            let last  = track.cueEndTime(index)
+            if last < start or first > start + Span do
+                continue
+
+            let x0 = left + cast(f32, (Math.max(first, start) - start) * scale)
+            let x1 = left + cast(f32, (Math.min(last, start + Span) - start) * scale) - RuleGap
+            if x1 <= x0 do
+                continue
+            painter.fillRoundRect(Math.Rectangle{x0, centerY - RuleSize * 0.5, x1 - x0, RuleSize}, RuleSize * 0.5, RuleSize * 0.5, colors.strongLine)
+        }
+
+        if panel.currentCue != Swag.U64.Max
+        {
+            let x = left + cast(f32, (track.cueStartTime(panel.currentCue) - start) * scale)
+            painter.fillRect(Math.Rectangle{Math.round(x), centerY - MarkSize * 0.5, MarkWidth, MarkSize}, colors.caret)
+        }
+    }
+}
+
+// Presents a timed subtitle file as a reading list of its cues.
+struct Panel
+{
+    using wnd: Wnd
+
+    late
+    {
+        scroll:     *ScrollWnd
+        sheet:      *CueSheet
+        rhythm:     *CueRhythm
+        timeButton: *IconButton
+    }
+
+    track:      *Subtitle.Track?
+    fileName:   String
+    services:   Viewer.HostServices
+    currentCue: u64 = Swag.U64.Max
+    duration:   f64
+    match:      CueMatch
+}
+
 impl IWnd for Panel
 {
     mtd impl onNotifyEvent(evt: *NotifyEvent)
@@ -134,129 +465,119 @@ impl IWnd for Panel
     }
 }
 
-private impl Panel
+impl Panel
 {
+    // Returns the mono line under the name: how many cues, how long, in which syntax.
+    mtd identity()->String => Format.toString("% · % · %", cueCountText(.track!.cueCount()), Viewer.durationText(.duration), formatText(.track.sourceFormat()))
+
+    // Returns what the readings say on the left: the current cue among all, or how many there are.
+    mtd cuePosition()->String
+    {
+        if .currentCue == Swag.U64.Max do
+            return cueCountText(.track!.cueCount())
+        return Format.toString(texts().ui_CuePosition, .currentCue + 1, .track!.cueCount())
+    }
+
     mtd retranslate()
     {
-        .refreshCueButton()
-        .cueButton.toolTip      = texts().ui_CueNavigationTip
-        .durationButton.toolTip = texts().ui_GoToTime
+        .timeButton.toolTip = texts().ui_GoToTime
+        .refreshReadings()
+        .sheet.invalidate()
     }
 
-    mtd refreshCueButton()
+    // Says the current cue on the readings at the foot: its rank on the left, its time on the right.
+    mtd refreshReadings()
     {
-        let label = .currentCue == Swag.U64.Max
-                    ? cueCountText(.track!.cueCount())
-                    : Format.toString(texts().ui_CuePosition, .currentCue + 1, .cueText.count)
-        .cueButton.setText(label)
+        .services.showDetails(me, .cuePosition())
+        let time = .currentCue == Swag.U64.Max ? Viewer.durationText(.duration) : secondsText(.track!.cueStartTime(.currentCue))
+        .timeButton.setQuietText(time)
+        .services.chromeChanged(me)
     }
 
+    // Makes cue `index` the current one, brings its row into view, and says it at the foot.
     mtd setCurrentCue(index: u64)
     {
         if .currentCue == index do
             return
         .currentCue = index
-        .refreshCueButton()
+        .sheet.reveal(index)
+        .refreshReadings()
+        .sheet.invalidate()
+        .rhythm.invalidate()
     }
 
-    // Tracks the cue containing the editor caret, including wrapped display lines.
-    internal mtd syncCurrentCue()
+    mtd copyCurrentCue()
     {
-        if .cueText.isEmpty() do
-            return
-        let line = .editor.cursorLogicalLineIndex()
-        for index in .cueText.count where line <= .cueText[index].lastLine
-        {
-            .setCurrentCue(index)
-            return
-        }
-
-        .setCurrentCue(.cueText.count - 1)
+        if .currentCue != Swag.U64.Max do
+            Clipboard.setString(.track!.cueContent(.currentCue))
     }
 
-    // Builds the transcript, each cue as its time range followed by its content, and records where
-    // each cue's content sits so it can be revealed.
-    mtd buildTranscript()
-    {
-        var line = 0'u64
-        for index in .track!.cueCount()
-        {
-            if not .transcript.isEmpty()
-            {
-                .transcript += "\n\n"
-                line        += 2
-            }
-
-            let firstLine = line
-            .transcript += clockText(.track.cueStartTime(index))
-            .transcript += "  →  "
-            .transcript += clockText(.track.cueEndTime(index))
-            .transcript += "\n"
-            line        += 1
-            let offset  = .transcript.length
-            let content = .track.cueContent(index)
-            .transcript += content
-            for character in content where character == '\n' do
-                line += 1
-            .cueText.add(ViewerCue{offset, content.count, firstLine, line})
-        }
-    }
-
-    internal mtd collectMatches(text: string, options: Viewer.SearchOptions, result: *Array'Viewer.SearchMatch)
+    mtd collectMatches(text: string, options: Viewer.SearchOptions, result: *Array'Viewer.SearchMatch)
     {
         for index in .track!.cueCount() do
             Viewer.collectTextMatches(.track.cueContent(index), text, options, index, 0, 0, result)
     }
 
-    internal mtd revealMatch(match: Viewer.SearchMatch, _: string)->bool
+    mtd revealMatch(match: Viewer.SearchMatch, _: string)->bool
     {
-        if match.major >= .cueText.count do
+        if match.major >= .track!.cueCount() do
             return false
+        .match = CueMatch{match.major, match.offset, match.length}
         .setCurrentCue(match.major)
-        let cue = .cueText[match.major]
-        Viewer.highlightRichEditMatch(.editor, .transcript, cue.textOffset + match.offset, match.length)
+        .sheet.reveal(match.major)
+        .sheet.invalidate()
         return true
     }
 
-    internal mtd searchBounds(result: *Math.Rectangle)->bool => Viewer.richEditMatchBounds(.editor, result)
-    internal mtd clearSearch() => Viewer.clearRichEditMatch(.editor)
-
-    internal mtd revealCue(index: u64)->bool
+    // Reports where the revealed match is written, in surface coordinates.
+    mtd searchBounds(result: *Math.Rectangle)->bool
     {
-        if index >= .cueText.count do
+        var rect = .sheet.matchRect(.match)
+        if rect.isEmpty() do
+            return false
+        rect.offset(-.sheet.scrollPos.x, -.sheet.scrollPos.y)
+        let origin = .sheet.localToSurface(Math.Point{})
+        rect.offset(origin.x, origin.y)
+        result[] = rect
+        return true
+    }
+
+    mtd clearSearch()
+    {
+        .match = {}
+        .sheet.invalidate()
+    }
+
+    mtd revealCue(index: u64)->bool
+    {
+        if index >= .track!.cueCount() do
             return false
         .setCurrentCue(index)
-        let cue = .cueText[index]
-        Viewer.highlightRichEditMatch(.editor, .transcript, cue.textOffset, cue.textLength)
-        .editor.setFocus()
+        .sheet.setFocus()
         return true
     }
 
     // Moves to an adjacent cue. With no current cue, begin at the first cue in either direction.
     mtd navigateCue(forward: bool)->bool
     {
-        if .cueText.isEmpty() do
+        let count = .track!.cueCount()
+        if not count do
             return false
         if .currentCue == Swag.U64.Max do
             return .revealCue(0)
-        if forward
-        {
-            if .currentCue + 1 < .cueText.count do
-                discard .revealCue(.currentCue + 1)
-        }
-        elif .currentCue
-        {
+        if forward and .currentCue + 1 < count do
+            discard .revealCue(.currentCue + 1)
+        elif not forward and .currentCue do
             discard .revealCue(.currentCue - 1)
-        }
-
         return true
     }
 
     mtd navigateCueBoundary(last: bool)->bool
     {
-        if .cueText.isEmpty() do
+        let count = .track!.cueCount()
+        if not count do
             return false
-        return .revealCue(last ? .cueText.count - 1 : 0)
+        return .revealCue(last ? count - 1 : 0)
     }
 
     // Gives the lens the ways through the cues and the time of the track.
@@ -273,9 +594,10 @@ private impl Panel
 
     mtd promptGoToCue()
     {
-        if .cueText.isEmpty() do
+        let count = .track!.cueCount()
+        if not count do
             return
-        let message = Format.toString(texts().ui_CueRange, .cueText.count)
+        let message = Format.toString(texts().ui_CueRange, count)
         let dialog  = EditDlg.createSingleLine(unwrap .surface, {title: texts().ui_GoToCue, message: message, text: "1"})
         if dialog.doModal() != Dialog.BtnOk do
             return
@@ -283,108 +605,79 @@ private impl Panel
         var cue: #decltype(expect StrConv.toU64(dialog.text()))
         catch { cue = try StrConv.toU64(dialog.text()) } as parseErrorOutcome
         let parseError = parseErrorOutcome.value()
-        if parseError == null and cue and cue <= .cueText.count do
+        if parseError == null and cue and cue <= count do
             discard .revealCue(cue - 1)
     }
 
     // Asks for a time and reveals the first cue that has not ended by then, or the last cue.
     mtd promptGoToTime()
     {
-        if .cueText.isEmpty() do
+        let count = .track!.cueCount()
+        if not count do
             return
-        let dialog = EditDlg.createSingleLine(unwrap .surface, {title: texts().ui_GoToTime, message: texts().ui_TimeRange, text: "00:00:00.000"})
+        let dialog = EditDlg.createSingleLine(unwrap .surface, {title: texts().ui_GoToTime, message: texts().ui_TimeRange, text: "00:00:00"})
         if dialog.doModal() != Dialog.BtnOk do
             return
 
         var seconds: f64
         if not timeSeconds(dialog.text(), &seconds) do
             return
-        for index in .track!.cueCount() where .track.cueEndTime(index) >= seconds
+        for index in count where .track.cueEndTime(index) >= seconds
         {
             discard .revealCue(index)
             return
         }
 
-        discard .revealCue(.cueText.count - 1)
+        discard .revealCue(count - 1)
     }
 
-    // Builds the subtitle panel: a read-only transcript of the cues, with duration and cue count
-    // buttons that prompt for a time or a cue to reach. Fails when the track cannot be loaded.
+    // Builds the reading list, the rhythm under it, and the time at the foot that asks for a time
+    // to reach. Fails when the track cannot be loaded.
     func create(host: Viewer.Host)->*Panel fail
     {
         with let result = Wnd.create'Panel(host.contentParent(), "scope.subtitle")
         {
             .backgroundStyle = .View
             .track           = try Subtitle.Track.loadOwned(host.fileName())
+            .fileName        = host.fileName()
+            .services        = host.services()
             .duration        = .track.durationInSeconds()
-            .buildTranscript()
         }
 
-        let info = host.createInfoGroup(220)
-        with result.durationButton = IconButton.create(info, {}, {0, 0, 104, 32}, "scope.subtitle.time", .CenterContent)
+        with result.rhythm = Wnd.create'CueRhythm(result, {0, 0, 0, CueRhythm.Height})
+        {
+            .panel           = result
+            .dockStyle       = .Bottom
+            .backgroundStyle = .Transparent
+        }
+
+        with result.scroll = Wnd.create'ScrollWnd(result, "scope.subtitle.scroll", {})
+        {
+            .dockStyle = .Center
+            .updateFlags(.TransparentBars | .DisableHorizontal)
+        }
+
+        with result.sheet = result.scroll.createView'CueSheet()
+        {
+            .panel           = result
+            .backgroundStyle = .Transparent
+            .focusPolicy     = .Tab
+            .wndFlags        |= WndFlags.NoFocusRing
+        }
+
+        let info = host.createInfoGroup(160)
+        with result.timeButton = IconButton.createQuiet(info, "scope.subtitle.time", menu: false)
         {
             .dockStyle = .Right
-            .margin.x  = 8
             .toolTip   = texts().ui_GoToTime
-            .setText(Viewer.durationText(result.duration))
-            .setForm(.Rectangle)
+            .style.setFont(result.theme().createDefaultFontFs(12), .Regular)
             .sigPressed += func|view = result|(_) { view.promptGoToTime() }
         }
 
-        with result.cueButton = IconButton.create(info, {}, {0, 0, 108, 32}, "scope.subtitle.cue", .CenterContent)
-        {
-            .dockStyle = .Right
-            .toolTip   = texts().ui_CueNavigationTip
-            .setText(cueCountText(result.track!.cueCount()))
-            .setForm(.Rectangle)
-            .sigPressed += func|view = result|(_) { view.promptGoToCue() }
-        }
-
-        with result.editor = RichEditCtrl.create(result)
-        {
-            .dockStyle   = .Center
-            .marginLeft  = 20
-            .marginRight = 20
-            .lineSpacing = 4
-            .style.setFont(result.theme().createDefaultFont(result.themeMetrics().defaultFixedFontSize), .Regular)
-            .setFlags(.ReadOnly | .WordWrap)
-            .setLexer(&result.lexer)
-            .setText(result.transcript)
-        }
-
-        result.hookOnChildEvent = func|view = result|(_, evt)
-        {
-            switch evt
-            {
-            case KeyEvent as key where key.kind == .Pressed and key.modifiers == .Control and key.key == .PageUp:
-                return view.navigateCue(false)
-
-            case KeyEvent as key where key.kind == .Pressed and key.modifiers == .Control and key.key == .PageDown:
-                return view.navigateCue(true)
-
-            case KeyEvent as key where key.kind == .Pressed and key.modifiers == .Control and key.key == .Home:
-                return view.navigateCueBoundary(false)
-
-            case KeyEvent as key where key.kind == .Pressed and key.modifiers == .Control and key.key == .End:
-                return view.navigateCueBoundary(true)
-
-            case KeyEvent as key:
-                key.target!.processEvent(evt)
-                view.syncCurrentCue()
-                return key.accepted
-
-            case MouseEvent as mouse:
-                mouse.target!.processEvent(evt)
-                view.syncCurrentCue()
-                return mouse.accepted
-
-            default:
-                return false
-            }
-        }
-
+        result.timeButton.setQuietText(Viewer.durationText(result.duration))
         result.applyLayout()
-        result.setInitialFocus(result.editor)
+        result.sheet.relayout()
+        result.setInitialFocus(result.sheet)
         return result
     }
 }
@@ -430,7 +723,7 @@ func createViewer(host: Viewer.Host)
     {
         let view = try Panel.create(host)
         host.attachView(view)
-        host.setDetails(formatText(view.track!.sourceFormat()))
+        host.setDetails(cueCountText(view.track!.cueCount()))
 
         host.setSearch(Viewer.searchApi(view))
         host.setLensSource(func|view|(entries) { view.describeLens(entries) })

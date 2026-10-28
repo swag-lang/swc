@@ -112,6 +112,7 @@ private const CodeExtensions    = [".swg", ".swgs", ".c", ".cpp", ".h", ".hpp", 
 private const AudioExtensions   = [".wav", ".mp3", ".flac", ".ogg", ".aac", ".m4a", ".opus", ".mid", ".midi"]
 private const VideoExtensions   = [".mp4", ".mkv", ".avi", ".mov", ".webm", ".wmv", ".m4v"]
 private const ArchiveExtensions = [".zip", ".7z", ".rar", ".tar", ".gz", ".bz2", ".xz"]
+private const DocumentExtensions = [".pdf", ".epub", ".djvu", ".xps"]
 
 // Reports whether `ext` is one of `list`, without case.
 private func isExtensionOf(ext: string, list: const [..] string)->bool
@@ -134,23 +135,44 @@ impl Theme
     mtd icon(idx: ThemeIcons, size = 24'f32)->Icon => .res.icons.icon(cast(s32, idx), size, .res.atlasScale)
 
     // Returns the line glyph of a file named `name` at `size` logical pixels: a folder, or a page
-    // marked with the kind its extension says — a picture, code, a sound, a film, an archive.
+    // marked with the kind its extension says — a picture, code, a sound, a film, a paged
+    // document, an archive.
     //
-    // A listing draws these in one ink rather than the colored icons of the system, so a row
-    // reads by its name first and the glyph only says what kind of thing it is.
+    // A listing draws these rather than the colored icons of the system, so a row reads by its
+    // name first and the glyph only says what kind of thing it is. A kind carries its quiet hue
+    // (`fileKind_*`) in the icon's color; a folder and a plain file carry none, and take the ink
+    // their row gives them. A selected row may draw any of them in its own ink.
     mtd fileGlyph(name: string, isDirectory: bool, size = 16'f32)->Icon
     {
         if isDirectory do
             return .icon(.Folder, size)
+
+        var result: #returntype
         let ext = Path.extension(name) orelse ""
         switch
         {
-        case isExtensionOf(ext, ImageExtensions):   return .icon(.FileImage, size)
-        case isExtensionOf(ext, CodeExtensions):    return .icon(.FileCode, size)
-        case isExtensionOf(ext, AudioExtensions):   return .icon(.FileAudio, size)
-        case isExtensionOf(ext, VideoExtensions):   return .icon(.FileVideo, size)
-        case isExtensionOf(ext, ArchiveExtensions): return .icon(.FileArchive, size)
-        default:                                    return .icon(.File, size)
+        case isExtensionOf(ext, ImageExtensions):
+            result       = .icon(.FileImage, size)
+            result.color = .colors.fileKind_Image
+        case isExtensionOf(ext, CodeExtensions):
+            result       = .icon(.FileCode, size)
+            result.color = .colors.fileKind_Code
+        case isExtensionOf(ext, AudioExtensions):
+            result       = .icon(.FileAudio, size)
+            result.color = .colors.fileKind_Audio
+        case isExtensionOf(ext, VideoExtensions):
+            result       = .icon(.FileVideo, size)
+            result.color = .colors.fileKind_Video
+        case isExtensionOf(ext, ArchiveExtensions):
+            result       = .icon(.FileArchive, size)
+            result.color = .colors.fileKind_Archive
+        case isExtensionOf(ext, DocumentExtensions):
+            result       = .icon(.File, size)
+            result.color = .colors.fileKind_Document
+        default:
+            result = .icon(.File, size)
         }
+
+        return result
     }
 }

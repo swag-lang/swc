@@ -51,6 +51,10 @@ struct ThemeColors
         selection: Color     // Ground of a selected row, thumbnail, segment, or of a menu entry under the pointer.
         highlight: Color     // Ground of search occurrences and matched characters.
 
+        // Hues that tell a few series apart — the tracks of a piece, the channels of a recording —
+        // where nothing is chosen and nothing acts. A series past the fourth takes them again.
+        series: [4] Color
+
         // The current search occurrence. Encre marks it in Voltage; Papier keeps the highlight
         // ground and marks it with ink. The band is translucent, because a viewer draws it over
         // text it must not hide.
@@ -65,6 +69,14 @@ struct ThemeColors
         info:       Color     // Dots and marks of something worth knowing.
         infoBk:     Color     // Tinted ground of an information notice.
         live:       Color     // Dot of something running now, such as a mounted drive.
+
+        // The glyph of each kind of file in a listing. See [[Gui.Theme.fileGlyph]].
+        fileKind_Image: Color     // Glyph of a picture in a file listing.
+        fileKind_Video: Color     // Glyph of a film in a file listing.
+        fileKind_Audio: Color     // Glyph of a sound in a file listing.
+        fileKind_Code: Color     // Glyph of source code or structured data in a file listing.
+        fileKind_Document: Color     // Glyph of a paged document, such as a PDF in a file listing.
+        fileKind_Archive: Color     // Glyph of an archive in a file listing.
 
         transparent: Color     // Nothing drawn. Always zero; named so a sheet can point a part at it.
 
@@ -688,6 +700,7 @@ impl ThemeColors
         .link      = p.link
         .selection = p.selection
         .highlight = p.highlight
+        .series    = p.series
         .link.ensureContrast(p.ground, LinkContrast)
 
         .searchMatch_Bk     = p.currentMatch.ground.withAlpha(SearchMatchBandAlpha)
@@ -701,6 +714,12 @@ impl ThemeColors
         .info        = info.mark
         .infoBk      = info.ground
         .live        = live.mark
+        .fileKind_Image = p.kindImage
+        .fileKind_Video = p.kindVideo
+        .fileKind_Audio = p.kindAudio
+        .fileKind_Code = p.kindCode
+        .fileKind_Document = p.kindDocument
+        .fileKind_Archive = p.kindArchive
         .transparent = 0
 
         .veilSoft   = p.veil.withAlpha(VeilSoftAlpha)
@@ -1216,9 +1235,22 @@ impl ThemeColors
         // A mounted drive is green: the one hue the charter keeps for "running now".
         result.live = 0xFF4ADE80
 
+        // Kinds of file: one quiet hue each, a slate for code so that blue stays Arc's.
+        result.kindImage    = 0xFF6FB59A
+        result.kindVideo    = 0xFFA28BD9
+        result.kindAudio    = 0xFFD9A15E
+        result.kindCode     = 0xFF8FA3BF
+        result.kindDocument = 0xFFC98A96
+        result.kindArchive  = 0xFFB9A27A
+
         result.rich1 = 0xFFFF8A8A
         result.rich2 = 0xFF8FD48F
         result.rich3 = 0xFF7DD3FC
+
+        result.series[0] = Arc
+        result.series[1] = 0xFF5CC8B4
+        result.series[2] = 0xFFA78BFA
+        result.series[3] = 0xFFF0A46C
 
         result.veil   = 0xFFFFFFFF
         result.shadow = 0x8C000000
@@ -1276,9 +1308,22 @@ impl ThemeColors
         // Deepened so that the dot reads on paper as it does on ink.
         result.live = 0xFF15803D
 
+        // The kinds of file, deepened to be read on paper.
+        result.kindImage    = 0xFF2F8A66
+        result.kindVideo    = 0xFF6E55B5
+        result.kindAudio    = 0xFFA86A1E
+        result.kindCode     = 0xFF4F6785
+        result.kindDocument = 0xFFA0566A
+        result.kindArchive  = 0xFF86703F
+
         result.rich1 = 0xFFB42020
         result.rich2 = 0xFF1E7A32
         result.rich3 = 0xFF0A6FA0
+
+        result.series[0] = arc
+        result.series[1] = 0xFF0F7F6E
+        result.series[2] = 0xFF6D4FC2
+        result.series[3] = 0xFFB15F23
 
         result.veil   = 0xFF000000
         result.shadow = 0x29000000

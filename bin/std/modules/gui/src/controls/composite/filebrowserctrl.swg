@@ -1100,6 +1100,7 @@ impl FileBrowserCtrl
 
         var typed = String.from(.typedIsPath() ? "" : .pathField.text())
         typed.trim()
+        let now = Time.DateTime.now()
 
         for &fi in .currentEntries
         {
@@ -1129,7 +1130,8 @@ impl FileBrowserCtrl
             // stand in the faint ink beside the names.
             let faint = .themeColors().faintText
             var icon  = .theme().fileGlyph(fname, fi.isDirectory())
-            icon.color = .themeColors().softText
+            if not icon.color.a do
+                icon.color = .themeColors().softText
             let line = .listCtrl.createLine(fname, icon)
             line.userData0 = fi
             line.canCheck  = .options.mode == .SelectFiles and not fi.isDirectory()
@@ -1145,7 +1147,8 @@ impl FileBrowserCtrl
             // In a save the rows are context, not choices.
             if .options.mode == .CreateFile do
                 line.colorFg = faint
-            let dateItem = line.setItem(1, fi.lastWriteTime.toString(.DateTimeIsoHm))
+            let dateItem = line.setItem(1, briefFileTime(fi.lastWriteTime.toLocal(), now))
+            dateItem.sortKey = fi.lastWriteTime.toString(.DateTimeIso)
             dateItem.colorFg = faint
             dateItem.mono    = true
             if not fi.isDirectory()
@@ -1379,4 +1382,15 @@ impl FileBrowserCtrl
             return paths.count == 1 and Directory.exists(paths[0])
         }
     }
+}
+
+// Writes `time` as briefly as a file list can still read it against `now`: "21:30" today,
+// "10-26 21:30" within the year, "2025-03-01" before.
+private func briefFileTime(time, now: Time.DateTime)->String
+{
+    if time.year == now.year and time.month == now.month and time.day == now.day do
+        return time.toString(.TimeIsoHm)
+    if time.year == now.year do
+        return Format.toString("%{02}-%{02} %", time.month, time.day, time.toString(.TimeIsoHm))
+    return time.toString(.DateIso)
 }

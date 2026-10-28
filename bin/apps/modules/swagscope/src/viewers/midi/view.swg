@@ -14,6 +14,32 @@ private
     const MaxZoom       = 16.0'f32
     const MinPitchZoom  = 0.5'f32
     const MaxPitchZoom  = 8.0'f32
+
+    // The measures of the tracks presentation, after `scope.midi`.
+    const LaneColumn  = 208.0     // Width of the column the names of the tracks stand in.
+    const AxisTop     = 40.0      // Distance from the strip to the line of bar numbers.
+    const PlotTop     = 60.0      // Distance from the strip to the top of the lanes.
+    const PlotBottom  = 168.0     // Room kept under the lanes for the transport and the readings.
+    const LanePadding = 12.0      // Air at the top and the bottom of a lane.
+    const NoteHeight  = 7.0       // Height of the rule of a note.
+    const BarStride   = 4'u64     // Bars between two numbered bar lines.
+    const DotSize     = 8.0       // Diameter of the dot of a track.
+}
+
+// How the roll lays the piece out.
+enum RollMode
+{
+    Pitches     // One row per key across the piece, under a piano keyboard.
+    Tracks      // One lane per track, its notes spread by pitch in its own range.
+}
+
+// One lane of the tracks presentation: the track, the channel it plays on, and its range of keys.
+struct RollLane
+{
+    track:   u32
+    channel: u8
+    lowKey:  u8 = 127
+    highKey: u8
 }
 
 // Paints a MIDI document as a scrolling piano roll under a summary header.
@@ -30,11 +56,13 @@ struct RollView
     }
 
     document:       Document
-    selectedTrack:  u32  = Swag.U32.Max
-    zoom:           f32  = 1
-    pitchZoom:      f32  = 1
-    keyboardWidth:  f32  = KeyboardWidth
-    fit:            bool = true
+    mode:           RollMode = .Pitches
+    lanes:          Array'RollLane
+    selectedTrack:  u32      = Swag.U32.Max
+    zoom:           f32      = 1
+    pitchZoom:      f32      = 1
+    keyboardWidth:  f32      = KeyboardWidth
+    fit:            bool     = true
     pitchLabelMode: PitchLabelMode
     lowKey:         u8
     highKey:        u8
@@ -84,11 +112,70 @@ impl RollView
 
     mtd summaryText()->String => Format.toString(texts().ui_Summary, trackCountText(.document.tracks.count), noteCountText(.selectedNoteCount()), Viewer.durationText(.document.durationSeconds), .document.bpm(), .document.meterText(), .document.keyText())
 
+    // Shows the piece as lanes of tracks or as rows of keys.
+    mtd setMode(mode: RollMode)
+    {
+        .mode = mode
+        .refreshLayout()
+        .scroll.setScrollPos(0, 0)
+    }
+
+    // Returns the left edge of the notes: after the keyboard, or after the names of the tracks.
+    mtd plotLeft()->f32 => .mode == .Tracks ? LaneColumn + ContentInset : .keyboardWidth + ContentInset
+
+    // Gathers the tracks that hold notes, in the order of the file, each with the first channel it
+    // plays on and its range of keys.
+    mtd collectLanes()
+    {
+        var ranges: Array'RollLane
+        ranges.resize(.document.tracks.count)
+        for &range, index in ranges do
+            range.track = cast(u32, index)
+
+        // A range still empty has its low key above its high one.
+        for note in .document.notes where note.track < ranges.count
+        {
+            let range = &ranges[note.track]
+            if range.lowKey > range.highKey do
+                range.channel = note.channel
+            range.lowKey  = Math.min(range.lowKey, note.key)
+            range.highKey = Math.max(range.highKey, note.key)
+        }
+
+        .lanes.clear()
+        for range in ranges where range.lowKey <= range.highKey do
+            .lanes.add(range)
+    }
+
+    // Returns the ticks of one bar, from the first time signature.
+    mtd barTicks()->u64
+    {
+        var numerator   = 4'u64
+        var denominator = 4'u64
+        if not .document.timeSignatures.isEmpty()
+        {
+            numerator   = Math.max(cast(u64, .document.timeSignatures[0].numerator), 1)
+            denominator = Math.max(cast(u64, .document.timeSignatures[0].denominator), 1)
+        }
+
+        return Math.max(.beatTicks * numerator * 4 / denominator, 1)
+    }
+
+    // Returns the band lane `index` stands in, in the coordinates of the view.
+    mtd laneRect(index: u64)->Math.Rectangle
+    {
+        let top    = .scroll.stripInset() + PlotTop
+        let bottom = Math.max(.clientRect().height - PlotBottom, top + 1)
+        let height = (bottom - top) / cast(f32, Math.max(.lanes.count, 1))
+        return Math.Rectangle{.plotLeft(), top + cast(f32, index) * height, .timelineWidth, height}
+    }
+
     // Recomputes the piano-roll geometry: the key range with two keys of margin, the row height,
     // the ticks per beat and the timeline width, fitting the whole piece when `fit` is set.
     mtd refreshLayout()
     {
         let client = .clientRect()
+        .collectLanes()
         .lowKey  = cast(u8, Math.max(cast(s32, .document.minKey) - 2, 0))
         .highKey = cast(u8, Math.min(cast(s32, .document.maxKey) + 2, 127))
         .plotTop = HeaderHeight + AxisHeight
@@ -107,14 +194,18 @@ impl RollView
 
         .beatTicks = Math.max(.beatTicks, 1)
 
-        let viewport = Math.max(client.width - .keyboardWidth - 2 * ContentInset, 1)
+        let viewport = Math.max(client.width - .plotLeft() - ContentInset, 1)
         let natural  = Math.max(cast(f32, .document.durationTicks) / cast(f32, .beatTicks) * QuarterWidth, 1)
         if .fit do
             .zoom = Math.clamp(viewport / natural, MinZoom, 1)
         .timelineWidth = Math.max(viewport, natural * .zoom)
         .pixelsPerTick = .timelineWidth / cast(f32, Math.max(.document.durationTicks, 1))
-        .scroll.setScrollSize(.keyboardWidth + 2 * ContentInset + .timelineWidth,
-                              .plotTop + cast(f32, .keyCount()) * .rowHeight + ContentInset)
+
+        // The lanes share the height of the view, so only the time scrolls.
+        if .mode == .Tracks do
+            .scroll.setScrollSize(.plotLeft() + ContentInset + .timelineWidth, 0)
+        else do
+            .scroll.setScrollSize(.plotLeft() + ContentInset + .timelineWidth, .plotTop + cast(f32, .keyCount()) * .rowHeight + ContentInset)
         .invalidate()
         .sigZoomChanged.call(me)
     }
@@ -192,6 +283,77 @@ impl RollView
         let summary = .summaryText()
         painter.drawString(left, top + 48, summary, .codeFont, colors.label_TextFaint)
         painter.drawLine(left, top + HeaderHeight - 1, .scrollPos.x + .clientRect().width - ContentInset, top + HeaderHeight - 1, colors.line, 1)
+    }
+
+    // Paints the tracks presentation: the numbered bar lines across the lanes, the notes of each
+    // track in its hue, spread by pitch in the lane's own range, and the names of the tracks pinned
+    // at the left. A chosen track keeps its hue and the others recede.
+    mtd paintTracks(painter: *Painter)
+    {
+        let colors = .themeColors()
+        let mono   = .theme().createDefaultFontFs(.themeMetrics().defaultFixedFontSize - 1)
+        let left   = .plotLeft()
+        let top    = .scroll.stripInset() + PlotTop
+        let bottom = Math.max(.clientRect().height - PlotBottom, top + 1)
+
+        // Every fourth bar is numbered and drawn across the lanes; the first stands at the edge.
+        let barTicks = .barTicks()
+        let axisY    = .scroll.stripInset() + AxisTop
+        var bar      = 0'u64
+        while bar * barTicks <= .document.durationTicks
+        {
+            let x     = left + cast(f32, bar * barTicks) * .pixelsPerTick
+            let label = Format.toString("%", bar + 1)
+            let width = Painter.measureString(label, mono).width
+            painter.drawString(bar ? x - width * 0.5 : x, mono.opticalLineTop(axisY), label, mono, colors.faintText)
+            if bar do
+                painter.fillRect(Math.Rectangle{painter.snapToDeviceX(x), top, painter.hairline(1), bottom - top}, colors.line)
+            bar += BarStride
+        }
+
+        for &lane, index in .lanes
+        {
+            let band   = .laneRect(index)
+            let range  = Math.max(cast(f32, lane.highKey - lane.lowKey), 1)
+            let spread = Math.max(band.height - 2 * LanePadding - NoteHeight, 0)
+            var color  = colors.series[index % colors.series.count]
+            if .selectedTrack != Swag.U32.Max and .selectedTrack != lane.track do
+                color = Color.lerp(colors.ground, color, 0.35)
+
+            for note in .document.notes where note.track == lane.track
+            {
+                let x = left + cast(f32, note.startTick) * .pixelsPerTick
+                if x > .scrollPos.x + .clientRect().width do
+                    break
+                let width = Math.max(cast(f32, note.endTick - note.startTick) * .pixelsPerTick, 2)
+                if x + width < .scrollPos.x + left do
+                    continue
+                let y = band.y + LanePadding + (cast(f32, lane.highKey - note.key) / range) * spread
+                painter.fillRoundRect(Math.Rectangle{x, y, width, NoteHeight}, NoteHeight * 0.5, NoteHeight * 0.5, color)
+            }
+        }
+
+        // The names stand in their own column, which the notes pass under when the time scrolls.
+        let column = Math.Rectangle{.scrollPos.x, top, left, bottom - top}
+        painter.fillRect(column, colors.ground)
+        let nameFont = .theme().createDefaultFont(.themeMetrics().defaultFontSize)
+        for &lane, index in .lanes
+        {
+            let band  = .laneRect(index)
+            let x     = .scrollPos.x + ContentInset + 20
+            let muted = .selectedTrack != Swag.U32.Max and .selectedTrack != lane.track
+            var color = colors.series[index % colors.series.count]
+            if muted do
+                color = Color.lerp(colors.ground, color, 0.35)
+
+            let nameY = band.y + LanePadding + nameFont.height * 0.5
+            painter.fillCircle(x, nameY, DotSize * 0.5, color)
+            let track = &.document.tracks[lane.track]
+            let name  = track.name.isEmpty() ? Format.toString(texts().ui_TrackName, lane.track + 1) : String.from(track.name)
+            painter.drawString(x + 14, nameFont.opticalLineTop(nameY), name, nameFont, muted ? colors.faintText : colors.text)
+            let channel = Format.toString(texts().ui_Channel, cast(u32, lane.channel) + 1)
+            painter.drawString(x + 14, nameY + nameFont.height * 0.5 + 6, channel, mono, colors.faintText)
+        }
     }
 
     // Paints the piano-roll grid: shaded black-key rows, row lines, and numbered beat lines,
@@ -359,6 +521,12 @@ impl IWnd for RollView
     {
         let painter = evt.paintContext.painter
         painter.setParams(.Antialiased)
+        if .mode == .Tracks and not .document.notes.isEmpty()
+        {
+            .paintTracks(painter)
+            return
+        }
+
         .paintGrid(painter)
         if not .document.notes.isEmpty()
         {

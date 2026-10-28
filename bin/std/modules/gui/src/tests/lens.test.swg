@@ -8,6 +8,8 @@ const LensSave     = "test.lens.save"
 const LensTheme    = "test.lens.theme"
 const LensHidden   = "test.lens.hidden"
 const LensDisabled = "test.lens.disabled"
+const LensCapture  = "test.lens.capture"
+const LensArrow    = "test.lens.arrow"
 
 // The lines of a small document a source answers from.
 const LensLines: [5] string = ["if not .centerGroup do", "let group = .centerGroup", "return", "elif .fillCenterGroup do", "var width: f32"]
@@ -24,6 +26,8 @@ func lensCommandState(_: *Wnd, evt: IEvent)->bool
         case LensTheme:    state.name = "Center Theme"
         case LensHidden:   state.name = "Hidden Command"
         case LensDisabled: state.name = "Center Disabled"
+        case LensCapture:  state.name = "Capture Area"
+        case LensArrow:    state.name = "Arrow"
         default:           return false
         }
 
@@ -283,4 +287,68 @@ func lensSetup(host: *Testing.HeadlessHost)->*Lens.View
         var image = host.render()
         Pixel.Testing.assertImageGolden(&image, light ? "lens.paper" : "lens.ink")
     }
+}
+
+// The initials of the words answer between a whole occurrence and scattered letters.
+#test
+{
+    let initials = Lens.match("cla", "Capture Last Area")
+    Swag.assert(initials.matched and initials.spans.count == 3)
+    Swag.assert(initials.spans[1].start == 8 and initials.spans[2].start == 13)
+    Swag.assert(initials.score < Lens.match("last", "Capture Last Area").score)
+    Swag.assert(initials.score > Lens.match("cpa", "Capture Last Area").score)
+}
+
+// The families of commands rank by their best command, and a command matched only by scattered
+// letters is left out when another answers better; a source keeps its place and its order.
+#test
+{
+    var host: Testing.HeadlessHost
+    host.setup(800, 600)
+    let lens = lensSetup(&host)
+    lens.addCommands("Capture", [LensCapture])
+    lens.addCommands("Tools", [LensArrow])
+
+    lens.open("arr")
+    Swag.assert(lens.chosenEntry()!.title == "Arrow")
+    for row in lens.rows do
+        Swag.assert(row.entry == Swag.U64.Max or row.section.entries[row.entry].title != "Capture Area")
+
+    lens.setQuery("center")
+    Swag.assert(lens.rows[0].section.label == "In this file")
+    Swag.assert(lens.chosenEntry()!.title == "if not .centerGroup do")
+}
+
+// At rest, a lens with a context offers it and the commands chosen last, not every command;
+// Escape empties the query before it closes the lens.
+#test
+{
+    var host: Testing.HeadlessHost
+    host.setup(800, 600)
+    let lens = lensSetup(&host)
+    lens.addRestSource(func(results)
+    {
+        let section = results.addSection("Selection")
+        section.addEntry("Duplicate")
+    })
+
+    lens.open()
+    Swag.assert(lens.rows.count == 2 and lens.rows[0].section.label == "Selection")
+
+    lens.setQuery("save")
+    Swag.assert(lens.chosenEntry()!.title == "Save as Image…")
+    lens.runChosen()
+    Swag.assert(not lens.isOpen())
+
+    lens.open()
+    var labels: Array'String
+    for row in lens.rows where row.entry == Swag.U64.Max do
+        labels.add(row.section.label)
+    Swag.assert(labels.count == 2 and labels[0] == "Selection" and labels[1] == strings().lens_Recent)
+
+    lens.setQuery("x")
+    host.keyPress(.Escape)
+    Swag.assert(lens.isOpen() and lens.query().count == 0)
+    host.keyPress(.Escape)
+    Swag.assert(not lens.isOpen())
 }

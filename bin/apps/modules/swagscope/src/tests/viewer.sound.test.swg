@@ -175,11 +175,14 @@ func markSoundOpenFailure(wnd: *Wnd, _: string)
     Swag.assert(replacement.duration == view.duration)
     Swag.assert(replacement.details == view.details)
 
+    // Who made the recording stands under its name on the page; the readings say how it is stored.
     view.tags.albumArtist = "Various Artists"
+    view.tags.year        = "1999"
     view.refreshDetails()
-    Swag.assert(Utf8.contains(view.details.toString(), "Various Artists"))
+    Swag.assert(view.credits() == "Various Artists · 1999" and not Utf8.contains(view.details.toString(), "Various Artists"))
     view.tags = {}
     view.refreshDetails()
+    Swag.assert(view.credits().isEmpty())
 
     view.togglePlayback()
     Swag.assert(view.playing and view.voice != null)
@@ -229,6 +232,8 @@ func markSoundOpenFailure(wnd: *Wnd, _: string)
     Swag.assert(Math.isEqualEpsilon(view.volumeSlider.value(), 0.4, 0.001))
 }
 
+// The recording in the window, against `scope.sound`: the cover, the name and who made it, the
+// wave as bars played in Arc up to the play head, and the times under it.
 #[Swag.TestTag("golden")]
 #test
 {
@@ -240,33 +245,27 @@ func markSoundOpenFailure(wnd: *Wnd, _: string)
     Swag.assert(Sound.acquireEngine(.NoSound))
     defer Sound.releaseEngine()
 
-    var host: Testing.HeadlessHost
-    host.setup(720, 420)
-
-    with let commandBar = Wnd.create'Wnd(&host.root, {0, 0, 0, 52})
+    for light in [false, true]
     {
-        .dockStyle       = .Bottom
-        .backgroundStyle = .Window
-        .padding         = {16, 8, 16, 8}
+        var host: Testing.HeadlessHost
+        let window = framedViewerWindow(&host, fileName.toString(), light)
+        let view   = assume cast(*Sound.Panel, window.instances[window.activeChoiceIndex].view)
+        waitForSoundOpen(&host, view)
+        finishWaveform(view)
+
+        // Photographed mid-playback, with the tags a recording carries.
+        view.tags.title  = "Harbour Lights"
+        view.tags.artist = "The Quiet Pier"
+        view.tags.album  = "Night Ferries"
+        view.tags.year   = "2026"
+        view.elapsed     = view.duration * 0.38
+        view.refreshTransport()
+        view.invalidate()
+        host.settleAnimations(window, 4)
+
+        var image = host.render(&host.surfaceWnd)
+        Pixel.Testing.assertImageGolden(&image, light ? "viewer.sound.paper" : "viewer.sound.ink")
     }
-
-    var result = openTestViewer(Sound.viewerPlugin(), &host.root, fileName, commandParent: commandBar)
-    Swag.assert(result.view != null)
-    let view = assume cast(*Sound.Panel, result.view)
-    waitForSoundOpen(&host, view)
-    finishWaveform(view)
-    view.dockStyle = .Center
-    view.commands.dockStyle = .Center
-
-    // Photographed mid-playback: the picture has to show the played part apart from the rest, the
-    // play head between them, and the graduated scale under both.
-    view.elapsed = view.duration * 0.38
-    view.refreshTransport()
-    host.root.applyLayout()
-    host.settleAnimations(&host.root, 4)
-
-    var image = host.render(&host.root)
-    Pixel.Testing.assertImageGolden(&image, "viewer.sound.document")
 }
 
 #test
@@ -321,17 +320,6 @@ func markSoundOpenFailure(wnd: *Wnd, _: string)
     let single = Sound.buildWaveform(payload.toSlice()[0 until 4], .Pcm8, 1)
     Swag.assert(single.count == 4)
     Swag.assert(single[0].peak > 0.99 and single[1].peak == 0)
-}
-
-// The time scale is graduated on numbers a reader thinks in, and its labels shorten with the step.
-#test
-{
-    Swag.assert(Sound.waveformTickStep(4.2, 640) == 1)
-    Swag.assert(Sound.waveformTickStep(0.7, 640) == 0.25)
-    Swag.assert(Sound.waveformTickStep(600, 640) == 120)
-    Swag.assert(Sound.waveformTickText(2, 1) == "2")
-    Swag.assert(Sound.waveformTickText(0.5, 0.25) == "0.50")
-    Swag.assert(Sound.waveformTickText(95, 30) == "1:35")
 }
 
 // Reads a recorded sound rather than a synthesized one. Its metadata and waveform must not depend

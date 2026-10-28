@@ -80,6 +80,14 @@ dialogs, then each application, then the written rules.
   - PDF (`viewer.pdf.page`, `.paper`): pages as paper with the floating shadow, the outline in
     the left margin under "Contents".
   - Code and text in their reading columns, Markdown with its margin outline and Arc thread.
+  - Subtitles read as a list under the file's name and mono line: number, mono time range,
+    words, the current cue on the selection ground, the rhythm of the minute around it, its rank
+    and time at the foot (`viewer.subtitle.{ink,paper}`, in the shipped frame). A MIDI score reads
+    as one lane per track under the bar numbers, each track in its series hue with its name and
+    channel (`viewer.midi.{ink,paper}`); it has no transport nor play head, because Scope plays no
+    MIDI. A recording is laid out around its cover (`viewer.sound.{ink,paper}`); the tags carry no
+    picture yet, so the cover is a raised tile with the glyph of a sound, and the transport is
+    still the floating command bar rather than the compact one of the picture.
   What still differs from the pictures, screen by screen:
   - Mixed board: a PDF, code, Markdown, sound and font cell show the preview the thumbnailer
     renders, not the drawn paper card, mono lines, heading, waveform or "Aa" of the picture; the
@@ -100,26 +108,35 @@ dialogs, then each application, then the written rules.
   - Not yet rebuilt on their pictures: image (`scope.image`), table, HTML (column, address,
     outline), binary (report page), hex (structure tabs, large inspector), font (specimen page);
     the "Column ▾" quiet menu of text; the progress thread under the strip with documents
-    scrolling under it. Video, sound, MIDI and subtitles belong to the media pass.
+    scrolling under it; the video picture does not reach the strip and has no veils with chips.
 - Next: music library and album boards, then photos; then image, table, HTML, binary, hex and
-  font on their pictures; the shipped frame for every Scope golden.
+  font on their pictures; the shipped frame for every Scope golden. The media pass takes the video
+  viewer on `scope.video`: two veils shown on pointer movement — the title and a mono line on top,
+  its own timeline (Arc progress, buffered part, white knob, chapter ticks, a mono time chip under
+  the pointer), the play button, the mono time, the chapter and chips for subtitles, sound track
+  and speed at the foot — and a framed golden at rest and under the pointer.
 - Done when: every Scope golden matches its picture as a whole screen.
 - Related: design.silence.004
 
 ### design.silence.008 — Swag Capture's editing does not yet match its pictures
 
 - Evidence: the editor, the area capture, the in-place editor, the library and the lens have
-  goldens (`surface`, `edit.{arrow,callout,multi,step,mask,color.paper}`, `area`,
-  `inplace{,.paper}`, `library.surface`, `lens.paper`). What they still show differently: the
-  words of a callout are typed in place in a field set in their face but left-aligned, not at the
-  callout's own alignment; the callout mini-bar's face opens the inspector rather than a list of
-  faces; a quick style has no name; the inspector rows of the head do not scroll with the
-  generated settings; the library tab counts are in the proportional face (the tab bar sets one
-  face per tab); the recent captures are text rows of the lens, not thumbnails (the lens has no
-  thumbnail row); the area bar offers no delay or cursor choice (lens entries only); the in-place
-  bar does not move beside the zone when the screen has no room above or below it.
-- Next: let the field typing a callout follow its alignment; give the lens a row of thumbnails
-  for the recent captures; then the remaining items above.
+  goldens (`surface`, `edit.{arrow,callout,multi,step,mask,color.paper,text,text.paper}`, `area`,
+  `inplace{,.paper}`, `library.surface`, `lens.paper`). Words are typed in place for every text
+  shape (aligned, level while a rotated shape is edited), the text mini-bar is compact and keeps
+  clear of the dock and the inspector, quick styles are pictures of their shapes (`presets`
+  goldens), the inspector head actions are
+  faint words, the style is one "Aa" row, the area bar offers the delay and the cursor, its keys
+  stand on the floating ground, the lens ends with the recent captures as pictures, and the
+  in-place bar stands beside the zone when the screen has no room above or below it. What they
+  still show differently: a quick style has no name (the picture writes « Repère orange » under
+  the pills); the inspector rows of the head do not scroll with the generated settings; the
+  library tab counts are in the proportional face (the tab bar sets one face per tab); a tool
+  offers up to sixteen presets, which wrap to four rows where the pictures show one; a white
+  text preset on Papier is white on the light cell; a mask preset is the glyph of its kind
+  rather than its pattern.
+- Next: give a quick style a name, shown under the strip and on its tooltip; let the inspector
+  scroll its head rows with its content.
 - Done when: each `capture.*` picture is reproduced by its golden.
 - Related: design.silence.004, design.silence.005
 

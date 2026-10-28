@@ -33,6 +33,7 @@ lens_Go          aller
 lens_Line        ligne
 lens_Files       fichiers
 lens_Actions     actions
+lens_Recent      Dernières utilisées
 lens_Application Application
 
 inspector_Tab Propriétés

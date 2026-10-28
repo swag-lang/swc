@@ -122,11 +122,25 @@ struct ThemePalette
         // says "at rest".
         live: Color
 
+        // The quiet hue of each kind of file, carried by its glyph alone in a listing, so a reader
+        // tells a picture from a film before reading a name. Low in chroma, distinct from Arc and
+        // from the status tones; folders and plain files keep the neutral inks.
+        kindImage: Color     // Glyph of a picture.
+        kindVideo: Color     // Glyph of a film.
+        kindAudio: Color     // Glyph of a sound.
+        kindCode: Color     // Glyph of source code or structured data.
+        kindDocument: Color     // Glyph of a paged document, such as a PDF.
+        kindArchive: Color     // Glyph of an archive.
+
         // The three slots rich text addresses with `<p1>`, `<p2>` and `<p3>`, in labels and in
         // every other rich string the theme formats.
         rich1: Color     // First rich-text palette slot.
         rich2: Color     // Second rich-text palette slot.
         rich3: Color     // Third rich-text palette slot.
+
+        // Hues that tell a few series apart — the tracks of a piece, the channels of a recording —
+        // where nothing is chosen and nothing acts. The first is Arc; the others keep its weight.
+        series: [4] Color
 
         // Ink a translucent veil is made of: white over a dark ground, black over a light one.
         // Every overlay of the theme is this color at one of three strengths, which is why a

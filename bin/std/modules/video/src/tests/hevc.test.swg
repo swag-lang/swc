@@ -386,15 +386,15 @@ using Core, Core.Errors, Pixel
         {
             let size = 1'u32 << log2Size
             reference.size = size
-            for 32
+            for iteration in 32'u32
             {
                 var sum = size
                 for index in size
                 {
                     seed = seed * #wrap 1664525 + #wrap 1013904223
-                    let top = (seed >> 16) & maximum
+                    let top = iteration == 0 ? maximum : (seed >> 16) & maximum
                     seed = seed * #wrap 1664525 + #wrap 1013904223
-                    let left = (seed >> 16) & maximum
+                    let left = iteration == 0 ? maximum : (seed >> 16) & maximum
                     reference.setTop(index, cast(u16, top))
                     reference.setLeft(index, cast(u16, left))
                     sum += top + left

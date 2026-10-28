@@ -282,9 +282,27 @@ impl Decoder
     // Predicts a flat block, clause 8.4.4.2.5.
     mtd predictDc(reference: const *IntraReference, size, log2Size, component: u32)
     {
-        var sum = size
-        for index in size do
-            sum += cast(u32, reference.top(index)) + cast(u32, reference.left(index))
+        // The left samples run in reverse order, but their sum is unchanged.
+        // Eight 10-bit top/left pairs accumulated over a 32-wide block sum
+        // to at most 65472, which fits in unsigned 16-bit lanes.
+        var sums = Simd.splat(0'u16)
+        if size == 4
+        {
+            let top = cast #bit(Simd.U16x8, Simd.splat(cast(const [*] u64, &reference.samples[2 * size + 1])[0]))
+            let left = cast #bit(Simd.U16x8, Simd.splat(cast(const [*] u64, &reference.samples[size])[0]))
+            sums = top + left
+        }
+        else
+        {
+            var index = 0'u32
+            while index < size
+            {
+                sums += Simd.load(&reference.samples[2 * size + 1 + index]) + Simd.load(&reference.samples[size + index])
+                index += 8
+            }
+        }
+        let total = cast(u32, Simd.sum(sums))
+        let sum = size + (size == 4 ? total >> 1 : total)
         let dc = sum >> (log2Size + 1)
 
         let values = Simd.splat(cast(u16, dc))

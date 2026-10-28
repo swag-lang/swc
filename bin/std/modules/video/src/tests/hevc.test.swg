@@ -372,6 +372,72 @@ using Core, Core.Errors, Pixel
     }
 }
 
+// Four-sample residual rows clip exactly in each component and leave the
+// surrounding samples untouched, including at an unaligned block position.
+#test
+{
+    var sps: Hevc.Sps
+    sps.width = 16
+    sps.height = 16
+    sps.subWidthC = 2
+    sps.subHeightC = 2
+    sps.chromaArrayType = 1
+    sps.bitDepthLuma = 8
+    sps.bitDepthChroma = 8
+    var frame: Hevc.Frame
+    frame.prepare(&sps)
+    var decoder: Hevc.Decoder
+    decoder.activeSps = &sps
+    decoder.current = &frame
+    var seed = 0x2A72F8D5'u32
+    for bitDepth in [8'u32, 10]
+    {
+        sps.bitDepthLuma = bitDepth
+        sps.bitDepthChroma = bitDepth
+        let maximum = cast(s32, ((1'u32 << bitDepth) - 1))
+        for component in 3'u32
+        {
+            var block: Hevc.TransformBlock
+            block.x = component == 0 ? 1 : 2
+            block.y = component == 0 ? 1 : 2
+            block.size = 4
+            block.component = component
+            let origin = component == 0 ? frame.lumaAtMutable(0, 0) : frame.chromaAtMutable(component - 1, 0, 0)
+            let stride = component == 0 ? frame.strideLuma : frame.strideChroma
+            for 64
+            {
+                var expected: [6, 6] u16
+                for y in 6'u64
+                {
+                    for x in 6'u64
+                    {
+                        seed = seed * #wrap 1664525 + #wrap 1013904223
+                        let value = cast(u16, ((seed >> 16) & cast(u32, maximum)))
+                        origin[y * stride + x] = value
+                        expected[y, x] = value
+                    }
+                }
+                for y in 4'u64
+                {
+                    for x in 4'u64
+                    {
+                        seed = seed * #wrap 1664525 + #wrap 1013904223
+                        let residual = cast(s32, ((seed >> 16) & 4095)) - 2048
+                        decoder.residual[y * 4 + x] = residual
+                        expected[y + 1, x + 1] = cast(u16, Math.clamp(cast(s32, expected[y + 1, x + 1]) + residual, 0, maximum))
+                    }
+                }
+                decoder.addResidualInPlace(&block)
+                for y in 6'u64
+                {
+                    for x in 6'u64 do
+                        Swag.assert(origin[y * stride + x] == expected[y, x])
+                }
+            }
+        }
+    }
+}
+
 // Horizontal chroma deblocking processes two adjacent samples without reading or
 // writing their neighbours. Compare the packed result to the normative scalar formula.
 #test

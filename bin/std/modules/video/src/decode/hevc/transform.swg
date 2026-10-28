@@ -115,6 +115,20 @@ impl Decoder
         let zeros  = Simd.splat(0's32)
         let maxima = Simd.splat(maximum)
 
+        if size == 4
+        {
+            for row in 4'u32
+            {
+                let out = destination + cast(u64, row) * stride
+                let pixels = cast #bit(Simd.U16x8, Simd.splat(cast(const [*] u64, out)[0]))
+                let values = cast #bit(Simd.S32x4, Simd.widenLow(pixels)) + Simd.load(&.residual[row * 4])
+                let clipped = Math.max(Math.min(values, maxima), zeros)
+                let packed = Simd.packUnsigned(clipped, clipped)
+                cast([*] u64, out)[0] = cast #bit(Simd.U64x2, packed)[0]
+            }
+            return
+        }
+
         for row in size
         {
             let out    = destination + cast(u64, row) * stride

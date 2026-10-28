@@ -882,6 +882,7 @@ func testBeginInlineText(host: *Gui.Testing.HeadlessHost, main: *MainWnd, index:
 
 // The recent captures close the lens as a strip of pictures, after every row a key can reach,
 // ended by the way to the library.
+#[Swag.TestTag("golden")]
 #test
 {
     var host: Gui.Testing.HeadlessHost
@@ -905,6 +906,21 @@ func testBeginInlineText(host: *Gui.Testing.HeadlessHost, main: *MainWnd, index:
     let section = rows.back().section
     Swag.assert(section.label == appStrings().lens_Recent and section.pictures.count == 2)
     Swag.assert(section.link == appStrings().lens_LibraryLink and section.linkRun != null)
+
+    // The keys reach the strip: down into it, then along it to the link and back.
+    for rows.count do
+        host.keyPress(.Down)
+    Swag.assert(main.lens.chosen == rows.count - 1 and main.lens.chosenPicture == 0)
+    host.keyPress(.Right)
+    Swag.assert(main.lens.chosenPicture == 1)
+    host.finishAnimations()
+    var image = host.render(main)
+    Pixel.Testing.assertImageGolden(&image, "lens.recent.paper")
+    host.keyPress(.Right)
+    host.keyPress(.Right)
+    Swag.assert(main.lens.chosenPicture == 2)
+    host.keyPress(.Left)
+    Swag.assert(main.lens.chosenPicture == 1)
     main.lens.close()
 
     // A query keeps the captures whose name it matches.

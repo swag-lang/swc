@@ -117,6 +117,11 @@ struct ThemePalette
         caution:  ThemeTone     // Something needs attention.
         info:     ThemeTone     // Something is worth knowing.
 
+        // The mark of something running now, such as a mounted drive: a dot beside its name. It is
+        // not a status tone, so it tints no ground and writes no notice; it says "live" where a ring
+        // says "at rest".
+        live: Color
+
         // The three slots rich text addresses with `<p1>`, `<p2>` and `<p3>`, in labels and in
         // every other rich string the theme formats.
         rich1: Color     // First rich-text palette slot.

@@ -46,6 +46,7 @@ keep in step, and the one that carried the identity was always the one the other
 | Highlight | `rgba(247,249,0,.22)` | `#FBF68A` | Search occurrences, matched characters |
 | Critical | `#FF6B6B` on `rgba(255,107,107,.12)` | `#C42B2B` on `#FBE9E9` | Errors |
 | Caution | `#F2B544` on `rgba(242,181,68,.12)` | `#A36A00` on `#FBF1DC` | Warnings |
+| Live | `#4ADE80` | `#15803D` | The dot of something running now: a mounted drive |
 
 Information notices use Arc: there is no separate information hue. Syntax colouring keeps the
 shared lexical palette of [design-swag-identity](../design-swag-identity/SKILL.md#match-every-syntax-surface),

@@ -64,6 +64,7 @@ struct ThemeColors
         cautionBk:  Color     // Tinted ground of a caution notice.
         info:       Color     // Dots and marks of something worth knowing.
         infoBk:     Color     // Tinted ground of an information notice.
+        live:       Color     // Dot of something running now, such as a mounted drive.
 
         transparent: Color     // Nothing drawn. Always zero; named so a sheet can point a part at it.
 
@@ -640,6 +641,7 @@ impl ThemeColors
         let critical  = readableTone(p.critical, p)
         let caution   = readableTone(p.caution, p)
         let info      = readableTone(p.info, p)
+        let live      = readableTone(ThemeTone.from(p.live, p.text), p)
 
         // A filled action travels in its own color, whatever that color is. The mark and the
         // block travel separately, because a tone is allowed to point with one color and
@@ -697,6 +699,7 @@ impl ThemeColors
         .cautionBk   = caution.ground
         .info        = info.mark
         .infoBk      = info.ground
+        .live        = live.mark
         .transparent = 0
 
         .veilSoft   = p.veil.withAlpha(VeilSoftAlpha)
@@ -1208,6 +1211,9 @@ impl ThemeColors
         result.info.ground       = 0x1F38BDF8
         result.info.onGround     = text
 
+        // A mounted drive is green: the one hue the charter keeps for "running now".
+        result.live = 0xFF4ADE80
+
         result.rich1 = 0xFFFF8A8A
         result.rich2 = 0xFF8FD48F
         result.rich3 = 0xFF7DD3FC
@@ -1264,6 +1270,9 @@ impl ThemeColors
         result.info.mark         = result.alternate.mark
         result.info.ground       = result.selection
         result.info.onGround     = ink
+
+        // Deepened so that the dot reads on paper as it does on ink.
+        result.live = 0xFF15803D
 
         result.rich1 = 0xFFB42020
         result.rich2 = 0xFF1E7A32

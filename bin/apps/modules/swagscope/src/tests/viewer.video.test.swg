@@ -652,6 +652,9 @@ func videoMatroskaFixturePath()->String => Path.combine(unwrap Path.directoryNam
         var host: Testing.HeadlessHost
         let window = framedViewerWindow(&host, videoMatroskaFixturePath(), light)
         let view   = assume cast(*Film.Panel, window.instances[window.activeChoiceIndex].view)
+
+        // The film writes its title in the top veil, so the strip leaves it out.
+        Swag.assert(host.surfaceWnd.titleHidden)
         waitForVideoFrame(view)
         waitForVideoAudio(view, 2)
         if view.playing do

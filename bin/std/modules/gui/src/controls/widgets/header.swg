@@ -20,6 +20,7 @@ struct HeaderItem
         isResizable = true          // Whether the trailing separator can resize the column.
         isClickable = true          // Whether the column can emit click actions.
         reservesIconSpace: bool     // Whether list rows reserve the header icon column.
+        horzAlign = StringHorzAlignment.Left     // Alignment of the title, which follows its column's cells.
     }
 
     width:        f32     // Effective width in logical units.
@@ -113,6 +114,8 @@ impl IWnd for Header
         }
 
         labelPos.moveLeft(.itemPadding)
+        if item.horzAlign != .Left do
+            labelPos.width = Math.max(labelPos.width - .itemPadding, 0)
 
         var colorText: Color
         switch
@@ -122,27 +125,42 @@ impl IWnd for Header
         default: colorText = colors.headerItem_Text
         }
 
-        // Sort mark
+        // Sort mark. It stands right after the words of the title: at the far end of a wide column
+        // it read as the mark of the column beside it. A title set to the right gives up the room
+        // the mark takes at its end.
+        //
+        // The marker points the way the column is ordered: up for ascending, down for
+        // descending. It named the two the right way round and drew them the wrong way
+        // round, so a column sorted A to Z carried the marker of a column sorted Z to A.
         if .sortDirection != .None and .sortColumn == item.column
         {
-            // The marker points the way the column is ordered: up for ascending, down for
-            // descending. It named the two the right way round and drew them the wrong way
-            // round, so a column sorted A to Z carried the marker of a column sorted Z to A.
             let glyph = .sortDirection == .Ascending ? ThemeIcons.ChevronUp : ThemeIcons.ChevronDown
             let icon  = theme.icon(glyph, metrics.chevron_Size)
-            if labelPos.width > icon.sizeX
+            let gap   = metrics.btnIcon_SpacingArrowH
+            if labelPos.width > icon.sizeX + gap
             {
-                var sortPos = labelPos
-                sortPos.x = Math.max(sortPos.x, sortPos.right() - icon.sizeX)
-                sortPos.y = opticalTop(.font(), sortPos.vertCenter(), icon.sizeY)
-                icon.paint(painter, sortPos.x, sortPos.y, colorText)
-                labelPos.width -= icon.sizeX
+                var markX: f32
+                if item.horzAlign == .Right
+                {
+                    labelPos.width -= icon.sizeX + gap
+                    markX = labelPos.right() + gap
+                }
+                else
+                {
+                    var words = Painter.measureString(item.name.raw, nnFont(.font().regular)).width
+                    if item.icon.isValid() do
+                        words += item.icon.sizeX + metrics.iconText_Margin
+                    markX = Math.min(labelPos.x + words + gap, labelPos.right() - icon.sizeX)
+                    labelPos.width -= icon.sizeX
+                }
+
+                icon.paint(painter, markX, opticalTop(.font(), labelPos.vertCenter(), icon.sizeY), colorText)
             }
         }
 
         var format: RichStringFormat
         theme.setTextColors(&format, colorText)
-        format.horzAlignment = .Left
+        format.horzAlignment = item.horzAlign
         format.vertAlignment = .Center
         format.flags         = .Clip
         format.font          = .font()
@@ -367,11 +385,12 @@ impl Header
     //
     // A negative `width` is clamped to zero.
     #[Swag.Discardable]
-    mtd addColumn(name: string, width = 100'f32, icon: Icon = {})->*HeaderItem
+    mtd addColumn(name: string, width = 100'f32, icon: Icon = {}, align = StringHorzAlignment.Left)->*HeaderItem
     {
         let item = .items.allocate()
-        item.name   = name
-        item.icon   = icon
+        item.name      = name
+        item.icon      = icon
+        item.horzAlign = align
         item.width  = Math.max(width, 0)
         item.column = cast(.items.count)
         .items.add(item)

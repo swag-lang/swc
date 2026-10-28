@@ -324,9 +324,11 @@ struct ThemeMetrics
         separator_HairlineSize: f32 = 1     // Thickness of a hairline separator.
 
         // The underline of the active tab, and the rule a checked tool marked on one edge carries.
-        // It stops short of both ends by `tabItem_RailMargin`, so it underlines the words.
-        tabItem_RailSize:   f32 = 2     // Thickness of the underline.
-        tabItem_RailMargin: f32 = 8     // Air the underline keeps at each end.
+        // It stops short of both ends by `tabItem_RailMargin`, half the air between two tabs of
+        // words, so it underlines the words exactly.
+        tabItem_RailSize:   f32 = 2      // Thickness of the underline.
+        tabItem_RailMargin: f32 = 11     // Air the underline keeps at each end.
+        tabItem_WordGap:    f32 = 22     // Air between two tabs of words, half on each side of a word.
 
         // The ring that says where the keyboard is: two pixels around the control, two pixels away
         // from it, so it never merges with the control's own edge or fill.

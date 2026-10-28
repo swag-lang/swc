@@ -126,7 +126,7 @@ impl IWnd for LibraryWnd
     // the title and the window buttons float in.
     mtd impl onResizeEvent(_: *ResizeEvent)
     {
-        .padding = {LibraryPageMargin, .stripInset(), LibraryPageMargin, 0}
+        .padding = {LibraryPageMargin - LibraryCellRing, .stripInset(), LibraryPageMargin - LibraryCellRing, 0}
     }
 
     // The three drop-down buttons and the search placeholder take their wording once, when

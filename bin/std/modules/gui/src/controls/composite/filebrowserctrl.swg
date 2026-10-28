@@ -388,8 +388,8 @@ private impl FileBrowserCtrl
             var name = Path.fileName(recent.toString()) orelse ""
             if not name.count do
                 name = recent.toString()
-            var icon = .app().directoryIcon(recent.toString(), true)
-            icon.color = .themeColors().label_Text
+            var icon = .theme().fileGlyph(name, isDirectory: true)
+            icon.color = .themeColors().softText
             discard menu.addItem(name, recent.toString(), icon)
         }
 
@@ -673,7 +673,7 @@ private impl FileBrowserCtrl
             // mis-lowered to a bit-reinterpret (see reference_conditional_int_to_float_miscompile).
             .addColumn(strings().browser_ColName, me.options.state ? cast(f32, me.options.state.nameColumnWidth) : 220.0)
             .addColumn(strings().browser_ColModified, me.options.state ? cast(f32, me.options.state.modifiedColumnWidth) : 130.0)
-            .addColumn(strings().browser_ColSize, me.options.state ? cast(f32, me.options.state.sizeColumnWidth) : 90.0)
+            .addColumn(strings().browser_ColSize, me.options.state ? cast(f32, me.options.state.sizeColumnWidth) : 90.0, align: .Right)
             .header.form = .Transparent
 
             // A key the browsing gesture claims is marked handled, so the list does not read it a
@@ -925,7 +925,11 @@ impl FileBrowserCtrl
             for item in .items where item do
                 widest = Math.max(widest, Painter.measureString(item.name.raw.toString(), font).width)
             .resize(widest + metrics.fileBrowser_TypeChrome, metrics.control_DialogHeight)
-            .sigChanged += func|fileBrowser|(_, _) { fileBrowser.fillFileList() }
+            .sigChanged += func|fileBrowser|(_, _)
+            {
+                fileBrowser.fillFileList()
+                fileBrowser.updateSaveExtension()
+            }
         }
 
         with fileBrowser.choiceLabel = Label.create(fileBrowser.typeRow, "")
@@ -955,6 +959,7 @@ impl FileBrowserCtrl
             }
 
             fileBrowser.editFile = EditBox.create(form, "")
+            fileBrowser.editFile.sigTextChanged += func|fileBrowser|(_) { fileBrowser.updateSaveExtension() }
             discard form.addField(strings().browser_FileName, fileBrowser.editFile)
         }
         else
@@ -976,10 +981,15 @@ impl FileBrowserCtrl
             .editFile.setText(fileBrowser.options.initialName)
             if fileBrowser.options.mode == .CreateFile
             {
+                // A save names its file without the extension its type adds: the extension
+                // trails the name, faint, and follows the type chosen under it.
                 let name = fileBrowser.options.initialName
                 var stem = name.count
                 for i in name.count where name[i] == '.'u8 and i > 0 do
                     stem = i
+                if stem < name.count and fileBrowser.typeAddsExtensionOf(name) do
+                    .editFile.setText(name[0 until stem])
+                .updateSaveExtension()
                 .editFile.setSelection(0, stem)
                 .editFile.setFocus()
             }
@@ -1118,8 +1128,8 @@ impl FileBrowserCtrl
             // Content. The date and the size are read at a glance and never acted on, so they
             // stand in the faint ink beside the names.
             let faint = .themeColors().faintText
-            var icon  = .app().fileOrDirectoryIcon(fname, fi.isDirectory())
-            icon.color = .themeColors().label_Text
+            var icon  = .theme().fileGlyph(fname, fi.isDirectory())
+            icon.color = .themeColors().softText
             let line = .listCtrl.createLine(fname, icon)
             line.userData0 = fi
             line.canCheck  = .options.mode == .SelectFiles and not fi.isDirectory()
@@ -1147,6 +1157,7 @@ impl FileBrowserCtrl
             }
         }
 
+        .listCtrl.setEmptyText(typed.count ? strings().browser_NoMatch : strings().browser_EmptyFolder)
         .listCtrl.computeLayout()
         .listCtrl.sort()
         .updateChoice()
@@ -1312,6 +1323,36 @@ impl FileBrowserCtrl
         }
 
         return result
+    }
+
+    // Reports whether the type chosen in a save adds one of its extensions to `name`, which then
+    // already ends with it.
+    private mtd typeAddsExtensionOf(name: string)->bool
+    {
+        let extensions = Tokenize.split(.activeFilterExtensions() orelse "", ';'rune)
+        for extension in extensions where extension.count
+        {
+            if Path.hasExtension(name, extension) do
+                return true
+        }
+
+        return false
+    }
+
+    // Writes, faint after the name of a save, the extension the chosen type will add to it; a
+    // name that already ends with one of the type's extensions gets nothing more.
+    private mtd updateSaveExtension()
+    {
+        if .options.mode != .CreateFile do
+            return
+        let extensions = Tokenize.split(.activeFilterExtensions() orelse "", ';'rune)
+        if extensions.count == 0 or extensions[0].count == 0 or .typeAddsExtensionOf(.editFile.text())
+        {
+            .editFile.setUnit("")
+            return
+        }
+
+        .editFile.setUnit(extensions[0])
     }
 
     // Returns whether the current selection satisfies the configured dialog mode.

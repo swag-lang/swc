@@ -72,6 +72,8 @@ browser_ColSize      Taille
 browser_AllFiles     Tous les fichiers
 browser_NewFolder    Nouveau dossier
 browser_FilterHint   Filtrer, ou saisir un chemin
+browser_EmptyFolder  Ce dossier est vide
+browser_NoMatch      Rien ne correspond
 browser_Chosen       % choisis · %
 browser_TipRecent    Dossiers récents
 browser_TipUp        Dossier parent (Alt+Haut)

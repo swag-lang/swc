@@ -560,7 +560,11 @@ private impl Tab
             }
         }
 
+        // The first word of a bar of words stands on the bar's edge, in line with the title or the
+        // text above it; the air before it would only push it in.
         var x = rect.x
+        if .layout == .Content and (.itemForm == .Flat or .itemForm == .Transparent) do
+            x -= .itemPadding * 0.5
         .mostRightPos = Math.round(rect.x)
         for idx in .firstVisibleIndex until cast(u32, .items.count)
         {
@@ -646,12 +650,14 @@ impl Tab
     {
         switch #complete form
         {
+        // Tabs of words are as wide as their words, with the same air between each two.
         case .Flat:
-            .barForm   = .Flat
-            .itemForm  = .Flat
-            .viewForm  = .Flat
-            .layout    = .Equal
-            .barHeight = .themeMetrics().tabBar_FlatHeight
+            .barForm     = .Flat
+            .itemForm    = .Flat
+            .viewForm    = .Flat
+            .layout      = .Content
+            .itemPadding = .themeMetrics().tabItem_WordGap
+            .barHeight   = .themeMetrics().tabBar_FlatHeight
 
         case .Round:
             .barForm   = .Transparent

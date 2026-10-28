@@ -43,6 +43,17 @@ private func coefficientPair(first, second: s16)->Simd.S16x8
     return cast #bit(Simd.S16x8, Simd.splat(packed))
 }
 
+// Four predicted samples and their signed residuals fit in one clipped vector.
+#[Swag.Inline]
+private func addResidual4(prediction: const [*] u16, residual: const [*] s32, destination: [*] u16, zeros, maxima: Simd.S32x4)
+{
+    let pixels = cast #bit(Simd.U16x8, Simd.splat(cast(const [*] u64, prediction)[0]))
+    let values = cast #bit(Simd.S32x4, Simd.widenLow(pixels)) + Simd.load(residual)
+    let clipped = Math.max(Math.min(values, maxima), zeros)
+    let packed = Simd.packUnsigned(clipped, clipped)
+    cast([*] u64, destination)[0] = cast #bit(Simd.U64x2, packed)[0]
+}
+
 impl Decoder
 {
     // Starts a quantization group and predicts its quantization parameter, clause 8.6.1.
@@ -120,11 +131,7 @@ impl Decoder
             for row in 4'u32
             {
                 let out = destination + cast(u64, row) * stride
-                let pixels = cast #bit(Simd.U16x8, Simd.splat(cast(const [*] u64, out)[0]))
-                let values = cast #bit(Simd.S32x4, Simd.widenLow(pixels)) + Simd.load(&.residual[row * 4])
-                let clipped = Math.max(Math.min(values, maxima), zeros)
-                let packed = Simd.packUnsigned(clipped, clipped)
-                cast([*] u64, out)[0] = cast #bit(Simd.U64x2, packed)[0]
+                addResidual4(out, &.residual[row * 4], out, zeros, maxima)
             }
             return
         }
@@ -600,6 +607,16 @@ impl Decoder
 
         let zeros  = Simd.splat(0's32)
         let maxima = Simd.splat(maximum)
+        if size == 4
+        {
+            for row in 4'u32
+            {
+                let out = destination + cast(u64, row) * stride
+                addResidual4(&.predSamples[row * 4], &.residual[row * 4], out, zeros, maxima)
+            }
+            return
+        }
+
         for row in size
         {
             let out    = destination + cast(u64, row) * stride

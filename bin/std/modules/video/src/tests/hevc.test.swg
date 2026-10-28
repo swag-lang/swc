@@ -372,7 +372,7 @@ using Core, Core.Errors, Pixel
     }
 }
 
-// Four-sample residual rows clip exactly in each component and leave the
+// Four-sample residual rows clip exactly in both reconstruction paths and leave the
 // surrounding samples untouched, including at an unaligned block position.
 #test
 {
@@ -424,6 +424,7 @@ using Core, Core.Errors, Pixel
                         seed = seed * #wrap 1664525 + #wrap 1013904223
                         let residual = cast(s32, ((seed >> 16) & 4095)) - 2048
                         decoder.residual[y * 4 + x] = residual
+                        decoder.predSamples[y * 4 + x] = expected[y + 1, x + 1]
                         expected[y + 1, x + 1] = cast(u16, Math.clamp(cast(s32, expected[y + 1, x + 1]) + residual, 0, maximum))
                     }
                 }
@@ -432,6 +433,23 @@ using Core, Core.Errors, Pixel
                 {
                     for x in 6'u64 do
                         Swag.assert(origin[y * stride + x] == expected[y, x])
+                }
+                for y in 4'u64
+                {
+                    for x in 4'u64 do
+                        origin[(y + 1) * stride + x + 1] = 0x5A5A
+                }
+                decoder.addResidual(&block, true)
+                for y in 6'u64
+                {
+                    for x in 6'u64 do
+                        Swag.assert(origin[y * stride + x] == expected[y, x])
+                }
+                decoder.addResidual(&block, false)
+                for y in 4'u64
+                {
+                    for x in 4'u64 do
+                        Swag.assert(origin[(y + 1) * stride + x + 1] == decoder.predSamples[y * 4 + x])
                 }
             }
         }

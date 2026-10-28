@@ -145,3 +145,12 @@ home_ClearOlder Plus vieux qu'un mois
 home_ClearAll Tout effacer…
 home_Yesterday hier
 home_Weekdays dim. lun. mar. mer. jeu. ven. sam.
+explore_ArchiveSummary % · % compressés · % une fois extraits
+explore_Compression Compression
+cmd_OpenChosen Ouvrir
+hint_Open ouvrir
+hint_Parent dossier parent
+hint_KeyEnter Entrée
+mode_Names noms
+mode_Details détails
+mode_Thumbnails vignettes

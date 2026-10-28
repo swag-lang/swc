@@ -37,6 +37,8 @@ struct AppStrings
     explore_Empty:             string = "No files to show"            // Exploration control or status.
     explore_OneItem:           string = "1 item"                      // Exploration control or status.
     explore_Count:             string = "% items"                     // Exploration control or status.
+    explore_ArchiveSummary:    string = "% · % compressed · % once extracted"     // Contents of an archive: its count, its packed and its extracted weight.
+    explore_Compression:       string = "Compression"                // Reading of how much an archive member packed.
     explore_NotFound:          string = "Location not found"          // Exploration control or status.
     explore_MediaOptions:      string = "Online media options"
     explore_OnlineMovies:      string = "Use Online Movie Posters and Details"
@@ -106,6 +108,10 @@ struct AppStrings
     ui_FailureUnreadable:              string = "The file could not be read."                 // A file the system or a decoder could not read, above the technical detail.
     ui_FailureFormat:                  string = "The file is damaged, or its format is not supported."     // A file whose content a decoder refused, above the technical detail.
     ui_AboutViewers:                   string = "Supported viewers"                           // Heading of the compact about block listing what the application opens.
+    hint_KeyEnter:                     string = "Enter"                                       // Name of the Enter key on a keycap.
+    hint_KeyBack:                      string = "⌫"                                           // Name of the Backspace key on a keycap.
+    hint_Open:                         string = "open"                                        // What Enter does on the hint line of an explored folder.
+    hint_Parent:                       string = "parent folder"                               // What Backspace does on the hint line of an explored folder.
     ui_HintLens:                       string = "everything else"                             // What the space bar opens, on the hint line of a window new to the reader.
 
     lens_File:          string = "File"                      // Lens section of the commands acting on the open file.
@@ -116,6 +122,7 @@ struct AppStrings
     lens_Folder:        string = "Folder"                    // Lens section of the commands of the explored folder.
     lens_InFolder:      string = "In This Folder"            // Lens section listing the files beside the open one.
     cmd_Open:           string = "Open…"                     // Command choosing a file to open.
+    cmd_OpenChosen:     string = "Open"                      // Command opening the item chosen in the explored folder.
     cmd_Explore:        string = "Explore Folder"            // Command showing the folder of the open file as a contact sheet.
     cmd_Reload:         string = "Reload"                    // Command reading the open file again.
     cmd_PreviousFile:   string = "Previous File"             // Command opening the file before this one in its folder.
@@ -146,6 +153,9 @@ struct AppStrings
     cmd_ZoomOut:        string = "Zoom Out"                  // Command reducing the document by one notch.
     cmd_ZoomReset:      string = "Actual Size"               // Command showing the document at its own size.
     cmd_ZoomMenu:       string = "Zoom…"                     // Command opening the zoom levels of the viewer.
+    mode_Names:         string = "names"                     // Quiet view menu of the explored folder, as a list of names.
+    mode_Details:       string = "details"                   // Quiet view menu of the explored folder, as a table of details.
+    mode_Thumbnails:    string = "thumbnails"                // Quiet view menu of the explored folder, as a contact sheet.
     sort_Name:          string = "by name"                   // Quiet sort menu of the explored folder, ordered by name.
     sort_Type:          string = "by type"                   // Quiet sort menu of the explored folder, ordered by type.
     sort_Size:          string = "by size"                   // Quiet sort menu of the explored folder, ordered by size.

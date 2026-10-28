@@ -16,10 +16,11 @@ using Core, Gui
     explorer.folder  = "docs/"
     explorer.updateBreadcrumb()
     let breadcrumb = explorer.address.breadcrumb
-    Swag.assert(breadcrumb.items.count > 3)
-    let count = breadcrumb.items.count
-    Swag.assert(breadcrumb.items[count - 2].name == "viewer.archive.zip")
-    Swag.assert(breadcrumb.items.back().name == "docs")
+    // The breadcrumb names the levels above the page; the folder shown is the title.
+    Swag.assert(breadcrumb.items.count > 2)
+    let count = breadcrumb.items.count + 1
+    Swag.assert(breadcrumb.items.back().name == "viewer.archive.zip")
+    Swag.assert(breadcrumb.quiet and explorer.title.text() == "docs")
     let menu = MenuCtrl.createPopup(breadcrumb)
     defer menu.destroy()
     explorer.fillBreadcrumbMenu(count - 2, menu)
@@ -27,7 +28,7 @@ using Core, Gui
     let item = unwrap menu.items[1]
     Swag.assert(item.name.raw == "docs")
     let folderTarget = String.from(unwrap item.id)
-    Swag.assert(folderTarget == breadcrumb.items.back().tag)
+    Swag.assert(folderTarget == Format.toString("%\n%", explorer.listing.path, "docs/"))
     explorer.navigateBreadcrumb(folderTarget)
     Swag.assert(explorer.requested == explorer.listing.path and explorer.requestedFolder == "docs/")
     explorer.load.wait()

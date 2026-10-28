@@ -25,7 +25,17 @@ impl ViewerWindow
 
     mtd updateFileInfo(details: string)
     {
-        .showFileInfo(details, .currentFileSize)
+        // A picture is one of a series: its rank in the folder closes the line.
+        var size: String = .currentFileSize
+        if .activeChoiceIndex < .choices.count and .choices[.activeChoiceIndex].key == "image"
+        {
+            if .siblingsDirty do
+                .rebuildSiblings()
+            if .siblings.count > 1 do
+                size += Format.toString(" · % / %", .siblingIndex + 1, .siblings.count)
+        }
+
+        .showFileInfo(details, size)
         .refreshTitle()
         .layoutFileInfo()
         if .infoSheet.isLocallyVisible() do
@@ -173,7 +183,6 @@ impl ViewerWindow
 
         discard .fillFileList(.recentList, .recent.toSlice())
         var currentIndex = Swag.U32.Max
-        .kindButton.show(not .isExploring() and not .isArchivePreview())
         .folderFilterBox.show(not .isExploring())
         if (.isExploring() or .isArchivePreview()) and .explorer
         {
@@ -199,9 +208,8 @@ impl ViewerWindow
 
         let hasRecent = not .recent.isEmpty()
         .filePanel.setPaneVisible(0, hasRecent)
-        .closeFoldersButton.show(not hasRecent)
         let folder = .currentFile.isEmpty() ? null : Path.directoryName(.explorer ? .explorer.displayPath(.currentFile) : .currentFile.toString())
-        .folderLabel.setText(.isExploring() ? appStrings().explore_Folders : (Path.fileName(folder) orelse folder orelse appStrings().ui_Folder))
+        .folderLabel.setText(String.toUpper(.isExploring() ? appStrings().explore_Folders : (Path.fileName(folder) orelse folder orelse appStrings().ui_Folder), .Unicode))
         .filePanel.applyLayout()
         if .isFolderReading() and currentIndex != Swag.U32.Max do
             .folderList.ensureVisibleLine(currentIndex)

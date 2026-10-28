@@ -593,9 +593,12 @@ impl ViewerWindow
 {
     // The floating bar of the viewer's commands, the band an embedded viewer keeps its title in,
     // and the narrowest window.
-    const BarHeight       = 48.0
+    const BarHeight       = 44.0
     const ActionBarHeight = 42.0
     const MinWidth        = 880
+
+    // Room the hint line needs under the rows of a listing it teaches.
+    const HintRoom = 72.0
 
     // How long the viewer's commands stay after the pointer last moved.
     const ViewerBarLinger: Time.Duration = 2500'ms
@@ -1072,25 +1075,43 @@ impl ViewerWindow
         .folderHistoryButton.toolTip = texts.ui_FolderHistory
         .folderFilterBox.setPlaceholder(texts.ui_FilterFiles)
         .recentClearButton.toolTip   = texts.ui_ClearHistory
-        .hintLine.clearHints()
-        .hintLine.addHint(Gui.strings().key_Space, texts.ui_HintLens)
+        .teachHints(.isExploring())
         .searchPrevious.toolTip      = texts.ui_SearchPrevious
         .searchNext.toolTip          = texts.ui_SearchNext
         .searchOptionsButton.toolTip = texts.ui_SearchOptions
         .refreshSearchPresentation()
         .refreshSearchReadout()
-        .recentLabel.setText(texts.ui_Recent)
+        .recentLabel.setText(String.toUpper(texts.ui_Recent, .Unicode))
         for &instance in .instances where instance.view and not instance.failureReason.isEmpty() do
             assume cast(*ViewerErrorView, instance.view).retranslate()
         if .currentFile.isEmpty()
         {
-            .folderLabel.setText(.explorerActive ? texts.explore_Folders : texts.ui_Folder)
+            .folderLabel.setText(String.toUpper(.explorerActive ? texts.explore_Folders : texts.ui_Folder, .Unicode))
             .refreshHome()
         }
 
         if .infoSheet.isLocallyVisible() do
             .refreshInformation()
         .invalidate()
+    }
+
+    // Writes the keys the hint line teaches: those of a listing while a folder is explored,
+    // otherwise only the door; the line shows on the home and on a listing.
+    mtd teachHints(exploring: bool)
+    {
+        let texts = appStrings()
+        .hintLine.clearHints()
+        // The keys of an archive are taught while its rows leave the foot of the page free.
+        let archive = exploring and .explorer and .explorer.listing.isArchive and
+                      .explorer.scroll.scrollSize.y + HintRoom < .explorer.scroll.clientRect().height
+        if archive
+        {
+            .hintLine.addHint(texts.hint_KeyEnter, texts.hint_Open)
+            .hintLine.addHint(texts.hint_KeyBack, texts.hint_Parent)
+        }
+
+        .hintLine.addHint(Gui.strings().key_Space, texts.ui_HintLens)
+        .hintLine.show(archive or (not exploring and .home.isLocallyVisible()))
     }
 
     // Names what the window shows in its title: the open file, followed by the viewer when the
@@ -1177,7 +1198,6 @@ impl ViewerWindow
         .home.hide()
         .explorer.setShown(true)
         .explorer.navigate(source)
-        .hintLine.hide()
         .refreshTitle()
         .applyLayout()
     }

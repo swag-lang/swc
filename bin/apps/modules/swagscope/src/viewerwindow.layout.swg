@@ -98,9 +98,12 @@ impl ViewerWindow
     // Builds the floating bar the active viewer's commands stand in, at the foot of the document.
     private mtd createViewerBar()
     {
+        // The viewer's commands stand on a mini-bar: its small corner and its tight padding.
         with .viewerBar = FloatingPanel.create(me, {0, 0, 0, BarHeight}, "scope.commands")
         {
-            .padding = {12, 6, 12, 6}
+            let pad = me.themeMetrics().miniBar_Padding
+            .corner  = me.themeMetrics().miniBar_Corner
+            .padding = Math.Vector4{x: pad * 2, y: pad, z: pad * 2, w: pad}
             .hide()
         }
     }
@@ -115,6 +118,9 @@ impl ViewerWindow
             .addHint(Gui.strings().key_Space, appStrings().ui_HintLens)
         }
     }
+
+    // Writes the name of a part of the file panel as a section label: in capitals.
+    private func panelHeading(text: string)->String => String.toUpper(text, .Unicode)
 
     // Creates one of the file lists of the side panel: a single-selection list of names that
     // fills `parent` and never scrolls sideways.
@@ -180,6 +186,7 @@ impl ViewerWindow
 
         with .closeFilesButton = IconButton.create(recentHeader, .theme().icon(.WndClose, rowIconSize), Math.Rectangle{0, 0, compactSize, compactSize})
         {
+            .hide()
             .dockStyle  = .Right
             .toolTip    = appStrings().ui_CloseFiles
             .sigPressed += func|window = me|(_)
@@ -191,15 +198,20 @@ impl ViewerWindow
 
         with .recentClearButton = IconButton.create(recentHeader, .theme().icon(.RemoveAll, rowIconSize), Math.Rectangle{0, 0, compactSize, compactSize})
         {
+            .hide()
             .dockStyle  = .Right
             .toolTip    = appStrings().ui_ClearHistory
             .sigPressed += func|window = me|(_) { window.confirmClearRecent() }
         }
 
-        with .recentLabel = Label.create(recentHeader, appStrings().ui_Recent, Math.Rectangle{0, 0, 0, compactSize}, null, .SecondaryText)
+        // The panel is a card of the charter: its parts are named by section labels, and what its
+        // headers once held as buttons — closing it, clearing the history, keeping one kind, the
+        // folders read lately — is in the lens.
+        with .recentLabel = Label.create(recentHeader, panelHeading(appStrings().ui_Recent), Math.Rectangle{0, 0, 0, compactSize}, null, .SecondaryText)
         {
             .dockStyle = .Center
-            .style.setFont(me.theme().createDefaultFontFs(12), .Regular)
+            .style.setFont(me.theme().createDefaultFont(me.themeMetrics().sectionLabel_FontSize, .Bold), .Regular)
+            .style.addStyleSheetColors("label_TextLight $label_TextFaint")
             .setTextAlignment(.Left, .Center)
         }
 
@@ -235,6 +247,7 @@ impl ViewerWindow
 
         with .closeFoldersButton = IconButton.create(folderHeader, .theme().icon(.WndClose, rowIconSize), Math.Rectangle{0, 0, compactSize, compactSize})
         {
+            .hide()
             .dockStyle  = .Right
             .toolTip    = appStrings().ui_CloseFiles
             .sigPressed += func|window = me|(_)
@@ -246,6 +259,7 @@ impl ViewerWindow
 
         with .kindButton = IconButton.create(folderHeader, .theme().icon(.Filter, rowIconSize), Math.Rectangle{0, 0, compactSize, compactSize}, flags: .Toggle)
         {
+            .hide()
             .dockStyle = .Right
             .toolTip   = appStrings().ui_SameKind
             .setCheckIndicator(.Frame)
@@ -257,6 +271,7 @@ impl ViewerWindow
                                                       Math.Rectangle{0, 0, themeDropDownButtonWidth(.themeMetrics()), compactSize},
                                                       flags: .CenterContent)
         {
+            .hide()
             .dockStyle = .Right
             .toolTip   = appStrings().ui_FolderHistory
             .setArrowPosition(.RightDownward)
@@ -264,10 +279,11 @@ impl ViewerWindow
             .sigPressed += func|window = me|(_) { window.showFolderHistory() }
         }
 
-        with .folderLabel = Label.create(folderHeader, appStrings().ui_Folder, Math.Rectangle{0, 0, 0, compactSize}, null, .SecondaryText | .Ellipsis)
+        with .folderLabel = Label.create(folderHeader, panelHeading(appStrings().ui_Folder), Math.Rectangle{0, 0, 0, compactSize}, null, .SecondaryText | .Ellipsis)
         {
             .dockStyle = .Center
-            .style.setFont(me.theme().createDefaultFontFs(12), .Regular)
+            .style.setFont(me.theme().createDefaultFont(me.themeMetrics().sectionLabel_FontSize, .Bold), .Regular)
+            .style.addStyleSheetColors("label_TextLight $label_TextFaint")
             .setTextAlignment(.Left, .Center)
         }
 

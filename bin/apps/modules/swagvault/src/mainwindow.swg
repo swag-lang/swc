@@ -248,7 +248,7 @@ struct MainWindow
         unmountOnLock:      *ToggleButton
         unmountOnSuspend:   *ToggleButton
         unmountOnIdle:      *ToggleButton
-        idleTimeout:        *ComboBox
+        idleTimeout:        *IconButton
     }
 
     page:        WindowPage
@@ -648,7 +648,7 @@ impl MainWindow
         switch .page
         {
         case .List where .chosenPath.isEmpty(): .hintLine.addHint(strings().key_Space, appStrings().ui_HintList)
-        case .Options where .privacyMode: .hintLine.addHint(strings().key_Space, appStrings().ui_HintPrivacy)
+        case .Options where .privacyMode:       .hintLine.addHint(strings().key_Space, appStrings().ui_HintPrivacy)
         }
 
         .hintLine.show(not .hintLine.hints.isEmpty())

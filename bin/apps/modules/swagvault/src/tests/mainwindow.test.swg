@@ -444,7 +444,7 @@ func assertColumnFits(window: *MainWindow, page: *Wnd, column: *Wnd)
 
     window.unmountOnLock.toggle()
     window.unmountOnIdle.toggle()
-    window.idleTimeout.setSelectedIndex(2)
+    window.optionsPage.setTimeout(2)
     window.readAutoUnmountControls()
     var state = saveMainWindowState(window)
 

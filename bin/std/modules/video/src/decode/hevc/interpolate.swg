@@ -737,11 +737,31 @@ impl Decoder
             }
             else
             {
-                for row in height
+                if width >= 4
                 {
-                    let source = cast(u64, (row + 1)) * referenceStride + 1
-                    for column in width do
-                        .predBuffer[list, row * width + column] = cast(s16, (cast(s32, reference[source + cast(u64, column)]) << shift3))
+                    for row in height
+                    {
+                        let source = cast(u64, (row + 1)) * referenceStride + 1
+                        // The chroma window may not contain eight samples; read only four.
+                        let low    = cast(const [*] u64, &reference[source])[0]
+                        let pixels = cast #bit(Simd.U16x8, Simd.splat(low)) << shift3
+                        storeLow4(&.predBuffer[list, row * width], cast #bit(Simd.S16x8, pixels))
+                        var column = 4'u32
+                        while column < width
+                        {
+                            .predBuffer[list, row * width + column] = cast(s16, (cast(s32, reference[source + cast(u64, column)]) << shift3))
+                            column += 1
+                        }
+                    }
+                }
+                else
+                {
+                    for row in height
+                    {
+                        let source = cast(u64, (row + 1)) * referenceStride + 1
+                        for column in width do
+                            .predBuffer[list, row * width + column] = cast(s16, (cast(s32, reference[source + cast(u64, column)]) << shift3))
+                    }
                 }
             }
 

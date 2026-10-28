@@ -143,10 +143,10 @@ func predictAngularVertical(main: const [*] u16, destination: [*] u16, size: u32
     }
 }
 
-// Compute one horizontal column in the low four lanes. The source points
+// Compute up to eight samples of one horizontal column. The source points
 // into the same padded angular reference used by vertical prediction.
 #[Swag.Inline]
-private func angularColumn4(main: const [*] u16, position: u32, angle: s32)->Simd.U16x8
+private func angularColumn(main: const [*] u16, position: u32, angle: s32)->Simd.U16x8
 {
     let step = cast(s32, (position + 1)) * angle
     let blend = step & 31
@@ -160,14 +160,64 @@ private func angularColumn4(main: const [*] u16, position: u32, angle: s32)->Sim
 #[Swag.NoInline]
 func predictAngularHorizontal4(main: const [*] u16, destination: [*] u16, angle: s32)
 {
-    let c0 = angularColumn4(main, 0, angle)
-    let c1 = angularColumn4(main, 1, angle)
-    let c2 = angularColumn4(main, 2, angle)
-    let c3 = angularColumn4(main, 3, angle)
+    let c0 = angularColumn(main, 0, angle)
+    let c1 = angularColumn(main, 1, angle)
+    let c2 = angularColumn(main, 2, angle)
+    let c3 = angularColumn(main, 3, angle)
     let p0 = cast #bit(Simd.U32x4, Simd.interleaveLow(c0, c1))
     let p1 = cast #bit(Simd.U32x4, Simd.interleaveLow(c2, c3))
     Simd.store(destination, cast #bit(Simd.U16x8, Simd.interleaveLow(p0, p1)))
     Simd.store(destination + 8, cast #bit(Simd.U16x8, Simd.interleaveHigh(p0, p1)))
+}
+
+// Predict an 8x8 tile as eight columns, then transpose it into destination
+// rows without a temporary tile. All supported larger sizes are multiples of eight.
+#[Swag.NoInline]
+func predictAngularHorizontalPacked(main: const [*] u16, destination: [*] u16, size: u32, angle: s32)
+{
+    var y = 0'u32
+    while y < size
+    {
+        var x = 0'u32
+        while x < size
+        {
+            let ref = main + y
+            let c0 = angularColumn(ref, x, angle)
+            let c1 = angularColumn(ref, x + 1, angle)
+            let c2 = angularColumn(ref, x + 2, angle)
+            let c3 = angularColumn(ref, x + 3, angle)
+            let c4 = angularColumn(ref, x + 4, angle)
+            let c5 = angularColumn(ref, x + 5, angle)
+            let c6 = angularColumn(ref, x + 6, angle)
+            let c7 = angularColumn(ref, x + 7, angle)
+            let a0 = Simd.interleaveLow(c0, c1)
+            let a1 = Simd.interleaveLow(c2, c3)
+            let a2 = Simd.interleaveLow(c4, c5)
+            let a3 = Simd.interleaveLow(c6, c7)
+            let a4 = Simd.interleaveHigh(c0, c1)
+            let a5 = Simd.interleaveHigh(c2, c3)
+            let a6 = Simd.interleaveHigh(c4, c5)
+            let a7 = Simd.interleaveHigh(c6, c7)
+            let b0 = Simd.interleaveLow(cast #bit(Simd.U32x4, a0), cast #bit(Simd.U32x4, a1))
+            let b1 = Simd.interleaveHigh(cast #bit(Simd.U32x4, a0), cast #bit(Simd.U32x4, a1))
+            let b2 = Simd.interleaveLow(cast #bit(Simd.U32x4, a2), cast #bit(Simd.U32x4, a3))
+            let b3 = Simd.interleaveHigh(cast #bit(Simd.U32x4, a2), cast #bit(Simd.U32x4, a3))
+            let b4 = Simd.interleaveLow(cast #bit(Simd.U32x4, a4), cast #bit(Simd.U32x4, a5))
+            let b5 = Simd.interleaveHigh(cast #bit(Simd.U32x4, a4), cast #bit(Simd.U32x4, a5))
+            let b6 = Simd.interleaveLow(cast #bit(Simd.U32x4, a6), cast #bit(Simd.U32x4, a7))
+            let b7 = Simd.interleaveHigh(cast #bit(Simd.U32x4, a6), cast #bit(Simd.U32x4, a7))
+            Simd.store(destination + (y + 0) * size + x, cast #bit(Simd.U16x8, Simd.interleaveLow(cast #bit(Simd.U64x2, b0), cast #bit(Simd.U64x2, b2))))
+            Simd.store(destination + (y + 1) * size + x, cast #bit(Simd.U16x8, Simd.interleaveHigh(cast #bit(Simd.U64x2, b0), cast #bit(Simd.U64x2, b2))))
+            Simd.store(destination + (y + 2) * size + x, cast #bit(Simd.U16x8, Simd.interleaveLow(cast #bit(Simd.U64x2, b1), cast #bit(Simd.U64x2, b3))))
+            Simd.store(destination + (y + 3) * size + x, cast #bit(Simd.U16x8, Simd.interleaveHigh(cast #bit(Simd.U64x2, b1), cast #bit(Simd.U64x2, b3))))
+            Simd.store(destination + (y + 4) * size + x, cast #bit(Simd.U16x8, Simd.interleaveLow(cast #bit(Simd.U64x2, b4), cast #bit(Simd.U64x2, b6))))
+            Simd.store(destination + (y + 5) * size + x, cast #bit(Simd.U16x8, Simd.interleaveHigh(cast #bit(Simd.U64x2, b4), cast #bit(Simd.U64x2, b6))))
+            Simd.store(destination + (y + 6) * size + x, cast #bit(Simd.U16x8, Simd.interleaveLow(cast #bit(Simd.U64x2, b5), cast #bit(Simd.U64x2, b7))))
+            Simd.store(destination + (y + 7) * size + x, cast #bit(Simd.U16x8, Simd.interleaveHigh(cast #bit(Simd.U64x2, b5), cast #bit(Simd.U64x2, b7))))
+            x += 8
+        }
+        y += 8
+    }
 }
 
 impl Decoder
@@ -464,24 +514,7 @@ impl Decoder
         }
         else
         {
-            for outer in size
-            {
-                let step  = cast(s32, (outer + 1)) * angle
-                let shift = step >> 5
-                let blend = step & 31
-                for inner in size
-                {
-                    let base = cast(u32, (cast(s32, origin) + cast(s32, inner) + shift + 1))
-                    var value: u32
-                    if blend != 0 do
-                        value = (cast(u32, (32 - blend)) * cast(u32, main[base]) + cast(u32, blend) * cast(u32, main[base + 1]) + 16) >> 5
-                    else do
-                        value = cast(u32, main[base])
-
-                    .predSamples[inner * size + outer] = cast(u16, value)
-                }
-            }
-
+            predictAngularHorizontalPacked(&main[origin], &.predSamples[0], size, angle)
         }
 
         // The edge next to the reference the prediction did not read is blended with it, which is

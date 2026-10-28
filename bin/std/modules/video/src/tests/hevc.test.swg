@@ -219,6 +219,24 @@ using Core, Core.Errors, Pixel
                     Swag.assert(current.lumaAtMutable(x, y)[0] == cast(u16, (2 * y)))
             }
         }
+
+        // Exercise scalar remainders after both four- and eight-sample copies.
+        for motionX in [0's16, -800]
+        {
+            motion.mv[0, 0] = motionX
+            for blockWidth in [5'u32, 7, 12, 13]
+            {
+                decoder.interPredict(0, 0, blockWidth, blockWidth, &motion)
+                for y in cast(s32, blockWidth)
+                {
+                    for x in cast(s32, blockWidth)
+                    {
+                        let sourceX = motionX == 0 ? x : 0
+                        Swag.assert(current.lumaAtMutable(x, y)[0] == cast(u16, (2 * (sourceX + y))))
+                    }
+                }
+            }
+        }
     }
 }
 

@@ -246,6 +246,23 @@ namespace
         return true;
     }
 
+    bool isZeroVectorConstant(const TaskContext& taskContext, const uint64_t address)
+    {
+        const ConstantManager& cstMgr = taskContext.cstMgr();
+        const void*            ptr    = reinterpret_cast<const void*>(address);
+        DataSegmentRef         segmentRef;
+        if (!cstMgr.resolveDataSegmentRef(segmentRef, ptr))
+            return false;
+
+        const DataSegment&    segment = cstMgr.shardDataSegment(segmentRef.shardIndex);
+        DataSegmentAllocation allocation;
+        if (!segment.findAllocation(allocation, segmentRef.offset) || segmentRef.offset + 16 > allocation.offset + allocation.size ||
+            segment.hasRelocations(segmentRef.offset, 16))
+            return false;
+        const auto bytes = std::span(static_cast<const std::byte*>(ptr), 16);
+        return std::ranges::all_of(bytes, [](std::byte byte) { return byte == std::byte{0}; });
+    }
+
     void collectConstantAddresses(ConstantMemoryContext& context, const MicroBuilder& builder)
     {
         for (const MicroRelocation& relocation : builder.codeRelocations())
@@ -773,7 +790,8 @@ namespace
     // A load whose base register holds the address of a constant, at a
     // displacement the sweep has already made literal, is the constant's own
     // bytes. Plain, sign-extending and zero-extending loads all become the
-    // immediate they would have produced; a packed load is left alone.
+    // immediate they would have produced. A packed load becomes a clear only
+    // when all sixteen bytes of the same immutable allocation are zero.
     bool tryFoldLoadFromConstant(ConstantMemoryContext& context, MicroInstrRef instRef, MicroInstr& inst, MicroInstrOperand* ops)
     {
         if (!ops || !context.taskContext)
@@ -801,7 +819,9 @@ namespace
                 return false;
         }
 
-        if (!ops[0].reg.isVirtual() || !ops[1].reg.isVirtualInt() || loadBits == MicroOpBits::Zero || loadBits == MicroOpBits::B128 || dstBits == MicroOpBits::B128)
+        if (!ops[0].reg.isVirtual() || !ops[1].reg.isVirtualInt() || loadBits == MicroOpBits::Zero ||
+            (dstBits == MicroOpBits::B128 && loadBits != MicroOpBits::B128) ||
+            (loadBits == MicroOpBits::B128 && (inst.op != MicroInstrOpcode::LoadRegMem || !ops[0].reg.isVirtualFloat())))
             return false;
 
         // Rewrites leave relocations unchanged. Collect their original order
@@ -820,6 +840,16 @@ namespace
         uint64_t baseAddress = 0;
         if (!resolveConstantAddress(baseAddress, context, ops[1].reg, instRef, K_MAX_ADDRESS_CHAIN_DEPTH))
             return false;
+
+        if (loadBits == MicroOpBits::B128)
+        {
+            if (!isZeroVectorConstant(*context.taskContext, baseAddress + offset))
+                return false;
+            inst.op          = MicroInstrOpcode::ClearReg;
+            ops[1].opBits    = MicroOpBits::B128;
+            inst.numOperands = 2;
+            return true;
+        }
 
         uint64_t bits = 0;
         if (!readConstantBytes(bits, *context.taskContext, baseAddress + offset, getNumBits(loadBits) / 8))

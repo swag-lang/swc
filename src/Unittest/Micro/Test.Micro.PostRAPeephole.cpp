@@ -7046,6 +7046,36 @@ SWC_TEST_BEGIN(PostRAPeephole_CanonicalMaskTestPreservesObservations)
 }
 SWC_TEST_END()
 
+SWC_TEST_BEGIN(PostRAPeephole_RepeatedVectorClearAfterStore)
+{
+    const MicroReg     base   = CallConv::get(CallConvKind::C).intArgRegs[0];
+    constexpr MicroReg vector = MicroReg::floatReg(0);
+    constexpr MicroReg other  = MicroReg::floatReg(1);
+    for (uint32_t variant = 0; variant < 3; ++variant)
+    {
+        std::array<uint64_t, 6> expected{};
+        for (const bool optimize : {false, true})
+        {
+            std::array<uint64_t, 6> values = {1, 2, 3, 4, 5, 6};
+            MicroBuilder builder(ctx);
+            builder.emitLoadVecRegMem(other, base, 0, MicroOpBits::B128);
+            builder.emitLoadVecRegMem(vector, base, 0, MicroOpBits::B128);
+            builder.emitClearReg(variant == 2 ? other : vector, MicroOpBits::B128);
+            builder.emitLoadMemReg(base, 16, variant == 1 ? other : vector, MicroOpBits::B128);
+            builder.emitClearReg(vector, MicroOpBits::B128);
+            builder.emitLoadMemReg(base, 32, vector, MicroOpBits::B128);
+            builder.emitRet();
+            SWC_RESULT(executeForwardingCase(ctx, builder, values.data(), optimize));
+            if (!optimize)
+                expected = values;
+            else if (values != expected || (variant == 0 && Backend::Unittest::countOpcode(builder, MicroInstrOpcode::ClearReg) != 1))
+                return Result::Error;
+        }
+    }
+    return Result::Continue;
+}
+SWC_TEST_END()
+
 SWC_TEST_BEGIN(PostRAPeephole_AllEqualVectorMaskPreservesObservations)
 {
     const MicroReg     base   = CallConv::get(CallConvKind::C).intArgRegs[0];

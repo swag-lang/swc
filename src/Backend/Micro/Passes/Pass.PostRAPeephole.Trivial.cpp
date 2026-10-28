@@ -887,6 +887,29 @@ namespace PostRaPeephole
         return true;
     }
 
+    // A store reads its vector without changing it, so a second full clear
+    // immediately after that store has no effect and does not change flags.
+    bool tryEraseRepeatedVectorClear(Context& ctx, MicroInstrRef ref, const MicroInstr& inst)
+    {
+        const auto* clear = inst.ops(*ctx.operands);
+        if (!clear || !clear[0].reg.isFloat() || clear[1].opBits != MicroOpBits::B128)
+            return false;
+        const MicroInstrRef storeRef = ctx.previousRef(ref);
+        const MicroInstr*   store    = ctx.instruction(storeRef);
+        const auto*         storeOps = store ? store->ops(*ctx.operands) : nullptr;
+        if (!store || store->op != MicroInstrOpcode::LoadMemReg || !storeOps || storeOps[1].reg != clear[0].reg)
+            return false;
+        const MicroInstrRef previousRef = ctx.previousRef(storeRef);
+        const MicroInstr*   previous    = ctx.instruction(previousRef);
+        const auto*         previousOps = previous ? previous->ops(*ctx.operands) : nullptr;
+        if (!previous || previous->op != MicroInstrOpcode::ClearReg || !previousOps ||
+            previousOps[0].reg != clear[0].reg || previousOps[1].opBits != MicroOpBits::B128 ||
+            !ctx.claimAll({previousRef, storeRef, ref}))
+            return false;
+        ctx.emitErase(ref);
+        return true;
+    }
+
     // A float clear is kept as a rule: it zeroes the lanes a partial write
     // such as cvtsi2ss leaves alone. When the next instruction replaces the
     // whole register instead - another clear, a scalar load from memory, a

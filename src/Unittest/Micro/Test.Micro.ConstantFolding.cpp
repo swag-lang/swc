@@ -475,6 +475,43 @@ SWC_TEST_BEGIN(ConstantFolding_PropagatesInDominatorOrderWithoutPhis)
 }
 SWC_TEST_END()
 
+SWC_TEST_BEGIN(ConstantFolding_ZeroVectorRequiresWholeImmutableAllocation)
+{
+    for (uint32_t variant = 0; variant < 3; ++variant)
+    {
+        std::array<std::byte, 16> source{};
+        if (variant == 1)
+            source[15] = std::byte{1};
+        std::array           dims{source.size()};
+        const TypeRef        type = ctx.typeMgr().addType(TypeInfo::makeArray(std::span<uint64_t>{dims}, ctx.typeMgr().typeU8()));
+        const ConstantRef    ref  = ctx.cstMgr().addConstant(ctx, ConstantValue::makeArrayBorrowed(ctx, type, std::span{source.data(), source.size()}));
+        const ConstantValue& cst  = ctx.cstMgr().get(ref);
+        const uint64_t       ptr  = reinterpret_cast<uint64_t>(cst.getArray().data());
+        constexpr MicroReg   base = MicroReg::virtualIntReg(1);
+        constexpr MicroReg   dst  = MicroReg::virtualFloatReg(1);
+        MicroBuilder builder(ctx);
+        builder.emitLoadRegPtrReloc(base, ptr, ref);
+        builder.emitLoadRegMem(dst, base, variant == 2 ? 1 : 0, MicroOpBits::B128);
+        const auto load = builder.instructions().lastInstructionRef();
+        builder.emitRet();
+        MicroSsaValueScratch scratch;
+        MicroPassContext     passContext;
+        passContext.taskContext     = &ctx;
+        passContext.builder         = &builder;
+        passContext.instructions    = &builder.instructions();
+        passContext.operands        = &builder.operands();
+        passContext.callConvKind    = CallConvKind::Swag;
+        passContext.ssaValueScratch = &scratch;
+        MicroConstantFoldingPass pass;
+        SWC_RESULT(pass.run(passContext));
+        const auto* inst = builder.instructions().ptr(load);
+        if (!inst || inst->op != (variant == 0 ? MicroInstrOpcode::ClearReg : MicroInstrOpcode::LoadRegMem))
+            return Result::Error;
+    }
+    return Result::Continue;
+}
+SWC_TEST_END()
+
 SWC_TEST_BEGIN(ConstantFolding_LazyAddressesKeepFilteredRelocationOrder)
 {
     enum class Case

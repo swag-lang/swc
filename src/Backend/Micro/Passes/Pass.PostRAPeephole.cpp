@@ -1123,6 +1123,7 @@ namespace
         r.add(MicroInstrOpcode::LoadRegMem, tryFoldLoadIntoNarrowExtract);
         r.add(MicroInstrOpcode::LoadRegMem, tryFoldLoadIntoBinary);
         r.add(MicroInstrOpcode::LoadRegMem, tryEraseFloatClearBeforeFullWrite);
+        r.add(MicroInstrOpcode::ClearReg, tryEraseRepeatedVectorClear);
         r.add(MicroInstrOpcode::ClearReg, tryEraseFloatClearBeforeFullWrite);
         r.add(MicroInstrOpcode::LoadRegReg, tryFoldClearIntoResultCopy);
         r.add(MicroInstrOpcode::LoadRegReg, tryEraseFloatClearBeforeFullWrite);

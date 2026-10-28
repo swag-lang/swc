@@ -87,20 +87,14 @@ void SemaNodeView::computeInner(Sema& sema, AstNodeRef ref, SemaNodeViewPart par
 
     if (part.has(SemaNodeViewPartE::Type))
     {
-        if (mode == SemaNodeViewResolveE::Stored)
-            typeRef_ = sema.typeRefOfStored(nodeRef_);
-        else
-            typeRef_ = sema.typeRefOf(nodeRef_);
+        typeRef_ = sema.typeRefOfStored(nodeRef_);
         if (typeRef_.isValid())
             type_ = &sema.typeMgr().get(typeRef_);
     }
 
     if (part.has(SemaNodeViewPartE::Constant))
     {
-        if (mode == SemaNodeViewResolveE::Stored)
-            cstRef_ = sema.constantRefOfStored(nodeRef_);
-        else
-            cstRef_ = sema.constantRefOf(nodeRef_);
+        cstRef_ = sema.constantRefOfStored(nodeRef_);
         if (cstRef_.isValid())
             cst_ = &sema.cstMgr().get(cstRef_);
     }
@@ -131,7 +125,8 @@ void SemaNodeView::computeInner(Sema& sema, AstNodeRef ref, SemaNodeViewPart par
     if (!needsResolvedSymbol)
         return;
 
-    if (loadResolvedSymbols(sema, nodeRef_, mode))
+    // nodeRef_ is already the selected payload node, so inspect its stored symbols directly.
+    if (loadResolvedSymbols(sema, nodeRef_, SemaNodeViewResolveE::Stored))
     {
         trySetTypeFromResolvedSymbol();
         return;

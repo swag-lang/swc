@@ -519,11 +519,11 @@ else, judge whether naming the receiver once makes the operation easier to follo
   produces, keeps its place. Merge two calls that add flags to the same set into one.
 
 ```swag
-with let rail = Wnd.create'Wnd(view, {0, 0, 4})
+with let page = Wnd.create'Wnd(view, {0, 0, 240})
 {
     .dockStyle       = .Left
     .backgroundStyle = .Window
-    .style.addStyleSheetColors("wnd_Bk $hilight")
+    .style.addStyleSheetColors("wnd_Bk $view_Bk")
 }
 
 with var search: Viewer.SearchApi

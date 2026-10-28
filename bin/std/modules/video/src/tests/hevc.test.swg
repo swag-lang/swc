@@ -220,8 +220,8 @@ using Core, Core.Errors, Pixel
             }
         }
 
-        // Exercise scalar remainders after both four- and eight-sample copies.
-        for motionX in [0's16, -800]
+        // Exercise scalar remainders and fractional interpolation on gathered references.
+        for motionX in [0's16, -800, -799]
         {
             motion.mv[0, 0] = motionX
             for blockWidth in [5'u32, 7, 12, 13]

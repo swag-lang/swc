@@ -451,44 +451,48 @@ impl Decoder
     // Interpolates one luma prediction block, clause 8.5.3.3.3.2.
     private mtd interpolateLuma(frame: *Frame, x, y: s32, width, height: u32, mvX, mvY: s16, list: u32)
     {
-        let sps      = unwrap .activeSps
-        let bitDepth = sps.bitDepthLuma
-        let shift1   = Math.min(4'u32, bitDepth - 8)
-        let shift2   = 6'u32
-        let shift3   = Math.max(2'u32, 14 - bitDepth)
+        let xInt  = x + (cast(s32, mvX) >> 2)
+        let yInt  = y + (cast(s32, mvY) >> 2)
+        let xFrac = cast(u32, (cast(s32, mvX) & 3))
+        let yFrac = cast(u32, (cast(s32, mvY) & 3))
 
-        let xInt      = x + (cast(s32, mvX) >> 2)
-        let yInt      = y + (cast(s32, mvY) >> 2)
-        let xFrac     = cast(u32, (cast(s32, mvX) & 3))
-        let yFrac     = cast(u32, (cast(s32, mvY) & 3))
-        let lumaTapsX = lumaTaps(xFrac)
-        let lumaTapsY = lumaTaps(yFrac)
-
-        var gathered:        [MaxRefSide * MaxRefSide] u16
-        var reference:       const [*] u16
-        var referenceStride: u64
         let firstX = xInt - 3
         let firstY = yInt - 3
 
-        // A reference picture is complete before any block predicts from it, and completing it
-        // replicates its edges through the whole padding. A window that stays inside that padding
-        // therefore already holds what the clamp of clause 8.5.3.3.3 would produce, so it is read
-        // where it lies instead of being gathered into a scratch block first.
+        // A complete reference already replicates its edge through the padding.
         let pad = cast(s32, FramePadding)
         if firstX >= -pad and
            firstY >= -pad and
            firstX + cast(s32, width) + 7 <= cast(s32, frame.width) + pad and
            firstY + cast(s32, height) + 7 <= cast(s32, frame.height) + pad
         {
-            reference       = unwrap frame.lumaAt(firstX, firstY)
-            referenceStride = frame.strideLuma
+            .interpolateLumaWindow(unwrap frame.lumaAt(firstX, firstY), frame.strideLuma, width, height, xFrac, yFrac, list)
+            return
         }
-        else
-        {
-            reference       = &gathered[0]
-            referenceStride = cast(u64, MaxRefSide)
-            .gatherReference(frame, 0, xInt, yInt, width, height, 3, 8, &gathered[0], referenceStride)
-        }
+
+        .interpolateLumaGathered(frame, xInt, yInt, width, height, xFrac, yFrac, list)
+    }
+
+    // The uncommon out-of-padding path owns the scratch window, so the direct
+    // path does not initialize it before using the completed reference.
+    #[Swag.NoInline]
+    private mtd interpolateLumaGathered(frame: *Frame, xInt, yInt: s32, width, height, xFrac, yFrac, list: u32)
+    {
+        var gathered: [MaxRefSide * MaxRefSide] u16
+        .gatherReference(frame, 0, xInt, yInt, width, height, 3, 8, &gathered[0], cast(u64, MaxRefSide))
+        .interpolateLumaWindow(&gathered[0], cast(u64, MaxRefSide), width, height, xFrac, yFrac, list)
+    }
+
+    #[Swag.NoInline]
+    private mtd interpolateLumaWindow(reference: const [*] u16, referenceStride: u64, width, height, xFrac, yFrac, list: u32)
+    {
+        let bitDepth = .activeSps!.bitDepthLuma
+        let shift1   = Math.min(4'u32, bitDepth - 8)
+        let shift2   = 6'u32
+        let shift3   = Math.max(2'u32, 14 - bitDepth)
+
+        let lumaTapsX = lumaTaps(xFrac)
+        let lumaTapsY = lumaTaps(yFrac)
 
         if not xFrac and not yFrac
         {

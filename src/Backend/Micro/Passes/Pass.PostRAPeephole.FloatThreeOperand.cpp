@@ -806,7 +806,8 @@ namespace PostRaPeephole
     // Solve demands over straight-line blocks so a scalar use beyond a branch
     // does not make all four lanes live. The same proof permits contraction when
     // the product is dead in every lane and the floating policy allows FMA.
-    // The lane proof also removes clears whose entire result is overwritten.
+    // The lane proof also removes dead clears and in-place shuffles that leave
+    // every observed lane unchanged.
     // Pending rewrites stay opaque.
     void optimizeFloatInstructions(Context& ctx, bool eraseClears)
     {
@@ -825,6 +826,11 @@ namespace PostRaPeephole
                 continue;
             const auto* ops = inst->ops(*ctx.operands);
             if (eraseClears && inst->op == MicroInstrOpcode::ClearReg && ops && ops[0].reg.isFloat())
+            {
+                candidate = true;
+                break;
+            }
+            if (eraseClears && inst->op == MicroInstrOpcode::VecShuffleRegRegImm && ops && ops[0].reg == ops[1].reg && ops[2].opBits == MicroOpBits::B128)
             {
                 candidate = true;
                 break;
@@ -880,6 +886,21 @@ namespace PostRaPeephole
                 {
                     ctx.emitErase(ref);
                     continue;
+                }
+                if (eraseClears && inst->op == MicroInstrOpcode::VecShuffleRegRegImm && !ctx.isClaimed(ref) &&
+                    ops[0].reg == ops[1].reg && ops[0].reg.isFloat() && ops[2].opBits == MicroOpBits::B128)
+                {
+                    const uint8_t needed   = demand.lanes[ops[0].reg.index()];
+                    bool          identity = true;
+                    for (uint32_t lane = 0; lane < 4; ++lane)
+                        if ((needed & (1u << lane)) && ((ops[3].valueU64 >> (lane * 2)) & 3) != lane)
+                            identity = false;
+                    if (identity && ctx.claimAll({ref}))
+                    {
+                        // The demand before the erased shuffle is identical.
+                        ctx.emitErase(ref);
+                        continue;
+                    }
                 }
                 bool widen = false;
                 if (!eraseClears && inst->op == MicroInstrOpcode::LoadRegReg && !ctx.isClaimed(ref) &&

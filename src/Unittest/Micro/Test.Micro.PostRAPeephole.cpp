@@ -7037,6 +7037,37 @@ SWC_TEST_BEGIN(PostRAPeephole_ScalarClearTracksPackedLaneReads)
 }
 SWC_TEST_END()
 
+// A broadcast can disappear only when every observed lane stays in place.
+SWC_TEST_BEGIN(PostRAPeephole_ShufflePreservesDemandedLanes)
+{
+    const MicroReg base = CallConv::get(CallConvKind::C).intArgRegs[0];
+    constexpr MicroReg source = MicroReg::floatReg(0);
+    constexpr MicroReg other = MicroReg::floatReg(1);
+    for (uint32_t variant = 0; variant < 3; ++variant)
+    {
+        std::array<uint64_t, 4> expected{};
+        for (const bool optimize : {false, true})
+        {
+            std::array<uint64_t, 4> values = {0x0123456789ABCDEF, 0xFEDCBA9876543210, 0, 0};
+            MicroBuilder builder(ctx);
+            builder.emitLoadVecRegMem(source, base, 0, MicroOpBits::B128);
+            builder.emitVecShuffleRegRegImm(source, source, variant == 2 ? 0x4E : 0x44, MicroOpBits::B128);
+            if (variant != 1)
+                builder.emitOpBinaryRegRegReg(source, source, source, MicroOp::VecUnpackLo64, MicroOpBits::B128);
+            builder.emitStoreVecMemReg(base, 16, source, MicroOpBits::B128);
+            builder.emitClearReg(other, MicroOpBits::B128);
+            builder.emitRet();
+            SWC_RESULT(executeForwardingCase(ctx, builder, values.data(), optimize));
+            if (!optimize)
+                expected = values;
+            else if (values != expected || Backend::Unittest::countOpcode(builder, MicroInstrOpcode::VecShuffleRegRegImm) != (variant == 0 ? 0u : 1u))
+                return Result::Error;
+        }
+    }
+    return Result::Continue;
+}
+SWC_TEST_END()
+
 // Execute the full vector result: scalar copies preserve the cleared upper lanes,
 // while a three-operand arithmetic result takes them from its first input.
 SWC_TEST_BEGIN(PostRAPeephole_DeadFloatClearPreservesAllObservedLanes)

@@ -20,7 +20,8 @@ namespace PostRaPeephole
             return false;
         const bool wordMask = inst.op == MicroInstrOpcode::TestRegImm && test[2].valueU64 == 0xAAAA;
         const bool fullMask = inst.op == MicroInstrOpcode::CmpRegImm && test[2].valueU64 == 0;
-        if (!wordMask && !fullMask)
+        const bool allEqual = inst.op == MicroInstrOpcode::CmpRegImm && test[2].valueU64 == 0xFFFF;
+        if (!wordMask && !fullMask && !allEqual)
             return false;
         const MicroInstrRef readerRef = ctx.nextRef(ref);
         const MicroInstr*   reader    = ctx.instruction(readerRef);
@@ -47,7 +48,20 @@ namespace PostRaPeephole
         const bool wordCompare = op == MicroOp::VecCmpEq16 || op == MicroOp::VecCmpGtS16;
         const bool canonical   = wordCompare || op == MicroOp::VecCmpEq8 || op == MicroOp::VecCmpEq32 || op == MicroOp::VecCmpEq64 ||
                                  op == MicroOp::VecCmpGtS8 || op == MicroOp::VecCmpGtS32 || op == MicroOp::VecCmpGtS64;
-        if (!(wordMask ? wordCompare : canonical) || !ctx.claimAll({moveRef, ref}))
+        const bool equality = op == MicroOp::VecCmpEq8 || op == MicroOp::VecCmpEq16 || op == MicroOp::VecCmpEq32 || op == MicroOp::VecCmpEq64;
+        if (allEqual)
+        {
+            // Every equality lane is all ones iff both input vectors match.
+            // XOR and PTEST produce the same zero flag without materializing
+            // the comparison mask, provided nobody observes that mask vector.
+            if (!equality || !ctx.isRegDeadAfterCurrent(compareOps[0].reg) || !ctx.claimAll({compareRef, moveRef, ref}))
+                return false;
+            MicroInstrOperand xorOps[5];
+            std::copy_n(compareOps, 5, xorOps);
+            xorOps[4].microOp = MicroOp::VecXor;
+            ctx.emitRewrite(compareRef, MicroInstrOpcode::OpBinaryRegRegReg, xorOps);
+        }
+        else if (!(wordMask ? wordCompare : canonical) || !ctx.claimAll({moveRef, ref}))
             return false;
         MicroInstrOperand vectorTest[2] = {};
         vectorTest[0].reg    = moveOps[1].reg;

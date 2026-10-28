@@ -93,6 +93,56 @@ func predictPlanarPacked(reference: const *IntraReference, destination: [*] u16,
     }
 }
 
+// Write the vertical angular predictor by rows. Its weighted sum is at most
+// 32 * 1023 + 16 for Main10, so unsigned 16-bit lanes are sufficient. The
+// reference points into a 160-sample buffer, including for four-wide loads.
+#[Swag.NoInline]
+func predictAngularVertical(main: const [*] u16, destination: [*] u16, size: u32, angle: s32)
+{
+    for row in size
+    {
+        let step = cast(s32, (row + 1)) * angle
+        let shift = step >> 5
+        let blend = step & 31
+        let source = main + cast(s64, (shift + 1))
+        let out = destination + row * size
+        if blend == 0
+        {
+            if size == 4 do
+                cast([*] u64, out)[0] = cast(const [*] u64, source)[0]
+            else
+            {
+                var x = 0'u32
+                while x < size
+                {
+                    Simd.store(out + x, Simd.load(source + x))
+                    x += 8
+                }
+            }
+            continue
+        }
+
+        let firstWeight = Simd.splat(cast(u16, (32 - blend)))
+        let secondWeight = Simd.splat(cast(u16, blend))
+        let rounding = Simd.splat(16'u16)
+        if size == 4
+        {
+            let values = (Simd.load(source) * firstWeight + Simd.load(source + 1) * secondWeight + rounding) >> 5
+            cast([*] u64, out)[0] = cast #bit(Simd.U64x2, values)[0]
+        }
+        else
+        {
+            var x = 0'u32
+            while x < size
+            {
+                let values = (Simd.load(source + x) * firstWeight + Simd.load(source + x + 1) * secondWeight + rounding) >> 5
+                Simd.store(out + x, values)
+                x += 8
+            }
+        }
+    }
+}
+
 impl Decoder
 {
     // Predicts one intra transform block into `.predSamples`, clause 8.4.4.2.
@@ -377,25 +427,30 @@ impl Decoder
                 main[origin + index] = vertical ? reference.top(index - 1) : reference.left(index - 1)
         }
 
-        for outer in size
+        if vertical
         {
-            let step  = cast(s32, (outer + 1)) * angle
-            let shift = step >> 5
-            let blend = step & 31
-            for inner in size
+            predictAngularVertical(&main[origin], &.predSamples[0], size, angle)
+        }
+        else
+        {
+            for outer in size
             {
-                let base = cast(u32, (cast(s32, origin) + cast(s32, inner) + shift + 1))
-                var value: u32
-                if blend != 0 do
-                    value = (cast(u32, (32 - blend)) * cast(u32, main[base]) + cast(u32, blend) * cast(u32, main[base + 1]) + 16) >> 5
-                else do
-                    value = cast(u32, main[base])
+                let step  = cast(s32, (outer + 1)) * angle
+                let shift = step >> 5
+                let blend = step & 31
+                for inner in size
+                {
+                    let base = cast(u32, (cast(s32, origin) + cast(s32, inner) + shift + 1))
+                    var value: u32
+                    if blend != 0 do
+                        value = (cast(u32, (32 - blend)) * cast(u32, main[base]) + cast(u32, blend) * cast(u32, main[base + 1]) + 16) >> 5
+                    else do
+                        value = cast(u32, main[base])
 
-                if vertical do
-                    .predSamples[outer * size + inner] = cast(u16, value)
-                else do
                     .predSamples[inner * size + outer] = cast(u16, value)
+                }
             }
+
         }
 
         // The edge next to the reference the prediction did not read is blended with it, which is

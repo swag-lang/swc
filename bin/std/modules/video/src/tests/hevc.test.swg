@@ -372,6 +372,47 @@ using Core, Core.Errors, Pixel
     }
 }
 
+// Vertical angular rows cover integral and fractional displacements in both
+// directions, with exact four-column stores and a sentinel after the block.
+#test
+{
+    var main: [160] u16
+    var output: [32 * 32 + 1] u16
+    var seed = 0x18BFA293'u32
+    for bitDepth in [8'u32, 10]
+    {
+        let maximum = (1'u32 << bitDepth) - 1
+        for size in [4'u32, 8, 16, 32]
+        {
+            for angle in [-32's32, -26, -17, -9, -2, 0, 2, 9, 17, 26, 32]
+            {
+                for i in main.count
+                {
+                    seed = seed * #wrap 1664525 + #wrap 1013904223
+                    main[i] = cast(u16, (angle == 17 ? maximum : (seed >> 16) & maximum))
+                }
+                output[size * size] = 0x5A5A
+                Hevc.predictAngularVertical(&main[64], &output[0], size, angle)
+                for row in size
+                {
+                    let step = cast(s32, (row + 1)) * angle
+                    let shift = step >> 5
+                    let blend = step & 31
+                    for x in size
+                    {
+                        let base = cast(u32, (64 + shift + 1 + cast(s32, x)))
+                        let first = cast(u32, main[base])
+                        let second = cast(u32, main[base + 1])
+                        let expected = ((32 - cast(u32, blend)) * first + cast(u32, blend) * second + 16) >> 5
+                        Swag.assert(output[row * size + x] == cast(u16, expected))
+                    }
+                }
+                Swag.assert(output[size * size] == 0x5A5A)
+            }
+        }
+    }
+}
+
 // DC prediction fills the whole block, then blends only the luma edges of
 // blocks smaller than 32 samples. Keep the next sample untouched.
 #test

@@ -646,7 +646,8 @@ impl MainWindow
         return Math.ceil(height)
     }
 
-    // The frame supplies its own inset. Include it once, round out, and keep the saved origin.
+    // The frame supplies its own inset, and the window its room under the floating strip. Include
+    // both once, round out, and keep the saved origin.
     mtd fitToContent()
     {
         if not .layoutReady or .fittingSize do
@@ -657,7 +658,7 @@ impl MainWindow
         let frame   = surface.wnd.padding
         let shadow  = surface.shadowMargin() * 2
         let width   = surface.size().x - frame.x - frame.z - shadow
-        let height  = .requiredClientHeight(width) + frame.y + frame.w + shadow
+        let height  = .requiredClientHeight(width) + .padding.y + .padding.w + frame.y + frame.w + shadow
         var pos     = surface.position
         pos.height        = Math.ceil(Math.ceil(height) * surface.dpiScale)
         surface.minSize.y = pos.height / surface.dpiScale
@@ -930,6 +931,12 @@ impl MainWindow
 
 impl IWnd for MainWindow
 {
+    // The banner and the pages keep clear of the window chrome floating over the top of the window.
+    mtd impl onResizeEvent(_: *ResizeEvent)
+    {
+        .padding.y = .stripInset()
+    }
+
     // Takes a container dropped anywhere on the window that no field claimed first.
     //
     // Dropping one file says "open this" regardless of its name: the container format, not a

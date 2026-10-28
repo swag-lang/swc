@@ -479,6 +479,12 @@ impl MainWindow
 
 impl IWnd for MainWindow
 {
+    // The panes keep clear of the window chrome floating over the top of the window.
+    mtd impl onResizeEvent(_: *ResizeEvent)
+    {
+        .padding.y = .stripInset()
+    }
+
     mtd impl onTimerEvent(evt: *TimerEvent)
     {
         if evt.timer == .editTimer do

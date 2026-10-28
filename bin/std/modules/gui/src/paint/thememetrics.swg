@@ -37,21 +37,23 @@ struct ThemeMetrics
 
         // The top strip of a window is ground the content sits on, not a band: a faint glyph at its
         // leading corner, the title centred in small faint type, and faint window buttons at its
-        // trailing end. Its height is the room those three need; nothing else is drawn there.
-        wnd_BorderSize:            f32 = 1        // Thickness of the outline of a surface.
-        wnd_BigCaptionCY:          f32 = 42       // Height of the top strip of an application window.
-        wnd_SmallCaptionCY:        f32 = 36       // Height of the top strip of a dialog or a tool window.
-        wnd_CaptionMarginTitle:    f32 = 18       // Air between the leading edge of a window and its glyph.
-        wnd_CaptionIconSize:       f32 = 18       // Side of the application glyph in the corner of a window.
-        wnd_TitleFontSize:         u32 = 12       // Size of the title centred in the top strip.
-        wnd_CaptionButtonMargin:   f32 = 5        // Air around a window button, inside the top strip.
-        wnd_CaptionButtonGap:      f32 = 2        // Air between neighboring window buttons.
-        wnd_CaptionActionGap:      f32 = 8        // Air between an application action in the top strip and its neighbors.
-        wnd_CaptionButtonGlyph:    f32 = 16       // Side of a window button glyph. Chrome, so it sits at the row size of the chart.
-        wnd_CaptionButtonAspect:   f32 = 0.9      // Width of a window button as a multiple of its height.
-        wnd_CaptionButtonMinWidth: f32 = 30       // Narrowest a window button gets.
-        wnd_SizingBorderSize:      f32 = 8        // Reach of the resizing border on each side of a surface edge.
-        wnd_TopSizingBorderSize:   f32 = 7        // Reach of the resizing border along the top edge, capped by the side reach.
+        // trailing end. On an application window it floats over the view, which reaches the top
+        // edge; see [[Gui.SurfaceWnd.stripHeight]] and [[Gui.Wnd.stripInset]].
+        wnd_BorderSize:            f32 = 1       // Thickness of the outline of a surface.
+        wnd_StripHeight:           f32 = 52      // Height of the top strip of an application window, floating over its content.
+        wnd_SmallCaptionCY:        f32 = 36      // Height of the top strip of a dialog or a tool window, kept above its content.
+        wnd_CaptionButtonHeight:   f32 = 32      // Tallest a window button gets; it is centred in the strip.
+        wnd_CaptionMarginTitle:    f32 = 18      // Air between the leading edge of a window and its glyph.
+        wnd_CaptionIconSize:       f32 = 18      // Side of the application glyph in the corner of a window.
+        wnd_TitleFontSize:         u32 = 12      // Size of the title centred in the top strip.
+        wnd_CaptionButtonMargin:   f32 = 5       // Air around a window button, inside the top strip.
+        wnd_CaptionButtonGap:      f32 = 2       // Air between neighboring window buttons.
+        wnd_CaptionActionGap:      f32 = 8       // Air between an application action in the top strip and its neighbors.
+        wnd_CaptionButtonGlyph:    f32 = 16      // Side of a window button glyph. Chrome, so it sits at the row size of the chart.
+        wnd_CaptionButtonAspect:   f32 = 0.9     // Width of a window button as a multiple of its height.
+        wnd_CaptionButtonMinWidth: f32 = 30      // Narrowest a window button gets.
+        wnd_SizingBorderSize:      f32 = 8       // Reach of the resizing border on each side of a surface edge.
+        wnd_TopSizingBorderSize:   f32 = 7       // Reach of the resizing border along the top edge, capped by the side reach.
 
         action_IconSize: f32 = 20     // Side of a primary action glyph in an application or viewer bar.
 
@@ -131,6 +133,76 @@ struct ThemeMetrics
         optionSheet_Inset:           f32 = 6       // Air between the edge of a sheet and the grounds of its rows.
         optionSheet_RowPadding:      f32 = 10      // Air between the ground of a row and what it shows.
         optionSheet_ValueMaxWidth:   f32 = 150     // Widest the current value of a row grows before it is shortened.
+
+        // The floating components of the charter — the lens, the information sheet, the inspector,
+        // the mini-bar and the dock — stand on the surface ground with a hairline ring and a
+        // shadow, above the work and away from the window edges.
+        floating_ShadowSize: f32 = 12     // Reach of the shadow a floating component casts.
+        floating_Inset:      f32 = 24     // Air between a floating panel and the window edges it stands beside.
+
+        // A section label: small spaced capitals in the faint ink, with no band behind them.
+        sectionLabel_FontSize:      u32 = 10      // Size of the face a section label is set in.
+        sectionLabel_LetterSpacing: f32 = 1.5     // Air added between the capitals of a section label.
+
+        // A keycap writes a key in a chip, the way the hint line and the foot of the lens teach it.
+        keycap_Height:   f32 = 18     // Height of a keycap.
+        keycap_Padding:  f32 = 7      // Air between the edge of a keycap and the name of its key.
+        keycap_FontSize: u32 = 11     // Size of the name of a key.
+
+        // The hint line teaches the door: a keycap and what it opens, faint, near the bottom edge.
+        hintLine_Bottom:   f32 = 24     // Air between the hint line and the bottom edge of the window.
+        hintLine_Height:   f32 = 24     // Height of the hint line.
+        hintLine_FontSize: u32 = 12     // Size of the words and of the reading of the hint line.
+        hintLine_KeyGap:   f32 = 8      // Air between a keycap and the words it leads.
+        hintLine_GroupGap: f32 = 24     // Air between two hints, and between the reading and the first hint.
+
+        // The lens: one input over results grouped under section labels, keys at its foot.
+        lens_Width:          f32 = 640      // Widest the lens gets; a narrow window keeps the floating inset on both sides.
+        lens_TopRatio:       f32 = 0.15     // Height of the window above the lens, as a fraction of the window.
+        lens_MaxHeightRatio: f32 = 0.7      // Tallest the lens gets, as a fraction of the window.
+        lens_InputHeight:    f32 = 64       // Height of the input band.
+        lens_InputFontSize:  u32 = 22       // Size of the query typed in the input.
+        lens_TextInset:      f32 = 24       // Air between the edge of the lens and its words.
+        lens_RowInset:       f32 = 8        // Air between the edge of the lens and the ground of a row.
+        lens_RowHeight:      f32 = 40       // Height of a result row.
+        lens_RowFontSize:    u32 = 14       // Size of the title of a result.
+        lens_LeadWidth:      f32 = 36       // Width of the column holding the glyph or the number that leads a row.
+        lens_SectionHeight:  f32 = 32       // Height of the label that opens a group of results.
+        lens_FooterHeight:   f32 = 40       // Height of the band listing the keys.
+
+        // The information sheet a key opens: a title, an identity line, facts and readings.
+        infoSheet_Width:         f32 = 340     // Width of an information sheet.
+        infoSheet_Padding:       f32 = 28      // Air between the edge of an information sheet and what it holds.
+        infoSheet_TitleFontSize: u32 = 21      // Size of the title of an information sheet.
+        infoSheet_FactFontSize:  u32 = 28      // Size of a fact the reader came for.
+        infoSheet_LabelWidth:    f32 = 96      // Width of the label column of the readings.
+        infoSheet_LineHeight:    f32 = 24      // Pitch of a reading.
+        infoSheet_BlockGap:      f32 = 16      // Air between two blocks of an information sheet.
+        infoSheet_LineGap:       f32 = 4       // Air under the title, and under a paragraph.
+
+        // The inspector: the sheet's shape docked at the trailing edge, holding the properties of a selection.
+        inspector_Width:         f32 = 304     // Width of an inspector.
+        inspector_Padding:       f32 = 20      // Air between the edge of an inspector and what it holds.
+        inspector_LabelWidth:    f32 = 88      // Width of the label column of an inspector.
+        inspector_LabelGap:      f32 = 12      // Air between a label and its editor.
+        inspector_RowGap:        f32 = 10      // Air between two rows of an inspector.
+        inspector_SectionHeight: f32 = 30      // Height of the label that opens a section of an inspector.
+        inspector_TitleFontSize: u32 = 15      // Size of the title of an inspector.
+
+        // The mini-bar: a small floating toolbar placed next to the selected object.
+        miniBar_Padding:         f32 = 4      // Air between the edge of the mini-bar and its buttons.
+        miniBar_ButtonSize:      f32 = 28     // Side of a button of the mini-bar.
+        miniBar_Corner:          f32 = 8      // Corner of the mini-bar.
+        miniBar_Gap:             f32 = 2      // Air between two items of the mini-bar.
+        miniBar_SeparatorHeight: f32 = 16     // Height of the hairline between two groups of the mini-bar.
+        miniBar_SeparatorGap:    f32 = 6      // Air on each side of that hairline.
+        miniBar_Distance:        f32 = 12     // Air between the mini-bar and the selection it stands next to.
+
+        // The dock: a vertical floating column of tools at the leading edge, vertically centred.
+        toolDock_Padding:  f32 = 6      // Air between the edge of the dock and its cells.
+        toolDock_CellSize: f32 = 36     // Side of a cell of the dock.
+        toolDock_Glyph:    f32 = 18     // Side of the glyph of a tool.
+        toolDock_Gap:      f32 = 2      // Air between two cells of the dock.
 
         menuBar_Height:       f32 = 30     // Height of a menu bar.
         menuBar_SpaceBetween: f32 = 24     // Air between two menu bar entries.

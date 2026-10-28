@@ -15,6 +15,14 @@ enum DockStyle
     Bottom     // Takes the remaining bottom strip and keeps its height.
     Center     // Fills the remaining rectangle.
     CenterKeepSizeVert     // Fills remaining width while preserving and centering its height.
+
+    // Stays out of the docking flow and places itself over the parent.
+    //
+    // The window takes no room from its siblings; its [[Gui.IWnd.onLayout]] runs each time the
+    // parent arranges its children, after every docked sibling, so it can follow the parent's
+    // client rectangle. The floating components of the charter — the dock, the information
+    // sheet, the inspector, the hint line, the lens — are placed this way.
+    Float
 }
 
 // Selects which edges or dimensions follow a parent's size delta.
@@ -590,6 +598,28 @@ impl Wnd
 
         // Returns the resolved font family.
         mtd font() => .style.resolvedFont()
+    }
+
+    // Returns how much of the top of this window the top strip of its surface covers.
+    //
+    // The strip of an application window floats over the view (see [[Gui.SurfaceWnd]]). A part of
+    // the content that must keep clear of the glyph, the title and the window buttons — a band of
+    // controls, a page header, a form — insets its top by this amount; a document, an image or a
+    // list scrolled under the title ignores it. The result is zero when the surface has no
+    // floating strip or when this window starts below it.
+    //
+    // The view receives a resize event whenever the strip appears or goes, so a layout that reads
+    // this value on resize stays in step with full screen and caption changes.
+    mtd stripInset()->f32
+    {
+        let srfn = .surface
+        if not srfn do
+            return 0
+        let frame = srfn.wnd
+        let strip = frame.stripHeight()
+        if strip <= 0 or frame.padding.y >= strip do
+            return 0
+        return Math.max(frame.surfaceRect().y + strip - .surfaceRect().y, 0)
     }
 
     // Allocates a concrete window with an empty name and rectangle.
@@ -1876,6 +1906,10 @@ impl Wnd
 
             c.setPosition(pos, false)
         }
+
+        // A floating child places itself once its docked siblings have their room.
+        for c in .children where c.dockStyle == .Float and c.isLocallyVisible() do
+            c.itf.onLayout()
 
         for c, i in .children
         {

@@ -7,8 +7,7 @@ using Swag, Core
 {
     var host: Testing.HeadlessHost
     host.setup(480, 240)
-    host.surface.flags        = SurfaceFlags.StandardWindow
-    host.surfaceWnd.padding.y = host.theme.metrics.wnd_BigCaptionCY
+    host.surface.flags = SurfaceFlags.StandardWindow
     host.surfaceWnd.create(&host.root, null)
     host.surfaceWnd.sendResizeEvent()
 

@@ -24,13 +24,14 @@ func chromeTestMark()->Image
 // Builds a standard application window around an empty document, in the theme the host wears.
 //
 // The window keeps the corner of the charter; the host squares it by default because a headless
-// image has no desktop under it, and the corner is part of what this test pins.
+// image has no desktop under it, and the corner is part of what this test pins. The strip floats
+// over the view, so the view takes the whole body inside the outline.
 func buildChromeWindow(host: *Testing.HeadlessHost)
 {
     host.app.setAppIcon(chromeTestMark())
     host.theme.metrics.surfaceWnd_CornerRadius = 10
     host.surface.flags        = .StandardWindow
-    host.surfaceWnd.padding   = {1, host.theme.metrics.wnd_BigCaptionCY, 1, 1}
+    host.surfaceWnd.padding   = {1, 1, 1, 1}
     host.root.backgroundStyle = .Window
     host.surface.setTitle("viewerchrome.swg")
     host.surfaceWnd.create(&host.root, null)
@@ -68,7 +69,8 @@ func buildChromeWindow(host: *Testing.HeadlessHost)
     host.setup(480, 120)
     buildChromeWindow(&host)
 
-    let strip = host.theme.metrics.wnd_BigCaptionCY
+    let strip = host.theme.metrics.wnd_StripHeight
+    Swag.assert(host.surfaceWnd.stripHeight() == strip)
     Swag.assert(host.surfaceWnd.hitTestCaption({240, strip * 0.5}))
     Swag.assert(host.surfaceWnd.hitTestCaption({10, strip * 0.5}))
     Swag.assert(not host.surfaceWnd.hitTestCaption({240, strip + 10}))
@@ -81,6 +83,102 @@ func buildChromeWindow(host: *Testing.HeadlessHost)
     let ground = host.theme.colors.wnd_Bk
     Swag.assert(image.pixelColor(240, 4).argb == ground.argb)
     Swag.assert(image.pixelColor(240, cast(s32, strip) + 8).argb == ground.argb)
+}
+
+// The view takes the whole body and the strip floats over it. Content reaching the top edge
+// passes under the title and still drags the window there, a control set in the strip keeps its
+// clicks, and a band that must keep clear of the chrome reads its inset.
+#test
+{
+    var host: Testing.HeadlessHost
+    host.setup(480, 200)
+    buildChromeWindow(&host)
+
+    let strip = host.theme.metrics.wnd_StripHeight
+    Swag.assert(host.root.position.y == 1 and host.root.position.height == 198)
+    Swag.assert(host.root.stripInset() == strip - 1)
+
+    // A document continuing below the strip is content: the strip drags over it.
+    with let document = Wnd.create'Wnd(&host.root, {0, 0, 478, 198})
+    {
+        .focusPolicy = .Tab
+    }
+
+    Swag.assert(host.surfaceWnd.hitTestCaption({240, 20}))
+    Swag.assert(not host.surfaceWnd.hitTestCaption({240, strip + 10}))
+    Swag.assert(document.stripInset() == strip - 1)
+
+    // A button set in the strip is a control: it keeps its clicks, and the strip around it drags.
+    let share = PushButton.create(&host.root, "Share", {100, 10, 80, 32})
+    Swag.assert(not host.surfaceWnd.hitTestCaption({140, 26}))
+    Swag.assert(host.surfaceWnd.hitTestCaption({240, 26}))
+
+    // A band laid below the strip has nothing to keep clear of.
+    let band = Wnd.create'Wnd(&host.root, {0, strip, 478, 40})
+    Swag.assert(band.stripInset() == 0)
+
+    // The window buttons stay above the view, and over them nothing drags.
+    let close = unwrap host.surfaceWnd.closeBtn
+    Swag.assert(host.surfaceWnd.windowAt(close.position.horzCenter(), close.position.vertCenter(), true) == close)
+
+    share.destroy()
+    band.destroy()
+    host.pump()
+}
+
+// Taking the caption away, as full screen does, removes the strip and tells the view, even when
+// its size does not change.
+#test
+{
+    var resizes = 0
+    var host: Testing.HeadlessHost
+    host.setup(480, 200)
+    buildChromeWindow(&host)
+    host.surface.updateFlags(remove: .Border)
+
+    host.root.hookOnEvent = func|resizes = &resizes|(_, evt)->bool
+    {
+        if evt is ResizeEvent do
+            resizes[] += 1
+        return false
+    }
+
+    host.surface.updateFlags(remove: .LargeCaption)
+    Swag.assert(host.surfaceWnd.stripHeight() == 0)
+    Swag.assert(host.root.stripInset() == 0)
+    Swag.assert(resizes > 0)
+    Swag.assert(not host.surfaceWnd.hitTestCaption({240, 20}))
+
+    host.surface.updateFlags(add: .LargeCaption)
+    Swag.assert(host.root.stripInset() == host.theme.metrics.wnd_StripHeight)
+}
+
+// A document starting at the top edge, in Encre and in Papier: its first lines pass under the
+// faint title and window buttons, which are drawn above it.
+#[Swag.TestTag("golden")]
+#test
+{
+    for light in [false, true]
+    {
+        var host: Testing.HeadlessHost
+        host.setup(480, 160)
+        if light
+        {
+            host.theme.setLight()
+            host.notify(.ThemeChanged)
+        }
+
+        buildChromeWindow(&host)
+        let lines         = "impl Bar\n{\n    func create(parent: *Wnd)->*Bar\n    {\n        with let result = Wnd.create'Bar(parent)\n    }\n}"
+        with let document = Label.create(&host.root, lines, {48, 16, 420, 140})
+        {
+            .style.setFont(host.theme.createDefaultFontFamilyFs(13))
+            .setTextAlignment(.Left, .Top)
+        }
+
+        var image = host.render(&host.surfaceWnd)
+        Pixel.Testing.assertImageGolden(&image, light ? "surfacewnd.document.paper" : "surfacewnd.document.ink")
+    }
 }
 
 // Encre at rest: a faint glyph at the leading corner, the title centred in small faint type, and

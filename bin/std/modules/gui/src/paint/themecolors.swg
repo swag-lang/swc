@@ -96,6 +96,11 @@ struct ThemeColors
         // margin up to this value against the window.
         wnd_Shadow: Color
 
+        // The floating components of the charter — the lens, the information sheet, the
+        // inspector, the mini-bar and the dock — stand on the surface ground with a hairline ring.
+        floating_Shadow: Color     // Shadow a floating component casts.
+        lens_Dim:        Color     // Dim laid over the window while the lens floats above it, so the work reads faintly behind it.
+
         view_Bk:           Color     // Ground content is read on.
         informationBar_Bk: Color     // Ground of a band reporting identity, context, or status.
         commandBar_Bk:     Color     // Ground of application-wide commands.
@@ -533,6 +538,10 @@ impl ThemeColors
     // window in either theme and is never read before the work.
     private const CaptionMarkAlpha = 0x8C'u8
 
+    // Strength of the ground laid over the work while the lens is open: the document behind
+    // reads at about a sixth of its strength, present but out of the way.
+    private const LensDimAlpha = 0xD6'u8
+
     // How far the stronger rule travels from the hairline toward the faint ink, and how far
     // disabled ink travels from the ground toward the body ink. The charter states the disabled
     // state as an opacity of 40 to 45 percent; written as a mix it stays opaque, so a disabled
@@ -698,6 +707,9 @@ impl ThemeColors
         .wnd_BtnCloseHotIcon   = critical.mark
         .wnd_BtnClosePressedBk = critical.ground
         .wnd_Shadow            = p.shadow
+
+        .floating_Shadow = p.shadow
+        .lens_Dim        = p.ground.withAlpha(LensDimAlpha)
 
         // Nothing on screen but the work: the bands an application used to frame its content
         // with are the ground the content sits on.

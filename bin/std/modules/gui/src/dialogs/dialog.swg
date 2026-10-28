@@ -79,8 +79,8 @@ impl Dialog
 
     // Creates and attaches the native surface used by this dialog.
     //
-    // Dialogs use the compact caption unless `flags` explicitly contains
-    // [[Gui.SurfaceFlags.LargeCaption]].
+    // A dialog always takes the compact strip of [[Gui.SurfaceFlags.SmallCaption]], kept above
+    // its content; the caption flags of `flags` are ignored.
     mtd createSurface(from: *Surface, x, y: s32, width = 512, height = 300, flags = SurfaceFlags.None)->*Surface
     {
         Swag.assert(from != null)
@@ -94,8 +94,7 @@ impl Dialog
         //
         // A modal box sits on an application cut from the same ink. Without an edge of its
         // own it reads as part of the surface underneath it, so every dialog is outlined.
-        let captionFlags = flags.has(.LargeCaption) ? SurfaceFlags.LargeCaption : SurfaceFlags.SmallCaption
-        let surfaceFlags = captionFlags |
+        let surfaceFlags = SurfaceFlags.SmallCaption |
                            SurfaceFlags.ToolWindow |
                            SurfaceFlags.Border |
                            (flags & ~(SurfaceFlags.CloseButton | SurfaceFlags.LargeCaption | SurfaceFlags.SmallCaption))
@@ -164,10 +163,7 @@ impl Dialog
         let surface = unwrap .surface
         var height  = contentHeight + 2 * metrics.dialog_Padding
         height += .buttonBar.position.height + 2 * metrics.wnd_BorderSize
-        if surface.flags.has(.SmallCaption) do
-            height += metrics.wnd_SmallCaptionCY
-        elif surface.flags.has(.LargeCaption) do
-            height += metrics.wnd_BigCaptionCY
+        height += surface.wnd.stripHeight()
         height += 2 * surface.shadowMargin()
 
         var pos = surface.position

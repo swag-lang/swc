@@ -259,15 +259,17 @@ const GuiHeadlessSmoke_ModalExit   = "GuiHeadlessSmoke.ModalExit"
     host.theme.metrics.wnd_TopSizingBorderSize = 7
     host.surface.flags                         = .StandardWindow
     host.surface.position                      = {10, 20, 240, 120}
-    host.surface.wnd.padding.y                 = host.theme.metrics.wnd_BigCaptionCY
 
+    // A control in the strip keeps its clicks; a plain window there is ground the strip drags.
     let captionChild = Wnd.create'Wnd(&host.surfaceWnd, {20, 4, 60, 24})
+    Swag.assert(host.surfaceWnd.hitTestCaption({30, 15}))
+    captionChild.focusPolicy = .Click
     Swag.assert(not host.surfaceWnd.hitTestCaption({30, 15}))
     Swag.assert(host.surfaceWnd.hitTestCaption({100, 15}))
     captionChild.destroy()
     host.pump()
 
-    let captionMenu = MenuCtrl.createBar(&host.surfaceWnd, Math.Rectangle{0, 0, 200, host.surface.wnd.padding.y})
+    let captionMenu = MenuCtrl.createBar(&host.surfaceWnd, Math.Rectangle{0, 0, 200, host.surfaceWnd.stripHeight()})
     captionMenu.addItem("File", "GuiHeadlessSmoke.File")
     captionMenu.computeLayoutBar()
 

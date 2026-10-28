@@ -170,6 +170,14 @@ The six laws of the charter, as they bind an application (the reasons are in
   `SurfaceWnd` draws the chrome; an application adds nothing to it.
 - **The top 52 px belong to the content and are draggable** wherever no control sits;
   double-click maximizes. Content may start there; a control placed there stays clickable.
+  The view of an application window takes the whole body and the strip
+  (`ThemeMetrics.wnd_StripHeight`) floats over it; `SurfaceWnd.hitTestCaption` drags the
+  window over the strip's ground and over content passing under it, and leaves its clicks to a
+  control lying within the strip (a window that takes the focus, a button, a menu-bar entry). A
+  part that must keep clear of the glyph, the title and the window buttons — a band of controls, a
+  page header, a form — insets its top by `Wnd.stripInset()`, read in its resize handler (the view
+  is resized whenever the strip appears or goes, as in full screen); a document, an image or a
+  list scrolled under the title ignores it. `SurfaceWnd.stripHeight()` gives the strip itself.
 - **The application glyph** sits at (18, 16), 18 px, about 55 % opacity, monochrome soft.
 - **The document's name** is centred at the top, 12 px, faint. Nothing else is written there.
 - **The window buttons** are faint glyphs at the top right; they reach full contrast on hover.
@@ -179,14 +187,46 @@ The six laws of the charter, as they bind an application (the reasons are in
 - **The hint line.** A faint line — the `Space` keycap and what it opens ("Space — everything
   else", "Space — capture, open, library") — may sit 24 px above the bottom edge while the reader
   is new to the window or the surface is empty. A faint mono reading of the canvas (size, zoom)
-  may share that line, as Capture's does; it is text on the ground, not a bar.
+  may share that line, as Capture's does; it is text on the ground, not a bar. It is
+  `Gui.HintLine`: `HintLine.create(view)`, `.addHint(strings().key_Space, words)`,
+  `.setReading(text)`; hide it once the door is known.
 
 ### Compose the shared components
 
 Five floating components replace every band and panel an application used to keep on screen. Each
 is a toolkit control; the application supplies its content.
 
-TODO(silence): name the toolkit types and entry points of the lens, sheet, inspector, mini-bar and dock (design.silence.004), and how an application registers lens entries and sheet readings.
+The toolkit types, all in `bin/std/modules/gui` (`controls/lens` and `controls/floating`), shown
+together on the Components page of `gui10`:
+
+| Component | Type | The application calls |
+| --- | --- | --- |
+| Lens | `Gui.Lens.View` | `Lens.View.create(owner)`; `addCommands(family, ids)` for every command; `addSource(prefix, provider)` for lines, files, symbols, recent items; `open(query)` from its key |
+| Sheet | `Gui.InfoSheet` | `InfoSheet.create(view)`; `setTitle`, `setIdentity`, `addFact`, `addReading`, `addSection`, `addText`, `addLink`, `setAction`, `clear`; `toggle()` on `I` |
+| Inspector | `Gui.Inspector` | `Inspector.create(view)`; `setTitle(title, detail)`, `addAction`, `addSection`, `addRow(label, editor, fill)`, `addWideRow`, `clear`; `toggleFolded()` on its key |
+| Mini-bar | `Gui.MiniBar` | `MiniBar.create(canvas)`; `addButton`, `addTextButton`, `addItem`, `addSeparator`; `showNear(selection)` when the selection moves, `hide()` when it goes |
+| Dock | `Gui.ToolDock` | `ToolDock.create(view)`; `addTool(icon, id, toolTip)`; `setActiveTool`; `sigToolChanged` |
+| Hint line | `Gui.HintLine` | `HintLine.create(view)`; `addHint(key, words)`, `setReading` |
+
+- **The floating ones place themselves.** The dock, the sheet, the inspector, the hint line and the
+  lens take `DockStyle.Float`: they take no room from the work, and they follow their parent
+  through `IWnd.onLayout` each time it arranges its children. The mini-bar follows the selection,
+  so the application places it with `showNear`.
+- **Commands reach the lens by identifier.** `addCommand(family, id)` reads the label, glyph,
+  shortcut, disabled and hidden state from the owner's command routing each time the lens opens —
+  the same `CommandStateEvent` a menu asks — and posts the command when it is chosen. Pass the
+  family as a `MenuLabelResolver` (`func()->string => appStrings().lens_File`) so it follows the
+  language. A command the lens lacks is a command the reader cannot discover.
+- **Sources answer queries.** A `Lens.Provider` receives `*Lens.Results` (its `query` without the
+  prefix, and the `prefix`), adds sections with `addSection(label, count)` and rows with
+  `Section.addEntry(title)`; a row sets `lead` (a line number), `glyph`, `detail`, `monoTitle`,
+  `monoDetail`, and either `id` or `run`. `Lens.match(query, text)` is the ranking and marking the
+  lens uses; a source that leaves `spans` empty gets its rows marked by the lens. A source answers
+  the unprefixed query and the one of its `Lens.Prefix` (`:` `Line`, `/` `File`); commands answer
+  the unprefixed query and `>`.
+- **The application binds the keys.** Register `Space` (or `Ctrl K` where Space types) and `I` with
+  `registerKeyShortcut` and open the lens, toggle the sheet or fold the inspector on those
+  commands. Typing in the lens never reaches the shortcuts of the window behind it.
 
 - **Lens** — [`scope.lens.paper`](../../../backlog/design/imgs/scope.lens.paper.png). Opened by
   `Space` (`Ctrl K` where Space types). 600–640 wide, near the top third, surface, corner 12,
@@ -404,7 +444,10 @@ draws them permanently on the window. `Gui.AppearanceButton` remains the one own
 its persistence and its signals; no application keeps a second theme picker, language combo,
 property-grid row or options entry for them.
 
-TODO(silence): state how the appearance and About choices are registered as lens entries once AppearanceButton's lens form exists (design.silence.001, design.silence.004).
+Register them with `appearanceButton.addToLens(lens)` once the lens exists: it adds a source that
+answers with the themes under the theme label, the languages under the language label (the choice
+in force checked) and About under the application label when `sigAboutRequested` has a callback,
+each row applying its choice exactly as the button's own options do.
 
 - Register the application string tables and every supported `Gui.Language` before the choices
   are first offered, so the language list is complete.

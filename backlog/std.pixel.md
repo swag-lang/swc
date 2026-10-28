@@ -15,6 +15,19 @@ ships; history lives in Git, not here.
 
 ## Entries
 
+### std.pixel.033 — Rich-text layout drops the spaces of a letter-spaced line
+
+- Evidence: `Painter.drawRichString` with `RichStringFormat.letterSpacing` 1.5 on "IN THIS FILE · 3"
+  (Inter bold 10, `.OpticalCenter`, `.Ellipsis`) draws "INTHISFILE·3"; the same call with a zero
+  spacing keeps the spaces, and `Painter.shapeRun` with the same spacing drawn through
+  `drawShapedRun` keeps them too. Shaping (`appendShapedGlyph`, `shapeRunForFont`) gives a space
+  chunk its advance, so the loss is in the chunk layout of `computeLayout` or in the drawing of
+  space chunks. The section labels of the lens, the sheet and the inspector draw through
+  `shapeRun` for that reason; a `Gui.Label` with `setLetterSpacing` is exposed to it.
+- Next: reduce to a `pixel` test that lays out a two-word rich string with letter spacing and
+  asserts the second chunk starts after the first plus the space advance, then fix the layout.
+- Done when: that test passes and a letter-spaced rich string draws the same words as the shaped run.
+
 ### std.pixel.032 — `Image.setChannel` leaves straight RGBA8 pixels unchanged
 
 - Evidence: on a straight `RGBA8` image, `setChannel(.RGB, .Color, 0xFF)` returns without

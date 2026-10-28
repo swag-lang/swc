@@ -13,9 +13,15 @@ public enum SizingBorder
 
 // Provides the root GUI frame and the window chrome of a [[Gui.Surface]].
 //
-// The chrome follows the charter: no caption band, no rail and no glow. The top strip is the
-// window's own ground and stays draggable wherever no control sits; it carries only a faint
-// application glyph, the title centred in small faint type, and faint window buttons.
+// The chrome follows the charter: no caption band, no rail and no glow. The top strip carries
+// only a faint application glyph, the title centred in small faint type, and faint window
+// buttons, and it stays draggable wherever no control sits.
+//
+// On an application window ([[Gui.SurfaceFlags.LargeCaption]]) the view takes the whole body and
+// the strip floats over it, so a document can start under the title. A part of the content that
+// must keep clear of the chrome — a band of controls, a page header, a form — insets itself by
+// [[Gui.Wnd.stripInset]]. A dialog or a tool window ([[Gui.SurfaceFlags.SmallCaption]]) keeps its
+// compact strip above the view.
 public struct SurfaceWnd
 {
     public
@@ -167,7 +173,6 @@ impl IWnd for SurfaceWnd
 
     mtd impl onResizeEvent(evt: *ResizeEvent)
     {
-        let srfn       = unwrap .surface
         let clientRect = .clientRect()
         let metrics    = .themeMetrics()
 
@@ -182,11 +187,14 @@ impl IWnd for SurfaceWnd
             buttonCount += 1
         var gapCount = buttonCount > 0 ? buttonCount - 1 : 0
 
-        var pos = clientRect
-        pos.height = Math.max(0, srfn.wnd.padding.y - 2 * metrics.wnd_CaptionButtonMargin)
+        // The buttons keep one size whatever the height of the strip, and sit on its middle line
+        // with the glyph and the title.
+        let strip = .stripHeight()
+        var pos   = clientRect
+        pos.height = Math.max(0, Math.min(strip - 2 * metrics.wnd_CaptionButtonMargin, metrics.wnd_CaptionButtonHeight))
         pos.width  = Math.max(metrics.wnd_CaptionButtonMinWidth, pos.height * metrics.wnd_CaptionButtonAspect)
         pos.x      = clientRect.right() - pos.width - metrics.wnd_CaptionButtonMargin
-        pos.y      = metrics.wnd_CaptionButtonMargin
+        pos.y      = Math.round((strip - pos.height) * 0.5)
 
         if .closeBtn
         {
@@ -258,9 +266,15 @@ impl IWnd for SurfaceWnd
             painter.fillRoundRect(clientRect, radius, radius, .themeColors().wnd_Bk)
         else do
             painter.fillRect(clientRect, .themeColors().wnd_Bk)
+    }
 
-        if srfn.flags.has(.LargeCaption | .SmallCaption) do
-            .paintTopStrip(painter)
+    // The glyph and the title are drawn once the view has painted, since the strip floats over
+    // it: a document reaching the top edge passes under them.
+    mtd impl onAfterPaint(evt: *PaintEvent)
+    {
+        if .isPendingDestroy or .stripHeight() <= 0 do
+            return
+        .paintTopStrip(evt.paintContext.painter)
     }
 }
 
@@ -279,7 +293,7 @@ impl SurfaceWnd
         let colors  = .themeColors()
 
         var strip = .clientRect()
-        strip.height = .padding.y
+        strip.height = .stripHeight()
 
         var leading = strip.x + metrics.wnd_CaptionMarginTitle
         var icon    = .icon
@@ -373,10 +387,36 @@ impl SurfaceWnd
         .invalidate()
     }
 
+    // Returns the height of the top strip, measured from the top edge of the window.
+    //
+    // On an application window ([[Gui.SurfaceFlags.LargeCaption]]) it is
+    // [[Gui.ThemeMetrics.wnd_StripHeight]], and the strip floats over the view. On a dialog or a
+    // tool window ([[Gui.SurfaceFlags.SmallCaption]]) it is the compact strip kept above the view.
+    // It is zero on a surface without a caption, such as a window in full screen.
+    mtd stripHeight()->f32
+    {
+        let srfn = .surface
+        if not srfn do
+            return 0
+        if srfn.flags.has(.LargeCaption) do
+            return .themeMetrics().wnd_StripHeight
+        if srfn.flags.has(.SmallCaption) do
+            return .padding.y
+        return 0
+    }
+
+    // Reports whether the surface position `surfacePos` drags the window.
+    //
+    // The strip drags the window wherever no control sits: over its own ground, the glyph and
+    // the title, and over the content passing under it. A control placed in the strip — a window
+    // that can hold the keyboard focus or is a button, lying within the strip, or an entry of a
+    // menu bar — keeps its clicks. Content that only reaches up into the strip, such as a
+    // document or a list continuing below it, drags the window there. The window buttons never
+    // drag.
     mtd hitTestCaption(surfacePos: Math.Point)->bool
     {
-        let srfn = unwrap .surface
-        if not srfn.flags.has(.LargeCaption | .SmallCaption) do
+        let strip = .stripHeight()
+        if strip <= 0 do
             return false
         if .hitTestCaptionButton(surfacePos) do
             return false
@@ -384,19 +424,25 @@ impl SurfaceWnd
         let pos = .surfaceToLocal(surfacePos)
         if pos.x < 0 or pos.x >= .position.width do
             return false
-        if pos.y < 0 or pos.y >= srfn.wnd.padding.y do
+        if pos.y < 0 or pos.y >= strip do
             return false
 
         let target = .windowAt(pos.x, pos.y, true)
-        if target and target != me
-        {
-            if target is MenuCtrl as menu
-            {
-                if menu.bar and menu.hitTestBar(surfacePos) == Swag.U32.Max do
-                    return true
-            }
+        if not target or target == me do
+            return true
+        if target is MenuCtrl as menu where menu.bar do
+            return menu.hitTestBar(surfacePos) == Swag.U32.Max
 
-            return false
+        // A window keeps the pointer when it, or a composite it belongs to, is a control set in
+        // the strip. The view itself is the ground the strip floats over, so it never counts.
+        let stripBottom = .surfaceRect().y + strip
+        var wnd: *Wnd?  = target
+        while wnd and wnd != me and wnd != .view
+        {
+            let isControl = wnd.focusPolicy != .None or wnd is Button
+            if isControl and wnd.surfaceRect().bottom() <= stripBottom do
+                return false
+            wnd = wnd.parent
         }
 
         return true
@@ -472,6 +518,9 @@ impl SurfaceWnd
 
     internal mtd applySurfaceFlags()
     {
+        // The glyph and the title are drawn after the view, which the strip floats over.
+        .wndFlags.add(.AfterChildrenPaint)
+
         let srfn  = unwrap .surface
         let theme = srfn.app.theme
         if not theme.initialized do
@@ -539,11 +588,14 @@ impl SurfaceWnd
     {
         .computeStyle()
 
+        // The view is the first child, so the window buttons and the popups joined to them are
+        // drawn above the part of it the strip floats over.
         if userView
         {
             .view = userView
             .view.hookOnEvent = hook
             .view.setParent(me)
+            .view.sendToBack()
         }
         else
         {

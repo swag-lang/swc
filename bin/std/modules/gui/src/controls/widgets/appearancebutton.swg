@@ -140,7 +140,80 @@ impl AppearanceButton
         if not .sigAboutRequested.isEmpty() do
             page.addAction(texts.appearance_About, func|button = me|() { button.sigAboutRequested.call(button) }, closesSheet: true)
     }
+
+    // Offers the theme, the language and the About box as rows of `lens`.
+    //
+    // The appearance is a command like any other, so it is found through the one door: the
+    // themes under the theme label, the languages under the language label, and About under the
+    // application label when [[Gui.AppearanceButton.sigAboutRequested]] has a callback. A row
+    // applies its choice exactly as the options of the button do, and the choice in force carries
+    // a check. A query naming a group, such as "theme", lists the whole group.
+    mtd addToLens(lens: *Lens.View)
+    {
+        lens.addSource(.None, func|button = me|(results) { button.describeLens(results) })
+    }
+
+    internal mtd describeLens(results: *Lens.Results)
+    {
+        let texts = strings()
+        let query = results.query.toString()
+
+        var themes: *Lens.Section?
+        for theme in [AppearanceTheme.Dark, .Light, .System]
+        {
+            let name = appearanceThemeName(theme)
+            if not lensAnswers(query, name, texts.appearance_Theme) do
+                continue
+            if not themes do
+                themes = results.addSection(texts.appearance_Theme)
+            with let entry = themes.addEntry(name)
+            {
+                .detail = theme == me.appearanceTheme ? LensCheck : ""
+                .run    = func|button = me, theme|() { button.setAppearanceTheme(theme, notify: true) }
+            }
+        }
+
+        var choices: *Lens.Section?
+        if lensAnswers(query, texts.appearance_SystemLanguage, texts.appearance_Language)
+        {
+            choices = results.addSection(texts.appearance_Language)
+            with let entry = choices.addEntry(texts.appearance_SystemLanguage)
+            {
+                .detail = me.language.isEmpty() ? LensCheck : ""
+                .run    = func|button = me|() { discard catch button.setAppearanceLanguage("", notify: true) }
+            }
+        }
+
+        for &one in languages()
+        {
+            let name = one.nativeName.toString()
+            if not lensAnswers(query, name, texts.appearance_Language) do
+                continue
+            if not choices do
+                choices = results.addSection(texts.appearance_Language)
+            let tag        = one.tag.toString()
+            with let entry = choices.addEntry(name)
+            {
+                .detail = one.tag == me.language ? LensCheck : ""
+                .run    = func|button = me, tag|() { discard catch button.setAppearanceLanguage(tag, notify: true) }
+            }
+        }
+
+        if not .sigAboutRequested.isEmpty() and lensAnswers(query, texts.appearance_About, texts.lens_Application)
+        {
+            with let entry = results.addSection(texts.lens_Application).addEntry(texts.appearance_About)
+            {
+                .run = func|button = me|() { button.sigAboutRequested.call(button) }
+            }
+        }
+    }
 }
+
+// The mark of the choice in force, at the end of its row of the lens.
+private const LensCheck = "✓"
+
+// Reports whether `query` answers a row titled `title` or the group `group` it belongs to.
+private func lensAnswers(query, title, group: string)->bool => Lens.match(query, title).matched or Lens.match(query, group).matched
 
 // Names one appearance in the language of the interface.
 private func appearanceThemeName(theme: AppearanceTheme)->string

@@ -1,0 +1,220 @@
+#global public
+
+using Core, Pixel
+
+// A small floating toolbar placed next to the selected object.
+//
+// This is the mini-bar of the charter: the surface ground on its own small corner
+// ([[Gui.ThemeMetrics.miniBar_Corner]]), [[Gui.ThemeMetrics.miniBar_Padding]] of air around
+// buttons of [[Gui.ThemeMetrics.miniBar_ButtonSize]], groups parted by a short hairline. It
+// carries only what applies to the selection; a `•••` button at its end opens the inspector,
+// which holds the rest. Every command it offers is also an entry of the lens.
+//
+// The bar stays hidden until [[Gui.MiniBar.showNear]] places it beside a selection: above it when
+// there is room, below it otherwise, centred on it and kept inside its parent. Move it again
+// whenever the selection moves, and hide it when nothing is selected.
+//
+// ```swag
+// with let bar = MiniBar.create(canvas)
+// {
+//     .addButton(theme.icon(.Copy, 16), "capture.copy", "Copy")
+//     .addSeparator()
+//     .addButton(theme.icon(.More, 16), "capture.inspector", "Properties")
+// }
+//
+// bar.showNear(selectionRect)
+// ```
+struct MiniBar
+{
+    public
+    {
+        using wnd: Wnd     // Embedded window behavior and presentation.
+
+        readonly
+        {
+            items: Array'MiniBarItem     // Items and separators, from the leading edge.
+        }
+    }
+}
+
+// One item of a [[Gui.MiniBar]]: a control, or the hairline between two groups.
+struct MiniBarItem
+{
+    public
+    {
+        wnd: *Wnd?     // Control the bar holds, or `null` for a separator.
+    }
+}
+
+impl IWnd for MiniBar
+{
+    mtd impl onPaint(evt: *PaintEvent)
+    {
+        let painter = evt.paintContext.painter
+        let metrics = .themeMetrics()
+        let shadow  = metrics.floating_ShadowSize
+
+        var body = .clientRect()
+        body.inflate(-shadow)
+        paintFloatingGround(me, painter, body, metrics.miniBar_Corner)
+
+        // A separator is a short hairline centred in its gap, never the full height of the bar.
+        var x = shadow + metrics.miniBar_Padding
+        for item, index in .items
+        {
+            if item.wnd
+            {
+                x += item.wnd.position.width
+            }
+            else
+            {
+                x += metrics.miniBar_SeparatorGap
+                let top = Math.round(body.vertCenter() - metrics.miniBar_SeparatorHeight * 0.5)
+                painter.fillRect(Math.Rectangle{x, top, metrics.separator_HairlineSize, metrics.miniBar_SeparatorHeight}, .themeColors().line)
+                x += metrics.separator_HairlineSize + metrics.miniBar_SeparatorGap
+            }
+
+            if index + 1 < .items.count and item.wnd and .items[index + 1].wnd do
+                x += metrics.miniBar_Gap
+        }
+    }
+}
+
+impl MiniBar
+{
+    // Creates an empty, hidden mini-bar over `parent`.
+    #[Swag.Discardable]
+    func create(parent: *Wnd, id: WndId? = null)->*MiniBar
+    {
+        with let result = Wnd.create'MiniBar(parent, null, {}, id)
+        {
+            .backgroundStyle = .Transparent
+            .wndFlags.add(.Hidden)
+        }
+
+        return result
+    }
+
+    // Appends an icon button and returns it.
+    //
+    // The glyph is drawn at the row size of the chart; `toolTip` names the command, since the bar
+    // writes no word beside a glyph.
+    #[Swag.Discardable]
+    mtd addButton(icon: Icon, id: WndId? = null, toolTip: string? = null, flags = IconButtonFlags.None)->*IconButton
+    {
+        let metrics = .themeMetrics()
+        var glyph   = icon
+        glyph.sizeX, glyph.sizeY = metrics.menuPopup_IconSize
+
+        with let button = IconButton.create(me, glyph, {0, 0, metrics.miniBar_ButtonSize, metrics.miniBar_ButtonSize}, id, flags)
+        {
+            .setForm(.RoundedRectangle)
+            .setCheckIndicator(.Frame)
+            .toolTip = toolTip orelse ""
+        }
+
+        .addItem(button)
+        return button
+    }
+
+    // Appends a quiet text button, such as "Group", and returns it.
+    #[Swag.Discardable]
+    mtd addTextButton(text: string, id: WndId? = null)->*PushButton
+    {
+        let metrics = .themeMetrics()
+        let width   = Painter.measureString(text, .theme().createDefaultFont(metrics.defaultFontSize)).width + 2 * metrics.btnPush_TextMargin
+        let button  = PushButton.create(me, text, {0, 0, Math.ceil(width), metrics.miniBar_ButtonSize}, id, .Flat)
+        .addItem(button)
+        return button
+    }
+
+    // Appends a control the caller created, such as a colour swatch or a reading, keeping its width.
+    //
+    // The bar adopts `control`, gives it the height of a button and places it in the row.
+    mtd addItem(control: *Wnd)
+    {
+        if control.parent != me do
+            control.setParent(&.wnd)
+        control.resize(control.position.width, .themeMetrics().miniBar_ButtonSize)
+        .items.add(MiniBarItem{control})
+        .arrange()
+    }
+
+    // Appends the hairline that parts two groups.
+    mtd addSeparator()
+    {
+        .items.add(MiniBarItem{})
+        .arrange()
+    }
+
+    // Returns the size of the visible bar, without the room its shadow spreads into.
+    mtd bodySize()->Math.Point
+    {
+        let metrics = .themeMetrics()
+        var width   = 2 * metrics.miniBar_Padding
+        for item, index in .items
+        {
+            if item.wnd do
+                width += item.wnd.position.width
+            else do
+                width += 2 * metrics.miniBar_SeparatorGap + metrics.separator_HairlineSize
+            if index + 1 < .items.count and item.wnd and .items[index + 1].wnd do
+                width += metrics.miniBar_Gap
+        }
+
+        return {width, metrics.miniBar_ButtonSize + 2 * metrics.miniBar_Padding}
+    }
+
+    // Shows the bar beside `selection`, a rectangle in the local coordinates of its parent.
+    //
+    // The bar stands [[Gui.ThemeMetrics.miniBar_Distance]] above the selection, centred on it, and
+    // goes below it when the parent has no room above. It never leaves the parent.
+    mtd showNear(selection: Math.Rectangle)
+    {
+        let parent  = unwrap .parent
+        let metrics = .themeMetrics()
+        let shadow  = metrics.floating_ShadowSize
+        let body    = .bodySize()
+        let bounds  = parent.clientRect()
+        let gap     = metrics.miniBar_Distance
+
+        var x = selection.horzCenter() - body.x * 0.5
+        x = Math.clamp(x, bounds.x + gap, Math.max(bounds.x + gap, bounds.right() - gap - body.x))
+        var y = selection.y - gap - body.y
+        if y < bounds.y + gap do
+            y = selection.bottom() + gap
+        y = Math.clamp(y, bounds.y + gap, Math.max(bounds.y + gap, bounds.bottom() - gap - body.y))
+
+        .setPosition(Math.Rectangle{Math.round(x) - shadow, Math.round(y) - shadow, body.x + 2 * shadow, body.y + 2 * shadow})
+        .bringToFront()
+        .show()
+    }
+
+    private mtd arrange()
+    {
+        let metrics = .themeMetrics()
+        let shadow  = metrics.floating_ShadowSize
+        let body    = .bodySize()
+        .resize(body.x + 2 * shadow, body.y + 2 * shadow)
+
+        var x = shadow + metrics.miniBar_Padding
+        let y = shadow + metrics.miniBar_Padding
+        for item, index in .items
+        {
+            if item.wnd
+            {
+                item.wnd.move(x, y)
+                x += item.wnd.position.width
+            }
+            else
+            {
+                x += 2 * metrics.miniBar_SeparatorGap + metrics.separator_HairlineSize
+            }
+
+            if index + 1 < .items.count and item.wnd and .items[index + 1].wnd do
+                x += metrics.miniBar_Gap
+        }
+
+        .invalidate()
+    }
+}

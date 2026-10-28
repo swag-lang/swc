@@ -210,6 +210,12 @@ impl IWnd for MainWnd
         }
     }
 
+    mtd impl onResizeEvent(_: *ResizeEvent)
+    {
+        if .topMenu != null do
+            .fitTopMenuToStrip()
+    }
+
     mtd impl onDestroyEvent(_: *DestroyEvent)
     {
         .saveAppState()

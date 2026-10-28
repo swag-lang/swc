@@ -21,24 +21,19 @@ dialogs, then each application, then the written rules.
 - Done when: the charter wall and a scrolled list golden show no thumb at rest and one under the
   pointer, in both themes.
 
-### design.silence.003 — Content does not start in the top strip
+### design.silence.004 — The applications do not use the shared components
 
-- Evidence: `SurfaceWnd` draws the Silence chrome (`surfacewnd.chrome.*` goldens) and no
-  application keeps a rail, but the top strip is still the frame's `padding.y`
-  (`wnd_BigCaptionCY` 42), so the view starts below it, and Swag Capture lays its menu bar inside
-  it.
-- Next: give the view the whole body and let the strip float over it at the charter's 52 px,
-  keeping `SurfaceWnd.hitTestCaption` answering for the parts no control covers.
-- Done when: a document's first lines can sit in the strip, as `scope.read.png` shows, and the
-  strip stays draggable there.
-- Related: design.silence.008
-
-### design.silence.004 — There is no lens, sheet, inspector, mini-bar or dock
-
-- Next: add the shared components of the charter to `bin/std/modules/gui` with tests and
-  goldens, each a reusable control an application composes.
-- Done when: the four applications use them and no application re-implements one.
-- Related: design.silence.003
+- Evidence: the toolkit has the lens (`Gui.Lens.View`), the information sheet (`Gui.InfoSheet`),
+  the inspector (`Gui.Inspector`), the mini-bar (`Gui.MiniBar`), the dock (`Gui.ToolDock`) and the
+  hint line (`Gui.HintLine`), with `floating.test.swg`, `lens.test.swg` and their goldens, and
+  `AppearanceButton.addToLens`. The window strip floats over the view, and the four applications
+  still inset their whole root by `Wnd.stripInset()` to keep their old bands clear of it.
+- Next: per application, register every command and `addToLens` on one lens bound to `Space` or
+  `Ctrl K`, move readings to the sheet, tools to the dock and the mini-bar, properties to the
+  inspector, and let the work reach into the strip where its picture shows it.
+- Done when: the four applications use the components, every command is a lens entry, and no
+  application re-implements one or insets its whole root under the strip.
+- Related: design.silence.007, design.silence.008, design.silence.009, design.silence.010
 
 ### design.silence.005 — The property grid predates the charter
 
@@ -53,7 +48,6 @@ dialogs, then each application, then the written rules.
   the dialogs the applications build.
 - Done when: `dialogs.charter.test.swg` and `dialogs.layout.test.swg` pin the new composition
   and every dialog golden matches the dialog pictures.
-- Related: design.silence.003
 
 ### design.silence.007 — Swag Scope still shows its bands
 
@@ -84,8 +78,11 @@ dialogs, then each application, then the written rules.
 
 ### design.silence.011 — Examples and other consumers use removed APIs
 
+- Evidence: `gui2` to `gui9` and `gui11` lay out their header from the top edge of a view that now
+  reaches under the floating strip, so their first line meets the window glyph and title; `gui10`
+  reads `Wnd.stripInset()` and shows the components on its Components page.
 - Next: move every `bin/examples` program and other consumer to the two themes and the new
-  components.
+  components, and inset their headers by `Wnd.stripInset()`.
 - Done when: the examples build and smoke clean in both themes.
 
 ### design.silence.012 — The skills still describe the old identity

@@ -22,6 +22,21 @@ appearance_About          À propos...
 
 optionSheet_Title         Options
 
+key_Space  Espace
+key_Escape Échap
+key_Tab    Tab
+
+lens_Placeholder Rechercher ou lancer une commande
+lens_Empty       Aucun résultat.
+lens_Choose      choisir
+lens_Go          aller
+lens_Line        ligne
+lens_Files       fichiers
+lens_Actions     actions
+lens_Application Application
+
+inspector_Tab Propriétés
+
 about_Build     Compilé le %{f}
 about_Source    % est un logiciel libre écrit en <url>Swag</url>. Son code est <url>ici</url>.
 about_Copyright Copyright © % %

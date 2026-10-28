@@ -12,6 +12,8 @@ Create concrete controls with their `create` function. The generic
 | Need | API |
 |---|---|
 | Attach a child to one edge | [[Gui.DockStyle]] |
+| Float a child over the others, placed by itself | [[Gui.DockStyle.Float]] |
+| Keep content clear of the window chrome | [[Gui.Wnd.stripInset]] |
 | Preserve distances while the parent resizes | [[Gui.AnchorStyle]] |
 | Express content, fill, and expansion preferences | [[Gui.LayoutSpec]] |
 | Place rows, columns, stacks, or split regions | Layout controls |

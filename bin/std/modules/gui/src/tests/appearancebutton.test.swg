@@ -55,8 +55,7 @@ using Swag, Core, Pixel
     host.setup(480, 240)
     defer discard catch host.app.setLanguage(ReferenceLanguage)
 
-    host.surface.flags        = SurfaceFlags.StandardWindow
-    host.surfaceWnd.padding.y = host.theme.metrics.wnd_BigCaptionCY
+    host.surface.flags = SurfaceFlags.StandardWindow
     host.surfaceWnd.create(&host.root, null)
     host.surfaceWnd.sendResizeEvent()
 
@@ -157,7 +156,7 @@ using Swag, Core, Pixel
         Swag.assert(Math.abs(bodyTop - anchor.bottom()) < 0.5)
         let submenuOpened = host.openPopupSubMenu("Theme")
         Swag.assert(submenuOpened)
-        Swag.assert(sub.surfaceRect().y < host.root.surfaceRect().y)
+        Swag.assert(sub.surfaceRect().y < host.surfaceWnd.stripHeight())
         var image = host.render(&host.surfaceWnd)
         Pixel.Testing.assertImageGolden(&image, "appearancebutton.popup.caption")
         sub.setEndModal(null)
@@ -178,8 +177,7 @@ using Swag, Core, Pixel
 {
     var host: Testing.HeadlessHost
     host.setup(480, 240)
-    host.surface.flags        = SurfaceFlags.StandardWindow
-    host.surfaceWnd.padding.y = host.theme.metrics.wnd_BigCaptionCY
+    host.surface.flags = SurfaceFlags.StandardWindow
     host.surfaceWnd.create(&host.root, null)
     host.surfaceWnd.sendResizeEvent()
     let button = AppearanceButton.create(&host.surface)
@@ -198,4 +196,39 @@ using Swag, Core, Pixel
     host.clickWnd(button)
     Swag.assert(not host.autoHandled and not host.autoFailure.isEmpty())
     Swag.assert(host.capturedOptionSheet() == null)
+}
+
+// The appearance is found through the lens like any other command: the themes and the languages
+// as rows applying their choice, the one in force checked, and About when it has a listener.
+#test
+{
+    var themeChanges, aboutRequests: u32
+    var host: Testing.HeadlessHost
+    host.setup(640, 400)
+    host.surface.flags = SurfaceFlags.StandardWindow
+    host.surfaceWnd.create(&host.root, null)
+    host.surfaceWnd.sendResizeEvent()
+
+    let button = AppearanceButton.create(&host.surface)
+    button.sigThemeChanged   += func|count = &themeChanges|(_) { count[] += 1 }
+    button.sigAboutRequested += func|count = &aboutRequests|(_) { count[] += 1 }
+
+    let lens = Lens.View.create(&host.root)
+    button.addToLens(lens)
+
+    // A query naming the group lists all of it, with the choice in force checked.
+    lens.open(strings().appearance_Theme)
+    let themes = unwrap lens.results.sections[0]
+    Swag.assert(themes.label == strings().appearance_Theme and themes.entries.count == 3)
+    Swag.assert(themes.entries[0].detail == "✓" and themes.entries[1].detail.isEmpty())
+
+    lens.setQuery(strings().appearance_Light)
+    Swag.assert(lens.chosenEntry()!.title == strings().appearance_Light)
+    lens.runChosen()
+    Swag.assert(button.appearanceTheme == .Light and themeChanges == 1)
+
+    lens.open(strings().appearance_About)
+    Swag.assert(lens.chosenEntry()!.title == strings().appearance_About)
+    lens.runChosen()
+    Swag.assert(aboutRequests == 1)
 }

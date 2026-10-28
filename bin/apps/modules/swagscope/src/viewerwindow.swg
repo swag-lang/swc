@@ -294,8 +294,10 @@ impl IWnd for ViewerWindow
         evt.accepted = false
     }
 
+    // The bands keep clear of the window chrome floating over the top of the window.
     mtd impl onResizeEvent(_: *ResizeEvent)
     {
+        .padding.y = .stripInset()
         .layoutFullScreenChrome()
     }
 

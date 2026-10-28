@@ -1,0 +1,290 @@
+#global if #command == Swag.CompilerCommand.Test
+#global private
+
+using Swag, Core, Pixel
+
+// Builds a window of `width` by `height` on the theme of `light`, with a sheet of paper standing
+// for the work in its middle, so a floating component reads against something it covers.
+func floatingHost(host: *Testing.HeadlessHost, width, height: f32, light: bool)
+{
+    host.setup(width, height)
+    if light
+    {
+        host.theme.setLight()
+        host.notify(.ThemeChanged)
+    }
+
+    host.root.backgroundStyle = .Window
+    with let work = Wnd.create'Wnd(&host.root, {width * 0.25, height * 0.2, width * 0.5, height * 0.5})
+    {
+        .backgroundStyle = .Dialog
+    }
+}
+
+// The dock stands at the leading edge, vertically centred, and keeps exactly one tool active.
+#test
+{
+    var host: Testing.HeadlessHost
+    floatingHost(&host, 480, 400, false)
+    let metrics = host.theme.metrics
+
+    var changes = 0
+    let dock    = ToolDock.create(&host.root)
+    dock.sigToolChanged += func|changes = &changes|(_, _) { changes[] += 1 }
+    let select = dock.addTool(host.theme.icon(.Edit, 18), toolTip: "Select")
+    let shape  = dock.addTool(host.theme.icon(.Plus, 18), toolTip: "Rectangle")
+    discard dock.addTool(host.theme.icon(.Link, 18), toolTip: "Arrow")
+    host.root.applyLayout()
+
+    // Its body sits the floating inset from the edge, centred on the height of the window.
+    let shadow = metrics.floating_ShadowSize
+    let body   = dock.bodySize()
+    Swag.assert(dock.position.x + shadow == metrics.floating_Inset)
+    Swag.assert(Math.abs(dock.position.y + shadow + body.y * 0.5 - 200) <= 1)
+    Swag.assert(body.x == metrics.toolDock_CellSize + 2 * metrics.toolDock_Padding)
+    Swag.assert(select.position.width == metrics.toolDock_CellSize and select.icon.sizeX == metrics.toolDock_Glyph)
+
+    // The first tool starts active; picking another moves the mark and reports it once.
+    Swag.assert(dock.activeTool() == select and changes == 0)
+    host.clickWnd(shape)
+    Swag.assert(dock.activeTool() == shape and not select.isChecked)
+    Swag.assert(changes == 1)
+
+    dock.setActiveTool(select)
+    Swag.assert(dock.activeTool() == select and changes == 1)
+
+    // The dock follows the window, and takes no room from the work beside it.
+    host.root.resize(480, 300)
+    Swag.assert(Math.abs(dock.position.y + shadow + body.y * 0.5 - 150) <= 1)
+}
+
+// The mini-bar stands above the selection, centred on it, and goes below it near the top edge.
+#test
+{
+    var host: Testing.HeadlessHost
+    floatingHost(&host, 480, 400, false)
+    let metrics = host.theme.metrics
+    let shadow  = metrics.floating_ShadowSize
+
+    let bar = MiniBar.create(&host.root)
+    discard bar.addButton(host.theme.icon(.Copy, 16), toolTip: "Copy")
+    discard bar.addButton(host.theme.icon(.Cut, 16), toolTip: "Cut")
+    bar.addSeparator()
+    discard bar.addTextButton("Group")
+    Swag.assert(not bar.isLocallyVisible())
+
+    let size = bar.bodySize()
+    Swag.assert(size.y == metrics.miniBar_ButtonSize + 2 * metrics.miniBar_Padding)
+
+    let selection = Math.Rectangle{200, 200, 80, 40}
+    bar.showNear(selection)
+    Swag.assert(bar.isLocallyVisible())
+    Swag.assert(bar.position.y + shadow + size.y + metrics.miniBar_Distance == selection.y)
+    Swag.assert(Math.abs(bar.position.x + shadow + size.x * 0.5 - selection.horzCenter()) <= 1)
+
+    let high = Math.Rectangle{200, 10, 80, 40}
+    bar.showNear(high)
+    Swag.assert(bar.position.y + shadow == high.bottom() + metrics.miniBar_Distance)
+
+    // Its items stand in one row, inside the padding, the hairline in the gap of its group.
+    let first = unwrap bar.items[0].wnd
+    Swag.assert(first.position.x == shadow + metrics.miniBar_Padding and first.position.height == metrics.miniBar_ButtonSize)
+}
+
+// The hint line sits centred, its bottom the hint inset above the bottom edge, as wide as what it writes.
+#test
+{
+    var host: Testing.HeadlessHost
+    floatingHost(&host, 480, 400, false)
+    let metrics = host.theme.metrics
+
+    with let hint = HintLine.create(&host.root)
+    {
+        .setReading("880 × 550 · 100 %")
+        .addHint(strings().key_Space, "capture, open, library")
+    }
+
+    host.root.applyLayout()
+    Swag.assert(hint.position.bottom() == 400 - metrics.hintLine_Bottom)
+    Swag.assert(hint.position.width == hint.contentWidth())
+    Swag.assert(Math.abs(hint.position.horzCenter() - 240) <= 1)
+
+    hint.clearHints()
+    hint.setReading(null)
+    Swag.assert(hint.contentWidth() == 0)
+}
+
+// The sheet opens at the trailing edge, below the strip of the window, and its key toggles it.
+#test
+{
+    var host: Testing.HeadlessHost
+    floatingHost(&host, 640, 480, false)
+    let metrics = host.theme.metrics
+    let shadow  = metrics.floating_ShadowSize
+
+    with let sheet = InfoSheet.create(&host.root)
+    {
+        .setTitle("viewerchrome.swg")
+        .setIdentity("swagscope / src")
+        .addFact("612", "lines")
+        .addReading("Encoding", "UTF-8")
+    }
+
+    Swag.assert(not sheet.isLocallyVisible())
+    sheet.toggle()
+    Swag.assert(sheet.isLocallyVisible())
+    Swag.assert(sheet.position.right() - shadow == 640 - metrics.floating_Inset)
+    Swag.assert(sheet.position.y + shadow == metrics.floating_Inset)
+    Swag.assert(sheet.position.width - 2 * shadow == metrics.infoSheet_Width)
+
+    // Its height follows what it holds, and a primary action stands at its foot.
+    let before = sheet.position.height
+    let action = sheet.setAction("Open", "sheet.open")
+    Swag.assert(sheet.position.height == before + metrics.infoSheet_BlockGap + metrics.btnPush_Height)
+    Swag.assert(action.position.bottom() == sheet.position.height - shadow - metrics.infoSheet_Padding)
+
+    sheet.toggle()
+    Swag.assert(not sheet.isLocallyVisible())
+
+    sheet.clear()
+    Swag.assert(sheet.blocks.isEmpty() and sheet.action == null)
+}
+
+// The inspector stands at the trailing edge with its editors in one column, and folds to a tab.
+#test
+{
+    var host: Testing.HeadlessHost
+    floatingHost(&host, 640, 480, false)
+    let metrics = host.theme.metrics
+    let shadow  = metrics.floating_ShadowSize
+
+    let inspector = Inspector.create(&host.root)
+    inspector.setTitle("Arrow", "1 object")
+    discard inspector.addAction("Delete")
+    inspector.addSection("Stroke")
+    let thickness = inspector.addRow("Thickness", Slider.create(&host.root, {}))
+    let style     = inspector.addWideRow(EditBox.create(&host.root, "dashed"))
+    host.root.applyLayout()
+
+    let width = metrics.inspector_Width
+    Swag.assert(inspector.position.width == width + 2 * shadow)
+    Swag.assert(inspector.position.right() - shadow == 640 - metrics.floating_Inset)
+    Swag.assert(thickness.parent == &inspector.wnd and thickness.position.height == metrics.control_InspectorHeight)
+    Swag.assert(thickness.position.x == shadow + metrics.inspector_Padding + metrics.inspector_LabelWidth + metrics.inspector_LabelGap)
+    Swag.assert(thickness.position.right() == shadow + width - metrics.inspector_Padding)
+    Swag.assert(style.position.x == shadow + metrics.inspector_Padding)
+    Swag.assert(style.position.y == thickness.position.bottom() + metrics.inspector_RowGap)
+
+    var folds = 0
+    inspector.sigFoldChanged += func|folds = &folds|(_) { folds[] += 1 }
+    inspector.toggleFolded()
+    Swag.assert(inspector.folded and folds == 1)
+    Swag.assert(inspector.position.width < width and not thickness.isLocallyVisible())
+
+    host.clickWnd(inspector)
+    Swag.assert(not inspector.folded and folds == 2 and thickness.isLocallyVisible())
+
+    inspector.clear()
+    Swag.assert(inspector.rows.isEmpty())
+}
+
+// The dock, a selection with its mini-bar and the hint line, in Encre and in Papier.
+#[Swag.TestTag("golden")]
+#test
+{
+    for light in [false, true]
+    {
+        var host: Testing.HeadlessHost
+        floatingHost(&host, 560, 360, light)
+
+        with let dock = ToolDock.create(&host.root)
+        {
+            discard .addTool(host.theme.icon(.Edit, 18), toolTip: "Select")
+            .setActiveTool(.addTool(host.theme.icon(.Plus, 18), toolTip: "Rectangle"))
+            discard .addTool(host.theme.icon(.Link, 18), toolTip: "Arrow")
+            discard .addTool(host.theme.icon(.Picker, 18), toolTip: "Pick")
+        }
+
+        with let bar = MiniBar.create(&host.root)
+        {
+            discard .addButton(host.theme.icon(.Copy, 16), toolTip: "Copy")
+            discard .addButton(host.theme.icon(.Duplicate, 16), toolTip: "Duplicate")
+            .addSeparator()
+            discard .addTextButton("Group")
+            discard .addButton(host.theme.icon(.More, 16), toolTip: "Properties")
+        }
+
+        with let hint = HintLine.create(&host.root)
+        {
+            .setReading("880 × 550 · 100 %")
+            .addHint(strings().key_Space, "capture, open, library")
+        }
+
+        host.root.applyLayout()
+        bar.showNear({240, 190, 120, 50})
+
+        var image = host.render()
+        Pixel.Testing.assertImageGolden(&image, light ? "floating.tools.paper" : "floating.tools.ink")
+    }
+}
+
+// The information sheet, open over the work, in Encre and in Papier.
+#[Swag.TestTag("golden")]
+#test
+{
+    for light in [false, true]
+    {
+        var host: Testing.HeadlessHost
+        floatingHost(&host, 560, 400, light)
+
+        with let sheet = InfoSheet.create(&host.root)
+        {
+            .setTitle("viewerchrome.swg")
+            .setIdentity("swagscope / src · 24.1 KB")
+            .addFact("612", "lines")
+            .addSection("File")
+            .addReading("Encoding", "UTF-8")
+            .addReading("Line ends", "CRLF")
+            .addReading("Kind", "Swag source", mono: false)
+            .addText("The window chrome of the viewer: the action bar, its centre group and its spacing.")
+            .addLink("Show in folder", "sheet.folder")
+            .open()
+        }
+
+        var image = host.render()
+        Pixel.Testing.assertImageGolden(&image, light ? "floating.sheet.paper" : "floating.sheet.ink")
+    }
+}
+
+// The inspector, unfolded and folded, in Encre and in Papier.
+#[Swag.TestTag("golden")]
+#test
+{
+    for light in [false, true]
+    {
+        var host: Testing.HeadlessHost
+        floatingHost(&host, 560, 400, light)
+
+        let inspector = Inspector.create(&host.root)
+        inspector.setTitle("Arrow", "1 object")
+        discard inspector.addAction("Delete")
+        inspector.addSection("Stroke")
+        with let thickness = Slider.create(&host.root, {})
+        {
+            .setValue(0.3)
+        }
+
+        inspector.addRow("Thickness", thickness)
+        inspector.addRow("Dashes", Stepper.create(&host.root, {}))
+        inspector.addSection("Effects")
+        inspector.addRow("Shadow", ToggleButton.create(&host.root, {}), fill: false)
+        host.root.applyLayout()
+
+        var image = host.render()
+        Pixel.Testing.assertImageGolden(&image, light ? "floating.inspector.paper" : "floating.inspector.ink")
+
+        inspector.setFolded(true)
+        var folded = host.render()
+        Pixel.Testing.assertImageGolden(&folded, light ? "floating.inspector.folded.paper" : "floating.inspector.folded.ink")
+    }
+}

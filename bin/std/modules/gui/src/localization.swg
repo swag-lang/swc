@@ -34,6 +34,22 @@ struct Strings
 
         optionSheet_Title: string = "Options"     // Title of the first page of an option sheet that names none.
 
+        // The names of the keys a hint line or the foot of the lens writes in a keycap.
+        key_Space:  string = "Space"     // Name of the space bar.
+        key_Escape: string = "Esc"       // Name of the escape key.
+        key_Tab:    string = "Tab"       // Name of the tab key.
+
+        lens_Placeholder: string = "Search or run a command"     // Placeholder of the input of the lens.
+        lens_Empty:       string = "Nothing matches."            // Line the lens shows when no result answers the query.
+        lens_Choose:      string = "choose"                      // What the arrow keys do, at the foot of the lens.
+        lens_Go:          string = "go"                          // What Enter does, at the foot of the lens.
+        lens_Line:        string = "line"                        // What the `:` prefix looks for, at the foot of the lens.
+        lens_Files:       string = "files"                       // What the `/` prefix looks for, at the foot of the lens.
+        lens_Actions:     string = "actions"                     // What the `>` prefix looks for, at the foot of the lens.
+        lens_Application: string = "Application"                 // Section of the lens holding the About box of the application.
+
+        inspector_Tab: string = "Properties"     // Word on the edge tab of a folded inspector.
+
         about_Build:     string = "Build of %{f}"       // Application build date in the standard about dialog.
         about_Source:    string = "% is open source and written in <url>Swag</url>. Its code is <url>here</url>."     // Product and source links in the standard about dialog.
         about_Copyright: string = "Copyright © % %"     // Copyright year and holder in the standard about dialog.

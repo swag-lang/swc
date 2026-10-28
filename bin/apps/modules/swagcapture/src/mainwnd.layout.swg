@@ -6,19 +6,18 @@ impl MainWnd
         Swag.assert(me.parent != null)
         let parentWnd = me.parent
         let metrics   = .themeMetrics()
-        with .topMenu = MenuCtrl.createBar(parentWnd, owner: me)
+        with .topMenu = MenuCtrl.createBar(me, owner: me)
         {
             .sendToBack()
-            .position.height = Math.max(.position.height, parentWnd.padding.y)
-            .preferredSize.y = .position.height
             .dockStyle       = .Top
-            .margin.y        = -parentWnd.padding.y
             .backgroundStyle = .Transparent
 
-            // The bar rides inside the caption, which carries the application mark on its
+            // The bar rides inside the strip, which carries the application mark on its
             // leading edge: the first menu starts past the mark instead of over it.
             .padding.x = metrics.wnd_CaptionMarginTitle + metrics.wnd_CaptionIconSize + metrics.menuBar_SpaceBetween * 0.5
         }
+
+        .fitTopMenuToStrip()
 
         // File menu
         with let fileMenu = MenuCtrl.createPopup(parentWnd, owner: me)
@@ -90,6 +89,15 @@ impl MainWnd
             .addItems([ActionView.Clip])
             topMenu.addPopup(func()->string => appStrings().ui_MenuView, viewMenu)
         }
+    }
+
+    // Gives the menu bar the height of the strip it rides in, so its entries sit on the line of
+    // the title; without a strip it keeps the height of an ordinary menu bar.
+    mtd fitTopMenuToStrip()
+    {
+        let height = Math.max(.stripInset(), .themeMetrics().menuBar_Height)
+        .topMenu.position.height = height
+        .topMenu.preferredSize.y = height
     }
 
     // Speech-bubble glyph drawn for the Callout toolbar button: the icon sheet has no

@@ -144,13 +144,9 @@ public impl MessageDlg
             availableHeight = Math.min(availableHeight, monitor.physicalWorkArea.height / srf.dpiScale - 2 * metrics.dialog_Padding)
         }
 
-        var overhead = chrome + .buttonBar.position.height + 2 * srf.shadowMargin()
-        if srf.flags.has(.SmallCaption) do
-            overhead += metrics.wnd_SmallCaptionCY
-        elif srf.flags.has(.LargeCaption) do
-            overhead += metrics.wnd_BigCaptionCY
-        let limit  = Math.max(1.0, Math.min(MaxMessageHeight, Math.floor(availableHeight - overhead - extensionHeight) - 1))
-        var needed = .label.itf.measureContent(Math.Point{.label.position.width, 0}).y
+        let overhead = chrome + .buttonBar.position.height + 2 * srf.shadowMargin() + srf.wnd.stripHeight()
+        let limit    = Math.max(1.0, Math.min(MaxMessageHeight, Math.floor(availableHeight - overhead - extensionHeight) - 1))
+        var needed   = .label.itf.measureContent(Math.Point{.label.position.width, 0}).y
         if needed > limit or .messageScroll
         {
             if not .messageScroll

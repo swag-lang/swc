@@ -136,8 +136,8 @@ struct Surface
 enum SurfaceFlags
 {
     None = 0           // Creates a frameless, non-resizable surface.
-    LargeCaption       // Uses the standard large title bar.
-    SmallCaption       // Uses the compact tool-window title bar.
+    LargeCaption       // Draws the top strip of an application window, floating over the view.
+    SmallCaption       // Draws the compact strip of a dialog or a tool window, above the view.
     MinimizeButton     // Displays a minimize button in the title bar.
     MaximizeButton     // Displays a maximize button in the title bar.
     CloseButton        // Displays a close button in the title bar.
@@ -210,16 +210,25 @@ impl Surface
     {
         Swag.assert(not add.has(.ToolWindow) and not remove.has(.ToolWindow), "a tool window is chosen at creation")
 
+        let strip = .wnd.stripHeight()
         .flags.add(add)
         .flags.remove(remove)
         .applySurfaceFlags()
+
+        // A layout that keeps clear of the strip reads it again when the strip appears or goes,
+        // even when the view keeps its size and would otherwise not hear of it.
+        if .wnd.stripHeight() != strip and .wnd.view != null
+        {
+            .wnd.view.sendResizeEvent()
+            .wnd.view.applyLayout()
+        }
     }
 
     internal mtd applySurfaceFlags()
     {
-        if .flags.has(.LargeCaption) do
-            .wnd.padding.y = .app.theme.metrics.wnd_BigCaptionCY
-        elif .flags.has(.SmallCaption) do
+        // The strip of an application window floats over its view, so it takes no room from it;
+        // only the compact strip of a dialog or a tool window still sits above the content.
+        if .flags.has(.SmallCaption) and not .flags.has(.LargeCaption) do
             .wnd.padding.y = .app.theme.metrics.wnd_SmallCaptionCY
         else do
             .wnd.padding.y = 0
@@ -1033,6 +1042,7 @@ impl Surface
         if .wnd.view != null do
             .wnd.view.destroy()
         view.setParent(.wnd)
+        view.sendToBack()
         .wnd.view = view
         .wnd.sendResizeEvent()
     }

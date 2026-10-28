@@ -244,6 +244,13 @@ for. The charter's values:
 - **Spacing comes from the scale.** A gap that is not on the scale is a gap nobody chose.
 - **A reading column has a measure.** Code runs about 900 wide and prose about 640, centred in the
   window; text set wider is read by moving the head.
+- **The window strip and the floating components have their own groups.** The strip is
+  `wnd_StripHeight` (52) and floats over the view (`Wnd.stripInset`). The lens, the information
+  sheet, the inspector, the mini-bar, the dock and the hint line read the `floating_`, `lens_`,
+  `infoSheet_`, `inspector_`, `miniBar_`, `toolDock_`, `hintLine_`, `keycap_` and `sectionLabel_`
+  groups, and paint their shadow and the dim behind the lens with `ThemeColors.floating_Shadow`
+  and `ThemeColors.lens_Dim`. A floating component draws its ground with the surface token, a
+  hairline ring in the line token, and that shadow; nothing else of it is a new colour.
 
 ## Type
 

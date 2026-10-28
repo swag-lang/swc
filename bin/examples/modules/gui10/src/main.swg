@@ -11,7 +11,7 @@ using Core, Gui, Pixel
 const W = 1280
 const H = 860
 
-const MaxPages = 4
+const MaxPages = 5
 const TestFramesPerPage = 30
 
 const RootMargin       = 24.0
@@ -32,6 +32,7 @@ var g_Filter:   *EditBox?
 var g_Rings:    *CheckButton?
 var g_Sheet:    *SheetWnd?
 var g_Widgets:  *WidgetWall?
+var g_Stage:    *ComponentStage?
 
 var g_ThemeButtons: Array'(*PushButton)
 var g_PageButtons:  Array'(*PushButton)
@@ -122,6 +123,7 @@ func pageTitle(page: s32)->string
     case 1: return "Palettes"
     case 2: return "Metrics"
     case 3: return "Widgets"
+    case 4: return "Components"
     }
 
     unreachable
@@ -129,7 +131,7 @@ func pageTitle(page: s32)->string
 
 // The command-line name of each palette and each page, in the order of the two enumerations.
 const VariantArgs: [ThemeVariantCount] string = ["--dark", "--light", "--sheet"]
-const PageArgs:    [MaxPages] string = ["--colors", "--palettes", "--metrics", "--widgets"]
+const PageArgs:    [MaxPages] string = ["--colors", "--palettes", "--metrics", "--widgets", "--components"]
 
 // Reads the palette and the page the command line asks the inspector to open on.
 //
@@ -156,6 +158,7 @@ func pageSubtitle(page: s32)->string
     case 1: return "The same value in Encre and in Papier, with the sheet-written example beside them."
     case 2: return "Every ThemeMetrics value of the active theme, in logical pixels."
     case 3: return "Live widgets in every state the palette answers for. Hover and press them to read the hot and pressed colors."
+    case 4: return "The floating components over a piece of work: dock, mini-bar, inspector, hint line. I shows the sheet, Ctrl K opens the lens."
     }
 
     unreachable
@@ -233,8 +236,10 @@ func showPage(page: s32)
 
     let widgets = unwrap g_Widgets
     let sheet   = unwrap g_Sheet
-    let isSheet = page != 3
-    widgets.show(not isSheet)
+    let stage   = unwrap g_Stage
+    let isSheet = page < 3
+    widgets.show(page == 3)
+    stage.show(page == 4)
     sheet.show(isSheet)
     if isSheet do
         sheet.view.setKind(sheetKindOfPage(page))
@@ -254,22 +259,24 @@ func layoutRootView()
     if not g_View do
         return
 
+    // The header keeps clear of the window chrome floating over the top of the window.
     let view         = unwrap g_View
     let rect         = view.clientRect()
+    let top          = view.stripInset()
     let contentWidth = Math.max(rect.width - 2 * RootMargin, 1.0)
 
-    g_Title!.setPosition(Math.Rectangle{RootMargin, 16, contentWidth, 34})
-    g_SubTitle!.setPosition(Math.Rectangle{RootMargin + 2, 52, contentWidth - 4, 36})
+    g_Title!.setPosition(Math.Rectangle{RootMargin, top + 16, contentWidth, 34})
+    g_SubTitle!.setPosition(Math.Rectangle{RootMargin + 2, top + 52, contentWidth - 4, 36})
 
     var x = RootMargin
     for btn in g_ThemeButtons
     {
-        btn.setPosition(Math.Rectangle{x, HeaderHeight, 118, BarHeight})
+        btn.setPosition(Math.Rectangle{x, top + HeaderHeight, 118, BarHeight})
         x += 118 + 6
     }
 
     x = RootMargin
-    let barY = HeaderHeight + BarHeight + BarGap
+    let barY = top + HeaderHeight + BarHeight + BarGap
     for btn in g_PageButtons
     {
         btn.setPosition(Math.Rectangle{x, barY, 104, BarHeight})
@@ -283,6 +290,7 @@ func layoutRootView()
     let pageHeight = Math.max(rect.height - pageY - PageBottomMargin, 120.0)
     g_Sheet!.setPosition(Math.Rectangle{RootMargin, pageY, contentWidth, pageHeight})
     g_Widgets!.setPosition(Math.Rectangle{RootMargin, pageY, contentWidth, pageHeight})
+    g_Stage!.setPosition(Math.Rectangle{RootMargin, pageY, contentWidth, pageHeight})
 
     g_Footer!.setPosition(Math.Rectangle{RootMargin, Math.max(rect.height - 34.0, pageY + pageHeight + 4.0), contentWidth, 26})
 }
@@ -305,6 +313,7 @@ func onRootEvent(_: *Wnd, evt: IEvent)->bool
         g_Rings    = null
         g_Sheet    = null
         g_Widgets  = null
+        g_Stage    = null
         g_ThemeButtons.clear()
         g_PageButtons.clear()
     }
@@ -318,6 +327,17 @@ func updateTestMode()
         return
 
     g_TestFrame += 1
+
+    // The lens is exercised on its page: it opens a third of the way through and closes before
+    // the page turns.
+    if g_Page == 4
+    {
+        if g_TestFrame == TestFramesPerPage / 3 do
+            g_Stage!.lens.open("t")
+        elif g_TestFrame == 2 * TestFramesPerPage / 3 do
+            g_Stage!.lens.close()
+    }
+
     if g_TestFrame < TestFramesPerPage do
         return
 
@@ -404,6 +424,7 @@ func createRootView()
 
     g_Sheet   = SheetWnd.create(view)
     g_Widgets = WidgetWall.create(view)
+    g_Stage   = ComponentStage.create(view)
 
     let footer = Label.create(view, "", {}, null, .SecondaryText)
     g_Footer = footer

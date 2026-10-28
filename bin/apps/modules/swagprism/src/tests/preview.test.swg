@@ -178,8 +178,12 @@ func assertPreviewSurface(gui: bool, light: bool)
     Swag.assert(viewer.paused)
     host.moveMouse({1, 1})
 
-    // Timings vary with the machine, while the compiled first frame is deterministic.
+    // Timings vary with the machine, while the compiled first frame is deterministic. The reader
+    // knows the door, so the foot of the source says where the caret is.
     window.readingLine.setReading(Format.toString(appStrings().ui_LiveStats, 41, 812))
+    window.doorKnown = true
+    window.editor.setCursorPos(window.editor.cursorFromLogicalPosition(8, 40))
+    window.refreshHints()
     host.settleAnimations(window, 6)
     var image = host.render(&host.surfaceWnd)
     Pixel.Testing.assertImageGolden(&image, gui ? "surface.gui" : (light ? "surface.render.paper" : "surface.render"))

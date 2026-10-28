@@ -226,6 +226,23 @@ func lensHasEntry(window: *MainWindow, title: string)->bool
     window.lens.close()
 }
 
+// Once the door is known, the foot of the source follows the caret; a view without the source
+// says nothing of it.
+#test
+{
+    var host: Testing.HeadlessHost
+    let window = testSetupInspectionWindow(&host)
+    Swag.assert(window.hintLine.reading.isEmpty())
+    Swag.assert(window.runCommand(PrismCommands.Lens) and window.doorKnown)
+    window.lens.close()
+    Swag.assert(window.hintLine.hints.isEmpty())
+
+    window.editor.setCursorPos(window.editor.cursorFromLogicalPosition(1, 0))
+    Swag.assert(window.hintLine.reading == Format.toString(appStrings().ui_CaretPlace, 2, 1))
+    window.applyView(.Stages)
+    Swag.assert(window.hintLine.reading.isEmpty())
+}
+
 // Space and I open the lens and the sheet where nothing types, and are text in the editor.
 #test
 {

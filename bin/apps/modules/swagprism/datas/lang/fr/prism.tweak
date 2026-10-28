@@ -45,6 +45,7 @@ ui_Compiler       Compilateur
 ui_Formatter      Formateur
 ui_LeftColumn     gauche
 ui_RightColumn    droite
+ui_CaretPlace     Ln %, Col %
 ui_OutputHint     Compilez pour voir les instructions.
 
 cmd_Compile            Compiler

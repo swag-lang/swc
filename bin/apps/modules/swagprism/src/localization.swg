@@ -56,6 +56,7 @@ struct AppStrings
     ui_Formatter:      string = "Formatter"                                // Section of the sheet: what the formatter did.
     ui_LeftColumn:     string = "left"                                     // Names the left build in a section of the lens.
     ui_RightColumn:    string = "right"                                    // Names the right build in a section of the lens.
+    ui_CaretPlace:     string = "Ln %, Col %"                              // Where the caret is in the source: its line, then its column.
 
     // What the empty listing says before anything has been compiled into it.
     //

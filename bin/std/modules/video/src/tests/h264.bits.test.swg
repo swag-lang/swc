@@ -65,6 +65,19 @@ private func assertBitReads(data: const [..] u8)
 {
     for position in data.count * 8 + 1
     {
+        var peekReference: BitReader
+        var peekReader:    BitReader
+        peekReference.init(data)
+        peekReader.init(data)
+        peekReference.skip(cast(u32, position))
+        peekReader.skip(cast(u32, position))
+        var peekValue = 0'u32
+        for 16 do
+            peekValue = (peekValue << 1) | peekReference.bit()
+        let peek = peekReader.peek16()
+        Swag.assert(peek == peekValue)
+        Swag.assert(peekReader.bitPos == position and not peekReader.overran)
+
         for count in 33'u32
         {
             var expected: BitReader

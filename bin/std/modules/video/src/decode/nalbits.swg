@@ -96,8 +96,14 @@ impl BitReader
     // Returns the next 16 bits without consuming them, padding past the end with zeros.
     mtd const peek16()->u32
     {
-        var result    = 0'u32
         let byteIndex = .bitPos >> 3
+        if byteIndex <= .size and .size - byteIndex >= 4
+        {
+            let packed = Math.bigEndianToNative(cast(const [*] u32, unwrap .data + byteIndex)[0])
+            return (packed >> cast(u32, (16 - (.bitPos & 7)))) & 0xFFFF
+        }
+
+        var result = 0'u32
         for offset in 3'u64
         {
             result <<= 8

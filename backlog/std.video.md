@@ -62,12 +62,12 @@ the sampling layouts used by ffmpeg's 4:2:0, 4:2:2, and 4:4:4 Motion JPEG output
 - Evidence: the last one-lane comparison on a 3840x2076 Main10 passage cost about three times
   FFmpeg's processor time per picture; the decoder and compiler have changed since, so it is
   not a current ratio. `filterLumaEdge` sends only horizontal luma to packed
-  `filterLumaQuad`; vertical luma and `filterChromaEdge` remain scalar. Main/Main10 conformance
-  and container fixtures remain the correctness boundary; range-extension coverage belongs to
+  `filterLumaQuad`; vertical luma remains scalar, while chroma packs two-line segments in both
+  orientations. Main/Main10 conformance and container fixtures remain the correctness boundary; range-extension coverage belongs to
   std.video.009, and wider SIMD capability to cpu.simd.002.
 - Next: rebaseline a redistributable Main10 clip with one decode lane against identical FFmpeg
   input, profile the remaining stages, and pick one lead: threshold/context derivation and
-  frame traffic, vertical/chroma filtering, band-local edge processing, or the separate
+  frame traffic, vertical luma filtering, band-local edge processing, or the separate
   prediction-buffer combine for uni-predicted blocks.
 - Measurement: warm and decode forward without seeking back inside a measured window; prove
   which threads carry decoding; compare small stage changes by alternating implementations in

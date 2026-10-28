@@ -20,6 +20,14 @@ private func lineQuad(line: const [*] u16, offset: s64)->Simd.S16x8 => cast #bit
 #[Swag.Inline]
 private func storeQuad(line: [*] u16, offset: s64, value: Simd.S16x8) { cast([*] u64, &line[offset])[0] = cast #bit(Simd.U64x2, value)[0] }
 
+// The normative chroma delta is common to both edge orientations.
+#[Swag.Inline]
+private func chromaDeblockDelta(p1, p0, q0, q1: Simd.S16x8, bound: Simd.S16x8)->Simd.S16x8
+{
+    let zero = Simd.splat(0's16)
+    return Math.max(Math.min((((q0 - p0) << 2) + p1 - q1 + Simd.splat(4's16)) >> 3, bound), zero - bound)
+}
+
 // Filters the two adjacent chroma samples of a horizontal edge. Each read
 // and write covers exactly two u16 samples, including at the picture boundary.
 #[Swag.Inline]
@@ -32,11 +40,35 @@ func filterChromaPair(line: [*] u16, stride: s64, tc, maximum: s32)
     let zero  = Simd.splat(0's16)
     let bound = Simd.splat(cast(s16, tc))
     let max   = Simd.splat(cast(s16, maximum))
-    let delta = Math.max(Math.min((((q0 - p0) << 2) + p1 - q1 + Simd.splat(4's16)) >> 3, bound), zero - bound)
+    let delta = chromaDeblockDelta(p1, p0, q0, q1, bound)
     let p     = Math.max(Math.min(p0 + delta, max), zero)
     let q     = Math.max(Math.min(q0 - delta, max), zero)
     cast([*] u32, &line[-stride])[0] = cast #bit(Simd.U32x4, p)[0]
     cast([*] u32, &line[0])[0] = cast #bit(Simd.U32x4, q)[0]
+}
+
+// Filters the two rows of a vertical chroma edge. Each row supplies p1, p0,
+// q0 and q1 in one eight-byte load; only p0 and q0 are written back.
+// At ten bits, the unrounded delta is within [-5115, 5119], so s16 lanes hold it.
+#[Swag.Inline]
+func filterChromaVerticalPair(line: [*] u16, stride: s64, tc, maximum: s32)
+{
+    let row0  = cast #bit(Simd.U16x8, Simd.splat(cast(const [*] u64, line - 2)[0]))
+    let row1  = cast #bit(Simd.U16x8, Simd.splat(cast(const [*] u64, line + stride - 2)[0]))
+    let pairs = Simd.interleaveLow(row0, row1)
+    let p1 = cast #bit(Simd.S16x8, pairs)
+    let p0 = cast #bit(Simd.S16x8, Simd.align(pairs, pairs, 4))
+    let q0 = cast #bit(Simd.S16x8, Simd.align(pairs, pairs, 8))
+    let q1 = cast #bit(Simd.S16x8, Simd.align(pairs, pairs, 12))
+    let zero  = Simd.splat(0's16)
+    let bound = Simd.splat(cast(s16, tc))
+    let max   = Simd.splat(cast(s16, maximum))
+    let delta = chromaDeblockDelta(p1, p0, q0, q1, bound)
+    let p     = Math.max(Math.min(p0 + delta, max), zero)
+    let q     = Math.max(Math.min(q0 - delta, max), zero)
+    let output = cast #bit(Simd.U32x4, Simd.interleaveLow(cast #bit(Simd.U16x8, p), cast #bit(Simd.U16x8, q)))
+    cast([*] u32, line - 1)[0] = output[0]
+    cast([*] u32, line + stride - 1)[0] = output[1]
 }
 
 // Holds `value` within `limit` of what the sample was, which is what the strong filter is
@@ -208,8 +240,8 @@ impl Decoder
             {
                 if (x & 15) == 0
                 {
-                    .filterChromaEdge(x, y, vertical, qpP, qpQ, 1, slice)
-                    .filterChromaEdge(x, y, vertical, qpP, qpQ, 2, slice)
+                    .filterChromaEdgeVertical(x, y, qpP, qpQ, 1, slice)
+                    .filterChromaEdgeVertical(x, y, qpP, qpQ, 2, slice)
                 }
             }
             else
@@ -517,8 +549,8 @@ impl Decoder
         return Math.abs(p0 - q0) < ((5 * tc + 1) >> 1)
     }
 
-    // Filters one four-line chroma edge, clause 8.7.2.5.5.
-    private mtd filterChromaEdge(x, y: s32, vertical: bool, qpP, qpQ: s32, component: u32, slice: const *SliceDeblock)
+    // Filters the two rows of one vertical chroma edge, clause 8.7.2.5.5.
+    private mtd filterChromaEdgeVertical(x, y: s32, qpP, qpQ: s32, component: u32, slice: const *SliceDeblock)
     {
         if slice.disabled do
             return
@@ -539,23 +571,7 @@ impl Decoder
         let cy     = y / cast(s32, sps.subHeightC)
 
         let origin    = plane + cast(u64, (cy + cast(s32, FramePadding))) * frame.strideChroma + cast(u64, (cx + cast(s32, FramePadding)))
-        let lineStep  = vertical ? stride : 1's64
-        let crossStep = vertical ? 1's64 : stride
-
-        // One luma segment of four lines covers two chroma lines.
-        var line = origin
-        for 2'u32
-        {
-            let p0 = cast(s32, line[-crossStep])
-            let p1 = cast(s32, line[-2 * crossStep])
-            let q0 = cast(s32, line[0])
-            let q1 = cast(s32, line[crossStep])
-
-            let delta = Math.clamp((((q0 - p0) << 2) + p1 - q1 + 4) >> 3, -tc, tc)
-            line[-crossStep] = cast(u16, Math.clamp(p0 + delta, 0, maximum))
-            line[0] = cast(u16, Math.clamp(q0 - delta, 0, maximum))
-            line    += lineStep
-        }
+        filterChromaVerticalPair(origin, stride, tc, maximum)
     }
 
     // Filters the two contiguous lines of one horizontal chroma segment.

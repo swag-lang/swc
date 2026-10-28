@@ -7,8 +7,7 @@
 // on Papier.
 //
 // The file box asks its own two questions: "New folder" from the glyph at the end of its path
-// field, "Replace" when a save names a file that exists. The two launchers for them open a file
-// box on a scratch folder where that question is one click away.
+// field, "Replace" when a save names a file that exists. Their two launchers open them directly.
 
 using Core, Gui, Pixel
 
@@ -129,15 +128,15 @@ func openFileBox(mode: FileDlgMode, folder: string = "", name: string = "")
     discard FileDlg.create(unwrap g_Surface, opt).doModal()
 }
 
-// Returns a scratch folder holding one existing capture, which the two questions are asked about.
-func scratchFolder()->String
+// Returns an existing capture in a scratch folder, which the Replace question is asked about.
+func scratchCapture()->String
 {
     let folder = Path.combine(Env.getSpecialDirectory(.Temp).toString(), "swag-gui9")
     discard catch Directory.create(folder.toString(), recurse: true)
     let file = Path.combine(folder.toString(), "capture.png")
     if not File.exists(file.toString()) do
         discard catch File.writeAllText(file.toString(), "A capture standing in for an existing file.")
-    return folder
+    return file
 }
 
 // Every box of the page, in the order the page and the lens list them.
@@ -216,8 +215,8 @@ func openBox(box: Box)
     case .OpenSeveral:     openFileBox(.SelectFiles)
     case .Save:            openFileBox(.CreateFile, name: "capture-2026-10-28.png")
     case .ChooseFolder:    openFileBox(.SelectFolder)
-    case .NewFolder:       openFileBox(.SelectFolder, scratchFolder().toString())
-    case .Replace:         openFileBox(.CreateFile, scratchFolder().toString(), "capture.png")
+    case .NewFolder:       discard FileDlg.askNewFolderName(unwrap g_Surface, Env.getSpecialDirectory(.UserDocuments).toString(), "Documents")
+    case .Replace:         discard FileDlg.askReplace(unwrap g_Surface, scratchCapture().toString())
     case .About:           onAbout()
     }
 }

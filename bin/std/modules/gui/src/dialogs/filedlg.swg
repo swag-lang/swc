@@ -100,6 +100,7 @@ private impl FileDlg
             let name = .browser.editFile.text()
             if name.count do
                 text = Format.toString(strings().fileDlg_BtnChooseNamed, name)
+
         case .SelectFiles:
             let count = .browser.selectedPaths().count
             if count > 1 do
@@ -114,11 +115,36 @@ private impl FileDlg
         .applyLayout()
     }
 
-    // Asks before a save replaces `path`: the title names the file, a mono line gives its size and date, and the action is destructive.
-    mtd confirmReplace(path: string)->bool
+    // Asks for a new folder in the folder the box shows, creates it, and puts its name in the name field.
+    mtd onNewFolder()
+    {
+        let name = FileDlg.askNewFolderName(unwrap .surface, .browser.currentFolder, .browser.displayPath())
+        if name.isEmpty() do
+            return
+
+        if not .browser.createFolder(name)
+        {
+            MessageDlg.error(.surface, strings().fileDlg_ErrFolderCreate)
+            return
+        }
+
+        .browser.setFileName(name)
+    }
+}
+
+impl FileDlg
+{
+    // Asks before a save replaces the file at `path`, in a box over `from`, and returns whether
+    // the reader chose to replace it.
+    //
+    // The title names the file, a mono line gives its size and date when it can be read, and the
+    // action is destructive. The file box asks this itself when a save names a file that exists;
+    // an application that writes a file by other means asks the same question through this.
+    func askReplace(from: *Surface, path: string)->bool
     {
         // The options borrow their strings, so the strings live here for as long as the box.
         let title = Format.toString(strings().fileDlg_ReplaceTitle, Path.fileName(path) orelse path)
+
         // A file that cannot be read leaves an empty description, and the question stands without it.
         var detail: String
         let info = catch File.info(path)
@@ -129,14 +155,20 @@ private impl FileDlg
         options.title  = title.toString()
         options.detail = detail.toString()
 
-        let box = MessageDlg.create(unwrap .surface, strings().fileDlg_ReplaceText, options)
+        let box = MessageDlg.create(from, strings().fileDlg_ReplaceText, options)
         box.addButton(strings().fileDlg_BtnReplace, Dialog.BtnYes, true).setForm(.Destructive)
         box.addButton(strings().dlg_Cancel, Dialog.BtnCancel)
         box.adaptSizeToMessage()
         return box.doModal() == Dialog.BtnYes
     }
 
-    mtd onNewFolder()
+    // Asks for the name of a new folder inside `folder`, in a box over `from`, and returns it; an
+    // empty name when the reader cancels.
+    //
+    // `place` says where the folder goes the way the reader reads it — the file box passes its
+    // breadcrumb. The box refuses an empty name, a name a folder cannot have and a folder that
+    // already exists, and creates nothing: the caller does, once it has the name.
+    func askNewFolderName(from: *Surface, folder, place: string)->String
     {
         var options: FormDlgOptions
         options.title  = strings().fileDlg_NewFolderTitle
@@ -145,14 +177,15 @@ private impl FileDlg
 
         options.confirmButtonText = strings().fileDlg_BtnCreate
 
-        let dlg   = FormDlg.create(unwrap .surface, options)
-        let place = Format.toString(strings().fileDlg_NewFolderWhere, .browser.displayPath())
-        let edit  = dlg.form.addTextField(strings().fileDlg_NewFolderField, strings().fileDlg_NewFolderDefault, placeholder: strings().fileDlg_NewFolderHint, help: place.toString())
+        let dlg      = FormDlg.create(from, options)
+        let location = Format.toString(strings().fileDlg_NewFolderWhere, place)
+        let edit     = dlg.form.addTextField(strings().fileDlg_NewFolderField, strings().fileDlg_NewFolderDefault, placeholder: strings().fileDlg_NewFolderHint, help: location.toString())
         dlg.form.computeLayout()
         edit.selectAll()
         edit.setFocus()
 
-        dlg.validateResult = func|dlg, browser = me.browser, edit|(_, btnid)
+        // The box answers before this call returns, so the closure may borrow `folder`.
+        dlg.validateResult = func|dlg, folder, edit|(_, btnid)
         {
             if btnid != Dialog.BtnOk do
                 return true
@@ -174,7 +207,7 @@ private impl FileDlg
                 return false
             }
 
-            let path = Path.combine(browser.currentFolder, folderName.toString())
+            let path = Path.combine(folder, folderName.toString())
             if Directory.exists(path)
             {
                 MessageDlg.error(dlg.surface, strings().fileDlg_ErrFolderExists)
@@ -187,20 +220,13 @@ private impl FileDlg
         }
 
         if dlg.doModal() != Dialog.BtnOk do
-            return
+            return {}
 
-        if not .browser.createFolder(edit.text())
-        {
-            MessageDlg.error(.surface, strings().fileDlg_ErrFolderCreate)
-            return
-        }
-
-        .browser.setFileName(edit.text())
+        var result = String.from(edit.text())
+        result.trim()
+        return result
     }
-}
 
-impl FileDlg
-{
     // Creates a file dialog on its own surface, centered on `from` or placed where [[Gui.FileDlgOptions.state]] last left it.
     //
     // Without [[Gui.FileDlgOptions.title]] and [[Gui.FileDlgOptions.confirmButtonText]],
@@ -285,7 +311,9 @@ impl FileDlg
                 }
 
                 let selName = dlg.browser.selectedPath()
-                if dlg.options.mode == .CreateFile and File.exists(selName) and not dlg.confirmReplace(selName.toString()) do
+                if dlg.options.mode == .CreateFile and
+                   File.exists(selName) and
+                   not FileDlg.askReplace(unwrap dlg.surface, selName.toString()) do
                     return false
 
                 dlg.browser.noteAccepted()

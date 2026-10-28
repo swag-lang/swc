@@ -52,8 +52,14 @@ fileDlg_NewFolderHint     Nom du dossier
 fileDlg_ErrFolderName     Le nom du dossier n'est pas valide.
 fileDlg_ErrFolderExists   Un dossier portant ce nom existe déjà.
 fileDlg_ErrFolderCreate   Le dossier n'a pas pu être créé.
-fileDlg_ReplaceTitle      Ce fichier existe déjà.
-fileDlg_ReplaceText       Voulez-vous le remplacer ?
+fileDlg_ReplaceTitle      « % » existe déjà.
+fileDlg_ReplaceText       Le remplacer ? L'ancien fichier est perdu.
+fileDlg_ReplaceDetail     % · modifié le %
+fileDlg_BtnReplace        Remplacer
+fileDlg_BtnCreate         Créer
+fileDlg_NewFolderWhere    Dans %
+fileDlg_BtnChooseNamed    Choisir « % »
+fileDlg_BtnOpenCount      Ouvrir les %
 fileDlg_BtnSave           Enregistrer
 fileDlg_BtnOpen           Ouvrir
 
@@ -66,6 +72,7 @@ browser_ColSize      Taille
 browser_AllFiles     Tous les fichiers
 browser_NewFolder    Nouveau dossier
 browser_FilterHint   Filtrer, ou saisir un chemin
+browser_Chosen       % choisis · %
 browser_TipRecent    Dossiers récents
 browser_TipUp        Dossier parent (Alt+Haut)
 browser_FileName     Nom du fichier

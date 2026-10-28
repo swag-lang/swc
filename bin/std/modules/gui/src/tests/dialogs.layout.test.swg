@@ -229,6 +229,76 @@ func filler(count: u64)->String
     }
 }
 
+// Pins the other modes of the file box: choosing a folder names it, a save keeps its rows as
+// context under the name, and choosing several files counts them.
+#[Swag.TestTag("golden")]
+#test
+{
+    let root   = Path.combine(Env.getSpecialDirectory(.Temp).toString(), "swag-filedlg-modes")
+    let folder = Path.combine(root.toString(), "swag")
+    discard catch Directory.delete(root.toString(), recurse: true)
+    expect Directory.create(Path.combine(folder.toString(), "design").toString(), recurse: true)
+    expect Directory.create(Path.combine(folder.toString(), "tools").toString(), recurse: true)
+    defer discard catch Directory.delete(root.toString(), recurse: true)
+    discard expect File.writeAllText(Path.combine(folder.toString(), "AGENTS.md").toString(), filler(4200).toString())
+    discard expect File.writeAllText(Path.combine(folder.toString(), "README.md").toString(), filler(8100).toString())
+    discard expect File.writeAllText(Path.combine(folder.toString(), "capture-2026-10-27.png").toString(), filler(412000).toString())
+    discard expect File.writeAllText(Path.combine(folder.toString(), "maquette.png").toString(), filler(2800000).toString())
+
+    for light in [false, true]
+    {
+        var host: Testing.HeadlessHost
+        host.setup(900, 640)
+        if light
+        {
+            host.theme.setLight()
+            host.notify(.ThemeChanged)
+        }
+
+        let suffix = light ? "paper" : "ink"
+        for mode in [FileDlgMode.SelectFolder, .CreateFile, .SelectFiles]
+        {
+            var opt: FileDlgOptions
+            opt.mode          = mode
+            opt.showDrives    = false
+            opt.initialFolder = folder.toString()
+            opt.shortcuts.add({type: Env.SpecialDirectory.Temp, name: "Documents"})
+            if mode == .CreateFile
+            {
+                opt.initialName = "capture-2026-10-28.png"
+                opt.filters.add({name: "PNG Image", extensions: ".png"})
+            }
+
+            let dlg = FileDlg.create(&host.surface, opt)
+            if mode == .SelectFiles do
+                dlg.browser.pathField.setText(".md")
+
+            // The disk dates the files of today; the picture keeps one moment.
+            for line, idx in dlg.browser.listCtrl.lines do
+                discard line!.setItem(1, Format.toString("2026-10-2% 21:30", 7 - idx).toString())
+
+            var name: string
+            switch mode
+            {
+            case .SelectFolder:
+                dlg.browser.listCtrl.selectLine(0)
+                name = "folder"
+            case .CreateFile:
+                name = "save"
+            default:
+                dlg.browser.listCtrl.selectLine(0)
+                dlg.browser.listCtrl.selectLine(1)
+                name = "files"
+            }
+
+            let image = renderDialog(&host, &dlg.dialog)
+            Pixel.Testing.assertImageGolden(&image, Format.toString("dialogs.file.%.%", name, suffix).toString())
+            dlg.surface!.destroy()
+            host.pump()
+        }
+    }
+}
+
 // A question is as wide as its actions need, and never narrower than the family's floor.
 #test
 {

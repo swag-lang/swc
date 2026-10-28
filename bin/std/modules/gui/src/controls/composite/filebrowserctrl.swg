@@ -122,6 +122,7 @@ struct FileBrowserCtrl
                 pathField:       *EditBox        // The current folder as a path, then a filter or a path typed after it.
                 editFile:        *EditBox        // Name of the file a save creates; in the other modes, the chosen names.
                 comboType:       *ComboBox       // Active file-type filter selector.
+                choiceLabel:     *Label          // What the box will answer with, in faint mono beside the type filter.
                 upButton:        *IconButton     // Navigates to the parent folder.
                 historyButton:   *IconButton     // Opens the recent-folders drop-down menu.
                 newFolderButton: *IconButton     // Creates a folder in the current location.
@@ -131,6 +132,7 @@ struct FileBrowserCtrl
         sigAccepted:           SigArray'func||(*Wnd)     // Emitted when the current selection is activated.
         sigFolderChanged:      SigArray'func||(*Wnd)     // Emitted after [[Gui.FileBrowserCtrl.currentFolder]] changes.
         sigNewFolderRequested: SigArray'func||(*Wnd)     // Emitted when the user requests a new folder.
+        sigChoiceChanged:      SigArray'func||(*Wnd)     // Emitted after what the browser would answer with changes.
     }
 
     late crumbs:  *FileCrumbs           // Path written at the start of the path field.
@@ -514,6 +516,59 @@ private impl FileBrowserCtrl
         return false
     }
 
+    // Checks exactly the checkable rows that are selected.
+    mtd syncChecks()
+    {
+        if .options.mode != .SelectFiles do
+            return
+        let selected = .listCtrl.selectedLines()
+        for line, idx in .listCtrl.lines where line and line.canCheck
+        {
+            var chosen = false
+            for s in selected where s == line do
+                chosen = true
+            .listCtrl.setLineChecked(cast(u32, idx), chosen, notify: false)
+        }
+    }
+
+    // Writes what the box will answer with beside the type filter, and tells the host.
+    //
+    // Picking a folder, it is the path chosen: the selected folder, or the folder shown. Picking
+    // several files, it is their count and weight.
+    mtd updateChoice()
+    {
+        var text: String
+        switch .options.mode
+        {
+        case .SelectFolder:
+            text = .displayPath()
+            let name = .editFile.text()
+            if name.count
+            {
+                text += " / "
+                text += name
+            }
+
+        case .SelectFiles:
+            var count = 0
+            var bytes = 0'u64
+            for line in .listCtrl.selectedLines()
+            {
+                let fi = cast(const *FileInfo, unwrap line!.userData0)
+                if fi.isDirectory() do
+                    continue
+                count += 1
+                bytes += fi.size
+            }
+
+            if count do
+                text = Format.toString(strings().browser_Chosen, count, Format.byteSize(bytes))
+        }
+
+        .choiceLabel.setText(text.toString())
+        .sigChoiceChanged.call(me)
+    }
+
     // Answers the keys the path field leaves to the browser, and keeps the written path fitted to the field.
     mtd handlePathEvent(evt: IEvent)->bool
     {
@@ -701,8 +756,18 @@ private impl FileBrowserCtrl
                     txt += Path.fileName(fi.fullName)
                 }
 
-                if not txt.isEmpty() do
+                if not txt.isEmpty() or fileBrowser.options.mode == .SelectFolder do
                     fileBrowser.editFile.setText(txt)
+                fileBrowser.syncChecks()
+                fileBrowser.updateChoice()
+            }
+
+            // A checkbox is another way to hold the same choice.
+            .sigCheckedChanged += func|fileBrowser = me|(list)
+            {
+                for line, idx in list.lines where line and line.canCheck do
+                    list.selectLine(cast(u32, idx), list.isLineChecked(cast(u32, idx)))
+                discard fileBrowser
             }
 
             .compareLines = func(l1, l2, col, down)
@@ -756,15 +821,27 @@ impl FileBrowserCtrl
         state.sizeColumnWidth     = cast(.listCtrl.header.itemWidthForColumn(2))
     }
 
-    // Hands the type filter over to a host that shows it elsewhere, such as the bottom-left slot of a dialog.
+    // Hands the foot — the type filter and the line of what is chosen — to a host that shows it elsewhere, such as the bottom-left slot of a dialog.
     //
-    // The browser no longer keeps a row for it. Returns `null` when picking folders, which have no type.
-    internal mtd detachTypeFilter()->*ComboBox?
+    // It takes its own width, since the browser may not have been laid out yet when it is handed over.
+    internal mtd detachFoot()->*Wnd
     {
-        .typeRow.hide()
-        if .options.mode == .SelectFolder do
-            return null
-        return .comboType
+        .typeRow.resize(.themeMetrics().fileBrowser_FootWidth, .themeMetrics().control_DialogHeight)
+        return .typeRow
+    }
+
+    // Returns the path of the current folder as the path field writes it, its steps parted by slashes.
+    mtd displayPath()->String
+    {
+        var result: String
+        for &stop, idx in .crumbs.stops
+        {
+            if idx do
+                result += " / "
+            result += stop.name
+        }
+
+        return result
     }
 
     // Puts the keyboard where a name is chosen: the name field of a save, the path field otherwise.
@@ -824,17 +901,17 @@ impl FileBrowserCtrl
         fileBrowser.createPathRow(fileBrowser)
 
         // The type filter, at the bottom left, until a host takes it for a slot of its own.
-        with fileBrowser.typeRow = Wnd.create'Wnd(fileBrowser, {0, 0, 0, metrics.control_DialogHeight})
+        with fileBrowser.typeRow = Wnd.create'Wnd(fileBrowser, {0, 0, metrics.fileBrowser_FootWidth, metrics.control_DialogHeight})
         {
             .dockStyle = .Bottom
             .margin.y  = metrics.fileBrowser_RowGap
-            if fileBrowser.options.mode == .SelectFolder do
-                .hide()
         }
 
         with fileBrowser.comboType = ComboBox.create(fileBrowser.typeRow, flags: .Flat)
         {
             .dockStyle = .Left
+            if fileBrowser.options.mode == .SelectFolder do
+                .hide()
             if fileBrowser.options.mode == .SelectFolder do
                 .addItem(strings().browser_Folders)
             else do
@@ -849,6 +926,17 @@ impl FileBrowserCtrl
                 widest = Math.max(widest, Painter.measureString(item.name.raw.toString(), font).width)
             .resize(widest + metrics.fileBrowser_TypeChrome, metrics.control_DialogHeight)
             .sigChanged += func|fileBrowser|(_, _) { fileBrowser.fillFileList() }
+        }
+
+        with fileBrowser.choiceLabel = Label.create(fileBrowser.typeRow, "")
+        {
+            .dockStyle = .Center
+            if fileBrowser.options.mode != .SelectFolder do
+                .margin.x = metrics.fileBrowser_PlaceGap
+            .style.setFont(fileBrowser.theme().createDefaultFontFs(metrics.defaultFontSize - 1), .Regular)
+            .setTextColor(fileBrowser.themeColors().faintText)
+            .setTextAlignment(.Left, .OpticalCenter)
+            .updateFlags(add: .Ellipsis)
         }
 
         // The name a save creates, labelled above its field; in the other modes the names chosen
@@ -888,7 +976,11 @@ impl FileBrowserCtrl
             .editFile.setText(fileBrowser.options.initialName)
             if fileBrowser.options.mode == .CreateFile
             {
-                .editFile.selectAll()
+                let name = fileBrowser.options.initialName
+                var stem = name.count
+                for i in name.count where name[i] == '.'u8 and i > 0 do
+                    stem = i
+                .editFile.setSelection(0, stem)
                 .editFile.setFocus()
             }
             else
@@ -902,6 +994,7 @@ impl FileBrowserCtrl
             fileBrowser.setCurrentFolder(fileBrowser.placesBar.stops[0].path)
 
         fileBrowser.updateNavigationState()
+        fileBrowser.updateChoice()
         return fileBrowser
     }
 
@@ -1029,6 +1122,11 @@ impl FileBrowserCtrl
             icon.color = .themeColors().label_Text
             let line = .listCtrl.createLine(fname, icon)
             line.userData0 = fi
+            line.canCheck  = .options.mode == .SelectFiles and not fi.isDirectory()
+
+            // In a save the rows are context, not choices.
+            if .options.mode == .CreateFile do
+                line.colorFg = faint
             let dateItem = line.setItem(1, fi.lastWriteTime.toString(.DateTimeIsoHm))
             dateItem.colorFg = faint
             if not fi.isDirectory()
@@ -1041,6 +1139,7 @@ impl FileBrowserCtrl
 
         .listCtrl.computeLayout()
         .listCtrl.sort()
+        .updateChoice()
     }
 
     // Creates a folder inside [[Gui.FileBrowserCtrl.currentFolder]] and refreshes the list on success.

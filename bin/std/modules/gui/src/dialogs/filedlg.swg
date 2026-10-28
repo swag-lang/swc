@@ -84,6 +84,58 @@ private impl FileDlg
             state.surfacePosition = .surface!.position
     }
 
+    // Names the choice in the primary action: the folder a folder box picks, how many files a multiple box opens.
+    mtd nameChoice(confirmText: string)
+    {
+        var button: *PushButton?
+        for btn in .buttons where btn.id == Dialog.BtnOk do
+            button = btn
+        if not button do
+            return
+
+        var text = String.from(confirmText)
+        switch .options.mode
+        {
+        case .SelectFolder:
+            let name = .browser.editFile.text()
+            if name.count do
+                text = Format.toString(strings().fileDlg_BtnChooseNamed, name)
+        case .SelectFiles:
+            let count = .browser.selectedPaths().count
+            if count > 1 do
+                text = Format.toString(strings().fileDlg_BtnOpenCount, count)
+        }
+
+        if button.text() == text.toString() do
+            return
+        button.setText(text.toString())
+        button.fitWidthToLabel(button.position.width)
+        .buttonBar.computeLayout()
+        .applyLayout()
+    }
+
+    // Asks before a save replaces `path`: the title names the file, a mono line gives its size and date, and the action is destructive.
+    mtd confirmReplace(path: string)->bool
+    {
+        // The options borrow their strings, so the strings live here for as long as the box.
+        let title = Format.toString(strings().fileDlg_ReplaceTitle, Path.fileName(path) orelse path)
+        // A file that cannot be read leaves an empty description, and the question stands without it.
+        var detail: String
+        let info = catch File.info(path)
+        if info.size do
+            detail = Format.toString(strings().fileDlg_ReplaceDetail, Format.byteSize(info.size), info.lastWriteTime.toString(.DateTimeIsoHm))
+
+        var options: MessageDlgOptions
+        options.title  = title.toString()
+        options.detail = detail.toString()
+
+        let box = MessageDlg.create(unwrap .surface, strings().fileDlg_ReplaceText, options)
+        box.addButton(strings().fileDlg_BtnReplace, Dialog.BtnYes, true).setForm(.Destructive)
+        box.addButton(strings().dlg_Cancel, Dialog.BtnCancel)
+        box.adaptSizeToMessage()
+        return box.doModal() == Dialog.BtnYes
+    }
+
     mtd onNewFolder()
     {
         var options: FormDlgOptions
@@ -91,8 +143,11 @@ private impl FileDlg
         options.width  = cast(s32, MessageDlg.MinMessageWidth)
         options.height = 220
 
-        let dlg  = FormDlg.create(unwrap .surface, options)
-        let edit = dlg.form.addTextField(strings().fileDlg_NewFolderField, strings().fileDlg_NewFolderDefault, placeholder: strings().fileDlg_NewFolderHint)
+        options.confirmButtonText = strings().fileDlg_BtnCreate
+
+        let dlg   = FormDlg.create(unwrap .surface, options)
+        let place = Format.toString(strings().fileDlg_NewFolderWhere, .browser.displayPath())
+        let edit  = dlg.form.addTextField(strings().fileDlg_NewFolderField, strings().fileDlg_NewFolderDefault, placeholder: strings().fileDlg_NewFolderHint, help: place.toString())
         dlg.form.computeLayout()
         edit.selectAll()
         edit.setFocus()
@@ -200,10 +255,11 @@ impl FileDlg
             .sigNewFolderRequested += func|fileDlg = dlg|(_) { fileDlg.onNewFolder() }
         }
 
-        // The type filter takes the quiet bottom-left slot of the box.
-        let typeFilter = dlg.browser.detachTypeFilter()
-        if typeFilter do
-            dlg.setLeadingControl(typeFilter)
+        // The type filter and the line of what is chosen take the quiet bottom-left slot of the box,
+        // and the primary action names the choice when there is one to name.
+        dlg.setLeadingControl(dlg.browser.detachFoot())
+        dlg.browser.sigChoiceChanged += func|dlg, confirmText|(_) { dlg.nameChoice(confirmText) }
+        dlg.nameChoice(confirmText)
 
         dlg.validateResult = func|dlg|(_, id)
         {
@@ -229,12 +285,8 @@ impl FileDlg
                 }
 
                 let selName = dlg.browser.selectedPath()
-                if dlg.options.mode == .CreateFile and File.exists(selName)
-                {
-                    let res = MessageDlg.confirm(unwrap dlg.surface, strings().fileDlg_ReplaceTitle, strings().fileDlg_ReplaceText)
-                    if res != Dialog.BtnYes do
-                        return false
-                }
+                if dlg.options.mode == .CreateFile and File.exists(selName) and not dlg.confirmReplace(selName.toString()) do
+                    return false
 
                 dlg.browser.noteAccepted()
             }

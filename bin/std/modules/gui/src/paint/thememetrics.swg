@@ -25,6 +25,7 @@ struct ThemeMetrics
         fileBrowser_GlyphSize:    f32 = 16     // Size of the glyphs at the end of the path field.
         fileBrowser_GlyphGap:     f32 = 4      // Air between the path field and its first glyph.
         fileBrowser_TypeChrome:   f32 = 44     // Width a quiet type filter adds to its longest name.
+        fileBrowser_FootWidth:    f32 = 380    // Width of the foot of a file browser: the type filter and what is chosen.
 
         // The corners of the charter, one per kind of shape. The atlas tiles of
         // [[Gui.ThemeImageRects]] are drawn with these radii and publish them as their `radius`; a

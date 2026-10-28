@@ -218,3 +218,35 @@ using Swag, Core, File
     host.keyPress(.Back)
     Swag.assert(fb.listCtrl.lines.count == 3)
 }
+
+// The line beside the type filter says what the box will answer with: the folder a folder box
+// picks, the count and weight of what a multiple box opens, whose rows check as they are chosen.
+#test
+{
+    let root = Path.combine(Env.getSpecialDirectory(.Temp).toString(), "swag-filebrowser-choice")
+    discard catch Directory.delete(root.toString(), recurse: true)
+    expect Directory.create(Path.combine(root.toString(), "design").toString(), recurse: true)
+    defer discard catch Directory.delete(root.toString(), recurse: true)
+    discard expect File.writeAllText(Path.combine(root.toString(), "a.md").toString(), "aaaa")
+    discard expect File.writeAllText(Path.combine(root.toString(), "b.md").toString(), "bb")
+
+    var host: Testing.HeadlessHost
+    host.setup(640, 460)
+
+    let folders = FileBrowserCtrl.create(&host.root, {mode: .SelectFolder, showLocationsPane: false, initialFolder: root.toString()}, {0, 0, 600, 400})
+    Swag.assert(not folders.comboType.isLocallyVisible())
+    Swag.assert(folders.selectedPath() == folders.currentFolder)
+    folders.listCtrl.selectLine(0)
+    Swag.assert(Utf8.endsWith(folders.choiceLabel.text(), " / design"))
+
+    let files = FileBrowserCtrl.create(&host.root, {mode: .SelectFiles, showLocationsPane: false, initialFolder: root.toString()}, {0, 0, 600, 400})
+    Swag.assert(files.choiceLabel.text().count == 0)
+    files.listCtrl.selectLine(1)
+    files.listCtrl.selectLine(2)
+    Swag.assert(files.listCtrl.isLineChecked(1) and files.listCtrl.isLineChecked(2))
+    Swag.assert(Utf8.startsWith(files.choiceLabel.text(), "2 "))
+
+    // A checkbox unchecked lets its row go.
+    files.listCtrl.setLineChecked(1, false)
+    Swag.assert(files.selectedPaths().count == 1)
+}

@@ -65,8 +65,14 @@ struct Strings
         fileDlg_ErrFolderName:     string = "The folder name is not valid."               // Rejected folder name.
         fileDlg_ErrFolderExists:   string = "A folder with this name already exists."     // Name collision when creating a folder.
         fileDlg_ErrFolderCreate:   string = "The folder could not be created."            // Filesystem refusal when creating a folder.
-        fileDlg_ReplaceTitle:      string = "This file already exists."                   // Title of the overwrite confirmation.
-        fileDlg_ReplaceText:       string = "Do you want to replace it?"                  // Body of the overwrite confirmation.
+        fileDlg_ReplaceTitle:      string = "“%” already exists."                            // Title of the overwrite confirmation, naming the file.
+        fileDlg_ReplaceText:       string = "Replace it? The old file is lost."           // Body of the overwrite confirmation.
+        fileDlg_ReplaceDetail:     string = "% · modified %"                              // Size and date of the file a save would replace.
+        fileDlg_BtnReplace:        string = "Replace"                                     // Destructive action of the overwrite confirmation.
+        fileDlg_BtnCreate:         string = "Create"                                      // Primary action of the folder-creation form.
+        fileDlg_NewFolderWhere:    string = "In %"                                        // Where a created folder goes, under its name field.
+        fileDlg_BtnChooseNamed:    string = "Choose “%”"                                      // Primary action of a folder box, naming the folder.
+        fileDlg_BtnOpenCount:      string = "Open the %"                                  // Primary action of a multiple file box, counting the files.
         fileDlg_BtnSave:           string = "Save"                                        // Confirmation button when saving a file.
         fileDlg_BtnOpen:           string = "Open"                                        // Confirmation button when opening a file.
 
@@ -79,6 +85,7 @@ struct Strings
         browser_AllFiles:       string = "All Files"                      // Filter matching every extension.
         browser_NewFolder:      string = "New Folder"                     // Create a folder in the current location.
         browser_FilterHint:     string = "Filter, or type a path"         // Placeholder of the path field, after the current path.
+        browser_Chosen:         string = "% chosen · %"                   // Count and weight of the files a multiple box holds.
         browser_TipRecent:      string = "Recent Folders"                 // Tooltip of the recent-folders button.
         browser_TipUp:          string = "Parent Folder (Alt+Up)"         // Tooltip of the parent-folder button.
         browser_FileName:       string = "File Name"                      // Name field label when picking a file.

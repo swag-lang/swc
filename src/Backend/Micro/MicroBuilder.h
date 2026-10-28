@@ -137,6 +137,7 @@ public:
     void emitStoreVolatileMemReg(MicroReg memReg, uint64_t memOffset, MicroReg reg, MicroOpBits opBits);
     void emitLoadVecRegMem(MicroReg regDst, MicroReg memReg, uint64_t memOffset, MicroOpBits opBits);
     void emitVecUnaryRegMem(MicroReg regDst, MicroReg memReg, uint64_t memOffset, MicroOp op, MicroOpBits opBits);
+    void emitVecInsertHigh64Amc(MicroReg regDst, MicroReg regBase, MicroReg regMul, uint64_t mulValue, uint64_t addValue, MicroOpBits opBitsBaseMul);
     void emitVecUnaryAmcRegMem(MicroReg regDst, MicroReg regBase, MicroReg regMul, uint64_t mulValue, uint64_t addValue, MicroOpBits opBitsBaseMul, MicroOp op, MicroOpBits opBits);
     void emitStoreVecMemReg(MicroReg memReg, uint64_t memOffset, MicroReg regSrc, MicroOpBits opBits);
     void emitVecShuffleRegRegImm(MicroReg regDst, MicroReg regSrc, uint8_t control, MicroOpBits opBits);

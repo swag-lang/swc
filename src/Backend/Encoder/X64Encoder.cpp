@@ -2566,6 +2566,37 @@ void X64Encoder::encodeVecUnaryAmcRegMem(MicroReg regDst, MicroReg regBase, Micr
         emitValue(store_, addValue, mode == ModRmMode::Displacement8 ? MicroOpBits::B8 : MicroOpBits::B32);
 }
 
+// Insert exactly eight bytes from an indexed address into the high 64-bit lane.
+void X64Encoder::encodeVecInsertHigh64Amc(MicroReg regDst, MicroReg regBase, MicroReg regMul, uint64_t mulValue, uint64_t addValue, MicroOpBits opBitsBaseMul)
+{
+    SWC_ASSERT(regDst.isFloat() && regBase.isInt() && regMul.isInt());
+    SWC_ASSERT(mulValue == 1 || mulValue == 2 || mulValue == 4 || mulValue == 8);
+    SWC_INTERNAL_CHECK(X64Immediate::canEncodeSigned32(addValue));
+    X64Reg base  = microRegToX64Reg(regBase);
+    X64Reg index = microRegToX64Reg(regMul);
+    if (index == X64Reg::Rsp)
+    {
+        SWC_ASSERT(mulValue == 1);
+        std::swap(base, index);
+    }
+    const X64Reg dst = microRegToX64Reg(regDst);
+    if (opBitsBaseMul == MicroOpBits::B32)
+        store_.pushU8(0x67);
+    emitVex(store_, 0x66, VEX_MAP_0F3A, dst, dst, base, true, isExtendedReg(index));
+    emitCpuOp(store_, 0x22);
+    const bool      forcedDisplacement = base == X64Reg::R13 || base == X64Reg::Rbp;
+    const ModRmMode mode               = addValue == 0 && !forcedDisplacement ? ModRmMode::Memory : canEncodeSigned8(addValue) ? ModRmMode::Displacement8
+                                                                                                                               : ModRmMode::Displacement32;
+    emitModRm(store_, mode, encodeReg(dst), MODRM_RM_SIB);
+    uint8_t scale = 0;
+    for (uint64_t value = mulValue; value > 1; value >>= 1)
+        ++scale;
+    emitSib(store_, scale, encodeReg(index) & 0b111, encodeReg(base) & 0b111);
+    if (mode != ModRmMode::Memory)
+        emitValue(store_, addValue, mode == ModRmMode::Displacement8 ? MicroOpBits::B8 : MicroOpBits::B32);
+    emitValue(store_, 1, MicroOpBits::B8);
+}
+
 // Unaligned 128-bit packed store.
 void X64Encoder::encodeStoreVecMemReg(MicroReg memReg, uint64_t memOffset, MicroReg regSrc, MicroOpBits opBits)
 {

@@ -457,6 +457,7 @@ namespace
                                            inst->op == MicroInstrOpcode::CmpAmcImm ||
                                            inst->op == MicroInstrOpcode::CmpAmcReg ||
                                            inst->op == MicroInstrOpcode::VecUnaryAmcRegMem ||
+                                           inst->op == MicroInstrOpcode::VecInsertHigh64Amc ||
                                            inst->op == MicroInstrOpcode::CmpRegAmc;
                 if (ops && indexedMemory)
                 {
@@ -1128,6 +1129,7 @@ namespace
         r.add(MicroInstrOpcode::LoadRegReg, tryFoldClearIntoResultCopy);
         r.add(MicroInstrOpcode::LoadRegReg, tryEraseFloatClearBeforeFullWrite);
         r.add(MicroInstrOpcode::LoadAmcRegMem, tryFoldIndexedFloatAccumulation);
+        r.add(MicroInstrOpcode::LoadAmcRegMem, tryFoldIndexedHigh64Insert);
         r.add(MicroInstrOpcode::LoadAmcRegMem, tryFoldIndexedFloatCompare);
         r.add(MicroInstrOpcode::LoadAmcRegMem, tryFoldLoadIntoBinary);
         r.add(MicroInstrOpcode::LoadAmcRegMem, tryFoldIndexedByteAverage);

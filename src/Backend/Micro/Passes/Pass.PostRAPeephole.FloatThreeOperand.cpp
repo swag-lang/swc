@@ -1129,6 +1129,36 @@ namespace PostRaPeephole
         return true;
     }
 
+    // A low-qword load followed by unpack-low can insert that qword directly from
+    // memory. The unpack must overwrite its first source, and the temporary dies.
+    bool tryFoldIndexedHigh64Insert(Context& ctx, const MicroInstrRef loadRef, const MicroInstr& loadInst)
+    {
+        if (loadInst.op != MicroInstrOpcode::LoadAmcRegMem || loadInst.numOperands < 7)
+            return false;
+        const MicroInstrOperand* load = ctx.operandsFor(loadRef);
+        if (!load || !load[0].reg.isFloat() || !load[1].reg.isInt() || !load[2].reg.isInt() ||
+            load[3].opBits != MicroOpBits::B64 || load[4].opBits != MicroOpBits::B64 ||
+            (load[2].reg == ctx.stackPointer && load[5].valueU64 != 1))
+            return false;
+        const MicroInstrRef      ref  = ctx.nextRef(loadRef);
+        const MicroInstr*        inst = ctx.instruction(ref);
+        const MicroInstrOperand* ops  = ctx.operandsFor(ref);
+        if (!inst || inst->op != MicroInstrOpcode::OpBinaryRegRegReg || inst->numOperands < 5 || !ops ||
+            ops[0].reg != ops[1].reg || ops[2].reg != load[0].reg || ops[0].reg == load[0].reg ||
+            !ops[0].reg.isFloat() || ops[3].opBits != MicroOpBits::B128 || ops[4].microOp != MicroOp::VecUnpackLo64 ||
+            (!regIsDeadAfter(ctx, ref, load[0].reg) && !ctx.isRegDeadAfter(load[0].reg, ctx.instructionIndex + 1)))
+            return false;
+        MicroInstrOperand rewritten[7] = {};
+        rewritten[0] = ops[0];
+        for (uint32_t i = 1; i < 7; ++i)
+            rewritten[i] = load[i];
+        if (!ctx.claimAll({loadRef, ref}))
+            return false;
+        ctx.emitRewrite(ref, MicroInstrOpcode::VecInsertHigh64Amc, std::span{rewritten, 7}, true);
+        ctx.emitErase(loadRef);
+        return true;
+    }
+
     // Compare a scalar against its indexed source without staging that source
     // in another XMM register. The source register must die at the compare.
     bool tryFoldIndexedFloatCompare(Context& ctx, const MicroInstrRef loadRef, const MicroInstr& loadInst)

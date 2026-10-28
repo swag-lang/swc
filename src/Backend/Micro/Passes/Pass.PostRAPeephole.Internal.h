@@ -242,6 +242,7 @@ namespace PostRaPeephole
     bool tryFoldLoadIntoBinary(Context& ctx, MicroInstrRef loadRef, const MicroInstr& loadInst);
     bool tryFoldIndexedFloatAccumulation(Context& ctx, MicroInstrRef loadRef, const MicroInstr& loadInst);
     bool tryFoldIndexedFloatCompare(Context& ctx, MicroInstrRef loadRef, const MicroInstr& loadInst);
+    bool tryFoldIndexedHigh64Insert(Context& ctx, MicroInstrRef loadRef, const MicroInstr& loadInst);
     bool tryEraseScalarReturnConversionClear(Context& ctx, MicroInstrRef clearRef, const MicroInstr& clearInst);
     bool tryShareReturnEpilogue(Context& ctx, MicroInstrRef branchRef, const MicroInstr& branchInst);
     bool tryUseSelfOperandForFloatBinary(Context& ctx, MicroInstrRef opRef, const MicroInstr& opInst);

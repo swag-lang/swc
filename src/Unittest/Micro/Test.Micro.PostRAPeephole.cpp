@@ -4635,6 +4635,47 @@ SWC_TEST_BEGIN(PostRAPeephole_IndexedFloatCompareUsesMemoryOperand)
 }
 SWC_TEST_END()
 
+// An indexed qword inserted as the high half reads exactly eight bytes and
+// preserves the first vector's low half. A live temporary or a different
+// output register must keep the original sequence.
+SWC_TEST_BEGIN(PostRAPeephole_IndexedQwordUnpackUsesMemoryInsert)
+{
+    constexpr MicroReg base   = MicroReg::intReg(7);
+    constexpr MicroReg index  = MicroReg::intReg(1);
+    constexpr MicroReg source = MicroReg::floatReg(3);
+    constexpr MicroReg loaded = MicroReg::floatReg(4);
+    constexpr MicroReg other  = MicroReg::floatReg(5);
+    for (const uint32_t test : {0u, 1u, 2u, 3u})
+    {
+        MicroBuilder builder(ctx);
+        const MicroOpBits bits = test == 3 ? MicroOpBits::B32 : MicroOpBits::B64;
+        builder.emitLoadAmcRegMem(loaded, bits, base, index, 8, 16, MicroOpBits::B64);
+        builder.emitOpBinaryRegRegReg(test == 2 ? other : source, source, loaded, MicroOp::VecUnpackLo64, MicroOpBits::B128);
+        builder.emitStoreVecMemReg(base, 32, test == 2 ? other : source, MicroOpBits::B128);
+        if (test == 1)
+            builder.emitStoreVecMemReg(base, 48, loaded, MicroOpBits::B128);
+        builder.emitRet();
+        X64Encoder encoder(ctx);
+        SWC_RESULT(runPostRaPeepholePass(builder, &encoder));
+        if (Backend::Unittest::countOpcode(builder, MicroInstrOpcode::VecInsertHigh64Amc) != (test == 0 ? 1 : 0))
+            return Result::Error;
+        if (test == 0)
+        {
+            for (const MicroInstr& inst : builder.instructions().view())
+            {
+                if (inst.op != MicroInstrOpcode::VecInsertHigh64Amc)
+                    continue;
+                const auto* ops = inst.ops(builder.operands());
+                if (!ops || ops[0].reg != source || ops[1].reg != base || ops[2].reg != index ||
+                    ops[3].opBits != MicroOpBits::B64 || ops[5].valueU64 != 8 || ops[6].valueU64 != 16)
+                    return Result::Error;
+            }
+        }
+    }
+    return Result::Continue;
+}
+SWC_TEST_END()
+
 // A scalar float copied only as the second operand of a three-operand
 // operation: the operation reads the source.
 // A two-operand float operation whose result is copied away is widened to the

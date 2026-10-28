@@ -197,9 +197,14 @@ func testSetupEditorSurface(host: *Gui.Testing.HeadlessHost, dark: bool, text = 
         Swag.assert(main.miniBar.isLocallyVisible() and main.miniBarKind == .Text)
         Swag.assert(not main.hintLine.reading.isEmpty())
 
-        // The mini-bar stands clear of the dock and of the inspector.
-        Swag.assert(main.miniBar.surfaceRect().x >= main.dock.surfaceRect().right())
-        Swag.assert(main.miniBar.surfaceRect().right() <= main.inspector.surfaceRect().x)
+        // The mini-bar stands clear of the dock and of the inspector, and never straddles the top
+        // edge of the capture.
+        let bar  = main.miniBar.surfaceRect()
+        let view = main.editWnd.editView
+        let edge = view.localToSurface(Math.Point{0, view.getCaptureRect().y - view.scrollPos.y}).y
+        Swag.assert(bar.x >= main.dock.surfaceRect().right())
+        Swag.assert(bar.right() <= main.inspector.surfaceRect().x)
+        Swag.assert(bar.bottom() <= edge or bar.y >= edge)
         Swag.assert(not main.recentBar.isLocallyVisible())
 
         var image = host.render(main)

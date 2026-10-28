@@ -53,6 +53,34 @@ func convert16Samples(source: const [*] u8, destination: [*] u8, sampleCount: u6
     }
 }
 
+// Expand each gray sample with an alpha derived from its full 16-bit key.
+func convertGray16Transparency(source: const [*] u8, destination: [*] u8, sampleCount: u64, key: u16)
+{
+    var src = source
+    var dst = destination
+    var remaining = sampleCount
+    let keys = Math.Simd.splat(key)
+    while remaining >= 8
+    {
+        let gray = cast #bit(Math.Simd.U16x8, Math.Simd.shuffle(Math.Simd.load(src), Swap16Bytes))
+        let alpha = ~(gray == keys)
+        Math.Simd.store(cast([*] u16, dst), Math.Simd.interleaveLow(gray, alpha))
+        Math.Simd.store(cast([*] u16, (dst + 16)), Math.Simd.interleaveHigh(gray, alpha))
+        src += 16
+        dst += 32
+        remaining -= 8
+    }
+    while remaining
+    {
+        let gray = (cast(u16, src[0]) << 8) | src[1]
+        cast([*] u16, dst)[0] = gray
+        cast([*] u16, dst)[1] = gray == key ? 0'u16 : 65535'u16
+        src += 2
+        dst += 4
+        remaining -= 1
+    }
+}
+
 func reduce16Samples(source: const [*] u8, destination: [*] u8, sampleCount: u64)
 {
     var src   = source
@@ -324,15 +352,7 @@ impl Decoder
         {
         case 0:
             let transparent = read16((.safeTRNSData()).buffer)
-
-            for result.width * result.height
-            {
-                let gray = read16(src)
-                cast(*u16, dst)[] = gray
-                cast(*u16, (dst + 2))[] = gray == transparent ? 0'u16 : 65535'u16
-                src += 2
-                dst += 4
-            }
+            convertGray16Transparency(src, dst, cast(u64, result.width) * result.height, transparent)
 
         case 2:
             let key = cast(const [*] u8, (.safeTRNSData()).buffer)

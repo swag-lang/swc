@@ -1083,6 +1083,39 @@ func buildPng16(width, height: s32, colorType: u8, interlace: bool, samples: con
     Swag.assert(rgbaRaw[0] == 0x1234 and rgbaRaw[1] == 0x8080 and rgbaRaw[2] == 0xFFFF and rgbaRaw[3] == 0x0101)
 }
 
+// Gray transparency compares both bytes and writes exactly two words per sample.
+#test
+{
+    const Capacity = 300
+    var source: [Capacity] u8
+    var actual: [Capacity] u8
+    var expected: [Capacity] u8
+    for count in 65'u64
+    {
+        for i in Capacity
+        {
+            source[i] = cast(u8, ((i * 31 + count * 7) & 255))
+            actual[i] = 0xA5
+            expected[i] = 0xA5
+        }
+        for i in count
+        {
+            if (i % 3) == 0
+            {
+                source[1 + 2 * i] = 0x12
+                source[2 + 2 * i] = 0x34
+            }
+            let equal = source[1 + 2 * i] == 0x12 and source[2 + 2 * i] == 0x34
+            expected[3 + 4 * i] = source[2 + 2 * i]
+            expected[4 + 4 * i] = source[1 + 2 * i]
+            expected[5 + 4 * i] = equal ? 0 : 255
+            expected[6 + 4 * i] = equal ? 0 : 255
+        }
+        Png.convertGray16Transparency(&source[1], &actual[3], count, 0x1234)
+        Swag.assert(actual == expected)
+    }
+}
+
 // The packed conversion handles native alpha, while grayscale transparency
 // compares the complete 16-bit value before creating the alpha channel.
 #test

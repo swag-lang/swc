@@ -34,11 +34,22 @@ private
     // has to stay ahead of the widest plot a window can give it; past that the columns repeat.
     const WaveformPointCount = 4096'u64
 
-    // Air around the plot, and the band the time scale is read in.
-    const WaveformInsetX      = 24.0
-    const WaveformInsetY      = 32.0
-    const WaveformScaleHeight = 26.0
-    const WaveformTickHeight  = 5.0
+    // The page of a recording, after `scope.sound`: the cover, the name and who made it, then the
+    // wave as a row of bars with the times under it.
+    const CoverSize   = 180.0      // Side of the cover.
+    const CoverTop    = 88.0       // Distance from the strip to the cover.
+    const CoverCorner = 12.0       // Corner of the cover, the one of a floating surface.
+    const TitleSize   = 28'u32     // Size of the name of the recording.
+    const TitleGap    = 24.0       // Air between the cover and the name.
+    const CreditGap   = 6.0        // Air between the name and who made it.
+    const CreditSize  = 15'u32     // Size of who made it.
+    const WaveWidth   = 1000.0     // Widest the wave stands.
+    const WaveBottom  = 84.0       // Distance from the bottom of the page to the bottom of the wave's band.
+    const WaveHeight  = 110.0      // Height of the bars at their loudest.
+    const BarWidth    = 4.0        // Width of one bar of the wave.
+    const BarGap      = 3.5        // Air between two bars.
+    const TimesGap    = 14.0       // Air between the bars and the times under them.
+    const TimesHeight = 26.0       // Height of the line of times.
 }
 
 // Loudness of a slice, in the two readings a level meter carries: the transient that clips and the
@@ -203,10 +214,11 @@ func durationText(seconds: f32)->String
     return Format.toString("%{f2} s", seconds)
 }
 
-// Plots the waveform of a sound above its time scale, the played part apart from the rest.
+// Plots the waveform of a sound as a row of bars, the played part apart from the rest.
 struct WaveformView
 {
     using wnd:  Wnd
+    panel:      *Panel?     // Player the wave seeks, when a click chooses a place.
     samples:    Array'WaveformPoint
     readyCount: u64     // Points the builder has published so far.
     duration:   f32
@@ -269,150 +281,61 @@ impl WaveformReducer
     }
 }
 
-// Returns the interval a time scale is graduated at, so the marks land on numbers a reader
-// already thinks in rather than on an even division of whatever the duration happens to be.
-func waveformTickStep(duration: f32, plotWidth: f32)->f32
-{
-    const Steps: [14] f32 = [0.05, 0.1, 0.25, 0.5, 1, 2, 5, 10, 15, 30, 60, 120, 300, 600]
-
-    // One mark every 120 pixels or so keeps the scale readable at any width, and each label needs
-    // the room its own digits take.
-    let wanted = duration * 120 / Math.max(plotWidth, 1)
-    for step in Steps where step >= wanted do
-        return step
-    return Steps[Steps.count - 1]
-}
-
-// Formats one graduation of the time scale, in the shortest spelling its step allows.
-func waveformTickText(seconds, step: f32)->String
-{
-    if seconds >= 60
-    {
-        let minutes = cast(u32, seconds / 60)
-        let rest    = cast(u32, Math.round(seconds - cast(f32, minutes) * 60))
-        return Format.toString("%:%{02}", minutes, rest)
-    }
-
-    if step < 1 do
-        return Format.toString("%{f2}", seconds)
-    return Format.toString("%", cast(u32, Math.round(seconds)))
-}
-
-private impl WaveformView
-{
-    // Returns the band the wave is drawn in, above the band the time scale is read in.
-    mtd const plotRect()->Math.Rectangle
-    {
-        let rect = .clientRect()
-        return Math.Rectangle{rect.x + WaveformInsetX,
-                              rect.y + WaveformInsetY,
-                              Math.max(rect.width - 2 * WaveformInsetX, 1),
-                              Math.max(rect.height - 2 * WaveformInsetY - WaveformScaleHeight, 1)}
-    }
-
-    // Draws the graduated scale under the wave, skipping any mark whose label would touch the one
-    // before it.
-    mtd paintTimeScale(painter: *Painter, plot: Math.Rectangle)
-    {
-        if .duration <= 0 do
-            return
-
-        let font = .font().regular
-        if not font do
-            return
-
-        let colors  = .themeColors()
-        let step    = waveformTickStep(.duration, plot.width)
-        let baseY   = plot.bottom()
-        var written = plot.x - 1
-
-        painter.drawLine(plot.x, baseY, plot.right(), baseY, colors.line, 1)
-
-        var seconds = 0'f32
-        while seconds <= .duration
-        {
-            let x = plot.x + plot.width * (seconds / .duration)
-            painter.drawLine(x, baseY, x, baseY + WaveformTickHeight, colors.line, 1)
-
-            // The last graduation is pulled back inside the plot rather than dropped: a scale that
-            // stops naming its end reads as a scale that was cut off.
-            let text  = waveformTickText(seconds, step)
-            let width = Painter.measureString(text, font).width
-            let left  = Math.min(x, plot.right() - width)
-            if left > written
-            {
-                painter.drawString(left, baseY + WaveformTickHeight + 4, text, font, colors.label_TextFaint)
-                written = left + width + 12
-            }
-
-            seconds += step
-        }
-    }
-}
-
 private impl IWnd for WaveformView
 {
+    // Draws the wave as a row of bars, the played ones in Arc, with the elapsed time under its
+    // start and the length under its end.
     mtd impl onPaint(evt: *PaintEvent)
     {
         let painter = evt.paintContext.painter
         let colors  = .themeColors()
-        let plot    = .plotRect()
-        let center  = plot.vertCenter()
+        let room    = .clientRect()
+        let bars    = Math.Rectangle{room.x, room.y, room.width, WaveHeight}
+        let center  = bars.vertCenter()
+        let count   = cast(u64, Math.max(Math.floor((bars.width + BarGap) / (BarWidth + BarGap)), 1))
+        let played  = Math.clamp(.progress, 0, 1) * cast(f32, count)
 
         painter.setParams(.Antialiased)
-        .paintTimeScale(painter, plot)
-
-        // The silence line is under the wave, and only shows where the wave has nothing to say.
-        painter.drawLine(plot.x, center, plot.right(), center, colors.line, 1)
-        if .samples.isEmpty() do
-            return
-
-        // The alternate theme tone gives the sound its own voice while the signature accent stays
-        // reserved for the exact play position. Two opacities preserve transient and body detail.
-        let alternate = .theme().palette.alternate.mark
-        let playBody  = Color.lerp(colors.view_Bk, alternate, 0.92)
-        let playPeak  = Color.lerp(colors.view_Bk, alternate, 0.58)
-        let restBody  = Color.lerp(colors.view_Bk, alternate, 0.48)
-        let restPeak  = Color.lerp(colors.view_Bk, alternate, 0.25)
-
-        let columns = cast(u64, Math.max(plot.width, 1))
-
-        // Pixel alignment keeps the progress boundary crisp instead of blending two adjacent
-        // waveform columns into a soft vertical seam.
-        let playHead = Math.round(Math.clamp(.progress, 0, 1) * plot.width)
-        let scale    = plot.height * 0.5 - 1
-
-        for column in columns
+        if not .samples.isEmpty()
         {
-            let first = column * .samples.count / columns
-            let last  = Math.max((column + 1) * .samples.count / columns, first + 1)
-            if first >= .readyCount do
-                continue
-            var peak = 0'f32
-            var body = 0'f32
-            for index in first until Math.min(last, .readyCount)
+            for bar in count
             {
-                peak = Math.max(peak, .samples[index].peak)
-                body = Math.max(body, .samples[index].body)
+                let first = bar * .samples.count / count
+                let last  = Math.max((bar + 1) * .samples.count / count, first + 1)
+                if first >= .readyCount do
+                    break
+                var level = 0'f32
+                for index in first until Math.min(last, .readyCount) do
+                    level = Math.max(level, .samples[index].peak)
+
+                // A quiet slice still stands as a dot, so the row reads as one wave.
+                let height = Math.max(level * WaveHeight, BarWidth)
+                let x      = bars.x + cast(f32, bar) * (BarWidth + BarGap)
+                let color  = cast(f32, bar) < played ? colors.arc : colors.strongLine
+                painter.fillRoundRect(Math.Rectangle{x, center - height * 0.5, BarWidth, height}, BarWidth * 0.5, BarWidth * 0.5, color)
             }
-
-            // A slice of near silence still gets its pixel: a wave broken into a comb reads as a
-            // rendering fault rather than as a quiet passage.
-            let peakHeight = Math.max(peak * scale, 0.5)
-            let bodyHeight = Math.max(body * scale, 0.5)
-            let played     = cast(f32, column) < playHead
-            let x          = plot.x + cast(f32, column)
-
-            painter.fillRect(x, center - peakHeight, 1, peakHeight * 2, played ? playPeak : restPeak)
-            painter.fillRect(x, center - bodyHeight, 1, bodyHeight * 2, played ? playBody : restBody)
         }
 
-        // The play head is a rule, and it runs into the scale so the time it is at can be read.
-        if .progress > 0
+        let mono    = .theme().createDefaultFontFs(.themeMetrics().defaultFixedFontSize)
+        let strong  = .theme().createDefaultFontFs(.themeMetrics().defaultFixedFontSize, .Bold)
+        let timesY  = bars.bottom() + TimesGap + TimesHeight * 0.5
+        let elapsed = Viewer.timeText(.progress * .duration)
+        let total   = Viewer.durationText(.duration)
+        painter.drawString(room.x, strong.opticalLineTop(timesY), elapsed, strong, colors.text)
+        painter.drawString(room.right() - Painter.measureString(total, mono).width, mono.opticalLineTop(timesY), total, mono, colors.faintText)
+    }
+
+    // A click on the wave plays from the place it chose.
+    mtd impl onMouseEvent(evt: *MouseEvent)
+    {
+        if evt.kind != .Pressed or evt.button != .Left or .panel == null or .duration <= 0
         {
-            let x = plot.x + playHead
-            painter.drawLine(x, plot.y, x, plot.bottom() + WaveformTickHeight, colors.signature, 1)
+            evt.accepted = false
+            return
         }
+
+        let x = .surfaceToLocal(evt.surfacePos).x
+        .panel.seekSeconds(Math.clamp(x / Math.max(.clientRect().width, 1), 0, 1) * .duration)
     }
 }
 
@@ -509,29 +432,57 @@ impl Panel
         .services.loadingChanged(me)
     }
 
-    // Rebuilds the host summary in the active language and reports it.
+    // Rebuilds the host summary in the active language and reports it: how the recording is
+    // stored. What it is stands on the page.
     mtd refreshDetails()
     {
-        let format = Format.toString(texts().ui_Details,
-                                     .sound.sampleRateHz(),
-                                     channelCountText(.sound.numChannels()),
-                                     .sound.sampleStorageBits(),
-                                     durationText(.duration))
+        .details = Format.toString(texts().ui_Details,
+                                   .sound.sampleRateHz(),
+                                   channelCountText(.sound.numChannels()),
+                                   .sound.sampleStorageBits(),
+                                   durationText(.duration))
+        .services.showDetails(me, .details)
+        .invalidate()
+    }
 
-        // What the recording is comes before how it is stored.
-        var names: Array'string
+    // Returns the name the page writes: the title the tags give, or the name of the file.
+    mtd title()->String
+    {
+        if not .tags.title.isEmpty() do
+            return String.from(.tags.title)
+        return String.from(Path.fileNameWithoutExtension(.openFileName) orelse .openFileName)
+    }
+
+    // Returns who made the recording and where it belongs, the way the page writes it under the
+    // name: the artist, the album and the year the tags give.
+    mtd credits()->String
+    {
+        var result: #returntype
         let artist = .tags.artist.isEmpty() ? .tags.albumArtist.toString() : .tags.artist.toString()
-        for name in [.tags.title.toString(), artist, .tags.album.toString(), .tags.year.toString()] where name.count do
-            names.add(name)
-        .details.clear()
-        for name in names
+        for name in [artist, .tags.album.toString(), .tags.year.toString()] where name.count
         {
-            .details += name
-            .details += " · "
+            if not result.isEmpty() do
+                result += " · "
+            result += name
         }
 
-        .details += format
-        .services.showDetails(me, .details)
+        return result
+    }
+
+    // Returns the band of the cover, centered across the page under the strip.
+    mtd coverRect()->Math.Rectangle
+    {
+        let room = .clientRect()
+        return Math.Rectangle{Math.round((room.width - CoverSize) * 0.5), .stripInset() + CoverTop, CoverSize, CoverSize}
+    }
+
+    // Places the wave across the lower part of the page.
+    mtd arrangeWave()
+    {
+        let room  = .clientRect()
+        let width = Math.min(WaveWidth, Math.max(room.width - 2 * 48, 1))
+        let top   = Math.max(room.height - WaveBottom - WaveHeight - TimesGap - TimesHeight, .coverRect().bottom())
+        .waveform.setPosition(Math.Rectangle{Math.round((room.width - width) * 0.5), top, width, WaveHeight + TimesGap + TimesHeight})
     }
 
     mtd retranslate()
@@ -861,6 +812,43 @@ impl IWnd for Panel
         .retireBlocking()
     }
 
+    mtd impl onResizeEvent(_: *ResizeEvent)
+    {
+        if .waveform != null do
+            .arrangeWave()
+    }
+
+    // Draws the cover, and under it the name of the recording and who made it, centered.
+    //
+    // The tags carry no picture yet, so the cover is a tile of the raised ground with the glyph
+    // of a sound in it, lifted by the shadow of a floating surface.
+    mtd impl onPaint(evt: *PaintEvent)
+    {
+        let painter = evt.paintContext.painter
+        let colors  = .themeColors()
+        let room    = .clientRect()
+        let cover   = .coverRect()
+
+        painter.setParams(.Antialiased)
+        .theme().drawFloatingShadow(painter, cover, CoverCorner)
+        painter.fillRoundRect(cover, CoverCorner, CoverCorner, colors.raised)
+        let glyph = .theme().icon(.Volume, 48)
+        glyph.paint(painter, cover.horzCenter() - glyph.sizeX * 0.5, cover.vertCenter() - glyph.sizeY * 0.5, colors.faintText)
+
+        let titleFont = .theme().createDefaultFont(TitleSize, .Bold)
+        let title     = .title()
+        var y         = cover.bottom() + TitleGap
+        painter.drawString(Math.round((room.width - Painter.measureString(title, titleFont).width) * 0.5), y, title, titleFont, colors.text)
+        y += titleFont.height + CreditGap
+
+        let credits = .credits()
+        if not credits.isEmpty()
+        {
+            let font = .theme().createDefaultFont(CreditSize)
+            painter.drawString(Math.round((room.width - Painter.measureString(credits, font).width) * 0.5), y, credits, font, colors.softText)
+        }
+    }
+
     mtd impl onKeyEvent(evt: *KeyEvent)
     {
         if evt.kind != .Pressed or evt.modifiers != .None
@@ -983,13 +971,14 @@ impl Panel
 
         with result.waveform = Wnd.create'WaveformView(result, "scope.sound.waveform")
         {
-            .dockStyle       = .Center
-            .backgroundStyle = .View
+            .panel = result
+            .backgroundStyle = .Transparent
         }
 
         result.timer = result.addTimer(33'ms)
         result.refreshTransport()
         result.applyLayout()
+        result.arrangeWave()
         result.setInitialFocus(result.playButton)
         result.openFileName = host.fileName()
 

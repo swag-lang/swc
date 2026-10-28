@@ -84,19 +84,23 @@ dialogs, then each application, then the written rules.
   lane per track under the bar numbers, each track in its series hue with its name and channel,
   the notes spread by pitch in the lane (`viewer.midi.{ink,paper}`); the piano roll stays as a
   presentation in the options. It has no transport nor play head, because Scope plays no MIDI.
+  A recording is laid out around its cover: the name and who made it, the wave as bars played in
+  Arc, the times under it, how it is stored at the foot (`viewer.sound.{ink,paper}`); the tags
+  carry no picture yet, so the cover is a raised tile with the glyph of a sound, and the
+  transport is still the floating command bar rather than the compact one of the picture.
   What still differs from the pictures: the progress thread runs along the window's top edge, not
   under the strip, and no document scrolls under the strip; text has no "Column ▾" quiet menu;
   the explorer has no "Extract All…" on the title line nor "Extract…" in the sheet, the sheet shows
   no preview card of the member, and folder rows of an archive have no date; the archive viewer's
   embedded host (`EmbeddedViewer`) keeps its header band, viewer combo box and bottom command band;
   PDF has no outline margin and no paper shadow; the video picture does not reach the strip and has
-  no top and bottom veils with chips; sound is not laid out around its cover; hex has no structure
+  no top and bottom veils with chips; hex has no structure
   tabs and no floating inspector with the value in large type; the font viewer is not a specimen
   page (its sample field lives on the floating bar); table, HTML (column, address, outline)
   and binary (report page) keep their earlier shapes. Waits use
   `Gui.Spinner`; nothing in Scope needs a toast before `Gui.Toast` lands.
 - Next: the progress thread under the strip; then the viewers in this order, each on its picture —
-  `scope.pdf.paper`, `scope.video`, `scope.sound`, `scope.archive` (Extract, preview card, then the
+  `scope.pdf.paper`, `scope.video`, `scope.archive` (Extract, preview card, then the
   embedded host on the window's model), `scope.hex`, `scope.font.paper`, `scope.table.paper`,
   `scope.html.paper`, `scope.binary` — moving what still stands on
   the floating bar into the document where the picture puts it. Switch the explorer's private quiet

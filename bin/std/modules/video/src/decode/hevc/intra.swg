@@ -143,6 +143,33 @@ func predictAngularVertical(main: const [*] u16, destination: [*] u16, size: u32
     }
 }
 
+// Compute one horizontal column in the low four lanes. The source points
+// into the same padded angular reference used by vertical prediction.
+#[Swag.Inline]
+private func angularColumn4(main: const [*] u16, position: u32, angle: s32)->Simd.U16x8
+{
+    let step = cast(s32, (position + 1)) * angle
+    let blend = step & 31
+    let source = main + cast(s64, ((step >> 5) + 1))
+    let firstWeight = Simd.splat(cast(u16, (32 - blend)))
+    let secondWeight = Simd.splat(cast(u16, blend))
+    return (Simd.load(source) * firstWeight + Simd.load(source + 1) * secondWeight + Simd.splat(16'u16)) >> 5
+}
+
+// Transpose four predicted columns into four consecutive four-sample rows.
+#[Swag.NoInline]
+func predictAngularHorizontal4(main: const [*] u16, destination: [*] u16, angle: s32)
+{
+    let c0 = angularColumn4(main, 0, angle)
+    let c1 = angularColumn4(main, 1, angle)
+    let c2 = angularColumn4(main, 2, angle)
+    let c3 = angularColumn4(main, 3, angle)
+    let p0 = cast #bit(Simd.U32x4, Simd.interleaveLow(c0, c1))
+    let p1 = cast #bit(Simd.U32x4, Simd.interleaveLow(c2, c3))
+    Simd.store(destination, cast #bit(Simd.U16x8, Simd.interleaveLow(p0, p1)))
+    Simd.store(destination + 8, cast #bit(Simd.U16x8, Simd.interleaveHigh(p0, p1)))
+}
+
 impl Decoder
 {
     // Predicts one intra transform block into `.predSamples`, clause 8.4.4.2.
@@ -430,6 +457,10 @@ impl Decoder
         if vertical
         {
             predictAngularVertical(&main[origin], &.predSamples[0], size, angle)
+        }
+        elif size == 4
+        {
+            predictAngularHorizontal4(&main[origin], &.predSamples[0], angle)
         }
         else
         {

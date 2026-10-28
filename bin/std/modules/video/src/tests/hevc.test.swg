@@ -408,6 +408,25 @@ using Core, Core.Errors, Pixel
                     }
                 }
                 Swag.assert(output[size * size] == 0x5A5A)
+                if size == 4
+                {
+                    Hevc.predictAngularHorizontal4(&main[64], &output[0], angle)
+                    for column in size
+                    {
+                        let step = cast(s32, (column + 1)) * angle
+                        let shift = step >> 5
+                        let blend = step & 31
+                        for y in size
+                        {
+                            let base = cast(u32, (64 + shift + 1 + cast(s32, y)))
+                            let first = cast(u32, main[base])
+                            let second = cast(u32, main[base + 1])
+                            let expected = ((32 - cast(u32, blend)) * first + cast(u32, blend) * second + 16) >> 5
+                            Swag.assert(output[y * size + column] == cast(u16, expected))
+                        }
+                    }
+                    Swag.assert(output[size * size] == 0x5A5A)
+                }
             }
         }
     }

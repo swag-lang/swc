@@ -185,6 +185,22 @@ func floatingHost(host: *Testing.HeadlessHost, width, height: f32, light: bool)
 
     sheet.clear()
     Swag.assert(sheet.blocks.isEmpty() and sheet.action == null and sheet.secondary == null)
+
+    // A poster stands beside the title with the facts that follow it, the action right under them.
+    var poster = Image.create(40, 60, .RGB8)
+    var texture = host.app.renderer.addImage(&poster)
+    defer host.app.renderer.removeTexture(&texture)
+    sheet.setPicture(texture)
+    sheet.setPictureBeside(true)
+    sheet.setTitle("Blade Runner")
+    sheet.addFact("8.1", "IMDb")
+    sheet.addReading("Director", "Ridley Scott")
+    let open = sheet.setAction("Open", "sheet.open")
+    sheet.open()
+    Swag.assert(sheet.blocks[0].left > 0 and sheet.blocks[1].left == 0)
+    Swag.assert(open.position.bottom() < sheet.blocks[1].top)
+    sheet.clear()
+    Swag.assert(not sheet.beside)
 }
 
 // A sheet arrives from its edge and fades out, reachable at once on the way in and gone at

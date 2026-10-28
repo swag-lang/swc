@@ -168,8 +168,8 @@ impl AppearanceButton
                 themes = results.addSection(texts.appearance_Theme)
             with let entry = themes.addEntry(name)
             {
-                .detail = theme == me.appearanceTheme ? LensCheck : ""
-                .run    = func|button = me, theme|() { button.setAppearanceTheme(theme, notify: true) }
+                .checked = theme == me.appearanceTheme
+                .run     = func|button = me, theme|() { button.setAppearanceTheme(theme, notify: true) }
             }
         }
 
@@ -179,8 +179,8 @@ impl AppearanceButton
             choices = results.addSection(texts.appearance_Language)
             with let entry = choices.addEntry(texts.appearance_SystemLanguage)
             {
-                .detail = me.language.isEmpty() ? LensCheck : ""
-                .run    = func|button = me|() { discard catch button.setAppearanceLanguage("", notify: true) }
+                .checked = me.language.isEmpty()
+                .run     = func|button = me|() { discard catch button.setAppearanceLanguage("", notify: true) }
             }
         }
 
@@ -194,8 +194,8 @@ impl AppearanceButton
             let tag        = one.tag.toString()
             with let entry = choices.addEntry(name)
             {
-                .detail = one.tag == me.language ? LensCheck : ""
-                .run    = func|button = me, tag|() { discard catch button.setAppearanceLanguage(tag, notify: true) }
+                .checked = one.tag == me.language
+                .run     = func|button = me, tag|() { discard catch button.setAppearanceLanguage(tag, notify: true) }
             }
         }
 
@@ -208,9 +208,6 @@ impl AppearanceButton
         }
     }
 }
-
-// The mark of the choice in force, at the end of its row of the lens.
-private const LensCheck = "✓"
 
 // Reports whether `query` answers a row titled `title` or the group `group` it belongs to.
 private func lensAnswers(query, title, group: string)->bool => Lens.match(query, title).matched or Lens.match(query, group).matched

@@ -34,6 +34,12 @@ func lensCommandState(_: *Wnd, evt: IEvent)->bool
             state.shortcut = "Ctrl S"
         }
 
+        if state.id == LensTheme
+        {
+            state.updatedFields.add(.Checked)
+            state.checked = true
+        }
+
         if state.id == LensHidden
         {
             state.updatedFields.add(.Hidden)
@@ -151,6 +157,7 @@ func lensSetup(host: *Testing.HeadlessHost)->*Lens.View
     Swag.assert(lens.results.sections[1]!.label == "View" and lens.results.sections[1]!.entries.count == 2)
     let theme = lens.results.sections[1]!.entries[0]
     Swag.assert(theme.title == "Center Theme" and theme.spans.count == 1 and theme.spans[0].count == 6)
+    Swag.assert(theme.checked and not lens.results.sections[1]!.entries[1].checked)
 
     // The first row is chosen, the keys move the choice over the section labels, and the
     // disabled command is never chosen.

@@ -10,7 +10,8 @@ using Core, Pixel
 // trailing and bottom edges of its parent and clear of the window chrome at the top. It holds
 // what an information band used to show, and only while the reader asks for it: a title, a mono
 // line of identity, the facts the reader came for set large and light, readings as a label and a
-// value, section labels, a paragraph, links in Arc, and at most one primary action.
+// value, section labels, a paragraph, links in Arc, and at most one primary action. A picture of
+// what the sheet describes — a poster, a cover, a capture — may head it.
 //
 // The sheet floats over the work ([[Gui.DockStyle.Float]]) and stays hidden until
 // [[Gui.InfoSheet.open]]; the application binds the key that toggles it. Describe the content
@@ -39,6 +40,7 @@ struct InfoSheet
             title:    String           // Title of the sheet, set large and bold.
             identity: String           // Mono line of identity under the title: a path, a format, a date.
             action:   *PushButton?     // The one primary action of the sheet, when it has one.
+            picture:  Texture          // Picture heading the sheet, borrowed from its owner; invalid for none.
         }
     }
 
@@ -113,6 +115,15 @@ impl IWnd for InfoSheet
         let width = body.width - 2 * pad
         var y     = body.y + pad
 
+        // The picture keeps its proportions, on the corner of a control, at the head of the sheet.
+        if .picture.isValid()
+        {
+            let size = .pictureSize(width)
+            painter.setParams(.Antialiased)
+            painter.fillRoundRect(Math.Rectangle{x, y, size.x, size.y}, metrics.corner_Control, metrics.corner_Control, Brush.createTexture(.picture))
+            y += size.y + metrics.infoSheet_BlockGap
+        }
+
         let titleFont = theme.createDefaultFont(metrics.infoSheet_TitleFontSize, .Bold)
         if not .title.isEmpty()
         {
@@ -140,8 +151,10 @@ impl IWnd for InfoSheet
                 discard paintTextLine(painter, x + used + metrics.iconText_Margin * 0.5, centerY, block.label, monoFont, colors.faintText)
 
             case .Reading:
-                discard paintTextLine(painter, x, centerY, block.label, bodyFont, colors.softText)
-                discard paintTextLine(painter, x + metrics.infoSheet_LabelWidth, centerY, block.value, block.mono ? valueMono : bodyFont, colors.text)
+                // A label longer than its column pushes its value along rather than running into it.
+                let used   = paintTextLine(painter, x, centerY, block.label, bodyFont, colors.softText)
+                let valueX = Math.max(x + metrics.infoSheet_LabelWidth, Math.ceil(x + used + metrics.iconText_Margin))
+                discard paintTextLine(painter, valueX, centerY, block.value, block.mono ? valueMono : bodyFont, colors.text)
 
             case .Section:
                 paintSectionLabel(me, painter, Math.Rectangle{x, top, width, block.height}, block.label)
@@ -245,6 +258,16 @@ impl InfoSheet
         .relayout()
     }
 
+    // Heads the sheet with `picture`, or removes the picture with an invalid texture.
+    //
+    // The sheet borrows the texture: its owner keeps it alive while the sheet shows it, and sets
+    // another or clears the sheet before releasing it.
+    mtd setPicture(picture: Texture)
+    {
+        .picture = picture
+        .relayout()
+    }
+
     // Appends a fact the reader came for, set large and light, with an optional faint unit.
     mtd addFact(value: string, unit: string? = null)
     {
@@ -298,6 +321,7 @@ impl InfoSheet
     {
         .title.clear()
         .identity.clear()
+        .picture = {}
         .blocks.clear()
         if .action
         {
@@ -309,6 +333,50 @@ impl InfoSheet
         .relayout()
     }
 
+    // Returns every word the sheet shows, one line per piece in reading order: the title, the
+    // identity, then each block, a reading as its label over its value.
+    //
+    // This is what a screen reader or a test reads of the sheet; the picture has no words.
+    mtd text()->String
+    {
+        var result: #returntype
+        for piece in [.title.toString(), .identity.toString()] where piece.count
+        {
+            result += piece
+            result += "\n"
+        }
+
+        for block in .blocks
+        {
+            switch block.kind
+            {
+            case .Fact:
+                result += block.value
+                if not block.label.isEmpty()
+                {
+                    result += " "
+                    result += block.label
+                }
+            case .Reading:
+                result += block.label
+                result += "\n"
+                result += block.value
+            default:
+                result += block.label
+            }
+
+            result += "\n"
+        }
+
+        if .action
+        {
+            result += .action.name.raw
+            result += "\n"
+        }
+
+        return result
+    }
+
     // Returns the height the body needs at `width`, and places every block on the way.
     mtd measureBody(width: f32)->f32
     {
@@ -317,6 +385,8 @@ impl InfoSheet
         let pad     = metrics.infoSheet_Padding
 
         var y = pad
+        if .picture.isValid() do
+            y += .pictureSize(width - 2 * pad).y + metrics.infoSheet_BlockGap
         if not .title.isEmpty() do
             y += theme.createDefaultFont(metrics.infoSheet_TitleFontSize, .Bold).height
         if not .identity.isEmpty() do
@@ -359,6 +429,14 @@ impl InfoSheet
 
     // Returns the visible sheet: the window holds nothing else, its shadow falls outside it.
     private mtd body()->Math.Rectangle => .clientRect()
+
+    // Returns the size of the picture within `width`, its proportions kept and its height bounded.
+    private mtd pictureSize(width: f32)->Math.Point
+    {
+        let ratio  = cast(f32, .picture.height) / cast(f32, Math.max(.picture.width, 1))
+        let height = Math.min(.themeMetrics().infoSheet_PictureHeight, Math.round(width * ratio))
+        return {Math.round(height / Math.max(ratio, 0.01)), height}
+    }
 
     private mtd paragraphFormat()->RichStringFormat
     {

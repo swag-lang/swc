@@ -57,6 +57,7 @@ struct Entry
         monoTitle:  bool            // Whether the title is code or a measure, set in the fixed-width face.
         monoDetail: bool            // Whether the detail is a measure or a shortcut, set in the fixed-width face.
         disabled:   bool            // Whether the row is shown faint and cannot be chosen.
+        checked:    bool            // Whether the row is the choice or the setting in force, marked with a check in Arc.
         id:         WndId?          // Command posted to the owner of the lens when the row is chosen; borrowed for the life of the row.
         run:        (func||())?     // Action run when the row is chosen, once the lens has left the screen.
         spans:      Array'Span      // Runs of the title the query matched; the lens fills it when a source leaves it empty.

@@ -207,6 +207,7 @@ together on the Components page of `gui10`:
 | Mini-bar | `Gui.MiniBar` | `MiniBar.create(canvas)`; `addButton`, `addTextButton`, `addItem`, `addSeparator`; `showNear(selection)` when the selection moves, `hide()` when it goes |
 | Dock | `Gui.ToolDock` | `ToolDock.create(view)`; `addTool(icon, id, toolTip)`; `setActiveTool`; `sigToolChanged` |
 | Hint line | `Gui.HintLine` | `HintLine.create(view)`; `addHint(key, words)`, `setReading` |
+| Floating panel | `Gui.FloatingPanel` | `FloatingPanel.create(parent, rect)` for any other content that floats — a find bar, a transport, a list of files; the application places it, and `setShadow(false)` when it stands docked beside the work |
 
 - **The floating ones place themselves.** The dock, the sheet, the inspector, the hint line and the
   lens take `DockStyle.Float`: they take no room from the work, and they follow their parent

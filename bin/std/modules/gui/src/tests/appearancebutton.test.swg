@@ -220,7 +220,7 @@ using Swag, Core, Pixel
     lens.open(strings().appearance_Theme)
     let themes = unwrap lens.results.sections[0]
     Swag.assert(themes.label == strings().appearance_Theme and themes.entries.count == 3)
-    Swag.assert(themes.entries[0].detail == "✓" and themes.entries[1].detail.isEmpty())
+    Swag.assert(themes.entries[0].checked and not themes.entries[1].checked)
 
     lens.setQuery(strings().appearance_Light)
     Swag.assert(lens.chosenEntry()!.title == strings().appearance_Light)

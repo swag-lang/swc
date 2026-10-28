@@ -197,6 +197,7 @@ struct ThemeMetrics
         infoSheet_LineHeight:    f32 = 24      // Pitch of a reading.
         infoSheet_BlockGap:      f32 = 16      // Air between two blocks of an information sheet.
         infoSheet_LineGap:       f32 = 4       // Air under the title, and under a paragraph.
+        infoSheet_PictureHeight: f32 = 160     // Tallest the picture heading an information sheet gets.
 
         // The inspector: the sheet's shape docked at the trailing edge, holding the properties of a selection.
         inspector_Width:         f32 = 304     // Width of an inspector.

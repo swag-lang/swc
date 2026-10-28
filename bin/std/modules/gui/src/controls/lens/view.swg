@@ -484,6 +484,7 @@ private impl View
                 {
                     .id         = command.id
                     .disabled   = state.updatedFields.has(.Disabled) and state.disabled
+                    .checked    = state.updatedFields.has(.Checked) and state.checked
                     .monoDetail = true
                     if state.updatedFields.has(.Icon) do
                         .glyph = state.icon
@@ -650,6 +651,15 @@ private impl View
             let enter = "↵"
             trailing -= Painter.measureString(enter, small).width
             discard paintTextLine(painter, trailing, centerY, enter, small, colors.faintText)
+            trailing -= metrics.hintLine_GroupGap
+        }
+
+        // A choice in force carries its check in Arc, at the end of the row.
+        if entry.checked
+        {
+            let check = "✓"
+            trailing -= Painter.measureString(check, small).width
+            discard paintTextLine(painter, trailing, centerY, check, small, entry.disabled ? colors.disabled : colors.arc)
             trailing -= metrics.hintLine_GroupGap
         }
 

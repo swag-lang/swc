@@ -389,3 +389,28 @@ func floatingHost(host: *Testing.HeadlessHost, width, height: f32, light: bool)
         Pixel.Testing.assertImageGolden(&folded, light ? "floating.inspector.folded.paper" : "floating.inspector.folded.ink")
     }
 }
+
+// A floating panel holds what the application puts in it inside its padding; floating, it casts
+// its shadow outside its body, and docked beside the work it casts none.
+#test
+{
+    var host: Testing.HeadlessHost
+    floatingHost(&host, 480, 400, false)
+    let reach = host.theme.floatingShadowReach()
+
+    let panel = FloatingPanel.create(&host.root, {40, 40, 200, 48})
+    with let field = EditBox.create(panel, "", {})
+    {
+        .dockStyle = .Center
+    }
+
+    panel.applyLayout()
+    let pad = host.theme.metrics.miniBar_Padding
+    Swag.assert(field.position.x == pad and field.position.width == 200 - 2 * pad)
+    Swag.assert(panel.radius() == host.theme.metrics.corner_Floating)
+    Swag.assert(panel.invalidatePadding.w == -reach.w)
+    Swag.assert(host.mouseTargetAt({panel.position.horzCenter(), panel.position.bottom() + 4}) != &panel.wnd)
+
+    panel.setShadow(false)
+    Swag.assert(panel.invalidatePadding.w == 0 and not panel.wndFlags.has(.BeforeChildrenPaint))
+}

@@ -186,7 +186,7 @@ func lensHasEntry(window: *MainWindow, title: string)->bool
     Swag.assert(not reference.job.running)
 }
 
-// Every command of the window is an entry of the lens, and its choices answer the empty query.
+// Every command of the window is an entry of the lens, and its choices answer their family.
 #test
 {
     var host: Testing.HeadlessHost
@@ -210,15 +210,42 @@ func lensHasEntry(window: *MainWindow, title: string)->bool
     window.lens.close()
 
     window.applyView(.Compare)
-    window.lens.open()
-    Swag.assert(lensHasEntry(window, exampleName(.Plasma)) and lensHasEntry(window, strings.ui_StageConstFold))
-    Swag.assert(lensHasEntry(window, "O1") and
-                lensHasEntry(window, "devmode") and
-                lensHasEntry(window, strings.ui_Render2D))
+    for query in [strings.lens_Stage, strings.lens_Optimization, strings.lens_Preset, strings.lens_ViewAs]
+    {
+        window.lens.open(query)
+        Swag.assert(lensHasEntry(window, strings.ui_StageConstFold) or
+                    lensHasEntry(window, "O1") or
+                    lensHasEntry(window, "devmode") or
+                    lensHasEntry(window, strings.ui_Render2D))
+        window.lens.close()
+    }
+
+    window.lens.open(strings.lens_ViewAs)
     var sides = 0'u64
     for section in window.lens.results.sections where section!.label == sectionLabel(strings.lens_ViewAs, strings.ui_LeftColumn) do
         sides += 1
     Swag.assert(sides == 1)
+    window.lens.close()
+
+    // At rest the lens offers the actions of the view in force, then the examples.
+    window.lens.open()
+    Swag.assert(window.lens.results.sections[0]!.label == strings.cmd_ShowCompare)
+    Swag.assert(lensHasEntry(window, strings.cmd_Compile) and lensHasEntry(window, exampleName(.Plasma)))
+    Swag.assert(not lensHasEntry(window, strings.cmd_ShowCompare) and not lensHasEntry(window, "O1"))
+    window.lens.close()
+
+    window.applyView(.Stages)
+    window.lens.open()
+    Swag.assert(window.lens.results.sections[0]!.label == strings.cmd_ShowStages)
+    Swag.assert(lensHasEntry(window, strings.cmd_PreviousStage) or lensHasEntry(window, strings.cmd_NextStage))
+    Swag.assert(lensHasEntry(window, strings.cmd_ShowChange) and lensHasEntry(window, strings.cmd_ShowCompare))
+    Swag.assert(not lensHasEntry(window, strings.cmd_FormatSource))
+    window.lens.close()
+
+    window.applyView(.Columns)
+    window.lens.open()
+    Swag.assert(window.lens.results.sections[0]!.label == strings.cmd_ShowColumns)
+    Swag.assert(lensHasEntry(window, strings.cmd_FormatSource) and not lensHasEntry(window, strings.cmd_NextStage))
     window.lens.close()
 
     // The door opens on its chord, and the hint line stops teaching it.

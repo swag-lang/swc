@@ -690,6 +690,15 @@ func assertColumnFits(window: *MainWindow, page: *Wnd, column: *Wnd)
     Swag.assert(not lensHasEntry(window, texts.ui_Mount))
     window.lens.close()
 
+    // At rest the lens offers what the chosen vault can do now, under its name, then the way to
+    // another vault.
+    window.lens.open()
+    Swag.assert(window.lens.results.sections[0]!.label == "locked")
+    Swag.assert(lensHasEntry(window, texts.ui_Unmount) and lensHasEntry(window, Format.toString(texts.ui_OpenDrive, "X:")))
+    Swag.assert(lensHasEntry(window, texts.ui_NewVault) and lensHasEntry(window, texts.ui_OpenFile))
+    Swag.assert(not lensHasEntry(window, texts.ui_MountAtStartup) and not lensHasEntry(window, texts.ui_Mount))
+    window.lens.close()
+
     // The vaults answer a query by name.
     window.addVault("C:\\vaults\\other.bin")
     window.lens.open("other")

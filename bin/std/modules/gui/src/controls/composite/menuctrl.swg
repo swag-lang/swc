@@ -4,6 +4,7 @@ using Core, Pixel
 public enum PopupPosition
 {
     TopLeft                // Places the popup's top-left corner at the anchor.
+    TopRight               // Places the popup's top-right corner at the anchor, for a menu opened from the end of a line.
     AnchorTopCenter        // Centers the popup below the anchor.
     AnchorBottomCenter     // Centers the popup above the anchor.
 }
@@ -51,6 +52,7 @@ public struct PopupMenuItem
         disabled:   bool          // Whether the item cannot be chosen.
         checked:    bool          // Whether the item shows a check or radio mark.
         hidden:     bool          // Whether the item is left out of the menu.
+        critical:   bool          // Whether the item destroys something: its words take the critical ink.
     }
 
     submenuOpensLeft: bool     // Resolved opening side used by layout and painting.
@@ -243,7 +245,7 @@ public impl IWnd for MenuCtrl
                 continue
             }
 
-            colorText      = it.disabled ? colors.popupItem_DisabledText : colors.popupItem_Text
+            colorText      = it.disabled ? colors.popupItem_DisabledText : (it.critical ? colors.critical : colors.popupItem_Text)
             colorRightText = it.disabled ? colors.popupItem_DisabledText : colors.popupItem_RightText
 
             // Back selection
@@ -1374,6 +1376,10 @@ public impl MenuCtrl
             case .TopLeft:
                 pt -= .themeMetrics().menuPopup_ShadowSize
                 .setPosition(Math.Rectangle{pt.x, pt.y, .position.width, .position.height})
+
+            case .TopRight:
+                let shadow = .themeMetrics().menuPopup_ShadowSize
+                .setPosition(Math.Rectangle{pt.x - .position.width + shadow, pt.y - shadow, .position.width, .position.height})
 
             case .AnchorTopCenter:
                 pt.y += .themeMetrics().menuPopup_ShadowSize

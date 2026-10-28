@@ -750,6 +750,12 @@ private func interpolateChroma(dst: [*] u8, dstStride: u64, src: [*] u8, srcStri
         return
     }
 
+    if width == 2
+    {
+        interpolateChroma2(dst, dstStride, src, srcStride, fracX, fracY, height)
+        return
+    }
+
     var out  = dst
     var line = src
     if fracY == 0
@@ -852,6 +858,53 @@ private func interpolateChroma(dst: [*] u8, dstStride: u64, src: [*] u8, srcStri
     }
 }
 
+// Fractional chroma for two-pixel rows; source windows provide the wider loads,
+// but only the two low bytes are written.
+#[Swag.NoInline]
+private func interpolateChroma2(dst: [*] u8, dstStride: u64, src: [*] u8, srcStride: u64, fracX, fracY, height: s32)
+{
+    var out  = dst
+    var line = src
+    if fracY == 0
+    {
+        let weights = chromaWeights((8 - fracX) * 8, fracX * 8)
+        for cast(u64, height)
+        {
+            storeChromaBlend2(out, chromaPairs(Simd.load(line), Simd.load(line + 1), weights))
+            out  += dstStride
+            line += srcStride
+        }
+        return
+    }
+
+    if fracX == 0
+    {
+        let weights = chromaWeights((8 - fracY) * 8, fracY * 8)
+        var upper   = Simd.load(line)
+        for cast(u64, height)
+        {
+            line += srcStride
+            let lower = Simd.load(line)
+            storeChromaBlend2(out, chromaPairs(upper, lower, weights))
+            upper = lower
+            out  += dstStride
+        }
+        return
+    }
+
+    let topWeights    = chromaWeights((8 - fracX) * (8 - fracY), fracX * (8 - fracY))
+    let bottomWeights = chromaWeights((8 - fracX) * fracY, fracX * fracY)
+    var upper         = Simd.interleaveLow(Simd.load(line), Simd.load(line + 1))
+    for cast(u64, height)
+    {
+        line += srcStride
+        let lower = Simd.interleaveLow(Simd.load(line), Simd.load(line + 1))
+        storeChromaBlend2(out, Simd.mulAddPairs(upper, topWeights) + Simd.mulAddPairs(lower, bottomWeights))
+        upper = lower
+        out  += dstStride
+    }
+}
+
 // The two weights of one bilinear blend, packed as the byte pair the multiply below reads.
 #[Swag.Inline]
 private func chromaWeights(first, second: s32)->Simd.S8x16 => cast #bit(Simd.S8x16, Simd.splat(cast(u16, (first | (second << 8)))))
@@ -877,6 +930,14 @@ private func storeChromaBlend(out: [*] u8, width: s32, value: Simd.S16x8)
         Simd.storeLow8(out, packed)
     else do
         Simd.storeLow4(out, packed)
+}
+
+// Two-pixel blocks write only their low two result bytes.
+#[Swag.Inline]
+private func storeChromaBlend2(out: [*] u8, value: Simd.S16x8)
+{
+    let packed = Simd.packUnsigned((value + 32) >> 6, (value + 32) >> 6)
+    cast([*] u16, out)[0] = cast #bit(Simd.U16x8, packed)[0]
 }
 
 // Applies one explicit weight to a predicted block, section 8.4.2.3.2.

@@ -125,8 +125,11 @@ struct AppStrings
     ui_NextObjects:             string = "next objects"                // Detail of the inspector title when nothing is selected: the tool's settings apply to what is drawn next.
     hint_Space:                 string = "capture, open, library"      // What the Space key opens, on the hint line of the editor.
     hint_LibrarySpace:          string = "export, tag, rate, move"     // What the Space key opens, on the hint line of the library.
+    ui_LibraryEmpty:            string = "No captures here yet."       // Sentence of a library folder that holds nothing.
+    ui_LibraryNoMatch:          string = "No capture matches the filters or the search."     // Sentence of a library page the filters emptied.
     lens_Tools:                 string = "Tools"                       // Lens section of the drawing tools.
     lens_Recent:                string = "Recent"                      // Lens section of the recent captures.
+    lens_Selection:             string = "Selection"                   // Lens section of the actions of the selected shapes, at rest.
     lens_Dates:                 string = "Dates"                       // Lens section of the dates the library can be narrowed to.
     ui_ModeArea:                string = "Area"                        // Capture mode of the area overlay: the zone the reader draws.
     ui_ModeActiveWindow:        string = "Active Window"               // Capture mode of the area overlay: the window in front.

@@ -357,8 +357,11 @@ ui_Objects             % objets
 ui_NextObjects         prochains objets
 hint_Space             capturer, ouvrir, bibliothèque
 hint_LibrarySpace      exporter, étiqueter, noter, déplacer
+ui_LibraryEmpty        Aucune capture ici pour l'instant.
+ui_LibraryNoMatch      Aucune capture ne correspond aux filtres ou à la recherche.
 lens_Tools             Outils
 lens_Recent            Récentes
+lens_Selection         Sélection
 act_OpenLens           Rechercher une commande
 act_ShowInspector      Propriétés
 act_ShowRecent         Captures récentes

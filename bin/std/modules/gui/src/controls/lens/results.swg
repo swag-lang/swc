@@ -62,6 +62,8 @@ struct Entry
         run:        (func||())?     // Action run when the row is chosen, once the lens has left the screen.
         spans:      Array'Span      // Runs of the title the query matched; the lens fills it when a source leaves it empty.
     }
+
+    score: s32     // How well the query answered the title; the lens ranks the rows by it.
 }
 
 // A group of rows under one section label.
@@ -71,8 +73,12 @@ struct Section
     {
         label:   String          // Words of the section label, written in small spaced capitals.
         count:   u32             // Number written after the label, as in "In this file · 5"; zero writes none.
-        entries: Array'Entry     // Rows of the group, best first.
+        entries: Array'Entry     // Rows of the group, in the order their source gave them.
     }
+
+    order:  Array'u64     // Rows the lens shows, by index into `entries`, in the order it shows them.
+    best:   s32           // Score of the best row shown.
+    ranked: bool          // Whether the lens ranks the rows, as it does the commands of a family.
 }
 
 impl Section

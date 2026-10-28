@@ -298,6 +298,7 @@ struct ThemeMetrics
         property_CondensedRowHeight: f32 = 26     // Height of a row of the condensed property grid.
         property_FieldGap:           f32 = 8      // Air between two fields of one value, such as the axes of a vector.
         quiet_Height:                f32 = 32     // Height of a quiet control: the words of a header that act or open a menu.
+        quiet_ChevronGap:            f32 = 2      // Air between the words of a quiet control and the box of its chevron, whose ink is inset.
 
         progressBar_Height:     f32 = 16      // Height of a progress bar created without one.
         progressBar_TrackSize:  f32 = 4       // Thickness of the track, centered in the bar.

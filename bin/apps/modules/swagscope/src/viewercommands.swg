@@ -67,6 +67,15 @@ impl ViewerWindow
     {
         with .lens = Lens.View.create(me)
         {
+            // At rest: how the file is seen, what its viewer can do, and the essentials of a file.
+            .addRestSource(func|window = me|(results) { window.describeViewerChoices(results) })
+            .addRestSource(func|window = me|(results) { window.describeViewerCommands(results) })
+            .addRestSource(func|window = me|(results)
+            {
+                let section = results.addSection(appStrings().lens_File)
+                window.lens.addCommandRows(section, [ViewerCommands.Open, ViewerCommands.Explore, ViewerCommands.PreviousFile,
+                                                     ViewerCommands.NextFile, ViewerCommands.Information, ViewerCommands.OpenWith], enabledOnly: true)
+            })
             .addSource(.None, func|window = me|(results) { window.describeViewerChoices(results) })
             .addSource(.Action, func|window = me|(results) { window.describeViewerCommands(results) })
             .addSource(.File, func|window = me|(results) { window.describeFiles(results) })

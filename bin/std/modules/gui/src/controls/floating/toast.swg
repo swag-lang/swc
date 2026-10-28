@@ -2,6 +2,9 @@
 
 using Core, Pixel
 
+// The mark between the sentence of a toast and the name after it.
+private const ToastDetailMark = "·"
+
 // Selects the dot a [[Gui.Toast]] leads with.
 enum ToastTone
 {
@@ -76,6 +79,8 @@ impl IWnd for Toast
         x += paintTextLine(painter, x, centerY, .message.toString(), font, colors.text)
         if .detail.length
         {
+            x += metrics.toast_DetailGap
+            x += paintTextLine(painter, x, centerY, ToastDetailMark, font, colors.faintText)
             x += metrics.toast_DetailGap
             x += paintTextLine(painter, x, centerY, .detail.toString(), mono, colors.faintText)
         }
@@ -178,7 +183,7 @@ private impl Toast
             width += metrics.toast_DotSize + metrics.toast_Gap
         width += Painter.measureString(.message.toString(), font).width
         if .detail.length do
-            width += metrics.toast_DetailGap + Painter.measureString(.detail.toString(), mono).width
+            width += 2 * metrics.toast_DetailGap + Painter.measureString(ToastDetailMark, font).width + Painter.measureString(.detail.toString(), mono).width
 
         .actionRect = {}
         if .action.length

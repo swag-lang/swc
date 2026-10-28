@@ -471,11 +471,14 @@ impl MainWnd
     }
 
     // The one door: every command of the application, the recent captures, the theme, the
-    // language and About.
+    // language and About. At rest it offers what can be done here and now: the actions of the
+    // selection, or the captures when nothing is selected, then the image and the recent captures.
     mtd createLens()
     {
         with .lens = Lens.View.create(me)
         {
+            .addRestSource(func|main = me|(results) { main.describeLensContext(results) })
+            .addRestSource(func|main = me|(results) { main.describeRecentCaptures(results) })
             .addSource(.None, func|main = me|(results) { main.describeRecentCaptures(results) })
             .addSource(.None, func|main = me|(results)
             {
@@ -523,6 +526,31 @@ impl MainWnd
         }
 
         .appearanceButton.addToLens(.lens)
+    }
+
+    // Offers, at rest, the actions of what is in hand: the selection's when shapes are selected,
+    // the captures otherwise, then the image's.
+    mtd describeLensContext(results: *Lens.Results)
+    {
+        if .libraryMode
+        {
+            .libWnd.describeLens(results)
+            return
+        }
+
+        let selection = results.addSection(appStrings().lens_Selection)
+        .lens.addCommandRows(selection, [
+            ActionEdit.EditText, ActionCopyPaste.Duplicate, ActionCopyPaste.Copy, ActionSelection.DeleteSelection,
+            ActionAlign.SendToFront, ActionAlign.SendToBack, ActionGroup.Group, ActionGroup.Ungroup, ActionEdit.ResetRotation], enabledOnly: true)
+
+        if selection.entries.isEmpty()
+        {
+            let capture = results.addSection(appStrings().ui_MenuCapture)
+            .lens.addCommandRows(capture, [ActionCapture.Area, ActionCapture.LastArea, ActionCapture.FullScreen, ActionFile.OpenImage], enabledOnly: true)
+        }
+
+        let image = results.addSection(appStrings().ui_MenuImage)
+        .lens.addCommandRows(image, [ActionFile.SaveAsImage, ActionCopyPaste.CopyAsImage, ActionImage.ResizeImage], enabledOnly: true)
     }
 
     // Answers the lens with the recent captures whose name matches the query.

@@ -28,8 +28,9 @@ struct Match
 //
 // A query found whole in the text answers best, and better still where a word starts — at the
 // beginning of the text, after a separator, or at a capital inside a camel-case name — and the
-// earlier the better. Otherwise its characters must appear in the text in order, which answers
-// less well the further they are scattered. An empty query answers every text with a score of zero.
+// earlier the better. Then the initials of its words in order: "cla" answers "Capture Last Area".
+// Otherwise its characters must appear in the text in order, which answers less well the further
+// they are scattered. An empty query answers every text with a score of zero.
 //
 // ```swag
 // let found = Lens.match("cgr", "centerGroup")
@@ -83,6 +84,27 @@ func match(query: string, text: string)->Match
         return result
     }
 
+    // The initials of the words, in order, each the next word start that carries it.
+    var initials: Array'Span
+    var at = 0'u64
+    for r in needle
+    {
+        while at < haystack.count and not (haystack[at].wordStart and haystack[at].folded == r.folded) do
+            at += 1
+        if at == haystack.count do
+            break
+        initials.add(Span{haystack[at].offset, haystack[at].size})
+        at += 1
+    }
+
+    if initials.count == needle.count
+    {
+        result.matched = true
+        result.score   = InitialsScore - cast(s32, haystack.count)
+        result.spans   = #move initials
+        return result
+    }
+
     // The characters in order, each taken as early as it comes.
     var next      = 0'u64
     var scattered = 0's32
@@ -113,12 +135,17 @@ func match(query: string, text: string)->Match
     return result
 }
 
-// Scores of the two ways a query answers. A whole occurrence always ranks above characters found
-// in order, whatever their positions.
+// Scores of the three ways a query answers. A whole occurrence always ranks above the initials of
+// the words, and they above characters found in order, whatever their positions.
 private const WholeScore     = 10000's32
 private const WordStartBonus = 1000's32
+private const InitialsScore  = 8000's32
 private const OrderScore     = 5000's32
 private const ScatterCost    = 100's32
+
+// Lowest score of an answer better than scattered letters: a lens that holds one of those leaves
+// the scattered ones out.
+internal const ClearMatchScore = 6000's32
 
 // One character of a text, folded for comparison and placed in the bytes of its text.
 private struct FoldedRune

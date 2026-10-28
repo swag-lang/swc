@@ -640,3 +640,28 @@ const LibraryGoldenTitles = ["Side panel", "Error bubble", "Swag lexer", "Dark e
         Swag.assert(rendered.isValid())
     }
 }
+
+// The lens as a reader meets it in the editor, a text shape in hand: opened empty, it offers what
+// can be done here and now; typed into, it ranks the context before the rest.
+#[Swag.TestTag("golden")]
+#test
+{
+    var host: Gui.Testing.HeadlessHost
+    let main = testSetupEditorSurface(&host, dark: true)
+    defer
+    {
+        main.libWnd.requestClose()
+        host.shutdown()
+        g_Main = null
+    }
+
+    for query, index in ["", "arr"]
+    {
+        main.lens.open(query)
+        host.finishAnimations()
+        var image = host.render(main)
+        Pixel.Testing.assertImageGolden(&image, index == 0 ? "showcase.lens.empty" : "showcase.lens.query")
+        main.lens.close()
+        host.finishAnimations()
+    }
+}

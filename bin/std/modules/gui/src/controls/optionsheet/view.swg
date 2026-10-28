@@ -1071,15 +1071,14 @@ private impl View
         let theme  = .theme()
         let colors = .themeColors()
         let rects  = .themeRects()
+        // The steps are the stepper's: two glyphs in the soft ink, with a ground only under the
+        // pointer, so the value between them is what the row shows.
         if hot and enabled do
             theme.drawSubRect(painter, box, &rects.btnIcon_RoundSquareBk, fadeColor(colors.optionSheet_HotBk, opacity))
-        let border = enabled ? colors.optionSheet_StepBorder : colors.popupItem_DisabledSubmenuMarker
-        let radius = rects.btnIcon_RoundSquareBk.radius
-        painter.drawRoundRect(box, radius, radius, Pen.createSolid(fadeColor(border, opacity)))
 
         // The glyph is drawn rather than taken from the atlas, so its stroke stays crisp at every
         // size a row gives the button.
-        let ink  = fadeColor(enabled ? colors.popupItem_Text : colors.popupItem_DisabledText, opacity)
+        let ink  = fadeColor(enabled ? colors.popupItem_RightText : colors.popupItem_DisabledText, opacity)
         let pen  = Pen.createSolid(ink, 1.5)
         let half = Math.round(box.width * 0.22)
         let cx   = Math.round(box.horzCenter())
@@ -1141,6 +1140,7 @@ private impl View
         painter.pushClippingRect(list)
         list.x += pixelOffsetX
         var y = list.y + .rowTopInset() - scroll
+        let lead = pageNeedsLead(page)
         for row, index in page.rows
         {
             let height = .rowHeight(row)
@@ -1148,7 +1148,7 @@ private impl View
             {
                 let rect = .rowRect(list, y, height)
                 let hot  = focused and focus == cast(s32, index)
-                .paintRow(painter, row, rect, hot, opacity)
+                .paintRow(painter, row, rect, hot, opacity, lead)
             }
 
             y += height
@@ -1157,7 +1157,7 @@ private impl View
         painter.popClippingRect()
     }
 
-    mtd paintRow(painter: *Painter, row: const *Row, rect: Math.Rectangle, hot: bool, opacity: f32)
+    mtd paintRow(painter: *Painter, row: const *Row, rect: Math.Rectangle, hot: bool, opacity: f32, lead: bool)
     {
         let theme   = .theme()
         let colors  = .themeColors()
@@ -1194,7 +1194,8 @@ private impl View
         let markerColor = fadeColor(row.disabled ? colors.popupItem_DisabledSubmenuMarker : (hot ? colors.popupItem_HotSubmenuMarker : colors.popupItem_SubmenuMarker), opacity)
 
         // The leading column holds the glyph of a link or the check of the value in force, so the
-        // wording of every row of a page starts at the same place.
+        // wording of every row of a page starts at the same place. A page with neither starts its
+        // words at the row's own edge.
         let leadX  = rect.x + metrics.optionSheet_RowPadding
         let iconSz = metrics.menuPopup_IconSize
         let center = row.detail.isEmpty() ? rect.vertCenter() : rect.y + rect.height * 0.32
@@ -1244,7 +1245,7 @@ private impl View
         }
 
         // The wording fills what is left between the two ends.
-        let labelX     = leadX + iconSz + metrics.menuPopup_IconTextMargin
+        let labelX     = lead ? leadX + iconSz + metrics.menuPopup_IconTextMargin : leadX
         let labelW     = Math.max(right - metrics.menuPopup_IconTextMargin - labelX, 0)
         var label      = row.label
         let labelColor = row.kind == .Action and not row.disabled ? fadeColor(colors.url_Text, opacity) : textColor
@@ -1342,3 +1343,15 @@ private impl View
 }
 
 // Scales the alpha of `color` by `opacity`.
+
+// Reports whether a row of `page` uses the leading column: the check of a choice, or the glyph of a link.
+private func pageNeedsLead(page: const *Page)->bool
+{
+    for row in page.rows
+    {
+        if row.kind == .Choice or (row.kind == .Link and row.icon.isValid()) do
+            return true
+    }
+
+    return false
+}

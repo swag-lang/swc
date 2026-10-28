@@ -153,6 +153,12 @@ impl IActionUI for ActionEdit
             // Works for both FormText and FormCallout; editText prefills with the current
             // text and pushes a SetText undo that updates every selected editable form.
             let f = capture.forms[capture.selection.back()]
+            if f is FormCallout as callout
+            {
+                main.editWnd.editView.beginTextEdit(callout)
+                return true
+            }
+
             let t = formEditableText(f)
             if t do
                 discard PropWnd.editText(main, t[])

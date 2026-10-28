@@ -362,6 +362,119 @@ func testCollectSwatches(wnd: *Wnd, result: *Array'(*IconButton))
     swatches[0].hidePopup()
 }
 
+// Builds the in-place editor over a quiet desktop of the size of the host, with the zone grabbed
+// at 300, 160, 440 by 240 and an arrow drawn on it, in `dark` or light.
+func testSetupInPlace(host: *Gui.Testing.HeadlessHost, dark: bool)->*InPlaceEditWnd
+{
+    let main = testSetupSurfaceMain(host)
+    if dark do
+        host.theme.setDark()
+    else do
+        host.theme.setLight()
+    host.theme.metrics.surfaceWnd_ShadowSize   = 0
+    host.theme.metrics.surfaceWnd_CornerRadius = 0
+    host.notify(.ThemeChanged)
+
+    var desktop = Image.create(1024, 640, .BGRA8)
+    desktop.fillGradient(Color.fromArgb(0xFF2A3350), Color.fromArgb(0xFF3A3346), Color.fromArgb(0xFF30293A), Color.fromArgb(0xFF5A3A2C))
+    g_DesktopX, g_DesktopY = 0
+    g_ScreenWidth  = 1024
+    g_ScreenHeight = 640
+    g_StartGrabX   = 300
+    g_StartGrabY   = 160
+    g_EndGrabX     = 740
+    g_EndGrabY     = 400
+
+    with let capture = Memory.new'Capture()
+    {
+        .width          = 440
+        .height         = 240
+        .backImg        = desktop
+        .backImagePos.x = -300
+        .backImagePos.y = -160
+        .inPlaceEdit    = true
+    }
+
+    with let arrow = testAddArrow(capture, 60, 190, 300, 70)
+    {
+        .borderColor = ColorRed
+        .borderSize  = 6
+        .endCap      = .ArrowAnchor
+    }
+
+    let editor = InPlaceEditWnd.create(capture, main, &host.surfaceWnd)
+    editor.setPosition(host.surfaceWnd.clientRect())
+    editor.applyLayout()
+    editor.placeBar()
+    host.finishAnimations()
+    return editor
+}
+
+// Editing in place, right after a capture: the desktop dimmed, the zone in full light with its
+// edge and its size, the one bar under it, and the keys at the foot, in Encre and in Papier.
+#[Swag.TestTag("golden")]
+#test
+{
+    for dark in [true, false]
+    {
+        var host: Gui.Testing.HeadlessHost
+        let editor = testSetupInPlace(&host, dark)
+        defer
+        {
+            g_Main?.libWnd.requestClose()
+            host.shutdown()
+            g_Main = null
+        }
+
+        // One bar: the ten tools, the colour, the three destinations, Copy and the cross.
+        Swag.assert(editor.bar.isLocallyVisible())
+        Swag.assert(editor.bar.position.y >= editor.editWnd.editView.getCaptureRect().bottom())
+        var image = host.render(editor)
+        Pixel.Testing.assertImageGolden(&image, dark ? "inplace" : "inplace.paper")
+    }
+}
+
+// A callout whose words are typed in place: the field over its body, the hint of the tail, in
+// Encre.
+#[Swag.TestTag("golden")]
+#test
+{
+    var host: Gui.Testing.HeadlessHost
+    let main = testSetupEditorSurface(&host, dark: true, text: false)
+    defer
+    {
+        main.libWnd.requestClose()
+        host.shutdown()
+        g_Main = null
+    }
+
+    let capture = unwrap main.getCapture()
+    with let callout = testAddCallout(capture, 60, 120, 220, 64)
+    {
+        .text      = "New panel"
+        .backColor = ColorRed
+        .tailX     = 180
+        .tailY     = 60
+    }
+
+    capture.selection.add(0)
+    capture.selectionHasChanged()
+    main.applyLayout()
+    main.editWnd.editView.beginTextEdit(callout)
+    host.finishAnimations()
+    Swag.assert(main.editWnd.editView.textEdit != null and callout.editingText)
+
+    var image = host.render(main)
+    Pixel.Testing.assertImageGolden(&image, "edit.callout")
+
+    // Ending keeps the words as one step of the history.
+    main.editWnd.editView.textEdit.setText("New panels")
+    main.editWnd.editView.endTextEdit()
+    Swag.assert(callout.text == "New panels" and not callout.editingText)
+    capture.undo()
+    Swag.assert(callout.text == "New panel")
+}
+
 // The lens over the editor, answering a query with commands of several families, in Papier.
 #[Swag.TestTag("golden")]
 #test

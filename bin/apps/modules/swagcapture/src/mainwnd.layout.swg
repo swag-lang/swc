@@ -240,8 +240,12 @@ impl MainWnd
             if kind == .Text
             {
                 .miniBar.addSeparator()
+                .addTextFace()
+                .miniBar.addSeparator()
                 .miniBar.addTextButton(appStrings().prop_StyleBold, ActionEdit.Bold)
                 .miniBar.addTextButton(appStrings().prop_StyleItalic, ActionEdit.Italic)
+                .miniBar.addSeparator()
+                .addTextAlignment()
             }
             elif kind == .Step
             {
@@ -261,6 +265,72 @@ impl MainWnd
         .miniBar.addButton(theme.icon(.More, size), toolTip: appStrings().act_ShowInspector).sigPressed += func|main = me|(_)
         {
             main.inspector.setFolded(false)
+        }
+    }
+
+    // Returns the face, the size and the horizontal alignment of the selected text or callout.
+    mtd selectedTextStyle()->{found: bool, type: typeinfo, face: string, size: f32, align: FormTextAlign}
+    {
+        switch .getCapture()?.getSelectedBaseForm()
+        {
+        case FormText as text:       return {true, FormText, text.fontName.toString(), text.fontSize, text.alignHorz}
+        case FormCallout as callout: return {true, FormCallout, callout.fontName.toString(), callout.fontSize, callout.alignHorz}
+        }
+
+        return {false, FormText, "", 0, .Center}
+    }
+
+    // Adds the face of the text and its size to the mini-bar: the face opens the properties,
+    // where every face is listed; the size is a stepper.
+    mtd addTextFace()
+    {
+        let style = .selectedTextStyle()
+        if not style.found do
+            return
+
+        let name = style.face.count ? style.face : appStrings().prop_Font
+        .miniBar.addTextButton(name).sigPressed += func|main = me|(_) { main.inspector.setFolded(false) }
+
+        with let stepper = Stepper.create(.miniBar, {0, 0, StepperWidth, 0})
+        {
+            .setRange(cast(s64, MinFontSize), cast(s64, MaxFontSize))
+            .setValue(cast(s64, Math.round(style.size)))
+            .sigChanged += func|main = me, type = style.type|(wnd)
+            {
+                let value = cast(f32, (assume cast(*Stepper, wnd)).value)
+                main.propWnd.pushTypedValue(cast #bit (u32, value), type, #nameof(FormText.fontSize), true)
+            }
+        }
+
+        .miniBar.addItem(stepper)
+    }
+
+    // Adds the three horizontal alignments of the text to the mini-bar, the one in force checked.
+    mtd addTextAlignment()
+    {
+        let style = .selectedTextStyle()
+        if not style.found do
+            return
+
+        const Aligns = [FormTextAlign.LeftTop, FormTextAlign.Center, FormTextAlign.RightBottom]
+        const Glyphs = [CaptureIcons.TextAlignLeft, CaptureIcons.TextAlignCenter, CaptureIcons.TextAlignRight]
+        let size = .themeMetrics().menuPopup_IconSize
+        for align, i in Aligns
+        {
+            with let button = .miniBar.addButton(.icon(Glyphs[i], size), toolTip: appStrings().ui_Anchor, flags: .Radio)
+            {
+                .userData = enumToUserData(align)
+                .setChecked(style.align == align)
+                .sigPressed += func|main = me, type = style.type|(btn)
+                {
+                    main.propWnd.pushTypedValue(cast(u32, enumFromUserData'FormTextAlign(btn.userData)), type, #nameof(FormText.alignHorz), true)
+                    for item in main.miniBar.items
+                    {
+                        if item.wnd is IconButton as other where other.flags.has(.Radio) do
+                            other.setChecked(other == btn)
+                    }
+                }
+            }
         }
     }
 
@@ -361,6 +431,13 @@ impl MainWnd
         if .hintLine == null do
             return
         .hintLine.clearHints()
+        if .editWnd != null and .editWnd.editView.textForm
+        {
+            .hintLine.addHint("", appStrings().hint_CalloutTail)
+            .hintLine.addHint(strings().key_Escape, appStrings().hint_EndText)
+            return
+        }
+
         let tool = .toolHint()
         if not tool.isEmpty() do
             .hintLine.addHint("", tool)

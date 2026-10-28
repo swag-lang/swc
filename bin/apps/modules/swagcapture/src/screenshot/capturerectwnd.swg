@@ -273,15 +273,6 @@ impl IWnd for CaptureRectWnd
         .paintSizeChip(painter, grabRect, dstGrab)
         .paintLoupe(painter)
         .paintModeBar(painter)
-
-        // The keys at the foot stand on a chip of the surface: unlike a window, the overlay has
-        // the whole desktop under its hint line, and faint words on a picture do not read.
-        if .hintLine != null
-        {
-            var keys = .hintLine.position
-            keys.inflate(AreaChipPadding * 2, AreaChipPadding * 0.5)
-            painter.fillRoundRect(keys, .themeMetrics().corner_Floating, .themeMetrics().corner_Floating, colors.surface)
-        }
     }
 }
 

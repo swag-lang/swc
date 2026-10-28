@@ -1,3 +1,9 @@
+// How much the desktop around the zone of the in-place editor is darkened, out of 255.
+const InPlaceDimAlpha = 110'u8
+
+// The smallest size the field typing a callout's words takes, whatever the zoom.
+const MinInlineFontSize = 8.0
+
 // The editor surface: the capture at its zoom, inside a margin, and the mouse edits on its forms.
 struct EditView
 {
@@ -11,6 +17,10 @@ struct EditView
 
     // Set by [EditView.setInPlaceEdit], which owns the zoom from then on.
     readonly inPlaceEdit: bool
+
+    // The field the words of a callout are typed in, over the callout, and the callout.
+    textEdit: *EditBox?
+    textForm: *FormCallout?
 }
 
 impl IWnd for EditView
@@ -20,6 +30,20 @@ impl IWnd for EditView
         evt.accepted = false
         if not .capture do
             return
+
+        // A double click on a callout types its words in place.
+        if evt.kind == .DoubleClick and evt.button == .Left and .capture.hotForm < .capture.forms.count
+        {
+            if .capture.forms[.capture.hotForm] is FormCallout as callout
+            {
+                .capture.selection.clear()
+                .capture.selection.add(.capture.hotForm)
+                .capture.selectionHasChanged()
+                .beginTextEdit(callout)
+                evt.accepted = true
+                return
+            }
+        }
 
         if .capture.mouse(me, evt)
         {
@@ -75,6 +99,11 @@ impl IWnd for EditView
         clip.inflate(100, 100)
         .capture.paint(painter, clip, captureRect)
 
+        // In place, the desktop stays dimmed around the zone, which keeps a white hairline and
+        // says its size in a mono chip.
+        if .inPlaceEdit do
+            .paintInPlaceZone(painter, captureRect)
+
         painter.pushTransform()
         painter.translateTransform(captureRect.x, captureRect.y)
         .capture.gizmo.rect = Math.Rectangle{0, 0, captureRect.width, captureRect.height}
@@ -97,6 +126,108 @@ impl EditView
     mtd opDrop()
     {
         Memory.delete(.capture)
+    }
+
+    // Types the words of `callout` in place: a field over its body, in its face, its size and its
+    // ink, while the callout leaves its words to it. Enter, Escape or a click elsewhere ends it,
+    // as one step of the history.
+    mtd beginTextEdit(callout: *FormCallout)
+    {
+        .endTextEdit()
+        let capture = unwrap .capture
+        let place   = .getCaptureRect()
+        // The field takes the body: the words keep the room the callout gives them, and do not
+        // scroll inside a field cut to their exact width.
+        var rect = callout.rectFormBound()
+        rect.inflate(-callout.borderSize)
+        rect *= .zoom
+        rect.offset(place.x - .scrollPos.x, place.y - .scrollPos.y)
+
+        let size = cast(u32, Math.max(callout.fontSize * .zoom, MinInlineFontSize))
+        let font = .theme().createFont(callout.render.resolveFace(), size)
+        var face: FontFamily
+        face.regular, face.bold, face.italic, face.boldItalic = font
+
+        with .textEdit = EditBox.create(me, callout.text, rect, flags: .ReleaseFocusOnEnterOrEscape)
+        {
+            .setForm(.Transparent)
+            .wndFlags.add(.NoFocusRing)
+            .style.setFont(face)
+            .style.addStyleSheetColors(Format.toString("edit_Text 0x%{X08}", callout.textColor.argb))
+            .sigCommitted += func|view = me|(_) { view.endTextEdit() }
+            .setFocus()
+            .setSelection(callout.text.length, callout.text.length)
+        }
+
+        .textForm            = callout
+        callout.editingText = true
+        capture.invalidateAllFormCaches()
+        .main.fillHintLine()
+        .invalidate()
+    }
+
+    // Ends typing the words of a callout in place, keeping them as one step of the history.
+    mtd endTextEdit()
+    {
+        let edit = .textEdit
+        let form = .textForm
+        if not edit or not form do
+            return
+
+        let text: String = edit.text()
+        .textEdit = null
+        .textForm = null
+        edit.destroy()
+        form.editingText = false
+
+        let capture = unwrap .capture
+        capture.invalidateAllFormCaches()
+        if text != form.text
+        {
+            // The step of the history applies to the selection, which may already be another
+            // one: it is made on the callout alone, then the selection comes back.
+            var saved = capture.selection
+            capture.selection.clear()
+            for f, i in capture.forms
+            {
+                if f is FormCallout as callout where callout == form do
+                    capture.selection.add(i)
+            }
+
+            let undo = capture.newUndo(.SetText)
+            undo.text = text
+            capture.pushUndo(undo)
+            capture.selection = saved
+        }
+
+        .main.fillHintLine()
+        .setFocus()
+        .invalidate()
+    }
+
+    // Dims the desktop around the zone the in-place editor shows, rings the zone with a white
+    // hairline and writes its size, in desktop pixels, in a mono chip on its top edge.
+    mtd paintInPlaceZone(painter: *Painter, zone: Math.Rectangle)
+    {
+        let view   = .clientRect()
+        let veil   = Color.fromArgb(InPlaceDimAlpha, Argb.Black)
+        painter.fillRect(Math.Rectangle{view.x, view.y, view.width, zone.y - view.y}, veil)
+        painter.fillRect(Math.Rectangle{view.x, zone.bottom(), view.width, view.bottom() - zone.bottom()}, veil)
+        painter.fillRect(Math.Rectangle{view.x, zone.y, zone.x - view.x, zone.height}, veil)
+        painter.fillRect(Math.Rectangle{zone.right(), zone.y, view.right() - zone.right(), zone.height}, veil)
+        painter.setParams(.Default)
+        painter.drawRect(zone, Argb.White, 1)
+
+        let metrics = .themeMetrics()
+        let colors  = .themeColors()
+        let capture = unwrap .capture
+        let font    = .theme().createDefaultFontFs(metrics.defaultFontSize - 1)
+        let text    = Format.toString("% × %", capture.width, capture.height)
+        let pad     = metrics.hintLine_KeyGap
+        let chip    = Math.Rectangle{zone.x, zone.y - font.height - pad - metrics.miniBar_Padding, Painter.measureString(text, font).width + 2 * pad, font.height + pad}
+        painter.setParams(.Antialiased)
+        painter.fillRoundRect(chip, metrics.corner_Chip, metrics.corner_Chip, colors.surface)
+        painter.drawString(chip.x + pad, font.opticalLineTop(chip.vertCenter()), text, font, colors.text)
     }
 
     // Returns where the capture is painted in the view at the current zoom: centered, or at the

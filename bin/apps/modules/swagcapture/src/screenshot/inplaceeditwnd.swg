@@ -3,48 +3,56 @@ using Core, Pixel
 // The tool the in-place editor draws with.
 enum InPlaceEditMode
 {
-    Draw
-    Line
-    Circle
+    Select
     Rect
+    Circle
+    Line
     Arrow
     Text
+    Callout
+    Step
+    Draw
     Marker
 }
 
-// One tool of the in-place edit bar: the mode it selects, the button id, its glyph and tooltip.
+// One tool of the bar of the in-place editor: the mode it selects, its glyph and tooltip.
 struct InPlaceEditTool
 {
     mode: InPlaceEditMode
-    id:   string
     icon: CaptureIcons
     tip:  string
 }
 
-// Returns the tools of the in-place edit bar, in the order the bar shows them.
-func inPlaceEditTools()->[7] InPlaceEditTool
+// Returns the tools of the bar of the in-place editor, in the order the bar shows them.
+func inPlaceEditTools()->[10] InPlaceEditTool
 {
     let texts = appStrings()
-    return [InPlaceEditTool{.Draw, "draw", .Draw, texts.tip_InpDraw},
-            InPlaceEditTool{.Line, "line", .Line, texts.tip_InpLine},
-            InPlaceEditTool{.Circle, "circle", .Circle, texts.tip_InpCircle},
-            InPlaceEditTool{.Rect, "rect", .Rect, texts.tip_InpRect},
-            InPlaceEditTool{.Arrow, "arrow", .Arrow, texts.tip_InpArrow},
-            InPlaceEditTool{.Text, "text", .Text, texts.tip_InpText},
-            InPlaceEditTool{.Marker, "marker", .Highlight, texts.tip_InpMarker}]
+    return [InPlaceEditTool{.Select, .Select, texts.act_Select},
+            InPlaceEditTool{.Rect, .Rect, texts.tip_InpRect},
+            InPlaceEditTool{.Circle, .Circle, texts.tip_InpCircle},
+            InPlaceEditTool{.Line, .Line, texts.tip_InpLine},
+            InPlaceEditTool{.Arrow, .Arrow, texts.tip_InpArrow},
+            InPlaceEditTool{.Text, .Text, texts.tip_InpText},
+            InPlaceEditTool{.Callout, .Text, texts.act_Callout},
+            InPlaceEditTool{.Step, .Step, texts.act_Step},
+            InPlaceEditTool{.Draw, .Draw, texts.tip_InpDraw},
+            InPlaceEditTool{.Marker, .Highlight, texts.tip_InpMarker}]
 }
 
-// The editor shown over a fresh capture, where the area can be annotated before it leaves the
-// screen.
+// The editor shown over a fresh capture, where the zone is annotated before it leaves the screen.
+//
+// The desktop stays dimmed and the zone stands in full light, its edges still movable. One bar
+// hangs under the zone: the tools as glyphs, the colour, then where the capture goes — pinned on
+// the screen, to the editor, to a file — and Copy, the primary action; the keys are at the foot.
 struct InPlaceEditWnd
 {
     using wnd: Wnd
 
     late
     {
-        editWnd:   *EditWnd
-        actionBar: *IconBar
-        editBar:   *IconBar
+        editWnd:  *EditWnd
+        bar:      *MiniBar
+        hintLine: *HintLine
     }
 
     capture:          *Capture?
@@ -52,7 +60,6 @@ struct InPlaceEditWnd
     editMode:         InPlaceEditMode = .Arrow
     editColor:        Color = Argb.Red
     editColorHilight: Color = Argb.Yellow
-    uiScale:          f32   = 1     // Residual chrome scale, relative to the overlay surface
     captureScale:     f32   = 1     // DPI scale of the monitor the capture sits on
 }
 
@@ -72,20 +79,14 @@ func captureMonitorScale(capture: *Capture)->f32
 
 impl InPlaceEditWnd
 {
-    // Builds the in-place editor of `capture` over the grabbed area, sized for the monitor it was
-    // taken on.
+    // Builds the in-place editor of `capture` over the grabbed area.
     func create(capture: *Capture, main: *MainWnd, parent: *Wnd)->*InPlaceEditWnd
     {
         with let frame = createMainFrame(main, parent, capture)
         {
-            // The GUI already scales its logical units by the overlay surface's own monitor
-            // scale, so the chrome only needs the residual factor: bars and buttons then keep
-            // their intended size when the captured area sits on a differently scaled monitor.
             .captureScale = captureMonitorScale(capture)
-            .uiScale      = .captureScale / parent.deviceScale()
-
-            .createActionBar()
-            .createEditBar(main)
+            .createBar(main)
+            .createHintLine()
             .setupCapture(capture)
         }
 
@@ -130,68 +131,82 @@ impl InPlaceEditWnd
         return frame
     }
 
-    // Builds the action bar of the in-place editor: save, copy, open in the editor, and close.
-    mtd createActionBar()
+    // The one bar under the zone: the tools, the colour, the destinations in words, Copy, and the
+    // faint cross that leaves without keeping anything.
+    mtd createBar(main: *MainWnd)
     {
-        // The padding scales with the icon, or the buttons come out chunkier the further the
-        // grabbed monitor sits below the surface's own scale.
-        with .actionBar = IconBar.create(.editWnd.editView, 24 * .uiScale, {}, itemPadding: 4 * .uiScale)
+        let texts   = appStrings()
+        let metrics = .themeMetrics()
+        let size    = metrics.menuPopup_IconSize
+        .bar = MiniBar.create(.editWnd.editView)
+
+        for tool in inPlaceEditTools()
         {
-            .backgroundStyle = .Window
-            .sigPressed      += func|editor = me|(btn) { editor.handleActionBarPress(btn.id orelse "") }
-        }
-
-        let actions = [
-            ("save", ThemeIcons.Save, appStrings().tip_InpSave),
-            ("copy", ThemeIcons.Copy, appStrings().tip_InpCopy),
-            ("edit", ThemeIcons.Edit, appStrings().tip_InpEdit),
-            ("close", ThemeIcons.WndClose, appStrings().tip_InpClose)]
-
-        let theme = .theme()
-        for action in actions do
-            .actionBar.addButton(theme.icon(action.item1), action.item0).toolTip = action.item2
-    }
-
-    mtd createEditBar(main: *MainWnd)
-    {
-        with .editBar = IconBar.create(.editWnd.editView, 32 * .uiScale, {}, itemPadding: 4 * .uiScale)
-        {
-            .backgroundStyle = .Window
-            .setOrientation(.Vertical)
-            .sigCheckedChanged += func|editor = me|(btn) { editor.handleEditModeChange(btn.id orelse "") }
-        }
-
-        for tool in inPlaceEditTools() do
-            .editBar.addRadioButton(main.icon(tool.icon, 48), tool.id).toolTip = tool.tip
-        .createColorPicker()
-    }
-
-    // Adds the color button to the in-place action bar: it shows the current color and opens the
-    // palette.
-    mtd createColorPicker()
-    {
-        let btnColor = .editBar.addButton({}, "color", .Popup)
-
-        btnColor.iconPainter = func|editor = me|(_, bc, pos, _)
-        {
-            bc.painter.setParams(.Antialiased)
-            var rect = pos
-            rect.inflate(-2)
-            bc.painter.fillRoundRect(rect, 10, 10, editor.toolColor())
-        }
-
-        btnColor.sigPopupRequested += func|editor = me|(btn)
-        {
-            let popover = ColorPopover.open(btn, appStrings().ui_PropColor, editor.toolColor(), &editor.newMain.recentColors)
-            popover.sigColorChanged += func|editor, btn|(pop)
+            with let button = .bar.addButton(main.icon(tool.icon, size), toolTip: tool.tip, flags: .Radio)
             {
-                if editor.editMode == .Marker do
-                    editor.editColorHilight = pop.color
-                else do
-                    editor.editColor = pop.color
-                editor.updateEditMode()
-                btn.invalidate()
+                .userData = enumToUserData(tool.mode)
+                .sigPressed += func|editor = me|(btn)
+                {
+                    editor.editMode = enumFromUserData'InPlaceEditMode(btn.userData)
+                    editor.updateEditMode()
+                }
             }
+
+            if tool.mode == .Callout do
+                button.iconPainter = func(btn, bc, pos, flags) { MainWnd.drawCalloutGlyph(btn, bc, pos, flags) }
+        }
+
+        .bar.addSeparator()
+        with let swatch = .bar.addButton({}, toolTip: texts.ui_PropColor, flags: .Popup)
+        {
+            .setArrowPosition(.None)
+            .iconPainter = func|editor = me|(btn, bc, pos, _)
+            {
+                let radius = btn.themeMetrics().menuPopup_IconSize * 0.5
+                bc.painter.setParams(.Antialiased)
+                bc.painter.fillCircle(pos.horzCenter(), pos.vertCenter(), radius, editor.toolColor())
+                bc.painter.drawCircle(pos.horzCenter(), pos.vertCenter(), radius, btn.themeColors().strongLine, 1)
+            }
+
+            .sigPopupRequested += func|editor = me|(btn)
+            {
+                let popover = ColorPopover.open(assume cast(*IconButton, btn), appStrings().ui_PropColor, editor.toolColor(), &editor.newMain.recentColors)
+                popover.sigColorChanged += func|editor, btn|(pop)
+                {
+                    if editor.editMode == .Marker do
+                        editor.editColorHilight = pop.color
+                    else do
+                        editor.editColor = pop.color
+                    editor.updateEditMode()
+                    btn.invalidate()
+                }
+            }
+        }
+
+        .bar.addSeparator()
+        .bar.addTextButton(texts.act_Pin).sigPressed += func|editor = me|(_) { editor.pin() }
+        .bar.addTextButton(texts.act_InpEditor).sigPressed += func|editor = me|(_) { editor.toEditor() }
+        .bar.addTextButton(texts.act_InpSave).sigPressed += func|editor = me|(_) { editor.save() }
+
+        let copyWidth = Math.ceil(Painter.measureString(texts.act_InpCopy, .theme().createDefaultFont(metrics.defaultFontSize)).width + 2 * metrics.btnPush_TextMargin)
+        with let copy = PushButton.create(.bar, texts.act_InpCopy, {0, 0, copyWidth, metrics.miniBar_ButtonSize}, form: .Strong)
+        {
+            .sigPressed += func|editor = me|(_) { editor.copy() }
+        }
+
+        .bar.addItem(copy)
+        .bar.addButton(.theme().icon(.WndClose, size), toolTip: texts.tip_InpClose).sigPressed += func(_) { exitWithResult(false) }
+    }
+
+    // The keys of the editor at the foot of the screen, on the dimmed desktop.
+    mtd createHintLine()
+    {
+        let texts = appStrings()
+        with .hintLine = HintLine.create(.editWnd.editView)
+        {
+            .addHint(texts.key_Return, texts.hint_CopyClose)
+            .addHint(Input.formatKeyShortcut(.Control, .S), texts.hint_Save)
+            .addHint(strings().key_Escape, texts.hint_Cancel)
         }
     }
 
@@ -200,52 +215,51 @@ impl InPlaceEditWnd
 
     mtd setupCapture(capture: *Capture)
     {
-        capture.gizmo.sigHasChanged = func|editor = me|() { editor.moveButtons() }
-        .moveButtons()
+        capture.gizmo.sigHasChanged = func|editor = me|() { editor.placeBar() }
         .updateEditMode()
+        .placeBar()
     }
 
-    // Runs the action bar command `actionId`: copy, close, open in the editor, or save.
-    mtd handleActionBarPress(actionId: string)
+    // Copies the zone with what is drawn on it, and closes.
+    mtd copy()
     {
-        switch actionId
+        with let capture = unwrap me.capture
         {
-        case "copy":
-            with let cap = unwrap me.capture
-            {
-                .cropToGrab()
-                .copyAll()
-            }
-
-            exitWithResult(false)
-
-        case "close":
-            exitWithResult(false)
-
-        case "edit":
-            .capture!.cropToGrab()
-            exitWithResult(true)
-
-        case "save":
-
-            // On a cancelled save dialog getSaveAsImageName() returns "": keep the
-            // in-place editor open instead of writing an empty path and tearing the
-            // session down (which would discard the capture being edited).
-            let fileName = .newMain.getSaveAsImageName()
-            if not fileName.isEmpty()
-            {
-                .capture!.cropToGrab()
-                .newMain.doSaveAsImage(fileName)
-                exitWithResult(false)
-            }
+            .cropToGrab()
+            .copyAll()
         }
+
+        g_Main?.confirm(appStrings().msg_Copied)
+        exitWithResult(false)
     }
 
-    mtd handleEditModeChange(toolId: string)
+    // Opens the zone with what is drawn on it in the editor.
+    mtd toEditor()
     {
-        for tool in inPlaceEditTools() where tool.id == toolId do
-            .editMode = tool.mode
-        .updateEditMode()
+        .capture!.cropToGrab()
+        exitWithResult(true)
+    }
+
+    // Saves the zone as an image file, and closes; a cancelled file box keeps the editor open.
+    mtd save()
+    {
+        let fileName = .newMain.getSaveAsImageName()
+        if fileName.isEmpty() do
+            return
+        .capture!.cropToGrab()
+        .newMain.doSaveAsImage(fileName)
+        exitWithResult(false)
+    }
+
+    // Pins the zone with what is drawn on it on the screen, where it was taken, and closes.
+    mtd pin()
+    {
+        let capture = unwrap .capture
+        let grab    = getGrabRect()
+        capture.cropToGrab()
+        PinnedCapture.open(capture.toImage(), Math.Rectangle{g_DesktopX + grab.x, g_DesktopY + grab.y, grab.width, grab.height})
+        g_Main?.confirm(appStrings().msg_Pinned)
+        exitWithResult(false)
     }
 
     func exitWithResult(grabDone: bool)
@@ -256,14 +270,13 @@ impl InPlaceEditWnd
 
     mtd updateEditMode()
     {
-        .updateEditBarButtons()
-        .configureMainWindowEditMode()
-    }
+        for item in .bar.items
+        {
+            if item.wnd is IconButton as button where button.flags.has(.Radio) do
+                button.setChecked(enumFromUserData'InPlaceEditMode(button.userData) == .editMode)
+        }
 
-    mtd updateEditBarButtons()
-    {
-        for tool in inPlaceEditTools() do
-            .editBar.buttonById(tool.id)!.setChecked(.editMode == tool.mode)
+        .configureMainWindowEditMode()
     }
 
     // Sets the tool models of the in-place editor to sizes that read the same on the monitor that
@@ -288,6 +301,9 @@ impl InPlaceEditWnd
         {
             switch me.editMode
             {
+            case .Select:
+                .editMode = .Selection
+
             case .Draw:
                 .editMode = .Draw
                 .mdlFormDraw.borderSize  = borderSize
@@ -327,6 +343,16 @@ impl InPlaceEditWnd
                 .mdlFormText.boldSize   = textBold
                 .mdlFormText.backColor  = me.editColor
 
+            case .Callout:
+                .editMode                  = .Callout
+                .mdlFormCallout.fontSize   = textSize * 0.6
+                .mdlFormCallout.backColor  = me.editColor
+                .mdlFormCallout.borderSize = 0
+
+            case .Step:
+                .editMode               = .Step
+                .mdlFormStep.backColor  = me.editColor
+
             case .Marker:
                 .editMode = .Draw
                 .mdlFormDraw.borderSize  = markerSize
@@ -335,55 +361,37 @@ impl InPlaceEditWnd
         }
     }
 
-    mtd moveButtons()
+    // Hangs the bar under the zone, or above it, or inside its foot when the screen has room on
+    // neither side. The bar is a child of the edit view, so it takes the very rectangle the view
+    // draws the capture into: one conversion, and the bar cannot drift away from the zone.
+    mtd placeBar()
     {
-        // The bars are children of the edit view, so they take the very rectangle the view
-        // draws the capture into rather than converting the desktop-physical grab a second
-        // time: one conversion, and the chrome cannot drift away from the selection.
-        let rect = .editWnd.editView.getCaptureRect()
-        .positionActionBar(rect)
-        .positionEditBar(rect)
-    }
-
-    mtd positionActionBar(rect: Math.Rectangle)
-    {
-        let margin = 4.0 * .uiScale
-        let height = 40.0 * .uiScale
-        let width  = .actionBar.position.width
-        let x      = Math.max(10.0 * .uiScale, rect.right() - width)
-        let limitY = cast(f32, g_ScreenHeight) / .deviceScale()
-
-        if rect.bottom() < limitY - height + margin do
-            .actionBar.setPosition(x, rect.bottom() + margin, width, height)
-        elif rect.y > height + margin do
-            .actionBar.setPosition(x, rect.y - height - margin, width, height)
-        else do
-            .actionBar.setPosition(x, rect.bottom() - height - margin, width, height)
-    }
-
-    mtd positionEditBar(rect: Math.Rectangle)
-    {
-        let margin = 4.0 * .uiScale
-        let width  = 40.0 * .uiScale
-        let height = .editBar.position.height
-        let limitX = cast(f32, g_ScreenWidth) / .deviceScale()
-
-        if rect.right() < limitX - width + margin do
-            .editBar.setPosition(rect.right() + margin, rect.bottom() - height, width, height)
-        elif rect.x > width + margin do
-            .editBar.setPosition(rect.x - width - margin, rect.bottom() - height, width, height)
-        else do
-            .editBar.setPosition(rect.right() - width - margin, rect.bottom() - height - margin, width, height)
+        .bar.showNear(.editWnd.editView.getCaptureRect(), below: true)
     }
 }
 
 impl IWnd for InPlaceEditWnd
 {
+    // Enter copies and closes, Ctrl+S saves, Escape leaves without keeping anything.
     mtd impl onKeyEvent(evt: *KeyEvent)
     {
         evt.accepted = false
-        if evt.kind == .Pressed and evt.key == .Escape do
-            g_Exit = true
+        if evt.kind != .Pressed do
+            return
+
+        switch
+        {
+        case evt.key == .Escape:
+            exitWithResult(false)
+        case evt.key == .Return and evt.modifiers == .None:
+            .copy()
+        case evt.key == .S and evt.modifiers == .Control:
+            .save()
+        default:
+            return
+        }
+
+        evt.accepted = true
     }
 }
 

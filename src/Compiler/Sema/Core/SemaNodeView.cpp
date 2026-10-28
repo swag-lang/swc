@@ -18,17 +18,16 @@ void SemaNodeView::compute(Sema& sema, AstNodeRef ref, SemaNodeViewPart part, Se
 {
     // Constant-only consumers must share type checking's narrowed view. A null
     // from an impossible edge must not make a guarded call executable at compile time.
-    if (mode != SemaNodeViewResolveE::Stored && part.has(SemaNodeViewPartE::Constant) && sema.frame().hasNarrowFacts())
+    const bool narrowConstantView = mode != SemaNodeViewResolveE::Stored && part.has(SemaNodeViewPartE::Constant) && sema.frame().hasNarrowFacts();
+    if (narrowConstantView)
         part.add(SemaNodeViewPartE::Type);
 
     computeInner(sema, ref, part, mode);
 
     // Flow-narrowing: when the current frame proves this access path non-null, expose the
     // non-null type. Only live views narrow; stored views keep the declared type.
-    if (mode != SemaNodeViewResolveE::Stored &&
-        part.has(SemaNodeViewPartE::Type) &&
-        typeRef_.isValid() &&
-        sema.frame().hasNarrowFacts())
+    if (mode != SemaNodeViewResolveE::Stored && part.has(SemaNodeViewPartE::Type) && typeRef_.isValid() &&
+        (part.has(SemaNodeViewPartE::Constant) ? narrowConstantView : sema.frame().hasNarrowFacts()))
     {
         const TypeRef narrowedTypeRef = SemaHelpers::nullNarrowedTypeRef(sema, nodeRef_, typeRef_);
         if (narrowedTypeRef.isValid())

@@ -72,7 +72,11 @@ dialogs, then each application, then the written rules.
     and one mono line of facts; films (`explorer.films`) — upright posters, title then year and
     length, the sheet headed by the poster beside its title with Open under it and the sources at
     its foot. The poster and synopsis come from the Apple catalogue first, credits and rating
-    from Wikipedia and Wikidata.
+    from Wikipedia and Wikidata. Music (`explorer.music`) as square covers; one album
+    (`explorer.album`, `.paper`) with its cover, Play and Shuffle and its tracks; photographs
+    (`explorer.photos`) as a justified mosaic by day.
+  - The lens answers a typed query over code, text and Markdown with the lines of the file
+    ("In This File"), and `:` with a number goes to that line (`showcase.lens.query`).
   - Archive (`explorer.archive`, `.paper`): rows with ratio bar, size and date, "Extract All…" and
     "Extract…" with a toast, the member's sizes, compression, date and CRC-32 in the sheet; the
     embedded host (`viewer.archive.document`) has no band: a quiet line with a quiet viewer menu,
@@ -96,8 +100,12 @@ dialogs, then each application, then the written rules.
   - Films: no playback progress thread at the poster's foot and no "Resume at 1 h 12" / "or from
     the start" — Scope keeps no resume position for a film yet; the count says "items", not
     "films".
-  - Music library, one album and photos boards are not built (`scope.explorer.music`,
-    `.album`, `.album.paper`, `.photos`).
+  - Music and album: the hint line does not teach Enter / P; the count says "items", not
+    "albums · tracks"; the album's cover casts no shadow; nothing plays from the album page
+    itself, so no row is "playing" — the chosen one carries the ▶; the view menu cannot force
+    covers, posters or mosaic.
+  - Photos: the last row of a day is not justified; no mono tip of the camera facts under the
+    pointer; the order is the folder's, not by date.
   - Archive: the sheet asks for the member's picture but the golden holds it still without one;
     dates are ISO, not the short day/month; the sheet's two buttons share the foot in halves.
   - PDF: the reading line still carries previous/next arrows beside "1 / 2"; no position thread
@@ -109,8 +117,10 @@ dialogs, then each application, then the written rules.
     outline), binary (report page), hex (structure tabs, large inspector), font (specimen page);
     the "Column ▾" quiet menu of text; the progress thread under the strip with documents
     scrolling under it; the video picture does not reach the strip and has no veils with chips.
-- Next: music library and album boards, then photos; then image, table, HTML, binary, hex and
-  font on their pictures; the shipped frame for every Scope golden. The media pass takes the video
+- Next: the mixed board's drawn cards (a PDF's first page on paper, code lines, a Markdown
+  heading, a waveform, "Aa" in a font's face) and its facts (dimensions, pages, lines); the
+  shipped frame for every Scope golden; then image, table, HTML, binary, hex and font on their
+  pictures; short dates in archive rows. The media pass takes the video
   viewer on `scope.video`: two veils shown on pointer movement — the title and a mono line on top,
   its own timeline (Arc progress, buffered part, white knob, chapter ticks, a mono time chip under
   the pointer), the play button, the mono time, the chapter and chips for subtitles, sound track

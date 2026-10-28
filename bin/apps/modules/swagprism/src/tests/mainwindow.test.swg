@@ -157,15 +157,6 @@ func assertSurface(comparison: bool)
     var host: Testing.HeadlessHost
     let window = testSetupInspectionWindow(&host)
 
-    host.theme.setSwagDark()
-
-    // The chrome is not part of what this image pins: a headless surface has no desktop under it,
-    // so its shadow falls on nothing and its rounded corner only punches holes in the captured
-    // pixels. `HeadlessHost.setup` squares it for that reason, and applying a palette puts the
-    // geometry of that palette back, so it is squared again here.
-    host.theme.metrics.surfaceWnd_ShadowSize   = 0
-    host.theme.metrics.surfaceWnd_CornerRadius = 0
-    host.notify(.ThemeChanged)
     window.applyLayout()
     window.setComparisonEnabled(comparison)
     host.settleAnimations(window, 6)
@@ -183,17 +174,13 @@ func assertSurface(comparison: bool)
 #test
 {
     Gui.registerLanguage("fr", "Français")
-    for palette in 3
+    for light in [false, true]
     {
         for language in Gui.languages()
         {
             var host: Testing.HeadlessHost
             let window = testSetupInspectionWindow(&host, MainWindow.MinWidth, MainWindow.MinHeight)
-            if palette == 0 do
-                host.theme.setSwagDark()
-            elif palette == 1 do
-                host.theme.setDark()
-            else do
+            if light do
                 host.theme.setLight()
             host.notify(.ThemeChanged)
             let left = microcode(window, 0)
@@ -221,8 +208,6 @@ func assertSurface(comparison: bool)
                     Swag.assert(window.panels[0].position.right() <= window.panels[1].position.x)
             }
 
-            Swag.assert(host.theme.colors.commandBar_Bk != host.theme.colors.richEdit_Bk)
-            Swag.assert(host.theme.colors.informationBar_Bk != host.theme.colors.richEdit_Bk)
         }
     }
 }

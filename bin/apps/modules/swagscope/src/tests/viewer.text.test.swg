@@ -138,10 +138,6 @@ func finishTextStatistics(host: *Testing.HeadlessHost, view: *PlainText.Panel)
 {
     var host: Testing.HeadlessHost
     host.setup(820, 540)
-    host.theme.setSwagDark()
-    host.theme.metrics.surfaceWnd_ShadowSize   = 0
-    host.theme.metrics.surfaceWnd_CornerRadius = 0
-    host.notify(.ThemeChanged)
 
     with let commandBar = Wnd.create'ViewerActionBar(&host.root, {0, 0, 0, 52})
     {

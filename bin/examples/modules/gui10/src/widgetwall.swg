@@ -153,14 +153,14 @@ private func buildButtons(flow: *Flow)
     flow.section("Push buttons")
 
     flow.caption("normal")
-    for form in [PushButtonForm.Normal, .Default, .Flat, .Strong, .Alternate]
+    for form in [PushButtonForm.Normal, .Default, .Flat, .Strong, .Destructive, .Alternate]
     {
         let btn = PushButton.create(flow.view, "Action", flow.next(116), null, form)
         btn.setIcon(app.theme.icon(.Play, 16))
     }
 
     flow.caption("disabled")
-    for form in [PushButtonForm.Normal, .Default, .Flat, .Strong, .Alternate]
+    for form in [PushButtonForm.Normal, .Default, .Flat, .Strong, .Destructive, .Alternate]
     {
         let btn = PushButton.create(flow.view, "Action", flow.next(116), null, form)
         btn.setIcon(app.theme.icon(.Play, 16))

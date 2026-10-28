@@ -36,12 +36,12 @@ impl MainWindow
             textColor  = colors.label_TextLight
 
         case .Active:
-            glyphColor = colors.hilight
+            glyphColor = colors.signature
             textColor  = colors.label_Text
 
         case .Stopped:
-            glyphColor = colors.error
-            textColor  = colors.error
+            glyphColor = colors.critical
+            textColor  = colors.critical
         }
 
         var glyph = .theme().icon(ThemeIcons.About, themeActionIconSize(.themeMetrics()))

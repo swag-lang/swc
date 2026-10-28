@@ -110,8 +110,6 @@ func completeExplorer(host: *Testing.HeadlessHost, explorer: *Explorer)
 {
     var host: Testing.HeadlessHost
     host.setup(960, 640)
-    host.theme.setSwagDark()
-    host.notify(.ThemeChanged)
     let window = ViewerWindow.create(&host.surfaceWnd, createViewerPluginRegistry())
     window.openExplorer(fixture("viewer.archive.zip"))
     let explorer = unwrap window.explorer
@@ -215,7 +213,7 @@ func completeExplorer(host: *Testing.HeadlessHost, explorer: *Explorer)
         registerAppStrings(&host.app.resources)
         switch palette
         {
-        case 0: host.theme.setSwagDark()
+        case 0: host.theme.setDark()
         case 1: host.theme.setDark()
         case 2: host.theme.setLight()
         }

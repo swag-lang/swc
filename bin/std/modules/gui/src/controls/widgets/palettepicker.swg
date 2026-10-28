@@ -62,19 +62,36 @@ impl IWnd for PalettePicker
 
         let painter = evt.paintContext.painter
         let colors  = .themeColors()
+        let metrics = .themeMetrics()
+        let corner  = metrics.corner_Chip
 
+        // A swatch is a chip with a hairline that keeps a white or a ground-colored one visible.
+        // The chosen one is ringed in Arc, a gap away, the way a chosen thumbnail is; the one under
+        // the pointer is ringed in the stronger rule.
+        let inset      = metrics.palPicker_SwatchInset
+        let ringSize   = metrics.focusRing_Size
+        let ringOffset = inset - ringSize * 0.5
+        painter.setParams(.Antialiased)
         for color, i in .colors
         {
-            var itemRect = .itemRects[i]
-            let border   = i == .hotIndex or i == .selectedIndex ? colors.palPicker_HotBorder : colors.palPicker_Border
-
-            painter.setParams(.Antialiased)
-            itemRect.inflate(-2)
+            var swatch = .itemRects[i]
+            swatch.inflate(-inset)
             if color.a != 255 do
-                painter.fillRoundRect(itemRect, 5, 5, Brush.createHatch(.CheckBoardLarge, colors.colorPicker_BackAlpha))
-            painter.fillRoundRect(itemRect, 5, 5, color)
-            itemRect.inflate(1)
-            painter.drawRoundRect(itemRect, 5, 5, border, 2)
+                painter.fillRoundRect(swatch, corner, corner, Brush.createHatch(.CheckBoardLarge, colors.colorPicker_BackAlpha))
+            painter.fillRoundRect(swatch, corner, corner, color)
+            painter.drawRoundRect(swatch, corner, corner, colors.palPicker_Border, metrics.separator_HairlineSize)
+
+            var ringColor: Color
+            if i == .selectedIndex do
+                ringColor = colors.palPicker_CheckedRing
+            elif i == .hotIndex do
+                ringColor = colors.palPicker_HotBorder
+            if ringColor.a == 0 do
+                continue
+
+            var ring = swatch
+            ring.inflate(ringOffset)
+            painter.drawRoundRect(ring, corner + ringOffset, corner + ringOffset, ringColor, ringSize)
         }
     }
 

@@ -125,10 +125,13 @@ impl IWnd for ComboBox
             colorBk     = colors.comboBox_DisabledBk
             colorText   = colors.comboBox_DisabledText
 
+        // An open list is where the reader is acting, so the field wears the two-pixel ring of
+        // what acts, exactly as a focused field does.
         case .popup != null:
-            colorBorder = colors.comboBox_SelectedBorder
-            colorBk     = colors.comboBox_SelectedBk
-            colorText   = colors.comboBox_SelectedText
+            colorBorder   = colors.comboBox_SelectedBorder
+            colorBk       = colors.comboBox_SelectedBk
+            colorText     = colors.comboBox_SelectedText
+            subRectBorder = &rects.edit_SquareStrongBorder
 
         case .isHot:
             colorBorder = colors.comboBox_HotBorder
@@ -151,21 +154,9 @@ impl IWnd for ComboBox
         // the ground it sits on while retaining the border that identifies it as a control.
         if not .flags.has(.Flat) or .isHot or .popup
         {
-            if not .flags.has(.TransparentBackground)
-            {
+            if not .flags.has(.TransparentBackground) do
                 theme.drawSubRect(painter, clientRect, subRectBk, .aniBk.cur())
-                .focusRingGround = .aniBk.cur()
-            }
-            else
-            {
-                .focusRingGround = {}
-            }
-
             theme.drawSubRect(painter, clientRect, subRectBorder, .aniBorder.cur())
-        }
-        else
-        {
-            .focusRingGround = {}
         }
 
         // Item

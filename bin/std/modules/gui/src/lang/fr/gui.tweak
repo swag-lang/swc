@@ -15,9 +15,9 @@ appearance_ToolTip        Apparence et informations sur l'application
 appearance_Theme          Thème
 appearance_Language       Langue
 appearance_SystemLanguage Langue du système
-appearance_SwagDark       Swag sombre
 appearance_Dark           Sombre
 appearance_Light          Clair
+appearance_System         Système
 appearance_About          À propos...
 
 optionSheet_Title         Options

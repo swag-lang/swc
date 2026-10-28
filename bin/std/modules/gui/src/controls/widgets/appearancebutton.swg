@@ -2,14 +2,6 @@
 
 using Core, Pixel
 
-// Selects one of the three palettes shipped by standard Swag applications.
-enum AppearanceTheme
-{
-    SwagDark = 0     // Uses the dark Swag palette.
-    Dark     = 2     // Uses the neutral dark palette.
-    Light    = 1     // Uses the neutral light palette.
-}
-
 // Hosts the standard theme, language, and application-information options in a title bar.
 //
 // An empty [[Gui.AppearanceButton.language]] follows the user account. A non-empty value is a tag registered through
@@ -28,7 +20,7 @@ struct AppearanceButton
 
         readonly
         {
-            appearanceTheme = AppearanceTheme.SwagDark     // Theme currently selected by the control.
+            appearanceTheme = AppearanceTheme.Dark     // Theme currently selected by the control.
             language: String     // Registered language tag, or empty to follow the system.
         }
     }
@@ -76,17 +68,13 @@ impl AppearanceButton
     }
 
     // Applies `theme` to the application and, when `notify` is true, emits [[Gui.AppearanceButton.sigThemeChanged]].
+    //
+    // See [[Gui.Application.setAppearance]]: [[Gui.AppearanceTheme.System]] keeps following the
+    // operating system while the application runs.
     mtd setAppearanceTheme(theme: AppearanceTheme, notify = false)
     {
         .appearanceTheme = theme
-        switch #complete theme
-        {
-        case .SwagDark: .app().theme.setSwagDark()
-        case .Dark:     .app().theme.setDark()
-        case .Light:    .app().theme.setLight()
-        }
-
-        .app().notifyThemeChanged()
+        .app().setAppearance(theme)
         if notify do
             .sigThemeChanged.call(me)
     }
@@ -123,7 +111,7 @@ impl AppearanceButton
                      appearanceThemeName(.appearanceTheme),
                      func|button = me|(themes)
                      {
-                         for theme in [AppearanceTheme.SwagDark, .Dark, .Light] do
+                         for theme in [AppearanceTheme.Dark, .Light, .System] do
                              themes.addChoice(appearanceThemeName(theme), theme == button.appearanceTheme, func|button, theme|() { button.setAppearanceTheme(theme, notify: true) })
                      },
                      .theme().icon(.Appearance, iconSize))
@@ -154,13 +142,13 @@ impl AppearanceButton
     }
 }
 
-// Names one palette in the language of the interface.
+// Names one appearance in the language of the interface.
 private func appearanceThemeName(theme: AppearanceTheme)->string
 {
     switch #complete theme
     {
-    case .SwagDark: return strings().appearance_SwagDark
-    case .Dark:     return strings().appearance_Dark
-    case .Light:    return strings().appearance_Light
+    case .Dark:   return strings().appearance_Dark
+    case .Light:  return strings().appearance_Light
+    case .System: return strings().appearance_System
     }
 }

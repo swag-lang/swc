@@ -125,20 +125,20 @@ func containsStateBytes(bytes, needle: const [..] u8)->bool
     let window = testSetupMainWindow(&host)
 
     Swag.assert(activeLanguage() == ReferenceLanguage)
-    Swag.assert(window.createButton.text() == "Create encrypted vault")
+    Swag.assert(window.createButton.text() == "Create Encrypted Vault")
     Swag.assert(window.language == ReferenceLanguage)
     Swag.assert(window.appearanceButton.parent == &host.surfaceWnd)
     Swag.assert(window.appearanceButton.focusPolicy == .None)
 
     window.themeIndex = cast(u32, AppearanceTheme.Dark)
     window.applyTheme()
-    Swag.assert(window.appearanceButton.appearanceTheme == .Dark and host.theme.colors.bk == ThemeColors.darkPalette().ground)
+    Swag.assert(window.appearanceButton.appearanceTheme == .Dark and host.theme.colors.ground == ThemeColors.encrePalette().ground)
     window.themeIndex = cast(u32, AppearanceTheme.Light)
     window.applyTheme()
-    Swag.assert(window.appearanceButton.appearanceTheme == .Light and host.theme.colors.bk == ThemeColors.lightPalette().ground)
-    window.themeIndex = cast(u32, AppearanceTheme.SwagDark)
+    Swag.assert(window.appearanceButton.appearanceTheme == .Light and host.theme.colors.ground == ThemeColors.papierPalette().ground)
+    window.themeIndex = cast(u32, AppearanceTheme.System)
     window.applyTheme()
-    Swag.assert(window.appearanceButton.appearanceTheme == .SwagDark and host.theme.colors.bk == ThemeColors.swagDarkPalette().ground)
+    Swag.assert(window.appearanceButton.appearanceTheme == .System and host.theme.colors.ground == ThemeColors.encrePalette().ground)
 }
 
 // Privacy is the default and keeps every vault path out of persistent state.
@@ -996,7 +996,7 @@ func openAndDismiss(host: *Testing.HeadlessHost, dialog: *FormDlg)
     var host: Testing.HeadlessHost
     let window = testSetupMainWindow(&host)
 
-    host.theme.setSwagDark()
+    host.theme.setDark()
 
     // The chrome is not part of what this image pins: a headless surface has no desktop under it,
     // so its shadow falls on nothing and its rounded corner only punches holes in the captured
@@ -1018,7 +1018,7 @@ func openAndDismiss(host: *Testing.HeadlessHost, dialog: *FormDlg)
 {
     var host: Testing.HeadlessHost
     let window = testSetupMainWindow(&host)
-    host.theme.setSwagDark()
+    host.theme.setDark()
     host.theme.metrics.surfaceWnd_ShadowSize   = 0
     host.theme.metrics.surfaceWnd_CornerRadius = 0
     host.notify(.ThemeChanged)

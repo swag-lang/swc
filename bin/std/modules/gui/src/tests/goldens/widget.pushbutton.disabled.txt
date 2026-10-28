@@ -5,7 +5,7 @@ ResetTexture0
 Transform 1 0 0 1 0 0
 SetBlendingMode Alpha
 ColorMask rgb-
-DrawTriangles n=6 bbox=(0,0)-(200,80) colors=[FF353535] cov=solid
+DrawTriangles n=6 bbox=(0,0)-(200,80) colors=[FF1F2026] cov=solid
 SetClippingRect 0 0 200 80
 Transform 1 0 0 1 0 0
 SetBlendingMode Alpha
@@ -13,30 +13,30 @@ ColorMask rgb-
 SetClippingRect 0 0 200 80
 Transform 1 0 0 1 20 20
 SetClippingRect 20 20 160 40
-BindTexture0 Texture uv=FillSubRect interp=Linear tex#0 bound=(0,0)-(13,13) src=(0.083807,0.004261)-(0.117898,0.038352)
-DrawTriangles n=6 bbox=(0,0)-(13,13) colors=[FF404040] cov=solid
-BindTexture0 Texture uv=FillSubRect interp=Linear tex#0 bound=(13,0)-(147,13) src=(0.120739,0.004261)-(0.120739,0.038352)
-DrawTriangles n=6 bbox=(13,0)-(147,13) colors=[FF404040] cov=solid
-BindTexture0 Texture uv=FillSubRect interp=Linear tex#0 bound=(147,0)-(160,13) src=(0.12358,0.004261)-(0.15767,0.038352)
-DrawTriangles n=6 bbox=(147,0)-(160,13) colors=[FF404040] cov=solid
-BindTexture0 Texture uv=FillSubRect interp=Linear tex#0 bound=(0,13)-(13,27) src=(0.083807,0.041193)-(0.117898,0.041193)
-DrawTriangles n=6 bbox=(0,13)-(13,27) colors=[FF404040] cov=solid
-BindTexture0 Texture uv=FillSubRect interp=Linear tex#0 bound=(13,13)-(147,27) src=(0.120739,0.041193)-(0.120739,0.041193)
-DrawTriangles n=6 bbox=(13,13)-(147,27) colors=[FF404040] cov=solid
-BindTexture0 Texture uv=FillSubRect interp=Linear tex#0 bound=(147,13)-(160,27) src=(0.12358,0.041193)-(0.15767,0.041193)
-DrawTriangles n=6 bbox=(147,13)-(160,27) colors=[FF404040] cov=solid
-BindTexture0 Texture uv=FillSubRect interp=Linear tex#0 bound=(0,27)-(13,40) src=(0.083807,0.044034)-(0.117898,0.078125)
-DrawTriangles n=6 bbox=(0,27)-(13,40) colors=[FF404040] cov=solid
-BindTexture0 Texture uv=FillSubRect interp=Linear tex#0 bound=(13,27)-(147,40) src=(0.120739,0.044034)-(0.120739,0.078125)
-DrawTriangles n=6 bbox=(13,27)-(147,40) colors=[FF404040] cov=solid
-BindTexture0 Texture uv=FillSubRect interp=Linear tex#0 bound=(147,27)-(160,40) src=(0.12358,0.044034)-(0.15767,0.078125)
-DrawTriangles n=6 bbox=(147,27)-(160,40) colors=[FF404040] cov=solid
+BindTexture0 Texture uv=FillSubRect interp=Linear tex#0 bound=(0,0)-(7,7) src=(0.083807,0.163352)-(0.100852,0.180398)
+DrawTriangles n=6 bbox=(0,0)-(7,7) colors=[FF23252A] cov=solid
+BindTexture0 Texture uv=FillSubRect interp=Linear tex#0 bound=(7,0)-(153,7) src=(0.103693,0.163352)-(0.137784,0.180398)
+DrawTriangles n=6 bbox=(7,0)-(153,7) colors=[FF23252A] cov=solid
+BindTexture0 Texture uv=FillSubRect interp=Linear tex#0 bound=(153,0)-(160,7) src=(0.140625,0.163352)-(0.15767,0.180398)
+DrawTriangles n=6 bbox=(153,0)-(160,7) colors=[FF23252A] cov=solid
+BindTexture0 Texture uv=FillSubRect interp=Linear tex#0 bound=(0,7)-(7,33) src=(0.083807,0.183239)-(0.100852,0.21733)
+DrawTriangles n=6 bbox=(0,7)-(7,33) colors=[FF23252A] cov=solid
+BindTexture0 Texture uv=FillSubRect interp=Linear tex#0 bound=(7,7)-(153,33) src=(0.103693,0.183239)-(0.137784,0.21733)
+DrawTriangles n=6 bbox=(7,7)-(153,33) colors=[FF23252A] cov=solid
+BindTexture0 Texture uv=FillSubRect interp=Linear tex#0 bound=(153,7)-(160,33) src=(0.140625,0.183239)-(0.15767,0.21733)
+DrawTriangles n=6 bbox=(153,7)-(160,33) colors=[FF23252A] cov=solid
+BindTexture0 Texture uv=FillSubRect interp=Linear tex#0 bound=(0,33)-(7,40) src=(0.083807,0.22017)-(0.100852,0.237216)
+DrawTriangles n=6 bbox=(0,33)-(7,40) colors=[FF23252A] cov=solid
+BindTexture0 Texture uv=FillSubRect interp=Linear tex#0 bound=(7,33)-(153,40) src=(0.103693,0.22017)-(0.137784,0.237216)
+DrawTriangles n=6 bbox=(7,33)-(153,40) colors=[FF23252A] cov=solid
+BindTexture0 Texture uv=FillSubRect interp=Linear tex#0 bound=(153,33)-(160,40) src=(0.140625,0.22017)-(0.15767,0.237216)
+DrawTriangles n=6 bbox=(153,33)-(160,40) colors=[FF23252A] cov=solid
 SetClippingRect 25 25 150 30
 StartFont
 UpdateFont font#0
 ResetTexture0
 BindTextureFont font#0 atlas=0
-DrawTriangles n=12 bbox=(72,15)-(89,26) colors=[FF6E6E6E] cov=solid
+DrawTriangles n=12 bbox=(72,15)-(89,26) colors=[FF707175] cov=solid
 ResetTextureFont
 EndFont
 SetClippingRect 20 20 160 40

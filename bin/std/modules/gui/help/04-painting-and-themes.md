@@ -11,43 +11,46 @@ The theme is separated into:
 
 | Part | Role |
 |---|---|
-| [[Gui.ThemePalette]] | The thirty-odd decisions a theme makes |
+| [[Gui.ThemePalette]] | The twenty-odd decisions a theme makes |
 | [[Gui.ThemeColors]] | Semantic colors for controls and states, all derived from the palette |
-| [[Gui.ThemeMetrics]] | Sizes, spacing, borders, and timing |
+| [[Gui.ThemeMetrics]] | Sizes, corners, spacing, borders, and timing |
 | [[Gui.ThemeImageRects]] | Regions and painted corner radii in the theme image atlas |
 | [[Gui.ThemeStyle]] | A control's resolved font, colors, and resources |
 
-A palette is where a theme is written: grounds, rules, ink, one accent and the ink
-drawn on it, status hues, a veil, and the chrome of a window.
-[[Gui.ThemeColors.apply]] turns those into a value for every painted part, which is
-what makes a theme complete by construction — it cannot answer for a button and
-forget the field beside it. The three shipped palettes ([[Gui.Theme.setDark]],
-[[Gui.Theme.setLight]], and [[Gui.Theme.setSwagDark]]) are
-token lists and nothing else, and each also restores the geometry it implies.
+A palette is where a theme is written: the ground, the floating surface, the raised
+ground, the hairline, three inks, what acts, what is chosen, the link, selection and
+highlight grounds, and the status tones. [[Gui.ThemeColors.apply]] turns those into a
+value for every painted part, which is what makes a theme complete by construction —
+it cannot answer for a button and forget the field beside it.
 
-The Swag palette uses one small four-logical-pixel corner for bounded interface
-parts: fields, actions, rectangular tool cells, hover and selection grounds, and
-standalone raised panels. Joined bars, rails, separators, and document grounds
-remain square; the outer surface uses its larger
-[[Gui.ThemeMetrics.surfaceWnd_CornerRadius]]. Set a window's
-[[Gui.Wnd.backgroundStyle]] to [[Gui.BackgroundStyle.Panel]] when it is a raised
-panel rather than joined application chrome, so its ground follows that geometry
-in every palette. [[Gui.BackgroundStyle.Application]], [[Gui.BackgroundStyle.View]],
-and [[Gui.BackgroundStyle.Window]] expose the main plain grounds. Use
-[[Gui.BackgroundStyle.CommandBar]], [[Gui.BackgroundStyle.InformationBar]], and
-[[Gui.BackgroundStyle.ToolBar]] for application-wide commands, contextual information,
-and tools specific to the current content; each role remains distinct in every shipped palette.
+The toolkit ships two themes. [[Gui.Theme.setDark]] applies Encre and
+[[Gui.Theme.setLight]] applies Papier; [[Gui.Application.setAppearance]] chooses
+between them, or follows the light or dark setting of the operating system with
+[[Gui.AppearanceTheme.System]]. In both, Voltage acts — the primary action, the focus
+ring, the caret, the current search occurrence — and Arc chooses: the selected row,
+a checked box, a switch that is on, the underline of the active tab, a progress. On
+Papier the primary action is the same button turned over, ink on paper, because
+Voltage is never written on paper. The first group of [[Gui.ThemeColors]] carries
+that vocabulary directly (`ground`, `surface`, `raised`, `line`, `strongLine`, the
+three inks, `signature`, `arc`, `link`, `selection`, `highlight`, `critical`,
+`caution`, `info`) for parts no control owns.
+
+Both themes share the measures of the charter: a window corner of 10, floating
+surfaces of 12 ([[Gui.ThemeMetrics.corner_Floating]]), menus of 10, controls of 6
+and chips of 4, buttons and fields 32 high and list rows of 30. The atlas tiles are
+drawn with those corners and publish them, so a mark drawn over a control follows
+the corner the control was drawn with.
 
 ```swag
-var palette = Gui.ThemeColors.swagDarkPalette()
+var palette = Gui.ThemeColors.encrePalette()
 palette.signature = Gui.ThemeTone.from(Pixel.Color.fromArgb(0xFF00A0FF), Pixel.Argb.Black)
 app.theme.setPalette(palette)
 app.notifyThemeChanged()
 ```
 
-`bin/examples/modules/gui10` is the theme inspector: it lists every color of every
-palette by reflection, flags any value one palette answers for and another does not,
-and shows every widget in every state.
+`bin/examples/modules/gui10` is the theme inspector: it lists every color of both
+themes and of a sheet-written example by reflection, side by side, and shows every
+widget in every state.
 
 Read theme data through the current window so custom controls respect local style
 overrides:

@@ -356,8 +356,8 @@ impl MainWnd
     // forever. User-picked colors are left untouched.
     mtd migrateStoredOptions()
     {
-        if cast(u32, .editorOptions.theme) > cast(u32, AppearanceTheme.Dark) do
-            .editorOptions.theme = .SwagDark
+        if cast(u32, .editorOptions.theme) > cast(u32, AppearanceTheme.System) do
+            .editorOptions.theme = .Dark
         if .editorOptions.editBackColor == 0xFF2E2E2E'u32 do
             .editorOptions.editBackColor = 0
     }

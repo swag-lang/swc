@@ -79,10 +79,6 @@ func finishHtmlViewer(host: *Testing.HeadlessHost, result: *ViewerSession)
 {
     var host: Testing.HeadlessHost
     host.setup(820, 560)
-    host.theme.setSwagDark()
-    host.theme.metrics.surfaceWnd_ShadowSize   = 0
-    host.theme.metrics.surfaceWnd_CornerRadius = 0
-    host.notify(.ThemeChanged)
 
     with let infoBar = Wnd.create'ViewerActionBar(&host.root, {0, 0, 0, 40})
     {

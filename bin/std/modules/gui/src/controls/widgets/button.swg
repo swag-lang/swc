@@ -154,19 +154,17 @@ impl Button
     // Call it after the caption is drawn: the ink of the wording is what it measures.
     internal mtd markerFocusRect(box: Math.Rectangle)->Math.Rectangle
     {
-        let inset = .themeMetrics().focusRing_Inset
-
         var result: #returntype = box
         if not .name.isEmpty() do
             result.combine(.name.boundRect)
 
-        // The same distance the ring keeps inside a control that has a shape, kept here outside
-        // the content instead, and then given back because [[Gui.Theme.drawFocusRing]] insets the
-        // rectangle it is handed. The cell is the ceiling: a mark reaching past it would collide
-        // with the option on the next line.
-        result.inflate(inset)
-        result.intersect(.clientRect())
-        result.inflate(inset)
+        // [[Gui.Theme.drawFocusRing]] draws outside the rectangle it is handed, so the cell, less
+        // the room the ring takes, is the ceiling: a mark reaching past it would collide with the
+        // option on the next line.
+        let metrics = .themeMetrics()
+        var cell    = .clientRect()
+        cell.inflate(-(metrics.focusRing_Offset + metrics.focusRing_Size))
+        result.intersect(cell)
         return result
     }
 

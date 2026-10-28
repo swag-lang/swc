@@ -28,6 +28,17 @@ const MarkGlyphContrast = 3.0'f32
 // keeps the tile, because Voltage on paper is a mark nobody sees.
 func markReadsOn(ground: Pixel.Color)->bool => MarkVoltage.contrastRatio(ground) >= MarkGlyphContrast
 
+// Selects which of the two shipped themes an application wears.
+//
+// The values are the persisted numbers of an appearance choice, so a stored setting keeps its
+// meaning across releases.
+enum AppearanceTheme
+{
+    Dark   = 0     // Encre, the dark theme.
+    Light  = 1     // Papier, the light theme.
+    System = 2     // Encre or Papier, following the light or dark setting of the operating system.
+}
+
 // Owns GUI resources, top-level surfaces, input state, and the event loop.
 struct Application
 {
@@ -89,6 +100,7 @@ struct Application
         {
             timing:           Time.FrameTiming     // Timing of the frame being run.
             motionPreference: MotionPreference = .System     // Application override of the platform motion preference.
+            appearance:       AppearanceTheme  = .Dark        // Theme choice applied by [[Gui.Application.setAppearance]].
             isActivated:      bool     // Whether one of this application's native windows is the active one.
         }
     }
@@ -144,6 +156,7 @@ struct Application
     modalSurfaces:       Array'(*Surface)     // Surface stack of the nested modal loops.
     toDelete:            Array'{ ptr: *void?, type: const *Swag.TypeInfo }     // Deferred deletions.
     systemReducedMotion: bool                 // Platform client-area-animation preference.
+    systemPrefersLight:  bool                 // Whether the platform asks applications for a light theme.
     inClockFrame:        bool                 // Whether a clock frame runs inside a desktop loop.
 
     public
@@ -1082,6 +1095,7 @@ impl Application
         if not .mainSurface
         {
             .refreshSystemMotionPreference()
+            .refreshSystemAppearance()
             if .renderer == null
             {
                 // Keep WGL drawing and native geometry on the same thread. Resizing a drawable
@@ -1247,6 +1261,49 @@ impl Application
 
     // Returns the active language tag, `"en"` by default.
     func language()->string => activeLanguage()
+
+    // Applies the theme `appearance` names and repaints every surface in it.
+    //
+    // [[Gui.AppearanceTheme.System]] follows the light or dark setting of the operating system,
+    // and keeps following it: when the user changes that setting while the application runs, the
+    // theme changes with it. A theme sheet applied afterwards stays in force until the next call
+    // or, under `System`, until the setting changes.
+    mtd setAppearance(appearance: AppearanceTheme)
+    {
+        .appearance = appearance
+        .applyAppearance()
+    }
+
+    // Reports whether the current appearance resolves to Papier, the light theme.
+    mtd const usesLightTheme()->bool
+    {
+        switch #complete .appearance
+        {
+        case .Dark:   return false
+        case .Light:  return true
+        case .System: return .systemPrefersLight
+        }
+    }
+
+    // Applies the theme the current appearance resolves to.
+    internal mtd applyAppearance()
+    {
+        if .usesLightTheme() do
+            .theme.setLight()
+        else do
+            .theme.setDark()
+        .notifyThemeChanged()
+    }
+
+    // Records the platform light or dark setting, and follows it when the appearance says so.
+    internal mtd setSystemPrefersLight(light: bool)
+    {
+        if .systemPrefersLight == light do
+            return
+        .systemPrefersLight = light
+        if .appearance == .System do
+            .applyAppearance()
+    }
 
     // Overrides or restores the platform reduced-motion preference.
     mtd setMotionPreference(preference: MotionPreference)

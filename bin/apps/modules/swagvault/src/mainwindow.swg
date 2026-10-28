@@ -732,7 +732,7 @@ impl MainWindow
     // Applies the persisted standard application palette.
     mtd applyTheme()
     {
-        .themeIndex = Math.min(.themeIndex, cast(u32, AppearanceTheme.Dark))
+        .themeIndex = Math.min(.themeIndex, cast(u32, AppearanceTheme.System))
         .appearanceButton.setAppearanceTheme(cast(AppearanceTheme, .themeIndex))
     }
 

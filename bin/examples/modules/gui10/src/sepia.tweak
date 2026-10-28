@@ -1,7 +1,7 @@
 # A complete theme, written the way anyone shipping an application would write one.
 #
 # Nothing here is special to this example: it is a tweak sheet, it names palette tokens, and
-# the toolkit derives the three hundred parts of the interface from them. Thirty-odd values
+# the toolkit derives the three hundred parts of the interface from them. Twenty-odd values
 # is the whole surface a theme has to answer for, which is why a theme file can be reviewed
 # in one screen — and why it cannot answer for a button and forget the field beside it.
 #
@@ -13,54 +13,51 @@
 # Grounds, back to front. Warm paper rather than white: the page is the whole point of a
 # reading theme, and pure white is the one value paper never is.
 ground              0xFFF3EDE1
-view                0xFFFBF7EF
-panel               0xFFEAE2D2
-informationBar      0xFFE2D8C5
-commandBar          0xFFF6F0E6
-toolBar             0xFFF9F4EB
-raised              0xFFFBF7EF
-hot                 0xFFE6DCC8
-pressed             0xFFDBCFB6
-
-# The alternate tone is warm enough to wash a row with, so selection uses it rather than
-# repeating the neutral hover.
-selectHot           0xFFF0E2C4
-selectPressed       0xFFE4D0A4
-
+surface             0xFFFBF7EF
+raised              0xFFE6DCC8
 line                0xFFD9CDB6
-controlLine         0xFFB9A98C
 
 text                0xFF2C2519
 softText            0xFF5F5443
 faintText           0xFF8A7C64
-disabled            0xFFA2937B
 
-# A tone is one color in three roles: what it points with, the block it fills, and the ink that
-# block carries. A name reaches into it with '.', so a sheet writes the three the same way the
-# palettes do. The signature is a burnt amber, legible both as a hairline on paper and as a
-# block under the page tone, so its mark and its block are the same value.
+# What acts. A tone is one color in three roles: what it points with, the block it fills, and the
+# ink that block carries. A name reaches into it with '.', so a sheet writes the three the same
+# way the palettes do. A burnt amber is legible both as a hairline on paper and as a block, so
+# its mark and its block are the same value.
 signature.mark      0xFF9A6B18
 signature.ground    0xFF9A6B18
 signature.onGround  0xFFFBF7EF
 
-# The second tone is what a link, a selected row and an alternate action take. It is not a
-# weaker signature: it means somewhere else, where the signature means do this.
+# What is chosen: a checked box, a switch that is on, the underline of the active tab. It is not a
+# weaker signature: it means chosen, where the signature means do this.
 alternate.mark      0xFF4F6B7A
-alternate.ground    0xFFAFC6D2
-alternate.onGround  0xFF20303A
+alternate.ground    0xFF4F6B7A
+alternate.onGround  0xFFFBF7EF
 
-# A rule marks the active item, in the signature, the way the Swag palette does.
-railed              true
+link                0xFF2A5A87
+selection           0xFFE4D8BF
+highlight           0xFFF2DE8C
+segment             0xFFFBF7EF
+
+currentMatch.mark      0xFF2C2519
+currentMatch.ground    0xFFF2DE8C
+currentMatch.onGround  0xFF2C2519
+
+# The tip turns the page over: dark ink with paper text.
+tip.mark            0xFF2C2519
+tip.ground          0xFF2C2519
+tip.onGround        0xFFF3EDE1
 
 critical.mark       0xFFA32B1C
 critical.ground     0xFFF2DCD6
-critical.onGround   0xFF8A3428
+critical.onGround   0xFF2C2519
 info.mark           0xFF2F5468
 info.ground         0xFFDDE5EA
-info.onGround       0xFF2F5468
+info.onGround       0xFF2C2519
 caution.mark        0xFF715C1F
 caution.ground      0xFFF1E6C4
-caution.onGround    0xFF715C1F
+caution.onGround    0xFF2C2519
 
 rich1               0xFFA32B1C
 rich2               0xFF3F6B27
@@ -69,7 +66,3 @@ rich3               0xFF2A5A87
 # Veils darken on a light ground.
 veil                0xFF000000
 shadow              0x36000000
-
-caption             0xFFEAE2D2
-captionInactive     0xFFF3EDE1
-windowBorder        0xFFC8B99E

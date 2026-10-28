@@ -23,7 +23,7 @@ func runPreviewHost(channelPath: string, libraryPath: string, gui: bool) fail
         let build = cast(func(*Wnd), unwrap library.symbol("prism_build"))
         host.setup(FrameChannel.Width, FrameChannel.Height)
         host.setReducedMotion(false)
-        host.theme.setSwagDark()
+        host.theme.setDark()
         host.notify(.ThemeChanged)
         build(&host.root)
         host.root.applyLayout()

@@ -714,32 +714,6 @@ func focusHeadlessCard(parent: *Wnd, rect: Math.Rectangle)->FocusHeadlessCard
     Pixel.Testing.assertImageGolden(&ringed, "focus.ring.pushbutton.default")
 }
 
-// The ring takes the corner of the control, and the corner is a decision the palette makes.
-//
-// The Swag palette points a push button at the slightly rounded edit tiles, so the same button is
-// a capsule under the neutral theme and a compact four-pixel corner under theirs. The image is the
-// contract: a mark shaped for the capsule and carried onto the tile crosses its own control at all
-// four corners.
-#[Swag.TestTag("golden")]
-#test
-{
-    var host: Testing.HeadlessHost
-    host.setup(120, 64)
-
-    host.theme.setSwagDark()
-    host.theme.metrics.surfaceWnd_ShadowSize   = 0
-    host.theme.metrics.surfaceWnd_CornerRadius = 0
-    host.app.notifyThemeChanged()
-
-    let button = PushButton.create(&host.root, "Go", {20, 16, 80, 32})
-    host.keyPress(.Tab)
-    Swag.assert(button.hasVisibleFocus())
-
-    host.settleAnimations()
-    let ringed = host.render()
-    Pixel.Testing.assertImageGolden(&ringed, "focus.ring.pushbutton.swag")
-}
-
 // The ring on a switch that is on, which is the state a keyboard most often lands on.
 //
 // A switched-on toggle is filled with the accent, and the accent is what the ring points in, so

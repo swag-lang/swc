@@ -191,7 +191,7 @@ impl RollView
         painter.drawString(left, top + 18, .document.title, .titleFont, colors.label_Text)
         let summary = .summaryText()
         painter.drawString(left, top + 48, summary, .codeFont, colors.label_TextFaint)
-        painter.drawLine(left, top + HeaderHeight - 1, .scrollPos.x + .clientRect().width - ContentInset, top + HeaderHeight - 1, colors.border, 1)
+        painter.drawLine(left, top + HeaderHeight - 1, .scrollPos.x + .clientRect().width - ContentInset, top + HeaderHeight - 1, colors.line, 1)
     }
 
     // Paints the piano-roll grid: shaded black-key rows, row lines, and numbered beat lines,
@@ -209,10 +209,10 @@ impl RollView
             let y   = .plotTop + cast(f32, row) * .rowHeight
             if isBlackKey(key) do
                 painter.fillRect(plotLeft, y, .timelineWidth, .rowHeight, colors.edit_Bk)
-            painter.drawLine(plotLeft, y, plotRight, y, colors.border, 1)
+            painter.drawLine(plotLeft, y, plotRight, y, colors.line, 1)
         }
 
-        painter.drawLine(plotLeft, plotBottom, plotRight, plotBottom, colors.border, 1)
+        painter.drawLine(plotLeft, plotBottom, plotRight, plotBottom, colors.line, 1)
 
         let beatWidth = .pixelsPerTick * cast(f32, .beatTicks)
         var stride    = 1'u64
@@ -225,7 +225,7 @@ impl RollView
         while beat < Math.min(lastBeat, maxBeat + 1)
         {
             let x = plotLeft + cast(f32, beat * .beatTicks) * .pixelsPerTick
-            painter.drawLine(x, HeaderHeight, x, plotBottom, colors.border, 1)
+            painter.drawLine(x, HeaderHeight, x, plotBottom, colors.line, 1)
             let label = Format.toString("%", beat + 1)
             painter.drawString(x + 5, HeaderHeight + 6, label, .codeFont, colors.label_TextFaint)
             beat += stride
@@ -271,7 +271,7 @@ impl RollView
             let y   = .plotTop + cast(f32, row) * .rowHeight
             if isBlackKey(key) do
                 painter.fillRect(left + ContentInset, y, .keyboardWidth, .rowHeight, colors.edit_Bk)
-            painter.drawLine(left + ContentInset, y, left + ContentInset + .keyboardWidth, y, colors.border, 1)
+            painter.drawLine(left + ContentInset, y, left + ContentInset + .keyboardWidth, y, colors.line, 1)
             let showLabel = .pitchLabelMode == .MidiNumber ? .rowHeight >= 14 : key % 12 == 0 and .rowHeight >= 7
             if showLabel
             {
@@ -281,7 +281,7 @@ impl RollView
         }
 
         let plotBottom = .plotTop + cast(f32, .keyCount()) * .rowHeight
-        painter.drawLine(left + ContentInset + .keyboardWidth, .plotTop, left + ContentInset + .keyboardWidth, plotBottom, colors.border, 1)
+        painter.drawLine(left + ContentInset + .keyboardWidth, .plotTop, left + ContentInset + .keyboardWidth, plotBottom, colors.line, 1)
     }
 }
 

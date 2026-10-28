@@ -143,8 +143,6 @@ func completeImageViewerWindow(host: *Testing.HeadlessHost, window: *ViewerWindo
 
     var host: Gui.Testing.HeadlessHost
     host.setup(720, 440)
-    host.theme.setSwagDark()
-    host.notify(.ThemeChanged)
 
     with let actionBar = Wnd.create'ViewerActionBar(&host.root, {0, 0, 0, 52})
     {

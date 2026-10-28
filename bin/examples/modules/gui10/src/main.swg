@@ -40,20 +40,18 @@ var g_Variant:   ThemeVariant
 var g_Page:      s32
 var g_TestFrame: s32
 
-// The three palettes the toolkit ships, followed by the sheet-written example.
+// The two themes the toolkit ships, Encre and Papier, followed by the sheet-written example.
 //
-// A variant is a whole theme, not only its colors: `Theme.setDark` and friends also
-// answer for the geometry, which is why the inspector applies them through the theme
-// rather than through `theme.colors`.
+// A variant is applied through the theme rather than through `theme.colors`, because a sheet
+// can answer for metrics and atlas tiles as well as for colors.
 enum ThemeVariant
 {
     Dark
     Light
-    SwagDark
     Sheet
 }
 
-const ThemeVariantCount = 4
+const ThemeVariantCount = 3
 
 // A theme written as a tweak sheet rather than in code, which is how anyone shipping an
 // application writes one. Reading it beside the palettes above is the point of having it
@@ -65,10 +63,9 @@ func variantName(variant: ThemeVariant)->string
 {
     switch #complete variant
     {
-    case .Dark:     return "Dark"
-    case .Light:    return "Light"
-    case .SwagDark: return "Swag Dark"
-    case .Sheet:    return "Sheet"
+    case .Dark:  return "Encre"
+    case .Light: return "Papier"
+    case .Sheet: return "Sepia sheet"
     }
 }
 
@@ -82,9 +79,6 @@ func applyVariant(theme: *Theme, variant: ThemeVariant)
 
     case .Light:
         theme.setLight()
-
-    case .SwagDark:
-        theme.setSwagDark()
 
     case .Sheet:
 
@@ -110,9 +104,6 @@ func variantColors(variant: ThemeVariant)->ThemeColors
     case .Light:
         result.setLight()
 
-    case .SwagDark:
-        result.setSwagDark()
-
     case .Sheet:
         var theme: Theme
         theme.setLight()
@@ -137,14 +128,14 @@ func pageTitle(page: s32)->string
 }
 
 // The command-line name of each palette and each page, in the order of the two enumerations.
-const VariantArgs: [ThemeVariantCount] string = ["--dark", "--light", "--swagdark", "--sheet"]
+const VariantArgs: [ThemeVariantCount] string = ["--dark", "--light", "--sheet"]
 const PageArgs:    [MaxPages] string = ["--colors", "--palettes", "--metrics", "--widgets"]
 
 // Reads the palette and the page the command line asks the inspector to open on.
 //
-// Judging a theme means looking at one page of one variant, and there are sixteen such pairs.
-// Reached by hand that is sixteen windows to drive by pointer; named on the command line it is
-// sixteen launches a script can take a picture of, which is how a change to `apply` is compared
+// Judging a theme means looking at one page of one variant, and there are twelve such pairs.
+// Reached by hand that is twelve windows to drive by pointer; named on the command line it is
+// twelve launches a script can take a picture of, which is how a change to `apply` is compared
 // against the palettes it did not mean to touch.
 func readStartupSelection()
 {
@@ -162,7 +153,7 @@ func pageSubtitle(page: s32)->string
     switch page
     {
     case 0: return "Every ThemeColors value of the active palette, over the grounds it is drawn on. Alpha shows against the checkerboard."
-    case 1: return "The same value across every shipped palette, with the sheet-written example beside them."
+    case 1: return "The same value in Encre and in Papier, with the sheet-written example beside them."
     case 2: return "Every ThemeMetrics value of the active theme, in logical pixels."
     case 3: return "Live widgets in every state the palette answers for. Hover and press them to read the hot and pressed colors."
     }

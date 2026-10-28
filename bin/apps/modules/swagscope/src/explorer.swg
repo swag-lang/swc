@@ -1396,7 +1396,7 @@ impl ExplorerGrid
         // The rule is inset by half its weight, so it takes the corner stepped in by that half.
         var edge = picture
         edge.inflate(-0.5)
-        painter.drawRoundRect(edge, radius - 0.5, radius - 0.5, .themeColors().border)
+        painter.drawRoundRect(edge, radius - 0.5, radius - 0.5, .themeColors().line)
 
         if not entry.duration do
             return

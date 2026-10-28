@@ -4,8 +4,8 @@ using Core, Pixel
 
 // Selects the semantic presentation of an information bar.
 //
-// Each kind is one ground, one ink and one glyph, all three answered by the palette, so the
-// three notices of a surface are told apart before they are read.
+// Each kind is a tinted ground of its tone and a dot in the tone, both answered by the palette,
+// so the three notices of a surface are told apart before they are read.
 enum InfoBarKind
 {
     Critical        // Presents a critical error.
@@ -69,56 +69,41 @@ impl IWnd for InfoBar
     }
 }
 
-// The bar is one line of text with a glyph in front of it, so the glyph is sized against the
-// wording rather than against the band: blown up to fill the height it stopped being a sign and
-// became a picture, and it took the air in front of the message with it.
-private const IconSize = 20.0
-private const IconLeft = 14.0
-private const TextLeft = IconLeft + IconSize + 12.0
-
-// The dismiss cross sits inside the label, docked to its right edge, so the text stops before
-// the band the button occupies; a message longer than that room is cut with an ellipsis rather
-// than run under the glyph.
-private const CloseSize   = 32.0
-private const CloseMargin = 5.0
-private const TextRight   = CloseSize + 2 * CloseMargin
-
 private impl InfoBar
 {
     mtd applyTheme()
     {
-        let theme  = .theme()
-        let colors = .themeColors()
+        let theme   = .theme()
+        let colors  = .themeColors()
+        let metrics = .themeMetrics()
 
+        // A notice is a tinted ground, a dot in its tone and body ink: no border, no icon tile. The
+        // dot is what tells the three apart at a glance; the words carry the rest.
         with me.label
         {
             .style.clearStyleSheetColors()
             .backgroundStyle = .Window
+            .setIcon(theme.icon(.Dot, metrics.embInfo_DotSize))
             switch #complete me.kind
             {
             case .Critical:
-                .setIcon(theme.icon(.Critical, IconSize))
                 .style.addStyleSheetColors(Format.toString("wnd_Bk 0x%{X}", colors.embInfo_CriticalBk.argb))
                 .setTextColor(colors.embInfo_CriticalText)
+                .setIconColor(colors.embInfo_CriticalMark)
 
             case .Information:
-                .setIcon(theme.icon(.Information, IconSize))
                 .style.addStyleSheetColors(Format.toString("wnd_Bk 0x%{X}", colors.embInfo_InformationBk.argb))
                 .setTextColor(colors.embInfo_InformationText)
+                .setIconColor(colors.embInfo_InformationMark)
 
             case .Message:
-                .setIcon(theme.icon(.Warning, IconSize))
                 .style.addStyleSheetColors(Format.toString("wnd_Bk 0x%{X}", colors.embInfo_MessageBk.argb))
                 .setTextColor(colors.embInfo_MessageText)
+                .setIconColor(colors.embInfo_MessageMark)
             }
-
-            // The glyph is the wording said in one shape, so it is written in the same ink. Left
-            // white it was the one part of the bar the palette did not answer for: a hard disc
-            // on the dark grounds, and all but invisible on the light pastels.
-            .setIconColor(.textColor)
         }
 
-        .closeButton.setIconColor(.label.textColor)
+        .closeButton.setIconColor(colors.label_TextFaint)
     }
 }
 
@@ -136,6 +121,7 @@ impl InfoBar
         Swag.assert(autoDismissDelay.seconds > 0, "auto-dismiss delay must be positive")
 
         let theme    = parent.theme()
+        let metrics  = parent.themeMetrics()
         with let bar = Wnd.create'InfoBar(parent, Math.Rectangle{0, 0, 0, height})
         {
             .wndFlags.add(.NoScroll)
@@ -146,19 +132,25 @@ impl InfoBar
             .autoDismissDelay = autoDismissDelay
         }
 
+        // The dismiss cross sits inside the label, docked to its right edge, so the text stops
+        // before the band the button occupies; a message longer than that room is cut with an
+        // ellipsis rather than run under the glyph.
+        let closeSize = metrics.embInfo_CloseSize
+        let textLeft  = metrics.embInfo_Padding + metrics.embInfo_DotSize + metrics.embInfo_DotGap
+        let textRight = closeSize + 2 * metrics.embInfo_CloseMargin
         with bar.label
         {
             .updateFlags(add: .Ellipsis)
             .setTextHorizontalAlignment(.Left)
             .setIconHorizontalAlignment(.Left)
-            .setIconPadding({IconLeft, 0, 0, 0})
-            .setTextPadding({TextLeft, 0, TextRight, 0})
+            .setIconPadding({metrics.embInfo_Padding, 0, 0, 0})
+            .setTextPadding({textLeft, 0, textRight, 0})
             .dockStyle = .Center
         }
 
-        with bar.closeButton = IconButton.create(bar.label, theme.icon(.WndClose, 18), {0, 0, CloseSize, CloseSize})
+        with bar.closeButton = IconButton.create(bar.label, theme.icon(.WndClose, metrics.embInfo_CloseGlyph), {0, 0, closeSize, closeSize})
         {
-            .margin     = CloseMargin
+            .margin     = metrics.embInfo_CloseMargin
             .dockStyle  = .Right
             .sigPressed += func|bar|(_) { bar.dismiss() }
         }

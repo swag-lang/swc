@@ -15,10 +15,22 @@ struct ThemeMetrics
         motion_PanelSeconds: f32 = 0.22     // Duration of a layout-affecting panel change.
         motion_PageOffset:   f32 = 16       // Travel distance of a page change, in logical pixels.
 
+        // The corners of the charter, one per kind of shape. The atlas tiles of
+        // [[Gui.ThemeImageRects]] are drawn with these radii and publish them as their `radius`; a
+        // part painted in code rather than from a tile takes its corner from here.
+        corner_Floating: f32 = 12     // Corner of a floating surface: a lens, a sheet, an inspector, a dialog, a popover.
+        corner_Menu:     f32 = 10     // Corner of a menu and of a popup list.
+        corner_Control:  f32 = 6      // Corner of a button, a field, a combo box, a segment frame, a tool tip.
+        corner_Chip:     f32 = 4      // Corner of a chip, a swatch, a keycap, an inner segment, a check box.
+
+        // Heights of a button or a field in the two contexts that do not use the ordinary 32.
+        control_DialogHeight:    f32 = 34     // Height of a button or a field inside a dialog.
+        control_InspectorHeight: f32 = 28     // Height of a button or a field inside an inspector.
+
         // Transparent margin the drop shadow is cast into. It has to hold the spread plus the offset,
         // or the shadow is cut off by the edge of the window instead of fading out into it.
         surfaceWnd_ShadowSize:    f32 = 18
-        surfaceWnd_CornerRadius:  f32 = 18     // Corner of a surface. The Swag palette softens it to 12; see setSwagGeometry.
+        surfaceWnd_CornerRadius:  f32 = 10     // Corner of a window.
         surfaceWnd_ShadowSpread:  f32 = 14     // How far the drop shadow reaches out from the body.
         surfaceWnd_ShadowOffsetX: f32 = 0      // Sideways displacement of the drop shadow.
         surfaceWnd_ShadowOffsetY: f32 = 4      // Downward displacement of the drop shadow, which is what lifts the window.
@@ -38,8 +50,9 @@ struct ThemeMetrics
         wnd_TopSizingBorderSize:   f32 = 7        // Reach of the resizing border along the top edge, capped by the side reach.
 
         tabBar_FlatHeight:   f32 = 40     // Height of a flat tab bar.
-        tabBar_RoundHeight:  f32 = 28     // Height of a round tab bar.
+        tabBar_RoundHeight:  f32 = 32     // Height of a round tab bar: a segment group.
         tabBar_ButtonHeight: f32 = 32     // Height of a button tab bar.
+        tabBar_SegmentInset: f32 = 3      // Air between the raised frame of a segment group and the chosen segment.
 
         // The button a bar grows when it cannot show every tab. It is chrome standing in the row
         // of tabs, so the glyph keeps air inside the button and the button keeps air on both
@@ -51,7 +64,7 @@ struct ThemeMetrics
         btnPush_Padding:    f32 = 5       // Inset of the caption area of a push button.
         btnPush_TextMargin: f32 = 14      // Room a measured caption keeps on each side of a push button.
         btnPush_Width:      f32 = 100     // Default and minimum width of a push button.
-        btnPush_Height:     f32 = 30      // Height of a push button.
+        btnPush_Height:     f32 = 32      // Height of a push button.
 
         iconText_Margin: f32 = 8     // Air between a glyph and the word it leads. Air is the first separator, so it is generous.
 
@@ -77,26 +90,28 @@ struct ThemeMetrics
         editBox_Height:        f32          = 32                 // Height of a field.
         editBox_UnitMargin:    f32          = 3                  // Air between the value of a field and its unit.
 
-        btnToggle_Width:  f32 = 50     // Width of a toggle.
-        btnToggle_Height: f32 = 26     // Height of a toggle.
+        btnToggle_Width:  f32 = 34     // Width of a switch.
+        btnToggle_Height: f32 = 20     // Height of a switch.
 
         slider_Width:     f32 = 200     // Default width of a slider.
         slider_Height:    f32 = 26      // Height of a slider.
-        slider_TrackSize: f32 = 18      // Thickness of the track of a slider.
-        slider_BoxSize:   f32 = 12      // Side of the thumb; an indicator, not a control to grab with a finger.
+        slider_TrackSize: f32 = 18      // Height of the band the track tile is drawn in; the tile draws a two-pixel rule at its center.
+        slider_BoxSize:   f32 = 14      // Side of the knob.
         slider_StepSize:  f32 = 6       // Side of the tick marking a step of a slider.
 
         circular_Size:       f32 = 40     // Side of a circular control.
         circular_MarkerSize: f32 = 5      // Radius of the marker of a circular control.
 
-        menuPopup_Padding:         f32 = 12     // Inset of the entries of a popup menu.
+        menuPopup_Padding:         f32 = 6      // Inset of the entries of a popup menu.
         menuPopup_SpaceLines:      f32 = 8      // Air between two entries of a popup menu, shared by their hover grounds.
         menuPopup_ShadowSize:      f32 = 10     // Reach of the shadow a popup menu casts.
-        menuPopup_ItemHeight:      f32 = 25     // Complete pitch of an ordinary menu entry, including the inter-entry air.
+        menuPopup_ItemHeight:      f32 = 30     // Complete pitch of an ordinary menu entry, including the inter-entry air.
         menuPopup_IconSize:        f32 = 16     // Side of a menu-entry glyph or check mark.
         menuPopup_IconMargin:      f32 = 6      // Air between the active rule and the glyph of an entry.
         menuPopup_IconTextMargin:  f32 = 10     // Air between the glyph or check mark of an entry and its wording.
-        menuPopup_SeparatorHeight: f32 = 8      // Height of a separator entry.
+        menuPopup_SeparatorHeight: f32 = 9      // Height of a separator entry.
+        menuPopup_SeparatorInset:  f32 = 4      // Inset of a separator rule past the padding, so it stops ten pixels from each edge.
+        menuPopup_ShortcutSize:    u32 = 11     // Size of the fixed-width face a shortcut is written in.
         menuPopup_BarItemOverlap:  f32 = 12     // Depth by which a popup menu and the menu bar entry that opened it overlap.
         menuPopup_WindowMargin:    f32 = 8      // Air between a popup menu and the edge of its window.
 
@@ -117,9 +132,9 @@ struct ThemeMetrics
         iconBar_ButtonsPadding: f32 = 4     // Inset around the buttons of an icon bar.
         iconBar_ButtonGap:      f32 = 8     // Air between neighboring buttons of an icon bar.
 
-        scrollBar_NormalSize: f32 = 20     // Thickness of a scroll bar.
-        scrollBar_SmallSize:  f32 = 10     // Thickness of a compact scroll bar.
-        scrollBar_BoxPadding: f32 = 4      // Air between a scroll bar thumb and its track.
+        scrollBar_NormalSize: f32 = 10     // Thickness of a scroll bar: a six-pixel thumb and its air.
+        scrollBar_SmallSize:  f32 = 8      // Thickness of a compact scroll bar.
+        scrollBar_BoxPadding: f32 = 2      // Air between a scroll bar thumb and its track.
         scrollBar_BoxMinSize: f32 = 20     // Shortest a scroll bar thumb gets.
 
         comboBox_Width:          f32 = 150     // Default width of a combo box.
@@ -152,9 +167,10 @@ struct ThemeMetrics
         frameWnd_AnchorSquareBorderMargin: f32 = 8      // Closest a callout anchor comes to a corner of a square frame.
 
         list_Padding:    f32 = 8      // Outer inset separating list rows from their frame.
+        list_LineHeight: f32 = 30     // Height of a list row, unless its font asks for more.
         list_ExpandSize: f32 = 22     // Width of the disclosure column of a tree row.
 
-        header_Height:    f32 = 35     // Height of a column header.
+        header_Height:    f32 = 30     // Height of a column header.
         header_Padding:   Math.Vector4 = {10, 5, 10, 5}     // Inset of the caption of a column header.
         header_Separator: f32 = 5      // Width of the grip between two column headers.
 
@@ -162,36 +178,47 @@ struct ThemeMetrics
         splitView_BarSize: f32 = 5     // Visible and draggable divider between split panels.
         property_ControlInset: f32 = 4     // Inset of the state ground within a property control.
 
-        progressBar_Height:     f32 = 18      // Height of a progress bar.
-        progressBar_ClipOffset: f32 = 2       // Inset of the filled part inside the progress bar track.
+        progressBar_Height:     f32 = 16      // Height of a progress bar created without one.
+        progressBar_TrackSize:  f32 = 4       // Thickness of the track, centered in the bar.
         progressBar_SpeedInf:   f32 = 0.5     // Sweeps per second of an indeterminate progress bar.
 
-        spinner_Size:     f32 = 24      // Side of a spinner created without a size.
-        spinner_DotCount: f32 = 8       // Number of dots forming the ring.
-        spinner_Speed:    f32 = 1.1     // Turns of the ring per second.
+        spinner_Size:       f32 = 24      // Side of a spinner created without a size.
+        spinner_StrokeSize: f32 = 2       // Thickness of the ring and of the arc turning on it.
+        spinner_ArcSweep:   f32 = 0.28    // Share of the ring the turning arc covers.
+        spinner_Speed:      f32 = 1.1     // Turns of the arc per second.
+
+        palPicker_SwatchInset: f32 = 3     // Air between the cell of a swatch and the chip it draws, which its ring stands in.
 
         colorPicker_RoundPick:  f32 = 6     // Side of the round marker of the picked color.
         colorPicker_SquarePick: f32 = 6     // Side of the square marker of the picked color.
 
         label_Height: f32 = 24     // Height of a label created without one.
 
+        // A notice: a dot in its tone before the words, and a faint dismiss cross after them.
+        embInfo_Padding:     f32 = 16     // Air between the leading edge of a notice and its dot.
+        embInfo_DotSize:     f32 = 7      // Side of the dot of a notice.
+        embInfo_DotGap:      f32 = 10     // Air between the dot and the words.
+        embInfo_CloseSize:   f32 = 28     // Side of the dismiss button.
+        embInfo_CloseGlyph:  f32 = 16     // Side of the dismiss glyph.
+        embInfo_CloseMargin: f32 = 6      // Air around the dismiss button.
+
         separator_HairlineSize: f32 = 1     // Thickness of a hairline separator.
         separator_AccentSize:   f32 = 4     // Thickness of an accent separator.
 
-        // The rule that marks an active tool or tab. It is thin, and it stops short of both ends
-        // by `activeRail_Margin` so it keeps its distance from the content it marks.
-        activeRail_Size:   f32 = 3     // Thickness of the rule.
-        activeRail_Margin: f32 = 8     // Air the mark keeps at each end, and between the rule and the content.
+        // The underline of the active tab, and the rule a checked tool marked on one edge carries.
+        // It stops short of both ends by `tabItem_RailMargin`, so it underlines the words.
+        tabItem_RailSize:   f32 = 2     // Thickness of the underline.
+        tabItem_RailMargin: f32 = 8     // Air the underline keeps at each end.
 
-        // The ring that says where the keyboard is. It is a rule around a control, not a fill on
-        // it, and it keeps clear of the control's own border so the two never read as one thick edge.
+        // The ring that says where the keyboard is: two pixels around the control, two pixels away
+        // from it, so it never merges with the control's own edge or fill.
         //
         // Its corner is the corner of the control it marks, taken from the tile that control paints
-        // and stepped in by the inset so the two stay concentric. `focusRing_Radius` is the corner it
-        // keeps of its own, so a control with square edges is still marked by a ring and not by a box.
-        focusRing_Size:   f32 = 1     // Thickness of the ring.
-        focusRing_Inset:  f32 = 3     // Air the ring keeps inside the control's rectangle.
-        focusRing_Radius: f32 = 3     // Softest corner the ring takes when the control lends it none.
+        // and stepped out by the offset so the two stay concentric. `focusRing_Radius` is the corner
+        // it keeps of its own, so a control with square edges is still marked by a ring and not a box.
+        focusRing_Size:   f32 = 2     // Thickness of the ring.
+        focusRing_Offset: f32 = 2     // Air between the control's rectangle and the ring.
+        focusRing_Radius: f32 = 4     // Softest corner the ring takes when the control lends it none.
 
         richEdit_Padding: f32 = 5     // Inset of the text of a rich editor.
 
@@ -199,7 +226,8 @@ struct ThemeMetrics
         // `toolTip_MaxWidth`, it ends its last line with an ellipsis rather than grow past
         // `toolTip_MaxHeight`, and it never scrolls — so both caps are a promise about the
         // largest box a reader can be shown, not a viewport onto a longer text.
-        toolTip_Padding:   Math.Vector4 = {8, 6, 8, 6}     // Inset between a tool tip's border and its text.
+        toolTip_Padding:   Math.Vector4 = {8, 5, 8, 5}     // Inset between a tool tip's border and its text.
+        toolTip_FontSize:  u32 = 12      // Size of the face a tool tip is written in.
         toolTip_MaxWidth:  f32 = 360     // Width at which a tool tip wraps instead of growing.
         toolTip_MaxHeight: f32 = 200     // Height at which a tool tip truncates instead of growing.
         toolTip_Offset:    f32 = 12      // Gap a tool tip keeps from the pointer that summoned it.

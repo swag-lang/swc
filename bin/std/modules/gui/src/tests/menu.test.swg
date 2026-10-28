@@ -24,7 +24,6 @@ enum MenuMarkerPalette
 {
     Dark
     Light
-    SwagDark
 }
 
 // Renders every non-icon marker together so palette changes cannot make one of them disappear
@@ -36,9 +35,8 @@ func assertMenuMarkerGolden(palette: MenuMarkerPalette, golden: string)
 
     switch palette
     {
-    case .Dark:     host.theme.setDark()
-    case .Light:    host.theme.setLight()
-    case .SwagDark: host.theme.setSwagDark()
+    case .Dark:  host.theme.setDark()
+    case .Light: host.theme.setLight()
     }
 
     host.notify(.ThemeChanged)
@@ -88,13 +86,6 @@ func assertMenuMarkerGolden(palette: MenuMarkerPalette, golden: string)
     assertMenuMarkerGolden(.Light, "menu.popup.markers.light")
 }
 
-// Menu marker color and submenu restraint are explicit visual contracts in the Swag palette.
-#[Swag.TestTag("golden")]
-#test
-{
-    assertMenuMarkerGolden(.SwagDark, "menu.popup.markers.swag-dark")
-}
-
 // A menu bar holds items; a popup menu holds items, separators and disabled entries.
 #test
 {
@@ -114,7 +105,7 @@ func assertMenuMarkerGolden(palette: MenuMarkerPalette, golden: string)
     Swag.assert(sub.items.count == 3)
     sub.computeLayoutPopup()
     Swag.assert(sub.themeMetrics().menuPopup_IconSize == 16)
-    Swag.assert(sub.themeMetrics().menuPopup_ItemHeight == 25)
+    Swag.assert(sub.themeMetrics().menuPopup_ItemHeight == 30)
     Swag.assert(sub.items[0]!.size + sub.themeMetrics().menuPopup_SpaceLines >= sub.themeMetrics().menuPopup_ItemHeight)
     Swag.assert(not sub.items[0]!.separator)
     Swag.assert(sub.items[1]!.separator)
@@ -417,8 +408,6 @@ func assertMenuMarkerGolden(palette: MenuMarkerPalette, golden: string)
 {
     var host: Testing.HeadlessHost
     host.setup(360, 240)
-    host.theme.setSwagDark()
-    host.notify(.ThemeChanged)
 
     let button = IconButton.create(&host.root, host.theme.icon(.Options, 20), {24, 6, 48, 36}, flags: .CenterContent)
     button.setArrowPosition(.RightDownward)
@@ -457,8 +446,6 @@ func assertMenuMarkerGolden(palette: MenuMarkerPalette, golden: string)
 {
     var host: Testing.HeadlessHost
     host.setup(360, 240)
-    host.theme.setSwagDark()
-    host.notify(.ThemeChanged)
 
     let button = IconButton.create(&host.root, host.theme.icon(.Redo, 20), {24, 198, 52, 36}, flags: .CenterContent)
     button.setArrowPosition(.RightUpward)
@@ -526,8 +513,6 @@ func assertMenuMarkerGolden(palette: MenuMarkerPalette, golden: string)
 {
     var host: Testing.HeadlessHost
     host.setup(360, 240)
-    host.theme.setSwagDark()
-    host.notify(.ThemeChanged)
 
     let button = IconButton.create(&host.root, host.theme.icon(.Filter, 20), {312, 6, 48, 36}, flags: .CenterContent)
     button.setArrowPosition(.RightDownward)
@@ -626,9 +611,6 @@ func assertMenuMarkerGolden(palette: MenuMarkerPalette, golden: string)
     var host: Testing.HeadlessHost
     host.setup(360, 220)
 
-    host.theme.setSwagDark()
-    host.notify(.ThemeChanged)
-
     let popup = MenuCtrl.createPopup(&host.root)
     let sub   = MenuCtrl.createPopup(&host.root)
     sub.addItem("Sans serif", Menu_Open, checked: true)
@@ -662,9 +644,6 @@ func assertMenuMarkerGolden(palette: MenuMarkerPalette, golden: string)
 {
     var host: Testing.HeadlessHost
     host.setup(360, 220)
-
-    host.theme.setSwagDark()
-    host.notify(.ThemeChanged)
 
     let sub = MenuCtrl.createPopup(&host.root)
     sub.addItem("Sans serif", Menu_Open)

@@ -164,8 +164,13 @@ impl IWnd for Header
         {
         case .Flat:        theme.drawSubRect(painter, clientRect, &rects.header_FlatBk, colors.header_Bk)
         case .Round:       theme.drawSubRect(painter, clientRect, &rects.header_RoundBk, colors.header_Bk)
-        case .Transparent: painter.drawLine(clientRect.x, clientRect.bottom() - 1, clientRect.right(), clientRect.bottom() - 1, colors.headerItem_Separator, 1)
+        case .Transparent: break
         }
+
+        // Every header stands on one hairline: its labels are faint, and the rule is what tells
+        // them from the first row.
+        let lineSize = metrics.separator_HairlineSize
+        painter.fillRect(Math.Rectangle{clientRect.x, clientRect.bottom() - lineSize, clientRect.width, lineSize}, colors.headerItem_Separator)
 
         // Keep the clip in the same local coordinate space as the item geometry. A presented
         // ancestor can paint this subtree into an off-screen layer whose origin differs from
@@ -187,7 +192,7 @@ impl IWnd for Header
             {
                 var rect = clientRect
                 rect.x = x + (metrics.header_Separator * 0.5)
-                painter.drawLine(rect.x, rect.y, rect.x, rect.bottom(), colors.headerItem_Separator, 1)
+                painter.drawLine(rect.x, rect.y, rect.x, rect.bottom(), colors.headerItem_Separator, metrics.separator_HairlineSize)
             }
 
             x += metrics.header_Separator

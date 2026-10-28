@@ -438,7 +438,7 @@ impl ViewerErrorView
         {
             .layoutSpec.alignX = .Center
             .setIcon(result.theme().icon(.Critical, 48))
-            .setIconColor(result.themeColors().error)
+            .setIconColor(result.themeColors().critical)
         }
 
         with result.summaryLabel = Label.create(stack, appStrings().ui_ViewerError, {0, 0, TextWidth, 0}, null, .WordWrap | .AutoHeight | .SecondaryText)
@@ -465,7 +465,7 @@ impl ViewerErrorView
     mtd refreshTheme()
     {
         .iconLabel.setIcon(.theme().icon(.Critical, 48))
-        .iconLabel.setIconColor(.themeColors().error)
+        .iconLabel.setIconColor(.themeColors().critical)
     }
 }
 

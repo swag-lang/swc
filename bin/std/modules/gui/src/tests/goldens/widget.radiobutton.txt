@@ -5,7 +5,7 @@ ResetTexture0
 Transform 1 0 0 1 0 0
 SetBlendingMode Alpha
 ColorMask rgb-
-DrawTriangles n=6 bbox=(0,0)-(200,80) colors=[FF353535] cov=solid
+DrawTriangles n=6 bbox=(0,0)-(200,80) colors=[FF1F2026] cov=solid
 SetClippingRect 0 0 200 80
 Transform 1 0 0 1 0 0
 SetBlendingMode Alpha
@@ -14,13 +14,13 @@ SetClippingRect 0 0 200 80
 Transform 1 0 0 1 20 20
 SetClippingRect 20 20 160 24
 BindTexture0 Texture uv=FillSubRect interp=Linear tex#0 bound=(0,0)-(24,24) src=(0.350852,0.083807)-(0.43892,0.171875)
-DrawTriangles n=6 bbox=(0,0)-(24,24) colors=[FFE0E0E0] cov=solid
+DrawTriangles n=6 bbox=(0,0)-(24,24) colors=[FF4C4F59] cov=solid
 SetClippingRect 48 20 132 24
 StartFont
 UpdateFont font#0
 ResetTexture0
 BindTextureFont font#0 atlas=0
-DrawTriangles n=18 bbox=(28,7)-(53,18) colors=[FFE0E0E0] cov=solid
+DrawTriangles n=18 bbox=(28,7)-(53,18) colors=[FFECEDF0] cov=solid
 ResetTextureFont
 EndFont
 SetClippingRect 20 20 160 24

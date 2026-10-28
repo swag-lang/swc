@@ -21,7 +21,7 @@ using Core, Pixel, Gui, Viewers
     host.setup(960, 540)
     defer discard catch host.app.setLanguage(ReferenceLanguage)
 
-    host.theme.setSwagDark()
+    host.theme.setDark()
     host.notify(.ThemeChanged)
     var session = openTestViewer(Picture.viewerPlugin(), &host.root, fileName)
     let view    = assume cast(*Picture.Panel, session.view)

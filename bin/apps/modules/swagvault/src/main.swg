@@ -41,7 +41,7 @@ const SurfaceId   = "swag.vault"
 
     // Start with a width for wrapping; MainWindow measures the final height before showing.
     let surface = try g_App.createSurface(80, 50, MainWindow.WindowWidth, MainWindow.WindowWidth, WindowFlags, surfaceId: SurfaceId)
-    g_App.theme.setSwagDark()
+    g_App.theme.setDark()
     g_App.notifyThemeChanged()
 
     // English is the language Swag Vault starts in. The window applies the persisted choice

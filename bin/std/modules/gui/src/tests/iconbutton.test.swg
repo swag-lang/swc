@@ -145,80 +145,65 @@ func iconButtonColorCount(image: const *Image, color: Color)->s32
 // A checked button draws the indicator its placement asks for, and none at all when it asks
 // for none.
 //
-// Under a railed palette the two indicator-less placements shared a branch with the default one
-// and got a rule in the accent along their bottom edge. That rule is how a tool rail marks the
-// tool in use; drawn under a color swatch, a field of a form, or a preset cell painted in the
-// user's own colors, it reads as one more thing painted in the cell.
+// An indicator on one edge is the two-pixel Arc rule of a tab underline. Drawn under a color
+// swatch, a field of a form, or a preset cell painted in the user's own colors, it would read as
+// one more thing painted in the cell, which is why the two indicator-less placements draw none.
 #test
 {
     var host: Testing.HeadlessHost
     host.setup(80, 80)
-    host.theme.setSwagDark()     // a palette that marks the active item with a rail
-    host.notify(.ThemeChanged)
 
     let btn = IconButton.create(&host.root, {}, {20, 20, 40, 40}, flags: .Toggle)
     btn.setForm(.Rectangle)
     btn.setChecked(true)
 
-    let rail = host.theme.colors.activeRail
-    Swag.assert(rail.a != 0)
+    let rule = host.theme.colors.btnIcon_CheckedRule
+    Swag.assert(rule.a == 255)
 
     for indicator in [IconButtonCheckIndicator.None, .Ink]
     {
         btn.setCheckIndicator(indicator)
         host.finishAnimations()
         var image = host.render()
-        Swag.assert(iconButtonColorCount(&image, rail) == 0)
+        Swag.assert(iconButtonColorCount(&image, rule) == 0)
     }
 
-    for indicator in [IconButtonCheckIndicator.Bottom, .Top, .Left, .Right, .Full]
+    for indicator in [IconButtonCheckIndicator.Bottom, .Top, .Left, .Right]
     {
         btn.setCheckIndicator(indicator)
         host.finishAnimations()
         var image = host.render()
-        Swag.assert(iconButtonColorCount(&image, rail) > 0)
+        Swag.assert(iconButtonColorCount(&image, rule) > 0)
     }
 
-    btn.setCheckIndicator(.Frame)
+    // A full mark and a frame are the selection ground and an Arc ring around the whole cell.
+    btn.setCheckIndicator(.Ink)
     host.finishAnimations()
-    var framed = host.render()
-    let border = host.theme.colors.btnIcon_CheckedFrameBorder
-    Swag.assert(iconButtonColorCount(&framed, border) > 0)
+    let unmarked = host.render()
+    for indicator in [IconButtonCheckIndicator.Full, .Frame]
+    {
+        btn.setCheckIndicator(indicator)
+        host.finishAnimations()
+        var marked = host.render()
+        Swag.assert(not Slice.equals(marked.pixels.toSlice(), unmarked.pixels.toSlice()))
+        Swag.assert(iconButtonColorCount(&marked, rule) == 0)
+    }
 }
 
-// The checked frame is drawn on the shape the active palette gives the button.
+// The checked frame is drawn on the shape the button has.
 //
-// A rectangular tool is slightly rounded in every palette. The frame and focus ring have to
-// follow that corner, or either mark crosses the fill at the corners.
+// A rectangular tool takes the control corner like a rounded one. The frame and the focus ring
+// have to follow that corner, or either mark crosses the fill at the corners — which leaves the
+// corner pixel of the cell on the ground it stands on.
 #test
 {
     var host: Testing.HeadlessHost
     host.setup(80, 80)
-    host.theme.setSwagDark()
-    host.notify(.ThemeChanged)
 
     let btn = IconButton.create(&host.root, {}, {20, 20, 40, 40}, flags: .Toggle)
     btn.setCheckIndicator(.Frame)
     btn.setChecked(true)
 
-    let border = host.theme.colors.btnIcon_CheckedFrameBorder
-
-    // An explicitly rounded tool cuts its own corner.
-    btn.setForm(.RoundedRectangle)
-    host.finishAnimations()
-    var rounded = host.render()
-    Swag.assert(iconButtonColorCount(&rounded, border) > 0)
-    Swag.assert(btn.focusRingRadius == host.theme.rects.btnIcon_RoundSquareBk.radius)
-    Swag.assert(rounded.pixelColor(20, 20) != border)
-
-    // The palette gives a rectangular tool the same slight corner.
-    btn.setForm(.Rectangle)
-    host.finishAnimations()
-    var softened = host.render()
-    Swag.assert(btn.focusRingRadius == host.theme.rects.btnIcon_SquareBk.radius)
-    Swag.assert(softened.pixelColor(20, 20) != border)
-
-    // Both neutral palettes keep the slight corner and the marks follow it.
     for light in [false, true]
     {
         if light do
@@ -226,27 +211,25 @@ func iconButtonColorCount(image: const *Image, color: Color)->s32
         else do
             host.theme.setDark()
         host.notify(.ThemeChanged)
-        host.finishAnimations()
 
-        var neutral       = host.render()
-        let neutralBorder = host.theme.colors.btnIcon_CheckedFrameBorder
-        Swag.assert(btn.focusRingRadius == host.theme.rects.btnIcon_RoundSquareBk.radius)
-        Swag.assert(neutral.pixelColor(20, 20) != neutralBorder)
-        Swag.assert(iconButtonColorCount(&neutral, neutralBorder) > 0)
+        for form in [IconButtonForm.RoundedRectangle, .Rectangle]
+        {
+            btn.setForm(form)
+            host.finishAnimations()
+            var image = host.render()
+            Swag.assert(btn.focusRingRadius == host.theme.rects.btnIcon_SquareBk.radius)
+            Swag.assert(image.pixelColor(20, 20) == host.theme.colors.dlg_Bk)
+        }
     }
 }
 
-// A framed checked tool keeps an accent glyph when the palette changes to light.
-//
-// Filled selections use the inverse ink of their accent fill. A framed selection has only a
-// neutral wash, so carrying that inverse ink over made its glyph white on the light palette.
+// A checked tool is written in Arc in both themes, and never in the ink of a fill.
 #test
 {
     var host: Testing.HeadlessHost
     host.setup(80, 80)
 
     let btn = IconButton.create(&host.root, host.theme.icon(.Filter, 24), {20, 20, 40, 40}, flags: .Toggle)
-    btn.setCheckIndicator(.Frame)
     btn.setChecked(true)
 
     for light in [false, true]
@@ -254,15 +237,18 @@ func iconButtonColorCount(image: const *Image, color: Color)->s32
         if light do
             host.theme.setLight()
         else do
-            host.theme.setSwagDark()
+            host.theme.setDark()
         host.notify(.ThemeChanged)
-        host.finishAnimations()
 
-        var image = host.render()
-        let mark  = host.theme.colors.btnIcon_CheckedMark
-        Swag.assert(iconButtonColorCount(&image, mark) > 0)
-        if light do
-            Swag.assert(mark != Argb.White)
+        for indicator in [IconButtonCheckIndicator.Full, .Frame]
+        {
+            btn.setCheckIndicator(indicator)
+            host.finishAnimations()
+            var image = host.render()
+            let glyph = host.theme.colors.btnIcon_CheckedIcon
+            Swag.assert(glyph == host.theme.colors.arc)
+            Swag.assert(iconButtonColorCount(&image, glyph) > 0)
+        }
     }
 }
 
@@ -272,8 +258,6 @@ func iconButtonColorCount(image: const *Image, color: Color)->s32
 {
     var host: Testing.HeadlessHost
     host.setup(80, 80)
-    host.theme.setSwagDark()
-    host.notify(.ThemeChanged)
 
     let btn = IconButton.create(&host.root, {}, {20, 20, 40, 40}, flags: .Toggle)
     btn.setForm(.Rectangle)
@@ -371,8 +355,6 @@ func iconButtonColorCount(image: const *Image, color: Color)->s32
 {
     var host: Testing.HeadlessHost
     host.setup(160, 68)
-    host.theme.setSwagDark()
-    host.notify(.ThemeChanged)
 
     let metrics = &host.theme.metrics
     Swag.assert(metrics.btnIcon_Padding == metrics.btnIcon_SpacingTextH)

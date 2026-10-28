@@ -232,16 +232,16 @@ impl IWnd for CaptureRectWnd
             painter.drawTexture(dstGrab, grabRect, g_DesktopTexture)
 
         let colors = .themeColors()
-        let col    = colors.hilight
+        let col    = colors.signature
 
         // A hairline states where the edge is; the brackets say it is a selection. A
         // full accent rectangle would sit on top of the pixels being captured.
         painter.setParams(.Antialiased)
-        painter.drawRect(dstGrab, colors.bk, 3)
+        painter.drawRect(dstGrab, colors.ground, 3)
         painter.drawRect(dstGrab, col, 1)
 
         if dstGrab.width >= 2 * BracketArm and dstGrab.height >= 2 * BracketArm do
-            paintCornerBrackets(painter, dstGrab, col, colors.bk)
+            paintCornerBrackets(painter, dstGrab, col, colors.ground)
 
         // Crosshair guides - only in manual grab mode. The cursor sits on the dragged
         // corner, so split each line around the selection instead of running it along
@@ -281,7 +281,7 @@ impl IWnd for CaptureRectWnd
                 yy = dstGrab.y + BadgeGap
             }
 
-            painter.fillRect(Math.Rectangle{xx, yy, width, height}, colors.bk)
+            painter.fillRect(Math.Rectangle{xx, yy, width, height}, colors.ground)
             painter.drawString(xx + BadgePad, yy + BadgePad, size, fontR, col)
             painter.drawString(xx + BadgePad, yy + BadgePad + fontR.height, org, fontR, colors.label_TextLight)
         }

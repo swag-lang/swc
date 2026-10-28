@@ -246,10 +246,6 @@ func writeZipFixture()->String
 
     var host: Testing.HeadlessHost
     host.setup(1180, 720)
-    host.theme.setSwagDark()
-    host.theme.metrics.surfaceWnd_ShadowSize   = 0
-    host.theme.metrics.surfaceWnd_CornerRadius = 0
-    host.notify(.ThemeChanged)
 
     var index = createViewerPluginRegistry()
 

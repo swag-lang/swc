@@ -730,9 +730,9 @@ func findVisibleLink(view: *HtmlView, url: string)->HtmlLinkHit
 
     let moved = view.painter().scrollBarAt({96, 50})
     Swag.assert(moved.box == rail and moved.thumb.y <= 50 and moved.thumb.bottom() >= 50)
-    host.mouseDown({91, 50})
-    host.moveMouse({91, 95})
-    host.mouseUp({91, 95})
+    host.mouseDown({96, 50})
+    host.moveMouse({96, 95})
+    host.mouseUp({96, 95})
     Swag.assert(view.layout.constBox(rail).scrollTop > 190)
 }
 

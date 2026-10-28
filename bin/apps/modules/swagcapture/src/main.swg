@@ -44,7 +44,7 @@ const OpenImageMessage = 1'u32
     registerAppStrings(&g_App.resources)
 
     let surface = try g_App.createSurface(0, 0, 10, 10, SurfaceFlags.StandardWindow, surfaceId: SurfaceId)
-    g_App.theme.setSwagDark()
+    g_App.theme.setDark()
     g_App.notifyThemeChanged()
     let mainWnd = MainWnd.create(surface.wnd)
 

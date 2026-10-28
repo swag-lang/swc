@@ -50,7 +50,7 @@ func comboHeadlessChanged(_: *ComboBox, idx: u32)
     combo.addItem("One")
     combo.setSelectedIndex(0, notify: false)
 
-    host.theme.setSwagDark()
+    host.theme.setDark()
     host.app.notifyThemeChanged()
     host.notify(.ThemeChanged)
     combo.invalidate()

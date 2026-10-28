@@ -54,7 +54,7 @@ struct EditorOptions
     hideOnClose = true
 
     #[Hidden]
-    theme: AppearanceTheme = .SwagDark
+    theme: AppearanceTheme = .Dark
 
     #[Hidden]
     language: EditorLanguage = .English

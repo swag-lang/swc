@@ -389,7 +389,7 @@ public impl MessageDlg
         if not opt.icon.isValid()
         {
             opt.icon      = from.app.theme.icon(.Critical, 48)
-            opt.iconColor = from.app.theme.colors.error
+            opt.iconColor = from.app.theme.colors.critical
         }
 
         if not opt.title.count do

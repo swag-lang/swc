@@ -4,8 +4,9 @@ using Core, Pixel
 
 // Identifies a glyph of the theme's vector icon set.
 //
-// The set is one vector document, `theme/icons.svg`: mostly Fluent UI System Icons (MIT License),
-// with the few glyphs that set does not carry drawn onto the same grid at the same weight. The
+// The set is one vector document, `theme/icons.svg`. Every glyph is an outline on a 16-unit grid:
+// a stroke of 1.4 with round caps and joins, and no fill except for a deliberate dot or a media
+// triangle, so a glyph shown at 16 pixels carries exactly the weight the charter asks for. The
 // theme rasterizes it on demand at the requested display size and the current atlas scale, so any
 // size stays sharp on any display. The declaration order is the glyph order of the document grid.
 enum ThemeIcons
@@ -15,10 +16,10 @@ enum ThemeIcons
     WndClose        // Window-caption close glyph.
     Search          // Search action glyph.
 
-    // The chevron family: one solid triangle per direction, and the only marker the interface
-    // uses to say "there is more this way". A drop-down, a submenu, a tree branch, a property
-    // row, a sort order and the arrow of a menu button are all one of these four, so a reader
-    // learns the shape once. Draw them at [[Gui.ThemeMetrics.chevron_Size]].
+    // The chevron family: one open angle per direction, and the only marker the interface uses
+    // to say "there is more this way". A drop-down, a submenu, a tree branch, a property row, a
+    // sort order and the arrow of a menu button are all one of these four, so a reader learns
+    // the shape once. Draw them at [[Gui.ThemeMetrics.chevron_Size]].
     ChevronUp          // Points up: an ascending sort, a value that grows.
     ChevronDown        // Points down: a drop-down, an expanded branch, a descending sort.
     ChevronLeft        // Points left: a step back, a panel that closes leftward.
@@ -92,6 +93,7 @@ enum ThemeIcons
     LineNumbers       // Show the number of each line beside a text.
     Settings          // Open a page of adjustable settings.
     Folder            // A folder in a file listing.
+    Dot               // A filled disc that fills its box: the tone dot of a notice or a status.
 }
 
 impl Theme

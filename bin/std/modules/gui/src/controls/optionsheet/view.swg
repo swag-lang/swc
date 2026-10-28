@@ -1123,7 +1123,7 @@ private impl View
                 ground.inflate(-metrics.optionSheet_Inset, -metrics.optionSheet_Inset * 0.5)
                 theme.drawSubRect(painter, ground, &rects.menuPopup_HotBk, fade(colors.optionSheet_HotBk, opacity))
                 if ring do
-                    theme.drawFocusRing(painter, ground, rects.menuPopup_HotBk.radius, colors.optionSheet_HotBk)
+                    theme.drawFocusRing(painter, ground, rects.menuPopup_HotBk.radius)
             }
 
             var x = band.x + metrics.optionSheet_Inset + metrics.optionSheet_RowPadding
@@ -1192,7 +1192,7 @@ private impl View
         {
             theme.drawSubRect(painter, rect, &rects.menuPopup_HotBk, fade(colors.optionSheet_HotBk, opacity))
             if ring do
-                theme.drawFocusRing(painter, rect, rects.menuPopup_HotBk.radius, colors.optionSheet_HotBk)
+                theme.drawFocusRing(painter, rect, rects.menuPopup_HotBk.radius)
         }
 
         let textColor   = fade(row.disabled ? colors.popupItem_DisabledText : (hot ? colors.popupItem_HotText : colors.popupItem_Text), opacity)

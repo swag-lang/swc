@@ -162,7 +162,7 @@ impl RecentView
 
         if infos.showLinked and infos.linked != null
         {
-            let backColor = infos.linkedUpToDate ? colors.bk : ColorYellow
+            let backColor = infos.linkedUpToDate ? colors.ground : ColorYellow
             painter.fillRoundRect(Math.Rectangle{rect.x, rect.y, LinkBadgeSize, LinkBadgeSize}, corner, corner, backColor)
 
             var icon = parent.theme().icon(.Link)
@@ -185,7 +185,7 @@ impl RecentView
             // edge runs — and its corner is the cell's corner stepped in by that same half weight,
             // which is what keeps the two concentric instead of crossing at four places.
             let frameCorner = Math.max(corner - SelectedFrameSize * 0.5, 0.0)
-            painter.drawRoundRect(frame, frameCorner, frameCorner, colors.hilight, SelectedFrameSize)
+            painter.drawRoundRect(frame, frameCorner, frameCorner, colors.signature, SelectedFrameSize)
         }
     }
 }

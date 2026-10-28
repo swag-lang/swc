@@ -63,20 +63,16 @@ using Swag, Core, Pixel
                                  fileName,
                                  secondFileName)
 
-    for name, index in ["swagdark", "dark", "light", "hidpi", "paper"]
+    for name, index in ["dark", "light", "hidpi", "paper"]
     {
         var host: Testing.HeadlessHost
-        host.setup(480, 240, index == 3 ? 2 : 1)
-        switch index
-        {
-        case 0, 3, 4: host.theme.setSwagDark()
-        case 1:       host.theme.setDark()
-        case 2:       host.theme.setLight()
-        }
+        host.setup(480, 240, index == 2 ? 2 : 1)
+        if index == 1 do
+            host.theme.setLight()
 
         host.app.deterministicStreaming = false
         let view = Markdown.View.createText(&host.root, source.toString())
-        if index == 4 do
+        if index == 3 do
             view.setDocumentThemeColors("view_Bk 0xFFFFFFFF\nlabel_Text 0xFF333333")
         view.resize(480, 240)
         view.applyLayout()

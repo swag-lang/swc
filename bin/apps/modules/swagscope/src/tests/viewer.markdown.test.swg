@@ -64,8 +64,6 @@ using Core, Pixel, Gui, Gui.Testing, Viewers
     MarkdownText.g_ViewerSettings = {themeIndex: 1}
     var host: Testing.HeadlessHost
     host.setup(1280, 720, 1.5)
-    host.theme.setSwagDark()
-    host.notify(.ThemeChanged)
     let window   = ViewerWindow.create(&host.surfaceWnd, createViewerPluginRegistry())
     let fileName = Path.combine(unwrap Path.directoryName(#curlocation.fileName), "datas/markdown.images.md")
     window.openFile(fileName, remember: false)
@@ -106,8 +104,6 @@ using Core, Pixel, Gui, Gui.Testing, Viewers
     MarkdownText.g_ViewerSettings = {}
     var host: Testing.HeadlessHost
     host.setup(960, 680)
-    host.theme.setSwagDark()
-    host.notify(.ThemeChanged)
     var result = openTestViewer(MarkdownText.viewerPlugin(), &host.root, markdownFixturePath())
     let view   = assume cast(*Markdown.View, result.view)
     let zoom   = assume cast(*MarkdownText.ZoomButton, result.info!.children[0])
@@ -160,7 +156,7 @@ using Core, Pixel, Gui, Gui.Testing, Viewers
     host.setup(880, 560)
     defer discard catch host.app.setLanguage(ReferenceLanguage)
 
-    host.theme.setSwagDark()
+    host.theme.setDark()
     host.theme.metrics.surfaceWnd_ShadowSize   = 0
     host.theme.metrics.surfaceWnd_CornerRadius = 0
     host.notify(.ThemeChanged)
@@ -187,8 +183,6 @@ func assertMarkdownImages(themeIndex: u32, dpiScale: f32, golden: string)
 {
     var host: Testing.HeadlessHost
     host.setup(960, 680, dpiScale)
-    host.theme.setSwagDark()
-    host.notify(.ThemeChanged)
 
     let fileName = Path.combine(unwrap Path.directoryName(#curlocation.fileName), "datas/markdown.images.md")
     var result   = openTestViewer(MarkdownText.viewerPlugin(), &host.root, fileName)
@@ -295,8 +289,6 @@ private func markdownWhiteyFixturePath()->String => Path.combine(unwrap Path.dir
 
     var host: Testing.HeadlessHost
     host.setup(960, 680)
-    host.theme.setSwagDark()
-    host.notify(.ThemeChanged)
 
     let infoBar = Wnd.create'Wnd(&host.root, {0, 0, 0, 40})
     infoBar.dockStyle = .Bottom
@@ -384,8 +376,6 @@ private func markdownWhiteyFixturePath()->String => Path.combine(unwrap Path.dir
 {
     var host: Testing.HeadlessHost
     host.setup(960, 680)
-    host.theme.setSwagDark()
-    host.notify(.ThemeChanged)
 
     let source = expect File.readAllText(markdownFixturePath())
     let style  = MarkdownText.viewerStyle(0, 1)
@@ -413,11 +403,9 @@ private func markdownWhiteyFixturePath()->String => Path.combine(unwrap Path.dir
 #test
 {
     let source = expect File.readAllText(markdownFixturePath())
-    let backgrounds: [6] u32 = [0xFF15151A, 0xFFFFFFFF, 0xFFF3F2EE, 0xFF363B40, 0xFFFFFFFF, 0xFFFEFEFE]
+    let backgrounds: [6] u32 = [0xFF17181C, 0xFFFFFFFF, 0xFFF3F2EE, 0xFF363B40, 0xFFFFFFFF, 0xFFFEFEFE]
     var host:        Testing.HeadlessHost
     host.setup(960, 680)
-    host.theme.setSwagDark()
-    host.notify(.ThemeChanged)
 
     for themeIndex in backgrounds.count
     {
@@ -450,8 +438,6 @@ private func markdownWhiteyFixturePath()->String => Path.combine(unwrap Path.dir
 {
     var host: Testing.HeadlessHost
     host.setup(960, 900)
-    host.theme.setSwagDark()
-    host.notify(.ThemeChanged)
 
     let source = expect File.readAllText(markdownWhiteyFixturePath())
     let view   = Markdown.View.createText(&host.root, source)

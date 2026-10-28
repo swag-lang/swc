@@ -332,66 +332,20 @@ impl Theme
         try .applySheet(cast(string, bytes.toSlice()))
     }
 
-    // Applies the neutral dark palette and the geometry the theme atlas was authored with.
+    // Applies Encre, the dark theme.
+    //
+    // Both shipped themes share the geometry of the charter, so changing theme changes colors
+    // only: the measures declared by [[Gui.ThemeMetrics]] and [[Gui.ThemeImageRects]] stay as
+    // they are, including any a sheet already set.
     mtd setDark()
     {
-        .setPalette(ThemeColors.darkPalette())
-        .setDefaultGeometry()
+        .setPalette(ThemeColors.encrePalette())
     }
 
-    // Applies the neutral light palette and the geometry the theme atlas was authored with.
+    // Applies Papier, the light theme. See [[Gui.Theme.setDark]].
     mtd setLight()
     {
-        .setPalette(ThemeColors.lightPalette())
-        .setDefaultGeometry()
-    }
-
-    // Applies the dark Swag palette and its shared control geometry.
-    mtd setSwagDark()
-    {
-        .setPalette(ThemeColors.swagDarkPalette())
-        .setSwagGeometry()
-    }
-
-    // Restores the geometry the theme atlas was authored with.
-    //
-    // Every palette has to answer for the shape of a control as well as for its color, or
-    // a surface leaving the Swag palette keeps square push buttons and a barely cut window
-    // under a blue accent — a mix no palette ever described. The declared values of
-    // [[Gui.ThemeImageRects]] and [[Gui.ThemeMetrics]] are that authored geometry, which is
-    // why restoring it is an initialization rather than a second list of numbers to keep in
-    // step with the first.
-    private mtd setDefaultGeometry()
-    {
-        var defaults: ThemeMetrics
-        .metrics.surfaceWnd_CornerRadius = defaults.surfaceWnd_CornerRadius
-        Swag.init(&.rects, 1)
-    }
-
-    // Gives interactive cells the same slight corner as an edit box.
-    //
-    // The default atlas draws a push button as a pill, which is the one control that cannot sit
-    // next to a field without looking borrowed from another kit. The Swag palette instead uses
-    // one four-pixel corner for fields, actions, tool cells and selection states. Standalone
-    // panels keep the more legible shared panel corner declared by [[Gui.ThemeImageRects]].
-    // Structural chrome remains square, so the corner softens a bounded thing without rounding
-    // the bars and rails that join the surface together.
-    private mtd setSwagGeometry()
-    {
-        // The window outline takes the large corner of the scale. Carried square onto the desktop
-        // it reads as a slab beside every other application; at 8 the corner instead read as a
-        // bevel on that square, so it is 12 — deliberate against the desktop, and still well short
-        // of the 18 the neutral palettes use.
-        .metrics.surfaceWnd_CornerRadius = 12
-
-        .rects.btnPush_Normal         = .rects.edit_SquareBk
-        .rects.btnPush_Hot            = .rects.edit_SquareBk
-        .rects.btnPush_Pressed        = .rects.edit_SquareBk
-        .rects.btnPush_Disabled       = .rects.edit_SquareBk
-        .rects.btnPush_NormalBorder   = .rects.edit_SquareBorder
-        .rects.btnPush_HotBorder      = .rects.edit_SquareBorder
-        .rects.btnPush_PressedBorder  = .rects.edit_SquareBorder
-        .rects.btnPush_DisabledBorder = .rects.edit_SquareBorder
+        .setPalette(ThemeColors.papierPalette())
     }
 
     internal mtd freeDefault()

@@ -12,7 +12,7 @@ using Swag, Core
     gui.bindApplication(&g_App)
     registerAppStrings(&g_App.resources)
     registerAppStrings(&gui.app.resources)
-    gui.theme.setSwagDark()
+    gui.theme.setDark()
     gui.notify(.ThemeChanged)
 
     let appIcon = expect Pixel.Image.decode(".png", AppIcon)

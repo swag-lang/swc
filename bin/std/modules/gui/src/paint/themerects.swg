@@ -42,44 +42,46 @@ struct ThemeImageRects
 
         dlg_BtnBar: ThemeImageRect = {Math.Rectangle{29, 29, 27, 27}, 2, 0}     // Ground of the action bar of a dialog.
 
-        btnPush_Normal:         ThemeImageRect = {Math.Rectangle{1, 1, 27, 27}, 13, 12.5}      // Fill of a push button at rest.
-        btnPush_NormalBorder:   ThemeImageRect = {Math.Rectangle{29, 1, 27, 27}, 13, 12.5}     // Border of a push button at rest.
-        btnPush_Hot:            ThemeImageRect = {Math.Rectangle{1, 1, 27, 27}, 13, 12.5}      // Fill of a push button under the pointer.
-        btnPush_HotBorder:      ThemeImageRect = {Math.Rectangle{29, 1, 27, 27}, 13, 12.5}     // Border of a push button under the pointer.
-        btnPush_Pressed:        ThemeImageRect = {Math.Rectangle{1, 1, 27, 27}, 13, 12.5}      // Fill of a pressed push button.
-        btnPush_PressedBorder:  ThemeImageRect = {Math.Rectangle{29, 1, 27, 27}, 13, 12.5}     // Border of a pressed push button.
-        btnPush_Disabled:       ThemeImageRect = {Math.Rectangle{1, 1, 27, 27}, 13, 12.5}      // Fill of a disabled push button.
-        btnPush_DisabledBorder: ThemeImageRect = {Math.Rectangle{29, 1, 27, 27}, 13, 12.5}     // Border of a disabled push button.
+        btnPush_Normal:         ThemeImageRect = {Math.Rectangle{1, 57, 27, 27}, 7, 6}      // Fill of a push button at rest.
+        btnPush_NormalBorder:   ThemeImageRect = {Math.Rectangle{29, 57, 27, 27}, 7, 6}     // Border of a push button at rest.
+        btnPush_Hot:            ThemeImageRect = {Math.Rectangle{1, 57, 27, 27}, 7, 6}      // Fill of a push button under the pointer.
+        btnPush_HotBorder:      ThemeImageRect = {Math.Rectangle{29, 57, 27, 27}, 7, 6}     // Border of a push button under the pointer.
+        btnPush_Pressed:        ThemeImageRect = {Math.Rectangle{1, 57, 27, 27}, 7, 6}      // Fill of a pressed push button.
+        btnPush_PressedBorder:  ThemeImageRect = {Math.Rectangle{29, 57, 27, 27}, 7, 6}     // Border of a pressed push button.
+        btnPush_Disabled:       ThemeImageRect = {Math.Rectangle{1, 57, 27, 27}, 7, 6}      // Fill of a disabled push button.
+        btnPush_DisabledBorder: ThemeImageRect = {Math.Rectangle{29, 57, 27, 27}, 7, 6}     // Border of a disabled push button.
 
-        btnIcon_SquareBk:      ThemeImageRect = {Math.Rectangle{1, 57, 27, 27}, 7, 4}        // Ground of a compact rectangular icon button.
+        btnIcon_SquareBk:      ThemeImageRect = {Math.Rectangle{1, 57, 27, 27}, 7, 6}        // Ground of a compact rectangular icon button.
         btnIcon_RoundBk:       ThemeImageRect = {Math.Rectangle{1, 1, 27, 27}, 13, 12.5}     // Ground of a round icon button.
-        btnIcon_RoundSquareBk: ThemeImageRect = {Math.Rectangle{1, 57, 27, 27}, 7, 4}        // Ground of a rounded-square icon button.
+        btnIcon_RoundSquareBk: ThemeImageRect = {Math.Rectangle{1, 57, 27, 27}, 7, 6}        // Ground of a rounded-square icon button.
+        btnIcon_CheckedRing:   ThemeImageRect = {Math.Rectangle{29, 57, 27, 27}, 7, 6}       // Faint ring around a checked icon button.
 
-        btnIcon_CheckedBottom:      ThemeImageRect = {Math.Rectangle{1, 281, 27, 27}, 7, 0}       // Ground of a checked icon button marked on its bottom edge.
-        btnIcon_CheckedTop:         ThemeImageRect = {Math.Rectangle{29, 281, 27, 27}, 7, 0}      // Ground of a checked icon button marked on its top edge.
-        btnIcon_CheckedLeft:        ThemeImageRect = {Math.Rectangle{57, 281, 27, 27}, 7, 0}      // Ground of a checked icon button marked on its left edge.
-        btnIcon_CheckedRight:       ThemeImageRect = {Math.Rectangle{85, 281, 27, 27}, 7, 0}      // Ground of a checked icon button marked on its right edge.
-        btnIcon_CheckedSquare:      ThemeImageRect = {Math.Rectangle{1, 57, 27, 27}, 7, 4}        // Fill of a checked compact rectangular icon button.
+        btnIcon_CheckedBottom:      ThemeImageRect = {Math.Rectangle{1, 281, 27, 27}, 7, 0}       // Rule of a checked icon button marked on its bottom edge.
+        btnIcon_CheckedTop:         ThemeImageRect = {Math.Rectangle{29, 281, 27, 27}, 7, 0}      // Rule of a checked icon button marked on its top edge.
+        btnIcon_CheckedLeft:        ThemeImageRect = {Math.Rectangle{57, 281, 27, 27}, 7, 0}      // Rule of a checked icon button marked on its left edge.
+        btnIcon_CheckedRight:       ThemeImageRect = {Math.Rectangle{85, 281, 27, 27}, 7, 0}      // Rule of a checked icon button marked on its right edge.
+        btnIcon_CheckedSquare:      ThemeImageRect = {Math.Rectangle{1, 57, 27, 27}, 7, 6}        // Fill of a checked compact rectangular icon button.
         btnIcon_CheckedRound:       ThemeImageRect = {Math.Rectangle{1, 1, 27, 27}, 13, 12.5}     // Fill of a checked round icon button.
-        btnIcon_CheckedRoundSquare: ThemeImageRect = {Math.Rectangle{1, 57, 27, 27}, 7, 4}        // Fill of a checked rounded-square icon button.
+        btnIcon_CheckedRoundSquare: ThemeImageRect = {Math.Rectangle{1, 57, 27, 27}, 7, 6}        // Fill of a checked rounded-square icon button.
 
         btnCheck_Normal:          ThemeImageRect = {Math.Rectangle{90, 29, 32, 32}, 16, 4}       // Box of an unchecked check box.
-        btnCheck_NormalBorder:    ThemeImageRect = {Math.Rectangle{57, 29, 32, 32}, 16, 4}       // Border of an unchecked check box.
-        btnCheck_Undefined:       ThemeImageRect = {Math.Rectangle{90, 29, 32, 32}, 16, 4}       // Box of a check box in the undefined state.
-        btnCheck_UndefinedBorder: ThemeImageRect = {Math.Rectangle{57, 29, 32, 32}, 16, 4}       // Border of a check box in the undefined state.
-        btnCheck_UndefinedMark:   ThemeImageRect = {Math.Rectangle{90, 62, 32, 32}, 16, 2.5}     // Mark of a check box in the undefined state.
+        btnCheck_NormalBorder:    ThemeImageRect = {Math.Rectangle{57, 29, 32, 32}, 16, 4}       // Ring of an unchecked check box.
+        btnCheck_Undefined:       ThemeImageRect = {Math.Rectangle{90, 29, 32, 32}, 16, 4}       // Box of a check box in the mixed state.
+        btnCheck_UndefinedBorder: ThemeImageRect = {Math.Rectangle{57, 29, 32, 32}, 16, 4}       // Ring of a check box in the mixed state.
+        btnCheck_UndefinedMark:   ThemeImageRect = {Math.Rectangle{90, 62, 32, 32}, 16, 0}       // Dash of a check box in the mixed state.
         btnCheck_Checked:         ThemeImageRect = {Math.Rectangle{90, 29, 32, 32}, 16, 4}       // Box of a checked check box.
-        btnCheck_CheckedBorder:   ThemeImageRect = {Math.Rectangle{57, 29, 32, 32}, 16, 4}       // Border of a checked check box.
+        btnCheck_CheckedBorder:   ThemeImageRect = {Math.Rectangle{57, 29, 32, 32}, 16, 4}       // Ring of a checked check box.
         btnCheck_CheckedMark:     ThemeImageRect = {Math.Rectangle{57, 62, 32, 32}, 0, 0}        // Check mark of a checked check box.
 
         btnRadio_NormalBorder:  ThemeImageRect = {Math.Rectangle{123, 29, 32, 32}, 16, 11}     // Border of an unselected radio button.
         btnRadio_Normal:        ThemeImageRect = {Math.Rectangle{156, 29, 32, 32}, 16, 11}     // Disc of an unselected radio button.
         btnRadio_CheckedBorder: ThemeImageRect = {Math.Rectangle{123, 29, 32, 32}, 16, 11}     // Border of a selected radio button.
         btnRadio_Checked:       ThemeImageRect = {Math.Rectangle{156, 29, 32, 32}, 16, 11}     // Disc of a selected radio button.
-        btnRadio_CheckedMark:   ThemeImageRect = {Math.Rectangle{123, 62, 32, 32}, 16, 6}      // Dot of a selected radio button.
+        btnRadio_CheckedMark:   ThemeImageRect = {Math.Rectangle{123, 62, 32, 32}, 16, 4}      // Dot of a selected radio button.
 
-        edit_SquareBk:     ThemeImageRect = {Math.Rectangle{1, 57, 27, 27}, 5, 4}         // Ground of a square-cornered field.
-        edit_SquareBorder: ThemeImageRect = {Math.Rectangle{29, 57, 27, 27}, 5, 4}        // Border of a square-cornered field.
+        edit_SquareBk:          ThemeImageRect = {Math.Rectangle{1, 57, 27, 27}, 7, 6}     // Ground of a field.
+        edit_SquareBorder:      ThemeImageRect = {Math.Rectangle{29, 57, 27, 27}, 7, 6}    // Hairline ring of a field.
+        edit_SquareStrongBorder: ThemeImageRect = {Math.Rectangle{57, 1, 27, 27}, 7, 6}    // Two-pixel ring of a focused field, or of one holding a rejected value.
         edit_RoundBk:      ThemeImageRect = {Math.Rectangle{1, 1, 27, 27}, 13, 12.5}      // Ground of a round field.
         edit_RoundBorder:  ThemeImageRect = {Math.Rectangle{29, 1, 27, 27}, 13, 12.5}     // Border of a round field.
         edit_FlatBk:       ThemeImageRect = {}     // Nothing: a flat field is told apart by the rule under it alone.
@@ -87,7 +89,7 @@ struct ThemeImageRects
 
         btnToggle_Bk:     ThemeImageRect = {Math.Rectangle{1, 1, 27, 27}, 13, 12.5}       // Track of a toggle.
         btnToggle_Border: ThemeImageRect = {Math.Rectangle{29, 1, 27, 27}, 13, 12.5}      // Border of the track of a toggle.
-        btnToggle_Mark:   ThemeImageRect = {Math.Rectangle{57, 141, 27, 27}, 13, 8.5}     // Knob of a toggle.
+        btnToggle_Mark:   ThemeImageRect = {Math.Rectangle{57, 141, 27, 27}, 13, 9.5}     // Knob of a toggle.
 
         slider_BkLeft:       ThemeImageRect = {Math.Rectangle{1, 169, 27, 27}, 13, 3.3, false}      // Leading end of a horizontal slider track.
         slider_BkMiddle:     ThemeImageRect = {Math.Rectangle{29, 169, 27, 27}, 13, 0, false}       // Middle of a horizontal slider track.
@@ -96,13 +98,14 @@ struct ThemeImageRects
         slider_BkMiddleVert: ThemeImageRect = {Math.Rectangle{29, 309, 27, 27}, 13, 0, false}       // Middle of a vertical slider track.
         slider_BkRightVert:  ThemeImageRect = {Math.Rectangle{57, 309, 27, 27}, 13, 3.3, false}     // Trailing end of a vertical slider track.
         slider_Mark:         ThemeImageRect = {Math.Rectangle{86, 170, 25, 25}, 12, 12.5}           // Knob of a slider.
+        slider_MarkBorder:   ThemeImageRect = {Math.Rectangle{85, 141, 27, 27}, 13, 13}             // Hairline ring of the knob of a slider.
         slider_Step:         ThemeImageRect = {Math.Rectangle{1, 1, 27, 27}, 13, 12.5}              // Tick marking a step of a slider.
 
         circular_Mark: ThemeImageRect = {Math.Rectangle{57, 141, 27, 27}, 13, 8.5}     // Knob of a circular control.
 
         tabItem_FlatSelected:       ThemeImageRect = {Math.Rectangle{57, 95, 27, 27}, 5, 0}            // Ground of the selected tab of a flat bar.
-        tabItem_RoundSelected:      ThemeImageRect = {Math.Rectangle{85, 95, 39, 25}, 10, 6.7}         // Ground of the selected tab of a round bar.
-        tabItem_RoundHot:           ThemeImageRect = {Math.Rectangle{85, 95, 39, 25}, 10, 6.7}         // Ground of a tab of a round bar under the pointer.
+        tabItem_RoundSelected:      ThemeImageRect = {Math.Rectangle{57, 197, 27, 27}, 5, 4}           // Ground of the chosen segment of a round bar.
+        tabItem_RoundHot:           ThemeImageRect = {Math.Rectangle{57, 197, 27, 27}, 5, 4}           // Ground of a segment of a round bar under the pointer.
         tabItem_ButtonSelected:     ThemeImageRect = {Math.Rectangle{113, 309, 27, 27}, 9, 9}          // Ground of the selected tab of a button bar.
         tabItem_ButtonHot:          ThemeImageRect = {Math.Rectangle{113, 309, 27, 27}, 9, 9}          // Ground of a tab of a button bar under the pointer.
         tabItem_PushButtonSelected: ThemeImageRect = {Math.Rectangle{113, 309, 27, 27}, 13, 11.58}     // Ground of the selected tab of a push-button bar.
@@ -111,7 +114,7 @@ struct ThemeImageRects
         tabItem_PushButtonBorder:   ThemeImageRect = {Math.Rectangle{29, 1, 27, 27}, 13, 12.5}         // Border of a tab of a push-button bar.
         tabBar_FlatBk:              ThemeImageRect = {Math.Rectangle{57, 95, 27, 27}, 5, 0}            // Ground of a flat tab bar.
         tabBar_FlatRoundBk:         ThemeImageRect = {Math.Rectangle{57, 253, 27, 27}, 13, 11.5}       // Ground of a flat tab bar with rounded ends.
-        tabBar_RoundBk:             ThemeImageRect = {Math.Rectangle{1, 1, 27, 27}, 9, 9}              // Ground of a round tab bar.
+        tabBar_RoundBk:             ThemeImageRect = {Math.Rectangle{1, 57, 27, 27}, 7, 6}             // Raised frame of a round tab bar, which holds its segments.
         tabView_FlatBk:             ThemeImageRect = {Math.Rectangle{1, 29, 27, 27}, 10, 0}            // Ground of the page of a flat tab control.
         tabView_RoundBk:            ThemeImageRect = {Math.Rectangle{153, 95, 27, 27}, 10, 10}         // Ground of the page of a round tab control.
 
@@ -119,8 +122,8 @@ struct ThemeImageRects
         menuPopup_Bk:                ThemeImageRect = {Math.Rectangle{1, 197, 27, 27}, 12, 10}        // Ground of a popup menu.
         menuPopup_Border:            ThemeImageRect = {Math.Rectangle{29, 197, 27, 27}, 12, 10.5}     // Border of a popup menu.
         menuPopup_HotBk:             ThemeImageRect = {Math.Rectangle{57, 197, 27, 27}, 12, 4}        // Ground of a popup menu entry under the pointer.
-        menuPopup_BarAnchorBk:       ThemeImageRect = {Math.Rectangle{281, 1, 27, 39}, 5, 4}          // Ground of the tab joining a popup menu to its menu bar entry.
-        menuPopup_BarAnchorBorder:   ThemeImageRect = {Math.Rectangle{309, 1, 27, 39}, 5, 4.5}        // Border of the tab joining a popup menu to its menu bar entry.
+        menuPopup_BarAnchorBk:       ThemeImageRect = {Math.Rectangle{281, 1, 27, 39}, 7, 6}          // Ground of the tab joining a popup menu to its menu bar entry.
+        menuPopup_BarAnchorBorder:   ThemeImageRect = {Math.Rectangle{309, 1, 27, 39}, 7, 6.5}        // Border of the tab joining a popup menu to its menu bar entry.
         menuBar_PopupSelectedBk:     ThemeImageRect = {Math.Rectangle{1, 197, 27, 27}, 12, 10}        // Ground of a menu bar entry whose popup is open.
         menuBar_PopupSelectedBorder: ThemeImageRect = {Math.Rectangle{29, 197, 27, 27}, 12, 10.5}     // Border of a menu bar entry whose popup is open.
         menuBar_Bk:                  ThemeImageRect = {Math.Rectangle{1, 29, 27, 27}, 12, 0}          // Ground of a menu bar.
@@ -135,10 +138,10 @@ struct ThemeImageRects
         scrollBar_Corner: ThemeImageRect = {Math.Rectangle{1, 29, 27, 27}, 0, 0}          // Corner where a vertical and a horizontal scroll bar meet.
 
         frameWnd_SmallShadow:    ThemeImageRect = {Math.Rectangle{189, 1, 66, 66}, 24, 0}       // Blurred tile of the compact shadow of a frame.
-        frameWnd_SquareBk:       ThemeImageRect = {Math.Rectangle{1, 57, 27, 27}, 5, 4}         // Ground of a square frame.
-        frameWnd_SquareBorder:   ThemeImageRect = {Math.Rectangle{29, 57, 27, 27}, 5, 4}        // Border of a square frame.
-        frameWnd_RoundBk:        ThemeImageRect = {Math.Rectangle{1, 1, 27, 27}, 13, 12.5}      // Ground of a round frame.
-        frameWnd_RoundBorder:    ThemeImageRect = {Math.Rectangle{29, 1, 27, 27}, 13, 12.5}     // Border of a round frame.
+        frameWnd_SquareBk:       ThemeImageRect = {Math.Rectangle{1, 57, 27, 27}, 7, 6}         // Ground of a frame with the control corner.
+        frameWnd_SquareBorder:   ThemeImageRect = {Math.Rectangle{29, 57, 27, 27}, 7, 6}        // Border of a frame with the control corner.
+        frameWnd_RoundBk:        ThemeImageRect = {Math.Rectangle{1, 85, 27, 27}, 13, 12}       // Ground of a floating frame.
+        frameWnd_RoundBorder:    ThemeImageRect = {Math.Rectangle{29, 85, 27, 27}, 13, 12}      // Border of a floating frame.
         frameWnd_AnchorTop:      ThemeImageRect = {Math.Rectangle{141, 253, 27, 27}, 0, 0}      // Outline of a callout anchor on the top edge of a frame.
         frameWnd_AnchorTopBk:    ThemeImageRect = {Math.Rectangle{141, 281, 27, 27}, 0, 0}      // Ground of a callout anchor on the top edge of a frame.
         frameWnd_AnchorBottom:   ThemeImageRect = {Math.Rectangle{169, 253, 27, 27}, 0, 0}      // Outline of a callout anchor on the bottom edge of a frame.
@@ -148,7 +151,7 @@ struct ThemeImageRects
         frameWnd_AnchorLeft:     ThemeImageRect = {Math.Rectangle{225, 253, 27, 27}, 0, 0}      // Outline of a callout anchor on the left edge of a frame.
         frameWnd_AnchorLeftBk:   ThemeImageRect = {Math.Rectangle{225, 281, 27, 27}, 0, 0}      // Ground of a callout anchor on the left edge of a frame.
 
-        header_FlatBk:  ThemeImageRect = {Math.Rectangle{1, 57, 27, 27}, 13, 4}          // Ground of a flat column header.
+        header_FlatBk:  ThemeImageRect = {Math.Rectangle{1, 57, 27, 27}, 7, 6}           // Ground of a flat column header.
         header_RoundBk: ThemeImageRect = {Math.Rectangle{57, 253, 27, 27}, 13, 11.5}     // Ground of a round column header.
 
         selectionBox_Bk: ThemeImageRect = {Math.Rectangle{57, 197, 27, 27}, 12, 4}     // Ground of a hovered or selected row, entry, or cell.
@@ -159,14 +162,14 @@ struct ThemeImageRects
         splitView_VertBarHotBk: ThemeImageRect = {Math.Rectangle{113, 225, 27, 27}, 0, 0}     // Same bar under the pointer.
 
         progressBar_Bk:     ThemeImageRect = {Math.Rectangle{1, 1, 27, 27}, 13, 12.5}         // Track of a progress bar.
-        progressBar_Border: ThemeImageRect = {Math.Rectangle{29, 1, 27, 27}, 13, 12.5}        // Border of a progress bar.
-        progressBar_Mark:   ThemeImageRect = {Math.Rectangle{169, 141, 27, 27}, 13, 9.76}     // Filled part of a progress bar.
+        progressBar_Border: ThemeImageRect = {}     // Nothing: a progress bar is a track and its fill, with no outline.
+        progressBar_Mark:   ThemeImageRect = {Math.Rectangle{1, 1, 27, 27}, 13, 12.5}         // Filled part of a progress bar.
 
         colorPicker_RoundPick:  ThemeImageRect = {Math.Rectangle{141, 169, 27, 27}, 13, 13.5}     // Round marker of the picked color.
         colorPicker_SquarePick: ThemeImageRect = {Math.Rectangle{169, 169, 27, 27}, 13, 7}        // Square marker of the picked color.
         colorPicker_Bk:         ThemeImageRect = {Math.Rectangle{141, 197, 27, 27}, 13, 5}        // Ground of a color picker.
         colorPicker_Border:     ThemeImageRect = {Math.Rectangle{169, 197, 27, 27}, 13, 6}        // Border of a color picker.
 
-        panel_Bk: ThemeImageRect = {Math.Rectangle{1, 57, 27, 27}, 7, 7}     // Four-sided rounded ground of a standalone content panel.
+        panel_Bk: ThemeImageRect = {Math.Rectangle{1, 85, 27, 27}, 13, 12}     // Four-sided rounded ground of a standalone content panel.
     }
 }

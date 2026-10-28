@@ -7,22 +7,16 @@ dialogs, then each application, then the written rules.
 
 ## Entries
 
-### design.silence.001 — The toolkit still ships four palettes
+### design.silence.002 — A few controls still differ from the charter pictures
 
-- Next: replace `darkPalette`, `lightPalette` and `swagDarkPalette` in
-  `bin/std/modules/gui/src/paint/themecolors.swg` by the Encre and Papier palettes of the charter,
-  derive every `ThemeColors` part from their tokens with the Voltage/Arc roles, and offer Dark,
-  Light and System in `AppearanceButton`.
-- Done when: only two palettes exist, `theme.colors.test.swg` pins the charter values, gui10
-  shows both, and no caller names a removed palette.
-
-### design.silence.002 — Controls and icons do not follow the charter
-
-- Next: restyle every widget and composite of `bin/std/modules/gui/src/controls` and the theme
-  atlases (`theme/widgets.svg`, `theme/icons.svg`) to the Controls section of the charter.
-- Done when: the gui goldens match [gui.controls.ink](imgs/gui.controls.ink.png) and
-  [gui.controls.paper](imgs/gui.controls.paper.png) control by control.
-- Related: design.silence.001
+- Evidence: `controls.charter.test.swg` renders every control of the Controls section in both
+  themes (`controls.charter.ink.png`, `controls.charter.paper.png`). What it does not show yet:
+  the menu check sits in the leading glyph column instead of the trailing edge; the chosen segment
+  on Papier is white without its soft lift shadow; the toolkit has no numeric stepper (`− 48 +`);
+  scroll bars are thin but always visible rather than shown while scrolling or on hover.
+- Next: move the menu check to the trailing edge of its row in `MenuCtrl.paintPopup` and
+  `computeLayoutPopup`, then add the lift shadow under a chosen Papier segment.
+- Done when: the two charter wall goldens match the two controls pictures control by control.
 
 ### design.silence.003 — Windows still draw a caption band
 
@@ -30,7 +24,6 @@ dialogs, then each application, then the written rules.
   buttons, draggable top strip, no accent rail or glow) and remove every application rail.
 - Done when: no `Separator.create(…, .Top, .Accent)` remains under `bin/` and the window goldens
   show the Silence chrome in both themes.
-- Related: design.silence.001
 
 ### design.silence.004 — There is no lens, sheet, inspector, mini-bar or dock
 
@@ -86,7 +79,6 @@ dialogs, then each application, then the written rules.
 - Next: move every `bin/examples` program and other consumer to the two themes and the new
   components.
 - Done when: the examples build and smoke clean in both themes.
-- Related: design.silence.001
 
 ### design.silence.012 — The skills still describe the old identity
 

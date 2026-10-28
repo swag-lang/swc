@@ -565,10 +565,6 @@ func videoMatroskaFixturePath()->String => Path.combine(unwrap Path.directoryNam
 
     var host: Testing.HeadlessHost
     host.setup(720, 420)
-    host.theme.setSwagDark()
-    host.theme.metrics.surfaceWnd_ShadowSize   = 0
-    host.theme.metrics.surfaceWnd_CornerRadius = 0
-    host.notify(.ThemeChanged)
 
     with let commandBar = Wnd.create'Wnd(&host.root, {0, 0, 0, 52})
     {
@@ -984,7 +980,7 @@ func captureVideoFailure(wnd: *Wnd, reason: string)
     var host: Testing.HeadlessHost
     host.setup(ViewerWindow.MinWidth, 450)
     defer discard catch host.app.setLanguage(ReferenceLanguage)
-    host.theme.setSwagDark()
+    host.theme.setDark()
     host.theme.metrics.surfaceWnd_ShadowSize   = 0
     host.theme.metrics.surfaceWnd_CornerRadius = 0
     host.notify(.ThemeChanged)
@@ -1404,7 +1400,7 @@ func assertSubtitleEffect(effect: Film.SubtitleEffect, size: Film.SubtitleSize, 
     var host: Testing.HeadlessHost
     host.setup(ViewerWindow.MinWidth, 450)
     host.setReducedMotion(true)
-    host.theme.setSwagDark()
+    host.theme.setDark()
     host.theme.metrics.surfaceWnd_ShadowSize   = 0
     host.theme.metrics.surfaceWnd_CornerRadius = 0
     host.notify(.ThemeChanged)

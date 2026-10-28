@@ -78,10 +78,6 @@ func midiZoomFixturePath()->String => Path.combine(unwrap Path.directoryName(#cu
     var document = expect Midi.loadDocument(midiZoomFixturePath())
     var host: Testing.HeadlessHost
     host.setup(900, 600)
-    host.theme.setSwagDark()
-    host.theme.metrics.surfaceWnd_ShadowSize   = 0
-    host.theme.metrics.surfaceWnd_CornerRadius = 0
-    host.notify(.ThemeChanged)
 
     let roll = Midi.RollView.create(&host.root, #move document)
     host.root.applyLayout()

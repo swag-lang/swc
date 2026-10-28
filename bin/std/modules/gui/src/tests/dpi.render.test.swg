@@ -26,8 +26,6 @@ func renderViewChild(dpiScale: f32)->Image
 {
     var host: Testing.HeadlessHost
     host.setup(180, 20)
-    host.theme.setSwagDark()
-    host.notify(.ThemeChanged)
 
     let application = Wnd.create'Wnd(&host.root, {0, 0, 20, 20})
     let view        = Wnd.create'Wnd(&host.root, {20, 0, 20, 20})
@@ -47,27 +45,31 @@ func renderViewChild(dpiScale: f32)->Image
     panel.backgroundStyle       = .Panel
     panelHost.backgroundStyle   = .ToolBar
     viewPanel.backgroundStyle   = .Panel
+
+    // The charter grounds the window, the view and the bands alike, so the host of the integrated
+    // panel is given a ground of its own for the panel corner to show against.
+    panelHost.style.addStyleSheetColors("toolBar_Bk $raised")
     viewPanel.style.addStyleSheetColors("wnd_Bk $view_Bk")
 
     let integratedPanel = Wnd.create'Wnd(panelHost, {0, 0, 20, 20})
     integratedPanel.backgroundStyle = .Panel
 
     let image = host.render()
-    Swag.assert(pixelAt(&image, 10, 10) == host.theme.colors.bk.argb)
+    Swag.assert(pixelAt(&image, 10, 10) == host.theme.colors.ground.argb)
     Swag.assert(pixelAt(&image, 30, 10) == host.theme.colors.view_Bk.argb)
     Swag.assert(pixelAt(&image, 50, 10) == host.theme.colors.wnd_Bk.argb)
     Swag.assert(pixelAt(&image, 70, 10) == host.theme.colors.informationBar_Bk.argb)
     Swag.assert(pixelAt(&image, 90, 10) == host.theme.colors.commandBar_Bk.argb)
     Swag.assert(pixelAt(&image, 110, 10) == host.theme.colors.toolBar_Bk.argb)
     Swag.assert(pixelAt(&image, 130, 10) == host.theme.colors.wnd_Bk.argb)
-    Swag.assert(pixelAt(&image, 140, 0) == host.theme.colors.toolBar_Bk.argb)
+    Swag.assert(pixelAt(&image, 140, 0) == host.theme.colors.raised.argb)
     var antialiasedCorner: bool
     for y in 0 until 7
     {
         for x in 140 until 147
         {
             let pixel = pixelAt(&image, x, y)
-            if pixel != host.theme.colors.toolBar_Bk.argb and pixel != host.theme.colors.wnd_Bk.argb do
+            if pixel != host.theme.colors.raised.argb and pixel != host.theme.colors.wnd_Bk.argb do
                 antialiasedCorner = true
         }
     }

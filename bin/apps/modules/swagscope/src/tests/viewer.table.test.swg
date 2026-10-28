@@ -214,10 +214,6 @@ using Core, Pixel, Gui, Viewers
 
     var host: Testing.HeadlessHost
     host.setup(900, 560)
-    host.theme.setSwagDark()
-    host.theme.metrics.surfaceWnd_ShadowSize   = 0
-    host.theme.metrics.surfaceWnd_CornerRadius = 0
-    host.notify(.ThemeChanged)
 
     var result = openTestViewer(Table.viewerPlugin(), &host.root, fileName, commandParent: &host.root)
     Swag.assert(result.view != null)

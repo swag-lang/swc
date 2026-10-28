@@ -326,13 +326,13 @@ private impl WaveformView
         let baseY   = plot.bottom()
         var written = plot.x - 1
 
-        painter.drawLine(plot.x, baseY, plot.right(), baseY, colors.border, 1)
+        painter.drawLine(plot.x, baseY, plot.right(), baseY, colors.line, 1)
 
         var seconds = 0'f32
         while seconds <= .duration
         {
             let x = plot.x + plot.width * (seconds / .duration)
-            painter.drawLine(x, baseY, x, baseY + WaveformTickHeight, colors.border, 1)
+            painter.drawLine(x, baseY, x, baseY + WaveformTickHeight, colors.line, 1)
 
             // The last graduation is pulled back inside the plot rather than dropped: a scale that
             // stops naming its end reads as a scale that was cut off.
@@ -363,7 +363,7 @@ private impl IWnd for WaveformView
         .paintTimeScale(painter, plot)
 
         // The silence line is under the wave, and only shows where the wave has nothing to say.
-        painter.drawLine(plot.x, center, plot.right(), center, colors.border, 1)
+        painter.drawLine(plot.x, center, plot.right(), center, colors.line, 1)
         if .samples.isEmpty() do
             return
 
@@ -411,7 +411,7 @@ private impl IWnd for WaveformView
         if .progress > 0
         {
             let x = plot.x + playHead
-            painter.drawLine(x, plot.y, x, plot.bottom() + WaveformTickHeight, colors.hilight, 1)
+            painter.drawLine(x, plot.y, x, plot.bottom() + WaveformTickHeight, colors.signature, 1)
         }
     }
 }

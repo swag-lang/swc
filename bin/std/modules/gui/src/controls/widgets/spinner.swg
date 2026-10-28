@@ -4,10 +4,11 @@ using Core, Pixel
 
 // Reports that work is under way, without claiming to know how much is left.
 //
-// The ring is drawn, never sampled from an atlas, so it is exact at any size and at any
-// display density — a spinner is the one piece of theme art that is always in motion, which
-// is exactly where a resampled bitmap shows. Use it for a wait with no measurable progress;
-// a [[Gui.ProgressBar]] carrying `Indeterminate` says the same thing along a docked edge.
+// It is the circular progress of the charter: an Arc arc turning on a raised ring. The ring is
+// drawn, never sampled from an atlas, so it is exact at any size and at any display density — a
+// spinner is the one piece of theme art that is always in motion, which is exactly where a
+// resampled bitmap shows. Use it for a wait with no measurable progress; a [[Gui.ProgressBar]]
+// carrying `Indeterminate` says the same thing along a docked edge.
 //
 // It animates while it is visible and costs nothing while it is not, so the caller only
 // shows and hides it:
@@ -33,8 +34,9 @@ impl IWnd for Spinner
         let painter = evt.paintContext.painter
         let metrics = .themeMetrics()
 
-        let rect = .paddedClientRect()
-        Spinner.paintRing(painter, rect, .animationPhase, .themeColors().spinner_Dot, metrics.spinner_DotCount)
+        let colors = .themeColors()
+        let rect   = .paddedClientRect()
+        Spinner.paintRing(painter, rect, .animationPhase, colors.spinner_Track, colors.spinner_Mark, metrics)
 
         .animationPhase = Math.fract(.animationPhase + .paintDeltaSeconds() * metrics.spinner_Speed)
         .invalidate()
@@ -44,32 +46,23 @@ impl IWnd for Spinner
 impl Spinner
 {
     // Shares the widget's ring with loading indicators drawn inside document image boxes.
-    internal func paintRing(painter: *Painter, rect: Math.Rectangle, phase: f32, color: Color, dotCount: f32)
+    //
+    // `phase` is the position of the turning arc in its cycle, from zero to one.
+    internal func paintRing(painter: *Painter, rect: Math.Rectangle, phase: f32, track, mark: Color, metrics: const *ThemeMetrics)
     {
-        let count = Math.max(cast(s32, dotCount), 2)
+        let stroke = metrics.spinner_StrokeSize
+        let radius = Math.min(rect.width, rect.height) * 0.5 - stroke * 0.5
+        if radius <= 0 do
+            return
 
-        // A ring of pulsing dots, rather than a rotating arc: an arc needs a stroke weight to
-        // read, and loses it under about sixteen pixels, which is where a spinner usually sits.
-        // The dots carry the same rotation with nothing thinner than a dot at any size.
-        let ringRadius = Math.min(rect.width, rect.height) * 0.5
-        let dotRadius  = ringRadius * 0.22
-        let centerX    = rect.horzCenter()
-        let centerY    = rect.vertCenter()
-
+        let centerX = rect.horzCenter()
+        let centerY = rect.vertCenter()
         painter.setAntialiased(true)
+        painter.drawCircle(centerX, centerY, radius, track, stroke)
 
-        for i in count
-        {
-            // The dot that just passed the head of the cycle is the faintest, so the ring
-            // reads as one bright point trailing off behind it.
-            let t     = Math.fract(phase + cast(f32, i) / cast(f32, count))
-            let angle = t * Math.ConstF32.TwoPi
-            let x     = centerX + Math.sin(angle) * (ringRadius - dotRadius)
-            let y     = centerY - Math.cos(angle) * (ringRadius - dotRadius)
-
-            let brush = Brush.createSolid(color.withAlphaF32(0.15 + 0.85 * t))
-            painter.fillCircle(x, y, dotRadius * (0.35 + 0.65 * t), brush)
-        }
+        let start = Math.Angle.fromDegrees(phase * 360)
+        let end   = Math.Angle.fromDegrees((phase + metrics.spinner_ArcSweep) * 360)
+        painter.drawArc(centerX, centerY, radius, start, end, mark, stroke)
     }
 
     // Creates a spinner, square by default and sized by the theme when `position` says nothing.

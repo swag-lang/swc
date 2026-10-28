@@ -37,7 +37,7 @@ impl IWnd for Separator
     {
         let painter = evt.paintContext.painter
         let colors  = .themeColors()
-        let color   = .form == .Accent ? colors.hilight : colors.border
+        let color   = .form == .Accent ? colors.signature : colors.line
 
         // A rule must cover whole device pixels: snap the edges of its thin axis so
         // a one-unit hairline never straddles two half-covered pixel rows.

@@ -26,10 +26,10 @@ impl IWnd for ViewerDropHighlight
             return
 
         let corner = .themeRects().panel_Bk.radius
-        let wash   = colors.hilight.withAlpha(cast(u8, (cast(f32, colors.hilight.a) * ViewerDropHighlightWash)))
+        let wash   = colors.signature.withAlpha(cast(u8, (cast(f32, colors.signature.a) * ViewerDropHighlightWash)))
         painter.fillRoundRect(rect, corner, corner, wash)
 
-        var pen = Pen.createSolid(colors.hilight, 2)
+        var pen = Pen.createSolid(colors.signature, 2)
         pen.borderPos = .Inside
         painter.drawRoundRect(rect, corner, corner, pen)
     }
@@ -83,6 +83,6 @@ impl ViewerDropHighlight
 
     mtd refreshTheme()
     {
-        .prompt.setTextColor(.themeColors().hilight)
+        .prompt.setTextColor(.themeColors().signature)
     }
 }

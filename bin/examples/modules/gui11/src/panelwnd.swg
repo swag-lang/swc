@@ -44,7 +44,7 @@ impl IWnd for PanelWnd
         let rect    = .clientRect()
 
         painter.fillRoundRect(rect, PanelRadius, PanelRadius, colors.wnd_Bk)
-        painter.drawRoundRect(rect, PanelRadius, PanelRadius, colors.border, 1)
+        painter.drawRoundRect(rect, PanelRadius, PanelRadius, colors.line, 1)
 
         if not (.title).count do
             return

@@ -304,7 +304,7 @@ impl IWnd for LibraryView
             let font = unwrap me.theme().res.fontDefault.bold
             let text = "♥"
             let ms   = Painter.measureString(text, font)
-            painter.drawString(it.rect.right() - ms.width - 8, it.rect.y + 8, text, font, .themeColors().hilight)
+            painter.drawString(it.rect.right() - ms.width - 8, it.rect.y + 8, text, font, .themeColors().signature)
         }
 
         if capture and capture.rating and .libWnd.showRatingOverlay
@@ -315,7 +315,7 @@ impl IWnd for LibraryView
             let sy    = it.rect.y + (capture.favorite ? 24 : 8)
             for capture.rating
             {
-                star.paint(painter, sx, sy, .themeColors().hilight)
+                star.paint(painter, sx, sy, .themeColors().signature)
                 sx += RatingGlyphSize + RatingGlyphGap
             }
         }

@@ -11,7 +11,7 @@ using Core, Gui, Pixel
 enum SheetKind
 {
     Colors       // Every color of the active palette, over the grounds it is drawn on.
-    Palettes     // Every color of the shipped palettes and sheet-written example, side by side.
+    Palettes     // Every color of Encre, Papier and the sheet-written example, side by side.
     Metrics      // Every measurement of the active theme.
 }
 
@@ -32,7 +32,7 @@ struct SheetRow
     name: String     // Reflected field name, or the family name on a group row.
     text: String     // The value as text: the hexadecimal color, or the measurement.
 
-    colors: [4] Color     // One color per variant; only the first is filled outside the palette sheet.
+    colors: [ThemeVariantCount] Color     // One color per variant; only the first is filled outside the palette sheet.
 }
 
 // The content of the sheet, painted directly rather than built out of widgets.
@@ -52,7 +52,7 @@ struct SheetView
     // Ground each palette column is drawn over, so a swatch is judged against the surface
     // its own theme would put it on. Cached with the rows: building a palette is cheap,
     // building one per swatch per frame is not.
-    grounds: [4] Color
+    grounds: [ThemeVariantCount] Color
 
     fontName: *Font?     // Face the names are listed in.
     fontMono: *Font?     // Face the values are listed in, so digits line up.
@@ -155,11 +155,11 @@ impl SheetView
 
     private mtd buildPalettes()
     {
-        var palettes: [4] ThemeColors
+        var palettes: [ThemeVariantCount] ThemeColors
         for i in ThemeVariantCount
         {
             palettes[i] = variantColors(cast(ThemeVariant, cast(s32, i)))
-            .grounds[i] = palettes[i].bk
+            .grounds[i] = palettes[i].ground
         }
 
         let type = assume cast(const *Swag.TypeInfoStruct, #typeof(ThemeColors))
@@ -242,7 +242,7 @@ impl SheetView
         }
 
         painter.fillRect(rect, color)
-        painter.drawRect(rect, app.theme.colors.border, 1)
+        painter.drawRect(rect, app.theme.colors.line, 1)
     }
 }
 
@@ -297,7 +297,7 @@ impl IWnd for SheetView
             {
             case .Colors:
                 let swatch = Math.Rectangle{x, rect.y + SwatchInset, SwatchWidth, height - 2 * SwatchInset}
-                .drawSwatch(painter, swatch, row.colors[0], colors.bk)
+                .drawSwatch(painter, swatch, row.colors[0], colors.ground)
                 .drawSwatch(painter, Math.Rectangle{swatch.x + SwatchWidth + SwatchGap, swatch.y, SwatchWidth, swatch.height}, row.colors[0], colors.view_Bk)
                 x += 2 * SwatchWidth + 2 * SwatchGap
                 drawCell(painter, Math.Rectangle{x, rect.y, HexWidth, height}, row.text.toString(), unwrap .fontMono, colors.label_TextLight)

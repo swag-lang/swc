@@ -10,9 +10,6 @@ using Swag, Core, Pixel
     var host: Testing.HeadlessHost
     host.setup(248, 96)
 
-    host.theme.setSwagDark()
-    host.notify(.ThemeChanged)
-
     let icons = [ThemeIcons.Appearance, .OpenFile, .ParentFolder, .History, .OpenExternal]
     for icon, idx in icons
     {
@@ -32,9 +29,6 @@ using Swag, Core, Pixel
 {
     var host: Testing.HeadlessHost
     host.setup(248, 184)
-
-    host.theme.setSwagDark()
-    host.notify(.ThemeChanged)
 
     let icons = [ThemeIcons.FullScreen, .ExitFullScreen, .SeekBackward, .SeekForward, .Volume,
                  ThemeIcons.VolumeMute, .FitView, .ActualSize, .Wrap, .AudioTracks,
@@ -89,18 +83,25 @@ using Swag, Core, Pixel
         count[] += 1
     }
 
-    Swag.assert(button.appearanceTheme == .SwagDark)
-    button.setAppearanceTheme(.Dark, notify: true)
-    Swag.assert(button.appearanceTheme == .Dark and host.theme.colors.bk == ThemeColors.darkPalette().ground)
+    let encre  = ThemeColors.encrePalette().ground
+    let papier = ThemeColors.papierPalette().ground
+    Swag.assert(button.appearanceTheme == .Dark)
     button.setAppearanceTheme(.Light, notify: true)
-    Swag.assert(button.appearanceTheme == .Light and host.theme.colors.bk == ThemeColors.lightPalette().ground)
+    Swag.assert(button.appearanceTheme == .Light and host.theme.colors.ground == papier)
+    button.setAppearanceTheme(.Dark, notify: true)
+    Swag.assert(button.appearanceTheme == .Dark and host.theme.colors.ground == encre)
 
-    // The button opens a sheet whose theme page applies a palette as soon as it is chosen.
+    // The button opens a sheet whose theme page applies a theme as soon as it is chosen. System
+    // follows the setting of the operating system, and keeps following it when it changes.
     host.activateOptionRowWhenShown(strings().appearance_Theme)
-    host.thenActivateOptionRow(strings().appearance_SwagDark)
+    host.thenActivateOptionRow(strings().appearance_System)
     host.clickWnd(button)
     Swag.assert(host.autoHandled)
-    Swag.assert(button.appearanceTheme == .SwagDark and host.theme.colors.bk == ThemeColors.swagDarkPalette().ground)
+    Swag.assert(button.appearanceTheme == .System and host.app.appearance == .System)
+    host.app.setSystemPrefersLight(true)
+    Swag.assert(host.theme.colors.ground == papier)
+    host.app.setSystemPrefersLight(false)
+    Swag.assert(host.theme.colors.ground == encre)
     expect button.setAppearanceLanguage("fr", notify: true)
     Swag.assert(themeChanges == 3 and languageChanges == 1)
     Swag.assert(host.app.language() == "fr")
@@ -113,7 +114,7 @@ using Swag, Core, Pixel
     // The first page names the palette and the language in force.
     var options: OptionSheet.Page
     button.describeAppearance(&options)
-    Swag.assert(options.rows[0].value == strings().appearance_SwagDark)
+    Swag.assert(options.rows[0].value == strings().appearance_System)
     Swag.assert(options.rows[2].kind == .Action and options.rows[2].closesSheet)
 
     // From the title bar the sheet joins its button and is drawn above the content of the window.

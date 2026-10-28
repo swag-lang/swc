@@ -88,7 +88,7 @@ impl CurveWall
         let theme  = .theme()
 
         painter.fillRoundRect(card, 8, 8, colors.wnd_Bk)
-        painter.drawRoundRect(card, 8, 8, colors.border, 1)
+        painter.drawRoundRect(card, 8, 8, colors.line, 1)
 
         let nameFont = theme.createDefaultFont(13, .Bold)
         let nameY    = nameFont.opticalTop(card.y + CardPadding + NameHeight * 0.5, 13)
@@ -103,8 +103,8 @@ impl CurveWall
         // the overshoot it was chosen for.
         let restY  = plotY(plot, 1)
         let startY = plotY(plot, 0)
-        painter.fillRect(Math.Rectangle{plot.x, startY, plot.width, 1}, colors.border)
-        painter.fillRect(Math.Rectangle{plot.x, restY, plot.width, 1}, colors.hilight.withAlphaF32(0.35))
+        painter.fillRect(Math.Rectangle{plot.x, startY, plot.width, 1}, colors.line)
+        painter.fillRect(Math.Rectangle{plot.x, restY, plot.width, 1}, colors.signature.withAlphaF32(0.35))
 
         // The straight line is the same motion with no curve at all, kept faint behind each card
         // as the reference every other shape is read against.
@@ -119,12 +119,12 @@ impl CurveWall
             path.lineTo(plot.x + t * plot.width, plotY(plot, easing.evaluate(t)))
         }
 
-        painter.drawPath(&path, colors.hilight, 2)
+        painter.drawPath(&path, colors.signature, 2)
 
         let eased   = easing.evaluate(.phase)
         let markerX = plot.x + .phase * plot.width
         let markerY = plotY(plot, eased)
-        painter.fillCircle(markerX, markerY, 4, colors.hilight)
+        painter.fillCircle(markerX, markerY, 4, colors.signature)
         painter.drawCircle(markerX, markerY, 4, colors.wnd_Bk, 1.5)
 
         // The rail turns the ordinate back into travel, which is what a reader is actually
@@ -135,11 +135,11 @@ impl CurveWall
             width: card.width - 2 * CardPadding,
             height: RailHeight}
         let midY = rail.y + rail.height * 0.5
-        painter.fillRoundRect(Math.Rectangle{rail.x, midY - 2, rail.width, 4}, 2, 2, colors.border)
+        painter.fillRoundRect(Math.Rectangle{rail.x, midY - 2, rail.width, 4}, 2, 2, colors.line)
 
         let travel = rail.width - 2 * PuckRadius
         let puckX  = rail.x + PuckRadius + eased * travel
-        painter.fillCircle(puckX, midY, PuckRadius, colors.hilight)
+        painter.fillCircle(puckX, midY, PuckRadius, colors.signature)
     }
 }
 

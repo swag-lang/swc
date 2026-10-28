@@ -751,7 +751,7 @@ private impl ListView
             return
 
         let painter = bc.painter
-        let color   = .themeColors().hilight
+        let color   = .themeColors().arc
         let height  = .list.lineHeight()
         let width   = .displayWidth()
 
@@ -830,13 +830,11 @@ private impl ListView
 
         case line.colorFg.a:
             colorText   = line.colorFg
-            colorExpand = colors.listItem_Text
+            colorExpand = colors.listItem_Expand
 
         default:
-            if line.separator do
-                colorText, colorExpand = colors.listItem_Separator
-            else do
-                colorText, colorExpand = colors.listItem_Text
+            colorText   = line.separator ? colors.listItem_Separator : colors.listItem_Text
+            colorExpand = colors.listItem_Expand
         }
 
         var format: RichStringFormat
@@ -885,24 +883,24 @@ private impl ListView
             // Checkbox
             if not layout.check.isEmpty() and line.canCheck
             {
-                var subRectBorder: *ThemeImageRect = &rects.btnCheck_NormalBorder
-
+                // The same box as a check button: a ring when off, an Arc box carrying a check when on.
                 let idxLine = .list.isVirtual ? idx : line.index
                 let checked = .list.checkModel.isSelected(idxLine)
-
-                let colorBorder = colorFg
-                let colorMark   = colorFg
-
-                if checked do
-                    subRectBorder = &rects.btnCheck_CheckedBorder
 
                 var posBox = layout.check
                 posBox.height = layout.check.width
                 posBox.y      = opticalTop(.font(), layout.check.vertCenter(), posBox.height)
                 posBox.width  = posBox.height
-                if checked do
-                    theme.drawSubRect(painter, posBox, &rects.btnCheck_CheckedMark, colorMark)
-                theme.drawSubRect(painter, posBox, subRectBorder, colorBorder)
+                if checked
+                {
+                    let colorBox = bc.isDisabled ? colors.btnCheck_CheckedDisabledBk : colors.btnCheck_CheckedBk
+                    theme.drawSubRect(painter, posBox, &rects.btnCheck_Checked, colorBox)
+                    theme.drawSubRect(painter, posBox, &rects.btnCheck_CheckedMark, colors.btnCheck_CheckedMark)
+                }
+                else
+                {
+                    theme.drawSubRect(painter, posBox, &rects.btnCheck_NormalBorder, bc.isDisabled ? colors.btnCheck_DisabledBorder : colors.btnCheck_Border)
+                }
             }
 
             Theme.drawIconText(painter, layout.content, layout.icon, &item.name, format, metrics.iconText_Margin)
@@ -1364,7 +1362,7 @@ impl ListCtrl
     }
 
     // Returns the effective row height for the current font and configuration.
-    mtd lineHeight()->f32 => .fixedLineHeight != 0 ? .fixedLineHeight : Math.max(24.0, .font().regular!.height + 8)
+    mtd lineHeight()->f32 => .fixedLineHeight != 0 ? .fixedLineHeight : Math.max(.themeMetrics().list_LineHeight, .font().regular!.height + 8)
 
     // Returns where one visible row's cell draws its text, in the coordinates of the list's view.
     //

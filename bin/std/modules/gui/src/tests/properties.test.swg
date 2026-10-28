@@ -2295,11 +2295,6 @@ func assertPropertyPresentationGolden(kind: PropertiesKind, name: string)
     var host: Testing.HeadlessHost
     host.setup(520, 620)
 
-    host.theme.setSwagDark()
-    host.theme.metrics.surfaceWnd_ShadowSize   = 0
-    host.theme.metrics.surfaceWnd_CornerRadius = 0
-    host.notify(.ThemeChanged)
-
     var data: PropGoldenData
     data.opacity = 0.4
 

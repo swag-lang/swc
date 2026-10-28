@@ -121,8 +121,6 @@ using Swag, Core, Pixel
 {
     var host: Testing.HeadlessHost
     host.setup(900, 600)
-    host.theme.setSwagDark()
-    host.notify(.ThemeChanged)
 
     let icon = host.theme.icon(.About, 64)
     let dlg  = AboutDlg.create(&host.surface, {

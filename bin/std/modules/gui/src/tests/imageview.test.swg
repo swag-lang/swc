@@ -138,8 +138,6 @@ using Swag, Core, Pixel
 {
     var host: Testing.HeadlessHost
     host.setup(260, 160)
-    host.theme.setSwagDark()
-    host.notify(.ThemeChanged)
 
     let pixels: [24] u8 = [
         255, 0, 0, 255, 0, 255, 0, 255, 0, 0, 255, 255,

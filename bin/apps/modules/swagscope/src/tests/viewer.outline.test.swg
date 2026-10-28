@@ -65,7 +65,7 @@ using Core, Pixel, Gui, Gui.Testing, Viewers
     host.setup(880, 560)
     defer discard catch host.app.setLanguage(ReferenceLanguage)
 
-    host.theme.setSwagDark()
+    host.theme.setDark()
     host.theme.metrics.surfaceWnd_ShadowSize   = 0
     host.theme.metrics.surfaceWnd_CornerRadius = 0
     host.notify(.ThemeChanged)

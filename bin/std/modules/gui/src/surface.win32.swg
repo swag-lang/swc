@@ -228,6 +228,7 @@ private func winProc(hWnd: HWND, msg: UINT, wParam: WPARAM, lParam: LPARAM)->LRE
 
         case WM_SETTINGCHANGE:
             surface.app.refreshSystemMotionPreference()
+            surface.app.refreshSystemAppearance()
             return 0
 
         case WM_ERASEBKGND:

@@ -9,11 +9,11 @@ using Swag, Core
 #test
 {
     var theme: Theme
-    theme.setSwagDark()
+    theme.setDark()
 
     let sheet = """
                 /ThemePalette
-                informationBar      0xFF102030
+                ground              0xFF102030
                 signature.mark      0xFF00A0FF
                 signature.ground    0xFF00A0FF
                 signature.onGround  0xFF000000
@@ -22,19 +22,18 @@ using Swag, Core
     expect theme.applySheet(sheet)
 
     Swag.assert(theme.palette.signature.mark == 0xFF00A0FF)
-    Swag.assert(theme.colors.hilight == 0xFF00A0FF)
+    Swag.assert(theme.colors.signature == 0xFF00A0FF)
     Swag.assert(theme.colors.focusRing == 0xFF00A0FF)
-    Swag.assert(theme.colors.activeRail == 0xFF00A0FF)
+    Swag.assert(theme.colors.caret == 0xFF00A0FF)
     Swag.assert(theme.colors.btnPush_StrongBk == 0xFF00A0FF)
     Swag.assert(theme.colors.btnPushDefault_Bk == 0xFF00A0FF)
-    Swag.assert(theme.colors.slider_Mark == 0xFF00A0FF)
-    Swag.assert(theme.colors.progressBar_Mark == 0xFF00A0FF)
     Swag.assert(theme.colors.btnPush_StrongText == 0xFF000000)
+    Swag.assert(theme.colors.wnd_Bk == 0xFF102030)
     Swag.assert(theme.colors.informationBar_Bk == 0xFF102030)
 
     // Everything the signature does not decide is left exactly where the palette had it.
-    Swag.assert(theme.colors.bk == 0xFF0B0B0D)
-    Swag.assert(theme.colors.text == 0xFFE9E9ED)
+    Swag.assert(theme.colors.surface == 0xFF1F2026)
+    Swag.assert(theme.colors.text == 0xFFECEDF0)
 }
 
 // A name reaching into a tone with '.' is what makes a tone writable at all. Before it, a folder
@@ -43,7 +42,7 @@ using Swag, Core
 #test
 {
     var theme: Theme
-    theme.setSwagDark()
+    theme.setDark()
 
     let sheet = """
                 /ThemeImageRects
@@ -56,7 +55,8 @@ using Swag, Core
 
     Swag.assert(theme.rects.btnPush_Normal.radius == 3)
     Swag.assert(theme.palette.alternate.ground == 0xFF7F00FF)
-    Swag.assert(theme.colors.btnPush_AlternateBk == 0xFF7F00FF)
+    Swag.assert(theme.colors.btnCheck_CheckedBk == 0xFF7F00FF)
+    Swag.assert(theme.colors.btnToggle_OnBk == 0xFF7F00FF)
 
     // The rest of the rect is untouched: a path names one value, not the struct around it.
     Swag.assert(theme.rects.btnPush_Normal.rect == theme.rects.edit_SquareBk.rect)
@@ -68,7 +68,7 @@ using Swag, Core
 #test
 {
     var theme: Theme
-    theme.setSwagDark()
+    theme.setDark()
 
     let sheet = """
                 /ThemePalette
@@ -78,27 +78,22 @@ using Swag, Core
 
     expect theme.applySheet(sheet)
 
-    Swag.assert(theme.colors.activeRail == 0xFF00A0FF)
+    // The rings and the caret point with the mark; the primary action fills with the block, and
+    // its own edge is the block too.
     Swag.assert(theme.colors.focusRing == 0xFF00A0FF)
     Swag.assert(theme.colors.edit_FocusBorder == 0xFF00A0FF)
-    Swag.assert(theme.colors.slider_Mark == 0xFF00A0FF)
+    Swag.assert(theme.colors.caret == 0xFF00A0FF)
 
     Swag.assert(theme.colors.btnPush_StrongBk == 0xFFFF8000)
     Swag.assert(theme.colors.btnPushDefault_Bk == 0xFFFF8000)
-    Swag.assert(theme.colors.btnToggle_OnBk == 0xFFFF8000)
-    Swag.assert(theme.colors.slider_HilightBk == 0xFFFF8000)
-    Swag.assert(theme.colors.progressBar_Mark == 0xFFFF8000)
-
-    // The outline of a filled action comes from the mark, which is what gives the block an edge
-    // when its own color is too close to the ground behind it.
-    Swag.assert(theme.colors.btnPush_StrongBorder == 0xFF00A0FF)
+    Swag.assert(theme.colors.btnPush_StrongBorder == 0xFFFF8000)
 }
 
 // A '$' reference resolves through a path too, and the two sides still have to agree on a type.
 #test
 {
     var theme: Theme
-    theme.setSwagDark()
+    theme.setDark()
 
     let sheet = """
                 /ThemePalette
@@ -106,10 +101,10 @@ using Swag, Core
                 """
 
     expect theme.applySheet(sheet)
-    Swag.assert(theme.colors.url_Text == theme.colors.hilight)
+    Swag.assert(theme.colors.arc == theme.colors.focusRing)
 
     var errOutcome: Swag.Error
-    catch theme.applySheet("/ThemePalette\nalternate.mark $railed") as errOutcome
+    catch theme.applySheet("/ThemePalette\nalternate.mark $critical") as errOutcome
     let err = errOutcome.value()
     Swag.assert(err != null)
 }
@@ -120,7 +115,7 @@ using Swag, Core
 #test
 {
     var theme: Theme
-    theme.setSwagDark()
+    theme.setDark()
 
     let sheet = """
                 /ThemeColors
@@ -132,7 +127,7 @@ using Swag, Core
     expect theme.applySheet(sheet)
 
     Swag.assert(theme.palette.raised == 0xFFAABBCC)
-    Swag.assert(theme.colors.edit_Bk == 0xFFAABBCC)
+    Swag.assert(theme.colors.btnPush_HotBk == 0xFFAABBCC)
     Swag.assert(theme.colors.btnPush_Bk == 0xFF123456)
 }
 
@@ -145,8 +140,8 @@ using Swag, Core
     expect theme.applySheet("/ThemeColors\nlabel_Text 0xFF804020")
 
     Swag.assert(theme.colors.label_Text == 0xFF804020)
-    Swag.assert(theme.colors.text == 0xFF1F1F1F)
-    Swag.assert(theme.palette.text == 0xFF1F1F1F)
+    Swag.assert(theme.colors.text == 0xFF1A1B1E)
+    Swag.assert(theme.palette.text == 0xFF1A1B1E)
 }
 
 // A malformed sheet is reported with the line it failed on rather than silently ignored: a

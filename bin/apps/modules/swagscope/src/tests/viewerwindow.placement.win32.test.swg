@@ -27,7 +27,7 @@ func observeViewerPlacement(app: *Application)
     var app: Application
     registerAppStrings(&app.resources)
     let surface = expect app.createSurface(80, 50, ViewerWindow.MinWidth, 680, surfaceId: "scope-placement-test")
-    app.theme.setSwagDark()
+    app.theme.setDark()
     app.notifyThemeChanged()
     let window   = ViewerWindow.create(surface.wnd, createViewerPluginRegistry())
     var fileName = Env.variable("SWAG_SCOPE_PLACEMENT_DOCUMENT")

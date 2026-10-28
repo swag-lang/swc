@@ -10,8 +10,6 @@ using Swag, Core
 {
     var host: Testing.HeadlessHost
     host.setup(320, 220)
-    host.theme.setSwagDark()
-    host.notify(.ThemeChanged)
 
     let splitter = SplitterCtrl.create(&host.root, {20, 20, 280, 180}, vertical: true)
     splitter.backgroundStyle = .ToolBar

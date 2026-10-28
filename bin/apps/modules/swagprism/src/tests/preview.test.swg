@@ -70,20 +70,14 @@ using Core, Gui, Pixel
     }
 
     Gui.registerLanguage("fr", "Fran\u00e7ais")
-    for palette in 3
+    for light in [false, true]
     {
         for language in [Gui.ReferenceLanguage, "fr"]
         {
             var host: Testing.HeadlessHost
             let window = testSetupMainWindow(&host, MainWindow.MinWidth, MainWindow.MinHeight)
-            if palette == 0 do
-                host.theme.setSwagDark()
-            elif palette == 1 do
-                host.theme.setDark()
-            else do
+            if light do
                 host.theme.setLight()
-            host.theme.metrics.surfaceWnd_ShadowSize   = 0
-            host.theme.metrics.surfaceWnd_CornerRadius = 0
             host.notify(.ThemeChanged)
             discard expect applyLanguage(&host.app.resources, language)
             host.notify(.LanguageChanged)
@@ -172,10 +166,6 @@ func assertPreviewSurface(gui: bool)
 {
     var host: Testing.HeadlessHost
     let window = testSetupMainWindow(&host)
-    host.theme.setSwagDark()
-    host.theme.metrics.surfaceWnd_ShadowSize   = 0
-    host.theme.metrics.surfaceWnd_CornerRadius = 0
-    host.notify(.ThemeChanged)
     window.openExample(gui ? .Gui : .Plasma)
     let viewer = assume cast(*PreviewViewer, window.panels[0].viewer!.window())
     awaitFrame(viewer)

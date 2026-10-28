@@ -75,8 +75,8 @@ func renderSpinner(dpiScale: f32)->Image
 }
 
 // The ring is drawn, never sampled from an atlas: rendering the same logical spinner at twice the
-// density covers four times the pixels, which is what a resolution-independent form means. A
-// sprite sheet would resample one frame and land far from that ratio.
+// density doubles both its perimeter and its stroke. Each edge of a stroke keeps a rim of one
+// antialiased pixel at any density, so the ink grows by about three times rather than four.
 #test
 {
     let image1 = renderSpinner(1)
@@ -87,7 +87,6 @@ func renderSpinner(dpiScale: f32)->Image
     Swag.assert(ink1 > 0)
     Swag.assert(image2.width == 2 * image1.width and image2.height == 2 * image1.height)
 
-    // Four times the area, give or take the antialiased rim of eight small disks.
     let ratio = cast(f32, ink2) / cast(f32, ink1)
-    Swag.assert(ratio > 3.5 and ratio < 4.5)
+    Swag.assert(ratio > 2.5 and ratio < 4.5)
 }

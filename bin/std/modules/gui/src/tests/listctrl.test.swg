@@ -461,14 +461,13 @@ func listCtrlHeadlessSel(_: *ListCtrl)
     Swag.assert(list.dropMark == ListDropMark.Before)
 }
 
-// The selected-row state follows the slight corner carried by the theme's selection tile.
+// The selected-row state follows the slight corner carried by the theme's selection tile, and
+// fills the row up to its leading edge with no rule along it.
 #test
 {
     var host: Testing.HeadlessHost
     host.setup(220, 100)
-    host.theme.setSwagDark()
     host.root.backgroundStyle = .View
-    host.notify(.ThemeChanged)
 
     let list = ListCtrl.createSimple(&host.root, {20, 20, 180, 60})
     list.setSelectionMode(.Single)
@@ -482,9 +481,8 @@ func listCtrlHeadlessSel(_: *ListCtrl)
     let corner  = image.pixelColor(cast(s32, rect.x), cast(s32, rect.y))
     let center  = image.pixelColor(cast(s32, rect.x) + 8, cast(s32, rect.y) + 8)
     let leading = image.pixelColor(cast(s32, rect.x) + 1, cast(s32, (rect.y + list.lineHeight() * 0.5)))
-    Swag.assert(center == host.theme.colors.listItem_FocusSelectedBk)
-    Swag.assert(leading == host.theme.colors.listItem_FocusSelectedBk)
-    Swag.assert(leading != host.theme.colors.activeRail)
+    Swag.assert(center != host.theme.colors.view_Bk)
+    Swag.assert(leading == center)
     Swag.assert(corner != center)
 }
 

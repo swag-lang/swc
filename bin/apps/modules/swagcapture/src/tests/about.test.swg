@@ -9,8 +9,6 @@ using Swag, Core, Pixel
 {
     var host: Gui.Testing.HeadlessHost
     host.setup(900, 700)
-    host.theme.setSwagDark()
-    host.notify(.ThemeChanged)
 
     host.app.setAppIcon(expect Image.decode(".png", AppIcon))
 

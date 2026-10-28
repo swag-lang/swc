@@ -28,7 +28,7 @@ private func createPdfFixture()->String
     host.setup(640, 450, dpiScale: 1.5)
     defer discard catch host.app.setLanguage(ReferenceLanguage)
 
-    host.theme.setSwagDark()
+    host.theme.setDark()
     host.notify(.ThemeChanged)
 
     var result = openTestViewer(PdfDocument.viewerPlugin(), &host.root, fileName, commandParent: &host.root)
@@ -102,8 +102,6 @@ private func createPdfFixture()->String
 
     var host: HeadlessHost
     host.setup(720, 500)
-    host.theme.setSwagDark()
-    host.notify(.ThemeChanged)
 
     with let commandBar = Wnd.create'ViewerActionBar(&host.root, {0, 0, 0, 52})
     {
@@ -146,8 +144,6 @@ private func createPdfFixture()->String
 
     var host: HeadlessHost
     host.setup(ViewerWindow.MinWidth, ViewerWindow.InfoHeight)
-    host.theme.setSwagDark()
-    host.notify(.ThemeChanged)
     host.root.backgroundStyle = .InformationBar
     host.root.padding         = {8, 2, 8, 2}
 

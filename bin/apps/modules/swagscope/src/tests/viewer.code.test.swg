@@ -113,10 +113,6 @@ struct CodeLanguageSample
 
     var host: Testing.HeadlessHost
     host.setup(640, 360)
-    host.theme.setSwagDark()
-    host.theme.metrics.surfaceWnd_ShadowSize   = 0
-    host.theme.metrics.surfaceWnd_CornerRadius = 0
-    host.notify(.ThemeChanged)
     let view = Code.Panel.create(&host.root, fileName)
     view.setZoom(150)
     Swag.assert(view.zoomPercent == 150)

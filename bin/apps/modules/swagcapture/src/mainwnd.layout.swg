@@ -164,16 +164,16 @@ impl MainWnd
                     .setIconSize(glyphSize, glyphSize)
                 }
 
-                // A vertical tool rail keeps the leading rule: it reads beside the glyph rather
-                // than as part of it, and the reserved lane prevents the content from moving.
+                // A vertical tool rail keeps the leading rule, which reads beside the glyph rather
+                // than as part of it; the glyph of the tool in use takes the color of the rule.
                 .style.addStyleSheetColors("""btnIcon_CheckedBk           $btnIcon_HotBk
                                               btnIcon_CheckedText         $btnIcon_Text
                                               btnIcon_CheckedHotText      $btnIcon_Text
                                               btnIcon_CheckedPressedText  $btnIcon_Text
-                                              btnIcon_CheckedIcon         $btnIcon_CheckedMark
+                                              btnIcon_CheckedIcon         $btnIcon_CheckedRule
                                               btnIcon_CheckedHotBk        $btnIcon_HotBk
-                                              btnIcon_CheckedHotIcon      $btnIcon_CheckedHotMark
-                                              btnIcon_CheckedPressedIcon  $btnIcon_CheckedMark""")
+                                              btnIcon_CheckedHotIcon      $btnIcon_CheckedRule
+                                              btnIcon_CheckedPressedIcon  $btnIcon_CheckedRule""")
 
                 .updateFlags(.Radio)
                 .setTextPosition(.Right)
@@ -260,24 +260,18 @@ impl MainWnd
 
         let cellSize    = themeActionButtonSize(metrics)
         let cellPadding = (cellSize - themeActionIconSize(metrics)) * 0.5
-        let lane        = metrics.activeRail_Size + metrics.activeRail_Margin
-        let width       = showLabels ? RailLabelWidth + lane : cellSize + metrics.activeRail_Size
+        let width       = showLabels ? RailLabelWidth : cellSize
 
         for c in .toolRail.children
         {
             let button = catch cast(*IconButton?, c)
             if not button do
                 continue
-            if showLabels
-            {
+            if showLabels do
                 button.updateFlags(remove: .IconOnly)
-                button.setAllPaddings(Math.Vector4{cellPadding, 0, cellPadding, 0})
-            }
-            else
-            {
+            else do
                 button.updateFlags(.IconOnly)
-                button.setAllPaddings(Math.Vector4{0, 0, cellPadding, 0})
-            }
+            button.setAllPaddings(Math.Vector4{cellPadding, 0, cellPadding, 0})
 
             button.position.width  = width
             button.position.height = cellSize

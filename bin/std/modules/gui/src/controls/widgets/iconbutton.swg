@@ -50,12 +50,12 @@ enum IconButtonCheckIndicator
 {
     None       // Draws no separate checked-state indicator, and reads as pressed while checked.
     Ink        // Draws no indicator either, and says it is checked with the checked ink alone.
-    Frame      // Draws a softly rounded outline and a light fill around the complete button.
-    Bottom     // Draws an indicator along the bottom edge.
-    Top        // Draws an indicator along the top edge.
-    Left       // Draws an indicator along the left edge.
-    Right      // Draws an indicator along the right edge.
-    Full       // Fills the complete button background.
+    Frame      // Draws the selection ground and an Arc outline around the complete button.
+    Bottom     // Draws a two-pixel Arc rule along the bottom edge.
+    Top        // Draws a two-pixel Arc rule along the top edge.
+    Left       // Draws a two-pixel Arc rule along the left edge.
+    Right      // Draws a two-pixel Arc rule along the right edge.
+    Full       // Fills the button with the selection ground inside a faint Arc ring.
 }
 
 // Displays an icon action with optional label, checked state, arrow, and owned popup.
@@ -106,7 +106,7 @@ private func arrowGlyph(position: IconButtonArrowPosition)->ThemeIcons
 
 impl IWnd for IconButton
 {
-    // Reports the room the icon, the label, the arrow, and the indicator rail need.
+    // Reports the room the icon, the label, and the arrow need.
     //
     // The label sits beside the icon or under it, so the axis it grows along follows
     // [[Gui.IconButton.textPosition]]: a toolbar showing captions widens with a longer
@@ -165,16 +165,6 @@ impl IWnd for IconButton
         case .Top, .Bottom:
             width  = Math.max(width, arrowSize)
             height += arrowSize + arrowMargin + metrics.btnIcon_SpacingArrowV
-        }
-
-        // The checked-state rail runs in a lane of its own, so it never eats into the group.
-        // A full indicator is a background fill and asks for nothing, and the two indicator-less
-        // placements draw nothing at all.
-        switch #complete .checkIndicator
-        {
-        case .None, .Ink, .Frame, .Full: break
-        case .Left, .Right: width += metrics.activeRail_Size + metrics.activeRail_Margin
-        case .Bottom, .Top: height += metrics.activeRail_Size + metrics.activeRail_Margin
         }
 
         let padding = 2 * metrics.btnIcon_Padding
@@ -295,19 +285,6 @@ impl IWnd for IconButton
             colorChecked = .checkIndicator == .Frame ? colors.btnIcon_CheckedFrameBorder : colors.btnIcon_CheckedMark
         }
 
-        // A framed selection has a neutral ground in every palette, so its glyph remains the
-        // accent mark. The generic checked ink is the inverse ink used by a filled selection in
-        // neutral themes; reusing it here made checked tools white on the light theme.
-        if .isChecked and .checkIndicator == .Frame and not bc.isDisabled
-        {
-            if .isPressed do
-                colorIcon = colors.btnIcon_CheckedPressedMark
-            elif .isHot do
-                colorIcon = colors.btnIcon_CheckedHotMark
-            else do
-                colorIcon = colors.btnIcon_CheckedMark
-        }
-
         if bc.isDisabled do
             paintFlags.add(.Disabled)
         if .isChecked do
@@ -333,17 +310,10 @@ impl IWnd for IconButton
         let flat       = .flags.has(.Flat)
         let overlay    = .flags.has(.Overlay)
 
-        // The focus ring is drawn over the last fill this method leaves under it, and every branch
-        // below can change that. It points in the accent, and a picked tool is filled with the
-        // accent, so it has to be told; a flat or overlay button paints no box at all, and
-        // publishing one would send the ring after a fill that is not there.
-        .focusRingGround = {}
-
         if not flat and not overlay
         {
             .aniBk.apply(me, colorBk)
             theme.drawSubRect(bc.painter, clientRect, subRectBk, .aniBk.cur())
-            .focusRingGround = .aniBk.cur()
         }
 
         // A checked button says so with a mark of its own, unless it was told to draw none:
@@ -360,90 +330,34 @@ impl IWnd for IconButton
             frame.inflate(-0.5)
             bc.painter.drawRoundRect(frame, framedRadius, framedRadius, colorChecked, 1)
         }
-        elif marked and colors.activeRail.a
-        {
-            // The rule stops short of both ends of the edge it runs along, so it reads as a
-            // mark placed against the cell rather than as a bar filling one of its sides.
-            let thickness = Math.min(metrics.activeRail_Size, clientRect.width, clientRect.height)
-            var rail      = clientRect
-            switch .checkIndicator
-            {
-            case .Top:
-                rail.height = thickness
-                rail.inflate(-.railInset(rail.width), 0)
-
-            case .Left:
-                rail.width = thickness
-                rail.inflate(0, -.railInset(rail.height))
-
-            case .Right:
-                rail.x     = rail.right() - thickness
-                rail.width = thickness
-                rail.inflate(0, -.railInset(rail.height))
-
-            default:
-                rail.y      = rail.bottom() - thickness
-                rail.height = thickness
-                rail.inflate(-.railInset(rail.width), 0)
-            }
-
-            // A tool that cannot be picked keeps its mark, at the weight of everything else
-            // it cannot do. Drawn at full accent, the rule says the tool is available.
-            bc.painter.fillRect(rail, bc.isDisabled ? colors.btnIcon_CheckedDisabledMark : colors.activeRail)
-        }
         elif marked
         {
+            // A rule on one edge is the two-pixel Arc underline of a tab; a full mark is the
+            // selection ground inside a faint Arc ring, which keeps the cell an object on any ground.
             switch .checkIndicator
             {
-            case .Bottom:
-                subRectBk = &rects.btnIcon_CheckedBottom
-
-            case .Top:
-                subRectBk = &rects.btnIcon_CheckedTop
-
-            case .Left:
-                subRectBk = &rects.btnIcon_CheckedLeft
-
-            case .Right:
-                subRectBk = &rects.btnIcon_CheckedRight
+            case .Bottom: theme.drawSubRect(bc.painter, clientRect, &rects.btnIcon_CheckedBottom, bc.isDisabled ? colors.btnIcon_CheckedDisabledMark : colors.btnIcon_CheckedRule)
+            case .Top:    theme.drawSubRect(bc.painter, clientRect, &rects.btnIcon_CheckedTop, bc.isDisabled ? colors.btnIcon_CheckedDisabledMark : colors.btnIcon_CheckedRule)
+            case .Left:   theme.drawSubRect(bc.painter, clientRect, &rects.btnIcon_CheckedLeft, bc.isDisabled ? colors.btnIcon_CheckedDisabledMark : colors.btnIcon_CheckedRule)
+            case .Right:  theme.drawSubRect(bc.painter, clientRect, &rects.btnIcon_CheckedRight, bc.isDisabled ? colors.btnIcon_CheckedDisabledMark : colors.btnIcon_CheckedRule)
 
             case .Full:
-                if .form == .Rectangle do
-                    subRectBk = &rects.btnIcon_CheckedSquare
-                elif .form == .Circle do
-                    subRectBk = &rects.btnIcon_CheckedRound
-                else do
-                    subRectBk = &rects.btnIcon_CheckedRoundSquare
-            }
+                switch .form
+                {
+                case .Rectangle: subRectBk = &rects.btnIcon_CheckedSquare
+                case .Circle:    subRectBk = &rects.btnIcon_CheckedRound
+                default:         subRectBk = &rects.btnIcon_CheckedRoundSquare
+                }
 
-            theme.drawSubRect(bc.painter, clientRect, subRectBk, colorChecked)
-
-            // The checked mark covers the background it was drawn over, so it becomes the ground
-            // the ring has to read on — and when it fills the cell it is also the shape the ring
-            // has to follow. An indicator on one edge leaves the box in charge of both.
-            if .checkIndicator == .Full
-            {
+                theme.drawSubRect(bc.painter, clientRect, subRectBk, colorChecked)
+                if .form != .Circle and not bc.isDisabled do
+                    theme.drawSubRect(bc.painter, clientRect, &rects.btnIcon_CheckedRing, colors.btnIcon_CheckedRing)
                 .focusRingRadius = subRectBk.radius
-                .focusRingGround = colorChecked
             }
         }
 
         var pos     = .paddedClientRect()
         let hasIcon = icon.isValid() or .iconPainter
-
-        // A rule running down one side belongs to the cell, so the content steps aside for
-        // it whether the button is checked or not: reserved only while checked, the glyph
-        // would jump sideways as the tool is picked, and pressed against it the rule would
-        // read as an outline of the glyph rather than as a mark beside it.
-        if colors.activeRail.a
-        {
-            let railRoom = metrics.activeRail_Size + metrics.activeRail_Margin
-            switch .checkIndicator
-            {
-            case .Left:  pos.moveLeft(railRoom)
-            case .Right: pos.moveRight(-railRoom)
-            }
-        }
 
         if .iconWidth do
             icon.sizeX = .iconWidth
@@ -716,12 +630,6 @@ impl IWnd for IconButton
 
 private impl IconButton
 {
-    // Air the active rule leaves at each end of the edge it runs along.
-    //
-    // The margin is a ceiling, not a promise: a cell too short to spare it keeps a rule
-    // covering a third of the edge rather than none at all.
-    mtd railInset(length: f32)->f32 => Math.min(.themeMetrics().activeRail_Margin, length / 3)
-
     // Y of the top edge of `size` placed on the content line, `centerY` being the middle of
     // the box it stands in.
     //
@@ -1009,7 +917,7 @@ impl IconButton
         with let frame = Wnd.create'FrameWnd(topView, Math.Rectangle{x, y, width, height})
         {
             .owner = me
-            .setFrameForm(.themeColors().activeRail.a ? .Square : .Round)
+            .setFrameForm(.Round)
             .setFrameFlags(.SmallShadow)
             .style.addStyleSheetColors("frameWnd_Border $frameWnd_PopupBorder")
             .anchor         = anchor

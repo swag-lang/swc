@@ -201,6 +201,7 @@ impl State
         let label = cur.createView'Label()
         label.updateFlags(.WordWrap | .Ellipsis)
         label.setTextAlignment(.Left, .Center)
+        label.style.setFont(cur.theme().createDefaultFontFamily(metrics.toolTip_FontSize))
 
         // The tip repaints the label's palette rather than flattening it to one ink: markup keeps
         // its colors and a link still looks like one, each answered against the tip's inverted

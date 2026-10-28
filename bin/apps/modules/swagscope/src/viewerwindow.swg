@@ -510,7 +510,7 @@ impl IWnd for ViewerWindow
         catch evt.serializer.serialize("ViewerWindow.midi", &Viewers.Midi.g_ViewerSettings)
         if evt.serializer.isReading()
         {
-            .themeIndex     = Math.min(.themeIndex, cast(u32, AppearanceTheme.Dark))
+            .themeIndex     = Math.min(.themeIndex, cast(u32, AppearanceTheme.System))
             .leftPanelWidth = Math.clamp(.leftPanelWidth, PanelMinWidth, PanelMaxWidth)
             if .rightPanelWidth > 0 do
                 .rightPanelWidth = Math.clamp(.rightPanelWidth, RightPanelMinWidth, RightPanelMaxWidth)
@@ -672,7 +672,7 @@ impl ViewerWindow
 
     mtd applyTheme(index: u32)
     {
-        .themeIndex = Math.min(index, cast(u32, AppearanceTheme.Dark))
+        .themeIndex = Math.min(index, cast(u32, AppearanceTheme.System))
         .appearanceButton.setAppearanceTheme(cast(AppearanceTheme, .themeIndex))
     }
 

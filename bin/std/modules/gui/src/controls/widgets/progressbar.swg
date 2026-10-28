@@ -55,30 +55,21 @@ impl IWnd for ProgressBar
             colorMark   = colors.progressBar_Mark
         }
 
-        let subRectBk     = &rects.progressBar_Bk
-        let subRectBorder = &rects.progressBar_Border
-        let subRectMark   = &rects.progressBar_Mark
-
-        // Bk
+        // The bar is a thin track centered in the control, filled in Arc from its leading end; an
+        // indeterminate bar runs one Arc segment along it. The fill is clipped to the track so its
+        // round ends follow the track's, wherever the segment stands.
         let clientRect = .clientRect()
-        theme.drawSubRect(painter, clientRect, subRectBk, colorBk)
+        var track      = clientRect
+        track.height = Math.min(metrics.progressBar_TrackSize, clientRect.height)
+        track.y      = clientRect.vertCenter() - track.height * 0.5
+        theme.drawSubRect(painter, track, &rects.progressBar_Bk, colorBk)
 
-        painter.startClippingRegion()
-        var clip = clientRect
-        clip.inflate(-metrics.progressBar_ClipOffset)
-        theme.drawSubRect(painter, clip, subRectBk, Argb.White)
-        painter.endClippingRegion()
-
-        // Bar
-        var posBox = clientRect
-        posBox.y = clientRect.vertCenter() - (posBox.height * 0.5)
+        var fill = track
         if .flags.has(.Indeterminate)
         {
-            let w = Math.max(clientRect.width / 5, 1)
-            posBox.width = w
-
-            let wt = clientRect.width + 2 * w
-            posBox.x = -w + (.animationPhase * wt)
+            let w = Math.max(track.width / 5, 1)
+            fill.width = w
+            fill.x     = track.x - w + (.animationPhase * (track.width + 2 * w))
 
             // Advance only presentation; the caller's finite value remains intact.
             .animationPhase += .paintDeltaSeconds() * metrics.progressBar_SpeedInf
@@ -88,14 +79,16 @@ impl IWnd for ProgressBar
         }
         else
         {
-            posBox.width = clientRect.width * .value
+            fill.width = track.width * .value
         }
 
-        theme.drawSubRect(painter, posBox, subRectMark, colorMark)
+        painter.startClippingRegion()
+        theme.drawSubRect(painter, track, &rects.progressBar_Bk, Argb.White)
+        painter.endClippingRegion()
+        theme.drawSubRect(painter, fill, &rects.progressBar_Mark, colorMark)
         painter.resetClippingRegion()
 
-        // Border
-        theme.drawSubRect(painter, clientRect, subRectBorder, colorBorder)
+        theme.drawSubRect(painter, track, &rects.progressBar_Border, colorBorder)
     }
 }
 

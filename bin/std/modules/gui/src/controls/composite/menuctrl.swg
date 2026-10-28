@@ -239,7 +239,8 @@ public impl IWnd for MenuCtrl
             lastIsSeparator = it.separator
             if it.separator
             {
-                painter.drawLine(labelPos.x, labelPos.vertCenter(), labelPos.right(), labelPos.vertCenter(), Pen.createSolid(colors.menuPopup_Separator))
+                let inset = metrics.menuPopup_SeparatorInset
+                painter.drawLine(labelPos.x + inset, labelPos.vertCenter(), labelPos.right() - inset, labelPos.vertCenter(), Pen.createSolid(colors.menuPopup_Separator))
                 continue
             }
 
@@ -350,14 +351,14 @@ public impl IWnd for MenuCtrl
                 icon.paint(painter, iconPos.x, opticalTop(.font(), textCenterY, icon.sizeY), colorText)
             }
 
-            // Text right
+            // A shortcut is a measure, so it is written in the fixed-width face, small and faint.
             if not .flags.has(.HideShortcuts) and not it.rightName.isEmpty()
             {
                 format.palette[0]    = colorRightText
                 format.horzAlignment = .Right
                 format.vertAlignment = .Center
                 format.flags         = .Clip
-                format.font          = .font()
+                format.font          = theme.createDefaultFontFamilyFs(metrics.menuPopup_ShortcutSize)
                 painter.drawRichString(labelPos, &it.rightName, format)
             }
 
@@ -1014,8 +1015,10 @@ impl MenuCtrl
 
             if not .flags.has(.HideShortcuts) and not it.rightName.isEmpty()
             {
+                var shortcutFormat = rsf
+                shortcutFormat.font = .theme().createDefaultFontFamilyFs(metrics.menuPopup_ShortcutSize)
                 it.rightName.compute()
-                Pixel.Painter.computeLayout({0, 0, MaxTextLayoutExtent, MaxTextLayoutExtent}, &it.rightName, rsf, deviceScale)
+                Pixel.Painter.computeLayout({0, 0, MaxTextLayoutExtent, MaxTextLayoutExtent}, &it.rightName, shortcutFormat, deviceScale)
                 w += it.rightName.boundRect.width + rsf.font.regular.height * 3
             }
 
@@ -1384,7 +1387,7 @@ public impl MenuCtrl
                 .anchor         = .Top
                 .anchorPosition = .position.width * 0.5
                 .setFrameFlags(.Borders | .SmallShadow)
-                .setFrameForm(.themeColors().activeRail.a ? .Square : .Round)
+                .setFrameForm(.Round)
                 .padding.y  += 14
                 .paddingSel = 0
 
@@ -1394,7 +1397,7 @@ public impl MenuCtrl
                 .anchor         = .Bottom
                 .anchorPosition = .position.width * 0.5
                 .setFrameFlags(.Borders | .SmallShadow)
-                .setFrameForm(.themeColors().activeRail.a ? .Square : .Round)
+                .setFrameForm(.Round)
                 .paddingSel = 0
             }
         }

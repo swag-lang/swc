@@ -185,9 +185,14 @@ impl IWnd for EditBox
             colorText   = colors.edit_DisabledText
             colorUnit   = colors.edit_DisabledText
 
+        // A rejected value and the focus replace the hairline with two pixels: of critical for the
+        // one, of what acts for the other. Only a field drawing the control outline has a heavier
+        // ring of that shape to take.
         case .isInvalid:
             colorBorder = colors.edit_ErrorBorder
             colorBk     = colors.edit_ErrorBk
+            if subRectBorder == &rects.edit_SquareBorder do
+                subRectBorder = &rects.edit_SquareStrongBorder
 
         case .flags.has(.ReadOnly):
 
@@ -201,6 +206,8 @@ impl IWnd for EditBox
         case .hasFocus():
             colorBorder = colors.edit_FocusBorder
             colorBk     = colors.edit_FocusBk
+            if subRectBorder == &rects.edit_SquareBorder do
+                subRectBorder = &rects.edit_SquareStrongBorder
 
         case .isHot:
             colorBorder = colors.edit_HotBorder
@@ -304,7 +311,7 @@ impl IWnd for EditBox
             var cp = caretPos
             cp.x     = painter.snapToDeviceX(cp.x)
             cp.width = painter.hairline(cp.width)
-            painter.fillRect(cp, colors.edit_Text)
+            painter.fillRect(cp, colors.edit_Caret)
         }
 
         painter.popClippingRect()

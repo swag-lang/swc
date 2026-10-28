@@ -3,19 +3,21 @@
 using Core, Pixel
 
 // Selects push button visual emphasis.
+//
+// The charter has four buttons: the primary action, filled with what acts; the secondary one,
+// transparent in a hairline ring; the quiet one, its words alone; and the destructive one, a
+// secondary button whose words say what is lost. A surface shows one primary action at most.
 enum PushButtonForm
 {
-    Normal      // Uses standard action emphasis.
-    Default     // Highlights the dialog's default action.
-    Flat        // Minimizes the idle background and border.
-    Strong      // Uses a strong filled background and bold label.
+    Normal          // The secondary button: transparent, a hairline ring, the body ink.
+    Default         // The primary action because the keyboard says so: the dialog's default answer.
+    Flat            // The quiet button: its words alone, raised under the pointer.
+    Strong          // The primary action because the surface says so, with a bold label.
+    Destructive     // A secondary button whose label, in the critical tone, says what is lost.
 
-    // Fills with the theme's alternate tone, for the action that leads somewhere else rather
-    // than the one that does the work of the surface.
-    //
-    // It is not a weaker strong button and it does not compete with one: a surface shows the
-    // action it is for, and beside it the page the reader can leave to. Both are filled, and
-    // only the tone tells them apart — which is what the second tone of a theme is for.
+    // A mode the reader has turned on. Arc chooses, so it wears the selection ground, writes in
+    // Arc and keeps a faint Arc ring — the same mark as a checked tool. It is a state, not an
+    // action: a surface shows its one primary action beside it.
     Alternate
 }
 
@@ -151,6 +153,10 @@ impl IWnd for PushButton
                 hot     = {bk: colors.btnPush_AlternateHotBk, border: colors.btnPush_AlternateHotBorder, text: colors.btnPush_AlternateHotText}
                 pressed = {bk: colors.btnPush_AlternatePressedBk, border: colors.btnPush_AlternatePressedBorder, text: colors.btnPush_AlternatePressedText}
 
+            case .Destructive: rest = {bk: colors.btnPush_Bk, border: colors.btnPush_Border, text: colors.btnPush_DestructiveText}
+                hot     = {bk: colors.btnPush_HotBk, border: colors.btnPush_HotBorder, text: colors.btnPush_DestructiveHotText}
+                pressed = {bk: colors.btnPush_PressedBk, border: colors.btnPush_PressedBorder, text: colors.btnPush_DestructiveHotText}
+
             default: rest = {bk: colors.btnPush_Bk, border: colors.btnPush_Border, text: colors.btnPush_Text}
                 hot     = {bk: colors.btnPush_HotBk, border: colors.btnPush_HotBorder, text: colors.btnPush_HotText}
                 pressed = {bk: colors.btnPush_PressedBk, border: colors.btnPush_PressedBorder, text: colors.btnPush_PressedText}
@@ -193,13 +199,9 @@ impl IWnd for PushButton
         .aniBk.apply(me, colorBk)
         theme.drawSubRect(bc.painter, clientRect, subRectBk, .aniBk.cur())
 
-        // The ring is drawn last, over a button whose shape and fill were only just decided, so it
-        // is told both: the Swag palette points a push button at the edit tiles, and a pill is not
-        // marked like a square corner; a button that has become the dominant action of the surface
-        // is filled with the accent the ring itself points in. The fill it is told about is the
-        // animated one, so the ring stays readable through a hover rather than only at rest.
+        // The ring is drawn last, around a button whose shape was only just decided, and follows
+        // the corner of the tile it was drawn from.
         .focusRingRadius = subRectBk!.radius
-        .focusRingGround = .aniBk.cur()
 
         // Border
         .aniBorder.apply(me, colorBorder)
@@ -301,12 +303,12 @@ impl PushButton
     // around — otherwise the box shows two answers to the same question, and the wrong one is
     // the loud one. It goes back to the named action as soon as the keyboard leaves the bar.
     //
-    // Only the two plain emphases take part. A flat button belongs to a tool bar, and a filled
-    // one — strong or alternate — carries its own tone through every state; none of them stands
-    // for the answer to a box.
+    // Only the two plain emphases take part. A quiet button belongs to a tool bar, a strong one is
+    // the primary action already, a destructive one must never become the answer Enter gives, and
+    // a button that is on is a state; none of them stands for the answer to a box.
     mtd paintedForm()->PushButtonForm
     {
-        if .form == .Flat or .form == .Strong or .form == .Alternate do
+        if .form != .Normal and .form != .Default do
             return .form
 
         let srf = .surface

@@ -604,16 +604,14 @@ enum SheetPalette
 {
     Dark
     Light
-    SwagDark
 }
 
 func applyPalette(host: *Gui.Testing.HeadlessHost, palette: SheetPalette)
 {
     switch palette
     {
-    case .Dark:     host.theme.setDark()
-    case .Light:    host.theme.setLight()
-    case .SwagDark: host.theme.setSwagDark()
+    case .Dark:  host.theme.setDark()
+    case .Light: host.theme.setLight()
     }
 
     host.notify(.ThemeChanged)
@@ -691,16 +689,14 @@ func assertSheetGolden(shot: SheetShot)
 #[Swag.TestTag("golden")]
 #test
 {
-    assertSheetGolden({palette: .SwagDark, golden: "optionsheet.header.keyboard.below.swag-dark", first: "Speed", high: true, header: true})
     assertSheetGolden({palette: .Dark, golden: "optionsheet.header.keyboard.below.dark", first: "Speed", high: true, header: true})
     assertSheetGolden({palette: .Light, golden: "optionsheet.header.keyboard.below.light", first: "Speed", high: true, header: true})
 }
 
-// The first page in each shipped palette: a link per setting with its value, and a switch.
+// The first page in each shipped theme: a link per setting with its value, and a switch.
 #[Swag.TestTag("golden")]
 #test
 {
-    assertSheetGolden({palette: .SwagDark, golden: "optionsheet.root.swag-dark"})
     assertSheetGolden({palette: .Dark, golden: "optionsheet.root.dark"})
     assertSheetGolden({palette: .Light, golden: "optionsheet.root.light"})
 }
@@ -709,7 +705,6 @@ func assertSheetGolden(shot: SheetShot)
 #[Swag.TestTag("golden")]
 #test
 {
-    assertSheetGolden({palette: .SwagDark, golden: "optionsheet.mixed.swag-dark", first: "Subtitles"})
     assertSheetGolden({palette: .Dark, golden: "optionsheet.mixed.dark", first: "Subtitles"})
     assertSheetGolden({palette: .Light, golden: "optionsheet.mixed.light", first: "Subtitles"})
 }
@@ -718,7 +713,6 @@ func assertSheetGolden(shot: SheetShot)
 #[Swag.TestTag("golden")]
 #test
 {
-    assertSheetGolden({palette: .SwagDark, golden: "optionsheet.keyboard.swag-dark", keyboard: true})
     assertSheetGolden({palette: .Dark, golden: "optionsheet.keyboard.dark", keyboard: true})
     assertSheetGolden({palette: .Light, golden: "optionsheet.keyboard.light", keyboard: true})
 }
@@ -727,21 +721,21 @@ func assertSheetGolden(shot: SheetShot)
 #[Swag.TestTag("golden")]
 #test
 {
-    assertSheetGolden({palette: .SwagDark, golden: "optionsheet.details.below", first: "Audio track", high: true})
+    assertSheetGolden({palette: .Dark, golden: "optionsheet.details.below", first: "Audio track", high: true})
 }
 
 // Halfway through a page change, the first page leaves under the edge while the next arrives.
 #[Swag.TestTag("golden")]
 #test
 {
-    assertSheetGolden({palette: .SwagDark, golden: "optionsheet.slide.half", first: "Subtitles", halfway: true})
+    assertSheetGolden({palette: .Dark, golden: "optionsheet.slide.half", first: "Subtitles", halfway: true})
 }
 
 // The two placements over a veil, for a touch screen and for a screen read from afar.
 #[Swag.TestTag("golden")]
 #test
 {
-    assertSheetGolden({palette: .SwagDark, golden: "optionsheet.bottomsheet.swag-dark", first: "Subtitles", placement: .BottomSheet})
+    assertSheetGolden({palette: .Dark, golden: "optionsheet.bottomsheet.dark", first: "Subtitles", placement: .BottomSheet})
     assertSheetGolden({palette: .Light, golden: "optionsheet.sidepanel.light", first: "Subtitles", placement: .SidePanel})
 }
 

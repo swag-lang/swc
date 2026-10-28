@@ -117,12 +117,14 @@ impl HtmlImageCache
         painter.pushState()
         defer painter.popState()
         let metrics = wnd.themeMetrics()
+        let colors  = wnd.themeColors()
         let size    = Math.min(metrics.spinner_Size, Math.min(frame.width, frame.height))
         Spinner.paintRing(painter,
                           Math.Rectangle{frame.horzCenter() - size * 0.5, frame.vertCenter() - size * 0.5, size, size},
                           .loadingPhase,
-                          wnd.themeColors().label_Text,
-                          metrics.spinner_DotCount)
+                          colors.spinner_Track,
+                          colors.spinner_Mark,
+                          metrics)
         wnd.invalidate()
     }
 

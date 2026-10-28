@@ -972,8 +972,6 @@ func markdownAtomRect(view: *Markdown.View, block: u64, word: string)->Math.Rect
 {
     var host: Testing.HeadlessHost
     host.setup(420, 260)
-    host.theme.setSwagDark()
-    host.notify(.ThemeChanged)
 
     var style = Markdown.Style.theme()
     style.maxContentWidth = 300

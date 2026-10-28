@@ -55,13 +55,23 @@ impl IWnd for CheckButton
         var colorMark:     Color
         var colorText:     Color
 
+        // The answer a box holds survives the pointer: a checked box stays an Arc box under it and
+        // only deepens, and an unchecked one only strengthens its ring.
+        let checked = .state != .Unchecked
         switch
         {
         case bc.isDisabled:
-            colorBk     = colors.btnCheck_DisabledBk
-            colorBorder = colors.btnCheck_DisabledBorder
+            colorBk     = checked ? colors.btnCheck_CheckedDisabledBk : colors.btnCheck_DisabledBk
+            colorBorder = checked ? colors.btnCheck_CheckedDisabledBk : colors.btnCheck_DisabledBorder
             colorMark   = colors.btnCheck_DisabledMark
             colorText   = colors.btnCheck_DisabledText
+
+        case checked:
+            let engaged = .isHot or .isPressed
+            colorBk     = engaged ? colors.btnCheck_CheckedHotBk : colors.btnCheck_CheckedBk
+            colorBorder = engaged ? colors.btnCheck_CheckedHotBk : colors.btnCheck_CheckedBorder
+            colorMark   = colors.btnCheck_CheckedMark
+            colorText   = colors.btnCheck_CheckedText
 
         case .isPressed:
             colorBk     = colors.btnCheck_PressedBk
@@ -74,12 +84,6 @@ impl IWnd for CheckButton
             colorBorder = colors.btnCheck_HotBorder
             colorMark   = colors.btnCheck_HotMark
             colorText   = colors.btnCheck_HotText
-
-        case .state == .Checked or .state == .Indeterminate:
-            colorBk     = colors.btnCheck_CheckedBk
-            colorText   = colors.btnCheck_CheckedText
-            colorBorder = colors.btnCheck_CheckedBorder
-            colorMark   = colors.btnCheck_CheckedMark
 
         default:
             colorBk     = colors.btnCheck_Bk

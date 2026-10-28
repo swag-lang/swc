@@ -32,7 +32,7 @@ func testSetupLibrarySurface(host: *Gui.Testing.HeadlessHost)->*MainWnd
     g_Library.loaded = true
     main.swapLibraryMode()
 
-    host.theme.setSwagDark()
+    host.theme.setDark()
     host.theme.metrics.surfaceWnd_ShadowSize   = 0
     host.theme.metrics.surfaceWnd_CornerRadius = 0
     host.notify(.ThemeChanged)
@@ -111,7 +111,7 @@ func testAssertMainMenuGolden(index: u32, golden: string)
 
     main.createTopMenu()
     host.surfaceWnd.applyLayout()
-    host.theme.setSwagDark()
+    host.theme.setDark()
     host.theme.metrics.surfaceWnd_ShadowSize   = 0
     host.theme.metrics.surfaceWnd_CornerRadius = 0
     host.notify(.ThemeChanged)
@@ -196,7 +196,7 @@ func testAssertMainMenuGolden(index: u32, golden: string)
     capture.selection.add(0)
     main.editWnd.editView.setCapture(capture)
 
-    host.theme.setSwagDark()
+    host.theme.setDark()
     host.theme.metrics.surfaceWnd_ShadowSize   = 0
     host.theme.metrics.surfaceWnd_CornerRadius = 0
     host.notify(.ThemeChanged)

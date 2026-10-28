@@ -64,7 +64,7 @@ private impl IWnd for HistogramView
             let box      = Math.Rectangle{geometry.origin.x + cast(f32, column) * geometry.pitch, geometry.origin.y + cast(f32, row) * geometry.pitch, geometry.cell, geometry.cell}
             painter.fillRoundRect(box, corner, corner, color)
             if value == .hovered do
-                painter.drawRoundRect(box, corner, corner, colors.hilight, 1)
+                painter.drawRoundRect(box, corner, corner, colors.signature, 1)
         }
     }
 

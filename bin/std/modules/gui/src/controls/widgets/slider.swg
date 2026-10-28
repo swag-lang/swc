@@ -195,15 +195,17 @@ impl IWnd for Slider
             }
         }
 
-        // Box value1
+        // The knobs are white in both themes, so each keeps a hairline ring that separates it from
+        // a light ground.
         .lowerMarkerAnimation.apply(me, colorMark1)
         theme.drawSubRect(bc.painter, posBox1, &rects.slider_Mark, .lowerMarkerAnimation.cur())
+        theme.drawSubRect(bc.painter, posBox1, &rects.slider_MarkBorder, colors.slider_MarkBorder)
 
-        // Box value2
         if .flags.has(.Range)
         {
             .upperMarkerAnimation.apply(me, colorMark2)
             theme.drawSubRect(bc.painter, posBox2, &rects.slider_Mark, .upperMarkerAnimation.cur())
+            theme.drawSubRect(bc.painter, posBox2, &rects.slider_MarkBorder, colors.slider_MarkBorder)
         }
     }
 

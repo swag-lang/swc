@@ -320,11 +320,6 @@ struct Wnd
         // should be marked with.
         focusRingRadius: f32
 
-        // Fill the keyboard-focus ring will be drawn over, published the same way and for the same
-        // reason: the ring points in the accent, and a control filled with that accent would swallow
-        // it. A fully transparent value means the ring is not drawn over any known fill.
-        focusRingGround: Color
-
         // Window the focus lands on when this one is given the focus, or `null` to take it.
         //
         // A composite declares the policy on itself and delegates the focus to the inner window
@@ -963,7 +958,7 @@ impl Wnd
         let theme = .theme()
         switch .backgroundStyle
         {
-        case .Application:      painter.fillRect(.position, theme.colors.bk)
+        case .Application:      painter.fillRect(.position, theme.colors.ground)
         case .Window:           painter.fillRect(.position, theme.colors.wnd_Bk)
         case .Panel:            theme.drawSubRect(painter, .position, &theme.rects.panel_Bk, .themeColors().wnd_Bk)
         case .Dialog:           painter.fillRect(.position, theme.colors.dlg_Bk)
@@ -1043,7 +1038,7 @@ impl Wnd
            .showsFocusRing()
         {
             painter.setTransform(curTrs)
-            theme.drawFocusRing(painter, .clientRect(), .focusRingRadius, .focusRingGround)
+            theme.drawFocusRing(painter, .clientRect(), .focusRingRadius)
         }
 
         bc.isDisabled = lastDisabled

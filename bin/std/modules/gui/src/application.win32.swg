@@ -88,6 +88,32 @@ impl Application
             .animator.finishDecorative()
     }
 
+    // Reads the light or dark setting the user chose for applications, and follows it.
+    //
+    // Windows keeps it as `AppsUseLightTheme` under the personalization key of the user: zero asks
+    // for a dark theme. A missing value is the light default of the system.
+    internal mtd refreshSystemAppearance()
+    {
+        let keyPath   = Utf16.toZeroTerminated("Software\\Microsoft\\Windows\\CurrentVersion\\Themes\\Personalize")
+        let valueName = Utf16.toZeroTerminated("AppsUseLightTheme")
+
+        var key: HKEY
+        if RegOpenKeyExW(HKEY_CURRENT_USER, keyPath.buffer, 0, KEY_QUERY_VALUE, &key) != ERROR_SUCCESS
+        {
+            .setSystemPrefersLight(true)
+            return
+        }
+
+        defer discard RegCloseKey(key)
+
+        var value: DWORD = 1
+        var size:  DWORD = #sizeof(DWORD)
+        var kind:  DWORD
+        if RegQueryValueExW(key, valueName.buffer, null, &kind, cast(*BYTE, &value), &size) != ERROR_SUCCESS or kind != REG_DWORD do
+            value = 1
+        .setSystemPrefersLight(value != 0)
+    }
+
     // Samples the desktop pixel currently under the mouse cursor.
     func pickColorAtMouse()->Color
     {

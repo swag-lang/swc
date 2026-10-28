@@ -109,12 +109,12 @@ impl IWnd for MotionField
         let rect    = .clientRect()
 
         painter.fillRoundRect(rect, 10, 10, colors.wnd_Bk)
-        painter.drawRoundRect(rect, 10, 10, colors.border, 1)
+        painter.drawRoundRect(rect, 10, 10, colors.line, 1)
 
         painter.pushClippingRect(rect)
         defer painter.popClippingRect()
 
-        let dotColor = colors.border.withAlphaF32(0.7)
+        let dotColor = colors.line.withAlphaF32(0.7)
         var y        = rect.y + FieldGrid
         while y < rect.bottom()
         {
@@ -130,8 +130,8 @@ impl IWnd for MotionField
 
         if .hasGoal
         {
-            painter.drawCircle(.goal.x, .goal.y, PuckSize * 0.55, colors.hilight.withAlphaF32(0.45), 1)
-            painter.drawLine(.puck.x, .puck.y, .goal.x, .goal.y, colors.hilight.withAlphaF32(0.22), 1)
+            painter.drawCircle(.goal.x, .goal.y, PuckSize * 0.55, colors.signature.withAlphaF32(0.45), 1)
+            painter.drawLine(.puck.x, .puck.y, .goal.x, .goal.y, colors.signature.withAlphaF32(0.22), 1)
         }
 
         // Oldest sample first, so the newest one is drawn on top of the ones it came from.
@@ -140,11 +140,11 @@ impl IWnd for MotionField
             let index = (.trailNext + TrailLength - .trailUsed + step) % TrailLength
             let ratio = cast(f32, (step + 1)) / cast(f32, .trailUsed)
             let point = .trail[index]
-            painter.fillCircle(point.x, point.y, 1.5 + 4 * ratio, colors.hilight.withAlphaF32(0.05 + 0.22 * ratio))
+            painter.fillCircle(point.x, point.y, 1.5 + 4 * ratio, colors.signature.withAlphaF32(0.05 + 0.22 * ratio))
         }
 
-        painter.fillCircle(.puck.x, .puck.y, PuckSize + 5, colors.hilight.withAlphaF32(0.16))
-        painter.fillCircle(.puck.x, .puck.y, PuckSize, colors.hilight)
+        painter.fillCircle(.puck.x, .puck.y, PuckSize + 5, colors.signature.withAlphaF32(0.16))
+        painter.fillCircle(.puck.x, .puck.y, PuckSize, colors.signature)
 
         if not .hasGoal
         {

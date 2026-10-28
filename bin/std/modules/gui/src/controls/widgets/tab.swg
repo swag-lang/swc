@@ -239,8 +239,12 @@ impl IWnd for Tab
 
         if .itemForm == .Flat and idx == .hotIndex and idx != .selectedIndex do
             painter.fillRect(.selectionRailRect(idx), v.aniImg.cur())
+        // A segment is a chip standing inside the raised frame of its group, not a slice of it.
+        var groundPos = labelPos
+        if .itemForm == .Round do
+            groundPos.inflate(-metrics.tabBar_SegmentInset)
         if subRect do
-            theme.drawSubRect(painter, labelPos, subRect, v.aniImg.cur())
+            theme.drawSubRect(painter, groundPos, subRect, v.aniImg.cur())
         if subRectBorder do
             theme.drawSubRect(painter, labelPos, subRectBorder, v.aniBorder.cur(), false)
         var format: RichStringFormat
@@ -256,18 +260,8 @@ impl IWnd for Tab
         // would enclose the page it shows, so the selected tab carries it. A form that grounds
         // its tab lends the ring that ground's corner; a flat or transparent bar has none, and
         // the ring keeps its own.
-        if idx == .selectedIndex and .showsFocusRing()
-        {
-            var ringGround: Color
-            var ringCorner = 0'f32
-            if subRect
-            {
-                ringCorner = subRect.radius
-                ringGround = v.aniImg.cur()
-            }
-
-            theme.drawFocusRing(painter, labelPos, ringCorner, ringGround)
-        }
+        if idx == .selectedIndex and .showsFocusRing() do
+            theme.drawFocusRing(painter, labelPos, subRect ? subRect.radius : 0)
     }
 
     mtd impl onPaint(evt: *PaintEvent)
@@ -276,6 +270,7 @@ impl IWnd for Tab
         let theme   = .theme()
         let colors  = .themeColors()
         let rects   = .themeRects()
+        let metrics = .themeMetrics()
 
         // Background bar
         if .barForm != .Transparent
@@ -287,6 +282,14 @@ impl IWnd for Tab
             case .Flat:      painter.fillRect(clientRect, colors.tabBar_FlatBk)
             case .FlatRound: theme.drawSubRect(painter, clientRect, &rects.tabBar_FlatRoundBk, colors.tabBar_FlatBk)
             case .Round:     theme.drawSubRect(painter, clientRect, &rects.tabBar_RoundBk, colors.tabBar_RoundBk)
+            }
+
+            // A flat bar of words stands on one hairline, which the underline of the active tab
+            // is drawn over.
+            if .barForm == .Flat
+            {
+                let lineSize = metrics.separator_HairlineSize
+                painter.fillRect(Math.Rectangle{clientRect.x, clientRect.bottom() - lineSize, clientRect.width, lineSize}, colors.tabBar_FlatLine)
             }
         }
 
@@ -326,14 +329,10 @@ impl IWnd for Tab
             // Paint selected item
             .paintItem(painter, unwrap .items[.selectedIndex], .selectedIndex)
 
-            // Flat tabs always select with one moving rule. Shaped tabs carry their own state.
-            if .hasSelectionRail
-            {
-                if .itemForm == .Flat do
-                    painter.fillRect(.selectionRail, colors.tabItem_FlatSelected)
-                elif .itemForm == .Transparent and colors.activeRail.a != 0 do
-                    painter.fillRect(.selectionRail, colors.activeRail)
-            }
+            // Tabs made of words select with one moving Arc underline. Shaped tabs carry their own
+            // state.
+            if .hasSelectionRail and (.itemForm == .Flat or .itemForm == .Transparent) do
+                painter.fillRect(.selectionRail, colors.tabItem_FlatSelected)
         }
     }
 
@@ -469,9 +468,9 @@ private impl Tab
     {
         let item    = unwrap .items[index]
         let metrics = .themeMetrics()
-        let size    = metrics.activeRail_Size
+        let size    = metrics.tabItem_RailSize
         var rail    = Math.Rectangle{item.pos, .barHeight - size, item.width, size}
-        rail.inflate(-Math.min(metrics.activeRail_Margin, rail.width / 3), 0)
+        rail.inflate(-Math.min(metrics.tabItem_RailMargin, rail.width / 3), 0)
         return rail
     }
 

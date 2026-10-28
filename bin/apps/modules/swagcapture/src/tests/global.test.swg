@@ -45,13 +45,13 @@ func testSetupGlobalMain(main: *MainWnd)
 
     f.main.editorOptions.theme = .Dark
     f.main.setTheme()
-    Swag.assert(f.main.appearanceButton.appearanceTheme == .Dark and f.gui.theme.colors.bk == ThemeColors.darkPalette().ground)
+    Swag.assert(f.main.appearanceButton.appearanceTheme == .Dark and f.gui.theme.colors.ground == ThemeColors.encrePalette().ground)
     f.main.editorOptions.theme = .Light
     f.main.setTheme()
-    Swag.assert(f.main.appearanceButton.appearanceTheme == .Light and f.gui.theme.colors.bk == ThemeColors.lightPalette().ground)
-    f.main.editorOptions.theme = .SwagDark
+    Swag.assert(f.main.appearanceButton.appearanceTheme == .Light and f.gui.theme.colors.ground == ThemeColors.papierPalette().ground)
+    f.main.editorOptions.theme = .System
     f.main.setTheme()
-    Swag.assert(f.main.appearanceButton.appearanceTheme == .SwagDark and f.gui.theme.colors.bk == ThemeColors.swagDarkPalette().ground)
+    Swag.assert(f.main.appearanceButton.appearanceTheme == .System and f.gui.theme.colors.ground == ThemeColors.encrePalette().ground)
 }
 
 // A rail-only option change must not reapply unrelated application-wide settings. Repeating the
@@ -68,14 +68,14 @@ func testSetupGlobalMain(main: *MainWnd)
     expect f.gui.app.setLanguage("fr")
     defer expect f.gui.app.setLanguage("en")
 
-    f.main.editorOptions.theme    = .SwagDark
+    f.main.editorOptions.theme    = .Dark
     f.main.editorOptions.language = .English
     f.main.editorOptions.showToolBarLabels = true
     let lightBackground = f.main.themeColors().wnd_Bk
     discard f.main.applyOptionChange(#nameof(EditorOptions.showToolBarLabels))
 
     let metrics = f.main.themeMetrics()
-    Swag.assert(f.main.toolRail.position.width == RailLabelWidth + metrics.activeRail_Size + metrics.activeRail_Margin)
+    Swag.assert(f.main.toolRail.position.width == RailLabelWidth)
     Swag.assert(f.main.themeColors().wnd_Bk == lightBackground)
     Swag.assert(Gui.activeLanguage() == "fr")
 
@@ -83,7 +83,7 @@ func testSetupGlobalMain(main: *MainWnd)
     {
         f.main.editorOptions.showToolBarLabels = i % 2 == 0
         discard f.main.applyOptionChange(#nameof(EditorOptions.showToolBarLabels))
-        let expected = f.main.editorOptions.showToolBarLabels ? RailLabelWidth + metrics.activeRail_Size + metrics.activeRail_Margin : themeActionButtonSize(metrics) + metrics.activeRail_Size
+        let expected = f.main.editorOptions.showToolBarLabels ? RailLabelWidth : themeActionButtonSize(metrics)
         Swag.assert(f.main.toolRail.position.width == expected)
         Swag.assert(f.main.app().animator.activeCount() == 0)
     }
@@ -106,14 +106,14 @@ func testSetupGlobalMain(main: *MainWnd)
     testSetupGlobalMain(f.main)
     f.gui.setReducedMotion(false)
 
-    // In icon-only mode the active rule's own margin replaces the leading cell padding.
-    // Counting both used to leave the glyph visibly adrift from its selection marker.
-    let firstTool = assume cast(*IconButton, f.main.toolRail.children[0])
-    let metrics   = f.main.themeMetrics()
+    // In icon-only mode the glyph is centered in its cell: the rule marking the tool in use is
+    // drawn over the cell edge and reserves no lane of its own.
+    let firstTool   = assume cast(*IconButton, f.main.toolRail.children[0])
+    let metrics     = f.main.themeMetrics()
+    let cellPadding = (themeActionButtonSize(metrics) - themeActionIconSize(metrics)) * 0.5
     Swag.assert(firstTool.flags.has(.IconOnly))
-    Swag.assert(firstTool.padding.x == 0)
-    Swag.assert(firstTool.padding.z == (themeActionButtonSize(metrics) - themeActionIconSize(metrics)) * 0.5)
-    Swag.assert(firstTool.position.width == themeActionButtonSize(metrics) + metrics.activeRail_Size)
+    Swag.assert(firstTool.padding.x == cellPadding and firstTool.padding.z == cellPadding)
+    Swag.assert(firstTool.position.width == themeActionButtonSize(metrics))
 
     // The wait indicator of a library scan stands in the command bar, not over the captures. It
     // used to be a child of the scroll window at 8,8 — which is exactly where the view's own
@@ -206,5 +206,5 @@ func testSetupGlobalMain(main: *MainWnd)
 
     f.main.editorOptions.theme = cast(AppearanceTheme, 99)
     f.main.migrateStoredOptions()
-    Swag.assert(f.main.editorOptions.theme == .SwagDark)
+    Swag.assert(f.main.editorOptions.theme == .Dark)
 }

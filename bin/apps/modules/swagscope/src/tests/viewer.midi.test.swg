@@ -52,7 +52,7 @@ func midiViewerFixturePath()->String => Path.combine(unwrap Path.directoryName(#
     var host: Testing.HeadlessHost
     host.setup(900, 600)
     defer discard catch host.app.setLanguage(ReferenceLanguage)
-    host.theme.setSwagDark()
+    host.theme.setDark()
     host.theme.metrics.surfaceWnd_ShadowSize   = 0
     host.theme.metrics.surfaceWnd_CornerRadius = 0
     host.notify(.ThemeChanged)

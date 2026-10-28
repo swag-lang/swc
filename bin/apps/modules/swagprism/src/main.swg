@@ -24,7 +24,7 @@ const SurfaceId   = "swag.prism"
                                           height: MainWindow.WindowHeight,
                                           flags: SurfaceFlags.StandardWindow,
                                           surfaceId: SurfaceId)
-    g_App.theme.setSwagDark()
+    g_App.theme.setDark()
     g_App.notifyThemeChanged()
     surface.setTitle(appStrings().ui_WindowTitle)
 

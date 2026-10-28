@@ -140,8 +140,6 @@ using Core, Pixel
 {
     var host: Testing.HeadlessHost
     host.setup(640, 400)
-    host.theme.setSwagDark()
-    host.notify(.ThemeChanged)
     let fileName = Testing.tempFilePath("markdown-themed-html-", ".md")
     defer discard catch File.delete(fileName)
     discard expect File.writeAllText(fileName, "<div>Readable HTML</div>")

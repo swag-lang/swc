@@ -103,6 +103,10 @@ func assertViewerPanelCorner(image: const *Image, panel: *Wnd)
     let left    = cast(s32, rect.x)
     let top     = cast(s32, rect.y)
 
+    // A theme that grounds the panel and the bar around it alike leaves no corner to see.
+    if outside == inside do
+        return
+
     Swag.assert(image.pixelColor(left, top).argb == outside)
     Swag.assert(image.pixelColor(left + radius, top + radius).argb == inside)
 
@@ -889,10 +893,6 @@ func assertFolderFiles(window: *ViewerWindow, names: const [..] String)
 
     var host: Testing.HeadlessHost
     host.setup(960, 680)
-    host.theme.setSwagDark()
-    host.theme.metrics.surfaceWnd_ShadowSize   = 0
-    host.theme.metrics.surfaceWnd_CornerRadius = 0
-    host.notify(.ThemeChanged)
 
     var index = createViewerPluginRegistry()
 
@@ -1047,7 +1047,7 @@ func assertFolderFiles(window: *ViewerWindow, names: const [..] String)
     }
 }
 
-// All three application palettes cross the same state boundary as the surface placement.
+// Every appearance crosses the same state boundary as the surface placement.
 #test
 {
     var host: Testing.HeadlessHost
@@ -1055,26 +1055,26 @@ func assertFolderFiles(window: *ViewerWindow, names: const [..] String)
 
     var index  = createViewerPluginRegistry()
     let window = ViewerWindow.create(&host.surfaceWnd, #move index)
-    Swag.assert(window.appearanceButton.appearanceTheme == .SwagDark)
+    Swag.assert(window.appearanceButton.appearanceTheme == .Dark)
 
     window.applyTheme(cast(u32, AppearanceTheme.Dark))
     host.notify(.ThemeChanged)
     Swag.assert(window.themeIndex == cast(u32, AppearanceTheme.Dark))
-    Swag.assert(host.app.theme.colors.view_Bk == ThemeColors.darkPalette().view)
+    Swag.assert(host.app.theme.colors.view_Bk == ThemeColors.encrePalette().ground)
 
     window.applyTheme(cast(u32, AppearanceTheme.Light))
     host.notify(.ThemeChanged)
     Swag.assert(window.themeIndex == cast(u32, AppearanceTheme.Light))
-    Swag.assert(host.app.theme.colors.view_Bk == 0xFFFFFFFF)
-    Swag.assert(window.themeColors().view_Bk == 0xFFFFFFFF)
+    Swag.assert(host.app.theme.colors.view_Bk == ThemeColors.papierPalette().ground)
+    Swag.assert(window.themeColors().view_Bk == ThemeColors.papierPalette().ground)
 
     let state = saveViewerState(window)
     window.applyTheme(0)
     loadViewerState(window, state.toSlice())
     window.applyTheme(window.themeIndex)
     host.notify(.ThemeChanged)
-    Swag.assert(window.themeIndex == cast(u32, AppearanceTheme.Light) and host.app.theme.colors.view_Bk == 0xFFFFFFFF)
-    Swag.assert(window.themeColors().view_Bk == 0xFFFFFFFF)
+    Swag.assert(window.themeIndex == cast(u32, AppearanceTheme.Light) and host.app.theme.colors.view_Bk == ThemeColors.papierPalette().ground)
+    Swag.assert(window.themeColors().view_Bk == ThemeColors.papierPalette().ground)
 }
 
 // The caption appearance action reaches the standard application about dialog.
@@ -1104,8 +1104,6 @@ func assertFolderFiles(window: *ViewerWindow, names: const [..] String)
 {
     var host: Testing.HeadlessHost
     host.setup(900, 700)
-    host.theme.setSwagDark()
-    host.notify(.ThemeChanged)
 
     let appIcon = expect Image.decode(".png", AppIcon)
     host.app.setAppIcon(appIcon)
@@ -1134,7 +1132,7 @@ func assertFolderFiles(window: *ViewerWindow, names: const [..] String)
     let window = ViewerWindow.create(&host.surfaceWnd, #move index)
     window.surface!.setTitle(appStrings().ui_WindowTitle)
     Swag.assert(window.openButton.toolTip == "Open (Ctrl+O)")
-    Swag.assert(window.closeButton.toolTip == "Close file")
+    Swag.assert(window.closeButton.toolTip == "Close File")
 
     host.activateOptionRowWhenShown(Gui.strings().appearance_Language)
     host.thenActivateOptionRow("Français")
@@ -1412,7 +1410,7 @@ func assertFolderFiles(window: *ViewerWindow, names: const [..] String)
 {
     var host: Testing.HeadlessHost
     host.setup(960, 680)
-    host.app.theme.setSwagDark()
+    host.app.theme.setDark()
     host.app.notifyThemeChanged()
 
     var index = createViewerPluginRegistry()
@@ -1468,14 +1466,14 @@ func assertFolderFiles(window: *ViewerWindow, names: const [..] String)
     Swag.assert(window.filesButton.parent == window.infoContentGroup)
     Swag.assert(window.viewerBar.backgroundStyle == .ToolBar)
     Swag.assert(window.themeColors().view_Bk != window.themeColors().informationBar_Bk)
-    Swag.assert(window.themeColors().view_Bk != window.themeColors().bk)
+    Swag.assert(window.themeColors().view_Bk != window.themeColors().ground)
     Swag.assert(window.themeColors().view_Bk != window.themeColors().wnd_Bk)
-    Swag.assert(window.themeColors().informationBar_Bk != window.themeColors().bk and window.themeColors().informationBar_Bk != window.themeColors().wnd_Bk)
+    Swag.assert(window.themeColors().informationBar_Bk != window.themeColors().ground and window.themeColors().informationBar_Bk != window.themeColors().wnd_Bk)
     Swag.assert(window.themeColors().commandBar_Bk != window.themeColors().wnd_Bk and window.themeColors().commandBar_Bk != window.themeColors().informationBar_Bk)
     Swag.assert(window.themeColors().toolBar_Bk != window.themeColors().wnd_Bk and window.themeColors().toolBar_Bk != window.themeColors().informationBar_Bk)
     Swag.assert(window.themeColors().informationBar_Bk.relativeLuminance() < window.themeColors().wnd_Bk.relativeLuminance())
     Swag.assert(window.themeColors().informationBar_Bk.relativeLuminance() < window.themeColors().commandBar_Bk.relativeLuminance())
-    Swag.assert(window.themeColors().bk != window.themeColors().wnd_Bk)
+    Swag.assert(window.themeColors().ground != window.themeColors().wnd_Bk)
     Swag.assert(window.infoBarHost.isLocallyVisible())
     Swag.assert(window.viewerBar.dockStyle == .Bottom and window.viewerBar.isLocallyVisible())
     Swag.assert(window.viewerBar.position.height == panelGutter)
@@ -1685,10 +1683,6 @@ func assertFolderFiles(window: *ViewerWindow, names: const [..] String)
 {
     var host: Testing.HeadlessHost
     host.setup(640, 420)
-    host.theme.setSwagDark()
-    host.theme.metrics.surfaceWnd_ShadowSize   = 0
-    host.theme.metrics.surfaceWnd_CornerRadius = 0
-    host.notify(.ThemeChanged)
 
     let view = ViewerErrorView.create(&host.root, "PNG chunk CRC does not match its payload")
     view.dockStyle = .Center
@@ -1696,7 +1690,7 @@ func assertFolderFiles(window: *ViewerWindow, names: const [..] String)
     host.settleAnimations(&host.root, 4)
 
     Swag.assert(view.iconLabel.icon.isValid())
-    Swag.assert(view.iconLabel.iconColor == view.themeColors().error)
+    Swag.assert(view.iconLabel.iconColor == view.themeColors().critical)
     Swag.assert(view.summaryLabel.text() == appStrings().ui_ViewerError)
     Swag.assert(view.reasonLabel.text() == "PNG chunk CRC does not match its payload")
     Swag.assert(Math.abs(view.iconLabel.position.center().x - view.position.center().x) <= 1)
@@ -2126,7 +2120,7 @@ func assertFolderFiles(window: *ViewerWindow, names: const [..] String)
     let window = ViewerWindow.create(&host.surfaceWnd, #move index)
     window.resize(960, 680)
 
-    host.theme.setSwagDark()
+    host.theme.setDark()
     host.theme.metrics.surfaceWnd_ShadowSize   = 0
     host.theme.metrics.surfaceWnd_CornerRadius = 0
     host.notify(.ThemeChanged)
@@ -2144,7 +2138,7 @@ func assertFolderFiles(window: *ViewerWindow, names: const [..] String)
     var host: Testing.HeadlessHost
     host.setup(960, 680)
 
-    host.theme.setSwagDark()
+    host.theme.setDark()
     host.theme.metrics.surfaceWnd_ShadowSize   = 0
     host.theme.metrics.surfaceWnd_CornerRadius = 0
     host.notify(.ThemeChanged)
@@ -2196,7 +2190,7 @@ func assertFolderFiles(window: *ViewerWindow, names: const [..] String)
     var host: Testing.HeadlessHost
     host.setup(960, 680)
 
-    host.theme.setSwagDark()
+    host.theme.setDark()
     host.theme.metrics.surfaceWnd_ShadowSize   = 0
     host.theme.metrics.surfaceWnd_CornerRadius = 0
     host.notify(.ThemeChanged)

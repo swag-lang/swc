@@ -40,19 +40,19 @@ impl IWnd for MotionCard
         let rect    = .clientRect()
 
         painter.fillRoundRect(rect, CardRadius, CardRadius, colors.wnd_Bk)
-        painter.drawRoundRect(rect, CardRadius, CardRadius, colors.border, 1)
-        painter.fillRoundRect(Math.Rectangle{rect.x + 1, rect.y + 10, 3, rect.height - 20}, 1.5, 1.5, colors.hilight)
+        painter.drawRoundRect(rect, CardRadius, CardRadius, colors.line, 1)
+        painter.fillRoundRect(Math.Rectangle{rect.x + 1, rect.y + 10, 3, rect.height - 20}, 1.5, 1.5, colors.signature)
 
         let badgeX = rect.x + 18
         let badgeY = rect.y + 16
-        painter.fillRoundRect(Math.Rectangle{badgeX, badgeY, BadgeSize, BadgeSize}, 6, 6, colors.hilight)
+        painter.fillRoundRect(Math.Rectangle{badgeX, badgeY, BadgeSize, BadgeSize}, 6, 6, colors.signature)
 
         let badgeFont = theme.createDefaultFont(12, .Bold)
         painter.drawStringCenter(badgeX + BadgeSize * 0.5,
                                  badgeY + BadgeSize * 0.5,
                                  Format.toString("%", .rank),
                                  badgeFont,
-                                 colors.hilightLightContrast)
+                                 colors.onSignature)
 
         let titleFont = theme.createDefaultFont(14, .Bold)
         painter.drawString(rect.x + 18,

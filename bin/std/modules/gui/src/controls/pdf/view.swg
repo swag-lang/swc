@@ -804,7 +804,7 @@ internal impl PdfView
             // the reader.
             painter.fillShadow(box, 0, PageShadowSpread, colors.wnd_Shadow)
             painter.fillRect(box, Color.fromArgb(Argb.White))
-            painter.drawRect(box, colors.border, 1)
+            painter.drawRect(box, colors.line, 1)
 
             let entry = .cache.resident(index)
             if not entry or not entry.isDrawable() do

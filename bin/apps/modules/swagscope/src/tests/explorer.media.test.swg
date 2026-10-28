@@ -136,7 +136,7 @@ using Core, Gui, Pixel
         host.setup(880, 420)
         switch palette
         {
-        case 0: host.theme.setSwagDark()
+        case 0: host.theme.setDark()
         case 1: host.theme.setDark()
         case 2: host.theme.setLight()
         }

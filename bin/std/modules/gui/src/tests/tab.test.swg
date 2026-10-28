@@ -5,10 +5,11 @@ using Swag, Core
 
 var TabHeadlessSelChangedCount: u32
 
-// Flat tabs keep one contrasted selection rule while it travels, with a separate hover rule.
+// Flat tabs keep one contrasted Arc underline while it travels, over the hairline the bar stands
+// on. The tab under the pointer changes its words, never the rule.
 #test
 {
-    for palette in [ThemeColors.darkPalette(), ThemeColors.lightPalette(), ThemeColors.swagDarkPalette()]
+    for palette in [ThemeColors.encrePalette(), ThemeColors.papierPalette()]
     {
         var host: Testing.HeadlessHost
         host.setup(320, 120)
@@ -22,24 +23,26 @@ var TabHeadlessSelChangedCount: u32
         host.settleAnimations()
 
         let colors = tab.themeColors()
-        Swag.assert(colors.tabItem_FlatSelected.contrastRatio(colors.tabBar_FlatBk) >= 3.5)
-        Swag.assert(colors.tabItem_FlatHot.contrastRatio(colors.tabBar_FlatBk) >= 3.5)
+        Swag.assert(colors.tabItem_FlatSelected == colors.arc)
+        Swag.assert(colors.tabItem_FlatSelected.contrastRatio(colors.dlg_Bk) >= 3.5)
+        Swag.assert(colors.tabItem_FlatHot.a == 0)
 
         tab.setSelectedIndex(3)
         host.advanceAnimations(tab.themeMetrics().motion_QuickSeconds * 0.5)
         let halfway = host.render()
         let rail    = tab.selectionRail
         let y       = cast(u32, rail.y + rail.height / 2)
+        Swag.assert(rail.height == tab.themeMetrics().tabItem_RailSize)
         Swag.assert(rail.x > 8 and rail.x < 248)
         Swag.assert(halfway.pixelColor(cast(u32, rail.x + rail.width / 2), y) == colors.tabItem_FlatSelected)
-        Swag.assert(halfway.pixelColor(4, y) == colors.tabBar_FlatBk)
-        Swag.assert(halfway.pixelColor(316, y) == colors.tabBar_FlatBk)
+        Swag.assert(halfway.pixelColor(4, y) == colors.tabBar_FlatLine)
+        Swag.assert(halfway.pixelColor(316, y) == colors.tabBar_FlatLine)
 
         host.finishAnimations()
         host.moveMouse(Math.Point{40, tab.barHeight / 2})
         host.settleAnimations()
         let hovered = host.render()
-        Swag.assert(hovered.pixelColor(40, y) == colors.tabItem_FlatHot)
+        Swag.assert(hovered.pixelColor(40, y) == colors.tabBar_FlatLine)
         Swag.assert(hovered.pixelColor(280, y) == colors.tabItem_FlatSelected)
     }
 }
@@ -109,6 +112,9 @@ var TabHeadlessSelChangedCount: u32
     tab.setForms(.Transparent, .Transparent, .None)
     viewA.backgroundStyle = .View
     viewB.backgroundStyle = .Window
+
+    // The charter grounds a view and a window alike, so the incoming page gets a ground of its own.
+    viewB.style.addStyleSheetColors("wnd_Bk $raised")
     tab.setPageTransitions(true)
     tab.addItem("A", view: viewA)
     tab.addItem("B", view: viewB)

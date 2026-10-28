@@ -1253,8 +1253,8 @@ impl IWnd for GridView
         let selectBk    = focused ? colors.richEdit_SelBk : colors.richEdit_SelBkNoFocus
         let searchHitBk = Color.lerp(colors.view_Bk, colors.searchMatch_Border, 0.12)
         let matchBk     = colors.searchMatch_Bk
-        let caretBk     = colors.hilight
-        let caretInk    = colors.hilightLightContrast
+        let caretBk     = colors.signature
+        let caretInk    = colors.onSignature
 
         let visible = .visibleRows()
         let first   = Math.min(.topRow * .bytesPerRow, .lastOffset())
@@ -1266,7 +1266,7 @@ impl IWnd for GridView
         let headerY = client.y + 4
         .drawBuffer(painter, &.headerText, originX + ViewInset + .gutterWidth(), headerY, font, headerInk)
         painter.drawString(originX + .textColumnLeft(), headerY, texts().ui_TextColumn, font, headerInk)
-        painter.drawLine(client.x, client.y + .headerHeight() - 2, client.right(), client.y + .headerHeight() - 2, colors.border, 1)
+        painter.drawLine(client.x, client.y + .headerHeight() - 2, client.right(), client.y + .headerHeight() - 2, colors.line, 1)
 
         let selectFirst = .selectionStart()
         let selectLast  = .selectionEnd()

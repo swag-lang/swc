@@ -145,9 +145,10 @@ impl AppearanceButton
     //
     // The appearance is a command like any other, so it is found through the one door: the
     // themes under the theme label, the languages under the language label, and About under the
-    // application label when [[Gui.AppearanceButton.sigAboutRequested]] has a callback. A row
-    // applies its choice exactly as the options of the button do, and the choice in force carries
-    // a check. A query naming a group, such as "theme", lists the whole group.
+    // application label when [[Gui.AppearanceButton.sigAboutRequested]] has a callback. The themes
+    // and the languages are exclusive choices, each shown as one row of segments; a segment
+    // applies its choice exactly as the options of the button do, and the choice in force is
+    // underlined. A query naming a group, such as "theme", lists the whole group.
     mtd addToLens(lens: *Lens.View)
     {
         lens.addSource(.None, func|button = me|(results) { button.describeLens(results) })
@@ -164,8 +165,12 @@ impl AppearanceButton
             let name = appearanceThemeName(theme)
             if not lensAnswers(query, name, texts.appearance_Theme) do
                 continue
-            if not themes do
-                themes = results.addSection(texts.appearance_Theme)
+            if not themes
+            {
+                themes        = results.addSection(texts.appearance_Theme)
+                themes.inline = true
+            }
+
             with let entry = themes.addEntry(name)
             {
                 .checked = theme == me.appearanceTheme
@@ -176,7 +181,8 @@ impl AppearanceButton
         var choices: *Lens.Section?
         if lensAnswers(query, texts.appearance_SystemLanguage, texts.appearance_Language)
         {
-            choices = results.addSection(texts.appearance_Language)
+            choices        = results.addSection(texts.appearance_Language)
+            choices.inline = true
             with let entry = choices.addEntry(texts.appearance_SystemLanguage)
             {
                 .checked = me.language.isEmpty()
@@ -189,8 +195,12 @@ impl AppearanceButton
             let name = one.nativeName.toString()
             if not lensAnswers(query, name, texts.appearance_Language) do
                 continue
-            if not choices do
-                choices = results.addSection(texts.appearance_Language)
+            if not choices
+            {
+                choices        = results.addSection(texts.appearance_Language)
+                choices.inline = true
+            }
+
             let tag        = one.tag.toString()
             with let entry = choices.addEntry(name)
             {

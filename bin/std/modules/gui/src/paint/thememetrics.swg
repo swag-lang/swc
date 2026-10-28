@@ -203,6 +203,8 @@ struct ThemeMetrics
         lens_PictureWidth:   f32 = 72       // Width of a picture in the strip of a section, such as a recent document.
         lens_PictureHeight:  f32 = 44       // Height of that picture.
         lens_PictureGap:     f32 = 8        // Air between two pictures of the strip, and around the strip.
+        lens_SegmentInset:   f32 = 10       // Air on each side of the words of a segment, in a section shown as one row.
+        lens_SegmentHeight:  f32 = 28       // Height of the ground of the segment the keys chose.
 
         // The information sheet a key opens: a title, an identity line, facts and readings.
         infoSheet_Width:         f32 = 340     // Width of an information sheet.

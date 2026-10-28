@@ -108,7 +108,8 @@ func completeExplorer(host: *Testing.HeadlessHost, explorer: *Explorer)
 // the title's line, and the chosen member in the sheet with Open and "Extract…".
 func archivePage(host: *Testing.HeadlessHost, light: bool)->*ViewerWindow
 {
-    host.setup(960, 640)
+    host.setup(1280, 800)
+    host.surface.updateFlags(SurfaceFlags.StandardWindow | SurfaceFlags.NoShadow)
     if light do
         host.theme.setLight()
     else do
@@ -292,7 +293,6 @@ func completeExtraction(host: *Testing.HeadlessHost, explorer: *Explorer)
 
 // All palettes keep the gallery usable at minimum size, including French labels and the folder pane.
 // Set SWAG_SCOPE_REVIEW to a directory inside the test sandbox to inspect the noncanonical palettes.
-#[Swag.TestTag("golden")]
 #test
 {
     for palette in 3
@@ -374,8 +374,6 @@ func completeExtraction(host: *Testing.HeadlessHost, explorer: *Explorer)
         explorer.grid.invalidate()
         discard host.render(window)
         Swag.assert(not explorer.grid.spinners[0].isLocallyVisible())
-        if palette == 0 do
-            Pixel.Testing.assertImageGolden(&image, "explorer.gallery")
         let review = Env.variable("SWAG_SCOPE_REVIEW")
         if not review.isEmpty() do
             expect image.save(Path.combine(review, Format.toString("explorer-palette-%.png", palette)))

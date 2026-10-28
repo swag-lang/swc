@@ -269,8 +269,8 @@ impl ViewerWindow
             var name = Path.fileName(one.folder) orelse one.folder.toString()
             if not name.count do
                 name = one.folder.toString()
-            var icon = .app().directoryIcon(one.folder, true)
-            icon.color = .themeColors().label_Text
+            var icon = .theme().fileGlyph(one.folder, true, themeRowIconSize(.themeMetrics()))
+            icon.color = .themeColors().softText
             discard menu.addItem(name, one.folder, icon)
         }
 

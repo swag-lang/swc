@@ -160,3 +160,6 @@ explore_Extracted % fichiers extraits
 explore_ExtractedOne 1 fichier extrait
 explore_ExtractedKept %, % déjà présents conservés
 explore_ExtractFailed Tout n’a pas pu être extrait
+explore_File Fichier
+hint_Filter filtrer
+explore_Length % h %

@@ -213,12 +213,15 @@ private impl Panel
         .services.showDetails(me, text)
     }
 
-    mtd fileIcon(entry: const *ZipEntry)->Icon
+    // Returns the line glyph of the kind of `path`, in the soft ink every glyph of a listing takes.
+    mtd lineGlyph(path: string, isDirectory: bool)->Icon
     {
-        if entry.isDirectory do
-            return .app().directoryIcon(entry.path, true)
-        return .app().fileIcon(entry.path, true)
+        var result = .theme().fileGlyph(path, isDirectory, themeRowIconSize(.themeMetrics()))
+        result.color = .themeColors().softText
+        return result
     }
+
+    mtd fileIcon(entry: const *ZipEntry)->Icon => .lineGlyph(entry.path, entry.isDirectory)
 
     // Fills the entry tree from the archive listing, creating each folder once even when the
     // archive records only the files inside it, then expands the top-level folders and sorts by
@@ -250,7 +253,7 @@ private impl Panel
                         continue
                     }
 
-                    let line = .list.createLine(part, .app().directoryIcon(prefix, true), parent)
+                    let line = .list.createLine(part, .lineGlyph(prefix, true), parent)
                     folders.add(prefix, line)
                     parent = line
                     if isLeaf do

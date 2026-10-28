@@ -15,6 +15,7 @@ struct ExplorerEntry
     archiveIndex:  u64 = Swag.U64.Max
     texture:       Texture
     duration:      u64     // Seconds of a time-based medium, from its thumbnail; zero for anything else.
+    children:      u64 = Swag.U64.Max     // Items a folder holds, when they were counted.
     movie:         MovieSummary
     music:         MusicSummary
     attempted:     bool
@@ -53,6 +54,16 @@ impl ExplorerListing
                 }
 
                 result.entries.add(#move entry)
+            }
+
+            // A folder says how many items it holds; past a few dozen folders, counting them all
+            // would keep a slow share waiting, and the count is left out.
+            var counted = 0'u64
+            for &entry in result.entries where entry.directory and counted < 64
+            {
+                counted += 1
+                let inside = catch Directory.enumerate(entry.path, {})
+                entry.children = inside.count
             }
         }
         else

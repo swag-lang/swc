@@ -30,6 +30,8 @@ struct AppStrings
     explore_Director:          string = "Director"
     explore_Cast:              string = "Cast"
     explore_Synopsis:          string = "Synopsis"
+    explore_Length:            string = "% h %"                      // Length of a film under its poster: hours, then minutes.
+    explore_File:              string = "File"                       // Reading of the kind and weight of the file a film is in.
     explore_Artist:            string = "Artist"
     explore_FirstRelease:      string = "First release"
     explore_Source:            string = "Source"
@@ -116,6 +118,7 @@ struct AppStrings
     hint_KeyBack:                      string = "⌫"                                           // Name of the Backspace key on a keycap.
     hint_Open:                         string = "open"                                        // What Enter does on the hint line of an explored folder.
     hint_Parent:                       string = "parent folder"                               // What Backspace does on the hint line of an explored folder.
+    hint_Filter:                       string = "filter"                                      // What the slash key does on the hint line of an explored folder.
     ui_HintLens:                       string = "everything else"                             // What the space bar opens, on the hint line of a window new to the reader.
 
     lens_File:          string = "File"                      // Lens section of the commands acting on the open file.

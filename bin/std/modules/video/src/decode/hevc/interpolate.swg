@@ -715,11 +715,34 @@ impl Decoder
 
         if not xFrac and not yFrac
         {
-            for row in height
+            if width >= 8
             {
-                let source = cast(u64, (row + 1)) * referenceStride + 1
-                for column in width do
-                    .predBuffer[list, row * width + column] = cast(s16, (cast(s32, reference[source + cast(u64, column)]) << shift3))
+                for row in height
+                {
+                    let source = cast(u64, (row + 1)) * referenceStride + 1
+                    var column = 0'u32
+                    while column + 8 <= width
+                    {
+                        let pixels = Simd.load(&reference[source + cast(u64, column)]) << shift3
+                        Simd.store(&.predBuffer[list, row * width + column], cast #bit(Simd.S16x8, pixels))
+                        column += 8
+                    }
+
+                    while column < width
+                    {
+                        .predBuffer[list, row * width + column] = cast(s16, (cast(s32, reference[source + cast(u64, column)]) << shift3))
+                        column += 1
+                    }
+                }
+            }
+            else
+            {
+                for row in height
+                {
+                    let source = cast(u64, (row + 1)) * referenceStride + 1
+                    for column in width do
+                        .predBuffer[list, row * width + column] = cast(s16, (cast(s32, reference[source + cast(u64, column)]) << shift3))
+                }
             }
 
             return

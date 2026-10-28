@@ -204,6 +204,15 @@ using Core, Core.Errors, Pixel
                 for x in 32's32 do
                     Swag.assert(current.lumaAtMutable(x, y)[0] == cast(u16, (2 * (x + y))))
             }
+
+            for y in 16's32
+            {
+                for x in 16's32
+                {
+                    Swag.assert(current.chromaAtMutable(0, x, y)[0] == cast(u16, (2 * (20 + x + y))))
+                    Swag.assert(current.chromaAtMutable(1, x, y)[0] == cast(u16, (2 * (40 + x + y))))
+                }
+            }
         }
 
         // A motion vector beyond the padded reference exercises the gathered window as well.
@@ -220,6 +229,15 @@ using Core, Core.Errors, Pixel
             {
                 for x in 32's32 do
                     Swag.assert(current.lumaAtMutable(x, y)[0] == cast(u16, (2 * y)))
+            }
+
+            for y in 16's32
+            {
+                for x in 16's32
+                {
+                    Swag.assert(current.chromaAtMutable(0, x, y)[0] == cast(u16, (2 * (20 + y))))
+                    Swag.assert(current.chromaAtMutable(1, x, y)[0] == cast(u16, (2 * (40 + y))))
+                }
             }
         }
 

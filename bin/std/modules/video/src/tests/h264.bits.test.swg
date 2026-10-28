@@ -3,6 +3,78 @@
 
 using Core
 
+private func referenceCoeffToken(bits: *BitReader, table: u64)->u64
+{
+    let peek = bits.peek16()
+    for index in 68'u64
+    {
+        let offset = table * 68 + index
+        let length = cast(u32, H264.CoeffTokenLen[offset])
+        if length and (peek >> (16 - length)) == cast(u32, H264.CoeffTokenBits[offset])
+        {
+            bits.skip(length)
+            return index
+        }
+    }
+    return 68
+}
+
+// Check each first-byte prefix with several suffixes, including truncated input.
+#test
+{
+    var data: [2] u8
+    for table in 4'u64
+    {
+        for prefix in 256'u64
+        {
+            data[0] = cast(u8, prefix)
+            for suffix in [0'u8, 1, 0x55, 0xaa, 0xfe, 0xff]
+            {
+                data[1] = suffix
+                for length in 3'u64
+                {
+                    var expected: BitReader
+                    var actual:   BitReader
+                    expected.init(data[0 until length])
+                    actual.init(data[0 until length])
+                    let reference = referenceCoeffToken(&expected, table)
+                    let result    = H264.matchCoeffToken(&actual, table)
+                    Swag.assert(result == reference)
+                    Swag.assert(actual.bitPos == expected.bitPos and actual.overran == expected.overran)
+                }
+            }
+        }
+    }
+}
+
+// The prefix lookup also uses the bits at the reader's current alignment.
+#test
+{
+    var data: [3] u8
+    for table in 4'u64
+    {
+        for seed in 256'u64
+        {
+            data[0] = cast(u8, seed)
+            data[1] = cast(u8, ((seed * 73) & 255))
+            data[2] = cast(u8, ((seed * 151) & 255))
+            for position in 8'u32
+            {
+                var expected: BitReader
+                var actual:   BitReader
+                expected.init(data)
+                actual.init(data)
+                expected.skip(position)
+                actual.skip(position)
+                let reference = referenceCoeffToken(&expected, table)
+                let result    = H264.matchCoeffToken(&actual, table)
+                Swag.assert(result == reference)
+                Swag.assert(actual.bitPos == expected.bitPos and actual.overran == expected.overran)
+            }
+        }
+    }
+}
+
 private func referenceMoreData(bits: const *BitReader)->bool
 {
     if bits.overran or bits.bitPos >= bits.size * 8 do

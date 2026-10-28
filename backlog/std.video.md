@@ -44,6 +44,10 @@ the sampling layouts used by ffmpeg's 4:2:0, 4:2:2, and 4:4:4 Motion JPEG output
   FFmpeg with its hand-written assembly disabled; FFmpeg with assembly was about twice as fast.
   Measurements on the shared machine varied widely, and the decoder has since changed, so earlier
   profiles and instruction counts cannot rank current work.
+- Progress: CAVLC coefficient-token decoding uses a generated first-byte lookup for short codes
+  and keeps the ordered search for ambiguous prefixes. The lookup covers 248 to 252 of the 256
+  prefixes per table; exhaustive 16-bit prefix comparison and truncated-input tests preserve the
+  previous result and bit-reader state. Its effect on complete decoding still needs measurement.
 - Next: collect a current per-function profile, choose one remaining serial kernel, and compare the
   change against the same FFmpeg build and fixture. Keep decoded planes byte-exact across the
   existing Baseline, Main, High, and 4:4:4 corpus.

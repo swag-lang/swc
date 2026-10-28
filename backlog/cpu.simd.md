@@ -200,8 +200,8 @@ conversion, image codecs, text/crypto routines, Pixel spans, and SDF samples.
 - Evidence: the legacy RGB/BGR half-size path calls `visitPixels`; other formats already use
   parallel row loops. The two-color legacy gradient computes one row and copies it, while the
   four-corner and logical-pixel paths still process pixels individually. Fill already copies rows.
-- Next: measure row/chunk replacements for the remaining half-size and gradient work and a
-  packed source-over kernel beyond its row-wise scalar implementation.
+- Next: compare packed byte-color half-size rows and the remaining gradient work against
+  their scalar paths, and a packed source-over kernel against its row-wise scalar implementation.
 - Done when: supported pixel formats, alpha preservation, odd widths, stride, overlap, and tails
   match existing behavior and each retained kernel beats callback dispatch.
 - Related: cpu.simd.004, cpu.simd.006, cpu.simd.010.
@@ -260,7 +260,9 @@ conversion, image codecs, text/crypto routines, Pixel spans, and SDF samples.
   strong horizontal chroma are packed in `h264/deblock.swg`. `filterChromaStrongVertical`
   still filters two-line scalar segments through `filterChroma`. A transposed-tile
   vertical strong-chroma kernel, built the way `filterLumaVertical` is, was slower than
-  the scalar segments on the Release microkernel.
+  the scalar segments on the Release microkernel. A later direct two-row SIMD prototype
+  avoided the tile but added unconditional stack traffic and saved-register work on weak
+  and zero-strength segments; isolating the helper still spilled values across its call.
 - Next: find a vertical strong-chroma layout cheaper than the rejected transpose, and
   confirm the retained packed deblocking kernels in a complete 1080p decode profile.
 - Done when: decoded frames remain byte-exact, a profitable strong vertical chroma kernel is

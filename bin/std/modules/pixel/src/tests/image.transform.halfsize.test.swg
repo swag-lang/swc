@@ -19,3 +19,38 @@ using Swag, Core
     assertPixel(out, 0, 0, Color.fromArgb(85'u8, 55'u8, 65'u8, 75'u8))
     assertPixel(out, 1, 0, Color.fromArgb(165'u8, 135'u8, 145'u8, 155'u8))
 }
+
+// Both byte layouts preserve each channel's integer average for odd dimensions,
+// including the final output pixel and the alpha channel.
+#test
+{
+    for format in [PixelFormat.RGB8, .BGR8, .RGBA8, .BGRA8]
+    {
+        for width in [2, 3, 4, 9, 16, 17]
+        {
+            for height in [2, 3, 6, 7]
+            {
+                var src = Image.create(width, height, format)
+                let pixels = src.pixels.storage()
+                for i in src.byteCount do
+                    pixels[i] = cast(u8, ((i * 37 + width * 11 + height * 13) & 255))
+                let result = src.halved()
+                Swag.assert(result.width == width / 2 and result.height == height / 2)
+                let out = result.pixels.storage()
+                let bytes = cast(u64, src.bytesPerPixel)
+                for y in cast(u64, result.height)
+                {
+                    for x in cast(u64, result.width)
+                    {
+                        for channel in bytes
+                        {
+                            let index = 2 * y * src.rowStride + 2 * x * bytes + channel
+                            let sum = cast(u32, pixels[index]) + pixels[index + bytes] + pixels[index + src.rowStride] + pixels[index + src.rowStride + bytes]
+                            Swag.assert(out[y * result.rowStride + x * bytes + channel] == cast(u8, (sum >> 2)))
+                        }
+                    }
+                }
+            }
+        }
+    }
+}

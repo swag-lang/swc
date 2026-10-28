@@ -39,23 +39,28 @@ impl Image
             return
         }
 
-        var f = {img: me}
-        dstImage.visitPixels(&f)
+        var context = {src: me, dst: dstImage}
+        parallel for |&context| parIndex in cast(u64, dstImage.height)
         {
-            let data       = cast(*#decltype(f), unwrap userData)
-            let srcImage   = cast(const *Image, data.img)
-            let b8         = srcImage.bytesPerPixel
-            let w8         = srcImage.width * b8
-            let pixSrc     = srcImage.pixels.storage() + (x * 2 * b8) + (y * 2 * w8)
-            let pixSrcb8   = pixSrc + b8
-            let pixSrcw8   = pixSrc + w8
-            let pixSrcw8b8 = pixSrcw8 + b8
-            pix[0] = cast(u8, ((pixSrc[0] + #prom pixSrcb8[0] + #prom pixSrcw8[0] + #prom pixSrcw8b8[0]) >> 2))
-            pix[1] = cast(u8, ((pixSrc[1] + #prom pixSrcb8[1] + #prom pixSrcw8[1] + #prom pixSrcw8b8[1]) >> 2))
-            pix[2] = cast(u8, ((pixSrc[2] + #prom pixSrcb8[2] + #prom pixSrcw8[2] + #prom pixSrcw8b8[2]) >> 2))
-            if image.bitsPerPixel == 32 do
-                pix[3] = cast(u8, ((pixSrc[3] + #prom pixSrcb8[3] + #prom pixSrcw8[3] + #prom pixSrcw8b8[3]) >> 2))
+            let src = cast(const *Image, context.src)
+            let dst = cast(*Image, context.dst)
+            let bytes = cast(u64, src.bytesPerPixel)
+            var row0 = src.pixels.storage() + 2 * parIndex * src.rowStride
+            var row1 = row0 + src.rowStride
+            var target = dst.pixels.storage() + parIndex * dst.rowStride
+            for dst.width
+            {
+                target[0] = cast(u8, ((row0[0] + #prom row0[bytes] + #prom row1[0] + #prom row1[bytes]) >> 2))
+                target[1] = cast(u8, ((row0[1] + #prom row0[bytes + 1] + #prom row1[1] + #prom row1[bytes + 1]) >> 2))
+                target[2] = cast(u8, ((row0[2] + #prom row0[bytes + 2] + #prom row1[2] + #prom row1[bytes + 2]) >> 2))
+                if bytes == 4 do
+                    target[3] = cast(u8, ((row0[3] + #prom row0[bytes + 3] + #prom row1[3] + #prom row1[bytes + 3]) >> 2))
+                row0 += 2 * bytes
+                row1 += 2 * bytes
+                target += bytes
+            }
         }
+
     }
 
     // Halves both image dimensions with a 2x2 box filter.

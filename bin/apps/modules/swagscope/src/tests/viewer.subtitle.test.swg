@@ -24,7 +24,8 @@ func subtitleViewerFixturePath()->String => Path.combine(unwrap Path.directoryNa
     Swag.assert(not Captions.timeSeconds("1.5:30", &seconds))
 }
 
-// The dedicated viewer presents a searchable timed transcript rather than raw subtitle syntax.
+// The cues read as a list: the keyboard moves through them, the readings say the current one, and
+// the search finds and marks words inside them.
 #test
 {
     var host: Testing.HeadlessHost
@@ -38,87 +39,60 @@ func subtitleViewerFixturePath()->String => Path.combine(unwrap Path.directoryNa
                 result.revealMatch != null and
                 result.searchBounds != null and
                 result.clearSearch != null)
-    Swag.assert(result.details == "SubRip")
+    Swag.assert(result.details == "2 cues")
 
     let view = assume cast(*Captions.Panel, result.view)
-    Swag.assert(view.track!.cueCount() == 2)
-    Swag.assert(view.currentCue == Swag.U64.Max)
-    Swag.assert(view.cueButton.text() == "2 cues" and view.durationButton.text().count)
-    var initialCue = KeyEvent{kind: .Pressed, key: .PageDown, modifiers: .Control}
-    Swag.assert(view.hookOnChildEvent!(view.editor, &initialCue) and view.currentCue == 0)
-    Swag.assert(view.editor.selectedText() == "The first caption.")
-    Swag.assert(view.cueButton.text() == "1 / 2")
-    Swag.assert(view.transcript.indexOf("00:00:00.500") != Swag.U64.Max)
-    Swag.assert(view.transcript.indexOf("A second caption\non two lines.") != Swag.U64.Max)
+    view.dockStyle = .Center
+    host.root.applyLayout()
+    Swag.assert(view.track!.cueCount() == 2 and view.currentCue == Swag.U64.Max)
+    Swag.assert(view.identity().contains("SubRip") and view.timeButton.text() == "0:06")
 
+    view.sheet.setFocus()
+    host.keyPress(.PageDown, .Control)
+    Swag.assert(view.currentCue == 0 and view.cuePosition() == "Cue 1 / 2" and view.timeButton.text() == "00:00:00")
+    host.keyPress(.Down)
+    Swag.assert(view.currentCue == 1 and view.timeButton.text() == "00:00:02")
+    host.keyPress(.Down)
+    Swag.assert(view.currentCue == 1)
+    host.keyPress(.Home)
+    Swag.assert(view.currentCue == 0)
+    host.keyPress(.End, .Control)
+    Swag.assert(view.currentCue == 1)
+
+    // The words of a cue wrap at their own line breaks, and a match is marked on its words.
+    Swag.assert(view.sheet.rows[1].lines.count == 2)
     var matches: Array'Viewer.SearchMatch
     collectViewerMatches(result.collectMatches, "second", &matches)
     Swag.assert(matches.count == 1 and matches[0].major == 1)
-    var revealed = result.revealMatch(matches[0], "second")
-    Swag.assert(revealed and view.currentCue == 1 and view.cueButton.text() == "2 / 2")
+    view.currentCue = 0
+    Swag.assert(result.revealMatch(matches[0], "second") and view.currentCue == 1)
     var bounds: Math.Rectangle
     Swag.assert(result.searchBounds(matches[0], &bounds) and not bounds.isEmpty())
     result.clearSearch()
-    revealed = view.revealCue(1) and view.editor.selectedText() == "A second caption\non two lines."
-    Swag.assert(revealed)
-    view.editor.setCursorPos(view.editor.cursorFromLogicalPosition(1, 0))
-    view.syncCurrentCue()
-    Swag.assert(view.currentCue == 0 and view.cueButton.text() == "1 / 2")
-    var previousCue = KeyEvent{kind: .Pressed, key: .PageUp, modifiers: .Control}
-    Swag.assert(view.hookOnChildEvent(view.editor, &previousCue) and view.currentCue == 0)
-    var previousAtStart = KeyEvent{kind: .Pressed, key: .PageUp, modifiers: .Control}
-    Swag.assert(view.hookOnChildEvent(view.editor, &previousAtStart) and view.currentCue == 0)
-    var nextCue = KeyEvent{kind: .Pressed, key: .PageDown, modifiers: .Control}
-    Swag.assert(view.hookOnChildEvent(view.editor, &nextCue) and view.currentCue == 1)
-    Swag.assert(view.editor.selectedText() == "A second caption\non two lines.")
-    var nextAtEnd = KeyEvent{kind: .Pressed, key: .PageDown, modifiers: .Control}
-    Swag.assert(view.hookOnChildEvent(view.editor, &nextAtEnd) and view.currentCue == 1)
-    var firstCue = KeyEvent{kind: .Pressed, key: .Home, modifiers: .Control}
-    Swag.assert(view.hookOnChildEvent(view.editor, &firstCue) and
-                view.currentCue == 0 and
-                view.cueButton.text() == "1 / 2")
-    var lastCue = KeyEvent{kind: .Pressed, key: .End, modifiers: .Control}
-    Swag.assert(view.hookOnChildEvent(view.editor, &lastCue) and
-                view.currentCue == 1 and
-                view.cueButton.text() == "2 / 2")
+    Swag.assert(not result.searchBounds(matches[0], &bounds))
 
-    let oldCount = String.from(view.cueButton.text())
     expect host.app.setLanguage("fr")
     host.notify(.LanguageChanged)
-    let expectedPosition = Format.toString(Captions.texts().ui_CuePosition, 2, 2)
-    Swag.assert(view.cueButton.text() == expectedPosition.toString(),
-                Format.toString("subtitle position: actual '%', expected '%', previous '%'", view.cueButton.text(), expectedPosition, oldCount))
-    Swag.assert(view.cueButton.toolTip == Captions.texts().ui_CueNavigationTip)
-    Swag.assert(view.durationButton.toolTip == Captions.texts().ui_GoToTime)
-    Swag.assert(view.editor.selectedText() == "A second caption\non two lines.")
-    expect host.app.setLanguage(ReferenceLanguage)
-    host.notify(.LanguageChanged)
-    Swag.assert(view.cueButton.text() == oldCount.toString())
+    Swag.assert(view.cuePosition() == Format.toString(Captions.texts().ui_CuePosition, 2, 2).toString())
+    Swag.assert(view.timeButton.toolTip == Captions.texts().ui_GoToTime)
 }
 
-// The shipped palette renders the timestamped transcript as the primary document.
+// The reading list in the window, against `scope.subtitle`: the name and its mono line, the cues
+// as rows of a number, a time range and the words, the current one on the selection ground.
 #[Swag.TestTag("golden")]
 #test
 {
-    var host: Testing.HeadlessHost
-    host.setup(820, 520)
-
-    with let infoBar = Wnd.create'ViewerActionBar(&host.root, {0, 0, 0, 40})
+    let fileName = Path.combine(unwrap Path.directoryName(#curlocation.fileName), "datas/viewer.reading.srt")
+    for light in [false, true]
     {
-        .dockStyle       = .Top
-        .backgroundStyle = .InformationBar
-        .padding         = {16, 4, 16, 4}
+        var host: Testing.HeadlessHost
+        let window = framedViewerWindow(&host, fileName.toString(), light)
+        let view   = assume cast(*Captions.Panel, window.instances[window.activeChoiceIndex].view)
+        Swag.assert(view.revealCue(1))
+        window.applyLayout()
+        host.settleAnimations(window, 4)
+
+        var image = host.render(&host.surfaceWnd)
+        Pixel.Testing.assertImageGolden(&image, light ? "viewer.subtitle.paper" : "viewer.subtitle.ink")
     }
-
-    let fileName = subtitleViewerFixturePath()
-    var result   = openTestViewer(Captions.viewerPlugin(), &host.root, fileName, commandParent: &host.root, infoParent: infoBar)
-    Swag.assert(result.view != null)
-    infoBar.centerGroup    = result.info
-    result.info!.dockStyle = .None
-    result.view.dockStyle  = .Center
-    host.root.applyLayout()
-    host.settleAnimations(&host.root, 4)
-
-    var image = host.render(&host.root)
-    Pixel.Testing.assertImageGolden(&image, "viewer.subtitle.document")
 }

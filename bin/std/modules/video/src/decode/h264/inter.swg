@@ -924,10 +924,42 @@ private func weightBiRow(pixels0, pixels1: Simd.U8x16, logDenom, weight0, weight
     return Simd.packUnsigned(cast #bit(Simd.S16x8, low), cast #bit(Simd.S16x8, high))
 }
 
+// Only the low eight lanes are written by narrow blocks.
+#[Swag.Inline]
+private func weightBiRow8(pixels0, pixels1: Simd.U8x16, logDenom, weight0, weight1, offset0, offset1: s32)->Simd.U8x16
+{
+    let rounding      = 1's32 << cast(u32, logDenom)
+    let offset        = (offset0 + offset1 + 1) >> 1
+    let shift         = logDenom + 1
+    let packedWeights = cast(u32, cast #wrap(u16, weight0)) | (cast(u32, cast #wrap(u16, weight1)) << 16)
+    let weights       = cast #bit(Simd.S16x8, Simd.splat(packedWeights))
+    let p0            = Simd.widenLow(pixels0)
+    let p1            = Simd.widenLow(pixels1)
+    let r0 = weightBiQuads(cast #bit(Simd.S16x8, Simd.interleaveLow(p0, p1)), weights, rounding, shift, offset)
+    let r1 = weightBiQuads(cast #bit(Simd.S16x8, Simd.interleaveHigh(p0, p1)), weights, rounding, shift, offset)
+    let low = Simd.packUnsigned(r0, r1)
+    return Simd.packUnsigned(cast #bit(Simd.S16x8, low), cast #bit(Simd.S16x8, low))
+}
+
 func weightBi(dst: [*] u8, dstStride: u64, src0, src1: [*] u8, srcStride: u64, width, height: s32, logDenom, weight0, weight1, offset0, offset1: s32)
 {
     if srcStride >= 16 and (width == 2 or width == 4 or width == 8 or width == 16)
     {
+        if width != 16
+        {
+            var out   = dst
+            var line0 = src0
+            var line1 = src1
+            for cast(u64, height)
+            {
+                storeWeightedRow(out, width, weightBiRow8(Simd.load(line0), Simd.load(line1), logDenom, weight0, weight1, offset0, offset1))
+                out   += dstStride
+                line0 += srcStride
+                line1 += srcStride
+            }
+            return
+        }
+
         var out   = dst
         var line0 = src0
         var line1 = src1

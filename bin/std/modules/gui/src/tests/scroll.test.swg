@@ -170,3 +170,24 @@ struct ScrollHeadlessViewport
     Swag.assert(outer.scrollPosition().x > 0 and outer.scrollPosition().y > 0)
     Swag.assert(outer.view.surfaceRect().contains(last.surfaceRect()))
 }
+
+// The bars rest invisible: a scroll shows them, and they fade once the view has been still.
+#test
+{
+    var host: Testing.HeadlessHost
+    host.setup(260, 260)
+    host.setReducedMotion(false)
+    let scroll = Wnd.create'ScrollWnd(&host.root, "", {0, 0, 200, 200})
+    scroll.createView'Wnd()
+    scroll.setScrollSize(1000, 1000)
+    host.finishAnimations()
+    Swag.assert(scroll.barPresence == 0)
+
+    scroll.setScrollPos({0, 100})
+    host.finishAnimations()
+    Swag.assert(scroll.barPresence == 1)
+
+    host.fireTimers()
+    host.finishAnimations()
+    Swag.assert(scroll.barPresence == 0)
+}

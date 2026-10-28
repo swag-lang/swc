@@ -105,3 +105,31 @@ func checkButtonHeadlessChanged(_: *CheckButton)
     Swag.assert(CheckButtonHeadlessChangedCount == 0)
     Swag.assert(host.commandCount == 0)
 }
+
+// A box fills and empties over a quick beat, and a radio dot leaves the option the choice left.
+#test
+{
+    var host: Testing.HeadlessHost
+    host.setup(240, 160)
+    host.setReducedMotion(false)
+
+    let check = CheckButton.create(&host.root, "Enable", {20, 20, 120, 30})
+    check.toggle()
+    Swag.assert(check.isChecked() and check.markPresence < 1)
+    host.finishAnimations()
+    Swag.assert(check.markPresence == 1)
+    check.setState(.Unchecked)
+    host.finishAnimations()
+    Swag.assert(check.markPresence == 0)
+
+    let first  = RadioButton.create(&host.root, "First", {20, 60, 120, 30})
+    let second = RadioButton.create(&host.root, "Second", {20, 100, 120, 30})
+    first.groupId, second.groupId = "CheckButtonHeadless.Group"
+    first.setChecked(true)
+    host.finishAnimations()
+    Swag.assert(first.markPresence == 1)
+    second.selectFromUser()
+    Swag.assert(first.markPresence == 1 and second.markPresence == 0)
+    host.finishAnimations()
+    Swag.assert(first.markPresence == 0 and second.markPresence == 1)
+}

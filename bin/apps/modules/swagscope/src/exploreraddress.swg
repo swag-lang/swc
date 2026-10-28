@@ -40,13 +40,16 @@ impl ExplorerAddress
         with result.pathScroll = Wnd.create'ScrollWnd(result)
         {
             .dockStyle = .Center
-            .updateFlags(.CompactBars | .TransparentBars)
+            .updateFlags(.TransparentBars)
             .setFrameFlags(remove: .Borders)
         }
 
         with result.breadcrumb = BreadcrumbCtrl.create(result.pathScroll)
         {
             .backgroundStyle = .Transparent
+            .quiet           = true
+            .setLayoutMetrics(0, 4, 6)
+            .style.setFont(result.theme().createDefaultFont(13), .Regular)
             .sigItemPressed  += func|explorer|(path, index) { explorer.navigateBreadcrumb(path.items[index].tag) }
             .sigFillMenu     += func|explorer|(_, index, menu) { explorer.fillBreadcrumbMenu(index, menu) }
             .sigMenuSelected += func|explorer|(_, _, path) { explorer.navigateBreadcrumb(path) }

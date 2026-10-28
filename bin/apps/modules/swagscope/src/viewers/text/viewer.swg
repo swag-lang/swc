@@ -572,12 +572,20 @@ impl Panel
     {
         .zoomPercent  = Viewer.clampZoom(percent)
         g_ZoomPercent = .zoomPercent
-        let base = .themeMetrics().defaultFixedFontSize
-        let size = cast(u32, Math.max(Math.round(cast(f32, base) * cast(f32, .zoomPercent) / 100), 1))
-        .editor.style.setFont(.theme().createDefaultFontFs(size), .Regular)
-        .editor.setFlags(.editor.flags)
+        .applyMeasure()
         .zoomLabel.setText(Viewer.zoomText(.zoomPercent))
         .updateEstimatedHeight()
+    }
+
+    // Sets the text in the reading face at the zoom in force, on its lines, in its column.
+    mtd applyMeasure()
+    {
+        let scale = cast(f32, .zoomPercent) / 100
+        let size  = cast(u32, Math.max(Math.round(cast(f32, Viewer.ProseFontSize) * scale), 1))
+        let font  = .theme().createDefaultFont(size)
+        .editor.style.setFont(font, .Regular)
+        Viewer.setLinePitch(.editor, font, size, Viewer.ProsePitch)
+        Viewer.centerColumn(.editor, Viewer.ProseColumn * scale)
     }
 
     mtd showZoomMenu()
@@ -590,6 +598,13 @@ impl Panel
 
 impl IWnd for Panel
 {
+    // The column stays centred whatever the width of the window.
+    mtd impl onResizeEvent(_: *ResizeEvent)
+    {
+        if .editor != null do
+            Viewer.centerColumn(.editor, Viewer.ProseColumn * cast(f32, .zoomPercent) / 100)
+    }
+
     mtd impl onDestroyEvent(_: *DestroyEvent)
     {
         discard .retire()
@@ -655,10 +670,14 @@ impl IWnd for Panel
 
     mtd impl onNotifyEvent(evt: *NotifyEvent)
     {
-        if evt.kind == .LanguageChanged do
-            .retranslate()
-        else do
-            evt.accepted = false
+        // A theme carries its own faces: the reading face is set again in the new one.
+        switch evt.kind
+        {
+        case .LanguageChanged: .retranslate()
+        case .ThemeChanged:    .applyMeasure()
+        }
+
+        evt.accepted = evt.kind == .LanguageChanged
     }
 
     mtd impl onKeyEvent(evt: *KeyEvent)
@@ -820,9 +839,9 @@ impl Panel
         with .editor = RichEditCtrl.create(me)
         {
             .dockStyle   = .Center
-            .marginLeft  = 12
-            .marginRight = 12
-            .style.setFont(me.theme().createDefaultFontFs(me.themeMetrics().defaultFixedFontSize), .Regular)
+            .marginLeft  = Viewer.ColumnInset
+            .marginRight = Viewer.ColumnInset
+            .style.setFont(me.theme().createDefaultFont(Viewer.ProseFontSize), .Regular)
             .sigScrollPositionChanged += func|view = me|(_, oldPosition, newPosition) { view.followScroll(oldPosition, newPosition) }
         }
     }

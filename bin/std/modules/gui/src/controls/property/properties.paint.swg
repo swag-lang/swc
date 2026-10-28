@@ -88,6 +88,10 @@ internal impl Properties
         stateRect.inflate(-metrics.property_ControlInset, -metrics.property_ControlInset)
         theme.drawSubRect(painter, stateRect, &theme.rects.selectionBox_Bk, item.aniFocusBk.cur())
 
+        // A search marks what it found in the name, on the highlight ground, under the words.
+        if not .stringFilter.isEmpty() do
+            .paintNameMatch(painter, item)
+
         // The column boundary is visible only while it is being targeted. Extend that live rule
         // through the layout margins so adjacent row segments meet without clipped ends.
         if .isGridLike() and not item.flags.has(.NoSeparator) and (.cursorSet or .resizingColumn)
@@ -146,14 +150,53 @@ internal impl Properties
         }
     }
 
+    // Returns the byte offset of the text filter in the name of `item`, or `Swag.U64.Max`.
+    mtd nameMatch(item: *PropertiesItem)->u64
+    {
+        if item.label == null do
+            return Swag.U64.Max
+        let plain = RichString.plainText(item.label.text())
+        return Utf8.indexOf(plain.toSlice(), .stringFilter, comparisonType: Utf8.ComparisonType.Latin1NoCase)
+    }
+
+    // Lays the highlight ground under the characters of the name of `item` the text filter found.
+    mtd paintNameMatch(painter: *Painter, item: *PropertiesItem)
+    {
+        let start = .nameMatch(item)
+        if start == Swag.U64.Max do
+            return
+        let label = item.label
+        let font  = label.font().regular
+        if not font or not label.isLocallyVisible() do
+            return
+
+        // The first line of the name, as the marks after it: a list name wraps from the top, a
+        // grid name is centred.
+        let plain  = RichString.plainText(label.text())
+        let count  = Math.min(.stringFilter.length, plain.length - start)
+        let before = Painter.measureString(Swag.makeString(plain.buffer, start), font).width
+        let after  = Painter.measureString(Swag.makeString(plain.buffer, start + count), font).width
+        let left   = label.position.x + label.textPadding.x
+        var top    = label.position.vertCenter() - font.height * 0.5
+        if not .isGridLike() do
+            top = label.position.y + label.textPadding.y
+        if before >= label.position.width do
+            return
+        let right = Math.min(left + after, label.position.right())
+        painter.fillRect(Math.Rectangle{Math.round(left + before), Math.round(top), Math.round(right - left - before), font.height}, .themeColors().highlight)
+    }
+
     // Draws a mark right after the name of `item`: the Arc dot of a value changed from its default
     // when `modified`, otherwise the faint padlock of a read-only value.
     mtd paintNameMark(painter: *Painter, item: *PropertiesItem, modified: bool)
     {
         // A self-labelled control of a panel carries its own words, and no mark is set beside them.
+        // A row with no name at all, such as one flag of an enumeration, never assigned the label:
+        // it is compared before it is read.
+        if item.label == null do
+            return
         let label = item.label
-        if label == null or
-           label.text().count == 0 or
+        if label.text().count == 0 or
            not label.isLocallyVisible() or
            label.position.width <= 0 do
             return

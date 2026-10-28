@@ -664,7 +664,7 @@ private impl FileBrowserCtrl
             .setSelectionMode(me.options.mode == FileDlgMode.SelectFiles ? ListSelectionMode.Multi : ListSelectionMode.Single)
             .dockStyle = .Center
             .margin.y  = metrics.fileBrowser_RowGap
-            .updateFlags(.HotTrack)
+            .updateFlags(.HotTrack | .StretchFirstColumn)
             .setLineHeight(metrics.fileBrowser_LineHeight)
             .backgroundStyle = .Transparent
 
@@ -1124,16 +1124,26 @@ impl FileBrowserCtrl
             line.userData0 = fi
             line.canCheck  = .options.mode == .SelectFiles and not fi.isDirectory()
 
+            // The words typed in the path field are marked where they were found in the name.
+            if typed.count
+            {
+                let nameItem = unwrap line.items[0]
+                nameItem.matchStart = cast(u32, Utf8.indexOf(fname, typed.toString(), comparisonType: .Latin1NoCase))
+                nameItem.matchCount = cast(u32, typed.count)
+            }
+
             // In a save the rows are context, not choices.
             if .options.mode == .CreateFile do
                 line.colorFg = faint
             let dateItem = line.setItem(1, fi.lastWriteTime.toString(.DateTimeIsoHm))
             dateItem.colorFg = faint
+            dateItem.mono    = true
             if not fi.isDirectory()
             {
                 let sizeItem = line.setItem(2, Format.byteSize(fi.size).toString())
                 sizeItem.horzAlign = .Right
                 sizeItem.colorFg   = faint
+                sizeItem.mono      = true
             }
         }
 

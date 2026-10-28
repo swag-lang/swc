@@ -53,6 +53,7 @@ struct DocumentOutline
     loaded:       bool
     headings:     Array'DocumentHeading
     sigSelected:  SigArray'func||(*Wnd, u64)
+    sigPublished: SigArray'func||(*DocumentOutline)     // Emitted after the headings listed changed.
 }
 
 impl DocumentOutline
@@ -123,7 +124,6 @@ impl DocumentOutline
             .setFirstColumnIconMargin(false)
             .setIndentWidth(16)
             .updateFlags(.HotTrack | .Ellipsis)
-            .scrollWnd.updateFlags(.CompactBars)
             .sigSelectionChanged += func|panel = result|(list)
             {
                 if let line = list.selectedLine() do
@@ -206,6 +206,7 @@ impl DocumentOutline
         .headings.add(headings)
         .rebuildRows()
         .refresh()
+        .sigPublished.call(me)
     }
 
     // Recreates only headings whose titles contain the local outline filter.

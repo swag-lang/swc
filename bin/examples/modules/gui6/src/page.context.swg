@@ -4,23 +4,23 @@ func createContextMenuModel(parent: *Wnd)
 {
     let ctxMenu = createTrackedPopup(parent)
     g_ContextMenu = ctxMenu
-    ctxMenu.addItem("Inspect", MenuCmd.ContextInspect, app.theme.icon(.Search, 18))
-    ctxMenu.addItem("Rename", MenuCmd.ContextRename, app.theme.icon(.Edit, 18))
-    ctxMenu.addItem("Pin item", MenuCmd.ContextPin, app.theme.icon(.Link, 18))
+    ctxMenu.addItem("Inspect", MenuCmd.ContextInspect, app.theme.icon(.Search, 16))
+    ctxMenu.addItem("Rename", MenuCmd.ContextRename, app.theme.icon(.Edit, 16))
+    ctxMenu.addItem("Pin Item", MenuCmd.ContextPin, app.theme.icon(.Link, 16))
     ctxMenu.addSeparator()
 
     with let alignMenu = createTrackedPopup(parent)
     {
-        .addItem("Align left", MenuCmd.AlignLeft)
-        .addItem("Align center", MenuCmd.AlignCenter)
-        .addItem("Align right", MenuCmd.AlignRight)
+        .addItem("Align Left", MenuCmd.AlignLeft)
+        .addItem("Align Center", MenuCmd.AlignCenter)
+        .addItem("Align Right", MenuCmd.AlignRight)
     }
 
     ctxMenu.addPopup("Align", alignMenu)
 
     ctxMenu.addSeparator()
-    ctxMenu.addItem("Archive", MenuCmd.ContextArchive, app.theme.icon(.Download, 18))
-    ctxMenu.addItem("Delete", MenuCmd.ContextDelete, app.theme.icon(.Remove, 18))
+    ctxMenu.addItem("Archive", MenuCmd.ContextArchive, app.theme.icon(.Download, 16))
+    ctxMenu.addItem("Delete", MenuCmd.ContextDelete, app.theme.icon(.Remove, 16))
 }
 
 func showContextMenuAt(pt: Math.Point)
@@ -52,16 +52,16 @@ func onContextCanvasEvent(view: *Wnd, evt: IEvent)->bool
         let font      = view.theme().createDefaultFont(15)
         let titleFont = view.theme().createDefaultFont(20, .Bold)
 
-        painter.fillRect(rect, colors.view_Bk)
-        let card = Math.Rectangle{24, 24, Math.max(rect.width - 48, 1.0), Math.max(rect.height - 48, 1.0)}
-        painter.fillRoundRect(card, 22, 22, Color.fromArgb(255, 246, 248, 250))
-        painter.drawRoundRect(card, 22, 22, Color.fromArgb(70'u8, Argb.Black), 1)
-        painter.drawString(card.x + 28, card.y + 28, "Right-click target", titleFont, Argb.DarkSlateGray)
+        // The target is the raised ground a right click lands on; nothing else marks it.
+        let corner = view.themeMetrics().corner_Control
+        let card   = rect
+        painter.fillRoundRect(card, corner, corner, colors.raised)
+        painter.drawString(card.x + 28, card.y + 28, "Right-Click Here", titleFont, colors.text)
         drawWrappedText(painter,
                         Math.Rectangle{card.x + 28, card.y + 72, card.width - 56, 56},
-                        "Right-click this panel or use the buttons to open the same context menu at different anchors.",
+                        "A right click here, or one of the buttons, opens the same context menu at different anchors.",
                         font,
-                        Argb.DimGray,
+                        colors.softText,
                         2)
         drawStatePill(painter,
                       Math.Rectangle{card.x + 28, card.y + 130, 132, 34},
@@ -86,31 +86,31 @@ func createContextMenuPage(parent: *Wnd)
     createContextMenuModel(parent)
 
     let left   = createPanel(parent, "Context surface", "The menu is reusable and can be opened from the canvas or command buttons.", layout.left)
-    let canvas = Wnd.create'Wnd(left, Math.Rectangle{18, 86, layout.left.width - 36, layout.left.height - 104})
+    let canvas = Wnd.create'Wnd(left, Math.Rectangle{SectionInset, 88, layout.left.width - 2 * SectionInset, layout.left.height - 88})
     canvas.hookOnEvent = &onContextCanvasEvent
 
     let right = createPanel(parent,
                             "Launch points",
                             "The same menu can be shown at raw mouse coordinates or anchored near controls.",
                             layout.right)
-    let openBtn = PushButton.create(right, "Open at button", {24, 100, 220})
-    openBtn.setIcon(app.theme.icon(.More, 18))
+    let openBtn = PushButton.create(right, "Open at Button", {24, 88, 220})
+    openBtn.setIcon(app.theme.icon(.More, 16))
     openBtn.sigPressed += func(btn)
     {
         let pos = btn.surfaceRect()
         showContextMenuAt(Math.Point{pos.x, pos.bottom() + 6})
     }
 
-    let inspectBtn = PushButton.create(right, "Open centered", {24, 154, 220})
-    inspectBtn.setIcon(app.theme.icon(.Search, 18))
+    let inspectBtn = PushButton.create(right, "Open Centered", {24, 136, 220})
+    inspectBtn.setIcon(app.theme.icon(.Search, 16))
     inspectBtn.sigPressed += func(btn)
     {
         let pos = btn.surfaceRect()
         showContextMenuAt(Math.Point{pos.horzCenter(), pos.vertCenter()})
     }
 
-    discard createActionButton(right, "Toggle pin state", {24, 224, 220}, MenuCmd.ContextPin, .Link)
-    discard createActionButton(right, "Try delete command", {24, 278, 220}, MenuCmd.ContextDelete, .Remove)
+    discard createActionButton(right, "Toggle Pin State", {24, 196, 220}, MenuCmd.ContextPin, .Link)
+    discard createActionButton(right, "Try Delete Command", {24, 244, 220}, MenuCmd.ContextDelete, .Remove)
 
     createStatusPanel(parent, layout.bottom)
 }

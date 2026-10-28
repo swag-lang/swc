@@ -31,7 +31,7 @@ func createTreesPage(parent: *Wnd)
                            "A ListCtrl with child lines becomes a compact tree view.",
                            layout.left)
     let tree = ListCtrl.createSimple(left,
-                                     Math.Rectangle{18, 92, layout.left.width - 36, layout.left.height - 112})
+                                     Math.Rectangle{SectionInset, 88, layout.left.width - 2 * SectionInset, layout.left.height - 88})
     tree.setFrameForm(.Round)
     tree.frameFlags.add(.FocusBorder)
     tree.setSelectionMode(.Single)
@@ -48,7 +48,7 @@ func createTreesPage(parent: *Wnd)
                             "Nested rows can still carry column data and sortable headers.",
                             layout.right)
     let table = ListCtrl.createMultiColumns(right,
-                                            Math.Rectangle{18, 92, layout.right.width - 36, layout.right.height - 112})
+                                            Math.Rectangle{SectionInset, 88, layout.right.width - 2 * SectionInset, layout.right.height - 88})
     table.setFrameForm(.Round)
     table.setSelectionMode(.Multi)
     table.setIconSize(16)
@@ -87,7 +87,7 @@ func createTreesPage(parent: *Wnd)
                              "Tree controls preserve expansion, selection and check state independently.",
                              layout.bottom)
     with let stateTree = ListCtrl.createSimple(bottom,
-                                               Math.Rectangle{18, 92, layout.bottom.width - 36, layout.bottom.height - 112})
+                                               Math.Rectangle{SectionInset, 88, layout.bottom.width - 2 * SectionInset, layout.bottom.height - 88})
     {
         .setFrameForm(.Square)
         .setSelectionMode(.Multi)

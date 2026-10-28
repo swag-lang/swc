@@ -538,8 +538,8 @@ func assertFolderFiles(window: *ViewerWindow, names: const [..] String)
     Swag.assert(window.filePanel.items[0]!.minimumSize == ViewerWindow.PaneMinSize)
     Swag.assert(window.recentList.listFlags.has(.Ellipsis) and window.folderList.listFlags.has(.Ellipsis))
     Swag.assert(window.recentList.scrollWnd.flags.has(.DisableHorizontal) and window.folderList.scrollWnd.flags.has(.DisableHorizontal))
-    Swag.assert(window.folderHistoryButton.parent == window.folderLabel.parent and window.folderHistoryButton.isEnabled())
-    Swag.assert(window.kindButton.position.x == window.folderHistoryButton.position.right())
+    Swag.assert(window.folderHistoryButton.isEnabled() and not window.folderHistoryButton.isLocallyVisible())
+    Swag.assert(not window.kindButton.isLocallyVisible() and String.toUpper(window.folderLabel.text(), .Unicode) == window.folderLabel.text())
     Swag.assert(window.folderHistory.count == 1 and window.folderHistory[0].folder == folder)
     assertFolderFiles(window, names.toSlice())
     Swag.assert(window.recentList.lineCount() == 1)
@@ -696,7 +696,7 @@ func assertFolderFiles(window: *ViewerWindow, names: const [..] String)
     Swag.assert(window.panelVisible and window.filePanelHost.isLocallyVisible())
     Swag.assert(window.folderList.lineCount() == 0 and window.recentList.lineCount() == 0)
     Swag.assert(not window.filePanel.isPaneVisible(0) and not window.recentPane.isLocallyVisible())
-    Swag.assert(window.folderLabel.text() == appStrings().ui_Folder)
+    Swag.assert(String.toUpper(appStrings().ui_Folder, .Unicode) == window.folderLabel.text())
 }
 
 // The history is a list the reader owns: one file leaves it, or all of them do, and the section
@@ -740,8 +740,7 @@ func assertFolderFiles(window: *ViewerWindow, names: const [..] String)
     window.forgetRecent(Path.combine(folder, "absent.txt"))
     Swag.assert(window.recent.count == 2 and window.currentFile == names[2])
 
-    Swag.assert(window.recentClearButton.parent == window.recentLabel.parent)
-    Swag.assert(window.recentClearButton.icon.isValid())
+    Swag.assert(window.recentClearButton.parent == window.recentLabel.parent and not window.recentClearButton.isLocallyVisible())
     Swag.assert(not Utf8.contains(appStrings().ui_ConfirmClearHistory, "?"))
 
     host.clickModalButtonWhenShown(Dialog.BtnNo)
@@ -1458,7 +1457,7 @@ func assertFolderFiles(window: *ViewerWindow, names: const [..] String)
     Swag.assert(window.filePanelHost.padding.x == gutter and window.filePanelHost.padding.w == gutter)
     Swag.assert(window.documentHost.backgroundStyle == .Transparent and window.documentPanel.backgroundStyle == .View)
     Swag.assert(window.documentHost.padding.y == window.stripInset())
-    Swag.assert(window.documentPanel.parent == window.documentHost and window.emptyView.parent == window.documentPanel)
+    Swag.assert(window.documentPanel.parent == window.documentHost and window.home.parent == window.documentPanel)
     Swag.assert(window.recentPane.backgroundStyle == .Transparent and window.folderPane.backgroundStyle == .Transparent)
     Swag.assert(window.recentLabel.parent!.backgroundStyle == .Transparent and
                 window.folderLabel.parent!.backgroundStyle == .Transparent)
@@ -1469,11 +1468,10 @@ func assertFolderFiles(window: *ViewerWindow, names: const [..] String)
     Swag.assert(colors.view_Bk == colors.ground and colors.wnd_Bk == colors.ground)
     Swag.assert(colors.informationBar_Bk == colors.ground and colors.commandBar_Bk == colors.ground and colors.toolBar_Bk == colors.ground)
     Swag.assert(window.surface!.minSize.x == ViewerWindow.MinWidth)
-    Swag.assert(Utf8.contains(window.emptyLabel.name.raw, appStrings().ui_DropTitle))
+    Swag.assert(window.home.message.isEmpty() and window.home.rows.isEmpty())
 
-    // The large empty-state glyph is intentionally deferred until the surface's Init event.
-    Swag.assert(window.emptyView.isLocallyVisible() and not window.emptyIconLabel.icon.isValid())
-    Swag.assert(window.emptyHintLabel.text() == appStrings().ui_DropHint)
+    // The window without a file is its home.
+    Swag.assert(window.home.isLocallyVisible())
     Swag.assert(window.currentView == null and window.currentCommands == null)
     Swag.assert(window.currentActions == null and window.currentInfo == null)
     Swag.assert(not window.loadingOverlay.isLocallyVisible())
@@ -1859,7 +1857,7 @@ func assertFolderFiles(window: *ViewerWindow, names: const [..] String)
     Swag.assert(window.instances.isEmpty())
     Swag.assert(window.currentFile.isEmpty())
     Swag.assert(window.readingLine.details.name.raw.isEmpty() and not window.readingLine.isLocallyVisible())
-    Swag.assert(window.emptyView.isLocallyVisible() and window.hintLine.isLocallyVisible())
+    Swag.assert(window.home.isLocallyVisible() and window.hintLine.isLocallyVisible())
     Swag.assert(window.surface!.wnd.name.raw == ProductName)
 }
 
@@ -2022,7 +2020,7 @@ func assertFolderFiles(window: *ViewerWindow, names: const [..] String)
 
     Swag.assert(window.pendingEmpty.isEmpty() and window.currentFile.isEmpty())
     Swag.assert(window.instances.isEmpty() and window.currentView == null)
-    Swag.assert(window.emptyView.isLocallyVisible() and window.sendComputeCommandStateEvent(ViewerCommands.Close).hidden)
+    Swag.assert(window.home.isLocallyVisible() and window.sendComputeCommandStateEvent(ViewerCommands.Close).hidden)
     Swag.assert(window.sendComputeCommandStateEvent(ViewerCommands.OpenDefault).hidden)
     Swag.assert(window.searchBox.text().count == 0 and window.searchTimer == null)
     Swag.assert(window.fileWatchTimer == null and window.slideTimer == null)
@@ -2064,17 +2062,18 @@ func assertFolderFiles(window: *ViewerWindow, names: const [..] String)
             host.fireTimer(window.startupTimer)
         Swag.assert(window.pendingFile.isEmpty() and window.pendingEmpty.isEmpty())
         Swag.assert(not window.choiceLoad.started and window.currentFile.isEmpty())
-        Swag.assert(window.instances.isEmpty() and window.emptyView.isLocallyVisible())
+        Swag.assert(window.instances.isEmpty() and window.home.isLocallyVisible())
     }
 }
 
-// Pins the shipped empty surface: nothing but the invitation to drop a file and the faint hint
-// teaching the door, with no format-specific controls before a file has selected a viewer.
+// Pins the shipped empty surface of a first launch: the mark, the invitation to drop a file and
+// the faint hint teaching the door, with no history yet and no format-specific controls.
 #[Swag.TestTag("golden")]
 #test
 {
     var host: Testing.HeadlessHost
     host.setup(960, 680)
+    host.app.setAppIcon(expect Image.decode(".png", AppIcon))
 
     var index  = createViewerPluginRegistry()
     let window = ViewerWindow.create(&host.surfaceWnd, #move index)
@@ -2169,7 +2168,7 @@ func assertFolderFiles(window: *ViewerWindow, names: const [..] String)
     host.settleAnimations(window, 4)
 
     Swag.assert(not window.sendComputeCommandStateEvent(ViewerCommands.OpenDefault).hidden)
-    Swag.assert(window.readingLine.isLocallyVisible() and not window.emptyView.isLocallyVisible())
+    Swag.assert(window.readingLine.isLocallyVisible() and not window.home.isLocallyVisible())
     Swag.assert(not window.hintLine.isLocallyVisible())
     Swag.assert(window.currentView!.parent == window.documentPanel)
     Swag.assert(window.currentCommands!.parent == window.viewerBar and not window.viewerBar.isLocallyVisible())

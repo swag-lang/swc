@@ -141,8 +141,10 @@ internal impl Properties
             let maxV = assume cast (f32, unwrap Reflection.attributeValue(value, .SliderMinMax, "max"))
 
             // Whole bounds read as an integer slider (no trailing decimals), even for a
-            // float field whose values are conceptually whole (a size, an angle...).
-            let whole = minV == Math.floor(minV) and maxV == Math.floor(maxV)
+            // float field whose values are conceptually whole (a size, an angle...). A span of one
+            // unit or less is a fraction, never a count: an opacity from 0 to 1 has whole bounds,
+            // and read as an integer it showed 0 for every value under 1.
+            let whole = minV == Math.floor(minV) and maxV == Math.floor(maxV) and maxV - minV > 1
 
             switch typeNative.nativeKind
             {

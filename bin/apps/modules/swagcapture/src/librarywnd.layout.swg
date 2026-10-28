@@ -98,15 +98,8 @@ impl LibraryWnd
     // One quiet menu of the title row: its word and the arrow that says a menu opens.
     mtd createMenuButton(parent: *Wnd, text: string)->*IconButton
     {
-        with let button = IconButton.create(parent, {}, Math.Rectangle{0, 0, 0, .themeMetrics().editBox_Height})
-        {
-            .preferredSize.x = 0
-            .setText(text)
-            .updateFlags(.CenterContent | .Flat)
-            .setTextPosition(.Right)
-            .setArrowPosition(.RightDownward)
-        }
-
+        let button = IconButton.createQuiet(parent)
+        button.setQuietText(text)
         return button
     }
 

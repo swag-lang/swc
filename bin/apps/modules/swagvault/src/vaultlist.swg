@@ -123,7 +123,7 @@ impl VaultList
         with let scroll = Wnd.create'ScrollWnd(window, "vault.list", {})
         {
             .dockStyle = .Center
-            .updateFlags(.CompactBars | .TransparentBars | .DisableHorizontal)
+            .updateFlags(.TransparentBars | .DisableHorizontal)
         }
 
         with let result = scroll.createView'VaultList()

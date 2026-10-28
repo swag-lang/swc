@@ -7,22 +7,6 @@ dialogs, then each application, then the written rules.
 
 ## Entries
 
-### design.silence.002 — Scroll bars are always visible
-
-- Evidence: `ScrollWnd` bars are thin (`scrollBar_NormalSize` 10, a 6 px thumb) but are drawn
-  whenever the content overflows, and they take their width from the view (`paddingZ`,
-  `paddingW` in `ScrollWnd.computeLayout`). Fading them needs two things the control does not
-  have: the bar must overlay the view instead of narrowing it, and `ScrollWnd` must learn that the
-  pointer is over its content, which only its view's children receive (`Enter`/`Leave` reach the
-  deepest window). Every list, tree, document and application golden that shows a thumb moves.
-  Swag Prism's source column also shows a horizontal bar for a line that only reaches the
-  editor's caret allowance (`surface.render`).
-- Next: lay the bars over the view in `ScrollWnd.computeLayout`, track pointer presence through a
-  hook on the view, and drive the thumb alpha with the animator — shown on a scroll or a hover,
-  faded after a short idle.
-- Done when: the charter wall and a scrolled list golden show no thumb at rest and one under the
-  pointer, in both themes.
-
 ### design.silence.004 — The applications do not use the shared components
 
 - Evidence: the toolkit has the lens (`Gui.Lens.View`), the information sheet (`Gui.InfoSheet`),
@@ -51,19 +35,18 @@ dialogs, then each application, then the written rules.
   goldens: Arc dot after a changed name, faint revert glyph, padlock of a read-only value, section
   labels in faint spaced capitals with a faint chevron and, in Panel, a hairline; Condensed rows of
   26 with a hairline; validation as a dot and a line in the tone; notes as the Arc notice).
-  `PropertiesCtrl` does not: search marks no matched characters and shows no result count, the
-  section list shows no counts, and the `•••` menu offers no Presentation choice, because
+  A search marks the matched characters of a name on the highlight ground and counts the found
+  fields in the search field. `PropertiesCtrl` does not show counts in the section list, and the `•••` menu offers no Presentation choice, because
   `Properties.kind` is fixed at creation. In Panel the self-labelled editors carry no changed-value
   dot, a Condensed warning shows its line instead of a caution mark in the left margin, and the
   Panel golden shows `Opacity` at 0 while the data holds 0.4 (it did before this restyle too).
 - Next: let `Properties` switch kind by rebuilding its rows, put List, Grid, Condensed and Panel
-  under a Presentation section of the joined `•••` menu with `✓` in Arc, mark matched characters
-  with the highlight colour and count results in the search field and the section list; then fix
+  under a Presentation section of the joined `•••` menu with `✓` in Arc, count results in the
+  section list; then fix
   the Panel slider refresh. The Panel and Grid rows of the charter also show a slider's value as a
-  mono reading with no box, and a two- or three-valued choice as segments: Swag Capture's inspector
-  sets the value face itself (`PropWnd.fitFieldLabelColumn`), and no segment control exists yet.
+  mono reading with no box: Swag Capture's inspector sets the value face itself
+  (`PropWnd.fitFieldLabelColumn`).
 - Done when: `gui.properties.ctrl.paper` is reproduced by a `properties.ctrl.{ink,paper}` golden.
-- Related: design.silence.002
 
 ### design.silence.006 — The file box modes and details of its rows are not built
 
@@ -72,10 +55,10 @@ dialogs, then each application, then the written rules.
   `dialogs.file.modes.{paper,ink}.png`: folder choice shows no chosen path and names nothing in
   its primary action, a save writes the extension into the name field, multiple choice has no
   checkboxes nor count, the new-folder form says nothing of where the folder goes, and the
-  replace question is not destructive. The rows still use the body face for dates and sizes,
-  mark no matched characters, and the name column does not take the room.
-- Next: build each mode against its picture; give `ListItem` a mono face, let a row carry the
-  matched ranges of `Lens.match`, and let the first column of a `ListCtrl` stretch.
+  replace question is not destructive. The rows already set dates and sizes in mono
+  (`ListItem.mono`), mark the typed words (`ListItem.matchStart`, `matchCount`), and give the name
+  column the room the others leave (`ListFlags.StretchFirstColumn`).
+- Next: build each mode against its picture.
 - Done when: a golden per mode matches `dialogs.file.modes.{paper,ink}.png`.
 
 ### design.silence.007 — Swag Scope viewers keep their pre-charter shapes
@@ -84,56 +67,65 @@ dialogs, then each application, then the written rules.
   command and every viewer command (through `Viewer.Host.setLensSource`) is a lens entry on
   `Space`/`Ctrl K`; the readings are in the sheet (`I`) and faint at the foot of the document; the
   viewer's controls float over that foot while the pointer moves; the find bar floats on
-  `Ctrl F`; the panels are cards; the explorer is a page with its title, mono count, quiet menus,
-  Arc-ringed tiles and the chosen item in the sheet (`surface`, `viewer.{dark,light}`,
-  `search.{dark,light}`, `explorer.{gallery,archive,movie}` goldens). The viewers themselves still
-  draw what they drew in their bands: text and code fill the window instead of a reading column
-  (~900), Markdown has no table of contents in the left margin and no Arc progress thread, hex has
-  no structure tabs and no floating inspector with the value in large type, the font viewer is
-  not a specimen page (its sample field lives on the floating bar), the video picture does not
-  reach the strip and has no top and bottom veils with chips, and no document scrolls under the
-  strip. The archive viewer's embedded host (`EmbeddedViewer`) keeps its header band, viewer combo
-  box and bottom command band. The explorer header crowds at the narrowest window with the file
-  panel open, its tools covering the title.
-  The window without a file shows a drop invitation where its picture (`scope.home`) shows the
-  history, with its partial and full clears.
-- Next: build the home on `scope.home` and `scope.home.paper` (the six last files as quiet rows,
-  removal of one entry, partial clears, full clear with a question); rebuild each viewer on its
-  picture — `scope.read`, `scope.text.paper`, `scope.markdown.paper`, `scope.hex`,
-  `scope.font.paper`, `scope.video`, `scope.image`, `scope.pdf.paper`, `scope.sound`,
-  `scope.midi`, `scope.table.paper`, `scope.html.paper`, `scope.subtitle`, `scope.binary`,
-  `scope.archive` — moving what still stands on the floating bar into the document where the
-  picture puts it; then the embedded host on the window's model.
+  `Ctrl F`; the panels are cards under a spaced-capitals label. The home is built on `scope.home`
+  (`home.{ink,paper}`, `home.hover.{ink,paper}` goldens). The explorer is a page: a quiet
+  breadcrumb with slashes, the title stepping from 44 down to 28 before anything is cut, the faint
+  mono count and weight (dropped first on a narrow line), quiet menus with short words, the filter
+  only on request on a line of its own, bare tiles, quiet folder glyphs, the chosen tile lifted in
+  an Arc ring; an archive reads as quiet rows with a ratio bar, size and date, its packed and
+  extracted weights under the title, the Enter/⌫/Space hints, and the chosen member's sizes,
+  compression and CRC-32 in the sheet with Open (`explorer.{gallery,archive,movie}`). Code reads in
+  a centered 900 column, Basic text in a 680 prose column at 16/29 (`viewer.{code,text}.document`);
+  Markdown has its table of contents in the left margin and the Arc progress thread
+  (`viewer.markdown.images.whitey`); the image viewer counts its rank in the folder.
+  What still differs from the pictures: the progress thread runs along the window's top edge, not
+  under the strip, and no document scrolls under the strip; text has no "Column ▾" quiet menu;
+  the explorer has no "Extract All…" on the title line nor "Extract…" in the sheet, the sheet shows
+  no preview card of the member, and folder rows of an archive have no date; the archive viewer's
+  embedded host (`EmbeddedViewer`) keeps its header band, viewer combo box and bottom command band;
+  PDF has no outline margin and no paper shadow; the video picture does not reach the strip and has
+  no top and bottom veils with chips; sound is not laid out around its cover; hex has no structure
+  tabs and no floating inspector with the value in large type; the font viewer is not a specimen
+  page (its sample field lives on the floating bar); table, HTML (column, address, outline),
+  subtitle (reading list), MIDI and binary (report page) keep their earlier shapes. Waits use
+  `Gui.Spinner`; nothing in Scope needs a toast before `Gui.Toast` lands.
+- Next: the progress thread under the strip; then the viewers in this order, each on its picture —
+  `scope.pdf.paper`, `scope.video`, `scope.sound`, `scope.archive` (Extract, preview card, then the
+  embedded host on the window's model), `scope.hex`, `scope.font.paper`, `scope.table.paper`,
+  `scope.html.paper`, `scope.subtitle`, `scope.midi`, `scope.binary` — moving what still stands on
+  the floating bar into the document where the picture puts it. Switch the explorer's private quiet
+  menus to `IconButton.createQuiet` once it lands.
 - Done when: every Scope golden matches its picture.
-- Related: design.silence.004, design.silence.002
+- Related: design.silence.004
 
-### design.silence.008 — Swag Capture's shape editing does not yet match its pictures
+### design.silence.008 — Swag Capture's editing does not yet match its pictures
 
-- Evidence: the editor states of the `capture.edit.*` pictures have goldens (`edit.arrow`,
-  `edit.multi`, `edit.step`, `edit.mask`, `edit.color.paper`, beside `surface`, `area`,
-  `library.surface`, `lens.paper`). What they still show differently: a callout's text is typed in
-  a dialog, not inline with a caret, and the callout's mini-bar has no face, size or alignment;
-  the generated settings show a combo where the pictures show segments (Line, Shadow, Joins) —
-  the property grid draws no segment control (design.silence.005); multiple selection shows no
-  "common settings" heading and its layers are only the kinds of the objects, not their words;
-  a quick style has no name; the quick-style strip shows its horizontal bar at rest when the set
-  outnumbers the column (design.silence.002); the inspector rows of the head do not scroll with
-  the generated settings; the library tab counts are in the proportional face; the recent
-  captures are text rows of the lens, not thumbnails; the in-place editor keeps its own icon bar instead of the one floating bar of `capture.inplace`;
-  the area bar offers no delay or cursor choice (they are lens entries).
-- Next: inline callout text with its mini-bar (face, size, alignment), then segments for two- or
-  three-valued settings once the grid can draw them.
-- Done when: each `capture.edit.*` picture is reproduced by its golden.
-- Related: design.silence.002, design.silence.004, design.silence.005
+- Evidence: the editor, the area capture, the in-place editor, the library and the lens have
+  goldens (`surface`, `edit.{arrow,callout,multi,step,mask,color.paper}`, `area`,
+  `inplace{,.paper}`, `library.surface`, `lens.paper`). What they still show differently: the
+  words of a callout are typed in place in a field set in their face but left-aligned, not at the
+  callout's own alignment; the callout mini-bar's face opens the inspector rather than a list of
+  faces; a quick style has no name; the inspector rows of the head do not scroll with the
+  generated settings; the library tab counts are in the proportional face (the tab bar sets one
+  face per tab); the recent captures are text rows of the lens, not thumbnails (the lens has no
+  thumbnail row); the area bar offers no delay or cursor choice (lens entries only); the in-place
+  bar does not move beside the zone when the screen has no room above or below it.
+- Next: let the field typing a callout follow its alignment; give the lens a row of thumbnails
+  for the recent captures; then the remaining items above.
+- Done when: each `capture.*` picture is reproduced by its golden.
+- Related: design.silence.004, design.silence.005
 
-### design.silence.011 — Examples and other consumers use removed APIs
+### design.silence.011 — Two toolkit seams the gui examples work around, and the window scripts
 
-- Evidence: `gui2` to `gui9` and `gui11` lay out their header from the top edge of a view that now
-  reaches under the floating strip, so their first line meets the window glyph and title; `gui10`
-  reads `Wnd.stripInset()` and shows the components on its Components page.
-- Next: move every `bin/examples` program and other consumer to the two themes and the new
-  components, and inset their headers by `Wnd.stripInset()`.
-- Done when: the examples build and smoke clean in both themes.
+- Evidence: `paintSectionLabel` is internal, so gui10's colour sheet and gui11's group titles shape
+  the small spaced capitals themselves in their own `onPaint`. `FileDlg`'s new-folder and replace
+  questions are private, so gui9 reaches them only through a file box opened on a scratch folder,
+  one click away from the question. The example scripts that open windows (`chess.swgs`,
+  `noise.swgs`) were not reviewed against the charter.
+- Next: publish the section-label painter and switch gui10 and gui11 to it; give `FileDlg` public
+  entries for its two questions and let gui9 open them directly; review the two scripts.
+- Done when: no example copies a toolkit painter, gui9 opens every file-box question directly, and
+  the window scripts build and smoke clean in both themes.
 
 ### design.silence.012 — The skills still describe the old identity
 
@@ -148,17 +140,6 @@ dialogs, then each application, then the written rules.
   dialog actions, tabs, command tooltips) to the title-style capitalization of the charter,
   leaving sentences and French translations alone.
 - Done when: a search of the English reference tables finds no command label in sentence case.
-
-### design.silence.015 — A dismissed notice leaves in one frame
-
-- Evidence: notices open their height and then fade their words in, and the inspector arrives
-  from its edge when it unfolds, but `InfoBar.dismiss` destroys the bar at once, so the content
-  under it jumps up by its height.
-- Next: fade the words out over `motion_LeaveSeconds`, close the height over
-  `motion_PanelSeconds`, then destroy; callers already learn of the dismissal through
-  `sigDismissed`, before any of it.
-- Done when: no shared component changes its place or presence in one frame on a user action.
-- Related: design.silence.002
 
 ### design.silence.016 — The toolkit has no light or semibold face
 

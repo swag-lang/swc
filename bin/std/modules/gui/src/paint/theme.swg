@@ -491,6 +491,12 @@ impl Theme
         }
     }
 
+    // Creates a font of `typeFace` at `size`, for words set in a face the reader chose, such as
+    // the face of a text drawn on a picture; the theme keeps it with its own fonts.
+    //
+    // See [[Gui.Theme.createDefaultFont]] for `mode`.
+    mtd createFont(typeFace: *TypeFace, size: u32, mode = FontRenderMode.Auto)->*Font => .fonts.createFont(typeFace, size, mode)
+
     // Creates the `style` face of the fixed-width font at `size`, rasterized as `mode` asks.
     //
     // See [[Gui.Theme.createDefaultFont]].

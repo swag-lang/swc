@@ -814,3 +814,34 @@ func assertMenuMarkerGolden(palette: MenuMarkerPalette, golden: string)
     Swag.assert(sub.position.y == 0)
     Swag.assert(sub.items[0]!.pos > metrics.menuPopup_ShadowSize + bar.position.height)
 }
+
+// A menu opened from the end of a line stands with its top-right corner on the anchor, and an
+// entry that destroys something is set apart in the critical ink.
+#test
+{
+    var host: Testing.HeadlessHost
+    host.setup(480, 320)
+
+    let popup = MenuCtrl.createPopup(&host.root)
+    popup.addItem("Keep", Menu_New)
+    popup.addSeparator()
+    let destroy = popup.addItem("Clear All…", Menu_Quit)
+    destroy.critical = true
+    Swag.assert(destroy.critical and not popup.items[0]!.critical)
+
+    var placed: bool
+    host.app.sigFrame += func|host = &host, popup, placed = &placed|(_)
+    {
+        if placed[] do
+            return
+        let shadow = popup.themeMetrics().menuPopup_ShadowSize
+        let body   = popup.surfaceRect()
+        Swag.assert(Math.abs(body.right() - shadow - 400) <= 1 and Math.abs(body.y + shadow - 40) <= 1)
+        Swag.assert(host.dismissPopupMenu())
+        placed[] = true
+    }
+
+    discard popup.doModal({400, 40}, .TopRight, autoDestroy: true)
+    Swag.assert(placed)
+    host.pump()
+}

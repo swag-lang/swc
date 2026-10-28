@@ -5,7 +5,6 @@ using Core, Pixel
 public enum ScrollWndFlags
 {
     None = 0                 // Uses normal bars that appear only when content overflows.
-    CompactBars              // Uses the compact scrollbar thickness.
     AlwaysShowHorizontal     // Keeps the horizontal bar visible without overflow.
     AlwaysShowVertical       // Keeps the vertical bar visible without overflow.
     TransparentBars          // Omits the scrollbar track background.
@@ -71,10 +70,42 @@ public struct ScrollWnd
     aniBoxH:   BlendColor     // Color of the horizontal thumb.
 
     grabbingPos: Math.Point     // Pointer position at the last step of a middle-button pan.
+
+    // The bars rest invisible: they show while the view scrolls or the pointer is over them, and
+    // fade out once both have been still for `motion_ScrollRest`. Their room stays reserved, so
+    // nothing moves when they come and go.
+    barPresence: f32         // How much of the bars is shown, from zero (at rest) to one.
+    restTimer:   *Timer?     // Pending fade of the bars.
 }
 
 public impl IWnd for ScrollWnd
 {
+    mtd impl onTimerEvent(_: *TimerEvent)
+    {
+        .restTimer = null
+
+        // A bar under the pointer or under the hand stays.
+        if .isHotBarV or .isHotBarH or .isMoving
+        {
+            .restTimer = .addTimer(Time.Duration.fromSeconds(.themeMetrics().motion_ScrollRest))
+            return
+        }
+
+        var options: AnimationOptions
+        options.duration = Time.Duration.fromSeconds(.themeMetrics().motion_PageSeconds)
+        options.easing   = .Linear
+        discard .app().animator.animateF32(me, AnimationChannel.from("Gui.Scroll.Bars"), .barPresence, 0, func(wnd, value) { wnd.barPresence = value }, options)
+    }
+
+    mtd impl onDestroyEvent(_: *DestroyEvent)
+    {
+        if .restTimer
+        {
+            .app().removeTimer(.restTimer)
+            .restTimer = null
+        }
+    }
+
     mtd impl onResizeEvent(_: *ResizeEvent)
     {
         .computeLayout()
@@ -222,6 +253,11 @@ public impl IWnd for ScrollWnd
         let colors  = .themeColors()
         let rects   = .themeRects()
 
+        // Everything the bars draw is drawn at their presence; at rest they are not there at all.
+        let presence = .barPresence
+        if presence <= 0 do
+            return
+
         var colorBk: Color
         switch
         {
@@ -238,13 +274,13 @@ public impl IWnd for ScrollWnd
             clientRect.width = .paddingZ
             if .showBarH do
                 clientRect.height -= .paddingW
-            theme.drawSubRect(bc.painter, clientRect, &rects.scrollBar_BkV, colorBk)
+            theme.drawSubRect(bc.painter, clientRect, &rects.scrollBar_BkV, fadeColor(colorBk, presence))
 
             var colBk = colors.scrollBar_HotBk
             if not .isHotBarV do
                 colBk.a = 0
             .aniBkBarV.apply(me, colBk)
-            theme.drawSubRect(bc.painter, clientRect, &rects.scrollBar_BkV, .aniBkBarV.cur())
+            theme.drawSubRect(bc.painter, clientRect, &rects.scrollBar_BkV, fadeColor(.aniBkBarV.cur(), presence))
 
             if .needV
             {
@@ -260,7 +296,7 @@ public impl IWnd for ScrollWnd
                     colorBox = colors.scrollBar_Box
                 clientRect.inflate(-metrics.scrollBar_BoxPadding)
                 .aniBoxV.apply(me, colorBox)
-                theme.drawSubRect(bc.painter, clientRect, &rects.scrollBar_BoxV, .aniBoxV.cur())
+                theme.drawSubRect(bc.painter, clientRect, &rects.scrollBar_BoxV, fadeColor(.aniBoxV.cur(), presence))
             }
         }
 
@@ -272,13 +308,13 @@ public impl IWnd for ScrollWnd
             clientRect.height = .paddingW
             if .showBarV do
                 clientRect.width -= .paddingW
-            theme.drawSubRect(bc.painter, clientRect, &rects.scrollBar_BkH, colorBk)
+            theme.drawSubRect(bc.painter, clientRect, &rects.scrollBar_BkH, fadeColor(colorBk, presence))
 
             var colBk = colors.scrollBar_HotBk
             if not .isHotBarH do
                 colBk.a = 0
             .aniBkBarH.apply(me, colBk)
-            theme.drawSubRect(bc.painter, clientRect, &rects.scrollBar_BkH, .aniBkBarH.cur())
+            theme.drawSubRect(bc.painter, clientRect, &rects.scrollBar_BkH, fadeColor(.aniBkBarH.cur(), presence))
 
             if .needH
             {
@@ -294,7 +330,7 @@ public impl IWnd for ScrollWnd
                     colorBox = colors.scrollBar_Box
                 clientRect.inflate(-metrics.scrollBar_BoxPadding)
                 .aniBoxH.apply(me, colorBox)
-                theme.drawSubRect(bc.painter, clientRect, &rects.scrollBar_BoxH, .aniBoxH.cur())
+                theme.drawSubRect(bc.painter, clientRect, &rects.scrollBar_BoxH, fadeColor(.aniBoxH.cur(), presence))
             }
         }
 
@@ -306,7 +342,7 @@ public impl IWnd for ScrollWnd
             clientRect.y      = clientRect.bottom() - .paddingW
             clientRect.width  = .paddingZ
             clientRect.height = .paddingW
-            theme.drawSubRect(bc.painter, clientRect, &rects.scrollBar_Corner, colors.scrollBar_Bk)
+            theme.drawSubRect(bc.painter, clientRect, &rects.scrollBar_Corner, fadeColor(colors.scrollBar_Bk, presence))
         }
     }
 }
@@ -326,6 +362,7 @@ impl ScrollWnd
         if rect.contains(pos)
         {
             .isHotV, .isHotBarV = true
+            .wakeBars()
             .invalidate()
             return
         }
@@ -334,6 +371,7 @@ impl ScrollWnd
         if rect.contains(pos)
         {
             .isHotH, .isHotBarH = true
+            .wakeBars()
             .invalidate()
             return
         }
@@ -389,7 +427,7 @@ impl ScrollWnd
             return
         let clientRect = .paddedClientRect()
         let metrics    = .themeMetrics()
-        let barSize    = .flags.has(.CompactBars) ? metrics.scrollBar_SmallSize : metrics.scrollBar_NormalSize
+        let barSize    = metrics.scrollBar_Size
         var sx         = Math.max(.scrollSize.x, clientRect.width)
         var sy         = Math.max(.scrollSize.y, clientRect.height)
 
@@ -547,6 +585,26 @@ public impl ScrollWnd
         return newSP
     }
 
+    // Shows the bars, and restarts the stillness after which they fade out.
+    private mtd wakeBars()
+    {
+        // A view not yet on a surface has no bars to show and no clock to count stillness on.
+        if not .surface do
+            return
+
+        if .barPresence < 1
+        {
+            var options: AnimationOptions
+            options.duration = Time.Duration.fromSeconds(.themeMetrics().motion_QuickSeconds)
+            options.easing   = .EaseOut
+            discard .app().animator.animateF32(me, AnimationChannel.from("Gui.Scroll.Bars"), .barPresence, 1, func(wnd, value) { wnd.barPresence = value }, options)
+        }
+
+        if .restTimer do
+            .app().removeTimer(.restTimer)
+        .restTimer = .addTimer(Time.Duration.fromSeconds(.themeMetrics().motion_ScrollRest))
+    }
+
     // Moves the view to the clamped position without touching a running glide, and returns it.
     private mtd applyScrollPos(x, y: f32)->Math.Point
     {
@@ -557,6 +615,7 @@ public impl ScrollWnd
         .view.scrollPos = newSP
         .sigScrollPositionChanged.call(me, oldPos, newSP)
         .computeLayout()
+        .wakeBars()
         return newSP
     }
 

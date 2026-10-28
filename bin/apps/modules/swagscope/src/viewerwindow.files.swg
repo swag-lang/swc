@@ -25,7 +25,17 @@ impl ViewerWindow
 
     mtd updateFileInfo(details: string)
     {
-        .showFileInfo(details, .currentFileSize)
+        // A picture is one of a series: its rank in the folder closes the line.
+        var size: String = .currentFileSize
+        if .activeChoiceIndex < .choices.count and .choices[.activeChoiceIndex].key == "image"
+        {
+            if .siblingsDirty do
+                .rebuildSiblings()
+            if .siblings.count > 1 do
+                size += Format.toString(" · % / %", .siblingIndex + 1, .siblings.count)
+        }
+
+        .showFileInfo(details, size)
         .refreshTitle()
         .layoutFileInfo()
         if .infoSheet.isLocallyVisible() do
@@ -74,15 +84,21 @@ impl ViewerWindow
     // Puts `fileName` at the head of the recent list, keeping it free of repeats and bounded.
     mtd rememberRecent(fileName: string)
     {
+        .recentOpened.resize(.recent.count)
         for one, index in .recent where one[] == fileName
         {
             .recent.removeAtOrdered(index)
+            .recentOpened.removeAtOrdered(index)
             break
         }
 
         .recent.insertAt(0, fileName)
-        while .recent.count > RecentCount do
+        .recentOpened.insertAt(0, Time.Timestamp.now().ticks)
+        while .recent.count > RecentCount
+        {
             .recent.removeAtOrdered(.recent.count - 1)
+            .recentOpened.removeAtOrdered(.recentOpened.count - 1)
+        }
     }
 
     // Puts the file's folder at the head of the bounded folder history.
@@ -167,7 +183,6 @@ impl ViewerWindow
 
         discard .fillFileList(.recentList, .recent.toSlice())
         var currentIndex = Swag.U32.Max
-        .kindButton.show(not .isExploring() and not .isArchivePreview())
         .folderFilterBox.show(not .isExploring())
         if (.isExploring() or .isArchivePreview()) and .explorer
         {
@@ -193,9 +208,8 @@ impl ViewerWindow
 
         let hasRecent = not .recent.isEmpty()
         .filePanel.setPaneVisible(0, hasRecent)
-        .closeFoldersButton.show(not hasRecent)
         let folder = .currentFile.isEmpty() ? null : Path.directoryName(.explorer ? .explorer.displayPath(.currentFile) : .currentFile.toString())
-        .folderLabel.setText(.isExploring() ? appStrings().explore_Folders : (Path.fileName(folder) orelse folder orelse appStrings().ui_Folder))
+        .folderLabel.setText(String.toUpper(.isExploring() ? appStrings().explore_Folders : (Path.fileName(folder) orelse folder orelse appStrings().ui_Folder), .Unicode))
         .filePanel.applyLayout()
         if .isFolderReading() and currentIndex != Swag.U32.Max do
             .folderList.ensureVisibleLine(currentIndex)
@@ -322,21 +336,85 @@ impl ViewerWindow
     // Drops one file from the history, keeping the rest of it in order.
     mtd forgetRecent(fileName: string)
     {
+        .recentOpened.resize(.recent.count)
         for one, index in .recent where one[] == fileName
         {
             .recent.removeAtOrdered(index)
+            .recentOpened.removeAtOrdered(index)
             break
         }
 
-        .refreshFileLists()
-        catch .saveState()
+        .historyChanged()
     }
 
     // Empties the history. What is open stays open: the list says what was read, not what is.
     mtd clearRecent()
     {
         .recent.clear()
+        .recentOpened.clear()
+        .historyChanged()
+    }
+
+    // Counts the files of the history that are gone from the disk.
+    //
+    // The reader asks for it, opening the clear menu: a handful of probes, once.
+    mtd missingRecentCount()->u64
+    {
+        var result = 0'u64
+        for one in .recent where not File.exists(one[]) do
+            result += 1
+        return result
+    }
+
+    // Counts the files of the history last opened more than a month ago.
+    mtd olderRecentCount()->u64
+    {
+        let limit  = .monthAgo()
+        var result = 0'u64
+        for i in .recent.count where i >= .recentOpened.count or .recentOpened[i] < limit do
+            result += 1
+        return result
+    }
+
+    // Takes the files that are gone from the disk out of the history.
+    mtd removeMissingRecent()
+    {
+        .recentOpened.resize(.recent.count)
+        for i in reversed(.recent.count) where not File.exists(.recent[i])
+        {
+            .recent.removeAtOrdered(i)
+            .recentOpened.removeAtOrdered(i)
+        }
+
+        .historyChanged()
+    }
+
+    // Takes the files last opened more than a month ago out of the history.
+    mtd removeOlderRecent()
+    {
+        .recentOpened.resize(.recent.count)
+        let limit = .monthAgo()
+        for i in reversed(.recent.count) where .recentOpened[i] < limit
+        {
+            .recent.removeAtOrdered(i)
+            .recentOpened.removeAtOrdered(i)
+        }
+
+        .historyChanged()
+    }
+
+    private mtd monthAgo()->u64
+    {
+        var limit = Time.Timestamp.now()
+        limit.addMonths(-1)
+        return limit.ticks
+    }
+
+    // Shows the history as it now stands, and keeps it.
+    private mtd historyChanged()
+    {
         .refreshFileLists()
+        .refreshHome()
         catch .saveState()
     }
 

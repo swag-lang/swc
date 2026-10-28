@@ -97,8 +97,9 @@ impl SliderCtrl
                 ctrl.sigChanged.call(ctrl)
             }
 
+            // The value is read beside the track as a figure; see `setReadingForm`.
             .edit = EditBox.create(ctrl, "", {})
-            .edit.setForm(.Rectangle)
+            setReadingForm(.edit)
             .edit.updateFlags(.RightAligned)
             .edit.setTrailingMargin(metrics.editBox_UnitMargin)
             .edit.sigCommitted += func|ctrl|(edit)

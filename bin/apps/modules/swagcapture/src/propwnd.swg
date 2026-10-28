@@ -385,7 +385,7 @@ impl PropWnd
             .grid.setUsingFieldsLast(true)
 
             // Always show a small vertical bar so the row width does not jump with the content
-            .grid.scrollWnd.updateFlags(.AlwaysShowVertical | .CompactBars)
+            .grid.scrollWnd.updateFlags(.AlwaysShowVertical)
 
             .main = main
             .grid.setNotify(prop)

@@ -90,7 +90,7 @@ impl PropertiesCtrl
                 .dockStyle = .Center
                 .setIcon(ed.theme().icon(ThemeIcons.Search, 18))
                 .setPlaceholder(strings().prop_Search)
-                .sigTextChanged += func|ed|(fil) { ed.properties.setFilter(fil.text()) }
+                .sigTextChanged += func|ed|(fil) { ed.applySearch(fil.text()) }
                 .updateFlags(.ClearButton)
             }
         }
@@ -150,6 +150,16 @@ impl PropertiesCtrl
             if it.lvl == 0 do
                 parentLine = line
         }
+    }
+
+    // Filters the rows by `text` and writes how many fields it found after the words searched.
+    private mtd applySearch(text: string)
+    {
+        .properties.setFilter(text)
+        if .properties.stringFilter.isEmpty() do
+            .search.setUnit("")
+        else do
+            .search.setUnit(Format.toString("%", .properties.matchCount()))
     }
 
     private mtd openViewMenu()

@@ -138,7 +138,7 @@ impl MainWindow
     // Creates the source column: its editor, and the menu of examples beside its name.
     mtd createSourceColumn()
     {
-        with .exampleMenu = createQuietMenu(me, "prism.examples")
+        with .exampleMenu = IconButton.createQuiet(me, "prism.examples")
         {
             .sigPressed += func|window = me|(_) { window.showExampleMenu() }
         }
@@ -263,8 +263,8 @@ impl MainWindow
         switch .view
         {
         case .Columns:
-            let editorTop = top + QuietHeight + ViewerPanel.HeaderGap
-            .exampleMenu.setPosition(Math.Rectangle{margin + .sourceTitleWidth() + SourceTitleGap, top, .exampleMenu.position.width, QuietHeight})
+            let editorTop = top + .themeMetrics().quiet_Height + ViewerPanel.HeaderGap
+            .exampleMenu.setPosition(Math.Rectangle{margin + .sourceTitleWidth() + SourceTitleGap, top, .exampleMenu.position.width, .themeMetrics().quiet_Height})
 
             // The source is text on the ground: it may run into the gutter, short of the hairline.
             let editorWidth = Math.max(0'f32, center - MinHalfGutter - margin)
@@ -560,7 +560,7 @@ impl MainWindow
     // Writes the window title, the menus and the hints in the active language.
     mtd retranslate()
     {
-        setQuietText(.exampleMenu, appStrings().ui_Examples)
+        .exampleMenu.setQuietText(appStrings().ui_Examples)
         .exampleMenu.toolTip = appStrings().ui_Examples
         .surface!.setTitle(.title())
         .refreshStatus()
@@ -643,7 +643,7 @@ impl IWnd for MainWindow
         if .view == .Columns
         {
             let font = .sourceTitleFont()
-            painter.drawString(.sideMargin(), font.opticalLineTop(top + QuietHeight * 0.5), .sourceTitle(), font, colors.text)
+            painter.drawString(.sideMargin(), font.opticalLineTop(top + .themeMetrics().quiet_Height * 0.5), .sourceTitle(), font, colors.text)
         }
     }
 

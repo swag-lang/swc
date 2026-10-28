@@ -37,7 +37,6 @@ ui_SearchInvalidRegularExpression Expression régulière incorrecte
 ui_NoMatch      Aucun résultat
 ui_Searching    Recherche…
 ui_DropTitle    Déposez un fichier pour l'afficher
-ui_DropHint     ou ouvrez-en un avec Ctrl+O
 ui_Unsupported  Aucune visionneuse ne peut afficher ce fichier.
 ui_OpenStopped  Le fichier n'a pas pu être affiché.
 ui_ViewerError  Cette visionneuse n'a pas pu décoder le fichier.
@@ -139,3 +138,19 @@ cmd_ZoomIn Zoom avant
 cmd_ZoomOut Zoom arrière
 cmd_ZoomReset Taille réelle
 cmd_ZoomMenu Zoom…
+home_Invite Déposez un fichier, ou ouvrez-en un
+home_Clear Effacer…
+home_ClearMissing Retirer les introuvables
+home_ClearOlder Plus vieux qu'un mois
+home_ClearAll Tout effacer…
+home_Yesterday hier
+home_Weekdays dim. lun. mar. mer. jeu. ven. sam.
+explore_ArchiveSummary % · % compressés · % une fois extraits
+explore_Compression Compression
+cmd_OpenChosen Ouvrir
+hint_Open ouvrir
+hint_Parent dossier parent
+hint_KeyEnter Entrée
+mode_Names noms
+mode_Details détails
+mode_Thumbnails vignettes

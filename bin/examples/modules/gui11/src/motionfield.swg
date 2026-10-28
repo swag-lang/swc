@@ -108,13 +108,14 @@ impl IWnd for MotionField
         let colors  = .themeColors()
         let rect    = .clientRect()
 
-        painter.fillRoundRect(rect, 10, 10, colors.wnd_Bk)
-        painter.drawRoundRect(rect, 10, 10, colors.line, 1)
+        // The field is the raised ground the puck travels on; what moves is in progress, so Arc.
+        let corner = .themeMetrics().corner_Control
+        painter.fillRoundRect(rect, corner, corner, colors.raised)
 
         painter.pushClippingRect(rect)
         defer painter.popClippingRect()
 
-        let dotColor = colors.line.withAlphaF32(0.7)
+        let dotColor = colors.strongLine.withAlphaF32(0.7)
         var y        = rect.y + FieldGrid
         while y < rect.bottom()
         {
@@ -130,8 +131,8 @@ impl IWnd for MotionField
 
         if .hasGoal
         {
-            painter.drawCircle(.goal.x, .goal.y, PuckSize * 0.55, colors.signature.withAlphaF32(0.45), 1)
-            painter.drawLine(.puck.x, .puck.y, .goal.x, .goal.y, colors.signature.withAlphaF32(0.22), 1)
+            painter.drawCircle(.goal.x, .goal.y, PuckSize * 0.55, colors.arc.withAlphaF32(0.45), 1)
+            painter.drawLine(.puck.x, .puck.y, .goal.x, .goal.y, colors.arc.withAlphaF32(0.22), 1)
         }
 
         // Oldest sample first, so the newest one is drawn on top of the ones it came from.
@@ -140,11 +141,11 @@ impl IWnd for MotionField
             let index = (.trailNext + TrailLength - .trailUsed + step) % TrailLength
             let ratio = cast(f32, (step + 1)) / cast(f32, .trailUsed)
             let point = .trail[index]
-            painter.fillCircle(point.x, point.y, 1.5 + 4 * ratio, colors.signature.withAlphaF32(0.05 + 0.22 * ratio))
+            painter.fillCircle(point.x, point.y, 1.5 + 4 * ratio, colors.arc.withAlphaF32(0.05 + 0.22 * ratio))
         }
 
-        painter.fillCircle(.puck.x, .puck.y, PuckSize + 5, colors.signature.withAlphaF32(0.16))
-        painter.fillCircle(.puck.x, .puck.y, PuckSize, colors.signature)
+        painter.fillCircle(.puck.x, .puck.y, PuckSize + 5, colors.arc.withAlphaF32(0.16))
+        painter.fillCircle(.puck.x, .puck.y, PuckSize, colors.arc)
 
         if not .hasGoal
         {

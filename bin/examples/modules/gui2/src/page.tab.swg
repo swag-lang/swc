@@ -5,7 +5,7 @@ func addTabSample(tab: *Tab, prefix: string)
     for index in 4
     {
         let view = Wnd.create'Wnd(tab)
-        let name = Format.toString("%%", prefix, index + 1)
+        let name = Format.toString("% %", prefix, index + 1)
         discard createText(view, Format.toString("View %", index + 1), {14, 12, 120, 24})
         tab.addItem(name, app.theme.icon(ThemeIcons.Search, 14), view)
     }
@@ -20,9 +20,9 @@ func createTabPage(parent: *Wnd)
                              layout.left)
     scope
     {
-        let tab = Tab.create(left, {22, 88, 430, 122})
+        let tab = Tab.create(left, {24, 88, 430, 122})
         tab.setForm(.Flat)
-        addTabSample(tab, "Flat ")
+        addTabSample(tab, "Flat")
     }
 
     let right = createPanel(parent,
@@ -31,10 +31,10 @@ func createTabPage(parent: *Wnd)
                             layout.right)
     scope
     {
-        let tab = Tab.create(right, {22, 88, 420, 124})
+        let tab = Tab.create(right, {24, 88, 420, 124})
         tab.setForm(.Round)
         tab.setLayout(.Fixed)
-        addTabSample(tab, "Round ")
+        addTabSample(tab, "Round")
         tab.setSelectedIndex(1)
     }
 
@@ -46,12 +46,12 @@ func createTabPage(parent: *Wnd)
     {
         var tab = Tab.create(bottom, {24, 92, 440, 120})
         tab.setForm(.Button)
-        addTabSample(tab, "Button ")
+        addTabSample(tab, "Button")
         tab.setSelectedIndex(2)
 
         tab = Tab.create(bottom, {520, 92, 440, 120})
         tab.setForm(.PushButton)
-        addTabSample(tab, "Push ")
+        addTabSample(tab, "Push")
         tab.setSelectedIndex(1)
     }
 }

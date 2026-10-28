@@ -138,7 +138,11 @@ be noticed: if a viewer remembers an animation, it was too much.
   travel: a dim that moved would move the work. The sheet and the inspector arrive 8 px from the
   edge they stand against; the mini-bar and a menu leave their anchor by 4 px, the mini-bar
   rising when it stands above its selection. A notice opens its own height, then its words
-  fade in.
+  fade in; dismissed, its words fade out first, then its height closes, so the content under it
+  rises instead of jumping.
+- **A state eases, a mark grows.** A check box fills and its mark grows into it; a radio dot grows
+  from the centre of its ring as it fades from the option left; a disclosure chevron turns its
+  quarter turn. Each takes the 120 ms of state feedback.
 - **The hand causes it.** Nothing moves unprompted except progress and activity. No pulse, no idle
   loop, no animated glyph, no attention-seeking entrance.
 - **Input never waits.** Focus, hit testing and the keyboard reach the final state at once; an
@@ -152,6 +156,7 @@ be noticed: if a viewer remembers an animation, it was too much.
 | Moment | Duration | Curve | Travel |
 | --- | --- | --- | --- |
 | Hover, press, check, switch knob | 120 ms | ease out | knob slides its track |
+| Check mark, radio dot, disclosure chevron | 120 ms | ease out | mark grows, chevron turns |
 | Tab underline to the chosen tab | 180 ms | ease out | the underline slides |
 | Lens, dialog arriving, with their dim | 180 ms | ease out | none |
 | Sheet, inspector arriving | 180 ms | ease out | 8 px from their edge |
@@ -159,6 +164,7 @@ be noticed: if a viewer remembers an animation, it was too much.
 | Any floating surface leaving | 120 ms | linear fade | none |
 | Page change | 180 ms | ease out | 16 px |
 | Panel or notice changing the layout | 220 ms | ease in-out | its own size |
+| Notice dismissed | 120 ms fade, then 220 ms close | linear, then ease in-out | its own size |
 | Scroll bar resting | 180 ms fade after 600 ms still | linear | none |
 
 ## Shared components

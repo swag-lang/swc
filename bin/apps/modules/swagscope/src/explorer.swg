@@ -68,6 +68,7 @@ struct Explorer
     {
         window:    *ViewerWindow
         header:    *Wnd
+        summary:   *Label
         tools:     *StackLayoutCtrl
         address:   *ExplorerAddress
         title:     *Label
@@ -110,8 +111,11 @@ impl Explorer
     // size its title is set in.
     const PageMargin    = 48.0
     const HeaderHeight  = 112.0
-    const TitleFontSize = 44'u32
+    const TitleFontSize    = 44'u32
+    const MinTitleFontSize = 28'u32
     const ToolHeight    = 32.0
+    const AddressHeight = 24.0
+    const SummaryHeight = 24.0
 
     func create(parent: *Wnd, window: *ViewerWindow)->*Explorer
     {
@@ -187,7 +191,7 @@ impl Explorer
         {
             .dockStyle = .Center
             .margin    = Math.Vector4{sheetMargin, 0, sheetMargin, 0}
-            .updateFlags(.CompactBars | .DisableHorizontal)
+            .updateFlags(.DisableHorizontal)
             .sigScrollPositionChanged += func|result|(_, _, _) { result.prioritizeVisible() }
         }
 
@@ -243,7 +247,17 @@ impl Explorer
         with .address = ExplorerAddress.create(.header, me)
         {
             .dockStyle       = .Top
-            .position.height = themeCompactButtonSize(metrics)
+            .position.height = AddressHeight
+        }
+
+        // An archive writes what it holds and weighs on a mono line under its title.
+        with .summary = Label.create(.header, "", {0, 0, 0, SummaryHeight}, null, .SecondaryText | .Ellipsis)
+        {
+            .dockStyle = .Bottom
+            .style.setFont(me.theme().createDefaultFontFs(12), .Regular)
+            .style.addStyleSheetColors("label_TextLight $label_TextFaint")
+            .setTextAlignment(.Left, .OpticalCenter)
+            .hide()
         }
 
         with let line = Wnd.create'Wnd(.header)
@@ -269,12 +283,12 @@ impl Explorer
             .setTextAlignment(.Right, .OpticalCenter)
         }
 
-        // The filter is asked for, by the find key or the lens, and leaves once it is empty and
-        // the keyboard has gone elsewhere.
-        with .filter = EditBox.create(.tools, "", {0, 0, ViewerWindow.SearchFieldWidth, ToolHeight}, flags: .ClearButton)
+        // The filter is asked for, by the find key or the lens, on its own line under the title so
+        // the title keeps its room, and leaves once it is empty and the keyboard has gone elsewhere.
+        with .filter = EditBox.create(.header, "", {0, 0, ViewerWindow.SearchFieldWidth, ToolHeight}, flags: .ClearButton)
         {
-            .layoutSpec.alignY = .End
-            .margin.z          = 8
+            .dockStyle = .Bottom
+            .margin    = {0, 4, 0, 0}
             .setForm(.Transparent)
             .setIcon(me.theme().icon(.Search, themeRowIconSize(me.themeMetrics())))
             .setPlaceholder(appStrings().ui_FilterFiles)
@@ -285,7 +299,7 @@ impl Explorer
                 if not edit.text().count
                 {
                     edit.hide()
-                    view.layoutTools()
+                    view.fitHeader()
                 }
             }
         }
@@ -312,14 +326,58 @@ impl Explorer
     mtd revealFilter()
     {
         .filter.show()
-        .layoutTools()
+        .fitHeader()
         .filter.setFocus()
     }
 
+    // Gives the head of the page the height of the lines it shows: the path, the title, and the
+    // summary of an archive and the filter when they show.
+    mtd fitHeader()
+    {
+        var height = HeaderHeight
+        if .summary.isLocallyVisible() do
+            height += SummaryHeight
+        if .filter.isLocallyVisible() do
+            height += ToolHeight + 4
+        if .header.position.height != height
+        {
+            .header.position.height = height
+            .applyLayout()
+        }
+
+        .layoutTools()
+    }
+
     // Fits the tools of the header to what they hold, after a word in them changed.
+    //
+    // The title comes first: on a narrow page the count leaves the line before the title would be
+    // cut, and comes back when there is room for both.
     mtd layoutTools()
     {
-        .tools.position.width = Math.ceil(.tools.itf.measureContent({}).x)
+        let line  = unwrap .tools.parent
+        let title = Math.ceil(.title.itf.measureContent({}).x)
+        .status.show(not .listing.isArchive and not .status.name.raw.isEmpty())
+        var width = Math.ceil(.tools.itf.measureContent({}).x)
+        if .status.isLocallyVisible() and width + title + 24 > line.clientRect().width
+        {
+            .status.hide()
+            width = Math.ceil(.tools.itf.measureContent({}).x)
+        }
+
+        .tools.position.width = width
+
+        // Then the title steps down the scale of page titles before it would be cut.
+        let room = line.clientRect().width - width - 24
+        for size in [TitleFontSize, 36'u32, MinTitleFontSize]
+        {
+            let font = .theme().createDefaultFont(size, .Bold)
+            if Painter.measureString(.title.text(), font).width <= room or size == MinTitleFontSize
+            {
+                .title.style.setFont(font, .Regular)
+                break
+            }
+        }
+
         .header.applyLayout()
         .tools.computeLayout()
     }
@@ -400,8 +458,12 @@ impl Explorer
         }
 
         setQuietMenuText(.sortMenu, sort)
-        let names = [text.explore_Names, text.explore_Details, text.explore_Small, text.explore_Medium, text.explore_Large]
-        setQuietMenuText(.modeMenu, names[cast(u64, .mode)])
+        switch .mode
+        {
+        case .Names:   setQuietMenuText(.modeMenu, text.mode_Names)
+        case .Details: setQuietMenuText(.modeMenu, text.mode_Details)
+        default:       setQuietMenuText(.modeMenu, text.mode_Thumbnails)
+        }
         .layoutTools()
     }
 
@@ -435,13 +497,19 @@ impl Explorer
     mtd setShown(visible: bool)
     {
         .show(visible)
-        .window.hintLine.show(not visible and .window.emptyView.isLocallyVisible())
+        .window.teachHints(visible)
         .showMediaInfo()
     }
 
     // Reports what the location holds, or why it holds nothing, on the title's line.
     mtd setStatus(text: string)
     {
+        // An archive says it under its title, where its counts and weights have the room.
+        let archive = .listing.isArchive
+        .summary.setText(archive ? text : "")
+        .summary.show(archive)
+        .fitHeader()
+        .status.show(not archive)
         .status.setText(text)
         .status.position.width = Math.ceil(.status.itf.measureContent({}).x)
         .layoutTools()
@@ -551,11 +619,26 @@ impl Explorer
 
         sheet.addSection(strings.explore_FileProperties)
         addSheetReading(sheet, strings.explore_Type, entry.directory ? strings.ui_Folder : (Path.extension(entry.name) orelse ""))
-        if not entry.directory do
+        if .listing.isArchive and entry.archiveIndex < .listing.archive.entries.count
+        {
+            // A member of an archive: what it weighs packed and extracted, how well it packed,
+            // and the checksum it is verified against.
+            let member = &.listing.archive.entries[entry.archiveIndex]
+            addSheetReading(sheet, strings.explore_Size, Format.toString("% → %", StrConv.toDisplaySize(member.compressedSize), StrConv.toDisplaySize(member.uncompressedSize)))
+            if member.uncompressedSize
+            {
+                let ratio = cast(u64, Math.round(100 * cast(f64, member.compressedSize) / cast(f64, member.uncompressedSize)))
+                addSheetReading(sheet, strings.explore_Compression, Format.toString("% %", ratio, "%"))
+            }
+
+            addSheetReading(sheet, "CRC-32", Format.toString("%{X08}", member.crc32))
+        }
+        elif not entry.directory do
             addSheetReading(sheet, strings.explore_Size, StrConv.toDisplaySize(entry.size))
         addSheetReading(sheet, strings.explore_Modified, entry.modified)
         if entry.duration do
             addSheetReading(sheet, strings.explore_Duration, formatDuration(entry.duration))
+        sheet.setAction(appStrings().cmd_OpenChosen, ViewerCommands.OpenChosen)
     }
 
     // Gives the keyboard to the listing, in whichever form it is shown.
@@ -681,8 +764,12 @@ impl Explorer
             path = parent
         }
 
-        for ancestor in ancestors.reversed()
+        // The breadcrumb names the levels above the page; the page's own name is its title.
+        let skipLast = not .listing.isArchive or .folder.isEmpty()
+        for ancestor, rank in ancestors.reversed()
         {
+            if skipLast and rank + 1 == ancestors.count do
+                break
             let full = ancestor.toString()
             let name = Path.fileName(full) orelse full
             breadcrumb.addItem(name.count ? name : full, tag: Format.toString("%\n", full))
@@ -691,7 +778,8 @@ impl Explorer
         if .listing.isArchive
         {
             var begin: u64
-            for offset in .folder.length where .folder[offset] == '/'u8
+            let last = .folder.length ? .folder.length - 1 : 0
+            for offset in .folder.length where .folder[offset] == '/'u8 and offset != last
             {
                 breadcrumb.addItem(.folder.toString()[begin until offset],
                                    tag: Format.toString("%\n%", .listing.path, .folder.toString()[0 until offset + 1]))
@@ -796,6 +884,7 @@ impl Explorer
     private mtd publish()
     {
         .clearTextures()
+        let entering = .listing.isArchive and not .grid.rows
         .entries  = #move .listing.entries
         .selected = Swag.U64.Max
         .showMediaInfo()
@@ -805,6 +894,11 @@ impl Explorer
 
         .filter.setText("", notify: false)
         .list.header.setSortIndicator(.sortColumn, .descending ? .Descending : .Ascending)
+        if entering do
+            .setMode(.Details)
+        elif not .listing.isArchive and .grid.rows do
+            .setMode(.mode)
+        .window.teachHints(.isLocallyVisible())
         .fill()
         .scroll.setScrollPos(0, 0)
         .window.refreshFileLists()
@@ -854,12 +948,32 @@ impl Explorer
             .shown.add(index)
         }
 
+        var count: String
         switch .shown.count
         {
-        case 0:  .setStatus(appStrings().explore_Empty)
-        case 1:  .setStatus(appStrings().explore_OneItem)
-        default: .setStatus(Format.toString(appStrings().explore_Count, .shown.count))
+        case 0:  count = appStrings().explore_Empty
+        case 1:  count = appStrings().explore_OneItem
+        default: count = Format.toString(appStrings().explore_Count, .shown.count)
         }
+
+        // A folder says what its files weigh; an archive what it weighs packed and what it will
+        // weigh once extracted.
+        if not .listing.isArchive and .shown.count
+        {
+            var weight = 0'u64
+            for index in .shown where not .entries[index].directory do
+                weight += .entries[index].size
+            if weight do
+                count = Format.toString("% · %", count, StrConv.toDisplaySize(weight))
+        }
+
+        if .listing.isArchive and .shown.count
+        {
+            let zip = &.listing.archive
+            count = Format.toString(appStrings().explore_ArchiveSummary, count, StrConv.toDisplaySize(zip.compressedSize), StrConv.toDisplaySize(zip.uncompressedSize))
+        }
+
+        .setStatus(count)
 
         .list.setVirtualCount(cast(u32, .shown.count))
         for index, row in .shown where index == .selected
@@ -871,13 +985,18 @@ impl Explorer
 
         .grid.refreshLayout()
         .requestPreview()
+        .window.teachHints(.isLocallyVisible())
     }
 
     mtd setMode(mode: ExplorerMode)
     {
         .mode = mode
         .refreshQuietMenus()
-        let rows = mode == .Names or mode == .Details
+
+        // An archive reads as quiet rows — its glyph, its name, how well it packed, its size and
+        // its date — where a folder shows its columns.
+        .grid.rows = mode == .Details and .listing.isArchive
+        let rows = (mode == .Names or mode == .Details) and not .grid.rows
         .list.show(rows)
         .list.header.show(mode == .Details)
         .scroll.show(not rows)
@@ -1275,6 +1394,7 @@ struct ExplorerGrid
     busy:          Array'bool     // Which spinners a visible tile claimed during the current paint.
     nameTimer:     *Timer?
     nameTick:      u64
+    rows:          bool     // Whether the entries stand one per line, as an archive lists them.
 }
 
 impl ExplorerGrid
@@ -1285,6 +1405,14 @@ impl ExplorerGrid
     const NameHeight   = 22.0
     const ReadingHeight = 16.0
     const RingWeight   = 2.0
+    const Lift         = 2.0
+
+    // The rows of an archive: their pitch, the length of the bar of the compression ratio, and the
+    // columns of the size and the date from the end of the row.
+    const RowPitch   = 34.0
+    const RatioWidth = 64.0
+    const DateColumn = 136.0
+    const SizeColumn = 96.0
 
     mtd rowAt(point: Math.Point)->u64
     {
@@ -1296,14 +1424,23 @@ impl ExplorerGrid
         let row    = line * .columns + column
         if column >= .columns or
            row >= .explorer.shown.count or
-           local.x - cast(f32, column) * .cell.x >= .cell.x - 8 or
-           local.y - cast(f32, line) * .cell.y >= .cell.y - 8 do
+           local.x - cast(f32, column) * .cell.x >= .cell.x - (.rows ? 0 : 8) or
+           local.y - cast(f32, line) * .cell.y >= .cell.y - (.rows ? 0 : 8) do
             return Swag.U64.Max
         return row
     }
 
     mtd refreshLayout()
     {
+        if .rows
+        {
+            .columns = 1
+            .cell    = Math.Point{Math.max(.clientRect().width - 2 * CellInset, 200), RowPitch}
+            .explorer.scroll.setScrollSize(0, cast(f32, .explorer.shown.count) * RowPitch + 2 * CellInset)
+            .invalidate()
+            return
+        }
+
         let width: f32   = .explorer.mode == .Small ? 128.0 : (.explorer.mode == .Large ? 256.0 : 192.0)
         let previewWidth = width - 2 * CellInset
         .cell    = Math.Point{width, previewWidth / ExplorerFilmPreviewAspect + 48 + ReadingHeight}
@@ -1345,23 +1482,64 @@ impl ExplorerGrid
         painter.drawString(chip.x + 4, chip.y + 1, label, font, Color.fromArgb(ExplorerDurationInk))
     }
 
-    // Draws a folder as a quiet card standing where a picture would, its glyph on it.
-    //
-    // A file the gallery has no picture for shows its glyph on the bare ground, so a folder that
-    // did the same read as one more such file. The card gives it a ground of its own in the panel
-    // tone, the interface corner and the line of names a picture stands on, and stays fainter
-    // than any picture beside it.
-    mtd paintFolder(painter: *Painter, preview: Math.Rectangle, glyph: Icon)
+    // Paints the entries `first` until `end` as rows: the glyph, the name, a thin Arc bar of how
+    // much the member packed, the size and the date in mono, a folder its count instead.
+    mtd paintRows(painter: *Painter, first, end: u64)
     {
-        let radius = .themeRects().btnIcon_RoundSquareBk.radius
-        let height = Math.round(Math.min(preview.height, preview.width * ExplorerFolderCardAspect))
-        let width  = Math.round(Math.min(preview.width, height / ExplorerFolderCardAspect))
-        let card   = Math.Rectangle{Math.round(preview.horzCenter() - width / 2), Math.round(preview.bottom() - height), width, height}
-        painter.pushState()
-        defer painter.popState()
+        let explorer = .explorer
+        let colors   = .themeColors()
+        let metrics  = .themeMetrics()
+        let body     = .theme().createDefaultFont(14)
+        let mono     = .theme().createDefaultFontFs(11)
         painter.setAntialiased(true)
-        painter.fillRoundRect(card, radius, radius, .themeColors().wnd_Bk)
-        glyph.paint(painter, Math.round(card.horzCenter() - glyph.sizeX / 2), Math.round(card.vertCenter() - glyph.sizeY / 2), .themeColors().label_TextFaint)
+        for row in first until end
+        {
+            let index   = explorer.shown[row]
+            let entry   = &explorer.entries[index]
+            let rect    = Math.Rectangle{CellInset, CellInset + cast(f32, row) * .cell.y, .cell.x, .cell.y}
+            let centerY = rect.vertCenter()
+            if explorer.selected == index do
+                painter.fillRoundRect(rect, metrics.corner_Control, metrics.corner_Control, colors.selection)
+            elif .hovered == row do
+                painter.fillRoundRect(rect, metrics.corner_Control, metrics.corner_Control, colors.raised)
+
+            let glyph = explorer.entryIcon(index, metrics.menuPopup_IconSize)
+            glyph.paint(painter, rect.x + 12, Math.round(centerY - glyph.sizeY * 0.5), colors.softText)
+
+            let dateRight = rect.right() - 12
+            let sizeRight = dateRight - DateColumn
+            let barRight  = sizeRight - SizeColumn
+            painter.pushClippingRect(Math.Rectangle{rect.x + 36, rect.y, Math.max(barRight - RatioWidth - 16 - rect.x - 36, 0), rect.height})
+            painter.drawString(rect.x + 36, body.opticalLineTop(centerY), entry.name, body, colors.text)
+            painter.popClippingRect()
+
+            let date = entry.modified.toString()
+            painter.drawString(dateRight - Painter.measureString(date, mono).width, mono.opticalLineTop(centerY), date, mono, colors.faintText)
+
+            var size: String
+            if entry.directory
+            {
+                let children = explorer.listing.isArchive ? explorer.listing.children(entry.path).count : 0
+                size = children == 1 ? String.from(appStrings().explore_OneItem) : Format.toString(appStrings().explore_Count, children)
+            }
+            else
+            {
+                size = StrConv.toDisplaySize(entry.size)
+                if explorer.listing.isArchive and entry.archiveIndex < explorer.listing.archive.entries.count
+                {
+                    let member = &explorer.listing.archive.entries[entry.archiveIndex]
+                    if member.uncompressedSize
+                    {
+                        let ratio = Math.clamp(cast(f32, member.compressedSize) / cast(f32, member.uncompressedSize), 0, 1)
+                        let track = Math.Rectangle{barRight - RatioWidth, Math.round(centerY - 1.5), RatioWidth, 3}
+                        painter.fillRoundRect(track, 1.5, 1.5, colors.raised)
+                        painter.fillRoundRect(Math.Rectangle{track.x, track.y, Math.max(Math.round(RatioWidth * ratio), 3), 3}, 1.5, 1.5, colors.arc)
+                    }
+                }
+            }
+
+            painter.drawString(sizeRight - Painter.measureString(size, mono).width, mono.opticalLineTop(centerY), size, mono, colors.faintText)
+        }
     }
 
     // Returns the mono line written under the name of a tile: the year and length of a film,
@@ -1377,7 +1555,7 @@ impl ExplorerGrid
                 result += " · "
             result += formatDuration(entry.duration)
         }
-        elif result.isEmpty() and not entry.directory
+        elif result.isEmpty() and not entry.directory and entry.size
         {
             result = StrConv.toDisplaySize(entry.size)
         }
@@ -1446,6 +1624,14 @@ impl IWnd for ExplorerGrid
     {
         let painter = evt.paintContext.painter
         let range   = .visibleRange()
+        if .rows
+        {
+            .paintRows(painter, range.first, range.end)
+            for spinner in .spinners do
+                spinner.hide()
+            return
+        }
+
         .busy.fill(false)
         for row in range.first until range.end
         {
@@ -1453,10 +1639,13 @@ impl IWnd for ExplorerGrid
             let entry = &.explorer.entries[index]
             var rect  = Math.Rectangle{CellInset + cast(f32, row % .columns) * .cell.x,
                                        CellInset + cast(f32, row / .columns) * .cell.y, .cell.x - 8, .cell.y - 8}
-            if .hovered == row and .explorer.selected != index do
-                .theme().drawSubRect(painter, rect, &.themeRects().selectionBox_Bk, .themeColors().raised)
-            let slot    = .explorer.previewSlot(index)
-            let preview = Math.Rectangle{rect.x + 8, rect.y + 8, rect.width - 16, rect.height - 44 - ReadingHeight}
+            let slot     = .explorer.previewSlot(index)
+            let chosen   = .explorer.selected == index
+            var preview  = Math.Rectangle{rect.x + 8, rect.y + 8, rect.width - 16, rect.height - 44 - ReadingHeight}
+
+            // The chosen tile lifts a little in its ring.
+            if chosen do
+                preview.y -= Lift
             var picture = preview
             if entry.texture.isValid()
             {
@@ -1476,7 +1665,8 @@ impl IWnd for ExplorerGrid
             }
             elif entry.directory
             {
-                .paintFolder(painter, preview, .explorer.entryIcon(index, 32))
+                let icon = .explorer.entryIcon(index, 40)
+                icon.paint(painter, Math.round(preview.horzCenter() - 20), Math.round(preview.vertCenter() - 20), .themeColors().faintText)
             }
             else
             {

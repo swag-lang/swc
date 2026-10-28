@@ -83,7 +83,8 @@ Binary content directs the reader to the hexadecimal alternative instead of gues
   current keywords, intrinsics, directives, and modifiers. A gutter numbers the lines of the whole
   file, including a window streamed from deep inside a long one. HTML keeps its rendered viewer first
   and offers Code as the source alternative. Its zoom uses the same percentage
-  menu and keyboard gestures as the other text readers.
+  menu and keyboard gestures as the other text readers. Code reads in a centered column of at most
+  900 pixels, and Basic text as prose: a 680-pixel column of the body face at 16 on a 29 pitch.
 - `Markdown` adapts the reusable GUI `Markdown.View`. It supports headings, prose, GFM alerts,
   nested lists and tasks, fenced code, aligned tables, metadata, footnotes, references, a table of
   contents, inline formatting, and native mathematical layout. Reader themes and reading widths
@@ -92,7 +93,9 @@ Binary content directs the reader to the hexadecimal alternative instead of gues
   text: inline formatting resolves to the words it decorated, a table to tabs and lines, and a
   formula to its mathematical source. Rendering is offline and executes no embedded HTML or
   script. Reading width and appearance are the options of the viewer; zoom is a clickable
-  percentage on the line of readings.
+  percentage on the line of readings. When the window leaves room, the left margin lists the
+  headings of the first two levels, the one being read on an Arc rule, and a thin Arc thread along
+  the top edge grows with the share of the document already read.
   GitHub, Newsprint, Night, Pixyll, and Whitey follow their Typora typography, including heading
   weights, italics, line boxes, collapsing block margins, and heading rules. Fonts resolve from
   installed system families with the theme's fallback order; missing optional fonts are never
@@ -150,7 +153,10 @@ Binary content directs the reader to the hexadecimal alternative instead of gues
   per-track view, the pitch names and the keyboard width, and it provides horizontal zoom through the common zoom control without
   synthesizing or executing file content.
 - `Archive` opens ZIP and ZIP64 containers, including JAR, APK, EPUB, office and package formats,
-  in the common folder explorer. Opening an entry asynchronously prepares a bounded temporary
+  in the common folder explorer, as quiet rows: glyph, name, a thin Arc bar of how well the member
+  packed, its size and date in mono. The count under the title adds the packed and extracted
+  weights; the information sheet gives a member's sizes, compression and CRC-32, and opens it.
+  Opening an entry asynchronously prepares a bounded temporary
   copy, verifies its declared size and CRC-32, and opens it through the ordinary viewer registry.
   Closing the viewer returns to the archive. Stored and Deflate entries are decoded; encrypted entries,
   multi-disk archives, unsupported compression methods, oversized directories, and previews above
@@ -205,6 +211,13 @@ open file are in the information sheet (`I`) and, faint, on the line at the foot
 the viewer's own controls float over that foot while the pointer moves; the find bar floats at the
 top on `Ctrl+F`; the files beside the open one and the viewer's side panel stand as cards beside
 the work when asked for.
+
+Without a file the window is its home: the Scope mark, large and faint, one line inviting a drop or
+`Ctrl+O`, and under a hairline the last six files opened, each a quiet row with the faint glyph of
+its kind, its name, and when it was opened. The row under the pointer rises, shows its folder and a
+cross that removes it; `Delete` removes the chosen row and `Enter` opens it. "Clear…" under the list
+removes the files that no longer exist or those opened more than a month ago, and, apart, clears
+the whole history after asking. Older files are in the lens under `/`.
 
 The application stores its palette, language, window state, recent files, bounded recent-folder
 history, and remembered viewer choices in the user's application-data folder. It toggles full

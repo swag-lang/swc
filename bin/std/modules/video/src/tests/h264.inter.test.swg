@@ -230,6 +230,45 @@ impl ChromaReference
     }
 }
 
+// Full-width interpolation can reuse its destination for the first half. Check every
+// phase against the scalar predictor with unaligned rows and untouched row padding.
+#test
+{
+    var frame: H264.Frame
+    frame.prepare(4, 4, 1)
+    var seed = 0x79B315D1'u32
+    for index in frame.luma.count
+    {
+        seed = seed * #wrap 1664525 + #wrap 1013904223
+        frame.luma[index] = cast(u8, (seed >> 24))
+    }
+
+    var reference = InterReference{frame: &frame}
+    var predicted: [21 * 16 + 1] u8
+    for height in [4's32, 8, 16]
+    {
+        for origin in [0's32, -30]
+        {
+            for phase in 16's32
+            {
+                let fracX = phase & 3
+                let fracY = phase >> 2
+                Memory.set(predicted.buffer, 0x5A, predicted.count)
+                H264.mcLuma(predicted.buffer + 1, 21, &frame, 0, origin, origin, fracX, fracY, 16, height)
+                for row in height
+                {
+                    for column in 21's32
+                    {
+                        let got = predicted[cast(u64, (1 + row * 21 + column))]
+                        let expected = column < 16 ? reference.predict(origin + column, origin + row, fracX, fracY) : 0x5A'u8
+                        Swag.assert(got == expected)
+                    }
+                }
+            }
+        }
+    }
+}
+
 // The paired chroma prediction against two single-plane ones: every phase and block shape, in
 // place and through the clamped window, each plane written only inside its block.
 #test

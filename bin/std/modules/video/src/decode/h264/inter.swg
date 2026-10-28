@@ -466,6 +466,7 @@ func averagePlanes(dst: [*] u8, dstStride: u64, a: [*] u8, aStride: u64, b: [*] 
 
 // Motion-compensates one full-resolution block into `dst`, with the six-tap luma filter.
 //
+// The destination is scratch or the current picture, never the reference picture itself.
 // `plane` is the colour plane, luma being zero: a 4:4:4 colour plane is interpolated exactly as
 // luma, over a plane of the same size. `x`, `y` is the full-sample position in the reference
 // frame, `fracX`, `fracY` the quarter-sample phase, already split from the motion vector by the
@@ -540,6 +541,12 @@ private func interpolateLuma(dst: [*] u8, dstStride: u64, src: [*] u8, srcStride
     if fracX == 2
     {
         // Positions f and q: the center half against the nearest horizontal half row.
+        if width == 16
+        {
+            halfCenter(dst, dstStride, src, srcStride, width, height)
+            halfHorizontalAvg(dst, dstStride, fracY == 1 ? src : src + srcStride, srcStride, dst, dstStride, width, height)
+            return
+        }
         var planeA: [16 * 16] u8
         halfCenter(planeA.buffer, 16, src, srcStride, width, height)
         halfHorizontalAvg(dst, dstStride, fracY == 1 ? src : src + srcStride, srcStride, planeA.buffer, 16, width, height)
@@ -549,6 +556,12 @@ private func interpolateLuma(dst: [*] u8, dstStride: u64, src: [*] u8, srcStride
     if fracY == 2
     {
         // Positions i and k: the center half against the nearest vertical half column.
+        if width == 16
+        {
+            halfCenter(dst, dstStride, src, srcStride, width, height)
+            halfVerticalAvg(dst, dstStride, fracX == 1 ? src : src + 1, srcStride, dst, dstStride, width, height)
+            return
+        }
         var planeA: [16 * 16] u8
         halfCenter(planeA.buffer, 16, src, srcStride, width, height)
         halfVerticalAvg(dst, dstStride, fracX == 1 ? src : src + 1, srcStride, planeA.buffer, 16, width, height)
@@ -556,7 +569,13 @@ private func interpolateLuma(dst: [*] u8, dstStride: u64, src: [*] u8, srcStride
     }
 
     // Diagonal quarter positions e, g, p, r: nearest horizontal half against nearest
-    // vertical half.
+    // vertical half. Full-width rows can hold the first half until the second is averaged in.
+    if width == 16
+    {
+        halfHorizontal(dst, dstStride, fracY == 1 ? src : src + srcStride, srcStride, width, height)
+        halfVerticalAvg(dst, dstStride, fracX == 1 ? src : src + 1, srcStride, dst, dstStride, width, height)
+        return
+    }
     var planeA: [16 * 16] u8
     halfHorizontal(planeA.buffer, 16, fracY == 1 ? src : src + srcStride, srcStride, width, height)
     halfVerticalAvg(dst, dstStride, fracX == 1 ? src : src + 1, srcStride, planeA.buffer, 16, width, height)

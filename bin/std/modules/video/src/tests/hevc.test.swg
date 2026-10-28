@@ -518,6 +518,18 @@ using Core, Core.Errors, Pixel
                         Swag.assert(reference.top(index) == sample)
                     }
                 }
+                for index in 2 * size
+                {
+                    let group = (index / step) * step
+                    let available = xLuma > 0 and yLuma + cast(s32, group) * scale < 64
+                    Swag.assert(reference.available[2 * size - 1 - index] == available)
+                    if available
+                    {
+                        let sampleY = y + cast(s32, index)
+                        let sample = component == 0 ? frame.lumaAtMutable(x - 1, sampleY)[0] : frame.chromaAtMutable(component - 1, x - 1, sampleY)[0]
+                        Swag.assert(reference.left(index) == sample)
+                    }
+                }
                 for mode in 35'u32
                 {
                     for index in decoder.residual.count do

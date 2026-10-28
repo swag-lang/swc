@@ -335,14 +335,31 @@ impl Decoder
         {
             let sampleY   = y + cast(s32, offset)
             let available = .isIntraNeighbourAvailable(xLuma, yLuma, xLuma - 1, yLuma + cast(s32, offset) * scale, pps.constrainedIntraPred)
-            for inner in step
+            // Left samples come from successive rows and land in reverse order.
+            let index = size * 2 - offset - step
+            if component == 0
             {
-                let index = offset + inner
-                if index >= total do
-                    break
-                reference.available[size * 2 - 1 - index] = available
-                if available do
-                    reference.setLeft(index, .reconstructedSample(component, x - 1, sampleY + cast(s32, inner)))
+                cast([*] u32, &reference.available[index])[0] = available ? 0x01010101'u32 : 0'u32
+                if available
+                {
+                    let frame = unwrap .current
+                    let samples = unwrap frame.lumaAt(x - 1, sampleY)
+                    let stride = frame.strideLuma
+                    let values = (cast(u64, samples[0]) << 48) | (cast(u64, samples[stride]) << 32) |
+                                 (cast(u64, samples[2 * stride]) << 16) | cast(u64, samples[3 * stride])
+                    cast([*] u64, &reference.samples[index])[0] = values
+                }
+            }
+            else
+            {
+                cast([*] u16, &reference.available[index])[0] = available ? 0x0101'u16 : 0'u16
+                if available
+                {
+                    let frame = unwrap .current
+                    let samples = frame.chromaAtMutable(component - 1, x - 1, sampleY)
+                    let values = (cast(u32, samples[0]) << 16) | cast(u32, samples[frame.strideChroma])
+                    cast([*] u32, &reference.samples[index])[0] = values
+                }
             }
 
             offset += step

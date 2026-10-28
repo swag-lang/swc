@@ -33,6 +33,8 @@ public struct SurfaceWnd
         closeBtn:      *IconButton?            // Caption close button, present with [[Gui.SurfaceFlags.CloseButton]].
         movingSurface: bool                    // Whether a pointer drag is moving or resizing the surface.
         sizingBorder:  SizingBorder = None     // Border under the pointer, or being dragged.
+
+        readonly titleHidden: bool     // Whether the document writes the title itself, so the strip does not.
     }
 
     captionButtons: Array'(*IconButton)     // Application actions immediately before the native caption controls.
@@ -307,7 +309,7 @@ impl SurfaceWnd
 
         let center   = strip.horzCenter()
         let halfSpan = Math.min(center - leading, .chromeButtonsLeft() - metrics.wnd_CaptionMarginTitle - center)
-        if halfSpan <= 0 or .name.isEmpty() do
+        if halfSpan <= 0 or .name.isEmpty() or .titleHidden do
             return
 
         var sf: RichStringFormat
@@ -317,6 +319,19 @@ impl SurfaceWnd
         sf.flags         = .Ellipsis
         sf.palette[0]    = colors.wnd_CaptionText
         painter.drawRichString(Math.Rectangle{center - halfSpan, strip.y, 2 * halfSpan, strip.height}, &.name, sf)
+    }
+
+    // Leaves the title out of the strip, or writes it there again.
+    //
+    // A document that takes the whole window — a film — writes the title itself where it can be
+    // read over its picture, and only while the reader asks for it; the strip then keeps the glyph
+    // and the window buttons alone. The surface keeps its title for the system all the same.
+    public mtd showTitle(shown: bool)
+    {
+        if .titleHidden == not shown do
+            return
+        .titleHidden = not shown
+        .invalidate()
     }
 
     // Returns where the window buttons and the application actions beside them begin.

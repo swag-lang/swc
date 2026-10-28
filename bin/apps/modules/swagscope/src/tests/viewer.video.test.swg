@@ -582,6 +582,16 @@ func videoMatroskaFixturePath()->String => Path.combine(unwrap Path.directoryNam
     host.keyPress(.Down)
     Swag.assert(view.volume < volume)
 
+    // At rest the lens offers what the film is watched with, and nothing it cannot do: this film
+    // has neither subtitles nor a second sound track.
+    var results: Lens.Results
+    var entries = Viewer.LensEntries.create(&results, "Video")
+    view.describeLens(&entries)
+    Swag.assert(results.sections.count == 1 and results.sections[0]!.entries.count == 3)
+    Swag.assert(results.sections[0]!.entries[0].title == appStrings().cmd_Play)
+    Swag.assert(results.sections[0]!.entries[1].title == Film.texts().cmd_Speed)
+    Swag.assert(results.sections[0]!.entries[2].title == appStrings().cmd_FullScreen)
+
     // The speed chip opens the speeds, the one in force checked.
     Swag.assert(view.speedChip.text() == "1×" and not view.audioChip.isLocallyVisible())
     var speeds: OptionSheet.Page
@@ -642,6 +652,9 @@ func videoMatroskaFixturePath()->String => Path.combine(unwrap Path.directoryNam
         var host: Testing.HeadlessHost
         let window = framedViewerWindow(&host, videoMatroskaFixturePath(), light)
         let view   = assume cast(*Film.Panel, window.instances[window.activeChoiceIndex].view)
+
+        // The film writes its title in the top veil, so the strip leaves it out.
+        Swag.assert(host.surfaceWnd.titleHidden)
         waitForVideoFrame(view)
         waitForVideoAudio(view, 2)
         if view.playing do

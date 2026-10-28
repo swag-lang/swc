@@ -8,6 +8,9 @@ ui_TipForward    Avancer de 10 secondes (Droite) · Ctrl+Droite : image suivante
 ui_TipSeek       Rechercher une image
 ui_TipFullScreen Plein écran (F)
 ui_SubtitleChip  Sous-titres %
+cmd_Subtitles    Sous-titres…
+cmd_AudioTrack   Piste audio…
+cmd_Speed        Vitesse…
 ui_TipMute       Couper ou rétablir le son (M)
 ui_TipVolume     Volume
 ui_OptionSpeed       Vitesse

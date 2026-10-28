@@ -16,6 +16,9 @@ struct Texts
     ui_TipVolume:              string = "Volume"                                                  // Tooltip of the volume slider.
     ui_TipFullScreen:          string = "Full Screen (F)"                                         // Tooltip of the full-screen button.
     ui_SubtitleChip:           string = "Subtitles %"                                             // Chip of the subtitles in force: their language, or off.
+    cmd_Subtitles:             string = "Subtitles…"                                              // Lens command opening the subtitles on their chip.
+    cmd_AudioTrack:            string = "Audio Track…"                                            // Lens command opening the sound tracks on their chip.
+    cmd_Speed:                 string = "Speed…"                                                  // Lens command opening the speeds on their chip.
     ui_OptionSpeed:            string = "Speed"                                                   // Option choosing the playback rate.
     ui_OptionAudio:            string = "Audio track"                                             // Option choosing the sound track.
     ui_OptionSubtitles:        string = "Subtitles"                                               // Option choosing and styling the subtitles.

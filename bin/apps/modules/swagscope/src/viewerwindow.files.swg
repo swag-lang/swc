@@ -55,6 +55,8 @@ impl ViewerWindow
     // and shows it only while it has something to say.
     internal mtd layoutFileInfo()
     {
+        // A document that takes the whole window writes its title itself, over its picture.
+        .surface?.wnd.showTitle(not .isEdgeToEdge())
         .updateDocumentInsets()
         .readingLine.show(.readingLine.hasContent() and not .fullScreen and not .isEdgeToEdge())
         .readingLine.computeLayout()

@@ -4,6 +4,24 @@ using Core, Gui, Pixel, Video
 
 enum ExplorerMode { Names, Details, Small, Medium, Large }
 
+// The shape the tiles of a folder take, read from what most of it holds.
+enum ExplorerBoard
+{
+    Grid        // Anything: one even grid of tiles a little wider than tall.
+    Posters     // Films: upright posters.
+    Covers      // Music: square covers, the album then who made it and when.
+    Mosaic      // Pictures: a justified mosaic keeping every shape, by day.
+    Album       // One album: the cover large, then its tracks.
+}
+
+// A day of a mosaic of pictures: where its label stands, its words and how many pictures it holds.
+struct ExplorerDayLabel
+{
+    y:     f32
+    text:  String
+    count: u64
+}
+
 // Width over height of a tile's picture: a page for a folder of documents, a screen for a folder
 // that is mostly films.
 const ExplorerTilePreviewAspect: f32 = 0.8
@@ -13,6 +31,21 @@ const ExplorerFilmPreviewAspect: f32 = 16.0 / 9.0
 const ExplorerDurationFontSize = 11'u32
 const ExplorerDurationGround   = 0xB30B0B0D'u32
 const ExplorerDurationInk      = 0xFFE6E6EA'u32
+
+// Returns the title of a track from its file name: without its extension and without the
+// number and separator a ripper writes before it.
+func trackTitle(name: string)->String
+{
+    let stem = Path.fileNameWithoutExtension(name) orelse name
+    var at   = 0'u64
+    while at < stem.count and Latin1.isDigit(stem[at]) do
+        at += 1
+    if at == 0 or at == stem.count do
+        return String.from(stem)
+    while at < stem.count and (stem[at] == ' ' or stem[at] == '-' or stem[at] == '.' or stem[at] == '_') do
+        at += 1
+    return String.from(stem[at to])
+}
 
 // Writes a duration the way players do: hours only when there are some, minutes and seconds always.
 func formatDuration(seconds: u64)->String
@@ -343,6 +376,22 @@ impl Explorer
     // summary of an archive and the filter when they show.
     mtd fitHeader()
     {
+        // One album stands its own title beside its cover: the page keeps only its path.
+        let album = .grid.board == .Album
+        .title.show(not album)
+        .tools.show(not album)
+        if album
+        {
+            let height = AddressHeight + 8
+            if .header.position.height != height
+            {
+                .header.position.height = height
+                .applyLayout()
+            }
+
+            return
+        }
+
         var height = HeaderHeight
         if .summary.isLocallyVisible() do
             height += SummaryHeight
@@ -715,6 +764,22 @@ impl Explorer
             sheet.setSecondaryAction(appStrings().cmd_Extract, ViewerCommands.ExtractChosen)
     }
 
+    // Opens the first track of the album, or one drawn by chance with the folder played in
+    // shuffle, every track once before any comes again.
+    mtd playAlbum(shuffle: bool)
+    {
+        if shuffle do
+            .window.setPlayMode(.Shuffle)
+        for index in .shown
+        {
+            let entry = &.entries[index]
+            if entry.directory or .theme().fileGlyph(entry.name, false, 16).index != cast(s32, ThemeIcons.FileAudio) do
+                continue
+            .activate(index)
+            return
+        }
+    }
+
     // Asks where to extract, then extracts the whole archive into a folder named after it there,
     // or, without `all`, the chosen member or folder of the archive right there.
     mtd chooseExtraction(all: bool)
@@ -1081,22 +1146,49 @@ impl Explorer
         return ExplorerTilePreviewAspect
     }
 
-    // Reports whether the folder is mostly films whose posters are looked up, which the grid
-    // shows upright.
-    mtd listingIsFilms()->bool
+    // Returns the shape of the tiles, from what most of the folder holds: films whose posters are
+    // looked up stand upright, pieces of music show their covers, or one album when they all
+    // belong to the same, pictures make a mosaic, and anything else an even grid.
+    mtd listingBoard()->ExplorerBoard
     {
-        if not .window.onlineMovies or .listing.isArchive do
-            return false
-        var files, films: u64
+        if .listing.isArchive do
+            return .Grid
+        var files, films, sounds, pictures: u64
+        var album: String
+        var oneAlbum = true
         for &entry in .entries where not entry.directory
         {
             files += 1
-            var pluginIndex: u64
-            if .window.index.namePlugin(entry.path, &pluginIndex) and .window.index.plugins[pluginIndex].key == "video" do
+            let kind = .theme().fileGlyph(entry.name, false, 16).index
+            if kind == cast(s32, ThemeIcons.FileVideo)
+            {
                 films += 1
+            }
+            elif kind == cast(s32, ThemeIcons.FileAudio)
+            {
+                sounds += 1
+                if entry.music.title.isEmpty() do
+                    oneAlbum = false
+                elif album.isEmpty() do
+                    album = entry.music.title
+                elif album != entry.music.title do
+                    oneAlbum = false
+            }
+            elif kind == cast(s32, ThemeIcons.FileImage)
+            {
+                pictures += 1
+            }
         }
 
-        return films * 2 > files
+        if not files do
+            return .Grid
+        if films * 2 > files and .window.onlineMovies do
+            return .Posters
+        if sounds * 2 > files do
+            return oneAlbum and sounds >= 2 ? .Album : .Covers
+        if pictures * 2 > files do
+            return .Mosaic
+        return .Grid
     }
 
     mtd entryIcon(index: u64, size: f32 = 16)->Icon
@@ -1500,6 +1592,8 @@ impl IWnd for Explorer
                         if .selected == preview.index do
                             .showMediaInfo()
                         .cached.add(preview.index)
+                        if .grid.board == .Mosaic or .grid.board == .Album do
+                            .grid.refreshLayout()
                         .grid.invalidate()
                     }
                 }
@@ -1579,6 +1673,12 @@ struct ExplorerGrid
     rows:          bool     // Whether the entries stand one per line, as an archive lists them.
     posters:       bool     // Whether the tiles stand upright, as the posters of a folder of films.
     tile:          Math.Point = {160, 142}
+    board:         ExplorerBoard
+    places:        Array'Math.Rectangle      // Where each shown item stands in a mosaic or an album.
+    days:          Array'ExplorerDayLabel    // The days of a mosaic.
+    contentHeight: f32
+    playButton:    *PushButton?
+    shuffleButton: *PushButton?
 }
 
 impl ExplorerGrid
@@ -1599,6 +1699,19 @@ impl ExplorerGrid
     const PosterAspect = 1.38
     const TextBand     = 72.0
 
+    // The mosaic: the height a row aims at, the air between its pictures, and the room of the
+    // label of a day.
+    const MosaicHeight = 170.0
+    const MosaicGap    = 8.0
+    const DayHeight    = 36.0
+
+    // One album: the side of its cover, the air between the cover and the tracks, and the pitch of
+    // a track.
+    const CoverSide  = 280.0
+    const AlbumGap   = 48.0
+    const TrackPitch = 38.0
+    const AlbumHead  = 156.0
+
     // The rows of an archive: their pitch, the length of the bar of the compression ratio, and the
     // columns of the size and the date from the end of the row.
     const RowPitch   = 34.0
@@ -1608,6 +1721,14 @@ impl ExplorerGrid
 
     mtd rowAt(point: Math.Point)->u64
     {
+        if .board == .Mosaic or .board == .Album
+        {
+            let at = point + .scrollPos
+            for place, row in .places where place.width > 0 and place.contains(at) do
+                return row
+            return Swag.U64.Max
+        }
+
         let local = point + .scrollPos - Math.Point{CellInset, CellInset}
         if local.x < 0 or local.y < 0 do
             return Swag.U64.Max
@@ -1626,6 +1747,8 @@ impl ExplorerGrid
     {
         if .rows
         {
+            .board   = .Grid
+            .posters = false
             .columns = 1
             .cell    = Math.Point{Math.max(.clientRect().width - 2 * CellInset, 200), RowPitch}
             .explorer.scroll.setScrollSize(0, cast(f32, .explorer.shown.count) * RowPitch + 2 * CellInset)
@@ -1636,7 +1759,22 @@ impl ExplorerGrid
         // Every tile has the same size and the grid fills the width of the page: as many columns
         // as the narrowest tile allows, the tiles sharing what is left. A folder of films stands
         // its posters upright; anything else on a tile a little wider than tall.
-        .posters = .explorer.listingIsFilms()
+        .board   = .explorer.listingBoard()
+        .posters = .board == .Posters
+        .refreshAlbumButtons()
+        if .board == .Mosaic
+        {
+            .layoutMosaic()
+            return
+        }
+
+        if .board == .Album
+        {
+            .layoutAlbum()
+            return
+        }
+
+        let aspect    = .posters ? PosterAspect : (.board == .Covers ? 1.0 : TileAspect)
         var narrowest = .posters ? PosterWidth : TileWidth
         switch .explorer.mode
         {
@@ -1647,16 +1785,178 @@ impl ExplorerGrid
         let room = Math.max(.clientRect().width - 2 * CellInset, narrowest)
         .columns = Math.max(1'u64, cast(u64, (room + Gap) / (narrowest + Gap)))
         let width = Math.floor((room - Gap * cast(f32, .columns - 1)) / cast(f32, .columns))
-        .tile = Math.Point{width, Math.round(width * cast(f32, .posters ? PosterAspect : TileAspect))}
+        .tile = Math.Point{width, Math.round(width * cast(f32, aspect))}
         .cell = Math.Point{width + Gap, .tile.y + TextBand}
         let rows = (.explorer.shown.count + .columns - 1) / .columns
         .explorer.scroll.setScrollSize(0, cast(f32, rows) * .cell.y + 2 * CellInset)
         .invalidate()
     }
 
+    // Lays the pictures out as a justified mosaic, a day after another under its label: each row
+    // as tall as fills the width with the shapes it holds, the last one of a day at its aim.
+    mtd layoutMosaic()
+    {
+        let explorer = .explorer
+        let width    = Math.max(.clientRect().width - 2 * CellInset, 200)
+        .places.clear()
+        .places.resize(explorer.shown.count)
+        .days.clear()
+        .columns = 1
+        .cell    = Math.Point{width, MosaicHeight}
+
+        var y     = CellInset
+        var row:   Array'u64
+        var shape = 0.0'f32
+        var day:   String
+        for index, at in explorer.shown
+        {
+            let entry   = &explorer.entries[index]
+            let dayText = String.from(entry.modified.toString()[0 until Math.min(entry.modified.length, 10)])
+            if at == 0 or dayText != day
+            {
+                y     = .flushMosaicRow(&row, shape, y, width, true)
+                shape = 0
+                if at do
+                    y += DayHeight * 0.5
+                day = dayText
+                .days.add(ExplorerDayLabel{y: y, text: .dayLabel(dayText)})
+                y += DayHeight
+            }
+
+            .days[.days.count - 1].count += 1
+            row.add(at)
+            shape += .shapeOf(entry)
+            if shape * MosaicHeight + MosaicGap * cast(f32, row.count - 1) >= width
+            {
+                y     = .flushMosaicRow(&row, shape, y, width, false)
+                shape = 0
+            }
+        }
+
+        y = .flushMosaicRow(&row, shape, y, width, true)
+        .contentHeight = y + CellInset
+        explorer.scroll.setScrollSize(0, .contentHeight)
+        .invalidate()
+    }
+
+    // Stands the pictures of `row` side by side and returns the top of the next row: as tall as
+    // fills `width`, or at the aim when the row ends a day short of the width.
+    mtd flushMosaicRow(row: *Array'u64, shape: f32, y, width: f32, last: bool)->f32
+    {
+        if row.isEmpty() do
+            return y
+        let gaps   = MosaicGap * cast(f32, row.count - 1)
+        var height = (width - gaps) / Math.max(shape, 0.01)
+        if last and height > MosaicHeight do
+            height = MosaicHeight
+        height = Math.round(height)
+        var x = CellInset
+        for at, i in row[]
+        {
+            let entry = &.explorer.entries[.explorer.shown[at]]
+            var w     = Math.round(.shapeOf(entry) * height)
+            if i + 1 == row.count and not last do
+                w = CellInset + width - x
+            .places[at] = Math.Rectangle{x, y, w, height}
+            x += w + MosaicGap
+        }
+
+        row.clear()
+        return y + height + MosaicGap
+    }
+
+    // Returns the width over the height of what `entry` shows: its picture once rendered, the
+    // shape of a photograph until then.
+    mtd shapeOf(entry: const *ExplorerEntry)->f32
+    {
+        if entry.texture.isValid() and entry.texture.height do
+            return cast(f32, entry.texture.width) / cast(f32, entry.texture.height)
+        return 1.5
+    }
+
+    // Writes the day `iso` (YYYY-MM-DD) as a mosaic names it: its weekday, its day and its month.
+    mtd dayLabel(iso: string)->String
+    {
+        if iso.count < 10 do
+            return String.from(iso)
+        let year  = catch StrConv.toU64(iso[0 until 4])
+        let month = catch StrConv.toU64(iso[5 until 7])
+        let day   = catch StrConv.toU64(iso[8 until 10])
+        if not month or month > 12 or not day do
+            return String.from(iso)
+        let date     = Time.DateTime{year: cast(u16, year), month: cast(u16, month), day: cast(u16, day)}
+        let weekdays = Tokenize.split(appStrings().explore_Weekdays, ' 'rune)
+        let months   = Tokenize.split(appStrings().explore_Months, ' 'rune)
+        let weekday  = cast(u64, date.dayOfWeek())
+        if weekdays.count < 7 or months.count < 12 do
+            return String.from(iso)
+        return Format.toString("% % %", weekdays[weekday], day, months[month - 1])
+    }
+
+    // Lays one album out: its cover at the left, then at its right its title over its tracks, one
+    // per line.
+    mtd layoutAlbum()
+    {
+        let explorer = .explorer
+        let width    = Math.max(.clientRect().width - 2 * CellInset, 400)
+        .places.clear()
+        .places.resize(explorer.shown.count)
+        .days.clear()
+        .columns = 1
+        let left = CellInset + CoverSide + AlbumGap
+        .cell = Math.Point{width - CoverSide - AlbumGap, TrackPitch}
+        var y = CellInset + AlbumHead
+        for index, at in explorer.shown
+        {
+            let entry = &explorer.entries[index]
+            if entry.directory or .theme().fileGlyph(entry.name, false, 16).index != cast(s32, ThemeIcons.FileAudio) do
+                continue
+            .places[at] = Math.Rectangle{left, y, .cell.x, TrackPitch - 4}
+            y += TrackPitch
+        }
+
+        .contentHeight = Math.max(y, CellInset + CoverSide + 80) + CellInset
+        explorer.scroll.setScrollSize(0, .contentHeight)
+        .refreshAlbumButtons()
+        .invalidate()
+    }
+
+    // Shows Play and Shuffle under the cover of an album, and hides them otherwise.
+    mtd refreshAlbumButtons()
+    {
+        let album = .board == .Album
+        if album and not .playButton
+        {
+            let explorer = .explorer
+            with let play = PushButton.create(me, Format.toString("▶ %", appStrings().explore_Play), {}, null, .Strong)
+            {
+                .sigPressed += func|explorer|(_) { explorer.playAlbum(false) }
+            }
+
+            with let shuffle = PushButton.create(me, appStrings().explore_Shuffle, {})
+            {
+                .sigPressed += func|explorer|(_) { explorer.playAlbum(true) }
+            }
+
+            .playButton    = play
+            .shuffleButton = shuffle
+        }
+
+        if not .playButton do
+            return
+        let height = .themeMetrics().btnPush_Height
+        let top    = CellInset + CoverSide + 22
+        .playButton.setPosition(Math.Rectangle{CellInset, top, 96, height})
+        .shuffleButton!.setPosition(Math.Rectangle{CellInset + 106, top, 96, height})
+        .playButton.show(album)
+        .shuffleButton.show(album)
+    }
+
     // Returns where the tile of `row` stands in the grid.
     mtd tileRect(row: u64)->Math.Rectangle
     {
+        if (.board == .Mosaic or .board == .Album) and row < .places.count do
+            return .places[row]
         return Math.Rectangle{CellInset + cast(f32, row % .columns) * .cell.x,
                               CellInset + cast(f32, row / .columns) * .cell.y, .tile.x, .tile.y}
     }
@@ -1676,6 +1976,8 @@ impl ExplorerGrid
         let tile    = .tileRect(row)
         let radius  = metrics.corner_Control
         let slot    = .explorer.previewSlot(index)
+        if tile.width <= 0 do
+            return
         painter.setAntialiased(true)
 
         // The chosen item is ringed in Arc, the ring standing just off its tile.
@@ -1691,7 +1993,7 @@ impl ExplorerGrid
         if entry.texture.isValid()
         {
             let texture = entry.texture
-            let fills   = .posters or glyph.index == cast(s32, ThemeIcons.FileImage) or glyph.index == cast(s32, ThemeIcons.FileVideo)
+            let fills   = .posters or .board == .Covers or .board == .Mosaic or glyph.index == cast(s32, ThemeIcons.FileImage) or glyph.index == cast(s32, ThemeIcons.FileVideo)
             if fills
             {
                 // Crop the picture to the shape of the tile, around its centre.
@@ -1735,12 +2037,21 @@ impl ExplorerGrid
             }
         }
 
+        // A mosaic is pictures alone.
+        if .board == .Mosaic do
+            return
+
         // The name, left on the edge of the tile, and the facts under it: what the item measures
         // at the left, what it weighs at the right.
         let font = unwrap .font().regular
         let mono = .theme().createDefaultFontFs(11)
         let nameRect = Math.Rectangle{tile.x, tile.bottom() + 8, tile.width, 20}
-        .paintName(painter, nameRect, row, index, font, .posters and entry.movie.title.length ? entry.movie.title.toString() : entry.name.toString())
+        var title = entry.name.toString()
+        if .posters and entry.movie.title.length do
+            title = entry.movie.title.toString()
+        elif .board == .Covers and entry.music.title.length do
+            title = entry.music.title.toString()
+        .paintName(painter, nameRect, row, index, font, title)
 
         let factsY = mono.opticalLineTop(tile.bottom() + 37)
         let size   = .sizeText(entry)
@@ -1815,10 +2126,138 @@ impl ExplorerGrid
         }
     }
 
+    // Paints the label of each day of a mosaic: its words in spaced capitals, then how many
+    // pictures it holds.
+    mtd paintDays(painter: *Painter)
+    {
+        let metrics = .themeMetrics()
+        let colors  = .themeColors()
+        let font    = .theme().createDefaultFont(metrics.sectionLabel_FontSize, .Bold)
+        let count   = .theme().createDefaultFont(metrics.sectionLabel_FontSize)
+        for &day in .days
+        {
+            let centerY = day.y + DayHeight * 0.5
+            var shaped  = Painter.shapeRun(String.toUpper(day.text.toString(), .Unicode), font, letterSpacing: metrics.sectionLabel_LetterSpacing)
+            painter.drawShapedRun(CellInset, font.opticalLineTop(centerY), &shaped, font, Brush.createSolid(colors.faintText))
+            let label = Format.toString("%", day.count)
+            painter.drawString(CellInset + shaped.metrics.width + 12, count.opticalLineTop(centerY), label, count, colors.faintText)
+        }
+    }
+
+    // Paints one album: its cover at the left, then its kind and year, its title, who made it and
+    // its facts over its tracks, each a number, a title and a length, the chosen one on the Arc
+    // ground led by ▶.
+    mtd paintAlbum(painter: *Painter)
+    {
+        let explorer = .explorer
+        let colors   = .themeColors()
+        let metrics  = .themeMetrics()
+        let radius   = metrics.corner_Control
+        let mono     = .theme().createDefaultFontFs(12)
+        let body     = .theme().createDefaultFont(15)
+        painter.setAntialiased(true)
+
+        // The cover is the picture of the first track that has one.
+        var cover: const *ExplorerEntry?
+        var first: const *ExplorerEntry?
+        var tracks, seconds, bytes: u64
+        for index, at in explorer.shown where .places[at].height > 0
+        {
+            let entry = &explorer.entries[index]
+            if not first do
+                first = entry
+            if not cover and entry.texture.isValid() do
+                cover = entry
+            tracks  += 1
+            seconds += entry.duration
+            bytes   += entry.size
+        }
+
+        let coverRect = Math.Rectangle{CellInset, CellInset, CoverSide, CoverSide}
+        painter.fillRoundRect(coverRect, radius, radius, colors.raised)
+        if cover
+        {
+            let texture = cover.texture
+            let tw      = cast(f32, texture.width)
+            let th      = cast(f32, texture.height)
+            let side    = Math.min(tw, th)
+            var brush   = Brush.createTexture(texture)
+            brush.uvMode = .FillSubRect
+            brush.uvRect = Math.Rectangle{(tw - side) * 0.5, (th - side) * 0.5, side, side}
+            painter.fillRoundRect(coverRect, radius, radius, brush)
+        }
+        else
+        {
+            let glyph = .theme().fileGlyph("album.flac", false, 48)
+            glyph.paint(painter, coverRect.horzCenter() - 24, coverRect.vertCenter() - 24, glyph.color.a ? glyph.color : colors.faintText)
+        }
+
+        if not first do
+            return
+        let left  = CellInset + CoverSide + AlbumGap
+        let texts = appStrings()
+        var kind  = String.from(texts.explore_Album)
+        if first.music.date.length >= 4 do
+            kind = Format.toString("% · %", kind, first.music.date.toString()[0 until 4])
+        painter.drawString(left, mono.opticalLineTop(CellInset + 8), String.toUpper(kind.toString(), .Unicode), mono, colors.faintText)
+
+        let titleFont = .theme().createDefaultFont(44, .Bold)
+        var title     = first.music.title.length ? String.from(first.music.title) : explorer.locationName()
+        painter.drawString(left, titleFont.opticalLineTop(CellInset + 48), title, titleFont, colors.text)
+        if first.music.artist.length do
+            painter.drawString(left, body.opticalLineTop(CellInset + 86), first.music.artist, body, colors.softText)
+
+        var facts = Format.toString(texts.explore_Tracks, tracks)
+        if seconds
+        {
+            if seconds >= 3600 do
+                facts = Format.toString("% · %", facts, Format.toString(texts.explore_Length, seconds / 3600, Format.toString("%{02}", (seconds / 60) % 60)))
+            else do
+                facts = Format.toString("% · % min", facts, (seconds + 30) / 60)
+        }
+
+        if bytes do
+            facts = Format.toString("% · %", facts, StrConv.toDisplaySize(bytes))
+        painter.drawString(left, mono.opticalLineTop(CellInset + 114), facts, mono, colors.faintText)
+
+        // The tracks.
+        var number = 0'u64
+        for index, at in explorer.shown
+        {
+            let place = .places[at]
+            if place.height <= 0 do
+                continue
+            number += 1
+            let entry   = &explorer.entries[index]
+            let chosen  = explorer.selected == index
+            let centerY = place.vertCenter()
+            if chosen do
+                painter.fillRoundRect(place, radius, radius, colors.selection)
+            elif .hovered == at do
+                painter.fillRoundRect(place, radius, radius, colors.raised)
+
+            let ink = chosen ? colors.arc : colors.text
+            if chosen do
+                painter.drawString(place.x + 12, body.opticalLineTop(centerY), "▶", body, colors.arc)
+            else
+            {
+                let label = Format.toString("%", number)
+                painter.drawString(place.x + 12, mono.opticalLineTop(centerY), label, mono, colors.faintText)
+            }
+
+            let length = entry.duration ? formatDuration(entry.duration) : String.from("")
+            let lengthWidth = Painter.measureString(length, mono).width
+            painter.drawString(place.right() - 12 - lengthWidth, mono.opticalLineTop(centerY), length, mono, colors.faintText)
+            painter.pushClippingRect(Math.Rectangle{place.x + 48, place.y, Math.max(place.width - 48 - lengthWidth - 32, 0), place.height})
+            painter.drawString(place.x + 48, body.opticalLineTop(centerY), trackTitle(entry.name), body, ink)
+            painter.popClippingRect()
+        }
+    }
+
     // Returns what a file weighs, written at the right of its facts; nothing for a folder.
     mtd sizeText(entry: const *ExplorerEntry)->String
     {
-        if entry.directory or not entry.size or .posters do
+        if entry.directory or not entry.size or .posters or .board == .Covers do
             return {}
         return StrConv.toDisplaySize(entry.size)
     }
@@ -1897,6 +2336,20 @@ impl ExplorerGrid
             return result
         }
 
+        // A cover says who made the album and when.
+        if .board == .Covers and entry.music.title.length
+        {
+            result = entry.music.artist
+            if entry.music.date.length >= 4
+            {
+                if result.length do
+                    result += " · "
+                result += entry.music.date.toString()[0 until 4]
+            }
+
+            return result
+        }
+
         if not entry.movie.date.isEmpty() do
             result = entry.movie.date.toString()[0 until Math.min(entry.movie.date.length, 4'u64)]
         if entry.duration
@@ -1916,6 +2369,23 @@ impl ExplorerGrid
 
     mtd visibleRange()->{first: u64, end: u64}
     {
+        if .board == .Mosaic or .board == .Album
+        {
+            let top    = .scrollPos.y
+            let bottom = top + .clientRect().height
+            var first  = Swag.U64.Max
+            var end    = 0'u64
+            for place, row in .places where place.height > 0 and place.bottom() >= top and place.y <= bottom
+            {
+                first = Math.min(first, row)
+                end   = row + 1
+            }
+
+            if first == Swag.U64.Max do
+                return {first: 0, end: 0}
+            return {first: first, end: end}
+        }
+
         let first = cast(u64, Math.max(0.0, .scrollPos.y - CellInset) / .cell.y) * .columns
         let rows  = cast(u64, Math.max(0.0, .clientRect().height) / .cell.y) + 2
         return {first: Math.min(first, .explorer.shown.count), end: Math.min(first + rows * .columns, .explorer.shown.count)}
@@ -1947,11 +2417,13 @@ impl ExplorerGrid
         .explorer.showMediaInfo()
         if .rows do
             .explorer.requestPreview()
-        let top = CellInset + cast(f32, row / .columns) * .cell.y
+        let place = .tileRect(row)
+        let top   = .rows ? CellInset + cast(f32, row) * .cell.y : place.y - CellInset
+        let reach = .rows ? .cell.y : place.height + (.board == .Mosaic or .board == .Album ? 0 : TextBand)
         if top < .scrollPos.y do
             .explorer.scroll.setScrollPos(0, top)
-        elif top + .cell.y > .scrollPos.y + .clientRect().height do
-            .explorer.scroll.setScrollPos(0, top + .cell.y - .clientRect().height)
+        elif top + reach > .scrollPos.y + .clientRect().height do
+            .explorer.scroll.setScrollPos(0, top + reach - .clientRect().height)
         .invalidate()
     }
 }
@@ -1986,8 +2458,17 @@ impl IWnd for ExplorerGrid
         }
 
         .busy.fill(false)
-        for row in range.first until range.end do
-            .paintTile(painter, row)
+        if .board == .Album
+        {
+            .paintAlbum(painter)
+        }
+        else
+        {
+            if .board == .Mosaic do
+                .paintDays(painter)
+            for row in range.first until range.end do
+                .paintTile(painter, row)
+        }
 
         for spinner, slot in .spinners do
             spinner.show(.busy[slot])

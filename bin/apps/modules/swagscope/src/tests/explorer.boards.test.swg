@@ -180,3 +180,91 @@ func addPictured(host: *Testing.HeadlessHost, explorer: *Explorer, name: string,
     var image = host.render(window)
     Pixel.Testing.assertImageGolden(&image, "explorer.films")
 }
+
+// A music library: square covers, the album, then who made it and when in mono.
+#[Swag.TestTag("golden")]
+#test
+{
+    var host: Testing.HeadlessHost
+    let window   = boardWindow(&host, false, films: false)
+    let explorer = unwrap window.explorer
+    let albums:  [8] string = ["Discovery", "Random Access Memories", "In Rainbows", "Kid A", "Moon Safari", "Homework", "Currents", "Blue Lines"]
+    let artists: [8] string = ["Daft Punk", "Daft Punk", "Radiohead", "Radiohead", "Air", "Daft Punk", "Tame Impala", "Massive Attack"]
+    let years:   [8] string = ["2001", "2013", "2007", "2000", "1998", "1997", "2015", "1991"]
+    let tops:    [8] u32    = [0x2A1A4A, 0x2A2418, 0xF0B050, 0xD8E2EA, 0xEDE6D2, 0x141414, 0x4A2A6A, 0x14305A]
+    let bottoms: [8] u32    = [0xD8508A, 0xC8A040, 0xE04848, 0x5A7A96, 0x7A98C0, 0x3A3A3A, 0xE07038, 0x3A78C0]
+    for album, index in albums
+    {
+        addPictured(&host, explorer, Format.toString("%.flac", album), boardPicture(96, 96, tops[index], bottoms[index]), 30 * 1024 * 1024)
+        let last = explorer.entries.count - 1
+        explorer.entries[last].music = {title: album, artist: artists[index], date: years[index]}
+    }
+
+    explorer.selected = 0
+    showBoard(&host, window, "Music", "Albums")
+    let grid = explorer.grid
+    Swag.assert(grid.board == .Covers and grid.tile.x == grid.tile.y)
+    var image = host.render(window)
+    Pixel.Testing.assertImageGolden(&image, "explorer.music")
+}
+
+// One album: its cover large with Play and Shuffle, then its kind and year, its title, who made
+// it, its facts, and its tracks with their lengths in mono, the chosen one led by ▶ on the Arc ground.
+#[Swag.TestTag("golden")]
+#test
+{
+    for light in [false, true]
+    {
+        var host: Testing.HeadlessHost
+        let window   = boardWindow(&host, light, films: false)
+        let explorer = unwrap window.explorer
+        let tracks:  [10] string = ["One More Time", "Aerodynamic", "Digital Love", "Harder, Better, Faster, Stronger", "Crescendolls",
+                                    "Nightvision", "Superheroes", "High Life", "Something About Us", "Voyager"]
+        let lengths: [10] u64    = [320, 207, 298, 224, 211, 104, 237, 201, 231, 227]
+        for track, index in tracks
+        {
+            let file = Format.toString("%{02} - %.flac", index + 1, track)
+            if index == 0 do
+                addPictured(&host, explorer, file, boardPicture(120, 120, 0x24184A, 0xD8508A), 30 * 1024 * 1024, lengths[index])
+            else do
+                explorer.entries.add({name: file, path: file, size: 30 * 1024 * 1024, duration: lengths[index], attempted: true})
+            let last = explorer.entries.count - 1
+            explorer.entries[last].music = {title: "Discovery", artist: "Daft Punk", date: "2001-03-12"}
+        }
+
+        explorer.selected = 2
+        showBoard(&host, window, "Music / Daft Punk", "Discovery")
+        let grid = explorer.grid
+        Swag.assert(grid.board == .Album and grid.playButton!.isLocallyVisible() and not explorer.title.isLocallyVisible())
+        Swag.assert(trackTitle("03 - Digital Love.flac") == "Digital Love")
+        var image = host.render(window)
+        Pixel.Testing.assertImageGolden(&image, light ? "explorer.album.paper" : "explorer.album")
+    }
+}
+
+// Photographs: a justified mosaic that keeps every shape, a day after another under its label
+// and its count.
+#[Swag.TestTag("golden")]
+#test
+{
+    var host: Testing.HeadlessHost
+    let window   = boardWindow(&host, false, films: false)
+    let explorer = unwrap window.explorer
+    let widths:  [12] s32 = [180, 150, 96, 180, 150, 150, 180, 120, 96, 200, 150, 150]
+    let heights: [12] s32 = [96, 100, 128, 96, 100, 100, 100, 100, 128, 100, 100, 100]
+    let tops:    [12] u32 = [0x34452E, 0xC88A48, 0x203050, 0x4A2A2A, 0x7090B8, 0x222222, 0x305050, 0x9A6A34, 0x1C4A44, 0x24385A, 0x4A3A24, 0x5A3A7A]
+    let bottoms: [12] u32 = [0x7AA06A, 0xF0D098, 0x4A6A9A, 0xB0645A, 0xEAE4D8, 0x4A4A4A, 0x98C0B8, 0xE0A060, 0xD8B460, 0x8AB0D8, 0xB89A70, 0xD898C8]
+    for i in 12
+    {
+        addPictured(&host, explorer, Format.toString("IMG_20%.jpg", 41 + i), boardPicture(widths[i], heights[i], tops[i], bottoms[i]), 4 * 1024 * 1024)
+        explorer.entries[explorer.entries.count - 1].modified = i < 8 ? "2026-10-21 10:00" : "2026-10-22 10:00"
+    }
+
+    explorer.selected = 2
+    showBoard(&host, window, "Pictures", "Brittany 2026")
+    let grid = explorer.grid
+    Swag.assert(grid.board == .Mosaic and grid.days.count == 2 and grid.days[0].count == 8)
+    Swag.assert(grid.days[0].text == "Wednesday 21 October")
+    var image = host.render(window)
+    Pixel.Testing.assertImageGolden(&image, "explorer.photos")
+}

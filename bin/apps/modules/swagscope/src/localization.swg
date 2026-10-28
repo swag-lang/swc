@@ -32,6 +32,12 @@ struct AppStrings
     explore_Synopsis:          string = "Synopsis"
     explore_Length:            string = "% h %"                      // Length of a film under its poster: hours, then minutes.
     explore_Sources:           string = "Sources"                    // Reading naming who provided what the sheet says of a film.
+    explore_Album:             string = "Album"                      // Kind of the folder an album page shows, before its year.
+    explore_Tracks:            string = "% tracks"                   // How many tracks an album holds.
+    explore_Play:              string = "Play"                       // Button playing an album from its first track.
+    explore_Shuffle:           string = "Shuffle"                    // Button playing an album in an order drawn by chance.
+    explore_Weekdays:          string = "Sunday Monday Tuesday Wednesday Thursday Friday Saturday"     // Days of a mosaic of pictures, from Sunday, separated by spaces.
+    explore_Months:            string = "January February March April May June July August September October November December"     // Months of a mosaic of pictures, separated by spaces.
     explore_File:              string = "File"                       // Reading of the kind and weight of the file a film is in.
     explore_Artist:            string = "Artist"
     explore_FirstRelease:      string = "First release"

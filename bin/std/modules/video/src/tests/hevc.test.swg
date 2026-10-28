@@ -685,6 +685,62 @@ using Core, Core.Errors, Pixel
     }
 }
 
+// The horizontal angular edge correction rounds signed differences and clips
+// to the bit-depth range without writing beyond the row.
+#test
+{
+    var reference: Hevc.IntraReference
+    var output: [16 * 16 + 1] u16
+    var seed = 0x7DB21349'u32
+    for bitDepth in [8'u32, 10]
+    {
+        let maximum = cast(s32, ((1'u32 << bitDepth) - 1))
+        for size in [4'u32, 8, 16]
+        {
+            reference.size = size
+            for iteration in 128'u32
+            {
+                seed = seed * #wrap 1664525 + #wrap 1013904223
+                let corner = iteration == 0 ? maximum : cast(s32, ((seed >> 16) & cast(u32, maximum)))
+                seed = seed * #wrap 1664525 + #wrap 1013904223
+                let left = iteration == 0 ? 0 : cast(s32, ((seed >> 16) & cast(u32, maximum)))
+                reference.setCorner(cast(u16, corner))
+                reference.setLeft(0, cast(u16, left))
+                for x in size
+                {
+                    seed = seed * #wrap 1664525 + #wrap 1013904223
+                    reference.setTop(x, cast(u16, ((seed >> 16) & cast(u32, maximum))))
+                    if x != 0
+                    {
+                        seed = seed * #wrap 1664525 + #wrap 1013904223
+                        reference.setLeft(x, cast(u16, ((seed >> 16) & cast(u32, maximum))))
+                    }
+                }
+                output[size] = 0x5A5A
+                Hevc.blendAngularTopEdge(&reference, &output[0], size, maximum)
+                for x in size
+                {
+                    let expected = Math.clamp(left + ((cast(s32, reference.top(x)) - corner) >> 1), 0, maximum)
+                    Swag.assert(output[x] == cast(u16, expected))
+                }
+                Swag.assert(output[size] == 0x5A5A)
+                for index in size * size + 1 do
+                    output[index] = 0x5A5A
+                Hevc.blendAngularLeftEdge(&reference, &output[0], size, maximum)
+                let top = cast(s32, reference.top(0))
+                for y in size
+                {
+                    let expected = Math.clamp(top + ((cast(s32, reference.left(y)) - corner) >> 1), 0, maximum)
+                    Swag.assert(output[y * size] == cast(u16, expected))
+                    for x in 1 until size do
+                        Swag.assert(output[y * size + x] == 0x5A5A)
+                }
+                Swag.assert(output[size * size] == 0x5A5A)
+            }
+        }
+    }
+}
+
 // DC prediction fills the whole block, then blends only the luma edges of
 // blocks smaller than 32 samples. Keep the next sample untouched.
 #test

@@ -318,6 +318,76 @@ func prepareAngularMain(reference: const *IntraReference, main: [*] u16, size: u
     }
 }
 
+// The corresponding vertical edge is strided in the output block. Reverse
+// the contiguous reference lanes, then scatter only the corrected column.
+#[Swag.NoInline]
+func blendAngularLeftEdge(reference: const *IntraReference, destination: [*] u16, size: u32, maximum: s32)
+{
+    let top = Simd.splat(cast(s16, reference.top(0)))
+    let corner = Simd.splat(cast(s16, reference.corner()))
+    let zero = Simd.splat(0's16)
+    let max = Simd.splat(cast(s16, maximum))
+    if size == 4
+    {
+        let input = cast #bit(Simd.U8x16, Simd.splat(cast(const [*] u64, &reference.samples[2 * size - 4])[0]))
+        let left = cast #bit(Simd.S16x8, Simd.shuffle(input, ReverseIntraFour))
+        let values = cast #bit(Simd.U16x8, Math.max(Math.min(top + ((left - corner) >> 1), max), zero))
+        let packed = cast #bit(Simd.U64x2, values)[0]
+        destination[0] = cast #wrap(u16, packed)
+        destination[size] = cast #wrap(u16, (packed >> 16))
+        destination[2 * size] = cast #wrap(u16, (packed >> 32))
+        destination[3 * size] = cast #wrap(u16, (packed >> 48))
+        return
+    }
+    var y = 0'u32
+    while y < size
+    {
+        let input = cast #bit(Simd.U8x16, Simd.load(&reference.samples[2 * size - y - 8]))
+        let left = cast #bit(Simd.S16x8, Simd.shuffle(input, ReverseIntraWords))
+        let values = cast #bit(Simd.U16x8, Math.max(Math.min(top + ((left - corner) >> 1), max), zero))
+        let packed = cast #bit(Simd.U64x2, values)
+        let low = packed[0]
+        let high = packed[1]
+        let out = destination + y * size
+        out[0] = cast #wrap(u16, low)
+        out[size] = cast #wrap(u16, (low >> 16))
+        out[2 * size] = cast #wrap(u16, (low >> 32))
+        out[3 * size] = cast #wrap(u16, (low >> 48))
+        out[4 * size] = cast #wrap(u16, high)
+        out[5 * size] = cast #wrap(u16, (high >> 16))
+        out[6 * size] = cast #wrap(u16, (high >> 32))
+        out[7 * size] = cast #wrap(u16, (high >> 48))
+        y += 8
+    }
+}
+
+// The pure horizontal mode corrects its top row from the opposite reference.
+// Samples and differences stay within signed 16-bit lanes at ten bits.
+#[Swag.NoInline]
+func blendAngularTopEdge(reference: const *IntraReference, destination: [*] u16, size: u32, maximum: s32)
+{
+    let left = Simd.splat(cast(s16, reference.left(0)))
+    let corner = Simd.splat(cast(s16, reference.corner()))
+    let zero = Simd.splat(0's16)
+    let max = Simd.splat(cast(s16, maximum))
+    let source = cast(const [*] u16, &reference.samples[2 * size + 1])
+    if size == 4
+    {
+        let top = cast #bit(Simd.S16x8, Simd.splat(cast(const [*] u64, source)[0]))
+        let values = Math.max(Math.min(left + ((top - corner) >> 1), max), zero)
+        cast([*] u64, destination)[0] = cast #bit(Simd.U64x2, values)[0]
+        return
+    }
+    var x = 0'u32
+    while x < size
+    {
+        let top = cast #bit(Simd.S16x8, Simd.load(source + x))
+        let values = Math.max(Math.min(left + ((top - corner) >> 1), max), zero)
+        Simd.store(destination + x, cast #bit(Simd.U16x8, values))
+        x += 8
+    }
+}
+
 impl Decoder
 {
     // Predicts one intra transform block into `.predSamples`, clause 8.4.4.2.
@@ -655,16 +725,13 @@ impl Decoder
         if component != 0 or size >= 32 do
             return
 
-        let corner = cast(s32, reference.corner())
         if mode == IntraAngular26
         {
-            for y in size do
-                .predSamples[y * size] = cast(u16, Math.clamp(cast(s32, reference.top(0)) + ((cast(s32, reference.left(y)) - corner) >> 1), 0, maximum))
+            blendAngularLeftEdge(reference, &.predSamples[0], size, maximum)
         }
         elif mode == IntraAngular10
         {
-            for x in size do
-                .predSamples[x] = cast(u16, Math.clamp(cast(s32, reference.left(0)) + ((cast(s32, reference.top(x)) - corner) >> 1), 0, maximum))
+            blendAngularTopEdge(reference, &.predSamples[0], size, maximum)
         }
     }
 }

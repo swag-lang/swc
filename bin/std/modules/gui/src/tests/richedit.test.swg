@@ -428,3 +428,20 @@ impl IRichEditLexer for CountingLexer
     ed.undo()
     Swag.assert(moves == 4 and ed.cursorLogicalCharPos() == 4)
 }
+
+// The air kept past the caret widens a document whose lines overflow the view, and never makes a
+// document whose every line fits scroll for it.
+#test
+{
+    var host: Testing.HeadlessHost
+    host.setup(320, 220)
+    let ed = RichEditCtrl.create(&host.root, {0, 0, 300, 200})
+    ed.setText("a short line")
+    discard host.render(ed)
+    let view = ed.scrollWnd.paddedClientRect().width - ed.scrollWnd.paddingZ
+    Swag.assert(ed.scrollWnd.scrollSize.x <= view)
+
+    ed.setText("0123456789 0123456789 0123456789 0123456789 0123456789 0123456789 0123456789 0123456789 0123456789 0123456789 0123456789 0123456789")
+    discard host.render(ed)
+    Swag.assert(ed.scrollWnd.scrollSize.x > view)
+}

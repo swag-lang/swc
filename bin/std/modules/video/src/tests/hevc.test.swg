@@ -448,6 +448,88 @@ using Core, Core.Errors, Pixel
     }
 }
 
+// Compare all four transposed luma lines to the scalar filter, including the
+// weak-filter rejection and both optional sides. Sentinel samples surround each row.
+#test
+{
+    const Stride = 13'u64
+    var decoder: Hevc.Decoder
+    var samples: [Stride * 4] u16
+    var expected: [Stride * 4] u16
+    var seed = 0x15BDE271'u32
+    for bitDepth in [8'u32, 10]
+    {
+        let maximum = cast(s32, ((1'u32 << bitDepth) - 1))
+        for tc in [1's32, 2, 16, 96]
+        {
+            for strong in [false, true]
+            {
+                for filterP in [false, true]
+                {
+                    for filterQ in [false, true]
+                    {
+                        for 128
+                        {
+                            for index in samples.count
+                            {
+                                seed = seed * #wrap 1664525 + #wrap 1013904223
+                                samples[index] = cast(u16, ((seed >> 16) & cast(u32, maximum)))
+                                expected[index] = samples[index]
+                            }
+                            for row in 4'u64
+                            {
+                                let base = row * Stride + 5
+                                let p3 = cast(s32, expected[base - 4])
+                                let p2 = cast(s32, expected[base - 3])
+                                let p1 = cast(s32, expected[base - 2])
+                                let p0 = cast(s32, expected[base - 1])
+                                let q0 = cast(s32, expected[base])
+                                let q1 = cast(s32, expected[base + 1])
+                                let q2 = cast(s32, expected[base + 2])
+                                let q3 = cast(s32, expected[base + 3])
+                                if strong
+                                {
+                                    let limit = 2 * tc
+                                    expected[base - 1] = cast(u16, Math.clamp((p2 + 2 * p1 + 2 * p0 + 2 * q0 + q1 + 4) >> 3, p0 - limit, p0 + limit))
+                                    expected[base - 2] = cast(u16, Math.clamp((p2 + p1 + p0 + q0 + 2) >> 2, p1 - limit, p1 + limit))
+                                    expected[base - 3] = cast(u16, Math.clamp((2 * p3 + 3 * p2 + p1 + p0 + q0 + 4) >> 3, p2 - limit, p2 + limit))
+                                    expected[base]     = cast(u16, Math.clamp((p1 + 2 * p0 + 2 * q0 + 2 * q1 + q2 + 4) >> 3, q0 - limit, q0 + limit))
+                                    expected[base + 1] = cast(u16, Math.clamp((p0 + q0 + q1 + q2 + 2) >> 2, q1 - limit, q1 + limit))
+                                    expected[base + 2] = cast(u16, Math.clamp((p0 + q0 + q1 + 3 * q2 + 2 * q3 + 4) >> 3, q2 - limit, q2 + limit))
+                                }
+                                else
+                                {
+                                    var delta = (9 * (q0 - p0) - 3 * (q1 - p1) + 8) >> 4
+                                    if Math.abs(delta) < tc * 10
+                                    {
+                                        delta = Math.clamp(delta, -tc, tc)
+                                        expected[base - 1] = cast(u16, Math.clamp(p0 + delta, 0, maximum))
+                                        expected[base] = cast(u16, Math.clamp(q0 - delta, 0, maximum))
+                                        if filterP
+                                        {
+                                            let half = tc >> 1
+                                            let move = Math.clamp((((p2 + p0 + 1) >> 1) - p1 + delta) >> 1, -half, half)
+                                            expected[base - 2] = cast(u16, Math.clamp(p1 + move, 0, maximum))
+                                        }
+                                        if filterQ
+                                        {
+                                            let half = tc >> 1
+                                            let move = Math.clamp((((q2 + q0 + 1) >> 1) - q1 - delta) >> 1, -half, half)
+                                            expected[base + 1] = cast(u16, Math.clamp(q1 + move, 0, maximum))
+                                        }
+                                    }
+                                }
+                            }
+                            decoder.filterLumaVerticalQuad(&samples[5], cast(s64, Stride), strong, filterP, filterQ, tc, maximum)
+                            Swag.assert(samples == expected)
+                        }
+                    }
+                }
+            }
+        }
+    }
+}
+
 // A stream can begin at a clean random access point whose leading pictures predict from what came
 // before it. Those pictures are decoded from references that were never there, and clause 8.1.3
 // says not to show them: they precede the point in output order, so keeping them would put wrong

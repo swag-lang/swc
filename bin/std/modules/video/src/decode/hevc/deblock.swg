@@ -427,58 +427,51 @@ impl Decoder
             return
         }
 
-        var line = origin
-        for 4'u32
-        {
-            let p0 = cast(s32, line[-crossStep])
-            let p1 = cast(s32, line[-2 * crossStep])
-            let p2 = cast(s32, line[-3 * crossStep])
-            let q0 = cast(s32, line[0])
-            let q1 = cast(s32, line[crossStep])
-            let q2 = cast(s32, line[2 * crossStep])
+        .filterLumaVerticalQuad(origin, stride, strong, filterP, filterQ, tc, maximum)
+    }
 
-            if strong
-            {
-                let p3    = cast(s32, line[-4 * crossStep])
-                let q3    = cast(s32, line[3 * crossStep])
-                let limit = 2 * tc
-                line[-crossStep]     = cast(u16, Math.clamp((p2 + 2 * p1 + 2 * p0 + 2 * q0 + q1 + 4) >> 3, p0 - limit, p0 + limit))
-                line[-2 * crossStep] = cast(u16, Math.clamp((p2 + p1 + p0 + q0 + 2) >> 2, p1 - limit, p1 + limit))
-                line[-3 * crossStep] = cast(u16, Math.clamp((2 * p3 + 3 * p2 + p1 + p0 + q0 + 4) >> 3, p2 - limit, p2 + limit))
-                line[0]              = cast(u16, Math.clamp((p1 + 2 * p0 + 2 * q0 + 2 * q1 + q2 + 4) >> 3, q0 - limit, q0 + limit))
-                line[crossStep]      = cast(u16, Math.clamp((p0 + q0 + q1 + q2 + 2) >> 2, q1 - limit, q1 + limit))
-                line[2 * crossStep]  = cast(u16, Math.clamp((p0 + q0 + q1 + 3 * q2 + 2 * q3 + 4) >> 3, q2 - limit, q2 + limit))
-                line                 += lineStep
-                continue
-            }
+    // Vertical edges are eight samples apart and bands are four rows high, so each
+    // transposed segment owns its full eight-sample rows even when bands run in parallel.
+    // The last four scratch samples also keep the filter's wide loads in bounds.
+    #[Swag.NoInline]
+    mtd filterLumaVerticalQuad(line: [*] u16, stride: s64, strong, filterP, filterQ: bool, tc, maximum: s32)
+    {
+        let start = line - 4
+        let r0 = Simd.load(start)
+        let r1 = Simd.load(start + stride)
+        let r2 = Simd.load(start + 2 * stride)
+        let r3 = Simd.load(start + 3 * stride)
+        let a0 = Simd.interleaveLow(r0, r1)
+        let a1 = Simd.interleaveLow(r2, r3)
+        let a2 = Simd.interleaveHigh(r0, r1)
+        let a3 = Simd.interleaveHigh(r2, r3)
+        var columns: [40] u16
+        Simd.store(&columns[0], cast #bit(Simd.U16x8, Simd.interleaveLow(cast #bit(Simd.U32x4, a0), cast #bit(Simd.U32x4, a1))))
+        Simd.store(&columns[8], cast #bit(Simd.U16x8, Simd.interleaveHigh(cast #bit(Simd.U32x4, a0), cast #bit(Simd.U32x4, a1))))
+        Simd.store(&columns[16], cast #bit(Simd.U16x8, Simd.interleaveLow(cast #bit(Simd.U32x4, a2), cast #bit(Simd.U32x4, a3))))
+        Simd.store(&columns[24], cast #bit(Simd.U16x8, Simd.interleaveHigh(cast #bit(Simd.U32x4, a2), cast #bit(Simd.U32x4, a3))))
+        .filterLumaQuad(&columns[16], 4, strong, filterP, filterQ, tc, maximum)
 
-            var delta = (9 * (q0 - p0) - 3 * (q1 - p1) + 8) >> 4
-            if Math.abs(delta) >= tc * 10
-            {
-                line += lineStep
-                continue
-            }
-
-            delta   = Math.clamp(delta, -tc, tc)
-            line[-crossStep] = cast(u16, Math.clamp(p0 + delta, 0, maximum))
-            line[0] = cast(u16, Math.clamp(q0 - delta, 0, maximum))
-
-            if filterP
-            {
-                let half  = tc >> 1
-                let value = Math.clamp((((p2 + p0 + 1) >> 1) - p1 + delta) >> 1, -half, half)
-                line[-2 * crossStep] = cast(u16, Math.clamp(p1 + value, 0, maximum))
-            }
-
-            if filterQ
-            {
-                let half  = tc >> 1
-                let value = Math.clamp((((q2 + q0 + 1) >> 1) - q1 - delta) >> 1, -half, half)
-                line[crossStep] = cast(u16, Math.clamp(q1 + value, 0, maximum))
-            }
-
-            line += lineStep
-        }
+        let b0 = Simd.load(&columns[0])
+        let b1 = Simd.load(&columns[8])
+        let b2 = Simd.load(&columns[16])
+        let b3 = Simd.load(&columns[24])
+        let c0 = cast #bit(Simd.U16x8, Simd.interleaveLow(cast #bit(Simd.U64x2, b0), cast #bit(Simd.U64x2, b1)))
+        let c1 = cast #bit(Simd.U16x8, Simd.interleaveHigh(cast #bit(Simd.U64x2, b0), cast #bit(Simd.U64x2, b1)))
+        let c2 = cast #bit(Simd.U16x8, Simd.interleaveLow(cast #bit(Simd.U64x2, b2), cast #bit(Simd.U64x2, b3)))
+        let c3 = cast #bit(Simd.U16x8, Simd.interleaveHigh(cast #bit(Simd.U64x2, b2), cast #bit(Simd.U64x2, b3)))
+        let d0 = Simd.interleaveLow(c0, c1)
+        let d1 = Simd.interleaveHigh(c0, c1)
+        let d2 = Simd.interleaveLow(c2, c3)
+        let d3 = Simd.interleaveHigh(c2, c3)
+        let e0 = Simd.interleaveLow(cast #bit(Simd.U32x4, d0), cast #bit(Simd.U32x4, d1))
+        let e1 = Simd.interleaveHigh(cast #bit(Simd.U32x4, d0), cast #bit(Simd.U32x4, d1))
+        let e2 = Simd.interleaveLow(cast #bit(Simd.U32x4, d2), cast #bit(Simd.U32x4, d3))
+        let e3 = Simd.interleaveHigh(cast #bit(Simd.U32x4, d2), cast #bit(Simd.U32x4, d3))
+        Simd.store(start, cast #bit(Simd.U16x8, Simd.interleaveLow(cast #bit(Simd.U64x2, e0), cast #bit(Simd.U64x2, e2))))
+        Simd.store(start + stride, cast #bit(Simd.U16x8, Simd.interleaveHigh(cast #bit(Simd.U64x2, e0), cast #bit(Simd.U64x2, e2))))
+        Simd.store(start + 2 * stride, cast #bit(Simd.U16x8, Simd.interleaveLow(cast #bit(Simd.U64x2, e1), cast #bit(Simd.U64x2, e3))))
+        Simd.store(start + 3 * stride, cast #bit(Simd.U16x8, Simd.interleaveHigh(cast #bit(Simd.U64x2, e1), cast #bit(Simd.U64x2, e3))))
     }
 
     // Filters the four lines of one horizontal luma edge segment at once, clause 8.7.2.5.7.

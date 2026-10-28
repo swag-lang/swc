@@ -85,14 +85,15 @@ impl OptionRow
     }
 
     // Lays the paragraph out at `width` and returns where the choice stands in it: after its last
-    // word on the same line, or at the start of the next one when the line is full. The words of
-    // the choice line up with the words of the paragraph.
+    // word on the same line, or at the start of the next one when the line cannot hold it and the
+    // words that follow it. The words of the choice line up with the words of the paragraph.
     private mtd choiceRect(width: f32)->Math.Rectangle
     {
         let chooser = unwrap .choice
         let size    = chooser.measure({}).preferred
-        let inset   = .themeMetrics().comboBox_Padding
+        let inset   = chooser.padding.x
         let font    = unwrap .help.font().regular
+        let tail    = Painter.measureString(.choiceTail, font).width - chooser.padding.z
 
         discard .help.measure(Math.Point{width, 0})
         var lineEnd, lineTop: f32
@@ -105,7 +106,7 @@ impl OptionRow
         }
 
         var x = lineEnd + Painter.measureString(" ", font).width - inset
-        if x + size.x > width
+        if x + size.x + tail > width
         {
             x       = -inset
             lineTop += lineHeight
@@ -139,11 +140,8 @@ impl OptionRow
             rect.offset(.help.position.x, .help.position.y)
             .choice.arrange(rect)
 
-            // The words go on right after the chevron, which stands in the middle of the band the
-            // choice keeps at its end.
-            let metrics = .themeMetrics()
-            let chevron = rect.right() - (metrics.comboBox_RightMargin - metrics.chevron_Size) * 0.5
-            .tailPos = Math.Point{chevron, rect.vertCenter()}
+            // The words go on right after the chevron, where the choice's own air begins.
+            .tailPos = Math.Point{rect.right() - .choice.padding.z, rect.vertCenter()}
         }
     }
 }
@@ -193,15 +191,19 @@ struct OptionsPage
         lock:    *OptionRow
         suspend: *OptionRow
         idle:    *OptionRow
-        timeout: *ComboBox
+        timeout: *IconButton
     }
 
-    head: PageHead
+    head:         PageHead
+    timeoutIndex: u32 = MainWindow.IdleDefaultIndex     // Entry of `MainWindow.IdleChoices` the delay says.
 }
 
 impl OptionsPage
 {
     const RowPadding = 16'f32     // Air above and below the words of a row, on each side of its hairline.
+
+    // Commands of the delay's menu, one per entry of `MainWindow.IdleChoices`.
+    const TimeoutIds = ["vault.idle.5", "vault.idle.15", "vault.idle.30", "vault.idle.60"]
 
     // Creates the page in `window`, hidden.
     func create(window: *MainWindow)->*OptionsPage
@@ -224,12 +226,11 @@ impl OptionsPage
         result.suspend = result.addRow(texts.ui_UnmountOnSuspend, texts.ui_UnmountOnSuspendHelp)
         result.idle    = result.addRow(texts.ui_UnmountOnIdle, texts.ui_UnmountOnIdleHelp)
 
-        // The delay is as wide as the words it shows, not as a field of a form.
-        with result.timeout = ComboBox.create(result.idle, Math.Rectangle{0, 0, 0, result.themeMetrics().comboBox_Height}, flags: .Flat)
+        // The delay is a quiet word of the sentence, underlined so it reads as the one to change.
+        with result.timeout = IconButton.createQuiet(result.idle, "vault.idleTimeout")
         {
-            .preferredSize.x = 0
-            .style.setStyleSheetMetrics("comboBox_Width 0")
-            .sigChanged += func|window|(_, _) { window.readAutoUnmountControls() }
+            .updateFlags(.Underline)
+            .sigPressed += func|page = result|(_) { page.chooseTimeout() }
         }
 
         result.idle.setChoice(result.timeout)
@@ -269,10 +270,30 @@ impl OptionsPage
         .lock.setTexts(texts.ui_UnmountOnLock, texts.ui_UnmountOnLockHelp)
         .suspend.setTexts(texts.ui_UnmountOnSuspend, texts.ui_UnmountOnSuspendHelp)
         .idle.setTexts(texts.ui_UnmountOnIdle, texts.ui_UnmountOnIdleHelp)
-        .timeout.clear()
-        for minutes in MainWindow.IdleChoices do
-            .timeout.addItem(Format.toString(texts.ui_Minutes, minutes))
+        .setTimeout(.timeoutIndex)
+    }
+
+    // Says the delay of entry `index` of `MainWindow.IdleChoices` in its sentence.
+    mtd setTimeout(index: u32)
+    {
+        .timeoutIndex = index
+        .timeout.setQuietText(Format.toString(appStrings().ui_Minutes, MainWindow.IdleChoices[index]))
         .arrange()
+    }
+
+    // Offers the delays under the word, the one in force checked, and keeps the one chosen.
+    mtd chooseTimeout()
+    {
+        let menu = MenuCtrl.createPopup(me, owner: me)
+        for id, index in TimeoutIds do
+            menu.addRadioItem(Format.toString(appStrings().ui_Minutes, MainWindow.IdleChoices[index]), id, checked: index == .timeoutIndex)
+
+        let chosen = menu.doModal(.timeout, autoDestroy: true) orelse ""
+        for id, index in TimeoutIds where chosen == id
+        {
+            .setTimeout(cast(u32, index))
+            .window.readAutoUnmountControls()
+        }
     }
 
     // Places the column at the head of the page.

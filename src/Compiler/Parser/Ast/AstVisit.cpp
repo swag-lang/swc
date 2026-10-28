@@ -132,10 +132,6 @@ AstVisitResult AstVisit::stepPreStage(Frame& frame)
 
     collectChildren(frame);
 
-    frame.preChildState    = Frame::CallState::NotCalled;
-    frame.pendingPostChild = false;
-    frame.postChildState   = Frame::CallState::NotCalled;
-
     frame.stage = frame.numChildren ? Frame::Stage::Children : Frame::Stage::Post;
     return AstVisitResult::Continue;
 }

@@ -1,12 +1,18 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- Swag Prism toolbar icon set, vector source. Generic actions live in the GUI theme atlas.
+     Every glyph is an original outline drawn on a 16-unit grid: strokes of 1.4 with round caps
+     and joins, and no fill except for a deliberate dot, mark, or media triangle. Each glyph is
+     placed in a 24-unit cell of the sheet, row by row in PrismIcon order, and scaled by one and
+     a half so it fills its cell: a glyph displayed at 16 pixels is drawn with a stroke of
+     exactly 1.4 pixels, as in the GUI theme atlas. The application rasterizes this document on
+     demand at any requested icon size and scale and tints it at draw time, so everything is
+     white. -->
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 48 24">
-  <!-- Two independent viewer panels, on the shared 24-unit icon grid. -->
-  <g fill="none" stroke="#ffffff" stroke-width="2" stroke-linejoin="round">
-    <rect x="2" y="4" width="8" height="16" rx="1"/>
-    <rect x="14" y="4" width="8" height="16" rx="1"/>
-    <path d="M2 8h8M14 8h8"/>
+  <g id="Layout" transform="translate(0 0) scale(1.5)" fill="none" stroke="#ffffff" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round">
+    <rect x="2.5" y="3" width="11" height="10" rx="1.5"/>
+    <path d="M8 3v10"/>
   </g>
-  <!-- Indented lines and a leading arrow identify source formatting. -->
-  <g transform="translate(24 0)" fill="none" stroke="#ffffff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-    <path d="M3 4h18M10 9h11M10 14h8M3 20h18M3 9l3 3-3 3"/>
+  <g id="Format" transform="translate(24 0) scale(1.5)" fill="none" stroke="#ffffff" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M2.5 3.5h11M7.5 6.8h6M7.5 9.6h4M2.5 12.8h11M2.5 6.5l2 1.7-2 1.7"/>
   </g>
 </svg>

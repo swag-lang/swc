@@ -31,10 +31,9 @@ impl ViewerWindow
         .pendingEmpty.clear()
         .pendingRemember = remember
 
-        // The hint to drop a file is not what a window opening one should paint first: hidden
-        // now, the first frame shows the surface the document is about to fill, and the hint's
-        // glyph is never rasterized for a launch that names its file.
-        .emptyView.hide()
+        // The home is not what a window opening a file should paint first: hidden now, the first
+        // frame shows the surface the document is about to fill.
+        .home.hide()
         .hintLine.hide()
         if .explorer
         {
@@ -91,7 +90,7 @@ impl ViewerWindow
             if .choiceLoad.fileName != .pendingFile
             {
                 discard .choiceLoad.finish()
-                .choiceLoad.start(&.index, .pendingFile, .recent.toSlice(), me, includeNeighbors: not .thumbnailMode)
+                .choiceLoad.start(&.index, .pendingFile, me, includeNeighbors: not .thumbnailMode)
                 return
             }
 
@@ -142,7 +141,7 @@ impl ViewerWindow
             return
         }
 
-        .choiceLoad.start(&.index, .pendingFile, .recent.toSlice(), me, includeNeighbors: not .thumbnailMode)
+        .choiceLoad.start(&.index, .pendingFile, me, includeNeighbors: not .thumbnailMode)
     }
 
     mtd chooseFile()
@@ -205,10 +204,10 @@ impl ViewerWindow
             discard .choiceLoad.finish()
         .stopLoadingIndicator()
 
-        .emptyLabel.setText(Format.toString("<b>%</b>", message))
-        .emptyView.show()
+        .home.setMessage(message == appStrings().ui_DropTitle ? "" : message)
+        .home.show()
+        .home.refresh()
         .hintLine.show()
-        .refreshEmptyArtwork()
         .currentFile.clear()
         .explorer?.releasePreviews()
         .currentFileSize.clear()
@@ -224,7 +223,7 @@ impl ViewerWindow
         .updateViewerBar()
         if .explorerActive
         {
-            .emptyView.hide()
+            .home.hide()
             .hintLine.hide()
             .explorer!.setShown(true)
         }
@@ -766,7 +765,6 @@ impl ViewerWindow
         .folderFiles     = #move classified.folderFiles
         if .explorer and .explorer.displayPath(.currentFile) != .currentFile.toString() do
             .folderFiles.clear()
-        .recent        = #move classified.recent
         .siblingsDirty = true
         .rebuildSiblings()
         .trackFolderReading(.playMode)
@@ -808,7 +806,7 @@ impl ViewerWindow
             .reloading = false
         }
 
-        .emptyView.hide()
+        .home.hide()
         .hintLine.hide()
 
         if remember

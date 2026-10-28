@@ -62,10 +62,7 @@ struct ViewerWindow
         searchOverlay:        *ViewerSearchOverlay
         dropHighlight:        *ViewerDropHighlight
         viewerBar:            *FloatingPanel
-        emptyView:            *StackLayoutCtrl
-        emptyIconLabel:       *Label
-        emptyLabel:           *Label
-        emptyHintLabel:       *Label
+        home:                 *ViewerHome
         filePanelHost:        *Wnd
         filePanel:            *SplitterCtrl
         recentPane:           *Wnd
@@ -162,6 +159,7 @@ struct ViewerWindow
     forwardingViewerKey: bool
     playPauseKeyDown:    bool
     recent:              Array'String
+    recentOpened:        Array'u64     // Local ticks each entry of `recent` was last opened at, in the same order; zero when unknown.
     folderHistory:       Array'ViewerFolderHistory
     folderFilter:        String
     preferences:         Array'ViewerPreference
@@ -319,7 +317,7 @@ impl IWnd for ViewerWindow
             return
         }
 
-        .dropHighlight.showTarget(not .emptyView.isLocallyVisible())
+        .dropHighlight.showTarget(not .home.isLocallyVisible())
 
         // The system holds the whole drag — the source window's own loop included — until this
         // returns, so a drop only records the file. Reading a header, building a viewer and
@@ -472,7 +470,7 @@ impl IWnd for ViewerWindow
         .kindButton.setChecked(.folderSameKind)
         .setFilePanelVisible(.panelVisible)
         .surface?.constrainPositionToScreen(topLeft: true, margin: 10)
-        .refreshEmptyArtwork()
+        .refreshHome()
         evt.accepted = true
     }
 
@@ -497,6 +495,7 @@ impl IWnd for ViewerWindow
         catch evt.serializer.serialize("ViewerWindow.themeIndex", &me.themeIndex)
         catch evt.serializer.serialize("ViewerWindow.language", &me.language)
         catch evt.serializer.serialize("ViewerWindow.recent", &me.recent)
+        catch evt.serializer.serialize("ViewerWindow.recentOpened", &me.recentOpened)
         catch evt.serializer.serialize("ViewerWindow.folderHistory", &me.folderHistory)
         catch evt.serializer.serialize("ViewerWindow.preferences", &me.preferences)
         catch evt.serializer.serialize("ViewerWindow.musicChoices", &me.musicChoices)
@@ -542,6 +541,7 @@ impl IWnd for ViewerWindow
                 .filePanel.items[0]!.size = .recentPaneSize
             while .recent.count > RecentCount do
                 .recent.removeAtOrdered(.recent.count - 1)
+            .recentOpened.resize(.recent.count)
             while .folderHistory.count > FolderHistoryCount do
                 .folderHistory.removeAtOrdered(.folderHistory.count - 1)
             .folderHistoryButton.enable(not .folderHistory.isEmpty())
@@ -569,7 +569,7 @@ impl IWnd for ViewerWindow
             if .panelVisible and not .currentFile.isEmpty() do
                 .refreshFileLists()
             .refreshArtwork()
-            .refreshEmptyArtwork()
+            .refreshHome()
             .dropHighlight.refreshTheme()
             .layoutFloatingParts()
         }
@@ -708,18 +708,11 @@ impl ViewerWindow
         .refreshSearchPresentation()
     }
 
-    // Gives the drop hint its glyph, but only while the hint is what the window shows.
-    //
-    // The glyph is the one large icon of the window, and an icon set rasterizes its whole sheet
-    // at every size it is asked for: this one costs a third of a second and tens of megabytes
-    // at a display scale of two. A launch that already names a file never shows the hint, so
-    // it never pays for it; the hint takes its glyph the moment it is actually shown.
-    private mtd refreshEmptyArtwork()
+    // Lays the home out again for the history, the theme or the language in force.
+    private mtd refreshHome()
     {
-        if not .emptyView.isVisible() do
-            return
-        .emptyIconLabel.setIcon(.theme().icon(.OpenFile, 48))
-        .emptyIconLabel.setIconColor(.themeColors().label_TextFaint)
+        if .home.isVisible() do
+            .home.refresh()
     }
 
     // A monitor-sized full-screen placement is transient and must never replace the saved
@@ -1092,8 +1085,7 @@ impl ViewerWindow
         if .currentFile.isEmpty()
         {
             .folderLabel.setText(.explorerActive ? texts.explore_Folders : texts.ui_Folder)
-            .emptyLabel.setText(Format.toString("<b>%</b>", texts.ui_DropTitle))
-            .emptyHintLabel.setText(texts.ui_DropHint)
+            .refreshHome()
         }
 
         if .infoSheet.isLocallyVisible() do
@@ -1182,7 +1174,7 @@ impl ViewerWindow
         .explorerActive = true
         .closeFile()
         .explorerActive = true
-        .emptyView.hide()
+        .home.hide()
         .explorer.setShown(true)
         .explorer.navigate(source)
         .hintLine.hide()

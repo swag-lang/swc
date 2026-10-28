@@ -313,7 +313,7 @@ impl ViewerWindow
         .mainSplitter.setPaneVisible(0, .panelVisible)
     }
 
-    // Builds the document with its empty-state prompt, the faint line of readings at its foot,
+    // Builds the document with its home, the faint line of readings at its foot,
     // and the loading, search and drop overlays drawn above the active viewer.
     private mtd createDocumentPanel()
     {
@@ -335,31 +335,7 @@ impl ViewerWindow
             .backgroundStyle = .View
         }
 
-        with .emptyView = StackLayoutCtrl.create(.documentPanel, .VerticalCenter)
-        {
-            .dockStyle       = .Center
-            .backgroundStyle = .Transparent
-            .padding         = {48, 48, 48, 48}
-            .spacing         = 12
-        }
-
-        with .emptyIconLabel = Label.create(.emptyView, "", {0, 0, 48, 48})
-        {
-            .layoutSpec.alignX = .Center
-            .setIconAlignment(.Center, .Center)
-        }
-
-        with .emptyLabel = Label.create(.emptyView, Format.toString("<b>%</b>", appStrings().ui_DropTitle), {0, 0, 480, 0}, null, .WordWrap | .AutoHeight)
-        {
-            .layoutSpec.alignX = .Center
-            .setTextAlignment(.Center, .Center)
-        }
-
-        with .emptyHintLabel = Label.create(.emptyView, appStrings().ui_DropHint, {0, 0, 480, 0}, null, .WordWrap | .AutoHeight | .SecondaryText)
-        {
-            .layoutSpec.alignX = .Center
-            .setTextAlignment(.Center, .Center)
-        }
+        .home = ViewerHome.create(.documentPanel, me)
 
         .loadingOverlay = ViewerLoadingOverlay.create(.documentPanel)
         .searchOverlay  = ViewerSearchOverlay.create(.documentPanel)

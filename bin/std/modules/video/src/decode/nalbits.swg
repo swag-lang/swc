@@ -110,7 +110,20 @@ impl BitReader
     // Reads one unsigned Exp-Golomb value.
     mtd ue()->u32
     {
-        var zeros = 0'u32
+        if .bit() do
+            return 0
+        if .overran do
+            return 0
+        if .bit() do
+            return 1 + .read(1)
+        if .overran do
+            return 0
+        if .bit() do
+            return 3 + .read(2)
+        if .overran do
+            return 0
+
+        var zeros = 3'u32
         while not .bit()
         {
             zeros += 1
@@ -121,8 +134,6 @@ impl BitReader
             }
         }
 
-        if not zeros do
-            return 0
         return (1'u32 << zeros) - 1 + .read(zeros)
     }
 

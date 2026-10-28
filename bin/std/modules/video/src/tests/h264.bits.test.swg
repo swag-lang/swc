@@ -3,6 +3,64 @@
 
 using Core
 
+private func referenceUe(bits: *BitReader)->u32
+{
+    var zeros = 0'u32
+    while not bits.bit()
+    {
+        zeros += 1
+        if zeros > 31 or bits.overran
+        {
+            bits.overran = true
+            return 0
+        }
+    }
+
+    var suffix = 0'u32
+    for zeros do
+        suffix = (suffix << 1) | bits.bit()
+    return zeros ? (1'u32 << zeros) - 1 + suffix : 0
+}
+
+private func assertExpGolomb(data: const [..] u8)
+{
+    for position in data.count * 8 + 1
+    {
+        var expected: BitReader
+        var actual:   BitReader
+        expected.init(data)
+        actual.init(data)
+        expected.skip(cast(u32, position))
+        actual.skip(cast(u32, position))
+        let value = referenceUe(&expected)
+        let read  = actual.ue()
+        Swag.assert(read == value)
+        Swag.assert(actual.bitPos == expected.bitPos and actual.overran == expected.overran)
+    }
+}
+
+// Exp-Golomb reads preserve values and overrun state at every alignment and boundary.
+#test
+{
+    var bytes: [5] u8
+    for seed in 32'u32
+    {
+        for i in 5 do
+            bytes[i] = cast(u8, ((seed * 53 + i * 79) & 255))
+        for length in 6'u64 do
+            assertExpGolomb(bytes[0 until length])
+    }
+
+    for position in 40'u64
+    {
+        for i in 5 do
+            bytes[i] = 0
+        bytes[position / 8] = cast(u8, (1 << (7 - position % 8)))
+        for length in 6'u64 do
+            assertExpGolomb(bytes[0 until length])
+    }
+}
+
 // Multi-bit reads agree with individual reads at every alignment and truncated boundary.
 #test
 {

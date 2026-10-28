@@ -126,6 +126,21 @@ using Swag, Core
     Swag.assert(checked)
 }
 
+// A control character that a chord typed, such as `Ctrl K`, is not text; a line break is.
+#test
+{
+    var host: Testing.HeadlessHost
+    host.setup(320, 220)
+    let ed = RichEditCtrl.create(&host.root, {0, 0, 300, 200})
+    ed.setFocus()
+
+    host.sendRune(Input.Key.K, '\x0B', .Control)
+    host.sendRune(Input.Key.I, '\t', .Control)
+    Swag.assert(ed.text().isEmpty())
+    host.sendRune(Input.Key.Return, '\n')
+    Swag.assert(ed.text() == "\n")
+}
+
 // setText/text round-trips; addText appends; clear empties.
 #test
 {

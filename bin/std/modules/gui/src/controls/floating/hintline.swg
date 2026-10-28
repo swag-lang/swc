@@ -12,6 +12,14 @@ struct HintLineItem
     }
 }
 
+// Where a [[Gui.HintLine]] stands along the bottom edge of its parent.
+enum HintLineAlignment
+{
+    Center       // Centred on the parent.
+    Leading      // From the leading edge of the parent's padded rectangle.
+    Trailing     // Up to the trailing edge of the parent's padded rectangle.
+}
+
 // Teaches the door of a window: a faint line near its bottom edge, naming a key and what it opens.
 //
 // This is the charter's "Space — everything else": a keycap and its words in the faint ink,
@@ -21,7 +29,9 @@ struct HintLineItem
 // is text on the ground, not a bar.
 //
 // The line floats over its parent ([[Gui.DockStyle.Float]]): it takes no room from the work and
-// covers only the width of what it writes.
+// covers only the width of what it writes. A window whose work stands in columns can set a line at
+// either side of its page instead, on the edges the parent's padding measures: a leading line
+// teaching the keys under the first column, a trailing one reading the work under the last.
 //
 // ```swag
 // with let hint = HintLine.create(view)
@@ -38,8 +48,9 @@ struct HintLine
 
         readonly
         {
-            reading: String     // Faint mono reading leading the line; empty for none.
-            hints:   Array'HintLineItem     // Keys and what they open, in reading order.
+            reading:   String     // Faint mono reading leading the line; empty for none.
+            hints:     Array'HintLineItem     // Keys and what they open, in reading order.
+            alignment: HintLineAlignment      // Where the line stands along the bottom edge.
         }
     }
 }
@@ -54,9 +65,22 @@ impl IWnd for HintLine
 
         let metrics = .themeMetrics()
         let bounds  = parent.clientRect()
-        let width   = Math.min(.contentWidth(), bounds.width)
+        let page    = parent.paddedClientRect()
         let top     = bounds.bottom() - metrics.hintLine_Bottom - metrics.hintLine_Height
-        .setPosition(Math.Rectangle{Math.round(bounds.horzCenter() - width * 0.5), top, width, metrics.hintLine_Height})
+        switch #complete .alignment
+        {
+        case .Center:
+            let width = Math.min(.contentWidth(), bounds.width)
+            .setPosition(Math.Rectangle{Math.round(bounds.horzCenter() - width * 0.5), top, width, metrics.hintLine_Height})
+
+        case .Leading:
+            let width = Math.min(.contentWidth(), page.width)
+            .setPosition(Math.Rectangle{page.x, top, width, metrics.hintLine_Height})
+
+        case .Trailing:
+            let width = Math.min(.contentWidth(), page.width)
+            .setPosition(Math.Rectangle{page.right() - width, top, width, metrics.hintLine_Height})
+        }
     }
 
     mtd impl onPaint(evt: *PaintEvent)
@@ -129,6 +153,13 @@ impl HintLine
     mtd setReading(reading: string?)
     {
         .reading = reading orelse ""
+        .relayout()
+    }
+
+    // Stands the line at `alignment` along the bottom edge of its parent.
+    mtd setAlignment(alignment: HintLineAlignment)
+    {
+        .alignment = alignment
         .relayout()
     }
 

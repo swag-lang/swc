@@ -119,6 +119,33 @@ func floatingHost(host: *Testing.HeadlessHost, width, height: f32, light: bool)
     Swag.assert(hint.contentWidth() == 0)
 }
 
+// A leading and a trailing hint line stand on the edges the parent's padding measures, at the same
+// height as a centred one.
+#test
+{
+    var host: Testing.HeadlessHost
+    floatingHost(&host, 480, 400, false)
+    let metrics = host.theme.metrics
+    host.root.padding = {40, 0, 60, 0}
+
+    with let keys = HintLine.create(&host.root)
+    {
+        .setAlignment(.Leading)
+        .addHint(strings().key_Space, "views, stages, examples")
+    }
+
+    with let reading = HintLine.create(&host.root)
+    {
+        .setAlignment(.Trailing)
+        .setReading("Compiled in 38 ms")
+    }
+
+    host.root.applyLayout()
+    Swag.assert(keys.position.x == 40 and keys.position.width == keys.contentWidth())
+    Swag.assert(reading.position.right() == 480 - 60 and reading.position.width == reading.contentWidth())
+    Swag.assert(keys.position.bottom() == 400 - metrics.hintLine_Bottom and reading.position.y == keys.position.y)
+}
+
 // The sheet opens at the trailing edge, below the strip of the window, and its key toggles it.
 #test
 {

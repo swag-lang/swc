@@ -463,6 +463,11 @@ impl RichEditCtrl
         if c == '\r' do
             c = '\n'
 
+        // A control character is text only when its own key typed it: `Ctrl K` and `Ctrl I` send
+        // one too, and a window that binds them to a command must not find it in the text.
+        if c < ' ' and not (c == '\n' and key == .Return) and not (c == '\t' and key == .Tab) do
+            return
+
         if c == '\n' and modifiers.equals(.None) and .flags.has(.AutoLoseFocus) do
             return
 

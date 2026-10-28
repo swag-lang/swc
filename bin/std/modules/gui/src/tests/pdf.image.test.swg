@@ -389,6 +389,48 @@ private func imageDocument(dictionary: string, samples: const [..] u8)->Document
         for x in 5 do
             Swag.assert(image.pixelColor(cast(s32, x), cast(s32, y)).a == coverage[(y * 2 / 3) * 2 + x * 2 / 5])
     }
+
+    let larger: [15] u8 = [0, 15, 30, 45, 60, 75, 90, 105, 120, 135, 150, 165, 180, 195, 210]
+    var reduced: Array'u8
+    addStreamObject(&reduced, 6, "/Type /XObject /Subtype /Image /Width 5 /Height 3 /ColorSpace /DeviceGray /BitsPerComponent 8", larger)
+    addStreamObject(&reduced, 5, "/Type /XObject /Subtype /Image /Width 3 /Height 2 /ColorSpace /DeviceGray /BitsPerComponent 8 /SMask 6 0 R", samples[0 until 6])
+    let reducedDocument = expect Document.decode(singlePagePdf("/XObject << /Im0 5 0 R >>", cast(const [..] u8, content), reduced.toSlice()).toSlice())
+    let reducedImage    = unwrap onlyItem(reducedDocument.pages[0], .Image).imageValue()
+    for y in 2
+    {
+        for x in 3 do
+            Swag.assert(reducedImage.pixelColor(cast(s32, x), cast(s32, y)).a == larger[(y * 3 / 2) * 5 + x * 5 / 3])
+    }
+}
+
+// Horizontal mask resampling preserves the exact source index in both directions.
+#test
+{
+    let sourceWidths: [8] u64 = [1, 2, 3, 7, 11, 13, 16, 17]
+    let targetWidths: [8] u64 = [17, 5, 16, 3, 7, 13, 3, 1]
+    for caseIndex in sourceWidths.count
+    {
+        let sourceWidth = sourceWidths[caseIndex]
+        let targetWidth = targetWidths[caseIndex]
+        var coverage: [34] u8
+        var samples:  [34] u8
+        for i in sourceWidth * 2 do
+            coverage[i] = cast(u8, i * 7)
+        for i in targetWidth * 2 do
+            samples[i] = 100
+
+        var extra: Array'u8
+        addStreamObject(&extra, 6, Format.toString("/Type /XObject /Subtype /Image /Width % /Height 2 /ColorSpace /DeviceGray /BitsPerComponent 8", sourceWidth).toString(), coverage[0 until sourceWidth * 2])
+        addStreamObject(&extra, 5, Format.toString("/Type /XObject /Subtype /Image /Width % /Height 2 /ColorSpace /DeviceGray /BitsPerComponent 8 /SMask 6 0 R", targetWidth).toString(), samples[0 until targetWidth * 2])
+        let content  = "q 10 0 0 10 0 0 cm /Im0 Do Q"
+        let document = expect Document.decode(singlePagePdf("/XObject << /Im0 5 0 R >>", cast(const [..] u8, content), extra.toSlice()).toSlice())
+        let image    = unwrap onlyItem(document.pages[0], .Image).imageValue()
+        for y in 2
+        {
+            for x in targetWidth do
+                Swag.assert(image.pixelColor(cast(s32, x), cast(s32, y)).a == coverage[y * sourceWidth + x * sourceWidth / targetWidth])
+        }
+    }
 }
 
 // A color key mask turns the sample ranges it names transparent.

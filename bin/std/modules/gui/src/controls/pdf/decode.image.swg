@@ -1032,15 +1032,38 @@ internal func decodeImage(parser: *PdfParser, nodeId, resourcesId: u32, fillColo
                 plane.alpha.resize(width * height)
                 let sourceWidth  = cast(u64, mask.width)
                 let sourceHeight = cast(u64, mask.height)
+                let sourceStep   = sourceWidth / width
+                let sourceRest   = sourceWidth % width
+                let rowStep      = sourceHeight / height
+                let rowRest      = sourceHeight % height
+                var sourceY      = 0'u64
+                var rowRemainder = 0'u64
+                // Each index and remainder is the quotient and remainder of the destination
+                // coordinate scaled by the corresponding source and destination dimensions.
                 for y in height
                 {
-                    let sourceY     = Math.min(sourceHeight - 1, y * sourceHeight / height)
                     let source      = mask.alpha.storage() + sourceY * sourceWidth
                     let destination = plane.alpha.storage() + y * width
+                    var sourceX     = 0'u64
+                    var remainder   = 0'u64
                     for x in width
                     {
-                        let sourceX = Math.min(sourceWidth - 1, x * sourceWidth / width)
                         destination[x] = source[sourceX]
+                        sourceX   += sourceStep
+                        remainder += sourceRest
+                        if remainder >= width
+                        {
+                            remainder -= width
+                            sourceX   += 1
+                        }
+                    }
+
+                    sourceY      += rowStep
+                    rowRemainder += rowRest
+                    if rowRemainder >= height
+                    {
+                        rowRemainder -= height
+                        sourceY      += 1
                     }
                 }
             }

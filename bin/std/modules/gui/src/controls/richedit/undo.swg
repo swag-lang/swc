@@ -159,6 +159,7 @@ impl RichEditCtrl
         else do
             .setModified(true)
         .computeScrollY()
+        .reportCaretMove()
     }
 
     // Returns whether an undone edit can be redone.
@@ -178,22 +179,22 @@ impl RichEditCtrl
         {
             if undo.type == .Delete
             {
-                .selBeg = undo.selBeg
-                .setCursorPos(undo.cursorPos)
+                .selBeg    = undo.selBeg
+                .cursorPos = undo.cursorPos
                 .setRectangularSelection(undo.hasSelRect)
                 .computeRectangularSelection(.selectionStart(), .selectionEnd())
                 .deleteTextPrivate(.selectionStart(), .selectionEnd(), undo.hasSelRect)
             }
             elif undo.type == .Insert
             {
-                .selBeg = undo.selBeg
-                .setCursorPos(undo.cursorPos)
+                .selBeg    = undo.selBeg
+                .cursorPos = undo.cursorPos
                 var cp = .selectionStart()
                 .insertTextPrivate(&cp, undo.runes, undo.styles, undo.hasSelRect)
             }
 
-            .selBeg = undo.begSelectionAfter
-            .setCursorPos(undo.endSelectionAfter)
+            .selBeg    = undo.begSelectionAfter
+            .cursorPos = undo.endSelectionAfter
             .setRectangularSelection(undo.hasSelRect)
 
             if .currentUndo == .undoMgr.count do
@@ -209,5 +210,6 @@ impl RichEditCtrl
         else do
             .setModified(true)
         .computeScrollY()
+        .reportCaretMove()
     }
 }

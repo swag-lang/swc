@@ -398,3 +398,33 @@ impl IRichEditLexer for CountingLexer
     discard host.render(ed)
     Swag.assert(ed.lines.count > wrapped, "the narrower viewport must reflow once the drag ends")
 }
+
+// The caret reports each new place once, whether a call, a command, an edit or an undo moved it,
+// and its place reads as a logical line and rune offset.
+#test
+{
+    var host: Testing.HeadlessHost
+    host.setup(320, 220)
+    let ed = RichEditCtrl.create(&host.root, {0, 0, 300, 200})
+    ed.setText("first\nsecond")
+
+    var moves: u32
+    ed.sigCaretMoved += func|&moves|(_) { moves += 1 }
+
+    ed.setCursorPos({1, 3})
+    Swag.assert(moves == 1 and ed.cursorLogicalLineIndex() == 1 and ed.cursorLogicalCharPos() == 3)
+    ed.setCursorPos({1, 3})
+    Swag.assert(moves == 1)
+
+    ed.clearSelection()
+    ed.executeCommand(.CursorRight)
+    Swag.assert(moves == 2 and ed.cursorLogicalCharPos() == 4)
+
+    ed.pushUndo()
+    ed.insertText("xy")
+    ed.popUndo()
+    Swag.assert(moves == 3 and ed.cursorLogicalCharPos() == 6)
+
+    ed.undo()
+    Swag.assert(moves == 4 and ed.cursorLogicalCharPos() == 4)
+}

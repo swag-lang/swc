@@ -26,6 +26,21 @@ impl RichEditCtrl
         return result
     }
 
+    // Returns the zero-based rune offset of the caret within its logical line, counting the runes of
+    // the wrapped continuations before it.
+    mtd cursorLogicalCharPos()->u64
+    {
+        var result = .cursorPos.charPosInLine
+        var index  = .cursorPos.lineIndex
+        while index > 0 and .lines[index]!.wordWrap
+        {
+            index  -= 1
+            result += .lines[index]!.length()
+        }
+
+        return result
+    }
+
     // Returns the draw metrics of the face the style index `styleIdx` selects.
     mtd computeTextDrawInfo(styleIdx: RichEditStyleRef)->TextDrawInfo
     {
@@ -345,6 +360,7 @@ impl RichEditCtrl
     mtd setCursorPos(cp: RichEditCursor)
     {
         .cursorPos = cp
+        .reportCaretMove()
     }
 
     // Moves a cursor one rune to the left and reports whether it changed.

@@ -280,6 +280,44 @@ func smoothStrongReference(reference: *IntraReference, corner, lastTop, lastLeft
     }
 }
 
+const ReverseIntraWords = cast(Simd.U8x16, [14'u8, 15, 12, 13, 10, 11, 8, 9, 6, 7, 4, 5, 2, 3, 0, 1])
+const ReverseIntraFour = cast(Simd.U8x16, [6'u8, 7, 4, 5, 2, 3, 0, 1, 0x80, 0x80, 0x80, 0x80, 0x80, 0x80, 0x80, 0x80])
+
+// Copy the main angular reference in prediction order; the left reference is
+// stored in reverse, so reverse eight words per step. The only shorter case
+// is a four-sample negative-angle block and uses an exact eight-byte load.
+#[Swag.NoInline]
+func prepareAngularMain(reference: const *IntraReference, main: [*] u16, size: u32, vertical, extended: bool)
+{
+    main[0] = reference.corner()
+    let count = extended ? 2 * size : size
+    if count == 4
+    {
+        if vertical do
+            cast([*] u64, (main + 1))[0] = cast(const [*] u64, &reference.samples[2 * size + 1])[0]
+        else
+        {
+            let input = cast #bit(Simd.U8x16, Simd.splat(cast(const [*] u64, &reference.samples[2 * size - 4])[0]))
+            let reversed = Simd.shuffle(input, ReverseIntraFour)
+            cast([*] u64, (main + 1))[0] = cast #bit(Simd.U64x2, reversed)[0]
+        }
+        return
+    }
+
+    var index = 0'u32
+    while index < count
+    {
+        if vertical do
+            Simd.store(main + 1 + index, Simd.load(&reference.samples[2 * size + 1 + index]))
+        else
+        {
+            let input = cast #bit(Simd.U8x16, Simd.load(&reference.samples[2 * size - index - 8]))
+            Simd.store(main + 1 + index, cast #bit(Simd.U16x8, Simd.shuffle(input, ReverseIntraWords)))
+        }
+        index += 8
+    }
+}
+
 impl Decoder
 {
     // Predicts one intra transform block into `.predSamples`, clause 8.4.4.2.
@@ -562,19 +600,7 @@ impl Decoder
         let main = cast([*] u16, &.residual[IntraScratchOffset])
         let origin = 64'u32     // Index of ref[0] inside the array, leaving room for ref[-32..-1].
 
-        for index in size + 1
-        {
-            var sample = reference.corner()
-            if index
-            {
-                if vertical do
-                    sample = reference.top(index - 1)
-                else do
-                    sample = reference.left(index - 1)
-            }
-
-            main[origin + index] = sample
-        }
+        prepareAngularMain(reference, &main[origin], size, vertical, angle >= 0)
 
         if angle < 0
         {
@@ -596,12 +622,6 @@ impl Decoder
                 }
             }
         }
-        else
-        {
-            for index in size + 1 to size * 2 do
-                main[origin + index] = vertical ? reference.top(index - 1) : reference.left(index - 1)
-        }
-
         if vertical
         {
             predictAngularVertical(&main[origin], &.predSamples[0], size, angle)

@@ -548,6 +548,41 @@ using Core, Core.Errors, Pixel
     }
 }
 
+// The angular reference copy preserves corner and edge order for both
+// orientations and does not write past the selected reference length.
+#test
+{
+    var reference: Hevc.IntraReference
+    var main: [66] u16
+    var seed = 0x5690A13B'u32
+    for size in [4'u32, 8, 16, 32]
+    {
+        reference.size = size
+        for index in 4 * size + 1
+        {
+            seed = seed * #wrap 1664525 + #wrap 1013904223
+            reference.samples[index] = cast(u16, ((seed >> 16) & 1023))
+        }
+        for vertical in [false, true]
+        {
+            for extended in [false, true]
+            {
+                for index in main.count do
+                    main[index] = 0x5A5A
+                let count = extended ? 2 * size : size
+                Hevc.prepareAngularMain(&reference, &main[0], size, vertical, extended)
+                Swag.assert(main[0] == reference.corner())
+                for index in count
+                {
+                    let expected = vertical ? reference.top(index) : reference.left(index)
+                    Swag.assert(main[index + 1] == expected)
+                }
+                Swag.assert(main[count + 1] == 0x5A5A)
+            }
+        }
+    }
+}
+
 // Angular prediction must not depend on old residual scratch, including the
 // extra lanes read by vector loads and the negative-angle reference extension.
 #test

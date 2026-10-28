@@ -372,6 +372,46 @@ using Core, Core.Errors, Pixel
     }
 }
 
+// Normal intra reference smoothing is the same symmetric three-tap filter
+// across the reversed left edge, the corner and the forward top edge.
+#test
+{
+    var sps: Hevc.Sps
+    var decoder: Hevc.Decoder
+    decoder.activeSps = &sps
+    var reference: Hevc.IntraReference
+    var original: [129] u16
+    var seed = 0xAB72D851'u32
+    for bitDepth in [8'u32, 10]
+    {
+        let maximum = (1'u32 << bitDepth) - 1
+        for log2Size in [3'u32, 4, 5]
+        {
+            let size = 1'u32 << log2Size
+            reference.size = size
+            reference.count = 4 * size + 1
+            for iteration in 32'u32
+            {
+                for index in reference.count
+                {
+                    seed = seed * #wrap 1664525 + #wrap 1013904223
+                    let value = iteration == 0 ? maximum : (seed >> 16) & maximum
+                    reference.samples[index] = cast(u16, value)
+                    original[index] = cast(u16, value)
+                }
+                decoder.filterReference(&reference, size, log2Size, 0, 0, bitDepth)
+                Swag.assert(reference.samples[0] == original[0])
+                for index in 1 until reference.count - 1
+                {
+                    let value = cast(u32, original[index - 1]) + 2 * cast(u32, original[index]) + cast(u32, original[index + 1]) + 2
+                    Swag.assert(reference.samples[index] == cast(u16, (value >> 2)))
+                }
+                Swag.assert(reference.samples[reference.count - 1] == original[reference.count - 1])
+            }
+        }
+    }
+}
+
 // Reference gathering, substitution and smoothing must not depend on the
 // previous contents of the shared intra scratch, even at picture boundaries.
 #test

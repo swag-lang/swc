@@ -384,7 +384,7 @@ impl Decoder
     }
 
     // Smooths the reference samples when the prediction direction calls for it, clause 8.4.4.2.3.
-    private mtd filterReference(reference: *IntraReference, size, log2Size, component, mode, bitDepth: u32)
+    mtd filterReference(reference: *IntraReference, size, log2Size, component, mode, bitDepth: u32)
     {
         let sps = unwrap .activeSps
         if component != 0 or size == 4 or mode == IntraDc or sps.intraSmoothingDisabled do
@@ -418,18 +418,28 @@ impl Decoder
             }
         }
 
+        // The left edge is stored in reverse order and the top edge in forward
+        // order, but the three-tap kernel is symmetric on the whole sequence.
         let filtered = cast([*] u16, &.residual[IntraScratchOffset])
-        filtered[size * 2] = cast(u16, ((cast(u32, reference.left(0)) + 2 * cast(u32, reference.corner()) + cast(u32, reference.top(0)) + 2) >> 2))
-        for index in total - 1
-        {
-            let previousLeft = index == 0 ? reference.corner() : reference.left(index - 1)
-            let previousTop  = index == 0 ? reference.corner() : reference.top(index - 1)
-            filtered[size * 2 - 1 - index] = cast(u16, ((cast(u32, reference.left(index + 1)) + 2 * cast(u32, reference.left(index)) + cast(u32, previousLeft) + 2) >> 2))
-            filtered[size * 2 + 1 + index] = cast(u16, ((cast(u32, reference.top(index + 1)) + 2 * cast(u32, reference.top(index)) + cast(u32, previousTop) + 2) >> 2))
-        }
-
         filtered[0] = reference.samples[0]
-        filtered[reference.count - 1] = reference.samples[reference.count - 1]
+        var index = 1'u32
+        let end = reference.count - 1
+        let rounding = Simd.splat(2'u16)
+        while index + 8 <= end
+        {
+            let previous = Simd.load(&reference.samples[index - 1])
+            let current = Simd.load(&reference.samples[index])
+            let next = Simd.load(&reference.samples[index + 1])
+            Simd.store(filtered + index, (previous + current + current + next + rounding) >> 2)
+            index += 8
+        }
+        while index < end
+        {
+            let value = cast(u32, reference.samples[index - 1]) + 2 * cast(u32, reference.samples[index]) + cast(u32, reference.samples[index + 1]) + 2
+            filtered[index] = cast(u16, (value >> 2))
+            index += 1
+        }
+        filtered[end] = reference.samples[end]
         Memory.copy(&reference.samples, filtered, cast(u64, reference.count) * #sizeof(u16))
     }
 

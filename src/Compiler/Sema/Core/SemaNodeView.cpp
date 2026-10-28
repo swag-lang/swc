@@ -109,14 +109,15 @@ void SemaNodeView::computeInner(Sema& sema, AstNodeRef ref, SemaNodeViewPart par
 
         if (!typeRef_.isValid())
         {
-            if (!sym || !sym->typeRef().isValid())
+            if (!sym)
                 return;
 
-            typeRef_ = sym->typeRef();
-        }
+            const TypeRef symbolTypeRef = sym->typeRef();
+            if (!symbolTypeRef.isValid())
+                return;
 
-        if (!typeRef_.isValid())
-            return;
+            typeRef_ = symbolTypeRef;
+        }
 
         type_ = &sema.typeMgr().get(typeRef_);
     };

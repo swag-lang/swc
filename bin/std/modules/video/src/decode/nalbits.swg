@@ -64,10 +64,22 @@ impl BitReader
             let totalBits = .size * 8
             if .bitPos <= totalBits and cast(u64, count) <= totalBits - .bitPos
             {
-                let endBit  = .bitPos + count
+                let startBit  = .bitPos
+                let startByte = startBit >> 3
+                let endBit    = startBit + count
+                if .size - startByte >= 8
+                {
+                    // The full word is inside the payload, even when the requested field
+                    // uses fewer bytes. Its first stream bit becomes the high bit.
+                    let packed = Math.bigEndianToNative(cast(const [*] u64, unwrap .data + startByte)[0])
+                    let shift  = 64 - cast(u32, (startBit & 7)) - count
+                    .bitPos = endBit
+                    return cast(u32, ((packed >> shift) & ((1'u64 << count) - 1)))
+                }
+
                 let endByte = (endBit + 7) >> 3
                 var packed  = 0'u64
-                for index in (.bitPos >> 3) until endByte do
+                for index in startByte until endByte do
                     packed = (packed << 8) | .data![index]
                 .bitPos = endBit
                 let shift = cast(u32, (endByte * 8 - endBit))

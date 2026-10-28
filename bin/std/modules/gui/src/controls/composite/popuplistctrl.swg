@@ -362,7 +362,6 @@ impl PopupListCtrl
             .setFrameForm(.Square)
             .scrollWnd = .createView'ScrollWnd()
             .scrollWnd.dockStyle = .Center
-            .scrollWnd.updateFlags(.CompactBars)
             let popupView = .scrollWnd.createView'PopupListView()
             popupView.list = popup
         }

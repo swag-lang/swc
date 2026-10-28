@@ -61,7 +61,8 @@ internal impl Properties
             }
         }
 
-        .flattenCondensedEdit(ed)
+        // The code of the colour is read after its swatch as a figure, in every layout.
+        setReadingForm(ed)
 
         btn.iconPainter = func|color|(btn, bc, pos, _)
         {

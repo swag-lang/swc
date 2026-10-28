@@ -187,7 +187,7 @@ impl Explorer
         {
             .dockStyle = .Center
             .margin    = Math.Vector4{sheetMargin, 0, sheetMargin, 0}
-            .updateFlags(.CompactBars | .DisableHorizontal)
+            .updateFlags(.DisableHorizontal)
             .sigScrollPositionChanged += func|result|(_, _, _) { result.prioritizeVisible() }
         }
 

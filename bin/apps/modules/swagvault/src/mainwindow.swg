@@ -639,13 +639,14 @@ impl MainWindow
     }
 
     // Teaches the door while the list is on screen, and on the privacy page, where privacy mode
-    // empties the list, says where the vaults open from instead.
+    // empties the list, says where the vaults open from instead. While a vault is unfolded the
+    // hand is already at work, and the line steps aside so the actions under the list keep their room.
     mtd refreshHint()
     {
         .hintLine.clearHints()
         switch .page
         {
-        case .List: .hintLine.addHint(strings().key_Space, appStrings().ui_HintList)
+        case .List where .chosenPath.isEmpty(): .hintLine.addHint(strings().key_Space, appStrings().ui_HintList)
         case .Options where .privacyMode: .hintLine.addHint(strings().key_Space, appStrings().ui_HintPrivacy)
         }
 
@@ -780,6 +781,7 @@ impl MainWindow
         .mountedDrives.refreshSpace()
         .list.refresh()
         .refreshActions()
+        .refreshHint()
     }
 
     // The mono line under a vault's name: where its drive is and how it is open, or where its

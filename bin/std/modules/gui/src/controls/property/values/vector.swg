@@ -34,15 +34,13 @@ internal impl Properties
             let dataField   = cast(*f32, unwrap (data + v.offset))
             let fieldOffset = cast(u64, v.offset)
 
-            with let label = Label.create(line, v.name![0 to 0], Math.Rectangle{0, 0, item.line.position.height})
+            // The axis is written faint inside its field, before the value, as the property
+            // pictures put it, rather than standing as a word of its own between two boxes.
+            with let ed = EditBox.create(line, "", Math.Rectangle{0, 0, item.line.position.height * 2.5})
             {
                 .dockStyle = .Left
-                .setTextHorizontalAlignment(.Center)
-            }
-
-            with let ed = EditBox.create(line, "", Math.Rectangle{0, 0, item.line.position.height * 2})
-            {
-                .dockStyle = .Left
+                .margin.z  = .themeMetrics().property_FieldGap
+                .setPrefix(v.name![0 to 0])
                 .setFloatingPointRange()
                 .sigCommitted += func|prop = me, item, fieldOffset|(ed)
                 {

@@ -309,6 +309,7 @@ impl FormLayoutCtrl
         {
             row.help = Label.create(me, help, flags: .WordWrap | .SecondaryText | .AutoHeight)
             row.help.setTextAlignment(.Left, .Top)
+            row.help.style.addStyleSheetColors("label_TextLight $label_TextFaint")
         }
 
         let result = .rows.count

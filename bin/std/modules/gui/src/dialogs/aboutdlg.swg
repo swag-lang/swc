@@ -241,7 +241,7 @@ public impl AboutDlg
             with let scroll = Wnd.create'ScrollWnd(.contentStack, "", Math.Rectangle{0, 0, .contentStack.position.width, 0})
             {
                 .padding = 0
-                .updateFlags(.DisableHorizontal | .CompactBars | .TransparentBars)
+                .updateFlags(.DisableHorizontal | .TransparentBars)
             }
 
             .sectionsScroll = scroll
@@ -284,7 +284,7 @@ public impl AboutDlg
             // measured against the full viewport, the text would wrap one line further the moment
             // the bar appeared, and the column would need the room it was just told it had.
             let inner = unwrap .sectionsStack
-            let bar   = .themeMetrics().scrollBar_SmallSize
+            let bar   = .themeMetrics().scrollBar_Size
             let room  = Math.max(scroll.paddedClientRect().width - bar, 1)
 
             // The column's own content, not its measured size: a scroll view resizes its view to

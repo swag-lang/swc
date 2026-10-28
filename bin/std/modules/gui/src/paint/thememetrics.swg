@@ -15,6 +15,7 @@ struct ThemeMetrics
         motion_PanelSeconds: f32 = 0.22     // Duration of a layout-affecting panel change.
         motion_PageOffset:   f32 = 16       // Travel distance of a page change, in logical pixels.
         motion_LeaveSeconds: f32 = 0.12     // Duration of a floating surface fading out: two thirds of its arrival.
+        motion_ScrollRest:   f32 = 0.6      // Stillness after which the scroll bars of a view fade out.
         motion_EdgeTravel:   f32 = 8        // Travel of a floating surface arriving from the edge it stands against.
         motion_AnchorTravel: f32 = 4        // Travel of a floating surface leaving the anchor it belongs to.
 
@@ -241,8 +242,7 @@ struct ThemeMetrics
         iconBar_ButtonsPadding: f32 = 4     // Inset around the buttons of an icon bar.
         iconBar_ButtonGap:      f32 = 8     // Air between neighboring buttons of an icon bar.
 
-        scrollBar_NormalSize: f32 = 10     // Thickness of a scroll bar: a six-pixel thumb and its air.
-        scrollBar_SmallSize:  f32 = 8      // Thickness of a compact scroll bar.
+        scrollBar_Size:       f32 = 8      // Thickness of every scroll bar: a four-pixel thumb and its air.
         scrollBar_BoxPadding: f32 = 2      // Air between a scroll bar thumb and its track.
         scrollBar_BoxMinSize: f32 = 20     // Shortest a scroll bar thumb gets.
 
@@ -296,6 +296,8 @@ struct ThemeMetrics
         property_ControlInset:       f32 = 4      // Inset of the state ground within a property control.
         property_ModifiedMarkSize:   f32 = 6      // Diameter of the Arc dot after the name of a value changed from its default.
         property_CondensedRowHeight: f32 = 26     // Height of a row of the condensed property grid.
+        property_FieldGap:           f32 = 8      // Air between two fields of one value, such as the axes of a vector.
+        quiet_Height:                f32 = 32     // Height of a quiet control: the words of a header that act or open a menu.
 
         progressBar_Height:     f32 = 16      // Height of a progress bar created without one.
         progressBar_TrackSize:  f32 = 4       // Thickness of the track, centered in the bar.

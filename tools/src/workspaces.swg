@@ -38,6 +38,7 @@ public func runStd(context: *Context, options: *Options)->s32 fail
         testArguments.add(["--no-test-jit"])
 
     options.appendTest(&testArguments)
+    options.appendWorkspace(&testArguments)
     options.appendExtra(&testArguments)
     options.appendRunArguments(&testArguments)
     return try context.runCompiler(testArguments)

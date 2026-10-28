@@ -67,9 +67,17 @@ impl IWnd for ProgressBar
         var fill = track
         if .flags.has(.Indeterminate)
         {
-            let w = Math.max(track.width / 5, 1)
-            fill.width = w
-            fill.x     = track.x - w + (.animationPhase * (track.width + 2 * w))
+            // The head of the segment runs ahead of its tail, both easing in and out, so the
+            // segment stretches as it crosses the track and gathers again as it leaves it. Both
+            // ends travel from beyond the leading edge to beyond the trailing one.
+            func ease(t: f32)->f32 => t * t * (3 - 2 * t)
+            let head  = ease(Math.saturate(.animationPhase / 0.75))
+            let tail  = ease(Math.saturate((.animationPhase - 0.25) / 0.75))
+            let reach = track.width * 1.3
+            let from  = track.x - track.width * 0.15 + tail * reach
+            let till  = track.x - track.width * 0.15 + head * reach
+            fill.x     = from
+            fill.width = Math.max(till - from, 1)
 
             // Advance only presentation; the caller's finite value remains intact.
             .animationPhase += .paintDeltaSeconds() * metrics.progressBar_SpeedInf

@@ -574,6 +574,7 @@ private:
     bool   findInnermostDeferScopeIndex(AstNodeRef scopeRef, size_t& outScopeIndex) const;
 
     void mergeLoweringNodePayloadMetadata(CodeGenNodePayload& payload, AstNodeRef nodeRef, AstNodeRef resolvedRef) const;
+    CodeGenNodePayload* safePayload(AstNodeRef nodeRef, AstNodeRef resolvedRef);
 
     Sema*                     sema_ = nullptr;
     AstVisit                  visit_;

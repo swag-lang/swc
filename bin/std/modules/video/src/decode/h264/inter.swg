@@ -652,7 +652,7 @@ func mcChroma(dst: [*] u8, dstStride: u64, reference: *Frame, plane: u32, x, y, 
 
 // Motion-compensates the same chroma block of both planes, `dstB` from Cb and `dstR` from Cr.
 // The two planes share their geometry, so the window test and the source offset are taken once,
-// and a whole-sample vector of a four- or eight-wide block copies both planes in one loop.
+// and a whole-sample vector of a two-, four- or eight-wide block copies both planes in one loop.
 func mcChromaPair(dstB, dstR: [*] u8, dstStride: u64, reference: *Frame, x, y, fracX, fracY, width, height: s32)
 {
     let planeWidth  = reference.mbWidth * 8
@@ -712,6 +712,25 @@ func mcChromaPair(dstB, dstR: [*] u8, dstStride: u64, reference: *Frame, x, y, f
             return
         }
 
+        if width == 2
+        {
+            let srcStride = reference.strideChroma
+            var inB       = srcB
+            var inR       = srcR
+            var outB      = dstB
+            var outR      = dstR
+            for cast(u64, height)
+            {
+                cast([*] u16, outB)[0] = cast(const [*] u16, inB)[0]
+                cast([*] u16, outR)[0] = cast(const [*] u16, inR)[0]
+                inB                    += srcStride
+                inR                    += srcStride
+                outB                   += dstStride
+                outR                   += dstStride
+            }
+
+            return
+        }
     }
 
     interpolateChroma(dstB, dstStride, srcB, reference.strideChroma, fracX, fracY, width, height)

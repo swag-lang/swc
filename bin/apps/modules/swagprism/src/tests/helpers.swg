@@ -6,7 +6,10 @@ using Swag, Core, Gui
 // Builds the real main window inside the same measured frame as the shipped surface.
 func testSetupMainWindow(host: *Testing.HeadlessHost, width = cast(f32, MainWindow.WindowWidth), height = cast(f32, MainWindow.WindowHeight), scale = 1.0'f32)->*MainWindow
 {
+    // Inside the frame of the shipped surface: the strip floats over the page with the glyph, the
+    // title and the window buttons, and the page keeps clear of it as the real window does.
     host.setup(width, height, scale)
+    host.surface.updateFlags(SurfaceFlags.StandardWindow | SurfaceFlags.NoShadow)
     host.bindApplication(&g_App)
 
     // The window resolves its application through its surface, so that is the one a language

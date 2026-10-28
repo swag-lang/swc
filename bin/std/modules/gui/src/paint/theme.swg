@@ -8,6 +8,8 @@ private const DefaultFontRegularName    = "../theme/inter-regular.ttf"
 private const DefaultFontBoldName       = "../theme/inter-bold.ttf"
 private const DefaultFontBoldItalicName = "../theme/inter-bolditalic.ttf"
 private const DefaultFontItalicName     = "../theme/inter-italic.ttf"
+private const DefaultFontLightName      = "../theme/inter-light.ttf"
+private const DefaultFontSemiBoldName   = "../theme/inter-semibold.ttf"
 
 private const DefaultFontFsRegularName    = "../theme/robotomono-regular.ttf"
 private const DefaultFontFsBoldName       = "../theme/robotomono-bold.ttf"
@@ -21,6 +23,8 @@ private const DefaultFontRegular      = #include(DefaultFontRegularName)
 private const DefaultFontBold         = #include(DefaultFontBoldName)
 private const DefaultFontBoldItalic   = #include(DefaultFontBoldItalicName)
 private const DefaultFontItalic       = #include(DefaultFontItalicName)
+private const DefaultFontLight        = #include(DefaultFontLightName)
+private const DefaultFontSemiBold     = #include(DefaultFontSemiBoldName)
 private const DefaultFontFsRegular    = #include(DefaultFontFsRegularName)
 private const DefaultFontFsBold       = #include(DefaultFontFsBoldName)
 private const DefaultFontFsBoldItalic = #include(DefaultFontFsBoldItalicName)
@@ -55,6 +59,8 @@ private const ResFontRegularName      = "theme/inter-regular.ttf"
 private const ResFontBoldName         = "theme/inter-bold.ttf"
 private const ResFontBoldItalicName   = "theme/inter-bolditalic.ttf"
 private const ResFontItalicName       = "theme/inter-italic.ttf"
+private const ResFontLightName        = "theme/inter-light.ttf"
+private const ResFontSemiBoldName     = "theme/inter-semibold.ttf"
 private const ResFontFsRegularName    = "theme/robotomono-regular.ttf"
 private const ResFontFsBoldName       = "theme/robotomono-bold.ttf"
 private const ResFontFsBoldItalicName = "theme/robotomono-bolditalic.ttf"
@@ -79,6 +85,8 @@ internal func registerDefaultThemeResources(bundle: *Resources.Bundle)
     bundle.addEmbedded(ResFontBoldName, DefaultFontBold)
     bundle.addEmbedded(ResFontBoldItalicName, DefaultFontBoldItalic)
     bundle.addEmbedded(ResFontItalicName, DefaultFontItalic)
+    bundle.addEmbedded(ResFontLightName, DefaultFontLight)
+    bundle.addEmbedded(ResFontSemiBoldName, DefaultFontSemiBold)
     bundle.addEmbedded(ResFontFsRegularName, DefaultFontFsRegular)
     bundle.addEmbedded(ResFontFsBoldName, DefaultFontFsBold)
     bundle.addEmbedded(ResFontFsBoldItalicName, DefaultFontFsBoldItalic)
@@ -209,6 +217,8 @@ struct ThemeResources
             defaultTypeFaceB:    *TypeFace     // Bold face of the interface font.
             defaultTypeFaceI:    *TypeFace     // Italic face of the interface font.
             defaultTypeFaceBI:   *TypeFace     // Bold italic face of the interface font.
+            defaultTypeFaceL:    *TypeFace     // Light face of the interface font.
+            defaultTypeFaceSB:   *TypeFace     // Semibold face of the interface font.
             defaultFsTypeFaceR:  *TypeFace     // Regular face of the fixed-width font.
             defaultFsTypeFaceB:  *TypeFace     // Bold face of the fixed-width font.
             defaultFsTypeFaceI:  *TypeFace     // Italic face of the fixed-width font.
@@ -430,6 +440,8 @@ impl Theme
             .defaultTypeFaceB  = expect themeTypeFace(resources, ResFontBoldName, DefaultFontBold)
             .defaultTypeFaceI  = expect themeTypeFace(resources, ResFontItalicName, DefaultFontItalic)
             .defaultTypeFaceBI = expect themeTypeFace(resources, ResFontBoldItalicName, DefaultFontBoldItalic)
+            .defaultTypeFaceL  = expect themeTypeFace(resources, ResFontLightName, DefaultFontLight)
+            .defaultTypeFaceSB = expect themeTypeFace(resources, ResFontSemiBoldName, DefaultFontSemiBold)
 
             .defaultFsTypeFaceR  = expect themeTypeFace(resources, ResFontFsRegularName, DefaultFontFsRegular)
             .defaultFsTypeFaceB  = expect themeTypeFace(resources, ResFontFsBoldName, DefaultFontFsBold)
@@ -440,6 +452,8 @@ impl Theme
             .fontDefault.bold       = me.fonts.createFont(.defaultTypeFaceB, me.metrics.defaultFontSize)
             .fontDefault.italic     = me.fonts.createFont(.defaultTypeFaceI, me.metrics.defaultFontSize)
             .fontDefault.boldItalic = me.fonts.createFont(.defaultTypeFaceBI, me.metrics.defaultFontSize)
+            .fontDefault.light      = me.fonts.createFont(.defaultTypeFaceL, me.metrics.defaultFontSize)
+            .fontDefault.semiBold   = me.fonts.createFont(.defaultTypeFaceSB, me.metrics.defaultFontSize)
 
             .fontDefaultFs.regular    = me.fonts.createFont(.defaultFsTypeFaceR, me.metrics.defaultFixedFontSize)
             .fontDefaultFs.bold       = me.fonts.createFont(.defaultFsTypeFaceB, me.metrics.defaultFixedFontSize)
@@ -456,6 +470,8 @@ impl Theme
         result.bold       = .fonts.createFont(.res.defaultTypeFaceB, size)
         result.italic     = .fonts.createFont(.res.defaultTypeFaceI, size)
         result.boldItalic = .fonts.createFont(.res.defaultTypeFaceBI, size)
+        result.light      = .fonts.createFont(.res.defaultTypeFaceL, size)
+        result.semiBold   = .fonts.createFont(.res.defaultTypeFaceSB, size)
         return result
     }
 
@@ -477,6 +493,9 @@ impl Theme
 
     // Creates the `style` face of the interface font at `size`.
     //
+    // The charter sets a fact read at a glance — a percentage, a capacity, a count — large and
+    // `Light`, a name that leads a row and a section label `SemiBold`, and keeps `Bold` for titles.
+    //
     // `mode` chooses how the glyphs are rasterized. A font that is drawn with a
     // [[Pixel.TextEffect]] outline or shadow needs `.Msdf`: an automatic font draws bitmap
     // glyphs at small sizes, and bitmap glyphs ignore every effect.
@@ -488,6 +507,8 @@ impl Theme
         case .Bold:       return .fonts.createFont(.res.defaultTypeFaceB, size, mode)
         case .Italic:     return .fonts.createFont(.res.defaultTypeFaceI, size, mode)
         case .BoldItalic: return .fonts.createFont(.res.defaultTypeFaceBI, size, mode)
+        case .Light:      return .fonts.createFont(.res.defaultTypeFaceL, size, mode)
+        case .SemiBold:   return .fonts.createFont(.res.defaultTypeFaceSB, size, mode)
         }
     }
 
@@ -508,6 +529,10 @@ impl Theme
         case .Bold:       return .fonts.createFont(.res.defaultFsTypeFaceB, size, mode)
         case .Italic:     return .fonts.createFont(.res.defaultFsTypeFaceI, size, mode)
         case .BoldItalic: return .fonts.createFont(.res.defaultFsTypeFaceBI, size, mode)
+
+        // The fixed-width family ships four faces; a light measure reads regular, a semibold one bold.
+        case .Light:    return .fonts.createFont(.res.defaultFsTypeFaceR, size, mode)
+        case .SemiBold: return .fonts.createFont(.res.defaultFsTypeFaceB, size, mode)
         }
     }
 
@@ -538,6 +563,8 @@ impl Theme
         case .Bold:       return .fonts.createFont(.res.cjkTypeFace, size, forceBold: true)
         case .Italic:     return .fonts.createFont(.res.cjkTypeFace, size, forceItalic: true)
         case .BoldItalic: return .fonts.createFont(.res.cjkTypeFace, size, forceBold: true, forceItalic: true)
+        case .Light:      return .fonts.createFont(.res.cjkTypeFace, size)
+        case .SemiBold:   return .fonts.createFont(.res.cjkTypeFace, size, forceBold: true)
         }
     }
 }

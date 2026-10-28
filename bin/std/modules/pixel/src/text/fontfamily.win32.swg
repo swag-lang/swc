@@ -242,6 +242,18 @@ impl FontFamily
             if logFont.name.isEmpty() do
                 logFont = fontFamily.faces[cast(u64, FontFamilyStyle.Regular)]
         }
+        elif style == .Light
+        {
+            if logFont.name.isEmpty() do
+                logFont = fontFamily.faces[cast(u64, FontFamilyStyle.Regular)]
+        }
+        elif style == .SemiBold
+        {
+            if logFont.name.isEmpty() do
+                logFont = fontFamily.faces[cast(u64, FontFamilyStyle.Bold)]
+            if logFont.name.isEmpty() do
+                logFont = fontFamily.faces[cast(u64, FontFamilyStyle.Regular)]
+        }
 
         if logFont.name.isEmpty()
         {

@@ -7,7 +7,7 @@ struct HintLineItem
 {
     public
     {
-        key:  String     // Name of the key, written in a keycap.
+        key:  String     // Name of the key, written in a keycap; empty for words without a key.
         text: String     // What the key opens, in the faint ink after the keycap.
     }
 }
@@ -76,8 +76,12 @@ impl IWnd for HintLine
 
         for hint in .hints
         {
-            x += paintKeycap(me, painter, x, centerY, hint.key)
-            x += metrics.hintLine_KeyGap
+            if not hint.key.isEmpty()
+            {
+                x += paintKeycap(me, painter, x, centerY, hint.key)
+                x += metrics.hintLine_KeyGap
+            }
+
             x += paintTextLine(painter, x, centerY, hint.text, font, colors.faintText)
             x += metrics.hintLine_GroupGap
         }
@@ -106,7 +110,8 @@ impl HintLine
         return result
     }
 
-    // Appends a key and what it opens.
+    // Appends a key and what it opens, or with an empty `key`, words alone, such as what the tool
+    // in hand does.
     mtd addHint(key: string, text: string)
     {
         .hints.add(HintLineItem{key, text})
@@ -138,7 +143,8 @@ impl HintLine
             result += Painter.measureString(.reading, .theme().createDefaultFontFs(metrics.hintLine_FontSize)).width + metrics.hintLine_GroupGap
         for hint in .hints
         {
-            result += keycapWidth(me, hint.key) + metrics.hintLine_KeyGap
+            if not hint.key.isEmpty() do
+                result += keycapWidth(me, hint.key) + metrics.hintLine_KeyGap
             result += Painter.measureString(hint.text, font).width + metrics.hintLine_GroupGap
         }
 

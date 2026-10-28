@@ -414,3 +414,20 @@ func floatingHost(host: *Testing.HeadlessHost, width, height: f32, light: bool)
     panel.setShadow(false)
     Swag.assert(panel.invalidatePadding.w == 0 and not panel.wndFlags.has(.BeforeChildrenPaint))
 }
+
+// A hint without a key is words alone: what the tool in hand does takes no keycap.
+#test
+{
+    var host: Testing.HeadlessHost
+    floatingHost(&host, 640, 200, false)
+
+    let words = HintLine.create(&host.root)
+    words.addHint("", "Drag to draw an arrow")
+    let keyed = HintLine.create(&host.root)
+    keyed.addHint("Space", "Drag to draw an arrow")
+
+    let metrics = host.theme.metrics
+    Swag.assert(keyed.contentWidth() - words.contentWidth() >= metrics.hintLine_KeyGap)
+    var image = host.render(&host.root)
+    Swag.assert(image.isValid())
+}

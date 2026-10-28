@@ -11,8 +11,8 @@ using Core, Pixel
 // label of [[Gui.ThemeMetrics.inspector_LabelWidth]] and an editor at the inspector height
 // ([[Gui.ThemeMetrics.control_InspectorHeight]]). No border goes around an individual setting.
 //
-// The inspector folds to an edge tab ("Properties · I") so the work takes the full width; the
-// tab unfolds it again. The application creates the editors, hands them over with
+// The inspector folds to an edge tab ("Properties · I"), standing on the trailing edge with its
+// words running down it, so the work takes the full width; the tab unfolds it again. The application creates the editors, hands them over with
 // [[Gui.Inspector.addRow]] and keeps listening to their own signals. A selection whose settings
 // are generated, such as a property grid, is handed over whole with [[Gui.Inspector.setContent]]:
 // it takes the rest of the column under the rows, and the inspector then reaches down to the
@@ -76,7 +76,7 @@ impl IWnd for Inspector
         if .folded
         {
             let tab = .tabSize()
-            .setPosition(Math.Rectangle{bounds.right() - inset - tab.x, top, tab.x, tab.y})
+            .setPosition(Math.Rectangle{bounds.right() - inset - tab.x, Math.round(bounds.vertCenter() - tab.y * 0.5), tab.x, tab.y})
             return
         }
 
@@ -103,9 +103,17 @@ impl IWnd for Inspector
 
         if .folded
         {
+            // The words run down the tab, read with the head turned to the right, like the spine
+            // of a book standing on the shelf.
             paintFloatingGround(me, painter, body, metrics.corner_Control)
-            let font = theme.createDefaultFont(metrics.defaultFontSize - 1)
-            discard paintTextLine(painter, body.x + metrics.inspector_LabelGap, body.vertCenter(), .tabText(), font, colors.softText)
+            let font   = theme.createDefaultFont(metrics.defaultFontSize - 1)
+            let text   = .tabText()
+            let width  = Painter.measureString(text, font).width
+            let center = painter.transform().transformPoint(Math.Vector2{body.horzCenter(), body.vertCenter()})
+            painter.pushTransform()
+            painter.rotateTransform(Math.ConstF32.Pi * 0.5, center.x, center.y)
+            discard paintTextLine(painter, Math.round(body.horzCenter() - width * 0.5), body.vertCenter(), text, font, colors.softText)
+            painter.popTransform()
             return
         }
 
@@ -341,8 +349,8 @@ impl Inspector
     {
         let metrics = .themeMetrics()
         let font    = .theme().createDefaultFont(metrics.defaultFontSize - 1)
-        let width   = Painter.measureString(.tabText(), font).width + 2 * metrics.inspector_LabelGap
-        return {Math.ceil(width), metrics.control_InspectorHeight}
+        let length  = Painter.measureString(.tabText(), font).width + 2 * metrics.inspector_LabelGap
+        return {metrics.control_InspectorHeight, Math.ceil(length)}
     }
 
     private mtd relayout()

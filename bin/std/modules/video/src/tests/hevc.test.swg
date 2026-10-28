@@ -191,6 +191,7 @@ using Core, Core.Errors, Pixel
         decoder.header.weights[0, 0].chromaWeight[1] = 2
         motion.predFlags = 1
         motion.mv[0, 0] = 0
+        motion.mv[0, 1] = 0
         for blockWidth in [4'u32, 8, 16, 32]
         {
             for blockY in 32 / blockWidth
@@ -265,6 +266,28 @@ using Core, Core.Errors, Pixel
                         Swag.assert(current.chromaAtMutable(0, x, y)[0] == cast(u16, (2 * (20 + sourceX + y))))
                         Swag.assert(current.chromaAtMutable(1, x, y)[0] == cast(u16, (2 * (40 + sourceX + y))))
                     }
+                }
+            }
+        }
+
+        // Both fractional filters read a gathered reference clamped to its top-left sample.
+        motion.mv[0, 0] = -799
+        motion.mv[0, 1] = -799
+        for blockWidth in [4'u32, 5, 8, 12, 16, 32]
+        {
+            decoder.interPredict(0, 0, blockWidth, blockWidth, &motion)
+            for y in cast(s32, blockWidth)
+            {
+                for x in cast(s32, blockWidth) do
+                    Swag.assert(current.lumaAtMutable(x, y)[0] == 0)
+            }
+
+            for y in cast(s32, (blockWidth / 2))
+            {
+                for x in cast(s32, (blockWidth / 2))
+                {
+                    Swag.assert(current.chromaAtMutable(0, x, y)[0] == 40)
+                    Swag.assert(current.chromaAtMutable(1, x, y)[0] == 80)
                 }
             }
         }

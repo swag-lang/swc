@@ -586,7 +586,9 @@ impl MainWindow
         .showOperation()
         .refreshActions()
 
-        if .startupQueue.count do
+        // A protected startup vault still unfolded for its access holds the queue: a mount of it
+        // that failed leaves it there for another try.
+        if .startupQueue.count and (.startupWaiting.isEmpty() or .isMounted(.startupWaiting)) do
             .pumpStartupQueue()
     }
 

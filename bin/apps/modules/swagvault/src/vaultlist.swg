@@ -78,8 +78,9 @@ impl IWnd for NoticeLine
 // The window's first page: the vaults Swag Vault knows, under the page title.
 //
 // It is the view of a scroll window, so a long list scrolls. Each vault is a row; the chosen locked
-// vault unfolds into the card that unlocks it, laid over its row, while the rows below make room
-// and the others recede. Two quiet words end the list: a new vault, or one to open from a file.
+// vault unfolds into the card that unlocks it, laid over its row: the card opens its height while
+// the rows below follow it, and the others recede. Two quiet words end the list: a new vault, or
+// one to open from a file.
 struct VaultList
 {
     using wnd: Wnd
@@ -98,6 +99,11 @@ struct VaultList
     rows:      Array'*VaultRow
     arranging: bool
     built:     bool     // Whether the parts exist: the scroll window lays its view out as soon as it makes it.
+
+    // The vault whose place in the list is open, or closing back to a row; empty when every row rests.
+    openPath:   String
+    openHeight: f32     // Height that place takes now.
+    openTarget: f32     // Height it is opening or closing to.
 }
 
 impl VaultList
@@ -109,6 +115,7 @@ impl VaultList
     const LinksSpacing  = 12'f32       // Air between the two quiet words.
     const BottomRoom    = 72'f32       // Room kept under the words for the hint line.
     const RecedeOpacity = 0.45'f32     // Opacity of the rows behind an unfolded vault.
+    const OpenChannel   = "Vault.Card.Height"
 
     // Creates the page in `window`, empty.
     func create(window: *MainWindow)->*VaultList
@@ -167,6 +174,7 @@ impl VaultList
         .card.header.setPath(chosen)
         .card.header.refresh()
         .card.setKeyFileCount(.window.unlockKeyFiles.count)
+        .unfold(chosen)
         .arrange()
 
         // The card arrives over its row, and the other rows recede behind it.
@@ -187,6 +195,49 @@ impl VaultList
 
         .invalidate()
     }
+
+    // Opens the place of `chosen` to the height of its card, the rows below following it, or closes
+    // the open place back to a row when nothing is chosen. A vault chosen while another is open
+    // takes the place from the height of its own row.
+    mtd unfold(chosen: string)
+    {
+        if chosen.count != 0 and .openPath != chosen
+        {
+            .openPath   = chosen
+            .openHeight = VaultRow.Height
+            .openTarget = VaultRow.Height
+        }
+
+        if .openPath.isEmpty() do
+            return
+
+        let animator = &.app().animator
+        let channel  = AnimationChannel.from(OpenChannel)
+        let target   = chosen.count == 0 ? VaultRow.Height : .card.measureHeight(.rowWidth())
+        if target == .openTarget and (animator.isActive(me, channel) or target == .openHeight) do
+            return
+
+        .openTarget = target
+
+        var options: AnimationOptions
+        options.duration = Time.Duration.fromSeconds(.themeMetrics().motion_PanelSeconds)
+        options.easing   = .EaseInOut
+
+        func follow(list: *VaultList, height: f32)
+        {
+            list.openHeight = height
+            list.arrange()
+        }
+
+        discard animator.animateF32(me, channel, .openHeight, target, &follow, options, func|list = me|(result)
+        {
+            if result == .Completed and list.window.chosenLockedPath().count == 0 do
+                list.openPath.clear()
+        })
+    }
+
+    // Returns the width of a row: the column, and the outset its ground reaches past it on each side.
+    mtd rowWidth()->f32 => Math.min(PageColumnWidth, Math.max(0, .clientRect().width - 2 * (PageGutter + RowOutset))) + 2 * RowOutset
 
     // Says the words the page wrote at construction again, in the language now active.
     mtd retranslate()
@@ -209,7 +260,8 @@ impl VaultList
         defer .arranging = false
 
         let room  = .clientRect()
-        let width = Math.min(PageColumnWidth, Math.max(0, room.width - 2 * (PageGutter + RowOutset)))
+        let rowW  = .rowWidth()
+        let width = rowW - 2 * RowOutset
         let x     = Math.round((room.width - width) * 0.5)
         var y     = PageTop
 
@@ -225,23 +277,33 @@ impl VaultList
 
         y += RowsGap
 
-        // The rows reach past the column on both sides, so their words stand on its edge.
+        // At rest, an open place follows what its card holds at this width, and a place whose vault
+        // was folded is a row again.
         let chosen = .window.chosenLockedPath()
-        let rowX   = x - RowOutset
-        let rowW   = width + 2 * RowOutset
+        if not .app().animator.isActive(me, AnimationChannel.from(OpenChannel))
+        {
+            if chosen.count == 0
+            {
+                .openPath.clear()
+            }
+            elif .openPath == chosen
+            {
+                .openHeight = .card.measureHeight(rowW)
+                .openTarget = .openHeight
+            }
+        }
+
+        // The rows reach past the column on both sides, so their words stand on its edge. The open
+        // place holds the card while its vault is chosen, and its row while it closes.
+        let rowX = x - RowOutset
         for row in .rows
         {
-            if row.path == chosen
-            {
-                let height = .card.measureHeight(rowW)
-                .card.place(Math.Rectangle{rowX, y, rowW, height})
-                y += height + RowGap
-            }
-            else
-            {
+            let open = not .openPath.isEmpty() and row.path == .openPath
+            if open and row.path == chosen do
+                .card.place(Math.Rectangle{rowX, y, rowW, .openHeight})
+            else do
                 row.arrange(Math.Rectangle{rowX, y, rowW, VaultRow.Height})
-                y += VaultRow.Height + RowGap
-            }
+            y += (open ? .openHeight : VaultRow.Height) + RowGap
         }
 
         if not .rows.isEmpty() do

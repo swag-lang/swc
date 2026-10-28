@@ -848,6 +848,80 @@ func openAndDismiss(host: *Testing.HeadlessHost, dialog: *FormDlg)
     Swag.assert(not window.list.card.panel.isLocallyVisible())
 }
 
+// The card opens its height over the place of its vault while the rows below follow it, and
+// closes back to a row when the vault folds; the keyboard is on the password at once.
+#[Swag.TestTag("animation.vault")]
+#test
+{
+    var host: Testing.HeadlessHost
+    let window = testSetupMainWindow(&host)
+    fillPictureList(window)
+    host.setReducedMotion(false)
+    host.settleAnimations(window)
+
+    let list  = window.list
+    let below = list.rows[2]
+    window.chooseVault("C:\\vault.bin")
+    Swag.assert(window.mountPassword.hasFocus())
+    let open = list.card.measureHeight(list.rowWidth())
+    host.advanceAnimations(0.05)
+    Swag.assert(list.openHeight > VaultRow.Height and list.openHeight < open)
+    Swag.assert(Math.abs(list.card.panel.position.height - list.openHeight) < 0.5)
+    Swag.assert(Math.abs(below.position.y - (list.card.panel.position.y + list.openHeight + VaultList.RowGap)) < 0.5)
+    host.app.animator.finishAll()
+    Swag.assert(list.openHeight == open)
+
+    window.foldVault()
+    host.advanceAnimations(0.05)
+    Swag.assert(list.openHeight > VaultRow.Height and list.openHeight < open)
+    Swag.assert(Math.abs(below.position.y - (list.rows[1].position.y + list.openHeight + VaultList.RowGap)) < 0.5)
+    host.app.animator.finishAll()
+    Swag.assert(list.openPath.isEmpty())
+    Swag.assert(Math.abs(below.position.y - (list.rows[1].position.bottom() + VaultList.RowGap)) < 0.5)
+}
+
+// A protected startup vault unfolds in the list for its access, on the drive and the read-only
+// choice it was marked with. Leaving it skips it and brings up the next one; a reader who chose
+// another vault keeps it.
+#test
+{
+    var host: Testing.HeadlessHost
+    let window = testSetupMainWindow(&host)
+    useTestDestination(window)
+    window.privacyMode = false
+    window.applyPrivacyControl()
+
+    let folder = Env.getSpecialDirectory(.Temp)
+    let first  = Path.combine(folder.toString(), "swagvault_startup_first.bin")
+    let second = Path.combine(folder.toString(), "swagvault_startup_second.bin")
+    let third  = Path.combine(folder.toString(), "swagvault_startup_third.bin")
+    discard expect File.writeAllText(first, "container")
+    discard expect File.writeAllText(second, "container")
+    discard expect File.writeAllText(third, "container")
+    defer
+    {
+        discard catch File.delete(first)
+        discard catch File.delete(second)
+        discard catch File.delete(third)
+    }
+
+    window.startupQueue.add(StartupVault{first, "D:", true, true, false})
+    window.startupQueue.add(StartupVault{second, "D:", true, false, false})
+    window.startupQueue.add(StartupVault{third, "D:", true, false, false})
+    window.pumpStartupQueue()
+    Swag.assert(window.operation.kind == .None)
+    Swag.assert(window.chosenLockedPath() == first.toString() and window.startupWaiting == first)
+    Swag.assert(window.readOnly.isChecked() and window.selectedMountPoint() == "D:")
+    Swag.assert(window.list.card.panel.isLocallyVisible())
+
+    window.foldVault()
+    Swag.assert(window.chosenLockedPath() == second.toString() and window.startupWaiting == second)
+    Swag.assert(not window.readOnly.isChecked())
+
+    window.chooseVault(first)
+    Swag.assert(window.chosenLockedPath() == first.toString() and window.startupQueue.isEmpty())
+}
+
 // Marking a mounted vault puts it in the list Swag Vault mounts at its next start, and unmarking
 // it takes it back out. Unmounting the drive afterwards leaves the mark alone.
 #test
@@ -1098,6 +1172,9 @@ func assertSurfaceGolden(host: *Testing.HeadlessHost, window: *MainWindow, dark:
         let window = testSetupMainWindow(&host)
         window.showPage(.Create, animate: false)
         window.createPath.setText("C:\\Users\\vault\\Documents\\papiers.bin")
+
+        // The room left on a volume belongs to the machine, so the picture states it.
+        window.createPage.showFreeSpace(212'u64 * 1024 * 1024 * 1024, "C:\\")
         assertSurfaceGolden(&host, window, dark, "create")
     }
 }

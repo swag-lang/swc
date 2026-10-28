@@ -281,6 +281,7 @@ struct MainWindow
     // works through it. Only the first survives a run.
     startupVaults:   Array'StartupVault
     startupQueue:    Array'StartupVault
+    startupWaiting:  String     // Protected startup vault unfolded in the list for its access, or empty.
     startupTimer:    *Timer?
     securityTimer:   *Timer?
     securityMonitor: AutoUnmountMonitor
@@ -752,6 +753,7 @@ impl MainWindow
         .refreshVaults()
         if .chosenLockedPath().count != 0 do
             .mountPassword.setFocus()
+        .skipStartupVault()
     }
 
     // Folds the unfolded vault, and forgets the access typed for it.
@@ -763,6 +765,7 @@ impl MainWindow
         .chosenPath.clear()
         .pruneVaults()
         .refreshVaults()
+        .skipStartupVault()
     }
 
     // Wipes the access stated for the chosen vault: its password, its key files and the hidden

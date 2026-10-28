@@ -44,6 +44,7 @@ ui_Location            Emplacement
 ui_Capacity            Capacité
 ui_UnitMiB             Mio
 ui_UnitGiB             Gio
+ui_FreeSpace           % libres sur %
 ui_Password            Mot de passe
 ui_Confirm             Confirmer
 ui_OptionalPassword    Facultatif
@@ -71,7 +72,7 @@ ui_UnmountOnLockHelp   Les lecteurs protégés se ferment dès que la session Wi
 ui_UnmountOnSuspend    Démonter avant la mise en veille
 ui_UnmountOnSuspendHelp Les lecteurs protégés se ferment lorsque Windows met l'ordinateur en veille.
 ui_UnmountOnIdle       Démonter après une période d'inactivité
-ui_UnmountOnIdleHelp   Les lecteurs protégés se ferment lorsque Windows n'a reçu aucune entrée clavier ou souris pendant la durée choisie.
+ui_UnmountOnIdleHelp   Les lecteurs protégés se ferment lorsque Windows n'a reçu aucune entrée clavier ou souris pendant %.
 ui_Minutes             % minutes
 
 # The boxes that change a vault.
@@ -103,12 +104,10 @@ dlg_TitleAccessKeyFiles Choisir les fichiers clés
 dlg_TitleGenerateKey   Créer un fichier clé aléatoire
 dlg_TitleChangeKeyFiles Modifier les fichiers clés du coffre
 dlg_TitleResize        Modifier la capacité ou le camouflage
-dlg_TitleUnlock        Déverrouiller %
 dlg_BtnCreate          Créer
 dlg_BtnOpen            Ouvrir
 dlg_BtnAdd             Ajouter
 dlg_BtnApply           Appliquer
-dlg_BtnSkip            Ignorer
 
 # What the line under the title of the list reports, and the boxes a failure opens.
 msg_Ready              Prêt — créez un coffre ou choisissez-en un à ouvrir.

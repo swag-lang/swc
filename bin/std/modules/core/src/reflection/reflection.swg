@@ -174,6 +174,7 @@ using Swag
 
 private var g_HashCrcToType:  HashTable'(u32, typeinfo)
 private var g_HashNameToType: HashTable'(string, typeinfo)
+private var g_AmbiguousCrcs:  HashSet'u32
 private var g_HashKeyToType:  HashTable'(string, typeinfo?)
 private var g_HashLock:       Swag.RWLock
 
@@ -185,13 +186,50 @@ private func addCrcTypeIdentity(crc: u32, type: typeinfo?)
     let existing = g_HashCrcToType.tryFind(crc)
     if existing
     {
+        // A type holding the crc only through its bare name gives it up to the type whose full
+        // name it is.
+        let other = existing.value
+        if other.fullname != type.fullname and (other.fullname == null or Hash.Crc32.compute(other.fullname) != crc)
+        {
+            g_HashCrcToType.add(crc, type)
+            return
+        }
+
         // The same logical type registers again from another module; anything else is
         // two types colliding on one crc, which would resolve unpredictably.
-        Swag.assert(existing.value.fullname == type.fullname, "type crc collision")
+        Swag.assert(other.fullname == type.fullname, "type crc collision")
         return
     }
 
     g_HashCrcToType.add(crc, type)
+}
+
+// Registers the crc of the bare name of `type`, such as `View` for `Gui.Lens.View`.
+//
+// A bare name is not unique: two namespaces can each declare a `View`, and one program can hold
+// both. The first type keeps the identity until another type claims the same bare name; the crc
+// then resolves to no type rather than to whichever registered first, and stays so. A crc that
+// already names a type through its full name keeps it.
+private func addBareNameCrcTypeIdentity(crc: u32, type: typeinfo?)
+{
+    if not crc or not type or g_AmbiguousCrcs.contains(crc) do
+        return
+
+    let existing = g_HashCrcToType.tryFind(crc)
+    if not existing
+    {
+        g_HashCrcToType.add(crc, type)
+        return
+    }
+
+    let other = existing.value
+    if other.fullname == type.fullname do
+        return
+    if other.fullname != null and Hash.Crc32.compute(other.fullname) == crc do
+        return
+
+    g_HashCrcToType.remove(crc)
+    g_AmbiguousCrcs.add(crc)
 }
 
 private func registerTypeNoLock(type: typeinfo?)->bool
@@ -261,7 +299,7 @@ private func registerTypeNoLock(type: typeinfo?)->bool
     if type.fullname != null and type.fullname != "" do
         addCrcTypeIdentity(Hash.Crc32.compute(type.fullname), type)
     if type.name != null and type.name != "" do
-        addCrcTypeIdentity(Hash.Crc32.compute(type.name), type)
+        addBareNameCrcTypeIdentity(Hash.Crc32.compute(type.name), type)
 
     return true
 }

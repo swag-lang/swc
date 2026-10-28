@@ -360,3 +360,33 @@ enum ProbeAccess: u8
     Swag.assert(Reflection.enumName(ProbeAccess, &read, fullyQualified: false) == "Read")
     Swag.assert(Reflection.enumName(ProbeAccess, &readWrite, fullyQualified: false) == "Read | Write")
 }
+
+namespace ReflectionBareA
+{
+    struct Twin { a: s32 }
+}
+
+namespace ReflectionBareB
+{
+    struct Twin { b: f32 }
+}
+
+struct ReflectionTwinHolder
+{
+    first:  ReflectionBareA.Twin
+    second: ReflectionBareB.Twin
+}
+
+// Two namespaces may each declare a type of the same bare name, and one graph may hold both:
+// registering it keeps each type under its full name and leaves the shared bare name to none.
+#test
+{
+    Reflection.registerType(#typeof(ReflectionTwinHolder))
+
+    let first  = unwrap #typeof(ReflectionBareA.Twin).fullname
+    let second = unwrap #typeof(ReflectionBareB.Twin).fullname
+    let bare   = unwrap #typeof(ReflectionBareA.Twin).name
+    Swag.assert(Reflection.typeFromCrc(Hash.Crc32.compute(first))!.fullname == first)
+    Swag.assert(Reflection.typeFromCrc(Hash.Crc32.compute(second))!.fullname == second)
+    Swag.assert(Reflection.typeFromCrc(Hash.Crc32.compute(bare)) == null)
+}

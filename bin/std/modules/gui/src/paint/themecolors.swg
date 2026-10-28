@@ -51,6 +51,10 @@ struct ThemeColors
         selection: Color     // Ground of a selected row, thumbnail, segment, or of a menu entry under the pointer.
         highlight: Color     // Ground of search occurrences and matched characters.
 
+        // Hues that tell a few series apart — the tracks of a piece, the channels of a recording —
+        // where nothing is chosen and nothing acts. A series past the fourth takes them again.
+        series: [4] Color
+
         // The current search occurrence. Encre marks it in Voltage; Papier keeps the highlight
         // ground and marks it with ink. The band is translucent, because a viewer draws it over
         // text it must not hide.
@@ -696,6 +700,7 @@ impl ThemeColors
         .link      = p.link
         .selection = p.selection
         .highlight = p.highlight
+        .series    = p.series
         .link.ensureContrast(p.ground, LinkContrast)
 
         .searchMatch_Bk     = p.currentMatch.ground.withAlpha(SearchMatchBandAlpha)
@@ -1242,6 +1247,11 @@ impl ThemeColors
         result.rich2 = 0xFF8FD48F
         result.rich3 = 0xFF7DD3FC
 
+        result.series[0] = Arc
+        result.series[1] = 0xFF5CC8B4
+        result.series[2] = 0xFFA78BFA
+        result.series[3] = 0xFFF0A46C
+
         result.veil   = 0xFFFFFFFF
         result.shadow = 0x8C000000
         return result
@@ -1309,6 +1319,11 @@ impl ThemeColors
         result.rich1 = 0xFFB42020
         result.rich2 = 0xFF1E7A32
         result.rich3 = 0xFF0A6FA0
+
+        result.series[0] = arc
+        result.series[1] = 0xFF0F7F6E
+        result.series[2] = 0xFF6D4FC2
+        result.series[3] = 0xFFB15F23
 
         result.veil   = 0xFF000000
         result.shadow = 0x29000000

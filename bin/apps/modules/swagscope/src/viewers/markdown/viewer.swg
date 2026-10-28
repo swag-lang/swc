@@ -348,6 +348,7 @@ struct ZoomButton
     hasStatistics:  bool
     services:       Viewer.HostServices
     outline:        *DocumentOutline?
+    readingMargin:  *ReadingMargin?
 }
 
 impl IWnd for ZoomButton
@@ -531,10 +532,18 @@ func createViewer(host: Viewer.Host)
         entries.add(appStrings().cmd_Options, func|view, zoomButton, optionsButton|() { showOptions(optionsButton, view, zoomButton) })
     })
 
+    with zoomButton.readingMargin = ReadingMargin.create(view, unwrap zoomButton.outline)
+    {
+        .outline.sigPublished += func|margin = zoomButton.readingMargin|(_) { margin!.follow() }
+    }
+
     view.hookOnEvent = func|optionsButton, zoomButton|(_, evt)
     {
         switch evt
         {
+        case ResizeEvent:
+            zoomButton.readingMargin!.follow()
+
         case KeyEvent as key where Viewer.isZoomKey(key):
             zoomButton.applyZoom(Viewer.zoomAfterKey(key, zoomButton.zoomPercent))
             return true

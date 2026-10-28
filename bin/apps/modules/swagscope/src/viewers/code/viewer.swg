@@ -276,12 +276,21 @@ impl Panel
     {
         .zoomPercent  = Viewer.clampZoom(percent)
         g_ZoomPercent = .zoomPercent
-        let base = .themeMetrics().defaultFixedFontSize
-        let size = cast(u32, Math.max(Math.round(cast(f32, base) * cast(f32, .zoomPercent) / 100), 1))
-        .editor.style.setFont(.theme().createDefaultFontFs(size), .Regular)
-        .editor.setFlags(.editor.flags)
+        .applyMeasure()
         .zoomLabel?.setText(Viewer.zoomText(.zoomPercent))
         .updateEstimatedHeight()
+    }
+
+    // Sets the source in the fixed face at the zoom in force, on its lines, in its numbered column.
+    mtd applyMeasure()
+    {
+        let scale = cast(f32, .zoomPercent) / 100
+        let base  = .themeMetrics().defaultFixedFontSize
+        let size  = cast(u32, Math.max(Math.round(cast(f32, base) * scale), 1))
+        let font  = .theme().createDefaultFontFs(size)
+        .editor.style.setFont(font, .Regular)
+        Viewer.setLinePitch(.editor, font, size, Viewer.CodePitch)
+        Viewer.centerColumn(.editor, Viewer.CodeColumn * scale)
     }
 
     // Gives the lens the zoom of the source.
@@ -392,8 +401,8 @@ impl Panel
         with .editor = RichEditCtrl.create(me)
         {
             .dockStyle   = .Center
-            .marginLeft  = 12
-            .marginRight = 12
+            .marginLeft  = Viewer.ColumnInset
+            .marginRight = Viewer.ColumnInset
             .style.setFont(me.theme().createDefaultFontFs(me.themeMetrics().defaultFixedFontSize), .Regular)
             .setFlags(.ReadOnly | .LineNumbers)
         }
@@ -526,6 +535,13 @@ impl Panel
 
 impl IWnd for Panel
 {
+    // The column stays centred whatever the width of the window.
+    mtd impl onResizeEvent(_: *ResizeEvent)
+    {
+        if .editor != null do
+            Viewer.centerColumn(.editor, Viewer.CodeColumn * cast(f32, .zoomPercent) / 100)
+    }
+
     mtd impl onPaint(_: *PaintEvent)
     {
         if .pendingSeek do
@@ -536,6 +552,10 @@ impl IWnd for Panel
     {
         if evt.kind == .LanguageChanged and .zoomLabel do
             .zoomLabel.toolTip = texts().ui_ZoomMenu
+
+        // A theme carries its own faces: the fixed face is set again in the new one.
+        if evt.kind == .ThemeChanged do
+            .applyMeasure()
         .wnd.IWnd.onNotifyEvent(evt)
     }
 

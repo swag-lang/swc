@@ -51,6 +51,7 @@ namespace ViewerCommands
     const OnlineMovies      = "scope.explore.onlineMovies"
     const OnlineMusic       = "scope.explore.onlineMusic"
     const ChooseMusic       = "scope.explore.chooseMusic"
+    const OpenChosen        = "scope.explore.openChosen"
 }
 
 // Files the lens lists in one section for a query typed without the `/` prefix, which stands
@@ -78,7 +79,7 @@ impl ViewerWindow
                          [ViewerCommands.Back, ViewerCommands.Forward, ViewerCommands.Up, ViewerCommands.Refresh,
                           ViewerCommands.EditLocation, ViewerCommands.SortName, ViewerCommands.SortType, ViewerCommands.SortSize,
                           ViewerCommands.SortModified, ViewerCommands.SortDescending, ViewerCommands.OnlineMovies,
-                          ViewerCommands.OnlineMusic, ViewerCommands.ChooseMusic])
+                          ViewerCommands.OnlineMusic, ViewerCommands.ChooseMusic, ViewerCommands.OpenChosen])
             .addCommands(func()->string => appStrings().lens_Find,
                          [ViewerCommands.Find, ViewerCommands.FindNext, ViewerCommands.FindPrevious, ViewerCommands.SearchMode,
                           ViewerCommands.FilterMode, ViewerCommands.MatchCase, ViewerCommands.WholeWord, ViewerCommands.RegularExpression])
@@ -438,6 +439,10 @@ impl ViewerWindow
             hidden  = not exploring
             toggle  = true
             checked = .onlineMusic
+        case ViewerCommands.OpenChosen:
+            name     = texts.cmd_OpenChosen
+            hidden   = not exploring
+            disabled = not exploring or .explorer!.selected >= .explorer.entries.count
         case ViewerCommands.ChooseMusic:
             name     = texts.explore_ChooseMusic
             hidden   = not exploring
@@ -549,6 +554,7 @@ impl ViewerWindow
         case ViewerCommands.OnlineMovies:   explorer.setOnlineMedia(not .onlineMovies, .onlineMusic)
         case ViewerCommands.OnlineMusic:    explorer.setOnlineMedia(.onlineMovies, not .onlineMusic)
         case ViewerCommands.ChooseMusic:    explorer.chooseMusic()
+        case ViewerCommands.OpenChosen:     explorer.activate(explorer.selected)
         case ViewerCommands.SortName, ViewerCommands.SortType, ViewerCommands.SortSize, ViewerCommands.SortModified:
             explorer.sortBy(sortColumnOf(id), explorer.descending)
         default:

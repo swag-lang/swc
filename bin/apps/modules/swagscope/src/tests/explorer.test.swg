@@ -255,8 +255,8 @@ func completeExplorer(host: *Testing.HeadlessHost, explorer: *Explorer)
         {
             discard expect host.app.setLanguage("fr")
             host.notify(.LanguageChanged)
-            Swag.assert(explorer.modeMenu.name.raw == appStrings().explore_Medium)
-            Swag.assert(window.folderLabel.text() == appStrings().explore_Folders)
+            Swag.assert(explorer.modeMenu.name.raw == appStrings().mode_Thumbnails)
+            Swag.assert(String.toUpper(appStrings().explore_Folders, .Unicode) == window.folderLabel.text())
         }
 
         window.applyLayout()
@@ -265,10 +265,10 @@ func completeExplorer(host: *Testing.HeadlessHost, explorer: *Explorer)
         Swag.assert(not explorer.filter.isLocallyVisible())
         explorer.revealFilter()
         Swag.assert(explorer.filter.position.width > 100 and explorer.filter.hasFocus())
+        // The filter takes a line of its own under the title, which keeps its room.
         let filterRect = explorer.filter.surfaceRect()
         let modesRect  = explorer.modeMenu.surfaceRect()
-        Swag.assert(filterRect.bottom() == modesRect.bottom() and filterRect.height == modesRect.height,
-                    Format.toString("filter % % menu % %", filterRect.y, filterRect.height, modesRect.y, modesRect.height))
+        Swag.assert(filterRect.y >= explorer.title.surfaceRect().bottom() and filterRect.height == Explorer.ToolHeight)
         Swag.assert(modesRect.height <= 36)
         host.moveMouse(explorer.grid.localToSurface(Math.Point{32, 32}))
         Swag.assert(explorer.grid.hovered == 0)

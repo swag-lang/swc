@@ -53,6 +53,7 @@ struct DocumentOutline
     loaded:       bool
     headings:     Array'DocumentHeading
     sigSelected:  SigArray'func||(*Wnd, u64)
+    sigPublished: SigArray'func||(*DocumentOutline)     // Emitted after the headings listed changed.
 }
 
 impl DocumentOutline
@@ -205,6 +206,7 @@ impl DocumentOutline
         .headings.add(headings)
         .rebuildRows()
         .refresh()
+        .sigPublished.call(me)
     }
 
     // Recreates only headings whose titles contain the local outline filter.

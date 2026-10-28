@@ -298,6 +298,80 @@ using Core, Core.Errors, Pixel
     }
 }
 
+// Bidirectional luma filtering uses decoder scratch when the window fits, and a separate
+// buffer when it does not. Cover both sides of the capacity boundary with stale scratch.
+#test
+{
+    var sps: Hevc.Sps
+    sps.width           = 64
+    sps.height          = 64
+    sps.subWidthC       = 2
+    sps.subHeightC      = 2
+    sps.chromaArrayType = 1
+    sps.bitDepthLuma    = 8
+    sps.bitDepthChroma  = 8
+
+    var current, reference: Hevc.Frame
+    current.prepare(&sps)
+    reference.prepare(&sps)
+    for y in 64's32
+    {
+        for x in 64's32 do
+            reference.lumaAtMutable(x, y)[0] = 49
+    }
+    for y in 32's32
+    {
+        for x in 32's32
+        {
+            reference.chromaAtMutable(0, x, y)[0] = 24
+            reference.chromaAtMutable(1, x, y)[0] = 36
+        }
+    }
+
+    var pps: Hevc.Pps
+    pps.weightedBipred = true
+    var decoder: Hevc.Decoder
+    decoder.activeSps            = &sps
+    decoder.activePps            = &pps
+    decoder.current              = &current
+    decoder.header.sliceType     = Hevc.SliceTypeB
+    decoder.header.hasWeights    = true
+    decoder.header.weights[0, 0].lumaWeight      = 2
+    decoder.header.weights[0, 0].chromaWeight[0] = 2
+    decoder.header.weights[0, 0].chromaWeight[1] = 2
+    decoder.refList.frames[0, 0] = &reference
+
+    var motion: Hevc.PuMotion
+    motion.predFlags = 1
+    motion.refIdx    = [0, 0]
+    motion.mv[0, 0] = -799
+    motion.mv[0, 1] = -799
+    for bitDepth in [8'u32, 10]
+    {
+        sps.bitDepthLuma   = bitDepth
+        sps.bitDepthChroma = bitDepth
+        for height in [56'u32, 57, 64]
+        {
+            for index in 64'u32 * 64 do
+                decoder.predSamples[index] = 0x5A5A
+            decoder.interPredict(0, 0, 64, height, &motion)
+            for y in cast(s32, height)
+            {
+                for x in 64's32 do
+                    Swag.assert(current.lumaAtMutable(x, y)[0] == 98)
+            }
+            for y in cast(s32, (height / 2))
+            {
+                for x in 32's32
+                {
+                    Swag.assert(current.chromaAtMutable(0, x, y)[0] == 48)
+                    Swag.assert(current.chromaAtMutable(1, x, y)[0] == 72)
+                }
+            }
+        }
+    }
+}
+
 // A stream can begin at a clean random access point whose leading pictures predict from what came
 // before it. Those pictures are decoded from references that were never there, and clause 8.1.3
 // says not to show them: they precede the point in output order, so keeping them would put wrong

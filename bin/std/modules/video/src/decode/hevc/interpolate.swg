@@ -488,7 +488,6 @@ impl Decoder
     {
         let bitDepth = .activeSps!.bitDepthLuma
         let shift1   = Math.min(4'u32, bitDepth - 8)
-        let shift2   = 6'u32
         let shift3   = Math.max(2'u32, 14 - bitDepth)
 
         let lumaTapsX = lumaTaps(xFrac)
@@ -612,8 +611,29 @@ impl Decoder
             return
         }
 
-        // Both directions: the horizontal filter runs over every row the vertical one reads.
+        // Both directions need the horizontal result until the vertical filter consumes it.
+        // Most blocks fit the decoder-local scratch; the largest block needs a separate buffer.
+        // Four extra samples cover the high lanes of the final four-lane SIMD load.
+        if cast(u64, width) * cast(u64, (height + 7)) + 4 <= 64 * 64 do
+            .interpolateLumaBoth(reference, referenceStride, width, height, xFrac, yFrac, list, cast([*] s16, &.predSamples[0]))
+        else do
+            .interpolateLumaBothLarge(reference, referenceStride, width, height, xFrac, yFrac, list)
+    }
+
+    #[Swag.NoInline]
+    private mtd interpolateLumaBothLarge(reference: const [*] u16, referenceStride: u64, width, height, xFrac, yFrac, list: u32)
+    {
         var intermediate: [MaxRefSide * MaxPredSide] s16
+        .interpolateLumaBoth(reference, referenceStride, width, height, xFrac, yFrac, list, &intermediate[0])
+    }
+
+    #[Swag.NoInline]
+    private mtd interpolateLumaBoth(reference: const [*] u16, referenceStride: u64, width, height, xFrac, yFrac, list: u32, intermediate: [*] s16)
+    {
+        let shift1    = Math.min(4'u32, .activeSps!.bitDepthLuma - 8)
+        let shift2    = 6'u32
+        let lumaTapsX = lumaTaps(xFrac)
+        let lumaTapsY = lumaTaps(yFrac)
         for row in height + 7
         {
             let source = cast(u64, row) * referenceStride

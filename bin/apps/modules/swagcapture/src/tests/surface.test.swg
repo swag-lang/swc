@@ -149,8 +149,9 @@ func testSetupEditorSurface(host: *Gui.Testing.HeadlessHost, dark: bool, text = 
 
     Swag.assert(not main.appearanceButton.isLocallyVisible())
 
-    // Every command the old menus held is a lens entry.
-    main.lens.open("")
+    // Every command the old menus held is a lens entry, which `>` lists; at rest the lens offers
+    // the context only.
+    main.lens.open(">")
     var titles: Array'String
     for section in main.lens.results.sections
     {

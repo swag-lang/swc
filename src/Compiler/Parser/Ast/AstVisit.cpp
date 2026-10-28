@@ -44,7 +44,7 @@ AstVisitResult AstVisit::step(const TaskContext& ctx)
     Frame& frame = stack_.back();
 
 #if SWC_HAS_VISIT_DEBUG_INFO
-    if (!frame.node && ast_->hasNode(frame.nodeRef))
+    if (!frame.node)
         frame.node = &ast_->node(frame.nodeRef);
     dbgNode    = frame.node;
     const SourceCodeRef currentCodeRef = dbgNode ? dbgNode->codeRef() : SourceCodeRef::invalid();

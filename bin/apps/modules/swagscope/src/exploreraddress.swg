@@ -40,7 +40,7 @@ impl ExplorerAddress
         with result.pathScroll = Wnd.create'ScrollWnd(result)
         {
             .dockStyle = .Center
-            .updateFlags(.CompactBars | .TransparentBars)
+            .updateFlags(.TransparentBars)
             .setFrameFlags(remove: .Borders)
         }
 

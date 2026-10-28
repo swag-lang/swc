@@ -212,7 +212,7 @@ using Swag, Core, Pixel
     Swag.assert(metrics.slider_BoxSize == 14)
     Swag.assert(metrics.progressBar_TrackSize == 4)
     Swag.assert(metrics.focusRing_Size == 2 and metrics.focusRing_Offset == 2)
-    Swag.assert(metrics.scrollBar_NormalSize - 2 * metrics.scrollBar_BoxPadding == 6)
+    Swag.assert(metrics.scrollBar_Size - 2 * metrics.scrollBar_BoxPadding == 4)
 
     for rect in [rects.btnPush_Normal, rects.btnPush_NormalBorder, rects.edit_SquareBk, rects.edit_SquareBorder,
                  rects.edit_SquareStrongBorder, rects.btnIcon_SquareBk, rects.btnIcon_RoundSquareBk, rects.tabBar_RoundBk,

@@ -79,6 +79,7 @@ struct EditBox
         {
             icon:           Icon              // Optional leading icon.
             unit:           String            // Optional trailing unit, such as "kg".
+            prefix:         String            // Optional leading word written in the field before the text, such as the axis "x".
             form  = EditBoxForm.Rectangle     // Current background geometry.
             flags = EditBoxFlags.None         // Active interaction and presentation options.
             maximumLength:  s32               // Maximum rune count, or zero for no limit.
@@ -210,13 +211,15 @@ impl IWnd for EditBox
             if subRectBorder == &rects.edit_SquareBorder do
                 subRectBorder = &rects.edit_SquareStrongBorder
 
+        // On a floating sheet — a dialog — the surface is the field's own fill, so a field at rest
+        // there is a well of the window's ground, which the focus lifts out of.
         case .isHot:
             colorBorder = colors.edit_HotBorder
-            colorBk     = colors.edit_HotBk
+            colorBk     = .standsOnSheet() ? colors.edit_WellBk : colors.edit_HotBk
 
         default:
             colorBorder = colors.edit_Border
-            colorBk     = colors.edit_Bk
+            colorBk     = .standsOnSheet() ? colors.edit_WellBk : colors.edit_Bk
         }
 
         .aniBk.apply(me, colorBk)
@@ -325,6 +328,11 @@ impl IWnd for EditBox
             let unitW = Painter.measureString(.unit, fontR).width
             bc.painter.drawString(editRight - unitW, y, .unit, fontR, colorUnit)
         }
+
+        // The prefix stands at the leading edge, outside the scrolled text and its clip, in the
+        // ink of the unit.
+        if not .prefix.isEmpty() do
+            bc.painter.drawString(.paddedClientRect().x, y, .prefix, fontR, colorUnit)
     }
 
     // Processes mouse interaction with the EditBox (clicks, drags, hover, wheel).
@@ -1396,6 +1404,15 @@ impl EditBox
         .maximumLength = length
     }
 
+    // Writes `prefix` faint at the leading edge of the field, before the text, such as the axis of a coordinate.
+    mtd setPrefix(prefix: string?)
+    {
+        .prefix = String.from(prefix orelse "")
+        let font = nnFont(.font().regular)
+        .setLeadingMargin(.prefix.isEmpty() ? 0 : Painter.measureString(.prefix, font).width + .themeMetrics().editBox_UnitMargin)
+        .invalidate()
+    }
+
     // Changes the extra leading inset, where a parent writes words before the text.
     mtd setLeadingMargin(margin: f32)
     {
@@ -1440,3 +1457,36 @@ impl EditBox
     // Returns whether the current content is valid.
     mtd const isValid()->bool => not .isInvalid
 }
+
+// Makes `ed` read as a value rather than as a box: mono, without a frame at rest, taking the frame
+// of a field only while the keyboard edits it.
+//
+// A column of values — beside sliders, after a colour swatch — then reads as a column of figures,
+// as the property pictures write it, and still says it can be typed in the moment it is.
+internal func setReadingForm(ed: *EditBox)
+{
+    let metrics = ed.themeMetrics()
+    ed.setForm(.Transparent)
+    ed.style.setFont(ed.theme().createDefaultFontFs(metrics.defaultFontSize - 1), .Regular)
+    ed.hookOnEvent = func|ed|(_, evt)
+    {
+        switch evt
+        {
+        case FocusEvent as focus:
+            ed.setForm(focus.kind == .Gained ? .Rectangle : .Transparent)
+        }
+
+        return false
+    }
+}
+
+impl EditBox
+{
+    // Reports whether the field stands on a floating sheet, such as a dialog.
+    internal mtd standsOnSheet()->bool
+    {
+        let srf = .surface
+        return srf != null and srf.flags.has(.Sheet)
+    }
+}
+

@@ -229,6 +229,10 @@ impl State
         cur.setPosition(fitToText(label, pos, room, metrics.toolTip_Padding))
         cur.fitPosInParent()
         cur.bringToFront()
+
+        // It arrives with a short fade rather than a pop; it goes at once, since the pointer that
+        // dismissed it is already elsewhere.
+        discard top.app().animator.arrive(cur)
     }
 }
 

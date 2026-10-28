@@ -369,7 +369,7 @@ impl QuickWnd
         with let quick = Wnd.create'QuickWnd(parent, {0, 0, 0, QuickCellSize + metrics.inspector_RowGap})
         {
             .backgroundStyle = .Transparent
-            .updateFlags(.CompactBars | .TransparentBars)
+            .updateFlags(.TransparentBars)
 
             // The presets stand in the column of the inspector, which keeps the margins; the
             // strip keeps only the air between itself and the rows under it.

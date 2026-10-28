@@ -813,6 +813,42 @@ impl IconButton
         return res
     }
 
+    // Creates a quiet control: its words, with no ground of its own until the pointer comes.
+    //
+    // With `menu`, a faint chevron after the words says a menu opens; without it, the control acts
+    // at once. A `heading` names what the page or the column shows, in the text ink and bold. Write
+    // its words with [[Gui.IconButton.setQuietText]], which fits the control to them.
+    #[Swag.Discardable]
+    func createQuiet(parent: *Wnd, id: WndId? = null, menu = true, heading = false)->*IconButton
+    {
+        Swag.assert(parent != null)
+        let metrics = parent.themeMetrics()
+        with let result = IconButton.create(parent, {}, Math.Rectangle{0, 0, 0, metrics.quiet_Height}, id, flags: .CenterContent)
+        {
+            .setForm(.RoundedRectangle)
+            if menu do
+                .setArrowPosition(.RightDownward)
+            if heading
+            {
+                .style.setFont(parent.theme().createDefaultFont(metrics.defaultFontSize, .Bold), .Regular)
+                .style.addStyleSheetColors("btnIcon_Text $label_Text")
+            }
+        }
+
+        return result
+    }
+
+    // Writes `text` on a quiet control and fits the control to its words, and its chevron when it opens a menu.
+    mtd setQuietText(text: string)
+    {
+        .setText(text)
+        let metrics = .themeMetrics()
+        var width   = Painter.measureString(text, unwrap .font().regular).width + 2 * metrics.btnIcon_SpacingTextH
+        if .arrowPosition != .None do
+            width += themeDropDownButtonWidth(metrics) - themeActionButtonSize(metrics)
+        .resize(Math.ceil(width), .position.height)
+    }
+
     // Changes the checked state of a radio or toggle button without emitting a signal or command.
     mtd setChecked(checked: bool)
     {

@@ -1120,8 +1120,6 @@ private impl View
                 var ground = band
                 ground.inflate(-metrics.optionSheet_Inset, -metrics.optionSheet_Inset * 0.5)
                 theme.drawSubRect(painter, ground, &rects.menuPopup_HotBk, fade(colors.optionSheet_HotBk, opacity))
-                if ring do
-                    theme.drawFocusRing(painter, ground, rects.menuPopup_HotBk.radius)
             }
 
             var x = band.x + metrics.optionSheet_Inset + metrics.optionSheet_RowPadding
@@ -1150,7 +1148,7 @@ private impl View
             {
                 let rect = .rowRect(list, y, height)
                 let hot  = focused and focus == cast(s32, index)
-                .paintRow(painter, row, rect, hot, hot and ring, opacity)
+                .paintRow(painter, row, rect, hot, opacity)
             }
 
             y += height
@@ -1159,7 +1157,7 @@ private impl View
         painter.popClippingRect()
     }
 
-    mtd paintRow(painter: *Painter, row: const *Row, rect: Math.Rectangle, hot, ring: bool, opacity: f32)
+    mtd paintRow(painter: *Painter, row: const *Row, rect: Math.Rectangle, hot: bool, opacity: f32)
     {
         let theme   = .theme()
         let colors  = .themeColors()
@@ -1189,8 +1187,6 @@ private impl View
         if hot
         {
             theme.drawSubRect(painter, rect, &rects.menuPopup_HotBk, fade(colors.optionSheet_HotBk, opacity))
-            if ring do
-                theme.drawFocusRing(painter, rect, rects.menuPopup_HotBk.radius)
         }
 
         let textColor   = fade(row.disabled ? colors.popupItem_DisabledText : (hot ? colors.popupItem_HotText : colors.popupItem_Text), opacity)

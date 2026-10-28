@@ -383,7 +383,7 @@ impl RollView
         with let scroll = Wnd.create'ScrollWnd(parent, "scope.midi.scroll", {})
         {
             .dockStyle = .Center
-            .updateFlags(.CompactBars | .TransparentBars)
+            .updateFlags(.TransparentBars)
         }
 
         with let result = scroll.createView'RollView()

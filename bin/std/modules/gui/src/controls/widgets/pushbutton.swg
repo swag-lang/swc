@@ -216,10 +216,11 @@ impl IWnd for PushButton
         format.flags         = .Clip
         format.font          = .font()
 
-        // The bold weight is what makes a filled button the primary action of the surface.
-        // A button that cannot be pressed is the primary action of nothing, and kept bold it
-        // read as a lighter grey than the plain button beside it, in the same disabled state.
-        if form == .Strong and not bc.isDisabled do
+        // The bold weight is what makes a filled button the primary action of the surface,
+        // whether the surface or the keyboard made it so: a dialog's default answer is its primary
+        // action too. A button that cannot be pressed is the primary action of nothing, and kept
+        // bold it read as a lighter grey than the plain button beside it, in the same disabled state.
+        if (form == .Strong or form == .Default) and not bc.isDisabled do
             format.fontStyle = .Bold
         var labelPos = clientRect
         labelPos.inflate(-metrics.btnPush_Padding)

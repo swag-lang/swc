@@ -919,7 +919,7 @@ CodeGenNodePayload& CodeGen::payload(AstNodeRef nodeRef)
 #if SWC_DEV_MODE
     if (!nodePayload)
     {
-        const Utf8 detail = formatMissingPayloadDebug(*this, queryNodeRef, resolvedRef, nodePayload);
+        const Utf8 detail = formatMissingPayloadDebug(*this, queryNodeRef, resolvedNodeRef(queryNodeRef), nodePayload);
         swcAssertDetail("nodePayload != nullptr", __FILE__, __LINE__, detail.view());
     }
 #endif

@@ -22,6 +22,11 @@ Typical surfaces include:
 - progress, statistics, dry-run, test, and developer-validation output
 - runtime panic, stack trace, safety, and allocator reports
 
+GUI string tables under `bin/` are not compiler output. Their command labels (menus, lens entries,
+buttons, dialog actions, tabs, command tooltips) use title-style capitalization in English, and
+their messages are plain localized sentences; both rules live in
+[build-swag-standard-apps](../build-swag-standard-apps/SKILL.md#word-the-commands).
+
 ## Preserve The Information Contract
 
 Before rewriting, identify and preserve:

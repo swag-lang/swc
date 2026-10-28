@@ -98,6 +98,16 @@ tracking −0.03 em. Sheet titles 20–22/800. Dialog titles 17/650. Body 13–1
 10.5, uppercase, +0.14 em, weight 600, faint. Large facts (a percentage, a count, a rating):
 Inter 200–300 at 26–120.
 
+## Wording of commands
+
+Command labels use title-style capitalization in the English reference strings: menu items,
+lens entries, button and dialog action captions, tab titles, tooltips that name a command,
+quick-style names. Every word takes a capital except articles, coordinating conjunctions and
+prepositions of four letters or fewer, unless first or last: "Add Cursor to Line Ends",
+"Save as Image…", "Show in Folder". Sentences — help, descriptions, messages, notices — keep
+sentence case. Translations follow their language: French stays in sentence case ("Enregistrer
+comme image…"). An ellipsis marks a command that asks for more before acting.
+
 ## Window chrome
 
 ![Reading in Encre](imgs/scope.read.png)

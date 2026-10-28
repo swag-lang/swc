@@ -1,108 +1,95 @@
 ---
 name: design-swag-identity
-description: Apply the Swag visual identity to the logo, favicons, generated documentation, the website, the VSCode theme, and any new surface. Use whenever adding or changing a brand asset, a stylesheet, a page layout, an editor theme, a color, or an icon anywhere in this repository.
+description: Apply the Swag visual identity to the logo, favicons, application icon tiles, generated documentation, the website, the VSCode theme and syntax colors, and frame every GUI surface by the six laws of the Silence charter. Use whenever adding or changing a brand asset, a stylesheet, a page layout, an editor theme, a color, or an icon anywhere in this repository; GUI details then continue in design-swag-themes, design-swag-dialogs and build-swag-standard-apps.
 ---
 
 # Design The Swag Identity
 
 Swag is a compiler that runs your program while it compiles it. The identity says the
-same thing: everything is **cut from a grid**, in a **closed set of tones over one ink**.
-Corners are measured, decoration is absent, and nothing is added that does not carry
-information.
+same thing: a **closed set of tones over one ink**, measured shapes, and nothing added that
+does not carry information.
 
-A reader must recognize a Swag surface from three things alone, before reading a word:
-the cut, the voltage, and the ink. That has to hold on paper exactly as it holds on ink,
-and holding it there costs more than repeating the same numbers — see **One Family, Two
-Modes**.
+The identity has two scopes, and they share one vocabulary:
 
-**Cut is not the same as rough.** Every edge sits where a rule puts it, and every cut or
-curve is measured. What the identity refuses is softness without structure, not craft: a
-form that looks hacked out of a slab has missed it as badly as one that looks upholstered.
+- **The brand and the page** — the mark, the favicons, the application icon tile, the generated
+  documentation, the website, the VSCode theme. This skill governs them in full.
+- **The window** — every control, widget, dialog and application under `bin/` — follows the
+  **Silence** charter, [backlog/design/README.md](../../../backlog/design/README.md), with its
+  pictures in [backlog/design/imgs/](../../../backlog/design/imgs/). This skill states its six laws
+  and what the window shares with the brand; the rules live in
+  [design-swag-themes](../design-swag-themes/SKILL.md) (palettes, roles, measures, type, controls,
+  property grid), [design-swag-dialogs](../design-swag-dialogs/SKILL.md) (modal boxes) and
+  [build-swag-standard-apps](../build-swag-standard-apps/SKILL.md) (window chrome, shared
+  components, applications). Where a page rule below and the charter disagree about a window, the
+  charter wins; the documentation site and the web identity are outside its scope.
 
-**Square is the structure; a slight corner finishes the things held inside it.** Bars, rails,
-separators, document grounds and joined chrome stay square because their edges describe the
-surface. A bounded control, state or panel takes a small radius so its hard right angle does not
-read as unfinished. Three measures cover the family:
+A reader must recognize a Swag surface before reading a word: on a page by the cut, the voltage
+and the ink; in a window by its silence — the work alone on a calm ground, one accent at a time.
 
-- **The outline of a window.** It sits on a desktop beside applications that all soften that
-  corner, and carried literally the cut turns it into a slab dropped on the screen.
-  `ThemeMetrics.surfaceWnd_CornerRadius` is 12 in the Swag palette — it was 8, which read as a
-  bevel on a square window rather than as a decision. **A radius too small to be seen is worse
-  than none**: it costs the same pixels and reports nothing.
-- **The four-pixel interface corner.** Buttons, fields, icon cells, hover and selection grounds,
-  standalone raised panels, thumbnails, swatches and preview tiles all take the corner the theme
-  gives `btnIcon_RoundSquareBk.radius`. Reusing that one radius is what makes a selected icon,
-  the hover beneath it and the panel beside it belong to the same surface.
-- **The full curve.** A radio mark, circular tool or intentionally round control remains circular.
-  It is a semantic shape, not a larger value on the interface-corner scale.
+## The GUI Follows Silence
 
-The bounds still hold. Keep the interface radius at four logical pixels, never inflate it into a
-capsule, and never apply it to the chrome between bounded things. The result is not "friendlier";
-it is more finished while the grid, the cut and the information hierarchy stay intact.
+The six laws, with the reason each one exists. Every GUI rule in the other skills serves one of
+them, and a surface that keeps the letter of a rule while breaking a law is wrong.
 
-**A mark drawn over a rounded thing takes that thing's corner, stepped in by its own inset.** A
-frame inset by half its weight is concentric with the cell only if its radius is the cell's minus
-that same half weight; drawn at the cell's radius it crosses the cell's edge at four places. See
-the focus-ring rule in [design-swag-themes](../design-swag-themes/SKILL.md), which is the same
-rule for the same reason.
+1. **Nothing on screen but the work.** No permanent toolbar, menu bar, status bar, ribbon or side
+   panel. The window is the document, the image, the list of vaults. Every band a window keeps
+   costs the work its height for the whole session, to save a click the reader makes twice.
+2. **Information is asked for.** Readings, outlines, metadata and settings appear on a key, a
+   hover or a selection, then leave. They are never removed from the product: they move behind a
+   gesture. Removing information is a loss; moving it is a choice about when it is shown.
+3. **One door.** `Space` (or `Ctrl K` where Space types text) opens the lens: search, go to, open,
+   switch view, run any command. Every command of an application is reachable from its lens. A
+   reader who knows one key can find everything, and a screen that no longer shows a command has
+   not hidden it.
+4. **One accent at a time.** Voltage acts, Arc chooses. Two yellow things on one screen is one too
+   many: the signature means *this is the thing to do*, and two of them mean nothing.
+5. **Air is a material.** Measured columns, reading margins, nothing flush with an edge, nothing
+   boxed that space can separate. A Swag surface is recognized as much by what it leaves empty as
+   by what it draws — clean first, dense never.
+6. **The default theme carries the hand.** The toolkit ships two themes, Encre (dark) and Papier
+   (light), both recognisable as Swag. An application that wants another look adds its own theme
+   on top; the toolkit keeps two to maintain.
 
-**Flat is the default, not a law.** The same argument that won a corner wins a gradient: what the
-identity refuses is decoration, not gradation. A wash is admissible when it is **subtle** — low
-enough that neither of its ends can be named as a color — and **non-invasive** — it moves nothing
-the reader acts on, adds no edge, and leaves no hole when it is taken away. Elegance that stays
-out of the way is permitted. Elegance that announces itself is what this chart has always called
-decoration, and it is still refused.
+**Judge a surface against its picture.** The charter's pictures are the visual target. Every GUI
+surface is judged against its picture, in both themes, through its golden image; a golden that
+changed for a part not touched is a finding.
 
-One form has argued for it and won, and it is the pattern rather than the exception:
+## Hold The Constants
 
-- **The band of a title bar.** It is the one surface of a window with no content to carry, which
-  is what lets it carry the focus instead: it lights from the mark on its leading edge, falls away
-  toward the caption buttons, and goes flat when the window loses the focus — where the two
-  caption grounds, ten levels apart, reported nothing across a desktop. Its axis is the 45 degrees
-  the identity already cuts at. Its amplitude is a palette token, `ThemePalette.captionGlow`, and
-  it is zero in the neutral palettes, which follow the desktop they sit on.
-
-Four bounds hold it, and together they are the whole clause:
-
-1. **A gradient that can be described by its color has already failed.** The test is subtraction,
-   not addition: take it away and something must be missing; look at it and nothing must have
-   been added. The bound is on what the band *weighs*, not on the number that produces it: a wash
-   toward a color darker than the band is spent on luminance, which the eye reads at once, and a
-   wash toward one as light as the band is spent on chroma, which costs roughly three times the
-   mix for the same weight. `captionGlow` is therefore 0.14 on ink and 0.42 on paper — the same
-   decision, priced differently. Copying the dark number into the light palette is what shipped a
-   title bar nobody could see.
-2. **It carries a state, or it does not exist.** A wash that is the same in every state is paint.
-3. **One per surface, and never behind content.** Panels, cards, buttons, rows, rules, icons and
-   the mark stay flat. A gradient under something that has to be read costs legibility and buys
-   nothing.
-4. **The same gradient in every application.** One hue per app is the end of the family, however
-   good each one looks alone — see the voice section below, which is the same rule for text.
-
-## Hold The Three Constants
-
-1. **The cut.** Every corner the identity opens is cut at 45 degrees. The cut is a
-   vocabulary, not a decoration: its width says what the corner is, and a corner left
-   square says the form stops there on purpose. The refusal is of softness as a default,
-   not of every curve — see below.
-2. **The voltage.** One signature, `#F7F900`, for the mark, one rule per heading, the
-   active state, and nothing else. A signature that appears everywhere signifies nothing.
-   It is not the only color the identity owns — see the tone set below — but it is the only
-   one that says *this is the thing to do*.
-3. **The ink.** Near-black `#0B0B0D`, not pure black, so a real black can still exist.
+1. **The voltage.** One signature, `#F7F900`. On a page: the mark, one rule per heading, the
+   primary action and the focus. In a window: the primary action, the focus ring, the caret and
+   the current search occurrence — on Papier the primary, the ring and the caret turn over to ink
+   (see [design-swag-themes](../design-swag-themes/SKILL.md#voltage-acts-arc-chooses)). A
+   signature that appears everywhere signifies nothing. It is not the only colour the identity
+   owns — see Arc below — but it is the only one that says *this is the thing to do*.
+2. **The ink.** Near-black `#0B0B0D`, not pure black, so a real black can still exist. It is the
+   ground of the icon tile, of the page's header and hero, and the ink a Voltage block carries.
+   The window's Encre ground, `#17181C`, sits one step lighter on purpose: a slightly cool graphite
+   on which the tile still reads as the darker block it is.
+3. **The cut.** Every corner the *mark* opens is cut at 45 degrees, and the cut carries onto the
+   page's repeated elements and the glyph of every application icon. The cut is a vocabulary, not
+   a decoration: its width says what the corner is. In a window, shapes take the charter's
+   measured radii instead (below) — the cut stays in the mark and the icon glyphs a window shows.
 
 ## Use The Palette
 
+The page palette:
+
 | Token | Value | Use |
 | --- | --- | --- |
-| Voltage | `#F7F900` | The signature: the mark, the heading rule, focus, the active rail |
-| Arc | `#38BDF8` | The second tone: a link, another page, a selected row, an alternate action |
+| Voltage | `#F7F900` | The signature: the mark, the heading rule, the primary action, focus |
+| Arc | `#38BDF8` | The second tone: a link, another page, a selected row, what is chosen |
 | Ink | `#0B0B0D` | The header, the hero, the dark ground, and the ink every block carries |
 | Paper | `#FFFFFF` | The light ground |
 | Ink text | `#1B1B1D` / `#E6E6EA` | Body on paper / on ink |
 | Soft text | `#55555C` / `#A9A9B4` | Secondary prose, table descriptions |
 | Faint text | `#83838D` / `#7D7D89` | Labels, counts, source links |
 | Line | `#E2E2DF` / `#26262E` | Hairlines and table rules |
+
+The window palette is Silence's: exactly two themes, Encre and Papier, with their own grounds,
+surfaces, lines and inks, and Arc deepened to `#0A7FB5` on Papier. Its token table and roles live
+in [design-swag-themes](../design-swag-themes/SKILL.md); do not copy page values into a theme or
+theme values into a page.
 
 Kind colors carry meaning, so they are the one place several hues are allowed. Keep them
 in this order and do not add to the set: namespace slate, struct blue, interface violet,
@@ -111,29 +98,59 @@ enum teal, const amber, alias cyan, attr pink, func green. Their exact values li
 
 ## One Family, Two Modes
 
-The chart used to own exactly one accent, and that one accent was a dark-mode color. Voltage
-points and fills on ink; on paper it can only fill. Carried literally, the light theme pointed
-in ink instead — and a theme whose every rail, ring, rule and hovered border is black is a
-black-and-white theme with a yellow button in it, which is not the same identity read the other
-way up. Three rules replace that, and together they are what makes a Swag surface recognizable
-at a glance in either mode.
+The chart once owned exactly one accent, and that accent was a dark-mode colour: Voltage points
+and fills on ink; on paper it can only fill, and a light theme whose every ring, rule and hovered
+border was black read as a black-and-white theme with a yellow button in it. Three rules replace
+that, and together they make a Swag surface recognizable at a glance in either mode.
 
 1. **A tone is one color in three roles.** What it *points* with, the block it *fills*, and the
    ink that block carries. Most tones give the first two the same value; the identity lives in
    the ones that cannot.
-2. **A block is the same color in every mode; only the mark adapts.** Voltage fills at `#F7F900`
-   on ink and on paper alike, and Arc fills at `#38BDF8` in both — that invariance is what the
-   reader recognizes. What a mode changes is only how far the mark has to be deepened before it
-   separates from the page, and the deepening keeps the hue: a light Swag surface points in a
-   dark Voltage, never in ink. The interface derives that rather than writing it down; see
-   [design-swag-themes](../design-swag-themes/SKILL.md).
-3. **The signature is scarce; the second tone is not the signature.** Voltage says *do this*, so
-   it stays on the one filled action, the focus, the active rail, and the heading rule. Arc says
-   *somewhere else, something of another kind*: a link, the page you can leave to, a selected
-   row, the alternate action beside the primary one. A row washed in Voltage cannot be read at
-   all, which is precisely the job the second tone exists to take. Two tones is the whole
-   identity vocabulary — status colors are not tones you may borrow for emphasis, and a third
-   identity hue is a new brand, not a new option.
+2. **Voltage turns over on paper; it is never deepened into another colour.** On ink, Voltage
+   fills, points and blinks. On paper, the same button is an ink fill with paper text, and the
+   ring and the caret are ink: a deepened Voltage is an olive the family does not own, and Voltage
+   text on paper is a word nobody reads. Voltage survives on paper as a *wash* — the highlight of
+   a search occurrence, a matched character — and in the tile, where it carries its own ink ground.
+3. **The signature is scarce; the second tone is not the signature.** Voltage says *do this*.
+   Arc says *chosen, elsewhere, on, in progress*: a link, the selected row, a checked control,
+   progress, an information notice. Arc deepens on paper (`#0A7FB5`) so it can be read as text and
+   as a hairline. A row washed in Voltage cannot be read at all, which is precisely the job the
+   second tone exists to take. Two tones is the whole identity vocabulary — status colours
+   (critical, caution) are not tones to borrow for emphasis, and a third identity hue is a new
+   brand, not a new option.
+
+## Measured Shapes
+
+**A radius too small to be seen is worse than none**: it costs the same pixels and reports
+nothing. Every corner the identity draws is a decision someone could name.
+
+- **On a page**, structure stays square: cards, tables and callouts are square, and the cut
+  appears on repeated elements (kind chips) and once on the hero. A page is scanned as a long
+  document, and square blocks tile it without a seam.
+- **In a window**, the charter measures four objects: the window (10), floating surfaces — lens,
+  sheet, inspector, dialog, popover (12) — menus and popups (10), controls — button, field, combo,
+  segment frame (6) — and chips, swatches, keycaps (4–5). A radio, a switch knob or a dot stays
+  fully round: that is a semantic shape, not a larger value on the scale. The numbers live in
+  `ThemeMetrics`; see [design-swag-themes](../design-swag-themes/SKILL.md#measures).
+
+**A mark drawn around a rounded thing takes that thing's corner, stepped by its own offset.** A
+ring offset from a control is concentric only if its radius is the control's plus that offset
+and half its own width; drawn at the control's radius it crosses the control's corners at four
+places. See the focus-ring rule in [design-swag-themes](../design-swag-themes/SKILL.md), which is
+the same rule for the same reason.
+
+**Flat is the default.** What the identity refuses is decoration, not depth. A wash is admissible
+only when it is **subtle** — neither of its ends can be named as a colour — **non-invasive** — it
+moves nothing the reader acts on, adds no edge, and leaves no hole when taken away — and **carries a
+state**: a wash that is the same in every state is paint. Take it away and something must be
+missing; look at it and nothing must have been added.
+
+In a window that leaves three things and no others, each shown in the charter's pictures: the
+**floating shadow** under a floating surface (it says *this floats*), the **dim** behind the lens
+or a dialog (it says *the window behind waits*), and the **hover veil** that keeps a title and a
+timeline legible over a picture (it says *the pointer is here*). The window carries no title-bar
+glow, no gradient behind content, and no gradient that varies by application: one hue per app is
+the end of the family, however good each looks alone.
 
 ## Cut The Mark
 
@@ -218,14 +235,13 @@ show syntax the compiler no longer accepts.
 
 - Keep clear space of at least one stroke (20 units, scaled) on every side.
 - Below 24 pixels, use the icon tile rather than the bare mark.
-- **A mark has two cuts, and the ground decides which one.** The tile ships flattened — one glyph
-  over one ink ground — because that is what a taskbar, a file list and an installer need. Drawn
-  on a dark surface that already has a ground, the tile reads as a black square around the glyph,
-  so the ground is keyed out and the glyph floats free. On a light surface it cannot be: the glyph
-  is Voltage, and Voltage on paper is a mark nobody sees. There the tile stays, and the window
-  carries the identity as the block of brand a light surface is supposed to carry it with. Decide
-  by contrast against the actual band — `Gui.markReadsOn` — never by a flag the caller sets, or
-  the mark disappears from every title bar in the light theme, which is exactly what happened.
+- **The tile is for the desktop and the About box; a window shows the glyph.** The tile ships
+  flattened — one Voltage glyph over one ink ground — because that is what a taskbar, a task
+  switcher, a file list, an installer and the About box (52, corner 12) need. Inside a window the
+  application glyph is drawn **monochrome**, in the soft colour at about 55 % opacity, 18 px at the
+  top left: it signs the window without becoming a block of brand above the work, and it reads the
+  same on Encre and on Papier, where a Voltage glyph would vanish. See
+  [build-swag-standard-apps](../build-swag-standard-apps/SKILL.md#generate-a-specific-icon).
 - **A tile has two crops, and they are not interchangeable.** An application icon is looked
   at, so the mark holds 56% of it and keeps its clear space. A favicon is glanced at: at
   sixteen pixels that margin costs the counters, so the mark holds 74% and the margin is
@@ -236,9 +252,21 @@ show syntax the compiler no longer accepts.
 - The mark is never stretched, outlined, given a shadow, or recolored outside the two
   palette values.
 
+## Draw The Interface Icons
+
+Interface icons — the glyphs of icon buttons, menus, the dock, the lens — are **outline glyphs on
+a 16 grid, 1.4 stroke, round caps and joins**, no fill except a deliberate dot or play triangle;
+18–20 in a dock. They are drawn in one colour taken from the theme (soft at rest, Arc when chosen)
+and never carry a second colour, a badge or a tile. Application icons are the exception and stay
+two-colour tiles, because they are seen on a desktop beside other products' icons rather than in a
+row of commands. Size ceilings and cells live in
+[build-swag-standard-apps](../build-swag-standard-apps/SKILL.md#keep-the-chrome-small-and-the-air-large).
+
 ## Set The Type
 
-- Interface and prose: the system sans stack.
+- **In a window**: Inter for every word, Roboto Mono for every measure. Sizes and weights are in
+  [design-swag-themes](../design-swag-themes/SKILL.md#type).
+- **On a page**, interface and prose: the system sans stack.
 - Every identifier, signature, type, kind label, and count: the monospace stack. If it is
   a name the compiler knows, it is monospace.
 - Section labels and kind chips: uppercase, `.09em` to `.16em` tracking, small. They are
@@ -249,10 +277,10 @@ show syntax the compiler no longer accepts.
   family or size would produce a different right edge.
 - One `h1` per page. An `h2` carries a leaning voltage rule above it; nothing else does.
 
-## Build The Interface
+## Build The Page
 
-The generated documentation is the reference implementation of this chart. When adding a
-surface, take these rules from it:
+The generated documentation is the reference implementation of this chart for pages. When adding
+a page surface, take these rules from it:
 
 - **The cut appears on repeated elements, not on big ones.** Kind chips carry the cut; the
   hero panel carries it once. Cards, tables, and callouts stay square.
@@ -272,25 +300,17 @@ surface, take these rules from it:
   the count: one `<script`, inline, no `src`.
 
 These rules are written for a generated page, where a reader scans a long document and a rule
-tells them where one entry ends. **On an application surface a line costs more than it pays.**
-The same instinct applied to a window produces a grid of boxes: a border around each panel, a
-divider between each block, and a rail beside each of them. There, raise a group with its own
-fill first, space it second, and rule it only when neither works — and expect to draw one rule,
-not one per group. [build-swag-standard-apps](../build-swag-standard-apps/SKILL.md) governs an
-application surface; this section governs a page.
-
-**Air is part of the identity, on a page and in a window alike.** Nothing that does not carry
-information includes the space a form does not need: a glyph blown up until it fills its cell, a
-control sized for a fingertip, a panel wider than the data in it. A Swag surface is recognized as
-much by what it leaves empty as by the cut, the voltage, and the ink — clean first, dense never.
-The size ceilings that hold that line in an application live in
-[build-swag-standard-apps](../build-swag-standard-apps/SKILL.md).
+tells them where one entry ends. **They do not transfer to a window.** Applied to an application
+they produce a grid of boxes: a border around each panel, a divider between each block, a rail
+beside each of them. A window follows Silence instead — space first, a fill second, one hairline
+last, and no rail at all; see [build-swag-standard-apps](../build-swag-standard-apps/SKILL.md).
 
 ## Join An Icon Menu To Its Button
 
 A menu opened by primary activation of an `IconButton` incorporates that button into its outline as the opening tab.
 The button and the menu share one continuous ground and border; the trigger must not remain
-outside a detached popup. This applies inside dialogs and property editors as well as toolbars.
+outside a detached popup. This applies inside dialogs, property editors, the inspector and the
+mini-bar — including the property grid's `•••` layout menu.
 
 Use `MenuCtrl.doModal(button, autoDestroy: true)` with the actual `IconButton`. Do not replace the
 button with a point computed from `surfaceRect()`: that selects the coordinate-based path and loses
@@ -301,7 +321,7 @@ Pointer-requested context menus keep their pointer position, including a right-c
 
 [`menu.test.swg`](../../../bin/std/modules/gui/src/tests/menu.test.swg) protects the joined outline
 and edge placement; [`properties.test.swg`](../../../bin/std/modules/gui/src/tests/properties.test.swg)
-checks the property editor's actual trigger in light and dark palettes. When adding a new trigger,
+checks the property editor's actual trigger in Encre and Papier. When adding a new trigger,
 test its opening path, not only a menu constructed directly by the test.
 
 ## Match Every Syntax Surface
@@ -339,9 +359,9 @@ intrinsic functions keep their gold. The mapping is:
 Change one lexical surface and change the other two in the same commit. Semantic tokens refine
 VSCode's lexical colors only when the language server resolves a symbol; unresolved code keeps
 the shared lexical palette. The RichEdit lexer passes these dark-palette values through
-`Color.ensureContrast` so the same hues remain legible on every GUI theme. When the compiler
-intrinsic catalog changes, compare both syntax lexers against `Tokens.Def.inc`; neither keeps a
-partial hand-written catalog.
+`Color.ensureContrast` so the same hues remain legible on Encre and deepen on Papier. When the
+compiler intrinsic catalog changes, compare both syntax lexers against `Tokens.Def.inc`; neither
+keeps a partial hand-written catalog.
 
 ## Keep The Voice
 
@@ -359,7 +379,8 @@ the same means. Nothing is added that does not carry information.
   sanitizer, or the compiler breaking itself.
 
 Console output, diagnostics, and documentation prose follow
-[write-swag-compiler-messages](../write-swag-compiler-messages/SKILL.md).
+[write-swag-compiler-messages](../write-swag-compiler-messages/SKILL.md). GUI command labels
+follow *Word The Commands* in [build-swag-standard-apps](../build-swag-standard-apps/SKILL.md#word-the-commands).
 
 ## Verify
 
@@ -371,3 +392,5 @@ Console output, diagnostics, and documentation prose follow
 4. Confirm no page gained a second script element, an external font, or a second accent.
 5. When the geometry moved, confirm the four consumers agree: the generated assets, the
    inlined `--swag-mark`, the extension icon, and the mark inlined in `bench/`.
+6. For a GUI surface, compare its goldens in Encre and Papier with the charter picture; the
+   validation steps are in [design-swag-themes](../design-swag-themes/SKILL.md#validation).

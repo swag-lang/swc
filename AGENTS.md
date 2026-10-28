@@ -57,23 +57,27 @@ also read and follow
 When the change touches a brand asset, a stylesheet, a page layout, an icon, a color, or
 the editor theme, also read and follow
 [design-swag-identity](.agents/skills/design-swag-identity/SKILL.md): the mark, the
-palette, and the 45 degree cut are one system.
+palette, and the 45 degree cut are one system. Every GUI surface under `bin/` follows the Silence
+charter in [backlog/design/README.md](backlog/design/README.md), whose six laws that skill states.
 
-When the change touches a GUI theme — a palette token, a semantic color, the way a widget
-picks its colors, or a theme sheet — also read and follow
-[design-swag-themes](.agents/skills/design-swag-themes/SKILL.md): every color is derived
-from a small set of tokens, and the `gui10` inspector is how the result is judged.
+When the change touches a GUI theme or a control's look — a palette token, a semantic color,
+a measure, the way a widget picks its colors or draws a state, the property grid's marks, or a
+theme sheet — also read and follow
+[design-swag-themes](.agents/skills/design-swag-themes/SKILL.md): two palettes, Encre and Papier,
+every color derived from their tokens, and the result judged in `gui10` and against the charter
+pictures.
 
 When the change touches a modal box — a dialog under `bin/std/modules/gui/src/dialogs`, a
 composite hosted in one, or an application's own modal — also read and follow
-[design-swag-dialogs](.agents/skills/design-swag-dialogs/SKILL.md): the inset, the gap, the
-action bar, and the way a box fits itself to its content are one composition.
+[design-swag-dialogs](.agents/skills/design-swag-dialogs/SKILL.md): the floating sheet, its
+inset, its title, its actions, and the way a box fits itself to its content are one composition.
 
 When adding, migrating, renaming, styling, packaging, or testing an official application under
 `bin/apps`, also read and follow
 [build-swag-standard-apps](.agents/skills/build-swag-standard-apps/SKILL.md): every shipped app
-uses a two-word `Swag Name` display identity and a lowercase technical stem, a specific generated icon, the standard Swag surface,
-and the application-workspace validation flow.
+uses a two-word `Swag Name` display identity and a lowercase technical stem, a specific generated icon, the Silence window
+(nothing on screen but the work, every command in the lens), and the application-workspace
+validation flow.
 
 Everything this repository intends to do, and every lead it has recorded and not yet explained,
 lives in one file per domain under [backlog/](backlog/). Evidence, open decisions, and committed

@@ -1,23 +1,29 @@
 ---
 name: design-swag-dialogs
-description: Compose, review, or change a modal box — the predefined dialog family under bin/std/modules/gui/src/dialogs, a composite hosted inside one, or an application's own modal. Use whenever a dialog's width, height, inset, alignment, action bar, button, or title changes.
+description: Compose, review, or change a modal box — the predefined dialog family under bin/std/modules/gui/src/dialogs, a composite hosted inside one, or an application's own modal — to the Silence charter's floating sheet. Use whenever a dialog's width, height, inset, title, severity mark, field labels, actions, their order or wording, or the Esc hint changes.
 ---
 
 # Design Swag Dialogs
 
-A modal box is one composition, and the family is recognized before a word of it is read: a body
-over a quiet action bar, one inset, one gap, one row of actions ending on one edge. What changes
-between an error, a question, a prompt, a form and a file browser is the content. Nothing else
-changes, and almost nothing below is a dialog's to choose.
+A modal box is one composition, and the family is recognized before a word of it is read: **a
+floating sheet** over a dimmed window, its title as the first line of the body, the content in one
+column, and the actions at the bottom right of the same surface, the primary rightmost. What changes
+between an error, a question, a prompt, a form, a file browser and an About box is the content.
+Nothing else changes, and almost nothing below is a dialog's to choose.
 
-[design-swag-identity](../design-swag-identity/SKILL.md) governs the cut, the palette and the
-voice; [build-swag-standard-apps](../build-swag-standard-apps/SKILL.md) governs an application
-surface. This governs the box that opens on top of one.
+The visual target is the Dialogs section of the Silence charter,
+[backlog/design/README.md](../../../backlog/design/README.md#dialogs), and its two pictures,
+[dialogs.ink](../../../backlog/design/imgs/dialogs.ink.png) and
+[dialogs.paper](../../../backlog/design/imgs/dialogs.paper.png). Where a picture and a rule
+disagree, the rule wins. [design-swag-themes](../design-swag-themes/SKILL.md) governs the colours,
+the controls and the measures a dialog uses;
+[build-swag-standard-apps](../build-swag-standard-apps/SKILL.md) governs the application surface a
+box opens over and the wording of its commands. This governs the box.
 
 Within the body, use the proximity, alignment, and visible-gap review in
 [build-swag-standard-apps](../build-swag-standard-apps/SKILL.md#make-space-describe-relationships).
-The dialog metrics below own the body and action-bar measurements; do not replace them with
-application spacing literals.
+The dialog metrics below own the body and the actions; do not replace them with application
+spacing literals.
 
 The measurable half is enforced:
 [`dialogs.charter.test.swg`](../../../bin/std/modules/gui/src/tests/dialogs.charter.test.swg)
@@ -26,24 +32,136 @@ builds every predefined box and measures it, and
 pins what each one fits itself to. A number argued here without a line there is a number that
 drifts back within a release.
 
+## A Dialog Is A Floating Sheet
+
+- **Surface, corner 12, the floating shadow, over a dimmed window.** It is the same object as the
+  lens and the sheet: something that floats above the work for as long as it is needed. The dim
+  says the window behind cannot be acted on; nothing else needs to.
+- **No caption band and no close cross.** A band is chrome around a box that already has an
+  outline, and it spent a line saying "this is a dialog" — which the dim and the shadow already
+  say. The cross was a second way out beside Cancel, in a corner the eye does not visit when it
+  reads a question. A box is dismissed by its own actions and by `Esc`.
+- **Padding 28, gap 16.** One inset around the whole body, one gap between its pieces.
+- **Body text 13.5/21 in soft.** The title is in text colour; what follows is quieter.
+
 ## Take Every Number From The Theme
 
-A dialog never writes a spacing, a button size or a bar height. All of them live in
+A dialog never writes a spacing, a button size or a minimum width. All of them live in
 [`ThemeMetrics`](../../../bin/std/modules/gui/src/paint/thememetrics.swg), so a theme moves the
 whole family at once and no box can disagree with the box beside it.
 
-| What | Where it comes from | Today |
+| What | Where it comes from | Charter |
 | --- | --- | --- |
-| Air a body keeps around loose content | `dialog_Padding` | 24 |
-| Air above and below the actions, and between two of them | `dialog_BtnPadding` | 8 |
+| Air the body keeps around its content | `dialog_Padding` | 28 |
 | Air between two pieces of one body | `dialog_BtnPadding * 2` | 16 |
-| An action | `btnPush_Width` × `btnPush_Height` | 100 × 30 |
-| The action bar | `btnPush_Height + 2 * dialog_BtnPadding` | 46 |
-| Narrowest a message box opens | `MessageDlg.MinMessageWidth` | 450 |
+| Air between two actions | `dialog_BtnPadding` | 8 |
+| An action's height | the dialog button height | 34 |
+| An action's width | `btnPush_Width`, widened to its caption | — |
+| Narrowest a box opens | `MessageDlg.MinMessageWidth` | 440 |
 | Widest a message runs before it wraps | `MessageDlg.MaxMessageWidth` | 512 |
 
+TODO(silence): replace the "dialog button height" row with the `ThemeMetrics` field that carries 34 once design.silence.006 lands, and confirm `dialog_Padding` and `MinMessageWidth` carry 28 and 440.
+
 A literal in a dialog is a measurement no theme can answer for, exactly as a literal color is a
-color no palette can answer for.
+color no palette can answer for. Beyond the floor, a dialog authors no width and no height: it
+sizes itself from its content.
+
+## The Title Is The First Line Of The Body
+
+Every box names itself, and the name is the first line of its body, set 17/650 in text colour. The
+predefined helpers supply a default — `dlg_InfoTitle`, `dlg_ConfirmTitle`, `dlg_ErrorTitle` — and a
+caller with something more specific to say passes it in `MessageDlgOptions.title`. Prefer the
+specific one: the charter's boxes lead with what happened ("The file changed on disk.", "Cannot
+open this file.") and leave the body to say what the reader can do about it.
+
+- A title that **reports a situation** is a sentence: sentence case, closing full stop.
+- A title that **names the command the box carries out** ("Go to Address", "Change Password",
+  "Open File") repeats that command's label as the lens shows it, so it follows the command
+  capitalization of [build-swag-standard-apps](../build-swag-standard-apps/SKILL.md#word-the-commands):
+  title-style in English, the language's own convention in a translation.
+
+Titles are keys in [`Strings`](../../../bin/std/modules/gui/src/localization.swg), and a key added
+there without its line in `src/lang/<tag>/gui.tweak` ships half translated with nothing to report
+it.
+
+## Severity Is One Dot
+
+A failure puts an **8 px critical dot** before the title, and the technical detail — an error code,
+the system's own report — on a **mono faint line** under the sentence. That is the whole severity
+vocabulary of a box: no icon tile, no coloured band, no three-colour status icon. The sentence says
+what went wrong in the reader's language; the mono line is for whoever files the report, and a box
+without a detail shows none. See *Tell A Reader What Went Wrong* in
+[build-swag-standard-apps](../build-swag-standard-apps/SKILL.md#tell-a-reader-what-went-wrong-not-how).
+
+An information or a question needs no mark: the absence of the dot is the information.
+
+## The Actions End The Body
+
+The actions are not a bar. They sit at the bottom right **inside the same surface**, after the
+last piece of the body, separated from it by the body gap — no separator, no band, no ground of
+their own.
+
+- **The primary action is rightmost.** The eye finishes a box at its bottom right, and that is
+  where the answer it came to give belongs. Other actions sit to its left, the dismissing one
+  nearest the primary ("Ignore · Reload", "Cancel · Go").
+- **One primary per box.** Exactly one carries `.Default` and takes the primary form of
+  [design-swag-themes](../design-swag-themes/SKILL.md#controls) — Voltage fill on Encre, ink fill
+  on Papier. Every other action is secondary (line ring). A destructive answer is the destructive
+  form, and its wording says what it destroys.
+- **Two actions are separated by `dialog_BtnPadding`** and by nothing else.
+- **Every action is at least `btnPush_Width` wide and widens to its caption**
+  (`PushButton.fitWidthToLabel`) rather than clipping it. A translation is longer; a button that is
+  right in English and cut in French was authored, not measured.
+- **Captions are commands** and follow the command capitalization rule
+  ([build-swag-standard-apps](../build-swag-standard-apps/SKILL.md#word-the-commands)): "Save as
+  Image…", "Open With…" in English; sentence case in French. An ellipsis means the action asks for
+  more before acting.
+
+### The bottom-left slot
+
+The bottom left of the actions row holds at most one quiet thing:
+
+- **the `Esc` hint** — a faint, translated key name ("Esc", "Échap") — when the box offers a way to
+  dismiss it that is distinct from its primary answer (a Cancel, an Ignore). It is how the box says
+  it can be left without a cross;
+- **or a quiet control that belongs to the actions**, such as the file dialog's type filter
+  (`▾`), which then takes the slot.
+
+A box whose only action is Close shows no hint: its one button already says how to leave.
+
+## Forms Put Labels Above Fields
+
+A form in a dialog stacks each label **above** its field, 12.5 in soft, and a help line under the
+field in faint when the field needs one. A label beside a field splits the box into two columns
+whose widths are decided by the longest label in the longest language; above, every field takes
+the full measure and the labels cost one line each. An option that carries its own wording (a
+check box) takes no label above it — see *Let An Option Carry Its Own Wording* in
+[build-swag-standard-apps](../build-swag-standard-apps/SKILL.md#let-an-option-carry-its-own-wording).
+
+## The Predefined Boxes
+
+| Box | Composition |
+| --- | --- |
+| Message, question (`MessageDlg`) | Title, body sentence, actions; `Esc` hint when a dismissing action exists |
+| Error | Critical dot and title, sentence, mono faint detail line, one Close |
+| Prompt (`EditDlg.createSingleLine`) | Title, the field with its focus ring, help line in faint, `Esc` hint, Cancel · primary |
+| Form (`FormDlg`) | Title, labels above fields, help, `Esc` hint, Cancel · Apply |
+| File (`FileDlg`) | Title, places as text tabs, a path field that filters, rows, type filter bottom left, Cancel · Open |
+| About (`AboutDlg.createApplication`) | Tile, name, version and date, capability line, links, copyright, one Close |
+
+- **The file dialog** shows places (Desktop, Documents, drives…) as text tabs with the Arc
+  underline; one path field that filters as the reader types, matched characters in the highlight
+  colour; rows of 30–32 with the name, then date and size in mono faint, the chosen row on the Arc
+  selection ground; and the type filter as a quiet `▾` at the bottom left. Places, field and rows
+  sit on the dialog surface inside the same inset, so the title, the tabs, the field and the rows
+  share one left edge. A list never brings a panel of its own into a box: a panel with its own
+  ground inside a sheet reads as a card adrift in a margin.
+- **About** shows the application tile (52, corner 12, the two-colour tile of the taskbar), the name
+  21/800, version and date in mono beside it, the capability line in body text, then the links
+  (in Arc) and the copyright, and one Close at the bottom right.
+
+`createContentView(inset: false)` remains for a body whose content must reach the frame; no
+predefined box needs it under the charter.
 
 ## The Body Owns One Inset, And Owns It Once
 
@@ -51,38 +169,12 @@ color no palette can answer for.
 place the outer inset is expressed. A dialog sets no padding of its own on the body and states
 only the spacing *between its own pieces* — one gap, `dialog_BtnPadding * 2`.
 
-One case takes no inset at all. A body that is **one panel carrying its own ground and its own
-edge paddings** — a file browser, a list, an editor — asks for `createContentView(inset: false)`.
-Set inside the inset instead, the panel reads as a card adrift in a margin, and the box has to
-grow by twice that inset to show the same rows. That is what made the file dialog look padded
-out: the browser's own 15-unit edges sat inside another 24, and 48 units of each axis went to
-nothing.
-
-The inverse holds too: a panel that takes the full body must reach the frame on all four sides,
-never on three.
-
-## The Action Bar Is A Row, Not A Panel
-
-- Its height is the button plus the air above and below it. Never author it.
-- The row is trailing-aligned and ends on `dialog_Padding`, so the last action's right edge is
-  the right edge of whatever the body holds. A bar inset differently from the body is the most
-  visible misalignment a box can have, because the eye has two straight edges to compare.
-- Two actions are separated by `dialog_BtnPadding` and by nothing else — no separator, no group.
-- Every action is at least `btnPush_Width` × `btnPush_Height` and **widens to its caption**
-  (`PushButton.fitWidthToLabel`) rather than clipping it. A translation is longer; a button that
-  is right in English and cut in French was authored, not measured.
-- **One dominant action per box.** Exactly one carries `.Default`; every other one is `.Normal`.
-  A bar of filled buttons says nothing about what Enter decides.
-- The confirming action comes first and the dismissing one last. `Dialog.addButton` is what puts
-  the close cross on the caption, and only when a `BtnCancel` or `BtnNo` is there to mean the same
-  thing: a box offering no way out other than answering it shows no cross.
-
 ## A Box Is As Tall As What It Holds
 
 `Dialog.fitHeightToContent` takes the content height and adds the shared layers — body inset,
-action bar, caption, border, shadow. A dialog passes what its content measured and never a
-number: a height authored by hand is right in the language it was tuned in and cuts the last
-paragraph off in every other one, and it is stale the day a shared metric moves.
+title, actions row, border, shadow. A dialog passes what its content measured and never a number:
+a height authored by hand is right in the language it was tuned in and cuts the last paragraph off
+in every other one, and it is stale the day a shared metric moves.
 
 Measure with the window's own measurement (`Wnd.measure`, `IWnd.measureContent`), not with a
 second copy of the layout written beside it. A duplicate is a copy that has to be kept in step
@@ -92,9 +184,8 @@ string format and answered for a wrapping the label did not do.
 ## A Box Has A Floor And A Measure
 
 - **A floor.** A box fitted to a short question and to nothing else comes out barely wider than
-  its own action bar, and reads as a pair of buttons with a caption. The message family opens at
-  no less than `MinMessageWidth`, which is the width of the single-line prompt beside it, so a
-  question and a prompt are one object on screen.
+  its own actions, and reads as a pair of buttons with a title. Every box opens at no less than
+  `MinMessageWidth`, so a question and a prompt are one object on screen.
 - **A measure.** A message wraps at `MaxMessageWidth`. Text set wider than that is read by moving
   the head, and the box stops being a box.
 - Between the two, the content decides, and the box hugs it. A run that wrapping cannot break — a
@@ -119,10 +210,11 @@ Two rules close it, and both live in `Dialog`:
 
 ## One Column, One Left Edge
 
-Everything stacked in one column shares one left edge and one right edge. A composite made of
-bands — a navigation bar, a list, a status line, a form — gives them **one** inset, not one each:
-given an inset apiece they line up on none, and the difference between two paddings is exactly
-the kind of near-miss a reader sees without being able to name.
+Everything stacked in one column shares one left edge and one right edge: the title, the body, the
+fields, a list's rows, and the right edge of the primary action. A composite made of parts — tabs,
+a field, a list, a hint — gives them **one** inset, not one each: given an inset apiece they line
+up on none, and the difference between two paddings is exactly the kind of near-miss a reader sees
+without being able to name.
 
 The same rule holds inside a stack:
 [`StackLayoutCtrl`](../../../bin/std/modules/gui/src/controls/composite/stacklayoutctrl.swg) centers the
@@ -130,27 +222,21 @@ axis it is named for and leaves the other alone. A heading and a paragraph stack
 `VerticalCenter` are centered vertically **as a group** and both start on the stack's left edge —
 centered individually, each hugs its own text and the box reads as set on nothing.
 
-## Every Box Names Itself
-
-The caption takes its band whether or not anything is written in it, so a box opened without a
-title reads as one the application forgot to finish. The predefined helpers supply one —
-`dlg_InfoTitle` for a message, `dlg_ConfirmTitle` for a question, `dlg_ErrorTitle` for a failure —
-and a caller with something more specific to say passes it in `MessageDlgOptions.title`.
-
-Titles are keys in [`Strings`](../../../bin/std/modules/gui/src/localization.swg), and a key added
-there without its line in `src/lang/<tag>/gui.tweak` ships half translated with nothing to report
-it.
-
 ## Verify
 
 1. `swc tools/std.swgs dm test gui --test-file dialogs.charter.test.swg --test-file dialogs.layout.test.swg`
    — the charter and layout tests. Add the exact dialog test file when its behavior changed.
-2. `swc tools/examples.swgs run gui9` — the instrument. It opens every predefined box and the
-   file browser composite beside them. **Look at each one**: an assertion cannot see a caption
-   band with nothing in it, a bar wider than its content, or two left edges that nearly agree.
-3. Look at a box holding two sentences, not only at one holding four words, and at a display
-   scale other than 100 percent. Both are where a fitted box fails, and neither shows up in the
-   case a change is usually tried on.
+2. The dialog goldens, **in Encre and in Papier**, against
+   [dialogs.ink](../../../backlog/design/imgs/dialogs.ink.png) and
+   [dialogs.paper](../../../backlog/design/imgs/dialogs.paper.png): no band, no cross, the title
+   on the first line, the primary rightmost, the hint or the filter bottom left, one left edge.
+3. `swc tools/examples.swgs run gui9` — the instrument. It opens every predefined box and the
+   file browser composite beside them. **Look at each one**: an assertion cannot see an action row
+   wider than its content, a hint where no dismissing action exists, or two left edges that nearly
+   agree.
+4. Look at a box holding two sentences, not only at one holding four words, in French as well as
+   English, and at a display scale other than 100 percent. All three are where a fitted box fails,
+   and none shows up in the case a change is usually tried on.
 
 Use [validate-swag-changes](../validate-swag-changes/SKILL.md) for any additional configuration,
 consumer, or golden coverage; do not run unrelated GUI tests.

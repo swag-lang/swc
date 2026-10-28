@@ -1,14 +1,35 @@
-// A preset cell renders a real sample of the style it applies, so it sits at the sample
-// size of the application chart rather than at the flat-swatch size. The sample keeps a
-// margin inside its cell: the air is what separates one preset from the next.
-const QuickCellSize   = 32.0
-const QuickCellMargin = 6.0
-const QuickChipWidth  = 40.0     // Widest a preset chip gets; the chips share the column of the inspector below it.
-const QuickChipMinimum = 26.0    // Narrowest a preset chip gets; past it, the strip scrolls.
-const QuickCellGap    = 4.0     // Air between two preset chips.
+// A preset is a small picture of the shape it draws, in its own colours, painted by the painter
+// of the canvas: a cell of the raised ground, the preset in force ringed in Arc.
+const QuickCellWidth  = 44.0     // Width of the cell of a preset.
+const QuickCellHeight = 36.0     // Height of the cell of a preset.
+const QuickCellCorner = 7.0      // Corner of the cell.
+const QuickRingGap    = 2.0      // Air between the cell and the ring of the preset in force.
+const QuickRingWidth  = 2.0      // Weight of that ring.
+const QuickCellMargin = 6.0      // Least air between a sample and the edge of its cell.
 
-// The glyph of the trailing chip, which keeps the style of the tool as a new preset.
+// A chip holds its cell and the room of the ring around it, so two cells stand twice that room
+// apart, and the ring is never cut by the chip.
+const QuickChipInset  = QuickRingGap + QuickRingWidth
+const QuickChipWidth  = QuickCellWidth + 2 * QuickChipInset
+const QuickChipHeight = QuickCellHeight + 2 * QuickChipInset
+
+// The size the sample of a preset is painted at, as a frame its shape is laid out in, before the
+// room its stroke and its ends take is kept around it.
+const QuickSampleWidth  = 28.0
+const QuickSampleHeight = 18.0
+const QuickStrokeZoom   = 0.35'f32     // The scale a line or an arrow is painted at in its cell.
+const QuickTextHeight   = 16.0'f32     // The size the "Aa" of a text is painted at in its cell.
+
+// The glyph of the trailing chip, which keeps the selected shape as a new preset.
 const AddGlyphSize = 14.0
+
+// Clears the ground the theme gives a button, in every state, on a chip that paints its own cell.
+func clearChipGround(button: *IconButton)
+{
+    for key in ["btnIcon_Bk", "btnIcon_HotBk", "btnIcon_PressedBk", "btnIcon_CheckedBk", "btnIcon_CheckedHotBk", "btnIcon_CheckedPressedBk",
+                "btnIcon_CheckedMark", "btnIcon_CheckedHotMark", "btnIcon_CheckedPressedMark", "btnIcon_CheckedRing"] do
+        button.style.addStyleSheetColors(Format.toString("% 0x00000000", key))
+}
 
 // The preset forms one tool offers in the quick-style bar.
 struct QuickStyle
@@ -94,12 +115,16 @@ struct QuickButton
 // text and points, so it never works on the style itself.
 struct QuickStylePaintForm
 {
-    itf: IForm?
+    itf:   IForm?
+    zoom:  f32  = 1        // The zoom the copy is painted at: a stroke is laid out larger and painted smaller.
+    quick: bool = true     // Whether the copy is painted with the sizes the quick mode normalizes.
 }
 
 impl QuickStylePaintForm
 {
-    // Creates the copy of `srcItf` a cell of [[QuickCellSize]] paints, laid out inside the cell.
+    // Creates the copy of `srcItf` a cell of [[QuickCellWidth]] by [[QuickCellHeight]] paints,
+    // laid out in the middle of the cell: a box, a stroke rising across, "Aa", a bubble with its
+    // tail, a numbered disc, the pattern of a mask.
     func create(srcItf: IForm)->QuickStylePaintForm
     {
         let paintBase = MainWnd.newFormFromForm(srcItf)
@@ -109,34 +134,94 @@ impl QuickStylePaintForm
         cxt.z         = 1
         cxt.quickMode = true
 
-        let m    = QuickCellMargin + sampleInset(paintItf, cxt)
-        let rect = Math.Rectangle{m, m, QuickCellSize - 2 * m, QuickCellSize - 2 * m}
+        // A sample stands on the cell: a drop shadow would read as a glow around it.
+        paintItf.paintShadow = false
 
+        var w = QuickSampleWidth
+        var h = QuickSampleHeight
+        switch paintItf
+        {
+        case FormStep:  w, h = 18
+        case FormImage: w, h = 22
+        case FormText:  w, h = QuickCellHeight - 2 * QuickCellMargin
+        }
+
+        // A stroke keeps the weight and the ends the canvas gives it, which a cell this small
+        // cannot hold: it is laid out larger, then painted at a small scale, like the canvas
+        // zoomed out.
         var result: QuickStylePaintForm
-        result.itf = paintItf
+        result.itf  = paintItf
+        result.zoom = paintItf is FormLine or paintItf is FormArrow or paintItf is FormDraw ? QuickStrokeZoom : 1'f32
+
+        // Words are drawn at their own size and outline, brought down to the cell, and a
+        // highlighter at its own transparency; a callout at the small size its sample sets.
+        if paintItf is FormText as text
+        {
+            result.zoom  = QuickTextHeight / Math.max(text.fontSize * Math.map(text.scale, 0, 100, 1'f32, 2'f32), 1)
+            result.quick = false
+        }
+
+        if paintItf is FormCallout or paintItf.subKind == .Highlight do
+            result.quick = false
+
+        let m    = sampleInset(paintItf, cxt) * result.zoom
+        w = Math.min(w, QuickCellWidth - 2 * (QuickCellMargin + m))
+        h = Math.min(h, QuickCellHeight - 2 * (QuickCellMargin + m))
+        let rect = Math.Rectangle{Math.round((QuickCellWidth - w) * 0.5), Math.round((QuickCellHeight - h) * 0.5), w, h}
 
         switch paintItf
         {
         case FormPolygon as poly: poly.setDefaultShape()
         case FormDraw as poly:    poly.setDefaultShape()
-        case FormText as txt:     txt.text = "A"
+        case FormText as txt:
+            txt.text      = "Aa"
+            txt.alignHorz = .Center
+            txt.alignVert = .Center
+            txt.rotate    = 0
+        case FormStep as step:
+            step.index = 1
         }
 
-        paintItf.setBaseForm(cast(rect.x), cast(rect.y), cast(rect.width), cast(rect.height))
+        if paintItf is FormText
+        {
+            // "Aa" is wider than it is tall: the box takes the width of the cell.
+            let k = 1 / result.zoom
+            paintItf.setBaseForm(cast(QuickCellMargin * k), cast(rect.y * k), cast((QuickCellWidth - 2 * QuickCellMargin) * k), cast(rect.height * k))
+        }
+        elif paintItf is FormDraw
+        {
+            // A free stroke keeps its own path, laid out larger and painted smaller.
+            let k = 1 / result.zoom
+            paintItf.setBaseForm(cast(rect.x * k), cast(rect.y * k), cast(rect.width * k), cast(rect.height * k))
+        }
+        elif result.zoom != 1
+        {
+            // A stroke rises from the foot of the frame on the left to its top on the right.
+            let k = 1 / result.zoom
+            paintItf.setBaseForm(cast(rect.x * k), cast(rect.bottom() * k), cast(rect.width * k), cast(-rect.height * k))
+        }
+        else
+        {
+            paintItf.setBaseForm(cast(rect.x), cast(rect.y), cast(rect.width), cast(rect.height))
+        }
 
-        // The callout tail lives in canvas space and is never carried by a style; give the
-        // preview a shortened body and an in-cell downward tail so it renders to scale.
+        // The tail of a callout lives in canvas space and is never carried by a style: the sample
+        // is a short body with "Aa" in it and its tail hanging below on the left.
         if paintItf is FormCallout as cl
         {
-            cl.text = "A"
-
-            // Read as a clean speech bubble: quick mode already normalizes the glyph size to
-            // a fixed range, so a small fontSize just lands at the airy end; keep the body
-            // nearly full-cell so the letter breathes, and hang a short downward tail nub.
-            cl.fontSize = 10
-            cl.h        = cast(s32, (cast(f32, cl.h) * 0.82))
-            cl.tailX    = cl.x + cast(s32, (cast(f32, cl.w) * 0.28))
-            cl.tailY    = cl.y + cl.h + 8
+            cl.text      = "Aa"
+            cl.fontSize  = 8
+            cl.boldSize  = 0
+            cl.roundSize = Math.min(cl.roundSize, 4)
+            cl.borderSize = Math.min(cl.borderSize, 1)
+            cl.alignHorz = .Center
+            cl.alignVert = .Center
+            cl.x         = cast(s32, Math.round((QuickCellWidth - 26) * 0.5))
+            cl.y         = 10
+            cl.w         = 26
+            cl.h         = 13
+            cl.tailX     = cl.x + 6
+            cl.tailY     = cl.y + cl.h + 5
         }
 
         return result
@@ -214,7 +299,7 @@ struct QuickWnd
 {
     using scrollWnd: ScrollWnd
 
-    late layout: *StackLayoutCtrl
+    late layout: *Wnd
     late main:   *MainWnd
 
     qsArrow:     QuickStyle
@@ -366,16 +451,15 @@ impl QuickWnd
     func create(parent: *Wnd, main: *MainWnd)->*QuickWnd
     {
         let metrics = parent.themeMetrics()
-        with let quick = Wnd.create'QuickWnd(parent, {0, 0, 0, QuickCellSize + metrics.inspector_RowGap})
+        with let quick = Wnd.create'QuickWnd(parent, {0, 0, 0, QuickChipHeight + metrics.inspector_RowGap})
         {
             .backgroundStyle = .Transparent
             .updateFlags(.TransparentBars)
 
-            // The presets stand in the column of the inspector, which keeps the margins; the
-            // strip keeps only the air between itself and the rows under it.
-            .layout              = StackLayoutCtrl.create(quick, .Left, {0, 0, 0, QuickCellSize})
-            .layout.fitToContent = true
-            .layout.spacing      = QuickCellGap
+            // The presets stand in the column of the inspector, which keeps the margins, in rows
+            // of chips; the strip keeps only the air between itself and the rows under it.
+            .layout = Wnd.create'Wnd(quick, null, {0, 0, 0, QuickChipHeight})
+            .layout.backgroundStyle = .Transparent
             .setView(quick.layout)
 
             .main = main
@@ -865,32 +949,69 @@ impl QuickWnd
         }
     }
 
-    // Paints the form of a cell as a preview of its style.
+    // Returns the cell of a chip: the chip less the room of the ring.
+    func presetCell(chip: *Wnd)->Math.Rectangle
+    {
+        var result = chip.clientRect()
+        result.inflate(-QuickChipInset)
+        return result
+    }
+
+    // Paints a preset: its cell on the raised ground, the picture of the shape it draws in its
+    // own colours, and the Arc ring when it is the preset in force.
     func paintPreset(painter: *Painter, btnp: *QuickButton)
     {
+        let colors = btnp.themeColors()
+        let cell   = presetCell(btnp)
+
         painter.setParams(.Antialiased)
+        painter.fillRoundRect(cell, QuickCellCorner, QuickCellCorner, colors.raised)
+
+        // Each sample is painted at the zoom and with the sizes its copy chose for the cell.
         var paintForm = QuickStylePaintForm.create(unwrap btnp.formItf)
         defer paintForm.release()
-
-        // The sample stands in a centred square of the chip.
+        painter.pushClippingRect(cell)
         painter.pushTransform()
-        painter.translateTransform((btnp.position.width - QuickCellSize) * 0.5, 0)
-        Capture.paintForm(painter, {}, {0, 0, QuickCellSize, QuickCellSize}, unwrap paintForm.itf, zoom: 1, quickMode: true)
+        painter.translateTransform(cell.x, cell.y)
+        Capture.paintForm(painter, {}, {0, 0, QuickCellWidth, QuickCellHeight}, unwrap paintForm.itf, zoom: paintForm.zoom, quickMode: paintForm.quick)
         painter.popTransform()
+        painter.popClippingRect()
+
+        if btnp.isChecked
+        {
+            var ring = cell
+            ring.inflate(QuickRingGap + QuickRingWidth * 0.5)
+            let r = QuickCellCorner + QuickRingGap + QuickRingWidth * 0.5
+            painter.drawRoundRect(ring, r, r, colors.arc, QuickRingWidth)
+        }
+    }
+
+    // Paints the trailing chip: a hairline cell and its "+".
+    func paintAddPreset(painter: *Painter, btnp: *QuickButton)
+    {
+        let colors  = btnp.themeColors()
+        let metrics = btnp.themeMetrics()
+        let cell    = presetCell(btnp)
+        painter.setParams(.Antialiased)
+        painter.drawRoundRect(cell, QuickCellCorner, QuickCellCorner, colors.line, metrics.separator_HairlineSize)
+        var icon = btnp.theme().icon(.Plus, AddGlyphSize)
+        icon.paint(painter, Math.round(cell.horzCenter() - AddGlyphSize * 0.5), Math.round(cell.vertCenter() - AddGlyphSize * 0.5), colors.softText)
     }
 
     // Adds the cell of one preset; checking it applies the preset to the tool and to the selection.
     mtd addPresetButton(form: IForm)
     {
-        with let button = Wnd.create'QuickButton(me.layout, null, {0, 0, QuickChipWidth, QuickCellSize})
+        with let button = Wnd.create'QuickButton(me.layout, null, {0, 0, QuickChipWidth, QuickChipHeight})
         {
             .updateFlags(.Radio)
             .setForm(.RoundedRectangle)
+            .backgroundStyle = .Transparent
 
             // The picked preset is the cell that is lit, not the cell with a bar under it: a
             // rule in the accent below a sample drawn in the user's own colors reads as one
             // more thing painted in the cell rather than as the state of the cell.
             .setCheckIndicator(.None)
+            clearChipGround(button)
             .formItf  = form
             .quickWnd = me
             .toolTip  = quickStyleTip(form)
@@ -928,15 +1049,16 @@ impl QuickWnd
     // Adds the trailing chip, which keeps the current style of the tool as a new preset.
     mtd addModelButton(form: IForm)
     {
-        with let btn = Wnd.create'QuickButton(me.layout, null, {0, 0, QuickChipWidth, QuickCellSize})
+        with let btn = Wnd.create'QuickButton(me.layout, null, {0, 0, QuickChipWidth, QuickChipHeight})
         {
             .isModel = true
             .formItf = form
             .toolTip = appStrings().tip_AddQuickStyle
             .setForm(.RoundedRectangle)
             .setCheckIndicator(.None)
-            .iconBtn.setIcon(me.theme().icon(.Plus, AddGlyphSize))
-            .updateFlags(.IconOnly | .CenterContent)
+            .backgroundStyle = .Transparent
+            clearChipGround(btn)
+            .iconPainter = func(button, bc, _, _) { paintAddPreset(bc.painter, assume cast(*QuickButton, button)) }
         }
 
         btn.sigPressed += func|quickWnd = me|(_)
@@ -986,24 +1108,33 @@ impl QuickWnd
         .fitChips()
     }
 
-    // Shares the width of the strip between its chips, from the widest a chip gets down to the
-    // narrowest; past that, the strip scrolls sideways.
+    // Lays the chips in rows across the width of the inspector column, as many as fit, and makes
+    // the strip as tall as its rows.
     mtd fitChips()
     {
         if .layout == null do
             return
-        var count = 0'u64
-        for c in .layout.children where not c.isPendingDestroy do
-            count += 1
-        if count == 0 do
-            return
 
-        let room  = .position.width - cast(f32, count - 1) * QuickCellGap
-        let width = Math.clamp(Math.floor(room / cast(f32, count)), QuickChipMinimum, QuickChipWidth)
-        for c in .layout.children where not c.isPendingDestroy do
-            c.resize(width, QuickCellSize)
-        .layout.computeLayout()
-        .setScrollSize(.layout.position.width, 0)
+        let perRow = Math.max(1, cast(s32, Math.floor((.position.width + 0.5) / QuickChipWidth)))
+        var count  = 0's32
+        for c in .layout.children where not c.isPendingDestroy
+        {
+            let col = count % perRow
+            let row = count / perRow
+            c.setPosition(Math.Rectangle{cast(f32, col) * QuickChipWidth, cast(f32, row) * QuickChipHeight, QuickChipWidth, QuickChipHeight})
+            count += 1
+        }
+
+        let rows   = Math.max(1, (count + perRow - 1) / perRow)
+        let height = cast(f32, rows) * QuickChipHeight
+        .layout.setPosition(Math.Rectangle{0, 0, cast(f32, Math.min(count, perRow)) * QuickChipWidth, height})
+        .setScrollSize(0, 0)
+        let wanted = height + .themeMetrics().inspector_RowGap
+        if .position.height != wanted
+        {
+            .resize(.position.width, wanted)
+            .parent?.applyLayout()
+        }
     }
 
 }

@@ -99,6 +99,7 @@ struct AppStrings
     hint_NewLine:               string = "new line"                    // What Enter does while the words of a form are typed in place.
     hint_KeepText:              string = "keep the text"               // What Ctrl+Enter does while the words of a form are typed in place.
     ui_Common:                  string = "Common"                      // Section of the inspector holding what several objects share.
+    ui_NoColor:                 string = "none"                        // Value of a colour row whose colour is fully transparent.
     msg_FailedCaptureScreen:    string = "Failed to capture the screen"
     msg_FailedLoadFile:         string = "Failed to load file: %"
     msg_FailedOpenLibrary:      string = "Cannot open the library folder"
@@ -128,6 +129,7 @@ struct AppStrings
     hint_LibrarySpace:          string = "export, tag, rate, move"     // What the Space key opens, on the hint line of the library.
     lens_Tools:                 string = "Tools"                       // Lens section of the drawing tools.
     lens_Recent:                string = "Recent"                      // Lens section of the recent captures.
+    lens_LibraryLink:           string = "Library →"                   // Link ending the recent captures of the lens: opens the library.
     lens_Dates:                 string = "Dates"                       // Lens section of the dates the library can be narrowed to.
     ui_ModeArea:                string = "Area"                        // Capture mode of the area overlay: the zone the reader draws.
     ui_ModeActiveWindow:        string = "Active Window"               // Capture mode of the area overlay: the window in front.
@@ -135,6 +137,10 @@ struct AppStrings
     ui_ModeLastArea:            string = "Last Area"                   // Capture mode of the area overlay: the zone of the previous capture.
     key_Enter:                  string = "⏎"                           // The Enter key, in a keycap of a hint line.
     hint_Capture:               string = "capture"                     // What Enter does on the area overlay.
+    ui_Delay:                   string = "Delay: %"                    // How long the area overlay waits before reading the screen, with that delay.
+    ui_DelayNone:               string = "none"                        // No delay before the screen is read.
+    ui_DelaySeconds:            string = "% s"                         // A delay before the screen is read, in seconds.
+    ui_Cursor:                  string = "Cursor"                      // Switch of the area overlay: whether the screen is read with the cursor.
     hint_Cancel:                string = "cancel"                      // What Escape does on the area overlay.
     act_OpenLens:               string = "Search Commands"             // Opens the lens.
     act_ShowInspector:          string = "Properties"                  // Folds or unfolds the inspector.
@@ -369,8 +375,10 @@ struct AppStrings
     prop_StartSize: string = "Start Size"     // Label of the start-cap size of a line.
     prop_Step:      string = "Step"           // Label of the step-numbering choice.
     prop_Strength:  string = "Strength"       // Label of the effect strength.
+    prop_Style:     string = "Style"          // Label of the font style: regular, bold, italic or both.
     prop_Text:      string = "Text"           // Label of the edited text.
     prop_Thickness: string = "Thickness"      // Label of the stroke thickness.
+    prop_Vertical:  string = "Vertical"       // Label of how the lines of a text stand down its box.
 
     prop_Straight: string = "Straight"      // Line entry: a segment.
     prop_Bezier:   string = "Bezier"        // Line entry: a curve.

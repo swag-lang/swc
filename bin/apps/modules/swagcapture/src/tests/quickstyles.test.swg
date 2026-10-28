@@ -18,7 +18,7 @@ using Swag, Core
     Swag.assert(textPaint.itf.buffer != textItf.buffer)
     Swag.assert(f.main.mdlFormText.text == "Keep me")
     Swag.assert(textItf.boundRect() == textRectBefore)
-    Swag.assert(assume cast(*FormText, unwrap textPaint.itf).text == "A")
+    Swag.assert(assume cast(*FormText, unwrap textPaint.itf).text == "Aa")
     textPaint.release()
 
     f.main.mdlFormPolygon.points.add({10, 10})
@@ -83,7 +83,7 @@ using Swag, Core
     }
 
     var f: HeadlessFixture
-    f.setup(QuickCellSize, QuickCellSize)
+    f.setup(QuickCellWidth, QuickCellHeight)
     defer f.shutdown()
 
     for border in [Argb.White, Argb.Zero]
@@ -91,25 +91,25 @@ using Swag, Core
         let itf = newTextStyle(border)
         defer testDeleteForm(itf)
 
-        let button = IconButton.create(&f.gui.root, {}, {0, 0, QuickCellSize, QuickCellSize})
+        let button = IconButton.create(&f.gui.root, {}, {0, 0, QuickCellWidth, QuickCellHeight})
         defer button.destroy()
         button.iconPainter = func|itf|(_, bc, _, _)
         {
             var paint = QuickStylePaintForm.create(itf)
             defer paint.release()
-            Capture.paintForm(bc.painter, {}, {0, 0, QuickCellSize, QuickCellSize}, unwrap paint.itf, zoom: 1, quickMode: true)
+            Capture.paintForm(bc.painter, {}, {0, 0, QuickCellWidth, QuickCellHeight}, unwrap paint.itf, zoom: paint.zoom, quickMode: paint.quick)
         }
 
         var image = f.gui.render(button)
         let ink   = inkBounds(&image)
         Swag.assert(ink.width > 4 and ink.height > 4)
-        Swag.assert(Math.abs(ink.horzCenter() - QuickCellSize * 0.5) <= 2)
-        Swag.assert(Math.abs(ink.vertCenter() - QuickCellSize * 0.5) <= 2)
+        Swag.assert(Math.abs(ink.horzCenter() - QuickCellWidth * 0.5) <= 2)
+        Swag.assert(Math.abs(ink.vertCenter() - QuickCellHeight * 0.5) <= 2)
 
-        // Half the cell is the ceiling a glyph takes; the rest is what separates one preset
-        // from the next.
-        Swag.assert(ink.width <= QuickCellSize * 0.6)
-        Swag.assert(ink.height <= QuickCellSize * 0.6)
+        // The words keep the margin of the cell: the air is what separates one preset from the
+        // next.
+        Swag.assert(ink.width <= QuickCellWidth - 2 * QuickCellMargin)
+        Swag.assert(ink.height <= QuickCellHeight - 2 * QuickCellMargin)
     }
 }
 

@@ -34,12 +34,7 @@ using Swag, Core
         .pointer   = {880, 520}
     }
 
-    with wnd.hintLine = HintLine.create(wnd)
-    {
-        .addHint(appStrings().key_Enter, appStrings().hint_Capture)
-        .addHint(Gui.strings().key_Escape, appStrings().hint_Cancel)
-    }
-
+    wnd.createHintLine()
     wnd.applyLayout()
     var image = f.gui.render(wnd)
     Pixel.Testing.assertImageGolden(&image, "area")
@@ -48,4 +43,9 @@ using Swag, Core
     Swag.assert(wnd.modeTabs.count == AreaModes.count)
     Swag.assert(wnd.barRect.contains(wnd.modeTabs[1].center()))
     Swag.assert(wnd.modeAt(wnd.modeTabs[2].center()) == 2)
+
+    // After the modes, how the screen is read: the delay, then the cursor, on the same bar.
+    Swag.assert(wnd.hintLine.grounded)
+    Swag.assert(wnd.barRect.contains(wnd.delayRect.center()) and wnd.barRect.contains(wnd.cursorRect.center()))
+    Swag.assert(wnd.delayRect.x > wnd.modeTabs.back().right() and wnd.cursorRect.x > wnd.delayRect.right() - 1)
 }

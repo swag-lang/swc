@@ -195,6 +195,10 @@ func testSetupEditorSurface(host: *Gui.Testing.HeadlessHost, dark: bool, text = 
         Swag.assert(main.inspector.surfaceRect().right() == area.right() - metrics.floating_Inset)
         Swag.assert(main.miniBar.isLocallyVisible() and main.miniBarKind == .Text)
         Swag.assert(not main.hintLine.reading.isEmpty())
+
+        // The mini-bar stands clear of the dock and of the inspector.
+        Swag.assert(main.miniBar.surfaceRect().x >= main.dock.surfaceRect().right())
+        Swag.assert(main.miniBar.surfaceRect().right() <= main.inspector.surfaceRect().x)
         Swag.assert(not main.recentBar.isLocallyVisible())
 
         var image = host.render(main)
@@ -862,4 +866,94 @@ func testBeginInlineText(host: *Gui.Testing.HeadlessHost, main: *MainWnd, index:
     Swag.assert(Math.abs(lefts[1] + words * 0.5 - rect.horzCenter()) <= 1)
     Swag.assert(Math.abs(lefts[2] + words - rect.right()) <= 1)
     Swag.assert(rights[0] - lefts[0] == rights[2] - lefts[2])
+}
+
+// The recent captures close the lens as a strip of pictures, after every row a key can reach,
+// ended by the way to the library.
+#test
+{
+    var host: Gui.Testing.HeadlessHost
+    let main = testSetupEditorSurface(&host, dark: false)
+    defer
+    {
+        main.libWnd.requestClose()
+        host.shutdown()
+        g_Main = null
+    }
+
+    for name in ["first.scc", "second.scc"]
+    {
+        let item = main.recentWnd.recentView.items.addNew()
+        item.file = name
+    }
+
+    main.lens.open("")
+    let rows = main.lens.rows
+    Swag.assert(rows.count > 2 and rows.back().entry == Lens.PictureRow)
+    let section = rows.back().section
+    Swag.assert(section.label == appStrings().lens_Recent and section.pictures.count == 2)
+    Swag.assert(section.link == appStrings().lens_LibraryLink and section.linkRun != null)
+    main.lens.close()
+
+    // A query keeps the captures whose name it matches.
+    main.lens.open("second")
+    Swag.assert(main.lens.rows.back().entry == Lens.PictureRow and main.lens.rows.back().section.pictures.count == 1)
+    main.lens.close()
+    main.recentWnd.recentView.items.clear()
+}
+
+// The quick styles of every tool, one row each as the inspector shows the row of the tool in
+// hand: each preset a small picture of the shape it draws, in its own colours, on the raised
+// ground, the preset in force ringed in Arc, then the cell that keeps a new one; in Encre and
+// in Papier.
+#[Swag.TestTag("golden")]
+#test
+{
+    for dark in [true, false]
+    {
+        var host: Gui.Testing.HeadlessHost
+        let main = testSetupEditorSurface(&host, dark: dark, text: false)
+        defer
+        {
+            main.libWnd.requestClose()
+            host.shutdown()
+            g_Main = null
+        }
+
+        // Two columns of tools, as the picture lays them out.
+        const Modes  = [EditMode.Shape, EditMode.Arrow, EditMode.Highlight, EditMode.Text, EditMode.Callout, EditMode.Step, EditMode.Image]
+        const Second = 3
+        const LabelWidth = 96.0
+        const Pad        = 24.0
+        let metrics = main.themeMetrics()
+        let strip   = 5 * QuickChipWidth
+        with let panel = Wnd.create'Wnd(main, null, {0, 0, 1024, 640})
+        {
+            .backgroundStyle = .Window
+        }
+
+        var x = Pad
+        var y = Pad
+        for mode, index in Modes
+        {
+            if index == Second
+            {
+                x += LabelWidth + strip + 2 * Pad
+                y = Pad
+            }
+
+            main.editMode = mode
+            let quick = QuickWnd.create(panel, main)
+            quick.setDefault()
+            quick.setPosition(Math.Rectangle{x + LabelWidth, y, strip, QuickChipHeight})
+            quick.updateQuickStyles(forceRebuild: true)
+            Swag.assert(quick.layout.children.count > 1)
+            Label.create(panel, MainWnd.editModeName(mode), Math.Rectangle{x, y, LabelWidth, QuickChipHeight}, flags: .SecondaryText)
+            y += quick.position.height + metrics.inspector_RowGap
+        }
+
+        host.finishAnimations()
+        var image = host.render(panel)
+        Pixel.Testing.assertImageGolden(&image, dark ? "presets" : "presets.paper")
+    }
 }

@@ -295,6 +295,8 @@ prop_Round                 Arrondi
 prop_Scale                 Échelle
 prop_Shadow                Ombre
 prop_Size                  Taille
+prop_Style                 Style
+prop_Vertical              Vertical
 prop_StartSize             Taille de début
 prop_Step                  Numérotation
 prop_Strength              Intensité
@@ -358,6 +360,7 @@ hint_Space             capturer, ouvrir, bibliothèque
 hint_LibrarySpace      exporter, étiqueter, noter, déplacer
 lens_Tools             Outils
 lens_Recent            Récentes
+lens_LibraryLink       Bibliothèque →
 act_OpenLens           Rechercher une commande
 act_ShowInspector      Propriétés
 act_ShowRecent         Captures récentes
@@ -369,6 +372,10 @@ ui_ModeActiveWindow    Fenêtre active
 ui_ModeFullScreen      Écran entier
 ui_ModeLastArea        Dernière zone
 hint_Capture           capturer
+ui_Delay               Délai : %
+ui_DelayNone           aucun
+ui_DelaySeconds        % s
+ui_Cursor              Curseur
 hint_Cancel            annuler
 tip_AddQuickStyle      Garder le style actuel comme style rapide
 ui_RecentColors        Récentes
@@ -408,3 +415,4 @@ key_CtrlReturn         Ctrl+Entrée
 hint_NewLine           nouvelle ligne
 hint_KeepText          garder le texte
 ui_Common              En commun
+ui_NoColor             aucun

@@ -402,7 +402,10 @@ the screen to its work.
   selection and the inspector at the right (foldable). Menus are gone: every command is in the
   lens, including capture modes, recent captures and the library.
 - Area capture: the screen dimmed except the chosen zone, a 1 px Voltage edge, its size in a
-  mono chip, a pixel loupe with a Voltage crosshair, modes as text tabs on a floating bar.
+  mono chip, a pixel loupe with a Voltage crosshair, modes as text tabs on a floating bar, then
+  after a hairline how the screen is read: `Delay: none ▾` (a list of delays; one waits, then
+  reads the screen again) and `Cursor` (a switch, on in the text ink over an Arc underline). The
+  keys at the foot stand on the floating ground, since the frozen screen can be any picture.
 - Editing in place, right after a capture: the desktop stays dimmed and the captured zone
   stands in full light with a white hairline edge, its size in a mono chip and Arc handles that
   still move its edges. The annotations are drawn on it directly. One floating bar hangs under
@@ -418,7 +421,19 @@ the screen to its work.
   text, tail handle, font/size/style "Aa" segments), masks (image, blur, pixelation, magnifier,
   capture as a radio list), step numbers (mini-bar with number stepper and reset), multiple
   selection (common settings, align, arrange, group), colour popover (recent, palette, exact
-  value, opacity) and quick styles.
+  value, opacity) and quick styles (pills of the style colours, the chosen one ringed in Arc,
+  then `+`).
+- Words are typed in place, for every shape that carries some — a text, a callout, the label of a
+  step: a double click, Enter or `F2` lays a field per line over the shape, in its face, size,
+  ink and alignment. Enter breaks the line (a step keeps its label on Enter), `Ctrl+Enter` or a
+  click elsewhere keeps the words as one step of the history, `Esc` lets them go. A rotated shape
+  straightens over `motion_QuickSeconds` while its words are typed, and turns back after.
+- The text mini-bar is compact — colour, face list, size in mono, **B** *I*, the three
+  alignments, delete, `•••` — and stands above or below the selection, never over the dock or
+  the inspector; while words are typed it stands below them. The inspector keeps the face, the
+  size, the style "Aa" segments and the vertical alignment; the alignment across lives in the
+  mini-bar.
+- The lens closes with the recent captures as a strip of pictures ended by `Library →`.
 
 ![Arrow](imgs/capture.edit.arrow.png) ![Callout](imgs/capture.edit.callout.png)
 ![Mask](imgs/capture.edit.mask.png) ![Steps](imgs/capture.edit.steps.png)

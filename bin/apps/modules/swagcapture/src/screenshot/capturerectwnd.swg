@@ -24,9 +24,23 @@ const AreaBarTop       = 24.0     // Air between the top of the screen and the m
 const AreaBarHeight    = 40.0     // Height of the mode bar.
 const AreaBarPadding   = 20.0     // Air inside the mode bar, and between two of its tabs.
 const AreaTabUnderline = 2.0      // Weight of the Arc underline of the mode in use.
+const AreaBarSeparatorGap    = 12.0     // Air around the hairline between the modes and how the screen is read.
+const AreaBarSeparatorHeight = 16.0     // Height of that hairline.
+const AreaChevronSize        = 8.0      // Width of the chevron saying the delay opens a list.
+const AreaChevronGap         = 6.0      // Air between the delay and its chevron.
 
 // The modes the bar of the area overlay offers, in their order.
 const AreaModes = [CaptureMode.Area, CaptureMode.ActiveWindow, CaptureMode.FullScreen, CaptureMode.LastArea]
+
+// The delays, in seconds, the bar of the area overlay offers before the screen is read.
+const AreaDelays = [0, 3, 5, 10]
+
+// Returns the words of the delay before the screen is read, on the bar of the area overlay.
+func areaDelayName(delay: s32)->String
+{
+    let value = delay ? Format.toString(appStrings().ui_DelaySeconds, delay) : String.from(appStrings().ui_DelayNone)
+    return Format.toString(appStrings().ui_Delay, value)
+}
 
 // Returns the word of a capture mode on the bar of the area overlay.
 func areaModeName(mode: CaptureMode)->string
@@ -63,9 +77,12 @@ struct CaptureRectWnd
     // Where the pointer is, in logical units, for the loupe.
     pointer: Math.Point
 
-    // The bar of the modes and the tab of each mode, from the latest paint.
-    barRect:  Math.Rectangle
-    modeTabs: Array'Math.Rectangle
+    // The bar of the modes and the tab of each mode, then the delay and the cursor, from the
+    // latest paint.
+    barRect:    Math.Rectangle
+    modeTabs:   Array'Math.Rectangle
+    delayRect:  Math.Rectangle
+    cursorRect: Math.Rectangle
 }
 
 impl IWnd for CaptureRectWnd
@@ -122,6 +139,17 @@ impl IWnd for CaptureRectWnd
                     g_SwitchCaptureMode = true
                     g_SwitchCaptureTo   = AreaModes[index]
                     g_Exit              = true
+                }
+                elif .delayRect.contains(evt.surfacePos)
+                {
+                    .pickDelay()
+                }
+                elif .cursorRect.contains(evt.surfacePos)
+                {
+                    // The screen was read before the overlay came: it is read again, with or
+                    // without the cursor.
+                    .main.captureOptions.captureCursor = not .main.captureOptions.captureCursor
+                    .restartArea()
                 }
             }
 
@@ -279,6 +307,49 @@ impl IWnd for CaptureRectWnd
 impl CaptureRectWnd
 {
     // Returns the mode tab under `pos`, in logical units, or `U64.Max`.
+    // Creates the keys at the foot of the overlay. They stand over the frozen screen, which can be
+    // as busy as any picture, so they take the floating ground.
+    mtd createHintLine()
+    {
+        with .hintLine = HintLine.create(me)
+        {
+            .setGrounded(true)
+            .addHint(appStrings().key_Enter, appStrings().hint_Capture)
+            .addHint(Gui.strings().key_Escape, appStrings().hint_Cancel)
+        }
+    }
+
+    // Closes the overlay and starts the area capture again, which reads the screen anew.
+    mtd restartArea()
+    {
+        g_SwitchCaptureMode = true
+        g_SwitchCaptureTo   = .Area
+        g_Exit              = true
+    }
+
+    // Lists the delays under the delay of the bar. A delay waits before the screen is read, so
+    // picking one closes the overlay and reads the screen again once it has elapsed.
+    mtd pickDelay()
+    {
+        with let menu = MenuCtrl.createPopup(me)
+        {
+            for delay in AreaDelays do
+                .addItem(areaDelayName(delay), Format.toString("%", delay))
+        }
+
+        .releaseMouse()
+        let result = menu.doModal(Math.Point{.delayRect.x, .barRect.bottom()}, autoDestroy: true)
+        .captureMouse()
+        if not result do
+            return
+
+        let delay = catch StrConv.parseS32(result)
+        .main.captureOptions.delay = delay.value
+        if delay.value do
+            .restartArea()
+        .invalidate()
+    }
+
     mtd modeAt(pos: Math.Point)->u64
     {
         for rect, i in .modeTabs where rect.contains(pos) do
@@ -375,9 +446,16 @@ impl CaptureRectWnd
         let font    = .theme().createDefaultFont(metrics.defaultFontSize)
         let screen  = .clientRect()
 
+        let delayText  = areaDelayName(cast(s32, .main.captureOptions.delay))
+        let cursorText = appStrings().ui_Cursor
+        let chevron    = AreaChevronSize + AreaChevronGap
+        let delayW     = Painter.measureString(delayText, font).width + chevron
+        let cursorW    = Painter.measureString(cursorText, font).width
+
         var width = AreaBarPadding
         for mode in AreaModes do
             width += Painter.measureString(areaModeName(mode), font).width + AreaBarPadding
+        width += AreaBarSeparatorGap + delayW + AreaBarPadding + cursorW + AreaBarPadding
 
         .barRect = Math.Rectangle{Math.round(screen.horzCenter() - width * 0.5), AreaBarTop, Math.ceil(width), AreaBarHeight}
         painter.setParams(.Antialiased)
@@ -401,5 +479,27 @@ impl CaptureRectWnd
                 painter.fillRect(Math.Rectangle{x, .barRect.bottom() - 8, w, AreaTabUnderline}, colors.arc)
             x += w + AreaBarPadding
         }
+
+        // A hairline, then how the screen is read: after a delay, with the cursor or not.
+        let lineX = Math.round(x - AreaBarPadding * 0.5 + AreaBarSeparatorGap * 0.5)
+        painter.fillRect(Math.Rectangle{lineX, .barRect.vertCenter() - AreaBarSeparatorHeight * 0.5, metrics.separator_HairlineSize, AreaBarSeparatorHeight}, colors.line)
+        x += AreaBarSeparatorGap
+
+        .delayRect = Math.Rectangle{x - AreaBarPadding * 0.5, .barRect.y, delayW + AreaBarPadding, .barRect.height}
+        let delayInk = .delayRect.contains(.pointer) ? colors.text : colors.softText
+        painter.drawString(x, font.opticalLineTop(.barRect.vertCenter()), delayText, font, delayInk)
+        let cx = x + delayW - AreaChevronSize * 0.5
+        let cy = .barRect.vertCenter()
+        painter.drawLine(cx - AreaChevronSize * 0.5, cy - AreaChevronSize * 0.25, cx, cy + AreaChevronSize * 0.25, colors.faintText, 1.5)
+        painter.drawLine(cx, cy + AreaChevronSize * 0.25, cx + AreaChevronSize * 0.5, cy - AreaChevronSize * 0.25, colors.faintText, 1.5)
+        x += delayW + AreaBarPadding
+
+        // The cursor is a switch: in the text ink over the Arc underline when it is read too.
+        let cursorOn = .main.captureOptions.captureCursor
+        .cursorRect = Math.Rectangle{x - AreaBarPadding * 0.5, .barRect.y, cursorW + AreaBarPadding, .barRect.height}
+        let cursorInk = cursorOn or .cursorRect.contains(.pointer) ? colors.text : colors.softText
+        painter.drawString(x, font.opticalLineTop(.barRect.vertCenter()), cursorText, font, cursorInk)
+        if cursorOn do
+            painter.fillRect(Math.Rectangle{x, .barRect.bottom() - 8, cursorW, AreaTabUnderline}, colors.arc)
     }
 }

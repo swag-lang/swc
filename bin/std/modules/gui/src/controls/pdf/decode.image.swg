@@ -124,9 +124,8 @@ private func invertMask8(destination: [*] u8, source: const [*] u8, count: u64)
     }
 }
 
-private func expandInvertedMask1(destination: [*] u8, source: const [*] u8, width, height, rowBytes: u64)
+private func(const Inverted: bool) expandMask1(destination: [*] u8, source: const [*] u8, width, height, rowBytes: u64)
 {
-    let zero = Math.Simd.splat(0'u8)
     for y in height
     {
         var dst  = destination + y * width
@@ -135,7 +134,11 @@ private func expandInvertedMask1(destination: [*] u8, source: const [*] u8, widt
         while left >= 8
         {
             let bits = Math.Simd.splat(src[])
-            Math.Simd.storeLow8(dst, (bits & MaskBits) == zero)
+            #static if Inverted do
+                Math.Simd.storeLow8(dst, (bits & MaskBits) == Math.Simd.splat(0'u8))
+            else do
+                // Each low lane masks one bit, so equality tests whether that bit is set.
+                Math.Simd.storeLow8(dst, (bits & MaskBits) == MaskBits)
             src  += 1
             dst  += 8
             left -= 8
@@ -147,7 +150,10 @@ private func expandInvertedMask1(destination: [*] u8, source: const [*] u8, widt
             var bit  = 7'u32
             while left
             {
-                dst[] = bits & (1 << bit) == 0 ? 255 : 0
+                #static if Inverted do
+                    dst[] = bits & (1 << bit) == 0 ? 255 : 0
+                else do
+                    dst[] = bits & (1 << bit) != 0 ? 255 : 0
                 dst  += 1
                 bit  -= 1
                 left -= 1
@@ -803,7 +809,12 @@ private func readMaskPlane(parser: *PdfParser, nodeId, _: u32, stencil: bool)->S
     result.alpha.resize(cast(u64, width) * cast(u64, height))
     if depth == 1 and width >= 8 and lowest == 1.0 and highest == 0.0
     {
-        expandInvertedMask1(result.alpha.storage(), bytes.storage(), cast(u64, width), cast(u64, height), rowBytes)
+        expandMask1'(true)(result.alpha.storage(), bytes.storage(), cast(u64, width), cast(u64, height), rowBytes)
+        return result
+    }
+    if depth == 1 and width >= 8 and lowest == 0.0 and highest == 1.0
+    {
+        expandMask1'(false)(result.alpha.storage(), bytes.storage(), cast(u64, width), cast(u64, height), rowBytes)
         return result
     }
     if depth == 8 and lowest == 0.0 and highest == 1.0

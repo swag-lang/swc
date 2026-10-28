@@ -258,7 +258,8 @@ conversion, image codecs, text/crypto routines, Pixel spans, and SDF samples.
   once per image; out-of-range and inverted intervals retain the scalar behavior. RGB and alpha
   planes and stencil fills combine into four RGBA pixels per SIMD iteration, with bounded row reads
   and scalar tails; same-size mask planes transfer their buffer instead of resampling every pixel.
-  The default 1-bit stencil decode expands eight bits per SIMD iteration, retaining row padding.
+  One-bit mask and stencil decodes expand eight bits per SIMD iteration for either standard
+  decode direction, retaining row padding.
   Different-size mask resampling advances exact quotient-and-remainder coordinates rather than
   dividing for each pixel or row.
 - Next: vectorize non-default decode arrays, packed and 16-bit samples, other color-key comparisons,

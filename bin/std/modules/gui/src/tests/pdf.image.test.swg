@@ -252,6 +252,49 @@ private func imageDocument(dictionary: string, samples: const [..] u8)->Document
     }
 }
 
+// One-bit soft masks honor both decode directions and padded row boundaries.
+#test
+{
+    var bits:    [256] u8
+    var samples: [2048] u8
+    for i in 256 do
+        bits[i] = cast(u8, i)
+    for i in 2048 do
+        samples[i] = 100
+
+    for decode in ["", "/Decode [1 0]"]
+    {
+        var extra: Array'u8
+        addStreamObject(&extra, 6, Format.toString("/Type /XObject /Subtype /Image /Width 2048 /Height 1 /ColorSpace /DeviceGray /BitsPerComponent 1 %", decode).toString(), bits)
+        addStreamObject(&extra, 5, "/Type /XObject /Subtype /Image /Width 2048 /Height 1 /ColorSpace /DeviceGray /BitsPerComponent 8 /SMask 6 0 R", samples)
+        let content  = "q 10 0 0 10 0 0 cm /Im0 Do Q"
+        let document = expect Document.decode(singlePagePdf("/XObject << /Im0 5 0 R >>", cast(const [..] u8, content), extra.toSlice()).toSlice())
+        let image    = unwrap onlyItem(document.pages[0], .Image).imageValue()
+        for x in 2048
+        {
+            let bit = (bits[x / 8] >> (7 - x % 8)) & 1
+            let alpha = (bit == 0) == (decode == "/Decode [1 0]") ? 255 : 0
+            Swag.assert(image.pixelColor(cast(s32, x), 0).a == alpha)
+        }
+    }
+
+    let rows: [6] u8 = [0xAA, 0xF0, 0x80, 0x55, 0x0F, 0x00]
+    var extra: Array'u8
+    addStreamObject(&extra, 6, "/Type /XObject /Subtype /Image /Width 17 /Height 2 /ColorSpace /DeviceGray /BitsPerComponent 1", rows)
+    addStreamObject(&extra, 5, "/Type /XObject /Subtype /Image /Width 17 /Height 2 /ColorSpace /DeviceGray /BitsPerComponent 8 /SMask 6 0 R", samples[0 until 34])
+    let content  = "q 10 0 0 10 0 0 cm /Im0 Do Q"
+    let document = expect Document.decode(singlePagePdf("/XObject << /Im0 5 0 R >>", cast(const [..] u8, content), extra.toSlice()).toSlice())
+    let image    = unwrap onlyItem(document.pages[0], .Image).imageValue()
+    for y in 2
+    {
+        for x in 17
+        {
+            let bit = (rows[y * 3 + x / 8] >> (7 - x % 8)) & 1
+            Swag.assert(image.pixelColor(cast(s32, x), cast(s32, y)).a == (bit == 0 ? 0 : 255))
+        }
+    }
+}
+
 // A soft mask becomes the alpha channel, resampled to the size of the image it covers.
 #test
 {

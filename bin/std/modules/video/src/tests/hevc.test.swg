@@ -372,6 +372,44 @@ using Core, Core.Errors, Pixel
     }
 }
 
+// Horizontal chroma deblocking processes two adjacent samples without reading or
+// writing their neighbours. Compare the packed result to the normative scalar formula.
+#test
+{
+    const Stride = 7'u64
+    var samples:  [Stride * 4] u16
+    var expected: [Stride * 4] u16
+    var seed = 0x931BE27D'u32
+    for bitDepth in [8'u32, 10]
+    {
+        let maximum = cast(s32, ((1'u32 << bitDepth) - 1))
+        for tc in [1's32, 2, 4, 16, 96]
+        {
+            for 256
+            {
+                for index in samples.count
+                {
+                    seed = seed * #wrap 1664525 + #wrap 1013904223
+                    samples[index]  = cast(u16, ((seed >> 16) & cast(u32, maximum)))
+                    expected[index] = samples[index]
+                }
+                for lane in 2'u64
+                {
+                    let p1 = cast(s32, expected[1 + lane])
+                    let p0 = cast(s32, expected[Stride + 1 + lane])
+                    let q0 = cast(s32, expected[2 * Stride + 1 + lane])
+                    let q1 = cast(s32, expected[3 * Stride + 1 + lane])
+                    let delta = Math.clamp((((q0 - p0) << 2) + p1 - q1 + 4) >> 3, -tc, tc)
+                    expected[Stride + 1 + lane]     = cast(u16, Math.clamp(p0 + delta, 0, maximum))
+                    expected[2 * Stride + 1 + lane] = cast(u16, Math.clamp(q0 - delta, 0, maximum))
+                }
+                Hevc.filterChromaPair(&samples[2 * Stride + 1], cast(s64, Stride), tc, maximum)
+                Swag.assert(samples == expected)
+            }
+        }
+    }
+}
+
 // A stream can begin at a clean random access point whose leading pictures predict from what came
 // before it. Those pictures are decoded from references that were never there, and clause 8.1.3
 // says not to show them: they precede the point in output order, so keeping them would put wrong

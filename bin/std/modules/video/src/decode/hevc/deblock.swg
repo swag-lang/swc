@@ -20,6 +20,25 @@ private func lineQuad(line: const [*] u16, offset: s64)->Simd.S16x8 => cast #bit
 #[Swag.Inline]
 private func storeQuad(line: [*] u16, offset: s64, value: Simd.S16x8) { cast([*] u64, &line[offset])[0] = cast #bit(Simd.U64x2, value)[0] }
 
+// Filters the two adjacent chroma samples of a horizontal edge. Each read
+// and write covers exactly two u16 samples, including at the picture boundary.
+#[Swag.Inline]
+func filterChromaPair(line: [*] u16, stride: s64, tc, maximum: s32)
+{
+    let p0 = cast #bit(Simd.S16x8, Simd.splat(cast(const [*] u32, &line[-stride])[0]))
+    let p1 = cast #bit(Simd.S16x8, Simd.splat(cast(const [*] u32, &line[-2 * stride])[0]))
+    let q0 = cast #bit(Simd.S16x8, Simd.splat(cast(const [*] u32, &line[0])[0]))
+    let q1 = cast #bit(Simd.S16x8, Simd.splat(cast(const [*] u32, &line[stride])[0]))
+    let zero  = Simd.splat(0's16)
+    let bound = Simd.splat(cast(s16, tc))
+    let max   = Simd.splat(cast(s16, maximum))
+    let delta = Math.max(Math.min((((q0 - p0) << 2) + p1 - q1 + Simd.splat(4's16)) >> 3, bound), zero - bound)
+    let p     = Math.max(Math.min(p0 + delta, max), zero)
+    let q     = Math.max(Math.min(q0 - delta, max), zero)
+    cast([*] u32, &line[-stride])[0] = cast #bit(Simd.U32x4, p)[0]
+    cast([*] u32, &line[0])[0] = cast #bit(Simd.U32x4, q)[0]
+}
+
 // Holds `value` within `limit` of what the sample was, which is what the strong filter is
 // allowed to move it by, clause 8.7.2.5.7.
 #[Swag.Inline]
@@ -41,6 +60,31 @@ const EdgeTransformLeft  = 1'u8
 const EdgeTransformTop   = 2'u8
 const EdgePredictionLeft = 4'u8
 const EdgePredictionTop  = 8'u8
+
+// The chroma threshold is shared by both edge directions.
+#[Swag.Inline]
+private func chromaDeblockTc(sps: const *Sps, pps: const *Pps, slice: const *SliceDeblock, qpP, qpQ: s32, component, bitDepth: u32)->s32
+{
+    let offset  = component == 1 ? pps.cbQpOffset : pps.crQpOffset
+    let average = ((qpP + qpQ + 1) >> 1) + offset
+
+    var chromaQp = average
+    if sps.chromaArrayType == 1
+    {
+        if average >= 30 and average <= 43 do
+            chromaQp = cast(s32, ChromaQpMapping[average - 30])
+        elif average > 43 do
+            chromaQp = average - 6
+    }
+    else
+    {
+        chromaQp = Math.min(average, 51)
+    }
+
+    let tcQ = Math.clamp(chromaQp + 2 + (cast(s32, slice.tcOffsetDiv2) << 1), 0, 53)
+    let tc  = cast(s32, DeblockTc[tcQ]) * (1 << (bitDepth - 8))
+    return tc
+}
 
 private const DeblockLanes = 8'u32
 
@@ -160,11 +204,21 @@ impl Decoder
         // block is on one side of it.
         if strength == 2 and sps.chromaArrayType != 0
         {
-            let aligned = vertical ? (x & 15) == 0 : (y & 15) == 0
-            if aligned
+            if vertical
             {
-                .filterChromaEdge(x, y, vertical, qpP, qpQ, 1, slice)
-                .filterChromaEdge(x, y, vertical, qpP, qpQ, 2, slice)
+                if (x & 15) == 0
+                {
+                    .filterChromaEdge(x, y, vertical, qpP, qpQ, 1, slice)
+                    .filterChromaEdge(x, y, vertical, qpP, qpQ, 2, slice)
+                }
+            }
+            else
+            {
+                if (y & 15) == 0
+                {
+                    .filterChromaEdgeHorizontal(x, y, qpP, qpQ, 1, slice)
+                    .filterChromaEdgeHorizontal(x, y, qpP, qpQ, 2, slice)
+                }
             }
         }
     }
@@ -475,24 +529,7 @@ impl Decoder
         let bitDepth = sps.bitDepthChroma
         let maximum  = cast(s32, ((1'u32 << bitDepth) - 1))
 
-        let offset  = component == 1 ? pps.cbQpOffset : pps.crQpOffset
-        let average = ((qpP + qpQ + 1) >> 1) + offset
-
-        var chromaQp = average
-        if sps.chromaArrayType == 1
-        {
-            if average >= 30 and average <= 43 do
-                chromaQp = cast(s32, ChromaQpMapping[average - 30])
-            elif average > 43 do
-                chromaQp = average - 6
-        }
-        else
-        {
-            chromaQp = Math.min(average, 51)
-        }
-
-        let tcQ = Math.clamp(chromaQp + 2 + (cast(s32, slice.tcOffsetDiv2) << 1), 0, 53)
-        let tc  = cast(s32, DeblockTc[tcQ]) * (1 << (bitDepth - 8))
+        let tc = chromaDeblockTc(sps, pps, slice, qpP, qpQ, component, bitDepth)
         if not tc do
             return
 
@@ -519,5 +556,30 @@ impl Decoder
             line[0] = cast(u16, Math.clamp(q0 - delta, 0, maximum))
             line    += lineStep
         }
+    }
+
+    // Filters the two contiguous lines of one horizontal chroma segment.
+    private mtd filterChromaEdgeHorizontal(x, y: s32, qpP, qpQ: s32, component: u32, slice: const *SliceDeblock)
+    {
+        if slice.disabled do
+            return
+
+        let sps      = unwrap .activeSps
+        let pps      = unwrap .activePps
+        let frame    = unwrap .current
+        let bitDepth = sps.bitDepthChroma
+        let maximum  = cast(s32, ((1'u32 << bitDepth) - 1))
+
+        let tc = chromaDeblockTc(sps, pps, slice, qpP, qpQ, component, bitDepth)
+        if not tc do
+            return
+
+        let plane  = component == 1 ? frame.chromaB.storage() : frame.chromaR.storage()
+        let stride = cast(s64, frame.strideChroma)
+        let cx     = x / cast(s32, sps.subWidthC)
+        let cy     = y / cast(s32, sps.subHeightC)
+
+        let origin    = plane + cast(u64, (cy + cast(s32, FramePadding))) * frame.strideChroma + cast(u64, (cx + cast(s32, FramePadding)))
+        filterChromaPair(origin, stride, tc, maximum)
     }
 }

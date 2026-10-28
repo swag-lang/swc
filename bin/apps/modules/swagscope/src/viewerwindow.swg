@@ -865,7 +865,7 @@ impl ViewerWindow
             let flagsToRemove   = transitionFlags & ~.fullScreenRestoreFlags
             surface.updateFlags(add: flagsToAdd, remove: flagsToRemove)
             .documentPanel.backgroundStyle = .View
-            .readingLine.show(.readingLine.hasContent())
+            .readingLine.show(.readingLine.hasContent() and not .isEdgeToEdge())
             .mainSplitter.setPaneVisible(0, .panelVisible)
             .mainSplitter.items[2]!.view = .currentSidePanelHost orelse .sidePanelPlaceholder
             .mainSplitter.items[2]!.view.show(.currentSidePanelButton?.isChecked orelse false)

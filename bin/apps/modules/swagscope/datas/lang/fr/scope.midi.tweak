@@ -22,7 +22,11 @@ ui_Tracks        % pistes
 ui_OneNote       1 note
 ui_Notes         % notes
 ui_Summary       % · % · % · % BPM · % · %
-ui_Details       MIDI format % · % · % · %
+ui_Details       % · % · % · %
+ui_Channel       canal %
+ui_Presentation  Présentation
+ui_ByTrack       Pistes
+ui_ByPitch       Piano-roll
 ui_Major         majeur
 ui_Minor         mineur
 err_TooLarge     le viewer MIDI accepte les fichiers de 32 Mio au maximum

@@ -28,7 +28,11 @@ struct Texts
     ui_OneNote:          string = "1 note"
     ui_Notes:            string = "% notes"
     ui_Summary:          string = "% · % · % · % BPM · % · %"
-    ui_Details:          string = "MIDI format % · % · % · %"
+    ui_Details:          string = "% · % · % · %"     // Tracks, meter, notes and length, at the foot of the score.
+    ui_Channel:          string = "channel %"         // The channel a track plays on, under its name.
+    ui_Presentation:     string = "Presentation"      // Option choosing how the score is laid out.
+    ui_ByTrack:          string = "Tracks"            // One lane per track.
+    ui_ByPitch:          string = "Piano roll"        // One row per key.
     ui_Major:            string = "major"
     ui_Minor:            string = "minor"
     err_TooLarge:        string = "the MIDI viewer accepts files up to 32 MiB"

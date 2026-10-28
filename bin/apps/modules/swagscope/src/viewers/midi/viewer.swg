@@ -86,7 +86,8 @@ private impl Panel
 
     mtd publishDocument(document: *Document)
     {
-        .roll = RollView.create(me, #move document[])
+        .roll      = RollView.create(me, #move document[])
+        .roll.mode = .Tracks
         .roll.setPitchLabelMode(.pitchLabelMode)
         .roll.setKeyboardWidth(.keyboardWidthMode == 0 ? 56 : .keyboardWidthMode == 1 ? 72 : 112)
         .roll.sigZoomChanged += func|view = me|(_) { view.refreshZoom() }
@@ -100,7 +101,7 @@ private impl Panel
     // Rebuilds the host summary in the active language and reports it.
     mtd refreshDetails()
     {
-        .details = Format.toString(texts().ui_Details, .roll.document.format, trackCountText(.roll.document.tracks.count), noteCountText(.roll.document.notes.count), Viewer.durationText(.roll.document.durationSeconds))
+        .details = Format.toString(texts().ui_Details, trackCountText(.roll.lanes.count), .roll.document.meterText(), noteCountText(.roll.document.notes.count), Viewer.durationText(.roll.document.durationSeconds))
         .services.showDetails(me, .details)
     }
 
@@ -200,6 +201,16 @@ impl Panel
                                      },
                                      detail: noteCountText(track.noteCount))
                 }
+            })
+        }
+
+        if not .isLoading() and .failureReason.isEmpty()
+        {
+            let current = .roll.mode == .Tracks ? strings.ui_ByTrack : strings.ui_ByPitch
+            page.addLink(strings.ui_Presentation, current, func|view = me|(modes)
+            {
+                modes.addChoice(texts().ui_ByTrack, view.roll.mode == .Tracks, func|view|() { view.roll.setMode(.Tracks) })
+                modes.addChoice(texts().ui_ByPitch, view.roll.mode == .Pitches, func|view|() { view.roll.setMode(.Pitches) })
             })
         }
 

@@ -121,6 +121,42 @@ private func invertMask8(destination: [*] u8, source: const [*] u8, count: u64)
     }
 }
 
+private func colorKey8(destination: [*] u8, source: const [*] u8, count: u64, lower, upper: s64)
+{
+    if lower > 255 or upper < 0 or lower > upper
+    {
+        Memory.set(destination, 255, count)
+        return
+    }
+
+    let low  = cast(u8, Math.max(lower, 0))
+    let high = cast(u8, Math.min(upper, 255))
+    let lowVector  = Math.Simd.splat(low)
+    let highVector = Math.Simd.splat(high)
+    let zero       = Math.Simd.splat(0'u8)
+    let full       = Math.Simd.splat(255'u8)
+    var src  = source
+    var dst  = destination
+    var left = count
+    while left >= 16
+    {
+        let values  = Math.Simd.load(src)
+        let outside = Math.Simd.subSaturating(lowVector, values) | Math.Simd.subSaturating(values, highVector)
+        Math.Simd.store(dst, (outside == zero) ^ full)
+        src  += 16
+        dst  += 16
+        left -= 16
+    }
+
+    while left
+    {
+        dst[] = src[] >= low and src[] <= high ? 0 : 255
+        src  += 1
+        dst  += 1
+        left -= 1
+    }
+}
+
 // One decoded raster, in top-left-first row order, before it becomes a Pixel image.
 private struct SamplePlane
 {
@@ -587,6 +623,12 @@ private func applyColorKeyMask(parser: *PdfParser, nodeId: u32, plane: *SamplePl
         fail InvalidFormatError{"PDF color key mask does not cover every component"}
 
     plane.alpha.resize(cast(u64, plane.width) * cast(u64, plane.height))
+    if depth == 8 and space.components == 1
+    {
+        colorKey8(plane.alpha.storage(), bytes.buffer, plane.alpha.count, parser.integer(ranges[0]), parser.integer(ranges[1]))
+        return
+    }
+
     for i in plane.alpha.count do
         plane.alpha[i] = 0xFF
     for y in cast(u64, plane.height)

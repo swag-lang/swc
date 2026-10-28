@@ -253,7 +253,9 @@ conversion, image codecs, text/crypto routines, Pixel spans, and SDF samples.
 - Progress: 8-bit soft masks with identity decode copy their samples directly; inverted masks
   subtract sixteen samples at a time and handle the tail scalarly. PDF tests compare all 256
   coverage values against the original scalar conversion and cover SIMD block boundaries.
-- Next: vectorize non-default decode arrays, packed and 16-bit samples, color-key comparison,
+  Single-component 8-bit color keys also compare sixteen samples at once, with bounds resolved
+  once per image; out-of-range and inverted intervals retain the scalar behavior.
+- Next: vectorize non-default decode arrays, packed and 16-bit samples, other color-key comparisons,
   mask scaling, and alpha composition; use gather for indexed spaces only when profitable.
 - Done when: PDF image fixtures preserve pixels across remaining bit depths, masks, decode
   arrays, and indexed spaces, with separate conversion benchmarks.

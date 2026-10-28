@@ -238,6 +238,47 @@ private func imageDocument(dictionary: string, samples: const [..] u8)->Document
     }
 }
 
+// Eight-bit color keys honor inclusive ranges, out-of-range bounds and block tails.
+#test
+{
+    var samples: [256] u8
+    for i in 256 do
+        samples[i] = cast(u8, i)
+
+    let lows:  [8] s64 = [-2, 254, 10, 300, 10, -500, 0, 128]
+    let highs: [8] s64 = [3, 300, 20, 500, 9, -1, 255, 128]
+    for range in 8
+    {
+        for width in [15'u64, 16, 17, 256]
+        {
+            let dictionary = Format.toString("/Type /XObject /Subtype /Image /Width % /Height 1 /ColorSpace /DeviceGray /BitsPerComponent 8 /Mask [% %]", width, lows[range], highs[range])
+            let document   = imageDocument(dictionary.toString(), samples[0 until width])
+            let image      = unwrap onlyItem(document.pages[0], .Image).imageValue()
+            for i in width
+            {
+                let masked = cast(s64, i) >= lows[range] and cast(s64, i) <= highs[range]
+                Swag.assert(image.pixelColor(cast(s32, i), 0).a == (masked ? 0 : 255))
+            }
+        }
+    }
+}
+
+// Indexed samples use their raw indices for the color key, across row boundaries.
+#test
+{
+    var samples: [34] u8
+    for i in 34 do
+        samples[i] = cast(u8, i % 3)
+    let dictionary = "/Type /XObject /Subtype /Image /Width 17 /Height 2 /ColorSpace [/Indexed /DeviceRGB 2 <FF0000 00FF00 0000FF>] /BitsPerComponent 8 /Mask [1 1]"
+    let document   = imageDocument(dictionary, samples)
+    let image      = unwrap onlyItem(document.pages[0], .Image).imageValue()
+    for y in 2
+    {
+        for x in 17 do
+            Swag.assert(image.pixelColor(cast(s32, x), cast(s32, y)).a == (samples[y * 17 + x] == 1 ? 0 : 255))
+    }
+}
+
 // A color key mask turns the sample ranges it names transparent.
 #test
 {

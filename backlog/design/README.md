@@ -272,6 +272,28 @@ quiet `▾` at the bottom left. About shows the application tile (52, corner 12)
 Dialogs still size themselves from their content (no authored width/height beyond a minimum of
 440) and every number comes from `ThemeMetrics`.
 
+### The file box, in every mode
+
+![The file box in every mode, Papier](imgs/dialogs.file.modes.paper.png)
+
+![The file box in every mode, Encre](imgs/dialogs.file.modes.ink.png)
+
+- **Choose a folder.** Only folders are listed, without sizes; there is no type filter. The
+  bottom-left slot shows, in faint mono, the path that will be chosen — the selected folder, or
+  the folder shown when nothing is selected — and the primary action names it ("Choose
+  "design"").
+- **Save.** The rows stand in faint ink: they are context, not choices. The name field is
+  labelled above, focused, its stem selected and the extension written after it in faint, so
+  typing replaces the name and keeps the type. The type filter holds the bottom-left slot and
+  changes that extension.
+- **Choose several files.** Each row carries a checkbox; the chosen rows stand on the Arc
+  selection ground. After the type filter, the bottom-left slot counts the choice in faint mono
+  ("3 chosen · 23 KB") and the primary action says how many it opens ("Open the 3").
+- **New folder.** A form of one field, "Name", its proposed name selected, with a faint line
+  saying where it goes ("In Documents / swag") and "Create" as the primary action.
+- **Replace.** The title names the file ("rapport.pdf" already exists.), the body says what is
+  lost, a mono faint line gives its size and date, and the primary action is destructive.
+
 ## Applications
 
 Every application follows the window chrome above, uses the lens for its commands, and leaves
@@ -299,6 +321,58 @@ the screen to its work.
   Arc ground, a sample field and sizes with mono labels.
 
 ![Markdown](imgs/scope.markdown.paper.png) ![Hex](imgs/scope.hex.png) ![Font](imgs/scope.font.paper.png)
+
+![Home](imgs/scope.home.png) ![Home, clearing the history](imgs/scope.home.paper.png)
+
+- Home: the window without a file is the history. A page title ("Recent"), the recent folders as
+  chips, then the recent files grouped by day under section labels: a glyph of the kind, the
+  name, the folder in faint mono, the time in faint mono. Enter opens, Delete (or the faint `×`
+  of the row under the pointer) removes one entry. "Clear ▾" offers the partial clears — the
+  entries whose file is gone (with their count), older than a week, older than a month — and,
+  apart and in critical ink, clearing everything, which asks first.
+
+![Archive](imgs/scope.archive.png) ![Archive on Papier](imgs/scope.archive.paper.png)
+
+- Archive: the explorer's page grammar inside the archive — the path in the archive as a mono
+  breadcrumb, the folder as title, a mono line of counts and sizes (compressed, extracted,
+  method), quiet "Extract All…" and sort; rows with a glyph, the name, a thin Arc bar for the
+  compression ratio, mono size and date. The chosen entry is described on a floating card: a
+  preview, the name, its identity line, sizes before and after, ratio, date, checksum, and
+  "Open" (primary) and "Extract…". Backspace climbs a folder.
+
+![Image](imgs/scope.image.png) ![PDF](imgs/scope.pdf.paper.png) ![Sound](imgs/scope.sound.png)
+
+- Image: the picture alone, centred on the ground; a mini-bar on movement (previous, next,
+  zoom, fit, rotate, adjustments); the reading line gives name, size, format, weight and the
+  rank in the folder; the zoom stands at the right of it.
+- PDF: pages on the ground with the paper shadow, the outline in the left margin with the
+  current part on an Arc rule, the position thread at the right, page and zoom in the reading
+  line.
+- Sound: the cover, the title large, artist, album and year, then the waveform with what is
+  played in Arc and the times in mono; transport on a mini-bar; the format in the reading line.
+
+![MIDI](imgs/scope.midi.png) ![Table](imgs/scope.table.paper.png) ![HTML](imgs/scope.html.paper.png)
+
+- MIDI: tracks at the left with their colour dot and channel (a muted track faint), a piano roll
+  on bar rules, the play head in Voltage; transport and tempo on a mini-bar.
+- Table: the file name as title, a mono line of rows, columns, separator and encoding; the
+  header with the column name and its inferred type in faint mono; numbers right-aligned in
+  mono; hairlines between rows; the chosen row on the Arc ground; a sum of the chosen numeric
+  column in the reading line.
+- HTML: the page rendered in a reading column, its address in faint mono above, its outline in
+  the right margin; source and rendering are two views of the lens.
+
+![Subtitles](imgs/scope.subtitle.png) ![Binary](imgs/scope.binary.png) ![Text](imgs/scope.text.paper.png)
+
+- Subtitles: the cues as a reading list — number and times in faint mono, the text in reading
+  type, the current cue on the Arc ground — over a thin timeline of the cues with the position
+  in Voltage.
+- Binary: a report page — the file name, a mono identity line (format, machine, kind, signature,
+  size), large light figures (sections, imports, entropy, strings), the sections as one
+  proportional bar with its legend, then the imports by library; the parts of the report are
+  named in the reading line and are lens entries.
+- Text: prose in a reading column of 680, 16/29, no line numbers; code keeps the numbered column
+  of the reading picture.
 
 ### Swag Capture
 

@@ -59,19 +59,18 @@ dialogs, then each application, then the written rules.
 - Done when: `gui.properties.ctrl.paper` is reproduced by a `properties.ctrl.{ink,paper}` golden.
 - Related: design.silence.002
 
-### design.silence.006 — The file box lists dates in the body face and marks no match
+### design.silence.006 — The file box modes and details of its rows are not built
 
-- Evidence: `FileDlg` and the embedded `FileBrowserCtrl` follow the file box of the dialog
-  pictures (`dialogs.file.{ink,paper}`): places as text tabs with the Arc underline, the path
-  written before the filter in one field, quiet rows on the box ground, the type filter in the
-  bottom-left slot. Three details remain: the dates and sizes use the body face instead of mono,
-  the characters a filter matched are not highlighted, and the name column keeps its authored
-  width instead of taking the room, so dates and sizes do not reach the right edge.
-- Next: give `ListItem` a face of its own (or a mono column flag), let a list row carry the
-  matched ranges the lens already computes with `Lens.match`, and let the first column of a
-  `ListCtrl` stretch.
-- Done when: `dialogs.file.{ink,paper}` match the file box of the dialog pictures in those three
-  points too.
+- Evidence: `FileDlg` and the embedded `FileBrowserCtrl` follow the open file box of the dialog
+  pictures (`dialogs.file.{ink,paper}`), but not the other modes of
+  `dialogs.file.modes.{paper,ink}.png`: folder choice shows no chosen path and names nothing in
+  its primary action, a save writes the extension into the name field, multiple choice has no
+  checkboxes nor count, the new-folder form says nothing of where the folder goes, and the
+  replace question is not destructive. The rows still use the body face for dates and sizes,
+  mark no matched characters, and the name column does not take the room.
+- Next: build each mode against its picture; give `ListItem` a mono face, let a row carry the
+  matched ranges of `Lens.match`, and let the first column of a `ListCtrl` stretch.
+- Done when: a golden per mode matches `dialogs.file.modes.{paper,ink}.png`.
 
 ### design.silence.007 — Swag Scope viewers keep their pre-charter shapes
 
@@ -90,9 +89,15 @@ dialogs, then each application, then the written rules.
   strip. The archive viewer's embedded host (`EmbeddedViewer`) keeps its header band, viewer combo
   box and bottom command band. The explorer header crowds at the narrowest window with the file
   panel open, its tools covering the title.
-- Next: rebuild each viewer on its picture (`scope.read`, `scope.markdown.paper`, `scope.hex`,
-  `scope.font.paper`, `scope.video`), moving what still stands on the floating bar into the
-  document where the picture puts it; then the embedded host on the window's model.
+  The window without a file shows a drop invitation where its picture (`scope.home`) shows the
+  history, with its partial and full clears.
+- Next: build the home on `scope.home` and `scope.home.paper` (history by day, recent folders,
+  removal of one entry, partial clears, full clear with a question); rebuild each viewer on its
+  picture — `scope.read`, `scope.text.paper`, `scope.markdown.paper`, `scope.hex`,
+  `scope.font.paper`, `scope.video`, `scope.image`, `scope.pdf.paper`, `scope.sound`,
+  `scope.midi`, `scope.table.paper`, `scope.html.paper`, `scope.subtitle`, `scope.binary`,
+  `scope.archive` — moving what still stands on the floating bar into the document where the
+  picture puts it; then the embedded host on the window's model.
 - Done when: every Scope golden matches its picture.
 - Related: design.silence.004, design.silence.002
 

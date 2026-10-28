@@ -144,7 +144,7 @@ impl IWnd for InfoSheet
 
         let bodyFont  = theme.createDefaultFont(metrics.defaultFontSize)
         let valueMono = theme.createDefaultFontFs(metrics.defaultFontSize)
-        let factFont  = theme.createDefaultFont(metrics.infoSheet_FactFontSize)
+        let factFont  = theme.createDefaultFont(metrics.infoSheet_FactFontSize, .Light)
         for block, index in .blocks
         {
             let top     = body.y + block.top
@@ -399,7 +399,7 @@ impl InfoSheet
         if not .title.isEmpty() or not .identity.isEmpty() do
             y += metrics.infoSheet_BlockGap
 
-        let factHeight = theme.createDefaultFont(metrics.infoSheet_FactFontSize).height
+        let factHeight = theme.createDefaultFont(metrics.infoSheet_FactFontSize, .Light).height
         for &block, index in .blocks
         {
             switch block.kind

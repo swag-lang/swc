@@ -45,7 +45,7 @@ internal func paintFloatingGround(wnd: *Wnd, painter: *Painter, body: Math.Recta
 internal func paintSectionLabel(wnd: *Wnd, painter: *Painter, rect: Math.Rectangle, label: string)
 {
     let metrics = wnd.themeMetrics()
-    let font    = wnd.theme().createDefaultFont(metrics.sectionLabel_FontSize, .Bold)
+    let font    = wnd.theme().createDefaultFont(metrics.sectionLabel_FontSize, .SemiBold)
     let text    = String.toUpper(label, .Unicode)
 
     // The tracking belongs to the shaped run: a rich-text layout with letter spacing drops the

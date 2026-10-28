@@ -1,6 +1,7 @@
 # GUI font licences
 
-The bundled Inter 4.1 static fonts come from
+The bundled Inter 4.1 static fonts (Regular, Italic, Bold, Bold Italic, Light and
+SemiBold) come from
 https://github.com/rsms/inter/releases/tag/v4.1 under the SIL Open Font
 License 1.1 in `INTER-OFL.txt`.
 

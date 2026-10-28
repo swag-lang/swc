@@ -14,6 +14,10 @@ void AstVisit::start(Ast& ast, AstNodeRef root)
     ast_     = &ast;
     rootRef_ = root;
 
+#if SWC_HAS_VISIT_DEBUG_INFO
+    dbgCodeRefKnown_ = false;
+#endif
+
     stack_.clear();
     children_.clear();
 
@@ -44,9 +48,10 @@ AstVisitResult AstVisit::step(const TaskContext& ctx)
         frame.node = &ast_->node(frame.nodeRef);
     dbgNode    = frame.node;
     const SourceCodeRef currentCodeRef = dbgNode ? dbgNode->codeRef() : SourceCodeRef::invalid();
-    if (!currentCodeRef.isValid() || currentCodeRef != dbgCodeRef_)
+    if (!dbgCodeRefKnown_ || currentCodeRef != dbgCodeRef_)
     {
-        dbgCodeRef_ = currentCodeRef;
+        dbgCodeRef_      = currentCodeRef;
+        dbgCodeRefKnown_ = true;
         dbgSrcFile  = nullptr;
         dbgTok      = nullptr;
         dbgTokView  = {};
@@ -63,8 +68,8 @@ AstVisitResult AstVisit::step(const TaskContext& ctx)
 
                 const SourceView& dbgView = *resolvedLocation.codeRange.srcView;
 
-                dbgTok     = dbgTokRef.isValid() ? &dbgView.token(dbgTokRef) : nullptr;
-                dbgTokView = dbgTok ? dbgTok->string(dbgView) : "";
+                dbgTok     = &dbgView.token(dbgTokRef);
+                dbgTokView = dbgTok->string(dbgView);
             }
         }
     }

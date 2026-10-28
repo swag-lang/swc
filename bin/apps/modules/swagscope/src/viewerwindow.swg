@@ -347,7 +347,7 @@ impl IWnd for ViewerWindow
         let plain = evt.modifiers == .None
         switch evt.key
         {
-        case .Escape where plain and .infoSheet.isLocallyVisible(): .infoSheet.close()
+        case .Escape where plain and .infoSheet.isLocallyVisible(): .closeInformation()
         case .Escape where plain and .searchShown:                   .hideSearch()
         case .Escape where plain and not .fullScreen and .explorerActive: .closeFile()
         case .Escape where plain and .fullScreen:  .setFullScreen(false)

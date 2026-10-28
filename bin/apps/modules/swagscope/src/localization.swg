@@ -39,6 +39,10 @@ struct AppStrings
     explore_Count:             string = "% items"                     // Exploration control or status.
     explore_ArchiveSummary:    string = "% · % compressed · % once extracted"     // Contents of an archive: its count, its packed and its extracted weight.
     explore_Compression:       string = "Compression"                // Reading of how much an archive member packed.
+    explore_Extracted:         string = "% files extracted"          // Toast after an extraction from an archive.
+    explore_ExtractedOne:      string = "1 file extracted"           // Toast after extracting one file from an archive.
+    explore_ExtractedKept:     string = "%, % already there kept"    // Toast after an extraction that left files already in the folder as they were.
+    explore_ExtractFailed:     string = "Not everything could be extracted"     // Toast when an extraction stopped on an error.
     explore_NotFound:          string = "Location not found"          // Exploration control or status.
     explore_MediaOptions:      string = "Online media options"
     explore_OnlineMovies:      string = "Use Online Movie Posters and Details"
@@ -123,6 +127,8 @@ struct AppStrings
     lens_InFolder:      string = "In This Folder"            // Lens section listing the files beside the open one.
     cmd_Open:           string = "Open…"                     // Command choosing a file to open.
     cmd_OpenChosen:     string = "Open"                      // Command opening the item chosen in the explored folder.
+    cmd_ExtractAll:     string = "Extract All…"              // Command extracting the whole explored archive to a folder.
+    cmd_Extract:        string = "Extract…"                  // Command extracting the chosen member or folder of the archive to a folder.
     cmd_Explore:        string = "Explore Folder"            // Command showing the folder of the open file as a contact sheet.
     cmd_Reload:         string = "Reload"                    // Command reading the open file again.
     cmd_PreviousFile:   string = "Previous File"             // Command opening the file before this one in its folder.

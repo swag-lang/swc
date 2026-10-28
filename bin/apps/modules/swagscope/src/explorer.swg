@@ -73,6 +73,7 @@ struct Explorer
         address:   *ExplorerAddress
         title:     *Label
         status:    *Label
+        extractAll: *IconButton
         sortMenu:  *IconButton
         modeMenu:  *IconButton
         filter:    *EditBox
@@ -103,6 +104,8 @@ struct Explorer
     bypassCache:     bool     // Whether the previews of the shown listing ignore the persistent cache, after a forced refresh.
     previewAspect:   f32 = ExplorerTilePreviewAspect     // Shape of the tiles, chosen from what the listing holds.
     previewBudget:   u64      // How many previews of the shown listing run at once.
+    extraction:      ArchiveExtraction
+    toast:           *Toast?
 }
 
 impl Explorer
@@ -304,13 +307,23 @@ impl Explorer
             }
         }
 
-        with .sortMenu = createQuietMenu(.tools)
+        // An archive offers to extract all it holds, a quiet word acting at once.
+        with .extractAll = IconButton.createQuiet(.tools, menu: false)
         {
+            .layoutSpec.alignY = .End
+            .hide()
+            .sigPressed += func|view = me|(_) { view.chooseExtraction(all: true) }
+        }
+
+        with .sortMenu = IconButton.createQuiet(.tools)
+        {
+            .layoutSpec.alignY = .End
             .sigPressed += func|view = me|(_) { view.showSortMenu() }
         }
 
-        with .modeMenu = createQuietMenu(.tools)
+        with .modeMenu = IconButton.createQuiet(.tools)
         {
+            .layoutSpec.alignY = .End
             .sigPressed += func|view = me|(_) { view.showModeMenu() }
         }
 
@@ -354,24 +367,36 @@ impl Explorer
     // cut, and comes back when there is room for both.
     mtd layoutTools()
     {
-        let line  = unwrap .tools.parent
-        let title = Math.ceil(.title.itf.measureContent({}).x)
+        let line     = unwrap .tools.parent
+        let text     = .title.text()
+        let full     = Painter.measureString(text, .theme().createDefaultFont(TitleFontSize, .Bold)).width
+        let smallest = Painter.measureString(text, .theme().createDefaultFont(MinTitleFontSize, .Bold)).width
+        let space    = line.clientRect().width - 24
+        .extractAll.show(.listing.isArchive)
         .status.show(not .listing.isArchive and not .status.name.raw.isEmpty())
         var width = Math.ceil(.tools.itf.measureContent({}).x)
-        if .status.isLocallyVisible() and width + title + 24 > line.clientRect().width
+        if .status.isLocallyVisible() and width + full > space
         {
             .status.hide()
+            width = Math.ceil(.tools.itf.measureContent({}).x)
+        }
+
+        // Extracting the whole archive is a lens entry too: it leaves the line before the title
+        // would be cut at its smallest.
+        if .extractAll.isLocallyVisible() and width + smallest > space
+        {
+            .extractAll.hide()
             width = Math.ceil(.tools.itf.measureContent({}).x)
         }
 
         .tools.position.width = width
 
         // Then the title steps down the scale of page titles before it would be cut.
-        let room = line.clientRect().width - width - 24
+        let room = space - width
         for size in [TitleFontSize, 36'u32, MinTitleFontSize]
         {
             let font = .theme().createDefaultFont(size, .Bold)
-            if Painter.measureString(.title.text(), font).width <= room or size == MinTitleFontSize
+            if Painter.measureString(text, font).width <= room or size == MinTitleFontSize
             {
                 .title.style.setFont(font, .Regular)
                 break
@@ -380,29 +405,6 @@ impl Explorer
 
         .header.applyLayout()
         .tools.computeLayout()
-    }
-
-    // Creates a quiet text menu of the header: its words and a faint chevron, with no ground of
-    // its own until the pointer comes.
-    private func createQuietMenu(parent: *Wnd)->*IconButton
-    {
-        with let result = IconButton.create(parent, {}, Math.Rectangle{0, 0, 0, ToolHeight}, flags: .CenterContent)
-        {
-            .layoutSpec.alignY = .End
-            .setArrowPosition(.RightDownward)
-            .setForm(.RoundedRectangle)
-        }
-
-        return result
-    }
-
-    // Writes `text` on a quiet menu and fits the menu to it.
-    private func setQuietMenuText(menu: *IconButton, text: string)
-    {
-        menu.setText(text)
-        let metrics = menu.themeMetrics()
-        let width   = Painter.measureString(text, unwrap menu.font().regular).width + 2 * metrics.btnIcon_SpacingTextH + themeDropDownButtonWidth(metrics) - themeActionButtonSize(metrics)
-        menu.resize(Math.ceil(width), menu.position.height)
     }
 
     // Shows the ways of showing the listing under its menu, the one in use checked.
@@ -457,12 +459,13 @@ impl Explorer
         default: sort = text.sort_Name
         }
 
-        setQuietMenuText(.sortMenu, sort)
+        .sortMenu.setQuietText(sort)
+        .extractAll.setQuietText(text.cmd_ExtractAll)
         switch .mode
         {
-        case .Names:   setQuietMenuText(.modeMenu, text.mode_Names)
-        case .Details: setQuietMenuText(.modeMenu, text.mode_Details)
-        default:       setQuietMenuText(.modeMenu, text.mode_Thumbnails)
+        case .Names:   .modeMenu.setQuietText(text.mode_Names)
+        case .Details: .modeMenu.setQuietText(text.mode_Details)
+        default:       .modeMenu.setQuietText(text.mode_Thumbnails)
         }
         .layoutTools()
     }
@@ -571,6 +574,21 @@ impl Explorer
         .window.infoSheet.clear()
         .describeSelection(.window.infoSheet)
         .window.infoSheet.open()
+        .fitToSheet(true)
+    }
+
+    // Leaves the sheet its room at the trailing edge while it is open, so the page never runs
+    // under it, and takes the room back once it is closed.
+    mtd fitToSheet(open: bool)
+    {
+        let metrics = .themeMetrics()
+        let room    = open ? metrics.infoSheet_Width + 2 * metrics.floating_Inset - PageMargin : 0
+        if .padding.z == room do
+            return
+        .padding.z = room
+        .applyLayout()
+        .grid.refreshLayout()
+        .layoutTools()
     }
 
     // Describes the chosen item in `sheet`: its picture, its title and what is known of it, then
@@ -595,6 +613,18 @@ impl Explorer
         sheet.setTitle(safeMediaText(title))
         if title != entry.name.toString() do
             sheet.setIdentity(entry.name)
+        elif .listing.isArchive
+        {
+            // A member is placed by the folder of the archive it stands in, and its kind.
+            let kind  = String.toUpper(Path.extension(entry.name) orelse "", .Unicode)
+            var place = .folder.isEmpty() ? .locationName() : String.from(.folder)
+            if place.length and place.back() == '/' do
+                place.removeBack()
+            place += " /"
+            if kind.length > 1 do
+                place = Format.toString("% · %", place, kind.toString()[1 to])
+            sheet.setIdentity(place)
+        }
 
         // A rating is the fact a reader of a film comes for, set large with its source as its unit.
         if not entry.movie.imdbRating.isEmpty() do
@@ -617,28 +647,121 @@ impl Explorer
             addSheetReading(sheet, strings.explore_Source, "MusicBrainz")
         }
 
-        sheet.addSection(strings.explore_FileProperties)
-        addSheetReading(sheet, strings.explore_Type, entry.directory ? strings.ui_Folder : (Path.extension(entry.name) orelse ""))
         if .listing.isArchive and entry.archiveIndex < .listing.archive.entries.count
         {
-            // A member of an archive: what it weighs packed and extracted, how well it packed,
-            // and the checksum it is verified against.
+            // A member of an archive, its kind already on the identity line: what it weighs
+            // packed and extracted, how well it packed, when, and the checksum it is verified
+            // against, all measures in mono.
             let member = &.listing.archive.entries[entry.archiveIndex]
-            addSheetReading(sheet, strings.explore_Size, Format.toString("% → %", StrConv.toDisplaySize(member.compressedSize), StrConv.toDisplaySize(member.uncompressedSize)))
+            sheet.addReading(strings.explore_Size, Format.toString("% → %", StrConv.toDisplaySize(member.compressedSize), StrConv.toDisplaySize(member.uncompressedSize)))
             if member.uncompressedSize
             {
                 let ratio = cast(u64, Math.round(100 * cast(f64, member.compressedSize) / cast(f64, member.uncompressedSize)))
-                addSheetReading(sheet, strings.explore_Compression, Format.toString("% %", ratio, "%"))
+                sheet.addReading(strings.explore_Compression, Format.toString("% %", ratio, "%"))
             }
 
-            addSheetReading(sheet, "CRC-32", Format.toString("%{X08}", member.crc32))
+            if entry.modified.length do
+                sheet.addReading(strings.explore_Modified, entry.modified)
+            let crc = Format.toString("%{X08}", member.crc32)
+            sheet.addReading("CRC-32", Format.toString("% %", crc.toString()[0 until 4], crc.toString()[4 to]))
         }
-        elif not entry.directory do
-            addSheetReading(sheet, strings.explore_Size, StrConv.toDisplaySize(entry.size))
-        addSheetReading(sheet, strings.explore_Modified, entry.modified)
+        else
+        {
+            sheet.addSection(strings.explore_FileProperties)
+            addSheetReading(sheet, strings.explore_Type, entry.directory ? strings.ui_Folder : (Path.extension(entry.name) orelse ""))
+            if not entry.directory do
+                addSheetReading(sheet, strings.explore_Size, StrConv.toDisplaySize(entry.size))
+            addSheetReading(sheet, strings.explore_Modified, entry.modified)
+        }
+
         if entry.duration do
             addSheetReading(sheet, strings.explore_Duration, formatDuration(entry.duration))
         sheet.setAction(appStrings().cmd_OpenChosen, ViewerCommands.OpenChosen)
+        if .listing.isArchive do
+            sheet.setSecondaryAction(appStrings().cmd_Extract, ViewerCommands.ExtractChosen)
+    }
+
+    // Asks where to extract, then extracts the whole archive into a folder named after it there,
+    // or, without `all`, the chosen member or folder of the archive right there.
+    mtd chooseExtraction(all: bool)
+    {
+        if not .listing.isArchive or .extraction.started do
+            return
+        if not all and .selected >= .entries.count do
+            return
+
+        with var options: FileDlgOptions
+        {
+            .mode  = .SelectFolder
+            .title = all ? appStrings().cmd_ExtractAll : appStrings().cmd_Extract
+            .state = &me.window.fileDlgState
+        }
+
+        let dialog = FileDlg.create(unwrap .window.surface, options)
+        if dialog.doModal() != Dialog.BtnOk do
+            return
+        let chosen = dialog.selectedPath()
+        if all
+        {
+            let name = Path.fileNameWithoutExtension(.displayPath(.listing.path)) orelse "archive"
+            .extractTo(Path.combine(chosen, name), all: true)
+        }
+        else do
+            .extractTo(chosen, all: false)
+    }
+
+    // Extracts into `target`: the whole archive with `all`, else the chosen member or folder.
+    mtd extractTo(target: string, all: bool)
+    {
+        if not .listing.isArchive or .extraction.started do
+            return
+        var members: Array'Viewers.Archive.ZipEntry
+        var strip:   String
+        if all
+        {
+            members = .listing.archive.entries
+        }
+        else
+        {
+            if .selected >= .entries.count do
+                return
+            let entry = &.entries[.selected]
+            strip = .folder
+            if entry.directory
+            {
+                for &member in .listing.archive.entries where Utf8.startsWith(member.path, entry.path) do
+                    members.add(member[])
+            }
+            elif entry.archiveIndex < .listing.archive.entries.count
+            {
+                members.add(.listing.archive.entries[entry.archiveIndex])
+            }
+        }
+
+        .extraction.start(.listing.path, #move members, strip, target, me)
+    }
+
+    // Says how the extraction went, in a toast over the page.
+    private mtd finishExtraction()
+    {
+        .extraction.wait()
+        let text = appStrings()
+        if not .toast do
+            .toast = Toast.create(me, "scope.explorer.toast")
+        if not .extraction.error.isEmpty()
+        {
+            .toast.show(text.explore_ExtractFailed, .extraction.error, .Failure)
+            return
+        }
+
+        var message: String
+        if .extraction.written == 1 do
+            message = String.from(text.explore_ExtractedOne)
+        else do
+            message = Format.toString(text.explore_Extracted, .extraction.written)
+        if .extraction.kept do
+            message = Format.toString(text.explore_ExtractedKept, message, .extraction.kept)
+        .toast.show(message, .extraction.target)
     }
 
     // Gives the keyboard to the listing, in whichever form it is shown.
@@ -1173,7 +1296,7 @@ impl Explorer
                 let music    = .window.onlineMusic and (Path.hasExtension(selected.path, ".mp3") or Path.hasExtension(selected.path, ".flac"))
                 if selected.directory or
                    selected.attempted or
-                   not (movie or music) or
+                   not (movie or music or .grid.rows) or
                    .previewSlot(.selected) != Swag.U64.Max do
                     return
                 wanted = .selected
@@ -1246,6 +1369,12 @@ impl IWnd for Explorer
 {
     mtd impl onTaskEvent(evt: *TaskEvent)
     {
+        if .extraction.claim(evt)
+        {
+            .finishExtraction()
+            return
+        }
+
         if .load.claim(evt)
         {
             var listing: ExplorerListing
@@ -1513,7 +1642,7 @@ impl ExplorerGrid
             painter.drawString(rect.x + 36, body.opticalLineTop(centerY), entry.name, body, colors.text)
             painter.popClippingRect()
 
-            let date = entry.modified.toString()
+            let date = entry.modified.toString()[0 until Math.min(entry.modified.length, 10)]
             painter.drawString(dateRight - Painter.measureString(date, mono).width, mono.opticalLineTop(centerY), date, mono, colors.faintText)
 
             var size: String
@@ -1594,6 +1723,8 @@ impl ExplorerGrid
         .explorer.selected = .explorer.shown[row]
         .startNameScroll()
         .explorer.showMediaInfo()
+        if .rows do
+            .explorer.requestPreview()
         let top = CellInset + cast(f32, row / .columns) * .cell.y
         if top < .scrollPos.y do
             .explorer.scroll.setScrollPos(0, top)

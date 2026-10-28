@@ -154,3 +154,9 @@ hint_KeyEnter Entrée
 mode_Names noms
 mode_Details détails
 mode_Thumbnails vignettes
+cmd_ExtractAll Extraire tout…
+cmd_Extract Extraire…
+explore_Extracted % fichiers extraits
+explore_ExtractedOne 1 fichier extrait
+explore_ExtractedKept %, % déjà présents conservés
+explore_ExtractFailed Tout n’a pas pu être extrait

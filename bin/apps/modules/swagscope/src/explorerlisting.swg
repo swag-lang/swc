@@ -69,32 +69,33 @@ impl ExplorerListing
         if not .isArchive do
             return .entries
 
+        // A folder of the archive is dated by the latest of what it holds.
         var result:  #returntype
-        var folders: HashSet'String
+        var folders: HashTable'(String, u64)
+        var latest:  Array'Time.DateTime
         for &entry, index in .archive.entries where Utf8.startsWith(entry.path, folder)
         {
             let relative = entry.path.toString()[folder.count to]
             if not relative.count do
                 continue
             let slash = Utf8.indexOf(relative, "/")
-            if slash != Swag.U64.Max
+            if slash != Swag.U64.Max or entry.isDirectory
             {
-                let name = String.from(relative[0 until slash])
-                if name.isEmpty() or folders.contains(name) do
+                let name  = String.from(slash != Swag.U64.Max ? relative[0 until slash] : relative)
+                if name.isEmpty() do
                     continue
-                folders.add(name)
+                let found = folders.tryFind(name)
+                if found
+                {
+                    if entry.modified > latest[found.value] do
+                        latest[found.value] = entry.modified
+                    continue
+                }
+
+                folders.add(name, result.count)
+                latest.add(entry.modified)
                 var path = String.from(folder)
                 path += name
-                path += '/'u8
-                result.add({name: name, path: #move path, directory: true})
-            }
-            elif entry.isDirectory
-            {
-                let name = String.from(relative)
-                if folders.contains(name) do
-                    continue
-                folders.add(name)
-                var path = String.from(entry.path)
                 path += '/'u8
                 result.add({name: name, path: #move path, directory: true})
             }
@@ -102,7 +103,14 @@ impl ExplorerListing
             {
                 result.add({name: relative, path: entry.path, size: entry.uncompressedSize,
                             directory: entry.isDirectory, archiveIndex: index})
+                latest.add(entry.modified)
             }
+        }
+
+        for &entry, index in result where latest[index].year
+        {
+            entry.modified      = latest[index].toString(.DateTimeIsoHm)
+            entry.modifiedStamp = Hash.hash64(latest[index])
         }
 
         return result

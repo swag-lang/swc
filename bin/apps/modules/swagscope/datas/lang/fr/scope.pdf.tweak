@@ -16,3 +16,4 @@ ui_OnePage    1 page
 ui_Pages      % pages
 
 err_NoPage le document PDF ne contient aucune page
+ui_Contents   Sommaire

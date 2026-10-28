@@ -14,6 +14,7 @@ struct ZipEntry
     method:           u16
     flags:            u16
     isDirectory:      bool
+    modified:         Time.DateTime     // Last modification recorded for the entry, in the archive's local time; zero when none.
 }
 
 // The central directory of a ZIP archive, with its entries sorted by path.
@@ -33,6 +34,23 @@ impl Zip
         for entry in .entries where entry.path == path do
             return entry
         return null
+    }
+
+    // Decodes the MS-DOS time and date of an entry; an impossible date reads as none.
+    func dosDateTime(time, date: u16)->Time.DateTime
+    {
+        var result: #returntype
+        let month = (date >> 5) & 0xF
+        let day   = date & 0x1F
+        if month < 1 or month > 12 or day < 1 do
+            return result
+        result.year   = 1980 + (date >> 9)
+        result.month  = month
+        result.day    = day
+        result.hour   = Math.min(time >> 11, 23)
+        result.minute = Math.min((time >> 5) & 0x3F, 59)
+        result.second = Math.min((time & 0x1F) * 2, 59)
+        return result
     }
 
     // Decodes a stored name or comment: as UTF-8 when `utf8` is set and the bytes are valid, as CP437 otherwise.
@@ -97,6 +115,7 @@ impl Zip
             .crc32            = try readU32(data, at + 16)
             .compressedSize   = cast(u64, try readU32(data, at + 20))
             .uncompressedSize = cast(u64, try readU32(data, at + 24))
+            .modified         = dosDateTime(try readU16(data, at + 12), try readU16(data, at + 14))
         }
 
         var diskNumber = cast(u64, try readU16(data, at + 34))

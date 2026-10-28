@@ -144,6 +144,8 @@ struct Panel
     failureReason: String
     outline:       *DocumentOutline?
     bookmarks:     Array'Pdf.OutlineEntry
+    margin:        *OutlineMargin?
+    marginParts:   Array'u64     // Indices of the bookmarks the margin lists.
 
     late
     {
@@ -162,6 +164,12 @@ private impl IWnd for Panel
     {
         if evt.kind == .LanguageChanged
         {
+            if .margin
+            {
+                .margin.label = texts().ui_Contents
+                .margin.invalidate()
+            }
+
             .previousButton.toolTip = texts().ui_Previous
             .nextButton.toolTip     = texts().ui_Next
             .pageLabel.toolTip      = texts().ui_GoToPage
@@ -205,10 +213,16 @@ private impl IWnd for Panel
         .facts   = #move content.facts
         .details = detailsText(&.facts)
         .applyLayout()
+        .fillMargin()
         .refreshNavigation()
         .setInitialFocus(.pdfView)
         .services.showDetails(me, .details)
         .services.loadingChanged(me)
+    }
+
+    mtd impl onResizeEvent(_: *ResizeEvent)
+    {
+        .placeMargin()
     }
 
     mtd impl onKeyEvent(evt: *KeyEvent)
@@ -260,16 +274,50 @@ private impl Panel
 
     mtd searchBounds(match: Viewer.SearchMatch, result: *Math.Rectangle)->bool => .pdfView.textMatchRect(PdfTextMatch{match.major, match.offset, match.length}, result)
 
+    // Lists the parts of the first two levels of the outline in the left margin.
+    internal mtd fillMargin()
+    {
+        if .margin == null do
+            return
+        .marginParts.clear()
+        .margin.titles.clear()
+        for entry, index in .bookmarks where entry.level <= 2 and entry.pageIndex != Swag.U64.Max
+        {
+            .marginParts.add(index)
+            .margin.titles.add(entry.title)
+        }
+
+        .placeMargin()
+    }
+
+    // Stands the outline in the margin left of the page, the part being read on its Arc rule, when
+    // the margin has the room.
+    internal mtd placeMargin()
+    {
+        if .margin == null do
+            return
+        var active = Swag.U64.Max
+        for index, row in .marginParts where .bookmarks[index].pageIndex <= .pdfView.pageIndex do
+            active = row
+        .margin.setActive(active)
+
+        const Inset = 24.0
+        let column = .pdfView.pageColumn()
+        .margin.place(Inset, Inset, column.x - 2 * Inset)
+    }
+
     mtd refreshNavigation()
     {
         .previousButton.enable(.pdfView.pageIndex > 0)
         .nextButton.enable(.pdfView.pageIndex + 1 < .pdfView.pageCount())
         .pageLabel.setText(Format.toString("% / %", .pdfView.pageIndex + 1, .pdfView.pageCount()))
+        .placeMargin()
     }
 
     mtd refreshZoom()
     {
         .zoomLabel.setText(Format.toString("% %", cast(u32, Math.round(.pdfView.effectiveZoom() * 100)), "%"))
+        .placeMargin()
     }
 
     internal mtd goToTypedPage(text: string)->bool
@@ -361,6 +409,20 @@ private impl Panel
         result.createPageControls()
         result.createZoomControl()
         result.createPageView()
+
+        // The outline stands in the margin beside the page; choosing a part shows it.
+        with result.margin = OutlineMargin.create(result, "scope.pdf.margin")
+        {
+            .label    = texts().ui_Contents
+            .sigChosen += func|view = result|(_, row)
+            {
+                if row < view.marginParts.count
+                {
+                    let entry = &view.bookmarks[view.marginParts[row]]
+                    view.pdfView.showPosition(entry.pageIndex, entry.position)
+                }
+            }
+        }
 
         result.applyLayout()
         result.refreshZoom()

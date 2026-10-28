@@ -2,9 +2,13 @@
 
 using Core, Gui
 
-private const EmbeddedHeaderHeight = 44.0
+private const EmbeddedHeaderHeight = 32.0
 
 // Application implementation of [[Viewer.Embedded]].
+//
+// It stands on the window's model with no band of its own: a quiet line names the entry in faint
+// mono, its readings and the viewer it is seen in at the end of that line, and the viewer's
+// commands float on a mini-bar at the foot of the document.
 struct EmbeddedViewer
 {
     using wnd: Wnd
@@ -13,13 +17,14 @@ struct EmbeddedViewer
     {
         header:          *Wnd
         titleLabel:      *Label
-        viewerCombo:     *ComboBox
+        viewerMenu:      *IconButton
         infoLane:        *Wnd
         sideSplitter:    *SplitterCtrl
         document:        *Wnd
         sidePlaceholder: *Wnd
-        commandBar:      *ViewerActionBar
     }
+
+    commandBar:        *FloatingPanel?     // Made with the viewer; a resize may reach it before.
 
     late owner:        *ViewerWindow
     fileName:          String
@@ -55,8 +60,8 @@ private func reportEmbeddedChromeChanged(view: *Wnd)
 {
     with let embedded = embeddedViewerFor(view)
     {
-        .commandBar.centerContent()
         .applyLayout()
+        .layoutCommands()
     }
 }
 
@@ -92,16 +97,8 @@ impl Viewer.Embedded for EmbeddedViewer
             fail Errors.UnsupportedFormatError{}
 
         .instances.resize(.choices.count)
-        .viewerCombo.clear()
-        for choice in .choices
-        {
-            let plugin = &.owner.index.plugins[choice.pluginIndex]
-            .viewerCombo.addItem(plugin.displayName(), icon: .owner.pluginIcon(plugin, themeRowIconSize(.themeMetrics())))
-        }
-
         .titleLabel.setText(title)
-        .viewerCombo.show(.choices.count > 1)
-        .viewerCombo.setSelectedIndex(0, notify: false)
+        .viewerMenu.show(.choices.count > 1)
         if not .activate(0) do
             fail Errors.InvalidFormatError{}
     }
@@ -119,8 +116,7 @@ impl Viewer.Embedded for EmbeddedViewer
         .choices.clear()
         .fileName.clear()
         .title.clear()
-        .viewerCombo.clear()
-        .viewerCombo.hide()
+        .viewerMenu.hide()
         .infoLane.hide()
         .infoLane.position.width = 0
         .titleLabel.setText(Viewers.Archive.texts().ui_Select)
@@ -131,8 +127,7 @@ impl Viewer.Embedded for EmbeddedViewer
         .currentCommands            = null
         .currentSidePanel           = null
         .currentSideButton          = null
-        .commandBar.centerGroup     = null
-        .commandBar.position.height = .themeMetrics().panel_GutterSize
+        .commandBar?.hide()
         .applyLayout()
         return true
     }
@@ -167,8 +162,8 @@ private impl EmbeddedViewer
         .currentSidePanel           = instance.sidePanelHost
         .currentSideButton          = instance.sidePanelButton
         .activeIndex                = index
-        .commandBar.centerGroup     = .currentCommands
-        .commandBar.position.height = .currentCommands ? ViewerWindow.BarHeight : .themeMetrics().panel_GutterSize
+        let plugin = &.owner.index.plugins[.choices[index].pluginIndex]
+        .viewerMenu.setQuietText(plugin.displayName())
 
         var infoWidth: f32
         if instance.info do
@@ -192,9 +187,53 @@ private impl EmbeddedViewer
         .sideSplitter.items[1]!.view.show(sideVisible)
         .sideSplitter.setPaneVisible(1, sideVisible)
         .sideSplitter.applyLayout()
-        .commandBar.centerContent()
         .applyLayout()
+        .layoutCommands()
         .invalidate()
+    }
+
+    // Shows the viewers the entry can be seen in under their menu, the one in use checked.
+    mtd showViewerMenu()
+    {
+        let menu = MenuCtrl.createPopup(me, owner: me)
+        for choice, index in .choices
+        {
+            let plugin = &.owner.index.plugins[choice.pluginIndex]
+            menu.addRadioItem(plugin.displayName(), Format.toString("scope.embedded.viewer.%", index), checked: index == .activeIndex)
+        }
+
+        let chosen = menu.doModal(.viewerMenu, autoDestroy: true) orelse ""
+        for index in .choices.count where chosen == Format.toString("scope.embedded.viewer.%", index).toString() do
+            discard .activate(cast(u32, index))
+    }
+
+    // Stands the viewer's commands on their mini-bar at the foot of the document, as wide as they
+    // ask and never wider than the document.
+    mtd layoutCommands()
+    {
+        let bar = .commandBar
+        if not bar do
+            return
+        let commands = .currentCommands
+        bar.show(commands != null)
+        if not commands do
+            return
+
+        let metrics = .themeMetrics()
+        var area    = .clientRect()
+        area.y      += .header.position.height
+        area.height = Math.max(area.height - .header.position.height, 0)
+        let inset   = metrics.floating_Inset
+        let pad     = bar.padding
+        let room    = Math.max(area.width - 2 * inset - pad.x - pad.z, 0)
+        let wanted  = commands.preferredSize.x > 0 ? commands.preferredSize.x : room
+        let width   = Math.min(wanted, room)
+        let height  = commands.position.height + pad.y + pad.w
+        bar.setPosition(Math.Rectangle{Math.round(area.x + area.width * 0.5 - (width + pad.x + pad.z) * 0.5), area.bottom() - inset - height, width + pad.x + pad.z, height}, computeLayout: false)
+        commands.dockStyle = .None
+        commands.setPosition(Math.Rectangle{pad.x, pad.y, width, commands.position.height}, computeLayout: false)
+        commands.applyLayout()
+        bar.bringToFront()
     }
 
     // Shows the viewer of `choices[index]`, creating its instance on first use and keeping it for
@@ -224,7 +263,7 @@ private impl EmbeddedViewer
             .sidePaneIndex   = 1
             .actionParent    = me.header
             .infoParent      = me.infoLane
-            .commandParent   = me.commandBar
+            .commandParent   = unwrap me.commandBar
             .sourceFileName  = me.fileName
             .pluginIcon      = me.owner.pluginIcon(plugin, themeActionIconSize(me.themeMetrics()))
             .window          = me.owner
@@ -273,8 +312,9 @@ private impl EmbeddedViewer
         }
     }
 
-    // Builds the embedded viewer: a header holding the entry title, information lane and viewer
-    // selector, a bottom command bar, and the document area where the active instance docks.
+    // Builds the embedded viewer: a quiet line holding the entry title, its readings and the
+    // viewer it is seen in, the document area where the active instance docks, and the mini-bar
+    // its commands float on.
     internal func create(parent: *Wnd, owner: *ViewerWindow)->*EmbeddedViewer
     {
         with let result = Wnd.create'EmbeddedViewer(parent, "scope.embedded")
@@ -284,26 +324,33 @@ private impl EmbeddedViewer
             .owner           = owner
         }
 
+        // The mini-bar the commands float on comes first: every resize places it again.
+        with let commandBar = FloatingPanel.create(result, {0, 0, 0, ViewerWindow.BarHeight}, "scope.embedded.commands")
+        {
+            let pad = result.themeMetrics().miniBar_Padding
+            .corner  = result.themeMetrics().miniBar_Corner
+            .padding = Math.Vector4{x: pad * 2, y: pad, z: pad * 2, w: pad}
+            .hide()
+        }
+
+        result.commandBar = commandBar
+
         with result.header = Wnd.create'Wnd(result, {0, 0, 0, EmbeddedHeaderHeight})
         {
             .dockStyle       = .Top
-            .backgroundStyle = .ToolBar
-            .padding         = {12, 4, 12, 4}
+            .backgroundStyle = .Transparent
+            .padding         = {16, 0, 8, 0}
         }
 
-        with result.viewerCombo = ComboBox.create(result.header, {0, 0, 176, 36})
+        with result.viewerMenu = IconButton.createQuiet(result.header)
         {
             .dockStyle = .Right
             .toolTip   = appStrings().ui_Viewer
             .hide()
-            .sigChanged += func|embedded = result|(_, index)
-            {
-                if index != Swag.U32.Max do
-                    discard embedded.activate(index)
-            }
+            .sigPressed += func|embedded = result|(_) { embedded.showViewerMenu() }
         }
 
-        with result.infoLane = Wnd.create'Wnd(result.header, {0, 0, 0, 36})
+        with result.infoLane = Wnd.create'Wnd(result.header, {0, 0, 0, 32})
         {
             .dockStyle       = .Right
             .backgroundStyle = .Transparent
@@ -315,14 +362,9 @@ private impl EmbeddedViewer
         {
             .dockStyle       = .Center
             .backgroundStyle = .Transparent
-            .setTextAlignment(.Left, .Center)
-        }
-
-        with result.commandBar = ViewerActionBar.create(result)
-        {
-            .position.height = result.themeMetrics().panel_GutterSize
-            .dockStyle       = .Bottom
-            .fillCenterGroup = true
+            .style.setFont(result.theme().createDefaultFontFs(12), .Regular)
+            .style.addStyleSheetColors("label_Text $label_TextFaint")
+            .setTextAlignment(.Left, .OpticalCenter)
         }
 
         with result.sideSplitter = SplitterCtrl.create(result)
@@ -360,6 +402,11 @@ private impl EmbeddedViewer
 
 private impl IWnd for EmbeddedViewer
 {
+    mtd impl onResizeEvent(_: *ResizeEvent)
+    {
+        .layoutCommands()
+    }
+
     mtd impl onSerializeStateEvent(evt: *SerializeStateEvent)
     {
         if evt.serializer.isReading()

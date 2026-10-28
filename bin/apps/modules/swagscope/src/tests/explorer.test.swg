@@ -104,25 +104,115 @@ func completeExplorer(host: *Testing.HeadlessHost, explorer: *Explorer)
     Swag.assert(not explorer.listing.isArchive)
 }
 
-// The first exploration surface shares the application geometry without making a file mandatory.
-#[Swag.TestTag("golden")]
-#test
+// An archive is a page: its folders and members as quiet rows with their dates, "Extract All…" on
+// the title's line, and the chosen member in the sheet with Open and "Extract…".
+func archivePage(host: *Testing.HeadlessHost, light: bool)->*ViewerWindow
 {
-    var host: Testing.HeadlessHost
     host.setup(960, 640)
+    if light do
+        host.theme.setLight()
+    else do
+        host.theme.setDark()
+    host.notify(.ThemeChanged)
+
     let window = ViewerWindow.create(&host.surfaceWnd, createViewerPluginRegistry())
     window.openExplorer(fixture("viewer.archive.zip"))
     let explorer = unwrap window.explorer
     explorer.setMode(.Details)
-    completeExplorer(&host, explorer)
+    completeExplorer(host, explorer)
     explorer.address.breadcrumb.clear()
     explorer.address.breadcrumb.addItem("Home")
     explorer.address.breadcrumb.addItem("viewer.archive.zip")
     explorer.address.refreshPath()
     window.applyLayout()
-    host.settleAnimations(window)
-    var image = host.render(window)
-    Pixel.Testing.assertImageGolden(&image, "explorer.archive")
+    return window
+}
+
+#[Swag.TestTag("golden")]
+#test
+{
+    for light in [false, true]
+    {
+        var host: Testing.HeadlessHost
+        let window   = archivePage(&host, light)
+        let explorer = unwrap window.explorer
+        Swag.assert(explorer.extractAll.isLocallyVisible() and explorer.extractAll.name.raw == appStrings().cmd_ExtractAll)
+        for &entry in explorer.entries do
+            Swag.assert(entry.directory and entry.modified.length == 16)
+
+        // The chosen member, its picture not asked for so the page holds still.
+        explorer.navigate(explorer.listing.path, "docs/")
+        completeExplorer(&host, explorer)
+        explorer.address.breadcrumb.clear()
+        explorer.address.breadcrumb.addItem("viewer.archive.zip")
+        explorer.address.refreshPath()
+        for &entry in explorer.entries do
+            entry.attempted = true
+        explorer.selected = 0
+        explorer.fill()
+        explorer.showInformation()
+        let sheet = window.infoSheet.text()
+        Swag.assert(Utf8.contains(sheet, appStrings().cmd_OpenChosen) and Utf8.contains(sheet, appStrings().cmd_Extract))
+        Swag.assert(Utf8.contains(sheet, "CRC-32"))
+        window.applyLayout()
+        host.settleAnimations(window)
+        var image = host.render(window)
+        Pixel.Testing.assertImageGolden(&image, light ? "explorer.archive.paper" : "explorer.archive")
+    }
+}
+
+func completeExtraction(host: *Testing.HeadlessHost, explorer: *Explorer)
+{
+    for 16
+    {
+        if not explorer.extraction.started do
+            return
+        explorer.extraction.task.wait()
+        host.pump()
+    }
+
+    Swag.assert(false, "extraction did not settle")
+}
+
+// Extracting writes the members under the chosen folder, keeps a file already there, and says how
+// it went in a toast; a chosen member lands without the folders above it, and no member's path
+// leaves the chosen folder.
+#test
+{
+    Swag.assert(ArchiveExtraction.destination("C:/t", "", "../evil.txt").isEmpty())
+    Swag.assert(ArchiveExtraction.destination("C:/t", "", "a/../../evil.txt").isEmpty())
+    Swag.assert(ArchiveExtraction.destination("C:/t", "docs/", "docs/").isEmpty())
+    Swag.assert(ArchiveExtraction.destination("C:/t", "docs/", "docs/readme.txt") == Path.combine("C:/t", "readme.txt"))
+
+    var host: Testing.HeadlessHost
+    host.setup(960, 640)
+    let window = ViewerWindow.create(&host.surfaceWnd, createViewerPluginRegistry())
+    window.openExplorer(fixture("viewer.archive.zip"))
+    let explorer = unwrap window.explorer
+    completeExplorer(&host, explorer)
+
+    let target = Gui.Testing.tempFilePath("scope-extract-", "")
+    defer discard catch Directory.delete(target, recurse: true)
+    explorer.extractTo(target, all: true)
+    completeExtraction(&host, explorer)
+    Swag.assert(explorer.extraction.error.isEmpty() and explorer.extraction.written > 0 and not explorer.extraction.kept)
+    Swag.assert(File.exists(Path.combine(target, "docs", "readme.txt")))
+    Swag.assert(explorer.toast!.isLocallyVisible() and explorer.toast.detail == target)
+    let written = explorer.extraction.written
+
+    explorer.extractTo(target, all: true)
+    completeExtraction(&host, explorer)
+    Swag.assert(explorer.extraction.written == 0 and explorer.extraction.kept == written)
+
+    let member = Gui.Testing.tempFilePath("scope-extract-member-", "")
+    defer discard catch Directory.delete(member, recurse: true)
+    explorer.navigate(explorer.listing.path, "docs/")
+    completeExplorer(&host, explorer)
+    for &entry, index in explorer.entries where entry.name == "readme.txt" do
+        explorer.selected = index
+    explorer.extractTo(member, all: false)
+    completeExtraction(&host, explorer)
+    Swag.assert(explorer.extraction.written == 1 and File.exists(Path.combine(member, "readme.txt")))
 }
 
 // An archive member opens asynchronously with its logical name, then returns to its selected row.

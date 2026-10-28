@@ -128,7 +128,6 @@ impl CreatePage
             .layoutSpec.alignY = .Center
             .setForm(.Flat)
             .setForms(.Transparent, .Flat, .None)
-            .setLayout(.Content)
             discard .addItem(texts.ui_UnitMiB)
             discard .addItem(texts.ui_UnitGiB)
             .setSelectedIndex(0)

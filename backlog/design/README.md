@@ -237,22 +237,29 @@ Anything that needs an answer is a dialog, not a toast.
 - **Fields**: 32 high, surface ground with a 1 px line ring; hover a stronger ring; focus 2 px
   Voltage/ink ring; error 2 px critical ring and a message line below with a critical dot;
   disabled transparent with a faint ring. Placeholder faint. Password field with an eye glyph.
-- **Combo box**: a field with `▾`; its list is a popup surface (corner 10) with the chosen row
-  on the Arc ground and `✓` in Arc.
+- **Combo box**: a field with a faint `▾`, in the text colour under the pointer or while its list
+  is open; its list is a popup surface (corner 10) with the chosen row on the Arc ground and `✓`
+  in Arc.
 - **Checkbox / radio / switch**: off is a 1.5 px line ring; on is Arc (white check on Papier,
   ink check on Encre); mixed shows a dash. Switch 34 × 20, knob white when on.
 - **Slider**: 2 px track on raised, Arc fill, 14 px white knob, value in mono beside it.
 - **Progress**: 4 px track, Arc fill; indeterminate is a moving Arc segment; circular is an Arc
   arc on a raised ring.
-- **Tabs**: text in faint, the active one in text colour with a 2 px Arc underline.
-- **Lists, trees, headers**: rows 30, hover raised, selection Arc ground; header labels faint
-  with a hairline under; tree chevrons faint.
+- **Tabs**: words as wide as themselves with 22 px between two, the first word on the bar's edge
+  in line with the title above; text in faint, the active one in text colour with a 2 px Arc
+  underline exactly under its words.
+- **Lists, trees, headers**: rows 30, hover raised (it comes in and goes out over 120 ms),
+  selection Arc ground; header labels faint with a hairline under, each title aligned as its
+  cells are and the sort marker right after its words; tree chevrons faint, turning a quarter
+  turn when a branch opens. Dates, sizes and counts in faint mono; the name column takes the room
+  the others leave. A list with no row says so in one faint sentence where its rows would be.
 - **Menus**: surface, corner 10, 6 px padding, rows 30, hover/selection Arc ground, shortcuts in
   mono faint at the right, `✓` in Arc, `›` for submenus, separators of one hairline inset 10.
 - **Notices**: a tinted ground of the tone, an 7 px dot in the tone, bold first phrase, no
   border, no icon tile.
 - **Tooltip**: surface (Papier: ink with paper text), corner 6, 12 px.
-- **Scrollbars**: 6 px, raised track only while visible, thumb a stronger grey.
+- **Scrollbars**: one thickness, 8 px with a 4 px thumb; they rest invisible and show while the
+  view scrolls or the pointer is over them.
 
 ## Property grid
 
@@ -329,9 +336,42 @@ the screen to its work.
   at the top. The action bar, the information band and the options band are gone: search, open,
   explore, view switch, go to, full screen and options are lens entries; readings (encoding,
   lines, size, outline) are in the sheet (`I`).
-- Explorer: a page title (folder name, 44–56/800) over the path, a mono count, quiet sort and
-  view menus, a contact sheet grid with names and mono metadata, the chosen item ringed in Arc,
-  the sheet for the chosen item.
+- Explorer: a page title (folder name, 44–56/800) under the faint path, a mono count, quiet sort
+  and view menus on the title line, right-aligned with the grid; the chosen item ringed in Arc
+  at a 2 px gap; the sheet for the chosen item. No side panel and no filter field until asked
+  for (`/`). Every edge of the page — path, title, grid, menus — is one edge.
+- The cell takes the shape of what the folder holds, as a media player would show it:
+  - **A mixed folder**: one even grid of 4:3 cells on the raised ground. Each cell shows what its
+    file is: a picture its picture, a PDF its first page on a paper card, code a few lines in
+    mono, Markdown its heading and lines, a sound its waveform, a film a frame with its duration
+    in a mono chip, a font "Aa" in its face, a folder its glyph and item count, anything else
+    the page glyph of its kind with its extension in faint mono. Under it: the name, then one
+    mono line of facts (dimensions or pages or duration, and the size at the right).
+  - **Films**: portrait posters in their own shape (never squashed), the playback progress as an
+    Arc thread along the poster's foot, title and year · duration under it; the sheet carries the
+    poster, the rating, "Resume at 1 h 12" as the one primary action, the people and the file.
+  - **Music, a library**: square covers, album name then artist · year in mono.
+  - **Music, one album**: the cover large at the left with Play and Shuffle under it; at the
+    right "ALBUM · 2001", the title, the artist, the facts in mono, then the tracks as rows
+    (number, title, duration in mono), the playing one on the Arc ground with ▶.
+  - **Photos**: a justified mosaic that keeps every picture's shape, grouped by day under a
+    spaced-capitals label with its count; the camera facts of the hovered one in a mono tip.
+  The kind is read from what most of the folder holds; the view menu can always force grid,
+  covers, posters, mosaic or details.
+
+![A mixed folder](imgs/scope.explorer.mixed.png)
+
+![A mixed folder in Papier](imgs/scope.explorer.mixed.paper.png)
+
+![Films](imgs/scope.explorer.films.png)
+
+![A music library](imgs/scope.explorer.music.png)
+
+![One album](imgs/scope.explorer.album.png)
+
+![One album in Papier](imgs/scope.explorer.album.paper.png)
+
+![Photos](imgs/scope.explorer.photos.png)
 - Video: picture edge to edge; on hover a top veil with title, a bottom veil with the timeline
   (Arc progress, white knob, chapter ticks, hover time), time in mono, chips for subtitles,
   audio, speed.

@@ -85,6 +85,8 @@ struct Strings
         browser_AllFiles:       string = "All Files"                      // Filter matching every extension.
         browser_NewFolder:      string = "New Folder"                     // Create a folder in the current location.
         browser_FilterHint:     string = "Filter, or type a path"         // Placeholder of the path field, after the current path.
+        browser_EmptyFolder:    string = "This folder is empty"           // Sentence of a file list showing a folder with nothing to choose.
+        browser_NoMatch:        string = "Nothing matches"                // Sentence of a file list the typed words filtered empty.
         browser_Chosen:         string = "% chosen · %"                   // Count and weight of the files a multiple box holds.
         browser_TipRecent:      string = "Recent Folders"                 // Tooltip of the recent-folders button.
         browser_TipUp:          string = "Parent Folder (Alt+Up)"         // Tooltip of the parent-folder button.

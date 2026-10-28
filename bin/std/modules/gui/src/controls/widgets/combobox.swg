@@ -198,9 +198,12 @@ impl IWnd for ComboBox
         // The right margin is the band the field reserves for its marker, so the marker is
         // centered in that band rather than hung off its leading edge: the glyph then keeps
         // the same air on both sides whatever size the theme gives it.
-        let icon  = theme.icon(ThemeIcons.ChevronDown, metrics.chevron_Size)
-        let iconX = clientRect.right() - (metrics.comboBox_RightMargin + icon.sizeX) * 0.5
-        icon.paint(painter, iconX, clientRect.vertCenter() - icon.sizeY * 0.5, colorText)
+        // The marker only says a list opens: faint at rest, in the ink of the words once the
+        // pointer or the open list engages the field.
+        let icon      = theme.icon(ThemeIcons.ChevronDown, metrics.chevron_Size)
+        let iconX     = clientRect.right() - (metrics.comboBox_RightMargin + icon.sizeX) * 0.5
+        let iconColor = bc.isDisabled or .isHot or .popup ? colorText : colors.faintText
+        icon.paint(painter, iconX, clientRect.vertCenter() - icon.sizeY * 0.5, iconColor)
     }
 
     // Reports the room the widest item needs beside the icon column and the drop-down arrow.

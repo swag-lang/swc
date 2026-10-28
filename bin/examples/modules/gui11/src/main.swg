@@ -762,7 +762,6 @@ func createRootView()
     let tabs = Tab.create(view)
     g_Tabs = tabs
     tabs.setForms(.Flat, .Flat, .None)
-    tabs.setLayout(.Content)
     tabs.setPageTransitions(true)
     tabs.addItem(PageNames[0], view: buildCurvePage(tabs))
     tabs.addItem(PageNames[1], view: buildStagePage(tabs))

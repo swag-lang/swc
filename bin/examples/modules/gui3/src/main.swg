@@ -359,7 +359,6 @@ func createRootView()
     with g_Tabs = Tab.create(view, {})
     {
         .setForms(.Flat, .Flat, .None)
-        .setLayout(.Content)
         for title in PageTitles do
             .addItem(title)
         .sigSelectionChanged += func(tab)

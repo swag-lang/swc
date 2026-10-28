@@ -3,6 +3,58 @@
 
 using Core
 
+private func referenceMoreData(bits: const *BitReader)->bool
+{
+    if bits.overran or bits.bitPos >= bits.size * 8 do
+        return false
+    var last = bits.size * 8
+    while last > bits.bitPos
+    {
+        last -= 1
+        if (bits.data![last >> 3] >> cast(u32, (7 - (last & 7)))) & 1 do
+            break
+    }
+    return last > bits.bitPos
+}
+
+private func assertMoreData(data: const [..] u8)
+{
+    for position in data.count * 8 + 1
+    {
+        var bits: BitReader
+        bits.init(data)
+        bits.skip(cast(u32, position))
+        let expected = referenceMoreData(&bits)
+        let actual   = bits.moreData()
+        Swag.assert(actual == expected)
+        Swag.assert(bits.bitPos == position and not bits.overran)
+        bits.overran = true
+        Swag.assert(not bits.moreData())
+        Swag.assert(bits.bitPos == position and bits.overran)
+    }
+}
+
+// The trailing stop bit is found at every bit position, including all-zero tails.
+#test
+{
+    var bytes: [4] u8
+    for seed in 256'u32
+    {
+        for index in 4 do
+            bytes[index] = cast(u8, ((seed * (2 * index + 1) + index * 13) & 255))
+        for length in 5'u64 do
+            assertMoreData(bytes[0 until length])
+    }
+
+    for bit in 32'u64
+    {
+        for index in 4 do
+            bytes[index] = 0
+        bytes[bit / 8] = cast(u8, (1 << (7 - bit % 8)))
+        assertMoreData(bytes)
+    }
+}
+
 private func referenceUe(bits: *BitReader)->u32
 {
     var zeros = 0'u32

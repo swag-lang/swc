@@ -169,18 +169,22 @@ impl BitReader
         if .overran or .bitPos >= .size * 8 do
             return false
 
-        // The payload ends with a stop bit and zero padding; data remains only when a set bit
-        // exists after the read position and is not the last set bit of the payload.
-        var lastSet = .size * 8
-        while lastSet > .bitPos
+        // The payload ends with a stop bit and zero padding. Its last set bit is the
+        // least significant set bit of the last nonzero byte.
+        let firstByte = .bitPos >> 3
+        var index     = .size
+        while index > firstByte
         {
-            lastSet -= 1
-            let value = (.data![lastSet >> 3] >> cast(u32, (7 - (lastSet & 7)))) & 1
-            if value do
-                break
+            index -= 1
+            let value = .data![index]
+            if value
+            {
+                let lastSet = index * 8 + 7 - cast(u64, Math.trailingZeros(value))
+                return lastSet > .bitPos
+            }
         }
 
-        return lastSet > .bitPos
+        return false
     }
 }
 

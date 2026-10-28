@@ -121,6 +121,10 @@ new language syntax.
 ### compiler.optimization.011 — Keep hot SIMD values out of the frame
 
 - Evidence: `Video.H264.mcChroma`, `Hevc.Decoder.filterLumaEdge`, and `Hevc.Decoder.interpolateLuma` have had frame traffic in their hot loops. Previous measurements predate the split allocator and are no longer a current baseline.
+- Additional case: folding a zero `LoadVecRegMem` in `Video.H264.edgeStrengths` removes one
+  constant load but rematerializes two clears in each four-segment loop, growing that loop from
+  47 to 49 instructions. A direct zero-test fold did not fire there; investigate partial-register
+  mask liveness and loop-carried zero residency before extending that constant fold.
 - Next: dump the current Release functions and measure per-segment time. Attribute each remaining spill to register pressure or a missed allocation/hoist opportunity before changing the backend.
 - Done when: current evidence identifies a profitable change with byte-exact decoder output, or shows the remaining frame traffic is necessary and the entry is removed.
 

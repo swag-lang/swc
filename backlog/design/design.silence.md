@@ -99,8 +99,14 @@ dialogs, then each application, then the written rules.
   page (its sample field lives on the floating bar); table, HTML (column, address, outline)
   and binary (report page) keep their earlier shapes. Waits use
   `Gui.Spinner`; nothing in Scope needs a toast before `Gui.Toast` lands.
-- Next: the progress thread under the strip; then the viewers in this order, each on its picture —
-  `scope.pdf.paper`, `scope.video`, `scope.archive` (Extract, preview card, then the
+- Next: the video viewer on `scope.video`: it stops contributing a command group to the window's
+  floating bar and owns two veils shown on pointer movement and gone at rest — the top one with the
+  title and a mono line, the bottom one with its own timeline (Arc progress, buffered part, white
+  knob, chapter ticks, a mono time chip under the pointer), the play button, the mono time, the
+  chapter, and chips for subtitles, sound track and speed that open those pages of the options;
+  then a framed golden at rest and under the pointer. Then the progress thread under the strip;
+  then the viewers in this order, each on its picture —
+  `scope.pdf.paper`, `scope.archive` (Extract, preview card, then the
   embedded host on the window's model), `scope.hex`, `scope.font.paper`, `scope.table.paper`,
   `scope.html.paper`, `scope.binary` — moving what still stands on
   the floating bar into the document where the picture puts it. Switch the explorer's private quiet

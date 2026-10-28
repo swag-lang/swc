@@ -488,6 +488,23 @@ impl Properties
         .usingFieldsLast = enabled
     }
 
+    // Shows `header` above the rows, scrolling with them: settings the host builds by hand before
+    // the generated ones, such as the colours and the choices at the head of an inspector.
+    //
+    // Set it before the first row is added, so it stays the first child of the rows. The grid
+    // owns it from then on; call [[Gui.Properties.layoutHeader]] after its height changed.
+    mtd setHeader(header: *Wnd)
+    {
+        header.setParent(.edView)
+        .layoutHeader()
+    }
+
+    // Lays the rows out again under the header, after its height changed.
+    mtd layoutHeader()
+    {
+        .edView.sendResizeEvent()
+    }
+
     // Shows or hides reset-to-default affordances for modified values.
     mtd setRevertButtonsVisible(visible: bool)
     {

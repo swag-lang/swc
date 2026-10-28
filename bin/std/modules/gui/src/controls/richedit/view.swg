@@ -1,5 +1,8 @@
 using Core, Pixel
 
+// Air kept past the caret after the longest line, so typing there does not scroll at every rune.
+private const CaretAir = 32'f32
+
 // Paints a [[Gui.RichEditCtrl]] document and handles its direct input gestures.
 #[Swag.Opaque]
 public struct RichEditView
@@ -379,8 +382,13 @@ impl IWnd for RichEditView
         }
         else
         {
-            let posCaret = edn.caretRect(edn.cursorPos)
-            maxx += posCaret.width + 32
+            // The caret after the longest line needs its own width, and some air past it keeps
+            // typing at the end of a line from scrolling at every rune. That air is not content:
+            // it widens a document that already overflows the view, and never makes a document
+            // whose every line fits scroll for it.
+            let content = maxx + edn.caretRect(edn.cursorPos).width
+            let air     = content + CaretAir
+            maxx = content > clientRect.width ? air : Math.min(air, clientRect.width)
         }
 
         edn.recomputeScroll = false

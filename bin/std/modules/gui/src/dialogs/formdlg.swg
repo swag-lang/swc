@@ -25,7 +25,7 @@ struct FormDlgOptions
 //
 // ```swag
 // let dlg  = FormDlg.create(surface, options)
-// let name = dlg.form.addTextField("FOLDER NAME", "New Folder")
+// let name = dlg.form.addTextField("Name", "New Folder")
 // dlg.form.computeLayout()
 // if dlg.doModal() == Dialog.BtnOk do
 //     createFolder(name.text())

@@ -26,7 +26,7 @@ struct Strings
         appearance_ToolTip:        string = "Appearance and application information"     // Tooltip of the application appearance caption button.
         appearance_Theme:          string = "Theme"               // Theme submenu label.
         appearance_Language:       string = "Language"            // Language submenu label.
-        appearance_SystemLanguage: string = "System language"     // Language choice following the user account.
+        appearance_SystemLanguage: string = "System Language"     // Language choice following the user account.
         appearance_Dark:           string = "Dark"                // Dark application theme.
         appearance_Light:          string = "Light"               // Light application theme.
         appearance_System:         string = "System"              // Theme following the light or dark setting of the system.
@@ -59,7 +59,7 @@ struct Strings
         fileDlg_TitleSelectFiles:  string = "Select Files"                                // File dialog title when picking several files.
         fileDlg_TitleSelectFolder: string = "Select Folder"                               // File dialog title when picking a folder.
         fileDlg_NewFolderTitle:    string = "New Folder"                                  // Title of the folder-creation dialog.
-        fileDlg_NewFolderField:    string = "FOLDER NAME"                                 // Label of the folder-name field.
+        fileDlg_NewFolderField:    string = "Name"                                        // Label of the folder-name field.
         fileDlg_NewFolderDefault:  string = "New Folder"                                  // Proposed name of a created folder.
         fileDlg_NewFolderHint:     string = "Folder name"                                 // Placeholder of the folder-name field.
         fileDlg_ErrFolderName:     string = "The folder name is not valid."               // Rejected folder name.
@@ -80,10 +80,10 @@ struct Strings
         browser_ColSize:        string = "Size"                           // File list column of file sizes.
         browser_AllFiles:       string = "All Files"                      // Filter matching every extension.
         browser_NewFolder:      string = "New Folder"                     // Create a folder in the current location.
-        browser_TipBack:        string = "Previous folder (Alt+Left)"     // Tooltip of the back navigation button.
-        browser_TipForward:     string = "Next folder (Alt+Right)"        // Tooltip of the forward navigation button.
-        browser_TipRecent:      string = "Recent folders"                 // Tooltip of the recent-folders button.
-        browser_TipUp:          string = "Parent folder (Alt+Up)"         // Tooltip of the parent-folder button.
+        browser_TipBack:        string = "Previous Folder (Alt+Left)"     // Tooltip of the back navigation button.
+        browser_TipForward:     string = "Next Folder (Alt+Right)"        // Tooltip of the forward navigation button.
+        browser_TipRecent:      string = "Recent Folders"                 // Tooltip of the recent-folders button.
+        browser_TipUp:          string = "Parent Folder (Alt+Up)"         // Tooltip of the parent-folder button.
         browser_TipRefresh:     string = "Refresh (F5)"                   // Tooltip of the refresh button.
         browser_TipNewFolder:   string = "Create a folder in the current location"     // Tooltip of [[Gui.Strings.browser_NewFolder]].
         browser_FolderName:     string = "Folder Name"                    // Name field label when picking a folder.
@@ -112,24 +112,24 @@ struct Strings
         edit_Cut:       string = "Cut"            // Move the selection to the clipboard.
         edit_Copy:      string = "Copy"           // Copy the selection to the clipboard.
         edit_Paste:     string = "Paste"          // Insert the clipboard at the caret.
-        edit_SelectAll: string = "Select all"     // Extend the selection to the whole content.
+        edit_SelectAll: string = "Select All"     // Extend the selection to the whole content.
 
         prop_Copy:             string = "Copy"                              // Copy the value of a property.
         prop_Paste:            string = "Paste"                             // Paste into a property.
-        prop_ResetDefault:     string = "Reset to default"                  // Restore the default value of a property.
-        prop_MoveUp:           string = "Move up"                           // Move a list element up.
-        prop_MoveDown:         string = "Move down"                         // Move a list element down.
+        prop_ResetDefault:     string = "Reset to Default"                  // Restore the default value of a property.
+        prop_MoveUp:           string = "Move Up"                           // Move a list element up.
+        prop_MoveDown:         string = "Move Down"                         // Move a list element down.
         prop_Remove:           string = "Remove"                            // Remove a list element.
-        prop_RemoveAll:        string = "Remove all"                        // Remove every list element.
+        prop_RemoveAll:        string = "Remove All"                        // Remove every list element.
         prop_ConfirmRemove:    string = "This will remove the element"      // Confirmation before removing one element.
         prop_ConfirmRemoveAll: string = "This will remove all elements"     // Confirmation before clearing a list.
         prop_Search:           string = "Search"                            // Placeholder of the property search box.
         prop_All:              string = "All"                               // Tab showing every category.
-        prop_ViewOptions:      string = "Property view options"             // Tooltip of property view commands.
-        prop_ExpandAll:        string = "Expand all"                        // Expand every property group.
-        prop_CollapseAll:      string = "Collapse all"                      // Collapse every property group.
-        prop_ExpandModified:   string = "Expand modified"                   // Expand groups containing modified fields.
-        prop_ShowModifiedOnly: string = "Show modified only"                // Restrict a property view to changed fields.
+        prop_ViewOptions:      string = "Property View Options"             // Tooltip of property view commands.
+        prop_ExpandAll:        string = "Expand All"                        // Expand every property group.
+        prop_CollapseAll:      string = "Collapse All"                      // Collapse every property group.
+        prop_ExpandModified:   string = "Expand Modified"                   // Expand groups containing modified fields.
+        prop_ShowModifiedOnly: string = "Show Modified Only"                // Restrict a property view to changed fields.
         prop_MixedValues:      string = "Mixed values"                      // Placeholder of a field whose value differs across the selected objects.
 
         // Wording of the [[Gui.ApplicationOptions]] rows a property grid generates from

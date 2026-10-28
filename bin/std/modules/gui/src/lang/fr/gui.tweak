@@ -46,7 +46,7 @@ fileDlg_TitleSelectFile   Sélectionner un fichier
 fileDlg_TitleSelectFiles  Sélectionner des fichiers
 fileDlg_TitleSelectFolder Sélectionner un dossier
 fileDlg_NewFolderTitle    Nouveau dossier
-fileDlg_NewFolderField    NOM DU DOSSIER
+fileDlg_NewFolderField    Nom
 fileDlg_NewFolderDefault  Nouveau dossier
 fileDlg_NewFolderHint     Nom du dossier
 fileDlg_ErrFolderName     Le nom du dossier n'est pas valide.

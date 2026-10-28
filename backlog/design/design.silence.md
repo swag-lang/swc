@@ -104,7 +104,7 @@ dialogs, then each application, then the written rules.
 - Next: music library and album boards, then photos; then image, table, HTML, binary, hex and
   font on their pictures; the shipped frame for every Scope golden.
 - Done when: every Scope golden matches its picture as a whole screen.
-- Related: design.silence.004, design.silence.002
+- Related: design.silence.004
 
 ### design.silence.008 — Swag Capture's editing does not yet match its pictures
 

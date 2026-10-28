@@ -304,6 +304,13 @@ impl Panel
     }
 
     // Opens how the bytes are laid out and read: row width, value width, representation, byte order.
+    // Gives the lens the options and the zoom of the byte view.
+    mtd describeLens(entries: *Viewer.LensEntries)
+    {
+        entries.add(appStrings().cmd_Options, func|view = me|() { view.showOptions() })
+        entries.add(appStrings().cmd_ZoomMenu, func|view = me|() { view.showZoomMenu() })
+    }
+
     mtd showOptions()
     {
         let sheet = OptionSheet.View.create(.optionsButton, func|view = me|(page) { view.describeOptions(page) }, owner: me)
@@ -671,6 +678,7 @@ func createViewer(host: Viewer.Host)
     }
 
     host.setSearch(search)
+    host.setLensSource(func|view|(entries) { view.describeLens(entries) })
 
     host.setLifecycle(Viewer.loadLifecycle(view))
 }

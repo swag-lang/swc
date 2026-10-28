@@ -208,4 +208,10 @@ interface Host
     //
     // Each callback borrows the attached view through its captured concrete pointer.
     mtd setLifecycle(api: LifecycleApi)
+
+    // Gives the lens of the window the viewer's own rows: its commands, its menus and its options.
+    //
+    // The callback captures its concrete viewer pointer by value; the host keeps the attached
+    // view alive for as long as it may call it.
+    mtd setLensSource(source: LensSource)
 }

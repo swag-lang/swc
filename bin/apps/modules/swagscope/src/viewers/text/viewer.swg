@@ -765,6 +765,24 @@ impl Panel
         }
     }
 
+    // Gives the lens the layout of the text, its encodings and its zoom.
+    mtd describeLens(entries: *Viewer.LensEntries)
+    {
+        let strings = texts()
+        entries.add(strings.ui_Wrap, func|view = me|() { view.toggleWrap() }, checked: .wrapping, shortcut: Input.formatKeyShortcut(.Control, .W))
+        entries.add(strings.ui_Numbers, func|view = me|() { view.toggleLineNumbers() }, checked: .lineNumbers)
+        for encoding, index in Encodings
+        {
+            let name = Format.toString("% · %", strings.ui_Encoding, EncodingNames[index])
+            entries.add(name, func|view = me, encoding|() { view.applyEncoding(encoding) }, checked: encoding == .encoding)
+        }
+
+        entries.addZoom(.In, .zoomPercent, func|view = me, percent = Viewer.zoomTarget(.In, me.zoomPercent)|() { view.setZoom(percent) })
+        entries.addZoom(.Out, .zoomPercent, func|view = me, percent = Viewer.zoomTarget(.Out, me.zoomPercent)|() { view.setZoom(percent) })
+        entries.addZoom(.Reset, .zoomPercent, func|view = me, percent = Viewer.zoomTarget(.Reset, me.zoomPercent)|() { view.setZoom(percent) })
+        entries.add(appStrings().cmd_Options, func|view = me|() { view.showOptions() })
+    }
+
     // Opens how the text is laid out and decoded: wrapping, line numbers, and the encoding.
     mtd showOptions()
     {
@@ -952,6 +970,7 @@ func createViewer(host: Viewer.Host)
     }
 
     host.setSearch(search)
+    host.setLensSource(func|view|(entries) { view.describeLens(entries) })
 
     with var lifecycle: Viewer.LifecycleApi
     {

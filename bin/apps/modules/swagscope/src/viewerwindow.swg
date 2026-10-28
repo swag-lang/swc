@@ -755,7 +755,7 @@ impl ViewerWindow
     mtd concealViewerBar()
     {
         let focused = .focusedWindow()
-        let held    = .viewerBar.surfaceRect().contains(.pointerPosition) or (focused and .viewerBar.isOwnerOf(focused))
+        let held    = .viewerBar.surfaceRect().contains(.pointerPosition) or (focused and .viewerBar.isOwnerOf(focused)) or .lens.isOpen()
         if held and .viewerBarShown
         {
             .viewerBarTimer = .addTimer(ViewerBarLinger)

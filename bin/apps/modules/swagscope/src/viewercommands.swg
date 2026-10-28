@@ -67,6 +67,7 @@ impl ViewerWindow
         with .lens = Lens.View.create(me)
         {
             .addSource(.None, func|window = me|(results) { window.describeViewerChoices(results) })
+            .addSource(.Action, func|window = me|(results) { window.describeViewerCommands(results) })
             .addSource(.File, func|window = me|(results) { window.describeFiles(results) })
             .addCommands(func()->string => appStrings().lens_File,
                          [ViewerCommands.Open, ViewerCommands.Explore, ViewerCommands.Close, ViewerCommands.Reload,
@@ -152,6 +153,19 @@ impl ViewerWindow
                 .run     = func|window = me, chosen|() { window.selectViewer(chosen) }
             }
         }
+    }
+
+    // Answers the lens with the rows of the viewer on screen, under its name.
+    private mtd describeViewerCommands(results: *Lens.Results)
+    {
+        if .activeChoiceIndex >= .instances.count or .activeChoiceIndex >= .choices.count do
+            return
+        let instance = &.instances[.activeChoiceIndex]
+        if not instance.view or not instance.lensSource do
+            return
+        let plugin  = &.index.plugins[.choices[.activeChoiceIndex].pluginIndex]
+        var entries = Viewer.LensEntries.create(results, plugin.displayName())
+        instance.lensSource(&entries)
     }
 
     // Answers the lens with files to open: the recent ones, the ones beside the open file, and the
@@ -471,7 +485,11 @@ impl ViewerWindow
         let hasFile = not .currentFile.isEmpty()
         switch id
         {
-        case ViewerCommands.Lens:              .lens.open()
+        case ViewerCommands.Lens:
+            // A row of the viewer may open a menu from one of its floating buttons: they stay on
+            // screen while the lens is open.
+            .revealViewerBar()
+            .lens.open()
         case ViewerCommands.Information:       .toggleInformation()
         case ViewerCommands.Open:              .chooseFile()
         case ViewerCommands.Explore:           .exploreFolder()

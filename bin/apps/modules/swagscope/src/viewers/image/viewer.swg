@@ -343,6 +343,36 @@ impl Panel
             Clipboard.addImage(picture[])
     }
 
+    // Gives the lens the neighbouring pictures, the orientation, the zoom, the animation and the
+    // play mode of the picture.
+    mtd describeLens(entries: *Viewer.LensEntries)
+    {
+        let texts = texts()
+        let lens  = appStrings()
+        entries.add(texts.ui_TipPrevious, func|view = me|() { view.navigate(-1) }, shortcut: Input.formatKeyShortcut(.None, .Left))
+        entries.add(texts.ui_TipNext, func|view = me|() { view.navigate(1) }, shortcut: Input.formatKeyShortcut(.None, .Right))
+        entries.add(texts.ui_RotateCounterClockwise, func|view = me|() { view.rotateCounterClockwise() }, shortcut: Input.formatKeyShortcut(.Shift, .R))
+        entries.add(texts.ui_RotateClockwise, func|view = me|() { view.rotateClockwise() }, shortcut: Input.formatKeyShortcut(.None, .R))
+        entries.add(texts.ui_MirrorHorizontal, func|view = me|() { view.mirrorHorizontally() }, shortcut: Input.formatKeyShortcut(.None, .H))
+        entries.add(texts.ui_MirrorVertical, func|view = me|() { view.mirrorVertically() }, shortcut: Input.formatKeyShortcut(.None, .V))
+        entries.add(texts.ui_ResetTransform, func|view = me|() { view.resetTransform() }, shortcut: Input.formatKeyShortcut(.Control, .R))
+        if .imageView.picture() do
+            entries.add(texts.ui_CopyImage, func|view = me|() { view.copyPicture() }, shortcut: Input.formatKeyShortcut(.Control, .C))
+        entries.add(texts.ui_TipFit, func|view = me|() { view.imageView.zoomToFit() }, shortcut: Input.formatKeyShortcut(.None, .F))
+        entries.add(lens.cmd_ZoomReset, func|view = me|() { view.imageView.actualSize() })
+        entries.add(lens.cmd_ZoomMenu, func|view = me|() { view.showZoomMenu() })
+        if .playButton.isLocallyVisible()
+        {
+            entries.add(.imageView.movie.isPaused ? lens.cmd_Play : lens.cmd_Pause, func|view = me|()
+            {
+                view.imageView.setPaused(not view.imageView.movie.isPaused)
+                view.refreshFrame()
+            }, shortcut: Input.formatKeyShortcut(.None, .Space))
+        }
+
+        entries.add(lens.cmd_PlayMode, func|view = me|() { view.playModeButton.showOptions() })
+    }
+
     mtd showTransformMenu()
     {
         let menu = .createTransformMenu()
@@ -645,6 +675,7 @@ func createViewer(host: Viewer.Host)
 {
     let view = Panel.create(host)
     host.attachView(view)
+    host.setLensSource(func|view|(entries) { view.describeLens(entries) })
 
     host.setLifecycle(Viewer.loadLifecycle(view))
 }

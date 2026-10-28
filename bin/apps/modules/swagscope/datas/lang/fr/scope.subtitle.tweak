@@ -7,3 +7,7 @@ ui_CueNavigationTip Aller au sous-titre · Ctrl+Page précédente/suivante : pr�
 ui_CueRange Entrez un numéro de sous-titre entre 1 et %.
 ui_GoToTime Aller au temps
 ui_TimeRange Entrez des secondes, MM:SS ou HH:MM:SS.
+ui_PreviousCue Sous-titre précédent
+ui_NextCue Sous-titre suivant
+ui_FirstCue Premier sous-titre
+ui_LastCue Dernier sous-titre

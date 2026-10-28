@@ -25,6 +25,7 @@ struct ViewerSession
     isLoading:           Viewer.IsLoading?
     needsLoadingOverlay: Viewer.NeedsLoadingOverlay?
     retire:              Viewer.Retire?
+    lensSource:          Viewer.LensSource?
     details:             String
     failureReason:       String
 }
@@ -298,6 +299,11 @@ impl Viewer.Host for ViewerPluginHost
         .session.prepareSearch      = api.prepare
         .session.collectFileMatches = api.collectFileMatches
         .session.useSearchMatches   = api.useMatches
+    }
+
+    mtd impl setLensSource(source: Viewer.LensSource)
+    {
+        .session.lensSource = source
     }
 
     mtd impl setLifecycle(api: Viewer.LifecycleApi)

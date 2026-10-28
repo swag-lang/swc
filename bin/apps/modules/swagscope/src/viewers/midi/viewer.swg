@@ -167,6 +167,13 @@ private impl IWnd for Panel
 impl Panel
 {
     // Opens what the roll shows and how: the track, the names of the pitches, the keyboard width.
+    // Gives the lens the options and the zoom of the score.
+    mtd describeLens(entries: *Viewer.LensEntries)
+    {
+        entries.add(appStrings().cmd_Options, func|view = me|() { view.showOptions() })
+        entries.add(appStrings().cmd_ZoomMenu, func|view = me|() { view.showZoomMenu() })
+    }
+
     mtd showOptions()
     {
         let sheet = OptionSheet.View.create(.optionsButton, func|view = me|(page) { view.describeOptions(page) }, owner: me)
@@ -266,6 +273,7 @@ func createViewer(host: Viewer.Host)
 {
     let view = Panel.create(host)
     host.attachView(view)
+    host.setLensSource(func|view|(entries) { view.describeLens(entries) })
 
     with var lifecycle: Viewer.LifecycleApi
     {

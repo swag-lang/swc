@@ -125,6 +125,38 @@ private impl Panel
             .document.invalidate()
     }
 
+    // Gives the lens the sample, the pages of the glyph grid and the blocks it can jump to.
+    mtd describeLens(entries: *Viewer.LensEntries)
+    {
+        let strings = texts()
+        entries.add(strings.ui_EditSample, func|view = me|()
+        {
+            view.sampleEdit.setFocus()
+            view.sampleEdit.selectAll()
+        })
+        entries.add(strings.ui_PreviousPage, func|view = me|()
+        {
+            view.document.previousPage()
+            view.refreshPageCommands()
+        }, disabled: not .previousButton.isEnabled())
+        entries.add(strings.ui_NextPage, func|view = me|()
+        {
+            view.document.nextPage()
+            view.refreshPageCommands()
+        }, disabled: not .nextButton.isEnabled())
+
+        const Ranges: [5] u32 = [0x20, 0xA0, 0x370, 0x400, 0x2000]
+        let names = [strings.ui_BasicLatin, strings.ui_Latin1, strings.ui_Greek, strings.ui_Cyrillic, strings.ui_Symbols]
+        for range, index in Ranges
+        {
+            entries.add(names[index], func|view = me, range|()
+            {
+                view.document.goToCharacterPage(range)
+                view.refreshPageCommands()
+            })
+        }
+    }
+
     // Offers the Unicode blocks the glyph grid can jump to, and shows the first page of the one
     // chosen.
     mtd showRangeMenu()
@@ -271,6 +303,7 @@ func createViewer(host: Viewer.Host)
     let services = host.services()
     let view     = Panel.create(host.contentParent(), host.createCommandGroup(CommandWidth), host.fileName(), services)
     host.attachView(view)
+    host.setLensSource(func|view|(entries) { view.describeLens(entries) })
 
     host.setLifecycle(Viewer.loadLifecycle(view))
 }

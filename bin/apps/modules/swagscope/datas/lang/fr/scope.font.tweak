@@ -2,6 +2,7 @@
 
 ui_DefaultSample      Portez ce vieux whisky
 ui_SamplePlaceholder  Saisissez un texte d'essai
+ui_EditSample         Modifier le texte d'essai
 ui_PreviousPage       Page de caractères précédente
 ui_NextPage           Page de caractères suivante
 ui_CharacterRange     Plage de caractères

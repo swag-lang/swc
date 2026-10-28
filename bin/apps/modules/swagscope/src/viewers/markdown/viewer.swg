@@ -522,6 +522,15 @@ func createViewer(host: Viewer.Host)
         showOptions(button, view, zoomButton)
     }
 
+    host.setLensSource(func|view, zoomButton, optionsButton|(entries)
+    {
+        entries.addZoom(.In, zoomButton.zoomPercent, func|zoomButton, percent = Viewer.zoomTarget(.In, zoomButton.zoomPercent)|() { zoomButton.applyZoom(percent) })
+        entries.addZoom(.Out, zoomButton.zoomPercent, func|zoomButton, percent = Viewer.zoomTarget(.Out, zoomButton.zoomPercent)|() { zoomButton.applyZoom(percent) })
+        entries.addZoom(.Reset, zoomButton.zoomPercent, func|zoomButton, percent = Viewer.zoomTarget(.Reset, zoomButton.zoomPercent)|() { zoomButton.applyZoom(percent) })
+        entries.add(appStrings().cmd_ZoomMenu, func|zoomButton|() { zoomButton.showZoomMenu() })
+        entries.add(appStrings().cmd_Options, func|view, zoomButton, optionsButton|() { showOptions(optionsButton, view, zoomButton) })
+    })
+
     view.hookOnEvent = func|optionsButton, zoomButton|(_, evt)
     {
         switch evt

@@ -2600,3 +2600,28 @@ func createPictureFolder(stem: string, names: const [..] string)->String
     Swag.assert(button.isVisible())
     window.showEmpty(appStrings().ui_Unsupported)
 }
+
+// What a viewer can do is a row of the lens too, under the viewer's name, and choosing a row
+// runs it as the viewer's own control does.
+#test
+{
+    var host: Testing.HeadlessHost
+    host.setup(960, 680)
+    let window = ViewerWindow.create(&host.surfaceWnd, createViewerPluginRegistry())
+    window.openFile(viewerFixturePath(), remember: false)
+    completeQueuedViewerFile(&host, window)
+
+    let view = assume cast(*PlainText.Panel, window.currentView)
+    window.sendCommandEvent(ViewerCommands.Lens)
+    Swag.assert(window.lens.isOpen() and window.viewerBar.isLocallyVisible())
+    window.lens.setQuery(">")
+    Swag.assert(lensHasEntry(window, PlainText.texts().ui_Wrap) and lensHasEntry(window, appStrings().cmd_ZoomIn))
+    Swag.assert(lensHasEntry(window, appStrings().cmd_Options))
+
+    let wrapping = view.wrapping
+    window.lens.setQuery(PlainText.texts().ui_Wrap)
+    Swag.assert(window.lens.chosenEntry()!.title == PlainText.texts().ui_Wrap)
+    Swag.assert(window.lens.chosenEntry()!.checked == wrapping)
+    window.lens.runChosen()
+    Swag.assert(not window.lens.isOpen() and view.wrapping != wrapping)
+}

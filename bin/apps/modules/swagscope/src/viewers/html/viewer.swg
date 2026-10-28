@@ -68,6 +68,15 @@ private impl Panel
         .zoomLabel.setText(Viewer.zoomText(.zoomPercent))
     }
 
+    // Gives the lens the zoom of the page.
+    mtd describeLens(entries: *Viewer.LensEntries)
+    {
+        entries.addZoom(.In, .zoomPercent, func|viewer = me, percent = Viewer.zoomTarget(.In, me.zoomPercent)|() { viewer.setZoom(percent) })
+        entries.addZoom(.Out, .zoomPercent, func|viewer = me, percent = Viewer.zoomTarget(.Out, me.zoomPercent)|() { viewer.setZoom(percent) })
+        entries.addZoom(.Reset, .zoomPercent, func|viewer = me, percent = Viewer.zoomTarget(.Reset, me.zoomPercent)|() { viewer.setZoom(percent) })
+        entries.add(appStrings().cmd_ZoomMenu, func|viewer = me|() { viewer.showZoomMenu() })
+    }
+
     mtd showZoomMenu()
     {
         let percent = Viewer.pickZoom(me, .zoomLabel, .zoomPercent)
@@ -148,6 +157,7 @@ func createViewer(host: Viewer.Host)
     }
 
     host.setSearch(search)
+    host.setLensSource(func|result|(entries) { result.describeLens(entries) })
 
     host.setLifecycle({isLoading: func|result|()->bool => result.view.isLoading()})
     result.view.sigLinkActivated += func(_, url)

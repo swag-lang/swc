@@ -1050,6 +1050,14 @@ impl Panel
         .retired = true
     }
 
+    // Gives the lens the way back and forward through the report.
+    mtd describeLens(entries: *Viewer.LensEntries)
+    {
+        let strings = texts()
+        entries.add(strings.ui_MenuBack, func|view = me|() { discard view.navigateHistory(-1) }, disabled: not .backButton.isEnabled())
+        entries.add(strings.ui_MenuForward, func|view = me|() { discard view.navigateHistory(1) }, disabled: not .forwardButton.isEnabled())
+    }
+
     // Creates the command group `host` registers for this viewer, and the history buttons in it.
     private mtd createCommandBar(host: Viewer.Host)
     {
@@ -1140,6 +1148,7 @@ func createViewer(host: Viewer.Host)
     }
 
     host.setSearch(search)
+    host.setLensSource(func|view|(entries) { view.describeLens(entries) })
 
     with var lifecycle: Viewer.LifecycleApi
     {

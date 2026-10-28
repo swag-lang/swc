@@ -284,6 +284,15 @@ impl Panel
         .updateEstimatedHeight()
     }
 
+    // Gives the lens the zoom of the source.
+    mtd describeLens(entries: *Viewer.LensEntries)
+    {
+        entries.addZoom(.In, .zoomPercent, func|view = me, percent = Viewer.zoomTarget(.In, me.zoomPercent)|() { view.setZoom(percent) })
+        entries.addZoom(.Out, .zoomPercent, func|view = me, percent = Viewer.zoomTarget(.Out, me.zoomPercent)|() { view.setZoom(percent) })
+        entries.addZoom(.Reset, .zoomPercent, func|view = me, percent = Viewer.zoomTarget(.Reset, me.zoomPercent)|() { view.setZoom(percent) })
+        entries.add(appStrings().cmd_ZoomMenu, func|view = me|() { view.showZoomMenu() })
+    }
+
     mtd showZoomMenu()
     {
         if not .zoomLabel do
@@ -581,6 +590,7 @@ func createViewer(host: Viewer.Host)
     }
 
     host.setSearch(search)
+    host.setLensSource(func|view|(entries) { view.describeLens(entries) })
 
     host.setLifecycle({isLoading: func|view|()->bool => view.loadTimer != null})
 }

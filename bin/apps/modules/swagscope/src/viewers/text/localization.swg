@@ -10,9 +10,9 @@ using Core, Gui
 struct Texts
 {
     ui_Name:         string = "Basic text"             // Name of this viewer in the viewer selector.
-    ui_Wrap:         string = "Wrap long lines"        // Option folding long lines into the view; Ctrl+W also switches it.
-    ui_Numbers:      string = "Line numbers"           // Option numbering the lines in a gutter.
-    ui_Encoding:     string = "Character encoding"     // Option choosing how the bytes are read as text.
+    ui_Wrap:         string = "Wrap Long Lines"        // Option folding long lines into the view; Ctrl+W also switches it.
+    ui_Numbers:      string = "Line Numbers"           // Option numbering the lines in a gutter.
+    ui_Encoding:     string = "Character Encoding"     // Option choosing how the bytes are read as text.
     ui_ZoomMenu:     string = "Text Zoom Options"      // Tooltip of the zoom value menu.
     ui_NotText:      string = "This file does not contain readable text. Select Hexadecimal to inspect its bytes."     // No encoding reads the file as text.
     ui_Details:      string = "% · %"                  // Encoding and the current cursor line.

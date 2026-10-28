@@ -288,6 +288,20 @@ private impl Panel
         return true
     }
 
+    // Gives the lens the pages and the zoom of the document.
+    mtd describeLens(entries: *Viewer.LensEntries)
+    {
+        let strings = texts()
+        entries.add(strings.ui_Previous, func|view = me|() { view.pdfView.previousPage() })
+        entries.add(strings.ui_Next, func|view = me|() { view.pdfView.nextPage() })
+        entries.add(strings.ui_GoToPage, func|view = me|() { view.promptGoToPage() })
+        entries.add(strings.ui_ZoomIn, func|view = me|() { view.pdfView.zoomIn() }, shortcut: Input.formatKeyShortcut(.None, .Add))
+        entries.add(strings.ui_ZoomOut, func|view = me|() { view.pdfView.zoomOut() }, shortcut: Input.formatKeyShortcut(.None, .Subtract))
+        entries.add(strings.ui_Fit, func|view = me|() { view.pdfView.zoomToFit() }, checked: .pdfView.zoomMode == .FitPage, shortcut: Input.formatKeyShortcut(.None, .F))
+        entries.add(strings.ui_FitWidth, func|view = me|() { view.pdfView.zoomToFitWidth() }, checked: .pdfView.zoomMode == .FitWidth, shortcut: Input.formatKeyShortcut(.None, .W))
+        entries.add(appStrings().cmd_ZoomMenu, func|view = me|() { view.showZoomMenu() })
+    }
+
     mtd promptGoToPage()
     {
         if not .surface or not .pdfView.pageCount() do
@@ -460,6 +474,7 @@ func createViewer(host: Viewer.Host)
     }
 
     host.setSearch(search)
+    host.setLensSource(func|view|(entries) { view.describeLens(entries) })
 
     host.setLifecycle(Viewer.loadLifecycle(view))
 }

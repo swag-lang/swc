@@ -259,6 +259,18 @@ private impl Panel
         return .revealCue(last ? .cueText.count - 1 : 0)
     }
 
+    // Gives the lens the ways through the cues and the time of the track.
+    mtd describeLens(entries: *Viewer.LensEntries)
+    {
+        let strings = texts()
+        entries.add(strings.ui_GoToCue, func|view = me|() { view.promptGoToCue() })
+        entries.add(strings.ui_GoToTime, func|view = me|() { view.promptGoToTime() })
+        entries.add(strings.ui_PreviousCue, func|view = me|() { discard view.navigateCue(false) }, shortcut: Input.formatKeyShortcut(.Control, .PageUp))
+        entries.add(strings.ui_NextCue, func|view = me|() { discard view.navigateCue(true) }, shortcut: Input.formatKeyShortcut(.Control, .PageDown))
+        entries.add(strings.ui_FirstCue, func|view = me|() { discard view.navigateCueBoundary(false) }, shortcut: Input.formatKeyShortcut(.Control, .Home))
+        entries.add(strings.ui_LastCue, func|view = me|() { discard view.navigateCueBoundary(true) }, shortcut: Input.formatKeyShortcut(.Control, .End))
+    }
+
     mtd promptGoToCue()
     {
         if .cueText.isEmpty() do
@@ -421,6 +433,7 @@ func createViewer(host: Viewer.Host)
         host.setDetails(formatText(view.track!.sourceFormat()))
 
         host.setSearch(Viewer.searchApi(view))
+        host.setLensSource(func|view|(entries) { view.describeLens(entries) })
     }
     {
         host.reject(Viewer.failureText(Swag.err))

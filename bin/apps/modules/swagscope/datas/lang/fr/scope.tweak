@@ -125,3 +125,17 @@ sort_Name par nom
 sort_Type par type
 sort_Size par taille
 sort_Modified par date
+cmd_Options Options…
+cmd_Play Lire
+cmd_Pause Mettre en pause
+cmd_Stop Arrêter
+cmd_SeekBackward Reculer de 10 secondes
+cmd_SeekForward Avancer de 10 secondes
+cmd_PreviousFrame Image précédente
+cmd_NextFrame Image suivante
+cmd_Mute Couper le son
+cmd_PlayMode Mode de lecture…
+cmd_ZoomIn Zoom avant
+cmd_ZoomOut Zoom arrière
+cmd_ZoomReset Taille réelle
+cmd_ZoomMenu Zoom…

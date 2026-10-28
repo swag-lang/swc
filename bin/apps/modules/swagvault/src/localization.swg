@@ -56,6 +56,7 @@ struct AppStrings
     ui_Capacity:         string = "Capacity"
     ui_UnitMiB:          string = "MiB"
     ui_UnitGiB:          string = "GiB"
+    ui_FreeSpace:        string = "% free on %"     // Room left on the volume of the new container: the amount, then the volume.
     ui_Password:         string = "Password"
     ui_Confirm:          string = "Confirm"
     ui_OptionalPassword: string = "Optional"
@@ -84,7 +85,7 @@ struct AppStrings
     ui_UnmountOnSuspend:     string = "Unmount Before Sleep"
     ui_UnmountOnSuspendHelp: string = "Protected drives close when Windows suspends the computer."
     ui_UnmountOnIdle:        string = "Unmount After Inactivity"
-    ui_UnmountOnIdleHelp:    string = "Protected drives close after Windows has received no keyboard or pointer input for the selected time."
+    ui_UnmountOnIdleHelp:    string = "Protected drives close after Windows has received no keyboard or pointer input for %."     // '%' is the delay, chosen inside the sentence.
     ui_Minutes:              string = "% minutes"
 
     // The boxes that change a vault. Their labels stand above the fields.
@@ -117,12 +118,10 @@ struct AppStrings
     dlg_TitleGenerateKey:    string = "Create a Random Key File"
     dlg_TitleChangeKeyFiles: string = "Change the Vault Key Files"
     dlg_TitleResize:         string = "Change Capacity or Camouflage"
-    dlg_TitleUnlock:         string = "Unlock %"     // '%' is the file name of the container being mounted at startup.
     dlg_BtnCreate:           string = "Create"
     dlg_BtnOpen:             string = "Open"
     dlg_BtnAdd:              string = "Add"
     dlg_BtnApply:            string = "Apply"
-    dlg_BtnSkip:             string = "Skip"
 
     // What the line under the title of the list reports, and the boxes a failure opens.
     msg_Ready:                string = "Ready — create a vault or choose one to open."

@@ -3,7 +3,8 @@ using Core, Gui, Pixel
 // One option of the privacy page: a title, a paragraph saying what it costs, and its switch.
 //
 // The switch stands at the end of the title's line, so the row reads as a sentence and its answer.
-// What the option needs besides — the delay of the inactivity option — stands under the paragraph.
+// What the option needs besides — the delay of the inactivity option — is a quiet word inside its
+// paragraph, standing where the `%` of the sentence puts it.
 struct OptionRow
 {
     using wnd: Wnd
@@ -15,14 +16,16 @@ struct OptionRow
         toggle: *ToggleButton
     }
 
-    extra: *Wnd?     // Control under the paragraph, when the option needs one.
+    helpText:   String         // The paragraph as the string table writes it, `%` standing for the choice.
+    choice:     *Wnd?          // Quiet word inside the paragraph, when the option needs one.
+    choiceTail: String         // Words of the paragraph after the choice, such as its closing period.
+    tailPos:    Math.Point     // Where those words start, in the row: the end of the choice, on its line.
 }
 
 impl OptionRow
 {
     const TitleHeight = 24'f32     // Height of the title's line, which the switch is centred on.
     const HelpGap     = 4'f32      // Air between the title and its paragraph.
-    const ExtraGap    = 8'f32      // Air between the paragraph and the control under it.
     const ToggleGap   = 32'f32     // Least air between the words and the switch.
 
     // Creates the row of the option `title` in `parent`.
@@ -45,7 +48,8 @@ impl OptionRow
             .setTextAlignment(.Left, .Top)
         }
 
-        result.toggle = ToggleButton.create(result)
+        result.toggle   = ToggleButton.create(result)
+        result.helpText = help
         return result
     }
 
@@ -53,7 +57,61 @@ impl OptionRow
     mtd setTexts(title, help: string)
     {
         .title.setText(title)
-        .help.setText(help)
+        .helpText = help
+        .applyHelp()
+    }
+
+    // Sets `choice` inside the paragraph, where its `%` stands.
+    mtd setChoice(choice: *Wnd)
+    {
+        .choice = choice
+        .applyHelp()
+    }
+
+    // Writes the paragraph: whole, or up to the choice, keeping what follows it for the row to
+    // write after the choice.
+    private mtd applyHelp()
+    {
+        let mark = .choice ? Utf8.indexOf(.helpText.toSlice(), "%") : Swag.U64.Max
+        if mark == Swag.U64.Max
+        {
+            .help.setText(.helpText)
+            .choiceTail.clear()
+            return
+        }
+
+        .help.setText(Latin1.trim(.helpText[until mark]))
+        .choiceTail = .helpText[mark + 1 to]
+    }
+
+    // Lays the paragraph out at `width` and returns where the choice stands in it: after its last
+    // word on the same line, or at the start of the next one when the line is full. The words of
+    // the choice line up with the words of the paragraph.
+    private mtd choiceRect(width: f32)->Math.Rectangle
+    {
+        let chooser = unwrap .choice
+        let size    = chooser.measure({}).preferred
+        let inset   = .themeMetrics().comboBox_Padding
+        let font    = unwrap .help.font().regular
+
+        discard .help.measure(Math.Point{width, 0})
+        var lineEnd, lineTop: f32
+        var lineHeight = font.height
+        for &chunk in .help.name.chunks where chunk.visible and not chunk.isEol
+        {
+            lineEnd    = chunk.pos.x + chunk.boundRect.width
+            lineTop    = chunk.pos.y
+            lineHeight = chunk.boundRect.height
+        }
+
+        var x = lineEnd + Painter.measureString(" ", font).width - inset
+        if x + size.x > width
+        {
+            x       = -inset
+            lineTop += lineHeight
+        }
+
+        return Math.Rectangle{x, Math.round(lineTop + (lineHeight - size.y) * 0.5), size.x, size.y}
     }
 
     // Returns the width the words have beside the switch, in a row `width` wide.
@@ -75,10 +133,17 @@ impl OptionRow
 
         let helpHeight = Math.ceil(.help.measure(Math.Point{words, 0}).preferred.y)
         .help.arrange(Math.Rectangle{room.x, room.y + TitleHeight + HelpGap, words, helpHeight})
-        if .extra
+        if .choice
         {
-            let extra = .extra.measure({}).preferred
-            .extra.arrange(Math.Rectangle{room.x, .help.position.bottom() + ExtraGap, extra.x, extra.y})
+            var rect = .choiceRect(words)
+            rect.offset(.help.position.x, .help.position.y)
+            .choice.arrange(rect)
+
+            // The words go on right after the chevron, which stands in the middle of the band the
+            // choice keeps at its end.
+            let metrics = .themeMetrics()
+            let chevron = rect.right() - (metrics.comboBox_RightMargin - metrics.chevron_Size) * 0.5
+            .tailPos = Math.Point{chevron, rect.vertCenter()}
         }
     }
 }
@@ -89,11 +154,21 @@ impl IWnd for OptionRow
     {
         if .toggle == null do
             return {}
-        let words  = .wordsWidth(available.x)
-        var height = TitleHeight + HelpGap + .help.measure(Math.Point{words, 0}).preferred.y
-        if .extra do
-            height += ExtraGap + .extra.position.height
-        return Math.Point{0, Math.ceil(height)}
+        let words = .wordsWidth(available.x)
+        var help  = .help.measure(Math.Point{words, 0}).preferred.y
+        if .choice do
+            help = Math.max(help, .choiceRect(words).bottom())
+        return Math.Point{0, Math.ceil(TitleHeight + HelpGap + help)}
+    }
+
+    // Writes the words of the paragraph that follow the choice, on the choice's line.
+    mtd impl onPaint(evt: *PaintEvent)
+    {
+        if .choice == null or .choiceTail.isEmpty() do
+            return
+        let font    = unwrap .help.font().regular
+        let painter = evt.paintContext.painter
+        painter.drawString(.tailPos.x, font.opticalLineTop(.tailPos.y), .choiceTail, font, .themeColors().label_TextLight)
     }
 
     mtd impl onResizeEvent(_: *ResizeEvent)
@@ -105,7 +180,7 @@ impl IWnd for OptionRow
 // The page of privacy and automatic unmounting: one row per option, each with its own switch.
 //
 // The rows are parted by space and one hairline, never by a box. The delay of the inactivity
-// option stands under its paragraph, and is only live while the option is on.
+// option is a quiet word inside its paragraph, and is only live while the option is on.
 struct OptionsPage
 {
     using wnd: Wnd
@@ -157,7 +232,7 @@ impl OptionsPage
             .sigChanged += func|window|(_, _) { window.readAutoUnmountControls() }
         }
 
-        result.idle.extra = result.timeout
+        result.idle.setChoice(result.timeout)
         result.privacy.toggle.sigChanged += func|window|(_) { window.readPrivacyControl() }
         for row in [result.lock, result.suspend, result.idle] do
             row.toggle.sigChanged += func|window|(_) { window.readAutoUnmountControls() }

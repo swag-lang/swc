@@ -919,18 +919,27 @@ impl Wnd
         let painter = bc.painter
         if (opacity < 1 or scaled) and .position.width > 0 and .position.height > 0
         {
+            // The layer holds everything the window paints, not only its logical rectangle: a
+            // floating surface casts its shadow and a control rings its focus outside it, and a
+            // layer cut to the rectangle would drop them for as long as the fade lasts.
+            let extent = .paintExtent(.position)
             var layer: Layer
             layer.begin(painter, {
-                width: cast(s32, Math.ceil(.position.width)),
-                height: cast(s32, Math.ceil(.position.height))})
+                width: cast(s32, Math.ceil(extent.width)),
+                height: cast(s32, Math.ceil(extent.height))})
 
             // `paintContent` is authored in parent coordinates. Move that parent origin so the
-            // target's logical rectangle records at the layer origin.
-            painter.translateTransform(-.position.x, -.position.y)
+            // painted extent records at the layer origin.
+            painter.translateTransform(-extent.x, -extent.y)
             .paintContent(bc)
             layer.end()
 
-            let destination = .presentationRect()
+            let logical     = .presentationRect()
+            let destination = Math.Rectangle{
+                logical.x + (extent.x - .position.x) * .presentationScale.x,
+                logical.y + (extent.y - .position.y) * .presentationScale.y,
+                Math.ceil(extent.width) * .presentationScale.x,
+                Math.ceil(extent.height) * .presentationScale.y}
 
             painter.pushState()
             if .hasPresentationClip
@@ -938,7 +947,7 @@ impl Wnd
                 var clip = .presentationClip
                 clip.x, clip.width  *= .presentationScale.x
                 clip.y, clip.height *= .presentationScale.y
-                clip.offset(destination.x, destination.y)
+                clip.offset(logical.x, logical.y)
                 painter.pushClippingRect(clip)
             }
 

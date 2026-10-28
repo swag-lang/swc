@@ -14,6 +14,9 @@ struct ThemeMetrics
         motion_PageSeconds:  f32 = 0.18     // Duration of a page change.
         motion_PanelSeconds: f32 = 0.22     // Duration of a layout-affecting panel change.
         motion_PageOffset:   f32 = 16       // Travel distance of a page change, in logical pixels.
+        motion_LeaveSeconds: f32 = 0.12     // Duration of a floating surface fading out: two thirds of its arrival.
+        motion_EdgeTravel:   f32 = 8        // Travel of a floating surface arriving from the edge it stands against.
+        motion_AnchorTravel: f32 = 4        // Travel of a floating surface leaving the anchor it belongs to.
 
         // The corners of the charter, one per kind of shape. The atlas tiles of
         // [[Gui.ThemeImageRects]] are drawn with these radii and publish them as their `radius`; a

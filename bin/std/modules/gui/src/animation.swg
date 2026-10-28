@@ -1048,6 +1048,71 @@ impl Animator
         return .start(#move group)
     }
 
+    // Shows `target` the way a floating surface arrives: its picture fades in while it settles from `travel` into place.
+    //
+    // The window is shown at once, so layout, hit testing and the keyboard reach it immediately;
+    // only what is seen arrives, over [[Gui.ThemeMetrics.motion_PageSeconds]] and decelerating.
+    // `travel` is where the picture starts relative to its place: a sheet against the right edge
+    // starts a little to the right of it. A surface still fading out arrives from what is on
+    // screen rather than from nothing.
+    mtd arrive(target: *Wnd, travel: Math.Point = {})->AnimationHandle
+    {
+        Swag.assert(target != null)
+        let opacity = AnimationChannel.from("Gui.Float.Opacity")
+        let offset  = AnimationChannel.from("Gui.Float.Offset")
+        let leaving = .isActive(target, opacity)
+
+        target.setPaintWhenHidden(false)
+        target.show()
+        if not leaving
+        {
+            target.setPresentationOpacity(0)
+            target.setPresentationOffset(travel)
+        }
+
+        var options: AnimationOptions
+        options.duration = Time.Duration.fromSeconds(target.themeMetrics().motion_PageSeconds)
+        options.easing   = .EaseOut
+
+        var group = AnimationGroup.concurrent()
+        group.addF32(target, opacity, target.presentationOpacity, 1, func(wnd, value) { wnd.setPresentationOpacity(value) }, options)
+        group.addPoint(target, offset, target.presentationOffset, {}, func(wnd, value) { wnd.setPresentationOffset(value) }, options)
+        group.setCompletion(func|target|(result)
+        {
+            if result == .Completed and not target.isPendingDestroy do
+                target.resetPresentation()
+        })
+        return .start(#move group)
+    }
+
+    // Hides `target` the way a floating surface leaves: it is gone at once for the hand and the keyboard, and its picture fades out.
+    //
+    // The fade takes [[Gui.ThemeMetrics.motion_LeaveSeconds]], without travel. A hidden window
+    // that is not fading is left as it is.
+    mtd leave(target: *Wnd)->AnimationHandle
+    {
+        Swag.assert(target != null)
+        if not target.isLocallyVisible() do
+            return {}
+
+        target.hide()
+        target.setPaintWhenHidden(true)
+
+        var options: AnimationOptions
+        options.duration = Time.Duration.fromSeconds(target.themeMetrics().motion_LeaveSeconds)
+        options.easing   = .Linear
+
+        return .animateF32(target, AnimationChannel.from("Gui.Float.Opacity"), target.presentationOpacity, 0, func(wnd, value) { wnd.setPresentationOpacity(value) }, options,
+                           func|target|(result)
+                           {
+                               if result == .Completed and not target.isPendingDestroy
+                               {
+                                   target.setPaintWhenHidden(false)
+                                   target.resetPresentation()
+                               }
+                           })
+    }
+
     // Animates one layout-managed window to a new preferred height.
     //
     // The parent lays the window out again on every frame of the track. When the track ends, the

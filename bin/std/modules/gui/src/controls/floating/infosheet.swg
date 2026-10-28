@@ -207,15 +207,20 @@ impl InfoSheet
     }
 
     // Shows the sheet at the trailing edge of its parent.
+    //
+    // It arrives from the edge it stands against.
     mtd open()
     {
         .itf.onLayout()
         .bringToFront()
-        .show()
+        discard .app().animator.arrive(me, {.themeMetrics().motion_EdgeTravel, 0})
     }
 
-    // Hides the sheet.
-    mtd close() => .hide()
+    // Hides the sheet: it is gone for the hand at once and fades out.
+    mtd close()
+    {
+        discard .app().animator.leave(me)
+    }
 
     // Shows the sheet when it is hidden and hides it when it is shown, as its key does.
     mtd toggle()

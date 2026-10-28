@@ -154,6 +154,42 @@ func floatingHost(host: *Testing.HeadlessHost, width, height: f32, light: bool)
     Swag.assert(sheet.blocks.isEmpty() and sheet.action == null)
 }
 
+// A sheet arrives from its edge and fades out, reachable at once on the way in and gone at
+// once on the way out; the mini-bar leaves its selection rising, and follows it once it is up.
+#test
+{
+    var host: Testing.HeadlessHost
+    floatingHost(&host, 640, 480, false)
+    host.setReducedMotion(false)
+    let metrics = host.theme.metrics
+
+    with let sheet = InfoSheet.create(&host.root)
+    {
+        .setTitle("viewerchrome.swg")
+        .addReading("Encoding", "UTF-8")
+    }
+
+    sheet.open()
+    Swag.assert(sheet.isLocallyVisible())
+    Swag.assert(sheet.presentationOpacity == 0 and sheet.presentationOffset == Math.Point{metrics.motion_EdgeTravel, 0})
+    host.app.animator.finishAll()
+    Swag.assert(sheet.presentationOpacity == 1 and sheet.presentationOffset == Math.Point{})
+
+    sheet.close()
+    Swag.assert(not sheet.isLocallyVisible() and sheet.paintsWhenHidden)
+    host.app.animator.finishAll()
+    Swag.assert(not sheet.paintsWhenHidden and sheet.presentationOpacity == 1)
+
+    let bar = MiniBar.create(&host.root)
+    discard bar.addTextButton("Crop")
+    bar.showNear({200, 300, 120, 80})
+    Swag.assert(bar.isLocallyVisible() and bar.position.bottom() <= 300)
+    Swag.assert(bar.presentationOffset == Math.Point{0, metrics.motion_AnchorTravel})
+    host.app.animator.finishAll()
+    bar.showNear({240, 300, 120, 80})
+    Swag.assert(bar.presentationOffset == Math.Point{} and bar.presentationOpacity == 1)
+}
+
 // The inspector stands at the trailing edge with its editors in one column, and folds to a tab.
 #test
 {

@@ -302,7 +302,7 @@ impl View
         .returnFocus = .focusedWindow()
         .itf.onLayout()
         .bringToFront()
-        .show()
+        discard .app().animator.arrive(me)
         .input.setText(query, notify: false)
         .input.setSelection(query.count, query.count)
         .input.setFocus()
@@ -314,7 +314,7 @@ impl View
     {
         if not .isLocallyVisible() do
             return
-        .hide()
+        discard .app().animator.leave(me)
         let back = .returnFocus
         .returnFocus = null
         if back and not back.isPendingDestroy and back.isVisible() do

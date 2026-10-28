@@ -17,6 +17,7 @@ struct ToggleButton
     aniBorder: BlendColor     // Color animation of the border.
     aniMark:   BlendColor     // Color animation of the toggle mark.
     checked:   bool           // Current programmatic state.
+    knob:      f32            // Place of the knob along its track, from zero (off) to one (on).
 }
 
 impl IWnd for ToggleButton
@@ -84,12 +85,13 @@ impl IWnd for ToggleButton
         theme.drawSubRect(bc.painter, clientRect, subRectBk, .aniBk.cur())
         theme.drawSubRect(bc.painter, clientRect, subRectBorder, .aniBorder.cur())
 
-        // Content
+        // Content. The knob rests at the end of its state unless a toggle is sliding it there.
+        if not .app().animator.isActive(me, AnimationChannel.from("Gui.Toggle.Knob")) do
+            .knob = .checked ? 1 : 0
         var posBox = clientRect
         posBox.y     = clientRect.vertCenter() - (posBox.height * 0.5)
         posBox.width = posBox.height
-        if .checked do
-            posBox.x = clientRect.right() - posBox.width
+        posBox.x     = clientRect.x + .knob * (clientRect.width - posBox.width)
         theme.drawSubRect(bc.painter, posBox, subRectMark, .aniMark.cur())
     }
 
@@ -145,11 +147,22 @@ impl ToggleButton
     }
 
     // Flips the state and emits the same notifications as a user action.
+    //
+    // The knob slides to its new end; a state set by [[Gui.ToggleButton.setChecked]] is shown at once.
     mtd toggle()
     {
         .checked = not .checked
+        .slideKnob()
         .invalidate()
         .sigChanged.call(me)
         .postCommandEvent(.id)
+    }
+
+    private mtd slideKnob()
+    {
+        var options: AnimationOptions
+        options.duration = Time.Duration.fromSeconds(.themeMetrics().motion_QuickSeconds)
+        options.easing   = .EaseOut
+        discard .app().animator.animateF32(me, AnimationChannel.from("Gui.Toggle.Knob"), .knob, .checked ? 1 : 0, func(button, value) { button.knob = value }, options)
     }
 }

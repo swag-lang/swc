@@ -133,10 +133,11 @@ be noticed: if a viewer remembers an animation, it was too much.
 - **Decelerate in, plain out.** Arrivals ease out: they start at speed and settle. Departures fade.
   No overshoot, bounce, spring, wobble, blur trail, or scale above one.
 - **Opacity carries the change; travel only says where from.** At most 8 px of travel for a
-  floating surface, 16 px for a page. The lens and a dialog settle 6 px upward into place with
-  their dim; the sheet and the inspector arrive 8 px from the edge they stand against; the
-  mini-bar rises 4 px toward its selection; a menu drops 4 px from its anchor. A notice opens its
-  own height, then its words fade in.
+  floating surface, 16 px for a page. The lens and a dialog fade in with their dim and do not
+  travel: a dim that moved would move the work. The sheet and the inspector arrive 8 px from the
+  edge they stand against; the mini-bar and a menu leave their anchor by 4 px, the mini-bar
+  rising when it stands above its selection. A notice opens its own height, then its words
+  fade in.
 - **The hand causes it.** Nothing moves unprompted except progress and activity. No pulse, no idle
   loop, no animated glyph, no attention-seeking entrance.
 - **Input never waits.** Focus, hit testing and the keyboard reach the final state at once; an
@@ -151,9 +152,9 @@ be noticed: if a viewer remembers an animation, it was too much.
 | --- | --- | --- | --- |
 | Hover, press, check, switch knob | 120 ms | ease out | knob slides its track |
 | Tab underline to the chosen tab | 180 ms | ease out | the underline slides |
-| Lens, dialog arriving, with their dim | 180 ms | ease out | 6 px upward |
+| Lens, dialog arriving, with their dim | 180 ms | ease out | none |
 | Sheet, inspector arriving | 180 ms | ease out | 8 px from their edge |
-| Mini-bar, menu arriving | 120 ms | ease out | 4 px toward the anchor |
+| Mini-bar, menu arriving | 180 ms | ease out | 4 px away from the anchor |
 | Any floating surface leaving | 120 ms | linear fade | none |
 | Page change | 180 ms | ease out | 16 px |
 | Panel or notice changing the layout | 220 ms | ease in-out | its own size |

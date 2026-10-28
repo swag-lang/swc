@@ -188,7 +188,12 @@ impl MiniBar
 
         .setPosition(Math.Rectangle{Math.round(x), Math.round(y), body.x, body.y})
         .bringToFront()
-        .show()
+
+        // A bar already up follows its selection; a new one leaves it, rising when it stands above.
+        if .isLocallyVisible() do
+            return
+        let travel = .themeMetrics().motion_AnchorTravel
+        discard .app().animator.arrive(me, {0, y < selection.y ? travel : -travel})
     }
 
     private mtd arrange()

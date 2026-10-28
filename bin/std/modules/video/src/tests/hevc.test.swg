@@ -147,29 +147,37 @@ using Core, Core.Errors, Pixel
     var motion: Hevc.PuMotion
     motion.predFlags = 3
     motion.refIdx    = [0, 0]
-    decoder.interPredict(0, 0, 32, 32, &motion)
-
-    var picture: PlanarFrame
-    current.writePlanar(&picture)
-    Swag.assert(picture.matrix == .Bt709 and not picture.studioRange)
-    for y in 32's32
+    // Exercise the scalar tail and full vector widths for luma and chroma.
+    for blockWidth in [4'u32, 8, 16, 32]
     {
-        for x in 32's32
+        for blockY in 32 / blockWidth
         {
-            let reconstructed = (x + y + 100 + 2 * x + y + 1) >> 1
-            Swag.assert(picture.luma[cast(u64, y) * cast(u64, picture.strideLuma) + cast(u64, x)] == cast(u8, ((reconstructed + 2) >> 2)))
+            for blockX in 32 / blockWidth do
+                decoder.interPredict(cast(s32, (blockX * blockWidth)), cast(s32, (blockY * blockWidth)), blockWidth, blockWidth, &motion)
         }
-    }
 
-    for y in 16's32
-    {
-        for x in 16's32
+        var picture: PlanarFrame
+        current.writePlanar(&picture)
+        Swag.assert(picture.matrix == .Bt709 and not picture.studioRange)
+        for y in 32's32
         {
-            let blue  = (20 + x + y + 60 + 2 * x + y + 1) >> 1
-            let red   = (40 + x + y + 80 + 2 * x + y + 1) >> 1
-            let index = cast(u64, y) * cast(u64, picture.strideChroma) + cast(u64, x)
-            Swag.assert(picture.chromaB[index] == cast(u8, ((blue + 2) >> 2)))
-            Swag.assert(picture.chromaR[index] == cast(u8, ((red + 2) >> 2)))
+            for x in 32's32
+            {
+                let reconstructed = (x + y + 100 + 2 * x + y + 1) >> 1
+                Swag.assert(picture.luma[cast(u64, y) * cast(u64, picture.strideLuma) + cast(u64, x)] == cast(u8, ((reconstructed + 2) >> 2)))
+            }
+        }
+
+        for y in 16's32
+        {
+            for x in 16's32
+            {
+                let blue  = (20 + x + y + 60 + 2 * x + y + 1) >> 1
+                let red   = (40 + x + y + 80 + 2 * x + y + 1) >> 1
+                let index = cast(u64, y) * cast(u64, picture.strideChroma) + cast(u64, x)
+                Swag.assert(picture.chromaB[index] == cast(u8, ((blue + 2) >> 2)))
+                Swag.assert(picture.chromaR[index] == cast(u8, ((red + 2) >> 2)))
+            }
         }
     }
 }

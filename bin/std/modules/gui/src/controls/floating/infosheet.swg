@@ -76,19 +76,24 @@ impl IWnd for InfoSheet
 
         let metrics = .themeMetrics()
         let bounds  = parent.clientRect()
-        let shadow  = metrics.floating_ShadowSize
         let inset   = metrics.floating_Inset
         let width   = Math.min(metrics.infoSheet_Width, bounds.width - 2 * inset)
         let top     = bounds.y + Math.max(inset, parent.stripInset())
         let height  = Math.min(.measureBody(width), bounds.bottom() - inset - top)
         let left    = bounds.right() - inset - width
-        .setPosition(Math.Rectangle{left - shadow, top - shadow, width + 2 * shadow, height + 2 * shadow})
+        liftFloating(me)
+        .setPosition(Math.Rectangle{left, top, width, height})
 
         if .action
         {
             let pad = metrics.infoSheet_Padding
-            .action.setPosition(Math.Rectangle{shadow + pad, shadow + height - pad - metrics.btnPush_Height, width - 2 * pad, metrics.btnPush_Height})
+            .action.setPosition(Math.Rectangle{pad, height - pad - metrics.btnPush_Height, width - 2 * pad, metrics.btnPush_Height})
         }
+    }
+
+    mtd impl onBeforePaint(evt: *PaintEvent)
+    {
+        paintFloatingShadow(me, evt.paintContext.painter, .clientRect(), .themeMetrics().corner_Floating)
     }
 
     mtd impl onPaint(evt: *PaintEvent)
@@ -347,13 +352,8 @@ impl InfoSheet
         return Math.ceil(y + pad)
     }
 
-    // Returns the visible sheet, without the room its shadow spreads into.
-    private mtd body()->Math.Rectangle
-    {
-        var result = .clientRect()
-        result.inflate(-.themeMetrics().floating_ShadowSize)
-        return result
-    }
+    // Returns the visible sheet: the window holds nothing else, its shadow falls outside it.
+    private mtd body()->Math.Rectangle => .clientRect()
 
     private mtd paragraphFormat()->RichStringFormat
     {

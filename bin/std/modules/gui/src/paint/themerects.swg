@@ -38,8 +38,6 @@ struct ThemeImageRects
 
         wnd_Border: ThemeImageRect = {Math.Rectangle{130, 1, 27, 27}, 3, 0}     // Outline of a window.
 
-        dlg_BtnBar: ThemeImageRect = {Math.Rectangle{29, 29, 27, 27}, 2, 0}     // Ground of the action bar of a dialog.
-
         btnPush_Normal:         ThemeImageRect = {Math.Rectangle{1, 57, 27, 27}, 7, 6}      // Fill of a push button at rest.
         btnPush_NormalBorder:   ThemeImageRect = {Math.Rectangle{29, 57, 27, 27}, 7, 6}     // Border of a push button at rest.
         btnPush_Hot:            ThemeImageRect = {Math.Rectangle{1, 57, 27, 27}, 7, 6}      // Fill of a push button under the pointer.

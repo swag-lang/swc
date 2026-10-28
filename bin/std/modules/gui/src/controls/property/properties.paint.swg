@@ -72,7 +72,7 @@ internal impl Properties
         // is the exception: it must stop at the value cell, since the bar spans full width.
         var valueCellBottom = r.bottom()
         if .isGridLike() and item.validationLabel != null and item.validationLabel.isVisible() do
-            valueCellBottom = item.validationLabel.position.y - .valBarPaddingY
+            valueCellBottom = item.validationLabel.position.y - .valBarGap
 
         // Background. Group headers (section/category) get a band; data rows stay transparent —
         // nesting depth is carried by the label indent, not a per-level tint (which turns muddy
@@ -99,27 +99,85 @@ internal impl Properties
             painter.fillRect(rect, .aniBar.cur())
         }
 
-        // List rows: a field whose value differs from its declared default gets a small neutral
-        // square in the reserved edge lane. Selection and hover own their ground, as they do in
-        // a list; the marker therefore stays neutral. Grid keeps its revert-arrow column.
-        if not .isGridLike() and item.isModified and .revertButtonsVisible
+        // A field whose value differs from its declared default carries a small Arc dot right
+        // after its name, in every kind: it says "changed" where the eye reads the name, and the
+        // faint revert glyph at the end of the row (or the context menu) restores it.
+        if item.isModified and .revertButtonsVisible do
+            .paintNameMark(painter, item, modified: true)
+
+        // A read-only value is shown, not offered: a faint padlock after its name says so.
+        if item.label != null and item.data and .isItemReadOnly(item) do
+            .paintNameMark(painter, item, modified: false)
+
+        // A section label in a panel is followed by one hairline to the end of the row: the
+        // label and the line already say where a group starts, so no band stands behind it.
+        if .kind == .Panel and item.flags.has(.Category) and item.label != null
         {
-            const MarkerSize = 4'f32
-            let marker = Math.Rectangle{rowRect.x + 4, Math.round(rowRect.vertCenter() - MarkerSize * 0.5), MarkerSize, MarkerSize}
-            painter.fillRect(marker, colors.label_TextFaint)
+            // The words are tracked out, so their run is wider than the face alone measures it.
+            let label    = item.label
+            let font     = unwrap label.font().regular
+            let tracking = metrics.sectionLabel_LetterSpacing * cast(f32, label.text().count)
+            let width    = Painter.measureString(label.text(), font).width + tracking + label.textPadding.x
+            let left     = label.position.x + width + metrics.dialog_BtnPadding
+            let y        = Math.round(label.position.vertCenter())
+            if left < r.right() do
+                painter.fillRect(Math.Rectangle{left, y, r.right() - left, metrics.separator_HairlineSize}, colors.line)
         }
 
-        // Validation feedback: an inline colored message bar stacked under the value cell,
-        // in both list and grid modes.
+        // Condensed rows read as a table: one hairline under each field row.
+        if .kind == .Condensed and not item.flags.has(.Section | .Category | .Header | .Note | .Spacer)
+        {
+            let y = rowRect.bottom() + wndItem.margin.w - metrics.separator_HairlineSize
+            painter.fillRect(Math.Rectangle{r.x, y, r.width, metrics.separator_HairlineSize}, colors.line)
+        }
+
+        // Validation feedback: a dot in the tone and the message in the tone under the value
+        // cell, with a critical ring around the editor of a failure.
         .paintValidationBar(painter, item)
 
-        // Expand/Collapse icon
-        if .isGridLike() and item.numChilds
+        // Expand/Collapse: a small faint chevron before a section label. The title of a whole
+        // structure needs none: it is the grid's own heading.
+        if .isGridLike() and item.numChilds and not item.flags.has(.Section)
         {
             let expand    = .theme().icon(item.flags.has(.Expanded) ? .ChevronDown : .ChevronRight, .themeMetrics().chevron_Size)
-            let iconColor = item.line.isDisabled() ? colors.label_DisabledIcon : colors.label_Icon
+            let iconColor = item.line.isDisabled() ? colors.label_DisabledIcon : colors.faintText
             let iconPos   = .disclosureIconPosition(item, r, expand)
             expand.paint(painter, iconPos.x, iconPos.y, iconColor)
         }
+    }
+
+    // Draws a mark right after the name of `item`: the Arc dot of a value changed from its default
+    // when `modified`, otherwise the faint padlock of a read-only value.
+    mtd paintNameMark(painter: *Painter, item: *PropertiesItem, modified: bool)
+    {
+        // A self-labelled control of a panel carries its own words, and no mark is set beside them.
+        let label = item.label
+        if label == null or
+           label.text().count == 0 or
+           not label.isLocallyVisible() or
+           label.position.width <= 0 do
+            return
+        let font = label.font().regular
+        if not font do
+            return
+
+        // The first line of the name: a list name wraps from the top, a grid name is centred.
+        let metrics = .themeMetrics()
+        let size    = metrics.property_ModifiedMarkSize
+        let width   = Painter.measureString(RichString.plainText(label.text()), font).width
+        let x       = label.position.x + label.textPadding.x + Math.min(width, label.position.width) + size
+        var centerY = label.position.vertCenter()
+        if not .isGridLike() do
+            centerY = label.position.y + label.textPadding.y + font.height * 0.5
+
+        if modified
+        {
+            painter.setParams(.Antialiased)
+            painter.fillCircle(x + size * 0.5, centerY, size * 0.5, .themeColors().arc)
+            return
+        }
+
+        let lock = .theme().icon(.Lock, metrics.iconText_Margin + size)
+        lock.paint(painter, x, centerY - lock.sizeY * 0.5, .themeColors().faintText)
     }
 }

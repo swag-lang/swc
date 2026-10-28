@@ -5,8 +5,8 @@ using Core, Pixel
 // Selects the validation state of a property grid row, in increasing severity.
 //
 // A field can be flagged `Info`, `Warning`, or `Error`, for example for a value out of range or
-// an empty required string. The row then shows an accent bar and a badge in the state color,
-// with the message in a tooltip.
+// an empty required string. The row then shows the message under its value, led by a dot in the
+// tone of the state, and a failure rings the editor in the critical ink.
 enum PropValidation
 {
     None        // Reports no validation issue.
@@ -27,46 +27,18 @@ struct PropValidationResult
 
 internal impl Properties
 {
-    // Background color of the validation bar (reuses the embedded-info palette).
-    mtd validationColor(state: PropValidation)->Color
-    {
-        let colors = .themeColors()
-        switch state
-        {
-        case .Error:   return colors.embInfo_CriticalBk
-        case .Warning: return colors.embInfo_MessageBk
-        case .Info:    return colors.embInfo_InformationBk
-        }
-
-        return Color.fromArgb(0)
-    }
-
-    // Text color of the validation bar message.
+    // Ink of a validation message and of its dot: the mark of the tone the state reports.
     mtd validationTextColor(state: PropValidation)->Color
     {
         let colors = .themeColors()
         switch state
         {
-        case .Error:   return colors.embInfo_CriticalText
-        case .Warning: return colors.embInfo_MessageText
-        case .Info:    return colors.embInfo_InformationText
+        case .Error:   return colors.critical
+        case .Warning: return colors.caution
+        case .Info:    return colors.info
         }
 
         return colors.label_Text
-    }
-
-    // Theme icon for a validation state (matches the embedded-info control).
-    mtd validationIcon(state: PropValidation)->Icon
-    {
-        let theme = .theme()
-        switch state
-        {
-        case .Error:   return theme.icon(.Critical, .valBarIconSize)
-        case .Warning: return theme.icon(.Warning, .valBarIconSize)
-        case .Info:    return theme.icon(.Information, .valBarIconSize)
-        }
-
-        return theme.icon(.Information, .valBarIconSize)
     }
 
     // Recompute the validation state of every item (called on build and after a change).
@@ -121,9 +93,10 @@ internal impl Properties
     #[Swag.Discardable]
     mtd setItemValidation(item: *PropertiesItem, state: PropValidation, message: string? = null)->bool => .applyItemValidation(item, state, message)
 
-    // Draw the colored background of a row's validation bar, in the row line's client space. The
-    // severity icon and the message text are drawn by the Label itself (like InfoBar), so they
-    // stay vertically centered together — see applyValidationVisual for the icon/colors.
+    // Draws the dot that leads a row's validation message, and the critical ring around the editor of a failure.
+    //
+    // The message is a line in the tone of its state under the value cell: no ground, no icon,
+    // no band — the dot and the ink are the whole vocabulary of a notice in a row.
     mtd paintValidationBar(painter: *Painter, item: *PropertiesItem)
     {
         if item.validation == .None or item.validationLabel == null do
@@ -132,47 +105,74 @@ internal impl Properties
         if not lbl.isVisible() do
             return
 
-        // The label is sized to the text height; grow the colored background a little
-        // above and below for breathing room (the row reserves the margins for it).
-        var bar = lbl.position
-        bar.y      -= .valBarPaddingY
-        bar.height += 2 * .valBarPaddingY
-        painter.fillRoundRect(bar, .valBarRadius, .valBarRadius, .validationColor(item.validation))
+        let metrics = .themeMetrics()
+        let color   = .validationTextColor(item.validation)
+        let font    = lbl.font().regular
+        let size    = metrics.embInfo_DotSize
+        var centerY = lbl.position.vertCenter()
+        if font do
+            centerY = lbl.position.y + lbl.textPadding.y + font.height * 0.5
+
+        painter.setParams(.Antialiased)
+        painter.fillCircle(lbl.position.x + size * 0.5, centerY, size * 0.5, color)
+
+        // A failure rings its editor the way a field in error is ringed anywhere else.
+        if item.validation == .Error
+        {
+            let editor = .valueEditor(item.line)
+            if editor
+            {
+                let rect = editor.rectRelativeTo(item.line)
+                painter.drawRoundRect(rect, metrics.corner_Control, metrics.corner_Control, color, metrics.focusRing_Size)
+            }
+        }
     }
 
-    // Apply the bar's theme visuals to the Label: the severity icon (icon64, native White tint,
-    // like InfoBar) plus the embInfo_* text color. Split out so it can be re-run on a theme
-    // switch (the Label colors are manual fields, not styles, so they don't follow the theme alone).
+    // Returns the first window of `parent` that takes the keyboard — the editor of a row — or `null`.
+    mtd valueEditor(parent: *Wnd)->*Wnd?
+    {
+        for child in parent.children
+        {
+            if child.isLocallyVisible() and child.focusPolicy != .None and child.focusPolicy != .Inner do
+                return child
+            let inner = .valueEditor(child)
+            if inner do
+                return inner
+        }
+
+        return null
+    }
+
+    // Applies the ink of the state to the message label. Split out so it can be re-run on a
+    // theme switch: a label's text colour is a plain field, not a style.
     mtd applyValidationVisual(item: *PropertiesItem)
     {
         if item.validationLabel == null or item.validation == .None do
             return
         let lbl = item.validationLabel
-        lbl.setIcon(.validationIcon(item.validation))
-        lbl.setIconColor(Argb.White)
+        lbl.setIcon({})
         lbl.setTextColor(.validationTextColor(item.validation))
         .syncValidationTextOffset(lbl)
     }
 
-    // Apply an info note's visuals to its label from the CURRENT theme: the info icon (native White
-    // tint, like the validation bar) plus the embInfo info text color. Split out so it can be re-run
-    // on a theme switch (see onThemeEvent) — a Label's icon/textColor are plain fields, not theme
-    // styles, so a note built under one theme would otherwise keep stale colors under the next.
+    // Applies an information notice to a note row from the CURRENT theme: the Arc information
+    // glyph and the information ink on the Arc tint. Split out so it can be re-run on a theme
+    // switch (see onThemeEvent): a label's icon and text colour are plain fields, not styles.
     mtd applyNoteVisual(item: *PropertiesItem)
     {
         if item.label == null do
             return
         let lbl = item.label
         lbl.setIcon(.theme().icon(.Information, .valBarIconSize))
-        lbl.setIconColor(Argb.White)
+        lbl.setIconColor(.themeColors().info)
         lbl.setTextColor(.themeColors().embInfo_InformationText)
     }
 
+    // Leaves room for the dot before the words of a validation message.
     mtd syncValidationTextOffset(lbl: *Label)
     {
-        let font = lbl.font().regular
-        if font do
-            lbl.setTextPadding(Math.Vector4{me.valBarGlyphWidth, -font.descent * 0.5, me.valBarPaddingX, font.descent * 0.5})
+        let metrics = .themeMetrics()
+        lbl.setTextPadding(Math.Vector4{metrics.embInfo_DotSize + metrics.embInfo_DotGap, 0, 0, 0})
     }
 
     // Match the validation bar to the editor column and size the row to host it. Called once
@@ -267,26 +267,19 @@ private impl Properties
         if item.validationLabel != null do
             return
 
+        // The message stands under the editor on the row's own ground, its dot painted by
+        // paintValidationBar in the room the text padding leaves.
         with let lbl = Label.create(item.line, "", Math.Rectangle{0, 0, .position.width, 0})
         {
             .updateFlags(.WordWrap | .AutoHeight)
-            .setTextAlignment(.Left, .Center)
-
-            // The Label draws the severity icon on the left and the text after it (both vertically
-            // centered by the Label — iconVerticalAlignment defaults to Center), like InfoBar.
-            .setIconHorizontalAlignment(.Left)
-            .setIconPadding(Math.Vector4{(me.valBarGlyphWidth - me.valBarIconSize) * 0.5, 0, 0, 0})
-
-            // Reserve room for the glyph on the left and inset the text from the colored
-            // background edges (vertical breathing room is added when painting the bar).
-            .setTextPadding(Math.Vector4{me.valBarGlyphWidth, 0, me.valBarPaddingX, 0})
-
-            // Gap above the bar + the painted vertical breathing room top and bottom.
-            .margin.y = me.valBarGap + me.valBarPaddingY
-            .margin.w = me.valBarPaddingY
+            .setTextAlignment(.Left, .Top)
+            .margin.y = me.valBarGap
+            .margin.w = me.valBarGap
             if me.isGridLike() do
                 .margin.z = me.rightMargin
         }
+
+        .syncValidationTextOffset(lbl)
 
         item.assignValidationLabel(lbl)
     }

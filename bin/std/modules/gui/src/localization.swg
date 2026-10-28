@@ -130,6 +130,7 @@ struct Strings
         prop_CollapseAll:      string = "Collapse all"                      // Collapse every property group.
         prop_ExpandModified:   string = "Expand modified"                   // Expand groups containing modified fields.
         prop_ShowModifiedOnly: string = "Show modified only"                // Restrict a property view to changed fields.
+        prop_MixedValues:      string = "Mixed values"                      // Placeholder of a field whose value differs across the selected objects.
 
         // Wording of the [[Gui.ApplicationOptions]] rows a property grid generates from
         // reflection. An attribute value is a compile-time constant, so the declared English is

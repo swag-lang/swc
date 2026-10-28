@@ -146,6 +146,11 @@ enum SurfaceFlags
     ToolWindow         // Creates a secondary tool window that does not appear in the taskbar.
     TopMost            // Keeps the surface above non-topmost windows.
     NoShadow           // Disables the themed shadow around the surface.
+
+    // Draws the surface as a floating sheet, the way a dialog stands over its owner: the floating
+    // corner and the floating shadow, and no strip. The body's own ground — the title, the inset
+    // around the content — drags the surface.
+    Sheet
     StandardWindow = LargeCaption | MinimizeButton | MaximizeButton | CloseButton | Border | Resizable     // Standard resizable application window.
 }
 
@@ -549,7 +554,7 @@ impl Surface
         // scratch channel and leaves it at zero — so the outline must come first, before any
         // pass whose alpha has to survive to the compositor. The silhouette then premultiplies
         // the body ink and stamps its coverage, and the shadow pass erases the margin before
-        // laying its rings down, so it relies on the silhouette's fringe being in place.
+        // laying the shadow down, so it relies on the silhouette's fringe being in place.
         .paintBorder()
         .paintSilhouette()
         .paintShadowOutsideBody()
@@ -707,10 +712,15 @@ impl Surface
     // body fills the window. A maximized surface keeps its margin: the window is made that much
     // larger than the work area, so the body still covers the screen and the margin is what hangs
     // off the edges — see the maximized placement in the platform layer.
+    //
+    // A [[Gui.SurfaceFlags.Sheet]] keeps the reach of the floating shadow, the widest of its four
+    // sides; any other surface keeps [[Gui.ThemeMetrics.surfaceWnd_ShadowSize]].
     mtd const shadowMargin()->f32
     {
         if .flags.has(.NoShadow) do
             return 0
+        if .flags.has(.Sheet) do
+            return .app.theme.floatingShadowMargin()
         return .app.theme.metrics.surfaceWnd_ShadowSize
     }
 
@@ -719,6 +729,8 @@ impl Surface
     {
         if .isMaximized or .flags.has(.NoShadow) do
             return 0
+        if .flags.has(.Sheet) do
+            return .app.theme.metrics.corner_Floating
         return .app.theme.metrics.surfaceWnd_CornerRadius
     }
 
@@ -805,14 +817,14 @@ impl Surface
     // coverage — and the hierarchy leaves it carrying full-strength ground ink under no
     // coverage at all, because it paints the body as a square through a colour-only mask. The
     // pass therefore first erases its whole region to premultiplied nothing with a transparent
-    // 'Copy' fill, then blends the rings onto that clean ground: alpha-compositing shadow ink
+    // 'Copy' fill, then blends the shadow onto that clean ground: alpha-compositing shadow ink
     // over transparent black accumulates exactly ink times coverage in the colour channels and
     // coverage in alpha, which is the premultiplied value the compositor expects. The region
     // excludes the body and the silhouette's antialiased fringe, so the arc pixels the
     // silhouette premultiplied stay untouched.
     private mtd paintShadowOutsideBody()
     {
-        if .isMaximized or .app.theme.metrics.surfaceWnd_ShadowSize <= 0 do
+        if .isMaximized or .shadowMargin() <= 0 do
             return
 
         let radius = .cornerRadius()
@@ -844,26 +856,22 @@ impl Surface
     // offset by what the theme says the light does.
     private mtd paintShadow()
     {
-        let metrics = &.app.theme.metrics
-        let spread  = metrics.surfaceWnd_ShadowSpread
-        let color   = .app.theme.colors.wnd_Shadow
-        if .flags.has(.NoShadow) or spread <= 0 or color.a == 0 do
+        if .shadowMargin() <= 0 do
             return
 
-        var bodyRect = .bodyShape()
+        let body     = .bodyShape()
         let radius   = .cornerRadius()
-        var interior = bodyRect
+        var interior = body
         interior.inflate(-Math.max(radius, 0) - Math.ceil(1 / .dpiScale) - 1)
         interior.round()
-        bodyRect.offset(metrics.surfaceWnd_ShadowOffsetX, metrics.surfaceWnd_ShadowOffsetY)
 
-        // The coverage mask excludes the body, but a fragment shader still visits every pixel
-        // of every shadow ring before sampling that mask. Scissor away its fully opaque interior
+        // The coverage mask excludes the body, but a fragment shader still visits every pixel the
+        // shadow fills under it before sampling that mask. Scissor away its fully opaque interior
         // first, so the GPU shades the perimeter rather than the area of a large window. Keep the
         // antialiased contour inside the bands, including after logical clipping rounds to pixels.
         if interior.isEmpty()
         {
-            .painter.fillShadow(bodyRect, radius, spread, color)
+            .castShadow(body, radius)
             return
         }
 
@@ -877,9 +885,26 @@ impl Surface
         {
             .painter.pushClippingRect(band)
             if not .painter.isEmptyClippingRect() do
-                .painter.fillShadow(bodyRect, radius, spread, color)
+                .castShadow(body, radius)
             .painter.popClippingRect()
         }
+    }
+
+    // Draws the shadow `body` casts: a window's drop shadow, or the floating shadow of a sheet.
+    private mtd castShadow(body: Math.Rectangle, radius: f32)
+    {
+        // A sheet floats over its owner the way the lens and the inspector float over the work.
+        let theme = .app.theme
+        if .flags.has(.Sheet)
+        {
+            theme.drawFloatingShadow(&.painter, body, radius)
+            return
+        }
+
+        let metrics = &theme.metrics
+        var lifted  = body
+        lifted.offset(metrics.surfaceWnd_ShadowOffsetX, metrics.surfaceWnd_ShadowOffsetY)
+        .painter.fillShadow(lifted, radius, metrics.surfaceWnd_ShadowSpread, theme.colors.wnd_Shadow)
     }
 
     // Presses one of the two standard buttons of the surface, when there is one to press.

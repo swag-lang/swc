@@ -283,6 +283,7 @@ internal impl Properties
         {
             .setForm(.Circle)
             .updateFlags(.Overlay)     // Elegant translucent hover without an opaque box.
+            .style.addStyleSheetColors("btnIcon_Icon $faintText")
             .maxSize     = Math.Point{h, h}     // square: symmetric horizontally and vertically
             .minSize     = Math.Point{h, h}
             .focusPolicy = .None     // stays out of the keyboard nav order

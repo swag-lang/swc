@@ -3,7 +3,7 @@
 
 using Swag, Core, Pixel
 
-// Predefined dialogs fit their common chrome around the content instead of keeping stale blank rows.
+/// Predefined dialogs fit their shared layers around the content instead of keeping stale blank rows.
 #test
 {
     var host: Testing.HeadlessHost
@@ -12,16 +12,15 @@ using Swag, Core, Pixel
     let dlg     = EditDlg.createSingleLine(&host.surface, {title: "Rename", message: "Enter the new name."})
     let metrics = dlg.themeMetrics()
 
-    Swag.assert(dlg.surface!.flags.has(.SmallCaption))
-    Swag.assert(dlg.label.preferredSize.y < 40)
-    Swag.assert(Math.abs(dlg.label.margin.w - metrics.dialog_BtnPadding) < 0.5)
-    let contentHeight = dlg.edit!.position.height + dlg.label.position.height + dlg.label.margin.w
-    var expected      = contentHeight + 2 * metrics.dialog_Padding + dlg.buttonBar.position.height + 2 * metrics.wnd_BorderSize
-    expected += metrics.wnd_SmallCaptionCY + 2 * dlg.surface.shadowMargin()
+    Swag.assert(dlg.surface!.flags.has(.Sheet))
+    Swag.assert(Math.abs(dlg.label.margin.y - metrics.dialog_BtnPadding * 2) < 0.5)
+    let contentHeight = dlg.edit!.position.height + dlg.label.position.height + dlg.label.margin.y
+    var expected      = contentHeight + dlg.padding.y + metrics.dialog_Padding
+    expected += dlg.buttonBar.position.height + dlg.buttonBar.margin.y + 2 * metrics.wnd_BorderSize + 2 * dlg.surface.shadowMargin()
     Swag.assert(Math.abs(dlg.surface.position.height - Math.ceil(expected) * dlg.surface.dpiScale) < 1.5)
 }
 
-// A prompt is as tall as its explanation, not as tall as the shell it opened in.
+// A prompt is as tall as its help line, not as tall as the shell it opened in.
 #test
 {
     var host: Testing.HeadlessHost
@@ -53,17 +52,15 @@ using Swag, Core, Pixel
     let dlg     = EditDlg.createMultiLine(&host.surface, options)
 
     Swag.assert(dlg.label.name.raw == strings().dlg_MultiLineHint)
-    Swag.assert(dlg.label.position.bottom() <= dlg.richEdit!.position.y + 0.5)
-    let metrics       = dlg.themeMetrics()
-    let contentHeight = dlg.richEdit!.position.height + dlg.label.position.height + dlg.label.margin.w
-    let visibleHeight = contentHeight + 2 * metrics.dialog_Padding + dlg.buttonBar.position.height + 2 * metrics.wnd_BorderSize + metrics.wnd_SmallCaptionCY
-    let outerHeight   = visibleHeight + 2 * dlg.surface!.shadowMargin()
+    Swag.assert(dlg.label.position.y >= dlg.richEdit!.position.bottom())
+    let contentHeight = dlg.richEdit.position.height + dlg.label.position.height + dlg.label.margin.y
+    let outerHeight   = contentHeight + dlg.chromeHeight()
     Swag.assert(Math.abs(dlg.richEdit.position.height - cast(f32, options.editorHeight)) < 0.5)
-    Swag.assert(Math.abs(dlg.surface.position.height - Math.ceil(outerHeight) * dlg.surface.dpiScale) < 1.5)
+    Swag.assert(Math.abs(dlg.surface!.position.height - Math.ceil(outerHeight) * dlg.surface.dpiScale) < 1.5)
     Swag.assert(Math.abs(dlg.surface.minSize.y - dlg.surface.position.height / dlg.surface.dpiScale) < 0.5)
 }
 
-// The default about box measures its identity block instead of retaining the old 300-unit shell.
+// The about box measures its header and message instead of retaining the old 300-unit shell.
 #test
 {
     var host: Testing.HeadlessHost
@@ -74,24 +71,26 @@ using Swag, Core, Pixel
         contentTitle: "Swag",
         message: "A systems programming language.",
         surfaceIcon: Icon{},
-        contentIcon: Icon{}}
+        contentIcon: Icon{},
+        identity: "1.2.3 · 23 August 2026"}
     let dlg = AboutDlg.create(&host.surface, params)
 
     let metrics       = dlg.themeMetrics()
     var contentHeight = dlg.identityView.position.height
     contentHeight += dlg.labelMessage.measure(Math.Point{dlg.labelMessage.position.width, 0}).preferred.y
     contentHeight += metrics.dialog_BtnPadding * 2
-    var expected = contentHeight + 2 * metrics.dialog_Padding + dlg.buttonBar.position.height + 2 * metrics.wnd_BorderSize
-    expected += metrics.wnd_SmallCaptionCY + 2 * dlg.surface!.shadowMargin()
-    Swag.assert(Math.abs(dlg.surface.position.height - Math.ceil(expected) * dlg.surface.dpiScale) < 0.5)
-    Swag.assert(dlg.identityView.backgroundStyle == .View)
-    Swag.assert(dlg.identityView.position.width > 0)
+    Swag.assert(Math.abs(dlg.surface!.position.height - Math.ceil(contentHeight + dlg.chromeHeight()) * dlg.surface.dpiScale) < 1.5)
+
+    // No band frames the identity, and the box has no title line: the name names it.
+    Swag.assert(dlg.identityView.backgroundStyle == .Transparent)
+    Swag.assert(dlg.title.raw.isEmpty())
     Swag.assert(dlg.identityView.isAncestorOf(dlg.labelMessageTitle))
-    Swag.assert(dlg.labelMessage.dockStyle == .None)
+    Swag.assert(dlg.identityView.isAncestorOf(dlg.labelIdentity))
+    Swag.assert(dlg.labelIdentity.position.y >= dlg.labelMessageTitle.position.bottom())
     Swag.assert(dlg.identityView.position.bottom() <= dlg.labelMessage.position.y)
 }
 
-// The application form supplies the common version, build, source, copyright, and icon shape.
+// The application form supplies the common version, build, source, copyright, and tile.
 #test
 {
     var host: Testing.HeadlessHost
@@ -107,39 +106,73 @@ using Swag, Core, Pixel
         copyrightHolder: "Test Holder"})
 
     Swag.assert(dlg.surface!.wnd.name.raw == "sTestBench")
-    Swag.assert(dlg.labelMessageTitle.text() == "sTestBench 1.2.3")
+    Swag.assert(dlg.labelMessageTitle.text() == "sTestBench")
+    Swag.assert(Utf8.startsWith(dlg.labelIdentity.text(), "1.2.3"))
     Swag.assert(Utf8.contains(dlg.labelMessage.text(), "Test Holder"))
     Swag.assert(dlg.labelIcon.icon.isValid())
+    Swag.assert(dlg.labelIcon.icon.sizeY == dlg.themeMetrics().dialog_TileSize)
     Swag.assert(dlg.identityView.isAncestorOf(dlg.labelIcon))
 }
 
-// Pins the application identity hierarchy: one raised product block, no accent rail, and quieter
-// provenance below it.
+// Renders `dlg` on its own surface, its shadow included, over the ground of the window it stands above.
+func renderDialog(host: *Testing.HeadlessHost, dlg: *Dialog)->Image
+{
+    dlg.applyLayout()
+    return host.renderSurface(unwrap dlg.surface)
+}
+
+// Pins the composition of every predefined box against the charter pictures, in Encre and in Papier.
 #[Swag.TestTag("golden")]
 #test
 {
-    var host: Testing.HeadlessHost
-    host.setup(900, 600)
+    for light in [false, true]
+    {
+        var host: Testing.HeadlessHost
+        host.setup(900, 600)
+        if light
+        {
+            host.theme.setLight()
+            host.notify(.ThemeChanged)
+        }
 
-    let icon = host.theme.icon(.About, 64)
-    let dlg  = AboutDlg.create(&host.surface, {
-        surfaceTitle: "sTestBench",
-        contentTitle: "sTestBench 1.2.3",
-        message: "Built on 23 August 2026.\n\nCreated with <url>Swag</url>.",
-        surfaceIcon: icon,
-        contentIcon: icon})
+        let suffix = light ? "paper" : "ink"
 
-    dlg.applyLayout()
-    let surface = unwrap dlg.surface
-    surface.invalidate()
-    surface.paint()
-    let rendered = surface.app.renderer.readRenderTarget(&surface.rt, 0, 0, surface.rc.width, surface.rc.height)
+        let question = MessageDlg.create(&host.surface, "Reload viewerchrome.swg? The reading position is kept.", {title: "The file changed on disk."})
+        question.addButton("Reload", Dialog.BtnOk, true)
+        question.addButton("Ignore", Dialog.BtnCancel)
+        question.adaptSizeToMessage()
+        var image = renderDialog(&host, &question.dialog)
+        Pixel.Testing.assertImageGolden(&image, Format.toString("dialogs.message.%", suffix).toString())
 
-    // End at the action bar's actual position: subtracting its height from the
-    // surface height also includes the bottom window border.
-    let contentBottom = cast(s32, dlg.buttonBar.surfaceRect().y)
-    var image         = rendered.cropped(25, 60, cast(s32, surface.position.width) - 50, contentBottom - 60)
-    Pixel.Testing.assertImageGolden(&image, "aboutdlg.identity.dark")
+        let failure = MessageDlg.create(&host.surface, "The file is damaged.", {title: "Cannot open this file.", failure: true, detail: "Error code: 0x80070017"})
+        failure.addButton(strings().dlg_Close, Dialog.BtnOk, true)
+        failure.adaptSizeToMessage()
+        image = renderDialog(&host, &failure.dialog)
+        Pixel.Testing.assertImageGolden(&image, Format.toString("dialogs.error.%", suffix).toString())
+
+        let prompt = EditDlg.createSingleLine(&host.surface, {title: "Go to Address", message: "Decimal, or hexadecimal preceded by 0x.", text: "0x0001F400", confirmButtonText: "Go"})
+        image = renderDialog(&host, &prompt.dialog)
+        Pixel.Testing.assertImageGolden(&image, Format.toString("dialogs.prompt.%", suffix).toString())
+
+        let form = FormDlg.create(&host.surface, {title: "Change Password", confirmButtonText: "Apply"})
+        discard form.form.addPasswordField("Current password")
+        discard form.form.addPasswordField("New password")
+        discard form.form.addPasswordField("Confirm", placeholder: "Type the new password again", help: "Leave empty to remove only the password.")
+        form.form.computeLayout()
+        form.adaptSizeToForm()
+        image = renderDialog(&host, &form.dialog)
+        Pixel.Testing.assertImageGolden(&image, Format.toString("dialogs.form.%", suffix).toString())
+
+        let about = AboutDlg.create(&host.surface, {
+            surfaceTitle: "Swag Scope",
+            contentTitle: "Swag Scope",
+            message: "Code, text, Markdown, HTML, PDF, images, video, sound, MIDI, fonts, tables, subtitles, archives.\n\nCreated with <url>Swag</url> · <url>Source</url>\nCopyright © 2026 Christophe Beaudet",
+            surfaceIcon: {},
+            contentIcon: host.theme.icon(.About, host.theme.metrics.dialog_TileSize),
+            identity: "0.1.1173 · 28 October 2026"})
+        image = renderDialog(&host, &about.dialog)
+        Pixel.Testing.assertImageGolden(&image, Format.toString("dialogs.about.%", suffix).toString())
+    }
 }
 
 // A question is as wide as its actions need, and never narrower than the family's floor.

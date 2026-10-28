@@ -106,9 +106,7 @@ struct ThemeColors
         commandBar_Bk:     Color     // Ground of application-wide commands.
         toolBar_Bk:        Color     // Ground of tools specific to the current content.
 
-        dlg_Bk:              Color     // Ground of a dialog.
-        dlg_BtnBarBk:        Color     // Ground of the button bar of a dialog.
-        dlg_InformationIcon: Color     // Glyph of an informational or question dialog.
+        dlg_Bk: Color     // Ground of a dialog.
 
         // The primary action: Voltage with ink on Encre, ink with paper on Papier.
         btnPush_StrongText:   Color     // Label of a primary action.
@@ -542,6 +540,17 @@ impl ThemeColors
     // reads at about a sixth of its strength, present but out of the way.
     private const LensDimAlpha = 0xD6'u8
 
+    // How much of the shadow a floating surface casts on a dark ground. Darkness laid on near-black
+    // reads as a hole rather than as air, so there the surface parts from the work mostly by its
+    // lighter fill and its hairline, and the shadow only softens the edge.
+    private const FloatingShadowDarkShare = 0.5'f32
+
+    // How much of the shadow a floating surface casts on a light ground. The palette's shadow is
+    // tuned for small, close shadows; spread as wide as a floating one, it would still be at
+    // nearly full strength where the body ends and read as a grey edge under it. At this share
+    // it darkens the paper by about a tenth there, and the body seems to rest on air.
+    private const FloatingShadowLightShare = 0.6'f32
+
     // How far the stronger rule travels from the hairline toward the faint ink, and how far
     // disabled ink travels from the ground toward the body ink. The charter states the disabled
     // state as an opacity of 40 to 45 percent; written as a mix it stays opaque, so a disabled
@@ -710,6 +719,8 @@ impl ThemeColors
 
         .floating_Shadow = p.shadow
         .lens_Dim        = p.ground.withAlpha(LensDimAlpha)
+        let floatingShare = p.ground.relativeLuminance() <= 0.5 ? FloatingShadowDarkShare : FloatingShadowLightShare
+        .floating_Shadow.a = cast(u8, cast(f32, p.shadow.a) * floatingShare)
 
         // Nothing on screen but the work: the bands an application used to frame its content
         // with are the ground the content sits on.
@@ -718,9 +729,7 @@ impl ThemeColors
         .commandBar_Bk     = p.ground
         .toolBar_Bk        = p.ground
 
-        .dlg_Bk              = p.surface
-        .dlg_BtnBarBk        = p.surface
-        .dlg_InformationIcon = info.mark
+        .dlg_Bk = p.surface
 
         // The primary action is the signature block. The outline is the same block: on Papier the
         // signature is ink, and on Encre a Voltage edge on a Voltage fill is simply its own edge.
@@ -1242,7 +1251,7 @@ impl ThemeColors
         result.currentMatch.mark     = ink
         result.currentMatch.ground   = result.highlight
         result.currentMatch.onGround = ink
-        result.tip                   = ThemeTone.from(ink, paper)
+        result.tip = ThemeTone.from(ink, paper)
 
         result.critical.mark     = 0xFFC42B2B
         result.critical.ground   = 0xFFFBE9E9

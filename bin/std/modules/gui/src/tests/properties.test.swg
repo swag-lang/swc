@@ -1074,8 +1074,12 @@ impl Gui.IPropertyNotify for ValData
     Swag.assert(nameItem.validationMsg == "Name is required.")
     Swag.assert(countItem.validation == .None)
     Swag.assert(nameItem.validationLabel != null and nameItem.validationLabel.isVisible())
-    Swag.assert(nameItem.validationLabel.textPadding.y > 0)
-    Swag.assert(Math.abs(nameItem.validationLabel.textPadding.y + nameItem.validationLabel.textPadding.w) < 0.01)
+
+    // The message is led by a dot in its tone, no glyph: the words start past the dot and its gap.
+    let dotMetrics = host.theme.metrics
+    Swag.assert(not nameItem.validationLabel.icon.isValid())
+    Swag.assert(nameItem.validationLabel.textPadding.x == dotMetrics.embInfo_DotSize + dotMetrics.embInfo_DotGap)
+    Swag.assert(nameItem.validationLabel.textColor == host.theme.colors.critical)
 
     // Editing into an invalid range raises a warning.
     countItem.editBox.setText("150")
@@ -2284,19 +2288,38 @@ struct PropGoldenData
     #[Category("Layout"), Name("Offset")]
     offset: Math.Point = {12, 8}
 
-    #[Category("Layout"), Name("Mode")]
+    #[Category("Layout"), Name("Mode"), Properties.ReadOnly]
     mode = PropGoldenChoice.Automatic
+
+    #[Category("Text"), Name("Caption"), HelpBox("Changes apply to the next shapes drawn too.")]
+    caption: String
+}
+
+impl Gui.IPropertyNotify for PropGoldenData
+{
+    mtd impl validateItem(_: *Gui.Properties, item: *Gui.PropertiesItem)->Gui.PropValidationResult
+    {
+        if item.typeValue.crc == Reflection.fieldCrc(PropGoldenData, #nameof(PropGoldenData.caption)) and .caption.length > 40 do
+            return {.Warning, "Over 40 characters: the caption will be cut."}
+        return {}
+    }
 }
 
 // Each presentation is a separate rendering contract. In particular, Condensed owns a flat,
 // edge-to-edge editor layout and must not silently inherit the normal grid's spacing or chrome.
-func assertPropertyPresentationGolden(kind: PropertiesKind, name: string)
+func assertPropertyPresentationGolden(kind: PropertiesKind, name: string, light: bool)
 {
     var host: Testing.HeadlessHost
     host.setup(520, 620)
+    if light
+    {
+        host.theme.setLight()
+        host.notify(.ThemeChanged)
+    }
 
     var data: PropGoldenData
     data.opacity = 0.4
+    data.caption = "Main card of the dashboard, in its long version"
 
     let ctrl = PropertiesCtrl.create(&host.root, kind: kind, flags: .SearchBar)
     ctrl.dockStyle = .Center
@@ -2312,14 +2335,22 @@ func assertPropertyPresentationGolden(kind: PropertiesKind, name: string)
     host.settleAnimations(ctrl, 6)
 
     let image = host.render()
-    Pixel.Testing.assertImageGolden(&image, name)
+    Pixel.Testing.assertImageGolden(&image, Format.toString("%.%", name, light ? "paper" : "ink").toString())
 }
 
 #[Swag.TestTag("golden")]
-#test { assertPropertyPresentationGolden(.Grid, "properties.grid") }
+#test { assertPropertyPresentationGolden(.Grid, "properties.grid", false) }
 #[Swag.TestTag("golden")]
-#test { assertPropertyPresentationGolden(.Condensed, "properties.condensed") }
+#test { assertPropertyPresentationGolden(.Condensed, "properties.condensed", false) }
 #[Swag.TestTag("golden")]
-#test { assertPropertyPresentationGolden(.List, "properties.list") }
+#test { assertPropertyPresentationGolden(.List, "properties.list", false) }
 #[Swag.TestTag("golden")]
-#test { assertPropertyPresentationGolden(.Panel, "properties.panel") }
+#test { assertPropertyPresentationGolden(.Panel, "properties.panel", false) }
+#[Swag.TestTag("golden")]
+#test { assertPropertyPresentationGolden(.Grid, "properties.grid", true) }
+#[Swag.TestTag("golden")]
+#test { assertPropertyPresentationGolden(.Condensed, "properties.condensed", true) }
+#[Swag.TestTag("golden")]
+#test { assertPropertyPresentationGolden(.List, "properties.list", true) }
+#[Swag.TestTag("golden")]
+#test { assertPropertyPresentationGolden(.Panel, "properties.panel", true) }

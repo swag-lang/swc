@@ -225,8 +225,8 @@ self-labelled controls and section labels followed by a hairline. In every kind:
 A dialog is a floating sheet: surface, corner 12, floating shadow over a dimmed window, padding
 28, gap 16. It has **no caption band and no close cross**: its title (17/650) is the first line
 of the body. The body text is 13.5/21 in soft. Actions sit at the bottom right inside the same
-surface, the primary rightmost; when the dialog can be dismissed, a faint `Esc` hint (translated) sits at
-the bottom left. A failure puts an 8 px critical dot before the title and the technical detail
+surface, the primary rightmost; the bottom left stays empty, without an `Esc` hint: the Cancel button
+already says the box can be left. A failure puts an 8 px critical dot before the title and the technical detail
 on a mono faint line. Forms put labels above fields (12.5 soft). The file dialog shows places as
 text tabs, a path field that filters, rows with mono dates and sizes, and the type filter as a
 quiet `▾` at the bottom left. About shows the application tile (52, corner 12), the name

@@ -47,6 +47,7 @@ struct AppStrings
     ui_Width:                   string = "Width"
     ui_Height:                  string = "Height"
     ui_KeepRatio:               string = "Keep Ratio"
+    ui_Anchor:                  string = "Anchor"
     ui_Frozen:                  string = "Selection is frozen"
     ui_Desktop:                 string = "Desktop"
     ui_MyImages:                string = "My Images"

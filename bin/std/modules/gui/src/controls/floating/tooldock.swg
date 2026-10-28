@@ -47,13 +47,13 @@ impl IWnd for ToolDock
 
         let metrics = .themeMetrics()
         let bounds  = parent.clientRect()
-        let shadow  = metrics.floating_ShadowSize
         let body    = .bodySize()
-        let x       = bounds.x + metrics.floating_Inset - shadow
-        let y       = Math.round(bounds.vertCenter() - body.y * 0.5) - shadow
-        .setPosition(Math.Rectangle{x, y, body.x + 2 * shadow, body.y + 2 * shadow})
+        let x       = bounds.x + metrics.floating_Inset
+        let y       = Math.round(bounds.vertCenter() - body.y * 0.5)
+        liftFloating(me)
+        .setPosition(Math.Rectangle{x, y, body.x, body.y})
 
-        var cell = Math.Rectangle{shadow + metrics.toolDock_Padding, shadow + metrics.toolDock_Padding, metrics.toolDock_CellSize, metrics.toolDock_CellSize}
+        var cell = Math.Rectangle{metrics.toolDock_Padding, metrics.toolDock_Padding, metrics.toolDock_CellSize, metrics.toolDock_CellSize}
         for tool in .tools
         {
             tool.setPosition(cell)
@@ -61,11 +61,14 @@ impl IWnd for ToolDock
         }
     }
 
+    mtd impl onBeforePaint(evt: *PaintEvent)
+    {
+        paintFloatingShadow(me, evt.paintContext.painter, .clientRect(), .themeMetrics().corner_Menu)
+    }
+
     mtd impl onPaint(evt: *PaintEvent)
     {
-        var body = .clientRect()
-        body.inflate(-.themeMetrics().floating_ShadowSize)
-        paintFloatingGround(me, evt.paintContext.painter, body, .themeMetrics().corner_Menu)
+        paintFloatingGround(me, evt.paintContext.painter, .clientRect(), .themeMetrics().corner_Menu)
     }
 }
 
@@ -129,7 +132,8 @@ impl ToolDock
         .activate(tool, notify: false)
     }
 
-    // Returns the size of the visible column, without the room its shadow spreads into.
+    // Returns the size of the column; its shadow falls outside it.
+
     mtd bodySize()->Math.Point
     {
         let metrics = .themeMetrics()

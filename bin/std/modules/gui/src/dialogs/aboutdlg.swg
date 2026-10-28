@@ -1,6 +1,9 @@
 using Core, Pixel
 
-// Displays application identity, title, descriptive rich text, and optional icons.
+// Displays the identity of an application: its tile, its name, a mono line of version and date,
+// descriptive rich text with its links, and optional sections.
+//
+// The box has no title line: the name beside the tile is what names it. One Close ends it.
 public struct AboutDlg
 {
     public
@@ -11,8 +14,9 @@ public struct AboutDlg
         {
             late
             {
-                labelIcon:         *Label     // Large application icon, set only when the parameters carry one.
-                labelMessageTitle: *Label     // Prominent application or product title.
+                labelIcon:         *Label     // Application tile, set only when the parameters carry one.
+                labelMessageTitle: *Label     // Product name beside the tile.
+                labelIdentity:     *Label     // Mono faint line of version and date under the name; empty when there is none.
                 labelMessage:      *Label     // Rich descriptive message.
             }
         }
@@ -20,8 +24,8 @@ public struct AboutDlg
 
     late
     {
-        identityView: *Wnd     // Raised product block carrying the mark and heading.
-        contentStack: *StackLayoutCtrl     // The one column identity, provenance and sections stand in.
+        identityView: *Wnd     // Header holding the tile, the name and the identity line.
+        contentStack: *StackLayoutCtrl     // The one column the header, the message and the sections stand in.
     }
 
     sectionsScroll: *ScrollWnd?           // Bounded column the added sections stand in.
@@ -36,11 +40,12 @@ public struct AboutDlgParams
 {
     public
     {
-        surfaceTitle: string     // Native surface title.
-        contentTitle: string     // Prominent application or product title.
-        message:      string     // Rich descriptive text.
-        surfaceIcon:  Icon       // Optional glyph at the leading corner of the window, drawn in the chrome's ink.
-        contentIcon:  Icon       // Optional large content icon.
+        surfaceTitle: string          // Native surface title.
+        contentTitle: string          // Product name beside the tile.
+        message:      string          // Rich descriptive text.
+        surfaceIcon:  Icon            // Optional glyph of the native surface, drawn in the chrome's ink.
+        contentIcon:  Icon            // Optional application tile.
+        identity:     string = ""     // Optional mono line under the name: a version, a date.
     }
 }
 
@@ -51,9 +56,9 @@ public struct ApplicationAboutDlgParams
 {
     public
     {
-        productName:     string            // Product name used by the surface and content heading.
-        version:         string            // Version appended to the product heading.
-        buildDate:       Time.DateTime     // Build date reported in the first paragraph.
+        productName:     string            // Product name beside the tile.
+        version:         string            // Version, set in mono under the name.
+        buildDate:       Time.DateTime     // Build date, set in mono after the version.
         sourceUrl:       string            // Source page opened by the source link.
         copyrightHolder: string            // Holder named after the build year.
     }
@@ -63,30 +68,29 @@ public impl AboutDlg
 {
     // Creates the standard application about dialog from product identity and provenance.
     //
-    // The application icon supplies both marks. The dialog owns the source URL until it closes
-    // and opens it from the second link; the first link opens the Swag website.
+    // The application icon supplies the tile. The dialog owns the source URL until it closes and
+    // opens it from the second link; the first link opens the Swag website.
     #[Swag.Discardable]
     func createApplication(from: *Surface, params: ApplicationAboutDlgParams)->*AboutDlg
     {
         let texts = strings()
 
         var message: String
-        message += Format.toString(texts.about_Build, params.buildDate)
-        message += "\n\n"
         message += Format.toString(texts.about_Source, params.productName)
-        message += "\n\n"
+        message += "\n"
         message += Format.toString(texts.about_Copyright, params.buildDate.year, params.copyrightHolder)
 
-        let app     = from.app
-        let metrics = app.theme.metrics
-        let colors  = app.theme.colors
-        let title   = Format.toString("% %", params.productName, params.version)
-        let dlg     = create(from, {
+        let app      = from.app
+        let metrics  = app.theme.metrics
+        let colors   = app.theme.colors
+        let identity = Format.toString("% · %", params.version, Format.toString(texts.about_Build, params.buildDate))
+        let dlg      = create(from, {
             surfaceTitle: params.productName,
-            contentTitle: title.toString(),
+            contentTitle: params.productName,
             message: message.toString(),
             surfaceIcon: app.appGlyph(metrics.wnd_CaptionIconSize),
-            contentIcon: app.appIconAt(64, colors.view_Bk)})
+            contentIcon: app.appIconAt(metrics.dialog_TileSize, colors.dlg_Bk),
+            identity: identity.toString()})
         dlg.sourceUrl = String.from(params.sourceUrl)
         dlg.labelMessage.sigLinkActivated += func|dlg|(_, text)
         {
@@ -109,66 +113,85 @@ public impl AboutDlg
         let w   = width != 0 ? width : 500
         let h   = height != 0 ? height : 300
         let srf = dlg.createSurface(from, 0, 0, w, h)
+
+        // The name beside the tile names the box, so the body has no title line of its own; the
+        // surface keeps one for the task switcher.
         srf.setTitle(params.surfaceTitle)
         srf.center(from)
 
         let metrics = dlg.themeMetrics()
-        let body    = dlg.createContentView()
-
-        // Identity and provenance are two quiet tiers: the product owns one raised panel, while
-        // the supporting copy remains on the dialog surface below it.
-        with let stackLayout = StackLayoutCtrl.create(body, .VerticalCenter)
+        let gap     = metrics.dialog_BtnPadding * 2
+        with let stackLayout = StackLayoutCtrl.create(dlg.createContentView(), .Top)
         {
             .dockStyle = .Center
-            .spacing   = metrics.dialog_BtnPadding * 2
+            .spacing   = gap
         }
 
         dlg.contentStack  = stackLayout
         dlg.fitsToContent = height == 0
 
-        // VerticalCenter preserves each child's authored cross-axis extent. Resolve the body now
-        // so the plain identity window can author the exact width it must keep.
+        // The stack keeps each child's authored cross-axis extent. Resolve the body now so the
+        // header can author the exact width it must keep.
         dlg.applyLayout()
 
-        let identityInset = metrics.dialog_Padding
-        with dlg.identityView = Wnd.create'Wnd(stackLayout, Math.Rectangle{0, 0, stackLayout.position.width, 0})
-        {
-            .backgroundStyle = .View
-        }
+        // The header: the tile, then the name and the mono line of identity beside it, on one
+        // left edge. Nothing frames it: the tile is the one block of the box.
+        dlg.identityView = Wnd.create'Wnd(stackLayout, Math.Rectangle{0, 0, stackLayout.position.width, 0})
 
-        let identityContent = Wnd.create'Wnd(dlg.identityView)
-        identityContent.dockStyle = .Center
-        identityContent.padding   = Math.Vector4{identityInset, identityInset, identityInset, identityInset}
-
+        var headerHeight = 0'f32
+        var tileWidth    = 0'f32
         if params.contentIcon.isValid()
         {
-            // The mark has a reserved lane, which keeps the heading optically centered in the
-            // remaining product block without making the descriptive copy inherit that inset.
-            let gap = metrics.dialog_BtnPadding * 2
-            with dlg.labelIcon = Label.create(identityContent, "", Math.Rectangle{0, 0, params.contentIcon.sizeX + gap, 0})
+            with dlg.labelIcon = Label.create(dlg.identityView, "", Math.Rectangle{0, 0, params.contentIcon.sizeX + gap, 0})
             {
                 .dockStyle = .Left
                 .setIcon(params.contentIcon)
                 .setIconAlignment(.Left, .Center)
             }
+
+            headerHeight = cast(f32, params.contentIcon.sizeY)
+            tileWidth    = dlg.labelIcon.position.width
         }
 
-        // The product name is the one heading of the box; the mark supports it without
-        // introducing another caption or a decorative color outside the active theme.
-        with dlg.labelMessageTitle = Label.create(identityContent, params.contentTitle)
+        let names = Wnd.create'Wnd(dlg.identityView)
+        names.dockStyle = .Center
+
+        with dlg.labelMessageTitle = Label.create(names, params.contentTitle)
         {
-            let fontSize = cast(u32, (metrics.defaultFontSize * 1.5))
-            .style.setFont(dlg.theme().createDefaultFont(fontSize, .Bold), .Regular)
-            .dockStyle = .Center
-            .setTextAlignment(.Left, .Center)
+            .style.setFont(dlg.theme().createDefaultFont(metrics.dialog_NameFontSize, .Bold), .Regular)
+            .dockStyle = .Top
+            .setTextAlignment(.Left, .Top)
             .updateFlags(.AutoHeight)
         }
 
-        let titleHeight    = dlg.labelMessageTitle.measure(Math.Point{w, 0}).preferred.y
-        var identityHeight = titleHeight
-        if params.contentIcon.isValid() do
-            identityHeight = Math.max(identityHeight, cast(f32, params.contentIcon.sizeY))
-        dlg.identityView.position.height = identityHeight + 2 * identityInset
+        with dlg.labelIdentity = Label.create(names, params.identity)
+        {
+            .style.setFont(dlg.theme().createDefaultFontFs(metrics.defaultFontSize - 1), .Regular)
+            .style.addStyleSheetColors("label_Text $faintText")
+            .dockStyle = .Top
+            .setTextAlignment(.Left, .Top)
+            .updateFlags(.AutoHeight)
+        }
+
+        let namesWidth = Math.max(stackLayout.position.width - tileWidth, 1)
+
+        var namesHeight = dlg.labelMessageTitle.measure(Math.Point{namesWidth, 0}).preferred.y
+        dlg.labelMessageTitle.position.height = namesHeight
+        if params.identity.count
+        {
+            let identityHeight = dlg.labelIdentity.measure(Math.Point{namesWidth, 0}).preferred.y
+            dlg.labelIdentity.position.height = identityHeight
+            namesHeight += identityHeight
+        }
+        else
+        {
+            dlg.labelIdentity.hide()
+        }
+
+        // The name and its identity line stand on the middle of the tile, as one group.
+        let headerTotal = Math.max(headerHeight, namesHeight)
+        names.padding.y = Math.max(0, Math.round((headerTotal - namesHeight) * 0.5))
+        dlg.identityView.position.height = headerTotal
 
         with dlg.labelMessage = Label.create(stackLayout, params.message, flags: .AutoHeight | .WordWrap | .SecondaryText)
         {
@@ -182,6 +205,7 @@ public impl AboutDlg
             srf.setIcon(cpyIcon)
         }
 
+        // One Close: it is the answer and the way out, so Escape presses it and no hint is shown.
         dlg.addButton(strings().dlg_Close, Dialog.BtnCancel, true)
         dlg.sendResizeEvent()
         dlg.buttonBar.applyLayout()
@@ -211,8 +235,9 @@ public impl AboutDlg
         let metrics = .themeMetrics()
         if not .sectionsScroll
         {
-            // Authored width, like the identity block above it: the column centers its children
-            // vertically as a group and leaves the cross axis to each of them.
+            // Authored width, like the header above it: the column leaves the cross axis to each
+            // of its children.
+
             with let scroll = Wnd.create'ScrollWnd(.contentStack, "", Math.Rectangle{0, 0, .contentStack.position.width, 0})
             {
                 .padding = 0

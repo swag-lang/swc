@@ -1,6 +1,6 @@
 ---
 name: design-swag-dialogs
-description: Compose, review, or change a modal box — the predefined dialog family under bin/std/modules/gui/src/dialogs, a composite hosted inside one, or an application's own modal — to the Silence charter's floating sheet. Use whenever a dialog's width, height, inset, title, severity mark, field labels, actions, their order or wording, or the Esc hint changes.
+description: Compose, review, or change a modal box — the predefined dialog family under bin/std/modules/gui/src/dialogs, a composite hosted inside one, or an application's own modal — to the Silence charter's floating sheet. Use whenever a dialog's width, height, inset, title, severity mark, field labels, actions, their order or wording, or the bottom-left slot changes.
 ---
 
 # Design Swag Dialogs
@@ -55,12 +55,16 @@ whole family at once and no box can disagree with the box beside it.
 | Air the body keeps around its content | `dialog_Padding` | 28 |
 | Air between two pieces of one body | `dialog_BtnPadding * 2` | 16 |
 | Air between two actions | `dialog_BtnPadding` | 8 |
-| An action's height | the dialog button height | 34 |
+| An action's height, and a field's | `control_DialogHeight` | 34 |
 | An action's width | `btnPush_Width`, widened to its caption | — |
 | Narrowest a box opens | `MessageDlg.MinMessageWidth` | 440 |
 | Widest a message runs before it wraps | `MessageDlg.MaxMessageWidth` | 512 |
 
-TODO(silence): replace the "dialog button height" row with the `ThemeMetrics` field that carries 34 once design.silence.006 lands, and confirm `dialog_Padding` and `MinMessageWidth` carry 28 and 440.
+| Title size | `dialog_TitleFontSize` | 17 |
+| Critical dot | `dialog_MarkSize` | 8 |
+
+`dialogs.charter.test.swg` asserts the four charter values (28, 16, 34, 440) where every box reads
+them.
 
 A literal in a dialog is a measurement no theme can answer for, exactly as a literal color is a
 color no palette can answer for. Beyond the floor, a dialog authors no width and no height: it
@@ -70,7 +74,8 @@ sizes itself from its content.
 
 Every box names itself, and the name is the first line of its body, set 17/650 in text colour. The
 predefined helpers supply a default — `dlg_InfoTitle`, `dlg_ConfirmTitle`, `dlg_ErrorTitle` — and a
-caller with something more specific to say passes it in `MessageDlgOptions.title`. Prefer the
+caller with something more specific to say passes it in `MessageDlgOptions.title`, or
+`Dialog.setTitle` for a box it composes itself. Prefer the
 specific one: the charter's boxes lead with what happened ("The file changed on disk.", "Cannot
 open this file.") and leave the body to say what the reader can do about it.
 
@@ -86,8 +91,10 @@ it.
 
 ## Severity Is One Dot
 
-A failure puts an **8 px critical dot** before the title, and the technical detail — an error code,
-the system's own report — on a **mono faint line** under the sentence. That is the whole severity
+A failure puts an **8 px critical dot** before the title (`Dialog.setTitle(title, failure: true)`,
+`MessageDlgOptions.failure`), and the technical detail — an error code, the system's own report —
+on a **mono faint line** under the sentence (`MessageDlgOptions.detail`; `MessageDlg.error` takes a
+`Swag.SystemError`'s message there). That is the whole severity
 vocabulary of a box: no icon tile, no coloured band, no three-colour status icon. The sentence says
 what went wrong in the reader's language; the mono line is for whoever files the report, and a box
 without a detail shows none. See *Tell A Reader What Went Wrong* in
@@ -119,15 +126,14 @@ their own.
 
 ### The bottom-left slot
 
-The bottom left of the actions row holds at most one quiet thing:
+The bottom left of the actions row is empty, or holds one quiet control that belongs to the
+actions without being one of them, such as the file dialog's type filter (`▾`):
+`Dialog.setLeadingControl`.
 
-- **the `Esc` hint** — a faint, translated key name ("Esc", "Échap") — when the box offers a way to
-  dismiss it that is distinct from its primary answer (a Cancel, an Ignore). It is how the box says
-  it can be left without a cross;
-- **or a quiet control that belongs to the actions**, such as the file dialog's type filter
-  (`▾`), which then takes the slot.
-
-A box whose only action is Close shows no hint: its one button already says how to leave.
+A box does not print the name of the Escape key. Escape cancelling a modal box is a desktop
+convention, and the Cancel (or Close) button already says the box can be left without answering;
+a faint `Esc` beside it repeats that and reads as a leftover. The key hint belongs to surfaces with
+no button to leave by, such as the lens.
 
 ## Forms Put Labels Above Fields
 
@@ -142,10 +148,10 @@ check box) takes no label above it — see *Let An Option Carry Its Own Wording*
 
 | Box | Composition |
 | --- | --- |
-| Message, question (`MessageDlg`) | Title, body sentence, actions; `Esc` hint when a dismissing action exists |
+| Message, question (`MessageDlg`) | Title, body sentence, actions |
 | Error | Critical dot and title, sentence, mono faint detail line, one Close |
-| Prompt (`EditDlg.createSingleLine`) | Title, the field with its focus ring, help line in faint, `Esc` hint, Cancel · primary |
-| Form (`FormDlg`) | Title, labels above fields, help, `Esc` hint, Cancel · Apply |
+| Prompt (`EditDlg.createSingleLine`) | Title, the field with its focus ring, help line in faint, Cancel · primary |
+| Form (`FormDlg`) | Title, labels above fields, help, Cancel · Apply |
 | File (`FileDlg`) | Title, places as text tabs, a path field that filters, rows, type filter bottom left, Cancel · Open |
 | About (`AboutDlg.createApplication`) | Tile, name, version and date, capability line, links, copyright, one Close |
 
@@ -160,14 +166,15 @@ check box) takes no label above it — see *Let An Option Carry Its Own Wording*
   21/800, version and date in mono beside it, the capability line in body text, then the links
   (in Arc) and the copyright, and one Close at the bottom right.
 
-`createContentView(inset: false)` remains for a body whose content must reach the frame; no
-predefined box needs it under the charter.
-
 ## The Body Owns One Inset, And Owns It Once
 
-[`Dialog.createContentView`](../../../bin/std/modules/gui/src/dialogs/dialog.swg) is the only
-place the outer inset is expressed. A dialog sets no padding of its own on the body and states
-only the spacing *between its own pieces* — one gap, `dialog_BtnPadding * 2`.
+[`Dialog`](../../../bin/std/modules/gui/src/dialogs/dialog.swg) is the only place the outer inset
+is expressed: its padding holds the inset and the room of the title, and the actions row keeps one
+gap above it. [`Dialog.createContentView`](../../../bin/std/modules/gui/src/dialogs/dialog.swg)
+gives the body between them; a dialog — predefined or an application's own — puts its content
+there, sets no padding of its own on it, and states only the spacing *between its own pieces* — one
+gap, `dialog_BtnPadding * 2`. A form an application asks for is a `FormDlg`, not controls laid on a
+bare `Dialog` at authored coordinates.
 
 ## A Box Is As Tall As What It Holds
 

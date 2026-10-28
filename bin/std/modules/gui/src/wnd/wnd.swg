@@ -42,7 +42,6 @@ enum BackgroundStyle
     Transparent          // Leaves the background transparent.
     Window               // Uses the standard top-level window background.
     Dialog               // Uses the dialog content background.
-    DialogActionBar      // Uses the action area at the bottom of a dialog.
     View                 // Uses the document or content-view background.
     Panel                // Uses the raised window ground with the theme's standalone-panel geometry.
     Application          // Uses the application ground behind its content and chrome.
@@ -997,7 +996,6 @@ impl Wnd
         case .InformationPanel: theme.drawSubRect(painter, .position, &theme.rects.panel_Bk, .themeColors().informationBar_Bk)
         case .CommandBar:       painter.fillRect(.position, theme.colors.commandBar_Bk)
         case .ToolBar:          painter.fillRect(.position, theme.colors.toolBar_Bk)
-        case .DialogActionBar:  theme.drawSubRect(bc.painter, .position, &theme.rects.dlg_BtnBar, theme.colors.dlg_BtnBarBk)
         }
 
         painter.translateTransform(.position.x, .position.y)

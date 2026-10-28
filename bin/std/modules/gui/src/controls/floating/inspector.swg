@@ -65,21 +65,27 @@ impl IWnd for Inspector
 
         let metrics = .themeMetrics()
         let bounds  = parent.clientRect()
-        let shadow  = metrics.floating_ShadowSize
         let inset   = metrics.floating_Inset
         let top     = bounds.y + Math.max(inset, parent.stripInset())
+        liftFloating(me)
 
         if .folded
         {
             let tab = .tabSize()
-            .setPosition(Math.Rectangle{bounds.right() - inset - tab.x - shadow, top - shadow, tab.x + 2 * shadow, tab.y + 2 * shadow})
+            .setPosition(Math.Rectangle{bounds.right() - inset - tab.x, top, tab.x, tab.y})
             return
         }
 
         let width  = Math.min(metrics.inspector_Width, bounds.width - 2 * inset)
         let height = Math.min(.measureBody(), bounds.bottom() - inset - top)
-        .setPosition(Math.Rectangle{bounds.right() - inset - width - shadow, top - shadow, width + 2 * shadow, height + 2 * shadow})
+        .setPosition(Math.Rectangle{bounds.right() - inset - width, top, width, height})
         .arrange(width, height)
+    }
+
+    mtd impl onBeforePaint(evt: *PaintEvent)
+    {
+        let metrics = .themeMetrics()
+        paintFloatingShadow(me, evt.paintContext.painter, .body(), .folded ? metrics.corner_Control : metrics.corner_Floating)
     }
 
     mtd impl onPaint(evt: *PaintEvent)
@@ -254,24 +260,23 @@ impl Inspector
     private mtd arrange(width, height: f32)
     {
         let metrics = .themeMetrics()
-        let shadow  = metrics.floating_ShadowSize
         let pad     = metrics.inspector_Padding
         let rowSize = metrics.control_InspectorHeight
 
         // The actions stand at the end of the header, the last one against the padding.
-        var right = shadow + width - pad
+        var right = width - pad
         for i in reversed(.actions.count)
         {
             let action = .actions[i]
             right -= action.position.width
-            action.move(right, shadow + pad)
+            action.move(right, pad)
         }
 
         let labelled = pad + metrics.inspector_LabelWidth + metrics.inspector_LabelGap
         for row in .rows where row.editor
         {
             let left = row.label.isEmpty() ? pad : labelled
-            var cell = Math.Rectangle{shadow + left, shadow + row.top, width - left - pad, rowSize}
+            var cell = Math.Rectangle{left, row.top, width - left - pad, rowSize}
             if not row.fill
             {
                 let size = row.editor.measure(Math.Point{cell.width, cell.height}).preferred
@@ -285,12 +290,7 @@ impl Inspector
         }
     }
 
-    private mtd body()->Math.Rectangle
-    {
-        var result = .clientRect()
-        result.inflate(-.themeMetrics().floating_ShadowSize)
-        return result
-    }
+    private mtd body()->Math.Rectangle => .clientRect()
 
     private mtd tabText()->String
     {

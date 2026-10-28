@@ -88,8 +88,14 @@ struct ThemeMetrics
         btnCheck_Size:    f32 = 24     // Side of the box of a check box or radio button.
         btnCheck_Padding: f32 = 4      // Air between the box of a check box and its wording.
 
-        dialog_Padding:    f32 = 24     // Outer inset kept around dialog content and action rows.
-        dialog_BtnPadding: f32 = 8      // Gap between dialog actions and vertical inset of their bar.
+        // A dialog is a floating sheet: one inset around its title, its body and its actions, one
+        // gap between two pieces of its body (twice the gap between two actions).
+        dialog_Padding:       f32 = 28     // Inset kept around the title, the body and the actions of a dialog.
+        dialog_BtnPadding:    f32 = 8      // Gap between two actions of a dialog; twice it parts two pieces of its body.
+        dialog_TitleFontSize: u32 = 17     // Size of the title that opens the body of a dialog.
+        dialog_MarkSize:      f32 = 8      // Diameter of the critical dot before the title of a failure.
+        dialog_TileSize:      f32 = 52     // Side of the application tile that leads an about box.
+        dialog_NameFontSize:  u32 = 21     // Size of the product name beside the tile of an about box.
 
         editBox_SquarePadding: Math.Vector4 = {10, 5, 10, 5}     // Inset of the text of a square-cornered field.
         editBox_RoundPadding:  Math.Vector4 = {12, 5, 12, 5}     // Inset of the text of a round field.
@@ -137,8 +143,9 @@ struct ThemeMetrics
         // The floating components of the charter — the lens, the information sheet, the inspector,
         // the mini-bar and the dock — stand on the surface ground with a hairline ring and a
         // shadow, above the work and away from the window edges.
-        floating_ShadowSize: f32 = 12     // Reach of the shadow a floating component casts.
-        floating_Inset:      f32 = 24     // Air between a floating panel and the window edges it stands beside.
+        floating_ShadowBlur:    f32 = 64     // Width over which the shadow of a floating surface fades out, centred on the edge of its offset body.
+        floating_ShadowOffsetY: f32 = 24     // Downward displacement of the shadow of a floating surface: the light falls from above.
+        floating_Inset:         f32 = 24     // Air between a floating panel and the window edges it stands beside.
 
         // A section label: small spaced capitals in the faint ink, with no band behind them.
         sectionLabel_FontSize:      u32 = 10      // Size of the face a section label is set in.
@@ -258,7 +265,11 @@ struct ThemeMetrics
 
         panel_GutterSize:  f32 = 8     // Gap separating a structural panel from adjacent application chrome.
         splitView_BarSize: f32 = 5     // Visible and draggable divider between split panels.
-        property_ControlInset: f32 = 4     // Inset of the state ground within a property control.
+
+        // A property grid: marks set beside a name, and the rows of its condensed kind.
+        property_ControlInset:       f32 = 4      // Inset of the state ground within a property control.
+        property_ModifiedMarkSize:   f32 = 6      // Diameter of the Arc dot after the name of a value changed from its default.
+        property_CondensedRowHeight: f32 = 26     // Height of a row of the condensed property grid.
 
         progressBar_Height:     f32 = 16      // Height of a progress bar created without one.
         progressBar_TrackSize:  f32 = 4       // Thickness of the track, centered in the bar.

@@ -1,28 +1,33 @@
 using Core, Pixel
 
 // Prompts for either a single line or a block of rich text.
+//
+// The box is the composition of [[Gui.Dialog]]: its title names the command it carries out, the
+// editor follows, and a help line in the faint ink stands under the editor when the prompt needs
+// one. Cancel and the primary action end the body.
 public struct EditDlg
 {
     public using dialog: Dialog     // Embedded dialog state.
 
     public readonly
     {
-        late label: *Label             // Optional explanatory message.
+        late label: *Label             // Optional help line under the editor.
         edit:       *EditBox?          // Single-line editor, when created in single-line mode.
         richEdit:   *RichEditCtrl?     // Rich editor, when created in multi-line mode.
     }
 }
 
-// Configures the title, message and initial contents of an [[Gui.EditDlg]].
+// Configures the title, help line, actions and initial contents of an [[Gui.EditDlg]].
 public struct EditDlgOptions
 {
     public
     {
-        title:        string = ""       // Surface title.
-        message:      string = ""       // Optional explanatory text shown above the editor.
-        text:         string = ""       // Initial editor contents.
-        selectAll            = true     // Whether the initial contents start selected.
-        editorHeight: s32    = 150      // Editor height, used by the multi-line form.
+        title:             string = ""      // Title of the box: the label of the command it carries out.
+        message:           string = ""      // Optional help line shown under the editor.
+        text:              string = ""      // Initial editor contents.
+        confirmButtonText: string = ""      // Caption of the primary action, or empty for the localized OK.
+        selectAll = true     // Whether the initial contents start selected.
+        editorHeight:      s32    = 150     // Editor height, used by the multi-line form.
     }
 }
 
@@ -37,17 +42,17 @@ public impl EditDlg
     {
         Swag.assert(from != null)
         let dlg = Wnd.create'EditDlg()
-        let srf = dlg.createSurface(from, 0, 0, 450, 210)
-        srf.setTitle(options.title)
+        discard dlg.createSurface(from, 0, 0, cast(s32, MessageDlg.MinMessageWidth), 210)
+        dlg.setTitle(options.title)
 
         with dlg.edit = EditBox.create(dlg.createContentView(), "")
         {
-            .dockStyle = .Bottom
+            .dockStyle       = .Top
+            .position.height = dlg.themeMetrics().control_DialogHeight
             .setFocus()
         }
 
-        dlg.addButton(strings().dlg_Ok, Dialog.BtnOk, true)
-        dlg.addButton(strings().dlg_Cancel, Dialog.BtnCancel)
+        dlg.addActions(options)
         dlg.sendResizeEvent()
         dlg.applyOptions(options)
         return dlg
@@ -60,14 +65,14 @@ public impl EditDlg
         Swag.assert(from != null)
         Swag.assert(options.editorHeight > 0, "editor height must be positive")
         let dlg = Wnd.create'EditDlg()
-        let srf = dlg.createSurface(from, 0, 0, 500, 180 + options.editorHeight, .Resizable)
-        srf.setTitle(options.title)
-        srf.minSize.x = 500
+        discard dlg.createSurface(from, 0, 0, 512, 180 + options.editorHeight, .Resizable)
+        dlg.setTitle(options.title)
+        dlg.setMinSize(MessageDlg.MinMessageWidth, 0)
 
         with dlg.richEdit = RichEditCtrl.create(dlg.createContentView(), Math.Rectangle{0, 0, 0, options.editorHeight})
         {
             .anchorStyle = .Height
-            .dockStyle   = .Bottom
+            .dockStyle   = .Top
             .setFlags(.flags | .AutoLoseFocus)
             .setForm(.Edit)
             .setFrameForm(.Square)
@@ -75,8 +80,7 @@ public impl EditDlg
             .setFocus()
         }
 
-        dlg.addButton(strings().dlg_Ok, Dialog.BtnOk, true)
-        dlg.addButton(strings().dlg_Cancel, Dialog.BtnCancel)
+        dlg.addActions(options)
         dlg.sendResizeEvent()
 
         var appliedOptions = options
@@ -86,19 +90,19 @@ public impl EditDlg
         return dlg
     }
 
+    // Adds the primary action and Cancel, which Escape presses.
+    private mtd addActions(options: EditDlgOptions)
+    {
+        .addButton(options.confirmButtonText.count ? options.confirmButtonText : strings().dlg_Ok, Dialog.BtnOk, true)
+        .addButton(strings().dlg_Cancel, Dialog.BtnCancel)
+    }
+
     // Applies the shared creation options once the editor exists, then centers the
     // surface: the message can grow the surface, so centering must come last.
     private mtd applyOptions(options: EditDlgOptions)
     {
-        if options.message.count
-        {
-            // A one-line prompt needs one line of explanation, not the taller band that keeps a
-            // rich editor's keyboard hint easy to scan above a large text area.
-            let messageHeight = .edit ? cast(s32, Math.ceil(.font().regular!.height)) : 40
-            .setMessage(options.message, messageHeight)
-            if .edit do
-                .label.margin.w = .themeMetrics().dialog_BtnPadding
-        }
+        if options.message.count do
+            .setMessage(options.message)
 
         .setText(options.text)
         if options.selectAll
@@ -114,7 +118,7 @@ public impl EditDlg
         .surface!.center(unwrap .parentSurface)
     }
 
-    // Fits the shared dialog layers around the editor and its optional explanation.
+    // Fits the shared dialog layers around the editor and its optional help line.
     private mtd fitContent()
     {
         .applyLayout()
@@ -123,12 +127,12 @@ public impl EditDlg
         var contentHeight = edit ? edit.position.height : .richEdit!.position.height
         if .label != null
         {
-            // The explanation is as tall as its own wording at the width it has, floored by the
-            // band the caller asked to keep for it. Read back from the layout instead, the band
-            // was whatever the authored shell had left over, so a message needing a second line
-            // was cut in half by a box that had never measured it.
-            let wording = .label.itf.measureContent(Math.Point{.label.position.width, 0}).y
-            contentHeight += Math.max(wording, .label.preferredSize.y) + .label.margin.w
+            // The help line is as tall as its own wording at the width it has. Read back from the
+            // layout instead, it was whatever the authored shell had left over, so a help line
+            // needing a second line was cut in half by a box that had never measured it.
+            let wording = Math.ceil(.label.itf.measureContent(Math.Point{.label.position.width, 0}).y)
+            .label.position.height = wording
+            contentHeight += wording + .label.margin.y
         }
 
         // The rich editor keeps its authored height while the surface is fitted around it.
@@ -166,28 +170,25 @@ public impl EditDlg
         return .richEdit!.text()
     }
 
-    // Creates or updates an explanatory message above the editor.
+    // Creates or updates the help line under the editor.
     //
-    // The box refits around the wording, so an explanation running onto a second line is given
-    // that line instead of losing it. `height` is the band kept for a message shorter than that,
-    // not a height the message is held to.
-    mtd setMessage(message: string, height: s32 = 40)
+    // The box refits around the wording, so a help line running onto a second line is given that
+    // line instead of losing it.
+    mtd setMessage(message: string)
     {
-        Swag.assert(height > 0, "message height must be positive")
         if .label == null
         {
             Swag.assert(.surface != null)
-            .label = Label.create(unwrap .contentView, message, Math.Rectangle{0, 0, 0, height}, flags: .WordWrap | .SecondaryText)
-            with me.label
+            with me.label = Label.create(unwrap .contentView, message, flags: .WordWrap)
             {
-                .dockStyle = .Center
-                .margin.w  = .themeMetrics().dialog_BtnPadding * 2
-                .setTextAlignment(.Left, .Center)
+                .dockStyle = .Top
+                .margin.y  = me.themeMetrics().dialog_BtnPadding * 2
+                .style.addStyleSheetColors("label_Text $faintText")
+                .setTextAlignment(.Left, .Top)
             }
         }
         else
         {
-            .label.preferredSize.y = cast(f32, height)
             .label.setText(message)
         }
 

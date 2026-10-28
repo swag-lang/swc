@@ -1,6 +1,7 @@
 using Core, Pixel
 
-// Placeholder shown by an editor when the edited instances disagree on a field value.
+// Placeholder shown by the editor of one component of a field — too narrow for words — when the
+// edited instances disagree on it. A whole field says "Mixed values" instead.
 const PropMixedText = "—"
 
 // Multi-selection support for the property grid.
@@ -104,16 +105,16 @@ internal impl Properties
             Memory.copy(item.dataInstances[i], item.dataInstances[0], sz)
     }
 
-    // Show the value box as "mixed" when the instances disagree (blank text + dash note),
-    // otherwise clear the note so the concrete value set by the caller shows through.
-    // Returns true when mixed, so the caller can skip writing a concrete value.
+    // Show the value box as "mixed" when the instances disagree (blank text and the faint
+    // "Mixed values" placeholder), otherwise clear the placeholder so the concrete value set by
+    // the caller shows through. Returns true when mixed, so the caller can skip writing a value.
     #[Swag.Discardable]
     mtd setEditMixed(item: *PropertiesItem, ed: *EditBox)->bool
     {
         if .fieldIsMixed(item)
         {
             ed.setText("")
-            ed.setPlaceholder(PropMixedText)
+            ed.setPlaceholder(strings().prop_MixedValues)
             return true
         }
 

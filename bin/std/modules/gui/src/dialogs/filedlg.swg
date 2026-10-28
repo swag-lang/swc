@@ -87,7 +87,7 @@ private impl FileDlg
     {
         var options: FormDlgOptions
         options.title  = strings().fileDlg_NewFolderTitle
-        options.width  = 440
+        options.width  = cast(s32, MessageDlg.MinMessageWidth)
         options.height = 220
 
         let dlg  = FormDlg.create(unwrap .surface, options)
@@ -160,24 +160,20 @@ impl FileDlg
         let dlg = Wnd.create'FileDlg()
         dlg.options = opt
 
-        with let srf = dlg.createSurface(from, 100, 100, 720, 520)
+        let srf = dlg.createSurface(from, 100, 100, 720, 560, .Resizable)
+        dlg.setMinSize(540, 420)
+        if opt.title.count
         {
-            .updateFlags(add: .Resizable)
-            .minSize = {540, 420}
-
-            if opt.title.count
+            dlg.setTitle(opt.title)
+        }
+        else
+        {
+            switch #complete opt.mode
             {
-                .setTitle(opt.title)
-            }
-            else
-            {
-                switch #complete opt.mode
-                {
-                case .CreateFile:   .setTitle(strings().fileDlg_TitleSaveFile)
-                case .SelectFile:   .setTitle(strings().fileDlg_TitleSelectFile)
-                case .SelectFiles:  .setTitle(strings().fileDlg_TitleSelectFiles)
-                case .SelectFolder: .setTitle(strings().fileDlg_TitleSelectFolder)
-                }
+            case .CreateFile:   dlg.setTitle(strings().fileDlg_TitleSaveFile)
+            case .SelectFile:   dlg.setTitle(strings().fileDlg_TitleSelectFile)
+            case .SelectFiles:  dlg.setTitle(strings().fileDlg_TitleSelectFiles)
+            case .SelectFolder: dlg.setTitle(strings().fileDlg_TitleSelectFolder)
             }
         }
 
@@ -195,9 +191,8 @@ impl FileDlg
         dlg.addButton(confirmText, Dialog.BtnOk, true)
         dlg.addButton(strings().dlg_Cancel, Dialog.BtnCancel)
 
-        // Host the reusable browser composite. It carries its own grounds and its own edge
-        // paddings, so the body it sits in keeps none of the dialog inset around it.
-        with dlg.browser = FileBrowserCtrl.create(dlg.createContentView(inset: false), opt)
+        // Host the reusable browser composite in the body, inside the inset every box keeps.
+        with dlg.browser = FileBrowserCtrl.create(dlg.createContentView(), opt)
         {
             .dockStyle   = .Center
             .sigAccepted += func|fileDlg = dlg|(_) { fileDlg.closeWithResult(Dialog.BtnOk) }

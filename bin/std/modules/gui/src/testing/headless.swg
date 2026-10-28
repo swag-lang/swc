@@ -644,6 +644,28 @@ impl HeadlessHost
         return .app.renderer.readRenderTarget(&.surface.rt, 0, 0, .surface.rc.width, .surface.rc.height)
     }
 
+    // Paints another surface of the host's application — a dialog opened over the host — as the eye sees it.
+    //
+    // The image is the whole surface: the box, its outline and the shadow it casts into its
+    // margin, laid over the ground of the window it stands above, so a floating sheet is judged
+    // on what it floats over rather than on transparency.
+    mtd renderSurface(surface: *Surface)->Pixel.Image
+    {
+        .pump()
+        surface.invalidate()
+        surface.paint()
+        let target = .app.renderer.readRenderTarget(&surface.rt, 0, 0, surface.rc.width, surface.rc.height)
+
+        // A surface leaves its pixels premultiplied, the way the compositor reads them: read
+        // as straight, every antialiased pixel of its rounded edge would be darkened twice.
+        let rendered = Pixel.Image.create(target.width, target.height, target.pixelFormat, target.pixels.toSlice(), .Premultiplied)
+
+        var result = Pixel.Image.create(rendered.width, rendered.height, rendered.pixelFormat)
+        result.fill(.theme.colors.wnd_Bk)
+        result.mix(rendered, 0, 0, .SourceOver)
+        return result
+    }
+
     // Primes paint-requested tracks, completes all finite animations, and repaints final state.
     //
     // `wnd` defaults to the root. `steps` remains for source compatibility and is ignored because
@@ -797,20 +819,32 @@ impl HeadlessHost
         return .app.endModal
     }
 
-    // Returns the first [[Gui.EditCtrl]] under `wnd` whose label reads `label`, or `null`.
-    mtd findEditCtrlByLabel(wnd: *Wnd, label: string)->*EditCtrl?
+    // Returns the first edit box under `wnd` labelled `label`, or `null`.
+    //
+    // The label is the one an [[Gui.EditCtrl]] carries, or the one a [[Gui.FormLayoutCtrl]] row
+    // sets above or beside its field — the way every form of a dialog names its fields.
+    mtd findEditByLabel(wnd: *Wnd, label: string)->*EditBox?
     {
         if wnd is EditCtrl as ctrl
         {
             if ctrl.label != null and ctrl.label.name.raw == label do
-                return ctrl
+                return ctrl.edit
+        }
+
+        if wnd is FormLayoutCtrl as form
+        {
+            for row in form.rows where row.label.name.raw == label
+            {
+                if row.field is EditBox as edit do
+                    return edit
+            }
         }
 
         for child in wnd.children
         {
-            let ctrl = .findEditCtrlByLabel(child, label)
-            if ctrl do
-                return ctrl
+            let edit = .findEditByLabel(child, label)
+            if edit do
+                return edit
         }
 
         return null
@@ -822,11 +856,11 @@ impl HeadlessHost
         if .app.modalSurfaces.isEmpty() do
             return false
 
-        let ctrl = .findEditCtrlByLabel(.app.modalSurfaces.back().wnd.view, label)
-        if not ctrl do
+        let edit = .findEditByLabel(.app.modalSurfaces.back().wnd.view, label)
+        if not edit do
             return false
 
-        ctrl.edit.setText(text)
+        edit.setText(text)
         .pump()
         return true
     }

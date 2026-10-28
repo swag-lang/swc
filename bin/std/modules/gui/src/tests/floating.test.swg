@@ -37,12 +37,18 @@ func floatingHost(host: *Testing.HeadlessHost, width, height: f32, light: bool)
     host.root.applyLayout()
 
     // Its body sits the floating inset from the edge, centred on the height of the window.
-    let shadow = metrics.floating_ShadowSize
-    let body   = dock.bodySize()
-    Swag.assert(dock.position.x + shadow == metrics.floating_Inset)
-    Swag.assert(Math.abs(dock.position.y + shadow + body.y * 0.5 - 200) <= 1)
+    let body = dock.bodySize()
+    Swag.assert(dock.position.x == metrics.floating_Inset)
+    Swag.assert(Math.abs(dock.position.y + body.y * 0.5 - 200) <= 1)
     Swag.assert(body.x == metrics.toolDock_CellSize + 2 * metrics.toolDock_Padding)
     Swag.assert(select.position.width == metrics.toolDock_CellSize and select.icon.sizeX == metrics.toolDock_Glyph)
+
+    // The window is the body alone: its shadow falls outside it, wider below than above, and the
+    // pointer right beside the body reaches the work instead of the dock.
+    let reach = host.theme.floatingShadowReach()
+    Swag.assert(dock.position.width == body.x and dock.position.height == body.y)
+    Swag.assert(reach.w > reach.y and dock.invalidatePadding.w == -reach.w)
+    Swag.assert(host.mouseTargetAt({dock.position.horzCenter(), dock.position.bottom() + 4}) != &dock.wnd)
 
     // The first tool starts active; picking another moves the mark and reports it once.
     Swag.assert(dock.activeTool() == select and changes == 0)
@@ -55,7 +61,7 @@ func floatingHost(host: *Testing.HeadlessHost, width, height: f32, light: bool)
 
     // The dock follows the window, and takes no room from the work beside it.
     host.root.resize(480, 300)
-    Swag.assert(Math.abs(dock.position.y + shadow + body.y * 0.5 - 150) <= 1)
+    Swag.assert(Math.abs(dock.position.y + body.y * 0.5 - 150) <= 1)
 }
 
 // The mini-bar stands above the selection, centred on it, and goes below it near the top edge.
@@ -64,7 +70,6 @@ func floatingHost(host: *Testing.HeadlessHost, width, height: f32, light: bool)
     var host: Testing.HeadlessHost
     floatingHost(&host, 480, 400, false)
     let metrics = host.theme.metrics
-    let shadow  = metrics.floating_ShadowSize
 
     let bar = MiniBar.create(&host.root)
     discard bar.addButton(host.theme.icon(.Copy, 16), toolTip: "Copy")
@@ -79,16 +84,16 @@ func floatingHost(host: *Testing.HeadlessHost, width, height: f32, light: bool)
     let selection = Math.Rectangle{200, 200, 80, 40}
     bar.showNear(selection)
     Swag.assert(bar.isLocallyVisible())
-    Swag.assert(bar.position.y + shadow + size.y + metrics.miniBar_Distance == selection.y)
-    Swag.assert(Math.abs(bar.position.x + shadow + size.x * 0.5 - selection.horzCenter()) <= 1)
+    Swag.assert(bar.position.y + size.y + metrics.miniBar_Distance == selection.y)
+    Swag.assert(Math.abs(bar.position.x + size.x * 0.5 - selection.horzCenter()) <= 1)
 
     let high = Math.Rectangle{200, 10, 80, 40}
     bar.showNear(high)
-    Swag.assert(bar.position.y + shadow == high.bottom() + metrics.miniBar_Distance)
+    Swag.assert(bar.position.y == high.bottom() + metrics.miniBar_Distance)
 
     // Its items stand in one row, inside the padding, the hairline in the gap of its group.
     let first = unwrap bar.items[0].wnd
-    Swag.assert(first.position.x == shadow + metrics.miniBar_Padding and first.position.height == metrics.miniBar_ButtonSize)
+    Swag.assert(first.position.x == metrics.miniBar_Padding and first.position.height == metrics.miniBar_ButtonSize)
 }
 
 // The hint line sits centred, its bottom the hint inset above the bottom edge, as wide as what it writes.
@@ -120,7 +125,6 @@ func floatingHost(host: *Testing.HeadlessHost, width, height: f32, light: bool)
     var host: Testing.HeadlessHost
     floatingHost(&host, 640, 480, false)
     let metrics = host.theme.metrics
-    let shadow  = metrics.floating_ShadowSize
 
     with let sheet = InfoSheet.create(&host.root)
     {
@@ -133,15 +137,15 @@ func floatingHost(host: *Testing.HeadlessHost, width, height: f32, light: bool)
     Swag.assert(not sheet.isLocallyVisible())
     sheet.toggle()
     Swag.assert(sheet.isLocallyVisible())
-    Swag.assert(sheet.position.right() - shadow == 640 - metrics.floating_Inset)
-    Swag.assert(sheet.position.y + shadow == metrics.floating_Inset)
-    Swag.assert(sheet.position.width - 2 * shadow == metrics.infoSheet_Width)
+    Swag.assert(sheet.position.right() == 640 - metrics.floating_Inset)
+    Swag.assert(sheet.position.y == metrics.floating_Inset)
+    Swag.assert(sheet.position.width == metrics.infoSheet_Width)
 
     // Its height follows what it holds, and a primary action stands at its foot.
     let before = sheet.position.height
     let action = sheet.setAction("Open", "sheet.open")
     Swag.assert(sheet.position.height == before + metrics.infoSheet_BlockGap + metrics.btnPush_Height)
-    Swag.assert(action.position.bottom() == sheet.position.height - shadow - metrics.infoSheet_Padding)
+    Swag.assert(action.position.bottom() == sheet.position.height - metrics.infoSheet_Padding)
 
     sheet.toggle()
     Swag.assert(not sheet.isLocallyVisible())
@@ -156,7 +160,6 @@ func floatingHost(host: *Testing.HeadlessHost, width, height: f32, light: bool)
     var host: Testing.HeadlessHost
     floatingHost(&host, 640, 480, false)
     let metrics = host.theme.metrics
-    let shadow  = metrics.floating_ShadowSize
 
     let inspector = Inspector.create(&host.root)
     inspector.setTitle("Arrow", "1 object")
@@ -167,12 +170,12 @@ func floatingHost(host: *Testing.HeadlessHost, width, height: f32, light: bool)
     host.root.applyLayout()
 
     let width = metrics.inspector_Width
-    Swag.assert(inspector.position.width == width + 2 * shadow)
-    Swag.assert(inspector.position.right() - shadow == 640 - metrics.floating_Inset)
+    Swag.assert(inspector.position.width == width)
+    Swag.assert(inspector.position.right() == 640 - metrics.floating_Inset)
     Swag.assert(thickness.parent == &inspector.wnd and thickness.position.height == metrics.control_InspectorHeight)
-    Swag.assert(thickness.position.x == shadow + metrics.inspector_Padding + metrics.inspector_LabelWidth + metrics.inspector_LabelGap)
-    Swag.assert(thickness.position.right() == shadow + width - metrics.inspector_Padding)
-    Swag.assert(style.position.x == shadow + metrics.inspector_Padding)
+    Swag.assert(thickness.position.x == metrics.inspector_Padding + metrics.inspector_LabelWidth + metrics.inspector_LabelGap)
+    Swag.assert(thickness.position.right() == width - metrics.inspector_Padding)
+    Swag.assert(style.position.x == metrics.inspector_Padding)
     Swag.assert(style.position.y == thickness.position.bottom() + metrics.inspector_RowGap)
 
     var folds = 0

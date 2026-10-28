@@ -395,7 +395,7 @@ private func winProc(hWnd: HWND, msg: UINT, wParam: WPARAM, lParam: LPARAM)->LRE
             {
                 var info: MONITORINFO
                 catch GetMonitorInfoA(hm, &info)
-                let sdw = cast(s32, (surface.app.theme.metrics.surfaceWnd_ShadowSize * surface.dpiScale))
+                let sdw = cast(s32, (surface.shadowMargin() * surface.dpiScale))
 
                 mm.ptMaxPosition.x = (info.rcWork.left - info.rcMonitor.left) - sdw
                 mm.ptMaxPosition.y = (info.rcWork.top - info.rcMonitor.top) - sdw

@@ -1,6 +1,16 @@
 #global public
 
-// Owns a modal surface, a content view, and an optional validated action bar.
+using Core, Pixel
+
+// Owns a modal floating sheet: a title, a body and a row of actions on one surface.
+//
+// A dialog is the floating sheet of the charter. It stands over its owner on the floating
+// corner and shadow ([[Gui.SurfaceFlags.Sheet]]), with no caption band and no close cross: its
+// title is the first line of the body ([[Gui.Dialog.setTitle]]), the content follows in one
+// column ([[Gui.Dialog.createContentView]]), and the actions end the body at the bottom right,
+// the primary one rightmost ([[Gui.Dialog.addButton]]). A box that can be left without answering
+// it says so with the faint name of the Escape key at the bottom left. Every measure comes from
+// the `dialog_` group of [[Gui.ThemeMetrics]].
 struct Dialog
 {
     public
@@ -12,13 +22,16 @@ struct Dialog
 
         readonly
         {
-            late buttonBar: *StackLayoutCtrl        // Bottom action bar owned by the dialog.
+            late buttonBar: *StackLayoutCtrl        // Row of actions at the foot of the body, the primary one rightmost.
             buttons:        Array'(*PushButton)     // Buttons in insertion order.
             parentSurface:  *Surface?               // Surface that owns the modal dialog.
+            title:          RichString              // Title set as the first line of the body, or empty for none.
+            failure:        bool                    // Whether the title reports a failure, marked by the critical dot.
+            leadingControl: *Wnd?                   // Quiet control holding the bottom-left slot of the actions.
         }
     }
 
-    internal contentView: *Wnd?     // Standard padded body created by the predefined dialog family.
+    internal contentView: *Wnd?     // Body created by [[Gui.Dialog.createContentView]].
 }
 
 impl IWnd for Dialog
@@ -29,6 +42,49 @@ impl IWnd for Dialog
             .closeWithResult(BtnCancel)
         evt.accepted = true
     }
+
+    mtd impl onPaint(evt: *PaintEvent)
+    {
+        let painter = evt.paintContext.painter
+        let metrics = .themeMetrics()
+        let colors  = .themeColors()
+        let pad     = metrics.dialog_Padding
+
+        // The title is the first line of the body. A failure leads it with the critical dot, set
+        // on the capitals of the line rather than on the middle of its box.
+        if not .title.raw.isEmpty()
+        {
+            let font    = .titleFont()
+            let centerY = pad + Math.ceil(font.height) * 0.5
+            var x       = pad
+            if .failure
+            {
+                let size = metrics.dialog_MarkSize
+                painter.setParams(.Antialiased)
+                painter.fillCircle(x + size * 0.5, centerY, size * 0.5, colors.critical)
+                x += size + metrics.dialog_BtnPadding
+            }
+
+            // Cut with an ellipsis rather than run past the inset: a translated title is longer.
+            var sf: RichStringFormat
+            sf.font          = .theme().createDefaultFontFamily(metrics.dialog_TitleFontSize)
+            sf.fontStyle     = .Bold
+            sf.horzAlignment = .Left
+            sf.vertAlignment = .Top
+            sf.flags         = .Ellipsis
+            sf.palette[0]    = colors.text
+            let line = Math.Rectangle{x, font.opticalLineTop(centerY), .position.width - pad - x, Math.ceil(font.height)}
+            painter.drawRichString(line, &.title, sf)
+        }
+
+    }
+
+    mtd impl onNotifyEvent(evt: *NotifyEvent)
+    {
+        if evt.kind == .ThemeChanged or evt.kind == .LanguageChanged do
+            .updateInset()
+        evt.accepted = false
+    }
 }
 
 impl Dialog
@@ -38,13 +94,16 @@ impl Dialog
     newCmdId("BtnOk")
     newCmdId("BtnCancel")
 
-    // Creates and centers a compact-caption dialog surface owned by `from`.
+    // Creates and centers a dialog owned by `from`, titled `title`.
+    //
+    // `width` and `height` are where the box starts; a box that fits itself to its content —
+    // [[Gui.Dialog.fitHeightToContent]] — replaces the height.
     #[Swag.Discardable]
     func create(from: *Surface, width = 512, height = 300, title: string? = null, flags = SurfaceFlags.None)->*Dialog
     {
         let dlg = Wnd.create'Dialog()
         let srf = dlg.createSurface(from, 0, 0, width, height, flags)
-        srf.setTitle(title)
+        dlg.setTitle(title orelse "")
         srf.center(from)
         return dlg
     }
@@ -69,75 +128,96 @@ impl Dialog
         return .surface.defaultButton
     }
 
-    // Returns the button Escape and the close cross stand for, or `null` when the box offers no way out other than answering it.
+    // Returns the button Escape stands for, or `null` when the box offers no way out other than answering it.
+    //
+    // A Cancel is the way out whenever the box has one; a No stands for it only in a box without one.
     mtd const cancelButton()->*PushButton?
     {
-        for btn in .buttons where btn.id == BtnCancel or btn.id == BtnNo do
+        for btn in .buttons where btn.id == BtnCancel do
+            return btn
+        for btn in .buttons where btn.id == BtnNo do
             return btn
         return null
     }
 
     // Creates and attaches the native surface used by this dialog.
     //
-    // A dialog always takes the compact strip of [[Gui.SurfaceFlags.SmallCaption]], kept above
-    // its content; the caption flags of `flags` are ignored.
+    // A dialog is a floating sheet ([[Gui.SurfaceFlags.Sheet]]) with its outline: no strip and no
+    // close cross, whatever caption flags `flags` carries. A box is dismissed by its own actions
+    // and by Escape. `width` and `height` are those of the visible box; the surface adds the
+    // margin its shadow falls in around it.
     mtd createSurface(from: *Surface, x, y: s32, width = 512, height = 300, flags = SurfaceFlags.None)->*Surface
     {
         Swag.assert(from != null)
         .parentSurface = from
 
-        // The close cross is the dialog's to decide, never the caller's: it says "this can
-        // be dismissed without answering", which is true exactly when a cancel button is
-        // there to say the same thing. Offered without one it is ambiguous — the reader
-        // cannot tell what closing the window will have decided — so `addButton` is what
-        // puts it on, and a caller asking for it here is ignored.
-        //
-        // A modal box sits on an application cut from the same ink. Without an edge of its
-        // own it reads as part of the surface underneath it, so every dialog is outlined.
-        let surfaceFlags = SurfaceFlags.SmallCaption |
-                           SurfaceFlags.ToolWindow |
-                           SurfaceFlags.Border |
-                           (flags & ~(SurfaceFlags.CloseButton | SurfaceFlags.LargeCaption | SurfaceFlags.SmallCaption))
+        let caption = SurfaceFlags.CloseButton |
+                      SurfaceFlags.MinimizeButton |
+                      SurfaceFlags.MaximizeButton |
+                      SurfaceFlags.LargeCaption |
+                      SurfaceFlags.SmallCaption
+        let surfaceFlags = SurfaceFlags.Sheet | SurfaceFlags.ToolWindow | SurfaceFlags.Border | (flags & ~caption)
         let srf = expect from.app.createSurface(x, y, width, height, surfaceFlags, me)
+
         srf.wnd.view.backgroundStyle = .Dialog
 
+        // The actions end the body on its own ground: no band and no rule, one gap above them.
         let metrics = .themeMetrics()
-        let h       = metrics.btnPush_Height + 2 * metrics.dialog_BtnPadding
-        with me.buttonBar = Wnd.create'StackLayoutCtrl(srf.wnd.view, "", Math.Rectangle{0, 0, 0, h})
+        with me.buttonBar = Wnd.create'StackLayoutCtrl(srf.wnd.view, "", Math.Rectangle{0, 0, 0, metrics.control_DialogHeight})
         {
-            .spacing         = metrics.dialog_BtnPadding
-            .mode            = .HorizontalEnd
-            .dockStyle       = .Bottom
-            .backgroundStyle = .DialogActionBar
-            .padding         = Math.Vector4{metrics.dialog_Padding, metrics.dialog_BtnPadding, metrics.dialog_Padding, metrics.dialog_BtnPadding}
+            .spacing   = metrics.dialog_BtnPadding
+            .mode      = .HorizontalEnd
+            .dockStyle = .Bottom
         }
 
+        .updateInset()
         return srf
     }
 
-    // Returns the content view above the action bar.
+    // Returns the window the body of the dialog is laid out in, which is the dialog itself.
     mtd view()->*Wnd => .surface!.wnd.view
 
-    // Creates the common body used by the predefined dialog family.
+    // Names the box: `title` is set as the first line of its body and on its surface.
     //
-    // The body owns the outer inset once, so individual dialogs only express the spacing
-    // between their own pieces. A raised content ground and a quieter action ground then
-    // separate the two bands without another border or accent rule.
-    //
-    // `inset` is the air a box keeps around loose content — a message, a column of fields, a
-    // prompt. A box whose body is one panel carrying its own ground and its own edges — a file
-    // browser, a list, an editor — asks for none: set inside the inset, the panel reads as a card
-    // adrift in a margin, and the box then has to grow by twice that inset to show the same rows.
-    internal mtd createContentView(inset = true)->*Wnd
+    // A title that reports a situation is a sentence; one that names the command the box carries
+    // out repeats that command's label. `failure` leads the title with the critical dot, which is
+    // the whole severity vocabulary of a box.
+    mtd setTitle(title: string, failure = false)
     {
-        Swag.assert(.contentView == null, "a dialog can only have one standard content view")
+        .title.set(title)
+        .failure = failure
+        .surface?.setTitle(title)
+        .updateInset()
+        .invalidate()
+    }
 
-        let content = Wnd.create'Wnd(.surface!.wnd.view)
+    // Puts a quiet control in the bottom-left slot of the actions.
+    //
+    // The slot holds at most one thing that belongs to the actions without being one of them,
+    // such as the type filter of a file dialog. The control keeps its width and takes the height
+    // of an action.
+    mtd setLeadingControl(control: *Wnd)
+    {
+        Swag.assert(.leadingControl == null, "a dialog has one leading control")
+        control.setParent(me)
+        control.dockStyle = .None
+        .leadingControl   = control
+        .placeLeadingControl()
+        .invalidate()
+    }
+
+    // Creates the body: the window the content of the box goes in, under its title and above its actions.
+    //
+    // The dialog owns the inset, once, around its title, its body and its actions, so the content
+    // only states the spacing between its own pieces — one gap, `dialog_BtnPadding * 2`.
+    mtd createContentView()->*Wnd
+    {
+        Swag.assert(.contentView == null, "a dialog can only have one content view")
+
+        let content = Wnd.create'Wnd(me)
         content.dockStyle       = .Center
         content.backgroundStyle = .Transparent
-        if inset do
-            content.setAllPaddings(.themeMetrics().dialog_Padding)
-        .contentView = content
+        .contentView            = content
         return content
     }
 
@@ -150,26 +230,47 @@ impl Dialog
     // makes a fitted box hold what it measured.
     internal mtd const physicalRoom(logical: f32)->f32 => Math.ceil(Math.ceil(logical) * .surface!.dpiScale)
 
-    // Gives the surface exactly the vertical room needed by its standard body.
+    // Returns the room the box keeps above and below its content: the inset, the title, the actions, the outline and the shadow.
+    internal mtd chromeHeight()->f32
+    {
+        let surface = unwrap .surface
+        var result  = .padding.y + .padding.w
+        result += .buttonBar.position.height + .buttonBar.margin.y
+        result += 2 * .themeMetrics().wnd_BorderSize
+        result += 2 * surface.shadowMargin()
+        return result
+    }
+
+    // Returns the room the box keeps beside its content: the inset, the outline and the shadow.
+    internal mtd chromeWidth()->f32
+    {
+        let surface = unwrap .surface
+        return .padding.x + .padding.z + 2 * .themeMetrics().wnd_BorderSize + 2 * surface.shadowMargin()
+    }
+
+    // Gives the surface exactly the vertical room `contentHeight` needs.
     //
-    // `contentHeight` excludes the body inset, action bar, caption, border, and shadow. Keeping
-    // those shared layers here prevents each predefined dialog from carrying a stale fixed
-    // allowance when one of the common metrics changes.
-    internal mtd fitHeightToContent(contentHeight: f32)
+    // `contentHeight` is the content alone: the inset, the title, the actions, the outline and
+    // the shadow are added here, so no dialog carries a stale allowance for them when one of the
+    // shared measures changes.
+    mtd fitHeightToContent(contentHeight: f32)
     {
         Swag.assert(contentHeight >= 0, "dialog content height cannot be negative")
 
-        let metrics = .themeMetrics()
         let surface = unwrap .surface
-        var height  = contentHeight + 2 * metrics.dialog_Padding
-        height += .buttonBar.position.height + 2 * metrics.wnd_BorderSize
-        height += surface.wnd.stripHeight()
-        height += 2 * surface.shadowMargin()
-
-        var pos = surface.position
-        pos.height = .physicalRoom(height)
+        var pos     = surface.position
+        pos.height = .physicalRoom(contentHeight + .chromeHeight())
         surface.setPosition(pos)
         .applyLayout()
+        .placeLeadingControl()
+    }
+
+    // Keeps the visible box at least `width` by `height` when the reader resizes it; zero leaves an axis free.
+    mtd setMinSize(width, height: f32)
+    {
+        let surface = unwrap .surface
+        let margin  = 2 * surface.shadowMargin()
+        surface.minSize = {width > 0 ? width + margin : 0, height > 0 ? height + margin : 0}
     }
 
     // Runs the dialog modally and returns the accepted button identifier.
@@ -183,6 +284,7 @@ impl Dialog
     mtd doModal()->WndId
     {
         let surface = unwrap .surface
+        .placeLeadingControl()
         surface.wnd.setInitialFocus(.keyboardEntry())
         surface.app.setFocusVisible(true)
         surface.bringToFront()
@@ -194,9 +296,11 @@ impl Dialog
 
     // Adds an action button and optionally makes it the default keyboard action.
     //
-    // Pressing the button submits `id` through [[Gui.Dialog.closeWithResult]]. A `BtnCancel` or `BtnNo` button
-    // also becomes the Escape action of the surface and puts the close cross on its caption,
-    // and a new default button demotes the previous one.
+    // Pressing the button submits `id` through [[Gui.Dialog.closeWithResult]]. The default
+    // button is the primary action: it takes the primary form and stands rightmost, the other
+    // actions to its left in the order they were added, so the dismissing one, added last, stands
+    // nearest the primary. A `BtnCancel` or `BtnNo` button also becomes the Escape action of the
+    // surface, and a new default button demotes the previous one.
     #[Swag.Discardable]
     mtd addButton(str: string, id: WndId, isDefault: bool = false)->*PushButton
     {
@@ -222,16 +326,18 @@ impl Dialog
             me.buttons.add(btn)
         }
 
+        // The eye finishes a box at its bottom right, which is where the answer belongs.
+        for button in .buttons where button.form == .Default do
+            button.bringToFront()
+
         let srf = unwrap .surface
         if isDefault do
             srf.defaultButton = btn
+        if id == BtnCancel or id == BtnNo do
+            srf.cancelButton = .cancelButton()
 
-        if id == BtnCancel or id == BtnNo
-        {
-            srf.cancelButton = btn
-            srf.updateFlags(add: .CloseButton)
-        }
-
+        .buttonBar.computeLayout()
+        .invalidate()
         return btn
     }
 
@@ -245,5 +351,38 @@ impl Dialog
             return false
         .app().exitModal(safeResult)
         return true
+    }
+}
+
+private impl Dialog
+{
+    // Returns the air between two pieces of one body.
+    mtd bodyGap()->f32 => .themeMetrics().dialog_BtnPadding * 2
+
+    // Returns the face the title is set in.
+    mtd titleFont()->*Font => .theme().createDefaultFont(.themeMetrics().dialog_TitleFontSize, .Bold)
+
+    // Keeps the inset around the body, the room of the title above it and the gap above the actions.
+    mtd updateInset()
+    {
+        let metrics = .themeMetrics()
+        let pad     = metrics.dialog_Padding
+        var top     = pad
+        if not .title.raw.isEmpty() do
+            top += Math.ceil(.titleFont().height) + .bodyGap()
+        .padding = Math.Vector4{pad, top, pad, pad}
+
+        .buttonBar.margin.y        = .bodyGap()
+        .buttonBar.position.height = metrics.control_DialogHeight
+    }
+
+    // Stands the leading control at the bottom left, on the row of the actions.
+    mtd placeLeadingControl()
+    {
+        let control = .leadingControl
+        if not control do
+            return
+        let bar = .buttonBar.position
+        control.setPosition(Math.Rectangle{.padding.x, bar.y, control.position.width, bar.height})
     }
 }

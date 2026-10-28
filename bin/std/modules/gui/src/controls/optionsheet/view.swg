@@ -1075,9 +1075,7 @@ private impl View
             theme.drawSubRect(painter, box, &rects.btnIcon_RoundSquareBk, fade(colors.optionSheet_HotBk, opacity))
         let border = enabled ? colors.optionSheet_StepBorder : colors.popupItem_DisabledSubmenuMarker
         let radius = rects.btnIcon_RoundSquareBk.radius
-        var frame  = box
-        frame.inflate(-0.5)
-        painter.drawRoundRect(frame, radius, radius, Pen.createSolid(fade(border, opacity)))
+        painter.drawRoundRect(box, radius, radius, Pen.createSolid(fade(border, opacity)))
 
         // The glyph is drawn rather than taken from the atlas, so its stroke stays crisp at every
         // size a row gives the button.

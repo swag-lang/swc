@@ -26,9 +26,10 @@ func onAbout(_: *Button)
     {
         .surfaceTitle = "About GUI9"
         .contentTitle = "Swag GUI dialogs"
-        .message      = "One shared composition for every predefined dialog: an inset body, a quiet action bar, and palette-owned color."
+        .identity     = "gui9 · predefined dialogs"
+        .message      = "One composition for every predefined box: a floating sheet, its title as the first line, the content in one column and the primary action at the bottom right."
         .surfaceIcon  = app.theme.icon(.About, 18)
-        .contentIcon  = app.theme.icon(.About, 64)
+        .contentIcon  = app.theme.icon(.About, app.theme.metrics.dialog_TileSize)
     }
 
     discard AboutDlg.create(unwrap g_Surface, params).doModal()
@@ -61,39 +62,42 @@ func onMsgConfirm(_: *Button)
 
 func onMsgError(_: *Button)
 {
-    MessageDlg.error(unwrap g_Surface,
-                     "Unable to mount the virtual disk.\n\nThe password is incorrect or the container is damaged.")
+    var opt: MessageDlgOptions
+    opt.title  = "Cannot mount the virtual disk."
+    opt.detail = "Error code: 0x80070017"
+    MessageDlg.error(unwrap g_Surface, "The password is incorrect or the container is damaged.", options: opt)
 }
 
 func onEditSingle(_: *Button)
 {
     var opt: EditDlgOptions
-    opt.title   = "Single line edit"
-    opt.message = "Enter your name:"
-    opt.text    = "John Doe"
+    opt.title   = "Go to Address"
+    opt.message = "Decimal, or hexadecimal preceded by 0x."
+    opt.text    = "0x0001F400"
+    opt.confirmButtonText = "Go"
     discard EditDlg.createSingleLine(unwrap g_Surface, opt).doModal()
 }
 
 func onEditMulti(_: *Button)
 {
     var opt: EditDlgOptions
-    opt.title   = "Multi line edit"
-    opt.message = "Enter a description:"
-    opt.text    = "First line\nSecond line"
+    opt.title = "Edit Description"
+    opt.text  = "First line\nSecond line"
     discard EditDlg.createMultiLine(unwrap g_Surface, opt).doModal()
 }
 
 func onForm(_: *Button)
 {
     var opt: FormDlgOptions
-    opt.title = "Profile"
+    opt.title = "Change Profile"
+    opt.confirmButtonText = "Apply"
 
     let dlg = FormDlg.create(unwrap g_Surface, opt)
-    discard dlg.form.addTextField("NAME", "Ada", placeholder: "Display name")
-    discard dlg.form.addPasswordField("PASSWORD",
+    discard dlg.form.addTextField("Name", "Ada", placeholder: "Display name")
+    discard dlg.form.addPasswordField("Password",
                                       placeholder: "Optional password",
                                       help: "Leave empty to keep the current password.")
-    let role = dlg.form.addChoiceField("ROLE")
+    let role = dlg.form.addChoiceField("Role")
     role.addItem("Developer")
     role.addItem("Designer")
     role.setSelectedIndex(0, false)

@@ -116,9 +116,7 @@ using Core, Gui, Pixel
         Swag.assert(musicDialog.label.itf.measureContent(Math.Point{musicDialog.label.position.width, 0}).y <= musicDialog.label.position.height + 0.5)
         if scale == 1.0
         {
-            let surface  = unwrap musicDialog.surface
-            let rendered = host.render(musicDialog)
-            var image    = rendered.cropped(0, 0, cast(s32, surface.position.width), cast(s32, surface.position.height))
+            var image = host.renderSurface(unwrap musicDialog.surface)
             Pixel.Testing.assertImageGolden(&image, "explorer.music.choice")
         }
 

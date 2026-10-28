@@ -35,19 +35,35 @@ dialogs, then each application, then the written rules.
   application re-implements one or insets its whole root under the strip.
 - Related: design.silence.007, design.silence.008, design.silence.009, design.silence.010
 
-### design.silence.005 — The property grid predates the charter
+### design.silence.005 — The property grid control still lacks search marks and the layout menu
 
-- Next: restyle the four `PropertiesKind` layouts and `PropertiesCtrl` to the Property grid
-  section: marks, notes, validation, search, sections and the layout menu.
-- Done when: the property goldens match the two property pictures in both themes.
+- Evidence: the rows follow the charter (`properties.{grid,condensed,list,panel}.{ink,paper}`
+  goldens: Arc dot after a changed name, faint revert glyph, padlock of a read-only value, section
+  labels in faint spaced capitals with a faint chevron and, in Panel, a hairline; Condensed rows of
+  26 with a hairline; validation as a dot and a line in the tone; notes as the Arc notice).
+  `PropertiesCtrl` does not: search marks no matched characters and shows no result count, the
+  section list shows no counts, and the `•••` menu offers no Presentation choice, because
+  `Properties.kind` is fixed at creation. In Panel the self-labelled editors carry no changed-value
+  dot, a Condensed warning shows its line instead of a caution mark in the left margin, and the
+  Panel golden shows `Opacity` at 0 while the data holds 0.4 (it did before this restyle too).
+- Next: let `Properties` switch kind by rebuilding its rows, put List, Grid, Condensed and Panel
+  under a Presentation section of the joined `•••` menu with `✓` in Arc, mark matched characters
+  with the highlight colour and count results in the search field and the section list; then fix
+  the Panel slider refresh.
+- Done when: `gui.properties.ctrl.paper` is reproduced by a `properties.ctrl.{ink,paper}` golden.
 - Related: design.silence.002
 
-### design.silence.006 — Dialogs still have a caption and a separate action bar
+### design.silence.006 — The file dialog still hosts the old browser bands
 
-- Next: move the dialog family of `bin/std/modules/gui/src/dialogs` to the Dialogs section, then
-  the dialogs the applications build.
-- Done when: `dialogs.charter.test.swg` and `dialogs.layout.test.swg` pin the new composition
-  and every dialog golden matches the dialog pictures.
+- Evidence: every predefined box and the applications' own forms are floating sheets
+  (`dialogs.{message,error,prompt,form,about}.{ink,paper}` goldens, `dialogs.charter.test.swg`),
+  but `FileDlg` puts `FileBrowserCtrl` in the body as it was: a navigation bar, a list on the view
+  ground, a status line and a label-beside-field name form, each band with its own padding.
+- Next: rebuild `FileBrowserCtrl` for the box — places as text tabs with the Arc underline, one
+  path field that filters, rows of 30–32 with mono faint dates and sizes on the dialog ground, and
+  the type filter as a quiet `▾` given to `Dialog.setLeadingControl` — and keep it usable embedded
+  (`gui9`).
+- Done when: a `dialogs.file.{ink,paper}` golden matches the file box of the dialog pictures.
 
 ### design.silence.007 — Swag Scope still shows its bands
 

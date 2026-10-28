@@ -414,35 +414,31 @@ impl Properties
 
             let theme = parent.theme()
 
+            // Every kind titles a structure in bold one step above the body, and labels its
+            // sections in the small spaced capitals of a section label.
+            .fontSection          = theme.createDefaultFontFamily(theme.metrics.defaultFontSize + 2)
+            .fontCategory         = theme.createDefaultFontFamily(theme.metrics.sectionLabel_FontSize)
+            .fontSection.regular  = .fontSection.bold
+            .fontCategory.regular = .fontCategory.bold
+            .fontName             = theme.res.fontDefault
             if kind == .List
             {
-                const FontSectionSize = 24'u32
-                .fontName             = theme.res.fontDefault
-                .fontSection          = theme.createDefaultFontFamily(FontSectionSize)
-                .fontCategory         = theme.createDefaultFontFamily(theme.metrics.defaultFontSize - 2)
-                .fontSection.regular  = .fontSection.bold
-                .fontCategory.regular = .fontCategory.bold
-                .fontName.regular     = .fontName.bold
-                .leftMargin           = 15
-                .rightMargin          = 15
+                .fontName.regular = .fontName.bold
+                .leftMargin       = 15
+                .rightMargin      = 15
             }
             else
             {
-                .fontName             = theme.res.fontDefault
-                .fontSection          = theme.res.fontDefault
-                .fontCategory         = theme.res.fontDefault
-                .fontSection.regular  = .fontSection.bold
-                .fontCategory.regular = .fontCategory.bold
-                .leftMargin           = 20
-                .rightMargin          = 8
+                .leftMargin  = 20
+                .rightMargin = 8
             }
 
-            // Condensed: a dense, classic property grid with thin rows and tight
-            // margins. Inherits the grid-family fonts/layout set just above.
+            // Condensed: a dense table of rows, values as text, one hairline between rows.
+            // Inherits the grid-family fonts/layout set just above.
             if kind == .Condensed
             {
-                .gridLineHeight = 24
-                .gridLineMargin = 4
+                .gridLineHeight = theme.metrics.property_CondensedRowHeight
+                .gridLineMargin = 0
                 .leftMargin     = 16
             }
 

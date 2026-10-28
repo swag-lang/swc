@@ -69,18 +69,17 @@ impl IActionUI for ActionOptions
         let main = mainWndOf(cxt)
         let view = main.editWnd.editView
 
-        let dlg = Dialog.create(unwrap view.surface, 800, 600, title: appStrings().dlg_TitleOptions, flags: .Border | .CloseButton | .Resizable)
+        let dlg = Dialog.create(unwrap view.surface, 800, 600, title: appStrings().dlg_TitleOptions, flags: .Resizable)
         dlg.addButton(Gui.strings().dlg_Close, Dialog.BtnCancel, true)
 
-        with let opt = PropertiesCtrl.create(dlg.view(), flags: .SectionTabs | .SearchBar)
+        with let opt = PropertiesCtrl.create(dlg.createContentView(), flags: .SectionTabs | .SearchBar)
         {
-            .setAllMargins(10)
             .dockStyle = .Center
         }
 
         fillOptions(opt, main)
 
-        opt.properties.sigValueChanged += func|main, opt|(_, item)
+        opt.properties.sigValueChanged += func|main, dlg, opt|(_, item)
         {
             var fieldName: string = ""
             if item do
@@ -94,7 +93,7 @@ impl IActionUI for ActionOptions
             {
                 opt.clear()
                 fillOptions(opt, main)
-                opt.surface!.setTitle(appStrings().dlg_TitleOptions)
+                dlg.setTitle(appStrings().dlg_TitleOptions)
                 opt.applyLayout()
             }
 

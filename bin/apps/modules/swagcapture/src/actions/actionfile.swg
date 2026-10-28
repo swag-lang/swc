@@ -270,16 +270,23 @@ private func updateLinkedImage(main: *MainWnd, capture: *Capture)
 private func showFileDetails(main: *MainWnd, capture: *Capture)
 {
     let texts  = appStrings()
-    let dialog = Dialog.create(unwrap main.surface,
-                               600,
-                               400,
-                               title: texts.dlg_TitleDetails,
-                               flags: .Border | .CloseButton | .Resizable)
+    let dialog = Dialog.create(unwrap main.surface, 600, 400, title: texts.dlg_TitleDetails, flags: .Resizable)
     dialog.addButton(Gui.strings().dlg_Close, Dialog.BtnCancel, true)
-    with let rows = StackLayoutCtrl.create(dialog)
+
+    // A reading per line: the name in the soft ink on the left, the value beside it, on the
+    // body's own ground and inside its inset.
+    with var formOptions: FormLayoutOptions
+    {
+        .labelPlacement = .Left
+        .labelWidth     = 130
+        .fieldHeight    = 20
+        .rowSpacing     = 8
+        .labelFlags     = .SecondaryText
+    }
+
+    with let rows = FormLayoutCtrl.create(dialog.createContentView(), formOptions)
     {
         .dockStyle = .Center
-        .padding   = 5
     }
 
     addDetail(rows, texts.ui_DetailFile, capture.file)
@@ -313,20 +320,17 @@ private func showFileDetails(main: *MainWnd, capture: *Capture)
         addDetail(rows, texts.ui_DetailRating, ratingLabel(capture.rating))
     addDetail(rows, texts.ui_DetailFileSize, StrConv.toDisplaySize(catch File.info(capture.file).size))
     rows.computeLayout()
+    dialog.applyLayout()
+    dialog.fitHeightToContent(rows.measure(Math.Point{rows.position.width, 0}).preferred.y)
     discard dialog.doModal()
 }
 
-// Adds one row to the details box: a title and its value, both left aligned.
-private func addDetail(rows: *Wnd, title, value: string)
+// Adds one reading to the details box: its name and its value, the value cut rather than wrapped.
+private func addDetail(rows: *FormLayoutCtrl, title, value: string)
 {
-    with let row = Wnd.create'StackLayoutCtrl(rows)
-    {
-        .mode = .Left
-        .position.height = 20
-    }
-
-    Label.create(row, title, {0, 0, 100, 0}).setTextHorizontalAlignment(.Left)
-    Label.create(row, value, {0, 0, 1000, 0}).setTextHorizontalAlignment(.Left)
+    let label = Label.create(rows, value, flags: .Ellipsis)
+    label.setTextHorizontalAlignment(.Left)
+    discard rows.addField(title, label)
 }
 
 // Offers exactly the image formats the pixel codec registry supports, so a codec added
@@ -570,21 +574,24 @@ impl MainWnd
     // Asks for a size and creates a blank capture of it.
     mtd newImage()
     {
-        with let dialog = Dialog.create(unwrap .surface, 350, 235, title: appStrings().act_NewImage)
+        with var options: FormDlgOptions
         {
-            .addButton(appStrings().dlg_BtnCreate, Dialog.BtnOk, true)
-            .addButton(Gui.strings().dlg_Cancel, Dialog.BtnCancel)
+            .title = appStrings().act_NewImage
+            .confirmButtonText = appStrings().dlg_BtnCreate
+            .width = 360
         }
 
-        let edit0 = EditCtrl.create(dialog, appStrings().ui_Width, "512", {90, 12}, flags: .RightAligned)
-        let edit1 = EditCtrl.create(dialog, appStrings().ui_Height, "512", {90, 47}, flags: .RightAligned)
-        edit0.edit.setUnsignedIntegerRange(16, 4096)
-        edit1.edit.setUnsignedIntegerRange(16, 4096)
+        let dialog = FormDlg.create(unwrap .surface, options)
+        let edit0  = dialog.form.addTextField(appStrings().ui_Width, "512")
+        let edit1  = dialog.form.addTextField(appStrings().ui_Height, "512")
+        edit0.setUnsignedIntegerRange(16, 4096)
+        edit1.setUnsignedIntegerRange(16, 4096)
+        dialog.form.computeLayout()
         if dialog.doModal() != Dialog.BtnOk do
             return
 
-        let {value: w, eat: _, ovf: _} = catch StrConv.parseS32(edit0.edit.text())
-        let {value: h, eat: _, ovf: _} = catch StrConv.parseS32(edit1.edit.text())
+        let {value: w, eat: _, ovf: _} = catch StrConv.parseS32(edit0.text())
+        let {value: h, eat: _, ovf: _} = catch StrConv.parseS32(edit1.text())
         var image = Image.create(w != 0 ? w : 512, h != 0 ? h : 512, .RGB8)
         image.fill(Argb.White)
         .newCapture(image, sourceKind: .BlankCanvas)

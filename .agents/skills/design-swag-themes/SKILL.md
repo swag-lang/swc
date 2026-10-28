@@ -251,6 +251,15 @@ for. The charter's values:
   groups, and paint their shadow and the dim behind the lens with `ThemeColors.floating_Shadow`
   and `ThemeColors.lens_Dim`. A floating component draws its ground with the surface token, a
   hairline ring in the line token, and that shadow; nothing else of it is a new colour.
+- **The floating shadow is one primitive.** `Theme.drawFloatingShadow` draws it — wide and soft
+  (`floating_ShadowBlur`), lower than the body (`floating_ShadowOffsetY`), lighter and closer under
+  a thin thing such as the mini-bar — and `Theme.floatingShadowReach` says how far it reaches. A
+  floating component is its body alone and paints the shadow outside itself, before its children,
+  with its invalidation padding grown by that reach, so the pointer beside it reaches the work; a
+  dialog surface (`SurfaceFlags.Sheet`) keeps that reach as its margin. On Encre the shadow
+  is half as dark as on Papier: darkness on near-black reads as a hole, so the surface parts from
+  the work by its lighter fill and its hairline. Never draw a shadow from an atlas tile; a tile
+  that small reads as a grey double edge.
 
 ## Type
 

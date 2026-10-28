@@ -151,8 +151,18 @@ func assertImageGolden(image: const *Image, name: string, options: ImageGoldenOp
     Console.println("         golden : ", path)
     Console.println("         actual : ", actual)
     reportImageDifference(&difference, &expected, image)
-    Swag.assert(false)
+    if not continuesPastMismatch() do
+        Swag.assert(false)
 }
+
+// Reports whether a golden mismatch is only recorded, its actual written, rather than failing the test.
+//
+// Set `SWAG_GOLDEN_CONTINUE=1` when a change is known to move many goldens: a test stops at its
+// first failed assertion, so without it each run reveals one more actual per test. The run then
+// passes whatever the pixels are, and every `.actual.png` it leaves must be reviewed and moved over
+// its golden by hand, then the run repeated without the variable.
+private func continuesPastMismatch()->bool => Env.variable("SWAG_GOLDEN_CONTINUE") == "1"
+
 
 // Widens `options` by the rounding a release build may add to a golden recorded from devmode.
 private func releaseGoldenOptions(options: ImageGoldenOptions)->ImageGoldenOptions

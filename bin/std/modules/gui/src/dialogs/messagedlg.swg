@@ -1,6 +1,11 @@
 using Core, Pixel
 
-// Displays a rich message, optional icon and extension, and caller-defined action buttons.
+// Displays a titled message, an optional technical detail and extension, and caller-defined actions.
+//
+// The box is the composition of [[Gui.Dialog]]: its title is the first line of the body, the
+// message follows in the soft ink, and a failure carries the critical dot before its title and
+// its technical detail on a mono faint line under the message. There is no icon: the absence of
+// the dot is the information.
 public struct MessageDlg
 {
     public
@@ -9,25 +14,30 @@ public struct MessageDlg
 
         readonly
         {
-            late labelIcon: *Label          // Optional large icon label.
-            late label:     *Label          // Rich message label.
-            extension:      *Wnd?           // Optional caller-owned extension docked below the message.
-            messageScroll:  *ScrollWnd?     // Scrollable message viewport, created when the fitted text exceeds the available height.
+            late label:    *Label          // Rich message label.
+            detailLabel:   *Label?         // Mono faint line carrying the technical detail, when there is one.
+            extension:     *Wnd?           // Optional caller-owned extension docked below the message.
+            messageScroll: *ScrollWnd?     // Scrollable message viewport, created when the fitted text exceeds the available height.
         }
     }
 }
 
-// Configures message content alignment, icon presentation, and post-creation customization.
+// Configures the title, detail, alignment and post-creation customization of a [[Gui.MessageDlg]].
 public struct MessageDlgOptions
 {
     public
     {
-        title:     string       = ""                             // Surface title; empty keeps the helper's default.
-        icon:      Icon                                          // Optional large message icon.
-        iconColor: Color                                         // Icon tint, or transparent for its descriptor color.
-        textHorizontalAlignment = StringHorzAlignment.Left       // Horizontal message alignment.
-        textVerticalAlignment   = StringVertAlignment.Center     // Vertical message alignment.
-        onCreated: (func||(*MessageDlg))?                        // Optional callback invoked before icon setup and layout.
+        title:   string = ""     // Title of the box; empty keeps the helper's default.
+        failure: bool            // Whether the title reports a failure, led by the critical dot.
+
+        // Technical detail set under the message on a mono faint line — an error code, the report
+        // of the system — or empty for none. It is for whoever files the report, never a
+        // substitute for the sentence.
+        detail: string = ""
+
+        textHorizontalAlignment = StringHorzAlignment.Left     // Horizontal message alignment.
+        textVerticalAlignment   = StringVertAlignment.Top      // Vertical message alignment.
+        onCreated: (func||(*MessageDlg))?     // Optional callback invoked before layout.
     }
 }
 
@@ -43,12 +53,23 @@ public impl MessageDlg
         Swag.assert(from != null)
         let dlg = Wnd.create'MessageDlg()
 
-        let srf = dlg.createSurface(from, 0, 0, 500, 300)
-        if options.title.count do
-            srf.setTitle(options.title)
+        discard dlg.createSurface(from, 0, 0, cast(s32, MinMessageWidth), 300)
+        dlg.setTitle(options.title, options.failure)
 
         let body = dlg.createContentView()
-        let row  = Wnd.create'Wnd(body)
+        if options.detail.count
+        {
+            with dlg.detailLabel = Label.create(body, options.detail, flags: .WordWrap | .Ellipsis)
+            {
+                .dockStyle = .Bottom
+                .margin.y  = dlg.themeMetrics().dialog_BtnPadding
+                .style.setFont(dlg.theme().createDefaultFontFs(dlg.themeMetrics().defaultFontSize - 1), .Regular)
+                .style.addStyleSheetColors("label_Text $faintText")
+                .setTextAlignment(.Left, .Top)
+            }
+        }
+
+        let row = Wnd.create'Wnd(body)
         row.dockStyle = .Center
 
         with dlg.label = Label.create(row, message, {})
@@ -57,19 +78,12 @@ public impl MessageDlg
 
             // Ellipsis backs the wrap up: a run that wrapping cannot break — a path, a URL —
             // is cut at the box's maximum width instead of forcing the box as wide as itself.
-            .updateFlags(.WordWrap | .Ellipsis)
+            .updateFlags(.WordWrap | .Ellipsis | .SecondaryText)
             .setTextAlignment(options.textHorizontalAlignment, options.textVerticalAlignment)
         }
 
         if options.onCreated do
             options.onCreated(dlg)
-
-        dlg.setIcon(options.icon)
-
-        // setIcon only creates the icon label when an icon is provided; setting a
-        // color without an icon is a no-op (and would otherwise assert).
-        if options.icon.isValid() do
-            dlg.setIconColor(options.iconColor)
         dlg.sendResizeEvent()
         return dlg
     }
@@ -88,10 +102,10 @@ public impl MessageDlg
     // Narrowest a message box is allowed to be, whatever it holds.
     //
     // Fitted to a short question and to nothing else, a box came out barely wider than its own
-    // action bar: two buttons at the theme width then ran edge to edge under one short line, and
-    // the box read as a pair of buttons with a caption. This is the width the single-line prompt
-    // of the same family opens at, so a question and a prompt are one object on screen.
-    internal const MinMessageWidth = 450.0'f32
+    // actions: two buttons at the theme width then ran edge to edge under one short line, and the
+    // box read as a pair of buttons with a title. Every box of the family opens at least this
+    // wide, so a question and a prompt are one object on screen.
+    internal const MinMessageWidth = 440.0'f32
 
     // Tallest a message viewport grows; additional text remains available by scrolling.
     private const MaxMessageHeight = 512.0'f32
@@ -102,9 +116,9 @@ public impl MessageDlg
         let metrics = .themeMetrics()
         let srf     = unwrap .surface
 
-        // The room the message loses to the frame and to the standard body inset, on each side.
-        let chrome   = 2 * metrics.dialog_Padding + 2 * metrics.wnd_BorderSize
-        let iconRoom = .labelIcon != null ? .labelIcon.position.width : 0
+        // The room the message loses to the inset and the outline, on both sides.
+        let shadow = srf.shadowMargin()
+        let chrome = .chromeWidth() - 2 * shadow
 
         // Width: what the actions need side by side, then whatever more the message wants, up to
         // the width it is allowed to run before wrapping. The label answers with its own format
@@ -116,13 +130,11 @@ public impl MessageDlg
             w += btn.position.width
         if .buttons.count > 1 do
             w += cast(f32, ((.buttons.count - 1) * metrics.dialog_BtnPadding))
-        w += chrome
-        w = Math.max(w, .label.itf.measureContent({MaxMessageWidth, 0}).x + iconRoom + chrome)
 
+        w = Math.max(w, .label.itf.measureContent({MaxMessageWidth, 0}).x)
         if .extension do
-            w = Math.max(w, .extension.position.width + chrome)
-
-        w = Math.max(w, MinMessageWidth)
+            w = Math.max(w, .extension.position.width)
+        w = Math.max(w + chrome, MinMessageWidth)
 
         // The width is committed before the height is measured, and the height then answers for
         // the width the message was really given rather than for the one just asked for. The two
@@ -131,12 +143,20 @@ public impl MessageDlg
         // fraction of a unit narrower, wrapped one line more than it had been made tall for, and
         // clipped its own text top and bottom — which is what every two-sentence error box did.
         var pos = srf.position
-        pos.width = .physicalRoom(w + 2 * srf.shadowMargin())
+        pos.width = .physicalRoom(w + 2 * shadow)
+
         srf.setPosition(pos)
         .applyLayout()
 
-        let ext = .extension
-        let extensionHeight = ext ? ext.margin.y + ext.position.height + ext.margin.w : 0
+        let ext         = .extension
+        var extraHeight = ext ? ext.margin.y + ext.position.height + ext.margin.w : 0
+        let detail      = .detailLabel
+        if detail
+        {
+            detail.position.height = Math.ceil(detail.itf.measureContent(Math.Point{detail.position.width, 0}).y)
+            extraHeight += detail.margin.y + detail.position.height
+        }
+
         var availableHeight = maxSurfaceHeight
         if srf.app.renderer.needsNativeWindow()
         {
@@ -144,8 +164,8 @@ public impl MessageDlg
             availableHeight = Math.min(availableHeight, monitor.physicalWorkArea.height / srf.dpiScale - 2 * metrics.dialog_Padding)
         }
 
-        let overhead = chrome + .buttonBar.position.height + 2 * srf.shadowMargin() + srf.wnd.stripHeight()
-        let limit    = Math.max(1.0, Math.min(MaxMessageHeight, Math.floor(availableHeight - overhead - extensionHeight) - 1))
+        let overhead = .chromeHeight()
+        let limit    = Math.max(1.0, Math.min(MaxMessageHeight, Math.floor(availableHeight - overhead - extraHeight) - 1))
         var needed   = .label.itf.measureContent(Math.Point{.label.position.width, 0}).y
         if needed > limit or .messageScroll
         {
@@ -196,19 +216,14 @@ public impl MessageDlg
             .messageScroll.setScrollSize(0, needed)
         }
 
-        var contentHeight = Math.min(limit, needed)
-        if .labelIcon != null do
-            contentHeight = Math.max(contentHeight, .labelIcon.icon.sizeY)
-        contentHeight += extensionHeight
-
-        .fitHeightToContent(contentHeight)
+        .fitHeightToContent(Math.min(limit, needed) + extraHeight)
     }
 
     // Docks one extension below the message content.
     mtd setExtension(wndExtension: *Wnd)
     {
         Swag.assert(.extension == null)
-        Swag.assert(.contentView != null, "a message dialog needs its standard content view before adding an extension")
+        Swag.assert(.contentView != null, "a message dialog needs its content view before adding an extension")
 
         wndExtension.setParent(.contentView)
         .extension = wndExtension
@@ -216,53 +231,17 @@ public impl MessageDlg
         .extension.margin.y  = .themeMetrics().dialog_BtnPadding * 2
     }
 
-    // Changes the large icon tint.
-    mtd setIconColor(color: Color)
-    {
-        Swag.assert(.labelIcon != null, "the message has no icon to tint")
-        .labelIcon.setIconColor(color)
-    }
-
-    // Creates or replaces the large message icon; an invalid icon leaves it unchanged.
-    mtd setIcon(icon: Icon, color: Color = Argb.Zero)
-    {
-        if not icon.isValid() do
-            return
-
-        let gap = .themeMetrics().dialog_BtnPadding * 2
-        if .labelIcon == null do
-            .labelIcon = Label.create(unwrap .label.parent, "", Math.Rectangle{0, 0, icon.sizeX + gap, 0})
-
-        with me.labelIcon
-        {
-            .position.width = icon.sizeX + gap
-            .dockStyle      = .Left
-            .setIcon(icon)
-            .setIconColor(color)
-            .setIconAlignment(.Left, .Center)
-        }
-    }
-
-    // Shows a modal message with one OK action.
+    // Shows a modal message with one OK action, which Escape presses as well.
     func ok(from: *Surface, message: string, options: MessageDlgOptions = {})
     {
+        // Every box names itself, and a box left untitled read as one the application had
+        // forgotten to finish.
         var opt = options
-        if not opt.icon.isValid()
-        {
-            opt.icon      = from.app.theme.icon(.Information, 48)
-            opt.iconColor = from.app.theme.colors.dlg_InformationIcon
-        }
-
-        // Every box names itself. Left empty the caption still takes its band, so the box opened
-        // under an empty bar and read as one the application had forgotten to finish.
         if not opt.title.count do
             opt.title = strings().dlg_InfoTitle
 
-        with let dlg = create(from, message, opt)
-        {
-            .addButton(strings().dlg_Ok, Dialog.BtnOk, true)
-        }
-
+        let dlg = create(from, message, opt)
+        dlg.surface!.cancelButton = dlg.addButton(strings().dlg_Ok, Dialog.BtnOk, true)
         discard dlg.doModal()
     }
 
@@ -270,12 +249,6 @@ public impl MessageDlg
     func okCancel(from: *Surface, message: string, defaultId = Dialog.BtnCancel, options: MessageDlgOptions = {})->WndId
     {
         var opt = options
-        if not opt.icon.isValid()
-        {
-            opt.icon      = from.app.theme.icon(.Question, 48)
-            opt.iconColor = from.app.theme.colors.dlg_InformationIcon
-        }
-
         if not opt.title.count do
             opt.title = strings().dlg_ConfirmTitle
 
@@ -292,12 +265,6 @@ public impl MessageDlg
     func yesNo(from: *Surface, message: string, defaultId = Dialog.BtnNo, options: MessageDlgOptions = {})->WndId
     {
         var opt = options
-        if not opt.icon.isValid()
-        {
-            opt.icon      = from.app.theme.icon(ThemeIcons.Question, 48)
-            opt.iconColor = from.app.theme.colors.dlg_InformationIcon
-        }
-
         if not opt.title.count do
             opt.title = strings().dlg_ConfirmTitle
 
@@ -314,12 +281,6 @@ public impl MessageDlg
     func yesNoCancel(from: *Surface, message: string, defaultId = Dialog.BtnCancel, options: MessageDlgOptions = {})->WndId
     {
         var opt = options
-        if not opt.icon.isValid()
-        {
-            opt.icon      = from.app.theme.icon(ThemeIcons.Question, 48)
-            opt.iconColor = from.app.theme.colors.dlg_InformationIcon
-        }
-
         if not opt.title.count do
             opt.title = strings().dlg_ConfirmTitle
 
@@ -361,41 +322,30 @@ public impl MessageDlg
         return yesNo(from, txt.toString(), defaultId, opt)
     }
 
-    // Shows a modal error message with one OK action.
+    // Shows a modal error message with one Close action, which Escape presses as well.
     //
-    // The caller captures the error (`catch f() as err`) and hands it in; when it is a
-    // `Swag.SystemError`, its message is appended to the shown text as its own paragraph.
+    // The title carries the critical dot. The caller captures the error (`catch f() as err`) and
+    // hands it in; when it is a `Swag.SystemError`, its message is the technical detail, set on a
+    // mono faint line under the sentence unless [[Gui.MessageDlgOptions.detail]] already names
+    // one.
     func error(from: *Surface, message: string? = null, err: any? = null, options: MessageDlgOptions = {})
     {
-        // The detail is a paragraph under the message, and only when there is one: appended
-        // unconditionally, the separator left an empty line the box still had to be tall
-        // enough to hold.
-        var txt: String = String.from(message)
-        if err is Swag.SystemError as sysErr
-        {
-            if not txt.isEmpty() do
-                txt += "\n\n"
-            txt += sysErr.message
-        }
-
-        // The glyph carries the severity, so it is set in the colour that reports one. Filled
-        // white it was the loudest thing on the surface and said nothing the title had not
-        // said already.
         var opt = options
-        if not opt.icon.isValid()
-        {
-            opt.icon      = from.app.theme.icon(.Critical, 48)
-            opt.iconColor = from.app.theme.colors.critical
-        }
-
+        opt.failure = true
         if not opt.title.count do
             opt.title = strings().dlg_ErrorTitle
 
-        with let dlg = create(from, txt.toString(), opt)
+        var detail = String.from(opt.detail)
+        if detail.isEmpty()
         {
-            .addButton(strings().dlg_Ok, Dialog.BtnOk, true)
+            if err is Swag.SystemError as sysErr do
+                detail = String.from(sysErr.message)
         }
 
+        opt.detail = detail.toString()
+
+        let dlg = create(from, message orelse "", opt)
+        dlg.surface!.cancelButton = dlg.addButton(strings().dlg_Close, Dialog.BtnOk, true)
         discard dlg.doModal()
     }
 }

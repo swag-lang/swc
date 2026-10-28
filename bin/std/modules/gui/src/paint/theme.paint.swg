@@ -38,6 +38,63 @@ impl Theme
         painter.drawRoundRect(ring, radius, radius, color, size)
     }
 
+    // Returns how far the shadow of a floating surface reaches past each edge of its body: left, top, right and bottom.
+    //
+    // A window that paints [[Gui.Theme.drawFloatingShadow]] outside its own rectangle grows its
+    // [[Gui.Wnd.invalidatePadding]] by this much, and a surface keeps a margin as wide as the
+    // largest of the four.
+    mtd floatingShadowReach()->Math.Vector4
+    {
+        let half   = Math.max(.metrics.floating_ShadowBlur * 0.5, 0)
+        let offset = .metrics.floating_ShadowOffsetY
+        if half == 0 or .colors.floating_Shadow.a == 0 do
+            return {}
+        return {half, Math.max(half - offset, 0), half, Math.max(half + offset, 0)}
+    }
+
+    // Returns the widest reach of the floating shadow, the margin a surface standing as a sheet keeps on every side.
+    mtd floatingShadowMargin()->f32
+    {
+        let reach = .floatingShadowReach()
+        return Math.ceil(Math.max(Math.max(reach.x, reach.y), Math.max(reach.z, reach.w)))
+    }
+
+    // Draws the shadow a floating surface casts under `body`: the lens, a sheet, the inspector, the mini-bar, the dock, a dialog.
+    //
+    // The shadow is large and soft, and it is what says the surface floats. The light falls from
+    // above, so it spreads [[Gui.ThemeMetrics.floating_ShadowOffsetY]] further below the body than
+    // above it, and it fades over [[Gui.ThemeMetrics.floating_ShadowBlur]] in
+    // [[Gui.ThemeColors.floating_Shadow]]. Paint the surface over it. `corner` is the corner of
+    // the body.
+    //
+    // The shadow stays under the body wherever the body covers it, as long as
+    // [[Gui.ThemeMetrics.floating_ShadowOffsetY]] is at most half the blur.
+    mtd drawFloatingShadow(painter: *Painter, body: Math.Rectangle, corner: f32)
+    {
+        let color = .colors.floating_Shadow
+        let blur  = .metrics.floating_ShadowBlur
+        if color.a == 0 or blur <= 0 or body.isEmpty() do
+            return
+
+        // A blur is centred on the edge of the shape it softens, half of it under the shape. The
+        // ramp therefore starts half a blur inside the offset body: the darkening is half its
+        // peak where that body ends, and nothing a half blur beyond. A body thinner than the blur
+        // starts its ramp on its own middle line instead, and casts a lighter and closer shadow,
+        // as a small thing does: a chip lifted as high as a sheet reads as detached from its own
+        // shadow. It still ends no further than the reach says.
+        let half  = blur * 0.5
+        let inset = Math.min(half, Math.min(body.width, body.height) * 0.5)
+        let share = inset / half
+        var core  = body
+        core.offset(0, .metrics.floating_ShadowOffsetY * share)
+        core.inflate(-inset)
+        let ramp  = half + inset
+        let round = Math.max(corner - inset, 0)
+        let peak  = color.withAlpha(cast(u8, cast(f32, color.a) * share))
+
+        painter.fillShadow(core, round, ramp, peak)
+    }
+
     // Draws a themed image region, using its optional nine-slice margins.
     mtd drawSubRect(painter: *Painter, dstRect: Math.Rectangle, subRect: *ThemeImageRect?, color: Color, center = true, interpol = InterpolationMode.Linear)
     {

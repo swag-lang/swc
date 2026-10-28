@@ -413,11 +413,23 @@ impl SurfaceWnd
     // menu bar — keeps its clicks. Content that only reaches up into the strip, such as a
     // document or a list continuing below it, drags the window there. The window buttons never
     // drag.
+    //
+    // A [[Gui.SurfaceFlags.Sheet]] has no strip: its body's own ground — the title, the inset
+    // around the content and the air beside the actions — drags it instead.
     mtd hitTestCaption(surfacePos: Math.Point)->bool
     {
+        let srfn = .surface
+        if srfn and srfn.flags.has(.Sheet)
+        {
+            let pos    = .surfaceToLocal(surfacePos)
+            let target = .windowAt(pos.x, pos.y, true)
+            return target != null and (target == me or target == .view)
+        }
+
         let strip = .stripHeight()
         if strip <= 0 do
             return false
+
         if .hitTestCaptionButton(surfacePos) do
             return false
 
@@ -453,7 +465,7 @@ impl SurfaceWnd
         // `surfacePos` is logical, so the surface extent must be logical as well.
         let srfn    = unwrap .surface
         let metrics = .themeMetrics()
-        let sdw     = metrics.surfaceWnd_ShadowSize
+        let sdw     = srfn.shadowMargin()
         let size    = srfn.size()
 
         var newSizingBorder = SizingBorder.None

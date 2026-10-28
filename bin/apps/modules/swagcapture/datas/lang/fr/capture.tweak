@@ -37,6 +37,7 @@ ui_DetailFileSize      <b>Taille du fichier</b>
 ui_Width               Largeur
 ui_Height              Hauteur
 ui_KeepRatio           Conserver les proportions
+ui_Anchor              Ancrage
 ui_Frozen              La sélection est figée
 ui_Desktop             Bureau
 ui_MyImages            Mes images

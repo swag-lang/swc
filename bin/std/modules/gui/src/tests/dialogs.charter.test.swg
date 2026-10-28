@@ -1,69 +1,87 @@
 #global if #command == Swag.CompilerCommand.Test
 #global private
 
-using Swag, Core
+using Swag, Core, Pixel
 
-// Asserts the geometry every predefined dialog shares, whatever it holds.
+// Asserts the composition every predefined dialog shares, whatever it holds.
 //
-// A modal box is one composition: a body over an action bar, one inset, one gap, one row of
-// actions ending on one edge. What varies between an error, a prompt, a form and a file browser
-// is the content, and nothing else — so every number below comes from the theme and none of them
-// is a dialog's to choose. See the charter in `.agents/skills/design-swag-dialogs`.
-//
-// `bodyInset` is the air the box keeps around its content: the standard inset for a box holding
-// loose content, and none for a box whose body is one panel carrying its own edges.
-func assertDialogCharter(dlg: *Dialog, bodyInset: f32)
+// A modal box is one composition: a floating sheet holding a title, a body and a row of actions,
+// one inset around all three, one gap between two pieces, the primary action rightmost. What
+// varies between an error, a prompt, a form and a file browser is the content, and nothing else —
+// so every number below comes from the theme and none of them is a dialog's to choose. See
+// `.agents/skills/design-swag-dialogs`.
+func assertDialogCharter(dlg: *Dialog)
 {
     let metrics = dlg.themeMetrics()
     let bar     = dlg.buttonBar
+    let srf     = unwrap dlg.surface
+    let pad     = metrics.dialog_Padding
+    let gap     = metrics.dialog_BtnPadding * 2
 
-    // A compact caption still gives its title and controls enough vertical air to read as chrome.
-    Swag.assert(metrics.wnd_SmallCaptionCY == 36)
-    Swag.assert(metrics.wnd_SmallCaptionCY - metrics.wnd_CaptionIconSize >= 2 * metrics.wnd_CaptionButtonMargin)
+    // The charter's measures, where every box takes them from.
+    Swag.assert(pad == 28 and gap == 16)
+    Swag.assert(metrics.control_DialogHeight == 34)
+    Swag.assert(MessageDlg.MinMessageWidth == 440)
 
-    // The bar is one row of actions and the air above and below it, and never a hand-set band.
-    Swag.assert(Math.abs(bar.position.height - (metrics.btnPush_Height + 2 * metrics.dialog_BtnPadding)) < 0.5)
+    // A floating sheet: the floating corner and shadow, its outline, and no strip or close cross.
+    Swag.assert(srf.flags.has(.Sheet) and srf.flags.has(.Border))
+    Swag.assert(not srf.flags.has(.SmallCaption) and
+                not srf.flags.has(.LargeCaption) and
+                not srf.flags.has(.CloseButton))
+    Swag.assert(srf.cornerRadius() == metrics.corner_Floating)
+    Swag.assert(srf.shadowMargin() == dlg.theme().floatingShadowMargin())
+    Swag.assert(srf.wnd.stripHeight() == 0)
 
-    // Every action is at least the theme button and they all read as one row.
+    // One inset on every side; the title, when there is one, opens the body above the content.
+    Swag.assert(dlg.padding.x == pad and dlg.padding.z == pad and dlg.padding.w == pad)
+    if dlg.title.raw.isEmpty() do
+        Swag.assert(dlg.padding.y == pad)
+    else do
+        Swag.assert(dlg.padding.y > pad + gap)
+
+    // The actions end the body: one gap above them, on the body's own ground, as tall as the
+    // dialog height and never narrower than a button.
+    Swag.assert(bar.backgroundStyle == .Transparent)
+    Swag.assert(bar.margin.y == gap)
+    Swag.assert(Math.abs(bar.position.bottom() - (dlg.position.height - pad)) < 0.5)
+    Swag.assert(Math.abs(bar.position.right() - (dlg.position.width - pad)) < 0.5)
     Swag.assert(not dlg.buttons.isEmpty())
     for btn in dlg.buttons
     {
-        Swag.assert(Math.abs(btn.position.height - metrics.btnPush_Height) < 0.5)
+        Swag.assert(Math.abs(btn.position.height - metrics.control_DialogHeight) < 0.5)
         Swag.assert(btn.position.width >= metrics.btnPush_Width - 0.5)
-        Swag.assert(Math.abs(btn.position.y - dlg.buttons[0].position.y) < 0.5)
     }
 
-    // One gap between two actions, and it is the bar's own.
-    for i in 1 until dlg.buttons.count
+    // One primary action per box, and it stands rightmost, against the inset.
+    var primary: *PushButton?
+    for btn in dlg.buttons where btn.form == .Default
     {
-        let gap = dlg.buttons[i].position.x - dlg.buttons[i - 1].position.right()
-        Swag.assert(Math.abs(gap - metrics.dialog_BtnPadding) < 0.5)
+        Swag.assert(primary == null)
+        primary = btn
     }
 
-    // The row ends on the inset the body keeps, so the last action and whatever the box holds
-    // read on one right edge instead of on two that nearly agree.
-    let last = dlg.buttons.back()
-    Swag.assert(Math.abs(bar.position.width - last.position.right() - metrics.dialog_Padding) < 0.5)
+    Swag.assert(primary != null)
+    for btn in dlg.buttons do
+        Swag.assert(btn.position.right() <= primary.position.right())
+    Swag.assert(Math.abs(primary.position.right() - bar.position.width) < 0.5)
 
-    // One dominant action, so the bar says what Enter decides.
-    var defaults = 0
-    for btn in dlg.buttons where btn.form == .Default do
-        defaults += 1
-    Swag.assert(defaults == 1)
+    // Two actions are parted by one gap and by nothing else; the row reads in the order of the bar.
+    for i in 1 until bar.children.count
+    {
+        let left  = bar.children[i - 1]
+        let right = bar.children[i]
+        Swag.assert(Math.abs(right.position.x - left.position.right() - metrics.dialog_BtnPadding) < 0.5)
+    }
 
-    // The body keeps one inset, the same on all four sides, and the box owns it rather than
-    // each dialog restating it.
+    // The body stands between the title and the actions, on the inset, and nothing of it falls
+    // under the actions.
     let body = unwrap dlg.contentView
-    Swag.assert(Math.abs(body.padding.x - bodyInset) < 0.5)
-    Swag.assert(Math.abs(body.padding.y - bodyInset) < 0.5)
-    Swag.assert(Math.abs(body.padding.z - bodyInset) < 0.5)
-    Swag.assert(Math.abs(body.padding.w - bodyInset) < 0.5)
+    Swag.assert(body.position.x == pad and body.position.y == dlg.padding.y)
+    Swag.assert(Math.abs(body.position.right() - (dlg.position.width - pad)) < 0.5)
+    Swag.assert(body.position.bottom() <= bar.position.y - gap + 0.5)
 
-    // A box names itself: the caption takes its band whether or not anything is written in it.
-    Swag.assert(not dlg.surface!.wnd.name.isEmpty())
-
-    // And it is as tall as what it holds: nothing of the body falls under the action bar.
-    Swag.assert(body.position.bottom() <= bar.position.y + 0.5)
+    // A box opens at least as wide as the family's floor.
+    Swag.assert(dlg.position.width >= MessageDlg.MinMessageWidth - 2 * metrics.wnd_BorderSize - 0.5)
 }
 
 // Every predefined dialog is the same composition around a different content.
@@ -72,22 +90,31 @@ func assertDialogCharter(dlg: *Dialog, bodyInset: f32)
     var host: Testing.HeadlessHost
     host.setup(1000, 700)
 
-    let message = MessageDlg.create(&host.surface, "The password is incorrect.", {title: "Error"})
+    let message = MessageDlg.create(&host.surface, "The password is incorrect.", {title: "Cannot mount the vault."})
     message.addButton(strings().dlg_Ok, Dialog.BtnOk, true)
     message.adaptSizeToMessage()
-    assertDialogCharter(&message.dialog, host.theme.metrics.dialog_Padding)
+    assertDialogCharter(&message.dialog)
 
-    let editOptions = EditDlgOptions{title: "Rename", message: "Enter the new name."}
+    let question = MessageDlg.create(&host.surface, "Reload viewerchrome.swg? The reading position is kept.", {title: "The file changed on disk."})
+    question.addButton("Reload", Dialog.BtnOk, true)
+    question.addButton("Ignore", Dialog.BtnCancel)
+    question.adaptSizeToMessage()
+    assertDialogCharter(&question.dialog)
+    Swag.assert(question.buttons[0].position.x > question.buttons[1].position.x)
+
+    let editOptions = EditDlgOptions{title: "Go to Address", message: "Decimal, or hexadecimal preceded by 0x.", confirmButtonText: "Go"}
     let editOne     = EditDlg.createSingleLine(&host.surface, editOptions)
-    assertDialogCharter(&editOne.dialog, host.theme.metrics.dialog_Padding)
+    assertDialogCharter(&editOne.dialog)
+    Swag.assert(editOne.edit!.position.height == host.theme.metrics.control_DialogHeight)
+    Swag.assert(editOne.label.position.y >= editOne.edit.position.bottom())
 
     let editMany = EditDlg.createMultiLine(&host.surface, editOptions)
-    assertDialogCharter(&editMany.dialog, host.theme.metrics.dialog_Padding)
+    assertDialogCharter(&editMany.dialog)
 
-    let form = FormDlg.create(&host.surface, {title: "Profile"})
-    discard form.form.addTextField("NAME", "Ada")
+    let form = FormDlg.create(&host.surface, {title: "Change Password"})
+    discard form.form.addTextField("Current password", "Ada")
     form.form.computeLayout()
-    assertDialogCharter(&form.dialog, host.theme.metrics.dialog_Padding)
+    assertDialogCharter(&form.dialog)
 
     let about = AboutDlg.create(&host.surface, {
         surfaceTitle: "About",
@@ -95,19 +122,61 @@ func assertDialogCharter(dlg: *Dialog, bodyInset: f32)
         message: "A systems programming language.",
         surfaceIcon: {},
         contentIcon: {}})
-    assertDialogCharter(&about.dialog, host.theme.metrics.dialog_Padding)
+    assertDialogCharter(&about.dialog)
+    Swag.assert(about.title.raw.isEmpty())
 
-    // The file browser carries its own grounds and its own edges, so the box keeps no inset
-    // around it and the browser's bands are what reach the frame.
     let file = FileDlg.create(&host.surface, {mode: .SelectFile})
-    assertDialogCharter(&file.dialog, 0)
+    assertDialogCharter(&file.dialog)
 
     message.surface!.destroy()
+    question.surface!.destroy()
     editOne.surface!.destroy()
     editMany.surface!.destroy()
     form.surface!.destroy()
     about.surface!.destroy()
     file.surface!.destroy()
+    host.pump()
+}
+
+// A failure leads its title with the critical dot, carries its technical detail on a mono line,
+// and ends on one Close that Escape presses too, with no hint.
+#test
+{
+    var host: Testing.HeadlessHost
+    host.setup(900, 600)
+
+    let dlg = MessageDlg.create(&host.surface, "The file is damaged.", {title: "Cannot open this file.", failure: true, detail: "Error code: 0x80070017"})
+    host.surface.cancelButton = dlg.addButton(strings().dlg_Close, Dialog.BtnOk, true)
+    dlg.adaptSizeToMessage()
+    assertDialogCharter(&dlg.dialog)
+
+    Swag.assert(dlg.failure)
+    Swag.assert(dlg.detailLabel != null and dlg.detailLabel.text() == "Error code: 0x80070017")
+    Swag.assert(dlg.detailLabel.position.y >= dlg.label.position.bottom())
+
+    dlg.surface!.destroy()
+    host.pump()
+}
+
+// A quiet control takes the bottom-left slot of the actions.
+#test
+{
+    var host: Testing.HeadlessHost
+    host.setup(900, 600)
+
+    let dlg = Dialog.create(&host.surface, 520, 240, title: "Open File")
+    dlg.addButton("Open", Dialog.BtnOk, true)
+    dlg.addButton(strings().dlg_Cancel, Dialog.BtnCancel)
+
+    let filter = Label.create(&dlg.wnd, "All files", {0, 0, 120, 0})
+    dlg.setLeadingControl(filter)
+    discard dlg.createContentView()
+    dlg.fitHeightToContent(120)
+
+    Swag.assert(filter.position.x == host.theme.metrics.dialog_Padding)
+    Swag.assert(Math.abs(filter.position.vertCenter() - dlg.buttonBar.position.vertCenter()) < 0.5)
+
+    dlg.surface!.destroy()
     host.pump()
 }
 

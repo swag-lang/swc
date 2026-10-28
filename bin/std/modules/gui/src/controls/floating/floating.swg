@@ -3,27 +3,41 @@
 
 using Core, Pixel
 
-// Draws the ground of a floating component: its shadow, the surface ground and a hairline ring.
+// Lets a floating component cast its shadow outside its own rectangle.
 //
-// `body` is the visible part, in the local coordinates of `wnd`. The shadow spreads
-// [[Gui.ThemeMetrics.floating_ShadowSize]] around it, so the window keeps that much room on
-// every side of its body.
+// The window is its visible body and nothing more, so the pointer reaches the work right beside
+// it: the shadow is painted before its children, in the room its parent clips to, and the
+// window's invalidation padding grows by the reach of that shadow so a repaint takes it along.
+// Call it again whenever the theme can have changed, which a layout pass covers.
+internal func liftFloating(wnd: *Wnd)
+{
+    wnd.wndFlags.add(.BeforeChildrenPaint)
+    let reach = wnd.theme().floatingShadowReach()
+    wnd.invalidatePadding = {-reach.x, -reach.y, -reach.z, -reach.w}
+}
+
+// Draws the shadow a floating component casts under `body`, in the local coordinates of `wnd`.
+internal func paintFloatingShadow(wnd: *Wnd, painter: *Painter, body: Math.Rectangle, radius: f32)
+{
+    painter.setParams(.Antialiased)
+    wnd.theme().drawFloatingShadow(painter, body, radius)
+}
+
+// Draws the ground of a floating component: the surface ground and a hairline ring.
+//
+// `body` is the visible part, in the local coordinates of `wnd`. Its shadow is drawn first, by
+// `paintFloatingShadow`.
 internal func paintFloatingGround(wnd: *Wnd, painter: *Painter, body: Math.Rectangle, radius: f32)
 {
     let colors  = wnd.themeColors()
     let metrics = wnd.themeMetrics()
 
-    var shadow = body
-    shadow.inflate(metrics.floating_ShadowSize)
-    wnd.theme().drawSubRect(painter, shadow, &wnd.themeRects().menuPopup_Shadow, colors.floating_Shadow)
-
-    // The ring is stroked on its own centre line, half a pixel inside the body, so its edge is
-    // crisp and it never widens the shape it outlines.
-    var ring = body
-    ring.inflate(-0.5)
+    // The painter strokes a hairline on the half pixel inside the edges it is given, so the ring
+    // traces the body itself: inset by hand as well, it lands a whole pixel in on the left and top
+    // and leaves a band of ground outside it there.
     painter.setParams(.Antialiased)
     painter.fillRoundRect(body, radius, radius, colors.surface)
-    painter.drawRoundRect(ring, radius - 0.5, radius - 0.5, colors.line, metrics.separator_HairlineSize)
+    painter.drawRoundRect(body, radius, radius, colors.line, metrics.separator_HairlineSize)
 }
 
 // Draws a section label: small spaced capitals in the faint ink, from the left of `rect` and

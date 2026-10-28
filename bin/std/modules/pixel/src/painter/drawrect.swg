@@ -292,46 +292,75 @@ impl Painter
     // Fills a soft shadow around a rounded rectangle, from a faint outer edge in to its border.
     //
     // `spread` is how far the shadow reaches beyond the shape, in logical units, and `color`'s
-    // alpha is the darkening it reaches where it meets the shape — not the alpha of any one part
-    // of it. Nothing is drawn inside the shape, which the caller paints over the result.
+    // alpha is the darkening it reaches where it meets the shape. The shape itself is filled at
+    // that strength, so a shadow offset from the shape that casts it leaves no gap beside it;
+    // paint the shape over the result.
     //
-    // The shadow is built out of nested rings. They are filled shapes stacked on one another, so
-    // what a pixel ends up with is the product of everything painted over it: handing each ring
-    // the alpha the profile asks for at its own distance would darken the shadow with every ring
-    // added, and the whole picture would change the moment the ring count were tuned for
-    // smoothness. Each ring's alpha is solved from what the stack has already reached instead, so
-    // the accumulated profile is the same at any ring count and the count is a pure quality knob:
-    // one ring per device pixel of spread, below which the gradient bands and above which the
-    // extra rings land on a pixel that is already covered.
+    // The ramp is smoothstep: a long faint tail where it meets the ground and a flat shoulder
+    // against the shape, which is what reads as air under it rather than as an outline drawn
+    // around it. It is painted as eight gradient tiles — one along each side, one around each
+    // corner — that meet on the device grid, so every pixel is blended exactly once. A stack of
+    // nested translucent rings drew the same ramp, but each ring rounded the ground it landed on,
+    // and a wide shadow, one ring per device pixel, came out much darker than it was asked to be.
     mtd fillShadow(rect: Math.Rectangle, cornerRadius, spread: f32, color: Color)
     {
         if spread <= 0 or color.a == 0 do
             return
 
-        let rings = Math.max(1, Math.ceilS32(spread * .contentScale()))
-        let peak  = cast(f32, color.a) / 255.0
+        let r  = Math.clamp(cornerRadius, 0, Math.min(rect.width, rect.height) * 0.5)
+        let x0 = rect.x
+        let y0 = rect.y
+        let x1 = rect.right()
+        let y1 = rect.bottom()
 
-        var reached = 0.0'f32
-        for i in rings
+        // Smoothstep from the peak at the shape to nothing at `spread`, sampled on as many stops
+        // as a gradient carries without a stop table.
+        const Stops = 8
+
+        func ramp(brush: *Brush, color: Color)
         {
-            // `depth` runs 0 at the outermost ring to 1 at the shape. Smoothstep gives the shadow
-            // a long faint tail where it meets the ground and a flat shoulder against the shape,
-            // which is what reads as air under it rather than as an outline drawn around it.
-            let ringSpread = spread * cast(f32, (rings - i)) / cast(f32, rings)
-            let depth      = 1.0 - ringSpread / spread
-            let target     = peak * Math.smoothstep(0.0, 1.0, depth)
-
-            let alpha = 1.0 - (1.0 - target) / (1.0 - reached)
-            reached = target
-
-            let quantized = cast(u8, Math.clamp(alpha * 255.0 + 0.5, 0.0, 255.0))
-            if quantized == 0 do
-                continue
-
-            var ring = rect
-            ring.inflate(ringSpread)
-            let radius = cornerRadius + ringSpread
-            .fillRoundRect(ring, radius, radius, color.withAlpha(quantized))
+            let peak = cast(f32, color.a) / 255.0
+            for i in Stops
+            {
+                let t = cast(f32, i) / cast(f32, Stops - 1)
+                brush.addGradientStop(t, color.withAlphaF32(peak * Math.smoothstep(0.0, 1.0, 1.0 - t)))
+            }
         }
+
+        // The shape, at full strength: three bands that leave its corners to the corner tiles.
+        .fillRect({x0 + r, y0, x1 - x0 - 2 * r, y1 - y0}, color)
+        .fillRect({x0, y0 + r, r, y1 - y0 - 2 * r}, color)
+        .fillRect({x1 - r, y0 + r, r, y1 - y0 - 2 * r}, color)
+
+        // The sides, each ramping away from the edge it stands on.
+
+        func side(painter: *Painter, tile: Math.Rectangle, start, end: Math.Vector2, color: Color)
+        {
+            var brush = Brush.createLinearGradient(start, end, color, color)
+            brush.gradientStops.clear()
+            ramp(&brush, color)
+            painter.fillRect(tile, brush)
+        }
+
+        side(me, {x0 + r, y0 - spread, x1 - x0 - 2 * r, spread}, {x0, y0}, {x0, y0 - spread}, color)
+        side(me, {x0 + r, y1, x1 - x0 - 2 * r, spread}, {x0, y1}, {x0, y1 + spread}, color)
+        side(me, {x0 - spread, y0 + r, spread, y1 - y0 - 2 * r}, {x0, y0}, {x0 - spread, y0}, color)
+        side(me, {x1, y0 + r, spread, y1 - y0 - 2 * r}, {x1, y0}, {x1 + spread, y0}, color)
+
+        // The corners, each ramping away from the arc that rounds it.
+        func corner(painter: *Painter, tile: Math.Rectangle, center: Math.Vector2, r, spread: f32, color: Color)
+        {
+            var brush = Brush.createRadialGradient(center, r + spread, color, color)
+            brush.gradientRadius0 = r
+            brush.gradientStops.clear()
+            ramp(&brush, color)
+            painter.fillRect(tile, brush)
+        }
+
+        let tile = r + spread
+        corner(me, {x0 - spread, y0 - spread, tile, tile}, {x0 + r, y0 + r}, r, spread, color)
+        corner(me, {x1 - r, y0 - spread, tile, tile}, {x1 - r, y0 + r}, r, spread, color)
+        corner(me, {x0 - spread, y1 - r, tile, tile}, {x0 + r, y1 - r}, r, spread, color)
+        corner(me, {x1 - r, y1 - r, tile, tile}, {x1 - r, y1 - r}, r, spread, color)
     }
 }

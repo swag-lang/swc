@@ -3,7 +3,7 @@
 
 using Swag, Core, Pixel
 
-// The application About box keeps its product mark and provenance in separate bands.
+// The application About box: the tile, the name and its mono identity line, then the provenance.
 #[Swag.TestTag("golden")]
 #test
 {
@@ -25,12 +25,8 @@ using Swag, Core, Pixel
 
     dialog.applyLayout()
     Swag.assert(dialog.labelMessage.dockStyle == .None)
-    let surface  = unwrap dialog.surface
-    let rendered = host.render(dialog)
-
-    // The window's bottom border belongs below the action bar, outside this crop.
-    let contentBottom = cast(s32, dialog.buttonBar.surfaceRect().y)
-    var image         = rendered.cropped(25, 60, cast(s32, surface.position.width) - 50, contentBottom - 60)
+    let surface = unwrap dialog.surface
+    var image   = host.renderSurface(surface)
     Pixel.Testing.assertImageGolden(&image, "about")
     surface.destroy()
 }

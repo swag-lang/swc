@@ -113,6 +113,7 @@ impl IWnd for View
         let body    = .body()
 
         painter.fillRect(.clientRect(), colors.lens_Dim)
+        paintFloatingShadow(me, painter, body, metrics.corner_Floating)
         paintFloatingGround(me, painter, body, metrics.corner_Floating)
 
         // The input band: the query is the edit box; the faint name of the key that closes the

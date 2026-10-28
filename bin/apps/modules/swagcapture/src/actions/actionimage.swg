@@ -185,36 +185,39 @@ impl MainWnd
         let capture = unwrap .getCapture()
         let ratio   = cast(f32, capture.width) / capture.height
 
-        with let dialog = Dialog.create(unwrap .surface, 350, 265, title: appStrings().dlg_TitleResizeImage)
+        with var options: FormDlgOptions
         {
-            .addButton(appStrings().dlg_BtnResize, Dialog.BtnOk, true)
-            .addButton(Gui.strings().dlg_Cancel, Dialog.BtnCancel)
+            .title = appStrings().dlg_TitleResizeImage
+            .confirmButtonText = appStrings().dlg_BtnResize
+            .width = 360
         }
 
-        let edit0 = EditCtrl.create(dialog, appStrings().ui_Width, Format.toString("%", capture.width), {80, 15}, flags: .RightAligned)
-        let edit1 = EditCtrl.create(dialog, appStrings().ui_Height, Format.toString("%", capture.height), {80, 50}, flags: .RightAligned)
-        edit0.edit.setUnsignedIntegerRange(cast(Capture.MinSize), cast(Capture.MaxSize))
-        edit1.edit.setUnsignedIntegerRange(cast(Capture.MinSize), cast(Capture.MaxSize))
-        let btnRatio = CheckButton.create(dialog, appStrings().ui_KeepRatio, {120, 85})
+        let dialog   = FormDlg.create(unwrap .surface, options)
+        let edit0    = dialog.form.addTextField(appStrings().ui_Width, Format.toString("%", capture.width))
+        let edit1    = dialog.form.addTextField(appStrings().ui_Height, Format.toString("%", capture.height))
+        let btnRatio = dialog.form.addOptionField(appStrings().ui_KeepRatio)
+        edit0.setUnsignedIntegerRange(cast(Capture.MinSize), cast(Capture.MaxSize))
+        edit1.setUnsignedIntegerRange(cast(Capture.MinSize), cast(Capture.MaxSize))
         btnRatio.setState(g_KeepRatio ? .Checked : .Unchecked)
+        dialog.form.computeLayout()
 
-        edit0.edit.sigTextChanged += func|ratio, btnRatio, edit1|(edt)
+        edit0.sigTextChanged += func|ratio, btnRatio, edit1|(edt)
         {
             if btnRatio.isChecked()
             {
                 let w = catch StrConv.toS32(edt.text())
                 let h = Math.max(1, cast(s32, w / ratio))
-                edit1.edit.setText(Format.toString("%", h), notify: false)
+                edit1.setText(Format.toString("%", h), notify: false)
             }
         }
 
-        edit1.edit.sigTextChanged += func|ratio, btnRatio, edit0|(edt)
+        edit1.sigTextChanged += func|ratio, btnRatio, edit0|(edt)
         {
             if btnRatio.isChecked()
             {
                 let h = catch StrConv.toS32(edt.text())
                 let w = Math.max(1, cast(s32, h * ratio))
-                edit0.edit.setText(Format.toString("%", w), notify: false)
+                edit0.setText(Format.toString("%", w), notify: false)
             }
         }
 
@@ -223,26 +226,31 @@ impl MainWnd
         if result != Dialog.BtnOk do
             return
 
-        let w = catch StrConv.toS32(edit0.edit.text())
-        let h = catch StrConv.toS32(edit1.edit.text())
+        let w = catch StrConv.toS32(edit0.text())
+        let h = catch StrConv.toS32(edit1.text())
         if acceptsNewSize(w, h, capture.width, capture.height) do
             .doProcessImage(ActionImage.ResizeImage, w: w, h: h)
     }
 
-    // Adds the 3 × 3 grid of anchor buttons to an expand dialog; exactly one is checked, the anchor
-    // in `g_ResizeMode`.
-    func createBtnGrid(dlg: *Wnd)
+    // Returns the 3 × 3 grid of anchor buttons of an expand dialog; exactly one is checked, the
+    // anchor in `g_ResizeMode`.
+    func createBtnGrid(parent: *Wnd)->*Wnd
     {
-        func createBtn(dlg: *Wnd, pos: Math.Rectangle, id: u64)
+        const S = 20
+        const O = 4
+
+        let grid = Wnd.create'Wnd(parent, {0, 0, 3 * S + 2 * O, 3 * S + 2 * O})
+        for cell in 9'u64
         {
-            let button = CheckButton.create(dlg, " ", pos)
-            button.setState(g_ResizeMode == id ? .Indeterminate : .Unchecked)
-            button.userData   = cast(*void, id)
-            button.sigChanged += func(button)
+            let x = cast(f32, cell % 3) * (S + O)
+            let y = cast(f32, cell / 3) * (S + O)
+            with let button = CheckButton.create(grid, " ", Math.Rectangle{x, y, S, S})
             {
-                for c in button.parent!.children
+                .setState(g_ResizeMode == cell + 1 ? .Indeterminate : .Unchecked)
+                .userData   = cast(*void, cell + 1)
+                .sigChanged += func(button)
                 {
-                    if c.userData
+                    for c in button.parent!.children
                     {
                         with let btnc = assume cast(*CheckButton, c)
                         {
@@ -254,77 +262,69 @@ impl MainWnd
             }
         }
 
-        const X = 175
-        const Y = 15
-        const S = 20
-        const O = 4
-        for cell in 9'u64
-        {
-            let x = X + cast(f32, cell % 3) * (S + O)
-            let y = Y + cast(f32, cell / 3) * (S + O)
-            createBtn(dlg, Math.Rectangle{x, y, S, S}, cell + 1)
-        }
+        return grid
     }
 
     // Shows the expand dialog for a `w` by `h` image, and leaves the size and the anchor the reader
     // picked in `g_Width`, `g_Height`, and `g_ResizeMode`. Returns the button that closed it.
     mtd createExpandDialog(title: String, w, h: s32)->WndId
     {
-        with let dialog = Dialog.create(unwrap .surface, 350, 265, title: title)
+        with var options: FormDlgOptions
         {
-            .addButton(appStrings().dlg_BtnResize, Dialog.BtnOk, true)
-            .addButton(Gui.strings().dlg_Cancel, Dialog.BtnCancel)
+            .title = title
+            .confirmButtonText = appStrings().dlg_BtnResize
+            .width = 360
         }
 
-        let ratio = cast(f32, w) / h
+        let dialog = FormDlg.create(unwrap .surface, options)
+        let ratio  = cast(f32, w) / h
 
         g_Width  = w
         g_Height = h
-        let edit0 = EditCtrl.create(dialog, appStrings().ui_Width, Format.toString("%", w), {30, 15}, flags: .RightAligned)
-        let edit1 = EditCtrl.create(dialog, appStrings().ui_Height, Format.toString("%", h), {30, 50}, flags: .RightAligned)
-        edit0.edit.setUnsignedIntegerRange(cast(Capture.MinSize), cast(Capture.MaxSize))
-        edit1.edit.setUnsignedIntegerRange(cast(Capture.MinSize), cast(Capture.MaxSize))
+        let edit0 = dialog.form.addTextField(appStrings().ui_Width, Format.toString("%", w))
+        let edit1 = dialog.form.addTextField(appStrings().ui_Height, Format.toString("%", h))
+        edit0.setUnsignedIntegerRange(cast(Capture.MinSize), cast(Capture.MaxSize))
+        edit1.setUnsignedIntegerRange(cast(Capture.MinSize), cast(Capture.MaxSize))
 
-        edit0.edit.sigTextChanged += func|ratio, edit1|(edt)
+        edit0.sigTextChanged += func|ratio, edit1|(edt)
         {
             g_Width = catch StrConv.toS32(edt.text())
             if g_KeepRatio
             {
                 g_Height = Math.max(1, cast(s32, g_Width / ratio))
-                edit1.edit.setText(Format.toString("%", g_Height), notify: false)
+                edit1.setText(Format.toString("%", g_Height), notify: false)
             }
         }
 
-        edit1.edit.sigTextChanged += func|ratio, edit0|(edt)
+        edit1.sigTextChanged += func|ratio, edit0|(edt)
         {
             g_Height = catch StrConv.toS32(edt.text())
             if g_KeepRatio
             {
                 g_Width = Math.max(1, cast(s32, g_Height * ratio))
-                edit0.edit.setText(Format.toString("%", g_Width), notify: false)
+                edit0.setText(Format.toString("%", g_Width), notify: false)
             }
         }
 
-        with let btnRatio = CheckButton.create(dialog, appStrings().ui_KeepRatio, {70, 85})
+        with let btnRatio = dialog.form.addOptionField(appStrings().ui_KeepRatio)
         {
             .setState(g_KeepRatio ? .Checked : .Unchecked)
             .sigChanged += func||(btn) { g_KeepRatio = btn.isChecked() }
         }
 
-        dialog.createBtnGrid()
+        let grid = createBtnGrid(dialog.form)
+        discard dialog.form.addField(appStrings().ui_Anchor, grid)
+        dialog.form.computeLayout()
 
         let result = dialog.doModal()
 
-        for c in dialog.children
+        for c in grid.children
         {
-            if c.userData
+            let btnc = assume cast(*CheckButton, c)
+            if btnc.state != .Unchecked
             {
-                let btnc = assume cast(*CheckButton, c)
-                if btnc.state != .Unchecked
-                {
-                    g_ResizeMode = cast(u64, btnc.userData)
-                    break
-                }
+                g_ResizeMode = cast(u64, btnc.userData)
+                break
             }
         }
 

@@ -5,14 +5,14 @@ struct FormDlgOptions
 {
     public
     {
-        title:             string = ""           // Surface title.
+        title:             string = ""           // Title of the box: the label of the command it carries out.
         confirmButtonText: string = ""           // Confirmation-button text, or empty for the localized OK.
         showCancelButton:  bool   = true         // Whether the dialog offers a cancel button.
         cancelButtonText:  string = ""           // Cancel-button text, or empty for the localized Cancel.
-        width                     = 520's32      // Surface width.
-        height                    = 360's32      // Surface height before the form is measured; see [[Gui.FormDlg.doModal]].
+        width                     = 520's32      // Width of the box.
+        height                    = 360's32      // Height of the box before the form is measured; see [[Gui.FormDlg.doModal]].
         resizable:         bool                  // Whether the user can resize the surface.
-        formOptions:       FormLayoutOptions     // Field-layout geometry.
+        formOptions:       FormLayoutOptions     // Field-layout geometry; the labels always stand above their fields.
     }
 }
 
@@ -42,7 +42,10 @@ struct FormDlg
 
 impl FormDlg
 {
-    // Creates a centered modal dialog holding an empty form and the standard buttons.
+    // Creates a centered modal dialog holding an empty form, Cancel and the primary action.
+    //
+    // The labels of the form stand above their fields in the soft ink, the way every form of a
+    // box reads.
     #[Swag.Discardable]
     func create(from: *Surface, options: FormDlgOptions = {})->*FormDlg
     {
@@ -52,12 +55,15 @@ impl FormDlg
         let result  = Wnd.create'FormDlg()
         let flags   = options.resizable ? SurfaceFlags.Resizable : SurfaceFlags.None
         let surface = result.createSurface(from, 0, 0, options.width, options.height, flags)
-        surface.setTitle(options.title)
+        result.setTitle(options.title)
         surface.center(from)
-        surface.minSize = Math.Point{Math.min(options.width, 360), Math.min(options.height, 240)}
+        result.setMinSize(Math.min(options.width, 360), Math.min(options.height, 240))
 
-        result.form = FormLayoutCtrl.create(result.createContentView(), options.formOptions)
-        result.form.dockStyle = .Center
+        var formOptions = options.formOptions
+        formOptions.labelPlacement = .Above
+        formOptions.labelFlags     |= .SecondaryText
+        result.form = FormLayoutCtrl.create(result.createContentView(), formOptions)
+        result.form.dockStyle      = .Center
 
         result.addButton(options.confirmButtonText.count ? options.confirmButtonText : strings().dlg_Ok, Dialog.BtnOk, true)
         if options.showCancelButton do
@@ -79,21 +85,11 @@ impl FormDlg
     // A box is as tall as what it asks for and no taller. Help text wraps, so a language saying
     // the same thing in more words needs another line of it, and a height authored as a number is
     // right in the language it was tuned in and cuts the last paragraph off in every other one.
-    // The form is docked into the view, so the width it wraps at is the width it already has;
+    // The form is docked into the body, so the width it wraps at is the width it already has;
     // measuring at any other one answers for a wrapping that will not happen.
-    private mtd adaptSizeToForm()
+    internal mtd adaptSizeToForm()
     {
         .applyLayout()
-
-        let grow = .form.measure(Math.Point{.form.position.width, 0}).preferred.y - .form.position.height
-        if Math.abs(grow) < 0.5 do
-            return
-
-        // Everything measured above is in logical units; a surface rectangle is physical.
-        let srf = unwrap .surface
-        var pos = srf.position
-        pos.height += grow * srf.dpiScale
-        srf.setPosition(pos)
-        .applyLayout()
+        .fitHeightToContent(.form.measure(Math.Point{.form.position.width, 0}).preferred.y)
     }
 }

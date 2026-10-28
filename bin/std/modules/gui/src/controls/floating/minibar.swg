@@ -48,18 +48,20 @@ struct MiniBarItem
 
 impl IWnd for MiniBar
 {
+    mtd impl onBeforePaint(evt: *PaintEvent)
+    {
+        paintFloatingShadow(me, evt.paintContext.painter, .clientRect(), .themeMetrics().miniBar_Corner)
+    }
+
     mtd impl onPaint(evt: *PaintEvent)
     {
         let painter = evt.paintContext.painter
         let metrics = .themeMetrics()
-        let shadow  = metrics.floating_ShadowSize
-
-        var body = .clientRect()
-        body.inflate(-shadow)
+        let body    = .clientRect()
         paintFloatingGround(me, painter, body, metrics.miniBar_Corner)
 
         // A separator is a short hairline centred in its gap, never the full height of the bar.
-        var x = shadow + metrics.miniBar_Padding
+        var x = metrics.miniBar_Padding
         for item, index in .items
         {
             if item.wnd
@@ -147,7 +149,7 @@ impl MiniBar
         .arrange()
     }
 
-    // Returns the size of the visible bar, without the room its shadow spreads into.
+    // Returns the size of the bar; its shadow falls outside it.
     mtd bodySize()->Math.Point
     {
         let metrics = .themeMetrics()
@@ -173,7 +175,6 @@ impl MiniBar
     {
         let parent  = unwrap .parent
         let metrics = .themeMetrics()
-        let shadow  = metrics.floating_ShadowSize
         let body    = .bodySize()
         let bounds  = parent.clientRect()
         let gap     = metrics.miniBar_Distance
@@ -185,7 +186,7 @@ impl MiniBar
             y = selection.bottom() + gap
         y = Math.clamp(y, bounds.y + gap, Math.max(bounds.y + gap, bounds.bottom() - gap - body.y))
 
-        .setPosition(Math.Rectangle{Math.round(x) - shadow, Math.round(y) - shadow, body.x + 2 * shadow, body.y + 2 * shadow})
+        .setPosition(Math.Rectangle{Math.round(x), Math.round(y), body.x, body.y})
         .bringToFront()
         .show()
     }
@@ -193,12 +194,13 @@ impl MiniBar
     private mtd arrange()
     {
         let metrics = .themeMetrics()
-        let shadow  = metrics.floating_ShadowSize
         let body    = .bodySize()
-        .resize(body.x + 2 * shadow, body.y + 2 * shadow)
+        liftFloating(me)
+        .resize(body.x, body.y)
 
-        var x = shadow + metrics.miniBar_Padding
-        let y = shadow + metrics.miniBar_Padding
+        var x = metrics.miniBar_Padding
+        let y = metrics.miniBar_Padding
+
         for item, index in .items
         {
             if item.wnd

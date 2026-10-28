@@ -213,11 +213,13 @@ private impl Panel
         .services.showDetails(me, text)
     }
 
-    // Returns the line glyph of the kind of `path`, in the soft ink every glyph of a listing takes.
+    // Returns the line glyph of the kind of `path`: in the hue of its kind, or the soft ink of a
+    // listing for a kind without one.
     mtd lineGlyph(path: string, isDirectory: bool)->Icon
     {
         var result = .theme().fileGlyph(path, isDirectory, themeRowIconSize(.themeMetrics()))
-        result.color = .themeColors().softText
+        if result.color.a == 0 do
+            result.color = .themeColors().softText
         return result
     }
 

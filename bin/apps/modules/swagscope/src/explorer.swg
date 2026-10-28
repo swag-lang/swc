@@ -1726,7 +1726,7 @@ impl ExplorerGrid
         }
         else
         {
-            glyph.paint(painter, Math.round(tile.horzCenter() - 16), Math.round(tile.vertCenter() - 16), colors.faintText)
+            glyph.paint(painter, Math.round(tile.horzCenter() - 16), Math.round(tile.vertCenter() - 16), glyph.color.a ? glyph.color : colors.faintText)
             let ext = entry.directory ? "" : (Path.extension(entry.name) orelse "")
             if ext.count
             {

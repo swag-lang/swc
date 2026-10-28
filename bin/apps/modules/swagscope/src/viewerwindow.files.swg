@@ -270,7 +270,8 @@ impl ViewerWindow
             if not name.count do
                 name = one.folder.toString()
             var icon = .theme().fileGlyph(one.folder, true, themeRowIconSize(.themeMetrics()))
-            icon.color = .themeColors().softText
+            if icon.color.a == 0 do
+                icon.color = .themeColors().softText
             discard menu.addItem(name, one.folder, icon)
         }
 

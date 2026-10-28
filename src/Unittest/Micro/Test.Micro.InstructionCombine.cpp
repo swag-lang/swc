@@ -5740,7 +5740,7 @@ SWC_TEST_END()
 
 // A lane written into a vector that was stored whole is an insertion into that vector: no
 // narrow store, and no wide load stalled behind it. The vector register has to hold the same
-// value where the load stood, and a lane wider than a dword has no insertion.
+// value where the load stood, including a full-width qword lane.
 SWC_TEST_BEGIN(InstCombine_LaneWrittenIntoStoredVectorIsInserted)
 {
     const MicroReg     stack   = CallConv::get(CallConvKind::Swag).stackPointer;
@@ -5756,9 +5756,12 @@ SWC_TEST_BEGIN(InstCombine_LaneWrittenIntoStoredVectorIsInserted)
         ImmediateDwordLane,
         SourceRedefined,
         QwordLane,
+        ImmediateQwordLane,
+        UnalignedQwordLane,
+        ScalarRedefined,
     };
 
-    for (const Case testCase : {Case::ByteLane, Case::TwoWordLanes, Case::ImmediateDwordLane, Case::SourceRedefined, Case::QwordLane})
+    for (const Case testCase : {Case::ByteLane, Case::TwoWordLanes, Case::ImmediateDwordLane, Case::SourceRedefined, Case::QwordLane, Case::ImmediateQwordLane, Case::UnalignedQwordLane, Case::ScalarRedefined})
     {
         MicroBuilder builder(ctx);
         builder.emitLoadAddressRegMem(base, stack, 0x20, MicroOpBits::B64);
@@ -5779,9 +5782,18 @@ SWC_TEST_BEGIN(InstCombine_LaneWrittenIntoStoredVectorIsInserted)
                 builder.emitLoadMemImm(base, 0x48, ApInt(0x1234, 32), MicroOpBits::B32);
                 break;
             case Case::QwordLane:
+            case Case::ScalarRedefined:
                 builder.emitLoadMemReg(base, 0x48, scalar, MicroOpBits::B64);
                 break;
+            case Case::ImmediateQwordLane:
+                builder.emitLoadMemImm(base, 0x40, ApInt(0xFEDCBA9876543210ULL, 64), MicroOpBits::B64);
+                break;
+            case Case::UnalignedQwordLane:
+                builder.emitLoadMemReg(base, 0x44, scalar, MicroOpBits::B64);
+                break;
         }
+        if (testCase == Case::ScalarRedefined)
+            builder.emitLoadRegImm(scalar, ApInt(7, 64), MicroOpBits::B64);
         if (testCase == Case::SourceRedefined)
             builder.emitLoadRegReg(source, MicroReg::floatReg(1), MicroOpBits::B128);
         builder.emitLoadRegMem(updated, base, 0x40, MicroOpBits::B128);
@@ -5821,8 +5833,17 @@ SWC_TEST_BEGIN(InstCombine_LaneWrittenIntoStoredVectorIsInserted)
                 if (wholeLoads != 0 || inserts != 1 || insertOp != MicroOp::VecInsert32 || lastLane != 2)
                     return Result::Error;
                 break;
-            case Case::SourceRedefined:
             case Case::QwordLane:
+                if (wholeLoads != 0 || inserts != 1 || insertOp != MicroOp::VecInsert64 || lastLane != 1)
+                    return Result::Error;
+                break;
+            case Case::ImmediateQwordLane:
+                if (wholeLoads != 0 || inserts != 1 || insertOp != MicroOp::VecInsert64 || lastLane != 0)
+                    return Result::Error;
+                break;
+            case Case::SourceRedefined:
+            case Case::UnalignedQwordLane:
+            case Case::ScalarRedefined:
                 if (wholeLoads != 1 || inserts != 0)
                     return Result::Error;
                 break;

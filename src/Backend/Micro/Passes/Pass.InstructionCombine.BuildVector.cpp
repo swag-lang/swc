@@ -341,7 +341,7 @@ namespace InstructionCombine
                     outStoreRefs.push_back(ref);
                     continue;
                 }
-                if (offset < slotOffset || offset + bytes > slotOffset + 16 || bytes == 0 || bytes > 4)
+                if (offset < slotOffset || offset + bytes > slotOffset + 16 || bytes == 0 || bytes > 8)
                     return false;
                 if (outLaneBytes == 0)
                 {
@@ -359,7 +359,7 @@ namespace InstructionCombine
                 if (storeImm)
                 {
                     lane.isImm = true;
-                    lane.imm   = ops[3].valueU64 & ((1ULL << (bytes * 8)) - 1);
+                    lane.imm   = bytes == 8 ? ops[3].valueU64 : ops[3].valueU64 & ((1ULL << (bytes * 8)) - 1);
                 }
                 else
                 {
@@ -410,7 +410,8 @@ namespace InstructionCombine
             }
 
             MicroOp insertOp() const { return laneBytes == 1 ? MicroOp::VecInsert8 : laneBytes == 2 ? MicroOp::VecInsert16
-                                                                                                    : MicroOp::VecInsert32; }
+                                                                                      : laneBytes == 4 ? MicroOp::VecInsert32
+                                                                                                       : MicroOp::VecInsert64; }
             MicroOp unpackOp(const uint32_t bytes) const { return bytes == 1 ? MicroOp::VecUnpackLo8 : bytes == 2 ? MicroOp::VecUnpackLo16
                                                                                                    : bytes == 4   ? MicroOp::VecUnpackLo32
                                                                                                                   : MicroOp::VecUnpackLo64; }
@@ -426,8 +427,8 @@ namespace InstructionCombine
                 s.op               = MicroInstrOpcode::LoadRegImm;
                 s.numOps           = 3;
                 s.ops[0].reg       = reg;
-                s.ops[1].opBits    = MicroOpBits::B32;
-                s.ops[2].setImmediateValue(ApInt(lane.imm, 32));
+                s.ops[1].opBits    = laneBytes == 8 ? MicroOpBits::B64 : MicroOpBits::B32;
+                s.ops[2].setImmediateValue(ApInt(lane.imm, laneBytes == 8 ? 64 : 32));
                 return reg;
             }
 
@@ -753,6 +754,11 @@ namespace InstructionCombine
         uint32_t                       laneBytes = 0;
         MicroReg                       whole     = MicroReg::invalid();
         if (!collectStores(ctx, loadRef, base, slotOffset, lanes, laneBytes, storeRefs, whole))
+            return false;
+        // Two qword stores also build non-vector aggregates such as slices.
+        // Only update an already stored vector until those aggregate cases
+        // have their own complete alias and lifetime proof.
+        if (laneBytes == 8 && !whole.isValid())
             return false;
         for (const MicroInstrRef ref : storeRefs)
         {

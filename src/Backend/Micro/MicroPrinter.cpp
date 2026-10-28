@@ -482,6 +482,8 @@ namespace
                 return "vec.insert16";
             case MicroOp::VecInsert32:
                 return "vec.insert32";
+            case MicroOp::VecInsert64:
+                return "vec.insert64";
         }
 
         SWC_UNREACHABLE();

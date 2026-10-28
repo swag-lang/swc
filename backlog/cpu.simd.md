@@ -16,7 +16,7 @@ conversion, image codecs, text/crypto routines, Pixel spans, and SDF samples.
 
 ### cpu.simd.012 — Packed code generation misses idiomatic hardware forms
 
-- Intent: complete dynamic lane insertion and extraction and the remaining 64-bit lane writes.
+- Intent: complete dynamic lane insertion and extraction and prove the remaining 64-bit lane constructions.
   Immediate lane shuffles, horizontal reductions and SAD already lower through dedicated
   operations. Under `backend.math.fma` (on in `release`), a post-RA peephole contracts eligible
   scalar and packed product accumulations when the product is otherwise dead in every lane;
@@ -27,13 +27,15 @@ conversion, image codecs, text/crypto routines, Pixel spans, and SDF samples.
   down by bytes (`psrldq`) and leaves through the same move, extended from its own width. A
   constant lane written into a vector local is one `vpinsrb`/`vpinsrw`/`vpinsrd` where it was a
   sixteen-byte spill, a narrow store and a wide reload stalled behind it.
-  `bin/unittests/native/simd/lanes.swg` covers signed and unsigned narrow reads and the three
-  insertion widths. What still goes through the frame: a 64-bit lane write, and every dynamic
-  index - `v[i]` spills the vector and reads `[rsp + i * 4]`, `v[i] = x` spills, stores the lane
-  and reloads sixteen bytes.
-- Next: give the 64-bit lane write its `vpinsrq` and lower a dynamic lane read through a byte
-  shuffle with a computed control where that beats the spill, preserving the explicit `mulAdd`
-  rounding contract.
+  `bin/unittests/native/simd/lanes.swg` covers signed and unsigned narrow reads and all four
+  insertion widths, including `vpinsrq` when a whole stored vector is updated. A trial that also
+  built vectors from two qword stores changed H.264 output; those stores can form slices and other
+  scalar aggregates, so that broader rewrite is not retained without a stronger proof. Every
+  dynamic index still goes through the frame: `v[i]` spills the vector and reads `[rsp + i * 4]`,
+  `v[i] = x` spills, stores the lane and reloads sixteen bytes.
+- Next: isolate the two-qword aggregate failure and prove its alias and lifetime conditions;
+  lower a dynamic lane read through a byte shuffle with a computed control where that beats the
+  spill, preserving the explicit `mulAdd` rounding contract.
 - Done when: encoder tests and `PrintMicro` show each idiom on a representative standard-module
   kernel and end-to-end benchmarks show no regression on the fallback target.
 - Related: cpu.simd.010.

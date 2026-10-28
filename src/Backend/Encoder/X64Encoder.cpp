@@ -826,6 +826,7 @@ namespace
             case MicroOp::VecInsert8: return {VEX_MAP_0F3A, 0x66, 0x20};
             case MicroOp::VecInsert16: return {VEX_MAP_0F, 0x66, 0xC4};
             case MicroOp::VecInsert32: return {VEX_MAP_0F3A, 0x66, 0x22};
+            case MicroOp::VecInsert64: return {VEX_MAP_0F3A, 0x66, 0x22};
 
             default:
                 SWC_INTERNAL_ERROR();
@@ -3911,16 +3912,16 @@ void X64Encoder::encodeOpTernaryRegRegRegImm(MicroReg regDst, MicroReg regSrc1, 
     // and answer all-ones/all-zeros lanes, vshufps a four-lane control,
     // vpalignr a byte offset into the concatenation of both sources, and
     // vpclmulqdq the half selector of a carry-less multiplication. The lane
-    // inserts (vpinsrb/w/d) name the lane in the immediate and read their
+    // inserts (vpinsrb/w/d/q) name the lane in the immediate and read their
     // second source from an integer register, which rides in r/m like any
     // other.
-    const bool insert = op == MicroOp::VecInsert8 || op == MicroOp::VecInsert16 || op == MicroOp::VecInsert32;
+    const bool insert = op == MicroOp::VecInsert8 || op == MicroOp::VecInsert16 || op == MicroOp::VecInsert32 || op == MicroOp::VecInsert64;
     SWC_ASSERT(insert || op == MicroOp::VecCmpF32 || op == MicroOp::VecCmpF64 || op == MicroOp::VecShufF32 || op == MicroOp::VecAlignR || op == MicroOp::VecClmul);
     SWC_ASSERT(opBits == MicroOpBits::B128 && regDst.isFloat() && regSrc1.isFloat() && (insert ? regSrc2.isInt() : regSrc2.isFloat()));
     SWC_ASSERT(value <= 0xFF);
 
     const VecOpEncoding enc = vecOpEncoding(op);
-    emitVex(store_, enc.prefix, enc.map, microRegToX64Reg(regDst), microRegToX64Reg(regSrc1), microRegToX64Reg(regSrc2));
+    emitVex(store_, enc.prefix, enc.map, microRegToX64Reg(regDst), microRegToX64Reg(regSrc1), microRegToX64Reg(regSrc2), op == MicroOp::VecInsert64);
     emitCpuOp(store_, enc.opcode);
     emitModRm(store_, regDst, regSrc2);
     emitValue(store_, value, MicroOpBits::B8);

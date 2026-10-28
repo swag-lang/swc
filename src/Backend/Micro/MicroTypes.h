@@ -304,10 +304,11 @@ enum class MicroOp : uint8_t
 
     // Lane inserts from an integer register (OpTernaryRegRegRegImm): the
     // first source with the lane the immediate names replaced by the low
-    // bits of the integer second source - vpinsrb, vpinsrw, vpinsrd.
+    // bits of the integer second source - vpinsrb, vpinsrw, vpinsrd, vpinsrq.
     VecInsert8,
     VecInsert16,
     VecInsert32,
+    VecInsert64,
 
     // Non-fused packed mulAdd keeps the product's rounding boundary opaque to contraction.
     VecMultiplyAddF32,

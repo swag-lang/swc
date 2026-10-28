@@ -200,7 +200,7 @@ conversion, image codecs, text/crypto routines, Pixel spans, and SDF samples.
 - Evidence: the legacy RGB/BGR half-size path calls `visitPixels`; other formats already use
   parallel row loops. The two-color legacy gradient computes one row and copies it, while the
   four-corner and logical-pixel paths still process pixels individually. Fill already copies rows.
-- Next: compare packed RGB/BGR half-size rows and the remaining gradient work against
+- Next: compare packed byte-color half-size rows and the remaining gradient work against
   their scalar paths, and a packed source-over kernel against its row-wise scalar implementation.
 - Done when: supported pixel formats, alpha preservation, odd widths, stride, overlap, and tails
   match existing behavior and each retained kernel beats callback dispatch.

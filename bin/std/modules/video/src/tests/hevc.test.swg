@@ -498,10 +498,26 @@ using Core, Core.Errors, Pixel
         {
             let xLuma = (position & 1) != 0 ? 16's32 : 0's32
             let yLuma = (position & 2) != 0 ? 16's32 : 0's32
-            for component in [0'u32, 1]
+            for component in [0'u32, 1, 2]
             {
                 let x = component == 0 ? xLuma : xLuma / 2
                 let y = component == 0 ? yLuma : yLuma / 2
+                var reference: Hevc.IntraReference
+                decoder.gatherReference(&reference, x, y, xLuma, yLuma, size, component, 8)
+                let step = component == 0 ? 4'u32 : 2'u32
+                let scale = component == 0 ? 1's32 : 2's32
+                for index in 2 * size
+                {
+                    let group = (index / step) * step
+                    let available = yLuma > 0 and xLuma + cast(s32, group) * scale < 64
+                    Swag.assert(reference.available[2 * size + 1 + index] == available)
+                    if available
+                    {
+                        let sampleX = x + cast(s32, index)
+                        let sample = component == 0 ? frame.lumaAtMutable(sampleX, y - 1)[0] : frame.chromaAtMutable(component - 1, sampleX, y - 1)[0]
+                        Swag.assert(reference.top(index) == sample)
+                    }
+                }
                 for mode in 35'u32
                 {
                     for index in decoder.residual.count do

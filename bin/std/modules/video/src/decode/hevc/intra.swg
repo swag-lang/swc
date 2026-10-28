@@ -310,7 +310,7 @@ impl Decoder
 
     // Collects the neighbouring samples of one block and substitutes the ones that are missing,
     // clauses 8.4.4.2.1 and 8.4.4.2.2.
-    private mtd gatherReference(reference: *IntraReference, x, y, xLuma, yLuma: s32, size, component, bitDepth: u32)
+    mtd gatherReference(reference: *IntraReference, x, y, xLuma, yLuma: s32, size, component, bitDepth: u32)
     {
         let pps   = unwrap .activePps
         let total = size * 2
@@ -354,14 +354,28 @@ impl Decoder
         {
             let sampleX   = x + cast(s32, offset)
             let available = .isIntraNeighbourAvailable(xLuma, yLuma, xLuma + cast(s32, offset) * scale, yLuma - 1, pps.constrainedIntraPred)
-            for inner in step
+            // Both supported group sizes divide the reference length. Adjacent
+            // top samples are contiguous in the padded plane and reference array.
+            let index = size * 2 + 1 + offset
+            if component == 0
             {
-                let index = offset + inner
-                if index >= total do
-                    break
-                reference.available[size * 2 + 1 + index] = available
-                if available do
-                    reference.setTop(index, .reconstructedSample(component, sampleX + cast(s32, inner), y - 1))
+                cast([*] u32, &reference.available[index])[0] = available ? 0x01010101'u32 : 0'u32
+                if available
+                {
+                    let frame = unwrap .current
+                    let samples = unwrap frame.lumaAt(sampleX, y - 1)
+                    cast([*] u64, &reference.samples[index])[0] = cast(const [*] u64, samples)[0]
+                }
+            }
+            else
+            {
+                cast([*] u16, &reference.available[index])[0] = available ? 0x0101'u16 : 0'u16
+                if available
+                {
+                    let frame = unwrap .current
+                    let samples = frame.chromaAtMutable(component - 1, sampleX, y - 1)
+                    cast([*] u32, &reference.samples[index])[0] = cast(const [*] u32, samples)[0]
+                }
             }
 
             offset += step

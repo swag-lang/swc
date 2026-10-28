@@ -7,17 +7,17 @@ func createPreviewPage(parent: *Wnd)
                              "Selected color card",
                              "The selected color is rendered with checkerboard alpha, automatic contrast text and complement accent.",
                              layout.left)
-    discard createPreview(left, Math.Rectangle{18, 86, layout.left.width - 36, layout.left.height - 104}, &onLivePreviewEvent)
+    discard createPreview(left, &onLivePreviewEvent)
 
     let right = createPanel(parent,
                             "Derived colors",
                             "Hue rotation, complementary, saturation and grayscale helpers become real UI swatches.",
                             layout.right)
-    discard createPreview(right, Math.Rectangle{18, 86, layout.right.width - 36, layout.right.height - 104}, &onDerivedPreviewEvent)
+    discard createPreview(right, &onDerivedPreviewEvent)
 
     let bottom = createPanel(parent,
                              "Contrast and transparency",
                              "The same selected color drives contrast text and alpha compositing previews.",
                              layout.bottom)
-    discard createPreview(bottom, Math.Rectangle{18, 86, layout.bottom.width - 36, layout.bottom.height - 104}, &onContrastPreviewEvent)
+    discard createPreview(bottom, &onContrastPreviewEvent)
 }

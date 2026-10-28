@@ -4,8 +4,8 @@ func createCompositePage(parent: *Wnd)
 {
     let layout = getPagePanelLayout(parent)
     let left   = createPanel(parent,
-                             "ColorPickerCtrl with alpha",
-                             "Full control with 2D color modes, hue/alpha bars, ARGB edits and screen picker button.",
+                             "With alpha",
+                             "The full control: 2D colour modes, hue and alpha bars, ARGB fields and the screen picker.",
                              layout.left)
     scope
     {
@@ -13,12 +13,12 @@ func createCompositePage(parent: *Wnd)
         picker.setFrameForm(.Round)
         picker.setColor(g_Color)
         picker.sigColorChanged += func(picker) { setSelectedColor(picker.color(), "ColorPickerCtrl alpha") }
-        discard createQuickPalette(left, {400, 124, 196, 200}, "Shared presets")
+        discard createQuickPalette(left, {396, 124, 180, 200}, "Shared presets")
     }
 
     let right = createPanel(parent,
-                            "Opaque ColorPickerCtrl",
-                            "The same composite without alpha, showing RGB-only edit behavior and mode buttons.",
+                            "Opaque",
+                            "The same composite without alpha: RGB fields only.",
                             layout.right)
     scope
     {
@@ -28,12 +28,12 @@ func createCompositePage(parent: *Wnd)
         picker.setFrameForm(.Round)
         picker.setColor(opaque)
         picker.sigColorChanged += func(picker) { setSelectedColor(picker.color(), "ColorPickerCtrl opaque") }
-        discard createQuickPalette(right, {400, 124, 196, 200}, "Opaque presets")
+        discard createQuickPalette(right, {396, 124, 180, 200}, "Opaque presets")
     }
 
     let bottom = createPanel(parent,
                              "Shared selection",
-                             "All controls in this example write to one selected color so each page can be inspected independently.",
+                             "Every control of this example writes one selected colour, so each page can be inspected on its own.",
                              layout.bottom)
-    discard createPreview(bottom, Math.Rectangle{18, 86, layout.bottom.width - 36, layout.bottom.height - 104}, &onLivePreviewEvent)
+    discard createPreview(bottom, &onLivePreviewEvent)
 }

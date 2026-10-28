@@ -5,27 +5,25 @@ func createLexerPage(parent: *Wnd)
     let layout = getPagePanelLayout(parent)
 
     let left = createPanel(parent,
-                           "Lexer + wrap",
-                           "This page now renders gui3's own source, with wrap enabled for long review-style reading.",
+                           "Lexer and wrap",
+                           "The source of this page, highlighted by the Swag lexer and wrapped for reading.",
                            layout.left)
     scope
     {
-        let rect = left.clientRect()
         discard createCodeEditor(left,
-                                 Math.Rectangle{18, 88, rect.width - 36, rect.height - 106},
+                                 editorRect(left),
                                  cast(string, SourcePageLexer),
                                  .ShowFocusSel | .CurLineBorder | .TabToSpaces | .WordWrap)
     }
 
     let right = createPanel(parent,
                             "Visible blanks",
-                            "A second local gui3 page is shown with blanks enabled so spacing decisions stay obvious.",
+                            "The source of the styles page with its blanks drawn, so spacing decisions stay visible.",
                             layout.right)
     scope
     {
-        let rect = right.clientRect()
         discard createCodeEditor(right,
-                                 Math.Rectangle{18, 88, rect.width - 36, rect.height - 106},
+                                 editorRect(right),
                                  cast(string, SourcePageStyles),
                                  .ShowFocusSel | .CurLineBorder | .DrawBlanks | .TabToSpaces)
     }
@@ -36,10 +34,9 @@ func createLexerPage(parent: *Wnd)
                              layout.bottom)
     scope
     {
-        let rect = bottom.clientRect()
-        let ed   = createDocumentEditor(bottom,
-                                        Math.Rectangle{20, 92, rect.width - 40, rect.height - 112},
-                                        "RichEditCtrl keeps the same selection, undo and caret engine in both forms.\n\nThis page switches to the lighter Edit form so wrapped notes feel closer to a document editor than a code viewer.\n\nTry inserting text, selecting blocks and switching themes to check how the control holds up across both palettes.")
+        let ed = createDocumentEditor(bottom,
+                                      editorRect(bottom),
+                                      "RichEditCtrl keeps the same selection, undo and caret engine in both forms.\n\nThis page switches to the lighter Edit form so wrapped notes feel closer to a document editor than a code viewer.\n\nTry inserting text, selecting blocks and switching themes to check how the control holds up across both palettes.")
         ed.marginLeft  = 24
         ed.marginRight = 24
         ed.lineSpacing = 2

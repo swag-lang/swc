@@ -1,17 +1,29 @@
+// GUI5 - the colour widgets.
+//
+// `ColorPickerCtrl`, the planes and bars of `ColorPicker`, and `PalettePicker` all write one
+// selected colour, which the previews derive from and the hint line reads out in mono. The pages
+// are text tabs under the title; `Ctrl K` opens the lens, which reaches every page and the
+// appearance. `--light` opens the window on Papier, `--page=N` on page N.
+
 using Core, Gui, Pixel
 
-const W                    = 1140
-const H                    = 860
-const MaxPages             = 5
-const TestFramesPerPage    = 35
-const RootMargin           = 24.0
-const PageTop              = 92.0
-const PageBottomMargin     = 44.0
-const PanelGap             = 24.0
-const TopPanelHeight       = 400.0
-const MinBottomPanelHeight = 240.0
-const ThemeButtonWidth     = 152.0
-const HeaderGap            = 18.0
+const W        = 1240
+const H        = 920
+const MaxPages = 5
+const TestFramesPerPage = 35
+
+// The page keeps reading margins at its sides, and each section keeps one inset for its label, its
+// sentence and its controls, so the section labels stand on the left edge of the title.
+const PageMargin      = 48.0
+const SectionInset    = 24.0
+const SectionGap      = 24.0
+const TitleSize       = 34'u32
+const TopHeight       = 424.0
+const MinBottomHeight = 200.0
+
+const CmdLens         = "gui5.lens"
+const CmdNextPage     = "gui5.page.next"
+const CmdPreviousPage = "gui5.page.previous"
 
 struct PagePanelLayout
 {
@@ -20,28 +32,25 @@ struct PagePanelLayout
     bottom: Math.Rectangle
 }
 
-var app:           Application
-var g_Surface:     *Surface?
-var g_View:        *Wnd?
-var g_Title:       *Label?
-var g_SubTitle:    *Label?
-var g_ThemeButton: *PushButton?
-var g_PageView:    *Wnd?
-var g_Footer:      *Label?
-var g_Page:        s32
-var g_TestFrame:   s32
-var g_DarkTheme:   bool
-var g_Color:       Color = Argb.CornflowerBlue
-
-func setLabelTextStyle(label: *Label, horizontal = StringHorzAlignment.Left, vertical = StringVertAlignment.Center)
-{
-    label.setTextAlignment(horizontal, vertical)
-}
+var app:          Application
+var g_Surface:    *Surface?
+var g_View:       *Wnd?
+var g_Title:      *Label?
+var g_SubTitle:   *Label?
+var g_Tabs:       *Tab?
+var g_PageView:   *Wnd?
+var g_Lens:       *Lens.View?
+var g_Appearance: *AppearanceButton?
+var g_Page:       s32
+var g_TestFrame:  s32
+var g_Hint:       *HintLine?
+var g_Color:      Color = Argb.CornflowerBlue
+var g_Light:      bool
 
 func createText(parent: *Wnd, text: string, rect: Math.Rectangle, flags = LabelFlags.None)->*Label
 {
     let label = Label.create(parent, text, rect, null, flags)
-    setLabelTextStyle(label, .Left, .Center)
+    label.setTextAlignment(.Left, .Center)
     return label
 }
 
@@ -52,67 +61,22 @@ func createHelpText(parent: *Wnd, text: string, rect: Math.Rectangle)->*Label
     return label
 }
 
+// Opens a section of a page: its label, the sentence saying what it shows, and room for the
+// controls from `y = 88`, all on the same inset.
 func createPanel(parent: *Wnd, title, subtitle: string, rect: Math.Rectangle)->*Wnd
 {
-    let frame = Wnd.create'FrameWnd(parent, rect)
-    frame.setFrameForm(.Round)
-    frame.setFrameFlags(.Borders)
-
-    let view = frame.createView'Wnd()
-    discard createText(view, title, Math.Rectangle{16, 10, rect.width - 32, 24})
-    discard createHelpText(view, subtitle, Math.Rectangle{16, 36, rect.width - 32, 44})
+    let view = Wnd.create'Wnd(parent, rect)
+    view.backgroundStyle = .Transparent
+    SectionLabel.create(view, title, Math.Rectangle{SectionInset, 0, rect.width - 2 * SectionInset, 20})
+    discard createHelpText(view, subtitle, Math.Rectangle{SectionInset, 28, rect.width - 2 * SectionInset, 44})
     return view
 }
 
+// Names the control that follows, in the faint ink of a caption.
 func createCaption(parent: *Wnd, text: string, x, y, width: f32)
 {
-    let label = createText(parent, text, Math.Rectangle{x, y, width, 22})
-    label.updateFlags(.SecondaryText)
-}
-
-func getPagePanelLayout(parent: *Wnd)->PagePanelLayout
-{
-    let rect         = parent.clientRect()
-    let width        = Math.max(rect.width, 1.0)
-    let height       = Math.max(rect.height, TopPanelHeight + PanelGap + MinBottomPanelHeight)
-    let halfWidth    = (width - PanelGap) * 0.5
-    let topHeight    = Math.min(TopPanelHeight, Math.max(400.0, (height - PanelGap) * 0.62))
-    let bottomY      = topHeight + PanelGap
-    let bottomHeight = Math.max(MinBottomPanelHeight, height - bottomY)
-
-    var result: #returntype
-    result.left   = Math.Rectangle{0, 0, halfWidth, topHeight}
-    result.right  = Math.Rectangle{halfWidth + PanelGap, 0, width - halfWidth - PanelGap, topHeight}
-    result.bottom = Math.Rectangle{0, bottomY, width, bottomHeight}
-    return result
-}
-
-func pageTitle(page: s32)->string
-{
-    switch page
-    {
-    case 0: return "Composite"
-    case 1: return "HSL modes"
-    case 2: return "RGB modes"
-    case 3: return "Palettes"
-    case 4: return "Preview"
-    }
-
-    unreachable
-}
-
-func pageSubtitle(page: s32)->string
-{
-    switch page
-    {
-    case 0: return "ColorPickerCtrl variants, with and without alpha, plus shared quick palettes and a live preview."
-    case 1: return "Low-level ColorPicker HSL planes and hue, saturation, lightness and alpha bars."
-    case 2: return "RGB channel planes and red, green, blue sliders in horizontal and vertical forms."
-    case 3: return "PalettePicker ramps for hue families, luminance, saturation, alpha and named color sets."
-    case 4: return "Derived colors, contrast decisions, alpha compositing and selected-color rendering."
-    }
-
-    unreachable
+    let label = createText(parent, text, Math.Rectangle{x, y, width, 24}, .SecondaryText)
+    label.style.addStyleSheetColors("label_TextLight $label_TextFaint")
 }
 
 func colorSummary()->String
@@ -129,50 +93,10 @@ func colorSummary()->String
                            cast(s32, (hsl.l * 100)))
 }
 
-func updateHeader()
-{
-    let title    = unwrap g_Title
-    let subTitle = unwrap g_SubTitle
-    let footer   = unwrap g_Footer
-    title.setText(Format.toString("GUI5 color widgets - %", pageTitle(g_Page)))
-    subTitle.setText(pageSubtitle(g_Page))
-    footer.setText(Format.toString("F1 : next page (%/%). Selected %", g_Page + 1, MaxPages, colorSummary()))
-}
-
-func updateThemeButton()
-{
-    let btn = g_ThemeButton
-    if not btn do
-        return
-
-    if g_DarkTheme do
-        btn.name = "White theme"
-    else do
-        btn.name = "Black theme"
-    btn.invalidate()
-}
-
-func applyTheme()
-{
-    if g_DarkTheme do
-        app.theme.colors.setDark()
-    else do
-        app.theme.colors.setLight()
-
-    updateThemeButton()
-    app.notifyThemeChanged()
-}
-
-func toggleTheme(_: *Button)
-{
-    g_DarkTheme = not g_DarkTheme
-    applyTheme()
-}
-
 func setSelectedColor(color: Color, _: string)
 {
     g_Color = color
-    updateHeader()
+    g_Hint?.setReading(colorSummary())
     g_PageView?.invalidate()
     app.invalidate()
 }
@@ -275,29 +199,33 @@ func drawWrappedText(painter: *Painter, rect: Math.Rectangle, text: string, font
     painter.drawRichString(rect, &richText, format)
 }
 
+// Draws a swatch on the chip corner with its hairline ring, and its name under it in the faint ink.
 func drawSwatch(painter: *Painter, rect: Math.Rectangle, label: string, color: Color, font: *Font, colors: *ThemeColors)
 {
+    let corner = g_View!.themeMetrics().corner_Chip
     if color.a != 255 do
-        painter.fillRoundRect(rect, 10, 10, Brush.createHatch(.CheckBoardLarge, colors.colorPicker_BackAlpha))
-    painter.fillRoundRect(rect, 10, 10, color)
-    painter.drawRoundRect(rect, 10, 10, Color.fromArgb(84'u8, Argb.Black), 1)
-    painter.drawString(rect.x, rect.bottom() + 8, label, font, colors.label_TextLight)
+        painter.fillRoundRect(rect, corner, corner, Brush.createHatch(.CheckBoardLarge, colors.colorPicker_BackAlpha))
+    painter.fillRoundRect(rect, corner, corner, color)
+    painter.drawRoundRect(rect, corner, corner, colors.line, 1)
+    painter.drawString(rect.x, rect.bottom() + 8, label, font, colors.faintText)
 }
 
 func drawLiveCard(painter: *Painter, rect: Math.Rectangle, colors: *ThemeColors)
 {
     let view      = unwrap g_View
+    let corner    = view.themeMetrics().corner_Floating
+    let chip      = view.themeMetrics().corner_Chip
     let titleFont = view.theme().createDefaultFont(24, .Bold)
     let bodyFont  = view.theme().createDefaultFont(14)
     let textColor = g_Color.contrasting()
     let accent    = g_Color.complementary()
 
-    painter.fillRoundRect(rect, 22, 22, Brush.createHatch(.CheckBoardLarge, colors.colorPicker_BackAlpha))
-    painter.fillRoundRect(rect, 22, 22, g_Color)
-    painter.drawRoundRect(rect, 22, 22, Color.fromArgb(96'u8, Argb.Black), 2)
+    painter.fillRoundRect(rect, corner, corner, Brush.createHatch(.CheckBoardLarge, colors.colorPicker_BackAlpha))
+    painter.fillRoundRect(rect, corner, corner, g_Color)
+    painter.drawRoundRect(rect, corner, corner, colors.line, 1)
 
     let tag = Math.Rectangle{rect.x + 24, rect.y + 24, 118, 32}
-    painter.fillRoundRect(tag, 16, 16, accent.withAlpha(220'u8))
+    painter.fillRoundRect(tag, chip, chip, accent.withAlpha(220'u8))
     painter.drawStringCenter(tag.horzCenter(), tag.vertCenter(), "accent", bodyFont, accent.contrasting())
 
     painter.drawString(rect.x + 24, rect.y + 82, "Live swatch", titleFont, textColor)
@@ -337,8 +265,6 @@ func onLivePreviewEvent(view: *Wnd, evt: IEvent)->bool
         let rect    = view.clientRect()
         let colors  = view.themeColors()
         let font    = view.theme().createDefaultFont(14)
-
-        painter.fillRect(rect, colors.view_Bk)
 
         // Tall panel: full live card plus a derived-swatch row. Short/wide panel:
         // a single fitted swatch row (the card needs room it does not have here).
@@ -405,8 +331,6 @@ func onDerivedPreviewEvent(view: *Wnd, evt: IEvent)->bool
         let colors  = view.themeColors()
         let font    = view.theme().createDefaultFont(14)
 
-        painter.fillRect(rect, colors.view_Bk)
-
         var names: Array'(string)
         var cols:  Array'Color
         names.add("selected")
@@ -457,8 +381,7 @@ func onContrastPreviewEvent(view: *Wnd, evt: IEvent)->bool
         let colors    = view.themeColors()
         let font      = view.theme().createDefaultFont(14)
         let titleFont = view.theme().createDefaultFont(18, .Bold)
-
-        painter.fillRect(rect, colors.view_Bk)
+        let corner    = view.themeMetrics().corner_Floating
 
         let left = Math.Rectangle{
             24,
@@ -472,8 +395,8 @@ func onContrastPreviewEvent(view: *Wnd, evt: IEvent)->bool
         let bodyTop = 50.0
         let lines   = cast(u32, Math.max((left.height - bodyTop) / 18.0, 1.0))
 
-        painter.fillRoundRect(left, 18, 18, g_Color)
-        painter.drawRoundRect(left, 18, 18, Color.fromArgb(80'u8, Argb.Black), 1)
+        painter.fillRoundRect(left, corner, corner, g_Color)
+        painter.drawRoundRect(left, corner, corner, colors.line, 1)
         painter.drawString(left.x + 24, left.y + 20, "Contrast pick", titleFont, text)
         drawWrappedText(painter,
                         Math.Rectangle{left.x + 24, left.y + bodyTop, left.width - 48, left.height - bodyTop - 12},
@@ -482,9 +405,9 @@ func onContrastPreviewEvent(view: *Wnd, evt: IEvent)->bool
                         text.withAlpha(220'u8),
                         lines)
 
-        painter.fillRoundRect(right, 18, 18, Brush.createHatch(.CheckBoardLarge, colors.colorPicker_BackAlpha))
-        painter.fillRoundRect(right, 18, 18, g_Color.withAlpha(145'u8))
-        painter.drawRoundRect(right, 18, 18, Color.fromArgb(80'u8, Argb.Black), 1)
+        painter.fillRoundRect(right, corner, corner, Brush.createHatch(.CheckBoardLarge, colors.colorPicker_BackAlpha))
+        painter.fillRoundRect(right, corner, corner, g_Color.withAlpha(145'u8))
+        painter.drawRoundRect(right, corner, corner, colors.line, 1)
         painter.drawString(right.x + 24, right.y + 20, "Alpha sample", titleFont, text)
         drawWrappedText(painter,
                         Math.Rectangle{right.x + 24, right.y + bodyTop, right.width - 48, right.height - bodyTop - 12},
@@ -497,143 +420,206 @@ func onContrastPreviewEvent(view: *Wnd, evt: IEvent)->bool
     return false
 }
 
-func createPreview(parent: *Wnd, rect: Math.Rectangle, hook: func(view: *Wnd, evt: IEvent)->bool)->*Wnd
+// Creates a painted preview in `section`, on its inset from the line the controls start on.
+func createPreview(section: *Wnd, hook: func(view: *Wnd, evt: IEvent)->bool)->*Wnd
 {
-    let view = Wnd.create'Wnd(parent, rect)
-    view.hookOnEvent = hook
+    let rect = section.clientRect()
+    let view = Wnd.create'Wnd(section, Math.Rectangle{SectionInset - 16, 80, rect.width - 2 * SectionInset + 32, Math.max(rect.height - 80, 1.0)})
+    view.backgroundStyle = .Transparent
+    view.hookOnEvent     = hook
     return view
+}
+
+func getPagePanelLayout(parent: *Wnd)->PagePanelLayout
+{
+    let rect      = parent.clientRect()
+    let width     = Math.max(rect.width, 1.0)
+    let halfWidth = (width - SectionGap) * 0.5
+    let bottomY   = TopHeight + SectionGap
+
+    var result: #returntype
+    result.left   = Math.Rectangle{0, 0, halfWidth, TopHeight}
+    result.right  = Math.Rectangle{halfWidth + SectionGap, 0, width - halfWidth - SectionGap, TopHeight}
+    result.bottom = Math.Rectangle{0, bottomY, width, Math.max(MinBottomHeight, rect.height - bottomY)}
+    return result
+}
+
+const PageTitles = ["Composite", "HSL", "RGB", "Palettes", "Preview"]
+
+func pageSubtitle(page: s32)->string
+{
+    switch page
+    {
+    case 0: return "ColorPickerCtrl with and without alpha, quick palettes, and a live preview of the selection."
+    case 1: return "The HSL planes of ColorPicker, and its hue, saturation, lightness and alpha bars."
+    case 2: return "RGB channel planes, and red, green and blue bars in both orientations."
+    case 3: return "PalettePicker ramps for hue families, lightness, saturation and alpha, and designed sets."
+    case 4: return "Derived colours, contrast decisions and alpha compositing of the selection."
+    }
+
+    unreachable
 }
 
 func clearPage()
 {
-    let pageView = unwrap g_PageView
-    for child in pageView.children
-    {
+    for child in g_PageView!.children do
         child.destroy()
-    }
 }
 
 func buildPage()
 {
     clearPage()
-    updateHeader()
+    g_SubTitle!.setText(pageSubtitle(g_Page))
 
+    let pageView = unwrap g_PageView
     switch g_Page
     {
-    case 0:  createCompositePage(unwrap g_PageView)
-    case 1:  createHslModesPage(unwrap g_PageView)
-    case 2:  createRgbModesPage(unwrap g_PageView)
-    case 3:  createPalettesPage(unwrap g_PageView)
-    case 4:  createPreviewPage(unwrap g_PageView)
+    case 0:  createCompositePage(pageView)
+    case 1:  createHslModesPage(pageView)
+    case 2:  createRgbModesPage(pageView)
+    case 3:  createPalettesPage(pageView)
+    case 4:  createPreviewPage(pageView)
     default: unreachable
     }
 
-    g_PageView!.invalidate()
+    pageView.invalidate()
 }
 
+func showPage(page: s32)
+{
+    g_Page = page
+    let tabs = unwrap g_Tabs
+    if tabs.selectedIndex != cast(u32, page) do
+        tabs.setSelectedIndex(cast(u32, page))
+    buildPage()
+}
+
+func nextPage()     => showPage((g_Page + 1) % MaxPages)
+func previousPage() => showPage((g_Page + MaxPages - 1) % MaxPages)
+
+// Places the header under the window strip, then the page under the tabs, keeping the foot clear
+// for the hint line.
 func layoutRootView()
 {
     if not g_View or not g_PageView do
         return
 
-    let view     = unwrap g_View
-    let pageView = unwrap g_PageView
+    let view    = unwrap g_View
+    let metrics = view.themeMetrics()
+    let rect    = view.clientRect()
+    let top     = view.stripInset()
+    let width   = Math.max(rect.width - 2 * PageMargin, 1.0)
 
-    let rect         = view.clientRect()
-    let contentWidth = Math.max(rect.width - 2 * RootMargin, 1.0)
-    let pageHeight   = Math.max(rect.height - PageTop - PageBottomMargin,
-                                TopPanelHeight + PanelGap + MinBottomPanelHeight)
-    let footerY    = Math.max(rect.height - 42.0, PageTop + pageHeight + 6.0)
-    let titleWidth = Math.max(contentWidth - ThemeButtonWidth - HeaderGap, 1.0)
+    let titleHeight = view.theme().createDefaultFont(TitleSize, .Bold).height
+    g_Title!.setPosition(Math.Rectangle{PageMargin, top, width, titleHeight})
+    g_SubTitle!.setPosition(Math.Rectangle{PageMargin, top + titleHeight + 4, width, 22})
 
-    let title2      = unwrap g_Title
-    let themeButton = unwrap g_ThemeButton
-    let subTitle2   = unwrap g_SubTitle
-    let footer2     = unwrap g_Footer
-    title2.setPosition(Math.Rectangle{RootMargin, 18, titleWidth, 34})
-    themeButton.setPosition(Math.Rectangle{RootMargin + titleWidth + HeaderGap, 18, ThemeButtonWidth, 34})
-    subTitle2.setPosition(Math.Rectangle{RootMargin + 2, 56, contentWidth - 4, 42})
-    pageView.setPosition(Math.Rectangle{RootMargin, PageTop, contentWidth, pageHeight})
-    footer2.setPosition(Math.Rectangle{RootMargin, footerY, contentWidth, 28})
+    let tabsY = top + titleHeight + 4 + 22 + 16
+    g_Tabs!.setPosition(Math.Rectangle{PageMargin, tabsY, width, metrics.tabBar_FlatHeight})
+
+    let pageY  = tabsY + metrics.tabBar_FlatHeight + 24
+    let bottom = rect.height - metrics.hintLine_Bottom - metrics.hintLine_Height - 16
+    g_PageView!.setPosition(Math.Rectangle{PageMargin - SectionInset, pageY, width + 2 * SectionInset, Math.max(bottom - pageY, 1.0)})
+}
+
+// Answers the lens with the pages, the one shown checked.
+func describePages(results: *Lens.Results)
+{
+    const Family = "Pages"
+    let all = Lens.match(results.query, Family).matched
+    var section: *Lens.Section?
+    for title, index in PageTitles where all or Lens.match(results.query, title).matched
+    {
+        if not section do
+            section = results.addSection(Family)
+        with let entry = section.addEntry(title)
+        {
+            .checked = cast(s32, index) == g_Page
+            .run     = func|index|() { showPage(cast(s32, index)) }
+        }
+    }
 }
 
 func onRootEvent(_: *Wnd, evt: IEvent)->bool
 {
-    if evt is ResizeEvent
+    switch evt
     {
+    case ResizeEvent:
         layoutRootView()
         buildPage()
-    }
-    elif evt is DestroyEvent
-    {
+
+    case CommandStateEvent as state where state.kind == .Compute:
+        switch state.id
+        {
+        case CmdNextPage:     state.name = "Next Page"
+        case CmdPreviousPage: state.name = "Previous Page"
+        default: return false
+        }
+
+        state.updatedFields.add(.Name)
+        state.accepted = true
+        return true
+
+    case CommandEvent as cmd:
+        switch cmd.id
+        {
+        case CmdLens:         g_Lens!.open()
+        case CmdNextPage:     nextPage()
+        case CmdPreviousPage: previousPage()
+        default:              return false
+        }
+
+        cmd.accepted = true
+        return true
+
+    case DestroyEvent:
         app.sigFrame.disable()
-        g_Surface     = null
-        g_View        = null
-        g_Title       = null
-        g_SubTitle    = null
-        g_ThemeButton = null
-        g_PageView    = null
-        g_Footer      = null
+        g_Surface, g_View, g_Title, g_SubTitle, g_Tabs, g_PageView, g_Lens, g_Appearance, g_Hint = null
     }
 
     return false
 }
 
-func nextPage()
-{
-    g_Page = (g_Page + 1) % MaxPages
-    buildPage()
-}
-
-func previousPage()
-{
-    g_Page -= 1
-    if g_Page < 0 do
-        g_Page = MaxPages - 1
-    buildPage()
-}
-
+// Walks every page in Encre, then every page in Papier, and opens the lens once in each theme.
 func updateTestMode()
 {
     if not Env.isSmokeRun() or not g_Surface do
         return
 
     g_TestFrame += 1
+    if g_Page == 0
+    {
+        if g_TestFrame == TestFramesPerPage / 3 do
+            g_Lens!.open("pa")
+        elif g_TestFrame == 2 * TestFramesPerPage / 3 do
+            g_Lens!.close()
+    }
+
     if g_TestFrame < TestFramesPerPage do
         return
 
     g_TestFrame = 0
-    if g_Page + 1 >= MaxPages
+    if g_Page + 1 < MaxPages
+    {
+        nextPage()
+        return
+    }
+
+    if g_Light
     {
         Env.exit(0)
         return
     }
 
-    nextPage()
+    g_Light = true
+    g_Appearance!.setAppearanceTheme(.Light)
+    showPage(0)
 }
 
-func canUsePageArrows()->bool
-{
-    if not g_View or not g_PageView do
-        return false
-
-    let view2     = unwrap g_View
-    let pageView2 = unwrap g_PageView
-
-    let focus = view2.focusedWindow()
-    if not focus or focus == g_View do
-        return true
-
-    return not pageView2.isAncestorOf(focus)
-}
-
-func onFrame(app: *Application)
+func onFrame(_: *Application)
 {
     if not g_Surface or not g_View or not g_PageView do
         return
-
-    if app.keyboard.isKeyJustPressed(.F1) do
-        nextPage()
 
     updateTestMode()
 }
@@ -642,55 +628,100 @@ func createRootView()
 {
     let view = g_Surface!.view()
     g_View = view
-    view.backgroundStyle = .View
+    view.backgroundStyle = .Window
 
-    let title = Label.create(view, "", {})
-    g_Title = title
-    setLabelTextStyle(title, .Left, .Center)
-    title.style.setFont(view.theme().createDefaultFont(28), .Regular)
+    with g_Title = Label.create(view, "Colours", {})
+    {
+        .setTextAlignment(.Left, .Center)
+        .style.setFont(view.theme().createDefaultFont(TitleSize, .Bold), .Regular)
+    }
 
-    let subTitle = Label.create(view, "", {}, null, .WordWrap | .SecondaryText)
-    g_SubTitle = subTitle
-    setLabelTextStyle(subTitle, .Left, .Top)
+    with g_SubTitle = Label.create(view, "", {}, null, .SecondaryText | .Ellipsis)
+    {
+        .setTextAlignment(.Left, .Center)
+    }
 
-    let themeButton = PushButton.create(view, "", {})
-    g_ThemeButton = themeButton
-    themeButton.setForm(.Flat)
-    themeButton.setIcon(app.theme.icon(ThemeIcons.Picker, 18))
-    themeButton.sigPressed += &toggleTheme
+    with g_Tabs = Tab.create(view, {})
+    {
+        .setForms(.Flat, .Flat, .None)
+        .setLayout(.Content)
+        for title in PageTitles do
+            .addItem(title)
+        .sigSelectionChanged += func(tab)
+        {
+            let index = cast(s32, cast(*Tab, tab).selectedIndex)
+            if index != g_Page do
+                showPage(index)
+        }
+    }
 
-    let pageView = Wnd.create'Wnd(view, {})
-    g_PageView = pageView
-    pageView.backgroundStyle = .Transparent
+    with g_PageView = Wnd.create'Wnd(view, {})
+    {
+        .backgroundStyle = .Transparent
+    }
 
-    let footer = Label.create(view, "", {})
-    g_Footer = footer
-    setLabelTextStyle(footer, .Left, .Center)
-    footer.updateFlags(.SecondaryText)
+    with g_Hint = HintLine.create(view)
+    {
+        .setReading(colorSummary())
+        .addHint("Ctrl K", "pages, appearance")
+        .addHint("F1", "next page")
+    }
 
-    layoutRootView()
+    // The appearance is a lens entry like every other command; the button only owns the choice.
+    with g_Appearance = AppearanceButton.create(unwrap g_Surface)
+    {
+        .hide()
+        .setAppearanceTheme(g_Light ? .Light : .Dark)
+    }
+
+    with g_Lens = Lens.View.create(view)
+    {
+        .addSource(.None, &describePages)
+        .addCommands("Go", [CmdNextPage, CmdPreviousPage])
+    }
+
+    g_Appearance!.addToLens(unwrap g_Lens)
+
+    view.registerKeyShortcut(.Control, .K, CmdLens)
+    view.registerKeyShortcut(.None, .F1, CmdNextPage)
+    view.registerKeyShortcut(.Shift, .F1, CmdPreviousPage)
     view.hookOnEvent = &onRootEvent
+    layoutRootView()
+}
+
+// Reads the theme and the page the command line opens the window on.
+func readStartupSelection()
+{
+    const PagePrefix = "--page="
+    for arg in Env.arguments()
+    {
+        if arg == "--light"
+        {
+            g_Light = true
+        }
+        elif Utf8.startsWith(arg, PagePrefix)
+        {
+            let page = catch StrConv.toS32(arg[PagePrefix.count to])
+            g_Page = Math.clamp(page - 1, 0, MaxPages - 1)
+        }
+    }
 }
 
 #main
 {
-    let flags = SurfaceFlags.LargeCaption |
-                SurfaceFlags.MinimizeButton |
-                SurfaceFlags.CloseButton |
-                SurfaceFlags.Border
-    let surface = try app.createSurface(100, 50, W - 46, H - 31, flags)
+    let surface = try app.createSurface(100, 60, W, H, SurfaceFlags.StandardWindow)
     g_Surface = surface
-    surface.setTitle("GUI5 color widgets")
-    surface.setIcon(app.theme.icon(ThemeIcons.Picker, 18))
+    surface.setTitle("GUI5 Colours")
+    surface.minSize = {1000, 760}
 
+    readStartupSelection()
     createRootView()
-    buildPage()
+    showPage(g_Page)
 
     app.sigFrame += &onFrame
     if Env.isSmokeRun() do
-        app.maxRunFrame = cast(u32, MaxPages) * cast(u32, TestFramesPerPage) + 10
+        app.maxRunFrame = cast(u32, 2 * MaxPages * TestFramesPerPage + 20)
 
     surface.show()
-    applyTheme()
     app.run()
 }

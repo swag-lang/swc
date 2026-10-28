@@ -7,37 +7,39 @@ impl ViewerWindow
                                     .explorer.listing.isArchive and
                                     .explorer.displayPath(.currentFile) != .currentFile.toString()
 
-    // Fills the three readouts of the information bar; each one carries its full text as tooltip.
-    mtd showFileInfo(name, path, details, size: string)
+    // Writes the details a viewer reports on the faint line of readings, with the size of the
+    // file after them; the whole of it is the line's tooltip.
+    mtd showFileInfo(details, size: string)
     {
-        .infoNameLabel.setText(name)
-        .infoNameLabel.toolTip = path
-        .infoStatsLabel.setText(details)
-        .infoStatsLabel.toolTip = details
-        .infoSizeLabel.setText(size)
-        .infoSizeLabel.toolTip = size
+        var line: String = details
+        if size.count
+        {
+            if not line.isEmpty() do
+                line += " · "
+            line += size
+        }
+
+        .readingLine.details.setText(line)
+        .readingLine.details.toolTip = line
     }
 
     mtd updateFileInfo(details: string)
     {
-        let path = .explorer ? .explorer.displayPath(.currentFile) : .currentFile.toString()
-        .showFileInfo(Path.fileName(path) orelse path, path, details, .currentFileSize)
-        if .activeChoiceIndex < .choices.count do
-            .infoIconLabel.setIcon(.choiceIcon(.activeChoiceIndex))
-        .infoIconLabel.setIconColor(.themeColors().label_TextFaint)
+        .showFileInfo(details, .currentFileSize)
+        .refreshTitle()
         .layoutFileInfo()
-        .infoBarHost.show(not .fullScreen or .fullScreenTopVisible)
+        if .infoSheet.isLocallyVisible() do
+            .refreshInformation()
     }
 
-    // Measures the identity row again after asynchronous metadata changes. Text widths are
-    // rounded outward because the stack places children on whole logical units; rounding a
-    // fractional glyph extent down is enough to paint an ellipsis on an otherwise complete line.
+    // Lays the line of readings out again after its details or a viewer contribution changed,
+    // and shows it only while it has something to say.
     internal mtd layoutFileInfo()
     {
-        .infoNameLabel.preferredSize.x  = Math.ceil(.infoNameLabel.itf.measureContent({}).x)
-        .infoStatsLabel.preferredSize.x = Math.ceil(.infoStatsLabel.itf.measureContent({}).x)
-        .infoContentGroup.computeLayout()
-        .infoFileGroup.computeLayout()
+        .readingLine.show(.readingLine.hasContent() and not .fullScreen)
+        .readingLine.computeLayout()
+        .documentHost.applyLayout()
+        .layoutViewerBar()
     }
 
     // Shows or hides the panel listing what is beside the current file.
@@ -52,7 +54,6 @@ impl ViewerWindow
     mtd setFilePanelVisible(visible: bool)
     {
         .panelVisible = visible
-        .filesButton.setChecked(visible)
         if visible
         {
             .refreshFileLists()
@@ -227,10 +228,10 @@ impl ViewerWindow
         .showFileActions(fileName, position, history: list == .recentList)
     }
 
-    // Shows what the open file offers, from the band that names it.
+    // Shows what the open file offers, wherever the reader pointed at it.
     //
-    // The history entries stay out: the band says what is being read, and a file is not taken out
-    // of the list of what was read from the place that is reading it.
+    // The history entries stay out: a file is not taken out of the list of what was read from the
+    // place that is reading it.
     mtd showCurrentFileActions(position: Math.Point)
     {
         if .currentFile.isEmpty() do
@@ -283,16 +284,16 @@ impl ViewerWindow
     {
         let texts = appStrings()
         let menu  = MenuCtrl.createPopup(me, owner: me)
-        menu.addItem(texts.ui_MenuLocate, "scope.file.locate", .theme().icon(.OpenFile, themeRowIconSize(.themeMetrics())))
-        menu.addItem(texts.ui_MenuOpenDefault, "scope.file.openDefault", .theme().icon(.OpenExternal, themeRowIconSize(.themeMetrics())))
-        menu.addItem(texts.ui_MenuOpenWith, "scope.file.openWith", .theme().icon(.OpenExternal, themeRowIconSize(.themeMetrics())))
+        menu.addItem(texts.ui_MenuLocate, ViewerCommands.Locate, .theme().icon(.OpenFile, themeRowIconSize(.themeMetrics())))
+        menu.addItem(texts.ui_MenuOpenDefault, ViewerCommands.OpenDefault, .theme().icon(.OpenExternal, themeRowIconSize(.themeMetrics())))
+        menu.addItem(texts.ui_MenuOpenWith, ViewerCommands.OpenWith, .theme().icon(.OpenExternal, themeRowIconSize(.themeMetrics())))
         menu.addSeparator()
-        menu.addItem(texts.ui_MenuCopyPath, "scope.file.copyPath", .theme().icon(.Copy, themeRowIconSize(.themeMetrics())))
-        menu.addItem(texts.ui_MenuCopyName, "scope.file.copyName", .theme().icon(.Copy, themeRowIconSize(.themeMetrics())))
+        menu.addItem(texts.ui_MenuCopyPath, ViewerCommands.CopyPath, .theme().icon(.Copy, themeRowIconSize(.themeMetrics())))
+        menu.addItem(texts.ui_MenuCopyName, ViewerCommands.CopyName, .theme().icon(.Copy, themeRowIconSize(.themeMetrics())))
         if history
         {
             menu.addSeparator()
-            menu.addItem(texts.ui_MenuForget, "scope.file.forget", .theme().icon(.Remove, themeRowIconSize(.themeMetrics())))
+            menu.addItem(texts.ui_MenuForget, ViewerCommands.Forget, .theme().icon(.Remove, themeRowIconSize(.themeMetrics())))
         }
 
         return menu
@@ -309,12 +310,12 @@ impl ViewerWindow
 
         switch chosen
         {
-        case "scope.file.locate":      Env.showInFileExplorer(fileName)
-        case "scope.file.openDefault": Env.openFile(fileName)
-        case "scope.file.openWith":    Env.openFileWith(fileName)
-        case "scope.file.copyPath":    Clipboard.setString(fileName)
-        case "scope.file.copyName":    Clipboard.setString(Path.fileName(fileName) orelse fileName)
-        case "scope.file.forget":      .forgetRecent(fileName)
+        case ViewerCommands.Locate:      Env.showInFileExplorer(fileName)
+        case ViewerCommands.OpenDefault: Env.openFile(fileName)
+        case ViewerCommands.OpenWith:    Env.openFileWith(fileName)
+        case ViewerCommands.CopyPath:    Clipboard.setString(fileName)
+        case ViewerCommands.CopyName:    Clipboard.setString(Path.fileName(fileName) orelse fileName)
+        case ViewerCommands.Forget:      .forgetRecent(fileName)
         }
     }
 

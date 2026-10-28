@@ -11,6 +11,8 @@ using Core, Gui, Pixel
     let window = ViewerWindow.create(&host.surfaceWnd, createViewerPluginRegistry())
     window.onlineMusic = true
     let explorer = Explorer.create(window.documentPanel, window)
+    window.explorer       = explorer
+    window.explorerActive = true
     let file     = Path.combine(Env.getSpecialDirectory(.Temp), Format.toString("row-media-%.mp3", Guid64.random()))
     discard expect File.writeAllText(file, "fixture")
     let key = expect ThumbnailCache.key(file, settings: ThumbnailSettings.capture(window))
@@ -42,7 +44,8 @@ using Core, Gui, Pixel
     }
 
     Swag.assert(explorer.entries[0].music.title == "Discovery")
-    Swag.assert(Utf8.contains(explorer.infoPanel.text, "Daft Punk"))
+    explorer.showInformation()
+    Swag.assert(Utf8.contains(window.infoSheet.text(), "Daft Punk"))
 }
 
 // Busy slots schedule distinct visible tiles; cancelled generations never publish stale textures.
@@ -52,6 +55,8 @@ using Core, Gui, Pixel
     host.setup(960, 640)
     let window   = ViewerWindow.create(&host.surfaceWnd, createViewerPluginRegistry())
     let explorer = Explorer.create(window.documentPanel, window)
+    window.explorer       = explorer
+    window.explorerActive = true
     explorer.setMode(.Names)
     var files, keys: Array'String
     defer
@@ -125,6 +130,8 @@ using Core, Gui, Pixel
     host.setup(640, 480)
     let window   = ViewerWindow.create(&host.surfaceWnd, createViewerPluginRegistry())
     let explorer = Explorer.create(window.documentPanel, window)
+    window.explorer       = explorer
+    window.explorerActive = true
     explorer.entries.add({name: "Loading.txt", attempted: true})
     explorer.fill()
     let preview = &explorer.previews[0]

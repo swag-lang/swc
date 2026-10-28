@@ -22,7 +22,7 @@ using Core, Pixel, Gui, Gui.Testing, Viewers
     }
 }
 
-// Markdown places its options in the shared command bar without opening a lower command band.
+// Markdown places its options on the line of readings, and floats no commands over the document.
 #test
 {
     var host: Testing.HeadlessHost
@@ -32,10 +32,10 @@ using Core, Pixel, Gui, Gui.Testing, Viewers
     completeQueuedViewerFile(&host, window)
 
     let actions = unwrap window.currentActions
-    Swag.assert(actions.parent == window.commandBar and actions.dockStyle == .Right)
-    Swag.assert(actions.margin.z == 12)
+    Swag.assert(actions.parent == window.readingLine and actions.isLocallyVisible())
     Swag.assert(window.currentCommands == null)
-    Swag.assert(window.viewerBar.position.height == window.themeMetrics().panel_GutterSize)
+    window.revealViewerBar()
+    Swag.assert(not window.viewerBar.isLocallyVisible())
     let options = assume cast(*IconButton, actions.children[0])
     Swag.assert(options.arrowPosition == .RightDownward)
 }
@@ -81,18 +81,18 @@ using Core, Pixel, Gui, Gui.Testing, Viewers
     Swag.assert(window.documentPanel.backgroundStyle == .View)
     Swag.assert(window.currentView!.surfaceRect().width == window.clientRect().width)
     let bounds = window.currentView.surfaceRect()
-    window.updateFullScreenChrome({10, 1})
+    window.notePointer({10, 1})
     Swag.assert(window.currentView.surfaceRect() == bounds)
-    window.updateFullScreenChrome({10, 719})
+    window.notePointer({10, 719})
     Swag.assert(window.currentView.surfaceRect() == bounds)
-    window.updateFullScreenChrome({640, 360})
+    window.concealViewerBar()
     host.settleAnimations(window)
     var image = host.render(window)
     Swag.assert(image.width == cast(u32, viewport.width) and image.height == cast(u32, viewport.height))
     Swag.assert(image.pixelColor(0, 0).argb == 0xFFFFFFFF)
     Pixel.Testing.assertImageGolden(&image, "viewer.markdown.fullscreen")
     window.setFullScreen(false)
-    Swag.assert(window.documentHost.padding == padding and window.documentPanel.backgroundStyle == .Panel)
+    Swag.assert(window.documentHost.padding == padding and window.documentPanel.backgroundStyle == .View)
 }
 
 // Zoom gestures share the menu's bounded scale and the next document keeps the preference.
@@ -166,7 +166,7 @@ using Core, Pixel, Gui, Gui.Testing, Viewers
     let button = assume cast(*MarkdownText.ZoomButton, window.currentInfo!.children[0])
     if button.statisticsLoad.isPending() do
         completeViewerBackgroundLoad(&host, &button.statisticsLoad)
-    Swag.assert(window.infoStatsLabel.text() == "Markdown · UTF-8 · 2 lines · 4 words · 23 characters")
+    Swag.assert(Utf8.startsWith(window.readingLine.details.text(), "Markdown · UTF-8 · 2 lines · 4 words · 23 characters · "))
     window.applyLayout()
     host.settleAnimations(window, 6)
     var image = host.render(window)
@@ -175,7 +175,7 @@ using Core, Pixel, Gui, Gui.Testing, Viewers
     expect host.app.setLanguage("fr")
     host.notify(.LanguageChanged)
     window.applyLayout()
-    Swag.assert(window.infoStatsLabel.text() == "Markdown · UTF-8 · 2 lignes · 4 mots · 23 caractères")
+    Swag.assert(Utf8.startsWith(window.readingLine.details.text(), "Markdown · UTF-8 · 2 lignes · 4 mots · 23 caractères · "))
 }
 
 // A manuscript can interleave HTML spreads and Markdown figures, with local SVG resources.

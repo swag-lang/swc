@@ -17,61 +17,27 @@ impl ViewerWindow
         regularExpression: .searchRegexOption}
 
     // Pops up the search options: search or filter mode when the active viewer can filter, then
-    // match case, whole word and regular expression. A change revalidates the query, restarts the
-    // search and saves the state.
+    // match case, whole word and regular expression. The same choices are entries of the lens;
+    // [[ViewerWindow.setSearchOption]] applies either.
     private mtd showSearchOptionsMenu()
     {
-        const SearchModeId = "scope.search.mode.search"
-        const FilterModeId = "scope.search.mode.filter"
-        const MatchCaseId  = "scope.search.matchCase"
-        const WholeWordId  = "scope.search.wholeWord"
-        const RegExpId     = "scope.search.regularExpression"
-
         let texts     = appStrings()
         let menu      = MenuCtrl.createPopup(me, owner: me)
         let canFilter = .activeChoiceIndex < .instances.count and .instances[.activeChoiceIndex].filterSearch != null
         if canFilter
         {
-            menu.addRadioItem(texts.ui_SearchMode, SearchModeId, checked: not .searchFilterMode)
-            menu.addRadioItem(texts.ui_FilterMode, FilterModeId, checked: .searchFilterMode)
+            menu.addRadioItem(texts.ui_SearchMode, ViewerCommands.SearchMode, checked: not .searchFilterMode)
+            menu.addRadioItem(texts.ui_FilterMode, ViewerCommands.FilterMode, checked: .searchFilterMode)
             menu.addSeparator()
         }
 
-        menu.addItem(texts.ui_SearchMatchCase, MatchCaseId, checked: .searchMatchCaseOption)
-        menu.addItem(texts.ui_SearchWholeWord, WholeWordId, checked: .searchWholeWordOption)
-        menu.addItem(texts.ui_SearchRegularExpression, RegExpId, checked: .searchRegexOption)
+        menu.addItem(texts.ui_SearchMatchCase, ViewerCommands.MatchCase, checked: .searchMatchCaseOption)
+        menu.addItem(texts.ui_SearchWholeWord, ViewerCommands.WholeWord, checked: .searchWholeWordOption)
+        menu.addItem(texts.ui_SearchRegularExpression, ViewerCommands.RegularExpression, checked: .searchRegexOption)
 
-        switch menu.doModal(.searchOptionsButton, autoDestroy: true) orelse ""
-        {
-        case SearchModeId:
-            if not .searchFilterMode do
-                return
-            .searchFilterMode = false
-
-        case FilterModeId:
-            if .searchFilterMode do
-                return
-            .searchFilterMode = true
-
-        case MatchCaseId:
-            .searchMatchCaseOption = not .searchMatchCaseOption
-
-        case WholeWordId:
-            .searchWholeWordOption = not .searchWholeWordOption
-
-        case RegExpId:
-            .searchRegexOption = not .searchRegexOption
-
-        default:
-            return
-        }
-
-        // A query that was literal may be incomplete regexp syntax, and vice versa. Re-run the
-        // field validator before deciding whether there is work to schedule.
-        discard .searchBox.revalidate()
-        .refreshSearchPresentation()
-        .restartSearch()
-        catch .saveState()
+        let chosen = menu.doModal(.searchOptionsButton, autoDestroy: true) orelse ""
+        if chosen.count do
+            .setSearchOption(chosen)
     }
 
     // Validates the query in the search box: a viewer with its own query syntax judges it,
@@ -147,7 +113,7 @@ impl ViewerWindow
         .searchBox.resize(hasMenu ? SearchFieldWidth : SearchNoOptionsFieldWidth, 36)
         discard .searchBox.revalidate()
         .searchGroup.computeLayout()
-        .commandBar.centerContent()
+        .layoutSearchBar()
     }
 
     // Searches the active viewer again for the text of the search box. Filter mode hands the query
@@ -435,21 +401,31 @@ impl ViewerWindow
         .refreshSearchReadout()
     }
 
+    // Brings the find bar over the document and gives it the keyboard; while a folder is
+    // explored, its filter takes the query instead.
     mtd showSearch()
     {
         if .explorerActive and .explorer and .explorer.isLocallyVisible()
         {
-            .explorer.filter.setFocus()
+            .explorer.revealFilter()
             return
         }
 
         if not .searchBox.isEnabled() do
             return
+        .searchShown = true
+        .searchBar.show()
+        .layoutSearchBar()
         .searchBox.setFocus()
+        .searchBox.selectAll()
     }
 
+    // Puts the find bar away and gives the keyboard back to the document. The query stays: the
+    // next and previous matches still answer their keys, and the bar comes back holding it.
     mtd hideSearch()
     {
+        .searchShown = false
+        .searchBar.hide()
         .viewerFocusTarget()?.setFocus()
     }
 
@@ -473,8 +449,8 @@ impl ViewerWindow
         return .forwardKeyToViewer(evt, takeFocus: false)
     }
 
-    // Shows the search group only when the active viewer can reveal matches, otherwise gives its
-    // place in the command bar to the viewer's actions, and restarts the search for the new viewer.
+    // Offers the find bar only while the active viewer can reveal matches, keeps it on screen
+    // while the reader asked for it, and restarts the search for the new viewer.
     mtd updateSearchAvailability()
     {
         let active         = .activeChoiceIndex < .instances.count
@@ -485,18 +461,9 @@ impl ViewerWindow
         .refreshSearchPresentation()
         .searchBox.enable(available)
         .searchOptionsButton.enable(available)
-        .searchGroup.show(available)
-        let actionsBesideSearch = .currentActions and .currentActions.dockStyle != .None
-        .currentActions?.show(not available or actionsBesideSearch)
-        if available do
-            .commandBar.centerGroup = .searchGroup
-        elif .isExploring() do
-            .commandBar.centerGroup = .explorer!.filter
-        elif actionsBesideSearch do
-            .commandBar.centerGroup = null
-        else do
-            .commandBar.centerGroup = .currentActions
-        .commandBar.centerContent()
+        .searchBar.show(available and .searchShown)
+        .currentActions?.show()
+        .layoutSearchBar()
         .restartSearch()
         if not available and searchHadFocus do
             .viewerFocusTarget()?.setFocus()

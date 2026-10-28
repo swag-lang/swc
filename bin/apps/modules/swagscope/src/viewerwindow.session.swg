@@ -28,7 +28,6 @@ impl ViewerWindow
         .stillView = null
 
         .pendingFile = fileName
-        .closeButton.show()
         .pendingEmpty.clear()
         .pendingRemember = remember
 
@@ -36,6 +35,7 @@ impl ViewerWindow
         // now, the first frame shows the surface the document is about to fill, and the hint's
         // glyph is never rasterized for a launch that names its file.
         .emptyView.hide()
+        .hintLine.hide()
         if .explorer
         {
             .explorer.leave()
@@ -182,12 +182,9 @@ impl ViewerWindow
         .stopTimer(&.fileWatchTimer)
 
         .searchBox.setText("", notify: false)
-        .closeButton.hide()
         .showEmpty(appStrings().ui_DropTitle)
         if .explorerActive do
             .explorer!.focusContent()
-        else do
-            .openButton.setFocus()
     }
 
     // Returns the window to its empty state with `message`. While a viewer is still retiring or a
@@ -210,31 +207,29 @@ impl ViewerWindow
 
         .emptyLabel.setText(Format.toString("<b>%</b>", message))
         .emptyView.show()
+        .hintLine.show()
         .refreshEmptyArtwork()
         .currentFile.clear()
         .explorer?.releasePreviews()
         .currentFileSize.clear()
         .choices.clear()
-        .viewerCombo.clear()
-        .viewerCombo.hide()
-        .openDefaultButton.hide()
-        .closeButton.hide()
         .activeChoiceIndex = Swag.U32.Max
         .folderFiles.clear()
         .siblings.clear()
         .siblingsDirty = true
         .resetFolderReading()
-        .showFileInfo("", "", "", "")
+        .showFileInfo("", "")
         .layoutFileInfo()
-        .infoIconLabel.setIcon({})
-        .infoBarHost.show(not .fullScreen or .fullScreenTopVisible)
+        .infoSheet.close()
         .updateViewerBar()
-        .surface!.setTitle(appStrings().ui_WindowTitle)
         if .explorerActive
         {
             .emptyView.hide()
+            .hintLine.hide()
             .explorer!.setShown(true)
         }
+
+        .refreshTitle()
 
         .updateSearchAvailability()
 
@@ -321,15 +316,16 @@ impl ViewerWindow
         .updateViewerBar()
     }
 
-    // Moves the host-owned panel action with the viewer it belongs to. The action remains on the
-    // information edge while its panel occupies the matching right-side lane.
+    // Moves the host-owned panel toggle with the viewer it belongs to. The toggle stays off the
+    // window: the lens names it after its panel and turns it, and its panel takes the right-side
+    // lane while it is on.
     private mtd setCurrentSidePanel(panel: *Wnd?, button: *IconButton?)
     {
         .currentSidePanelHost?.hide()
         .currentSidePanelButton?.hide()
-        .currentSidePanelHost        = panel
-        .currentSidePanelButton      = button
-        .infoContentGroup.sideButton = button
+        .currentSidePanelHost   = panel
+        .currentSidePanelButton = button
+        .updateDocumentInsets()
 
         let visible = button and button.isChecked and not .fullScreen
         .mainSplitter.items[2]!.view = panel orelse .sidePanelPlaceholder
@@ -338,12 +334,6 @@ impl ViewerWindow
         if visible do
             .mainSplitter.setPaneSize(2, .mainSplitter.items[2]!.size)
         .mainSplitter.applyLayout()
-
-        if button and not .fullScreen
-        {
-            button.show()
-        }
-
         .layoutFileInfo()
     }
 
@@ -519,7 +509,7 @@ impl ViewerWindow
 
                 .loadingOverlay.cover(.currentView.position)
                 .loadingOverlay.bringToFront()
-                .layoutFullScreenChrome()
+                .layoutFloatingParts()
             }
         }
         else
@@ -559,7 +549,6 @@ impl ViewerWindow
         .currentCommands?.show()
         .updateViewerBar()
         .activeChoiceIndex = index
-        .viewerCombo.setSelectedIndex(index, notify: false)
         .updateFileInfo(instance.details)
         .updateSearchAvailability()
         .applyLayout()
@@ -619,8 +608,8 @@ impl ViewerWindow
             .sidePanelParent = splitter
             .sideSplitter    = splitter
             .sidePaneIndex   = 2
-            .actionParent    = me.commandBar
-            .infoParent      = me.infoContentGroup
+            .actionParent    = me.readingLine
+            .infoParent      = me.readingLine
             .commandParent   = me.viewerBar
             .sourceFileName  = me.currentFile
             .pluginIcon      = me.pluginIcon(plugin, themeActionIconSize(me.themeMetrics()))
@@ -677,7 +666,6 @@ impl ViewerWindow
 
         .activeChoiceIndex = index
         instance[]         = #move next
-        .viewerCombo.setSelectedIndex(index, notify: false)
         .updateFileInfo(instance.details)
         .updateSearchAvailability()
         if stage do
@@ -701,13 +689,8 @@ impl ViewerWindow
 
         if index == .activeChoiceIndex do
             return
-        if not .activateChoice(index)
-        {
-            if .activeChoiceIndex != Swag.U32.Max do
-                .viewerCombo.setSelectedIndex(.activeChoiceIndex, notify: false)
+        if not .activateChoice(index) do
             return
-        }
-
         .rememberPreferredViewer(index)
     }
 
@@ -788,15 +771,6 @@ impl ViewerWindow
         .rebuildSiblings()
         .trackFolderReading(.playMode)
         .instances.resize(.choices.count)
-        .viewerCombo.clear()
-        for choice in .choices
-        {
-            let plugin = &.index.plugins[choice.pluginIndex]
-            .viewerCombo.addItem(plugin.displayName(), icon: .pluginIcon(plugin, themeRowIconSize(.themeMetrics())))
-        }
-
-        .viewerCombo.show()
-        .openDefaultButton.show()
 
         var selected = .preferredChoiceIndex()
         if .reloading
@@ -835,6 +809,7 @@ impl ViewerWindow
         }
 
         .emptyView.hide()
+        .hintLine.hide()
 
         if remember
         {

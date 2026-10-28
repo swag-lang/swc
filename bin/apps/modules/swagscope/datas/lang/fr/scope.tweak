@@ -1,13 +1,9 @@
 # French strings of Swag Scope. A key omitted here keeps its English value.
 
-ui_WindowTitle  Swag Scope — Visionneuse universelle
-ui_Open         Ouvrir (Ctrl+O)
 ui_OpenDefault  Ouvrir avec l'application par défaut
 ui_CloseFile    Fermer le fichier
 ui_Viewer       Visionneuse
 ui_Files        Fichiers à côté de celui-ci
-ui_FullScreen   Plein écran (F11)
-ui_ExitFullScreen Quitter le plein écran (F11)
 ui_SameKind     Seulement les fichiers du même type
 ui_Options      Options
 ui_PlayMode     Mode de lecture
@@ -53,8 +49,6 @@ dlg_TitleOpen   Ouvrir un fichier
 dlg_ButtonOpen  Ouvrir
 dlg_AllFiles    Tous les fichiers
 
-explore_Open Explorer le dossier (Ctrl+E)
-explore_Panels Historique et dossiers
 explore_Folders Sous-dossiers
 explore_Back Précédent
 explore_Forward Suivant
@@ -69,19 +63,16 @@ explore_Name Nom
 explore_Type Type
 explore_Size Taille
 explore_Modified Modifié
-explore_Information Informations
-explore_CloseInformation Fermer les informations
-explore_SelectFile S?lectionnez un fichier pour afficher ses informations.
+explore_SelectFile Sélectionnez un fichier pour afficher ses informations.
 explore_FileProperties Fichier
-explore_MediaDetails Informations sur le m?dia
-explore_Duration Dur?e
-explore_Rating Note IMDb via Wikidata
+explore_MediaDetails Informations sur le média
+explore_Duration Durée
 explore_Released Sortie
-explore_Director R?alisation
+explore_Director Réalisation
 explore_Cast Distribution
 explore_Synopsis Synopsis
 explore_Artist Artiste
-explore_FirstRelease Premi?re sortie
+explore_FirstRelease Première sortie
 explore_Source Source
 explore_Loading Lecture du dossier…
 explore_Empty Aucun fichier à afficher
@@ -105,3 +96,32 @@ explore_MusicDate Première sortie : %
 ui_AboutWikiNotice Les informations et résumés des films proviennent de Wikipédia et Wikidata. Les textes de Wikipédia sont sous licence CC BY-SA 4.0 : https://creativecommons.org/licenses/by-sa/4.0/. Chaque film indique son article source.
 
 ui_CloseFiles  Fermer le panneau des fichiers
+ui_HintLens tout le reste
+lens_File Fichier
+lens_Find Rechercher
+lens_View Affichage
+lens_ViewAs Voir comme
+lens_Playback Lecture
+lens_Folder Dossier
+lens_InFolder Dans ce dossier
+cmd_Open Ouvrir…
+cmd_Explore Explorer le dossier
+cmd_Reload Recharger
+cmd_PreviousFile Fichier précédent
+cmd_NextFile Fichier suivant
+cmd_ClearHistory Effacer l'historique…
+cmd_Find Rechercher dans le document
+cmd_FindNext Occurrence suivante
+cmd_FindPrevious Occurrence précédente
+cmd_Information Informations
+cmd_FullScreen Plein écran
+cmd_EditLocation Saisir un emplacement
+cmd_SortName Trier par nom
+cmd_SortType Trier par type
+cmd_SortSize Trier par taille
+cmd_SortModified Trier par date de modification
+cmd_SortDescending Ordre décroissant
+sort_Name par nom
+sort_Type par type
+sort_Size par taille
+sort_Modified par date

@@ -22,6 +22,18 @@ func saveViewerState(window: *ViewerWindow)->String
     return result.toString()
 }
 
+// Reports whether the lens of `window` shows an entry titled `title`.
+func lensHasEntry(window: *ViewerWindow, title: string)->bool
+{
+    for section in window.lens.results.sections
+    {
+        for &entry in section!.entries where entry.title == title do
+            return true
+    }
+
+    return false
+}
+
 func loadViewerState(window: *ViewerWindow, bytes: const [..] u8)
 {
     var decoder:    Serialization.Decoder'Serialization.Read.TagBin
@@ -185,8 +197,8 @@ func createSidePanelFixture(host: Viewer.Host)
 }
 
 // The optional viewer lane is host composition, not a private rectangle each decoder invents.
-// Its outer seam has the splitter width, its content has panel geometry, and closing it returns
-// every pixel to the document.
+// It is a card in the shape of the sheet, the floating inset away from the window edges, and
+// closing it returns every pixel to the document.
 #test
 {
     var host: Testing.HeadlessHost
@@ -202,10 +214,11 @@ func createSidePanelFixture(host: Viewer.Host)
                 session.sidePanelButton != null)
     Swag.assert(session.sidePanelHost.parent == &host.root and session.sidePanel.parent == session.sidePanelHost)
     Swag.assert(session.sidePanelButton.parent == infoParent)
-    Swag.assert(session.sidePanelHost.backgroundStyle == .ToolBar and session.sidePanel.backgroundStyle == .Panel)
-    Swag.assert(session.sidePanelHost.padding.x == 0 and session.sidePanelHost.padding.z == host.root.themeMetrics().panel_GutterSize)
-    Swag.assert(session.sidePanelHost.padding.y == 0 and session.sidePanelHost.padding.w == 0)
-    Swag.assert(session.sidePanelHost.position.width == 220 + host.root.themeMetrics().panel_GutterSize)
+    let gutter = host.root.themeMetrics().floating_Inset
+    Swag.assert(session.sidePanelHost.backgroundStyle == .Transparent and session.sidePanel.backgroundStyle == .Transparent)
+    Swag.assert(session.sidePanelHost.padding.x == 0 and session.sidePanelHost.padding.z == gutter)
+    Swag.assert(session.sidePanelHost.padding.y == 0 and session.sidePanelHost.padding.w == gutter)
+    Swag.assert(session.sidePanelHost.position.width == 220 + gutter)
     Swag.assert(not session.sidePanelHost.isLocallyVisible() and not session.sidePanelButton.isLocallyVisible())
 
     session.sidePanelButton.show()
@@ -512,9 +525,9 @@ func assertFolderFiles(window: *ViewerWindow, names: const [..] String)
     Swag.assert(not window.panelVisible and not window.filePanelHost.isLocallyVisible())
     window.toggleFilePanel()
     Swag.assert(window.panelVisible and window.filePanelHost.isLocallyVisible())
-    Swag.assert(window.filesButton.isChecked)
-    Swag.assert(window.mainSplitter.items[0]!.minimumSize == ViewerWindow.PanelMinWidth + window.themeMetrics().panel_GutterSize)
-    Swag.assert(window.mainSplitter.items[0]!.maximumSize == ViewerWindow.PanelMaxWidth + window.themeMetrics().panel_GutterSize)
+    Swag.assert(window.sendComputeCommandStateEvent(ViewerCommands.Files).checked)
+    Swag.assert(window.mainSplitter.items[0]!.minimumSize == ViewerWindow.PanelMinWidth + window.themeMetrics().floating_Inset)
+    Swag.assert(window.mainSplitter.items[0]!.maximumSize == ViewerWindow.PanelMaxWidth + window.themeMetrics().floating_Inset)
     window.mainSplitter.setPaneSize(0, 1)
     Swag.assert(window.mainSplitter.items[0]!.size == window.mainSplitter.items[0]!.minimumSize)
     window.mainSplitter.setPaneSize(0, 2_000)
@@ -554,7 +567,7 @@ func assertFolderFiles(window: *ViewerWindow, names: const [..] String)
     assertFolderFiles(window, names.toSlice())
 
     window.setFilePanelVisible(false)
-    Swag.assert(not window.filesButton.isChecked)
+    Swag.assert(not window.sendComputeCommandStateEvent(ViewerCommands.Files).checked)
     window.setFilePanelVisible(true)
 
     window.filePanel.setPaneSize(0, 120)
@@ -565,7 +578,7 @@ func assertFolderFiles(window: *ViewerWindow, names: const [..] String)
     window.setFilePanelVisible(false)
     loadViewerState(window, state.toSlice())
     Swag.assert(window.recent.count == 2 and window.panelVisible)
-    Swag.assert(window.leftPanelWidth == panelWidth - window.themeMetrics().panel_GutterSize)
+    Swag.assert(window.leftPanelWidth == panelWidth - window.themeMetrics().floating_Inset)
     Swag.assert(window.mainSplitter.items[0]!.size == panelWidth)
     window.setFilePanelVisible(window.panelVisible)
     Swag.assert(window.folderHistory.count == 1 and window.folderHistory[0].folder == folder)
@@ -847,10 +860,15 @@ func assertFolderFiles(window: *ViewerWindow, names: const [..] String)
     Swag.assert(window.choices.count == 3 and window.choices[0].key == PlainText.ViewerKey)
     Swag.assert(window.activeChoiceIndex == 0 and window.preferences.isEmpty())
 
-    // Every entry of the selector says which viewer it is before its name is read.
-    Swag.assert(window.viewerCombo.items.count == window.choices.count)
-    for item in window.viewerCombo.items do
-        Swag.assert(item!.icon.isValid())
+    // Every viewer the file can open in is an entry of the lens, which says which viewer it is
+    // before its name is read, the one in use checked.
+    window.lens.open(appStrings().lens_ViewAs)
+    let viewAs = unwrap window.lens.results.sections[0]
+    Swag.assert(viewAs.label == appStrings().lens_ViewAs and viewAs.entries.count == window.choices.count)
+    for &entry in viewAs.entries do
+        Swag.assert(entry.glyph.isValid())
+    Swag.assert(viewAs.entries[0].checked and not viewAs.entries[1].checked)
+    window.lens.close()
 
     window.selectViewer(2)
     Swag.assert(window.choices[window.activeChoiceIndex].key == "hex")
@@ -1118,8 +1136,8 @@ func assertFolderFiles(window: *ViewerWindow, names: const [..] String)
     surface.destroy()
 }
 
-// The live appearance sheet switches the complete application tree to French and closes before
-// the translated controls are used again.
+// Choosing a language in the lens switches the complete application tree to French, the commands
+// of the lens and the hint teaching it included.
 #test
 {
     var host: Testing.HeadlessHost
@@ -1129,14 +1147,12 @@ func assertFolderFiles(window: *ViewerWindow, names: const [..] String)
     registerAppStrings(&host.app.resources)
     var index  = createViewerPluginRegistry()
     let window = ViewerWindow.create(&host.surfaceWnd, #move index)
-    window.surface!.setTitle(appStrings().ui_WindowTitle)
-    Swag.assert(window.openButton.toolTip == "Open (Ctrl+O)")
-    Swag.assert(window.closeButton.toolTip == "Close File")
+    Swag.assert(window.sendComputeCommandStateEvent(ViewerCommands.Open).name == "Open…")
+    Swag.assert(window.sendComputeCommandStateEvent(ViewerCommands.Close).name == "Close File")
 
-    host.activateOptionRowWhenShown(Gui.strings().appearance_Language)
-    host.thenActivateOptionRow("Français")
-    window.appearanceButton.sigPressed.call(window.appearanceButton)
-    Swag.assert(host.autoHandled)
+    window.lens.open("Français")
+    Swag.assert(window.lens.chosenEntry()!.title == "Français")
+    window.lens.runChosen()
     host.pump()
 
     Swag.assert(host.app.language() == "fr")
@@ -1145,9 +1161,10 @@ func assertFolderFiles(window: *ViewerWindow, names: const [..] String)
     // Headless surfaces stay outside Application.surfaces, so deliver the broadcast they would
     // receive from setLanguage in a native window.
     host.notify(.LanguageChanged)
-    Swag.assert(window.surface.wnd.name.raw == appStrings().ui_WindowTitle)
-    Swag.assert(window.openButton.toolTip == "Ouvrir (Ctrl+O)")
-    Swag.assert(window.closeButton.toolTip == "Fermer le fichier")
+    Swag.assert(window.surface!.wnd.name.raw == ProductName)
+    Swag.assert(window.sendComputeCommandStateEvent(ViewerCommands.Open).name == "Ouvrir…")
+    Swag.assert(window.sendComputeCommandStateEvent(ViewerCommands.Close).name == "Fermer le fichier")
+    Swag.assert(window.hintLine.hints[0].text == "tout le reste")
     Swag.assert(window.dropHighlight.prompt.text() == "Déposez un fichier pour l'afficher")
     Swag.assert(host.openedSurfaceCount() == 0)
 }
@@ -1420,97 +1437,86 @@ func assertFolderFiles(window: *ViewerWindow, names: const [..] String)
         .applyLayout()
     }
 
-    Swag.assert(window.commandBar.position.height == ViewerWindow.ActionBarHeight)
-    Swag.assert(window.viewerCombo.parent == window.commandBar)
-    Swag.assert(window.appearanceButton.parent == &host.surfaceWnd)
-    Swag.assert(window.searchGroup.parent == window.commandBar)
-    Swag.assert(window.searchBox.parent == window.searchGroup)
-    Swag.assert(window.searchNavigation.parent == window.searchGroup)
-    Swag.assert(window.commandButtons.parent == window.commandBar and window.commandButtons.dockStyle == .Left)
-    Swag.assert(window.openButton.parent == window.commandButtons)
-    Swag.assert(window.openDefaultButton.parent == window.infoFileGroup)
-    Swag.assert(window.closeButton.parent == window.infoFileGroup)
-    Swag.assert(window.fullScreenButton.parent == window.commandBar)
-    Swag.assert(window.exploreButton!.parent == window.commandButtons)
-    Swag.assert(window.openButton.position.right() + window.commandButtons.itemSpacing == window.exploreButton.position.x)
-    Swag.assert(window.openDefaultButton.margin.x == 12)
-    Swag.assert(window.fullScreenButton.dockStyle == .Right)
-    Swag.assert(window.fullScreenButton.flags.has(.Toggle) and window.fullScreenButton.checkIndicator == .Frame)
-    Swag.assert(window.openDefaultButton.parent == window.infoFileGroup and not window.openDefaultButton.isLocallyVisible())
-    Swag.assert(not window.searchGroup.isLocallyVisible() and window.searchBox.isHidden())
+    // Nothing but the work: no band, no menu, no toolbar. What floats over the document waits
+    // until it is asked for.
+    let gutter = window.themeMetrics().floating_Inset
+    Swag.assert(window.backgroundStyle == .Application and window.padding.y == 0)
+    Swag.assert(window.mainSplitter.dockStyle == .Center)
+    Swag.assert(window.appearanceButton.parent == &host.surfaceWnd and not window.appearanceButton.isLocallyVisible())
+    Swag.assert(window.searchBar.parent == window and not window.searchBar.isLocallyVisible())
+    Swag.assert(window.searchGroup.parent == window.searchBar)
+    Swag.assert(window.searchBox.parent == window.searchGroup and window.searchNavigation.parent == window.searchGroup)
     Swag.assert(window.searchPrevious.icon.isValid() and window.searchNext.icon.isValid())
     Swag.assert(not window.searchPrevious.isEnabled() and not window.searchNext.isEnabled())
-    Swag.assert(window.infoBar.position.height == ViewerWindow.InfoHeight)
-    let panelGutter = window.themeMetrics().panel_GutterSize
-    Swag.assert(window.infoBarHost.position.height == ViewerWindow.InfoHeight + 2 * panelGutter)
-    Swag.assert(window.infoBarHost.dockStyle == .Top and window.infoBar.dockStyle == .Center)
-    Swag.assert(window.backgroundStyle == .Application and window.infoBarHost.backgroundStyle == .ToolBar)
-    Swag.assert(window.infoBar.backgroundStyle == .InformationPanel and window.infoBar.parent == window.infoBarHost)
-    Swag.assert(window.infoBarHost.padding.x == panelGutter and
-                window.infoBarHost.padding.y == panelGutter and
-                window.infoBarHost.padding.z == panelGutter and
-                window.infoBarHost.padding.w == panelGutter)
-    Swag.assert(window.commandBar.backgroundStyle == .ToolBar)
-    Swag.assert(window.filePanelHost.backgroundStyle == .ToolBar and window.filePanel.backgroundStyle == .Transparent)
-    Swag.assert(window.filePanelHost.padding.x == panelGutter and window.filePanelHost.padding.z == 0)
-    Swag.assert(window.filePanelHost.padding.y == 0 and window.filePanelHost.padding.w == 0)
-    Swag.assert(window.documentHost.backgroundStyle == .ToolBar and window.documentPanel.backgroundStyle == .Panel)
-    Swag.assert(window.documentHost.padding.x == panelGutter and window.documentHost.padding.z == panelGutter)
-    Swag.assert(window.documentPanel.padding == {})
+    Swag.assert(window.viewerBar.parent == window and not window.viewerBar.isLocallyVisible())
+    Swag.assert(window.infoSheet.dockStyle == .Float and not window.infoSheet.isLocallyVisible())
+    Swag.assert(window.hintLine.isLocallyVisible() and window.hintLine.hints.count == 1)
+    Swag.assert(window.hintLine.hints[0].key == Gui.strings().key_Space and window.hintLine.hints[0].text == appStrings().ui_HintLens)
+    Swag.assert(not window.lens.isOpen())
+    Swag.assert(window.readingLine.parent == window.documentHost and not window.readingLine.isLocallyVisible())
+    Swag.assert(window.filePanelHost.backgroundStyle == .Transparent and window.filePanel.backgroundStyle == .Transparent)
+    Swag.assert(window.filePanelHost.padding.x == gutter and window.filePanelHost.padding.w == gutter)
+    Swag.assert(window.documentHost.backgroundStyle == .Transparent and window.documentPanel.backgroundStyle == .View)
+    Swag.assert(window.documentHost.padding.y == window.stripInset())
     Swag.assert(window.documentPanel.parent == window.documentHost and window.emptyView.parent == window.documentPanel)
-    Swag.assert(window.recentPane.backgroundStyle == .Panel and window.folderPane.backgroundStyle == .Panel)
+    Swag.assert(window.recentPane.backgroundStyle == .Transparent and window.folderPane.backgroundStyle == .Transparent)
     Swag.assert(window.recentLabel.parent!.backgroundStyle == .Transparent and
                 window.folderLabel.parent!.backgroundStyle == .Transparent)
-    Swag.assert(window.folderFilterBox.form == .Rectangle)
-    Swag.assert(window.filesButton.parent == window.infoContentGroup)
-    Swag.assert(window.viewerBar.backgroundStyle == .ToolBar)
+    Swag.assert(window.recentClearButton.parent == window.recentLabel.parent)
+
     // Nothing frames the work: the bands an application once drew are the ground it sits on.
     let colors = window.themeColors()
     Swag.assert(colors.view_Bk == colors.ground and colors.wnd_Bk == colors.ground)
     Swag.assert(colors.informationBar_Bk == colors.ground and colors.commandBar_Bk == colors.ground and colors.toolBar_Bk == colors.ground)
-    Swag.assert(window.infoBarHost.isLocallyVisible())
-    Swag.assert(window.viewerBar.dockStyle == .Bottom and window.viewerBar.isLocallyVisible())
-    Swag.assert(window.viewerBar.position.height == panelGutter)
-    Swag.assert(window.infoNameLabel.name.raw.isEmpty())
     Swag.assert(window.surface!.minSize.x == ViewerWindow.MinWidth)
     Swag.assert(Utf8.contains(window.emptyLabel.name.raw, appStrings().ui_DropTitle))
 
     // The large empty-state glyph is intentionally deferred until the surface's Init event.
     Swag.assert(window.emptyView.isLocallyVisible() and not window.emptyIconLabel.icon.isValid())
-    Swag.assert(window.documentHost.surfaceRect().y >= window.infoBarHost.surfaceRect().bottom())
-    Swag.assert(window.infoBar.surfaceRect().y - window.openButton.surfaceRect().bottom() == panelGutter)
     Swag.assert(window.emptyHintLabel.text() == appStrings().ui_DropHint)
-    Swag.assert(window.currentView == null)
-    Swag.assert(window.currentCommands == null)
+    Swag.assert(window.currentView == null and window.currentCommands == null)
     Swag.assert(window.currentActions == null and window.currentInfo == null)
-    Swag.assert(window.filesButton.flags.has(.Toggle) and window.filesButton.checkIndicator == .Frame)
-    Swag.assert(not window.filesButton.isChecked and not window.loadingOverlay.isLocallyVisible())
-    Swag.assert(not window.viewerCombo.isLocallyVisible())
-    Swag.assert(window.infoNameLabel.parent == window.infoFileGroup)
-    Swag.assert(window.infoSizeLabel.parent == window.infoFileGroup)
-    Swag.assert(window.infoNameLabel.textVerticalAlignment == .OpticalCenter)
-    Swag.assert(window.infoSizeLabel.textVerticalAlignment == .OpticalCenter)
-    Swag.assert(window.infoStatsLabel.textVerticalAlignment == .OpticalCenter)
-    Swag.assert(window.recentClearButton.parent == window.recentLabel.parent)
-    Swag.assert(window.infoStatsLabel.parent == window.infoContentGroup and window.infoContentGroup.parent == window.infoBar)
+    Swag.assert(not window.loadingOverlay.isLocallyVisible())
     Testing.assertContentFits(window)
 
-    // Viewer tools have their own full-width band and cannot collide with the global selector.
+    // Every command of the window is an entry of the lens; what does not apply to an empty
+    // window stays out, and the key of a command is written beside it.
+    window.lens.open(">")
+    Swag.assert(lensHasEntry(window, appStrings().cmd_Open) and lensHasEntry(window, appStrings().cmd_Explore))
+    Swag.assert(lensHasEntry(window, appStrings().cmd_FullScreen) and lensHasEntry(window, appStrings().ui_Files))
+    Swag.assert(lensHasEntry(window, appStrings().ui_PlayOnce) and lensHasEntry(window, appStrings().cmd_ClearHistory))
+    Swag.assert(not lensHasEntry(window, appStrings().ui_CloseFile) and not lensHasEntry(window, appStrings().cmd_Reload))
+    window.lens.close()
+    Swag.assert(window.sendComputeCommandStateEvent(ViewerCommands.Open).shortcut == Input.formatKeyShortcut(.Control, .O))
+    Swag.assert(window.sendComputeCommandStateEvent(ViewerCommands.Lens).shortcut == Input.formatKeyShortcut(.None, .Space))
+
+    // The door opens on its command and closes on Escape.
+    window.sendCommandEvent(ViewerCommands.Lens)
+    Swag.assert(window.lens.isOpen())
+    host.keyPress(.Escape)
+    Swag.assert(not window.lens.isOpen())
+
+    // The viewer's commands float centred at the foot of the document, as wide as they ask and
+    // never wider than the document, and leave once the pointer rests.
     window.resize(ViewerWindow.MinWidth, 680)
-    window.viewerCombo.show()
-    let widestCommands = Wnd.create'Wnd(window.viewerBar, {0, 0, 0, 36})
-    widestCommands.dockStyle         = .Center
-    window.viewerBar.position.height = ViewerWindow.BarHeight
-    window.viewerBar.show()
-    window.applyLayout()
-    Swag.assert(window.viewerCombo.parent == window.commandBar and widestCommands.parent == window.viewerBar)
-    Swag.assert(window.fullScreenButton.position.right() == window.commandBar.paddedClientRect().right())
-    Swag.assert(window.viewerCombo.position.bottom() <= window.infoBarHost.position.y)
-    Swag.assert(widestCommands.position.y >= window.viewerBar.clientRect().y)
+    let widestCommands = Wnd.create'Wnd(window.viewerBar, {0, 0, 2_000, 36})
+    widestCommands.preferredSize.x = 2_000
+    window.currentCommands         = widestCommands
+    window.notePointer({20, 20})
+    Swag.assert(window.viewerBar.isLocallyVisible() and window.viewerBar.position.height == ViewerWindow.BarHeight)
+    let area = window.documentArea()
+    Swag.assert(window.viewerBar.position.x >= area.x + gutter - 1 and window.viewerBar.position.right() <= area.right() - gutter + 1)
+    Swag.assert(widestCommands.position.y >= 0 and widestCommands.position.bottom() <= window.viewerBar.position.height)
+    host.fireTimer(window.viewerBarTimer)
+    Swag.assert(not window.viewerBar.isLocallyVisible())
+    window.currentCommands = null
+    widestCommands.destroy()
+    window.updateViewerBar()
 }
 
-// Search is chrome only when the selected viewer exposes search. Switching to a viewer without
-// that contract removes the complete group and never leaves keyboard focus in an invisible field.
+// Search floats over the document only when the selected viewer exposes it and the reader asked
+// for it. Switching to a viewer without that contract puts the bar away and never leaves keyboard
+// focus in an invisible field.
 #test
 {
     var host: Testing.HeadlessHost
@@ -1527,15 +1533,18 @@ func assertFolderFiles(window: *ViewerWindow, names: const [..] String)
     completeQueuedViewerFile(&host, window)
     window.applyLayout()
 
-    Swag.assert(window.searchGroup.isLocallyVisible() and
-                window.searchBox.isVisible() and
-                window.searchBox.isEnabled())
-    Swag.assert(window.searchPrevious.isVisible() and window.searchNext.isVisible())
+    // The find bar waits for its command, then floats at the trailing top corner of the document.
+    Swag.assert(not window.searchBar.isLocallyVisible() and window.searchBox.isEnabled())
+    window.sendCommandEvent(ViewerCommands.Find)
+    Swag.assert(window.searchBar.isLocallyVisible() and window.searchBox.hasFocus())
+    let area = window.documentArea()
+    Swag.assert(Math.abs(window.searchBar.position.right() - (area.right() - window.themeMetrics().floating_Inset)) <= 1)
+    Swag.assert(window.searchBar.position.y >= area.y)
+    let actionSize = themeActionButtonSize(window.themeMetrics())
     Swag.assert(window.searchOptionsButton.isVisible() and window.searchOptionsButton.icon.sizeX == themeActionIconSize(window.themeMetrics()))
-    Swag.assert(window.searchOptionsButton.position.height == window.openButton.position.height)
+    Swag.assert(window.searchOptionsButton.position.height == actionSize)
     Swag.assert(window.searchPrevious.icon.sizeX == themeActionIconSize(window.themeMetrics()) and window.searchNext.icon.sizeX == themeActionIconSize(window.themeMetrics()))
-    Swag.assert(window.searchPrevious.position.height == window.openButton.position.height)
-    Swag.assert(window.searchNext.position.height == window.openButton.position.height)
+    Swag.assert(window.searchPrevious.position.height == actionSize and window.searchNext.position.height == actionSize)
     Swag.assert(window.searchGroup.children.count == 3)
     Swag.assert(window.searchGroup.children[0] == window.searchOptionsButton)
     Swag.assert(window.searchGroup.children[1] == window.searchBox)
@@ -1545,27 +1554,24 @@ func assertFolderFiles(window: *ViewerWindow, names: const [..] String)
     Swag.assert(window.searchNavigation.children[1] == window.searchNext)
     Swag.assert(window.searchNavigation.children[2] == window.searchCountLabel)
     Swag.assert(window.searchCountLabel.textHorizontalAlignment == .Left)
-    Swag.assert(Math.abs(window.searchGroup.position.horzCenter() - window.commandBar.paddedClientRect().horzCenter()) < 0.01)
 
-    window.searchBox.setFocus()
-    Swag.assert(window.searchBox.hasFocus())
+    // A viewer without search puts the bar away and the keyboard back.
     let midiFile = Path.combine(Path.combine(unwrap Path.directoryName(#curlocation.fileName), "datas"), "viewer.mid")
     window.openFile(midiFile)
     completeQueuedViewerFile(&host, window)
-
-    Swag.assert(not window.searchGroup.isLocallyVisible() and window.searchBox.isHidden())
-    Swag.assert(window.searchPrevious.isHidden() and window.searchNext.isHidden())
-    Swag.assert(window.searchOptionsButton.isHidden())
+    Swag.assert(not window.searchBar.isLocallyVisible() and not window.searchBox.isEnabled())
     Swag.assert(not window.searchBox.hasFocus())
+    Swag.assert(window.sendComputeCommandStateEvent(ViewerCommands.Find).hidden)
 
+    // The bar the reader asked for comes back with a viewer that searches, until it is put away.
     window.openFile(viewerFixturePath())
     completeQueuedViewerFile(&host, window)
-    Swag.assert(window.searchGroup.isLocallyVisible() and
-                window.searchBox.isVisible() and
-                window.searchBox.isEnabled())
+    Swag.assert(window.searchBar.isLocallyVisible() and window.searchBox.isEnabled())
+    window.hideSearch()
+    Swag.assert(not window.searchBar.isLocallyVisible() and not window.searchShown)
 }
 
-// File metadata can arrive after the first frame. Publishing it lays out the identity row
+// File metadata can arrive after the first frame. Publishing it lays out the line of readings
 // immediately, without waiting for a resize, theme change, or another outer layout pass.
 #test
 {
@@ -1580,7 +1586,7 @@ func assertFolderFiles(window: *ViewerWindow, names: const [..] String)
         .applyLayout()
     }
 
-    Swag.assert(window.infoNameLabel.position.width == 0 and window.infoSizeLabel.position.width == 0)
+    Swag.assert(not window.readingLine.isLocallyVisible())
 
     window.currentFile     = viewerFixturePath()
     window.currentFileSize = "1.2 KiB"
@@ -1588,53 +1594,27 @@ func assertFolderFiles(window: *ViewerWindow, names: const [..] String)
     window.activeChoiceIndex = 0
     window.updateFileInfo("UTF-8 · streamed")
 
-    Swag.assert((window.infoNameLabel.text()).count > 0 and (window.infoSizeLabel.text()).count > 0)
-    Swag.assert(window.infoNameLabel.position.width > 0 and window.infoSizeLabel.position.width > 0)
-    Swag.assert(window.infoNameLabel.position.width >= Math.ceil(window.infoNameLabel.itf.measureContent({}).x))
-    Swag.assert(window.infoStatsLabel.position.width > 0)
-    Swag.assert(window.infoStatsLabel.position.width >= Math.ceil(window.infoStatsLabel.itf.measureContent({}).x))
-    Swag.assert(Math.abs(window.infoContentGroup.position.x + window.infoStatsLabel.position.right() - window.infoBar.paddedClientRect().right()) < 0.01)
-    Swag.assert(window.infoIconLabel.position.right() <= window.infoNameLabel.position.x)
-    Swag.assert(window.infoNameLabel.position.right() <= window.infoSizeLabel.position.x)
+    // The readings and the size share the faint line; the name is the title of the window.
+    Swag.assert(window.readingLine.isLocallyVisible())
+    Swag.assert(window.readingLine.details.text() == "UTF-8 · streamed · 1.2 KiB")
+    Swag.assert(window.readingLine.details.position.width >= Math.ceil(window.readingLine.details.itf.measureContent({}).x))
+    Swag.assert(window.surface!.wnd.name.raw == (Path.fileName(viewerFixturePath()) orelse ""))
 
-    // Fractional glyph extents vary with the name. Every short name receives the whole measured
-    // line rather than occasionally losing its last glyph to the ellipsis.
-    let shortNames: [6] string = ["a.txt", "ii.txt", "notes.txt", "readme.md", "small.json", "brief-source.swg"]
-    for name in shortNames
-    {
-        window.currentFile = name
-        window.updateFileInfo("UTF-8 · streamed")
-        Swag.assert(window.infoNameLabel.position.width >= Math.ceil(window.infoNameLabel.itf.measureContent({}).x))
-    }
-
-    // General details end at the right edge of the band, which is what leaves them the whole
-    // band to spend. Only a real shortage shrinks the line.
-    let wideDetails = "3840 × 2160 · 120000 frames · 59.94 fps · 01:02:03 · AAC-LC · 48000 Hz · 6 channels · 24 bit · Swag CPU decoder"
+    // A long line keeps its start and ends in an ellipsis at the narrowest window.
+    let wideDetails = "3840 × 2160 · 120000 frames · 59.94 fps · 01:02:03 · AAC-LC · 48000 Hz · 6 channels · 24 bit · Swag CPU decoder · 3840 × 2160 · 120000 frames · 59.94 fps"
     window.resize(1600, 680)
-    window.currentFile = "clip.mp4"
     window.updateFileInfo(wideDetails)
-    let wideClient      = window.infoBar.paddedClientRect()
-    let wideFileWidth   = Math.ceil(window.infoFileGroup.itf.measureContent(Math.Point{wideClient.width, wideClient.height}).x)
-    let wideDetailWidth = Math.ceil(window.infoStatsLabel.itf.measureContent({}).x)
-    Swag.assert(wideFileWidth + wideDetailWidth <= wideClient.width)
-    Swag.assert(window.infoStatsLabel.position.width >= wideDetailWidth)
-    Swag.assert(Math.abs(window.infoContentGroup.position.x + window.infoStatsLabel.position.right() - wideClient.right()) < 0.01)
-    Swag.assert(window.infoFileGroup.position.right() <= window.infoStatsLabel.position.x)
+    let wideWidth = Math.ceil(window.readingLine.details.itf.measureContent({}).x)
+    Swag.assert(window.readingLine.details.position.width >= wideWidth)
 
     window.resize(ViewerWindow.MinWidth, 680)
-    window.currentFile = "a-very-long-file-name-that-needs-the-left-side-of-the-information-bar.mp4"
     window.updateFileInfo(wideDetails)
-    let narrowClient      = window.infoBar.paddedClientRect()
-    let narrowFileWidth   = Math.ceil(window.infoFileGroup.itf.measureContent(Math.Point{narrowClient.width, narrowClient.height}).x)
-    let narrowDetailWidth = Math.ceil(window.infoStatsLabel.itf.measureContent({}).x)
-    Swag.assert(narrowFileWidth + narrowDetailWidth > narrowClient.width)
-    Swag.assert(window.infoStatsLabel.position.width < narrowDetailWidth)
-    Swag.assert(Math.abs(window.infoContentGroup.position.x + window.infoStatsLabel.position.right() - narrowClient.right()) < 0.01)
-    Swag.assert(window.infoFileGroup.position.right() <= window.infoStatsLabel.position.x)
+    Swag.assert(window.readingLine.details.position.width < wideWidth)
+    Swag.assert(window.readingLine.details.position.right() <= window.readingLine.clientRect().right())
 }
 
-// F11 preserves the exact window state around a content-only presentation. Moving at either
-// screen edge reveals the corresponding chrome over the content without shrinking it.
+// Full screen preserves the exact window state around a content-only presentation. Moving the
+// pointer brings the viewer's commands over the content without shrinking it.
 #test
 {
     var host: Testing.HeadlessHost
@@ -1648,27 +1628,25 @@ func assertFolderFiles(window: *ViewerWindow, names: const [..] String)
     let position = host.surface.position
     let flags    = host.surface.flags
 
-    var key = KeyEvent{kind: .Pressed, key: .F11}
-    window.sendEvent(&key)
-    Swag.assert(window.fullScreen and window.fullScreenButton.isChecked)
+    window.sendCommandEvent(ViewerCommands.FullScreen)
+    Swag.assert(window.fullScreen and window.sendComputeCommandStateEvent(ViewerCommands.FullScreen).checked)
     Swag.assert(host.surface.flags.has(.NoShadow) and host.surface.flags.has(.TopMost))
     Swag.assert(not host.surface.flags.has(.LargeCaption) and not host.surface.flags.has(.Border))
-    Swag.assert(not window.commandBar.isLocallyVisible() and not window.infoBarHost.isLocallyVisible())
-    Swag.assert(not window.viewerBar.isLocallyVisible() and not window.filePanelHost.isLocallyVisible())
-
-    window.updateFullScreenChrome({10, 1})
-    Swag.assert(window.commandBar.isLocallyVisible() and window.infoBarHost.isLocallyVisible())
+    Swag.assert(not window.readingLine.isLocallyVisible() and not window.filePanelHost.isLocallyVisible())
     Swag.assert(not window.viewerBar.isLocallyVisible())
-    window.updateFullScreenChrome(Math.Point{10, window.clientRect().height / 2})
-    Swag.assert(not window.commandBar.isLocallyVisible() and not window.infoBarHost.isLocallyVisible())
-    window.updateFullScreenChrome(Math.Point{10, window.clientRect().height - 1})
-    Swag.assert(window.viewerBar.isLocallyVisible())
+
+    // Moving the pointer brings the viewer's commands over the content without shrinking it;
+    // resting lets them go.
+    let bounds = window.currentView!.surfaceRect()
+    window.notePointer({10, 1})
+    Swag.assert(window.viewerBar.isLocallyVisible() and window.currentView.surfaceRect() == bounds)
+    host.fireTimer(window.viewerBarTimer)
+    Swag.assert(not window.viewerBar.isLocallyVisible())
 
     window.setFullScreen(false)
-    Swag.assert(not window.fullScreen and not window.fullScreenButton.isChecked)
+    Swag.assert(not window.fullScreen and not window.sendComputeCommandStateEvent(ViewerCommands.FullScreen).checked)
     Swag.assert(host.surface.flags == flags and host.surface.position == position)
-    Swag.assert(window.commandBar.isLocallyVisible() and window.infoBarHost.isLocallyVisible())
-    Swag.assert(window.viewerBar.isLocallyVisible() and window.filePanelHost.isLocallyVisible())
+    Swag.assert(window.readingLine.isLocallyVisible() and window.filePanelHost.isLocallyVisible())
 }
 
 // The framework owns one centered, themed presentation for every viewer decoder reason.
@@ -1741,8 +1719,6 @@ func assertFolderFiles(window: *ViewerWindow, names: const [..] String)
         .currentFile = fileName
         .choices.add(ViewerPluginChoice{pluginIndex: 0, key: "html"})
         .choices.add(ViewerPluginChoice{pluginIndex: 1, key: "code"})
-        .viewerCombo.addItem("First")
-        .viewerCombo.addItem("Second")
         .instances.resize(2)
     }
 
@@ -1887,10 +1863,9 @@ func assertFolderFiles(window: *ViewerWindow, names: const [..] String)
     Swag.assert(window.currentCommands == null)
     Swag.assert(window.instances.isEmpty())
     Swag.assert(window.currentFile.isEmpty())
-    Swag.assert(window.infoNameLabel.name.raw.isEmpty())
-    Swag.assert(window.infoNameLabel.position.width == 0 and window.infoStatsLabel.position.width == 0)
-    Swag.assert(window.infoBarHost.isLocallyVisible() and not window.infoIconLabel.icon.isValid())
-    Swag.assert(window.emptyView.isLocallyVisible() and window.documentHost.surfaceRect().y >= window.infoBarHost.surfaceRect().bottom())
+    Swag.assert(window.readingLine.details.name.raw.isEmpty() and not window.readingLine.isLocallyVisible())
+    Swag.assert(window.emptyView.isLocallyVisible() and window.hintLine.isLocallyVisible())
+    Swag.assert(window.surface!.wnd.name.raw == ProductName)
 }
 
 // The active viewer's right pane shares bounded splitter geometry and saves its current width.
@@ -1913,13 +1888,13 @@ func assertFolderFiles(window: *ViewerWindow, names: const [..] String)
     window.selectViewer(hexChoice)
     completeQueuedViewerFile(&host, window)
 
+    // The panel is turned on from the lens, its toggle staying off the window.
     let button = assume cast(*IconButton, window.currentSidePanelButton)
-    button.show()
-    button.setChecked(true)
-    button.sigCheckedChanged.call(button)
+    window.sendCommandEvent(ViewerCommands.SidePanel)
+    Swag.assert(button.isChecked and not button.isLocallyVisible())
     Swag.assert(window.mainSplitter.items[2]!.view == window.currentSidePanelHost)
-    Swag.assert(window.mainSplitter.items[2]!.minimumSize == ViewerWindow.RightPanelMinWidth + window.themeMetrics().panel_GutterSize)
-    Swag.assert(window.mainSplitter.items[2]!.maximumSize == ViewerWindow.RightPanelMaxWidth + window.themeMetrics().panel_GutterSize)
+    Swag.assert(window.mainSplitter.items[2]!.minimumSize == ViewerWindow.RightPanelMinWidth + window.themeMetrics().floating_Inset)
+    Swag.assert(window.mainSplitter.items[2]!.maximumSize == ViewerWindow.RightPanelMaxWidth + window.themeMetrics().floating_Inset)
     window.mainSplitter.setPaneSize(2, 1)
     Swag.assert(window.mainSplitter.items[2]!.size == window.mainSplitter.items[2]!.minimumSize)
     window.mainSplitter.setPaneSize(2, 2_000)
@@ -1930,7 +1905,7 @@ func assertFolderFiles(window: *ViewerWindow, names: const [..] String)
     let state     = saveViewerState(window)
     window.mainSplitter.setPaneSize(2, 560)
     loadViewerState(window, state.toSlice())
-    Swag.assert(window.rightPanelWidth == panelSize - window.themeMetrics().panel_GutterSize)
+    Swag.assert(window.rightPanelWidth == panelSize - window.themeMetrics().floating_Inset)
     Swag.assert(window.mainSplitter.items[2]!.size == panelSize)
 
     window.setFullScreen(true)
@@ -1946,7 +1921,7 @@ func assertFolderFiles(window: *ViewerWindow, names: const [..] String)
     let divider = window.themeMetrics().splitView_BarSize
     Swag.assert(Math.abs(window.currentSidePanelHost.surfaceRect().x - window.documentPanel.surfaceRect().right() - divider) <= 1)
     window.setFilePanelVisible(true)
-    Swag.assert(Math.abs(window.documentPanel.surfaceRect().x - window.filePanel.surfaceRect().right() - divider) <= 1)
+    Swag.assert(Math.abs(window.documentPanel.surfaceRect().x - window.filePanelHost.surfaceRect().right() - divider) <= 1)
     Swag.assert(Math.abs(window.currentSidePanelHost.surfaceRect().x - window.documentPanel.surfaceRect().right() - divider) <= 1)
 }
 
@@ -1962,19 +1937,17 @@ func assertFolderFiles(window: *ViewerWindow, names: const [..] String)
 
     var index  = createViewerPluginRegistry()
     let window = ViewerWindow.create(&host.surfaceWnd, #move index)
-    window.surface!.setTitle(appStrings().ui_WindowTitle)
     window.openFile(fileName)
     completeQueuedViewerFile(&host, window)
 
+    // The lens takes the keyboard while it is open and gives it back to the document.
     let textView = assume cast(*PlainText.Panel, window.currentView)
     textView.setInitialFocus(textView.editor)
     Swag.assert(textView.editor.hasFocus())
-    var comboPoint = window.viewerCombo.surfaceRect().center()
-    window.viewerCombo.surface!.surfaceToScreen(&comboPoint)
-    host.sendMouseEvent(window.viewerCombo, .Pressed, comboPoint, .Left, .None)
-    Swag.assert(window.viewerCombo.hasFocus() and not window.viewerCombo.hasVisibleFocus())
+    window.sendCommandEvent(ViewerCommands.Lens)
+    Swag.assert(window.lens.isOpen() and not textView.editor.hasFocus())
     host.keyPress(Input.Key.Escape)
-    Swag.assert(textView.editor.hasFocus())
+    Swag.assert(not window.lens.isOpen() and textView.editor.hasFocus())
 
     let cachedView     = window.currentView
     let cachedCommands = window.currentCommands
@@ -1986,7 +1959,7 @@ func assertFolderFiles(window: *ViewerWindow, names: const [..] String)
     Swag.assert(window.currentCommands == cachedCommands)
     Swag.assert(window.children.count == childCount)
     Swag.assert(window.viewerBar.children.count == commandCount)
-    Swag.assert(window.surface.wnd.name.raw == appStrings().ui_WindowTitle)
+    Swag.assert(window.surface!.wnd.name.raw == (Path.fileName(fileName) orelse ""))
 }
 
 // Replacing a streaming document retires its short-period loader before deferred destruction.
@@ -2029,13 +2002,13 @@ func assertFolderFiles(window: *ViewerWindow, names: const [..] String)
     host.fireTimer(discardedTimer)
 }
 
-// Closing through the global action retires the reader and leaves its history available.
+// Closing through the lens retires the reader and leaves its history available.
 #test
 {
     var host: Testing.HeadlessHost
     host.setup(880, 560)
     let window = ViewerWindow.create(&host.surfaceWnd, createViewerPluginRegistry())
-    Swag.assert(window.closeButton.parent == window.infoFileGroup and not window.closeButton.isLocallyVisible())
+    Swag.assert(window.sendComputeCommandStateEvent(ViewerCommands.Close).hidden)
 
     window.openFile(viewerFixturePath())
     completeQueuedViewerFile(&host, window)
@@ -2043,7 +2016,7 @@ func assertFolderFiles(window: *ViewerWindow, names: const [..] String)
     window.setFilePanelVisible(true)
     window.searchBox.setText("verification marker")
     let recentCount = window.recent.count
-    window.closeButton.sigPressed.call(window.closeButton)
+    window.sendCommandEvent(ViewerCommands.Close)
     for 4_096
     {
         if window.pendingEmpty.isEmpty() do
@@ -2054,8 +2027,8 @@ func assertFolderFiles(window: *ViewerWindow, names: const [..] String)
 
     Swag.assert(window.pendingEmpty.isEmpty() and window.currentFile.isEmpty())
     Swag.assert(window.instances.isEmpty() and window.currentView == null)
-    Swag.assert(window.emptyView.isLocallyVisible() and not window.closeButton.isLocallyVisible())
-    Swag.assert(not window.viewerCombo.isLocallyVisible() and not window.openDefaultButton.isLocallyVisible())
+    Swag.assert(window.emptyView.isLocallyVisible() and window.sendComputeCommandStateEvent(ViewerCommands.Close).hidden)
+    Swag.assert(window.sendComputeCommandStateEvent(ViewerCommands.OpenDefault).hidden)
     Swag.assert(window.searchBox.text().count == 0 and window.searchTimer == null)
     Swag.assert(window.fileWatchTimer == null and window.slideTimer == null)
     Swag.assert(window.folderFiles.isEmpty() and window.siblings.isEmpty())
@@ -2063,19 +2036,19 @@ func assertFolderFiles(window: *ViewerWindow, names: const [..] String)
 
     window.openFile(viewerFixturePath())
     completeQueuedViewerFile(&host, window)
-    Swag.assert(not window.currentFile.isEmpty() and window.closeButton.isLocallyVisible())
+    Swag.assert(not window.currentFile.isEmpty() and not window.sendComputeCommandStateEvent(ViewerCommands.Close).hidden)
 }
 
-// The file panel can close itself and keeps its toolbar toggle in sync.
+// The file panel can close itself and keeps the command of the lens in step.
 #test
 {
     var host: Testing.HeadlessHost
     host.setup(880, 560)
     let window = ViewerWindow.create(&host.surfaceWnd, createViewerPluginRegistry())
-    window.setFilePanelVisible(true)
-    Swag.assert(window.filesButton.isChecked and window.filePanelHost.isLocallyVisible())
+    window.sendCommandEvent(ViewerCommands.Files)
+    Swag.assert(window.sendComputeCommandStateEvent(ViewerCommands.Files).checked and window.filePanelHost.isLocallyVisible())
     window.closeFilesButton.sigPressed.call(window.closeFilesButton)
-    Swag.assert(not window.filesButton.isChecked and not window.filePanelHost.isLocallyVisible())
+    Swag.assert(not window.sendComputeCommandStateEvent(ViewerCommands.Files).checked and not window.filePanelHost.isLocallyVisible())
 }
 
 // Closing a queued opening discards its classification, including a worker already in flight.
@@ -2089,8 +2062,7 @@ func assertFolderFiles(window: *ViewerWindow, names: const [..] String)
         window.openFile(viewerFixturePath(), remember: false)
         if started do
             host.fireTimer(window.startupTimer)
-        Swag.assert(window.closeButton.isLocallyVisible())
-        window.closeButton.sigPressed.call(window.closeButton)
+        window.sendCommandEvent(ViewerCommands.Close)
         Swag.drainWork()
         host.pump()
         if window.startupTimer do
@@ -2098,12 +2070,11 @@ func assertFolderFiles(window: *ViewerWindow, names: const [..] String)
         Swag.assert(window.pendingFile.isEmpty() and window.pendingEmpty.isEmpty())
         Swag.assert(not window.choiceLoad.started and window.currentFile.isEmpty())
         Swag.assert(window.instances.isEmpty() and window.emptyView.isLocallyVisible())
-        Swag.assert(not window.closeButton.isLocallyVisible())
     }
 }
 
-// Pins the shipped empty surface: one accent line, one compact command row, and no eager
-// format-specific controls before a file has selected a viewer.
+// Pins the shipped empty surface: nothing but the invitation to drop a file and the faint hint
+// teaching the door, with no format-specific controls before a file has selected a viewer.
 #[Swag.TestTag("golden")]
 #test
 {
@@ -2176,8 +2147,8 @@ func assertFolderFiles(window: *ViewerWindow, names: const [..] String)
     host.cancelDrag()
 }
 
-// Pins the open-document composition in Swag dark and neutral light: global navigation and file
-// identity stay above the document, while the active viewer owns the dedicated band below it.
+// Pins the open-document composition in Encre and Papier: the document and its faint readings,
+// nothing above it but the strip, and the find bar floating at its top while a query runs.
 #[Swag.TestTag("golden")]
 #test
 {
@@ -2202,20 +2173,18 @@ func assertFolderFiles(window: *ViewerWindow, names: const [..] String)
     window.applyLayout()
     host.settleAnimations(window, 4)
 
-    Swag.assert(window.viewerCombo.isLocallyVisible())
-    Swag.assert(window.openDefaultButton.isEnabled())
-    Swag.assert(window.infoBarHost.isLocallyVisible() and not window.emptyView.isLocallyVisible())
-    Swag.assert(window.infoIconLabel.icon.isValid())
-    Swag.assert(window.infoIconLabel.position.right() <= window.infoNameLabel.position.x)
-    Swag.assert(window.infoNameLabel.position.right() <= window.infoSizeLabel.position.x)
+    Swag.assert(not window.sendComputeCommandStateEvent(ViewerCommands.OpenDefault).hidden)
+    Swag.assert(window.readingLine.isLocallyVisible() and not window.emptyView.isLocallyVisible())
+    Swag.assert(not window.hintLine.isLocallyVisible())
     Swag.assert(window.currentView!.parent == window.documentPanel)
-    Swag.assert(window.currentCommands!.parent == window.viewerBar and window.viewerBar.isLocallyVisible())
+    Swag.assert(window.currentCommands!.parent == window.viewerBar and not window.viewerBar.isLocallyVisible())
     Swag.assert(window.currentCommands.backgroundStyle == .Transparent)
-    Swag.assert(window.searchBox.isLocallyVisible() and window.searchBox.isEnabled())
+    Swag.assert(window.searchBox.isEnabled() and not window.searchBar.isLocallyVisible())
     var dark = host.render(window)
     assertViewerPanelCorner(&dark, window.documentPanel)
     Pixel.Testing.assertImageGolden(&dark, "viewer.dark")
 
+    window.showSearch()
     window.searchBox.setText("verification marker")
     completeViewerSearch(&host, window)
     discard host.render(window)
@@ -2224,6 +2193,7 @@ func assertFolderFiles(window: *ViewerWindow, names: const [..] String)
     var searchDark = host.render(window)
     Pixel.Testing.assertImageGolden(&searchDark, "search.dark")
     window.searchBox.setText("")
+    window.hideSearch()
 
     window.applyTheme(cast(u32, AppearanceTheme.Light))
     host.notify(.ThemeChanged)
@@ -2232,6 +2202,7 @@ func assertFolderFiles(window: *ViewerWindow, names: const [..] String)
     assertViewerPanelCorner(&light, window.documentPanel)
     Pixel.Testing.assertImageGolden(&light, "viewer.light")
 
+    window.showSearch()
     window.searchBox.setText("verification marker")
     completeViewerSearch(&host, window)
     discard host.render(window)
@@ -2336,7 +2307,9 @@ func assertFolderFiles(window: *ViewerWindow, names: const [..] String)
     window.openFile(Path.combine(folder, "t1.txt"))
     completeQueuedViewerFile(&host, window)
     let textView = assume cast(*PlainText.Panel, window.currentView)
-    window.openButton.setFocus()
+    let outside  = IconButton.create(window, {}, {0, 0, 32, 32})
+    outside.focusPolicy = .Tab
+    outside.setFocus()
     Swag.assert(not textView.editor.hasFocus())
     host.keyPress(Input.Key.Right)
     Swag.assert(Path.fileName(window.currentFile) == "t1.txt")
@@ -2346,7 +2319,7 @@ func assertFolderFiles(window: *ViewerWindow, names: const [..] String)
     window.openFile(Path.combine(folder, "pic1.svg"))
     completeQueuedViewerFile(&host, window)
     window.setFolderSameKind(true)
-    window.openButton.setFocus()
+    outside.setFocus()
     host.keyPress(Input.Key.Right)
     completeQueuedViewerFile(&host, window)
     Swag.assert(Path.fileName(window.currentFile) == "pic2.svg")
@@ -2542,7 +2515,7 @@ func createPictureFolder(stem: string, names: const [..] string)->String
     window.setPlayMode(.Folder)
 
     // A view that is not the one on screen has no say.
-    Swag.assert(reportViewerFinished(window.openButton) == .Stop and window.pendingFile.isEmpty())
+    Swag.assert(reportViewerFinished(window.documentPanel) == .Stop and window.pendingFile.isEmpty())
 
     Swag.assert(reportViewerFinished(view) == .Next)
     Swag.assert(Path.fileName(window.pendingFile) == "pic2.svg" and window.slideTimer == null)
@@ -2571,12 +2544,12 @@ func createPictureFolder(stem: string, names: const [..] string)->String
     let window = ViewerWindow.create(&host.surfaceWnd, #move index)
     window.resize(960, 680)
     Swag.assert(window.playMode == .Once)
-    Swag.assert(window.openDefaultButton.icon.index == cast(s32, ThemeIcons.OpenExternal))
     window.openFile(Path.combine(folder, "picture.svg"))
     completeQueuedViewerFile(&host, window)
     let imageView = assume cast(*Picture.Panel, window.currentView)
     let button    = imageView.playModeButton
-    Swag.assert(button.parent == window.currentCommands and button.parent != window.commandBar)
+    Swag.assert(button.parent == window.currentCommands)
+    window.revealViewerBar()
     Swag.assert(button.isVisible())
 
     host.activateOptionRowWhenShown(appStrings().ui_PlayMode)

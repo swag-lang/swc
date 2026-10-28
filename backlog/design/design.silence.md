@@ -25,12 +25,13 @@ dialogs, then each application, then the written rules.
 
 - Evidence: the toolkit has the lens (`Gui.Lens.View`), the information sheet (`Gui.InfoSheet`),
   the inspector (`Gui.Inspector`, which carries a generated grid through `setContent`), the
-  mini-bar (`Gui.MiniBar`), the dock (`Gui.ToolDock`), the hint line (`Gui.HintLine`) and
-  `Gui.SectionLabel`, with `floating.test.swg`, `lens.test.swg` and their goldens, and
-  `AppearanceButton.addToLens`; a hidden caption button keeps working and takes no room in the
-  caption. Swag Capture composes them (`surface`, `surface.paper`, `lens.paper` goldens). Swag
-  Scope, Swag Prism and Swag Vault still inset their whole root by `Wnd.stripInset()` to keep
-  their old bands clear of the floating strip.
+  mini-bar (`Gui.MiniBar`), the dock (`Gui.ToolDock`), the hint line (`Gui.HintLine`),
+  `Gui.SectionLabel` and a floating surface for any other content (`Gui.FloatingPanel`), with
+  `floating.test.swg`, `lens.test.swg` and their goldens, and `AppearanceButton.addToLens`; a
+  hidden caption button keeps working and takes no room in the caption. Swag Capture and Swag
+  Scope compose them (their remaining work is design.silence.008 and design.silence.007); Swag
+  Prism and Swag Vault still inset their whole root by `Wnd.stripInset()` to keep their old bands
+  clear of the floating strip.
 - Next: per remaining application, register every command and `addToLens` on one lens bound to
   `Space` or `Ctrl K`, move readings to the sheet, tools to the dock and the mini-bar, properties
   to the inspector, and let the work reach into the strip where its picture shows it.
@@ -70,12 +71,29 @@ dialogs, then each application, then the written rules.
 - Done when: `dialogs.file.{ink,paper}` match the file box of the dialog pictures in those three
   points too.
 
-### design.silence.007 — Swag Scope still shows its bands
+### design.silence.007 — Swag Scope viewers still keep their own controls off the lens
 
-- Next: rebuild the Scope window on the Silence chrome, lens and sheet, then each viewer.
-- Done when: every Scope golden matches its picture and every former band control is a lens
-  entry or a sheet reading.
-- Related: design.silence.004
+- Evidence: the window follows the charter: no command, information or viewer band; every window
+  command (open, explore, close, reload, files beside, history, find and its options, full screen,
+  play modes, the explored folder's history, order, view and online media, the appearance and
+  About) is a lens entry on `Space`/`Ctrl K`; the file's readings are in the sheet (`I`); the
+  viewer's commands float over the foot of the document while the pointer moves; its readings sit
+  faint under it; the find bar floats on `Ctrl F`; the file and viewer panels are cards; the
+  explorer is a page with its title, mono count, quiet order and view menus, Arc-ringed tiles and
+  the chosen item in the sheet (`surface`, `viewer.{dark,light}`, `search.{dark,light}`,
+  `explorer.{gallery,archive,movie}` goldens). What a viewer builds is still reached only on its
+  floating bar or its line of readings: `Viewer.Host` has no way to give the lens entries, so the
+  video transport, image tools, font samples, hex structure, PDF pages and every viewer's options
+  sheet are not lens entries. The viewers keep their pre-charter shapes: no reading column for
+  text and code, no table of contents in the margin or progress thread for Markdown, no structure
+  tabs or large inspector value for hex, no specimen page for fonts, no edge-to-edge picture with
+  veils for video, and documents do not scroll under the strip. The archive viewer's embedded
+  host (`EmbeddedViewer`) still keeps its header band, viewer combo box and bottom command band.
+- Next: add a lens source to `Viewer.Host` (bump `Viewer.ApiVersion`) that the window asks while
+  the viewer is active, register each viewer's commands and its options sheet there, then rebuild
+  each viewer on its picture, the embedded host last.
+- Done when: every Scope golden matches its picture and every viewer control is a lens entry.
+- Related: design.silence.004, design.silence.002
 
 ### design.silence.008 — Swag Capture's shape editing does not yet match its pictures
 

@@ -337,6 +337,7 @@ func completeHexViewerAnalysis(host: *Testing.HeadlessHost, view: *Hex.Panel)
     completeHexViewerOpen(&host, window)
     let view = selectHexViewer(&host, window)
 
+    window.showSearch()
     window.searchBox.setText("DE AD ?E EF")
     completeHexViewerSearch(&host, window)
     Swag.assert(window.searchMatches.count == 2 and
@@ -354,9 +355,6 @@ func completeHexViewerAnalysis(host: *Testing.HeadlessHost, view: *Hex.Panel)
     completeHexViewerSearch(&host, window)
     Swag.assert(window.searchMatches.count == 2 and window.searchMatches[0].offset == first)
 
-    // The temporary path has a random suffix; keep the visual contract focused on the viewer.
-    window.infoNameLabel.setText("scope-hex-search.bin")
-    window.infoNameLabel.toolTip = "scope-hex-search.bin"
     window.layoutFileInfo()
     window.resize(960, 680)
     window.applyLayout()
@@ -391,15 +389,17 @@ func completeHexViewerAnalysis(host: *Testing.HeadlessHost, view: *Hex.Panel)
     host.setup(1_100, 700)
 
     // Use the shipped window rather than a viewer-only approximation: the integration contract
-    // includes the information panel above, the viewer bar below, and the host-owned toggle at
-    // the right edge of that information panel.
+    // includes the readings at the foot of the document and the panel beside it, whose toggle
+    // the window keeps off screen and names in its lens.
     var index  = createViewerPluginRegistry()
     let window = ViewerWindow.create(&host.surfaceWnd, #move index)
     window.openFile(fileName)
     completeHexViewerOpen(&host, window)
     let view = selectHexViewer(&host, window)
-    Swag.assert(window.currentInfo != null)
-    Swag.assert(view.analysisButton.position.x - window.currentInfo.position.right() == ViewerInfoLayout.SideButtonSpacing)
+    Swag.assert(window.currentInfo != null and window.currentInfo.parent == window.readingLine)
+    Swag.assert(not view.analysisButton.isLocallyVisible())
+    let toggle = window.sendComputeCommandStateEvent(ViewerCommands.SidePanel)
+    Swag.assert(toggle.name == view.analysisButton.toolTip and not toggle.hidden and not toggle.checked)
 
     view.analysisButton.setChecked(true)
     view.analysisButton.sigCheckedChanged.call(view.analysisButton)
@@ -424,8 +424,6 @@ func completeHexViewerAnalysis(host: *Testing.HeadlessHost, view: *Hex.Panel)
     Swag.assert(view.analysisView.result.range.length == selectedLength)
     Swag.assert(not view.analysisView.stringsList.header.flags.has(.Separators))
 
-    window.infoNameLabel.setText("scope-hex-analysis.bin")
-    window.infoNameLabel.toolTip = "scope-hex-analysis.bin"
     window.layoutFileInfo()
     window.resize(1_100, 700)
     window.applyLayout()

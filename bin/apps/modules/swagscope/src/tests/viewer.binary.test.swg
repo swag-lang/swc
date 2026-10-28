@@ -961,17 +961,22 @@ func binaryCellText(line: *ListLine, column: Binary.Column)->String => RichStrin
 
     completeBinaryViewerWindow(&host, window)
 
+    // Nothing floats over the report until it is asked for: the find bar by its key, the
+    // viewer's commands by the pointer.
     Swag.assert(window.currentActions == null)
-    Swag.assert(window.searchGroup.isLocallyVisible())
+    Swag.assert(not window.searchBar.isLocallyVisible() and not window.viewerBar.isLocallyVisible())
+    window.showSearch()
+    window.revealViewerBar()
+    Swag.assert(window.searchBar.isLocallyVisible() and window.searchBox.hasFocus())
     Swag.assert(window.currentCommands != null and window.viewerBar.isLocallyVisible())
     Swag.assert(window.viewerBar.position.height == ViewerWindow.BarHeight)
 
-    host.settleAnimations(window.commandBar, 4)
-    var image = host.render(window.commandBar)
-    image.crop(window.commandBar.surfaceRect())
-    Pixel.Testing.assertImageGolden(&image, "viewer.binary.action-bar")
+    host.settleAnimations(window.searchBar, 4)
+    var image = host.render(window)
+    image.crop(window.searchBar.surfaceRect())
+    Pixel.Testing.assertImageGolden(&image, "viewer.binary.find-bar")
 
-    image = host.render(window.viewerBar)
+    image = host.render(window)
     image.crop(window.viewerBar.surfaceRect())
     Pixel.Testing.assertImageGolden(&image, "viewer.binary.viewer-bar")
 
@@ -980,9 +985,9 @@ func binaryCellText(line: *ListLine, column: Binary.Column)->String => RichStrin
     window.searchBox.setText("header")
     while assume cast(*Binary.Panel, window.currentView).filterTimer do
         host.pump()
-    host.settleAnimations(window.commandBar, 4)
-    image = host.render(window.commandBar)
-    image.crop(window.commandBar.surfaceRect())
+    host.settleAnimations(window.searchBar, 4)
+    image = host.render(window)
+    image.crop(window.searchBar.surfaceRect())
     Pixel.Testing.assertImageGolden(&image, "viewer.binary.filter-bar")
 }
 

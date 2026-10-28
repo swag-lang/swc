@@ -23,7 +23,7 @@ using Core, Gui, Pixel
     // background changes on selection, so compare text masks against each frame's own ground.
     let rect = explorer.grid.surfaceRect()
     let left = cast(s32, rect.x + 16)
-    let top  = cast(s32, rect.y + explorer.grid.cell.y - 24)
+    let top  = cast(s32, rect.y + explorer.grid.cell.y - 24 - ExplorerGrid.ReadingHeight)
     let restingGround = resting.pixelColor(left + 2, top + 22).argb
     let selectedGround = selected.pixelColor(left + 2, top + 22).argb
     var ink: u64

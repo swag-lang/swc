@@ -2,11 +2,12 @@
 
 using Core, Gui, Pixel
 
-// The field that names the explored location, the way a file browser's address bar does.
+// The breadcrumb that names the explored location above the title of the page.
 //
-// It reads as the path, one level per segment, until the reader asks to type: a click past the
-// last segment, or Ctrl+L, turns it into a box holding the whole location, selected, so a path can
-// be copied out or pasted in. Enter goes there; Escape, or the focus leaving, puts the path back.
+// It reads as the path, one level per segment, with no ground of its own, until the reader asks
+// to type: a click past the last segment, or Ctrl+L, turns it into a field holding the whole
+// location, selected, so a path can be copied out or pasted in. Enter goes there; Escape, or the
+// focus leaving, puts the path back.
 struct ExplorerAddress
 {
     using wnd: Wnd
@@ -17,7 +18,6 @@ struct ExplorerAddress
         pathScroll: *ScrollWnd
         breadcrumb: *BreadcrumbCtrl
         edit:       *EditBox
-        refresh:    *IconButton
     }
 
     returnFocus: bool     // Whether ending the edit gives the keyboard back to the listing.
@@ -31,19 +31,10 @@ impl ExplorerAddress
 
     func create(parent: *Wnd, explorer: *Explorer)->*ExplorerAddress
     {
-        let metrics     = parent.themeMetrics()
-        let compactSize = themeCompactButtonSize(metrics)
         with let result = Wnd.create'ExplorerAddress(parent, "scope.explorer.address")
         {
             .explorer        = explorer
             .backgroundStyle = .Transparent
-            .padding.x       = 4
-        }
-
-        with result.refresh = IconButton.create(result, result.theme().icon(.Update, themeRowIconSize(metrics)), {0, 0, compactSize, compactSize})
-        {
-            .dockStyle  = .Right
-            .sigPressed += func|explorer|(_) { explorer.forceRefresh() }
         }
 
         with result.pathScroll = Wnd.create'ScrollWnd(result)
@@ -132,15 +123,17 @@ impl ExplorerAddress
 
 impl IWnd for ExplorerAddress
 {
-    // Draws the ground of a field under the path, and the focus edge of one while it is typed in.
+    // Draws the ground and the focus edge of a field only while the path is typed in; the
+    // segments themselves stand on the page.
     mtd impl onPaint(evt: *PaintEvent)
     {
+        if not .edit.isLocallyVisible() do
+            return
         let painter = evt.paintContext.painter
         let rects   = .themeRects()
         let colors  = .themeColors()
         .theme().drawSubRect(painter, .clientRect(), &rects.edit_SquareBk, colors.edit_Bk)
-        if .edit.isLocallyVisible() do
-            .theme().drawSubRect(painter, .clientRect(), &rects.edit_SquareBorder, colors.edit_FocusBorder)
+        .theme().drawSubRect(painter, .clientRect(), &rects.edit_SquareBorder, colors.edit_FocusBorder)
     }
 
     // The air around the segments belongs to the field too: pressing it starts typing.

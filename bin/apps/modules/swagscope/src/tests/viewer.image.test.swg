@@ -236,8 +236,8 @@ func completeImageViewerWindow(host: *Testing.HeadlessHost, window: *ViewerWindo
     Swag.assert(not view.failureReason.isEmpty())
 }
 
-// The application hosts image navigation in its centered viewer bar and zoom in the information
-// row, leaving the global action bar to search and application-level actions.
+// The application floats image navigation over the foot of the document and writes the zoom on
+// the line of readings, with nothing on screen until the pointer moves.
 #test
 {
     var host: Gui.Testing.HeadlessHost
@@ -251,15 +251,18 @@ func completeImageViewerWindow(host: *Testing.HeadlessHost, window: *ViewerWindo
     completeImageViewerWindow(&host, window)
 
     Swag.assert(window.currentActions == null)
-    Swag.assert(window.currentInfo != null and window.currentInfo.parent == window.infoContentGroup)
-    Swag.assert(window.currentSidePanelButton != null)
-    Swag.assert(window.currentInfo.position.right() + ViewerInfoLayout.SideButtonSpacing == window.currentSidePanelButton.position.x)
+    Swag.assert(window.currentInfo != null and window.currentInfo.parent == window.readingLine)
+    Swag.assert(window.currentSidePanelButton != null and not window.currentSidePanelButton.isLocallyVisible())
     Swag.assert(window.currentInfo.themeColors().label_TextLight == window.themeColors().label_TextFaint)
-    Swag.assert(Math.abs(window.infoStatsLabel.position.right() + ViewerInfoLayout.GroupSpacing - window.currentInfo.position.x) < 0.01)
+    Swag.assert(Math.abs(window.readingLine.details.position.right() + ViewerReadingLine.GroupSpacing - window.currentInfo.position.x) < 0.01)
+    Swag.assert(Math.abs(window.currentInfo.position.right() - window.readingLine.clientRect().right()) < 0.01)
     Swag.assert(window.currentCommands != null and window.currentCommands.parent == window.viewerBar)
+    Swag.assert(not window.viewerBar.isLocallyVisible())
+    window.revealViewerBar()
     Swag.assert(window.viewerBar.isLocallyVisible() and window.viewerBar.position.height == ViewerWindow.BarHeight)
-    Swag.assert(not window.searchGroup.isLocallyVisible())
+    Swag.assert(not window.searchBar.isLocallyVisible())
     Swag.assert(Math.abs(window.currentCommands.position.horzCenter() - window.viewerBar.paddedClientRect().horzCenter()) < 0.01)
+    Swag.assert(Math.abs(window.viewerBar.position.horzCenter() - window.documentArea().horzCenter()) <= 1)
 }
 
 // A still picture reports that it is on screen, once, so the host can time a slideshow on it;

@@ -872,8 +872,8 @@ func captureVideoFailure(wnd: *Wnd, reason: string)
     let voice = unwrap view.voice
 
     window.setFullScreen(true)
-    window.updateFullScreenChrome({10, 1})
-    window.updateFullScreenChrome(Math.Point{10, window.clientRect().height - 1})
+    window.notePointer({10, 1})
+    window.notePointer(Math.Point{10, window.clientRect().height - 1})
     window.setFullScreen(false)
 
     Swag.assert(view.playing and view.voice == voice and voice.isPlaying())
@@ -943,29 +943,31 @@ func captureVideoFailure(wnd: *Wnd, reason: string)
     view.togglePlayback()
     Swag.assert(not view.playing and not view.voice!.isPlaying())
 
-    window.viewerCombo.setFocus()
+    // A control of the window outside the viewer keeps the keyboard while the keys play.
+    let outside = EditBox.create(window, "", {0, 0, 120, 32})
+    outside.setFocus()
     var press = KeyEvent{kind: .Pressed, key: .Space}
-    Swag.assert(window.hookOnChildEvent!(window.viewerCombo, &press))
-    Swag.assert(view.playing and view.voice!.isPlaying() and window.viewerCombo.hasFocus())
-    Swag.assert(window.hookOnChildEvent(window.viewerCombo, &press))
+    Swag.assert(window.hookOnChildEvent!(outside, &press))
+    Swag.assert(view.playing and view.voice!.isPlaying() and outside.hasFocus())
+    Swag.assert(window.hookOnChildEvent(outside, &press))
     Swag.assert(view.playing and view.voice!.isPlaying())
 
     var release = KeyEvent{kind: .Released, key: .Space}
-    Swag.assert(window.hookOnChildEvent(window.viewerCombo, &release))
-    Swag.assert(window.hookOnChildEvent(window.viewerCombo, &press))
-    Swag.assert(not view.playing and not view.voice!.isPlaying() and window.viewerCombo.hasFocus())
-    Swag.assert(window.hookOnChildEvent(window.viewerCombo, &release))
+    Swag.assert(window.hookOnChildEvent(outside, &release))
+    Swag.assert(window.hookOnChildEvent(outside, &press))
+    Swag.assert(not view.playing and not view.voice!.isPlaying() and outside.hasFocus())
+    Swag.assert(window.hookOnChildEvent(outside, &release))
 
     view.setPlaybackRate(1)
     var faster = KeyEvent{kind: .Pressed, key: .Right, modifiers: .Shift}
-    Swag.assert(window.hookOnChildEvent(window.viewerCombo, &faster))
-    Swag.assert(view.playbackRate == 1.25 and window.viewerCombo.hasFocus())
+    Swag.assert(window.hookOnChildEvent(outside, &faster))
+    Swag.assert(view.playbackRate == 1.25 and outside.hasFocus())
     Swag.assert(Math.isEqualEpsilon(expect view.voice!.frequencyRatio(), 1.25, 0.001))
     let frameBeforeStep = view.frameIndex
     var nextFrame       = KeyEvent{kind: .Pressed, key: .Right, modifiers: .Control}
-    Swag.assert(window.hookOnChildEvent(window.viewerCombo, &nextFrame))
+    Swag.assert(window.hookOnChildEvent(outside, &nextFrame))
     waitForVideoFrame(view)
-    Swag.assert(view.frameIndex == frameBeforeStep + 1 and not view.playing and window.viewerCombo.hasFocus())
+    Swag.assert(view.frameIndex == frameBeforeStep + 1 and not view.playing and outside.hasFocus())
 }
 
 // A Matroska file carrying several sound tracks exposes a compact selector. Changing it creates

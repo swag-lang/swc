@@ -133,9 +133,9 @@ private func createPdfFixture()->String
     Pixel.Testing.assertImageGolden(&image, "viewer.pdf.document")
 }
 
-// Pins the PDF controls inside the application's real information-row layout. The row measures
-// viewer contributions before positioning them, so every fixed page and zoom cell must report the
-// width its docking pass will consume.
+// Pins the PDF controls inside the application's real line of readings. The line measures viewer
+// contributions before positioning them, so every fixed page and zoom cell must report the width
+// its docking pass will consume.
 #[Swag.TestTag("golden")]
 #test
 {
@@ -143,25 +143,17 @@ private func createPdfFixture()->String
     defer discard catch File.delete(fileName)
 
     var host: HeadlessHost
-    host.setup(ViewerWindow.MinWidth, ViewerWindow.InfoHeight)
-    host.root.backgroundStyle = .InformationBar
-    host.root.padding         = {8, 2, 8, 2}
+    host.setup(ViewerWindow.MinWidth, ViewerReadingLine.Height)
+    host.root.backgroundStyle = .View
+    host.root.padding         = {8, 0, 8, 0}
 
     let document = Wnd.create'Wnd(&host.root)
     document.hide()
-    with let layout = Wnd.create'ViewerInfoLayout(&host.root)
+    with let layout = ViewerReadingLine.create(&host.root)
     {
-        .dockStyle       = .Center
-        .backgroundStyle = .Transparent
+        .dockStyle = .Center
+        .details.setText("PDF · 1 page")
     }
-
-    let actionSize = themeActionButtonSize(layout.themeMetrics())
-    layout.filesButton = IconButton.create(layout, layout.theme().icon(.History, themeActionIconSize(layout.themeMetrics())), Math.Rectangle{0, 0, actionSize, actionSize})
-    layout.filesButton.hide()
-    layout.fileGroup = StackLayoutCtrl.create(layout, .Left, {0, 0, 0, 36})
-    let name = Label.create(layout.fileGroup, "viewer.pdf", {0, 0, 0, 36})
-    name.preferredSize.x = Math.ceil(name.itf.measureContent({}).x)
-    layout.generalLabel  = Label.create(layout, "PDF", {0, 0, 0, 36}, null, .SecondaryText)
 
     var result = openTestViewer(PdfDocument.viewerPlugin(), document, fileName, commandParent: document, infoParent: layout)
     Swag.assert(result.view != null and result.info != null)

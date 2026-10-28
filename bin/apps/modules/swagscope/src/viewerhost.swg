@@ -202,27 +202,29 @@ impl Viewer.Host for ViewerPluginHost
         Swag.assert(.session.sidePanelHost == null)
         Swag.assert(width > 0)
 
-        let gutter     = .sidePanelParent.themeMetrics().panel_GutterSize
+        let gutter     = .sidePanelParent.themeMetrics().floating_Inset
         var panelWidth = width
         if .window and .window.rightPanelWidth > 0 do
             panelWidth = .window.rightPanelWidth
         panelWidth = Math.clamp(panelWidth, ViewerWindow.RightPanelMinWidth, ViewerWindow.RightPanelMaxWidth)
+
+        // The panel is a card in the shape of the sheet, standing the floating inset away from the
+        // edges of the window, beside the work rather than over it.
         with .session.sidePanelHost = Wnd.create'Wnd(.sidePanelParent, Math.Rectangle{0, 0, panelWidth + gutter, 0})
         {
             .dockStyle       = .None
-            .backgroundStyle = .ToolBar
-
-            // The information lane already owns the seam above. The viewer bar owns the chrome
-            // below, so the side panel meets it directly instead of accumulating a second edge.
-            .padding = Math.Vector4{0, 0, gutter, 0}
+            .backgroundStyle = .Transparent
+            .padding         = Math.Vector4{0, 0, gutter, gutter}
             .hide()
         }
 
-        with .session.sidePanel = Wnd.create'Wnd(.session.sidePanelHost)
+        with let card = FloatingPanel.create(.session.sidePanelHost)
         {
-            .dockStyle       = .Center
-            .backgroundStyle = .Panel
+            .dockStyle = .Center
+            .setShadow(false)
         }
+
+        .session.sidePanel = card
 
         let actionSize = themeActionButtonSize(.infoParent.themeMetrics())
         with .session.sidePanelButton = IconButton.create(.infoParent, icon, Math.Rectangle{0, 0, actionSize, actionSize}, flags: .Toggle)

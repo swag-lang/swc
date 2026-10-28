@@ -25,24 +25,23 @@ func viewerWindowFor(view: *Wnd)->*ViewerWindow => unwrap view.ancestorByType'Vi
 // Replaces a viewer that failed after creation with the standard error surface.
 func reportViewerFailure(view: *Wnd, reason: string) { viewerWindowFor(view).replaceFailedViewer(view, reason) }
 
-// The main window of Swag Scope: the command, information, and viewer bars around the document,
-// the file panel beside it, and every viewer session opened for the current file.
+// The main window of Swag Scope: the document and nothing else on screen.
+//
+// Everything the window can do is an entry of its lens, which `Space` or `Ctrl K` opens; what
+// it knows about the open file is in the sheet `I` opens. The viewer's own commands float over
+// the foot of the document while the pointer moves, its readings sit faint under it, the search
+// floats at the top while it is asked for, and the files beside the open one stand in a panel
+// shown on demand.
 struct ViewerWindow
 {
     using wnd: Wnd
 
     late
     {
-        commandBar:           *ViewerActionBar
-        commandButtons:       *IconBar
         kindButton:           *IconButton
-        openButton:           *IconButton
-        closeButton:          *IconButton
         closeFilesButton:     *IconButton
         closeFoldersButton:   *IconButton
-        openDefaultButton:    *IconButton
-        filesButton:          *IconButton
-        fullScreenButton:     *IconButton
+        searchBar:            *FloatingPanel
         searchGroup:          *StackLayoutCtrl
         searchNavigation:     *StackLayoutCtrl
         searchBox:            *EditBox
@@ -50,16 +49,11 @@ struct ViewerWindow
         searchPrevious:       *IconButton
         searchNext:           *IconButton
         searchOptionsButton:  *IconButton
-        viewerCombo:          *ComboBox
         appearanceButton:     *AppearanceButton
-        infoBarHost:          *Wnd
-        infoBar:              *ViewerInfoBar
-        infoContentGroup:     *ViewerInfoLayout
-        infoFileGroup:        *StackLayoutCtrl
-        infoIconLabel:        *Label
-        infoNameLabel:        *Label
-        infoStatsLabel:       *Label
-        infoSizeLabel:        *Label
+        lens:                 *Lens.View
+        infoSheet:            *InfoSheet
+        hintLine:             *HintLine
+        readingLine:          *ViewerReadingLine
         documentHost:         *Wnd
         documentPanel:        *Wnd
         mainSplitter:         *SplitterCtrl
@@ -67,7 +61,7 @@ struct ViewerWindow
         loadingOverlay:       *ViewerLoadingOverlay
         searchOverlay:        *ViewerSearchOverlay
         dropHighlight:        *ViewerDropHighlight
-        viewerBar:            *ViewerActionBar
+        viewerBar:            *FloatingPanel
         emptyView:            *StackLayoutCtrl
         emptyIconLabel:       *Label
         emptyLabel:           *Label
@@ -88,7 +82,6 @@ struct ViewerWindow
     thumbnailMode:  bool
     explorerActive: bool
     explorer:       *Explorer?
-    exploreButton:  *IconButton?
 
     index:                   ViewerPluginRegistry
     pluginIcons:             Array'ViewerPluginIcons
@@ -190,8 +183,13 @@ struct ViewerWindow
     fullScreenWasMaximized:    bool
     fullScreenRestorePosition: Math.Rectangle
     fullScreenRestoreFlags:    SurfaceFlags
-    fullScreenTopVisible:      bool
-    fullScreenBottomVisible:   bool
+
+    // The viewer's commands float over the foot of the document while the pointer moves, and
+    // leave once it rests; the search floats at the top while it is asked for.
+    viewerBarShown:  bool
+    viewerBarTimer:  *Timer?
+    pointerPosition: Math.Point
+    searchShown:     bool
     smokeDirectory:            String
     smokeSpecIndex:            u64
     smokeWaitSteps:            u32
@@ -219,8 +217,7 @@ func reportViewerChromeChanged(view: *Wnd)
     let window = viewerWindowFor(view)
     if window.currentView != view do
         return
-    window.commandBar.centerContent()
-    window.viewerBar.centerContent()
+    window.layoutViewerBar()
     window.layoutFileInfo()
     window.applyLayout()
 }
@@ -290,15 +287,19 @@ impl IWnd for ViewerWindow
     mtd impl onMouseEvent(evt: *MouseEvent)
     {
         if evt.kind == .Move or evt.kind == .Enter do
-            .updateFullScreenChrome(evt.surfacePos)
+            .notePointer(evt.surfacePos)
         evt.accepted = false
     }
 
-    // The bands keep clear of the window chrome floating over the top of the window.
+    // The document keeps clear of the window chrome floating over the top of the window, and the
+    // floating parts follow the document.
     mtd impl onResizeEvent(_: *ResizeEvent)
     {
-        .padding.y = .stripInset()
-        .layoutFullScreenChrome()
+        // The window is resized while it is being built, before the parts below exist.
+        if .lens == null do
+            return
+        .updateDocumentInsets()
+        .layoutFloatingParts()
     }
 
     mtd impl onDragDropEvent(evt: *DragDropEvent)
@@ -343,18 +344,15 @@ impl IWnd for ViewerWindow
             return
         }
 
+        // The commands the window names have their keys registered as shortcuts; what is left
+        // here is what a key means only in context.
         let plain = evt.modifiers == .None
         switch evt.key
         {
-        case .E where evt.modifiers.has(.Control): .exploreFolder()
+        case .Escape where plain and .infoSheet.isLocallyVisible(): .infoSheet.close()
+        case .Escape where plain and .searchShown:                   .hideSearch()
         case .Escape where plain and not .fullScreen and .explorerActive: .closeFile()
-        case .F11 where plain:                     .setFullScreen(not .fullScreen)
         case .Escape where plain and .fullScreen:  .setFullScreen(false)
-        case .O where evt.modifiers.has(.Control): .chooseFile()
-        case .F where evt.modifiers.has(.Control): .showSearch()
-        case .F3 where evt.modifiers.has(.Shift):  .findPrevious()
-        case .F3 where plain:                      .findNext()
-        case .F5 where not .currentFile.isEmpty(): .reloadCurrentFile()
         case .Left, .Right where plain:            evt.accepted = not .forwardingViewerKey and .forwardKeyToViewer(evt)
         default: evt.accepted = false
         }
@@ -414,6 +412,13 @@ impl IWnd for ViewerWindow
             return
         }
 
+        if evt.timer == .viewerBarTimer
+        {
+            .stopTimer(&.viewerBarTimer)
+            .concealViewerBar()
+            return
+        }
+
         if evt.timer != .startupTimer
         {
             evt.accepted = false
@@ -444,6 +449,7 @@ impl IWnd for ViewerWindow
         .stopLoadingIndicator()
         .stopSlide()
         .stopTimer(&.fileWatchTimer)
+        .stopTimer(&.viewerBarTimer)
 
         for &set in .pluginIcons do
             set.icons.free()
@@ -475,7 +481,7 @@ impl IWnd for ViewerWindow
         if not evt.serializer.isReading() and not .filePanel.items.isEmpty() do
             .recentPaneSize = .filePanel.items[0]!.size
         if not evt.serializer.isReading() and .mainSplitter.items.count > 0 do
-            .leftPanelWidth = .mainSplitter.items[0]!.size - .themeMetrics().panel_GutterSize
+            .leftPanelWidth = .mainSplitter.items[0]!.size - .themeMetrics().floating_Inset
         if not evt.serializer.isReading() and .currentSidePanelHost
         {
             let splitter = assume cast(*SplitterCtrl, .currentSidePanelHost.parent)
@@ -483,7 +489,7 @@ impl IWnd for ViewerWindow
             {
                 let item = unwrap splitter.items[index]
                 if item.view == .currentSidePanelHost do
-                    .rightPanelWidth = item.size - .themeMetrics().panel_GutterSize
+                    .rightPanelWidth = item.size - .themeMetrics().floating_Inset
             }
         }
 
@@ -518,10 +524,10 @@ impl IWnd for ViewerWindow
             .recentPaneSize = Math.max(.recentPaneSize, PaneMinSize)
             if .mainSplitter.items.count > 0
             {
-                .mainSplitter.items[0]!.size = .leftPanelWidth + .themeMetrics().panel_GutterSize
+                .mainSplitter.items[0]!.size = .leftPanelWidth + .themeMetrics().floating_Inset
                 if .rightPanelWidth > 0
                 {
-                    let rightWidth = .rightPanelWidth + .themeMetrics().panel_GutterSize
+                    let rightWidth = .rightPanelWidth + .themeMetrics().floating_Inset
                     if .mainSplitter.items[2]!.view.isLocallyVisible()
                         do
                         .mainSplitter.setPaneSize(2, rightWidth)
@@ -565,20 +571,34 @@ impl IWnd for ViewerWindow
             .refreshArtwork()
             .refreshEmptyArtwork()
             .dropHighlight.refreshTheme()
+            .layoutFloatingParts()
         }
 
         .wnd.IWnd.onNotifyEvent(evt)
+    }
+
+    mtd impl onComputeStateEvent(evt: *CommandStateEvent)
+    {
+        if not .computeCommandState(evt) do
+            evt.accepted = false
+    }
+
+    mtd impl onCommandEvent(evt: *CommandEvent)
+    {
+        evt.accepted = .runCommand(evt.id)
     }
 }
 
 impl ViewerWindow
 {
-    // The command, information, and action bars around the document, and the narrowest window
-    // that still lays them out.
+    // The floating bar of the viewer's commands, the band an embedded viewer keeps its title in,
+    // and the narrowest window.
     const BarHeight       = 48.0
-    const InfoHeight      = 40.0
     const ActionBarHeight = 42.0
     const MinWidth        = 880
+
+    // How long the viewer's commands stay after the pointer last moved.
+    const ViewerBarLinger: Time.Duration = 2500'ms
 
     // The side panel that lists what is beside the current file, and what was read before it.
     const PanelWidth             = 276.0
@@ -596,7 +616,7 @@ impl ViewerWindow
     const RecentCount        = 12'u64
     const FolderHistoryCount = 8'u64
 
-    // The search group of the command bar.
+    // The search group of the floating find bar.
     const SearchFieldWidth          = 180.0
     const SearchNoOptionsFieldWidth = 256.0
     const SearchCountWidth          = 52.0
@@ -624,9 +644,7 @@ impl ViewerWindow
     const LoadingMinVisibleMicroseconds      = 500_000'u64
     const LoadingPollInterval: Time.Duration = 50'ms
 
-    // In full screen the bars step aside; the pointer within this distance of an edge brings them
-    // back. The surface loses its frame and stays above other windows.
-    const FullScreenRevealEdge   = 32.0
+    // In full screen the surface loses its frame and stays above other windows.
     const FullScreenRemovedFlags = SurfaceFlags.LargeCaption |
                                    SurfaceFlags.SmallCaption |
                                    SurfaceFlags.MinimizeButton |
@@ -685,12 +703,9 @@ impl ViewerWindow
     // Keeps the few decorative glyphs aligned with the active palette and document kind.
     mtd refreshArtwork()
     {
-        .infoIconLabel.setIconColor(.themeColors().label_TextFaint)
         .searchPrevious.setIcon(.theme().icon(.SearchPrevious, themeActionIconSize(.themeMetrics())))
         .searchNext.setIcon(.theme().icon(.SearchNext, themeActionIconSize(.themeMetrics())))
         .refreshSearchPresentation()
-        if .activeChoiceIndex < .choices.count do
-            .infoIconLabel.setIcon(.choiceIcon(.activeChoiceIndex))
     }
 
     // Gives the drop hint its glyph, but only while the hint is what the window shows.
@@ -709,24 +724,117 @@ impl ViewerWindow
 
     // A monitor-sized full-screen placement is transient and must never replace the saved
     // window placement. Closing first restores the regular placement, then persists it.
-    private mtd saveState() fail
+    mtd saveState() fail
     {
         if .fullScreen or .thumbnailMode do
             return
         try g_App.saveState()
     }
 
-    // Keeps a four-pixel structural edge when the selected viewer has no command bar. Full screen
-    // remains immersive and reveals the complete command bar only when the viewer owns one.
-    private mtd updateViewerBar()
+    // Puts the commands of the active viewer in the floating bar, or empties it.
+    mtd updateViewerBar()
     {
-        .viewerBar.centerGroup     = .currentCommands
-        .viewerBar.position.height = .currentCommands ? BarHeight : .themeMetrics().panel_GutterSize
-        if .fullScreen do
-            .viewerBar.show(.fullScreenBottomVisible and .currentCommands != null)
-        else do
-            .viewerBar.show()
-        .viewerBar.centerContent()
+        if not .currentCommands do
+            .viewerBarShown = false
+        .layoutViewerBar()
+    }
+
+    // Shows the viewer's commands for as long as the pointer keeps moving.
+    mtd revealViewerBar()
+    {
+        if not .currentCommands do
+            return
+        .viewerBarShown = true
+        .layoutViewerBar()
+        .stopTimer(&.viewerBarTimer)
+        .viewerBarTimer = .addTimer(ViewerBarLinger)
+    }
+
+    // Lets the viewer's commands go once the pointer rests, unless it rests on them or the
+    // keyboard is in them.
+    mtd concealViewerBar()
+    {
+        let focused = .focusedWindow()
+        let held    = .viewerBar.surfaceRect().contains(.pointerPosition) or (focused and .viewerBar.isOwnerOf(focused))
+        if held and .viewerBarShown
+        {
+            .viewerBarTimer = .addTimer(ViewerBarLinger)
+            return
+        }
+
+        .viewerBarShown = false
+        .layoutViewerBar()
+    }
+
+    // Remembers where the pointer is, and brings the viewer's commands back.
+    mtd notePointer(position: Math.Point)
+    {
+        if position.x == .pointerPosition.x and position.y == .pointerPosition.y do
+            return
+        .pointerPosition = position
+        .revealViewerBar()
+    }
+
+    // Places the floating bar of the viewer's commands at the foot of the document, as wide as
+    // the commands ask and never wider than the document.
+    mtd layoutViewerBar()
+    {
+        let commands = .currentCommands
+        let visible  = commands != null and .viewerBarShown
+        .viewerBar.show(visible)
+        if not commands do
+            return
+
+        let metrics = .themeMetrics()
+        let area    = .documentArea()
+        let inset   = metrics.floating_Inset
+        let pad     = .viewerBar.padding
+        let room    = Math.max(area.width - 2 * inset - pad.x - pad.z, 0)
+        let wanted  = commands.preferredSize.x > 0 ? commands.preferredSize.x : room
+        let width   = Math.min(wanted, room)
+        let height  = commands.position.height + pad.y + pad.w
+        let bottom  = area.bottom() - (.readingLine.isLocallyVisible() ? metrics.miniBar_Distance : inset)
+        .viewerBar.setPosition(Math.Rectangle{Math.round(area.horzCenter() - (width + pad.x + pad.z) * 0.5), bottom - height, width + pad.x + pad.z, height}, computeLayout: false)
+        commands.dockStyle = .None
+        commands.setPosition(Math.Rectangle{pad.x, pad.y, width, commands.position.height}, computeLayout: false)
+        commands.applyLayout()
+        if visible do
+            .viewerBar.bringToFront()
+    }
+
+    // Returns the rectangle the document takes in the window, below the strip and beside the
+    // panels shown with it.
+    mtd documentArea()->Math.Rectangle
+    {
+        var result = .documentPanel.surfaceRect()
+        let origin = .surfaceToLocal(Math.Point{result.x, result.y})
+        result.x = origin.x
+        result.y = origin.y
+        return result
+    }
+
+    // Places every part floating over the document: its commands at its foot, the find bar at
+    // its top, the hint at its foot while it is empty.
+    mtd layoutFloatingParts()
+    {
+        .layoutViewerBar()
+        .layoutSearchBar()
+    }
+
+    // Places the find bar at the trailing top corner of the document, sized to the search group.
+    mtd layoutSearchBar()
+    {
+        let metrics = .themeMetrics()
+        let area    = .documentArea()
+        let pad     = .searchBar.padding
+        let group   = .searchGroup.itf.measureContent({})
+        let width   = Math.min(group.x, Math.max(area.width - 2 * metrics.floating_Inset - pad.x - pad.z, 0))
+        let height  = .searchGroup.position.height + pad.y + pad.w
+        .searchBar.setPosition(Math.Rectangle{area.right() - metrics.floating_Inset - width - pad.x - pad.z, area.y + metrics.floating_Inset * 0.5, width + pad.x + pad.z, height}, computeLayout: false)
+        .searchGroup.setPosition(Math.Rectangle{pad.x, pad.y, width, .searchGroup.position.height}, computeLayout: false)
+        .searchGroup.computeLayout()
+        if .searchBar.isLocallyVisible() do
+            .searchBar.bringToFront()
     }
 
     // Enters or leaves a borderless monitor-sized presentation without losing the reader's
@@ -744,21 +852,11 @@ impl ViewerWindow
             .fullScreenWasMaximized    = surface.isMaximized
             .fullScreen = true
             surface.updateFlags(add: FullScreenAddedFlags, remove: FullScreenRemovedFlags)
-            .updateDocumentInsets()
             .documentPanel.backgroundStyle = .View
-            .commandBar.dockStyle          = .None
-            .infoBarHost.dockStyle         = .None
-            .viewerBar.dockStyle           = .None
-            .commandBar.hide()
-            .infoBarHost.hide()
-            .viewerBar.hide()
+            .readingLine.hide()
             .mainSplitter.setPaneVisible(0, false)
-            .filesButton.hide()
             .mainSplitter.setPaneVisible(2, false)
-            .currentSidePanelButton?.hide()
-            .infoContentGroup.sideButton = null
-            .fullScreenTopVisible        = false
-            .fullScreenBottomVisible     = false
+            .updateDocumentInsets()
 
             // Commit the final chrome and bounds together through the native placement path.
             surface.showNormalAt(Env.monitorForRectangle(.fullScreenRestorePosition).physicalBounds)
@@ -770,24 +868,14 @@ impl ViewerWindow
             let flagsToAdd      = .fullScreenRestoreFlags & transitionFlags
             let flagsToRemove   = transitionFlags & ~.fullScreenRestoreFlags
             surface.updateFlags(add: flagsToAdd, remove: flagsToRemove)
-            .updateDocumentInsets()
-            .documentPanel.backgroundStyle = .Panel
-            .commandBar.dockStyle          = .Top
-            .infoBarHost.dockStyle         = .Top
-            .viewerBar.dockStyle           = .Bottom
-            .commandBar.show()
-            .infoBarHost.show()
-            .updateViewerBar()
+            .documentPanel.backgroundStyle = .View
+            .readingLine.show(.readingLine.hasContent())
             .mainSplitter.setPaneVisible(0, .panelVisible)
-            .filesButton.show()
-            .currentSidePanelButton?.show()
             .mainSplitter.items[2]!.view = .currentSidePanelHost orelse .sidePanelPlaceholder
             .mainSplitter.items[2]!.view.show(.currentSidePanelButton?.isChecked orelse false)
             .mainSplitter.setPaneVisible(2, .currentSidePanelButton?.isChecked orelse false)
+            .updateDocumentInsets()
             .mainSplitter.applyLayout()
-            .infoContentGroup.sideButton = .currentSidePanelButton
-            .fullScreenTopVisible        = false
-            .fullScreenBottomVisible     = false
 
             // Going straight back to the maximized state keeps the window out of its restored
             // bounds, which would otherwise be shown for one transaction on the way.
@@ -798,55 +886,12 @@ impl ViewerWindow
         }
 
         surface.invalidate()
-        .fullScreenButton.setChecked(.fullScreen)
-        .fullScreenButton.setIcon(.theme().icon(.fullScreen ? .ExitFullScreen : .FullScreen, themeActionIconSize(.themeMetrics())))
-        .fullScreenButton.toolTip = .fullScreen ? appStrings().ui_ExitFullScreen : appStrings().ui_FullScreen
+        .applyLayout()
+        .layoutFloatingParts()
     }
 
-    // Reveals full-screen chrome only while the pointer is at the corresponding screen edge.
-    mtd updateFullScreenChrome(position: Math.Point)
-    {
-        if not .fullScreen do
-            return
-        let height = .clientRect().height
-        let top    = position.y <= FullScreenRevealEdge or (.fullScreenTopVisible and position.y <= ActionBarHeight + .infoBarHost.position.height)
-        let bottom = position.y >= height - FullScreenRevealEdge or (.fullScreenBottomVisible and position.y >= height - BarHeight)
-        if top == .fullScreenTopVisible and bottom == .fullScreenBottomVisible do
-            return
-        .fullScreenTopVisible    = top
-        .fullScreenBottomVisible = bottom
-        .layoutFullScreenChrome()
-    }
-
-    // Positions the transient bars over the content without changing its full-screen rectangle.
-    mtd layoutFullScreenChrome()
-    {
-        if not .fullScreen do
-            return
-        let rect = .clientRect()
-        .commandBar.show(.fullScreenTopVisible)
-        .infoBarHost.show(.fullScreenTopVisible)
-        .updateViewerBar()
-        if .fullScreenTopVisible
-        {
-            .commandBar.setPosition(Math.Rectangle{rect.x, rect.y, rect.width, ActionBarHeight}, computeLayout: false)
-            .infoBarHost.setPosition(Math.Rectangle{rect.x, rect.y + ActionBarHeight, rect.width, .infoBarHost.position.height}, computeLayout: false)
-            .commandBar.applyLayout()
-            .infoBarHost.applyLayout()
-            .commandBar.bringToFront()
-            .infoBarHost.bringToFront()
-        }
-
-        if .fullScreenBottomVisible and .currentCommands
-        {
-            .viewerBar.setPosition(Math.Rectangle{rect.x, rect.bottom() - BarHeight, rect.width, BarHeight}, computeLayout: false)
-            .viewerBar.applyLayout()
-            .viewerBar.bringToFront()
-        }
-    }
-
-    // Builds the main window around the viewer registry `index`: appearance chrome, command bar,
-    // information band, viewer bar, file panel and document panel.
+    // Builds the main window around the viewer registry `index`: the file panel, the document
+    // and the parts floating over it, then the lens that reaches every command.
     func create(parent: *Wnd, index: #move ViewerPluginRegistry)->*ViewerWindow
     {
         let result = Wnd.create'ViewerWindow(parent, "scope.main")
@@ -857,25 +902,27 @@ impl ViewerWindow
         result.language        = Gui.ReferenceLanguage
         result.index.attachTo(result.app())
 
-        let panelGutter = result.themeMetrics().panel_GutterSize
         result.createAppearanceChrome()
-        result.createCommandBar()
-        result.createInfoBar(panelGutter)
-        result.createViewerBar()
         with result.mainSplitter = SplitterCtrl.create(result)
         {
             .dockStyle       = .Center
             .backgroundStyle = .Transparent
         }
 
-        result.createFilePanel(panelGutter)
-        result.createDocumentPanel(panelGutter)
+        result.createFilePanel()
+        result.createDocumentPanel()
+        result.createSearchBar()
+        result.createViewerBar()
+        result.createSheetAndHint()
+        result.createLens()
         result.hookChildEvents()
 
         result.applyLanguage()
         result.refreshArtwork()
         result.updateViewerBar()
+        result.updateDocumentInsets()
         result.applyLayout()
+        result.layoutFloatingParts()
         return result
     }
 
@@ -1025,20 +1072,15 @@ impl ViewerWindow
     mtd retranslate()
     {
         let texts = appStrings()
-        .surface?.setTitle(texts.ui_WindowTitle)
-        if .exploreButton do
-            .exploreButton.toolTip = texts.explore_Open
-        .openButton.toolTip          = texts.ui_Open
-        .closeButton.toolTip         = texts.ui_CloseFile
+        .refreshTitle()
         .closeFilesButton.toolTip    = texts.ui_CloseFiles
         .closeFoldersButton.toolTip  = texts.ui_CloseFiles
-        .openDefaultButton.toolTip   = texts.ui_OpenDefault
-        .filesButton.toolTip         = .isExploring() ? texts.explore_Panels : texts.ui_Files
         .kindButton.toolTip          = texts.ui_SameKind
         .folderHistoryButton.toolTip = texts.ui_FolderHistory
         .folderFilterBox.setPlaceholder(texts.ui_FilterFiles)
         .recentClearButton.toolTip   = texts.ui_ClearHistory
-        .viewerCombo.toolTip         = texts.ui_Viewer
+        .hintLine.clearHints()
+        .hintLine.addHint(Gui.strings().key_Space, texts.ui_HintLens)
         .searchPrevious.toolTip      = texts.ui_SearchPrevious
         .searchNext.toolTip          = texts.ui_SearchNext
         .searchOptionsButton.toolTip = texts.ui_SearchOptions
@@ -1052,10 +1094,42 @@ impl ViewerWindow
             .folderLabel.setText(.explorerActive ? texts.explore_Folders : texts.ui_Folder)
             .emptyLabel.setText(Format.toString("<b>%</b>", texts.ui_DropTitle))
             .emptyHintLabel.setText(texts.ui_DropHint)
-            .infoStatsLabel.setText("")
         }
 
+        if .infoSheet.isLocallyVisible() do
+            .refreshInformation()
         .invalidate()
+    }
+
+    // Names what the window shows in its title: the open file, followed by the viewer when the
+    // reader chose another than the one the file opens in; the explored folder; or the product.
+    mtd refreshTitle()
+    {
+        let surface = .surface
+        if not surface do
+            return
+
+        if .isExploring()
+        {
+            surface.setTitle(.explorer!.locationName())
+            return
+        }
+
+        if .currentFile.isEmpty()
+        {
+            surface.setTitle(ProductName)
+            return
+        }
+
+        let path = .explorer ? .explorer.displayPath(.currentFile) : .currentFile.toString()
+        var title: String = Path.fileName(path) orelse path
+        if .activeChoiceIndex > 0 and .activeChoiceIndex < .choices.count
+        {
+            title += " · "
+            title += .index.plugins[.choices[.activeChoiceIndex].pluginIndex].displayName()
+        }
+
+        surface.setTitle(title)
     }
 }
 
@@ -1111,8 +1185,8 @@ impl ViewerWindow
         .emptyView.hide()
         .explorer.setShown(true)
         .explorer.navigate(source)
-        .closeButton.hide()
-        .openDefaultButton.hide()
+        .hintLine.hide()
+        .refreshTitle()
         .applyLayout()
     }
 }

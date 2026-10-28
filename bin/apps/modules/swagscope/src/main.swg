@@ -73,7 +73,7 @@ private func registerViewerFileTypes(registry: const *ViewerPluginRegistry)
     let surface = try g_App.createSurface(80, 50, ViewerWindow.MinWidth, 680, SurfaceFlags.StandardWindow, surfaceId: SurfaceId)
     g_App.theme.setDark()
     g_App.notifyThemeChanged()
-    surface.setTitle(appStrings().ui_WindowTitle)
+    surface.setTitle(ProductName)
 
     let window = ViewerWindow.create(surface.wnd, #move index)
 

@@ -1,10 +1,11 @@
 impl ViewerWindow
 {
-    // Creates the appearance button, which saves the theme and language the user picks and opens
-    // the about box, and the accent rail along the top edge.
+    // Creates the owner of the theme and language the reader picks, which saves them and opens the
+    // about box. Its choices are lens entries, so its button stays off the window chrome.
     private mtd createAppearanceChrome()
     {
         .appearanceButton = AppearanceButton.create(unwrap .surface, "scope.appearance")
+        .appearanceButton.hide()
         .appearanceButton.sigThemeChanged += func|window = me|(button)
         {
             window.themeIndex = cast(u32, button.appearanceTheme)
@@ -23,50 +24,27 @@ impl ViewerWindow
         }
     }
 
-    // Builds the global command bar: the open and explore actions, the full-screen button,
-    // the centered search group, and the viewer selector closing its right edge.
-    private mtd createCommandBar()
+    // Builds the find bar floating at the top of the document while the reader searches: the
+    // options of the search, the query, and the way through its matches.
+    private mtd createSearchBar()
     {
-        .commandBar = ViewerActionBar.create(me)
         let iconSize              = themeActionIconSize(.themeMetrics())
         let actionSize            = themeActionButtonSize(.themeMetrics())
         let dropDownWidth         = themeDropDownButtonWidth(.themeMetrics())
         let searchNavigationWidth = 2 * actionSize + SearchCountWidth + 8
         let searchBarWidth        = dropDownWidth + SearchFieldWidth + searchNavigationWidth + 2 * SearchGroupSpacing
 
-        with .commandButtons = IconBar.create(.commandBar, iconSize, itemPadding: .themeMetrics().btnIcon_Padding)
+        with .searchBar = FloatingPanel.create(me, {0, 0, searchBarWidth, actionSize}, "scope.search")
         {
-            .dockStyle = .Left
-        }
-
-        with .openButton = .commandButtons.addButton(.theme().icon(.OpenFile, iconSize))
-        {
-            .toolTip    = appStrings().ui_Open
-            .sigPressed += func|window = me|(_) { window.chooseFile() }
-        }
-
-        with .exploreButton = .commandButtons.addButton(.theme().icon(.ExploreFolder, iconSize))
-        {
-            .toolTip    = appStrings().explore_Open
-            .sigPressed += func|window = me|(_) { window.exploreFolder() }
-        }
-
-        with .fullScreenButton = Viewer.createActionButton(.commandBar, .FullScreen, .Toggle)
-        {
-            .dockStyle = .Right
-            .toolTip = appStrings().ui_FullScreen
-            .setCheckIndicator(.Frame)
-            .sigCheckedChanged += func|window = me|(button) { window.setFullScreen(button.isChecked) }
-        }
-
-        with .searchGroup = StackLayoutCtrl.create(.commandBar, .Center, Math.Rectangle{0, 0, searchBarWidth, actionSize})
-        {
-            .backgroundStyle = .Transparent
-            .spacing         = SearchGroupSpacing
+            .padding = {8, 6, 8, 6}
             .hide()
         }
 
-        .commandBar.centerGroup = .searchGroup
+        with .searchGroup = StackLayoutCtrl.create(.searchBar, .Center, Math.Rectangle{0, 0, searchBarWidth, actionSize})
+        {
+            .backgroundStyle = .Transparent
+            .spacing         = SearchGroupSpacing
+        }
 
         with .searchOptionsButton = Viewer.createActionDropDown(.searchGroup, .MatchWholeWord)
         {
@@ -115,124 +93,26 @@ impl ViewerWindow
             .style.setFont(me.theme().createDefaultFontFs(12), .Regular)
             .setTextAlignment(.Left, .OpticalCenter)
         }
-
-        .commandBar.centerContent()
-
-        // Wide enough for the longest viewer name a shipped viewer registers beside its glyph.
-        // Viewer commands have their own row, so this selector can close the global bar's right edge.
-        with .viewerCombo = ComboBox.create(.commandBar, {0, 0, 180, 36})
-        {
-            .dockStyle = .Right
-            .toolTip   = appStrings().ui_Viewer
-            .hide()
-            .sigChanged += func|window = me|(_, index) { window.selectViewer(index) }
-        }
     }
 
-    // Builds the information band above the document: the file panel toggle, the file icon, name
-    // and size, file actions, and the content statistics on the right.
-    private mtd createInfoBar(panelGutter: f32)
-    {
-        // File identity and content statistics are read before the document. The information
-        // surface follows the same panel composition as both side panes: a rounded semantic
-        // ground inside one shared chrome seam. Viewer tools belong to the dedicated band below.
-        with .infoBarHost = Wnd.create'Wnd(me, Math.Rectangle{0, 0, 0, InfoHeight + panelGutter * 2})
-        {
-            .dockStyle       = .Top
-            .backgroundStyle = .ToolBar
-            .padding         = Math.Vector4{panelGutter, panelGutter, panelGutter, panelGutter}
-        }
-
-        with .infoBar = Wnd.create'ViewerInfoBar(.infoBarHost)
-        {
-            .dockStyle       = .Center
-            .backgroundStyle = .InformationPanel
-            .padding         = {8, 2, 8, 2}
-        }
-
-        with .infoContentGroup = Wnd.create'ViewerInfoLayout(.infoBar, {0, 0, 0, 36})
-        {
-            .dockStyle       = .Center
-            .backgroundStyle = .Transparent
-        }
-
-        with .filesButton = Viewer.createActionButton(.infoContentGroup, .History, .Toggle)
-        {
-            .toolTip = appStrings().ui_Files
-            .setCheckIndicator(.Frame)
-            .sigCheckedChanged += func|window = me|(button)
-            {
-                window.setFilePanelVisible(button.isChecked)
-                catch window.saveState()
-            }
-        }
-
-        .infoContentGroup.filesButton = .filesButton
-
-        with .infoFileGroup = StackLayoutCtrl.create(.infoContentGroup, .Left, {0, 0, 0, 36})
-        {
-            .backgroundStyle = .Transparent
-            .spacing         = 0
-        }
-
-        with .infoIconLabel = Label.create(.infoFileGroup, "", {0, 0, 24, 36})
-        {
-            .margin.z = me.themeMetrics().btnIcon_SpacingIcon
-            .setIconAlignment(.Center, .Center)
-        }
-
-        with .infoNameLabel = Label.create(.infoFileGroup, "", {0, 0, 0, 36}, null, .Ellipsis)
-        {
-            .layoutSpec.policyX = .Expand
-            .layoutSpec.weightX = 0
-            .style.setFont(me.theme().createDefaultFont(13, .Bold), .Regular)
-            .setTextAlignment(.Left, .OpticalCenter)
-        }
-
-        with .infoSizeLabel = Label.create(.infoFileGroup, "", {0, 0, 0, 36}, null, .SecondaryText)
-        {
-            .margin.x = 8
-            .style.setFont(me.theme().createDefaultFontFs(12), .Regular)
-            .setTextAlignment(.Left, .OpticalCenter)
-        }
-
-        let fileActionSize = themeCompactButtonSize(.themeMetrics())
-        let fileIconSize   = themeRowIconSize(.themeMetrics())
-        with .openDefaultButton = IconButton.create(.infoFileGroup, .theme().icon(.OpenExternal, fileIconSize), Math.Rectangle{0, 0, fileActionSize, fileActionSize})
-        {
-            .toolTip           = appStrings().ui_OpenDefault
-            .margin.x          = 12
-            .layoutSpec.alignY = .Center
-            .hide()
-            .sigPressed += func|window = me|(_) { window.openCurrentFileDefault() }
-        }
-
-        with .closeButton = IconButton.create(.infoFileGroup, .theme().icon(.WndClose, fileIconSize), Math.Rectangle{0, 0, fileActionSize, fileActionSize})
-        {
-            .toolTip           = appStrings().ui_CloseFile
-            .layoutSpec.alignY = .Center
-            .hide()
-            .sigPressed += func|window = me|(_) { window.closeFile() }
-        }
-
-        with .infoStatsLabel = Label.create(.infoContentGroup, "", {0, 0, 0, 36}, null, .SecondaryText | .Ellipsis)
-        {
-            .style.setFont(me.theme().createDefaultFontFs(12), .Regular)
-            .setTextAlignment(.Right, .OpticalCenter)
-        }
-
-        .infoContentGroup.fileGroup    = .infoFileGroup
-        .infoContentGroup.generalLabel = .infoStatsLabel
-    }
-
+    // Builds the floating bar the active viewer's commands stand in, at the foot of the document.
     private mtd createViewerBar()
     {
-        with .viewerBar = Wnd.create'ViewerActionBar(me, {0, 0, 0, BarHeight})
+        with .viewerBar = FloatingPanel.create(me, {0, 0, 0, BarHeight}, "scope.commands")
         {
-            .dockStyle       = .Bottom
-            .backgroundStyle = .ToolBar
-            .padding         = {12, 6, 12, 6}
-            .fillCenterGroup = true
+            .padding = {12, 6, 12, 6}
+            .hide()
+        }
+    }
+
+    // Builds the sheet of readings `I` opens, and the hint teaching the door while the window is
+    // empty.
+    private mtd createSheetAndHint()
+    {
+        .infoSheet = InfoSheet.create(me, "scope.information")
+        with .hintLine = HintLine.create(me, "scope.hint")
+        {
+            .addHint(Gui.strings().key_Space, appStrings().ui_HintLens)
         }
     }
 
@@ -254,27 +134,32 @@ impl ViewerWindow
         return list
     }
 
-    // Builds the left file panel, hidden until toggled: a splitter holding the recent files with
-    // their clear button, and the folder files with their same-kind filter and folder history.
-    private mtd createFilePanel(panelGutter: f32)
+    // Builds the left file panel, hidden until asked for: a sheet-shaped card beside the work
+    // holding the recent files with their clear button, and the folder files with their
+    // same-kind filter and folder history.
+    private mtd createFilePanel()
     {
         let compactSize = themeCompactButtonSize(.themeMetrics())
         let rowIconSize = themeRowIconSize(.themeMetrics())
+        let gutter      = .themeMetrics().floating_Inset
 
-        // The toolbar-colored lane is the static seam shared with the application chrome. The
-        // rounded structural panel sits inside it, so the lists read as one integrated surface
-        // instead of a square block divided from the document by an unrelated rule.
-        with .filePanelHost = Wnd.create'Wnd(.mainSplitter, Math.Rectangle{0, 0, .leftPanelWidth + panelGutter, 0})
+        // The card stands in the air of the window, the floating inset away from its edges; the
+        // splitter beside it lets the reader widen it.
+        with .filePanelHost = Wnd.create'Wnd(.mainSplitter, Math.Rectangle{0, 0, .leftPanelWidth + gutter, 0})
         {
-            .backgroundStyle = .ToolBar
-
-            // The information lane supplies the upper seam and the viewer bar supplies the
-            // lower chrome. Only the exposed outer edges need their own integration gutter.
-            .padding = Math.Vector4{panelGutter, 0, 0, 0}
+            .backgroundStyle = .Transparent
+            .padding         = Math.Vector4{gutter, 0, 0, gutter}
             .hide()
         }
 
-        with .filePanel = SplitterCtrl.create(.filePanelHost, Math.Rectangle{0, 0, .leftPanelWidth, 0}, vertical: true)
+        with let card = FloatingPanel.create(.filePanelHost)
+        {
+            .dockStyle = .Center
+            .padding   = {4, 8, 4, 8}
+            .setShadow(false)
+        }
+
+        with .filePanel = SplitterCtrl.create(card, Math.Rectangle{0, 0, .leftPanelWidth, 0}, vertical: true)
         {
             .dockStyle       = .Center
             .backgroundStyle = .Transparent
@@ -282,8 +167,8 @@ impl ViewerWindow
 
         with .recentPane = Wnd.create'Wnd(.filePanel)
         {
-            .backgroundStyle = .Panel
-            .padding         = {0, 8, 0, 8}
+            .backgroundStyle = .Transparent
+            .padding         = {0, 4, 0, 4}
         }
 
         with let recentHeader = Wnd.create'Wnd(.recentPane, Math.Rectangle{0, 0, 0, compactSize})
@@ -335,8 +220,8 @@ impl ViewerWindow
 
         with .folderPane = Wnd.create'Wnd(.filePanel)
         {
-            .backgroundStyle = .Panel
-            .padding         = {0, 8, 0, 8}
+            .backgroundStyle = .Transparent
+            .padding         = {0, 4, 0, 4}
         }
 
         // The header carries the filter beside the folder name: the toggle changes what this
@@ -418,33 +303,36 @@ impl ViewerWindow
         }
 
         .filePanel.addPane(.folderPane).minimumSize = PaneMinSize
-        with let panelItem = .mainSplitter.addPane(.filePanelHost, .leftPanelWidth + panelGutter)
+        with let panelItem = .mainSplitter.addPane(.filePanelHost, .leftPanelWidth + gutter)
         {
-            .minimumSize  = PanelMinWidth + panelGutter
-            .maximumSize  = PanelMaxWidth + panelGutter
+            .minimumSize  = PanelMinWidth + gutter
+            .maximumSize  = PanelMaxWidth + gutter
             .preserveSize = true
         }
 
         .mainSplitter.setPaneVisible(0, .panelVisible)
     }
 
-    // Builds the document panel with its empty-state prompt and the loading, search and drop
-    // overlays drawn above the active viewer.
-    private mtd createDocumentPanel(panelGutter: f32)
+    // Builds the document with its empty-state prompt, the faint line of readings at its foot,
+    // and the loading, search and drop overlays drawn above the active viewer.
+    private mtd createDocumentPanel()
     {
-        // Outer edges use the integration gutter. A visible side pane meets the document through
-        // the splitter's own drag band, without adding a second gutter to that band.
         with .documentHost = Wnd.create'Wnd(.mainSplitter)
         {
-            .backgroundStyle = .ToolBar
-            .padding         = Math.Vector4{panelGutter, 0, panelGutter, 0}
+            .backgroundStyle = .Transparent
+        }
+
+        with .readingLine = ViewerReadingLine.create(.documentHost)
+        {
+            .dockStyle = .Bottom
+            .margin    = Math.Vector4{me.themeMetrics().floating_Inset, 0, me.themeMetrics().floating_Inset, 4}
+            .hide()
         }
 
         with .documentPanel = Wnd.create'Wnd(.documentHost)
         {
             .dockStyle       = .Center
-            .backgroundStyle = .Panel
-            .style.addStyleSheetColors("wnd_Bk $view_Bk")
+            .backgroundStyle = .View
         }
 
         with .emptyView = StackLayoutCtrl.create(.documentPanel, .VerticalCenter)
@@ -483,22 +371,27 @@ impl ViewerWindow
             .hide()
         }
 
-        with let sideItem = .mainSplitter.addPane(.sidePanelPlaceholder, RightPanelDefaultWidth + panelGutter)
+        let gutter        = .themeMetrics().floating_Inset
+        with let sideItem = .mainSplitter.addPane(.sidePanelPlaceholder, RightPanelDefaultWidth + gutter)
         {
-            .minimumSize  = RightPanelMinWidth + panelGutter
-            .maximumSize  = RightPanelMaxWidth + panelGutter
+            .minimumSize  = RightPanelMinWidth + gutter
+            .maximumSize  = RightPanelMaxWidth + gutter
             .preserveSize = true
         }
 
         .mainSplitter.setPaneVisible(2, false)
     }
 
+    // Keeps the document below the strip floating over the top of the window, out of full screen,
+    // and the panels beside it the floating inset away from the top as well, as the sheet stands.
     private mtd updateDocumentInsets()
     {
-        let gutter = .themeMetrics().panel_GutterSize
-        let left   = .fullScreen or .mainSplitter.isPaneVisible(0) ? 0 : gutter
-        let right  = .fullScreen or .mainSplitter.isPaneVisible(2) ? 0 : gutter
-        .documentHost.padding = Math.Vector4{left, 0, right, 0}
+        let strip = .fullScreen ? 0 : .stripInset()
+        let top   = Math.max(strip, .themeMetrics().floating_Inset)
+        .documentHost.padding    = Math.Vector4{0, strip, 0, 0}
+        .filePanelHost.padding.y = top
+        if .currentSidePanelHost do
+            .currentSidePanelHost.padding.y = top
     }
 
     private mtd hookChildEvents()
@@ -506,18 +399,17 @@ impl ViewerWindow
         .mainSplitter.hookOnEvent = func|window = me|(_, evt)
         {
             if evt is ResizeEvent do
-                window.updateDocumentInsets()
+                window.layoutFloatingParts()
             return false
         }
 
-        .updateDocumentInsets()
         .hookOnChildEvent = func|window = me|(_, evt)
         {
             switch evt
             {
             case KeyEvent as key where window.routePlaybackKey(key):         return true
             case KeyEvent as key where window.routeSearchNavigationKey(key): return true
-            case MouseEvent as mouse where mouse.kind == .Move or mouse.kind == .Enter: window.updateFullScreenChrome(mouse.surfacePos)
+            case MouseEvent as mouse where mouse.kind == .Move or mouse.kind == .Enter: window.notePointer(mouse.surfacePos)
             case TaskEvent: window.retryRetirement()
             }
 

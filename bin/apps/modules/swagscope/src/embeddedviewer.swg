@@ -344,10 +344,10 @@ private impl EmbeddedViewer
         }
 
         let rightWidth    = owner.rightPanelWidth > 0 ? owner.rightPanelWidth : ViewerWindow.RightPanelDefaultWidth
-        with let sideItem = result.sideSplitter.addPane(result.sidePlaceholder, rightWidth + result.themeMetrics().panel_GutterSize)
+        with let sideItem = result.sideSplitter.addPane(result.sidePlaceholder, rightWidth + result.themeMetrics().floating_Inset)
         {
-            .minimumSize  = ViewerWindow.RightPanelMinWidth + result.themeMetrics().panel_GutterSize
-            .maximumSize  = ViewerWindow.RightPanelMaxWidth + result.themeMetrics().panel_GutterSize
+            .minimumSize  = ViewerWindow.RightPanelMinWidth + result.themeMetrics().floating_Inset
+            .maximumSize  = ViewerWindow.RightPanelMaxWidth + result.themeMetrics().floating_Inset
             .preserveSize = true
         }
 
@@ -366,7 +366,7 @@ private impl IWnd for EmbeddedViewer
         {
             if .owner.rightPanelWidth > 0
             {
-                let width = .owner.rightPanelWidth + .themeMetrics().panel_GutterSize
+                let width = .owner.rightPanelWidth + .themeMetrics().floating_Inset
                 if .sideSplitter.items[1]!.view.isLocallyVisible()
                     do
                     .sideSplitter.setPaneSize(1, width)
@@ -380,6 +380,6 @@ private impl IWnd for EmbeddedViewer
 
         if .sideSplitter.items[1]!.view != .sidePlaceholder
             do
-            .owner.rightPanelWidth = .sideSplitter.items[1]!.size - .themeMetrics().panel_GutterSize
+            .owner.rightPanelWidth = .sideSplitter.items[1]!.size - .themeMetrics().floating_Inset
     }
 }

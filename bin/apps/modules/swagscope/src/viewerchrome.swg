@@ -51,140 +51,99 @@ impl ViewerActionBar
     }
 }
 
-// Keeps file identity on the left and every reading of that file on the right.
+// The faint line of readings at the foot of the document.
 //
-// The general details and whatever the viewer adds to them form one run ending at the band's
-// right edge, in that order. Anchoring the run there rather than centring the general details
-// is what lets a long reading spend the whole band before it has to end in an ellipsis.
-//
-// While a folder is explored, its location takes the place of the file identity and stretches
-// up to that run: a path is read from its end, so it is worth every unit the readings leave.
-struct ViewerInfoLayout
+// What the window knows about the open file — its encoding, its lines, the selection a viewer
+// reports — reads from the left; what the viewer adds of its own, a zoom or a reading time, packs
+// against the right. It is text on the ground, not a bar: no fill and no rule, every word in the
+// faint ink. The viewer contributions are measured first, because they say exactly what they
+// need, and the details take what remains before they end in an ellipsis.
+struct ViewerReadingLine
 {
     using wnd: Wnd
 
-    late
-    {
-        filesButton:  *IconButton
-        fileGroup:    *StackLayoutCtrl
-        generalLabel: *Label
-    }
-
-    sideButton:    *IconButton?
-    locationGroup: *Wnd?
+    late details: *Label
 }
 
-impl IWnd for ViewerInfoLayout
+impl IWnd for ViewerReadingLine
 {
     mtd impl onResizeEvent(_: *ResizeEvent)
     {
-        if .fileGroup != null and .generalLabel != null do
+        if .details != null do
             .computeLayout()
+    }
+
+    // The readings answer for the open file, so pointing at them offers what the file offers.
+    mtd impl onMouseEvent(evt: *MouseEvent)
+    {
+        if evt.kind != .Released or evt.button != .Right
+        {
+            evt.accepted = false
+            return
+        }
+
+        viewerWindowFor(me).showCurrentFileActions(evt.surfacePos)
     }
 }
 
-impl ViewerInfoLayout
+impl ViewerReadingLine
 {
-    // Gaps between the groups of the information bar, around the file name, and before the side
-    // buttons.
-    const GroupSpacing      = 16.0
-    const FileSpacing       = 8.0
-    const SideButtonSpacing = 8.0
+    // Height of the line, and the air between two of its groups.
+    const Height       = 36.0
+    const GroupSpacing = 16.0
 
-    // Places the files button and the current file on the left, never past the band's center, and
-    // packs the side button, the viewer contributions and the general details against the right
-    // edge. Viewers get their measured width first; the general details take what remains.
+    func create(parent: *Wnd)->*ViewerReadingLine
+    {
+        with let result = Wnd.create'ViewerReadingLine(parent, {0, 0, 0, Height}, "scope.reading")
+        {
+            .backgroundStyle = .Transparent
+            .style.addStyleSheetColors("label_TextLight $label_TextFaint")
+        }
+
+        with result.details = Label.create(result, "", {0, 0, 0, Height}, null, .SecondaryText | .Ellipsis)
+        {
+            .style.setFont(result.theme().createDefaultFontFs(12), .Regular)
+            .setTextAlignment(.Left, .OpticalCenter)
+        }
+
+        return result
+    }
+
+    // Returns the viewer contributions the line shows, in creation order.
+    mtd contributions()->Array'(*Wnd)
+    {
+        var result: #returntype
+        for child in .children where child != cast(*Wnd, .details) and child.isLocallyVisible() do
+            result.add(child)
+        return result
+    }
+
+    // Reports whether the line has anything to show.
+    mtd hasContent()->bool => not .details.name.isEmpty() or not .contributions().isEmpty()
+
+    // Packs the viewer contributions against the right edge and gives the details the rest.
     mtd computeLayout()
     {
-        let client = .paddedClientRect()
-
-        let filesWidth = .filesButton.isLocallyVisible() ? .filesButton.position.width : 0
-        if filesWidth
-        {
-            .filesButton.setPosition(Math.Rectangle{client.x, client.y, filesWidth, client.height}, computeLayout: false)
-            .filesButton.applyLayout()
-        }
-
-        // The button that opens the panel of files and the file it opened read as one group, so
-        // they sit closer together than two unrelated groups of the band do.
-        let fileLeft  = client.x + (filesWidth ? filesWidth + FileSpacing : 0)
-        let exploring = .locationGroup and .locationGroup.isLocallyVisible()
-        if not exploring
-        {
-            let maxFileWidth = Math.max(client.horzCenter() - fileLeft - GroupSpacing, 0)
-            let fileWidth    = Math.min(Math.ceil(.fileGroup.itf.measureContent(Math.Point{maxFileWidth, client.height}).x), maxFileWidth)
-            .fileGroup.setPosition(Math.Rectangle{fileLeft, client.y, fileWidth, client.height}, computeLayout: false)
-            .fileGroup.computeLayout()
-        }
+        let client  = .clientRect()
+        let viewers = .contributions()
 
         var right = client.right()
-        if .sideButton and .sideButton.isLocallyVisible()
-        {
-            let button = .sideButton
-            right -= button.position.width
-            button.setPosition(Math.Rectangle{right, client.y, button.position.width, client.height}, computeLayout: false)
-            button.applyLayout()
-            right -= SideButtonSpacing
-        }
-
-        // What the viewer contributes is measured first, because it says exactly what it needs;
-        // the general details then spend everything that is left before they ellipsize. A
-        // location keeps the left half of the band, as the file identity does.
-        let leftBound = exploring ? client.horzCenter() : .fileGroup.position.right() + GroupSpacing
-        let available = Math.max(right - leftBound, 0)
-
-        var viewers: Array'(*Wnd)
-        for child in .children
-        {
-            if child == cast(*Wnd, .filesButton) or
-               child == cast(*Wnd, .fileGroup) or
-               child == cast(*Wnd, .generalLabel) or
-               (.sideButton and child == cast(*Wnd, .sideButton)) or
-               (.locationGroup and child == .locationGroup) or
-               not child.isLocallyVisible() do
-                continue
-            viewers.add(child)
-        }
-
-        var widths: Array'f32
-        var run:    f32
-        for one in viewers
+        for i in reversed(viewers.count)
         {
             // The room a viewer reserved is its preferred size, never the width the last pass gave
             // it: reading the current width back would let the group only ever shrink.
-            let spacing = run ? GroupSpacing : 0
-            let limit   = one.preferredSize.x > 0 ? one.preferredSize.x : one.position.width
-            let wanted  = Math.min(Math.ceil(one.itf.measureContent(Math.Point{available, client.height}).x), limit)
-            let width   = Math.max(Math.min(wanted, available - run - spacing), 0)
-            widths.add(width)
-            if width do
-                run += spacing + width
-        }
-
-        let generalSpacing = run ? GroupSpacing : 0
-        let generalWanted  = .generalLabel.name.isEmpty() ? 0 : Math.ceil(.generalLabel.itf.measureContent({}).x)
-        let generalWidth   = Math.max(Math.min(generalWanted, available - run - generalSpacing), 0)
-
-        var x = right - run - generalWidth - (generalWidth ? generalSpacing : 0)
-        if exploring
-        {
-            let location      = unwrap .locationGroup
-            let locationRight = x < right ? x - GroupSpacing : right
-            location.setPosition(Math.Rectangle{fileLeft, client.y, Math.max(locationRight - fileLeft, 0), client.height}, computeLayout: false)
-            location.applyLayout()
-        }
-
-        .generalLabel.setPosition(Math.Rectangle{x, client.y, generalWidth, client.height}, computeLayout: false)
-        if generalWidth do
-            x += generalWidth + generalSpacing
-
-        for one, i in viewers
-        {
-            one.setPosition(Math.Rectangle{x, client.y, widths[i], client.height}, computeLayout: false)
+            let one    = viewers[i]
+            let limit  = one.preferredSize.x > 0 ? one.preferredSize.x : one.position.width
+            let wanted = Math.min(Math.ceil(one.itf.measureContent(Math.Point{limit, client.height}).x), limit)
+            let width  = Math.max(Math.min(wanted, right - client.x), 0)
+            right -= width
+            one.setPosition(Math.Rectangle{right, client.y + Math.round((client.height - one.position.height) * 0.5), width, one.position.height}, computeLayout: false)
             one.applyLayout()
-            if widths[i] do
-                x += widths[i] + GroupSpacing
+            if width do
+                right -= GroupSpacing
         }
+
+        .details.setPosition(Math.Rectangle{client.x, client.y, Math.max(right - client.x, 0), client.height}, computeLayout: false)
     }
 }
 
@@ -466,30 +425,5 @@ impl ViewerErrorView
     {
         .iconLabel.setIcon(.theme().icon(.Critical, 48))
         .iconLabel.setIconColor(.themeColors().critical)
-    }
-}
-
-// The document header that names the open file, and answers for it.
-//
-// The panel is closed by default and the file being read is the one an action is wanted for most,
-// so the header carries the same menu a panel row does.
-struct ViewerInfoBar
-{
-    using wnd: Wnd
-}
-
-impl IWnd for ViewerInfoBar
-{
-    mtd impl onMouseEvent(evt: *MouseEvent)
-    {
-        // The labels the band holds decline the button, so the press arrives here having crossed
-        // whichever one the pointer was over.
-        if evt.kind != .Released or evt.button != .Right
-        {
-            evt.accepted = false
-            return
-        }
-
-        assume cast(*ViewerWindow, .parent!.parent).showCurrentFileActions(evt.surfacePos)
     }
 }

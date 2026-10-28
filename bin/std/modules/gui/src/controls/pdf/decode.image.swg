@@ -98,6 +98,29 @@ private func expandCmyk8(destination: [*] u8, source: const [*] u8, count: u64)
     }
 }
 
+private func invertMask8(destination: [*] u8, source: const [*] u8, count: u64)
+{
+    var src  = source
+    var dst  = destination
+    var left = count
+    let full = Math.Simd.splat(255'u8)
+    while left >= 16
+    {
+        Math.Simd.store(dst, full - Math.Simd.load(src))
+        src  += 16
+        dst  += 16
+        left -= 16
+    }
+
+    while left
+    {
+        dst[] = 255 - src[]
+        src  += 1
+        dst  += 1
+        left -= 1
+    }
+}
+
 // One decoded raster, in top-left-first row order, before it becomes a Pixel image.
 private struct SamplePlane
 {
@@ -646,6 +669,17 @@ private func readMaskPlane(parser: *PdfParser, nodeId, _: u32, stencil: bool)->S
     result.width  = cast(s32, width)
     result.height = cast(s32, height)
     result.alpha.resize(cast(u64, width) * cast(u64, height))
+    if depth == 8 and lowest == 0.0 and highest == 1.0
+    {
+        Memory.copy(result.alpha.storage(), bytes.storage(), result.alpha.count)
+        return result
+    }
+    if depth == 8 and lowest == 1.0 and highest == 0.0
+    {
+        invertMask8(result.alpha.storage(), bytes.storage(), result.alpha.count)
+        return result
+    }
+
     for y in cast(u64, height)
     {
         let rowBase = y * rowBytes

@@ -208,6 +208,36 @@ private func imageDocument(dictionary: string, samples: const [..] u8)->Document
     Swag.assert(image.pixelColor(3, 0).r == 40)
 }
 
+// All eight-bit coverage values survive identity decoding; inversion still remaps them.
+#test
+{
+    var samples: [256] u8
+    var colors:  [256] u8
+    for i in 256
+    {
+        samples[i] = cast(u8, i)
+        colors[i]  = 123
+    }
+
+    for decode in ["", "/Decode [0 1]", "/Decode [1 0]"]
+    {
+        for width in [15'u64, 16, 17, 256]
+        {
+            var extra: Array'u8
+            addStreamObject(&extra, 6, Format.toString("/Type /XObject /Subtype /Image /Width % /Height 1 /ColorSpace /DeviceGray /BitsPerComponent 8 %", width, decode).toString(), samples[0 until width])
+            addStreamObject(&extra, 5, Format.toString("/Type /XObject /Subtype /Image /Width % /Height 1 /ColorSpace /DeviceGray /BitsPerComponent 8 /SMask 6 0 R", width).toString(), colors[0 until width])
+            let content  = "q 10 0 0 10 0 0 cm /Im0 Do Q"
+            let document = expect Document.decode(singlePagePdf("/XObject << /Im0 5 0 R >>", cast(const [..] u8, content), extra.toSlice()).toSlice())
+            let image    = unwrap onlyItem(document.pages[0], .Image).imageValue()
+            for i in width
+            {
+                let expected = decode == "/Decode [1 0]" ? 255 - i : i
+                Swag.assert(image.pixelColor(cast(s32, i), 0).a == cast(u8, expected))
+            }
+        }
+    }
+}
+
 // A color key mask turns the sample ranges it names transparent.
 #test
 {

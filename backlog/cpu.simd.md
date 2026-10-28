@@ -250,6 +250,9 @@ conversion, image codecs, text/crypto routines, Pixel spans, and SDF samples.
 
 - Evidence: default 8-bit gray expansion and CMYK conversion already use packed shuffles in
   `decode.image.swg`; the remaining paths still use sample extraction and per-pixel composition.
+- Progress: 8-bit soft masks with identity decode copy their samples directly; inverted masks
+  subtract sixteen samples at a time and handle the tail scalarly. PDF tests compare all 256
+  coverage values against the original scalar conversion and cover SIMD block boundaries.
 - Next: vectorize non-default decode arrays, packed and 16-bit samples, color-key comparison,
   mask scaling, and alpha composition; use gather for indexed spaces only when profitable.
 - Done when: PDF image fixtures preserve pixels across remaining bit depths, masks, decode

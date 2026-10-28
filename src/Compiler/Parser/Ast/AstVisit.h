@@ -114,6 +114,9 @@ private:
 
     Ast*       ast_     = nullptr;
     AstNodeRef rootRef_ = AstNodeRef::invalid();
+#if SWC_HAS_VISIT_DEBUG_INFO
+    SourceCodeRef dbgCodeRef_ = SourceCodeRef::invalid();
+#endif
 
     std::function<Result(AstNode&)>              preNodeVisitor_;
     std::function<Result(AstNode&)>              postNodeVisitor_;

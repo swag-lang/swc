@@ -40,29 +40,32 @@ AstVisitResult AstVisit::step(const TaskContext& ctx)
     Frame& frame = stack_.back();
 
 #if SWC_HAS_VISIT_DEBUG_INFO
-    dbgSrcFile = nullptr;
     if (!frame.node && ast_->hasNode(frame.nodeRef))
         frame.node = &ast_->node(frame.nodeRef);
     dbgNode    = frame.node;
-    dbgTok     = nullptr;
-    dbgTokView = {};
-    dbgTokRef  = TokenRef::invalid();
-    dbgLoc     = {};
-
-    if (dbgNode)
+    const SourceCodeRef currentCodeRef = dbgNode ? dbgNode->codeRef() : SourceCodeRef::invalid();
+    if (!currentCodeRef.isValid() || currentCodeRef != dbgCodeRef_)
     {
-        dbgTokRef = dbgNode->tokRef();
+        dbgCodeRef_ = currentCodeRef;
+        dbgSrcFile  = nullptr;
+        dbgTok      = nullptr;
+        dbgTokView  = {};
+        dbgTokRef   = currentCodeRef.tokRef;
+        dbgLoc      = {};
 
-        CompilerInstance::ResolvedSourceLocation resolvedLocation;
-        if (ctx.compiler().tryResolveSourceLocation(ctx, resolvedLocation, dbgNode->codeRef()))
+        if (currentCodeRef.isValid())
         {
-            dbgSrcFile = resolvedLocation.sourceFile;
-            dbgLoc     = resolvedLocation.codeRange;
+            CompilerInstance::ResolvedSourceLocation resolvedLocation;
+            if (ctx.compiler().tryResolveSourceLocation(ctx, resolvedLocation, currentCodeRef))
+            {
+                dbgSrcFile = resolvedLocation.sourceFile;
+                dbgLoc     = resolvedLocation.codeRange;
 
-            const SourceView& dbgView = *resolvedLocation.codeRange.srcView;
+                const SourceView& dbgView = *resolvedLocation.codeRange.srcView;
 
-            dbgTok     = dbgTokRef.isValid() ? &dbgView.token(dbgTokRef) : nullptr;
-            dbgTokView = dbgTok ? dbgTok->string(dbgView) : "";
+                dbgTok     = dbgTokRef.isValid() ? &dbgView.token(dbgTokRef) : nullptr;
+                dbgTokView = dbgTok ? dbgTok->string(dbgView) : "";
+            }
         }
     }
 #endif

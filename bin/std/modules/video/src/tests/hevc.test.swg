@@ -372,6 +372,76 @@ using Core, Core.Errors, Pixel
     }
 }
 
+// Reference gathering, substitution and smoothing must not depend on the
+// previous contents of the shared intra scratch, even at picture boundaries.
+#test
+{
+    var sps: Hevc.Sps
+    sps.width = 64
+    sps.height = 64
+    sps.widthInCtbs = 1
+    sps.ctbLog2Size = 6
+    sps.subWidthC = 2
+    sps.subHeightC = 2
+    sps.chromaArrayType = 1
+    sps.strongIntraSmoothing = true
+    sps.bitDepthLuma = 8
+    sps.bitDepthChroma = 8
+    var pps: Hevc.Pps
+    var frame: Hevc.Frame
+    frame.prepare(&sps)
+    for y in 64's32
+    {
+        for x in 64's32 do
+            frame.lumaAtMutable(x, y)[0] = cast(u16, ((x * 13 + y * 7) & 255))
+    }
+    for y in 32's32
+    {
+        for x in 32's32
+        {
+            frame.chromaAtMutable(0, x, y)[0] = cast(u16, ((x * 17 + y * 11) & 255))
+            frame.chromaAtMutable(1, x, y)[0] = cast(u16, ((x * 19 + y * 3) & 255))
+        }
+    }
+    var decoder: Hevc.Decoder
+    decoder.activeSps = &sps
+    decoder.activePps = &pps
+    decoder.current = &frame
+    decoder.gridWidth = 16
+    decoder.zScan.resize(16 * 16)
+    decoder.ctbRsToTs.resize(1)
+    decoder.tileId.resize(1)
+    decoder.ctbSliceAddr.resize(1)
+    var expected: [32 * 32] u16
+    for log2Size in [2'u32, 3, 4, 5]
+    {
+        let size = 1'u32 << log2Size
+        for position in 4'u32
+        {
+            let xLuma = (position & 1) != 0 ? 16's32 : 0's32
+            let yLuma = (position & 2) != 0 ? 16's32 : 0's32
+            for component in [0'u32, 1]
+            {
+                let x = component == 0 ? xLuma : xLuma / 2
+                let y = component == 0 ? yLuma : yLuma / 2
+                for mode in 35'u32
+                {
+                    for index in decoder.residual.count do
+                        decoder.residual[index] = 0x35353535
+                    decoder.intraPredict(x, y, xLuma, yLuma, log2Size, component, mode)
+                    for index in size * size do
+                        expected[index] = decoder.predSamples[index]
+                    for index in decoder.residual.count do
+                        decoder.residual[index] = -0x5A5A5A5A
+                    decoder.intraPredict(x, y, xLuma, yLuma, log2Size, component, mode)
+                    for index in size * size do
+                        Swag.assert(decoder.predSamples[index] == expected[index])
+                }
+            }
+        }
+    }
+}
+
 // Angular prediction must not depend on old residual scratch, including the
 // extra lanes read by vector loads and the negative-angle reference extension.
 #test

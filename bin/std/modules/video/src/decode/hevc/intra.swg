@@ -24,6 +24,11 @@ struct IntraReference
     size:      u32     // nTbS.
 }
 
+// Keep the reference and the later filtered/angular workspace disjoint within
+// Decoder.residual, which is no longer live while an intra block is predicted.
+const IntraScratchOffset = 128'u32
+#assert(#sizeof(IntraReference) <= IntraScratchOffset * #sizeof(s32))
+
 impl IntraReference
 {
     #[Swag.Inline]
@@ -254,19 +259,19 @@ impl Decoder
         let size     = 1'u32 << log2Size
         let bitDepth = component == 0 ? sps.bitDepthLuma : sps.bitDepthChroma
 
-        var reference: IntraReference
-        .gatherReference(&reference, x, y, xLuma, yLuma, size, component, bitDepth)
-        .filterReference(&reference, size, log2Size, component, mode, bitDepth)
+        let reference = cast(*IntraReference, &.residual[0])
+        .gatherReference(reference, x, y, xLuma, yLuma, size, component, bitDepth)
+        .filterReference(reference, size, log2Size, component, mode, bitDepth)
 
         switch
         {
         case mode == IntraPlanar:
             if size >= 8 do
-                predictPlanarPacked(&reference, &.predSamples[0], size, log2Size)
+                predictPlanarPacked(reference, &.predSamples[0], size, log2Size)
             else do
-                predictPlanar4(&reference, &.predSamples[0])
-        case mode == IntraDc:     .predictDc(&reference, size, log2Size, component)
-        default: .predictAngular(&reference, size, component, mode, bitDepth)
+                predictPlanar4(reference, &.predSamples[0])
+        case mode == IntraDc:     .predictDc(reference, size, log2Size, component)
+        default: .predictAngular(reference, size, component, mode, bitDepth)
         }
     }
 
@@ -379,7 +384,7 @@ impl Decoder
     }
 
     // Smooths the reference samples when the prediction direction calls for it, clause 8.4.4.2.3.
-    private mtd const filterReference(reference: *IntraReference, size, log2Size, component, mode, bitDepth: u32)
+    private mtd filterReference(reference: *IntraReference, size, log2Size, component, mode, bitDepth: u32)
     {
         let sps = unwrap .activeSps
         if component != 0 or size == 4 or mode == IntraDc or sps.intraSmoothingDisabled do
@@ -413,7 +418,7 @@ impl Decoder
             }
         }
 
-        var filtered: [129] u16
+        let filtered = cast([*] u16, &.residual[IntraScratchOffset])
         filtered[size * 2] = cast(u16, ((cast(u32, reference.left(0)) + 2 * cast(u32, reference.corner()) + cast(u32, reference.top(0)) + 2) >> 2))
         for index in total - 1
         {
@@ -425,7 +430,7 @@ impl Decoder
 
         filtered[0] = reference.samples[0]
         filtered[reference.count - 1] = reference.samples[reference.count - 1]
-        Memory.copy(&reference.samples, &filtered, cast(u64, reference.count) * #sizeof(u16))
+        Memory.copy(&reference.samples, filtered, cast(u64, reference.count) * #sizeof(u16))
     }
 
     // Predicts a flat block, clause 8.4.4.2.5.
@@ -486,7 +491,7 @@ impl Decoder
         // Residual samples are consumed before the next prediction and are
         // reconstructed again afterwards. Reuse their storage for this reference
         // rather than clearing a fresh 160-sample temporary for every block.
-        let main = cast([*] u16, &.residual[0])
+        let main = cast([*] u16, &.residual[IntraScratchOffset])
         let origin = 64'u32     // Index of ref[0] inside the array, leaving room for ref[-32..-1].
 
         for index in size + 1

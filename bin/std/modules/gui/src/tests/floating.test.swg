@@ -227,6 +227,68 @@ func floatingHost(host: *Testing.HeadlessHost, width, height: f32, light: bool)
     Swag.assert(inspector.rows.isEmpty())
 }
 
+// An inspector carrying generated settings stands the whole height of its parent and hands them
+// the column under its rows; clearing the rows keeps them.
+#test
+{
+    var host: Testing.HeadlessHost
+    floatingHost(&host, 640, 480, false)
+    let metrics = host.theme.metrics
+
+    let inspector = Inspector.create(&host.root)
+    inspector.setTitle("Text", "1 object")
+    inspector.addSection("Color")
+    let swatch  = inspector.addRow("Fill", Slider.create(&host.root, {}))
+    let content = inspector.setContent(Wnd.create'Wnd(&host.root, {}))
+    host.root.applyLayout()
+
+    let pad = metrics.inspector_Padding
+    Swag.assert(content.parent == &inspector.wnd)
+    Swag.assert(inspector.position.bottom() == 480 - metrics.floating_Inset)
+    Swag.assert(content.position.x == pad and content.position.width == inspector.position.width - 2 * pad)
+    Swag.assert(content.position.y == swatch.position.bottom() + metrics.inspector_RowGap)
+    Swag.assert(content.position.bottom() == inspector.position.height - pad)
+
+    inspector.clear()
+    host.root.applyLayout()
+    Swag.assert(inspector.rows.isEmpty() and not content.isPendingDestroy)
+    Swag.assert(content.position.y == pad + metrics.control_InspectorHeight + metrics.inspector_RowGap)
+}
+
+// A mini-bar is filled again for each selection: clearing it destroys what it held.
+#test
+{
+    var host: Testing.HeadlessHost
+    floatingHost(&host, 640, 480, false)
+
+    let bar    = MiniBar.create(&host.root)
+    let button = bar.addButton(host.theme.icon(.Copy, 16), toolTip: "Copy")
+    bar.addSeparator()
+    discard bar.addTextButton("Group")
+    let width = bar.bodySize().x
+
+    // The bar writes no word beside a glyph, whatever the command of the button names.
+    Swag.assert(button.flags.has(.IconOnly))
+
+    bar.clear()
+    Swag.assert(bar.items.isEmpty() and button.isPendingDestroy)
+    Swag.assert(bar.bodySize().x < width)
+}
+
+// A section label names its group in small spaced capitals and can be renamed.
+#test
+{
+    var host: Testing.HeadlessHost
+    floatingHost(&host, 320, 120, false)
+
+    let label = SectionLabel.create(&host.root, "Color", {20, 20, 200, host.theme.metrics.inspector_SectionHeight})
+    Swag.assert(label.text == "Color")
+    label.setText("Stroke")
+    Swag.assert(label.text == "Stroke")
+    var image = host.render(&host.root)
+    Swag.assert(image.isValid())
+}
+
 // The dock, a selection with its mini-bar and the hint line, in Encre and in Papier.
 #[Swag.TestTag("golden")]
 #test

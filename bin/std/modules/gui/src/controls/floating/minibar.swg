@@ -108,7 +108,7 @@ impl MiniBar
         var glyph   = icon
         glyph.sizeX, glyph.sizeY = metrics.menuPopup_IconSize
 
-        with let button = IconButton.create(me, glyph, {0, 0, metrics.miniBar_ButtonSize, metrics.miniBar_ButtonSize}, id, flags)
+        with let button = IconButton.create(me, glyph, {0, 0, metrics.miniBar_ButtonSize, metrics.miniBar_ButtonSize}, id, flags | .IconOnly)
         {
             .setForm(.RoundedRectangle)
             .setCheckIndicator(.Frame)
@@ -139,6 +139,15 @@ impl MiniBar
             control.setParent(&.wnd)
         control.resize(control.position.width, .themeMetrics().miniBar_ButtonSize)
         .items.add(MiniBarItem{control})
+        .arrange()
+    }
+
+    // Removes every item, destroying the controls, so the bar can be filled for another selection.
+    mtd clear()
+    {
+        for item in .items where item.wnd do
+            item.wnd.destroy()
+        .items.clear()
         .arrange()
     }
 

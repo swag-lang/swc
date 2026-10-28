@@ -13,7 +13,10 @@ using Core, Pixel
 //
 // The inspector folds to an edge tab ("Properties · I") so the work takes the full width; the
 // tab unfolds it again. The application creates the editors, hands them over with
-// [[Gui.Inspector.addRow]] and keeps listening to their own signals.
+// [[Gui.Inspector.addRow]] and keeps listening to their own signals. A selection whose settings
+// are generated, such as a property grid, is handed over whole with [[Gui.Inspector.setContent]]:
+// it takes the rest of the column under the rows, and the inspector then reaches down to the
+// bottom inset of its parent so the content has the whole height to scroll in.
 //
 // ```swag
 // with let inspector = Inspector.create(view)
@@ -44,6 +47,7 @@ struct Inspector
 
     rows:    Array'InspectorRow
     actions: Array'(*PushButton)
+    content: *Wnd?
 }
 
 // One row of an [[Gui.Inspector]]: a section label, a labelled editor, or an editor spanning the width.
@@ -77,7 +81,8 @@ impl IWnd for Inspector
         }
 
         let width  = Math.min(metrics.inspector_Width, bounds.width - 2 * inset)
-        let height = Math.min(.measureBody(), bounds.bottom() - inset - top)
+        let room   = Math.max(bounds.bottom() - inset - top, 0)
+        let height = .content ? room : Math.min(.measureBody(), room)
         .setPosition(Math.Rectangle{bounds.right() - inset - width, top, width, height})
         .arrange(width, height)
     }
@@ -214,7 +219,24 @@ impl Inspector
     #[Swag.Discardable]
     mtd addWideRow(editor: *Wnd)->*Wnd => .addRow("", editor)
 
-    // Removes the title, the actions and every row, destroying their editors.
+    // Hands `content` the rest of the column under the rows, and returns it.
+    //
+    // The inspector adopts `content`, places it under the last row, between the paddings, down to
+    // its bottom padding, and destroys it with itself; [[Gui.Inspector.clear]] keeps it. Use it for
+    // settings the application generates, such as a [[Gui.Properties]] grid, which scrolls on its
+    // own. The inspector then stands the whole height of its parent.
+    #[Swag.Discardable]
+    mtd setContent(content: *Wnd)->*Wnd
+    {
+        if content.parent != me do
+            content.setParent(&.wnd)
+        .content = content
+        .relayout()
+        return content
+    }
+
+    // Removes the title, the actions and every row, destroying their editors. The content set by
+    // [[Gui.Inspector.setContent]] stays.
     mtd clear()
     {
         for row in .rows where row.editor do
@@ -292,6 +314,12 @@ impl Inspector
 
             row.editor.setPosition(cell)
             row.editor.show(row.top + rowSize <= height)
+        }
+
+        if .content
+        {
+            let top = .rows.isEmpty() ? pad + rowSize + metrics.inspector_RowGap : .measureBody() - pad + metrics.inspector_RowGap
+            .content.setPosition(Math.Rectangle{pad, top, Math.max(width - 2 * pad, 0), Math.max(height - top - pad, 0)})
         }
     }
 

@@ -98,7 +98,7 @@ impl ToolDock
         var glyph   = icon
         glyph.sizeX, glyph.sizeY = metrics.toolDock_Glyph
 
-        with let tool = IconButton.create(me, glyph, {0, 0, metrics.toolDock_CellSize, metrics.toolDock_CellSize}, id, .Radio)
+        with let tool = IconButton.create(me, glyph, {0, 0, metrics.toolDock_CellSize, metrics.toolDock_CellSize}, id, .Radio | .IconOnly)
         {
             .setForm(.RoundedRectangle)
             .setCheckIndicator(.Frame)

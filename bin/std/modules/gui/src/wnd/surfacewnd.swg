@@ -183,7 +183,7 @@ impl IWnd for SurfaceWnd
             buttonCount += 1
         if .minimizeBtn do
             buttonCount += 1
-        for button in .captionButtons where not button.isPendingDestroy do
+        for button in .captionButtons where isShownCaptionButton(button) do
             buttonCount += 1
         var gapCount = buttonCount > 0 ? buttonCount - 1 : 0
 
@@ -224,7 +224,7 @@ impl IWnd for SurfaceWnd
             pos.x -= pos.width
             if gapCount > 0
             {
-                pos.x    -= .captionButtons.isEmpty() ? metrics.wnd_CaptionButtonGap : metrics.wnd_CaptionActionGap
+                pos.x    -= .hasShownCaptionButton() ? metrics.wnd_CaptionActionGap : metrics.wnd_CaptionButtonGap
                 gapCount -= 1
             }
         }
@@ -232,7 +232,7 @@ impl IWnd for SurfaceWnd
         var buttonRight = pos.x + pos.width
         for button in .captionButtons
         {
-            if button.isPendingDestroy do
+            if not isShownCaptionButton(button) do
                 continue
             var appButtonPos = pos
             appButtonPos.width = Math.max(metrics.wnd_CaptionButtonGlyph + 2 * metrics.wnd_CaptionButtonMargin, pos.height * 0.75)
@@ -329,7 +329,7 @@ impl SurfaceWnd
             result = Math.min(result, .maximizeBtn.position.x)
         if .minimizeBtn do
             result = Math.min(result, .minimizeBtn.position.x)
-        for button in .captionButtons where not button.isPendingDestroy do
+        for button in .captionButtons where isShownCaptionButton(button) do
             result = Math.min(result, button.position.x)
         return result
     }
@@ -359,12 +359,20 @@ impl SurfaceWnd
             return true
         if .minimizeBtn and .minimizeBtn.position.contains(pos.x, pos.y) do
             return true
-        for button in .captionButtons where not button.isPendingDestroy
+        for button in .captionButtons where isShownCaptionButton(button)
         {
             if button.position.contains(pos.x, pos.y) do
                 return true
         }
 
+        return false
+    }
+
+    // Reports whether any application caption action is shown.
+    private mtd hasShownCaptionButton()->bool
+    {
+        for button in .captionButtons where isShownCaptionButton(button) do
+            return true
         return false
     }
 
@@ -617,3 +625,7 @@ impl SurfaceWnd
         .applySurfaceFlags()
     }
 }
+
+// Reports whether an application caption action is shown: an application may keep one hidden and
+// still use it, as the appearance choice it offers through the lens.
+private func isShownCaptionButton(button: *IconButton)->bool => not button.isPendingDestroy and button.isLocallyVisible()

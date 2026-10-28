@@ -376,9 +376,9 @@ impl ViewerWindow
 
     // Keeps the document below the strip floating over the top of the window, out of full screen,
     // and the panels beside it the floating inset away from the top as well, as the sheet stands.
-    private mtd updateDocumentInsets()
+    mtd updateDocumentInsets()
     {
-        let strip = .fullScreen ? 0 : .stripInset()
+        let strip = .fullScreen or .isEdgeToEdge() ? 0 : .stripInset()
         let top   = Math.max(strip, .themeMetrics().floating_Inset)
         .documentHost.padding    = Math.Vector4{0, strip, 0, 0}
         .filePanelHost.padding.y = top

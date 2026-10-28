@@ -19,6 +19,7 @@ func viewerPlugin()->Viewer.Plugin
         .create       = &createViewer
         .thumbnail    = &loadThumbnail
         .smokeFixture = "glint-aac-mjpeg.mp4"
+        .edgeToEdge   = true
     }
 
     for format in Reader.decodableFormats() do
@@ -28,9 +29,8 @@ func viewerPlugin()->Viewer.Plugin
 
 private
 {
-    const SeekSeconds  = 10.0
-    const CommandWidth = 1080.0
-    const NoSubtitle   = Swag.U32.Max
+    const SeekSeconds = 10.0
+    const NoSubtitle  = Swag.U32.Max
 
     // The playback rates the settings menu offers. XAudio2 creates every voice with the default
     // maximum frequency ratio of two, so 2x is the fastest rate the sound can follow.
@@ -51,6 +51,10 @@ private
     // clock and only re-anchors it when the two have actually separated.
     const AudioDriftSeconds = 0.1
     const BackdropColors    = "view_Bk 0xFF000000"
+
+    // How many times the stillness of a resting scroll bar the veils wait before they leave: a
+    // film is watched, not read, so the hand is given longer to come back to the controls.
+    const VeilRestFactor = 3'u64
 
     // How far past the clock a resync jump may land.
     //
@@ -144,24 +148,31 @@ struct Panel
 {
     using wnd: Wnd
 
+    // The picture, and the two veils that come over it while the hand moves: the title at the top,
+    // the timeline and the controls at the bottom. The controls are the bottom veil's, named here once.
     late
     {
-        commands:        *Wnd
-        playButton:      *IconButton
-        stopButton:      *IconButton
-        backwardButton:  *IconButton
-        forwardButton:   *IconButton
-        timeline:        *Slider
-        timeLabel:       *Label
-        optionsButton:   *IconButton
-        muteButton:      *IconButton
-        volumeSlider:    *Slider
-        imageView:       *ImageView
-        subtitleOverlay: *SubtitleOverlay
-        information:     *MediaInfoPanel
+        imageView:        *ImageView
+        subtitleOverlay:  *SubtitleOverlay
+        information:      *MediaInfoPanel
+        topVeil:          *TopVeil
+        bottomVeil:       *BottomVeil
+        timeline:         *VideoTimeline
+        playButton:       *IconButton
+        subtitleChip:     *IconButton
+        audioChip:        *IconButton
+        speedChip:        *IconButton
+        muteButton:       *IconButton
+        fullScreenButton: *IconButton
     }
 
     seekOverlay: *SeekOverlay?
+
+    // The veils show while the hand moves and leave once it has been still a moment, unless it
+    // rests on them or a page of the options is open.
+    veilsShown: bool
+    veilsHeld:  bool     // Whether the pointer last moved over a veil.
+    veilClock:  Time.Stopwatch     // Time since the pointer last moved.
 
     // Opening and decoding run on the same persistent worker, preserving codec allocator and
     // thread affinity. `openState` holds one of the `Open` states.
@@ -349,16 +360,17 @@ private impl Panel
 
     mtd retranslate()
     {
-        .playButton.toolTip     = .playing ? texts().ui_TipPause : texts().ui_TipPlay
-        .stopButton.toolTip     = texts().ui_TipStop
-        .backwardButton.toolTip = texts().ui_TipBackward
-        .forwardButton.toolTip  = texts().ui_TipForward
-        .timeline.toolTip       = texts().ui_TipSeek
-        .muteButton.toolTip     = texts().ui_TipMute
-        .volumeSlider.toolTip   = texts().ui_TipVolume
-        .optionsButton.toolTip  = appStrings().ui_Options
+        let strings = texts()
+        .playButton.toolTip       = .playing ? strings.ui_TipPause : strings.ui_TipPlay
+        .timeline.toolTip         = strings.ui_TipSeek
+        .muteButton.toolTip       = strings.ui_TipMute
+        .fullScreenButton.toolTip = strings.ui_TipFullScreen
+        .subtitleChip.toolTip     = strings.ui_OptionSubtitles
+        .audioChip.toolTip        = strings.ui_OptionAudio
+        .speedChip.toolTip        = strings.ui_OptionSpeed
 
         .refreshDetails()
+        .refreshChips()
     }
 }
 
@@ -401,7 +413,7 @@ impl Panel
         if .voice do
             catch .voice.setFrequencyRatio(cast(f32, rate))
         if not .optionsOpen do
-            .refreshOptionsBadge()
+            .refreshChips()
         .refreshDetails()
     }
 
@@ -482,7 +494,6 @@ impl Panel
         .playButton.setIcon(.theme().icon(.playing ? .Pause : .Play, themeActionIconSize(.themeMetrics())))
         .playButton.toolTip = .playing ? texts().ui_TipPause : texts().ui_TipPlay
         .playButton.enable(.hasFrame)
-        .stopButton.enable(.hasFrame and (.frameIndex != 0 or .playing))
         .refreshTime()
     }
 
@@ -501,8 +512,9 @@ impl Panel
         // its whole hierarchy and chrome instead of the one view that changed.
         if not .timelineChanging
         {
+            // A timeline not laid out yet has no pixels to tell positions apart by.
             let width = .timeline.position.width
-            if duration <= 0 or width <= 0
+            if duration <= 0 or width <= 1
             {
                 .timeline.setValueWithoutGesture(cast(f32, seconds))
             }
@@ -517,8 +529,16 @@ impl Panel
             }
         }
 
-        .timeLabel.setText(Viewer.timeRangeText(seconds, duration))
+        .bottomVeil.setTime(Viewer.timeText(seconds), Viewer.durationText(duration))
+
+        // What the index has reached is what the timeline shows as read.
+        let known = .video.frameCount()
+        if known and duration > 0 do
+            .timeline.setBuffered(cast(f32, Math.min(.frameSeconds(known - 1), duration)))
     }
+
+    // Returns the time the bottom veil writes: played, then the length.
+    mtd timeText()->String => .bottomVeil.timeText()
 
     mtd seekSeconds(seconds: f64)
     {
@@ -549,13 +569,10 @@ impl Panel
             catch .voice.setVolume(muted ? 0 : .volume)
     }
 
-    // Sets the playback volume, from 0 to 1, and shows it on the volume slider.
+    // Sets the playback volume, from 0 to 1.
     mtd setVolume(volume: f32)
     {
-        // The slider snaps to its step and reports the change back here, so it moves first and
-        // the requested volume, not its snapped position, is the one kept.
         let requested = Math.clamp(volume, 0, 1)
-        .volumeSlider.setValueWithoutGesture(requested)
         .volume = requested
         if .voice and not .muted do
             catch .voice.setVolume(.volume)
@@ -588,7 +605,22 @@ private impl IWnd for Panel
             .finishSubtitles()
             .refreshTime()
             .refreshSubtitle()
+            .settleVeils(.veilClock.elapsedMilliseconds())
         }
+    }
+
+    mtd impl onResizeEvent(_: *ResizeEvent)
+    {
+        if .bottomVeil != null do
+            .arrangeVeils()
+    }
+
+    // A movement over the picture itself, where no control stands, brings the veils too.
+    mtd impl onMouseEvent(evt: *MouseEvent)
+    {
+        if evt.kind == .Move do
+            .pointerMoved(false)
+        evt.accepted = false
     }
 
     mtd impl onDestroyEvent(_: *DestroyEvent)
@@ -640,6 +672,7 @@ private impl IWnd for Panel
         case .Down:                   .setVolume(Math.max(.volume - Viewer.VolumeStep, 0))
         case .Home:                   .seekSeconds(0)
         case .MediaStop:              .stopPlayback()
+        case .F:                      .toggleFullScreen()
         default:                      evt.accepted = false
         }
     }
@@ -719,7 +752,19 @@ private impl Panel
         // An adjusted rate is part of what the reader is watching, so the summary declares it.
         if .playbackRate != 1 do
             .details = Format.toString("% · %", .details, playbackRateText(.playbackRate))
-        .services.showDetails(me, .details)
+
+        // At rest nothing stands over the picture, so the facts read in the top veil, not at the foot.
+        .topVeil.facts = .facts()
+        .topVeil.invalidate()
+    }
+
+    // Returns the facts the top veil writes after the title: the picture, its rate and its length.
+    mtd facts()->String
+    {
+        if not .video.isOpen() do
+            return {}
+        let rate = .video.frameRate().framesPerSecond()
+        return Format.toString("% × % · %{f2} fps · %", .video.width(), .video.height(), rate, Viewer.durationText(.video.durationInSeconds()))
     }
 
     // Publishes the reader opened by the background worker and starts picture production.
@@ -794,7 +839,6 @@ private impl Panel
         {
             .audioReady = true
             .muteButton.enable(true)
-            .volumeSlider.enable(true)
             if not Sound.acquireEngine() do
                 fail UnsupportedFormatError{texts().err_AudioEngine}
             .audioEngineAcquired = true
@@ -820,14 +864,30 @@ private impl Panel
         .subtitleSource      = .subtitleOverlay.sidecars.isEmpty() ? .Embedded : .Sidecar
         .subtitleTrackIndex  = 0
         .subtitleLastSeconds = -1
+        .refreshChips()
     }
 
-    // Writes the playback rate beside the options button while it is not the normal one.
-    mtd refreshOptionsBadge()
+    // Writes on the chips what is in force: the subtitles, the sound track and the speed. A chip
+    // whose choice the film does not offer is not shown.
+    mtd refreshChips()
     {
         if .optionsOpen do
             return
-        Viewer.setOptionsBadge(.optionsButton, .playbackRate == 1 ? "" : Format.toString("%×", .playbackRate))
+
+        let strings = texts()
+        .subtitleChip.show(.subtitleReady)
+        if .subtitleReady
+        {
+            let track = .subtitleTrack()
+            let name  = track ? subtitleChipName(track) : String.from(strings.ui_SubtitleOff)
+            .subtitleChip.setQuietText(Format.toString(strings.ui_SubtitleChip, name))
+        }
+
+        .audioChip.show(.audio != null)
+        if .audio do
+            .audioChip.setQuietText(audioChipName(.audioTrackIndex, .audio))
+        .speedChip.setQuietText(Format.toString("%×", .playbackRate))
+        .bottomVeil.arrange()
     }
 
     // Gives the lens the transport, the frame steps, the sound and the options of the film.
@@ -836,7 +896,7 @@ private impl Panel
         let texts = appStrings()
         let ready = .playButton.isEnabled()
         entries.add(.playing ? texts.cmd_Pause : texts.cmd_Play, func|view = me|() { view.togglePlayback() }, disabled: not ready, shortcut: Input.formatKeyShortcut(.None, .Space))
-        entries.add(texts.cmd_Stop, func|view = me|() { view.stopPlayback() }, disabled: not .stopButton.isEnabled())
+        entries.add(texts.cmd_Stop, func|view = me|() { view.stopPlayback() }, disabled: not .hasFrame or (.frameIndex == 0 and not .playing))
         entries.add(texts.cmd_SeekBackward, func|view = me|() { view.seekRelative(-SeekSeconds) }, shortcut: Input.formatKeyShortcut(.None, .Left))
         entries.add(texts.cmd_SeekForward, func|view = me|() { view.seekRelative(SeekSeconds) }, shortcut: Input.formatKeyShortcut(.None, .Right))
         entries.add(texts.cmd_PreviousFrame, func|view = me|() { discard view.stepFrame(false) }, disabled: not ready, shortcut: Input.formatKeyShortcut(.Control, .Left))
@@ -845,103 +905,142 @@ private impl Panel
         entries.add(texts.cmd_Options, func|view = me|() { view.showOptions() })
     }
 
-    // Creates the transport in the command group: transport and seek buttons with the clock on the
-    // left, the options and the sound on the right, and the timeline between.
-    mtd createTransportBar()
+    // Creates the two veils over the picture, hidden: the title and its facts at the top, the
+    // timeline and the controls at the bottom.
+    mtd createVeils()
     {
-        with .playButton = Viewer.createActionButton(.commands, .Play)
+        with .topVeil = Wnd.create'TopVeil(me, "scope.video.title", Math.Rectangle{0, 0, 0, TopVeilHeight})
         {
-            .dockStyle = .Left
-            .toolTip   = texts().ui_TipPlay
-            .enable(false)
-            .sigPressed += func|view = me|(_) { view.togglePlayback() }
+            .backgroundStyle = .Transparent
+            .wndFlags        |= .TopMost | .Disabled
+            .hide()
         }
 
-        with .stopButton = Viewer.createActionButton(.commands, .Stop)
+        .bottomVeil = BottomVeil.create(me)
+        .bottomVeil.hide()
+
+        .timeline         = .bottomVeil.timeline
+        .playButton       = .bottomVeil.playButton
+        .subtitleChip     = .bottomVeil.subtitleChip
+        .audioChip        = .bottomVeil.audioChip
+        .speedChip        = .bottomVeil.speedChip
+        .muteButton       = .bottomVeil.muteButton
+        .fullScreenButton = .bottomVeil.fullScreenButton
+
+        let strings = texts()
+        .playButton.toolTip = strings.ui_TipPlay
+        .playButton.enable(false)
+        .playButton.sigPressed += func|view = me|(_) { view.togglePlayback() }
+
+        .muteButton.toolTip = strings.ui_TipMute
+        .muteButton.enable(false)
+        .muteButton.sigCheckedChanged += func|view = me|(button) { view.setMuted(button.isChecked) }
+
+        .fullScreenButton.toolTip    = strings.ui_TipFullScreen
+        .fullScreenButton.sigPressed += func|view = me|(_) { view.toggleFullScreen() }
+
+        .subtitleChip.sigPressed += func|view = me|(chip) { view.showChoices(chip, func|view|(page) { view.describeSubtitles(page) }) }
+        .audioChip.sigPressed    += func|view = me|(chip) { view.showChoices(chip, func|view|(page) { view.describeAudioTracks(page) }) }
+        .speedChip.sigPressed    += func|view = me|(chip) { view.showChoices(chip, func|view|(page) { view.describeSpeeds(page) }) }
+
+        // A drag may cross hundreds of frames. Decode its final position once instead of
+        // serially decoding every intermediate value queued by the pointer movement.
+        .timeline.toolTip = strings.ui_TipSeek
+        .timeline.enable(false)
+        .timeline.sigStartChange += func|view = me|(_)
         {
-            .dockStyle = .Left
-            .margin.x  = 4
-            .toolTip   = texts().ui_TipStop
-            .enable(false)
-            .sigPressed += func|view = me|(_) { view.stopPlayback() }
+            view.timelineChanging = true
         }
 
-        with .backwardButton = Viewer.createActionButton(.commands, .SeekBackward)
+        .timeline.sigEndChange += func|view = me|(timeline)
         {
-            .dockStyle = .Left
-
-            // Play/stop drive the transport and the two relative seeks move it: two families,
-            // one block of air between them.
-            .margin.x   = 16
-            .toolTip    = texts().ui_TipBackward
-            .sigPressed += func|view = me|(_) { view.seekRelative(-SeekSeconds) }
+            view.timelineChanging = false
+            view.seekSeconds(timeline.value())
         }
 
-        with .forwardButton = Viewer.createActionButton(.commands, .SeekForward)
+        // The veils follow the hand: any movement over the film brings them, and where it moved
+        // tells whether they are held.
+        .hookOnChildEvent = func|view = me|(_, evt)->bool
         {
-            .dockStyle  = .Left
-            .margin.x   = 4
-            .toolTip    = texts().ui_TipForward
-            .sigPressed += func|view = me|(_) { view.seekRelative(SeekSeconds) }
-        }
-
-        with .timeLabel = Label.create(.commands, "", {0, 0, 112, 36}, null, .SecondaryText)
-        {
-            .dockStyle = .Left
-            .margin    = {8, 0, 8, 0}
-            .setTextAlignment(.Right, .Center)
-        }
-
-        // One button gathers what used to be four drop-downs: play mode, speed, sound track and
-        // subtitles. The rate stays in sight beside it whenever it is not the normal one.
-        with .optionsButton = Viewer.createOptionsButton(.commands)
-        {
-            .dockStyle  = .Right
-            .margin.x   = 4
-            .sigPressed += func|view = me|(_) { view.showOptions() }
-        }
-
-        with .volumeSlider = Slider.create(.commands, {0, 0, 96, 36})
-        {
-            .dockStyle = .Right
-            .margin    = {0, 1, 4, 1}
-            .toolTip   = texts().ui_TipVolume
-            .setBounds(0, 1, 0.05)
-            .setValueWithoutGesture(1)
-            .enable(false)
-            .sigChanged += func|view = me|(slider) { view.setVolume(slider.value()) }
-        }
-
-        with .muteButton = Viewer.createActionButton(.commands, .Volume, .Toggle)
-        {
-            .dockStyle = .Right
-            .margin.x  = 4
-            .toolTip   = texts().ui_TipMute
-            .setCheckIndicator(.Frame)
-            .enable(false)
-            .sigCheckedChanged += func|view = me|(button) { view.setMuted(button.isChecked) }
-        }
-
-        with .timeline = Slider.create(.commands, {0, 0, 0, 36})
-        {
-            .dockStyle = .Center
-            .margin    = {8, 1, 8, 1}
-            .toolTip   = texts().ui_TipSeek
-            .enable(false)
-
-            // A drag may cross hundreds of frames. Decode its final position once instead of
-            // serially decoding every intermediate value queued by the pointer movement.
-            .sigStartChange += func|view = me|(_)
+            if evt is MouseEvent as mouse where mouse.kind == .Move
             {
-                view.timelineChanging = true
+                let target = mouse.target
+                let held   = target != null and (target == view.bottomVeil or view.bottomVeil.isAncestorOf(target))
+                view.pointerMoved(held)
             }
 
-            .sigEndChange += func|view = me|(slider)
-            {
-                view.timelineChanging = false
-                view.seekSeconds(slider.value())
-            }
+            return false
         }
+    }
+
+    // Places the veils across the top and the bottom of the picture.
+    mtd arrangeVeils()
+    {
+        let room = .clientRect()
+        .topVeil.setPosition(Math.Rectangle{room.x, room.y, room.width, TopVeilHeight})
+        .bottomVeil.setPosition(Math.Rectangle{room.x, room.bottom() - BottomHeight, room.width, BottomHeight})
+        .bottomVeil.arrange()
+    }
+
+    // Shows the veils, and restarts the stillness after which they leave.
+    mtd pointerMoved(overVeil: bool)
+    {
+        .veilClock.restart()
+        .veilsHeld = overVeil
+        if .veilsShown do
+            return
+        .veilsShown = true
+
+        // They fade in over a state change, at once reachable by the hand.
+        let animator = &.app().animator
+        var options: AnimationOptions
+        options.duration = Time.Duration.fromSeconds(.themeMetrics().motion_QuickSeconds)
+        options.easing   = .EaseOut
+        for veil in [cast(*Wnd, .topVeil), cast(*Wnd, .bottomVeil)]
+        {
+            veil.show()
+            veil.bringToFront()
+            discard animator.animateF32(veil, AnimationChannel.from("Gui.Float.Opacity"), veil.presentationOpacity, 1, func(wnd, value) { wnd.setPresentationOpacity(value) }, options)
+        }
+    }
+
+    // Lets the veils leave once the hand has been still for `stillMs` milliseconds, long enough,
+    // unless it rests on them, a timeline is being dragged, or a page of the options is open.
+    internal mtd settleVeils(stillMs: u64)
+    {
+        if not .veilsShown or .veilsHeld or .optionsOpen or .timelineChanging do
+            return
+        let rest = cast(u64, .themeMetrics().motion_ScrollRest * 1_000) * VeilRestFactor
+        if stillMs < rest do
+            return
+        .hideVeils()
+    }
+
+    // Takes the veils away: gone at once for the hand, their picture fading out.
+    mtd hideVeils()
+    {
+        if not .veilsShown do
+            return
+        .veilsShown = false
+        discard .app().animator.leave(.topVeil)
+        discard .app().animator.leave(.bottomVeil)
+    }
+
+    // Asks the window to take the whole screen for the film, or to give it back.
+    mtd toggleFullScreen()
+    {
+        .postCommandEvent(ViewerCommands.FullScreen)
+    }
+
+    // Opens one page of the options, joined to the chip that names it.
+    mtd showChoices(chip: *IconButton, build: OptionSheet.Builder)
+    {
+        let sheet = OptionSheet.View.create(chip, build, owner: me)
+        .optionsOpen = true
+        sheet.doModal(chip, autoDestroy: true)
+        .optionsOpen = false
+        .refreshChips()
+        .veilClock.restart()
     }
 
     // Builds the video panel: commands, media information, transport bar, picture view and subtitle
@@ -957,19 +1056,17 @@ private impl Panel
             .services        = services
         }
 
-        result.commands    = host.createCommandGroup(CommandWidth)
-        result.commands.preferredSize.x = 0
-        result.information = MediaInfoPanel.create(host)
-        result.createTransportBar()
-
-        result.imageView = ImageView.create(result)
+        result.information         = MediaInfoPanel.create(host)
+        result.imageView           = ImageView.create(result)
         result.imageView.dockStyle = .Center
         result.style.setStyleSheetColors(BackdropColors)
         result.imageView.style.setStyleSheetColors(BackdropColors)
         result.subtitleOverlay = SubtitleOverlay.create(result)
+        result.createVeils()
 
         result.refreshTransport()
-        result.openFileName = host.fileName()
+        result.openFileName  = host.fileName()
+        result.topVeil.title = Path.fileNameWithoutExtension(host.fileName()) orelse host.fileName()
 
         // The sound device comes online while the file opens, so the first picture does not
         // wait for it; see [[Sound.warmEngine]].
@@ -979,6 +1076,8 @@ private impl Panel
         result.decode.submit(func|view = result|() { runViewerDecode(view) }, result.taskNotifier(&result.decode), executor: &result.decodeExecutor)
         result.timer = result.addTimer(10'ms)
         result.applyLayout()
+        result.arrangeVeils()
+        result.refreshChips()
         result.setInitialFocus(result.playButton)
         return result
     }

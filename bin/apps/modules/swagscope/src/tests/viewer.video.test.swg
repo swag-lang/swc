@@ -294,7 +294,7 @@ func videoMatroskaFixturePath()->String => Path.combine(unwrap Path.directoryNam
     view.finishSubtitles()
     view.refreshSubtitle()
     Swag.assert(view.subtitleOverlay.sidecars.count == 1 and view.subtitleSource == .Sidecar)
-    Swag.assert(view.subtitleReady and view.optionsButton.isEnabled())
+    Swag.assert(view.subtitleReady and view.subtitleChip.isLocallyVisible())
     let trackName    = Film.subtitleTrackName(0, view.subtitleOverlay.sidecars[0])
     let languageText = Format.toString(Film.texts().ui_SubtitleTrackLang, "fr")
     Swag.assert(Utf8.contains(languageText, "<p2> (fr)</p>"))
@@ -487,7 +487,7 @@ func videoMatroskaFixturePath()->String => Path.combine(unwrap Path.directoryNam
     Swag.assert(view.details.indexOf("160") != Swag.U64.Max)
     Swag.assert(view.details.indexOf("4 frames") != Swag.U64.Max)
     Swag.assert(view.details.indexOf("Swag CPU") != Swag.U64.Max)
-    Swag.assert(view.timeLabel.text() == "0:00 / 0:01")
+    Swag.assert(view.timeText() == "0:00 / 0:01")
 
     view.seekFrame(2)
     waitForVideoFrame(view)
@@ -526,81 +526,96 @@ func videoMatroskaFixturePath()->String => Path.combine(unwrap Path.directoryNam
     Swag.assert(view.frameIndex == 0 and view.elapsed == 0)
 }
 
-// The transport fills a wide host bar and gives its changing width to the timeline.
+// At rest nothing stands over the picture. A movement of the pointer brings the veils, a moment
+// of stillness takes them away, and a pointer resting on them keeps them. A press on the
+// timeline seeks there, and the chips open the page of the options they name.
 #test
 {
-    let fileName = expect videoPreviewFile("viewer.video.transport.y4m")
+    let fileName = expect videoPreviewFile("viewer.video.veils.y4m")
     defer discard catch File.delete(fileName)
 
     var host: Testing.HeadlessHost
-    host.setup(1600, 420)
-
-    with let commandBar = Wnd.create'ViewerActionBar(&host.root, {0, 0, 0, 52})
-    {
-        .dockStyle       = .Bottom
-        .padding         = {12, 8, 12, 8}
-        .fillCenterGroup = true
-    }
-
-    var result = openTestViewer(Film.viewerPlugin(), &host.root, fileName, commandParent: commandBar)
-    let view   = assume cast(*Film.Panel, result.view)
+    host.setup(1280, 720)
+    var result = openTestViewer(Film.viewerPlugin(), &host.root, fileName, commandParent: &host.root)
+    Swag.assert(result.view != null and result.commands == null)
+    let view = assume cast(*Film.Panel, result.view)
     waitForVideoFrame(view)
-    view.dockStyle         = .Center
-    commandBar.centerGroup = view.commands
+    view.dockStyle = .Center
     host.root.applyLayout()
-    commandBar.centerContent()
-    Swag.assert(view.commands.position.width == commandBar.paddedClientRect().width)
-    let wideTimeline = view.timeline.position.width
+    if view.playing do
+        view.togglePlayback()
 
-    host.root.resize(1280, 420)
-    Swag.assert(view.commands.position.width == commandBar.paddedClientRect().width)
-    Swag.assert(view.timeline.position.width > 0 and view.timeline.position.width < wideTimeline)
+    Swag.assert(not view.veilsShown and
+                not view.topVeil.isLocallyVisible() and
+                not view.bottomVeil.isLocallyVisible())
+    host.moveMouse(view.localToSurface(Math.Point{640, 300}))
+    Swag.assert(view.veilsShown and view.bottomVeil.isLocallyVisible() and view.topVeil.isLocallyVisible())
+    Swag.assert(view.timeline.position.width == view.clientRect().width - 2 * Film.VeilInset)
+
+    // Still over the picture, the veils leave; resting on the controls, they stay.
+    view.settleVeils(10_000)
+    Swag.assert(not view.veilsShown and not view.bottomVeil.isLocallyVisible())
+
+    // The first movement brings the veils back, the next one lands on their controls.
+    host.moveMouse(view.playButton.surfaceRect().center())
+    host.moveMouse(view.playButton.surfaceRect().center() + Math.Point{1, 0})
+    Swag.assert(view.veilsShown and view.veilsHeld)
+    view.settleVeils(10_000)
+    Swag.assert(view.veilsShown)
+
+    // A press on the timeline seeks to where it points.
+    let timeline = view.timeline.surfaceRect()
+    host.click(Math.Point{timeline.x + timeline.width * 0.75, timeline.vertCenter()})
+    waitForVideoFrame(view)
+    Swag.assert(view.frameIndex == 3 and view.timeText() == "0:00 / 0:01")
+
+    // The keys move the film too: Space plays and pauses, the arrows seek and set the volume.
+    view.setFocus()
+    host.keyPress(.Space)
+    Swag.assert(view.playing)
+    host.keyPress(.Space)
+    Swag.assert(not view.playing)
+    host.keyPress(.Left)
+    waitForVideoFrame(view)
+    Swag.assert(view.frameIndex == 0)
+    let volume = view.volume
+    host.keyPress(.Down)
+    Swag.assert(view.volume < volume)
+
+    // The speed chip opens the speeds, the one in force checked.
+    Swag.assert(view.speedChip.text() == "1×" and not view.audioChip.isLocallyVisible())
+    var speeds: OptionSheet.Page
+    view.describeSpeeds(&speeds)
+    host.activateOptionRowWhenShown("1.5×")
+    view.speedChip.sigPressed.call(view.speedChip)
+    Swag.assert(view.playbackRate == 1.5 and view.speedChip.text() == "1.5×")
 }
 
-#[Swag.TestTag("golden")]
+// The seek feedback is a Voltage mark with an ink keyline over the picture, which reads over a
+// bright picture as over a dark one, and leaves on its own.
 #test
 {
-    let fileName = expect videoPreviewFile("viewer.video.preview.y4m")
+    let fileName = expect videoPreviewFile("viewer.video.seek.y4m")
     defer discard catch File.delete(fileName)
 
     var host: Testing.HeadlessHost
     host.setup(720, 420)
-
-    with let commandBar = Wnd.create'Wnd(&host.root, {0, 0, 0, 52})
-    {
-        .dockStyle       = .Bottom
-        .backgroundStyle = .Window
-        .padding         = {16, 8, 16, 8}
-    }
-
-    var result = openTestViewer(Film.viewerPlugin(), &host.root, fileName, commandParent: commandBar)
-    Swag.assert(result.view != null)
-    let view = assume cast(*Film.Panel, result.view)
+    var result = openTestViewer(Film.viewerPlugin(), &host.root, fileName, commandParent: &host.root)
+    let view   = assume cast(*Film.Panel, result.view)
     waitForVideoFrame(view)
-    view.togglePlayback()
-    Swag.assert(not view.playing)
     view.dockStyle = .Center
-    view.commands.dockStyle = .Center
-    view.seekFrame(2)
-    waitForVideoFrame(view)
+    host.root.applyLayout()
 
-    // A film without sound offers no sound track among its options.
+    // A film without sound offers no sound track among its options, and its sound is off.
     var options: OptionSheet.Page
     view.describeOptions(&options)
     for row in options.rows do
         Swag.assert(row.label != Film.texts().ui_OptionAudio)
-    Swag.assert(view.muteButton.isVisible() and not view.muteButton.isEnabled())
-    Swag.assert(view.volumeSlider.isVisible() and not view.volumeSlider.isEnabled())
+    Swag.assert(not view.muteButton.isEnabled())
 
-    host.root.applyLayout()
-    host.settleAnimations(&host.root, 4)
     host.setReducedMotion(false)
     view.showSeekFeedback(10)
     Swag.assert(view.seekOverlay!.timer != null and view.seekOverlay.presentationOffset.x < 0)
-    host.advanceAnimations(0.15)
-    var image = host.render(&host.root)
-    Pixel.Testing.assertImageGolden(&image, "viewer.video.document")
-
     let overlayTimer = view.seekOverlay.timer
     host.fireTimer(overlayTimer)
     Swag.assert(not view.seekOverlay.isLocallyVisible() and view.seekOverlay.timer == null)
@@ -611,6 +626,42 @@ func videoMatroskaFixturePath()->String => Path.combine(unwrap Path.directoryNam
     Swag.assert(view.seekOverlay.backgroundStyle == .Transparent)
     Swag.assert(Voltage.contrastRatio(Ink) >= 4.5)
     host.fireTimer(view.seekOverlay.timer)
+}
+
+// The film in the window, against `scope.video`: the picture alone at rest, and under the
+// pointer the top veil with the title and its facts, the bottom veil with the timeline, the
+// time under the pointer, the play button, the time in mono and the chips.
+#[Swag.TestTag("golden")]
+#test
+{
+    Swag.assert(Sound.acquireEngine(.NoSound))
+    defer Sound.releaseEngine()
+
+    for light in [false, true]
+    {
+        var host: Testing.HeadlessHost
+        let window = framedViewerWindow(&host, videoMatroskaFixturePath(), light)
+        let view   = assume cast(*Film.Panel, window.instances[window.activeChoiceIndex].view)
+        waitForVideoFrame(view)
+        waitForVideoAudio(view, 2)
+        if view.playing do
+            view.togglePlayback()
+        view.seekFrame(5)
+        waitForVideoFrame(view)
+        view.refreshTime()
+        host.settleAnimations(window, 4)
+
+        var rest = host.render(&host.surfaceWnd)
+        Pixel.Testing.assertImageGolden(&rest, light ? "viewer.video.paper" : "viewer.video.ink")
+
+        // The first movement brings the veils, the next one reads a time on the timeline.
+        let timeline = view.timeline.surfaceRect()
+        host.moveMouse(Math.Point{timeline.x + timeline.width * 0.6, timeline.vertCenter()})
+        host.moveMouse(Math.Point{timeline.x + timeline.width * 0.62, timeline.vertCenter()})
+        host.settleAnimations(window, 4)
+        var hover = host.render(&host.surfaceWnd)
+        Pixel.Testing.assertImageGolden(&hover, light ? "viewer.video.hover.paper" : "viewer.video.hover.ink")
+    }
 }
 
 // RV40 reaches the normal planar viewer and seeks across B pictures and open groups.
@@ -649,7 +700,7 @@ func captureVideoFailure(wnd: *Wnd, reason: string)
     var host: Testing.HeadlessHost
     host.setup(640, 360)
     var result = openTestViewer(Film.viewerPlugin(), &host.root, fileName, commandParent: &host.root, services: {reportFailure: &captureVideoFailure})
-    Swag.assert(result.view != null and result.commands != null)
+    Swag.assert(result.view != null and result.commands == null)
     let view = assume cast(*Film.Panel, result.view)
     var failure: String
     view.userData = &failure
@@ -672,13 +723,14 @@ func captureVideoFailure(wnd: *Wnd, reason: string)
     Swag.assert(result.view != null)
     let view = assume cast(*Film.Panel, result.view)
     waitForVideoFrame(view)
-    Swag.assert(view.backwardButton.icon.isValid() and view.forwardButton.icon.isValid())
-    Swag.assert(view.muteButton.icon.isValid() and view.muteButton.flags.has(.Toggle))
+    Swag.assert(view.muteButton.icon.isValid() and
+                view.muteButton.flags.has(.Toggle) and
+                view.muteButton.isEnabled())
     Swag.assert(view.audio != null and view.voice != null and view.video.audioTrackCount() == 1)
     Swag.assert(view.playing and view.voice.isPlaying())
     view.setVolume(0.35)
     Swag.assert(Math.isEqualEpsilon(expect view.voice.volume(), 0.35, 0.001))
-    Swag.assert(view.volume == 0.35 and Math.isEqualEpsilon(view.volumeSlider.value(), 0.35, 0.001))
+    Swag.assert(view.volume == 0.35)
     view.setMuted(true)
     Swag.assert(view.muted and view.muteButton.isChecked)
     Swag.assert(Math.isEqualEpsilon(expect view.voice.volume(), 0, 0.001))
@@ -714,30 +766,25 @@ func captureVideoFailure(wnd: *Wnd, reason: string)
     Swag.assert(result.view != null)
     let view = assume cast(*Film.Panel, result.view)
     waitForVideoFrame(view)
-    Swag.assert(view.optionsButton.text() == "" and view.optionsButton.isEnabled())
+    Swag.assert(view.speedChip.text() == "1×")
     Swag.assert(view.audio != null and view.voice != null)
 
-    // A changed speed keeps its button badge until the anchored sheet releases the button.
-    let buttonWidth = view.optionsButton.position.width
+    // The speed chip says the rate in force, but not while its own page is open over it.
     view.optionsOpen = true
     view.setPlaybackRate(1.5)
-    Swag.assert(view.optionsButton.text() == "")
-    Swag.assert(view.optionsButton.position.width == buttonWidth)
+    Swag.assert(view.speedChip.text() == "1×")
     view.optionsOpen = false
     view.setPlaybackRate(1.25)
-    Swag.assert(view.optionsButton.text().count > 0)
-    Swag.assert(view.optionsButton.position.width > buttonWidth)
+    Swag.assert(view.speedChip.text() == "1.25×")
     view.setPlaybackRate(1)
-    Swag.assert(view.optionsButton.text() == "")
-    Swag.assert(view.optionsButton.position.width == buttonWidth)
+    Swag.assert(view.speedChip.text() == "1×")
 
     // The speed entry rescales the voice with the clock, and the summary declares the rate.
     host.activateOptionRowWhenShown(Film.texts().ui_OptionSpeed)
     host.thenActivateOptionRow("2×")
     view.showOptions()
     Swag.assert(view.playbackRate == 2)
-    Swag.assert(view.optionsButton.text() == "2×")
-    Swag.assert(view.optionsButton.position.width > buttonWidth)
+    Swag.assert(view.speedChip.text() == "2×")
     Swag.assert(Math.isEqualEpsilon(expect view.voice.frequencyRatio(), 2, 0.001))
     Swag.assert(view.details.indexOf("2×") != Swag.U64.Max)
     view.setPlaybackRate(1)
@@ -811,7 +858,7 @@ func captureVideoFailure(wnd: *Wnd, reason: string)
         let view = assume cast(*Film.Panel, window.instances[window.activeChoiceIndex].view)
         waitForVideoFrame(view)
         Swag.assert(window.currentView == view and view.playing)
-        Swag.assert(view.optionsButton.parent == window.currentCommands)
+        Swag.assert(view.speedChip.parent == view.bottomVeil)
 
         // The clip is shorter than the walk through the sheet, so it waits while the reader chooses.
         view.togglePlayback()
@@ -970,10 +1017,9 @@ func captureVideoFailure(wnd: *Wnd, reason: string)
     Swag.assert(view.frameIndex == frameBeforeStep + 1 and not view.playing and outside.hasFocus())
 }
 
-// A Matroska file carrying several sound tracks exposes a compact selector. Changing it creates
-// and positions the replacement voice before releasing the previous one, so transport, volume,
-// and mute state survive the handoff.
-#[Swag.TestTag("golden")]
+// A Matroska file carrying several sound tracks exposes them on a chip. Changing it creates and
+// positions the replacement voice before releasing the previous one, so transport, volume, and
+// mute state survive the handoff.
 #test
 {
     Swag.assert(Sound.acquireEngine(.NoSound))
@@ -1011,7 +1057,9 @@ func captureVideoFailure(wnd: *Wnd, reason: string)
     Swag.assert(Film.audioTrackName(1, unwrap view.video.audioTrack(1)) == "Alternate")
     Swag.assert(Film.audioDetailsText(unwrap view.video.audioTrack(1)) == "AAC-LC · 2 ch · 44.1 kHz")
     Swag.assert(Format.toString(Film.texts().ui_AudioTrackLang, "fre") == "<p2> (fre)</p>")
-    Swag.assert(view.muteButton.isVisible() and view.volumeSlider.isVisible())
+    Swag.assert(view.muteButton.isEnabled() and
+                view.audioChip.isLocallyVisible() and
+                view.audioChip.text() == "Primary 2.0")
     Swag.assert(view.details.indexOf("AAC-LC") != Swag.U64.Max and view.details.indexOf("2 ch") != Swag.U64.Max)
     Swag.assert(Film.audioEncodingText(.Ac3) == "AC-3" and Film.audioEncodingText(.Eac3) == "E-AC-3")
     Swag.assert(Film.audioEncodingText(.Dts) == "DTS" and
@@ -1063,25 +1111,10 @@ func captureVideoFailure(wnd: *Wnd, reason: string)
 
     expect host.app.setLanguage("fr")
     host.notify(.LanguageChanged)
-    Swag.assert(view.optionsButton.toolTip == "Options")
+    Swag.assert(view.audioChip.toolTip == "Piste audio")
     Swag.assert(Film.texts().ui_OptionAudio == "Piste audio")
     Swag.assert(Film.audioDetailsText(unwrap view.video.audioTrack(1)).indexOf("can.") != Swag.U64.Max)
     Swag.assert(view.details.indexOf("2 can.") != Swag.U64.Max)
-
-    view.dockStyle = .Center
-    view.commands.dockStyle = .Center
-    host.root.applyLayout()
-    host.settleAnimations(&host.root, 4)
-    Swag.assert(view.optionsButton.position.width == themeDropDownButtonWidth(view.themeMetrics()))
-    Swag.assert(view.optionsButton.arrowPosition == .RightUpward)
-    Swag.assert(view.timeLabel.position.right() <= view.timeline.position.x)
-    Swag.assert(view.timeline.position.right() <= view.muteButton.position.x)
-    Swag.assert(view.timeLabel.textHorizontalAlignment == .Right)
-    Swag.assert(view.volumeSlider.position.right() <= view.optionsButton.position.x)
-    Swag.assert(view.optionsButton.position.right() == view.commands.clientRect().right())
-    Testing.assertContentFits(view.commands)
-    var image = host.render(&host.root)
-    Pixel.Testing.assertImageGolden(&image, "viewer.video.multiaudio")
 }
 
 // A progressive sound prefix must not become the master clock for a seek beyond that prefix.
@@ -1390,9 +1423,9 @@ func assertSubtitleEffect(effect: Film.SubtitleEffect, size: Film.SubtitleSize, 
     assertSubtitleEffect(.Background, .VeryLarge, 1.5, "viewer.video.subtitle.background.large.hidpi")
 }
 
-// The options of a film gather the play mode, the speed, the sound track and the subtitles
-// behind one button, each with the value in force, and the page of a setting lists its choices
-// with the one in force checked. The sheet stands on its button above the transport.
+// The options of a film gather the play mode, the speed, the sound track and the subtitles, each
+// with the value in force, and the page of a setting lists its choices with the one in force
+// checked. The sheet stands on the speed chip of the bottom veil.
 #[Swag.TestTag("golden")]
 #test
 {
@@ -1426,7 +1459,6 @@ func assertSubtitleEffect(effect: Film.SubtitleEffect, size: Film.SubtitleSize, 
     view.setPlaybackRate(1.5)
 
     view.dockStyle = .Center
-    view.commands.dockStyle = .Center
     host.root.applyLayout()
     host.settleAnimations(&host.root, 4)
 

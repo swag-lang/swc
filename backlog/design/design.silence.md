@@ -87,7 +87,12 @@ dialogs, then each application, then the written rules.
     channel (`viewer.midi.{ink,paper}`); it has no transport nor play head, because Scope plays no
     MIDI. A recording is laid out around its cover (`viewer.sound.{ink,paper}`); the tags carry no
     picture yet, so the cover is a raised tile with the glyph of a sound, and the transport is
-    still the floating command bar rather than the compact one of the picture.
+    still the floating command bar rather than the compact one of the picture. A film takes the
+    whole window and nothing stands over it at rest; the pointer brings a top veil (title, facts
+    in mono) and a bottom veil (timeline with Arc progress, indexed part, white knob and a mono
+    time tip; play, time, chips for subtitles, sound track and speed)
+    (`viewer.video.{ink,paper}`, `viewer.video.hover.{ink,paper}`); Scope reads no chapters, so
+    the timeline shows no marks.
   What still differs from the pictures, screen by screen:
   - Mixed board: a PDF, code, Markdown, sound and font cell show the preview the thumbnailer
     renders, not the drawn paper card, mono lines, heading, waveform or "Aa" of the picture; the
@@ -108,13 +113,9 @@ dialogs, then each application, then the written rules.
   - Not yet rebuilt on their pictures: image (`scope.image`), table, HTML (column, address,
     outline), binary (report page), hex (structure tabs, large inspector), font (specimen page);
     the "Column ▾" quiet menu of text; the progress thread under the strip with documents
-    scrolling under it; the video picture does not reach the strip and has no veils with chips.
+    scrolling under it.
 - Next: music library and album boards, then photos; then image, table, HTML, binary, hex and
-  font on their pictures; the shipped frame for every Scope golden. The media pass takes the video
-  viewer on `scope.video`: two veils shown on pointer movement — the title and a mono line on top,
-  its own timeline (Arc progress, buffered part, white knob, chapter ticks, a mono time chip under
-  the pointer), the play button, the mono time, the chapter and chips for subtitles, sound track
-  and speed at the foot — and a framed golden at rest and under the pointer.
+  font on their pictures; the shipped frame for every Scope golden.
 - Done when: every Scope golden matches its picture as a whole screen.
 - Related: design.silence.004
 

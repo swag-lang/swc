@@ -2,6 +2,15 @@ impl ViewerWindow
 {
     mtd isExploring()->bool => .explorerActive and .explorer and .explorer.isLocallyVisible()
 
+    // Reports whether the viewer in front takes the whole window, as a film does: its document
+    // reaches under the strip and no line of readings stands over it.
+    mtd isEdgeToEdge()->bool
+    {
+        if .isExploring() or .activeChoiceIndex >= .choices.count do
+            return false
+        return .index.plugins[.choices[.activeChoiceIndex].pluginIndex].edgeToEdge
+    }
+
     mtd isArchivePreview()->bool => not .isExploring() and
                                     .explorer and
                                     .explorer.listing.isArchive and
@@ -46,7 +55,8 @@ impl ViewerWindow
     // and shows it only while it has something to say.
     internal mtd layoutFileInfo()
     {
-        .readingLine.show(.readingLine.hasContent() and not .fullScreen)
+        .updateDocumentInsets()
+        .readingLine.show(.readingLine.hasContent() and not .fullScreen and not .isEdgeToEdge())
         .readingLine.computeLayout()
         .documentHost.applyLayout()
         .layoutViewerBar()

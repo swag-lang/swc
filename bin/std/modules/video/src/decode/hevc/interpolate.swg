@@ -697,9 +697,12 @@ impl Decoder
     #[Swag.NoInline]
     private mtd interpolateChromaGathered(frame: *Frame, component: u32, xInt, yInt: s32, width, height, xFrac, yFrac, list: u32)
     {
-        var gathered: [MaxRefSide * MaxRefSide] u16
-        .gatherReference(frame, component, xInt, yInt, width, height, 1, 4, &gathered[0], cast(u64, MaxRefSide))
-        .interpolateChromaWindow(&gathered[0], cast(u64, MaxRefSide), width, height, xFrac, yFrac, list)
+        // Residual reconstruction starts after inter prediction. A chroma window is at most
+        // 35 by 35 samples, which fits in the decoder's residual scratch as 16-bit samples.
+        let gathered = cast([*] u16, &.residual[0])
+        let stride   = cast(u64, (width + 3))
+        .gatherReference(frame, component, xInt, yInt, width, height, 1, 4, gathered, stride)
+        .interpolateChromaWindow(gathered, stride, width, height, xFrac, yFrac, list)
     }
 
     #[Swag.NoInline]

@@ -277,6 +277,8 @@ using Core, Core.Errors, Pixel
         {
             for index in 64'u32 * 64 do
                 decoder.predSamples[index] = 0x5A5A
+            for index in 32'u32 * 32 do
+                decoder.residual[index] = 0x35353535
             decoder.interPredict(0, 0, blockWidth, blockWidth, &motion)
             for y in cast(s32, blockWidth)
             {

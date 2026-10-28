@@ -39,12 +39,22 @@ impl MainWindow
                              VaultCommands.ChangeKeyFiles, VaultCommands.Resize, VaultCommands.CreateHidden,
                              VaultCommands.Forget, VaultCommands.Stop]
 
+    // The actions of the chosen vault the lens offers at rest; only those that apply to it now show.
+    const RestVaultIds = [VaultCommands.OpenDrive, VaultCommands.Mount, VaultCommands.Unmount, VaultCommands.Stop]
+
     // Creates the lens, registers every command of the window under its family, the vaults it
-    // knows as a source, and the appearance.
+    // knows as a source, and the appearance. At rest the lens offers the actions of the chosen
+    // vault, then the way to another one.
     mtd createLens()
     {
         with .lens = Lens.View.create(me)
         {
+            .addRestSource(func|window = me|(results) { window.describeChosenVault(results) })
+            .addRestSource(func|window = me|(results)
+            {
+                let section = results.addSection(appStrings().lens_File)
+                window.lens.addCommandRows(section, [VaultCommands.NewVault, VaultCommands.OpenFile], enabledOnly: true)
+            })
             .addSource(.File, func|window = me|(results) { window.describeVaults(results) })
             .addCommands(func()->string => appStrings().lens_File,
                          [VaultCommands.NewVault, VaultCommands.OpenFile, VaultCommands.Vaults, VaultCommands.Options])
@@ -62,6 +72,16 @@ impl MainWindow
         .registerKeyShortcut(.Control, .N, VaultCommands.NewVault)
         .registerKeyShortcut(.Control, .O, VaultCommands.OpenFile)
         .registerKeyShortcut(.None, .Escape, VaultCommands.Vaults)
+    }
+
+    // Answers the lens at rest with the actions of the chosen vault, under its name.
+    mtd describeChosenVault(results: *Lens.Results)
+    {
+        if .chosenPath.isEmpty() do
+            return
+        let path    = .chosenPath.toString()
+        let section = results.addSection(Path.fileName(path) orelse path)
+        .lens.addCommandRows(section, RestVaultIds, enabledOnly: true)
     }
 
     // Answers the lens with the vaults the list knows; choosing one unfolds it.

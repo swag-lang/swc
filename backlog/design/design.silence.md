@@ -15,8 +15,8 @@ dialogs, then each application, then the written rules.
   `Gui.SectionLabel` and a floating surface for any other content (`Gui.FloatingPanel`), with
   `floating.test.swg`, `lens.test.swg` and their goldens, and `AppearanceButton.addToLens`; a
   hidden caption button keeps working and takes no room in the caption. Swag Capture, Swag Scope,
-  Swag Prism and Swag Vault compose them (their remaining work is design.silence.008,
-  design.silence.007, design.silence.009 and design.silence.010). No component owns the quiet text
+  Swag Prism and Swag Vault compose them (the remaining work of the first two is
+  design.silence.008 and design.silence.007). No component owns the quiet text
   menu of a header (a word and a faint chevron opening a menu, as the pictures put above a column
   or a page): Swag Scope's explorer, Swag Capture's library and Swag Prism's column headers each
   configure an `IconButton` for it and fit it to its words themselves (`createQuietMenu` in each),
@@ -27,7 +27,7 @@ dialogs, then each application, then the written rules.
   to the inspector, and let the work reach into the strip where its picture shows it.
 - Done when: the four applications use the components, every command is a lens entry, and no
   application re-implements one or insets its whole root under the strip.
-- Related: design.silence.007, design.silence.008, design.silence.009, design.silence.010
+- Related: design.silence.007, design.silence.008
 
 ### design.silence.005 — The property grid control still lacks search marks and the layout menu
 
@@ -35,14 +35,14 @@ dialogs, then each application, then the written rules.
   goldens: Arc dot after a changed name, faint revert glyph, padlock of a read-only value, section
   labels in faint spaced capitals with a faint chevron and, in Panel, a hairline; Condensed rows of
   26 with a hairline; validation as a dot and a line in the tone; notes as the Arc notice).
-  `PropertiesCtrl` does not: search marks no matched characters and shows no result count, the
-  section list shows no counts, and the `•••` menu offers no Presentation choice, because
+  A search marks the matched characters of a name on the highlight ground and counts the found
+  fields in the search field. `PropertiesCtrl` does not show counts in the section list, and the `•••` menu offers no Presentation choice, because
   `Properties.kind` is fixed at creation. In Panel the self-labelled editors carry no changed-value
   dot, a Condensed warning shows its line instead of a caution mark in the left margin, and the
   Panel golden shows `Opacity` at 0 while the data holds 0.4 (it did before this restyle too).
 - Next: let `Properties` switch kind by rebuilding its rows, put List, Grid, Condensed and Panel
-  under a Presentation section of the joined `•••` menu with `✓` in Arc, mark matched characters
-  with the highlight colour and count results in the search field and the section list; then fix
+  under a Presentation section of the joined `•••` menu with `✓` in Arc, count results in the
+  section list; then fix
   the Panel slider refresh. The Panel and Grid rows of the charter also show a slider's value as a
   mono reading with no box: Swag Capture's inspector sets the value face itself
   (`PropWnd.fitFieldLabelColumn`).
@@ -55,10 +55,10 @@ dialogs, then each application, then the written rules.
   `dialogs.file.modes.{paper,ink}.png`: folder choice shows no chosen path and names nothing in
   its primary action, a save writes the extension into the name field, multiple choice has no
   checkboxes nor count, the new-folder form says nothing of where the folder goes, and the
-  replace question is not destructive. The rows still use the body face for dates and sizes,
-  mark no matched characters, and the name column does not take the room.
-- Next: build each mode against its picture; give `ListItem` a mono face, let a row carry the
-  matched ranges of `Lens.match`, and let the first column of a `ListCtrl` stretch.
+  replace question is not destructive. The rows already set dates and sizes in mono
+  (`ListItem.mono`), mark the typed words (`ListItem.matchStart`, `matchCount`), and give the name
+  column the room the others leave (`ListFlags.StretchFirstColumn`).
+- Next: build each mode against its picture.
 - Done when: a golden per mode matches `dialogs.file.modes.{paper,ink}.png`.
 
 ### design.silence.007 — Swag Scope viewers keep their pre-charter shapes
@@ -115,39 +115,6 @@ dialogs, then each application, then the written rules.
 - Done when: each `capture.*` picture is reproduced by its golden.
 - Related: design.silence.004, design.silence.005
 
-### design.silence.009 — Swag Prism's render view lacks the caret reading and the framed picture
-
-- Evidence: Prism is two columns with quiet menus, the stage frieze with the change marked, the
-  comparison with counts, gain and loop, and the render view with its live-edit switch; every
-  command is a lens entry and the readings are in the sheet (`surface.{columns,stages,compare,
-  render,lens}` goldens in Encre and Papier, `surface.gui`). What `prism.render` shows and the window
-  does not: the caret's place (`Ln 9, Col 41`) at the foot of the source once the hint line has
-  stopped teaching the lens — `RichEditCtrl` publishes no signal when the caret moves — and the
-  picture drawn on the control corner. The source column shows a horizontal scroll bar for a line
-  that only reaches the editor's caret allowance.
-- Next: give `RichEditCtrl` a caret signal and read it on the hint line; clip the frame of
-  `PreviewCanvas` to the control corner.
-- Done when: `surface.render` reproduces `prism.render`.
-- Related: design.silence.004
-
-### design.silence.010 — Swag Vault still differs from its pictures in four details
-
-- Evidence: the window is the list of vaults (name, mono identity line, live dot or ring, the
-  mounted row on the surface ground with Open and Unmount), the chosen locked vault unfolds in
-  place as a floating card (password, drive, key files, read only, Mount), create, progress and
-  privacy are pages with a back link, every command is a lens entry and privacy mode keeps the
-  list to what is mounted or being unlocked (`list`, `unlock`, `create`, `progress`, `options`
-  goldens in Encre and Papier). What the pictures show and the window does not: the create page
-  has no free-space reading ("212 GiB free on C:") because `Core` has no volume free-space query
-  (no `GetDiskFreeSpaceExW` binding in `win32`); the inactivity delay is a quiet menu under its
-  paragraph, not a word inside the sentence; unfolding a vault fades the card in and moves the
-  rows below at once instead of opening the card's height over `motion_PanelSeconds`; a protected
-  startup vault asks for its access in a box rather than unfolding in the list.
-- Next: add a free-space query to `Core.File` with its `win32` binding and show it beside the
-  capacity; animate the card's height with the rows following it.
-- Done when: the Vault goldens match the Vault pictures in those four points.
-- Related: design.silence.004, design.silence.016
-
 ### design.silence.011 — Two toolkit seams the gui examples work around, and the window scripts
 
 - Evidence: `paintSectionLabel` is internal, so gui10's colour sheet and gui11's group titles shape
@@ -183,4 +150,3 @@ dialogs, then each application, then the written rules.
 - Next: ship Inter Light and SemiBold with the theme fonts, add the two styles to `FontFamily`,
   and let `Theme.createDefaultFont` take them; then set the facts light and the names semibold.
 - Done when: `vault.progress` and the sheet golden show their figures in the light weight.
-- Related: design.silence.010

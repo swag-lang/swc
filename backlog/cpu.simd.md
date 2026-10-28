@@ -391,6 +391,10 @@ conversion, image codecs, text/crypto routines, Pixel spans, and SDF samples.
 
 ### cpu.simd.030 — WebP reconstruction and transforms remain mostly scalar
 
+- Progress: the VP8 DC-only 4x4 inverse transform applies the residual to four pixels per
+  row with packed saturation when a wide read stays inside the row, and uses a scalar edge
+  path otherwise. Tests cover clipping, every valid block offset, untouched neighbours, and
+  lossy reference images. Its effect on decode performance remains unmeasured.
 - Next: vectorize VP8 inverse transforms, predictors, deblocking, YUV conversion, alpha filters,
   and lossless subtract-green/cross-color/predictor transforms.
 - Done when: lossy and lossless fixture pixels remain identical where specified, predictor and

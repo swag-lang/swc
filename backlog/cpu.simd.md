@@ -258,6 +258,7 @@ conversion, image codecs, text/crypto routines, Pixel spans, and SDF samples.
   planes and stencil fills combine into four RGBA pixels per SIMD iteration, with bounded row reads
   and scalar tails; same-size mask planes transfer their buffer instead of resampling every pixel.
   The default 1-bit stencil decode expands eight bits per SIMD iteration, retaining row padding.
+  Different-size mask resampling computes the source row once per destination row.
 - Next: vectorize non-default decode arrays, packed and 16-bit samples, other color-key comparisons,
   mask scaling, and remaining alpha composition; use gather for indexed spaces only when profitable.
 - Done when: PDF image fixtures preserve pixels across remaining bit depths, masks, decode

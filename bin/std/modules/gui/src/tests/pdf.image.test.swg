@@ -373,6 +373,24 @@ private func imageDocument(dictionary: string, samples: const [..] u8)->Document
     }
 }
 
+// Mask resampling picks the expected row and column at different dimensions.
+#test
+{
+    let coverage: [4] u8 = [0, 64, 128, 255]
+    let samples: [15] u8 = [100, 100, 100, 100, 100, 100, 100, 100, 100, 100, 100, 100, 100, 100, 100]
+    var extra: Array'u8
+    addStreamObject(&extra, 6, "/Type /XObject /Subtype /Image /Width 2 /Height 2 /ColorSpace /DeviceGray /BitsPerComponent 8", coverage)
+    addStreamObject(&extra, 5, "/Type /XObject /Subtype /Image /Width 5 /Height 3 /ColorSpace /DeviceGray /BitsPerComponent 8 /SMask 6 0 R", samples)
+    let content  = "q 10 0 0 10 0 0 cm /Im0 Do Q"
+    let document = expect Document.decode(singlePagePdf("/XObject << /Im0 5 0 R >>", cast(const [..] u8, content), extra.toSlice()).toSlice())
+    let image    = unwrap onlyItem(document.pages[0], .Image).imageValue()
+    for y in 3
+    {
+        for x in 5 do
+            Swag.assert(image.pixelColor(cast(s32, x), cast(s32, y)).a == coverage[(y * 2 / 3) * 2 + x * 2 / 5])
+    }
+}
+
 // A color key mask turns the sample ranges it names transparent.
 #test
 {

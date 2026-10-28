@@ -830,14 +830,6 @@ private func readMaskPlane(parser: *PdfParser, nodeId, _: u32, stencil: bool)->S
     return result
 }
 
-// Samples a coverage plane at the resolution of the image it masks.
-private func sampleAlpha(mask: const *SamplePlane, x, y: u64, width, height: u64)->u8
-{
-    let sourceX = Math.min(cast(u64, mask.width) - 1, x * cast(u64, mask.width) / width)
-    let sourceY = Math.min(cast(u64, mask.height) - 1, y * cast(u64, mask.height) / height)
-    return mask.alpha[sourceY * cast(u64, mask.width) + sourceX]
-}
-
 // Turns a top-down plane into a Pixel image, whose rows run bottom-up.
 private func planeToImage(plane: const *SamplePlane, fill: const *Color?)->Image
 {
@@ -1038,10 +1030,18 @@ internal func decodeImage(parser: *PdfParser, nodeId, resourcesId: u32, fillColo
             else
             {
                 plane.alpha.resize(width * height)
+                let sourceWidth  = cast(u64, mask.width)
+                let sourceHeight = cast(u64, mask.height)
                 for y in height
                 {
-                    for x in width do
-                        plane.alpha[y * width + x] = sampleAlpha(&mask, x, y, width, height)
+                    let sourceY     = Math.min(sourceHeight - 1, y * sourceHeight / height)
+                    let source      = mask.alpha.storage() + sourceY * sourceWidth
+                    let destination = plane.alpha.storage() + y * width
+                    for x in width
+                    {
+                        let sourceX = Math.min(sourceWidth - 1, x * sourceWidth / width)
+                        destination[x] = source[sourceX]
+                    }
                 }
             }
         }

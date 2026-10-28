@@ -45,6 +45,26 @@ impl IntraReference
     mtd setTop(x: u32, value: u16) { .samples[.size * 2 + 1 + x] = value }
 }
 
+// Four columns fit in the low lanes; the reference array owns the wider
+// load, and each row writes exactly four samples to the prediction buffer.
+#[Swag.NoInline]
+func predictPlanar4(reference: const *IntraReference, destination: [*] u16)
+{
+    let top = Simd.load(&reference.samples[9])
+    let leftWeights = cast(Simd.U16x8, [3'u16, 2, 1, 0, 0, 0, 0, 0])
+    let rightWeights = cast(Simd.U16x8, [1'u16, 2, 3, 4, 0, 0, 0, 0])
+    let right = Simd.splat(reference.top(4))
+    let bottom = cast(u32, reference.left(4))
+    for y in 4'u32
+    {
+        let left = Simd.splat(reference.left(y))
+        let topWeight = Simd.splat(cast(u16, (3 - y)))
+        let bias = Simd.splat(cast(u16, ((y + 1) * bottom + 4)))
+        let values = (leftWeights * left + rightWeights * right + topWeight * top + bias) >> 3
+        cast([*] u64, (destination + 4 * y))[0] = cast #bit(Simd.U64x2, values)[0]
+    }
+}
+
 // The planar numerator is at most 2 * 32 * 1023 + 32, so unsigned
 // 16-bit lanes hold every intermediate for the supported 8/10-bit profiles.
 #[Swag.NoInline]
@@ -95,7 +115,7 @@ impl Decoder
             if size >= 8 do
                 predictPlanarPacked(&reference, &.predSamples[0], size, log2Size)
             else do
-                .predictPlanar(&reference, size, log2Size)
+                predictPlanar4(&reference, &.predSamples[0])
         case mode == IntraDc:     .predictDc(&reference, size, log2Size, component)
         default: .predictAngular(&reference, size, component, mode, bitDepth)
         }
@@ -257,23 +277,6 @@ impl Decoder
         filtered[0] = reference.samples[0]
         filtered[reference.count - 1] = reference.samples[reference.count - 1]
         Memory.copy(&reference.samples, &filtered, cast(u64, reference.count) * #sizeof(u16))
-    }
-
-    // Predicts a planar block, clause 8.4.4.2.4.
-    private mtd predictPlanar(reference: const *IntraReference, size, log2Size: u32)
-    {
-        let shift      = log2Size + 1
-        let rightTop   = cast(u32, reference.top(size))
-        let bottomLeft = cast(u32, reference.left(size))
-        for y in size
-        {
-            let leftSample = cast(u32, reference.left(y))
-            for x in size
-            {
-                let value = (size - 1 - x) * leftSample + (x + 1) * rightTop + (size - 1 - y) * cast(u32, reference.top(x)) + (y + 1) * bottomLeft + size
-                .predSamples[y * size + x] = cast(u16, (value >> shift))
-            }
-        }
     }
 
     // Predicts a flat block, clause 8.4.4.2.5.

@@ -382,7 +382,7 @@ using Core, Core.Errors, Pixel
     for bitDepth in [8'u32, 10]
     {
         let maximum = (1'u32 << bitDepth) - 1
-        for log2Size in [3'u32, 4, 5]
+        for log2Size in [2'u32, 3, 4, 5]
         {
             let size = 1'u32 << log2Size
             reference.size = size
@@ -398,7 +398,10 @@ using Core, Core.Errors, Pixel
                     reference.setLeft(index, cast(u16, left))
                 }
                 destination[size * size] = 0x5A5A
-                Hevc.predictPlanarPacked(&reference, &destination[0], size, log2Size)
+                if size == 4 do
+                    Hevc.predictPlanar4(&reference, &destination[0])
+                else do
+                    Hevc.predictPlanarPacked(&reference, &destination[0], size, log2Size)
                 let right = cast(u32, reference.top(size))
                 let bottom = cast(u32, reference.left(size))
                 for y in size

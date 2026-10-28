@@ -45,6 +45,34 @@ impl IntraReference
     mtd setTop(x: u32, value: u16) { .samples[.size * 2 + 1 + x] = value }
 }
 
+// The planar numerator is at most 2 * 32 * 1023 + 32, so unsigned
+// 16-bit lanes hold every intermediate for the supported 8/10-bit profiles.
+#[Swag.NoInline]
+func predictPlanarPacked(reference: const *IntraReference, destination: [*] u16, size, log2Size: u32)
+{
+    let indices = cast(Simd.U16x8, [0'u16, 1, 2, 3, 4, 5, 6, 7])
+    let right = Simd.splat(reference.top(size))
+    let bottom = cast(u32, reference.left(size))
+    let size8 = Simd.splat(cast(u16, size))
+    let one = Simd.splat(1'u16)
+    for y in size
+    {
+        let left = Simd.splat(reference.left(y))
+        let topWeight = Simd.splat(cast(u16, (size - 1 - y)))
+        let bias = Simd.splat(cast(u16, ((y + 1) * bottom + size)))
+        var x = 0'u32
+        while x < size
+        {
+            let rightWeight = indices + Simd.splat(cast(u16, x)) + one
+            let leftWeight = size8 - rightWeight
+            let top = Simd.load(&reference.samples[2 * size + 1 + x])
+            let values = leftWeight * left + rightWeight * right + topWeight * top + bias
+            Simd.store(destination + y * size + x, values >> (log2Size + 1))
+            x += 8
+        }
+    }
+}
+
 impl Decoder
 {
     // Predicts one intra transform block into `.predSamples`, clause 8.4.4.2.
@@ -63,7 +91,11 @@ impl Decoder
 
         switch
         {
-        case mode == IntraPlanar: .predictPlanar(&reference, size, log2Size)
+        case mode == IntraPlanar:
+            if size >= 8 do
+                predictPlanarPacked(&reference, &.predSamples[0], size, log2Size)
+            else do
+                .predictPlanar(&reference, size, log2Size)
         case mode == IntraDc:     .predictDc(&reference, size, log2Size, component)
         default: .predictAngular(&reference, size, component, mode, bitDepth)
         }

@@ -372,6 +372,50 @@ using Core, Core.Errors, Pixel
     }
 }
 
+// Planar prediction uses unsigned 16-bit sums up to the Main10 maximum.
+// Compare all output samples and preserve the sentinel beyond the block.
+#test
+{
+    var reference: Hevc.IntraReference
+    var destination: [32 * 32 + 1] u16
+    var seed = 0x63A21F89'u32
+    for bitDepth in [8'u32, 10]
+    {
+        let maximum = (1'u32 << bitDepth) - 1
+        for log2Size in [3'u32, 4, 5]
+        {
+            let size = 1'u32 << log2Size
+            reference.size = size
+            for iteration in 32'u32
+            {
+                for index in size + 1
+                {
+                    seed = seed * #wrap 1664525 + #wrap 1013904223
+                    let top = iteration == 0 ? maximum : (seed >> 16) & maximum
+                    seed = seed * #wrap 1664525 + #wrap 1013904223
+                    let left = iteration == 0 ? maximum : (seed >> 16) & maximum
+                    reference.setTop(index, cast(u16, top))
+                    reference.setLeft(index, cast(u16, left))
+                }
+                destination[size * size] = 0x5A5A
+                Hevc.predictPlanarPacked(&reference, &destination[0], size, log2Size)
+                let right = cast(u32, reference.top(size))
+                let bottom = cast(u32, reference.left(size))
+                for y in size
+                {
+                    let left = cast(u32, reference.left(y))
+                    for x in size
+                    {
+                        let value = (size - 1 - x) * left + (x + 1) * right + (size - 1 - y) * cast(u32, reference.top(x)) + (y + 1) * bottom + size
+                        Swag.assert(destination[y * size + x] == cast(u16, (value >> (log2Size + 1))))
+                    }
+                }
+                Swag.assert(destination[size * size] == 0x5A5A)
+            }
+        }
+    }
+}
+
 // Bypass and skipped transforms preserve signed coefficients, scaling and
 // rounding for every block size without writing past the residual block.
 #test

@@ -879,13 +879,29 @@ impl QuickWnd
         }
     }
 
+    // Returns the tool whose presets the row shows: the kind of the selection, or the tool in
+    // hand without one. `found` is false for a selection of several kinds.
+    mtd presetMode()->{found: bool, mode: EditMode}
+    {
+        let capture = .main.getCapture()
+        if capture and not capture.selection.isEmpty()
+        {
+            let first = MainWnd.formToolMode(capture.forms[capture.selection[0]])
+            for i in capture.selection where MainWnd.formToolMode(capture.forms[i]) != first do
+                return {false, first}
+            return {true, first}
+        }
+
+        return {true, .main.editMode == .Selection ? .main.getEditMode() : .main.editMode}
+    }
+
     // Checks the quick style button that matches the model of the active tool.
     mtd updateSelection()
     {
         if not .currentStyle do
             return
         var done = false
-        let mode = .main.getEditMode()
+        let mode = .presetMode().mode
 
         // The preset chips lead the strip in the order of the set; a chip of a previous set may
         // still be waiting for its deferred destruction, and the trailing chip adds a preset.
@@ -898,7 +914,7 @@ impl QuickWnd
 
             let it  = .currentStyle.forms[i]
             let mdl = .main.modelFor(Swag.kindOf(it))
-            button.setChecked(mode == MainWnd.formToEditMode(it) and it.isSame(mdl))
+            button.setChecked(mode == MainWnd.formToolMode(it) and it.isSame(mdl))
             if button.isChecked do
                 done = true
             i += 1
@@ -1201,7 +1217,7 @@ impl QuickWnd
         if not style do
             return
 
-        let model    = .main.editModeToModel(.main.getEditMode())
+        let model    = .main.editModeToModel(.presetMode().mode)
         let canAdd   = .offersModel(model)
         let count    = style.forms.count + (canAdd ? 1 : 0)
         let perRow   = cast(u64, QuickPopoverColumns)
@@ -1217,13 +1233,13 @@ impl QuickWnd
 
         .allPresets = body
 
-        let mode = .main.getEditMode()
+        let mode = .presetMode().mode
         for it, i in style.forms
         {
             let cell = .addPresetButton(it, body)
             cell.inPopover = true
             cell.setPosition(Math.Rectangle{QuickPopoverPad + cast(f32, i % perRow) * QuickChipWidth, QuickPopoverPad + cast(f32, i / perRow) * QuickChipHeight, QuickChipWidth, QuickChipHeight})
-            cell.setChecked(mode == MainWnd.formToEditMode(it) and it.isSame(.main.modelFor(Swag.kindOf(it))))
+            cell.setChecked(mode == MainWnd.formToolMode(it) and it.isSame(.main.modelFor(Swag.kindOf(it))))
         }
 
         // "+" closes the popover too, keeping the current style as a new preset.
@@ -1256,7 +1272,7 @@ impl QuickWnd
         btn.sigPressed += func|quickWnd = me|(_)
         {
             let main = quickWnd.main
-            let mdl  = main.newFormFromModel(main.getEditMode())
+            let mdl  = main.newFormFromModel(quickWnd.presetMode().mode)
             quickWnd.currentStyle!.forms.add(mdl)
             if quickWnd.moreButton do
                 quickWnd.moreButton.hidePopup()
@@ -1270,14 +1286,33 @@ impl QuickWnd
     // `forceRebuild` asks for it.
     mtd updateQuickStyles(forceRebuild = false)
     {
-        let edMode    = .main.editMode == .Selection ? .main.getEditMode() : .main.editMode
+        let presets   = .presetMode()
         let prevStyle = .currentStyle
-        let style     = .styleOf(edMode)
-        if not style do
-            return
-        .currentStyle = style
+        let style     = presets.found ? .styleOf(presets.mode) : null
+        if not style
+        {
+            // A selection of several kinds has no preset in common: the row leaves.
+            for c in .layout.children do
+                c.destroy()
+            .currentStyle = null
+            .moreButton   = null
+            if .isVisible()
+            {
+                .hide()
+                .parent?.applyLayout()
+            }
 
-        let formItf     = .main.editModeToModel(.main.getEditMode())
+            return
+        }
+
+        .currentStyle = style
+        if not .isVisible()
+        {
+            .show()
+            .parent?.applyLayout()
+        }
+
+        let formItf     = .main.editModeToModel(presets.mode)
         let canAddModel = .offersModel(formItf)
 
         // Light path: same style target and same button population. Destroying and

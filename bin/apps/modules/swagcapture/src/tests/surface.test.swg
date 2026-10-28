@@ -205,6 +205,9 @@ func testSetupEditorSurface(host: *Gui.Testing.HeadlessHost, dark: bool, text = 
         Swag.assert(bar.x >= main.dock.surfaceRect().right())
         Swag.assert(bar.right() <= main.inspector.surfaceRect().x)
         Swag.assert(bar.bottom() <= edge or bar.y >= edge)
+
+        // The presets are those of the selection, a text, whatever the tool in hand.
+        Swag.assert(main.editMode == .Shape and main.quickWnd.currentStyle == &main.quickWnd.qsText)
         Swag.assert(not main.recentBar.isLocallyVisible())
 
         var image = host.render(main)
@@ -281,6 +284,9 @@ func testCollectSwatches(wnd: *Wnd, result: *Array'(*IconButton))
     let text = testAddText(capture, 90, 160, 200, 50)
     text.text = "Cards"
     testAssertEditGolden(&host, main, [0, 1, 2], "edit.multi")
+
+    // Shapes and a text have no preset in common: the row of presets leaves.
+    Swag.assert(not main.quickWnd.isVisible())
 
     // The layers list every object, the selected ones chosen; a row chooses its object alone.
     Swag.assert(capture.selection.count == 3)

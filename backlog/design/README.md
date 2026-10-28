@@ -342,9 +342,9 @@ the screen to its work.
 
 - Home: the empty window stays quiet. The Scope mark, large and faint, gives the page its
   centre; one line under it invites a drop or `Ctrl+O`; under a hairline, the last six files as
-  plain rows — a small faint glyph of the kind (or the picture itself, as a 22 px thumbnail, for
-  an image, a cover, a page), the name in soft, the time in faint mono — and nothing else: no
-  title, no paths, no groups. The row under the pointer comes up on the raised
+  plain rows — a small faint glyph of the kind, the same line glyph for every kind and never a
+  thumbnail, the name in soft, the time in faint mono — and nothing else: no title, no paths, no
+  groups. The row under the pointer comes up on the raised
   ground with its folder in faint mono and a faint `×` that removes it from the history (Delete
   does the same on the chosen row). "Clear…", faint under the list, appears with the pointer and
   offers the partial clears — the entries whose file is gone, with their count, the entries

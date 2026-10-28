@@ -387,6 +387,15 @@ the screen to its work.
   lens, including capture modes, recent captures and the library.
 - Area capture: the screen dimmed except the chosen zone, a 1 px Voltage edge, its size in a
   mono chip, a pixel loupe with a Voltage crosshair, modes as text tabs on a floating bar.
+- Editing in place, right after a capture: the desktop stays dimmed and the captured zone
+  stands in full light with a white hairline edge, its size in a mono chip and Arc handles that
+  still move its edges. The annotations are drawn on it directly. One floating bar hangs under
+  the zone (above it, or beside it, when the screen has no room): the tools as glyphs with the
+  chosen one on the Arc ground, the colour, then the destinations in words — Pin, Editor,
+  Save… — and Copy as the primary action, and a faint `×`. The keys stand at the foot: Enter
+  copies and closes, `Ctrl+S` saves, `Esc` cancels.
+
+  ![Editing in place](imgs/capture.inplace.png) ![Editing in place, Papier](imgs/capture.inplace.paper.png)
 - Library: page title, folders as text tabs with mono counts, tags as chips (chosen in Arc),
   a grid of captures, rating and dates in mono.
 - Shape editing, per kind: arrow (curve handles, start/end glyph pickers, sizes), callout (inline

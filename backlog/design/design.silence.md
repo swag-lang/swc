@@ -113,7 +113,7 @@ dialogs, then each application, then the written rules.
   a quick style has no name; the quick-style strip shows its horizontal bar at rest when the set
   outnumbers the column (design.silence.002); the inspector rows of the head do not scroll with
   the generated settings; the library tab counts are in the proportional face; the recent
-  captures are text rows of the lens, not thumbnails; the in-place editor keeps its own icon bar;
+  captures are text rows of the lens, not thumbnails; the in-place editor keeps its own icon bar instead of the one floating bar of `capture.inplace`;
   the area bar offers no delay or cursor choice (they are lens entries).
 - Next: inline callout text with its mini-bar (face, size, alignment), then segments for two- or
   three-valued settings once the grid can draw them.

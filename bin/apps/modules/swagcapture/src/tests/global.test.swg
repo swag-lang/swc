@@ -103,7 +103,12 @@ func testSetupGlobalMain(main: *MainWnd)
     Swag.assert(not f.main.editArea.isLocallyVisible())
     Swag.assert(f.main.libWnd.isLocallyVisible())
     Swag.assert(not f.main.miniBar.isLocallyVisible())
-    Swag.assert(not f.main.app().animator.isActive(f.main.libWnd, AnimationChannel.from("Gui.Page.Offset")))
+
+    // The page arrives from a little below, and is reachable at once.
+    let pageTravel = f.main.themeMetrics().motion_PageOffset
+    Swag.assert(f.main.app().animator.isActive(f.main.libWnd, AnimationChannel.from("Gui.Float.Opacity")))
+    Swag.assert(f.main.libWnd.presentationOffset.y > 0 and f.main.libWnd.presentationOffset.y <= pageTravel)
+    f.main.app().animator.finishAll()
     Swag.assert(f.main.libWnd.presentationOpacity == 1 and f.main.libWnd.presentationOffset == Math.Point{})
 
     evt = Gui.Testing.commandState(ActionGlobal.ShowLibrary)
@@ -114,8 +119,8 @@ func testSetupGlobalMain(main: *MainWnd)
     Swag.assert(not f.main.libraryMode)
     Swag.assert(f.main.editArea.isLocallyVisible())
     Swag.assert(not f.main.libWnd.isLocallyVisible())
-    Swag.assert(not f.main.app().animator.isActive(f.main.editWnd, AnimationChannel.from("Gui.Page.Offset")))
-    Swag.assert(f.main.editWnd.presentationOpacity == 1 and f.main.editWnd.presentationOffset == Math.Point{})
+    f.main.app().animator.finishAll()
+    Swag.assert(f.main.editArea.presentationOpacity == 1 and f.main.editArea.presentationOffset == Math.Point{})
 
     let surface = unwrap f.main.surface
     surface.show()

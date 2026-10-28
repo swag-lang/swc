@@ -98,9 +98,9 @@ func testAssertLibrarySheetGolden(host: *Gui.Testing.HeadlessHost, main: *MainWn
     host.pump()
 }
 
-// Builds the editor over a white capture holding one selected text, in `dark` or light, and lays
-// it out the way the shipped window is.
-func testSetupEditorSurface(host: *Gui.Testing.HeadlessHost, dark: bool)->*MainWnd
+// Builds the editor over a white capture, in `dark` or light, the way the shipped window is; with
+// `text`, the capture holds one selected text.
+func testSetupEditorSurface(host: *Gui.Testing.HeadlessHost, dark: bool, text = true)->*MainWnd
 {
     let main = testSetupSurfaceMain(host)
 
@@ -112,9 +112,13 @@ func testSetupEditorSurface(host: *Gui.Testing.HeadlessHost, dark: bool)->*MainW
     // stripes at editor zoom. A surface golden needs quiet screenshot pixels instead.
     capture.backImg = Image.create(400, 240, .BGRA8)
     capture.backImg.fill(Argb.White)
-    let text = testAddText(capture, 48, 40, 144, 80)
-    text.text = "Theme"
-    capture.selection.add(0)
+    if text
+    {
+        let form = testAddText(capture, 48, 40, 144, 80)
+        form.text = "Theme"
+        capture.selection.add(0)
+    }
+
     main.editWnd.editView.setCapture(capture)
     main.quickWnd.setDefault()
 
@@ -196,6 +200,166 @@ func testSetupEditorSurface(host: *Gui.Testing.HeadlessHost, dark: bool)->*MainW
         var image = host.render(main)
         Pixel.Testing.assertImageGolden(&image, dark ? "surface" : "surface.paper")
     }
+}
+
+// Selects the forms `indices` of the capture the editor shows, lays the window out and renders it
+// to `golden`; `whole` renders the surface with what floats over the view, such as a popover.
+func testAssertEditGolden(host: *Gui.Testing.HeadlessHost, main: *MainWnd, indices: const [..] u64, golden: string, whole = false)
+{
+    let capture = unwrap main.getCapture()
+    capture.selection.clear()
+    for i in indices do
+        capture.selection.add(i)
+    capture.selectionHasChanged()
+    main.applyLayout()
+    host.finishAnimations()
+
+    var image = whole ? host.render(&host.surfaceWnd) : host.render(main)
+    Pixel.Testing.assertImageGolden(&image, golden)
+}
+
+// Collects the colour swatches of the head of the inspector, in display order.
+func testCollectSwatches(wnd: *Wnd, result: *Array'(*IconButton))
+{
+    for child in wnd.children
+    {
+        if child is IconButton as button where button.flags.has(.Popup) do
+            result.add(button)
+        testCollectSwatches(child, result)
+    }
+}
+
+// An arrow: the inspector with its line ends as glyph rows, in Encre.
+#[Swag.TestTag("golden")]
+#test
+{
+    var host: Gui.Testing.HeadlessHost
+    let main = testSetupEditorSurface(&host, dark: true, text: false)
+    defer
+    {
+        main.libWnd.requestClose()
+        host.shutdown()
+        g_Main = null
+    }
+
+    with let arrow = testAddArrow(unwrap main.getCapture(), 60, 190, 300, 70)
+    {
+        .borderColor = ColorRed
+        .borderSize  = 6
+        .endCap      = .ArrowAnchor
+    }
+
+    testAssertEditGolden(&host, main, [0], "edit.arrow")
+}
+
+// Several objects: their common settings, the alignment, the order and the layers, in Encre.
+#[Swag.TestTag("golden")]
+#test
+{
+    var host: Gui.Testing.HeadlessHost
+    let main = testSetupEditorSurface(&host, dark: true, text: false)
+    defer
+    {
+        main.libWnd.requestClose()
+        host.shutdown()
+        g_Main = null
+    }
+
+    let capture = unwrap main.getCapture()
+    discard testAddShape(capture, 30, 40, 150, 100)
+    discard testAddShape(capture, 210, 40, 150, 100)
+    let text = testAddText(capture, 90, 160, 200, 50)
+    text.text = "Cards"
+    testAssertEditGolden(&host, main, [0, 1, 2], "edit.multi")
+
+    // The layers list every object, the selected ones chosen; a row chooses its object alone.
+    Swag.assert(capture.selection.count == 3)
+}
+
+// A step marker: its shapes and its number on the mini-bar, in Encre.
+#[Swag.TestTag("golden")]
+#test
+{
+    var host: Gui.Testing.HeadlessHost
+    let main = testSetupEditorSurface(&host, dark: true, text: false)
+    defer
+    {
+        main.libWnd.requestClose()
+        host.shutdown()
+        g_Main = null
+    }
+
+    let capture = unwrap main.getCapture()
+    discard testAddStep(capture, 40, 40, 40, 40)
+    discard testAddStep(capture, 300, 40, 40, 40)
+    let third = testAddStep(capture, 160, 140, 40, 40)
+    third.index = 3
+    testAssertEditGolden(&host, main, [2], "edit.step")
+
+    // The number on the mini-bar is the number of the selected marker.
+    var found = false
+    for item in main.miniBar.items
+    {
+        if item.wnd is Stepper as stepper
+        {
+            Swag.assert(stepper.value == 3)
+            found = true
+        }
+    }
+
+    Swag.assert(found)
+}
+
+// A mask: its kinds as a list with their glyphs, the pixelation chosen, in Encre.
+#[Swag.TestTag("golden")]
+#test
+{
+    var host: Gui.Testing.HeadlessHost
+    let main = testSetupEditorSurface(&host, dark: true, text: false)
+    defer
+    {
+        main.libWnd.requestClose()
+        host.shutdown()
+        g_Main = null
+    }
+
+    let mask = testAddImage(unwrap main.getCapture(), 60, 80, 280, 40)
+    mask.kind = .Pixelate
+    testAssertEditGolden(&host, main, [0], "edit.mask")
+}
+
+// The colour popover opened from the inspector: the recent colours, the palette, the exact value
+// and the opacity, in Papier.
+#[Swag.TestTag("golden")]
+#test
+{
+    var host: Gui.Testing.HeadlessHost
+    let main = testSetupEditorSurface(&host, dark: false, text: false)
+    defer
+    {
+        main.libWnd.requestClose()
+        host.shutdown()
+        g_Main = null
+    }
+
+    let capture = unwrap main.getCapture()
+    discard testAddShape(capture, 60, 60, 220, 110)
+    main.recentColors.add(Color.fromArgb(0xFFE5484D))
+    main.recentColors.add(Color.fromArgb(0xFFF59E0B))
+    capture.selection.add(0)
+    capture.selectionHasChanged()
+    main.applyLayout()
+    host.finishAnimations()
+
+    var swatches: Array'(*IconButton)
+    testCollectSwatches(main.propWnd.topLayout, &swatches)
+    Swag.assert(not swatches.isEmpty())
+    swatches[0].sigPopupRequested.call(swatches[0])
+    host.finishAnimations()
+
+    var image = host.render(&host.surfaceWnd)
+    Pixel.Testing.assertImageGolden(&image, "edit.color.paper")
+    swatches[0].hidePopup()
 }
 
 // The lens over the editor, answering a query with commands of several families, in Papier.

@@ -116,8 +116,24 @@ impl RecentView
         catch { .selectLoaded(idx, try Capture.load(item.file)) }
     }
 
-    // Paints one capture cell. The recent strip and the library grid share it, so a capture
-    // looks the same in both places.
+    // Paints the mark of a capture linked to an image file at the top-left corner of `rect`: on the
+    // ground when the image is up to date, on yellow when it is not.
+    func paintLinkBadge(parent: *Wnd, painter: *Painter, rect: Math.Rectangle, infos: RecentInfos, corner: f32)
+    {
+        if not infos.showLinked or infos.linked == null do
+            return
+
+        let colors    = parent.themeColors()
+        let backColor = infos.linkedUpToDate ? colors.ground : ColorYellow
+        painter.fillRoundRect(Math.Rectangle{rect.x, rect.y, LinkBadgeSize, LinkBadgeSize}, corner, corner, backColor)
+
+        var icon = parent.theme().icon(.Link)
+        icon.sizeX, icon.sizeY = LinkBadgeGlyph
+        let inset = (LinkBadgeSize - LinkBadgeGlyph) * 0.5
+        icon.paint(painter, rect.x + inset, rect.y + inset, backColor.contrasting())
+    }
+
+    // Paints one capture of the recent strip.
     func paintRecent(parent: *Wnd, painter: *Painter, texture: Texture, rect: Math.Rectangle, infos: RecentInfos)
     {
         let colors = parent.themeColors()
@@ -160,16 +176,7 @@ impl RecentView
             }
         }
 
-        if infos.showLinked and infos.linked != null
-        {
-            let backColor = infos.linkedUpToDate ? colors.ground : ColorYellow
-            painter.fillRoundRect(Math.Rectangle{rect.x, rect.y, LinkBadgeSize, LinkBadgeSize}, corner, corner, backColor)
-
-            var icon = parent.theme().icon(.Link)
-            icon.sizeX, icon.sizeY = LinkBadgeGlyph
-            let inset = (LinkBadgeSize - LinkBadgeGlyph) * 0.5
-            icon.paint(painter, rect.x + inset, rect.y + inset, backColor.contrasting())
-        }
+        paintLinkBadge(parent, painter, rect, infos, corner)
 
         // The selected capture is framed. A corner cut would say the same thing in the mark's
         // own vocabulary, but it sits exactly where the linked badge sits and eats into it, and a

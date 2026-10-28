@@ -27,6 +27,8 @@ const LibraryRowGap      = 24.0     // Air between two rows of cells.
 const LibraryCaptionGap  = 10.0     // Air between a thumbnail and its name.
 const LibraryCaptionLine = 18.0     // Height of the name line, and of the line of facts.
 const LibraryCellRing    = 4.0      // Room kept around the grid for the ring of a chosen thumbnail.
+const LibraryRingGap     = 2.0      // Air between a chosen thumbnail and its Arc ring.
+const LibraryRingSize    = 2.0      // Weight of the Arc ring of a chosen thumbnail.
 
 // Height a cell spends under its thumbnail.
 const LibraryCaptionHeight = LibraryCaptionGap + 2 * LibraryCaptionLine
@@ -262,6 +264,52 @@ impl IWnd for LibraryView
         }
     }
 
+    // Paints a thumbnail filling `rect`: the picture cropped to the cell on the control corner,
+    // its link mark, and the Arc ring of a chosen one around it.
+    mtd paintThumbnail(painter: *Painter, texture: Texture, rect: Math.Rectangle, infos: RecentInfos)
+    {
+        let metrics = .themeMetrics()
+        let colors  = .themeColors()
+        let corner  = metrics.corner_Control
+
+        painter.setParams(.Antialiased)
+        painter.fillRoundRect(rect, corner, corner, colors.raised)
+        if texture.isValid()
+        {
+            // Cover the cell: keep the middle of the picture at the aspect of the cell.
+            var src   = Math.Rectangle{0, 0, cast(f32, texture.width), cast(f32, texture.height)}
+            let ratio = rect.width / rect.height
+            if src.width / src.height > ratio
+            {
+                let width = src.height * ratio
+                src.x     = (src.width - width) * 0.5
+                src.width = width
+            }
+            else
+            {
+                let height = src.width / ratio
+                src.y      = (src.height - height) * 0.5
+                src.height = height
+            }
+
+            painter.startClippingRegion()
+            painter.fillRoundRect(rect, corner, corner, Argb.White)
+            painter.endClippingRegion()
+            painter.setInterpolationMode(.Linear)
+            painter.drawTexture(rect, src, texture)
+            painter.resetClippingRegion()
+        }
+
+        RecentView.paintLinkBadge(me, painter, rect, infos, corner)
+
+        if infos.selected
+        {
+            var ring = rect
+            ring.inflate(LibraryRingGap)
+            painter.drawRoundRect(ring, corner + LibraryRingGap, corner + LibraryRingGap, colors.arc, LibraryRingSize)
+        }
+    }
+
     // Paints one visible cell: the thumbnail, ringed in Arc when it is chosen, with the image
     // badge and the link mark over it; then its name, and a mono line of facts under it — the
     // date, the favorite and the rating at its start, the size of the picture at its end.
@@ -284,7 +332,7 @@ impl IWnd for LibraryView
         let theme     = .theme()
         let {w, h}    = .getPreviewSize()
         let thumbRect = Math.Rectangle{it.rect.x, it.rect.y, w, h}
-        RecentView.paintRecent(me, painter, it.texture, thumbRect, infos)
+        .paintThumbnail(painter, it.texture, thumbRect, infos)
 
         if it.kind == .Image
         {

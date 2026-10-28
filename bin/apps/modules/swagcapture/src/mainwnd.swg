@@ -119,6 +119,7 @@ struct MainWnd
     pixSelFillCol:                             Color      = Argb.White
     inPlaceEdit, snap, freezeSel, libraryMode: bool
     showRecent, inspectorFolded:               bool
+    recentColors:                              Array'Color
     firstShow:                                 bool       = true
     fileDlgState, fileDlgStateInPlace:         FileDlgState
     libraryFolderDlgState:                     FileDlgState
@@ -273,6 +274,7 @@ impl IWnd for MainWnd
                 try .serialize("MainWnd.libraryShowRatingOverlay", &me.libWnd.showRatingOverlay)
                 try .serialize("MainWnd.libraryShowLinkOverlay", &me.libWnd.showLinkOverlay)
                 try .serialize("MainWnd.showRecent", &me.showRecent)
+                try .serialize("MainWnd.recentColors", &me.recentColors)
                 try .serialize("MainWnd.inspectorFolded", &me.inspectorFolded)
                 try .serialize("MainWnd.captureOptions", &me.captureOptions)
                 try .serialize("MainWnd.editorOptions", &me.editorOptions)
@@ -543,6 +545,7 @@ impl MainWnd
     {
         .updateCommandState()
         .updateInspectorTitle()
+        .fillHintLine()
         if .propWnd != null do
             .propWnd.selectionHasChanged()
         if .quickWnd != null do
@@ -611,6 +614,27 @@ impl MainWnd
         case .PixSel:    return appStrings().act_PixSel
         case .Favorites: return appStrings().act_Favorites
         case .Selection: return appStrings().act_Select
+        }
+    }
+
+    // Returns the glyph of a tool, as the dock and the layers of the inspector show it.
+    func editModeIcon(mode: EditMode)->CaptureIcons
+    {
+        switch #complete mode
+        {
+        case .Shape:     return .Shape
+        case .Arrow:     return .Arrow
+        case .Line:      return .Line
+        case .Polygon:   return .Polygon
+        case .Text:      return .Text
+        case .Callout:   return .Text
+        case .Draw:      return .Draw
+        case .Highlight: return .Highlight
+        case .Step:      return .Step
+        case .Image:     return .Image
+        case .PixSel:    return .PixSel
+        case .Favorites: return .Favorites
+        case .Selection: return .Select
         }
     }
 

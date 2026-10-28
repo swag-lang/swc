@@ -182,13 +182,13 @@ impl InPlaceEditWnd
 
         btnColor.sigPopupRequested += func|editor = me|(btn)
         {
-            let picker = PropWnd.createColorPicker(btn, editor.toolColor())
-            picker.sigColorChanged += func|editor, picker, btn|(_)
+            let popover = ColorPopover.open(btn, appStrings().ui_PropColor, editor.toolColor(), &editor.newMain.recentColors)
+            popover.sigColorChanged += func|editor, btn|(pop)
             {
                 if editor.editMode == .Marker do
-                    editor.editColorHilight = picker.color()
+                    editor.editColorHilight = pop.color
                 else do
-                    editor.editColor = picker.color()
+                    editor.editColor = pop.color
                 editor.updateEditMode()
                 btn.invalidate()
             }

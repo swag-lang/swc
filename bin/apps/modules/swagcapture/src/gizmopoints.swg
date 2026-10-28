@@ -22,8 +22,8 @@ func paintSelectionHandle(painter: *Painter, x, y, radius: f32, ink: Color, hot:
 
 // A drawn handle is smaller than the area that grabs it: the reach stays generous while the mark
 // stays quiet over the capture.
-const HandleScale = 0.8
-const HandleRing  = 1.5
+const HandleScale = 0.8'f32
+const HandleRing  = 1.5'f32
 
 // The handles that move the points of a line, a polygon, or a stroke.
 struct GizmoPoints

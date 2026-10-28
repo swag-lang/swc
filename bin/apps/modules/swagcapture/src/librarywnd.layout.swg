@@ -172,8 +172,11 @@ impl LibraryWnd
         .folderTabs.clear()
         .tabFolders.clear()
 
-        let root = Library.getFolder()
-        .folderTabs.addItem(Format.toString("%  %", appStrings().ui_AllCaptures, g_Library.files.count))
+        // The library tab counts what the page lists when it shows the library, and the index
+        // of the library otherwise.
+        let root      = Library.getFolder()
+        let rootCount = .currentFolder() == root ? .view.allItems.count : g_Library.files.count
+        .folderTabs.addItem(Format.toString("%  %", appStrings().ui_AllCaptures, rootCount))
         .tabFolders.add(root)
 
         let dirs = catch Directory.enumerateDirectories(root)

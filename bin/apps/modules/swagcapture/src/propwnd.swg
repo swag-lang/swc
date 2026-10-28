@@ -287,8 +287,12 @@ impl PropWnd
             fieldLabel(item)?.setTextAlignment(.Left, .Center)
             if item.sliderBox != null
             {
+                // The value of a slider is a measure read beside its track: mono, with no box
+                // around it; it still takes a typed value.
                 let ctrl = item.sliderBox
                 ctrl.setLayoutMetrics(width, ctrl.valueWidth, gap)
+                ctrl.edit.setForm(.Transparent)
+                ctrl.edit.style.setFont(.theme().res.fontDefaultFs)
             }
             elif item.comboBox != null
             {
@@ -332,6 +336,8 @@ impl PropWnd
             it.destroy()
         .grid.clear()
 
+        .addArrangeRows()
+        .addMaskKindRows()
         .addColorRows()
         .addStyleRows()
         .propNextStep()
@@ -453,6 +459,10 @@ impl IPropertyNotify for PropWnd
                 let shape = assume cast(*FormShape, base)
                 return shape.kind == .RoundRectangle
             }
+
+        // The kinds of a mask are the list of the head, with their glyphs.
+        case #nameof(FormImage.kind):
+            return false
 
         case #nameof(FormImage.strength):
             if .gridBindType == FormImage

@@ -86,10 +86,8 @@ impl IWnd for EditView
         .capture.gizmo.minSizeX = Capture.MinSize * .zoom
         .capture.gizmo.minSizeY = Capture.MinSize * .zoom
 
-        // Neutral, not Voltage: this gizmo lies over arbitrary captured pixels, where the
-        // accent competes with the content instead of reading against it. The application
-        // spends Voltage on the rail, the active tool, and the primary action only.
-        .capture.gizmo.paint(painter, false, Argb.White)
+        // The handles that resize the capture take the selection ink, like those of a form.
+        .capture.gizmo.paint(painter, false, selectionInk())
         painter.popTransform()
     }
 }

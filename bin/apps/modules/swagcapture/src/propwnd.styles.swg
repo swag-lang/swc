@@ -4,6 +4,9 @@ const ChoiceGap        = 4.0      // Air between two glyphs of a choice row.
 const ChoiceGlyphSize  = 14.0     // Side of the shape a shape glyph draws.
 const ChoiceGlyphInset = 6.0      // Air between a dash sample and the edges of its cell.
 const ChoiceStroke     = 1.5      // Weight of the strokes a glyph draws.
+const CapGlyphStroke   = 2.5      // Weight of the stroke a line end is drawn on: the ends scale with it.
+const MaxLayerRows     = 12       // Layers the inspector lists for several objects.
+const PositionLetterWidth = 14.0  // Width of the letter before a value of the position strip.
 
 // A colour a head row of the property panel edits on the selection.
 enum ColorSlot
@@ -26,28 +29,6 @@ enum ChoiceRow
 
 impl PropWnd
 {
-    // Opens a color picker under `btn`, set to `color` and offering the capture palette.
-    func createColorPicker(btn: *IconButton, color: Color)->*ColorPickerCtrl
-    {
-        let frame = btn.createAnchorPopup(356, 382)
-
-        with var pal: Array'Color
-        {
-            .add(Argb.White)
-            .add(Argb.Gray)
-            .add(Argb.Black)
-            .add(ColorRed)
-            .add(ColorGreen)
-            .add(ColorBlue)
-            .add(ColorYellow)
-            .add(Argb.Purple)
-        }
-
-        let picker = ColorPickerCtrl.createWithPalette(frame, {8, 54}, pal)
-        picker.setColor(color)
-        return picker
-    }
-
     // Appends a section label opening the head rows that follow.
     mtd addHeadSection(label: string)
     {
@@ -170,21 +151,21 @@ impl PropWnd
             if color.a != 255
             {
                 // The percent sign is appended rather than formatted: '%' is the placeholder itself.
-                hex += Format.toString(" · %", cast(s32, Math.round(color.a * 100 / 255.0)))
+                hex += Format.toString(" · %", cast(s32, Math.round(cast(f32, color.a) * 100 / 255)))
                 hex += " %"
             }
             painter.drawString(swatch.right() + metrics.inspector_LabelGap, font.opticalLineTop(pos.vertCenter()), hex, font, colors.softText)
         }
 
-        button.sigPopupRequested += func|prop = me, slot|(button)
+        button.sigPopupRequested += func|prop = me, slot, label|(button)
         {
-            let picker = createColorPicker(assume cast(*IconButton, button), prop.slotColor(slot))
+            let popover = ColorPopover.open(assume cast(*IconButton, button), label, prop.slotColor(slot), &prop.main.recentColors)
 
-            // The undo step waits for the colour to change: opening the picker and closing it
+            // The undo step waits for the colour to change: opening the popover and closing it
             // without a pick leaves none, and later picks replace the step of the first.
-            picker.sigColorChanged += func|prop, slot, button, var first = true|(pk)
+            popover.sigColorChanged += func|prop, slot, button, var first = true|(pop)
             {
-                prop.setSlotColor(slot, pk.color(), first)
+                prop.setSlotColor(slot, pop.color, first)
                 first = false
                 button.invalidate()
             }
@@ -266,7 +247,7 @@ impl PropWnd
             painter.drawLine(rect.x, rect.vertCenter(), rect.right(), rect.vertCenter(), pen)
 
         case .StartCap, .EndCap:
-            drawCapGlyph(painter, cast(LineCapStyle, value), row == .StartCap, pos, color, ChoiceStroke)
+            drawCapGlyph(painter, cast(LineCapStyle, value), row == .StartCap, pos, color, CapGlyphStroke)
         }
     }
 
@@ -296,11 +277,12 @@ impl PropWnd
                 .setChecked(value == current)
             }
 
-            button.iconPainter = func|row|(btn, bc, pos, flags)
+            // The glyph takes the whole cell: a button without an icon hands its painter no room.
+            button.iconPainter = func|row|(btn, bc, _, flags)
             {
                 let colors = btn.themeColors()
                 let color  = flags & .Checked ? colors.btnIcon_CheckedIcon : colors.btnIcon_Icon
-                paintChoice(bc.painter, row, enumFromUserData'u32(btn.userData), pos, color)
+                paintChoice(bc.painter, row, enumFromUserData'u32(btn.userData), btn.clientRect(), color)
             }
 
             button.sigPressed += func|prop = me, row, stack|(btn)
@@ -385,6 +367,127 @@ impl PropWnd
         }
     }
 
+    // Appends the kinds of a mask as a list, one row per kind with its glyph, the kind in force on
+    // the Arc ground: changing it keeps where the mask stands.
+    mtd addMaskKindRows()
+    {
+        let found = .getSelectedForm'FormImage()
+        if not found do
+            return
+        if found.subKind != .None do
+            return
+        let current = found.kind
+
+        .addHeadSection(appStrings().prop_Kind)
+        const Kinds  = [FormImageKind.Image, FormImageKind.Blur, FormImageKind.Pixelate, FormImageKind.Zoom, FormImageKind.Capture]
+        const Glyphs = [CaptureIcons.Image, CaptureIcons.Blur, CaptureIcons.Pixelate, CaptureIcons.Zoom, CaptureIcons.Cube]
+        for kind, i in Kinds
+        {
+            with let button = IconButton.create(.addHeadRow(""), .main.icon(Glyphs[i], .themeMetrics().menuPopup_IconSize), {}, flags: .Radio)
+            {
+                .dockStyle = .Center
+                .userData  = enumToUserData(kind)
+                .setText(quickStyleKindName(kind))
+                .setTextPosition(.Right)
+                .setForm(.RoundedRectangle)
+                .setCheckIndicator(.Frame)
+                .setChecked(current == kind)
+            }
+
+            // The panel is built again once the kind changed, which checks the new one.
+            button.sigPressed += func|prop = me|(btn)
+            {
+                prop.pushTypedValue(cast(u32, enumFromUserData'FormImageKind(btn.userData)), FormImage, #nameof(FormImage.kind), true)
+            }
+        }
+    }
+
+    // Appends what several selected objects share beyond their settings: their alignment, their
+    // order, and the layers of the capture with the selected ones chosen.
+    mtd addArrangeRows()
+    {
+        let capture = .main.getCapture()
+        if not capture or capture.selection.count < 2 do
+            return
+
+        let texts   = appStrings()
+        let metrics = .themeMetrics()
+        let size    = metrics.control_InspectorHeight
+
+        .addHeadSection(texts.ui_MenuAlign)
+        with let aligns = StackLayoutCtrl.create(.addHeadRow(""), .HorizontalFit, {})
+        {
+            .dockStyle = .Center
+            .spacing   = ChoiceGap
+        }
+
+        const AlignIds    = [ActionAlign.AlignLeft, ActionAlign.AlignCenter, ActionAlign.AlignRight, ActionAlign.AlignTop, ActionAlign.AlignMiddle, ActionAlign.AlignBottom]
+        const AlignGlyphs = [CaptureIcons.TextAlignLeft, CaptureIcons.TextAlignCenter, CaptureIcons.TextAlignRight, CaptureIcons.AlignTop, CaptureIcons.AlignMiddle, CaptureIcons.AlignBottom]
+        for id, i in AlignIds
+        {
+            with let button = IconButton.create(aligns, .main.icon(AlignGlyphs[i], metrics.menuPopup_IconSize), {0, 0, size, size}, id)
+            {
+                .updateFlags(.IconOnly)
+                .setForm(.RoundedRectangle)
+            }
+        }
+
+        .addHeadSection(texts.ui_MenuArrange)
+        const Arrange = [ActionAlign.SendToFront, ActionAlign.SendToBack, ActionAlign.MoveForward, ActionAlign.MoveBackward]
+        let arrangeNames  = [texts.act_SendToFront, texts.act_SendToBack, texts.act_MoveForward, texts.act_MoveBackward]
+        for pair in 2
+        {
+            with let row = StackLayoutCtrl.create(.addHeadRow(""), .HorizontalFit, {})
+            {
+                .dockStyle = .Center
+                .spacing   = ChoiceGap
+            }
+
+            // Words alone: the glyphs the commands carry for the lens would crowd a half column.
+            for k in 2
+            {
+                let id = Arrange[pair * 2 + k]
+                with let button = PushButton.create(row, arrangeNames[pair * 2 + k], {0, 0, 0, size}, form: .Flat)
+                {
+                    .sigPressed += func|prop = me, id|(_) { prop.main.postCommandEvent(id) }
+                }
+            }
+        }
+
+        // The layers, the one in front first; a row selects its object alone.
+        .addHeadSection(texts.ui_Layers)
+        var shown = 0
+        for i in reversed(capture.forms.count)
+        {
+            if shown == MaxLayerRows do
+                break
+            shown += 1
+
+            let form = capture.forms[i]
+            let mode = MainWnd.formToEditMode(form)
+            let name = MainWnd.editModeName(mode)
+            with let button = IconButton.create(.addHeadRow(""), .main.icon(MainWnd.editModeIcon(mode), metrics.menuPopup_IconSize), {}, flags: .Radio)
+            {
+                .dockStyle = .Center
+                .userData  = cast(*void, cast(u64, i))
+                .setText(name)
+                .setTextPosition(.Right)
+                .setForm(.RoundedRectangle)
+                .setCheckIndicator(.Frame)
+                .setChecked(capture.selection.contains(i))
+                .sigPressed += func|prop = me|(btn)
+                {
+                    let capture = prop.main.getCapture()
+                    if not capture do
+                        return
+                    capture.selection.clear()
+                    capture.selection.add(cast(u64, btn.userData))
+                    capture.selectionHasChanged()
+                }
+            }
+        }
+    }
+
     // Returns the outer contour color of a stroke form. Filled forms and text already use the
     // shared BaseForm outline, while these three forms need a second stroke around their core.
     // An arrow is a line, so it answers through the line case.
@@ -459,9 +562,9 @@ impl PropWnd
         }
     }
 
-    // Position/size boxes: two compact hand-made rows (x/y and w/h) appended right after
-    // the generated grid content, separated like a category. Box forms only. X/Y may be
-    // negative (a form may sit outside the canvas).
+    // The position strip: X, Y, W and H in one row at the end of the generated settings, each a
+    // faint letter and a value in the fixed-width family. Box forms only; X and Y may be negative,
+    // since a form may stand outside the capture.
     mtd propXY()
     {
         if not .hasRealSelection() do
@@ -471,14 +574,11 @@ impl PropWnd
             return
         let curSel = .getSelectedBaseForm()
 
-        func addBox(prop: *PropWnd, parent: *Wnd, label: String, name: string, value: s32, signed: bool)
+        func addBox(prop: *PropWnd, parent: *Wnd, label: string, name: string, value: s32, signed: bool)
         {
             let edit = EditCtrl.create(parent, label, Format.toString("%", value), flags: .ReleaseFocusOnEnterOrEscape)
-            edit.setLayoutMetrics(15, 0)
-
-            // A coordinate is machine data, so it is set in the fixed-width theme family:
-            // the digits then line up between the four boxes and stop shifting as they
-            // change width.
+            edit.setLayoutMetrics(PositionLetterWidth, 0, 0)
+            edit.label.updateFlags(.SecondaryText)
             edit.edit.style.setFont(prop.theme().res.fontDefaultFs)
 
             if signed do
@@ -492,33 +592,21 @@ impl PropWnd
             }
         }
 
-        // `name` must be a view of storage that outlives the grid (a literal): the
-        // TypeValue below keeps the view, and a by-value String parameter would hand
-        // it a dangling pointer into this frame's small-string storage.
-        func addRow(prop: *PropWnd, name: string)->*Wnd
+        // `name` must be a view of storage that outlives the grid (a literal): the TypeValue below
+        // keeps the view, and a by-value String would hand it a dangling pointer.
+        let v    = Swag.TypeValue{name: appStrings().ui_PropPosition}
+        let item = .grid.addItem(v, null, null, .themeMetrics().control_InspectorHeight + GridRowInset, .None)
+        item.flags.add(.NoSeparator)
+        with let strip = StackLayoutCtrl.create(item.line, .HorizontalFit, {0, 0, 0, .themeMetrics().control_InspectorHeight})
         {
-            let v    = Swag.TypeValue{name: name}
-            let item = prop.grid.addItem(v, null, null, 40, .None)
-
-            // No NoFocus: the rows embed edit boxes, so they stay keyboard-navigable
-            item.flags.add(.NoSeparator)
-            return StackLayoutCtrl.create(item.line, .HorizontalFit, {0, 0, 0, 40})
+            .spacing = ChoiceGap
         }
 
-        // Each row names itself, so no category separator sits above them: a heading
-        // repeating what the two rows already say is one more line to step over.
-        with let l0 = addRow(me, appStrings().ui_PropPosition)
-        {
-            addBox(me, l0, "x", #nameof(BaseForm.x), curSel.x, true)
-            addBox(me, l0, "y", #nameof(BaseForm.y), curSel.y, true)
-        }
-
-        with let l1 = addRow(me, appStrings().ui_PropSize)
-        {
-            addBox(me, l1, "w", #nameof(BaseForm.w), curSel.w, false)
-            addBox(me, l1, "h", #nameof(BaseForm.h), curSel.h, false)
-        }
-
+        let texts = appStrings()
+        addBox(me, strip, texts.ui_PosX, #nameof(BaseForm.x), curSel.x, true)
+        addBox(me, strip, texts.ui_PosY, #nameof(BaseForm.y), curSel.y, true)
+        addBox(me, strip, texts.ui_PosW, #nameof(BaseForm.w), curSel.w, false)
+        addBox(me, strip, texts.ui_PosH, #nameof(BaseForm.h), curSel.h, false)
         .grid.endAppendRows()
     }
 }

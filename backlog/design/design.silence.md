@@ -53,7 +53,9 @@ dialogs, then each application, then the written rules.
 - Next: let `Properties` switch kind by rebuilding its rows, put List, Grid, Condensed and Panel
   under a Presentation section of the joined `•••` menu with `✓` in Arc, mark matched characters
   with the highlight colour and count results in the search field and the section list; then fix
-  the Panel slider refresh.
+  the Panel slider refresh. The Panel and Grid rows of the charter also show a slider's value as a
+  mono reading with no box, and a two- or three-valued choice as segments: Swag Capture's inspector
+  sets the value face itself (`PropWnd.fitFieldLabelColumn`), and no segment control exists yet.
 - Done when: `gui.properties.ctrl.paper` is reproduced by a `properties.ctrl.{ink,paper}` golden.
 - Related: design.silence.002
 
@@ -96,29 +98,22 @@ dialogs, then each application, then the written rules.
 
 ### design.silence.008 — Swag Capture's shape editing does not yet match its pictures
 
-- Evidence: the editor is the capture on the ground with the tool dock, the mini-bar by the
-  selection (colour, face, step reset, alignment, delete, `•••`), the inspector (title and count,
-  Duplicate and Delete, quick styles, colour rows with swatch and hex, glyph rows for shape kind,
-  dashes and line ends, then the generated grid) and the hint line with the size and zoom; the
-  area overlay, the library page and the lens follow their pictures (`surface`, `surface.paper`,
-  `area`, `library.surface`, `lens.paper` goldens). What the `capture.edit.*` pictures show and the
-  editor does not: a callout's text is typed in a dialog, not inline with a caret; its face, size
-  and alignment are not on the mini-bar and its style is not an "Aa" segment; a mask's kind is a
-  combo of the grid, not a radio list with glyphs; a step's mini-bar has no number stepper; a
-  multiple selection shows no arrange buttons or layer list in the inspector; the colour picker is
-  the toolkit's picker, not the popover with recent colours, palette, exact value and opacity; a
-  quick style has no name; the generated rows show a value box where the pictures show a mono
-  value ("6 px") and a combo where they show segments (Line, Shadow), and position is two rows
-  instead of the X · Y · W · H strip; the folded inspector's tab is horizontal; the hint line does
-  not change with the tool. Elsewhere: the library's tab counts are in the proportional face and
-  its thumbnails are letterboxed in a 4:3 cell; the recent captures are text rows of the lens, not
-  thumbnails; the in-place editor still has its own icon bar; the area bar offers no delay or
-  cursor choice (they are lens entries).
-- Next: per `capture.edit.*` picture, move the missing editors into the inspector and the mini-bar
-  — start with the colour popover and the segments of the generated grid (design.silence.005),
-  which every kind shows — then inline callout text and the mask radio list.
-- Done when: each `capture.edit.*` picture is reproduced by a golden of the editor in that state.
-- Related: design.silence.004, design.silence.005
+- Evidence: the editor states of the `capture.edit.*` pictures have goldens (`edit.arrow`,
+  `edit.multi`, `edit.step`, `edit.mask`, `edit.color.paper`, beside `surface`, `area`,
+  `library.surface`, `lens.paper`). What they still show differently: a callout's text is typed in
+  a dialog, not inline with a caret, and the callout's mini-bar has no face, size or alignment;
+  the generated settings show a combo where the pictures show segments (Line, Shadow, Joins) —
+  the property grid draws no segment control (design.silence.005); multiple selection shows no
+  "common settings" heading and its layers are only the kinds of the objects, not their words;
+  a quick style has no name; the quick-style strip shows its horizontal bar at rest when the set
+  outnumbers the column (design.silence.002); the inspector rows of the head do not scroll with
+  the generated settings; the library tab counts are in the proportional face; the recent
+  captures are text rows of the lens, not thumbnails; the in-place editor keeps its own icon bar;
+  the area bar offers no delay or cursor choice (they are lens entries).
+- Next: inline callout text with its mini-bar (face, size, alignment), then segments for two- or
+  three-valued settings once the grid can draw them.
+- Done when: each `capture.edit.*` picture is reproduced by its golden.
+- Related: design.silence.002, design.silence.004, design.silence.005
 
 ### design.silence.009 — Swag Prism still frames its panes
 

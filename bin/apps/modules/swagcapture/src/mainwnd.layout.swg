@@ -1,3 +1,6 @@
+// Width of the step number on the mini-bar.
+const StepperWidth = 88.0
+
 // The room the floating parts of the editor take over the edges of the work.
 struct FloatingInsets
 {
@@ -89,6 +92,7 @@ impl MainWnd
         .inspector.sigFoldChanged += func|main = me|(inspector)
         {
             main.inspectorFolded = inspector.folded
+            main.fillHintLine()
             let view = main.editWnd.editView
             view.setZoom(view.zoom)
             main.placeMiniBar()
@@ -222,11 +226,11 @@ impl MainWnd
 
                 .sigPopupRequested += func|main = me|(button)
                 {
-                    let picker = PropWnd.createColorPicker(assume cast(*IconButton, button), main.miniBarColor())
-                    picker.sigColorChanged += func|main, button, var first = true|(pk)
+                    let popover = ColorPopover.open(assume cast(*IconButton, button), appStrings().ui_PropColor, main.miniBarColor(), &main.recentColors)
+                    popover.sigColorChanged += func|main, button, var first = true|(pop)
                     {
                         let field = main.miniBarColorField()
-                        main.propWnd.pushTypedValue(pk.color().argb, field.type, field.name, first, true)
+                        main.propWnd.pushTypedValue(pop.color.argb, field.type, field.name, first, true)
                         first = false
                         button.invalidate()
                     }
@@ -242,7 +246,11 @@ impl MainWnd
             elif kind == .Step
             {
                 .miniBar.addSeparator()
-                .miniBar.addTextButton(appStrings().ui_ResetSteps, ActionEdit.ResetSteps)
+                .addStepKinds()
+                .miniBar.addSeparator()
+                .addStepNumber()
+                .miniBar.addSeparator()
+                .miniBar.addTextButton(appStrings().ui_ResetSteps).sigPressed += func|main = me|(_) { main.postCommandEvent(ActionEdit.ResetSteps) }
             }
         }
 
@@ -256,6 +264,62 @@ impl MainWnd
         }
     }
 
+    // Adds the shapes a step marker can take to the mini-bar, the one in force checked.
+    mtd addStepKinds()
+    {
+        let found = catch cast(*FormStep?, .getCapture()?.getSelectedBaseForm())
+        if not found do
+            return
+        let current = found.kind
+        for kind in FormShapeKind
+        {
+            with let button = .miniBar.addButton({}, toolTip: appStrings().act_Shape, flags: .Radio)
+            {
+                .userData = enumToUserData(kind)
+                .setChecked(current == kind)
+                .iconPainter = func(btn, bc, pos, flags)
+                {
+                    let colors = btn.themeColors()
+                    let color  = flags & .Checked ? colors.btnIcon_CheckedIcon : colors.btnIcon_Icon
+                    PropWnd.paintChoice(bc.painter, .StepKind, cast(u32, enumFromUserData'FormShapeKind(btn.userData)), pos, color)
+                }
+            }
+
+            // The shapes are radios of the bar: choosing one unchecks the others.
+            button.sigPressed += func|main = me|(btn)
+            {
+                main.propWnd.pushTypedValue(cast(u32, enumFromUserData'FormShapeKind(btn.userData)), FormStep, #nameof(FormStep.kind), true)
+                for item in main.miniBar.items
+                {
+                    if item.wnd is IconButton as other where other.flags.has(.Radio) do
+                        other.setChecked(other == btn)
+                }
+            }
+        }
+    }
+
+    // Adds the number of the selected step marker to the mini-bar, as a stepper.
+    mtd addStepNumber()
+    {
+        let found = catch cast(*FormStep?, .getCapture()?.getSelectedBaseForm())
+        if not found do
+            return
+        let step = found
+
+        with let stepper = Stepper.create(.miniBar, {0, 0, StepperWidth, 0})
+        {
+            .setRange(1, 999)
+            .setValue(cast(s64, step.index))
+            .sigChanged += func|main = me|(wnd)
+            {
+                let value = (assume cast(*Stepper, wnd)).value
+                main.propWnd.pushTypedValue(cast(u32, value), FormStep, #nameof(FormStep.index), true)
+            }
+        }
+
+        .miniBar.addItem(stepper)
+    }
+
     // Places the mini-bar beside the selection, or hides it when nothing is selected.
     mtd placeMiniBar()
     {
@@ -265,7 +329,7 @@ impl MainWnd
         let capture = .getCapture()
         if .miniBarKind == .None or not capture or capture.selection.isEmpty()
         {
-            .miniBar.hide()
+            discard .app().animator.leave(.miniBar)
             return
         }
 
@@ -290,11 +354,43 @@ impl MainWnd
         .fillHintLine()
     }
 
-    // Writes the hints of the foot line in the language of the interface.
+    // Writes the foot line: what the tool in hand does, the key of the inspector while it is
+    // folded, and the one door.
     mtd fillHintLine()
     {
+        if .hintLine == null do
+            return
         .hintLine.clearHints()
+        let tool = .toolHint()
+        if not tool.isEmpty() do
+            .hintLine.addHint("", tool)
+        if .inspector != null and .inspector.folded do
+            .hintLine.addHint(.inspector.foldKey, appStrings().hint_AllProperties)
         .hintLine.addHint(strings().key_Space, appStrings().hint_Space)
+    }
+
+    // Returns what the tool in hand does, in a few words.
+    mtd toolHint()->String
+    {
+        let texts = appStrings()
+        switch #complete .editMode
+        {
+        case .Selection: return texts.hint_ToolSelect
+        case .Shape:     return texts.hint_ToolShape
+        case .Arrow:     return texts.hint_ToolArrow
+        case .Line:      return texts.hint_ToolLine
+        case .Polygon:   return texts.hint_ToolPolygon
+        case .Text:      return texts.hint_ToolText
+        case .Callout:   return texts.hint_ToolCallout
+        case .Draw:      return texts.hint_ToolDraw
+        case .Highlight: return texts.hint_ToolHighlight
+        case .Image:     return texts.hint_ToolImage
+        case .PixSel:    return texts.hint_ToolPixSel
+        case .Favorites: return texts.hint_ToolFavorites
+        case .Step:
+            let capture = .getCapture()
+            return Format.toString(texts.hint_ToolStep, capture ? capture.nextStepIndex : 1)
+        }
     }
 
     // The one door: every command of the application, the recent captures, the theme, the
@@ -405,11 +501,22 @@ impl MainWnd
         }
     }
 
-    // Shows or hides the strip of recent captures.
+    // Shows or hides the strip of recent captures. Shown, it opens to its height as a panel
+    // changing the layout does; hidden, the work takes the room back at once.
     mtd showRecentBar(show: bool)
     {
         .showRecent = show
-        .recentBar.show(show and not .libraryMode)
+        let visible = show and not .libraryMode
+        if visible and not .recentBar.isLocallyVisible()
+        {
+            .recentBar.resize(.recentBar.position.width, 0)
+            .recentBar.show()
+            .applyLayout()
+            discard .app().animator.animateLayoutHeight(.recentBar, .bottomHeight())
+            return
+        }
+
+        .recentBar.show(visible)
         .applyLayout()
     }
 

@@ -12,8 +12,7 @@ enum GizmoEdges
 // The frame of handles that moves, resizes, and rotates a box-shaped form.
 struct GizmoRect
 {
-    paintSimpleBorder: bool = true
-    paintBigBorder:    bool = true
+    paintBorder:       bool
     roundShape:        bool = false
     anchorSize:        f32  = 12
     trackChange:       bool = false
@@ -317,9 +316,9 @@ impl GizmoRect
 
     // Paints the box, its anchors, and the rotation handle, turned with the form.
     //
-    // A form's gizmo (the big border) is drawn in the selection ink: a hairline box, round handles
-    // and a rotation knob, as the charter marks what is chosen on a canvas. The capture's own
-    // gizmo keeps its embossed neutral border, which reads over any pixel without an accent.
+    // Drawn in the selection ink, as the charter marks what is chosen on a canvas: a form's gizmo
+    // is a hairline box with round handles and a rotation knob; the capture's own gizmo is square
+    // handles on its edges and corners, with no frame.
     mtd paint(painter: *Painter, hot: bool, col: Color)
     {
         let anchorSize2 = .anchorSize * 0.5
@@ -343,17 +342,10 @@ impl GizmoRect
 
         if not hot
         {
-            if .paintSimpleBorder
-            {
-                // Embossed: the capture gizmo sits on arbitrary user pixels, so it carries its
-                // own contrast instead of relying on an accent.
-                painter.drawRect(.rect, Argb.DarkGray, 3)
-                painter.drawRect(.rect, color, 1)
-            }
-            elif .paintBigBorder
-            {
+            // A form is framed by a hairline in the ink; the capture's own edge needs none, since
+            // the picture ends there.
+            if .paintBorder do
                 painter.drawRect(.rect, col, 1)
-            }
         }
 
         .anchors[0] = Math.Rectangle{.rect.x - anchorSize2, .rect.y - anchorSize2, .anchorSize, .anchorSize}
@@ -373,8 +365,11 @@ impl GizmoRect
             }
             else
             {
-                painter.fillRect(c, Argb.White)
-                painter.drawRect(c, Argb.Black, 2)
+                // A square handle, the size of a round one, for the edges of the capture.
+                let side = .anchorSize * HandleScale
+                let mark = Math.Rectangle{c.horzCenter() - side * 0.5, c.vertCenter() - side * 0.5, side, side}
+                painter.fillRect(mark, hot ? col : Argb.White)
+                painter.drawRect(mark, col, HandleRing)
             }
         }
 
@@ -469,8 +464,7 @@ impl GizmoRect
         .roundShape        = true
         .anchorSize        = 10
         .trackChange       = true
-        .paintSimpleBorder = false
-        .paintBigBorder    = true
+        .paintBorder       = true
 
         .sigChanged = func|form = iform|(g, first, edges) { g.apply(form, first, edges) }
 

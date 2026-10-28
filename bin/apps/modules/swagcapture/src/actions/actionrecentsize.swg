@@ -89,17 +89,22 @@ impl IActionUI for ActionRecentSize
 
 impl MainWnd
 {
+    // Returns the height of the recent strip at the preview size in force.
+    mtd bottomHeight()->f32
+    {
+        switch #complete .bottomSize
+        {
+        case .Small:  return 88
+        case .Medium: return 136
+        case .Big:    return 232
+        }
+    }
+
     // Sets the height of the recent strip, sliding to it when `animated`.
     mtd setBottomSize(bottomSize: BottomSize, animated = true)
     {
         .bottomSize = bottomSize
-        var height: f32
-        switch .bottomSize
-        {
-        case .Small:  height = 88
-        case .Medium: height = 136
-        case .Big:    height = 232
-        }
+        let height  = .bottomHeight()
 
         if animated
         {

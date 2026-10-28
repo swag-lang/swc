@@ -372,3 +372,25 @@ ui_ModeFullScreen      Écran entier
 ui_ModeLastArea        Dernière zone
 hint_Capture           capturer
 hint_Cancel            annuler
+tip_AddQuickStyle      Garder le style actuel comme style rapide
+ui_RecentColors        Récentes
+ui_Palette             Palette
+ui_Layers              Calques
+ui_PosX                X
+ui_PosY                Y
+ui_PosW                L
+ui_PosH                H
+hint_AllProperties     toutes les propriétés
+hint_ToolSelect        Cliquer un objet pour le choisir, glisser autour de plusieurs
+hint_ToolShape         Glisser pour tracer un rectangle ou une ellipse
+hint_ToolArrow         Glisser pour tracer une flèche
+hint_ToolLine          Glisser pour tracer une ligne
+hint_ToolPolygon       Glisser pour tracer un polygone
+hint_ToolText          Glisser pour placer un texte
+hint_ToolCallout       Glisser pour placer une bulle, puis glisser le point de la queue pour la diriger
+hint_ToolDraw          Glisser pour dessiner à main levée
+hint_ToolHighlight     Glisser sur ce qu'il faut surligner
+hint_ToolImage         Glisser pour placer une image ou un effet
+hint_ToolPixSel        Glisser pour choisir des pixels
+hint_ToolFavorites     Choisir un style, puis glisser pour le tracer
+hint_ToolStep          Le prochain clic pose le %

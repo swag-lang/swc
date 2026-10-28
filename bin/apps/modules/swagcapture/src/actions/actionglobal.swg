@@ -100,12 +100,11 @@ impl MainWnd
         let outgoing = .libraryMode ? .editArea : cast(*Wnd, .libWnd)
         let incoming = .libraryMode ? cast(*Wnd, .libWnd) : .editArea
 
-        // This change replaces nearly the whole client area. Fading both pages records two
-        // full-size subtrees into off-screen layers on every frame, which is disproportionately
-        // expensive for an image editor and its thumbnail library. Local control motion remains
-        // animated; the workspace handoff is immediate.
+        // A change of page: the page leaving goes at once, the one coming arrives from a little
+        // below. Fading both would record two full-size subtrees into off-screen layers on every
+        // frame, which costs an image editor and its thumbnail library far more than it says.
         outgoing.hide()
-        incoming.show()
+        discard .app().animator.arrive(incoming, {0, .themeMetrics().motion_PageOffset})
 
         .applyLayout()
         .updateState()

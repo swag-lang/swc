@@ -1,14 +1,14 @@
 // A preset cell renders a real sample of the style it applies, so it sits at the sample
 // size of the application chart rather than at the flat-swatch size. The sample keeps a
 // margin inside its cell: the air is what separates one preset from the next.
-const QuickCellSize   = 40.0
+const QuickCellSize   = 32.0
 const QuickCellMargin = 6.0
-const QuickCellGap    = 4.0     // Air between two preset cells; six cells fill the column of the inspector.
-const QuickMaxLines   = 2       // Lines of presets shown before the strip scrolls.
+const QuickChipWidth  = 40.0     // Widest a preset chip gets; the chips share the column of the inspector below it.
+const QuickChipMinimum = 26.0    // Narrowest a preset chip gets; past it, the strip scrolls.
+const QuickCellGap    = 4.0     // Air between two preset chips.
 
-// The overlay that turns the trailing cell into an "add this style" action.
-const AddCellSize  = 18.0
-const AddGlyphSize = 12.0
+// The glyph of the trailing chip, which keeps the style of the tool as a new preset.
+const AddGlyphSize = 14.0
 
 // The preset forms one tool offers in the quick-style bar.
 struct QuickStyle
@@ -86,7 +86,7 @@ struct QuickButton
     formItf:       IForm?
     late quickWnd: *QuickWnd
 
-    // The trailing cell, which shows the current tool style and offers to add it as a preset.
+    // The trailing chip, which keeps the current tool style as a new preset.
     isModel: bool
 }
 
@@ -193,8 +193,13 @@ func quickStyleTip(itf: IForm)->string
     let image = catch cast(*FormImage?, itf)
     if not image do
         return ""
+    return quickStyleKindName(image.kind)
+}
 
-    switch #complete image.kind
+// Returns the name of the kind of an image form: a picture, or the effect it has on what it covers.
+func quickStyleKindName(kind: FormImageKind)->string
+{
+    switch #complete kind
     {
     case .Image:    return appStrings().prop_KindImage
     case .Blur:     return appStrings().prop_KindBlur
@@ -209,7 +214,7 @@ struct QuickWnd
 {
     using scrollWnd: ScrollWnd
 
-    late layout: *WrapLayoutCtrl
+    late layout: *StackLayoutCtrl
     late main:   *MainWnd
 
     qsArrow:     QuickStyle
@@ -230,6 +235,13 @@ struct QuickWnd
 
 impl IWnd for QuickWnd
 {
+    // The chips share the width the strip is given.
+    mtd impl onResizeEvent(evt: *ResizeEvent)
+    {
+        .scrollWnd.IWnd.onResizeEvent(evt)
+        .fitChips()
+    }
+
     mtd impl onMouseEvent(evt: *MouseEvent)
     {
         if evt.kind == .Pressed and evt.button == .Right
@@ -349,19 +361,21 @@ impl QuickWnd
         }
     }
 
-    // Builds the quick style panel: a scrolling wrap of preset buttons.
+    // Builds the quick style strip: one row of preset chips, scrolling sideways when they outnumber
+    // the width of the column, and the chip that keeps the current style as a preset.
     func create(parent: *Wnd, main: *MainWnd)->*QuickWnd
     {
-        with let quick = Wnd.create'QuickWnd(parent, {0, 0, 0, 300})
+        let metrics = parent.themeMetrics()
+        with let quick = Wnd.create'QuickWnd(parent, {0, 0, 0, QuickCellSize + metrics.inspector_RowGap})
         {
             .backgroundStyle = .Transparent
             .updateFlags(.CompactBars | .TransparentBars)
 
             // The presets stand in the column of the inspector, which keeps the margins; the
             // strip keeps only the air between itself and the rows under it.
-            .layout         = WrapLayoutCtrl.create(quick)
-            .layout.padding = {0, 0, 0, quick.themeMetrics().inspector_RowGap}
-            .layout.spacing = QuickCellGap
+            .layout              = StackLayoutCtrl.create(quick, .Left, {0, 0, 0, QuickCellSize})
+            .layout.fitToContent = true
+            .layout.spacing      = QuickCellGap
             .setView(quick.layout)
 
             .main = main
@@ -765,31 +779,21 @@ impl QuickWnd
         var done = false
         let mode = .main.getEditMode()
 
-        // Form buttons are always the leading children (only the trailing model
-        // button is ever hidden), so form `i` maps directly to child `i`.
-        for it, i in .currentStyle.forms
+        // The preset chips lead the strip in the order of the set; a chip of a previous set may
+        // still be waiting for its deferred destruction, and the trailing chip adds a preset.
+        var i = 0'u64
+        for c in .layout.children where not c.isPendingDestroy
         {
-            let button = assume cast(*IconButton, .layout.children[i])
-            let mdl    = .main.modelFor(Swag.kindOf(it))
-            button.setChecked(mode == MainWnd.formToEditMode(it) and it.isSame(mdl))
+            let button = assume cast(*QuickButton, c)
+            if button.isModel or i >= .currentStyle.forms.count do
+                continue
 
+            let it  = .currentStyle.forms[i]
+            let mdl = .main.modelFor(Swag.kindOf(it))
+            button.setChecked(mode == MainWnd.formToEditMode(it) and it.isSame(mdl))
             if button.isChecked do
                 done = true
-        }
-
-        // The model button is optional (canAddModel), so the child list can be
-        // empty; guard back() against an out-of-bounds read.
-        if not .layout.children.isEmpty()
-        {
-            let curMdl = assume cast(*QuickButton, .layout.children.back())
-            if curMdl.isModel
-            {
-                curMdl.show(not done)
-                if not done do
-                    curMdl.setChecked(true)
-                .layout.computeLayout()
-                .setScrollSize(0, .layout.contentHeight)
-            }
+            i += 1
         }
 
         .invalidate()
@@ -868,16 +872,20 @@ impl QuickWnd
         var paintForm = QuickStylePaintForm.create(unwrap btnp.formItf)
         defer paintForm.release()
 
+        // The sample stands in a centred square of the chip.
+        painter.pushTransform()
+        painter.translateTransform((btnp.position.width - QuickCellSize) * 0.5, 0)
         Capture.paintForm(painter, {}, {0, 0, QuickCellSize, QuickCellSize}, unwrap paintForm.itf, zoom: 1, quickMode: true)
+        painter.popTransform()
     }
 
     // Adds the cell of one preset; checking it applies the preset to the tool and to the selection.
     mtd addPresetButton(form: IForm)
     {
-        with let button = Wnd.create'QuickButton(me.layout, null, {0, 0, QuickCellSize, QuickCellSize})
+        with let button = Wnd.create'QuickButton(me.layout, null, {0, 0, QuickChipWidth, QuickCellSize})
         {
             .updateFlags(.Radio)
-            .setForm(.Rectangle)
+            .setForm(.RoundedRectangle)
 
             // The picked preset is the cell that is lit, not the cell with a bar under it: a
             // rule in the accent below a sample drawn in the user's own colors reads as one
@@ -917,46 +925,21 @@ impl QuickWnd
         }
     }
 
-    // Adds the trailing cell, which shows the current tool style and offers to keep it as a preset.
+    // Adds the trailing chip, which keeps the current style of the tool as a new preset.
     mtd addModelButton(form: IForm)
     {
-        with let btn = Wnd.create'QuickButton(me.layout, null, {0, 0, QuickCellSize, QuickCellSize})
+        with let btn = Wnd.create'QuickButton(me.layout, null, {0, 0, QuickChipWidth, QuickCellSize})
         {
-            .updateFlags(.Radio)
             .isModel = true
             .formItf = form
-            .setForm(.Rectangle)
+            .toolTip = appStrings().tip_AddQuickStyle
+            .setForm(.RoundedRectangle)
             .setCheckIndicator(.None)
-            .style.addStyleSheetColors("""btnIcon_Bk          0x0
-                                          btnIcon_HotBk       0x0
-                                          btnIcon_PressedBk   0x0""")
+            .iconBtn.setIcon(me.theme().icon(.Plus, AddGlyphSize))
+            .updateFlags(.IconOnly | .CenterContent)
         }
 
-        .layout.sendResizeEvent()
-
-        btn.iconPainter = func(btn, bc, _, _)
-        {
-            paintPreset(bc.painter, assume cast(*QuickButton, btn))
-            var rect = btn.clientRect()
-            rect.inflate(-2, -2)
-            bc.painter.setParams(.Antialiased)
-            bc.painter.drawRect(rect, Pen.createDash(.Dash, Argb.White, 1))
-        }
-
-        // The cell's own button adds its style as a new preset. Neutral, not Voltage: adding
-        // a preset is a convenience, not the primary action of the surface.
-        with let addBtn = IconButton.create(btn, me.theme().icon(.Plus, AddGlyphSize), {QuickCellSize - AddCellSize - 2, 2, AddCellSize, AddCellSize})
-        {
-            .style.addStyleSheetColors("""btnIcon_Bk          $veilMedium
-                                          btnIcon_HotBk       $veilStrong
-                                          btnIcon_PressedBk   $btnIcon_PressedBk""")
-            .setForm(.Rectangle)
-        }
-
-        .layout.sendResizeEvent()
-        .setScrollSize(0, .layout.contentHeight)
-
-        addBtn.sigPressed += func|quickWnd = me|(_)
+        btn.sigPressed += func|quickWnd = me|(_)
         {
             let main = quickWnd.main
             let mdl  = main.newFormFromModel(main.getEditMode())
@@ -983,7 +966,10 @@ impl QuickWnd
         // recreating every button is only needed when the style set itself changed;
         // check states and the model button repaint from live data.
         let wantBtns = style.forms.count + (canAddModel ? 1 : 0)
-        if not forceRebuild and style == prevStyle and .layout.children.count == wantBtns
+        var liveBtns = 0'u64
+        for c in .layout.children where not c.isPendingDestroy do
+            liveBtns += 1
+        if not forceRebuild and style == prevStyle and liveBtns == wantBtns
         {
             .updateSelection()
             return
@@ -997,18 +983,27 @@ impl QuickWnd
             .addModelButton(formItf)
 
         .updateSelection()
-        .layout.computeLayout()
-        .fitHeight()
+        .fitChips()
     }
 
-    // Gives the strip the height of its presets, up to a few lines; past them it scrolls.
-    mtd fitHeight()
+    // Shares the width of the strip between its chips, from the widest a chip gets down to the
+    // narrowest; past that, the strip scrolls sideways.
+    mtd fitChips()
     {
-        let lines  = QuickMaxLines * QuickCellSize + (QuickMaxLines - 1) * QuickCellGap + .layout.padding.w
-        let height = Math.min(.layout.contentHeight, lines)
-        if .position.height == height do
+        if .layout == null do
             return
-        .resize(.position.width, height)
-        .parent?.applyLayout()
+        var count = 0'u64
+        for c in .layout.children where not c.isPendingDestroy do
+            count += 1
+        if count == 0 do
+            return
+
+        let room  = .position.width - cast(f32, count - 1) * QuickCellGap
+        let width = Math.clamp(Math.floor(room / cast(f32, count)), QuickChipMinimum, QuickChipWidth)
+        for c in .layout.children where not c.isPendingDestroy do
+            c.resize(width, QuickCellSize)
+        .layout.computeLayout()
+        .setScrollSize(.layout.position.width, 0)
     }
+
 }

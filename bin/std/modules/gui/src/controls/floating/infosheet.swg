@@ -108,7 +108,12 @@ impl IWnd for InfoSheet
         let pad     = metrics.infoSheet_Padding
 
         paintFloatingGround(me, painter, body, metrics.corner_Floating)
-        painter.pushClippingRect(body)
+
+        // A sheet shorter than its blocks keeps its action whole: the blocks stop above it.
+        var blocksArea = body
+        if .action do
+            blocksArea.height = Math.max(.action.position.y - metrics.infoSheet_BlockGap * 0.5 - body.y, 0)
+        painter.pushClippingRect(blocksArea)
         defer painter.popClippingRect()
 
         let x     = body.x + pad

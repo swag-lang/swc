@@ -170,6 +170,7 @@ struct View
 
         sigLinkActivated: SigArray'func||(*Wnd, string)     // Emitted when a rendered link is activated.
         sigLoadFailed:    SigArray'func||(*Wnd, string)     // Emitted with the exact reason when progressive file loading stops.
+        sigScrolled:      SigArray'func||(*Wnd)             // Emitted after the document moved under the view.
 
         readonly
         {
@@ -1242,6 +1243,30 @@ internal impl View
 
 impl View
 {
+    // Returns where the reading column stands across the view: its left edge and its width.
+    //
+    // A host places what belongs beside the text, such as a table of contents, in the margins
+    // this leaves.
+    mtd columnGeometry()->{x: f32, width: f32} => .documentGeometry()
+
+    // Returns the share of the document above the bottom of the view, from 0 at the top to 1
+    // at the end, as a reading progress shows it.
+    mtd readingProgress()->f32
+    {
+        let extent = Math.max(.scroll.scrollSize.y - .scroll.clientRect().height, 1)
+        return Math.clamp(.scroll.scrollPosition().y / extent, 0, 1)
+    }
+
+    // Returns the source byte offset of the text read at the top of the view, or `U64.Max`
+    // while nothing is laid out there; the heading being read is the last one before it.
+    mtd readingOffset()->u64
+    {
+        let geometry = .documentGeometry()
+        let viewport = .scroll.paddedClientRect()
+        let at       = .documentPositionAt(.scroll.localToSurface(Math.Point{geometry.x + 8, viewport.y + .documentStyle.topInset}))
+        return at.has ? at.offset : Swag.U64.Max
+    }
+
     // Creates an empty Markdown document view.
     #[Swag.Discardable]
     func create(contentParent: *Wnd, documentStyle: Style = {})->*View
@@ -1263,6 +1288,7 @@ impl View
         result.body.backgroundStyle            = .View
         result.scroll.sigScrollPositionChanged += func|view = result|(_, oldPosition, newPosition)
         {
+            view.sigScrolled.call(view)
             view.trimRenderCaches(newPosition.y)
             if (view.jumpToEnd and not view.prioritizeViewport) or view.repositioning do
                 return

@@ -68,6 +68,7 @@ impl Panel
         }
 
         .refreshDetails()
+        .refreshChips()
     }
 
     mtd const subtitleTrack()->const *Subtitle.Track?
@@ -87,6 +88,7 @@ impl Panel
         .subtitleLastSeconds = -1
         .subtitleNextChange  = 0
         .refreshSubtitle()
+        .refreshChips()
     }
 
     // Shows the subtitle for the current position shifted by the user's delay, recomputing it only
@@ -119,14 +121,12 @@ impl Panel
         catch g_App.saveState()
     }
 
-    // Opens the options of the film above their button: play mode, speed, sound track and subtitles.
+    // Opens the options of the film above the chip of the speed: play mode, speed, sound track and
+    // subtitles. The veils come with it, since the sheet stands on one.
     mtd showOptions()
     {
-        let sheet = OptionSheet.View.create(.optionsButton, func|view = me|(page) { view.describeOptions(page) }, owner: me)
-        .optionsOpen = true
-        sheet.doModal(.optionsButton, autoDestroy: true)
-        .optionsOpen = false
-        .refreshOptionsBadge()
+        .pointerMoved(true)
+        .showChoices(.speedChip, func|view = me|(page) { view.describeOptions(page) })
     }
 
     // Describes the first page of the options: one row per setting, with the value in force.

@@ -514,11 +514,31 @@ impl Decoder
             }
             else
             {
-                for row in height
+                // The interpolation window includes four samples beyond the right edge, so this
+                // eight-lane load is inside the window even when only four lanes are stored.
+                if width >= 4
                 {
-                    let source = cast(u64, (row + 3)) * referenceStride + 3
-                    for column in width do
-                        .predBuffer[list, row * width + column] = cast(s16, (cast(s32, reference[source + cast(u64, column)]) << shift3))
+                    for row in height
+                    {
+                        let source = cast(u64, (row + 3)) * referenceStride + 3
+                        let pixels = Simd.load(&reference[source]) << shift3
+                        storeLow4(&.predBuffer[list, row * width], cast #bit(Simd.S16x8, pixels))
+                        var column = 4'u32
+                        while column < width
+                        {
+                            .predBuffer[list, row * width + column] = cast(s16, (cast(s32, reference[source + cast(u64, column)]) << shift3))
+                            column += 1
+                        }
+                    }
+                }
+                else
+                {
+                    for row in height
+                    {
+                        let source = cast(u64, (row + 3)) * referenceStride + 3
+                        for column in width do
+                            .predBuffer[list, row * width + column] = cast(s16, (cast(s32, reference[source + cast(u64, column)]) << shift3))
+                    }
                 }
             }
 

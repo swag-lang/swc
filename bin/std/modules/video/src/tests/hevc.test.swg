@@ -147,7 +147,7 @@ using Core, Core.Errors, Pixel
     var motion: Hevc.PuMotion
     motion.predFlags = 3
     motion.refIdx    = [0, 0]
-    // Exercise the scalar tail and full vector widths for luma and chroma.
+    // Exercise the direct prediction paths at several block widths.
     for blockWidth in [4'u32, 8, 16, 32]
     {
         for blockY in 32 / blockWidth
@@ -177,6 +177,46 @@ using Core, Core.Errors, Pixel
                 let index = cast(u64, y) * cast(u64, picture.strideChroma) + cast(u64, x)
                 Swag.assert(picture.chromaB[index] == cast(u8, ((blue + 2) >> 2)))
                 Swag.assert(picture.chromaR[index] == cast(u8, ((red + 2) >> 2)))
+            }
+        }
+    }
+
+    for bitDepth in [8'u32, 10]
+    {
+        sps.bitDepthLuma = bitDepth
+        // A non-identity weight forces integer-position luma through the interpolation buffer.
+        decoder.header.weights[0, 0].lumaWeight = 2
+        motion.predFlags = 1
+        motion.mv[0, 0] = 0
+        for blockWidth in [4'u32, 8, 16, 32]
+        {
+            for blockY in 32 / blockWidth
+            {
+                for blockX in 32 / blockWidth do
+                    decoder.interPredict(cast(s32, (blockX * blockWidth)), cast(s32, (blockY * blockWidth)), blockWidth, blockWidth, &motion)
+            }
+
+            for y in 32's32
+            {
+                for x in 32's32 do
+                    Swag.assert(current.lumaAtMutable(x, y)[0] == cast(u16, (2 * (x + y))))
+            }
+        }
+
+        // A motion vector beyond the padded reference exercises the gathered window as well.
+        motion.mv[0, 0] = -800
+        for blockWidth in [4'u32, 8, 16, 32]
+        {
+            for blockY in 32 / blockWidth
+            {
+                for blockX in 32 / blockWidth do
+                    decoder.interPredict(cast(s32, (blockX * blockWidth)), cast(s32, (blockY * blockWidth)), blockWidth, blockWidth, &motion)
+            }
+
+            for y in 32's32
+            {
+                for x in 32's32 do
+                    Swag.assert(current.lumaAtMutable(x, y)[0] == cast(u16, (2 * y)))
             }
         }
     }

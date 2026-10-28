@@ -9,9 +9,6 @@ enum ExplorerMode { Names, Details, Small, Medium, Large }
 const ExplorerTilePreviewAspect: f32 = 0.8
 const ExplorerFilmPreviewAspect: f32 = 16.0 / 9.0
 
-// Height over width of the card a folder tile stands on.
-const ExplorerFolderCardAspect: f32 = 0.75
-
 // The duration label of a film tile: small, bold, light ink on a translucent ink ground.
 const ExplorerDurationFontSize = 11'u32
 const ExplorerDurationGround   = 0xB30B0B0D'u32
@@ -73,6 +70,7 @@ struct Explorer
         address:   *ExplorerAddress
         title:     *Label
         status:    *Label
+        extractAll: *IconButton
         sortMenu:  *IconButton
         modeMenu:  *IconButton
         filter:    *EditBox
@@ -103,14 +101,16 @@ struct Explorer
     bypassCache:     bool     // Whether the previews of the shown listing ignore the persistent cache, after a forced refresh.
     previewAspect:   f32 = ExplorerTilePreviewAspect     // Shape of the tiles, chosen from what the listing holds.
     previewBudget:   u64      // How many previews of the shown listing run at once.
+    extraction:      ArchiveExtraction
+    toast:           *Toast?
 }
 
 impl Explorer
 {
     // The air between the page and the edges of the document, the height of its header, and the
     // size its title is set in.
-    const PageMargin    = 48.0
-    const HeaderHeight  = 112.0
+    const PageMargin    = 72.0
+    const HeaderHeight  = 94.0
     const TitleFontSize    = 44'u32
     const MinTitleFontSize = 28'u32
     const ToolHeight    = 32.0
@@ -236,12 +236,11 @@ impl Explorer
     // of the way it is shown.
     private mtd createHeader()
     {
-        let metrics = .themeMetrics()
         with .header = Wnd.create'Wnd(me, Math.Rectangle{0, 0, 0, HeaderHeight}, "scope.explorer.header")
         {
             .dockStyle       = .Top
             .backgroundStyle = .Transparent
-            .padding         = Math.Vector4{PageMargin, metrics.floating_Inset * 0.5, PageMargin, 8}
+            .padding         = Math.Vector4{PageMargin, 0, PageMargin, 8}
         }
 
         with .address = ExplorerAddress.create(.header, me)
@@ -304,13 +303,23 @@ impl Explorer
             }
         }
 
-        with .sortMenu = createQuietMenu(.tools)
+        // An archive offers to extract all it holds, a quiet word acting at once.
+        with .extractAll = IconButton.createQuiet(.tools, menu: false)
         {
+            .layoutSpec.alignY = .End
+            .hide()
+            .sigPressed += func|view = me|(_) { view.chooseExtraction(all: true) }
+        }
+
+        with .sortMenu = IconButton.createQuiet(.tools)
+        {
+            .layoutSpec.alignY = .End
             .sigPressed += func|view = me|(_) { view.showSortMenu() }
         }
 
-        with .modeMenu = createQuietMenu(.tools)
+        with .modeMenu = IconButton.createQuiet(.tools)
         {
+            .layoutSpec.alignY = .End
             .sigPressed += func|view = me|(_) { view.showModeMenu() }
         }
 
@@ -354,24 +363,39 @@ impl Explorer
     // cut, and comes back when there is room for both.
     mtd layoutTools()
     {
-        let line  = unwrap .tools.parent
-        let title = Math.ceil(.title.itf.measureContent({}).x)
+        let line     = unwrap .tools.parent
+        let text     = .title.text()
+        let full     = Painter.measureString(text, .theme().createDefaultFont(TitleFontSize, .Bold)).width
+        let smallest = Painter.measureString(text, .theme().createDefaultFont(MinTitleFontSize, .Bold)).width
+        let space    = line.clientRect().width - 24
+        .extractAll.show(.listing.isArchive)
         .status.show(not .listing.isArchive and not .status.name.raw.isEmpty())
         var width = Math.ceil(.tools.itf.measureContent({}).x)
-        if .status.isLocallyVisible() and width + title + 24 > line.clientRect().width
+        if .status.isLocallyVisible() and width + full > space
         {
             .status.hide()
             width = Math.ceil(.tools.itf.measureContent({}).x)
         }
 
+        // Extracting the whole archive is a lens entry too: it leaves the line before the title
+        // would be cut at its smallest.
+        if .extractAll.isLocallyVisible() and width + smallest > space
+        {
+            .extractAll.hide()
+            width = Math.ceil(.tools.itf.measureContent({}).x)
+        }
+
         .tools.position.width = width
 
-        // Then the title steps down the scale of page titles before it would be cut.
-        let room = line.clientRect().width - width - 24
+        // Then the title steps down the scale of page titles before it would be cut. A folder of
+        // an archive is a page within a document, titled at the foot of the scale.
+        let room = space - width
         for size in [TitleFontSize, 36'u32, MinTitleFontSize]
         {
+            if .listing.isArchive and size != MinTitleFontSize do
+                continue
             let font = .theme().createDefaultFont(size, .Bold)
-            if Painter.measureString(.title.text(), font).width <= room or size == MinTitleFontSize
+            if Painter.measureString(text, font).width <= room or size == MinTitleFontSize
             {
                 .title.style.setFont(font, .Regular)
                 break
@@ -380,29 +404,6 @@ impl Explorer
 
         .header.applyLayout()
         .tools.computeLayout()
-    }
-
-    // Creates a quiet text menu of the header: its words and a faint chevron, with no ground of
-    // its own until the pointer comes.
-    private func createQuietMenu(parent: *Wnd)->*IconButton
-    {
-        with let result = IconButton.create(parent, {}, Math.Rectangle{0, 0, 0, ToolHeight}, flags: .CenterContent)
-        {
-            .layoutSpec.alignY = .End
-            .setArrowPosition(.RightDownward)
-            .setForm(.RoundedRectangle)
-        }
-
-        return result
-    }
-
-    // Writes `text` on a quiet menu and fits the menu to it.
-    private func setQuietMenuText(menu: *IconButton, text: string)
-    {
-        menu.setText(text)
-        let metrics = menu.themeMetrics()
-        let width   = Painter.measureString(text, unwrap menu.font().regular).width + 2 * metrics.btnIcon_SpacingTextH + themeDropDownButtonWidth(metrics) - themeActionButtonSize(metrics)
-        menu.resize(Math.ceil(width), menu.position.height)
     }
 
     // Shows the ways of showing the listing under its menu, the one in use checked.
@@ -457,12 +458,13 @@ impl Explorer
         default: sort = text.sort_Name
         }
 
-        setQuietMenuText(.sortMenu, sort)
+        .sortMenu.setQuietText(sort)
+        .extractAll.setQuietText(text.cmd_ExtractAll)
         switch .mode
         {
-        case .Names:   setQuietMenuText(.modeMenu, text.mode_Names)
-        case .Details: setQuietMenuText(.modeMenu, text.mode_Details)
-        default:       setQuietMenuText(.modeMenu, text.mode_Thumbnails)
+        case .Names:   .modeMenu.setQuietText(text.mode_Names)
+        case .Details: .modeMenu.setQuietText(text.mode_Details)
+        default:       .modeMenu.setQuietText(text.mode_Thumbnails)
         }
         .layoutTools()
     }
@@ -571,6 +573,21 @@ impl Explorer
         .window.infoSheet.clear()
         .describeSelection(.window.infoSheet)
         .window.infoSheet.open()
+        .fitToSheet(true)
+    }
+
+    // Leaves the sheet its room at the trailing edge while it is open, so the page never runs
+    // under it, and takes the room back once it is closed.
+    mtd fitToSheet(open: bool)
+    {
+        let metrics = .themeMetrics()
+        let room    = open ? metrics.infoSheet_Width + 2 * metrics.floating_Inset - PageMargin : 0
+        if .padding.z == room do
+            return
+        .padding.z = room
+        .applyLayout()
+        .grid.refreshLayout()
+        .layoutTools()
     }
 
     // Describes the chosen item in `sheet`: its picture, its title and what is known of it, then
@@ -595,21 +612,68 @@ impl Explorer
         sheet.setTitle(safeMediaText(title))
         if title != entry.name.toString() do
             sheet.setIdentity(entry.name)
+        elif .listing.isArchive
+        {
+            // A member is placed by the folder of the archive it stands in, and its kind.
+            let kind  = String.toUpper(Path.extension(entry.name) orelse "", .Unicode)
+            var place = .folder.isEmpty() ? .locationName() : String.from(.folder)
+            if place.length and place.back() == '/' do
+                place.removeBack()
+            place += " /"
+            if kind.length > 1 do
+                place = Format.toString("% · %", place, kind.toString()[1 to])
+            sheet.setIdentity(place)
+        }
+
+        // A film is headed by its poster, its title, its year and length, and its rating, the fact
+        // a reader of a film comes for, set large with its source as its unit; then the action,
+        // what it tells, who made it and played in it, and the file.
+        if not entry.movie.title.isEmpty()
+        {
+            sheet.setPictureBeside(true)
+            var identity = String.from(entry.movie.date.toString()[0 until Math.min(entry.movie.date.length, 4'u64)])
+            if entry.duration
+            {
+                if identity.length do
+                    identity += " · "
+                identity += Format.toString("% min", (entry.duration + 30) / 60)
+            }
+
+            sheet.setIdentity(identity)
+            if not entry.movie.imdbRating.isEmpty()
+            {
+                var rating = safeMediaText(entry.movie.imdbRating)
+                let slash  = Utf8.indexOf(rating, "/")
+                if slash != Swag.U64.Max do
+                    rating = String.from(rating.toString()[0 until slash])
+                sheet.addFact(rating, "IMDb")
+            }
+
+            sheet.setAction(appStrings().cmd_OpenChosen, ViewerCommands.OpenChosen)
+            if entry.movie.overview.length do
+                sheet.addText(safeMediaText(entry.movie.overview))
+            addSheetReading(sheet, strings.explore_Director, entry.movie.director)
+            addSheetReading(sheet, strings.explore_Cast, entry.movie.actors)
+            let kind = String.toUpper(Path.extension(entry.name) orelse "", .Unicode)
+            var file = kind.length > 1 ? String.from(kind.toString()[1 to]) : String.from("")
+            if entry.size
+            {
+                if file.length do
+                    file += " · "
+                file += StrConv.toDisplaySize(entry.size)
+            }
+
+            if file.length do
+                sheet.addReading(strings.explore_File, file)
+            addSheetReading(sheet, strings.explore_Sources, entry.movie.sources)
+            return
+        }
 
         // A rating is the fact a reader of a film comes for, set large with its source as its unit.
         if not entry.movie.imdbRating.isEmpty() do
             sheet.addFact(safeMediaText(entry.movie.imdbRating), "IMDb")
 
-        if not entry.movie.title.isEmpty()
-        {
-            sheet.addSection(strings.explore_MediaDetails)
-            addSheetReading(sheet, strings.explore_Released, entry.movie.date)
-            addSheetReading(sheet, strings.explore_Director, entry.movie.director)
-            addSheetReading(sheet, strings.explore_Cast, entry.movie.actors)
-            addSheetReading(sheet, strings.explore_Synopsis, entry.movie.overview)
-            addSheetReading(sheet, "Wikipedia / Wikidata", entry.movie.source)
-        }
-        elif not entry.music.title.isEmpty()
+        if not entry.music.title.isEmpty()
         {
             sheet.addSection(strings.explore_MediaDetails)
             addSheetReading(sheet, strings.explore_Artist, entry.music.artist)
@@ -617,28 +681,121 @@ impl Explorer
             addSheetReading(sheet, strings.explore_Source, "MusicBrainz")
         }
 
-        sheet.addSection(strings.explore_FileProperties)
-        addSheetReading(sheet, strings.explore_Type, entry.directory ? strings.ui_Folder : (Path.extension(entry.name) orelse ""))
         if .listing.isArchive and entry.archiveIndex < .listing.archive.entries.count
         {
-            // A member of an archive: what it weighs packed and extracted, how well it packed,
-            // and the checksum it is verified against.
+            // A member of an archive, its kind already on the identity line: what it weighs
+            // packed and extracted, how well it packed, when, and the checksum it is verified
+            // against, all measures in mono.
             let member = &.listing.archive.entries[entry.archiveIndex]
-            addSheetReading(sheet, strings.explore_Size, Format.toString("% → %", StrConv.toDisplaySize(member.compressedSize), StrConv.toDisplaySize(member.uncompressedSize)))
+            sheet.addReading(strings.explore_Size, Format.toString("% → %", StrConv.toDisplaySize(member.compressedSize), StrConv.toDisplaySize(member.uncompressedSize)))
             if member.uncompressedSize
             {
                 let ratio = cast(u64, Math.round(100 * cast(f64, member.compressedSize) / cast(f64, member.uncompressedSize)))
-                addSheetReading(sheet, strings.explore_Compression, Format.toString("% %", ratio, "%"))
+                sheet.addReading(strings.explore_Compression, Format.toString("% %", ratio, "%"))
             }
 
-            addSheetReading(sheet, "CRC-32", Format.toString("%{X08}", member.crc32))
+            if entry.modified.length do
+                sheet.addReading(strings.explore_Modified, entry.modified)
+            let crc = Format.toString("%{X08}", member.crc32)
+            sheet.addReading("CRC-32", Format.toString("% %", crc.toString()[0 until 4], crc.toString()[4 to]))
         }
-        elif not entry.directory do
-            addSheetReading(sheet, strings.explore_Size, StrConv.toDisplaySize(entry.size))
-        addSheetReading(sheet, strings.explore_Modified, entry.modified)
+        else
+        {
+            sheet.addSection(strings.explore_FileProperties)
+            addSheetReading(sheet, strings.explore_Type, entry.directory ? strings.ui_Folder : (Path.extension(entry.name) orelse ""))
+            if not entry.directory do
+                addSheetReading(sheet, strings.explore_Size, StrConv.toDisplaySize(entry.size))
+            addSheetReading(sheet, strings.explore_Modified, entry.modified)
+        }
+
         if entry.duration do
             addSheetReading(sheet, strings.explore_Duration, formatDuration(entry.duration))
         sheet.setAction(appStrings().cmd_OpenChosen, ViewerCommands.OpenChosen)
+        if .listing.isArchive do
+            sheet.setSecondaryAction(appStrings().cmd_Extract, ViewerCommands.ExtractChosen)
+    }
+
+    // Asks where to extract, then extracts the whole archive into a folder named after it there,
+    // or, without `all`, the chosen member or folder of the archive right there.
+    mtd chooseExtraction(all: bool)
+    {
+        if not .listing.isArchive or .extraction.started do
+            return
+        if not all and .selected >= .entries.count do
+            return
+
+        with var options: FileDlgOptions
+        {
+            .mode  = .SelectFolder
+            .title = all ? appStrings().cmd_ExtractAll : appStrings().cmd_Extract
+            .state = &me.window.fileDlgState
+        }
+
+        let dialog = FileDlg.create(unwrap .window.surface, options)
+        if dialog.doModal() != Dialog.BtnOk do
+            return
+        let chosen = dialog.selectedPath()
+        if all
+        {
+            let name = Path.fileNameWithoutExtension(.displayPath(.listing.path)) orelse "archive"
+            .extractTo(Path.combine(chosen, name), all: true)
+        }
+        else do
+            .extractTo(chosen, all: false)
+    }
+
+    // Extracts into `target`: the whole archive with `all`, else the chosen member or folder.
+    mtd extractTo(target: string, all: bool)
+    {
+        if not .listing.isArchive or .extraction.started do
+            return
+        var members: Array'Viewers.Archive.ZipEntry
+        var strip:   String
+        if all
+        {
+            members = .listing.archive.entries
+        }
+        else
+        {
+            if .selected >= .entries.count do
+                return
+            let entry = &.entries[.selected]
+            strip = .folder
+            if entry.directory
+            {
+                for &member in .listing.archive.entries where Utf8.startsWith(member.path, entry.path) do
+                    members.add(member[])
+            }
+            elif entry.archiveIndex < .listing.archive.entries.count
+            {
+                members.add(.listing.archive.entries[entry.archiveIndex])
+            }
+        }
+
+        .extraction.start(.listing.path, #move members, strip, target, me)
+    }
+
+    // Says how the extraction went, in a toast over the page.
+    private mtd finishExtraction()
+    {
+        .extraction.wait()
+        let text = appStrings()
+        if not .toast do
+            .toast = Toast.create(me, "scope.explorer.toast")
+        if not .extraction.error.isEmpty()
+        {
+            .toast.show(text.explore_ExtractFailed, .extraction.error, .Failure)
+            return
+        }
+
+        var message: String
+        if .extraction.written == 1 do
+            message = String.from(text.explore_ExtractedOne)
+        else do
+            message = Format.toString(text.explore_Extracted, .extraction.written)
+        if .extraction.kept do
+            message = Format.toString(text.explore_ExtractedKept, message, .extraction.kept)
+        .toast.show(message, .extraction.target)
     }
 
     // Gives the keyboard to the listing, in whichever form it is shown.
@@ -924,6 +1081,24 @@ impl Explorer
         return ExplorerTilePreviewAspect
     }
 
+    // Reports whether the folder is mostly films whose posters are looked up, which the grid
+    // shows upright.
+    mtd listingIsFilms()->bool
+    {
+        if not .window.onlineMovies or .listing.isArchive do
+            return false
+        var files, films: u64
+        for &entry in .entries where not entry.directory
+        {
+            files += 1
+            var pluginIndex: u64
+            if .window.index.namePlugin(entry.path, &pluginIndex) and .window.index.plugins[pluginIndex].key == "video" do
+                films += 1
+        }
+
+        return films * 2 > files
+    }
+
     mtd entryIcon(index: u64, size: f32 = 16)->Icon
     {
         let entry = &.entries[index]
@@ -1173,7 +1348,7 @@ impl Explorer
                 let music    = .window.onlineMusic and (Path.hasExtension(selected.path, ".mp3") or Path.hasExtension(selected.path, ".flac"))
                 if selected.directory or
                    selected.attempted or
-                   not (movie or music) or
+                   not (movie or music or .grid.rows) or
                    .previewSlot(.selected) != Swag.U64.Max do
                     return
                 wanted = .selected
@@ -1246,6 +1421,12 @@ impl IWnd for Explorer
 {
     mtd impl onTaskEvent(evt: *TaskEvent)
     {
+        if .extraction.claim(evt)
+        {
+            .finishExtraction()
+            return
+        }
+
         if .load.claim(evt)
         {
             var listing: ExplorerListing
@@ -1370,6 +1551,7 @@ impl IWnd for Explorer
         case .Right where evt.modifiers.has(.Alt): .goForward()
         case .Up where evt.modifiers.has(.Alt):    .goUp()
         case .Back:                                .goUp()
+        case .Oem2 where evt.modifiers == .None:   .revealFilter()
         default:                                   evt.accepted = false
         }
     }
@@ -1395,17 +1577,27 @@ struct ExplorerGrid
     nameTimer:     *Timer?
     nameTick:      u64
     rows:          bool     // Whether the entries stand one per line, as an archive lists them.
+    posters:       bool     // Whether the tiles stand upright, as the posters of a folder of films.
+    tile:          Math.Point = {160, 142}
 }
 
 impl ExplorerGrid
 {
     // The air a cell keeps around its tile, the height of the name and of the mono line of what
     // is known of the item under its picture, and the weight of the ring around the chosen one.
-    const CellInset    = 12.0
-    const NameHeight   = 22.0
+    const CellInset     = 12.0
+    const NameHeight    = 22.0
     const ReadingHeight = 16.0
-    const RingWeight   = 2.0
-    const Lift         = 2.0
+    const RingWeight    = 2.0
+
+    // The tiles: the air between two of them, the narrowest a tile gets and its height over its
+    // width, upright for posters; and the band under a tile for its name and its facts.
+    const Gap          = 24.0
+    const TileWidth    = 160.0
+    const TileAspect   = 0.885
+    const PosterWidth  = 170.0
+    const PosterAspect = 1.38
+    const TextBand     = 72.0
 
     // The rows of an archive: their pitch, the length of the bar of the compression ratio, and the
     // columns of the size and the date from the end of the row.
@@ -1424,8 +1616,8 @@ impl ExplorerGrid
         let row    = line * .columns + column
         if column >= .columns or
            row >= .explorer.shown.count or
-           local.x - cast(f32, column) * .cell.x >= .cell.x - (.rows ? 0 : 8) or
-           local.y - cast(f32, line) * .cell.y >= .cell.y - (.rows ? 0 : 8) do
+           local.x - cast(f32, column) * .cell.x >= .cell.x - (.rows ? 0 : Gap) or
+           local.y - cast(f32, line) * .cell.y >= .cell.y - (.rows ? 0 : Gap) do
             return Swag.U64.Max
         return row
     }
@@ -1441,45 +1633,194 @@ impl ExplorerGrid
             return
         }
 
-        let width: f32   = .explorer.mode == .Small ? 128.0 : (.explorer.mode == .Large ? 256.0 : 192.0)
-        let previewWidth = width - 2 * CellInset
-        .cell    = Math.Point{width, previewWidth / ExplorerFilmPreviewAspect + 48 + ReadingHeight}
-        .columns = Math.max(1'u64, cast(u64, Math.max(0.0, .clientRect().width - 2 * CellInset) / width))
+        // Every tile has the same size and the grid fills the width of the page: as many columns
+        // as the narrowest tile allows, the tiles sharing what is left. A folder of films stands
+        // its posters upright; anything else on a tile a little wider than tall.
+        .posters = .explorer.listingIsFilms()
+        var narrowest = .posters ? PosterWidth : TileWidth
+        switch .explorer.mode
+        {
+        case .Small: narrowest *= 0.75
+        case .Large: narrowest *= 1.4
+        }
+
+        let room = Math.max(.clientRect().width - 2 * CellInset, narrowest)
+        .columns = Math.max(1'u64, cast(u64, (room + Gap) / (narrowest + Gap)))
+        let width = Math.floor((room - Gap * cast(f32, .columns - 1)) / cast(f32, .columns))
+        .tile = Math.Point{width, Math.round(width * cast(f32, .posters ? PosterAspect : TileAspect))}
+        .cell = Math.Point{width + Gap, .tile.y + TextBand}
         let rows = (.explorer.shown.count + .columns - 1) / .columns
         .explorer.scroll.setScrollSize(0, cast(f32, rows) * .cell.y + 2 * CellInset)
         .invalidate()
     }
 
-    // Draws a preview with the interface corner, its edge, and the duration of a film.
-    //
-    // A dark frame on the dark gallery ground loses its outline, so the rule draws it. The duration
-    // sits on the picture, the way a media library labels a film; its ground stays ink in every
-    // theme because it is read against the picture rather than against the interface.
-    mtd paintThumbnail(painter: *Painter, picture: Math.Rectangle, entry: const *ExplorerEntry)
+    // Returns where the tile of `row` stands in the grid.
+    mtd tileRect(row: u64)->Math.Rectangle
     {
-        let radius = .themeRects().btnIcon_RoundSquareBk.radius
-        painter.pushState()
-        defer painter.popState()
+        return Math.Rectangle{CellInset + cast(f32, row % .columns) * .cell.x,
+                              CellInset + cast(f32, row / .columns) * .cell.y, .tile.x, .tile.y}
+    }
+
+    // Paints the tile of `row`: its ground, what the item shows, the Arc ring of the chosen one,
+    // then its name and one mono line of its facts under it.
+    //
+    // A picture, a film or a poster fills its tile, cropped to its shape; any other preview stands
+    // whole on the ground of the tile. An item without a preview shows the faint page glyph of its
+    // kind, a file its extension in faint mono at the foot of the tile.
+    mtd paintTile(painter: *Painter, row: u64)
+    {
+        let index   = .explorer.shown[row]
+        let entry   = &.explorer.entries[index]
+        let colors  = .themeColors()
+        let metrics = .themeMetrics()
+        let tile    = .tileRect(row)
+        let radius  = metrics.corner_Control
+        let slot    = .explorer.previewSlot(index)
         painter.setAntialiased(true)
-        painter.fillRoundRect(picture, radius, radius, Brush.createTexture(entry.texture))
 
-        // The rule is inset by half its weight, so it takes the corner stepped in by that half.
-        var edge = picture
-        edge.inflate(-0.5)
-        painter.drawRoundRect(edge, radius - 0.5, radius - 0.5, .themeColors().line)
+        // The chosen item is ringed in Arc, the ring standing just off its tile.
+        if .explorer.selected == index
+        {
+            var ring = tile
+            ring.inflate(RingWeight + 1)
+            painter.drawRoundRect(ring, radius + RingWeight + 1, radius + RingWeight + 1, colors.arc, RingWeight)
+        }
 
-        if not entry.duration do
+        painter.fillRoundRect(tile, radius, radius, colors.raised)
+        let glyph = .theme().fileGlyph(entry.name, entry.directory, 32)
+        if entry.texture.isValid()
+        {
+            let texture = entry.texture
+            let fills   = .posters or glyph.index == cast(s32, ThemeIcons.FileImage) or glyph.index == cast(s32, ThemeIcons.FileVideo)
+            if fills
+            {
+                // Crop the picture to the shape of the tile, around its centre.
+                let tw     = cast(f32, texture.width)
+                let th     = cast(f32, texture.height)
+                let scale  = Math.max(tile.width / tw, tile.height / th)
+                let sw     = tile.width / scale
+                let sh     = tile.height / scale
+                var brush  = Brush.createTexture(texture)
+                brush.uvMode = .FillSubRect
+                brush.uvRect = Math.Rectangle{(tw - sw) * 0.5, (th - sh) * 0.5, sw, sh}
+                painter.fillRoundRect(tile, radius, radius, brush)
+            }
+            else
+            {
+                var room = tile
+                room.inflate(-12)
+                let scale  = Math.min(room.width / cast(f32, texture.width), room.height / cast(f32, texture.height))
+                let width  = Math.round(cast(f32, texture.width) * scale)
+                let height = Math.round(cast(f32, texture.height) * scale)
+                let card   = Math.Rectangle{Math.round(room.horzCenter() - width * 0.5), Math.round(room.vertCenter() - height * 0.5), width, height}
+                painter.fillRoundRect(card, 2, 2, Brush.createTexture(texture))
+            }
+
+            .paintDuration(painter, tile, entry)
+        }
+        elif slot != Swag.U64.Max
+        {
+            let size = metrics.spinner_Size
+            .spinners[slot].setPosition(Math.Rectangle{tile.horzCenter() - size / 2, tile.vertCenter() - size / 2, size, size}, computeLayout: false)
+            .busy[slot] = true
+        }
+        else
+        {
+            glyph.paint(painter, Math.round(tile.horzCenter() - 16), Math.round(tile.vertCenter() - 16), glyph.color.a ? glyph.color : colors.faintText)
+            let ext = entry.directory ? "" : (Path.extension(entry.name) orelse "")
+            if ext.count
+            {
+                let mono = .theme().createDefaultFontFs(11)
+                painter.drawString(tile.x + 12, mono.opticalLineTop(tile.bottom() - 16), ext, mono, colors.faintText)
+            }
+        }
+
+        // The name, left on the edge of the tile, and the facts under it: what the item measures
+        // at the left, what it weighs at the right.
+        let font = unwrap .font().regular
+        let mono = .theme().createDefaultFontFs(11)
+        let nameRect = Math.Rectangle{tile.x, tile.bottom() + 8, tile.width, 20}
+        .paintName(painter, nameRect, row, index, font, .posters and entry.movie.title.length ? entry.movie.title.toString() : entry.name.toString())
+
+        let factsY = mono.opticalLineTop(tile.bottom() + 37)
+        let size   = .sizeText(entry)
+        var right  = tile.right()
+        if size.length
+        {
+            right -= Painter.measureString(size, mono).width
+            painter.drawString(right, factsY, size, mono, colors.faintText)
+            right -= 12
+        }
+
+        let facts = .reading(entry)
+        if facts.length
+        {
+            painter.pushClippingRect(Math.Rectangle{tile.x, tile.bottom() + 28, Math.max(right - tile.x, 0), 18})
+            painter.drawString(tile.x, factsY, facts, mono, colors.faintText)
+            painter.popClippingRect()
+        }
+    }
+
+    // Writes the duration of a film in a mono chip at the corner of its tile.
+    mtd paintDuration(painter: *Painter, tile: Math.Rectangle, entry: const *ExplorerEntry)
+    {
+        if not entry.duration or .posters do
             return
         let label = formatDuration(entry.duration)
-        let font  = .app().renderer.fontCache().createFont(.theme().res.defaultTypeFaceB, ExplorerDurationFontSize)
+        let font  = .theme().createDefaultFontFs(ExplorerDurationFontSize, .Bold)
         let text  = Painter.measureString(label, font)
-        var chip  = Math.Rectangle{0, 0, Math.round(text.width) + 8, Math.round(font.height) + 2}
-        if chip.width + 8 > picture.width or chip.height + 8 > picture.height do
+        var chip  = Math.Rectangle{0, 0, Math.round(text.width) + 12, Math.round(font.height) + 4}
+        if chip.width + 16 > tile.width or chip.height + 16 > tile.height do
             return
-        chip.x = picture.right() - chip.width - 4
-        chip.y = picture.bottom() - chip.height - 4
-        painter.fillRoundRect(chip, radius, radius, Color.fromArgb(ExplorerDurationGround))
-        painter.drawString(chip.x + 4, chip.y + 1, label, font, Color.fromArgb(ExplorerDurationInk))
+        chip.x = tile.right() - chip.width - 8
+        chip.y = tile.bottom() - chip.height - 8
+        painter.fillRoundRect(chip, 4, 4, Color.fromArgb(ExplorerDurationGround))
+        painter.drawString(chip.x + 6, font.opticalLineTop(chip.vertCenter()), label, font, Color.fromArgb(ExplorerDurationInk))
+    }
+
+    // Writes the name of a tile, left on its edge, travelling when it is longer than the tile and
+    // the item is hovered or chosen.
+    mtd paintName(painter: *Painter, nameRect: Math.Rectangle, row, index: u64, font: *Font, text: string)
+    {
+        let width   = Painter.measureString(text, font).width
+        let scrolls = width > nameRect.width and (.hovered == row or .explorer.selected == index)
+        var name: RichString = text
+        var format: RichStringFormat
+        format.font = .font()
+        me.theme().setTextColors(&format, me.themeColors().text)
+        format.horzAlignment = .Left
+        if scrolls
+        {
+            // Pause at each end before traveling back, so the beginning remains easy to read.
+            let distance = cast(u64, Math.ceil(width - nameRect.width))
+            let phase    = .nameTick % (distance * 2 + 40)
+            var offset: u64
+            if phase > 20 and phase <= distance + 20 do
+                offset = phase - 20
+            elif phase > distance + 20 and phase <= distance + 40 do
+                offset = distance
+            elif phase > distance + 40 do
+                offset = distance * 2 + 40 - phase
+            var moving = nameRect
+            moving.x -= cast(f32, offset)
+            moving.width = Math.ceil(width) + 1
+            painter.pushClippingRect(nameRect)
+            painter.drawRichString(moving, &name, format)
+            painter.popClippingRect()
+        }
+        else
+        {
+            format.flags = .Ellipsis
+            painter.drawRichString(nameRect, &name, format)
+        }
+    }
+
+    // Returns what a file weighs, written at the right of its facts; nothing for a folder.
+    mtd sizeText(entry: const *ExplorerEntry)->String
+    {
+        if entry.directory or not entry.size or .posters do
+            return {}
+        return StrConv.toDisplaySize(entry.size)
     }
 
     // Paints the entries `first` until `end` as rows: the glyph, the name, a thin Arc bar of how
@@ -1513,7 +1854,7 @@ impl ExplorerGrid
             painter.drawString(rect.x + 36, body.opticalLineTop(centerY), entry.name, body, colors.text)
             painter.popClippingRect()
 
-            let date = entry.modified.toString()
+            let date = entry.modified.toString()[0 until Math.min(entry.modified.length, 10)]
             painter.drawString(dateRight - Painter.measureString(date, mono).width, mono.opticalLineTop(centerY), date, mono, colors.faintText)
 
             var size: String
@@ -1542,22 +1883,32 @@ impl ExplorerGrid
         }
     }
 
-    // Returns the mono line written under the name of a tile: the year and length of a film,
-    // the length of anything else that plays, the size of a file.
+    // Returns the facts written under the name of a tile, at the left: the year and length of a
+    // film, the length of anything else that plays, how many items a folder holds.
     mtd reading(entry: const *ExplorerEntry)->String
     {
         var result: #returntype
+        if entry.directory
+        {
+            if entry.children == 1 do
+                result = String.from(appStrings().explore_OneItem)
+            elif entry.children != Swag.U64.Max do
+                result = Format.toString(appStrings().explore_Count, entry.children)
+            return result
+        }
+
         if not entry.movie.date.isEmpty() do
             result = entry.movie.date.toString()[0 until Math.min(entry.movie.date.length, 4'u64)]
         if entry.duration
         {
             if not result.isEmpty() do
                 result += " · "
-            result += formatDuration(entry.duration)
-        }
-        elif result.isEmpty() and not entry.directory and entry.size
-        {
-            result = StrConv.toDisplaySize(entry.size)
+
+            // A film is as long as its hours and minutes, the way a programme lists it.
+            if .posters and entry.duration >= 3600 do
+                result += Format.toString(appStrings().explore_Length, entry.duration / 3600, Format.toString("%{02}", (entry.duration / 60) % 60))
+            else do
+                result += formatDuration(entry.duration)
         }
 
         return result
@@ -1594,6 +1945,8 @@ impl ExplorerGrid
         .explorer.selected = .explorer.shown[row]
         .startNameScroll()
         .explorer.showMediaInfo()
+        if .rows do
+            .explorer.requestPreview()
         let top = CellInset + cast(f32, row / .columns) * .cell.y
         if top < .scrollPos.y do
             .explorer.scroll.setScrollPos(0, top)
@@ -1633,103 +1986,8 @@ impl IWnd for ExplorerGrid
         }
 
         .busy.fill(false)
-        for row in range.first until range.end
-        {
-            let index = .explorer.shown[row]
-            let entry = &.explorer.entries[index]
-            var rect  = Math.Rectangle{CellInset + cast(f32, row % .columns) * .cell.x,
-                                       CellInset + cast(f32, row / .columns) * .cell.y, .cell.x - 8, .cell.y - 8}
-            let slot     = .explorer.previewSlot(index)
-            let chosen   = .explorer.selected == index
-            var preview  = Math.Rectangle{rect.x + 8, rect.y + 8, rect.width - 16, rect.height - 44 - ReadingHeight}
-
-            // The chosen tile lifts a little in its ring.
-            if chosen do
-                preview.y -= Lift
-            var picture = preview
-            if entry.texture.isValid()
-            {
-                let scale  = Math.min(preview.width / cast(f32, entry.texture.width), preview.height / cast(f32, entry.texture.height))
-                let width  = Math.round(cast(f32, entry.texture.width) * scale)
-                let height = Math.round(cast(f32, entry.texture.height) * scale)
-
-                // Center each complete image in the same landscape slot.
-                picture = Math.Rectangle{Math.round(preview.horzCenter() - width / 2), Math.round(preview.vertCenter() - height / 2), width, height}
-                .paintThumbnail(painter, picture, entry)
-            }
-            elif slot != Swag.U64.Max
-            {
-                let size = .themeMetrics().spinner_Size
-                .spinners[slot].setPosition(Math.Rectangle{preview.horzCenter() - size / 2, preview.vertCenter() - size / 2, size, size}, computeLayout: false)
-                .busy[slot] = true
-            }
-            elif entry.directory
-            {
-                let icon = .explorer.entryIcon(index, 40)
-                icon.paint(painter, Math.round(preview.horzCenter() - 20), Math.round(preview.vertCenter() - 20), .themeColors().faintText)
-            }
-            else
-            {
-                let icon = .explorer.entryIcon(index, 32)
-                icon.paint(painter, preview.horzCenter() - 16, preview.vertCenter() - 16, .themeColors().label_TextFaint)
-            }
-
-            // The chosen item is ringed in Arc, the ring standing just outside its picture.
-            if .explorer.selected == index
-            {
-                var ring = picture
-                ring.inflate(RingWeight + 1)
-                painter.setAntialiased(true)
-                let radius = .themeRects().btnIcon_RoundSquareBk.radius + RingWeight + 1
-                painter.drawRoundRect(ring, radius, radius, .themeColors().arc, RingWeight)
-            }
-
-            let reading = .reading(entry)
-            if reading.count
-            {
-                let mono = .theme().createDefaultFontFs(11)
-                let line = Math.Rectangle{rect.x + 4, rect.bottom() - ReadingHeight - 4, rect.width - 8, ReadingHeight}
-                painter.pushClippingRect(line)
-                let width = Painter.measureString(reading, mono).width
-                let left  = width > line.width ? line.x : Math.round(line.horzCenter() - width * 0.5)
-                painter.drawString(left, mono.opticalLineTop(line.vertCenter()), reading, mono, .themeColors().faintText)
-                painter.popClippingRect()
-            }
-
-            let nameRect = Math.Rectangle{rect.x + 4, rect.bottom() - 28 - ReadingHeight, rect.width - 8, 24}
-            let font     = unwrap .font().regular
-            let width    = Painter.measureString(entry.name, font).width
-            let scrolls  = width > nameRect.width and (.hovered == row or .explorer.selected == index)
-            var name: RichString = entry.name
-            var format: RichStringFormat
-            format.font = .font()
-            me.theme().setTextColors(&format, me.themeColors().label_Text)
-            format.horzAlignment = width > nameRect.width ? .Left : .Center
-            if scrolls
-            {
-                // Pause at each end before traveling back, so the beginning remains easy to read.
-                let distance = cast(u64, Math.ceil(width - nameRect.width))
-                let phase    = .nameTick % (distance * 2 + 40)
-                var offset: u64
-                if phase > 20 and phase <= distance + 20 do
-                    offset = phase - 20
-                elif phase > distance + 20 and phase <= distance + 40 do
-                    offset = distance
-                elif phase > distance + 40 do
-                    offset = distance * 2 + 40 - phase
-                var moving = nameRect
-                moving.x -= cast(f32, offset)
-                moving.width = Math.ceil(width) + 1
-                painter.pushClippingRect(nameRect)
-                painter.drawRichString(moving, &name, format)
-                painter.popClippingRect()
-            }
-            else
-            {
-                format.flags = .Ellipsis
-                painter.drawRichString(nameRect, &name, format)
-            }
-        }
+        for row in range.first until range.end do
+            .paintTile(painter, row)
 
         for spinner, slot in .spinners do
             spinner.show(.busy[slot])

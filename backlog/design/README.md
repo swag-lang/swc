@@ -368,7 +368,8 @@ the screen to its work.
     mono line of facts (dimensions or pages or duration, and the size at the right).
   - **Films**: portrait posters in their own shape (never squashed), the playback progress as an
     Arc thread along the poster's foot, title and year · duration under it; the sheet carries the
-    poster, the rating, "Resume at 1 h 12" as the one primary action, the people and the file.
+    poster, the rating, "Resume at 1 h 12" as the one primary action, the people and the file,
+    and at its foot who said what ("Sources Apple · Wikipedia · Wikidata").
   - **Music, a library**: square covers, album name then artist · year in mono.
   - **Music, one album**: the cover large at the left with Play and Shuffle under it; at the
     right "ALBUM · 2001", the title, the artist, the facts in mono, then the tracks as rows

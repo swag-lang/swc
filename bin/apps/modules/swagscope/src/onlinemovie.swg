@@ -64,10 +64,26 @@ struct WikiDetails
     results: WikiRows
 }
 
+// One film of the Apple iTunes Search API, as much of it as Scope reads.
+struct AppleMovie
+{
+    trackName:        String
+    releaseDate:      String
+    artworkUrl100:    String
+    longDescription:  String
+    primaryGenreName: String
+}
+
+struct AppleSearch
+{
+    results: Array'AppleMovie
+}
+
 struct MovieSource
 {
     // Empty wikiHost selects the Wikipedia language; tests can supply a local service.
     wikiHost: string = ""
+    appleHost: string = "itunes.apple.com"
     dataHost: string = "query.wikidata.org"
     imageHost: string = ""
     port: u16 = 443
@@ -86,9 +102,15 @@ struct OnlineMovie
     ratingDate: String
     posterUrl: String
     articleUrl: String
+    sources: String     // Who said what is shown, for the attribution line: Apple, Wikipedia, Wikidata.
 }
 
 private var g_MovieLookupLock: Swag.Mutex
+
+// When the Apple catalogue was last asked, in ticks. Its rate limit is not documented, so two
+// questions stand a little apart.
+private var g_AppleLastRequest: u64
+const AppleRequestSpacing = 1500'u64     // Milliseconds between two questions to the Apple catalogue.
 
 // Waiting workers can retire promptly when a navigation change cancels their task.
 func lockMediaLookup(mutex: *Swag.Mutex)->bool
@@ -115,6 +137,7 @@ const MovieDateTag       = "ScopeWikiDate"
 const MovieOverviewTag   = "ScopeWikiOverview"
 const MovieSourceTag     = "ScopeWikiSource"
 const MovieCachedAtTag   = "ScopeWikiCachedAt"
+const MovieSourcesTag    = "ScopeMovieSources"
 
 struct MovieSummary
 {
@@ -125,6 +148,7 @@ struct MovieSummary
     date: String
     overview: String
     source: String
+    sources: String
 }
 
 // Provider text is data, not Pixel rich-text markup or additional layout controls.
@@ -165,6 +189,8 @@ impl MovieSummary
                 result.overview = value
             elif record.isTag(cast(const [..] u8, MovieSourceTag)) do
                 result.source = value
+            elif record.isTag(cast(const [..] u8, MovieSourcesTag)) do
+                result.sources = value
         }
         return result
     }
@@ -245,6 +271,33 @@ impl MovieQuery
         return result
     }
 
+    // Requires films of the catalogue named exactly the title, of its year when the name says one,
+    // and all of one year; a title several films share without a year says which is ambiguous.
+    mtd const chooseApple(search: const *AppleSearch)->u64
+    {
+        let wanted = .title.toLower(.Unicode)
+        var chosen = Swag.U64.Max
+        var year: String
+        for &film, index in search.results
+        {
+            let title = film.trackName.toLower(.Unicode)
+            if title != wanted do
+                continue
+            let filmYear = film.releaseDate.length >= 4 ? String.from(film.releaseDate.toString()[0 until 4]) : String.from("")
+            if not .year.isEmpty() and filmYear != .year do
+                continue
+            if chosen != Swag.U64.Max and filmYear != year do
+                return Swag.U64.Max
+            if chosen == Swag.U64.Max
+            {
+                chosen = index
+                year   = filmYear
+            }
+        }
+
+        return chosen
+    }
+
     // Require one exact article title, optionally followed by a film disambiguator.
     mtd const choose(search: const *MovieSearch)->u64
     {
@@ -282,8 +335,12 @@ impl OnlineMovie
         addMovieTag(image, MovieDirectorTag, .director)
         addMovieTag(image, MovieCastTag, .actors)
         addMovieTag(image, MovieSourceTag, .articleUrl)
+        addMovieTag(image, MovieSourcesTag, .sources)
         stampMovieCache(image)
     }
+
+    // Reports whether anything was found for the film: an article, or a poster from the catalogue.
+    mtd const found()->bool => not .id.isEmpty() or not .posterUrl.isEmpty()
 
     // Wikipedia provides the article and illustration; Wikidata supplies structured credits.
     func lookup(path: string, source: MovieSource = {}, language: string = "en")->OnlineMovie fail
@@ -297,7 +354,69 @@ impl OnlineMovie
         var movie = try lookupArticle(query, source, language)
         if movie.id.isEmpty() and language == "fr" do
             movie = try lookupArticle(query, source, "en")
+        if not movie.id.isEmpty() do
+            movie.sources = String.from("Wikipedia · Wikidata")
+
+        // The Apple catalogue holds the real poster and the synopsis of a film; Wikipedia and
+        // Wikidata keep its direction, its cast and its rating.
+        catch movie.lookupApple(query, source, language)
         return movie
+    }
+
+    // Asks the Apple catalogue for the film `query` names, and takes its poster, its synopsis and
+    // its year when exactly one film answers to its title, and to its year when the name says it.
+    private mtd lookupApple(query: MovieQuery, source: MovieSource, language: string) fail
+    {
+        if not source.appleHost.count do
+            return
+
+        // Questions stand apart, and a cancelled preview stops waiting.
+        while true
+        {
+            let now     = Time.Timestamp.utcNow().ticks
+            let elapsed = (now - g_AppleLastRequest) / Time.TicksPerMillisecond
+            if g_AppleLastRequest == 0 or now < g_AppleLastRequest or elapsed >= AppleRequestSpacing do
+                break
+            if Swag.isCancelled() do
+                return
+            Threading.Thread.sleep(50'ms)
+        }
+
+        g_AppleLastRequest = Time.Timestamp.utcNow().ticks
+        let country = language == "fr" ? "FR" : "US"
+        let path    = Format.toString("/search?term=%&entity=movie&limit=10&country=%", Url.encodeComponent(cast(const [..] u8, query.title.toString())), country)
+        var options: Http.GetOptions
+        options.userAgent = "SwagScope/1.0 (https://github.com/swag-lang/swc)"
+        options.timeoutMs = 5_000
+        let response = try Http.get(source.appleHost, source.port, path.toString(), source.secure, options)
+        if response.status != 200 do
+            return
+        var decoder: Serialization.Decoder'Serialization.Read.Json
+        let search = try decoder.readAll'AppleSearch(response.body.toSlice())
+        defer Memory.delete(search)
+        let index = query.chooseApple(search)
+        if index == Swag.U64.Max do
+            return
+
+        let film = &search.results[index]
+        if .title.isEmpty() do
+            .title = query.title
+        if .releaseDate.isEmpty() and film.releaseDate.length >= 4 do
+            .releaseDate = film.releaseDate.toString()[0 until 4]
+        if not film.longDescription.isEmpty() do
+            .overview = film.longDescription
+        if not film.artworkUrl100.isEmpty()
+        {
+            // The artwork address names its size; a poster asks for a larger one.
+            var url = film.artworkUrl100.toString()
+            let at  = Utf8.indexOf(url, "100x100")
+            if at != Swag.U64.Max do
+                .posterUrl = Format.toString("%600x900%", url[0 until at], url[at + 7 to])
+            else do
+                .posterUrl = film.artworkUrl100
+        }
+
+        .sources = .sources.isEmpty() ? String.from("Apple") : Format.toString("Apple · %", .sources)
     }
 
     private func lookupArticle(query: MovieQuery, source: MovieSource, language: string)->OnlineMovie fail
@@ -382,7 +501,7 @@ impl OnlineMovie
         }
     }
 
-    // Restrict redirects and the final request to Wikimedia's image hosts.
+    // Restrict redirects and the final request to the image hosts of Wikimedia and Apple.
     mtd posterBytes(source: MovieSource = {})->Array'u8 fail
     {
         if .posterUrl.isEmpty() do
@@ -394,7 +513,7 @@ impl OnlineMovie
                 fail Errors.InvalidFormatError{}
         }
         elif not target.secure or target.port != 443 or
-             (target.host != "upload.wikimedia.org" and target.host != "thumb.wikimedia.org") do
+             (target.host != "upload.wikimedia.org" and target.host != "thumb.wikimedia.org" and not Utf8.endsWith(target.host, ".mzstatic.com")) do
             fail Errors.InvalidFormatError{}
         var options: Http.GetOptions
         options.userAgent = "SwagScope/1.0 (https://github.com/swag-lang/swc)"

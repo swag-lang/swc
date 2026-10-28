@@ -52,6 +52,8 @@ namespace ViewerCommands
     const OnlineMusic       = "scope.explore.onlineMusic"
     const ChooseMusic       = "scope.explore.chooseMusic"
     const OpenChosen        = "scope.explore.openChosen"
+    const ExtractAll        = "scope.explore.extractAll"
+    const ExtractChosen     = "scope.explore.extractChosen"
 }
 
 // Files the lens lists in one section for a query typed without the `/` prefix, which stands
@@ -88,7 +90,8 @@ impl ViewerWindow
                          [ViewerCommands.Back, ViewerCommands.Forward, ViewerCommands.Up, ViewerCommands.Refresh,
                           ViewerCommands.EditLocation, ViewerCommands.SortName, ViewerCommands.SortType, ViewerCommands.SortSize,
                           ViewerCommands.SortModified, ViewerCommands.SortDescending, ViewerCommands.OnlineMovies,
-                          ViewerCommands.OnlineMusic, ViewerCommands.ChooseMusic, ViewerCommands.OpenChosen])
+                          ViewerCommands.OnlineMusic, ViewerCommands.ChooseMusic, ViewerCommands.OpenChosen,
+                          ViewerCommands.ExtractAll, ViewerCommands.ExtractChosen])
             .addCommands(func()->string => appStrings().lens_Find,
                          [ViewerCommands.Find, ViewerCommands.FindNext, ViewerCommands.FindPrevious, ViewerCommands.SearchMode,
                           ViewerCommands.FilterMode, ViewerCommands.MatchCase, ViewerCommands.WholeWord, ViewerCommands.RegularExpression])
@@ -452,6 +455,14 @@ impl ViewerWindow
             name     = texts.cmd_OpenChosen
             hidden   = not exploring
             disabled = not exploring or .explorer!.selected >= .explorer.entries.count
+        case ViewerCommands.ExtractAll:
+            name     = texts.cmd_ExtractAll
+            hidden   = not exploring or not .explorer!.listing.isArchive
+            disabled = hidden or .explorer!.extraction.started
+        case ViewerCommands.ExtractChosen:
+            name     = texts.cmd_Extract
+            hidden   = not exploring or not .explorer!.listing.isArchive
+            disabled = hidden or .explorer!.extraction.started or .explorer!.selected >= .explorer.entries.count
         case ViewerCommands.ChooseMusic:
             name     = texts.explore_ChooseMusic
             hidden   = not exploring
@@ -564,6 +575,8 @@ impl ViewerWindow
         case ViewerCommands.OnlineMusic:    explorer.setOnlineMedia(.onlineMovies, not .onlineMusic)
         case ViewerCommands.ChooseMusic:    explorer.chooseMusic()
         case ViewerCommands.OpenChosen:     explorer.activate(explorer.selected)
+        case ViewerCommands.ExtractAll:     explorer.chooseExtraction(all: true)
+        case ViewerCommands.ExtractChosen:  explorer.chooseExtraction(all: false)
         case ViewerCommands.SortName, ViewerCommands.SortType, ViewerCommands.SortSize, ViewerCommands.SortModified:
             explorer.sortBy(sortColumnOf(id), explorer.descending)
         default:
@@ -578,12 +591,27 @@ impl ViewerWindow
     {
         if .currentFile.isEmpty() and not .isExploring()
         {
-            .infoSheet.close()
+            .closeInformation()
             return
         }
 
         .refreshInformation()
         .infoSheet.toggle()
+        .sheetToggled(.infoSheet.isLocallyVisible())
+    }
+
+    // Closes the sheet of readings, and gives its room back to the page under it.
+    mtd closeInformation()
+    {
+        .infoSheet.close()
+        .sheetToggled(false)
+    }
+
+    // Lets the explored page make room for the sheet beside it, or take that room back.
+    mtd sheetToggled(open: bool)
+    {
+        if .explorer do
+            .explorer.fitToSheet(open)
     }
 
     // Describes what the window shows in the information sheet: the open file, or the item chosen

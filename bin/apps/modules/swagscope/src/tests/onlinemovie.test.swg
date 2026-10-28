@@ -8,7 +8,7 @@ struct MovieServerFixture
     late listener: *TcpListener
     port: u16
     poster: Array'u8
-    requests: [3] String
+    requests: [4] String
 }
 
 func writeMovieBytes(stream: *TcpStream, bytes: const [..] u8)
@@ -26,7 +26,7 @@ func writeMovieBytes(stream: *TcpStream, bytes: const [..] u8)
 func serveMovies(thread: const *Threading.Thread)
 {
     let fixture = cast(*MovieServerFixture, unwrap thread.userParam)
-    for index in 3
+    for index in 4
     {
         var stream = expect fixture.listener.accept()
         var bytes: [1024] u8
@@ -47,6 +47,12 @@ func serveMovies(thread: const *Threading.Thread)
         {
             let json = """{"results":{"bindings":[{"directorLabel":{"value":"Ridley Scott"},"castLabel":{"value":"Harrison Ford"},"score":{"value":"8.1/10"},"scoreDate":{"value":"2026-02-25T00:00:00Z"}}]}}"""
             body.add(cast(const [..] u8, json))
+        }
+        elif index == 2
+        {
+            // A response of the Apple catalogue, recorded and trimmed: two films of the title, one of the year asked.
+            let json = Format.toString("""{"resultCount":2,"results":[{"trackName":"Blade Runner","releaseDate":"1982-06-25T07:00:00Z","artworkUrl100":"http://127.0.0.1:%/poster/100x100bb.jpg","longDescription":"In a dark future, a blade runner hunts replicants.","primaryGenreName":"Sci-Fi & Fantasy"},{"trackName":"Blade Runner 2049","releaseDate":"2017-10-06T07:00:00Z","artworkUrl100":"http://127.0.0.1:%/other/100x100bb.jpg"}]}""", fixture.port, fixture.port)
+            body.add(cast(const [..] u8, json.toString()))
         }
         else do
             body.add(fixture.poster.toSlice())
@@ -83,7 +89,7 @@ func serveMovies(thread: const *Threading.Thread)
     var thread: Threading.Thread
     expect thread.init(&serveMovies, &fixture)
     expect thread.start()
-    let host = MovieSource{wikiHost: "127.0.0.1", dataHost: "127.0.0.1",
+    let host = MovieSource{wikiHost: "127.0.0.1", dataHost: "127.0.0.1", appleHost: "127.0.0.1",
                            imageHost: "127.0.0.1", port: endpoint.port, secure: false}
     var movie = expect OnlineMovie.lookup("Blade.Runner (1982).mkv", host, "fr")
     let posterBytes = expect movie.posterBytes(host)
@@ -92,12 +98,28 @@ func serveMovies(thread: const *Threading.Thread)
     Swag.assert(movie.id == "Q184843" and poster.isValid())
     Swag.assert(Utf8.contains(fixture.requests[0].toString(), "/w/api.php"))
     Swag.assert(Utf8.contains(fixture.requests[1].toString(), "/sparql?"))
-    Swag.assert(Utf8.contains(fixture.requests[2].toString(), "/poster.png"))
+    Swag.assert(Utf8.contains(fixture.requests[2].toString(), "/search?term=Blade%20Runner&entity=movie"))
+    Swag.assert(Utf8.contains(fixture.requests[3].toString(), "/poster/600x900bb.jpg"))
+    Swag.assert(movie.sources == "Apple · Wikipedia · Wikidata")
     movie.label(&poster)
     let summary = MovieSummary.fromImage(&poster)
     Swag.assert(summary.title == "Blade Runner" and summary.director == "Ridley Scott")
     Swag.assert(summary.actors == "Harrison Ford" and summary.imdbRating == "8.1/10 (2026-02-25)")
-    Swag.assert(summary.overview == "A futuristic detective story.")
+    Swag.assert(summary.overview == "In a dark future, a blade runner hunts replicants.")
+    Swag.assert(summary.sources == "Apple · Wikipedia · Wikidata")
+
+    // Only one film of the catalogue answers to a title and a year; a title alone that several
+    // films share is not taken.
+    let json = """{"results":[{"trackName":"Dune","releaseDate":"1984-12-14T08:00:00Z"},{"trackName":"Dune","releaseDate":"2021-10-22T07:00:00Z"}]}"""
+    var decoder: Serialization.Decoder'Serialization.Read.Json
+    let search = expect decoder.readAll'AppleSearch(cast(const [..] u8, json))
+    defer Memory.delete(search)
+    let dated   = MovieQuery{title: "Dune", year: "2021"}
+    let undated = MovieQuery{title: "Dune"}
+    let other   = MovieQuery{title: "Arrival"}
+    Swag.assert(dated.chooseApple(search) == 1)
+    Swag.assert(undated.chooseApple(search) == Swag.U64.Max)
+    Swag.assert(other.chooseApple(search) == Swag.U64.Max)
 }
 
 #[Swag.TestTag("integration.network")]

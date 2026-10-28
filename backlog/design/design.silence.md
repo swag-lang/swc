@@ -63,55 +63,59 @@ dialogs, then each application, then the written rules.
 
 ### design.silence.007 — Swag Scope viewers keep their pre-charter shapes
 
-- Evidence: the window follows the charter. No command, information or viewer band; every window
-  command and every viewer command (through `Viewer.Host.setLensSource`) is a lens entry on
-  `Space`/`Ctrl K`; the readings are in the sheet (`I`) and faint at the foot of the document; the
-  viewer's controls float over that foot while the pointer moves; the find bar floats on
-  `Ctrl F`; the panels are cards under a spaced-capitals label. The home is built on `scope.home`
-  (`home.{ink,paper}`, `home.hover.{ink,paper}` goldens). The explorer is a page: a quiet
-  breadcrumb with slashes, the title stepping from 44 down to 28 before anything is cut, the faint
-  mono count and weight (dropped first on a narrow line), quiet menus with short words, the filter
-  only on request on a line of its own, bare tiles, quiet folder glyphs, the chosen tile lifted in
-  an Arc ring; an archive reads as quiet rows with a ratio bar, size and date, its packed and
-  extracted weights under the title, the Enter/⌫/Space hints, and the chosen member's sizes,
-  compression and CRC-32 in the sheet with Open (`explorer.{gallery,archive,movie}`). Code reads in
-  a centered 900 column, Basic text in a 680 prose column at 16/29 (`viewer.{code,text}.document`);
-  Markdown has its table of contents in the left margin and the Arc progress thread
-  (`viewer.markdown.images.whitey`); the image viewer counts its rank in the folder. Subtitles
-  read as a list under the file's name and mono line: number, mono time range, words, the current
-  cue on the selection ground, the rhythm of the minute around it, its rank and time at the foot
-  (`viewer.subtitle.{ink,paper}`, photographed in the shipped frame). A MIDI score reads as one
-  lane per track under the bar numbers, each track in its series hue with its name and channel,
-  the notes spread by pitch in the lane (`viewer.midi.{ink,paper}`); the piano roll stays as a
-  presentation in the options. It has no transport nor play head, because Scope plays no MIDI.
-  A recording is laid out around its cover: the name and who made it, the wave as bars played in
-  Arc, the times under it, how it is stored at the foot (`viewer.sound.{ink,paper}`); the tags
-  carry no picture yet, so the cover is a raised tile with the glyph of a sound, and the
-  transport is still the floating command bar rather than the compact one of the picture.
-  What still differs from the pictures: the progress thread runs along the window's top edge, not
-  under the strip, and no document scrolls under the strip; text has no "Column ▾" quiet menu;
-  the explorer has no "Extract All…" on the title line nor "Extract…" in the sheet, the sheet shows
-  no preview card of the member, and folder rows of an archive have no date; the archive viewer's
-  embedded host (`EmbeddedViewer`) keeps its header band, viewer combo box and bottom command band;
-  PDF has no outline margin and no paper shadow; the video picture does not reach the strip and has
-  no top and bottom veils with chips; hex has no structure
-  tabs and no floating inspector with the value in large type; the font viewer is not a specimen
-  page (its sample field lives on the floating bar); table, HTML (column, address, outline)
-  and binary (report page) keep their earlier shapes. Waits use
-  `Gui.Spinner`; nothing in Scope needs a toast before `Gui.Toast` lands.
-- Next: the video viewer on `scope.video`: it stops contributing a command group to the window's
-  floating bar and owns two veils shown on pointer movement and gone at rest — the top one with the
-  title and a mono line, the bottom one with its own timeline (Arc progress, buffered part, white
-  knob, chapter ticks, a mono time chip under the pointer), the play button, the mono time, the
-  chapter, and chips for subtitles, sound track and speed that open those pages of the options;
-  then a framed golden at rest and under the pointer. Then the progress thread under the strip;
-  then the viewers in this order, each on its picture —
-  `scope.pdf.paper`, `scope.archive` (Extract, preview card, then the
-  embedded host on the window's model), `scope.hex`, `scope.font.paper`, `scope.table.paper`,
-  `scope.html.paper`, `scope.binary` — moving what still stands on
-  the floating bar into the document where the picture puts it. Switch the explorer's private quiet
-  menus to `IconButton.createQuiet` once it lands.
-- Done when: every Scope golden matches its picture.
+- Evidence: the window follows the charter — no band; every command is a lens entry; readings in
+  the sheet (`I`) and faint at the foot; viewer controls on a floating mini-bar; panels are cards.
+  Built on their pictures, each golden compared whole-screen with its picture:
+  - Home (`home.{ink,paper}`, `home.hover.{ink,paper}`).
+  - Explorer boards: a mixed folder (`explorer.mixed`, `.paper`) — one even grid filling the page,
+    pictures and films cropped to the tile, faint line glyphs and extensions for the rest, name
+    and one mono line of facts; films (`explorer.films`) — upright posters, title then year and
+    length, the sheet headed by the poster beside its title with Open under it and the sources at
+    its foot. The poster and synopsis come from the Apple catalogue first, credits and rating
+    from Wikipedia and Wikidata.
+  - Archive (`explorer.archive`, `.paper`): rows with ratio bar, size and date, "Extract All…" and
+    "Extract…" with a toast, the member's sizes, compression, date and CRC-32 in the sheet; the
+    embedded host (`viewer.archive.document`) has no band: a quiet line with a quiet viewer menu,
+    the commands on a mini-bar.
+  - PDF (`viewer.pdf.page`, `.paper`): pages as paper with the floating shadow, the outline in
+    the left margin under "Contents".
+  - Code and text in their reading columns, Markdown with its margin outline and Arc thread.
+  - Subtitles read as a list under the file's name and mono line: number, mono time range,
+    words, the current cue on the selection ground, the rhythm of the minute around it, its rank
+    and time at the foot (`viewer.subtitle.{ink,paper}`, in the shipped frame). A MIDI score reads
+    as one lane per track under the bar numbers, each track in its series hue with its name and
+    channel (`viewer.midi.{ink,paper}`); it has no transport nor play head, because Scope plays no
+    MIDI. A recording is laid out around its cover (`viewer.sound.{ink,paper}`); the tags carry no
+    picture yet, so the cover is a raised tile with the glyph of a sound, and the transport is
+    still the floating command bar rather than the compact one of the picture.
+  What still differs from the pictures, screen by screen:
+  - Mixed board: a PDF, code, Markdown, sound and font cell show the preview the thumbnailer
+    renders, not the drawn paper card, mono lines, heading, waveform or "Aa" of the picture; the
+    facts line has no dimensions, pages, lines, sections or face (only length, count and size).
+    The title is Bold, not 800.
+  - Films: no playback progress thread at the poster's foot and no "Resume at 1 h 12" / "or from
+    the start" — Scope keeps no resume position for a film yet; the count says "items", not
+    "films".
+  - Music library, one album and photos boards are not built (`scope.explorer.music`,
+    `.album`, `.album.paper`, `.photos`).
+  - Archive: the sheet asks for the member's picture but the golden holds it still without one;
+    dates are ISO, not the short day/month; the sheet's two buttons share the foot in halves.
+  - PDF: the reading line still carries previous/next arrows beside "1 / 2"; no position thread
+    at the right.
+  - The goldens of the viewer harnesses (`viewer.*.document`) and of the window without the
+    shipped frame start at the top edge: they need the frame (StandardWindow) to sit under the
+    strip as the pictures do; the boards, archive and PDF goldens already have it.
+  - Not yet rebuilt on their pictures: image (`scope.image`), table, HTML (column, address,
+    outline), binary (report page), hex (structure tabs, large inspector), font (specimen page);
+    the "Column ▾" quiet menu of text; the progress thread under the strip with documents
+    scrolling under it; the video picture does not reach the strip and has no veils with chips.
+- Next: music library and album boards, then photos; then image, table, HTML, binary, hex and
+  font on their pictures; the shipped frame for every Scope golden. The media pass takes the video
+  viewer on `scope.video`: two veils shown on pointer movement — the title and a mono line on top,
+  its own timeline (Arc progress, buffered part, white knob, chapter ticks, a mono time chip under
+  the pointer), the play button, the mono time, the chapter and chips for subtitles, sound track
+  and speed at the foot — and a framed golden at rest and under the pointer.
+- Done when: every Scope golden matches its picture as a whole screen.
 - Related: design.silence.004
 
 ### design.silence.008 — Swag Capture's editing does not yet match its pictures

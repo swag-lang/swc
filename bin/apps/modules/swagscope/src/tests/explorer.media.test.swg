@@ -72,7 +72,7 @@ using Core, Gui, Pixel
     explorer.showInformation()
     window.applyLayout()
     Swag.assert(window.infoSheet.isVisible())
-    Swag.assert(Utf8.contains(window.infoSheet.text(), "8.1/10 IMDb"))
+    Swag.assert(Utf8.contains(window.infoSheet.text(), "8.1 IMDb"))
     Swag.assert(Utf8.contains(window.infoSheet.text(), "Director\nRidley Scott"))
     let english = host.render(window)
     Pixel.Testing.assertImageGolden(&english, "explorer.movie")
@@ -81,15 +81,15 @@ using Core, Gui, Pixel
     host.notify(.LanguageChanged)
     explorer.entries[0].movie = {title: "Blade Runner", imdbRating: "8.1/10", director: "Ridley Scott", actors: "Harrison Ford"}
     explorer.showMediaInfo()
-    Swag.assert(Utf8.contains(window.infoSheet.text(), "8.1/10 IMDb"))
+    Swag.assert(Utf8.contains(window.infoSheet.text(), "8.1 IMDb"))
     Swag.assert(Utf8.contains(window.infoSheet.text(), "Distribution\nHarrison Ford"))
     explorer.entries[0].movie.imdbRating = "8.2/10"
     explorer.entries[0].movie.date       = "1982-06-25"
     explorer.entries[0].movie.overview   = "Un dÃ©tective dans le futur."
     explorer.showMediaInfo()
-    Swag.assert(Utf8.contains(window.infoSheet.text(), "8.2/10 IMDb"))
-    Swag.assert(Utf8.contains(window.infoSheet.text(), "Sortie\n1982-06-25"))
-    Swag.assert(Utf8.contains(window.infoSheet.text(), "Synopsis\nUn dÃ©tective dans le futur."))
+    Swag.assert(Utf8.contains(window.infoSheet.text(), "8.2 IMDb"))
+    Swag.assert(Utf8.contains(window.infoSheet.text(), "1982"))
+    Swag.assert(Utf8.contains(window.infoSheet.text(), "Un dÃ©tective dans le futur."))
     explorer.entries[1].music = {title: "Discovery", artist: "Daft Punk", date: "2001-03-12"}
     explorer.grid.select(1)
     Swag.assert(Utf8.contains(window.infoSheet.text(), "Discovery"))

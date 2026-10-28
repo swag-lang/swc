@@ -100,7 +100,7 @@ impl ExplorerPreview
                 catch
                 {
                     movie = try OnlineMovie.lookup(file, language: settings.movieLanguage)
-                    if not movie.id.isEmpty() and not Swag.isCancelled()
+                    if movie.found() and not Swag.isCancelled()
                     {
                         let poster = try movie.posterBytes()
                         if not poster.isEmpty() do
@@ -140,7 +140,7 @@ impl ExplorerPreview
 
             if not .image.isValid() do
                 .image = try .service.render(file, .settings)
-            if not movie.id.isEmpty() and .image.isValid() do
+            if movie.found() and .image.isValid() do
                 movie.label(&.image)
             elif not music.id.isEmpty() and .image.isValid() do
                 music.label(&.image, &musicTags)

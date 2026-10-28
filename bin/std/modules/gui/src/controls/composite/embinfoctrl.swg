@@ -42,11 +42,20 @@ struct InfoBar
         }
     }
 
-    timer: *Timer?     // Active auto-dismiss timer.
+    timer:  *Timer?     // Active auto-dismiss timer.
+    ground: Color       // Tinted ground of the current kind, painted on the control corner.
 }
 
 impl IWnd for InfoBar
 {
+    mtd impl onPaint(evt: *PaintEvent)
+    {
+        let painter = evt.paintContext.painter
+        let radius  = .themeMetrics().corner_Control
+        painter.setParams(.Antialiased)
+        painter.fillRoundRect(.clientRect(), radius, radius, .ground)
+    }
+
     mtd impl onTimerEvent(_: *TimerEvent)
     {
         .timer = null
@@ -77,31 +86,35 @@ private impl InfoBar
         let colors  = .themeColors()
         let metrics = .themeMetrics()
 
-        // A notice is a tinted ground, a dot in its tone and body ink: no border, no icon tile. The
-        // dot is what tells the three apart at a glance; the words carry the rest.
+        // A notice is a tinted ground on the control corner, a dot in its tone and body ink: no
+        // border, no icon tile. The dot is what tells the three apart at a glance; the words carry
+        // the rest.
+        var ground: Color
         with me.label
         {
-            .style.clearStyleSheetColors()
-            .backgroundStyle = .Window
+            .backgroundStyle = .Transparent
             .setIcon(theme.icon(.Dot, metrics.embInfo_DotSize))
             switch #complete me.kind
             {
             case .Critical:
-                .style.addStyleSheetColors(Format.toString("wnd_Bk 0x%{X}", colors.embInfo_CriticalBk.argb))
+                ground = colors.embInfo_CriticalBk
                 .setTextColor(colors.embInfo_CriticalText)
                 .setIconColor(colors.embInfo_CriticalMark)
 
             case .Information:
-                .style.addStyleSheetColors(Format.toString("wnd_Bk 0x%{X}", colors.embInfo_InformationBk.argb))
+                ground = colors.embInfo_InformationBk
                 .setTextColor(colors.embInfo_InformationText)
                 .setIconColor(colors.embInfo_InformationMark)
 
             case .Message:
-                .style.addStyleSheetColors(Format.toString("wnd_Bk 0x%{X}", colors.embInfo_MessageBk.argb))
+                ground = colors.embInfo_MessageBk
                 .setTextColor(colors.embInfo_MessageText)
                 .setIconColor(colors.embInfo_MessageMark)
             }
         }
+
+        .ground = ground
+        .invalidate()
 
         .closeButton.setIconColor(colors.label_TextFaint)
     }

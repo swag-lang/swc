@@ -188,7 +188,9 @@ impl IWnd for Header
             .paintItem(evt.paintContext, item, cast(u32, idx), x)
             x += item.width
 
-            if .flags.has(.Separators)
+            // The rules between heads are a resize affordance, not a frame: they show while the
+            // pointer is over the header, the way the work shows nothing it does not need.
+            if .flags.has(.Separators) and (.hotIdx != Swag.U32.Max or .hotSeparator or .moving)
             {
                 var rect = clientRect
                 rect.x = x + (metrics.header_Separator * 0.5)

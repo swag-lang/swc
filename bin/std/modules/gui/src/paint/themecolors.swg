@@ -938,16 +938,20 @@ impl ThemeColors
         .richEdit_Caret          = signature.mark
         .richEdit_CurLineBorder  = p.line
 
-        // A switch is off on the stronger rule with a soft knob, and on in Arc with a white knob.
+        // A switch is off on the stronger rule and on in Arc with a white knob. On a dark ground the
+        // knob of an off switch is the soft ink; on paper it stays white, so the switch reads as the
+        // same object in both states and only its track changes, and a dark knob on a grey track
+        // does not weigh more than the switch beside it that is on.
+        let lightGround = p.ground.relativeLuminance() > 0.5
         .btnToggle_OffBorder        = .transparent
-        .btnToggle_OffMark          = p.softText
+        .btnToggle_OffMark          = lightGround ? Knob : p.softText
         .btnToggle_OffBk            = strongLine
         .btnToggle_OffHotBorder     = .transparent
-        .btnToggle_OffHotMark       = p.text
-        .btnToggle_OffHotBk         = strongLine
+        .btnToggle_OffHotMark       = lightGround ? Knob : p.text
+        .btnToggle_OffHotBk         = lightGround ? p.faintText : strongLine
         .btnToggle_OffPressedBorder = .transparent
-        .btnToggle_OffPressedMark   = p.text
-        .btnToggle_OffPressedBk     = p.faintText
+        .btnToggle_OffPressedMark   = lightGround ? Knob : p.text
+        .btnToggle_OffPressedBk     = lightGround ? p.softText : p.faintText
         .btnToggle_OnBorder         = .transparent
         .btnToggle_OnMark           = Knob
         .btnToggle_OnBk             = alternate.ground

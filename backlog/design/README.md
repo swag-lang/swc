@@ -123,6 +123,42 @@ comme image…"). An ellipsis marks a command that asks for more before acting.
 - A faint hint line ("Space — everything else") may sit 24 px above the bottom edge while the
   reader is new to the window or the surface is empty.
 
+## Motion
+
+Motion says where a thing came from and that the interface heard the hand. It is never there to
+be noticed: if a viewer remembers an animation, it was too much.
+
+- **Short.** 120 ms for state feedback (hover, press, a switch), 180 ms for a surface arriving,
+  220 ms for a change of layout. Leaving takes two thirds of arriving. Only progress lasts longer.
+- **Decelerate in, plain out.** Arrivals ease out: they start at speed and settle. Departures fade.
+  No overshoot, bounce, spring, wobble, blur trail, or scale above one.
+- **Opacity carries the change; travel only says where from.** At most 8 px of travel for a
+  floating surface, 16 px for a page. The lens and a dialog settle 6 px upward into place with
+  their dim; the sheet and the inspector arrive 8 px from the edge they stand against; the
+  mini-bar rises 4 px toward its selection; a menu drops 4 px from its anchor. A notice opens its
+  own height, then its words fade in.
+- **The hand causes it.** Nothing moves unprompted except progress and activity. No pulse, no idle
+  loop, no animated glyph, no attention-seeking entrance.
+- **Input never waits.** Focus, hit testing and the keyboard reach the final state at once; an
+  animation running when the next change arrives retargets from what is on screen. Typing, the
+  caret, the selection in a list, the focus ring and an error appear instantly.
+- **Scroll bars rest.** They show while the view scrolls or the pointer is over them, and fade
+  out 600 ms after the last movement.
+- **Reduced motion is honoured.** When the system asks for reduced motion, decorative motion
+  completes immediately; progress keeps moving.
+
+| Moment | Duration | Curve | Travel |
+| --- | --- | --- | --- |
+| Hover, press, check, switch knob | 120 ms | ease out | knob slides its track |
+| Tab underline to the chosen tab | 180 ms | ease out | the underline slides |
+| Lens, dialog arriving, with their dim | 180 ms | ease out | 6 px upward |
+| Sheet, inspector arriving | 180 ms | ease out | 8 px from their edge |
+| Mini-bar, menu arriving | 120 ms | ease out | 4 px toward the anchor |
+| Any floating surface leaving | 120 ms | linear fade | none |
+| Page change | 180 ms | ease out | 16 px |
+| Panel or notice changing the layout | 220 ms | ease in-out | its own size |
+| Scroll bar resting | 180 ms fade after 600 ms still | linear | none |
+
 ## Shared components
 
 ### Lens

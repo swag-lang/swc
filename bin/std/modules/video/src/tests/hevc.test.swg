@@ -372,6 +372,44 @@ using Core, Core.Errors, Pixel
     }
 }
 
+// Strong smoothing interpolates each edge in opposite storage directions and
+// preserves both endpoints and the corner, including the 10-bit maximum.
+#test
+{
+    var reference: Hevc.IntraReference
+    reference.size = 32
+    reference.count = 129
+    var seed = 0x43A0CB16'u32
+    for bitDepth in [8'u32, 10]
+    {
+        let maximum = (1'u32 << bitDepth) - 1
+        for iteration in 128'u32
+        {
+            seed = seed * #wrap 1664525 + #wrap 1013904223
+            let corner = iteration == 0 ? maximum : (seed >> 16) & maximum
+            seed = seed * #wrap 1664525 + #wrap 1013904223
+            let top = iteration == 0 ? maximum : (seed >> 16) & maximum
+            seed = seed * #wrap 1664525 + #wrap 1013904223
+            let left = iteration == 0 ? maximum : (seed >> 16) & maximum
+            reference.setCorner(cast(u16, corner))
+            reference.setTop(63, cast(u16, top))
+            reference.setLeft(63, cast(u16, left))
+            Hevc.smoothStrongReference(&reference, cast(u16, corner), cast(u16, top), cast(u16, left))
+            for index in 63'u32
+            {
+                let weight = index + 1
+                let expectedTop = ((64 - weight) * corner + weight * top + 32) >> 6
+                let expectedLeft = ((64 - weight) * corner + weight * left + 32) >> 6
+                Swag.assert(reference.top(index) == cast(u16, expectedTop))
+                Swag.assert(reference.left(index) == cast(u16, expectedLeft))
+            }
+            Swag.assert(reference.corner() == cast(u16, corner))
+            Swag.assert(reference.top(63) == cast(u16, top))
+            Swag.assert(reference.left(63) == cast(u16, left))
+        }
+    }
+}
+
 // Normal intra reference smoothing is the same symmetric three-tap filter
 // across the reversed left edge, the corner and the forward top edge.
 #test

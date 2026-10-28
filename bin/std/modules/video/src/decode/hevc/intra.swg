@@ -247,6 +247,39 @@ func predictAngularHorizontalPacked(main: const [*] u16, destination: [*] u16, s
     }
 }
 
+// Strong smoothing interpolates 63 positions between each edge's endpoints.
+// At ten bits the numerator is at most 64 * 1023 + 32, within u16.
+#[Swag.NoInline]
+func smoothStrongReference(reference: *IntraReference, corner, lastTop, lastLeft: u16)
+{
+    let ascending = cast(Simd.U16x8, [1'u16, 2, 3, 4, 5, 6, 7, 8])
+    let descending = cast(Simd.U16x8, [8'u16, 7, 6, 5, 4, 3, 2, 1])
+    let full = Simd.splat(64'u16)
+    let corner8 = Simd.splat(corner)
+    let top8 = Simd.splat(lastTop)
+    let left8 = Simd.splat(lastLeft)
+    let rounding = Simd.splat(32'u16)
+    var index = 0'u32
+    while index + 8 <= 63
+    {
+        let base = Simd.splat(cast(u16, index))
+        let topWeight = base + ascending
+        let leftWeight = base + descending
+        let top = ((full - topWeight) * corner8 + topWeight * top8 + rounding) >> 6
+        let left = ((full - leftWeight) * corner8 + leftWeight * left8 + rounding) >> 6
+        Simd.store(&reference.samples[65 + index], top)
+        Simd.store(&reference.samples[56 - index], left)
+        index += 8
+    }
+    while index < 63
+    {
+        let weight = index + 1
+        reference.setLeft(index, cast(u16, (((64 - weight) * cast(u32, corner) + weight * cast(u32, lastLeft) + 32) >> 6)))
+        reference.setTop(index, cast(u16, (((64 - weight) * cast(u32, corner) + weight * cast(u32, lastTop) + 32) >> 6)))
+        index += 1
+    }
+}
+
 impl Decoder
 {
     // Predicts one intra transform block into `.predSamples`, clause 8.4.4.2.
@@ -406,13 +439,7 @@ impl Decoder
             let flatLeft = Math.abs(corner + cast(s32, reference.left(total - 1)) - 2 * cast(s32, reference.left(size - 1))) < limit
             if flatTop and flatLeft
             {
-                let lastTop  = cast(s32, reference.top(63))
-                let lastLeft = cast(s32, reference.left(63))
-                for index in 63'u32
-                {
-                    reference.setLeft(index, cast(u16, ((cast(s32, (63 - index)) * corner + cast(s32, (index + 1)) * lastLeft + 32) >> 6)))
-                    reference.setTop(index, cast(u16, ((cast(s32, (63 - index)) * corner + cast(s32, (index + 1)) * lastTop + 32) >> 6)))
-                }
+                smoothStrongReference(reference, cast(u16, corner), reference.top(63), reference.left(63))
 
                 return
             }

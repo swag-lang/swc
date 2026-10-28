@@ -899,7 +899,7 @@ func weightUni(dst: [*] u8, dstStride: u64, src: [*] u8, srcStride: u64, width, 
 
 // Combines two predicted blocks with explicit or implicit weights.
 #[Swag.Inline]
-private func weightBiQuads(a, b: Simd.S32x4, weight0, weight1, rounding, shift, offset: s32)->Simd.S32x4 => ((a * weight0 + b * weight1 + rounding) >> cast(u32, shift)) + offset
+private func weightBiQuads(pixels: Simd.S16x8, weights: Simd.S16x8, rounding, shift, offset: s32)->Simd.S32x4 => ((Simd.mulAddPairs(pixels, weights) + rounding) >> cast(u32, shift)) + offset
 
 #[Swag.Inline]
 private func weightBiRow(pixels0, pixels1: Simd.U8x16, logDenom, weight0, weight1, offset0, offset1: s32)->Simd.U8x16
@@ -907,16 +907,20 @@ private func weightBiRow(pixels0, pixels1: Simd.U8x16, logDenom, weight0, weight
     let rounding = 1's32 << cast(u32, logDenom)
     let offset   = (offset0 + offset1 + 1) >> 1
     let shift    = logDenom + 1
-    let p0Low    = Simd.widenLow(pixels0)
-    let p0High   = Simd.widenHigh(pixels0)
-    let p1Low    = Simd.widenLow(pixels1)
-    let p1High   = Simd.widenHigh(pixels1)
-    let r0       = weightBiQuads(cast #bit(Simd.S32x4, Simd.widenLow(p0Low)), cast #bit(Simd.S32x4, Simd.widenLow(p1Low)), weight0, weight1, rounding, shift, offset)
-    let r1       = weightBiQuads(cast #bit(Simd.S32x4, Simd.widenHigh(p0Low)), cast #bit(Simd.S32x4, Simd.widenHigh(p1Low)), weight0, weight1, rounding, shift, offset)
-    let r2       = weightBiQuads(cast #bit(Simd.S32x4, Simd.widenLow(p0High)), cast #bit(Simd.S32x4, Simd.widenLow(p1High)), weight0, weight1, rounding, shift, offset)
-    let r3       = weightBiQuads(cast #bit(Simd.S32x4, Simd.widenHigh(p0High)), cast #bit(Simd.S32x4, Simd.widenHigh(p1High)), weight0, weight1, rounding, shift, offset)
-    let low      = Simd.packUnsigned(r0, r1)
-    let high     = Simd.packUnsigned(r2, r3)
+    // Explicit weights are in [-128, 127], and the default or implicit weights also fit s16.
+    // Pairing the two source samples and weights keeps the sum in signed 32-bit lanes.
+    let packedWeights = cast(u32, cast #wrap(u16, weight0)) | (cast(u32, cast #wrap(u16, weight1)) << 16)
+    let weights       = cast #bit(Simd.S16x8, Simd.splat(packedWeights))
+    let p0Low         = Simd.widenLow(pixels0)
+    let p0High        = Simd.widenHigh(pixels0)
+    let p1Low         = Simd.widenLow(pixels1)
+    let p1High        = Simd.widenHigh(pixels1)
+    let r0 = weightBiQuads(cast #bit(Simd.S16x8, Simd.interleaveLow(p0Low, p1Low)), weights, rounding, shift, offset)
+    let r1 = weightBiQuads(cast #bit(Simd.S16x8, Simd.interleaveHigh(p0Low, p1Low)), weights, rounding, shift, offset)
+    let r2 = weightBiQuads(cast #bit(Simd.S16x8, Simd.interleaveLow(p0High, p1High)), weights, rounding, shift, offset)
+    let r3 = weightBiQuads(cast #bit(Simd.S16x8, Simd.interleaveHigh(p0High, p1High)), weights, rounding, shift, offset)
+    let low  = Simd.packUnsigned(r0, r1)
+    let high = Simd.packUnsigned(r2, r3)
     return Simd.packUnsigned(cast #bit(Simd.S16x8, low), cast #bit(Simd.S16x8, high))
 }
 

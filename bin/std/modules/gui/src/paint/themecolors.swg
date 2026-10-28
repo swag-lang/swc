@@ -1112,7 +1112,7 @@ impl ThemeColors
 
         .splitView_TitleBk = p.ground
         .splitView_Bar     = p.line
-        .splitView_BarHot  = strongLine
+        .splitView_BarHot  = alternate.mark
 
         .progressBar_Border         = .transparent
         .progressBar_Bk             = p.raised

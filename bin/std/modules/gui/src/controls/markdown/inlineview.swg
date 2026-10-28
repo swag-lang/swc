@@ -683,7 +683,7 @@ impl InlineView
         case .Heading4:     return .owner.documentStyle.heading4FontSize
         case .Heading5:     return .owner.documentStyle.heading5FontSize
         case .Heading6:     return .owner.documentStyle.heading6FontSize
-        case .Code, .Table: return .owner.documentStyle.codeFontSize
+        case .Code:         return .owner.documentStyle.codeFontSize
         case .Metadata:     return Math.max(.owner.documentStyle.codeFontSize - 1, 8)
         case .Footnote:     return Math.max(.owner.documentStyle.bodyFontSize - 2, 8)
         default:            return .owner.documentStyle.bodyFontSize
@@ -710,7 +710,7 @@ impl InlineView
     {
         let style = .fontStyle(atom.flags)
         let size  = atom.flags.has(.Subscript) or atom.flags.has(.Superscript) ? Math.max(.fontSize() * 3 / 4, 8) : .fontSize()
-        if atom.flags.has(.Code) or .kind == .Code or .kind == .Table or .kind == .Metadata do
+        if atom.flags.has(.Code) or .kind == .Code or .kind == .Metadata do
             return .owner.documentFont(.Code, size, style)
         return .owner.documentFont(.kind, size, style)
     }
@@ -783,7 +783,7 @@ impl InlineView
         var height = style.bodyLineHeight
         if .kind >= .Heading1 and .kind <= .Heading6 do
             height = style.headingLineHeights[cast(u32, .kind) - cast(u32, BlockKind.Heading1)]
-        elif .kind == .Code or .kind == .Table or .kind == .Metadata do
+        elif .kind == .Code or .kind == .Metadata do
             height = style.codeLineHeight
         if height > 0 do
             return height
@@ -1450,7 +1450,7 @@ impl IWnd for InlineView
             painter.fillRect(rect, .themeColors().edit_Bk)
             painter.drawRect(rect, .themeColors().edit_Border, 1)
         }
-        elif .kind == .Table or .kind == .Metadata or .kind == .TableOfContents
+        elif .kind == .Metadata or .kind == .TableOfContents
         {
             painter.fillRect(rect, .themeColors().edit_Bk)
         }

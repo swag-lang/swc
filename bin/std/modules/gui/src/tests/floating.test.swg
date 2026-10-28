@@ -458,3 +458,38 @@ func floatingHost(host: *Testing.HeadlessHost, width, height: f32, light: bool)
     var image = host.render(&host.root)
     Swag.assert(image.isValid())
 }
+
+// A toast stands centred above the foot of its parent, stays while the pointer is over it, leaves
+// on its timer, and answers its action once.
+#[Swag.TestTag("golden")]
+#test
+{
+    for light in [false, true]
+    {
+        var host: Testing.HeadlessHost
+        floatingHost(&host, 900, 400, light)
+        let metrics = host.theme.metrics
+
+        let toast = Toast.create(&host.root)
+        var undone = 0
+        toast.sigAction += func|&undone|(_) { undone += 1 }
+        toast.show("Removed from the history", "design.silence.md", .Done, "Undo")
+        Swag.assert(toast.isLocallyVisible())
+        Swag.assert(Math.abs(toast.position.horzCenter() - 450) <= 1)
+        Swag.assert(toast.position.bottom() == 400 - metrics.toast_Bottom and toast.position.height == metrics.toast_Height)
+
+        var image = host.render()
+        Pixel.Testing.assertImageGolden(&image, light ? "toast.paper" : "toast.ink")
+
+        // The timer takes it away; the action is answered once and takes it away too.
+        host.fireTimers()
+        Swag.assert(not toast.isLocallyVisible())
+        toast.show("Saved", "capture-2026-10-28.png", .Done, "Show")
+        let action = toast.surfaceRect()
+        host.moveMouse({action.x + toast.actionRect.horzCenter(), action.vertCenter()})
+        Swag.assert(toast.hotAction and toast.timer == null)
+        host.click({action.x + toast.actionRect.horzCenter(), action.vertCenter()})
+        Swag.assert(undone == 1 and not toast.isLocallyVisible())
+    }
+}
+

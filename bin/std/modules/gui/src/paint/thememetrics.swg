@@ -18,6 +18,17 @@ struct ThemeMetrics
         motion_EdgeTravel:   f32 = 8        // Travel of a floating surface arriving from the edge it stands against.
         motion_AnchorTravel: f32 = 4        // Travel of a floating surface leaving the anchor it belongs to.
 
+        toast_Height:        f32 = 42       // Height of the pill of a toast.
+        toast_Corner:        f32 = 10       // Corner of the pill of a toast.
+        toast_Padding:       f32 = 18       // Air at each end of the pill.
+        toast_DotSize:       f32 = 7        // Side of the dot a toast leads with.
+        toast_Gap:           f32 = 12       // Air between the dot and the sentence.
+        toast_DetailGap:     f32 = 8        // Air between the sentence and the name or path after it.
+        toast_ActionGap:     f32 = 20       // Air before the action at the end of the pill.
+        toast_Bottom:        f32 = 72       // Height of the foot of the parent the pill stands above, the hint line's.
+        toast_Seconds:       f32 = 3        // How long a toast stays when the pointer leaves it alone.
+        toast_ActionSeconds: f32 = 4.5      // How long a toast that carries an action stays, so the action can be reached.
+
         fileBrowser_PlacesHeight: f32 = 30     // Height of the row of places at the top of a file browser.
         fileBrowser_PlaceGap:     f32 = 20     // Air between two places.
         fileBrowser_RowGap:       f32 = 12     // Air between the rows of a file browser.
@@ -277,7 +288,8 @@ struct ThemeMetrics
         header_Separator: f32 = 5      // Width of the grip between two column headers.
 
         panel_GutterSize:  f32 = 8     // Gap separating a structural panel from adjacent application chrome.
-        splitView_BarSize: f32 = 5     // Visible and draggable divider between split panels.
+        splitView_BarSize: f32 = 5     // Draggable band between split panels; a hairline is drawn on its middle line.
+        splitView_HotRule: f32 = 2     // Thickness of the rule a divider shows under the pointer or the drag.
 
         // A property grid: marks set beside a name, and the rows of its condensed kind.
         property_ControlInset:       f32 = 4      // Inset of the state ground within a property control.

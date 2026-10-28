@@ -25,4 +25,7 @@ func opticalTop(family: const *FontFamily?, centerY, size: f32)->f32
     return font.opticalTop(centerY, size)
 }
 
+// Returns `color` at `share` of its own opacity: what a layer that is coming or going is drawn in.
+func fadeColor(color: Color, share: f32)->Color => share >= 1 ? color : color.withAlpha(cast(u8, color.a * Math.saturate(share)))
+
 func nnPixels(pixels: [*] u8?)->const *u8 => cast(const *u8, unwrap pixels)

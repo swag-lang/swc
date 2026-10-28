@@ -7,20 +7,6 @@ dialogs, then each application, then the written rules.
 
 ## Entries
 
-### design.silence.002 — Scroll bars are always visible
-
-- Evidence: `ScrollWnd` bars are thin (`scrollBar_NormalSize` 10, a 6 px thumb) but are drawn
-  whenever the content overflows, and they take their width from the view (`paddingZ`,
-  `paddingW` in `ScrollWnd.computeLayout`). Fading them needs two things the control does not
-  have: the bar must overlay the view instead of narrowing it, and `ScrollWnd` must learn that the
-  pointer is over its content, which only its view's children receive (`Enter`/`Leave` reach the
-  deepest window). Every list, tree, document and application golden that shows a thumb moves.
-- Next: lay the bars over the view in `ScrollWnd.computeLayout`, track pointer presence through a
-  hook on the view, and drive the thumb alpha with the animator — shown on a scroll or a hover,
-  faded after a short idle.
-- Done when: the charter wall and a scrolled list golden show no thumb at rest and one under the
-  pointer, in both themes.
-
 ### design.silence.004 — The applications do not use the shared components
 
 - Evidence: the toolkit has the lens (`Gui.Lens.View`), the information sheet (`Gui.InfoSheet`),
@@ -61,7 +47,6 @@ dialogs, then each application, then the written rules.
   mono reading with no box: Swag Capture's inspector sets the value face itself
   (`PropWnd.fitFieldLabelColumn`).
 - Done when: `gui.properties.ctrl.paper` is reproduced by a `properties.ctrl.{ink,paper}` golden.
-- Related: design.silence.002
 
 ### design.silence.006 — The file box modes and details of its rows are not built
 
@@ -103,7 +88,7 @@ dialogs, then each application, then the written rules.
   `scope.archive` — moving what still stands on the floating bar into the document where the
   picture puts it; then the embedded host on the window's model.
 - Done when: every Scope golden matches its picture.
-- Related: design.silence.004, design.silence.002
+- Related: design.silence.004
 
 ### design.silence.008 — Swag Capture's editing does not yet match its pictures
 
@@ -120,7 +105,7 @@ dialogs, then each application, then the written rules.
 - Next: let the field typing a callout follow its alignment; give the lens a row of thumbnails
   for the recent captures; then the remaining items above.
 - Done when: each `capture.*` picture is reproduced by its golden.
-- Related: design.silence.002, design.silence.004, design.silence.005
+- Related: design.silence.004, design.silence.005
 
 ### design.silence.009 — Swag Prism's render view lacks the caret reading and the framed picture
 
@@ -131,7 +116,7 @@ dialogs, then each application, then the written rules.
   does not: the caret's place (`Ln 9, Col 41`) at the foot of the source once the hint line has
   stopped teaching the lens — `RichEditCtrl` publishes no signal when the caret moves — and the
   picture drawn on the control corner. The source column shows a horizontal scroll bar for a line
-  that only reaches the editor's caret allowance (design.silence.002).
+  that only reaches the editor's caret allowance.
 - Next: give `RichEditCtrl` a caret signal and read it on the hint line; clip the frame of
   `PreviewCanvas` to the control corner.
 - Done when: `surface.render` reproduces `prism.render`.
@@ -153,7 +138,7 @@ dialogs, then each application, then the written rules.
 - Next: add a free-space query to `Core.File` with its `win32` binding and show it beside the
   capacity; animate the card's height with the rows following it.
 - Done when: the Vault goldens match the Vault pictures in those four points.
-- Related: design.silence.004, design.silence.002, design.silence.016
+- Related: design.silence.004, design.silence.016
 
 ### design.silence.011 — Examples and other consumers use removed APIs
 
@@ -177,17 +162,6 @@ dialogs, then each application, then the written rules.
   dialog actions, tabs, command tooltips) to the title-style capitalization of the charter,
   leaving sentences and French translations alone.
 - Done when: a search of the English reference tables finds no command label in sentence case.
-
-### design.silence.015 — A dismissed notice leaves in one frame
-
-- Evidence: notices open their height and then fade their words in, and the inspector arrives
-  from its edge when it unfolds, but `InfoBar.dismiss` destroys the bar at once, so the content
-  under it jumps up by its height.
-- Next: fade the words out over `motion_LeaveSeconds`, close the height over
-  `motion_PanelSeconds`, then destroy; callers already learn of the dismissal through
-  `sigDismissed`, before any of it.
-- Done when: no shared component changes its place or presence in one frame on a user action.
-- Related: design.silence.002
 
 ### design.silence.016 — The toolkit has no light or semibold face
 

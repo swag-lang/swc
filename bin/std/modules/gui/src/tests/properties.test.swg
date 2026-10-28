@@ -2182,6 +2182,27 @@ struct PropAlignData
     Swag.assert(not numbers.flags.has(.Expanded) and not count.line.isVisible())
 }
 
+// A search counts the fields it found by their own words, and finds where in the name to mark.
+#test
+{
+    var host: Testing.HeadlessHost
+    host.setup(360, 320)
+
+    var data: PropHeadlessGroupedData
+    let prop = Properties.create(&host.root, {0, 0, 340, 300}, .Grid)
+    prop.addStruct(data, "Settings")
+    Swag.assert(prop.matchCount() == 0)
+
+    let count = unwrap findFieldItem(prop, #nameof(PropHeadlessGroupedData.count))
+    prop.setFilter("OUN")
+    Swag.assert(prop.matchCount() == 1)
+    Swag.assert(prop.nameMatch(count) == 1)
+    discard host.render()
+
+    prop.setFilter("nothing of the kind")
+    Swag.assert(prop.matchCount() == 0)
+}
+
 // The modified-only view composes with default tracking and updates immediately when an edit is
 // reset. expandModified opens only the path that contains the changed field.
 #test

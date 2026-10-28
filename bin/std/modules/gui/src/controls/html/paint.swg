@@ -44,6 +44,10 @@ struct HtmlPainter
     scrollThumb:    Color
     scrollBarSize:  f32
     scrollThumbMin: f32
+
+    // The one region whose bar is shown, and how much of it: a region's bar rests invisible.
+    barRegion = HtmlNoNode
+    barPresence: f32
 }
 
 // Geometry of one independently scrolling region's vertical bar in canvas coordinates.
@@ -806,13 +810,16 @@ impl HtmlPainter
 
     private mtd paintRegionScrollBar(box: u32, rect: Math.Rectangle, alpha: f32)
     {
+        if box != .barRegion or .barPresence <= 0 do
+            return
         let bar = .regionScrollBar(box, rect)
         if bar.box == HtmlNoNode do
             return
 
+        let shown = alpha * .barPresence
         if .scrollTrack.a do
-            .painter.fillRect(bar.track, HtmlPainter.withAlpha(.scrollTrack, alpha))
-        .painter.fillRect(bar.thumb, HtmlPainter.withAlpha(.scrollThumb, alpha))
+            .painter.fillRect(bar.track, HtmlPainter.withAlpha(.scrollTrack, shown))
+        .painter.fillRect(bar.thumb, HtmlPainter.withAlpha(.scrollThumb, shown))
     }
 
     // Draws one box and everything under it.

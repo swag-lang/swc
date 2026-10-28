@@ -42,8 +42,9 @@ struct InfoBar
         }
     }
 
-    timer:  *Timer?     // Active auto-dismiss timer.
-    ground: Color       // Tinted ground of the current kind, painted on the control corner.
+    timer:      *Timer?     // Active auto-dismiss timer.
+    ground:     Color       // Tinted ground of the current kind, painted on the control corner.
+    dismissing: bool        // Whether the bar is leaving: its words fade, then its height closes.
 }
 
 impl IWnd for InfoBar
@@ -209,9 +210,51 @@ impl InfoBar
     }
 
     // Emits [[Gui.InfoBar.sigDismissed]] and destroys the bar.
+    //
+    // The bar leaves the way it came: its words fade out, then its height closes, so the content
+    // under it rises instead of jumping; only then is it destroyed. A second dismissal while it
+    // leaves does nothing.
     mtd dismiss()
     {
+        if .dismissing do
+            return
+        .dismissing = true
         .sigDismissed.call(me)
-        .destroy()
+
+        if .timer
+        {
+            .removeTimer(.timer)
+            .timer = null
+        }
+
+        if not .surface or .app().isReducedMotion()
+        {
+            .destroy()
+            return
+        }
+
+        let metrics  = .themeMetrics()
+        let animator = &.app().animator
+        animator.cancel(.label, AnimationChannel.from("Gui.Notice.Words"))
+        animator.cancel(me, AnimationChannel.from("Gui.Layout.Height"))
+
+        var words: AnimationOptions
+        words.duration = Time.Duration.fromSeconds(metrics.motion_LeaveSeconds)
+        words.easing   = .Linear
+
+        var height: AnimationOptions
+        height.delay    = words.duration
+        height.duration = Time.Duration.fromSeconds(metrics.motion_PanelSeconds)
+        height.easing   = .EaseInOut
+        height.impact   = .Layout
+
+        let bar = me
+        discard animator.animateF32(.label, AnimationChannel.from("Gui.Notice.Words"), .label.presentationOpacity, 0, func(label, value) { label.setPresentationOpacity(value) }, words)
+        discard animator.animateF32(me, AnimationChannel.from("Gui.Notice.Leave"), .position.height, 0, func(bar, value) { bar.resize(bar.position.width, value, false) }, height,
+                                    func|bar|(_)
+                                    {
+                                        if not bar.isPendingDestroy do
+                                            bar.destroy()
+                                    })
     }
 }

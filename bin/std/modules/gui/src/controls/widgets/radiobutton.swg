@@ -19,6 +19,10 @@ struct RadioButton
 
         sigChanged: SigArray'func||(*Wnd)     // Emitted after a user action selects the button.
     }
+
+    // The chosen look is laid over the resting one at `markPresence`, which eases when the button
+    // is chosen or left, so the dot grows in one option as it fades from the other.
+    markPresence: f32
 }
 
 // Configures radio button marker placement.
@@ -39,61 +43,50 @@ impl IWnd for RadioButton
         let colors  = .themeColors()
         let rects   = .themeRects()
 
-        var subRectBk:     *ThemeImageRect?
-        var subRectBorder: *ThemeImageRect?
-        var subRectMark:   *ThemeImageRect?
-        var colorBk:       Color
-        var colorBorder:   Color
-        var colorMark:     Color
-        var colorText:     Color
+        var restBk, restBorder:     Color
+        var chosenBk, chosenBorder: Color
+        var colorMark, colorText:   Color
 
         // A chosen button is an Arc ring around an Arc dot, and stays one under the pointer; an
         // unchosen one only strengthens its ring.
-        switch
+        if bc.isDisabled
         {
-        case bc.isDisabled:
-            colorBk     = colors.btnCheck_DisabledBk
-            colorBorder = colors.btnCheck_DisabledBorder
-            colorMark   = colors.btnCheck_CheckedDisabledBk
-            colorText   = colors.btnCheck_DisabledText
-
-        case .checked:
-            let engaged = .isHot or .isPressed
-            colorBk     = colors.btnCheck_Bk
-            colorBorder = engaged ? colors.btnRadio_CheckedHotMark : colors.btnRadio_CheckedBorder
-            colorMark   = engaged ? colors.btnRadio_CheckedHotMark : colors.btnRadio_CheckedMark
-            colorText   = colors.btnCheck_CheckedText
-
-        case .isPressed:
-            colorBk     = colors.btnCheck_PressedBk
-            colorBorder = colors.btnCheck_PressedBorder
-            colorMark   = colors.btnCheck_PressedMark
-            colorText   = colors.btnCheck_PressedText
-
-        case .isHot:
-            colorBk     = colors.btnCheck_HotBk
-            colorBorder = colors.btnCheck_HotBorder
-            colorMark   = colors.btnCheck_HotMark
-            colorText   = colors.btnCheck_HotText
-
-        default:
-            colorBk     = colors.btnCheck_Bk
-            colorBorder = colors.btnCheck_Border
-            colorMark   = colors.btnCheck_Mark
-            colorText   = colors.btnCheck_Text
-        }
-
-        if .checked
-        {
-            subRectBk     = &rects.btnRadio_Checked
-            subRectBorder = &rects.btnRadio_CheckedBorder
-            subRectMark   = &rects.btnRadio_CheckedMark
+            restBk, chosenBk = colors.btnCheck_DisabledBk
+            restBorder       = colors.btnCheck_DisabledBorder
+            chosenBorder     = colors.btnCheck_DisabledBorder
+            colorMark        = colors.btnCheck_CheckedDisabledBk
+            colorText        = colors.btnCheck_DisabledText
         }
         else
         {
-            subRectBk     = &rects.btnRadio_Normal
-            subRectBorder = &rects.btnRadio_NormalBorder
+            switch
+            {
+            case .isPressed:
+                restBk     = colors.btnCheck_PressedBk
+                restBorder = colors.btnCheck_PressedBorder
+                colorText  = colors.btnCheck_PressedText
+
+            case .isHot:
+                restBk     = colors.btnCheck_HotBk
+                restBorder = colors.btnCheck_HotBorder
+                colorText  = colors.btnCheck_HotText
+
+            default:
+                restBk     = colors.btnCheck_Bk
+                restBorder = colors.btnCheck_Border
+                colorText  = colors.btnCheck_Text
+            }
+
+            let engaged = .isHot or .isPressed
+            chosenBk     = colors.btnCheck_Bk
+            chosenBorder = engaged ? colors.btnRadio_CheckedHotMark : colors.btnRadio_CheckedBorder
+            colorMark    = engaged ? colors.btnRadio_CheckedHotMark : colors.btnRadio_CheckedMark
+            if .checked do
+                colorText = colors.btnCheck_CheckedText
         }
+
+        // A disabled button shows its state as it is; an enabled one at the share its dot has reached.
+        let presence = bc.isDisabled ? (.checked ? 1'f32 : 0) : .markPresence
 
         // Box
         let clientRect = .clientRect()
@@ -106,9 +99,21 @@ impl IWnd for RadioButton
         posBox.width = posBox.height
         if .flags.has(.RightAligned) do
             posBox.x = clientRect.right() - posBox.width
-        theme.drawSubRect(bc.painter, posBox, subRectBk, colorBk)
-        theme.drawSubRect(bc.painter, posBox, subRectBorder, colorBorder)
-        theme.drawSubRect(bc.painter, posBox, subRectMark, colorMark)
+        if presence < 1
+        {
+            theme.drawSubRect(bc.painter, posBox, &rects.btnRadio_Normal, fadeColor(restBk, 1 - presence))
+            theme.drawSubRect(bc.painter, posBox, &rects.btnRadio_NormalBorder, fadeColor(restBorder, 1 - presence))
+        }
+
+        // The dot grows from the center of its ring.
+        if presence > 0
+        {
+            var posMark = posBox
+            posMark.inflate(-posBox.width * 0.3 * (1 - presence))
+            theme.drawSubRect(bc.painter, posBox, &rects.btnRadio_Checked, fadeColor(chosenBk, presence))
+            theme.drawSubRect(bc.painter, posBox, &rects.btnRadio_CheckedBorder, fadeColor(chosenBorder, presence))
+            theme.drawSubRect(bc.painter, posMark, &rects.btnRadio_CheckedMark, fadeColor(colorMark, presence))
+        }
 
         // Content
         var format: RichStringFormat
@@ -211,7 +216,7 @@ impl RadioButton
         .checked = checked
         if checked do
             .uncheckGroupSiblings()
-        .invalidate()
+        .easeMark()
     }
 
     // Reports whether this option is selected.
@@ -282,5 +287,28 @@ impl RadioButton
             if c is RadioButton as other where other.groupId == .groupId do
                 other.setChecked(false)
         }
+    }
+}
+
+private impl RadioButton
+{
+    // Eases the chosen look toward the current state; a control nobody can see takes it at once.
+    mtd easeMark()
+    {
+        .invalidate()
+
+        let destination = .checked ? 1'f32 : 0
+        if not .surface or not .isVisible() or .app().isReducedMotion()
+        {
+            if .surface do
+                .app().animator.cancel(me, AnimationChannel.from("Gui.Radio.Mark"))
+            .markPresence = destination
+            return
+        }
+
+        var options: AnimationOptions
+        options.duration = Time.Duration.fromSeconds(.themeMetrics().motion_QuickSeconds)
+        options.easing   = .EaseOut
+        discard .app().animator.animateF32(me, AnimationChannel.from("Gui.Radio.Mark"), .markPresence, destination, func(button, value) { button.markPresence = value }, options)
     }
 }

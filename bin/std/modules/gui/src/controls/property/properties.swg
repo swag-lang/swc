@@ -707,6 +707,23 @@ impl Properties
         .updateStates()
     }
 
+    // Counts the fields the text filter found: visible rows holding a value whose own name or
+    // description contains the filter. Zero when no text filter is set.
+    mtd matchCount()->u32
+    {
+        if .stringFilter.isEmpty() do
+            return 0
+        var result = 0'u32
+        for it in .items
+        {
+            let item = unwrap it
+            if item.data != null and item.line.isLocallyVisible() and .nameMatch(item) != Swag.U64.Max do
+                result += 1
+        }
+
+        return result
+    }
+
     // Restricts the view to fields that differ from their declared defaults.
     //
     // Text filtering and the modified-only filter compose, and matching descendants remain

@@ -826,6 +826,7 @@ impl IconButton
         with let result = IconButton.create(parent, {}, Math.Rectangle{0, 0, 0, metrics.quiet_Height}, id, flags: .CenterContent)
         {
             .setForm(.RoundedRectangle)
+            .setTextPosition(.Right)
             if menu do
                 .setArrowPosition(.RightDownward)
             if heading
@@ -841,12 +842,11 @@ impl IconButton
     // Writes `text` on a quiet control and fits the control to its words, and its chevron when it opens a menu.
     mtd setQuietText(text: string)
     {
+        // The chevron follows the words at the arrow spacing, as the control measures itself: a
+        // chevron set at the far end of a drop-down's arrow cell reads as a separate control.
         .setText(text)
-        let metrics = .themeMetrics()
-        var width   = Painter.measureString(text, unwrap .font().regular).width + 2 * metrics.btnIcon_SpacingTextH
-        if .arrowPosition != .None do
-            width += themeDropDownButtonWidth(metrics) - themeActionButtonSize(metrics)
-        .resize(Math.ceil(width), .position.height)
+        let content = .itf.measureContent({})
+        .resize(Math.ceil(content.x), .position.height)
     }
 
     // Changes the checked state of a radio or toggle button without emitting a signal or command.

@@ -89,20 +89,16 @@ impl MainWnd
     mtd swapLibraryMode()
     {
         .libraryMode = not .libraryMode
-        .updateLibraryButtonAppearance()
 
-        // The tool rail and the tool column belong to the editor: in library mode there is
-        // no form to draw and no form to style, so both leave instead of standing empty.
-        .rightBar.show(not .libraryMode)
-        .recentBar.show(not .libraryMode)
-        .toolRail.show(not .libraryMode)
-        .commandReadouts.show(not .libraryMode)
-
+        // The work area carries the dock, the inspector, the mini-bar and the hint line of the
+        // editor: in library mode there is no form to draw and no form to style, so they leave
+        // with it instead of standing empty. The recent strip is a strip of the editor too.
+        .recentBar.show(.showRecent and not .libraryMode)
         if .libraryMode do
             .libWnd.fill()
 
-        let outgoing = .libraryMode ? cast(*Wnd, .editWnd) : cast(*Wnd, .libWnd)
-        let incoming = .libraryMode ? cast(*Wnd, .libWnd) : cast(*Wnd, .editWnd)
+        let outgoing = .libraryMode ? .editArea : cast(*Wnd, .libWnd)
+        let incoming = .libraryMode ? cast(*Wnd, .libWnd) : .editArea
 
         // This change replaces nearly the whole client area. Fading both pages records two
         // full-size subtrees into off-screen layers on every frame, which is disproportionately
@@ -112,20 +108,6 @@ impl MainWnd
         incoming.show()
 
         .applyLayout()
-        if .libraryMode do
-            .libWnd.layoutSidebarColumns()
-    }
-
-    // Keeps Library a regular push button until it represents the page currently on screen.
-    //
-    // Filled, it takes the theme's alternate tone, which is the whole reason a theme owns one:
-    // Capture is what this surface is for and wears the signature, and Library is the other
-    // page the reader can be on. Borrowing the informational notice colors for it said "notice"
-    // in a place nothing was being reported, and left the app answering for nine colors the
-    // theme should have answered for.
-    mtd updateLibraryButtonAppearance()
-    {
-        .libraryBtn.setForm(.libraryMode ? .Alternate : .Normal)
-        .libraryBtn.invalidate()
+        .updateState()
     }
 }

@@ -111,8 +111,8 @@ act_DeletePermanently  Supprimer définitivement
 act_Delete             Supprimer
 act_DeselectAll        Désélectionner tous les objets
 act_FilterNoLinked     Sans image liée
-act_ExpandCapture      Agrandir la capture...
-act_ExpandImage        Agrandir l'image...
+act_ExpandCapture      Agrandir la capture…
+act_ExpandImage        Agrandir l'image…
 act_Draw               Dessin
 act_Duplicate          Dupliquer
 act_EditInPlace        Modifier la zone capturée sur place
@@ -122,8 +122,8 @@ act_Fill               Remplir
 act_FileDetails        Détails du fichier
 act_OpenSelected       Ouvrir
 act_LocateImage        Afficher l'image dans son dossier
-act_EditTags           Modifier les étiquettes...
-act_ExportSelected     Exporter la sélection...
+act_EditTags           Modifier les étiquettes…
+act_ExportSelected     Exporter la sélection…
 act_FavoriteCapture    Favori
 act_Rating             Note
 act_NoRating           Sans note
@@ -134,9 +134,9 @@ act_Rating4            4 étoiles
 act_Rating5            5 étoiles
 act_ShowRatings        Notes
 act_ShowLinkMarkers    Marqueurs de lien
-act_BrowseFolder       Parcourir un dossier...
+act_BrowseFolder       Parcourir un dossier…
 act_OpenLibraryFolder  Ouvrir le dossier de la bibliothèque
-act_ChooseLibraryFolder Utiliser un autre dossier de bibliothèque...
+act_ChooseLibraryFolder Utiliser un autre dossier de bibliothèque…
 act_UseDefaultLibrary  Utiliser le dossier de bibliothèque par défaut
 act_Application        Application
 act_AllApplications    Toutes les applications
@@ -187,8 +187,8 @@ act_MoveForward        Avancer
 act_NewFromClipboard   Nouvelle depuis le presse-papiers
 act_NewImage           Nouvelle image
 act_OldestFirst        Plus anciennes d'abord
-act_OpenImage          Ouvrir une image...
-act_Options            Options...
+act_OpenImage          Ouvrir une image…
+act_Options            Options…
 act_PasteInsideImage   Coller à l'intérieur de l'image
 act_Paste              Coller
 act_PixSel             Pixels
@@ -196,20 +196,20 @@ act_Polygon            Polygone
 act_Quit               Quitter
 act_RecycleBin         Corbeille
 act_Redo               Rétablir
-act_Rename             Renommer...
+act_Rename             Renommer…
 act_ResetRotation      Réinitialiser la rotation
 act_RestoreDefaultStyles Rétablir les styles par défaut
 act_RestoreOriginal    Restaurer l'original
 act_Restore            Restaurer
-act_SaveAsImage        Enregistrer comme image...
-act_SaveAsLinkedImage  Enregistrer comme image liée...
+act_SaveAsImage        Enregistrer comme image…
+act_SaveAsLinkedImage  Enregistrer comme image liée…
 act_SelectAll          Sélectionner tous les objets
 act_SelectSimilar      Sélectionner les objets similaires
 act_Select             Sélection
 act_SendToClipboard    Envoyer la capture vers le presse-papiers
 act_SendToEditor       Envoyer la capture vers l'éditeur
 act_SendToBack         Mettre à l'arrière-plan
-act_ResizeImage        Redimensionner l'image...
+act_ResizeImage        Redimensionner l'image…
 act_RotateImageLeft    Pivoter vers la gauche
 act_RotateImageRight   Pivoter vers la droite
 act_SendToFront        Mettre au premier plan
@@ -345,8 +345,6 @@ prop_InPlaceEdit           Édition sur place
 prop_InPlaceEditDesc       Annoter la zone capturée directement sur l'écran
 prop_Delay                 Délai
 prop_DelayDesc             Définir le délai, en secondes, avant la capture
-prop_ShowToolBarLabels     Afficher les libellés
-prop_ShowToolBarLabelsDesc Afficher les libellés textuels dans la barre d'outils principale
 prop_ClipToSelection       Masquer hors sélection
 prop_ClipToSelectionDesc   Masquer tout ce qui sort de la zone de capture sélectionnée
 prop_ConfirmLinked         Confirmer l'écrasement
@@ -355,3 +353,22 @@ prop_HideOnClose           Réduire à la fermeture
 prop_HideOnCloseDesc       Réduire l'éditeur au lieu de le fermer
 prop_EditBackColor         Couleur de fond
 prop_EditBackColorDesc     Couleur de fond de la fenêtre d'édition de la capture
+ui_OneObject           1 objet
+ui_Objects             % objets
+ui_NextObjects         prochains objets
+hint_Space             capturer, ouvrir, bibliothèque
+hint_LibrarySpace      exporter, étiqueter, noter, déplacer
+lens_Tools             Outils
+lens_Recent            Récentes
+act_OpenLens           Rechercher une commande
+act_ShowInspector      Propriétés
+act_ShowRecent         Captures récentes
+act_ResetSteps         Réinitialiser la numérotation
+ui_PropStyle           Style
+lens_Dates             Dates
+ui_ModeArea            Zone
+ui_ModeActiveWindow    Fenêtre active
+ui_ModeFullScreen      Écran entier
+ui_ModeLastArea        Dernière zone
+hint_Capture           capturer
+hint_Cancel            annuler

@@ -214,7 +214,7 @@ impl IForm for FormText
             .gizmo.rect          = .boundRect() * z
             .gizmo.rotateEnabled = .canRotate()
             .gizmo.rotateValue   = .rotate
-            .gizmo.paint(painter, not flags.has(.Selected))
+            .gizmo.paint(painter, not flags.has(.Selected), selectionInk())
         }
     }
 

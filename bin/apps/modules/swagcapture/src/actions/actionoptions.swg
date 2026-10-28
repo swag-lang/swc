@@ -26,14 +26,12 @@ impl MainWnd
     {
         if fieldName.count == 0
         {
-            .setToolRailWidth()
             .app().invalidate()
             return false
         }
 
         switch fieldName
         {
-        case #nameof(EditorOptions.showToolBarLabels): .setToolRailWidth()
         case #nameof(EditorOptions.clipToSelection), #nameof(EditorOptions.editBackColor): .editWnd.invalidate()
 
         case #nameof(ApplicationOptions.showClipRect), #nameof(ApplicationOptions.showLayoutRects),

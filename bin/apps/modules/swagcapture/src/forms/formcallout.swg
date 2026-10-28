@@ -277,10 +277,10 @@ impl IForm for FormCallout
         {
             .gizmoRect.rect = .rectFormBound() * z
             .gizmoRect.rotateEnabled = false
-            .gizmoRect.paint(painter, not flags.has(.Selected))
+            .gizmoRect.paint(painter, not flags.has(.Selected), selectionInk())
 
             .gizmoTail.anchors[0] = Math.Point{.tailX * z, .tailY * z}
-            .gizmoTail.paint(null, painter, not flags.has(.Selected))
+            .gizmoTail.paint(null, painter, not flags.has(.Selected), selectionInk())
         }
     }
 

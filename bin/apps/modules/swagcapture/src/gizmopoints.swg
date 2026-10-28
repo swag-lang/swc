@@ -1,3 +1,30 @@
+// Returns the ink of the selection marks on the canvas: the Arc of the editor's theme, which
+// marks what is chosen. Without an editor, as in a headless fixture, the Arc of Encre.
+func selectionInk()->Color
+{
+    let main = g_Main
+    if main do
+        return main.themeColors().arc
+    return EncreArc
+}
+
+// The Arc of Encre, the theme an editor opens on.
+const EncreArc: Color = 0xFF38BDF8
+
+// Paints a round selection handle centred on `x`, `y`: a white disc ringed in `ink`, so it reads
+// on any pixel of a capture. A hovered handle is filled with its ink.
+func paintSelectionHandle(painter: *Painter, x, y, radius: f32, ink: Color, hot: bool)
+{
+    let side = radius * HandleScale
+    painter.fillCircle(x, y, side, hot ? ink : Argb.White)
+    painter.drawCircle(x, y, side, ink, HandleRing)
+}
+
+// A drawn handle is smaller than the area that grabs it: the reach stays generous while the mark
+// stays quiet over the capture.
+const HandleScale = 0.8
+const HandleRing  = 1.5
+
 // The handles that move the points of a line, a polygon, or a stroke.
 struct GizmoPoints
 {
@@ -77,15 +104,10 @@ impl GizmoPoints
         return false
     }
 
-    mtd paint(_: *Application?, painter: *Painter, hot: bool, col: Color = Argb.White)
+    mtd paint(_: *Application?, painter: *Painter, hot: bool, col: Color)
     {
-        let anchorSize2 = .anchorSize * 0.5
-        let color       = Color.lerp(Argb.Black, col, hot ? 0.8 : 1)
-        for c in .anchors
-        {
-            painter.fillCircle(c.x, c.y, anchorSize2, color)
-            painter.drawCircle(c.x, c.y, anchorSize2, Argb.Black, anchorSize2 * 0.3)
-        }
+        for c in .anchors do
+            paintSelectionHandle(painter, c.x, c.y, .anchorSize * 0.5, col, hot)
     }
 
     // Moves point `pt` of `iform` by `diff`, snapped, as one undo step that replaces the previous

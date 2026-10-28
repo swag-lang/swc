@@ -57,8 +57,7 @@ impl ScenarioFixture
 
     mtd toggleLibrary()
     {
-        .gui.focus(.main.libraryBtn)
-        .gui.keyPress(Input.Key.Space)
+        discard Gui.Testing.actionExecute'ActionGlobal(.main, ActionGlobal.ShowLibrary)
         .gui.pump()
         if .main.libraryMode do
             .settleLibrary()

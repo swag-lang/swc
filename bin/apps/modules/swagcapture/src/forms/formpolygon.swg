@@ -118,7 +118,7 @@ impl IForm for FormPolygon
             .gizmo.anchors.clear()
             for pt in .points do
                 .gizmo.anchors.add(Math.Point{pt.x * z, pt.y * z})
-            let col = .subKind == .PixSel ? Argb.Yellow : Argb.White
+            let col = .subKind == .PixSel ? Argb.Yellow : selectionInk()
             .gizmo.paint(null, painter, not flags.has(.Selected), col)
         }
     }

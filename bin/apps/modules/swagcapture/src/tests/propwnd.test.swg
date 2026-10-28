@@ -3,25 +3,6 @@
 
 using Swag, Core, File
 
-// Build the right-side properties panel the way the app does (quick styles pane on
-// top, properties pane below) and return it, laid out.
-func testSetupPropWnd(f: *HeadlessFixture)->*PropWnd
-{
-    f.gui.surfaceWnd.view = f.main
-
-    f.main.quickStyleBar = SplitterCtrl.create(f.main, {600, 0, 300, 650}, vertical: true)
-
-    let splitter = f.main.quickStyleBar
-    f.main.quickWnd = QuickWnd.create(splitter, f.main)
-    f.main.propWnd  = PropWnd.create(splitter, f.main)
-    discard f.main.quickStyleBar.addPane(f.main.quickWnd)
-    discard f.main.quickStyleBar.addPane(f.main.propWnd)
-    f.main.quickStyleBar.setPaneSize(0, 300)
-    f.main.quickWnd.setDefault()
-    Swag.assert(not f.main.quickStyleBar.flags.has(.HideDividers))
-    return f.main.propWnd
-}
-
 func testFindItem(prop: *PropWnd, name: string)->*PropertiesItem?
 {
     for item in prop.grid.items
@@ -46,32 +27,29 @@ func testItemIndex(prop: *PropWnd, name: string)->u64
     return 0
 }
 
-func testHasStyleTip(prop: *PropWnd, tip: string)->bool
+// Collects the controls of the head of the panel whose tooltip is `tip`, in display order.
+func testCollectStyleButtons(wnd: *Wnd, tip: string, result: *Array'(*IconButton))
 {
-    for row in prop.topLayout.children
+    for child in wnd.children
     {
-        for child in row.children
-        {
-            if child.toolTip == tip do
-                return true
-        }
+        if child is IconButton as button where button.toolTip == tip do
+            result.add(button)
+        testCollectStyleButtons(child, tip, result)
     }
-
-    return false
 }
 
-func testFindStyleButton(prop: *PropWnd, tip: string)->*IconButton?
+func testHasStyleTip(prop: *PropWnd, tip: string)->bool
 {
-    for row in prop.topLayout.children
-    {
-        for child in row.children
-        {
-            if child.toolTip == tip do
-                return assume cast(*IconButton, child)
-        }
-    }
+    var buttons: Array'(*IconButton)
+    testCollectStyleButtons(prop.topLayout, tip, &buttons)
+    return not buttons.isEmpty()
+}
 
-    return null
+func testFindStyleButtons(prop: *PropWnd, tip: string)->Array'(*IconButton)
+{
+    var result: #returntype
+    testCollectStyleButtons(prop.topLayout, tip, &result)
+    return result
 }
 
 // Replacing the editor document from history retargets the panel after the old capture
@@ -168,8 +146,8 @@ func testFindStyleButton(prop: *PropWnd, tip: string)->*IconButton?
     Swag.assert(not testFindItem(prop, #nameof(FormDraw.outlineSize))!.line.isVisible())
 }
 
-// FormArrow embeds FormLine, so the start/end samples and their list must read and write the
-// embedded caps rather than treating the arrow as an unrelated form type.
+// FormArrow embeds FormLine, so the start and end glyphs must read and write the embedded caps
+// rather than treating the arrow as an unrelated form type.
 #test
 {
     var f: HeadlessFixture
@@ -183,28 +161,23 @@ func testFindStyleButton(prop: *PropWnd, tip: string)->*IconButton?
     prop.selectionHasChanged()
     f.gui.pump()
 
-    let startButton = unwrap testFindStyleButton(prop, appStrings().ui_PropStart)
-    prop.createPopupCapStyle(startButton, begin: true)
-    let popup = unwrap prop.stylePopup
-    Swag.assert(popup.selectedIndex == cast(u32, LineCapStyle.SquareAnchor))
-    Swag.assert(popup.items.count == LineCapStyle.count)
-    Swag.assert(popup.markSelectionOnly)
-    Swag.assert(popup.items[popup.selectedIndex]!.contentPainter != null)
+    // One glyph per line end, the current one checked.
+    let starts = testFindStyleButtons(prop, appStrings().ui_PropStart)
+    Swag.assert(starts.count == LineCapStyle.count)
+    Swag.assert(starts[cast(u64, LineCapStyle.SquareAnchor)].isChecked)
+    Swag.assert(not starts[cast(u64, LineCapStyle.ArrowAnchor)].isChecked)
 
-    let view  = popup.scrollWnd.view
-    let local = Math.Point{12, cast(f32, LineCapStyle.ArrowAnchor) * popup.itemHeight + popup.itemHeight * 0.5}
-    var pt    = view.localToSurface(local)
-    view.surface!.surfaceToScreen(&pt)
-    f.gui.click(pt)
+    // The panel rebuilds after a choice, since a line end decides which size rows it shows.
+    f.gui.clickWnd(starts[cast(u64, LineCapStyle.ArrowAnchor)])
     f.gui.pump()
-    Swag.assert(prop.stylePopup == null)
     Swag.assert(arrow.beginCap == .ArrowAnchor)
+    let rebuilt = testFindStyleButtons(prop, appStrings().ui_PropStart)
+    Swag.assert(rebuilt[cast(u64, LineCapStyle.ArrowAnchor)].isChecked)
+    Swag.assert(not rebuilt[cast(u64, LineCapStyle.SquareAnchor)].isChecked)
 }
 
-// The dash chooser marks its selection the way the line-end chooser does.
-//
-// Its entries are samples of the stroke itself, so a filled row behind one hid the sample the row
-// is there to show; the mark sits in a lane reserved beside them instead.
+// The dashes are a row of glyphs like the line ends: every style but `Pattern`, which takes its
+// lengths from the pen and has nothing to show on its own.
 #test
 {
     var f: HeadlessFixture
@@ -218,25 +191,16 @@ func testFindStyleButton(prop: *PropWnd, tip: string)->*IconButton?
     prop.selectionHasChanged()
     f.gui.pump()
 
-    let dashButton = unwrap testFindStyleButton(prop, appStrings().ui_PropDash)
-    prop.createPopupDashStyle(dashButton)
-    let popup = unwrap prop.stylePopup
-    Swag.assert(popup.markSelectionOnly)
+    // The glyphs are None, Dot, Dash, DashDot: the second one is Dot.
+    let dashes = testFindStyleButtons(prop, appStrings().ui_PropDash)
+    Swag.assert(dashes.count == DashStyle.count - 1)
+    Swag.assert(dashes[3].isChecked)
 
-    // Every style but `Pattern`, which takes its lengths from the pen and has nothing to show.
-    Swag.assert(popup.items.count == DashStyle.count - 1)
-    Swag.assert(popup.items[popup.selectedIndex]!.contentPainter != null)
-    Swag.assert(enumFromUserData'DashStyle(popup.items[popup.selectedIndex]!.userData0) == .DashDot)
-
-    // `Pattern` is not listed, so the rows are None, Dot, Dash, DashDot: the second one is Dot.
-    let view  = popup.scrollWnd.view
-    let local = Math.Point{12, popup.itemHeight * 1.5}
-    var pt    = view.localToSurface(local)
-    view.surface!.surfaceToScreen(&pt)
-    f.gui.click(pt)
+    f.gui.clickWnd(dashes[1])
     f.gui.pump()
-    Swag.assert(prop.stylePopup == null)
     Swag.assert(line.dashStyle == .Dot)
+    let rebuilt = testFindStyleButtons(prop, appStrings().ui_PropDash)
+    Swag.assert(rebuilt[1].isChecked and not rebuilt[3].isChecked)
 }
 
 // A selected text form generates the full grid: retargeted outline slider, joins combo
@@ -515,7 +479,7 @@ func testFindStyleButton(prop: *PropWnd, tip: string)->*IconButton?
     let thickness     = testFindItem(prop, #nameof(BaseForm.borderSize))!.sliderBox
     let expectedWidth = Math.ceil(Painter.measureString(thickness.label.name.raw, unwrap thickness.label.font().regular).width)
     Swag.assert(thickness.label.name == "Épaisseur")
-    Swag.assert(thickness.labelWidth == expectedWidth)
+    Swag.assert(thickness.labelWidth >= expectedWidth)
     Swag.assert(testFindItem(prop, "Effects") == null)
 }
 

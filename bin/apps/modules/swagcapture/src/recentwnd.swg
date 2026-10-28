@@ -185,7 +185,7 @@ impl RecentView
             // edge runs — and its corner is the cell's corner stepped in by that same half weight,
             // which is what keeps the two concentric instead of crossing at four places.
             let frameCorner = Math.max(corner - SelectedFrameSize * 0.5, 0.0)
-            painter.drawRoundRect(frame, frameCorner, frameCorner, colors.signature, SelectedFrameSize)
+            painter.drawRoundRect(frame, frameCorner, frameCorner, colors.arc, SelectedFrameSize)
         }
     }
 }

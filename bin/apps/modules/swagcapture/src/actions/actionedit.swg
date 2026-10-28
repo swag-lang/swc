@@ -1,6 +1,7 @@
 using Gui
 
-// The commands that edit the selected form in place: its text, its inner image, its rotation.
+// The commands that edit the selected form in place: its text and how it is set, its inner
+// image, its rotation, and the counter of the step markers.
 struct ActionEdit {}
 
 impl ActionEdit
@@ -8,6 +9,40 @@ impl ActionEdit
     newCmdId("EditText")
     newCmdId("ClearImageInside")
     newCmdId("ResetRotation")
+    newCmdId("Bold")
+    newCmdId("Italic")
+    newCmdId("ResetSteps")
+}
+
+// Returns the face style of the selected text or callout; `found` is false when the selection is
+// neither.
+func selectedFontStyle(capture: *Capture?)->{found: bool, style: FontFamilyStyle}
+{
+    switch capture?.getSelectedBaseForm()
+    {
+    case FormText as text:       return {true, text.fontStyle}
+    case FormCallout as callout: return {true, callout.fontStyle}
+    }
+
+    return {false, .Regular}
+}
+
+// Returns `style` with its weight (`bold`) or its slant turned on or off.
+func toggledFontStyle(style: FontFamilyStyle, bold: bool)->FontFamilyStyle
+{
+    var isBold   = style == .Bold or style == .BoldItalic
+    var isItalic = style == .Italic or style == .BoldItalic
+    if bold do
+        isBold = not isBold
+    else do
+        isItalic = not isItalic
+    if isBold and isItalic do
+        return .BoldItalic
+    if isBold do
+        return .Bold
+    if isItalic do
+        return .Italic
+    return .Regular
 }
 
 impl IActionUI for ActionEdit
@@ -60,6 +95,27 @@ impl IActionUI for ActionEdit
                 }
             }
 
+        case .Bold, .Italic:
+            let {found, style} = selectedFontStyle(capture)
+            evt.updatedFields |= .Disabled | .Name | .Checked
+            evt.disabled      = not found
+            if cxt.id == .Bold
+            {
+                evt.name    = appStrings().prop_StyleBold
+                evt.checked = found and (style == .Bold or style == .BoldItalic)
+            }
+            else
+            {
+                evt.name    = appStrings().prop_StyleItalic
+                evt.checked = found and (style == .Italic or style == .BoldItalic)
+            }
+
+        case .ResetSteps:
+            evt.updatedFields |= .Disabled | .Name | .ToolTip
+            evt.name          = appStrings().act_ResetSteps
+            evt.toolTip       = appStrings().tip_ResetSteps
+            evt.disabled      = not capture
+
         case .ResetRotation:
             evt.updatedFields        |= .Disabled | .Name | .Hidden
             evt.disabled, evt.hidden = true
@@ -107,6 +163,17 @@ impl IActionUI for ActionEdit
 
         case .ResetRotation:
             capture.pushUndo(capture.newUndo(.ResetRotation))
+
+        case .Bold, .Italic:
+            let {found, style} = selectedFontStyle(capture)
+            if not found do
+                return true
+            let toggled = toggledFontStyle(style, bold: cxt.id == .Bold)
+            main.propWnd.pushTypedValue(cast(u32, toggled), unwrap capture.getSelectedFormType(), #nameof(FormText.fontStyle), true)
+            capture.selectionHasChanged()
+
+        case .ResetSteps:
+            capture.nextStepIndex = 1
         }
 
         return true

@@ -377,17 +377,29 @@ impl IAllocator for LibraryRejectAllocator
     fi.lastWriteTime.day   = 2
     g_Library.files.add(fi)
 
-    Swag.assert(libWnd.listCtrl.lineCount() == 0)
+    Swag.assert(libWnd.dateFilters.isEmpty())
     libWnd.fill()
 
-    // Root lines only: "All Items" + the 2024 and 2023 year groups (months and
-    // days are children of their year/month lines).
-    Swag.assert(libWnd.listCtrl.lineCount() == 3)
+    // The dates the lens offers: each year, then its months, then their days, newest first,
+    // each with the captures it holds.
+    Swag.assert(libWnd.dateFilters.count == 7)
+    Swag.assert(libWnd.dateFilters[0].year == 2024 and libWnd.dateFilters[0].month == 0 and libWnd.dateFilters[0].count == 2)
+    Swag.assert(libWnd.dateFilters[1].month == 5 and libWnd.dateFilters[1].day == 0 and libWnd.dateFilters[1].count == 2)
+    Swag.assert(libWnd.dateFilters[2].day == 11 and libWnd.dateFilters[2].count == 1)
+    Swag.assert(libWnd.dateFilters[3].day == 10)
+    Swag.assert(libWnd.dateFilters[4].year == 2023 and libWnd.dateFilters[4].count == 1)
+    Swag.assert(libWnd.dateFilters[5].month == 1 and libWnd.dateFilters[6].day == 2)
     Swag.assert(libWnd.view.items.count == 3)
 
-    // A second fill with lines already present must keep the sidebar as is.
+    // Narrowing to a date keeps its captures only.
+    libWnd.applyDateFilter(libWnd.dateFilters[3])
+    Swag.assert(libWnd.view.items.count == 1)
+    libWnd.applyDateFilter({})
+    Swag.assert(libWnd.view.items.count == 3)
+
+    // A second fill of the same revision keeps the dates as they are.
     libWnd.fill()
-    Swag.assert(libWnd.listCtrl.lineCount() == 3)
+    Swag.assert(libWnd.dateFilters.count == 7)
 
     libWnd.view.thread.safeForceEnd()
     libWnd.view.thread.wait()
@@ -593,9 +605,8 @@ impl IAllocator for LibraryRejectAllocator
     Swag.assert(Path.lowercaseExtension(generatedFile) == CaptureFileExtension)
 }
 
-// The library chrome keeps its two fixed edges under every mode transition: the date/filter
-// rail returns after leaving the recycle bin, the search field stays against the right edge,
-// and the fixed-width rail never creates horizontal scrolling.
+// The library page keeps its header on every folder: the quiet menus and the search stand on the
+// row of the title, the captures start under the tabs, and nothing boxes either.
 #test
 {
     var f: HeadlessFixture
@@ -609,34 +620,21 @@ impl IAllocator for LibraryRejectAllocator
     {
         .setPosition({0, 0, 1100, 700})
         .applyLayout()
-        .layoutSidebarColumns()
-        .listCtrl.computeLayout()
         .commandBar.computeLayout()
     }
 
     Swag.assert((lib.folderBtn.text()).count != 0)
-    Swag.assert(lib.searchEdit.position.right() == lib.commandBar.paddedClientRect().right())
-    Swag.assert(lib.listCtrl.scrollWnd.scrollSize.x <= lib.listCtrl.listView.paddedClientRect().width)
-    Swag.assert(lib.commandBar.children.count == 6)
+    Swag.assert(lib.commandBar.children.count == 4)
     Swag.assert(lib.filterBtn.position.x - lib.viewBtn.position.right() == LibButtonGap)
     Swag.assert(lib.folderBtn.position.x - lib.filterBtn.position.right() == LibButtonGap)
+    Swag.assert(lib.searchEdit.surfaceRect().right() == lib.surfaceRect().right() - LibraryPageMargin)
+    Swag.assert(lib.captureHost.position.y >= lib.header.position.bottom())
+    Swag.assert(lib.captureHost.backgroundStyle == .Transparent)
 
-    // The rail owns the left edge and the content begins one gutter after it. That column is
-    // two panels, the bars above and the captures below, so both start at that edge and the
-    // gutter parting them is the one that parts them from the rail.
-    Swag.assert(lib.sideBar.isLocallyVisible())
-    Swag.assert(lib.barPanel.position.x == lib.sideBar.position.right() + lib.sideBar.margin.z)
-    Swag.assert(lib.captureHost.position.x == lib.barPanel.position.x)
-    Swag.assert(lib.captureHost.position.y - lib.barPanel.position.bottom() == lib.barPanel.margin.w)
-
-    // With the rail gone the content takes the edge the rail had.
     lib.setTrashMode(true)
-    Swag.assert(not lib.sideBar.isLocallyVisible())
-    Swag.assert(lib.barPanel.position.x == lib.sideBar.position.x)
-
+    Swag.assert(lib.header.isLocallyVisible() and lib.titleLabel.name == appStrings().act_RecycleBin)
     lib.setTrashMode(false)
-    Swag.assert(lib.sideBar.isLocallyVisible())
-    Swag.assert(lib.barPanel.position.x == lib.sideBar.position.right() + lib.sideBar.margin.z)
+    Swag.assert(lib.titleLabel.name == appStrings().act_Library)
 
     let chrome = testAddLibraryItem(lib.view, "chrome.scc", 10, 1)
     chrome.capture!.sourceApplication = "Chrome"
@@ -669,56 +667,35 @@ impl IAllocator for LibraryRejectAllocator
 
     lib.refreshAutomaticFilters()
 
-    for i in lib.listCtrl.lineCount()
+    // The applications are lens entries; choosing one narrows the library to it.
+    var results: Lens.Results
+    lib.describeLens(&results)
+    var chromeEntry: *Lens.Entry?
+    for section in results.sections where section!.label == appStrings().act_Application
     {
-        let line = unwrap lib.listCtrl.lineAt(cast(u32, i))
-        if cast(LibrarySidebarFilter, cast(u64, line.userData3)) != .Application do
-            continue
-        let idx = cast(u64, line.userData0)
-        if idx < lib.sidebarApplications.count and lib.sidebarApplications[idx].name == "Chrome"
-        {
-            Swag.assert(line.itemAt(0).icon.isValid())
-            Swag.assert(line.itemAt(0).icon.color == Argb.White)
-            lib.listCtrl.selectLine(cast(u32, i))
-        }
+        for &entry in section.entries where entry.title == "Chrome" do
+            chromeEntry = entry
     }
 
+    let chromeRun = unwrap (unwrap chromeEntry).run
+    chromeRun()
     Swag.assert(lib.applicationFilter == "Chrome")
     Swag.assert(lib.view.items.count == 1)
     Swag.assert(lib.view.items[0] == chrome)
 
-    for i in lib.listCtrl.lineCount()
+    // The tags are chips: choosing one narrows the library to it and leaves the application.
+    lib.setApplicationFilter("")
+    var workChip: *IconButton?
+    for child in lib.tagChips.children
     {
-        let line = unwrap lib.listCtrl.lineAt(cast(u32, i))
-        if cast(LibrarySidebarFilter, cast(u64, line.userData3)) != .Tag do
-            continue
-        let idx = cast(u64, line.userData0)
-        if idx < lib.sidebarTags.count and lib.sidebarTags[idx].name == "work" do
-            lib.listCtrl.selectLine(cast(u32, i))
+        let chip = assume cast(*IconButton, child)
+        if chip.text() == "work" do
+            workChip = chip
     }
 
+    f.gui.clickWnd(unwrap workChip)
     Swag.assert(lib.applicationFilter.isEmpty())
     Swag.assert(lib.tagFilter == "work")
     Swag.assert(lib.view.items.count == 1)
     Swag.assert(lib.view.items[0] == slack)
-
-    // A malformed legacy executable path must keep the application filter usable and
-    // simply omit its optional shell icon.
-    chrome.capture.sourceExecutable = "bad|application.exe"
-    lib.refreshAutomaticFilters()
-    var foundApplication = false
-    for i in lib.listCtrl.lineCount()
-    {
-        let line = unwrap lib.listCtrl.lineAt(cast(u32, i))
-        if cast(LibrarySidebarFilter, cast(u64, line.userData3)) != .Application do
-            continue
-        let idx = cast(u64, line.userData0)
-        if idx < lib.sidebarApplications.count and lib.sidebarApplications[idx].name == "Chrome"
-        {
-            foundApplication = true
-            Swag.assert(not line.itemAt(0).icon.isValid())
-        }
-    }
-
-    Swag.assert(foundApplication)
 }

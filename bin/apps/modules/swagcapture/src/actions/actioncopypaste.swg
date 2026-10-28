@@ -10,6 +10,7 @@ impl ActionCopyPaste
     newCmdId("Cut")
     newCmdId("PasteImageInside")
     newCmdId("CopyAsImage")
+    newCmdId("Duplicate")
 }
 
 impl IActionUI for ActionCopyPaste
@@ -71,6 +72,12 @@ impl IActionUI for ActionCopyPaste
             evt.updatedFields |= .Disabled | .Name
             evt.disabled      = not capture
             evt.name          = appStrings().act_CopyImageToClipboard
+
+        case .Duplicate:
+            evt.updatedFields |= .Disabled | .Name | .Icon
+            evt.disabled      = not hasSel
+            evt.name          = appStrings().act_Duplicate
+            evt.icon          = main.theme().icon(.Duplicate)
         }
 
         return true
@@ -88,6 +95,7 @@ impl IActionUI for ActionCopyPaste
         case .Paste:            capture.paste()
         case .PasteImageInside: capture.pasteImageInside()
         case .CopyAsImage:      capture.copyAll()
+        case .Duplicate:        capture.duplicate()
         }
 
         return true

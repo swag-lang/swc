@@ -1,39 +1,9 @@
-// The style cells of the panel head: one square each, holding a real sample of what the cell
-// sets, at the toolbar size of the application chart. The surrounding air is what separates
-// one cell from the next, so none of them needs a border to say where it ends.
-//
-// The name each cell used to print above its sample is on its tooltip now. Stacked, it made
-// every cell twice as tall as its content to carry a word the sample already shows, and
-// turned the head of the panel into a ribbon.
-const StyleCellSize  = 48.0
-const StyleGlyphSize = 26.0
-const StyleCellGap   = 12.0
-
+// Size of the sample a line-end glyph draws by default.
 const CapPreviewSize = 10.0
-const DashSize       = 6.0
 
-// Geometry of the popups the style cells open. A popup is sized from what it lists, so a
-// style added to an enum widens or lengthens its own list instead of falling outside it.
-const PopupRowHeight    = 36.0      // One row of the dash list.
-const PopupCapRowHeight = 44.0      // One row of the line-end list; its samples need the room.
-const PopupCapWidth     = 120.0     // Width of the line-end list.
-const PopupDashWidth    = 180.0     // Width of the dash list; its samples run along it.
-const PopupCellSize     = 48.0      // One square cell of the shape list.
-const PopupPadding      = 6.0       // Air the list keeps inside its frame.
-const PopupSpacing      = 5.0       // Gap a stack and a wrap layout leave between two items by default.
-const PopupFrameInset   = 5.0       // Room the frame itself takes around its view (frameWnd_SquarePadding).
-
-// Room `count` items of `size` need along one axis, the air around them included.
-//
-// Every popup here is sized through this: written by hand, a dimension stopped matching its
-// list the day a style was added to an enum, and the last entry fell outside the frame.
-func popupExtent(count, size: f32)->f32
-{
-    return count * size +
-           Math.max(count - 1, 0) * PopupSpacing +
-           2 * PopupPadding +
-           2 * PopupFrameInset
-}
+// Air the panel layout of the property grid keeps before each of its rows: the label column of a
+// generated field is that much narrower than the inspector's, so both columns end on one edge.
+const GridRowInset = 8.0
 
 // The enum popup buttons stash the value they represent in the untyped `userData`
 // slot of the widget; these two helpers keep the double cast in one place.
@@ -81,18 +51,14 @@ func drawCapGlyph(painter: *Painter, cap: LineCapStyle, begin: bool, pos: Math.R
     painter.drawLine(rect.x, rect.vertCenter(), rect.right(), rect.vertCenter(), pen)
 }
 
-// The ellipse/rectangle/round-rectangle glyph painted by the shape and step
-// buttons and by their popups.
-func drawShapeGlyph(painter: *Painter, kind: FormShapeKind, pos: Math.Rectangle, color: Color)
+// The ellipse/rectangle/round-rectangle glyph of a shape kind, `size` wide, centred in `pos`.
+func drawShapeGlyph(painter: *Painter, kind: FormShapeKind, pos: Math.Rectangle, color: Color, size: f32)
 {
-    var rect = pos
-    rect.inflate(-(pos.width - StyleGlyphSize) * 0.5, -(pos.height - StyleGlyphSize) * 0.5)
-    rect.x     = rect.horzCenter() - rect.height * 0.5
-    rect.width = rect.height
+    let rect = Math.Rectangle{pos.horzCenter() - size * 0.5, pos.vertCenter() - size * 0.5, size, size}
 
-    // The stroke follows the glyph: kept at the weight the larger cell used, it closes the
-    // counter of the shape and the sample reads as a filled blob.
-    let stroke = Math.max(2.0, StyleGlyphSize * 0.15)
+    // The stroke is the interface outline weight: heavier, it closes the counter of the shape and
+    // the sample reads as a filled blob.
+    let stroke = 1.4'f32
 
     switch #complete kind
     {
@@ -104,7 +70,7 @@ func drawShapeGlyph(painter: *Painter, kind: FormShapeKind, pos: Math.Rectangle,
         painter.drawRect(rect, color, stroke)
 
     case .RoundRectangle:
-        painter.drawRoundRect(rect, 5, 5, color, stroke)
+        painter.drawRoundRect(rect, size * 0.25, size * 0.25, color, stroke)
     }
 }
 
@@ -130,11 +96,6 @@ struct PropWnd
     // Set when a change handler needs the whole panel rebuilt: done on the next frame,
     // never from inside the grid's own change notification.
     needRebuild: bool
-
-    // The chooser a style cell opens when what it lists are samples of a stroke. It is a
-    // temporary list attached to the panel's top view, and it does not become a button grid just
-    // because its entries are drawn rather than written.
-    stylePopup: *PopupListCtrl?
 }
 
 impl PropWnd
@@ -304,88 +265,75 @@ impl PropWnd
         }
     }
 
-    // Gives every generated field the width of the widest visible label in the current
-    // language. The controls otherwise reserve a fixed 60 pixels: enough for "Round", but
-    // not for "Thickness", while a larger constant would waste the same room in shorter
-    // translations. One measured column keeps sliders, combos and edits aligned.
+    // Puts the labels of the generated fields in the label column of the inspector, flush with
+    // the labels of the head rows, so every editor of the column starts on one edge. A label
+    // longer than the column in the current language widens it for the whole panel rather than
+    // being cut.
     mtd fitFieldLabelColumn()
     {
-        var width = 0'f32
+        let metrics = .themeMetrics()
+        var width   = metrics.inspector_LabelWidth
         for item in .grid.items where item!.line.isVisible()
         {
-            var label: *Label?
-            if item.sliderBox != null
-            {
-                label = item.sliderBox.label
-            }
-            elif item.comboBox != null
-            {
-                if item.comboBox.parent is ComboCtrl as ctrl do
-                    label = ctrl.label
-            }
-            elif item.editBox != null
-            {
-                if item.editBox.parent is EditCtrl as ctrl do
-                    label = ctrl.label
-            }
-
+            let label = fieldLabel(item)
             if label do
                 width = Math.max(width, Painter.measureString(label.name.raw, unwrap label.font().regular).width)
         }
 
         width = Math.ceil(width)
+        let gap = metrics.inspector_LabelGap
         for item in .grid.items where item!.line.isVisible()
         {
+            fieldLabel(item)?.setTextAlignment(.Left, .Center)
             if item.sliderBox != null
             {
                 let ctrl = item.sliderBox
-                ctrl.setLayoutMetrics(width, ctrl.valueWidth, ctrl.spacing)
+                ctrl.setLayoutMetrics(width, ctrl.valueWidth, gap)
             }
             elif item.comboBox != null
             {
                 if item.comboBox.parent is ComboCtrl as ctrl do
-                    ctrl.setLayoutMetrics(width, ctrl.comboWidth, ctrl.spacing)
+                    ctrl.setLayoutMetrics(width, ctrl.comboWidth, gap)
             }
             elif item.editBox != null
             {
                 if item.editBox.parent is EditCtrl as ctrl do
-                    ctrl.setLayoutMetrics(width, ctrl.editWidth, ctrl.spacing)
+                    ctrl.setLayoutMetrics(width, ctrl.editWidth, gap)
             }
         }
     }
 
-    // Rebuilds the panel for the current selection, or for the model of the active tool: the style
-    // cells on top, then one row per editable field.
+    // Returns the label a generated field writes before its editor, or null for a field that
+    // names itself another way.
+    func fieldLabel(item: *PropertiesItem)->*Label?
+    {
+        if item.sliderBox != null do
+            return item.sliderBox.label
+        if item.comboBox != null
+        {
+            if item.comboBox.parent is ComboCtrl as ctrl do
+                return ctrl.label
+        }
+        elif item.editBox != null
+        {
+            if item.editBox.parent is EditCtrl as ctrl do
+                return ctrl.label
+        }
+
+        return null
+    }
+
+    // Rebuilds the panel for the current selection, or for the model of the active tool: the
+    // colours and the glyph choices on top, in the rows of the inspector, then one row per
+    // editable field.
     mtd selectionHasChanged()
     {
-        .stylePopup?.cancel()
-
         for it in .topLayout.children do
             it.destroy()
         .grid.clear()
 
-        // The cells start at the panel margin like every row under them, instead of floating
-        // in the middle of the column: a group centred on its own is a third alignment on a
-        // surface that already has one.
-        let stack0 = StackLayoutCtrl.create(.topLayout, .HorizontalCenter, {0, 0, 0, StyleCellSize})
-        stack0.spacing = StyleCellGap
-        .propBackColor(stack0)
-        .propBorderColor(stack0)
-        .propStrokeOutlineColor(stack0)
-        .propCalloutText(stack0)
-        .propShape(stack0)
-        .propStep(stack0)
-        if stack0.children.isEmpty() do
-            stack0.destroyNow()
-
-        let stack1 = StackLayoutCtrl.create(.topLayout, .HorizontalCenter, {0, 0, 0, StyleCellSize})
-        stack1.spacing = StyleCellGap
-        .propStartCapStyle(stack1)
-        .propDashStyle(stack1)
-        .propEndCapStyle(stack1)
-        if stack1.children.isEmpty() do
-            stack1.destroyNow()
-
+        .addColorRows()
+        .addStyleRows()
         .propNextStep()
         .propPixSel()
 
@@ -412,14 +360,18 @@ impl PropWnd
             .topLayout.mode         = .Top
             .topLayout.fitToContent = true
             .topLayout.dockStyle    = .Top
-            .topLayout.spacing      = StyleCellGap
 
-            // The head keeps the margin of the panel on both edges, and a block of air
-            // between itself and the rows the grid generates under it.
-            .topLayout.padding = {12, 16, 12, 16}
+            // The head rows stand in the column of the inspector, which already keeps its
+            // margins; only the air before the generated rows is the panel's own.
+            .topLayout.spacing = prop.themeMetrics().inspector_RowGap
+            .topLayout.padding = {0, 0, 0, prop.themeMetrics().inspector_RowGap}
 
             .grid = Properties.create(prop, kind: .Panel)
             .grid.dockStyle = .Center
+
+            // The panel layout keeps its own margin before each row; the grid reaches past the
+            // column by that much so its labels stand on the edge of the inspector's labels.
+            .grid.margin = {-GridRowInset, 0, -GridRowInset, 0}
             .grid.setRevertButtonsVisible(false)
 
             // Most specific first: a form edits its own fields (text, caps, round...)

@@ -1,16 +1,7 @@
 using Threading, Time
 
-// The date column. It is wider than the editor's tool column on purpose: the tool column carries
-// one word per row and this one carries a sentence — "All Items" is two words in English and
-// three in French, and a column sized to the English would clip the French in the very first row.
-const SideBarWidth = 280.0
+// Air between two quiet menus of the title row.
 const LibButtonGap = 12.0
-
-// The count column of the date list, and what the rows spend before their name: the expander lane
-// the tree reserves on every row, plus the padding of the list. The name column takes what those
-// two leave, so widening the bar widens the only column that carries wording.
-const LibCountWidth = 56.0
-const LibRowIndent  = 28.0
 
 // The size of library thumbnails.
 enum PreviewSize
@@ -43,12 +34,12 @@ enum LibraryContentFilter
     Images
 }
 
-// The groups the library sidebar filters by.
-enum LibrarySidebarFilter
+// One date the library can be narrowed to: a year, a month of a year, or a day of a month, with
+// how many captures it holds. A zero month or day covers the whole year or month.
+struct LibraryDateFilter
 {
-    Date
-    Application
-    Tag
+    year, month, day: u64
+    count:            u64
 }
 
 // One entry of a sidebar group: its name, the executable it stands for when it groups by
@@ -69,8 +60,8 @@ impl LibraryNamedFilter
                                                            .executable == other.executable
 }
 
-// The library page: the sidebar, the command bar, the thumbnail grid, and the search and
-// folder they act on.
+// The library page: its title, folder tabs and tag chips, the quiet menus and the search, the
+// thumbnail grid, and the hint line naming what the lens offers here.
 struct LibraryWnd
 {
     using wnd: Wnd
@@ -79,17 +70,28 @@ struct LibraryWnd
     {
         main:        *MainWnd
         view:        *LibraryView
-        sideBar:     *Wnd
-        barPanel:    *Wnd
+        header:      *Wnd
+        titleLabel:  *Label
+        folderTabs:  *Tab
+        tagChips:    *StackLayoutCtrl
         captureHost: *ScrollWnd
-        listCtrl:    *ListCtrl
         commandBar:  *StackLayoutCtrl
         viewBtn:     *IconButton
         filterBtn:   *IconButton
         folderBtn:   *IconButton
         searchEdit:  *EditBox
-        breadcrumb:  *BreadcrumbCtrl
+        hintLine:    *HintLine
     }
+
+    // The folder each tab opens, in the order of the tabs.
+    tabFolders:   Array'String
+    updatingTabs: bool
+
+    // The folders the lens offered last, which its rows open.
+    lensFolders: Array'String
+
+    // The dates the captures were taken on, newest first, offered by the lens.
+    dateFilters: Array'LibraryDateFilter
 
     previewSize: PreviewSize
 
@@ -97,13 +99,8 @@ struct LibraryWnd
     trashMode:  bool
     curFolder:  String
 
-    // Backing storage for the breadcrumb drop-down entry ids (folder paths). Menu items
-    // keep the id as a non-owning slice, so the strings must outlive the popup's modal loop.
-    menuPaths: Array'String
-
     sidebarApplications: Array'LibraryNamedFilter
     sidebarTags:         Array'LibraryNamedFilter
-    updatingSidebar:     bool
 
     invertSort:               bool
     sortMethod:               SortMethod
@@ -113,6 +110,7 @@ struct LibraryWnd
     applicationFilter:        String
     tagFilter:                String
     filledRevision:           u64
+    filledOnce:               bool
     deleteObserverRegistered: bool
     showUpToDateLinkedImage:  bool = true
     showLinkedImage:          bool = true
@@ -124,6 +122,13 @@ struct LibraryWnd
 
 impl IWnd for LibraryWnd
 {
+    // The page keeps its side margins, and its header keeps clear of the strip the window glyph,
+    // the title and the window buttons float in.
+    mtd impl onResizeEvent(_: *ResizeEvent)
+    {
+        .padding = {LibraryPageMargin, .stripInset(), LibraryPageMargin, 0}
+    }
+
     // The three drop-down buttons and the search placeholder take their wording once, when
     // they are built, so they cannot follow a language change on their own. Every control
     // driven by a command already refreshes itself through the command state.
@@ -149,7 +154,11 @@ impl LibraryWnd
         .folderBtn.setText(appStrings().ui_BarFolders)
         .folderBtn.toolTip = appStrings().tip_LibraryFolders
         .searchEdit.setPlaceholder(appStrings().ui_Search)
+        .hintLine.clearHints()
+        .hintLine.addHint(strings().key_Space, appStrings().hint_LibrarySpace)
         .commandBar.computeLayout()
+        .updateTitle()
+        .updateFolderTabs()
     }
 
     mtd setPreviewSize(size: PreviewSize)
@@ -197,8 +206,9 @@ impl LibraryWnd
         if not g_Library.loaded do
             g_Library.fill()
 
-        if .listCtrl.lineCount() and .filledRevision == g_Library.revision do
+        if .filledOnce and .filledRevision == g_Library.revision do
             return
+        .filledOnce = true
 
         if not .deleteObserverRegistered
         {
@@ -268,53 +278,23 @@ impl LibraryWnd
         .invalidate()
     }
 
-    // Builds the library window: the sidebar and the item grid under the breadcrumb and the search
-    // bar.
+    // Builds the library page: the header over the thumbnail grid, on the ground of the window.
     func create(parent: *MainWnd)->*LibraryWnd
     {
-        let metrics = parent.themeMetrics()
-
         with let result = Wnd.create'LibraryWnd(parent, "capture.librarywnd")
         {
             .main            = parent
             .dockStyle       = .Center
-            .backgroundStyle = .ToolBar
-            .padding         = Math.Vector4{metrics.panel_GutterSize, metrics.panel_GutterSize, metrics.panel_GutterSize, metrics.panel_GutterSize}
+            .backgroundStyle = .Window
             .registerActions()
         }
 
-        // One rule holds both modes of the window: what can be picked stands on the left,
-        // what is picked is shown on the right. The editor puts its tools on the left and
-        // the selected form on the right; the library puts its dates on the left and the
-        // captures themselves fill the rest. A date list on the right would swap the meaning
-        // of the same edge when switching modes.
-        with result.sideBar = Wnd.create'Wnd(result, {0, 0, SideBarWidth, 0})
-        {
-            .dockStyle       = .Left
-            .backgroundStyle = .Panel
-            .margin.z        = metrics.panel_GutterSize
-            .padding         = {0, 8, 0, 8}
-        }
-
-        // The path and command rows are chrome and the captures are content. One panel holding
-        // both would make the recessed capture ground read as a square dropped inside a larger
-        // box, so each role stands on its own panel, parted by the same gutter that already
-        // separates the rail from this column.
-        with result.barPanel = Wnd.create'Wnd(result, Math.Rectangle{0, 0, 0, 2 * themeActionButtonSize(metrics)})
-        {
-            .dockStyle       = .Top
-            .backgroundStyle = .Panel
-            .margin.w        = metrics.panel_GutterSize
-        }
-
+        result.createHeader()
         result.createCaptureGrid()
-        result.createDateList()
-        result.createBreadcrumb()
-        result.createCommandBar()
-
+        result.createSpinner()
         result.setPreviewSize(.Small)
         result.setSortMethod(result.sortMethod)
-        result.updateBreadcrumb()
+        result.updateTitle()
         return result
     }
 }

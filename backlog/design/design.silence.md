@@ -24,13 +24,16 @@ dialogs, then each application, then the written rules.
 ### design.silence.004 — The applications do not use the shared components
 
 - Evidence: the toolkit has the lens (`Gui.Lens.View`), the information sheet (`Gui.InfoSheet`),
-  the inspector (`Gui.Inspector`), the mini-bar (`Gui.MiniBar`), the dock (`Gui.ToolDock`) and the
-  hint line (`Gui.HintLine`), with `floating.test.swg`, `lens.test.swg` and their goldens, and
-  `AppearanceButton.addToLens`. The window strip floats over the view, and the four applications
-  still inset their whole root by `Wnd.stripInset()` to keep their old bands clear of it.
-- Next: per application, register every command and `addToLens` on one lens bound to `Space` or
-  `Ctrl K`, move readings to the sheet, tools to the dock and the mini-bar, properties to the
-  inspector, and let the work reach into the strip where its picture shows it.
+  the inspector (`Gui.Inspector`, which carries a generated grid through `setContent`), the
+  mini-bar (`Gui.MiniBar`), the dock (`Gui.ToolDock`), the hint line (`Gui.HintLine`) and
+  `Gui.SectionLabel`, with `floating.test.swg`, `lens.test.swg` and their goldens, and
+  `AppearanceButton.addToLens`; a hidden caption button keeps working and takes no room in the
+  caption. Swag Capture composes them (`surface`, `surface.paper`, `lens.paper` goldens). Swag
+  Scope, Swag Prism and Swag Vault still inset their whole root by `Wnd.stripInset()` to keep
+  their old bands clear of the floating strip.
+- Next: per remaining application, register every command and `addToLens` on one lens bound to
+  `Space` or `Ctrl K`, move readings to the sheet, tools to the dock and the mini-bar, properties
+  to the inspector, and let the work reach into the strip where its picture shows it.
 - Done when: the four applications use the components, every command is a lens entry, and no
   application re-implements one or insets its whole root under the strip.
 - Related: design.silence.007, design.silence.008, design.silence.009, design.silence.010
@@ -72,11 +75,30 @@ dialogs, then each application, then the written rules.
   entry or a sheet reading.
 - Related: design.silence.004
 
-### design.silence.008 — Swag Capture still shows menus, panels and a strip
+### design.silence.008 — Swag Capture's shape editing does not yet match its pictures
 
-- Next: rebuild the editor on the dock, mini-bar and inspector; the area capture and the library
-  per their pictures; every menu command as a lens entry.
-- Done when: the Capture goldens match the Capture pictures.
+- Evidence: the editor is the capture on the ground with the tool dock, the mini-bar by the
+  selection (colour, face, step reset, alignment, delete, `•••`), the inspector (title and count,
+  Duplicate and Delete, quick styles, colour rows with swatch and hex, glyph rows for shape kind,
+  dashes and line ends, then the generated grid) and the hint line with the size and zoom; the
+  area overlay, the library page and the lens follow their pictures (`surface`, `surface.paper`,
+  `area`, `library.surface`, `lens.paper` goldens). What the `capture.edit.*` pictures show and the
+  editor does not: a callout's text is typed in a dialog, not inline with a caret; its face, size
+  and alignment are not on the mini-bar and its style is not an "Aa" segment; a mask's kind is a
+  combo of the grid, not a radio list with glyphs; a step's mini-bar has no number stepper; a
+  multiple selection shows no arrange buttons or layer list in the inspector; the colour picker is
+  the toolkit's picker, not the popover with recent colours, palette, exact value and opacity; a
+  quick style has no name; the generated rows show a value box where the pictures show a mono
+  value ("6 px") and a combo where they show segments (Line, Shadow), and position is two rows
+  instead of the X · Y · W · H strip; the folded inspector's tab is horizontal; the hint line does
+  not change with the tool. Elsewhere: the library's tab counts are in the proportional face and
+  its thumbnails are letterboxed in a 4:3 cell; the recent captures are text rows of the lens, not
+  thumbnails; the in-place editor still has its own icon bar; the area bar offers no delay or
+  cursor choice (they are lens entries).
+- Next: per `capture.edit.*` picture, move the missing editors into the inspector and the mini-bar
+  — start with the colour popover and the segments of the generated grid (design.silence.005),
+  which every kind shows — then inline callout text and the mask radio list.
+- Done when: each `capture.edit.*` picture is reproduced by a golden of the editor in that state.
 - Related: design.silence.004, design.silence.005
 
 ### design.silence.009 — Swag Prism still frames its panes

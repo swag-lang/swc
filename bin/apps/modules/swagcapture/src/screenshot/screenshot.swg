@@ -88,6 +88,12 @@ func performScreenCapture(main: *MainWnd)->{ img: Image, sf: *Surface? } fail
         .captureMouse()
     }
 
+    with captureWnd.hintLine = HintLine.create(captureWnd)
+    {
+        .addHint(appStrings().key_Enter, appStrings().hint_Capture)
+        .addHint(strings().key_Escape, appStrings().hint_Cancel)
+    }
+
     sf.setView(captureWnd)
     sf.show()
     sf.bringToFront()

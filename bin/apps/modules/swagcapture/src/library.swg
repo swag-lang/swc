@@ -88,7 +88,7 @@ impl Library
     }
 
     // Lists every item the library understands without pretending an ordinary image is a
-    // capture. Sub-folders remain explicit navigation levels in the breadcrumb.
+    // capture. Sub-folders remain explicit navigation levels: tabs and lens entries.
     func enumerateSupportedFiles(folder: String)->Array'File.FileInfo fail
     {
         var result: #returntype

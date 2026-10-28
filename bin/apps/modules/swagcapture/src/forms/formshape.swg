@@ -103,7 +103,7 @@ impl IForm for FormShape
             .gizmo.rect          = .boundRect() * z
             .gizmo.rotateEnabled = .canRotate()
             .gizmo.rotateValue   = .rotate
-            let col = .subKind == .PixSel ? Argb.Yellow : Argb.White
+            let col = .subKind == .PixSel ? Argb.Yellow : selectionInk()
             .gizmo.paint(painter, not flags.has(.Selected), col)
         }
     }

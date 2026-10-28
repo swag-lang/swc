@@ -12,58 +12,39 @@ func easeGrab(current, target: f32)->f32
     return Math.moveTowards(current, target, step)
 }
 
-// The selection marks: four corner brackets whose outer corner is cut at 45 degrees, the
-// mark's own vocabulary. They frame the region instead of outlining it, so the pixels
-// about to be captured stay visible under the selection.
-const BracketArm   = 26.0
-const BracketThick = 3.0
-const BracketCut   = 8.0
-const BracketHalo  = 1.5     // Ink counter-form, so the accent reads on a white capture too.
+// The area overlay of the charter: the chosen zone at full brightness with a 1 px Voltage edge, its
+// size in a mono chip, a pixel loupe with a Voltage crosshair, the capture modes as text tabs on a
+// floating bar, and the keys at the foot.
+const AreaChipPadding  = 8.0      // Air inside the size chip and the loupe reading.
+const AreaChipGap      = 6.0      // Air between the size chip and the zone.
+const AreaLoupeRadius  = 60.0     // Radius of the pixel loupe.
+const AreaLoupePixels  = 21.0     // Desktop pixels across the loupe; odd, so one sits in the middle.
+const AreaLoupeOffset  = 28.0     // Distance between the pointer and the loupe.
+const AreaBarTop       = 24.0     // Air between the top of the screen and the mode bar.
+const AreaBarHeight    = 40.0     // Height of the mode bar.
+const AreaBarPadding   = 20.0     // Air inside the mode bar, and between two of its tabs.
+const AreaTabUnderline = 2.0      // Weight of the Arc underline of the mode in use.
 
-// The readout badge sitting above the selection.
-const BadgePad = 6.0
-const BadgeGap = 6.0
+// The modes the bar of the area overlay offers, in their order.
+const AreaModes = [CaptureMode.Area, CaptureMode.ActiveWindow, CaptureMode.FullScreen, CaptureMode.LastArea]
 
-// Paints one corner bracket. `dirX` and `dirY` are +1 or -1 and point from the corner
-// toward the inside of the selection, so the same seven points serve all four corners.
-func paintCornerBracket(painter: *Painter, x, y, dirX, dirY, arm, thick, cut: f32, color: Color)
+// Returns the word of a capture mode on the bar of the area overlay.
+func areaModeName(mode: CaptureMode)->string
 {
-    let armX   = arm * dirX
-    let armY   = arm * dirY
-    let thickX = thick * dirX
-    let thickY = thick * dirY
-    let cutX   = cut * dirX
-    let cutY   = cut * dirY
-
-    var path: LinePath
-    path.start(x + armX, y)
-    path.lineTo(x + cutX, y)
-    path.lineTo(x, y + cutY)
-    path.lineTo(x, y + armY)
-    path.lineTo(x + thickX, y + armY)
-    path.lineTo(x + thickX, y + thickY)
-    path.lineTo(x + armX, y + thickY)
-    path.close()
-    painter.fillPolygon(&path, color)
-}
-
-// The four brackets of one selection, each backed by an ink counter-form. The overlay
-// lies over whatever is on screen, and Voltage alone disappears on a white document —
-// the chart forbids the accent on paper for exactly that reason.
-func paintCornerBrackets(painter: *Painter, rect: Math.Rectangle, color, backColor: Color)
-{
-    #[Swag.Mixin]
-    func corner(x, y, dx, dy: f32)
+    switch mode
     {
-        paintCornerBracket(painter, x - dx * BracketHalo, y - dy * BracketHalo, dx, dy, BracketArm + BracketHalo, BracketThick + 2 * BracketHalo, BracketCut, backColor)
-        paintCornerBracket(painter, x, y, dx, dy, BracketArm, BracketThick, BracketCut, color)
+    case .ActiveWindow: return appStrings().ui_ModeActiveWindow
+    case .FullScreen:   return appStrings().ui_ModeFullScreen
+    case .LastArea:     return appStrings().ui_ModeLastArea
     }
 
-    corner(rect.x, rect.y, 1, 1)
-    corner(rect.right(), rect.y, -1, 1)
-    corner(rect.x, rect.bottom(), 1, -1)
-    corner(rect.right(), rect.bottom(), -1, -1)
+    return appStrings().ui_ModeArea
 }
+
+// A mode the reader chose on the bar of the area overlay, which the capture starts once the
+// overlay has closed.
+var g_SwitchCaptureMode: bool
+var g_SwitchCaptureTo:   CaptureMode
 
 // The overlay over the frozen desktop where the user drags the area to capture.
 struct CaptureRectWnd
@@ -71,12 +52,20 @@ struct CaptureRectWnd
     using wnd: Wnd
 
     late main:     *MainWnd
+    late hintLine: *HintLine
     startGrab:     bool
     cancelGrab:    bool
     tryStartGrab:  bool
     autoGrab:      bool
     lerpGrab:      Math.Rectangle
     clickStartPos: Math.Point
+
+    // Where the pointer is, in logical units, for the loupe.
+    pointer: Math.Point
+
+    // The bar of the modes and the tab of each mode, from the latest paint.
+    barRect:  Math.Rectangle
+    modeTabs: Array'Math.Rectangle
 }
 
 impl IWnd for CaptureRectWnd
@@ -101,8 +90,16 @@ impl IWnd for CaptureRectWnd
         if evt.kind == .Pressed and evt.key == .Escape do
             g_Exit = true
 
+        // Enter takes the zone on screen, as a click without a drag does.
+        if evt.kind == .Pressed and evt.key == .Enter and not getGrabRect().isEmpty()
+        {
+            g_GrabDone = true
+            g_Exit     = true
+        }
+
         .invalidate()
     }
+
 
     mtd impl onMouseEvent(evt: *MouseEvent)
     {
@@ -111,6 +108,26 @@ impl IWnd for CaptureRectWnd
         let k        = .deviceScale()
         let physPosX = evt.surfacePos.x * k
         let physPosY = evt.surfacePos.y * k
+        .pointer = evt.surfacePos
+
+        // The bar of the modes takes its own clicks: a mode other than the area closes the
+        // overlay and starts that capture instead.
+        if .barRect.contains(evt.surfacePos) and not .startGrab
+        {
+            if evt.kind == .Pressed and evt.button == .Left
+            {
+                let index = .modeAt(evt.surfacePos)
+                if index < AreaModes.count and AreaModes[index] != .Area
+                {
+                    g_SwitchCaptureMode = true
+                    g_SwitchCaptureTo   = AreaModes[index]
+                    g_Exit              = true
+                }
+            }
+
+            .invalidate()
+            return
+        }
 
         switch evt.kind
         {
@@ -231,17 +248,11 @@ impl IWnd for CaptureRectWnd
         if not grabRect.isEmpty() do
             painter.drawTexture(dstGrab, grabRect, g_DesktopTexture)
 
+        // A hairline in the signature states where the edge is, and nothing more lies on the
+        // pixels about to be captured.
         let colors = .themeColors()
-        let col    = colors.signature
-
-        // A hairline states where the edge is; the brackets say it is a selection. A
-        // full accent rectangle would sit on top of the pixels being captured.
         painter.setParams(.Antialiased)
-        painter.drawRect(dstGrab, colors.ground, 3)
-        painter.drawRect(dstGrab, col, 1)
-
-        if dstGrab.width >= 2 * BracketArm and dstGrab.height >= 2 * BracketArm do
-            paintCornerBrackets(painter, dstGrab, col, colors.ground)
+        painter.drawRect(dstGrab, colors.signature, 1)
 
         // Crosshair guides - only in manual grab mode. The cursor sits on the dragged
         // corner, so split each line around the selection instead of running it along
@@ -259,31 +270,145 @@ impl IWnd for CaptureRectWnd
             painter.drawLine(dstGrab.right(), endY, cast(f32, g_ScreenWidth) / k, endY, cross)
         }
 
-        // The readout, in physical desktop pixels: that is the size of the captured
-        // image, and the origin the user needs to reproduce the same frame later. Both
-        // are machine data, so both are set in the fixed-width theme family.
-        if grabRect.width > 0 and grabRect.height > 0
+        .paintSizeChip(painter, grabRect, dstGrab)
+        .paintLoupe(painter)
+        .paintModeBar(painter)
+
+        // The keys at the foot stand on a chip of the surface: unlike a window, the overlay has
+        // the whole desktop under its hint line, and faint words on a picture do not read.
+        if .hintLine != null
         {
-            let fontR = unwrap .theme().res.fontDefaultFs.regular
-            let size  = Format.toString("%×%", grabRect.width, grabRect.height)
-            let org   = Format.toString("+%,%", grabRect.x, grabRect.y)
+            var keys = .hintLine.position
+            keys.inflate(AreaChipPadding * 2, AreaChipPadding * 0.5)
+            painter.fillRoundRect(keys, .themeMetrics().corner_Floating, .themeMetrics().corner_Floating, colors.surface)
+        }
+    }
+}
 
-            let mSize  = Painter.measureString(size, fontR)
-            let mOrg   = Painter.measureString(org, fontR)
-            let width  = Math.max(mSize.width, mOrg.width) + 2 * BadgePad
-            let height = 2 * fontR.height + 2 * BadgePad
+impl CaptureRectWnd
+{
+    // Returns the mode tab under `pos`, in logical units, or `U64.Max`.
+    mtd modeAt(pos: Math.Point)->u64
+    {
+        for rect, i in .modeTabs where rect.contains(pos) do
+            return i
+        return Swag.U64.Max
+    }
 
-            var xx = dstGrab.x
-            var yy = dstGrab.y - height - BadgeGap
-            if xx < 0 or yy < 0
-            {
-                xx = dstGrab.x + BadgeGap
-                yy = dstGrab.y + BadgeGap
-            }
+    // Writes the size of the zone, in physical desktop pixels — the size of the captured image —
+    // in a mono chip standing on the top edge of the zone, or inside it when the screen has no
+    // room above.
+    mtd paintSizeChip(painter: *Painter, grabRect, dstGrab: Math.Rectangle)
+    {
+        if grabRect.width <= 0 or grabRect.height <= 0 do
+            return
 
-            painter.fillRect(Math.Rectangle{xx, yy, width, height}, colors.ground)
-            painter.drawString(xx + BadgePad, yy + BadgePad, size, fontR, col)
-            painter.drawString(xx + BadgePad, yy + BadgePad + fontR.height, org, fontR, colors.label_TextLight)
+        let metrics = .themeMetrics()
+        let colors  = .themeColors()
+        let font    = .theme().createDefaultFontFs(metrics.defaultFontSize - 1)
+        let text    = Format.toString("% × %", grabRect.width, grabRect.height)
+        let width   = Painter.measureString(text, font).width + 2 * AreaChipPadding
+        let height  = font.height + AreaChipPadding
+
+        var chip = Math.Rectangle{dstGrab.x, dstGrab.y - height - AreaChipGap, width, height}
+        if chip.y < 0 do
+            chip.y = dstGrab.y + AreaChipGap
+        painter.fillRoundRect(chip, metrics.corner_Chip, metrics.corner_Chip, colors.surface)
+        painter.drawString(chip.x + AreaChipPadding, font.opticalLineTop(chip.vertCenter()), text, font, colors.text)
+    }
+
+    // Draws the pixels around the pointer enlarged in a round loupe beside it, on their grid, the
+    // pixel under the pointer marked by a Voltage crosshair, and its position under the loupe.
+    mtd paintLoupe(painter: *Painter)
+    {
+        let metrics = .themeMetrics()
+        let colors  = .themeColors()
+        let k       = .deviceScale()
+        let screen  = .clientRect()
+        let r       = AreaLoupeRadius
+
+        var cx = .pointer.x + AreaLoupeOffset + r
+        var cy = .pointer.y + AreaLoupeOffset + r
+        if cx + r > screen.right() do
+            cx = .pointer.x - AreaLoupeOffset - r
+        if cy + r + 32 > screen.bottom() do
+            cy = .pointer.y - AreaLoupeOffset - r
+
+        // The source is a square of desktop pixels centred on the one under the pointer.
+        let px   = Math.floor(.pointer.x * k)
+        let py   = Math.floor(.pointer.y * k)
+        let half = Math.floor(AreaLoupePixels * 0.5)
+        let src  = Math.Rectangle{px - half, py - half, AreaLoupePixels, AreaLoupePixels}
+        let dst  = Math.Rectangle{cx - r, cy - r, 2 * r, 2 * r}
+        let cell = 2 * r / AreaLoupePixels
+
+        painter.startClippingRegion()
+        painter.fillCircle(cx, cy, r, Argb.White)
+        painter.endClippingRegion()
+        painter.setInterpolationMode(.Pixel)
+        painter.fillRect(dst, colors.ground)
+        painter.drawTexture(dst, src, g_DesktopTexture)
+        painter.setInterpolationMode(.Linear)
+
+        let grid = Color.fromArgb(40, Argb.Black)
+        for i in 1 until cast(s32, AreaLoupePixels)
+        {
+            let d = cast(f32, i) * cell
+            painter.drawLine(dst.x + d, dst.y, dst.x + d, dst.bottom(), grid, 1)
+            painter.drawLine(dst.x, dst.y + d, dst.right(), dst.y + d, grid, 1)
+        }
+
+        painter.drawLine(cx, dst.y, cx, dst.bottom(), colors.signature, 1)
+        painter.drawLine(dst.x, cy, dst.right(), cy, colors.signature, 1)
+        painter.resetClippingRegion()
+
+        painter.setParams(.Antialiased)
+        painter.drawCircle(cx, cy, r, colors.surface, 3)
+        painter.drawCircle(cx, cy, r + 1.5, colors.line, 1)
+
+        // The position under the loupe, a measure in the fixed-width family.
+        let font  = .theme().createDefaultFontFs(metrics.defaultFontSize - 1)
+        let text  = Format.toString("x % · y %", cast(s32, px + g_DesktopX), cast(s32, py + g_DesktopY))
+        let width = Painter.measureString(text, font).width + 2 * AreaChipPadding
+        let chip  = Math.Rectangle{Math.round(cx - width * 0.5), cy + r + AreaChipGap, width, font.height + AreaChipPadding}
+        painter.fillRoundRect(chip, metrics.corner_Chip, metrics.corner_Chip, colors.surface)
+        painter.drawString(chip.x + AreaChipPadding, font.opticalLineTop(chip.vertCenter()), text, font, colors.text)
+    }
+
+    // Draws the modes as text tabs on a floating bar at the top of the screen, the area — the
+    // mode in use — in the text ink over an Arc underline.
+    mtd paintModeBar(painter: *Painter)
+    {
+        let metrics = .themeMetrics()
+        let colors  = .themeColors()
+        let font    = .theme().createDefaultFont(metrics.defaultFontSize)
+        let screen  = .clientRect()
+
+        var width = AreaBarPadding
+        for mode in AreaModes do
+            width += Painter.measureString(areaModeName(mode), font).width + AreaBarPadding
+
+        .barRect = Math.Rectangle{Math.round(screen.horzCenter() - width * 0.5), AreaBarTop, Math.ceil(width), AreaBarHeight}
+        painter.setParams(.Antialiased)
+        .theme().drawFloatingShadow(painter, .barRect, metrics.corner_Floating)
+        painter.fillRoundRect(.barRect, metrics.corner_Floating, metrics.corner_Floating, colors.surface)
+        painter.drawRoundRect(.barRect, metrics.corner_Floating, metrics.corner_Floating, colors.line, metrics.separator_HairlineSize)
+
+        .modeTabs.clear()
+        var x = .barRect.x + AreaBarPadding
+        for mode in AreaModes
+        {
+            let name   = areaModeName(mode)
+            let w      = Painter.measureString(name, font).width
+            let active = mode == .Area
+            let hot    = Math.Rectangle{x - AreaBarPadding * 0.5, .barRect.y, w + AreaBarPadding, .barRect.height}
+            .modeTabs.add(hot)
+
+            let ink = active or hot.contains(.pointer) ? colors.text : colors.softText
+            painter.drawString(x, font.opticalLineTop(.barRect.vertCenter()), name, font, ink)
+            if active do
+                painter.fillRect(Math.Rectangle{x, .barRect.bottom() - 8, w, AreaTabUnderline}, colors.arc)
+            x += w + AreaBarPadding
         }
     }
 }

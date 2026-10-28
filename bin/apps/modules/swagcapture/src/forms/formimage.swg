@@ -349,7 +349,7 @@ impl IForm for FormImage
             }
             else
             {
-                .gizmo.paint(painter, not flags.has(.Selected))
+                .gizmo.paint(painter, not flags.has(.Selected), selectionInk())
             }
         }
         else

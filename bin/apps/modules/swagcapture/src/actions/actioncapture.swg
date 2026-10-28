@@ -215,6 +215,20 @@ impl MainWnd
 
     mtd captureScreen(mode: CaptureMode, monitorIndex: u64 = 0)
     {
+        g_SwitchCaptureMode = false
         catch screenShot(me, mode, monitorIndex) { MessageDlg.error(unwrap .surface, appStrings().msg_FailedCaptureScreen, Swag.err) }
+
+        // The reader chose another mode on the bar of the area overlay.
+        if g_SwitchCaptureMode
+        {
+            g_SwitchCaptureMode = false
+            switch g_SwitchCaptureTo
+            {
+            case .ActiveWindow: .postCommandEvent(ActionCapture.ActiveWnd)
+            case .FullScreen:   .postCommandEvent(ActionCapture.FullScreen)
+            case .LastArea:     .postCommandEvent(ActionCapture.LastArea)
+            default:            break
+            }
+        }
     }
 }

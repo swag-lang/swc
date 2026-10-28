@@ -14,11 +14,22 @@ func ratingLabel(rating: u8)->String
     }
 }
 
+// Writes `value` on two digits, as a day or a month is read in a date.
+func twoDigits(value: u64)->String => value < 10 ? Format.toString("0%", value) : Format.toString("%", value)
+
 var g_UpdatingLib: bool
 var g_DirtyList:   bool = true
-const ItemMargin      = 8.0
 const RatingGlyphSize = 12.0
-const RatingGlyphGap  = 2.0
+
+// The grid of the library: thumbnails with their name and a mono line of facts under them.
+const LibraryCellGap     = 32.0     // Air between two cells of a row.
+const LibraryRowGap      = 24.0     // Air between two rows of cells.
+const LibraryCaptionGap  = 10.0     // Air between a thumbnail and its name.
+const LibraryCaptionLine = 18.0     // Height of the name line, and of the line of facts.
+const LibraryCellRing    = 4.0      // Room kept around the grid for the ring of a chosen thumbnail.
+
+// Height a cell spends under its thumbnail.
+const LibraryCaptionHeight = LibraryCaptionGap + 2 * LibraryCaptionLine
 
 // How often the visible set is rebuilt while the previews are still streaming in. Each
 // loaded capture marks the list dirty, so without a cadence the rebuild runs on every
@@ -251,8 +262,9 @@ impl IWnd for LibraryView
         }
     }
 
-    // Paints one visible cell: the thumbnail in its frame, the name along its bottom, the image
-    // badge, the favorite and rating marks, and the placeholder of a cell with no picture yet.
+    // Paints one visible cell: the thumbnail, ringed in Arc when it is chosen, with the image
+    // badge and the link mark over it; then its name, and a mono line of facts under it — the
+    // date, the favorite and the rating at its start, the size of the picture at its end.
     mtd paintItem(painter: *Painter, it: *LibraryItem, index: u64, capture: *Capture?, itemLoaded: bool)
     {
         with var infos: RecentInfos
@@ -268,57 +280,59 @@ impl IWnd for LibraryView
             infos.showLinked     = .libWnd.showLinkOverlay
         }
 
-        RecentView.paintRecent(me, painter, it.texture, it.rect, infos)
+        let colors    = .themeColors()
+        let theme     = .theme()
+        let {w, h}    = .getPreviewSize()
+        let thumbRect = Math.Rectangle{it.rect.x, it.rect.y, w, h}
+        RecentView.paintRecent(me, painter, it.texture, thumbRect, infos)
 
-        // User-given name, drawn along the bottom of the thumbnail with a soft
-        // shadow so it stays readable over any background.
-        var label = ""
+        if it.kind == .Image
+        {
+            let font = unwrap theme.res.fontDefaultFs.regular
+            let text = appStrings().ui_ImageBadge
+            let ms   = Painter.measureString(text, font)
+            let rc   = Math.Rectangle{thumbRect.x + 8, thumbRect.y + 8, ms.width + 12, font.height + 4}
+            painter.fillRect(rc, colors.wnd_Bk)
+            painter.drawString(rc.x + 6, rc.y + 2, text, font, colors.label_TextLight)
+        }
+
+        // The name: the title the reader gave, the application it was taken from, or the file.
+        var label: String
         if capture and not capture.title.isEmpty() do
             label = capture.title
         elif capture and not capture.sourceApplication.isEmpty() do
             label = capture.sourceApplication
-        elif it.kind == .Image do
+        else do
             label = Path.fileName(it.fi.fullName) orelse ""
 
-        if label.count
+        let nameFont = theme.createDefaultFont(.themeMetrics().defaultFontSize)
+        let nameTop  = thumbRect.bottom() + LibraryCaptionGap
+        painter.pushClippingRect(Math.Rectangle{it.rect.x, nameTop, it.rect.width, LibraryCaptionHeight})
+        painter.drawString(it.rect.x, nameFont.opticalLineTop(nameTop + LibraryCaptionLine * 0.5), label, nameFont, infos.selected ? colors.text : colors.softText)
+
+        // The facts are measures, so they are set in the fixed-width family.
+        let factFont = theme.createDefaultFontFs(.themeMetrics().defaultFontSize - 2)
+        let factY    = factFont.opticalLineTop(nameTop + LibraryCaptionLine * 1.5)
+        let date     = it.fi.lastWriteTime
+        var facts    = Format.toString("%/%", twoDigits(date.day), twoDigits(date.month))
+        if capture and capture.favorite do
+            facts += " · ♥"
+        if capture and capture.rating and .libWnd.showRatingOverlay do
+            facts += Format.toString(" · ★ %", capture.rating)
+        painter.drawString(it.rect.x, factY, facts, factFont, colors.faintText)
+
+        var size: String
+        if capture do
+            size = Format.toString("%×%", capture.width, capture.height)
+        elif it.image.isValid() do
+            size = Format.toString("%×%", it.image.width, it.image.height)
+        if not size.isEmpty()
         {
-            let font = unwrap me.font().regular
-            let cx   = it.rect.horzCenter()
-            let by   = it.rect.bottom() - 8
-            painter.drawStringCenter(cx + 1, by + 1, label, font, Color.fromArgb(0xC0, Argb.Black))
-            painter.drawStringCenter(cx, by, label, font, Argb.White)
+            let sizeWidth = Painter.measureString(size, factFont).width
+            painter.drawString(it.rect.right() - sizeWidth, factY, size, factFont, colors.faintText)
         }
 
-        if it.kind == .Image
-        {
-            let font = unwrap me.theme().res.fontDefaultFs.regular
-            let text = appStrings().ui_ImageBadge
-            let ms   = Painter.measureString(text, font)
-            let rc   = Math.Rectangle{it.rect.x + 8, it.rect.y + 8, ms.width + 12, font.height + 4}
-            painter.fillRect(rc, .themeColors().wnd_Bk)
-            painter.drawString(rc.x + 6, rc.y + 2, text, font, .themeColors().label_TextLight)
-        }
-
-        if capture and capture.favorite
-        {
-            let font = unwrap me.theme().res.fontDefault.bold
-            let text = "♥"
-            let ms   = Painter.measureString(text, font)
-            painter.drawString(it.rect.right() - ms.width - 8, it.rect.y + 8, text, font, .themeColors().signature)
-        }
-
-        if capture and capture.rating and .libWnd.showRatingOverlay
-        {
-            let star  = .mainWnd.icon(.RatingStar, RatingGlyphSize)
-            let width = cast(f32, capture.rating) * RatingGlyphSize + cast(f32, capture.rating - 1) * RatingGlyphGap
-            var sx    = it.rect.right() - width - 8
-            let sy    = it.rect.y + (capture.favorite ? 24 : 8)
-            for capture.rating
-            {
-                star.paint(painter, sx, sy, .themeColors().signature)
-                sx += RatingGlyphSize + RatingGlyphGap
-            }
-        }
+        painter.popClippingRect()
 
         // Loading, a decode this frame did not have the budget for, a legacy preview-less
         // capture, or an image the decoder rejected.
@@ -330,7 +344,8 @@ impl IWnd for LibraryView
             elif itemLoaded and (not capture or capture.previewBytes.isEmpty()) do
                 icon = .mainWnd.icon(.Archive, 48)
             let color = Color.fromArgb(50, Argb.White)
-            icon.paint(painter, it.rect.horzCenter() - icon.sizeX * 0.5, it.rect.vertCenter() - icon.sizeY * 0.5, color)
+            let thumbCenter = it.rect.y + (it.rect.height - LibraryCaptionHeight) * 0.5
+            icon.paint(painter, it.rect.horzCenter() - icon.sizeX * 0.5, thumbCenter - icon.sizeY * 0.5, color)
         }
     }
 
@@ -413,18 +428,19 @@ impl IWnd for LibraryView
         var decodeBudget  = MaxPreviewDecodesPerPaint
         var decodesRemain = false
 
+        let cellHeight = h + LibraryCaptionHeight
         for it, i in .items
         {
-            it.rect    = Math.Rectangle{x, y, w, h}
-            it.visible = y + h >= viewTop and y <= viewBottom
+            it.rect    = Math.Rectangle{x, y, w, cellHeight}
+            it.visible = y + cellHeight >= viewTop and y <= viewBottom
 
             // Next cell. The grid advances whether or not this one is painted, so a culled cell
             // leaves the layout and the scroll extent exactly where they were.
-            x += w + ItemMargin
-            if x + w + ItemMargin >= clientRect.right()
+            x += w + LibraryCellGap
+            if x + w > clientRect.right()
             {
                 x = clientRect.x
-                y += h + ItemMargin
+                y += cellHeight + LibraryRowGap
             }
 
             if not it.visible
@@ -457,7 +473,7 @@ impl IWnd for LibraryView
             .paintItem(painter, it, i, capture, itemLoaded)
         }
 
-        .scrollWnd.setScrollSize(0, y + h + ItemMargin)
+        .scrollWnd.setScrollSize(0, y + cellHeight + LibraryCellRing)
 
         // Cells this frame could not afford to decode. Ask for another one; the hourglass they
         // carry meanwhile is the same one they carry while their capture is still loading.
@@ -552,7 +568,7 @@ impl LibraryView
     mtd const numImagesPerLine()->u32
     {
         let {w, h: _} = .getPreviewSize()
-        return cast(u32, (.paddedClientRect().width / (w + ItemMargin)))
+        return Math.max(cast(u32, ((.paddedClientRect().width + LibraryCellGap) / (w + LibraryCellGap))), 1)
     }
 
     // Returns the size of one grid cell. Every preview has the 4:3 frame of a capture thumbnail.
@@ -961,13 +977,13 @@ impl LibraryView
         .invalidate()
     }
 
-    // Lists the items of the folder the breadcrumb shows, applies the filters, and starts loading
+    // Lists the items of the folder the page shows, applies the filters, and starts loading
     // their previews.
     mtd fill() fail
     {
         .stopLoading()
 
-        // Items come from the folder the breadcrumb currently points at. The Swag Capture home
+        // Items come from the folder the page currently shows. The Swag Capture home
         // folder uses the in-memory index (so the date sidebar and delete handlers stay in
         // sync, honouring the date filter); any other folder (the recycle bin included) is
         // listed straight from disk.

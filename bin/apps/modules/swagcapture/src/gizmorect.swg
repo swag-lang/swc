@@ -316,7 +316,11 @@ impl GizmoRect
     }
 
     // Paints the box, its anchors, and the rotation handle, turned with the form.
-    mtd paint(painter: *Painter, hot: bool, col: Color = Argb.White)
+    //
+    // A form's gizmo (the big border) is drawn in the selection ink: a hairline box, round handles
+    // and a rotation knob, as the charter marks what is chosen on a canvas. The capture's own
+    // gizmo keeps its embossed neutral border, which reads over any pixel without an accent.
+    mtd paint(painter: *Painter, hot: bool, col: Color)
     {
         let anchorSize2 = .anchorSize * 0.5
 
@@ -335,26 +339,20 @@ impl GizmoRect
         }
 
         if .moving and not .trackChange do
-            painter.drawRect(.movingRect, Pen.createDash(.Dot, color, 2))
+            painter.drawRect(.movingRect, Pen.createDash(.Dot, color, 1))
 
         if not hot
         {
             if .paintSimpleBorder
             {
-                // Embossed, like the big border below: the gizmo sits on arbitrary user
-                // pixels, so it carries its own contrast instead of relying on an accent.
+                // Embossed: the capture gizmo sits on arbitrary user pixels, so it carries its
+                // own contrast instead of relying on an accent.
                 painter.drawRect(.rect, Argb.DarkGray, 3)
                 painter.drawRect(.rect, color, 1)
             }
             elif .paintBigBorder
             {
-                painter.drawRect(.rect, Argb.DarkGray, 4)
-                var rect1 = .rect
-                rect1.inflate(2)
-                painter.drawRect(rect1, col, 1)
-                var rect2 = .rect
-                rect2.inflate(-2)
-                painter.drawRect(rect2, col, 1)
+                painter.drawRect(.rect, col, 1)
             }
         }
 
@@ -371,8 +369,7 @@ impl GizmoRect
         {
             if .roundShape
             {
-                painter.fillCircle(c.horzCenter(), c.vertCenter(), anchorSize2, color)
-                painter.drawCircle(c.horzCenter(), c.vertCenter(), anchorSize2, Argb.Black, anchorSize2 * 0.3)
+                paintSelectionHandle(painter, c.horzCenter(), c.vertCenter(), anchorSize2, col, hot)
             }
             else
             {
@@ -388,18 +385,10 @@ impl GizmoRect
             let topY    = .rect.y
             let handleY = topY - RotateHandleDist
             let knobR   = anchorSize2 + 2
-            let knobCol = .rotateHot ? Argb.White : Argb.LightGray
 
             .rotateAnchor = Math.Rectangle{cx - knobR, handleY - knobR, knobR * 2, knobR * 2}
-
-            // Embossed leader line, matching the big-border style (dark core + light overlay)
-            painter.drawLine(cx, topY, cx, handleY, Argb.DarkGray, 4)
-            painter.drawLine(cx, topY, cx, handleY, col, 2)
-
-            // Knob: dark backing ring for depth, light fill, black outline like the anchors
-            painter.fillCircle(cx, handleY, knobR + 1.5, Argb.DarkGray)
-            painter.fillCircle(cx, handleY, knobR, knobCol)
-            painter.drawCircle(cx, handleY, knobR, Argb.Black, knobR * 0.3)
+            painter.drawLine(cx, topY, cx, handleY, col, 1)
+            paintSelectionHandle(painter, cx, handleY, anchorSize2, col, .rotateHot)
         }
 
         if ang != 0 do

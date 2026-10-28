@@ -41,9 +41,6 @@ enum EditorLanguage
 #[Swag.Using(Properties)]
 struct EditorOptions
 {
-    #[Description("Show text labels in the main toolbar")]
-    showToolBarLabels = false
-
     #[Description("Mask everything outside the selected capture area")]
     clipToSelection = false
 

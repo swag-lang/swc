@@ -29,6 +29,7 @@ func testSetupSurfaceMain(host: *Gui.Testing.HeadlessHost, caption = false, dpiS
 func testSetupLibrarySurface(host: *Gui.Testing.HeadlessHost)->*MainWnd
 {
     let main = testSetupSurfaceMain(host)
+    testEmptyTrash()
     g_Library.loaded = true
     main.swapLibraryMode()
 
@@ -54,7 +55,7 @@ func testAssertLibraryMenuGolden(host: *Gui.Testing.HeadlessHost, main: *MainWnd
 
         let menu = host.capturedPopupMenu()
         Swag.assert(menu != null)
-        Swag.assert(button.icon.sizeX == themeActionIconSize(main.themeMetrics()) and button.icon.sizeY == themeActionIconSize(main.themeMetrics()))
+        Swag.assert(not button.icon.isValid())
         Swag.assert(menu.themeMetrics().menuPopup_IconSize == themeRowIconSize(main.themeMetrics()))
         var image = host.render(main)
         Pixel.Testing.assertImageGolden(&image, golden)
@@ -97,91 +98,11 @@ func testAssertLibrarySheetGolden(host: *Gui.Testing.HeadlessHost, main: *MainWn
     host.pump()
 }
 
-// Captures one popup from the caption menu bar at a desktop DPI. Each menu owns its fixture so a
-// regression in one menu cannot prevent another from producing evidence.
-func testAssertMainMenuGolden(index: u32, golden: string)
+// Builds the editor over a white capture holding one selected text, in `dark` or light, and lays
+// it out the way the shipped window is.
+func testSetupEditorSurface(host: *Gui.Testing.HeadlessHost, dark: bool)->*MainWnd
 {
-    var host: Gui.Testing.HeadlessHost
-    let main = testSetupSurfaceMain(&host, caption: true, dpiScale: 1.5)
-    defer
-    {
-        host.shutdown()
-        g_Main = null
-    }
-
-    main.createTopMenu()
-    host.surfaceWnd.applyLayout()
-    host.theme.setDark()
-    host.theme.metrics.surfaceWnd_ShadowSize   = 0
-    host.theme.metrics.surfaceWnd_CornerRadius = 0
-    host.notify(.ThemeChanged)
-    main.applyLayout()
-    host.finishAnimations()
-
-    let bar = main.topMenu
-    Swag.assert(bar.items.count == 5)
-    Swag.assert(index < bar.items.count)
-    discard host.render(bar)
-
-    let item  = unwrap bar.items[index]
-    let local = Math.Point{item.pos + item.size * 0.5, bar.position.height * 0.5}
-    var pt    = bar.localToSurface(local)
-    bar.surface!.surfaceToScreen(&pt)
-
-    // The headless application view owns the complete synthetic surface hit target, while the
-    // native caption routes this press to its sibling menu bar. Deliver that same routed event.
-    host.sendMouseEvent(bar, .Pressed, pt, .Left, .None)
-
-    let popup = host.capturedPopupMenu()
-    Swag.assert(popup != null)
-    Swag.assert(popup == item.popup)
-    Swag.assert(popup.themeMetrics().menuPopup_IconSize == 16)
-
-    // Keep the complete shipped surface. Cropping at an arbitrary content coordinate used to
-    // bisect the right tool panel, which made the fixture itself look broken and hid regressions
-    // in the menu bar's relationship with the whole application frame.
-    var image = host.render(&host.surfaceWnd)
-    Pixel.Testing.assertImageGolden(&image, golden)
-
-    let menuDismissed = host.dismissPopupMenu()
-    Swag.assert(menuDismissed)
-}
-
-// The caption keeps the global options gear next to the appearance shortcut.
-#test
-{
-    var host: Gui.Testing.HeadlessHost
-    let main = testSetupSurfaceMain(&host, caption: true)
-    defer
-    {
-        host.shutdown()
-        g_Main = null
-    }
-
-    Swag.assert(main.appearanceButton.button.icon.index == cast(s32, Gui.ThemeIcons.Appearance))
-    Swag.assert(main.optionsButton.button.icon.index == cast(s32, Gui.ThemeIcons.Options))
-    Swag.assert(main.optionsButton.position.x < main.appearanceButton.position.x)
-    let sizeButton = unwrap main.sizeBtn
-    let zoomButton = main.zoomBtn
-    Swag.assert(main.commandReadouts.padding.x == main.commandReadouts.padding.z)
-    Swag.assert(sizeButton.position.width == zoomButton.position.width)
-}
-
-// The complete Swag Capture surface must survive its first layout and paint without a desktop.
-// This is the visual boundary that the smaller interaction fixtures deliberately avoid.
-#[Swag.TestTag("golden")]
-#test
-{
-    var host: Gui.Testing.HeadlessHost
-    let main = testSetupSurfaceMain(&host)
-    defer
-    {
-        main.libWnd.requestClose()
-        host.shutdown()
-        g_Main = null
-    }
-
-    Swag.assert(not main.quickStyleBar.flags.has(.HideDividers))
+    let main = testSetupSurfaceMain(host)
 
     let capture = Memory.new'Capture()
     capture.width, capture.widthOrg   = 400
@@ -195,96 +116,168 @@ func testAssertMainMenuGolden(index: u32, golden: string)
     text.text = "Theme"
     capture.selection.add(0)
     main.editWnd.editView.setCapture(capture)
+    main.quickWnd.setDefault()
+
+    if dark do
+        host.theme.setDark()
+    else do
+        host.theme.setLight()
+    host.theme.metrics.surfaceWnd_ShadowSize   = 0
+    host.theme.metrics.surfaceWnd_CornerRadius = 0
+    host.notify(.ThemeChanged)
+    main.applyLayout()
+    main.updateState()
+    host.finishAnimations()
+    return main
+}
+
+// The caption carries the window buttons and nothing else: the appearance owner stays hidden,
+// and its choices, like every command, are entries of the lens.
+#test
+{
+    var host: Gui.Testing.HeadlessHost
+    let main = testSetupSurfaceMain(&host, caption: true)
+    defer
+    {
+        host.shutdown()
+        g_Main = null
+    }
+
+    Swag.assert(not main.appearanceButton.isLocallyVisible())
+
+    // Every command the old menus held is a lens entry.
+    main.lens.open("")
+    var titles: Array'String
+    for section in main.lens.results.sections
+    {
+        for entry in section!.entries do
+            titles.add(entry.title)
+    }
+
+    main.lens.close()
+    for id in [ActionFile.NewImage, ActionFile.OpenImage, ActionFile.SaveAsImage, ActionCapture.Area, ActionCapture.FullScreen,
+               ActionUndo.DoUndo, ActionImage.ResizeImage, ActionImage.ExpandImage, ActionZoom.ZoomFit, ActionGlobal.ShowLibrary,
+               ActionOptions.Options, ActionToolMode.Arrow, ActionAlign.SendToFront, ActionView.Inspector]
+    {
+        let state = main.sendComputeCommandStateEvent(id)
+        if state.updatedFields.has(.Hidden) and state.hidden do
+            continue
+        Swag.assert(titles.contains(state.name), state.name)
+    }
+}
+
+// The editor of the charter: the capture on the ground, the dock at the leading edge, the
+// inspector at the trailing edge, the mini-bar beside the selection and the hint line at the
+// foot, in Encre and in Papier.
+#[Swag.TestTag("golden")]
+#test
+{
+    for dark in [true, false]
+    {
+        var host: Gui.Testing.HeadlessHost
+        let main = testSetupEditorSurface(&host, dark)
+        defer
+        {
+            main.libWnd.requestClose()
+            host.shutdown()
+            g_Main = null
+        }
+
+        // The floating parts take no room from the work: the editor takes the whole window.
+        let metrics = main.themeMetrics()
+        let area    = main.editArea.surfaceRect()
+        Swag.assert(main.editWnd.surfaceRect() == area)
+        Swag.assert(main.dock.surfaceRect().x == area.x + metrics.floating_Inset)
+        Swag.assert(main.inspector.surfaceRect().right() == area.right() - metrics.floating_Inset)
+        Swag.assert(main.miniBar.isLocallyVisible() and main.miniBarKind == .Text)
+        Swag.assert(not main.hintLine.reading.isEmpty())
+        Swag.assert(not main.recentBar.isLocallyVisible())
+
+        var image = host.render(main)
+        Pixel.Testing.assertImageGolden(&image, dark ? "surface" : "surface.paper")
+    }
+}
+
+// The lens over the editor, answering a query with commands of several families, in Papier.
+#[Swag.TestTag("golden")]
+#test
+{
+    var host: Gui.Testing.HeadlessHost
+    let main = testSetupEditorSurface(&host, dark: false)
+    defer
+    {
+        main.libWnd.requestClose()
+        host.shutdown()
+        g_Main = null
+    }
+
+    main.lens.open("image")
+    Swag.assert(main.lens.isOpen() and not main.lens.rows.isEmpty())
+    host.finishAnimations()
+
+    var image = host.render(main)
+    Pixel.Testing.assertImageGolden(&image, "lens.paper")
+    main.lens.close()
+}
+
+// Names of the captures of the library golden.
+const LibraryGoldenTitles = ["Side panel", "Error bubble", "Swag lexer", "Dark explorer", "Password"]
+
+// The library of the charter: the page title over the folder tabs and the tag chips, the quiet
+// menus and the search beside the title, the captures with their names and facts under them.
+#[Swag.TestTag("golden")]
+#test
+{
+    var host: Gui.Testing.HeadlessHost
+    let main = testSetupSurfaceMain(&host)
+    defer
+    {
+        main.libWnd.requestClose()
+        host.shutdown()
+        g_Main = null
+    }
 
     host.theme.setDark()
     host.theme.metrics.surfaceWnd_ShadowSize   = 0
     host.theme.metrics.surfaceWnd_CornerRadius = 0
     host.notify(.ThemeChanged)
-    main.applyLayout()
-    host.finishAnimations()
+    testEmptyTrash()
 
-    let gutter     = main.themeMetrics().panel_GutterSize
-    let editRect   = main.editWnd.surfaceRect()
-    let recentRect = main.recentWnd.surfaceRect()
-    Swag.assert(main.editWnd.backgroundStyle == .Transparent)
-    Swag.assert(main.editBar.backgroundStyle == .ToolBar)
-    Swag.assert(main.editBar.padding.y == gutter)
-    Swag.assert(main.rightBar.children.count == 1)
-    let rightRect = main.rightBar.children[0].surfaceRect()
-    Swag.assert(main.toolTitle.font().regular == main.theme().res.fontDefaultFs.regular)
-    Swag.assert(main.recentWnd.themeColors().scrollBar_Bk == main.recentWnd.themeColors().wnd_Bk)
-    Swag.assert(main.quickStyleBar.themeMetrics().splitView_BarSize == 5)
-    Swag.assert(main.quickStyleBar.items[0]!.view.backgroundStyle == .Panel)
-    Swag.assert(main.quickStyleBar.items[1]!.view.backgroundStyle == .Panel)
-    Swag.assert(editRect.y - main.topBar.surfaceRect().bottom() == gutter)
-    Swag.assert(rightRect.y == editRect.y and rightRect.bottom() == editRect.bottom())
-    Swag.assert(recentRect.y - editRect.bottom() == gutter)
-    Swag.assert(recentRect.x == editRect.x and recentRect.right() == rightRect.right())
-    Swag.assert(recentRect.bottom() == main.surfaceRect().bottom())
-
-    var image = host.render(main)
-    Pixel.Testing.assertImageGolden(&image, "surface")
-
-    // Library keeps the same push-button silhouette as Capture. Only the active page gives
-    // it the informational blue ground; returning to the editor removes that local style.
     g_Library.loaded = true
     main.swapLibraryMode()
     main.applyLayout()
     host.finishAnimations()
 
-    let sideRect    = main.libWnd.sideBar.surfaceRect()
-    let barRect     = main.libWnd.barPanel.surfaceRect()
-    let captureRect = main.libWnd.captureHost.surfaceRect()
-    Swag.assert(main.libWnd.backgroundStyle == .ToolBar)
-    Swag.assert(main.libWnd.padding == Math.Rectangle{gutter, gutter, gutter, gutter})
-    Swag.assert(main.libWnd.sideBar.backgroundStyle == .Panel)
-    Swag.assert(main.libWnd.barPanel.backgroundStyle == .Panel)
-    Swag.assert(barRect.x - sideRect.right() == gutter)
-    Swag.assert(main.libWnd.captureHost.backgroundStyle == .Panel)
-    Swag.assert(main.libWnd.captureHost.themeColors().wnd_Bk == main.libWnd.captureHost.themeColors().view_Bk)
+    // A few captures with names, tags and ratings, one of them chosen.
+    let lib = main.libWnd
+    for i in 5
+    {
+        with let it = testAddLibraryItem(lib.view, Format.toString("capture%.scc", i), 1000, cast(u16, 20 + i), title: LibraryGoldenTitles[i])
+        {
+            .capture!.width  = 1280
+            .capture.height = 800
+            .capture.rating = cast(u8, i % 3)
+            .capture.tags.add(i % 2 == 0 ? "gui" : "scope")
+            var preview = Image.create(64, 40, .BGRA8)
+            preview.fill(i % 2 == 0 ? Argb.White : Argb.DarkGray)
+            .texture = host.app.renderer.addImage(preview)
+        }
+    }
 
-    // The bars and the captures are two panels of one column: same edges, one gutter apart.
-    Swag.assert(captureRect.x == barRect.x and captureRect.right() == barRect.right())
-    Swag.assert(captureRect.y - barRect.bottom() == gutter)
+    lib.view.selModel.select(1)
+    lib.refreshAutomaticFilters(force: true)
+    main.applyLayout()
 
-    image = host.render(main)
+    // The page stands on the ground of the window, its header clear of the strip.
+    Swag.assert(main.libWnd.backgroundStyle == .Window)
+    Swag.assert(main.libWnd.captureHost.backgroundStyle == .Transparent)
+    Swag.assert(main.libWnd.header.surfaceRect().y >= main.libWnd.surfaceRect().y + main.libWnd.stripInset())
+
+    var image = host.render(main)
     Pixel.Testing.assertImageGolden(&image, "library.surface")
 }
 
-// The six shipped caption menus pin the actual HiDPI text-anchor junction. Their widths and
-// contents cover the narrow Help popup, the deep Edit/Image lists and Capture's submenu.
-#[Swag.TestTag("golden")]
-#test
-{
-    testAssertMainMenuGolden(0, "main.menu.file")
-}
-
-#[Swag.TestTag("golden")]
-#test
-{
-    testAssertMainMenuGolden(1, "main.menu.capture")
-}
-
-#[Swag.TestTag("golden")]
-#test
-{
-    testAssertMainMenuGolden(2, "main.menu.edit")
-}
-
-#[Swag.TestTag("golden")]
-#test
-{
-    testAssertMainMenuGolden(3, "main.menu.image")
-}
-
-#[Swag.TestTag("golden")]
-#test
-{
-    testAssertMainMenuGolden(4, "main.menu.view")
-}
-
-// Every text-and-icon command of the library bar keeps a continuous attached outline and the
-// standard 20-pixel command / 16-pixel menu hierarchy.
+// The quiet menus of the library open their sheet or their menu joined to the word that opened it.
 #[Swag.TestTag("golden")]
 #test
 {

@@ -110,71 +110,68 @@ using Swag, Core
     Swag.assert(image.height == 14)
 }
 
-// The library breadcrumb mirrors the real on-disk folder: it ends at the library folder
-// normally and at the recycle-bin folder in trash mode, each level carrying its full path.
+// The page is named after the folder it shows, and its folders are tabs: the library first, its
+// sub-folders after it, the recycle bin among them; choosing a tab opens its folder.
 #test
 {
     var f: HeadlessFixture
     f.setup()
     defer f.shutdown()
-    let lib = f.setupLibraryWnd()
+    expect Library.init()
 
-    // The headless fixture does not build the real toolbar, so attach a breadcrumb here.
-    lib.breadcrumb = BreadcrumbCtrl.create(cast(*Wnd, lib), {0, 0, 600, 32})
+    f.main.libWnd = LibraryWnd.create(f.main)
+    let lib = f.main.libWnd
+    defer lib.requestClose()
 
     // Default (empty) current folder falls back to the library folder.
     Swag.assert(lib.currentFolder() == Library.getFolder())
-    lib.updateBreadcrumb()
-    Swag.assert(lib.breadcrumb.items.count > 0)
-    let lastNormal = lib.breadcrumb.items.back()
-    Swag.assert(lastNormal.name == (Path.fileName(Library.getFolder()) orelse ""))
-    Swag.assert(lastNormal.tag == Library.getFolder())
+    lib.updateFolderMode()
+    Swag.assert(lib.titleLabel.name == appStrings().act_Library)
+    Swag.assert(lib.tabFolders.count >= 2 and lib.tabFolders[0] == Library.getFolder())
+    Swag.assert(lib.folderTabs.selectedIndex == 0)
+    Swag.assert(lib.tabFolders.contains(Library.getTrashFolder()))
 
-    // Point the library at the recycle bin folder.
-    lib.curFolder = Library.getTrashFolder()
+    // The recycle bin is one of the tabs; choosing it opens it and names the page after it.
+    for folder, i in lib.tabFolders where folder[] == Library.getTrashFolder()
+    {
+        lib.folderTabs.setSelectedIndex(cast(u32, i))
+        break
+    }
+
     Swag.assert(lib.currentFolder() == Library.getTrashFolder())
-    lib.updateBreadcrumb()
-    let lastTrash = lib.breadcrumb.items.back()
-    Swag.assert(lastTrash.tag == Library.getTrashFolder())
+    Swag.assert(lib.trashMode)
+    Swag.assert(lib.titleLabel.name == appStrings().act_RecycleBin)
 
-    // The recycle-bin leaf sits directly under the Swag Capture folder.
-    Swag.assert(lib.breadcrumb.items.count >= 2)
-    let parentOfTrash = lib.breadcrumb.items[lib.breadcrumb.items.count - 2]
-    Swag.assert(parentOfTrash.tag == Library.getFolder())
+    lib.setTrashMode(false)
+    Swag.assert(lib.currentFolder() == Library.getFolder())
+    Swag.assert(lib.titleLabel.name == appStrings().act_Library)
 }
 
-// The breadcrumb drop-down lists a level's real sub-folders and keeps their path ids in
-// owned storage (menu items hold ids as non-owning slices, so the source data — a local
-// directory listing — must be copied or the id dangles once the popup is shown).
+// The lens of the library lists its folders, the recycle bin among them, and choosing one opens it.
 #test
 {
     var f: HeadlessFixture
     f.setup()
     defer f.shutdown()
-    let lib = f.setupLibraryWnd()
-    lib.breadcrumb = BreadcrumbCtrl.create(cast(*Wnd, lib), {0, 0, 600, 32})
-
     expect Library.init()
-    lib.curFolder = Library.getFolder()
-    lib.updateBreadcrumb()
 
-    // Fill the drop-down for the Swag Capture level (the last one).
-    let idx  = lib.breadcrumb.items.count - 1
-    let menu = MenuCtrl.createPopup(cast(*Wnd, lib))
-    lib.fillBreadcrumbMenu(lib.breadcrumb, idx, menu)
+    f.main.libWnd = LibraryWnd.create(f.main)
+    let lib = f.main.libWnd
+    defer lib.requestClose()
+    lib.updateFolderMode()
 
-    // Its recycle bin sub-folder is listed, with its path preserved in owned storage.
-    Swag.assert(not lib.menuPaths.isEmpty())
-    var foundTrash = false
-    for p in lib.menuPaths
+    var results: Lens.Results
+    lib.describeLens(&results)
+    var trash: *Lens.Entry?
+    for section in results.sections where section!.label == appStrings().ui_BarFolders
     {
-        if p[] == Library.getTrashFolder() do
-            foundTrash = true
+        for &entry in section.entries where entry.title == appStrings().act_RecycleBin do
+            trash = entry
     }
 
-    Swag.assert(foundTrash)
-
-    menu.destroy()
+    let run = unwrap (unwrap trash).run
+    run()
+    Swag.assert(lib.currentFolder() == Library.getTrashFolder())
 }
 
 // Loading a capture that has no preview (e.g. an older file, or one restored from the

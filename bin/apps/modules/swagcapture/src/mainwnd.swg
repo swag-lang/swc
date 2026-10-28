@@ -7,18 +7,12 @@ const CaptureFileMetadataTag = "Swag.Capture.File"
 const IconsSvg               = #include("../datas/icons.svg")
 const AppIcon                = #include("../datas/appicon.png")
 
-// Interface metrics, taken from the application chart: a glyph never fills more than half
-// of the cell it sits in, and the space left around it is what separates one control from
-// the next. Nothing here is a container for a label stacked under an icon.
-const RailLabelWidth  = 128.0     // Content width of a rail cell when the labels option puts a word beside the glyph.
-const ReadoutWidth    = 88.0      // Shared width of the size and zoom readouts.
-const VerbsWidth      = 272.0     // The command group: two named application actions.
-const ReadoutsWidth   = 200.0     // Two readouts, one gap, and equal outer insets.
-const RightPanelWidth = 288.0     // Content width of the tool panel on the right.
-const ToolTitleHeight = 26.0      // Heading included in the upper split panel.
-
 // The editor tool, which decides what a drag on the capture creates.
 enum EditMode { Shape, Arrow, Line, Polygon, Text, Favorites, Draw, Highlight, Selection, Step, Image, PixSel, Callout }
+
+// What the mini-bar beside the selection carries: nothing without a selection, the colour of one
+// object, the face of a text, the counter of a step, or the alignment of several objects.
+enum MiniBarKind { None, Single, Text, Step, Multi }
 
 // Identifies a glyph of the application icon set (`datas/icons.svg`), in the grid
 // order of the document. The set is rasterized on demand per size and scale through
@@ -89,32 +83,32 @@ enum BottomSize
     Big
 }
 
-// The application window: the menus and tool rail, the editor or the library, the recent strip,
-// the quick styles, and the properties.
+// The application window: the capture on the ground with the tool dock, the inspector, the
+// mini-bar and the hint line floating over it, or the library; the lens over both.
 struct MainWnd
 {
     using wnd: Wnd
 
     late
     {
-        topBar, recentBar, rightBar, editBar: *Wnd
-        toolRail, commandReadouts: *StackLayoutCtrl
-        editWnd:                   *EditWnd
-        quickWnd:                  *QuickWnd
-        propWnd:                   *PropWnd
-        libWnd:                    *LibraryWnd
-        recentWnd:                 *RecentWnd
-        quickStyleBar:             *SplitterCtrl
-        toolTitle:                 *Label
-        topMenu:                   *MenuCtrl
-        libraryBtn, captureBtn:    *PushButton
-        zoomBtn:                   *IconButton
-        appearanceButton:          *AppearanceButton
-        optionsButton:             *CaptionButton
+        editArea, recentBar: *Wnd
+        editWnd:             *EditWnd
+        dock:                *ToolDock
+        inspector:           *Inspector
+        miniBar:             *MiniBar
+        hintLine:            *HintLine
+        lens:                *Lens.View
+        quickWnd:            *QuickWnd
+        propWnd:             *PropWnd
+        libWnd:              *LibraryWnd
+        recentWnd:           *RecentWnd
+        appearanceButton:    *AppearanceButton
     }
 
-    sizeBtn:       *IconButton?
     embInfoFreeze: *InfoBar?
+
+    // The kind of selection the mini-bar was last built for, so it is rebuilt only when that changes.
+    miniBarKind: MiniBarKind = .None
     icons:         IconSet
     appIcon:       ImageList
     monitors:      Array'Env.Monitor
@@ -124,6 +118,7 @@ struct MainWnd
     bottomSize:                                BottomSize = .Medium
     pixSelFillCol:                             Color      = Argb.White
     inPlaceEdit, snap, freezeSel, libraryMode: bool
+    showRecent, inspectorFolded:               bool
     firstShow:                                 bool       = true
     fileDlgState, fileDlgStateInPlace:         FileDlgState
     libraryFolderDlgState:                     FileDlgState
@@ -212,8 +207,8 @@ impl IWnd for MainWnd
 
     mtd impl onResizeEvent(_: *ResizeEvent)
     {
-        if .topMenu != null do
-            .fitTopMenuToStrip()
+        if .miniBar != null do
+            .placeMiniBar()
     }
 
     mtd impl onDestroyEvent(_: *DestroyEvent)
@@ -234,7 +229,6 @@ impl IWnd for MainWnd
             // ever displayed (no black/empty flash on startup).
             .firstShow = false
             catch g_App.loadState()
-            .createTopMenu()
             .surface?.constrainPositionToScreen(topLeft: true, margin: 10)
             .recentWnd.scheduleLoadRecent()
             evt.accepted = true
@@ -278,8 +272,8 @@ impl IWnd for MainWnd
                 try .serialize("MainWnd.libraryShowChangedLinked", &me.libWnd.showUnSavedLinkedImage)
                 try .serialize("MainWnd.libraryShowRatingOverlay", &me.libWnd.showRatingOverlay)
                 try .serialize("MainWnd.libraryShowLinkOverlay", &me.libWnd.showLinkOverlay)
-                try .serialize("MainWnd.RightBar.Pane0", &me.quickStyleBar.items[0]!.size)
-                try .serialize("MainWnd.RightBar.Pane1", &me.quickStyleBar.items[1]!.size)
+                try .serialize("MainWnd.showRecent", &me.showRecent)
+                try .serialize("MainWnd.inspectorFolded", &me.inspectorFolded)
                 try .serialize("MainWnd.captureOptions", &me.captureOptions)
                 try .serialize("MainWnd.editorOptions", &me.editorOptions)
             }
@@ -295,9 +289,9 @@ impl IWnd for MainWnd
                 discard catch g_Library.setFolder(.libraryFolder)
             .setTheme()
             .setLanguage()
-            .quickStyleBar.sendResizeEvent()
             .setBottomSize(.bottomSize, animated: false)
-            .setToolRailWidth()
+            .showRecentBar(.showRecent)
+            .inspector.setFolded(.inspectorFolded)
             .updateState()
         }
     }
@@ -548,20 +542,20 @@ impl MainWnd
     mtd updateState()
     {
         .updateCommandState()
-        .updateToolTitle()
+        .updateInspectorTitle()
         if .propWnd != null do
             .propWnd.selectionHasChanged()
         if .quickWnd != null do
             .quickWnd.updateQuickStyles()
+        .updateMiniBar()
     }
 
     mtd captureHasChanged()
     {
-        .updateSizeDisplay()
+        .updateReading()
         if .recentWnd != null
         {
-            if .toolRail != null do
-                .toolRail.updateCommandState()
+            .updateCommandState()
             .updateRecent()
         }
     }
@@ -579,56 +573,71 @@ impl MainWnd
             .recentWnd.updateRecent()
     }
 
-    // The two readouts of the command row. Both are machine data, set in the fixed-width
-    // theme family, so a value never changes the width of the control that holds it.
-    mtd updateZoomDisplay()
+    // Writes the size and the zoom of the capture at the head of the hint line. Both are machine
+    // data, set in the fixed-width family by the line itself.
+    mtd updateReading()
     {
-        // The percent sign is appended rather than formatted: '%' is the placeholder itself.
-        var label = Format.toString("%", cast(s32, .editWnd.editView.zoom * 100))
-        label         += "%"
-        .zoomBtn.name = label
-        .zoomBtn.invalidate()
-    }
-
-    mtd updateSizeDisplay()
-    {
-        if not .sizeBtn do
+        if .hintLine == null do
             return
 
-        let capture = .getCapture()
-        if capture do
-            .sizeBtn.name = Format.toString("%×%", capture.width, capture.height)
-        else do
-            .sizeBtn.name = "—"
-        .sizeBtn.invalidate()
-    }
-
-    // Names the surface the right column is editing. A pane title would only repeat what the
-    // reader already sees; the tool name says something the panel itself does not.
-    mtd updateToolTitle()
-    {
-        if .toolTitle == null do
-            return
-
-        var name = appStrings().act_Select
-        switch .getEditMode()
+        let capture = .editWnd.getCapture()
+        if not capture
         {
-        case .Shape:     name = appStrings().act_Shape
-        case .Arrow:     name = appStrings().act_Arrow
-        case .Line:      name = appStrings().act_Line
-        case .Polygon:   name = appStrings().act_Polygon
-        case .Text:      name = appStrings().act_Text
-        case .Callout:   name = appStrings().act_Callout
-        case .Draw:      name = appStrings().act_Draw
-        case .Highlight: name = appStrings().act_Highlight
-        case .Step:      name = appStrings().act_Step
-        case .Image:     name = appStrings().ui_MenuImage
-        case .PixSel:    name = appStrings().act_PixSel
-        case .Favorites: name = appStrings().act_Favorites
-        default:         break
+            .hintLine.setReading(null)
+            return
         }
 
-        .toolTitle.setText(String.toUpper(name))
+        // The percent sign is appended rather than formatted: '%' is the placeholder itself.
+        var reading = Format.toString("% × % · %", capture.width, capture.height, cast(s32, Math.round(.editWnd.editView.zoom * 100)))
+        reading += " %"
+        .hintLine.setReading(reading)
+    }
+
+    // Returns the name of a tool, as the inspector heads the properties it edits.
+    func editModeName(mode: EditMode)->string
+    {
+        switch #complete mode
+        {
+        case .Shape:     return appStrings().act_Shape
+        case .Arrow:     return appStrings().act_Arrow
+        case .Line:      return appStrings().act_Line
+        case .Polygon:   return appStrings().act_Polygon
+        case .Text:      return appStrings().act_Text
+        case .Callout:   return appStrings().act_Callout
+        case .Draw:      return appStrings().act_Draw
+        case .Highlight: return appStrings().act_Highlight
+        case .Step:      return appStrings().act_Step
+        case .Image:     return appStrings().ui_MenuImage
+        case .PixSel:    return appStrings().act_PixSel
+        case .Favorites: return appStrings().act_Favorites
+        case .Selection: return appStrings().act_Select
+        }
+    }
+
+    // Names what the inspector edits: the selected objects and their count, or the tool whose
+    // next objects take these settings; and offers Duplicate and Delete for a selection.
+    mtd updateInspectorTitle()
+    {
+        if .inspector == null do
+            return
+
+        .inspector.clear()
+        let capture = .getCapture()
+        let count   = capture ? capture.selection.count : 0
+        if count == 0
+        {
+            .inspector.setTitle(editModeName(.getEditMode()), appStrings().ui_NextObjects)
+            return
+        }
+
+        if count == 1 do
+            .inspector.setTitle(editModeName(formToEditMode(capture!.forms[capture.selection.back()])), appStrings().ui_OneObject)
+        else do
+            .inspector.setTitle(Format.toString(appStrings().ui_Objects, count))
+
+        // The actions are words: the commands they post carry glyphs for the lens.
+        .inspector.addAction(appStrings().act_Duplicate).sigPressed += func|main = me|(_) { main.postCommandEvent(ActionCopyPaste.Duplicate) }
+        .inspector.addAction(appStrings().act_Delete).sigPressed += func|main = me|(_) { main.postCommandEvent(ActionSelection.DeleteSelection) }
     }
 
     // Registers every command family of the editor.
@@ -702,6 +711,12 @@ impl MainWnd
         .registerKeyShortcut(.Control, .Subtract, ActionZoom.ZoomOut)
         .registerKeyShortcut(.Control, .NumPad0, ActionZoom.Zoom1)
 
+        // The one door, and the properties of the selection. Space types in a field, so a field
+        // keeps it and Ctrl K opens the lens from there.
+        .registerKeyShortcut(.None, .Space, ActionView.Lens)
+        .registerKeyShortcut(.Control, .K, ActionView.Lens)
+        .registerKeyShortcut(.None, .I, ActionView.Inspector)
+
         // Every shortcut another application already owns is named in one information bar.
         var taken: Array'String
 
@@ -766,6 +781,9 @@ impl MainWnd
         discard catch .appearanceButton.setAppearanceLanguage(tag)
     }
 
+    // Creates the glyph of a tool, at the size the dock draws it.
+    mtd toolIcon(idx: CaptureIcons)->Icon => .icon(idx, .themeMetrics().toolDock_Glyph)
+
     // Creates an icon descriptor for an application glyph at `size` logical pixels.
     mtd icon(idx: CaptureIcons, size = 0.0)->Icon
     {
@@ -773,8 +791,9 @@ impl MainWnd
         return .icons.icon(cast(s32, idx), resolvedSize, .theme().res.atlasScale)
     }
 
-    // Builds the main window: the command row, the tool rail, the editor, the recent strip,
-    // and the tool panel, with the library hidden behind them until it is asked for.
+    // Builds the main window: the work area with its dock, inspector, mini-bar and hint line,
+    // the recent strip it shows on demand, the library hidden until it is asked for, and the
+    // lens that reaches every command.
     func create(parent: *Wnd)->*MainWnd
     {
         let srf = unwrap parent.surface
@@ -801,12 +820,12 @@ impl MainWnd
         }
 
         result.createAppearanceButton()
-        result.createOptionsButton()
-        result.createCommandRow()
-        result.createToolRail()
-        result.createEditArea()
         result.createRecentBar()
-        result.createToolPanel()
+        result.createEditArea()
+        result.createDock()
+        result.createInspector()
+        result.createMiniBar()
+        result.createHintLine()
 
         with result
         {
@@ -817,13 +836,12 @@ impl MainWnd
             .setLanguage()
             .registerActions()
             .registerShortcuts()
-            .updateZoomDisplay()
-            .updateSizeDisplay()
             .setBottomSize(.Medium, animated: false)
-            .setToolRailWidth()
-            .updateState()
             .libWnd = LibraryWnd.create(result)
             .libWnd.hide()
+            .createLens()
+            .updateReading()
+            .updateState()
         }
 
         g_Main = result

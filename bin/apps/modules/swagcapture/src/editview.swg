@@ -26,6 +26,9 @@ impl IWnd for EditView
             .invalidate()
             evt.accepted = true
             .setFocus()
+
+            // The mini-bar stands beside the selection, so it follows a form being moved.
+            .main.placeMiniBar()
             return
         }
 
@@ -51,23 +54,22 @@ impl IWnd for EditView
 
         let painter = evt.paintContext.painter
 
-        let matte = .main.editorOptions.editBackColor.a ? .main.editorOptions.editBackColor : .themeColors().view_Bk
+        // The capture lies on the ground of the window, which nothing frames: the work area is
+        // the window itself.
+        let matte = .main.editorOptions.editBackColor.a ? .main.editorOptions.editBackColor : .themeColors().ground
 
         var rect = .clientRect()
         rect.offset(.scrollPos)
-        let radius = .themeRects().panel_Bk.radius
-        painter.setAntialiased(true)
-        painter.fillRoundRect(rect, radius, radius, matte)
+        painter.fillRect(rect, matte)
         if not .capture do
             return
 
-        // Dim the matte as one rounded surface, then paint the opaque capture back over its
-        // center. This is equivalent to four rectangular surrounds without letting those
-        // rectangles square off the panel corners.
+        // Dim the matte, then paint the opaque capture back over its center: what a form draws
+        // outside the capture shows through the dim, or not at all when the view clips to it.
         let captureRect = .getCaptureRect()
         var col         = matte
         col.a = .main.editorOptions.clipToSelection ? 255 : 200
-        painter.fillRoundRect(rect, radius, radius, col)
+        painter.fillRect(rect, col)
 
         var clip = rect
         clip.inflate(100, 100)
@@ -120,7 +122,9 @@ impl EditView
             return captureRect
         }
 
-        captureRect.x = rect.horzCenter() - captureRect.width * 0.5
+        // Centred in the room the dock and the inspector leave, so neither covers the capture.
+        let insets = .main.floatingInsets()
+        captureRect.x = rect.x + insets.left + (rect.width - insets.left - insets.right) * 0.5 - captureRect.width * 0.5
         captureRect.y = rect.vertCenter() - captureRect.height * 0.5
         captureRect.round()
         return captureRect
@@ -162,7 +166,10 @@ impl EditView
 
         .zoom = Math.clamp(z, MinZoom, MaxZoom)
         let captureRect = .getCaptureRect()
-        .scroll.setScrollSize(captureRect.width + (2 * .viewMargin), captureRect.height + (2 * .viewMargin))
+        var insets: FloatingInsets
+        if not .inPlaceEdit do
+            insets = .main.floatingInsets()
+        .scroll.setScrollSize(captureRect.width + (2 * .viewMargin) + insets.left + insets.right, captureRect.height + (2 * .viewMargin))
 
         if mouseCenter
         {
@@ -196,8 +203,10 @@ impl EditView
         // A degenerate (zero-sized) capture would divide by zero below.
         if .capture.width == 0 or .capture.height == 0 do
             return
-        var rect = .clientRect()
+        let insets = .main.floatingInsets()
+        var rect   = .clientRect()
         rect.inflate(-.viewMargin * 2)
+        rect.width -= insets.left + insets.right
 
         var zx = rect.width / .capture.width
         var zy = rect.height / .capture.height

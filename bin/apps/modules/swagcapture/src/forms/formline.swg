@@ -204,11 +204,12 @@ impl IForm for FormLine
             if .gizmo.anchors.count == 3
             {
                 .gizmo.anchors[2] = Math.Point{(.xa + .xc) * z, (.ya + .yc) * z}
-                painter.drawLine(.gizmo.anchors[0].x, .gizmo.anchors[0].y, .gizmo.anchors[2].x, .gizmo.anchors[2].y, Argb.White, 2)
-                painter.drawLine(.gizmo.anchors[1].x, .gizmo.anchors[1].y, .gizmo.anchors[2].x, .gizmo.anchors[2].y, Argb.White, 2)
+                let guide = Pen.createDash(.Dash, selectionInk(), 1)
+                painter.drawLine(.gizmo.anchors[0].x, .gizmo.anchors[0].y, .gizmo.anchors[2].x, .gizmo.anchors[2].y, guide)
+                painter.drawLine(.gizmo.anchors[1].x, .gizmo.anchors[1].y, .gizmo.anchors[2].x, .gizmo.anchors[2].y, guide)
             }
 
-            .gizmo.paint(null, painter, not flags.has(.Selected))
+            .gizmo.paint(null, painter, not flags.has(.Selected), selectionInk())
         }
     }
 

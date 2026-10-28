@@ -1,3 +1,6 @@
+// Distance, in capture pixels, between a duplicated form and its original.
+const DuplicateOffset = 16's32
+
 impl Capture
 {
     mtd copyAll()
@@ -91,9 +94,6 @@ impl Capture
         // (or collide with groups from another capture file), so mint fresh ids.
         .remapGroups(result)
 
-        let undo = .newUndo(.CreateForm)
-        .selection.clear()
-
         var boundRect: Math.Rectangle
 
         for itf, idx in result
@@ -105,8 +105,6 @@ impl Capture
             else do
                 boundRect.combine(bound)
         }
-
-        undo.oldForms = result
 
         // Center the pasted forms on the mouse.
         let editView = unwrap .editView
@@ -120,17 +118,44 @@ impl Capture
         pt.x /= zoom
         pt.y /= zoom
 
-        for itf in undo.oldForms
+        for itf in result
         {
             let dx = -boundRect.x + pt.x - (boundRect.width * 0.5)
             let dy = -boundRect.y + pt.y - (boundRect.height * 0.5)
             itf.moveForm(cast(dx), cast(dy))
         }
 
+        .addNewForms(result)
+    }
+
+    // Duplicates the selected forms as one undoable step. The copies stand a little below and to
+    // the right of their originals and become the selection; the clipboard is left alone.
+    mtd duplicate()
+    {
+        var payload: CaptureClipboardForms
+        for s in .selection do
+            payload.add(.forms[s])
+
+        var result = payload.toForms(me)
+        .remapGroups(result)
+        for itf in result
+        {
+            itf.setup(me)
+            itf.moveForm(DuplicateOffset, DuplicateOffset)
+        }
+
+        .addNewForms(result)
+    }
+
+    // Adds `forms` on top of the capture as one undoable step and makes them the selection.
+    private mtd addNewForms(forms: Array'IForm)
+    {
+        let undo = .newUndo(.CreateForm)
+        undo.oldForms = forms
+
         let countBefore = .forms.count
         .pushUndo(undo)
 
-        // Select the forms added by this paste.
         .selection.clear()
         for i in undo.oldForms.count do
             .selection.add(countBefore + i)

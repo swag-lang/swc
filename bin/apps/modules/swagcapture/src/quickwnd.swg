@@ -1,8 +1,10 @@
 // A preset cell renders a real sample of the style it applies, so it sits at the sample
 // size of the application chart rather than at the flat-swatch size. The sample keeps a
 // margin inside its cell: the air is what separates one preset from the next.
-const QuickCellSize   = 44.0
+const QuickCellSize   = 40.0
 const QuickCellMargin = 6.0
+const QuickCellGap    = 4.0     // Air between two preset cells; six cells fill the column of the inspector.
+const QuickMaxLines   = 2       // Lines of presets shown before the strip scrolls.
 
 // The overlay that turns the trailing cell into an "add this style" action.
 const AddCellSize  = 18.0
@@ -353,13 +355,13 @@ impl QuickWnd
         with let quick = Wnd.create'QuickWnd(parent, {0, 0, 0, 300})
         {
             .backgroundStyle = .Transparent
-            .updateFlags(.AlwaysShowVertical | .CompactBars | .TransparentBars)
+            .updateFlags(.CompactBars | .TransparentBars)
 
-            // The presets start on the margin the rest of the panel uses, so the column of
-            // samples lines up with the style cells and the rows below them.
+            // The presets stand in the column of the inspector, which keeps the margins; the
+            // strip keeps only the air between itself and the rows under it.
             .layout         = WrapLayoutCtrl.create(quick)
-            .layout.padding = {12, 8, 12, 8}
-            .layout.spacing = 8
+            .layout.padding = {0, 0, 0, quick.themeMetrics().inspector_RowGap}
+            .layout.spacing = QuickCellGap
             .setView(quick.layout)
 
             .main = main
@@ -996,5 +998,17 @@ impl QuickWnd
 
         .updateSelection()
         .layout.computeLayout()
+        .fitHeight()
+    }
+
+    // Gives the strip the height of its presets, up to a few lines; past them it scrolls.
+    mtd fitHeight()
+    {
+        let lines  = QuickMaxLines * QuickCellSize + (QuickMaxLines - 1) * QuickCellGap + .layout.padding.w
+        let height = Math.min(.layout.contentHeight, lines)
+        if .position.height == height do
+            return
+        .resize(.position.width, height)
+        .parent?.applyLayout()
     }
 }

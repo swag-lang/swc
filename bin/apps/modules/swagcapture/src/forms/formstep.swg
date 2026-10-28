@@ -98,7 +98,7 @@ impl IForm for FormStep
         if flags.has(.Hot | .Selected)
         {
             .gizmo.rect = .boundRect() * z
-            .gizmo.paint(painter, not flags.has(.Selected))
+            .gizmo.paint(painter, not flags.has(.Selected), selectionInk())
         }
     }
 

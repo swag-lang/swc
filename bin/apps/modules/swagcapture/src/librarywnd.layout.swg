@@ -1,19 +1,93 @@
+// The page of the library: a title over its folders as tabs and its tags as chips, the quiet menus
+// and the search beside the title, the captures under them on the window ground.
+const LibraryPageMargin = 72.0     // Air between the page and the side edges of the window.
+const LibraryTitleSize  = 48'u32   // Size of the page title.
+const LibraryTitleRow   = 72.0     // Height of the row of the title, the menus and the search.
+const LibraryTabsRow    = 40.0     // Height of the row of the folder tabs and the tag chips.
+const LibraryHeaderGap  = 24.0     // Air between the header and the first row of captures.
+const LibrarySearchWidth = 280.0   // Width of the search field.
+const LibraryMaxChips   = 6        // Tags offered as chips; the filter sheet offers every tag.
+
 impl LibraryWnd
 {
-    // The captures themselves, on a recessed ground of their own.
+    // The header of the page: the title row and the row of tabs and chips.
+    mtd createHeader()
+    {
+        let metrics = .themeMetrics()
+        let theme   = .theme()
+        with .header = Wnd.create'Wnd(me, {0, 0, 0, LibraryTitleRow + LibraryTabsRow + LibraryHeaderGap})
+        {
+            .dockStyle       = .Top
+            .backgroundStyle = .Transparent
+            .padding.w       = LibraryHeaderGap
+        }
+
+        with let titleRow = Wnd.create'Wnd(.header, {0, 0, 0, LibraryTitleRow})
+        {
+            .dockStyle       = .Top
+            .backgroundStyle = .Transparent
+        }
+
+        // The search stands against the trailing edge, centred on the line of the title.
+        let fieldHeight = metrics.editBox_Height
+        with .searchEdit = EditBox.create(titleRow, "", {0, 0, LibrarySearchWidth, fieldHeight}, flags: .ClearButton | .ReleaseFocusOnEnterOrEscape)
+        {
+            .dockStyle = .Right
+            .margin.y  = Math.round((LibraryTitleRow - fieldHeight) * 0.5)
+            .margin.w  = .margin.y
+            .setPlaceholder(appStrings().ui_Search)
+            .sigTextChanged += func|libWnd = me|(ed) { libWnd.setSearch(ed.text()) }
+        }
+
+        .createCommandBar(titleRow)
+
+        var titleFont = theme.createDefaultFontFamily(LibraryTitleSize)
+        titleFont.regular = titleFont.bold
+        with .titleLabel = Label.create(titleRow, "", {})
+        {
+            .dockStyle = .Center
+            .style.setFont(titleFont)
+            .setTextAlignment(.Left, .Center)
+        }
+
+        with let tabsRow = Wnd.create'Wnd(.header, {0, 0, 0, LibraryTabsRow})
+        {
+            .dockStyle       = .Top
+            .backgroundStyle = .Transparent
+        }
+
+        with .tagChips = StackLayoutCtrl.create(tabsRow, .Left, {})
+        {
+            .dockStyle    = .Right
+            .fitToContent = true
+            .spacing      = metrics.iconBar_ButtonGap
+            .padding.y    = Math.round((LibraryTabsRow - metrics.editBox_Height) * 0.5)
+        }
+
+        with .folderTabs = Tab.create(tabsRow, {})
+        {
+            .dockStyle = .Center
+            .setLayout(.Content)
+            .sigSelectionChanged += func|libWnd = me|(_) { libWnd.openFolderTab() }
+        }
+
+        .hintLine = HintLine.create(me)
+        .hintLine.addHint(strings().key_Space, appStrings().hint_LibrarySpace)
+    }
+
+    // The captures themselves, on the ground of the window.
     mtd createCaptureGrid()
     {
         with .captureHost = Wnd.create'ScrollWnd(me)
         {
             .dockStyle       = .Center
-            .backgroundStyle = .Panel
-            .style.addStyleSheetColors("wnd_Bk $view_Bk")
+            .backgroundStyle = .Transparent
         }
 
         with .view = Wnd.create'LibraryView(me.captureHost)
         {
             .libWnd    = me
-            .padding   = 8
+            .padding   = LibraryCellRing
             .scrollWnd = me.captureHost
             .mainWnd   = me.main
         }
@@ -21,54 +95,14 @@ impl LibraryWnd
         .captureHost.setView(.view)
     }
 
-    // The date list of the side bar, followed by the application and tag groups once the
-    // previews have loaded.
-    mtd createDateList()
+    // One quiet menu of the title row: its word and the arrow that says a menu opens.
+    mtd createMenuButton(parent: *Wnd, text: string)->*IconButton
     {
-        with .listCtrl = ListCtrl.createMultiColumns(me.sideBar)
-        {
-            .dockStyle       = .Center
-            .backgroundStyle = .Transparent
-            .addColumn("name", SideBarWidth - LibCountWidth - LibRowIndent)
-            .addColumn("count", LibCountWidth)
-            .listView.style.addStyleSheetColors("listItem_SelectedBk $listItem_FocusSelectedBk")
-            .setLineHeight(30)
-            .updateFlags(.PreserveSelectionOnEmptyClick | .ReserveExpandMargin)
-            .scrollWnd.updateFlags(.CompactBars | .AlwaysShowVertical | .TransparentBars)
-            .header.hide()
-            .sigSelectionChanged += func|libWnd = me|(list)
-            {
-                let sel = list.selectedLine()
-                if not sel do
-                    return
-                libWnd.applySidebarFilter(sel)
-            }
-        }
-    }
-
-    // The folder path bar: it shows the real library folder and lets the user walk it, since
-    // its sub-folders, the recycle bin included, are reachable from the chevrons.
-    mtd createBreadcrumb()
-    {
-        with .breadcrumb = BreadcrumbCtrl.create(me.barPanel, Math.Rectangle{0, 0, 0, themeActionButtonSize(me.themeMetrics())})
-        {
-            .dockStyle       = .Top
-            .backgroundStyle = .Transparent
-            .sigItemPressed  += func|libWnd = me|(bc, idx) { libWnd.navigateFolder(bc.items[idx].tag) }
-            .sigFillMenu     += func|libWnd = me|(bc, idx, menu) { libWnd.fillBreadcrumbMenu(bc, idx, menu) }
-            .sigMenuSelected += func|libWnd = me|(_, _, id) { libWnd.navigateFolder(id) }
-        }
-    }
-
-    // One named drop-down of the command bar: a glyph, the word beside it, and the arrow that
-    // says a menu opens.
-    mtd createMenuButton(icon: Icon, text: string)->*IconButton
-    {
-        with let button = IconButton.create(me.commandBar, icon, Math.Rectangle{0, 0, 0, themeActionButtonSize(me.themeMetrics())})
+        with let button = IconButton.create(parent, {}, Math.Rectangle{0, 0, 0, .themeMetrics().editBox_Height})
         {
             .preferredSize.x = 0
             .setText(text)
-            .updateFlags(.CenterContent)
+            .updateFlags(.CenterContent | .Flat)
             .setTextPosition(.Right)
             .setArrowPosition(.RightDownward)
         }
@@ -76,47 +110,142 @@ impl LibraryWnd
         return button
     }
 
-    // The command row of the library: the presentation menus, the folder menu, the loading
-    // state, and the live search against the right edge.
-    mtd createCommandBar()
+    // The quiet menus of the page: how it is shown, what it filters, which folder it reads.
+    mtd createCommandBar(parent: *Wnd)
     {
-        let metrics  = .themeMetrics()
-        let iconSize = themeActionIconSize(metrics)
-        with .commandBar = StackLayoutCtrl.create(me.barPanel, .Left, Math.Rectangle{0, 0, 0, themeActionButtonSize(metrics)})
+        let metrics = .themeMetrics()
+        with .commandBar = StackLayoutCtrl.create(parent, .Left, {})
         {
-            .dockStyle       = .Top
+            .dockStyle       = .Right
+            .fitToContent    = true
             .spacing         = LibButtonGap
-            .padding         = Math.Vector4{2 * metrics.iconBar_ButtonsPadding, metrics.iconBar_ButtonsPadding, 2 * metrics.iconBar_ButtonsPadding, metrics.iconBar_ButtonsPadding}
+            .padding         = {0, Math.round((LibraryTitleRow - metrics.editBox_Height) * 0.5), LibButtonGap, 0}
             .backgroundStyle = .Transparent
         }
 
         // How the library is shown — thumbnail size, order, and what is painted over each
         // thumbnail — is one sheet, because none of it changes what the library holds.
-        .viewBtn = .createMenuButton(.theme().icon(.ActualSize, iconSize), appStrings().ui_BarView)
+        .viewBtn = .createMenuButton(.commandBar, appStrings().ui_BarView)
         .viewBtn.sigPressed += func|libWnd = me|(btn) { libWnd.showViewOptions(btn) }
 
-        .filterBtn = .createMenuButton(.theme().icon(.Filter, iconSize), appStrings().ui_BarFilter)
+        .filterBtn = .createMenuButton(.commandBar, appStrings().ui_BarFilter)
         .filterBtn.sigPressed += func|libWnd = me|(btn) { libWnd.showFilterOptions(btn) }
 
-        // Library roots and ordinary image folders are explicit choices, named like every
-        // neighbouring command instead of leaving one unexplained glyph in the sentence.
-        .folderBtn            = .createMenuButton(.theme().icon(.OpenFile, iconSize), appStrings().ui_BarFolders)
+        .folderBtn            = .createMenuButton(.commandBar, appStrings().ui_BarFolders)
         .folderBtn.toolTip    = appStrings().tip_LibraryFolders
         .folderBtn.sigPressed += func|libWnd = me|(btn) { libWnd.showFolderMenu(btn) }
 
-        // Loading state stays with the commands it updates, before the flexible gap, so it
-        // appears without moving the search field away from the right edge.
+    }
+
+    // The loading state of the previews stays with the menus it updates; hidden, it takes no room.
+    mtd createSpinner()
+    {
+        let iconSize = themeRowIconSize(.themeMetrics())
         .view.imgSpin = Spinner.create(.commandBar, Math.Rectangle{0, 0, iconSize, iconSize})
         .view.imgSpin.hide()
+    }
 
-        let spacer = Wnd.create'Wnd(.commandBar)
-        spacer.layoutSpec.policyX = .Expand
+    // Names the page after the folder it shows: the library, its recycle bin, or a browsed folder.
+    mtd updateTitle()
+    {
+        if .titleLabel == null do
+            return
 
-        with .searchEdit = EditBox.create(me.commandBar, "", Math.Rectangle{0, 0, 220, themeActionButtonSize(metrics)}, flags: .ClearButton | .ReleaseFocusOnEnterOrEscape)
+        let folder = .currentFolder()
+        if folder == Library.getFolder() do
+            .titleLabel.setText(appStrings().act_Library)
+        elif .trashMode do
+            .titleLabel.setText(appStrings().act_RecycleBin)
+        else do
+            .titleLabel.setText(Path.fileName(folder) orelse folder.toString())
+    }
+
+    // Lists the folders of the library as tabs, with the count of what each one holds: the whole
+    // library first, then its sub-folders, the recycle bin among them.
+    mtd updateFolderTabs()
+    {
+        if .folderTabs == null do
+            return
+
+        .updatingTabs = true
+        defer .updatingTabs = false
+        .folderTabs.clear()
+        .tabFolders.clear()
+
+        let root = Library.getFolder()
+        .folderTabs.addItem(Format.toString("%  %", appStrings().ui_AllCaptures, g_Library.files.count))
+        .tabFolders.add(root)
+
+        let dirs = catch Directory.enumerateDirectories(root)
+        for d in dirs
         {
-            .setForm(.Rectangle)
-            .setPlaceholder(appStrings().ui_Search)
-            .sigTextChanged += func|libWnd = me|(ed) { libWnd.setSearch(ed.text()) }
+            let isTrash = d.fullName == Library.getTrashFolder()
+            var count   = 0'u64
+            if isTrash do
+                count = (catch Library.enumerateTrash()).count
+            else do
+                count = (catch Library.enumerateSupportedFiles(d.fullName)).count
+            let name = isTrash ? appStrings().act_RecycleBin : (Path.fileName(d.fullName) orelse d.fullName.toString())
+            .folderTabs.addItem(Format.toString("%  %", name, count))
+            .tabFolders.add(d.fullName)
         }
+
+        let current = .currentFolder()
+        for folder, i in .tabFolders where folder[] == current
+        {
+            .folderTabs.setSelectedIndex(cast(u32, i))
+            break
+        }
+    }
+
+    // Opens the folder of the tab the reader chose.
+    mtd openFolderTab()
+    {
+        if .updatingTabs do
+            return
+        // A copy: opening the folder lists the tabs again, which replaces the paths.
+        let index = .folderTabs.selectedIndex
+        if index < .tabFolders.count
+        {
+            let folder: String = .tabFolders[index]
+            .navigateFolder(folder)
+        }
+    }
+
+    // Offers the most used tags as chips; the chip of the tag in force is chosen.
+    mtd updateTagChips()
+    {
+        if .tagChips == null do
+            return
+
+        for chip in .tagChips.children do
+            chip.destroy()
+
+        let metrics = .themeMetrics()
+        for tag, i in .sidebarTags
+        {
+            if i == LibraryMaxChips do
+                break
+
+            let name = tag.name.toString()
+            with let chip = IconButton.create(.tagChips, {}, {0, 0, 0, metrics.editBox_Height}, flags: .Toggle)
+            {
+                .preferredSize.x = 0
+                .setText(name)
+                .style.setFont(me.theme().res.fontDefaultFs)
+                .updateFlags(.CenterContent)
+                .setForm(.RoundedRectangle)
+                .setCheckIndicator(.Frame)
+                .setChecked(Utf8.compare(tag.name.toSlice(), me.tagFilter, .Latin1NoCase) == 0)
+                .sigPressed += func|libWnd = me, name|(_)
+                {
+                    let chosen = Utf8.compare(libWnd.tagFilter.toSlice(), name, .Latin1NoCase) == 0
+                    libWnd.setTagFilter(chosen ? "" : name)
+                }
+            }
+        }
+
+        .tagChips.computeLayout()
+        .applyLayout()
     }
 }

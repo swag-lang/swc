@@ -5,24 +5,18 @@ using Swag, Core
 
 func testSetupGlobalMain(main: *MainWnd)
 {
-    main.editWnd.dockStyle = .Center
-
-    main.topBar = Wnd.create'Wnd(main, Math.Rectangle{0, 0, 900, themeActionButtonSize(main.themeMetrics())})
-    main.createCommandRow()
-
-    with main.recentBar = Wnd.create'Wnd(main, {0, 0, 0, 128})
+    with main.editArea = Wnd.create'Wnd(main)
     {
-        .dockStyle = .Bottom
+        .dockStyle = .Center
     }
 
-    main.rightBar = Wnd.create'Wnd(main, Math.Rectangle{0, 0, RightPanelWidth + 2 * main.themeMetrics().panel_GutterSize, 0})
-    main.rightBar.dockStyle = .Right
-
-    main.quickStyleBar = SplitterCtrl.create(main.rightBar, {0, 0, RightPanelWidth, 600}, vertical: true)
-    main.quickStyleBar.dockStyle = .Center
-
-    main.createToolRail()
-    main.setToolRailWidth()
+    main.editWnd.setParent(main.editArea)
+    main.editWnd.dockStyle = .Center
+    main.createRecentBar()
+    main.createDock()
+    main.createInspector()
+    main.createMiniBar()
+    main.createHintLine()
 
     main.libWnd = LibraryWnd.create(main)
     main.libWnd.hide()
@@ -31,7 +25,7 @@ func testSetupGlobalMain(main: *MainWnd)
     // category list so the test never scans the user's capture folder.
     g_Library.loaded = true
     g_Library.files.clear()
-    discard main.libWnd.listCtrl.createLine("Seed")
+    main.libWnd.filledOnce     = true
     main.libWnd.filledRevision = g_Library.revision
 }
 
@@ -54,41 +48,6 @@ func testSetupGlobalMain(main: *MainWnd)
     Swag.assert(f.main.appearanceButton.appearanceTheme == .System and f.gui.theme.colors.ground == ThemeColors.encrePalette().ground)
 }
 
-// A rail-only option change must not reapply unrelated application-wide settings. Repeating the
-// change used to broadcast both theme and language notifications, repaint every surface, and make
-// the options dialog progressively stall.
-#test
-{
-    var f: HeadlessFixture
-    f.setup()
-    defer f.shutdown()
-
-    testSetupGlobalMain(f.main)
-    f.gui.theme.setLight()
-    expect f.gui.app.setLanguage("fr")
-    defer expect f.gui.app.setLanguage("en")
-
-    f.main.editorOptions.theme    = .Dark
-    f.main.editorOptions.language = .English
-    f.main.editorOptions.showToolBarLabels = true
-    let lightBackground = f.main.themeColors().wnd_Bk
-    discard f.main.applyOptionChange(#nameof(EditorOptions.showToolBarLabels))
-
-    let metrics = f.main.themeMetrics()
-    Swag.assert(f.main.toolRail.position.width == RailLabelWidth)
-    Swag.assert(f.main.themeColors().wnd_Bk == lightBackground)
-    Swag.assert(Gui.activeLanguage() == "fr")
-
-    for i in 32
-    {
-        f.main.editorOptions.showToolBarLabels = i % 2 == 0
-        discard f.main.applyOptionChange(#nameof(EditorOptions.showToolBarLabels))
-        let expected = f.main.editorOptions.showToolBarLabels ? RailLabelWidth : themeActionButtonSize(metrics)
-        Swag.assert(f.main.toolRail.position.width == expected)
-        Swag.assert(f.main.app().animator.activeCount() == 0)
-    }
-}
-
 // Global window actions toggle the real Swag Capture panes and surface visibility in a
 // headless surface without touching persisted app state.
 #test
@@ -106,14 +65,13 @@ func testSetupGlobalMain(main: *MainWnd)
     testSetupGlobalMain(f.main)
     f.gui.setReducedMotion(false)
 
-    // In icon-only mode the glyph is centered in its cell: the rule marking the tool in use is
-    // drawn over the cell edge and reserves no lane of its own.
-    let firstTool   = assume cast(*IconButton, f.main.toolRail.children[0])
-    let metrics     = f.main.themeMetrics()
-    let cellPadding = (themeActionButtonSize(metrics) - themeActionIconSize(metrics)) * 0.5
-    Swag.assert(firstTool.flags.has(.IconOnly))
-    Swag.assert(firstTool.padding.x == cellPadding and firstTool.padding.z == cellPadding)
-    Swag.assert(firstTool.position.width == themeActionButtonSize(metrics))
+    // The tools stand in the dock, one cell per tool, the glyph at the size of the dock.
+    let metrics   = f.main.themeMetrics()
+    let firstTool = f.main.dock.tools[0]
+    Swag.assert(f.main.dock.tools.count == 13)
+    Swag.assert(firstTool.id == ActionToolMode.Selection)
+    Swag.assert(firstTool.position.width == metrics.toolDock_CellSize)
+    Swag.assert(firstTool.icon.sizeX == metrics.toolDock_Glyph)
 
     // The wait indicator of a library scan stands in the command bar, not over the captures. It
     // used to be a child of the scroll window at 8,8 — which is exactly where the view's own
@@ -136,24 +94,15 @@ func testSetupGlobalMain(main: *MainWnd)
     Swag.assert(Gui.Testing.actionUpdate'ActionGlobal(f.main, ActionGlobal.ShowLibrary, &evt))
     Swag.assert(not evt.name.isEmpty())
     Swag.assert(not evt.checked)
-    Swag.assert((f.main.libraryBtn.text()).count != 0)
-    Swag.assert(f.main.libraryBtn.icon.isValid())
-    Swag.assert(f.main.libraryBtn.form == .Normal)
-    Swag.assert(f.main.libraryBtn.position.width == f.main.captureBtn.position.width)
     Swag.assert(f.main.icon(.RatingStar, RatingGlyphSize).isValid())
-    Swag.assert(f.main.commandReadouts.isLocallyVisible())
 
-    f.gui.focus(f.main.libraryBtn)
-    f.gui.keyPress(Input.Key.Space)
+    // The library is a lens entry: the work area, with the dock and the inspector it carries,
+    // leaves while the library is on screen.
+    Swag.assert(Gui.Testing.actionExecute'ActionGlobal(f.main, ActionGlobal.ShowLibrary))
     Swag.assert(f.main.libraryMode)
-
-    // Filled, Library wears the theme's alternate tone: Capture is what the surface is for and
-    // keeps the signature, and the page the reader can leave to is the other thing a theme owns
-    // a second color for.
-    Swag.assert(f.main.libraryBtn.form == .Alternate)
-    Swag.assert(not f.main.editWnd.isLocallyVisible())
+    Swag.assert(not f.main.editArea.isLocallyVisible())
     Swag.assert(f.main.libWnd.isLocallyVisible())
-    Swag.assert(not f.main.commandReadouts.isLocallyVisible())
+    Swag.assert(not f.main.miniBar.isLocallyVisible())
     Swag.assert(not f.main.app().animator.isActive(f.main.libWnd, AnimationChannel.from("Gui.Page.Offset")))
     Swag.assert(f.main.libWnd.presentationOpacity == 1 and f.main.libWnd.presentationOffset == Math.Point{})
 
@@ -161,12 +110,10 @@ func testSetupGlobalMain(main: *MainWnd)
     Swag.assert(Gui.Testing.actionUpdate'ActionGlobal(f.main, ActionGlobal.ShowLibrary, &evt))
     Swag.assert(evt.checked)
 
-    f.gui.keyPress(Input.Key.Space)
+    Swag.assert(Gui.Testing.actionExecute'ActionGlobal(f.main, ActionGlobal.ShowLibrary))
     Swag.assert(not f.main.libraryMode)
-    Swag.assert(f.main.libraryBtn.form == .Normal)
-    Swag.assert(f.main.editWnd.isLocallyVisible())
+    Swag.assert(f.main.editArea.isLocallyVisible())
     Swag.assert(not f.main.libWnd.isLocallyVisible())
-    Swag.assert(f.main.commandReadouts.isLocallyVisible())
     Swag.assert(not f.main.app().animator.isActive(f.main.editWnd, AnimationChannel.from("Gui.Page.Offset")))
     Swag.assert(f.main.editWnd.presentationOpacity == 1 and f.main.editWnd.presentationOffset == Math.Point{})
 

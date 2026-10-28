@@ -99,6 +99,15 @@ func testUseScratchLibrary()
     g_Library.loaded = false
 }
 
+// Empties the recycle bin of the scratch library, which other tests fill, so a page that counts
+// what it holds draws the same picture whatever ran before.
+func testEmptyTrash()
+{
+    let files = catch Library.enumerateTrash()
+    for file in files do
+        discard catch File.delete(file.fullName)
+}
+
 func testMouse(kind: MouseEvent.Kind, button = Input.MouseButton.Left)->MouseEvent
 {
     var evt = MouseEvent{kind: kind}
@@ -238,7 +247,7 @@ func testPrimeCaptureGizmo(capture: *Capture)
 
     var painter: Painter
     painter.begin(layoutOnly: true)
-    capture.gizmo.paint(&painter, false)
+    capture.gizmo.paint(&painter, false, Argb.White)
     painter.end()
 }
 
@@ -335,4 +344,26 @@ func testAddLibraryItem(view: *LibraryView, name: String, size: u64, day: u16, l
 
     view.items.add(it)
     return it
+}
+
+// Build the column of the inspector the way the app does (the quick styles on top, the
+// properties under them) and return its property panel, laid out.
+func testSetupPropWnd(f: *HeadlessFixture)->*PropWnd
+{
+    f.gui.surfaceWnd.view = f.main
+
+    let body = Wnd.create'Wnd(f.main, {600, 0, 264, 650})
+    with f.main.quickWnd = QuickWnd.create(body, f.main)
+    {
+        .dockStyle = .Top
+    }
+
+    with f.main.propWnd = PropWnd.create(body, f.main)
+    {
+        .dockStyle = .Center
+    }
+
+    body.applyLayout()
+    f.main.quickWnd.setDefault()
+    return f.main.propWnd
 }

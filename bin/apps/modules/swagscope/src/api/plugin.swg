@@ -123,6 +123,7 @@ struct Plugin
         thumbnail:    PluginThumbnail?      // Optional direct decoder; null uses the shared source renderer without creating a viewer.
         matchNames:   bool = true           // Whether non-wildcard selectors offer this plugin directly.
         textual:      bool                  // Whether this format's bytes are text a reader may also want raw.
+        edgeToEdge:   bool                  // Whether the document takes the whole window: under the strip, with no line of readings.
         smokeFixture: String                // Immutable basename used by application smoke review.
         selectors:    Array'String          // Lowercase extensions, exact basenames, or `*` for fallback.
     }

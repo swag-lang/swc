@@ -181,6 +181,20 @@ func buildChromeWindow(host: *Testing.HeadlessHost)
     }
 }
 
+// A document that writes the title itself takes it out of the strip, and gives it back; the
+// surface keeps it for the system either way.
+#test
+{
+    var host: Testing.HeadlessHost
+    host.setup(480, 120)
+    buildChromeWindow(&host)
+    let title = String.from(host.surfaceWnd.name.raw)
+    host.surfaceWnd.showTitle(false)
+    Swag.assert(host.surfaceWnd.titleHidden and host.surfaceWnd.name.raw == title)
+    host.surfaceWnd.showTitle(true)
+    Swag.assert(not host.surfaceWnd.titleHidden)
+}
+
 // Encre at rest: a faint glyph at the leading corner, the title centred in small faint type, and
 // three faint window buttons.
 #[Swag.TestTag("golden")]

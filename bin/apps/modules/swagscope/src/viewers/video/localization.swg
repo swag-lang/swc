@@ -14,6 +14,11 @@ struct Texts
     ui_TipSeek:                string = "Seek"                                                    // Tooltip of the playback timeline.
     ui_TipMute:                string = "Mute or Unmute (M)"                                      // Tooltip of the mute switch.
     ui_TipVolume:              string = "Volume"                                                  // Tooltip of the volume slider.
+    ui_TipFullScreen:          string = "Full Screen (F)"                                         // Tooltip of the full-screen button.
+    ui_SubtitleChip:           string = "Subtitles %"                                             // Chip of the subtitles in force: their language, or off.
+    cmd_Subtitles:             string = "Subtitles…"                                              // Lens command opening the subtitles on their chip.
+    cmd_AudioTrack:            string = "Audio Track…"                                            // Lens command opening the sound tracks on their chip.
+    cmd_Speed:                 string = "Speed…"                                                  // Lens command opening the speeds on their chip.
     ui_OptionSpeed:            string = "Speed"                                                   // Option choosing the playback rate.
     ui_OptionAudio:            string = "Audio track"                                             // Option choosing the sound track.
     ui_OptionSubtitles:        string = "Subtitles"                                               // Option choosing and styling the subtitles.
@@ -130,6 +135,29 @@ func subtitleTrackName(index: u32, track: const *Video.Subtitle.Track)->String
     if language.count and language != "und" do
         result += Format.toString(strings.ui_SubtitleTrackLang, language)
     return result
+}
+
+// Names the subtitles in force on their chip: their language, their name, or their number.
+func subtitleChipName(track: const *Video.Subtitle.Track)->String
+{
+    let language = track.languageTag()
+    if language.count and language != "und" do
+        return String.toUpper(language, .Unicode)
+    if track.displayName().count do
+        return String.from(track.displayName())
+    return String.from("1")
+}
+
+// Names a sound track on its chip: its language and the layout of its channels, as "EN 5.1".
+func audioChipName(index: u32, sound: const *Audio.SoundFile)->String
+{
+    let channels = sound.numChannels()
+    let layout   = channels > 2 ? Format.toString("%.1", channels - 1) : Format.toString("%.0", channels)
+    if sound.language().count and sound.language() != "und" do
+        return Format.toString("% %", String.toUpper(sound.language(), .Unicode), layout)
+    if sound.displayName().count do
+        return Format.toString("% %", sound.displayName(), layout)
+    return Format.toString("% %", Format.toString(texts().ui_AudioTrackNumber, index + 1), layout)
 }
 
 // Names each subtitle style in the language of the interface.

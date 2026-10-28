@@ -6500,6 +6500,44 @@ SWC_TEST_BEGIN(InstCombine_AffineChain_KeepsShortAndUnencodableProducts)
 }
 SWC_TEST_END()
 
+SWC_TEST_BEGIN(InstCombine_WordComparisonMaskRequiresCanonicalLanes)
+{
+    constexpr MicroReg left   = MicroReg::virtualFloatReg(1);
+    constexpr MicroReg right  = MicroReg::virtualFloatReg(2);
+    constexpr MicroReg vector = MicroReg::virtualFloatReg(3);
+    constexpr MicroReg mask   = MicroReg::virtualIntReg(1);
+    constexpr MicroReg result = MicroReg::virtualIntReg(2);
+    for (uint32_t variant = 0; variant < 5; ++variant)
+    {
+        MicroBuilder builder(ctx);
+        builder.emitLoadRegReg(left, MicroReg::floatReg(0), MicroOpBits::B128);
+        builder.emitLoadRegReg(right, MicroReg::floatReg(1), MicroOpBits::B128);
+        builder.emitOpBinaryRegRegReg(vector, left, right, variant == 1 ? MicroOp::VecXor : MicroOp::VecCmpEq16, MicroOpBits::B128);
+        builder.emitVecUnaryRegReg(mask, vector, MicroOp::VecMoveMaskB, MicroOpBits::B128);
+        builder.emitOpBinaryRegImm(mask, ApInt(0xAAAA, 32), MicroOp::And, MicroOpBits::B32);
+        builder.emitCmpRegImm(mask, ApInt(0xAAAA, 32), MicroOpBits::B32);
+        builder.emitSetCondReg(result, variant == 2 ? MicroCond::Above : MicroCond::Equal);
+        if (variant == 3)
+            builder.emitLoadRegReg(MicroReg::intReg(3), mask, MicroOpBits::B32);
+        if (variant == 4)
+            builder.emitSetCondReg(MicroReg::intReg(3), MicroCond::Above);
+        builder.emitLoadRegReg(MicroReg::intReg(0), result, MicroOpBits::B8);
+        builder.emitRet();
+        SWC_RESULT(runInstCombinePass(builder));
+        uint32_t masks = 0;
+        for (const MicroInstr& inst : builder.instructions().view())
+        {
+            const auto* ops = inst.ops(builder.operands());
+            if (inst.op == MicroInstrOpcode::OpBinaryRegImm && ops[2].microOp == MicroOp::And)
+                ++masks;
+        }
+        if (masks != (variant == 0 ? 0u : 1u))
+            return Result::Error;
+    }
+    return Result::Continue;
+}
+SWC_TEST_END()
+
 SWC_END_NAMESPACE();
 
 #endif

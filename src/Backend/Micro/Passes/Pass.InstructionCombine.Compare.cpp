@@ -24,6 +24,58 @@ namespace InstructionCombine
         }
     }
 
+    // A word comparison produces two identical byte sign bits per lane.
+    // Testing every high-byte bit is therefore the same as testing all 16
+    // movemask bits, provided the masked value is not otherwise observed.
+    bool tryFoldWordCompareMask(Context& ctx, MicroInstrRef cmpRef, const MicroInstr& cmpInst)
+    {
+        if (!ctx.ssa || ctx.isClaimed(cmpRef))
+            return false;
+        const auto* cmp = cmpInst.ops(*ctx.operands);
+        if (!cmp || !cmp[0].reg.isVirtualInt() || cmp[1].opBits != MicroOpBits::B32 ||
+            cmp[2].hasWideImmediateValue() || cmp[2].valueU64 != 0xAAAA)
+            return false;
+        MicroStorage::Iterator cursor{ctx.storage, cmpRef};
+        auto                   next = cursor;
+        ++next;
+        const MicroInstrRef setRef = next.current;
+        const MicroInstr*   set    = setRef.isValid() ? &*next : nullptr;
+        const auto*         setOps = set ? set->ops(*ctx.operands) : nullptr;
+        if (!set || set->op != MicroInstrOpcode::SetCondReg || !setOps ||
+            (setOps[1].cpuCond != MicroCond::Equal && setOps[1].cpuCond != MicroCond::NotEqual &&
+             setOps[1].cpuCond != MicroCond::Zero && setOps[1].cpuCond != MicroCond::NotZero) ||
+            !ctx.areCpuFlagsDeadAfter(setRef))
+            return false;
+        const auto masked = ctx.ssa->reachingDef(cmp[0].reg, cmpRef);
+        auto previous = cursor;
+        --previous;
+        if (!masked.valid() || masked.isPhi || !masked.inst || masked.inst->op != MicroInstrOpcode::OpBinaryRegImm ||
+            masked.instRef != previous.current || ctx.ssa->transitiveInstructionUseCount(masked.valueId, 2) != 1)
+            return false;
+        const auto* mask = masked.inst->ops(*ctx.operands);
+        if (!mask || mask[0].reg != cmp[0].reg || mask[1].opBits != MicroOpBits::B32 || mask[2].microOp != MicroOp::And ||
+            mask[3].hasWideImmediateValue() || mask[3].valueU64 != 0xAAAA)
+            return false;
+        const auto extracted = ctx.ssa->reachingDef(mask[0].reg, masked.instRef);
+        const auto* move = extracted.inst ? extracted.inst->ops(*ctx.operands) : nullptr;
+        if (!extracted.valid() || extracted.isPhi || !extracted.inst || extracted.inst->op != MicroInstrOpcode::VecUnaryRegReg ||
+            !move || move[2].opBits != MicroOpBits::B128 || move[3].microOp != MicroOp::VecMoveMaskB)
+            return false;
+        const auto compared = ctx.ssa->reachingDef(move[1].reg, extracted.instRef);
+        const auto* vector = compared.inst ? compared.inst->ops(*ctx.operands) : nullptr;
+        if (!compared.valid() || compared.isPhi || !compared.inst || compared.inst->op != MicroInstrOpcode::OpBinaryRegRegReg ||
+            !vector || vector[3].opBits != MicroOpBits::B128 ||
+            (vector[4].microOp != MicroOp::VecCmpEq16 && vector[4].microOp != MicroOp::VecCmpGtS16))
+            return false;
+        if (!ctx.claimAll({masked.instRef, cmpRef}))
+            return false;
+        MicroInstrOperand rewritten[3] = {cmp[0], cmp[1], cmp[2]};
+        rewritten[2].setImmediateValue(ApInt(0xFFFF, 32));
+        ctx.emitErase(masked.instRef);
+        ctx.emitRewrite(cmpRef, MicroInstrOpcode::CmpRegImm, rewritten);
+        return true;
+    }
+
     // The low byte of a copied value is unchanged. When an indexed compare
     // is its only reader, use the still-current source byte directly.
     bool tryBypassByteCopyInIndexedCompare(Context& ctx, MicroInstrRef cmpRef, const MicroInstr& cmpInst)

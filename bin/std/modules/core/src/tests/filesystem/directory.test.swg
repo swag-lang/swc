@@ -15,6 +15,19 @@ func createDirectoryJunction(link, target: string)->bool
     return process.exitCode() == 0
 }
 
+// The free space of a volume is read through any directory on it, and a missing one says so.
+#test
+{
+    let temp = Env.getSpecialDirectory(.Temp)
+    Swag.assert(expect Directory.freeSpace(temp) > 0)
+
+    let missing = CoreTests.makeFilesystemTestPath("core_free_space_missing")
+    var errOutcome: Swag.Error
+    discard catch Directory.freeSpace(missing) as errOutcome
+    let err = errOutcome.value()
+    Swag.assert(err is Errors.FileNotFoundError)
+}
+
 #test
 {
     let dirName = CoreTests.makeFilesystemTestPath("core_invalid?dir")

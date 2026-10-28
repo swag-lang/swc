@@ -775,6 +775,7 @@ internal namespace Win32Priv
         func FindVolumeClose(hFindVolume: HANDLE)->BOOL
         func GetVolumePathNamesForVolumeNameA(lpszVolumeName: LPCSTR, lpszVolumePathNames: LPCH, cchBufferLength: DWORD, lpcchReturnLength: *DWORD)->BOOL
         func GetVolumePathNamesForVolumeNameW(lpszVolumeName: LPCWSTR, lpszVolumePathNames: LPWCH, cchBufferLength: DWORD, lpcchReturnLength: *DWORD)->BOOL
+        func GetDiskFreeSpaceExW(lpDirectoryName: LPCWSTR, lpFreeBytesAvailableToCaller: *ULARGE_INTEGER?, lpTotalNumberOfBytes: *ULARGE_INTEGER?, lpTotalNumberOfFreeBytes: *ULARGE_INTEGER?)->BOOL
 
         func CreateDirectoryA(lpPathName: LPCSTR, lpSecurityAttributes: *SECURITY_ATTRIBUTES?)->BOOL
         func CreateDirectoryW(lpPathName: LPCWSTR, lpSecurityAttributes: *SECURITY_ATTRIBUTES?)->BOOL
@@ -1313,6 +1314,12 @@ internal namespace Win32Priv
     func GetVolumePathNamesForVolumeNameW(lpszVolumeName: LPCWSTR, lpszVolumePathNames: LPWCH, cchBufferLength: DWORD, lpcchReturnLength: *DWORD) fail
     {
         if not Win32Priv.GetVolumePathNamesForVolumeNameW(lpszVolumeName, lpszVolumePathNames, cchBufferLength, lpcchReturnLength) do
+            try failWinError(GetLastError())
+    }
+
+    func GetDiskFreeSpaceExW(lpDirectoryName: LPCWSTR, lpFreeBytesAvailableToCaller: *ULARGE_INTEGER?, lpTotalNumberOfBytes: *ULARGE_INTEGER?, lpTotalNumberOfFreeBytes: *ULARGE_INTEGER?) fail
+    {
+        if not Win32Priv.GetDiskFreeSpaceExW(lpDirectoryName, lpFreeBytesAvailableToCaller, lpTotalNumberOfBytes, lpTotalNumberOfFreeBytes) do
             try failWinError(GetLastError())
     }
 

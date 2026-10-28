@@ -219,7 +219,7 @@ func filler(count: u64)->String
 
         // The disk dates the files of today; the picture keeps one moment.
         for line, idx in dlg.browser.listCtrl.lines do
-            discard line!.setItem(1, Format.toString("2026-10-2% 21:30", 6 - idx).toString())
+            discard line!.setItem(1, Format.toString("10-2% 21:30", 6 - idx).toString())
         dlg.browser.listCtrl.selectLine(0)
 
         let image = renderDialog(&host, &dlg.dialog)
@@ -275,7 +275,7 @@ func filler(count: u64)->String
 
             // The disk dates the files of today; the picture keeps one moment.
             for line, idx in dlg.browser.listCtrl.lines do
-                discard line!.setItem(1, Format.toString("2026-10-2% 21:30", 7 - idx).toString())
+                discard line!.setItem(1, Format.toString("10-2% 21:30", 7 - idx).toString())
 
             var name: string
             switch mode

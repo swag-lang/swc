@@ -110,6 +110,7 @@ struct MainWnd
 
     // The kind of selection the mini-bar was last built for, so it is rebuilt only when that changes.
     miniBarKind: MiniBarKind = .None
+    miniBarForm: *BaseForm?     // The form the mini-bar was filled for, whose face, size and style it shows.
     icons:         IconSet
     appIcon:       ImageList
     monitors:      Array'Env.Monitor

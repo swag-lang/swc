@@ -46,6 +46,7 @@ struct Strings
         lens_Line:        string = "line"                        // What the `:` prefix looks for, at the foot of the lens.
         lens_Files:       string = "files"                       // What the `/` prefix looks for, at the foot of the lens.
         lens_Actions:     string = "actions"                     // What the `>` prefix looks for, at the foot of the lens.
+        lens_Recent:      string = "Last Used"                   // Section of the lens holding the commands chosen last.
         lens_Application: string = "Application"                 // Section of the lens holding the About box of the application.
 
         inspector_Tab: string = "Properties"     // Word on the edge tab of a folded inspector.

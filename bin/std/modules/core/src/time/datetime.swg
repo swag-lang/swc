@@ -90,6 +90,17 @@ impl DateTime
         return result
     }
 
+    // Returns this date and time, read as UTC, in the local time zone.
+    //
+    // The offset is the one in force on that date, daylight saving included, so a file written in
+    // winter reads in winter time in summer. A value the system cannot convert is returned as is.
+    mtd const toLocal()->DateTime
+    {
+        var result: #returntype
+        result.setWallClock(localWallClock(WallClockFields{.year, .month, .day, .hour, .minute, .second, .millisecond}))
+        return result
+    }
+
     // Returns the current local date and time.
     func now()->DateTime
     {

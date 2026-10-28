@@ -186,6 +186,19 @@ by family); rows of 38–40 px with a leading glyph or number, matched character
 the chosen row on the Arc selection ground with `⏎` at its end. A footer lists the keys
 (`↑↓` choose, `⏎` go, `Tab` view as, prefixes `:` line, `/` files, `>` actions). `Esc` closes.
 
+The lens is the application's command palette as much as its search, and it starts from where
+the reader is:
+
+- Before anything is typed it offers what can be done here and now: the actions of the
+  selection or of the object in hand (the chosen shape in Capture, the open file and its viewer
+  in Scope, the stage in Prism), then the commands used last, and nothing else.
+- While typing, results rank from nearest to farthest: the current context, the document (lines,
+  symbols), files, then the application's global commands.
+- An action that cannot run now stays listed, in the disabled ink and with its matches faded,
+  so the reader learns it exists; it cannot be chosen.
+- Every action shows its shortcut in faint mono at the end of its row, so the lens also teaches
+  the keys it stands in for.
+
 ### Sheet (`I`)
 
 A floating panel 300–360 wide, inset 24 from the window edges, surface, corner 12. Title
@@ -454,7 +467,10 @@ the screen to its work.
   selection and the inspector at the right (foldable). Menus are gone: every command is in the
   lens, including capture modes, recent captures and the library.
 - Area capture: the screen dimmed except the chosen zone, a 1 px Voltage edge, its size in a
-  mono chip, a pixel loupe with a Voltage crosshair, modes as text tabs on a floating bar.
+  mono chip, a pixel loupe with a Voltage crosshair, modes as text tabs on a floating bar, then
+  after a hairline how the screen is read: `Delay: none ▾` (a list of delays; one waits, then
+  reads the screen again) and `Cursor` (a switch, on in the text ink over an Arc underline). The
+  keys at the foot stand on the floating ground, since the frozen screen can be any picture.
 - Editing in place, right after a capture: the desktop stays dimmed and the captured zone
   stands in full light with a white hairline edge, its size in a mono chip and Arc handles that
   still move its edges. The annotations are drawn on it directly. One floating bar hangs under
@@ -470,12 +486,34 @@ the screen to its work.
   text, tail handle, font/size/style "Aa" segments), masks (image, blur, pixelation, magnifier,
   capture as a radio list), step numbers (mini-bar with number stepper and reset), multiple
   selection (common settings, align, arrange, group), colour popover (recent, palette, exact
-  value, opacity) and quick styles.
+  value, opacity) and quick styles (each a small picture of the shape it draws, in its own
+  colours, the chosen one ringed in Arc, then `+`).
+- Words are typed in place, for every shape that carries some — a text, a callout, the label of a
+  step: a double click, Enter or `F2` lays a field per line over the shape, in its face, size,
+  ink and alignment. Enter breaks the line (a step keeps its label on Enter), `Ctrl+Enter` or a
+  click elsewhere keeps the words as one step of the history, `Esc` lets them go. A rotated shape
+  straightens over `motion_QuickSeconds` while its words are typed, and turns back after.
+- The text mini-bar is compact — colour, face list, size in mono, **B** *I*, the three
+  alignments, delete, `•••` — and stands above or below the selection, never over the dock or
+  the inspector; while words are typed it stands below them. The inspector keeps the face, the
+  size, the style "Aa" segments and the vertical alignment; the alignment across lives in the
+  mini-bar.
+- The lens closes with the recent captures as a strip of pictures ended by `Library →`.
 
 ![Arrow](imgs/capture.edit.arrow.png) ![Callout](imgs/capture.edit.callout.png)
 ![Mask](imgs/capture.edit.mask.png) ![Steps](imgs/capture.edit.steps.png)
 ![Multiple](imgs/capture.edit.multi.png) ![Colour](imgs/capture.edit.color.paper.png)
 ![Area](imgs/capture.area.png) ![Library](imgs/capture.library.png) ![Lens](imgs/capture.lens.paper.png)
+
+- Quick styles: each preset is a small picture of the shape it draws, in its own colours — a
+  rectangle or an ellipse with its outline, fill and weight, an arrow with its curve and head,
+  "Aa" with its fill and outline, a callout bubble with its tail, a numbered step, a marker stroke,
+  a mask's pattern — in a 44 × 36 cell on the raised ground, corner 7. The preset in force has the
+  Arc ring at a 2 px gap; "+" (a hairline cell) saves the selected shape as a new preset. The
+  inspector shows only the row of the tool in use, under its title; never letters, glows or bare
+  outlined squares standing for a shape.
+
+![Quick styles](imgs/capture.presets.png) ![Quick styles, Papier](imgs/capture.presets.paper.png)
 
 ### Swag Prism
 
@@ -505,6 +543,18 @@ the screen to its work.
 ![Create](imgs/vault.create.paper.png) ![Progress](imgs/vault.progress.png) ![Options](imgs/vault.options.png)
 
 ## Icons
+
+**Kinds of file.** In a listing — the file box, Scope's home and explorer, the lens — a file's
+glyph carries one quiet hue of its kind: pictures green, films violet, sounds amber, code slate,
+paged documents old rose, archives sand. Folders and plain files keep the neutral ink. The hue is
+the glyph's alone: the name, the facts and the cell's ground stay neutral, a selected row may
+draw the glyph in its own ink, and a cell showing a real preview (a poster, a cover, a page)
+has no glyph and so no hue. Each theme has its own set, deepened on Papier
+(`fileKind_*`, `Theme.fileGlyph`).
+
+![Neutral and tinted kinds in Encre](imgs/scope.tints.png)
+
+![Neutral and tinted kinds in Papier](imgs/scope.tints.paper.png)
 
 Interface icons are outline glyphs on a 16 grid, 1.4 stroke, round caps and joins, no fill except
 for a deliberate dot or play triangle. Application icons keep their two-colour tile (Voltage glyph

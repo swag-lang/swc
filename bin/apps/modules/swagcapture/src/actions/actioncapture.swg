@@ -227,6 +227,7 @@ impl MainWnd
             case .ActiveWindow: .postCommandEvent(ActionCapture.ActiveWnd)
             case .FullScreen:   .postCommandEvent(ActionCapture.FullScreen)
             case .LastArea:     .postCommandEvent(ActionCapture.LastArea)
+            case .Area:         .postCommandEvent(ActionCapture.Area)
             default:            break
             }
         }

@@ -1326,26 +1326,9 @@ public impl MenuCtrl
             .setPopupButtonAnchor(button)
         .updateState()
 
-        if button
-        {
-            .paintByFrame = false
-        }
-        else
-        {
-            switch pos
-            {
-            case .AnchorTopCenter:
-                .paintByFrame = true
-                .padding.y    += 4
-
-            case .AnchorBottomCenter:
-                .paintByFrame = true
-                .padding.w    += 4
-
-            default:
-                .paintByFrame = false
-            }
-        }
+        // Every popup paints its own ground, border and shadow: a menu centred on a point is shaped
+        // like any other.
+        .paintByFrame = false
 
         .computeLayoutPopup()
         if button do
@@ -1381,24 +1364,17 @@ public impl MenuCtrl
                 let shadow = .themeMetrics().menuPopup_ShadowSize
                 .setPosition(Math.Rectangle{pt.x - .position.width + shadow, pt.y - shadow, .position.width, .position.height})
 
+            // Centred on the point, as every menu is shaped: no tail, since a floating surface
+            // says where it came from by leaving it, not by pointing at it.
             case .AnchorTopCenter:
                 pt.y += .themeMetrics().menuPopup_ShadowSize
                 .setPosition(Math.Rectangle{pt.x - .position.width * 0.5, pt.y, .position.width, .position.height})
-                .anchor         = .Top
                 .anchorPosition = .position.width * 0.5
-                .setFrameFlags(.Borders | .SmallShadow)
-                .setFrameForm(.Round)
-                .padding.y  += 14
-                .paddingSel = 0
 
             case .AnchorBottomCenter:
                 pt.y -= .themeMetrics().menuPopup_ShadowSize
                 .setPosition(Math.Rectangle{pt.x - .position.width * 0.5, pt.y - .position.height, .position.width, .position.height})
-                .anchor         = .Bottom
                 .anchorPosition = .position.width * 0.5
-                .setFrameFlags(.Borders | .SmallShadow)
-                .setFrameForm(.Round)
-                .paddingSel = 0
             }
         }
 

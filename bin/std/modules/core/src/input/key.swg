@@ -246,7 +246,33 @@ public func formatKeyShortcut(modifiers: KeyModifiers, key: Key)->String
     case .NumPad9:  result += "9"
     case .Add:      result += "+"
     case .Subtract: result += "-"
-    default:        result += Reflection.enumName(Input.Key, &k, fullyQualified: false)
+
+    // The keys a reader reads by what they print, or by the name written on them.
+    case .D0:          result += "0"
+    case .D1:          result += "1"
+    case .D2:          result += "2"
+    case .D3:          result += "3"
+    case .D4:          result += "4"
+    case .D5:          result += "5"
+    case .D6:          result += "6"
+    case .D7:          result += "7"
+    case .D8:          result += "8"
+    case .D9:          result += "9"
+    case .OemPlus:     result += "+"
+    case .OemMinus:    result += "-"
+    case .OemComma:    result += ","
+    case .OemPeriod:   result += "."
+    case .Multiply:    result += "*"
+    case .Divide:      result += "/"
+    case .Decimal:     result += "."
+    case .Return:      result += "Enter"
+    case .Escape:      result += "Esc"
+    case .Back:        result += "Backspace"
+    case .Delete:      result += "Del"
+    case .PageUp:      result += "Page Up"
+    case .PageDown:    result += "Page Down"
+    case .PrintScreen: result += "Print Screen"
+    default:           result += Reflection.enumName(Input.Key, &k, fullyQualified: false)
     }
 
     return result

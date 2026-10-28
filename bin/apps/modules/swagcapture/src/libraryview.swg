@@ -525,6 +525,15 @@ impl IWnd for LibraryView
             .paintItem(painter, it, i, capture, itemLoaded)
         }
 
+        // An empty page says why, faint, where the first row would stand: nothing captured yet, or
+        // nothing the filters and the search let through.
+        if .items.count == 0 and not g_UpdatingLib
+        {
+            let font = unwrap .theme().createDefaultFontFamily(.themeMetrics().defaultFontSize).regular
+            let text = .allItems.count == 0 ? appStrings().ui_LibraryEmpty : appStrings().ui_LibraryNoMatch
+            painter.drawString(clientRect.x, font.opticalLineTop(clientRect.y + LibraryCaptionLine), text, font, .themeColors().faintText)
+        }
+
         .scrollWnd.setScrollSize(0, y + cellHeight + LibraryCellRing)
 
         // Cells this frame could not afford to decode. Ask for another one; the hourglass they

@@ -1,42 +1,8 @@
 // Swag Capture-specific property editors, plugged into the std Properties editor registry:
 // the generated panel builds these rows like any other field, undo included.
 
-// Builds one alignment toggle of an [[AlignEditor]] row.
-//
-// `index` selects the alignment in visual order, which is also the offset from the first
-// toolbar icon of the horizontal or vertical family.
-private func createAlignButton(line: *Wnd, vert: bool, width, height: f32, index: s32)->*IconButton
-{
-    const Labels = ["L", "C", "R"]
-
-    with let button = IconButton.create(line, {}, Math.Rectangle{0, 0, width, height})
-    {
-        .setForm(.Rectangle)
-        .updateFlags(.Radio)
-
-        // The picked alignment is already the one glyph in the accent, and three
-        // rules under a row of three buttons underline the row rather than mark
-        // one of them. The rail belongs to a tool rail, not to a field.
-        .setCheckIndicator(.Ink)
-
-        // The Swag Capture toolbar icons when the app is there, letter fallbacks otherwise
-        // (the headless fixtures build panels without a full application).
-        if g_Main
-        {
-            let base = vert ? CaptureIcons.AlignTop : .TextAlignLeft
-            .setIcon(g_Main!.icon(cast(CaptureIcons, (cast(s32, base) + index))))
-        }
-        else
-        {
-            .name = Labels[index]
-        }
-    }
-
-    return button
-}
-
-// Editor of a FormTextAlign field: three exclusive toggle buttons. The same editor
-// serves the horizontal and the vertical alignment; the field name selects the icons.
+// Editor of a FormTextAlign field: one labelled row of three segments, the alignment words. The
+// same editor serves the horizontal and the vertical alignment; the field name selects the words.
 struct AlignEditor {}
 
 impl IPropertyEditor for AlignEditor
@@ -45,53 +11,52 @@ impl IPropertyEditor for AlignEditor
 
     mtd impl construct(list: *Properties, value: Swag.TypeValue, data: [*] u8?, parent: *PropertiesItem?)->*PropertiesItem
     {
-        parent!.flags.add(.NoSeparator | .NoFocus)
-
         let item  = list.addItem(value, data, parent)
         let align = cast(*FormTextAlign, unwrap data)
         let vert  = value.name == #nameof(FormText.alignVert)
 
-        const BtnW = 34
-        let lineH = list.themeMetrics().btnPush_Height
-
-        // Centered as its own full-width row in the panel; packed left in a grid cell.
-        with let line = StackLayoutCtrl.create(item.line, list.isGridLike() ? .HorizontalFit : .HorizontalCenter, Math.Rectangle{0, 0, 0, lineH})
+        var combo: *ComboBox?
+        if list.kind == .Panel
         {
-            .anchorStyle = .Right
-            .spacing     = 4
+            if item.label != null do
+                item.label.hide()
+            with let ctrl = ComboCtrl.create(item.line, Properties.itemDisplayName(value).toString())
+            {
+                .anchorStyle = .Right
+                .setLayoutMetrics(.labelWidth, 0)
+            }
+
+            combo = ctrl.combo
+        }
+        else
+        {
+            with combo = ComboBox.create(item.line)
+            {
+                .dockStyle = .CenterKeepSizeVert
+            }
         }
 
-        // One button per FormTextAlign value, in visual order (left/top, center, right/bottom)
+        // One segment per FormTextAlign value, in visual order (left/top, center, right/bottom).
         const Values = [FormTextAlign.LeftTop, FormTextAlign.Center, FormTextAlign.RightBottom]
+        let combon: *ComboBox = combo
+        combon.updateFlags(.Segmented)
+        let texts = appStrings()
+        combon.addItem(vert ? texts.act_AlignTop : texts.act_AlignLeft)
+        combon.addItem(vert ? texts.act_AlignMiddle : texts.act_AlignCenter)
+        combon.addItem(vert ? texts.act_AlignBottom : texts.act_AlignRight)
 
-        // The row names its three buttons, so the array is built from them rather than
-        // filled afterwards: every slot holds a window from the moment it exists.
-        let btns = [createAlignButton(line, vert, BtnW, lineH, 0),
-                    createAlignButton(line, vert, BtnW, lineH, 1),
-                    createAlignButton(line, vert, BtnW, lineH, 2)]
-
-        for i in 3
+        combon.sigChanged += func|list, item, align|(_, index)
         {
-            btns[i].sigCheckedChanged += func|list, item, align, i|(btn)
-            {
-                if not btn.isChecked
-                {
-                    // The selected alignment cannot be untoggled, only replaced
-                    btn.setChecked(align[] == Values[i])
-                    return
-                }
-
-                align[] = Values[i]
-                list.commitItemChange(item)
-            }
+            if index >= 3 do
+                return
+            align[] = Values[index]
+            list.commitItemChange(item)
         }
 
-        item.sigRefresh += func|align, btns|(_)
+        item.sigRefresh += func|align, combon|(_)
         {
-            for i in 3
-            {
-                btns[i].setChecked(align[] == Values[i])
-            }
+            for v, i in Values where align[] == v do
+                combon.setSelectedIndex(cast(u32, i), notify: false)
         }
 
         item.sigRefresh.call(item)

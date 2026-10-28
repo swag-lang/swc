@@ -68,9 +68,7 @@ impl Flow
         .newLine()
         .y += SectionTop
 
-        let label = Label.create(.view, title, Math.Rectangle{WallPadding, .y, .width, SectionHigh})
-        label.setTextAlignment(.Left, .Center)
-        label.style.setFont(app.theme.createDefaultFont(16, .Bold), .Regular)
+        SectionLabel.create(.view, title, Math.Rectangle{WallPadding, .y, .width, SectionHigh})
 
         .y    += SectionHigh
         .x    = WallPadding
@@ -83,6 +81,7 @@ impl Flow
         .newLine()
         let label = Label.create(.view, text, .next(CaptionWide, 24), null, .SecondaryText)
         label.setTextAlignment(.Left, .Center)
+        label.style.addStyleSheetColors("label_TextLight $label_TextFaint")
     }
 
     // A window sized by the flow, for the controls that place themselves by docking.
@@ -108,8 +107,7 @@ impl WidgetWall
     func create(parent: *Wnd)->*WidgetWall
     {
         let result = Wnd.create'WidgetWall(parent, {})
-        result.setFrameForm(.Square)
-        result.setFrameFlags(.Borders)
+        result.setFrameFlags(.None)
         result.view = result.createView'Wnd()
         return result
     }

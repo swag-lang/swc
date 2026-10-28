@@ -3,6 +3,34 @@
 
 using Core
 
+// Multi-bit reads agree with individual reads at every alignment and truncated boundary.
+#test
+{
+    let bytes: [6] u8 = [0x93, 0x02, 0xD7, 0x61, 0xFC, 0x35]
+    for length in 7'u64
+    {
+        for position in length * 8 + 1
+        {
+            for count in 33'u32
+            {
+                var expected: BitReader
+                var actual:   BitReader
+                expected.init(bytes[0 until length])
+                actual.init(bytes[0 until length])
+                expected.skip(cast(u32, position))
+                actual.skip(cast(u32, position))
+
+                var value = 0'u32
+                for count do
+                    value = (value << 1) | expected.bit()
+                let read = actual.read(count)
+                Swag.assert(read == value)
+                Swag.assert(actual.bitPos == expected.bitPos and actual.overran == expected.overran)
+            }
+        }
+    }
+}
+
 func referenceUnescapeRbsp(data: const [..] u8)->Array'u8
 {
     var result: #returntype

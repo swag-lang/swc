@@ -56,6 +56,25 @@ impl BitReader
     // Reads `count` bits as an unsigned value. `count` is at most 32.
     mtd read(count: u32)->u32
     {
+        if count == 1 do
+            return .bit()
+
+        if count >= 2 and count <= 32
+        {
+            let totalBits = .size * 8
+            if .bitPos <= totalBits and cast(u64, count) <= totalBits - .bitPos
+            {
+                let endBit  = .bitPos + count
+                let endByte = (endBit + 7) >> 3
+                var packed  = 0'u64
+                for index in (.bitPos >> 3) until endByte do
+                    packed = (packed << 8) | .data![index]
+                .bitPos = endBit
+                let shift = cast(u32, (endByte * 8 - endBit))
+                return cast(u32, ((packed >> shift) & ((1'u64 << count) - 1)))
+            }
+        }
+
         var result = 0'u32
         for count do
             result = (result << 1) | .bit()

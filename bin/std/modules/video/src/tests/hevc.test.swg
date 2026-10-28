@@ -372,6 +372,62 @@ using Core, Core.Errors, Pixel
     }
 }
 
+// Bypass and skipped transforms preserve signed coefficients, scaling and
+// rounding for every block size without writing past the residual block.
+#test
+{
+    var sps: Hevc.Sps
+    var pps: Hevc.Pps
+    var decoder: Hevc.Decoder
+    decoder.activeSps = &sps
+    decoder.activePps = &pps
+    var seed = 0x825B9F31'u32
+    for bitDepth in [8'u32, 10]
+    {
+        sps.bitDepthLuma = bitDepth
+        sps.bitDepthChroma = bitDepth
+        for log2Size in [2'u32, 3, 4, 5]
+        {
+            let size = 1'u32 << log2Size
+            let count = size * size
+            var block: Hevc.TransformBlock
+            block.size = size
+            block.log2Size = log2Size
+            block.qp = 20
+            decoder.coefficientColumns = cast(u32, ((1'u64 << size) - 1))
+            for x in size do
+                decoder.coefficientRows[x] = decoder.coefficientColumns
+            for index in count
+            {
+                seed = seed * #wrap 1664525 + #wrap 1013904223
+                decoder.coefficients[index] = cast #wrap(s16, (seed >> 16))
+                decoder.residual[index] = 0x35353535
+            }
+            if count < 1024 do
+                decoder.residual[count] = 0x35353535
+            block.bypass = true
+            decoder.reconstructResidual(&block)
+            for index in count do
+                Swag.assert(decoder.residual[index] == cast(s32, decoder.coefficients[index]))
+            if count < 1024 do
+                Swag.assert(decoder.residual[count] == 0x35353535)
+
+            block.bypass = false
+            block.transformSkip = true
+            decoder.reconstructResidual(&block)
+            let tsShift = 5 + cast(s32, log2Size)
+            let bdShift = 20 - cast(s32, bitDepth)
+            for index in count
+            {
+                let value = ((cast(s32, decoder.coefficients[index]) << tsShift) + (1 << (bdShift - 1))) >> bdShift
+                Swag.assert(decoder.residual[index] == value)
+            }
+            if count < 1024 do
+                Swag.assert(decoder.residual[count] == 0x35353535)
+        }
+    }
+}
+
 // Four-sample residual rows clip exactly in both reconstruction paths and leave the
 // surrounding samples untouched, including at an unaligned block position.
 #test

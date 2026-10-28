@@ -54,6 +54,37 @@ private func addResidual4(prediction: const [*] u16, residual: const [*] s32, de
     cast([*] u64, destination)[0] = cast #bit(Simd.U64x2, packed)[0]
 }
 
+// Transform blocks are at least 4x4, so the coefficient count is a multiple
+// of eight and each packed load stays inside the block.
+#[Swag.NoInline]
+private func bypassResidual(coefficients: const [*] s16, residual: [*] s32, count: u32)
+{
+    var index = 0'u32
+    while index < count
+    {
+        let values = Simd.load(coefficients + index)
+        Simd.store(residual + index, Simd.widenLow(values))
+        Simd.store(residual + index + 4, Simd.widenHigh(values))
+        index += 8
+    }
+}
+
+#[Swag.NoInline]
+private func skippedResidual(coefficients: const [*] s16, residual: [*] s32, count: u32, tsShift, bdShift: s32)
+{
+    let rounding = Simd.splat(1's32 << (bdShift - 1))
+    var index = 0'u32
+    while index < count
+    {
+        let values = Simd.load(coefficients + index)
+        let low = ((Simd.widenLow(values) << tsShift) + rounding) >> bdShift
+        let high = ((Simd.widenHigh(values) << tsShift) + rounding) >> bdShift
+        Simd.store(residual + index, low)
+        Simd.store(residual + index + 4, high)
+        index += 8
+    }
+}
+
 impl Decoder
 {
     // Starts a quantization group and predicts its quantization parameter, clause 8.6.1.
@@ -179,8 +210,7 @@ impl Decoder
 
         if block.bypass
         {
-            for index in size * size do
-                .residual[index] = cast(s32, .coefficients[index])
+            bypassResidual(&.coefficients[0], &.residual[0], size * size)
             return
         }
 
@@ -191,8 +221,7 @@ impl Decoder
         {
             // A skipped transform only rescales, clause 8-298.
             let tsShift = 5 + cast(s32, block.log2Size)
-            for index in size * size do
-                .residual[index] = ((cast(s32, .coefficients[index]) << tsShift) + (1 << (bdShift - 1))) >> bdShift
+            skippedResidual(&.coefficients[0], &.residual[0], size * size, tsShift, bdShift)
             return
         }
 

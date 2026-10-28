@@ -70,10 +70,10 @@ conversion, image codecs, text/crypto routines, Pixel spans, and SDF samples.
   `image.png.test.swg` compares Sub against scalar recurrence across strides 1 through 8.
   Gray and palette conversion have thresholded packed-word paths. Native 16-bit samples
   without transparency keys are byte-swapped eight at a time, and grayscale keys
-  are compared eight at a time; RGB transparency keys remain per pixel. Earlier rejections of other packed
+  are compared eight at a time; RGB keys are compared two pixels at a time. Earlier rejections of other packed
   Sub and gray shuffles predate cross-module SIMD inlining and do not settle the current cost.
-- Next: profile current decoding by filter and bit depth, then compare packed 16-bit RGB
-  transparency-key conversion against its scalar form in the same process. Keep Inflate's
+- Next: profile current decoding by filter and bit depth, then compare the packed 16-bit
+  sample and transparency-key paths against their scalar forms in the same process. Keep Inflate's
   share separate from image conversion so a microkernel gain has an end-to-end
   interpretation.
 - Done when: remaining paths have a measured decision, odd/Adam7 tails and malformed rows

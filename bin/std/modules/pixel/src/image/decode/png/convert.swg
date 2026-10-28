@@ -13,6 +13,7 @@
 using Core, Core.Errors
 
 const Swap16Bytes = cast(Math.Simd.U8x16, [1'u8, 0, 3, 2, 5, 4, 7, 6, 9, 8, 11, 10, 13, 12, 15, 14])
+const ExpandRgb16Transparency = cast(Math.Simd.U8x16, [1'u8, 0, 3, 2, 5, 4, 0x80, 0x80, 7, 6, 9, 8, 11, 10, 0x80, 0x80])
 const ExpandRgbTransparency = cast(Math.Simd.U8x16, [0'u8, 1, 2, 0x80, 3, 4, 5, 0x80, 6, 7, 8, 0x80, 9, 10, 11, 0x80])
 
 // Building the packed table breaks even at 512 pixels on the supported x64 baseline.
@@ -77,6 +78,40 @@ func convertGray16Transparency(source: const [*] u8, destination: [*] u8, sample
         cast([*] u16, dst)[1] = gray == key ? 0'u16 : 65535'u16
         src += 2
         dst += 4
+        remaining -= 1
+    }
+}
+
+// Expand two RGB16 pixels and compare each complete 48-bit color to the key.
+func convertRgb16Transparency(source: const [*] u8, destination: [*] u8, pixelCount: u64, red, green, blue: u16)
+{
+    var src = source
+    var dst = destination
+    var remaining = pixelCount
+    let key = cast(u64, red) | (cast(u64, green) << 16) | (cast(u64, blue) << 32)
+    let keys = Math.Simd.splat(key)
+    let alphaMask = Math.Simd.splat(0xFFFF_0000_0000_0000'u64)
+    // The sixteen-byte load spans two pixels and four bytes of the next one.
+    while remaining >= 3
+    {
+        let pixels = cast #bit(Math.Simd.U64x2, Math.Simd.shuffle(Math.Simd.load(src), ExpandRgb16Transparency))
+        let alpha = ~(pixels == keys) & alphaMask
+        Math.Simd.store(cast([*] u64, dst), pixels | alpha)
+        src += 12
+        dst += 16
+        remaining -= 2
+    }
+    while remaining
+    {
+        let r = (cast(u16, src[0]) << 8) | src[1]
+        let g = (cast(u16, src[2]) << 8) | src[3]
+        let b = (cast(u16, src[4]) << 8) | src[5]
+        cast([*] u16, dst)[0] = r
+        cast([*] u16, dst)[1] = g
+        cast([*] u16, dst)[2] = b
+        cast([*] u16, dst)[3] = r == red and g == green and b == blue ? 0'u16 : 65535'u16
+        src += 6
+        dst += 8
         remaining -= 1
     }
 }
@@ -360,19 +395,7 @@ impl Decoder
             let transparentG = read16(key + 2)
             let transparentB = read16(key + 4)
 
-            for result.width * result.height
-            {
-                let r = read16(src)
-                let g = read16(src + 2)
-                let b = read16(src + 4)
-                cast(*u16, dst)[]       = r
-                cast(*u16, (dst + 2))[] = g
-                cast(*u16, (dst + 4))[] = b
-                cast(*u16, (dst + 6))[] = r == transparentR and g == transparentG and b == transparentB ? 0'u16 : 65535'u16
-                src += 6
-                dst += 8
-            }
-
+            convertRgb16Transparency(src, dst, cast(u64, result.width) * result.height, transparentR, transparentG, transparentB)
         }
     }
 

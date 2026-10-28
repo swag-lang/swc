@@ -164,3 +164,5 @@ explore_File Fichier
 hint_Filter filtrer
 explore_Length % h %
 explore_Sources Sources
+lens_InFile Dans ce fichier
+lens_GoToLine Aller à la ligne %

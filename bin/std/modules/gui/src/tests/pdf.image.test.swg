@@ -208,6 +208,40 @@ private func imageDocument(dictionary: string, samples: const [..] u8)->Document
     Swag.assert(image.pixelColor(3, 0).r == 40)
 }
 
+// RGB and coverage samples combine correctly across row and SIMD block boundaries.
+#test
+{
+    for width in [1'u64, 4, 5, 6, 7, 8, 9, 15, 16, 17, 19]
+    {
+        var samples:  [114] u8
+        var coverage: [38] u8
+        for i in width * 2
+        {
+            samples[i * 3 + 0] = cast(u8, (i * 17 + 11) % 256)
+            samples[i * 3 + 1] = cast(u8, (i * 29 + 31) % 256)
+            samples[i * 3 + 2] = cast(u8, (i * 43 + 47) % 256)
+            coverage[i]        = cast(u8, (i * 53 + 71) % 256)
+        }
+
+        var extra: Array'u8
+        addStreamObject(&extra, 6, Format.toString("/Type /XObject /Subtype /Image /Width % /Height 2 /ColorSpace /DeviceGray /BitsPerComponent 8", width).toString(), coverage[0 until width * 2])
+        addStreamObject(&extra, 5, Format.toString("/Type /XObject /Subtype /Image /Width % /Height 2 /ColorSpace /DeviceRGB /BitsPerComponent 8 /Mask [0 255 0 255 0 255] /SMask 6 0 R", width).toString(), samples[0 until width * 6])
+        let content  = "q 10 0 0 10 0 0 cm /Im0 Do Q"
+        let document = expect Document.decode(singlePagePdf("/XObject << /Im0 5 0 R >>", cast(const [..] u8, content), extra.toSlice()).toSlice())
+        let image    = unwrap onlyItem(document.pages[0], .Image).imageValue()
+        for y in 2
+        {
+            for x in width
+            {
+                let index = y * width + x
+                let color = image.pixelColor(cast(s32, x), cast(s32, y))
+                Swag.assert(color.r == samples[index * 3 + 0] and color.g == samples[index * 3 + 1])
+                Swag.assert(color.b == samples[index * 3 + 2] and color.a == coverage[index])
+            }
+        }
+    }
+}
+
 // All eight-bit coverage values survive identity decoding; inversion still remaps them.
 #test
 {

@@ -41,6 +41,8 @@ private const GrayExpand1 = cast(Math.Simd.U8x16, [5'u8, 5, 6, 6, 6, 7, 7, 7, 8,
 private const GrayExpand2 = cast(Math.Simd.U8x16, [10'u8, 11, 11, 11, 12, 12, 12, 13, 13, 13, 14, 14, 14, 15, 15, 15])
 private const CmykGather  = cast(Math.Simd.U8x16, [0'u8, 1, 2, 4, 5, 6, 8, 9, 10, 12, 13, 14, 0x80, 0x80, 0x80, 0x80])
 private const CmykSpreadK = cast(Math.Simd.U8x16, [3'u8, 3, 3, 7, 7, 7, 11, 11, 11, 15, 15, 15, 0x80, 0x80, 0x80, 0x80])
+private const RgbaColors  = cast(Math.Simd.U8x16, [0'u8, 1, 2, 0x80, 3, 4, 5, 0x80, 6, 7, 8, 0x80, 9, 10, 11, 0x80])
+private const RgbaAlpha   = cast(Math.Simd.U8x16, [0x80'u8, 0x80, 0x80, 0, 0x80, 0x80, 0x80, 1, 0x80, 0x80, 0x80, 2, 0x80, 0x80, 0x80, 3])
 
 private func expandGray8(destination: [*] u8, source: const [*] u8, count: u64)
 {
@@ -154,6 +156,37 @@ private func colorKey8(destination: [*] u8, source: const [*] u8, count: u64, lo
         src  += 1
         dst  += 1
         left -= 1
+    }
+}
+
+private func composeRgba8(destination: [*] u8, colors, alpha: const [*] u8, count: u64)
+{
+    var dst  = destination
+    var rgb  = colors
+    var mask = alpha
+    var left = count
+    // A sixteen-byte RGB load needs at least six pixels remaining in this row.
+    while left >= 6
+    {
+        let packedRgb  = Math.Simd.shuffle(Math.Simd.load(rgb), RgbaColors)
+        let packedMask = cast #bit(Math.Simd.U8x16, Math.Simd.splat(cast(const [*] u32, mask)[0]))
+        Math.Simd.store(dst, packedRgb | Math.Simd.shuffle(packedMask, RgbaAlpha))
+        rgb  += 12
+        mask += 4
+        dst  += 16
+        left -= 4
+    }
+
+    while left
+    {
+        dst[0] = rgb[0]
+        dst[1] = rgb[1]
+        dst[2] = rgb[2]
+        dst[3] = mask[0]
+        rgb   += 3
+        mask  += 1
+        dst   += 4
+        left  -= 1
     }
 }
 
@@ -790,6 +823,19 @@ private func planeToImage(plane: const *SamplePlane, fill: const *Color?)->Image
     }
 
     let source = plane.rgb.storage()
+    if width >= 6
+    {
+        for y in height
+        {
+            let out      = pixels + (height - y - 1) * cast(u64, result.rowStride)
+            let colors   = source + y * width * 3
+            let coverage = alpha + y * width
+            composeRgba8(out, colors, coverage, width)
+        }
+
+        return #move result
+    }
+
     for y in height
     {
         var out       = pixels + (height - y - 1) * cast(u64, result.rowStride)
@@ -905,16 +951,23 @@ internal func decodeImage(parser: *PdfParser, nodeId, resourcesId: u32, fillColo
 
     if maskId != InvalidNode
     {
-        let mask = #move try readMaskPlane(parser, maskId, resourcesId, stencil)
+        var mask = #move try readMaskPlane(parser, maskId, resourcesId, stencil)
         if mask.alpha.count
         {
             let width  = cast(u64, plane.width)
             let height = cast(u64, plane.height)
-            plane.alpha.resize(width * height)
-            for y in height
+            if mask.width == plane.width and mask.height == plane.height
             {
-                for x in width do
-                    plane.alpha[y * width + x] = sampleAlpha(&mask, x, y, width, height)
+                plane.alpha = #move mask.alpha
+            }
+            else
+            {
+                plane.alpha.resize(width * height)
+                for y in height
+                {
+                    for x in width do
+                        plane.alpha[y * width + x] = sampleAlpha(&mask, x, y, width, height)
+                }
             }
         }
     }

@@ -9,7 +9,7 @@ using Core, Gui
 // property beside it, so the zoom tooltip is the only sentence it writes.
 struct Texts
 {
-    ui_ZoomMenu: string = "Document zoom options"     // Tooltip of the zoom value menu.
+    ui_ZoomMenu: string = "Document Zoom Options"     // Tooltip of the zoom value menu.
     ui_Details:  string = "HTML"     // Summary the host shows beside the file size.
 }
 

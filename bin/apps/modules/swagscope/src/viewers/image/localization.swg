@@ -9,18 +9,18 @@ using Core, Gui
 // read the same way everywhere — so only the words around them are translated.
 struct Texts
 {
-    ui_TipPrevious:            string = "Previous image"               // Tooltip of the previous-file button.
-    ui_TipNext:                string = "Next image"                   // Tooltip of the next-file button.
-    ui_TipFit:                 string = "Fit image"                    // Zoom-menu entry fitting the picture to the window.
-    ui_ZoomMenu:               string = "Zoom options"                 // Tooltip of the zoom value menu.
-    ui_TipTransform:           string = "Image orientation"            // Tooltip of the orientation menu button.
-    ui_TipPlay:                string = "Play or pause"                // Tooltip of the animation transport button.
-    ui_RotateClockwise:        string = "Rotate clockwise"             // Clockwise menu action.
-    ui_RotateCounterClockwise: string = "Rotate counter-clockwise"     // Counter-clockwise menu action.
-    ui_MirrorHorizontal:       string = "Mirror horizontally"          // Horizontal reflection menu action.
-    ui_MirrorVertical:         string = "Mirror vertically"            // Vertical reflection menu action.
-    ui_ResetTransform:         string = "Reset orientation"            // Restores source orientation.
-    ui_CopyImage:              string = "Copy image"                   // Puts the picture on the clipboard.
+    ui_TipPrevious:            string = "Previous Image"               // Tooltip of the previous-file button.
+    ui_TipNext:                string = "Next Image"                   // Tooltip of the next-file button.
+    ui_TipFit:                 string = "Fit Image"                    // Zoom-menu entry fitting the picture to the window.
+    ui_ZoomMenu:               string = "Zoom Options"                 // Tooltip of the zoom value menu.
+    ui_TipTransform:           string = "Image Orientation"            // Tooltip of the orientation menu button.
+    ui_TipPlay:                string = "Play or Pause"                // Tooltip of the animation transport button.
+    ui_RotateClockwise:        string = "Rotate Clockwise"             // Clockwise menu action.
+    ui_RotateCounterClockwise: string = "Rotate Counter-Clockwise"     // Counter-clockwise menu action.
+    ui_MirrorHorizontal:       string = "Mirror Horizontally"          // Horizontal reflection menu action.
+    ui_MirrorVertical:         string = "Mirror Vertically"            // Vertical reflection menu action.
+    ui_ResetTransform:         string = "Reset Orientation"            // Restores source orientation.
+    ui_CopyImage:              string = "Copy Image"                   // Puts the picture on the clipboard.
     word_Mirrored:             string = "mirrored"                     // Status of reflected image content.
     word_Frame:                string = "frame"                        // One animation frame.
     word_Frames:               string = "frames"                       // Several animation frames.

@@ -32,8 +32,8 @@ enum MediaInfoField
 struct MediaInfoStrings
 {
     title:       string = "Information"
-    close:       string = "Close information"
-    copy:        string = "Copy information"
+    close:       string = "Close Information"
+    copy:        string = "Copy Information"
     property:    string = "Property"
     value:       string = "Value"
     image:       string = "Image"

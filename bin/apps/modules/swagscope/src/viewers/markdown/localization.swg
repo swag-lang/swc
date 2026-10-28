@@ -15,7 +15,7 @@ struct Texts
     ui_Wide:         string = "Wide"                      // Widest fixed reading measure.
     ui_Fluid:        string = "Fluid"                     // Reading measure following the window.
     ui_Theme:        string = "Appearance"                // Option choosing how the document is styled.
-    ui_ZoomMenu:     string = "Markdown zoom options"     // Tooltip of the zoom value menu.
+    ui_ZoomMenu:     string = "Markdown Zoom Options"     // Tooltip of the zoom value menu.
     ui_ThemeApp:     string = "Application"               // Appearance following the application palette.
     ui_OneLine:      string = "1 line"                    // Singular source line count.
     ui_Lines:        string = "% lines"                   // Plural source line count.

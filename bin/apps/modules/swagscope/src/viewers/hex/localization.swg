@@ -23,12 +23,12 @@ struct Texts
     ui_EndianLittle:           string = "Little endian"                                                                                       // Little-endian byte-order choice.
     ui_EndianBig:              string = "Big endian"                                                                                          // Big-endian byte-order choice.
     ui_ByteOrder:              string = "Byte order"                                                                                          // Option choosing the byte order of multi-byte values.
-    ui_ZoomMenu:               string = "Byte view zoom options"                                                                              // Tooltip of the zoom value menu.
+    ui_ZoomMenu:               string = "Byte View Zoom Options"                                                                              // Tooltip of the zoom value menu.
     ui_TextColumn:             string = "text"                                                                                                // Header of the decoded-text column.
     ui_Empty:                  string = "This file is empty."                                                                                 // Message painted when the file has no bytes.
-    ui_GoTo:                   string = "Go to offset"                                                                                        // Dialog title and menu entry of the jump command.
+    ui_GoTo:                   string = "Go to Offset"                                                                                        // Dialog title and menu entry of the jump command.
     ui_GoToMessage:            string = "Hexadecimal or 0d decimal offset, percentage, caret, filesize, or signed caret-relative offset."     // Question of the jump dialog.
-    ui_SelectAll:              string = "Select all"                                                                                          // Menu entry selecting the whole file.
+    ui_SelectAll:              string = "Select All"                                                                                          // Menu entry selecting the whole file.
     ui_RowWidth:               string = "Bytes per row"                                                                                       // Option choosing how many bytes one row shows.
     ui_RowAuto:                string = "Fit the window"                                                                                      // Row width following the window width.
     ui_SearchPlaceholder:      string = "Hex, text:, or value:"                                                                               // Placeholder naming the three binary query forms.
@@ -39,8 +39,8 @@ struct Texts
     ui_Analysis:               string = "Analysis"                                                                                            // Heading of the byte-analysis panel.
     ui_AnalysisTip:            string = "Analyze the selection, or the whole file when one byte is selected"                                  // Tooltip of the visible analysis action.
     ui_AnalysisRun:            string = "Analyze the current selection, or the whole file when one byte is selected"                          // Tooltip of the repeated analysis action.
-    ui_AnalysisCancel:         string = "Stop analysis"                                                                                       // Tooltip of the cancellation action.
-    ui_AnalysisClose:          string = "Close analysis"                                                                                      // Tooltip of the panel close action.
+    ui_AnalysisCancel:         string = "Stop Analysis"                                                                                       // Tooltip of the cancellation action.
+    ui_AnalysisClose:          string = "Close Analysis"                                                                                      // Tooltip of the panel close action.
     ui_AnalysisFile:           string = "Whole file · %"                                                                                      // Scope of a whole-file analysis.
     ui_AnalysisSelection:      string = "Selection @% · %"                                                                                    // Scope of a selected-range analysis.
     ui_AnalysisProgress:       string = "Analyzing · %{f1}%%"                                                                                 // Progress through the selected range.
@@ -62,15 +62,15 @@ struct Texts
     ui_AnalysisText:           string = "Text"                                                                                                // String-table preview column.
     err_AnalysisShortRead:     string = "The file ends before the analysis range"                                                             // Failure when a file changes while it is being analyzed.
 
-    ui_CopyBytes: string = "Copy bytes"     // Menu entry copying the selection as hexadecimal byte pairs.
-    ui_CopyText:  string = "Copy text"      // Menu entry copying the selection as printable text.
-    ui_CopyDump:  string = "Copy dump"      // Menu entry copying the selection as an offset/hex/text dump.
+    ui_CopyBytes: string = "Copy Bytes"     // Menu entry copying the selection as hexadecimal byte pairs.
+    ui_CopyText:  string = "Copy Text"      // Menu entry copying the selection as printable text.
+    ui_CopyDump:  string = "Copy Dump"      // Menu entry copying the selection as an offset/hex/text dump.
 
     // Copy entries when the selection is larger than what a clipboard should carry. The bound is
     // named on the command itself, because a clipboard that came back short explains nothing.
-    ui_CopyBytesMax: string = "Copy the first % as bytes"
-    ui_CopyTextMax:  string = "Copy the first % as text"
-    ui_CopyDumpMax:  string = "Copy the first % as a dump"
+    ui_CopyBytesMax: string = "Copy the First % as Bytes"
+    ui_CopyTextMax:  string = "Copy the First % as Text"
+    ui_CopyDumpMax:  string = "Copy the First % as a Dump"
     err_Read:        string = "file stream could not be read"     // Diagnostics of a file the viewer cannot read.
     err_Truncated:   string = "file ends before its reported size"
 }

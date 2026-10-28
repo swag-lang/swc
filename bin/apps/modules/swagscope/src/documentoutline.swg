@@ -8,7 +8,7 @@ struct DocumentOutlineStrings
     title:   string = "Outline"                          // Title of the panel and tooltip of its toggle.
     empty:   string = "No outline in this document."     // Status of a document without headings.
     loading: string = "Reading outline…"                 // Status while the headings are read.
-    close:   string = "Close outline"                    // Tooltip of the close button.
+    close:   string = "Close Outline"                    // Tooltip of the close button.
     filter:  string = "Filter headings by name"          // Placeholder of the heading filter.
     noMatch: string = "No headings match."               // Status when the heading filter has no result.
 }

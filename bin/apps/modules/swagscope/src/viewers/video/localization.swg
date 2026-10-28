@@ -9,10 +9,10 @@ struct Texts
     ui_TipPlay:                string = "Play"                                                    // Tooltip while playback is stopped or paused.
     ui_TipPause:               string = "Pause"                                                   // Tooltip while playback is running.
     ui_TipStop:                string = "Stop"                                                    // Tooltip of the stop button.
-    ui_TipBackward:            string = "Back 10 seconds (Left) · Ctrl+Left: previous frame"      // Tooltip of the backward seek button.
-    ui_TipForward:             string = "Forward 10 seconds (Right) · Ctrl+Right: next frame"     // Tooltip of the forward seek button.
+    ui_TipBackward:            string = "Back 10 Seconds (Left) · Ctrl+Left: previous frame"      // Tooltip of the backward seek button.
+    ui_TipForward:             string = "Forward 10 Seconds (Right) · Ctrl+Right: next frame"     // Tooltip of the forward seek button.
     ui_TipSeek:                string = "Seek"                                                    // Tooltip of the playback timeline.
-    ui_TipMute:                string = "Mute or unmute (M)"                                      // Tooltip of the mute switch.
+    ui_TipMute:                string = "Mute or Unmute (M)"                                      // Tooltip of the mute switch.
     ui_TipVolume:              string = "Volume"                                                  // Tooltip of the volume slider.
     ui_OptionSpeed:            string = "Speed"                                                   // Option choosing the playback rate.
     ui_OptionAudio:            string = "Audio track"                                             // Option choosing the sound track.
@@ -49,7 +49,7 @@ struct Texts
     ui_SubtitleColorWhite:     string = "White"
     ui_SubtitleColorYellow:    string = "Yellow"
     ui_SubtitleDelay:          string = "Synchronization"
-    ui_SubtitleDelayReset:     string = "Reset delay"
+    ui_SubtitleDelayReset:     string = "Reset Delay"
     word_Frame:                string = "frame"      // One video frame.
     word_Frames:               string = "frames"     // Several video frames.
 

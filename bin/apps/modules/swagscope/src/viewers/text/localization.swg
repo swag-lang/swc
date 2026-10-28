@@ -13,7 +13,7 @@ struct Texts
     ui_Wrap:         string = "Wrap long lines"        // Option folding long lines into the view; Ctrl+W also switches it.
     ui_Numbers:      string = "Line numbers"           // Option numbering the lines in a gutter.
     ui_Encoding:     string = "Character encoding"     // Option choosing how the bytes are read as text.
-    ui_ZoomMenu:     string = "Text zoom options"      // Tooltip of the zoom value menu.
+    ui_ZoomMenu:     string = "Text Zoom Options"      // Tooltip of the zoom value menu.
     ui_NotText:      string = "This file does not contain readable text. Select Hexadecimal to inspect its bytes."     // No encoding reads the file as text.
     ui_Details:      string = "% · %"                  // Encoding and the current cursor line.
     ui_DetailsStats: string = "% · % · % · % · %"      // Encoding, current cursor line, and line, word, and Unicode character counts.

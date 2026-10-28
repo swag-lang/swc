@@ -1808,9 +1808,8 @@ struct PropHeadlessPanelStringData
     Swag.assert(fixedCtrl.edit.flags.has(.ReadOnly))
 }
 
-// The bold/italic buttons of the FontFamilyStyle editor are independent toggles: a
-// second click on a checked button must uncheck it (regression: with Radio the
-// click on a checked button was swallowed, so bold/italic could never be removed).
+// The FontFamilyStyle editor is one row of four segments, each lettered "Aa" in the style it
+// stands for; choosing one writes that style, and the row follows the field.
 #test
 {
     var host: Testing.HeadlessHost
@@ -1821,21 +1820,23 @@ struct PropHeadlessPanelStringData
     host.root.applyLayout()
     host.pump()
 
-    // items[0] is the implicit section. In Panel mode the persistent field label is the
-    // first child, followed by the sub-line that stacks the B and I buttons.
-    let item      = unwrap prop.items[1]
-    let stack     = item.line.children[1]
-    let btnBold   = assume cast (*IconButton, stack.children[0])
-    let btnItalic = assume cast (*IconButton, stack.children[1])
+    // items[0] is the implicit section.
+    let item  = unwrap prop.items[1]
+    let combo = item.comboBox
+    Swag.assert(combo != null and combo.flags.has(.Segmented) and combo.items.count == 4)
+    for style, i in [FontFamilyStyle.Regular, FontFamilyStyle.Bold, FontFamilyStyle.Italic, FontFamilyStyle.BoldItalic] do
+        Swag.assert(combo.items[i]!.fontStyle == style)
 
-    host.clickWnd(btnBold)
+    combo.setSelectedIndex(1)
     Swag.assert(data.style == .Bold)
-    host.clickWnd(btnItalic)
+    combo.setSelectedIndex(3)
     Swag.assert(data.style == .BoldItalic)
-    host.clickWnd(btnBold)
-    Swag.assert(data.style == .Italic)
-    host.clickWnd(btnItalic)
+    combo.setSelectedIndex(0)
     Swag.assert(data.style == .Regular)
+
+    data.style = .Italic
+    prop.refresh()
+    Swag.assert(combo.selectedIndex == 2)
 }
 
 struct PropHeadlessUsingBase

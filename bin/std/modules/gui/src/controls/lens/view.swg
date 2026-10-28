@@ -65,15 +65,27 @@ struct View
     sources:     Array'Source
     scroll:      f32
     returnFocus: *Wnd?
+    hotPicture:  PictureHit
 }
 
-// One line of the results of a [[Gui.Lens.View]]: the label of a section, or one of its rows.
+// A picture of a strip of the lens under a point: the row of the strip, and the picture, or the
+// count of pictures of the section for its link.
+internal struct PictureHit
+{
+    row:   u64 = Swag.U64.Max
+    index: u64
+}
+
+// The `entry` of the [[Gui.Lens.Row]] holding the strip of pictures of its section.
+const PictureRow = Swag.U64.Max - 1
+
+// One line of the results of a [[Gui.Lens.View]]: the label of a section, one of its rows, or its strip of pictures.
 struct Row
 {
     public
     {
         section: *Section     // Section the line belongs to.
-        entry:   u64          // Index of the row in its section, or `U64.Max` for the section label.
+        entry:   u64          // Index of the row in its section, `U64.Max` for the section label, [[Gui.Lens.PictureRow]] for the strip.
         top:     f32          // Top of the line under the input, before scrolling.
         height:  f32          // Height of the line.
     }
@@ -138,6 +150,8 @@ impl IWnd for View
                 continue
             if row.entry == Swag.U64.Max do
                 .paintSectionRow(painter, rect, row.section)
+            elif row.entry == PictureRow do
+                .paintPictureRow(painter, rect, row.section)
             else do
                 .paintEntryRow(painter, rect, &row.section.entries[row.entry], index == .chosen)
         }
@@ -159,12 +173,32 @@ impl IWnd for View
                 .invalidate()
             }
 
+            // A picture under the pointer is ringed.
+            let hot = .pictureAt(pos)
+            if hot.row != .hotPicture.row or hot.index != .hotPicture.index
+            {
+                .hotPicture = hot
+                .invalidate()
+            }
+
         case .Pressed:
             if evt.button != .Left do
                 break
             if not .body().contains(pos)
             {
                 .close()
+                break
+            }
+
+            // A picture or the link of a strip runs at once.
+            let picture = .pictureAt(pos)
+            if picture.row != Swag.U64.Max
+            {
+                let section = .rows[picture.row].section
+                let run     = picture.index < section.pictures.count ? section.pictures[picture.index].run : section.linkRun
+                .close()
+                if run do
+                    run()
                 break
             }
 
@@ -500,8 +534,15 @@ private impl View
     {
         let metrics = .themeMetrics()
         .rows.clear()
+        // The strips of pictures close the results, after every row a key can reach.
+        var order: Array'(*Section)
+        for section in .results.sections where not section!.isEmpty() and section.pictures.isEmpty() do
+            order.add(section)
+        for section in .results.sections where not section!.pictures.isEmpty() do
+            order.add(section)
+
         var y = metrics.lens_RowInset
-        for section in .results.sections where not section!.entries.isEmpty()
+        for section in order
         {
             .rows.add(Row{section, Swag.U64.Max, y, metrics.lens_SectionHeight})
             y += metrics.lens_SectionHeight
@@ -510,13 +551,53 @@ private impl View
                 .rows.add(Row{section, i, y, metrics.lens_RowHeight})
                 y += metrics.lens_RowHeight
             }
+
+            if not section.pictures.isEmpty()
+            {
+                let height = metrics.lens_PictureHeight + 2 * metrics.lens_PictureGap
+                .rows.add(Row{section, PictureRow, y, height})
+                y += height
+            }
         }
     }
 
     mtd isSelectable(index: u64)->bool
     {
         let row = .rows[index]
-        return row.entry != Swag.U64.Max and not row.section.entries[row.entry].disabled
+        return row.entry != Swag.U64.Max and row.entry != PictureRow and not row.section.entries[row.entry].disabled
+    }
+
+    // Returns the cell of picture `index` of a strip whose row stands at `rect`; `index` past the
+    // pictures is the link.
+    mtd pictureRect(rect: Math.Rectangle, section: *Section, index: u64)->Math.Rectangle
+    {
+        let metrics = .themeMetrics()
+        let x       = rect.x + metrics.lens_TextInset + cast(f32, index) * (metrics.lens_PictureWidth + metrics.lens_PictureGap)
+        let y       = rect.y + metrics.lens_PictureGap
+        if index < section.pictures.count do
+            return {x, y, metrics.lens_PictureWidth, metrics.lens_PictureHeight}
+
+        let font  = .theme().createDefaultFont(metrics.defaultFontSize)
+        let width = Painter.measureString(section.link, font).width
+        return {x, y, width, metrics.lens_PictureHeight}
+    }
+
+    // Returns the picture, or the link, of a strip under `pos`.
+    mtd pictureAt(pos: Math.Point)->PictureHit
+    {
+        var none: PictureHit
+        let list = .listRect()
+        if not list.contains(pos) do
+            return none
+        for row, rowIndex in .rows where row.entry == PictureRow
+        {
+            let rect  = Math.Rectangle{list.x, list.y + row.top - .scroll, list.width, row.height}
+            let count = row.section.pictures.count + (row.section.link.isEmpty() ? 0 : 1)
+            for i in count where .pictureRect(rect, row.section, i).contains(pos) do
+                return PictureHit{row: rowIndex, index: i}
+        }
+
+        return none
     }
 
     mtd contentHeight()->f32
@@ -609,6 +690,36 @@ private impl View
         // The label sits low in its band, closer to the rows it opens than to the group above.
         let band = Math.Rectangle{rect.x + metrics.lens_TextInset, rect.y + rect.height - metrics.lens_RowHeight * 0.6, rect.width - 2 * metrics.lens_TextInset, metrics.lens_RowHeight * 0.4}
         paintSectionLabel(me, painter, band, label)
+    }
+
+    // Paints the strip of pictures of `section`, then its link in the Arc ink.
+    mtd paintPictureRow(painter: *Painter, rect: Math.Rectangle, section: *Section)
+    {
+        let metrics = .themeMetrics()
+        let colors  = .themeColors()
+        let radius  = metrics.corner_Chip
+        painter.setParams(.Antialiased)
+        for &picture, i in section.pictures
+        {
+            let cell = .pictureRect(rect, section, i)
+            if cell.x > rect.right() do
+                break
+            painter.pushClippingRect(cell)
+            painter.fillRect(cell, colors.raised)
+            if picture.paint do
+                picture.paint(painter, cell)
+            painter.popClippingRect()
+
+            let hot = .hotPicture.index == i and .hotPicture.row < .rows.count and .rows[.hotPicture.row].section == section
+            painter.drawRoundRect(cell, radius, radius, hot ? colors.arc : colors.line, hot ? 1.5 : metrics.separator_HairlineSize)
+        }
+
+        if not section.link.isEmpty()
+        {
+            let cell = .pictureRect(rect, section, section.pictures.count)
+            let font = .theme().createDefaultFont(metrics.defaultFontSize)
+            discard paintTextLine(painter, cell.x, cell.vertCenter(), section.link, font, colors.arc)
+        }
     }
 
     mtd paintEntryRow(painter: *Painter, rect: Math.Rectangle, entry: *Entry, chosen: bool)

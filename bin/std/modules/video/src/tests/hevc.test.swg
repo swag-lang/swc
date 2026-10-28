@@ -372,6 +372,62 @@ using Core, Core.Errors, Pixel
     }
 }
 
+// DC prediction fills the whole block, then blends only the luma edges of
+// blocks smaller than 32 samples. Keep the next sample untouched.
+#test
+{
+    var reference: Hevc.IntraReference
+    var decoder: Hevc.Decoder
+    var seed = 0x62EA417F'u32
+    for bitDepth in [8'u32, 10]
+    {
+        let maximum = (1'u32 << bitDepth) - 1
+        for log2Size in [2'u32, 3, 4, 5]
+        {
+            let size = 1'u32 << log2Size
+            reference.size = size
+            for 32
+            {
+                var sum = size
+                for index in size
+                {
+                    seed = seed * #wrap 1664525 + #wrap 1013904223
+                    let top = (seed >> 16) & maximum
+                    seed = seed * #wrap 1664525 + #wrap 1013904223
+                    let left = (seed >> 16) & maximum
+                    reference.setTop(index, cast(u16, top))
+                    reference.setLeft(index, cast(u16, left))
+                    sum += top + left
+                }
+                let dc = sum >> (log2Size + 1)
+                for component in [0'u32, 1, 2]
+                {
+                    decoder.predSamples[size * size] = 0x5A5A
+                    decoder.predictDc(&reference, size, log2Size, component)
+                    for y in size
+                    {
+                        for x in size
+                        {
+                            var expected = dc
+                            if component == 0 and size < 32
+                            {
+                                if x == 0 and y == 0 do
+                                    expected = (cast(u32, reference.left(0)) + 2 * dc + cast(u32, reference.top(0)) + 2) >> 2
+                                elif y == 0 do
+                                    expected = (cast(u32, reference.top(x)) + 3 * dc + 2) >> 2
+                                elif x == 0 do
+                                    expected = (cast(u32, reference.left(y)) + 3 * dc + 2) >> 2
+                            }
+                            Swag.assert(decoder.predSamples[y * size + x] == cast(u16, expected))
+                        }
+                    }
+                    Swag.assert(decoder.predSamples[size * size] == 0x5A5A)
+                }
+            }
+        }
+    }
+}
+
 // Planar prediction uses unsigned 16-bit sums up to the Main10 maximum.
 // Compare all output samples and preserve the sentinel beyond the block.
 #test

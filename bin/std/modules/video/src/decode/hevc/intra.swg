@@ -280,15 +280,20 @@ impl Decoder
     }
 
     // Predicts a flat block, clause 8.4.4.2.5.
-    private mtd predictDc(reference: const *IntraReference, size, log2Size, component: u32)
+    mtd predictDc(reference: const *IntraReference, size, log2Size, component: u32)
     {
         var sum = size
         for index in size do
             sum += cast(u32, reference.top(index)) + cast(u32, reference.left(index))
         let dc = sum >> (log2Size + 1)
 
-        for index in size * size do
-            .predSamples[index] = cast(u16, dc)
+        let values = Simd.splat(cast(u16, dc))
+        var index = 0'u32
+        while index < size * size
+        {
+            Simd.store(&.predSamples[index], values)
+            index += 8
+        }
 
         // The edges of a small luma block are blended with their neighbours, which is what keeps
         // a flat prediction from showing its own boundary.

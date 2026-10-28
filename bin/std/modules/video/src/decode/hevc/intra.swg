@@ -579,8 +579,19 @@ impl Decoder
             return
 
         .predSamples[0] = cast(u16, ((cast(u32, reference.left(0)) + 2 * dc + cast(u32, reference.top(0)) + 2) >> 2))
-        for x in 1 until size do
+        var x = 1'u32
+        if size == 16
+        {
+            let bias = Simd.splat(cast(u16, (3 * dc + 2)))
+            let top = Simd.load(&reference.samples[2 * size + 2])
+            Simd.store(&.predSamples[1], (top + bias) >> 2)
+            x = 9
+        }
+        while x < size
+        {
             .predSamples[x] = cast(u16, ((cast(u32, reference.top(x)) + 3 * dc + 2) >> 2))
+            x += 1
+        }
         for y in 1 until size do
             .predSamples[y * size] = cast(u16, ((cast(u32, reference.left(y)) + 3 * dc + 2) >> 2))
     }

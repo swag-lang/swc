@@ -1097,6 +1097,7 @@ namespace
         r.add(MicroInstrOpcode::LoadZeroExtRegReg, tryFoldRepeatedZeroExtend);
         r.add(MicroInstrOpcode::LoadZeroExtRegReg, tryFoldSubtractBoolean);
         r.add(MicroInstrOpcode::LoadZeroExtRegReg, tryEraseBooleanRecanonicalization);
+        r.add(MicroInstrOpcode::SetCondReg, tryFoldBooleanRetest);
         r.add(MicroInstrOpcode::LoadZeroExtRegReg, tryFoldZeroExtendedBooleanCompare);
         r.add(MicroInstrOpcode::LoadZeroExtRegReg, tryExtractHighByte);
         r.add(MicroInstrOpcode::LoadZeroExtRegReg, tryNarrowTruncatedRightShift);

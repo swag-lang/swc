@@ -2538,6 +2538,41 @@ namespace PostRaPeephole
         return true;
     }
 
+    // A SETcc is already a canonical boolean. Retesting it for zero can
+    // select the original condition directly, or its inverse.
+    bool tryFoldBooleanRetest(Context& ctx, MicroInstrRef ref, const MicroInstr& inst)
+    {
+        const auto* finalSet = inst.ops(*ctx.operands);
+        if (!finalSet || !finalSet[0].reg.isInt() || ctx.isClaimed(ref))
+            return false;
+        const bool invert = finalSet[1].cpuCond == MicroCond::Equal || finalSet[1].cpuCond == MicroCond::Zero;
+        if (!invert && finalSet[1].cpuCond != MicroCond::NotEqual && finalSet[1].cpuCond != MicroCond::NotZero)
+            return false;
+
+        const MicroInstrRef cmpRef = ctx.previousRef(ref);
+        const MicroInstr*   cmp    = ctx.instruction(cmpRef);
+        const auto*         cmpOps = cmp ? cmp->ops(*ctx.operands) : nullptr;
+        if (!cmp || cmp->op != MicroInstrOpcode::CmpRegImm || !cmpOps || cmpOps[0].reg != finalSet[0].reg ||
+            cmpOps[1].opBits != MicroOpBits::B8 || cmpOps[2].hasWideImmediateValue() || cmpOps[2].valueU64 != 0)
+            return false;
+        const MicroInstrRef firstRef = ctx.previousRef(cmpRef);
+        const MicroInstr*   first    = ctx.instruction(firstRef);
+        const auto*         firstOps = first ? first->ops(*ctx.operands) : nullptr;
+        if (!first || first->op != MicroInstrOpcode::SetCondReg || !firstOps || firstOps[0].reg != finalSet[0].reg)
+            return false;
+        MicroCond condition = firstOps[1].cpuCond;
+        if (invert && !MicroPassHelpers::invertCondition(condition, condition))
+            return false;
+        if (!ctx.areCpuFlagsDeadAfter(ref) || !ctx.claimAll({firstRef, cmpRef, ref}))
+            return false;
+        MicroInstrOperand replacement[2] = {firstOps[0], firstOps[1]};
+        replacement[1].cpuCond           = condition;
+        ctx.emitRewrite(firstRef, MicroInstrOpcode::SetCondReg, replacement);
+        ctx.emitErase(cmpRef);
+        ctx.emitErase(ref);
+        return true;
+    }
+
     // SETcc produces 0 or 1, so an 8-bit AND/OR/XOR of two SETcc values is
     // already a canonical boolean. A following SETNE only reproduces it.
     bool tryEraseBooleanRecanonicalization(Context& ctx, const MicroInstrRef ref, const MicroInstr& inst)

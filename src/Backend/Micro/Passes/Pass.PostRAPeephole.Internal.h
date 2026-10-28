@@ -150,6 +150,7 @@ namespace PostRaPeephole
     bool tryNarrowZeroExtendedShift(Context& ctx, MicroInstrRef ref, const MicroInstr& inst);
     bool tryFoldZeroExtendedBooleanCompare(Context& ctx, MicroInstrRef ref, const MicroInstr& inst);
     bool tryEraseBooleanRecanonicalization(Context& ctx, MicroInstrRef ref, const MicroInstr& inst);
+    bool tryFoldBooleanRetest(Context& ctx, MicroInstrRef ref, const MicroInstr& inst);
     bool tryFoldSubtractBoolean(Context& ctx, MicroInstrRef ref, const MicroInstr& inst);
     bool tryInvertZeroSelect(Context& ctx, MicroInstrRef ref, const MicroInstr& inst);
     bool tryClearZeroBeforeSelect(Context& ctx, MicroInstrRef ref, const MicroInstr& inst);

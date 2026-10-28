@@ -7068,6 +7068,47 @@ SWC_TEST_BEGIN(PostRAPeephole_ShufflePreservesDemandedLanes)
 }
 SWC_TEST_END()
 
+SWC_TEST_BEGIN(PostRAPeephole_BooleanRetestPreservesResultsAndFlags)
+{
+    const MicroReg     base  = CallConv::get(CallConvKind::C).intArgRegs[0];
+    constexpr MicroReg value = MicroReg::intReg(0);
+    constexpr MicroReg flag  = MicroReg::intReg(2);
+    for (const bool inverted : {false, true})
+    {
+        for (const bool flagsLive : {false, true})
+        {
+            for (const uint64_t input : {0ull, 1ull})
+            {
+                std::array<uint64_t, 3> expected{};
+                for (const bool optimize : {false, true})
+                {
+                    std::array<uint64_t, 3> values = {input, 0, 0};
+                    MicroBuilder            builder(ctx);
+                    builder.emitLoadRegMem(value, base, 0, MicroOpBits::B64);
+                    builder.emitCmpRegImm(value, ApInt(0, 64), MicroOpBits::B64);
+                    builder.emitSetCondReg(value, MicroCond::Equal);
+                    builder.emitCmpRegImm(value, ApInt(0, 8), MicroOpBits::B8);
+                    builder.emitSetCondReg(value, inverted ? MicroCond::Equal : MicroCond::NotEqual);
+                    if (flagsLive)
+                    {
+                        builder.emitSetCondReg(flag, MicroCond::Equal);
+                        builder.emitLoadMemReg(base, 16, flag, MicroOpBits::B8);
+                    }
+                    builder.emitLoadMemReg(base, 8, value, MicroOpBits::B8);
+                    builder.emitRet();
+                    SWC_RESULT(executeForwardingCase(ctx, builder, values.data(), optimize));
+                    if (!optimize)
+                        expected = values;
+                    else if (values != expected)
+                        return Result::Error;
+                }
+            }
+        }
+    }
+    return Result::Continue;
+}
+SWC_TEST_END()
+
 // Execute the full vector result: scalar copies preserve the cleared upper lanes,
 // while a three-operand arithmetic result takes them from its first input.
 SWC_TEST_BEGIN(PostRAPeephole_DeadFloatClearPreservesAllObservedLanes)

@@ -128,6 +128,10 @@ struct ThemePalette
         rich2: Color     // Second rich-text palette slot.
         rich3: Color     // Third rich-text palette slot.
 
+        // Hues that tell a few series apart — the tracks of a piece, the channels of a recording —
+        // where nothing is chosen and nothing acts. The first is Arc; the others keep its weight.
+        series: [4] Color
+
         // Ink a translucent veil is made of: white over a dark ground, black over a light one.
         // Every overlay of the theme is this color at one of three strengths, which is why a
         // veil never has to be re-tuned per widget.

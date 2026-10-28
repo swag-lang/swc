@@ -14,6 +14,32 @@ private struct Domain
     name: String
 }
 
+// A Markdown file of the backlog or of its design campaign folder.
+private struct BacklogFile
+{
+    path:     String
+    name:     String // relative to backlog/, as the inventory and Git history name it
+    fileName: String
+}
+
+private func collectBacklogFiles(folder: string, prefix: string, result: *Array'BacklogFile) fail
+{
+    let files = try Directory.enumerateFiles(folder, ".md")
+    for file in files
+    {
+        let fileName = Path.fileName(file.fullName.toString()) orelse ""
+        with var entry: BacklogFile
+        {
+            .path     = String.from(file.fullName.toString())
+            .name     = String.from(prefix)
+            .name    += fileName
+            .fileName = String.from(fileName)
+        }
+
+        result.add(entry)
+    }
+}
+
 private func parseDecimal(text: string, start: u64)->{value: u32, end: u64}
 {
     var value: u32
@@ -663,16 +689,22 @@ public func auditBacklog(context: *Context)->s32 fail
     var domains: Array'Domain
     var errors:  u32
 
-    let files = try Directory.enumerateFiles(backlogDir.toString(), ".md")
+    // The design campaign folder keeps its own README beside entries indexed like any domain.
+    var files: Array'BacklogFile
+    try collectBacklogFiles(backlogDir.toString(), "", &files)
+    let designDir = Path.combine(backlogDir.toString(), "design")
+    if Directory.exists(designDir.toString()) do
+        try collectBacklogFiles(designDir.toString(), "design/", &files)
+
     for file in files
     {
-        let name = Path.fileName(file.fullName.toString()) orelse ""
-        errors += try auditBacklogLinks(file.fullName.toString())
+        let name = file.name.toString()
+        errors += try auditBacklogLinks(file.path.toString())
 
-        if name == "README.md" or name == "repo.prompts.md" do
+        if file.fileName == "README.md" or file.fileName == "repo.prompts.md" do
             continue
 
-        let stem = Path.fileNameWithoutExtension(name) orelse ""
+        let stem = Path.fileNameWithoutExtension(file.fileName.toString()) orelse ""
         if not isBacklogScope(stem)
         {
             Console.println("error: backlog file name '", name, "' does not follow <scope>[.<subscope>...].md")
@@ -685,7 +717,7 @@ public func auditBacklog(context: *Context)->s32 fail
             errors += 1
         }
 
-        let audit = try auditBacklogFile(file.fullName.toString(), &seen)
+        let audit = try auditBacklogFile(file.path.toString(), &seen)
         errors += audit.errors
 
         with var domain: Domain
@@ -698,10 +730,9 @@ public func auditBacklog(context: *Context)->s32 fail
 
     for file in files
     {
-        let name = Path.fileName(file.fullName.toString()) orelse ""
-        if name == "README.md" or name == "repo.prompts.md" do
+        if file.fileName == "README.md" or file.fileName == "repo.prompts.md" do
             continue
-        errors += try auditBacklogRelated(file.fullName.toString(), &seen)
+        errors += try auditBacklogRelated(file.path.toString(), &seen)
     }
 
     errors += auditBacklogIndex(readmeFile.toString(), readme.toString(), domains.toSlice())

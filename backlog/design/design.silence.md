@@ -93,9 +93,3 @@ dialogs, then each application, then the written rules.
   dialog actions, tabs, command tooltips) to the title-style capitalization of the charter,
   leaving sentences and French translations alone.
 - Done when: a search of the English reference tables finds no command label in sentence case.
-
-### design.silence.013 — The backlog validator does not read this folder
-
-- Next: let `auditBacklog` in `tools/src/backlog.swg` also enumerate `backlog/design/*.md`.
-- Done when: `bin\swc.exe --num-cores 6 tools\tests\repository.swgs .` reports a broken link or a
-  reused identifier in this file.

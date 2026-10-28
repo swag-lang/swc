@@ -173,6 +173,22 @@ impl InfoBar
 
         bar.applyTheme()
         parent.applyLayout()
+
+        // A notice opens its own height, then its words fade in.
+        if parent.surface and not parent.app().isReducedMotion()
+        {
+            let animator = &parent.app().animator
+            bar.resize(bar.position.width, 0, false)
+            bar.label.setPresentationOpacity(0)
+            discard animator.animateLayoutHeight(bar, height)
+
+            var options: AnimationOptions
+            options.delay    = Time.Duration.fromSeconds(metrics.motion_PanelSeconds)
+            options.duration = Time.Duration.fromSeconds(metrics.motion_QuickSeconds)
+            options.easing   = .EaseOut
+            discard animator.animateF32(bar.label, AnimationChannel.from("Gui.Notice.Words"), 0, 1, func(label, value) { label.setPresentationOpacity(value) }, options)
+        }
+
         return bar
     }
 

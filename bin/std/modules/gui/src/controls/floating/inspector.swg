@@ -237,6 +237,11 @@ impl Inspector
         for child in .children do
             child.show(not folded)
         .relayout()
+
+        // Unfolded, the inspector arrives from its edge like any floating surface; folded, its
+        // edge tab is there at once, since the hand is already on it.
+        if not folded do
+            discard .app().animator.arrive(me, {.themeMetrics().motion_EdgeTravel, 0})
         .sigFoldChanged.call(me)
     }
 

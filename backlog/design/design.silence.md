@@ -115,14 +115,13 @@ dialogs, then each application, then the written rules.
   leaving sentences and French translations alone.
 - Done when: a search of the English reference tables finds no command label in sentence case.
 
-### design.silence.015 — Notices and the folding inspector still appear at once
+### design.silence.015 — A dismissed notice leaves in one frame
 
-- Evidence: the floating surfaces, menus, dialogs and the switch knob follow the Motion section
-  of the charter through `Animator.arrive`, `Animator.leave` and the sheet surface fade. An
-  `InfoBar` still takes its height at once, and `Inspector.setFolded` shows or hides its rows in
-  one frame.
-- Next: open a notice over `motion_PanelSeconds` with `Animator.animateLayoutHeight`, then fade
-  its words in; fold and unfold the inspector body with the same arrival and departure as a
-  floating surface.
+- Evidence: notices open their height and then fade their words in, and the inspector arrives
+  from its edge when it unfolds, but `InfoBar.dismiss` destroys the bar at once, so the content
+  under it jumps up by its height.
+- Next: fade the words out over `motion_LeaveSeconds`, close the height over
+  `motion_PanelSeconds`, then destroy; callers already learn of the dismissal through
+  `sigDismissed`, before any of it.
 - Done when: no shared component changes its place or presence in one frame on a user action.
 - Related: design.silence.002

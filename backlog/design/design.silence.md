@@ -140,13 +140,3 @@ dialogs, then each application, then the written rules.
   dialog actions, tabs, command tooltips) to the title-style capitalization of the charter,
   leaving sentences and French translations alone.
 - Done when: a search of the English reference tables finds no command label in sentence case.
-
-### design.silence.016 — The toolkit has no light or semibold face
-
-- Evidence: `Pixel.FontFamilyStyle` offers Regular, Bold, Italic and BoldItalic, so the charter's
-  large light facts (Inter 200–300: Vault's percentage and capacity, the sheet's figures, Prism's
-  instruction counts) are set in the regular weight, and its 600 weights (a vault's name, section
-  labels) in bold.
-- Next: ship Inter Light and SemiBold with the theme fonts, add the two styles to `FontFamily`,
-  and let `Theme.createDefaultFont` take them; then set the facts light and the names semibold.
-- Done when: `vault.progress` and the sheet golden show their figures in the light weight.

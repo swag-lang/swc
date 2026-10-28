@@ -296,6 +296,8 @@ internal impl Properties
             item.comboBox.addItem(dn == null ? resolveText(v.name orelse "") : attributeText(dn), userData0: cast(*void?, idx))
         }
 
+        .segmentSmallChoice(item.comboBox)
+
         .refreshEnum(item)
         item.comboBox.sigChanged += func|prop = me, item|(_, _) { prop.validateEnum(item) }
     }

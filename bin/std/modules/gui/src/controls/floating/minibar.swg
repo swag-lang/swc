@@ -179,8 +179,10 @@ impl MiniBar
     // Shows the bar beside `selection`, a rectangle in the local coordinates of its parent.
     //
     // The bar stands [[Gui.ThemeMetrics.miniBar_Distance]] above the selection, centred on it, and
-    // goes below it when the parent has no room above. It never leaves the parent.
-    mtd showNear(selection: Math.Rectangle)
+    // goes below it when the parent has no room above; with `below`, it stands below and goes
+    // above when there is no room below, then inside the foot of the selection when there is room
+    // on neither side. It never leaves the parent.
+    mtd showNear(selection: Math.Rectangle, below = false)
     {
         let parent  = unwrap .parent
         let metrics = .themeMetrics()
@@ -191,8 +193,19 @@ impl MiniBar
         var x = selection.horzCenter() - body.x * 0.5
         x = Math.clamp(x, bounds.x + gap, Math.max(bounds.x + gap, bounds.right() - gap - body.x))
         var y = selection.y - gap - body.y
-        if y < bounds.y + gap do
+        if below
+        {
             y = selection.bottom() + gap
+            if y + body.y > bounds.bottom() - gap do
+                y = selection.y - gap - body.y
+            if y < bounds.y + gap do
+                y = selection.bottom() - gap - body.y
+        }
+        elif y < bounds.y + gap
+        {
+            y = selection.bottom() + gap
+        }
+
         y = Math.clamp(y, bounds.y + gap, Math.max(bounds.y + gap, bounds.bottom() - gap - body.y))
 
         .setPosition(Math.Rectangle{Math.round(x), Math.round(y), body.x, body.y})

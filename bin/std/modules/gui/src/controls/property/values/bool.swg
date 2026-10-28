@@ -40,6 +40,14 @@ internal impl Properties
         .commitItemChange(item)
     }
 
+    // Shows a choice of at most three entries as segments in the Panel and Grid rows, which have
+    // the width for them: every entry is then on screen and one click away.
+    mtd segmentSmallChoice(combo: *ComboBox)
+    {
+        if (.kind == .Panel or .kind == .Grid) and combo.items.count <= MaxSegmentedEntries do
+            combo.updateFlags(.Segmented)
+    }
+
     // Bool shown as a two-entries combo (the BoolCombo attribute): 'off' labels false,
     // 'on' labels true.
     mtd constructBoolCombo(value: Swag.TypeValue, data: *u8?, parentItem: *PropertiesItem?)
@@ -80,6 +88,8 @@ internal impl Properties
 
         item.comboBox.addItem(attributeText(Reflection.attributeValue(value, .BoolCombo, "off")))
         item.comboBox.addItem(attributeText(Reflection.attributeValue(value, .BoolCombo, "on")))
+
+        .segmentSmallChoice(item.comboBox)
 
         .refreshBool(item)
         item.comboBox.sigChanged += func|prop = me, item|(_, _) { prop.validateBool(item) }
@@ -178,3 +188,6 @@ internal impl Properties
         .refreshBool(item)
     }
 }
+
+// The most entries a choice of the grid shows as segments rather than as a list.
+private const MaxSegmentedEntries = 3

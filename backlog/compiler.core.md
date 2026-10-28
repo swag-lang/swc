@@ -511,6 +511,17 @@ Entries stay in one flat list. Keep only measurements that affect the next actio
 - Done when: every diagnostic that names a tuple type shows its fields, and reflection and
   generated API output are unchanged.
 
+### compiler.core.091 — A named function passed as a value is refused without saying how to pass it
+
+- Evidence: passing a local function by name where a callback is expected, as in
+  `animator.animateF32(me, channel, from, to, follow, options)`, reports
+  `sema_err_not_value_expr` ("'follow' is not a value expression; it is a function") and stops:
+  the reader is not told that `&follow` is the value of a function, which is what
+  `bin/reference/modules/language/src/007_002_lambda.swg` teaches.
+- Next: when the symbol is a function and the expected type is a lambda, add a help that offers
+  `&{sym}`, and cover it with a sema error fixture.
+- Done when: that call reports the help naming `&follow`.
+
 ## Deliberately out of scope
 
 - **An LLVM back end.** The native and Micro back ends are the supported architecture. Reconsider only if a concrete platform or optimization requirement cannot be met within them.

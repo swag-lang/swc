@@ -15,6 +15,8 @@ dialogs, then each application, then the written rules.
   have: the bar must overlay the view instead of narrowing it, and `ScrollWnd` must learn that the
   pointer is over its content, which only its view's children receive (`Enter`/`Leave` reach the
   deepest window). Every list, tree, document and application golden that shows a thumb moves.
+  Swag Prism's source column also shows a horizontal bar for a line that only reaches the
+  editor's caret allowance (`surface.render`).
 - Next: lay the bars over the view in `ScrollWnd.computeLayout`, track pointer presence through a
   hook on the view, and drive the thumb alpha with the animator — shown on a scroll or a hover,
   faded after a short idle.
@@ -29,8 +31,8 @@ dialogs, then each application, then the written rules.
   `Gui.SectionLabel` and a floating surface for any other content (`Gui.FloatingPanel`), with
   `floating.test.swg`, `lens.test.swg` and their goldens, and `AppearanceButton.addToLens`; a
   hidden caption button keeps working and takes no room in the caption. Swag Capture, Swag Scope,
-  Swag Prism and Swag Vault compose them (their remaining work is design.silence.008,
-  design.silence.007, design.silence.009 and design.silence.010). No component owns the quiet text
+  Swag Prism and Swag Vault compose them (the remaining work of the first two is
+  design.silence.008 and design.silence.007). No component owns the quiet text
   menu of a header (a word and a faint chevron opening a menu, as the pictures put above a column
   or a page): Swag Scope's explorer, Swag Capture's library and Swag Prism's column headers each
   configure an `IconButton` for it and fit it to its words themselves (`createQuietMenu` in each),
@@ -41,7 +43,7 @@ dialogs, then each application, then the written rules.
   to the inspector, and let the work reach into the strip where its picture shows it.
 - Done when: the four applications use the components, every command is a lens entry, and no
   application re-implements one or insets its whole root under the strip.
-- Related: design.silence.007, design.silence.008, design.silence.009, design.silence.010
+- Related: design.silence.007, design.silence.008
 
 ### design.silence.005 — The property grid control still lacks search marks and the layout menu
 
@@ -124,39 +126,6 @@ dialogs, then each application, then the written rules.
 - Done when: each `capture.edit.*` picture is reproduced by its golden.
 - Related: design.silence.002, design.silence.004, design.silence.005
 
-### design.silence.009 — Swag Prism's render view lacks the caret reading and the framed picture
-
-- Evidence: Prism is two columns with quiet menus, the stage frieze with the change marked, the
-  comparison with counts, gain and loop, and the render view with its live-edit switch; every
-  command is a lens entry and the readings are in the sheet (`surface.{columns,stages,compare,
-  render,lens}` goldens in Encre and Papier, `surface.gui`). What `prism.render` shows and the window
-  does not: the caret's place (`Ln 9, Col 41`) at the foot of the source once the hint line has
-  stopped teaching the lens — `RichEditCtrl` publishes no signal when the caret moves — and the
-  picture drawn on the control corner. The source column shows a horizontal scroll bar for a line
-  that only reaches the editor's caret allowance (design.silence.002).
-- Next: give `RichEditCtrl` a caret signal and read it on the hint line; clip the frame of
-  `PreviewCanvas` to the control corner.
-- Done when: `surface.render` reproduces `prism.render`.
-- Related: design.silence.004
-
-### design.silence.010 — Swag Vault still differs from its pictures in four details
-
-- Evidence: the window is the list of vaults (name, mono identity line, live dot or ring, the
-  mounted row on the surface ground with Open and Unmount), the chosen locked vault unfolds in
-  place as a floating card (password, drive, key files, read only, Mount), create, progress and
-  privacy are pages with a back link, every command is a lens entry and privacy mode keeps the
-  list to what is mounted or being unlocked (`list`, `unlock`, `create`, `progress`, `options`
-  goldens in Encre and Papier). What the pictures show and the window does not: the create page
-  has no free-space reading ("212 GiB free on C:") because `Core` has no volume free-space query
-  (no `GetDiskFreeSpaceExW` binding in `win32`); the inactivity delay is a quiet menu under its
-  paragraph, not a word inside the sentence; unfolding a vault fades the card in and moves the
-  rows below at once instead of opening the card's height over `motion_PanelSeconds`; a protected
-  startup vault asks for its access in a box rather than unfolding in the list.
-- Next: add a free-space query to `Core.File` with its `win32` binding and show it beside the
-  capacity; animate the card's height with the rows following it.
-- Done when: the Vault goldens match the Vault pictures in those four points.
-- Related: design.silence.004, design.silence.002, design.silence.016
-
 ### design.silence.011 — Examples and other consumers use removed APIs
 
 - Evidence: `gui2` to `gui9` and `gui11` lay out their header from the top edge of a view that now
@@ -200,4 +169,3 @@ dialogs, then each application, then the written rules.
 - Next: ship Inter Light and SemiBold with the theme fonts, add the two styles to `FontFamily`,
   and let `Theme.createDefaultFont` take them; then set the facts light and the names semibold.
 - Done when: `vault.progress` and the sheet golden show their figures in the light weight.
-- Related: design.silence.010

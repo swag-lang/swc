@@ -170,6 +170,28 @@ func predictAngularHorizontal4(main: const [*] u16, destination: [*] u16, angle:
     Simd.store(destination + 8, cast #bit(Simd.U16x8, Simd.interleaveHigh(p0, p1)))
 }
 
+// A zero-angle horizontal prediction repeats one reference sample per row.
+#[Swag.NoInline]
+func predictAngularHorizontalZero(main: const [*] u16, destination: [*] u16, size: u32)
+{
+    for y in size
+    {
+        let values = Simd.splat(main[y + 1])
+        let out = destination + y * size
+        if size == 4 do
+            cast([*] u64, out)[0] = cast #bit(Simd.U64x2, values)[0]
+        else
+        {
+            var x = 0'u32
+            while x < size
+            {
+                Simd.store(out + x, values)
+                x += 8
+            }
+        }
+    }
+}
+
 // Predict an 8x8 tile as eight columns, then transpose it into destination
 // rows without a temporary tile. All supported larger sizes are multiples of eight.
 #[Swag.NoInline]
@@ -507,6 +529,10 @@ impl Decoder
         if vertical
         {
             predictAngularVertical(&main[origin], &.predSamples[0], size, angle)
+        }
+        elif angle == 0
+        {
+            predictAngularHorizontalZero(&main[origin], &.predSamples[0], size)
         }
         elif size == 4
         {

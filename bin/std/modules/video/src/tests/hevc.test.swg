@@ -408,7 +408,9 @@ using Core, Core.Errors, Pixel
                     }
                 }
                 Swag.assert(output[size * size] == 0x5A5A)
-                if size == 4 do
+                if angle == 0 do
+                    Hevc.predictAngularHorizontalZero(&main[64], &output[0], size)
+                elif size == 4 do
                     Hevc.predictAngularHorizontal4(&main[64], &output[0], angle)
                 else do
                     Hevc.predictAngularHorizontalPacked(&main[64], &output[0], size, angle)

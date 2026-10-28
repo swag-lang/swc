@@ -372,6 +372,46 @@ using Core, Core.Errors, Pixel
     }
 }
 
+// Angular prediction must not depend on old residual scratch, including the
+// extra lanes read by vector loads and the negative-angle reference extension.
+#test
+{
+    var reference: Hevc.IntraReference
+    var decoder: Hevc.Decoder
+    var expected: [32 * 32] u16
+    var seed = 0x91C2E86D'u32
+    for bitDepth in [8'u32, 10]
+    {
+        let maximum = (1'u32 << bitDepth) - 1
+        for log2Size in [2'u32, 3, 4, 5]
+        {
+            let size = 1'u32 << log2Size
+            reference.size = size
+            for index in 4 * size + 1
+            {
+                seed = seed * #wrap 1664525 + #wrap 1013904223
+                reference.samples[index] = cast(u16, ((seed >> 16) & maximum))
+            }
+            for mode in 2'u32 to 34
+            {
+                for component in [0'u32, 1]
+                {
+                    for index in decoder.residual.count do
+                        decoder.residual[index] = 0x35353535
+                    decoder.predictAngular(&reference, size, component, mode, bitDepth)
+                    for index in size * size do
+                        expected[index] = decoder.predSamples[index]
+                    for index in decoder.residual.count do
+                        decoder.residual[index] = -0x5A5A5A5A
+                    decoder.predictAngular(&reference, size, component, mode, bitDepth)
+                    for index in size * size do
+                        Swag.assert(decoder.predSamples[index] == expected[index])
+                }
+            }
+        }
+    }
+}
+
 // Vertical angular rows cover integral and fractional displacements in both
 // directions, with exact four-column stores and a sentinel after the block.
 #test

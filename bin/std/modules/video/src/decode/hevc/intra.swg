@@ -475,7 +475,7 @@ impl Decoder
     }
 
     // Predicts a directional block, clause 8.4.4.2.6.
-    private mtd predictAngular(reference: const *IntraReference, size, component, mode, bitDepth: u32)
+    mtd predictAngular(reference: const *IntraReference, size, component, mode, bitDepth: u32)
     {
         let angle    = cast(s32, IntraPredAngle[mode])
         let vertical = mode >= 18
@@ -483,7 +483,10 @@ impl Decoder
 
         // The main reference runs along the direction the prediction comes from, and is extended
         // backwards through the other edge when the angle is negative.
-        var main: [160] u16
+        // Residual samples are consumed before the next prediction and are
+        // reconstructed again afterwards. Reuse their storage for this reference
+        // rather than clearing a fresh 160-sample temporary for every block.
+        let main = cast([*] u16, &.residual[0])
         let origin = 64'u32     // Index of ref[0] inside the array, leaving room for ref[-32..-1].
 
         for index in size + 1

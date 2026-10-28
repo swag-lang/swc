@@ -1,5 +1,38 @@
 using Core
 
+// Two four-channel output pixels use four source pixels from each row.
+// Sum in 16-bit lanes before shifting, so rounding matches the scalar box filter.
+#[Swag.NoInline]
+private func halfByteRow4(source0, source1: const [*] u8, destination: [*] u8, width: u64)
+{
+    var top = source0
+    var bottom = source1
+    var dst = destination
+    var remaining = width
+    while remaining >= 2
+    {
+        let a = Math.Simd.load(top)
+        let b = Math.Simd.load(bottom)
+        var low = Math.Simd.widenLow(a) + Math.Simd.widenLow(b)
+        var high = Math.Simd.widenHigh(a) + Math.Simd.widenHigh(b)
+        low += cast #bit(Math.Simd.U16x8, Math.Simd.align(cast #bit(Math.Simd.U8x16, low), cast #bit(Math.Simd.U8x16, low), 8))
+        high += cast #bit(Math.Simd.U16x8, Math.Simd.align(cast #bit(Math.Simd.U8x16, high), cast #bit(Math.Simd.U8x16, high), 8))
+        let packed = Math.Simd.packUnsigned(cast #bit(Math.Simd.S16x8, (low >> 2)), cast #bit(Math.Simd.S16x8, (high >> 2)))
+        let other = Math.Simd.align(packed, packed, 8)
+        let result = cast #bit(Math.Simd.U8x16, Math.Simd.interleaveLow(cast #bit(Math.Simd.U32x4, packed), cast #bit(Math.Simd.U32x4, other)))
+        Math.Simd.storeLow8(dst, result)
+        top += 16
+        bottom += 16
+        dst += 8
+        remaining -= 2
+    }
+    if remaining
+    {
+        for channel in 4'u64 do
+            dst[channel] = cast(u8, ((top[channel] + #prom top[channel + 4] + #prom bottom[channel] + #prom bottom[channel + 4]) >> 2))
+    }
+}
+
 impl Image
 {
     mtd const doHalfSize(dstImage: *Image)
@@ -48,13 +81,16 @@ impl Image
             var row0 = src.pixels.storage() + 2 * parIndex * src.rowStride
             var row1 = row0 + src.rowStride
             var target = dst.pixels.storage() + parIndex * dst.rowStride
+            if bytes == 4
+            {
+                halfByteRow4(row0, row1, target, cast(u64, dst.width))
+                continue
+            }
             for dst.width
             {
                 target[0] = cast(u8, ((row0[0] + #prom row0[bytes] + #prom row1[0] + #prom row1[bytes]) >> 2))
                 target[1] = cast(u8, ((row0[1] + #prom row0[bytes + 1] + #prom row1[1] + #prom row1[bytes + 1]) >> 2))
                 target[2] = cast(u8, ((row0[2] + #prom row0[bytes + 2] + #prom row1[2] + #prom row1[bytes + 2]) >> 2))
-                if bytes == 4 do
-                    target[3] = cast(u8, ((row0[3] + #prom row0[bytes + 3] + #prom row1[3] + #prom row1[bytes + 3]) >> 2))
                 row0 += 2 * bytes
                 row1 += 2 * bytes
                 target += bytes

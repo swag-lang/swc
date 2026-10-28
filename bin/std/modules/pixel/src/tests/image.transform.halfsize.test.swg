@@ -26,7 +26,7 @@ using Swag, Core
 {
     for format in [PixelFormat.RGB8, .BGR8, .RGBA8, .BGRA8]
     {
-        for width in [2, 3, 4, 9, 16, 17]
+        for width in [2, 3, 4, 5, 6, 7, 8, 9, 16, 17, 31, 32, 33]
         {
             for height in [2, 3, 6, 7]
             {

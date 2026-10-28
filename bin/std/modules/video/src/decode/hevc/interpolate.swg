@@ -671,23 +671,12 @@ impl Decoder
     // Interpolates one chroma prediction block, clause 8.5.3.3.3.3.
     private mtd interpolateChroma(frame: *Frame, component: u32, x, y: s32, width, height: u32, mvX, mvY: s16, list: u32)
     {
-        let sps      = unwrap .activeSps
-        let bitDepth = sps.bitDepthChroma
-        let shift1   = Math.min(4'u32, bitDepth - 8)
-        let shift2   = 6'u32
-        let shift3   = Math.max(2'u32, 14 - bitDepth)
-
         // In 4:2:0 the chroma vector is the luma one read in eighths of a chroma sample.
-        let xInt        = x + (cast(s32, mvX) >> 3)
-        let yInt        = y + (cast(s32, mvY) >> 3)
-        let xFrac       = cast(u32, (cast(s32, mvX) & 7))
-        let yFrac       = cast(u32, (cast(s32, mvY) & 7))
-        let chromaTapsX = chromaTaps(xFrac)
-        let chromaTapsY = chromaTaps(yFrac)
+        let xInt  = x + (cast(s32, mvX) >> 3)
+        let yInt  = y + (cast(s32, mvY) >> 3)
+        let xFrac = cast(u32, (cast(s32, mvX) & 7))
+        let yFrac = cast(u32, (cast(s32, mvY) & 7))
 
-        var gathered:        [MaxRefSide * MaxRefSide] u16
-        var reference:       const [*] u16
-        var referenceStride: u64
         let firstX = xInt - 1
         let firstY = yInt - 1
         let pad    = cast(s32, FramePadding)
@@ -696,16 +685,33 @@ impl Decoder
            firstX + cast(s32, width) + 3 <= cast(s32, frame.chromaWidth) + pad and
            firstY + cast(s32, height) + 3 <= cast(s32, frame.chromaHeight) + pad
         {
-            let plane = component == 1 ? frame.chromaB.storage() : frame.chromaR.storage()
-            reference       = plane + cast(u64, (firstY + cast(s32, FramePadding))) * frame.strideChroma + cast(u64, (firstX + cast(s32, FramePadding)))
-            referenceStride = frame.strideChroma
+            let plane     = component == 1 ? frame.chromaB.storage() : frame.chromaR.storage()
+            let reference = plane + cast(u64, (firstY + cast(s32, FramePadding))) * frame.strideChroma + cast(u64, (firstX + cast(s32, FramePadding)))
+            .interpolateChromaWindow(reference, frame.strideChroma, width, height, xFrac, yFrac, list)
+            return
         }
-        else
-        {
-            reference       = &gathered[0]
-            referenceStride = cast(u64, MaxRefSide)
-            .gatherReference(frame, component, xInt, yInt, width, height, 1, 4, &gathered[0], referenceStride)
-        }
+
+        .interpolateChromaGathered(frame, component, xInt, yInt, width, height, xFrac, yFrac, list)
+    }
+
+    #[Swag.NoInline]
+    private mtd interpolateChromaGathered(frame: *Frame, component: u32, xInt, yInt: s32, width, height, xFrac, yFrac, list: u32)
+    {
+        var gathered: [MaxRefSide * MaxRefSide] u16
+        .gatherReference(frame, component, xInt, yInt, width, height, 1, 4, &gathered[0], cast(u64, MaxRefSide))
+        .interpolateChromaWindow(&gathered[0], cast(u64, MaxRefSide), width, height, xFrac, yFrac, list)
+    }
+
+    #[Swag.NoInline]
+    private mtd interpolateChromaWindow(reference: const [*] u16, referenceStride: u64, width, height, xFrac, yFrac, list: u32)
+    {
+        let bitDepth = .activeSps!.bitDepthChroma
+        let shift1   = Math.min(4'u32, bitDepth - 8)
+        let shift2   = 6'u32
+        let shift3   = Math.max(2'u32, 14 - bitDepth)
+
+        let chromaTapsX = chromaTaps(xFrac)
+        let chromaTapsY = chromaTaps(yFrac)
 
         if not xFrac and not yFrac
         {

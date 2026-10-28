@@ -183,9 +183,12 @@ using Core, Core.Errors, Pixel
 
     for bitDepth in [8'u32, 10]
     {
-        sps.bitDepthLuma = bitDepth
-        // A non-identity weight forces integer-position luma through the interpolation buffer.
-        decoder.header.weights[0, 0].lumaWeight = 2
+        sps.bitDepthLuma   = bitDepth
+        sps.bitDepthChroma = bitDepth
+        // Non-identity weights force integer-position samples through the interpolation buffer.
+        decoder.header.weights[0, 0].lumaWeight      = 2
+        decoder.header.weights[0, 0].chromaWeight[0] = 2
+        decoder.header.weights[0, 0].chromaWeight[1] = 2
         motion.predFlags = 1
         motion.mv[0, 0] = 0
         for blockWidth in [4'u32, 8, 16, 32]
@@ -233,6 +236,16 @@ using Core, Core.Errors, Pixel
                     {
                         let sourceX = motionX == 0 ? x : 0
                         Swag.assert(current.lumaAtMutable(x, y)[0] == cast(u16, (2 * (sourceX + y))))
+                    }
+                }
+
+                for y in cast(s32, (blockWidth / 2))
+                {
+                    for x in cast(s32, (blockWidth / 2))
+                    {
+                        let sourceX = motionX == 0 ? x : 0
+                        Swag.assert(current.chromaAtMutable(0, x, y)[0] == cast(u16, (2 * (20 + sourceX + y))))
+                        Swag.assert(current.chromaAtMutable(1, x, y)[0] == cast(u16, (2 * (40 + sourceX + y))))
                     }
                 }
             }

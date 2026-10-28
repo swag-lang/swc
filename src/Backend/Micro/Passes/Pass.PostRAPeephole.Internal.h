@@ -129,6 +129,7 @@ namespace PostRaPeephole
     bool tryEraseFloatClearBeforeFullWrite(Context& ctx, MicroInstrRef ref, const MicroInstr& inst);
     bool tryFoldFloatReturnSelectDiamond(Context& ctx, MicroInstrRef ref, const MicroInstr& inst);
     bool tryFoldCarryMask(Context& ctx, MicroInstrRef ref, const MicroInstr& inst);
+    bool tryFoldWordMaskTest(Context& ctx, MicroInstrRef ref, const MicroInstr& inst);
     bool tryFoldZeroComparisonMask(Context& ctx, MicroInstrRef ref, const MicroInstr& inst);
     bool tryFoldCarryArithmetic(Context& ctx, MicroInstrRef ref, const MicroInstr& inst);
     bool tryFoldCarryComparisonSum(Context& ctx, MicroInstrRef ref, const MicroInstr& inst);

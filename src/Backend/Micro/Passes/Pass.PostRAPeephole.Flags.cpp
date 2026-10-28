@@ -11,6 +11,45 @@ namespace PostRaPeephole
 {
     using MicroOptimizationLimits::PostRAPeepholeFlags::K_MAX_CARRY_PATTERN_WINDOW;
 
+    // Word comparisons produce whole zero or all-one lanes. Their byte mask
+    // has a set high-byte bit iff the vector itself is nonzero.
+    bool tryFoldWordMaskTest(Context& ctx, MicroInstrRef ref, const MicroInstr& inst)
+    {
+        const auto* test = inst.ops(*ctx.operands);
+        if (!test || ctx.isClaimed(ref) || !test[0].reg.isInt() || test[1].opBits != MicroOpBits::B32 ||
+            test[2].hasWideImmediateValue() || test[2].valueU64 != 0xAAAA)
+            return false;
+        const MicroInstrRef readerRef = ctx.nextRef(ref);
+        const MicroInstr*   reader    = ctx.instruction(readerRef);
+        const auto*         readerOps = reader ? reader->ops(*ctx.operands) : nullptr;
+        if (!reader || !readerOps || (reader->op != MicroInstrOpcode::JumpCond && reader->op != MicroInstrOpcode::SetCondReg))
+            return false;
+        const MicroCond condition = readerOps[reader->op == MicroInstrOpcode::JumpCond ? 0 : 1].cpuCond;
+        if ((condition != MicroCond::Equal && condition != MicroCond::NotEqual && condition != MicroCond::Zero && condition != MicroCond::NotZero) ||
+            !ctx.areCpuFlagsDeadAfter(readerRef) || !ctx.isRegDeadAfterCurrent(test[0].reg))
+            return false;
+        const MicroInstrRef moveRef = ctx.previousRef(ref);
+        const MicroInstr*   move    = ctx.instruction(moveRef);
+        const auto*         moveOps = move ? move->ops(*ctx.operands) : nullptr;
+        if (!move || move->op != MicroInstrOpcode::VecUnaryRegReg || !moveOps || moveOps[0].reg != test[0].reg ||
+            !moveOps[1].reg.isFloat() || moveOps[2].opBits != MicroOpBits::B128 || moveOps[3].microOp != MicroOp::VecMoveMaskB)
+            return false;
+        const MicroInstrRef compareRef = ctx.previousRef(moveRef);
+        const MicroInstr*   compare    = ctx.instruction(compareRef);
+        const auto*         compareOps = compare ? compare->ops(*ctx.operands) : nullptr;
+        if (!compare || compare->op != MicroInstrOpcode::OpBinaryRegRegReg || !compareOps ||
+            compareOps[0].reg != moveOps[1].reg || compareOps[3].opBits != MicroOpBits::B128 ||
+            (compareOps[4].microOp != MicroOp::VecCmpEq16 && compareOps[4].microOp != MicroOp::VecCmpGtS16) ||
+            !ctx.claimAll({moveRef, ref}))
+            return false;
+        MicroInstrOperand vectorTest[2] = {};
+        vectorTest[0].reg    = moveOps[1].reg;
+        vectorTest[1].opBits = MicroOpBits::B128;
+        ctx.emitRewrite(moveRef, MicroInstrOpcode::VecTestReg, vectorTest);
+        ctx.emitErase(ref);
+        return true;
+    }
+
     // An unsigned modular sum is at least its original left operand exactly
     // when the addition did not carry. Keep the ADD flags across a fallback
     // constant load and let the conditional move consume CF directly:

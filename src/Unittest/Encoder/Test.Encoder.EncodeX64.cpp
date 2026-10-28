@@ -562,6 +562,7 @@ namespace
         ENCODE_CASE("vec_shuff32_vex", "C5 E8 C6 CB 1B", b.emitOpTernaryRegRegRegImm(XMM1, XMM2, XMM3, 0x1B, MicroOp::VecShufF32, MicroOpBits::B128););
         ENCODE_CASE("vec_alignr_vex", "C4 E3 69 0F CB 04", b.emitOpTernaryRegRegRegImm(XMM1, XMM2, XMM3, 4, MicroOp::VecAlignR, MicroOpBits::B128););
         ENCODE_CASE("vec_clmul_vex", "C4 E3 69 44 CB 11", b.emitOpTernaryRegRegRegImm(XMM1, XMM2, XMM3, 0x11, MicroOp::VecClmul, MicroOpBits::B128););
+        ENCODE_CASE("vec_test_vex", "C4 E2 79 17 C9", b.emitVecTestReg(XMM1););
         ENCODE_CASE("vec_insert8_vex", "C4 E3 69 20 C8 05", b.emitOpTernaryRegRegRegImm(XMM1, XMM2, RAX, 5, MicroOp::VecInsert8, MicroOpBits::B128););
         ENCODE_CASE("vec_insert16_vex", "C5 E9 C4 C8 03", b.emitOpTernaryRegRegRegImm(XMM1, XMM2, RAX, 3, MicroOp::VecInsert16, MicroOpBits::B128););
         ENCODE_CASE("vec_insert32_vex", "C4 C3 69 22 C9 01", b.emitOpTernaryRegRegRegImm(XMM1, XMM2, R9, 1, MicroOp::VecInsert32, MicroOpBits::B128););

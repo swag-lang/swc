@@ -855,6 +855,14 @@ void MicroBuilder::emitLoadMemImm(MicroReg memReg, uint64_t memOffset, const ApI
     ops[3].setImmediateValue(value);
 }
 
+void MicroBuilder::emitVecTestReg(MicroReg reg)
+{
+    const auto&        inst = addInstruction(MicroInstrOpcode::VecTestReg, 2);
+    MicroInstrOperand* ops  = inst.ops(operands_);
+    ops[0].reg              = reg;
+    ops[1].opBits = MicroOpBits::B128;
+}
+
 void MicroBuilder::emitCmpRegReg(MicroReg reg0, MicroReg reg1, MicroOpBits opBits)
 {
     const auto&        inst = addInstruction(MicroInstrOpcode::CmpRegReg, 3);

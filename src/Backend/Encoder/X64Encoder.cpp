@@ -2793,6 +2793,14 @@ void X64Encoder::encodeLoadCondRegReg(MicroReg regDst, MicroReg regSrc, MicroCon
 
 // ============================================================================
 
+void X64Encoder::encodeVecTestReg(MicroReg reg)
+{
+    SWC_ASSERT(reg.isFloat());
+    emitVex(store_, 0x66, VEX_MAP_0F38, microRegToX64Reg(reg), X64Reg::Rax, microRegToX64Reg(reg));
+    emitCpuOp(store_, 0x17);
+    emitModRm(store_, reg, reg);
+}
+
 void X64Encoder::encodeTestRegReg(MicroReg reg0, MicroReg reg1, MicroOpBits opBits)
 {
     SWC_ASSERT(reg0.isInt() && reg1.isInt());

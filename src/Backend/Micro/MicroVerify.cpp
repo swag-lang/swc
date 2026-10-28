@@ -200,6 +200,7 @@ namespace
             case MicroInstrOpcode::SanityRelease:
             case MicroInstrOpcode::LoadLabelAddress:
             case MicroInstrOpcode::LoadRegTlsSlot:
+            case MicroInstrOpcode::VecTestReg:
                 return 2;
 
             case MicroInstrOpcode::JumpCond:

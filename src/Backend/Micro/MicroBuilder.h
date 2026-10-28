@@ -159,6 +159,7 @@ public:
     void emitLoadMemReg(MicroReg memReg, uint64_t memOffset, MicroReg reg, MicroOpBits opBits);
     void emitLoadMemImm(MicroReg memReg, uint64_t memOffset, const ApInt& value, MicroOpBits opBits);
     void emitCmpRegReg(MicroReg reg0, MicroReg reg1, MicroOpBits opBits);
+    void emitVecTestReg(MicroReg reg);
     void emitCmpMemReg(MicroReg memReg, uint64_t memOffset, MicroReg reg, MicroOpBits opBits);
     void emitCmpMemImm(MicroReg memReg, uint64_t memOffset, const ApInt& value, MicroOpBits opBits);
     void emitCmpRegImm(MicroReg reg, const ApInt& value, MicroOpBits opBits);

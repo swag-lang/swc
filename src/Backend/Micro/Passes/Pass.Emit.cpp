@@ -486,6 +486,9 @@ void MicroEmitPass::encodeInstruction(const MicroPassContext& context, MicroInst
         case MicroInstrOpcode::TestRegReg:
             encoder.encodeTestRegReg(ops[0].reg, ops[1].reg, ops[2].opBits);
             break;
+        case MicroInstrOpcode::VecTestReg:
+            encoder.encodeVecTestReg(ops[0].reg);
+            break;
         case MicroInstrOpcode::TestRegImm:
             encoder.encodeTestRegImm(ops[0].reg, ops[2].immediateValue(getNumBits(ops[1].opBits)), ops[1].opBits);
             break;

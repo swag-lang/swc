@@ -1049,6 +1049,8 @@ namespace
                 return std::format("{} = {}({}, {}, {})", regName(ops[0].reg, regPrintMode, encoder), tagInstructionToken(microOpName(ops[4].microOp)), regName(ops[1].reg, regPrintMode, encoder), regName(ops[2].reg, regPrintMode, encoder), std::format("b{}", opBitsName(ops[3].opBits)));
             }
 
+            case MicroInstrOpcode::VecTestReg:
+                return std::format("{}({})", tagInstructionToken("vec.test"), regName(ops[0].reg, regPrintMode, encoder));
             case MicroInstrOpcode::TestRegReg:
                 return std::format("{}({}, {})", tagInstructionToken("test"), regName(ops[0].reg, regPrintMode, encoder), regName(ops[1].reg, regPrintMode, encoder));
             case MicroInstrOpcode::TestRegImm:
@@ -1899,6 +1901,12 @@ Utf8 MicroPrinter::format(const TaskContext& ctx, const MicroStorage& instructio
                         appendSep(out);
                     appendColored(out, ctx, SyntaxColor::Function, std::format("L{}", ops[operandIndex].valueU64));
                 }
+                break;
+
+            case MicroInstrOpcode::VecTestReg:
+                appendRegister(out, ctx, ops[0].reg, regPrintMode, encoder);
+                appendSep(out);
+                appendTypeBits(out, ctx, ops[1].opBits);
                 break;
 
             case MicroInstrOpcode::SanityIntDivision:

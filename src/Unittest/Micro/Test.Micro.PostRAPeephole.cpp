@@ -6995,6 +6995,56 @@ SWC_TEST_BEGIN(PostRAPeephole_PackedContractionRespectsPolicyAndDependencies)
 }
 SWC_TEST_END()
 
+SWC_TEST_BEGIN(PostRAPeephole_WordMaskTestPreservesObservations)
+{
+    const MicroReg     base   = CallConv::get(CallConvKind::C).intArgRegs[0];
+    constexpr MicroReg mask   = MicroReg::intReg(10);
+    constexpr MicroReg result = MicroReg::intReg(3);
+    constexpr MicroReg extra  = MicroReg::intReg(8);
+    constexpr MicroReg left   = MicroReg::floatReg(0);
+    constexpr MicroReg right  = MicroReg::floatReg(1);
+    constexpr MicroReg vector = MicroReg::floatReg(2);
+    for (uint32_t variant = 0; variant < 4; ++variant)
+    {
+        for (const uint64_t input : {0ull, 0x0001000200030004ull})
+        {
+            std::array<uint64_t, 6> expected{};
+            for (const bool optimize : {false, true})
+            {
+                std::array<uint64_t, 6> values = {input, input, 0, 0, 0, 0};
+                MicroBuilder builder(ctx);
+                builder.emitLoadVecRegMem(left, base, 0, MicroOpBits::B128);
+                builder.emitLoadVecRegMem(right, base, 16, MicroOpBits::B128);
+                builder.emitOpBinaryRegRegReg(vector, left, right, variant == 1 ? MicroOp::VecXor : MicroOp::VecCmpEq16, MicroOpBits::B128);
+                builder.emitVecUnaryRegReg(mask, vector, MicroOp::VecMoveMaskB, MicroOpBits::B128);
+                builder.emitSetCondReg(result, MicroCond::NotEqual);
+                const auto setRef = builder.instructions().lastInstructionRef();
+                MicroInstrOperand test[3] = {};
+                test[0].reg = mask;
+                test[1].opBits = MicroOpBits::B32;
+                test[2].setImmediateValue(ApInt(0xAAAA, 32));
+                builder.instructions().insertDerivedBefore(builder.operands(), setRef, MicroInstrOpcode::TestRegImm, test);
+                if (variant == 2)
+                    builder.emitLoadMemReg(base, 40, mask, MicroOpBits::B32);
+                if (variant == 3)
+                {
+                    builder.emitSetCondReg(extra, MicroCond::Parity);
+                    builder.emitLoadMemReg(base, 40, extra, MicroOpBits::B8);
+                }
+                builder.emitLoadMemReg(base, 32, result, MicroOpBits::B8);
+                builder.emitRet();
+                SWC_RESULT(executeForwardingCase(ctx, builder, values.data(), optimize));
+                if (!optimize)
+                    expected = values;
+                else if (values != expected || Backend::Unittest::countOpcode(builder, MicroInstrOpcode::VecTestReg) != (variant == 0 ? 1u : 0u))
+                    return Result::Error;
+            }
+        }
+    }
+    return Result::Continue;
+}
+SWC_TEST_END()
+
 SWC_TEST_BEGIN(PostRAPeephole_ScalarClearTracksPackedLaneReads)
 {
     for (uint32_t variant = 0; variant < 6; ++variant)

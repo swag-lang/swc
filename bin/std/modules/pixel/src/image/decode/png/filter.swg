@@ -26,6 +26,7 @@ const ShiftBytes4      = cast(Math.Simd.U8x16, [0x80'u8, 0x80, 0x80, 0x80, 0, 1,
 const ShiftBytes6      = cast(Math.Simd.U8x16, [0x80'u8, 0x80, 0x80, 0x80, 0x80, 0x80, 0, 1, 2, 3, 4, 5, 6, 7, 8, 9])
 const ShiftBytes8      = cast(Math.Simd.U8x16, [0x80'u8, 0x80, 0x80, 0x80, 0x80, 0x80, 0x80, 0x80, 0, 1, 2, 3, 4, 5, 6, 7])
 const ShiftBytes12     = cast(Math.Simd.U8x16, [0x80'u8, 0x80, 0x80, 0x80, 0x80, 0x80, 0x80, 0x80, 0x80, 0x80, 0x80, 0x80, 0, 1, 2, 3])
+const CarryBytes6      = cast(Math.Simd.U8x16, [0'u8, 1, 2, 3, 4, 5, 0, 1, 2, 3, 4, 5, 0, 1, 2, 3])
 const CarryBytes3      = cast(Math.Simd.U8x16, [0'u8, 1, 2, 0, 1, 2, 0, 1, 2, 0, 1, 2, 0, 1, 2, 0])
 
 #[Swag.Inline]
@@ -246,6 +247,20 @@ func defilterSubRow(source: const [*] u8, destination: [*] u8, count, bytesPerPi
             values += cast #bit(Math.Simd.U8x16, Math.Simd.splat(carry))
             Math.Simd.store(destination + offset, values)
             offset += 16
+        }
+
+    case 6:
+        // Two six-byte pixels are complete per step; the four extra bytes
+        // stay inside the row and are rewritten by the next step or tail.
+        while count - offset >= 16
+        {
+            var values = Math.Simd.load(source + offset)
+            values += Math.Simd.shuffle(values, ShiftBytes6)
+            values += Math.Simd.shuffle(values, ShiftBytes12)
+            let carry = cast #bit(Math.Simd.U8x16, Math.Simd.splat(cast(const [*] u64, (destination + offset - 6))[0]))
+            values += Math.Simd.shuffle(carry, CarryBytes6)
+            Math.Simd.store(destination + offset, values)
+            offset += 12
         }
 
     case 8:

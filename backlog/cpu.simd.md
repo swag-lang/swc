@@ -63,17 +63,16 @@ conversion, image codecs, text/crypto routines, Pixel spans, and SDF samples.
   the supported target policy with scalar-equivalent results and profitable cost decisions.
 - Related: cpu.simd.006, cpu.simd.015.
 
-### cpu.simd.028 — PNG Sub stride 6 and remaining sample conversion need a current profile
+### cpu.simd.028 — Remaining PNG sample conversion needs a current profile
 
 - Evidence: packed bit expansion, encoder filter/scoring kernels, decoder Up/Average/Paeth
-  and Sub for 1/2/3/4/8-byte pixels exist (`defilterSubRow` in `decode/png/filter.swg`);
+  and Sub for 1/2/3/4/6/8-byte pixels exist (`defilterSubRow` in `decode/png/filter.swg`);
   `image.png.test.swg` compares Sub against scalar recurrence across strides 1 through 8.
   Gray and palette conversion have thresholded packed-word paths. `convert16` still
-  converts native 16-bit samples and transparency keys individually, and Sub stride 6
-  keeps scalar recurrence. Earlier rejections of packed Sub and gray shuffles predate
-  cross-module SIMD inlining and do not settle the current cost.
-- Next: profile current decoding by filter and bit depth, then remeasure Sub stride 6 and
-  native 16-bit conversion against their scalar forms in the same process. Keep Inflate's
+  converts native 16-bit samples and transparency keys individually. Earlier rejections
+  of other packed Sub and gray shuffles predate cross-module SIMD inlining and do not settle the current cost.
+- Next: profile current decoding by filter and bit depth, then compare native 16-bit
+  conversion against its scalar form in the same process. Keep Inflate's
   share separate from image conversion so a microkernel gain has an end-to-end
   interpretation.
 - Done when: remaining paths have a measured decision, odd/Adam7 tails and malformed rows

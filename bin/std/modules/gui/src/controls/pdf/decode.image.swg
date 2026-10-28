@@ -190,6 +190,30 @@ private func composeRgba8(destination: [*] u8, colors, alpha: const [*] u8, coun
     }
 }
 
+private func composeStencil8(destination: [*] u8, alpha: const [*] u8, count: u64, color: u32)
+{
+    var dst  = destination
+    var mask = alpha
+    var left = count
+    let rgb  = cast #bit(Math.Simd.U8x16, Math.Simd.splat(color))
+    while left >= 4
+    {
+        let packedMask = cast #bit(Math.Simd.U8x16, Math.Simd.splat(cast(const [*] u32, mask)[0]))
+        Math.Simd.store(dst, rgb | Math.Simd.shuffle(packedMask, RgbaAlpha))
+        mask += 4
+        dst  += 16
+        left -= 4
+    }
+
+    while left
+    {
+        cast([*] u32, dst)[0] = color | (cast(u32, mask[0]) << 24)
+        mask += 1
+        dst  += 4
+        left -= 1
+    }
+}
+
 // One decoded raster, in top-left-first row order, before it becomes a Pixel image.
 private struct SamplePlane
 {
@@ -804,6 +828,19 @@ private func planeToImage(plane: const *SamplePlane, fill: const *Color?)->Image
     // are no samples to read.
     if fill
     {
+        if width >= 4
+        {
+            let color = cast(u32, fill.r) | (cast(u32, fill.g) << 8) | (cast(u32, fill.b) << 16)
+            for y in height
+            {
+                let out      = pixels + (height - y - 1) * cast(u64, result.rowStride)
+                let coverage = alpha + y * width
+                composeStencil8(out, coverage, width, color)
+            }
+
+            return #move result
+        }
+
         for y in height
         {
             var out      = pixels + (height - y - 1) * cast(u64, result.rowStride)

@@ -255,8 +255,8 @@ conversion, image codecs, text/crypto routines, Pixel spans, and SDF samples.
   coverage values against the original scalar conversion and cover SIMD block boundaries.
   Single-component 8-bit color keys also compare sixteen samples at once, with bounds resolved
   once per image; out-of-range and inverted intervals retain the scalar behavior. RGB and alpha
-  planes combine into four RGBA pixels per SIMD iteration, with bounded row reads and scalar tails;
-  same-size mask planes transfer their buffer instead of resampling every pixel.
+  planes and stencil fills combine into four RGBA pixels per SIMD iteration, with bounded row reads
+  and scalar tails; same-size mask planes transfer their buffer instead of resampling every pixel.
 - Next: vectorize non-default decode arrays, packed and 16-bit samples, other color-key comparisons,
   mask scaling, and remaining alpha composition; use gather for indexed spaces only when profitable.
 - Done when: PDF image fixtures preserve pixels across remaining bit depths, masks, decode

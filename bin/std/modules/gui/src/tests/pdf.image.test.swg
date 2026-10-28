@@ -192,6 +192,47 @@ private func imageDocument(dictionary: string, samples: const [..] u8)->Document
     Swag.assert(image.pixelColor(1, 0).a == 0)
 }
 
+// Stencil colors and coverage survive row padding and SIMD block boundaries.
+#test
+{
+    for width in [1'u64, 3, 4, 5, 7, 8, 17]
+    {
+        let rowBytes = (width + 7) / 8
+        var samples: [6] u8
+        for y in 2
+        {
+            for x in width
+            {
+                if (x + y) % 3 == 1 do
+                    samples[y * rowBytes + x / 8] |= cast(u8, 1 << (7 - x % 8))
+            }
+        }
+
+        var extra: Array'u8
+        addStreamObject(&extra, 5, Format.toString("/Type /XObject /Subtype /Image /Width % /Height 2 /ImageMask true", width).toString(), samples[0 until rowBytes * 2])
+        let content  = "q 1 0.5 0 rg 10 0 0 10 0 0 cm /Im0 Do Q"
+        let document = expect Document.decode(singlePagePdf("/XObject << /Im0 5 0 R >>", cast(const [..] u8, content), extra.toSlice()).toSlice())
+        let image    = unwrap onlyItem(document.pages[0], .Image).imageValue()
+        for y in 2
+        {
+            for x in width
+            {
+                let color = image.pixelColor(cast(s32, x), cast(s32, y))
+                Swag.assert(color.r == 255 and color.g == 128 and color.b == 0)
+                Swag.assert(color.a == ((x + y) % 3 == 1 ? 0 : 255))
+            }
+        }
+    }
+
+    var extra: Array'u8
+    addStreamObject(&extra, 5, "/Type /XObject /Subtype /Image /Width 5 /Height 1 /ImageMask true /Decode [0.25 0.75]", [0x50'u8])
+    let content  = "q 1 0.5 0 rg 10 0 0 10 0 0 cm /Im0 Do Q"
+    let document = expect Document.decode(singlePagePdf("/XObject << /Im0 5 0 R >>", cast(const [..] u8, content), extra.toSlice()).toSlice())
+    let image    = unwrap onlyItem(document.pages[0], .Image).imageValue()
+    for x in 5 do
+        Swag.assert(image.pixelColor(cast(s32, x), 0).a == (x % 2 ? 64 : 191))
+}
+
 // A soft mask becomes the alpha channel, resampled to the size of the image it covers.
 #test
 {

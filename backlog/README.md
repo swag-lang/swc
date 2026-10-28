@@ -51,7 +51,7 @@ file. Do not add status, dates, or progress summaries to the index.
 | [compiler.optimization.md](compiler.optimization.md) | Backend optimization and generated-code performance |
 | [compiler.safety.md](compiler.safety.md) | Memory safety and runtime guards |
 | [cpu.simd.md](cpu.simd.md) | SIMD compiler and consumer work |
-| [design/design.instrument.md](design/design.instrument.md) | Instrument design migration of the applications and every dialog under `bin/` |
+| [design/design.silence.md](design/design.silence.md) | Silence charter migration: themes, controls, dialogs and applications under `bin/` |
 | [language.design.md](language.design.md) | Swag language and syntax |
 | [language.parallelism.md](language.parallelism.md) | Native concurrency and parallelism |
 | [platform.portability.md](platform.portability.md) | Operating-system ports and portable contracts |

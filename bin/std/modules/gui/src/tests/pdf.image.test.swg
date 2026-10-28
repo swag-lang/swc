@@ -233,6 +233,25 @@ private func imageDocument(dictionary: string, samples: const [..] u8)->Document
         Swag.assert(image.pixelColor(cast(s32, x), 0).a == (x % 2 ? 64 : 191))
 }
 
+// Every packed stencil byte expands in most-significant-bit-first order.
+#test
+{
+    var samples: [256] u8
+    for i in 256 do
+        samples[i] = cast(u8, i)
+
+    var extra: Array'u8
+    addStreamObject(&extra, 5, "/Type /XObject /Subtype /Image /Width 2048 /Height 1 /ImageMask true", samples)
+    let content  = "q 1 0 0 rg 10 0 0 10 0 0 cm /Im0 Do Q"
+    let document = expect Document.decode(singlePagePdf("/XObject << /Im0 5 0 R >>", cast(const [..] u8, content), extra.toSlice()).toSlice())
+    let image    = unwrap onlyItem(document.pages[0], .Image).imageValue()
+    for x in 2048
+    {
+        let bit = (samples[x / 8] >> (7 - x % 8)) & 1
+        Swag.assert(image.pixelColor(cast(s32, x), 0).a == (bit == 0 ? 255 : 0))
+    }
+}
+
 // A soft mask becomes the alpha channel, resampled to the size of the image it covers.
 #test
 {

@@ -43,6 +43,7 @@ private const CmykGather  = cast(Math.Simd.U8x16, [0'u8, 1, 2, 4, 5, 6, 8, 9, 10
 private const CmykSpreadK = cast(Math.Simd.U8x16, [3'u8, 3, 3, 7, 7, 7, 11, 11, 11, 15, 15, 15, 0x80, 0x80, 0x80, 0x80])
 private const RgbaColors  = cast(Math.Simd.U8x16, [0'u8, 1, 2, 0x80, 3, 4, 5, 0x80, 6, 7, 8, 0x80, 9, 10, 11, 0x80])
 private const RgbaAlpha   = cast(Math.Simd.U8x16, [0x80'u8, 0x80, 0x80, 0, 0x80, 0x80, 0x80, 1, 0x80, 0x80, 0x80, 2, 0x80, 0x80, 0x80, 3])
+private const MaskBits     = cast(Math.Simd.U8x16, [128'u8, 64, 32, 16, 8, 4, 2, 1, 0, 0, 0, 0, 0, 0, 0, 0])
 
 private func expandGray8(destination: [*] u8, source: const [*] u8, count: u64)
 {
@@ -120,6 +121,38 @@ private func invertMask8(destination: [*] u8, source: const [*] u8, count: u64)
         src  += 1
         dst  += 1
         left -= 1
+    }
+}
+
+private func expandInvertedMask1(destination: [*] u8, source: const [*] u8, width, height, rowBytes: u64)
+{
+    let zero = Math.Simd.splat(0'u8)
+    for y in height
+    {
+        var dst  = destination + y * width
+        var src  = source + y * rowBytes
+        var left = width
+        while left >= 8
+        {
+            let bits = Math.Simd.splat(src[])
+            Math.Simd.storeLow8(dst, (bits & MaskBits) == zero)
+            src  += 1
+            dst  += 8
+            left -= 8
+        }
+
+        if left
+        {
+            let bits = src[]
+            var bit  = 7'u32
+            while left
+            {
+                dst[] = bits & (1 << bit) == 0 ? 255 : 0
+                dst  += 1
+                bit  -= 1
+                left -= 1
+            }
+        }
     }
 }
 
@@ -768,6 +801,11 @@ private func readMaskPlane(parser: *PdfParser, nodeId, _: u32, stencil: bool)->S
     result.width  = cast(s32, width)
     result.height = cast(s32, height)
     result.alpha.resize(cast(u64, width) * cast(u64, height))
+    if depth == 1 and width >= 8 and lowest == 1.0 and highest == 0.0
+    {
+        expandInvertedMask1(result.alpha.storage(), bytes.storage(), cast(u64, width), cast(u64, height), rowBytes)
+        return result
+    }
     if depth == 8 and lowest == 0.0 and highest == 1.0
     {
         Memory.copy(result.alpha.storage(), bytes.storage(), result.alpha.count)

@@ -7072,7 +7072,7 @@ SWC_TEST_BEGIN(PostRAPeephole_BooleanRetestPreservesResultsAndFlags)
 {
     const MicroReg     base  = CallConv::get(CallConvKind::C).intArgRegs[0];
     constexpr MicroReg value = MicroReg::intReg(0);
-    constexpr MicroReg flag  = MicroReg::intReg(2);
+    constexpr MicroReg flag  = MicroReg::intReg(3);
     for (const bool inverted : {false, true})
     {
         for (const bool flagsLive : {false, true})

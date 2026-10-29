@@ -83,6 +83,11 @@ struct Picture
 //
 // A group can also hold a strip of pictures after its rows, such as the recent documents of an
 // application, ended by a link to where every one of them is, such as "Library →".
+//
+// An exclusive choice, such as a view, a theme or a language, reads better as one row of segments
+// than as a column of rows: with `inline`, the rows show side by side as words, the one in force
+// underlined in Arc. The keys reach the row with `↑↓`, move along it with `←→`, and `Enter` runs
+// the segment they chose.
 struct Section
 {
     public
@@ -93,6 +98,7 @@ struct Section
         pictures: Array'Picture     // Pictures of the strip after the rows, in reading order.
         link:     String            // Words of the link ending the strip; empty for none.
         linkRun:  (func||())?       // Action run when the link is chosen, once the lens has left the screen.
+        inline:   bool              // Whether the rows show side by side as the segments of one row, for an exclusive choice.
     }
 
     order:  Array'u64     // Rows the lens shows, by index into `entries`, in the order it shows them.

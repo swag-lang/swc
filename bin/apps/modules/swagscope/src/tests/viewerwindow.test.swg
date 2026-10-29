@@ -859,13 +859,12 @@ func assertFolderFiles(window: *ViewerWindow, names: const [..] String)
     Swag.assert(window.choices.count == 3 and window.choices[0].key == PlainText.ViewerKey)
     Swag.assert(window.activeChoiceIndex == 0 and window.preferences.isEmpty())
 
-    // Every viewer the file can open in is an entry of the lens, which says which viewer it is
-    // before its name is read, the one in use checked.
+    // Every viewer the file can open in is a segment of one row of the lens, the one in use
+    // checked; the keys land on it.
     window.lens.open(appStrings().lens_ViewAs)
     let viewAs = unwrap window.lens.results.sections[0]
-    Swag.assert(viewAs.label == appStrings().lens_ViewAs and viewAs.entries.count == window.choices.count)
-    for &entry in viewAs.entries do
-        Swag.assert(entry.glyph.isValid())
+    Swag.assert(viewAs.label == appStrings().lens_ViewAs and viewAs.inline and viewAs.entries.count == window.choices.count)
+    Swag.assert(window.lens.chosenEntry()!.title == viewAs.entries[0].title)
     Swag.assert(viewAs.entries[0].checked and not viewAs.entries[1].checked)
     window.lens.close()
 

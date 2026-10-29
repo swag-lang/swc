@@ -73,36 +73,29 @@ func finishHtmlViewer(host: *Testing.HeadlessHost, result: *ViewerSession)
     result.clearSearch()
 }
 
-// The rendered document and its host-owned zoom chrome have a dedicated visual contract.
-#[Swag.TestTag("golden")]
+// The zoom of the rendered document stands in the window's line of readings at its fixed width.
 #test
 {
     var host: Testing.HeadlessHost
     host.setup(820, 560)
 
-    with let infoBar = Wnd.create'ViewerActionBar(&host.root, {0, 0, 0, 40})
+    with let readings = ViewerReadingLine.create(&host.root)
     {
-        .dockStyle       = .Top
-        .backgroundStyle = .InformationBar
-        .padding         = {16, 4, 16, 4}
+        .dockStyle = .Bottom
     }
 
-    var result = openTestViewer(Html.viewerPlugin(), &host.root, htmlViewerFixturePath(), infoParent: infoBar)
+    var result = openTestViewer(Html.viewerPlugin(), &host.root, htmlViewerFixturePath(), infoParent: readings)
     Swag.assert(result.view != null and result.info != null)
-    infoBar.centerGroup = result.info
     let view = assume cast(*Html.Panel, result.view)
-    assertViewerInfoButton(view.zoomLabel)
     Swag.assert(result.info.preferredSize.x == Viewer.ZoomSlotWidth)
     finishHtmlViewer(&host, &result)
     Swag.assert(result.info != null)
-    view.dockStyle        = .Center
-    result.info.dockStyle = .None
+    view.dockStyle = .Center
 
     host.root.applyLayout()
+    Swag.assert(result.info.parent == cast(*Wnd, readings) and result.info.position.width > 0)
     host.settleAnimations(&host.root, 4)
     Testing.assertContentFits(&host.root)
-    var image = host.render(&host.root)
-    Pixel.Testing.assertImageGolden(&image, "viewer.html.document")
 }
 
 // File-open failures cross the viewer boundary instead of becoming viewer-specific content.

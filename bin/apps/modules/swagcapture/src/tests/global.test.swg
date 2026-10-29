@@ -127,9 +127,17 @@ func testSetupGlobalMain(main: *MainWnd)
     Swag.assert(Gui.Testing.actionUpdate'ActionGlobal(f.main, ActionGlobal.ShowLibrary, &evt))
     Swag.assert(evt.checked)
 
+    // The tool letters belong to the editor, which the library hides.
+    var tool = Gui.Testing.commandState(ActionToolMode.Shape)
+    Swag.assert(Gui.Testing.actionUpdate'ActionToolMode(f.main, ActionToolMode.Shape, &tool))
+    Swag.assert(tool.disabled)
+
     Swag.assert(Gui.Testing.actionExecute'ActionGlobal(f.main, ActionGlobal.ShowLibrary))
     Swag.assert(not f.main.libraryMode)
     Swag.assert(f.main.editArea.isLocallyVisible())
+    tool = Gui.Testing.commandState(ActionToolMode.Shape)
+    Swag.assert(Gui.Testing.actionUpdate'ActionToolMode(f.main, ActionToolMode.Shape, &tool))
+    Swag.assert(not tool.disabled)
     Swag.assert(not f.main.libWnd.isLocallyVisible())
     f.main.app().animator.finishAll()
     Swag.assert(f.main.editArea.presentationOpacity == 1 and f.main.editArea.presentationOffset == Math.Point{})

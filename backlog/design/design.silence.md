@@ -92,9 +92,19 @@ dialogs, then each application, then the written rules.
     dates are ISO, not the short day/month; the sheet's two buttons share the foot in halves.
   - PDF: the reading line still carries previous/next arrows beside "1 / 2"; no position thread
     at the right.
-  - The goldens of the viewer harnesses (`viewer.*.document`) and of the window without the
-    shipped frame start at the top edge: they need the frame (StandardWindow) to sit under the
-    strip as the pictures do; the boards, archive and PDF goldens already have it.
+  - The goldens of the window without the shipped frame start at the top edge: they need the
+    frame (StandardWindow) to sit under the strip as the pictures do; the boards, archive and PDF
+    goldens already have it. The viewer harnesses no longer photograph the old toolbar band
+    (`ViewerActionBar` is gone with its `viewer.{text,pdf,html,image,font}.document` goldens):
+    they stand their viewer on the real line of readings, and the window goldens show it.
+  - Panels not yet rebuilt as the PDF margin outline is: the Markdown outline
+    (`viewer.outline.markdown`, `.fr`) is a boxed card with a title, a close button and a
+    filter field; the file panel (`panel`) is a card with an upper-case folder name and a
+    filter; the information card of a viewer (`viewer.media.information`) is a two-column
+    property list. The charter reads them in the margin, quiet, without a card.
+  - The MusicBrainz choice box (`explorer.music.choice`) carries its menu label as title, with
+    its ellipsis; the About box credits Wikipedia and Wikidata, not the Apple catalogue the
+    posters and synopses now come from.
   - Not yet rebuilt on their pictures: image (`scope.image`), table, HTML (column, address,
     outline), font (specimen page);
     the "Column ▾" quiet menu of text; the progress thread under the strip with documents
@@ -139,25 +149,22 @@ dialogs, then each application, then the written rules.
   is 38 by 31 where the pictures draw 44 by 36, so that five presets and their chip fit across
   the 264 the inspector leaves; at 44 by 36 a row holds four presets.
 - Evidence, left when the campaign closed:
-  - The tool letters (`V R P A L T C D H N M X F`) are registered on the main window, so they
-    also answer in the library, where they change the editor's tool unseen.
-  - The five library goldens changed by the hint line (`library.surface`,
-    `library.options.{view,sort,filter}`, `library.menu.folders`) were reviewed whole-screen and
-    accepted, but no confirming run without `SWAG_GOLDEN_CONTINUE` followed.
+  - The tool letters (`V R P A L T C D H N M X F`) were registered on the main window and
+    answered in the library, changing the editor's tool unseen; the tool commands are now
+    disabled while the library is on screen (`global.test.swg`).
   - The full gui suite runs 5 to 7 minutes, past a `--run-timeout 300`; it needs about 420.
 - Next: decide with the charter owner between five smaller presets and four of the pictures'
-  size; keep the tool letters to the editor; run swagcapture once without
-  `SWAG_GOLDEN_CONTINUE`.
+  size.
 - Done when: the preset row of the inspector matches its picture.
 - Related: design.silence.004
 
 ### design.silence.011 — The window scripts were not reviewed against the charter
 
 - Evidence: the example scripts that open windows (`chess.swgs`, `noise.swgs`) were not reviewed
-  against the charter. A first reading of the code: `chess.swgs` writes its game state in
-  `Argb.White`, unreadable on Papier, and names its button "Restart !"; `noise.swgs` reserves a
-  48 px caption room of its own instead of the strip's inset.
-- Next: review the two scripts on their pictures, in both themes.
+  against the charter. `chess.swgs` now writes its game state in the theme's text color and
+  names its button "Restart"; `noise.swgs` reserves a 48 px caption room of its own instead of
+  the strip's inset.
+- Next: give `noise.swgs` the strip's inset, then look at both scripts in both themes.
 - Done when: the window scripts build and smoke clean in both themes.
 
 ### design.silence.012 — The skills still describe the old identity

@@ -595,9 +595,8 @@ impl ViewerWindow
 {
     // The floating bar of the viewer's commands, the band an embedded viewer keeps its title in,
     // and the narrowest window.
-    const BarHeight       = 44.0
-    const ActionBarHeight = 42.0
-    const MinWidth        = 880
+    const BarHeight = 44.0
+    const MinWidth  = 880
 
     // Room the hint line needs under the rows of a listing it teaches.
     const HintRoom = 72.0

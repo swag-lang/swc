@@ -11,6 +11,41 @@ func assertViewerInfoButton(button: *IconButton, width = Viewer.ZoomButtonWidth)
     Swag.assert(button.margin.z == Viewer.ZoomButtonInset)
 }
 
+// The foot of a viewer test, as the window builds it: a band the commands stand on, and the line
+// of readings under it.
+struct TestViewerFoot
+{
+    commands: *Wnd
+    readings: *ViewerReadingLine
+}
+
+// Builds the foot of a viewer test in `parent`.
+func createTestViewerFoot(parent: *Wnd)->TestViewerFoot
+{
+    var result: #returntype
+    with result.readings = ViewerReadingLine.create(parent)
+    {
+        .dockStyle = .Bottom
+    }
+
+    with result.commands = Wnd.create'Wnd(parent, {0, 0, 0, ViewerWindow.BarHeight})
+    {
+        .dockStyle = .Bottom
+    }
+
+    return result
+}
+
+// Lays `group` on the commands band at its preferred width, as the window's floating bar does.
+func standTestCommands(foot: TestViewerFoot, group: *Wnd)
+{
+    let room  = foot.commands.clientRect().width
+    let width = group.preferredSize.x > 0 ? Math.min(group.preferredSize.x, room) : room
+    group.dockStyle = .None
+    group.setPosition(Math.Rectangle{0, 0, width, group.position.height}, computeLayout: false)
+    group.applyLayout()
+}
+
 // Wraps one synthetic creation callback in the descriptor shape the host works with.
 func testViewerPlugin(create: Viewer.PluginCreate)->Viewer.Plugin
 {

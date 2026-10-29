@@ -508,9 +508,7 @@ struct ThemeColors
         embInfo_MessageMark:     Color     // Dot of a notice asking for attention.
 
         prop_FocusBk:     Color     // Ground of the focused row of a property grid.
-        prop_FocusBorder: Color     // Legacy outline color for a property-related selection.
         prop_HotBk:       Color     // Ground of the row under the pointer.
-        prop_HotBorder:   Color     // Legacy outline color for a property-related hot state.
         prop_GridBorder:  Color     // Outline of a property grid.
         prop_GridColumn:  Color     // Rule between the name column and the value column.
         prop_SectionBk:   Color     // Ground of a section head.
@@ -1168,9 +1166,7 @@ impl ThemeColors
         .embInfo_MessageMark     = caution.mark
 
         .prop_FocusBk     = p.selection
-        .prop_FocusBorder = signature.mark
         .prop_HotBk       = p.raised
-        .prop_HotBorder   = .transparent
         .prop_GridBorder  = p.line
         .prop_GridColumn  = p.line
         .prop_SectionBk   = .transparent

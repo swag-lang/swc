@@ -122,3 +122,18 @@ Reusable engine work remains in the backlog of the standard module that owns it.
 - Done when: the bar never leaves while a sheet or menu opened from it is up, and the play button
   test passes ten runs in a row under load.
 - Related: std.gui.058
+
+### app.scope.008 — Online services and viewer settings have no global options page
+
+- Evidence: online film and music information is switched by two lens commands
+  (`ViewerCommands.OnlineMovies`, `OnlineMusic`); MusicBrainz is chosen per album through an
+  identifier box (`explore_ChooseMusic`). Services that need a key (TMDB, later IMDb) have no
+  place to receive it. Each viewer keeps its own settings (`g_ViewerSettings` in the Markdown and
+  MIDI viewers) reachable only from its own options sheet, while the viewer is open.
+- Next: give Swag Scope one global options page reached from the lens; let a viewer plugin
+  declare the global options it offers (a `Viewer.Plugin` callback filling an `OptionSheet.Page`)
+  and let the explorer's online services declare theirs, keys included; persist them with the
+  window settings, never in a golden or a log.
+- Done when: every online service and every viewer setting can be changed from the global page
+  without opening a file, and a key entered there is used by its service.
+- Related: app.scope.005, app.scope.006

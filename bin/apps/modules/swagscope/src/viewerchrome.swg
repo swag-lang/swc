@@ -1,56 +1,5 @@
 using Core, Pixel, Gui
 
-// A toolbar band that keeps one group centered on the complete bar, independently of the action
-// cluster and the viewer selector docked at its opposite edges.
-struct ViewerActionBar
-{
-    using wnd:       Wnd
-    centerGroup:     *Wnd?
-    fillCenterGroup: bool
-}
-
-impl IWnd for ViewerActionBar
-{
-    mtd impl onResizeEvent(_: *ResizeEvent)
-    {
-        .centerContent()
-    }
-}
-
-impl ViewerActionBar
-{
-    func create(parent: *Wnd)->*ViewerActionBar
-    {
-        with let result = Wnd.create'ViewerActionBar(parent, {0, 0, 0, ViewerWindow.ActionBarHeight})
-        {
-            .dockStyle       = .Top
-            .backgroundStyle = .ToolBar
-            .padding         = {12, 6, 12, 0}
-        }
-
-        return result
-    }
-
-    // Centers `centerGroup` on the bar at its preferred width, clamped to the padded client area.
-    mtd centerContent()
-    {
-        if not .centerGroup do
-            return
-        let client         = .paddedClientRect()
-        let group          = .centerGroup
-        let preferredWidth = group.preferredSize.x
-        var width: f32
-        if preferredWidth > 0 do
-            width = Math.min(preferredWidth, client.width)
-        elif .fillCenterGroup do
-            width = client.width
-        else do
-            width = group.position.width
-        group.setPosition(Math.Rectangle{client.horzCenter() - width * 0.5, client.vertCenter() - group.position.height * 0.5, width, group.position.height}, computeLayout: false)
-        group.applyLayout()
-    }
-}
-
 // The faint line of readings at the foot of the document.
 //
 // What the window knows about the open file — its encoding, its lines, the selection a viewer

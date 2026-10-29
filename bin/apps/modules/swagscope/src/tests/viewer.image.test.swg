@@ -136,7 +136,6 @@ func completeImageViewerWindow(host: *Testing.HeadlessHost, window: *ViewerWindo
 
 // Pins the still-image tools beside a real vector document: zoom, fit, native size, and rotate
 // read as one icon family while the numeric zoom remains a value rather than an action.
-#[Swag.TestTag("golden")]
 #test
 {
     let fileName = Path.combine(unwrap Path.directoryName(#curlocation.fileName), "datas/sample.svg")
@@ -144,31 +143,18 @@ func completeImageViewerWindow(host: *Testing.HeadlessHost, window: *ViewerWindo
     var host: Gui.Testing.HeadlessHost
     host.setup(720, 440)
 
-    with let actionBar = Wnd.create'ViewerActionBar(&host.root, {0, 0, 0, 52})
-    {
-        .dockStyle       = .Bottom
-        .backgroundStyle = .Window
-        .padding         = {16, 8, 16, 8}
-    }
-
-    with let infoBar = Wnd.create'ViewerActionBar(&host.root, {0, 0, 0, 40})
-    {
-        .dockStyle       = .Bottom
-        .backgroundStyle = .InformationBar
-        .padding         = {16, 4, 16, 4}
-    }
-
-    var result = openTestViewer(Picture.viewerPlugin(), &host.root, fileName, commandParent: actionBar, actionParent: &host.root, infoParent: infoBar, services: {navigateFile: &countImageNavigation})
+    let foot   = createTestViewerFoot(&host.root)
+    var result = openTestViewer(Picture.viewerPlugin(), &host.root, fileName, commandParent: foot.commands, actionParent: &host.root, infoParent: foot.readings, services: {navigateFile: &countImageNavigation})
     Swag.assert(result.view != null and
                 result.actions == null and
                 result.info != null and
                 result.commands != null)
-    actionBar.centerGroup = result.commands
-    infoBar.centerGroup   = result.info
 
     let view = assume cast(*Picture.Panel, result.view)
     completeViewerBackgroundLoad(&host, &view.load)
-    assertViewerInfoButton(view.zoomLabel, result.info.preferredSize.x - 2 * Viewer.ZoomButtonInset)
+    host.root.applyLayout()
+    standTestCommands(foot, view.actions)
+    Swag.assert(result.info.parent == cast(*Wnd, foot.readings) and result.info.position.width > 0)
     var navigation: s32
     view.userData = &navigation
     Swag.assert(view.previousButton.isEnabled() and view.nextButton.isEnabled())
@@ -204,16 +190,12 @@ func completeImageViewerWindow(host: *Testing.HeadlessHost, window: *ViewerWindo
     var reset = KeyEvent{kind: .Pressed, key: .R, modifiers: .Control}
     view.sendEvent(&reset)
     Swag.assert(view.imageView.rotationQuarterTurns == 0 and not view.imageView.isMirrored)
-    view.dockStyle         = .Center
-    view.actions.dockStyle = .None
-    view.info.dockStyle    = .None
+    view.dockStyle = .Center
     host.root.applyLayout()
+    standTestCommands(foot, view.actions)
     host.settleAnimations(&host.root, 4)
     Testing.assertContentFits(&host.root)
     Swag.assert(view.playModeButton.position.right() <= view.actions.clientRect().right())
-
-    var image = host.render(&host.root)
-    Pixel.Testing.assertImageGolden(&image, "viewer.image.document")
 }
 
 // A decoder refusal crosses the viewer boundary as data; the viewer creates no competing error UI.

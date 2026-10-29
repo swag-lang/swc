@@ -1053,13 +1053,6 @@ impl Application
             .dragEnterWnd = null
     }
 
-    // Kept for callers that still bound their own run; a smoke run already bounds itself.
-    #[Swag.Deprecated("a smoke run sets the frame budget itself")]
-    mtd applyTestArgs(testFrames: u32 = 50)
-    {
-        discard testFrames
-    }
-
     // Creates a main surface and runs its application until shutdown.
     //
     // Clearing `borders` or `canSize` removes the themed border or the resizing from the standard

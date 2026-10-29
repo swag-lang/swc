@@ -93,46 +93,6 @@ private func createPdfFixture()->String
     Testing.assertContentFits(view)
 }
 
-// Pins the centered page navigation and the zoom value exposed in the information band.
-#[Swag.TestTag("golden")]
-#test
-{
-    let fileName = createPdfFixture()
-    defer discard catch File.delete(fileName)
-
-    var host: HeadlessHost
-    host.setup(720, 500)
-
-    with let commandBar = Wnd.create'ViewerActionBar(&host.root, {0, 0, 0, 52})
-    {
-        .dockStyle       = .Bottom
-        .backgroundStyle = .Window
-        .padding         = {16, 8, 16, 8}
-    }
-
-    with let infoBar = Wnd.create'ViewerActionBar(&host.root, {0, 0, 0, 40})
-    {
-        .dockStyle       = .Top
-        .backgroundStyle = .InformationBar
-        .padding         = {16, 4, 16, 4}
-    }
-
-    var result = openTestViewer(PdfDocument.viewerPlugin(), &host.root, fileName, commandParent: commandBar, infoParent: infoBar)
-    Swag.assert(result.view != null and result.commands == null and result.info != null)
-    infoBar.centerGroup = result.info
-
-    let view = assume cast(*PdfDocument.Panel, result.view)
-    completeViewerBackgroundLoad(&host, &view.load)
-    view.dockStyle        = .Center
-    result.info.dockStyle = .None
-    host.root.applyLayout()
-    host.settleAnimations(&host.root, 4)
-    Testing.assertContentFits(&host.root)
-
-    var image = host.render(&host.root)
-    Pixel.Testing.assertImageGolden(&image, "viewer.pdf.document")
-}
-
 // Pins the PDF controls inside the application's real line of readings. The line measures viewer
 // contributions before positioning them, so every fixed page and zoom cell must report the width
 // its docking pass will consume.

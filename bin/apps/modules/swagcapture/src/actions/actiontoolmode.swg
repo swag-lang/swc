@@ -125,6 +125,10 @@ impl IActionUI for ActionToolMode
             evt.checked       = main.editMode == EditMode.Selection or (capture and capture.drawSelRect)
         }
 
+        // The tools belong to the editor: in the library their letters would change it unseen.
+        evt.updatedFields |= .Disabled
+        evt.disabled      = main.libraryMode
+
         return true
     }
 

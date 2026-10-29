@@ -132,44 +132,6 @@ func finishTextStatistics(host: *Testing.HeadlessHost, view: *PlainText.Panel)
     Swag.assert(view.zoomLabel.toolTip == PlainText.texts().ui_ZoomMenu)
 }
 
-// Basic text owns a focused visual contract just like every format-specific document surface.
-#[Swag.TestTag("golden")]
-#test
-{
-    var host: Testing.HeadlessHost
-    host.setup(820, 540)
-
-    with let commandBar = Wnd.create'ViewerActionBar(&host.root, {0, 0, 0, 52})
-    {
-        .dockStyle       = .Bottom
-        .backgroundStyle = .Window
-        .padding         = {16, 8, 16, 8}
-    }
-
-    with let infoBar = Wnd.create'ViewerActionBar(&host.root, {0, 0, 0, 40})
-    {
-        .dockStyle       = .Top
-        .backgroundStyle = .InformationBar
-        .padding         = {16, 4, 16, 4}
-    }
-
-    var result = openTestViewer(PlainText.viewerPlugin(), &host.root, textViewerFixturePath(), commandParent: commandBar, infoParent: infoBar)
-    Swag.assert(result.view != null and result.commands != null and result.info != null)
-    commandBar.centerGroup = result.commands
-    infoBar.centerGroup    = result.info
-    let view = assume cast(*PlainText.Panel, result.view)
-    finishTextStatistics(&host, view)
-    view.dockStyle          = .Center
-    view.commands.dockStyle = .None
-    view.info.dockStyle     = .None
-
-    host.root.applyLayout()
-    host.settleAnimations(&host.root, 4)
-    Testing.assertContentFits(&host.root)
-    var image = host.render(&host.root)
-    Pixel.Testing.assertImageGolden(&image, "viewer.text.document")
-}
-
 // Encoding changes are requests, even if an earlier worker already finished. Only the last
 // interpretation reaches the document; neither the selector nor paint publishes stale text.
 #test

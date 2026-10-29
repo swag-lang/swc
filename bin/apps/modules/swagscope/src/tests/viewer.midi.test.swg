@@ -57,34 +57,16 @@ func midiViewerFixturePath()->String => Path.combine(unwrap Path.directoryName(#
     host.theme.metrics.surfaceWnd_CornerRadius = 0
     host.notify(.ThemeChanged)
 
-    with let commandBar = Wnd.create'ViewerActionBar(&host.root, {0, 0, 0, 52})
-    {
-        .dockStyle       = .Bottom
-        .backgroundStyle = .Window
-        .padding         = {16, 8, 16, 8}
-    }
-
-    with let infoBar = Wnd.create'ViewerActionBar(&host.root, {0, 0, 0, 40})
-    {
-        .dockStyle       = .Top
-        .backgroundStyle = .InformationBar
-        .padding         = {16, 4, 16, 4}
-    }
-
+    let foot     = createTestViewerFoot(&host.root)
     let fileName = midiViewerFixturePath()
-    var result   = openTestViewer(Midi.viewerPlugin(), &host.root, fileName, commandParent: commandBar, infoParent: infoBar)
+    var result   = openTestViewer(Midi.viewerPlugin(), &host.root, fileName, commandParent: foot.commands, infoParent: foot.readings)
     Swag.assert(result.view != null and result.commands != null)
-    commandBar.centerGroup = result.commands
-    infoBar.centerGroup    = result.info
 
     let viewer = assume cast(*Midi.Panel, result.view)
     completeViewerBackgroundLoad(&host, &viewer.load)
-    assertViewerInfoButton(viewer.zoomLabel)
     Swag.assert(result.info!.preferredSize.x == Viewer.ZoomSlotWidth)
     Swag.assert(Utf8.contains(viewer.details.toSlice(), "7 notes"))
-    viewer.dockStyle          = .Center
-    viewer.commands.dockStyle = .None
-    result.info.dockStyle     = .None
+    viewer.dockStyle = .Center
     var options: OptionSheet.Page
     viewer.describeOptions(&options)
     var tracks: OptionSheet.Page
@@ -102,6 +84,7 @@ func midiViewerFixturePath()->String => Path.combine(unwrap Path.directoryName(#
     viewer.roll.zoomToFit()
 
     host.root.applyLayout()
+    standTestCommands(foot, viewer.commands)
     viewer.roll.refreshLayout()
     Swag.assert(viewer.roll.mode == .Tracks and viewer.roll.lanes.count == 1)
 
@@ -109,6 +92,7 @@ func midiViewerFixturePath()->String => Path.combine(unwrap Path.directoryName(#
     host.notify(.LanguageChanged)
     host.root.applyLayout()
     discard host.render(&host.root)
+    standTestCommands(foot, viewer.commands)
     var translated: OptionSheet.Page
     viewer.describeOptions(&translated)
     Swag.assert(translated.rows[0].value == "Toutes les pistes")

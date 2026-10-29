@@ -551,6 +551,8 @@ impl MainWnd
 
     mtd updateState()
     {
+        .updateWindowTitle()
+
         // The tool in use stands in the dock, in the cell of its group when it has one.
         if .dock != null do
             discard .dock.selectTool(toolCommand(.editMode))
@@ -562,6 +564,27 @@ impl MainWnd
         if .quickWnd != null do
             .quickWnd.updateQuickStyles()
         .updateMiniBar()
+    }
+
+    // Names the window after the capture on screen, as the strip, the task bar and the window
+    // switcher show it; after the application in the library or without a capture.
+    mtd updateWindowTitle()
+    {
+        let surface = .surface
+        if not surface do
+            return
+
+        var title: String = ProductName
+        let capture = .editWnd.getCapture()
+        if capture and not .libraryMode
+        {
+            let name = capture.displayName()
+            if not name.isEmpty() do
+                title = name
+        }
+
+        if surface.wnd.name.raw != title do
+            surface.setTitle(title)
     }
 
     mtd captureHasChanged()

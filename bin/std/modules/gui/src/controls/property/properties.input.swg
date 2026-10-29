@@ -167,7 +167,12 @@ internal impl Properties
                     ToolTip.hide(prop.hotItem.line)
                 prop.hotItem = hit
 
-                if hit and hit.label != null and prop.isGridLike()
+                // A notice marked in the margin says its words over the whole row.
+                if hit and prop.marksInMargin(hit)
+                {
+                    ToolTip.show(hit.line, mouseEvt.surfacePos, hit.validationMsg)
+                }
+                elif hit and hit.label != null and prop.isGridLike()
                 {
                     pt = hit.label.surfaceToLocal(mouseEvt.surfacePos)
                     if hit.label.clientRect().contains(pt) do

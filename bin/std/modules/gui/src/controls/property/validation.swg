@@ -27,6 +27,12 @@ struct PropValidationResult
 
 internal impl Properties
 {
+    // Reports whether the notice of `item` is a stroke in the left margin rather than a line
+    // under the row: a Condensed table keeps its rows one line high, so a warning or a piece of
+    // information marks the row in its tone and says its words when the pointer rests on it.
+    // An error keeps its line: it blocks, and is read without asking.
+    mtd marksInMargin(item: *PropertiesItem)->bool => .kind == .Condensed and (item.validation == .Warning or item.validation == .Info)
+
     // Ink of a validation message and of its dot: the mark of the tone the state reports.
     mtd validationTextColor(state: PropValidation)->Color
     {
@@ -99,6 +105,15 @@ internal impl Properties
     // no band — the dot and the ink are the whole vocabulary of a notice in a row.
     mtd paintValidationBar(painter: *Painter, item: *PropertiesItem)
     {
+        // A Condensed row marks its notice with a stroke in the tone, in the margin before its name.
+        if .marksInMargin(item)
+        {
+            let metrics = .themeMetrics()
+            let width   = metrics.focusRing_Size
+            painter.fillRect(Math.Rectangle{Math.round(.leftMargin * 0.25), 0, width, item.valueCellHeight}, .validationTextColor(item.validation))
+            return
+        }
+
         if item.validation == .None or item.validationLabel == null do
             return
         let lbl = item.validationLabel
@@ -253,7 +268,7 @@ private impl Properties
             .ensureValidationLabel(item)
             .applyValidationVisual(item)
             item.validationLabel.setText(message)
-            item.validationLabel.show(true)
+            item.validationLabel.show(not .marksInMargin(item))
         }
 
         if item.line != null do

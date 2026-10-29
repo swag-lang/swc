@@ -2491,3 +2491,35 @@ func assertPropertiesCtrlGolden(light: bool)
 #test { assertPropertiesCtrlGolden(false) }
 #[Swag.TestTag("golden")]
 #test { assertPropertiesCtrlGolden(true) }
+
+// The marks of a row in each presentation: a slider reads its value as a figure with no box
+// until it is edited, a Condensed warning is a stroke in the margin that says its words on
+// hover, and a changed field of a panel names itself with its own control.
+#test
+{
+    for kind in [PropertiesKind.List, .Grid, .Condensed, .Panel]
+    {
+        var host: Testing.HeadlessHost
+        host.setup(520, 620)
+
+        var data: PropGoldenData
+        data.opacity = 0.4
+        data.caption = "Main card of the dashboard, in its long version"
+        let ctrl = PropertiesCtrl.create(&host.root, {0, 0, 520, 620}, kind, .None)
+        ctrl.addStruct(data, "Inspector")
+        host.root.applyLayout()
+        host.pump()
+
+        let opacity = unwrap findFieldItem(ctrl.properties, #nameof(PropGoldenData.opacity))
+        Swag.assert(opacity.isModified and opacity.sliderBox != null and opacity.sliderBox.edit.form == .Transparent)
+
+        let caption = unwrap findFieldItem(ctrl.properties, #nameof(PropGoldenData.caption))
+        Swag.assert(caption.validation == .Warning and caption.validationLabel != null)
+        Swag.assert(ctrl.properties.marksInMargin(caption) == (kind == .Condensed))
+        Swag.assert(caption.validationLabel.isVisible() == (kind != .Condensed))
+
+        // A panel names a field with its control, from the leading edge, where its mark follows.
+        if kind == .Panel do
+            Swag.assert(opacity.sliderBox.label.textHorizontalAlignment == .Left)
+    }
+}

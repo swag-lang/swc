@@ -261,6 +261,7 @@ internal impl Properties
             {
                 .anchorStyle = .Right
                 .setLayoutMetrics(.labelWidth, cast(f32, Reflection.attributeValue(value, me.EditSize, "size", 0)))
+                .label.setTextHorizontalAlignment(.Left)
             }
 
             item.assignComboBox(ctrl.combo)

@@ -66,6 +66,7 @@ internal impl Properties
             {
                 .anchorStyle = .Right
                 .setLayoutMetrics(.labelWidth, cast(f32, Reflection.attributeValue(value, me.EditSize, "size", 0)))
+                .label.setTextHorizontalAlignment(.Left)
             }
 
             combo = ctrl.combo
@@ -121,6 +122,7 @@ internal impl Properties
             {
                 .anchorStyle = .Right
                 .setLayoutMetrics(.labelWidth, cast(f32, Reflection.attributeValue(value, me.EditSize, "size", 0)))
+                .label.setTextHorizontalAlignment(.Left)
             }
 
             ed = ctrl.edit
@@ -187,6 +189,7 @@ internal impl Properties
             {
                 .anchorStyle = .Right
                 .setLayoutMetrics(.labelWidth, cast(f32, Reflection.attributeValue(value, me.EditSize, "size", 0)))
+                .label.setTextHorizontalAlignment(.Left)
             }
 
             ed = ctrl.edit

@@ -29,7 +29,7 @@ internal impl Properties
             case .F64: setEd'f64()
             }
 
-            .setEditMixed(item, item.sliderBox.edit)
+            .setEditMixed(item, item.sliderBox.edit, short: true)
         }
         elif item.editBox != null
         {

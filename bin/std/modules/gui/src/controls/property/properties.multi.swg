@@ -108,13 +108,14 @@ internal impl Properties
     // Show the value box as "mixed" when the instances disagree (blank text and the faint
     // "Mixed values" placeholder), otherwise clear the placeholder so the concrete value set by
     // the caller shows through. Returns true when mixed, so the caller can skip writing a value.
+    // A `short` box, such as the reading of a slider, says it with a dash, as one component does.
     #[Swag.Discardable]
-    mtd setEditMixed(item: *PropertiesItem, ed: *EditBox)->bool
+    mtd setEditMixed(item: *PropertiesItem, ed: *EditBox, short = false)->bool
     {
         if .fieldIsMixed(item)
         {
             ed.setText("")
-            ed.setPlaceholder(strings().prop_MixedValues)
+            ed.setPlaceholder(short ? PropMixedText : strings().prop_MixedValues)
             return true
         }
 

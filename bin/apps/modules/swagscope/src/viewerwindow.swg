@@ -1113,8 +1113,18 @@ impl ViewerWindow
             .hintLine.addHint(texts.hint_KeyBack, texts.hint_Parent)
         }
 
+        // Music is opened and played from its page; a mosaic is pictures alone.
+        let board = roomy and not archive ? .explorer!.grid.board : ExplorerBoard.Grid
+        if board == .Covers
+        {
+            .hintLine.addHint(texts.hint_KeyEnter, texts.hint_Open)
+            .hintLine.addHint("P", texts.hint_PlayAlbum)
+        }
+        elif board == .Album do
+            .hintLine.addHint(texts.hint_KeyEnter, texts.hint_Play)
+
         .hintLine.addHint(Gui.strings().key_Space, texts.ui_HintLens)
-        if roomy and not archive do
+        if roomy and not archive and (board == .Grid or board == .Posters) do
             .hintLine.addHint("/", texts.hint_Filter)
         .hintLine.show(roomy or (not exploring and .home.isLocallyVisible()))
     }

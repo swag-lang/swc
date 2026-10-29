@@ -32,6 +32,9 @@ struct AppStrings
     explore_Synopsis:          string = "Synopsis"
     explore_Length:            string = "% h %"                      // Length of a film under its poster: hours, then minutes.
     explore_Sources:           string = "Sources"                    // Reading naming who provided what the sheet says of a film.
+    explore_Albums:            string = "% albums"                   // How many albums a music library holds.
+    explore_Photos:            string = "% photos"                   // How many pictures a folder of photographs holds.
+    explore_Films:             string = "% films"                    // How many films a folder of films holds.
     explore_Album:             string = "Album"                      // Kind of the folder an album page shows, before its year.
     explore_Tracks:            string = "% tracks"                   // How many tracks an album holds.
     explore_Play:              string = "Play"                       // Button playing an album from its first track.
@@ -125,6 +128,8 @@ struct AppStrings
     hint_KeyBack:                      string = "⌫"                                           // Name of the Backspace key on a keycap.
     hint_Open:                         string = "open"                                        // What Enter does on the hint line of an explored folder.
     hint_Parent:                       string = "parent folder"                               // What Backspace does on the hint line of an explored folder.
+    hint_PlayAlbum:                    string = "play the album"                              // What P does on the hint line of a music library.
+    hint_Play:                         string = "play"                                        // What Enter does on the hint line of an album.
     hint_Filter:                       string = "filter"                                      // What the slash key does on the hint line of an explored folder.
     ui_HintLens:                       string = "everything else"                             // What the space bar opens, on the hint line of a window new to the reader.
 
@@ -174,6 +179,14 @@ struct AppStrings
     mode_Names:         string = "names"                     // Quiet view menu of the explored folder, as a list of names.
     mode_Details:       string = "details"                   // Quiet view menu of the explored folder, as a table of details.
     mode_Thumbnails:    string = "thumbnails"                // Quiet view menu of the explored folder, as a contact sheet.
+    mode_Covers:        string = "covers"                    // Quiet view menu of the explored folder, as album covers.
+    mode_Posters:       string = "posters"                   // Quiet view menu of the explored folder, as film posters.
+    mode_Mosaic:        string = "mosaic"                    // Quiet view menu of the explored folder, as a mosaic of pictures.
+    board_Automatic:    string = "Automatic"                 // View menu choice reading the shape of the tiles from what the folder holds.
+    board_Grid:         string = "Grid"                      // View menu choice forcing an even grid of tiles.
+    board_Covers:       string = "Covers"                    // View menu choice forcing square covers.
+    board_Posters:      string = "Posters"                   // View menu choice forcing upright posters.
+    board_Mosaic:       string = "Mosaic"                    // View menu choice forcing a mosaic of pictures.
     sort_Name:          string = "by name"                   // Quiet sort menu of the explored folder, ordered by name.
     sort_Type:          string = "by type"                   // Quiet sort menu of the explored folder, ordered by type.
     sort_Size:          string = "by size"                   // Quiet sort menu of the explored folder, ordered by size.

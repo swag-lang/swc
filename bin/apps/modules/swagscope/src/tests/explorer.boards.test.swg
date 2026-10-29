@@ -133,6 +133,12 @@ func addPictured(host: *Testing.HeadlessHost, explorer: *Explorer, name: string,
         Swag.assert(not explorer.filter.isLocallyVisible())
         var image = host.render(window)
         Pixel.Testing.assertImageGolden(&image, light ? "explorer.mixed.paper" : "explorer.mixed")
+
+        // The view menu can force a shape, and give it back to what the folder holds.
+        explorer.forceBoard(true, .Mosaic)
+        Swag.assert(grid.board == .Mosaic and explorer.modeMenu.name.raw == appStrings().mode_Mosaic)
+        explorer.forceBoard(false)
+        Swag.assert(grid.board == .Grid)
     }
 }
 
@@ -204,6 +210,7 @@ func addPictured(host: *Testing.HeadlessHost, explorer: *Explorer, name: string,
     showBoard(&host, window, "Music", "Albums")
     let grid = explorer.grid
     Swag.assert(grid.board == .Covers and grid.tile.x == grid.tile.y)
+    Swag.assert(Utf8.startsWith(explorer.status.text(), Format.toString("% · %", Format.toString(appStrings().explore_Albums, 8), Format.toString(appStrings().explore_Tracks, 8))))
     var image = host.render(window)
     Pixel.Testing.assertImageGolden(&image, "explorer.music")
 }
@@ -263,6 +270,11 @@ func addPictured(host: *Testing.HeadlessHost, explorer: *Explorer, name: string,
     explorer.selected = 2
     showBoard(&host, window, "Pictures", "Brittany 2026")
     let grid = explorer.grid
+
+    // What is known of the picture under the pointer stands in a mono tip over it.
+    grid.hovered = 5
+    grid.invalidate()
+    Swag.assert(Utf8.startsWith(explorer.status.text(), Format.toString(appStrings().explore_Photos, 12)))
     Swag.assert(grid.board == .Mosaic and grid.days.count == 2 and grid.days[0].count == 8)
     Swag.assert(grid.days[0].text == "Wednesday 21 October")
     var image = host.render(window)

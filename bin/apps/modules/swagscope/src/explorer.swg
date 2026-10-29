@@ -136,6 +136,8 @@ struct Explorer
     previewBudget:   u64      // How many previews of the shown listing run at once.
     extraction:      ArchiveExtraction
     toast:           *Toast?
+    forcedBoard:     ExplorerBoard     // The board the view menu forces, when `forced`.
+    forced:          bool
 }
 
 impl Explorer
@@ -463,9 +465,32 @@ impl Explorer
         for name, mode in [text.explore_Names, text.explore_Details, text.explore_Small, text.explore_Medium, text.explore_Large] do
             menu.addRadioItem(name, Format.toString("scope.explore.mode.%", mode), checked: cast(u64, .mode) == mode)
 
+        // The shape of the tiles: read from the folder, or forced.
+        menu.addSeparator()
+        let boards = [text.board_Automatic, text.board_Grid, text.board_Covers, text.board_Posters, text.board_Mosaic]
+        for name, board in boards
+        {
+            let checked = board == 0 ? not .forced : (.forced and cast(u64, .forcedBoard) == board - 1)
+            menu.addRadioItem(name, Format.toString("scope.explore.board.%", board), checked: checked)
+        }
+
         let chosen = menu.doModal(.modeMenu, autoDestroy: true) orelse ""
         for mode in 5 where chosen == Format.toString("scope.explore.mode.%", mode).toString() do
             .setMode(cast(ExplorerMode, cast(u32, mode)))
+        for board in boards.count where chosen == Format.toString("scope.explore.board.%", board).toString() do
+            .forceBoard(board != 0, board ? cast(ExplorerBoard, cast(u32, board - 1)) : .Grid)
+    }
+
+    // Forces the shape of the tiles to `board`, or without `forced` gives it back to what the
+    // folder holds.
+    mtd forceBoard(forced: bool, board = ExplorerBoard.Grid)
+    {
+        .forced      = forced
+        .forcedBoard = board
+        if .mode == .Names or .mode == .Details do
+            .setMode(.Medium)
+        else do
+            .fill()
     }
 
     // Shows the orders of the listing under its menu: the column, and whether it runs backward.
@@ -507,13 +532,23 @@ impl Explorer
         default: sort = text.sort_Name
         }
 
+        // A mosaic stands its pictures in the order they were taken.
+        if .grid.board == .Mosaic do
+            sort = text.sort_Modified
         .sortMenu.setQuietText(sort)
         .extractAll.setQuietText(text.cmd_ExtractAll)
         switch .mode
         {
         case .Names:   .modeMenu.setQuietText(text.mode_Names)
         case .Details: .modeMenu.setQuietText(text.mode_Details)
-        default:       .modeMenu.setQuietText(text.mode_Thumbnails)
+        default:
+            switch .grid.board
+            {
+            case .Covers: .modeMenu.setQuietText(text.mode_Covers)
+            case .Mosaic: .modeMenu.setQuietText(text.mode_Mosaic)
+            case .Posters: .modeMenu.setQuietText(text.mode_Posters)
+            default:      .modeMenu.setQuietText(text.mode_Thumbnails)
+            }
         }
         .layoutTools()
     }
@@ -762,6 +797,22 @@ impl Explorer
         sheet.setAction(appStrings().cmd_OpenChosen, ViewerCommands.OpenChosen)
         if .listing.isArchive do
             sheet.setSecondaryAction(appStrings().cmd_Extract, ViewerCommands.ExtractChosen)
+    }
+
+    // Plays what is chosen: an album from its first track, a piece of music with the folder
+    // after it.
+    mtd playChosen()
+    {
+        if .grid.board == .Album
+        {
+            .playAlbum(false)
+            return
+        }
+
+        if .grid.board != .Covers or .selected >= .entries.count do
+            return
+        .window.setPlayMode(.Folder)
+        .activate(.selected)
     }
 
     // Opens the first track of the album, or one drawn by chance with the folder played in
@@ -1153,6 +1204,8 @@ impl Explorer
     {
         if .listing.isArchive do
             return .Grid
+        if .forced do
+            return .forcedBoard
         var files, films, sounds, pictures: u64
         var album: String
         var oneAlbum = true
@@ -1215,12 +1268,59 @@ impl Explorer
             .shown.add(index)
         }
 
+        // Pictures are seen in the order they were taken.
+        let board = .listingBoard()
+        if board == .Mosaic
+        {
+            .shown.sort(func|explorer = me|(a, b)->s32
+            {
+                let order = Latin1.compareNatural(explorer.entries[a].modified, explorer.entries[b].modified)
+                if order != 0 do
+                    return order
+                return a < b ? -1 : (a > b ? 1 : 0)
+            })
+        }
+
         var count: String
         switch .shown.count
         {
         case 0:  count = appStrings().explore_Empty
         case 1:  count = appStrings().explore_OneItem
         default: count = Format.toString(appStrings().explore_Count, .shown.count)
+        }
+
+        // A folder of media counts what it holds in its own words.
+        if .shown.count > 1
+        {
+            var albums: Array'String
+            var tracks, photos, films: u64
+            for index in .shown
+            {
+                let entry = &.entries[index]
+                let kind  = .theme().fileGlyph(entry.name, entry.directory, 16).index
+                if kind == cast(s32, ThemeIcons.FileAudio)
+                {
+                    tracks += 1
+                    var known = false
+                    for one in albums where one[] == entry.music.title do
+                        known = true
+                    if not known do
+                        albums.add(entry.music.title.isEmpty() ? entry.name : entry.music.title)
+                }
+                elif kind == cast(s32, ThemeIcons.FileImage) do
+                    photos += 1
+                elif kind == cast(s32, ThemeIcons.FileVideo) do
+                    films += 1
+            }
+
+            if board == .Covers do
+                count = Format.toString("% · %", Format.toString(appStrings().explore_Albums, albums.count), Format.toString(appStrings().explore_Tracks, tracks))
+            elif board == .Album do
+                count = Format.toString(appStrings().explore_Tracks, tracks)
+            elif board == .Mosaic do
+                count = Format.toString(appStrings().explore_Photos, photos)
+            elif board == .Posters do
+                count = Format.toString(appStrings().explore_Films, films)
         }
 
         // A folder says what its files weigh; an archive what it weighs packed and what it will
@@ -1251,6 +1351,7 @@ impl Explorer
         }
 
         .grid.refreshLayout()
+        .refreshQuietMenus()
         .requestPreview()
         .window.teachHints(.isLocallyVisible())
     }
@@ -1646,6 +1747,7 @@ impl IWnd for Explorer
         case .Up where evt.modifiers.has(.Alt):    .goUp()
         case .Back:                                .goUp()
         case .Oem2 where evt.modifiers == .None:   .revealFilter()
+        case .P where evt.modifiers == .None:      .playChosen()
         default:                                   evt.accepted = false
         }
     }
@@ -1845,9 +1947,11 @@ impl ExplorerGrid
     {
         if row.isEmpty() do
             return y
-        let gaps   = MosaicGap * cast(f32, row.count - 1)
-        var height = (width - gaps) / Math.max(shape, 0.01)
-        if last and height > MosaicHeight do
+        // The last row of a day fills the width too, unless it holds too little to stand that tall.
+        let gaps    = MosaicGap * cast(f32, row.count - 1)
+        var height  = (width - gaps) / Math.max(shape, 0.01)
+        let short   = last and height > MosaicHeight * 1.25
+        if short do
             height = MosaicHeight
         height = Math.round(height)
         var x = CellInset
@@ -1855,7 +1959,7 @@ impl ExplorerGrid
         {
             let entry = &.explorer.entries[.explorer.shown[at]]
             var w     = Math.round(.shapeOf(entry) * height)
-            if i + 1 == row.count and not last do
+            if i + 1 == row.count and not short do
                 w = CellInset + width - x
             .places[at] = Math.Rectangle{x, y, w, height}
             x += w + MosaicGap
@@ -2126,6 +2230,27 @@ impl ExplorerGrid
         }
     }
 
+    // Writes what is known of the picture under the pointer in a mono tip over its middle: its
+    // name, its size on screen once rendered, and its weight.
+    mtd paintPictureTip(painter: *Painter)
+    {
+        if .hovered >= .explorer.shown.count or .hovered >= .places.count do
+            return
+        let entry = &.explorer.entries[.explorer.shown[.hovered]]
+        let place = .places[.hovered]
+        var tip   = String.from(entry.name)
+        if entry.size do
+            tip = Format.toString("% · %", tip, StrConv.toDisplaySize(entry.size))
+        let mono   = .theme().createDefaultFontFs(11)
+        let width  = Painter.measureString(tip, mono).width + 28
+        let pill   = Math.Rectangle{Math.round(place.horzCenter() - width * 0.5), Math.round(place.vertCenter() - 14), Math.ceil(width), 28}
+        let radius = .themeMetrics().corner_Control
+        .theme().drawFloatingShadow(painter, pill, radius)
+        painter.fillRoundRect(pill, radius, radius, .themeColors().raised)
+        painter.drawRoundRect(pill, radius, radius, .themeColors().line)
+        painter.drawString(pill.x + 14, mono.opticalLineTop(pill.vertCenter()), tip, mono, .themeColors().softText)
+    }
+
     // Paints the label of each day of a mosaic: its words in spaced capitals, then how many
     // pictures it holds.
     mtd paintDays(painter: *Painter)
@@ -2174,6 +2299,7 @@ impl ExplorerGrid
         }
 
         let coverRect = Math.Rectangle{CellInset, CellInset, CoverSide, CoverSide}
+        .theme().drawFloatingShadow(painter, coverRect, radius)
         painter.fillRoundRect(coverRect, radius, radius, colors.raised)
         if cover
         {
@@ -2468,6 +2594,8 @@ impl IWnd for ExplorerGrid
                 .paintDays(painter)
             for row in range.first until range.end do
                 .paintTile(painter, row)
+            if .board == .Mosaic do
+                .paintPictureTip(painter)
         }
 
         for spinner, slot in .spinners do

@@ -751,8 +751,8 @@ private impl FileBrowserCtrl
             // whose unified result is integer, fed to an f32 parameter, is currently
             // mis-lowered to a bit-reinterpret (see reference_conditional_int_to_float_miscompile).
             .addColumn(strings().browser_ColName, me.options.state ? cast(f32, me.options.state.nameColumnWidth) : 220.0)
-            .addColumn(strings().browser_ColModified, me.options.state ? cast(f32, me.options.state.modifiedColumnWidth) : 130.0)
-            .addColumn(strings().browser_ColSize, me.options.state ? cast(f32, me.options.state.sizeColumnWidth) : 90.0, align: .Right)
+            .addColumn(strings().browser_ColModified, me.options.state ? cast(f32, me.options.state.modifiedColumnWidth) : 110.0)
+            .addColumn(strings().browser_ColSize, me.options.state ? cast(f32, me.options.state.sizeColumnWidth) : 72.0, align: .Right)
             .header.form = .Transparent
 
             // The rows say what they are without a header: a name, a faint mono date and size.

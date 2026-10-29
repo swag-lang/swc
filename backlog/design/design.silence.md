@@ -59,7 +59,7 @@ dialogs, then each application, then the written rules.
   under a few rows instead of fitting them, the folder box's field says "Filter, or type a path"
   where the picture says "Filter folders", and the bar beside the field has no recent-places glyph.
   At a narrow dialog width, its file list also extends slightly past the view and exposes a short
-  horizontal scroll bar.
+  horizontal scroll bar; the default date and size columns are now narrower to give the name room.
 - Next: let the box size its list to the rows it shows within a minimum and a maximum, give the
   folder mode its own placeholder, decide on the recent-places glyph, and fit the file columns to
   the list width before a horizontal bar is needed.

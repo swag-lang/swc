@@ -401,12 +401,12 @@ impl RichEditCtrl
 
         let menu = MenuCtrl.createPopup(me, owner: me)
         if not readOnly do
-            menu.addItem(strings().edit_Cut, CtxCut, rightName: "Ctrl+X", disabled: not hasSel)
-        menu.addItem(strings().edit_Copy, CtxCopy, rightName: "Ctrl+C", disabled: not hasSel)
+            menu.addItem(strings().edit_Cut, CtxCut, rightName: "Ctrl X", disabled: not hasSel)
+        menu.addItem(strings().edit_Copy, CtxCopy, rightName: "Ctrl C", disabled: not hasSel)
         if not readOnly do
-            menu.addItem(strings().edit_Paste, CtxPaste, rightName: "Ctrl+V", disabled: not Clipboard.hasString())
+            menu.addItem(strings().edit_Paste, CtxPaste, rightName: "Ctrl V", disabled: not Clipboard.hasString())
         menu.addSeparator()
-        menu.addItem(strings().edit_SelectAll, CtxSelectAll, rightName: "Ctrl+A")
+        menu.addItem(strings().edit_SelectAll, CtxSelectAll, rightName: "Ctrl A")
 
         let picked = menu.doModal(surfacePos, .TopLeft, autoDestroy: true) orelse ""
         switch picked

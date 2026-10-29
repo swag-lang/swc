@@ -615,7 +615,7 @@ func assertMenuMarkerGolden(palette: MenuMarkerPalette, golden: string)
     let sub   = MenuCtrl.createPopup(&host.root)
     sub.addItem("Sans serif", Menu_Open, checked: true)
     sub.addItem("Monospace", Menu_Quit)
-    popup.addItem("Current choice", Menu_New, checked: true, rightName: "Ctrl+Enter")
+    popup.addItem("Current choice", Menu_New, checked: true, rightName: "Ctrl Enter")
     popup.addPopup("Typography", sub)
     popup.setSubmenuDirection(.Left)
 

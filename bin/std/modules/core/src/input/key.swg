@@ -206,7 +206,8 @@ public enum Key
     Zoom                   // Zoom key
 }
 
-// Formats `modifiers` and `key` as a display-ready shortcut such as `Ctrl+S`.
+// Formats `modifiers` and `key` as a display-ready shortcut such as `Ctrl S` or `Ctrl Shift S`:
+// the names of the keys separated by spaces, as a menu or a lens writes them in faint mono.
 public func formatKeyShortcut(modifiers: KeyModifiers, key: Key)->String
 {
     var result: #returntype
@@ -217,19 +218,19 @@ public func formatKeyShortcut(modifiers: KeyModifiers, key: Key)->String
     if modifiers & .Control
     {
         if not result.isEmpty() do
-            result += "+"
+            result += " "
         result += "Ctrl"
     }
 
     if modifiers & .Shift
     {
         if not result.isEmpty() do
-            result += "+"
+            result += " "
         result += "Shift"
     }
 
     if not result.isEmpty() do
-        result += "+"
+        result += " "
 
     var k = key
     switch key

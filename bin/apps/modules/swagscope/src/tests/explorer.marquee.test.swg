@@ -8,7 +8,7 @@ using Core, Gui, Pixel
 {
     var host: Testing.HeadlessHost
     host.setup(880, 420)
-    let window = ViewerWindow.create(&host.surfaceWnd, createViewerPluginRegistry())
+    let window   = ViewerWindow.create(&host.surfaceWnd, createViewerPluginRegistry())
     let explorer = Explorer.create(window.documentPanel, window)
     explorer.entries.add({name: "A very long file name that cannot fit inside a small thumbnail tile.txt", attempted: true})
     explorer.entries.add({name: "short.txt", attempted: true})
@@ -21,10 +21,10 @@ using Core, Gui, Pixel
 
     // The beginning of the name occupies the same pixels before the marquee moves. The tile
     // background changes on selection, so compare text masks against each frame's own ground.
-    let rect = explorer.grid.surfaceRect()
-    let left = cast(s32, rect.x + 16)
-    let top  = cast(s32, rect.y + explorer.grid.cell.y - 24 - ExplorerGrid.ReadingHeight)
-    let restingGround = resting.pixelColor(left + 2, top + 22).argb
+    let rect           = explorer.grid.surfaceRect()
+    let left           = cast(s32, rect.x + 16)
+    let top            = cast(s32, rect.y + explorer.grid.cell.y - 24 - ExplorerGrid.ReadingHeight)
+    let restingGround  = resting.pixelColor(left + 2, top + 22).argb
     let selectedGround = selected.pixelColor(left + 2, top + 22).argb
     var ink: u64
     for y in 20
@@ -38,6 +38,7 @@ using Core, Gui, Pixel
                 ink += 1
         }
     }
+
     Swag.assert(ink > 0)
     Swag.assert(explorer.grid.nameTimer != null)
     host.fireTimer(explorer.grid.nameTimer)

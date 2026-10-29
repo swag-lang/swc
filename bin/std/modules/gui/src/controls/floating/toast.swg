@@ -98,6 +98,7 @@ impl IWnd for Toast
         switch evt.kind
         {
         case .Move:
+
             // The pill stays as long as it is read.
             if not .hovered
             {
@@ -191,7 +192,7 @@ private impl Toast
             let bold  = .theme().createDefaultFont(metrics.defaultFontSize, .Bold)
             let words = Painter.measureString(.action.toString(), bold).width
             .actionRect = Math.Rectangle{width - metrics.toast_Padding + metrics.toast_ActionGap, 0, words, metrics.toast_Height}
-            width += metrics.toast_ActionGap + words
+            width       += metrics.toast_ActionGap + words
         }
 
         let bounds = parent.clientRect()
@@ -225,10 +226,10 @@ impl Toast
     // A toast already on screen takes the new message in place, without leaving first.
     mtd show(message: string, detail: string = "", tone = ToastTone.Done, action: string = "")
     {
-        .message = String.from(message)
-        .detail  = String.from(detail)
-        .action  = String.from(action)
-        .tone    = tone
+        .message   = String.from(message)
+        .detail    = String.from(detail)
+        .action    = String.from(action)
+        .tone      = tone
         .hotAction = false
         liftFloating(me)
         .place()

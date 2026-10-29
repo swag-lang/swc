@@ -229,7 +229,7 @@ impl FileDlg
     internal func createNewFolderBox(from: *Surface, place: string)->{ dlg: *FormDlg, edit: *EditBox }
     {
         var options: FormDlgOptions
-        options.title  = strings().fileDlg_NewFolderTitle
+        options.title = strings().fileDlg_NewFolderTitle
         options.width = cast(s32, MessageDlg.MinMessageWidth)
 
         options.confirmButtonText = strings().fileDlg_BtnCreate

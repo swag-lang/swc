@@ -16,16 +16,16 @@ const MaxInlineStepNumber = 999
 // What a form gives the fields its words are typed in.
 struct InlineText
 {
-    rect:      Math.Rectangle                 // Where the words stand, in capture pixels.
-    text:      String                         // The words, lines separated by a line feed.
-    face:      *TypeFace?                     // The face they are set in.
-    size:      f32                            // Their size, in capture pixels.
-    spacing:   f32                            // The room between two lines, in capture pixels.
-    ink:       Color                          // Their ink.
-    alignHorz: FormTextAlign = .Center        // How each line stands across the rectangle.
-    alignVert: FormTextAlign = .Center        // How the lines stand down the rectangle.
-    step:      bool                           // Whether the words are the label of a step.
-    stepType:  FormStepType                   // How that step counts.
+    rect:      Math.Rectangle              // Where the words stand, in capture pixels.
+    text:      String                      // The words, lines separated by a line feed.
+    face:      *TypeFace?                  // The face they are set in.
+    size:      f32                         // Their size, in capture pixels.
+    spacing:   f32                         // The room between two lines, in capture pixels.
+    ink:       Color                       // Their ink.
+    alignHorz: FormTextAlign = .Center     // How each line stands across the rectangle.
+    alignVert: FormTextAlign = .Center     // How the lines stand down the rectangle.
+    step:      bool                        // Whether the words are the label of a step.
+    stepType:  FormStepType                // How that step counts.
 }
 
 // Returns what `form` gives the fields its words are typed in; `found` is false for a form
@@ -50,7 +50,7 @@ func inlineTextOf(form: IForm)->{ found: bool, spec: InlineText }
         return {true, spec}
 
     case FormCallout as callout:
-        spec.rect      = callout.textRect()
+        spec.rect = callout.textRect()
         spec.rect.inflate(-callout.boldSize, 0)
         spec.text      = callout.text
         spec.face      = callout.render.resolveFace()
@@ -112,12 +112,9 @@ func setEditingText(form: IForm, editing: bool)
 {
     switch form
     {
-    case FormText as text:
-        text.editingText = editing
-    case FormCallout as callout:
-        callout.editingText = editing
-    case FormStep as step:
-        step.editingText = editing
+    case FormText as text:       text.editingText = editing
+    case FormCallout as callout: callout.editingText = editing
+    case FormStep as step:       step.editingText = editing
     }
 }
 
@@ -201,8 +198,8 @@ impl EditView
         if not .isEditingText() do
             return
 
-        let text = .inlineText()
-        let form = .textEditForm()
+        let text  = .inlineText()
+        let form  = .textEditForm()
         let lines = #move .textLines
         .textForm = null
         for line in lines do
@@ -266,18 +263,23 @@ impl EditView
         options.easing   = .EaseOut
 
         let base = cast(*BaseForm, form)
-        discard .app().animator.animateF32(me, AnimationChannel.from("Capture.Text.Turn"), from, target, func|base|(view, value)
-        {
-            let capture = view.capture
-            if not capture do
-                return
-            for f in capture.forms where cast(*BaseForm, f) == base
-            {
-                base.rotate = value
-                capture.invalidateAllFormCaches()
-                view.invalidate()
-            }
-        }, options)
+        discard .app().animator.animateF32(me,
+                                           AnimationChannel.from("Capture.Text.Turn"),
+                                           from,
+                                           target,
+                                           func|base|(view, value)
+                                           {
+                                               let capture = view.capture
+                                               if not capture do
+                                                   return
+                                               for f in capture.forms where cast(*BaseForm, f) == base
+                                               {
+                                                   base.rotate = value
+                                                   capture.invalidateAllFormCaches()
+                                                   view.invalidate()
+                                               }
+                                           },
+                                           options)
     }
 
     // Adds a field holding `text` as the line at `index`.
@@ -299,7 +301,7 @@ impl EditView
             }
 
             .sigTextChanged += func|view = me|(_) { view.placeTextLines() }
-            .hookOnEvent = func|view = me|(wnd, evt)->bool => view.textLineEvent(assume cast(*EditBox, wnd), evt)
+            .hookOnEvent    = func|view = me|(wnd, evt)->bool => view.textLineEvent(assume cast(*EditBox, wnd), evt)
         }
 
         .textLines.insertAt(index, line)
@@ -339,7 +341,7 @@ impl EditView
         for line in .textLines
         {
             let wordsWidth = Painter.measureStringSnapped(line.text(), font, deviceScale: line.deviceScale())
-            var x          = rect.x
+            var x = rect.x
             switch #complete .textSpec.alignHorz
             {
             case .LeftTop:     x = rect.x
@@ -403,11 +405,11 @@ impl EditView
             // The line breaks at the caret, the selection gone.
             if not empty do
                 line.deleteSelection()
-            let at:   String = line.text()
-            let cut   = line.selection().end
-            let head  = Swag.makeString(at.buffer, cut)
-            let tail  = Swag.makeString(at.buffer + cut, at.length - cut)
-            let next  = .addTextLine(index + 1, tail)
+            let at: String = line.text()
+            let cut        = line.selection().end
+            let head       = Swag.makeString(at.buffer, cut)
+            let tail       = Swag.makeString(at.buffer + cut, at.length - cut)
+            let next       = .addTextLine(index + 1, tail)
             line.setText(head)
             next.setFocus()
             next.setSelection(0, 0)
@@ -417,8 +419,8 @@ impl EditView
         case .Back:
             if not empty or caret or not index do
                 return false
-            let prev = .textLines[index - 1]
-            let join = prev.text().count
+            let prev         = .textLines[index - 1]
+            let join         = prev.text().count
             var text: String = prev.text()
             text += line.text()
             prev.setText(text)
@@ -432,7 +434,7 @@ impl EditView
         case .Delete:
             if not empty or caret != line.text().count or index + 1 >= .textLines.count do
                 return false
-            let next = .textLines[index + 1]
+            let next         = .textLines[index + 1]
             var text: String = line.text()
             text += next.text()
             line.setText(text)

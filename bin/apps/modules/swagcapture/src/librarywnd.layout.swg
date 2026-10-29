@@ -1,13 +1,13 @@
 // The page of the library: a title over its folders as tabs and its tags as chips, the quiet menus
 // and the search beside the title, the captures under them on the window ground.
-const LibraryPageMargin = 72.0     // Air between the page and the side edges of the window.
-const LibraryTitleSize  = 48'u32   // Size of the page title.
-const LibraryTitleRow   = 72.0     // Height of the row of the title, the menus and the search.
-const LibraryTabsRow    = 40.0     // Height of the row of the folder tabs and the tag chips.
-const LibraryHeaderGap  = 24.0     // Air between the header and the first row of captures.
-const LibraryTopGap     = 16.0     // Air between the strip and the title.
-const LibrarySearchWidth = 280.0   // Width of the search field.
-const LibraryMaxChips   = 6        // Tags offered as chips; the filter sheet offers every tag.
+const LibraryPageMargin  = 72.0       // Air between the page and the side edges of the window.
+const LibraryTitleSize   = 48'u32     // Size of the page title.
+const LibraryTitleRow    = 72.0       // Height of the row of the title, the menus and the search.
+const LibraryTabsRow     = 40.0       // Height of the row of the folder tabs and the tag chips.
+const LibraryHeaderGap   = 24.0       // Air between the header and the first row of captures.
+const LibraryTopGap      = 16.0       // Air between the strip and the title.
+const LibrarySearchWidth = 280.0      // Width of the search field.
+const LibraryMaxChips    = 6          // Tags offered as chips; the filter sheet offers every tag.
 
 impl LibraryWnd
 {
@@ -16,6 +16,7 @@ impl LibraryWnd
     {
         let metrics = .themeMetrics()
         let theme   = .theme()
+
         // The header stands on the page's edges; the grid under it reaches the ring's width past
         // them, so the thumbnails, not their rings, line up with the title.
         with .header = Wnd.create'Wnd(me, {0, 0, 0, LibraryTopGap + LibraryTitleRow + LibraryTabsRow + LibraryHeaderGap})
@@ -142,7 +143,6 @@ impl LibraryWnd
         .folderBtn            = .createMenuButton(.commandBar, appStrings().ui_BarFolders)
         .folderBtn.toolTip    = appStrings().tip_LibraryFolders
         .folderBtn.sigPressed += func|libWnd = me|(btn) { libWnd.showFolderMenu(btn) }
-
     }
 
     // The loading state of the previews stays with the menus it updates; hidden, it takes no room.
@@ -184,6 +184,7 @@ impl LibraryWnd
         // of the library otherwise.
         let root      = Library.getFolder()
         let rootCount = .currentFolder() == root ? .view.allItems.count : g_Library.files.count
+
         // A tab names its folder and counts its captures, the count in mono.
         .folderTabs.addItem(appStrings().ui_AllCaptures)
         .folderTabs.setItemCount(0, Format.toString("%", rootCount))
@@ -217,6 +218,7 @@ impl LibraryWnd
     {
         if .updatingTabs do
             return
+
         // A copy: opening the folder lists the tabs again, which replaces the paths.
         let index = .folderTabs.selectedIndex
         if index < .tabFolders.count
@@ -242,6 +244,7 @@ impl LibraryWnd
                 break
 
             let name = tag.name.toString()
+
             // A chip is a tag in mono on the raised ground; the one in force takes the Arc ground.
             with let chip = IconButton.create(.tagChips, {}, {0, 0, 0, metrics.quiet_Height - 4}, flags: .Toggle)
             {

@@ -39,7 +39,7 @@ enum LibraryContentFilter
 struct LibraryDateFilter
 {
     year, month, day: u64
-    count:            u64
+    count: u64
 }
 
 // One entry of a sidebar group: its name, the executable it stands for when it groups by

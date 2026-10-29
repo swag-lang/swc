@@ -163,7 +163,6 @@ func assertImageGolden(image: const *Image, name: string, options: ImageGoldenOp
 // its golden by hand, then the run repeated without the variable.
 private func continuesPastMismatch()->bool => Env.variable("SWAG_GOLDEN_CONTINUE") == "1"
 
-
 // Widens `options` by the rounding a release build may add to a golden recorded from devmode.
 private func releaseGoldenOptions(options: ImageGoldenOptions)->ImageGoldenOptions
 {

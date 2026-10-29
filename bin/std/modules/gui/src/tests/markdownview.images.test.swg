@@ -30,7 +30,7 @@ using Swag, Core, Pixel
     let inlinePixels = cast(u64, inline.images.entries[0].image.pixels.buffer)
     let htmlPixels   = cast(u64, html.images.entries[0].image.pixels.buffer)
 
-    view.pendingSeek = true
+    view.pendingSeek       = true
     view.pendingSeekOffset = 0
     view.pendingSeekPreservesPosition = true
     if not view.loadTimer do

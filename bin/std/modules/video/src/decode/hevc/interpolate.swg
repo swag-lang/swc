@@ -679,14 +679,14 @@ impl Decoder
         let shift2    = 6'u32
         let lumaTapsX = lumaTaps(xFrac)
         let lumaTapsY = lumaTaps(yFrac)
-        let x0 = lumaTapsX.pair0
-        let x1 = lumaTapsX.pair1
-        let x2 = lumaTapsX.pair2
-        let x3 = lumaTapsX.pair3
-        let y0 = lumaTapsY.pair0
-        let y1 = lumaTapsY.pair1
-        let y2 = lumaTapsY.pair2
-        let y3 = lumaTapsY.pair3
+        let x0        = lumaTapsX.pair0
+        let x1        = lumaTapsX.pair1
+        let x2        = lumaTapsX.pair2
+        let x3        = lumaTapsX.pair3
+        let y0        = lumaTapsY.pair0
+        let y1        = lumaTapsY.pair1
+        let y2        = lumaTapsY.pair2
+        let y3        = lumaTapsY.pair3
         for row in height + 7
         {
             let source = cast(u64, row) * referenceStride
@@ -818,6 +818,7 @@ impl Decoder
                     for row in height
                     {
                         let source = cast(u64, (row + 1)) * referenceStride + 1
+
                         // The chroma window may not contain eight samples; read only four.
                         let low    = cast(const [*] u64, &reference[source])[0]
                         let pixels = cast #bit(Simd.U16x8, Simd.splat(low)) << shift3

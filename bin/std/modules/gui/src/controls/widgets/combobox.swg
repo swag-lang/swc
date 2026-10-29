@@ -13,10 +13,10 @@ enum ComboBoxMode
 #[Swag.EnumFlags]
 enum ComboBoxFlags
 {
-    None = 0     // Always paints the field background and border.
-    Flat         // Paints the field only while hovered or open.
+    None = 0      // Always paints the field background and border.
+    Flat          // Paints the field only while hovered or open.
     TransparentBackground     // Keeps the parent background visible behind the field border.
-    Segmented    // Shows every entry side by side as segments of a raised frame, chosen with a click; no list opens.
+    Segmented     // Shows every entry side by side as segments of a raised frame, chosen with a click; no list opens.
 }
 
 // Stores one selectable item or separator in a combo box.
@@ -59,10 +59,10 @@ struct ComboBox
     }
 
     // Hover state, the open popup, and the color animations of the painted parts.
-    isHot:              bool      // Whether the mouse is over the combo.
-    popup:              *PopupListCtrl?     // Drop-down list while it is open.
-    pointerFocusReturn: *Wnd?     // Focus owner restored after pointer use.
-    maxIconSize:        s32       // Widest item icon, sizing the icon column.
+    isHot:              bool                   // Whether the mouse is over the combo.
+    popup:              *PopupListCtrl?        // Drop-down list while it is open.
+    pointerFocusReturn: *Wnd?                  // Focus owner restored after pointer use.
+    maxIconSize:        s32                    // Widest item icon, sizing the icon column.
     hotSegment:         u32 = Swag.U32.Max     // Segment under the pointer, when segmented.
 
     aniBk:     BlendColor     // Color animation of the background.

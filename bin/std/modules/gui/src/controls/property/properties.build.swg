@@ -420,7 +420,11 @@ internal impl Properties
         // A top-level category named like the one opened last goes on with it: a structure and
         // the one it uses can both file settings under STROKE, read as one group.
         let topLevel = not parentForCateg or not parentForCateg.flags.has(.Category)
-        if topLevel and .lastCategory and .lastCategory.typeValue.name == name and .items.count and .lastCategoryIsOpen() do
+        if topLevel and
+           .lastCategory and
+           .lastCategory.typeValue.name == name and
+           .items.count and
+           .lastCategoryIsOpen() do
             return .lastCategory
 
         let v    = Swag.TypeValue{name: name}

@@ -383,8 +383,12 @@ impl IAllocator for LibraryRejectAllocator
     // The dates the lens offers: each year, then its months, then their days, newest first,
     // each with the captures it holds.
     Swag.assert(libWnd.dateFilters.count == 7)
-    Swag.assert(libWnd.dateFilters[0].year == 2024 and libWnd.dateFilters[0].month == 0 and libWnd.dateFilters[0].count == 2)
-    Swag.assert(libWnd.dateFilters[1].month == 5 and libWnd.dateFilters[1].day == 0 and libWnd.dateFilters[1].count == 2)
+    Swag.assert(libWnd.dateFilters[0].year == 2024 and
+                libWnd.dateFilters[0].month == 0 and
+                libWnd.dateFilters[0].count == 2)
+    Swag.assert(libWnd.dateFilters[1].month == 5 and
+                libWnd.dateFilters[1].day == 0 and
+                libWnd.dateFilters[1].count == 2)
     Swag.assert(libWnd.dateFilters[2].day == 11 and libWnd.dateFilters[2].count == 1)
     Swag.assert(libWnd.dateFilters[3].day == 10)
     Swag.assert(libWnd.dateFilters[4].year == 2023 and libWnd.dateFilters[4].count == 1)

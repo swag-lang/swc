@@ -76,7 +76,6 @@ impl IWnd for Dialog
             let line = Math.Rectangle{x, font.opticalLineTop(centerY), .position.width - pad - x, Math.ceil(font.height)}
             painter.drawRichString(line, &.title, sf)
         }
-
     }
 
     mtd impl onNotifyEvent(evt: *NotifyEvent)

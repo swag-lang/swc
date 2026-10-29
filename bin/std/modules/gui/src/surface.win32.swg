@@ -1094,7 +1094,12 @@ impl Surface
             var options: AnimationOptions
             options.duration = Time.Duration.fromSeconds(.wnd.themeMetrics().motion_PageSeconds)
             options.easing   = .EaseOut
-            discard .app.animator.animateF32(.wnd, AnimationChannel.from("Gui.Surface.Opacity"), 0, 1, func(wnd, value) { wnd.surface?.setOpacity(value) }, options,
+            discard .app.animator.animateF32(.wnd,
+                                             AnimationChannel.from("Gui.Surface.Opacity"),
+                                             0,
+                                             1,
+                                             func(wnd, value) { wnd.surface?.setOpacity(value) },
+                                             options,
                                              func|srf = me|(_) { srf.setOpacity(1) })
         }
 

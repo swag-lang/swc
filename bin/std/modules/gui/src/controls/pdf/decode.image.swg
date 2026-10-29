@@ -43,7 +43,7 @@ private const CmykGather  = cast(Math.Simd.U8x16, [0'u8, 1, 2, 4, 5, 6, 8, 9, 10
 private const CmykSpreadK = cast(Math.Simd.U8x16, [3'u8, 3, 3, 7, 7, 7, 11, 11, 11, 15, 15, 15, 0x80, 0x80, 0x80, 0x80])
 private const RgbaColors  = cast(Math.Simd.U8x16, [0'u8, 1, 2, 0x80, 3, 4, 5, 0x80, 6, 7, 8, 0x80, 9, 10, 11, 0x80])
 private const RgbaAlpha   = cast(Math.Simd.U8x16, [0x80'u8, 0x80, 0x80, 0, 0x80, 0x80, 0x80, 1, 0x80, 0x80, 0x80, 2, 0x80, 0x80, 0x80, 3])
-private const MaskBits     = cast(Math.Simd.U8x16, [128'u8, 64, 32, 16, 8, 4, 2, 1, 0, 0, 0, 0, 0, 0, 0, 0])
+private const MaskBits    = cast(Math.Simd.U8x16, [128'u8, 64, 32, 16, 8, 4, 2, 1, 0, 0, 0, 0, 0, 0, 0, 0])
 
 private func expandGray8(destination: [*] u8, source: const [*] u8, count: u64)
 {
@@ -118,9 +118,9 @@ private func invertMask8(destination: [*] u8, source: const [*] u8, count: u64)
     while left
     {
         dst[] = 255 - src[]
-        src  += 1
-        dst  += 1
-        left -= 1
+        src   += 1
+        dst   += 1
+        left  -= 1
     }
 }
 
@@ -170,15 +170,15 @@ private func colorKey8(destination: [*] u8, source: const [*] u8, count: u64, lo
         return
     }
 
-    let low  = cast(u8, Math.max(lower, 0))
-    let high = cast(u8, Math.min(upper, 255))
+    let low        = cast(u8, Math.max(lower, 0))
+    let high       = cast(u8, Math.min(upper, 255))
     let lowVector  = Math.Simd.splat(low)
     let highVector = Math.Simd.splat(high)
     let zero       = Math.Simd.splat(0'u8)
     let full       = Math.Simd.splat(255'u8)
-    var src  = source
-    var dst  = destination
-    var left = count
+    var src        = source
+    var dst        = destination
+    var left       = count
     while left >= 16
     {
         let values  = Math.Simd.load(src)
@@ -192,9 +192,9 @@ private func colorKey8(destination: [*] u8, source: const [*] u8, count: u64, lo
     while left
     {
         dst[] = src[] >= low and src[] <= high ? 0 : 255
-        src  += 1
-        dst  += 1
-        left -= 1
+        src   += 1
+        dst   += 1
+        left  -= 1
     }
 }
 
@@ -204,6 +204,7 @@ private func composeRgba8(destination: [*] u8, colors, alpha: const [*] u8, coun
     var rgb  = colors
     var mask = alpha
     var left = count
+
     // A sixteen-byte RGB load needs at least six pixels remaining in this row.
     while left >= 6
     {
@@ -222,10 +223,10 @@ private func composeRgba8(destination: [*] u8, colors, alpha: const [*] u8, coun
         dst[1] = rgb[1]
         dst[2] = rgb[2]
         dst[3] = mask[0]
-        rgb   += 3
-        mask  += 1
-        dst   += 4
-        left  -= 1
+        rgb    += 3
+        mask   += 1
+        dst    += 4
+        left   -= 1
     }
 }
 
@@ -812,16 +813,19 @@ private func readMaskPlane(parser: *PdfParser, nodeId, _: u32, stencil: bool)->S
         expandMask1'(true)(result.alpha.storage(), bytes.storage(), cast(u64, width), cast(u64, height), rowBytes)
         return result
     }
+
     if depth == 1 and width >= 8 and lowest == 0.0 and highest == 1.0
     {
         expandMask1'(false)(result.alpha.storage(), bytes.storage(), cast(u64, width), cast(u64, height), rowBytes)
         return result
     }
+
     if depth == 8 and lowest == 0.0 and highest == 1.0
     {
         Memory.copy(result.alpha.storage(), bytes.storage(), result.alpha.count)
         return result
     }
+
     if depth == 8 and lowest == 1.0 and highest == 0.0
     {
         invertMask8(result.alpha.storage(), bytes.storage(), result.alpha.count)
@@ -1049,6 +1053,7 @@ internal func decodeImage(parser: *PdfParser, nodeId, resourcesId: u32, fillColo
                 let rowRest      = sourceHeight % height
                 var sourceY      = 0'u64
                 var rowRemainder = 0'u64
+
                 // Each index and remainder is the quotient and remainder of the destination
                 // coordinate scaled by the corresponding source and destination dimensions.
                 for y in height
@@ -1060,8 +1065,8 @@ internal func decodeImage(parser: *PdfParser, nodeId, resourcesId: u32, fillColo
                     for x in width
                     {
                         destination[x] = source[sourceX]
-                        sourceX   += sourceStep
-                        remainder += sourceRest
+                        sourceX        += sourceStep
+                        remainder      += sourceRest
                         if remainder >= width
                         {
                             remainder -= width

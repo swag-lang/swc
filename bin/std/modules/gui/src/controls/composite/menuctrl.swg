@@ -66,7 +66,7 @@ public struct MenuCtrl
     {
         using frameWnd: FrameWnd     // Embedded frame behavior and presentation.
 
-        sigCommandSelected: SigArray'func||(*Wnd, WndId)      // Emitted after a command is selected.
+        sigCommandSelected: SigArray'func||(*Wnd, WndId)           // Emitted after a command is selected.
         onPrepareItem:      (func(*MenuCtrl, *PopupMenuItem))?     // Updates an item before menu layout is computed.
 
         readonly

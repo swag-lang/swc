@@ -17,12 +17,12 @@ using Swag, Core
     g_DesktopTexture = f.gui.app.renderer.addImage(desktop)
     defer f.gui.app.renderer.removeTexture(&g_DesktopTexture)
     g_DesktopX, g_DesktopY = 0
-    g_ScreenWidth  = 1024
-    g_ScreenHeight = 640
-    g_StartGrabX   = 300
-    g_StartGrabY   = 220
-    g_EndGrabX     = 880
-    g_EndGrabY     = 520
+    g_ScreenWidth          = 1024
+    g_ScreenHeight         = 640
+    g_StartGrabX           = 300
+    g_StartGrabY           = 220
+    g_EndGrabX             = 880
+    g_EndGrabY             = 520
 
     f.gui.theme.setDark()
     f.gui.notify(.ThemeChanged)

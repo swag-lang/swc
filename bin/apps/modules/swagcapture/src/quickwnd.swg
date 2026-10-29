@@ -18,16 +18,16 @@ const QuickChipHeight = QuickCellHeight + 2 * QuickChipInset
 
 // The size the sample of a preset is painted at, as a frame its shape is laid out in, before the
 // room its stroke and its ends take is kept around it.
-const QuickSampleWidth  = 24.0
-const QuickSampleHeight = 15.0
-const QuickStrokeZoom   = 0.28'f32     // The scale a line or an arrow is painted at in its cell.
-const QuickTextHeight   = 14.0'f32     // The size the "Aa" of a text is painted at in its cell.
-const QuickMaskWidth    = 21.0         // Width of the pattern of a mask preset.
-const QuickMaskHeight   = 14.0         // Height of the pattern of a mask preset.
-const QuickLightDepth   = 0.16'f32     // How much deeper the cell of a light preset is, on a light ground.
-const QuickPopoverPad   = 12.0         // Air inside the popover holding every preset of a tool.
-const QuickPopoverColumns = 5          // Presets in a row of that popover.
-const QuickCaptionHeight  = 34.0       // Height of the two lines naming the preset in force, under the row.
+const QuickSampleWidth    = 24.0
+const QuickSampleHeight   = 15.0
+const QuickStrokeZoom     = 0.28'f32     // The scale a line or an arrow is painted at in its cell.
+const QuickTextHeight     = 14.0'f32     // The size the "Aa" of a text is painted at in its cell.
+const QuickMaskWidth      = 21.0         // Width of the pattern of a mask preset.
+const QuickMaskHeight     = 14.0         // Height of the pattern of a mask preset.
+const QuickLightDepth     = 0.16'f32     // How much deeper the cell of a light preset is, on a light ground.
+const QuickPopoverPad     = 12.0         // Air inside the popover holding every preset of a tool.
+const QuickPopoverColumns = 5            // Presets in a row of that popover.
+const QuickCaptionHeight  = 34.0         // Height of the two lines naming the preset in force, under the row.
 
 // The glyph of the trailing chip, which keeps the selected shape as a new preset.
 const AddGlyphSize = 14.0
@@ -192,7 +192,6 @@ impl QuickStyle
         .uses[a] = .uses[b]
         .uses[b] = use
     }
-
 }
 
 // The popover holding every preset of a tool, which the keys go through: the arrows choose a
@@ -219,17 +218,22 @@ impl IWnd for PresetPopover
         case .Left:
             if .chosen > 0 do
                 .choose(.chosen - 1)
+
         case .Right:
             if .chosen + 1 < count do
                 .choose(.chosen + 1)
+
         case .Up:
             if .chosen >= cols do
                 .choose(.chosen - cols)
+
         case .Down:
             if .chosen + cols < count do
                 .choose(.chosen + cols)
+
         case .Return, .Space:
             .press()
+
         case .Escape:
             let quick = .quick
             let more  = quick.moreButton
@@ -240,6 +244,7 @@ impl IWnd for PresetPopover
                 for cell, i in quick.rowCells() where cell == more do
                     quick.chooseRowCell(i)
             }
+
         default:
             return
         }
@@ -351,7 +356,7 @@ impl QuickStylePaintForm
         if paintItf is FormCallout or paintItf.subKind == .Highlight do
             result.quick = false
 
-        let m    = sampleInset(paintItf, cxt) * result.zoom
+        let m = sampleInset(paintItf, cxt) * result.zoom
         w = Math.min(w, QuickCellWidth - 2 * (QuickCellMargin + m))
         h = Math.min(h, QuickCellHeight - 2 * (QuickCellMargin + m))
         let rect = Math.Rectangle{Math.round((QuickCellWidth - w) * 0.5), Math.round((QuickCellHeight - h) * 0.5), w, h}
@@ -359,6 +364,7 @@ impl QuickStylePaintForm
         switch paintItf
         {
         case FormPolygon as poly:
+
             // A regular pentagon, point up.
             poly.points.clear()
             for i in 5
@@ -366,16 +372,20 @@ impl QuickStylePaintForm
                 let a = Math.ConstF32.TwoPi * cast(f32, i) / 5 - Math.ConstF32.Pi * 0.5
                 poly.points.add({24 + 24 * Math.cos(a), 26 + 24 * Math.sin(a)})
             }
+
         case FormDraw as draw:
+
             // One straight stroke rising across the cell.
             draw.points.clear()
             draw.points.add({0, 36})
             draw.points.add({48, 12})
+
         case FormText as txt:
             txt.text      = "Aa"
             txt.alignHorz = .Center
             txt.alignVert = .Center
             txt.rotate    = 0
+
         case FormStep as step:
             step.index = 1
         }
@@ -407,19 +417,19 @@ impl QuickStylePaintForm
         // is a short body with "Aa" in it and its tail hanging below on the left.
         if paintItf is FormCallout as cl
         {
-            cl.text      = "Aa"
-            cl.fontSize  = 8
-            cl.boldSize  = 0
-            cl.roundSize = Math.min(cl.roundSize, 4)
+            cl.text       = "Aa"
+            cl.fontSize   = 8
+            cl.boldSize   = 0
+            cl.roundSize  = Math.min(cl.roundSize, 4)
             cl.borderSize = Math.min(cl.borderSize, 1)
-            cl.alignHorz = .Center
-            cl.alignVert = .Center
-            cl.x         = cast(s32, Math.round((QuickCellWidth - 24) * 0.5))
-            cl.y         = cast(s32, Math.round((QuickCellHeight - 16) * 0.5))
-            cl.w         = 24
-            cl.h         = 12
-            cl.tailX     = cl.x + 5
-            cl.tailY     = cl.y + cl.h + 4
+            cl.alignHorz  = .Center
+            cl.alignVert  = .Center
+            cl.x          = cast(s32, Math.round((QuickCellWidth - 24) * 0.5))
+            cl.y          = cast(s32, Math.round((QuickCellHeight - 16) * 0.5))
+            cl.w          = 24
+            cl.h          = 12
+            cl.tailX      = cl.x + 5
+            cl.tailY      = cl.y + cl.h + 4
         }
 
         return result
@@ -665,6 +675,7 @@ impl QuickWnd
                 style.setName(index, dialog.text())
 
         case "replace":
+
             // The preset takes the style of the tool, or of the selection, keeping its name.
             if index < style.forms.count
             {
@@ -721,7 +732,7 @@ impl QuickWnd
     // the width of the column, and the chip that keeps the current style as a preset.
     func create(parent: *Wnd, main: *MainWnd)->*QuickWnd
     {
-        let metrics = parent.themeMetrics()
+        let metrics    = parent.themeMetrics()
         with let quick = Wnd.create'QuickWnd(parent, {0, 0, 0, QuickChipHeight + metrics.inspector_RowGap})
         {
             .backgroundStyle = .Transparent
@@ -736,7 +747,7 @@ impl QuickWnd
             // The row is one stop of Tab, and the keys go along it from there.
             .layout.focusPolicy = .Tab
             .layout.hookOnEvent = func|quick|(_, evt)->bool => quick.onRowEvent(evt)
-            .keyCell            = Swag.U64.Max
+            .keyCell = Swag.U64.Max
 
             let caption = Label.create(quick, "", {0, QuickChipHeight, 0, QuickCaptionHeight}, flags: .SecondaryText | .WordWrap)
             caption.style.setFont(quick.theme().createDefaultFontFamily(metrics.defaultFontSize - 1))
@@ -1268,7 +1279,9 @@ impl QuickWnd
         // A light preset on a light ground stands on a deeper cell ringed with a hairline, so its
         // words or its stroke still read.
         let itf   = unwrap btnp.formItf
-        let light = luminance(colors.raised) > 0.6 and luminance(presetInk(itf)) > 0.75 and not (itf is FormImage)
+        let light = luminance(colors.raised) > 0.6 and
+                    luminance(presetInk(itf)) > 0.75 and
+                    not (itf is FormImage)
         painter.fillRoundRect(cell, QuickCellCorner, QuickCellCorner, light ? Color.lerpRgb(colors.raised, colors.text, QuickLightDepth) : colors.raised)
         if light do
             painter.drawRoundRect(cell, QuickCellCorner, QuickCellCorner, colors.strongLine, btnp.themeMetrics().separator_HairlineSize)
@@ -1334,6 +1347,7 @@ impl QuickWnd
         switch #complete kind
         {
         case .Pixelate, .Blur:
+
             // Pixels in two tones; a blur keeps them closer and softer.
             let side = QuickMaskHeight / 4
             let cols = cast(s32, QuickMaskWidth / side)
@@ -1352,7 +1366,7 @@ impl QuickWnd
             painter.fillRoundRect(frame, 2, 2, colors.text)
 
         case .Zoom:
-            let r = QuickMaskHeight * 0.36
+            let r  = QuickMaskHeight * 0.36
             let cx = frame.horzCenter() - 2
             let cy = frame.vertCenter() - 2
             painter.drawCircle(cx, cy, r, dark, 1.8)
@@ -1462,7 +1476,10 @@ impl QuickWnd
             .iconPainter = func(button, bc, _, _) { paintAddPreset(bc.painter, assume cast(*QuickButton, button), more: true) }
         }
 
-        btn.sigPopupRequested += func|quick = me|(button) { quick.openAllPresets(assume cast(*QuickButton, button)) }
+        btn.sigPopupRequested += func|quick = me|(button)
+        {
+            quick.openAllPresets(assume cast(*QuickButton, button))
+        }
 
         // Down on the chip opens the popover, and the keys go on in it.
         btn.hookOnEvent = func|quick = me|(button, evt)->bool
@@ -1476,7 +1493,12 @@ impl QuickWnd
 
             return false
         }
-        btn.sigPopupClosed += func|quick = me|(_) { quick.allPresets = null }
+
+        btn.sigPopupClosed += func|quick = me|(_)
+        {
+            quick.allPresets = null
+        }
+
         .moreButton = btn
     }
 
@@ -1540,26 +1562,32 @@ impl QuickWnd
         case .Left:
             if .keyCell > 0 do
                 .chooseRowCell(.keyCell - 1)
+
         case .Right:
             if .keyCell + 1 < cells.count do
                 .chooseRowCell(.keyCell + 1)
+
         case .Down:
             if not cell.isMore or .allPresets != null do
                 return false
             .openAllPresets(cell)
+
         case .Return, .Space:
             if cell.isMore
             {
                 if .allPresets == null do
                     .openAllPresets(cell)
             }
-            elif cell.isModel do
+            elif cell.isModel
+            {
                 .addCurrentStyle()
+            }
             else
             {
                 .applyPreset(unwrap cell.formItf)
                 .chooseRowCell(.rowStart())
             }
+
         default:
             return false
         }
@@ -1576,14 +1604,14 @@ impl QuickWnd
         if not style do
             return
 
-        let model    = .main.editModeToModel(.presetMode().mode)
-        let canAdd   = .offersModel(model)
-        let count    = style.forms.count + (canAdd ? 1 : 0)
-        let perRow   = cast(u64, QuickPopoverColumns)
-        let rows     = (count + perRow - 1) / perRow
-        let width    = cast(f32, Math.min(count, perRow)) * QuickChipWidth + 2 * QuickPopoverPad
-        let height = cast(f32, rows) * QuickChipHeight + 2 * QuickPopoverPad
-        let frame  = button.createAnchorPopup(width, height)
+        let model     = .main.editModeToModel(.presetMode().mode)
+        let canAdd    = .offersModel(model)
+        let count     = style.forms.count + (canAdd ? 1 : 0)
+        let perRow    = cast(u64, QuickPopoverColumns)
+        let rows      = (count + perRow - 1) / perRow
+        let width     = cast(f32, Math.min(count, perRow)) * QuickChipWidth + 2 * QuickPopoverPad
+        let height    = cast(f32, rows) * QuickChipHeight + 2 * QuickPopoverPad
+        let frame     = button.createAnchorPopup(width, height)
         with let body = Wnd.create'PresetPopover(frame, null, {})
         {
             .dockStyle       = .Center
@@ -1775,7 +1803,7 @@ impl QuickWnd
         }
 
         // The name of the preset in force stands under the row, across the column.
-        var height = QuickChipHeight
+        var height  = QuickChipHeight
         let caption = .caption
         if caption and caption.isVisible()
         {
@@ -1792,5 +1820,4 @@ impl QuickWnd
             .parent?.applyLayout()
         }
     }
-
 }

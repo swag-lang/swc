@@ -67,6 +67,7 @@ private func buildCoeffTokenPrefixes()->[1024] u16
             }
         }
     }
+
     return result
 }
 

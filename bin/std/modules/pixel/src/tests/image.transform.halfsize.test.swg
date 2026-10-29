@@ -30,13 +30,13 @@ using Swag, Core
         {
             for height in [2, 3, 6, 7]
             {
-                var src = Image.create(width, height, format)
+                var src    = Image.create(width, height, format)
                 let pixels = src.pixels.storage()
                 for i in src.byteCount do
                     pixels[i] = cast(u8, ((i * 37 + width * 11 + height * 13) & 255))
                 let result = src.halved()
                 Swag.assert(result.width == width / 2 and result.height == height / 2)
-                let out = result.pixels.storage()
+                let out   = result.pixels.storage()
                 let bytes = cast(u64, src.bytesPerPixel)
                 for y in cast(u64, result.height)
                 {
@@ -45,7 +45,7 @@ using Swag, Core
                         for channel in bytes
                         {
                             let index = 2 * y * src.rowStride + 2 * x * bytes + channel
-                            let sum = cast(u32, pixels[index]) + pixels[index + bytes] + pixels[index + src.rowStride] + pixels[index + src.rowStride + bytes]
+                            let sum   = cast(u32, pixels[index]) + pixels[index + bytes] + pixels[index + src.rowStride] + pixels[index + src.rowStride + bytes]
                             Swag.assert(out[y * result.rowStride + x * bytes + channel] == cast(u8, (sum >> 2)))
                         }
                     }

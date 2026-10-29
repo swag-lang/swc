@@ -363,11 +363,13 @@ impl Panel
         entries.add(lens.cmd_ZoomMenu, func|view = me|() { view.showZoomMenu() })
         if .playButton.isLocallyVisible()
         {
-            entries.add(.imageView.movie.isPaused ? lens.cmd_Play : lens.cmd_Pause, func|view = me|()
-            {
-                view.imageView.setPaused(not view.imageView.movie.isPaused)
-                view.refreshFrame()
-            }, shortcut: Input.formatKeyShortcut(.None, .Space))
+            entries.add(.imageView.movie.isPaused ? lens.cmd_Play : lens.cmd_Pause,
+                        func|view = me|()
+                        {
+                            view.imageView.setPaused(not view.imageView.movie.isPaused)
+                            view.refreshFrame()
+                        },
+                        shortcut: Input.formatKeyShortcut(.None, .Space))
         }
 
         entries.add(lens.cmd_PlayMode, func|view = me|() { view.playModeButton.showOptions() })

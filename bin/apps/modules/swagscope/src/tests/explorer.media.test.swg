@@ -9,7 +9,7 @@ using Core, Gui, Pixel
     var host: Testing.HeadlessHost
     host.setup(880, 420)
     registerAppStrings(&host.app.resources)
-    let window   = ViewerWindow.create(&host.surfaceWnd, createViewerPluginRegistry())
+    let window = ViewerWindow.create(&host.surfaceWnd, createViewerPluginRegistry())
     window.onlineMovies = false
     window.onlineMusic  = false
     let explorer = Explorer.create(window.documentPanel, window)
@@ -34,7 +34,7 @@ using Core, Gui, Pixel
     var host: Testing.HeadlessHost
     host.setup(880, 420)
     registerAppStrings(&host.app.resources)
-    let window   = ViewerWindow.create(&host.surfaceWnd, createViewerPluginRegistry())
+    let window = ViewerWindow.create(&host.surfaceWnd, createViewerPluginRegistry())
     window.onlineMovies = false
     window.onlineMusic  = false
     let explorer = Explorer.create(window.documentPanel, window)
@@ -56,7 +56,7 @@ using Core, Gui, Pixel
     shipFrame(&host)
     defer discard catch host.app.setLanguage(ReferenceLanguage)
     registerAppStrings(&host.app.resources)
-    let window   = ViewerWindow.create(&host.surfaceWnd, createViewerPluginRegistry())
+    let window = ViewerWindow.create(&host.surfaceWnd, createViewerPluginRegistry())
     window.onlineMovies = false
     window.onlineMusic  = false
     let explorer = Explorer.create(window.documentPanel, window)
@@ -111,12 +111,12 @@ using Core, Gui, Pixel
         host.setup(900, 700, scale)
         shipFrame(&host)
         registerAppStrings(&host.app.resources)
-        let window   = ViewerWindow.create(&host.surfaceWnd, createViewerPluginRegistry())
+        let window = ViewerWindow.create(&host.surfaceWnd, createViewerPluginRegistry())
         window.onlineMovies = false
-    window.onlineMusic  = false
-    let explorer = Explorer.create(window.documentPanel, window)
-    window.explorer       = explorer
-    window.explorerActive = true
+        window.onlineMusic  = false
+        let explorer = Explorer.create(window.documentPanel, window)
+        window.explorer       = explorer
+        window.explorerActive = true
         let musicDialog = explorer.createMusicChoiceDialog("48140466-cff6-3222-bd55-63c27e43190d")
         musicDialog.applyLayout()
         Swag.assert(musicDialog.text() == "48140466-cff6-3222-bd55-63c27e43190d")
@@ -147,12 +147,12 @@ using Core, Gui, Pixel
         }
 
         host.notify(.ThemeChanged)
-        let window   = ViewerWindow.create(&host.surfaceWnd, createViewerPluginRegistry())
+        let window = ViewerWindow.create(&host.surfaceWnd, createViewerPluginRegistry())
         window.onlineMovies = false
-    window.onlineMusic  = false
-    let explorer = Explorer.create(window.documentPanel, window)
-    window.explorer       = explorer
-    window.explorerActive = true
+        window.onlineMusic  = false
+        let explorer = Explorer.create(window.documentPanel, window)
+        window.explorer       = explorer
+        window.explorerActive = true
         explorer.entries.add({name: "Long movie.mkv", attempted: true,
                               movie: {title: "A long film title that fills more than a single line when the folder view is narrow",
                                       imdbRating: "8.2/10",
@@ -175,7 +175,7 @@ using Core, Gui, Pixel
 {
     var host: Testing.HeadlessHost
     host.setup(880, 420)
-    let window = ViewerWindow.create(&host.surfaceWnd, createViewerPluginRegistry())
+    let window   = ViewerWindow.create(&host.surfaceWnd, createViewerPluginRegistry())
     let explorer = Explorer.create(window.documentPanel, window)
     window.explorer       = explorer
     window.explorerActive = true

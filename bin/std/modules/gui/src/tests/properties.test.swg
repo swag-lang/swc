@@ -2511,7 +2511,9 @@ func assertPropertiesCtrlGolden(light: bool)
         host.pump()
 
         let opacity = unwrap findFieldItem(ctrl.properties, #nameof(PropGoldenData.opacity))
-        Swag.assert(opacity.isModified and opacity.sliderBox != null and opacity.sliderBox.edit.form == .Transparent)
+        Swag.assert(opacity.isModified and
+                    opacity.sliderBox != null and
+                    opacity.sliderBox.edit.form == .Transparent)
 
         let caption = unwrap findFieldItem(ctrl.properties, #nameof(PropGoldenData.caption))
         Swag.assert(caption.validation == .Warning and caption.validationLabel != null)

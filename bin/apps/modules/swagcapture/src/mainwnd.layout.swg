@@ -194,7 +194,7 @@ impl MainWnd
         switch capture.getSelectedFormType()
         {
         case FormText, FormCallout: return .Text
-        case FormStep:              return .Step
+        case FormStep: return .Step
         }
 
         return .Single
@@ -310,6 +310,7 @@ impl MainWnd
 
         .miniBar.addSeparator()
         .miniBar.addButton(theme.icon(.Remove, size), ActionSelection.DeleteSelection, appStrings().act_Delete)
+
         // `•••` opens the inspector; it is not a state of the selection, so it posts the command
         // rather than showing it checked.
         .miniBar.addButton(theme.icon(.More, size), toolTip: appStrings().act_ShowInspector).sigPressed += func|main = me|(_)
@@ -346,7 +347,7 @@ impl MainWnd
         let shown       = style.face.count ? style.face : defaultFace
         let font        = unwrap .font().regular
         let width       = Math.ceil(Painter.measureString(shown, font).width + 2 * metrics.comboBox_Padding + metrics.miniBar_ButtonSize)
-        with let face = ComboBox.create(.miniBar, {0, 0, width, metrics.miniBar_ButtonSize}, flags: .Flat)
+        with let face   = ComboBox.create(.miniBar, {0, 0, width, metrics.miniBar_ButtonSize}, flags: .Flat)
         {
             .toolTip = appStrings().prop_Font
             .addItem(defaultFace)
@@ -368,8 +369,8 @@ impl MainWnd
 
         .miniBar.addItem(face)
 
-        let mono  = .theme().createDefaultFontFs(metrics.defaultFontSize)
-        let digit = Painter.measureString("000", mono).width
+        let mono      = .theme().createDefaultFontFs(metrics.defaultFontSize)
+        let digit     = Painter.measureString("000", mono).width
         with let size = EditBox.create(.miniBar, Format.toString("%", cast(s32, Math.round(style.size))), {0, 0, Math.ceil(digit + 2 * metrics.comboBox_Padding), metrics.miniBar_ButtonSize})
         {
             .toolTip = appStrings().prop_Size
@@ -418,7 +419,7 @@ impl MainWnd
         if not style.found do
             return
 
-        let size = .themeMetrics().defaultFontSize
+        let size      = .themeMetrics().defaultFontSize
         with let bold = .miniBar.addButton({}, toolTip: appStrings().prop_StyleBold, flags: .Toggle)
         {
             .updateFlags(add: .CenterContent, remove: .IconOnly)
@@ -458,8 +459,8 @@ impl MainWnd
                 .miniBar.addSeparator()
             for align, i in Aligns
             {
-                let glyph = vertical ? Down[i] : Across[i]
-                let tip   = vertical ? appStrings().ui_AnchorVertical : appStrings().ui_Anchor
+                let glyph       = vertical ? Down[i] : Across[i]
+                let tip         = vertical ? appStrings().ui_AnchorVertical : appStrings().ui_Anchor
                 with let button = .miniBar.addButton(.icon(glyph, size), toolTip: tip, flags: .Radio)
                 {
                     .userData = alignUserData(align, vertical)
@@ -583,7 +584,7 @@ impl MainWnd
         if result.y - reach < top and result.y > top
         {
             result.height += result.y - top
-            result.y = top
+            result.y      = top
         }
 
         if result.bottom() + reach > bottom and result.bottom() < bottom do
@@ -656,18 +657,42 @@ impl MainWnd
         let texts = appStrings()
         switch #complete .editMode
         {
-        case .Selection: return texts.hint_ToolSelect
-        case .Shape:     return texts.hint_ToolShape
-        case .Arrow:     return texts.hint_ToolArrow
-        case .Line:      return texts.hint_ToolLine
-        case .Polygon:   return texts.hint_ToolPolygon
-        case .Text:      return texts.hint_ToolText
-        case .Callout:   return texts.hint_ToolCallout
-        case .Draw:      return texts.hint_ToolDraw
-        case .Highlight: return texts.hint_ToolHighlight
-        case .Image:     return texts.hint_ToolImage
-        case .PixSel:    return texts.hint_ToolPixSel
-        case .Favorites: return texts.hint_ToolFavorites
+        case .Selection:
+            return texts.hint_ToolSelect
+
+        case .Shape:
+            return texts.hint_ToolShape
+
+        case .Arrow:
+            return texts.hint_ToolArrow
+
+        case .Line:
+            return texts.hint_ToolLine
+
+        case .Polygon:
+            return texts.hint_ToolPolygon
+
+        case .Text:
+            return texts.hint_ToolText
+
+        case .Callout:
+            return texts.hint_ToolCallout
+
+        case .Draw:
+            return texts.hint_ToolDraw
+
+        case .Highlight:
+            return texts.hint_ToolHighlight
+
+        case .Image:
+            return texts.hint_ToolImage
+
+        case .PixSel:
+            return texts.hint_ToolPixSel
+
+        case .Favorites:
+            return texts.hint_ToolFavorites
+
         case .Step:
             let capture = .getCapture()
             return Format.toString(texts.hint_ToolStep, capture ? capture.nextStepIndex : 1)
@@ -743,9 +768,11 @@ impl MainWnd
         }
 
         let selection = results.addSection(appStrings().lens_Selection)
-        .lens.addCommandRows(selection, [
-            ActionEdit.EditText, ActionCopyPaste.Duplicate, ActionCopyPaste.Copy, ActionSelection.DeleteSelection,
-            ActionAlign.SendToFront, ActionAlign.SendToBack, ActionGroup.Group, ActionGroup.Ungroup, ActionEdit.ResetRotation], enabledOnly: true)
+        .lens.addCommandRows(selection,
+                             [
+                                 ActionEdit.EditText, ActionCopyPaste.Duplicate, ActionCopyPaste.Copy, ActionSelection.DeleteSelection,
+                                 ActionAlign.SendToFront, ActionAlign.SendToBack, ActionGroup.Group, ActionGroup.Ungroup, ActionEdit.ResetRotation],
+                             enabledOnly: true)
 
         if selection.entries.isEmpty()
         {

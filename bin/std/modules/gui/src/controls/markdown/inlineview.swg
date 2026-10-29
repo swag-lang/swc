@@ -677,16 +677,16 @@ impl InlineView
     {
         switch .kind
         {
-        case .Heading1:     return .owner.documentStyle.heading1FontSize
-        case .Heading2:     return .owner.documentStyle.heading2FontSize
-        case .Heading3:     return .owner.documentStyle.heading3FontSize
-        case .Heading4:     return .owner.documentStyle.heading4FontSize
-        case .Heading5:     return .owner.documentStyle.heading5FontSize
-        case .Heading6:     return .owner.documentStyle.heading6FontSize
-        case .Code:         return .owner.documentStyle.codeFontSize
-        case .Metadata:     return Math.max(.owner.documentStyle.codeFontSize - 1, 8)
-        case .Footnote:     return Math.max(.owner.documentStyle.bodyFontSize - 2, 8)
-        default:            return .owner.documentStyle.bodyFontSize
+        case .Heading1: return .owner.documentStyle.heading1FontSize
+        case .Heading2: return .owner.documentStyle.heading2FontSize
+        case .Heading3: return .owner.documentStyle.heading3FontSize
+        case .Heading4: return .owner.documentStyle.heading4FontSize
+        case .Heading5: return .owner.documentStyle.heading5FontSize
+        case .Heading6: return .owner.documentStyle.heading6FontSize
+        case .Code:     return .owner.documentStyle.codeFontSize
+        case .Metadata: return Math.max(.owner.documentStyle.codeFontSize - 1, 8)
+        case .Footnote: return Math.max(.owner.documentStyle.bodyFontSize - 2, 8)
+        default:        return .owner.documentStyle.bodyFontSize
         }
     }
 

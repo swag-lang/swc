@@ -1033,22 +1033,24 @@ func buildPng16(width, height: s32, colorType: u8, interlace: bool, samples: con
 #test
 {
     const Capacity = 160
-    var source: [Capacity] u8
-    var actual: [Capacity] u8
+    var source:   [Capacity] u8
+    var actual:   [Capacity] u8
     var expected: [Capacity] u8
     for count in 65'u64
     {
         for i in Capacity
         {
-            source[i] = cast(u8, ((i * 53 + count * 7) & 255))
-            actual[i] = 0xA5
+            source[i]   = cast(u8, ((i * 53 + count * 7) & 255))
+            actual[i]   = 0xA5
             expected[i] = 0xA5
         }
+
         for i in count
         {
             expected[3 + 2 * i] = source[2 + 2 * i]
             expected[4 + 2 * i] = source[1 + 2 * i]
         }
+
         Png.convert16Samples(&source[1], &actual[3], count)
         Swag.assert(actual == expected)
     }
@@ -1087,17 +1089,18 @@ func buildPng16(width, height: s32, colorType: u8, interlace: bool, samples: con
 #test
 {
     const Capacity = 300
-    var source: [Capacity] u8
-    var actual: [Capacity] u8
+    var source:   [Capacity] u8
+    var actual:   [Capacity] u8
     var expected: [Capacity] u8
     for count in 65'u64
     {
         for i in Capacity
         {
-            source[i] = cast(u8, ((i * 31 + count * 7) & 255))
-            actual[i] = 0xA5
+            source[i]   = cast(u8, ((i * 31 + count * 7) & 255))
+            actual[i]   = 0xA5
             expected[i] = 0xA5
         }
+
         for i in count
         {
             if (i % 3) == 0
@@ -1105,12 +1108,14 @@ func buildPng16(width, height: s32, colorType: u8, interlace: bool, samples: con
                 source[1 + 2 * i] = 0x12
                 source[2 + 2 * i] = 0x34
             }
+
             let equal = source[1 + 2 * i] == 0x12 and source[2 + 2 * i] == 0x34
             expected[3 + 4 * i] = source[2 + 2 * i]
             expected[4 + 4 * i] = source[1 + 2 * i]
             expected[5 + 4 * i] = equal ? 0 : 255
             expected[6 + 4 * i] = equal ? 0 : 255
         }
+
         Png.convertGray16Transparency(&source[1], &actual[3], count, 0x1234)
         Swag.assert(actual == expected)
     }
@@ -1121,17 +1126,18 @@ func buildPng16(width, height: s32, colorType: u8, interlace: bool, samples: con
 #test
 {
     const Capacity = 320
-    var source: [Capacity] u8
-    var actual: [Capacity] u8
+    var source:   [Capacity] u8
+    var actual:   [Capacity] u8
     var expected: [Capacity] u8
     for count in 35'u64
     {
         for i in Capacity
         {
-            source[i] = cast(u8, ((i * 43 + count * 13) & 255))
-            actual[i] = 0xA5
+            source[i]   = cast(u8, ((i * 43 + count * 13) & 255))
+            actual[i]   = 0xA5
             expected[i] = 0xA5
         }
+
         for i in count
         {
             if (i % 3) != 2
@@ -1143,17 +1149,23 @@ func buildPng16(width, height: s32, colorType: u8, interlace: bool, samples: con
                 source[5 + 6 * i] = 0xFF
                 source[6 + 6 * i] = (i % 3) == 0 ? 0xFF : 0xFE
             }
-            let equal = source[1 + 6 * i] == 0x12 and source[2 + 6 * i] == 0x34 and
-                        source[3 + 6 * i] == 0x80 and source[4 + 6 * i] == 0x01 and
-                        source[5 + 6 * i] == 0xFF and source[6 + 6 * i] == 0xFF
+
+            let equal = source[1 + 6 * i] == 0x12 and
+                        source[2 + 6 * i] == 0x34 and
+                        source[3 + 6 * i] == 0x80 and
+                        source[4 + 6 * i] == 0x01 and
+                        source[5 + 6 * i] == 0xFF and
+                        source[6 + 6 * i] == 0xFF
             for component in 3'u64
             {
                 expected[3 + 8 * i + 2 * component] = source[2 + 6 * i + 2 * component]
                 expected[4 + 8 * i + 2 * component] = source[1 + 6 * i + 2 * component]
             }
-            expected[9 + 8 * i] = equal ? 0 : 255
+
+            expected[9 + 8 * i]  = equal ? 0 : 255
             expected[10 + 8 * i] = equal ? 0 : 255
         }
+
         Png.convertRgb16Transparency(&source[1], &actual[3], count, 0x1234, 0x8001, 0xFFFF)
         Swag.assert(actual == expected)
     }
@@ -1166,7 +1178,7 @@ func buildPng16(width, height: s32, colorType: u8, interlace: bool, samples: con
     var alphaSamples: Array'u16
     for i in 18 do
         alphaSamples.add(cast(u16, (0x1000 + i * 257)))
-    let alphaPng = buildPng16(9, 1, 4, false, alphaSamples.toSlice())
+    let alphaPng   = buildPng16(9, 1, 4, false, alphaSamples.toSlice())
     let alphaImage = expect Image.decode("gray-alpha16.png", nnBytes(alphaPng.toSlice()), {})
     Swag.assert(alphaImage.pixelFormat == .GrayAlpha16)
     let alphaRaw = cast(const [*] u16, alphaImage.pixels.storage())
@@ -1178,7 +1190,7 @@ func buildPng16(width, height: s32, colorType: u8, interlace: bool, samples: con
     graySamples.add(0x1235)
     var key: Array'u16
     key.add(0x1234)
-    let grayPng = buildPng16(2, 1, 0, false, graySamples.toSlice(), key.toSlice())
+    let grayPng   = buildPng16(2, 1, 0, false, graySamples.toSlice(), key.toSlice())
     let grayImage = expect Image.decode("gray16-trns.png", nnBytes(grayPng.toSlice()), {})
     Swag.assert(grayImage.pixelFormat == .GrayAlpha16)
     let grayRaw = cast(const [*] u16, grayImage.pixels.storage())
@@ -1221,6 +1233,7 @@ func buildPng16(width, height: s32, colorType: u8, interlace: bool, samples: con
         samples.add(0x8001)
         samples.add(i % 2 == 0 ? 0xFFFF'u16 : 0xFFFE'u16)
     }
+
     var key: Array'u16
     key.add(0x1234)
     key.add(0x8001)

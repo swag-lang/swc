@@ -49,7 +49,9 @@ func subtitleViewerFixturePath()->String => Path.combine(unwrap Path.directoryNa
 
     view.sheet.setFocus()
     host.keyPress(.PageDown, .Control)
-    Swag.assert(view.currentCue == 0 and view.cuePosition() == "Cue 1 / 2" and view.timeButton.text() == "00:00:00")
+    Swag.assert(view.currentCue == 0 and
+                view.cuePosition() == "Cue 1 / 2" and
+                view.timeButton.text() == "00:00:00")
     host.keyPress(.Down)
     Swag.assert(view.currentCue == 1 and view.timeButton.text() == "00:00:02")
     host.keyPress(.Down)

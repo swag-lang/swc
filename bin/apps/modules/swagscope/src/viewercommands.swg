@@ -80,27 +80,26 @@ impl ViewerWindow
             .addRestSource(func|window = me|(results)
             {
                 let section = results.addSection(appStrings().lens_File)
-                window.lens.addCommandRows(section, [ViewerCommands.Open, ViewerCommands.Explore, ViewerCommands.PreviousFile,
-                                                     ViewerCommands.NextFile, ViewerCommands.Information, ViewerCommands.OpenWith], enabledOnly: true)
+                window.lens.addCommandRows(section,
+                                           [ViewerCommands.Open, ViewerCommands.Explore, ViewerCommands.PreviousFile,
+                                            ViewerCommands.NextFile, ViewerCommands.Information, ViewerCommands.OpenWith],
+                                           enabledOnly: true)
             })
             .addSource(.None, func|window = me|(results) { window.describeViewerChoices(results) })
             .addSource(.Action, func|window = me|(results) { window.describeViewerCommands(results) })
             .addSource(.File, func|window = me|(results) { window.describeFiles(results) })
             .addSource(.Line, func|window = me|(results) { window.describeFileLines(results) })
-            .addCommands(func()->string => appStrings().lens_File,
-                         [ViewerCommands.Open, ViewerCommands.Explore, ViewerCommands.Close, ViewerCommands.Reload,
-                          ViewerCommands.PreviousFile, ViewerCommands.NextFile, ViewerCommands.OpenDefault, ViewerCommands.OpenWith,
-                          ViewerCommands.Locate, ViewerCommands.CopyPath, ViewerCommands.CopyName, ViewerCommands.Forget,
-                          ViewerCommands.Files, ViewerCommands.SameKind, ViewerCommands.ClearHistory])
-            .addCommands(func()->string => appStrings().lens_Folder,
-                         [ViewerCommands.Back, ViewerCommands.Forward, ViewerCommands.Up, ViewerCommands.Refresh,
-                          ViewerCommands.EditLocation, ViewerCommands.SortName, ViewerCommands.SortType, ViewerCommands.SortSize,
-                          ViewerCommands.SortModified, ViewerCommands.SortDescending, ViewerCommands.OnlineMovies,
-                          ViewerCommands.OnlineMusic, ViewerCommands.ChooseMusic, ViewerCommands.OpenChosen,
-                          ViewerCommands.ExtractAll, ViewerCommands.ExtractChosen])
-            .addCommands(func()->string => appStrings().lens_Find,
-                         [ViewerCommands.Find, ViewerCommands.FindNext, ViewerCommands.FindPrevious, ViewerCommands.SearchMode,
-                          ViewerCommands.FilterMode, ViewerCommands.MatchCase, ViewerCommands.WholeWord, ViewerCommands.RegularExpression])
+            .addCommands(func()->string => appStrings().lens_File, [ViewerCommands.Open, ViewerCommands.Explore, ViewerCommands.Close, ViewerCommands.Reload,
+                                                                    ViewerCommands.PreviousFile, ViewerCommands.NextFile, ViewerCommands.OpenDefault, ViewerCommands.OpenWith,
+                                                                    ViewerCommands.Locate, ViewerCommands.CopyPath, ViewerCommands.CopyName, ViewerCommands.Forget,
+                                                                    ViewerCommands.Files, ViewerCommands.SameKind, ViewerCommands.ClearHistory])
+            .addCommands(func()->string => appStrings().lens_Folder, [ViewerCommands.Back, ViewerCommands.Forward, ViewerCommands.Up, ViewerCommands.Refresh,
+                                                                      ViewerCommands.EditLocation, ViewerCommands.SortName, ViewerCommands.SortType, ViewerCommands.SortSize,
+                                                                      ViewerCommands.SortModified, ViewerCommands.SortDescending, ViewerCommands.OnlineMovies,
+                                                                      ViewerCommands.OnlineMusic, ViewerCommands.ChooseMusic, ViewerCommands.OpenChosen,
+                                                                      ViewerCommands.ExtractAll, ViewerCommands.ExtractChosen])
+            .addCommands(func()->string => appStrings().lens_Find, [ViewerCommands.Find, ViewerCommands.FindNext, ViewerCommands.FindPrevious, ViewerCommands.SearchMode,
+                                                                    ViewerCommands.FilterMode, ViewerCommands.MatchCase, ViewerCommands.WholeWord, ViewerCommands.RegularExpression])
             .addCommands(func()->string => appStrings().lens_View,
                          [ViewerCommands.Information, ViewerCommands.SidePanel, ViewerCommands.FullScreen])
             .addCommands(func()->string => appStrings().lens_Playback,
@@ -131,7 +130,7 @@ impl ViewerWindow
     private mtd describeViewerChoices(results: *Lens.Results)
     {
         let texts = appStrings()
-        let typed: String = results.query
+        let typed:   String = results.query
         let query = typed.toString()
         var section: *Lens.Section?
         if .isExploring()
@@ -210,7 +209,7 @@ impl ViewerWindow
             return
 
         let typed: String = results.query
-        let query = Latin1.trim(typed.toString())
+        let query         = Latin1.trim(typed.toString())
         if not query.count do
             return
         let bytes = .lensFileBytes()
@@ -237,7 +236,7 @@ impl ViewerWindow
 
             if not wanted or line != wanted do
                 return
-            let section = results.addSection(texts.lens_InFile)
+            let section    = results.addSection(texts.lens_InFile)
             with let entry = section.addEntry(Format.toString(texts.lens_GoToLine, wanted))
             {
                 .lead = Format.toString("%", wanted)
@@ -259,8 +258,8 @@ impl ViewerWindow
             var end = at
             if end > start and content[end - 1] == '\r' do
                 end -= 1
-            let text  = content[start until end]
-            let hit   = Utf8.indexOf(text, query, comparisonType: .Latin1NoCase)
+            let text = content[start until end]
+            let hit  = Utf8.indexOf(text, query, comparisonType: .Latin1NoCase)
             if hit != Swag.U64.Max
             {
                 found += 1
@@ -268,8 +267,8 @@ impl ViewerWindow
                 {
                     if not section do
                         section = results.addSection(texts.lens_InFile)
-                    let offset = start + hit
-                    let length = query.count
+                    let offset     = start + hit
+                    let length     = query.count
                     with let entry = section.addEntry(Latin1.trim(text))
                     {
                         .lead      = Format.toString("%", line)
@@ -333,10 +332,10 @@ impl ViewerWindow
         if not alone and results.query.isEmpty() do
             return
 
-        let texts = appStrings()
-        let limit = alone ? LensFilesAlone : LensFilesBeside
+        let texts         = appStrings()
+        let limit         = alone ? LensFilesAlone : LensFilesBeside
         let typed: String = results.query
-        let query = typed.toString()
+        let query         = typed.toString()
         .addFileSection(results, texts.ui_Recent, .recent.toSlice(), query, limit, remember: true)
         if .siblingsDirty do
             .rebuildSiblings()
@@ -388,7 +387,7 @@ impl ViewerWindow
                 section = results.addSection(label)
 
             var pluginIndex = Swag.U64.Max
-            with let entry = section.addEntry(name)
+            with let entry  = section.addEntry(name)
             {
                 .detail     = Path.directoryName(file) orelse ""
                 .monoDetail = true
@@ -419,115 +418,141 @@ impl ViewerWindow
         {
         case ViewerCommands.Lens:
             return false
+
         case ViewerCommands.Information:
             name     = texts.cmd_Information
             icon     = .commandGlyph(.Information)
             disabled = not hasFile and not exploring
             toggle   = true
             checked  = .infoSheet.isLocallyVisible()
+
         case ViewerCommands.Open:
             name = texts.cmd_Open
             icon = .commandGlyph(.OpenFile)
+
         case ViewerCommands.Explore:
             name = texts.cmd_Explore
             icon = .commandGlyph(.Folder)
+
         case ViewerCommands.Close:
             name   = texts.ui_CloseFile
             hidden = not hasFile and not exploring
+
         case ViewerCommands.Reload:
             name   = texts.cmd_Reload
             icon   = .commandGlyph(.Update)
             hidden = not hasFile or exploring
+
         case ViewerCommands.PreviousFile:
             name   = texts.cmd_PreviousFile
             icon   = .commandGlyph(.ChevronLeft)
             hidden = not hasFile or exploring
+
         case ViewerCommands.NextFile:
             name   = texts.cmd_NextFile
             icon   = .commandGlyph(.ChevronRight)
             hidden = not hasFile or exploring
+
         case ViewerCommands.OpenDefault:
             name   = texts.ui_MenuOpenDefault
             icon   = .commandGlyph(.OpenExternal)
             hidden = not hasFile
+
         case ViewerCommands.OpenWith:
             name   = texts.ui_MenuOpenWith
             icon   = .commandGlyph(.OpenExternal)
             hidden = not hasFile
+
         case ViewerCommands.Locate:
             name   = texts.ui_MenuLocate
             hidden = not hasFile
+
         case ViewerCommands.CopyPath:
             name   = texts.ui_MenuCopyPath
             icon   = .commandGlyph(.Copy)
             hidden = not hasFile
+
         case ViewerCommands.CopyName:
             name   = texts.ui_MenuCopyName
             icon   = .commandGlyph(.Copy)
             hidden = not hasFile
+
         case ViewerCommands.Forget:
             name   = texts.ui_MenuForget
             icon   = .commandGlyph(.Remove)
             hidden = not hasFile or not .recent.contains(.currentFile)
+
         case ViewerCommands.Files:
             name    = texts.ui_Files
             icon    = .commandGlyph(.History)
             toggle  = true
             checked = .panelVisible
+
         case ViewerCommands.SameKind:
             name    = texts.ui_SameKind
             icon    = .commandGlyph(.Filter)
             toggle  = true
             checked = .folderSameKind
             hidden  = exploring
+
         case ViewerCommands.ClearHistory:
             name     = texts.cmd_ClearHistory
             icon     = .commandGlyph(.RemoveAll)
             disabled = .recent.isEmpty()
+
         case ViewerCommands.Find:
             name   = texts.cmd_Find
             icon   = .commandGlyph(.Search)
             hidden = not search and not exploring
+
         case ViewerCommands.FindNext:
             name     = texts.cmd_FindNext
             icon     = .commandGlyph(.SearchNext)
             hidden   = not search
             disabled = .searchMatches.isEmpty()
+
         case ViewerCommands.FindPrevious:
             name     = texts.cmd_FindPrevious
             icon     = .commandGlyph(.SearchPrevious)
             hidden   = not search
             disabled = .searchMatches.isEmpty()
+
         case ViewerCommands.SearchMode:
             name    = texts.ui_SearchMode
             hidden  = not search or not canFilter
             toggle  = true
             checked = not .searchFilterMode
+
         case ViewerCommands.FilterMode:
             name    = texts.ui_FilterMode
             hidden  = not search or not canFilter
             toggle  = true
             checked = .searchFilterMode
+
         case ViewerCommands.MatchCase:
             name    = texts.ui_SearchMatchCase
             hidden  = not search
             toggle  = true
             checked = .searchMatchCaseOption
+
         case ViewerCommands.WholeWord:
             name    = texts.ui_SearchWholeWord
             hidden  = not search
             toggle  = true
             checked = .searchWholeWordOption
+
         case ViewerCommands.RegularExpression:
             name    = texts.ui_SearchRegularExpression
             hidden  = not search
             toggle  = true
             checked = .searchRegexOption
+
         case ViewerCommands.FullScreen:
             name    = texts.cmd_FullScreen
             icon    = .commandGlyph(.FullScreen)
             toggle  = true
             checked = .fullScreen
+
         case ViewerCommands.SidePanel:
             hidden = .currentSidePanelButton == null
             if .currentSidePanelButton
@@ -536,81 +561,102 @@ impl ViewerWindow
                 toggle  = true
                 checked = .currentSidePanelButton.isChecked
             }
+
         case ViewerCommands.PlayOnce:
             name    = texts.ui_PlayOnce
             toggle  = true
             checked = .playMode == .Once
+
         case ViewerCommands.PlayRepeat:
             name    = texts.ui_PlayRepeat
             toggle  = true
             checked = .playMode == .Repeat
+
         case ViewerCommands.PlayFolder:
             name    = texts.ui_PlayFolder
             toggle  = true
             checked = .playMode == .Folder
+
         case ViewerCommands.PlayShuffle:
             name    = texts.ui_PlayShuffle
             toggle  = true
             checked = .playMode == .Shuffle
+
         case ViewerCommands.Back:
             name     = texts.explore_Back
             icon     = .commandGlyph(.ChevronLeft)
             hidden   = not exploring
             disabled = exploring and not .explorer!.history.canGoBack()
+
         case ViewerCommands.Forward:
             name     = texts.explore_Forward
             icon     = .commandGlyph(.ChevronRight)
             hidden   = not exploring
             disabled = exploring and not .explorer!.history.canGoForward()
+
         case ViewerCommands.Up:
             name   = texts.explore_Up
             icon   = .commandGlyph(.ParentFolder)
             hidden = not exploring
+
         case ViewerCommands.Refresh:
             name   = texts.explore_Refresh
             icon   = .commandGlyph(.Update)
             hidden = not exploring
+
         case ViewerCommands.EditLocation:
             name   = texts.cmd_EditLocation
             hidden = not exploring
-        case ViewerCommands.SortName, ViewerCommands.SortType, ViewerCommands.SortSize, ViewerCommands.SortModified:
+
+        case ViewerCommands.SortName, ViewerCommands.SortType,
+             ViewerCommands.SortSize, ViewerCommands.SortModified:
             let column = sortColumnOf(evt.id)
             name    = sortCommandName(column)
             icon    = .commandGlyph(.Sort)
             hidden  = not exploring
             toggle  = true
             checked = exploring and .explorer!.sortColumn == column
+
         case ViewerCommands.SortDescending:
             name    = texts.cmd_SortDescending
             hidden  = not exploring
             toggle  = true
             checked = exploring and .explorer!.descending
+
         case ViewerCommands.OnlineMovies:
             name    = texts.explore_OnlineMovies
             hidden  = not exploring
             toggle  = true
             checked = .onlineMovies
+
         case ViewerCommands.OnlineMusic:
             name    = texts.explore_OnlineMusic
             hidden  = not exploring
             toggle  = true
             checked = .onlineMusic
+
         case ViewerCommands.OpenChosen:
             name     = texts.cmd_OpenChosen
             hidden   = not exploring
             disabled = not exploring or .explorer!.selected >= .explorer.entries.count
+
         case ViewerCommands.ExtractAll:
             name     = texts.cmd_ExtractAll
             hidden   = not exploring or not .explorer!.listing.isArchive
             disabled = hidden or .explorer!.extraction.started
+
         case ViewerCommands.ExtractChosen:
             name     = texts.cmd_Extract
             hidden   = not exploring or not .explorer!.listing.isArchive
-            disabled = hidden or .explorer!.extraction.started or .explorer!.selected >= .explorer.entries.count
+            disabled = hidden or
+                       .explorer!.extraction.started or
+                       .explorer!.selected >= .explorer.entries.count
+
         case ViewerCommands.ChooseMusic:
             name     = texts.explore_ChooseMusic
             hidden   = not exploring
             disabled = not exploring or not .explorer!.canChooseMusic()
+
         default:
             return false
         }
@@ -655,35 +701,87 @@ impl ViewerWindow
         switch id
         {
         case ViewerCommands.Lens:
+
             // A row of the viewer may open a menu from one of its floating buttons: they stay on
             // screen while the lens is open.
             .revealViewerBar()
             .lens.open()
-        case ViewerCommands.Information:       .toggleInformation()
-        case ViewerCommands.Open:              .chooseFile()
-        case ViewerCommands.Explore:           .exploreFolder()
-        case ViewerCommands.Close:             .closeFile()
-        case ViewerCommands.Reload:            .reloadCurrentFile()
-        case ViewerCommands.PreviousFile:      .navigate(-1)
-        case ViewerCommands.NextFile:          .navigate(1)
-        case ViewerCommands.OpenDefault:       .openCurrentFileDefault()
-        case ViewerCommands.OpenWith where hasFile: Env.openFileWith(.currentFile)
-        case ViewerCommands.Locate where hasFile:   Env.showInFileExplorer(.currentFile)
-        case ViewerCommands.CopyPath where hasFile: Clipboard.setString(.currentFile)
-        case ViewerCommands.CopyName where hasFile: Clipboard.setString(Path.fileName(.currentFile) orelse .currentFile.toString())
-        case ViewerCommands.Forget where hasFile:   .forgetRecent(.currentFile.toString())
-        case ViewerCommands.Files:             .toggleFilePanel()
-        case ViewerCommands.SameKind:          .setFolderSameKind(not .folderSameKind)
-        case ViewerCommands.ClearHistory:      .confirmClearRecent()
-        case ViewerCommands.Find:              .showSearch()
-        case ViewerCommands.FindNext:          .findNext()
-        case ViewerCommands.FindPrevious:      .findPrevious()
-        case ViewerCommands.SearchMode:        .setSearchOption(id)
-        case ViewerCommands.FilterMode:        .setSearchOption(id)
-        case ViewerCommands.MatchCase:         .setSearchOption(id)
-        case ViewerCommands.WholeWord:         .setSearchOption(id)
-        case ViewerCommands.RegularExpression: .setSearchOption(id)
-        case ViewerCommands.FullScreen:        .setFullScreen(not .fullScreen)
+
+        case ViewerCommands.Information:
+            .toggleInformation()
+
+        case ViewerCommands.Open:
+            .chooseFile()
+
+        case ViewerCommands.Explore:
+            .exploreFolder()
+
+        case ViewerCommands.Close:
+            .closeFile()
+
+        case ViewerCommands.Reload:
+            .reloadCurrentFile()
+
+        case ViewerCommands.PreviousFile:
+            .navigate(-1)
+
+        case ViewerCommands.NextFile:
+            .navigate(1)
+
+        case ViewerCommands.OpenDefault:
+            .openCurrentFileDefault()
+
+        case ViewerCommands.OpenWith where hasFile:
+            Env.openFileWith(.currentFile)
+
+        case ViewerCommands.Locate where hasFile:
+            Env.showInFileExplorer(.currentFile)
+
+        case ViewerCommands.CopyPath where hasFile:
+            Clipboard.setString(.currentFile)
+
+        case ViewerCommands.CopyName where hasFile:
+            Clipboard.setString(Path.fileName(.currentFile) orelse .currentFile.toString())
+
+        case ViewerCommands.Forget where hasFile:
+            .forgetRecent(.currentFile.toString())
+
+        case ViewerCommands.Files:
+            .toggleFilePanel()
+
+        case ViewerCommands.SameKind:
+            .setFolderSameKind(not .folderSameKind)
+
+        case ViewerCommands.ClearHistory:
+            .confirmClearRecent()
+
+        case ViewerCommands.Find:
+            .showSearch()
+
+        case ViewerCommands.FindNext:
+            .findNext()
+
+        case ViewerCommands.FindPrevious:
+            .findPrevious()
+
+        case ViewerCommands.SearchMode:
+            .setSearchOption(id)
+
+        case ViewerCommands.FilterMode:
+            .setSearchOption(id)
+
+        case ViewerCommands.MatchCase:
+            .setSearchOption(id)
+
+        case ViewerCommands.WholeWord:
+            .setSearchOption(id)
+
+        case ViewerCommands.RegularExpression:
+            .setSearchOption(id)
+
+        case ViewerCommands.FullScreen:
+            .setFullScreen(not .fullScreen)
+
         case ViewerCommands.SidePanel:
             if .currentSidePanelButton
             {
@@ -691,11 +789,21 @@ impl ViewerWindow
                 toggle.setChecked(not toggle.isChecked)
                 toggle.sigCheckedChanged.call(toggle)
             }
-        case ViewerCommands.PlayOnce:          .setPlayMode(.Once)
-        case ViewerCommands.PlayRepeat:        .setPlayMode(.Repeat)
-        case ViewerCommands.PlayFolder:        .setPlayMode(.Folder)
-        case ViewerCommands.PlayShuffle:       .setPlayMode(.Shuffle)
-        default:                               return .runExplorerCommand(id)
+
+        case ViewerCommands.PlayOnce:
+            .setPlayMode(.Once)
+
+        case ViewerCommands.PlayRepeat:
+            .setPlayMode(.Repeat)
+
+        case ViewerCommands.PlayFolder:
+            .setPlayMode(.Folder)
+
+        case ViewerCommands.PlayShuffle:
+            .setPlayMode(.Shuffle)
+
+        default:
+            return .runExplorerCommand(id)
         }
 
         return true
@@ -721,10 +829,12 @@ impl ViewerWindow
         case ViewerCommands.OpenChosen:     explorer.activate(explorer.selected)
         case ViewerCommands.ExtractAll:     explorer.chooseExtraction(all: true)
         case ViewerCommands.ExtractChosen:  explorer.chooseExtraction(all: false)
-        case ViewerCommands.SortName, ViewerCommands.SortType, ViewerCommands.SortSize, ViewerCommands.SortModified:
+
+        case ViewerCommands.SortName, ViewerCommands.SortType,
+             ViewerCommands.SortSize, ViewerCommands.SortModified:
             explorer.sortBy(sortColumnOf(id), explorer.descending)
-        default:
-            return false
+
+        default: return false
         }
 
         return true
@@ -813,14 +923,23 @@ impl ViewerWindow
             if not .searchFilterMode do
                 return
             .searchFilterMode = false
+
         case ViewerCommands.FilterMode:
             if .searchFilterMode do
                 return
             .searchFilterMode = true
-        case ViewerCommands.MatchCase:         .searchMatchCaseOption = not .searchMatchCaseOption
-        case ViewerCommands.WholeWord:         .searchWholeWordOption = not .searchWholeWordOption
-        case ViewerCommands.RegularExpression: .searchRegexOption = not .searchRegexOption
-        default:                               return
+
+        case ViewerCommands.MatchCase:
+            .searchMatchCaseOption = not .searchMatchCaseOption
+
+        case ViewerCommands.WholeWord:
+            .searchWholeWordOption = not .searchWholeWordOption
+
+        case ViewerCommands.RegularExpression:
+            .searchRegexOption = not .searchRegexOption
+
+        default:
+            return
         }
 
         // A query that was literal may be incomplete regexp syntax, and vice versa. Re-run the
@@ -840,7 +959,7 @@ func sortColumnOf(id: WndId)->u32
     case ViewerCommands.SortType:     return 1
     case ViewerCommands.SortSize:     return 2
     case ViewerCommands.SortModified: return 3
-    default:                          return 0
+    default: return 0
     }
 }
 

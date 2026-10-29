@@ -189,6 +189,7 @@ impl IWnd for View
         switch evt.kind
         {
         case .Move:
+
             // In a row of segments, the pointer chooses the segment under it.
             let row = .rowAt(pos)
             if row != Swag.U64.Max and (evt.delta.x != 0 or evt.delta.y != 0)
@@ -637,6 +638,7 @@ private impl View
         }
 
         let page = Math.max(1's64, cast(s64, .listRect().height / .themeMetrics().lens_RowHeight) - 1)
+
         // Along a strip of pictures, the arrows go from one picture to the next, then to its link.
         let strip = .chosenStrip()
         if strip and (key == .Left or key == .Right)
@@ -769,6 +771,7 @@ private impl View
     {
         let metrics = .themeMetrics()
         .rows.clear()
+
         // The sections in the order the ranking gave them; the strips of pictures close the
         // results, after every row a key can reach.
         var order: Array'(*Section)
@@ -1007,7 +1010,9 @@ private impl View
 
             // The picture the keys stand on is ringed in Arc, the one under the pointer too.
             let chosen = strip == section and .chosenPicture == i
-            let hot    = .hotPicture.index == i and .hotPicture.row < .rows.count and .rows[.hotPicture.row].section == section
+            let hot    = .hotPicture.index == i and
+                         .hotPicture.row < .rows.count and
+                         .rows[.hotPicture.row].section == section
             if chosen
             {
                 var ring = cell
@@ -1145,6 +1150,7 @@ private impl View
         let titleLeft = leadLeft + metrics.lens_LeadWidth
         let font      = entry.monoTitle ? theme.createDefaultFontFs(metrics.lens_RowFontSize - 1) : theme.createDefaultFont(metrics.lens_RowFontSize)
         painter.pushClippingRect(Math.Rectangle{titleLeft, rect.y, Math.max(trailing - titleLeft, 0), rect.height})
+
         // A row that cannot be chosen keeps its matches, faded with its words.
         let top  = font.opticalLineTop(centerY)
         let mark = entry.disabled ? fadeColor(colors.highlight, 0.4) : colors.highlight
@@ -1308,7 +1314,7 @@ private impl View
     // only answer with scattered letters are left out.
     mtd rankResults()
     {
-        let query = .results.query.toString()
+        let query   = .results.query.toString()
         var bestAll = Swag.S32.Min
         for section in .results.sections
         {

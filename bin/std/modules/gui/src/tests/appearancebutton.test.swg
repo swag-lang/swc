@@ -183,8 +183,8 @@ using Swag, Core, Pixel
     let button = AppearanceButton.create(&host.surface)
     host.surfaceWnd.sendResizeEvent()
 
-    let systemGap = host.theme.metrics.wnd_CaptionButtonGap
-    let actionGap = host.theme.metrics.wnd_CaptionActionGap
+    let systemGap      = host.theme.metrics.wnd_CaptionButtonGap
+    let actionGap      = host.theme.metrics.wnd_CaptionActionGap
     let closeButton    = unwrap host.surfaceWnd.closeBtn
     let maximizeButton = unwrap host.surfaceWnd.maximizeBtn
     let minimizeButton = unwrap host.surfaceWnd.minimizeBtn

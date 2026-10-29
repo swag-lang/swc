@@ -39,7 +39,7 @@ struct CheckButton
     // changes, so a box fills and empties instead of snapping. `markState` is the chosen state
     // being shown, which an emptying box still needs once its state is back to unchecked.
     markPresence: f32
-    markState     = CheckState.Checked
+    markState = CheckState.Checked
 }
 
 impl IWnd for CheckButton
@@ -98,8 +98,8 @@ impl IWnd for CheckButton
         }
 
         // A disabled box shows its state as it is; an enabled one at the share its mark has reached.
-        let presence = bc.isDisabled ? (checked ? 1'f32 : 0) : .markPresence
-        let shown    = checked ? .state : .markState
+        let presence                       = bc.isDisabled ? (checked ? 1'f32 : 0) : .markPresence
+        let shown                          = checked ? .state : .markState
         var subRectBk:     *ThemeImageRect = &rects.btnCheck_Checked
         var subRectBorder: *ThemeImageRect = &rects.btnCheck_CheckedBorder
         var subRectMark:   *ThemeImageRect = &rects.btnCheck_CheckedMark

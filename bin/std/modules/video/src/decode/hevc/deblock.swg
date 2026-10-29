@@ -33,10 +33,10 @@ private func chromaDeblockDelta(p1, p0, q0, q1: Simd.S16x8, bound: Simd.S16x8)->
 #[Swag.Inline]
 func filterChromaPair(line: [*] u16, stride: s64, tc, maximum: s32)
 {
-    let p0 = cast #bit(Simd.S16x8, Simd.splat(cast(const [*] u32, &line[-stride])[0]))
-    let p1 = cast #bit(Simd.S16x8, Simd.splat(cast(const [*] u32, &line[-2 * stride])[0]))
-    let q0 = cast #bit(Simd.S16x8, Simd.splat(cast(const [*] u32, &line[0])[0]))
-    let q1 = cast #bit(Simd.S16x8, Simd.splat(cast(const [*] u32, &line[stride])[0]))
+    let p0    = cast #bit(Simd.S16x8, Simd.splat(cast(const [*] u32, &line[-stride])[0]))
+    let p1    = cast #bit(Simd.S16x8, Simd.splat(cast(const [*] u32, &line[-2 * stride])[0]))
+    let q0    = cast #bit(Simd.S16x8, Simd.splat(cast(const [*] u32, &line[0])[0]))
+    let q1    = cast #bit(Simd.S16x8, Simd.splat(cast(const [*] u32, &line[stride])[0]))
     let zero  = Simd.splat(0's16)
     let bound = Simd.splat(cast(s16, tc))
     let max   = Simd.splat(cast(s16, maximum))
@@ -44,7 +44,7 @@ func filterChromaPair(line: [*] u16, stride: s64, tc, maximum: s32)
     let p     = Math.max(Math.min(p0 + delta, max), zero)
     let q     = Math.max(Math.min(q0 - delta, max), zero)
     cast([*] u32, &line[-stride])[0] = cast #bit(Simd.U32x4, p)[0]
-    cast([*] u32, &line[0])[0] = cast #bit(Simd.U32x4, q)[0]
+    cast([*] u32, &line[0])[0]       = cast #bit(Simd.U32x4, q)[0]
 }
 
 // Filters the two rows of a vertical chroma edge. Each row supplies p1, p0,
@@ -53,19 +53,19 @@ func filterChromaPair(line: [*] u16, stride: s64, tc, maximum: s32)
 #[Swag.Inline]
 func filterChromaVerticalPair(line: [*] u16, stride: s64, tc, maximum: s32)
 {
-    let row0  = cast #bit(Simd.U16x8, Simd.splat(cast(const [*] u64, line - 2)[0]))
-    let row1  = cast #bit(Simd.U16x8, Simd.splat(cast(const [*] u64, line + stride - 2)[0]))
-    let pairs = Simd.interleaveLow(row0, row1)
-    let p1 = cast #bit(Simd.S16x8, pairs)
-    let p0 = cast #bit(Simd.S16x8, Simd.align(pairs, pairs, 4))
-    let q0 = cast #bit(Simd.S16x8, Simd.align(pairs, pairs, 8))
-    let q1 = cast #bit(Simd.S16x8, Simd.align(pairs, pairs, 12))
-    let zero  = Simd.splat(0's16)
-    let bound = Simd.splat(cast(s16, tc))
-    let max   = Simd.splat(cast(s16, maximum))
-    let delta = chromaDeblockDelta(p1, p0, q0, q1, bound)
-    let p     = Math.max(Math.min(p0 + delta, max), zero)
-    let q     = Math.max(Math.min(q0 - delta, max), zero)
+    let row0   = cast #bit(Simd.U16x8, Simd.splat(cast(const [*] u64, line - 2)[0]))
+    let row1   = cast #bit(Simd.U16x8, Simd.splat(cast(const [*] u64, line + stride - 2)[0]))
+    let pairs  = Simd.interleaveLow(row0, row1)
+    let p1     = cast #bit(Simd.S16x8, pairs)
+    let p0     = cast #bit(Simd.S16x8, Simd.align(pairs, pairs, 4))
+    let q0     = cast #bit(Simd.S16x8, Simd.align(pairs, pairs, 8))
+    let q1     = cast #bit(Simd.S16x8, Simd.align(pairs, pairs, 12))
+    let zero   = Simd.splat(0's16)
+    let bound  = Simd.splat(cast(s16, tc))
+    let max    = Simd.splat(cast(s16, maximum))
+    let delta  = chromaDeblockDelta(p1, p0, q0, q1, bound)
+    let p      = Math.max(Math.min(p0 + delta, max), zero)
+    let q      = Math.max(Math.min(q0 - delta, max), zero)
     let output = cast #bit(Simd.U32x4, Simd.interleaveLow(cast #bit(Simd.U16x8, p), cast #bit(Simd.U16x8, q)))
     cast([*] u32, line - 1)[0] = output[0]
     cast([*] u32, line + stride - 1)[0] = output[1]
@@ -437,14 +437,14 @@ impl Decoder
     mtd filterLumaVerticalQuad(line: [*] u16, stride: s64, strong, filterP, filterQ: bool, tc, maximum: s32)
     {
         let start = line - 4
-        let r0 = Simd.load(start)
-        let r1 = Simd.load(start + stride)
-        let r2 = Simd.load(start + 2 * stride)
-        let r3 = Simd.load(start + 3 * stride)
-        let a0 = Simd.interleaveLow(r0, r1)
-        let a1 = Simd.interleaveLow(r2, r3)
-        let a2 = Simd.interleaveHigh(r0, r1)
-        let a3 = Simd.interleaveHigh(r2, r3)
+        let r0    = Simd.load(start)
+        let r1    = Simd.load(start + stride)
+        let r2    = Simd.load(start + 2 * stride)
+        let r3    = Simd.load(start + 3 * stride)
+        let a0    = Simd.interleaveLow(r0, r1)
+        let a1    = Simd.interleaveLow(r2, r3)
+        let a2    = Simd.interleaveHigh(r0, r1)
+        let a3    = Simd.interleaveHigh(r2, r3)
         var columns: [40] u16
         Simd.store(&columns[0], cast #bit(Simd.U16x8, Simd.interleaveLow(cast #bit(Simd.U32x4, a0), cast #bit(Simd.U32x4, a1))))
         Simd.store(&columns[8], cast #bit(Simd.U16x8, Simd.interleaveHigh(cast #bit(Simd.U32x4, a0), cast #bit(Simd.U32x4, a1))))
@@ -563,7 +563,7 @@ impl Decoder
         let cx     = x / cast(s32, sps.subWidthC)
         let cy     = y / cast(s32, sps.subHeightC)
 
-        let origin    = plane + cast(u64, (cy + cast(s32, FramePadding))) * frame.strideChroma + cast(u64, (cx + cast(s32, FramePadding)))
+        let origin = plane + cast(u64, (cy + cast(s32, FramePadding))) * frame.strideChroma + cast(u64, (cx + cast(s32, FramePadding)))
         filterChromaVerticalPair(origin, stride, tc, maximum)
     }
 
@@ -588,7 +588,7 @@ impl Decoder
         let cx     = x / cast(s32, sps.subWidthC)
         let cy     = y / cast(s32, sps.subHeightC)
 
-        let origin    = plane + cast(u64, (cy + cast(s32, FramePadding))) * frame.strideChroma + cast(u64, (cx + cast(s32, FramePadding)))
+        let origin = plane + cast(u64, (cy + cast(s32, FramePadding))) * frame.strideChroma + cast(u64, (cx + cast(s32, FramePadding)))
         filterChromaPair(origin, stride, tc, maximum)
     }
 }

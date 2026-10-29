@@ -14,7 +14,7 @@ using Core, Core.Errors
 
 const Swap16Bytes = cast(Math.Simd.U8x16, [1'u8, 0, 3, 2, 5, 4, 7, 6, 9, 8, 11, 10, 13, 12, 15, 14])
 const ExpandRgb16Transparency = cast(Math.Simd.U8x16, [1'u8, 0, 3, 2, 5, 4, 0x80, 0x80, 7, 6, 9, 8, 11, 10, 0x80, 0x80])
-const ExpandRgbTransparency = cast(Math.Simd.U8x16, [0'u8, 1, 2, 0x80, 3, 4, 5, 0x80, 6, 7, 8, 0x80, 9, 10, 11, 0x80])
+const ExpandRgbTransparency   = cast(Math.Simd.U8x16, [0'u8, 1, 2, 0x80, 3, 4, 5, 0x80, 6, 7, 8, 0x80, 9, 10, 11, 0x80])
 
 // Building the packed table breaks even at 512 pixels on the supported x64 baseline.
 const PackedPaletteThreshold = 512'u64
@@ -34,22 +34,23 @@ const SimdRgbTransparencyThreshold = 4096'u64
 // PNG stores 16-bit samples big-endian; native image pixels use little-endian words.
 func convert16Samples(source: const [*] u8, destination: [*] u8, sampleCount: u64)
 {
-    var src = source
-    var dst = destination
+    var src       = source
+    var dst       = destination
     var remaining = sampleCount
     while remaining >= 8
     {
         Math.Simd.store(dst, Math.Simd.shuffle(Math.Simd.load(src), Swap16Bytes))
-        src += 16
-        dst += 16
+        src       += 16
+        dst       += 16
         remaining -= 8
     }
+
     while remaining
     {
-        dst[0] = src[1]
-        dst[1] = src[0]
-        src += 2
-        dst += 2
+        dst[0]    = src[1]
+        dst[1]    = src[0]
+        src       += 2
+        dst       += 2
         remaining -= 1
     }
 }
@@ -57,50 +58,53 @@ func convert16Samples(source: const [*] u8, destination: [*] u8, sampleCount: u6
 // Expand each gray sample with an alpha derived from its full 16-bit key.
 func convertGray16Transparency(source: const [*] u8, destination: [*] u8, sampleCount: u64, key: u16)
 {
-    var src = source
-    var dst = destination
+    var src       = source
+    var dst       = destination
     var remaining = sampleCount
-    let keys = Math.Simd.splat(key)
+    let keys      = Math.Simd.splat(key)
     while remaining >= 8
     {
-        let gray = cast #bit(Math.Simd.U16x8, Math.Simd.shuffle(Math.Simd.load(src), Swap16Bytes))
+        let gray  = cast #bit(Math.Simd.U16x8, Math.Simd.shuffle(Math.Simd.load(src), Swap16Bytes))
         let alpha = ~(gray == keys)
         Math.Simd.store(cast([*] u16, dst), Math.Simd.interleaveLow(gray, alpha))
         Math.Simd.store(cast([*] u16, (dst + 16)), Math.Simd.interleaveHigh(gray, alpha))
-        src += 16
-        dst += 32
+        src       += 16
+        dst       += 32
         remaining -= 8
     }
+
     while remaining
     {
         let gray = (cast(u16, src[0]) << 8) | src[1]
         cast([*] u16, dst)[0] = gray
         cast([*] u16, dst)[1] = gray == key ? 0'u16 : 65535'u16
-        src += 2
-        dst += 4
-        remaining -= 1
+        src                   += 2
+        dst                   += 4
+        remaining             -= 1
     }
 }
 
 // Expand two RGB16 pixels and compare each complete 48-bit color to the key.
 func convertRgb16Transparency(source: const [*] u8, destination: [*] u8, pixelCount: u64, red, green, blue: u16)
 {
-    var src = source
-    var dst = destination
+    var src       = source
+    var dst       = destination
     var remaining = pixelCount
-    let key = cast(u64, red) | (cast(u64, green) << 16) | (cast(u64, blue) << 32)
-    let keys = Math.Simd.splat(key)
+    let key       = cast(u64, red) | (cast(u64, green) << 16) | (cast(u64, blue) << 32)
+    let keys      = Math.Simd.splat(key)
     let alphaMask = Math.Simd.splat(0xFFFF_0000_0000_0000'u64)
+
     // The sixteen-byte load spans two pixels and four bytes of the next one.
     while remaining >= 3
     {
         let pixels = cast #bit(Math.Simd.U64x2, Math.Simd.shuffle(Math.Simd.load(src), ExpandRgb16Transparency))
-        let alpha = ~(pixels == keys) & alphaMask
+        let alpha  = ~(pixels == keys) & alphaMask
         Math.Simd.store(cast([*] u64, dst), pixels | alpha)
-        src += 12
-        dst += 16
+        src       += 12
+        dst       += 16
         remaining -= 2
     }
+
     while remaining
     {
         let r = (cast(u16, src[0]) << 8) | src[1]
@@ -110,9 +114,9 @@ func convertRgb16Transparency(source: const [*] u8, destination: [*] u8, pixelCo
         cast([*] u16, dst)[1] = g
         cast([*] u16, dst)[2] = b
         cast([*] u16, dst)[3] = r == red and g == green and b == blue ? 0'u16 : 65535'u16
-        src += 6
-        dst += 8
-        remaining -= 1
+        src                   += 6
+        dst                   += 8
+        remaining             -= 1
     }
 }
 

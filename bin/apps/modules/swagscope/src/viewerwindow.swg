@@ -167,9 +167,9 @@ struct ViewerWindow
     onlineMovies:        bool = true
     onlineMusic:         bool = true
     panelVisible:        bool
-    leftPanelWidth:      f32 = PanelWidth
+    leftPanelWidth:      f32  = PanelWidth
     rightPanelWidth:     f32
-    recentPaneSize:      f32 = RecentHeight
+    recentPaneSize:      f32  = RecentHeight
     refreshingLists:     bool
     fileDlgState:        FileDlgState
     themeIndex:          u32
@@ -177,7 +177,7 @@ struct ViewerWindow
 
     // A monitor-sized presentation is transient: what the window was before entering it is what
     // leaving it restores, placement, maximized state, and surface flags alike.
-    fullScreen:                bool
+    fullScreen: bool
     fullScreenWasMaximized:    bool
     fullScreenRestorePosition: Math.Rectangle
     fullScreenRestoreFlags:    SurfaceFlags
@@ -190,12 +190,12 @@ struct ViewerWindow
     viewerBarTimer:  *Timer?
     pointerPosition: Math.Point
     searchShown:     bool
-    smokeDirectory:            String
-    smokeSpecIndex:            u64
-    smokeWaitSteps:            u32
-    smokeOpened:               bool
-    smokeSelected:             bool
-    smokeRunning:              bool
+    smokeDirectory:  String
+    smokeSpecIndex:  u64
+    smokeWaitSteps:  u32
+    smokeOpened:     bool
+    smokeSelected:   bool
+    smokeRunning:    bool
 }
 
 // Records the format summary a viewer reported after creation, and shows it while that viewer is active.
@@ -349,11 +349,11 @@ impl IWnd for ViewerWindow
         let plain = evt.modifiers == .None
         switch evt.key
         {
-        case .Escape where plain and .infoSheet.isLocallyVisible(): .closeInformation()
-        case .Escape where plain and .searchShown:                   .hideSearch()
+        case .Escape where plain and .infoSheet.isLocallyVisible():       .closeInformation()
+        case .Escape where plain and .searchShown:                        .hideSearch()
         case .Escape where plain and not .fullScreen and .explorerActive: .closeFile()
-        case .Escape where plain and .fullScreen:  .setFullScreen(false)
-        case .Left, .Right where plain:            evt.accepted = not .forwardingViewerKey and .forwardKeyToViewer(evt)
+        case .Escape where plain and .fullScreen:                         .setFullScreen(false)
+        case .Left, .Right where plain: evt.accepted = not .forwardingViewerKey and .forwardKeyToViewer(evt)
         default: evt.accepted = false
         }
     }
@@ -752,7 +752,9 @@ impl ViewerWindow
     mtd concealViewerBar()
     {
         let focused = .focusedWindow()
-        let held    = .viewerBar.surfaceRect().contains(.pointerPosition) or (focused and .viewerBar.isOwnerOf(focused)) or .lens.isOpen()
+        let held    = .viewerBar.surfaceRect().contains(.pointerPosition) or
+                      (focused and .viewerBar.isOwnerOf(focused)) or
+                      .lens.isOpen()
         if held and .viewerBarShown
         {
             .viewerBarTimer = .addTimer(ViewerBarLinger)
@@ -1075,7 +1077,7 @@ impl ViewerWindow
         .kindButton.toolTip          = texts.ui_SameKind
         .folderHistoryButton.toolTip = texts.ui_FolderHistory
         .folderFilterBox.setPlaceholder(texts.ui_FilterFiles)
-        .recentClearButton.toolTip   = texts.ui_ClearHistory
+        .recentClearButton.toolTip = texts.ui_ClearHistory
         .teachHints(.isExploring())
         .searchPrevious.toolTip      = texts.ui_SearchPrevious
         .searchNext.toolTip          = texts.ui_SearchNext
@@ -1102,9 +1104,12 @@ impl ViewerWindow
     {
         let texts = appStrings()
         .hintLine.clearHints()
+
         // The keys of an explored page are taught while what it shows leaves its foot free: an
         // archive's way in and out, a folder's filter.
-        let roomy   = exploring and .explorer and .explorer.scroll.scrollSize.y + HintRoom < .explorer.scroll.clientRect().height
+        let roomy = exploring and
+                    .explorer and
+                    .explorer.scroll.scrollSize.y + HintRoom < .explorer.scroll.clientRect().height
         let archive = roomy and .explorer!.listing.isArchive
         if archive
         {
@@ -1119,8 +1124,10 @@ impl ViewerWindow
             .hintLine.addHint(Gui.strings().key_Enter, texts.hint_Open)
             .hintLine.addHint("P", texts.hint_PlayAlbum)
         }
-        elif board == .Album do
+        elif board == .Album
+        {
             .hintLine.addHint(Gui.strings().key_Enter, texts.hint_Play)
+        }
 
         .hintLine.addHint(Gui.strings().key_Space, texts.ui_HintLens)
         if roomy and not archive and (board == .Grid or board == .Posters) do

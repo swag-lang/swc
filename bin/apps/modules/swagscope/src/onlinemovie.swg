@@ -5,13 +5,13 @@ using Core, Net, Pixel, Video
 struct MovieQuery
 {
     title: String
-    year: String
+    year:  String
 }
 
 struct WikiImage
 {
     source: String
-    width: u32
+    width:  u32
     height: u32
 }
 
@@ -24,11 +24,11 @@ struct WikiPageProperties
 
 struct WikiPage
 {
-    title: String
+    title:       String
     description: String
-    extract: String
-    thumbnail: WikiImage
-    pageprops: WikiPageProperties
+    extract:     String
+    thumbnail:   WikiImage
+    pageprops:   WikiPageProperties
 }
 
 struct WikiPageList
@@ -49,9 +49,9 @@ struct WikiValue
 struct WikiMovieRow
 {
     directorLabel: WikiValue
-    castLabel: WikiValue
-    score: WikiValue
-    scoreDate: WikiValue
+    castLabel:     WikiValue
+    score:         WikiValue
+    scoreDate:     WikiValue
 }
 
 struct WikiRows
@@ -82,27 +82,27 @@ struct AppleSearch
 struct MovieSource
 {
     // Empty wikiHost selects the Wikipedia language; tests can supply a local service.
-    wikiHost: string = ""
+    wikiHost:  string = ""
     appleHost: string = "itunes.apple.com"
-    dataHost: string = "query.wikidata.org"
+    dataHost:  string = "query.wikidata.org"
     imageHost: string = ""
-    port: u16 = 443
-    secure: bool = true
+    port:      u16    = 443
+    secure:    bool   = true
 }
 
 struct OnlineMovie
 {
-    id: String
-    title: String
-    overview: String
+    id:          String
+    title:       String
+    overview:    String
     releaseDate: String
-    director: String
-    actors: String
-    imdbRating: String
-    ratingDate: String
-    posterUrl: String
-    articleUrl: String
-    sources: String     // Who said what is shown, for the attribution line: Apple, Wikipedia, Wikidata.
+    director:    String
+    actors:      String
+    imdbRating:  String
+    ratingDate:  String
+    posterUrl:   String
+    articleUrl:  String
+    sources:     String     // Who said what is shown, for the attribution line: Apple, Wikipedia, Wikidata.
 }
 
 private var g_MovieLookupLock: Swag.Mutex
@@ -121,11 +121,13 @@ func lockMediaLookup(mutex: *Swag.Mutex)->bool
             return false
         Threading.Thread.sleep(50'ms)
     }
+
     if Swag.isCancelled()
     {
         mutex.unlock()
         return false
     }
+
     return true
 }
 
@@ -141,14 +143,14 @@ const MovieSourcesTag    = "ScopeMovieSources"
 
 struct MovieSummary
 {
-    title: String
+    title:      String
     imdbRating: String
-    director: String
-    actors: String
-    date: String
-    overview: String
-    source: String
-    sources: String
+    director:   String
+    actors:     String
+    date:       String
+    overview:   String
+    source:     String
+    sources:    String
 }
 
 // Provider text is data, not Pixel rich-text markup or additional layout controls.
@@ -164,6 +166,7 @@ func safeMediaText(value: string)->String
         else do
             result.append(byte)
     }
+
     return result
 }
 
@@ -192,6 +195,7 @@ impl MovieSummary
             elif record.isTag(cast(const [..] u8, MovieSourcesTag)) do
                 result.sources = value
         }
+
         return result
     }
 
@@ -199,7 +203,7 @@ impl MovieSummary
     {
         if .title.isEmpty() do
             return {}
-        var result = safeMediaText(.title)
+        var result  = safeMediaText(.title)
         let strings = appStrings()
         if not .imdbRating.isEmpty() do
             result += Format.toString("  ·  %", Format.toString(strings.explore_ImdbRating, safeMediaText(.imdbRating)))
@@ -222,7 +226,7 @@ private func addMovieTag(image: *Image, tag, value: string)
     if not value.count do
         return
     var record: ImageMetadata
-    record.tag = tag
+    record.tag   = tag
     record.value = value
     image.metadata.add(#move record)
 }
@@ -247,7 +251,7 @@ impl MovieQuery
     {
         let stem = Path.fileNameWithoutExtension(path) orelse ""
         var result: #returntype
-        var end = stem.count
+        var end  = stem.count
         if stem.count >= 6
         {
             for index in 0 until stem.count - 5
@@ -260,11 +264,12 @@ impl MovieQuery
                 if valid
                 {
                     result.year = stem[index + 1 until index + 5]
-                    end = index
+                    end         = index
                     break
                 }
             }
         }
+
         for byte in stem[0 until end] do
             result.title.append(byte == '.' or byte == '_' ? ' 'u8 : byte)
         result.title = Latin1.trim(result.title.toString())
@@ -320,6 +325,7 @@ impl MovieQuery
                 return Swag.U64.Max
             chosen = index
         }
+
         return chosen
     }
 }
@@ -421,8 +427,8 @@ impl OnlineMovie
 
     private func lookupArticle(query: MovieQuery, source: MovieSource, language: string)->OnlineMovie fail
     {
-        let wikiHost = source.wikiHost.count ? source.wikiHost : (language == "fr" ? "fr.wikipedia.org" : "en.wikipedia.org")
-        let term = Format.toString("% film", query.title)
+        let wikiHost   = source.wikiHost.count ? source.wikiHost : (language == "fr" ? "fr.wikipedia.org" : "en.wikipedia.org")
+        let term       = Format.toString("% film", query.title)
         let searchPath = Format.toString("/w/api.php?action=query&generator=search&gsrsearch=%&gsrlimit=10&prop=pageimages%%7Cdescription%%7Cextracts%%7Cpageprops&piprop=thumbnail&pithumbsize=350&pilicense=any&exintro=1&explaintext=1&exchars=400&format=json&formatversion=2", Url.encodeComponent(cast(const [..] u8, term.toString())))
         var options: Http.GetOptions
         options.userAgent = "SwagScope/1.0 (https://github.com/swag-lang/swc)"
@@ -438,14 +444,16 @@ impl OnlineMovie
             return {}
         let page = &search.query.pages[index]
         var movie: OnlineMovie
-        movie.id = page.pageprops.id
-        movie.title = query.title
+        movie.id          = page.pageprops.id
+        movie.title       = query.title
         movie.releaseDate = query.year
-        movie.overview = page.extract
-        movie.posterUrl = page.thumbnail.source
-        movie.articleUrl = Format.toString("https://%/wiki/%", wikiHost, Url.encodeComponent(cast(const [..] u8, page.title.toString())))
+        movie.overview    = page.extract
+        movie.posterUrl   = page.thumbnail.source
+        movie.articleUrl  = Format.toString("https://%/wiki/%", wikiHost, Url.encodeComponent(cast(const [..] u8, page.title.toString())))
+
         // Missing structured data must not discard an otherwise useful article or illustration.
         catch movie.loadDetails(source, options, language)
+
         // The French article often has a landscape logo while the English one has the poster.
         if language == "fr" and (page.thumbnail.height <= page.thumbnail.width or page.thumbnail.source.isEmpty()) do
             catch movie.loadEnglishPoster(query, source, searchPath, options)
@@ -454,7 +462,7 @@ impl OnlineMovie
 
     private mtd loadEnglishPoster(query: MovieQuery, source: MovieSource, path: string, options: Http.GetOptions) fail
     {
-        let host = source.wikiHost.count ? source.wikiHost : "en.wikipedia.org"
+        let host     = source.wikiHost.count ? source.wikiHost : "en.wikipedia.org"
         let response = try Http.get(host, source.port, path, source.secure, options)
         if response.status != 200 do
             return
@@ -473,9 +481,9 @@ impl OnlineMovie
     {
         if not validWikiId(.id) do
             return
-        let lang = language == "fr" ? "fr,en" : "en"
-        let sparql = Format.toString("""SELECT ?directorLabel ?castLabel ?score ?scoreDate WHERE { OPTIONAL { wd:% wdt:P57 ?director } OPTIONAL { wd:% wdt:P161 ?cast } OPTIONAL { wd:% p:P444 ?s . ?s ps:P444 ?score; pq:P447 wd:Q37312 . OPTIONAL { ?s pq:P585 ?scoreDate } } SERVICE wikibase:label { bd:serviceParam wikibase:language "%" . } } LIMIT 20""", .id, .id, .id, lang)
-        let request = Format.toString("/sparql?query=%&format=json", Url.encodeComponent(cast(const [..] u8, sparql.toString())))
+        let lang     = language == "fr" ? "fr,en" : "en"
+        let sparql   = Format.toString("""SELECT ?directorLabel ?castLabel ?score ?scoreDate WHERE { OPTIONAL { wd:% wdt:P57 ?director } OPTIONAL { wd:% wdt:P161 ?cast } OPTIONAL { wd:% p:P444 ?s . ?s ps:P444 ?score; pq:P447 wd:Q37312 . OPTIONAL { ?s pq:P585 ?scoreDate } } SERVICE wikibase:label { bd:serviceParam wikibase:language "%" . } } LIMIT 20""", .id, .id, .id, lang)
+        let request  = Format.toString("/sparql?query=%&format=json", Url.encodeComponent(cast(const [..] u8, sparql.toString())))
         let response = try Http.get(source.dataHost, source.port, request.toString(), source.secure, options)
         if response.status != 200 do
             fail Errors.InvalidFormatError{}
@@ -492,6 +500,7 @@ impl OnlineMovie
                 if row.scoreDate.value.length >= 10 do
                     .imdbRating += Format.toString(" (%)", row.scoreDate.value.toString()[0 until 10])
             }
+
             if not row.castLabel.value.isEmpty() and not Utf8.contains(.actors.toString(), row.castLabel.value.toString())
             {
                 if not .actors.isEmpty() do
@@ -512,9 +521,13 @@ impl OnlineMovie
             if target.host != source.imageHost or target.port != source.port do
                 fail Errors.InvalidFormatError{}
         }
-        elif not target.secure or target.port != 443 or
-             (target.host != "upload.wikimedia.org" and target.host != "thumb.wikimedia.org" and not Utf8.endsWith(target.host, ".mzstatic.com")) do
+        elif not target.secure or
+             target.port != 443 or
+             (target.host != "upload.wikimedia.org" and target.host != "thumb.wikimedia.org" and not Utf8.endsWith(target.host, ".mzstatic.com"))
+        {
             fail Errors.InvalidFormatError{}
+        }
+
         var options: Http.GetOptions
         options.userAgent = "SwagScope/1.0 (https://github.com/swag-lang/swc)"
         options.timeoutMs = 5_000

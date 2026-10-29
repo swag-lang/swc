@@ -12,11 +12,11 @@ struct OutlineMargin
 {
     using wnd: Wnd
 
-    titles:   Array'String
-    label:    String                    // Section label over the entries, or empty for none.
-    rule:     bool                      // Whether one faint rule holds the entries together.
-    active:   u64 = Swag.U64.Max
-    hot:      u64 = Swag.U64.Max
+    titles:    Array'String
+    label:     String     // Section label over the entries, or empty for none.
+    rule:      bool       // Whether one faint rule holds the entries together.
+    active:    u64 = Swag.U64.Max
+    hot:       u64 = Swag.U64.Max
     sigChosen: SigArray'func||(*OutlineMargin, u64)
 }
 

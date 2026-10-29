@@ -413,7 +413,7 @@ private impl Panel
         // The outline stands in the margin beside the page; choosing a part shows it.
         with result.margin = OutlineMargin.create(result, "scope.pdf.margin")
         {
-            .label    = texts().ui_Contents
+            .label     = texts().ui_Contents
             .sigChosen += func|view = result|(_, row)
             {
                 if row < view.marginParts.count

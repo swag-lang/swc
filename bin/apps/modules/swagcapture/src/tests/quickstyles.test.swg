@@ -372,7 +372,7 @@ using Swag, Core
     quick.updateQuickStyles(forceRebuild: true)
     Swag.assert(quick.qsArrow.forms.count > 5)
 
-    var shown, hidden = 0
+    var shown, hidden       = 0
     var moreShown, addShown = false
     for c in quick.layout.children where not c.isPendingDestroy
     {

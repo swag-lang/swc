@@ -74,9 +74,9 @@ struct Picture
 {
     public
     {
-        title: String                                     // What the picture shows, said when the pointer rests on it.
-        paint: (func||(*Painter, Math.Rectangle))?        // Paints the picture into its cell, in local coordinates.
-        run:   (func||())?                                // Action run when the picture is chosen, once the lens has left the screen.
+        title: String          // What the picture shows, said when the pointer rests on it.
+        paint: (func||(*Painter, Math.Rectangle))?     // Paints the picture into its cell, in local coordinates.
+        run:   (func||())?     // Action run when the picture is chosen, once the lens has left the screen.
     }
 }
 

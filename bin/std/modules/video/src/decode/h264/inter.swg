@@ -547,6 +547,7 @@ private func interpolateLuma(dst: [*] u8, dstStride: u64, src: [*] u8, srcStride
             halfHorizontalAvg(dst, dstStride, fracY == 1 ? src : src + srcStride, srcStride, dst, dstStride, width, height)
             return
         }
+
         var planeA: [16 * 16] u8
         halfCenter(planeA.buffer, 16, src, srcStride, width, height)
         halfHorizontalAvg(dst, dstStride, fracY == 1 ? src : src + srcStride, srcStride, planeA.buffer, 16, width, height)
@@ -562,6 +563,7 @@ private func interpolateLuma(dst: [*] u8, dstStride: u64, src: [*] u8, srcStride
             halfVerticalAvg(dst, dstStride, fracX == 1 ? src : src + 1, srcStride, dst, dstStride, width, height)
             return
         }
+
         var planeA: [16 * 16] u8
         halfCenter(planeA.buffer, 16, src, srcStride, width, height)
         halfVerticalAvg(dst, dstStride, fracX == 1 ? src : src + 1, srcStride, planeA.buffer, 16, width, height)
@@ -576,6 +578,7 @@ private func interpolateLuma(dst: [*] u8, dstStride: u64, src: [*] u8, srcStride
         halfVerticalAvg(dst, dstStride, fracX == 1 ? src : src + 1, srcStride, dst, dstStride, width, height)
         return
     }
+
     var planeA: [16 * 16] u8
     halfHorizontal(planeA.buffer, 16, fracY == 1 ? src : src + srcStride, srcStride, width, height)
     halfVerticalAvg(dst, dstStride, fracX == 1 ? src : src + 1, srcStride, planeA.buffer, 16, width, height)
@@ -874,6 +877,7 @@ private func interpolateChroma2(dst: [*] u8, dstStride: u64, src: [*] u8, srcStr
             out  += dstStride
             line += srcStride
         }
+
         return
     }
 
@@ -887,8 +891,9 @@ private func interpolateChroma2(dst: [*] u8, dstStride: u64, src: [*] u8, srcStr
             let lower = Simd.load(line)
             storeChromaBlend2(out, chromaPairs(upper, lower, weights))
             upper = lower
-            out  += dstStride
+            out   += dstStride
         }
+
         return
     }
 
@@ -901,7 +906,7 @@ private func interpolateChroma2(dst: [*] u8, dstStride: u64, src: [*] u8, srcStr
         let lower = Simd.interleaveLow(Simd.load(line), Simd.load(line + 1))
         storeChromaBlend2(out, Simd.mulAddPairs(upper, topWeights) + Simd.mulAddPairs(lower, bottomWeights))
         upper = lower
-        out  += dstStride
+        out   += dstStride
     }
 }
 
@@ -992,6 +997,7 @@ func weightUni(dst: [*] u8, dstStride: u64, src: [*] u8, srcStride: u64, width, 
                 out  += dstStride
                 line += srcStride
             }
+
             return
         }
 
@@ -1031,6 +1037,7 @@ private func weightBiRow(pixels0, pixels1: Simd.U8x16, logDenom, weight0, weight
     let rounding = 1's32 << cast(u32, logDenom)
     let offset   = (offset0 + offset1 + 1) >> 1
     let shift    = logDenom + 1
+
     // Explicit weights are in [-128, 127], and the default or implicit weights also fit s16.
     // Pairing the two source samples and weights keeps the sum in signed 32-bit lanes.
     let packedWeights = cast(u32, cast #wrap(u16, weight0)) | (cast(u32, cast #wrap(u16, weight1)) << 16)
@@ -1039,12 +1046,12 @@ private func weightBiRow(pixels0, pixels1: Simd.U8x16, logDenom, weight0, weight
     let p0High        = Simd.widenHigh(pixels0)
     let p1Low         = Simd.widenLow(pixels1)
     let p1High        = Simd.widenHigh(pixels1)
-    let r0 = weightBiQuads(cast #bit(Simd.S16x8, Simd.interleaveLow(p0Low, p1Low)), weights, rounding, shift, offset)
-    let r1 = weightBiQuads(cast #bit(Simd.S16x8, Simd.interleaveHigh(p0Low, p1Low)), weights, rounding, shift, offset)
-    let r2 = weightBiQuads(cast #bit(Simd.S16x8, Simd.interleaveLow(p0High, p1High)), weights, rounding, shift, offset)
-    let r3 = weightBiQuads(cast #bit(Simd.S16x8, Simd.interleaveHigh(p0High, p1High)), weights, rounding, shift, offset)
-    let low  = Simd.packUnsigned(r0, r1)
-    let high = Simd.packUnsigned(r2, r3)
+    let r0            = weightBiQuads(cast #bit(Simd.S16x8, Simd.interleaveLow(p0Low, p1Low)), weights, rounding, shift, offset)
+    let r1            = weightBiQuads(cast #bit(Simd.S16x8, Simd.interleaveHigh(p0Low, p1Low)), weights, rounding, shift, offset)
+    let r2            = weightBiQuads(cast #bit(Simd.S16x8, Simd.interleaveLow(p0High, p1High)), weights, rounding, shift, offset)
+    let r3            = weightBiQuads(cast #bit(Simd.S16x8, Simd.interleaveHigh(p0High, p1High)), weights, rounding, shift, offset)
+    let low           = Simd.packUnsigned(r0, r1)
+    let high          = Simd.packUnsigned(r2, r3)
     return Simd.packUnsigned(cast #bit(Simd.S16x8, low), cast #bit(Simd.S16x8, high))
 }
 
@@ -1059,9 +1066,9 @@ private func weightBiRow8(pixels0, pixels1: Simd.U8x16, logDenom, weight0, weigh
     let weights       = cast #bit(Simd.S16x8, Simd.splat(packedWeights))
     let p0            = Simd.widenLow(pixels0)
     let p1            = Simd.widenLow(pixels1)
-    let r0 = weightBiQuads(cast #bit(Simd.S16x8, Simd.interleaveLow(p0, p1)), weights, rounding, shift, offset)
-    let r1 = weightBiQuads(cast #bit(Simd.S16x8, Simd.interleaveHigh(p0, p1)), weights, rounding, shift, offset)
-    let low = Simd.packUnsigned(r0, r1)
+    let r0            = weightBiQuads(cast #bit(Simd.S16x8, Simd.interleaveLow(p0, p1)), weights, rounding, shift, offset)
+    let r1            = weightBiQuads(cast #bit(Simd.S16x8, Simd.interleaveHigh(p0, p1)), weights, rounding, shift, offset)
+    let low           = Simd.packUnsigned(r0, r1)
     return Simd.packUnsigned(cast #bit(Simd.S16x8, low), cast #bit(Simd.S16x8, low))
 }
 
@@ -1081,6 +1088,7 @@ func weightBi(dst: [*] u8, dstStride: u64, src0, src1: [*] u8, srcStride: u64, w
                 line0 += srcStride
                 line1 += srcStride
             }
+
             return
         }
 

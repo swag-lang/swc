@@ -144,7 +144,7 @@ impl InPlaceEditWnd
         {
             with let button = .bar.addButton(main.icon(tool.icon, size), toolTip: tool.tip, flags: .Radio)
             {
-                .userData = enumToUserData(tool.mode)
+                .userData   = enumToUserData(tool.mode)
                 .sigPressed += func|editor = me|(btn)
                 {
                     editor.editMode = enumFromUserData'InPlaceEditMode(btn.userData)
@@ -184,9 +184,9 @@ impl InPlaceEditWnd
         }
 
         .bar.addSeparator()
-        .bar.addTextButton(texts.act_Pin).sigPressed += func|editor = me|(_) { editor.pin() }
+        .bar.addTextButton(texts.act_Pin).sigPressed       += func|editor = me|(_) { editor.pin() }
         .bar.addTextButton(texts.act_InpEditor).sigPressed += func|editor = me|(_) { editor.toEditor() }
-        .bar.addTextButton(texts.act_InpSave).sigPressed += func|editor = me|(_) { editor.save() }
+        .bar.addTextButton(texts.act_InpSave).sigPressed   += func|editor = me|(_) { editor.save() }
 
         let copyWidth = Math.ceil(Painter.measureString(texts.act_InpCopy, .theme().createDefaultFont(metrics.defaultFontSize)).width + 2 * metrics.btnPush_TextMargin)
         with let copy = PushButton.create(.bar, texts.act_InpCopy, {0, 0, copyWidth, metrics.miniBar_ButtonSize}, form: .Strong)
@@ -344,14 +344,14 @@ impl InPlaceEditWnd
                 .mdlFormText.backColor  = me.editColor
 
             case .Callout:
-                .editMode                  = .Callout
+                .editMode = .Callout
                 .mdlFormCallout.fontSize   = textSize * 0.6
                 .mdlFormCallout.backColor  = me.editColor
                 .mdlFormCallout.borderSize = 0
 
             case .Step:
-                .editMode               = .Step
-                .mdlFormStep.backColor  = me.editColor
+                .editMode = .Step
+                .mdlFormStep.backColor = me.editColor
 
             case .Marker:
                 .editMode = .Draw
@@ -381,14 +381,10 @@ impl IWnd for InPlaceEditWnd
 
         switch
         {
-        case evt.key == .Escape:
-            exitWithResult(false)
-        case evt.key == .Return and evt.modifiers == .None:
-            .copy()
-        case evt.key == .S and evt.modifiers == .Control:
-            .save()
-        default:
-            return
+        case evt.key == .Escape: exitWithResult(false)
+        case evt.key == .Return and evt.modifiers == .None: .copy()
+        case evt.key == .S and evt.modifiers == .Control:   .save()
+        default: return
         }
 
         evt.accepted = true

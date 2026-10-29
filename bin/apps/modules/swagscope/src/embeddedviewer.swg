@@ -24,7 +24,7 @@ struct EmbeddedViewer
         sidePlaceholder: *Wnd
     }
 
-    commandBar:        *FloatingPanel?     // Made with the viewer; a resize may reach it before.
+    commandBar: *FloatingPanel?     // Made with the viewer; a resize may reach it before.
 
     late owner:        *ViewerWindow
     fileName:          String
@@ -120,13 +120,13 @@ impl Viewer.Embedded for EmbeddedViewer
         .infoLane.hide()
         .infoLane.position.width = 0
         .titleLabel.setText(Viewers.Archive.texts().ui_Select)
-        .activeIndex                = Swag.U32.Max
-        .currentView                = null
-        .currentActions             = null
-        .currentInfo                = null
-        .currentCommands            = null
-        .currentSidePanel           = null
-        .currentSideButton          = null
+        .activeIndex       = Swag.U32.Max
+        .currentView       = null
+        .currentActions    = null
+        .currentInfo       = null
+        .currentCommands   = null
+        .currentSidePanel  = null
+        .currentSideButton = null
         .commandBar?.hide()
         .applyLayout()
         return true
@@ -155,13 +155,13 @@ private impl EmbeddedViewer
         .currentSideButton?.hide()
 
         let instance = &.instances[index]
-        .currentView                = instance.view
-        .currentActions             = instance.actions
-        .currentInfo                = instance.info
-        .currentCommands            = instance.commands
-        .currentSidePanel           = instance.sidePanelHost
-        .currentSideButton          = instance.sidePanelButton
-        .activeIndex                = index
+        .currentView       = instance.view
+        .currentActions    = instance.actions
+        .currentInfo       = instance.info
+        .currentCommands   = instance.commands
+        .currentSidePanel  = instance.sidePanelHost
+        .currentSideButton = instance.sidePanelButton
+        .activeIndex       = index
         let plugin = &.owner.index.plugins[.choices[index].pluginIndex]
         .viewerMenu.setQuietText(plugin.displayName())
 
@@ -223,12 +223,12 @@ private impl EmbeddedViewer
         var area    = .clientRect()
         area.y      += .header.position.height
         area.height = Math.max(area.height - .header.position.height, 0)
-        let inset   = metrics.floating_Inset
-        let pad     = bar.padding
-        let room    = Math.max(area.width - 2 * inset - pad.x - pad.z, 0)
-        let wanted  = commands.preferredSize.x > 0 ? commands.preferredSize.x : room
-        let width   = Math.min(wanted, room)
-        let height  = commands.position.height + pad.y + pad.w
+        let inset  = metrics.floating_Inset
+        let pad    = bar.padding
+        let room   = Math.max(area.width - 2 * inset - pad.x - pad.z, 0)
+        let wanted = commands.preferredSize.x > 0 ? commands.preferredSize.x : room
+        let width  = Math.min(wanted, room)
+        let height = commands.position.height + pad.y + pad.w
         bar.setPosition(Math.Rectangle{Math.round(area.x + area.width * 0.5 - (width + pad.x + pad.z) * 0.5), area.bottom() - inset - height, width + pad.x + pad.z, height}, computeLayout: false)
         commands.dockStyle = .None
         commands.setPosition(Math.Rectangle{pad.x, pad.y, width, commands.position.height}, computeLayout: false)

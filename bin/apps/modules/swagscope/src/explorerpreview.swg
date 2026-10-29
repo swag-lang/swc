@@ -160,9 +160,15 @@ impl ExplorerPreview
     private mtd renderOnlineImage(bytes: const [..] u8)->Image fail
     {
         var extension = ".jpg"
-        if bytes.count >= 8 and bytes[0] == 0x89 and bytes[1] == 'P' and bytes[2] == 'N' and bytes[3] == 'G' do
+        if bytes.count >= 8 and
+           bytes[0] == 0x89 and
+           bytes[1] == 'P' and
+           bytes[2] == 'N' and
+           bytes[3] == 'G' do
             extension = ".png"
-        elif bytes.count >= 12 and cast(string, bytes[0 until 4]) == "RIFF" and cast(string, bytes[8 until 12]) == "WEBP" do
+        elif bytes.count >= 12 and
+             cast(string, bytes[0 until 4]) == "RIFF" and
+             cast(string, bytes[8 until 12]) == "WEBP" do
             extension = ".webp"
         var name = Format.toString("scope-artwork-%", Guid64.random())
         name += extension

@@ -41,9 +41,8 @@ private
     const SampleSizes: [SampleCount] u32 = [64, 36, 22, 15, 11]
 
     // The glyphs the row under the name shows, those the face maps, and the one chosen in it.
-    const RowGlyphs: [12] rune = ['A', 'g', 'ß', 'é', 'ç', 'Ω', '&', '@', '€', '≠', '→', '3']
-    const ChosenGlyph: rune = 'é'
-
+    const RowGlyphs:   [12] rune = ['A', 'g', 'ß', 'é', 'ç', 'Ω', '&', '@', '€', '≠', '→', '3']
+    const ChosenGlyph: rune      = 'é'
 
     const CharacterPageSize = 192'u64
     const FirstCharacter    = 0x20'u32
@@ -97,26 +96,26 @@ struct DocumentCell
 // have been measured; a constant would work for one face and let a tall one overlap.
 struct DocumentLayout
 {
-    wide:       bool        // Whether the specimen stands in two columns beside the name.
-    aaTop:      f32         // Top of the large "Aa".
-    tabsTop:    f32         // Top of the style tabs.
-    glyphsTop:  f32         // Top of the glyph-row caption.
-    rowTop:     f32         // Top of the row of glyphs.
-    glyphNameTop: f32       // Top of the line naming the chosen glyph.
-    sampleLeft: f32         // Left edge of the specimen lines.
-    sampleWidth: f32        // Width the specimen lines may take.
-    nameTop:    f32         // Top of the family name.
-    metricsTop: f32         // Top of the style, version, glyph count and units-per-em line.
-    noticeTop:  f32         // Top of the designer and copyright line, when the face names either.
-    captionTop: f32         // Top of the specimen caption.
-    sampleTops: [SampleCount] f32     // Top of each specimen line, one per entry of `SampleSizes`.
-    mapTop:     f32         // Top of the character-map caption.
-    gridTop:    f32         // Top of the first row of cells.
-    gridLeft:   f32         // Left edge of the first column.
-    cellHeight: f32         // Height one cell needs for its glyph and its code label.
-    columns:    u32 = 1     // Cells one row holds.
-    rows:       u64         // Rows the loaded page fills.
-    height:     f32         // Total content height, which is what the scrollbar is given.
+    wide:         bool        // Whether the specimen stands in two columns beside the name.
+    aaTop:        f32         // Top of the large "Aa".
+    tabsTop:      f32         // Top of the style tabs.
+    glyphsTop:    f32         // Top of the glyph-row caption.
+    rowTop:       f32         // Top of the row of glyphs.
+    glyphNameTop: f32         // Top of the line naming the chosen glyph.
+    sampleLeft:   f32         // Left edge of the specimen lines.
+    sampleWidth:  f32         // Width the specimen lines may take.
+    nameTop:      f32         // Top of the family name.
+    metricsTop:   f32         // Top of the style, version, glyph count and units-per-em line.
+    noticeTop:    f32         // Top of the designer and copyright line, when the face names either.
+    captionTop:   f32         // Top of the specimen caption.
+    sampleTops:   [SampleCount] f32     // Top of each specimen line, one per entry of `SampleSizes`.
+    mapTop:       f32         // Top of the character-map caption.
+    gridTop:      f32         // Top of the first row of cells.
+    gridLeft:     f32         // Left edge of the first column.
+    cellHeight:   f32         // Height one cell needs for its glyph and its code label.
+    columns:      u32 = 1     // Cells one row holds.
+    rows:         u64         // Rows the loaded page fills.
+    height:       f32         // Total content height, which is what the scrollbar is given.
 }
 
 // Scrollable specimen and Unicode character map drawn with the inspected face.
@@ -233,8 +232,8 @@ private impl DocumentView
         SectionLabel.paint(me, painter, Math.Rectangle{left, .layout.glyphsTop, LeftColumn, .fontLabel.height}, texts().ui_Glyphs)
         let glyphFont = .sampleFont(RowGlyphSize)
         let radius    = .themeMetrics().corner_Control
-        var x = left
-        var chosen = Swag.U32.Max
+        var x         = left
+        var chosen    = Swag.U32.Max
         for glyph in RowGlyphs where .face.hasChar(glyph)
         {
             var text: String
@@ -266,8 +265,8 @@ private impl DocumentView
         painter.pushClippingRect(Math.Rectangle{.layout.sampleLeft, 0, .layout.sampleWidth + SampleLabelWidth, .layout.mapTop})
         for size, index in SampleSizes
         {
-            let top  = .layout.sampleTops[index]
-            let font = .sampleFont(size)
+            let top      = .layout.sampleTops[index]
+            let font     = .sampleFont(size)
             let sizeText = Format.toString("%", size)
             painter.drawString(.layout.sampleLeft, font.opticalLineTop(top + font.height * 0.5) + (font.height - .fontCode.height) * 0.35, sizeText, .fontCode, colors.faintText)
             painter.drawString(.layout.sampleLeft + SampleLabelWidth, top, sample, font, colors.text)
@@ -447,20 +446,20 @@ impl DocumentView
         // The "Aa" stands on its own ink: the room a face keeps above its capitals is left out.
         let aa = .sampleFont(SpecimenSize)
         var y  = ContentInset
-        .layout.aaTop = y - Math.round(aa.height * 0.2)
-        y = .layout.aaTop + aa.height
-        .layout.nameTop = y
-        y += .theme().createDefaultFont(FamilySize, .Bold).height
-        .layout.metricsTop = y + 2
-        y += .fontCode.height + 18
-        .layout.tabsTop = y
-        y += 24 + 28
-        .layout.glyphsTop = y
-        y += .fontLabel.height + 8
-        .layout.rowTop = y
-        y += RowPitch + 8
+        .layout.aaTop        = y - Math.round(aa.height * 0.2)
+        y                    = .layout.aaTop + aa.height
+        .layout.nameTop      = y
+        y                    += .theme().createDefaultFont(FamilySize, .Bold).height
+        .layout.metricsTop   = y + 2
+        y                    += .fontCode.height + 18
+        .layout.tabsTop      = y
+        y                    += 24 + 28
+        .layout.glyphsTop    = y
+        y                    += .fontLabel.height + 8
+        .layout.rowTop       = y
+        y                    += RowPitch + 8
         .layout.glyphNameTop = y
-        y += .fontCode.height
+        y                    += .fontCode.height
         let leftBottom = y
 
         // The specimen lines: beside the column on a wide page, under it otherwise.

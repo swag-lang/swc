@@ -863,7 +863,9 @@ func assertFolderFiles(window: *ViewerWindow, names: const [..] String)
     // checked; the keys land on it.
     window.lens.open(appStrings().lens_ViewAs)
     let viewAs = unwrap window.lens.results.sections[0]
-    Swag.assert(viewAs.label == appStrings().lens_ViewAs and viewAs.inline and viewAs.entries.count == window.choices.count)
+    Swag.assert(viewAs.label == appStrings().lens_ViewAs and
+                viewAs.inline and
+                viewAs.entries.count == window.choices.count)
     Swag.assert(window.lens.chosenEntry()!.title == viewAs.entries[0].title)
     Swag.assert(viewAs.entries[0].checked and not viewAs.entries[1].checked)
     window.lens.close()
@@ -1467,7 +1469,9 @@ func assertFolderFiles(window: *ViewerWindow, names: const [..] String)
     // Nothing frames the work: the bands an application once drew are the ground it sits on.
     let colors = window.themeColors()
     Swag.assert(colors.view_Bk == colors.ground and colors.wnd_Bk == colors.ground)
-    Swag.assert(colors.informationBar_Bk == colors.ground and colors.commandBar_Bk == colors.ground and colors.toolBar_Bk == colors.ground)
+    Swag.assert(colors.informationBar_Bk == colors.ground and
+                colors.commandBar_Bk == colors.ground and
+                colors.toolBar_Bk == colors.ground)
     Swag.assert(window.surface!.minSize.x == ViewerWindow.MinWidth)
     Swag.assert(window.home.message.isEmpty() and window.home.rows.isEmpty())
 

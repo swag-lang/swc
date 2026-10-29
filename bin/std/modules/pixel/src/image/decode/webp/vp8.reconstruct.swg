@@ -84,10 +84,11 @@ func vp8InverseDct4Dc(decoder: *Vp8Decoder, y, x, coeffBase: s32)
         let zero  = Math.Simd.splat(0's16)
         for j in 4
         {
-            let row = &decoder.ybr[y + j][x]
+            let row    = &decoder.ybr[y + j][x]
             let pixels = cast #bit(Math.Simd.S16x8, Math.Simd.widenLow(Math.Simd.load(row)))
             Math.Simd.storeLow4(row, Math.Simd.packUnsigned(pixels + delta, zero))
         }
+
         return
     }
 

@@ -5,9 +5,9 @@ using Core, Gui, Pixel
 // One row of the home: a file read lately.
 struct ViewerHomeRow
 {
-    file:    String
-    opened:  u64          // Local ticks of the last time it was opened; zero when unknown.
-    glyph:   Icon         // Glyph of the viewer the file opens in, the only picture a row carries.
+    file:   String
+    opened: u64      // Local ticks of the last time it was opened; zero when unknown.
+    glyph:  Icon     // Glyph of the viewer the file opens in, the only picture a row carries.
 }
 
 // The window without a file: the Scope mark, one line inviting a drop, and under a hairline the
@@ -22,7 +22,7 @@ struct ViewerHome
     using wnd: Wnd
 
     late window: *ViewerWindow
-    message:     String          // Sentence standing in for the invitation, such as why a file did not open.
+    message:     String     // Sentence standing in for the invitation, such as why a file did not open.
     rows:        Array'ViewerHomeRow
     hovered:     u64 = Swag.U64.Max
     chosen:      u64 = Swag.U64.Max
@@ -34,18 +34,18 @@ struct ViewerHome
 impl ViewerHome
 {
     // The measures of the home, from its picture.
-    const ListWidth     = 400.0
-    const RowHeight     = 40.0
-    const RowInset      = 12.0     // Air between the edge of a row and its glyph.
-    const NameLeft      = 36.0     // Start of the name from the edge of the list.
-    const MarkSize      = 64.0
-    const MarkToLine    = 34.0     // From the foot of the mark to the middle of the invitation.
-    const LineToRule    = 48.0
-    const RuleToRows    = 16.0
-    const RowsToClear   = 20.0
-    const MaxRows       = 6'u64
-    const FontSize      = 14'u32
-    const MonoSize      = 11'u32
+    const ListWidth   = 400.0
+    const RowHeight   = 40.0
+    const RowInset    = 12.0     // Air between the edge of a row and its glyph.
+    const NameLeft    = 36.0     // Start of the name from the edge of the list.
+    const MarkSize    = 64.0
+    const MarkToLine  = 34.0     // From the foot of the mark to the middle of the invitation.
+    const LineToRule  = 48.0
+    const RuleToRows  = 16.0
+    const RowsToClear = 20.0
+    const MaxRows     = 6'u64
+    const FontSize    = 14'u32
+    const MonoSize    = 11'u32
 
     func create(parent: *Wnd, window: *ViewerWindow)->*ViewerHome
     {
@@ -74,7 +74,7 @@ impl ViewerHome
         let window = .window
         for index in Math.min(window.recent.count, MaxRows)
         {
-            let file = window.recent[index].toString()
+            let file     = window.recent[index].toString()
             with let row = .rows.emplaceInitAddress()
             {
                 .file   = file
@@ -162,7 +162,7 @@ impl ViewerHome
     func folderText(file: string)->String
     {
         var result: #returntype
-        var path   = Path.directoryName(file) orelse ""
+        var path = Path.directoryName(file) orelse ""
         for 3
         {
             let name = Path.fileName(path) orelse ""
@@ -282,11 +282,11 @@ impl IWnd for ViewerHome
                 glyph.paint(painter, rect.x + RowInset - 1, Math.round(centerY - glyph.sizeY * 0.5), colors.faintText)
             }
 
-            let file    = row.file.toString()
-            let name    = Path.fileName(file) orelse file
-            let nameX   = rect.x + NameLeft
-            let used    = Painter.measureString(name, body).width
-            var right   = rect.right()
+            let file  = row.file.toString()
+            let name  = Path.fileName(file) orelse file
+            let nameX = rect.x + NameLeft
+            let used  = Painter.measureString(name, body).width
+            var right = rect.right()
             if hot
             {
                 let cross = .removeRect(index)
@@ -382,10 +382,18 @@ impl IWnd for ViewerHome
 
         switch evt.key
         {
-        case .Up:     .chosen = .chosen == Swag.U64.Max ? 0 : (.chosen ? .chosen - 1 : 0)
-        case .Down:   .chosen = .chosen == Swag.U64.Max ? 0 : Math.min(.chosen + 1, .rows.count - 1)
-        case .Return where .chosen < .rows.count: .window.queueFile(String.from(.rows[.chosen].file))
-        case .Delete where .chosen < .rows.count: .removeRow(.chosen)
+        case .Up:
+            .chosen = .chosen == Swag.U64.Max ? 0 : (.chosen ? .chosen - 1 : 0)
+
+        case .Down:
+            .chosen = .chosen == Swag.U64.Max ? 0 : Math.min(.chosen + 1, .rows.count - 1)
+
+        case .Return where .chosen < .rows.count:
+            .window.queueFile(String.from(.rows[.chosen].file))
+
+        case .Delete where .chosen < .rows.count:
+            .removeRow(.chosen)
+
         default:
             evt.accepted = false
             return

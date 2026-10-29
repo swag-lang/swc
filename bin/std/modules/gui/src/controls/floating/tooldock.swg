@@ -55,7 +55,7 @@ struct ToolDockMember
 struct ToolDockGroup
 {
     late cell: *IconButton
-    members: Array'ToolDockMember
+    members:   Array'ToolDockMember
 }
 
 // The side of the corner of a group cell its mark is drawn in; a click there lists the group.
@@ -103,10 +103,10 @@ impl IWnd for ToolDock
         painter.setParams(.Antialiased)
         for &group in .groups
         {
-            let r  = group.cell.position
-            let x1 = r.right() - 3
-            let y1 = r.bottom() - 3
-            let s  = ToolDockMarkSize * 0.55
+            let r    = group.cell.position
+            let x1   = r.right() - 3
+            let y1   = r.bottom() - 3
+            let s    = ToolDockMarkSize * 0.55
             var mark = [Math.Vector2{x1, y1 - s}, Math.Vector2{x1, y1}, Math.Vector2{x1 - s, y1}]
             painter.fillPolygon(mark, Brush.createSolid(ink))
         }

@@ -5,7 +5,7 @@ using Swag, Core
 // The DC-only inverse transform clips each block pixel without touching its neighbours.
 #test
 {
-    var input = [0'u8]
+    var input   = [0'u8]
     var decoder = Webp.Vp8Decoder{source: &input[0]}
     for coefficient in [-32768's32, -2048, -1025, -9, -4, 0, 3, 4, 9, 1024, 2048, 32767]
     {

@@ -22,17 +22,17 @@ struct ExplorerEntry
     // writes under it, read beside the listing: a picture's size, a document's pages, the lines
     // of code, the sections of Markdown, a font's family and style, and the first lines of a
     // text.
-    width:         u32
-    height:        u32
-    pages:         u64
-    lines:         u64
-    sections:      u64
-    members:       u64
-    face:          String
-    excerpt:       String
-    movie:         MovieSummary
-    music:         MusicSummary
-    attempted:     bool
+    width:     u32
+    height:    u32
+    pages:     u64
+    lines:     u64
+    sections:  u64
+    members:   u64
+    face:      String
+    excerpt:   String
+    movie:     MovieSummary
+    music:     MusicSummary
+    attempted: bool
 }
 
 // The extensions whose content a cell of the mixed board draws, compared without case.
@@ -98,8 +98,8 @@ func probeEntry(entry: *ExplorerEntry)->bool
     {
         catch
         {
-            let head = try readHead(entry.path, 1024 * 1024)
-            let text = cast(string, head.toSlice())
+            let head  = try readHead(entry.path, 1024 * 1024)
+            let text  = cast(string, head.toSlice())
             var lines, sections: u64
             var start = 0'u64
             var kept  = 0'u64
@@ -247,7 +247,7 @@ impl ExplorerListing
             let slash = Utf8.indexOf(relative, "/")
             if slash != Swag.U64.Max or entry.isDirectory
             {
-                let name  = String.from(slash != Swag.U64.Max ? relative[0 until slash] : relative)
+                let name = String.from(slash != Swag.U64.Max ? relative[0 until slash] : relative)
                 if name.isEmpty() do
                     continue
                 let found = folders.tryFind(name)

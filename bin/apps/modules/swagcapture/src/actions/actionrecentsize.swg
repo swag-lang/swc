@@ -104,7 +104,7 @@ impl MainWnd
     mtd setBottomSize(bottomSize: BottomSize, animated = true)
     {
         .bottomSize = bottomSize
-        let height  = .bottomHeight()
+        let height = .bottomHeight()
 
         if animated
         {

@@ -48,7 +48,7 @@ struct HintLine
 
         readonly
         {
-            reading:   String     // Faint mono reading leading the line; empty for none.
+            reading:   String                 // Faint mono reading leading the line; empty for none.
             hints:     Array'HintLineItem     // Keys and what they open, in reading order.
             alignment: HintLineAlignment      // Where the line stands along the bottom edge.
             grounded:  bool                   // Whether the line stands on the floating ground, over a busy picture.
@@ -69,7 +69,7 @@ impl IWnd for HintLine
         let metrics = .themeMetrics()
         var bounds  = parent.clientRect()
         bounds.x     += .margin.x
-        bounds.width  = Math.max(bounds.width - .margin.x - .margin.z, 0)
+        bounds.width = Math.max(bounds.width - .margin.x - .margin.z, 0)
         let page    = parent.paddedClientRect()
         let pad     = .groundPadding()
         let height  = metrics.hintLine_Height + 2 * pad.y

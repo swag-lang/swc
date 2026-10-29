@@ -82,9 +82,11 @@ struct FilePlacesBar
         using wnd: Wnd     // Embedded window behavior and presentation.
     }
 
-    late browser: *FileBrowserCtrl          // Browser the places lead.
-    stops:        Array'FileBrowserStop     // Places in display order.
-    hotIdx = Swag.U64.Max                   // Place under the pointer.
+    late browser:    *FileBrowserCtrl          // Browser the places lead.
+    stops:           Array'FileBrowserStop     // Places in display order.
+    hotIdx = Swag.U64.Max                      // Place under the pointer.
+    visibleCount:    u64                       // Places that fit before the overflow button.
+    moreButton: *IconButton?                   // Opens places and drives that do not fit in the row.
 }
 
 // The path of the current folder, written before the filter in the path field of a file browser.
@@ -100,7 +102,7 @@ struct FileCrumbs
 
     late browser: *FileBrowserCtrl          // Browser the steps lead.
     stops:        Array'FileBrowserStop     // Steps in display order, the first possibly an ellipsis.
-    hotIdx = Swag.U64.Max                   // Step under the pointer.
+    hotIdx = Swag.U64.Max     // Step under the pointer.
 }
 
 // Browses folders with places as text tabs, a path field that filters, a quiet file list, and name and type editors.
@@ -112,9 +114,9 @@ struct FileBrowserCtrl
 
         readonly
         {
-            options:       FileDlgOptions     // Effective browsing and selection options.
-            currentFolder: String             // Normalized folder currently displayed.
-            placesBar:     *FilePlacesBar?    // Places, unless [[Gui.FileDlgOptions.showLocationsPane]] is off.
+            options:       FileDlgOptions      // Effective browsing and selection options.
+            currentFolder: String              // Normalized folder currently displayed.
+            placesBar:     *FilePlacesBar?     // Places, unless [[Gui.FileDlgOptions.showLocationsPane]] is off.
 
             late
             {
@@ -135,10 +137,10 @@ struct FileBrowserCtrl
         sigChoiceChanged:      SigArray'func||(*Wnd)     // Emitted after what the browser would answer with changes.
     }
 
-    late crumbs:  *FileCrumbs           // Path written at the start of the path field.
-    late typeRow: *Wnd                  // Row holding the type filter when the browser keeps it.
-    currentEntries: Array'FileInfo      // Filesystem entries backing visible rows.
-    history:        NavigationHistory   // Folder-navigation history.
+    late crumbs:    *FileCrumbs           // Path written at the start of the path field.
+    late typeRow:   *Wnd                  // Row holding the type filter when the browser keeps it.
+    currentEntries: Array'FileInfo        // Filesystem entries backing visible rows.
+    history:        NavigationHistory     // Folder-navigation history.
 }
 
 impl IWnd for FilePlacesBar
@@ -157,8 +159,9 @@ impl IWnd for FilePlacesBar
 
         // The chosen place reads in the body ink over the Arc underline; the others stay soft, and
         // the one under the pointer comes up to the body ink without the underline.
-        for &stop, idx in .stops
+        for idx in 0 until .visibleCount
         {
+            let stop   = .stops[idx]
             let chosen = idx == current
             let color  = chosen or idx == .hotIdx ? colors.text : colors.softText
             painter.drawString(stop.rect.x, font.opticalLineTop(stop.rect.vertCenter()), stop.name.toString(), font, color)
@@ -169,7 +172,7 @@ impl IWnd for FilePlacesBar
 
     mtd impl onMouseEvent(evt: *MouseEvent)
     {
-        let hit = hitStop(.stops.toSlice(), .surfaceToLocal(evt.surfacePos))
+        let hit = hitStop(.stops.toSlice()[until .visibleCount], .surfaceToLocal(evt.surfacePos))
         switch evt.kind
         {
         case .Move:
@@ -192,6 +195,29 @@ impl IWnd for FilePlacesBar
 
 impl FilePlacesBar
 {
+    // Opens the places that do not fit in the row and browses to the chosen one.
+    mtd openOverflowMenu()
+    {
+        let menu = MenuCtrl.createPopup(.browser)
+        for idx in .visibleCount until .stops.count
+        {
+            let stop = .stops[idx]
+            var icon = .theme().fileGlyph("", isDirectory: true)
+            icon.color = .themeColors().arc
+            discard menu.addItem(stop.name.toString(), stop.path.toString(), icon)
+        }
+
+        if menu.items.isEmpty()
+        {
+            menu.destroy()
+            return
+        }
+
+        let chosen = menu.doModal(unwrap .moreButton, autoDestroy: true) orelse ""
+        if chosen.count do
+            .browser.setCurrentFolder(chosen)
+    }
+
     // Returns the place the current folder lies in: the deepest one whose path starts it, or `Swag.U64.Max`.
     mtd currentIndex()->u64
     {
@@ -212,17 +238,60 @@ impl FilePlacesBar
     // Places the words of every place from the leading edge, a gap apart.
     mtd arrange()
     {
-        let font   = .theme().createDefaultFont(.themeMetrics().defaultFontSize)
-        let height = .clientRect().height
-        var x      = 0'f32
+        if not .moreButton do
+            return
+
+        let font        = .theme().createDefaultFont(.themeMetrics().defaultFontSize)
+        let height      = .clientRect().height
+        let buttonWidth = .moreButton.position.width
+        var totalWidth  = 0'f32
         for &stop in .stops
         {
+            totalWidth += Painter.measureString(stop.name.toString(), font).width + .themeMetrics().fileBrowser_PlaceGap
+        }
+
+        if totalWidth do
+            totalWidth -= .themeMetrics().fileBrowser_PlaceGap
+
+        if totalWidth <= .clientRect().width
+        {
+            .moreButton.hide()
+            .visibleCount = .stops.count
+        }
+        else
+        {
+            .moreButton.show()
+            let available = Math.max(0'f32, .clientRect().width - buttonWidth - .themeMetrics().fileBrowser_PlaceGap)
+            .visibleCount = 0
+            var used = 0'f32
+            for &stop in .stops
+            {
+                let width = Painter.measureString(stop.name.toString(), font).width
+                if used + width > available do
+                    break
+                used += width + .themeMetrics().fileBrowser_PlaceGap
+                .visibleCount += 1
+            }
+        }
+
+        var x = 0'f32
+        for idx in 0 until .visibleCount
+        {
+            let stop  = .stops[idx]
             let width = Painter.measureString(stop.name.toString(), font).width
-            stop.rect = Math.Rectangle{x, 0, width, height - 2}
+            .stops[idx].rect = Math.Rectangle{x, 0, width, height - 2}
             x += width + .themeMetrics().fileBrowser_PlaceGap
         }
 
+        .updateSelection()
         .invalidate()
+    }
+
+    // Marks the overflow control when the current folder belongs to a hidden place.
+    mtd updateSelection()
+    {
+        let current = .currentIndex()
+        .moreButton?.setIconColor(current != Swag.U64.Max and current >= .visibleCount ? .themeColors().arc : Color{})
     }
 
     // Adds a place leading to `path`, named `name`.
@@ -338,7 +407,7 @@ impl FileCrumbs
         {
             let width = Painter.measureString(stop.name.toString(), font).width
             stop.rect = Math.Rectangle{x, 0, width, height}
-            x += width + slash
+            x         += width + slash
         }
 
         .invalidate()
@@ -421,6 +490,7 @@ private impl FileBrowserCtrl
         .currentFolder = #move normalized
         .pathField.setText(null, notify: false)
         .placesBar?.invalidate()
+        .placesBar?.updateSelection()
         .placeCrumbs()
         .fillFileList()
         .sigFolderChanged.call(me)
@@ -496,18 +566,23 @@ private impl FileBrowserCtrl
         case .BrowserBack:
             discard .goBack()
             return true
+
         case .BrowserForward:
             discard .goForward()
             return true
+
         case .BrowserRefresh, .F5:
             .refresh()
             return true
+
         case .Left where modifiers.equals(.Alt):
             discard .goBack()
             return true
+
         case .Right where modifiers.equals(.Alt):
             discard .goForward()
             return true
+
         case .Up where modifiers.equals(.Alt):
             discard .goUp()
             return true
@@ -649,11 +724,11 @@ private impl FileBrowserCtrl
             .sigTextChanged += func|fileBrowser = me|(_) { fileBrowser.fillFileList() }
 
             .sigSubmitted += func|fileBrowser = me|(_) { fileBrowser.submitPath() }
-            .hookOnEvent = func|fileBrowser = me|(_, evt) => fileBrowser.handlePathEvent(evt)
+            .hookOnEvent  = func|fileBrowser = me|(_, evt) => fileBrowser.handlePathEvent(evt)
         }
 
-        .crumbs         = Wnd.create'FileCrumbs(.pathField, "", {})
-        .crumbs.browser = me
+        .crumbs             = Wnd.create'FileCrumbs(.pathField, "", {})
+        .crumbs.browser     = me
         .crumbs.focusPolicy = .Click
     }
 
@@ -874,6 +949,8 @@ impl FileBrowserCtrl
             fileBrowser.options.shortcuts.add({type: Env.SpecialDirectory.Desktop, name: strings().browser_Desktop})
             fileBrowser.options.shortcuts.add({type: Env.SpecialDirectory.UserDocuments, name: strings().browser_Documents})
             fileBrowser.options.shortcuts.add({type: Env.SpecialDirectory.UserPictures, name: strings().browser_Pictures})
+            fileBrowser.options.shortcuts.add({type: Env.SpecialDirectory.UserMusic, name: strings().browser_Music})
+            fileBrowser.options.shortcuts.add({type: Env.SpecialDirectory.UserVideos, name: strings().browser_Videos})
         }
 
         if fileBrowser.options.mode != .SelectFolder and fileBrowser.options.filters.isEmpty() do
@@ -884,9 +961,16 @@ impl FileBrowserCtrl
         {
             with let places = Wnd.create'FilePlacesBar(fileBrowser, "", {0, 0, 0, metrics.fileBrowser_PlacesHeight})
             {
-                .dockStyle = .Top
+                .dockStyle   = .Top
                 .focusPolicy = .Click
-                .browser   = fileBrowser
+                .browser     = fileBrowser
+                with .moreButton = IconButton.create(places, .theme().icon(.More, metrics.fileBrowser_GlyphSize), {0, 0, metrics.fileBrowser_PlacesHeight, metrics.fileBrowser_PlacesHeight})
+                {
+                    .dockStyle  = .Right
+                    .toolTip    = strings().browser_MorePlaces
+                    .sigPressed += func|places|(_) { places.openOverflowMenu() }
+                }
+
                 for v in fileBrowser.options.shortcuts do
                     .addPlace(v.name, Env.getSpecialDirectory(v.type).toString())
                 if fileBrowser.options.showDrives
@@ -1005,7 +1089,9 @@ impl FileBrowserCtrl
         }
 
         // Default to the first place when nothing else chose a folder.
-        if fileBrowser.currentFolder.isEmpty() and fileBrowser.placesBar and not fileBrowser.placesBar.stops.isEmpty() do
+        if fileBrowser.currentFolder.isEmpty() and
+           fileBrowser.placesBar and
+           not fileBrowser.placesBar.stops.isEmpty() do
             fileBrowser.setCurrentFolder(fileBrowser.placesBar.stops[0].path)
 
         fileBrowser.updateNavigationState()
@@ -1285,7 +1371,9 @@ impl FileBrowserCtrl
     mtd selectedPaths()->Array'String
     {
         var result: #returntype
-        if .options.mode == .SelectFolder and .editFile.text().count == 0 and not .currentFolder.isEmpty()
+        if .options.mode == .SelectFolder and
+           .editFile.text().count == 0 and
+           not .currentFolder.isEmpty()
         {
             result.add(.currentFolder)
             return result

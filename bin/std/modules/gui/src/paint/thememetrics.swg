@@ -19,25 +19,25 @@ struct ThemeMetrics
         motion_EdgeTravel:   f32 = 8        // Travel of a floating surface arriving from the edge it stands against.
         motion_AnchorTravel: f32 = 4        // Travel of a floating surface leaving the anchor it belongs to.
 
-        toast_Height:        f32 = 42       // Height of the pill of a toast.
-        toast_Corner:        f32 = 10       // Corner of the pill of a toast.
-        toast_Padding:       f32 = 18       // Air at each end of the pill.
-        toast_DotSize:       f32 = 7        // Side of the dot a toast leads with.
-        toast_Gap:           f32 = 12       // Air between the dot and the sentence.
-        toast_DetailGap:     f32 = 8        // Air between the sentence and the name or path after it.
-        toast_ActionGap:     f32 = 20       // Air before the action at the end of the pill.
-        toast_Bottom:        f32 = 72       // Height of the foot of the parent the pill stands above, the hint line's.
-        toast_Seconds:       f32 = 3        // How long a toast stays when the pointer leaves it alone.
-        toast_ActionSeconds: f32 = 4.5      // How long a toast that carries an action stays, so the action can be reached.
+        toast_Height:        f32 = 42      // Height of the pill of a toast.
+        toast_Corner:        f32 = 10      // Corner of the pill of a toast.
+        toast_Padding:       f32 = 18      // Air at each end of the pill.
+        toast_DotSize:       f32 = 7       // Side of the dot a toast leads with.
+        toast_Gap:           f32 = 12      // Air between the dot and the sentence.
+        toast_DetailGap:     f32 = 8       // Air between the sentence and the name or path after it.
+        toast_ActionGap:     f32 = 20      // Air before the action at the end of the pill.
+        toast_Bottom:        f32 = 72      // Height of the foot of the parent the pill stands above, the hint line's.
+        toast_Seconds:       f32 = 3       // How long a toast stays when the pointer leaves it alone.
+        toast_ActionSeconds: f32 = 4.5     // How long a toast that carries an action stays, so the action can be reached.
 
-        fileBrowser_PlacesHeight: f32 = 30     // Height of the row of places at the top of a file browser.
-        fileBrowser_PlaceGap:     f32 = 20     // Air between two places.
-        fileBrowser_RowGap:       f32 = 12     // Air between the rows of a file browser.
-        fileBrowser_LineHeight:   f32 = 32     // Height of a row of the file list.
-        fileBrowser_GlyphSize:    f32 = 16     // Size of the glyphs at the end of the path field.
-        fileBrowser_GlyphGap:     f32 = 4      // Air between the path field and its first glyph.
-        fileBrowser_TypeChrome:   f32 = 44     // Width a quiet type filter adds to its longest name.
-        fileBrowser_FootWidth:    f32 = 380    // Width of the foot of a file browser: the type filter and what is chosen.
+        fileBrowser_PlacesHeight: f32 = 30      // Height of the row of places at the top of a file browser.
+        fileBrowser_PlaceGap:     f32 = 20      // Air between two places.
+        fileBrowser_RowGap:       f32 = 12      // Air between the rows of a file browser.
+        fileBrowser_LineHeight:   f32 = 32      // Height of a row of the file list.
+        fileBrowser_GlyphSize:    f32 = 16      // Size of the glyphs at the end of the path field.
+        fileBrowser_GlyphGap:     f32 = 4       // Air between the path field and its first glyph.
+        fileBrowser_TypeChrome:   f32 = 44      // Width a quiet type filter adds to its longest name.
+        fileBrowser_FootWidth:    f32 = 380     // Width of the foot of a file browser: the type filter and what is chosen.
 
         // The corners of the charter, one per kind of shape. The atlas tiles of
         // [[Gui.ThemeImageRects]] are drawn with these radii and publish them as their `radius`; a
@@ -306,12 +306,12 @@ struct ThemeMetrics
         quiet_Height:                f32 = 32     // Height of a quiet control: the words of a header that act or open a menu.
         quiet_ChevronGap:            f32 = 2      // Air between the words of a quiet control and the box of its chevron, whose ink is inset.
 
-        progressBar_Height:     f32 = 16      // Height of a progress bar created without one.
-        progressBar_TrackSize:  f32 = 4       // Thickness of the track, centered in the bar.
-        progressBar_SpeedInf:   f32 = 0.5     // Sweeps per second of an indeterminate progress bar.
+        progressBar_Height:    f32 = 16      // Height of a progress bar created without one.
+        progressBar_TrackSize: f32 = 4       // Thickness of the track, centered in the bar.
+        progressBar_SpeedInf:  f32 = 0.5     // Sweeps per second of an indeterminate progress bar.
 
-        spinner_Size:       f32 = 24      // Side of a spinner created without a size.
-        spinner_Speed:      f32 = 0.66    // Waves across the three bars per second, their rest included.
+        spinner_Size:  f32 = 24       // Side of a spinner created without a size.
+        spinner_Speed: f32 = 0.66     // Waves across the three bars per second, their rest included.
 
         palPicker_SwatchInset: f32 = 3     // Air between the cell of a swatch and the chip it draws, which its ring stands in.
 

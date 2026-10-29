@@ -193,11 +193,11 @@ impl MiniBar
         var bounds  = parent.clientRect()
         if room.width > 0 and room.height > 0 do
             bounds = room
-        let gap     = metrics.miniBar_Distance
+        let gap = metrics.miniBar_Distance
 
         var x = selection.horzCenter() - body.x * 0.5
         x = Math.clamp(x, bounds.x + gap, Math.max(bounds.x + gap, bounds.right() - gap - body.x))
-        var y = selection.y - gap - body.y
+        var y         = selection.y - gap - body.y
         let fitsAbove = selection.y - gap - body.y >= bounds.y + gap
         let fitsBelow = selection.bottom() + gap + body.y <= bounds.bottom() - gap
         if below

@@ -27,7 +27,7 @@ using Swag, Core, File
     Swag.assert((fb.newFolderButton != null))
     Swag.assert(fb.placesBar == null)
     Swag.assert(fb.comboType.items.count == 1)
-    Swag.assert(fb.options.shortcuts.count == 3)
+    Swag.assert(fb.options.shortcuts.count == 5)
     Swag.assert(not fb.canGoBack())
     Swag.assert(not fb.canGoForward())
 
@@ -273,7 +273,7 @@ using Swag, Core, File
         Swag.assert(places.stops.count >= 2)
         Swag.assert(places.currentIndex() == 0)
         let documentPlace = &places.stops[1]
-        var point = places.surfaceRect().topLeft()
+        var point         = places.surfaceRect().topLeft()
         point.x += documentPlace.rect.x + documentPlace.rect.width * 0.5
         point.y += documentPlace.rect.vertCenter()
         Swag.assert(not dlg.surface!.wnd.hitTestCaption(point))
@@ -310,7 +310,7 @@ using Swag, Core, File
             return
 
         let surface = unwrap dlg.surface
-        var start = surface.wnd.view.surfaceRect().topLeft()
+        var start   = surface.wnd.view.surfaceRect().topLeft()
         start.x += dlg.themeMetrics().dialog_Padding + 100
         start.y += dlg.themeMetrics().dialog_Padding + 5
         Swag.assert(surface.wnd.hitTestCaption(start))

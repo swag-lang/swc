@@ -47,10 +47,10 @@ private func coefficientPair(first, second: s16)->Simd.S16x8
 #[Swag.Inline]
 private func addResidual4(prediction: const [*] u16, residual: const [*] s32, destination: [*] u16, zeros, maxima: Simd.S32x4)
 {
-    let pixels = cast #bit(Simd.U16x8, Simd.splat(cast(const [*] u64, prediction)[0]))
-    let values = cast #bit(Simd.S32x4, Simd.widenLow(pixels)) + Simd.load(residual)
+    let pixels  = cast #bit(Simd.U16x8, Simd.splat(cast(const [*] u64, prediction)[0]))
+    let values  = cast #bit(Simd.S32x4, Simd.widenLow(pixels)) + Simd.load(residual)
     let clipped = Math.max(Math.min(values, maxima), zeros)
-    let packed = Simd.packUnsigned(clipped, clipped)
+    let packed  = Simd.packUnsigned(clipped, clipped)
     cast([*] u64, destination)[0] = cast #bit(Simd.U64x2, packed)[0]
 }
 
@@ -73,12 +73,12 @@ private func bypassResidual(coefficients: const [*] s16, residual: [*] s32, coun
 private func skippedResidual(coefficients: const [*] s16, residual: [*] s32, count: u32, tsShift, bdShift: s32)
 {
     let rounding = Simd.splat(1's32 << (bdShift - 1))
-    var index = 0'u32
+    var index    = 0'u32
     while index < count
     {
         let values = Simd.load(coefficients + index)
-        let low = ((Simd.widenLow(values) << tsShift) + rounding) >> bdShift
-        let high = ((Simd.widenHigh(values) << tsShift) + rounding) >> bdShift
+        let low    = ((Simd.widenLow(values) << tsShift) + rounding) >> bdShift
+        let high   = ((Simd.widenHigh(values) << tsShift) + rounding) >> bdShift
         Simd.store(residual + index, low)
         Simd.store(residual + index + 4, high)
         index += 8
@@ -164,6 +164,7 @@ impl Decoder
                 let out = destination + cast(u64, row) * stride
                 addResidual4(out, &.residual[row * 4], out, zeros, maxima)
             }
+
             return
         }
 
@@ -643,6 +644,7 @@ impl Decoder
                 let out = destination + cast(u64, row) * stride
                 addResidual4(&.predSamples[row * 4], &.residual[row * 4], out, zeros, maxima)
             }
+
             return
         }
 

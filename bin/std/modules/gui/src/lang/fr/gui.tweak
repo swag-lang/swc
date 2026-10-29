@@ -68,6 +68,9 @@ fileDlg_BtnOpen           Ouvrir
 browser_Desktop      Bureau
 browser_Documents    Documents
 browser_Pictures     Images
+browser_Music       Musique
+browser_Videos      Vidéos
+browser_MorePlaces  Autres emplacements
 browser_ColName      Nom
 browser_ColModified  Modifié
 browser_ColSize      Taille

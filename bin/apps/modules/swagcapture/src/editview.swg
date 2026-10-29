@@ -75,7 +75,10 @@ impl IWnd for EditView
     mtd impl onKeyEvent(evt: *KeyEvent)
     {
         evt.accepted = false
-        if evt.kind != .Pressed or evt.key != .Return or not evt.modifiers.equals(.None) or .inPlaceEdit do
+        if evt.kind != .Pressed or
+           evt.key != .Return or
+           not evt.modifiers.equals(.None) or
+           .inPlaceEdit do
             return
         let capture = .capture
         if not capture or capture.selection.count != 1 do
@@ -151,8 +154,8 @@ impl EditView
     // hairline and writes its size, in desktop pixels, in a mono chip on its top edge.
     mtd paintInPlaceZone(painter: *Painter, zone: Math.Rectangle)
     {
-        let view   = .clientRect()
-        let veil   = Color.fromArgb(InPlaceDimAlpha, Argb.Black)
+        let view = .clientRect()
+        let veil = Color.fromArgb(InPlaceDimAlpha, Argb.Black)
         painter.fillRect(Math.Rectangle{view.x, view.y, view.width, zone.y - view.y}, veil)
         painter.fillRect(Math.Rectangle{view.x, zone.bottom(), view.width, view.bottom() - zone.bottom()}, veil)
         painter.fillRect(Math.Rectangle{view.x, zone.y, zone.x - view.x, zone.height}, veil)

@@ -1502,8 +1502,7 @@ internal func setReadingForm(ed: *EditBox)
     {
         switch evt
         {
-        case FocusEvent as focus:
-            ed.setForm(focus.kind == .Gained ? .Rectangle : .Transparent)
+        case FocusEvent as focus: ed.setForm(focus.kind == .Gained ? .Rectangle : .Transparent)
         }
 
         return false
@@ -1519,4 +1518,3 @@ impl EditBox
         return srf != null and srf.flags.has(.Sheet)
     }
 }
-

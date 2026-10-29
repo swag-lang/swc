@@ -94,12 +94,12 @@ impl LibraryWnd
                 .dateFilters.add(LibraryDateFilter{year: t.year, month: t.month, day: t.day})
             }
 
-            year  = t.year
-            month = t.month
-            day   = t.day
-            .dateFilters[yearIdx].count += 1
+            year                         = t.year
+            month                        = t.month
+            day                          = t.day
+            .dateFilters[yearIdx].count  += 1
             .dateFilters[monthIdx].count += 1
-            .dateFilters[dayIdx].count += 1
+            .dateFilters[dayIdx].count   += 1
         }
 
         .updateTagChips()
@@ -186,12 +186,12 @@ impl LibraryWnd
             // The rating is one choice among six, one row of segments.
             if focused.kind != .Image
             {
-                let rating  = results.addSection(texts.act_Rating)
+                let rating = results.addSection(texts.act_Rating)
                 rating.inline = true
                 let current = focused.capture ? focused.capture.rating : 0
                 for value in 6
                 {
-                    let stars = cast(u8, value)
+                    let stars      = cast(u8, value)
                     with let entry = rating.addEntry(ratingLabel(stars))
                     {
                         .checked = stars == current
@@ -206,7 +206,7 @@ impl LibraryWnd
         filter.inline = true
         for id in ContentFilterIds
         {
-            let state = .sendComputeCommandStateEvent(id)
+            let state      = .sendComputeCommandStateEvent(id)
             with let entry = filter.addEntry(state.name)
             {
                 .checked = state.updatedFields.has(.Checked) and state.checked
@@ -326,6 +326,7 @@ impl LibraryWnd
                     let path: String = libWnd.lensFolders[index]
                     libWnd.navigateFolder(path)
                 }
+
                 if folder == me.currentFolder() do
                     .detail = LensCheck
             }
@@ -356,7 +357,9 @@ impl LibraryWnd
             {
                 .lead = Format.toString("%", filter.count)
                 .run  = func|libWnd = me, filter|() { libWnd.applyDateFilter(filter) }
-                if filter.year == me.view.filterYear and filter.month == me.view.filterMonth and filter.day == me.view.filterDay do
+                if filter.year == me.view.filterYear and
+                   filter.month == me.view.filterMonth and
+                   filter.day == me.view.filterDay do
                     .detail = LensCheck
             }
         }
@@ -487,4 +490,3 @@ const SelectionIds     = [ActionFile.CopyImage, ActionFile.RenameCapture, Action
 
 // The mark of the choice in force, at the end of its row of the lens.
 const LensCheck = "✓"
-

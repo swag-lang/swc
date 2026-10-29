@@ -98,20 +98,20 @@ enum ThemeIcons
 
     // The pages of a file listing: one page, marked with what the file holds. Ask for them through
     // [[Gui.Theme.fileGlyph]], which reads the kind from the name.
-    File              // A file in a file listing, of no kind of its own.
-    FileImage         // A picture.
-    FileCode          // Source code, a script, or structured data.
-    FileAudio         // A sound.
-    FileVideo         // A film.
-    FileArchive       // An archive of other files.
+    File            // A file in a file listing, of no kind of its own.
+    FileImage       // A picture.
+    FileCode        // Source code, a script, or structured data.
+    FileAudio       // A sound.
+    FileVideo       // A film.
+    FileArchive     // An archive of other files.
 }
 
 // Extensions read as each kind of file, compared without case.
-private const ImageExtensions   = [".png", ".jpg", ".jpeg", ".gif", ".bmp", ".tga", ".webp", ".svg", ".ico", ".tif", ".tiff", ".psd", ".qoi"]
-private const CodeExtensions    = [".swg", ".swgs", ".c", ".cpp", ".h", ".hpp", ".cs", ".js", ".ts", ".py", ".rs", ".go", ".java", ".json", ".xml", ".html", ".css", ".sh", ".bat", ".ps1", ".lua", ".toml", ".yaml", ".yml"]
-private const AudioExtensions   = [".wav", ".mp3", ".flac", ".ogg", ".aac", ".m4a", ".opus", ".mid", ".midi"]
-private const VideoExtensions   = [".mp4", ".mkv", ".avi", ".mov", ".webm", ".wmv", ".m4v"]
-private const ArchiveExtensions = [".zip", ".7z", ".rar", ".tar", ".gz", ".bz2", ".xz"]
+private const ImageExtensions    = [".png", ".jpg", ".jpeg", ".gif", ".bmp", ".tga", ".webp", ".svg", ".ico", ".tif", ".tiff", ".psd", ".qoi"]
+private const CodeExtensions     = [".swg", ".swgs", ".c", ".cpp", ".h", ".hpp", ".cs", ".js", ".ts", ".py", ".rs", ".go", ".java", ".json", ".xml", ".html", ".css", ".sh", ".bat", ".ps1", ".lua", ".toml", ".yaml", ".yml"]
+private const AudioExtensions    = [".wav", ".mp3", ".flac", ".ogg", ".aac", ".m4a", ".opus", ".mid", ".midi"]
+private const VideoExtensions    = [".mp4", ".mkv", ".avi", ".mov", ".webm", ".wmv", ".m4v"]
+private const ArchiveExtensions  = [".zip", ".7z", ".rar", ".tar", ".gz", ".bz2", ".xz"]
 private const DocumentExtensions = [".pdf", ".epub", ".djvu", ".xps"]
 
 // Reports whether `ext` is one of `list`, without case.
@@ -139,13 +139,17 @@ impl Theme
     // document, an archive.
     //
     // A listing draws these rather than the colored icons of the system, so a row reads by its
-    // name first and the glyph only says what kind of thing it is. A kind carries its quiet hue
-    // (`fileKind_*`) in the icon's color; a folder and a plain file carry none, and take the ink
-    // their row gives them. A selected row may draw any of them in its own ink.
+    // name first and the glyph only says what kind of thing it is. A file kind carries its quiet
+    // hue (`fileKind_*`); a folder uses Arc, the mark of a place to go. A plain file takes the ink
+    // its row gives it. A selected row may draw any of them in its own ink.
     mtd fileGlyph(name: string, isDirectory: bool, size = 16'f32)->Icon
     {
-        if isDirectory do
-            return .icon(.Folder, size)
+        if isDirectory
+        {
+            var result = .icon(.Folder, size)
+            result.color = .colors.arc
+            return result
+        }
 
         var result: #returntype
         let ext = Path.extension(name) orelse ""
@@ -154,21 +158,27 @@ impl Theme
         case isExtensionOf(ext, ImageExtensions):
             result       = .icon(.FileImage, size)
             result.color = .colors.fileKind_Image
+
         case isExtensionOf(ext, CodeExtensions):
             result       = .icon(.FileCode, size)
             result.color = .colors.fileKind_Code
+
         case isExtensionOf(ext, AudioExtensions):
             result       = .icon(.FileAudio, size)
             result.color = .colors.fileKind_Audio
+
         case isExtensionOf(ext, VideoExtensions):
             result       = .icon(.FileVideo, size)
             result.color = .colors.fileKind_Video
+
         case isExtensionOf(ext, ArchiveExtensions):
             result       = .icon(.FileArchive, size)
             result.color = .colors.fileKind_Archive
+
         case isExtensionOf(ext, DocumentExtensions):
             result       = .icon(.File, size)
             result.color = .colors.fileKind_Document
+
         default:
             result = .icon(.File, size)
         }

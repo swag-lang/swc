@@ -29,7 +29,7 @@ using Core
             {
                 for column in Stride
                 {
-                    let index = 1 + row * Stride + column
+                    let index    = 1 + row * Stride + column
                     let expected = column < cast(u64, width) ? cast(u8, ((cast(u32, a[index]) + cast(u32, b[index]) + 1) >> 1)) : caseIndex == 0 ? 0xA5'u8 : caseIndex == 1 ? a[index] : b[index]
                     Swag.assert(destination[index] == expected)
                 }
@@ -259,7 +259,7 @@ impl ChromaReference
                 {
                     for column in 21's32
                     {
-                        let got = predicted[cast(u64, (1 + row * 21 + column))]
+                        let got      = predicted[cast(u64, (1 + row * 21 + column))]
                         let expected = column < 16 ? reference.predict(origin + column, origin + row, fracX, fracY) : 0x5A'u8
                         Swag.assert(got == expected)
                     }

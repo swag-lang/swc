@@ -1102,7 +1102,15 @@ impl Animator
         options.duration = Time.Duration.fromSeconds(target.themeMetrics().motion_LeaveSeconds)
         options.easing   = .Linear
 
-        return .animateF32(target, AnimationChannel.from("Gui.Float.Opacity"), target.presentationOpacity, 0, func(wnd, value) { wnd.setPresentationOpacity(value) }, options,
+        return .animateF32(target,
+                           AnimationChannel.from("Gui.Float.Opacity"),
+                           target.presentationOpacity,
+                           0,
+                           func(wnd, value)
+                           {
+                               wnd.setPresentationOpacity(value)
+                           },
+                           options,
                            func|target|(result)
                            {
                                if result == .Completed and not target.isPendingDestroy

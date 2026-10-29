@@ -111,30 +111,30 @@ struct MainWnd
     // The kind of selection the mini-bar was last built for, so it is rebuilt only when that changes.
     miniBarKind: MiniBarKind = .None
     miniBarForm: *BaseForm?     // The form the mini-bar was filled for, whose face, size and style it shows.
-    icons:         IconSet
-    appIcon:       ImageList
-    monitors:      Array'Env.Monitor
+    icons:       IconSet
+    appIcon:     ImageList
+    monitors:    Array'Env.Monitor
 
     // State
-    editMode:                                  EditMode   = .Shape
-    bottomSize:                                BottomSize = .Medium
-    pixSelFillCol:                             Color      = Argb.White
+    editMode:      EditMode   = .Shape
+    bottomSize:    BottomSize = .Medium
+    pixSelFillCol: Color      = Argb.White
     inPlaceEdit, snap, freezeSel, libraryMode: bool
-    showRecent, inspectorFolded:               bool
+    showRecent, inspectorFolded: bool
 
     // The files saved during the session, which the "Show" of a toast opens the folder of.
     savedPaths: Array'String
 
     // What the action of the toast on screen runs.
-    toastAction: (func||())?
-    recentColors:                              Array'Color
-    firstShow:                                 bool       = true
-    fileDlgState, fileDlgStateInPlace:         FileDlgState
-    libraryFolderDlgState:                     FileDlgState
-    exportFolderDlgState:                      FileDlgState
-    libraryFolder:                             String
-    captureOptions:                            CaptureOptions
-    editorOptions:                             EditorOptions
+    toastAction:           (func||())?
+    recentColors:          Array'Color
+    firstShow:             bool = true
+    fileDlgState, fileDlgStateInPlace: FileDlgState
+    libraryFolderDlgState: FileDlgState
+    exportFolderDlgState:  FileDlgState
+    libraryFolder:         String
+    captureOptions:        CaptureOptions
+    editorOptions:         EditorOptions
 
     // Form models
     mdlFormShape:   FormShape
@@ -641,7 +641,7 @@ impl MainWnd
             for t, i in tables where t == table
             {
                 counts[i] += 1
-                found = true
+                found     = true
             }
 
             if not found
@@ -755,8 +755,10 @@ impl MainWnd
             return
         }
 
-        if count == 1 do
+        if count == 1
+        {
             .inspector.setTitle(editModeName(formToEditMode(capture!.forms[capture.selection.back()])), appStrings().ui_OneObject)
+        }
         else
         {
             // Several objects are named by what they are, "2 rectangles · 1 text", when that fits
@@ -770,7 +772,7 @@ impl MainWnd
 
         // The actions are words: the commands they post carry glyphs for the lens.
         .inspector.addAction(appStrings().act_Duplicate).sigPressed += func|main = me|(_) { main.postCommandEvent(ActionCopyPaste.Duplicate) }
-        .inspector.addAction(appStrings().act_Delete).sigPressed += func|main = me|(_) { main.postCommandEvent(ActionSelection.DeleteSelection) }
+        .inspector.addAction(appStrings().act_Delete).sigPressed    += func|main = me|(_) { main.postCommandEvent(ActionSelection.DeleteSelection) }
     }
 
     // Registers every command family of the editor.
@@ -829,6 +831,7 @@ impl MainWnd
         .registerKeyShortcut(.CtrlAlt, .O, ActionOptions.Options)
         .registerKeyShortcut(.Control, .G, ActionGroup.Group)
         .registerKeyShortcut(.CtrlShift, .G, ActionGroup.Ungroup)
+
         // ] and [ bring an object forward or back a step, with Ctrl to the front or the back.
         .registerKeyShortcut(.None, .Oem6, ActionAlign.MoveForward)
         .registerKeyShortcut(.None, .Oem4, ActionAlign.MoveBackward)

@@ -196,7 +196,9 @@ func completeExtraction(host: *Testing.HeadlessHost, explorer: *Explorer)
     defer discard catch Directory.delete(target, recurse: true)
     explorer.extractTo(target, all: true)
     completeExtraction(&host, explorer)
-    Swag.assert(explorer.extraction.error.isEmpty() and explorer.extraction.written > 0 and not explorer.extraction.kept)
+    Swag.assert(explorer.extraction.error.isEmpty() and
+                explorer.extraction.written > 0 and
+                not explorer.extraction.kept)
     Swag.assert(File.exists(Path.combine(target, "docs", "readme.txt")))
     Swag.assert(explorer.toast!.isLocallyVisible() and explorer.toast.detail == target)
     let written = explorer.extraction.written
@@ -355,6 +357,7 @@ func completeExtraction(host: *Testing.HeadlessHost, explorer: *Explorer)
         Swag.assert(not explorer.filter.isLocallyVisible())
         explorer.revealFilter()
         Swag.assert(explorer.filter.position.width > 100 and explorer.filter.hasFocus())
+
         // The filter takes a line of its own under the title, which keeps its room.
         let filterRect = explorer.filter.surfaceRect()
         let modesRect  = explorer.modeMenu.surfaceRect()

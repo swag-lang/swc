@@ -13,7 +13,7 @@ using Core, Gui, Pixel
     let explorer = Explorer.create(window.documentPanel, window)
     window.explorer       = explorer
     window.explorerActive = true
-    let file     = Path.combine(Env.getSpecialDirectory(.Temp), Format.toString("row-media-%.mp3", Guid64.random()))
+    let file = Path.combine(Env.getSpecialDirectory(.Temp), Format.toString("row-media-%.mp3", Guid64.random()))
     discard expect File.writeAllText(file, "fixture")
     let key = expect ThumbnailCache.key(file, settings: ThumbnailSettings.capture(window))
     defer

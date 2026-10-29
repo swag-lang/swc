@@ -16,6 +16,7 @@ using Core, Gui
     explorer.folder  = "docs/"
     explorer.updateBreadcrumb()
     let breadcrumb = explorer.address.breadcrumb
+
     // The breadcrumb names the levels above the page; the folder shown is the title.
     Swag.assert(breadcrumb.items.count > 2)
     let count = breadcrumb.items.count + 1

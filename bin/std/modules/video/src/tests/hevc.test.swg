@@ -147,6 +147,7 @@ using Core, Core.Errors, Pixel
     var motion: Hevc.PuMotion
     motion.predFlags = 3
     motion.refIdx    = [0, 0]
+
     // Exercise the direct prediction paths at several block widths.
     for blockWidth in [4'u32, 8, 16, 32]
     {
@@ -185,13 +186,14 @@ using Core, Core.Errors, Pixel
     {
         sps.bitDepthLuma   = bitDepth
         sps.bitDepthChroma = bitDepth
+
         // Non-identity weights force integer-position samples through the interpolation buffer.
         decoder.header.weights[0, 0].lumaWeight      = 2
         decoder.header.weights[0, 0].chromaWeight[0] = 2
         decoder.header.weights[0, 0].chromaWeight[1] = 2
-        motion.predFlags = 1
-        motion.mv[0, 0] = 0
-        motion.mv[0, 1] = 0
+        motion.predFlags                             = 1
+        motion.mv[0, 0]                              = 0
+        motion.mv[0, 1]                              = 0
         for blockWidth in [4'u32, 8, 16, 32]
         {
             for blockY in 32 / blockWidth
@@ -319,6 +321,7 @@ using Core, Core.Errors, Pixel
         for x in 64's32 do
             reference.lumaAtMutable(x, y)[0] = 49
     }
+
     for y in 32's32
     {
         for x in 32's32
@@ -331,21 +334,21 @@ using Core, Core.Errors, Pixel
     var pps: Hevc.Pps
     pps.weightedBipred = true
     var decoder: Hevc.Decoder
-    decoder.activeSps            = &sps
-    decoder.activePps            = &pps
-    decoder.current              = &current
-    decoder.header.sliceType     = Hevc.SliceTypeB
-    decoder.header.hasWeights    = true
+    decoder.activeSps                            = &sps
+    decoder.activePps                            = &pps
+    decoder.current                              = &current
+    decoder.header.sliceType                     = Hevc.SliceTypeB
+    decoder.header.hasWeights                    = true
     decoder.header.weights[0, 0].lumaWeight      = 2
     decoder.header.weights[0, 0].chromaWeight[0] = 2
     decoder.header.weights[0, 0].chromaWeight[1] = 2
-    decoder.refList.frames[0, 0] = &reference
+    decoder.refList.frames[0, 0]                 = &reference
 
     var motion: Hevc.PuMotion
     motion.predFlags = 1
     motion.refIdx    = [0, 0]
-    motion.mv[0, 0] = -799
-    motion.mv[0, 1] = -799
+    motion.mv[0, 0]  = -799
+    motion.mv[0, 1]  = -799
     for bitDepth in [8'u32, 10]
     {
         sps.bitDepthLuma   = bitDepth
@@ -360,6 +363,7 @@ using Core, Core.Errors, Pixel
                 for x in 64's32 do
                     Swag.assert(current.lumaAtMutable(x, y)[0] == 98)
             }
+
             for y in cast(s32, (height / 2))
             {
                 for x in 32's32
@@ -377,7 +381,7 @@ using Core, Core.Errors, Pixel
 #test
 {
     var reference: Hevc.IntraReference
-    reference.size = 32
+    reference.size  = 32
     reference.count = 129
     var seed = 0x43A0CB16'u32
     for bitDepth in [8'u32, 10]
@@ -397,12 +401,13 @@ using Core, Core.Errors, Pixel
             Hevc.smoothStrongReference(&reference, cast(u16, corner), cast(u16, top), cast(u16, left))
             for index in 63'u32
             {
-                let weight = index + 1
-                let expectedTop = ((64 - weight) * corner + weight * top + 32) >> 6
+                let weight       = index + 1
+                let expectedTop  = ((64 - weight) * corner + weight * top + 32) >> 6
                 let expectedLeft = ((64 - weight) * corner + weight * left + 32) >> 6
                 Swag.assert(reference.top(index) == cast(u16, expectedTop))
                 Swag.assert(reference.left(index) == cast(u16, expectedLeft))
             }
+
             Swag.assert(reference.corner() == cast(u16, corner))
             Swag.assert(reference.top(63) == cast(u16, top))
             Swag.assert(reference.left(63) == cast(u16, left))
@@ -414,11 +419,11 @@ using Core, Core.Errors, Pixel
 // across the reversed left edge, the corner and the forward top edge.
 #test
 {
-    var sps: Hevc.Sps
+    var sps:     Hevc.Sps
     var decoder: Hevc.Decoder
     decoder.activeSps = &sps
     var reference: Hevc.IntraReference
-    var original: [129] u16
+    var original:  [129] u16
     var seed = 0xAB72D851'u32
     for bitDepth in [8'u32, 10]
     {
@@ -426,7 +431,7 @@ using Core, Core.Errors, Pixel
         for log2Size in [3'u32, 4, 5]
         {
             let size = 1'u32 << log2Size
-            reference.size = size
+            reference.size  = size
             reference.count = 4 * size + 1
             for iteration in 32'u32
             {
@@ -437,6 +442,7 @@ using Core, Core.Errors, Pixel
                     reference.samples[index] = cast(u16, value)
                     original[index] = cast(u16, value)
                 }
+
                 decoder.filterReference(&reference, size, log2Size, 0, 0, bitDepth)
                 Swag.assert(reference.samples[0] == original[0])
                 for index in 1 until reference.count - 1
@@ -444,6 +450,7 @@ using Core, Core.Errors, Pixel
                     let value = cast(u32, original[index - 1]) + 2 * cast(u32, original[index]) + cast(u32, original[index + 1]) + 2
                     Swag.assert(reference.samples[index] == cast(u16, (value >> 2)))
                 }
+
                 Swag.assert(reference.samples[reference.count - 1] == original[reference.count - 1])
             }
         }
@@ -455,17 +462,17 @@ using Core, Core.Errors, Pixel
 #test
 {
     var sps: Hevc.Sps
-    sps.width = 64
-    sps.height = 64
-    sps.widthInCtbs = 1
-    sps.ctbLog2Size = 6
-    sps.subWidthC = 2
-    sps.subHeightC = 2
-    sps.chromaArrayType = 1
+    sps.width                = 64
+    sps.height               = 64
+    sps.widthInCtbs          = 1
+    sps.ctbLog2Size          = 6
+    sps.subWidthC            = 2
+    sps.subHeightC           = 2
+    sps.chromaArrayType      = 1
     sps.strongIntraSmoothing = true
-    sps.bitDepthLuma = 8
-    sps.bitDepthChroma = 8
-    var pps: Hevc.Pps
+    sps.bitDepthLuma         = 8
+    sps.bitDepthChroma       = 8
+    var pps:   Hevc.Pps
     var frame: Hevc.Frame
     frame.prepare(&sps)
     for y in 64's32
@@ -473,6 +480,7 @@ using Core, Core.Errors, Pixel
         for x in 64's32 do
             frame.lumaAtMutable(x, y)[0] = cast(u16, ((x * 13 + y * 7) & 255))
     }
+
     for y in 32's32
     {
         for x in 32's32
@@ -481,10 +489,11 @@ using Core, Core.Errors, Pixel
             frame.chromaAtMutable(1, x, y)[0] = cast(u16, ((x * 19 + y * 3) & 255))
         }
     }
+
     var decoder: Hevc.Decoder
     decoder.activeSps = &sps
     decoder.activePps = &pps
-    decoder.current = &frame
+    decoder.current   = &frame
     decoder.gridWidth = 16
     decoder.zScan.resize(16 * 16)
     decoder.ctbRsToTs.resize(1)
@@ -504,32 +513,34 @@ using Core, Core.Errors, Pixel
                 let y = component == 0 ? yLuma : yLuma / 2
                 var reference: Hevc.IntraReference
                 decoder.gatherReference(&reference, x, y, xLuma, yLuma, size, component, 8)
-                let step = component == 0 ? 4'u32 : 2'u32
+                let step  = component == 0 ? 4'u32 : 2'u32
                 let scale = component == 0 ? 1's32 : 2's32
                 for index in 2 * size
                 {
-                    let group = (index / step) * step
+                    let group     = (index / step) * step
                     let available = yLuma > 0 and xLuma + cast(s32, group) * scale < 64
                     Swag.assert(reference.available[2 * size + 1 + index] == available)
                     if available
                     {
                         let sampleX = x + cast(s32, index)
-                        let sample = component == 0 ? frame.lumaAtMutable(sampleX, y - 1)[0] : frame.chromaAtMutable(component - 1, sampleX, y - 1)[0]
+                        let sample  = component == 0 ? frame.lumaAtMutable(sampleX, y - 1)[0] : frame.chromaAtMutable(component - 1, sampleX, y - 1)[0]
                         Swag.assert(reference.top(index) == sample)
                     }
                 }
+
                 for index in 2 * size
                 {
-                    let group = (index / step) * step
+                    let group     = (index / step) * step
                     let available = xLuma > 0 and yLuma + cast(s32, group) * scale < 64
                     Swag.assert(reference.available[2 * size - 1 - index] == available)
                     if available
                     {
                         let sampleY = y + cast(s32, index)
-                        let sample = component == 0 ? frame.lumaAtMutable(x - 1, sampleY)[0] : frame.chromaAtMutable(component - 1, x - 1, sampleY)[0]
+                        let sample  = component == 0 ? frame.lumaAtMutable(x - 1, sampleY)[0] : frame.chromaAtMutable(component - 1, x - 1, sampleY)[0]
                         Swag.assert(reference.left(index) == sample)
                     }
                 }
+
                 for mode in 35'u32
                 {
                     for index in decoder.residual.count do
@@ -553,7 +564,7 @@ using Core, Core.Errors, Pixel
 #test
 {
     var reference: Hevc.IntraReference
-    var main: [66] u16
+    var main:      [66] u16
     var seed = 0x5690A13B'u32
     for size in [4'u32, 8, 16, 32]
     {
@@ -563,6 +574,7 @@ using Core, Core.Errors, Pixel
             seed = seed * #wrap 1664525 + #wrap 1013904223
             reference.samples[index] = cast(u16, ((seed >> 16) & 1023))
         }
+
         for vertical in [false, true]
         {
             for extended in [false, true]
@@ -577,6 +589,7 @@ using Core, Core.Errors, Pixel
                     let expected = vertical ? reference.top(index) : reference.left(index)
                     Swag.assert(main[index + 1] == expected)
                 }
+
                 Swag.assert(main[count + 1] == 0x5A5A)
             }
         }
@@ -588,8 +601,8 @@ using Core, Core.Errors, Pixel
 #test
 {
     var reference: Hevc.IntraReference
-    var decoder: Hevc.Decoder
-    var expected: [32 * 32] u16
+    var decoder:   Hevc.Decoder
+    var expected:  [32 * 32] u16
     var seed = 0x91C2E86D'u32
     for bitDepth in [8'u32, 10]
     {
@@ -603,6 +616,7 @@ using Core, Core.Errors, Pixel
                 seed = seed * #wrap 1664525 + #wrap 1013904223
                 reference.samples[index] = cast(u16, ((seed >> 16) & maximum))
             }
+
             for mode in 2'u32 to 34
             {
                 for component in [0'u32, 1]
@@ -627,7 +641,7 @@ using Core, Core.Errors, Pixel
 // directions, with exact four-column stores and a sentinel after the block.
 #test
 {
-    var main: [160] u16
+    var main:   [160] u16
     var output: [32 * 32 + 1] u16
     var seed = 0x18BFA293'u32
     for bitDepth in [8'u32, 10]
@@ -639,25 +653,27 @@ using Core, Core.Errors, Pixel
             {
                 for i in main.count
                 {
-                    seed = seed * #wrap 1664525 + #wrap 1013904223
+                    seed    = seed * #wrap 1664525 + #wrap 1013904223
                     main[i] = cast(u16, (angle == 17 ? maximum : (seed >> 16) & maximum))
                 }
+
                 output[size * size] = 0x5A5A
                 Hevc.predictAngularVertical(&main[64], &output[0], size, angle)
                 for row in size
                 {
-                    let step = cast(s32, (row + 1)) * angle
+                    let step  = cast(s32, (row + 1)) * angle
                     let shift = step >> 5
                     let blend = step & 31
                     for x in size
                     {
-                        let base = cast(u32, (64 + shift + 1 + cast(s32, x)))
-                        let first = cast(u32, main[base])
-                        let second = cast(u32, main[base + 1])
+                        let base     = cast(u32, (64 + shift + 1 + cast(s32, x)))
+                        let first    = cast(u32, main[base])
+                        let second   = cast(u32, main[base + 1])
                         let expected = ((32 - cast(u32, blend)) * first + cast(u32, blend) * second + 16) >> 5
                         Swag.assert(output[row * size + x] == cast(u16, expected))
                     }
                 }
+
                 Swag.assert(output[size * size] == 0x5A5A)
                 if angle == 0 do
                     Hevc.predictAngularHorizontalZero(&main[64], &output[0], size)
@@ -667,18 +683,19 @@ using Core, Core.Errors, Pixel
                     Hevc.predictAngularHorizontalPacked(&main[64], &output[0], size, angle)
                 for column in size
                 {
-                    let step = cast(s32, (column + 1)) * angle
+                    let step  = cast(s32, (column + 1)) * angle
                     let shift = step >> 5
                     let blend = step & 31
                     for y in size
                     {
-                        let base = cast(u32, (64 + shift + 1 + cast(s32, y)))
-                        let first = cast(u32, main[base])
-                        let second = cast(u32, main[base + 1])
+                        let base     = cast(u32, (64 + shift + 1 + cast(s32, y)))
+                        let first    = cast(u32, main[base])
+                        let second   = cast(u32, main[base + 1])
                         let expected = ((32 - cast(u32, blend)) * first + cast(u32, blend) * second + 16) >> 5
                         Swag.assert(output[y * size + column] == cast(u16, expected))
                     }
                 }
+
                 Swag.assert(output[size * size] == 0x5A5A)
             }
         }
@@ -690,7 +707,7 @@ using Core, Core.Errors, Pixel
 #test
 {
     var reference: Hevc.IntraReference
-    var output: [16 * 16 + 1] u16
+    var output:    [16 * 16 + 1] u16
     var seed = 0x7DB21349'u32
     for bitDepth in [8'u32, 10]
     {
@@ -716,6 +733,7 @@ using Core, Core.Errors, Pixel
                         reference.setLeft(x, cast(u16, ((seed >> 16) & cast(u32, maximum))))
                     }
                 }
+
                 output[size] = 0x5A5A
                 Hevc.blendAngularTopEdge(&reference, &output[0], size, maximum)
                 for x in size
@@ -723,6 +741,7 @@ using Core, Core.Errors, Pixel
                     let expected = Math.clamp(left + ((cast(s32, reference.top(x)) - corner) >> 1), 0, maximum)
                     Swag.assert(output[x] == cast(u16, expected))
                 }
+
                 Swag.assert(output[size] == 0x5A5A)
                 for index in size * size + 1 do
                     output[index] = 0x5A5A
@@ -735,6 +754,7 @@ using Core, Core.Errors, Pixel
                     for x in 1 until size do
                         Swag.assert(output[y * size + x] == 0x5A5A)
                 }
+
                 Swag.assert(output[size * size] == 0x5A5A)
             }
         }
@@ -746,7 +766,7 @@ using Core, Core.Errors, Pixel
 #test
 {
     var reference: Hevc.IntraReference
-    var decoder: Hevc.Decoder
+    var decoder:   Hevc.Decoder
     var seed = 0x62EA417F'u32
     for bitDepth in [8'u32, 10]
     {
@@ -768,6 +788,7 @@ using Core, Core.Errors, Pixel
                     reference.setLeft(index, cast(u16, left))
                     sum += top + left
                 }
+
                 let dc = sum >> (log2Size + 1)
                 for component in [0'u32, 1, 2]
                 {
@@ -787,9 +808,11 @@ using Core, Core.Errors, Pixel
                                 elif x == 0 do
                                     expected = (cast(u32, reference.left(y)) + 3 * dc + 2) >> 2
                             }
+
                             Swag.assert(decoder.predSamples[y * size + x] == cast(u16, expected))
                         }
                     }
+
                     Swag.assert(decoder.predSamples[size * size] == 0x5A5A)
                 }
             }
@@ -801,7 +824,7 @@ using Core, Core.Errors, Pixel
 // Compare all output samples and preserve the sentinel beyond the block.
 #test
 {
-    var reference: Hevc.IntraReference
+    var reference:   Hevc.IntraReference
     var destination: [32 * 32 + 1] u16
     var seed = 0x63A21F89'u32
     for bitDepth in [8'u32, 10]
@@ -822,12 +845,13 @@ using Core, Core.Errors, Pixel
                     reference.setTop(index, cast(u16, top))
                     reference.setLeft(index, cast(u16, left))
                 }
+
                 destination[size * size] = 0x5A5A
                 if size == 4 do
                     Hevc.predictPlanar4(&reference, &destination[0])
                 else do
                     Hevc.predictPlanarPacked(&reference, &destination[0], size, log2Size)
-                let right = cast(u32, reference.top(size))
+                let right  = cast(u32, reference.top(size))
                 let bottom = cast(u32, reference.left(size))
                 for y in size
                 {
@@ -838,6 +862,7 @@ using Core, Core.Errors, Pixel
                         Swag.assert(destination[y * size + x] == cast(u16, (value >> (log2Size + 1))))
                     }
                 }
+
                 Swag.assert(destination[size * size] == 0x5A5A)
             }
         }
@@ -848,24 +873,24 @@ using Core, Core.Errors, Pixel
 // rounding for every block size without writing past the residual block.
 #test
 {
-    var sps: Hevc.Sps
-    var pps: Hevc.Pps
+    var sps:     Hevc.Sps
+    var pps:     Hevc.Pps
     var decoder: Hevc.Decoder
     decoder.activeSps = &sps
     decoder.activePps = &pps
     var seed = 0x825B9F31'u32
     for bitDepth in [8'u32, 10]
     {
-        sps.bitDepthLuma = bitDepth
+        sps.bitDepthLuma   = bitDepth
         sps.bitDepthChroma = bitDepth
         for log2Size in [2'u32, 3, 4, 5]
         {
-            let size = 1'u32 << log2Size
+            let size  = 1'u32 << log2Size
             let count = size * size
             var block: Hevc.TransformBlock
-            block.size = size
+            block.size     = size
             block.log2Size = log2Size
-            block.qp = 20
+            block.qp       = 20
             decoder.coefficientColumns = cast(u32, ((1'u64 << size) - 1))
             for x in size do
                 decoder.coefficientRows[x] = decoder.coefficientColumns
@@ -873,8 +898,9 @@ using Core, Core.Errors, Pixel
             {
                 seed = seed * #wrap 1664525 + #wrap 1013904223
                 decoder.coefficients[index] = cast #wrap(s16, (seed >> 16))
-                decoder.residual[index] = 0x35353535
+                decoder.residual[index]     = 0x35353535
             }
+
             if count < 1024 do
                 decoder.residual[count] = 0x35353535
             block.bypass = true
@@ -884,7 +910,7 @@ using Core, Core.Errors, Pixel
             if count < 1024 do
                 Swag.assert(decoder.residual[count] == 0x35353535)
 
-            block.bypass = false
+            block.bypass        = false
             block.transformSkip = true
             decoder.reconstructResidual(&block)
             let tsShift = 5 + cast(s32, log2Size)
@@ -894,6 +920,7 @@ using Core, Core.Errors, Pixel
                 let value = ((cast(s32, decoder.coefficients[index]) << tsShift) + (1 << (bdShift - 1))) >> bdShift
                 Swag.assert(decoder.residual[index] == value)
             }
+
             if count < 1024 do
                 Swag.assert(decoder.residual[count] == 0x35353535)
         }
@@ -905,30 +932,30 @@ using Core, Core.Errors, Pixel
 #test
 {
     var sps: Hevc.Sps
-    sps.width = 16
-    sps.height = 16
-    sps.subWidthC = 2
-    sps.subHeightC = 2
+    sps.width           = 16
+    sps.height          = 16
+    sps.subWidthC       = 2
+    sps.subHeightC      = 2
     sps.chromaArrayType = 1
-    sps.bitDepthLuma = 8
-    sps.bitDepthChroma = 8
+    sps.bitDepthLuma    = 8
+    sps.bitDepthChroma  = 8
     var frame: Hevc.Frame
     frame.prepare(&sps)
     var decoder: Hevc.Decoder
     decoder.activeSps = &sps
-    decoder.current = &frame
+    decoder.current   = &frame
     var seed = 0x2A72F8D5'u32
     for bitDepth in [8'u32, 10]
     {
-        sps.bitDepthLuma = bitDepth
+        sps.bitDepthLuma   = bitDepth
         sps.bitDepthChroma = bitDepth
         let maximum = cast(s32, ((1'u32 << bitDepth) - 1))
         for component in 3'u32
         {
             var block: Hevc.TransformBlock
-            block.x = component == 0 ? 1 : 2
-            block.y = component == 0 ? 1 : 2
-            block.size = 4
+            block.x         = component == 0 ? 1 : 2
+            block.y         = component == 0 ? 1 : 2
+            block.size      = 4
             block.component = component
             let origin = component == 0 ? frame.lumaAtMutable(0, 0) : frame.chromaAtMutable(component - 1, 0, 0)
             let stride = component == 0 ? frame.strideLuma : frame.strideChroma
@@ -942,37 +969,42 @@ using Core, Core.Errors, Pixel
                         seed = seed * #wrap 1664525 + #wrap 1013904223
                         let value = cast(u16, ((seed >> 16) & cast(u32, maximum)))
                         origin[y * stride + x] = value
-                        expected[y, x] = value
+                        expected[y, x]         = value
                     }
                 }
+
                 for y in 4'u64
                 {
                     for x in 4'u64
                     {
                         seed = seed * #wrap 1664525 + #wrap 1013904223
                         let residual = cast(s32, ((seed >> 16) & 4095)) - 2048
-                        decoder.residual[y * 4 + x] = residual
+                        decoder.residual[y * 4 + x]    = residual
                         decoder.predSamples[y * 4 + x] = expected[y + 1, x + 1]
-                        expected[y + 1, x + 1] = cast(u16, Math.clamp(cast(s32, expected[y + 1, x + 1]) + residual, 0, maximum))
+                        expected[y + 1, x + 1]         = cast(u16, Math.clamp(cast(s32, expected[y + 1, x + 1]) + residual, 0, maximum))
                     }
                 }
+
                 decoder.addResidualInPlace(&block)
                 for y in 6'u64
                 {
                     for x in 6'u64 do
                         Swag.assert(origin[y * stride + x] == expected[y, x])
                 }
+
                 for y in 4'u64
                 {
                     for x in 4'u64 do
                         origin[(y + 1) * stride + x + 1] = 0x5A5A
                 }
+
                 decoder.addResidual(&block, true)
                 for y in 6'u64
                 {
                     for x in 6'u64 do
                         Swag.assert(origin[y * stride + x] == expected[y, x])
                 }
+
                 decoder.addResidual(&block, false)
                 for y in 4'u64
                 {
@@ -1005,16 +1037,18 @@ using Core, Core.Errors, Pixel
                     samples[index]  = cast(u16, ((seed >> 16) & cast(u32, maximum)))
                     expected[index] = samples[index]
                 }
+
                 for lane in 2'u64
                 {
-                    let p1 = cast(s32, expected[1 + lane])
-                    let p0 = cast(s32, expected[Stride + 1 + lane])
-                    let q0 = cast(s32, expected[2 * Stride + 1 + lane])
-                    let q1 = cast(s32, expected[3 * Stride + 1 + lane])
+                    let p1    = cast(s32, expected[1 + lane])
+                    let p0    = cast(s32, expected[Stride + 1 + lane])
+                    let q0    = cast(s32, expected[2 * Stride + 1 + lane])
+                    let q1    = cast(s32, expected[3 * Stride + 1 + lane])
                     let delta = Math.clamp((((q0 - p0) << 2) + p1 - q1 + 4) >> 3, -tc, tc)
                     expected[Stride + 1 + lane]     = cast(u16, Math.clamp(p0 + delta, 0, maximum))
                     expected[2 * Stride + 1 + lane] = cast(u16, Math.clamp(q0 - delta, 0, maximum))
                 }
+
                 Hevc.filterChromaPair(&samples[2 * Stride + 1], cast(s64, Stride), tc, maximum)
                 Swag.assert(samples == expected)
             }
@@ -1042,17 +1076,19 @@ using Core, Core.Errors, Pixel
                     samples[index]  = cast(u16, ((seed >> 16) & cast(u32, maximum)))
                     expected[index] = samples[index]
                 }
+
                 for row in 2'u64
                 {
-                    let base = row * Stride
-                    let p1 = cast(s32, expected[base])
-                    let p0 = cast(s32, expected[base + 1])
-                    let q0 = cast(s32, expected[base + 2])
-                    let q1 = cast(s32, expected[base + 3])
+                    let base  = row * Stride
+                    let p1    = cast(s32, expected[base])
+                    let p0    = cast(s32, expected[base + 1])
+                    let q0    = cast(s32, expected[base + 2])
+                    let q1    = cast(s32, expected[base + 3])
                     let delta = Math.clamp((((q0 - p0) << 2) + p1 - q1 + 4) >> 3, -tc, tc)
                     expected[base + 1] = cast(u16, Math.clamp(p0 + delta, 0, maximum))
                     expected[base + 2] = cast(u16, Math.clamp(q0 - delta, 0, maximum))
                 }
+
                 Hevc.filterChromaVerticalPair(&samples[2], cast(s64, Stride), tc, maximum)
                 Swag.assert(samples == expected)
             }
@@ -1065,8 +1101,8 @@ using Core, Core.Errors, Pixel
 #test
 {
     const Stride = 13'u64
-    var decoder: Hevc.Decoder
-    var samples: [Stride * 4] u16
+    var decoder:  Hevc.Decoder
+    var samples:  [Stride * 4] u16
     var expected: [Stride * 4] u16
     var seed = 0x15BDE271'u32
     for bitDepth in [8'u32, 10]
@@ -1085,20 +1121,21 @@ using Core, Core.Errors, Pixel
                             for index in samples.count
                             {
                                 seed = seed * #wrap 1664525 + #wrap 1013904223
-                                samples[index] = cast(u16, ((seed >> 16) & cast(u32, maximum)))
+                                samples[index]  = cast(u16, ((seed >> 16) & cast(u32, maximum)))
                                 expected[index] = samples[index]
                             }
+
                             for row in 4'u64
                             {
                                 let base = row * Stride + 5
-                                let p3 = cast(s32, expected[base - 4])
-                                let p2 = cast(s32, expected[base - 3])
-                                let p1 = cast(s32, expected[base - 2])
-                                let p0 = cast(s32, expected[base - 1])
-                                let q0 = cast(s32, expected[base])
-                                let q1 = cast(s32, expected[base + 1])
-                                let q2 = cast(s32, expected[base + 2])
-                                let q3 = cast(s32, expected[base + 3])
+                                let p3   = cast(s32, expected[base - 4])
+                                let p2   = cast(s32, expected[base - 3])
+                                let p1   = cast(s32, expected[base - 2])
+                                let p0   = cast(s32, expected[base - 1])
+                                let q0   = cast(s32, expected[base])
+                                let q1   = cast(s32, expected[base + 1])
+                                let q2   = cast(s32, expected[base + 2])
+                                let q3   = cast(s32, expected[base + 3])
                                 if strong
                                 {
                                     let limit = 2 * tc
@@ -1116,13 +1153,14 @@ using Core, Core.Errors, Pixel
                                     {
                                         delta = Math.clamp(delta, -tc, tc)
                                         expected[base - 1] = cast(u16, Math.clamp(p0 + delta, 0, maximum))
-                                        expected[base] = cast(u16, Math.clamp(q0 - delta, 0, maximum))
+                                        expected[base]     = cast(u16, Math.clamp(q0 - delta, 0, maximum))
                                         if filterP
                                         {
                                             let half = tc >> 1
                                             let move = Math.clamp((((p2 + p0 + 1) >> 1) - p1 + delta) >> 1, -half, half)
                                             expected[base - 2] = cast(u16, Math.clamp(p1 + move, 0, maximum))
                                         }
+
                                         if filterQ
                                         {
                                             let half = tc >> 1
@@ -1132,6 +1170,7 @@ using Core, Core.Errors, Pixel
                                     }
                                 }
                             }
+
                             decoder.filterLumaVerticalQuad(&samples[5], cast(s64, Stride), strong, filterP, filterQ, tc, maximum)
                             Swag.assert(samples == expected)
                         }

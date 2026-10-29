@@ -75,8 +75,8 @@ struct HeadlessHost
     }
 
     initialized:        bool
-    modalWaited:        u32        // Frames the dialog on top has waited with nobody to answer it.
-    modalWaitedOn:      *Surface?  // Surface `modalWaited` counts for.
+    modalWaited:        u32           // Frames the dialog on top has waited with nobody to answer it.
+    modalWaitedOn:      *Surface?     // Surface `modalWaited` counts for.
     autoSawModal:       bool
     autoSawButton:      bool
     autoButtonIds:      Array'String
@@ -297,6 +297,7 @@ impl HeadlessHost
         result = "a dialog opened with nothing to answer it; arm clickModalButtonWhenShown or a sibling first"
         if not dialog.title.raw.isEmpty() do
             result += Format.toString(". Title: '%'", dialog.title.raw)
+
         // The words of the box are its labels: the message, and the detail under it.
         func addWords(wnd: *Wnd, result: *String)
         {

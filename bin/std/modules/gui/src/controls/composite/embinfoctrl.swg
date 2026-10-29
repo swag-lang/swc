@@ -250,7 +250,15 @@ impl InfoBar
 
         let bar = me
         discard animator.animateF32(.label, AnimationChannel.from("Gui.Notice.Words"), .label.presentationOpacity, 0, func(label, value) { label.setPresentationOpacity(value) }, words)
-        discard animator.animateF32(me, AnimationChannel.from("Gui.Notice.Leave"), .position.height, 0, func(bar, value) { bar.resize(bar.position.width, value, false) }, height,
+        discard animator.animateF32(me,
+                                    AnimationChannel.from("Gui.Notice.Leave"),
+                                    .position.height,
+                                    0,
+                                    func(bar, value)
+                                    {
+                                        bar.resize(bar.position.width, value, false)
+                                    },
+                                    height,
                                     func|bar|(_)
                                     {
                                         if not bar.isPendingDestroy do

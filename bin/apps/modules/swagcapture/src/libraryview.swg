@@ -391,7 +391,7 @@ impl IWnd for LibraryView
                 icon = .theme().icon(.Warning, 48)
             elif itemLoaded and (not capture or capture.previewBytes.isEmpty()) do
                 icon = .mainWnd.icon(.Archive, 48)
-            let color = Color.fromArgb(50, Argb.White)
+            let color       = Color.fromArgb(50, Argb.White)
             let thumbCenter = it.rect.y + (it.rect.height - LibraryCaptionHeight) * 0.5
             icon.paint(painter, it.rect.horzCenter() - icon.sizeX * 0.5, thumbCenter - icon.sizeY * 0.5, color)
         }
@@ -486,7 +486,7 @@ impl IWnd for LibraryView
 
             // Next cell. The grid advances whether or not this one is painted, so a culled cell
             // leaves the layout and the scroll extent exactly where they were.
-            x += w + LibraryCellGap
+            x      += w + LibraryCellGap
             column += 1
             if column == columns
             {

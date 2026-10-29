@@ -38,12 +38,12 @@ struct InfoSheet
 
         readonly
         {
-            title:    String           // Title of the sheet, set large and bold.
-            identity: String           // Mono line of identity under the title: a path, a format, a date.
+            title:     String           // Title of the sheet, set large and bold.
+            identity:  String           // Mono line of identity under the title: a path, a format, a date.
             action:    *PushButton?     // The one primary action of the sheet, when it has one.
             secondary: *PushButton?     // The action beside the primary one, when it has one.
-            picture:  Texture          // Picture heading the sheet, borrowed from its owner; invalid for none.
-            beside:   bool             // Whether the picture stands at the left of the title, as a poster or a cover does.
+            picture:   Texture          // Picture heading the sheet, borrowed from its owner; invalid for none.
+            beside:    bool             // Whether the picture stands at the left of the title, as a poster or a cover does.
         }
     }
 
@@ -106,8 +106,10 @@ impl IWnd for InfoSheet
                 .action.setPosition(Math.Rectangle{pad, y, half, metrics.btnPush_Height})
                 .secondary.setPosition(Math.Rectangle{pad + half + gap, y, half, metrics.btnPush_Height})
             }
-            else do
+            else
+            {
                 .action.setPosition(Math.Rectangle{pad, y, room, metrics.btnPush_Height})
+            }
         }
     }
 
@@ -450,7 +452,7 @@ impl InfoSheet
         let theme   = .theme()
         let pad     = metrics.infoSheet_Padding
 
-        var y = pad
+        var y      = pad
         let beside = .besidePicture()
         if .picture.isValid() and not beside do
             y += .pictureSize(width - 2 * pad).y + metrics.infoSheet_BlockGap
@@ -483,7 +485,7 @@ impl InfoSheet
             if .action
             {
                 .actionTop = y
-                y          += metrics.btnPush_Height + metrics.infoSheet_BlockGap
+                y += metrics.btnPush_Height + metrics.infoSheet_BlockGap
             }
         }
 

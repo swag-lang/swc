@@ -215,7 +215,8 @@ func filler(count: u64)->String
         opt.initialFolder = folder.toString()
         opt.shortcuts.add({type: Env.SpecialDirectory.Temp, name: "Documents"})
         let dlg = FileDlg.create(&host.surface, opt)
-        dlg.browser.pathField.setText(".md")
+
+        // Keep folders and files visible together so their glyphs can be compared.
 
         // The disk dates the files of today; the picture keeps one moment.
         for line, idx in dlg.browser.listCtrl.lines do
@@ -283,8 +284,10 @@ func filler(count: u64)->String
             case .SelectFolder:
                 dlg.browser.listCtrl.selectLine(0)
                 name = "folder"
+
             case .CreateFile:
                 name = "save"
+
             default:
                 dlg.browser.listCtrl.selectLine(0)
                 dlg.browser.listCtrl.selectLine(1)

@@ -47,7 +47,7 @@ impl ExplorerAddress
         with result.breadcrumb = BreadcrumbCtrl.create(result.pathScroll)
         {
             .backgroundStyle = .Transparent
-            .quiet           = true
+            .quiet = true
             .setLayoutMetrics(0, 4, 6)
             .style.setFont(result.theme().createDefaultFont(13), .Regular)
             .sigItemPressed  += func|explorer|(path, index) { explorer.navigateBreadcrumb(path.items[index].tag) }

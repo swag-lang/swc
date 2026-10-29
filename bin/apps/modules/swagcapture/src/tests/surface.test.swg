@@ -407,12 +407,12 @@ func testSetupInPlace(host: *Gui.Testing.HeadlessHost, dark: bool)->*InPlaceEdit
     var desktop = Image.create(1024, 640, .BGRA8)
     desktop.fillGradient(Color.fromArgb(0xFF2A3350), Color.fromArgb(0xFF3A3346), Color.fromArgb(0xFF30293A), Color.fromArgb(0xFF5A3A2C))
     g_DesktopX, g_DesktopY = 0
-    g_ScreenWidth  = 1024
-    g_ScreenHeight = 640
-    g_StartGrabX   = 300
-    g_StartGrabY   = 160
-    g_EndGrabX     = 740
-    g_EndGrabY     = 400
+    g_ScreenWidth          = 1024
+    g_ScreenHeight         = 640
+    g_StartGrabX           = 300
+    g_StartGrabY           = 160
+    g_EndGrabX             = 740
+    g_EndGrabY             = 400
 
     with let capture = Memory.new'Capture()
     {
@@ -477,7 +477,7 @@ func testSetupInPlace(host: *Gui.Testing.HeadlessHost, dark: bool)->*InPlaceEdit
         g_Main = null
     }
 
-    let capture = unwrap main.getCapture()
+    let capture      = unwrap main.getCapture()
     with let callout = testAddCallout(capture, 60, 120, 220, 64)
     {
         .text      = "New panel"
@@ -521,7 +521,7 @@ func testSetupInPlace(host: *Gui.Testing.HeadlessHost, dark: bool)->*InPlaceEdit
             g_Main = null
         }
 
-        let capture = unwrap main.getCapture()
+        let capture   = unwrap main.getCapture()
         with let text = testAddText(capture, 60, 50, 260, 130)
         {
             .text      = "Release\nnotes"
@@ -613,7 +613,7 @@ const LibraryGoldenTitles = ["Side panel", "Error bubble", "Swag lexer", "Dark e
     {
         with let it = testAddLibraryItem(lib.view, Format.toString("capture%.scc", i), 1000, cast(u16, 20 + i), title: LibraryGoldenTitles[i])
         {
-            .capture!.width  = 1280
+            .capture!.width = 1280
             .capture.height = 800
             .capture.rating = cast(u8, i % 3)
             .capture.tags.add(i % 2 == 0 ? "gui" : "scope")
@@ -845,8 +845,8 @@ func testBeginInlineText(host: *Gui.Testing.HeadlessHost, main: *MainWnd, index:
     text.rotate = 30
 
     // Halfway through, the form is turning; at the end it stands level.
-    let view    = testBeginInlineText(&host, main, 0)
-    let quick   = main.themeMetrics().motion_QuickSeconds
+    let view  = testBeginInlineText(&host, main, 0)
+    let quick = main.themeMetrics().motion_QuickSeconds
     host.advanceAnimations(quick * 0.5)
     Swag.assert(text.rotate > 0 and text.rotate < 30)
     host.finishAnimations()
@@ -885,7 +885,7 @@ func testBeginInlineText(host: *Gui.Testing.HeadlessHost, main: *MainWnd, index:
     let view    = main.editWnd.editView
     text.fontSize = 20
 
-    var lefts: [3] f32
+    var lefts:  [3] f32
     var rights: [3] f32
     for align, i in [FormTextAlign.LeftTop, FormTextAlign.Center, FormTextAlign.RightBottom]
     {
@@ -975,12 +975,12 @@ func testBeginInlineText(host: *Gui.Testing.HeadlessHost, main: *MainWnd, index:
         }
 
         // Two columns of tools, as the picture lays them out.
-        const Modes  = [EditMode.Shape, EditMode.Arrow, EditMode.Highlight, EditMode.Text, EditMode.Callout, EditMode.Step, EditMode.Image]
-        const Second = 3
+        const Modes      = [EditMode.Shape, EditMode.Arrow, EditMode.Highlight, EditMode.Text, EditMode.Callout, EditMode.Step, EditMode.Image]
+        const Second     = 3
         const LabelWidth = 96.0
         const Pad        = 24.0
-        let metrics = main.themeMetrics()
-        let strip   = 6 * QuickChipWidth
+        let metrics    = main.themeMetrics()
+        let strip      = 6 * QuickChipWidth
         with let panel = Wnd.create'Wnd(main, null, {0, 0, 1024, 640})
         {
             .backgroundStyle = .Window
@@ -1125,7 +1125,9 @@ func testBeginInlineText(host: *Gui.Testing.HeadlessHost, main: *MainWnd, index:
 
     main.fillHintLine()
     var taught = 0
-    for hint in main.hintLine.hints where hint.text == appStrings().hint_Nudge or hint.text == appStrings().hint_Duplicate or hint.text == appStrings().hint_TypeWords do
+    for hint in main.hintLine.hints where hint.text == appStrings().hint_Nudge or
+                                          hint.text == appStrings().hint_Duplicate or
+                                          hint.text == appStrings().hint_TypeWords do
         taught += 1
     Swag.assert(taught == 3)
 

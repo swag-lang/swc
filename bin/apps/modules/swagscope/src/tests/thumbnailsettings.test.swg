@@ -62,9 +62,9 @@ using Core, Gui, Pixel, Viewers
 {
     var host: Testing.HeadlessHost
     host.setup(640, 480)
-    let window     = ViewerWindow.create(&host.surfaceWnd, createViewerPluginRegistry())
-    let first      = ExplorerEntry{path: "C:/films/first.mkv", size: 10, creationStamp: 1, modifiedStamp: 2}
-    let second     = ExplorerEntry{path: "C:/films/second.mkv", size: 20, creationStamp: 3, modifiedStamp: 4}
+    let window  = ViewerWindow.create(&host.surfaceWnd, createViewerPluginRegistry())
+    let first   = ExplorerEntry{path: "C:/films/first.mkv", size: 10, creationStamp: 1, modifiedStamp: 2}
+    let second  = ExplorerEntry{path: "C:/films/second.mkv", size: 20, creationStamp: 3, modifiedStamp: 4}
     let musicId = "48140466-cff6-3222-bd55-63c27e43190d"
     setMusicChoice(&window.musicChoices, &second, musicId)
     let musicSettings = expect ThumbnailSettings.decode(ThumbnailSettings.capture(window, &second))

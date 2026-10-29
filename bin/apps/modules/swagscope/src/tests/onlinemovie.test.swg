@@ -6,9 +6,9 @@ using Core, Net, Pixel
 struct MovieServerFixture
 {
     late listener: *TcpListener
-    port: u16
-    poster: Array'u8
-    requests: [4] String
+    port:          u16
+    poster:        Array'u8
+    requests:      [4] String
 }
 
 func writeMovieBytes(stream: *TcpStream, bytes: const [..] u8)
@@ -37,6 +37,7 @@ func serveMovies(thread: const *Threading.Thread)
                 return
             fixture.requests[index] += cast(string, bytes[0 until count])
         }
+
         var body: Array'u8
         if index == 0
         {
@@ -54,8 +55,11 @@ func serveMovies(thread: const *Threading.Thread)
             let json = Format.toString("""{"resultCount":2,"results":[{"trackName":"Blade Runner","releaseDate":"1982-06-25T07:00:00Z","artworkUrl100":"http://127.0.0.1:%/poster/100x100bb.jpg","longDescription":"In a dark future, a blade runner hunts replicants.","primaryGenreName":"Sci-Fi & Fantasy"},{"trackName":"Blade Runner 2049","releaseDate":"2017-10-06T07:00:00Z","artworkUrl100":"http://127.0.0.1:%/other/100x100bb.jpg"}]}""", fixture.port, fixture.port)
             body.add(cast(const [..] u8, json.toString()))
         }
-        else do
+        else
+        {
             body.add(fixture.poster.toSlice())
+        }
+
         let header = Format.toString("HTTP/1.1 200 OK\r\nContent-Length: %\r\nConnection: close\r\n\r\n", body.count)
         writeMovieBytes(&stream, cast(const [..] u8, header.toString()))
         writeMovieBytes(&stream, body.toSlice())
@@ -70,7 +74,7 @@ func serveMovies(thread: const *Threading.Thread)
     Swag.assert(validWikiId("Q184843") and not validWikiId("Q1/../other"))
     let query = MovieQuery.fromFile("D:/Films/Blade.Runner (1982).mkv")
     Swag.assert(query.title == "Blade Runner" and query.year == "1982")
-    let json = """{"query":{"pages":[{"title":"Blade Runner","description":"1982 film","pageprops":{"wikibase_item":"Q1"}},{"title":"Blade Runner (film)","description":"1982 film","pageprops":{"wikibase_item":"Q2"}}]}}"""
+    let json   = """{"query":{"pages":[{"title":"Blade Runner","description":"1982 film","pageprops":{"wikibase_item":"Q1"}},{"title":"Blade Runner (film)","description":"1982 film","pageprops":{"wikibase_item":"Q2"}}]}}"""
     var decoder: Serialization.Decoder'Serialization.Read.Json
     let search = expect decoder.readAll'MovieSearch(cast(const [..] u8, json))
     defer Memory.delete(search)
@@ -82,18 +86,18 @@ func serveMovies(thread: const *Threading.Thread)
 {
     var listener = expect TcpListener.listen({address: [127, 0, 0, 1], port: 0})
     let endpoint = expect listener.localEndpoint()
-    var fixture = MovieServerFixture{listener: &listener, port: endpoint.port}
-    var image = Image.create(8, 8, .RGB8)
-    let encoded = expect image.encode("poster.png")
+    var fixture  = MovieServerFixture{listener: &listener, port: endpoint.port}
+    var image    = Image.create(8, 8, .RGB8)
+    let encoded  = expect image.encode("poster.png")
     fixture.poster.add(unwrap encoded.toSlice())
     var thread: Threading.Thread
     expect thread.init(&serveMovies, &fixture)
     expect thread.start()
     let host = MovieSource{wikiHost: "127.0.0.1", dataHost: "127.0.0.1", appleHost: "127.0.0.1",
                            imageHost: "127.0.0.1", port: endpoint.port, secure: false}
-    var movie = expect OnlineMovie.lookup("Blade.Runner (1982).mkv", host, "fr")
+    var movie       = expect OnlineMovie.lookup("Blade.Runner (1982).mkv", host, "fr")
     let posterBytes = expect movie.posterBytes(host)
-    var poster = expect Image.decode("poster.png", posterBytes.toSlice())
+    var poster      = expect Image.decode("poster.png", posterBytes.toSlice())
     thread.wait()
     Swag.assert(movie.id == "Q184843" and poster.isValid())
     Swag.assert(Utf8.contains(fixture.requests[0].toString(), "/w/api.php"))
@@ -110,7 +114,7 @@ func serveMovies(thread: const *Threading.Thread)
 
     // Only one film of the catalogue answers to a title and a year; a title alone that several
     // films share is not taken.
-    let json = """{"results":[{"trackName":"Dune","releaseDate":"1984-12-14T08:00:00Z"},{"trackName":"Dune","releaseDate":"2021-10-22T07:00:00Z"}]}"""
+    let json   = """{"results":[{"trackName":"Dune","releaseDate":"1984-12-14T08:00:00Z"},{"trackName":"Dune","releaseDate":"2021-10-22T07:00:00Z"}]}"""
     var decoder: Serialization.Decoder'Serialization.Read.Json
     let search = expect decoder.readAll'AppleSearch(cast(const [..] u8, json))
     defer Memory.delete(search)

@@ -134,16 +134,20 @@ private impl Panel
             view.sampleEdit.setFocus()
             view.sampleEdit.selectAll()
         })
-        entries.add(strings.ui_PreviousPage, func|view = me|()
-        {
-            view.document.previousPage()
-            view.refreshPageCommands()
-        }, disabled: not .previousButton.isEnabled())
-        entries.add(strings.ui_NextPage, func|view = me|()
-        {
-            view.document.nextPage()
-            view.refreshPageCommands()
-        }, disabled: not .nextButton.isEnabled())
+        entries.add(strings.ui_PreviousPage,
+                    func|view = me|()
+                    {
+                        view.document.previousPage()
+                        view.refreshPageCommands()
+                    },
+                    disabled: not .previousButton.isEnabled())
+        entries.add(strings.ui_NextPage,
+                    func|view = me|()
+                    {
+                        view.document.nextPage()
+                        view.refreshPageCommands()
+                    },
+                    disabled: not .nextButton.isEnabled())
 
         const Ranges: [5] u32 = [0x20, 0xA0, 0x370, 0x400, 0x2000]
         let names = [strings.ui_BasicLatin, strings.ui_Latin1, strings.ui_Greek, strings.ui_Cyrillic, strings.ui_Symbols]

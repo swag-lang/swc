@@ -15,15 +15,15 @@ func easeGrab(current, target: f32)->f32
 // The area overlay of the charter: the chosen zone at full brightness with a 1 px Voltage edge, its
 // size in a mono chip, a pixel loupe with a Voltage crosshair, the capture modes as text tabs on a
 // floating bar, and the keys at the foot.
-const AreaChipPadding  = 8.0      // Air inside the size chip and the loupe reading.
-const AreaChipGap      = 6.0      // Air between the size chip and the zone.
-const AreaLoupeRadius  = 60.0     // Radius of the pixel loupe.
-const AreaLoupePixels  = 21.0     // Desktop pixels across the loupe; odd, so one sits in the middle.
-const AreaLoupeOffset  = 28.0     // Distance between the pointer and the loupe.
-const AreaBarTop       = 24.0     // Air between the top of the screen and the mode bar.
-const AreaBarHeight    = 34.0     // Height of the mode bar.
-const AreaBarPadding   = 16.0     // Air inside the mode bar, and between two of its tabs.
-const AreaTabUnderline = 2.0      // Weight of the Arc underline of the mode in use.
+const AreaChipPadding        = 8.0      // Air inside the size chip and the loupe reading.
+const AreaChipGap            = 6.0      // Air between the size chip and the zone.
+const AreaLoupeRadius        = 60.0     // Radius of the pixel loupe.
+const AreaLoupePixels        = 21.0     // Desktop pixels across the loupe; odd, so one sits in the middle.
+const AreaLoupeOffset        = 28.0     // Distance between the pointer and the loupe.
+const AreaBarTop             = 24.0     // Air between the top of the screen and the mode bar.
+const AreaBarHeight          = 34.0     // Height of the mode bar.
+const AreaBarPadding         = 16.0     // Air inside the mode bar, and between two of its tabs.
+const AreaTabUnderline       = 2.0      // Weight of the Arc underline of the mode in use.
 const AreaBarSeparatorGap    = 12.0     // Air around the hairline between the modes and how the screen is read.
 const AreaBarSeparatorHeight = 16.0     // Height of that hairline.
 const AreaChevronSize        = 8.0      // Width of the chevron saying the delay opens a list.
@@ -117,7 +117,6 @@ impl IWnd for CaptureRectWnd
         .invalidate()
     }
 
-
     mtd impl onMouseEvent(evt: *MouseEvent)
     {
         // Grab coordinates are canonical desktop-physical pixels (they crop the
@@ -138,7 +137,7 @@ impl IWnd for CaptureRectWnd
                 {
                     g_SwitchCaptureMode = true
                     g_SwitchCaptureTo   = AreaModes[index]
-                    g_Exit              = true
+                    g_Exit = true
                 }
                 elif .delayRect.contains(evt.surfacePos)
                 {
@@ -324,7 +323,7 @@ impl CaptureRectWnd
     {
         g_SwitchCaptureMode = true
         g_SwitchCaptureTo   = .Area
-        g_Exit              = true
+        g_Exit = true
     }
 
     // Lists the delays under the delay of the bar. A delay waits before the screen is read, so

@@ -99,9 +99,9 @@ struct Application
 
         readonly
         {
-            timing:           Time.FrameTiming     // Timing of the frame being run.
+            timing:           Time.FrameTiming               // Timing of the frame being run.
             motionPreference: MotionPreference = .System     // Application override of the platform motion preference.
-            appearance:       AppearanceTheme  = .Dark        // Theme choice applied by [[Gui.Application.setAppearance]].
+            appearance:       AppearanceTheme  = .Dark       // Theme choice applied by [[Gui.Application.setAppearance]].
             isActivated:      bool     // Whether one of this application's native windows is the active one.
         }
     }
@@ -896,7 +896,7 @@ private impl Application
         let result = .endModalExit orelse ""
         .endModal     = false
         .endModalExit = null
-        .inModalLoop -= 1
+        .inModalLoop  -= 1
         if not refused.isEmpty() do
             Swag.panic(refused.toString(), #curlocation)
         return result

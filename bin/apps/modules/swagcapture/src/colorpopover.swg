@@ -102,8 +102,8 @@ impl ColorPopover
     // colours used last, which the popover keeps.
     func open(button: *IconButton, title: string, color: Color, recent: *Array'Color)->*ColorPopover
     {
-        let size  = size()
-        let frame = button.createAnchorPopup(size.x, size.y)
+        let size        = size()
+        let frame       = button.createAnchorPopup(size.x, size.y)
         with let result = Wnd.create'ColorPopover(frame, {})
         {
             .dockStyle       = .Center

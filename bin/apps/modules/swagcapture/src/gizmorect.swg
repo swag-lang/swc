@@ -12,10 +12,10 @@ enum GizmoEdges
 // The frame of handles that moves, resizes, and rotates a box-shaped form.
 struct GizmoRect
 {
-    paintBorder:       bool
-    roundShape:        bool = false
-    anchorSize:        f32  = 12
-    trackChange:       bool = false
+    paintBorder: bool
+    roundShape:  bool = false
+    anchorSize:  f32  = 12
+    trackChange: bool = false
 
     rect:          Math.Rectangle
     startRect:     Math.Rectangle
@@ -461,10 +461,10 @@ impl GizmoRect
     // wired to applyRotate() when the form supports it.
     mtd setupForForm(iform: IForm)
     {
-        .roundShape        = true
-        .anchorSize        = 10
-        .trackChange       = true
-        .paintBorder       = true
+        .roundShape  = true
+        .anchorSize  = 10
+        .trackChange = true
+        .paintBorder = true
 
         .sigChanged = func|form = iform|(g, first, edges) { g.apply(form, first, edges) }
 

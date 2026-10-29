@@ -70,9 +70,11 @@ impl IActionUI for ActionEdit
         {
         case .EditText:
             evt.updatedFields |= .Disabled | .Name | .Hidden
-            evt.disabled      = not hasSel or not lastSelType or (lastSelType != FormText and lastSelType != FormCallout and lastSelType != FormStep)
-            evt.hidden        = evt.disabled
-            evt.name          = appStrings().ui_MenuEdit
+            evt.disabled      = not hasSel or
+                                not lastSelType or
+                                (lastSelType != FormText and lastSelType != FormCallout and lastSelType != FormStep)
+            evt.hidden = evt.disabled
+            evt.name   = appStrings().ui_MenuEdit
 
         case .ClearImageInside:
             evt.updatedFields        |= .Disabled | .Name | .Hidden

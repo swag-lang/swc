@@ -75,7 +75,9 @@ func homeWindow(host: *Testing.HeadlessHost, light: bool)->*ViewerWindow
 
     let second = String.from(window.home.rows[1].file)
     window.home.removeRow(1)
-    Swag.assert(window.recent.count == 5 and window.recentOpened.count == 5 and not window.recent.contains(second))
+    Swag.assert(window.recent.count == 5 and
+                window.recentOpened.count == 5 and
+                not window.recent.contains(second))
     Swag.assert(window.home.rows.count == 5)
 
     window.home.setFocus()

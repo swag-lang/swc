@@ -71,12 +71,12 @@ struct ThemeColors
         live:       Color     // Dot of something running now, such as a mounted drive.
 
         // The glyph of each kind of file in a listing. See [[Gui.Theme.fileGlyph]].
-        fileKind_Image: Color     // Glyph of a picture in a file listing.
-        fileKind_Video: Color     // Glyph of a film in a file listing.
-        fileKind_Audio: Color     // Glyph of a sound in a file listing.
-        fileKind_Code: Color     // Glyph of source code or structured data in a file listing.
+        fileKind_Image:    Color     // Glyph of a picture in a file listing.
+        fileKind_Video:    Color     // Glyph of a film in a file listing.
+        fileKind_Audio:    Color     // Glyph of a sound in a file listing.
+        fileKind_Code:     Color     // Glyph of source code or structured data in a file listing.
         fileKind_Document: Color     // Glyph of a paged document, such as a PDF in a file listing.
-        fileKind_Archive: Color     // Glyph of an archive in a file listing.
+        fileKind_Archive:  Color     // Glyph of an archive in a file listing.
 
         transparent: Color     // Nothing drawn. Always zero; named so a sheet can point a part at it.
 
@@ -243,28 +243,28 @@ struct ThemeColors
 
         // A check box and a radio button. Off is a ring; on is Arc. The state a box is in survives
         // the pointer: hovering changes the ring, never the answer.
-        btnCheck_Text:             Color     // Label of a check box.
-        btnCheck_Border:           Color     // Ring of an unchecked box.
-        btnCheck_Mark:             Color     // Mark inside an unchecked box; nothing is drawn there.
-        btnCheck_Bk:               Color     // Fill of an unchecked box.
-        btnCheck_PressedText:      Color     // Label of a pressed check box.
-        btnCheck_PressedBorder:    Color     // Ring of a pressed, unchecked box.
-        btnCheck_PressedMark:      Color     // Mark of a pressed box.
-        btnCheck_PressedBk:        Color     // Fill of a pressed, unchecked box.
-        btnCheck_HotText:          Color     // Label of a hovered check box.
-        btnCheck_HotBorder:        Color     // Ring of a hovered, unchecked box.
-        btnCheck_HotMark:          Color     // Mark of a hovered box.
-        btnCheck_HotBk:            Color     // Fill of a hovered, unchecked box.
-        btnCheck_DisabledText:     Color     // Label of a disabled check box.
-        btnCheck_DisabledBorder:   Color     // Ring of a disabled box.
-        btnCheck_DisabledMark:     Color     // Mark of a disabled box.
-        btnCheck_DisabledBk:       Color     // Fill of a disabled box.
-        btnCheck_CheckedText:      Color     // Label of a checked box.
-        btnCheck_CheckedBk:        Color     // Fill of a checked box.
-        btnCheck_CheckedBorder:    Color     // Border of a checked box.
-        btnCheck_CheckedMark:      Color     // Check or dash drawn on a checked box.
-        btnCheck_CheckedHotBk:     Color     // Fill and border of a checked box under the pointer.
-        btnCheck_CheckedDisabledBk: Color    // Fill and border of a checked, disabled box.
+        btnCheck_Text:              Color     // Label of a check box.
+        btnCheck_Border:            Color     // Ring of an unchecked box.
+        btnCheck_Mark:              Color     // Mark inside an unchecked box; nothing is drawn there.
+        btnCheck_Bk:                Color     // Fill of an unchecked box.
+        btnCheck_PressedText:       Color     // Label of a pressed check box.
+        btnCheck_PressedBorder:     Color     // Ring of a pressed, unchecked box.
+        btnCheck_PressedMark:       Color     // Mark of a pressed box.
+        btnCheck_PressedBk:         Color     // Fill of a pressed, unchecked box.
+        btnCheck_HotText:           Color     // Label of a hovered check box.
+        btnCheck_HotBorder:         Color     // Ring of a hovered, unchecked box.
+        btnCheck_HotMark:           Color     // Mark of a hovered box.
+        btnCheck_HotBk:             Color     // Fill of a hovered, unchecked box.
+        btnCheck_DisabledText:      Color     // Label of a disabled check box.
+        btnCheck_DisabledBorder:    Color     // Ring of a disabled box.
+        btnCheck_DisabledMark:      Color     // Mark of a disabled box.
+        btnCheck_DisabledBk:        Color     // Fill of a disabled box.
+        btnCheck_CheckedText:       Color     // Label of a checked box.
+        btnCheck_CheckedBk:         Color     // Fill of a checked box.
+        btnCheck_CheckedBorder:     Color     // Border of a checked box.
+        btnCheck_CheckedMark:       Color     // Check or dash drawn on a checked box.
+        btnCheck_CheckedHotBk:      Color     // Fill and border of a checked box under the pointer.
+        btnCheck_CheckedDisabledBk: Color     // Fill and border of a checked, disabled box.
 
         btnRadio_CheckedBorder:  Color     // Ring of a chosen radio button.
         btnRadio_CheckedMark:    Color     // Dot of a chosen radio button.
@@ -494,7 +494,7 @@ struct ThemeColors
         // image wants: it carries its own colors and owes the theme nothing.
         imageRect_Fg: Color
 
-        spinner_Mark:  Color     // The light that runs across the three bars of a spinner.
+        spinner_Mark: Color     // The light that runs across the three bars of a spinner.
 
         // A notice is a tinted ground of its tone, a dot in the tone, and body ink.
         embInfo_CriticalBk:      Color     // Ground of a notice reporting a failure.
@@ -507,12 +507,12 @@ struct ThemeColors
         embInfo_MessageText:     Color     // Text of a notice asking for attention.
         embInfo_MessageMark:     Color     // Dot of a notice asking for attention.
 
-        prop_FocusBk:     Color     // Ground of the focused row of a property grid.
-        prop_HotBk:       Color     // Ground of the row under the pointer.
-        prop_GridBorder:  Color     // Outline of a property grid.
-        prop_GridColumn:  Color     // Rule between the name column and the value column.
-        prop_SectionBk:   Color     // Ground of a section head.
-        prop_CategBk:     Color     // Ground of a category head.
+        prop_FocusBk:    Color     // Ground of the focused row of a property grid.
+        prop_HotBk:      Color     // Ground of the row under the pointer.
+        prop_GridBorder: Color     // Outline of a property grid.
+        prop_GridColumn: Color     // Rule between the name column and the value column.
+        prop_SectionBk:  Color     // Ground of a section head.
+        prop_CategBk:    Color     // Ground of a category head.
     }
 }
 
@@ -705,20 +705,20 @@ impl ThemeColors
         .searchMatch_Border = p.currentMatch.mark
         .searchMatch_Glow   = p.currentMatch.ground.withAlpha(SearchMatchGlowAlpha)
 
-        .critical    = critical.mark
-        .criticalBk  = critical.ground
-        .caution     = caution.mark
-        .cautionBk   = caution.ground
-        .info        = info.mark
-        .infoBk      = info.ground
-        .live        = live.mark
-        .fileKind_Image = p.kindImage
-        .fileKind_Video = p.kindVideo
-        .fileKind_Audio = p.kindAudio
-        .fileKind_Code = p.kindCode
+        .critical          = critical.mark
+        .criticalBk        = critical.ground
+        .caution           = caution.mark
+        .cautionBk         = caution.ground
+        .info              = info.mark
+        .infoBk            = info.ground
+        .live              = live.mark
+        .fileKind_Image    = p.kindImage
+        .fileKind_Video    = p.kindVideo
+        .fileKind_Audio    = p.kindAudio
+        .fileKind_Code     = p.kindCode
         .fileKind_Document = p.kindDocument
-        .fileKind_Archive = p.kindArchive
-        .transparent = 0
+        .fileKind_Archive  = p.kindArchive
+        .transparent       = 0
 
         .veilSoft   = p.veil.withAlpha(VeilSoftAlpha)
         .veilMedium = p.veil.withAlpha(VeilMediumAlpha)
@@ -1153,7 +1153,7 @@ impl ThemeColors
 
         .imageRect_Fg = Argb.White
 
-        .spinner_Mark  = alternate.mark
+        .spinner_Mark = alternate.mark
 
         .embInfo_CriticalBk      = critical.ground
         .embInfo_CriticalText    = critical.onGround
@@ -1165,12 +1165,12 @@ impl ThemeColors
         .embInfo_MessageText     = caution.onGround
         .embInfo_MessageMark     = caution.mark
 
-        .prop_FocusBk     = p.selection
-        .prop_HotBk       = p.raised
-        .prop_GridBorder  = p.line
-        .prop_GridColumn  = p.line
-        .prop_SectionBk   = .transparent
-        .prop_CategBk     = .transparent
+        .prop_FocusBk    = p.selection
+        .prop_HotBk      = p.raised
+        .prop_GridBorder = p.line
+        .prop_GridColumn = p.line
+        .prop_SectionBk  = .transparent
+        .prop_CategBk    = .transparent
     }
 
     // Applies Encre, the dark theme.

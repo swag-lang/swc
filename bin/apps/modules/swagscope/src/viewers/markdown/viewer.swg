@@ -505,7 +505,7 @@ func createViewer(host: Viewer.Host)
         return
     }
 
-    let actionGroup   = host.createActionGroup(themeDropDownButtonWidth(view.themeMetrics()))
+    let actionGroup = host.createActionGroup(themeDropDownButtonWidth(view.themeMetrics()))
     actionGroup.dockStyle = .Right
     actionGroup.margin.z  = 12
     let optionsButton = Viewer.createOptionsButton(actionGroup)

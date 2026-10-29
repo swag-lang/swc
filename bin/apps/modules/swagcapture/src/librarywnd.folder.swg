@@ -42,7 +42,7 @@ impl LibraryWnd
 
         .main.libraryFolder = folder
         .curFolder.clear()
-        .trashMode = false
+        .trashMode  = false
         .view.filterYear, .view.filterMonth, .view.filterDay = 0
         .filledOnce = false
         .fill()

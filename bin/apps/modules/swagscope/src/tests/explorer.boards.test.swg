@@ -22,6 +22,7 @@ func boardPicture(width, height: s32, top, bottom: u32)->Image
 {
     var bytes: Array'u8
     bytes.resize(cast(u64, width * height * 3))
+
     // The rows of an image run from the bottom up.
     for y in height
     {
@@ -139,13 +140,13 @@ func addPictured(host: *Testing.HeadlessHost, explorer: *Explorer, name: string,
         addPictured(&host, explorer, "forest.jpg", boardPicture(160, 120, 0x2F4A32, 0x7FA36A), 3 * 1024 * 1024)
         for name, size in ["vault.bin", "Inter-Light.ttf", "sources.zip"] do
             explorer.entries.add({name: name, path: name, size: 1024 * 1024 * (size + 1), attempted: true})
-        explorer.entries[2].width  = 800
-        explorer.entries[2].height = 500
-        explorer.entries[8].width  = 4032
-        explorer.entries[8].height = 3024
-        explorer.entries[10].face  = "Inter · Light"
+        explorer.entries[2].width    = 800
+        explorer.entries[2].height   = 500
+        explorer.entries[8].width    = 4032
+        explorer.entries[8].height   = 3024
+        explorer.entries[10].face    = "Inter · Light"
         explorer.entries[11].members = 48
-        explorer.selected = 3
+        explorer.selected            = 3
         showBoard(&host, window, "Documents", "Projects")
 
         // Every tile has the same size and the grid fills the page between its margins.
@@ -169,9 +170,9 @@ func addPictured(host: *Testing.HeadlessHost, explorer: *Explorer, name: string,
 #[Swag.TestTag("golden")]
 #test
 {
-    var host: Testing.HeadlessHost
-    let window   = boardWindow(&host, false, films: true)
-    let explorer = unwrap window.explorer
+    var host:    Testing.HeadlessHost
+    let window              = boardWindow(&host, false, films: true)
+    let explorer            = unwrap window.explorer
     let names:   [8] string = ["Blade Runner", "Alien", "Arrival", "Dune", "Heat", "Drive", "Stalker", "Gattaca"]
     let years:   [8] string = ["1982", "1979", "2016", "2021", "1995", "2011", "1979", "1997"]
     let lengths: [8] u64    = [117, 117, 116, 155, 170, 100, 162, 106]
@@ -213,9 +214,9 @@ func addPictured(host: *Testing.HeadlessHost, explorer: *Explorer, name: string,
 #[Swag.TestTag("golden")]
 #test
 {
-    var host: Testing.HeadlessHost
-    let window   = boardWindow(&host, false, films: false)
-    let explorer = unwrap window.explorer
+    var host:    Testing.HeadlessHost
+    let window              = boardWindow(&host, false, films: false)
+    let explorer            = unwrap window.explorer
     let albums:  [8] string = ["Discovery", "Random Access Memories", "In Rainbows", "Kid A", "Moon Safari", "Homework", "Currents", "Blue Lines"]
     let artists: [8] string = ["Daft Punk", "Daft Punk", "Radiohead", "Radiohead", "Air", "Daft Punk", "Tame Impala", "Massive Attack"]
     let years:   [8] string = ["2001", "2013", "2007", "2000", "1998", "1997", "2015", "1991"]
@@ -244,12 +245,12 @@ func addPictured(host: *Testing.HeadlessHost, explorer: *Explorer, name: string,
 {
     for light in [false, true]
     {
-        var host: Testing.HeadlessHost
+        var host:   Testing.HeadlessHost
         let window   = boardWindow(&host, light, films: false)
         let explorer = unwrap window.explorer
-        let tracks:  [10] string = ["One More Time", "Aerodynamic", "Digital Love", "Harder, Better, Faster, Stronger", "Crescendolls",
-                                    "Nightvision", "Superheroes", "High Life", "Something About Us", "Voyager"]
-        let lengths: [10] u64    = [320, 207, 298, 224, 211, 104, 237, 201, 231, 227]
+        let tracks: [10] string = ["One More Time", "Aerodynamic", "Digital Love", "Harder, Better, Faster, Stronger", "Crescendolls",
+                                   "Nightvision", "Superheroes", "High Life", "Something About Us", "Voyager"]
+        let lengths: [10] u64 = [320, 207, 298, 224, 211, 104, 237, 201, 231, 227]
         for track, index in tracks
         {
             let file = Format.toString("%{02} - %.flac", index + 1, track)
@@ -264,7 +265,9 @@ func addPictured(host: *Testing.HeadlessHost, explorer: *Explorer, name: string,
         explorer.selected = 2
         showBoard(&host, window, "Music / Daft Punk", "Discovery")
         let grid = explorer.grid
-        Swag.assert(grid.board == .Album and grid.playButton!.isLocallyVisible() and not explorer.title.isLocallyVisible())
+        Swag.assert(grid.board == .Album and
+                    grid.playButton!.isLocallyVisible() and
+                    not explorer.title.isLocallyVisible())
         Swag.assert(trackTitle("03 - Digital Love.flac") == "Digital Love")
         var image = host.render(window)
         Pixel.Testing.assertImageGolden(&image, light ? "explorer.album.paper" : "explorer.album")
@@ -276,9 +279,9 @@ func addPictured(host: *Testing.HeadlessHost, explorer: *Explorer, name: string,
 #[Swag.TestTag("golden")]
 #test
 {
-    var host: Testing.HeadlessHost
-    let window   = boardWindow(&host, false, films: false)
-    let explorer = unwrap window.explorer
+    var host:    Testing.HeadlessHost
+    let window            = boardWindow(&host, false, films: false)
+    let explorer          = unwrap window.explorer
     let widths:  [12] s32 = [180, 150, 96, 180, 150, 150, 180, 120, 96, 200, 150, 150]
     let heights: [12] s32 = [96, 100, 128, 96, 100, 100, 100, 100, 128, 100, 100, 100]
     let tops:    [12] u32 = [0x34452E, 0xC88A48, 0x203050, 0x4A2A2A, 0x7090B8, 0x222222, 0x305050, 0x9A6A34, 0x1C4A44, 0x24385A, 0x4A3A24, 0x5A3A7A]
@@ -307,7 +310,7 @@ func addPictured(host: *Testing.HeadlessHost, explorer: *Explorer, name: string,
 // a document, the lines and first lines of code, the sections of Markdown, a font's face.
 #test
 {
-    let folder = Path.combine(unwrap Path.directoryName(#curlocation.fileName), "datas")
+    let folder  = Path.combine(unwrap Path.directoryName(#curlocation.fileName), "datas")
     var picture = ExplorerEntry{name: "title.png", path: Path.combine(folder, "title.png")}
     var pdf     = ExplorerEntry{name: "viewer.pdf", path: Path.combine(folder, "viewer.pdf")}
     var code    = ExplorerEntry{name: "sample.cpp", path: Path.combine(folder, "sample.cpp")}

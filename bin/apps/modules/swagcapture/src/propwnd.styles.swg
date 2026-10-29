@@ -1,12 +1,12 @@
 // Geometry of the head rows of the property panel, which follow the rows of the inspector.
-const ColorSwatchSize  = 20.0     // Side of the swatch of a colour row.
-const ChoiceGap        = 4.0      // Air between two glyphs of a choice row.
-const ChoiceGlyphSize  = 14.0     // Side of the shape a shape glyph draws.
-const ChoiceGlyphInset = 6.0      // Air between a dash sample and the edges of its cell.
-const ChoiceStroke     = 1.5      // Weight of the strokes a glyph draws.
-const CapGlyphStroke   = 2.5      // Weight of the stroke a line end is drawn on: the ends scale with it.
-const MaxLayerRows     = 12       // Layers the inspector lists for several objects.
-const PositionLetterWidth = 14.0  // Width of the letter before a value of the position strip.
+const ColorSwatchSize     = 20.0     // Side of the swatch of a colour row.
+const ChoiceGap           = 4.0      // Air between two glyphs of a choice row.
+const ChoiceGlyphSize     = 14.0     // Side of the shape a shape glyph draws.
+const ChoiceGlyphInset    = 6.0      // Air between a dash sample and the edges of its cell.
+const ChoiceStroke        = 1.5      // Weight of the strokes a glyph draws.
+const CapGlyphStroke      = 2.5      // Weight of the stroke a line end is drawn on: the ends scale with it.
+const MaxLayerRows        = 12       // Layers the inspector lists for several objects.
+const PositionLetterWidth = 14.0     // Width of the letter before a value of the position strip.
 
 // A colour a head row of the property panel edits on the selection.
 enum ColorSlot
@@ -39,8 +39,8 @@ impl PropWnd
     // inspector and the editor after it, or, without a label, the editor across the whole row.
     mtd addHeadRow(label: string)->*Wnd
     {
-        let metrics = .themeMetrics()
-        let height  = metrics.control_InspectorHeight
+        let metrics  = .themeMetrics()
+        let height   = metrics.control_InspectorHeight
         with let row = Wnd.create'Wnd(.topLayout, {0, 0, 0, height})
         {
             .backgroundStyle = .Transparent
@@ -120,7 +120,7 @@ impl PropWnd
     // Appends a colour row: a swatch and its value in hex, which open the colour picker.
     mtd addColorRow(label: string, slot: ColorSlot)
     {
-        let cell = .addHeadRow(label)
+        let cell        = .addHeadRow(label)
         with let button = IconButton.create(cell, {}, {}, flags: .Popup | .Flat)
         {
             .dockStyle = .Center
@@ -157,13 +157,14 @@ impl PropWnd
 
             // The value is a measure, so it is set in the fixed-width family; an opacity under
             // full follows it in percent.
-            var hex  = Format.toString("%{X02}%{X02}%{X02}", color.r, color.g, color.b)
+            var hex = Format.toString("%{X02}%{X02}%{X02}", color.r, color.g, color.b)
             if color.a != 255
             {
                 // The percent sign is appended rather than formatted: '%' is the placeholder itself.
                 hex += Format.toString(" · %", cast(s32, Math.round(cast(f32, color.a) * 100 / 255)))
                 hex += " %"
             }
+
             painter.drawString(swatch.right() + metrics.inspector_LabelGap, font.opticalLineTop(pos.vertCenter()), hex, font, colors.softText)
         }
 
@@ -188,9 +189,14 @@ impl PropWnd
     {
         switch #complete row
         {
-        case .ShapeKind, .StepKind: return cast(u32, FormShapeKind.count)
-        case .Dash:                 return cast(u32, DashStyle.count) - 1     // `Pattern` takes its lengths from the pen and shows nothing alone.
-        case .StartCap, .EndCap:    return cast(u32, LineCapStyle.count)
+        case .ShapeKind, .StepKind:
+            return cast(u32, FormShapeKind.count)
+
+        case .Dash:
+            return cast(u32, DashStyle.count) - 1     // `Pattern` takes its lengths from the pen and shows nothing alone.
+
+        case .StartCap, .EndCap:
+            return cast(u32, LineCapStyle.count)
         }
     }
 
@@ -211,15 +217,19 @@ impl PropWnd
             let shape = .getSelectedForm'FormShape()
             if shape do
                 return cast(u32, shape.kind)
+
         case .StepKind:
             let step = .getSelectedForm'FormStep()
             if step do
                 return cast(u32, step.kind)
+
         case .Dash:
             return cast(u32, .getSelectedBaseForm().dashStyle)
+
         case .StartCap:
             if .getSelectedBaseForm() is FormLine as line do
                 return cast(u32, line.beginCap)
+
         case .EndCap:
             if .getSelectedBaseForm() is FormLine as line do
                 return cast(u32, line.endCap)
@@ -265,8 +275,8 @@ impl PropWnd
     // Appends the glyphs of the choice `row` to `cell`, the current one checked.
     mtd addChoiceGlyphs(cell: *Wnd, row: ChoiceRow, tip: string)
     {
-        let metrics = .themeMetrics()
-        let size    = metrics.control_InspectorHeight
+        let metrics    = .themeMetrics()
+        let size       = metrics.control_InspectorHeight
         with let stack = StackLayoutCtrl.create(cell, .Left, {})
         {
             .dockStyle = .Center
@@ -277,6 +287,7 @@ impl PropWnd
         for i in choiceCount(row)
         {
             let value = choiceValue(row, i)
+
             // A radio: a press on the glyph already chosen keeps it chosen; the row unchecks the
             // others itself.
             with let button = IconButton.create(stack, {}, {0, 0, size, size}, flags: .Radio)
@@ -329,6 +340,7 @@ impl PropWnd
         let capture = .main.getCapture()
         let several = capture and capture.selection.count > 1
         .addHeadSection(several ? appStrings().ui_Common : appStrings().ui_PropColor)
+
         // A stroke is its colour, then its outline; a shape its fill, its words, then its outline.
         if isStroke and not pixSel
         {
@@ -445,7 +457,7 @@ impl PropWnd
 
         .addHeadSection(texts.ui_MenuArrange)
         const Arrange = [ActionAlign.SendToFront, ActionAlign.SendToBack, ActionAlign.MoveForward, ActionAlign.MoveBackward]
-        let arrangeNames  = [texts.act_SendToFront, texts.act_SendToBack, texts.act_MoveForward, texts.act_MoveBackward]
+        let arrangeNames = [texts.act_SendToFront, texts.act_SendToBack, texts.act_MoveForward, texts.act_MoveBackward]
         for pair in 2
         {
             with let row = StackLayoutCtrl.create(.addHeadRow(""), .HorizontalFit, {})
@@ -476,9 +488,10 @@ impl PropWnd
 
             let form = capture.forms[i]
             let mode = MainWnd.formToEditMode(form)
+
             // A layer is named by its words when it has some, by its kind otherwise.
             var name: String = MainWnd.editModeName(mode)
-            let words = formEditableText(form)
+            let words        = formEditableText(form)
             if words and not words.isEmpty() do
                 name = words[]
             with let button = IconButton.create(.addHeadRow(""), .main.icon(MainWnd.editModeIcon(mode), metrics.menuPopup_IconSize), {}, flags: .Radio)

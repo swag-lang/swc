@@ -15,12 +15,12 @@ struct HeaderItem
 {
     public
     {
-        name: RichString            // Displayed column label.
-        icon: Icon                  // Optional icon drawn before the label.
+        name:   RichString          // Displayed column label.
+        icon:   Icon                // Optional icon drawn before the label.
         isResizable = true          // Whether the trailing separator can resize the column.
         isClickable = true          // Whether the column can emit click actions.
         reservesIconSpace: bool     // Whether list rows reserve the header icon column.
-        horzAlign = StringHorzAlignment.Left     // Alignment of the title, which follows its column's cells.
+        horzAlign   = StringHorzAlignment.Left     // Alignment of the title, which follows its column's cells.
         detail: String              // Faint mono line under the title, such as the kind of values the column holds; empty for none.
     }
 
@@ -57,8 +57,8 @@ struct Header
     {
         using wnd: Wnd     // Embedded window behavior and presentation.
 
-        form = HeaderForm.Flat                              // Background and border presentation.
-        itemPadding:      f32 = 5                           // Horizontal inset applied to each item label.
+        form = HeaderForm.Flat                           // Background and border presentation.
+        itemPadding:      f32 = 5                        // Horizontal inset applied to each item label.
         sigLayoutChanged: SigArray'func||(*Wnd)          // Emitted after an effective column width changes.
         sigColumnClicked: SigArray'func||(*Wnd, u32)     // Emitted after the user clicks a column.
 
@@ -431,8 +431,8 @@ impl Header
         item.name      = name
         item.icon      = icon
         item.horzAlign = align
-        item.width  = Math.max(width, 0)
-        item.column = cast(.items.count)
+        item.width     = Math.max(width, 0)
+        item.column    = cast(.items.count)
         .items.add(item)
         .invalidate()
         return item

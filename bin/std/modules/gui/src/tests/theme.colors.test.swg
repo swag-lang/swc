@@ -62,7 +62,9 @@ using Swag, Core, Pixel
     Swag.assert(encre.searchMatch_Border == Voltage)
 
     Swag.assert(papier.btnPush_StrongBk == papier.text and papier.btnPush_StrongText == papier.ground)
-    Swag.assert(papier.focusRing == papier.text and papier.caret == papier.text and papier.edit_FocusBorder == papier.text)
+    Swag.assert(papier.focusRing == papier.text and
+                papier.caret == papier.text and
+                papier.edit_FocusBorder == papier.text)
     Swag.assert(papier.searchMatch_Bk.withAlpha(255) == papier.highlight and papier.searchMatch_Border == papier.text)
 
     // No part of Papier is written in Voltage: a yellow mark on paper is a mark nobody sees.

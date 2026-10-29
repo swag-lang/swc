@@ -39,8 +39,10 @@ impl IActionUI for ActionCopyPaste
 
         case .Paste:
             evt.updatedFields |= .Disabled | .Name | .Icon
-            if not capture do
+            if not capture
+            {
                 evt.disabled = true
+            }
             elif not Clipboard.hasTypedValue(#typeof(CaptureClipboardForms)) and not Clipboard.hasImage()
             {
                 evt.disabled = true
@@ -95,14 +97,24 @@ impl IActionUI for ActionCopyPaste
 
         switch cxt.id
         {
-        case .Copy:             capture.copy()
-        case .Cut:              capture.cut()
-        case .Paste:            capture.paste()
-        case .PasteImageInside: capture.pasteImageInside()
+        case .Copy:
+            capture.copy()
+
+        case .Cut:
+            capture.cut()
+
+        case .Paste:
+            capture.paste()
+
+        case .PasteImageInside:
+            capture.pasteImageInside()
+
         case .CopyAsImage:
             capture.copyAll()
             main.confirm(appStrings().msg_Copied)
-        case .Duplicate:        capture.duplicate()
+
+        case .Duplicate:
+            capture.duplicate()
         }
 
         return true

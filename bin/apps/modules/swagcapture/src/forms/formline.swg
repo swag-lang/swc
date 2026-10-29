@@ -3,7 +3,7 @@
 #[Serialization.TypeKey("swag.capture.form.line")]
 struct FormLine
 {
-    using base: BaseForm
+    using base:   BaseForm
     outlineColor: Color        = Argb.Black
     beginCap:     LineCapStyle = .Round
     endCap:       LineCapStyle = .Round

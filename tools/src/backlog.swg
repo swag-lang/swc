@@ -18,7 +18,7 @@ private struct Domain
 private struct BacklogFile
 {
     path:     String
-    name:     String // relative to backlog/, as the inventory and Git history name it
+    name:     String     // relative to backlog/, as the inventory and Git history name it
     fileName: String
 }
 
@@ -32,7 +32,7 @@ private func collectBacklogFiles(folder: string, prefix: string, result: *Array'
         {
             .path     = String.from(file.fullName.toString())
             .name     = String.from(prefix)
-            .name    += fileName
+            .name     += fileName
             .fileName = String.from(fileName)
         }
 

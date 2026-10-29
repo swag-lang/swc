@@ -661,8 +661,10 @@ func assertSheetGolden(shot: SheetShot)
                          Swag.assert(sheet.position.x == Math.round(sheet.position.x))
                          Swag.assert(sheet.position.y == Math.round(sheet.position.y))
                      }
-                     else do
+                     else
+                     {
                          host.finishAnimations()
+                     }
                  }
 
                  if shot.keyboard
@@ -671,12 +673,12 @@ func assertSheetGolden(shot: SheetShot)
                      host.finishAnimations()
                  }
 
-                if shot.header
-                {
-                    host.keyPress(.Home)
-                    Swag.assert(sheet.focusRow == -1)
-                    host.finishAnimations()
-                }
+                 if shot.header
+                 {
+                     host.keyPress(.Home)
+                     Swag.assert(sheet.focusRow == -1)
+                     host.finishAnimations()
+                 }
 
                  var image = host.render()
                  Pixel.Testing.assertImageGolden(&image, shot.golden)

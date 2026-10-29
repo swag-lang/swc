@@ -218,7 +218,7 @@ impl Inspector
     #[Swag.Discardable]
     mtd addAction(text: string, id: WndId? = null)->*IconButton
     {
-        let metrics = .themeMetrics()
+        let metrics     = .themeMetrics()
         with let button = IconButton.createQuiet(me, id, menu: false)
         {
             .style.setFont(me.theme().createDefaultFont(metrics.defaultFontSize - 1), .Regular)

@@ -119,14 +119,14 @@ struct ListCtrl
             }
         }
 
-        sigSelectionChanged:  SigArray'func||(*Wnd)                 // Emitted after the selected row set changes.
-        sigCheckedChanged:    SigArray'func||(*Wnd)                 // Emitted after the checked row set changes.
-        sigRightClicked:      SigArray'func||(*Wnd, Math.Point)     // Emitted for a right click, with the local position.
-        sigLeftDoubleClicked: SigArray'func||(*Wnd, Math.Point)     // Emitted for a left double click, with the local position.
-        sigExpanded:          SigArray'func||(*Wnd, *ListLine)      // Emitted after a row expands.
-        sigCollapsed:         SigArray'func||(*Wnd, *ListLine)      // Emitted after a row collapses.
-        sigKeyPressed:        SigArray'func||(*Wnd, *KeyEvent)      // Emitted for a key press before the list reads it; accept the event to claim the key.
-        onFillVirtualLine:    (func(*ListCtrl, *ListLine?, u32))?        // Fills a transient row before a virtual row is painted.
+        sigSelectionChanged:  SigArray'func||(*Wnd)                   // Emitted after the selected row set changes.
+        sigCheckedChanged:    SigArray'func||(*Wnd)                   // Emitted after the checked row set changes.
+        sigRightClicked:      SigArray'func||(*Wnd, Math.Point)       // Emitted for a right click, with the local position.
+        sigLeftDoubleClicked: SigArray'func||(*Wnd, Math.Point)       // Emitted for a left double click, with the local position.
+        sigExpanded:          SigArray'func||(*Wnd, *ListLine)        // Emitted after a row expands.
+        sigCollapsed:         SigArray'func||(*Wnd, *ListLine)        // Emitted after a row collapses.
+        sigKeyPressed:        SigArray'func||(*Wnd, *KeyEvent)        // Emitted for a key press before the list reads it; accept the event to claim the key.
+        onFillVirtualLine:    (func(*ListCtrl, *ListLine?, u32))?     // Fills a transient row before a virtual row is painted.
         compareLines:         (func(*ListLine?, *ListLine?, u32, bool)->s32)?     // Compares two rows for custom sorting.
     }
 
@@ -143,7 +143,7 @@ struct ListCtrl
     // The ground of the row under the pointer comes in, and the one of the row it left goes out,
     // over a quick beat, so a pointer crossing the list leaves no flicker behind it.
     hotPresence:  f32
-    leftIndex     = Swag.U32.Max
+    leftIndex = Swag.U32.Max
     leftPresence: f32
 
     public readonly
@@ -2027,7 +2027,15 @@ private impl ListCtrl
         options.easing   = .EaseOut
 
         let list = me
-        discard .app().animator.animateF32(.listView, AnimationChannel.from("Gui.List.Turn"), .turn, destination, func(view, value) { view.list.turn = value }, options,
+        discard .app().animator.animateF32(.listView,
+                                           AnimationChannel.from("Gui.List.Turn"),
+                                           .turn,
+                                           destination,
+                                           func(view, value)
+                                           {
+                                               view.list.turn = value
+                                           },
+                                           options,
                                            func|list, line|(result)
                                            {
                                                if result == .Completed and list.turningLine == line do

@@ -172,7 +172,7 @@ struct Properties
 
     // Grid state rebuilt from the rows: section index, hover and selection, and the transient
     // state of one gesture. The grid maintains all of it.
-    sections: Array'{ item: *PropertiesItem?, lvl: s32 }     // Section rows and their depth.
+    sections:     Array'{ item: *PropertiesItem?, lvl: s32 }     // Section rows and their depth.
     lastCategory: *PropertiesItem?     // The top-level category opened last, which a category of the same name goes on.
     sectionRules: bool = true          // Whether a section label of a panel is followed by a hairline.
 
@@ -664,9 +664,9 @@ impl Properties
     // Removes every row, leaving the undo history and the record of the added structures alone.
     internal mtd clearRows()
     {
-        .generation += 1
-        .dragItem   = null
-        .dragCmd    = null
+        .generation   += 1
+        .dragItem     = null
+        .dragCmd      = null
         .hotItem, .selItem, .menuItem = null
         .lastCategory = null
 

@@ -16,6 +16,7 @@ private func referenceCoeffToken(bits: *BitReader, table: u64)->u64
             return index
         }
     }
+
     return 68
 }
 
@@ -28,7 +29,7 @@ private func referenceCoeffToken(bits: *BitReader, table: u64)->u64
         for prefix in 256'u64
         {
             data[0] = cast(u8, prefix)
-            for suffix in [0'u8, 1, 0x55, 0xaa, 0xfe, 0xff]
+            for suffix in [0'u8, 1, 0x55, 0xAA, 0xFE, 0xFF]
             {
                 data[1] = suffix
                 for length in 3'u64
@@ -86,6 +87,7 @@ private func referenceMoreData(bits: const *BitReader)->bool
         if (bits.data![last >> 3] >> cast(u32, (7 - (last & 7)))) & 1 do
             break
     }
+
     return last > bits.bitPos
 }
 
@@ -268,7 +270,7 @@ func assertRbspUnescape(data: const [..] u8)
 // Compare boundary offsets and output against a scalar unescaper.
 private func assertRbspBounds(data: const [..] u8, bounds: const [..] u64)
 {
-    var expected: Array'u8
+    var expected:  Array'u8
     var positions: Array'u64
     var boundary = 0'u64
     var zeros    = 0'u32
@@ -286,9 +288,11 @@ private func assertRbspBounds(data: const [..] u8, bounds: const [..] u64)
             zeros = 0
             continue
         }
+
         zeros = value == 0 ? zeros + 1 : 0
         expected.add(value)
     }
+
     while boundary < bounds.count
     {
         positions.add(expected.count)

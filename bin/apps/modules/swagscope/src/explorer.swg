@@ -106,20 +106,20 @@ struct Explorer
 
     late
     {
-        window:    *ViewerWindow
-        header:    *Wnd
-        summary:   *Label
-        tools:     *StackLayoutCtrl
-        address:   *ExplorerAddress
-        title:     *Label
-        status:    *Label
+        window:     *ViewerWindow
+        header:     *Wnd
+        summary:    *Label
+        tools:      *StackLayoutCtrl
+        address:    *ExplorerAddress
+        title:      *Label
+        status:     *Label
         extractAll: *IconButton
-        sortMenu:  *IconButton
-        modeMenu:  *IconButton
-        filter:    *EditBox
-        list:      *ListCtrl
-        scroll:    *ScrollWnd
-        grid:      *ExplorerGrid
+        sortMenu:   *IconButton
+        modeMenu:   *IconButton
+        filter:     *EditBox
+        list:       *ListCtrl
+        scroll:     *ScrollWnd
+        grid:       *ExplorerGrid
     }
 
     mode:            ExplorerMode = .Medium
@@ -154,13 +154,13 @@ impl Explorer
 {
     // The air between the page and the edges of the document, the height of its header, and the
     // size its title is set in.
-    const PageMargin    = 72.0
-    const HeaderHeight  = 94.0
+    const PageMargin       = 72.0
+    const HeaderHeight     = 94.0
     const TitleFontSize    = 44'u32
     const MinTitleFontSize = 28'u32
-    const ToolHeight    = 32.0
-    const AddressHeight = 24.0
-    const SummaryHeight = 24.0
+    const ToolHeight       = 32.0
+    const AddressHeight    = 24.0
+    const SummaryHeight    = 24.0
 
     func create(parent: *Wnd, window: *ViewerWindow)->*Explorer
     {
@@ -321,7 +321,7 @@ impl Explorer
         with .status = Label.create(.tools, "", {0, 0, 0, ToolHeight}, null, .SecondaryText)
         {
             .layoutSpec.alignY = .End
-            .margin.z          = 8
+            .margin.z = 8
             .style.setFont(me.theme().createDefaultFontFs(12), .Regular)
             .style.addStyleSheetColors("label_TextLight $label_TextFaint")
             .setTextAlignment(.Right, .OpticalCenter)
@@ -337,8 +337,12 @@ impl Explorer
             .setIcon(me.theme().icon(.Search, themeRowIconSize(me.themeMetrics())))
             .setPlaceholder(appStrings().ui_FilterFiles)
             .hide()
-            .sigTextChanged += func|view = me|(_) { view.fill() }
-            .sigFocusLost   += func|view = me|(edit)
+            .sigTextChanged += func|view = me|(_)
+            {
+                view.fill()
+            }
+
+            .sigFocusLost += func|view = me|(edit)
             {
                 if not edit.text().count
                 {
@@ -359,13 +363,13 @@ impl Explorer
         with .sortMenu = IconButton.createQuiet(.tools)
         {
             .layoutSpec.alignY = .End
-            .sigPressed += func|view = me|(_) { view.showSortMenu() }
+            .sigPressed        += func|view = me|(_) { view.showSortMenu() }
         }
 
         with .modeMenu = IconButton.createQuiet(.tools)
         {
             .layoutSpec.alignY = .End
-            .sigPressed += func|view = me|(_) { view.showModeMenu() }
+            .sigPressed        += func|view = me|(_) { view.showModeMenu() }
         }
 
         with .title = Label.create(line, "", {}, null, .Ellipsis)
@@ -549,17 +553,22 @@ impl Explorer
         .extractAll.setQuietText(text.cmd_ExtractAll)
         switch .mode
         {
-        case .Names:   .modeMenu.setQuietText(text.mode_Names)
-        case .Details: .modeMenu.setQuietText(text.mode_Details)
+        case .Names:
+            .modeMenu.setQuietText(text.mode_Names)
+
+        case .Details:
+            .modeMenu.setQuietText(text.mode_Details)
+
         default:
             switch .grid.board
             {
-            case .Covers: .modeMenu.setQuietText(text.mode_Covers)
-            case .Mosaic: .modeMenu.setQuietText(text.mode_Mosaic)
+            case .Covers:  .modeMenu.setQuietText(text.mode_Covers)
+            case .Mosaic:  .modeMenu.setQuietText(text.mode_Mosaic)
             case .Posters: .modeMenu.setQuietText(text.mode_Posters)
-            default:      .modeMenu.setQuietText(text.mode_Thumbnails)
+            default:       .modeMenu.setQuietText(text.mode_Thumbnails)
             }
         }
+
         .layoutTools()
     }
 
@@ -704,8 +713,10 @@ impl Explorer
         let title = not entry.movie.title.isEmpty() ? entry.movie.title.toString() :
                     (not entry.music.title.isEmpty() ? entry.music.title.toString() : entry.name.toString())
         sheet.setTitle(safeMediaText(title))
-        if title != entry.name.toString() do
+        if title != entry.name.toString()
+        {
             sheet.setIdentity(entry.name)
+        }
         elif .listing.isArchive
         {
             // A member is placed by the folder of the archive it stands in, and its kind.
@@ -866,8 +877,10 @@ impl Explorer
             let name = Path.fileNameWithoutExtension(.displayPath(.listing.path)) orelse "archive"
             .extractTo(Path.combine(chosen, name), all: true)
         }
-        else do
+        else
+        {
             .extractTo(chosen, all: false)
+        }
     }
 
     // Extracts into `target`: the whole archive with `all`, else the chosen member or folder.
@@ -1317,10 +1330,14 @@ impl Explorer
                     if not known do
                         albums.add(entry.music.title.isEmpty() ? entry.name : entry.music.title)
                 }
-                elif kind == cast(s32, ThemeIcons.FileImage) do
+                elif kind == cast(s32, ThemeIcons.FileImage)
+                {
                     photos += 1
-                elif kind == cast(s32, ThemeIcons.FileVideo) do
+                }
+                elif kind == cast(s32, ThemeIcons.FileVideo)
+                {
                     films += 1
+                }
             }
 
             if board == .Covers do
@@ -1562,7 +1579,8 @@ impl Explorer
                 for row in Math.min(range.first, .shown.count) until Math.min(range.end, .shown.count)
                 {
                     let index = .shown[row]
-                    if index < .entries.count and not .entries[index].directory and
+                    if index < .entries.count and
+                       not .entries[index].directory and
                        not .entries[index].attempted and
                        .previewSlot(index) == Swag.U64.Max
                     {
@@ -1792,8 +1810,8 @@ struct ExplorerGrid
     posters:       bool     // Whether the tiles stand upright, as the posters of a folder of films.
     tile:          Math.Point = {160, 142}
     board:         ExplorerBoard
-    places:        Array'Math.Rectangle      // Where each shown item stands in a mosaic or an album.
-    days:          Array'ExplorerDayLabel    // The days of a mosaic.
+    places:        Array'Math.Rectangle       // Where each shown item stands in a mosaic or an album.
+    days:          Array'ExplorerDayLabel     // The days of a mosaic.
     contentHeight: f32
     playButton:    *PushButton?
     shuffleButton: *PushButton?
@@ -1923,9 +1941,9 @@ impl ExplorerGrid
         .cell    = Math.Point{width, MosaicHeight}
 
         var y     = CellInset
-        var row:   Array'u64
+        var row: Array'u64
         var shape = 0.0'f32
-        var day:   String
+        var day: String
         for index, at in explorer.shown
         {
             let entry   = &explorer.entries[index]
@@ -1963,10 +1981,11 @@ impl ExplorerGrid
     {
         if row.isEmpty() do
             return y
+
         // The last row of a day fills the width too, unless it holds too little to stand that tall.
-        let gaps    = MosaicGap * cast(f32, row.count - 1)
-        var height  = (width - gaps) / Math.max(shape, 0.01)
-        let short   = last and height > MosaicHeight * 1.25
+        let gaps   = MosaicGap * cast(f32, row.count - 1)
+        var height = (width - gaps) / Math.max(shape, 0.01)
+        let short  = last and height > MosaicHeight * 1.25
         if short do
             height = MosaicHeight
         height = Math.round(height)
@@ -2047,7 +2066,7 @@ impl ExplorerGrid
         let album = .board == .Album
         if album and not .playButton
         {
-            let explorer = .explorer
+            let explorer  = .explorer
             with let play = PushButton.create(me, Format.toString("▶ %", appStrings().explore_Play), {}, null, .Strong)
             {
                 .sigPressed += func|explorer|(_) { explorer.playAlbum(false) }
@@ -2117,16 +2136,20 @@ impl ExplorerGrid
         elif entry.texture.isValid()
         {
             let texture = entry.texture
-            let fills   = .posters or .board == .Covers or .board == .Mosaic or glyph.index == cast(s32, ThemeIcons.FileImage) or glyph.index == cast(s32, ThemeIcons.FileVideo)
+            let fills   = .posters or
+                          .board == .Covers or
+                          .board == .Mosaic or
+                          glyph.index == cast(s32, ThemeIcons.FileImage) or
+                          glyph.index == cast(s32, ThemeIcons.FileVideo)
             if fills
             {
                 // Crop the picture to the shape of the tile, around its centre.
-                let tw     = cast(f32, texture.width)
-                let th     = cast(f32, texture.height)
-                let scale  = Math.max(tile.width / tw, tile.height / th)
-                let sw     = tile.width / scale
-                let sh     = tile.height / scale
-                var brush  = Brush.createTexture(texture)
+                let tw    = cast(f32, texture.width)
+                let th    = cast(f32, texture.height)
+                let scale = Math.max(tile.width / tw, tile.height / th)
+                let sw    = tile.width / scale
+                let sh    = tile.height / scale
+                var brush = Brush.createTexture(texture)
                 brush.uvMode = .FillSubRect
                 brush.uvRect = Math.Rectangle{(tw - sw) * 0.5, (th - sh) * 0.5, sw, sh}
                 painter.fillRoundRect(tile, radius, radius, brush)
@@ -2167,10 +2190,10 @@ impl ExplorerGrid
 
         // The name, left on the edge of the tile, and the facts under it: what the item measures
         // at the left, what it weighs at the right.
-        let font = unwrap .font().regular
-        let mono = .theme().createDefaultFontFs(11)
+        let font     = unwrap .font().regular
+        let mono     = .theme().createDefaultFontFs(11)
         let nameRect = Math.Rectangle{tile.x, tile.bottom() + 8, tile.width, 20}
-        var title = entry.name.toString()
+        var title    = entry.name.toString()
         if .posters and entry.movie.title.length do
             title = entry.movie.title.toString()
         elif .board == .Covers and entry.music.title.length do
@@ -2234,9 +2257,9 @@ impl ExplorerGrid
         if not entry.excerpt.isEmpty() and (ext == ".md" or ext == ".markdown")
         {
             // The first heading in bold, then the lines under it as rules, the next heading in soft.
-            let bold  = .theme().createDefaultFont(13, .Bold)
-            let small = .theme().createDefaultFont(10, .Bold)
-            var y     = tile.y + 22
+            let bold     = .theme().createDefaultFont(13, .Bold)
+            let small    = .theme().createDefaultFont(10, .Bold)
+            var y        = tile.y + 22
             var headings = 0'u64
             for line in Tokenize.split(entry.excerpt, '\n'rune)
             {
@@ -2252,7 +2275,7 @@ impl ExplorerGrid
                     painter.drawString(tile.x + 18, font.opticalLineTop(y), line[at to], font, headings == 0 ? colors.text : colors.softText)
                     painter.popClippingRect()
                     headings += 1
-                    y += 18
+                    y        += 18
                 }
                 elif line.count
                 {
@@ -2328,7 +2351,7 @@ impl ExplorerGrid
     {
         let width   = Painter.measureString(text, font).width
         let scrolls = width > nameRect.width and (.hovered == row or .explorer.selected == index)
-        var name: RichString = text
+        var name:   RichString = text
         var format: RichStringFormat
         format.font = .font()
         me.theme().setTextColors(&format, me.themeColors().text)
@@ -2346,7 +2369,7 @@ impl ExplorerGrid
             elif phase > distance + 40 do
                 offset = distance * 2 + 40 - phase
             var moving = nameRect
-            moving.x -= cast(f32, offset)
+            moving.x     -= cast(f32, offset)
             moving.width = Math.ceil(width) + 1
             painter.pushClippingRect(nameRect)
             painter.drawRichString(moving, &name, format)
@@ -2491,15 +2514,17 @@ impl ExplorerGrid
                 painter.fillRoundRect(place, radius, radius, colors.raised)
 
             let ink = chosen ? colors.arc : colors.text
-            if chosen do
+            if chosen
+            {
                 painter.drawString(place.x + 12, body.opticalLineTop(centerY), "▶", body, colors.arc)
+            }
             else
             {
                 let label = Format.toString("%", number)
                 painter.drawString(place.x + 12, mono.opticalLineTop(centerY), label, mono, colors.faintText)
             }
 
-            let length = entry.duration ? formatDuration(entry.duration) : String.from("")
+            let length      = entry.duration ? formatDuration(entry.duration) : String.from("")
             let lengthWidth = Painter.measureString(length, mono).width
             painter.drawString(place.right() - 12 - lengthWidth, mono.opticalLineTop(centerY), length, mono, colors.faintText)
             painter.pushClippingRect(Math.Rectangle{place.x + 48, place.y, Math.max(place.width - 48 - lengthWidth - 32, 0), place.height})
@@ -2665,7 +2690,7 @@ impl ExplorerGrid
     mtd startNameScroll()
     {
         .nameTick = 0
-        let font = unwrap .font().regular
+        let font       = unwrap .font().regular
         var needsTimer = false
         for index, row in .explorer.shown where row == .hovered or index == .explorer.selected
         {

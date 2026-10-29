@@ -82,8 +82,8 @@ private impl Panel
         .zoomPercent  = Viewer.clampZoom(percent)
         g_ZoomPercent = .zoomPercent
         var style = HtmlStyle.theme()
-        style.bodyFontSize = cast(u32, Math.max(Math.round(16.0 * cast(f32, .zoomPercent) / 100), 1))
-        style.codeFontSize = cast(u32, Math.max(Math.round(14.0 * cast(f32, .zoomPercent) / 100), 1))
+        style.bodyFontSize    = cast(u32, Math.max(Math.round(16.0 * cast(f32, .zoomPercent) / 100), 1))
+        style.codeFontSize    = cast(u32, Math.max(Math.round(14.0 * cast(f32, .zoomPercent) / 100), 1))
         style.maxContentWidth = Math.round(ReadingColumn * cast(f32, .zoomPercent) / 100)
         .view.setDocumentStyle(style)
         .zoomLabel.setText(Viewer.zoomText(.zoomPercent))
@@ -230,7 +230,7 @@ func createViewer(host: Viewer.Host)
     // The sections of the page in the right margin; choosing one goes there.
     with result.margin = OutlineMargin.create(result, "scope.html.margin")
     {
-        .label = texts().ui_OnThisPage
+        .label     = texts().ui_OnThisPage
         .sigChosen += func|result|(_, row)
         {
             if row < result.parts.count do

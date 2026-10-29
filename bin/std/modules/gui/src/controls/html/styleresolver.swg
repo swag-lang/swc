@@ -210,10 +210,10 @@ impl HtmlStyleResolver
             style.padding.left   = HtmlLength.pixels(16)
             style.padding.right  = HtmlLength.pixels(16)
             var ring: HtmlBorderEdge
-            ring.width        = 1
-            ring.style        = .Solid
-            ring.color        = .defaults.border
-            ring.hasColor     = true
+            ring.width         = 1
+            ring.style         = .Solid
+            ring.color         = .defaults.border
+            ring.hasColor      = true
             style.borderTop    = ring
             style.borderRight  = ring
             style.borderBottom = ring

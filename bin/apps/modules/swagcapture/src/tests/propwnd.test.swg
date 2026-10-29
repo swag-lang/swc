@@ -245,7 +245,9 @@ func testFindStyleButtons(prop: *PropWnd, tip: string)->Array'(*IconButton)
 
     // The style is one row of four segments, each lettered in the style it stands for.
     let style = unwrap testFindItem(prop, #nameof(FormText.fontStyle))
-    Swag.assert(style.comboBox != null and style.comboBox.flags.has(.Segmented) and style.comboBox.items.count == 4)
+    Swag.assert(style.comboBox != null and
+                style.comboBox.flags.has(.Segmented) and
+                style.comboBox.items.count == 4)
     Swag.assert(style.comboBox.items[1]!.fontStyle == .Bold)
 
     // Most specific first: the text form's own fields come before the shared BaseForm

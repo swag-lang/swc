@@ -24,6 +24,7 @@ struct FormText
     fontSize: f32 = 48
     #[Name("Style"), Category("Text")]
     fontStyle = FontFamilyStyle.Regular
+
     // The mini-bar sets how the lines stand in the box, across it and down it.
     #[Name("")]
     alignHorz = FormTextAlign.Center

@@ -272,13 +272,13 @@ private func imageDocument(dictionary: string, samples: const [..] u8)->Document
         let image    = unwrap onlyItem(document.pages[0], .Image).imageValue()
         for x in 2048
         {
-            let bit = (bits[x / 8] >> (7 - x % 8)) & 1
+            let bit   = (bits[x / 8] >> (7 - x % 8)) & 1
             let alpha = (bit == 0) == (decode == "/Decode [1 0]") ? 255 : 0
             Swag.assert(image.pixelColor(cast(s32, x), 0).a == alpha)
         }
     }
 
-    let rows: [6] u8 = [0xAA, 0xF0, 0x80, 0x55, 0x0F, 0x00]
+    let rows:  [6] u8 = [0xAA, 0xF0, 0x80, 0x55, 0x0F, 0x00]
     var extra: Array'u8
     addStreamObject(&extra, 6, "/Type /XObject /Subtype /Image /Width 17 /Height 2 /ColorSpace /DeviceGray /BitsPerComponent 1", rows)
     addStreamObject(&extra, 5, "/Type /XObject /Subtype /Image /Width 17 /Height 2 /ColorSpace /DeviceGray /BitsPerComponent 8 /SMask 6 0 R", samples[0 until 34])
@@ -419,9 +419,9 @@ private func imageDocument(dictionary: string, samples: const [..] u8)->Document
 // Mask resampling picks the expected row and column at different dimensions.
 #test
 {
-    let coverage: [4] u8 = [0, 64, 128, 255]
-    let samples: [15] u8 = [100, 100, 100, 100, 100, 100, 100, 100, 100, 100, 100, 100, 100, 100, 100]
-    var extra: Array'u8
+    let coverage: [4] u8  = [0, 64, 128, 255]
+    let samples:  [15] u8 = [100, 100, 100, 100, 100, 100, 100, 100, 100, 100, 100, 100, 100, 100, 100]
+    var extra:    Array'u8
     addStreamObject(&extra, 6, "/Type /XObject /Subtype /Image /Width 2 /Height 2 /ColorSpace /DeviceGray /BitsPerComponent 8", coverage)
     addStreamObject(&extra, 5, "/Type /XObject /Subtype /Image /Width 5 /Height 3 /ColorSpace /DeviceGray /BitsPerComponent 8 /SMask 6 0 R", samples)
     let content  = "q 10 0 0 10 0 0 cm /Im0 Do Q"
@@ -433,7 +433,7 @@ private func imageDocument(dictionary: string, samples: const [..] u8)->Document
             Swag.assert(image.pixelColor(cast(s32, x), cast(s32, y)).a == coverage[(y * 2 / 3) * 2 + x * 2 / 5])
     }
 
-    let larger: [15] u8 = [0, 15, 30, 45, 60, 75, 90, 105, 120, 135, 150, 165, 180, 195, 210]
+    let larger:  [15] u8 = [0, 15, 30, 45, 60, 75, 90, 105, 120, 135, 150, 165, 180, 195, 210]
     var reduced: Array'u8
     addStreamObject(&reduced, 6, "/Type /XObject /Subtype /Image /Width 5 /Height 3 /ColorSpace /DeviceGray /BitsPerComponent 8", larger)
     addStreamObject(&reduced, 5, "/Type /XObject /Subtype /Image /Width 3 /Height 2 /ColorSpace /DeviceGray /BitsPerComponent 8 /SMask 6 0 R", samples[0 until 6])

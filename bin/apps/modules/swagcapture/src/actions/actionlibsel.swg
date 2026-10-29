@@ -54,25 +54,52 @@ impl IActionUI for ActionLibSel
 
         switch cxt.id
         {
-        case .Left:  libWnd.moveSelLeft()
-        case .Up:    libWnd.moveSelTop()
-        case .Right: libWnd.moveSelRight()
-        case .Down:  libWnd.moveSelBottom()
-        case .Home:  libWnd.moveSelHome()
-        case .End:   libWnd.moveSelEnd()
+        case .Left:
+            libWnd.moveSelLeft()
+
+        case .Up:
+            libWnd.moveSelTop()
+
+        case .Right:
+            libWnd.moveSelRight()
+
+        case .Down:
+            libWnd.moveSelBottom()
+
+        case .Home:
+            libWnd.moveSelHome()
+
+        case .End:
+            libWnd.moveSelEnd()
+
         case .Open:
             if libWnd.view.focusItem < libWnd.view.items.count do
                 libWnd.view.openItem(libWnd.view.items[libWnd.view.focusItem])
 
         // Delete sends the captures to the recycle bin, and erases them from there for good.
-        case .Delete: libWnd.sendCommandEvent(libWnd.trashMode ? ActionLibTrash.DeleteForever : ActionFile.DeleteCapture)
-        case .Search: libWnd.searchEdit.setFocus()
-        case .Rate0:  libWnd.rateSelected(0)
-        case .Rate1:  libWnd.rateSelected(1)
-        case .Rate2:  libWnd.rateSelected(2)
-        case .Rate3:  libWnd.rateSelected(3)
-        case .Rate4:  libWnd.rateSelected(4)
-        case .Rate5:  libWnd.rateSelected(5)
+        case .Delete:
+            libWnd.sendCommandEvent(libWnd.trashMode ? ActionLibTrash.DeleteForever : ActionFile.DeleteCapture)
+
+        case .Search:
+            libWnd.searchEdit.setFocus()
+
+        case .Rate0:
+            libWnd.rateSelected(0)
+
+        case .Rate1:
+            libWnd.rateSelected(1)
+
+        case .Rate2:
+            libWnd.rateSelected(2)
+
+        case .Rate3:
+            libWnd.rateSelected(3)
+
+        case .Rate4:
+            libWnd.rateSelected(4)
+
+        case .Rate5:
+            libWnd.rateSelected(5)
         }
 
         return true

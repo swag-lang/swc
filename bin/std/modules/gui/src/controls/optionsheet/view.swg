@@ -570,6 +570,7 @@ private impl View
     mtd arrivalOffset()->Math.Point
     {
         let remaining = 1 - .openProgress
+
         // The window carries text and icons, so a fractional paint transform would soften them.
         switch .placement
         {
@@ -1071,6 +1072,7 @@ private impl View
         let theme  = .theme()
         let colors = .themeColors()
         let rects  = .themeRects()
+
         // The steps are the stepper's: two glyphs in the soft ink, with a ground only under the
         // pointer, so the value between them is what the row shows.
         if hot and enabled do
@@ -1093,12 +1095,12 @@ private impl View
     {
         // Slide progress is continuous; glyphs and icons still need whole-pixel coordinates.
         let pixelOffsetX = Math.round(offsetX)
-        let theme   = .theme()
-        let colors  = .themeColors()
-        let rects   = .themeRects()
-        let metrics = .themeMetrics()
-        let ring    = focus != NoRow and .showsFocusRing()
-        let focused = ring or (focus != NoRow and .pointerOnRow)
+        let theme        = .theme()
+        let colors       = .themeColors()
+        let rects        = .themeRects()
+        let metrics      = .themeMetrics()
+        let ring         = focus != NoRow and .showsFocusRing()
+        let focused      = ring or (focus != NoRow and .pointerOnRow)
 
         // The header names the page and leads back from it.
         let header = .headerHeight(levels)
@@ -1113,7 +1115,7 @@ private impl View
             }
 
             let headerTop = .headerTopInset(levels)
-            var band = Math.Rectangle{.body.x + pixelOffsetX, .body.y + grip + headerTop, .body.width, header - grip - headerTop}
+            var band      = Math.Rectangle{.body.x + pixelOffsetX, .body.y + grip + headerTop, .body.width, header - grip - headerTop}
             if focused and focus == HeaderFocus
             {
                 var ground = band
@@ -1139,7 +1141,7 @@ private impl View
         var list = .listRect(levels)
         painter.pushClippingRect(list)
         list.x += pixelOffsetX
-        var y = list.y + .rowTopInset() - scroll
+        var y    = list.y + .rowTopInset() - scroll
         let lead = pageNeedsLead(page)
         for row, index in page.rows
         {

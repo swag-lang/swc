@@ -29,8 +29,8 @@ struct FloatingPanel
     {
         using wnd: Wnd     // Embedded window behavior and presentation.
 
-        corner: f32         // Corner of the ground; zero takes [[Gui.ThemeMetrics.corner_Floating]].
-        shadow: bool = true // Whether the panel casts the floating shadow; a panel docked beside the work does not.
+        corner: f32             // Corner of the ground; zero takes [[Gui.ThemeMetrics.corner_Floating]].
+        shadow: bool = true     // Whether the panel casts the floating shadow; a panel docked beside the work does not.
     }
 }
 

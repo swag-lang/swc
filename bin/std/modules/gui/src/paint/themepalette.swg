@@ -125,12 +125,12 @@ struct ThemePalette
         // The quiet hue of each kind of file, carried by its glyph alone in a listing, so a reader
         // tells a picture from a film before reading a name. Low in chroma, distinct from Arc and
         // from the status tones; folders and plain files keep the neutral inks.
-        kindImage: Color     // Glyph of a picture.
-        kindVideo: Color     // Glyph of a film.
-        kindAudio: Color     // Glyph of a sound.
-        kindCode: Color     // Glyph of source code or structured data.
+        kindImage:    Color     // Glyph of a picture.
+        kindVideo:    Color     // Glyph of a film.
+        kindAudio:    Color     // Glyph of a sound.
+        kindCode:     Color     // Glyph of source code or structured data.
         kindDocument: Color     // Glyph of a paged document, such as a PDF.
-        kindArchive: Color     // Glyph of an archive.
+        kindArchive:  Color     // Glyph of an archive.
 
         // The three slots rich text addresses with `<p1>`, `<p2>` and `<p3>`, in labels and in
         // every other rich string the theme formats.

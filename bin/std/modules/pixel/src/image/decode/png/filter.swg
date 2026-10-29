@@ -250,6 +250,7 @@ func defilterSubRow(source: const [*] u8, destination: [*] u8, count, bytesPerPi
         }
 
     case 6:
+
         // Two six-byte pixels are complete per step; the four extra bytes
         // stay inside the row and are rewritten by the next step or tail.
         while count - offset >= 16

@@ -284,10 +284,10 @@ impl IWnd for Tab
         }
         else
         {
-            let mono   = .countFont()
-            let label  = .itemLabelWidth(v)
-            let count  = Painter.measureString(v.count, mono).width
-            var words  = labelPos
+            let mono  = .countFont()
+            let label = .itemLabelWidth(v)
+            let count = Painter.measureString(v.count, mono).width
+            var words = labelPos
             words.x     = Math.round(labelPos.horzCenter() - (label + TabCountGap + count) * 0.5)
             words.width = label
             Theme.drawIconText(painter, words, v.icon, &v.name, format, metrics.iconText_Margin)

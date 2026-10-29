@@ -42,7 +42,7 @@ impl ReadingMargin
 
         with result.list = OutlineMargin.create(view, "scope.markdown.margin")
         {
-            .rule     = true
+            .rule      = true
             .sigChosen += func|margin = result|(_, row)
             {
                 if row < margin.entries.count

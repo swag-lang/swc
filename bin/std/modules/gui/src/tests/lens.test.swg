@@ -463,8 +463,8 @@ func addViewAsSection(results: *Lens.Results, chosen: *u64)
 #test
 {
     var posted: Array'String
-    var on   = true
-    var host: Testing.HeadlessHost
+    var on = true
+    var host:   Testing.HeadlessHost
     host.setup(800, 600)
     let lens = lensSetup(&host)
     host.root.hookOnEvent = func|posted = &posted, on = &on|(wnd, evt)->bool

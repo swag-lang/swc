@@ -135,6 +135,7 @@ impl PropertiesCtrl
         {
             let item = unwrap it.item
             var naked: String
+
             // A category header writes its name in capitals; the list names it as declared.
             if item.flags.has(.Category) do
                 naked = Properties.resolveText(item.typeValue.name orelse "")
@@ -185,7 +186,7 @@ impl PropertiesCtrl
         var none: Color
         for line, index in .sectionLines
         {
-            let count = .properties.sectionFieldCount(index)
+            let count       = .properties.sectionFieldCount(index)
             with let figure = line.setItem(1, Format.toString("%", count))
             {
                 .horzAlign = .Right
@@ -252,12 +253,19 @@ impl PropertiesCtrl
         let sel = menu.doModal(.viewButton, autoDestroy: true)
         switch sel
         {
-        case ExpandAll:      .properties.expandAll()
-        case CollapseAll:    .properties.collapseAll()
-        case ExpandModified: .properties.expandModified()
+        case ExpandAll:
+            .properties.expandAll()
+
+        case CollapseAll:
+            .properties.collapseAll()
+
+        case ExpandModified:
+            .properties.expandModified()
+
         case ModifiedOnly:
             .properties.setModifiedOnly(not .properties.modifiedOnly)
             .refreshSectionCounts()
+
         default:
             for id, index in KindCommands where sel == id do
                 .setKind(cast(PropertiesKind, cast(u32, index)))

@@ -961,6 +961,7 @@ private impl View
     {
         if .retainedBlocks.isEmpty() or (not force and (.hasPendingTarget or not .pendingSearch.isEmpty() or .jumpToEnd)) do
             return
+
         // An overlapping seek rebuilds the same visible blocks. Keep their decoded images and
         // in-flight jobs so publishing the new window does not make visible figures reload.
         if .replacementAnchorOffset != Swag.U64.Max
@@ -987,6 +988,7 @@ private impl View
                 }
             }
         }
+
         for &block in .retainedBlocks do
             block.wnd.destroy()
         .retainedBlocks.clear()

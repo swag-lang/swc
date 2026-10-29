@@ -197,7 +197,7 @@ func floatingHost(host: *Testing.HeadlessHost, width, height: f32, light: bool)
     Swag.assert(sheet.blocks.isEmpty() and sheet.action == null and sheet.secondary == null)
 
     // A poster stands beside the title with the facts that follow it, the action right under them.
-    var poster = Image.create(40, 60, .RGB8)
+    var poster  = Image.create(40, 60, .RGB8)
     var texture = host.app.renderer.addImage(&poster)
     defer host.app.renderer.removeTexture(&texture)
     sheet.setPicture(texture)
@@ -457,7 +457,7 @@ func floatingHost(host: *Testing.HeadlessHost, width, height: f32, light: bool)
     floatingHost(&host, 480, 400, false)
     let reach = host.theme.floatingShadowReach()
 
-    let panel = FloatingPanel.create(&host.root, {40, 40, 200, 48})
+    let panel      = FloatingPanel.create(&host.root, {40, 40, 200, 48})
     with let field = EditBox.create(panel, "", {})
     {
         .dockStyle = .Center
@@ -502,7 +502,7 @@ func floatingHost(host: *Testing.HeadlessHost, width, height: f32, light: bool)
         floatingHost(&host, 900, 400, light)
         let metrics = host.theme.metrics
 
-        let toast = Toast.create(&host.root)
+        let toast  = Toast.create(&host.root)
         var undone = 0
         toast.sigAction += func|&undone|(_) { undone += 1 }
         toast.show("Removed from the history", "design.silence.md", .Done, "Undo")

@@ -548,7 +548,6 @@ internal impl PdfView
     const ResidentPageLimit  = 8'u64
     const ResidentPageBudget = 32 * 1024 * 1024'u64
 
-
     // Lays the document out for the current viewport and scale, and publishes what can be
     // scrolled.
     //

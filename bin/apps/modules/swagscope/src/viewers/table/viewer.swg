@@ -470,9 +470,9 @@ struct Panel
         facts: *Label
     }
 
-    fileName:      String
-    kinds:         Array'ColumnKind
-    built:         bool     // Whether the parts exist: a resize reaches the panel while it is built.
+    fileName: String
+    kinds:    Array'ColumnKind
+    built:    bool     // Whether the parts exist: a resize reaches the panel while it is built.
 
     document:      Document
     numeric:       Array'bool
@@ -794,6 +794,7 @@ private impl Panel
                 item.horzAlign = .Right
                 item.mono      = true
             }
+
             if rowIndex == .searchRow and column == .searchColumn
             {
                 item.colorBk = .themeColors().edit_SelectedBk
@@ -859,8 +860,8 @@ private impl Panel
             .setSelectionMode(.Multi)
             .setFirstColumnIconMargin(false)
             .updateFlags(.HotTrack | .HorizontalLines | .Ellipsis)
-            .header.form             = .Transparent
-            .onFillVirtualLine       = &fillVirtualLine
+            .header.form       = .Transparent
+            .onFillVirtualLine = &fillVirtualLine
 
             // The name of a column is the text ink in bold over its kind in faint mono.
             .header.style.setFont(result.theme().createDefaultFont(result.themeMetrics().defaultFontSize, .Bold), .Regular)

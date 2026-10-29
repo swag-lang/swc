@@ -15,7 +15,7 @@ struct ArchiveExtraction
     strip:           String     // The folder of the archive the members are extracted from, left out of their paths.
     target:          String
     written:         u64
-    kept:            u64        // Files already in the target folder, left as they were.
+    kept:            u64     // Files already in the target folder, left as they were.
     error:           String
 }
 
@@ -36,7 +36,7 @@ impl ArchiveExtraction
             if part == "." or part == ".." or not Path.isValidFileName(part) do
                 return {}
             result = Path.combine(result, part)
-            parts += 1
+            parts  += 1
         }
 
         if not parts do

@@ -291,13 +291,13 @@ func unescapeRbspWithBounds(destination: *Array'u8, data: const [..] u8, escaped
     destination.resize(count)
     unescapedBounds.clear()
 
-    let output   = destination.storage()
-    var index    = 0'u64
-    var produced = 0'u64
-    var zeros    = 0'u32
-    var boundary = 0'u64
+    let output    = destination.storage()
+    var index     = 0'u64
+    var produced  = 0'u64
+    var zeros     = 0'u32
+    var boundary  = 0'u64
     var nextBlock = 0'u64
-    let threes   = Math.Simd.splat(3'u8)
+    let threes    = Math.Simd.splat(3'u8)
 
     while index < count
     {
@@ -310,17 +310,20 @@ func unescapeRbspWithBounds(destination: *Array'u8, data: const [..] u8, escaped
         // A block with no prevention byte can be copied intact, provided it does not
         // cross a boundary. A nonzero byte in its last two positions also determines
         // the exact zero-run length without scanning the block backwards.
-        if index >= nextBlock and count - index >= 16 and (boundary == escapedBounds.count or escapedBounds[boundary] - index >= 16)
+        if index >= nextBlock and
+           count - index >= 16 and
+           (boundary == escapedBounds.count or escapedBounds[boundary] - index >= 16)
         {
             let values = Math.Simd.load(data.buffer + index)
             if not Math.Simd.anyTrue(values == threes) and (data[index + 14] != 0 or data[index + 15] != 0)
             {
                 Math.Simd.store(output + produced, values)
-                zeros = data[index + 15] == 0 ? 1 : 0
+                zeros    = data[index + 15] == 0 ? 1 : 0
                 index    += 16
                 produced += 16
                 continue
             }
+
             // A failed block is processed scalarly once, rather than testing the same
             // escape or trailing zero run in overlapping blocks at every byte.
             nextBlock = index + 16

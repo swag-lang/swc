@@ -308,6 +308,7 @@ using Swag, Core
     f.gui.shortcut(Input.Key.Z, Input.KeyModifiers.Control)
     Swag.assert(f.capture.forms.count == 3)
 
+    testRegisterIoActions(f.main)
     f.capture.selection.clear()
     f.capture.selection.add(0)
     f.gui.shortcut(Input.Key.D, Input.KeyModifiers.Control)

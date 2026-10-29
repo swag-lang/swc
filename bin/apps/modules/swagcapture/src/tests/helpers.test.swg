@@ -255,7 +255,6 @@ func testRegisterHeadlessActions(main: *MainWnd)
 {
     main.registerAction'ActionGlobal()
     main.registerAction'ActionSelection()
-    main.registerAction'ActionCopyPaste()
     main.registerAction'ActionMoveSel()
     main.registerAction'ActionAlign()
     main.registerAction'ActionGroup()

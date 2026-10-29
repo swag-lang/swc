@@ -74,8 +74,7 @@ impl ViewerWindow
     {
         with .lens = Lens.View.create(me)
         {
-            // Keep basic file and view actions near the top, before viewer-specific controls.
-            .addRestSource(func|window = me|(results) { window.describeViewerChoices(results) })
+            // Keep file and view actions at the door, ahead of viewer-specific choices and controls.
             .addRestSource(func|window = me|(results)
             {
                 let section = results.addSection(appStrings().lens_File)
@@ -90,6 +89,7 @@ impl ViewerWindow
                                            [ViewerCommands.SidePanel, ViewerCommands.FullScreen],
                                            enabledOnly: true)
             })
+            .addRestSource(func|window = me|(results) { window.describeViewerChoices(results) })
             .addRestSource(func|window = me|(results) { window.describeViewerCommands(results) })
             .addSource(.None, func|window = me|(results) { window.describeViewerChoices(results) })
             .addSource(.Action, func|window = me|(results) { window.describeViewerCommands(results) })

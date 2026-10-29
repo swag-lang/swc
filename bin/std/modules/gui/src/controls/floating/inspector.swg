@@ -129,7 +129,15 @@ impl IWnd for Inspector
         {
             let titleFont = theme.createDefaultFont(metrics.inspector_TitleFontSize, .Bold)
             let used      = paintTextLine(painter, body.x + pad, headY, .title, titleFont, colors.text)
-            discard paintTextLine(painter, body.x + pad + used + metrics.iconText_Margin, headY, .detail, theme.createDefaultFontFs(metrics.defaultFontSize - 2), colors.faintText)
+
+            // The detail stops short of the actions, which keep their words whole.
+            var right = body.right() - pad
+            for action in .actions where action.isLocallyVisible() do
+                right = Math.min(right, action.position.x - metrics.iconText_Margin)
+            let left = body.x + pad + used + metrics.iconText_Margin
+            painter.pushClippingRect(Math.Rectangle{left, body.y, Math.max(right - left, 0), pad + metrics.control_InspectorHeight})
+            discard paintTextLine(painter, left, headY, .detail, theme.createDefaultFontFs(metrics.defaultFontSize - 2), colors.faintText)
+            painter.popClippingRect()
         }
 
         // A middle dot between two actions of the head.

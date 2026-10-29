@@ -357,9 +357,11 @@ impl PropWnd
             it.destroy()
         .grid.clear()
 
-        .addArrangeRows()
+        // What several objects share comes first, then how to align, arrange and pick them; a
+        // mask first says what it does.
         .addMaskKindRows()
         .addColorRows()
+        .addArrangeRows()
         .addStyleRows()
         .propNextStep()
         .propPixSel()

@@ -133,21 +133,15 @@ dialogs, then each application, then the written rules.
 
 - Evidence: the editor, the area capture, the in-place editor, the library and the lens have
   goldens (`surface`, `edit.{arrow,callout,multi,step,mask,color.paper,text,text.paper}`, `area`,
-  `inplace{,.paper}`, `library.surface`, `lens.paper`). Words are typed in place for every text
-  shape (aligned, level while a rotated shape is edited), the text mini-bar is compact and keeps
-  clear of the dock and the inspector, quick styles are pictures of their shapes (`presets`
-  goldens), the inspector head actions are
-  faint words, the style is one "Aa" row, the area bar offers the delay and the cursor, its keys
-  stand on the floating ground, the lens ends with the recent captures as pictures, and the
-  in-place bar stands beside the zone when the screen has no room above or below it. What they
-  still show differently: a quick style has no name (the picture writes « Repère orange » under
-  the pills); the inspector rows of the head do not scroll with the generated settings; the
-  library tab counts are in the proportional face (the tab bar sets one face per tab); a tool
-  offers up to sixteen presets, which wrap to four rows where the pictures show one; a white
-  text preset on Papier is white on the light cell; a mask preset is the glyph of its kind
-  rather than its pattern.
-- Next: give a quick style a name, shown under the strip and on its tooltip; let the inspector
-  scroll its head rows with its content.
+  `inplace{,.paper}`, `library.surface`, `lens.paper`, `lens.recent.paper`, `presets{,.paper}`).
+  What they still show differently: a tool's row holds four presets where the pictures show five
+  or six, because a 44-wide cell with its ring room leaves five chips across the inspector;
+  the row keeps the presets chosen last first, not the ones used most (no use count is kept);
+  the vertical alignment of a text is a dropdown in the inspector, where the pictures keep only
+  the alignment across, in the mini-bar; the "•••" popover of the presets cannot be reached
+  with the keys.
+- Next: decide whether a preset keeps a use count (serialized beside its name) and order the
+  row by it; give the presets popover the keys of the lens strip.
 - Done when: each `capture.*` picture is reproduced by its golden.
 - Related: design.silence.004, design.silence.005
 

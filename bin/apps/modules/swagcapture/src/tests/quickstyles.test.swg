@@ -31,7 +31,7 @@ using Swag, Core
     Swag.assert(polyPaint.itf.buffer != polyItf.buffer)
     Swag.assert(f.main.mdlFormPolygon.points.count == 3)
     Swag.assert(f.main.mdlFormPolygon.points[0] == pointBefore)
-    Swag.assert(assume cast(*FormPolygon, unwrap polyPaint.itf).points.count == 6)
+    Swag.assert(assume cast(*FormPolygon, unwrap polyPaint.itf).points.count == 5)     // A regular pentagon.
     polyPaint.release()
 }
 
@@ -356,4 +356,127 @@ using Swag, Core
 
     quickStyle.clear()
     Swag.assert(quickStyle.forms.count == 0)
+}
+
+// The row of a tool holds four presets and "+"; past that it holds four presets and "•••", which
+// opens every preset with "+" in a popover, and a preset chosen there comes to the front of the row.
+#test
+{
+    var f: HeadlessFixture
+    f.setup()
+    defer f.shutdown()
+    let quick = QuickWnd.create(f.main, f.main)
+    quick.setDefault()
+    f.main.editMode = .Arrow
+    quick.setPosition(Math.Rectangle{0, 0, 5 * QuickChipWidth, QuickChipHeight})
+    quick.updateQuickStyles(forceRebuild: true)
+    Swag.assert(quick.qsArrow.forms.count > 5)
+
+    var shown, hidden = 0
+    var moreShown, addShown = false
+    for c in quick.layout.children where not c.isPendingDestroy
+    {
+        let button = assume cast(*QuickButton, c)
+        if button.isMore do
+            moreShown = button.isVisible()
+        elif button.isModel do
+            addShown = button.isVisible()
+        elif button.isVisible() do
+            shown += 1
+        else do
+            hidden += 1
+    }
+
+    Swag.assert(shown == 4 and hidden > 0 and moreShown and not addShown)
+
+    // The popover holds every preset and "+".
+    let more = unwrap quick.moreButton
+    quick.openAllPresets(more)
+    let body = unwrap quick.allPresets
+    Swag.assert(body.children.count == quick.qsArrow.forms.count + 1)
+
+    // A preset chosen there comes to the front, and the popover closes.
+    let last = quick.qsArrow.forms.back()
+    quick.applyPreset(last, fromPopover: true)
+    Swag.assert(quick.qsArrow.forms[0].buffer == last.buffer)
+    Swag.assert(quick.allPresets == null)
+}
+
+// A quick style has a name: "Style" and its rank until the reader gives one, written under the
+// row while it is in force, and kept when the style moves to the front.
+#test
+{
+    var f: HeadlessFixture
+    f.setup()
+    defer f.shutdown()
+    let quick = QuickWnd.create(f.main, f.main)
+    quick.setDefault()
+    f.main.editMode = .Arrow
+    quick.setPosition(Math.Rectangle{0, 0, 5 * QuickChipWidth, QuickChipHeight})
+    quick.updateQuickStyles(forceRebuild: true)
+
+    let style = &quick.qsArrow
+    Swag.assert(style.nameOf(0) == Format.toString(appStrings().ui_QuickStyleRank, 1))
+    Swag.assert(quick.caption != null and quick.caption.isVisible())
+
+    style.setName(2, "Orange mark")
+    Swag.assert(style.nameOf(2) == "Orange mark")
+    Swag.assert(style.countUse(2) == 0)
+    Swag.assert(style.nameOf(0) == "Orange mark" and style.uses[0] == 1)
+
+    // The style in force is the first one: its name is written under the row.
+    quick.applyPreset(style.forms[0])
+    let words: String = quick.caption.text()
+    Swag.assert(quick.caption.isVisible() and words.indexOf("Orange mark") != Swag.U64.Max)
+
+    // Removing a style removes its name with it.
+    let count = style.names.count
+    let first = style.forms[0]
+    style.remove(first)
+    Swag.assert(style.names.count == count - 1 and style.nameOf(0) != "Orange mark")
+}
+
+// The row is ordered by use: a preset applied more than those before it moves ahead of them. The
+// popover "•••" opens is gone through with the keys: Down on the chip opens it, the arrows choose
+// a cell, Enter applies it, Escape closes it.
+#test
+{
+    var f: HeadlessFixture
+    f.setup()
+    defer f.shutdown()
+    let quick = QuickWnd.create(f.main, f.main)
+    quick.setDefault()
+    f.main.editMode = .Arrow
+    quick.setPosition(Math.Rectangle{0, 0, 5 * QuickChipWidth, QuickChipHeight})
+    quick.updateQuickStyles(forceRebuild: true)
+
+    let style = &quick.qsArrow
+    let third = style.forms[2]
+    quick.applyPreset(third)
+    Swag.assert(style.forms[0].buffer == third.buffer and style.uses[0] == 1)
+    let second = style.forms[1]
+    quick.applyPreset(second)
+    quick.applyPreset(second)
+    Swag.assert(style.forms[0].buffer == second.buffer and style.uses[0] == 2 and style.uses[1] == 1)
+
+    // Down on the chip opens the popover with the keys on the preset in force.
+    let more = unwrap quick.moreButton
+    more.setFocus()
+    f.gui.keyPress(.Down)
+    let popover = assume cast(*PresetPopover, unwrap quick.allPresets)
+    Swag.assert(popover.chosen == 0)
+    f.gui.keyPress(.Right)
+    f.gui.keyPress(.Down)
+    Swag.assert(popover.chosen == 1 + QuickPopoverColumns)
+
+    // Enter applies the cell the keys stand on, and the popover closes.
+    let chosen = style.forms[popover.chosen]
+    f.gui.keyPress(.Return)
+    Swag.assert(quick.allPresets == null)
+    Swag.assert(style.indexOf(chosen) < style.forms.count and style.uses[style.indexOf(chosen)] == 1)
+
+    // Escape closes it without applying anything.
+    quick.openAllPresets(quick.moreButton)
+    f.gui.keyPress(.Escape)
+    Swag.assert(quick.allPresets == null)
 }

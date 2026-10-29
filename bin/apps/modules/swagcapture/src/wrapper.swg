@@ -168,6 +168,20 @@ impl MainWnd
 
     func formToEditMode(f: IForm)->EditMode => FormRegistry[formDescIndex(Swag.kindOf(f))].mode
 
+    // Returns the tool that draws `f`: the highlighter and the pixel selection draw forms of other
+    // kinds, which their sub-kind tells apart.
+    func formToolMode(f: IForm)->EditMode
+    {
+        let form: *BaseForm = f
+        switch form.subKind
+        {
+        case .Highlight: return .Highlight
+        case .PixSel:    return .PixSel
+        }
+
+        return formToEditMode(f)
+    }
+
     mtd editModeToModel(mode: EditMode)->IForm
     {
         switch mode

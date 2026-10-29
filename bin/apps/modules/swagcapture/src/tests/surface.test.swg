@@ -197,9 +197,17 @@ func testSetupEditorSurface(host: *Gui.Testing.HeadlessHost, dark: bool, text = 
         Swag.assert(main.miniBar.isLocallyVisible() and main.miniBarKind == .Text)
         Swag.assert(not main.hintLine.reading.isEmpty())
 
-        // The mini-bar stands clear of the dock and of the inspector.
-        Swag.assert(main.miniBar.surfaceRect().x >= main.dock.surfaceRect().right())
-        Swag.assert(main.miniBar.surfaceRect().right() <= main.inspector.surfaceRect().x)
+        // The mini-bar stands clear of the dock and of the inspector, and never straddles the top
+        // edge of the capture.
+        let bar  = main.miniBar.surfaceRect()
+        let view = main.editWnd.editView
+        let edge = view.localToSurface(Math.Point{0, view.getCaptureRect().y - view.scrollPos.y}).y
+        Swag.assert(bar.x >= main.dock.surfaceRect().right())
+        Swag.assert(bar.right() <= main.inspector.surfaceRect().x)
+        Swag.assert(bar.bottom() <= edge or bar.y >= edge)
+
+        // The presets are those of the selection, a text, whatever the tool in hand.
+        Swag.assert(main.editMode == .Shape and main.quickWnd.currentStyle == &main.quickWnd.qsText)
         Swag.assert(not main.recentBar.isLocallyVisible())
 
         var image = host.render(main)
@@ -276,6 +284,9 @@ func testCollectSwatches(wnd: *Wnd, result: *Array'(*IconButton))
     let text = testAddText(capture, 90, 160, 200, 50)
     text.text = "Cards"
     testAssertEditGolden(&host, main, [0, 1, 2], "edit.multi")
+
+    // Shapes and a text have no preset in common: the row of presets leaves.
+    Swag.assert(not main.quickWnd.isVisible())
 
     // The layers list every object, the selected ones chosen; a row chooses its object alone.
     Swag.assert(capture.selection.count == 3)
@@ -871,6 +882,7 @@ func testBeginInlineText(host: *Gui.Testing.HeadlessHost, main: *MainWnd, index:
 
 // The recent captures close the lens as a strip of pictures, after every row a key can reach,
 // ended by the way to the library.
+#[Swag.TestTag("golden")]
 #test
 {
     var host: Gui.Testing.HeadlessHost
@@ -894,6 +906,21 @@ func testBeginInlineText(host: *Gui.Testing.HeadlessHost, main: *MainWnd, index:
     let section = rows.back().section
     Swag.assert(section.label == appStrings().lens_Recent and section.pictures.count == 2)
     Swag.assert(section.link == appStrings().lens_LibraryLink and section.linkRun != null)
+
+    // The keys reach the strip: down into it, then along it to the link and back.
+    for rows.count do
+        host.keyPress(.Down)
+    Swag.assert(main.lens.chosen == rows.count - 1 and main.lens.chosenPicture == 0)
+    host.keyPress(.Right)
+    Swag.assert(main.lens.chosenPicture == 1)
+    host.finishAnimations()
+    var image = host.render(main)
+    Pixel.Testing.assertImageGolden(&image, "lens.recent.paper")
+    host.keyPress(.Right)
+    host.keyPress(.Right)
+    Swag.assert(main.lens.chosenPicture == 2)
+    host.keyPress(.Left)
+    Swag.assert(main.lens.chosenPicture == 1)
     main.lens.close()
 
     // A query keeps the captures whose name it matches.

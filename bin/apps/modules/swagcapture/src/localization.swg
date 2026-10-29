@@ -30,6 +30,12 @@ struct AppStrings
     ui_FilterLinks:             string = "Linked images"      // Filters on the state of the images linked to captures.
     ui_BarFilter:               string = "Filter"
     ui_BarFolders:              string = "Folders"
+    ui_RenameQuickStyle:        string = "Rename Quick Style…"         // Names a quick style.
+    ui_ReplaceQuickStyle:       string = "Replace with Current Style"  // Gives a quick style the style of the tool or the selection.
+    ui_QuickStyleRank:          string = "Style %"                     // Name of a quick style the reader has not named, with its rank.
+    ui_QuickStyleCaption:       string = "Quick style “%” · right-click to rename, replace or remove it"     // Under the quick styles: the one in force.
+    ui_QuickStyleName:          string = "Name of the quick style"     // Prompt of the quick-style rename dialog.
+    dlg_TitleRenameQuickStyle:  string = "Rename Quick Style"          // Title of the quick-style rename dialog.
     ui_RemoveQuickStyle:        string = "Remove Quick Style"
     ui_SectionEditor:           string = "Editor"
     ui_SectionApplication:      string = "Application"
@@ -149,6 +155,7 @@ struct AppStrings
     act_ShowInspector:          string = "Properties"                  // Folds or unfolds the inspector.
     act_ShowRecent:             string = "Recent Captures"             // Shows or hides the strip of recent captures.
     act_ResetSteps:             string = "Reset Step Numbers"          // Restarts the numbering of the step markers at 1.
+    tip_AllQuickStyles:         string = "All Styles"                  // The chip opening every quick style of the tool.
     tip_AddQuickStyle:          string = "Keep the current style as a quick style"     // The chip after the quick styles of the inspector.
     ui_RecentColors:            string = "Recent"                      // Section of the colour popover: the colours used last.
     ui_Palette:                 string = "Palette"                     // Section of the colour popover: the palette.

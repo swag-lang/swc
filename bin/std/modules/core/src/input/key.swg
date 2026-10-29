@@ -263,6 +263,8 @@ public func formatKeyShortcut(modifiers: KeyModifiers, key: Key)->String
     case .OemMinus:    result += "-"
     case .OemComma:    result += ","
     case .OemPeriod:   result += "."
+    case .Oem4:        result += "["
+    case .Oem6:        result += "]"
     case .Multiply:    result += "*"
     case .Divide:      result += "/"
     case .Decimal:     result += "."

@@ -14,6 +14,11 @@ using Swag
     let downloadsDir = Env.realSpecialDirectory(.Downloads)
     Swag.assert(not downloadsDir.isEmpty())
     Swag.assert(Path.isRooted(downloadsDir.toString()))
+    Swag.assert(Directory.exists(downloadsDir.toString()))
+
+    let sandboxDownloads = Env.getSpecialDirectory(.Downloads)
+    Swag.assert(Path.isRooted(sandboxDownloads.toString()))
+    Swag.assert(Directory.exists(sandboxDownloads.toString()))
 }
 
 // A '#test' is a program run, whether it executes in the JIT pass of 'swc test' or in the

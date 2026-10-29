@@ -87,7 +87,7 @@ struct FilePlacesBar
     private primaryCount: u64                  // Preferred locations kept on the row before built-in folders.
     hotIdx = Swag.U64.Max                      // Place under the pointer.
     visibleCount:    u64                       // Places that fit before the overflow button.
-    moreButton: *IconButton?                   // Opens places and drives that do not fit in the row.
+    moreButton: *IconButton?                   // Opens built-in folders, drives and preferred places that do not fit.
 }
 
 // The path of the current folder, written before the filter in the path field of a file browser.
@@ -196,7 +196,7 @@ impl IWnd for FilePlacesBar
 
 impl FilePlacesBar
 {
-    // Opens the places that do not fit in the row and browses to the chosen one.
+    // Opens the built-in folders, drives and any preferred places that do not fit in the row.
     internal mtd openOverflowMenu()
     {
         let menu = MenuCtrl.createPopup(.browser)
@@ -973,7 +973,6 @@ impl FileBrowserCtrl
                 .dockStyle   = .Top
                 .focusPolicy = .Click
                 .browser     = fileBrowser
-                .primaryCount = primaryShortcutCount
                 with .moreButton = IconButton.create(places, .theme().icon(.More, metrics.fileBrowser_GlyphSize), {0, 0, metrics.fileBrowser_PlacesHeight, metrics.fileBrowser_PlacesHeight})
                 {
                     .dockStyle  = .Right
@@ -981,16 +980,28 @@ impl FileBrowserCtrl
                     .sigPressed += func|places|(_) { places.openOverflowMenu() }
                 }
 
-                for v in fileBrowser.options.shortcuts do
+                for idx in 0 until primaryShortcutCount
+                {
+                    let v = fileBrowser.options.shortcuts[idx]
                     .addPlace(v.name, Env.getSpecialDirectory(v.type).toString())
+                }
+
                 if fileBrowser.options.showDrives
                 {
                     let volumes = catch Directory.drives()
                     for &v in volumes
                     {
+                        let path = String.from(v.toString())
                         v.removeBack()
-                        .addPlace(v.toString(), v.toString())
+                        .addPlace(v.toString(), path.toString())
                     }
+                }
+
+                .primaryCount = .stops.count
+                for idx in primaryShortcutCount until fileBrowser.options.shortcuts.count
+                {
+                    let v = fileBrowser.options.shortcuts[idx]
+                    .addPlace(v.name, Env.getSpecialDirectory(v.type).toString())
                 }
             }
 

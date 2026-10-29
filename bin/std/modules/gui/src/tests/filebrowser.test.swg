@@ -74,7 +74,7 @@ using Swag, Core, File
 
     let fb = FileBrowserCtrl.create(&host.root, opt, {0, 0, 600, 400})
     Swag.assert(fb.comboType.items.count == 1)
-    Swag.assert(fb.options.shortcuts.count == 1)
+    Swag.assert(fb.options.shortcuts.count == 6)
     Swag.assert((fb.editFile != null))
 
     // selectedPath must not index the (empty) filter list in SelectFolder mode.
@@ -220,7 +220,7 @@ using Swag, Core, File
     Swag.assert(fb.listCtrl.lines.count == 3)
 }
 
-// The overflow menu keeps the full list of places reachable while only three tabs stay on the row.
+// Preferred places stay first on the row, and built-in folders remain reachable in the overflow menu.
 #test
 {
     let root = Path.combine(Env.getSpecialDirectory(.Temp).toString(), "swag-filebrowser-places")
@@ -265,6 +265,63 @@ using Swag, Core, File
     Swag.assert(fb.currentFolder.toString() == target)
 }
 
+// Drives stay on the main row, and choosing Downloads from More Places navigates to its folder.
+#test
+{
+    var host: Testing.HeadlessHost
+    host.setup(1600, 460)
+    var opt: FileDlgOptions
+    opt.mode = .SelectFile
+    opt.initialFolder = Env.getSpecialDirectory(.Temp).toString()
+    let fb = FileBrowserCtrl.create(&host.root, opt, {0, 0, 1400, 300})
+    let places = unwrap fb.placesBar
+    let drives = expect Directory.drives()
+    Swag.assert(drives.count > 0 and places.visibleCount > 0)
+
+    for drive, idx in drives
+    {
+        var name = String.from(drive.toString())
+        name.removeBack()
+        var path = String.from(drive.toString())
+        Path.normalize(&path)
+        Swag.assert(places.stops[idx].name == name)
+        Swag.assert(places.stops[idx].path == path)
+    }
+
+    var downloads = Env.getSpecialDirectory(.Downloads)
+    Path.normalize(&downloads)
+    Swag.assert(Directory.exists(downloads.toString()))
+
+    var downloadsIndex = Swag.U64.Max
+    for &stop, idx in places.stops where stop.path == downloads do
+        downloadsIndex = idx
+    Swag.assert(downloadsIndex != Swag.U64.Max and downloadsIndex >= places.visibleCount)
+
+    var opened: bool
+    var selectedId: WndId?
+    host.app.sigFrame += func|host = &host, opened = &opened, selectedId = &selectedId|(_)
+    {
+        if opened[] do
+            return
+        let popup = unwrap host.capturedPopupMenu()
+        for idx in 0 until popup.items.count
+        {
+            let item = popup.itemAt(cast(u32, idx))
+            if item.name.raw.toString() == strings().browser_Downloads do
+                selectedId[] = item.id
+        }
+        Swag.assert(selectedId[] != null)
+        opened[] = true
+        popup.setEndModal(selectedId[])
+    }
+
+    let moreButton = unwrap places.moreButton
+    moreButton.sigPressed.call(moreButton)
+    Swag.assert(opened)
+    Swag.assert((selectedId orelse "") == downloads.toString(), Format.toString("selected=% expected=%", selectedId orelse "", downloads.toString()).toString())
+    Swag.assert(fb.currentFolder == downloads)
+}
+
 // Opening a file from another folder works through the modal box's path field, not only in an
 // embedded browser. Enter changes the folder; choosing a row then returns that file's full path.
 #test
@@ -307,7 +364,12 @@ using Swag, Core, File
 {
     var host: Testing.HeadlessHost
     host.setup(640, 460)
-    let dlg = FileDlg.create(&host.surface, {mode: .SelectFile, showDrives: false})
+    var options: FileDlgOptions
+    options.mode = .SelectFile
+    options.showDrives = false
+    options.shortcuts.add({type: Env.SpecialDirectory.Desktop, name: "Desktop"})
+    options.shortcuts.add({type: Env.SpecialDirectory.UserDocuments, name: "Documents"})
+    let dlg = FileDlg.create(&host.surface, options)
     var navigated: bool
 
     host.app.sigFrame += func|host = &host, dlg, navigated = &navigated|(_)

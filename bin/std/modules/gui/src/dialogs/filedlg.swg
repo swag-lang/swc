@@ -40,7 +40,7 @@ struct FileDlgOptions
         initialFolder:     string      = ""             // Initially browsed folder, when non-empty.
         initialName:       string      = ""             // Initial file-name editor contents.
         showLocationsPane              = true           // Whether to show the places row above the path field.
-        showDrives                     = true           // Whether the places include the mounted drives after the shortcuts.
+        showDrives                     = true           // Whether the places include mounted drives under More Places.
         mode:              FileDlgMode = SelectFile     // Accepted selection kind.
         filters:           Array'{ name: string, extensions: string }     // Named extension filters; empty means all files.
         shortcuts:         Array'{ type: Core.Env.SpecialDirectory, name: string }     // Locations prioritized on the row; built-in user folders not listed here stay under More Places.

@@ -5,7 +5,7 @@
     cfg.moduleVersion  = 1
     cfg.moduleRevision = 0
     cfg.moduleBuildNum = 0
-    cfg.backendKind    = .Executable
+    cfg.backendKind    = .StaticLibrary
 
     cfg.genDoc.kind         = .Pages
     cfg.genDoc.titleContent = "Swag"

@@ -28,7 +28,7 @@ impl StageFrieze
 {
     const Height       = 72.0
     const TrackY       = 14.0     // Centre of the dots, from the top.
-    const NameY        = 48.0     // Centre of the names, from the top.
+    const NameY        = 45.0     // Centre of the names, from the top.
     const DotRadius    = 4.0
     const ChosenRadius = 7.0
     const HaloRadius   = 12.0

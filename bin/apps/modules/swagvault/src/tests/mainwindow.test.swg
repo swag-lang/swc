@@ -59,9 +59,9 @@ using Swag, Core, Gui
 }
 
 // Builds the real main window, at its smallest size, inside the frame of the shipped surface.
-func testSetupMainWindow(host: *Testing.HeadlessHost, scale = 1.0'f32)->*MainWindow
+func testSetupMainWindow(host: *Testing.HeadlessHost, scale = 1.0'f32, width = cast(f32, MainWindow.MinWidth), height = cast(f32, MainWindow.MinHeight))->*MainWindow
 {
-    host.setup(cast(f32, MainWindow.MinWidth), cast(f32, MainWindow.MinHeight), scale)
+    host.setup(width, height, scale)
     host.surface.updateFlags(SurfaceFlags.StandardWindow | SurfaceFlags.NoShadow)
 
     // The strip starts with the application's glyph, as the shipped window does.
@@ -1124,6 +1124,10 @@ func openAndDismiss(host: *Testing.HeadlessHost, dialog: *FormDlg)
     Swag.assert(not window.protectHiddenOnMount)
 }
 
+// The size of the charter's pictures, which the goldens are taken at to be judged whole against them.
+const PictureWidth  = 1280'f32
+const PictureHeight = 800'f32
+
 // Renders the window as it stands, in Encre or in Papier, and compares it with the golden `name`.
 //
 // The chrome is not part of what these images pin: a headless surface has no desktop under it, so
@@ -1154,7 +1158,7 @@ func assertSurfaceGolden(host: *Testing.HeadlessHost, window: *MainWindow, dark:
     for dark in [true, false]
     {
         var host: Testing.HeadlessHost
-        let window = testSetupMainWindow(&host)
+        let window = testSetupMainWindow(&host, width: PictureWidth, height: PictureHeight)
         fillPictureList(window)
         assertSurfaceGolden(&host, window, dark, "list")
     }
@@ -1167,7 +1171,7 @@ func assertSurfaceGolden(host: *Testing.HeadlessHost, window: *MainWindow, dark:
     for dark in [true, false]
     {
         var host: Testing.HeadlessHost
-        let window = testSetupMainWindow(&host)
+        let window = testSetupMainWindow(&host, width: PictureWidth, height: PictureHeight)
         fillPictureList(window)
         window.chooseVault("C:\\vault.bin")
         assertSurfaceGolden(&host, window, dark, "unlock")
@@ -1181,7 +1185,7 @@ func assertSurfaceGolden(host: *Testing.HeadlessHost, window: *MainWindow, dark:
     for dark in [true, false]
     {
         var host: Testing.HeadlessHost
-        let window = testSetupMainWindow(&host)
+        let window = testSetupMainWindow(&host, width: PictureWidth, height: PictureHeight)
         window.showPage(.Create, animate: false)
         window.createPath.setText("C:\\Users\\vault\\Documents\\papiers.bin")
 
@@ -1198,7 +1202,7 @@ func assertSurfaceGolden(host: *Testing.HeadlessHost, window: *MainWindow, dark:
     for dark in [true, false]
     {
         var host: Testing.HeadlessHost
-        let window = testSetupMainWindow(&host)
+        let window = testSetupMainWindow(&host, width: PictureWidth, height: PictureHeight)
         let texts  = appStrings()
         window.progressPage.begin("C:\\Users\\vault\\papiers.bin", texts.ui_Randomizing, texts.ui_RandomizeHelp, texts.ui_StopCreating)
         window.progressPage.setProgress(0.62, 159 * 1024 * 1024, 256 * 1024 * 1024, Format.toString(texts.ui_SecondsLeft, 12))
@@ -1214,7 +1218,7 @@ func assertSurfaceGolden(host: *Testing.HeadlessHost, window: *MainWindow, dark:
     for dark in [true, false]
     {
         var host: Testing.HeadlessHost
-        let window = testSetupMainWindow(&host)
+        let window = testSetupMainWindow(&host, width: PictureWidth, height: PictureHeight)
         window.showPage(.Options, animate: false)
         assertSurfaceGolden(&host, window, dark, "options")
     }

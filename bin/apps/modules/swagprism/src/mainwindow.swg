@@ -83,6 +83,7 @@ impl MainWindow
     const MinSideMargin  = 32.0
     const MinHalfGutter  = 24.0
     const SourceTitleGap = 12.0     // Air between the name of the source and the menu of examples.
+    const StagesRise     = 16.0     // How far the frieze stands above the headers of the other views.
 
     // Builds the window: the source, the results, the foot, the sheet and the lens.
     func create(parent: *Wnd)->*MainWindow
@@ -276,7 +277,7 @@ impl MainWindow
             .panels[0].setPosition(right)
 
         case .Stages:
-            .panels[0].setPosition(Math.Rectangle{margin, top, Math.max(0'f32, client.width - 2 * margin), height})
+            .panels[0].setPosition(Math.Rectangle{margin, top - StagesRise, Math.max(0'f32, client.width - 2 * margin), height + StagesRise})
         }
 
         .hintLine.itf.onLayout()

@@ -92,7 +92,7 @@ impl MicrocodeViewer
 {
     const MarginWidth  = 220.0      // The readings of the chosen step, beside its listing.
     const ReadingWidth = 640.0      // Widest the listing gets stage by stage.
-    const FriezeGap    = 32.0       // Air between the frieze and what it chose.
+    const FriezeGap    = 48.0       // Air between the frieze and what it chose.
     const FigureSize   = 30'u32     // Size of the count a step changed.
 
     // Builds the listing, the frieze and the readings of a step, which show stage by stage only.

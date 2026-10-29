@@ -267,7 +267,7 @@ impl VaultList
         let rowW  = .rowWidth()
         let width = rowW - 2 * RowOutset
         let x     = Math.round((room.width - width) * 0.5)
-        var y     = PageTop
+        var y     = ListTop + .stripInset()
 
         .title.arrange(Math.Rectangle{x, y, width, .title.position.height})
         y += .title.position.height

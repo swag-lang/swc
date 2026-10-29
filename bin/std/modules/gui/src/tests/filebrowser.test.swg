@@ -219,6 +219,111 @@ using Swag, Core, File
     Swag.assert(fb.listCtrl.lines.count == 3)
 }
 
+// Opening a file from another folder works through the modal box's path field, not only in an
+// embedded browser. Enter changes the folder; choosing a row then returns that file's full path.
+#test
+{
+    let root = Path.combine(Env.getSpecialDirectory(.Temp).toString(), "swag-filedlg-navigation")
+    discard catch Directory.delete(root.toString(), recurse: true)
+    let folder = Path.combine(root.toString(), "sub")
+    expect Directory.create(folder.toString(), recurse: true)
+    defer discard catch Directory.delete(root.toString(), recurse: true)
+    discard expect File.writeAllText(Path.combine(folder.toString(), "notes.txt").toString(), "notes")
+
+    var host: Testing.HeadlessHost
+    host.setup(640, 460)
+    let dlg = FileDlg.create(&host.surface, {mode: .SelectFile, showLocationsPane: false, initialFolder: root.toString()})
+
+    var browsed: bool
+    host.app.sigFrame += func|host = &host, dlg, folder = &folder, browsed = &browsed|(_)
+    {
+        if browsed[] do
+            return
+
+        dlg.browser.pathField.setText("sub/")
+        dlg.browser.pathField.sigSubmitted.call(dlg.browser.pathField)
+        Swag.assert(dlg.browser.currentFolder == folder[])
+        Swag.assert(dlg.browser.listCtrl.lines.count == 1)
+        dlg.browser.listCtrl.selectLine(0)
+        let clicked = host.clickModalButton(Dialog.BtnOk)
+        Swag.assert(clicked)
+        browsed[] = true
+    }
+
+    Swag.assert(dlg.doModal() == Dialog.BtnOk)
+    Swag.assert(browsed and dlg.selectedPath() == Path.combine(folder.toString(), "notes.txt"))
+    host.pump()
+}
+
+// The places at the top of the modal file box are real navigation controls: clicking Documents
+// leaves Desktop and updates the folder the dialog will open from.
+#test
+{
+    var host: Testing.HeadlessHost
+    host.setup(640, 460)
+    let dlg = FileDlg.create(&host.surface, {mode: .SelectFile, showDrives: false})
+    var navigated: bool
+
+    host.app.sigFrame += func|host = &host, dlg, navigated = &navigated|(_)
+    {
+        if navigated[] do
+            return
+
+        let places = unwrap dlg.browser.placesBar
+        Swag.assert(places.stops.count >= 2)
+        Swag.assert(places.currentIndex() == 0)
+        let documentPlace = &places.stops[1]
+        var point = places.surfaceRect().topLeft()
+        point.x += documentPlace.rect.x + documentPlace.rect.width * 0.5
+        point.y += documentPlace.rect.vertCenter()
+        Swag.assert(not dlg.surface!.wnd.hitTestCaption(point))
+        dlg.surface.surfaceToScreen(&point)
+        host.click(point)
+
+        var expected = Env.getSpecialDirectory(.UserDocuments)
+        Path.normalize(&expected)
+        if expected.back() == '/' and expected.length > Path.rootLength(expected.toString()) do
+            expected.removeBack()
+        Swag.assert(dlg.browser.currentFolder == expected and places.currentIndex() == 1)
+        let clicked = host.clickModalButton(Dialog.BtnCancel)
+        Swag.assert(clicked)
+        navigated[] = true
+    }
+
+    Swag.assert(dlg.doModal() == Dialog.BtnCancel)
+    Swag.assert(navigated)
+    host.pump()
+}
+
+// The title of the modal file box is a native caption hit target, so the operating system can drag
+// the floating sheet from it.
+#test
+{
+    var host: Testing.HeadlessHost
+    host.setup(900, 700)
+    let dlg = FileDlg.create(&host.surface, {mode: .SelectFile, showLocationsPane: false})
+    var checked: bool
+
+    host.app.sigFrame += func|host = &host, dlg, checked = &checked|(_)
+    {
+        if checked[] do
+            return
+
+        let surface = unwrap dlg.surface
+        var start = surface.wnd.view.surfaceRect().topLeft()
+        start.x += dlg.themeMetrics().dialog_Padding + 100
+        start.y += dlg.themeMetrics().dialog_Padding + 5
+        Swag.assert(surface.wnd.hitTestCaption(start))
+        let clicked = host.clickModalButton(Dialog.BtnCancel)
+        Swag.assert(clicked)
+        checked[] = true
+    }
+
+    Swag.assert(dlg.doModal() == Dialog.BtnCancel)
+    Swag.assert(checked)
+    host.pump()
+}
+
 // The line beside the type filter says what the box will answer with: the folder a folder box
 // picks, the count and weight of what a multiple box opens, whose rows check as they are chosen.
 #test

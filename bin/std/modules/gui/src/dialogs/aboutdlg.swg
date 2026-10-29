@@ -92,6 +92,7 @@ public impl AboutDlg
             contentIcon: app.appIconAt(metrics.dialog_TileSize, colors.dlg_Bk),
             identity: identity.toString()})
         dlg.sourceUrl = String.from(params.sourceUrl)
+        dlg.labelMessage.focusPolicy = .Click
         dlg.labelMessage.sigLinkActivated += func|dlg|(_, text)
         {
             if text == "Swag" do

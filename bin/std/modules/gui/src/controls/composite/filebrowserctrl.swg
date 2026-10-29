@@ -654,6 +654,7 @@ private impl FileBrowserCtrl
 
         .crumbs         = Wnd.create'FileCrumbs(.pathField, "", {})
         .crumbs.browser = me
+        .crumbs.focusPolicy = .Click
     }
 
     mtd createFileList(view: *Wnd)
@@ -884,6 +885,7 @@ impl FileBrowserCtrl
             with let places = Wnd.create'FilePlacesBar(fileBrowser, "", {0, 0, 0, metrics.fileBrowser_PlacesHeight})
             {
                 .dockStyle = .Top
+                .focusPolicy = .Click
                 .browser   = fileBrowser
                 for v in fileBrowser.options.shortcuts do
                     .addPlace(v.name, Env.getSpecialDirectory(v.type).toString())

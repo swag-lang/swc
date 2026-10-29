@@ -38,6 +38,18 @@ func assertDialogCharter(dlg: *Dialog)
         Swag.assert(dlg.padding.y == pad)
     else do
         Swag.assert(dlg.padding.y > pad + gap)
+    let body = unwrap dlg.contentView
+
+    // The title line remains a native caption hit target even when the content view fills the
+    // body beneath it, while an action keeps its own click.
+    if not dlg.title.raw.isEmpty()
+    {
+        var titlePoint = srf.wnd.view.surfaceRect().topLeft()
+        titlePoint.x += pad + 100
+        titlePoint.y += pad + 5
+        Swag.assert(srf.wnd.hitTestCaption(titlePoint))
+        Swag.assert(not srf.wnd.hitTestCaption(dlg.buttons[0].surfaceRect().center()))
+    }
 
     // The actions end the body: one gap above them, on the body's own ground, as tall as the
     // dialog height and never narrower than a button.
@@ -75,7 +87,6 @@ func assertDialogCharter(dlg: *Dialog)
 
     // The body stands between the title and the actions, on the inset, and nothing of it falls
     // under the actions.
-    let body = unwrap dlg.contentView
     Swag.assert(body.position.x == pad and body.position.y == dlg.padding.y)
     Swag.assert(Math.abs(body.position.right() - (dlg.position.width - pad)) < 0.5)
     Swag.assert(body.position.bottom() <= bar.position.y - gap + 0.5)
@@ -135,6 +146,24 @@ func assertDialogCharter(dlg: *Dialog)
     form.surface!.destroy()
     about.surface!.destroy()
     file.surface!.destroy()
+    host.pump()
+}
+
+// A floating sheet with an empty body moves from its ground, while its action keeps the click.
+#test
+{
+    var host: Testing.HeadlessHost
+    host.setup(900, 640)
+    let dlg  = Dialog.create(&host.surface, 520, 260, title: "Move This Box")
+    let body = dlg.createContentView()
+    dlg.addButton(strings().dlg_Close, Dialog.BtnCancel, true)
+    dlg.surface!.wnd.view.applyLayout()
+
+    let surface = dlg.surface
+    Swag.assert(surface.wnd.hitTestCaption(body.surfaceRect().center()))
+    Swag.assert(not surface.wnd.hitTestCaption(dlg.buttons[0].surfaceRect().center()))
+
+    surface.destroy()
     host.pump()
 }
 

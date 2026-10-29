@@ -444,9 +444,22 @@ impl SurfaceWnd
         let srfn = .surface
         if srfn and srfn.flags.has(.Sheet)
         {
-            let pos    = .surfaceToLocal(surfacePos)
-            let target = .windowAt(pos.x, pos.y, true)
-            return target != null and (target == me or target == .view)
+            let target = .windowAt(surfacePos.x, surfacePos.y, true)
+            if not target do
+                return true
+
+            // A sheet has no visible caption. Its whole ground can move it, while controls keep
+            // pointer input. Walk ancestors too: a child of an interactive composite is part of
+            // that control even when the child itself does not take focus.
+            var wnd: *Wnd? = target
+            while wnd and wnd != me and wnd != .view
+            {
+                if wnd.focusPolicy != .None or wnd is Button do
+                    return false
+                wnd = wnd.parent
+            }
+
+            return true
         }
 
         let strip = .stripHeight()

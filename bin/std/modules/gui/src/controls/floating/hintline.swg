@@ -64,8 +64,12 @@ impl IWnd for HintLine
         if not parent do
             return
 
+        // The margin of the line keeps it clear of what floats along the sides of its parent,
+        // such as a dock or an inspector: it centres in the room left between them.
         let metrics = .themeMetrics()
-        let bounds  = parent.clientRect()
+        var bounds  = parent.clientRect()
+        bounds.x     += .margin.x
+        bounds.width  = Math.max(bounds.width - .margin.x - .margin.z, 0)
         let page    = parent.paddedClientRect()
         let pad     = .groundPadding()
         let height  = metrics.hintLine_Height + 2 * pad.y

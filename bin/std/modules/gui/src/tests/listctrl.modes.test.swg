@@ -147,7 +147,7 @@ func buildListModes(host: *Testing.HeadlessHost)
     Swag.assert(list.hotPresence == 1 and list.leftPresence == 0)
 }
 
-// A file's glyph carries the quiet hue of its kind; a folder and a plain file carry none.
+// Files carry the quiet hue of their kind; folders carry the mark of a place.
 #test
 {
     var host: Testing.HeadlessHost
@@ -158,5 +158,5 @@ func buildListModes(host: *Testing.HeadlessHost)
     Swag.assert(theme.fileGlyph("film.mkv", false).color == colors.fileKind_Video)
     Swag.assert(theme.fileGlyph("report.pdf", false).color == colors.fileKind_Document)
     Swag.assert(theme.fileGlyph("notes.txt", false).color.a == 0)
-    Swag.assert(theme.fileGlyph("Captures", true).color.a == 0)
+    Swag.assert(theme.fileGlyph("Captures", true).color == colors.arc)
 }

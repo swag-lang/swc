@@ -172,3 +172,21 @@ explore_Play Lire
 explore_Shuffle Aléatoire
 explore_Weekdays dimanche lundi mardi mercredi jeudi vendredi samedi
 explore_Months janvier février mars avril mai juin juillet août septembre octobre novembre décembre
+hint_PlayAlbum lire l’album
+hint_Play lire
+mode_Covers pochettes
+mode_Posters affiches
+mode_Mosaic mosaïque
+board_Automatic Automatique
+board_Grid Grille
+board_Covers Pochettes
+board_Posters Affiches
+board_Mosaic Mosaïque
+explore_Albums % albums
+explore_Photos % photos
+explore_Films % films
+explore_OnePage 1 page
+explore_Pages % pages
+explore_Lines % lignes
+explore_Sections % sections
+explore_Files % fichiers

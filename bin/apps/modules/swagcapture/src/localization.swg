@@ -387,7 +387,12 @@ struct AppStrings
     prop_Step:      string = "Step"           // Label of the step-numbering choice.
     prop_Strength:  string = "Strength"       // Label of the effect strength.
     prop_Style:     string = "Style"          // Label of the font style: regular, bold, italic or both.
-    prop_Text:      string = "Text"           // Label of the edited text.
+    prop_Text:      string = "Text"           // Label of the edited text, and section of the settings of the words.
+    prop_Shape:     string = "Shape"          // Section of the settings of the body of a shape.
+    prop_Stroke:    string = "Stroke"         // Section of the settings of a stroke or an outline.
+    prop_Ends:      string = "Ends"           // Section of the settings of the ends of a line.
+    prop_Effects:   string = "Effects"        // Section of the shadow, the opacity, the scale and the rotation.
+    prop_LineSpacing: string = "Line Spacing" // Label of the room between the lines of a text.
     prop_Thickness: string = "Thickness"      // Label of the stroke thickness.
 
     prop_Straight: string = "Straight"      // Line entry: a segment.

@@ -253,15 +253,17 @@ impl PropWnd
     // A panel category is a quiet section cue, like the labels used by the other standard
     // applications. Keep the system face at its normal weight and let the live theme supply
     // its secondary ink; bold property-grid headings read as a second title hierarchy here.
+    // The sections of the generated settings read like those of the head: small spaced capitals,
+    // flush with the labels of the column, with no air of their own past the height of a row.
     mtd styleCategoryLabels()
     {
         for item in .grid.items
         {
             let it = unwrap item
-            if not it.flags.has(.Category) do
+            if not it.flags.has(.Category) or it.label == null do
                 continue
-            it.label.style.setFont(.theme().res.fontDefault)
-            it.label.updateFlags(.SecondaryText)
+            it.line.margin.y = 0
+            it.line.margin.w = 0
         }
     }
 
@@ -388,11 +390,16 @@ impl PropWnd
 
             // The head rows stand in the column of the inspector, which already keeps its
             // margins; only the air before the generated rows is the panel's own.
-            .topLayout.spacing = prop.themeMetrics().inspector_RowGap
-            .topLayout.padding = {0, 0, 0, prop.themeMetrics().inspector_RowGap}
+            .topLayout.spacing = prop.themeMetrics().inspector_RowPitch - prop.themeMetrics().control_InspectorHeight
+            .topLayout.padding = {0, 0, 0, 0}
 
             .grid = Properties.create(prop, kind: .Panel)
             .grid.dockStyle = .Center
+
+            // The settings stand at the pitch of the inspector, denser than a panel's.
+            let metrics = prop.themeMetrics()
+            .grid.setRowMetrics(metrics.control_InspectorHeight, metrics.inspector_RowPitch - metrics.control_InspectorHeight)
+            .grid.setSectionRules(false)
 
             // The panel layout keeps its own margin before each row; the grid reaches past the
             // column by that much so its labels stand on the edge of the inspector's labels.

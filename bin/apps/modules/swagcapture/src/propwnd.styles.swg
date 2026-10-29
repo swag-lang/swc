@@ -587,6 +587,11 @@ impl PropWnd
             }
         }
 
+        // The position opens with its own section label, as the other groups of settings.
+        let section = .grid.addItem(Swag.TypeValue{name: "position.section"}, null, null, .themeMetrics().inspector_SectionHeight, .None)
+        section.flags.add(.NoSeparator | .NoFocus)
+        SectionLabel.create(section.line, appStrings().ui_PropPosition, {0, 0, 0, .themeMetrics().inspector_SectionHeight}).dockStyle = .Center
+
         // `name` must be a view of storage that outlives the grid (a literal): the TypeValue below
         // keeps the view, and a by-value String would hand it a dangling pointer.
         let v    = Swag.TypeValue{name: appStrings().ui_PropPosition}

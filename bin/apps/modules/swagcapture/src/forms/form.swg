@@ -64,19 +64,19 @@ struct BaseForm
     w, h: s32 = 32
 
     // The text forms edit this as "Outline" with a thinner range (PropWnd.bindGrid)
-    #[Name("Thickness"), SliderMinMax(MinBorderSize, MaxBorderSize)]
+    #[Name("Thickness"), SliderMinMax(MinBorderSize, MaxBorderSize), Category("Stroke")]
     borderSize: f32 = 5
-    #[Name("Joins")]
+    #[Name("Joins"), Category("Stroke")]
     joinStyle = JoinStyle.Round
-    #[Name("Line"), BoolCombo("Straight", "Bezier")]
+    #[Name("Line"), BoolCombo("Straight", "Bezier"), Category("Stroke")]
     bezier: bool
-    #[Name("Scale"), SliderMinMax(0, 100), Unit("%")]
+    #[Name("Scale"), SliderMinMax(0, 100), Unit("%"), Category("Effects")]
     scale: f32 = 0
-    #[Name("Rotate"), SliderMinMax(0, 360), Unit("°")]
+    #[Name("Rotate"), SliderMinMax(0, 360), Unit("°"), Category("Effects")]
     rotate: f32 = 0
-    #[Name("Opacity"), SliderMinMax(0, 100), Unit("%")]
+    #[Name("Opacity"), SliderMinMax(0, 100), Unit("%"), Category("Effects")]
     alpha: u8 = 100
-    #[Name("Shadow"), BoolCombo("No Shadow", "Small")]
+    #[Name("Shadow"), BoolCombo("No Shadow", "Small"), Category("Effects")]
     paintShadow: bool = true
 
     shadowOffsetX: f32         = 2

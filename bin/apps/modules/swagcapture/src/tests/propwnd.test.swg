@@ -252,7 +252,14 @@ func testFindStyleButtons(prop: *PropWnd, tip: string)->Array'(*IconButton)
     // block, even though the language declares 'using base' first
     Swag.assert(testItemIndex(prop, #nameof(FormText.fontName)) < testItemIndex(prop, #nameof(BaseForm.borderSize)))
     Swag.assert(testItemIndex(prop, #nameof(FormText.fontSize)) < testItemIndex(prop, #nameof(BaseForm.borderSize)))
-    Swag.assert(testFindItem(prop, "Effects") == null)
+
+    // The settings stand under the section labels of the pictures: TEXT, then STROKE, then EFFECTS.
+    let text    = unwrap testFindItem(prop, "Text")
+    let stroke  = unwrap testFindItem(prop, "Stroke")
+    let effects = unwrap testFindItem(prop, "Effects")
+    Swag.assert(text.flags.has(.Category) and text.line.isVisible() and effects.line.isVisible())
+    Swag.assert(testItemIndex(prop, "Text") < testItemIndex(prop, "Stroke") and testItemIndex(prop, "Stroke") < testItemIndex(prop, "Effects"))
+    Swag.assert(stroke.line.isVisible())
 
     // The x/y and w/h rows close the grid. They carry no category separator of their own: each
     // one is named for what it holds, and a heading above them would only repeat it.
@@ -369,7 +376,10 @@ func testFindStyleButtons(prop: *PropWnd, tip: string)->Array'(*IconButton)
     Swag.assert(border != null and not border.line.isVisible())
     let joins = testFindItem(prop, #nameof(BaseForm.joinStyle))
     Swag.assert(joins != null and not joins.line.isVisible())
-    Swag.assert(testFindItem(prop, "Effects") == null)
+
+    // The stroke section has nothing left to show and leaves; the effects stay.
+    Swag.assert(not testFindItem(prop, "Stroke")!.line.isVisible())
+    Swag.assert(testFindItem(prop, "Effects")!.line.isVisible())
 
     Swag.assert(testFindItem(prop, appStrings().ui_PropPosition) == null)
     Swag.assert(testFindItem(prop, appStrings().ui_PropSize) == null)
@@ -393,7 +403,7 @@ func testFindStyleButtons(prop: *PropWnd, tip: string)->Array'(*IconButton)
     Swag.assert(border != null and not border.line.isVisible())
     let round = testFindItem(prop, #nameof(FormShape.roundSize))
     Swag.assert(round != null and not round.line.isVisible())
-    Swag.assert(testFindItem(prop, "Effects") == null)
+    Swag.assert(not testFindItem(prop, "Effects")!.line.isVisible() and not testFindItem(prop, "Shape")!.line.isVisible())
 }
 
 // A line end that cannot be resized does not offer the row that would resize it.
@@ -477,7 +487,7 @@ func testFindStyleButtons(prop: *PropWnd, tip: string)->Array'(*IconButton)
     let expectedWidth = Math.ceil(Painter.measureString(thickness.label.name.raw, unwrap thickness.label.font().regular).width)
     Swag.assert(thickness.label.name == "Épaisseur")
     Swag.assert(thickness.labelWidth >= expectedWidth)
-    Swag.assert(testFindItem(prop, "Effects") == null)
+    Swag.assert(testFindItem(prop, "Effects")!.label.name == "EFFETS")
 }
 
 // A property editor is built for the kind that was selected, and the painters and handlers it

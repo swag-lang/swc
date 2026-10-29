@@ -905,6 +905,7 @@ impl ViewerWindow
         {
             .dockStyle       = .Center
             .backgroundStyle = .Transparent
+            .flags           = .HideDividers
         }
 
         result.createFilePanel()

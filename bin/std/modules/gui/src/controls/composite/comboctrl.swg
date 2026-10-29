@@ -26,10 +26,13 @@ impl IWnd for ComboCtrl
             return
 
         let rect   = .clientRect()
-        let height = .themeMetrics().comboBox_Height
+        // The combo keeps its own height unless the control is shorter, as a row of an
+        // inspector is: centred in less room, it would lose its top and bottom edges.
+        let height = Math.min(.themeMetrics().comboBox_Height, rect.height)
         let y      = rect.vertCenter() - height * 0.5
         let width  = .comboWidth == 0 ? Math.max(rect.width - .spacing - .labelWidth, 0) : .comboWidth
         .label.setPosition(0, y, .labelWidth, height)
+        .combo.minSize.y = height
         .combo.setPosition(.label.position.right() + .spacing, y, width, height)
     }
 }

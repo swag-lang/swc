@@ -226,7 +226,8 @@ using Swag, Core
     f.gui.pump()
 }
 
-// A preset cell names what it shows on its tooltip, and that name follows a live language switch.
+// A preset cell names what it shows on its tooltip, with what its menu offers, and both follow a
+// live language switch.
 //
 // The word is written once, when the cell is built, so a window that answers a switch by
 // repainting alone keeps the previous language on every image preset.
@@ -261,12 +262,12 @@ using Swag, Core
     f.main.editMode = .Image
     quick.setDefault()
     quick.updateQuickStyles(forceRebuild: true)
-    Swag.assert(blurTip(quick) == appStrings().prop_KindBlur)
+    Swag.assert(blurTip(quick) == Format.toString(appStrings().ui_QuickStyleTip, appStrings().prop_KindBlur))
 
     expect f.gui.app.setLanguage("fr")
     f.gui.notify(.LanguageChanged)
     f.gui.pump()
-    Swag.assert(blurTip(quick) == "Flou")
+    Swag.assert(blurTip(quick).startsWith("Flou · clic droit"))
 
     quick.destroy()
     f.gui.pump()

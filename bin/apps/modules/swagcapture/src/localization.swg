@@ -33,7 +33,7 @@ struct AppStrings
     ui_RenameQuickStyle:       string = "Rename Quick Style…"            // Names a quick style.
     ui_ReplaceQuickStyle:      string = "Replace with Current Style"     // Gives a quick style the style of the tool or the selection.
     ui_QuickStyleRank:         string = "Style %"     // Name of a quick style the reader has not named, with its rank.
-    ui_QuickStyleCaption:      string = "Quick style “%” · right-click to rename, replace or remove it"     // Under the quick styles: the one in force.
+    ui_QuickStyleTip:          string = "% · right-click to rename, replace or remove it"     // Tooltip of a quick style: its name, and what its menu offers.
     ui_QuickStyleName:         string = "Name of the quick style"        // Prompt of the quick-style rename dialog.
     dlg_TitleRenameQuickStyle: string = "Rename Quick Style"             // Title of the quick-style rename dialog.
     ui_RemoveQuickStyle:       string = "Remove Quick Style"
@@ -153,7 +153,7 @@ struct AppStrings
     count_Step:                 string = "% step|% steps"
     count_Image:                string = "% image|% images"
     count_Object:               string = "% object|% objects"
-    ui_NextObjects:             string = "next objects"                                          // Detail of the inspector title when nothing is selected: the tool's settings apply to what is drawn next.
+    ui_NextObjects:             string = "new objects"                                           // Detail of the inspector title when nothing is selected: the tool's settings apply to what is drawn next.
     hint_Space:                 string = "capture, open, library"                                // What Ctrl Space opens, on the hint line of the editor.
     hint_Open:                  string = "open"                                                  // What Enter does to the chosen capture of the library.
     hint_Rename:                string = "rename"                                                // What F2 does to the chosen capture of the library.
@@ -413,7 +413,7 @@ struct AppStrings
     prop_Shadow:      string = "Shadow"           // Label of the drop-shadow choice.
     prop_Size:        string = "Size"             // Label of the font size.
     prop_StartSize:   string = "Start Size"       // Label of the start-cap size of a line.
-    prop_Step:        string = "Step"             // Label of the step-numbering choice.
+    prop_Step:        string = "Numbering"        // Label of the step-numbering choice.
     prop_Strength:    string = "Strength"         // Label of the effect strength.
     prop_Style:       string = "Style"            // Label of the font style: regular, bold, italic or both.
     prop_Text:        string = "Text"             // Label of the edited text, and section of the settings of the words.
@@ -426,10 +426,9 @@ struct AppStrings
 
     prop_Straight: string = "Straight"      // Line entry: a segment.
     prop_Bezier:   string = "Bezier"        // Line entry: a curve.
-    prop_NoShadow: string = "No Shadow"     // Shadow entry: none.
     prop_Small:    string = "Small"         // Shadow entry: a small one.
 
-    prop_JoinNone:       string = "None"           // Join style with no explicit corner geometry.
+    prop_JoinNone:       string = "None"           // Join style with no explicit corner geometry; also no shadow.
     prop_JoinBevel:      string = "Bevel"          // Join style cutting the outer corner.
     prop_JoinMiter:      string = "Miter"          // Join style extending both edges.
     prop_JoinMiterBevel: string = "MiterBevel"     // Join style mitering when it can, beveling otherwise.

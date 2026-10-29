@@ -76,7 +76,7 @@ struct BaseForm
     rotate: f32 = 0
     #[Name("Opacity"), SliderMinMax(0, 100), Unit("%"), Category("Effects")]
     alpha: u8 = 100
-    #[Name("Shadow"), BoolCombo("No Shadow", "Small"), Category("Effects")]
+    #[Name("Shadow"), BoolCombo("None", "Small"), Category("Effects")]
     paintShadow: bool = true
 
     shadowOffsetX: f32         = 2

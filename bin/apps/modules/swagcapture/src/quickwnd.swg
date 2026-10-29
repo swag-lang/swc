@@ -24,10 +24,10 @@ const QuickStrokeZoom     = 0.28'f32     // The scale a line or an arrow is pain
 const QuickTextHeight     = 14.0'f32     // The size the "Aa" of a text is painted at in its cell.
 const QuickMaskWidth      = 21.0         // Width of the pattern of a mask preset.
 const QuickMaskHeight     = 14.0         // Height of the pattern of a mask preset.
-const QuickLightDepth     = 0.16'f32     // How much deeper the cell of a light preset is, on a light ground.
+const QuickLightDepth     = 0.09'f32     // How much deeper the cell of a light preset is, on a light ground.
 const QuickPopoverPad     = 12.0         // Air inside the popover holding every preset of a tool.
 const QuickPopoverColumns = 5            // Presets in a row of that popover.
-const QuickCaptionHeight  = 34.0         // Height of the two lines naming the preset in force, under the row.
+const QuickCaptionHeight  = 20.0         // Height of the line naming the preset in force, under the row.
 
 // The glyph of the trailing chip, which keeps the selected shape as a new preset.
 const AddGlyphSize = 14.0
@@ -689,8 +689,8 @@ impl QuickWnd
         .updateQuickStyles(forceRebuild: true)
     }
 
-    // Writes the name of the preset in force under the row, and how to change it; no line when
-    // no preset is in force.
+    // Writes the name of the preset in force under the row, its menu being on its tooltip; no line
+    // when no preset is in force.
     mtd updateCaption()
     {
         var name: String
@@ -721,7 +721,7 @@ impl QuickWnd
         }
         else
         {
-            caption.setText(Format.toString(appStrings().ui_QuickStyleCaption, name))
+            caption.setText(name)
             caption.show()
         }
 
@@ -749,9 +749,9 @@ impl QuickWnd
             .layout.hookOnEvent = func|quick|(_, evt)->bool => quick.onRowEvent(evt)
             .keyCell = Swag.U64.Max
 
-            let caption = Label.create(quick, "", {0, QuickChipHeight, 0, QuickCaptionHeight}, flags: .SecondaryText | .WordWrap)
+            let caption = Label.create(quick, "", {0, QuickChipHeight, 0, QuickCaptionHeight}, flags: .SecondaryText)
             caption.style.setFont(quick.theme().createDefaultFontFamily(metrics.defaultFontSize - 1))
-            caption.setTextAlignment(.Left, .Top)
+            caption.setTextAlignment(.Left, .Center)
             caption.hide()
             .caption = caption
 
@@ -849,15 +849,17 @@ impl QuickWnd
         .add(BorderSize, .RoundRectangle, ColorBlue, Argb.Zero)
         .add(BorderSize, .RoundRectangle, ColorYellow, Argb.Zero)
 
-        .add(BorderSize, .Rectangle, ColorRed, Argb.Zero)
-        .add(BorderSize, .Rectangle, ColorGreen, Argb.Zero)
-        .add(BorderSize, .Rectangle, ColorBlue, Argb.Zero)
-        .add(BorderSize, .Rectangle, ColorYellow, Argb.Zero)
-
+        // The row shows the first five until use reorders them: the fifth is another shape, so
+        // it does not read as the first one again.
         .add(BorderSize, .Ellipse, ColorRed, Argb.Zero)
         .add(BorderSize, .Ellipse, ColorGreen, Argb.Zero)
         .add(BorderSize, .Ellipse, ColorBlue, Argb.Zero)
         .add(BorderSize, .Ellipse, ColorYellow, Argb.Zero)
+
+        .add(BorderSize, .Rectangle, ColorRed, Argb.Zero)
+        .add(BorderSize, .Rectangle, ColorGreen, Argb.Zero)
+        .add(BorderSize, .Rectangle, ColorBlue, Argb.Zero)
+        .add(BorderSize, .Rectangle, ColorYellow, Argb.Zero)
 
         .add(BorderSize, .Rectangle, Argb.White, Argb.Zero)
         .add(BorderSize, .Rectangle, Argb.Black, Argb.Zero)
@@ -1276,15 +1278,13 @@ impl QuickWnd
 
         painter.setParams(.Antialiased)
 
-        // A light preset on a light ground stands on a deeper cell ringed with a hairline, so its
-        // words or its stroke still read.
+        // A light preset on a light ground stands on a slightly deeper cell, so its words or its
+        // stroke still read. Not ringed: a ring around a cell is what marks the preset in force.
         let itf   = unwrap btnp.formItf
         let light = luminance(colors.raised) > 0.6 and
                     luminance(presetInk(itf)) > 0.75 and
                     not (itf is FormImage)
         painter.fillRoundRect(cell, QuickCellCorner, QuickCellCorner, light ? Color.lerpRgb(colors.raised, colors.text, QuickLightDepth) : colors.raised)
-        if light do
-            painter.drawRoundRect(cell, QuickCellCorner, QuickCellCorner, colors.strongLine, btnp.themeMetrics().separator_HairlineSize)
 
         // A mask shows what it does to what it covers.
         if itf is FormImage as image where image.subKind == .None
@@ -1410,7 +1410,7 @@ impl QuickWnd
             clearChipGround(button)
             .formItf  = form
             .quickWnd = me
-            .toolTip  = me.currentStyle ? me.currentStyle.nameOf(me.currentStyle.indexOf(form)) : ""
+            .toolTip  = me.currentStyle ? Format.toString(appStrings().ui_QuickStyleTip, me.currentStyle.nameOf(me.currentStyle.indexOf(form))) : ""
 
             .iconPainter     = func(button, bc, _, _) { paintPreset(bc.painter, assume cast(*QuickButton, button)) }
             .sigRightPressed += func(button) { button.quickWnd.btnPopup(button, button.surfaceRect().center()) }

@@ -215,6 +215,48 @@ func testSetupEditorSurface(host: *Gui.Testing.HeadlessHost, dark: bool, text = 
     }
 }
 
+// The ground around the picture moves the window while a tool that draws is in hand: the
+// picture, its edges, a form off the picture and what floats over the view keep their clicks,
+// and the selection tool keeps the ground for its lasso.
+#test
+{
+    var host: Gui.Testing.HeadlessHost
+    let main = testSetupEditorSurface(&host, dark: true, text: false)
+    defer
+    {
+        main.libWnd.requestClose()
+        host.shutdown()
+        g_Main = null
+    }
+
+    let view    = main.editWnd.editView
+    let capture = unwrap main.getCapture()
+    main.editMode = .Shape
+    Swag.assert(host.surfaceWnd.groundHitTest != null)
+
+    // The picture is placed by its first paint.
+    discard host.render(main)
+
+    let picture = capture.paintRect
+    let origin  = view.surfaceRect()
+    let middle  = Math.Point{origin.x + picture.horzCenter() - view.scrollPos.x, origin.y + picture.vertCenter() - view.scrollPos.y}
+    let ground  = Math.Point{middle.x + picture.width * 0.5 + 40, middle.y}
+    let edge    = Math.Point{middle.x + picture.width * 0.5 + 4, middle.y}
+    Swag.assert(view.isWindowGround(ground))
+    Swag.assert(not view.isWindowGround(middle))
+    Swag.assert(not view.isWindowGround(edge))
+    Swag.assert(not view.isWindowGround(main.dock.surfaceRect().center()))
+    Swag.assert(not view.isWindowGround(main.inspector.surfaceRect().center()))
+
+    // A form standing off the picture is work, not ground.
+    let zoom = picture.width / capture.width
+    discard testAddShape(capture, capture.width + 30 / zoom, capture.height * 0.5 - 10 / zoom, 20 / zoom, 20 / zoom)
+    Swag.assert(not view.isWindowGround(ground))
+
+    main.editMode = .Selection
+    Swag.assert(not view.isWindowGround(Math.Point{ground.x, ground.y + 60}))
+}
+
 // Selects the forms `indices` of the capture the editor shows, lays the window out and renders it
 // to `golden`; `whole` renders the surface with what floats over the view, such as a popover.
 func testAssertEditGolden(host: *Gui.Testing.HeadlessHost, main: *MainWnd, indices: const [..] u64, golden: string, whole = false)

@@ -11,6 +11,9 @@ public enum SizingBorder
     Bottom       // Bottom edge.
 }
 
+// Reports whether a surface position, under the strip, is ground of the window that drags it.
+public alias GroundHitTest = func||(Math.Point)->bool
+
 // Provides the root GUI frame and the window chrome of a [[Gui.Surface]].
 //
 // The chrome follows the charter: no caption band, no rail and no glow. The top strip carries
@@ -32,6 +35,7 @@ public struct SurfaceWnd
         maximizeBtn:   *IconButton?            // Caption maximize button, present with [[Gui.SurfaceFlags.MaximizeButton]].
         closeBtn:      *IconButton?            // Caption close button, present with [[Gui.SurfaceFlags.CloseButton]].
         movingSurface: bool                    // Whether a pointer drag is moving or resizing the surface.
+        groundHitTest: GroundHitTest?          // Answers, under the strip, whether a surface position is ground that drags the window.
         sizingBorder:  SizingBorder = None     // Border under the pointer, or being dragged.
 
         readonly titleHidden: bool     // Whether the document writes the title itself, so the strip does not.
@@ -439,6 +443,9 @@ impl SurfaceWnd
     //
     // A [[Gui.SurfaceFlags.Sheet]] has no strip: its body's own ground — the title, the inset
     // around the content and the air beside the actions — drags it instead.
+    //
+    // Under the strip, the view may name more of its own ground through `groundHitTest`, such as
+    // the empty ground around a picture in an editor whose whole body is otherwise the work.
     mtd hitTestCaption(surfacePos: Math.Point)->bool
     {
         let srfn = .surface
@@ -472,6 +479,8 @@ impl SurfaceWnd
         let pos = .surfaceToLocal(surfacePos)
         if pos.x < 0 or pos.x >= .position.width do
             return false
+        if pos.y >= strip and .groundHitTest do
+            return .groundHitTest(surfacePos)
         if pos.y < 0 or pos.y >= strip do
             return false
 

@@ -2,9 +2,9 @@
 const ColorSwatchSize     = 20.0     // Side of the swatch of a colour row.
 const ChoiceGap           = 4.0      // Air between two glyphs of a choice row.
 const ChoiceGlyphSize     = 14.0     // Side of the shape a shape glyph draws.
-const ChoiceGlyphInset    = 6.0      // Air between a dash sample and the edges of its cell.
-const ChoiceStroke        = 1.5      // Weight of the strokes a glyph draws.
-const CapGlyphStroke      = 2.5      // Weight of the stroke a line end is drawn on: the ends scale with it.
+const ChoiceGlyphInset    = 5.0      // Air between a dash sample and the edges of its cell.
+const DashStroke          = 2.0      // Weight of a dash sample: heavy enough for its dots, light enough for its gaps.
+const DashCellWidth       = 34.0     // Width of a dash cell, long enough for a whole pattern.
 const MaxLayerRows        = 12       // Layers the inspector lists for several objects.
 const PositionLetterWidth = 14.0     // Width of the letter before a value of the position strip.
 
@@ -263,12 +263,11 @@ impl PropWnd
         case .Dash:
             var rect = pos
             rect.inflate(-ChoiceGlyphInset, 0)
-            var pen = Pen.createDash(cast(DashStyle, value), color, ChoiceStroke)
-            pen.dashBlankScale = 0.5
+            let pen = Pen.createDash(cast(DashStyle, value), color, DashStroke)
             painter.drawLine(rect.x, rect.vertCenter(), rect.right(), rect.vertCenter(), pen)
 
         case .StartCap, .EndCap:
-            drawCapGlyph(painter, cast(LineCapStyle, value), row == .StartCap, pos, color, CapGlyphStroke)
+            drawCapGlyph(painter, cast(LineCapStyle, value), row == .StartCap, pos, color)
         }
     }
 
@@ -290,7 +289,8 @@ impl PropWnd
 
             // A radio: a press on the glyph already chosen keeps it chosen; the row unchecks the
             // others itself.
-            with let button = IconButton.create(stack, {}, {0, 0, size, size}, flags: .Radio)
+            let width       = row == .Dash ? DashCellWidth : size
+            with let button = IconButton.create(stack, {}, {0, 0, width, size}, flags: .Radio)
             {
                 .userData = enumToUserData(value)
                 .toolTip  = tip
@@ -332,7 +332,9 @@ impl PropWnd
         if not pixSel and formType == FormImage do
             hasFill = (assume cast(*FormImage, form)).kind == .Image
 
-        let hasBorder = form.subKind != .Highlight and not pixSel
+        // A highlighter stroke is its colour alone; a highlighted area is its fill alone.
+        let highlight = form.subKind == .Highlight
+        let hasBorder = not pixSel and (not highlight or isStroke)
         if not hasBorder and not hasFill do
             return
 
@@ -346,7 +348,8 @@ impl PropWnd
         {
             if hasBorder do
                 .addColorRow(appStrings().ui_PropColor, .Border)
-            .addColorRow(appStrings().ui_PropOutline, .StrokeOutline)
+            if not highlight do
+                .addColorRow(appStrings().ui_PropOutline, .StrokeOutline)
             return
         }
 
@@ -358,16 +361,40 @@ impl PropWnd
             .addColorRow(formType == FormStep ? appStrings().act_Text : appStrings().ui_PropOutline, .Border)
     }
 
+    // Reports whether every selected form, or the model of the tool, draws a dashed outline: a
+    // plain shape, a line, an arrow or a polygon.
+    mtd allSelectedDash()->bool
+    {
+        func dashes(form: *BaseForm, type: typeinfo)->bool
+        {
+            if form.subKind != .None do
+                return false
+            return type == FormShape or type == FormLine or type == FormArrow or type == FormPolygon
+        }
+
+        let capture = .main.getCapture()
+        if not capture or not capture.selection.count do
+            return dashes(.getSelectedBaseForm(), .getSelectedFormType())
+
+        foreachSelected'BaseForm(capture, capture.selection)
+        {
+            if not dashes(form, Swag.kindOf(itf)) do
+                return false
+        }
+
+        return true
+    }
+
     // Appends the glyph choices of the selection: the kind of a shape or a step, the dash of an
-    // outline, the two ends of a line.
+    // outline, the two ends of a line. Several objects are offered only what they all have.
     mtd addStyleRows()
     {
         let form     = .getSelectedBaseForm()
-        let formType = .getSelectedFormType()
+        let formType = .commonFormType()
         let pixSel   = form.subKind == .PixSel
         let isLine   = formType == FormLine or formType == FormArrow
         let hasShape = (formType == FormShape and not pixSel) or formType == FormStep
-        let hasDash  = (formType == FormShape or isLine or formType == FormPolygon) and form.subKind == .None
+        let hasDash  = .allSelectedDash()
         if not hasShape and not hasDash and not isLine do
             return
 
@@ -539,19 +566,6 @@ impl PropWnd
         {
         case FormLine, FormArrow: .pushTypedValue(color.argb, FormLine, #nameof(FormLine.outlineColor), first)
         case FormDraw: .pushTypedValue(color.argb, FormDraw, #nameof(FormDraw.outlineColor), first)
-        }
-    }
-
-    // The step type combo is generated by the grid (FormStep.typeIndex attribute); only the
-    // "reset the global counter" command needs a row of its own.
-    mtd propNextStep()
-    {
-        if .getSelectedFormType() != FormStep do
-            return
-
-        with let button = PushButton.create(.addHeadRow(""), "", id: ActionEdit.ResetSteps, form: .Flat)
-        {
-            .dockStyle = .Center
         }
     }
 

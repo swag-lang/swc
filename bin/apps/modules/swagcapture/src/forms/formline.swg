@@ -38,8 +38,9 @@ impl FormLine
         var result: #returntype
         let base = cxt.hitTest ? Math.max(.borderSize, 5) : .borderSize
         result.stroke   = BaseForm.adaptSize(base, MinBorderSize, MaxBorderSize, cxt, 6, 9)
-        result.begScale = cxt.quickMode ? BaseForm.adaptSize(.startSize, MinCapSize, MaxCapSize, cxt, 1, 3) : .startSize
-        result.endScale = cxt.quickMode ? BaseForm.adaptSize(.endSize, MinCapSize, MaxCapSize, cxt, 1, 3) : .endSize
+        // A preset is small: its ends are drawn larger against its stroke, so its head still reads.
+        result.begScale = cxt.quickMode ? BaseForm.adaptSize(.startSize, MinCapSize, MaxCapSize, cxt, 2, 4) : .startSize
+        result.endScale = cxt.quickMode ? BaseForm.adaptSize(.endSize, MinCapSize, MaxCapSize, cxt, 2, 4) : .endSize
         return result
     }
 

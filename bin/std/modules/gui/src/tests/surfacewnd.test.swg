@@ -126,6 +126,27 @@ func buildChromeWindow(host: *Testing.HeadlessHost)
     host.pump()
 }
 
+// Under the strip, the view names its own ground: there, and only there, the window drags.
+#test
+{
+    var host: Testing.HeadlessHost
+    host.setup(480, 200)
+    buildChromeWindow(&host)
+
+    let strip = host.theme.metrics.wnd_StripHeight
+    Swag.assert(not host.surfaceWnd.hitTestCaption({40, strip + 40}))
+
+    host.surfaceWnd.groundHitTest = func(pos: Math.Point)->bool => pos.x < 100
+    Swag.assert(host.surfaceWnd.hitTestCaption({40, strip + 40}))
+    Swag.assert(not host.surfaceWnd.hitTestCaption({240, strip + 40}))
+    Swag.assert(host.surfaceWnd.hitTestCaption({240, strip * 0.5}))
+
+    // The window buttons never drag, whatever the view answers.
+    host.surfaceWnd.groundHitTest = func(_: Math.Point)->bool => true
+    let close = unwrap host.surfaceWnd.closeBtn
+    Swag.assert(not host.surfaceWnd.hitTestCaption(close.surfaceRect().center()))
+}
+
 // Taking the caption away, as full screen does, removes the strip and tells the view, even when
 // its size does not change.
 #test

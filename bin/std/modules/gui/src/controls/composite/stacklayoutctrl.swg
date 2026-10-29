@@ -200,8 +200,26 @@ private impl StackLayoutCtrl
             oldSizes.add(Math.Point{c.position.width, c.position.height})
         }
 
-        if visible.isEmpty() do
+        // A stack that fits its content and has nothing left to show shrinks to its padding, or
+        // it would keep the room of the children it held before.
+        if visible.isEmpty()
+        {
+            if .fitToContent
+            {
+                if .isHorizontal()
+                {
+                    .position.width  = .padding.x + .padding.z
+                    .preferredSize.x = .position.width
+                }
+                else
+                {
+                    .position.height = .padding.y + .padding.w
+                    .preferredSize.y = .position.height
+                }
+            }
+
             return
+        }
 
         let count        = cast(f32, visible.count)
         let spacingTotal = cast(f32, (visible.count - 1)) * .spacing

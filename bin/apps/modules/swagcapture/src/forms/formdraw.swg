@@ -4,7 +4,7 @@
 struct FormDraw
 {
     using base: BaseForm
-    #[Name("Outline"), SliderMinMax(MinOutlineSize, MaxOutlineSize)]
+    #[Name("Outline"), SliderMinMax(MinOutlineSize, MaxOutlineSize), Category("Stroke")]
     outlineSize:  f32
     outlineColor: Color = Argb.Black
     points:       Array'Math.Vector2

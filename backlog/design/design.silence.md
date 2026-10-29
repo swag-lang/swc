@@ -97,7 +97,7 @@ dialogs, then each application, then the written rules.
     shipped frame start at the top edge: they need the frame (StandardWindow) to sit under the
     strip as the pictures do; the boards, archive and PDF goldens already have it.
   - Not yet rebuilt on their pictures: image (`scope.image`), table, HTML (column, address,
-    outline), binary (report page), hex (structure tabs, large inspector), font (specimen page);
+    outline), binary (report page), font (specimen page);
     the "Column ▾" quiet menu of text; the progress thread under the strip with documents
     scrolling under it.
   - Viewers photographed in the shipped frame against their pictures (`pictured.*`): the image
@@ -111,12 +111,18 @@ dialogs, then each application, then the written rules.
     tabs, glyph row with the chosen glyph on Arc, the sample field and sizes with mono labels.
     The font viewer now stands on its specimen page (`pictured.font.paper`) but shows only its own
     style as a tab, the glyph line has no Unicode name, and the sample field stays on the floating
-    bar. Hex (`pictured.hex`, a PNG forced into it) has no structure tabs over the grid, no
-    floating inspector with the value in large type and the readings of the structure, and keeps
-    its dense grid; binary (`pictured.binary`) is still the structure tree, not the report page —
+    bar. Hex (`pictured.hex`, a PNG forced into it) stands on its picture: the binary readers'
+    structure as text tabs over an airy grid (the format, then Signature, IHDR, …, IDAT × 9,
+    IEND, the one holding the caret underlined in Arc), Arc selection, the Voltage cursor byte,
+    and the floating inspector — the value under the caret in large type, what it was read as,
+    its readings, then the fields of its chunk. What still differs: the grid does not tint the
+    chunk-type bytes; the reading line stands at the window's edge rather than the grid's and
+    keeps the zoom at its right; the inspector lists every field of the chunk (compression,
+    filter, CRC) where the picture keeps five, under the specification's names. Binary
+    (`pictured.binary`) is still the structure tree, not the report page —
     title, mono identity line, large figures (sections, imports, entropy, strings), the sections as
     one proportional bar with its legend, the imports by library.
-- Next: binary and hex on their pictures; the font's other styles, glyph names and sample field;
+- Next: binary on its picture; the hex grid's tint of a structure's tag bytes; the font's other styles, glyph names and sample field;
   coloured code cards in HTML and the section being read marked; the table's row pitch; the mixed board's waveform cells,
   "Aa" in the font's own face, a film's picture size in its facts, and an ExtraBold page title.
 - Done when: every Scope golden matches its picture as a whole screen.

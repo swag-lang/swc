@@ -685,6 +685,21 @@ in its module backlog; a general request for better names is not a missing langu
 - Done when: `f([])` and `path: const [..] string = []` compile wherever the destination names a
   slice type, and the diagnostic only fires where nothing names one.
 
+### language.design.041 — `"\x89"` is two bytes, though code reads it as one
+
+- Evidence: in a string literal, `\xHH` above `0x7F` names the code point U+00HH and is stored as
+  its two UTF-8 bytes (`"\x89PNG"` has five bytes, the first `0xC2`). Code written as if it were
+  one byte was silently wrong: Swag Scope's binary viewer named no gzip, XZ, Zstandard, 7-Zip, OLE,
+  PNG, JPEG, Matroska or Java class file by its signature until the signatures became `[N] u8`
+  constants. `bin/std/modules/gui/src/tests/pdf.transparency.test.swg` still writes image samples
+  as `"\xFF\xFF\xFF\xFF"`, and `bin/unittests/native/flow/switch.swg` writes `"caf\xC3\xA9"`, both
+  in the byte reading. The reference only shows `"\x26"`.
+- Next: choose one rule — reject `\x80`–`\xFF` in a string literal (pointing to `\u00HH` or a byte
+  array), or store them as single bytes — state it on the string page of the reference, and add a
+  lexer or sema fixture for each case.
+- Done when: the reference states what `"\xFF"` holds, a fixture pins it, and no source under
+  `bin/` relies on the other reading.
+
 ---
 
 ## Generic contracts and execution semantics

@@ -70,7 +70,7 @@ impl BinaryImage
     mtd const isBounded()->bool => .fileSize > .bytes.count
 
     // Returns whether the bytes at `offset` are exactly `magic`.
-    mtd const matches(offset: u64, magic: string)->bool
+    mtd const matches(offset: u64, magic: const [..] u8)->bool
     {
         let count = magic.count
         if not .has(offset, count) do

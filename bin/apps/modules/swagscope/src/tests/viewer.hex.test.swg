@@ -370,12 +370,19 @@ func completeHexViewerAnalysis(host: *Testing.HeadlessHost, view: *Hex.Panel)
     Swag.assert(window.searchCountLabel.text() == "!")
     Swag.assert(window.searchCountLabel.toolTip == Hex.texts().ui_SearchPatternError and not window.searchBox.isValid())
 
+    // The inspector reads the value under the caret the way the grid shows it, then the same
+    // bytes in the other common readings.
     view.grid.moveCaret(first, false)
-    Swag.assert(view.inspectorLabel != null and Utf8.contains(view.inspectorLabel.text(), "@0003FFFE"))
-    Swag.assert(Utf8.contains(view.inspectorLabel.text(), "%"))
-    Swag.assert(Utf8.contains(view.inspectorLabel.toolTip.toSlice(), "u32 4022250974"))
-    Swag.assert(Utf8.contains(view.inspectorLabel.toolTip.toSlice(), "b8 0b11011110"))
-    Swag.assert(Utf8.contains(view.inspectorLabel.toolTip.toSlice(), "o8 0o336 · bool true"))
+    with let inspector = view.inspectorView
+    {
+        Swag.assert(.headline == "2 917 007 360" and .caption == "u32 LE at 0x0003FFFC")
+        Swag.assert(.readings.count == 5 and .readings[0].value == "222")
+        Swag.assert(.readings[2].label == "s32" and .readings[2].value == "-272 716 322")
+        Swag.assert(.readings[3].label == "u32 BE" and .readings[3].value == "3 735 928 559")
+        Swag.assert(.fields.isEmpty())
+    }
+
+    Swag.assert(Utf8.contains(view.details.toSlice(), "0x0003FFFE"))
 }
 
 // The analysis panel turns an unfamiliar file into exact byte evidence, and every inferred string
@@ -626,15 +633,15 @@ func completeHexViewerAnalysis(host: *Testing.HeadlessHost, view: *Hex.Panel)
     // The combo changes the values drawn by the grid, not only the distance between bytes.
     view.grid.setGrouping(.Unsigned32)
     Swag.assert(view.grid.doc.ensure(0, view.grid.doc.fileSize))
-    view.grid.buildRow(0)
+    view.grid.writeValueText(&view.grid.cellText, 0)
     Swag.assert(view.grid.scalarAt(0) == 0x12345678)
     Swag.assert(Hex.formatScalar(.Unsigned32, view.grid.scalarAt(0)) == "305419896")
-    Swag.assert(Utf8.contains(view.grid.rowHexStrong.toSlice(), "305419896"))
+    Swag.assert(cast(string, view.grid.cellText.toSlice()) == "305419896")
 
     view.setBigEndian(true)
     Swag.assert(view.grid.bigEndian)
-    view.grid.buildRow(0)
-    Swag.assert(Utf8.contains(view.grid.rowHexStrong.toSlice(), "2018915346"))
+    view.grid.writeValueText(&view.grid.cellText, 0)
+    Swag.assert(cast(string, view.grid.cellText.toSlice()) == "2018915346")
 }
 
 // What leaves through the clipboard is what the reader selected, in the form asked for.
@@ -867,7 +874,7 @@ func completeHexViewerAnalysis(host: *Testing.HeadlessHost, view: *Hex.Panel)
     defer discard catch host.app.setLanguage(ReferenceLanguage)
 
     let view = createTestViewer(&host, fileName, 900, 560)
-    Swag.assert(Hex.texts().ui_TextColumn == "text" and Hex.texts().ui_Empty == "This file is empty.")
+    Swag.assert(Hex.texts().ui_Empty == "This file is empty.")
     var options: OptionSheet.Page
     view.describeOptions(&options)
     Swag.assert(options.rows[1].value == "8-bit" and options.rows[3].value == "Little endian")
@@ -875,14 +882,13 @@ func completeHexViewerAnalysis(host: *Testing.HeadlessHost, view: *Hex.Panel)
 
     expect host.app.setLanguage("fr")
     host.notify(.LanguageChanged)
-    Swag.assert(Hex.texts().ui_TextColumn == "texte")
     Swag.assert(Hex.texts().ui_Empty == "Ce fichier est vide.")
     var translated: OptionSheet.Page
     view.describeOptions(&translated)
     Swag.assert(translated.rows[1].label == "Largeur des valeurs" and translated.rows[1].value == "8 bits")
     Swag.assert(translated.rows[3].value == "Little endian")
     Swag.assert(view.optionsButton.toolTip == "Options")
-    Swag.assert(view.details.isEmpty())
+    Swag.assert(view.details == "0x00000000")
     Swag.assert(view.analysisButton.toolTip == "Analyser la sélection, ou le fichier entier lorsqu’un seul octet est sélectionné")
     Swag.assert(view.analysisView.analyzeButton.toolTip == "Analyser la sélection actuelle, ou le fichier entier lorsqu’un seul octet est sélectionné")
     Swag.assert(view.analysisView.titleLabel.text() == "Analyse" and view.analysisView.stringsList.header.itemAt(1).name.raw == "Encodage")
@@ -927,7 +933,7 @@ func completeHexViewerAnalysis(host: *Testing.HeadlessHost, view: *Hex.Panel)
     Swag.assert(view.commands.position.width <= 640)
     Swag.assert(view.optionsButton.parent == view.commands)
     Swag.assert(not view.bigEndian and view.rowWidthIndex == 0)
-    Swag.assert(view.details.isEmpty())
+    Swag.assert(view.details == "0x00000000")
     Testing.assertContentFits(view)
 
     // At the band a window of the host's minimum size leaves, the bytes still hold the clear

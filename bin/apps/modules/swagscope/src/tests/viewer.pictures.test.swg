@@ -8,26 +8,27 @@ using Core, Pixel, Gui
 func picturedViewer(fileName: string, light: bool, golden: string)
 {
     var host: Testing.HeadlessHost
-    let window = framedViewerWindow(&host, fileName, light)
-    window.applyLayout()
-    host.settleAnimations(window, 8)
-    var image = host.render(window)
-    Pixel.Testing.assertImageGolden(&image, golden)
+    photographViewer(&host, framedViewerWindow(&host, fileName, light), golden)
 }
 
-// Shows `fileName` in the viewer named `key` rather than the one it opens in, then photographs it.
-func picturedViewerAs(fileName, key: string, light: bool, golden: string)
+// Opens `fileName` in the viewer named `key` rather than the one it opens in.
+func picturedWindowAs(host: *Testing.HeadlessHost, fileName, key: string, light: bool)->*ViewerWindow
 {
-    var host: Testing.HeadlessHost
-    let window = framedViewerWindow(&host, fileName, light)
+    let window = framedViewerWindow(host, fileName, light)
     for choice, index in window.choices where choice.key == key
     {
         window.selectViewer(cast(u32, index))
         break
     }
 
-    completeQueuedViewerFile(&host, window)
+    completeQueuedViewerFile(host, window)
     Swag.assert(window.choices[window.activeChoiceIndex].key == key)
+    return window
+}
+
+// Photographs `window` at rest.
+func photographViewer(host: *Testing.HeadlessHost, window: *ViewerWindow, golden: string)
+{
     window.applyLayout()
     host.settleAnimations(window, 8)
     var image = host.render(window)
@@ -43,6 +44,38 @@ func picturedFixture(name: string)->String => Path.combine(unwrap Path.directory
     picturedViewer(picturedFixture("viewer.csv"), true, "pictured.table.paper")
     picturedViewer(picturedFixture("viewer.page.html"), true, "pictured.html.paper")
     picturedViewer(picturedFixture("segoeui.ttf"), true, "pictured.font.paper")
-    picturedViewerAs(picturedFixture("title.png"), "hex", false, "pictured.hex")
-    picturedViewerAs(picturedFixture("segoeui.ttf"), "binary", false, "pictured.binary")
+
+    var binaryHost: Testing.HeadlessHost
+    photographViewer(&binaryHost, picturedWindowAs(&binaryHost, picturedFixture("segoeui.ttf"), "binary", false), "pictured.binary")
+}
+
+// The byte view of a PNG, as its picture shows it: the chunks as tabs over the grid, the data of
+// the image header selected, and the inspector reading the width the caret stands on.
+#[Swag.TestTag("golden")]
+#test
+{
+    var host: Testing.HeadlessHost
+    let window = picturedWindowAs(&host, picturedFixture("title.png"), "hex", false)
+    let view   = assume cast(*Viewers.Hex.Panel, window.currentView)
+
+    var labels: Array'String
+    for tab in view.structure.tabs do
+        labels.add(tab.label)
+    Swag.assert(view.structure.formatName == "PNG" and labels.count == 6)
+    Swag.assert(labels[0] == "Signature" and
+                labels[1] == "IHDR" and
+                labels[4] == "IDAT × 9" and
+                labels[5] == "IEND")
+
+    view.grid.selectRange(0x10, 13)
+    Swag.assert(view.tabs.active == 1)
+    with let inspector = view.inspectorView
+    {
+        Swag.assert(.headline == "5 000" and .caption == "u32 BE at 0x00000010")
+        Swag.assert(.fields.count == 8 and .fields[0].label == "Width" and .fields[0].strong)
+        Swag.assert(.fields[3].value == "6 · RGBA")
+    }
+
+    Swag.assert(view.details == "0x10 – 0x1C · 13 bytes selected")
+    photographViewer(&host, window, "pictured.hex")
 }

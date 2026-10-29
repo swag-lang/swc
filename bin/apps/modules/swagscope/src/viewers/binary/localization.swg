@@ -235,6 +235,17 @@ struct Texts
     riff_Chunks:    string = "Chunks"             // Group of the chunk chain.
     riff_Form:      string = "Form"               // Row giving the form the container carries.
 
+    png_Header:       string = "image header"          // Meaning of the IHDR chunk.
+    png_Palette:      string = "palette"               // Meaning of the PLTE chunk.
+    png_Data:         string = "image data"            // Meaning of an IDAT chunk.
+    png_End:          string = "end of the image"      // Meaning of the IEND chunk.
+    png_Density:      string = "pixel density"         // Meaning of the pHYs chunk.
+    png_Gamma:        string = "gamma"                 // Meaning of the gAMA chunk.
+    png_Transparency: string = "transparency"          // Meaning of the tRNS chunk.
+    png_Time:         string = "modification time"     // Meaning of the tIME chunk.
+    png_ColourSpace:  string = "colour space"          // Meaning of the sRGB, iCCP and cHRM chunks.
+    png_Malformed:    string = "the chunk chain stops before IEND"     // Broken or cut chunk chain.
+
     midi_File:         string = "Standard MIDI file"                          // Format name of an SMF file.
     midi_Tracks:       string = "Tracks"                                      // Group of the track chunks.
     midi_Track:        string = "Track %"                                     // Label of one numbered track.
@@ -269,7 +280,6 @@ struct Texts
     sig_Tar:            string = "TAR archive"
     sig_Pdf:            string = "PDF document"
     sig_PostScript:     string = "PostScript program"
-    sig_Png:            string = "PNG image"
     sig_Gif:            string = "GIF image"
     sig_Jpeg:           string = "JPEG image"
     sig_Bmp:            string = "BMP image"

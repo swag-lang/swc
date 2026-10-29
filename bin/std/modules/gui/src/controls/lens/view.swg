@@ -249,7 +249,7 @@ impl IWnd for View
 
     mtd impl onKeyEvent(evt: *KeyEvent)
     {
-        evt.accepted = evt.kind == .Pressed and .handleKey(evt.key)
+        evt.accepted = evt.kind == .Pressed and .handleKey(evt.key, evt.modifiers)
     }
 
     mtd impl onNotifyEvent(evt: *NotifyEvent)
@@ -299,7 +299,7 @@ impl View
             {
                 if evt is KeyEvent as key where key.kind == .Pressed
                 {
-                    if lens.handleKey(key.key)
+                    if lens.handleKey(key.key, key.modifiers)
                     {
                         key.accepted = true
                         return true
@@ -402,6 +402,7 @@ impl View
                 .id         = id
                 .disabled   = state.updatedFields.has(.Disabled) and state.disabled
                 .checked    = state.updatedFields.has(.Checked) and state.checked
+                .checkable  = state.updatedFields.has(.Checked)
                 .monoDetail = true
                 if state.updatedFields.has(.Icon) do
                     .glyph = state.icon
@@ -539,8 +540,10 @@ impl View
 
     // Closes the lens and runs the chosen row, as Enter does.
     //
-    // Nothing runs when no row is chosen or the chosen row is disabled.
-    mtd runChosen()
+    // Nothing runs when no row is chosen or the chosen row is disabled. With `keepOpen`, as
+    // `Ctrl Enter` asks, the lens stays, its rows are asked for again so a setting shows its new
+    // state, and the choice stays on the row that ran.
+    mtd runChosen(keepOpen = false)
     {
         let entry = .chosenEntry()
         if not entry or entry.disabled do
@@ -551,19 +554,47 @@ impl View
         let owner = .ownerOrParent()
         if id do
             .remember(id)
-        .close()
+
+        if not keepOpen
+        {
+            .close()
+            if run do
+                run()
+            elif id and owner do
+                owner.postCommandEvent(id)
+            return
+        }
+
         if run do
             run()
         elif id and owner do
-            owner.postCommandEvent(id)
+            owner.sendCommandEvent(id)
+
+        let chosen  = .chosen
+        let segment = .segment
+        .refresh()
+        if chosen < .rows.count and .isSelectable(chosen)
+        {
+            .chosen  = chosen
+            .segment = segment
+            .revealChosen()
+            .invalidate()
+        }
     }
 }
 
 private impl View
 {
-    // The keys of the lens, whichever of its windows holds the keyboard.
-    mtd handleKey(key: Input.Key)->bool
+    // The keys of the lens, whichever of its windows holds the keyboard. `Ctrl Enter` runs the
+    // chosen row and keeps the lens open, to flip several settings in a row.
+    mtd handleKey(key: Input.Key, modifiers: Input.KeyModifiers)->bool
     {
+        if key == .Return and modifiers == .Control
+        {
+            .runChosen(keepOpen: true)
+            return true
+        }
+
         let page = Math.max(1's64, cast(s64, .listRect().height / .themeMetrics().lens_RowHeight) - 1)
         switch key
         {
@@ -1068,7 +1099,14 @@ private impl View
         x += paintKeycap(me, painter, x, centerY, "↑↓") + metrics.hintLine_KeyGap
         x += paintTextLine(painter, x, centerY, strings().lens_Choose, font, colors.faintText) + metrics.hintLine_GroupGap
         x += paintKeycap(me, painter, x, centerY, "↵") + metrics.hintLine_KeyGap
-        discard paintTextLine(painter, x, centerY, strings().lens_Go, font, colors.faintText)
+        x += paintTextLine(painter, x, centerY, strings().lens_Go, font, colors.faintText) + metrics.hintLine_GroupGap
+
+        // A setting or a choice can be run without leaving the lens.
+        if .chosenIsCheckable()
+        {
+            x += paintKeycap(me, painter, x, centerY, strings().lens_CtrlEnter) + metrics.hintLine_KeyGap
+            discard paintTextLine(painter, x, centerY, strings().lens_Stay, font, colors.faintText)
+        }
 
         // The prefixes this lens answers, from the trailing edge.
         const Prefixes = [Prefix.Action, Prefix.File, Prefix.Line]
@@ -1082,6 +1120,16 @@ private impl View
             discard paintKeycap(me, painter, right, centerY, prefixText(prefix))
             right -= metrics.hintLine_GroupGap
         }
+    }
+
+    // Reports whether the chosen row is a setting or a choice: one marked checkable, or a segment
+    // of a row of segments, which are the choices of one setting.
+    mtd chosenIsCheckable()->bool
+    {
+        let entry = .chosenEntry()
+        if not entry or entry.disabled do
+            return false
+        return entry.checkable or .rows[.chosen].entry == InlineRow
     }
 
     // Reports whether a source, or the commands for `>`, answers the queries of `prefix`.
@@ -1117,6 +1165,7 @@ private func addCommandEntry(section: *Section, id: WndId, title: string, state:
         .id         = id
         .disabled   = state.updatedFields.has(.Disabled) and state.disabled
         .checked    = state.updatedFields.has(.Checked) and state.checked
+        .checkable  = state.updatedFields.has(.Checked)
         .monoDetail = true
         if state.updatedFields.has(.Icon) do
             .glyph = state.icon

@@ -43,6 +43,8 @@ struct Strings
         lens_Empty:       string = "Nothing matches."            // Line the lens shows when no result answers the query.
         lens_Choose:      string = "choose"                      // What the arrow keys do, at the foot of the lens.
         lens_Go:          string = "go"                          // What Enter does, at the foot of the lens.
+        lens_CtrlEnter:   string = "Ctrl ↵"                      // Keycap of Ctrl Enter, at the foot of the lens.
+        lens_Stay:        string = "stay"                        // What Ctrl Enter does on a setting: run it, the lens kept open.
         lens_Line:        string = "line"                        // What the `:` prefix looks for, at the foot of the lens.
         lens_Files:       string = "files"                       // What the `/` prefix looks for, at the foot of the lens.
         lens_Actions:     string = "actions"                     // What the `>` prefix looks for, at the foot of the lens.

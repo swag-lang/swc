@@ -58,8 +58,11 @@ dialogs, then each application, then the written rules.
   question ends on its destructive action. Against the pictures, the box keeps a tall empty list
   under a few rows instead of fitting them, the folder box's field says "Filter, or type a path"
   where the picture says "Filter folders", and the bar beside the field has no recent-places glyph.
+  At a narrow dialog width, its file list also extends slightly past the view and exposes a short
+  horizontal scroll bar.
 - Next: let the box size its list to the rows it shows within a minimum and a maximum, give the
-  folder mode its own placeholder, and decide on the recent-places glyph.
+  folder mode its own placeholder, decide on the recent-places glyph, and fit the file columns to
+  the list width before a horizontal bar is needed.
 - Done when: each `dialogs.file.*` golden matches its picture whole-screen.
 
 ### design.silence.007 — Swag Scope viewers keep their pre-charter shapes
@@ -243,7 +246,9 @@ dialogs, then each application, then the written rules.
   and its information panel looks unattractive, too high and poorly rounded. The persistent
   reading line and Arc progress thread are removed from Markdown; details stay in the `I` sheet,
   and the lens remains the visible route to zoom and options. The on-demand outline now stands
-  directly on the window ground as a quiet margin, without the floating information card.
+  directly on the window ground as a quiet margin, without the floating information card. Its
+  headerless list also exposed a horizontal bar when vertical overflow reduced the viewport by
+  the scrollbar width; simple lists now suppress that spurious horizontal axis.
 - Next: make outline scrolling discoverable on hover and by keyboard, then compare the whole page
   in Encre and Papier. Keep the always-on reading surface free of footer, progress strip and
   command bar.

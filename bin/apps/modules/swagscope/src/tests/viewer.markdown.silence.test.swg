@@ -50,8 +50,20 @@ func assertMarkdownSilence(light: bool, appearance: u32, golden: string)
     window.setFullScreen(false)
     Swag.assert(view.padding.y == window.stripInset())
     Swag.assert(host.surface.position == viewport)
-    if appearance != 0 do
+    if appearance != 0
+    {
         Swag.assert(host.surfaceWnd.themeColors().wnd_Bk == ground)
+        zoom.outline.toggle.setChecked(true)
+        zoom.outline.toggle.sigCheckedChanged.call(zoom.outline.toggle)
+        window.applyLayout()
+        host.settleAnimations(window)
+        Swag.assert(zoom.outline.list.themeColors().listItem_Text == view.themeColors().label_Text)
+        Swag.assert(zoom.outline.filterBox.themeColors().edit_Text == view.themeColors().label_Text)
+        Swag.assert(zoom.outline.filterBox.themeColors().edit_FocusBk == ground)
+        var outlineImage  = host.render(&host.surfaceWnd)
+        let outlineGolden = Format.toString("%.outline", golden)
+        Pixel.Testing.assertImageGolden(&outlineImage, outlineGolden.toString())
+    }
 }
 
 #[Swag.TestTag("golden")]

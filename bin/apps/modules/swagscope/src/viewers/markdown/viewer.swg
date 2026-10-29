@@ -296,12 +296,27 @@ func viewerColors(themeIndex: u32)->String
     }
 
     // Document-owned navigation uses the same ink and ground as its paragraphs.
-    const NavigationColors = """text      $label_Text
-                                softText  $label_TextLight
-                                faintText $label_TextFaint
-                                line      $edit_Border
-                                arc       $url_Text
-                                ground    $view_Bk"""
+    const NavigationColors = """text                       $label_Text
+                               softText                   $label_TextLight
+                               faintText                  $label_TextFaint
+                               line                       $edit_Border
+                               arc                        $url_Text
+                               ground                     $view_Bk
+                               listItem_Text              $label_Text
+                               listItem_SelectedText      $label_Text
+                               listItem_FocusSelectedText $label_Text
+                               listItem_SelectedBk        $edit_SelectedBk
+                               listItem_FocusSelectedBk   $edit_SelectedBk
+                               listItem_HotBk             $edit_SelectedBk
+                               edit_Text                  $label_Text
+                               edit_Note                  $label_TextFaint
+                               edit_Caret                 $label_Text
+                               edit_FocusBorder           $label_Text
+                               edit_FocusBk               $view_Bk
+                               edit_HotBk                 $view_Bk
+                               edit_HotBorder             $label_TextLight
+                               btnIcon_Icon               $label_TextFaint
+                               btnIcon_HotIcon            $label_Text"""
     return Format.toString("%\n%", colors, NavigationColors)
 }
 

@@ -30,7 +30,10 @@ dialogs, then each application, then the written rules.
   been reviewed against first-use tasks in both themes.
 - Next: review the empty-query lens in each application's first-use contexts and both themes;
   adjust the direct action order so the common tasks are visible before scrolling, then update
-  and review the affected whole-screen goldens.
+  and review the affected whole-screen goldens. In Scope, keep Explore Folder and Close File
+  visible beside Outline, and verify that the full Markdown outline reaches its last heading by
+  wheel and keyboard. Because the scrollbar rests hidden by charter, check how a first-time reader
+  discovers scrolling.
 - Done when: each application offers its common first-use tasks directly in the initial lens
   view, every other command remains reachable from the lens, and the whole-screen goldens match
   the approved design without any application re-implementing a shared component or insetting
@@ -213,3 +216,20 @@ dialogs, then each application, then the written rules.
   band leftovers once nothing paints them.
 - Done when: every measure the charter states is the one the code uses, and no band style,
   color or metric remains.
+
+### design.silence.009 — Scope's Markdown outline needs a first-use review
+
+- Evidence: the lens exposes Outline directly, and its side panel lists every heading in a
+  scrollable `ListCtrl`; a focused test with forty headings confirms the wheel moves the list.
+  The scrollbar follows the charter and fades at rest, which leaves no persistent visual cue.
+  The quiet outline in the reading margin is separate: it previews the first two heading levels
+  and does not scroll. The full-window Encre golden records how the explicit panel sits beside
+  the Markdown page. A first-use report says the panel reads as an information card, sits too
+  high, and feels poorly rounded.
+- Next: compare the Markdown panel in Encre and Papier against the whole-window charter pictures;
+  review its top inset, corner, title and filter hierarchy, and make the full outline's scrolling
+  discoverable while preserving the quiet margin preview for quick jumps.
+- Done when: the explicit Outline action opens a comfortable, full-height list with all headings
+  reachable by wheel and keyboard, its shape and placement match the charter in both themes, and
+  the margin preview remains useful without implying that it contains every heading.
+- Related: design.silence.004, design.silence.007

@@ -34,6 +34,25 @@ func lensHasEntry(window: *ViewerWindow, title: string)->bool
     return false
 }
 
+func lensEntryOnFirstPage(window: *ViewerWindow, title: string)->bool
+{
+    let metrics = window.lens.themeMetrics()
+    let bounds  = window.lens.clientRect()
+    let inset   = metrics.floating_Inset
+    let top     = Math.max(Math.round(bounds.height * metrics.lens_TopRatio), window.stripInset() + inset)
+    let fixed   = metrics.lens_InputHeight + metrics.lens_FooterHeight + 2 * metrics.separator_HairlineSize
+    let room    = Math.max(Math.min(bounds.height * metrics.lens_MaxHeightRatio, bounds.height - inset - top), fixed)
+    let listHeight = room - fixed
+    for row in window.lens.rows where row.entry < row.section.entries.count
+    {
+        let entry = &row.section.entries[row.entry]
+        if entry.title == title do
+            return row.top + row.height <= listHeight
+    }
+
+    return false
+}
+
 func loadViewerState(window: *ViewerWindow, bytes: const [..] u8)
 {
     var decoder:    Serialization.Decoder'Serialization.Read.TagBin
@@ -2601,6 +2620,47 @@ func createPictureFolder(stem: string, names: const [..] string)->String
     completeQueuedViewerFile(&host, window)
     Swag.assert(button.isVisible())
     window.showEmpty(appStrings().ui_Unsupported)
+}
+
+// Opening the lens on a Markdown document keeps its basic actions and outline in the first viewport.
+#test
+{
+    let fileName = Testing.tempFilePath("scope-lens-markdown-", ".md")
+    discard expect File.writeAllBytes(fileName, "# Guide\n\n## Getting started\n")
+    defer discard catch File.delete(fileName)
+
+    var host: Testing.HeadlessHost
+    host.setup(960, 680)
+    let window = ViewerWindow.create(&host.surfaceWnd, createViewerPluginRegistry())
+    window.openFile(fileName, remember: false)
+    completeQueuedViewerFile(&host, window)
+    window.lens.open()
+
+    var fileSection: *Lens.Section?
+    var viewSection: *Lens.Section?
+    for section in window.lens.results.sections
+    {
+        if section
+        {
+            if section.label == appStrings().lens_File do
+                fileSection = section
+            elif section.label == appStrings().lens_View do
+                viewSection = section
+        }
+    }
+
+    let file       = unwrap fileSection
+    let view       = unwrap viewSection
+    let outline    = window.currentSidePanelButton!.toolTip
+    Swag.assert(window.lens.query() == "")
+    Swag.assert(file.entries.count == 3)
+    Swag.assert(file.entries[0].title == appStrings().cmd_Open)
+    Swag.assert(file.entries[1].title == appStrings().cmd_Explore)
+    Swag.assert(file.entries[2].title == appStrings().ui_CloseFile)
+    Swag.assert(view.entries[0].title == outline)
+    Swag.assert(lensEntryOnFirstPage(window, appStrings().cmd_Explore))
+    Swag.assert(lensEntryOnFirstPage(window, appStrings().ui_CloseFile))
+    Swag.assert(lensEntryOnFirstPage(window, outline))
 }
 
 // What a viewer can do is a row of the lens too, under the viewer's name, and choosing a row

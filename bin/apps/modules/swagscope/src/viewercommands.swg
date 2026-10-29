@@ -80,9 +80,7 @@ impl ViewerWindow
             {
                 let section = results.addSection(appStrings().lens_File)
                 window.lens.addCommandRows(section,
-                                           [ViewerCommands.Open, ViewerCommands.Explore, ViewerCommands.Close,
-                                            ViewerCommands.PreviousFile, ViewerCommands.NextFile, ViewerCommands.Information,
-                                            ViewerCommands.OpenWith],
+                                           [ViewerCommands.Open, ViewerCommands.Explore, ViewerCommands.Close],
                                            enabledOnly: true)
             })
             .addRestSource(func|window = me|(results)

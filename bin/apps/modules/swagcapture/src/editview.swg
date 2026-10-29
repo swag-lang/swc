@@ -2,6 +2,9 @@
 const InPlaceDimAlpha = 110'u8
 
 // The editor surface: the capture at its zoom, inside a margin, and the mouse edits on its forms.
+// Air around the picture where a press still reaches its edges and their handles, not the ground.
+const GroundPictureMargin = 12.0
+
 struct EditView
 {
     using wnd:   Wnd
@@ -145,6 +148,36 @@ impl IWnd for EditView
 
 impl EditView
 {
+    // Reports whether `surfacePos` falls on the ground around the picture, which moves the window
+    // rather than the work.
+    //
+    // A tool that draws would only start a form off the picture there, so the ground is the
+    // window's: nothing floats over it, and no form or handle of the picture stands there. The
+    // selection tool keeps the ground for its lasso. Without a picture, the whole view is ground.
+    mtd isWindowGround(surfacePos: Math.Point)->bool
+    {
+        if .inPlaceEdit or .textForm or not .isVisible() do
+            return false
+        let root = .surface?.wnd
+        if not root or root.windowAt(surfacePos.x, surfacePos.y, true) != me do
+            return false
+        if not .capture do
+            return true
+        if .main.editMode == .Selection or .capture.mouseMode != .None do
+            return false
+
+        // The handles that resize the picture stand across its edges.
+        var pos     = .surfaceToLocal(surfacePos) + .scrollPos
+        var picture = .capture.paintRect
+        picture.inflate(GroundPictureMargin)
+        if picture.contains(pos) do
+            return false
+
+        pos.x -= .capture.paintRect.x
+        pos.y -= .capture.paintRect.y
+        return .capture.hitTest(pos) == Swag.U64.Max
+    }
+
     mtd opDrop()
     {
         Memory.delete(.capture)

@@ -1007,6 +1007,9 @@ impl MainWnd
             .updateState()
         }
 
+        // The ground around the picture moves the window, as the strip does.
+        result.surface!.wnd.groundHitTest = func|result|(pos) => result.editWnd.editView.isWindowGround(pos)
+
         g_Main = result
         return result
     }

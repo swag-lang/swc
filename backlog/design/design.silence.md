@@ -145,10 +145,3 @@ dialogs, then each application, then the written rules.
   `build-swag-standard-apps` so they state this charter and nothing that contradicts it.
 - Done when: a new control, dialog or application written from the skills alone matches the
   charter.
-
-### design.silence.014 — Command labels are in sentence case
-
-- Next: move every English command label of `bin/` string tables (menus, lens entries, buttons,
-  dialog actions, tabs, command tooltips) to the title-style capitalization of the charter,
-  leaving sentences and French translations alone.
-- Done when: a search of the English reference tables finds no command label in sentence case.

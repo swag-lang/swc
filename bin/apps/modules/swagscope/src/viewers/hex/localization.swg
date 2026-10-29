@@ -10,27 +10,27 @@ using Core, Gui
 // the same way simply omits them and keeps the reference wording.
 struct Texts
 {
-    ui_ValueWidth:             string = "Value width"                                                                                         // Option choosing how many bytes make one value.
+    ui_ValueWidth:             string = "Value Width"                                                                                         // Option choosing how many bytes make one value.
     ui_Width8:                 string = "8-bit"                                                                                               // One byte at a time.
     ui_Width16:                string = "16-bit"                                                                                              // Two bytes at a time.
     ui_Width32:                string = "32-bit"                                                                                              // Four bytes at a time.
     ui_Width64:                string = "64-bit"                                                                                              // Eight bytes at a time.
-    ui_Representation:         string = "Value representation"                                                                                // Option choosing how a value is spelled.
+    ui_Representation:         string = "Value Representation"                                                                                // Option choosing how a value is spelled.
     ui_FormatHex:              string = "Hex"                                                                                                 // Hexadecimal reading of a scalar.
     ui_FormatUns:              string = "Unsigned"                                                                                            // Unsigned decimal reading of a scalar.
     ui_FormatSigned:           string = "Signed"                                                                                              // Signed decimal reading of a scalar.
     ui_FormatFloat:            string = "Float"                                                                                               // Floating-point reading of a 32- or 64-bit scalar.
-    ui_EndianLittle:           string = "Little endian"                                                                                       // Little-endian byte-order choice.
-    ui_EndianBig:              string = "Big endian"                                                                                          // Big-endian byte-order choice.
-    ui_ByteOrder:              string = "Byte order"                                                                                          // Option choosing the byte order of multi-byte values.
+    ui_EndianLittle:           string = "Little Endian"                                                                                       // Little-endian byte-order choice.
+    ui_EndianBig:              string = "Big Endian"                                                                                          // Big-endian byte-order choice.
+    ui_ByteOrder:              string = "Byte Order"                                                                                          // Option choosing the byte order of multi-byte values.
     ui_ZoomMenu:               string = "Byte View Zoom Options"                                                                              // Tooltip of the zoom value menu.
     ui_TextColumn:             string = "text"                                                                                                // Header of the decoded-text column.
     ui_Empty:                  string = "This file is empty."                                                                                 // Message painted when the file has no bytes.
     ui_GoTo:                   string = "Go to Offset"                                                                                        // Dialog title and menu entry of the jump command.
     ui_GoToMessage:            string = "Hexadecimal or 0d decimal offset, percentage, caret, filesize, or signed caret-relative offset."     // Question of the jump dialog.
     ui_SelectAll:              string = "Select All"                                                                                          // Menu entry selecting the whole file.
-    ui_RowWidth:               string = "Bytes per row"                                                                                       // Option choosing how many bytes one row shows.
-    ui_RowAuto:                string = "Fit the window"                                                                                      // Row width following the window width.
+    ui_RowWidth:               string = "Bytes per Row"                                                                                       // Option choosing how many bytes one row shows.
+    ui_RowAuto:                string = "Fit the Window"                                                                                      // Row width following the window width.
     ui_SearchPlaceholder:      string = "Hex, text:, or value:"                                                                               // Placeholder naming the three binary query forms.
     ui_SearchHelp:             string = "Use hex bytes and ? wildcards; prefix exact UTF-8 with text: or the active scalar with value:."      // Tooltip explaining binary query syntax.
     ui_SearchPatternError:     string = "Use hexadecimal byte pairs with ??, ?A, or A? wildcards."                                            // Invalid hexadecimal pattern.

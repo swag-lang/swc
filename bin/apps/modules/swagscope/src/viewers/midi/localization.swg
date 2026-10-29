@@ -7,17 +7,17 @@ using Core, Gui
 struct Texts
 {
     ui_Track:            string = "Track"     // Option choosing which track the roll shows.
-    ui_AllTracks:        string = "All tracks"
+    ui_AllTracks:        string = "All Tracks"
     ui_TrackName:        string = "Track %"
     ui_TrackChoice:      string = "% — %"
     ui_ZoomOut:          string = "Zoom Out"
     ui_ZoomIn:           string = "Zoom In"
     ui_Fit:              string = "Fit Complete Score"
     ui_ZoomMenu:         string = "Horizontal Zoom · Ctrl wheel: pitch zoom · Page Up/Down: scroll"
-    ui_PitchLabels:      string = "Pitch labels (C4 = MIDI 60)"
-    ui_PitchScientific:  string = "C4 names"
-    ui_PitchMidiNumber:  string = "MIDI numbers"
-    ui_KeyboardWidth:    string = "Piano keyboard width"
+    ui_PitchLabels:      string = "Pitch Labels (C4 = MIDI 60)"
+    ui_PitchScientific:  string = "C4 Names"
+    ui_PitchMidiNumber:  string = "MIDI Numbers"
+    ui_KeyboardWidth:    string = "Piano Keyboard Width"
     ui_KeyboardCompact:  string = "Compact"
     ui_KeyboardStandard: string = "Standard"
     ui_KeyboardWide:     string = "Wide"
@@ -32,7 +32,7 @@ struct Texts
     ui_Channel:          string = "channel %"         // The channel a track plays on, under its name.
     ui_Presentation:     string = "Presentation"      // Option choosing how the score is laid out.
     ui_ByTrack:          string = "Tracks"            // One lane per track.
-    ui_ByPitch:          string = "Piano roll"        // One row per key.
+    ui_ByPitch:          string = "Piano Roll"        // One row per key.
     ui_Major:            string = "major"
     ui_Minor:            string = "minor"
     err_TooLarge:        string = "the MIDI viewer accepts files up to 32 MiB"

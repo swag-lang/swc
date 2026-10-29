@@ -444,3 +444,23 @@ using Swag, Core
     Swag.assert(f.capture.width == 400)
     Swag.assert(f.capture.height == 300)
 }
+
+// The swatch of the mini-bar stands for the colour a form is seen by: the fill of a filled
+// shape, the outline of an outlined one.
+#test
+{
+    var f: HeadlessFixture
+    f.setup()
+    defer f.shutdown()
+
+    let shape = testAddShape(f.capture, 20, 20, 80, 60)
+    shape.backColor   = Argb.Zero
+    shape.borderColor = Argb.Red
+    f.capture.selection.add(0)
+    Swag.assert(f.main.miniBarColorField().name == #nameof(BaseForm.borderColor))
+    Swag.assert(f.main.miniBarColor() == Argb.Red)
+
+    shape.backColor = Argb.Blue
+    Swag.assert(f.main.miniBarColorField().name == #nameof(BaseForm.backColor))
+    Swag.assert(f.main.miniBarColor() == Argb.Blue)
+}

@@ -102,6 +102,11 @@ struct AppStrings
     hint_Save:                  string = "save"                        // What Ctrl+S does in the in-place editor.
     hint_CalloutTail:           string = "Drag the point of the tail to aim it"     // Hint while the words of a callout are typed in place.
     hint_NewLine:               string = "new line"                    // What Enter does while the words of a form are typed in place.
+    key_Arrows:                 string = "← ↑ → ↓"                     // The arrow keys, in a keycap of a hint line.
+    hint_Nudge:                 string = "nudge, Shift ×10"            // What the arrows do to the selection.
+    hint_Duplicate:             string = "duplicate"                   // What Ctrl+D does to the selection.
+    hint_Delete:                string = "delete"                      // What Delete does to the selection.
+    hint_TypeWords:             string = "type the words"              // What Enter does to a selected form with words.
     hint_KeepText:              string = "keep the text"               // What Ctrl+Enter does while the words of a form are typed in place.
     ui_Common:                  string = "Common"                      // Section of the inspector holding what several objects share.
     ui_NoColor:                 string = "none"                        // Value of a colour row whose colour is fully transparent.

@@ -66,19 +66,19 @@ impl IActionUI for ActionMoveSel
 
         case .Left:
             undo         = capture.newUndo(.OffsetSelection)
-            undo.newPosX = -5
+            undo.newPosX = -NudgeFar
 
         case .Top:
             undo         = capture.newUndo(.OffsetSelection)
-            undo.newPosY = -5
+            undo.newPosY = -NudgeFar
 
         case .Right:
             undo         = capture.newUndo(.OffsetSelection)
-            undo.newPosX = 5
+            undo.newPosX = NudgeFar
 
         case .Bottom:
             undo         = capture.newUndo(.OffsetSelection)
-            undo.newPosY = 5
+            undo.newPosY = NudgeFar
 
         default:
             return false
@@ -91,3 +91,6 @@ impl IActionUI for ActionMoveSel
         return true
     }
 }
+
+// How far Shift and an arrow nudge the selection, in pixels of the capture.
+const NudgeFar = 10

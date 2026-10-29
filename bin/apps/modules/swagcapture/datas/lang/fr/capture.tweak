@@ -442,5 +442,10 @@ hint_Save              enregistrer
 hint_CalloutTail       Glisser le point de la queue pour la diriger
 hint_NewLine           nouvelle ligne
 hint_KeepText          garder le texte
+key_Arrows             ← ↑ → ↓
+hint_Nudge             décaler, Maj ×10
+hint_Duplicate         dupliquer
+hint_Delete            supprimer
+hint_TypeWords         taper le texte
 ui_Common              En commun
 ui_NoColor             aucun

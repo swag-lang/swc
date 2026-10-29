@@ -1072,3 +1072,65 @@ func testBeginInlineText(host: *Gui.Testing.HeadlessHost, main: *MainWnd, index:
     Swag.assert(text.alignVert == .RightBottom and text.alignHorz == .Center)
     Swag.assert(down[2].isChecked and not down[1].isChecked and across[1].isChecked)
 }
+
+// The keys of the editor: the arrows nudge the selection a pixel, ten with Shift; Delete deletes,
+// Ctrl D duplicates, Ctrl G groups, ] and [ bring forward and back, Escape lets the selection go;
+// with a selection, the hint line teaches them.
+#test
+{
+    var host: Gui.Testing.HeadlessHost
+    let main = testSetupEditorSurface(&host, dark: true)
+    defer
+    {
+        main.libWnd.requestClose()
+        host.shutdown()
+        g_Main = null
+    }
+
+    Swag.assert(main.keyShortcut(.None, .Left) == ActionMoveSel.Left1)
+    Swag.assert(main.keyShortcut(.Shift, .Left) == ActionMoveSel.Left)
+    Swag.assert(main.keyShortcut(.None, .Delete) == ActionSelection.DeleteSelection)
+    Swag.assert(main.keyShortcut(.Control, .D) == ActionCopyPaste.Duplicate)
+    Swag.assert(main.keyShortcut(.Control, .G) == ActionGroup.Group)
+    Swag.assert(main.keyShortcut(.None, .Oem6) == ActionAlign.MoveForward)
+    Swag.assert(main.keyShortcut(.None, .Oem4) == ActionAlign.MoveBackward)
+    Swag.assert(main.keyShortcut(.Control, .Oem6) == ActionAlign.SendToFront)
+    Swag.assert(main.keyShortcut(.None, .Escape) == ActionSelection.DeSelectAll)
+    Swag.assert(main.keyShortcutName(ActionCopyPaste.Duplicate) == "Ctrl D")
+
+    // Every tool answers its letter, grouped or not.
+    Swag.assert(main.keyShortcut(.None, .V) == ActionToolMode.Selection)
+    Swag.assert(main.keyShortcut(.None, .L) == ActionToolMode.Line)
+    Swag.assert(main.keyShortcut(.None, .X) == ActionToolMode.PixSel)
+    Swag.assert(Input.formatKeyShortcut(.Control, .Oem6) == "Ctrl ]")
+
+    // Tab walks the inspector from its quick styles down to its settings, where the arrows go
+    // from row to row, and the mini-bar along its controls, in the order the eye reads them.
+    let rows = Gui.FocusOrder.collect(main.inspector).stops
+    Swag.assert(rows.count > 1 and rows.back() == main.propWnd.grid)
+    for i in 1 until rows.count do
+        Swag.assert(rows[i].surfaceRect().y >= rows[i - 1].surfaceRect().y)
+    let bar = Gui.FocusOrder.collect(main.miniBar).stops
+    Swag.assert(bar.count > 1)
+    for i in 1 until bar.count do
+        Swag.assert(bar[i].surfaceRect().x > bar[i - 1].surfaceRect().x)
+
+    let capture = unwrap main.getCapture()
+    let text    = assume cast(*FormText, capture.forms[0])
+    let x       = text.x
+    main.sendCommandEvent(ActionMoveSel.Right1)
+    Swag.assert(text.x == x + 1)
+    main.sendCommandEvent(ActionMoveSel.Right)
+    Swag.assert(text.x == x + 1 + NudgeFar)
+
+    main.fillHintLine()
+    var taught = 0
+    for hint in main.hintLine.hints where hint.text == appStrings().hint_Nudge or hint.text == appStrings().hint_Duplicate or hint.text == appStrings().hint_TypeWords do
+        taught += 1
+    Swag.assert(taught == 3)
+
+    main.sendCommandEvent(ActionSelection.DeSelectAll)
+    main.fillHintLine()
+    for hint in main.hintLine.hints do
+        Swag.assert(hint.text != appStrings().hint_Nudge)
+}

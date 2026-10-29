@@ -290,11 +290,11 @@ using Swag, Core
     f.gui.shortcut(Input.Key.A, Input.KeyModifiers.Control)
     Swag.assert(f.capture.selection.count == 3)
 
-    f.gui.shortcut(Input.Key.D, Input.KeyModifiers.Control)
+    f.gui.shortcut(Input.Key.Escape, Input.KeyModifiers.None)
     Swag.assert(f.capture.selection.count == 0)
 
     f.capture.selection.add(0)
-    f.gui.shortcut(Input.Key.Right, Input.KeyModifiers.Shift)
+    f.gui.shortcut(Input.Key.Right, Input.KeyModifiers.None)
     Swag.assert(a.x == 11)
     Swag.assert(f.capture.canUndo())
 
@@ -307,6 +307,11 @@ using Swag, Core
     Swag.assert(f.capture.forms.count == 2)
     f.gui.shortcut(Input.Key.Z, Input.KeyModifiers.Control)
     Swag.assert(f.capture.forms.count == 3)
+
+    f.capture.selection.clear()
+    f.capture.selection.add(0)
+    f.gui.shortcut(Input.Key.D, Input.KeyModifiers.Control)
+    Swag.assert(f.capture.forms.count == 4)
 }
 
 // Registered headless shortcuts travel through the focused window and global
@@ -323,10 +328,10 @@ using Swag, Core
     f.capture.selection.add(0)
 
     f.gui.shortcut(Input.Key.Left, Input.KeyModifiers.None)
-    Swag.assert(a.x == 5)
+    Swag.assert(a.x == 9)
 
     f.gui.shortcut(Input.Key.Down, Input.KeyModifiers.Shift)
-    Swag.assert(a.y == 11)
+    Swag.assert(a.y == 10 + NudgeFar)
 
     f.gui.shortcut(Input.Key.PageUp, Input.KeyModifiers.None)
     Swag.assert(f.capture.forms[1].buffer == a)

@@ -64,6 +64,7 @@ using Core, Pixel, Gui, Gui.Testing, Viewers
     MarkdownText.g_ViewerSettings = {themeIndex: 1}
     var host: Testing.HeadlessHost
     host.setup(1280, 720, 1.5)
+    shipFrame(&host)
     let window   = ViewerWindow.create(&host.surfaceWnd, createViewerPluginRegistry())
     let fileName = Path.combine(unwrap Path.directoryName(#curlocation.fileName), "datas/markdown.images.md")
     window.openFile(fileName, remember: false)
@@ -154,6 +155,7 @@ using Core, Pixel, Gui, Gui.Testing, Viewers
 
     var host: Testing.HeadlessHost
     host.setup(880, 560)
+    shipFrame(&host)
     defer discard catch host.app.setLanguage(ReferenceLanguage)
 
     host.theme.setDark()

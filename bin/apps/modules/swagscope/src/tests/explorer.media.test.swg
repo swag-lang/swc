@@ -53,6 +53,7 @@ using Core, Gui, Pixel
 {
     var host: Testing.HeadlessHost
     host.setup(880, 420)
+    shipFrame(&host)
     defer discard catch host.app.setLanguage(ReferenceLanguage)
     registerAppStrings(&host.app.resources)
     let window   = ViewerWindow.create(&host.surfaceWnd, createViewerPluginRegistry())
@@ -108,6 +109,7 @@ using Core, Gui, Pixel
     {
         var host: Testing.HeadlessHost
         host.setup(900, 700, scale)
+        shipFrame(&host)
         registerAppStrings(&host.app.resources)
         let window   = ViewerWindow.create(&host.surfaceWnd, createViewerPluginRegistry())
         window.onlineMovies = false

@@ -11,6 +11,7 @@ struct ExplorerEntry
     creationStamp: u64
     modifiedStamp: u64
     modified:      String
+    when:          Time.DateTime     // When it was modified, in local time; zero when unknown.
     directory:     bool
     archiveIndex:  u64 = Swag.U64.Max
     texture:       Texture
@@ -194,6 +195,7 @@ impl ExplorerListing
                     .modifiedStamp = Hash.hash64(file.lastWriteTime)
                     .directory     = file.isDirectory()
                     .modified      = file.lastWriteTime.toString(.DateTimeIsoHm)
+                    .when          = file.lastWriteTime.toLocal()
                 }
 
                 result.entries.add(#move entry)
@@ -274,6 +276,7 @@ impl ExplorerListing
         for &entry, index in result where latest[index].year
         {
             entry.modified      = latest[index].toString(.DateTimeIsoHm)
+            entry.when          = latest[index]
             entry.modifiedStamp = Hash.hash64(latest[index])
         }
 

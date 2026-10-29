@@ -246,6 +246,7 @@ func writeZipFixture()->String
 
     var host: Testing.HeadlessHost
     host.setup(1180, 720)
+    shipFrame(&host)
 
     var index = createViewerPluginRegistry()
 

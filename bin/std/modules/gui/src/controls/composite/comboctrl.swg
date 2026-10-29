@@ -25,7 +25,8 @@ impl IWnd for ComboCtrl
         if .label == null do
             return
 
-        let rect   = .clientRect()
+        let rect = .clientRect()
+
         // The combo keeps its own height unless the control is shorter, as a row of an
         // inspector is: centred in less room, it would lose its top and bottom edges.
         let height = Math.min(.themeMetrics().comboBox_Height, rect.height)

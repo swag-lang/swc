@@ -395,10 +395,18 @@ impl ViewerWindow
             case KeyEvent as key where key.kind == .Pressed and key.key == .Space and key.modifiers == .Control:
                 window.sendCommandEvent(ViewerCommands.Lens)
                 return true
-            case KeyEvent as key where window.routePlaybackKey(key):         return true
-            case KeyEvent as key where window.routeSearchNavigationKey(key): return true
-            case MouseEvent as mouse where mouse.kind == .Move or mouse.kind == .Enter: window.notePointer(mouse.surfacePos)
-            case TaskEvent: window.retryRetirement()
+
+            case KeyEvent as key where window.routePlaybackKey(key):
+                return true
+
+            case KeyEvent as key where window.routeSearchNavigationKey(key):
+                return true
+
+            case MouseEvent as mouse where mouse.kind == .Move or mouse.kind == .Enter:
+                window.notePointer(mouse.surfacePos)
+
+            case TaskEvent:
+                window.retryRetirement()
             }
 
             return false

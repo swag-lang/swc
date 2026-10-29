@@ -564,8 +564,8 @@ func videoMatroskaFixturePath()->String => Path.combine(unwrap Path.directoryNam
     Swag.assert(view.veilsShown)
 
     // A press on the timeline seeks to where it points.
-    let timeline = view.timeline.surfaceRect()
-    let trackX  = timeline.x + 8
+    let timeline   = view.timeline.surfaceRect()
+    let trackX     = timeline.x + 8
     let trackWidth = timeline.width - 16
     host.click(Math.Point{trackX + trackWidth * 0.75, timeline.vertCenter()})
     waitForVideoFrame(view)
@@ -671,8 +671,8 @@ func videoMatroskaFixturePath()->String => Path.combine(unwrap Path.directoryNam
         Pixel.Testing.assertImageGolden(&rest, light ? "viewer.video.paper" : "viewer.video.ink")
 
         // The first movement brings the veils, the next one reads a time on the timeline.
-        let timeline = view.timeline.surfaceRect()
-        let trackX = timeline.x + 8
+        let timeline   = view.timeline.surfaceRect()
+        let trackX     = timeline.x + 8
         let trackWidth = timeline.width - 16
         host.moveMouse(Math.Point{trackX + trackWidth * 0.6, timeline.vertCenter()})
         host.moveMouse(Math.Point{trackX + trackWidth * 0.62, timeline.vertCenter()})

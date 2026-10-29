@@ -653,7 +653,7 @@ private impl Panel
     {
         with .imageView = ImageView.create(me)
         {
-            .dockStyle      = .Center
+            .dockStyle = .Center
             .setAllPaddings(.themeMetrics().floating_Inset)     // A fitted picture keeps the air of the window around it.
             .sigZoomChanged += func|view = me|(_)
             {

@@ -2564,7 +2564,7 @@ impl ExplorerGrid
             elif .hovered == row do
                 painter.fillRoundRect(rect, metrics.corner_Control, metrics.corner_Control, colors.raised)
 
-            let glyph = explorer.entryIcon(index, metrics.menuPopup_IconSize)
+            let glyph    = explorer.entryIcon(index, metrics.menuPopup_IconSize)
             let glyphInk = explorer.selected == index ? colors.arc : colors.softText
             glyph.paint(painter, rect.x + 12, Math.round(centerY - glyph.sizeY * 0.5), glyphInk)
 

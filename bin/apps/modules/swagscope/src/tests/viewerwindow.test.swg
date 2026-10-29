@@ -2631,6 +2631,7 @@ func createPictureFolder(stem: string, names: const [..] string)->String
     Swag.assert(not button.isVisible())
     window.selectViewer(0)
     completeQueuedViewerFile(&host, window)
+    window.revealViewerBar()
     Swag.assert(button.isVisible())
     window.showEmpty(appStrings().ui_Unsupported)
 }
@@ -2811,6 +2812,7 @@ func createPictureFolder(stem: string, names: const [..] string)->String
     Swag.assert(window.lens.chosenEntry()!.checked == wrapping)
     window.lens.runChosen()
     Swag.assert(not window.lens.isOpen() and view.wrapping != wrapping)
+    completeTextReads(&host, view)
 }
 
 // Common task vocabulary reaches the real command in either shipped language.

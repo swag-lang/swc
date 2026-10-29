@@ -578,7 +578,7 @@ impl MainWnd
             return
 
         var title: String = ProductName
-        let capture = .editWnd.getCapture()
+        let capture       = .editWnd.getCapture()
         if capture and not .libraryMode
         {
             let name = capture.displayName()

@@ -35,7 +35,7 @@ const ChipHeight     = 24.0       // Height of a chip.
 const ChipPadding    = 10.0       // Air at each end of a chip's words.
 const TrackSize      = 3.0        // Thickness of the timeline.
 const KnobSize       = 14.0       // Diameter of the timeline's knob.
-const KnobInset      = KnobSize * 0.5 + 1 // Room for the knob and its outline at either endpoint.
+const KnobInset      = KnobSize * 0.5 + 1     // Room for the knob and its outline at either endpoint.
 const TickHeight     = 9.0        // Height of a chapter mark.
 const TipGap         = 16.0       // Air between the timeline and the time read under the pointer.
 
@@ -79,7 +79,7 @@ impl VideoTimeline
         var room  = .clientRect()
         let inset = Math.min(KnobInset, room.width * 0.5)
         room.x     += inset
-        room.width  = Math.max(room.width - 2 * inset, 0)
+        room.width = Math.max(room.width - 2 * inset, 0)
         return room
     }
 
@@ -324,9 +324,9 @@ impl BottomVeil
         let lineY = room.bottom() - RowBottom
         let glyph = .playButton.position.width
         .timeline.setPosition(Math.Rectangle{room.x + VeilInset - KnobInset,
-                                            room.bottom() - TimelineBottom - TimelineHeight * 0.5,
-                                            width + 2 * KnobInset,
-                                            TimelineHeight})
+                                             room.bottom() - TimelineBottom - TimelineHeight * 0.5,
+                                             width + 2 * KnobInset,
+                                             TimelineHeight})
         .playButton.setPosition(Math.Rectangle{room.x + VeilInset - glyph * 0.25, lineY - glyph * 0.5, glyph, glyph})
 
         // The right end of the row reads from the edge inwards: full screen, the sound, then the chips.

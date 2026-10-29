@@ -55,13 +55,13 @@ func drawCapGlyph(painter: *Painter, cap: LineCapStyle, begin: bool, pos: Math.R
     if begin
     {
         pen.begCapStyle = cap
-        x0 += reach
+        x0   += reach
         stop = x0
     }
     else
     {
         pen.endCapStyle = cap
-        x1 -= reach
+        x1   -= reach
         stop = x1
     }
 

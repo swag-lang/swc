@@ -239,7 +239,7 @@
 </ul>
 </details>
 <details class="toc-group">
-<summary><span class="toc-label">Functions</span><span class="toc-count">488</span></summary>
+<summary><span class="toc-label">Functions</span><span class="toc-count">489</span></summary>
 <ul class="toc-symbols">
 <li><a href="#summary-functions">All Functions</a></li>
 <li><a href="#Pixel_Argb_fromName">Argb.fromName</a></li>
@@ -554,6 +554,7 @@
 <li><a href="#Pixel_Painter_drawString">Painter.drawString</a></li>
 <li><a href="#Pixel_Painter_drawStringCenter">Painter.drawStringCenter</a></li>
 <li><a href="#Pixel_Painter_drawTexture">Painter.drawTexture</a></li>
+<li><a href="#Pixel_Painter_elideString">Painter.elideString</a></li>
 <li><a href="#Pixel_Painter_end">Painter.end</a></li>
 <li><a href="#Pixel_Painter_endClippingRegion">Painter.endClippingRegion</a></li>
 <li><a href="#Pixel_Painter_fillCircle">Painter.fillCircle</a></li>
@@ -2128,6 +2129,8 @@ layer.<span class="SFct">draw</span>({dstRect: <span class="SCst"><a href="std.c
 <tr><td class="code-type"><a href="#Pixel_Painter_drawStringCenter">Painter.drawStringCenter</a></td><td><p>Draws a single-line string centered on <span class="code-inline">(x, y)</span>.</p>
 </td></tr>
 <tr><td class="code-type"><a href="#Pixel_Painter_drawTexture">Painter.drawTexture</a></td><td><p>Draws a texture stretched over a destination rectangle.</p>
+</td></tr>
+<tr><td class="code-type"><a href="#Pixel_Painter_elideString">Painter.elideString</a></td><td><p>Returns <span class="code-inline">text</span> as it fits <span class="code-inline">maxWidth</span> on one line in <span class="code-inline">font</span>: whole when it fits, otherwise</p>
 </td></tr>
 <tr><td class="code-type"><a href="#Pixel_Painter_end">Painter.end</a></td><td><p>Ends the active recording scope.</p>
 </td></tr>
@@ -4833,6 +4836,8 @@ painter.<span class="SFct">end</span>()</span></div>
 <tr><td class="code-type"><a href="#Pixel_Painter_drawStringCenter">drawStringCenter</a></td><td><p>Draws a single-line string centered on <span class="code-inline">(x, y)</span>.</p>
 </td></tr>
 <tr><td class="code-type"><a href="#Pixel_Painter_drawTexture">drawTexture</a></td><td><p>Draws a texture stretched over a destination rectangle.</p>
+</td></tr>
+<tr><td class="code-type"><a href="#Pixel_Painter_elideString">elideString</a></td><td><p>Returns <span class="code-inline">text</span> as it fits <span class="code-inline">maxWidth</span> on one line in <span class="code-inline">font</span>: whole when it fits, otherwise</p>
 </td></tr>
 <tr><td class="code-type"><a href="#Pixel_Painter_end">end</a></td><td><p>Ends the active recording scope.</p>
 </td></tr>
@@ -9488,7 +9493,7 @@ shape.<span class="SFct">intersect</span>(&amp;frame)</span></div>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SKwd">const</span> <span class="SFct">clippingRect</span>()-&gt;<span class="SCst"><a href="std.core.html#namespace_Core_Math">Math</a></span>.<span class="SCst">Rectangle</span></span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Pixel_Painter_computeLayout" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Painter.computeLayout</span> <a class="api-item-permalink" href="#Pixel_Painter_computeLayout" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/pixel/src/painter/drawstring.swg#L918">src</a></div>
+<div class="api-item api-item-func"><span id="Pixel_Painter_computeLayout" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Painter.computeLayout</span> <a class="api-item-permalink" href="#Pixel_Painter_computeLayout" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/pixel/src/painter/drawstring.swg#L943">src</a></div>
 <p>Lays out a rich string inside <span class="code-inline">pos</span>.</p>
 <p><span class="code-inline">deviceScale</span> must match the scale the text is drawn with. Chunk widths are measured with the same resolved draw font and device-snapped advances the draw pass uses, so wrapped lines, alignment, and inter-chunk gaps land where the glyphs actually end; measuring with nominal advances instead lets a per-glyph drift accumulate until a space between two chunks visually vanishes.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SFct">computeLayout</span>(pos: <span class="SCst"><a href="std.core.html#namespace_Core_Math">Math</a></span>.<span class="SCst">Rectangle</span>, text: *<span class="SCst"><a href="#Pixel_RichString">RichString</a></span>, format: <span class="SCst"><a href="#Pixel_RichStringFormat">RichStringFormat</a></span>, deviceScale = <span class="SNum">1.0</span>'<span class="STpe">f32</span>)</span></div>
@@ -9588,7 +9593,7 @@ shape.<span class="SFct">intersect</span>(&amp;frame)</span></div>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">drawRect</span>(rect: <span class="SCst"><a href="std.core.html#namespace_Core_Math">Math</a></span>.<span class="SCst">Rectangle</span>, pen: <span class="SCst"><a href="#Pixel_Pen">Pen</a></span>)</span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Pixel_Painter_drawRichString" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Painter.drawRichString</span> <a class="api-item-permalink" href="#Pixel_Painter_drawRichString" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/pixel/src/painter/drawstring.swg#L1308">src</a></div>
+<div class="api-item api-item-func"><span id="Pixel_Painter_drawRichString" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Painter.drawRichString</span> <a class="api-item-permalink" href="#Pixel_Painter_drawRichString" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/pixel/src/painter/drawstring.swg#L1333">src</a></div>
 <p>Draws a rich string inside <span class="code-inline">pos</span>, laying it out when needed.</p>
 <p>The layout is recomputed on the first call, whenever <span class="code-inline">pos</span> or the device scale changes, and when <span class="code-inline">forceCompute</span> is true. With <a href="#Pixel_StringFormatFlags_Clip">Pixel.StringFormatFlags.Clip</a>, drawing is clipped to <span class="code-inline">pos</span>.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">drawRichString</span>(pos: <span class="SCst"><a href="std.core.html#namespace_Core_Math">Math</a></span>.<span class="SCst">Rectangle</span>, text: *<span class="SCst"><a href="#Pixel_RichString">RichString</a></span>, format: <span class="SCst"><a href="#Pixel_RichStringFormat">RichStringFormat</a></span>, forceCompute = <span class="SKwd">false</span>)</span></div>
@@ -9607,7 +9612,7 @@ shape.<span class="SFct">intersect</span>(&amp;frame)</span></div>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">drawRoundRect</span>(rect: <span class="SCst"><a href="std.core.html#namespace_Core_Math">Math</a></span>.<span class="SCst">Rectangle</span>, topLeft, topRight, bottomRight, bottomLeft: <span class="STpe">f32</span>, color: <span class="SCst"><a href="#Pixel_Color">Color</a></span>, penSize: <span class="STpe">f32</span> = <span class="SNum">1</span>)</span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Pixel_Painter_drawShapedRun" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Painter.drawShapedRun</span> <a class="api-item-permalink" href="#Pixel_Painter_drawShapedRun" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/pixel/src/painter/drawstring.swg#L728">src</a></div>
+<div class="api-item api-item-func"><span id="Pixel_Painter_drawShapedRun" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Painter.drawShapedRun</span> <a class="api-item-permalink" href="#Pixel_Painter_drawShapedRun" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/pixel/src/painter/drawstring.swg#L753">src</a></div>
 <p>Draws an already shaped run with its top-left corner at <span class="code-inline">(left, top)</span>.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">drawShapedRun</span>(left, top: <span class="STpe">f32</span>, shaped: *<span class="SCst"><a href="#Pixel_ShapedRun">ShapedRun</a></span>, font: *<span class="SCst"><a href="#Pixel_Font">Font</a></span>, brush: <span class="SCst"><a href="#Pixel_Brush">Brush</a></span>, under = <span class="SCst"><a href="#Pixel_UnderlineStyle">UnderlineStyle</a></span>.<span class="SCst">None</span>, zoom = <span class="SNum">1.0</span>)</span></div>
 <p>Draws an already shaped run with MSDF text effects.</p>
@@ -9615,7 +9620,7 @@ shape.<span class="SFct">intersect</span>(&amp;frame)</span></div>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">drawShapedRun</span>(left, top: <span class="STpe">f32</span>, shaped: *<span class="SCst"><a href="#Pixel_ShapedRun">ShapedRun</a></span>, font: *<span class="SCst"><a href="#Pixel_Font">Font</a></span>, brush: <span class="SCst"><a href="#Pixel_Brush">Brush</a></span>, effect: <span class="SCst"><a href="#Pixel_TextEffect">TextEffect</a></span>, under = <span class="SCst"><a href="#Pixel_UnderlineStyle">UnderlineStyle</a></span>.<span class="SCst">None</span>, zoom = <span class="SNum">1.0</span>)</span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Pixel_Painter_drawString" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Painter.drawString</span> <a class="api-item-permalink" href="#Pixel_Painter_drawString" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/pixel/src/painter/drawstring.swg#L862">src</a></div>
+<div class="api-item api-item-func"><span id="Pixel_Painter_drawString" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Painter.drawString</span> <a class="api-item-permalink" href="#Pixel_Painter_drawString" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/pixel/src/painter/drawstring.swg#L887">src</a></div>
 <p>Draws a single-line string with its top-left corner at <span class="code-inline">(left, top)</span>.</p>
 <p>The text is shaped with the draw font resolved for the current transform, so an automatic font draws crisp bitmap glyphs at small on-screen sizes. <span class="code-inline">zoom</span> scales the text from its top-left corner.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">drawString</span>(left, top: <span class="STpe">f32</span>, text: <span class="STpe">string</span>, font: *<span class="SCst"><a href="#Pixel_Font">Font</a></span>, color: <span class="SCst"><a href="#Pixel_Color">Color</a></span>, under = <span class="SCst"><a href="#Pixel_UnderlineStyle">UnderlineStyle</a></span>.<span class="SCst">None</span>, zoom = <span class="SNum">1.0</span>)</span></div>
@@ -9627,7 +9632,7 @@ shape.<span class="SFct">intersect</span>(&amp;frame)</span></div>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">drawString</span>(left, top: <span class="STpe">f32</span>, text: <span class="STpe">string</span>, font: *<span class="SCst"><a href="#Pixel_Font">Font</a></span>, brush: <span class="SCst"><a href="#Pixel_Brush">Brush</a></span>, effect: <span class="SCst"><a href="#Pixel_TextEffect">TextEffect</a></span>, under = <span class="SCst"><a href="#Pixel_UnderlineStyle">UnderlineStyle</a></span>.<span class="SCst">None</span>, zoom = <span class="SNum">1.0</span>)</span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Pixel_Painter_drawStringCenter" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Painter.drawStringCenter</span> <a class="api-item-permalink" href="#Pixel_Painter_drawStringCenter" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/pixel/src/painter/drawstring.swg#L849">src</a></div>
+<div class="api-item api-item-func"><span id="Pixel_Painter_drawStringCenter" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Painter.drawStringCenter</span> <a class="api-item-permalink" href="#Pixel_Painter_drawStringCenter" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/pixel/src/painter/drawstring.swg#L874">src</a></div>
 <p>Draws a single-line string centered on <span class="code-inline">(x, y)</span>.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">drawStringCenter</span>(x, y: <span class="STpe">f32</span>, text: <span class="STpe">string</span>, font: *<span class="SCst"><a href="#Pixel_Font">Font</a></span>, color: <span class="SCst"><a href="#Pixel_Color">Color</a></span>, under = <span class="SCst"><a href="#Pixel_UnderlineStyle">UnderlineStyle</a></span>.<span class="SCst">None</span>, zoom = <span class="SNum">1.0</span>)</span></div>
 </section>
@@ -9642,6 +9647,12 @@ shape.<span class="SFct">intersect</span>(&amp;frame)</span></div>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">drawTexture</span>(x, y, width, height: <span class="STpe">f32</span>, srcRect: <span class="SCst"><a href="std.core.html#namespace_Core_Math">Math</a></span>.<span class="SCst">Rectangle</span>, texture: <span class="SCst"><a href="#Pixel_Texture">Texture</a></span>, color: <span class="SCst"><a href="#Pixel_Color">Color</a></span> = <span class="SCst"><a href="#Pixel_Color">Color</a></span>.<span class="SFct">fromArgb</span>(<span class="SCst"><a href="#Pixel_Argb">Argb</a></span>.<span class="SCst"><a href="#Pixel_Argb_White">White</a></span>))</span></div>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">drawTexture</span>(dstRect, srcRect: <span class="SCst"><a href="std.core.html#namespace_Core_Math">Math</a></span>.<span class="SCst">Rectangle</span>, texture: <span class="SCst"><a href="#Pixel_Texture">Texture</a></span>, color: <span class="SCst"><a href="#Pixel_Color">Color</a></span> = <span class="SCst"><a href="#Pixel_Color">Color</a></span>.<span class="SFct">fromArgb</span>(<span class="SCst"><a href="#Pixel_Argb">Argb</a></span>.<span class="SCst"><a href="#Pixel_Argb_White">White</a></span>))</span></div>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">drawTexture</span>(x, y: <span class="STpe">f32</span>, srcRect: <span class="SCst"><a href="std.core.html#namespace_Core_Math">Math</a></span>.<span class="SCst">Rectangle</span>, texture: <span class="SCst"><a href="#Pixel_Texture">Texture</a></span>, color: <span class="SCst"><a href="#Pixel_Color">Color</a></span> = <span class="SCst"><a href="#Pixel_Color">Color</a></span>.<span class="SFct">fromArgb</span>(<span class="SCst"><a href="#Pixel_Argb">Argb</a></span>.<span class="SCst"><a href="#Pixel_Argb_White">White</a></span>))</span></div>
+</section>
+<section class="api-symbol">
+<div class="api-item api-item-func"><span id="Pixel_Painter_elideString" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Painter.elideString</span> <a class="api-item-permalink" href="#Pixel_Painter_elideString" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/pixel/src/painter/drawstring.swg#L606">src</a></div>
+<p>Returns <span class="code-inline">text</span> as it fits <span class="code-inline">maxWidth</span> on one line in <span class="code-inline">font</span>: whole when it fits, otherwise its longest fitting prefix ended by an ellipsis.</p>
+<p>This is the cut <a href="#Pixel_StringFormatFlags_Ellipsis">Pixel.StringFormatFlags.Ellipsis</a> makes in a laid-out block, for one plain line drawn at a known width, such as a name or a path. The prefix is measured as <a href="#Pixel_Painter_drawString">Pixel.Painter.drawString</a> draws it at <span class="code-inline">deviceScale</span>.</p>
+<div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SFct">elideString</span>(text: <span class="STpe">string</span>, font: *<span class="SCst"><a href="#Pixel_Font">Font</a></span>, maxWidth: <span class="STpe">f32</span>, deviceScale = <span class="SNum">1.0</span>'<span class="STpe">f32</span>)-&gt;<span class="SCst"><a href="std.core.html#Core_String">String</a></span></span></div>
 </section>
 <section class="api-symbol">
 <div class="api-item api-item-func"><span id="Pixel_Painter_end" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Painter.end</span> <a class="api-item-permalink" href="#Pixel_Painter_end" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/pixel/src/painter/painter.swg#L1087">src</a></div>
@@ -12203,6 +12214,7 @@ painter.<span class="SFct">resetClippingRegion</span>()</span></div>
 "f|Pixel.Painter.drawString|Pixel_Painter_drawString|Draws a single-line string with its top-left corner at (left, top).",
 "f|Pixel.Painter.drawStringCenter|Pixel_Painter_drawStringCenter|Draws a single-line string centered on (x, y).",
 "f|Pixel.Painter.drawTexture|Pixel_Painter_drawTexture|Draws a texture stretched over a destination rectangle.",
+"f|Pixel.Painter.elideString|Pixel_Painter_elideString|Returns text as it fits maxWidth on one line in font: whole when it fits, otherwise",
 "f|Pixel.Painter.end|Pixel_Painter_end|Ends the active recording scope.",
 "f|Pixel.Painter.endClippingRegion|Pixel_Painter_endClippingRegion|Finishes the region and puts it into effect.",
 "f|Pixel.Painter.fillCircle|Pixel_Painter_fillCircle|Fills a circle.",

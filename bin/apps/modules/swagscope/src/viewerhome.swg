@@ -79,7 +79,7 @@ impl ViewerHome
             {
                 .file   = file
                 .opened = index < window.recentOpened.count ? window.recentOpened[index] : 0
-                .glyph = me.theme().fileGlyph(file, false, themeRowIconSize(me.themeMetrics()))
+                .glyph  = me.theme().fileGlyph(file, false, themeRowIconSize(me.themeMetrics()))
             }
         }
 
@@ -253,7 +253,7 @@ impl IWnd for ViewerHome
             let folder     = Painter.measureString(strings.home_InviteFolder, body).width
             let folderKey  = Painter.measureString(openFolder, mono).width
             let width      = first + gap + firstKey + middle + folder + gap + folderKey
-            let left  = Math.round(center - width * 0.5)
+            let left       = Math.round(center - width * 0.5)
             painter.drawString(left, body.opticalLineTop(place.line), strings.home_Invite, body, colors.softText)
             painter.drawString(left + first + gap, mono.opticalLineTop(place.line), openFile, mono, colors.faintText)
             let separatorX = left + first + gap + firstKey

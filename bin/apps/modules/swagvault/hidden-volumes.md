@@ -110,7 +110,7 @@ The explicit `vault.hidden-copy` application tag builds a console harness that c
 Swag Vault filesystem into a new hidden volume. Run it through the normal application tool:
 
 ```text
-bin\swc.dm.exe --num-cores 6 tools\apps.swgs dm run swagvault --tag vault.hidden-copy --num-cores 6
+tools\apps.bat dm run swagvault --tag vault.hidden-copy
 ```
 
 Its child environment supplies `SWAG_VAULT_COPY_SOURCE`, `SWAG_VAULT_COPY_TARGET`,

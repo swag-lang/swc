@@ -193,8 +193,8 @@ namespace
     // another checkout's library. That is what a second working tree hits — `SWAG_PATH` still
     // names the first one — and it fails as an unknown symbol in a library that looks present.
     //
-    // It is also what lets a fresh checkout run `bin\swc.exe tools\setup.swgs`, the script that
-    // sets `SWAG_PATH` in the first place, before anything has been configured.
+    // It is also what lets a fresh checkout run `tools\setup.bat`, which sets `SWAG_PATH`,
+    // before anything has been configured.
     Result resolveSwagStdWorkspaceRoot(fs::path& outRoot, TaskContext& ctx)
     {
         outRoot = FileSystem::standardLibraryWorkspaceRoot(Os::getExeFullName());
@@ -2245,12 +2245,12 @@ namespace
 
     // Answers with a directory holding the same files as `srcDir`, that nothing will rewrite.
     //
-    // A script consumes its dependencies from a copy rather than from where they were built,
+    // A tool consumes its dependencies from a copy rather than from where they were built,
     // because the compiler loads their shared libraries into its own process: pointed at the build
-    // output, `swc tools/std.swgs` — a script that rebuilds the very library it runs on — would be
+    // output, `tools/std.bat` — a launcher that rebuilds the library it uses — would be
     // asked to replace a DLL Windows has locked. Naming the copy after what it holds is what makes
-    // the copy affordable: every script importing the same build shares one, and a rebuilt
-    // dependency lands in a new entry beside the one a running script is still reading.
+    // the copy affordable: every tool importing the same build shares one, and a rebuilt
+    // dependency lands in a new entry beside the one a running compiler is still reading.
     Result resolveDependencyCacheEntry(fs::path& outMirroredDir, TaskContext& ctx, const fs::path& srcDir, const fs::path& relativePath, const std::vector<ModuleApi::SourceSnapshot>* apiSnapshot)
     {
         Utf8 signature;

@@ -8,10 +8,10 @@ Its source, ordinary tests, and privileged integration harness share the applica
 Run these commands from the repository root with its compiler:
 
 ```text
-bin\swc.exe --num-cores 6 tools\apps.swgs dm build swagvault --num-cores 6
-bin\swc.exe --num-cores 6 tools\apps.swgs dm run swagvault --num-cores 6
-bin\swc.exe --num-cores 6 tools\apps.swgs dm test swagvault --num-cores 6
-bin\swc.exe --num-cores 6 tools\apps.swgs dm smoke swagvault --num-cores 6
+tools\apps.bat dm build swagvault
+tools\apps.bat dm run swagvault
+tools\apps.bat dm test swagvault
+tools\apps.bat dm smoke swagvault
 ```
 
 `dm` selects the DevMode compiler. Add `-bc release` after the application name to select the
@@ -47,7 +47,7 @@ volumes after updating from a version that used local DOS-device mounts.
 ## Privileged integration
 
 ```text
-bin\swc.exe --num-cores 6 tools\vault.swgs dm --num-cores 6
+tools\vault.bat dm
 ```
 
 This explicit tool builds the `vault.integration` variant in the Release program configuration,

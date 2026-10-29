@@ -16,15 +16,15 @@ are taken so that they mean something.
 From the checkout root:
 
 ```powershell
-bin\swc.exe --num-cores 6 tools\bench.swgs --label "what changed"   # a full campaign, recorded
-bin\swc.exe --num-cores 6 tools\bench.swgs --quick                  # one sample of everything, recorded nowhere
-bin\swc.exe --num-cores 6 tools\bench.swgs --report-only            # rebuild history.json and bench.html
-bin\swc.exe --num-cores 6 tools\bench.swgs --no-build               # measure bin\swc.exe without building it
-bin\swc.exe --num-cores 6 tools\bench.swgs --build                  # compilation only
-bin\swc.exe --num-cores 6 tools\bench.swgs --run                    # execution only
+tools\bench.bat --label "what changed"   # a full campaign, recorded
+tools\bench.bat --quick                  # one sample of everything, recorded nowhere
+tools\bench.bat --report-only            # rebuild history.json and bench.html
+tools\bench.bat --no-build               # measure bin\swc.exe without building it
+tools\bench.bat --build                  # compilation only
+tools\bench.bat --run                    # execution only
 ```
 
-`tools\bench.swgs` runs `campaign.py`, which builds the Release compiler with `tools\release.bat`,
+`tools\bench.bat` runs `campaign.py`, which builds the Release compiler with `tools\release.bat`,
 runs `driver.py` and regenerates the report with `mkpage.py`. A full campaign takes about forty
 minutes on the benchmark laptop and needs it plugged in and otherwise idle. Other entry points:
 
@@ -43,7 +43,7 @@ their usage is in their own headers. `compile.py --only core_delta --machine-arc
 the standard-library machine-code archive, seeds the supplied archive, then measures `core` after
 one function changes against the restored archive.
 
-`tools/bench.swgs --out <path>` (or `driver.py --out <path>`) also preserves completed sections and tasks between measurements.
+`tools/bench.bat --out <path>` (or `driver.py --out <path>`) also preserves completed sections and tasks between measurements.
 These checkpoints carry `incomplete: true` until the campaign finishes and are never published
 as accepted campaigns. A command error keeps its complete report in the log and raw output.
 
@@ -318,7 +318,7 @@ collection policy. These are short-lived program measurements, not warmed server
 
 | | |
 |---|---|
-| `../tools/bench.swgs` | the entry point |
+| `../tools/bench.bat` | the entry point |
 | `campaign.py` | builds the compiler, measures, reports |
 | `driver.py` | one campaign |
 | `sampler.py` | rounds, pairs, stopping rules, interference retries |

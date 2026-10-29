@@ -90,7 +90,7 @@ Without these options, Prism keeps its normal compiler discovery and worker budg
 From the repository root:
 
 ```powershell
-bin\swc.dm.exe --num-cores 6 tools\apps.swgs dm run swagprism --num-cores 6 --run-arg=--compiler-workers=6
-bin\swc.dm.exe --num-cores 6 tools\apps.swgs dm test swagprism --num-cores 6 --run-arg=--compiler-workers=6
-bin\swc.dm.exe --num-cores 6 tools\apps.swgs dm smoke swagprism --num-cores 6 --run-arg=--compiler-workers=6
+tools\apps.bat dm run swagprism --run-arg=--compiler-workers=6
+tools\apps.bat dm test swagprism --run-arg=--compiler-workers=6
+tools\apps.bat dm smoke swagprism --run-arg=--compiler-workers=6
 ```

@@ -430,7 +430,7 @@ identity; drag interaction, floating surfaces, and persistence have their own id
   sheet variant. `setLight` changes that value's palette, metrics and rectangles; this does not
   establish the earlier hypothesis that a local theme changes the application theme.
 - Next: capture the first and second frames with the checkout-local DevMode compiler using
-  `tools/examples.swgs dm run gui10 --run-arg=--swagdark --run-arg=--palettes`, then compare the
+  `tools/examples.bat dm run gui10 --run-arg=--swagdark --run-arg=--palettes`, then compare the
   selector, caption and ground against the requested variant. If a mismatch remains, trace the
   affected window's style cache and invalidation. Remove this lead if the corrected reproduction
   is stable.

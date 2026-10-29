@@ -178,15 +178,15 @@ stacked with `VerticalCenter` are centred as a group and both start on the left 
 
 ## Verify
 
-1. `swc tools/std.swgs dm test gui --test-file dialogs.charter.test.swg --test-file dialogs.layout.test.swg`,
+1. `tools/std.bat dm test gui --test-file dialogs.charter.test.swg --test-file dialogs.layout.test.swg`,
    plus the test file of the dialog whose behaviour changed.
 2. Review the `dialogs.*` goldens in `bin/std/modules/gui/src/tests/goldens/`, **in Encre and in
    Papier, each as a whole screen against its charter picture**, not only the diff. Check: no
    band, no cross, the title on the first line, the primary rightmost, the bottom-left slot empty
    or holding its one quiet control, and one left edge. A golden that changed in a part you did
    not touch is a finding. Promote each reviewed `.actual.png` on its own by moving it over its
-   golden. Never run `swc tools/goldens.swgs accept`, which promotes everything on disk.
-3. `swc tools/examples.swgs run gui9`, the dialogs instrument. It opens every predefined box,
+   golden. Never run `tools/goldens.bat accept`, which promotes everything on disk.
+3. `tools/examples.bat run gui9`, the dialogs instrument. It opens every predefined box,
    every mode of the file box and its two questions, and the file browser composite. **Look at
    each one.** An assertion cannot see an action row wider than its content, or two left edges
    that nearly agree.

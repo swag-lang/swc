@@ -238,7 +238,7 @@ are the specification and they are checked when the module compiles.
 [`bin/examples/modules/gui10`](../../../bin/examples/modules/gui10) is the theme inspector:
 
 ```
-swc tools/examples.swgs run gui10 --run-arg=--light --run-arg=--widgets
+tools/examples.bat run gui10 --run-arg=--light --run-arg=--widgets
 ```
 
 `--dark` (Encre), `--light` (Papier) and `--sheet` choose the theme. `--colors`, `--palettes`,
@@ -262,17 +262,17 @@ treatment: a diagnostic in `ApplicationOptions` and a switch on the wall.
 
 After changing `apply`, a palette, a measure, or a widget's look:
 
-1. `swc tools/std.swgs dm test gui --test-file theme.colors.test.swg --test-file theme.sheet.test.swg --test-file themestyle.test.swg --test-file controls.charter.test.swg`
+1. `tools/std.bat dm test gui --test-file theme.colors.test.swg --test-file theme.sheet.test.swg --test-file themestyle.test.swg --test-file controls.charter.test.swg`
 2. A theme change crosses widgets and applications, so run the complete golden campaign:
-   `swc tools/goldens.swgs dm test`. Each mismatch leaves a `.actual.png` beside its golden.
+   `tools/goldens.bat dm test`. Each mismatch leaves a `.actual.png` beside its golden.
    (`SWAG_GOLDEN_CONTINUE=1` collects every mismatch of a test in one run; see
    [validate-swag-changes](../validate-swag-changes/SKILL.md).)
 3. **Review every `.actual` as a whole screen against its charter picture, in Encre and Papier.**
    Do not look only at the diff, and do not look only at the part you meant to change. A golden
    that changed in a part you did not touch is a finding. Promote each reviewed snapshot on its
-   own by moving its `.actual.png` over its golden. Never run `swc tools/goldens.swgs accept` (or
-   bare `goldens.swgs`): it promotes every snapshot on disk, reviewed or not.
-4. `swc tools/examples.swgs dm smoke gui10`, then look at Encre, Papier and the sheet theme in
+   own by moving its `.actual.png` over its golden. Never run `tools/goldens.bat accept` without
+   reviewing every pending snapshot; it promotes every snapshot under `bin/`.
+4. `tools/examples.bat dm smoke gui10`, then look at Encre, Papier and the sheet theme in
    gui10.
 
 Apply [validate-swag-changes](../validate-swag-changes/SKILL.md) for any further consumers.

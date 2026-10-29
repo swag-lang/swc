@@ -11,10 +11,10 @@ runtime, standard modules, examples, applications, and language-reference tests.
 
 Use [tools/README.md](tools/README.md) for the authoritative tool syntax and focused commands.
 Build/test guidance and shared-machine load admission rules are in the two skills named below;
-prefer a focused command for the changed behavior over the full campaign in `tools/tests.swgs`.
+prefer a focused command for the changed behavior over the full campaign in `tools/tests.bat`.
 Use the checkout-local `bin\\swc.exe` or `bin\\swc.dm.exe` when multiple worktrees may be
 present. Treat [bin/help/](bin/help/) as generated output: edit its source under `bin/reference` or the
-relevant module, then regenerate it through `tools/help.swgs`.
+relevant module, then regenerate it through `tools/help.bat`.
 
 Keep `SWC_BUILD_NUM` in [src/Main/Version.h](src/Main/Version.h) at its current value during
 ordinary compiler changes. Change it only for an explicit release or cache-identity decision.
@@ -31,7 +31,7 @@ Builds and tests may overlap only while the shared machine has enough measured h
 Before selecting or running builds, tests, configurations, consumers, smokes, or golden checks,
 also read and follow
 [validate-swag-changes](.agents/skills/validate-swag-changes/SKILL.md). Validation is chosen from
-the behavior changed; `tools/tests.swgs` no longer derives a campaign from the working tree.
+the behavior changed; `tools/tests.bat` no longer derives a campaign from the working tree.
 
 Before adding or changing any Swag source (`.swg` or `.swgs`), including tests,
 examples, scripts, and documentation code samples, also read and follow

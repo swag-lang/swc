@@ -163,7 +163,7 @@ local change; never reset it away.
 Then, once, before anything else:
   - Remove every Swag build artifact: `bin\swc.exe clean --workspace <ws>` for each workspace
     (apps, examples, reference, std, unittests, unittests/workspace), `clean --module` for the
-    script folders that hold a `.tmp` (tools, tools/tests, bin/examples/scripts, bin/help/tools),
+    script folders that hold a `.tmp` (bin/examples/scripts, bin/help/tools),
     and `bin\swc.exe clean --cache`. Preview with `--dry-run` first and confirm the targets are
     gone afterwards.
   - Rebuild both compilers from fresh objects with MSBuild `/t:Rebuild` (DevMode, then Release,
@@ -174,13 +174,13 @@ the fix affects; never rebuild from scratch or clean the workspaces again mid-ca
 
 RUN THE LADDER, STOP AT THE FIRST FAILURE
 
-  1. `bin\swc.exe tools\build.swgs dm --all-cfg` - every workspace, both configurations.
-  2. `bin\swc.exe tools\tests.swgs dm --all-cfg` - the full headless campaign with the DevMode
-     compiler in both configurations; then `bin\swc.exe tools\integrations.swgs dm --all-cfg`
-     (OpenGL, host window, smoke; needs an interactive desktop).
-  3. `bin\swc.exe tools\tests.swgs` and `bin\swc.exe tools\integrations.swgs` - the Release
-     compiler, default configuration only.
-  4. `bin\swc.exe tools\vsix.swgs` - package the VSCode extension and inspect the result.
+  1. `tools\build.bat dm -bc release`, then repeat with `-bc devmode`.
+  2. `tools\tests.bat dm -bc release`, then repeat with `-bc devmode`; run
+     `tools\integrations.bat dm opengl -bc release` and `windows` or `smoke`
+     separately when an interactive desktop is available.
+  3. `tools\tests.bat -bc release` and `tools\integrations.bat` for the Release
+     compiler, with each program configuration selected explicitly.
+  4. `tools\vsix.bat` - package the VSCode extension and inspect the result.
 
 Some applications (Swag Prism) launch `bin\swc.exe` itself, so keep the Release compiler current
 before running a campaign that reaches them.
@@ -217,13 +217,13 @@ golden that was not reviewed and proved correct.
 THEN FINISH THE REPOSITORY
 
 Once the ladder is green (a newly exposed code failure takes priority again at any point):
-  1. Format: `bin\swc.exe tools\format.swgs dm`, and clang-format every project-owned `.cpp`,
+  1. Format: `tools\format.bat dm`, and clang-format every project-owned `.cpp`,
      `.h`, `.inc` under `src/` (not vendored mimalloc). A second pass of both must change nothing;
      review the diff.
-  2. Generate: `bin\swc.exe tools\help.swgs dm`; review the tracked changes; a second run must
+  2. Generate: `tools\help.bat dm`; review the tracked changes; a second run must
      change nothing. Fix a nondeterministic generator, never its output by hand.
   3. Backlog and markers: make every backlog entry true against the current code, delete what
-     is done or invalid, keep the file invariants (`tools\tests\repository.swgs` checks them), and
+     is done or invalid, keep the file invariants documented in `backlog/README.md`, and
      resolve or properly record every actionable TODO/FIXME/HACK/XXX marker. Exclude intentional
      lexer fixtures, data labels, and literal strings; do not rewrite them as cleanup. Do not
      delegate or edit test inputs under a running suite.
@@ -233,7 +233,7 @@ Once the ladder is green (a newly exposed code failure takes priority again at a
      and verify that it is inside the intended workspace before removal. Never run a broad clean.
      If automatic review rejects a deletion, stop retrying that target through alternate commands;
      report its exact path and the rejection, then continue independent work.
-  5. LAST: `bin\swc.exe tools\vault.swgs dm` (UAC elevation, bundled WinFsp). Nothing else may
+  5. LAST: `tools\vault.bat dm` (UAC elevation, bundled WinFsp). Nothing else may
      run after it except inspecting its result; a defect it exposes is fixed and the affected
      steps rerun before retrying it.
 
@@ -417,7 +417,7 @@ SESSION CAMPAIGN
 
 After integrating a group of up to three accepted batches, or at the end of a longer campaign
 session, run a full campaign of that combined revision:
-`bin\swc.exe --num-cores 6 tools\bench.swgs --no-build --swc-cores 6 --label "prompt 2 <date>"`
+`tools\bench.bat --no-build --swc-cores 6 --label "prompt 2 <date>"`
 after building that revision's swc.exe. Wait for a quiet window for this one run; if none comes
 before the session's end, say so plainly, and the next prompt 2 session starts with this
 campaign before any new batch. Then read bench/history.json, not raw milliseconds:
@@ -532,9 +532,7 @@ For each coherent batch of related checks, in this order, and do not skip step 1
      depends on the compiler's actual verdict.
   3. Exercise one affected consumer early when the rule crosses a module boundary. At a milestone
      after several retained batches, after a rule with unusually broad reach, and before claiming
-     the rule works across the repository, sweep the whole tree for false positives: swc
-     tools/build.swgs, swc tools/std.swgs, swc tools/apps.swgs, swc tools/examples.swgs, and swc
-     tools/reference.swgs. Include test bodies: a build-only sweep misses them, including the
+     the rule works across the repository, sweep the whole tree for false positives: tools/build.bat, tools/std.bat, tools/apps.bat, tools/examples.bat, and tools/reference.bat. Include test bodies: a build-only sweep misses them, including the
      standard-library cases that have exposed false positives. A clean sweep becomes evidence only
      after the check is proved to fire.
   4. Triage every hit, one at a time, into exactly one of two buckets: a real defect in bin/ (fix

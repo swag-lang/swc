@@ -105,10 +105,9 @@ process count and `/MP` compilation capped at six.
   `bin\swc.dm.exe`.
 - For a direct compiler command, pass one cap, for example
   `bin\swc.dm.exe sema ... --num-cores 6`.
-- A repository tool script starts by being compiled by `swc`, then commonly launches another
-  compiler. Bound both levels: put one option before the script path and forward another through
-  the tool, for example
-  `bin\swc.dm.exe --num-cores 6 tools\unittests.swgs dm cpp --num-cores 6`.
+- Repository batch tools invoke the checkout compiler directly and default to six compiler
+  workers. Forward an explicit `--num-cores` only when a command needs a lower limit or when a
+  user explicitly asks to exceed the default, for example `tools\unittests.bat dm cpp`.
 - Preserve an explicit lower limit. `--randomize` and `--seed` already force one compiler worker.
   Exceed six only when the user explicitly requests it or a concurrency reproducer genuinely
   requires it, and state that exception before launching the command.
@@ -121,8 +120,8 @@ ordinary source changes, including optimization iterations. Change it only for a
 release or cache-identity decision, not for each code batch.
 
 When a changed compiler may produce different cached artifacts, isolate or clear the affected
-caches before validating it against an older binary's output. The script dependency cache can be
-cleared with `swc clean --cache`; use the checkout-local compiler and avoid deleting another
+caches before validating it against an older binary's output. The compiler cache can be cleared
+with `swc clean --cache`; use the checkout-local compiler and avoid deleting another
 session's live artifacts. A stable build number alone cannot distinguish those binaries, so do
 not trust a cached result as evidence of the new compiler's behavior.
 
@@ -137,8 +136,9 @@ Keep native constants and ABI types with those bindings too.
 
 The runtime bootstrap cannot depend on the standard library, and language/compiler tests or
 reference pages demonstrating foreign imports test that syntax itself; those are deliberate
-boundaries, not precedents for applications. Run `tools/portability.swgs` after a binding or
-native-backend change: its import-ownership check also covers otherwise approved host leaves.
+boundaries, not precedents for applications. The former source-level portability audit has been
+retired; `tools/portability.bat` only checks that the migrated tool directory contains no `.swgs`
+launchers. Review `bin/PORTABILITY.md` when changing a binding or native backend.
 
 ## Improve The Platform Along The Way
 
@@ -329,10 +329,9 @@ check, read and follow
 [validate-swag-changes](../validate-swag-changes/SKILL.md). It owns the validation matrix and the
 stopping rule.
 
-`tools/tests.swgs` is a deliberate full campaign. It does not inspect the working tree. Use the
-focused repository tools and their `--file-filter` or `--test-file` controls for change validation,
-and reserve the full campaign for a genuinely cross-cutting change or an explicitly requested
-periodic pass.
+`tools/tests.bat` runs the compiler input suites and the standard workspace tests. It no longer
+runs the backlog, third-party-notice, native-import, or bespoke workspace cache/layout audits.
+Use the focused suites and their `--file-filter` or `--test-file` controls for change validation.
 
 ## Launch Every Executable Through Its Tool
 
@@ -348,9 +347,9 @@ One executable still needs libraries beside it: one whose import closure names
 The tools place the runtime files first, then launch:
 
 ```
-swc tools/examples.swgs [dm] run -m <example>
-swc tools/apps.swgs [dm] run <module>
-swc tools/scripts.swgs [dm] run <script>
+tools/examples.bat [dm] run <example>
+tools/apps.bat [dm] run <module>
+tools/scripts.bat [dm] run <script>
 ```
 
 The same rule holds when driving a program from a helper script, a debugger, or a screenshot

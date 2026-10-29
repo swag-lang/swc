@@ -16,10 +16,11 @@ not themselves portability debt. Explicit adapters such as `Image.from(HBITMAP)`
 Windows-only. The debt begins when portable code or a cross-platform product must mention their
 types, constants, message numbers, calling conventions, or service behavior.
 
-The approved native leaves are listed in `NativeSourceFiles` and `NativeSourceRoots` in
-`tools/src/portability.swg`, which `tools/portability.swgs` enforces. A small native backend is
-healthy. The target is that code above it compiles and is tested without importing a native
-binding, and that a new platform implements capabilities rather than copies policy.
+The approved native leaves are described in [bin/PORTABILITY.md](../bin/PORTABILITY.md). The
+repository's source-level native-import audit was retired with the Swag tool scripts, so these
+ownership rules currently have no automated enforcement. A small native backend is healthy. The
+target is that code above it compiles and is tested without importing a native binding, and that a
+new platform implements capabilities rather than copies policy.
 
 The following entries implement the target backends and remove the Windows-bound behavior exposed
 by portable modules and products. The earlier entries prepare and enforce the same boundaries.
@@ -548,11 +549,9 @@ by portable modules and products. The earlier entries prepare and enforce the sa
 
 ### platform.portability.080 — Bare `.swgs` execution has only a Windows shell contract
 
-- Evidence: `tools/setup.swgs` launches `Tool.runSetup` in `tools/src/maintenance.swg`, which
-  installs the current-user file association used by double-click launch. The implementation
-  comment identifies elevated `assoc`/`ftype` as the remaining Windows shell step, but setup
-  only prints a generic terminal-restart message; it neither checks bare execution nor prints
-  that step.
+- Evidence: `tools/setup.bat` registers the checkout's `bin/` directory and `SWAG_PATH` for the
+  current user. It no longer claims a file association; `.swgs` examples continue to require an
+  explicit compiler command, while tools launch as `.bat` files.
 - Next: define shell and desktop-launch integration per host without making Windows file
   associations the portable script contract. Machine-wide mutation remains explicit and opt-in.
 - Done when: setup reports whether bare execution is supported for the current shell and either

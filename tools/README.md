@@ -1,190 +1,67 @@
 # Repository tools
 
-Run `bin\swc.exe info` to inspect the compiler executable, installation folders, standard
-modules, absolute cache paths, and detected MSVC/Windows SDK libraries. It reads the installation
-without compiling sources or creating folders. Add `--workspace <path>` or `--module <path>` to
-include that project's output and intermediate folders. `bin\swc.exe help <command>` lists the
-options for one command.
+Every launcher in this directory is a Windows batch file. It calls the checkout's existing
+compiler directly; launching a tool no longer compiles a Swag script first. Build the compiler
+once with `tools\devmode.bat` or `tools\release.bat` before using the launchers.
 
-The project-owned tool entry points are Swag scripts in this directory: hand one to the compiler,
-or double-click it once `setup.swgs` has claimed the extension.
-Every tool takes the same shape:
-
-```
-swc tools\<tool>.swgs [dm] [<command>] [<name>] [options...]
-```
-
-- `dm` runs the tool under and drives `bin/swc.dm.exe`; without it the tool uses `bin/swc.exe`.
-- `<command>` is `build`, `run`, `test`, or `smoke`, when the tool has more than one.
-- `<name>` is the module, suite, or script to act on; without it the tool acts on everything.
-- Positionals come first and options after, so an option value is never read as a name.
-- `-h` prints the tool's own usage.
-
-Common options: `-bc <config>` selects `release` or `devmode` (default `devmode`),
-`--all-cfg` repeats the `build`, `tests`, `integrations`, and `goldens` campaigns in both configurations;
-focused tools select one configuration with `-bc`. `--debug` emits native debug information for
-the program and every dependency it takes in, under `<config>-debug` output directories,
-`--run-arg <value>` passes
-an argument to what gets launched, and repeated `--test-file <substring>` values select a union
-of `#test` source files without removing the implementation sources they exercise. Repeated
-`--test-tag <value>` values select a union of `#[Swag.TestTag(...)]` categories. Tags beginning
-with `integration.` are excluded from ordinary test runs and require explicit selection. Anything else is
-forwarded to the compiler.
-
-Use `--optimizer-stats` on `build`, `run`, `test`, `smoke`, or `sema` to report backend
-work in either compiler executable. For example:
-
-```text
-bin\swc.dm.exe --num-cores 6 tools\unittests.swgs dm native -bc release --file-filter unroll_counter_domain --optimizer-stats --num-cores 6
-```
-
-The report contains CSV tables sorted by pass and budget name. Pass times measure only
-`pass.run`, including its analysis work, and sum elapsed worker time across calls; they are
-neither command wall time nor process CPU time. Instruction counts sum the input and output
-of every invocation, including repeated sweeps. `changed` counts calls reporting a rewrite,
-not individual rewrites. CFG builds count actual rebuilds; SSA queries count `ensureFor` calls,
-and builds include incremental refreshes and the sink pass's explicit address snapshot.
-SLP records recursive tree calls, successful tuple memo hits,
-candidate seeds and failed seed trees. Interval-allocation attempts exclude ineligible functions
-and functions without virtual registers; fallbacks count attempted allocations that did not apply.
-
-Budget rows cover the configurable iteration caps, SLP depth/plan size, and counted-loop
-expansion checks, with rows only for checks reached by the pipelines. `observations` counts checks
-or completed loop invocations, `peak_work` is the largest observed value, and the limit range includes per-function overrides. `stopped` counts
-checks that refused work or loops ending after a changing final sweep; convergence on the last
-allowed sweep is not a stop. A stop does not establish that more work would improve code.
-SLP depth is zero-based; retained plan size does not measure failed exploration work.
-
-Profiling bypasses native function-object reuse so those passes execute. Use `--rebuild` when
-workspace artifact reuse could skip compilation altogether. Without this option, profiling does
-not allocate records, read a clock, or synchronize workers. Compare unprofiled compiles for
-command time and peak memory: collecting these observations adds overhead. Defaults and generated
-code policy are unchanged by profiling. Compare final code with `--print-micro` and measure
-runtime cost separately.
-
-## Build the compiler manually
-
-`release.bat` is the owner-only full-machine entry point for producing `swc.exe`. Release enables
-aggressive inlining, global-data optimization, reference elimination, identical COMDAT folding,
-and AVX2 code generation. Whole-program optimization and link-time code generation (LTO) are
-currently disabled. An early CPU guard remains at the x64 baseline and runs before CRT, mimalloc,
-and C++ initialization.
-Agents and routine validation use DevMode whenever its stronger checks cover the changed path. A
-rare required Release validation invokes MSBuild directly with the repository's CPU bound instead
-of using `release.bat`.
-
-## How a tool is built
-
-A tool is an ordinary Swag script. It states the sources it is made of, and calls into the
-shared implementation under [src/](src), one file per family. There is no launcher, no wrapper,
-and no environment protocol: the compiler hands a script everything after its own path, and a
-script finds the repository from its own location. If `dm` selects a compiler other than the one
-that first received the script, the tool relaunches itself under that compiler before doing any
-work. The selected compiler therefore builds the tool's dependencies and drives every child
-command, so one run cannot generate module APIs with one binary and consume them with another.
-
-Run a checkout's tools with that checkout's compiler — `bin\swc.exe tools\tests.swgs` — whenever
-more than one working tree exists. `swc` on the path belongs to whichever tree was registered
-last, and it compiles these sources against *its* standard library: a tool calling something the
-other tree's library does not have yet fails as an unknown symbol. A compiler always takes the
-library beside itself over `SWAG_PATH`, so naming the right compiler is enough to pin both.
-
-## Reaching one thing
-
-| Command | Effect |
-| --- | --- |
-| `swc tools\examples.swgs run gui2` | Launch one example |
-| `swc tools\apps.swgs run swagvault` | Launch one application |
-| `swc tools\scripts.swgs snake` | Launch one standalone script |
-| `swc tools\std.swgs dm test core` | Test one standard-library module |
-| `swc tools\std.swgs dm test gui --test-file htmlview.test.swg` | Test one file's `#test` functions |
-| `swc tools\std.swgs dm test gui --test-tag golden` | Test one tagged category |
-| `swc tools\unittests.swgs dm sema` | Run one compiler suite |
-
-## Tests and builds
-
-| Tool | Purpose |
-| --- | --- |
-| `tests.swgs` | The headless test set: backlog contract, compiler, library, applications, reference |
-| `integrations.swgs` | Explicit OpenGL, host-window, and program-smoke campaigns; these can create real windows |
-| `portability.swgs` | The source-only dependency check between portable bin code and native host code |
-| `unittests.swgs` | The compiler suites: `cpp`, `lexer`, `parser`, `sema`, `jit`, `safety`, `sanity`, `native`, `workspace` |
-| `build.swgs` | Build every workspace |
-| `vault.swgs` | The privileged Swag Vault/WinFsp end-to-end sandbox, kept out of `tests.swgs` |
-
-The compiler safety suite enables `Swag.AllocatorSafety` in both configurations so its
-allocator-invalidation fixtures run with the compiled checks they need.
-
-`tests.swgs` validates the bin portability boundary, file-scoped backlog identifiers, nonempty
-domains, fully scoped domain file names, flat domain lists without `Recorded` or `Updated`
-history fields, a README inventory listing every domain once, Markdown links, live `Related`
-identifiers, and the third-party notice contract - every scoped `THIRDPARTY.md` is indexed and
-every `@NOTICE:` resolves - before it selects or starts a test campaign.
-`bin\swc.exe --num-cores 6 tools\tests\repository.swgs .` runs the backlog check alone.
-
-`portability.swgs` also rejects local native imports in applications, libraries, tests, tools, examples, and benchmarks,
-including approved `.win32.swg` files. Add missing operations to their official ABI modules
-instead. Only the runtime bootstrap owns imports below the standard library. Source snapshots
-archived under `bench/results` are frozen measurement evidence and are not audited. Run
-`bin\swc.dm.exe --num-cores 6 tools\tests\portability.swgs` to exercise this guard; the complete
-test campaign includes those regression checks.
-
-In a Git checkout, the backlog check also compares new working-tree identifiers with `HEAD` and
-the checked-out branch's history. Deleted suffixes remain reserved, and new suffixes must follow
-the historical maximum consecutively. Stage domain renames before checking; the audit follows
-their old paths to preserve earlier reservations. A source archive can run the other checks without Git.
+Run the checkout's own compiler whenever more than one worktree exists. `dm` selects
+`bin\swc.dm.exe`; without it, tools use `bin\swc.exe`. Tool compiler calls default to six workers.
+Compiler options can be forwarded after the command and module.
 
 ## Workspaces
 
-| Tool | Commands | Purpose |
-| --- | --- | --- |
-| `std.swgs` | build, test | The standard library, whole or one module |
-| `examples.swgs` | build, run, test, smoke | The examples, whole or one module |
-| `apps.swgs` | build, run, test, smoke | The applications; a build also packages their runtime files |
-| `reference.swgs` | build, test | The executable language reference |
-| `scripts.swgs` | run, smoke | The standalone example scripts; naming one runs it, naming none smokes them all |
+```text
+tools\std.bat [dm] [build|test] [module] [options...]
+tools\examples.bat [dm] [build|run|test|smoke] [module] [options...]
+tools\apps.bat [dm] [build|run|test|smoke] [application] [options...]
+tools\reference.bat [dm] [build|test] [options...]
+tools\scripts.bat [dm] [run|smoke] [script] [options...]
+```
 
-`test` runs a module's `#test` functions and never its `#main`. It enables `Swag.assert`
-by default even in release; explicit local `Swag.Safety` overrides still apply. Other
-runtime guards retain their configured defaults. Ordinary tests are headless; a `#test` tagged
-`integration.renderer.opengl` or `integration.host.windows` runs only through its named integration
-campaign or an explicit `--test-tag`. `smoke` runs the real program
-for a bounded number of frames under process and filesystem isolation to prove it starts and keeps going.
-GUI smokes use the desktop and can create real windows.
-A program without `#test` is smoked: testing it would report zero tests and prove nothing.
-Swag Prism compiles snippets with a real compiler; started by `apps.swgs`, it uses the compiler
-under test and its `--num-cores` bound rather than the `swc.exe` it would find above its output.
-`--test-file` filters only the `#test` functions that execute; the whole owning module still
-compiles. Repeat it to select several files. `--file-filter` is different: it filters compiler
-input files and is suitable for standalone compiler suites, not module tests that need the rest
-of their implementation. Repeated file filters intersect: every substring must occur in the input
-path. Filename substrings avoid platform separator differences; a path substring must use the
-host's directory separators. Check the reported counts to confirm that the intended inputs ran.
-`--test-tag` also filters only execution and leaves the reusable test artifact unchanged. Repeated
-tags form a union; combined file and tag filters form an intersection.
+Examples:
 
-Run `tools\tests.swgs` first, then `tools\integrations.swgs opengl`,
-`tools\integrations.swgs windows`, and `tools\integrations.swgs smoke` when an interactive desktop
-is available. Running `tools\integrations.swgs` without a campaign name executes the renderer,
-current-host window, and smoke campaigns in that order. `windows` reports an error on other hosts.
-Each accepts `dm`, `-bc`, and `--all-cfg` like the aggregate test tool.
+```text
+tools\examples.bat run gui2
+tools\apps.bat dm test swagcapture --test-file files.test.swg
+tools\std.bat dm test gui --test-tag golden
+tools\scripts.bat snake
+```
+
+Use `-bc release` or `-bc devmode` to select a program configuration. `--debug`,
+`--test-file`, `--test-tag`, `--run-arg`, `--frames`, and other compiler options are forwarded.
+`--all-cfg` and `apps run --async` are not supported by the batch launchers; run each configuration
+separately.
+
+## Compiler suites and campaigns
+
+| Launcher | Purpose |
+| --- | --- |
+| `unittests.bat [dm] [suite] [options...]` | C++, lexer, parser, semantic, JIT, safety, sanity, native, and workspace input suites |
+| `build.bat [dm] [options...]` | Build the standard library, examples, applications, and reference |
+| `tests.bat [dm] [options...]` | Run compiler input suites and workspace tests |
+| `integrations.bat [dm] [opengl\|windows\|smoke] [options...]` | Run selected tagged integrations or smoke programs |
+| `portability.bat` | Check that no Swag script launcher remains under `tools/` |
+| `vault.bat [dm]` | Build, launch, and restore the Swag Vault integration |
+
+The former backlog, third-party-notice, and native-import audits are retired. The compiler
+workspace suite still runs its standalone inputs, but no longer performs the repository's custom
+artifact-layout and cache-invalidation probes. The integration launcher accepts one configuration
+per run.
 
 ## Maintenance
 
-| Tool | Purpose |
+| Launcher | Purpose |
 | --- | --- |
-| `format.swgs` | Format every Swag workspace, maintenance script, benchmark, and website generator in place |
-| `help.swgs` | Regenerate the brand assets and the complete documentation site in `bin/help/` |
-| `goldens.swgs test` | Run every `golden`-tagged test and report all `.actual` differences |
-| `goldens.swgs` | Promote reviewed `.actual` snapshots to goldens |
-| `bench.swgs` | Run or regenerate the cross-language performance campaign |
-| `vsix.swgs` | Install locked test dependencies, test the extension, refresh its images, and build the VSIX package |
-| `setup.swgs` | Register `bin/` in the current user's environment and claim `.swgs` |
+| `format.bat [dm] [options...]` | Format sources under `bin/` and `bench/src/` |
+| `help.bat [dm] [options...]` | Regenerate the standard-library and language-reference pages in `bin/help/` |
+| `goldens.bat [dm] test [options...]` | Run tests tagged `golden` |
+| `goldens.bat accept` | Promote every pending `.actual.txt` and `.actual.png` under `bin/` |
+| `bench.bat [options...]` | Run the Python benchmark campaign |
+| `vsix.bat` | Test and package the VSCode extension |
+| `setup.bat` | Add this checkout's `bin/` to the user `PATH` and set `SWAG_PATH` |
 
-`setup.swgs` is the one-time step. It puts `bin/` on `PATH`, points `SWAG_PATH` at it, and hands
-`.swgs` to `bin/swc.exe` for the current user, which is what makes a double-click run a script.
-Typing a tool's bare name in `cmd` still does not work: that resolution reads the machine-wide
-association, which only an elevated `assoc`/`ftype` writes, so a shell invocation names the
-compiler.
+The batch setup does not claim the `.swgs` file association. It updates the user environment;
+open a new terminal after running it.
 
-The vendored mimalloc distribution also contains `src/Support/Memory/mimalloc/bin/bundle.bat`.
+`tools/devmode.bat` builds the DevMode compiler. `tools/release.bat` is an owner-only full-machine
+build entry point.

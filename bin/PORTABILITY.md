@@ -22,7 +22,7 @@ they never point back up it.
 OpenGL is outside this boundary: the portability roadmap deliberately excludes it. Tests that
 exercise a native integration point remain in the host layer and must be selected explicitly.
 
-`swc tools/portability.swgs` checks this contract. Its exact path and declaration approvals live
-in `tools/src/portability.swg`; a platform-looking suffix is not an approval. Add a path only when
+`tools/portability.bat` checks that no Swag script launchers remain in `tools/`. The former
+source audit of this contract has been retired; a platform-looking suffix is not an approval. Add a path only when
 it owns a narrow host mechanism or optional adapter, and keep transitional public exceptions tied
 to their backlog entry. Every repository test campaign runs the same audit before compiling.

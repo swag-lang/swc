@@ -3,7 +3,7 @@
     py -3 run.py [--out DIR] [--reps N] [--only pair,trees:4,...] [--swc PATH] [--no-build]
                  [--against EXE] [--latency]
 
-The campaign (`tools/bench.swgs`) measures the same thing and records it; this runner records
+The campaign (`tools/bench.bat`) measures the same thing and records it; this runner records
 nothing and is meant for iterating on the allocator. It builds the three executables with
 ../allocbench.py, then prints, per workload, the median ns per operation and the largest peak
 working set and commit of the rounds. --against adds a column for an allocbench executable

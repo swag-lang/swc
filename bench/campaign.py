@@ -1,6 +1,6 @@
 """Run a complete perf campaign: measure, then report.
 
-Called by tools/bench.swgs. A campaign uses bin/swc.exe by default and checks its normal
+Called by tools/bench.bat. A campaign uses bin/swc.exe by default and checks its normal
 Release build before measuring. MSBuild updates only outputs that are out of date.
 
     py -3 campaign.py [--label TEXT] [--quick] [--no-build] [--report-only]

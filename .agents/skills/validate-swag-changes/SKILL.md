@@ -114,21 +114,22 @@ speedup or a guarantee that runtime performance cannot regress.
 ### Non-executable changes
 
 - Documentation-only compiler work (`src/Doc`, the `doc` command, or its private helpers): build
-  DevMode, run `swc tools/help.swgs dm`, and inspect the generated HTML diff. Run no compiler or GUI
+  DevMode, run `tools/help.bat dm`, and inspect the generated HTML diff. Run no GUI
   campaign unless another command path changed.
 - Formatter-only compiler work (`src/Format`, the `format` command, or its private helpers): build
   DevMode, run `swc format -d bin`, and inspect the source diff. That full `bin/` formatting result
   is the test; do not add compiler suites or format unrelated repository trees.
 - Repository prose, backlog, or skill-only work: run the relevant static validator or search and
   inspect the diff. No compiler build is evidence for prose.
-- Tool-only work: invoke the changed tool's help and the narrowest harmless command that reaches
-  the edited branch. Do not run `tests.swgs` merely because its implementation changed.
+- Tool-only work: invoke the changed batch launcher with `-h` when it provides usage, then run
+  the narrowest harmless command that reaches the edited branch. Do not run the complete
+  `tools/tests.bat` campaign merely because a launcher changed.
 
 ### Compiler and runtime changes
 
 | Changed behavior | First boundary |
 | --- | --- |
-| C++ helper or invariant with a C++ test seam | `swc tools/unittests.swgs dm cpp` |
+| C++ helper or invariant with a C++ test seam | `tools/unittests.bat dm cpp` |
 | lexing | `lexer` suite, focused with `--file-filter` when one standalone input proves it |
 | parsing | `parser` suite, focused with `--file-filter` |
 | semantic analysis or diagnostics | `sema` suite, focused with `--file-filter` |
@@ -143,7 +144,7 @@ speedup or a guarantee that runtime performance cannot regress.
 The `DebugInfo_*` C++ tests own compiler-to-CodeView records, symbols, types, checksums, and line
 mappings; the `Pdb_*` tests own the final PDB and DbgHelp consumer boundary. Their isolated Swag
 command lines enable debug information explicitly. Keep that opt-in inside these fixtures: do not
-forward `--debug` to `tools/unittests.swgs`, because that would compile unrelated suites with debug
+forward `--debug` to `tools/unittests.bat`, because that would compile unrelated suites with debug
 information too.
 
 Run the regression file first. Extend to its suite only when neighboring cases share the changed
@@ -175,9 +176,9 @@ compiles the whole owning module and executes only `#test` functions whose sourc
 Repeat it to select a union:
 
 ```text
-swc tools/std.swgs dm test gui --test-file htmlview.test.swg
-swc tools/std.swgs dm test gui --test-file htmlview.test.swg --test-file markdownview.test.swg
-swc tools/apps.swgs dm test swagscope --test-file viewer.video.test.swg
+tools/std.bat dm test gui --test-file htmlview.test.swg
+tools/std.bat dm test gui --test-file htmlview.test.swg --test-file markdownview.test.swg
+tools/apps.bat dm test swagscope --test-file viewer.video.test.swg
 ```
 
 Use `--file-filter` only for standalone compiler-suite inputs or a self-contained reference page.
@@ -207,7 +208,7 @@ consumer that activates the changed behavior.
 - Every `#test` that records or compares a text or PNG golden must carry
   `#[Swag.TestTag("golden")]`. The tag, rather than the source filename or assertion helper, is
   what makes the test part of the complete golden campaign.
-- Run `swc tools/goldens.swgs dm test` whenever the change can reach more golden owners than can
+- Run `tools/goldens.bat dm test` whenever the change can reach more golden owners than can
   be bounded confidently from the call path. Shared rendering, layout, typography, theme, icon,
   decoding, compositing, or paint primitives require this complete golden-only pass. It selects
   every `golden`-tagged test, continues across failing modules, and reports all `.actual` files
@@ -224,7 +225,7 @@ consumer that activates the changed behavior.
 - A focused change with a bounded owner may stop at its exact golden files. Do not replace the
   complete golden-only pass with representative samples when a shared primitive or uncertain
   reach can affect additional snapshots.
-- Promote reviewed outputs with `swc tools/goldens.swgs`; never update a golden merely to make a
+- Promote reviewed outputs with `tools/goldens.bat`; never update a golden merely to make a
   test green.
 
 ## Escalate Only On Evidence

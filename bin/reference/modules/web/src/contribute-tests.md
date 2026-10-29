@@ -8,15 +8,15 @@ select the appropriate stage, configuration, JIT path, or native path.
 
 | Location | Use it for | Runner |
 |---|---|---|
-| `bin/unittests/lexer` | Tokens, trivia, escapes, and literal scanning | `swc tools\unittests.swgs dm lexer` |
-| `bin/unittests/parser` | Grammar and source structure | `swc tools\unittests.swgs dm parser` |
-| `bin/unittests/sema` | Types, overloads, generics, attributes, and semantic rules | `swc tools\unittests.swgs dm sema` |
+| `bin/unittests/lexer` | Tokens, trivia, escapes, and literal scanning | `tools\unittests.bat dm lexer` |
+| `bin/unittests/parser` | Grammar and source structure | `tools\unittests.bat dm parser` |
+| `bin/unittests/sema` | Types, overloads, generics, attributes, and semantic rules | `tools\unittests.bat dm sema` |
 | `bin/unittests/errors/<stage>` | Expected diagnostics at a compiler stage | Matching stage runner |
-| `bin/unittests/jit` | Compile-time and in-memory execution | `swc tools\unittests.swgs dm jit` |
-| `bin/unittests/safety` | Runtime safety guards | `swc tools\unittests.swgs dm safety` |
-| `bin/unittests/sanity` | Static and lifecycle sanity analysis | `swc tools\unittests.swgs dm sanity` |
-| `bin/unittests/native` | Encoding, linking, and native execution | `swc tools\unittests.swgs dm native` |
-| `src/Unittest` | C++ internals and PDB consumer checks | `swc tools\unittests.swgs dm cpp` |
+| `bin/unittests/jit` | Compile-time and in-memory execution | `tools\unittests.bat dm jit` |
+| `bin/unittests/safety` | Runtime safety guards | `tools\unittests.bat dm safety` |
+| `bin/unittests/sanity` | Static and lifecycle sanity analysis | `tools\unittests.bat dm sanity` |
+| `bin/unittests/native` | Encoding, linking, and native execution | `tools\unittests.bat dm native` |
+| `src/Unittest` | C++ internals and PDB consumer checks | `tools\unittests.bat dm cpp` |
 
 Do not add a source test for a command-line, linker, backend, runtime, or
 internal-only behavior when its real boundary has a dedicated harness.
@@ -50,8 +50,8 @@ Repeated tags form a union; combining `--test-file` and `--test-tag` requires bo
 Tests must be headless by default. A test that requires a real OpenGL drawable or a host window
 uses an `integration.` tag, such as `integration.renderer.opengl` or
 `integration.host.windows`. Those tests run only when their tag is explicitly selected. Run the
-ordinary campaign first, then `tools\integrations.swgs opengl`,
-`tools\integrations.swgs windows`, and `tools\integrations.swgs smoke` on an interactive host.
+ordinary campaign first, then `tools\integrations.bat opengl`,
+`tools\integrations.bat windows`, and `tools\integrations.bat smoke` on an interactive host.
 
 The default `test` command runs `#test` functions through both the JIT and
 native backend. A layer runner narrows those paths when the layer itself is the
@@ -77,19 +77,18 @@ harness normally consumes.
 Build the `DevMode|x64` compiler first, then run the narrow layer:
 
 ```text
-swc tools\unittests.swgs dm sema
+tools\unittests.bat dm sema
 ```
 
 Before submitting a compiler change, follow the validation sequence in the
 repository's `AGENTS.md`. The common aggregate commands are:
 
 ```text
-swc tools\tests.swgs dm
-swc tools\tests.swgs dm --all-cfg
+tools\tests.bat dm
 ```
 
-`tests.swgs` runs the default suite once. `tests.swgs --all-cfg` repeats it for
-the `release` and `devmode` language configurations.
+The batch campaign runs the default suite once. Run it again with `-bc release`
+to validate the release language configuration.
 
 ## Keep failures reviewable
 
@@ -99,10 +98,10 @@ the `release` and `devmode` language configurations.
   input without a recorded seed.
 - Keep passing tests silent; use temporary `Swag.print` calls only while debugging.
 - After a change that can affect shared rendering output, run
-  `swc tools\goldens.swgs dm test`; it runs every golden-tagged test and reports all generated
+  `tools\goldens.bat dm test`; it runs every golden-tagged test and reports all generated
   `.actual.txt` and `.actual.png` files without accepting them.
 - Review any `*.actual.txt` snapshot before accepting it with
-  `swc tools\goldens.swgs`.
+  `tools\goldens.bat accept`.
 - Retain a regression test after the compiler fix lands.
 
 The executable [language reference](language.html) is also a regression suite,

@@ -40,11 +40,11 @@ All intermediate C++ files stay under the repository's `.tmp/x64` tree.
 Run this once from the repository root:
 
 ```text
-bin\swc.exe tools\setup.swgs
+tools\setup.bat
 ```
 
-Open a new terminal afterward. The script adds `bin` to the user `PATH`, sets
-`SWAG_PATH`, and hands the `.swgs` extension to the compiler. `swc.exe` finds
+Open a new terminal afterward. The script adds `bin` to the user `PATH` and sets
+`SWAG_PATH`. `swc.exe` finds
 its runtime and standard workspace beside itself; with more than one checkout,
 run each one's tools with its own `bin\swc.exe` so both come from that tree.
 
@@ -63,15 +63,14 @@ useful while iterating:
 
 | Command | Scope |
 |---|---|
-| `swc tools\unittests.swgs dm cpp` | Internal C++ unit tests |
-| `swc tools\unittests.swgs dm lexer` | Lexer source tests and expected diagnostics |
-| `swc tools\unittests.swgs dm parser` | Parser source tests and expected diagnostics |
-| `swc tools\unittests.swgs dm sema` | Semantic source tests and expected diagnostics |
-| `swc tools\unittests.swgs dm jit` | JIT execution tests |
-| `swc tools\unittests.swgs dm native` | Native code generation and execution tests |
-| `swc tools\reference.swgs dm test` | Executable language reference |
-| `swc tools\tests.swgs dm` | Full default DevMode test suite |
-| `swc tools\tests.swgs dm --all-cfg` | Default suite in `release` and `devmode` |
+| `tools\unittests.bat dm cpp` | Internal C++ unit tests |
+| `tools\unittests.bat dm lexer` | Lexer source tests and expected diagnostics |
+| `tools\unittests.bat dm parser` | Parser source tests and expected diagnostics |
+| `tools\unittests.bat dm sema` | Semantic source tests and expected diagnostics |
+| `tools\unittests.bat dm jit` | JIT execution tests |
+| `tools\unittests.bat dm native` | Native code generation and execution tests |
+| `tools\reference.bat dm test` | Executable language reference |
+| `tools\tests.bat dm` | Default DevMode test suite |
 
 The repository's [agent guide](https://github.com/swag-lang/swc/blob/master/AGENTS.md)
 defines the required validation sequence for each change type.
@@ -81,7 +80,7 @@ defines the required validation sequence for each change type.
 After a DevMode build, regenerate the complete documentation site with:
 
 ```text
-swc tools\help.swgs dm
+tools\help.bat dm
 ```
 
 The command writes the documentation to `bin/help/`, beside the compiler and standard modules.

@@ -91,9 +91,6 @@ timestamps, status fields, completed milestones, validation logs, or free-standi
 sections.
 
 Search the whole backlog before adding an entry. Update an existing entry when the same work
-changes direction. Delete it when it is done, disproved, or dropped. The repository validator
-checks identifiers, links, related entries, and the index:
-
-```text
-bin\swc.exe --num-cores 6 tools\tests\repository.swgs .
-```
+changes direction. Delete it when it is done, disproved, or dropped. The former repository
+backlog validator was retired with the Swag tool scripts; review identifiers, links, related
+entries, and this index against the contract above.

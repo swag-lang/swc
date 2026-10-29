@@ -190,8 +190,8 @@ measure when a size needs it, but do not redraw the letter. A gradient ribbon, a
 faceted gem, a fragmenting `S` and a drawn wordmark were all tried and rejected.
 
 `bin/help/tools/brand.swgs` is the only definition of that geometry. It builds the mark once as
-a `Pixel.LinePath` and hands it to `Pixel.Svg.Document` and `Pixel.ImageCanvas`. `tools/help.swgs`
-runs it before generating the pages. To regenerate the assets on their own:
+a `Pixel.LinePath` and hands it to `Pixel.Svg.Document` and `Pixel.ImageCanvas`. Run it separately
+before `tools/help.bat` when the brand assets change. To regenerate the assets on their own:
 
 ```
 swc bin/help/tools/brand.swgs
@@ -207,7 +207,7 @@ When the geometry changes, update four places in the same change:
 2. Paste the new path and its `viewBox` into `--swag-mark` in `DocPage::styles()`.
 3. Paste the same path into `bench/page_template.html` and into the `bench/bench.html` it
    produced.
-4. Copy the icon into the VSCode extension with `swc tools/vsix.swgs`.
+4. Copy the icon into the VSCode extension with `tools/vsix.bat`.
 
 ## Regenerate The Syntax Image
 
@@ -358,7 +358,7 @@ Console output, diagnostics and documentation prose follow
 ## Verify
 
 1. Regenerate the assets and the site: `swc bin/help/tools/brand.swgs`, then
-   `swc tools/help.swgs dm`.
+   `tools/help.bat dm`.
 2. Look at a page in both palettes and at a narrow width.
 3. Look at the mark at 16, 32 and 128 pixels. If the counters close up, the crop is wrong before
    the mark is.

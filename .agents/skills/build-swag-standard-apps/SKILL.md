@@ -430,7 +430,7 @@ Pixel.Testing.assertImageGolden(&image, "surface.encre")
   [modify-swag-codebase](../modify-swag-codebase/SKILL.md).
 - Put a genuinely shared application helper directly under `bin/apps/modules`. Compile one
   application's viewers and optional backends into its own module. Do not create loadable plugin
-  modules or a special build path in `tools/apps.swgs`.
+  modules or a special build path in `tools/apps.bat`.
 - A module that normally emits a library selects an executable backend for `#test` when its
   tests must run natively.
 - Put external components under `vendor/<product>/` inside the module, with their licence, and
@@ -439,7 +439,7 @@ Pixel.Testing.assertImageGolden(&image, "surface.encre")
 - Never commit generated `.dep`, `.output` or `.tmp` files, or copied compiler binaries.
 - Keep a module README when setup, packaging, privileges or third-party deployment needs
   explaining. Add reusable entry points under `tools/`, with no personal absolute paths.
-- `tools/apps.swgs` builds, tests, runs and smokes the workspace. Its positional name selects one
+- `tools/apps.bat` builds, tests, runs and smokes the workspace. Its positional name selects one
   application.
 
 ## Prove The Application
@@ -447,19 +447,19 @@ Pixel.Testing.assertImageGolden(&image, "surface.encre")
 Apply [validate-swag-changes](../validate-swag-changes/SKILL.md) to each changed behaviour:
 
 1. While iterating, run the owning test file:
-   `swc tools/apps.swgs dm test <application> --test-file <name>.test.swg`.
+   `tools/apps.bat dm test <application> --test-file <name>.test.swg`.
 2. Run the whole application's tests only when shared application state or several test families
    changed.
 3. For a visible change, review **every** `.actual.png` the run left as a whole screen against its
    charter picture, in Encre and in Papier. Do not review only the diff or only the part you
    meant to change. A golden that changed in a part you did not touch is a finding. Promote each
    reviewed snapshot on its own by moving it over its golden. Never run
-   `swc tools/goldens.swgs accept`, which promotes every snapshot on disk.
-4. Build with `swc tools/apps.swgs dm build <application>` when module setup, linking, resources
+   `tools/goldens.bat accept`, which promotes every snapshot on disk.
+4. Build with `tools/apps.bat dm build <application>` when module setup, linking, resources
    or packaging changed.
-5. Run `swc tools/apps.swgs dm smoke <application>` when startup, the main loop or packaged
+5. Run `tools/apps.bat dm smoke <application>` when startup, the main loop or packaged
    runtime behaviour changed.
-6. Run any dedicated integration tool that applies, such as `swc tools/vault.swgs dm` for Swag
+6. Run any dedicated integration tool that applies, such as `tools/vault.bat dm` for Swag
    Vault and WinFsp. Keep tests that need UAC, drivers, hardware or visible interaction behind
    these tools.
 7. When packaging changed, inspect the packaged output for the executable, its runtime

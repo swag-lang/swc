@@ -319,13 +319,13 @@ in `src/tests/goldens`. External fixtures record their source URLs, license, and
 Run a focused test with:
 
 ```text
-swc tools/apps.swgs dm test swagscope --test-file viewer.<format>.test.swg
+tools/apps.bat dm test swagscope --test-file viewer.<format>.test.swg
 ```
 
-`swc tools/apps.swgs dm build swagscope` builds one executable containing all viewers and lets
+`tools/apps.bat dm build swagscope` builds one executable containing all viewers and lets
 the workspace publisher place its standard-module runtime dependencies beside it.
 
-`swc tools/apps.swgs dm smoke swagscope` opens every plugin's registered fixture in order and
+`tools/apps.bat dm smoke swagscope` opens every plugin's registered fixture in order and
 selects that plugin explicitly. It keeps progressive content visible long enough to exercise late
 failures, waits while a viewer has no presentable content, and returns a nonzero exit code when a
 fixture is missing or a plugin cannot open it.

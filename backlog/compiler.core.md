@@ -78,7 +78,7 @@ Entries stay in one flat list. Keep only measurements that affect the next actio
 
 ### compiler.core.047 — Imported generic bodies intermittently duplicate a binding
 
-- Evidence: a six-worker DevMode script smoke (`tools/scripts.swgs dm smoke`) once stopped
+- Evidence: a six-worker DevMode script smoke (`tools/scripts.bat dm smoke`) once stopped
   while checking `asciiart.swgs`. The generated core API's `hashtable.swg` reported local
   `mask` as already defined, and the previous-definition note pointed at the same
   declaration, in specialization `HashTable(string, ConcatBufferPosition)`. Isolated and
@@ -181,7 +181,7 @@ Entries stay in one flat list. Keep only measurements that affect the next actio
 
 - Evidence: `--dev-sched-stats` (DevMode) splits worker time into running jobs, serial phases,
   scheduler lock waits and starvation, and charges serial and starved time to driver phases.
-  In a quiet 16-worker `std.swgs dm build gui --rebuild`, worker time is lost to:
+  The earlier quiet 16-worker standard-library measurement found worker time lost to:
   - starvation in semantic analysis (7.4%)
   - code-generation starvation and serial time (7.0% and 2.2%, compiler.core.071)
   - native-backend work around code generation (3.3% serial and 2.4% starved)

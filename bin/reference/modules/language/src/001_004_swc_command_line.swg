@@ -164,7 +164,7 @@ reports what each target holds while removing nothing.
 
 A script reads its dependencies from a copy rather than from where they were
 built, because the compiler loads their shared libraries into its own process:
-'swc tools/std.swgs' rebuilds the very library it is running on, and could not
+'tools/std.bat' rebuilds the very library it is running on, and could not
 replace a file the run has locked. Each copy is named after what it holds, so
 every script importing the same build shares one, a rebuilt dependency lands
 beside the copy a running script is reading instead of replacing it, and no run
@@ -265,7 +265,7 @@ Repeated file filters form one union and repeated tag filters form another. When
 both kinds are present, a test must match both dimensions. With no tag filter,
 tagged and untagged tests run normally except tags beginning with 'integration.'.
 Those require an explicit '--test-tag' selection and may use a real renderer or
-host window. The repository runs them through 'tools/integrations.swgs'.
+host window. The repository runs them through 'tools/integrations.bat'.
 
 The three '*-only' modes are mutually exclusive. For this reference, keep the
 default JIT and native paths enabled so examples verify both execution engines.

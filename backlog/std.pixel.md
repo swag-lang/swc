@@ -56,7 +56,7 @@ ships; history lives in Git, not here.
 
 ### std.pixel.025 — Extend the explicit OpenGL campaign to the portable rendering scenes
 
-- Evidence: `tools/integrations.swgs opengl` runs only tests tagged
+- Evidence: `tools/integrations.bat opengl` runs only tests tagged
   `integration.renderer.opengl`, in both configurations with `--all-cfg`. `sampling.ogl.test.swg`
   compares CPU and GPU texture sampling, and `renderthread.test.swg` checks a worker-owned
   context and render-target readback. The stroke, text and layer scenes in

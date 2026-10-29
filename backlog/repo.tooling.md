@@ -7,16 +7,16 @@ being compiled by it.
 
 ### repo.tooling.011 — No validation step compiles the Swag benchmark modules
 
-- Evidence: `tools/build.swgs` covers std, examples, apps, the Vault integration, the
-  reference, and the workspace suite. Nothing in the ladder compiles the eleven
+- Evidence: `tools/build.bat` covers std, examples, apps, and the reference. Nothing in the
+  build or test launchers compiles the eleven
   `bench/*/module.swg` modules, so a language or std change can break them unnoticed.
   `argon2`, `chacha20`, and `resize` are test-only modules meant for
   `test --no-test-jit -bc release`. Their JIT run trips the `Swag.workerCount()` assertion,
   so a compile check must not execute them.
-- Next: give `build.swgs` a benchmark step: `sema --module` for program modules, and a compile
+- Next: give `build.bat` a benchmark step: `sema --module` for program modules, and a compile
   of the test-only modules that runs none of their timed `#test` bodies (a compiler option to
   build a test executable without running it, or a dedicated tag), in each configuration.
-- Done when: breaking any `bench/*/module.swg` source fails `tools/build.swgs`.
+- Done when: breaking any `bench/*/module.swg` source fails `tools/build.bat`.
 
 ### repo.tooling.002 — A video differential harness must line pictures up by time, not by rank
 

@@ -94,8 +94,8 @@ its embedded payload or diagnose a damaged delivery. Conversely, guidance for an
 
 - Evidence: the repository explicitly publishes no binary release today. `swc` resolves `runtime/`
   beside its executable and resolves `std/` beside it or through `SWAG_PATH`; a copied lone
-  executable therefore cannot compile an ordinary program. `tools/setup.swgs` currently changes
-  the user environment and file association, which is useful only after a complete `bin/` directory
+  executable therefore cannot compile an ordinary program. `tools/setup.bat` currently changes
+  the user environment, which is useful only after a complete `bin/` directory
   exists.
 - Intent: publish a release contract with two supported entrances, named consistently everywhere:
   the complete `bin/` installation above and the single-file delivery above. Define exactly which

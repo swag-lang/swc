@@ -27,7 +27,7 @@ struct ImageGoldenOptions
 // so a new test starts by producing its reference; the file then shows up as untracked, which is
 // where it gets reviewed and committed. A name whose golden no longer matches writes the produced
 // text next to it as '<name>.actual.txt', prints the first differing line, and fails. Accepting
-// the new output is therefore a copy, which `swc tools/goldens.swgs` does in bulk.
+// the new output is therefore a copy, which `tools/goldens.bat accept` does in bulk.
 //
 // These checks remain active when Pixel is built as a release dependency.
 //

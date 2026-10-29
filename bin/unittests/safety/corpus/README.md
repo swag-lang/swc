@@ -53,7 +53,7 @@ claim that the real allocator detects the fault, or that reading freed memory is
 ## Running the corpus
 
 ```text
-bin/swc.dm.exe --num-cores 6 tools/unittests.swgs dm safety -bc devmode --file-filter corpus --num-cores 6
+tools/unittests.bat dm safety -bc devmode --file-filter corpus
 ```
 
 The corpus shares `helpers.swg`, so a filename-only filter would discard required declarations.

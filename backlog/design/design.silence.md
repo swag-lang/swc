@@ -101,6 +101,8 @@ dialogs, then each application, then the written rules.
     the timeline shows no marks. The playhead and its outline now stay inside the rail at either
     endpoint; paired Encre/Papier goldens show both ends without clipping.
   What still differs from the pictures, screen by screen:
+  - Surface window shadows were reported as too dark. Their strength is now set independently
+    from floating panels and sheets, with a restrained shadow in each theme.
   - Mixed board: a sound cell shows the thumbnailer's preview or its glyph, not a drawn
     waveform; "Aa" is in the interface face, not the font's own; a film's facts have no size of
     its picture. The title is Bold, not 800.

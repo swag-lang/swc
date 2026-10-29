@@ -151,6 +151,9 @@ comme image…"). An ellipsis marks a command that asks for more before acting.
 - The application glyph sits at (18, 16), 18 px, about 55 % opacity, monochrome soft colour.
 - The document's name is centred at the top, 12 px, faint. Nothing else is written there.
 - The window buttons are faint glyphs at the top right; they reach full contrast on hover.
+- The window shadow is restrained: 35 % on Encre and 24 % on Papier. It separates the surface
+  from its surroundings without competing with the work. Floating panels and sheets use the
+  stronger shadow described in [Measures](#measures).
 - A document shows its position with a 1 px thread on the right edge and a short mark, not a
   scrollbar. A thin scrollbar (6 px) appears while scrolling or on hover.
 - A faint hint line ("Ctrl Space — everything else") may sit 24 px above the bottom edge while the

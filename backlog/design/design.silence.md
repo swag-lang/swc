@@ -98,19 +98,17 @@ dialogs, then each application, then the written rules.
     (`viewer.video.{ink,paper}`, `viewer.video.hover.{ink,paper}`); Scope reads no chapters, so
     the timeline shows no marks.
   What still differs from the pictures, screen by screen:
-  - Mixed board: a PDF, code, Markdown, sound and font cell show the preview the thumbnailer
-    renders, not the drawn paper card, mono lines, heading, waveform or "Aa" of the picture; the
-    facts line has no dimensions, pages, lines, sections or face (only length, count and size).
-    The title is Bold, not 800.
+  - Mixed board: a sound cell shows the thumbnailer's preview or its glyph, not a drawn
+    waveform; "Aa" is in the interface face, not the font's own; a film's facts have no size of
+    its picture. The title is Bold, not 800.
   - Films: no playback progress thread at the poster's foot and no "Resume at 1 h 12" / "or from
     the start" — Scope keeps no resume position for a film yet; the count says "items", not
     "films".
-  - Music and album: the hint line does not teach Enter / P; the count says "items", not
-    "albums · tracks"; the album's cover casts no shadow; nothing plays from the album page
-    itself, so no row is "playing" — the chosen one carries the ▶; the view menu cannot force
-    covers, posters or mosaic.
-  - Photos: the last row of a day is not justified; no mono tip of the camera facts under the
-    pointer; the order is the folder's, not by date.
+  - Album: nothing plays from the album page itself, so no row is "playing" — the chosen one
+    carries the ▶.
+  - Photos: the last row of a day stays at its aim when stretching it would make it much taller
+    than its aim; the tip names the file and its weight, not the camera's facts (Scope reads no
+    EXIF yet); "taken" is the file's modification date.
   - Archive: the sheet asks for the member's picture but the golden holds it still without one;
     dates are ISO, not the short day/month; the sheet's two buttons share the foot in halves.
   - PDF: the reading line still carries previous/next arrows beside "1 / 2"; no position thread
@@ -122,10 +120,8 @@ dialogs, then each application, then the written rules.
     outline), binary (report page), hex (structure tabs, large inspector), font (specimen page);
     the "Column ▾" quiet menu of text; the progress thread under the strip with documents
     scrolling under it.
-- Next: the mixed board's drawn cards (a PDF's first page on paper, code lines, a Markdown
-  heading, a waveform, "Aa" in a font's face) and its facts (dimensions, pages, lines); the
-  shipped frame for every Scope golden; then image, table, HTML, binary, hex and font on their
-  pictures; short dates in archive rows.
+- Next: the shipped frame for every Scope golden; then image, table, HTML, binary, hex and font
+  on their pictures; short dates in archive rows.
 - Done when: every Scope golden matches its picture as a whole screen.
 - Related: design.silence.004
 

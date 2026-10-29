@@ -196,13 +196,13 @@ impl SheetView
             {
                 .name = name
                 if field.pointedType == #typeof(f32) do
-                    .text = Format.toString("%", cast(const *f32, raw)[])
+                    .text = metricText(cast(const *f32, raw)[])
                 elif field.pointedType == #typeof(u32) do
                     .text = Format.toString("%", cast(const *u32, raw)[])
                 else
                 {
                     let vec = cast(const *Math.Vector4, raw)[]
-                    .text = Format.toString("% % % %", vec.x, vec.y, vec.z, vec.w)
+                    .text = Format.toString("% % % %", metricText(vec.x), metricText(vec.y), metricText(vec.z), metricText(vec.w))
                 }
             }
 
@@ -350,4 +350,13 @@ impl IWnd for SheetWnd
         if evt.kind == .ThemeChanged and (.view != null) do
             .view.rebuild()
     }
+}
+
+// Writes a metric as a reader measures it: a whole number of pixels without decimals, a fraction
+// such as a duration with the two decimals it is chosen with.
+func metricText(value: f32)->String
+{
+    if value == Math.floor(value) do
+        return Format.toString("%", cast(s64, value))
+    return Format.toString("%{f2}", value)
 }

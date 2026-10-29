@@ -55,16 +55,16 @@ func createSliderStack(parent: *Wnd, rect: Math.Rectangle)
                             "A vertical stack hosting composite controls with fixed row heights.",
                             rect)
     let stack = StackLayoutCtrl.create(panel, .Top, Math.Rectangle{SectionInset, 88, rect.width - 2 * SectionInset, rect.height - 88})
-    stack.spacing = 12
+    stack.spacing = 6
 
     let width = Math.max(rect.width - 2 * SectionInset, 280.0)
-    let row1  = SliderCtrl.create(stack, "Left", Math.Rectangle{0, 0, width, 32})
+    let row1  = SliderCtrl.create(stack, "Left", Math.Rectangle{0, 0, width, 28})
     row1.setFloatBounds(120, 360)
     row1.setValueWithoutGesture(220)
-    let row2 = SliderCtrl.create(stack, "Center", Math.Rectangle{0, 0, width, 32})
+    let row2 = SliderCtrl.create(stack, "Center", Math.Rectangle{0, 0, width, 28})
     row2.setFloatBounds(240, 720)
     row2.setValueWithoutGesture(480)
-    let row3 = SliderCtrl.create(stack, "Right", Math.Rectangle{0, 0, width, 32})
+    let row3 = SliderCtrl.create(stack, "Right", Math.Rectangle{0, 0, width, 28})
     row3.setFloatBounds(160, 420)
     row3.setValueWithoutGesture(260)
 

@@ -40,25 +40,25 @@ func createEditBoxPage(parent: *Wnd)
                             layout.right)
     scope
     {
-        var edit = EditBox.create(modes, "128", {24, 90, 130})
+        var edit = EditBox.create(modes, "128", {24, 90, 120})
         edit.setSignedIntegerRange(-256, 256)
         edit.setUnit("px")
         edit.updateFlags(.RightAligned)
         edit.setPlaceholder("S64")
 
-        edit = EditBox.create(modes, "FF", {180, 90, 130})
+        edit = EditBox.create(modes, "FF", {164, 90, 120})
         edit.setHexadecimalRange()
         edit.setMaximumLength(4)
         edit.setPlaceholder("Hex")
 
-        edit = EditBox.create(modes, "3.1415", {336, 90, 130})
+        edit = EditBox.create(modes, "3.1415", {304, 90, 120})
         edit.setFloatingPointRange()
         edit.setPlaceholder("Float")
 
-        edit = EditBox.create(modes, "Read only", {24, 140, 180})
+        edit = EditBox.create(modes, "Read only", {24, 140, 120})
         edit.updateFlags(.ReadOnly)
 
-        edit = EditBox.create(modes, "Disabled", {240, 140, 180})
+        edit = EditBox.create(modes, "Disabled", {164, 140, 120})
         edit.disable()
     }
 

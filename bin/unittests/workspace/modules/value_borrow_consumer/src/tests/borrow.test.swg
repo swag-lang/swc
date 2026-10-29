@@ -1,4 +1,5 @@
 #global if #command == Swag.CompilerCommand.Test
+#global #[Swag.Safety(.ValueBorrow, true)]
 #global private
 using BorrowLibrary
 

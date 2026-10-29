@@ -1,4 +1,5 @@
 // A shared artifact with its own emitted runtime participates in the caller's borrow registry.
+#global #[Swag.Safety(.ValueBorrow, true)]
 public struct Value
 {
     public { first, second, third: u64 }

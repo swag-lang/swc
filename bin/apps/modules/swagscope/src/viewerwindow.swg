@@ -914,6 +914,7 @@ impl ViewerWindow
         result.createViewerBar()
         result.createSheetAndHint()
         result.createLens()
+        Lens.Launcher.create(result, ViewerCommands.Lens)
         result.hookChildEvents()
 
         result.applyLanguage()

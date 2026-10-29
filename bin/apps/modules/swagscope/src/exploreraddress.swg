@@ -15,6 +15,7 @@ struct ExplorerAddress
     late
     {
         explorer:   *Explorer
+        navigation: *StackLayoutCtrl
         pathScroll: *ScrollWnd
         breadcrumb: *BreadcrumbCtrl
         edit:       *EditBox
@@ -35,6 +36,28 @@ impl ExplorerAddress
         {
             .explorer        = explorer
             .backgroundStyle = .Transparent
+        }
+
+        // Navigation stays next to the location, including while a path is being typed.
+        with result.navigation = StackLayoutCtrl.create(result, .Left)
+        {
+            .dockStyle       = .Left
+            .backgroundStyle = .Transparent
+            .margin.z        = 8
+            .spacing         = 4
+        }
+
+        for command, index in [ViewerCommands.Back, ViewerCommands.Forward, ViewerCommands.Up]
+        {
+            let glyphs      = [ThemeIcons.ChevronLeft, .ChevronRight, .ParentFolder]
+            with let button = IconButton.create(result.navigation,
+                                                result.theme().icon(glyphs[index], 16),
+                                                {0, 0, Explorer.AddressHeight, Explorer.AddressHeight},
+                                                command,
+                                                .IconOnly | .Flat)
+            {
+                .layoutSpec.alignY = .Center
+            }
         }
 
         with result.pathScroll = Wnd.create'ScrollWnd(result)
@@ -135,8 +158,8 @@ impl IWnd for ExplorerAddress
         let painter = evt.paintContext.painter
         let rects   = .themeRects()
         let colors  = .themeColors()
-        .theme().drawSubRect(painter, .clientRect(), &rects.edit_SquareBk, colors.edit_Bk)
-        .theme().drawSubRect(painter, .clientRect(), &rects.edit_SquareBorder, colors.edit_FocusBorder)
+        .theme().drawSubRect(painter, .edit.position, &rects.edit_SquareBk, colors.edit_Bk)
+        .theme().drawSubRect(painter, .edit.position, &rects.edit_SquareBorder, colors.edit_FocusBorder)
     }
 
     // The air around the segments belongs to the field too: pressing it starts typing.

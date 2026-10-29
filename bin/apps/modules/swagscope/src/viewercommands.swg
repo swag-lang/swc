@@ -685,6 +685,14 @@ impl ViewerWindow
 
         evt.name = name
         evt.updatedFields.add(.Name)
+        if evt.id == ViewerCommands.Back or
+           evt.id == ViewerCommands.Forward or
+           evt.id == ViewerCommands.Up
+        {
+            evt.toolTip = name
+            evt.updatedFields.add(.ToolTip)
+        }
+
         if icon.isValid()
         {
             evt.icon = icon
@@ -697,11 +705,8 @@ impl ViewerWindow
             evt.updatedFields.add(.Hidden)
         }
 
-        if disabled
-        {
-            evt.disabled = true
-            evt.updatedFields.add(.Disabled)
-        }
+        evt.disabled = disabled
+        evt.updatedFields.add(.Disabled)
 
         if toggle
         {

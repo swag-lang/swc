@@ -12,7 +12,7 @@ func testSetupSurfaceMain(host: *Gui.Testing.HeadlessHost, caption = false, dpiS
     registerAppStrings(&g_App.resources)
     registerAppStrings(&host.app.resources)
     if caption do
-        host.surface.updateFlags(.LargeCaption)
+        host.surface.updateFlags(Gui.SurfaceFlags.StandardWindow)
 
     with let main = MainWnd.create(&host.surfaceWnd)
     {
@@ -100,9 +100,9 @@ func testAssertLibrarySheetGolden(host: *Gui.Testing.HeadlessHost, main: *MainWn
 
 // Builds the editor over a white capture, in `dark` or light, the way the shipped window is; with
 // `text`, the capture holds one selected text.
-func testSetupEditorSurface(host: *Gui.Testing.HeadlessHost, dark: bool, text = true)->*MainWnd
+func testSetupEditorSurface(host: *Gui.Testing.HeadlessHost, dark: bool, text = true, caption = false, dpiScale = 1'f32)->*MainWnd
 {
-    let main = testSetupSurfaceMain(host)
+    let main = testSetupSurfaceMain(host, caption, dpiScale)
 
     let capture = Memory.new'Capture()
     capture.width, capture.widthOrg   = 400
@@ -135,8 +135,52 @@ func testSetupEditorSurface(host: *Gui.Testing.HeadlessHost, dark: bool, text = 
     return main
 }
 
-// The caption carries the window buttons and nothing else: the appearance owner stays hidden,
-// and its choices, like every command, are entries of the lens.
+// The task row and command entrance in the shipped frame, at the minimum width and 125% scale.
+#[Swag.TestTag("golden")]
+#test
+{
+    for dark in [true, false]
+    {
+        var host: Gui.Testing.HeadlessHost
+        let main = testSetupEditorSurface(&host, dark, text: false, caption: true, dpiScale: 1.25)
+        defer discard catch main.appearanceButton.setAppearanceLanguage(Gui.ReferenceLanguage)
+        expect main.appearanceButton.setAppearanceLanguage(dark ? Gui.ReferenceLanguage : "fr")
+        main.updateState()
+        host.finishAnimations()
+        var image = host.render(&host.surfaceWnd)
+        Pixel.Testing.assertImageGolden(&image, dark ? "tasks.frame.encre" : "tasks.frame.fr.papier")
+    }
+}
+
+// Frequent actions fit at the minimum width in both languages, and Library works by pointer.
+#test
+{
+    var host: Gui.Testing.HeadlessHost
+    let main = testSetupEditorSurface(&host, dark: true, text: false)
+    defer discard catch main.appearanceButton.setAppearanceLanguage(Gui.ReferenceLanguage)
+    for language in [Gui.ReferenceLanguage, "fr"]
+    {
+        expect main.appearanceButton.setAppearanceLanguage(language)
+        main.updateState()
+        host.finishAnimations()
+        main.applyLayout()
+        Swag.assert(main.taskBar.children.count == 4)
+        var right = 0'f32
+        for child in main.taskBar.children
+        {
+            Swag.assert(child.position.x >= right)
+            Swag.assert(child.position.width >= Math.floor(child.itf.measureContent({}).x))
+            Swag.assert(child.position.right() <= main.taskBar.clientRect().right())
+            right = child.position.right()
+        }
+    }
+
+    host.click(main.taskBar.children[1].surfaceRect().center())
+    host.pump()
+    Swag.assert(main.libraryMode)
+}
+
+// The named command door shares the caption with the native window buttons.
 #test
 {
     var host: Gui.Testing.HeadlessHost

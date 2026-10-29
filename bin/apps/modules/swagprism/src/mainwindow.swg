@@ -102,6 +102,7 @@ impl MainWindow
         result.infoSheet = InfoSheet.create(result, "prism.information")
         result.createPanels()
         result.createLens()
+        Lens.Launcher.create(result, PrismCommands.Lens)
         result.applyLanguage()
         result.applyView(.Columns)
         return result

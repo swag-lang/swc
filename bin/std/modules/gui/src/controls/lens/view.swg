@@ -26,10 +26,9 @@ using Core, Pixel
 // Opened with nothing typed, the lens is a palette of what can be done here and now, not a list
 // of everything: the sections of the rest sources ([[Gui.Lens.View.addRestSource]]) — the actions
 // of the object in hand — then the commands chosen last. An application that declares neither
-// still lists all its commands at rest. Typed into, the sources answer first, in their own order,
-// as they know their rows best; the families of commands follow, ranked by their best command,
-// each from the best answer down, and commands matched only by scattered letters are left out
-// when others answer better.
+// still lists all its commands at rest. Typed into, sections rank by their best title match.
+// Sources keep their own row order, while commands rank from the best answer down. Commands
+// matched only by scattered letters or a typo are left out when others answer precisely.
 //
 // Applications open the lens with `Ctrl Space` by calling [[Gui.Lens.View.open]].
 //
@@ -782,7 +781,7 @@ private impl View
                 if title.isEmpty() do
                     continue
 
-                let found = match(.results.query, title)
+                let found = match(.results.query, title, tolerateTypos: true)
                 if not found.matched do
                     continue
 
@@ -1224,14 +1223,29 @@ private impl View
         let centerY = top + metrics.lens_FooterHeight * 0.5
         painter.fillRect(Math.Rectangle{body.x, top - metrics.separator_HairlineSize, body.width, metrics.separator_HairlineSize}, colors.line)
 
-        var x = body.x + metrics.lens_TextInset
-        x += paintKeycap(me, painter, x, centerY, "↑↓") + metrics.hintLine_KeyGap
-        x += paintTextLine(painter, x, centerY, strings().lens_Choose, font, colors.faintText) + metrics.hintLine_GroupGap
-        x += paintKeycap(me, painter, x, centerY, strings().key_Enter) + metrics.hintLine_KeyGap
-        x += paintTextLine(painter, x, centerY, strings().lens_Go, font, colors.faintText) + metrics.hintLine_GroupGap
+        // Source links remain usable in a narrow window or a longer translation. Secondary key
+        // advice uses only the room they leave; it never paints over a link.
+        var hintsRight = body.right() - metrics.lens_TextInset
+        for prefix in [Prefix.Action, Prefix.File, Prefix.Line] where .answers(prefix) do
+            hintsRight = Math.min(hintsRight, .prefixRect(prefix).x - metrics.hintLine_GroupGap)
+        let chooseWidth = keycapWidth(me, "↑↓") + metrics.hintLine_KeyGap + Painter.measureString(strings().lens_Choose, font).width
+        let goWidth     = keycapWidth(me, strings().key_Enter) + metrics.hintLine_KeyGap + Painter.measureString(strings().lens_Go, font).width
+        var x           = body.x + metrics.lens_TextInset
+        if x + chooseWidth + metrics.hintLine_GroupGap + goWidth <= hintsRight
+        {
+            x += paintKeycap(me, painter, x, centerY, "↑↓") + metrics.hintLine_KeyGap
+            x += paintTextLine(painter, x, centerY, strings().lens_Choose, font, colors.faintText) + metrics.hintLine_GroupGap
+        }
+
+        if x + goWidth <= hintsRight
+        {
+            x += paintKeycap(me, painter, x, centerY, strings().key_Enter) + metrics.hintLine_KeyGap
+            x += paintTextLine(painter, x, centerY, strings().lens_Go, font, colors.faintText) + metrics.hintLine_GroupGap
+        }
 
         // A setting or a choice can be run without leaving the lens.
-        if .chosenIsCheckable()
+        let stayWidth = keycapWidth(me, strings().key_CtrlEnter) + metrics.hintLine_KeyGap + Painter.measureString(strings().lens_Stay, font).width
+        if .chosenIsCheckable() and x + stayWidth <= hintsRight
         {
             x += paintKeycap(me, painter, x, centerY, strings().key_CtrlEnter) + metrics.hintLine_KeyGap
             discard paintTextLine(painter, x, centerY, strings().lens_Stay, font, colors.faintText)
@@ -1385,10 +1399,7 @@ private impl View
         }
     }
 
-    // Ranks the rows of the query on screen. The sections of the sources keep their order and
-    // their rows; the families of commands follow, ranked by their best command, each from the
-    // best answer down. When a command answers better than scattered letters, the commands that
-    // only answer with scattered letters are left out.
+    // Rank sections by relevance, keeping source rows in their natural order and empty queries stable.
     mtd rankResults()
     {
         let query   = .results.query.toString()
@@ -1403,7 +1414,7 @@ private impl View
                     continue
                 }
 
-                var found = match(query, entry.title)
+                var found = match(query, entry.title, tolerateTypos: section.ranked)
                 entry.score = found.matched ? found.score : 0
                 if entry.spans.isEmpty() and found.matched do
                     entry.spans = #move found.spans
@@ -1433,10 +1444,10 @@ private impl View
             for key in keys do
                 sec.order.add(key & 0xFFFFFFFF)
             if not sec.order.isEmpty() do
-                sectionKeys.add(ranks ? (1'u64 << 63) | rankKey(sec.best, index) : index)
+                sectionKeys.add(query.count != 0 ? rankKey(sec.best, index) : index)
         }
 
-        // The sources first, in their order; then the families of commands, best first.
+        // Provider registration order only breaks equal scores; it cannot bury a precise command.
         sectionKeys.sort()
         .sectionOrder.clear()
         for key in sectionKeys do

@@ -35,6 +35,27 @@ struct FloatingInsets
 
 impl MainWnd
 {
+    // The repeated capture and output gestures stay visible in both the editor and the library.
+    mtd createTaskBar()
+    {
+        with .taskBar = StackLayoutCtrl.create(me, .Left)
+        {
+            .dockStyle       = .Top
+            .backgroundStyle = .Transparent
+            .spacing         = 12
+            .margin          = {me.themeMetrics().floating_Inset, me.stripInset(), me.themeMetrics().floating_Inset, 4}
+        }
+
+        for command, index in [ActionCapture.Area, ActionGlobal.ShowLibrary, ActionCopyPaste.CopyAsImage, ActionFile.SaveAsImage]
+        {
+            with let button = IconButton.createQuiet(.taskBar, command, menu: false)
+            {
+                if index == 2 do
+                    .margin.x = 24
+            }
+        }
+    }
+
     // Speech-bubble glyph drawn for the Callout tool: the icon sheet has no sprite for this
     // tool, so it paints its own rounded body plus a small tail. Its round corners are deliberate:
     // the glyph depicts a shape the user draws, not chrome.

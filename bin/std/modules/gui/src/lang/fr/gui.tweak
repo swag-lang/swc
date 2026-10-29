@@ -26,6 +26,7 @@ key_Space  Espace
 key_Escape Échap
 key_Tab    Tab
 
+lens_Commands Commandes
 lens_Placeholder Rechercher ou lancer une commande
 lens_Empty       Aucun résultat.
 lens_Choose      choisir

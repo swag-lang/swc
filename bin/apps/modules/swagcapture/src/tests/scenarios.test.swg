@@ -118,6 +118,57 @@ func scenarioDeleteCaptureFiles(path: String)
     Swag.assert(f.main.editWnd.getCapture()!.file == path)
 }
 
+// Repeated page switches and inline edits keep one library index and retire each text editor.
+#test
+{
+    func countWindows(wnd: *Wnd)->u64
+    {
+        var count = 1'u64
+        for child in wnd.children do
+            count += countWindows(child)
+        return count
+    }
+
+    var f: ScenarioFixture
+    f.setup()
+    defer f.shutdown()
+    let path = scenarioNewCapture(f.main, "Repeated editing")
+    defer scenarioDeleteCaptureFiles(path)
+    let capture = unwrap f.main.editWnd.getCapture()
+    let text    = testAddText(capture, 8, 8, 80, 40)
+    text.text     = "Before"
+    text.fontSize = 14
+    capture.selection.add(0)
+    capture.selectionHasChanged()
+    f.toggleLibrary()
+    f.toggleLibrary()
+    f.gui.finishAnimations()
+    f.gui.pump()
+
+    let baseline  = countWindows(f.main)
+    let observers = g_Library.onDeleteFile.count()
+    let item      = f.main.libWnd.view.items[0]
+    let view      = f.main.editWnd.editView
+    for i in 20
+    {
+        view.beginTextEdit(text)
+        view.textLines[0].setText(i % 2 == 0 ? "After" : "Before")
+
+        // Hiding the editor commits its focused field, just as switching pages by hand does.
+        f.toggleLibrary()
+        Swag.assert(not view.isEditingText())
+        Swag.assert(f.main.libWnd.view.items.count == 1)
+        Swag.assert(f.main.libWnd.view.items[0] == item)
+        f.toggleLibrary()
+        f.gui.finishAnimations()
+        f.gui.pump()
+        Swag.assert(countWindows(f.main) == baseline)
+        Swag.assert(g_Library.onDeleteFile.count() == observers)
+        Swag.assert(f.gui.app.animator.activeCount() == 0)
+        Swag.assert(capture.undoMgr.count() == i + 1)
+    }
+}
+
 // Editing a capture schedules the real history timer, which saves it. Opening the same item
 // from the populated library must load that persisted document back into the editor.
 #test

@@ -32,22 +32,48 @@ impl Application
         .frameTimer = null
     }
 
-    // Idle turns still service animation and worker completions. Bound their polling rate
-    // without delaying native input, dirty content or an outstanding GPU transfer.
-    internal mtd waitForNativeFrame(startedAt: u64)
+    // Quiet windows only poll worker completions once per display-sized interval. Input wakes
+    // the native wait directly; gestures, animations and timer deadlines keep their cadence.
+    internal mtd nativeFrameWaitMicroseconds(elapsed: u64)->u64
     {
         if .frameTrace.busyLoop do
-            return
-        const MinimumTurnUs = 1000'u64
-        let elapsed = Time.monotonicMicroseconds() - startedAt
-        if elapsed >= MinimumTurnUs do
-            return
+            return 0
 
+        var pendingPresentation = false
         for surface in .surfaces where not surface.isHidden and not surface.isMinimized
         {
-            if surface.isDirty or surface.readback.isPending() do
-                return
+            // A pending transfer prevents another paint. Polling its fence without a wait
+            // burns a CPU core while the GPU catches up, including after the last edit.
+            if surface.readback.isPending() do
+                pendingPresentation = true
+            elif surface.isDirty do
+                return 0
         }
+
+        let active = pendingPresentation or .mouseCaptureWnd or .animator.activeCount() != 0
+        let turnUs = active ? 1000'u64 : 16000'u64
+        if elapsed >= turnUs do
+            return 0
+        var waitUs = turnUs - elapsed
+
+        for timer in .timers where not timer.isPendingRemoval
+        {
+            let periodUs  = timer.periodMilliseconds * 1000
+            let elapsedUs = timer.stopwatch.isRunning() ? timer.stopwatch.elapsedMicroseconds() : 0
+            if elapsedUs >= periodUs do
+                return 0
+            waitUs = Math.min(waitUs, periodUs - elapsedUs)
+        }
+
+        return waitUs
+    }
+
+    // Waits for input or the next clock deadline without delaying content that is ready to paint.
+    internal mtd waitForNativeFrame(startedAt: u64)
+    {
+        let waitUs = .nativeFrameWaitMicroseconds(Time.monotonicMicroseconds() - startedAt)
+        if not waitUs do
+            return
 
         if not .frameTimerAttempted
         {
@@ -57,7 +83,7 @@ impl Application
 
         if .frameTimer
         {
-            let dueTime: LARGE_INTEGER = -cast(s64, MinimumTurnUs - elapsed) * 10
+            let dueTime: LARGE_INTEGER = -cast(s64, waitUs) * 10
             if SetWaitableTimer(.frameTimer, &dueTime, 0, null, null, FALSE)
             {
                 var errorOutcome: Swag.Error
@@ -71,7 +97,7 @@ impl Application
         }
 
         // Older hosts or an exhausted timer allocation can use the ordinary message wait.
-        discard catch MsgWaitForMultipleObjectsEx(0, null, 1, QS_ALLINPUT, MWMO_INPUTAVAILABLE)
+        discard catch MsgWaitForMultipleObjectsEx(0, null, cast(u32, (waitUs + 999) / 1000), QS_ALLINPUT, MWMO_INPUTAVAILABLE)
     }
 
     internal mtd refreshSystemMotionPreference()

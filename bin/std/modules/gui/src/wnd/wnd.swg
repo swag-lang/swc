@@ -1795,7 +1795,7 @@ impl Wnd
         var pos = Math.Rectangle{0, 0, Math.round(width), Math.round(height)}
         .clampSize(&pos)
 
-        if computeLayout
+        if computeLayout and .preferredSize != Math.Point{pos.width, pos.height}
         {
             .preferredSize = Math.Point{pos.width, pos.height}
             .invalidateLayout()

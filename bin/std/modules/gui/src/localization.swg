@@ -35,15 +35,16 @@ struct Strings
         optionSheet_Title: string = "Options"     // Title of the first page of an option sheet that names none.
 
         // The names of the keys a hint line or the foot of the lens writes in a keycap.
-        key_Space:  string = "Space"     // Name of the space bar.
-        key_Escape: string = "Esc"       // Name of the escape key.
-        key_Tab:    string = "Tab"       // Name of the tab key.
+        key_Space:     string = "Space"      // Name of the space bar.
+        key_Escape:    string = "Esc"        // Name of the escape key.
+        key_Tab:       string = "Tab"        // Name of the tab key.
+        key_Enter:     string = "↵"          // Name of the Enter key.
+        key_CtrlEnter: string = "Ctrl ↵"     // Names of the Ctrl and Enter keys, held together.
 
         lens_Placeholder: string = "Search or run a command"     // Placeholder of the input of the lens.
         lens_Empty:       string = "Nothing matches."            // Line the lens shows when no result answers the query.
         lens_Choose:      string = "choose"                      // What the arrow keys do, at the foot of the lens.
         lens_Go:          string = "go"                          // What Enter does, at the foot of the lens.
-        lens_CtrlEnter:   string = "Ctrl ↵"                      // Keycap of Ctrl Enter, at the foot of the lens.
         lens_Stay:        string = "stay"                        // What Ctrl Enter does on a setting: run it, the lens kept open.
         lens_Line:        string = "line"                        // What the `:` prefix looks for, at the foot of the lens.
         lens_Files:       string = "files"                       // What the `/` prefix looks for, at the foot of the lens.

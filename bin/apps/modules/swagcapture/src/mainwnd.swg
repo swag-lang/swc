@@ -778,9 +778,11 @@ impl MainWnd
             return
         }
 
+        // One object is named by the tool that draws it: a highlighter stroke is a highlight and a
+        // pixel selection a pixel selection, though they are a drawing and a shape underneath.
         if count == 1
         {
-            .inspector.setTitle(editModeName(formToEditMode(capture!.forms[capture.selection.back()])), appStrings().ui_OneObject)
+            .inspector.setTitle(editModeName(formToolMode(capture!.forms[capture.selection.back()])), appStrings().ui_OneObject)
         }
         else
         {

@@ -1243,3 +1243,24 @@ func testBeginInlineText(host: *Gui.Testing.HeadlessHost, main: *MainWnd, index:
     for hint in main.hintLine.hints do
         Swag.assert(hint.text != appStrings().hint_Nudge)
 }
+
+// One selected object is named by the tool that draws it: a pixel selection and a highlighter
+// stroke are not called a shape and a drawing.
+#test
+{
+    var host: Gui.Testing.HeadlessHost
+    let main = testSetupEditorSurface(&host, dark: true, text: false)
+    defer
+    {
+        main.libWnd.requestClose()
+        host.shutdown()
+        g_Main = null
+    }
+
+    let capture = unwrap main.getCapture()
+    discard testAddShape(capture, 20, 20, 80, 60, .PixSel)
+    capture.selection.add(0)
+    capture.selectionHasChanged()
+    main.updateState()
+    Swag.assert(main.inspector.title == appStrings().act_PixSel)
+}

@@ -569,18 +569,26 @@ impl PropWnd
         }
     }
 
-    // The commands of a pixel selection, one row each.
+    // The commands of a pixel selection, in words, two to a row as the arrangement of several
+    // objects stands: what fills the pixels, then what clears or moves them.
     mtd propPixSel()
     {
         if .getSelectedBaseForm().subKind != .PixSel do
             return
 
-        for id in [ActionPixSel.Fill, ActionPixSel.SmartFill, ActionPixSel.Clear, ActionPixSel.SmartMove]
+        .addHeadSection(appStrings().ui_MenuEdit)
+        let size = .themeMetrics().control_InspectorHeight
+        const Commands = [ActionPixSel.Fill, ActionPixSel.SmartFill, ActionPixSel.Clear, ActionPixSel.SmartMove]
+        for pair in 2
         {
-            with let button = PushButton.create(.addHeadRow(""), "", id: id)
+            with let row = StackLayoutCtrl.create(.addHeadRow(""), .HorizontalFit, {})
             {
                 .dockStyle = .Center
+                .spacing   = ChoiceGap
             }
+
+            for k in 2 do
+                PushButton.create(row, "", {0, 0, 0, size}, id: Commands[pair * 2 + k], form: .Flat)
         }
     }
 

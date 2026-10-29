@@ -69,14 +69,13 @@ const LensFileLimit  = 8 * 1024 * 1024'u64
 impl ViewerWindow
 {
     // Creates the lens, registers every command of the window under its family, and the sources
-    // that answer with the viewers, the files and the appearance.
+    // that answer with the viewer choices, the basic file and view actions, and viewer controls.
     private mtd createLens()
     {
         with .lens = Lens.View.create(me)
         {
-            // At rest: how the file is seen, what its viewer can do, and the essentials of a file.
+            // Keep basic file and view actions near the top, before viewer-specific controls.
             .addRestSource(func|window = me|(results) { window.describeViewerChoices(results) })
-            .addRestSource(func|window = me|(results) { window.describeViewerCommands(results) })
             .addRestSource(func|window = me|(results)
             {
                 let section = results.addSection(appStrings().lens_File)
@@ -93,6 +92,7 @@ impl ViewerWindow
                                            [ViewerCommands.SidePanel, ViewerCommands.FullScreen],
                                            enabledOnly: true)
             })
+            .addRestSource(func|window = me|(results) { window.describeViewerCommands(results) })
             .addSource(.None, func|window = me|(results) { window.describeViewerChoices(results) })
             .addSource(.Action, func|window = me|(results) { window.describeViewerCommands(results) })
             .addSource(.File, func|window = me|(results) { window.describeFiles(results) })

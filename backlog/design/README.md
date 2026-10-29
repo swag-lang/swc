@@ -202,12 +202,13 @@ the chosen row on the Arc selection ground with `⏎` at its end. A footer lists
 The lens is the application's command palette as much as its search, and it starts from where
 the reader is:
 
-- Before anything is typed it is a direct action list: the actions of the selection or of the
+- Before anything is typed it is a direct action list: the choices of the selection or of the
   object in hand (the chosen shape in Capture, the open file and its viewer in Scope, the stage
-  in Prism), then a compact set of the application's basic actions and the commands used last.
-  A viewer with only a few local actions still leaves the reader with useful actions to choose;
-  opening the lens must not require knowing a command's name. Each application chooses its basic
-  actions and keeps the list short enough to scan.
+  in Prism), then a compact set of basic application actions, the viewer's detailed controls,
+  and the commands used last. Keep the basic actions near the top. A viewer with only a few local
+  actions still leaves the reader with useful actions to choose; opening the lens must not
+  require knowing a command's name. Each application chooses its basic actions and keeps the
+  list short enough to scan.
 - While typing, results rank from nearest to farthest: the current context, the document (lines,
   symbols), files, then the application's global commands.
 - An action that cannot run now stays listed, in the disabled ink and with its matches faded,

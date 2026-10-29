@@ -117,8 +117,8 @@ impl ViewerWindow
         .registerKeyShortcut(.Control, .L, ViewerCommands.EditLocation)
     }
 
-    // Answers the lens with the viewers that can show the open file, the one in use checked, or
-    // with the ways of showing the explored folder.
+    // Answers the lens with the viewers that can show the open file, the one in use underlined, or
+    // with the ways of showing the explored folder: one exclusive choice, shown as one row.
     private mtd describeViewerChoices(results: *Lens.Results)
     {
         let texts = appStrings()
@@ -132,8 +132,12 @@ impl ViewerWindow
             {
                 if not Lens.match(query, name).matched and not Lens.match(query, texts.lens_ViewAs).matched do
                     continue
-                if not section do
-                    section = results.addSection(texts.lens_ViewAs)
+                if not section
+                {
+                    section        = results.addSection(texts.lens_ViewAs)
+                    section.inline = true
+                }
+
                 let chosen     = cast(ExplorerMode, cast(u32, mode))
                 with let entry = section.addEntry(name)
                 {
@@ -153,12 +157,15 @@ impl ViewerWindow
             let name   = plugin.displayName()
             if not Lens.match(query, name).matched and not Lens.match(query, texts.lens_ViewAs).matched do
                 continue
-            if not section do
-                section = results.addSection(texts.lens_ViewAs)
+            if not section
+            {
+                section        = results.addSection(texts.lens_ViewAs)
+                section.inline = true
+            }
+
             let chosen     = cast(u32, index)
             with let entry = section.addEntry(name)
             {
-                .glyph   = me.pluginIcon(plugin, me.themeMetrics().menuPopup_IconSize)
                 .checked = chosen == me.activeChoiceIndex
                 .run     = func|window = me, chosen|() { window.selectViewer(chosen) }
             }

@@ -102,3 +102,23 @@ Reusable engine work remains in the backlog of the standard module that owns it.
 - Done when: users can choose a release in the application, supported tagged formats have
   equivalent lookup behavior, and rate-limited or ambiguous responses remain safe and usable.
 - Related: app.scope.005, app.scope.audio.008, std.core.006
+
+### app.scope.007 — The viewer bar can leave while an options sheet opened from it is up
+
+- Evidence: `viewerwindow.test.swg:2598` (the image viewer's play button after a round trip
+  through the hex viewer) failed once in two full Scope runs and twice in the first two of
+  fifteen runs of that file alone; the other thirteen passed. The test calls `revealViewerBar`,
+  then opens two options sheets from the play button. Their modal loops call
+  `Application.runFrame`, whose `sendTimerEvents` fires timers by wall clock, so when the sheets
+  take longer than `ViewerBarLinger` (2.5 s, a loaded machine) `concealViewerBar` runs while a
+  sheet is up: the focus is in the sheet's surface, which `viewerBar.isOwnerOf` does not reach,
+  and the bar is hidden. The commit ad810f0b50 only kept the linger out of
+  `completeQueuedViewerFile`'s `fireTimers`. The same thing happens to a reader who lingers in
+  the sheet: it loses the button it is attached to.
+- Next: count a running modal loop (`app().inModalLoop != 0`) as holding the bar in
+  `concealViewerBar`, add a test that fires `viewerBarTimer` with `inModalLoop` raised and checks
+  the bar stays (and leaves on the next linger once the loop is over), then prove it with ten
+  consecutive runs of `viewerwindow.test.swg` (`--run-timeout 300`) and two full Scope runs.
+- Done when: the bar never leaves while a sheet or menu opened from it is up, and the play button
+  test passes ten runs in a row under load.
+- Related: std.gui.058

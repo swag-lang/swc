@@ -523,3 +523,24 @@ preview. Validate requested settings against the capabilities supplied by platfo
 - Done when: ordinary resize presentation has a measured latency budget and a validated
   ownership contract on the chosen backend.
 - Related: std.gui.054, platform.portability.066
+
+### std.gui.058 — A headless host leaves the windows built on its surface alive at shutdown
+
+- Evidence: a full Swag Scope run stopped once with "notnull on null value" in `Array.add` from
+  `Application.postEvent`, called by the `Wnd.taskNotifier` closure on a scheduler worker, then
+  "#test cannot resume while submitted work is unfinished": a task posted into an application
+  that had been dropped. `HeadlessHost.shutdown` destroys `root` only; a window a test creates on
+  `&host.surfaceWnd` (every `ViewerWindow` of the Scope tests, `framedViewerWindow`) is never
+  destroyed nor deleted, so the `Swag.Task` fields of its viewers are never dropped, never
+  joined, and a running load notifies after the host is gone. Nothing detects it before the
+  worker writes into freed memory.
+- Next: in `HeadlessHost.shutdown`, destroy every child of `surfaceWnd` with the root and pump
+  until `postDestroy` and `toDelete` are empty, so deleting the windows joins their tasks while
+  the application lives; count the notifications `Wnd.taskNotifier` hands out in an atomic on
+  `Application` (add on creation, subtract after the post — a task runs its notify exactly once,
+  cancelled or not) and assert it is zero in `Application.opDrop` after the surfaces are deleted.
+  Then run the gui suite, the Scope suite twice and the other applications' suites, since every
+  headless test tears down through this path.
+- Done when: the assert holds across the std and application suites and the Scope suite runs
+  twice green with the teardown change.
+- Related: app.scope.007

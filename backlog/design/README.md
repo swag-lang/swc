@@ -19,13 +19,16 @@ rules they follow. Where a picture and a rule disagree, the rule wins.
 
 ## The six laws
 
-1. **Nothing on screen but the work.** No permanent toolbar, menu bar, status bar, ribbon or side
-   panel. The window is the document, the image, the list of vaults.
-2. **Information is asked for.** Readings, outlines, metadata and settings appear on a key, a
-   hover or a selection, then leave. They are never removed from the product: they move behind a
-   gesture.
-3. **One door.** `Ctrl Space` opens the lens: search, go to, open,
-   switch view, run any command. Every command of an application is reachable from its lens.
+1. **The work comes first.** Keep the document, image or list dominant. Repeated task controls
+   belong beside it: navigation in a folder, transport in a player, tools and output in an
+   editor. Remove decorative bands and duplicate readouts, not the means of doing the work.
+2. **Details are asked for.** Metadata, advanced settings and secondary readings appear on
+   request. Current mode, selection, progress, failures and the next essential action remain
+   understandable without knowing a shortcut or discovering a hover target.
+3. **One complete door, several direct gestures.** A visible Commands control and `Ctrl Space`
+   open the same lens: search, go to, open, switch view, run any command. Every command remains
+   reachable from it. Frequent actions also have direct controls; the lens never makes learning
+   command names a prerequisite for using an application.
 4. **One accent at a time.** Voltage acts, Arc chooses. Two yellow things on one screen is one too
    many.
 5. **Air is a material.** Measured columns, reading margins, nothing flush with an edge, nothing
@@ -149,7 +152,10 @@ comme image…"). An ellipsis marks a command that asks for more before acting.
 - The top 52 px is part of the content area and draggable wherever no control sits;
   double-click maximizes.
 - The application glyph sits at (18, 16), 18 px, about 55 % opacity, monochrome soft colour.
-- The document's name is centred at the top, 12 px, faint. Nothing else is written there.
+- The document's name is centred at the top, 12 px, faint. A quiet Commands control gives the
+  lens a visible pointer entrance in the existing strip, with its shortcut in the tooltip. It
+  stays available without hovering an invisible target; at narrow widths it keeps a named
+  accessible target and a recognizable glyph. It does not require a second caption band.
 - The window buttons are faint glyphs at the top right; they reach full contrast on hover.
 - The window shadow is restrained: 35 % on Encre and 24 % on Papier. It separates the surface
   from its surroundings without competing with the work. Floating panels and sheets use the
@@ -219,27 +225,112 @@ Opened by `Ctrl Space`. 600–640 wide, near the top third, surface colour, corn
 shadow. The document behind dims (about 16 % opacity, slight blur). An input of 64 px with 22 px
 light text; results grouped under section labels (In this file, Symbol, Open, View as, commands
 by family); rows of 38–40 px with a leading glyph or number, matched characters highlighted,
-the chosen row on the Arc selection ground with `⏎` at its end. A footer lists the keys
-(`↑↓` choose, `⏎` go, `Tab` view as, prefixes `:` line, `/` files, `>` actions). `Esc` closes.
+the chosen row on the Arc selection ground. Selecting a row never shifts its shortcut or detail.
+Enter is taught once in the footer, not repeated beside the selection. The footer lists the keys
+(`↑↓` choose, `↵` go) and clickable source links (`:` line, `/` files, `>` actions) for sources
+the application actually supports. Clicking a source preserves the query and narrows its scope;
+clicking Actions with an empty input browses all commands. `Esc` clears a query, then closes.
 
 The lens is the application's command palette as much as its search, and it starts from where
 the reader is:
 
-- Before anything is typed it is a direct action list: the choices of the selection or of the
-  object in hand (the chosen shape in Capture, the open file and its viewer in Scope, the stage
-  in Prism), then a compact set of basic application actions, the viewer's detailed controls,
-  and the commands used last. Keep the basic actions near the top. A viewer with only a few local
-  actions still leaves the reader with useful actions to choose; opening the lens must not
-  require knowing a command's name. Each application chooses its basic actions and keeps the
-  list short enough to scan.
-- While typing, results rank from nearest to farthest: the current context, the document (lines,
-  symbols), files, then the application's global commands.
+- Before anything is typed it is a direct action list. Keep a compact, stable set of basic
+  actions first, followed by selection or viewer actions and then recent commands. Capture
+  keeps capture, open, library, export and copy available while an annotation is selected.
+  Scope changes its basic group when the task changes between reading and exploring, not when
+  a different file or row is selected. Basic actions must fit the first viewport at the minimum
+  supported window size. A disabled action keeps its position and explains its prerequisite.
+- Typing expresses intent. A strong title match must not sit below weak content matches merely
+  because one provider registered first. The ranking contract below governs this order; explicit
+  source selection remains available when the reader knows which kind of result they want.
 - An action that cannot run now stays listed, in the disabled ink and with its matches faded,
   so the reader learns it exists; it cannot be chosen.
 - Every action shows its shortcut in faint mono at the end of its row, so the lens also teaches
   the keys it stands in for.
+- Inside the lens, keep the common actions as a short group of named rows. Do not duplicate them
+  in an icon toolbar above the results: that spends the first viewport twice and creates a second
+  navigation order. An inline row is for one exclusive choice, not unrelated action shortcuts.
 - A section label is always `Gui.SectionLabel` — small spaced semibold capitals in the faint ink —
   whether a component, an application header or a painted list draws it; nobody shapes its own.
+
+#### Direct controls and task walkthroughs
+
+These walkthroughs are design checks against the source and whole-window goldens, not results
+from observed user sessions. They set the acceptance tasks for the implementation tracked in
+[design.silence.004](design.silence.md#designsilence004--the-lens-needs-a-discoverable-pointer-entrance-and-direct-task-controls).
+
+| Task | Cost when everything goes through the lens | Required direct route |
+| --- | --- | --- |
+| First Capture launch, mouse only | A shortcut hint explains a key, but offers no visible command entrance | A named Commands control; Capture Area is immediately visible in the empty state |
+| Capture a region, add an arrow, copy into a message | Opening a modal palette to finish interrupts work on the canvas; Copy can mean an object or the finished picture | Keep the tool dock; offer explicit Copy Image and Save as Image together beside the work |
+| Annotate three successive captures | Selecting an annotation must not replace the route to the next capture | Capture Area and Last Area keep their positions; expose delay/cursor/output choices in one capture settings group |
+| Correct an annotation and undo | Reopening the lens for each correction hides the effect behind a dimmed canvas | Direct selection tools and Undo/Redo; keep settings open while adjusting, with visible feedback |
+| Find yesterday's capture in an empty or populated library | A Library link attached only to recent thumbnails is not a reliable route | Library is an independent command; visible filter, sort and return to editor on its page |
+| Open a film, pause, seek, change volume | Modal search interrupts watching and hides the timeline | A transport with play/pause, seek, volume and full screen; subtitles, audio and speed in its adjacent controls |
+| Browse films, open one, return to the folder | Repeated lens calls for Back or Up make ordinary exploration expensive | Stable Back/Forward/Up and current location in the page header; sorting and view choices remain nearby |
+| Resume a film later | A beautifully empty player cannot replace a missing resume feature | Store playback position and offer Resume / Start from Beginning; this is product behavior, not a cosmetic lens fix |
+| Find an unfamiliar action | A blank search field requires the product's exact vocabulary | Browse command families without typing; search recognizes localized synonyms and restrained spelling errors |
+
+There is no universal top toolbar copied across every mode. A folder gets navigation, a player
+gets transport, and an editor gets tools and output. Put three to five frequent actions in a
+stable task group using the shared controls, with words beside unfamiliar icons. Keep secondary
+choices in a small adjacent menu or the lens. Never make a row of unlabeled icons stand in for
+discoverability. Direct controls route through the same command identifiers and state as the lens.
+
+Repeated editing controls remain visible while editing. Playback controls can recede during
+uninterrupted playback, but appear immediately on pointer movement, remain while hovered or
+keyboard-focused, and are visible when paused. Pointer use, keyboard traversal and tooltips must
+agree. A novice must be able to open, browse, perform and leave the main task using only the
+pointer; an experienced reader must be able to complete it without the pointer.
+
+#### Search intent and predictable ranking
+
+Search must be deterministic and local. It does not need a remote language model. The following
+is the target contract; the matcher currently supports case folding, substrings, initials and
+ordered characters. The remaining work is tracked with the lens migration.
+
+1. Normalize surrounding and repeated whitespace, case and accents for comparison while
+   preserving the original label and correct UTF-8 highlight spans. Treat terminal command
+   ellipses as presentation, not a required part of a query.
+2. Rank an exact title first, then whole words and word prefixes (allow multiple words in any
+   order), then declared localized aliases, initials, and finally approximate matches. A query
+   such as `image copy` must find Copy Image; `plein ecran` must find Plein écran.
+3. Within an equally strong match class, prefer usable actions relevant to the current task.
+   Use context and recent use only as bounded tie-breakers. Keep deterministic ties in the
+   declared order; never rearrange the empty-query basic actions according to usage history.
+4. Only offer typo recovery as a fallback for meaningful words: initially one insertion,
+   deletion, substitution or adjacent transposition for words of at least four characters.
+   Never fuzz numbers, paths, shortcuts or line addresses. Show the real command label, never
+   silently rewrite the input or run a guessed action. Keep exact disabled matches visible with
+   their reason, without treating an unavailable match as grounds to hide usable alternatives.
+5. Keep result kinds recognizable: actions, files and occurrences. An exact command beats a
+   loose occurrence, an exact filename remains findable, and occurrences retain document order
+   within their section. Cap previews per source and offer Show All before one source fills the
+   lens. Prefixes are accelerators; clickable, named scope controls carry the same capability.
+6. Use aliases from the user's vocabulary: screenshot/capture, export/save image, mute/sound,
+   subtitle/caption, and their translations. Match command families as well as labels so a
+   reader can browse Capture or Playback without guessing one leaf command. Do not turn a long
+   hidden description into a source of weak matches.
+
+When nothing matches, keep the query, identify the active scope, and offer All Commands or a
+scope reset. Do not leave the user with an unexplained empty list. A list that overflows must
+advertise that it scrolls; a clipped last row or a discoverable scroll indicator is needed even
+before the first wheel movement. Keep navigation and source controls reachable at minimum width
+and with French labels, without colliding with the keyboard help.
+
+#### Acceptance of a lens change
+
+Use Encre and Papier, English and French, the minimum window size and a non-default display
+scale. Compare complete task sequences, not just the number of visible controls. For the tasks
+above, check first successful action, unnecessary lens reopenings, mistaken object/image copy,
+backtracking, and recovery from a typo. Test with a fresh profile as well as recent history.
+History must improve convenience without becoming a prerequisite.
+
+Keep an executable query corpus with exact commands, filenames, collisions with document text,
+multiword queries, aliases, accents, typos, disabled actions and no-result queries. Assert the
+first usable result and the reachable alternatives, not only that something matches. Golden
+images cover fixed shortcut columns and overflowing result lists; interaction tests cover source
+switching, focus return, keyboard traversal and settings changed without reopening the lens.
 
 ### Sheet (`I`)
 
@@ -510,8 +601,9 @@ the screen to its work.
 ![Annotating](imgs/capture.annotate.png)
 
 - The editor shows the capture on the ground, a dock of tools at the left, a mini-bar next to the
-  selection and the inspector at the right (foldable). Menus are gone: every command is in the
-  lens, including capture modes, recent captures and the library.
+  selection and the inspector at the right (foldable). Its compact task controls offer capture
+  and image output directly. Every command remains in the lens, including capture modes, recent
+  captures and the library; secondary choices may use adjacent menus.
 - Area capture: the screen dimmed except the chosen zone, a 1 px Voltage edge, its size in a
   mono chip, a pixel loupe with a Voltage crosshair, modes as text tabs on a floating bar, then
   after a hairline how the screen is read: `Delay: none ▾` (a list of delays; one waits, then
@@ -531,7 +623,7 @@ the screen to its work.
   the chosen captures — open, export, tags, favourite, move to a folder, delete — and their
   rating as one row of segments, then what the page shows as another; every other command of
   the page (view, sort, folders, dates, applications, tags) is one word away. The hint line
-  teaches the keys of the page, `Space` last: `↵` open, `Del` delete, `F2` rename, `0–5` rate,
+  teaches the keys of the page, `Ctrl Space` last: `↵` open, `Del` delete, `F2` rename, `0–5` rate,
   `/` filter.
 - Shape editing, per kind: arrow (curve handles, start/end glyph pickers, sizes), callout (inline
   text, tail handle, font/size/style "Aa" segments), masks (image, blur, pixelation, magnifier,
@@ -549,7 +641,8 @@ the screen to its work.
   the inspector or an edge of the capture; while words are typed it stands below them. The
   inspector keeps the face, the size and the style "Aa" segments.
 - The lens closes with the recent captures as a strip of pictures ended by `Library →`; `↓`
-  reaches the strip, `←` `→` go along it, Enter opens the one ringed in Arc.
+  reaches the strip, `←` `→` go along it, Enter opens the one ringed in Arc. Library also has its
+  own basic action, so an empty recent strip never removes that route.
 - The inspector shows the presets of the selection's kind (of the tool in hand without a
   selection; none for a selection of several kinds): one row of five and `+`, or five and `•••`
   opening every preset with `+`, ordered by use. The row is one stop of Tab, entered on the
@@ -564,10 +657,10 @@ the screen to its work.
   text, callout, draw (and highlighter), step, image (and pixel selection, favourites). A cell
   with a corner mark lists its group on a click on the mark or a right click; every tool keeps
   its command, its lens entry and its key, and comes into its cell when used.
-- Every action is reached by a key or by the lens, and the lens names the key at the end of the
-  row. A letter is typed when a field holds the focus, so a field keeps it; Tab walks the
+- Every action is reachable from the lens, frequent actions have direct controls, and the lens
+  names the key at the end of the row. A letter is typed when a field holds the focus, so a field keeps it; Tab walks the
   inspector down its rows and the mini-bar along its controls. The hint line teaches the keys of
-  the mode in force: the tool in hand and `Space`; the selection (`← ↑ → ↓` nudge, `Ctrl D`, then
+  the mode in force: the tool in hand and `Ctrl Space`; the selection (`← ↑ → ↓` nudge, `Ctrl D`, then
   `↵` for the words of a shape that has some, `Delete` otherwise: four keys are what the room
   beside the inspector holds); or the words being typed.
 

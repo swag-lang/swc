@@ -298,27 +298,29 @@ using Swag, Core, File
     Swag.assert(downloadsIndex != Swag.U64.Max and downloadsIndex >= places.visibleCount)
 
     var opened: bool
-    var selectedId: WndId?
-    host.app.sigFrame += func|host = &host, opened = &opened, selectedId = &selectedId|(_)
+    host.app.sigFrame += func|host = &host, downloads = &downloads, opened = &opened|(_)
     {
         if opened[] do
             return
         let popup = unwrap host.capturedPopupMenu()
+        var found: bool
         for idx in 0 until popup.items.count
         {
             let item = popup.itemAt(cast(u32, idx))
-            if item.name.raw.toString() == strings().browser_Downloads do
-                selectedId[] = item.id
+            if item.name.raw.toString() == strings().browser_Downloads
+            {
+                Swag.assert((item.id orelse "") == downloads[].toString())
+                found = true
+            }
         }
-        Swag.assert(selectedId[] != null)
+        Swag.assert(found)
         opened[] = true
-        popup.setEndModal(selectedId[])
+        popup.setEndModal(downloads[].toString())
     }
 
     let moreButton = unwrap places.moreButton
     moreButton.sigPressed.call(moreButton)
     Swag.assert(opened)
-    Swag.assert((selectedId orelse "") == downloads.toString(), Format.toString("selected=% expected=%", selectedId orelse "", downloads.toString()).toString())
     Swag.assert(fb.currentFolder == downloads)
 }
 

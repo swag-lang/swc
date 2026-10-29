@@ -202,10 +202,9 @@ impl FilePlacesBar
         let menu = MenuCtrl.createPopup(.browser)
         for idx in .visibleCount until .stops.count
         {
-            let stop = .stops[idx]
             var icon = .theme().fileGlyph("", isDirectory: true)
             icon.color = .themeColors().arc
-            discard menu.addItem(stop.name.toString(), stop.path.toString(), icon)
+            discard menu.addItem(.stops[idx].name.toString(), .stops[idx].path.toString(), icon)
         }
 
         if menu.items.isEmpty()
@@ -214,9 +213,10 @@ impl FilePlacesBar
             return
         }
 
-        let chosen = menu.doModal(unwrap .moreButton, autoDestroy: true) orelse ""
+        let chosen = String.from(menu.doModal(unwrap .moreButton) orelse "")
+        menu.destroy()
         if chosen.count do
-            .browser.setCurrentFolder(chosen)
+            .browser.setCurrentFolder(chosen.toString())
     }
 
     // Returns the place the current folder lies in: the deepest one whose path starts it, or `Swag.U64.Max`.
@@ -472,10 +472,10 @@ private impl FileBrowserCtrl
             return
         }
 
-        let sel    = menu.doModal(.historyButton, autoDestroy: true)
-        let chosen = sel orelse ""
+        let chosen = String.from(menu.doModal(.historyButton) orelse "")
+        menu.destroy()
         if chosen.count do
-            .setCurrentFolder(chosen)
+            .setCurrentFolder(chosen.toString())
     }
 
     mtd showFolder(folder: string)->bool

@@ -97,6 +97,9 @@ public struct MenuCtrl
     popupHasMarkerColumn:    bool                   // Whether left-opening arrows own one shared leading column.
 }
 
+// Returns an icon's requested tint, or the row's text tint for an untinted icon.
+private func menuIconColor(icon: Icon, textColor: Color)->Color => icon.color.a ? icon.color : textColor
+
 public impl IWnd for MenuCtrl
 {
     private mtd paintBar(painter: *Painter)
@@ -178,7 +181,7 @@ public impl IWnd for MenuCtrl
             {
                 var icon = it.icon
                 icon.sizeX, icon.sizeY = metrics.menuPopup_IconSize
-                icon.paint(painter, labelPos.x, opticalTop(.font(), labelPos.vertCenter(), icon.sizeY), colorText)
+                icon.paint(painter, labelPos.x, opticalTop(.font(), labelPos.vertCenter(), icon.sizeY), menuIconColor(icon, colorText))
             }
 
             // Text
@@ -358,7 +361,7 @@ public impl IWnd for MenuCtrl
             {
                 var icon = it.icon
                 icon.sizeX, icon.sizeY = metrics.menuPopup_IconSize
-                icon.paint(painter, iconPos.x, opticalTop(.font(), textCenterY, icon.sizeY), colorText)
+                icon.paint(painter, iconPos.x, opticalTop(.font(), textCenterY, icon.sizeY), menuIconColor(icon, colorText))
             }
 
             // A shortcut is a measure, so it is written in the fixed-width face, small and faint.
@@ -690,7 +693,7 @@ impl MenuCtrl
         {
             var icon = i.icon
             icon.sizeX, icon.sizeY = metrics.menuPopup_IconSize
-            icon.paint(painter, labelPos.x, opticalTop(.font(), labelPos.vertCenter(), icon.sizeY), colorText)
+            icon.paint(painter, labelPos.x, opticalTop(.font(), labelPos.vertCenter(), icon.sizeY), menuIconColor(icon, colorText))
         }
 
         painter.drawRichString(labelPos, &i.name, format)

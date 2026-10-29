@@ -4,6 +4,18 @@
 
 using Core, Gui, Win32
 
+// Logical placement and the native HWND must agree after every presentation transition.
+func assertViewerNativeBounds(surface: *Surface)
+{
+    var bounds: RECT
+    let measured = GetWindowRect(surface.win32Handle(), &bounds)
+    Swag.assert(measured)
+    Swag.assert(bounds.left == cast(s32, surface.position.x) and
+                bounds.top == cast(s32, surface.position.y) and
+                bounds.right == cast(s32, surface.position.right()) and
+                bounds.bottom == cast(s32, surface.position.bottom()))
+}
+
 // Optional capture pacing belongs to the observer, never to the placement implementation.
 func observeViewerPlacement(app: *Application)
 {
@@ -61,20 +73,24 @@ func observeViewerPlacement(app: *Application)
 
         let previous = surface.position
         watch.restart()
-        window.setFullScreen(true)
+        window.sendCommandEvent(ViewerCommands.FullScreen)
         Console.println("Full-screen entry (us): ", watch.elapsedMicroseconds())
         Swag.assert(window.fullScreen and not surface.isMaximized)
         Swag.assert(surface.position == Env.monitorForRectangle(normal).physicalBounds)
         Swag.assert(IsWindowVisible(surface.win32Handle()))
         observeViewerPlacement(&app)
+        assertViewerNativeBounds(surface)
+        Swag.assert(window.currentView!.padding.y == 0 and window.documentHost.padding.y == 0)
 
         watch.restart()
-        window.setFullScreen(false)
+        window.sendCommandEvent(ViewerCommands.FullScreen)
         Console.println("Full-screen exit (us): ", watch.elapsedMicroseconds())
         Swag.assert(not window.fullScreen and surface.isMaximized == fromMaximized)
         Swag.assert(surface.position == previous)
         Swag.assert(IsWindowVisible(surface.win32Handle()))
         observeViewerPlacement(&app)
+        assertViewerNativeBounds(surface)
+        Swag.assert(window.currentView.padding.y == window.stripInset())
         surface.showNormal()
         Swag.assert(surface.position == normal)
         observeViewerPlacement(&app)

@@ -100,7 +100,7 @@ impl IWnd for OutlineMargin
         }
 
         if .rule do
-            painter.fillRect(Math.Rectangle{0, top, metrics.separator_HairlineSize, client.height - top}, colors.line)
+            painter.fillRect(Math.Rectangle{0, top, metrics.separator_HairlineSize, Math.min(client.height, .contentHeight()) - top}, colors.line)
         for title, row in .titles
         {
             let rect = Math.Rectangle{0, top + cast(f32, row) * EntryPitch, client.width, EntryPitch}

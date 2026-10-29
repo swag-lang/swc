@@ -71,6 +71,7 @@ func viewerStyle(themeIndex, widthIndex: u32)->Markdown.Style
     // The application's own theme and Whitey set their body column flush on both edges. The four
     // themes between them follow Typora's ragged paragraph edges.
     case 0:
+        result.maxContentWidth    = 640
         result.paragraphAlignment = .Justify
 
     case 1:
@@ -183,7 +184,7 @@ func viewerStyle(themeIndex, widthIndex: u32)->Markdown.Style
     switch widthIndex
     {
     case 0:
-        result.maxContentWidth = 680
+        result.maxContentWidth = themeIndex == 0 ? 560 : 680
 
     case 2:
         result.maxContentWidth = 1_100
@@ -281,17 +282,27 @@ private
 }
 
 // Returns the theme-sheet colors of one appearance, or nothing for the application's own.
-func viewerColors(themeIndex: u32)->string
+func viewerColors(themeIndex: u32)->String
 {
+    var colors: string
     switch themeIndex
     {
-    case 0:  return ""
-    case 2:  return NewsprintColors
-    case 3:  return NightColors
-    case 4:  return PixyllColors
-    case 5:  return WhiteyColors
-    default: return GitHubColors
+    case 0:  return {}
+    case 2:  colors = NewsprintColors
+    case 3:  colors = NightColors
+    case 4:  colors = PixyllColors
+    case 5:  colors = WhiteyColors
+    default: colors = GitHubColors
     }
+
+    // Document-owned navigation uses the same ink and ground as its paragraphs.
+    const NavigationColors = """text      $label_Text
+                                softText  $label_TextLight
+                                faintText $label_TextFaint
+                                line      $edit_Border
+                                arc       $url_Text
+                                ground    $view_Bk"""
+    return Format.toString("%\n%", colors, NavigationColors)
 }
 
 // Styles `view` with one appearance and reading measure, scaled by `zoomPercent`.
@@ -368,6 +379,7 @@ impl ZoomButton
 {
     mtd reportStatistics()
     {
+        .outline?.setReadingColors(viewerColors(g_ViewerSettings.themeIndex))
         if not .hasStatistics
         {
             .services.showDetails(.view, texts().ui_Details)
@@ -492,6 +504,7 @@ func describeOptions(page: *OptionSheet.Page, view: *Markdown.View, zoom: *ZoomB
             {
                 g_ViewerSettings.themeIndex = index
                 applyViewerStyle(view, index, g_ViewerSettings.widthIndex, zoom.zoomPercent)
+                zoom.reportStatistics()
                 catch g_App.saveState()
             })
         }
@@ -520,6 +533,7 @@ func createViewer(host: Viewer.Host)
     {
         .outline = DocumentOutline.create(host, floatingSurface: false)
         .outline.bindMarkdown(view, host.fileName())
+        .outline.startMarkdown()
     }
 
     optionsButton.sigPressed += func|view, zoomButton|(button)

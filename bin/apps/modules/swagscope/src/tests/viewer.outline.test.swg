@@ -109,10 +109,11 @@ using Core, Pixel, Gui, Gui.Testing, Viewers
     Swag.assert(not window.viewerBar.isLocallyVisible())
     let zoom    = assume cast(*MarkdownText.ZoomButton, window.currentInfo!.children[0])
     let outline = unwrap zoom.outline
-    Swag.assert(not outline.load.started)
+    Swag.assert(outline.load.started or outline.loaded)
     outline.toggle.setChecked(true)
     outline.toggle.sigCheckedChanged.call(outline.toggle)
-    completeViewerBackgroundLoad(&host, &outline.load)
+    if outline.load.isPending() do
+        completeViewerBackgroundLoad(&host, &outline.load)
     Swag.assert(outline.rows.count == 6 and outline.list.lineCount() == 6)
     window.applyLayout()
     let firstText = outline.list.cellTextRect(0, 0)

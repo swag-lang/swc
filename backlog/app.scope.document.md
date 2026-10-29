@@ -5,28 +5,17 @@ Parser, layout, and renderer defects remain with their engines in [std.gui.markd
 [std.gui.html.md](std.gui.html.md), and [std.gui.pdf.md](std.gui.pdf.md); entries here own navigation, inspection, and application
 integration around those engines.
 
-### app.scope.document.024 — Markdown visual snapshots diverge from the current baseline
-
-- Evidence: the `viewer.markdown.test.swg` golden selection differs for `fullscreen`, `zoom`,
-  `information`, `images`, `images.whitey`, `images.hidpi`, `document`, and `whitey`. The unchanged
-  application sources and the sidebar changes produce byte-identical actual images with the same
-  rebuilt DevMode compiler, so the differences predate the sidebar changes.
-- Next: compare the image rendering, resource resolution, and style inheritance with the recorded
-  snapshots; correct regressions before accepting any intended rendering changes.
-- Done when: the focused Markdown golden selection passes with reviewed images across its existing
-  reading themes and DPI scales.
-
-### app.scope.document.001 — The Markdown outline has no filtering or current-section tracking
+### app.scope.document.001 — The full Markdown outline lacks reading-position tracking and history
 
 - Evidence: `DocumentOutline` lists Markdown headings with depth and distinct source offsets
-  and reveals them through `Markdown.View.revealHeading`. It has no heading filter,
-  current-section tracking, breadcrumb path, or navigation history, and its worker reads the
-  complete source rather than maintaining a bounded streaming index.
-- Next: extend the existing outline with a bounded heading index, filtering and a current-heading
-  signal from the document; retain source offsets as identity rather than deriving it from titles.
-- Done when: filtering and keyboard navigation preserve distinct duplicate headings, the
-  visible section updates the selected heading/breadcrumb, and back/forward restores a reading
-  location without retaining the whole source.
+  and reveals them through `Markdown.View.revealHeading`. Filtering and keyboard navigation use
+  source offsets, and the reading margin follows the first two heading levels. The full outline
+  still keeps the last chosen row rather than following reading position; it has no breadcrumb
+  path or navigation history, and its worker reads the complete source.
+- Next: build a bounded heading index and synchronize the full outline with the document's
+  current block; retain source offsets as identity and add bounded back/forward history.
+- Done when: the visible section updates the full outline's selected heading/breadcrumb,
+  and back/forward restores a reading location without retaining the whole source.
 - Related: std.gui.markdown.005, app.scope.viewers.003
 
 ### app.scope.document.013 — The PDF bookmark panel has no filtering or navigation history

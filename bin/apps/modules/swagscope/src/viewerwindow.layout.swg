@@ -373,7 +373,14 @@ impl ViewerWindow
     {
         let strip = .fullScreen or .isEdgeToEdge() ? 0 : .stripInset()
         let top   = strip + .themeMetrics().floating_Inset
-        .documentHost.padding    = Math.Vector4{0, strip, 0, 0}
+        .documentHost.padding = Math.Vector4{0, strip, 0, 0}
+        if .currentView is Markdown.View as markdown
+        {
+            // The page paints under the chrome; only its scroll viewport keeps clear of it.
+            .documentHost.padding.y = 0
+            markdown.padding.y      = strip
+        }
+
         .filePanelHost.padding.y = top
         if .currentSidePanelHost do
             .currentSidePanelHost.padding.y = top

@@ -63,6 +63,8 @@ impl ViewerWindow
     // and shows it only while it has something to say.
     internal mtd layoutFileInfo()
     {
+        .refreshReadingAppearance()
+
         // A document that takes the whole window writes its title itself, over its picture.
         .surface?.wnd.showTitle(not .isEdgeToEdge())
         .updateDocumentInsets()
@@ -73,6 +75,31 @@ impl ViewerWindow
         .readingLine.computeLayout()
         .documentHost.applyLayout()
         .layoutViewerBar()
+    }
+
+    // Carries a document's ground through the window instead of leaving a caption band above it.
+    mtd refreshReadingAppearance()
+    {
+        if .currentView is Markdown.View as markdown where Viewers.MarkdownText.g_ViewerSettings.themeIndex != 0
+        {
+            let colors   = markdown.themeColors()
+            var document = colors.view_Bk.relativeLuminance() <= 0.5 ?
+                           ThemeColors.encrePalette() : ThemeColors.papierPalette()
+            document.ground    = colors.view_Bk
+            document.text      = colors.label_Text
+            document.softText  = colors.label_TextLight
+            document.faintText = colors.label_TextFaint
+            .surface?.wnd.setChromePalette(&document)
+            .style.setStyleSheetColors(Format.toString("ground 0x%{X08}", document.ground.argb))
+        }
+        else
+        {
+            .surface?.wnd.setChromePalette(null)
+            .style.clearStyleSheetColors()
+        }
+
+        .computeStyle()
+        .invalidate()
     }
 
     // Shows or hides the panel listing what is beside the current file.

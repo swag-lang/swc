@@ -145,6 +145,13 @@ impl DocumentOutline
             }
         }
 
+        result.hookOnChildEvent = func|panel = result|(_, evt)
+        {
+            if evt is MouseEvent as mouse where mouse.kind == .Move or mouse.kind == .Enter do
+                panel.list.scrollWnd.revealScrollBars()
+            return false
+        }
+
         result.refresh()
         return result
     }
@@ -154,6 +161,21 @@ impl DocumentOutline
         .rows.clear()
         .levels.clear()
         .list.clear()
+    }
+
+    // Keeps a quiet outline on the document's local palette, independently of application panels.
+    mtd setReadingColors(colors: string)
+    {
+        func apply(wnd: *Wnd, colors: string)
+        {
+            wnd.style.setStyleSheetColors(colors)
+            wnd.computeStyle()
+            for child in wnd.children do
+                apply(child, colors)
+        }
+
+        apply(me, colors)
+        .invalidate()
     }
 
     // Appends a heading with its whitespace collapsed, indented one level per enclosing heading of
@@ -284,10 +306,17 @@ impl DocumentOutline
     mtd bindMarkdown(view: *Markdown.View, fileName: string)
     {
         .markdownFile = fileName
-        .toggle.sigCheckedChanged += func|panel = me|(button)
+        .toggle.sigCheckedChanged += func|panel = me, view|(button)
         {
-            if button.isChecked do
+            if button.isChecked
+            {
                 panel.startMarkdown()
+                panel.filterBox.setFocus()
+            }
+            else
+            {
+                view.setFocus()
+            }
         }
 
         .sigSelected += func|view|(_, offset)

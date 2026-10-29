@@ -884,6 +884,7 @@ impl ViewerWindow
         }
 
         surface.invalidate()
+        .refreshReadingAppearance()
         .applyLayout()
         .layoutFloatingParts()
     }

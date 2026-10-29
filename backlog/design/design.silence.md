@@ -47,7 +47,7 @@ dialogs, then each application, then the written rules.
     the commands on a mini-bar.
   - PDF (`viewer.pdf.page`, `.paper`): pages as paper with the floating shadow, the outline in
     the left margin under "Contents".
-  - Code and text in their reading columns, Markdown with its margin outline and Arc thread. The
+  - Code and text in their reading columns, Markdown with its margin outline. The
     main splitter now hides its idle full-height dividers and keeps the resize affordance on hover;
     the whole-window outline goldens cover both themes.
   - Subtitles read as a list under the file's name and mono line: number, mono time range,
@@ -87,10 +87,9 @@ dialogs, then each application, then the written rules.
     goldens already have it. The viewer harnesses no longer photograph the old toolbar band
     (`ViewerActionBar` is gone with its `viewer.{text,pdf,html,image,font}.document` goldens):
     they stand their viewer on the real line of readings, and the window goldens show it.
-  - Panels not yet rebuilt as the PDF margin outline is: the Markdown outline
-    (`viewer.outline.markdown`, `.fr`) is a boxed card with a title, a close button and a
-    filter field; the file panel (`panel`) is a card with an upper-case folder name and a
-    filter; the information card of a viewer (`viewer.media.information`) is a two-column
+  - Panels not yet rebuilt as the PDF margin outline is: the file panel (`panel`) is a card
+    with an upper-case folder name and a filter; the information card of a viewer
+    (`viewer.media.information`) is a two-column
     property list. The charter reads them in the margin, quiet, without a card.
   - The MusicBrainz choice box (`explorer.music.choice`) carries its menu label as title, with
     its ellipsis; the About box credits Wikipedia and Wikidata, not the Apple catalogue the
@@ -177,7 +176,7 @@ dialogs, then each application, then the written rules.
   - Dock: the Measures table says a 36 cell and an 18–20 glyph, the Capture section 30; the code
     has `toolDock_CellSize` 30 and `toolDock_Glyph` 16.
   - Scroll bar: 6 px under Window chrome, 8 px under Controls; `scrollBar_Size` is 8.
-  - Lens: no blur behind it, only the dim; its foot does not list `Tab`.
+  - The lens foot does not list `Tab`.
   - Section label: the charter says 10.5, `sectionLabel_FontSize` is 10.
   - Swag Scope's current search match pulses a glow (`ViewerSearchOverlay`, `searchMatch_Glow`);
     the Motion section forbids pulses and glows at rest.
@@ -192,24 +191,3 @@ dialogs, then each application, then the written rules.
   band leftovers once nothing paints them.
 - Done when: every measure the charter states is the one the code uses, and no band style,
   color or metric remains.
-
-### design.silence.009 — Scope's Markdown outline needs a first-use review
-
-- Evidence: the lens exposes Outline directly, and its side panel lists every heading in a
-  scrollable `ListCtrl`; a focused test with forty headings confirms the wheel moves the list.
-  The scrollbar follows the charter and fades at rest, which leaves no persistent visual cue.
-  The quiet outline in the reading margin is separate: it previews the first two heading levels
-  and does not scroll. A first-use report says the Markdown viewer still feels like it has bars,
-  and its information panel looks unattractive, too high and poorly rounded. The persistent
-  reading line and Arc progress thread are removed from Markdown; details stay in the `I` sheet,
-  and the lens remains the visible route to zoom and options. The on-demand outline now stands
-  directly on the window ground as a quiet margin, without the floating information card. Its
-  headerless list also exposed a horizontal bar when vertical overflow reduced the viewport by
-  the scrollbar width; simple lists now suppress that spurious horizontal axis.
-- Next: make outline scrolling discoverable on hover and by keyboard, then compare the whole page
-  in Encre and Papier. Keep the always-on reading surface free of footer, progress strip and
-  command bar.
-- Done when: the Markdown page reads without persistent bands, its full outline is available from
-  the lens in a quiet margin, every heading is reachable and scrolling is discoverable, and the
-  outline's placement matches the charter in both themes.
-- Related: design.silence.007

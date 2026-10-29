@@ -89,8 +89,10 @@ set "buildCfg=devmode"
 echo(%arguments%| findstr /i /c:"-bc release" /c:"--build-cfg release" /c:"--build-cfg=release" >nul && set "buildCfg=release"
 set "dynamicLibrary=%~dp0..\bin\unittests\workspace\.output\runtime_context_dynamic_dll\shared-library\%buildCfg%\x86_64\runtime_context_dynamic_dll.dll"
 for %%I in ("%dynamicLibrary%") do set "dynamicLibrary=%%~fI"
-"%compiler%" test --workspace "%~dp0..\bin\unittests\workspace" --no-test-jit --num-cores 6 "--run-arg=--dynamic-runtime-library=%dynamicLibrary%" %arguments%
-if errorlevel 1 exit /b %errorlevel%
+for /d %%M in ("%~dp0..\bin\unittests\workspace\modules\*") do (
+    call :workspaceModule "%%~nxM"
+    if errorlevel 1 exit /b 1
+)
 
 set "scriptOutput=%TEMP%\swc-workspace-script-%RANDOM%-%RANDOM%.txt"
 "%compiler%" --build-cfg "%buildCfg%" --num-cores 6 "%~dp0..\bin\unittests\workspace\import_core_without_using.swgs" > "%scriptOutput%"
@@ -108,3 +110,14 @@ if errorlevel 1 (
 type "%scriptOutput%"
 del /q "%scriptOutput%"
 exit /b 0
+
+:workspaceModule
+set "module=%~1"
+if /i "%module%"=="sandbox_consumer" (
+    "%compiler%" test --workspace "%~dp0..\bin\unittests\workspace" --workspace-module "%module%" --rebuild --no-test-native --num-cores 6 %arguments%
+) else if /i "%module%"=="runtime_context_dynamic_consumer" (
+    "%compiler%" test --workspace "%~dp0..\bin\unittests\workspace" --workspace-module "%module%" --no-test-jit --num-cores 6 "--run-arg=--dynamic-runtime-library=%dynamicLibrary%" %arguments%
+) else (
+    "%compiler%" test --workspace "%~dp0..\bin\unittests\workspace" --workspace-module "%module%" --no-test-jit --num-cores 6 %arguments%
+)
+exit /b %errorlevel%

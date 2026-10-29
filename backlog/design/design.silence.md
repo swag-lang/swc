@@ -129,7 +129,7 @@ dialogs, then each application, then the written rules.
 - Next: decide with the charter owner between five smaller presets and four of the pictures'
   size.
 - Done when: the preset row of the inspector matches its picture.
-- Related: design.silence.004, design.silence.005
+- Related: design.silence.004
 
 ### design.silence.011 — The window scripts were not reviewed against the charter
 

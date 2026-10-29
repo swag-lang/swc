@@ -31,7 +31,11 @@ dialogs, then each application, then the written rules.
   entering Explorer, the empty-query lens leads with folder actions and offers Back, Forward, Up,
   Refresh, Edit Location and Open Chosen when each action can run. It keeps only Open and Close
   from the generic file actions in this context, with a first-screen test and whole-window goldens
-  in both themes.
+  in both themes. Explorer's tile painter drew the Arc selection ring before the preview, allowing
+  the picture to cover the selection mark; the name and facts under a selected thumbnail also had
+  no selection ground. The charter now states that both files and folders remain selected after
+  pointer exit, that rows carry a full Arc ground, and that thumbnail selection stays visible over
+  the picture in both themes.
 - Next: review the empty-query lens in Capture, Prism and Vault against their first-use tasks in
   both themes; adjust the direct action order so their common tasks are visible before scrolling,
   then update and review the affected whole-screen goldens. In Scope, verify that the full Markdown
@@ -41,7 +45,8 @@ dialogs, then each application, then the written rules.
 - Done when: each application offers its common first-use tasks directly in the initial lens
   view, every other command remains reachable from the lens, and the whole-screen goldens match
   the approved design without any application re-implementing a shared component or insetting
-  its whole root under the strip.
+  its whole root under the strip. Explorer selection remains clear on files, folders and previews
+  after the pointer leaves, in Encre and Papier.
 - Related: design.silence.007, design.silence.008
 
 ### design.silence.006 — The file box does not fit its rows as its pictures do

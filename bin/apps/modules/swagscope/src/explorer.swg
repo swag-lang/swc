@@ -1719,6 +1719,12 @@ impl IWnd for Explorer
 
     mtd impl onDestroyEvent(_: *DestroyEvent)
     {
+        // A listing or an extraction still running would report its end to a window and an
+        // application that are going away: both are waited for here, the listing told to stop.
+        .load.task.cancel()
+        .load.wait()
+        .extraction.wait()
+
         for &preview in .previews do
             preview.task.cancel()
         for &preview in .previews do

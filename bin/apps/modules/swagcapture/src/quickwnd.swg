@@ -17,7 +17,7 @@ const QuickChipHeight = QuickCellHeight + 2 * QuickChipInset
 // room its stroke and its ends take is kept around it.
 const QuickSampleWidth  = 28.0
 const QuickSampleHeight = 18.0
-const QuickStrokeZoom   = 0.35'f32     // The scale a line or an arrow is painted at in its cell.
+const QuickStrokeZoom   = 0.28'f32     // The scale a line or an arrow is painted at in its cell.
 const QuickTextHeight   = 16.0'f32     // The size the "Aa" of a text is painted at in its cell.
 const QuickMaskWidth    = 24.0         // Width of the pattern of a mask preset.
 const QuickMaskHeight   = 16.0         // Height of the pattern of a mask preset.
@@ -322,7 +322,7 @@ impl QuickStylePaintForm
         var h = QuickSampleHeight
         switch paintItf
         {
-        case FormStep:  w, h = 18
+        case FormStep:  w, h = 16
         case FormImage: w, h = 22
         case FormText:  w, h = QuickCellHeight - 2 * QuickCellMargin
         }

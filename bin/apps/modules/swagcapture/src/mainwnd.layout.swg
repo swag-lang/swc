@@ -582,16 +582,21 @@ impl MainWnd
     {
         if .hintLine == null do
             return
+
+        // The line stands in the room the dock and the inspector leave, never under them.
+        let insets = .floatingInsets()
+        .hintLine.margin = {insets.left, 0, insets.right, 0}
         .hintLine.clearHints()
         if .editWnd != null and .editWnd.editView.isEditingText()
         {
+            // The keys come first: a line cut by a narrow room loses the advice, not the keys.
             let view = .editWnd.editView
-            if view.textEditForm() is FormCallout do
-                .hintLine.addHint("", appStrings().hint_CalloutTail)
-            if not view.textSpec.step do
-                .hintLine.addHint(appStrings().key_Return, appStrings().hint_NewLine)
             .hintLine.addHint(view.textSpec.step ? appStrings().key_Return : appStrings().key_CtrlReturn, appStrings().hint_KeepText)
             .hintLine.addHint(strings().key_Escape, appStrings().hint_Cancel)
+            if not view.textSpec.step do
+                .hintLine.addHint(appStrings().key_Return, appStrings().hint_NewLine)
+            if view.textEditForm() is FormCallout do
+                .hintLine.addHint("", appStrings().hint_CalloutTail)
             return
         }
 

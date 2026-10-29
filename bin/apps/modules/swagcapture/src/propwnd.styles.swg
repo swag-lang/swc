@@ -170,6 +170,7 @@ impl PropWnd
         button.sigPopupRequested += func|prop = me, slot, label|(button)
         {
             let popover = ColorPopover.open(assume cast(*IconButton, button), label, prop.slotColor(slot), &prop.main.recentColors)
+            popover.standBeside(prop.main.inspector, button)
 
             // The undo step waits for the colour to change: opening the popover and closing it
             // without a pick leaves none, and later picks replace the step of the first.
@@ -328,24 +329,21 @@ impl PropWnd
         let capture = .main.getCapture()
         let several = capture and capture.selection.count > 1
         .addHeadSection(several ? appStrings().ui_Common : appStrings().ui_PropColor)
-        if hasBorder
+        // A stroke is its colour, then its outline; a shape its fill, its words, then its outline.
+        if isStroke and not pixSel
         {
-            var label = appStrings().ui_PropOutline
-            switch formType
-            {
-            case FormLine, FormArrow, FormDraw: label = appStrings().ui_PropColor
-            case FormStep:                      label = appStrings().act_Text
-            }
-
-            .addColorRow(label, .Border)
+            if hasBorder do
+                .addColorRow(appStrings().ui_PropColor, .Border)
+            .addColorRow(appStrings().ui_PropOutline, .StrokeOutline)
+            return
         }
 
-        if isStroke and not pixSel do
-            .addColorRow(appStrings().ui_PropOutline, .StrokeOutline)
         if hasFill do
             .addColorRow(appStrings().ui_PropFill, .Fill)
         if formType == FormCallout do
             .addColorRow(appStrings().act_Text, .CalloutText)
+        if hasBorder do
+            .addColorRow(formType == FormStep ? appStrings().act_Text : appStrings().ui_PropOutline, .Border)
     }
 
     // Appends the glyph choices of the selection: the kind of a shape or a step, the dash of an

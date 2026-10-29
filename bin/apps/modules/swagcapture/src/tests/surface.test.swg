@@ -544,12 +544,25 @@ func testSetupInPlace(host: *Gui.Testing.HeadlessHost, dark: bool)->*InPlaceEdit
         g_Main = null
     }
 
+    // Recent captures whose names the query matches close the results as pictures.
+    for name, i in ["image-panel.scc", "image-dark.scc", "image-dune.scc"]
+    {
+        const Colors = [Argb.WhiteSmoke, Argb.DimGray, Argb.Peru]
+        var preview = Image.create(160, 100, .BGRA8)
+        preview.fill(Colors[i])
+        let item = main.recentWnd.recentView.items.addNew()
+        item.file    = name
+        item.preview = g_App.renderer.addImage(preview)
+    }
+
     main.lens.open("image")
     Swag.assert(main.lens.isOpen() and not main.lens.rows.isEmpty())
+    Swag.assert(main.lens.rows.back().entry == Lens.PictureRow)
     host.finishAnimations()
 
     var image = host.render(main)
     Pixel.Testing.assertImageGolden(&image, "lens.paper")
+    main.recentWnd.recentView.items.clear()
     main.lens.close()
 }
 

@@ -22,7 +22,7 @@ enum HintLineAlignment
 
 // Teaches the door of a window: a faint line near its bottom edge, naming a key and what it opens.
 //
-// This is the charter's "Space — everything else": a keycap and its words in the faint ink,
+// This is the charter's "Ctrl Space — everything else": a keycap and its words in the faint ink,
 // centred [[Gui.ThemeMetrics.hintLine_Bottom]] above the bottom edge of its parent. Show it while
 // the reader is new to the window or the surface is empty, and hide it once the door is known. A
 // faint mono reading of the work — a size, a zoom — may lead the line, as Swag Capture's does; it
@@ -37,7 +37,7 @@ enum HintLineAlignment
 // with let hint = HintLine.create(view)
 // {
 //     .setReading("880 × 550 · 100 %")
-//     .addHint(strings().key_Space, "capture, open, library")
+//     .addHint(Input.formatKeyShortcut(.Control, .Space), "capture, open, library")
 // }
 // ```
 struct HintLine

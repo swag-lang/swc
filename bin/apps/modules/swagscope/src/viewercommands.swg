@@ -109,9 +109,8 @@ impl ViewerWindow
 
         .appearanceButton.addToLens(.lens)
 
-        // The door has a key of its own where nothing types, and a chord everywhere.
-        .registerKeyShortcut(.None, .Space, ViewerCommands.Lens)
-        .registerKeyShortcut(.Control, .K, ViewerCommands.Lens)
+        // The lens uses one chord everywhere.
+        .registerKeyShortcut(.Control, .Space, ViewerCommands.Lens)
         .registerKeyShortcut(.None, .I, ViewerCommands.Information)
         .registerKeyShortcut(.Control, .O, ViewerCommands.Open)
         .registerKeyShortcut(.Control, .E, ViewerCommands.Explore)

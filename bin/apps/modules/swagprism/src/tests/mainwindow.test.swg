@@ -286,14 +286,16 @@ func lensHasEntry(window: *MainWindow, title: string)->bool
     Swag.assert(window.hintLine.reading.isEmpty())
 }
 
-// Space and I open the lens and the sheet where nothing types, and are text in the editor.
+// Ctrl Space opens the lens from the editor; I opens the sheet where nothing types.
 #test
 {
     var host: Testing.HeadlessHost
     let window = testSetupInspectionWindow(&host)
+    Swag.assert(window.keyShortcut(.Control, .Space) == PrismCommands.Lens)
     window.editor.setFocus()
-    Swag.assert(window.typing() and not window.runCommand(PrismCommands.LensKey) and not window.lens.isOpen())
     Swag.assert(not window.runCommand(PrismCommands.InformationKey) and not window.infoSheet.isLocallyVisible())
+    Swag.assert(window.typing() and window.runCommand(PrismCommands.Lens) and window.lens.isOpen())
+    window.lens.close()
 
     showDotFixtures(window)
     microcode(window, 0).listing.setFocus()

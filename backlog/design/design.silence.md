@@ -1,6 +1,8 @@
 # Silence migration
 
-Every entry moves part of `bin/` to the charter in [README.md](README.md). The order is the
+Every entry moves part of the GUI toolkit or a standard application to the charter in
+[README.md](README.md). Examples under `bin/examples/` keep conventional windows and are outside
+the Silence application migration. The order is the
 dependency order: themes and controls, window chrome and shared components, property grid and
 dialogs, then each application, then the written rules.
 
@@ -22,7 +24,7 @@ dialogs, then each application, then the written rules.
   margin) are `Gui.SectionLabel`; the keys are named one way (`Gui.strings().key_Enter`,
   `key_CtrlEnter`, spaced shortcuts).
 - Next: per remaining application, register every command and `addToLens` on one lens bound to
-  `Space` or `Ctrl K`, move readings to the sheet, tools to the dock and the mini-bar, properties
+  `Ctrl Space`, move readings to the sheet, tools to the dock and the mini-bar, properties
   to the inspector, and let the work reach into the strip where its picture shows it.
 - Done when: the four applications use the components, every command is a lens entry, and no
   application re-implements one or insets its whole root under the strip.
@@ -158,21 +160,27 @@ dialogs, then each application, then the written rules.
 - Done when: the preset row of the inspector matches its picture.
 - Related: design.silence.004
 
-### design.silence.011 — The window scripts were not reviewed against the charter
+### design.silence.011 — Standalone example scripts stay outside Silence
 
-- Evidence: the example scripts that open windows (`chess.swgs`, `noise.swgs`) were not reviewed
-  against the charter. `chess.swgs` now writes its game state in the theme's text color and
-  names its button "Restart"; `noise.swgs` reserves a 48 px caption room of its own instead of
-  the strip's inset.
-- Next: give `noise.swgs` the strip's inset, then look at both scripts in both themes.
-- Done when: the window scripts build and smoke clean in both themes.
+- Decision: standalone scripts are examples, not Silence applications. A window-using script keeps
+  its title and border and uses the GUI toolkit's Encre and Papier themes where applicable.
+- Out of scope: a Silence application strip, lens-only commands, or application-specific layout
+  rules in a standalone script.
 
-### design.silence.017 — The gui examples show no application glyph in their strip
+### design.silence.017 — All examples use Swag-drawn windows
 
-- Evidence: the examples gui2 to gui11 set no application icon, so their strip starts with the
-  title alone where the charter puts the glyph at (18, 16).
-- Next: give each example window an application icon, a neutral sample mark.
-- Done when: every gui example window shows a glyph at the start of its strip, in both themes.
+- Decision: examples are teaching programs, not Silence applications. Every top-level example
+  window uses Swag-rendered title and border chrome, with Encre and Papier where applicable.
+  GUI examples with multiple pages or palettes keep navigation and theme selection visible.
+- Evidence: the GUI examples use `Gui.Surface` and draw their chrome through `SurfaceWnd`; Pixel
+  and OpenGL examples still call `Core.Env.createWindow`, which delegates the title and border to
+  the operating system.
+- Next: move the low-level rendering examples into a host that keeps their renderer-specific
+  content while drawing and handling window chrome through the GUI toolkit.
+- Done when: every example window has a Swag-drawn title and border, remains resizable and
+  closable, and its full-screen layout is reviewed in the applicable themes.
+- Out of scope: a Silence application strip, lens-only navigation, or Silence component showcase
+  in an example.
 
 
 ### design.silence.018 — The charter and the code disagree on measures and leftovers

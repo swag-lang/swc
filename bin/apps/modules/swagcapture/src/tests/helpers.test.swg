@@ -56,6 +56,7 @@ impl HeadlessFixture
     mtd registerHeadlessCommands()
     {
         testRegisterHeadlessCommands(.main)
+        .main.createLens()
     }
 
     mtd setupLibraryWnd()->*LibraryWnd
@@ -277,7 +278,7 @@ func testRegisterHeadlessShortcuts(main: *MainWnd)
     main.registerKeyShortcut(.None, .Escape, ActionSelection.DeSelectAll)
     main.registerKeyShortcut(.Control, .D, ActionCopyPaste.Duplicate)
     main.registerKeyShortcut(.CtrlShift, .I, ActionSelection.InvertSelection)
-    main.registerKeyShortcut(.Control, .Space, ActionSelection.Freeze)
+    main.registerKeyShortcut(.Control, .Space, ActionView.Lens)
     main.registerKeyShortcut(.None, .Delete, ActionSelection.DeleteSelection)
     main.registerKeyShortcut(.Control, .Z, ActionUndo.DoUndo)
     main.registerKeyShortcut(.Control, .Y, ActionUndo.DoRedo)

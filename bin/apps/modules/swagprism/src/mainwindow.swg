@@ -28,9 +28,9 @@ a `shade` function paints, or the interface a `buildView` function builds. Stage
 instructions take the window and a frieze steps through what each pass did. Two builds of the same
 source can stand side by side, the reference at the left.
 
-Everything else is asked for. Every command is an entry of the lens, which `Ctrl K` opens (and
-`Space` where nothing types); the readings of the build are in the sheet (`Ctrl I`); the window
-keeps only a hint line and the reading of the last build at its foot.
+Everything else is asked for. Every command is an entry of the lens, which `Ctrl Space` opens; the
+readings of the build are in the sheet (`Ctrl I`); the window keeps only a hint line and the
+reading of the last build at its foot.
 */
 struct MainWindow
 {
@@ -497,7 +497,7 @@ impl MainWindow
         {
             if .view == .Columns do
                 .hintLine.addHint(Gui.strings().key_CtrlEnter, strings.hint_Compile)
-            .hintLine.addHint(strings.key_Lens, strings.hint_Lens)
+            .hintLine.addHint(Input.formatKeyShortcut(.Control, .Space), strings.hint_Lens)
         }
 
         .refreshCaretPlace()

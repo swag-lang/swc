@@ -808,7 +808,7 @@ impl IAllocator for LibraryRejectAllocator
     discard catch File.delete(back)
 }
 
-// The library page teaches its keys on its hint line, Space last: Enter opens the chosen capture,
+// The library page teaches its keys on its hint line, Ctrl Space last: Enter opens the chosen capture,
 // Delete deletes it, F2 renames it, 0 to 5 rate it and / reaches the field filtering the grid.
 #test
 {
@@ -829,7 +829,7 @@ impl IAllocator for LibraryRejectAllocator
     Swag.assert(hints[0].key == strings().key_Enter and hints[0].text == texts.hint_Open)
     Swag.assert(hints[1].key == "Del" and hints[2].key == "F2" and hints[2].text == texts.hint_Rename)
     Swag.assert(hints[3].key == texts.key_Ratings and hints[4].key == "/" and hints[4].text == texts.hint_Filter)
-    Swag.assert(hints[5].key == strings().key_Space)
+    Swag.assert(hints[5].key == Input.formatKeyShortcut(.Control, .Space))
 
     Swag.assert(lib.keyShortcut(.None, .Return) == ActionLibSel.Open)
     Swag.assert(lib.keyShortcut(.None, .Delete) == ActionLibSel.Delete)

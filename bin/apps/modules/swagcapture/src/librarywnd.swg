@@ -282,7 +282,7 @@ impl LibraryWnd
     }
 
     // Teaches the keys of the page on its hint line: open, delete, rename, rate and search the
-    // chosen captures, then Space, which offers the rest.
+    // chosen captures, then Ctrl Space, which opens the lens.
     mtd fillHintLine()
     {
         let texts = appStrings()
@@ -292,7 +292,7 @@ impl LibraryWnd
         .hintLine.addHint(Input.formatKeyShortcut(.None, .F2), texts.hint_Rename)
         .hintLine.addHint(texts.key_Ratings, texts.hint_Rate)
         .hintLine.addHint(Input.formatKeyShortcut(.None, .Oem2), texts.hint_Filter)
-        .hintLine.addHint(strings().key_Space, texts.hint_LibrarySpace)
+        .hintLine.addHint(Input.formatKeyShortcut(.Control, .Space), texts.hint_LibrarySpace)
     }
 
     // Update the live text filter and rebuild the visible set.

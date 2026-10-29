@@ -32,10 +32,10 @@ func createHslModesPage(parent: *Wnd)
                              layout.bottom)
     scope
     {
-        discard createModePicker(bottom, "Hue", {24, 104, 220, 24}, .HueHorizontal)
-        discard createModePicker(bottom, "Lightness", {284, 104, 220, 24}, .LightnessHorizontal)
-        discard createModePicker(bottom, "Saturation", {544, 104, 220, 24}, .SaturationHorizontal)
-        discard createModePicker(bottom, "Alpha", {804, 104, 220, 24}, .AlphaHorizontal)
-        discard createQuickPalette(bottom, {24, 168, 520, 36}, "Fast presets")
+        discard createModePicker(bottom, "Hue", {24, 120, 260, 24}, .HueHorizontal)
+        discard createModePicker(bottom, "Lightness", {330, 120, 260, 24}, .LightnessHorizontal)
+        discard createModePicker(bottom, "Saturation", {636, 120, 260, 24}, .SaturationHorizontal)
+        discard createModePicker(bottom, "Alpha", {942, 120, 260, 24}, .AlphaHorizontal)
+        discard createQuickPalette(bottom, {24, 204, 520, 36}, "Fast presets")
     }
 }

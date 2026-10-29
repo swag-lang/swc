@@ -96,7 +96,6 @@ struct AppStrings
     lens_Preset:       string = "Build Preset"
 
     // The hint line: keys, in their keycaps, and what they do.
-    key_Lens:     string = "Ctrl K"                           // The key that opens the lens where Space types.
     key_Steps:    string = "← →"                              // The keys that step through the stages.
     hint_Compile: string = "compile"                          // What the compile key does.
     hint_Lens:    string = "views, stages, examples"          // What the lens holds.

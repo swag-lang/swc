@@ -812,7 +812,6 @@ impl MainWnd
         .registerKeyShortcut(.Control, .Y, ActionUndo.DoRedo)
         .registerKeyShortcut(.None, .Delete, ActionSelection.DeleteSelection)
         .registerKeyShortcut(.CtrlShift, .A, ActionCopyPaste.CopyAsImage)
-        .registerKeyShortcut(.Control, .Space, ActionSelection.Freeze)
         .registerKeyShortcut(.Control, .A, ActionSelection.SelectAll)
         .registerKeyShortcut(.None, .Escape, ActionSelection.DeSelectAll)
         .registerKeyShortcut(.Control, .D, ActionCopyPaste.Duplicate)
@@ -868,10 +867,8 @@ impl MainWnd
         .registerKeyShortcut(.None, .X, ActionToolMode.PixSel)
         .registerKeyShortcut(.None, .F, ActionToolMode.Favorites)
 
-        // The one door, and the properties of the selection. Space types in a field, so a field
-        // keeps it and Ctrl K opens the lens from there.
-        .registerKeyShortcut(.None, .Space, ActionView.Lens)
-        .registerKeyShortcut(.Control, .K, ActionView.Lens)
+        // The one door is a chord so Space remains available to the work and to text fields.
+        .registerKeyShortcut(.Control, .Space, ActionView.Lens)
         .registerKeyShortcut(.None, .I, ActionView.Inspector)
 
         // Every shortcut another application already owns is named in one information bar.

@@ -9,7 +9,7 @@ func createListsPage(parent: *Wnd)
                            "Single-column rows with icons, hot tracking and multi-selection.",
                            layout.left)
     with let simple = ListCtrl.createSimple(left,
-                                            Math.Rectangle{SectionInset, 88, layout.left.width - 2 * SectionInset, layout.left.height - 88})
+                                            Math.Rectangle{18, 92, layout.left.width - 36, layout.left.height - 112})
     {
         .setFrameForm(.Round)
         .frameFlags.add(.FocusBorder)
@@ -27,7 +27,7 @@ func createListsPage(parent: *Wnd)
                             "A million logical rows filled on demand by onFillVirtualLine.",
                             layout.right)
     let virtualList = ListCtrl.createSimple(right,
-                                            Math.Rectangle{SectionInset, 88, layout.right.width - 2 * SectionInset, layout.right.height - 88})
+                                            Math.Rectangle{18, 92, layout.right.width - 36, layout.right.height - 112})
     virtualList.setFrameForm(.Round)
     virtualList.setSelectionMode(.Single)
     virtualList.setIconSize(16)
@@ -48,7 +48,7 @@ func createListsPage(parent: *Wnd)
                              "Rows can carry independent check state while preserving list navigation.",
                              layout.bottom)
     let checks = ListCtrl.createSimple(bottom,
-                                       Math.Rectangle{SectionInset, 88, layout.bottom.width - 2 * SectionInset, layout.bottom.height - 88})
+                                       Math.Rectangle{18, 92, layout.bottom.width - 36, layout.bottom.height - 112})
     checks.setFrameForm(.Square)
     checks.setSelectionMode(.Multi)
     checks.setIconSize(16)

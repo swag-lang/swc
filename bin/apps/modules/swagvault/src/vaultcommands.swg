@@ -65,10 +65,9 @@ impl MainWindow
 
         .appearanceButton.addToLens(.lens)
 
-        // The door has a key of its own where nothing types, and a chord everywhere. Escape folds
-        // the unfolded vault, or leads back to the list from another page.
-        .registerKeyShortcut(.None, .Space, VaultCommands.Lens)
-        .registerKeyShortcut(.Control, .K, VaultCommands.Lens)
+        // The lens uses one chord everywhere. Escape folds the unfolded vault, or leads back to
+        // the list from another page.
+        .registerKeyShortcut(.Control, .Space, VaultCommands.Lens)
         .registerKeyShortcut(.Control, .N, VaultCommands.NewVault)
         .registerKeyShortcut(.Control, .O, VaultCommands.OpenFile)
         .registerKeyShortcut(.None, .Escape, VaultCommands.Vaults)

@@ -154,13 +154,13 @@ struct AppStrings
     count_Image:     string = "% image|% images"
     count_Object:    string = "% object|% objects"
     ui_NextObjects:             string = "next objects"                // Detail of the inspector title when nothing is selected: the tool's settings apply to what is drawn next.
-    hint_Space:                 string = "capture, open, library"      // What the Space key opens, on the hint line of the editor.
+    hint_Space:                 string = "capture, open, library"      // What Ctrl Space opens, on the hint line of the editor.
     hint_Open:                  string = "open"                        // What Enter does to the chosen capture of the library.
     hint_Rename:                string = "rename"                      // What F2 does to the chosen capture of the library.
     key_Ratings:                string = "0–5"                         // The keys rating the chosen captures, in a keycap of the hint line.
     hint_Rate:                  string = "rate"                        // What the digits do to the chosen captures of the library.
     hint_Filter:                string = "filter"                      // What / does in the library: it reaches the field filtering the grid.
-    hint_LibrarySpace:          string = "export, tag, rate, move"     // What the Space key opens, on the hint line of the library.
+    hint_LibrarySpace:          string = "export, tag, rate, move"     // What Ctrl Space opens, on the hint line of the library.
     ui_LibraryEmpty:            string = "No captures here yet."       // Sentence of a library folder that holds nothing.
     ui_LibraryNoMatch:          string = "No capture matches the filters or the search."     // Sentence of a library page the filters emptied.
     lens_Tools:                 string = "Tools"                       // Lens section of the drawing tools.

@@ -9,7 +9,6 @@ using Core, Gui, Pixel
 namespace PrismCommands
 {
     const Lens               = "prism.lens"
-    const LensKey            = "prism.lens.key"     // `Space`, which opens the lens unless it types.
     const Information        = "prism.sheet"
     const InformationKey     = "prism.sheet.key"     // `I`, which shows the sheet unless it types.
     const Compile            = "prism.compile"
@@ -57,9 +56,8 @@ impl MainWindow
 
         .appearanceButton.addToLens(.lens)
 
-        // The door has a key of its own where nothing types, and a chord everywhere.
-        .registerKeyShortcut(.None, .Space, PrismCommands.LensKey)
-        .registerKeyShortcut(.Control, .K, PrismCommands.Lens)
+        // The lens uses one chord everywhere, including while the source editor has focus.
+        .registerKeyShortcut(.Control, .Space, PrismCommands.Lens)
         .registerKeyShortcut(.None, .I, PrismCommands.InformationKey)
         .registerKeyShortcut(.Control, .I, PrismCommands.Information)
         .registerKeyShortcut(.Control, .Return, PrismCommands.Compile)
@@ -198,7 +196,7 @@ impl MainWindow
         var checked:  bool
         switch evt.id
         {
-        case PrismCommands.Lens, PrismCommands.LensKey, PrismCommands.InformationKey:
+        case PrismCommands.Lens, PrismCommands.InformationKey:
             return false
 
         case PrismCommands.Information:
@@ -339,9 +337,6 @@ impl MainWindow
 
         case PrismCommands.Information:
             .toggleInformation()
-
-        case PrismCommands.LensKey where not .typing():
-            .openLens()
 
         case PrismCommands.InformationKey where not .typing():
             .toggleInformation()

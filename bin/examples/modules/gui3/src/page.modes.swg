@@ -6,12 +6,13 @@ func createModesPage(parent: *Wnd)
 
     let left = createPanel(parent,
                            "RichEditCtrl form",
-                           "The code form, its current line marked, on the source of this page.",
+                           "Code-oriented chrome using gui3's own mode page source for a very different visual rhythm.",
                            layout.left)
     scope
     {
+        let rect = left.clientRect()
         discard createCodeEditor(left,
-                                 editorRect(left),
+                                 Math.Rectangle{18, 88, rect.width - 36, rect.height - 106},
                                  cast(string, SourcePageModes),
                                  .ShowFocusSel | .CurLineBorder | .TabToSpaces)
     }
@@ -22,9 +23,10 @@ func createModesPage(parent: *Wnd)
                             layout.right)
     scope
     {
-        let ed = createDocumentEditor(right,
-                                      editorRect(right),
-                                      "This variant uses the Edit form.\n\nIt keeps the rich selection model but relaxes the visual framing so notes sit more naturally beside buttons, forms and inspectors.\n\nBecause the control stays the same underneath, switching between prose and code does not mean switching engines.")
+        let rect = right.clientRect()
+        let ed   = createDocumentEditor(right,
+                                        Math.Rectangle{18, 88, rect.width - 36, rect.height - 106},
+                                        "This variant uses the Edit form.\n\nIt keeps the rich selection model but relaxes the visual framing so notes sit more naturally beside buttons, forms and inspectors.\n\nBecause the control stays the same underneath, switching between prose and code does not mean switching engines.")
         ed.lineSpacing = 2
     }
 
@@ -34,21 +36,21 @@ func createModesPage(parent: *Wnd)
                              layout.bottom)
     scope
     {
-        // Three columns on the inset of the section, parted by the gap the sections keep.
         let rect         = bottom.clientRect()
-        let columnWidth  = (rect.width - 2 * SectionInset - 2 * SectionGap) / 3
-        let top          = 88.0
+        let gutter       = 18.0
+        let columnWidth  = (rect.width - gutter * 4) / 3
+        let top          = 92.0
         let editorY      = top + 28
-        let editorHeight = rect.height - editorY
+        let editorHeight = rect.height - editorY - 22
 
-        createCaption(bottom, "Draw blanks", SectionInset, top, columnWidth)
+        createCaption(bottom, "Draw blanks", gutter, top, columnWidth)
         let ed0 = createDemoEditor(bottom,
-                                   Math.Rectangle{SectionInset, editorY, columnWidth, editorHeight},
+                                   Math.Rectangle{gutter, editorY, columnWidth, editorHeight},
                                    .ShowFocusSel | .DrawBlanks | .TabToSpaces,
                                    .Edit)
         ed0.setText("tabs:\tname\tvalue\nspaces: alpha    beta    gamma\n\nVisible blanks are useful when alignment matters.")
 
-        let x1 = SectionInset + columnWidth + SectionGap
+        let x1 = gutter * 2 + columnWidth
         createCaption(bottom, "Read only", x1, top, columnWidth)
         let ed1 = createDemoEditor(bottom,
                                    Math.Rectangle{x1, editorY, columnWidth, editorHeight},
@@ -57,7 +59,7 @@ func createModesPage(parent: *Wnd)
         ed1.marginRight = 16
         ed1.setText("This panel is read only.\n\nIt still supports selection, copy, theming and the same rendering pipeline as editable instances.")
 
-        let x2 = SectionInset + 2 * (columnWidth + SectionGap)
+        let x2 = gutter * 3 + columnWidth * 2
         createCaption(bottom, "Wrapped note", x2, top, columnWidth)
         let ed2 = createDocumentEditor(bottom,
                                        Math.Rectangle{x2, editorY, columnWidth, editorHeight},

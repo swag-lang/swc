@@ -115,7 +115,7 @@ impl ViewerWindow
         .infoSheet = InfoSheet.create(me, "scope.information")
         with .hintLine = HintLine.create(me, "scope.hint")
         {
-            .addHint(Gui.strings().key_Space, appStrings().ui_HintLens)
+            .addHint(Input.formatKeyShortcut(.Control, .Space), appStrings().ui_HintLens)
         }
     }
 

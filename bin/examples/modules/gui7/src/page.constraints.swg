@@ -8,9 +8,9 @@ func createDockLabel(parent: *Wnd,
                      margin: Math.Vector4 = {})->*Label
 {
     let label = Label.create(parent, Format.toString("<b>%</b>\n%", title, text), Math.Rectangle{0, 0, size.x, size.y}, null, .WordWrap)
-    raiseRegion(label)
-    label.dockStyle = dock
-    label.margin    = margin
+    label.backgroundStyle = .Window
+    label.dockStyle       = dock
+    label.margin          = margin
     label.setTextPadding({12, 8, 12, 8})
     label.setTextAlignment(.Left, .Top)
     return label
@@ -21,21 +21,21 @@ func createConstraintsPage(parent: *Wnd)
     let layout = getPageLayout(parent)
     let page   = createPanel(parent,
                              "Docking and constraints",
-                             "Docked children take the client rectangle in order; the centre fills what remains while minimum and maximum sizes clamp the sides.",
+                             "Docked children consume the client rectangle in order; center fills the remaining space while min/max sizes clamp panes.",
                              layout.full)
 
-    let host = Wnd.create'Wnd(page, Math.Rectangle{SectionInset, 88, layout.full.width - 2 * SectionInset, layout.full.height - 88})
+    let host = Wnd.create'Wnd(page, Math.Rectangle{18, 92, layout.full.width - 36, layout.full.height - 114})
     host.padding = 8
 
     with let topStack = StackLayoutCtrl.create(host, .Left, {0, 0, 0, 56})
     {
-        .dockStyle = .Top
-        .margin    = {0, 0, 0, 10}
-        .padding   = {12, 12, 12, 12}
-        .spacing   = 8
+        .backgroundStyle = .CommandBar
+        .dockStyle       = .Top
+        .margin          = {0, 0, 0, 10}
+        .padding         = {12, 12, 12, 12}
+        .spacing         = 8
     }
 
-    raiseRegion(topStack)
     discard createChip(topStack, "New", .Plus)
     discard createChip(topStack, "Open", .OpenFile)
     discard createChip(topStack, "Save", .Save)
@@ -57,9 +57,9 @@ func createConstraintsPage(parent: *Wnd)
     right.maxSize.x = 280
 
     let center = Wnd.create'Wnd(host, {0, 0, 260, 160})
-    raiseRegion(center)
-    center.dockStyle = .Center
-    center.margin    = 0
+    center.backgroundStyle = .View
+    center.dockStyle       = .Center
+    center.margin          = 0
 
     host.sendResizeEvent()
 
@@ -72,8 +72,8 @@ func createConstraintsPage(parent: *Wnd)
 
     let actionX = Math.max(center.position.width - 190, 14.0)
     let actionY = Math.max(center.position.height - 54, 96.0)
-    let action  = PushButton.create(center, "Anchored Action", Math.Rectangle{actionX, actionY, 170, 34})
-    action.setIcon(app.theme.icon(.Link, 16))
+    let action  = PushButton.create(center, "Anchored action", Math.Rectangle{actionX, actionY, 170, 34})
+    action.setIcon(app.theme.icon(.Link, 18))
     action.anchorStyle = .Right | .Bottom
 
     let stretch = Label.create(center,

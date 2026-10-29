@@ -209,7 +209,7 @@ file that arrives quickly changes without any mark at all; switching viewers ret
 progressive work.
 
 The window shows the document and nothing else. Every command is an entry of the lens, which
-`Space` (or `Ctrl K`) opens: opening, exploring, closing and reloading, the files beside the open
+`Ctrl Space` opens: opening, exploring, closing and reloading, the files beside the open
 one and the recent files and folders (`/`), the viewers the file can be seen in, find and its
 options, full screen, the play modes, the explored folder's history and order, the theme, the
 language and About, and every command of the viewer on screen under its name. The readings of the

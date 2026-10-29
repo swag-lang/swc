@@ -31,8 +31,7 @@ using Core, Pixel
 // each from the best answer down, and commands matched only by scattered letters are left out
 // when others answer better.
 //
-// The application opens the lens from the key it chooses — `Space`, or `Ctrl K` where Space
-// types text — by calling [[Gui.Lens.View.open]].
+// Applications open the lens with `Ctrl Space` by calling [[Gui.Lens.View.open]].
 //
 // ```swag
 // with let lens = Lens.View.create(mainWnd)

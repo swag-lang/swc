@@ -66,7 +66,10 @@ impl ViewerWindow
         // A document that takes the whole window writes its title itself, over its picture.
         .surface?.wnd.showTitle(not .isEdgeToEdge())
         .updateDocumentInsets()
-        .readingLine.show(.readingLine.hasContent() and .canShowReadingLine() and not .fullScreen and not .isEdgeToEdge())
+        .readingLine.show(.readingLine.hasContent() and
+                          .canShowReadingLine() and
+                          not .fullScreen and
+                          not .isEdgeToEdge())
         .readingLine.computeLayout()
         .documentHost.applyLayout()
         .layoutViewerBar()

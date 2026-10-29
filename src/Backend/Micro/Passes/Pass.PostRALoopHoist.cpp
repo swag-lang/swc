@@ -130,15 +130,15 @@ namespace
     // escaped pointer into either space can reach stack-pointer slots.
     struct FrameReachability
     {
-        bool                     computed          = false;
-        bool                     wholeFramePrivate = false;
-        bool                     spSpaceEscapes    = false;
-        bool                     localSpaceEscapes = false;
+        bool                       computed          = false;
+        bool                       wholeFramePrivate = false;
+        bool                       spSpaceEscapes    = false;
+        bool                       localSpaceEscapes = false;
         std::vector<MicroInstrRef> spEscapes;
-        MicroReg                 localBaseReg;
-        MicroInstrRef            localBaseRef = MicroInstrRef::invalid();
-        bool                     extentsKnown = false;
-        std::vector<FrameObject> objects;
+        MicroReg                   localBaseReg;
+        MicroInstrRef              localBaseRef = MicroInstrRef::invalid();
+        bool                       extentsKnown = false;
+        std::vector<FrameObject>   objects;
     };
 
     // A restored register is no longer a frame base, but a straight-line
@@ -261,10 +261,10 @@ namespace
 
         for (auto it = storage.view().begin(), end = storage.view().end(); it != end; ++it)
         {
-            const MicroInstr&        inst = *it;
-            const MicroInstrOperand* ops  = inst.ops(operands);
-            const MicroInstrDef&     info = MicroInstr::info(inst.op);
-            const auto markStackEscape = [&] {
+            const MicroInstr&        inst            = *it;
+            const MicroInstrOperand* ops             = inst.ops(operands);
+            const MicroInstrDef&     info            = MicroInstr::info(inst.op);
+            const auto               markStackEscape = [&] {
                 out.spSpaceEscapes = true;
                 out.spEscapes.push_back(it.current);
             };
@@ -378,11 +378,11 @@ namespace
 
     struct FrameRangeNormalizer
     {
-        const MicroPassContext&               context;
-        const MicroControlFlowGraph&          cfg;
-        const MicroPassHelpers::MicroDomTree& dom;
-        const FrameReachability&              reach;
-        const CallConv&                       conv;
+        const MicroPassContext&                     context;
+        const MicroControlFlowGraph&                cfg;
+        const MicroPassHelpers::MicroDomTree&       dom;
+        const FrameReachability&                    reach;
+        const CallConv&                             conv;
         mutable std::optional<FlatKeyMap<uint64_t>> stackOffsets;
         mutable std::optional<FlatKeyMap<uint64_t>> entryStackOffsets;
 
@@ -992,10 +992,10 @@ namespace
                 if (!frameBase.isValid() || frameBase == conv.stackPointer || std::ranges::find(useDef.uses, frameBase) == useDef.uses.end())
                     continue;
                 const MicroInstr* inst = storage.ptr(refs[index]);
-                const auto* ops = inst ? inst->ops(operands) : nullptr;
+                const auto*       ops  = inst ? inst->ops(operands) : nullptr;
                 if (!inst || !ops)
                     return false;
-                const auto& info = MicroInstr::info(inst->op);
+                const auto&                 info = MicroInstr::info(inst->op);
                 MicroPassHelpers::AmcLayout layout;
                 if (!info.flags.has(MicroInstrFlagsE::HasMemBaseOffsetOperands) ||
                     ops[info.memBaseOperandIndex].reg != frameBase ||
@@ -1385,9 +1385,9 @@ namespace
         carried.clear();
         sunkStores.clear();
         claimed.clear();
-        std::vector<FrameRef> writes;
+        std::vector<FrameRef>               writes;
         std::optional<std::vector<uint8_t>> stackEscapeReach;
-        const auto stackEscapedForLoop = [&](const NaturalLoop& loop) {
+        const auto                          stackEscapedForLoop = [&](const NaturalLoop& loop) {
             if (!reach.spSpaceEscapes)
                 return false;
             if (reach.spEscapes.empty())
@@ -1515,7 +1515,7 @@ namespace
                     continue;
 
                 const FrameRef comparableSlot = ranges.normalize(slot, i);
-                bool aliased = false;
+                bool           aliased        = false;
                 for (const FrameRef& written : writes)
                 {
                     if (overlaps(comparableSlot, written))

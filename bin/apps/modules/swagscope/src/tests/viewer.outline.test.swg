@@ -160,7 +160,7 @@ using Core, Pixel, Gui, Gui.Testing, Viewers
     let paperWindow = ViewerWindow.create(&paperHost.surfaceWnd, createViewerPluginRegistry())
     paperWindow.openFile(fileName, remember: false)
     completeQueuedViewerFile(&paperHost, paperWindow)
-    let paperZoom = assume cast(*MarkdownText.ZoomButton, paperWindow.currentInfo!.children[0])
+    let paperZoom    = assume cast(*MarkdownText.ZoomButton, paperWindow.currentInfo!.children[0])
     let paperOutline = unwrap paperZoom.outline
     paperOutline.toggle.setChecked(true)
     paperOutline.toggle.sigCheckedChanged.call(paperOutline.toggle)

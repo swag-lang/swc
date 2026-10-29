@@ -1149,7 +1149,7 @@ namespace PostRaPeephole
             (!regIsDeadAfter(ctx, ref, load[0].reg) && !ctx.isRegDeadAfter(load[0].reg, ctx.instructionIndex + 1)))
             return false;
         MicroInstrOperand rewritten[7] = {};
-        rewritten[0] = ops[0];
+        rewritten[0]                   = ops[0];
         for (uint32_t i = 1; i < 7; ++i)
             rewritten[i] = load[i];
         if (!ctx.claimAll({loadRef, ref}))

@@ -489,7 +489,7 @@ SWC_TEST_BEGIN(ConstantFolding_ZeroVectorRequiresWholeImmutableAllocation)
         const uint64_t       ptr  = reinterpret_cast<uint64_t>(cst.getArray().data());
         constexpr MicroReg   base = MicroReg::virtualIntReg(1);
         constexpr MicroReg   dst  = MicroReg::virtualFloatReg(1);
-        MicroBuilder builder(ctx);
+        MicroBuilder         builder(ctx);
         builder.emitLoadRegPtrReloc(base, ptr, ref);
         if (variant < 3)
             builder.emitLoadRegMem(dst, base, variant % 3 == 2 ? 1 : 0, MicroOpBits::B128);
@@ -507,8 +507,9 @@ SWC_TEST_BEGIN(ConstantFolding_ZeroVectorRequiresWholeImmutableAllocation)
         passContext.ssaValueScratch = &scratch;
         MicroConstantFoldingPass pass;
         SWC_RESULT(pass.run(passContext));
-        const auto* inst = builder.instructions().ptr(load);
-        const MicroInstrOpcode expected = variant % 3 == 0 ? MicroInstrOpcode::ClearReg : variant < 3 ? MicroInstrOpcode::LoadRegMem : MicroInstrOpcode::LoadVecRegMem;
+        const auto*            inst     = builder.instructions().ptr(load);
+        const MicroInstrOpcode expected = variant % 3 == 0 ? MicroInstrOpcode::ClearReg : variant < 3 ? MicroInstrOpcode::LoadRegMem
+                                                                                                      : MicroInstrOpcode::LoadVecRegMem;
         if (!inst || inst->op != expected)
             return Result::Error;
     }

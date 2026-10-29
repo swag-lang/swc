@@ -45,9 +45,9 @@ namespace PostRaPeephole
             compareOps[0].reg != moveOps[1].reg || compareOps[3].opBits != MicroOpBits::B128)
             return false;
         const MicroOp op          = compareOps[4].microOp;
-        const bool wordCompare = op == MicroOp::VecCmpEq16 || op == MicroOp::VecCmpGtS16;
-        const bool canonical   = wordCompare || op == MicroOp::VecCmpEq8 || op == MicroOp::VecCmpEq32 || op == MicroOp::VecCmpEq64 ||
-                                 op == MicroOp::VecCmpGtS8 || op == MicroOp::VecCmpGtS32 || op == MicroOp::VecCmpGtS64;
+        const bool    wordCompare = op == MicroOp::VecCmpEq16 || op == MicroOp::VecCmpGtS16;
+        const bool    canonical   = wordCompare || op == MicroOp::VecCmpEq8 || op == MicroOp::VecCmpEq32 || op == MicroOp::VecCmpEq64 ||
+                               op == MicroOp::VecCmpGtS8 || op == MicroOp::VecCmpGtS32 || op == MicroOp::VecCmpGtS64;
         const bool equality = op == MicroOp::VecCmpEq8 || op == MicroOp::VecCmpEq16 || op == MicroOp::VecCmpEq32 || op == MicroOp::VecCmpEq64;
         if (allEqual)
         {
@@ -64,8 +64,8 @@ namespace PostRaPeephole
         else if (!(wordMask ? wordCompare : canonical) || !ctx.claimAll({moveRef, ref}))
             return false;
         MicroInstrOperand vectorTest[2] = {};
-        vectorTest[0].reg    = moveOps[1].reg;
-        vectorTest[1].opBits = MicroOpBits::B128;
+        vectorTest[0].reg               = moveOps[1].reg;
+        vectorTest[1].opBits            = MicroOpBits::B128;
         ctx.emitRewrite(moveRef, MicroInstrOpcode::VecTestReg, vectorTest);
         ctx.emitErase(ref);
         return true;

@@ -82,12 +82,12 @@ struct FilePlacesBar
         using wnd: Wnd     // Embedded window behavior and presentation.
     }
 
-    late browser:    *FileBrowserCtrl          // Browser the places lead.
-    stops:           Array'FileBrowserStop     // Places in display order.
-    private primaryCount: u64                  // Preferred locations kept on the row before built-in folders.
-    hotIdx = Swag.U64.Max                      // Place under the pointer.
-    visibleCount:    u64                       // Places that fit before the overflow button.
-    moreButton: *IconButton?                   // Opens built-in folders, drives and preferred places that do not fit.
+    late browser:         *FileBrowserCtrl          // Browser the places lead.
+    stops:                Array'FileBrowserStop     // Places in display order.
+    private primaryCount: u64                       // Preferred locations kept on the row before built-in folders.
+    hotIdx = Swag.U64.Max                           // Place under the pointer.
+    visibleCount:         u64                       // Places that fit before the overflow button.
+    moreButton:           *IconButton?              // Opens built-in folders, drives and preferred places that do not fit.
 }
 
 // The path of the current folder, written before the filter in the path field of a file browser.
@@ -948,6 +948,7 @@ impl FileBrowserCtrl
         let metrics = fileBrowser.themeMetrics()
 
         let primaryShortcutCount = fileBrowser.options.shortcuts.count
+
         func addDefaultShortcut(browser: *FileBrowserCtrl, directory: Env.SpecialDirectory, name: string)
         {
             for &shortcut in browser.options.shortcuts where shortcut.type == directory do

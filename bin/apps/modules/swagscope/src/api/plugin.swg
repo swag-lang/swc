@@ -111,22 +111,22 @@ struct Plugin
 {
     public
     {
-        apiVersion:   u32  = ApiVersion     // Contract version implemented by every callback.
-        key:          String                // Stable lowercase identity persisted by the host.
-        staticName:   String                // Display name used when `resolveName` is null.
-        resolveName:  PluginName?           // Optional dynamic or localized display-name provider.
-        attach:       PluginAttach?         // Optional one-time preparation for the host application.
-        iconAtlas:    *IconAtlas?           // Vector document the viewer glyph is rasterized from.
-        iconIndex:    s32                   // Zero-based cell of that document, in grid order.
-        late create:  PluginCreate          // Synchronous presentation factory.
-        probe:        PluginProbe?          // Optional content-aware discovery callback.
-        thumbnail:    PluginThumbnail?      // Optional direct decoder; null uses the shared source renderer without creating a viewer.
-        matchNames:   bool = true           // Whether non-wildcard selectors offer this plugin directly.
-        textual:      bool                  // Whether this format's bytes are text a reader may also want raw.
-        edgeToEdge:   bool                  // Whether the document takes the whole window, beneath the lens strip.
-        showReadingLine: bool = true        // Whether the host keeps a line of file and viewer readings at the document's foot.
-        smokeFixture: String                // Immutable basename used by application smoke review.
-        selectors:    Array'String          // Lowercase extensions, exact basenames, or `*` for fallback.
+        apiVersion:      u32  = ApiVersion     // Contract version implemented by every callback.
+        key:             String                // Stable lowercase identity persisted by the host.
+        staticName:      String                // Display name used when `resolveName` is null.
+        resolveName:     PluginName?           // Optional dynamic or localized display-name provider.
+        attach:          PluginAttach?         // Optional one-time preparation for the host application.
+        iconAtlas:       *IconAtlas?           // Vector document the viewer glyph is rasterized from.
+        iconIndex:       s32                   // Zero-based cell of that document, in grid order.
+        late create:     PluginCreate          // Synchronous presentation factory.
+        probe:           PluginProbe?          // Optional content-aware discovery callback.
+        thumbnail:       PluginThumbnail?      // Optional direct decoder; null uses the shared source renderer without creating a viewer.
+        matchNames:      bool = true           // Whether non-wildcard selectors offer this plugin directly.
+        textual:         bool                  // Whether this format's bytes are text a reader may also want raw.
+        edgeToEdge:      bool                  // Whether the document takes the whole window, beneath the lens strip.
+        showReadingLine: bool = true           // Whether the host keeps a line of file and viewer readings at the document's foot.
+        smokeFixture:    String                // Immutable basename used by application smoke review.
+        selectors:       Array'String          // Lowercase extensions, exact basenames, or `*` for fallback.
     }
 }
 

@@ -1034,11 +1034,11 @@ SWC_TEST_BEGIN(PostRALoopHoist_FloatReloadAcrossStackBases)
     {
         for (uint32_t mode = 0; mode < 5; ++mode)
         {
-            const MicroReg sp       = conv.stackPointer;
-            const MicroReg local    = conv.intPersistentRegs[0];
-            const MicroReg scratch  = conv.intTransientRegs[0];
-            const MicroReg count    = conv.intTransientRegs[1];
-            const MicroReg value    = conv.floatTransientRegs[0];
+            const MicroReg sp      = conv.stackPointer;
+            const MicroReg local   = conv.intPersistentRegs[0];
+            const MicroReg scratch = conv.intTransientRegs[0];
+            const MicroReg count   = conv.intTransientRegs[1];
+            const MicroReg value   = conv.floatTransientRegs[0];
             MicroBuilder   builder(ctx);
             const auto     top = builder.createLabel();
             builder.emitLoadRegReg(local, sp, MicroOpBits::B64);
@@ -1055,7 +1055,9 @@ SWC_TEST_BEGIN(PostRALoopHoist_FloatReloadAcrossStackBases)
             if (mode == 4)
                 for (const MicroReg reg : conv.intTransientRegs)
                     builder.emitOpBinaryRegReg(count, reg, MicroOp::Add, MicroOpBits::B64);
-            builder.emitLoadMemReg(sp, mode == 1 ? 0x40 : mode == 3 ? 0x50 : 0x80, count, bits);
+            builder.emitLoadMemReg(sp, mode == 1 ? 0x40 : mode == 3 ? 0x50
+                                                                    : 0x80,
+                                   count, bits);
             builder.emitOpBinaryRegImm(count, ApInt(1, 64), MicroOp::Add, MicroOpBits::B64);
             builder.emitCmpRegImm(count, ApInt(10, 64), MicroOpBits::B64);
             builder.emitJumpToLabel(MicroCond::Less, MicroOpBits::B64, top);
@@ -1065,10 +1067,10 @@ SWC_TEST_BEGIN(PostRALoopHoist_FloatReloadAcrossStackBases)
             builder.emitRet();
 
             SWC_RESULT(runPostRaLoopHoistPass(builder));
-            const bool cached = mode == 0 || mode == 2;
-            uint32_t loads = 0;
-            uint32_t transfers = 0;
-            bool inLoop = false;
+            const bool cached    = mode == 0 || mode == 2;
+            uint32_t   loads     = 0;
+            uint32_t   transfers = 0;
+            bool       inLoop    = false;
             for (const auto& inst : builder.instructions().view())
             {
                 const auto* ops = inst.ops(builder.operands());
@@ -1132,22 +1134,22 @@ SWC_TEST_END()
 // Execute the transformed cross-bank loads on arbitrary bit patterns.
 SWC_TEST_BEGIN(PostRALoopHoist_FloatReloadCachePreservesBits)
 {
-    const CallConv& conv = CallConv::get(CallConvKind::Swag);
-    const MicroReg arg   = CallConv::get(CallConvKind::C).intArgRegs[0];
-    const MicroReg sp    = conv.stackPointer;
-    const MicroReg local = conv.intPersistentRegs[0];
-    const MicroReg count = conv.intTransientRegs[2];
-    const MicroReg data  = conv.intTransientRegs[3];
-    const MicroReg value = conv.floatTransientRegs[0];
+    const CallConv& conv  = CallConv::get(CallConvKind::Swag);
+    const MicroReg  arg   = CallConv::get(CallConvKind::C).intArgRegs[0];
+    const MicroReg  sp    = conv.stackPointer;
+    const MicroReg  local = conv.intPersistentRegs[0];
+    const MicroReg  count = conv.intTransientRegs[2];
+    const MicroReg  data  = conv.intTransientRegs[3];
+    const MicroReg  value = conv.floatTransientRegs[0];
     for (const MicroOpBits bits : {MicroOpBits::B32, MicroOpBits::B64})
     {
         for (const uint64_t input : {0ull, 0xFEDCBA9876543210ull, 0x7FF8000000000001ull})
         {
             for (const bool optimize : {false, true})
             {
-                uint64_t values[2] = {input, 0};
+                uint64_t     values[2] = {input, 0};
                 MicroBuilder builder(ctx);
-                const auto top = builder.createLabel();
+                const auto   top = builder.createLabel();
                 builder.emitPush(local);
                 builder.emitOpBinaryRegImm(sp, ApInt(64, 64), MicroOp::Subtract, MicroOpBits::B64);
                 builder.emitLoadRegReg(local, sp, MicroOpBits::B64);
@@ -1214,7 +1216,9 @@ SWC_TEST_BEGIN(PostRALoopHoist_SpillCacheMustRespectOtherFrameBase)
         builder.placeLabel(top);
         builder.emitLoadRegMem(value, sp, 0x40, MicroOpBits::B64);
         builder.emitOpBinaryRegReg(count, value, MicroOp::Add, MicroOpBits::B64);
-        builder.emitLoadMemReg(pointer, mode == 0 ? 0x80 : mode == 2 ? 0x44 : 0x40, count, mode == 2 ? MicroOpBits::B32 : MicroOpBits::B64);
+        builder.emitLoadMemReg(pointer, mode == 0 ? 0x80 : mode == 2 ? 0x44
+                                                                     : 0x40,
+                               count, mode == 2 ? MicroOpBits::B32 : MicroOpBits::B64);
         builder.emitLoadRegMem(value, sp, 0x40, MicroOpBits::B64);
         builder.emitOpBinaryRegReg(count, value, MicroOp::Add, MicroOpBits::B64);
         builder.emitCmpRegImm(count, ApInt(10, 64), MicroOpBits::B64);

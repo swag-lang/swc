@@ -1599,8 +1599,8 @@ SWC_TEST_BEGIN(Compiler_AstVisitRefreshesDebugLocationWhenCodeRefChanges)
 
     const auto [root, rootNode]   = ast.makeNode<AstNodeId::ArrayLiteral>(TokenRef{0});
     const auto [child, childNode] = ast.makeNode<AstNodeId::ArrayLiteral>(TokenRef::invalid());
-    const std::array children    = {child};
-    rootNode->spanChildrenRef = ast.pushSpan(std::span<const AstNodeRef>(children));
+    const std::array children     = {child};
+    rootNode->spanChildrenRef     = ast.pushSpan(std::span<const AstNodeRef>(children));
 
     AstVisit visit;
     bool     cleared   = false;

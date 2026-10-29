@@ -87,7 +87,7 @@ private func downloadsDirectory()->String
 
     var nativePath: LPWSTR?
     var folderId = Win32.FOLDERID_Downloads
-    let result = Win32.SHGetKnownFolderPath(&folderId, 0, null, &nativePath)
+    let result   = Win32.SHGetKnownFolderPath(&folderId, 0, null, &nativePath)
     if nativePath do
         defer Win32.CoTaskMemFree(cast(*void?, nativePath))
     if result != Win32.S_OK or not nativePath do

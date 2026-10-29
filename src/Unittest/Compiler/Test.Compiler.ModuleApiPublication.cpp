@@ -931,7 +931,7 @@ SWC_TEST_END()
 SWC_FILESYSTEM_TEST_BEGIN(Workspace_LocalFunctionDoesNotOverrideNativeImport)
 {
     ApiPublicationTestDirectory directory("LocalForeignCollision");
-    constexpr std::string_view providerSetup = R"(#run
+    constexpr std::string_view  providerSetup  = R"(#run
 {
     with let cfg = unwrap Swag.compiler().getBuildCfg()
     {
@@ -940,17 +940,17 @@ SWC_FILESYSTEM_TEST_BEGIN(Workspace_LocalFunctionDoesNotOverrideNativeImport)
     }
 }
 )";
-    constexpr std::string_view providerSource = R"(#global export
+    constexpr std::string_view  providerSource = R"(#global export
 func host()->s32
 {
     func send(_: u64, _: const [*] u8?, _: s32, _: s32)->s32 => 99
     return send(0, null, 0, 0)
 }
 )";
-    constexpr std::string_view consumerSetup = R"(#import("provider")
+    constexpr std::string_view  consumerSetup  = R"(#import("provider")
 #run { Swag.compiler().getBuildCfg()!.backendKind = .Executable }
 )";
-    constexpr std::string_view consumerSource = R"(#foreignlib("ws2_32")
+    constexpr std::string_view  consumerSource = R"(#foreignlib("ws2_32")
 #[Foreign("ws2_32", callconv: Swag.CallConv.C)]
 func send(socket: u64, buffer: const [*] u8?, length, flags: s32)->s32
 #main
@@ -959,7 +959,7 @@ func send(socket: u64, buffer: const [*] u8?, length, flags: s32)->s32
     Swag.assert(send(Swag.U64.Max, null, 0, 0) == -1)
 }
 )";
-    const fs::path modules = directory.path() / "modules";
+    const fs::path              modules        = directory.path() / "modules";
     SWC_RESULT(CompilerTestFile::writeText(modules / "provider" / "module.swg", providerSetup));
     SWC_RESULT(CompilerTestFile::writeText(modules / "provider" / "src" / "provider.swg", providerSource));
     SWC_RESULT(CompilerTestFile::writeText(modules / "consumer" / "module.swg", consumerSetup));

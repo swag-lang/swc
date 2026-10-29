@@ -231,11 +231,11 @@ using Swag, Core, File
     var host: Testing.HeadlessHost
     host.setup(640, 460)
     var opt: FileDlgOptions
-    opt.mode = .SelectFile
-    opt.showDrives = false
+    opt.mode          = .SelectFile
+    opt.showDrives    = false
     opt.initialFolder = root.toString()
     opt.shortcuts.add({type: Env.SpecialDirectory.Temp, name: "Current"})
-    let fb = FileBrowserCtrl.create(&host.root, opt, {0, 0, 180, 300})
+    let fb     = FileBrowserCtrl.create(&host.root, opt, {0, 0, 180, 300})
     let places = unwrap fb.placesBar
     for name in ["Documents", "Downloads", "Pictures", "Music", "Videos"]
     {
@@ -243,6 +243,7 @@ using Swag, Core, File
         expect Directory.create(folder.toString())
         places.addPlace(name, folder.toString())
     }
+
     host.root.applyLayout()
     places.arrange()
     Swag.assert(places.visibleCount == 1)
@@ -273,7 +274,7 @@ using Swag, Core, File
     var opt: FileDlgOptions
     opt.mode = .SelectFile
     opt.initialFolder = Env.getSpecialDirectory(.Temp).toString()
-    let fb = FileBrowserCtrl.create(&host.root, opt, {0, 0, 1400, 300})
+    let fb     = FileBrowserCtrl.create(&host.root, opt, {0, 0, 1400, 300})
     let places = unwrap fb.placesBar
     let drives = expect Directory.drives()
     Swag.assert(drives.count > 0 and places.visibleCount > 0)
@@ -313,6 +314,7 @@ using Swag, Core, File
                 found = true
             }
         }
+
         Swag.assert(found)
         opened[] = true
         popup.setEndModal(downloads[].toString())
@@ -367,7 +369,7 @@ using Swag, Core, File
     var host: Testing.HeadlessHost
     host.setup(640, 460)
     var options: FileDlgOptions
-    options.mode = .SelectFile
+    options.mode       = .SelectFile
     options.showDrives = false
     options.shortcuts.add({type: Env.SpecialDirectory.Desktop, name: "Desktop"})
     options.shortcuts.add({type: Env.SpecialDirectory.UserDocuments, name: "Documents"})

@@ -36,15 +36,15 @@ struct DocumentOutline
 
     late
     {
-        status:      *Label
-        filterBox:   *EditBox
-        toggle:      *IconButton
-        list:        *ListCtrl
+        status:    *Label
+        filterBox: *EditBox
+        toggle:    *IconButton
+        list:      *ListCtrl
     }
 
-    title:       *Label?
-    section:     *SectionLabel?
-    closeButton: *IconButton?
+    title:        *Label?
+    section:      *SectionLabel?
+    closeButton:  *IconButton?
     rows:         Array'(*ListLine)
     levels:       Array'u32
     load:         Viewer.BackgroundLoad'(Array'DocumentHeading)
@@ -97,6 +97,7 @@ impl DocumentOutline
                     panel.toggle.sigCheckedChanged.call(panel.toggle)
                 }
             }
+
             with result.title = Label.create(header, "", {}, null, .Ellipsis)
             {
                 .dockStyle = .Center
@@ -246,7 +247,7 @@ impl DocumentOutline
         .title?.setText(g_DocumentOutlineStrings.title)
         .section?.setText(g_DocumentOutlineStrings.title)
         .filterBox.setPlaceholder(g_DocumentOutlineStrings.filter)
-        .toggle.toolTip      = g_DocumentOutlineStrings.title
+        .toggle.toolTip = g_DocumentOutlineStrings.title
         if .closeButton do
             .closeButton.toolTip = g_DocumentOutlineStrings.close
         var statusText: String

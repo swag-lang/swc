@@ -29,15 +29,15 @@ func viewerPlugin()->Viewer.Plugin
 {
     with var result: #returntype
     {
-        .key          = "markdown"
-        .staticName   = "Markdown"
-        .attach       = &registerTexts
-        .iconAtlas    = viewerIcons()
-        .iconIndex    = cast(s32, ViewerIcons.Markdown)
-        .create       = &createViewer
-        .textual      = true
+        .key             = "markdown"
+        .staticName      = "Markdown"
+        .attach          = &registerTexts
+        .iconAtlas       = viewerIcons()
+        .iconIndex       = cast(s32, ViewerIcons.Markdown)
+        .create          = &createViewer
+        .textual         = true
         .showReadingLine = false
-        .smokeFixture = "comprehensive.md"
+        .smokeFixture    = "comprehensive.md"
         .addSelectors(".markdown;.md;.mdown;.mdwn;.mkd;.mkdn;.rmd")
     }
 
@@ -462,7 +462,7 @@ const ThemeCount = 6'u32
 func showOptions(anchor: *Wnd, view: *Markdown.View, zoom: *ZoomButton)
 {
     let sheet = OptionSheet.View.create(anchor, func|view, zoom|(page) { describeOptions(page, view, zoom) }, owner: view)
-    let rect = anchor.surfaceRect()
+    let rect  = anchor.surfaceRect()
     sheet.doModal(Math.Point{rect.x, rect.y + rect.height}, autoDestroy: true)
     view.setFocus()
 }

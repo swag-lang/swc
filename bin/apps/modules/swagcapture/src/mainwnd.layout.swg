@@ -623,12 +623,31 @@ impl MainWnd
             return
         }
 
-        let tool = .toolHint()
-        if not tool.isEmpty() do
-            .hintLine.addHint("", tool)
+        // With a selection, the line teaches its keys: nudge, duplicate, then the words of a shape
+        // that has some, or delete; four keys are what the room beside the inspector holds. Without
+        // one, what the tool in hand does, and the lens.
+        let capture  = .getCapture()
+        let selected = not .libraryMode and capture and not capture.selection.isEmpty()
+        if selected
+        {
+            .hintLine.addHint(appStrings().key_Arrows, appStrings().hint_Nudge)
+            .hintLine.addHint(Input.formatKeyShortcut(.Control, .D), appStrings().hint_Duplicate)
+            if capture!.selection.count == 1 and inlineTextOf(capture.forms[capture.selection[0]]).found do
+                .hintLine.addHint(strings().key_Enter, appStrings().hint_TypeWords)
+            else do
+                .hintLine.addHint(Input.formatKeyShortcut(.None, .Delete), appStrings().hint_Delete)
+        }
+        else
+        {
+            let tool = .toolHint()
+            if not tool.isEmpty() do
+                .hintLine.addHint("", tool)
+        }
+
         if .inspector != null and .inspector.folded do
             .hintLine.addHint(.inspector.foldKey, appStrings().hint_AllProperties)
-        .hintLine.addHint(strings().key_Space, appStrings().hint_Space)
+        if not selected do
+            .hintLine.addHint(strings().key_Space, appStrings().hint_Space)
     }
 
     // Returns what the tool in hand does, in a few words.
@@ -719,7 +738,7 @@ impl MainWnd
     {
         if .libraryMode
         {
-            .libWnd.describeLens(results)
+            .libWnd.describeLensRest(results)
             return
         }
 

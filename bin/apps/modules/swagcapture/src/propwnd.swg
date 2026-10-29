@@ -283,10 +283,15 @@ impl PropWnd
         }
 
         width = Math.ceil(width)
-        let gap = metrics.inspector_LabelGap
+        let gap    = metrics.inspector_LabelGap
+        let height = metrics.control_InspectorHeight
         for item in .grid.items where item!.line.isVisible()
         {
             fieldLabel(item)?.setTextAlignment(.Left, .Center)
+
+            // Every row is the height of a control of the inspector, so the rows keep its pitch.
+            for c in item.line.children where c.position.height > height do
+                c.resize(c.position.width, height)
             if item.sliderBox != null
             {
                 // The value of a slider is a measure read beside its track: mono, with no box
@@ -367,6 +372,9 @@ impl PropWnd
         .propPixSel()
 
         .bindGrid()
+
+        // The sections read in the order of the pictures, whichever structure files them.
+        .grid.orderCategories(["Text", "Shape", "Stroke", "Ends", "Effects"])
         .styleCategoryLabels()
         .propXY()
         .fitFieldLabelColumn()

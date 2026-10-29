@@ -155,6 +155,66 @@ impl LibraryWnd
         .describeNamed(results, query, texts.act_Tags, &.sidebarTags, application: false)
     }
 
+    // Answers the lens at rest on the library page: what can be done with the chosen captures —
+    // open, export, tags, favourite, move, delete — and their rating, then what the page shows.
+    // Every other command of the page is one word away.
+    mtd describeLensRest(results: *Lens.Results)
+    {
+        let texts  = appStrings()
+        let chosen = .selectedFiles()
+        if .trashMode
+        {
+            .describeCommands(results, "", texts.lens_Selection, [ActionLibTrash.Restore, ActionLibTrash.DeleteForever])
+        }
+        elif not chosen.isEmpty() and .view.focusItem < .view.items.count
+        {
+            let family  = texts.lens_Selection
+            let focused = .view.items[.view.focusItem]
+            describeAction(results, "", family, texts.act_OpenSelected, func|libWnd = me, focused|() { libWnd.view.openItem(focused) })
+            if focused.kind == .Image do
+                describeAction(results, "", family, texts.act_LocateImage, func|focused|() { discard Env.showInFileExplorer(focused.fi.fullName) })
+            else
+            {
+                describeAction(results, "", family, texts.act_ExportSelected, func|libWnd = me|() { libWnd.exportSelected() })
+                describeAction(results, "", family, texts.act_EditTags, func|libWnd = me|() { libWnd.editSelectedTags() })
+                describeAction(results, "", family, texts.act_FavoriteCapture, func|libWnd = me|() { libWnd.toggleSelectedFavorite() })
+            }
+
+            describeAction(results, "", family, texts.act_MoveSelected, func|libWnd = me|() { libWnd.moveSelected() })
+            .describeCommands(results, "", family, [ActionFile.DeleteCapture])
+
+            // The rating is one choice among six, one row of segments.
+            if focused.kind != .Image
+            {
+                let rating  = results.addSection(texts.act_Rating)
+                rating.inline = true
+                let current = focused.capture ? focused.capture.rating : 0
+                for value in 6
+                {
+                    let stars = cast(u8, value)
+                    with let entry = rating.addEntry(ratingLabel(stars))
+                    {
+                        .checked = stars == current
+                        .run     = func|libWnd = me, stars|() { libWnd.rateSelected(stars) }
+                    }
+                }
+            }
+        }
+
+        // Then what the page shows, one row of segments.
+        let filter = results.addSection(texts.ui_BarFilter)
+        filter.inline = true
+        for id in ContentFilterIds
+        {
+            let state = .sendComputeCommandStateEvent(id)
+            with let entry = filter.addEntry(state.name)
+            {
+                .checked = state.updatedFields.has(.Checked) and state.checked
+                .run     = func|libWnd = me, id|() { libWnd.sendCommandEvent(id) }
+            }
+        }
+    }
+
     // Returns the section of `results` labelled `label`, adding it the first time.
     func sectionOf(results: *Lens.Results, label: string)->*Lens.Section
     {

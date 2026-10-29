@@ -14,9 +14,6 @@ enum EditMode { Shape, Arrow, Line, Polygon, Text, Favorites, Draw, Highlight, S
 // object, the face of a text, the counter of a step, or the alignment of several objects.
 enum MiniBarKind { None, Single, Text, Step, Multi }
 
-// The most kinds the inspector names a selection of several objects by.
-const MaxKindsInTitle = 2
-
 // Identifies a glyph of the application icon set (`datas/icons.svg`), in the grid
 // order of the document. The set is rasterized on demand per size and scale through
 // [[Gui.IconSet]], so every glyph stays sharp at any display density.
@@ -611,6 +608,18 @@ impl MainWnd
     }
 
     // Returns the name of a tool, as the inspector heads the properties it edits.
+    // Reports whether `title` fits the head of the inspector before its actions.
+    mtd titleFits(title: string)->bool
+    {
+        let metrics = .themeMetrics()
+        let theme   = .theme()
+        let words   = Painter.measureString(title, theme.createDefaultFont(metrics.inspector_TitleFontSize, .Bold)).width
+        let small   = theme.createDefaultFont(metrics.defaultFontSize - 1)
+        let actions = Painter.measureString(Format.toString("% · %", appStrings().act_Duplicate, appStrings().act_Delete), small).width
+        let room    = metrics.inspector_Width - 2 * metrics.inspector_Padding - actions - 2 * metrics.btnIcon_SpacingTextH - metrics.iconText_Margin
+        return words <= room
+    }
+
     // Returns the words counting one kind of object, from a table of "singular|plural" words.
     func countWords(table: string, count: u64)->String
     {
@@ -620,7 +629,7 @@ impl MainWnd
     }
 
     // Returns the words counting each kind of the selected objects, in the order they first come,
-    // such as "2 rectangles · 1 text"; nothing past two kinds, which would not read at a glance.
+    // such as "2 rectangles · 1 text".
     func describeKinds(capture: *Capture)->String
     {
         var tables: Array'string
@@ -643,8 +652,6 @@ impl MainWnd
         }
 
         var result: String
-        if tables.count > MaxKindsInTitle do
-            return result
         for t, i in tables
         {
             if i do
@@ -752,10 +759,10 @@ impl MainWnd
             .inspector.setTitle(editModeName(formToEditMode(capture!.forms[capture.selection.back()])), appStrings().ui_OneObject)
         else
         {
-            // Several objects are named by what they are, "2 rectangles · 1 text", while that
-            // stays short; past two kinds, by how many they are.
+            // Several objects are named by what they are, "2 rectangles · 1 text", when that fits
+            // before the actions of the head; otherwise by how many they are.
             let kinds = describeKinds(unwrap capture)
-            if kinds.count do
+            if .titleFits(kinds) do
                 .inspector.setTitle(kinds)
             else do
                 .inspector.setTitle(Format.toString(appStrings().ui_Objects, count))
@@ -807,7 +814,8 @@ impl MainWnd
         .registerKeyShortcut(.CtrlShift, .A, ActionCopyPaste.CopyAsImage)
         .registerKeyShortcut(.Control, .Space, ActionSelection.Freeze)
         .registerKeyShortcut(.Control, .A, ActionSelection.SelectAll)
-        .registerKeyShortcut(.Control, .D, ActionSelection.DeSelectAll)
+        .registerKeyShortcut(.None, .Escape, ActionSelection.DeSelectAll)
+        .registerKeyShortcut(.Control, .D, ActionCopyPaste.Duplicate)
         .registerKeyShortcut(.CtrlShift, .D, ActionFile.DupCapture)
         .registerKeyShortcut(.CtrlShift, .I, ActionSelection.InvertSelection)
         .registerKeyShortcut(.CtrlShift, .T, ActionFlatten.FlattenAll)
@@ -821,21 +829,44 @@ impl MainWnd
         .registerKeyShortcut(.CtrlAlt, .O, ActionOptions.Options)
         .registerKeyShortcut(.Control, .G, ActionGroup.Group)
         .registerKeyShortcut(.CtrlShift, .G, ActionGroup.Ungroup)
+        // ] and [ bring an object forward or back a step, with Ctrl to the front or the back.
+        .registerKeyShortcut(.None, .Oem6, ActionAlign.MoveForward)
+        .registerKeyShortcut(.None, .Oem4, ActionAlign.MoveBackward)
+        .registerKeyShortcut(.Control, .Oem6, ActionAlign.SendToFront)
+        .registerKeyShortcut(.Control, .Oem4, ActionAlign.SendToBack)
         .registerKeyShortcut(.None, .Home, ActionAlign.SendToFront)
         .registerKeyShortcut(.None, .End, ActionAlign.SendToBack)
         .registerKeyShortcut(.None, .PageUp, ActionAlign.MoveForward)
         .registerKeyShortcut(.None, .PageDown, ActionAlign.MoveBackward)
-        .registerKeyShortcut(.Shift, .Left, ActionMoveSel.Left1)
-        .registerKeyShortcut(.Shift, .Up, ActionMoveSel.Top1)
-        .registerKeyShortcut(.Shift, .Right, ActionMoveSel.Right1)
-        .registerKeyShortcut(.Shift, .Down, ActionMoveSel.Bottom1)
-        .registerKeyShortcut(.None, .Left, ActionMoveSel.Left)
-        .registerKeyShortcut(.None, .Up, ActionMoveSel.Top)
-        .registerKeyShortcut(.None, .Right, ActionMoveSel.Right)
-        .registerKeyShortcut(.None, .Down, ActionMoveSel.Bottom)
+
+        // The arrows nudge the selection a pixel, ten with Shift.
+        .registerKeyShortcut(.None, .Left, ActionMoveSel.Left1)
+        .registerKeyShortcut(.None, .Up, ActionMoveSel.Top1)
+        .registerKeyShortcut(.None, .Right, ActionMoveSel.Right1)
+        .registerKeyShortcut(.None, .Down, ActionMoveSel.Bottom1)
+        .registerKeyShortcut(.Shift, .Left, ActionMoveSel.Left)
+        .registerKeyShortcut(.Shift, .Up, ActionMoveSel.Top)
+        .registerKeyShortcut(.Shift, .Right, ActionMoveSel.Right)
+        .registerKeyShortcut(.Shift, .Down, ActionMoveSel.Bottom)
         .registerKeyShortcut(.Control, .Add, ActionZoom.ZoomIn)
         .registerKeyShortcut(.Control, .Subtract, ActionZoom.ZoomOut)
         .registerKeyShortcut(.Control, .NumPad0, ActionZoom.Zoom1)
+
+        // Each tool answers a letter, the one the dock and the lens name: inside a field the
+        // letter is typed, so a field keeps it.
+        .registerKeyShortcut(.None, .V, ActionToolMode.Selection)
+        .registerKeyShortcut(.None, .R, ActionToolMode.Shape)
+        .registerKeyShortcut(.None, .P, ActionToolMode.Poly)
+        .registerKeyShortcut(.None, .A, ActionToolMode.Arrow)
+        .registerKeyShortcut(.None, .L, ActionToolMode.Line)
+        .registerKeyShortcut(.None, .T, ActionToolMode.Text)
+        .registerKeyShortcut(.None, .C, ActionToolMode.Callout)
+        .registerKeyShortcut(.None, .D, ActionToolMode.Draw)
+        .registerKeyShortcut(.None, .H, ActionToolMode.Highlight)
+        .registerKeyShortcut(.None, .N, ActionToolMode.Step)
+        .registerKeyShortcut(.None, .M, ActionToolMode.Img)
+        .registerKeyShortcut(.None, .X, ActionToolMode.PixSel)
+        .registerKeyShortcut(.None, .F, ActionToolMode.Favorites)
 
         // The one door, and the properties of the selection. Space types in a field, so a field
         // keeps it and Ctrl K opens the lens from there.

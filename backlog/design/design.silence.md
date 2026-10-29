@@ -122,25 +122,15 @@ dialogs, then each application, then the written rules.
 - Done when: every Scope golden matches its picture as a whole screen.
 - Related: design.silence.004
 
-### design.silence.008 — Swag Capture's editing does not yet match its pictures
+### design.silence.008 — Swag Capture's preset cells are smaller than in their pictures
 
-- Evidence: a whole-screen comparison of every `capture.*` picture with its golden
-  (`surface`, `edit.{arrow,callout,multi,step,mask,color.paper,text,text.paper}`, `area`,
-  `inplace{,.paper}`, `library.surface`, `lens.paper`, `lens.recent.paper`, `presets{,.paper}`)
-  leaves these differences:
-  - the line and arrow settings read ENDS before STROKE, where the pictures put STROKE first: the
-    fields a line adds come before those of the form it uses, and the stroke fields belong to
-    the latter; the dash and the end glyphs stay in the head's STYLE section;
-  - a slider row stands a few pixels taller than the 30-pixel pitch of the other rows;
-  - past two kinds, a multiple selection is titled by its count ("5 objects");
-  - a preset cell is 38 by 31 where the pictures draw 44 by 36, so that five presets and their
-    chip fit across the inspector;
-  - the lens golden for a query lists more commands than the picture, so its recent captures sit
-    below the fold; `lens.recent.paper` shows them at rest.
-- Next: let the generated grid order a used structure's categories among the struct's own (an
-  `After` that crosses into the used structure), then put STROKE before ENDS.
-- Done when: each `capture.*` picture is reproduced by its golden.
-- Related: design.silence.004
+- Evidence: the `capture.*` pictures and their goldens agree, but for one choice: a preset cell
+  is 38 by 31 where the pictures draw 44 by 36, so that five presets and their chip fit across
+  the 264 the inspector leaves; at 44 by 36 a row holds four presets.
+- Next: decide with the charter owner between five smaller presets and four of the pictures'
+  size.
+- Done when: the preset row of the inspector matches its picture.
+- Related: design.silence.004, design.silence.005
 
 ### design.silence.011 — The window scripts were not reviewed against the charter
 

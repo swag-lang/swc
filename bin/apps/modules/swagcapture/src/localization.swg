@@ -67,6 +67,7 @@ struct AppStrings
     dlg_TitleBrowseFolder:      string = "Browse Image Folder"
     dlg_TitleEditTags:          string = "Edit Tags"
     dlg_TitleExportCaptures:    string = "Export Captures"
+    dlg_TitleMoveCaptures:      string = "Move Captures"
     dlg_TitleResizeImage:       string = "Resize Image"
     dlg_TitleExpandImage:       string = "Expand Image"
     dlg_TitleExpandCapture:     string = "Expand Capture"
@@ -75,6 +76,7 @@ struct AppStrings
     dlg_BtnLoad:                string = "Load"
     dlg_BtnSave:                string = "Save"
     dlg_BtnExport:              string = "Export"
+    dlg_BtnMove:                string = "Move"
     msg_RemoveAssociation:      string = "This will remove the image association."
     msg_DeleteCaptures:         string = "This will delete the capture file(s)."
     msg_EraseTrash:             string = "This will permanently erase every capture in the recycle bin."
@@ -102,6 +104,11 @@ struct AppStrings
     hint_Save:                  string = "save"                        // What Ctrl+S does in the in-place editor.
     hint_CalloutTail:           string = "Drag the point of the tail to aim it"     // Hint while the words of a callout are typed in place.
     hint_NewLine:               string = "new line"                    // What Enter does while the words of a form are typed in place.
+    key_Arrows:                 string = "← ↑ → ↓"                     // The arrow keys, in a keycap of a hint line.
+    hint_Nudge:                 string = "nudge, Shift ×10"            // What the arrows do to the selection.
+    hint_Duplicate:             string = "duplicate"                   // What Ctrl+D does to the selection.
+    hint_Delete:                string = "delete"                      // What Delete does to the selection.
+    hint_TypeWords:             string = "type the words"              // What Enter does to a selected form with words.
     hint_KeepText:              string = "keep the text"               // What Ctrl+Enter does while the words of a form are typed in place.
     ui_Common:                  string = "Common"                      // Section of the inspector holding what several objects share.
     ui_NoColor:                 string = "none"                        // Value of a colour row whose colour is fully transparent.
@@ -110,6 +117,7 @@ struct AppStrings
     msg_FailedOpenLibrary:      string = "Cannot open the library folder"
     msg_FailedSaveMetadata:     string = "Cannot save capture metadata"
     msg_FailedExportCaptures:   string = "Cannot export the selected captures"
+    msg_FailedMoveCaptures:     string = "Some captures could not be moved. They are still where they were."
     msg_ShortcutTaken:          string = "Cannot register global shortcut '%'. "
     msg_ShortcutTakenWhy:       string = "Another running application is probably already using it!"
     msg_ShortcutsTaken:         string = "Cannot register global shortcuts %. "     // Lists every unavailable shortcut, each one quoted.
@@ -235,6 +243,7 @@ struct AppStrings
     act_LocateImage:            string = "Show Image in Folder"
     act_EditTags:               string = "Edit Tags…"
     act_ExportSelected:         string = "Export Selected…"
+    act_MoveSelected:           string = "Move to Folder…"     // Moves the chosen captures of the library to another folder.
     act_FavoriteCapture:        string = "Favorite"
     act_Rating:                 string = "Rating"
     act_NoRating:               string = "No Rating"

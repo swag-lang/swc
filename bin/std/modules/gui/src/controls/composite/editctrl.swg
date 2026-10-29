@@ -26,7 +26,9 @@ impl IWnd for EditCtrl
             return
 
         let rect   = .clientRect()
-        let height = .themeMetrics().editBox_Height
+        // The field keeps its own height unless the control is shorter, as a row of an
+        // inspector is: centred in less room, it would lose its top and bottom edges.
+        let height = Math.min(.themeMetrics().editBox_Height, rect.height)
         let y      = rect.vertCenter() - height * 0.5
         let width  = .editWidth == 0 ? Math.max(rect.width - .spacing - .labelWidth, 0) : .editWidth
         .label.setPosition(0, y, .labelWidth, height)

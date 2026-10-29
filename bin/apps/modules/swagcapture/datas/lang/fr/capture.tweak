@@ -322,7 +322,6 @@ prop_Thickness             Épaisseur
 
 prop_Straight              Droite
 prop_Bezier                Courbe
-prop_NoShadow              Sans ombre
 prop_Small                 Petite
 
 prop_JoinNone              Aucune

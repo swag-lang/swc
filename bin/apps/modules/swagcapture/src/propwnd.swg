@@ -1,9 +1,16 @@
-// Size of the sample a line-end glyph draws by default.
-const CapPreviewSize = 10.0
+// Geometry of the sample a line-end glyph draws.
+const CapPlainStroke  = 6.0     // Stroke a plain end is drawn on: heavy enough to show its shape.
+const CapAnchorStroke = 2.0     // Stroke an anchor is drawn on.
+const CapAnchorScale  = 4.0     // Scale of an anchor across its stroke, so it reads at glyph size.
+const CapGlyphInset   = 5.0     // Air between the sample and the sides of its cell.
 
 // Air the panel layout of the property grid keeps before each of its rows: the label column of a
 // generated field is that much narrower than the inspector's, so both columns end on one edge.
 const GridRowInset = 8.0
+
+// Width of the value read beside a slider of the inspector: "100 %" in the fixed-width family.
+// Wider, the track shortens and the value stands apart from it.
+const SliderValueWidth = 44.0
 
 // The enum popup buttons stash the value they represent in the untyped `userData`
 // slot of the widget; these two helpers keep the double cast in one place.
@@ -26,29 +33,44 @@ func capStyleHasSize(cap: LineCapStyle)->bool
     }
 }
 
-// Paints a line-end sample while keeping the cap itself inside `pos`. The same painter feeds the
-// closed style cell and its list row, so both always show the value the line actually stores.
-func drawCapGlyph(painter: *Painter, cap: LineCapStyle, begin: bool, pos: Math.Rectangle, color: Color, size: f32 = CapPreviewSize)
+// Paints a line-end sample in `pos`, the end on the side `begin` names and the cap inside the cell.
+//
+// A plain end is the shape of the stroke itself: on a thin line a square, a round and a pointed
+// end are the same few pixels. It is drawn on a heavy stroke, with a hairline tick where the line
+// stops, so a square end shows its overhang and a round or a pointed one its bulge. An anchor is
+// a mark set on the line, drawn on a thin stroke at a size that reads.
+func drawCapGlyph(painter: *Painter, cap: LineCapStyle, begin: bool, pos: Math.Rectangle, color: Color)
 {
-    var rect = pos
-    rect.inflate(-5, -5)
-    var pen = Pen.createSolid(color, size)
+    let plain = not capStyleHasSize(cap)
+    let size  = plain ? CapPlainStroke : CapAnchorStroke
+    var pen   = Pen.createSolid(color, size)
+    pen.capBegScaleX, pen.capEndScaleX = CapAnchorScale
+    pen.begCapStyle, pen.endCapStyle   = LineCapStyle.None
+
+    let {l: reach} = Painter.capStyleExtent(cap, size, CapAnchorScale)
+    let y          = pos.vertCenter()
+    var x0         = pos.x + CapGlyphInset
+    var x1         = pos.right() - CapGlyphInset
+    var stop: f32
     if begin
     {
         pen.begCapStyle = cap
-        pen.endCapStyle = .None
-        let {l: l0} = Painter.capStyleExtent(cap, size, pen.capBegScaleX)
-        rect.moveLeft(l0)
+        x0 += reach
+        stop = x0
     }
     else
     {
-        pen.begCapStyle = .None
         pen.endCapStyle = cap
-        let {l: l0} = Painter.capStyleExtent(cap, size, pen.capEndScaleX)
-        rect.moveRight(-l0)
+        x1 -= reach
+        stop = x1
     }
 
-    painter.drawLine(rect.x, rect.vertCenter(), rect.right(), rect.vertCenter(), pen)
+    painter.drawLine(x0, y, x1, y, pen)
+    if plain
+    {
+        let tick = size * 0.5 + 3
+        painter.drawLine(stop, y - tick, stop, y + tick, Pen.createSolid(color, 1))
+    }
 }
 
 // The ellipse/rectangle/round-rectangle glyph of a shape kind, `size` wide, centred in `pos`.
@@ -181,6 +203,37 @@ impl PropWnd
         .needRebuild = true
     }
 
+    // Returns the type the settings of the selection are edited through: the kind of every
+    // selected form when they share one, a line for lines and arrows together (an arrow is a
+    // line with its own defaults), and the base of every form otherwise. Without a selection,
+    // the kind of the model of the tool.
+    mtd commonFormType()->typeinfo
+    {
+        let capture = .main.getCapture()
+        if not capture or not capture.selection.count do
+            return .getSelectedFormType()
+
+        var allSame  = true
+        var lineOnly = true
+        var firstType: typeinfo?
+        foreachSelected'BaseForm(capture, capture.selection)
+        {
+            let t = Swag.kindOf(itf)
+            if not firstType do
+                firstType = t
+            elif t != firstType do
+                allSame = false
+            if t != FormLine and t != FormArrow do
+                lineOnly = false
+        }
+
+        if allSame do
+            return firstType orelse #typeof(BaseForm)
+        if lineOnly do
+            return FormLine
+        return BaseForm
+    }
+
     // Bind the property grid to the current selection (or to the tool model when nothing
     // is selected). The grid builds one row per attributed field of the bound type — see
     // the Properties attributes on the form structs — and edits every selected instance
@@ -201,30 +254,12 @@ impl PropWnd
         }
         else
         {
-            // Common concrete type of the selection: exact when homogeneous, FormLine for
-            // a line/arrow mix (an arrow embeds a line), BaseForm otherwise
-            var allSame  = true
-            var lineOnly = true
-            var firstType: typeinfo?
-
             foreachSelected'BaseForm(capture, capture.selection)
             {
-                let t = Swag.kindOf(itf)
-                if not firstType do
-                    firstType = t
-                elif t != firstType do
-                    allSame = false
-                if t != FormLine and t != FormArrow do
-                    lineOnly = false
                 bases.add(cast(*u8?, form))
             }
 
-            if allSame do
-                .gridBindType = firstType orelse #typeof(BaseForm)
-            elif lineOnly do
-                .gridBindType = FormLine
-            else do
-                .gridBindType = BaseForm
+            .gridBindType = .commonFormType()
 
             .grid.setExternalUndoMgr(&capture.undoMgr)
             .grid.setUndoEnabled(true)
@@ -297,7 +332,7 @@ impl PropWnd
                 // The value of a slider is a measure read beside its track: mono, with no box
                 // around it; it still takes a typed value.
                 let ctrl = item.sliderBox
-                ctrl.setLayoutMetrics(width, ctrl.valueWidth, gap)
+                ctrl.setLayoutMetrics(width, SliderValueWidth, gap)
                 ctrl.edit.setForm(.Transparent)
                 ctrl.edit.style.setFont(.theme().res.fontDefaultFs)
             }
@@ -362,13 +397,13 @@ impl PropWnd
             it.destroy()
         .grid.clear()
 
-        // What several objects share comes first, then how to align, arrange and pick them; a
-        // mask first says what it does.
-        .addMaskKindRows()
+        // What several objects share comes first, then how to align, arrange and pick them. A
+        // mask ends its head with what it does, so the strength or the placement of that kind,
+        // the first generated rows, read directly under the list.
         .addColorRows()
+        .addMaskKindRows()
         .addArrangeRows()
         .addStyleRows()
-        .propNextStep()
         .propPixSel()
 
         .bindGrid()
@@ -464,7 +499,7 @@ impl IPropertyNotify for PropWnd
 
         case #nameof(FormLine.outlineSize):
             return (.gridBindType == FormLine or .gridBindType == FormArrow or .gridBindType == FormDraw) and
-                   base.subKind != .PixSel
+                   base.subKind == .None
 
         case #nameof(BaseForm.joinStyle):
             return (.gridBindType == FormText or .gridBindType == FormPolygon) and
@@ -514,7 +549,14 @@ impl IPropertyNotify for PropWnd
             if .gridBindType == FormImage
             {
                 let image = assume cast(*FormImage, base)
-                return image.kind != .Image
+                return image.kind == .Blur or image.kind == .Pixelate or image.kind == .Zoom
+            }
+
+        case #nameof(FormImage.place):
+            if .gridBindType == FormImage
+            {
+                let image = assume cast(*FormImage, base)
+                return image.kind == .Image
             }
         }
 

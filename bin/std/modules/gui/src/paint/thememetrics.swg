@@ -223,6 +223,7 @@ struct ThemeMetrics
         inspector_LabelWidth:    f32 = 88      // Width of the label column of an inspector.
         inspector_LabelGap:      f32 = 12      // Air between a label and its editor.
         inspector_RowGap:        f32 = 10      // Air between two rows of an inspector.
+        inspector_RowPitch:      f32 = 30      // Distance from one row of an inspector's settings to the next.
         inspector_SectionHeight: f32 = 30      // Height of the label that opens a section of an inspector.
         inspector_TitleFontSize: u32 = 15      // Size of the title of an inspector.
 

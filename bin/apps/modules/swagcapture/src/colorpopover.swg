@@ -117,6 +117,23 @@ impl ColorPopover
         return result
     }
 
+    // Stands the popover beside `column`, on its leading side and level with `button`, instead of
+    // hanging it under the button over the rows of the column: the inspector stays readable while
+    // a colour is picked. It keeps inside the window.
+    mtd standBeside(column: *Wnd, button: *Wnd)
+    {
+        let frame = assume cast(*FrameWnd, unwrap .parent)
+        let view  = unwrap frame.parent
+        let col   = view.surfaceToLocal(column.surfaceRect().topLeft())
+        let row   = view.surfaceToLocal(button.surfaceRect().topLeft())
+        let inset = .themeMetrics().floating_Inset
+        let size  = frame.position
+        let x     = Math.max(col.x - inset * 0.5 - size.width, inset)
+        let y     = Math.clamp(row.y - PopoverPadding, inset, Math.max(view.position.height - size.height - inset, inset))
+        frame.anchor = .None
+        frame.setPosition(Math.Rectangle{x: x, y: y, width: size.width, height: size.height})
+    }
+
     // Lays out the swatches, the hex field and the opacity slider.
     mtd build()
     {

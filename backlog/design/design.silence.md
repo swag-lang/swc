@@ -118,17 +118,25 @@ dialogs, then each application, then the written rules.
 
 ### design.silence.008 — Swag Capture's editing does not yet match its pictures
 
-- Evidence: the editor, the area capture, the in-place editor, the library and the lens have
-  goldens (`surface`, `edit.{arrow,callout,multi,step,mask,color.paper,text,text.paper}`, `area`,
-  `inplace{,.paper}`, `library.surface`, `lens.paper`, `lens.recent.paper`, `presets{,.paper}`).
-  What they still show differently: a tool's row holds four presets where the pictures show five
-  or six, because a 44-wide cell with its ring room leaves five chips across the inspector;
-  the row keeps the presets chosen last first, not the ones used most (no use count is kept);
-  the vertical alignment of a text is a dropdown in the inspector, where the pictures keep only
-  the alignment across, in the mini-bar; the "•••" popover of the presets cannot be reached
-  with the keys.
-- Next: decide whether a preset keeps a use count (serialized beside its name) and order the
-  row by it; give the presets popover the keys of the lens strip.
+- Evidence: a whole-screen comparison of every `capture.*` picture with its golden
+  (`surface`, `edit.{arrow,callout,multi,step,mask,color.paper,text,text.paper}`, `area`,
+  `inplace{,.paper}`, `library.surface`, `lens.paper`, `presets{,.paper}`) leaves these
+  differences, which the data of Capture alone cannot close:
+  - the inspector rows are 38 px apart where the pictures set them about 29 apart
+    (`control_InspectorHeight`), and the pictures group the settings under TEXT, SHAPE, STROKE,
+    ENDS, EFFECTS and POSITION section labels where the grid has COLOR and STYLE only; the line
+    spacing of a callout has no row;
+  - a multiple selection reads "3 objects" where the picture details its kinds ("2 rectangles ·
+    1 text") and puts the common settings first, before align, arrange and layers;
+  - the dock holds thirteen tools in 36 px cells where the picture shows eight in smaller ones;
+  - the lens is wider than in the picture, and the commands matching "image" fill it, so the
+    recent captures it closes with sit below the fold of the golden;
+  - a tool's row holds four presets where the pictures show five, because a 44-wide cell with
+    its ring room leaves five chips across the inspector;
+  - the in-place editor and the area overlay match their pictures; the area bar's words are a
+    step larger than in the picture.
+- Next: decide the inspector row height and the section labels of the generated grid with the
+  charter owner, then group the Capture fields under those labels.
 - Done when: each `capture.*` picture is reproduced by its golden.
 - Related: design.silence.004
 

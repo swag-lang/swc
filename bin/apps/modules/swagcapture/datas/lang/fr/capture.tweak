@@ -44,6 +44,7 @@ ui_Width               Largeur
 ui_Height              Hauteur
 ui_KeepRatio           Conserver les proportions
 ui_Anchor              Ancrage
+ui_AnchorVertical      Ancrage vertical
 ui_Frozen              La sélection est figée
 ui_Desktop             Bureau
 ui_MyImages            Mes images
@@ -303,8 +304,12 @@ prop_Round                 Arrondi
 prop_Scale                 Échelle
 prop_Shadow                Ombre
 prop_Size                  Taille
+prop_Shape                 Forme
+prop_Stroke                Trait
+prop_Ends                  Extrémités
+prop_Effects               Effets
+prop_LineSpacing           Interligne
 prop_Style                 Style
-prop_Vertical              Vertical
 prop_StartSize             Taille de début
 prop_Step                  Numérotation
 prop_Strength              Intensité

@@ -4,16 +4,16 @@
 struct FormLine
 {
     using base: BaseForm
-    #[Name("Outline"), SliderMinMax(MinOutlineSize, MaxOutlineSize)]
-    outlineSize:  f32
     outlineColor: Color        = Argb.Black
     beginCap:     LineCapStyle = .Round
     endCap:       LineCapStyle = .Round
     dashCap:      DashCapStyle = .None
-    #[Name("Start Size"), SliderMinMax(MinCapSize, MaxCapSize)]
+    #[Name("Start Size"), SliderMinMax(MinCapSize, MaxCapSize), Category("Ends")]
     startSize: f32 = 4
-    #[Name("End Size"), SliderMinMax(MinCapSize, MaxCapSize)]
-    endSize:        f32 = 4
+    #[Name("End Size"), SliderMinMax(MinCapSize, MaxCapSize), Category("Ends")]
+    endSize: f32 = 4
+    #[Name("Outline"), SliderMinMax(MinOutlineSize, MaxOutlineSize), Category("Stroke")]
+    outlineSize:    f32
     xa, ya, xb, yb: f32
     xc, yc:         f32 = 10
     cacheCoords:    Math.Rectangle

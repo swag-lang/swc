@@ -970,7 +970,7 @@ func testBeginInlineText(host: *Gui.Testing.HeadlessHost, main: *MainWnd, index:
         const LabelWidth = 96.0
         const Pad        = 24.0
         let metrics = main.themeMetrics()
-        let strip   = 5 * QuickChipWidth
+        let strip   = 6 * QuickChipWidth
         with let panel = Wnd.create'Wnd(main, null, {0, 0, 1024, 640})
         {
             .backgroundStyle = .Window

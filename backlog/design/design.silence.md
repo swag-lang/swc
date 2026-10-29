@@ -127,8 +127,16 @@ dialogs, then each application, then the written rules.
 - Evidence: the `capture.*` pictures and their goldens agree, but for one choice: a preset cell
   is 38 by 31 where the pictures draw 44 by 36, so that five presets and their chip fit across
   the 264 the inspector leaves; at 44 by 36 a row holds four presets.
+- Evidence, left when the campaign closed:
+  - The tool letters (`V R P A L T C D H N M X F`) are registered on the main window, so they
+    also answer in the library, where they change the editor's tool unseen.
+  - The five library goldens changed by the hint line (`library.surface`,
+    `library.options.{view,sort,filter}`, `library.menu.folders`) were reviewed whole-screen and
+    accepted, but no confirming run without `SWAG_GOLDEN_CONTINUE` followed.
+  - The full gui suite runs 5 to 7 minutes, past a `--run-timeout 300`; it needs about 420.
 - Next: decide with the charter owner between five smaller presets and four of the pictures'
-  size.
+  size; keep the tool letters to the editor; run swagcapture once without
+  `SWAG_GOLDEN_CONTINUE`.
 - Done when: the preset row of the inspector matches its picture.
 - Related: design.silence.004, design.silence.005
 

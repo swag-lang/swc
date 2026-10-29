@@ -154,3 +154,21 @@ hint_KeyEnter Entrée
 mode_Names noms
 mode_Details détails
 mode_Thumbnails vignettes
+cmd_ExtractAll Extraire tout…
+cmd_Extract Extraire…
+explore_Extracted % fichiers extraits
+explore_ExtractedOne 1 fichier extrait
+explore_ExtractedKept %, % déjà présents conservés
+explore_ExtractFailed Tout n’a pas pu être extrait
+explore_File Fichier
+hint_Filter filtrer
+explore_Length % h %
+explore_Sources Sources
+lens_InFile Dans ce fichier
+lens_GoToLine Aller à la ligne %
+explore_Album Album
+explore_Tracks % titres
+explore_Play Lire
+explore_Shuffle Aléatoire
+explore_Weekdays dimanche lundi mardi mercredi jeudi vendredi samedi
+explore_Months janvier février mars avril mai juin juillet août septembre octobre novembre décembre

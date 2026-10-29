@@ -18,6 +18,7 @@ struct Texts
     ui_PageRange:  string = "Page number from 1 to %."          // Direct page navigation prompt.
     ui_Continuous: string = "Continuous"                        // Layout action that scrolls every page in one column.
     ui_SinglePage: string = "Single Page"                       // Layout action that shows one page at a time.
+    ui_Contents:   string = "Contents"                          // Section label of the outline standing in the margin beside the page.
     ui_OnePage:    string = "1 page"                            // Length of a one-page document.
     ui_Pages:      string = "% pages"                           // Length of a longer document.
     err_NoPage:    string = "PDF document contains no page"     // Diagnostic of a document with nothing to show.

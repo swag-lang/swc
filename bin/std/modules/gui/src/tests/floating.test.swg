@@ -184,11 +184,33 @@ func floatingHost(host: *Testing.HeadlessHost, width, height: f32, light: bool)
     Swag.assert(sheet.position.height == before + metrics.infoSheet_BlockGap + metrics.btnPush_Height)
     Swag.assert(action.position.bottom() == sheet.position.height - metrics.infoSheet_Padding)
 
+    // A secondary action shares the foot with it, each on half of the line.
+    let secondary = sheet.setSecondaryAction("Extract…", "sheet.extract")
+    Swag.assert(secondary.position.y == action.position.y and secondary.position.width == action.position.width)
+    Swag.assert(secondary.position.x > action.position.right())
+    Swag.assert(Utf8.contains(sheet.text(), "Open\nExtract…"))
+
     sheet.toggle()
     Swag.assert(not sheet.isLocallyVisible())
 
     sheet.clear()
-    Swag.assert(sheet.blocks.isEmpty() and sheet.action == null)
+    Swag.assert(sheet.blocks.isEmpty() and sheet.action == null and sheet.secondary == null)
+
+    // A poster stands beside the title with the facts that follow it, the action right under them.
+    var poster = Image.create(40, 60, .RGB8)
+    var texture = host.app.renderer.addImage(&poster)
+    defer host.app.renderer.removeTexture(&texture)
+    sheet.setPicture(texture)
+    sheet.setPictureBeside(true)
+    sheet.setTitle("Blade Runner")
+    sheet.addFact("8.1", "IMDb")
+    sheet.addReading("Director", "Ridley Scott")
+    let open = sheet.setAction("Open", "sheet.open")
+    sheet.open()
+    Swag.assert(sheet.blocks[0].left > 0 and sheet.blocks[1].left == 0)
+    Swag.assert(open.position.bottom() < sheet.blocks[1].top)
+    sheet.clear()
+    Swag.assert(not sheet.beside)
 }
 
 // A sheet arrives from its edge and fades out, reachable at once on the way in and gone at

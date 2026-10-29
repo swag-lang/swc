@@ -52,12 +52,19 @@ namespace ViewerCommands
     const OnlineMusic       = "scope.explore.onlineMusic"
     const ChooseMusic       = "scope.explore.chooseMusic"
     const OpenChosen        = "scope.explore.openChosen"
+    const ExtractAll        = "scope.explore.extractAll"
+    const ExtractChosen     = "scope.explore.extractChosen"
 }
 
 // Files the lens lists in one section for a query typed without the `/` prefix, which stands
 // beside every other kind of answer, and with it, which asks for files alone.
 const LensFilesBeside = 5'u64
 const LensFilesAlone  = 64'u64
+
+// The most lines of the open file the lens shows for a query, and the most of the file it reads
+// to find them.
+const LensLinesShown = 8'u64
+const LensFileLimit  = 8 * 1024 * 1024'u64
 
 impl ViewerWindow
 {
@@ -79,6 +86,7 @@ impl ViewerWindow
             .addSource(.None, func|window = me|(results) { window.describeViewerChoices(results) })
             .addSource(.Action, func|window = me|(results) { window.describeViewerCommands(results) })
             .addSource(.File, func|window = me|(results) { window.describeFiles(results) })
+            .addSource(.Line, func|window = me|(results) { window.describeFileLines(results) })
             .addCommands(func()->string => appStrings().lens_File,
                          [ViewerCommands.Open, ViewerCommands.Explore, ViewerCommands.Close, ViewerCommands.Reload,
                           ViewerCommands.PreviousFile, ViewerCommands.NextFile, ViewerCommands.OpenDefault, ViewerCommands.OpenWith,
@@ -88,7 +96,8 @@ impl ViewerWindow
                          [ViewerCommands.Back, ViewerCommands.Forward, ViewerCommands.Up, ViewerCommands.Refresh,
                           ViewerCommands.EditLocation, ViewerCommands.SortName, ViewerCommands.SortType, ViewerCommands.SortSize,
                           ViewerCommands.SortModified, ViewerCommands.SortDescending, ViewerCommands.OnlineMovies,
-                          ViewerCommands.OnlineMusic, ViewerCommands.ChooseMusic, ViewerCommands.OpenChosen])
+                          ViewerCommands.OnlineMusic, ViewerCommands.ChooseMusic, ViewerCommands.OpenChosen,
+                          ViewerCommands.ExtractAll, ViewerCommands.ExtractChosen])
             .addCommands(func()->string => appStrings().lens_Find,
                          [ViewerCommands.Find, ViewerCommands.FindNext, ViewerCommands.FindPrevious, ViewerCommands.SearchMode,
                           ViewerCommands.FilterMode, ViewerCommands.MatchCase, ViewerCommands.WholeWord, ViewerCommands.RegularExpression])
@@ -183,6 +192,137 @@ impl ViewerWindow
         let plugin  = &.index.plugins[.choices[.activeChoiceIndex].pluginIndex]
         var entries = Viewer.LensEntries.create(results, plugin.displayName())
         instance.lensSource(&entries)
+    }
+
+    // Answers the lens with the lines of the open document that hold the query, under "In This
+    // File", in the order of the file, each led by its number in mono; `:` and a number go to that
+    // line. Code, text and Markdown answer, as documents read line by line.
+    private mtd describeFileLines(results: *Lens.Results)
+    {
+        if .isExploring() or .currentFile.isEmpty() do
+            return
+        if .activeChoiceIndex >= .instances.count or .activeChoiceIndex >= .choices.count do
+            return
+        let key = .choices[.activeChoiceIndex].key
+        if key != "text" and key != "code" and key != "markdown" do
+            return
+        if not .instances[.activeChoiceIndex].revealMatch do
+            return
+
+        let typed: String = results.query
+        let query = Latin1.trim(typed.toString())
+        if not query.count do
+            return
+        let bytes = .lensFileBytes()
+        if bytes.isEmpty() do
+            return
+
+        let texts   = appStrings()
+        let content = cast(string, bytes.toSlice())
+
+        // A number after `:` is a line to go to.
+        var number = true
+        for c in query where not Latin1.isDigit(c) do
+            number = false
+        if results.prefix == .Line and number
+        {
+            let wanted = catch StrConv.toU64(query)
+            var line   = 1'u64
+            var start  = 0'u64
+            for at in content.count where line < wanted and content[at] == '\n'
+            {
+                line  += 1
+                start = at + 1
+            }
+
+            if not wanted or line != wanted do
+                return
+            let section = results.addSection(texts.lens_InFile)
+            with let entry = section.addEntry(Format.toString(texts.lens_GoToLine, wanted))
+            {
+                .lead = Format.toString("%", wanted)
+                .run  = func|window = me, start|() { window.revealLensOffset(start, 0) }
+            }
+
+            return
+        }
+
+        // Every line holding the query, without regard to case; the first few stand as rows.
+        var section: *Lens.Section?
+        var found = 0'u32
+        var line  = 1'u64
+        var start = 0'u64
+        for at in content.count + 1
+        {
+            if at < content.count and content[at] != '\n' do
+                continue
+            var end = at
+            if end > start and content[end - 1] == '\r' do
+                end -= 1
+            let text  = content[start until end]
+            let hit   = Utf8.indexOf(text, query, comparisonType: .Latin1NoCase)
+            if hit != Swag.U64.Max
+            {
+                found += 1
+                if cast(u64, found) <= LensLinesShown
+                {
+                    if not section do
+                        section = results.addSection(texts.lens_InFile)
+                    let offset = start + hit
+                    let length = query.count
+                    with let entry = section.addEntry(Latin1.trim(text))
+                    {
+                        .lead      = Format.toString("%", line)
+                        .monoTitle = key == "code"
+                        .run       = func|window = me, offset, length|() { window.revealLensOffset(offset, length) }
+                    }
+                }
+            }
+
+            line  += 1
+            start = at + 1
+        }
+
+        if section do
+            section.count = found
+    }
+
+    // Shows the open document at `offset` of its file, the `length` bytes there marked.
+    mtd revealLensOffset(offset, length: u64)
+    {
+        if .activeChoiceIndex >= .instances.count do
+            return
+        let instance = &.instances[.activeChoiceIndex]
+        if not instance.revealMatch do
+            return
+        let bytes = .lensFileBytes()
+        if offset > bytes.count do
+            return
+        let text = cast(string, bytes.toSlice()[offset until Math.min(offset + length, bytes.count)])
+        discard instance.revealMatch(Viewer.SearchMatch{0, 0, offset, length}, text)
+    }
+
+    // Returns the bytes of the open file the lens searches, read once per file and at most
+    // `LensFileLimit` of them.
+    mtd lensFileBytes()->const *Array'u8
+    {
+        if .lensBytesFile != .currentFile
+        {
+            .lensBytes.clear()
+            .lensBytesFile = .currentFile
+            catch
+            {
+                var stream = try File.openRead(.currentFile)
+                let size   = Math.min(try stream.size(), LensFileLimit)
+                .lensBytes.resize(size)
+                .lensBytes.resize(try stream.read(.lensBytes.toSlice()))
+            }
+            {
+                .lensBytes.clear()
+            }
+        }
+
+        return &.lensBytes
     }
 
     // Answers the lens with files to open: the recent ones, the ones beside the open file, and the
@@ -459,6 +599,14 @@ impl ViewerWindow
             name     = texts.cmd_OpenChosen
             hidden   = not exploring
             disabled = not exploring or .explorer!.selected >= .explorer.entries.count
+        case ViewerCommands.ExtractAll:
+            name     = texts.cmd_ExtractAll
+            hidden   = not exploring or not .explorer!.listing.isArchive
+            disabled = hidden or .explorer!.extraction.started
+        case ViewerCommands.ExtractChosen:
+            name     = texts.cmd_Extract
+            hidden   = not exploring or not .explorer!.listing.isArchive
+            disabled = hidden or .explorer!.extraction.started or .explorer!.selected >= .explorer.entries.count
         case ViewerCommands.ChooseMusic:
             name     = texts.explore_ChooseMusic
             hidden   = not exploring
@@ -571,6 +719,8 @@ impl ViewerWindow
         case ViewerCommands.OnlineMusic:    explorer.setOnlineMedia(.onlineMovies, not .onlineMusic)
         case ViewerCommands.ChooseMusic:    explorer.chooseMusic()
         case ViewerCommands.OpenChosen:     explorer.activate(explorer.selected)
+        case ViewerCommands.ExtractAll:     explorer.chooseExtraction(all: true)
+        case ViewerCommands.ExtractChosen:  explorer.chooseExtraction(all: false)
         case ViewerCommands.SortName, ViewerCommands.SortType, ViewerCommands.SortSize, ViewerCommands.SortModified:
             explorer.sortBy(sortColumnOf(id), explorer.descending)
         default:
@@ -585,12 +735,27 @@ impl ViewerWindow
     {
         if .currentFile.isEmpty() and not .isExploring()
         {
-            .infoSheet.close()
+            .closeInformation()
             return
         }
 
         .refreshInformation()
         .infoSheet.toggle()
+        .sheetToggled(.infoSheet.isLocallyVisible())
+    }
+
+    // Closes the sheet of readings, and gives its room back to the page under it.
+    mtd closeInformation()
+    {
+        .infoSheet.close()
+        .sheetToggled(false)
+    }
+
+    // Lets the explored page make room for the sheet beside it, or take that room back.
+    mtd sheetToggled(open: bool)
+    {
+        if .explorer do
+            .explorer.fitToSheet(open)
     }
 
     // Describes what the window shows in the information sheet: the open file, or the item chosen

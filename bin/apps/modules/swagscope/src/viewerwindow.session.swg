@@ -219,7 +219,7 @@ impl ViewerWindow
         .resetFolderReading()
         .showFileInfo("", "")
         .layoutFileInfo()
-        .infoSheet.close()
+        .closeInformation()
         .updateViewerBar()
         if .explorerActive
         {

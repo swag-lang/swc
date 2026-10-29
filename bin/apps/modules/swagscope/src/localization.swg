@@ -30,6 +30,15 @@ struct AppStrings
     explore_Director:          string = "Director"
     explore_Cast:              string = "Cast"
     explore_Synopsis:          string = "Synopsis"
+    explore_Length:            string = "% h %"                      // Length of a film under its poster: hours, then minutes.
+    explore_Sources:           string = "Sources"                    // Reading naming who provided what the sheet says of a film.
+    explore_Album:             string = "Album"                      // Kind of the folder an album page shows, before its year.
+    explore_Tracks:            string = "% tracks"                   // How many tracks an album holds.
+    explore_Play:              string = "Play"                       // Button playing an album from its first track.
+    explore_Shuffle:           string = "Shuffle"                    // Button playing an album in an order drawn by chance.
+    explore_Weekdays:          string = "Sunday Monday Tuesday Wednesday Thursday Friday Saturday"     // Days of a mosaic of pictures, from Sunday, separated by spaces.
+    explore_Months:            string = "January February March April May June July August September October November December"     // Months of a mosaic of pictures, separated by spaces.
+    explore_File:              string = "File"                       // Reading of the kind and weight of the file a film is in.
     explore_Artist:            string = "Artist"
     explore_FirstRelease:      string = "First release"
     explore_Source:            string = "Source"
@@ -39,6 +48,10 @@ struct AppStrings
     explore_Count:             string = "% items"                     // Exploration control or status.
     explore_ArchiveSummary:    string = "% · % compressed · % once extracted"     // Contents of an archive: its count, its packed and its extracted weight.
     explore_Compression:       string = "Compression"                // Reading of how much an archive member packed.
+    explore_Extracted:         string = "% files extracted"          // Toast after an extraction from an archive.
+    explore_ExtractedOne:      string = "1 file extracted"           // Toast after extracting one file from an archive.
+    explore_ExtractedKept:     string = "%, % already there kept"    // Toast after an extraction that left files already in the folder as they were.
+    explore_ExtractFailed:     string = "Not everything could be extracted"     // Toast when an extraction stopped on an error.
     explore_NotFound:          string = "Location not found"          // Exploration control or status.
     explore_MediaOptions:      string = "Online media options"
     explore_OnlineMovies:      string = "Use Online Movie Posters and Details"
@@ -112,6 +125,7 @@ struct AppStrings
     hint_KeyBack:                      string = "⌫"                                           // Name of the Backspace key on a keycap.
     hint_Open:                         string = "open"                                        // What Enter does on the hint line of an explored folder.
     hint_Parent:                       string = "parent folder"                               // What Backspace does on the hint line of an explored folder.
+    hint_Filter:                       string = "filter"                                      // What the slash key does on the hint line of an explored folder.
     ui_HintLens:                       string = "everything else"                             // What the space bar opens, on the hint line of a window new to the reader.
 
     lens_File:          string = "File"                      // Lens section of the commands acting on the open file.
@@ -121,8 +135,12 @@ struct AppStrings
     lens_Playback:      string = "Playback"                  // Lens section of the play modes.
     lens_Folder:        string = "Folder"                    // Lens section of the commands of the explored folder.
     lens_InFolder:      string = "In This Folder"            // Lens section listing the files beside the open one.
+    lens_InFile:        string = "In This File"              // Lens section listing the lines of the open file that hold the query.
+    lens_GoToLine:      string = "Go to Line %"              // Lens row going to the line typed after a colon.
     cmd_Open:           string = "Open…"                     // Command choosing a file to open.
     cmd_OpenChosen:     string = "Open"                      // Command opening the item chosen in the explored folder.
+    cmd_ExtractAll:     string = "Extract All…"              // Command extracting the whole explored archive to a folder.
+    cmd_Extract:        string = "Extract…"                  // Command extracting the chosen member or folder of the archive to a folder.
     cmd_Explore:        string = "Explore Folder"            // Command showing the folder of the open file as a contact sheet.
     cmd_Reload:         string = "Reload"                    // Command reading the open file again.
     cmd_PreviousFile:   string = "Previous File"             // Command opening the file before this one in its folder.

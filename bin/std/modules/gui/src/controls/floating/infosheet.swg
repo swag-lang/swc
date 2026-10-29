@@ -10,8 +10,9 @@ using Core, Pixel
 // trailing and bottom edges of its parent and clear of the window chrome at the top. It holds
 // what an information band used to show, and only while the reader asks for it: a title, a mono
 // line of identity, the facts the reader came for set large and light, readings as a label and a
-// value, section labels, a paragraph, links in Arc, and at most one primary action. A picture of
-// what the sheet describes — a poster, a cover, a capture — may head it.
+// value, section labels, a paragraph, links in Arc, and at most one primary action, which a
+// secondary one may follow. A picture of what the sheet describes — a poster, a cover, a
+// capture — may head it.
 //
 // The sheet floats over the work ([[Gui.DockStyle.Float]]) and stays hidden until
 // [[Gui.InfoSheet.open]]; the application binds the key that toggles it. Describe the content
@@ -39,13 +40,16 @@ struct InfoSheet
         {
             title:    String           // Title of the sheet, set large and bold.
             identity: String           // Mono line of identity under the title: a path, a format, a date.
-            action:   *PushButton?     // The one primary action of the sheet, when it has one.
+            action:    *PushButton?     // The one primary action of the sheet, when it has one.
+            secondary: *PushButton?     // The action beside the primary one, when it has one.
             picture:  Texture          // Picture heading the sheet, borrowed from its owner; invalid for none.
+            beside:   bool             // Whether the picture stands at the left of the title, as a poster or a cover does.
         }
     }
 
-    blocks:  Array'InfoSheetBlock
-    hotLink: u64 = Swag.U64.Max
+    blocks:    Array'InfoSheetBlock
+    hotLink:   u64 = Swag.U64.Max
+    actionTop: f32     // Top of the action when it follows the head, from the latest layout.
 }
 
 internal enum InfoSheetBlockKind
@@ -64,6 +68,7 @@ internal struct InfoSheetBlock
     value:  String     // Value of a reading or of a fact.
     mono:   bool       // Whether the value is a measure, set in the fixed-width face.
     id:     WndId?     // Command a link posts.
+    left:   f32        // Indent of the block in the body, beside the picture, from the latest layout.
     top:    f32        // Top of the block in the body, from the latest layout.
     height: f32        // Height of the block, from the latest layout.
 }
@@ -86,10 +91,23 @@ impl IWnd for InfoSheet
         liftFloating(me)
         .setPosition(Math.Rectangle{left, top, width, height})
 
+        // The primary action takes the foot of the sheet, or follows the head beside a picture;
+        // with a secondary one, each takes half.
+        .secondary?.show(.action != null)
         if .action
         {
-            let pad = metrics.infoSheet_Padding
-            .action.setPosition(Math.Rectangle{pad, height - pad - metrics.btnPush_Height, width - 2 * pad, metrics.btnPush_Height})
+            let pad  = metrics.infoSheet_Padding
+            let y    = .besidePicture() ? .actionTop : height - pad - metrics.btnPush_Height
+            let room = width - 2 * pad
+            if .secondary
+            {
+                let gap  = metrics.infoSheet_LineGap * 2
+                let half = Math.floor((room - gap) * 0.5)
+                .action.setPosition(Math.Rectangle{pad, y, half, metrics.btnPush_Height})
+                .secondary.setPosition(Math.Rectangle{pad + half + gap, y, half, metrics.btnPush_Height})
+            }
+            else do
+                .action.setPosition(Math.Rectangle{pad, y, room, metrics.btnPush_Height})
         }
     }
 
@@ -111,7 +129,7 @@ impl IWnd for InfoSheet
 
         // A sheet shorter than its blocks keeps its action whole: the blocks stop above it.
         var blocksArea = body
-        if .action do
+        if .action and not .besidePicture() do
             blocksArea.height = Math.max(.action.position.y - metrics.infoSheet_BlockGap * 0.5 - body.y, 0)
         painter.pushClippingRect(blocksArea)
         defer painter.popClippingRect()
@@ -120,26 +138,31 @@ impl IWnd for InfoSheet
         let width = body.width - 2 * pad
         var y     = body.y + pad
 
-        // The picture keeps its proportions, on the corner of a control, at the head of the sheet.
+        // The picture keeps its proportions, on the corner of a control, at the head of the sheet
+        // or at the left of the title.
+        var headX = x
         if .picture.isValid()
         {
-            let size = .pictureSize(width)
+            let size = .besidePicture() ? .besideSize() : .pictureSize(width)
             painter.setParams(.Antialiased)
             painter.fillRoundRect(Math.Rectangle{x, y, size.x, size.y}, metrics.corner_Control, metrics.corner_Control, Brush.createTexture(.picture))
-            y += size.y + metrics.infoSheet_BlockGap
+            if .besidePicture() do
+                headX = x + size.x + metrics.infoSheet_Padding * 0.5
+            else do
+                y += size.y + metrics.infoSheet_BlockGap
         }
 
         let titleFont = theme.createDefaultFont(metrics.infoSheet_TitleFontSize, .Bold)
         if not .title.isEmpty()
         {
-            painter.drawString(x, y, .title, titleFont, colors.text)
+            painter.drawString(headX, y, .title, titleFont, colors.text)
             y += titleFont.height
         }
 
         let monoFont = theme.createDefaultFontFs(metrics.defaultFontSize - 1)
         if not .identity.isEmpty()
         {
-            painter.drawString(x, y + metrics.infoSheet_LineGap, .identity, monoFont, colors.faintText)
+            painter.drawString(headX, y + metrics.infoSheet_LineGap, .identity, monoFont, colors.faintText)
         }
 
         let bodyFont  = theme.createDefaultFont(metrics.defaultFontSize)
@@ -152,8 +175,8 @@ impl IWnd for InfoSheet
             switch block.kind
             {
             case .Fact:
-                let used = paintTextLine(painter, x, centerY, block.value, factFont, colors.text)
-                discard paintTextLine(painter, x + used + metrics.iconText_Margin * 0.5, centerY, block.label, monoFont, colors.faintText)
+                let used = paintTextLine(painter, x + block.left, centerY, block.value, factFont, colors.text)
+                discard paintTextLine(painter, x + block.left + used + metrics.iconText_Margin * 0.5, centerY, block.label, monoFont, colors.faintText)
 
             case .Reading:
 
@@ -274,6 +297,15 @@ impl InfoSheet
         .relayout()
     }
 
+    // Stands the picture at the left of the title, the title, the identity and the facts that
+    // follow them beside it, and the action right under them, as a poster or a cover heads what
+    // it describes; or back at the head of the sheet.
+    mtd setPictureBeside(beside: bool)
+    {
+        .beside = beside
+        .relayout()
+    }
+
     // Appends a fact the reader came for, set large and light, with an optional faint unit.
     mtd addFact(value: string, unit: string? = null)
     {
@@ -322,17 +354,37 @@ impl InfoSheet
         return .action
     }
 
-    // Removes the title, the identity, every block and the action.
+    // Sets the action standing beside the primary one, and returns its button.
+    //
+    // It shows only with a primary action, and calling this again replaces it.
+    #[Swag.Discardable]
+    mtd setSecondaryAction(caption: string, id: WndId)->*PushButton
+    {
+        if .secondary do
+            .secondary.destroy()
+        .secondary = PushButton.create(me, caption, {}, id)
+        .relayout()
+        return .secondary
+    }
+
+    // Removes the title, the identity, every block and the actions.
     mtd clear()
     {
         .title.clear()
         .identity.clear()
         .picture = {}
+        .beside  = false
         .blocks.clear()
         if .action
         {
             .action.destroy()
             .action = null
+        }
+
+        if .secondary
+        {
+            .secondary.destroy()
+            .secondary = null
         }
 
         .hotLink = Swag.U64.Max
@@ -382,6 +434,12 @@ impl InfoSheet
             result += "\n"
         }
 
+        if .action and .secondary
+        {
+            result += .secondary.name.raw
+            result += "\n"
+        }
+
         return result
     }
 
@@ -393,7 +451,8 @@ impl InfoSheet
         let pad     = metrics.infoSheet_Padding
 
         var y = pad
-        if .picture.isValid() do
+        let beside = .besidePicture()
+        if .picture.isValid() and not beside do
             y += .pictureSize(width - 2 * pad).y + metrics.infoSheet_BlockGap
         if not .title.isEmpty() do
             y += theme.createDefaultFont(metrics.infoSheet_TitleFontSize, .Bold).height
@@ -403,8 +462,36 @@ impl InfoSheet
             y += metrics.infoSheet_BlockGap
 
         let factHeight = theme.createDefaultFont(metrics.infoSheet_FactFontSize, .Light).height
+        var first      = 0'u64
+        if beside
+        {
+            // The facts that follow the title stand beside the picture with it, and the action
+            // comes right under whichever ends lower.
+            let left = .besideSize().x + pad * 0.5
+            for &block in .blocks
+            {
+                if block.kind != .Fact do
+                    break
+                block.left   = left
+                block.top    = y
+                block.height = factHeight
+                y            += factHeight
+                first        += 1
+            }
+
+            y = Math.max(y, pad + .besideSize().y) + metrics.infoSheet_BlockGap
+            if .action
+            {
+                .actionTop = y
+                y          += metrics.btnPush_Height + metrics.infoSheet_BlockGap
+            }
+        }
+
         for &block, index in .blocks
         {
+            if index < first do
+                continue
+            block.left = 0
             switch block.kind
             {
             case .Fact:
@@ -430,13 +517,26 @@ impl InfoSheet
             y         += block.height
         }
 
-        if .action do
+        if .action and not beside do
             y += metrics.infoSheet_BlockGap + metrics.btnPush_Height
         return Math.ceil(y + pad)
     }
 
     // Returns the visible sheet: the window holds nothing else, its shadow falls outside it.
     private mtd body()->Math.Rectangle => .clientRect()
+
+    // Reports whether the picture stands at the left of the title.
+    private mtd besidePicture()->bool => .beside and .picture.isValid()
+
+    // Returns the size of a picture standing beside the title: as wide as a poster in a sheet,
+    // its proportions kept and its height bounded.
+    private mtd besideSize()->Math.Point
+    {
+        const Width = 96.0'f32
+        let ratio  = cast(f32, .picture.height) / cast(f32, Math.max(.picture.width, 1))
+        let height = Math.min(Math.round(Width * ratio), .themeMetrics().infoSheet_PictureHeight)
+        return {Math.round(height / Math.max(ratio, 0.01)), height}
+    }
 
     // Returns the size of the picture within `width`, its proportions kept and its height bounded.
     private mtd pictureSize(width: f32)->Math.Point

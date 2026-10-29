@@ -185,6 +185,8 @@ struct ViewerWindow
     // The viewer's commands float over the foot of the document while the pointer moves, and
     // leave once it rests; the search floats at the top while it is asked for.
     viewerBarShown:  bool
+    lensBytes:       Array'u8     // The open file as the lens searches it, read on its first question.
+    lensBytesFile:   String       // The file `lensBytes` holds.
     viewerBarTimer:  *Timer?
     pointerPosition: Math.Point
     searchShown:     bool
@@ -347,7 +349,7 @@ impl IWnd for ViewerWindow
         let plain = evt.modifiers == .None
         switch evt.key
         {
-        case .Escape where plain and .infoSheet.isLocallyVisible(): .infoSheet.close()
+        case .Escape where plain and .infoSheet.isLocallyVisible(): .closeInformation()
         case .Escape where plain and .searchShown:                   .hideSearch()
         case .Escape where plain and not .fullScreen and .explorerActive: .closeFile()
         case .Escape where plain and .fullScreen:  .setFullScreen(false)
@@ -1101,9 +1103,10 @@ impl ViewerWindow
     {
         let texts = appStrings()
         .hintLine.clearHints()
-        // The keys of an archive are taught while its rows leave the foot of the page free.
-        let archive = exploring and .explorer and .explorer.listing.isArchive and
-                      .explorer.scroll.scrollSize.y + HintRoom < .explorer.scroll.clientRect().height
+        // The keys of an explored page are taught while what it shows leaves its foot free: an
+        // archive's way in and out, a folder's filter.
+        let roomy   = exploring and .explorer and .explorer.scroll.scrollSize.y + HintRoom < .explorer.scroll.clientRect().height
+        let archive = roomy and .explorer!.listing.isArchive
         if archive
         {
             .hintLine.addHint(texts.hint_KeyEnter, texts.hint_Open)
@@ -1111,7 +1114,9 @@ impl ViewerWindow
         }
 
         .hintLine.addHint(Gui.strings().key_Space, texts.ui_HintLens)
-        .hintLine.show(archive or (not exploring and .home.isLocallyVisible()))
+        if roomy and not archive do
+            .hintLine.addHint("/", texts.hint_Filter)
+        .hintLine.show(roomy or (not exploring and .home.isLocallyVisible()))
     }
 
     // Names what the window shows in its title: the open file, followed by the viewer when the

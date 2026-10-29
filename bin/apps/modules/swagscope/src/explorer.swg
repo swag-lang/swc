@@ -4,18 +4,48 @@ using Core, Gui, Pixel, Video
 
 enum ExplorerMode { Names, Details, Small, Medium, Large }
 
+// The shape the tiles of a folder take, read from what most of it holds.
+enum ExplorerBoard
+{
+    Grid        // Anything: one even grid of tiles a little wider than tall.
+    Posters     // Films: upright posters.
+    Covers      // Music: square covers, the album then who made it and when.
+    Mosaic      // Pictures: a justified mosaic keeping every shape, by day.
+    Album       // One album: the cover large, then its tracks.
+}
+
+// A day of a mosaic of pictures: where its label stands, its words and how many pictures it holds.
+struct ExplorerDayLabel
+{
+    y:     f32
+    text:  String
+    count: u64
+}
+
 // Width over height of a tile's picture: a page for a folder of documents, a screen for a folder
 // that is mostly films.
 const ExplorerTilePreviewAspect: f32 = 0.8
 const ExplorerFilmPreviewAspect: f32 = 16.0 / 9.0
 
-// Height over width of the card a folder tile stands on.
-const ExplorerFolderCardAspect: f32 = 0.75
-
 // The duration label of a film tile: small, bold, light ink on a translucent ink ground.
 const ExplorerDurationFontSize = 11'u32
 const ExplorerDurationGround   = 0xB30B0B0D'u32
 const ExplorerDurationInk      = 0xFFE6E6EA'u32
+
+// Returns the title of a track from its file name: without its extension and without the
+// number and separator a ripper writes before it.
+func trackTitle(name: string)->String
+{
+    let stem = Path.fileNameWithoutExtension(name) orelse name
+    var at   = 0'u64
+    while at < stem.count and Latin1.isDigit(stem[at]) do
+        at += 1
+    if at == 0 or at == stem.count do
+        return String.from(stem)
+    while at < stem.count and (stem[at] == ' ' or stem[at] == '-' or stem[at] == '.' or stem[at] == '_') do
+        at += 1
+    return String.from(stem[at to])
+}
 
 // Writes a duration the way players do: hours only when there are some, minutes and seconds always.
 func formatDuration(seconds: u64)->String
@@ -73,6 +103,7 @@ struct Explorer
         address:   *ExplorerAddress
         title:     *Label
         status:    *Label
+        extractAll: *IconButton
         sortMenu:  *IconButton
         modeMenu:  *IconButton
         filter:    *EditBox
@@ -103,14 +134,16 @@ struct Explorer
     bypassCache:     bool     // Whether the previews of the shown listing ignore the persistent cache, after a forced refresh.
     previewAspect:   f32 = ExplorerTilePreviewAspect     // Shape of the tiles, chosen from what the listing holds.
     previewBudget:   u64      // How many previews of the shown listing run at once.
+    extraction:      ArchiveExtraction
+    toast:           *Toast?
 }
 
 impl Explorer
 {
     // The air between the page and the edges of the document, the height of its header, and the
     // size its title is set in.
-    const PageMargin    = 48.0
-    const HeaderHeight  = 112.0
+    const PageMargin    = 72.0
+    const HeaderHeight  = 94.0
     const TitleFontSize    = 44'u32
     const MinTitleFontSize = 28'u32
     const ToolHeight    = 32.0
@@ -236,12 +269,11 @@ impl Explorer
     // of the way it is shown.
     private mtd createHeader()
     {
-        let metrics = .themeMetrics()
         with .header = Wnd.create'Wnd(me, Math.Rectangle{0, 0, 0, HeaderHeight}, "scope.explorer.header")
         {
             .dockStyle       = .Top
             .backgroundStyle = .Transparent
-            .padding         = Math.Vector4{PageMargin, metrics.floating_Inset * 0.5, PageMargin, 8}
+            .padding         = Math.Vector4{PageMargin, 0, PageMargin, 8}
         }
 
         with .address = ExplorerAddress.create(.header, me)
@@ -304,13 +336,23 @@ impl Explorer
             }
         }
 
-        with .sortMenu = createQuietMenu(.tools)
+        // An archive offers to extract all it holds, a quiet word acting at once.
+        with .extractAll = IconButton.createQuiet(.tools, menu: false)
         {
+            .layoutSpec.alignY = .End
+            .hide()
+            .sigPressed += func|view = me|(_) { view.chooseExtraction(all: true) }
+        }
+
+        with .sortMenu = IconButton.createQuiet(.tools)
+        {
+            .layoutSpec.alignY = .End
             .sigPressed += func|view = me|(_) { view.showSortMenu() }
         }
 
-        with .modeMenu = createQuietMenu(.tools)
+        with .modeMenu = IconButton.createQuiet(.tools)
         {
+            .layoutSpec.alignY = .End
             .sigPressed += func|view = me|(_) { view.showModeMenu() }
         }
 
@@ -334,6 +376,22 @@ impl Explorer
     // summary of an archive and the filter when they show.
     mtd fitHeader()
     {
+        // One album stands its own title beside its cover: the page keeps only its path.
+        let album = .grid.board == .Album
+        .title.show(not album)
+        .tools.show(not album)
+        if album
+        {
+            let height = AddressHeight + 8
+            if .header.position.height != height
+            {
+                .header.position.height = height
+                .applyLayout()
+            }
+
+            return
+        }
+
         var height = HeaderHeight
         if .summary.isLocallyVisible() do
             height += SummaryHeight
@@ -354,24 +412,39 @@ impl Explorer
     // cut, and comes back when there is room for both.
     mtd layoutTools()
     {
-        let line  = unwrap .tools.parent
-        let title = Math.ceil(.title.itf.measureContent({}).x)
+        let line     = unwrap .tools.parent
+        let text     = .title.text()
+        let full     = Painter.measureString(text, .theme().createDefaultFont(TitleFontSize, .Bold)).width
+        let smallest = Painter.measureString(text, .theme().createDefaultFont(MinTitleFontSize, .Bold)).width
+        let space    = line.clientRect().width - 24
+        .extractAll.show(.listing.isArchive)
         .status.show(not .listing.isArchive and not .status.name.raw.isEmpty())
         var width = Math.ceil(.tools.itf.measureContent({}).x)
-        if .status.isLocallyVisible() and width + title + 24 > line.clientRect().width
+        if .status.isLocallyVisible() and width + full > space
         {
             .status.hide()
             width = Math.ceil(.tools.itf.measureContent({}).x)
         }
 
+        // Extracting the whole archive is a lens entry too: it leaves the line before the title
+        // would be cut at its smallest.
+        if .extractAll.isLocallyVisible() and width + smallest > space
+        {
+            .extractAll.hide()
+            width = Math.ceil(.tools.itf.measureContent({}).x)
+        }
+
         .tools.position.width = width
 
-        // Then the title steps down the scale of page titles before it would be cut.
-        let room = line.clientRect().width - width - 24
+        // Then the title steps down the scale of page titles before it would be cut. A folder of
+        // an archive is a page within a document, titled at the foot of the scale.
+        let room = space - width
         for size in [TitleFontSize, 36'u32, MinTitleFontSize]
         {
+            if .listing.isArchive and size != MinTitleFontSize do
+                continue
             let font = .theme().createDefaultFont(size, .Bold)
-            if Painter.measureString(.title.text(), font).width <= room or size == MinTitleFontSize
+            if Painter.measureString(text, font).width <= room or size == MinTitleFontSize
             {
                 .title.style.setFont(font, .Regular)
                 break
@@ -380,29 +453,6 @@ impl Explorer
 
         .header.applyLayout()
         .tools.computeLayout()
-    }
-
-    // Creates a quiet text menu of the header: its words and a faint chevron, with no ground of
-    // its own until the pointer comes.
-    private func createQuietMenu(parent: *Wnd)->*IconButton
-    {
-        with let result = IconButton.create(parent, {}, Math.Rectangle{0, 0, 0, ToolHeight}, flags: .CenterContent)
-        {
-            .layoutSpec.alignY = .End
-            .setArrowPosition(.RightDownward)
-            .setForm(.RoundedRectangle)
-        }
-
-        return result
-    }
-
-    // Writes `text` on a quiet menu and fits the menu to it.
-    private func setQuietMenuText(menu: *IconButton, text: string)
-    {
-        menu.setText(text)
-        let metrics = menu.themeMetrics()
-        let width   = Painter.measureString(text, unwrap menu.font().regular).width + 2 * metrics.btnIcon_SpacingTextH + themeDropDownButtonWidth(metrics) - themeActionButtonSize(metrics)
-        menu.resize(Math.ceil(width), menu.position.height)
     }
 
     // Shows the ways of showing the listing under its menu, the one in use checked.
@@ -457,12 +507,13 @@ impl Explorer
         default: sort = text.sort_Name
         }
 
-        setQuietMenuText(.sortMenu, sort)
+        .sortMenu.setQuietText(sort)
+        .extractAll.setQuietText(text.cmd_ExtractAll)
         switch .mode
         {
-        case .Names:   setQuietMenuText(.modeMenu, text.mode_Names)
-        case .Details: setQuietMenuText(.modeMenu, text.mode_Details)
-        default:       setQuietMenuText(.modeMenu, text.mode_Thumbnails)
+        case .Names:   .modeMenu.setQuietText(text.mode_Names)
+        case .Details: .modeMenu.setQuietText(text.mode_Details)
+        default:       .modeMenu.setQuietText(text.mode_Thumbnails)
         }
         .layoutTools()
     }
@@ -571,6 +622,21 @@ impl Explorer
         .window.infoSheet.clear()
         .describeSelection(.window.infoSheet)
         .window.infoSheet.open()
+        .fitToSheet(true)
+    }
+
+    // Leaves the sheet its room at the trailing edge while it is open, so the page never runs
+    // under it, and takes the room back once it is closed.
+    mtd fitToSheet(open: bool)
+    {
+        let metrics = .themeMetrics()
+        let room    = open ? metrics.infoSheet_Width + 2 * metrics.floating_Inset - PageMargin : 0
+        if .padding.z == room do
+            return
+        .padding.z = room
+        .applyLayout()
+        .grid.refreshLayout()
+        .layoutTools()
     }
 
     // Describes the chosen item in `sheet`: its picture, its title and what is known of it, then
@@ -595,21 +661,68 @@ impl Explorer
         sheet.setTitle(safeMediaText(title))
         if title != entry.name.toString() do
             sheet.setIdentity(entry.name)
+        elif .listing.isArchive
+        {
+            // A member is placed by the folder of the archive it stands in, and its kind.
+            let kind  = String.toUpper(Path.extension(entry.name) orelse "", .Unicode)
+            var place = .folder.isEmpty() ? .locationName() : String.from(.folder)
+            if place.length and place.back() == '/' do
+                place.removeBack()
+            place += " /"
+            if kind.length > 1 do
+                place = Format.toString("% · %", place, kind.toString()[1 to])
+            sheet.setIdentity(place)
+        }
+
+        // A film is headed by its poster, its title, its year and length, and its rating, the fact
+        // a reader of a film comes for, set large with its source as its unit; then the action,
+        // what it tells, who made it and played in it, and the file.
+        if not entry.movie.title.isEmpty()
+        {
+            sheet.setPictureBeside(true)
+            var identity = String.from(entry.movie.date.toString()[0 until Math.min(entry.movie.date.length, 4'u64)])
+            if entry.duration
+            {
+                if identity.length do
+                    identity += " · "
+                identity += Format.toString("% min", (entry.duration + 30) / 60)
+            }
+
+            sheet.setIdentity(identity)
+            if not entry.movie.imdbRating.isEmpty()
+            {
+                var rating = safeMediaText(entry.movie.imdbRating)
+                let slash  = Utf8.indexOf(rating, "/")
+                if slash != Swag.U64.Max do
+                    rating = String.from(rating.toString()[0 until slash])
+                sheet.addFact(rating, "IMDb")
+            }
+
+            sheet.setAction(appStrings().cmd_OpenChosen, ViewerCommands.OpenChosen)
+            if entry.movie.overview.length do
+                sheet.addText(safeMediaText(entry.movie.overview))
+            addSheetReading(sheet, strings.explore_Director, entry.movie.director)
+            addSheetReading(sheet, strings.explore_Cast, entry.movie.actors)
+            let kind = String.toUpper(Path.extension(entry.name) orelse "", .Unicode)
+            var file = kind.length > 1 ? String.from(kind.toString()[1 to]) : String.from("")
+            if entry.size
+            {
+                if file.length do
+                    file += " · "
+                file += StrConv.toDisplaySize(entry.size)
+            }
+
+            if file.length do
+                sheet.addReading(strings.explore_File, file)
+            addSheetReading(sheet, strings.explore_Sources, entry.movie.sources)
+            return
+        }
 
         // A rating is the fact a reader of a film comes for, set large with its source as its unit.
         if not entry.movie.imdbRating.isEmpty() do
             sheet.addFact(safeMediaText(entry.movie.imdbRating), "IMDb")
 
-        if not entry.movie.title.isEmpty()
-        {
-            sheet.addSection(strings.explore_MediaDetails)
-            addSheetReading(sheet, strings.explore_Released, entry.movie.date)
-            addSheetReading(sheet, strings.explore_Director, entry.movie.director)
-            addSheetReading(sheet, strings.explore_Cast, entry.movie.actors)
-            addSheetReading(sheet, strings.explore_Synopsis, entry.movie.overview)
-            addSheetReading(sheet, "Wikipedia / Wikidata", entry.movie.source)
-        }
-        elif not entry.music.title.isEmpty()
+        if not entry.music.title.isEmpty()
         {
             sheet.addSection(strings.explore_MediaDetails)
             addSheetReading(sheet, strings.explore_Artist, entry.music.artist)
@@ -617,28 +730,137 @@ impl Explorer
             addSheetReading(sheet, strings.explore_Source, "MusicBrainz")
         }
 
-        sheet.addSection(strings.explore_FileProperties)
-        addSheetReading(sheet, strings.explore_Type, entry.directory ? strings.ui_Folder : (Path.extension(entry.name) orelse ""))
         if .listing.isArchive and entry.archiveIndex < .listing.archive.entries.count
         {
-            // A member of an archive: what it weighs packed and extracted, how well it packed,
-            // and the checksum it is verified against.
+            // A member of an archive, its kind already on the identity line: what it weighs
+            // packed and extracted, how well it packed, when, and the checksum it is verified
+            // against, all measures in mono.
             let member = &.listing.archive.entries[entry.archiveIndex]
-            addSheetReading(sheet, strings.explore_Size, Format.toString("% → %", StrConv.toDisplaySize(member.compressedSize), StrConv.toDisplaySize(member.uncompressedSize)))
+            sheet.addReading(strings.explore_Size, Format.toString("% → %", StrConv.toDisplaySize(member.compressedSize), StrConv.toDisplaySize(member.uncompressedSize)))
             if member.uncompressedSize
             {
                 let ratio = cast(u64, Math.round(100 * cast(f64, member.compressedSize) / cast(f64, member.uncompressedSize)))
-                addSheetReading(sheet, strings.explore_Compression, Format.toString("% %", ratio, "%"))
+                sheet.addReading(strings.explore_Compression, Format.toString("% %", ratio, "%"))
             }
 
-            addSheetReading(sheet, "CRC-32", Format.toString("%{X08}", member.crc32))
+            if entry.modified.length do
+                sheet.addReading(strings.explore_Modified, entry.modified)
+            let crc = Format.toString("%{X08}", member.crc32)
+            sheet.addReading("CRC-32", Format.toString("% %", crc.toString()[0 until 4], crc.toString()[4 to]))
         }
-        elif not entry.directory do
-            addSheetReading(sheet, strings.explore_Size, StrConv.toDisplaySize(entry.size))
-        addSheetReading(sheet, strings.explore_Modified, entry.modified)
+        else
+        {
+            sheet.addSection(strings.explore_FileProperties)
+            addSheetReading(sheet, strings.explore_Type, entry.directory ? strings.ui_Folder : (Path.extension(entry.name) orelse ""))
+            if not entry.directory do
+                addSheetReading(sheet, strings.explore_Size, StrConv.toDisplaySize(entry.size))
+            addSheetReading(sheet, strings.explore_Modified, entry.modified)
+        }
+
         if entry.duration do
             addSheetReading(sheet, strings.explore_Duration, formatDuration(entry.duration))
         sheet.setAction(appStrings().cmd_OpenChosen, ViewerCommands.OpenChosen)
+        if .listing.isArchive do
+            sheet.setSecondaryAction(appStrings().cmd_Extract, ViewerCommands.ExtractChosen)
+    }
+
+    // Opens the first track of the album, or one drawn by chance with the folder played in
+    // shuffle, every track once before any comes again.
+    mtd playAlbum(shuffle: bool)
+    {
+        if shuffle do
+            .window.setPlayMode(.Shuffle)
+        for index in .shown
+        {
+            let entry = &.entries[index]
+            if entry.directory or .theme().fileGlyph(entry.name, false, 16).index != cast(s32, ThemeIcons.FileAudio) do
+                continue
+            .activate(index)
+            return
+        }
+    }
+
+    // Asks where to extract, then extracts the whole archive into a folder named after it there,
+    // or, without `all`, the chosen member or folder of the archive right there.
+    mtd chooseExtraction(all: bool)
+    {
+        if not .listing.isArchive or .extraction.started do
+            return
+        if not all and .selected >= .entries.count do
+            return
+
+        with var options: FileDlgOptions
+        {
+            .mode  = .SelectFolder
+            .title = all ? appStrings().cmd_ExtractAll : appStrings().cmd_Extract
+            .state = &me.window.fileDlgState
+        }
+
+        let dialog = FileDlg.create(unwrap .window.surface, options)
+        if dialog.doModal() != Dialog.BtnOk do
+            return
+        let chosen = dialog.selectedPath()
+        if all
+        {
+            let name = Path.fileNameWithoutExtension(.displayPath(.listing.path)) orelse "archive"
+            .extractTo(Path.combine(chosen, name), all: true)
+        }
+        else do
+            .extractTo(chosen, all: false)
+    }
+
+    // Extracts into `target`: the whole archive with `all`, else the chosen member or folder.
+    mtd extractTo(target: string, all: bool)
+    {
+        if not .listing.isArchive or .extraction.started do
+            return
+        var members: Array'Viewers.Archive.ZipEntry
+        var strip:   String
+        if all
+        {
+            members = .listing.archive.entries
+        }
+        else
+        {
+            if .selected >= .entries.count do
+                return
+            let entry = &.entries[.selected]
+            strip = .folder
+            if entry.directory
+            {
+                for &member in .listing.archive.entries where Utf8.startsWith(member.path, entry.path) do
+                    members.add(member[])
+            }
+            elif entry.archiveIndex < .listing.archive.entries.count
+            {
+                members.add(.listing.archive.entries[entry.archiveIndex])
+            }
+        }
+
+        .extraction.start(.listing.path, #move members, strip, target, me)
+    }
+
+    // Says how the extraction went, in a toast over the page.
+    private mtd finishExtraction()
+    {
+        .extraction.wait()
+        let text = appStrings()
+        if not .toast do
+            .toast = Toast.create(me, "scope.explorer.toast")
+        if not .extraction.error.isEmpty()
+        {
+            .toast.show(text.explore_ExtractFailed, .extraction.error, .Failure)
+            return
+        }
+
+        var message: String
+        if .extraction.written == 1 do
+            message = String.from(text.explore_ExtractedOne)
+        else do
+            message = Format.toString(text.explore_Extracted, .extraction.written)
+        if .extraction.kept do
+            message = Format.toString(text.explore_ExtractedKept, message, .extraction.kept)
+        .toast.show(message, .extraction.target)
     }
 
     // Gives the keyboard to the listing, in whichever form it is shown.
@@ -924,6 +1146,51 @@ impl Explorer
         return ExplorerTilePreviewAspect
     }
 
+    // Returns the shape of the tiles, from what most of the folder holds: films whose posters are
+    // looked up stand upright, pieces of music show their covers, or one album when they all
+    // belong to the same, pictures make a mosaic, and anything else an even grid.
+    mtd listingBoard()->ExplorerBoard
+    {
+        if .listing.isArchive do
+            return .Grid
+        var files, films, sounds, pictures: u64
+        var album: String
+        var oneAlbum = true
+        for &entry in .entries where not entry.directory
+        {
+            files += 1
+            let kind = .theme().fileGlyph(entry.name, false, 16).index
+            if kind == cast(s32, ThemeIcons.FileVideo)
+            {
+                films += 1
+            }
+            elif kind == cast(s32, ThemeIcons.FileAudio)
+            {
+                sounds += 1
+                if entry.music.title.isEmpty() do
+                    oneAlbum = false
+                elif album.isEmpty() do
+                    album = entry.music.title
+                elif album != entry.music.title do
+                    oneAlbum = false
+            }
+            elif kind == cast(s32, ThemeIcons.FileImage)
+            {
+                pictures += 1
+            }
+        }
+
+        if not files do
+            return .Grid
+        if films * 2 > files and .window.onlineMovies do
+            return .Posters
+        if sounds * 2 > files do
+            return oneAlbum and sounds >= 2 ? .Album : .Covers
+        if pictures * 2 > files do
+            return .Mosaic
+        return .Grid
+    }
+
     mtd entryIcon(index: u64, size: f32 = 16)->Icon
     {
         let entry = &.entries[index]
@@ -1173,7 +1440,7 @@ impl Explorer
                 let music    = .window.onlineMusic and (Path.hasExtension(selected.path, ".mp3") or Path.hasExtension(selected.path, ".flac"))
                 if selected.directory or
                    selected.attempted or
-                   not (movie or music) or
+                   not (movie or music or .grid.rows) or
                    .previewSlot(.selected) != Swag.U64.Max do
                     return
                 wanted = .selected
@@ -1246,6 +1513,12 @@ impl IWnd for Explorer
 {
     mtd impl onTaskEvent(evt: *TaskEvent)
     {
+        if .extraction.claim(evt)
+        {
+            .finishExtraction()
+            return
+        }
+
         if .load.claim(evt)
         {
             var listing: ExplorerListing
@@ -1319,6 +1592,8 @@ impl IWnd for Explorer
                         if .selected == preview.index do
                             .showMediaInfo()
                         .cached.add(preview.index)
+                        if .grid.board == .Mosaic or .grid.board == .Album do
+                            .grid.refreshLayout()
                         .grid.invalidate()
                     }
                 }
@@ -1370,6 +1645,7 @@ impl IWnd for Explorer
         case .Right where evt.modifiers.has(.Alt): .goForward()
         case .Up where evt.modifiers.has(.Alt):    .goUp()
         case .Back:                                .goUp()
+        case .Oem2 where evt.modifiers == .None:   .revealFilter()
         default:                                   evt.accepted = false
         }
     }
@@ -1395,17 +1671,46 @@ struct ExplorerGrid
     nameTimer:     *Timer?
     nameTick:      u64
     rows:          bool     // Whether the entries stand one per line, as an archive lists them.
+    posters:       bool     // Whether the tiles stand upright, as the posters of a folder of films.
+    tile:          Math.Point = {160, 142}
+    board:         ExplorerBoard
+    places:        Array'Math.Rectangle      // Where each shown item stands in a mosaic or an album.
+    days:          Array'ExplorerDayLabel    // The days of a mosaic.
+    contentHeight: f32
+    playButton:    *PushButton?
+    shuffleButton: *PushButton?
 }
 
 impl ExplorerGrid
 {
     // The air a cell keeps around its tile, the height of the name and of the mono line of what
     // is known of the item under its picture, and the weight of the ring around the chosen one.
-    const CellInset    = 12.0
-    const NameHeight   = 22.0
+    const CellInset     = 12.0
+    const NameHeight    = 22.0
     const ReadingHeight = 16.0
-    const RingWeight   = 2.0
-    const Lift         = 2.0
+    const RingWeight    = 2.0
+
+    // The tiles: the air between two of them, the narrowest a tile gets and its height over its
+    // width, upright for posters; and the band under a tile for its name and its facts.
+    const Gap          = 24.0
+    const TileWidth    = 160.0
+    const TileAspect   = 0.885
+    const PosterWidth  = 170.0
+    const PosterAspect = 1.38
+    const TextBand     = 72.0
+
+    // The mosaic: the height a row aims at, the air between its pictures, and the room of the
+    // label of a day.
+    const MosaicHeight = 170.0
+    const MosaicGap    = 8.0
+    const DayHeight    = 36.0
+
+    // One album: the side of its cover, the air between the cover and the tracks, and the pitch of
+    // a track.
+    const CoverSide  = 280.0
+    const AlbumGap   = 48.0
+    const TrackPitch = 38.0
+    const AlbumHead  = 156.0
 
     // The rows of an archive: their pitch, the length of the bar of the compression ratio, and the
     // columns of the size and the date from the end of the row.
@@ -1416,6 +1721,14 @@ impl ExplorerGrid
 
     mtd rowAt(point: Math.Point)->u64
     {
+        if .board == .Mosaic or .board == .Album
+        {
+            let at = point + .scrollPos
+            for place, row in .places where place.width > 0 and place.contains(at) do
+                return row
+            return Swag.U64.Max
+        }
+
         let local = point + .scrollPos - Math.Point{CellInset, CellInset}
         if local.x < 0 or local.y < 0 do
             return Swag.U64.Max
@@ -1424,8 +1737,8 @@ impl ExplorerGrid
         let row    = line * .columns + column
         if column >= .columns or
            row >= .explorer.shown.count or
-           local.x - cast(f32, column) * .cell.x >= .cell.x - (.rows ? 0 : 8) or
-           local.y - cast(f32, line) * .cell.y >= .cell.y - (.rows ? 0 : 8) do
+           local.x - cast(f32, column) * .cell.x >= .cell.x - (.rows ? 0 : Gap) or
+           local.y - cast(f32, line) * .cell.y >= .cell.y - (.rows ? 0 : Gap) do
             return Swag.U64.Max
         return row
     }
@@ -1434,6 +1747,8 @@ impl ExplorerGrid
     {
         if .rows
         {
+            .board   = .Grid
+            .posters = false
             .columns = 1
             .cell    = Math.Point{Math.max(.clientRect().width - 2 * CellInset, 200), RowPitch}
             .explorer.scroll.setScrollSize(0, cast(f32, .explorer.shown.count) * RowPitch + 2 * CellInset)
@@ -1441,45 +1756,510 @@ impl ExplorerGrid
             return
         }
 
-        let width: f32   = .explorer.mode == .Small ? 128.0 : (.explorer.mode == .Large ? 256.0 : 192.0)
-        let previewWidth = width - 2 * CellInset
-        .cell    = Math.Point{width, previewWidth / ExplorerFilmPreviewAspect + 48 + ReadingHeight}
-        .columns = Math.max(1'u64, cast(u64, Math.max(0.0, .clientRect().width - 2 * CellInset) / width))
+        // Every tile has the same size and the grid fills the width of the page: as many columns
+        // as the narrowest tile allows, the tiles sharing what is left. A folder of films stands
+        // its posters upright; anything else on a tile a little wider than tall.
+        .board   = .explorer.listingBoard()
+        .posters = .board == .Posters
+        .refreshAlbumButtons()
+        if .board == .Mosaic
+        {
+            .layoutMosaic()
+            return
+        }
+
+        if .board == .Album
+        {
+            .layoutAlbum()
+            return
+        }
+
+        let aspect    = .posters ? PosterAspect : (.board == .Covers ? 1.0 : TileAspect)
+        var narrowest = .posters ? PosterWidth : TileWidth
+        switch .explorer.mode
+        {
+        case .Small: narrowest *= 0.75
+        case .Large: narrowest *= 1.4
+        }
+
+        let room = Math.max(.clientRect().width - 2 * CellInset, narrowest)
+        .columns = Math.max(1'u64, cast(u64, (room + Gap) / (narrowest + Gap)))
+        let width = Math.floor((room - Gap * cast(f32, .columns - 1)) / cast(f32, .columns))
+        .tile = Math.Point{width, Math.round(width * cast(f32, aspect))}
+        .cell = Math.Point{width + Gap, .tile.y + TextBand}
         let rows = (.explorer.shown.count + .columns - 1) / .columns
         .explorer.scroll.setScrollSize(0, cast(f32, rows) * .cell.y + 2 * CellInset)
         .invalidate()
     }
 
-    // Draws a preview with the interface corner, its edge, and the duration of a film.
-    //
-    // A dark frame on the dark gallery ground loses its outline, so the rule draws it. The duration
-    // sits on the picture, the way a media library labels a film; its ground stays ink in every
-    // theme because it is read against the picture rather than against the interface.
-    mtd paintThumbnail(painter: *Painter, picture: Math.Rectangle, entry: const *ExplorerEntry)
+    // Lays the pictures out as a justified mosaic, a day after another under its label: each row
+    // as tall as fills the width with the shapes it holds, the last one of a day at its aim.
+    mtd layoutMosaic()
     {
-        let radius = .themeRects().btnIcon_RoundSquareBk.radius
-        painter.pushState()
-        defer painter.popState()
+        let explorer = .explorer
+        let width    = Math.max(.clientRect().width - 2 * CellInset, 200)
+        .places.clear()
+        .places.resize(explorer.shown.count)
+        .days.clear()
+        .columns = 1
+        .cell    = Math.Point{width, MosaicHeight}
+
+        var y     = CellInset
+        var row:   Array'u64
+        var shape = 0.0'f32
+        var day:   String
+        for index, at in explorer.shown
+        {
+            let entry   = &explorer.entries[index]
+            let dayText = String.from(entry.modified.toString()[0 until Math.min(entry.modified.length, 10)])
+            if at == 0 or dayText != day
+            {
+                y     = .flushMosaicRow(&row, shape, y, width, true)
+                shape = 0
+                if at do
+                    y += DayHeight * 0.5
+                day = dayText
+                .days.add(ExplorerDayLabel{y: y, text: .dayLabel(dayText)})
+                y += DayHeight
+            }
+
+            .days[.days.count - 1].count += 1
+            row.add(at)
+            shape += .shapeOf(entry)
+            if shape * MosaicHeight + MosaicGap * cast(f32, row.count - 1) >= width
+            {
+                y     = .flushMosaicRow(&row, shape, y, width, false)
+                shape = 0
+            }
+        }
+
+        y = .flushMosaicRow(&row, shape, y, width, true)
+        .contentHeight = y + CellInset
+        explorer.scroll.setScrollSize(0, .contentHeight)
+        .invalidate()
+    }
+
+    // Stands the pictures of `row` side by side and returns the top of the next row: as tall as
+    // fills `width`, or at the aim when the row ends a day short of the width.
+    mtd flushMosaicRow(row: *Array'u64, shape: f32, y, width: f32, last: bool)->f32
+    {
+        if row.isEmpty() do
+            return y
+        let gaps   = MosaicGap * cast(f32, row.count - 1)
+        var height = (width - gaps) / Math.max(shape, 0.01)
+        if last and height > MosaicHeight do
+            height = MosaicHeight
+        height = Math.round(height)
+        var x = CellInset
+        for at, i in row[]
+        {
+            let entry = &.explorer.entries[.explorer.shown[at]]
+            var w     = Math.round(.shapeOf(entry) * height)
+            if i + 1 == row.count and not last do
+                w = CellInset + width - x
+            .places[at] = Math.Rectangle{x, y, w, height}
+            x += w + MosaicGap
+        }
+
+        row.clear()
+        return y + height + MosaicGap
+    }
+
+    // Returns the width over the height of what `entry` shows: its picture once rendered, the
+    // shape of a photograph until then.
+    mtd shapeOf(entry: const *ExplorerEntry)->f32
+    {
+        if entry.texture.isValid() and entry.texture.height do
+            return cast(f32, entry.texture.width) / cast(f32, entry.texture.height)
+        return 1.5
+    }
+
+    // Writes the day `iso` (YYYY-MM-DD) as a mosaic names it: its weekday, its day and its month.
+    mtd dayLabel(iso: string)->String
+    {
+        if iso.count < 10 do
+            return String.from(iso)
+        let year  = catch StrConv.toU64(iso[0 until 4])
+        let month = catch StrConv.toU64(iso[5 until 7])
+        let day   = catch StrConv.toU64(iso[8 until 10])
+        if not month or month > 12 or not day do
+            return String.from(iso)
+        let date     = Time.DateTime{year: cast(u16, year), month: cast(u16, month), day: cast(u16, day)}
+        let weekdays = Tokenize.split(appStrings().explore_Weekdays, ' 'rune)
+        let months   = Tokenize.split(appStrings().explore_Months, ' 'rune)
+        let weekday  = cast(u64, date.dayOfWeek())
+        if weekdays.count < 7 or months.count < 12 do
+            return String.from(iso)
+        return Format.toString("% % %", weekdays[weekday], day, months[month - 1])
+    }
+
+    // Lays one album out: its cover at the left, then at its right its title over its tracks, one
+    // per line.
+    mtd layoutAlbum()
+    {
+        let explorer = .explorer
+        let width    = Math.max(.clientRect().width - 2 * CellInset, 400)
+        .places.clear()
+        .places.resize(explorer.shown.count)
+        .days.clear()
+        .columns = 1
+        let left = CellInset + CoverSide + AlbumGap
+        .cell = Math.Point{width - CoverSide - AlbumGap, TrackPitch}
+        var y = CellInset + AlbumHead
+        for index, at in explorer.shown
+        {
+            let entry = &explorer.entries[index]
+            if entry.directory or .theme().fileGlyph(entry.name, false, 16).index != cast(s32, ThemeIcons.FileAudio) do
+                continue
+            .places[at] = Math.Rectangle{left, y, .cell.x, TrackPitch - 4}
+            y += TrackPitch
+        }
+
+        .contentHeight = Math.max(y, CellInset + CoverSide + 80) + CellInset
+        explorer.scroll.setScrollSize(0, .contentHeight)
+        .refreshAlbumButtons()
+        .invalidate()
+    }
+
+    // Shows Play and Shuffle under the cover of an album, and hides them otherwise.
+    mtd refreshAlbumButtons()
+    {
+        let album = .board == .Album
+        if album and not .playButton
+        {
+            let explorer = .explorer
+            with let play = PushButton.create(me, Format.toString("▶ %", appStrings().explore_Play), {}, null, .Strong)
+            {
+                .sigPressed += func|explorer|(_) { explorer.playAlbum(false) }
+            }
+
+            with let shuffle = PushButton.create(me, appStrings().explore_Shuffle, {})
+            {
+                .sigPressed += func|explorer|(_) { explorer.playAlbum(true) }
+            }
+
+            .playButton    = play
+            .shuffleButton = shuffle
+        }
+
+        if not .playButton do
+            return
+        let height = .themeMetrics().btnPush_Height
+        let top    = CellInset + CoverSide + 22
+        .playButton.setPosition(Math.Rectangle{CellInset, top, 96, height})
+        .shuffleButton!.setPosition(Math.Rectangle{CellInset + 106, top, 96, height})
+        .playButton.show(album)
+        .shuffleButton.show(album)
+    }
+
+    // Returns where the tile of `row` stands in the grid.
+    mtd tileRect(row: u64)->Math.Rectangle
+    {
+        if (.board == .Mosaic or .board == .Album) and row < .places.count do
+            return .places[row]
+        return Math.Rectangle{CellInset + cast(f32, row % .columns) * .cell.x,
+                              CellInset + cast(f32, row / .columns) * .cell.y, .tile.x, .tile.y}
+    }
+
+    // Paints the tile of `row`: its ground, what the item shows, the Arc ring of the chosen one,
+    // then its name and one mono line of its facts under it.
+    //
+    // A picture, a film or a poster fills its tile, cropped to its shape; any other preview stands
+    // whole on the ground of the tile. An item without a preview shows the faint page glyph of its
+    // kind, a file its extension in faint mono at the foot of the tile.
+    mtd paintTile(painter: *Painter, row: u64)
+    {
+        let index   = .explorer.shown[row]
+        let entry   = &.explorer.entries[index]
+        let colors  = .themeColors()
+        let metrics = .themeMetrics()
+        let tile    = .tileRect(row)
+        let radius  = metrics.corner_Control
+        let slot    = .explorer.previewSlot(index)
+        if tile.width <= 0 do
+            return
         painter.setAntialiased(true)
-        painter.fillRoundRect(picture, radius, radius, Brush.createTexture(entry.texture))
 
-        // The rule is inset by half its weight, so it takes the corner stepped in by that half.
-        var edge = picture
-        edge.inflate(-0.5)
-        painter.drawRoundRect(edge, radius - 0.5, radius - 0.5, .themeColors().line)
+        // The chosen item is ringed in Arc, the ring standing just off its tile.
+        if .explorer.selected == index
+        {
+            var ring = tile
+            ring.inflate(RingWeight + 1)
+            painter.drawRoundRect(ring, radius + RingWeight + 1, radius + RingWeight + 1, colors.arc, RingWeight)
+        }
 
-        if not entry.duration do
+        painter.fillRoundRect(tile, radius, radius, colors.raised)
+        let glyph = .theme().fileGlyph(entry.name, entry.directory, 32)
+        if entry.texture.isValid()
+        {
+            let texture = entry.texture
+            let fills   = .posters or .board == .Covers or .board == .Mosaic or glyph.index == cast(s32, ThemeIcons.FileImage) or glyph.index == cast(s32, ThemeIcons.FileVideo)
+            if fills
+            {
+                // Crop the picture to the shape of the tile, around its centre.
+                let tw     = cast(f32, texture.width)
+                let th     = cast(f32, texture.height)
+                let scale  = Math.max(tile.width / tw, tile.height / th)
+                let sw     = tile.width / scale
+                let sh     = tile.height / scale
+                var brush  = Brush.createTexture(texture)
+                brush.uvMode = .FillSubRect
+                brush.uvRect = Math.Rectangle{(tw - sw) * 0.5, (th - sh) * 0.5, sw, sh}
+                painter.fillRoundRect(tile, radius, radius, brush)
+            }
+            else
+            {
+                var room = tile
+                room.inflate(-12)
+                let scale  = Math.min(room.width / cast(f32, texture.width), room.height / cast(f32, texture.height))
+                let width  = Math.round(cast(f32, texture.width) * scale)
+                let height = Math.round(cast(f32, texture.height) * scale)
+                let card   = Math.Rectangle{Math.round(room.horzCenter() - width * 0.5), Math.round(room.vertCenter() - height * 0.5), width, height}
+                painter.fillRoundRect(card, 2, 2, Brush.createTexture(texture))
+            }
+
+            .paintDuration(painter, tile, entry)
+        }
+        elif slot != Swag.U64.Max
+        {
+            let size = metrics.spinner_Size
+            .spinners[slot].setPosition(Math.Rectangle{tile.horzCenter() - size / 2, tile.vertCenter() - size / 2, size, size}, computeLayout: false)
+            .busy[slot] = true
+        }
+        else
+        {
+            glyph.paint(painter, Math.round(tile.horzCenter() - 16), Math.round(tile.vertCenter() - 16), glyph.color.a ? glyph.color : colors.faintText)
+            let ext = entry.directory ? "" : (Path.extension(entry.name) orelse "")
+            if ext.count
+            {
+                let mono = .theme().createDefaultFontFs(11)
+                painter.drawString(tile.x + 12, mono.opticalLineTop(tile.bottom() - 16), ext, mono, colors.faintText)
+            }
+        }
+
+        // A mosaic is pictures alone.
+        if .board == .Mosaic do
+            return
+
+        // The name, left on the edge of the tile, and the facts under it: what the item measures
+        // at the left, what it weighs at the right.
+        let font = unwrap .font().regular
+        let mono = .theme().createDefaultFontFs(11)
+        let nameRect = Math.Rectangle{tile.x, tile.bottom() + 8, tile.width, 20}
+        var title = entry.name.toString()
+        if .posters and entry.movie.title.length do
+            title = entry.movie.title.toString()
+        elif .board == .Covers and entry.music.title.length do
+            title = entry.music.title.toString()
+        .paintName(painter, nameRect, row, index, font, title)
+
+        let factsY = mono.opticalLineTop(tile.bottom() + 37)
+        let size   = .sizeText(entry)
+        var right  = tile.right()
+        if size.length
+        {
+            right -= Painter.measureString(size, mono).width
+            painter.drawString(right, factsY, size, mono, colors.faintText)
+            right -= 12
+        }
+
+        let facts = .reading(entry)
+        if facts.length
+        {
+            painter.pushClippingRect(Math.Rectangle{tile.x, tile.bottom() + 28, Math.max(right - tile.x, 0), 18})
+            painter.drawString(tile.x, factsY, facts, mono, colors.faintText)
+            painter.popClippingRect()
+        }
+    }
+
+    // Writes the duration of a film in a mono chip at the corner of its tile.
+    mtd paintDuration(painter: *Painter, tile: Math.Rectangle, entry: const *ExplorerEntry)
+    {
+        if not entry.duration or .posters do
             return
         let label = formatDuration(entry.duration)
-        let font  = .app().renderer.fontCache().createFont(.theme().res.defaultTypeFaceB, ExplorerDurationFontSize)
+        let font  = .theme().createDefaultFontFs(ExplorerDurationFontSize, .Bold)
         let text  = Painter.measureString(label, font)
-        var chip  = Math.Rectangle{0, 0, Math.round(text.width) + 8, Math.round(font.height) + 2}
-        if chip.width + 8 > picture.width or chip.height + 8 > picture.height do
+        var chip  = Math.Rectangle{0, 0, Math.round(text.width) + 12, Math.round(font.height) + 4}
+        if chip.width + 16 > tile.width or chip.height + 16 > tile.height do
             return
-        chip.x = picture.right() - chip.width - 4
-        chip.y = picture.bottom() - chip.height - 4
-        painter.fillRoundRect(chip, radius, radius, Color.fromArgb(ExplorerDurationGround))
-        painter.drawString(chip.x + 4, chip.y + 1, label, font, Color.fromArgb(ExplorerDurationInk))
+        chip.x = tile.right() - chip.width - 8
+        chip.y = tile.bottom() - chip.height - 8
+        painter.fillRoundRect(chip, 4, 4, Color.fromArgb(ExplorerDurationGround))
+        painter.drawString(chip.x + 6, font.opticalLineTop(chip.vertCenter()), label, font, Color.fromArgb(ExplorerDurationInk))
+    }
+
+    // Writes the name of a tile, left on its edge, travelling when it is longer than the tile and
+    // the item is hovered or chosen.
+    mtd paintName(painter: *Painter, nameRect: Math.Rectangle, row, index: u64, font: *Font, text: string)
+    {
+        let width   = Painter.measureString(text, font).width
+        let scrolls = width > nameRect.width and (.hovered == row or .explorer.selected == index)
+        var name: RichString = text
+        var format: RichStringFormat
+        format.font = .font()
+        me.theme().setTextColors(&format, me.themeColors().text)
+        format.horzAlignment = .Left
+        if scrolls
+        {
+            // Pause at each end before traveling back, so the beginning remains easy to read.
+            let distance = cast(u64, Math.ceil(width - nameRect.width))
+            let phase    = .nameTick % (distance * 2 + 40)
+            var offset: u64
+            if phase > 20 and phase <= distance + 20 do
+                offset = phase - 20
+            elif phase > distance + 20 and phase <= distance + 40 do
+                offset = distance
+            elif phase > distance + 40 do
+                offset = distance * 2 + 40 - phase
+            var moving = nameRect
+            moving.x -= cast(f32, offset)
+            moving.width = Math.ceil(width) + 1
+            painter.pushClippingRect(nameRect)
+            painter.drawRichString(moving, &name, format)
+            painter.popClippingRect()
+        }
+        else
+        {
+            format.flags = .Ellipsis
+            painter.drawRichString(nameRect, &name, format)
+        }
+    }
+
+    // Paints the label of each day of a mosaic: its words in spaced capitals, then how many
+    // pictures it holds.
+    mtd paintDays(painter: *Painter)
+    {
+        let metrics = .themeMetrics()
+        let colors  = .themeColors()
+        let font    = .theme().createDefaultFont(metrics.sectionLabel_FontSize, .Bold)
+        let count   = .theme().createDefaultFont(metrics.sectionLabel_FontSize)
+        for &day in .days
+        {
+            let centerY = day.y + DayHeight * 0.5
+            var shaped  = Painter.shapeRun(String.toUpper(day.text.toString(), .Unicode), font, letterSpacing: metrics.sectionLabel_LetterSpacing)
+            painter.drawShapedRun(CellInset, font.opticalLineTop(centerY), &shaped, font, Brush.createSolid(colors.faintText))
+            let label = Format.toString("%", day.count)
+            painter.drawString(CellInset + shaped.metrics.width + 12, count.opticalLineTop(centerY), label, count, colors.faintText)
+        }
+    }
+
+    // Paints one album: its cover at the left, then its kind and year, its title, who made it and
+    // its facts over its tracks, each a number, a title and a length, the chosen one on the Arc
+    // ground led by ▶.
+    mtd paintAlbum(painter: *Painter)
+    {
+        let explorer = .explorer
+        let colors   = .themeColors()
+        let metrics  = .themeMetrics()
+        let radius   = metrics.corner_Control
+        let mono     = .theme().createDefaultFontFs(12)
+        let body     = .theme().createDefaultFont(15)
+        painter.setAntialiased(true)
+
+        // The cover is the picture of the first track that has one.
+        var cover: const *ExplorerEntry?
+        var first: const *ExplorerEntry?
+        var tracks, seconds, bytes: u64
+        for index, at in explorer.shown where .places[at].height > 0
+        {
+            let entry = &explorer.entries[index]
+            if not first do
+                first = entry
+            if not cover and entry.texture.isValid() do
+                cover = entry
+            tracks  += 1
+            seconds += entry.duration
+            bytes   += entry.size
+        }
+
+        let coverRect = Math.Rectangle{CellInset, CellInset, CoverSide, CoverSide}
+        painter.fillRoundRect(coverRect, radius, radius, colors.raised)
+        if cover
+        {
+            let texture = cover.texture
+            let tw      = cast(f32, texture.width)
+            let th      = cast(f32, texture.height)
+            let side    = Math.min(tw, th)
+            var brush   = Brush.createTexture(texture)
+            brush.uvMode = .FillSubRect
+            brush.uvRect = Math.Rectangle{(tw - side) * 0.5, (th - side) * 0.5, side, side}
+            painter.fillRoundRect(coverRect, radius, radius, brush)
+        }
+        else
+        {
+            let glyph = .theme().fileGlyph("album.flac", false, 48)
+            glyph.paint(painter, coverRect.horzCenter() - 24, coverRect.vertCenter() - 24, glyph.color.a ? glyph.color : colors.faintText)
+        }
+
+        if not first do
+            return
+        let left  = CellInset + CoverSide + AlbumGap
+        let texts = appStrings()
+        var kind  = String.from(texts.explore_Album)
+        if first.music.date.length >= 4 do
+            kind = Format.toString("% · %", kind, first.music.date.toString()[0 until 4])
+        painter.drawString(left, mono.opticalLineTop(CellInset + 8), String.toUpper(kind.toString(), .Unicode), mono, colors.faintText)
+
+        let titleFont = .theme().createDefaultFont(44, .Bold)
+        var title     = first.music.title.length ? String.from(first.music.title) : explorer.locationName()
+        painter.drawString(left, titleFont.opticalLineTop(CellInset + 48), title, titleFont, colors.text)
+        if first.music.artist.length do
+            painter.drawString(left, body.opticalLineTop(CellInset + 86), first.music.artist, body, colors.softText)
+
+        var facts = Format.toString(texts.explore_Tracks, tracks)
+        if seconds
+        {
+            if seconds >= 3600 do
+                facts = Format.toString("% · %", facts, Format.toString(texts.explore_Length, seconds / 3600, Format.toString("%{02}", (seconds / 60) % 60)))
+            else do
+                facts = Format.toString("% · % min", facts, (seconds + 30) / 60)
+        }
+
+        if bytes do
+            facts = Format.toString("% · %", facts, StrConv.toDisplaySize(bytes))
+        painter.drawString(left, mono.opticalLineTop(CellInset + 114), facts, mono, colors.faintText)
+
+        // The tracks.
+        var number = 0'u64
+        for index, at in explorer.shown
+        {
+            let place = .places[at]
+            if place.height <= 0 do
+                continue
+            number += 1
+            let entry   = &explorer.entries[index]
+            let chosen  = explorer.selected == index
+            let centerY = place.vertCenter()
+            if chosen do
+                painter.fillRoundRect(place, radius, radius, colors.selection)
+            elif .hovered == at do
+                painter.fillRoundRect(place, radius, radius, colors.raised)
+
+            let ink = chosen ? colors.arc : colors.text
+            if chosen do
+                painter.drawString(place.x + 12, body.opticalLineTop(centerY), "▶", body, colors.arc)
+            else
+            {
+                let label = Format.toString("%", number)
+                painter.drawString(place.x + 12, mono.opticalLineTop(centerY), label, mono, colors.faintText)
+            }
+
+            let length = entry.duration ? formatDuration(entry.duration) : String.from("")
+            let lengthWidth = Painter.measureString(length, mono).width
+            painter.drawString(place.right() - 12 - lengthWidth, mono.opticalLineTop(centerY), length, mono, colors.faintText)
+            painter.pushClippingRect(Math.Rectangle{place.x + 48, place.y, Math.max(place.width - 48 - lengthWidth - 32, 0), place.height})
+            painter.drawString(place.x + 48, body.opticalLineTop(centerY), trackTitle(entry.name), body, ink)
+            painter.popClippingRect()
+        }
+    }
+
+    // Returns what a file weighs, written at the right of its facts; nothing for a folder.
+    mtd sizeText(entry: const *ExplorerEntry)->String
+    {
+        if entry.directory or not entry.size or .posters or .board == .Covers do
+            return {}
+        return StrConv.toDisplaySize(entry.size)
     }
 
     // Paints the entries `first` until `end` as rows: the glyph, the name, a thin Arc bar of how
@@ -1513,7 +2293,7 @@ impl ExplorerGrid
             painter.drawString(rect.x + 36, body.opticalLineTop(centerY), entry.name, body, colors.text)
             painter.popClippingRect()
 
-            let date = entry.modified.toString()
+            let date = entry.modified.toString()[0 until Math.min(entry.modified.length, 10)]
             painter.drawString(dateRight - Painter.measureString(date, mono).width, mono.opticalLineTop(centerY), date, mono, colors.faintText)
 
             var size: String
@@ -1542,22 +2322,46 @@ impl ExplorerGrid
         }
     }
 
-    // Returns the mono line written under the name of a tile: the year and length of a film,
-    // the length of anything else that plays, the size of a file.
+    // Returns the facts written under the name of a tile, at the left: the year and length of a
+    // film, the length of anything else that plays, how many items a folder holds.
     mtd reading(entry: const *ExplorerEntry)->String
     {
         var result: #returntype
+        if entry.directory
+        {
+            if entry.children == 1 do
+                result = String.from(appStrings().explore_OneItem)
+            elif entry.children != Swag.U64.Max do
+                result = Format.toString(appStrings().explore_Count, entry.children)
+            return result
+        }
+
+        // A cover says who made the album and when.
+        if .board == .Covers and entry.music.title.length
+        {
+            result = entry.music.artist
+            if entry.music.date.length >= 4
+            {
+                if result.length do
+                    result += " · "
+                result += entry.music.date.toString()[0 until 4]
+            }
+
+            return result
+        }
+
         if not entry.movie.date.isEmpty() do
             result = entry.movie.date.toString()[0 until Math.min(entry.movie.date.length, 4'u64)]
         if entry.duration
         {
             if not result.isEmpty() do
                 result += " · "
-            result += formatDuration(entry.duration)
-        }
-        elif result.isEmpty() and not entry.directory and entry.size
-        {
-            result = StrConv.toDisplaySize(entry.size)
+
+            // A film is as long as its hours and minutes, the way a programme lists it.
+            if .posters and entry.duration >= 3600 do
+                result += Format.toString(appStrings().explore_Length, entry.duration / 3600, Format.toString("%{02}", (entry.duration / 60) % 60))
+            else do
+                result += formatDuration(entry.duration)
         }
 
         return result
@@ -1565,6 +2369,23 @@ impl ExplorerGrid
 
     mtd visibleRange()->{first: u64, end: u64}
     {
+        if .board == .Mosaic or .board == .Album
+        {
+            let top    = .scrollPos.y
+            let bottom = top + .clientRect().height
+            var first  = Swag.U64.Max
+            var end    = 0'u64
+            for place, row in .places where place.height > 0 and place.bottom() >= top and place.y <= bottom
+            {
+                first = Math.min(first, row)
+                end   = row + 1
+            }
+
+            if first == Swag.U64.Max do
+                return {first: 0, end: 0}
+            return {first: first, end: end}
+        }
+
         let first = cast(u64, Math.max(0.0, .scrollPos.y - CellInset) / .cell.y) * .columns
         let rows  = cast(u64, Math.max(0.0, .clientRect().height) / .cell.y) + 2
         return {first: Math.min(first, .explorer.shown.count), end: Math.min(first + rows * .columns, .explorer.shown.count)}
@@ -1594,11 +2415,15 @@ impl ExplorerGrid
         .explorer.selected = .explorer.shown[row]
         .startNameScroll()
         .explorer.showMediaInfo()
-        let top = CellInset + cast(f32, row / .columns) * .cell.y
+        if .rows do
+            .explorer.requestPreview()
+        let place = .tileRect(row)
+        let top   = .rows ? CellInset + cast(f32, row) * .cell.y : place.y - CellInset
+        let reach = .rows ? .cell.y : place.height + (.board == .Mosaic or .board == .Album ? 0 : TextBand)
         if top < .scrollPos.y do
             .explorer.scroll.setScrollPos(0, top)
-        elif top + .cell.y > .scrollPos.y + .clientRect().height do
-            .explorer.scroll.setScrollPos(0, top + .cell.y - .clientRect().height)
+        elif top + reach > .scrollPos.y + .clientRect().height do
+            .explorer.scroll.setScrollPos(0, top + reach - .clientRect().height)
         .invalidate()
     }
 }
@@ -1633,102 +2458,16 @@ impl IWnd for ExplorerGrid
         }
 
         .busy.fill(false)
-        for row in range.first until range.end
+        if .board == .Album
         {
-            let index = .explorer.shown[row]
-            let entry = &.explorer.entries[index]
-            var rect  = Math.Rectangle{CellInset + cast(f32, row % .columns) * .cell.x,
-                                       CellInset + cast(f32, row / .columns) * .cell.y, .cell.x - 8, .cell.y - 8}
-            let slot     = .explorer.previewSlot(index)
-            let chosen   = .explorer.selected == index
-            var preview  = Math.Rectangle{rect.x + 8, rect.y + 8, rect.width - 16, rect.height - 44 - ReadingHeight}
-
-            // The chosen tile lifts a little in its ring.
-            if chosen do
-                preview.y -= Lift
-            var picture = preview
-            if entry.texture.isValid()
-            {
-                let scale  = Math.min(preview.width / cast(f32, entry.texture.width), preview.height / cast(f32, entry.texture.height))
-                let width  = Math.round(cast(f32, entry.texture.width) * scale)
-                let height = Math.round(cast(f32, entry.texture.height) * scale)
-
-                // Center each complete image in the same landscape slot.
-                picture = Math.Rectangle{Math.round(preview.horzCenter() - width / 2), Math.round(preview.vertCenter() - height / 2), width, height}
-                .paintThumbnail(painter, picture, entry)
-            }
-            elif slot != Swag.U64.Max
-            {
-                let size = .themeMetrics().spinner_Size
-                .spinners[slot].setPosition(Math.Rectangle{preview.horzCenter() - size / 2, preview.vertCenter() - size / 2, size, size}, computeLayout: false)
-                .busy[slot] = true
-            }
-            elif entry.directory
-            {
-                let icon = .explorer.entryIcon(index, 40)
-                icon.paint(painter, Math.round(preview.horzCenter() - 20), Math.round(preview.vertCenter() - 20), .themeColors().faintText)
-            }
-            else
-            {
-                let icon = .explorer.entryIcon(index, 32)
-                icon.paint(painter, preview.horzCenter() - 16, preview.vertCenter() - 16, .themeColors().label_TextFaint)
-            }
-
-            // The chosen item is ringed in Arc, the ring standing just outside its picture.
-            if .explorer.selected == index
-            {
-                var ring = picture
-                ring.inflate(RingWeight + 1)
-                painter.setAntialiased(true)
-                let radius = .themeRects().btnIcon_RoundSquareBk.radius + RingWeight + 1
-                painter.drawRoundRect(ring, radius, radius, .themeColors().arc, RingWeight)
-            }
-
-            let reading = .reading(entry)
-            if reading.count
-            {
-                let mono = .theme().createDefaultFontFs(11)
-                let line = Math.Rectangle{rect.x + 4, rect.bottom() - ReadingHeight - 4, rect.width - 8, ReadingHeight}
-                painter.pushClippingRect(line)
-                let width = Painter.measureString(reading, mono).width
-                let left  = width > line.width ? line.x : Math.round(line.horzCenter() - width * 0.5)
-                painter.drawString(left, mono.opticalLineTop(line.vertCenter()), reading, mono, .themeColors().faintText)
-                painter.popClippingRect()
-            }
-
-            let nameRect = Math.Rectangle{rect.x + 4, rect.bottom() - 28 - ReadingHeight, rect.width - 8, 24}
-            let font     = unwrap .font().regular
-            let width    = Painter.measureString(entry.name, font).width
-            let scrolls  = width > nameRect.width and (.hovered == row or .explorer.selected == index)
-            var name: RichString = entry.name
-            var format: RichStringFormat
-            format.font = .font()
-            me.theme().setTextColors(&format, me.themeColors().label_Text)
-            format.horzAlignment = width > nameRect.width ? .Left : .Center
-            if scrolls
-            {
-                // Pause at each end before traveling back, so the beginning remains easy to read.
-                let distance = cast(u64, Math.ceil(width - nameRect.width))
-                let phase    = .nameTick % (distance * 2 + 40)
-                var offset: u64
-                if phase > 20 and phase <= distance + 20 do
-                    offset = phase - 20
-                elif phase > distance + 20 and phase <= distance + 40 do
-                    offset = distance
-                elif phase > distance + 40 do
-                    offset = distance * 2 + 40 - phase
-                var moving = nameRect
-                moving.x -= cast(f32, offset)
-                moving.width = Math.ceil(width) + 1
-                painter.pushClippingRect(nameRect)
-                painter.drawRichString(moving, &name, format)
-                painter.popClippingRect()
-            }
-            else
-            {
-                format.flags = .Ellipsis
-                painter.drawRichString(nameRect, &name, format)
-            }
+            .paintAlbum(painter)
+        }
+        else
+        {
+            if .board == .Mosaic do
+                .paintDays(painter)
+            for row in range.first until range.end do
+                .paintTile(painter, row)
         }
 
         for spinner, slot in .spinners do

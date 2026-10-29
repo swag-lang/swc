@@ -2,11 +2,12 @@
 
 ## Online movie posters and music covers
 
-Folder exploration automatically looks up film information and posters through Wikipedia and
-Wikidata, and album information and artwork through MusicBrainz and Cover Art Archive. No account
+Folder exploration automatically looks up film posters and synopses in the Apple iTunes Search
+API, direction, cast and IMDb ratings through Wikipedia and Wikidata, and album information and artwork through MusicBrainz and Cover Art Archive. No account
 or API key is needed. Two lens entries of the explored folder turn either lookup off. Film filenames and music
-tags are sent to these public services to find a match; uncertain or unavailable results fall back
-to local previews. Film descriptions, credits and IMDb ratings are shown where available in the
+tags are sent to these public services to find a match; only a film that alone answers to its
+title, and to its year when the file name gives one, is taken, questions to the Apple catalogue
+stand apart, and uncertain or unavailable results fall back to local previews. Film descriptions, credits and IMDb ratings are shown where available in the
 sources. Cached results expire after 120 days. Wikipedia text is available under CC BY-SA; individual
 images have their own licenses, which can be checked from the linked source article.
 
@@ -15,7 +16,12 @@ images have their own licenses, which can be checked from the linked source arti
 Opening a folder, or choosing Explore Folder (`Ctrl+E`), shows it as a page: its path, its name
 as the title, how much it holds, and quiet menus choosing the order and the way of showing it —
 names, sortable details, or small, medium and large thumbnails. ZIP files use the same navigation.
-The item chosen is ringed in Arc and described in the information sheet (`I`). Double-click or press Enter to open an item; closing its viewer returns to the
+Every tile has the same size and the grid fills the page: a mixed folder shows each file on a
+tile a little wider than tall, a folder of films its posters upright, with the name and one mono
+line of facts under each. A slash or Ctrl+F reveals the filter.
+The item chosen is ringed in Arc and described in the information sheet (`I`). An archive offers
+Extract All… on its title line and Extract… in the sheet: the files go into a folder the reader
+chooses, a file already there is kept, and a toast says how it went. Double-click or press Enter to open an item; closing its viewer returns to the
 explorer with the selection and display mode preserved. Opening an ordinary file directly still
 opens its viewer without requiring exploration. The optional left panel retains recent files and
 shows the current location's subfolders. Alt+Left/Right navigate history, Alt+Up or Backspace goes

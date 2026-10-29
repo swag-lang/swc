@@ -9,7 +9,7 @@ dialogs, then each application, then the written rules.
 
 ## Entries
 
-### design.silence.004 — The applications do not use the shared components
+### design.silence.004 — The lens's first screen needs a first-use review
 
 - Evidence: the toolkit has the lens (`Gui.Lens.View`), the information sheet (`Gui.InfoSheet`),
   the inspector (`Gui.Inspector`, which carries a generated grid through `setContent`), the
@@ -22,15 +22,19 @@ dialogs, then each application, then the written rules.
   `IconButton.createQuiet` with `setQuietText`, and every application builds its quiet menus with
   it; the section labels Swag Scope shaped itself (its panels, the days of a mosaic, the outline
   margin) are `Gui.SectionLabel`; the keys are named one way (`Gui.strings().key_Enter`,
-  `key_CtrlEnter`, spaced shortcuts). The lens supports direct context actions at rest, but the
-  first screen can still be sparse when a viewer contributes few actions; basic application tasks
-  then require the reader to know what to type.
-- Next: audit the four applications' at-rest lens lists, choose a compact set of direct basic
-  actions for each, and make low-command contexts offer them without typing; then finish each
-  application's shared-component migration and review its whole-screen goldens.
-- Done when: the four applications use the components, every command is reachable from the lens,
-  each empty-query lens is a useful direct action list even in a low-command context, and no
-  application re-implements a shared component or insets its whole root under the strip.
+  `key_CtrlEnter`, spaced shortcuts). Each application has an at-rest provider: Capture offers
+  selection, capture or image actions; Prism offers the current view's actions and examples; Vault
+  offers the chosen vault and New/Open; Scope offers viewer choices, then file/view basics, then
+  viewer controls. In Scope, Close File, Explore Folder and the current side-panel action (for
+  Markdown, Outline) are direct rows. Their order and visibility in the first screen have not
+  been reviewed against first-use tasks in both themes.
+- Next: review the empty-query lens in each application's first-use contexts and both themes;
+  adjust the direct action order so the common tasks are visible before scrolling, then update
+  and review the affected whole-screen goldens.
+- Done when: each application offers its common first-use tasks directly in the initial lens
+  view, every other command remains reachable from the lens, and the whole-screen goldens match
+  the approved design without any application re-implementing a shared component or insetting
+  its whole root under the strip.
 - Related: design.silence.007, design.silence.008
 
 ### design.silence.006 — The file box does not fit its rows as its pictures do

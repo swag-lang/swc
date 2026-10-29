@@ -492,7 +492,9 @@ the screen to its work.
   a grid of captures, rating and dates in mono. The lens at rest offers what can be done with
   the chosen captures — open, export, tags, favourite, move to a folder, delete — and their
   rating as one row of segments, then what the page shows as another; every other command of
-  the page (view, sort, folders, dates, applications, tags) is one word away.
+  the page (view, sort, folders, dates, applications, tags) is one word away. The hint line
+  teaches the keys of the page, `Space` last: `↵` open, `Del` delete, `F2` rename, `0–5` rate,
+  `/` filter.
 - Shape editing, per kind: arrow (curve handles, start/end glyph pickers, sizes), callout (inline
   text, tail handle, font/size/style "Aa" segments), masks (image, blur, pixelation, magnifier,
   capture as a radio list), step numbers (mini-bar with number stepper and reset), multiple
@@ -512,8 +514,10 @@ the screen to its work.
   reaches the strip, `←` `→` go along it, Enter opens the one ringed in Arc.
 - The inspector shows the presets of the selection's kind (of the tool in hand without a
   selection; none for a selection of several kinds): one row of five and `+`, or five and `•••`
-  opening every preset with `+`, ordered by use; `↓` on `•••` opens the popover, the arrows,
-  Enter and `Esc` go through it. The preset in force is named under the row; a right click
+  opening every preset with `+`, ordered by use. The row is one stop of Tab, entered on the
+  preset in force: `←` `→` go along it, Enter applies the preset ringed in the focus ink, and
+  Enter or `↓` on `•••` opens the popover, where the arrows, Enter and `Esc` go on; `Esc` gives
+  the keys back to the row. The preset in force is named under the row; a right click
   renames it, replaces it with the current style or removes it. The head rows of the inspector
   scroll with its settings, which stand 30 apart under TEXT, SHAPE, STROKE, ENDS, EFFECTS and
   POSITION. Several objects are titled by their kinds ("2 rectangles · 1 text"), what they

@@ -807,3 +807,38 @@ impl IAllocator for LibraryRejectAllocator
     Swag.assert(g_Library.files.count == 1)
     discard catch File.delete(back)
 }
+
+// The library page teaches its keys on its hint line, Space last: Enter opens the chosen capture,
+// Delete deletes it, F2 renames it, 0 to 5 rate it and / reaches the field filtering the grid.
+#test
+{
+    var f: HeadlessFixture
+    f.setup(width: 1100, height: 700)
+    defer f.shutdown()
+
+    g_Library.loaded = true
+    g_Library.files.clear()
+    f.main.libWnd = LibraryWnd.create(f.main)
+    let lib = f.main.libWnd
+    lib.setPosition({0, 0, 1100, 700})
+    lib.applyLayout()
+
+    let texts = appStrings()
+    let hints = &lib.hintLine.hints
+    Swag.assert(hints.count == 6)
+    Swag.assert(hints[0].key == strings().key_Enter and hints[0].text == texts.hint_Open)
+    Swag.assert(hints[1].key == "Del" and hints[2].key == "F2" and hints[2].text == texts.hint_Rename)
+    Swag.assert(hints[3].key == texts.key_Ratings and hints[4].key == "/" and hints[4].text == texts.hint_Filter)
+    Swag.assert(hints[5].key == strings().key_Space)
+
+    Swag.assert(lib.keyShortcut(.None, .Return) == ActionLibSel.Open)
+    Swag.assert(lib.keyShortcut(.None, .Delete) == ActionLibSel.Delete)
+    Swag.assert(lib.keyShortcut(.None, .D3) == ActionLibSel.Rate3)
+    Swag.assert(lib.keyShortcut(.None, .Oem2) == ActionLibSel.Search)
+
+    // / reaches the filter field, where the next keys are typed.
+    discard testAddLibraryItem(lib.view, "first.scc", 10, 1)
+    lib.view.setFocus()
+    f.gui.keyPress(.Oem2)
+    Swag.assert(lib.searchEdit.hasFocus())
+}

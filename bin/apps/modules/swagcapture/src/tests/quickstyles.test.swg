@@ -480,3 +480,54 @@ using Swag, Core
     f.gui.keyPress(.Escape)
     Swag.assert(quick.allPresets == null)
 }
+
+// The row of presets is one stop of Tab: the keys enter it on the preset in force, Left and Right
+// go along the chips, Enter applies the preset they stand on, and Enter on "•••" opens every
+// preset; Escape there gives the keys back to the row, on "•••".
+#test
+{
+    var f: HeadlessFixture
+    f.setup()
+    defer f.shutdown()
+    let quick = QuickWnd.create(f.main, f.main)
+    quick.setDefault()
+    f.main.editMode = .Arrow
+    quick.setPosition(Math.Rectangle{0, 0, 6 * QuickChipWidth, QuickChipHeight})
+    quick.updateQuickStyles(forceRebuild: true)
+
+    let stops = Gui.FocusOrder.collect(quick).stops
+    Swag.assert(stops.count == 1 and stops[0] == quick.layout)
+
+    let style = &quick.qsArrow
+    quick.applyPreset(style.forms[0])
+    quick.layout.setFocus()
+    Swag.assert(quick.keyCell == quick.rowStart() and quick.rowCells()[quick.keyCell].keyChosen)
+    let start = quick.keyCell
+
+    f.gui.keyPress(.Right)
+    Swag.assert(quick.keyCell == start + 1 and not quick.rowCells()[start].keyChosen)
+    f.gui.keyPress(.Left)
+    Swag.assert(quick.keyCell == start)
+
+    // Enter applies the preset the keys stand on; the keys follow it to its new place.
+    f.gui.keyPress(.Right)
+    let chosen = unwrap quick.rowCells()[quick.keyCell].formItf
+    f.gui.keyPress(.Return)
+    let applied = quick.rowCells()[quick.keyCell]
+    Swag.assert(applied.isChecked and (unwrap applied.formItf).buffer == chosen.buffer and applied.keyChosen)
+
+    // Enter on "•••" opens every preset; Escape gives the keys back to the row.
+    for 10
+    {
+        if quick.rowCells()[quick.keyCell].isMore do
+            break
+        f.gui.keyPress(.Right)
+    }
+
+    Swag.assert(quick.rowCells()[quick.keyCell].isMore)
+    f.gui.keyPress(.Return)
+    Swag.assert(quick.allPresets != null)
+    f.gui.keyPress(.Escape)
+    Swag.assert(quick.allPresets == null)
+    Swag.assert(quick.layout.hasFocus() and quick.rowCells()[quick.keyCell].isMore)
+}

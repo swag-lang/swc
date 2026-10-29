@@ -387,6 +387,11 @@ count_Image            % image|% images
 count_Object           % objet|% objets
 ui_NextObjects         prochains objets
 hint_Space             capturer, ouvrir, bibliothèque
+hint_Open              ouvrir
+hint_Rename            renommer
+key_Ratings            0–5
+hint_Rate              noter
+hint_Filter            filtrer
 hint_LibrarySpace      exporter, étiqueter, noter, déplacer
 ui_LibraryEmpty        Aucune capture ici pour l'instant.
 ui_LibraryNoMatch      Aucune capture ne correspond aux filtres ou à la recherche.

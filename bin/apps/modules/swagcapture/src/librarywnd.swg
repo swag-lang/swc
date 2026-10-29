@@ -154,8 +154,7 @@ impl LibraryWnd
         .folderBtn.setText(appStrings().ui_BarFolders)
         .folderBtn.toolTip = appStrings().tip_LibraryFolders
         .searchEdit.setPlaceholder(appStrings().ui_Search)
-        .hintLine.clearHints()
-        .hintLine.addHint(strings().key_Space, appStrings().hint_LibrarySpace)
+        .fillHintLine()
         .commandBar.computeLayout()
         .updateTitle()
         .updateFolderTabs()
@@ -268,6 +267,32 @@ impl LibraryWnd
 
         .registerKeyShortcut(.Control, .C, ActionFile.CopyImage)
         .registerKeyShortcut(.None, .F2, ActionFile.RenameCapture)
+
+        // The keys the hint line teaches: Enter opens, Delete deletes, 0 to 5 rate, / searches.
+        .registerKeyShortcut(.None, .Return, ActionLibSel.Open)
+        .registerKeyShortcut(.None, .Delete, ActionLibSel.Delete)
+        .registerKeyShortcut(.None, .Oem2, ActionLibSel.Search)
+        .registerKeyShortcut(.None, .Divide, ActionLibSel.Search)
+        .registerKeyShortcut(.None, .D0, ActionLibSel.Rate0)
+        .registerKeyShortcut(.None, .D1, ActionLibSel.Rate1)
+        .registerKeyShortcut(.None, .D2, ActionLibSel.Rate2)
+        .registerKeyShortcut(.None, .D3, ActionLibSel.Rate3)
+        .registerKeyShortcut(.None, .D4, ActionLibSel.Rate4)
+        .registerKeyShortcut(.None, .D5, ActionLibSel.Rate5)
+    }
+
+    // Teaches the keys of the page on its hint line: open, delete, rename, rate and search the
+    // chosen captures, then Space, which offers the rest.
+    mtd fillHintLine()
+    {
+        let texts = appStrings()
+        .hintLine.clearHints()
+        .hintLine.addHint(strings().key_Enter, texts.hint_Open)
+        .hintLine.addHint(Input.formatKeyShortcut(.None, .Delete), texts.hint_Delete)
+        .hintLine.addHint(Input.formatKeyShortcut(.None, .F2), texts.hint_Rename)
+        .hintLine.addHint(texts.key_Ratings, texts.hint_Rate)
+        .hintLine.addHint(Input.formatKeyShortcut(.None, .Oem2), texts.hint_Filter)
+        .hintLine.addHint(strings().key_Space, texts.hint_LibrarySpace)
     }
 
     // Update the live text filter and rebuild the visible set.

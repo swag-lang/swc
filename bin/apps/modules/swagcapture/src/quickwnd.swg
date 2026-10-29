@@ -231,11 +231,14 @@ impl IWnd for PresetPopover
         case .Return, .Space:
             .press()
         case .Escape:
-            let more = .quick.moreButton
+            let quick = .quick
+            let more  = quick.moreButton
             if more
             {
                 more.hidePopup()
-                more.setFocus()
+                quick.layout.setFocus()
+                for cell, i in quick.rowCells() where cell == more do
+                    quick.chooseRowCell(i)
             }
         default:
             return
@@ -514,6 +517,7 @@ struct QuickWnd
     moreButton:   *QuickButton?     // The chip opening every preset, in the row of the tool.
     allPresets:   *Wnd?             // The cells of every preset, while the popover "•••" opens is up.
     caption:      *Label?           // The name of the preset in force, under the row.
+    keyCell:      u64               // The chip of the row the keys stand on, among those shown; past the end while the row does not hold the keyboard.
 }
 
 impl IWnd for QuickWnd
@@ -728,6 +732,11 @@ impl QuickWnd
             .layout = Wnd.create'Wnd(quick, null, {0, 0, 0, QuickChipHeight})
             .layout.backgroundStyle = .Transparent
             .setView(quick.layout)
+
+            // The row is one stop of Tab, and the keys go along it from there.
+            .layout.focusPolicy = .Tab
+            .layout.hookOnEvent = func|quick|(_, evt)->bool => quick.onRowEvent(evt)
+            .keyCell            = Swag.U64.Max
 
             let caption = Label.create(quick, "", {0, QuickChipHeight, 0, QuickCaptionHeight}, flags: .SecondaryText | .WordWrap)
             caption.style.setFont(quick.theme().createDefaultFontFamily(metrics.defaultFontSize - 1))
@@ -1469,6 +1478,94 @@ impl QuickWnd
         }
         btn.sigPopupClosed += func|quick = me|(_) { quick.allPresets = null }
         .moreButton = btn
+    }
+
+    // Returns the chips the row shows, from left to right.
+    mtd rowCells()->Array'(*QuickButton)
+    {
+        var result: #returntype
+        for c in .layout.children where not c.isPendingDestroy and c.isLocallyVisible() do
+            result.add(assume cast(*QuickButton, c))
+        result.sort(func(a, b: *QuickButton)->s32 => a.position.x < b.position.x ? -1 : (a.position.x > b.position.x ? 1 : 0))
+        return result
+    }
+
+    // Moves the keys to chip `index` of the row, which is ringed; past the end, to none.
+    mtd chooseRowCell(index: u64)
+    {
+        let cells = .rowCells()
+        .keyCell = index < cells.count ? index : Swag.U64.Max
+        for cell, i in cells
+        {
+            cell.keyChosen = i == .keyCell
+            cell.invalidate()
+        }
+    }
+
+    // Returns where the keys enter the row: the preset in force, or the first chip.
+    mtd rowStart()->u64
+    {
+        for cell, i in .rowCells() where cell.isChecked do
+            return i
+        return 0
+    }
+
+    // Answers the keys while the row holds the keyboard. Left and Right go along the chips; Enter
+    // or Space applies the preset the keys stand on, opens the popover on "•••" and keeps the
+    // current style on "+"; Down on "•••" opens the popover too.
+    mtd onRowEvent(evt: IEvent)->bool
+    {
+        if evt is FocusEvent as focus
+        {
+            if focus.kind == .Gained do
+                .chooseRowCell(.rowStart())
+            elif focus.kind == .Lost and .allPresets == null do
+                .chooseRowCell(Swag.U64.Max)
+            return false
+        }
+
+        let key = catch cast(*KeyEvent?, evt)
+        if not key or key.kind != .Pressed or not key.modifiers.equals(.None) do
+            return false
+
+        let cells = .rowCells()
+        if .keyCell >= cells.count do
+            .keyCell = .rowStart()
+        if .keyCell >= cells.count do
+            return false
+        let cell = cells[.keyCell]
+
+        switch key.key
+        {
+        case .Left:
+            if .keyCell > 0 do
+                .chooseRowCell(.keyCell - 1)
+        case .Right:
+            if .keyCell + 1 < cells.count do
+                .chooseRowCell(.keyCell + 1)
+        case .Down:
+            if not cell.isMore or .allPresets != null do
+                return false
+            .openAllPresets(cell)
+        case .Return, .Space:
+            if cell.isMore
+            {
+                if .allPresets == null do
+                    .openAllPresets(cell)
+            }
+            elif cell.isModel do
+                .addCurrentStyle()
+            else
+            {
+                .applyPreset(unwrap cell.formItf)
+                .chooseRowCell(.rowStart())
+            }
+        default:
+            return false
+        }
+
+        key.accepted = true
+        return true
     }
 
     // Opens every preset of the tool in a popover under `button`, in rows as wide as the inspector

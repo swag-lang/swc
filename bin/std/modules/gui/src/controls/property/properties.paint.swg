@@ -28,11 +28,11 @@ internal impl Properties
         let theme   = .wnd.theme()
         let colors  = .wnd.themeColors()
         let metrics = .wnd.themeMetrics()
-        if item == .selItem
+        if .rowGrounds and item == .selItem
         {
             colBk = colors.prop_FocusBk
         }
-        elif .hotItem == item and .hotItem!.line.isEnabled()
+        elif .rowGrounds and .hotItem == item and .hotItem!.line.isEnabled()
         {
             colBk = colors.prop_HotBk
         }

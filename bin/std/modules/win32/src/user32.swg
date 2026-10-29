@@ -1223,6 +1223,7 @@ func GET_Y_LPARAM(lp: LPARAM)->s32
     func ChildWindowFromPointEx(hwnd: HWND, pt: POINT, flags: UINT)->HWND
     func FindWindowA(lpClassName: LPCSTR, lpWindowName: LPCSTR)->HWND
     func FindWindowW(lpClassName: LPCWSTR, lpWindowName: LPCWSTR)->HWND
+    func FindWindowExW(hWndParent: HWND, hWndChildAfter: HWND, lpszClass: LPCWSTR, lpszWindow: LPCWSTR)->HWND
     func GetDesktopWindow()->HWND
     func GetTopWindow(hWnd: HWND)->HWND
     func GetActiveWindow()->HWND
@@ -1273,6 +1274,10 @@ func GET_Y_LPARAM(lp: LPARAM)->s32
     func GetWindowTextW(hWnd: HWND, lpString: LPWSTR, nMaxCount: s32)->s32
     func GetClassNameA(hWnd: HWND, lpClassName: LPSTR, nMaxCount: s32)->s32
     func GetClassNameW(hWnd: HWND, lpClassName: LPWSTR, nMaxCount: s32)->s32
+    func SetWindowTextW(hWnd: HWND, lpString: LPCWSTR)->BOOL
+    func SetPropW(hWnd: HWND, lpString: LPCWSTR, hData: HANDLE)->BOOL
+    func GetPropW(hWnd: HWND, lpString: LPCWSTR)->HANDLE
+    func RemovePropW(hWnd: HWND, lpString: LPCWSTR)->HANDLE
 
     func ShowWindow(hWnd: HWND, nCmdShow: s32)->BOOL
     func EnableWindow(hWnd: HWND, bEnable: BOOL)->BOOL

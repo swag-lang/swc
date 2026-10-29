@@ -533,14 +533,21 @@ impl MenuCtrl
 
     private mtd resolveSubmenuDirections()
     {
+        // Every submenu of a menu opens on one side, the side its widest one fits: chevrons that
+        // point both ways on neighbouring entries read as two kinds of entry.
         let surfaceRect = .surfaceRect()
+        var widest      = 0'f32
         for i in .items where i!.popup != null and not i.hidden
         {
             let item = i
             item.popup.updateState()
             item.popup.computeLayoutPopup()
-            item.submenuOpensLeft = .shouldOpenSubmenuLeft(surfaceRect, item.popup.position.width)
+            widest = Math.max(widest, item.popup.position.width)
         }
+
+        let opensLeft = widest > 0 and .shouldOpenSubmenuLeft(surfaceRect, widest)
+        for i in .items where i!.popup != null and not i.hidden do
+            i.submenuOpensLeft = opensLeft
 
         .invalidate()
     }

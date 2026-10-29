@@ -222,12 +222,19 @@ impl MainWnd
     }
 
     // Returns the colour the mini-bar swatch stands for on the selected form: what fills a text,
-    // a callout or a step, and the stroke of every other form.
+    // a callout, a step or a filled shape, and the stroke of every other form.
     mtd miniBarColorField()->{type: typeinfo, name: string}
     {
         switch .getCapture()?.getSelectedFormType()
         {
-        case FormText, FormCallout, FormStep: return {BaseForm, #nameof(BaseForm.backColor)}
+        case FormText, FormCallout, FormStep:
+            return {BaseForm, #nameof(BaseForm.backColor)}
+
+        // A filled shape is seen by its fill, an outlined one by its outline.
+        case FormShape, FormPolygon:
+            let form = .getCapture()?.getSelectedBaseForm()
+            if form and form.subKind != .PixSel and form.backColor.a do
+                return {BaseForm, #nameof(BaseForm.backColor)}
         }
 
         return {BaseForm, #nameof(BaseForm.borderColor)}

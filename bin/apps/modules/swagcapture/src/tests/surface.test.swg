@@ -301,6 +301,35 @@ func testSetupEditorSurface(host: *Gui.Testing.HeadlessHost, dark: bool, text = 
     Swag.assert(not view.isWindowGround(Math.Point{ground.x, ground.y + 60}))
 }
 
+// The window is named after the capture on screen, by the name the library gives it, and after
+// the application in the library.
+#test
+{
+    var host: Gui.Testing.HeadlessHost
+    let main = testSetupEditorSurface(&host, dark: true, text: false)
+    defer
+    {
+        main.libWnd.requestClose()
+        host.shutdown()
+        g_Main = null
+    }
+
+    let capture = unwrap main.getCapture()
+    capture.title = "Password"
+    main.updateState()
+    Swag.assert(host.surfaceWnd.name.raw == "Password")
+
+    capture.title.clear()
+    capture.sourceApplication = "Notepad"
+    main.updateState()
+    Swag.assert(host.surfaceWnd.name.raw == "Notepad")
+
+    testEmptyTrash()
+    g_Library.loaded = true
+    main.swapLibraryMode()
+    Swag.assert(host.surfaceWnd.name.raw == ProductName)
+}
+
 // Selects the forms `indices` of the capture the editor shows, lays the window out and renders it
 // to `golden`; `whole` renders the surface with what floats over the view, such as a popover.
 func testAssertEditGolden(host: *Gui.Testing.HeadlessHost, main: *MainWnd, indices: const [..] u64, golden: string, whole = false)
@@ -1257,4 +1286,25 @@ func testBeginInlineText(host: *Gui.Testing.HeadlessHost, main: *MainWnd, index:
     main.fillHintLine()
     for hint in main.hintLine.hints do
         Swag.assert(hint.text != appStrings().hint_Nudge)
+}
+
+// One selected object is named by the tool that draws it: a pixel selection and a highlighter
+// stroke are not called a shape and a drawing.
+#test
+{
+    var host: Gui.Testing.HeadlessHost
+    let main = testSetupEditorSurface(&host, dark: true, text: false)
+    defer
+    {
+        main.libWnd.requestClose()
+        host.shutdown()
+        g_Main = null
+    }
+
+    let capture = unwrap main.getCapture()
+    discard testAddShape(capture, 20, 20, 80, 60, .PixSel)
+    capture.selection.add(0)
+    capture.selectionHasChanged()
+    main.updateState()
+    Swag.assert(main.inspector.title == appStrings().act_PixSel)
 }

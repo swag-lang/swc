@@ -696,19 +696,16 @@ impl QuickWnd
         var name: String
         if .currentStyle
         {
-            var i = 0'u64
             for c in .layout.children where not c.isPendingDestroy
             {
                 let button = assume cast(*QuickButton, c)
-                if button.isModel or button.isMore do
+                if button.isModel or button.isMore or not button.formItf do
                     continue
                 if button.isChecked
                 {
-                    name = .currentStyle.nameOf(i)
+                    name = .currentStyle.nameOf(.currentStyle.indexOf(button.formItf))
                     break
                 }
-
-                i += 1
             }
         }
 
@@ -1174,21 +1171,20 @@ impl QuickWnd
         var done = false
         let mode = .presetMode().mode
 
-        // The preset chips lead the strip in the order of the set; a chip of a previous set may
-        // still be waiting for its deferred destruction, and the trailing chip adds a preset.
-        var i = 0'u64
+        // Each chip holds its preset: the row keeps the order it was built in while the uses of
+        // the set reorder it underneath. A chip of a previous set may still be waiting for its
+        // deferred destruction, and the trailing chip adds a preset.
         for c in .layout.children where not c.isPendingDestroy
         {
             let button = assume cast(*QuickButton, c)
-            if button.isModel or button.isMore or i >= .currentStyle.forms.count do
+            if button.isModel or button.isMore or not button.formItf do
                 continue
 
-            let it  = .currentStyle.forms[i]
+            let it  = button.formItf
             let mdl = .main.modelFor(Swag.kindOf(it))
             button.setChecked(mode == MainWnd.formToolMode(it) and it.isSame(mdl))
             if button.isChecked do
                 done = true
-            i += 1
         }
 
         .updateCaption()
@@ -1444,14 +1440,19 @@ impl QuickWnd
             capture.pushUndo(undo)
         }
 
+        // The use is counted, but a row chosen from stays as it is: a preset that jumped to the
+        // front under the pointer would leave another one where the next click lands. The row
+        // takes the order of the uses when it is built again. A preset chosen from the popover
+        // comes into the row at once.
         if .currentStyle
         {
-            let index = .currentStyle.indexOf(it)
-            let moved = .currentStyle.countUse(index) != index
-            if fromPopover and .moreButton do
-                .moreButton.hidePopup()
-            if moved or fromPopover do
+            discard .currentStyle.countUse(.currentStyle.indexOf(it))
+            if fromPopover
+            {
+                if .moreButton do
+                    .moreButton.hidePopup()
                 .updateQuickStyles(forceRebuild: true)
+            }
         }
 
         .updateSelection()

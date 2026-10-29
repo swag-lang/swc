@@ -1,5 +1,16 @@
 impl Capture
 {
+    // Returns the name a reader knows the capture by: the title they gave it, the application it
+    // was taken from, or its file; empty for a capture that has none of them yet.
+    mtd const displayName()->String
+    {
+        if not .title.isEmpty() do
+            return .title
+        if not .sourceApplication.isEmpty() do
+            return .sourceApplication
+        return Path.fileNameWithoutExtension(.file) orelse ""
+    }
+
     // Marks the capture as modified and out of step with its linked image, and refreshes the
     // editor and the recent strip, except during an interactive drag.
     mtd hasChanged()

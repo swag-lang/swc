@@ -437,9 +437,10 @@ using Swag, Core
     Swag.assert(style.names.count == count - 1 and style.nameOf(0) != "Orange mark")
 }
 
-// The row is ordered by use: a preset applied more than those before it moves ahead of them. The
-// popover "•••" opens is gone through with the keys: Down on the chip opens it, the arrows choose
-// a cell, Enter applies it, Escape closes it.
+// The row is ordered by use: a preset applied more than those before it moves ahead of them, when
+// the row is built again, never under the pointer that chose it. The popover "•••" opens is gone
+// through with the keys: Down on the chip opens it, the arrows choose a cell, Enter applies it,
+// Escape closes it.
 #test
 {
     var f: HeadlessFixture
@@ -455,6 +456,10 @@ using Swag, Core
     let third = style.forms[2]
     quick.applyPreset(third)
     Swag.assert(style.forms[0].buffer == third.buffer and style.uses[0] == 1)
+    Swag.assert((unwrap quick.rowCells()[2].formItf).buffer == third.buffer)
+    Swag.assert(quick.rowCells()[2].isChecked)
+    quick.updateQuickStyles(forceRebuild: true)
+    Swag.assert((unwrap quick.rowCells()[0].formItf).buffer == third.buffer)
     let second = style.forms[1]
     quick.applyPreset(second)
     quick.applyPreset(second)

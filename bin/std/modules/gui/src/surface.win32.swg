@@ -172,6 +172,7 @@ private func winProc(hWnd: HWND, msg: UINT, wParam: WPARAM, lParam: LPARAM)->LRE
 
         case WM_NCDESTROY:
             SetWindowLongPtrW(hWnd, GWLP_USERDATA, 0)
+            discard RemovePropW(hWnd, Surface.identityProperty(surface.surfaceId).buffer)
             break
 
         case WM_SYSKEYDOWN, WM_SYSKEYUP, WM_SYSCHAR:
@@ -563,6 +564,9 @@ private impl Surface
         result.hWnd = cast(const *void?, CreateWindowExW(winFlagsEx, className, surfaceName, winFlags, x, y, width, height, null, null, GetModuleHandleW(null), result))
         if not result.hWnd do
             try failWinError(GetLastError())
+
+        // The identity lives on a property, so the native title is free to follow the title.
+        discard SetPropW(result.hWnd, identityProperty(result.surfaceId).buffer, cast(HANDLE, result.hWnd))
 
         // The window now knows its monitor: resolve the scale and resize the still
         // hidden window from logical units to physical pixels.
@@ -966,11 +970,35 @@ impl Surface
     // `id` and `param`. The call waits until the message has been handled.
     func sendCustomMessage(surfaceId: string, id: u32, param: u64)->bool
     {
-        let hwnd = Win32.FindWindowA(("Swag.Gui.Surface").buffer, surfaceId.buffer)
-        if not hwnd do
-            return false
+        let className = Utf16.toZeroTerminated("Swag.Gui.Surface")
+        let property  = identityProperty(surfaceId)
+        var hwnd: HWND
+        for
+        {
+            hwnd = FindWindowExW(null, hwnd, className.buffer, null)
+            if not hwnd do
+                return false
+            if GetPropW(hwnd, property.buffer) != null do
+                break
+        }
+
         discard SendMessageA(hwnd, WM_APP + id, 0, param)
         return true
+    }
+
+    // Returns the name of the window property that carries `surfaceId`, zero-terminated in UTF-16.
+    //
+    // A surface is found by its identity, not by its native title: the title is what the task bar
+    // and the window switcher show, and follows [[Gui.Surface.setTitle]].
+    internal func identityProperty(surfaceId: string)->Array'u16 => Utf16.toZeroTerminated(Format.toString("Swag.Gui.Surface:%", surfaceId))
+
+    // Gives the native window the title of the surface, or its identity while it has none.
+    internal mtd applyNativeTitle()
+    {
+        if not .hWnd do
+            return
+        let title = .wnd.name.raw.isEmpty() ? Utf16.toZeroTerminated(.surfaceId) : Utf16.toZeroTerminated(.wnd.name.raw)
+        discard SetWindowTextW(.hWnd, title.buffer)
     }
 
     // Returns `pos` with its extent brought inside the surface size limits.

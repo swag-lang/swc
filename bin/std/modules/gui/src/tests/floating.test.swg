@@ -129,6 +129,35 @@ func floatingHost(host: *Testing.HeadlessHost, width, height: f32, light: bool)
     Swag.assert(hint.contentWidth() == 0)
 }
 
+// A hint line with less room than it writes leaves its last hints out whole, rather than cutting
+// a word at its edge; the reading always stands.
+#test
+{
+    var host: Testing.HeadlessHost
+    floatingHost(&host, 480, 400, false)
+
+    with let hint = HintLine.create(&host.root)
+    {
+        .setReading("880 × 550")
+        .addHint(strings().key_Space, "capture, open, library")
+        .addHint(strings().key_Escape, "cancel")
+    }
+
+    host.root.applyLayout()
+    let whole = hint.position.width
+    Swag.assert(whole == hint.contentWidth())
+
+    // Room for the reading and the first hint only: the line is as wide as those two.
+    hint.margin = {0, 0, 480 - (whole - 20), 0}
+    host.root.applyLayout()
+    Swag.assert(hint.position.width < whole - 20)
+    hint.clearHints()
+    hint.addHint(strings().key_Space, "capture, open, library")
+    let first = hint.contentWidth()
+    host.root.applyLayout()
+    Swag.assert(hint.position.width == first)
+}
+
 // A leading and a trailing hint line stand on the edges the parent's padding measures, at the same
 // height as a centred one.
 #test

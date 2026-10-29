@@ -203,7 +203,7 @@ act_OpenImage          Ouvrir une image…
 act_Options            Options…
 act_PasteInsideImage   Coller à l'intérieur de l'image
 act_Paste              Coller
-act_PixSel             Pixels
+act_PixSel             Sélection de pixels
 act_Polygon            Polygone
 act_Quit               Quitter
 act_RecycleBin         Corbeille

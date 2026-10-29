@@ -35,7 +35,8 @@ dialogs, then each application, then the written rules.
   the picture to cover the selection mark; the name and facts under a selected thumbnail also had
   no selection ground. The charter now states that both files and folders remain selected after
   pointer exit, that rows carry a full Arc ground, and that thumbnail selection stays visible over
-  the picture in both themes.
+  the picture in both themes. Ctrl+Space now opens the lens in the window's early child-event hook,
+  ahead of a focused viewer or field that consumes Space.
 - Next: review the empty-query lens in Capture, Prism and Vault against their first-use tasks in
   both themes; adjust the direct action order so their common tasks are visible before scrolling,
   then update and review the affected whole-screen goldens. In Scope, verify that the full Markdown

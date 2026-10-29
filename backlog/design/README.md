@@ -158,6 +158,8 @@ comme image…"). An ellipsis marks a command that asks for more before acting.
   scrollbar. A thin scrollbar (6 px) appears while scrolling or on hover.
 - A faint hint line ("Ctrl Space — everything else") may sit 24 px above the bottom edge while the
   reader is new to the window or the surface is empty.
+- `Ctrl+Space` opens the lens from any focused control. The window handles it before the focused
+  viewer or field, even when that control also uses `Space`.
 - Keys are named the same way everywhere — a keycap of the hint line, the foot of the lens, the
   end of a menu or lens row: `Space`, `Esc`, `Tab`, `↵` for Enter, and a chord as its keys
   separated by spaces (`Ctrl K`, `Ctrl ↵`, `Ctrl Shift S`), written by `Input.formatKeyShortcut`

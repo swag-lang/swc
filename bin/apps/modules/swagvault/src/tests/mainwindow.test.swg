@@ -63,6 +63,9 @@ func testSetupMainWindow(host: *Testing.HeadlessHost, scale = 1.0'f32)->*MainWin
 {
     host.setup(cast(f32, MainWindow.MinWidth), cast(f32, MainWindow.MinHeight), scale)
     host.surface.updateFlags(SurfaceFlags.StandardWindow | SurfaceFlags.NoShadow)
+
+    // The strip starts with the application's glyph, as the shipped window does.
+    host.app.setAppIcon(expect Pixel.Image.decode(".png", AppIcon))
     host.bindApplication(&g_App)
 
     // The window resolves its application through its surface, so that is the one a language

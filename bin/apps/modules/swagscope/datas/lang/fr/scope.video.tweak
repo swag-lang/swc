@@ -3,8 +3,8 @@
 ui_TipPlay       Lire
 ui_TipPause      Mettre en pause
 ui_TipStop       Arrêter
-ui_TipBackward   Reculer de 10 secondes (Gauche) · Ctrl+Gauche : image précédente
-ui_TipForward    Avancer de 10 secondes (Droite) · Ctrl+Droite : image suivante
+ui_TipBackward   Reculer de 10 secondes (Gauche) · Ctrl Gauche : image précédente
+ui_TipForward    Avancer de 10 secondes (Droite) · Ctrl Droite : image suivante
 ui_TipSeek       Rechercher une image
 ui_TipFullScreen Plein écran (F)
 ui_SubtitleChip  Sous-titres %

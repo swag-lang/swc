@@ -1149,9 +1149,9 @@ internal impl HtmlView
     mtd showContextMenu(surfacePos: Math.Point)
     {
         let menu = MenuCtrl.createPopup(me, owner: me)
-        menu.addItem(strings().edit_Copy, CtxCopy, rightName: "Ctrl+C", disabled: not .hasSelection())
+        menu.addItem(strings().edit_Copy, CtxCopy, rightName: "Ctrl C", disabled: not .hasSelection())
         menu.addSeparator()
-        menu.addItem(strings().edit_SelectAll, CtxSelectAll, rightName: "Ctrl+A")
+        menu.addItem(strings().edit_SelectAll, CtxSelectAll, rightName: "Ctrl A")
 
         let picked = menu.doModal(surfacePos, .TopLeft, autoDestroy: true) orelse ""
         switch picked

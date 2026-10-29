@@ -13,7 +13,7 @@ struct Texts
     ui_ZoomOut:          string = "Zoom Out"
     ui_ZoomIn:           string = "Zoom In"
     ui_Fit:              string = "Fit Complete Score"
-    ui_ZoomMenu:         string = "Horizontal Zoom · Ctrl+wheel: pitch zoom · Page Up/Down: scroll"
+    ui_ZoomMenu:         string = "Horizontal Zoom · Ctrl wheel: pitch zoom · Page Up/Down: scroll"
     ui_PitchLabels:      string = "Pitch labels (C4 = MIDI 60)"
     ui_PitchScientific:  string = "C4 names"
     ui_PitchMidiNumber:  string = "MIDI numbers"

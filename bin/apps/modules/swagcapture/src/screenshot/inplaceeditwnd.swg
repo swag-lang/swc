@@ -204,7 +204,7 @@ impl InPlaceEditWnd
         let texts = appStrings()
         with .hintLine = HintLine.create(.editWnd.editView)
         {
-            .addHint(texts.key_Return, texts.hint_CopyClose)
+            .addHint(strings().key_Enter, texts.hint_CopyClose)
             .addHint(Input.formatKeyShortcut(.Control, .S), texts.hint_Save)
             .addHint(strings().key_Escape, texts.hint_Cancel)
         }

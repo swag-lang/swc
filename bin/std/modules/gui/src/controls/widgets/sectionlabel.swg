@@ -19,9 +19,9 @@ struct SectionLabel
     public
     {
         using wnd: Wnd     // Embedded window behavior and presentation.
-    }
 
-    text: String
+        readonly text: String     // Words of the label, as written; it paints them in capitals.
+    }
 }
 
 impl IWnd for SectionLabel
@@ -39,8 +39,10 @@ impl SectionLabel
     //
     // A surface that paints its own groups — a table whose families open with a label, a panel
     // with a title — calls this rather than shaping the capitals itself, so its labels read like
-    // the ones the components draw.
-    func paint(wnd: *Wnd, painter: *Painter, rect: Math.Rectangle, label: string)
+    // the ones the components draw. Returns the width of the capitals, for what follows them,
+    // such as a count.
+    #[Swag.Discardable]
+    func paint(wnd: *Wnd, painter: *Painter, rect: Math.Rectangle, label: string)->f32
     {
         let metrics = wnd.themeMetrics()
         let font    = wnd.theme().createDefaultFont(metrics.sectionLabel_FontSize, .SemiBold)
@@ -52,6 +54,7 @@ impl SectionLabel
         painter.pushClippingRect(rect)
         painter.drawShapedRun(rect.x, font.opticalLineTop(rect.vertCenter()), &shaped, font, Brush.createSolid(wnd.themeColors().faintText))
         painter.popClippingRect()
+        return shaped.metrics.width
     }
 
     // Creates a section label naming `text` in `parent`.

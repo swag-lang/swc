@@ -539,7 +539,7 @@ func assertFolderFiles(window: *ViewerWindow, names: const [..] String)
     Swag.assert(window.recentList.listFlags.has(.Ellipsis) and window.folderList.listFlags.has(.Ellipsis))
     Swag.assert(window.recentList.scrollWnd.flags.has(.DisableHorizontal) and window.folderList.scrollWnd.flags.has(.DisableHorizontal))
     Swag.assert(window.folderHistoryButton.isEnabled() and not window.folderHistoryButton.isLocallyVisible())
-    Swag.assert(not window.kindButton.isLocallyVisible() and String.toUpper(window.folderLabel.text(), .Unicode) == window.folderLabel.text())
+    Swag.assert(not window.kindButton.isLocallyVisible() and not window.folderLabel.text.isEmpty())
     Swag.assert(window.folderHistory.count == 1 and window.folderHistory[0].folder == folder)
     assertFolderFiles(window, names.toSlice())
     Swag.assert(window.recentList.lineCount() == 1)
@@ -696,7 +696,7 @@ func assertFolderFiles(window: *ViewerWindow, names: const [..] String)
     Swag.assert(window.panelVisible and window.filePanelHost.isLocallyVisible())
     Swag.assert(window.folderList.lineCount() == 0 and window.recentList.lineCount() == 0)
     Swag.assert(not window.filePanel.isPaneVisible(0) and not window.recentPane.isLocallyVisible())
-    Swag.assert(String.toUpper(appStrings().ui_Folder, .Unicode) == window.folderLabel.text())
+    Swag.assert(window.folderLabel.text == appStrings().ui_Folder)
 }
 
 // The history is a list the reader owns: one file leaves it, or all of them do, and the section

@@ -30,7 +30,6 @@ lens_Placeholder Rechercher ou lancer une commande
 lens_Empty       Aucun résultat.
 lens_Choose      choisir
 lens_Go          aller
-lens_CtrlEnter   Ctrl ↵
 lens_Stay        rester
 lens_Line        ligne
 lens_Files       fichiers

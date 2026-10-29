@@ -614,10 +614,10 @@ impl MainWnd
         {
             // The keys come first: a line cut by a narrow room loses the advice, not the keys.
             let view = .editWnd.editView
-            .hintLine.addHint(view.textSpec.step ? appStrings().key_Return : appStrings().key_CtrlReturn, appStrings().hint_KeepText)
+            .hintLine.addHint(view.textSpec.step ? strings().key_Enter : strings().key_CtrlEnter, appStrings().hint_KeepText)
             .hintLine.addHint(strings().key_Escape, appStrings().hint_Cancel)
             if not view.textSpec.step do
-                .hintLine.addHint(appStrings().key_Return, appStrings().hint_NewLine)
+                .hintLine.addHint(strings().key_Enter, appStrings().hint_NewLine)
             if view.textEditForm() is FormCallout do
                 .hintLine.addHint("", appStrings().hint_CalloutTail)
             return

@@ -103,7 +103,7 @@ struct AppStrings
     ui_MenuCopyName:                   string = "Copy File Name"                              // Panel menu entry copying the final path component.
     ui_MenuForget:                     string = "Remove This File from the History"           // Panel menu entry dropping one file from the recent list.
     ui_Search:                         string = "Find in document"                            // Placeholder of the search field.
-    ui_SearchPrevious:                 string = "Previous Match (Shift+F3)"                   // Tooltip of the previous-match button.
+    ui_SearchPrevious:                 string = "Previous Match (Shift F3)"                   // Tooltip of the previous-match button.
     ui_SearchNext:                     string = "Next Match (F3)"                             // Tooltip of the next-match button.
     ui_SearchOptions:                  string = "Search Options"                              // Tooltip of the search-options menu button.
     ui_SearchMode:                     string = "Search"                                      // Shared query mode that finds occurrences.
@@ -129,7 +129,6 @@ struct AppStrings
     ui_FailureUnreadable:              string = "The file could not be read."                 // A file the system or a decoder could not read, above the technical detail.
     ui_FailureFormat:                  string = "The file is damaged, or its format is not supported."     // A file whose content a decoder refused, above the technical detail.
     ui_AboutViewers:                   string = "Supported viewers"                           // Heading of the compact about block listing what the application opens.
-    hint_KeyEnter:                     string = "Enter"                                       // Name of the Enter key on a keycap.
     hint_KeyBack:                      string = "⌫"                                           // Name of the Backspace key on a keycap.
     hint_Open:                         string = "open"                                        // What Enter does on the hint line of an explored folder.
     hint_Parent:                       string = "parent folder"                               // What Backspace does on the hint line of an explored folder.

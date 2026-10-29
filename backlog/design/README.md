@@ -129,6 +129,11 @@ comme image…"). An ellipsis marks a command that asks for more before acting.
   scrollbar. A thin scrollbar (6 px) appears while scrolling or on hover.
 - A faint hint line ("Space — everything else") may sit 24 px above the bottom edge while the
   reader is new to the window or the surface is empty.
+- Keys are named the same way everywhere — a keycap of the hint line, the foot of the lens, the
+  end of a menu or lens row: `Space`, `Esc`, `Tab`, `↵` for Enter, and a chord as its keys
+  separated by spaces (`Ctrl K`, `Ctrl ↵`, `Ctrl Shift S`), written by `Input.formatKeyShortcut`
+  and the key names of `Gui.strings()`. What a key does is a few lowercase words after it
+  ("compile", "views, stages, examples").
 
 ## Motion
 
@@ -198,6 +203,8 @@ the reader is:
   so the reader learns it exists; it cannot be chosen.
 - Every action shows its shortcut in faint mono at the end of its row, so the lens also teaches
   the keys it stands in for.
+- A section label is always `Gui.SectionLabel` — small spaced semibold capitals in the faint ink —
+  whether a component, an application header or a painted list draws it; nobody shapes its own.
 
 ### Sheet (`I`)
 

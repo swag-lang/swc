@@ -1171,13 +1171,13 @@ private impl View
         var x = body.x + metrics.lens_TextInset
         x += paintKeycap(me, painter, x, centerY, "↑↓") + metrics.hintLine_KeyGap
         x += paintTextLine(painter, x, centerY, strings().lens_Choose, font, colors.faintText) + metrics.hintLine_GroupGap
-        x += paintKeycap(me, painter, x, centerY, "↵") + metrics.hintLine_KeyGap
+        x += paintKeycap(me, painter, x, centerY, strings().key_Enter) + metrics.hintLine_KeyGap
         x += paintTextLine(painter, x, centerY, strings().lens_Go, font, colors.faintText) + metrics.hintLine_GroupGap
 
         // A setting or a choice can be run without leaving the lens.
         if .chosenIsCheckable()
         {
-            x += paintKeycap(me, painter, x, centerY, strings().lens_CtrlEnter) + metrics.hintLine_KeyGap
+            x += paintKeycap(me, painter, x, centerY, strings().key_CtrlEnter) + metrics.hintLine_KeyGap
             discard paintTextLine(painter, x, centerY, strings().lens_Stay, font, colors.faintText)
         }
 

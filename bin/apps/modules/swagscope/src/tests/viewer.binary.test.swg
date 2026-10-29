@@ -819,10 +819,10 @@ func binaryCellText(line: *ListLine, column: Binary.Column)->String => RichStrin
 
     let expandState = view.sendComputeCommandStateEvent(Binary.Action.ExpandAll)
     Swag.assert(expandState.name == Binary.texts().ui_MenuExpand)
-    Swag.assert(expandState.shortcut == "Ctrl+E")
+    Swag.assert(expandState.shortcut == "Ctrl E")
     Swag.assert(not expandState.updatedFields.has(.Checked))
     let collapseState = view.sendComputeCommandStateEvent(Binary.Action.CollapseAll)
-    Swag.assert(collapseState.shortcut == "Ctrl+Shift+E")
+    Swag.assert(collapseState.shortcut == "Ctrl Shift E")
     Swag.assert(not collapseState.updatedFields.has(.Checked))
 
     view.sendCommandEvent(Binary.Action.ExpandAll)

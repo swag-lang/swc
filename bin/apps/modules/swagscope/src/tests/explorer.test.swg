@@ -346,7 +346,7 @@ func completeExtraction(host: *Testing.HeadlessHost, explorer: *Explorer)
             discard expect host.app.setLanguage("fr")
             host.notify(.LanguageChanged)
             Swag.assert(explorer.modeMenu.name.raw == appStrings().mode_Thumbnails)
-            Swag.assert(String.toUpper(appStrings().explore_Folders, .Unicode) == window.folderLabel.text())
+            Swag.assert(window.folderLabel.text == appStrings().explore_Folders)
         }
 
         window.applyLayout()

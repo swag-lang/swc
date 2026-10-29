@@ -437,11 +437,9 @@ act_Pin                Épingler
 act_InpEditor          Éditeur
 act_InpSave            Enregistrer…
 act_InpCopy            Copier
-key_Return             Entrée
 hint_CopyClose         copier et fermer
 hint_Save              enregistrer
 hint_CalloutTail       Glisser le point de la queue pour la diriger
-key_CtrlReturn         Ctrl+Entrée
 hint_NewLine           nouvelle ligne
 hint_KeepText          garder le texte
 ui_Common              En commun

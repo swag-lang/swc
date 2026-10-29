@@ -76,7 +76,10 @@ struct Panel
         backButton:    *IconButton
         forwardButton: *IconButton
         list:          *ListCtrl
+        page:          *ReportPage
     }
+
+    hasPage: bool     // Whether the format gave an overview the report page can show.
 
     previewBand:             *StackLayoutCtrl?
     doc:                     Document
@@ -281,11 +284,25 @@ impl Panel
         return .selectReportRow(index)
     }
 
+    // Shows the report page, or the structure tree under it when `page` is false.
+    //
+    // A file whose format gives no overview has no page: its tree is all there is.
+    mtd showPage(page: bool)
+    {
+        let shown = page and .hasPage
+        .page.show(shown)
+        .list.show(not shown)
+        .applyLayout()
+        .layoutColumns()
+    }
+
     // Selects report row `index` after opening its ancestors, and returns whether it could be selected.
     private mtd selectReportRow(index: u64, recordHistory = true)->bool
     {
         if index >= .rowLines.count do
             return false
+        if .page.isLocallyVisible() do
+            .showPage(false)
         let line = .rowLines[index]
         if not line do
             return false
@@ -496,6 +513,8 @@ impl Panel
         .filterOptions.expression = null
         if not .loadPublished do
             return
+        if query.count and .page.isLocallyVisible() do
+            .showPage(false)
 
         .rebuildFilterIndex()
         .stopTimer(&.filterTimer)
@@ -892,6 +911,11 @@ impl IWnd for Panel
         .beginFillList()
         .services.showDetails(me, .details)
 
+        // An executable opens on its report page; the tree is a lens entry away.
+        .hasPage = not .doc.report.overview.sections.isEmpty()
+        .page.setDocument(&.doc, Path.fileName(.loadFileName) orelse "")
+        .showPage(true)
+
         // The report fills the list a slice per frame, so a large one never stalls the window.
         .loadTimer = .addTimer(1'ms)
         .continueFill()
@@ -1054,6 +1078,17 @@ impl Panel
     mtd describeLens(entries: *Viewer.LensEntries)
     {
         let strings = texts()
+        if .hasPage
+        {
+            let page = .page.isLocallyVisible()
+            entries.add(page ? strings.ui_ShowStructure : strings.ui_ShowReport, func|view = me, page|()
+            {
+                view.showPage(not page)
+                if page do
+                    view.list.setFocus()
+            })
+        }
+
         entries.add(strings.ui_MenuBack, func|view = me|() { discard view.navigateHistory(-1) }, disabled: not .backButton.isEnabled())
         entries.add(strings.ui_MenuForward, func|view = me|() { discard view.navigateHistory(1) }, disabled: not .forwardButton.isEnabled())
     }
@@ -1118,6 +1153,10 @@ impl Panel
 
         result.createCommandBar(host)
         result.createReportList()
+        with result.page = ReportPage.create(result)
+        {
+            .hide()
+        }
 
         result.applyLayout()
         result.layoutColumns()

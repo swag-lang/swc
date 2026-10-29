@@ -36,6 +36,7 @@ struct PeLayout
     sizeOfHeaders: u32
     imageBase:     u64
     is64:          bool
+    subsystem:     u16
 }
 
 impl PeLayout
@@ -366,6 +367,19 @@ func reportPeImage(image: *BinaryImage, report: *Report)
     let sections = countText(cast(u64, header.sectionCount), texts.word_Section, texts.word_Sections)
     report.formatName = layout.is64 ? "PE32+" : "PE32"
     report.summary    = Format.toString("% · % · % · %", report.formatName, kind, peMachineName(header.machine), sections)
+
+    // The page names a program by the interface it runs in, and a library by what it is.
+    let signed        = peDirectory(image, &layout, 4).size != 0
+    with let overview = &report.overview
+    {
+        .identity.add(report.formatName)
+        .identity.add(peMachineName(header.machine))
+        .identity.add(kind == "EXE" ? peSubsystemName(layout.subsystem) : kind)
+        if signed do
+            .identity.add(texts.pe_Signed)
+        for section in layout.sections where section.rawSize do
+            .sections.add({section.name, cast(u64, section.rawSize)})
+    }
 }
 
 // Adds the sections and symbols of a COFF object, which carries no image header of its own.
@@ -620,8 +634,9 @@ private func reportPeOptionalHeader(image: *BinaryImage, report: *Report, at, si
     report.hexField(windowsAt + 32, 4, "CheckSum", cast(u64, checksum), checksum ? "" : texts.pe_NoChecksum)
 
     let subsystem = image.u16At(windowsAt + 36)
-    let dllFlags  = image.u16At(windowsAt + 38)
-    let dllText   = peDllCharacteristicsText(dllFlags)
+    layout.subsystem = subsystem
+    let dllFlags = image.u16At(windowsAt + 38)
+    let dllText  = peDllCharacteristicsText(dllFlags)
     report.numField(windowsAt + 36, 2, "Subsystem", cast(u64, subsystem), peSubsystemName(subsystem))
     report.hexField(windowsAt + 38, 2, "DllCharacteristics", cast(u64, dllFlags), dllText)
 
@@ -880,6 +895,7 @@ private func reportPeImports(image: *BinaryImage, report: *Report, layout: *PeLa
     let total = Format.toString("% %", symbols, texts.pe_ImportSymbols)
     report.derived(texts.pe_ImportTotal, total)
     report.endGroup()
+    report.overview.imports = symbols
 }
 
 // Adds one imported module and the symbols its thunk table names, and returns how many there were.
@@ -899,6 +915,14 @@ private func reportPeThunks(image: *BinaryImage, report: *Report, layout: *PeLay
 
     let stamp   = image.u32At(entryAt + 4)
     let symbols = countText(count, texts.word_Symbol, texts.word_Symbols)
+
+    // The page lists the library with the first names it takes from it.
+    var library: *OverviewLibrary?
+    if report.overview.libraries.count < OverviewLibraryLimit
+    {
+        report.overview.libraries.add({name: moduleName, count: count})
+        library = &report.overview.libraries[report.overview.libraries.count - 1]
+    }
 
     report.beginGroup(moduleName, symbols, "", offset: entryAt, length: 20)
     report.hexField(entryAt, 4, "OriginalFirstThunk", cast(u64, image.u32At(entryAt)), texts.pe_ImportLookup)
@@ -934,6 +958,8 @@ private func reportPeThunks(image: *BinaryImage, report: *Report, layout: *PeLay
 
         let symbol = image.cstringAt(hintAt + 2)
         let hint   = Format.toString(texts.pe_Hint, image.u16At(hintAt))
+        if library and library.symbols.count < OverviewSymbolLimit do
+            library.symbols.add(symbol)
         report.field(thunkAt, wide, symbol, "", hint)
     }
 

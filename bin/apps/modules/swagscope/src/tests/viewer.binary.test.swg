@@ -992,6 +992,10 @@ func binaryCellText(line: *ListLine, column: Binary.Column)->String => RichStrin
 
     completeBinaryViewerWindow(&host, window)
 
+    // The bars are photographed over the structure tree: the report page would show the name of
+    // the temporary fixture through their corners.
+    assume cast(*Binary.Panel, window.currentView).showPage(false)
+
     // Nothing floats over the report until it is asked for: the find bar by its key, the
     // viewer's commands by the pointer.
     Swag.assert(window.currentActions == null)

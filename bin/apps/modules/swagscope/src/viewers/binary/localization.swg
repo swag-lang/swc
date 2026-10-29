@@ -12,23 +12,29 @@ using Core, Gui
 // are proper names, not sentences.
 struct Texts
 {
-    ui_Filter:       string = "Filter report"                                                          // Placeholder of the structure filter.
-    ui_FilterTip:    string = "Show matching rows and the parent structures that contain them"         // Tooltip explaining hierarchical filtering.
-    ui_ColField:     string = "Field"                                                                  // Header of the structure column.
-    ui_ColValue:     string = "Value"                                                                  // Header of the decoded value column.
-    ui_ColOffset:    string = "Offset"                                                                 // Header of the file offset column.
-    ui_ColDetail:    string = "Meaning"                                                                // Header of the explanation column.
-    ui_MenuCopyAll:  string = "Copy the Whole Report"                                                  // Menu entry copying every row.
-    ui_MenuCopyLine: string = "Copy This Line"                                                         // Menu entry copying the selected row.
-    ui_MenuExpand:   string = "Expand Everything"                                                      // Menu entry opening every group.
-    ui_MenuCollapse: string = "Collapse Everything"                                                    // Menu entry closing every group.
-    ui_MenuGoTo:     string = "Go to File Offset"                                                      // Menu entry opening the file-offset dialog.
-    ui_GoToMessage:  string = "Hexadecimal file offset, or a signed offset from the selected row."     // Question of the jump dialog.
-    ui_MenuBack:     string = "Previous Location"                                                      // Menu entry walking backward through selected report rows.
-    ui_MenuForward:  string = "Next Location"                                                          // Menu entry walking forward through selected report rows.
-    ui_NotSet:       string = "not set"                                                                // Value of an absent timestamp.
-    ui_NotDate:      string = "not a date"                                                             // Value of a timestamp outside the supported calendar.
-    ui_Preview:      string = "Preview"                                                                // Label of an SCC preview image.
+    ui_Filter:        string = "Filter report"                                                          // Placeholder of the structure filter.
+    ui_FilterTip:     string = "Show matching rows and the parent structures that contain them"         // Tooltip explaining hierarchical filtering.
+    ui_ColField:      string = "Field"                                                                  // Header of the structure column.
+    ui_ColValue:      string = "Value"                                                                  // Header of the decoded value column.
+    ui_ColOffset:     string = "Offset"                                                                 // Header of the file offset column.
+    ui_ColDetail:     string = "Meaning"                                                                // Header of the explanation column.
+    ui_MenuCopyAll:   string = "Copy the Whole Report"                                                  // Menu entry copying every row.
+    ui_MenuCopyLine:  string = "Copy This Line"                                                         // Menu entry copying the selected row.
+    ui_MenuExpand:    string = "Expand Everything"                                                      // Menu entry opening every group.
+    ui_MenuCollapse:  string = "Collapse Everything"                                                    // Menu entry closing every group.
+    ui_MenuGoTo:      string = "Go to File Offset"                                                      // Menu entry opening the file-offset dialog.
+    ui_GoToMessage:   string = "Hexadecimal file offset, or a signed offset from the selected row."     // Question of the jump dialog.
+    ui_MenuBack:      string = "Previous Location"                                                      // Menu entry walking backward through selected report rows.
+    ui_MenuForward:   string = "Next Location"                                                          // Menu entry walking forward through selected report rows.
+    ui_NotSet:        string = "not set"                                                                // Value of an absent timestamp.
+    ui_NotDate:       string = "not a date"                                                             // Value of a timestamp outside the supported calendar.
+    ui_Preview:       string = "Preview"                                                                // Label of an SCC preview image.
+    ui_ShowStructure: string = "Show the Structure"                                                     // Lens entry leaving the report page for the structure tree.
+    ui_ShowReport:    string = "Show the Report"                                                        // Lens entry coming back to the report page.
+    ui_Imports:       string = "imports"                                                                // Label under the count of imported symbols.
+    ui_Entropy:       string = "entropy, bits per byte"                                                 // Label under the entropy of the file.
+    ui_Strings:       string = "strings"                                                                // Label under the count of readable strings.
+    ui_MoreLibraries: string = "% more libraries"                                                       // Last line of a cut list of libraries; placeholder: how many.
 
     word_Section:    string = "section"        // One section.
     word_Sections:   string = "sections"       // Several sections.
@@ -118,6 +124,7 @@ struct Texts
     pe_ImportOutside:  string = "the import directory is outside every section"          // Unreachable import directory.
     pe_ImportTotal:    string = "Total"                                                  // Row totalling imported symbols.
     pe_ImportSymbols:  string = "imported symbols"                                       // Unit of the import total.
+    pe_Signed:         string = "signed"                                                 // Identity word of an image that carries a certificate.
     pe_ImportLookup:   string = "import lookup table"                                    // Meaning of `OriginalFirstThunk`.
     pe_ImportAddress:  string = "import address table"                                   // Meaning of `FirstThunk`.
     pe_Bound:          string = "bound to a specific build"                              // Meaning of a set import stamp.

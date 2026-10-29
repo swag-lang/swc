@@ -79,3 +79,29 @@ func picturedFixture(name: string)->String => Path.combine(unwrap Path.directory
     Swag.assert(view.details == "0x10 – 0x1C · 13 bytes selected")
     photographViewer(&host, window, "pictured.hex")
 }
+
+// A Windows program on the binary viewer's report page, as its picture shows it: the name over the
+// identity line, the figures, the sections as one bar, the imports by library.
+#[Swag.TestTag("golden")]
+#test
+{
+    var host: Testing.HeadlessHost
+    let window = framedViewerWindow(&host, picturedFixture("viewer.console.exe"), false)
+    Swag.assert(window.choices[window.activeChoiceIndex].key == "binary")
+    let view = assume cast(*Viewers.Binary.Panel, window.currentView)
+
+    with let overview = &view.doc.report.overview
+    {
+        Swag.assert(.identity.count >= 3 and .identity[0] == "PE32+" and .identity[1] == "x64")
+        Swag.assert(.sections.count != 0 and .sections[0].name == ".text")
+        Swag.assert(.strings != 0)
+        Swag.assert(.libraries.count != 0)
+        Swag.assert(.imports != 0)
+    }
+
+    Swag.assert(view.page.isLocallyVisible() and not view.list.isLocallyVisible())
+    photographViewer(&host, window, "pictured.binary.page")
+
+    view.showPage(false)
+    Swag.assert(view.list.isLocallyVisible() and not view.page.isLocallyVisible())
+}

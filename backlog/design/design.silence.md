@@ -97,7 +97,7 @@ dialogs, then each application, then the written rules.
     shipped frame start at the top edge: they need the frame (StandardWindow) to sit under the
     strip as the pictures do; the boards, archive and PDF goldens already have it.
   - Not yet rebuilt on their pictures: image (`scope.image`), table, HTML (column, address,
-    outline), binary (report page), font (specimen page);
+    outline), font (specimen page);
     the "Column ▾" quiet menu of text; the progress thread under the strip with documents
     scrolling under it.
   - Viewers photographed in the shipped frame against their pictures (`pictured.*`): the image
@@ -118,11 +118,17 @@ dialogs, then each application, then the written rules.
     its readings, then the fields of its chunk. What still differs: the grid does not tint the
     chunk-type bytes; the reading line stands at the window's edge rather than the grid's and
     keeps the zoom at its right; the inspector lists every field of the chunk (compression,
-    filter, CRC) where the picture keeps five, under the specification's names. Binary
-    (`pictured.binary`) is still the structure tree, not the report page —
-    title, mono identity line, large figures (sections, imports, entropy, strings), the sections as
-    one proportional bar with its legend, the imports by library.
-- Next: binary on its picture; the hex grid's tint of a structure's tag bytes; the font's other styles, glyph names and sample field;
+    filter, CRC) where the picture keeps five, under the specification's names. An executable
+    opens on the binary viewer's report page (`pictured.binary.page`, a small console program):
+    its name over the mono identity line, the figures in large light type, the sections as one
+    proportional bar with its legend, the imports by library; the structure tree is a lens entry
+    away, and a search or a jump goes back to it. What still differs: only the four largest
+    sections take a hue (the theme has four series hues) and the hues are the theme's, brighter
+    than the picture's; the machine reads "x64"; the reading line gives the format summary, not
+    the parts of the report as lens entries; only PE images fill the page — ELF, Mach-O and the
+    other formats keep the tree (`pictured.binary`).
+- Next: the binary report's parts in the reading line and the lens, and its page for ELF and
+  Mach-O; the hex grid's tint of a structure's tag bytes; the font's other styles, glyph names and sample field;
   coloured code cards in HTML and the section being read marked; the table's row pitch; the mixed board's waveform cells,
   "Aa" in the font's own face, a film's picture size in its facts, and an ExtraBold page title.
 - Done when: every Scope golden matches its picture as a whole screen.

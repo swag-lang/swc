@@ -501,11 +501,17 @@ the screen to its work.
 - The lens closes with the recent captures as a strip of pictures ended by `Library →`; `↓`
   reaches the strip, `←` `→` go along it, Enter opens the one ringed in Arc.
 - The inspector shows the presets of the selection's kind (of the tool in hand without a
-  selection; none for a selection of several kinds): one row of four and `+`, or four and `•••`
+  selection; none for a selection of several kinds): one row of five and `+`, or five and `•••`
   opening every preset with `+`, ordered by use; `↓` on `•••` opens the popover, the arrows,
   Enter and `Esc` go through it. The preset in force is named under the row; a right click
   renames it, replaces it with the current style or removes it. The head rows of the inspector
-  scroll with its settings. Library folder tabs give their count in mono.
+  scroll with its settings, which stand 30 apart under TEXT, SHAPE, STROKE, ENDS, EFFECTS and
+  POSITION. Several objects are titled by their kinds ("2 rectangles · 1 text"), what they
+  share first. Library folder tabs give their count in mono.
+- The dock holds eight tools in 30-pixel cells: select, shape (and polygon), arrow (and line),
+  text, callout, draw (and highlighter), step, image (and pixel selection, favourites). A cell
+  with a corner mark lists its group on a click on the mark or a right click; every tool keeps
+  its command, its lens entry and its key, and comes into its cell when used.
 
 ![Arrow](imgs/capture.edit.arrow.png) ![Callout](imgs/capture.edit.callout.png)
 ![Mask](imgs/capture.edit.mask.png) ![Steps](imgs/capture.edit.steps.png)

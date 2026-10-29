@@ -138,23 +138,19 @@ dialogs, then each application, then the written rules.
 
 - Evidence: a whole-screen comparison of every `capture.*` picture with its golden
   (`surface`, `edit.{arrow,callout,multi,step,mask,color.paper,text,text.paper}`, `area`,
-  `inplace{,.paper}`, `library.surface`, `lens.paper`, `presets{,.paper}`) leaves these
-  differences, which the data of Capture alone cannot close:
-  - the inspector rows are 38 px apart where the pictures set them about 29 apart
-    (`control_InspectorHeight`), and the pictures group the settings under TEXT, SHAPE, STROKE,
-    ENDS, EFFECTS and POSITION section labels where the grid has COLOR and STYLE only; the line
-    spacing of a callout has no row;
-  - a multiple selection reads "3 objects" where the picture details its kinds ("2 rectangles ·
-    1 text") and puts the common settings first, before align, arrange and layers;
-  - the dock holds thirteen tools in 36 px cells where the picture shows eight in smaller ones;
-  - the lens is wider than in the picture, and the commands matching "image" fill it, so the
-    recent captures it closes with sit below the fold of the golden;
-  - a tool's row holds four presets where the pictures show five, because a 44-wide cell with
-    its ring room leaves five chips across the inspector;
-  - the in-place editor and the area overlay match their pictures; the area bar's words are a
-    step larger than in the picture.
-- Next: decide the inspector row height and the section labels of the generated grid with the
-  charter owner, then group the Capture fields under those labels.
+  `inplace{,.paper}`, `library.surface`, `lens.paper`, `lens.recent.paper`, `presets{,.paper}`)
+  leaves these differences:
+  - the line and arrow settings read ENDS before STROKE, where the pictures put STROKE first: the
+    fields a line adds come before those of the form it uses, and the stroke fields belong to
+    the latter; the dash and the end glyphs stay in the head's STYLE section;
+  - a slider row stands a few pixels taller than the 30-pixel pitch of the other rows;
+  - past two kinds, a multiple selection is titled by its count ("5 objects");
+  - a preset cell is 38 by 31 where the pictures draw 44 by 36, so that five presets and their
+    chip fit across the inspector;
+  - the lens golden for a query lists more commands than the picture, so its recent captures sit
+    below the fold; `lens.recent.paper` shows them at rest.
+- Next: let the generated grid order a used structure's categories among the struct's own (an
+  `After` that crosses into the used structure), then put STROKE before ENDS.
 - Done when: each `capture.*` picture is reproduced by its golden.
 - Related: design.silence.004, design.silence.005
 

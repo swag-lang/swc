@@ -2119,14 +2119,6 @@ impl ExplorerGrid
             return
         painter.setAntialiased(true)
 
-        // The chosen item is ringed in Arc, the ring standing just off its tile.
-        if .explorer.selected == index
-        {
-            var ring = tile
-            ring.inflate(RingWeight + 1)
-            painter.drawRoundRect(ring, radius + RingWeight + 1, radius + RingWeight + 1, colors.arc, RingWeight)
-        }
-
         painter.fillRoundRect(tile, radius, radius, colors.raised)
         let glyph = .theme().fileGlyph(entry.name, entry.directory, 32)
         if .board == .Grid and .paintCard(painter, tile, entry)
@@ -2184,6 +2176,14 @@ impl ExplorerGrid
             }
         }
 
+        // Draw the selection after the preview so the picture cannot cover its Arc outline.
+        if .explorer.selected == index
+        {
+            var ring = tile
+            ring.inflate(RingWeight + 1)
+            painter.drawRoundRect(ring, radius + RingWeight + 1, radius + RingWeight + 1, colors.arc, RingWeight)
+        }
+
         // A mosaic is pictures alone.
         if .board == .Mosaic do
             return
@@ -2198,6 +2198,8 @@ impl ExplorerGrid
             title = entry.movie.title.toString()
         elif .board == .Covers and entry.music.title.length do
             title = entry.music.title.toString()
+        if .explorer.selected == index do
+            painter.fillRoundRect(Math.Rectangle{tile.x, tile.bottom() + 4, tile.width, 52}, radius, radius, colors.selection)
         .paintName(painter, nameRect, row, index, font, title)
 
         let factsY = mono.opticalLineTop(tile.bottom() + 37)
@@ -2563,7 +2565,8 @@ impl ExplorerGrid
                 painter.fillRoundRect(rect, metrics.corner_Control, metrics.corner_Control, colors.raised)
 
             let glyph = explorer.entryIcon(index, metrics.menuPopup_IconSize)
-            glyph.paint(painter, rect.x + 12, Math.round(centerY - glyph.sizeY * 0.5), colors.softText)
+            let glyphInk = explorer.selected == index ? colors.arc : colors.softText
+            glyph.paint(painter, rect.x + 12, Math.round(centerY - glyph.sizeY * 0.5), glyphInk)
 
             let dateRight = rect.right() - 12
             let sizeRight = dateRight - DateColumn

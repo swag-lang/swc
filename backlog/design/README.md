@@ -80,6 +80,24 @@ selection handles on a canvas; the "value changed from default" dot; information
 
 Never put Voltage text on Papier, never wash a row with Voltage, never draw a Voltage rail or band.
 
+### Pointing, focus and selection
+
+These are separate states and each keeps its own signal:
+
+- **Hover** is temporary. Raise the whole hit target under the pointer; do not highlight only its
+  text or glyph. It leaves when the pointer leaves.
+- **Keyboard focus** is where keys act. Show its 2 px focus ring in Voltage on Encre and ink on
+  Papier. Moving focus never silently changes which item is selected.
+- **Selection** is the file or folder the reader chose. Keep it visibly marked after the pointer
+  leaves and while the control is not focused. A row uses the Arc selection ground across its full
+  bounds. A thumbnail keeps its picture intact, with an Arc outline painted above the picture and
+  the Arc selection ground under its name and facts. The selected glyph may take the selection's
+  ink; unrelated text and facts stay neutral.
+
+Selection is never conveyed by hover alone, by a thin mark that the content covers, or by a glyph
+colour alone. Encre and Papier use the same distinction, and every selectable row and tile is
+checked in both.
+
 ## Measures
 
 | Part | Value |

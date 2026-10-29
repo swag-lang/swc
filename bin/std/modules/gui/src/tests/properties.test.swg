@@ -2246,7 +2246,7 @@ struct PropAlignData
 func assertPropertyViewMenuAnchor(light: bool)
 {
     var host: Testing.HeadlessHost
-    host.setup(520, 360)
+    host.setup(520, 480)
     if light do
         host.theme.setLight()
     else do
@@ -2376,3 +2376,118 @@ func assertPropertyPresentationGolden(kind: PropertiesKind, name: string, light:
 #test { assertPropertyPresentationGolden(.List, "properties.list", true) }
 #[Swag.TestTag("golden")]
 #test { assertPropertyPresentationGolden(.Panel, "properties.panel", true) }
+
+// The settings of a drawn shape, in sections and subsections, for the property editor at its
+// fullest: the section list, the search, and the presentation menu.
+struct PropCtrlGoldenData
+{
+    #[Category("Appearance"), Name("Opacity"), SliderMinMax(0, 1)]
+    opacity: f32 = 1
+
+    #[Category("Appearance"), Name("Outline Opacity"), SliderMinMax(0, 1)]
+    outlineOpacity: f32 = 1
+
+    #[Category("Layout"), Name("Width")]
+    width: f32 = 320
+
+    #[Category("Layout"), Name("Height")]
+    height: f32 = 200
+
+    #[Category("Text"), Name("Font Size")]
+    fontSize: f32 = 14
+
+    #[Category("Advanced/Rendering"), Name("Optimize Gradients")]
+    optimizeGradients = true
+
+    #[Category("Advanced/Export"), Name("Scale")]
+    scale: f32 = 2
+}
+
+// Returns the count the section list writes after the section `index`.
+func sectionCountText(ctrl: *PropertiesCtrl, index: u64)->string => ctrl.sectionLines[index].items[1]!.name.raw
+
+// The editor changes presentation at run time: the rows are built again from the same
+// structure, with its values and the search in force, and the section list counts the fields
+// each section lets through.
+#test
+{
+    var host: Testing.HeadlessHost
+    host.setup(720, 520)
+
+    var data: PropCtrlGoldenData
+    data.opacity = 0.4
+    let ctrl = PropertiesCtrl.create(&host.root, {0, 0, 720, 520}, .Grid, .SectionNavigation | .SearchBar)
+    ctrl.addStruct(data)
+    host.root.applyLayout()
+    host.pump()
+
+    Swag.assert(ctrl.sectionLines.count == 6)
+    for expected, index in ["2", "2", "1", "2", "1", "1"] do
+        Swag.assert(sectionCountText(ctrl, index) == expected)
+
+    ctrl.search.setText("op")
+    Swag.assert(ctrl.properties.matchCount() == 3)
+    for expected, index in ["2", "0", "0", "1", "1", "0"] do
+        Swag.assert(sectionCountText(ctrl, index) == expected)
+
+    for kind in [PropertiesKind.Panel, .List, .Condensed, .Grid]
+    {
+        ctrl.setKind(kind)
+        host.root.applyLayout()
+        host.pump()
+        Swag.assert(ctrl.properties.kind == kind and ctrl.properties.matchCount() == 3)
+        Swag.assert(ctrl.sectionLines.count == 6 and sectionCountText(ctrl, 3) == "1")
+
+        // A slider shows the value the data holds, whatever the presentation.
+        let opacity = unwrap findFieldItem(ctrl.properties, #nameof(PropCtrlGoldenData.opacity))
+        Swag.assert(opacity.sliderBox != null and Math.abs(opacity.sliderBox.value() - 0.4) < 0.001)
+    }
+
+    ctrl.search.setText("")
+    Swag.assert(sectionCountText(ctrl, 1) == "2")
+}
+
+// The section list with its counts, the search and the presentation menu open over the grid,
+// in Encre and in Papier.
+func assertPropertiesCtrlGolden(light: bool)
+{
+    var host: Testing.HeadlessHost
+    host.setup(880, 560)
+    if light
+    {
+        host.theme.setLight()
+        host.notify(.ThemeChanged)
+    }
+
+    var data: PropCtrlGoldenData
+    data.opacity = 0.6
+    let ctrl = PropertiesCtrl.create(&host.root, kind: .Grid, flags: .SectionNavigation | .SearchBar)
+    ctrl.dockStyle = .Center
+    ctrl.addStruct(data)
+    host.root.applyLayout()
+    host.pump()
+    ctrl.search.setText("op")
+    ctrl.search.setFocus()
+    host.settleAnimations(ctrl, 6)
+
+    var checked: bool
+    host.app.sigFrame += func|host = &host, light, checked = &checked|(_)
+    {
+        if checked[] do
+            return
+        let popup = unwrap host.capturedPopupMenu()
+        let image = host.render()
+        Pixel.Testing.assertImageGolden(&image, light ? "properties.ctrl.paper" : "properties.ctrl.ink")
+        checked[] = true
+        popup.setEndModal("property-view-panel")
+    }
+
+    ctrl.viewButton.sigPressed.call(ctrl.viewButton)
+    Swag.assert(checked and ctrl.properties.kind == .Panel)
+    host.pump()
+}
+
+#[Swag.TestTag("golden")]
+#test { assertPropertiesCtrlGolden(false) }
+#[Swag.TestTag("golden")]
+#test { assertPropertiesCtrlGolden(true) }

@@ -29,25 +29,6 @@ dialogs, then each application, then the written rules.
   application re-implements one or insets its whole root under the strip.
 - Related: design.silence.007, design.silence.008
 
-### design.silence.005 — The property grid control still lacks search marks and the layout menu
-
-- Evidence: the rows follow the charter (`properties.{grid,condensed,list,panel}.{ink,paper}`
-  goldens: Arc dot after a changed name, faint revert glyph, padlock of a read-only value, section
-  labels in faint spaced capitals with a faint chevron and, in Panel, a hairline; Condensed rows of
-  26 with a hairline; validation as a dot and a line in the tone; notes as the Arc notice).
-  A search marks the matched characters of a name on the highlight ground and counts the found
-  fields in the search field. `PropertiesCtrl` does not show counts in the section list, and the `•••` menu offers no Presentation choice, because
-  `Properties.kind` is fixed at creation. In Panel the self-labelled editors carry no changed-value
-  dot, a Condensed warning shows its line instead of a caution mark in the left margin, and the
-  Panel golden shows `Opacity` at 0 while the data holds 0.4 (it did before this restyle too).
-- Next: let `Properties` switch kind by rebuilding its rows, put List, Grid, Condensed and Panel
-  under a Presentation section of the joined `•••` menu with `✓` in Arc, count results in the
-  section list; then fix
-  the Panel slider refresh. The Panel and Grid rows of the charter also show a slider's value as a
-  mono reading with no box: Swag Capture's inspector sets the value face itself
-  (`PropWnd.fitFieldLabelColumn`).
-- Done when: `gui.properties.ctrl.paper` is reproduced by a `properties.ctrl.{ink,paper}` golden.
-
 ### design.silence.006 — The file box modes and details of its rows are not built
 
 - Evidence: `FileDlg` and the embedded `FileBrowserCtrl` follow the open file box of the dialog
@@ -149,7 +130,7 @@ dialogs, then each application, then the written rules.
 - Next: give a quick style a name, shown under the strip and on its tooltip; let the inspector
   scroll its head rows with its content.
 - Done when: each `capture.*` picture is reproduced by its golden.
-- Related: design.silence.004, design.silence.005
+- Related: design.silence.004
 
 ### design.silence.011 — The window scripts were not reviewed against the charter
 

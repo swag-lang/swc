@@ -127,6 +127,13 @@ struct Strings
         prop_CollapseAll:      string = "Collapse All"                      // Collapse every property group.
         prop_ExpandModified:   string = "Expand Modified"                   // Expand groups containing modified fields.
         prop_ShowModifiedOnly: string = "Show Modified Only"                // Restrict a property view to changed fields.
+        prop_Presentation:     string = "Presentation"                      // Label of the ways a property view can be shown.
+        prop_ResultOne:        string = "% result"                          // Reading of a property search that found one field.
+        prop_ResultMany:       string = "% results"                         // Reading of a property search that found none or several fields.
+        prop_KindList:         string = "List"                              // Property view as names stacked above their editors.
+        prop_KindGrid:         string = "Grid"                              // Property view as a column of names and a column of values.
+        prop_KindCondensed:    string = "Condensed"                         // Property view as a dense table of thin rows.
+        prop_KindPanel:        string = "Panel"                             // Property view as full-width self-labelled controls.
         prop_MixedValues:      string = "Mixed values"                      // Placeholder of a field whose value differs across the selected objects.
 
         // Wording of the [[Gui.ApplicationOptions]] rows a property grid generates from

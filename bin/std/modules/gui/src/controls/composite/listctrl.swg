@@ -706,9 +706,14 @@ private impl ListView
 
         // A row keeps its content clear of its own leading edge. A list with a header takes that
         // air from the header's own column inset instead; adding it here as well would slide
-        // every cell out from under its title.
-        if .list.header == null do
+        // every cell out from under its title. Without a header, a cell after the first spans the
+        // row, so a figure set to the right keeps the same air from the trailing edge.
+        if .list.header == null
+        {
             pos.moveLeft(metrics.list_Padding)
+            if itemIndex != 0 and item.horzAlign != .Left do
+                pos.width = Math.max(pos.width - metrics.list_Padding, 0)
+        }
 
         if itemIndex == 0
         {
@@ -753,7 +758,7 @@ private impl ListView
                 if not itemIndex and line.parent do
                     iconMargin = line.parent.iconMargin
                 elif itemIndex do
-                    iconMargin = .list.header.itemAt(cast(u32, itemIndex)).reservesIconSpace
+                    iconMargin = .list.header != null and .list.header.itemAt(cast(u32, itemIndex)).reservesIconSpace
                 if iconMargin do
                     pos.moveLeft(.list.iconSize + metrics.iconText_Margin)
             }

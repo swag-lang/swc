@@ -498,7 +498,13 @@ the screen to its work.
   the inspector; while words are typed it stands below them. The inspector keeps the face, the
   size, the style "Aa" segments and the vertical alignment; the alignment across lives in the
   mini-bar.
-- The lens closes with the recent captures as a strip of pictures ended by `Library →`.
+- The lens closes with the recent captures as a strip of pictures ended by `Library →`; `↓`
+  reaches the strip, `←` `→` go along it, Enter opens the one ringed in Arc.
+- The inspector shows the presets of the selection's kind (of the tool in hand without a
+  selection; none for a selection of several kinds): one row of four and `+`, or four and `•••`
+  opening every preset with `+`. The preset in force is named under the row; a right click
+  renames it, replaces it with the current style or removes it. The head rows of the inspector
+  scroll with its settings. Library folder tabs give their count in mono.
 
 ![Arrow](imgs/capture.edit.arrow.png) ![Callout](imgs/capture.edit.callout.png)
 ![Mask](imgs/capture.edit.mask.png) ![Steps](imgs/capture.edit.steps.png)

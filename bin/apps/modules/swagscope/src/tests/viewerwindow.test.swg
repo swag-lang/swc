@@ -2702,7 +2702,6 @@ func createPictureFolder(stem: string, names: const [..] string)->String
     paperHost.setup(960, 680)
     shipFrame(&paperHost)
     paperHost.theme.setLight()
-    paperHost.notify(.ThemeChanged)
     let paperWindow = ViewerWindow.create(&paperHost.surfaceWnd, createViewerPluginRegistry())
     paperWindow.resize(960, 680)
     paperWindow.openFile(fileName, remember: false)
@@ -2778,12 +2777,17 @@ func createPictureFolder(stem: string, names: const [..] string)->String
     paperWindow.exploreFolder()
     let paperExplorer = unwrap paperWindow.explorer
     completeLensExplorer(&paperHost, paperExplorer)
+    paperHost.notify(.ThemeChanged)
     selected = Swag.U64.Max
     for &entry, index in paperExplorer.entries where entry.name == Path.fileName(fileName) do
         selected = index
     Swag.assert(selected != Swag.U64.Max)
     paperExplorer.selected = selected
     paperWindow.lens.open()
+    Swag.assert(paperWindow.isExploring())
+    Swag.assert(paperWindow.lens.results.sections[0]!.label == appStrings().lens_Folder)
+    Swag.assert(lensHasEntry(paperWindow, appStrings().explore_Up))
+    Swag.assert(lensEntryOnFirstPage(paperWindow, appStrings().explore_Up))
     paperHost.finishAnimations()
     var paper = paperHost.render(paperWindow)
     Pixel.Testing.assertImageGolden(&paper, "viewer.lens.explorer.paper")

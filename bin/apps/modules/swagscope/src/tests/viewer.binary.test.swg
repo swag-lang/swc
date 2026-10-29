@@ -743,16 +743,16 @@ func fixtureGuid(text: string)->Guid128 => expect Guid128.parse(text)
 {
     var bytes: Array'u8
     bytes.resize(64)
-    pokeText(&bytes, 0, "\x89PNG\r\n\x1A\n")
+    pokeText(&bytes, 0, "GIF89a")
 
-    let fileName = writeFixture("png", bytes.toSlice())
+    let fileName = writeFixture("gif", bytes.toSlice())
     defer discard catch File.delete(fileName)
 
     var doc: Binary.Document
     let documentOpened = doc.open(fileName)
     Swag.assert(documentOpened)
     Swag.assert(doc.kind == .Unknown)
-    Swag.assert(doc.report.formatName == "PNG image")
+    Swag.assert(doc.report.formatName == "GIF image")
     Swag.assert(doc.image.region.isOpen() and doc.image.bytes.count == bytes.count)
 
     // A run of zeros carries no information at all, and the reading says so.
@@ -760,6 +760,36 @@ func fixtureGuid(text: string)->Guid128 => expect Guid128.parse(text)
     Swag.assert(entropy != null)
     Swag.assert(entropy.detail == Binary.texts().rep_EntropyLow)
     Swag.assert(findRow(&doc.report, Binary.texts().rep_FirstBytes) != null)
+}
+
+// A signature is compared byte for byte, those above 0x7F included.
+#test
+{
+    var bytes: Array'u8
+    bytes.resize(32)
+    for value, index in [0xFF'u8, 0xD8, 0xFF] do
+        bytes[index] = value
+
+    let fileName = writeFixture("jpg", bytes.toSlice())
+    defer discard catch File.delete(fileName)
+
+    var doc: Binary.Document
+    Swag.assert(doc.open(fileName) and doc.report.formatName == "JPEG image")
+}
+
+// A PNG is read as its chunk chain: each chunk a structure of its own, the image header decoded.
+#test
+{
+    let fileName = Path.combine(unwrap Path.directoryName(#curlocation.fileName), "datas", "title.png")
+
+    var doc: Binary.Document
+    Swag.assert(doc.open(fileName) and doc.kind == .Png and doc.image.bigEndian)
+    Swag.assert(doc.report.formatName == "PNG" and Utf8.contains(doc.report.summary.toSlice(), "5000 × 367"))
+
+    let header = findRow(&doc.report, "IHDR")
+    Swag.assert(header != null and header.offset == 8 and header.length == 25)
+    Swag.assert(rowValue(&doc.report, "Width") == "5000" and rowValue(&doc.report, "Colour type") == "6")
+    Swag.assert(findRow(&doc.report, "IEND") != null and findRow(&doc.report, Binary.texts().png_Malformed) == null)
 }
 
 // A file the reader cannot open crosses the viewer boundary without a local error view.

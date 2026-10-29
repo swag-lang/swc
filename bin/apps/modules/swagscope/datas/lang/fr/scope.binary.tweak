@@ -259,7 +259,6 @@ sig_Ole        fichier composé OLE
 sig_Tar        archive TAR
 sig_Pdf        document PDF
 sig_PostScript programme PostScript
-sig_Png        image PNG
 sig_Gif        image GIF
 sig_Jpeg       image JPEG
 sig_Bmp        image BMP

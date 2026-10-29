@@ -24,7 +24,6 @@ struct Texts
     ui_EndianBig:              string = "Big endian"                                                                                          // Big-endian byte-order choice.
     ui_ByteOrder:              string = "Byte order"                                                                                          // Option choosing the byte order of multi-byte values.
     ui_ZoomMenu:               string = "Byte View Zoom Options"                                                                              // Tooltip of the zoom value menu.
-    ui_TextColumn:             string = "text"                                                                                                // Header of the decoded-text column.
     ui_Empty:                  string = "This file is empty."                                                                                 // Message painted when the file has no bytes.
     ui_GoTo:                   string = "Go to Offset"                                                                                        // Dialog title and menu entry of the jump command.
     ui_GoToMessage:            string = "Hexadecimal or 0d decimal offset, percentage, caret, filesize, or signed caret-relative offset."     // Question of the jump dialog.
@@ -35,7 +34,8 @@ struct Texts
     ui_SearchHelp:             string = "Use hex bytes and ? wildcards; prefix exact UTF-8 with text: or the active scalar with value:."      // Tooltip explaining binary query syntax.
     ui_SearchPatternError:     string = "Use hexadecimal byte pairs with ??, ?A, or A? wildcards."                                            // Invalid hexadecimal pattern.
     ui_SearchValueError:       string = "Enter a value that fits the active width and representation."                                        // Invalid active scalar.
-    ui_InspectorEmpty:         string = "No bytes at the caret"                                                                               // Inline inspector before a byte is available.
+    ui_InspectorAt:            string = "% at 0x%"                                                                                            // What the inspector read its value as, and where; placeholders: the reading, the offset.
+    ui_DetailsSelection:       string = "% – % · % bytes selected"                                                                            // Selected range in the reading line; placeholders: first and last offsets, count.
     ui_Analysis:               string = "Analysis"                                                                                            // Heading of the byte-analysis panel.
     ui_AnalysisTip:            string = "Analyze the selection, or the whole file when one byte is selected"                                  // Tooltip of the visible analysis action.
     ui_AnalysisRun:            string = "Analyze the current selection, or the whole file when one byte is selected"                          // Tooltip of the repeated analysis action.

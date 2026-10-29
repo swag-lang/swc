@@ -3,9 +3,23 @@
 
 using Core, Pixel, Gui
 
-// Air along the left and right edges of the grid, and the gap between two columns.
+// Air along the left and right edges of the grid, between the offsets and the bytes, and between
+// the bytes and their text.
 const ViewInset = 12.0
-const ColumnGap = 14.0
+const OffsetGap = 36.0
+const TextGap   = 36.0
+
+// Air between two values, and the extra air between two groups of eight bytes. A byte is read as a
+// cell rather than as two characters of a line, so the cells keep air of their own.
+const CellGap  = 9.5
+const GroupGap = 14.0
+
+// Air a row keeps around its line of text, and above the first row.
+const RowAir = 8.0
+const TopAir = 20.0
+
+// Corner of the ground a selection, a match or the caret puts under a run of cells.
+const CellCorner = 4.0
 
 // Bytes one group of the hexadecimal column holds. The extra gap between groups is what lets an
 // eye count columns without reading the header.
@@ -251,11 +265,9 @@ struct GridView
     // drawn in two passes over the same columns, so one row costs a handful of draws instead of
     // one per byte, and the fixed-width font keeps both passes in their columns.
     rowOffsetText: Array'u8
-    rowHexStrong:  Array'u8
-    rowHexFaint:   Array'u8
     rowTextStrong: Array'u8
     rowTextFaint:  Array'u8
-    headerText:    Array'u8
+    cellText:      Array'u8
 }
 
 impl GridView
@@ -269,7 +281,8 @@ impl GridView
         return (.doc.fileSize + .bytesPerRow - 1) / .bytesPerRow
     }
 
-    mtd headerHeight()->f32 => .rowHeight + 8
+    // Height above the first row: the grid has no column header, only air.
+    mtd headerHeight()->f32 => TopAir
 
     mtd visibleRows()->u64
     {
@@ -286,34 +299,36 @@ impl GridView
         return rows > visible ? rows - visible : 0
     }
 
-    mtd gutterWidth()->f32           => cast(f32, .offsetDigits) * .charWidth + ColumnGap
+    mtd gutterWidth()->f32           => cast(f32, .offsetDigits) * .charWidth + OffsetGap
     mtd valueSize()->u64             => groupingSize(.grouping)
     mtd displayGroupSize()->u64      => .grouping == .Bytes ? DefaultGroupSize : .valueSize()
     mtd valueCellChars()->u64        => groupingChars(.grouping)
     mtd groupStart(offset: u64)->u64 => offset / .valueSize() * .valueSize()
 
+    // Width of one value cell, and the distance from one value to the next inside a group.
+    mtd cellWidth()->f32 => cast(f32, .valueCellChars()) * .charWidth
+    mtd cellPitch()->f32 => .cellWidth() + CellGap
+
+    // Returns the left edge of the value that holds byte `column` of a row, in view coordinates.
     mtd hexCellX(column: u64)->f32
     {
-        if .grouping == .Bytes do
-            return ViewInset + .gutterWidth() + cast(f32, column * 3 + column / DefaultGroupSize) * .charWidth
-        return ViewInset + .gutterWidth() + cast(f32, (column / .valueSize() * (.valueCellChars() + 1))) * .charWidth
+        let value = column / .valueSize()
+        let group = column / DefaultGroupSize
+        return ViewInset + .gutterWidth() + cast(f32, value) * .cellPitch() + cast(f32, group) * GroupGap
     }
 
     mtd hexColumnWidth(bytesPerRow: u64)->f32
     {
-        if .grouping == .Bytes
-        {
-            let last = bytesPerRow ? bytesPerRow - 1 : 0
-            return cast(f32, last * 3 + last / DefaultGroupSize + 2) * .charWidth
-        }
-
-        let values = bytesPerRow ? (bytesPerRow + .valueSize() - 1) / .valueSize() : 0
-        return values ? cast(f32, (values * (.valueCellChars() + 1) - 1)) * .charWidth : 0
+        if not bytesPerRow do
+            return 0
+        let values = (bytesPerRow + .valueSize() - 1) / .valueSize()
+        let groups = (bytesPerRow - 1) / DefaultGroupSize
+        return cast(f32, values) * .cellPitch() - CellGap + cast(f32, groups) * GroupGap
     }
 
-    mtd textColumnLeft()->f32       => ViewInset + .gutterWidth() + .hexColumnWidth(.bytesPerRow) + ColumnGap
+    mtd textColumnLeft()->f32       => ViewInset + .gutterWidth() + .hexColumnWidth(.bytesPerRow) + TextGap
     mtd textCellX(column: u64)->f32 => .textColumnLeft() + cast(f32, column) * .charWidth
-    mtd contentWidthFor(bytesPerRow: u64)->f32 => ViewInset + .gutterWidth() + .hexColumnWidth(bytesPerRow) + ColumnGap + cast(f32, bytesPerRow) * .charWidth + ViewInset
+    mtd contentWidthFor(bytesPerRow: u64)->f32 => ViewInset + .gutterWidth() + .hexColumnWidth(bytesPerRow) + TextGap + cast(f32, bytesPerRow) * .charWidth + ViewInset
     mtd contentWidth()->f32         => .contentWidthFor(.bytesPerRow)
 
     mtd setFontSize(size: u32)
@@ -433,7 +448,7 @@ impl GridView
         // fraction of a pixel per column, which by the last column of a row is a whole cell: the
         // caret lands beside its byte and the text column starts inside the hexadecimal one.
         .charWidth    = Math.max(Painter.measureStringSnapped("0", font, deviceScale: .deviceScale()), 1)
-        .rowHeight    = Math.max(Math.ceil(font.height), 1)
+        .rowHeight    = Math.max(Math.ceil(font.height + RowAir), 1)
         .offsetDigits = .doc.fileSize > 0xFFFF_FFFF ? 16 : 8
     }
 
@@ -454,7 +469,6 @@ impl GridView
             if .autoFitRow do
                 .bytesPerRow = .fitBytesPerRow()
             .topRow = Math.min(.topRow, .maxTopRow())
-            .buildHeader()
             .syncScrollBar()
             if .clientRect() == oldClient do
                 break
@@ -599,20 +613,18 @@ impl GridView
         }
         elif x >= ViewInset + .gutterWidth()
         {
-            if .grouping == .Bytes
+            // A point in the air after a value still names that value, so the cells tile the row.
+            column = .groupStart(.bytesPerRow - 1)
+            var candidate = 0'u64
+            while candidate < .bytesPerRow
             {
-                column = .bytesPerRow - 1
-                for candidate in .bytesPerRow where x < .hexCellX(candidate) + 3 * .charWidth
+                if x < .hexCellX(candidate) + .cellPitch()
                 {
                     column = candidate
                     break
                 }
-            }
-            else
-            {
-                let left  = ViewInset + .gutterWidth()
-                let group = cast(u64, Math.max(Math.floor((x - left) / (cast(f32, (.valueCellChars() + 1)) * .charWidth)), 0))
-                column = Math.min(group * .valueSize(), .bytesPerRow - 1)
+
+                candidate += .valueSize()
             }
         }
 
@@ -628,12 +640,21 @@ impl GridView
             return false
         .matchStart  = offset
         .matchLength = Math.min(length, .doc.fileSize - offset)
-        .caret       = offset
-        .anchor      = .matchLength ? offset + .matchLength - 1 : offset
+        .selectRange(offset, .matchLength)
+        return true
+    }
+
+    // Selects `length` bytes at `offset`, the caret on the first one, and brings them into view.
+    mtd selectRange(offset, length: u64)
+    {
+        if offset >= .doc.fileSize do
+            return
+        let count = Math.min(length, .doc.fileSize - offset)
+        .caret  = offset
+        .anchor = count ? offset + count - 1 : offset
         .ensureCaretVisible(true)
         .sigCaretChanged.call(me)
         .invalidate()
-        return true
     }
 
     mtd clearSearchMatch()
@@ -845,113 +866,58 @@ impl GridView
         discard menu.doModal(surfacePos, .TopLeft, autoDestroy: true)
     }
 
-    // Rebuilds the column header for the current grouping and row width.
-    mtd buildHeader()
+    // Writes the text of the value that starts at `offset` into `buffer`: two hexadecimal digits for
+    // a byte, the scalar the grouping reads otherwise, and `--` for a value the file cuts short.
+    //
+    // Painting writes every visible value through one reused buffer, so a frame allocates nothing
+    // for the bytes it draws.
+    mtd writeValueText(buffer: *Array'u8, offset: u64)
     {
-        .headerText.clear()
+        buffer.clear()
         if .grouping == .Bytes
         {
-            for column in .bytesPerRow
-            {
-                appendDigits(&.headerText, column, 2)
-                .headerText.add(' 'u8)
-                if column % DefaultGroupSize == DefaultGroupSize - 1 and column != .bytesPerRow - 1 do
-                    .headerText.add(' 'u8)
-            }
+            appendDigits(buffer, .doc.byteAt(offset), 2)
+            return
         }
-        else
+
+        if offset + .valueSize() > .doc.fileSize
         {
-            var column = 0'u64
-            while column < .bytesPerRow
-            {
-                let start = .headerText.count
-                .headerText.add('+'u8)
-                appendDigits(&.headerText, column, 2)
-                while .headerText.count - start < .valueCellChars() do
-                    .headerText.add(' 'u8)
-                .headerText.add(' 'u8)
-                column += .valueSize()
-            }
+            buffer.add('-'u8)
+            buffer.add('-'u8)
+            return
         }
+
+        let text = formatScalar(.grouping, .scalarAt(offset))
+        buffer.add(cast(const [..] u8, text.toSlice()))
     }
 
-    // Rebuilds the five reusable buffers one row is drawn from.
+    // Rebuilds the offset and the two text buffers one row is drawn from.
+    //
+    // A byte the text column cannot show as itself is a faint middle dot, so the readable runs stand
+    // out of the column as words.
     mtd buildRow(rowOffset: u64)
     {
         .rowOffsetText.clear()
-        .rowHexStrong.clear()
-        .rowHexFaint.clear()
         .rowTextStrong.clear()
         .rowTextFaint.clear()
         appendDigits(&.rowOffsetText, rowOffset, .offsetDigits)
-
-        if .grouping == .Bytes
-        {
-            for column in .bytesPerRow
-            {
-                let offset = rowOffset + column
-                if offset >= .doc.fileSize do
-                    break
-
-                let value = .doc.byteAt(offset)
-                let faint = value == 0
-                appendDigits(faint ? &.rowHexFaint : &.rowHexStrong, value, 2)
-                with let other = faint ? &.rowHexStrong : &.rowHexFaint
-                {
-                    .add(' 'u8)
-                    .add(' 'u8)
-                }
-
-                .rowHexStrong.add(' 'u8)
-                .rowHexFaint.add(' 'u8)
-                if column % DefaultGroupSize == DefaultGroupSize - 1
-                {
-                    .rowHexStrong.add(' 'u8)
-                    .rowHexFaint.add(' 'u8)
-                }
-            }
-        }
-        else
-        {
-            var column = 0'u64
-            while column < .bytesPerRow
-            {
-                let offset   = rowOffset + column
-                let complete = offset + .valueSize() <= .doc.fileSize
-                let raw      = complete ? .scalarAt(offset) : 0
-                let text     = complete ? formatScalar(.grouping, raw) : String.from("--")
-                let faint    = complete and raw == 0
-                let target   = faint ? &.rowHexFaint : &.rowHexStrong
-                let other    = faint ? &.rowHexStrong : &.rowHexFaint
-                for index in text.count
-                {
-                    target.add(text[index])
-                    other.add(' 'u8)
-                }
-
-                var written = text.count
-                while written < .valueCellChars()
-                {
-                    target.add(' 'u8)
-                    other.add(' 'u8)
-                    written += 1
-                }
-
-                target.add(' 'u8)
-                other.add(' 'u8)
-                column += .valueSize()
-            }
-        }
 
         for column in .bytesPerRow
         {
             let offset = rowOffset + column
             if offset >= .doc.fileSize do
                 break
-            let value     = .doc.byteAt(offset)
-            let printable = isPrintable(value)
-            .rowTextStrong.add(printable ? value : ' 'u8)
-            .rowTextFaint.add(printable ? ' 'u8 : '.'u8)
+            let value = .doc.byteAt(offset)
+            if isPrintable(value)
+            {
+                .rowTextStrong.add(value)
+                .rowTextFaint.add(' 'u8)
+            }
+            else
+            {
+                .rowTextStrong.add(' 'u8)
+                .rowTextFaint.add(cast(const [..] u8, "·"))
+            }
         }
     }
 
@@ -962,17 +928,29 @@ impl GridView
         painter.drawString(x, y, cast(string, buffer.toSlice()), font, color)
     }
 
-    // Fills the cells of `[first, last]` in both columns.
+    // Fills the cells of `[first, last]` in both columns, one rounded run per group of eight bytes:
+    // the air between two groups stays open, so a selection still shows where the groups part.
     mtd fillRange(painter: *Painter, first, last: u64, originX, y: f32, color: Color)
     {
         let firstColumn = first % .bytesPerRow
         let lastColumn  = last % .bytesPerRow
-        let hexLeft     = originX + .hexCellX(firstColumn)
-        let hexRight    = originX + .hexCellX(lastColumn) + cast(f32, .valueCellChars()) * .charWidth
-        painter.fillRect(hexLeft - 1, y, hexRight - hexLeft + 2, .rowHeight, color)
+        let pad         = CellGap * 0.5
+        let top         = y + 1
+        let height      = .rowHeight - 2
 
-        let textLeft = originX + .textCellX(firstColumn)
-        painter.fillRect(textLeft, y, cast(f32, lastColumn - firstColumn + 1) * .charWidth, .rowHeight, color)
+        var column = .groupStart(firstColumn)
+        while column <= lastColumn
+        {
+            let groupEnd = Math.min((column / DefaultGroupSize + 1) * DefaultGroupSize - 1, lastColumn)
+            let left     = originX + .hexCellX(column) - pad
+            let right    = originX + .hexCellX(.groupStart(groupEnd)) + .cellWidth() + pad
+            painter.fillRoundRect(Math.Rectangle{left, top, right - left, height}, CellCorner, CellCorner, color)
+            column = groupEnd + 1
+        }
+
+        let textLeft  = originX + .textCellX(firstColumn)
+        let textWidth = cast(f32, lastColumn - firstColumn + 1) * .charWidth
+        painter.fillRoundRect(Math.Rectangle{textLeft, top, textWidth, height}, CellCorner, CellCorner, color)
     }
 }
 
@@ -1239,38 +1217,37 @@ impl IWnd for GridView
 
         if not .doc.fileSize
         {
-            painter.drawString(originX + ViewInset, client.y + ViewInset, texts().ui_Empty, font, colors.label_TextLight)
+            painter.drawString(originX + ViewInset, client.y + TopAir, texts().ui_Empty, font, colors.label_TextLight)
             return
         }
 
         // Ink of a byte that carries a value, and of one that does not. Zero bytes keep their
         // place and lose their weight, which is what makes padding, alignment and unwritten
         // regions readable as shapes instead of as a wall of digits.
-        let strongInk   = colors.label_Text
+        let strongInk   = colors.text
         let faintInk    = Color.lerp(colors.view_Bk, colors.label_Text, 0.34)
-        let headerInk   = colors.label_TextFaint
-        let focused     = .hasFocus()
-        let selectBk    = focused ? colors.richEdit_SelBk : colors.richEdit_SelBkNoFocus
+        let offsetInk   = colors.faintText
+        let letterInk   = colors.softText
+        let selectBk    = .hasFocus() ? colors.selection : Color.lerp(colors.view_Bk, colors.selection, 0.6)
         let searchHitBk = Color.lerp(colors.view_Bk, colors.searchMatch_Border, 0.12)
         let matchBk     = colors.searchMatch_Bk
         let caretBk     = colors.signature
         let caretInk    = colors.onSignature
+
+        painter.setParams(.Antialiased)
 
         let visible = .visibleRows()
         let first   = Math.min(.topRow * .bytesPerRow, .lastOffset())
         let count   = Math.min(visible * .bytesPerRow, .doc.fileSize - first)
         discard .doc.ensure(first, count)
 
-        // Column header. It is the only chrome the grid carries, and one rule under it is all it
-        // takes to separate it from the rows.
-        let headerY = client.y + 4
-        .drawBuffer(painter, &.headerText, originX + ViewInset + .gutterWidth(), headerY, font, headerInk)
-        painter.drawString(originX + .textColumnLeft(), headerY, texts().ui_TextColumn, font, headerInk)
-        painter.drawLine(client.x, client.y + .headerHeight() - 2, client.right(), client.y + .headerHeight() - 2, colors.line, 1)
-
         let selectFirst = .selectionStart()
         let selectLast  = .selectionEnd()
         let matchLast   = .matchLength ? .matchStart + .matchLength - 1 : 0
+
+        // A match the selection covers is shown by the selection alone: the Voltage wash under the
+        // Arc ground would mix into a third colour.
+        let showMatch = .matchLength and not (.hasSelection() and selectFirst <= .matchStart and selectLast >= matchLast)
 
         for row in visible
         {
@@ -1279,6 +1256,7 @@ impl IWnd for GridView
                 break
             let rowLast = Math.min(rowOffset + .bytesPerRow - 1, .lastOffset())
             let y       = .rowTop(.topRow + row)
+            let textTop = font.opticalLineTop(y + .rowHeight * 0.5)
 
             let hits     = .searchHits
             var hitIndex = .firstSearchHitAt(rowOffset)
@@ -1290,35 +1268,47 @@ impl IWnd for GridView
                 hitIndex += 1
             }
 
-            if .matchLength and .matchStart <= rowLast and matchLast >= rowOffset do
+            if showMatch and .matchStart <= rowLast and matchLast >= rowOffset do
                 .fillRange(painter, Math.max(.matchStart, rowOffset), Math.min(matchLast, rowLast), originX, y, matchBk)
             if .hasSelection() and selectFirst <= rowLast and selectLast >= rowOffset do
                 .fillRange(painter, Math.max(selectFirst, rowOffset), Math.min(selectLast, rowLast), originX, y, selectBk)
 
             .buildRow(rowOffset)
-            .drawBuffer(painter, &.rowOffsetText, originX + ViewInset, y, font, headerInk)
-            .drawBuffer(painter, &.rowHexStrong, originX + ViewInset + .gutterWidth(), y, font, strongInk)
-            .drawBuffer(painter, &.rowHexFaint, originX + ViewInset + .gutterWidth(), y, font, faintInk)
-            .drawBuffer(painter, &.rowTextStrong, originX + .textColumnLeft(), y, font, strongInk)
-            .drawBuffer(painter, &.rowTextFaint, originX + .textColumnLeft(), y, font, faintInk)
+            .drawBuffer(painter, &.rowOffsetText, originX + ViewInset, textTop, font, offsetInk)
 
-            // The caret is a filled cell in the column being read and an outline in the other, so
-            // one glance says both which byte and which character it stands on.
+            // One cell per value, each at its own place in the row.
+            let size = .valueSize()
+            for value in (rowLast - rowOffset) / size + 1
+            {
+                let offset   = rowOffset + value * size
+                let complete = offset + size <= .doc.fileSize
+                let zero     = .grouping == .Bytes ? .doc.byteAt(offset) == 0 : (complete and .scalarAt(offset) == 0)
+                .writeValueText(&.cellText, offset)
+                .drawBuffer(painter, &.cellText, originX + .hexCellX(value * size), textTop, font, zero ? faintInk : strongInk)
+            }
+
+            .drawBuffer(painter, &.rowTextStrong, originX + .textColumnLeft(), textTop, font, letterInk)
+            .drawBuffer(painter, &.rowTextFaint, originX + .textColumnLeft(), textTop, font, offsetInk)
+
+            // The caret is the one Voltage mark of the grid: its value in the bytes, its character
+            // in the text, so one glance says both which byte and which letter it stands on.
             if .caret >= rowOffset and .caret <= rowLast
             {
                 let valueOffset = .groupStart(.caret)
-                let column      = valueOffset % .bytesPerRow
-                let complete    = valueOffset + .valueSize() <= .doc.fileSize
-                var text: String
-                if .grouping == .Bytes do
-                    text = Format.toString("%{X02}", .doc.byteAt(.caret))
-                elif complete do
-                    text = formatScalar(.grouping, .scalarAt(valueOffset))
+                let valueX      = originX + .hexCellX(valueOffset % .bytesPerRow)
+                painter.fillRoundRect(Math.Rectangle{valueX - 3, y + 1, .cellWidth() + 6, .rowHeight - 2}, CellCorner, CellCorner, caretBk)
+                .writeValueText(&.cellText, valueOffset)
+                .drawBuffer(painter, &.cellText, valueX, textTop, font, caretInk)
+
+                let value = .doc.byteAt(.caret)
+                let textX = originX + .textCellX(.caret % .bytesPerRow)
+                painter.fillRoundRect(Math.Rectangle{textX, y + 1, .charWidth, .rowHeight - 2}, 2, 2, caretBk)
+                .cellText.clear()
+                if isPrintable(value) do
+                    .cellText.add(value)
                 else do
-                    text = String.from("--")
-                painter.fillRect(originX + .hexCellX(column) - 1, y, cast(f32, .valueCellChars()) * .charWidth + 2, .rowHeight, caretBk)
-                painter.drawString(originX + .hexCellX(column), y, text, font, caretInk)
-                painter.drawRect(originX + .textCellX(.caret % .bytesPerRow), y, .charWidth, .rowHeight, caretBk, 1)
+                    .cellText.add(cast(const [..] u8, "·"))
+                .drawBuffer(painter, &.cellText, textX, textTop, font, caretInk)
             }
         }
     }

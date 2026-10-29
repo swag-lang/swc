@@ -25,52 +25,74 @@ func viewerPlugin()->Viewer.Plugin
 
 private
 {
-    const InspectorWidth = 420.0
-    const RowWidthCount  = 5'u32
-    const InfoWidth      = InspectorWidth + Viewer.ZoomSlotWidth
+    const RowWidthCount = 5'u32
+
+    // The page: the air before the grid's offsets on a wide window, the height of the tabs over
+    // the grid, and the floating inspector — its width, its distance from the window's edges, and
+    // the narrowest window that leaves the grid sixteen bytes beside it.
+    const PageInset      = 84.0
+    const TabsHeight     = 48.0
+    const InspectorWidth = 300.0
+    const InspectorGap   = 24.0
+    const InspectorTop   = 4.0
+    const WideWidth      = 1040.0
+
+    // Fields of one structure the inspector lists at most, around the one the caret stands on.
+    const FieldLimit = 8'u64
 }
 
-// Returns `value`, a `bits`-bit scalar, as `0b` and one binary digit per bit, as the inspector spells it.
-private func formatBinaryScalar(value, bits: u64)->String
+// What the background load hands to the view: the file, its first window resident, and what the
+// binary readers recognized in it.
+struct Loaded
 {
-    var text: Array'u8
-    text.reserve(bits + 2)
-    text.add('0'u8)
-    text.add('b'u8)
-    for index in bits
-    {
-        let shift = bits - 1 - index
-        text.add(value & (1'u64 << shift) ? '1'u8 : '0'u8)
-    }
-
-    return cast(string, text.toSlice())
+    document:  Document
+    structure: Structure
 }
 
-// Returns `value`, a `bits`-bit scalar, as `0o` and its octal digits, as the inspector spells it.
-private func formatOctalScalar(value, bits: u64)->String
-{
-    let digits = (bits + 2) / 3
-    var text: Array'u8
-    text.reserve(digits + 2)
-    text.add('0'u8)
-    text.add('o'u8)
-    for index in digits
-    {
-        let shift = (digits - 1 - index) * 3
-        text.add('0'u8 + cast(u8, ((value >> shift) & 7)))
-    }
-
-    return cast(string, text.toSlice())
-}
-
-// Opens `fileName` and makes its first window resident, outside the GUI thread.
-private func loadDocument(fileName: string)->Document fail
+// Opens `fileName`, makes its first window resident and reads its structure, outside the GUI thread.
+private func loadDocument(fileName: string)->Loaded fail
 {
     var result: #returntype
-    if not result.open(fileName) do
-        fail InvalidFormatError{Errors.mkString(result.failureReason)}
-    if result.fileSize and not result.ensure(0, Math.min(result.fileSize, WindowSize)) do
-        fail InvalidFormatError{Errors.mkString(result.failureReason)}
+    if not result.document.open(fileName) do
+        fail InvalidFormatError{Errors.mkString(result.document.failureReason)}
+    let resident = Math.min(result.document.fileSize, WindowSize)
+    if resident and not result.document.ensure(0, resident) do
+        fail InvalidFormatError{Errors.mkString(result.document.failureReason)}
+
+    result.structure = Structure.read(fileName)
+    return result
+}
+
+// Returns a decimal number with its thousands set apart, as the inspector prints a reading; any
+// other text, such as a hexadecimal or a float, is returned as it is.
+func groupThousands(text: string)->String
+{
+    let digits = (text.count and text[0] == '-') ? text.count - 1 : text.count
+    for index in text.count - digits until text.count where not Latin1.isDigit(text[index]) do
+        return text
+
+    var result: #returntype
+    for byte, at in text
+    {
+        let left = text.count - at
+        if at > text.count - digits and left % 3 == 0 do
+            result += " "
+        result += cast(rune, byte)
+    }
+
+    return result
+}
+
+// Reads `bytes` as one unsigned scalar, in the byte order `bigEndian` names.
+func readScalar(bytes: const [..] u8, bigEndian: bool)->u64
+{
+    var result = 0'u64
+    for index in bytes.count
+    {
+        let position = bigEndian ? index : bytes.count - 1 - index
+        result = (result << 8) | bytes[position]
+    }
+
     return result
 }
 
@@ -90,10 +112,13 @@ struct Panel
         optionsButton:  *IconButton
         analysisView:   *AnalysisView
         grid:           *GridView
+        tabs:           *StructureTabs
+        inspector:      *FloatingPanel
+        inspectorView:  *InspectorView
     }
 
-    inspectorLabel: *Label?
-    zoomLabel:      *IconButton?
+    zoomLabel: *IconButton?
+    built:     bool     // Whether every part the page places exists.
 
     // How the bytes are laid out and read, as the options chose it.
     rowWidthIndex:   u32      // Zero fits the window; otherwise 8, 16, 32 or 64 bytes per row.
@@ -106,7 +131,8 @@ struct Panel
     analysisTimer: *Timer?     // Refreshes the progress of a running analysis.
     fileName:      String
     details:       String
-    load:          Viewer.BackgroundLoad'Document
+    structure:     Structure     // What the binary readers recognized; the tabs and the inspector read it.
+    load:          Viewer.BackgroundLoad'Loaded
     services:      Viewer.HostServices
     failureReason: String
 }
@@ -141,17 +167,25 @@ private impl IWnd for Panel
             return
         }
 
-        var document: Document
-        .failureReason = .load.finish(&document)
+        var loaded: Loaded
+        .failureReason = .load.finish(&loaded)
         if not .failureReason.isEmpty()
         {
             .services.failed(me, .failureReason)
             return
         }
 
-        .grid.exchangeDocument(&document)
+        .grid.exchangeDocument(&loaded.document)
         .grid.doc.reportFailure = func|view = me|(reason) { view.services.failed(view, reason) }
 
+        // A recognized format says in which order its numbers are written, so the values read that
+        // way from the start.
+        .structure = #move loaded.structure
+        .tabs.setStructure(&.structure)
+        if not .structure.formatName.isEmpty() do
+            .setBigEndian(.structure.bigEndian)
+
+        .layoutPage()
         .applyLayout()
         .grid.refreshLayout()
         .refreshInspector()
@@ -166,6 +200,13 @@ private impl IWnd for Panel
             .retranslate()
         else do
             evt.accepted = false
+    }
+
+    mtd impl onResizeEvent(_: *ResizeEvent)
+    {
+        // The panel is sized while it is created, before the parts it places exist.
+        if .built do
+            .layoutPage()
     }
 }
 
@@ -297,8 +338,6 @@ impl Panel
         .optionsButton.toolTip  = appStrings().ui_Options
         .analysisButton.toolTip = texts().ui_AnalysisTip
         .analysisView.retranslate()
-        .details.clear()
-        .services.showDetails(me, .details)
         .grid.invalidate()
         .refreshInspector()
     }
@@ -375,24 +414,12 @@ impl Panel
         }
     }
 
-    private mtd inspectorScalar(bytes: const [..] u8, size: u64)->u64
-    {
-        var result = 0'u64
-        for index in size
-        {
-            let position = .grid.bigEndian ? index : size - 1 - index
-            result = (result << 8) | bytes[position]
-        }
-
-        return result
-    }
-
     // Returns the short tag of the current value grouping, such as `x16` or `s32`.
     private mtd activeValueTag()->string
     {
         switch #complete .grid.grouping
         {
-        case .Bytes:      return "x8"
+        case .Bytes:      return "u8"
         case .Hex16:      return "x16"
         case .Hex32:      return "x32"
         case .Hex64:      return "x64"
@@ -409,99 +436,166 @@ impl Panel
         }
     }
 
-    // Shows the caret offset, its position in the file, the selection length, and the active value in the information band.
-    //
-    // The compact line is glanceable; its tooltip spells the same bytes at every common scalar width.
+    // Returns the byte order a multi-byte value is read in: the format's when a reader recognized
+    // it, the one the options chose otherwise.
+    private mtd readingBigEndian()->bool => .structure.formatName.isEmpty() ? .grid.bigEndian : .structure.bigEndian
+
+    // Places the page: the grid on the reading edge with the tabs over it, and the inspector
+    // floating at the right when the window leaves the grid its sixteen bytes beside it.
+    mtd layoutPage()
+    {
+        let width = .position.width
+        let wide  = width >= WideWidth
+        let inset = wide ? PageInset : 0
+
+        .tabs.left = inset + ViewInset
+        .grid.scroll.margin = {inset, 0, wide ? InspectorWidth + 2 * InspectorGap : 0, 0}
+        .inspector.show(wide and .grid.doc.fileSize != 0)
+        if wide do
+            .inspector.setPosition({width - InspectorWidth - InspectorGap, InspectorTop, InspectorWidth, .inspectorView.contentHeight()})
+    }
+
+    // Selects the bytes of the structure behind tab `index`, the caret on its first byte.
+    mtd selectStructure(index: u64)
+    {
+        let tab = &.structure.tabs[index]
+        .grid.selectRange(tab.offset, tab.length)
+        .grid.setFocus()
+    }
+
+    // Shows what the caret stands on: the floating inspector, the tab of its structure, and the
+    // reading line under the grid.
     mtd refreshInspector()
     {
-        if not .inspectorLabel do
-            return
-        let label = .inspectorLabel
-        if not .grid.doc.fileSize
+        .tabs.follow(.grid.caret)
+        .refreshDetails()
+
+        with let view = .inspectorView
         {
-            label.setText(texts().ui_InspectorEmpty)
-            label.toolTip = texts().ui_InspectorEmpty
-            return
+            .headline.clear()
+            .caption.clear()
+            .readings.clear()
+            .fields.clear()
         }
 
-        let available = Math.min(8'u64, .grid.doc.fileSize - .grid.caret)
-        let bytes     = .grid.doc.read(.grid.caret, available)
-        if bytes.isEmpty()
+        defer
         {
-            label.setText(texts().ui_InspectorEmpty)
-            label.toolTip = texts().ui_InspectorEmpty
-            return
+            .layoutPage()
+            .inspectorView.invalidate()
         }
 
-        let offset = .offsetText(.grid.caret)
-        let size   = .grid.valueSize()
-        let active = size <= bytes.count ?
-                     formatScalar(.grid.grouping, .inspectorScalar(bytes.toSlice(), size)) :
-                     String.from("--")
-        let percent = .grid.doc.fileSize > 1 ?
-                      cast(f64, .grid.caret) * 100 / cast(f64, .grid.doc.fileSize - 1) :
-                      0
-        label.setText(Format.toString("@% · %{f1}%% · % B · % %",
-                                      offset,
-                                      percent,
-                                      .grid.selectionLength(),
-                                      .activeValueTag(),
-                                      active))
+        if not .grid.doc.fileSize do
+            return
+        let caret     = .grid.caret
+        let bytes     = .grid.doc.read(caret, Math.min(8'u64, .grid.doc.fileSize - caret))
+        let bigEndian = .readingBigEndian()
+        if bytes.isEmpty() do
+            return
 
-        var details = Format.toString("@% (%) · %{f1}%%\n[%..%] % B\n%",
-                                      offset,
-                                      .grid.caret,
-                                      percent,
-                                      .offsetText(.grid.selectionStart()),
-                                      .offsetText(.grid.selectionEnd()),
-                                      .grid.selectionLength(),
-                                      .grid.bigEndian ? "BE" : "LE")
-        let raw8 = .inspectorScalar(bytes.toSlice(), 1)
-        details += Format.toString("\nu8 % · s8 % · x8 0x%{X02} · b8 % · o8 % · bool %",
-                                   raw8,
-                                   signedScalar(raw8, 1),
-                                   raw8,
-                                   formatBinaryScalar(raw8, 8),
-                                   formatOctalScalar(raw8, 8),
-                                   raw8 ? "true" : "false")
-        if isPrintable(cast(u8, raw8)) do
-            details += Format.toString(" · ASCII '%'", cast(u8, raw8))
+        .describeValue(caret, bigEndian)
+        .describeReadings(bytes.toSlice(), bigEndian)
+        .describeFields(caret)
+    }
+
+    // Writes the value under the caret in large type, and what it was read as: the field of the
+    // structure that holds the caret, or the value the grid shows there.
+    private mtd describeValue(caret: u64, bigEndian: bool)
+    {
+        let view  = .inspectorView
+        let order = bigEndian ? "BE" : "LE"
+        let field = .structure.fieldAt(caret)
+        if field != Swag.U64.Max
+        {
+            let row   = &.structure.report.rows[field]
+            let bytes = .grid.doc.read(row.offset, row.length)
+            if bytes.count == row.length
+            {
+                let kind = row.length == 1 ? String.from("u8") : Format.toString("u% %", row.length * 8, order)
+                view.headline = groupThousands(Format.toString("%", readScalar(bytes.toSlice(), bigEndian)))
+                view.caption  = Format.toString(texts().ui_InspectorAt, kind, .offsetText(row.offset))
+                return
+            }
+        }
+
+        // A byte is read as a number here: the grid already shows its hexadecimal digits.
+        let start    = .grid.groupStart(caret)
+        let size     = .grid.valueSize()
+        let kind     = size == 1 ? String.from(.activeValueTag()) : Format.toString("% %", .activeValueTag(), order)
+        let bytes    = .grid.doc.read(start, size)
+        let grouping = .grid.grouping == .Bytes ? Grouping.Unsigned8 : .grid.grouping
+        if bytes.count == size do
+            view.headline = groupThousands(formatScalar(grouping, readScalar(bytes.toSlice(), bigEndian)))
+        else do
+            view.headline = String.from("--")
+        view.caption = Format.toString(texts().ui_InspectorAt, kind, .offsetText(start))
+    }
+
+    // Lists the bytes under the caret in the readings a reader reaches for most: a byte, a short,
+    // a signed and an unsigned word in both orders, and a float.
+    private mtd describeReadings(bytes: const [..] u8, bigEndian: bool)
+    {
+        let view = .inspectorView
+        view.readings.add({"u8", groupThousands(Format.toString("%", bytes[0])), false})
         if bytes.count >= 2
         {
-            let raw = .inspectorScalar(bytes.toSlice(), 2)
-            details += Format.toString("\nu16 % · s16 % · x16 0x%{X04} · b16 % · o16 %",
-                                       raw,
-                                       signedScalar(raw, 2),
-                                       raw,
-                                       formatBinaryScalar(raw, 16),
-                                       formatOctalScalar(raw, 16))
+            let value = readScalar(bytes[until 2], bigEndian)
+            view.readings.add({"u16", groupThousands(Format.toString("%", value)), false})
         }
 
-        if bytes.count >= 4
+        if bytes.count < 4 do
+            return
+        let word  = readScalar(bytes[until 4], bigEndian)
+        let other = readScalar(bytes[until 4], not bigEndian)
+        view.readings.add({"s32", groupThousands(Format.toString("%", signedScalar(word, 4))), false})
+        view.readings.add({bigEndian ? "u32 LE" : "u32 BE", groupThousands(Format.toString("%", other)), false})
+        view.readings.add({"f32", Format.toString("%{g4}", cast #bit (f32, cast(u32, word))), false})
+    }
+
+    // Lists the fields of the structure that holds the caret, the one it stands on in strong ink.
+    //
+    // A structure with more fields than the card holds shows the ones around the caret.
+    private mtd describeFields(caret: u64)
+    {
+        let group = .structure.groupAt(caret)
+        if group == Swag.U64.Max do
+            return
+
+        let rows  = .structure.fieldsOf(group)
+        let field = .structure.fieldAt(caret)
+        var first = 0'u64
+        for row, index in rows where row == field and index >= FieldLimit do
+            first = index + 1 - FieldLimit
+
+        for index in first until Math.min(first + FieldLimit, rows.count)
         {
-            let raw = .inspectorScalar(bytes.toSlice(), 4)
-            details += Format.toString("\nu32 % · s32 % · x32 0x%{X08} · b32 % · o32 % · f32 %{g9}",
-                                       raw,
-                                       signedScalar(raw, 4),
-                                       raw,
-                                       formatBinaryScalar(raw, 32),
-                                       formatOctalScalar(raw, 32),
-                                       cast #bit (f32, cast(u32, raw)))
+            let row = &.structure.report.rows[rows[index]]
+            var line: InspectorLine
+            line.label  = row.label
+            line.value  = groupThousands(row.value)
+            line.strong = rows[index] == field
+            if not row.detail.isEmpty() do
+                line.value = Format.toString("% · %", line.value, row.detail)
+            .inspectorView.fields.add(#move line)
         }
+    }
 
-        if bytes.count >= 8
+    // Writes the reading line under the grid: the selected range and its length, or the caret's
+    // offset. The host adds the size of the file after it.
+    mtd refreshDetails()
+    {
+        if .grid.selectionLength() > 1
         {
-            let raw = .inspectorScalar(bytes.toSlice(), 8)
-            details += Format.toString("\nu64 % · s64 % · x64 0x%{X016} · b64 % · o64 % · f64 %{g15}",
-                                       raw,
-                                       signedScalar(raw, 8),
-                                       raw,
-                                       formatBinaryScalar(raw, 64),
-                                       formatOctalScalar(raw, 64),
-                                       cast #bit (f64, raw))
+            .details = Format.toString(texts().ui_DetailsSelection,
+                                       Format.toString("0x%{X}", .grid.selectionStart()),
+                                       Format.toString("0x%{X}", .grid.selectionEnd()),
+                                       groupThousands(Format.toString("%", .grid.selectionLength())))
+        }
+        else
+        {
+            .details = Format.toString("0x%", .offsetText(.grid.caret))
         }
 
-        label.toolTip = #move details
+        .services.showDetails(me, .details)
     }
 
     mtd describeSearch(result: *Viewer.SearchPresentation)
@@ -564,9 +658,13 @@ impl Panel
 
         result.createCommandBar(host)
         result.createAnalysisPanel(host)
-        result.createInfoGroup(host)
+        result.createZoomControl(host)
+        result.createTabs()
         result.createGrid()
+        result.createInspector()
 
+        result.built = true
+        result.layoutPage()
         result.applyLayout()
         result.grid.refreshLayout()
         result.refreshInspector()
@@ -629,25 +727,29 @@ impl Panel
         }
     }
 
-    // Creates the information group: the zoom menu and the caret inspector.
-    private mtd createInfoGroup(host: Viewer.Host)
+    // Creates the zoom menu at the right of the reading line.
+    private mtd createZoomControl(host: Viewer.Host)
     {
-        let info = host.createInfoGroup(InfoWidth)
+        let info = host.createInfoGroup(Viewer.ZoomSlotWidth)
         with .zoomLabel = Viewer.createZoomButton(info, "scope.hex.zoom", texts().ui_ZoomMenu)
         {
             .dockStyle  = .Right
             .sigPressed += func|view = me|(_) { view.showZoomMenu() }
         }
+    }
 
-        with .inspectorLabel = Label.create(info, "", {0, 0, InspectorWidth, 32}, null, .SecondaryText | .Ellipsis)
+    // Creates the strip of structure tabs over the grid; picking a tab selects its bytes.
+    private mtd createTabs()
+    {
+        with .tabs = StructureTabs.create(me)
         {
-            .dockStyle = .Center
-            .style.setFont(me.theme().createDefaultFontFs(12), .Regular)
-            .setTextAlignment(.Right, .OpticalCenter)
+            .position.height = TabsHeight
+            .hide()
+            .sigPicked += func|view = me|(_, index) { view.selectStructure(index) }
         }
     }
 
-    // Creates the byte grid, whose caret and zoom feed the information group.
+    // Creates the byte grid, whose caret and zoom feed the inspector, the tabs and the reading line.
     private mtd createGrid()
     {
         with .grid = GridView.create(me)
@@ -655,6 +757,18 @@ impl Panel
             .sigCaretChanged += func|view = me|(_) { view.refreshInspector() }
             .sigZoomChanged  += func|view = me|(_) { view.refreshZoom() }
         }
+    }
+
+    // Creates the inspector floating at the right of the grid.
+    private mtd createInspector()
+    {
+        with .inspector = FloatingPanel.create(me, {0, 0, InspectorWidth, 0}, "scope.hex.inspector")
+        {
+            .padding = {}
+            .hide()
+        }
+
+        .inspectorView = InspectorView.create(.inspector)
     }
 }
 

@@ -23,6 +23,7 @@ enum FormatKind
     Font           // An sfnt font or a collection of them.
     Scc            // A Swag Chunk Container.
     Icon           // A Windows icon containing one or more image resources.
+    Png            // A PNG image, read as its chunk chain.
 }
 
 // One opened file and everything that could be extracted from it.
@@ -70,6 +71,7 @@ impl Document
         case .Font:       reportSfntFont(&.image, &.report)
         case .Scc:        reportSccContainer(&.image, &.report, fileName)
         case .Icon:       reportIconContainer(&.image, &.report, &.previews)
+        case .Png:        reportPngImage(&.image, &.report)
         case .Unknown:    reportUnknown(&.image, &.report)
         }
 
@@ -227,6 +229,8 @@ func detectFormat(image: *BinaryImage)->FormatKind
         return .Midi
     if isSfntFont(image) do
         return .Font
+    if isPngImage(image) do
+        return .Png
 
     // A ZIP is recognized by the record at its end as well as by the one at its start, so it is
     // asked last: a file that begins with something more specific is that thing first.
@@ -241,9 +245,20 @@ func detectFormat(image: *BinaryImage)->FormatKind
 private struct Signature
 {
     offset: u64
-    magic:  string
+    magic:  const [..] u8
     name:   string
 }
+
+// Signatures that hold bytes above 0x7F are written as bytes: in a string, such an escape names a
+// code point, which is two bytes once encoded.
+private const GzipMagic:     [2] u8 = [0x1F, 0x8B]
+private const XzMagic:       [5] u8 = [0xFD, 0x37, 0x7A, 0x58, 0x5A]
+private const ZstdMagic:     [4] u8 = [0x28, 0xB5, 0x2F, 0xFD]
+private const SevenZipMagic: [6] u8 = [0x37, 0x7A, 0xBC, 0xAF, 0x27, 0x1C]
+private const OleMagic:      [4] u8 = [0xD0, 0xCF, 0x11, 0xE0]
+private const JpegMagic:     [3] u8 = [0xFF, 0xD8, 0xFF]
+private const MatroskaMagic: [4] u8 = [0x1A, 0x45, 0xDF, 0xA3]
+private const JavaMagic:     [4] u8 = [0xCA, 0xFE, 0xBA, 0xBE]
 
 // Adds what can be said about a file no reader takes apart.
 //
@@ -272,29 +287,28 @@ func reportUnknown(image: *BinaryImage, report: *Report)
 func signatureName(image: *BinaryImage)->String
 {
     let texts      = texts()
-    let signatures = [Signature{0, "\x1F\x8B", texts.sig_Gzip},
+    let signatures = [Signature{0, GzipMagic, texts.sig_Gzip},
                       Signature{0, "BZh", texts.sig_Bzip2},
-                      Signature{0, "\xFD7zXZ", texts.sig_Xz},
-                      Signature{0, "\x28\xB5\x2F\xFD", texts.sig_Zstd},
-                      Signature{0, "7z\xBC\xAF\x27\x1C", texts.sig_SevenZip},
+                      Signature{0, XzMagic, texts.sig_Xz},
+                      Signature{0, ZstdMagic, texts.sig_Zstd},
+                      Signature{0, SevenZipMagic, texts.sig_SevenZip},
                       Signature{0, "Rar!", texts.sig_Rar},
                       Signature{0, "MSCF", texts.sig_Cabinet},
-                      Signature{0, "\xD0\xCF\x11\xE0", texts.sig_Ole},
+                      Signature{0, OleMagic, texts.sig_Ole},
                       Signature{257, "ustar", texts.sig_Tar},
                       Signature{0, "%PDF-", texts.sig_Pdf},
                       Signature{0, "%!PS", texts.sig_PostScript},
-                      Signature{0, "\x89PNG\r\n\x1A\n", texts.sig_Png},
                       Signature{0, "GIF8", texts.sig_Gif},
-                      Signature{0, "\xFF\xD8\xFF", texts.sig_Jpeg},
+                      Signature{0, JpegMagic, texts.sig_Jpeg},
                       Signature{0, "BM", texts.sig_Bmp},
                       Signature{0, "II*\0", texts.sig_Tiff},
                       Signature{0, "MM\0*", texts.sig_Tiff},
                       Signature{0, "OggS", texts.sig_Ogg},
                       Signature{0, "fLaC", texts.sig_Flac},
                       Signature{0, "ID3", texts.sig_Mp3},
-                      Signature{0, "\x1A\x45\xDF\xA3", texts.sig_Matroska},
+                      Signature{0, MatroskaMagic, texts.sig_Matroska},
                       Signature{4, "ftyp", texts.sig_IsoMedia},
-                      Signature{0, "\xCA\xFE\xBA\xBE", texts.sig_JavaClass},
+                      Signature{0, JavaMagic, texts.sig_JavaClass},
                       Signature{0, "dex\n", texts.sig_Dalvik},
                       Signature{0, "SQLite format 3", texts.sig_Sqlite},
                       Signature{0, "Microsoft C/C++ MSF 7.00", texts.sig_Pdb},

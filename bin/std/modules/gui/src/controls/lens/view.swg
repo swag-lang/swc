@@ -504,7 +504,11 @@ impl View
     private mtd updateBackdrop()
     {
         let metrics = .themeMetrics()
-        .backdrop = BackdropEffect{radius: metrics.lens_BlurRadius, saturation: metrics.lens_Saturation}
+        // The renderer takes the kernel's support; a Gaussian reaches three standard deviations.
+        .backdrop = BackdropEffect{algorithm: .Gaussian,
+                                   radius: metrics.lens_BlurRadius * 3,
+                                   saturation: metrics.lens_Saturation,
+                                   tint: .themeColors().floating_Shadow.withAlphaF32(metrics.lens_TintOpacity)}
     }
 
     // Closes the lens without running anything.

@@ -41,19 +41,19 @@ func backdropLens(host: *Testing.HeadlessHost, light: bool, scale: f32 = 1, comp
     return lens
 }
 
-// Compare pure blur, a light tint, and the former lens veil over three blur extents.
+// Compare light frosted-glass materials over the two-to-four-pixel reading range.
 func backdropMaterialSheet(light: bool)->Image
 {
     var sheet = Image.create(1140, 780, .BGRA8)
-    for tint, row in [0.0'f32, 0.12, 214.0 / 255]
+    for tint, row in [0.08'f32, 0.14, 0.20]
     {
-        for radius, column in [6.0'f32, 12.0, 20.0]
+        for radius, column in [2.0'f32, 3.5, 4.0]
         {
             var host: Testing.HeadlessHost
             let lens = backdropLens(&host, light, 0.5)
             lens.open()
-            lens.backdrop = BackdropEffect{radius: radius, saturation: 1,
-                                           tint: host.theme.colors.ground.withAlphaF32(tint)}
+            lens.backdrop = BackdropEffect{algorithm: .Gaussian, radius: radius * 3, saturation: 1,
+                                           tint: host.theme.colors.floating_Shadow.withAlphaF32(tint)}
             lens.input.setPlaceholder(Format.toString("% px / tint %", radius, cast(s32, Math.round(tint * 100))))
             let image = host.render()
             sheet.mix(image, cast(s32, column) * 380, (2 - cast(s32, row)) * 260)

@@ -222,9 +222,10 @@ be noticed: if a viewer remembers an animation, it was too much.
 ![The lens on Papier](imgs/scope.lens.paper.png)
 
 Opened by `Ctrl Space`. 600–640 wide, near the top third, surface colour, corner 12, floating
-shadow. The document behind is defocused with a Dual Kawase backdrop material (6 px logical
-extent, unchanged saturation), without a light or dark veil. Its position and overall brightness stay
-stable in both themes; the lens and its text stay sharp. An input of 64 px with 22 px
+shadow. The document behind stays recognizable through a frosted-glass material: a Gaussian blur
+with a 3.5 px logical standard deviation, unchanged saturation, and a neutral veil using the
+theme's shadow ink at 14%. Its position stays stable in both themes; the lens and its text stay
+sharp. An input of 64 px with 22 px
 light text; results grouped under section labels (In this file, Symbol, Open, View as, commands
 by family); rows of 38–40 px with a leading glyph or number, matched characters highlighted,
 the chosen row on the Arc selection ground. Selecting a row never shifts its shortcut or detail.

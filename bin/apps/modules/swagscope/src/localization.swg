@@ -8,6 +8,11 @@ using Core, Gui
 // spelling, so neither is translated wherever it appears inside one of these sentences.
 struct AppStrings
 {
+    // Alternative phrases for command discovery; semicolons separate complete phrases.
+    search_Open:       string = "open movie;open video;open image"
+    search_Browse:     string = "browse library;browse folder;media library"
+    search_FullScreen: string = "cinema;fullscreen"
+
     explore_Folders:           string = "Subfolders"            // Sidebar navigation through the current location.
     explore_Back:              string = "Back"                  // Exploration control or status.
     explore_Forward:           string = "Forward"               // Exploration control or status.

@@ -636,11 +636,13 @@ impl HeadlessHost
         // An application parents its main window to the surface window itself, the way
         // `SurfaceWnd.create` parents the view it is given, so that tree lives outside `root`:
         // search the surface window first, and let `root` answer for a tree the test built there.
-        let hosted = .surfaceWnd.windowAt(pt.x, pt.y, true)
+        var hostedPoint = pt
+        .surface.screenToSurface(&hostedPoint)
+        let hosted = .surfaceWnd.windowAt(hostedPoint.x, hostedPoint.y, true)
         if hosted and hosted != cast(*Wnd, &.surfaceWnd) do
             return hosted
 
-        return .root.windowAt(pt.x, pt.y, true)
+        return .root.windowAt(hostedPoint.x, hostedPoint.y, true)
     }
 
     // Drains posted events, destruction, deferred layout, and object deletion.

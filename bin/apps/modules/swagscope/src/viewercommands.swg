@@ -112,7 +112,9 @@ impl ViewerWindow
             .addSource(.Action, func|window = me|(results) { window.describeViewerCommands(results) })
             .addSource(.File, func|window = me|(results) { window.describeFiles(results) })
             .addSource(.Line, func|window = me|(results) { window.describeFileLines(results) })
-            .addCommands(func()->string => appStrings().lens_File, [ViewerCommands.Open, ViewerCommands.Explore, ViewerCommands.Close, ViewerCommands.Reload,
+            .addCommand(func()->string => appStrings().lens_File, ViewerCommands.Open, func()->string => appStrings().search_Open)
+            .addCommand(func()->string => appStrings().lens_File, ViewerCommands.Explore, func()->string => appStrings().search_Browse)
+            .addCommands(func()->string => appStrings().lens_File, [ViewerCommands.Close, ViewerCommands.Reload,
                                                                     ViewerCommands.PreviousFile, ViewerCommands.NextFile, ViewerCommands.OpenDefault, ViewerCommands.OpenWith,
                                                                     ViewerCommands.Locate, ViewerCommands.CopyPath, ViewerCommands.CopyName, ViewerCommands.Forget,
                                                                     ViewerCommands.Files, ViewerCommands.SameKind, ViewerCommands.ClearHistory])
@@ -123,8 +125,9 @@ impl ViewerWindow
                                                                       ViewerCommands.ExtractAll, ViewerCommands.ExtractChosen])
             .addCommands(func()->string => appStrings().lens_Find, [ViewerCommands.Find, ViewerCommands.FindNext, ViewerCommands.FindPrevious, ViewerCommands.SearchMode,
                                                                     ViewerCommands.FilterMode, ViewerCommands.MatchCase, ViewerCommands.WholeWord, ViewerCommands.RegularExpression])
+            .addCommand(func()->string => appStrings().lens_View, ViewerCommands.FullScreen, func()->string => appStrings().search_FullScreen)
             .addCommands(func()->string => appStrings().lens_View,
-                         [ViewerCommands.Information, ViewerCommands.SidePanel, ViewerCommands.FullScreen])
+                         [ViewerCommands.Information, ViewerCommands.SidePanel])
             .addCommands(func()->string => appStrings().lens_Playback,
                          [ViewerCommands.PlayOnce, ViewerCommands.PlayRepeat, ViewerCommands.PlayFolder, ViewerCommands.PlayShuffle])
         }
@@ -912,7 +915,8 @@ impl ViewerWindow
             return
         }
 
-        let texts  = appStrings()
+        let texts = appStrings()
+
         // The file is placed by its last folders, as the home names them; the whole path is
         // one link away.
         let path = .explorer ? .explorer.displayPath(.currentFile) : .currentFile.toString()

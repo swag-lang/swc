@@ -9,34 +9,6 @@ dialogs, then each application, then the written rules.
 
 ## Entries
 
-### design.silence.004 — The lens needs a discoverable pointer entrance and direct task controls
-
-- Evidence: hiding the main command entrance behind Ctrl Space made the first mouse-only task
-  depend on knowing the shortcut. Capture output and repeated folder traversal in Scope also
-  took a detour through the lens. Provider registration order buried precise commands under
-  weaker content matches, and translated footer hints could overlap source links.
-- Implemented: a shared, localized `Lens.Launcher` provides a named Commands caption action in
-  Capture, Scope, Prism and Vault, posting the same command as Ctrl Space. Capture keeps capture,
-  library, copy-image and save-image actions in a compact task row. Scope exposes Back, Forward
-  and Up beside its breadcrumb, including while editing a path. Command-updated button labels
-  invalidate layout, and quiet buttons can measure their words instead of inheriting a fixed
-  width. Lens sections rank by their best title match; an empty query keeps its stable order.
-  Search normalizes whitespace and common Latin accents, accepts word prefixes in either order,
-  and optionally recovers one edit or transposition in command words of at least four letters.
-  UTF-8 highlight spans retain original byte offsets. The footer reserves space for source links
-  before displaying secondary keyboard advice.
-- Next: add a visible overflow affordance and a named reset to all sources. Extend the
-  [query corpus](README.md#search-intent-and-predictable-ranking) with localized aliases and
-  multiword typo cases before broadening tolerance. Continue the first-use walkthroughs in
-  Prism and Vault beyond their shared command entrance. Scope's playback-resume walkthrough
-  requires product state, not another command-palette control.
-- Done when: a new user can complete each charter walkthrough with the pointer alone, and an
-  experienced user can complete it with keys alone; basic actions fit the first lens viewport,
-  changing a selection does not move them, all other actions can be browsed without typing,
-  query-corpus tests establish the first usable result and alternatives, and the whole-window
-  goldens read correctly in both themes, both shipped languages and a non-default display scale.
-- Related: design.silence.007, design.silence.008
-
 ### design.silence.006 — The file box does not fit its rows as its pictures do
 
 - Evidence: every mode has a golden in Encre and Papier (`dialogs.file.{folder,save,files,newfolder,replace}`
@@ -154,12 +126,11 @@ dialogs, then each application, then the written rules.
     than the picture's; the machine reads "x64"; the reading line gives the format summary, not
     the parts of the report as lens entries; only PE images fill the page — ELF, Mach-O and the
     other formats keep the tree (`pictured.binary`).
-- Next: the binary report's parts in the reading line and the lens, and its page for ELF and
+- Next: persist film playback position and offer Resume / Start from Beginning; the binary report's parts in the reading line and the lens, and its page for ELF and
   Mach-O; the hex grid's tint of a structure's tag bytes; the font's other styles, glyph names and sample field;
   coloured code cards in HTML and the section being read marked; the table's row pitch; the mixed board's waveform cells,
   "Aa" in the font's own face, a film's picture size in its facts, and an ExtraBold page title.
 - Done when: every Scope golden matches its picture as a whole screen.
-- Related: design.silence.004
 
 ### design.silence.008 — Swag Capture's preset cells are smaller than in their pictures
 
@@ -174,7 +145,6 @@ dialogs, then each application, then the written rules.
 - Next: decide with the charter owner between five smaller presets and four of the pictures'
   size.
 - Done when: the preset row of the inspector matches its picture.
-- Related: design.silence.004
 
 ### design.silence.011 — Standalone example scripts stay outside Silence
 
@@ -242,4 +212,4 @@ dialogs, then each application, then the written rules.
 - Done when: the Markdown page reads without persistent bands, its full outline is available from
   the lens in a quiet margin, every heading is reachable and scrolling is discoverable, and the
   outline's placement matches the charter in both themes.
-- Related: design.silence.004, design.silence.007
+- Related: design.silence.007

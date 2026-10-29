@@ -32,8 +32,9 @@ struct Match
 // the initials of its words in order: "cla" answers "Capture Last Area".
 // Otherwise its characters must appear in the text in order, which answers less well the further
 // they are scattered. An empty query answers every text with a score of zero.
-// Whitespace is trimmed and collapsed. With `tolerateTypos`, a single word of at least four
-// letters also answers a whole word with one insertion, deletion, substitution or transposition.
+// Whitespace is trimmed and collapsed. With `tolerateTypos`, one word of at least four
+// letters may contain one insertion, deletion, substitution or transposition. Other query words
+// must match distinct word prefixes exactly, in any order; the whole query has a one-edit budget.
 // This fallback ranks below precise matches and is intended for commands, not paths or numbers.
 //
 // ```swag
@@ -150,11 +151,12 @@ func match(query: string, text: string, tolerateTypos = false)->Match
 }
 
 // Words typed in another order still name the same task; each must consume a distinct word.
-private func wordMatch(needle, haystack: const [..] FoldedRune)->Match
+private func wordMatch(needle, haystack: const [..] FoldedRune, tolerateTypos = false)->Match
 {
     var result: #returntype
     var used:   Array'u64
-    var begin = 0'u64
+    var corrected = false
+    var begin     = 0'u64
     while begin < needle.count
     {
         var end = begin
@@ -191,13 +193,36 @@ private func wordMatch(needle, haystack: const [..] FoldedRune)->Match
             break
         }
 
+        if not found and tolerateTypos and not corrected and end - begin >= 4
+        {
+            for start in haystack.count where haystack[start].wordStart and
+                                              Unicode.isLetter(haystack[start].folded) and
+                                              not used.contains(start)
+            {
+                var wordEnd = start + 1
+                while wordEnd < haystack.count and
+                      Unicode.isLetter(haystack[wordEnd].folded) and
+                      not haystack[wordEnd].wordStart do
+                    wordEnd += 1
+                if not oneEditApart(needle[begin until end], haystack[start until wordEnd]) do
+                    continue
+                let first = haystack[start]
+                let last  = haystack[wordEnd - 1]
+                result.spans.add({first.offset, last.offset + last.size - first.offset})
+                used.add(start)
+                found     = true
+                corrected = true
+                break
+            }
+        }
+
         if not found do
             return Match{}
         begin = end + 1
     }
 
-    result.matched = used.count > 1
-    result.score   = 9000 - cast(s32, haystack.count)
+    result.matched = used.count > 1 or corrected
+    result.score   = (corrected ? 3000 : 9000) - cast(s32, haystack.count)
     result.spans.sort(func(a, b) => a.start <=> b.start)
     return result
 }
@@ -249,29 +274,7 @@ private func oneEditApart(a, b: const [..] FoldedRune)->bool
 
 private func typoMatch(needle, haystack: const [..] FoldedRune)->Match
 {
-    var result: #returntype
-    if needle.count < 4 do
-        return result
-    for one in needle where not Unicode.isLetter(one.folded) do
-        return result
-    for start in haystack.count where haystack[start].wordStart and Unicode.isLetter(haystack[start].folded)
-    {
-        var end = start + 1
-        while end < haystack.count and
-              Unicode.isLetter(haystack[end].folded) and
-              not haystack[end].wordStart do
-            end += 1
-        if not oneEditApart(needle, Swag.makeSlice(haystack.buffer + start, end - start)) do
-            continue
-        let first = haystack[start]
-        let last  = haystack[end - 1]
-        result.matched = true
-        result.score   = 3000 - cast(s32, start)
-        result.spans.add({first.offset, last.offset + last.size - first.offset})
-        return result
-    }
-
-    return result
+    return wordMatch(needle, haystack, tolerateTypos: true)
 }
 
 // Scores of the three ways a query answers. A whole occurrence always ranks above the initials of

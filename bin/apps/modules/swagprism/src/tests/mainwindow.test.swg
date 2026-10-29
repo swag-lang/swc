@@ -436,3 +436,53 @@ func assertLensSurface(light: bool)
 
 #[Swag.TestTag("golden")]
 #test { assertLensSurface(true) }
+
+// Common task vocabulary reaches the real command in either shipped language.
+#test
+{
+    var host: Testing.HeadlessHost
+    let window = testSetupInspectionWindow(&host)
+    defer discard catch g_App.setLanguage(ReferenceLanguage)
+    for french in [false, true]
+    {
+        expect g_App.setLanguage(french ? "fr" : ReferenceLanguage)
+        host.notify(.LanguageChanged)
+        window.lens.open(french ? "executer code" : "run code")
+        Swag.assert(window.lens.chosenEntry()!.id == PrismCommands.Compile)
+        window.lens.close()
+        window.lens.open(french ? "indenter" : "indent")
+        Swag.assert(window.lens.chosenEntry()!.id == PrismCommands.FormatSource)
+        window.lens.close()
+    }
+}
+
+// Compile stays beside the source, routes the same command, and fits the minimum width in French.
+#test
+{
+    var host: Testing.HeadlessHost
+    let window = testSetupInspectionWindow(&host, MainWindow.MinWidth, MainWindow.MinHeight)
+    defer discard catch g_App.setLanguage(ReferenceLanguage)
+    expect g_App.setLanguage("fr")
+    host.notify(.LanguageChanged)
+    host.settleAnimations(window)
+    Swag.assert(window.compileButton.isVisible())
+    Swag.assert(window.compileButton.position.x >= window.exampleMenu.position.right())
+    var requested = false
+    window.hookOnEvent = func|requested = &requested|(_, evt)->bool
+    {
+        if evt is CommandEvent as command where command.id == PrismCommands.Compile
+        {
+            requested[]      = true
+            command.accepted = true
+            return true
+        }
+
+        return false
+    }
+
+    host.click(window.compileButton.surfaceRect().center())
+    host.pump()
+    Swag.assert(requested)
+    window.lens.open()
+    Swag.assert(window.lens.chosenEntry()!.id == PrismCommands.Compile)
+}

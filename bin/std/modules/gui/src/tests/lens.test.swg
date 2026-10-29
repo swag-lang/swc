@@ -628,3 +628,127 @@ func addViewAsSection(results: *Lens.Results, chosen: *u64)
         Pixel.Testing.assertImageGolden(&image, light ? "lens.stay.paper" : "lens.stay.ink")
     }
 }
+
+// One edit in a multiword task is recoverable; each other word must identify a distinct word.
+#test
+{
+    for query in ["svae image", "image svae", "savve image", "saxe image"]
+    {
+        let found = Lens.match(query, "Save as Image…", tolerateTypos: true)
+        Swag.assert(found.matched and found.spans.count == 2)
+        Swag.assert(found.spans[0].start == 0 and found.spans[1].start == 8)
+        Swag.assert(found.score < Lens.match("image save", "Save as Image…").score)
+    }
+
+    Swag.assert(Lens.match("captre area", "Capture Area", tolerateTypos: true).matched)
+    Swag.assert(Lens.match("captuer région", "Capturer une région", tolerateTypos: true).matched)
+    Swag.assert(not Lens.match("svae iamge", "Save as Image…", tolerateTypos: true).matched)
+    Swag.assert(not Lens.match("svae svae", "Save as Image…", tolerateTypos: true).matched)
+    Swag.assert(not Lens.match("svae 2025", "Save 2026", tolerateTypos: true).matched)
+    Swag.assert(not Lens.match("svae/image", "save/image", tolerateTypos: true).matched)
+}
+
+// Aliases follow the language at query time, preserve command identity, and rank below title words.
+#test
+{
+    var host: Testing.HeadlessHost
+    host.setup(800, 600)
+    let lens = lensSetup(&host)
+    defer discard catch host.app.setLanguage(ReferenceLanguage)
+    lens.addCommand("Capture", LensCapture, func()->string => strings().lens_Files == "fichiers" ? "copie écran;image" : "screen grab;image")
+    lens.open("screen grab")
+    Swag.assert(lens.chosenEntry()!.id == LensCapture and lens.chosenEntry()!.spans.isEmpty())
+    lens.setQuery("image")
+    Swag.assert(lens.chosenEntry()!.id == LensSave)
+    expect host.app.setLanguage("fr")
+    lens.setQuery("copie ecran")
+    Swag.assert(lens.chosenEntry()!.id == LensCapture and lens.chosenEntry()!.spans.isEmpty())
+    lens.setQuery("screen grab")
+    Swag.assert(lens.chosenEntry() == null)
+}
+
+// Overflow has visible pointer controls; the last page is reachable and filtering resets it.
+#[Swag.TestTag("golden")]
+#test
+{
+    for light in [false, true]
+    {
+        var host: Testing.HeadlessHost
+        host.setup(480, 560, 1.25)
+        defer discard catch host.app.setLanguage(ReferenceLanguage)
+        if light
+        {
+            host.theme.setLight()
+            host.notify(.ThemeChanged)
+        }
+
+        let lens = lensSetup(&host)
+        expect host.app.setLanguage("fr")
+        host.notify(.LanguageChanged)
+        lens.addSource(.Action, func(results)
+        {
+            if results.query.count != 0 do
+                return
+            let section = results.addSection("Results")
+            for index in 20 do
+                section.addEntry(Format.toString("Result %", index + 1))
+        })
+        lens.open(">")
+        Swag.assert(lens.input.name.raw == strings().lens_Placeholder)
+        Swag.assert(lens.nextPage.isVisible() and lens.nextPage.isEnabled())
+        Swag.assert(lens.previousPage.isVisible() and not lens.previousPage.isEnabled())
+        host.settleAnimations(&host.root)
+        var image = host.render(&host.root)
+        Pixel.Testing.assertImageGolden(&image, light ? "lens.overflow.paper" : "lens.overflow.ink")
+        for 10
+        {
+            if not lens.nextPage.isEnabled() do
+                break
+            host.clickWnd(lens.nextPage)
+        }
+
+        Swag.assert(lens.scroll > 0 and lens.previousPage.isEnabled() and not lens.nextPage.isEnabled())
+        Swag.assert(host.app.keyboardFocusWnd == &lens.input.wnd)
+        host.clickWnd(lens.previousPage)
+        Swag.assert(lens.nextPage.isEnabled())
+        host.root.resize(800, 2400)
+        lens.itf.onLayout()
+        Swag.assert(lens.scroll == 0 and not lens.nextPage.isVisible())
+        host.root.resize(480, 560)
+        lens.itf.onLayout()
+        lens.setQuery(">save")
+        Swag.assert(lens.scroll == 0 and not lens.nextPage.isVisible())
+
+        // The reset sits immediately before the available source links and keeps the typed words.
+        let metrics     = lens.themeMetrics()
+        let font        = lens.theme().createDefaultFont(metrics.hintLine_FontSize)
+        let action      = lensFooterActionPosition(lens)
+        let right       = lens.clientRect().horzCenter() + Math.min(metrics.lens_Width, lens.clientRect().width - 2 * metrics.floating_Inset) * 0.5 - metrics.lens_TextInset
+        let actionWidth = keycapWidth(lens, ">") + metrics.hintLine_KeyGap + Painter.measureString(strings().lens_Actions, font).width
+        let lineWidth   = keycapWidth(lens, ":") + metrics.hintLine_KeyGap + Painter.measureString(strings().lens_Line, font).width
+        let allWidth    = Painter.measureString(strings().lens_All, font).width
+        var reset       = Math.Point{right - actionWidth - lineWidth - 2 * metrics.hintLine_GroupGap - allWidth * 0.5, action.y}
+        lens.surface!.surfaceToScreen(&reset)
+        host.click(reset)
+        Swag.assert(lens.query() == "save" and lens.results.prefix == .None)
+    }
+}
+
+// A disabled exact match stays visible without suppressing the usable approximate alternative.
+#test
+{
+    var host: Testing.HeadlessHost
+    host.setup(800, 600)
+    let lens = lensSetup(&host)
+    lens.addCommand("Capture", LensCapture, func()->string => "center disabld")
+    lens.open("center disabled")
+    Swag.assert(lens.chosenEntry()!.id == LensCapture)
+    lens.setQuery("File")
+    Swag.assert(lens.chosenEntry()!.id == LensOpen)
+    lens.setQuery("Fil")
+    for section in lens.results.sections
+    {
+        for entry in section!.entries do
+            Swag.assert(entry.id != LensOpen and entry.id != LensSave)
+    }
+}

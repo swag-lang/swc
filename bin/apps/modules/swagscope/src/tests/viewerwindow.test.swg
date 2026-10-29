@@ -2812,3 +2812,28 @@ func createPictureFolder(stem: string, names: const [..] string)->String
     window.lens.runChosen()
     Swag.assert(not window.lens.isOpen() and view.wrapping != wrapping)
 }
+
+// Common task vocabulary reaches the real command in either shipped language.
+#test
+{
+    var host: Testing.HeadlessHost
+    host.setup(960, 680)
+    registerAppStrings(&host.app.resources)
+    var index  = createViewerPluginRegistry()
+    let window = ViewerWindow.create(&host.surfaceWnd, #move index)
+    defer discard catch host.app.setLanguage(ReferenceLanguage)
+    for french in [false, true]
+    {
+        expect host.app.setLanguage(french ? "fr" : ReferenceLanguage)
+        host.notify(.LanguageChanged)
+        window.lens.open(french ? "ouvrir film" : "open movie")
+        Swag.assert(window.lens.chosenEntry()!.id == ViewerCommands.Open)
+        window.lens.close()
+        window.lens.open(french ? "mediatheque" : "media library")
+        Swag.assert(window.lens.chosenEntry()!.id == ViewerCommands.Explore)
+        window.lens.close()
+        window.lens.open(french ? "cinema" : "cinema")
+        Swag.assert(window.lens.chosenEntry()!.id == ViewerCommands.FullScreen)
+        window.lens.close()
+    }
+}

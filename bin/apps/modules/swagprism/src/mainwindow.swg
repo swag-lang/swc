@@ -40,6 +40,7 @@ struct MainWindow
     {
         appearanceButton: *AppearanceButton
         editor:           *RichEditCtrl
+        compileButton:    *IconButton
         exampleMenu:      *IconButton
         lens:             *Lens.View
         infoSheet:        *InfoSheet
@@ -140,6 +141,7 @@ impl MainWindow
     // Creates the source column: its editor, and the menu of examples beside its name.
     mtd createSourceColumn()
     {
+        .compileButton = IconButton.createQuiet(me, PrismCommands.Compile, menu: false)
         with .exampleMenu = IconButton.createQuiet(me, "prism.examples")
         {
             .sigPressed += func|window = me|(_) { window.showExampleMenu() }
@@ -231,6 +233,7 @@ impl MainWindow
         let compare = view == .Compare
         .editor.show(view == .Columns)
         .exampleMenu.show(view == .Columns)
+        .compileButton.show(view == .Columns)
         .panels[1].show(compare)
         .panels[0].setLayout(view == .Columns ? PanelLayout.Column : (compare ? PanelLayout.Compare : PanelLayout.Stages))
         .panels[1].setLayout(.Compare)
@@ -267,6 +270,8 @@ impl MainWindow
         case .Columns:
             let editorTop = top + .themeMetrics().quiet_Height + ViewerPanel.HeaderGap
             .exampleMenu.setPosition(Math.Rectangle{margin + .sourceTitleWidth() + SourceTitleGap, top, .exampleMenu.position.width, .themeMetrics().quiet_Height})
+
+            .compileButton.setPosition({center - MinHalfGutter - .compileButton.position.width, top, .compileButton.position.width, .themeMetrics().quiet_Height})
 
             // The source is text on the ground: it may run into the gutter, short of the hairline.
             let editorWidth = Math.max(0'f32, center - MinHalfGutter - margin)
@@ -562,6 +567,8 @@ impl MainWindow
     // Writes the window title, the menus and the hints in the active language.
     mtd retranslate()
     {
+        .compileButton.updateCommandState()
+        .compileButton.setQuietText(appStrings().cmd_Compile)
         .exampleMenu.setQuietText(appStrings().ui_Examples)
         .exampleMenu.toolTip = appStrings().ui_Examples
         .surface!.setTitle(.title())

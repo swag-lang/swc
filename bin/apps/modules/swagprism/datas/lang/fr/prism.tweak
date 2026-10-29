@@ -102,3 +102,6 @@ ui_StageBeforeRegisters Avant les registres
 ui_StageRegalloc        Registres alloués
 ui_StagePeephole        Judas appliqué
 ui_StageFinal           Final
+
+search_Compile construire;exécuter code;lancer
+search_Format formater code;indenter;aligner code

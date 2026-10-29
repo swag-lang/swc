@@ -32,8 +32,8 @@ impl MainWindow
 {
     // The actions the lens offers at rest, in their order; those the view in force does not
     // offer are hidden or cannot run, and stay out.
-    const RestCommandIds = [PrismCommands.PreviousStage, PrismCommands.NextStage, PrismCommands.ShowChange, PrismCommands.Compile,
-                            PrismCommands.LiveEdit, PrismCommands.FormatSource, PrismCommands.Compare]
+    const RestCommandIds = [PrismCommands.Compile, PrismCommands.FormatSource, PrismCommands.LiveEdit,
+                            PrismCommands.PreviousStage, PrismCommands.NextStage, PrismCommands.ShowChange, PrismCommands.Compare]
 
     // Creates the lens, registers every command of the window under its family, and the source
     // that answers with the examples, the views, the stages, the levels and the presets. At rest
@@ -45,8 +45,10 @@ impl MainWindow
             .addRestSource(func|window = me|(results) { window.describeViewActions(results) })
             .addRestSource(func|window = me|(results) { window.describeExamples(results) })
             .addSource(.None, func|window = me|(results) { window.describeChoices(results) })
+            .addCommand(func()->string => appStrings().lens_Source, PrismCommands.Compile, func()->string => appStrings().search_Compile)
+            .addCommand(func()->string => appStrings().lens_Source, PrismCommands.FormatSource, func()->string => appStrings().search_Format)
             .addCommands(func()->string => appStrings().lens_Source,
-                         [PrismCommands.Compile, PrismCommands.FormatSource, PrismCommands.LiveEdit])
+                         [PrismCommands.LiveEdit])
             .addCommands(func()->string => appStrings().lens_View, [PrismCommands.Columns, PrismCommands.Stages, PrismCommands.Compare, PrismCommands.Information,
                                                                     PrismCommands.PreviousStage, PrismCommands.NextStage, PrismCommands.ShowChange,
                                                                     PrismCommands.SourceLines, PrismCommands.Opcodes, PrismCommands.CopyListing])

@@ -693,10 +693,10 @@ func assertColumnFits(window: *MainWindow, page: *Wnd, column: *Wnd)
     Swag.assert(not lensHasEntry(window, texts.ui_Mount))
     window.lens.close()
 
-    // At rest the lens offers what the chosen vault can do now, under its name, then the way to
+    // At rest the lens keeps file actions first, then what the chosen vault can do under its name, and
     // another vault.
     window.lens.open()
-    Swag.assert(window.lens.results.sections[0]!.label == "locked")
+    Swag.assert(window.lens.results.sections[0]!.label == texts.lens_File and window.lens.results.sections[1]!.label == "locked")
     Swag.assert(lensHasEntry(window, texts.ui_Unmount) and lensHasEntry(window, Format.toString(texts.ui_OpenDrive, "X:")))
     Swag.assert(lensHasEntry(window, texts.ui_NewVault) and lensHasEntry(window, texts.ui_OpenFile))
     Swag.assert(not lensHasEntry(window, texts.ui_MountAtStartup) and not lensHasEntry(window, texts.ui_Mount))
@@ -1221,5 +1221,70 @@ func assertSurfaceGolden(host: *Testing.HeadlessHost, window: *MainWindow, dark:
         let window = testSetupMainWindow(&host, width: PictureWidth, height: PictureHeight)
         window.showPage(.Options, animate: false)
         assertSurfaceGolden(&host, window, dark, "options")
+    }
+}
+
+// Common task vocabulary reaches the real command in either shipped language.
+#test
+{
+    var host: Testing.HeadlessHost
+    let window = testSetupMainWindow(&host)
+    defer discard catch g_App.setLanguage(ReferenceLanguage)
+    for french in [false, true]
+    {
+        expect g_App.setLanguage(french ? "fr" : ReferenceLanguage)
+        host.notify(.LanguageChanged)
+        window.lens.open(french ? "nouveau conteneur" : "new container")
+        Swag.assert(window.lens.chosenEntry()!.id == VaultCommands.NewVault)
+        window.lens.close()
+        window.lens.open(french ? "ouvrir conteneur" : "open container")
+        Swag.assert(window.lens.chosenEntry()!.id == VaultCommands.OpenFile)
+        window.lens.close()
+    }
+}
+
+// A first mouse-only visit can start a new vault and return to the list without a hidden key.
+#test
+{
+    var host: Testing.HeadlessHost
+    let window = testSetupMainWindow(&host)
+    host.settleAnimations(window)
+    host.click(window.list.newVault.surfaceRect().center())
+    host.settleAnimations(window)
+    Swag.assert(window.page == .Create and window.createPage.path.isVisible())
+    host.click(window.createPage.head.back.surfaceRect().center())
+    host.settleAnimations(window)
+    Swag.assert(window.page == .List and window.list.openFile.isVisible())
+    window.openVault("C:\\vaults\\example")
+    host.settleAnimations(window)
+    Swag.assert(window.list.card.panel.isVisible() and window.list.card.mount.isVisible())
+    window.lens.open()
+    Swag.assert(window.lens.chosenEntry()!.id == VaultCommands.NewVault)
+}
+
+// File actions stay first above the chosen vault, including French at a non-default scale.
+#[Swag.TestTag("golden")]
+#test
+{
+    defer discard catch g_App.setLanguage(ReferenceLanguage)
+    for light in [false, true]
+    {
+        var host: Testing.HeadlessHost
+        let window = testSetupMainWindow(&host, light ? 1.25 : 1.0)
+        if light
+        {
+            host.theme.setLight()
+            host.notify(.ThemeChanged)
+        }
+
+        expect host.app.setLanguage(light ? "fr" : ReferenceLanguage)
+        host.notify(.LanguageChanged)
+        useTestDestination(window)
+        window.openVault("C:\\vaults\\example")
+        window.lens.open()
+        Swag.assert(window.lens.chosenEntry()!.id == VaultCommands.NewVault)
+        host.settleAnimations(window)
+        var image = host.render(&host.surfaceWnd)
+        Pixel.Testing.assertImageGolden(&image, light ? "surface.lens.paper" : "surface.lens.ink")
     }
 }

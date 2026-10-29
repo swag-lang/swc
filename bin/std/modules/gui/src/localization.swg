@@ -41,17 +41,20 @@ struct Strings
         key_Enter:     string = "↵"          // Name of the Enter key.
         key_CtrlEnter: string = "Ctrl ↵"     // Names of the Ctrl and Enter keys, held together.
 
-        lens_Commands:    string = "Commands"                    // Named caption entry point to the lens.
-        lens_Placeholder: string = "Search or run a command"     // Placeholder of the input of the lens.
-        lens_Empty:       string = "Nothing matches."            // Line the lens shows when no result answers the query.
-        lens_Choose:      string = "choose"                      // What the arrow keys do, at the foot of the lens.
-        lens_Go:          string = "go"                          // What Enter does, at the foot of the lens.
-        lens_Stay:        string = "stay"                        // What Ctrl Enter does on a setting: run it, the lens kept open.
-        lens_Line:        string = "line"                        // What the `:` prefix looks for, at the foot of the lens.
-        lens_Files:       string = "files"                       // What the `/` prefix looks for, at the foot of the lens.
-        lens_Actions:     string = "actions"                     // What the `>` prefix looks for, at the foot of the lens.
-        lens_Recent:      string = "Last Used"                   // Section of the lens holding the commands chosen last.
-        lens_Application: string = "Application"                 // Section of the lens holding the About box of the application.
+        lens_Commands:        string = "Commands"                    // Named caption entry point to the lens.
+        lens_Placeholder:     string = "Search or run a command"     // Placeholder of the input of the lens.
+        lens_Empty:           string = "Nothing matches."            // Line the lens shows when no result answers the query.
+        lens_Choose:          string = "choose"                      // What the arrow keys do, at the foot of the lens.
+        lens_Go:              string = "go"                          // What Enter does, at the foot of the lens.
+        lens_Stay:            string = "stay"                        // What Ctrl Enter does on a setting: run it, the lens kept open.
+        lens_Line:            string = "line"                        // What the `:` prefix looks for, at the foot of the lens.
+        lens_All:             string = "all sources"                 // Returns to every source without clearing the query.
+        lens_PreviousResults: string = "Previous Results"            // Scrolls toward earlier results.
+        lens_MoreResults:     string = "More Results"                // Scrolls toward later results.
+        lens_Files:           string = "files"                       // What the `/` prefix looks for, at the foot of the lens.
+        lens_Actions:         string = "actions"                     // What the `>` prefix looks for, at the foot of the lens.
+        lens_Recent:          string = "Last Used"                   // Section of the lens holding the commands chosen last.
+        lens_Application:     string = "Application"                 // Section of the lens holding the About box of the application.
 
         inspector_Tab: string = "Properties"     // Word on the edge tab of a folded inspector.
 

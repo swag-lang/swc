@@ -10,6 +10,11 @@ using Core, Gui
 // [[appStrings]]; never keep a copy across a language switch.
 struct AppStrings
 {
+    // Alternative phrases for command discovery; semicolons separate complete phrases.
+    search_Capture: string = "screenshot;screen grab;capture region"
+    search_Export:  string = "export image;save screenshot"
+    search_Library: string = "history;previous screenshots;gallery"
+
     ui_MenuFile:               string = "File"
     ui_MenuCapture:            string = "Capture"
     ui_MenuEdit:               string = "Edit"
@@ -424,9 +429,9 @@ struct AppStrings
     prop_LineSpacing: string = "Line Spacing"     // Label of the room between the lines of a text.
     prop_Thickness:   string = "Thickness"        // Label of the stroke thickness.
 
-    prop_Straight: string = "Straight"      // Line entry: a segment.
-    prop_Bezier:   string = "Bezier"        // Line entry: a curve.
-    prop_Small:    string = "Small"         // Shadow entry: a small one.
+    prop_Straight: string = "Straight"     // Line entry: a segment.
+    prop_Bezier:   string = "Bezier"       // Line entry: a curve.
+    prop_Small:    string = "Small"        // Shadow entry: a small one.
 
     prop_JoinNone:       string = "None"           // Join style with no explicit corner geometry; also no shadow.
     prop_JoinBevel:      string = "Bevel"          // Join style cutting the outer corner.

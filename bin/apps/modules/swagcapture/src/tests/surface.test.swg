@@ -1083,8 +1083,44 @@ func testBeginInlineText(host: *Gui.Testing.HeadlessHost, main: *MainWnd, index:
     }
 }
 
-// The lens as a reader meets it in the editor, a text shape in hand: opened empty, it offers what
-// can be done here and now; typed into, it ranks the context before the rest.
+// Capture, library and output actions stay at the door, including with no recent captures and
+// while an annotation is selected. Selection actions follow these stable groups.
+#test
+{
+    var host: Gui.Testing.HeadlessHost
+    let main = testSetupEditorSurface(&host, dark: true)
+    defer
+    {
+        main.libWnd.requestClose()
+        host.shutdown()
+        g_Main = null
+    }
+
+    let capture = unwrap main.getCapture()
+
+    for selected in [false, true]
+    {
+        capture.selection.clear()
+        if selected do
+            capture.selection.add(0)
+        main.updateState()
+        main.lens.open()
+        let sections = &main.lens.results.sections
+        Swag.assert(sections[0]!.entries.count == 4)
+        Swag.assert(sections[0]!.entries[0].id == ActionCapture.Area)
+        Swag.assert(sections[0]!.entries[1].id == ActionCapture.LastArea)
+        Swag.assert(sections[0]!.entries[2].id == ActionFile.OpenImage)
+        Swag.assert(sections[0]!.entries[3].id == ActionGlobal.ShowLibrary)
+        Swag.assert(sections[1]!.entries.count == 2)
+        Swag.assert(sections[1]!.entries[0].id == ActionFile.SaveAsImage)
+        Swag.assert(sections[1]!.entries[1].id == ActionCopyPaste.CopyAsImage)
+        if selected do
+            Swag.assert(not sections[2]!.entries.isEmpty())
+        main.lens.close()
+    }
+}
+
+// The lens as a reader meets it in the editor, with its stable capture and output actions.
 #[Swag.TestTag("golden")]
 #test
 {

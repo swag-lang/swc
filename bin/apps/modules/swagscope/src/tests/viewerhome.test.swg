@@ -61,7 +61,9 @@ func homeWindow(host: *Testing.HeadlessHost, light: bool)->*ViewerWindow
 
         host.moveMouse(window.home.localToSurface(window.home.rowRect(1).center()))
         Swag.assert(window.home.hovered == 1 and window.home.pointerIn)
+        window.home.invalidate()
         var hover = host.render(window)
+        Swag.assert(window.home.hovered == 1 and window.home.pointerIn)
         Pixel.Testing.assertImageGolden(&hover, light ? "home.hover.paper" : "home.hover.ink")
     }
 }

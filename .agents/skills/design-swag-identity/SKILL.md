@@ -31,12 +31,13 @@ at a time.
 The charter states the six laws. This is why each one exists. A surface that follows the letter
 of a rule but breaks one of these laws is wrong.
 
-1. **Nothing on screen but the work.** Every band a window keeps on screen takes height from the
-   work for the whole session, only to save a click the reader makes twice a day.
-2. **Information is asked for.** Taking information out of the product is a loss. Moving it
-   behind a key, a hover or a selection only decides when it is shown.
-3. **One door.** A reader who knows one key (`Space`, or `Ctrl K` where Space types text) can
-   find everything. A command that is no longer on screen has not been hidden.
+1. **The work comes first.** Remove decorative bands and duplicate readouts. Keep frequent task
+   controls beside the work: folder navigation, playback transport, editing tools and output.
+2. **Details are asked for.** Secondary readings and settings can wait for a gesture. Current
+   mode, selection, progress, failures and the next essential action must remain understandable.
+3. **One complete door, several direct gestures.** A visible Commands control and `Ctrl Space`
+   open the same complete lens. Frequent actions also have direct controls; command names and
+   keyboard shortcuts must not be prerequisites for using the application.
 4. **One accent at a time.** Voltage acts and Arc chooses. Voltage means *this is the thing to
    do*, so two Voltage marks on one screen mean nothing.
 5. **Air is a material.** A Swag surface is recognized as much by what it leaves empty as by

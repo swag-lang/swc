@@ -706,9 +706,8 @@ impl MainWnd
         }
     }
 
-    // The one door: every command of the application, the recent captures, the theme, the
-    // language and About. At rest it offers what can be done here and now: the actions of the
-    // selection, or the captures when nothing is selected, then the image and the recent captures.
+    // Every command, recent capture and appearance choice has a route through the lens. At rest
+    // capture and output keep their positions, followed by selection actions and recent captures.
     mtd createLens()
     {
         with .lens = Lens.View.create(me)
@@ -764,8 +763,7 @@ impl MainWnd
         .appearanceButton.addToLens(.lens)
     }
 
-    // Offers, at rest, the actions of what is in hand: the selection's when shapes are selected,
-    // the captures otherwise, then the image's.
+    // Keeps the capture and output actions in stable positions while a selection changes.
     mtd describeLensContext(results: *Lens.Results)
     {
         if .libraryMode
@@ -774,21 +772,17 @@ impl MainWnd
             return
         }
 
-        let selection = results.addSection(appStrings().lens_Selection)
-        .lens.addCommandRows(selection,
-                             [
-                                 ActionEdit.EditText, ActionCopyPaste.Duplicate, ActionCopyPaste.Copy, ActionSelection.DeleteSelection,
-                                 ActionAlign.SendToFront, ActionAlign.SendToBack, ActionGroup.Group, ActionGroup.Ungroup, ActionEdit.ResetRotation],
-                             enabledOnly: true)
-
-        if selection.entries.isEmpty()
-        {
-            let capture = results.addSection(appStrings().ui_MenuCapture)
-            .lens.addCommandRows(capture, [ActionCapture.Area, ActionCapture.LastArea, ActionCapture.FullScreen, ActionFile.OpenImage], enabledOnly: true)
-        }
+        let capture = results.addSection(appStrings().ui_MenuCapture)
+        .lens.addCommandRows(capture, [ActionCapture.Area, ActionCapture.LastArea, ActionFile.OpenImage, ActionGlobal.ShowLibrary])
 
         let image = results.addSection(appStrings().ui_MenuImage)
-        .lens.addCommandRows(image, [ActionFile.SaveAsImage, ActionCopyPaste.CopyAsImage, ActionImage.ResizeImage], enabledOnly: true)
+        .lens.addCommandRows(image, [ActionFile.SaveAsImage, ActionCopyPaste.CopyAsImage])
+
+        let selection = results.addSection(appStrings().lens_Selection)
+        .lens.addCommandRows(selection,
+                             [ActionEdit.EditText, ActionCopyPaste.Duplicate, ActionCopyPaste.Copy, ActionSelection.DeleteSelection,
+                              ActionAlign.SendToFront, ActionAlign.SendToBack, ActionGroup.Group, ActionGroup.Ungroup, ActionEdit.ResetRotation],
+                             enabledOnly: true)
     }
 
     // Answers the lens with the recent captures whose name matches the query, as a strip of

@@ -9,45 +9,30 @@ dialogs, then each application, then the written rules.
 
 ## Entries
 
-### design.silence.004 — The lens's first screen needs a first-use review
+### design.silence.004 — The lens needs a discoverable pointer entrance and direct task controls
 
-- Evidence: the toolkit has the lens (`Gui.Lens.View`), the information sheet (`Gui.InfoSheet`),
-  the inspector (`Gui.Inspector`, which carries a generated grid through `setContent`), the
-  mini-bar (`Gui.MiniBar`), the dock (`Gui.ToolDock`), the hint line (`Gui.HintLine`),
-  `Gui.SectionLabel` and a floating surface for any other content (`Gui.FloatingPanel`), with
-  `floating.test.swg`, `lens.test.swg` and their goldens, and `AppearanceButton.addToLens`; a
-  hidden caption button keeps working and takes no room in the caption. Swag Capture, Swag Scope,
-  Swag Prism and Swag Vault compose them (the remaining work of the first two is
-  design.silence.008 and design.silence.007). The quiet text menu of a header is
-  `IconButton.createQuiet` with `setQuietText`, and every application builds its quiet menus with
-  it; the section labels Swag Scope shaped itself (its panels, the days of a mosaic, the outline
-  margin) are `Gui.SectionLabel`; the keys are named one way (`Gui.strings().key_Enter`,
-  `key_CtrlEnter`, spaced shortcuts). Each application has an at-rest provider: Capture offers
-  selection, capture or image actions; Prism offers the current view's actions and examples; Vault
-  offers the chosen vault and New/Open; Scope exposes file and view basics plus viewer controls.
-  Scope's first-use Markdown lens now orders Open, Explore Folder, Close File and Outline before
-  viewer choices and viewer-specific controls; a first-screen test and whole-window goldens pin
-  all four actions in Encre and Papier. The code-view golden confirms the same order at rest. After
-  entering Explorer, the empty-query lens leads with folder actions and offers Back, Forward, Up,
-  Refresh, Edit Location and Open Chosen when each action can run. It keeps only Open and Close
-  from the generic file actions in this context, with a first-screen test and whole-window goldens
-  in both themes. Explorer's tile painter drew the Arc selection ring before the preview, allowing
-  the picture to cover the selection mark; the name and facts under a selected thumbnail also had
-  no selection ground. The charter now states that both files and folders remain selected after
-  pointer exit, that rows carry a full Arc ground, and that thumbnail selection stays visible over
-  the picture in both themes. Ctrl+Space now opens the lens in the window's early child-event hook,
-  ahead of a focused viewer or field that consumes Space.
-- Next: review the empty-query lens in Capture, Prism and Vault against their first-use tasks in
-  both themes; adjust the direct action order so their common tasks are visible before scrolling,
-  then update and review the affected whole-screen goldens. In Scope, verify that the full Markdown
-  outline reaches its last heading by wheel and keyboard. Because the scrollbar rests hidden by
-  charter, check how a first-time reader discovers scrolling. Keep reviewing Explorer's direct
-  actions for archive and media locations.
-- Done when: each application offers its common first-use tasks directly in the initial lens
-  view, every other command remains reachable from the lens, and the whole-screen goldens match
-  the approved design without any application re-implementing a shared component or insetting
-  its whole root under the strip. Explorer selection remains clear on files, folders and previews
-  after the pointer leaves, in Encre and Papier.
+- Evidence: the current command entrance is taught by a Ctrl Space hint; a named pointer
+  entrance is missing. Capture has a dock and selection tools, but output and the next capture
+  still depend on the lens. Scope offers folder navigation inside the lens, making repeated
+  Back/Up operations indirect. The empty-query lens has a bounded viewport without a visible
+  overflow cue. Its footer has source links, but no named reset to all sources. The matcher
+  folds case and supports substrings, initials and ordered characters; it has no word-order,
+  accent, alias or typo policy. `View.rankResults` always places provider sections before
+  command families. A loose content hit can therefore precede an exact action.
+- Next: implement the charter's [task walkthroughs](README.md#direct-controls-and-task-walkthroughs)
+  as separate, reviewable changes: a shared visible Commands entrance; Capture's compact
+  capture/output group; Scope's direct folder navigation. Preserve command routing and use the
+  shared toolkit controls. Add a visible overflow affordance and a scope reset to the lens.
+  Then build the query corpus described under [Search intent](README.md#search-intent-and-predictable-ranking)
+  before changing normalization, aliases and ranking; use relevance tiers rather than
+  provider registration order, and bound typo recovery to meaningful words. Check the footer
+  at minimum width with French labels and a selected checkable row: source links and Ctrl Enter
+  help must not overlap. Review Prism and Vault against the same first-use contract.
+- Done when: a new user can complete each charter walkthrough with the pointer alone, and an
+  experienced user can complete it with keys alone; basic actions fit the first lens viewport,
+  changing a selection does not move them, all other actions can be browsed without typing,
+  query-corpus tests establish the first usable result and alternatives, and the whole-window
+  goldens read correctly in both themes, both shipped languages and a non-default display scale.
 - Related: design.silence.007, design.silence.008
 
 ### design.silence.006 — The file box does not fit its rows as its pictures do

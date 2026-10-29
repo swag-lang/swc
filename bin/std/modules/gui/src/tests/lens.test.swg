@@ -98,6 +98,21 @@ func lensSetup(host: *Testing.HeadlessHost)->*Lens.View
     return lens
 }
 
+func lensFooterActionPosition(lens: *Lens.View)->Math.Point
+{
+    let metrics = lens.themeMetrics()
+    let bounds  = lens.clientRect()
+    let top     = lens.input.position.y
+    let width   = Math.min(metrics.lens_Width, bounds.width - 2 * metrics.floating_Inset)
+    let last    = lens.rows.back()
+    let content = last.top + last.height + metrics.lens_RowInset
+    let fixed   = metrics.lens_InputHeight + metrics.lens_FooterHeight + 2 * metrics.separator_HairlineSize
+    let room    = Math.max(Math.min(bounds.height * metrics.lens_MaxHeightRatio, bounds.height - metrics.floating_Inset - top), fixed)
+    let height  = Math.min(fixed + content, room)
+    return {bounds.horzCenter() + width * 0.5 - metrics.lens_TextInset - metrics.keycap_Padding,
+            top + height - metrics.lens_FooterHeight * 0.5}
+}
+
 // A whole occurrence answers better than characters found in order, and better again at the
 // start of a word; the runs it matched are reported in bytes.
 #test
@@ -197,6 +212,27 @@ func lensSetup(host: *Testing.HeadlessHost)->*Lens.View
     lens.setQuery(":center")
     Swag.assert(lens.results.prefix == .Line and lens.results.query == "center")
     Swag.assert(lens.results.sections.count == 1 and lens.results.sections[0]!.label == "In this file")
+}
+
+// The footer opens the complete command catalogue without typing, and preserves a query when
+// narrowing it to actions.
+#test
+{
+    var host: Testing.HeadlessHost
+    host.setup(800, 600)
+    let lens = lensSetup(&host)
+    lens.addRestSource(func(results) { results.addSection("Selection").addEntry("Duplicate") })
+    lens.open()
+    Swag.assert(lens.results.sections.count == 1)
+
+    host.click(lensFooterActionPosition(lens))
+    Swag.assert(lens.query() == ">" and lens.isOpen())
+    Swag.assert(lens.results.sections.count == 2 and lens.chosenEntry()!.id == LensOpen)
+
+    lens.setQuery("center")
+    host.click(lensFooterActionPosition(lens))
+    Swag.assert(lens.query() == ">center" and lens.chosenEntry()!.id == LensTheme)
+    Swag.assert(host.app.keyboardFocusWnd == &lens.input.wnd)
 }
 
 // Enter closes the lens and posts the chosen command; Escape closes it and gives the keyboard back.

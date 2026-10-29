@@ -124,11 +124,13 @@ theme-atlas glyph, another app's icon or a letter tile.
 The six laws (see [design-swag-identity](../design-swag-identity/SKILL.md#the-gui-follows-silence))
 bind an application like this:
 
-- **No permanent toolbar, menu bar, status bar, ribbon, side panel, information band or options
-  band.** The window is the document, the image, the list.
-- **Readings, outlines, metadata and settings are asked for.** They live in the sheet, the
-  inspector, the lens or a hover veil. They are moved there, never deleted on the way.
-- **`Space`, or `Ctrl K` where Space types text, opens the lens, and every command is in it.**
+- **Keep frequent task controls beside the work.** Folder navigation, playback transport,
+  editing tools and output can stay visible. Remove decorative bands and duplicate readouts;
+  do not replace repeated pointer actions with repeated lens calls. Follow the charter's
+  [task walkthroughs](../../../backlog/design/README.md#direct-controls-and-task-walkthroughs).
+- **Secondary readings, metadata and settings are asked for.** Keep the current mode, selection,
+  progress, failures and next essential action understandable without an undiscovered gesture.
+- **A visible Commands control and `Ctrl Space` open the same lens; every command is in it.**
 - **One accent at a time**: one primary action per surface, and everything chosen is Arc (see
   [design-swag-themes](../design-swag-themes/SKILL.md#voltage-acts-arc-chooses)).
 - **Air before lines**: measured columns, reading margins, nothing flush with an edge, nothing
@@ -141,7 +143,8 @@ bind an application like this:
 
 The charter's Window chrome section, with [`scope.read`](../../../backlog/design/imgs/scope.read.png)
 as its picture, describes the window. The toolkit's `SurfaceWnd` draws all of it: the glyph, the
-centred title and the faint window buttons. An application adds nothing to it.
+centred title and the faint window buttons. Use the existing strip for the shared Commands
+entrance; do not add a second caption band.
 
 - The strip (`ThemeMetrics.wnd_StripHeight`, 52) floats over the view, and the view takes the
   whole body. `SurfaceWnd.hitTestCaption` drags the window from the strip's ground and from
@@ -150,8 +153,8 @@ centred title and the faint window buttons. An application adds nothing to it.
   top by `Wnd.stripInset()` and reads it again in its resize handler, because the strip comes and
   goes in full screen. A document, a picture or a list that scrolls under the title ignores it.
 - **The hint line** is `Gui.HintLine`: `HintLine.create(view)`, then
-  `.addHint(strings().key_Space, words)` and `.setReading(text)` for a faint reading, such as a
-  canvas size, on the same line. It teaches the keys of the mode in force, with `Space` last. Hide
+  `.addHint(Input.formatKeyShortcut(.Control, .Space), words)` and `.setReading(text)` for a faint
+  reading, such as a canvas size, on the same line. It teaches the mode's keys, with `Ctrl Space` last. Hide
   it once the reader knows the door.
 - **Keys are named one way** everywhere: in the hint line, at the foot of the lens, at the end of
   a menu or lens row. Use `Input.formatKeyShortcut` and the key names of `Gui.strings()`
@@ -192,7 +195,7 @@ like. The toolkit types live in `bin/std/modules/gui/src/controls/lens` and
   `run`. `Lens.match(query, text)` is the ranking the lens uses. A section with `inline` shows an
   exclusive choice as one row of segments, and `addPicture` adds a strip of pictures such as
   recent documents.
-- **The application binds the keys.** Register `Space`, `Ctrl K` and `I` with
+- **The application binds the keys.** Register `Ctrl Space` and `I` with
   `registerKeyShortcut`, and open the lens, toggle the sheet or fold the inspector on those
   commands.
 - **Use a toast** for a short confirmation of what the hand just did, or for a failure that needs
@@ -207,9 +210,9 @@ files, the library, options, the theme and the language, and About.
 - A shortcut is shown at the end of its entry in faint mono, so the lens also teaches it.
 - A context menu or a mini-bar may offer a subset for the selection. It never holds a command the
   lens lacks.
-- An application that had a menu bar or a toolbar migrates by moving each item to the lens, to
-  the mini-bar (if it applies to a selection) or to the sheet (if it is a reading). Nothing is
-  deleted on the way.
+- Register every former menu or toolbar action in the lens. Keep repeated task actions in direct
+  controls, selection actions in the mini-bar, and secondary readings in the sheet. Share command
+  identifiers and state so these routes cannot diverge. Nothing is deleted on the way.
 
 ## Word The Commands
 

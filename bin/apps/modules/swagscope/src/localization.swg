@@ -32,6 +32,11 @@ struct AppStrings
     explore_Synopsis:          string = "Synopsis"
     explore_Length:            string = "% h %"                      // Length of a film under its poster: hours, then minutes.
     explore_Sources:           string = "Sources"                    // Reading naming who provided what the sheet says of a film.
+    explore_OnePage:           string = "1 page"                     // Facts of a document of one page under its cell.
+    explore_Pages:             string = "% pages"                    // Facts of a document under its cell: its pages.
+    explore_Lines:             string = "% lines"                    // Facts of a text or code file under its cell: its lines.
+    explore_Sections:          string = "% sections"                 // Facts of a Markdown file under its cell: its sections.
+    explore_Files:             string = "% files"                    // Facts of an archive under its cell: the files it holds.
     explore_Albums:            string = "% albums"                   // How many albums a music library holds.
     explore_Photos:            string = "% photos"                   // How many pictures a folder of photographs holds.
     explore_Films:             string = "% films"                    // How many films a folder of films holds.

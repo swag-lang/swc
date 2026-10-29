@@ -32,6 +32,16 @@ const ExplorerDurationFontSize = 11'u32
 const ExplorerDurationGround   = 0xB30B0B0D'u32
 const ExplorerDurationInk      = 0xFFE6E6EA'u32
 
+// Reports whether `word` opens a declaration or a statement, which a code cell sets in Arc.
+func isCardKeyword(word: string)->bool
+{
+    const Keywords = ["impl", "mtd", "func", "let", "var", "const", "for", "if", "while", "struct", "enum", "using", "return",
+                      "fn", "def", "class", "import", "public", "private", "static", "void", "int", "pub", "use"]
+    for one in Keywords where one == word do
+        return true
+    return false
+}
+
 // Returns the title of a track from its file name: without its extension and without the
 // number and separator a ripper writes before it.
 func trackTitle(name: string)->String
@@ -2094,7 +2104,11 @@ impl ExplorerGrid
 
         painter.fillRoundRect(tile, radius, radius, colors.raised)
         let glyph = .theme().fileGlyph(entry.name, entry.directory, 32)
-        if entry.texture.isValid()
+        if .board == .Grid and .paintCard(painter, tile, entry)
+        {
+            // The cell drew what the file is.
+        }
+        elif entry.texture.isValid()
         {
             let texture = entry.texture
             let fills   = .posters or .board == .Covers or .board == .Mosaic or glyph.index == cast(s32, ThemeIcons.FileImage) or glyph.index == cast(s32, ThemeIcons.FileVideo)
@@ -2174,6 +2188,115 @@ impl ExplorerGrid
             painter.drawString(tile.x, factsY, facts, mono, colors.faintText)
             painter.popClippingRect()
         }
+    }
+
+    // Draws what a file of the mixed board is, as its picture shows it, and returns whether it
+    // did: a PDF its first page on a paper card, code its first lines in mono, Markdown its
+    // heading over its lines, a font "Aa".
+    mtd paintCard(painter: *Painter, tile: Math.Rectangle, entry: const *ExplorerEntry)->bool
+    {
+        let colors = .themeColors()
+        let ext    = Path.lowercaseExtension(entry.name)
+        if ext == ".pdf"
+        {
+            // A page standing on the tile, with the shadow of paper.
+            let height = tile.height - 24
+            let width  = Math.round(height * 0.72)
+            let page   = Math.Rectangle{Math.round(tile.horzCenter() - width * 0.5), tile.y + 12, width, height}
+            .theme().drawFloatingShadow(painter, page, 2)
+            painter.fillRoundRect(page, 2, 2, Color.fromArgb(Argb.White))
+            if entry.texture.isValid()
+            {
+                var room = page
+                room.inflate(-2)
+                painter.fillRect(room, Brush.createTexture(entry.texture))
+            }
+            else
+            {
+                let ink  = Color.fromArgb(0xFF1A1A1E)
+                let rule = Color.fromArgb(0xFFDADAD6)
+                let x    = page.x + 10
+                painter.fillRect(Math.Rectangle{x, page.y + 14, width * 0.45, 6}, ink)
+                for i in 4 do
+                    painter.fillRect(Math.Rectangle{x, page.y + 30 + cast(f32, i) * 7, (width - 20) * (i == 3 ? 0.6 : 1.0), 2}, rule)
+                painter.fillRect(Math.Rectangle{x, page.y + 66, width - 20, 28}, Color.fromArgb(0xFFEAE8E4))
+            }
+
+            return true
+        }
+
+        if not entry.excerpt.isEmpty() and (ext == ".md" or ext == ".markdown")
+        {
+            // The first heading in bold, then the lines under it as rules, the next heading in soft.
+            let bold  = .theme().createDefaultFont(13, .Bold)
+            let small = .theme().createDefaultFont(10, .Bold)
+            var y     = tile.y + 22
+            var headings = 0'u64
+            for line in Tokenize.split(entry.excerpt, '\n'rune)
+            {
+                if y > tile.bottom() - 16 do
+                    break
+                if line.count and line[0] == '#'
+                {
+                    var at = 0'u64
+                    while at < line.count and (line[at] == '#' or line[at] == ' ') do
+                        at += 1
+                    let font = headings == 0 ? bold : small
+                    painter.pushClippingRect(Math.Rectangle{tile.x + 18, tile.y, tile.width - 36, tile.height})
+                    painter.drawString(tile.x + 18, font.opticalLineTop(y), line[at to], font, headings == 0 ? colors.text : colors.softText)
+                    painter.popClippingRect()
+                    headings += 1
+                    y += 18
+                }
+                elif line.count
+                {
+                    let width = Math.min(cast(f32, line.count) * 3.0, tile.width - 36)
+                    painter.fillRect(Math.Rectangle{tile.x + 18, y - 1, width, 2}, colors.line)
+                    y += 8
+                }
+            }
+
+            return true
+        }
+
+        if not entry.excerpt.isEmpty()
+        {
+            // The first lines in mono, a keyword in Arc.
+            let mono = .theme().createDefaultFontFs(10)
+            var y    = tile.y + 22
+            painter.pushClippingRect(Math.Rectangle{tile.x + 14, tile.y + 8, tile.width - 22, tile.height - 16})
+            for line in Tokenize.split(entry.excerpt, '\n'rune)
+            {
+                if y > tile.bottom() - 12 do
+                    break
+                var indent = 0'u64
+                while indent < line.count and (line[indent] == ' ' or line[indent] == '\t') do
+                    indent += 1
+                var word = indent
+                while word < line.count and Latin1.isLetter(line[word]) do
+                    word += 1
+                let x       = tile.x + 16 + cast(f32, indent) * 3.5
+                let keyword = isCardKeyword(line[indent until word])
+                painter.drawString(x, mono.opticalLineTop(y), line[indent until word], mono, keyword ? colors.arc : colors.softText)
+                let used = Painter.measureString(line[indent until word], mono).width
+                painter.drawString(x + used, mono.opticalLineTop(y), line[word to], mono, colors.softText)
+                y += 14
+            }
+
+            painter.popClippingRect()
+            return true
+        }
+
+        if ext == ".ttf" or ext == ".otf"
+        {
+            let font = .theme().createDefaultFont(32, .Bold)
+            let text = "Aa"
+            let size = Painter.measureString(text, font)
+            painter.drawString(Math.round(tile.horzCenter() - size.width * 0.5), font.opticalLineTop(tile.vertCenter()), text, font, colors.softText)
+            return true
+        }
+
+        return false
     }
 
     // Writes the duration of a film in a mono chip at the corner of its tile.
@@ -2475,6 +2598,22 @@ impl ExplorerGrid
 
             return result
         }
+
+        // What a file measures: a picture its size, a document its pages, code its lines,
+        // Markdown its sections, a font its face.
+        let texts = appStrings()
+        if entry.width and entry.height do
+            return Format.toString("% × %", entry.width, entry.height)
+        if entry.pages do
+            return entry.pages == 1 ? String.from(texts.explore_OnePage) : Format.toString(texts.explore_Pages, entry.pages)
+        if entry.sections do
+            return Format.toString(texts.explore_Sections, entry.sections)
+        if entry.lines do
+            return Format.toString(texts.explore_Lines, entry.lines)
+        if not entry.face.isEmpty() do
+            return String.from(entry.face)
+        if entry.members do
+            return Format.toString(texts.explore_Files, entry.members)
 
         if not entry.movie.date.isEmpty() do
             result = entry.movie.date.toString()[0 until Math.min(entry.movie.date.length, 4'u64)]

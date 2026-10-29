@@ -185,3 +185,8 @@ board_Mosaic Mosaïque
 explore_Albums % albums
 explore_Photos % photos
 explore_Films % films
+explore_OnePage 1 page
+explore_Pages % pages
+explore_Lines % lignes
+explore_Sections % sections
+explore_Files % fichiers

@@ -120,9 +120,31 @@ func addPictured(host: *Testing.HeadlessHost, explorer: *Explorer, name: string,
         addPictured(&host, explorer, "lens-demo.mp4", boardPicture(192, 108, 0x24456E, 0x3D6C9E), 24 * 1024 * 1024, 161)
         for name, size in ["annual-report.pdf", "explorer.swg", "voice-over.flac", "design.silence.md"] do
             explorer.entries.add({name: name, path: name, size: 2048 * (size + 1), attempted: true})
+
+        // What the listing reads of each file, as it would of the real ones.
+        let at = explorer.entries.count
+        explorer.entries[at - 4].pages = 12
+        with let code = &explorer.entries[at - 3]
+        {
+            .lines   = 214
+            .excerpt = "impl Explorer\n{\n    mtd layout()\n    {\n        let cells = .cells\n        for c in cells do\n            c.fit()\n"
+        }
+
+        with let markdown = &explorer.entries[at - 1]
+        {
+            .sections = 3
+            .excerpt  = "# Silence\nThe window shows the document and nothing else.\nEvery command is an entry of the lens.\n\n## Motion\nWhat floats arrives and leaves.\n"
+        }
+
         addPictured(&host, explorer, "forest.jpg", boardPicture(160, 120, 0x2F4A32, 0x7FA36A), 3 * 1024 * 1024)
         for name, size in ["vault.bin", "Inter-Light.ttf", "sources.zip"] do
             explorer.entries.add({name: name, path: name, size: 1024 * 1024 * (size + 1), attempted: true})
+        explorer.entries[2].width  = 800
+        explorer.entries[2].height = 500
+        explorer.entries[8].width  = 4032
+        explorer.entries[8].height = 3024
+        explorer.entries[10].face  = "Inter · Light"
+        explorer.entries[11].members = 48
         explorer.selected = 3
         showBoard(&host, window, "Documents", "Projects")
 
@@ -279,4 +301,25 @@ func addPictured(host: *Testing.HeadlessHost, explorer: *Explorer, name: string,
     Swag.assert(grid.days[0].text == "Wednesday 21 October")
     var image = host.render(window)
     Pixel.Testing.assertImageGolden(&image, "explorer.photos")
+}
+
+// The listing reads what a cell shows of a file: the size of a picture from its head, the pages of
+// a document, the lines and first lines of code, the sections of Markdown, a font's face.
+#test
+{
+    let folder = Path.combine(unwrap Path.directoryName(#curlocation.fileName), "datas")
+    var picture = ExplorerEntry{name: "title.png", path: Path.combine(folder, "title.png")}
+    var pdf     = ExplorerEntry{name: "viewer.pdf", path: Path.combine(folder, "viewer.pdf")}
+    var code    = ExplorerEntry{name: "sample.cpp", path: Path.combine(folder, "sample.cpp")}
+    var notes   = ExplorerEntry{name: "comprehensive.md", path: Path.combine(folder, "comprehensive.md")}
+    var font    = ExplorerEntry{name: "segoeui.ttf", path: Path.combine(folder, "segoeui.ttf")}
+    var archive = ExplorerEntry{name: "viewer.archive.zip", path: Path.combine(folder, "viewer.archive.zip")}
+    var other   = ExplorerEntry{name: "notes.bin", path: Path.combine(folder, "notes.bin")}
+    Swag.assert(probeEntry(&archive) and archive.members >= 2)
+    Swag.assert(probeEntry(&picture) and picture.width > 0 and picture.height > 0)
+    Swag.assert(probeEntry(&pdf) and pdf.pages >= 1)
+    Swag.assert(probeEntry(&code) and code.lines > 1 and not code.excerpt.isEmpty())
+    Swag.assert(probeEntry(&notes) and notes.sections >= 1)
+    Swag.assert(probeEntry(&font) and Utf8.contains(font.face.toString(), "Segoe"))
+    Swag.assert(not probeEntry(&other))
 }

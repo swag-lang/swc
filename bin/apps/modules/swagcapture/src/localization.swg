@@ -318,7 +318,7 @@ struct AppStrings
     act_Options:                string = "Options…"
     act_PasteInsideImage:       string = "Paste Inside Image"
     act_Paste:                  string = "Paste"
-    act_PixSel:                 string = "PixSel"
+    act_PixSel:                 string = "Pixel Selection"
     act_Polygon:                string = "Polygon"
     act_Quit:                   string = "Quit"
     act_RecycleBin:             string = "Recycle Bin"

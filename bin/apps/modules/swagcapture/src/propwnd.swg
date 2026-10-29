@@ -445,6 +445,7 @@ impl PropWnd
             let metrics = prop.themeMetrics()
             .grid.setRowMetrics(metrics.control_InspectorHeight, metrics.inspector_RowPitch - metrics.control_InspectorHeight)
             .grid.setSectionRules(false)
+            .grid.setRowGrounds(false)
 
             // The panel layout keeps its own margin before each row; the grid reaches past the
             // column by that much so its labels stand on the edge of the inspector's labels.

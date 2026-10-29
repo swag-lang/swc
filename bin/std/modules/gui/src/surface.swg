@@ -328,10 +328,12 @@ impl Surface
         .invalidate()
     }
 
-    // Changes the surface title, or clears it when `name` is `null`.
+    // Changes the surface title, or clears it when `name` is `null`. The strip draws it, and the
+    // task bar and the window switcher name the window by it.
     mtd setTitle(name: string?)
     {
         .wnd.name.set(name)
+        .applyNativeTitle()
         .invalidate()
     }
 

@@ -175,6 +175,7 @@ struct Properties
     sections:     Array'{ item: *PropertiesItem?, lvl: s32 }     // Section rows and their depth.
     lastCategory: *PropertiesItem?     // The top-level category opened last, which a category of the same name goes on.
     sectionRules: bool = true          // Whether a section label of a panel is followed by a hairline.
+    rowGrounds:   bool = true          // Whether the focused and the hovered rows stand on a ground.
 
     // Per data-column depth: does any row at that depth show a disclosure triangle? Drives the
     // reclaimed triangle gutter for all-leaf depths (see computeLevelMarks / itemLabelGutter).
@@ -634,6 +635,14 @@ impl Properties
     mtd setSectionRules(visible: bool)
     {
         .sectionRules = visible
+        .invalidate()
+    }
+
+    // Shows or hides the ground behind the focused and the hovered rows. An inspector, whose rows
+    // are the controls themselves, leaves it out: the ground would only show behind the labels.
+    mtd setRowGrounds(visible: bool)
+    {
+        .rowGrounds = visible
         .invalidate()
     }
 

@@ -391,10 +391,38 @@ impl PopupListCtrl
         view.close(view.hotIdx)
     }
 
+    // Returns the width the widest worded entry needs, its lanes and the frame included, so a
+    // list opened under a narrow field still shows each entry whole. An entry painted by its
+    // own painter is a sample, as wide as the list makes it, and is not measured.
+    mtd contentWidth()->f32
+    {
+        let metrics = .themeMetrics()
+        let font    = .scrollWnd.view.font()
+        var text    = 0'f32
+        for item in .items
+        {
+            let it = unwrap item
+            if it.isSeparator or it.contentPainter do
+                continue
+            text = Math.max(text, Painter.measureString(it.name.raw, unwrap font.regular).width)
+        }
+
+        if text == 0 do
+            return 0
+
+        var lanes = 2 * metrics.popupList_Padding
+        if .selectedIndex < .items.count do
+            lanes += font.regular!.height + metrics.popupList_IconTextMargin
+        if .maxIconSize do
+            lanes += .maxIconSize + metrics.popupList_IconTextMargin
+        return Math.ceil(text + lanes + .padding.x + .padding.z + metrics.scrollBar_Size)
+    }
+
     // Shows the popup with its top-left corner at the surface position (`x`, `y`).
     //
-    // The popup is at least `width` and [[Gui.PopupListCtrl.minimumWidth]] wide, as tall as its
-    // entries up to [[Gui.PopupListCtrl.maximumHeight]], and moved to fit inside its parent.
+    // The popup is as wide as `width`, [[Gui.PopupListCtrl.minimumWidth]] and its widest entry
+    // ([[Gui.PopupListCtrl.contentWidth]]) ask, as tall as its entries up to
+    // [[Gui.PopupListCtrl.maximumHeight]], and moved to fit inside its parent.
     mtd show(x, y: f32, width: f32 = 10)
     {
         var contentHeight: f32
@@ -411,7 +439,7 @@ impl PopupListCtrl
 
         let pt  = .parent!.surfaceToLocal(Math.Point{x, y})
         var pos = Math.Rectangle{pt.x, pt.y, 0, 0}
-        pos.width  = Math.max(width, .minimumWidth, 0)
+        pos.width  = Math.max(width, .minimumWidth, .contentWidth(), 0)
         pos.height = Math.min(.scrollWnd.scrollSize.y, Math.max(.maximumHeight, 0))
         pos.height += .padding.y + .padding.w
         .setPosition(pos)

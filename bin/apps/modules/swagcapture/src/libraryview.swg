@@ -90,6 +90,21 @@ impl LibraryItem
             g_App.renderer.removeTexture(&.texture)
         Memory.delete(.capture)
     }
+
+    // Returns the name the item is shown and sorted by: the name of its capture once loaded, its
+    // file until then.
+    mtd const name()->String => nameOf(.fi.fullName, .capture)
+
+    // Returns the name of the item stored at `fullName` whose loaded capture is `capture`.
+    func nameOf(fullName: string, capture: const *Capture?)->String
+    {
+        var result: #returntype
+        if capture do
+            result = capture.displayName()
+        if result.isEmpty() do
+            result = Path.fileNameWithoutExtension(fullName) orelse ""
+        return result
+    }
 }
 
 // The thumbnail grid of the library, filled by a background loader.
@@ -345,13 +360,7 @@ impl IWnd for LibraryView
         }
 
         // The name: the title the reader gave, the application it was taken from, or the file.
-        var label: String
-        if capture and not capture.title.isEmpty() do
-            label = capture.title
-        elif capture and not capture.sourceApplication.isEmpty() do
-            label = capture.sourceApplication
-        else do
-            label = Path.fileName(it.fi.fullName) orelse ""
+        let label = LibraryItem.nameOf(it.fi.fullName, capture)
 
         let nameFont = theme.createDefaultFont(.themeMetrics().defaultFontSize)
         let nameTop  = thumbRect.bottom() + LibraryCaptionGap
@@ -997,9 +1006,7 @@ impl LibraryView
                 value = b.fi.lastWriteTime <=> a.fi.lastWriteTime
 
             case .Name:
-                let nameA = captureA and not captureA.title.isEmpty() ? captureA.title.toString() : (Path.fileName(a.fi.fullName) orelse "")
-                let nameB = captureB and not captureB.title.isEmpty() ? captureB.title.toString() : (Path.fileName(b.fi.fullName) orelse "")
-                value = Utf8.compare(nameA, nameB, .Latin1NoCase)
+                value = Utf8.compare(a.name(), b.name(), .Latin1NoCase)
 
             case .Application:
                 let applicationA = captureA ? captureA.sourceApplication.toString() : ""

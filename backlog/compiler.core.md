@@ -563,6 +563,22 @@ Entries stay in one flat list. Keep only measurements that affect the next actio
   diagnostic goes, then add the reduced case to the `sema` suite.
 - Done when: the reduced case compiles and a `sema` fixture holds it.
 
+### compiler.core.094 — A `String` declared with its type from a call reads zeroed bytes
+
+- Evidence: `var b: String = make()` and `let f: String = Format.toString("dock%", 0)`, where
+  the call returns a `String`, give a string of the right length whose bytes are all zero;
+  `let a = make()` and `var b = make()` are correct. It reproduces in a script under the JIT and
+  in a native test executable, with every DevMode and Release compiler available since
+  2026-10-28. The bytes read as freed memory: the returned temporary seems dropped while the
+  declared variable still points at its buffer. `log.swg` declares `let rendered: String =`
+  `.buf.toString()` with a `String`-returning call; other typed declarations in `bin/` convert
+  a `string` and are not affected.
+- Next: reduce `var b: String = make()` with `make()->String` building its result in a local,
+  compare the semantic tree and the emitted code with the untyped declaration, and repair the
+  path that binds the declared type to the returned temporary.
+- Done when: a `sema` or `jit` suite case holding the typed declaration reads the returned
+  bytes under both compiler executables.
+
 ## Deliberately out of scope
 
 - **An LLVM back end.** The native and Micro back ends are the supported architecture. Reconsider only if a concrete platform or optimization requirement cannot be met within them.

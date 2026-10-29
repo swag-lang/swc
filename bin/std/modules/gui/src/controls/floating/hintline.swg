@@ -70,23 +70,22 @@ impl IWnd for HintLine
         var bounds  = parent.clientRect()
         bounds.x     += .margin.x
         bounds.width = Math.max(bounds.width - .margin.x - .margin.z, 0)
-        let page    = parent.paddedClientRect()
-        let pad     = .groundPadding()
-        let height  = metrics.hintLine_Height + 2 * pad.y
-        let content = .contentWidth() + 2 * pad.x
-        let top     = bounds.bottom() - metrics.hintLine_Bottom - metrics.hintLine_Height - pad.y
+        let page   = parent.paddedClientRect()
+        let pad    = .groundPadding()
+        let height = metrics.hintLine_Height + 2 * pad.y
+        let top    = bounds.bottom() - metrics.hintLine_Bottom - metrics.hintLine_Height - pad.y
         switch #complete .alignment
         {
         case .Center:
-            let width = Math.min(content, bounds.width)
+            let width = Math.min(.fit(bounds.width - 2 * pad.x).width + 2 * pad.x, bounds.width)
             .setPosition(Math.Rectangle{Math.round(bounds.horzCenter() - width * 0.5), top, width, height})
 
         case .Leading:
-            let width = Math.min(content, page.width)
+            let width = Math.min(.fit(page.width - 2 * pad.x).width + 2 * pad.x, page.width)
             .setPosition(Math.Rectangle{page.x, top, width, height})
 
         case .Trailing:
-            let width = Math.min(content, page.width)
+            let width = Math.min(.fit(page.width - 2 * pad.x).width + 2 * pad.x, page.width)
             .setPosition(Math.Rectangle{page.right() - width, top, width, height})
         }
     }
@@ -114,7 +113,9 @@ impl IWnd for HintLine
             x += metrics.hintLine_GroupGap
         }
 
-        for hint in .hints
+        // The hints that do not fit are left out whole, rather than cut in the middle of a word.
+        let shown = .fit(.clientRect().width - 2 * .groundPadding().x + 1).count
+        for hint, i in .hints where i < shown
         {
             if not hint.key.isEmpty()
             {
@@ -188,24 +189,33 @@ impl HintLine
     }
 
     // Returns the width of everything the line writes.
-    mtd contentWidth()->f32
+    mtd contentWidth()->f32 => .fit(Swag.F32.Max).width
+
+    // Returns how many hints fit in `limit` after the reading, which always stands, and the width
+    // the reading and those hints take.
+    private mtd fit(limit: f32)->{ count: u64, width: f32 }
     {
         let metrics = .themeMetrics()
         let font    = .theme().createDefaultFont(metrics.hintLine_FontSize)
 
-        var result = 0'f32
+        var width = 0'f32
         if not .reading.isEmpty() do
-            result += Painter.measureString(.reading, .theme().createDefaultFontFs(metrics.hintLine_FontSize)).width + metrics.hintLine_GroupGap
+            width = Painter.measureString(.reading, .theme().createDefaultFontFs(metrics.hintLine_FontSize)).width
+
+        var count = 0'u64
         for hint in .hints
         {
+            var next = width > 0 ? metrics.hintLine_GroupGap : 0
             if not hint.key.isEmpty() do
-                result += keycapWidth(me, hint.key) + metrics.hintLine_KeyGap
-            result += Painter.measureString(hint.text, font).width + metrics.hintLine_GroupGap
+                next += keycapWidth(me, hint.key) + metrics.hintLine_KeyGap
+            next += Painter.measureString(hint.text, font).width
+            if width + next > limit do
+                break
+            width += next
+            count += 1
         }
 
-        if result > 0 do
-            result -= metrics.hintLine_GroupGap
-        return Math.ceil(result)
+        return {count, Math.ceil(width)}
     }
 
     // The air between the floating ground and the words, nothing when the line has no ground.

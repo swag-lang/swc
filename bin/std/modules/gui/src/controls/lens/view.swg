@@ -189,6 +189,8 @@ impl IWnd for View
         {
         case .Move:
 
+            .cursor = Cursor.from(.prefixAt(pos) != .None ? CursorShape.Hand : CursorShape.Arrow)
+
             // In a row of segments, the pointer chooses the segment under it.
             let row = .rowAt(pos)
             if row != Swag.U64.Max and (evt.delta.x != 0 or evt.delta.y != 0)
@@ -224,6 +226,17 @@ impl IWnd for View
             if not .body().contains(pos)
             {
                 .close()
+                break
+            }
+
+            // The source names are also navigation: browsing needs no prefix vocabulary.
+            let prefix = .prefixAt(pos)
+            if prefix != .None
+            {
+                var query: String = prefixText(prefix)
+                query.append(.results.query)
+                .setQuery(query)
+                .input.setFocus()
                 break
             }
 
@@ -1128,15 +1141,6 @@ private impl View
                 painter.fillRect(Math.Rectangle{left, top + font.height + 2, Math.round(width), 2}, entry.disabled ? colors.disabled : colors.arc)
             }
         }
-
-        // The key that runs the chosen segment, at the end of the row, where a chosen row has it.
-        if chosen
-        {
-            let small = theme.createDefaultFont(metrics.defaultFontSize - 1)
-            let enter = "↵"
-            let right = rect.right() - metrics.lens_TextInset
-            discard paintTextLine(painter, right - Painter.measureString(enter, small).width, rect.vertCenter(), enter, small, colors.faintText)
-        }
     }
 
     mtd paintEntryRow(painter: *Painter, rect: Math.Rectangle, entry: *Entry, chosen: bool)
@@ -1171,16 +1175,9 @@ private impl View
             icon.paint(painter, leadLeft + (metrics.lens_LeadWidth - metrics.iconText_Margin - size) * 0.5, Math.round(centerY - size * 0.5), entry.disabled ? colors.disabled : colors.softText)
         }
 
-        // The end of the row: the faint reading, and the key that runs the chosen row.
+        // Selection changes only the ground; shortcuts keep the same trailing edge.
         let small    = theme.createDefaultFont(metrics.defaultFontSize - 1)
         var trailing = ground.right() - metrics.lens_TextInset + metrics.lens_RowInset
-        if chosen
-        {
-            let enter = "↵"
-            trailing -= Painter.measureString(enter, small).width
-            discard paintTextLine(painter, trailing, centerY, enter, small, colors.faintText)
-            trailing -= metrics.hintLine_GroupGap
-        }
 
         // A choice in force carries its check in Arc, at the end of the row.
         if entry.checked
@@ -1240,18 +1237,45 @@ private impl View
             discard paintTextLine(painter, x, centerY, strings().lens_Stay, font, colors.faintText)
         }
 
-        // The prefixes this lens answers, from the trailing edge.
-        const Prefixes = [Prefix.Action, Prefix.File, Prefix.Line]
-        var right = body.right() - metrics.lens_TextInset
-        for prefix in Prefixes where .answers(prefix)
+        // A source is a link as well as a keyboard hint.
+        for prefix in [Prefix.Action, Prefix.File, Prefix.Line] where .answers(prefix)
         {
+            let rect  = .prefixRect(prefix)
             let words = prefixWords(prefix)
-            right -= Painter.measureString(words, font).width
-            discard paintTextLine(painter, right, centerY, words, font, colors.faintText)
-            right -= metrics.hintLine_KeyGap + keycapWidth(me, prefixText(prefix))
-            discard paintKeycap(me, painter, right, centerY, prefixText(prefix))
-            right -= metrics.hintLine_GroupGap
+            let left  = rect.x + keycapWidth(me, prefixText(prefix)) + metrics.hintLine_KeyGap
+            discard paintTextLine(painter, left, centerY, words, font, colors.link)
+            discard paintKeycap(me, painter, rect.x, centerY, prefixText(prefix))
         }
+    }
+
+    // Shares the source link's measured bounds between painting and pointer navigation.
+    mtd prefixRect(wanted: Prefix)->Math.Rectangle
+    {
+        let metrics = .themeMetrics()
+        let body    = .body()
+        let font    = .theme().createDefaultFont(metrics.hintLine_FontSize)
+        var right   = body.right() - metrics.lens_TextInset
+        for prefix in [Prefix.Action, Prefix.File, Prefix.Line] where .answers(prefix)
+        {
+            let width = Painter.measureString(prefixWords(prefix), font).width +
+                        metrics.hintLine_KeyGap + keycapWidth(me, prefixText(prefix))
+            if prefix == wanted do
+                return {right - width, body.bottom() - metrics.lens_FooterHeight, width, metrics.lens_FooterHeight}
+            right -= width + metrics.hintLine_GroupGap
+        }
+
+        return {}
+    }
+
+    mtd prefixAt(pos: Math.Point)->Prefix
+    {
+        for prefix in [Prefix.Action, Prefix.File, Prefix.Line] where .answers(prefix)
+        {
+            if .prefixRect(prefix).contains(pos) do
+                return prefix
+        }
+
+        return .None
     }
 
     // Reports whether the chosen row is a setting or a choice: one marked checkable, or a segment

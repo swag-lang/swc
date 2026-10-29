@@ -52,3 +52,28 @@ func unbreakableMessage()->String
     Swag.assert(width != 0)
     Swag.assert(width <= 700)
 }
+
+// A box nobody is going to answer fails the test at once, naming its title and its message,
+// instead of spinning until the run times out. The host stands where it stood before the box,
+// and a box the test does answer is left alone.
+#test
+{
+    var host: Testing.HeadlessHost
+    host.setup(900, 400)
+
+    let before = host.app.timing.frameCount
+    let caught = Swag.catchPanic(func|host = &host|() { MessageDlg.error(&host.surface, "The file is gone") })
+    Swag.assert(caught.raised)
+    Swag.assert(host.app.timing.frameCount - before <= 2)
+
+    let text = caught.message()
+    Swag.assert(Utf8.contains(text, strings().dlg_ErrorTitle))
+    Swag.assert(Utf8.contains(text, "The file is gone"))
+    Swag.assert(host.app.modalSurfaces.isEmpty() and host.app.inModalLoop == 0)
+    Swag.assert(not host.surface.isDisabled)
+
+    // Armed, the same box is answered.
+    host.clickModalButtonWhenShown(Dialog.BtnOk)
+    MessageDlg.error(&host.surface, "The file is gone")
+    Swag.assert(host.autoHandled)
+}

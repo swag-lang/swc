@@ -155,6 +155,7 @@ struct Application
     timersToDelete:      Array'(*Timer)       // Timers removed while callbacks were running.
     frameEvents:         Array'(*Wnd)         // Windows asking for a per-frame event.
     modalSurfaces:       Array'(*Surface)     // Surface stack of the nested modal loops.
+    modalWatch:          (func||(*Surface)->String)?     // Set by a test host: why the modal `surface` must not wait any longer, or nothing.
     toDelete:            Array'{ ptr: *void?, type: const *Swag.TypeInfo }     // Deferred deletions.
     systemReducedMotion: bool                 // Platform client-area-animation preference.
     systemPrefersLight:  bool                 // Whether the platform asks applications for a light theme.
@@ -813,7 +814,6 @@ private impl Application
         .endModal     = false
         .endModalExit = null
         .inModalLoop  += 1
-        defer .inModalLoop -= 1
 
         var disabledSurfaces: Array'(*Surface)
         for s in .surfaces
@@ -831,11 +831,23 @@ private impl Application
             .modalSurfaces.add(surface)
         }
 
+        // A test host refuses a box nobody is going to answer: the loop ends at once, and the
+        // failure is raised once the application stands where it stood before the box. A loop
+        // given its own frame callback is driven by it, and is left alone.
+        var refused: String
         while not .mustQuit and not .endModal
         {
             .runFrame()
             if cb do
                 cb(me)
+
+            let watch = .modalWatch
+            if surface and watch and not cb
+            {
+                refused = watch(surface)
+                if not refused.isEmpty() do
+                    break
+            }
         }
 
         if surface do
@@ -877,9 +889,14 @@ private impl Application
 
         surface?.destroy()
 
+        // The depth comes down by hand, not in a `defer`: a panic leaves the frame without
+        // running it, and the refusal below must leave the application out of every loop.
         let result = .endModalExit orelse ""
         .endModal     = false
         .endModalExit = null
+        .inModalLoop -= 1
+        if not refused.isEmpty() do
+            Swag.panic(refused.toString(), #curlocation)
         return result
     }
 }

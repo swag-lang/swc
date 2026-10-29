@@ -75,6 +75,8 @@ struct HeadlessHost
     }
 
     initialized:        bool
+    modalWaited:        u32        // Frames the dialog on top has waited with nobody to answer it.
+    modalWaitedOn:      *Surface?  // Surface `modalWaited` counts for.
     autoSawModal:       bool
     autoSawButton:      bool
     autoButtonIds:      Array'String
@@ -138,6 +140,7 @@ impl HeadlessHost
         .surface.setDpiScaleRaw(dpiScale)
         .surface.position = Math.Rectangle{0, 0, width * dpiScale, height * dpiScale}
         .app.mainSurface  = &.surface
+        .app.modalWatch   = func|host = me|(surface: *Surface)->String => host.refuseUnansweredDialog(surface)
 
         let root = &.root
         root.itf     = root[]
@@ -252,6 +255,60 @@ impl HeadlessHost
         app.theme = .theme
 
         app.style.share(&.app.style)
+    }
+
+    // Says why the dialog on `surface` must not wait any longer, or nothing.
+    //
+    // A dialog ends only on an answer, and a test host has no reader to give one: unless the test
+    // armed the auto UI driver or hooks the frames of the application itself, a dialog the code
+    // under test opens would spin until the run times out. The host refuses it after a frame or
+    // two instead, with its title and its message; the trace of the panic leads to the test.
+    internal mtd refuseUnansweredDialog(surface: *Surface)->String
+    {
+        var result: #returntype
+        let view = surface.view()
+        if not (view is Dialog)
+        {
+            .modalWaitedOn = null
+            return result
+        }
+
+        // The driver hooks the frames too: a hook beyond its own is the test answering by hand.
+        let ownHooks = .autoHookInstalled ? 1'u64 : 0
+        if .autoArmed or .app.sigFrame.count() > ownHooks
+        {
+            .modalWaitedOn = null
+            return result
+        }
+
+        if .modalWaitedOn != surface
+        {
+            .modalWaitedOn = surface
+            .modalWaited   = 0
+        }
+
+        // One frame lays the box out; the second one it still stands, nobody is coming.
+        .modalWaited += 1
+        if .modalWaited < 2 do
+            return result
+
+        .modalWaitedOn = null
+        let dialog = assume cast(*Dialog, view)
+        result = "a dialog opened with nothing to answer it; arm clickModalButtonWhenShown or a sibling first"
+        if not dialog.title.raw.isEmpty() do
+            result += Format.toString(". Title: '%'", dialog.title.raw)
+        // The words of the box are its labels: the message, and the detail under it.
+        func addWords(wnd: *Wnd, result: *String)
+        {
+            let label = catch cast(*Label?, wnd)
+            if label and label.text().count != 0 do
+                result[] += Format.toString(". Message: '%'", label.text())
+            for child in wnd.children do
+                addWords(child, result)
+        }
+
+        addWords(view, &result)
+        return result
     }
 
     private mtd installAutoHook()

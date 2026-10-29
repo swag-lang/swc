@@ -79,12 +79,7 @@ impl ViewerHome
             {
                 .file   = file
                 .opened = index < window.recentOpened.count ? window.recentOpened[index] : 0
-                var pluginIndex = Swag.U64.Max
-                if window.index.namePlugin(file, &pluginIndex)
-                {
-                    let plugin = &window.index.plugins[pluginIndex]
-                    .glyph = window.pluginIcon(plugin, themeRowIconSize(me.themeMetrics()))
-                }
+                .glyph = me.theme().fileGlyph(file, false, themeRowIconSize(me.themeMetrics()))
             }
         }
 
@@ -247,14 +242,25 @@ impl IWnd for ViewerHome
         }
         else
         {
-            let words = appStrings().home_Invite
-            let key   = Input.formatKeyShortcut(.Control, .O)
-            let gap   = 6.0
-            let first = Painter.measureString(words, body).width
-            let width = first + gap + Painter.measureString(key, mono).width
+            let strings    = appStrings()
+            let openFile   = Input.formatKeyShortcut(.Control, .O)
+            let openFolder = Input.formatKeyShortcut(.Control, .E)
+            let gap        = 6.0
+            let separator  = "  ·  "
+            let first      = Painter.measureString(strings.home_Invite, body).width
+            let firstKey   = Painter.measureString(openFile, mono).width
+            let middle     = Painter.measureString(separator, body).width
+            let folder     = Painter.measureString(strings.home_InviteFolder, body).width
+            let folderKey  = Painter.measureString(openFolder, mono).width
+            let width      = first + gap + firstKey + middle + folder + gap + folderKey
             let left  = Math.round(center - width * 0.5)
-            painter.drawString(left, body.opticalLineTop(place.line), words, body, colors.softText)
-            painter.drawString(left + first + gap, mono.opticalLineTop(place.line), key, mono, colors.faintText)
+            painter.drawString(left, body.opticalLineTop(place.line), strings.home_Invite, body, colors.softText)
+            painter.drawString(left + first + gap, mono.opticalLineTop(place.line), openFile, mono, colors.faintText)
+            let separatorX = left + first + gap + firstKey
+            painter.drawString(separatorX, body.opticalLineTop(place.line), separator, body, colors.faintText)
+            let folderX = separatorX + middle
+            painter.drawString(folderX, body.opticalLineTop(place.line), strings.home_InviteFolder, body, colors.softText)
+            painter.drawString(folderX + folder + gap, mono.opticalLineTop(place.line), openFolder, mono, colors.faintText)
         }
 
         if .rows.isEmpty() do
@@ -279,7 +285,7 @@ impl IWnd for ViewerHome
             {
                 var glyph = row.glyph
                 glyph.sizeX, glyph.sizeY = metrics.menuPopup_IconSize
-                glyph.paint(painter, rect.x + RowInset - 1, Math.round(centerY - glyph.sizeY * 0.5), colors.faintText)
+                glyph.paint(painter, rect.x + RowInset - 1, Math.round(centerY - glyph.sizeY * 0.5), glyph.color.a ? glyph.color : colors.faintText)
             }
 
             let file  = row.file.toString()

@@ -35,6 +35,7 @@ const ChipHeight     = 24.0       // Height of a chip.
 const ChipPadding    = 10.0       // Air at each end of a chip's words.
 const TrackSize      = 3.0        // Thickness of the timeline.
 const KnobSize       = 14.0       // Diameter of the timeline's knob.
+const KnobInset      = KnobSize * 0.5 + 1 // Room for the knob and its outline at either endpoint.
 const TickHeight     = 9.0        // Height of a chapter mark.
 const TipGap         = 16.0       // Air between the timeline and the time read under the pointer.
 
@@ -72,6 +73,16 @@ struct VideoTimeline
 
 impl VideoTimeline
 {
+    // The knob and its outline stay inside the timeline's paint bounds, even at either endpoint.
+    private mtd trackRoom()->Math.Rectangle
+    {
+        var room  = .clientRect()
+        let inset = Math.min(KnobInset, room.width * 0.5)
+        room.x     += inset
+        room.width  = Math.max(room.width - 2 * inset, 0)
+        return room
+    }
+
     // Sets the range of the timeline; the step is accepted for the slider it replaces.
     mtd setBounds(minimum, maximum, _: f32)
     {
@@ -111,7 +122,7 @@ impl VideoTimeline
     // Returns where `value` stands across the timeline.
     mtd positionOf(value: f32)->f32
     {
-        let room = .clientRect()
+        let room = .trackRoom()
         let span = Math.max(.maximum - .minimum, 0.0001)
         return room.x + room.width * Math.clamp((value - .minimum) / span, 0, 1)
     }
@@ -119,7 +130,7 @@ impl VideoTimeline
     // Returns the value at the horizontal position `x`.
     mtd valueAt(x: f32)->f32
     {
-        let room = .clientRect()
+        let room = .trackRoom()
         return .minimum + (.maximum - .minimum) * Math.clamp((x - room.x) / Math.max(room.width, 1), 0, 1)
     }
 }
@@ -130,8 +141,9 @@ impl IWnd for VideoTimeline
     {
         let painter = evt.paintContext.painter
         let room    = .clientRect()
+        let rail    = .trackRoom()
         let centerY = room.vertCenter()
-        let track   = Math.Rectangle{room.x, centerY - TrackSize * 0.5, room.width, TrackSize}
+        let track   = Math.Rectangle{rail.x, centerY - TrackSize * 0.5, rail.width, TrackSize}
 
         painter.setParams(.Antialiased)
         painter.fillRoundRect(track, TrackSize * 0.5, TrackSize * 0.5, VeilTrack)
@@ -311,7 +323,10 @@ impl BottomVeil
         let width = Math.max(room.width - 2 * VeilInset, 1)
         let lineY = room.bottom() - RowBottom
         let glyph = .playButton.position.width
-        .timeline.setPosition(Math.Rectangle{room.x + VeilInset, room.bottom() - TimelineBottom - TimelineHeight * 0.5, width, TimelineHeight})
+        .timeline.setPosition(Math.Rectangle{room.x + VeilInset - KnobInset,
+                                            room.bottom() - TimelineBottom - TimelineHeight * 0.5,
+                                            width + 2 * KnobInset,
+                                            TimelineHeight})
         .playButton.setPosition(Math.Rectangle{room.x + VeilInset - glyph * 0.25, lineY - glyph * 0.5, glyph, glyph})
 
         // The right end of the row reads from the edge inwards: full screen, the sound, then the chips.

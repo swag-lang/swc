@@ -98,7 +98,8 @@ dialogs, then each application, then the written rules.
     in mono) and a bottom veil (timeline with Arc progress, indexed part, white knob and a mono
     time tip; play, time, chips for subtitles, sound track and speed)
     (`viewer.video.{ink,paper}`, `viewer.video.hover.{ink,paper}`); Scope reads no chapters, so
-    the timeline shows no marks.
+    the timeline shows no marks. The playhead and its outline now stay inside the rail at either
+    endpoint; paired Encre/Papier goldens show both ends without clipping.
   What still differs from the pictures, screen by screen:
   - Mixed board: a sound cell shows the thumbnailer's preview or its glyph, not a drawn
     waveform; "Aa" is in the interface face, not the font's own; a film's facts have no size of

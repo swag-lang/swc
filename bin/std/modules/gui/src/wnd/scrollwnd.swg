@@ -362,7 +362,7 @@ impl ScrollWnd
         if rect.contains(pos)
         {
             .isHotV, .isHotBarV = true
-            .wakeBars()
+            .revealScrollBars()
             .invalidate()
             return
         }
@@ -371,7 +371,7 @@ impl ScrollWnd
         if rect.contains(pos)
         {
             .isHotH, .isHotBarH = true
-            .wakeBars()
+            .revealScrollBars()
             .invalidate()
             return
         }
@@ -585,8 +585,12 @@ public impl ScrollWnd
         return newSP
     }
 
-    // Shows the bars, and restarts the stillness after which they fade out.
-    private mtd wakeBars()
+    // Briefly reveals the available scrollbars and restarts their normal fade delay.
+    //
+    // A composite can call this when its content is hovered or receives keyboard focus, so
+    // scrolling is discoverable without a permanent bar. This changes neither layout nor scroll
+    // position and has no effect before the window belongs to a surface.
+    mtd revealScrollBars()
     {
         // A view not yet on a surface has no bars to show and no clock to count stillness on.
         if not .surface do
@@ -615,7 +619,7 @@ public impl ScrollWnd
         .view.scrollPos = newSP
         .sigScrollPositionChanged.call(me, oldPos, newSP)
         .computeLayout()
-        .wakeBars()
+        .revealScrollBars()
         return newSP
     }
 

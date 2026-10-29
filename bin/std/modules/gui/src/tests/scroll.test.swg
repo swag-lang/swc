@@ -3,6 +3,24 @@
 
 using Swag, Core
 
+// A hover hint exposes existing scrollbars without moving content or changing its viewport.
+#test
+{
+    var host: Testing.HeadlessHost
+    host.setup(260, 260)
+    let scroll = Wnd.create'ScrollWnd(&host.root, "", {0, 0, 200, 200})
+    scroll.createView'Wnd()
+    scroll.setScrollSize(100, 1000)
+    let viewport = scroll.view.position
+    let position = scroll.scrollPosition()
+    scroll.revealScrollBars()
+    Swag.assert(scroll.barPresence == 1)
+    Swag.assert(scroll.view.position == viewport and scroll.scrollPosition() == position)
+    host.fireTimers()
+    host.finishAnimations()
+    Swag.assert(scroll.barPresence == 0)
+}
+
 // Repeated wheel destinations preserve speed instead of kicking a fresh ease-out each time.
 #test
 {

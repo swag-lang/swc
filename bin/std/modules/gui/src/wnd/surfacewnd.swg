@@ -41,11 +41,20 @@ public struct SurfaceWnd
         readonly titleHidden: bool     // Whether the document writes the title itself, so the strip does not.
     }
 
-    captionButtons: Array'(*IconButton)     // Application actions immediately before the native caption controls.
+    captionButtons:   Array'(*IconButton)     // Application actions immediately before the native caption controls.
+    chromePalette:    ThemePalette            // Document palette copied by setChromePalette.
+    hasChromePalette: bool                    // Whether chrome follows the document rather than the application.
 }
 
 impl IWnd for SurfaceWnd
 {
+    mtd impl onThemeEvent(evt: *ThemeEvent)
+    {
+        .applyChromeTheme(me, evt)
+        .invalidate()
+        .sendResizeEvent()
+    }
+
     mtd impl onMouseEvent(evt: *MouseEvent)
     {
         let srfn = unwrap .surface
@@ -338,6 +347,43 @@ impl SurfaceWnd
         .invalidate()
     }
 
+    // Matches the window glyph, title and caption controls to a document palette.
+    //
+    // The palette is copied and affects only the chrome, including controls recreated after a
+    // full-screen transition. Pass `null` to follow the application theme again. The content
+    // and application theme remain independently styled.
+    public mtd setChromePalette(palette: const *ThemePalette?)
+    {
+        if not palette and not .hasChromePalette do
+            return
+        .hasChromePalette = palette != null
+        if palette do
+            .chromePalette = palette[]
+        .style.dirty = true
+        .computeStyle()
+        for button in [.minimizeBtn, .maximizeBtn, .closeBtn] where button do
+            .styleChromeButton(button)
+        for button in .captionButtons do
+            .styleChromeButton(button)
+        .invalidate()
+    }
+
+    mtd applyChromeTheme(wnd: *Wnd, evt: *ThemeEvent)
+    {
+        if not .hasChromePalette do
+            return
+        evt.style.create(unwrap evt.parent)
+        wnd.themeColors().apply(.chromePalette)
+        evt.accepted = true
+    }
+
+    private mtd styleChromeButton(button: *IconButton)
+    {
+        button.style.dirty = true
+        button.computeStyle()
+        button.invalidate()
+    }
+
     // Returns where the window buttons and the application actions beside them begin.
     private mtd chromeButtonsLeft()->f32
     {
@@ -401,6 +447,7 @@ impl SurfaceWnd
         Swag.assert(button.parent == me)
         button.style.addStyleSheetColors(ChromeButtonColors)
         .captionButtons.add(button)
+        .styleChromeButton(button)
         .sendResizeEvent()
         .invalidate()
     }
@@ -639,6 +686,9 @@ impl SurfaceWnd
             .closeBtn.destroy()
             .closeBtn = null
         }
+
+        for button in [.minimizeBtn, .maximizeBtn, .closeBtn] where button do
+            .styleChromeButton(button)
     }
 
     mtd create(userView: *Wnd?, hook: HookEvent?)

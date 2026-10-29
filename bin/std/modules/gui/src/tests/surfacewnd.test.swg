@@ -3,6 +3,28 @@
 
 using Swag, Core, Pixel
 
+// A document palette styles all caption controls and survives their full-screen recreation.
+#test
+{
+    var host: Testing.HeadlessHost
+    host.setup(640, 360)
+    buildChromeWindow(&host)
+    let applicationInk = host.theme.colors.wnd_BtnIcon
+    var paper = ThemeColors.papierPalette()
+    host.surfaceWnd.setChromePalette(&paper)
+    Swag.assert(host.surfaceWnd.themeColors().wnd_Bk == paper.ground)
+    Swag.assert(host.surfaceWnd.minimizeBtn!.themeColors().btnIcon_Icon == paper.faintText)
+    Swag.assert(host.theme.colors.wnd_BtnIcon == applicationInk)
+    Swag.assert(host.root.themeColors().wnd_Bk == host.theme.colors.wnd_Bk)
+
+    host.surface.updateFlags(remove: .MinimizeButton | .MaximizeButton | .CloseButton)
+    host.surface.updateFlags(add: .MinimizeButton | .MaximizeButton | .CloseButton)
+    Swag.assert(host.surfaceWnd.minimizeBtn.themeColors().btnIcon_Icon == paper.faintText)
+    Swag.assert(host.surfaceWnd.closeBtn!.themeColors().btnIcon_HotIcon == host.surfaceWnd.themeColors().wnd_BtnCloseHotIcon)
+    host.surfaceWnd.setChromePalette(null)
+    Swag.assert(host.surfaceWnd.minimizeBtn.themeColors().btnIcon_Icon == applicationInk)
+}
+
 // A product mark as an application ships it: a Voltage glyph cut from an ink tile.
 func chromeTestMark()->Image
 {

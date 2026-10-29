@@ -110,6 +110,14 @@ private func arrowGlyph(position: IconButtonArrowPosition)->ThemeIcons
 
 impl IWnd for IconButton
 {
+    mtd impl onThemeEvent(evt: *ThemeEvent)
+    {
+        if .parent is SurfaceWnd as frame do
+            frame.applyChromeTheme(me, evt)
+        .invalidate()
+        .sendResizeEvent()
+    }
+
     // Reports the room the icon, the label, and the arrow need.
     //
     // The label sits beside the icon or under it, so the axis it grows along follows

@@ -352,3 +352,103 @@ func lensSetup(host: *Testing.HeadlessHost)->*Lens.View
     host.keyPress(.Escape)
     Swag.assert(not lens.isOpen())
 }
+
+// Adds to `results` the ways of viewing a file as one row of segments, the second in force and
+// the third unavailable; choosing one writes its index in `chosen`.
+func addViewAsSection(results: *Lens.Results, chosen: *u64)
+{
+    let views = results.addSection("View As")
+    views.inline = true
+    for title, index in ["Code", "Plain Text", "Hexadecimal", "Binary"]
+    {
+        with let entry = views.addEntry(title)
+        {
+            .checked  = index == 1
+            .disabled = index == 2
+            .run      = func|chosen, index|() { chosen[] = index }
+        }
+    }
+}
+
+// An exclusive choice is one row of segments: the keys reach it on the one in force, move along
+// it with Left and Right past what cannot be chosen, and Enter runs the segment they chose. On
+// another row, Left and Right belong to the query.
+#test
+{
+    var chosen = Swag.U64.Max
+    var host: Testing.HeadlessHost
+    host.setup(800, 600)
+    let lens = lensSetup(&host)
+    lens.addRestSource(func(results)
+    {
+        results.addSection("Selection").addEntry("Duplicate")
+    })
+    lens.addRestSource(func|chosen = &chosen|(results) { addViewAsSection(results, chosen) })
+
+    lens.open()
+    Swag.assert(lens.rows.count == 4 and lens.rows[3].entry == Lens.InlineRow)
+    Swag.assert(lens.chosenEntry()!.title == "Duplicate")
+    host.keyPress(.Down)
+    Swag.assert(lens.chosen == 3 and lens.chosenEntry()!.title == "Plain Text")
+    host.keyPress(.Right)
+    Swag.assert(lens.chosenEntry()!.title == "Binary")
+    host.keyPress(.Right)
+    Swag.assert(lens.chosenEntry()!.title == "Binary")
+    host.keyPress(.Left)
+    host.keyPress(.Left)
+    Swag.assert(lens.chosenEntry()!.title == "Code")
+    host.keyPress(.Up)
+    Swag.assert(lens.chosenEntry()!.title == "Duplicate")
+
+    lens.setQuery("ab")
+    lens.input.setSelection(2, 2)
+    host.keyPress(.Left)
+    Swag.assert(lens.input.selEnd == 1)
+    lens.setQuery("")
+
+    // Reached again, the row starts on the choice in force.
+    host.keyPress(.Down)
+    host.keyPress(.Right)
+    host.keyPress(.Return)
+    Swag.assert(not lens.isOpen() and chosen == 3)
+
+    // Typed into, the row starts on the segment the query answers best.
+    lens.addSource(.None, func|chosen = &chosen|(results) { addViewAsSection(results, chosen) })
+    lens.open()
+    lens.setQuery("binary")
+    Swag.assert(lens.chosenEntry()!.title == "Binary")
+}
+
+// The lens with a row of segments, the keys on a segment beside the one in force, in Encre and
+// in Papier.
+#[Swag.TestTag("golden")]
+#test
+{
+    for light in [false, true]
+    {
+        var chosen = Swag.U64.Max
+        var host: Testing.HeadlessHost
+        host.setup(800, 680)
+        if light
+        {
+            host.theme.setLight()
+            host.notify(.ThemeChanged)
+        }
+
+        with let document = Label.create(&host.root, "impl ViewerActionBar\n{\n    func create(parent: *Wnd)->*ViewerActionBar\n    {\n        with let result = Wnd.create'ViewerActionBar(parent)\n    }\n}", {120, 60, 600, 400})
+        {
+            .style.setFont(host.theme.createDefaultFontFamilyFs(14))
+            .setTextAlignment(.Left, .Top)
+        }
+
+        let lens = lensSetup(&host)
+        lens.addSource(.None, func|chosen = &chosen|(results) { addViewAsSection(results, chosen) })
+        lens.open("center")
+        for 3 do
+            host.keyPress(.Down)
+        host.keyPress(.Left)
+
+        var image = host.render()
+        Pixel.Testing.assertImageGolden(&image, light ? "lens.inline.paper" : "lens.inline.ink")
+    }
+}

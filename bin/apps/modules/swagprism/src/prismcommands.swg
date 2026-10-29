@@ -31,12 +31,20 @@ namespace PrismCommands
 
 impl MainWindow
 {
+    // The actions the lens offers at rest, in their order; those the view in force does not
+    // offer are hidden or cannot run, and stay out.
+    const RestCommandIds = [PrismCommands.PreviousStage, PrismCommands.NextStage, PrismCommands.ShowChange, PrismCommands.Compile,
+                            PrismCommands.LiveEdit, PrismCommands.FormatSource, PrismCommands.Compare]
+
     // Creates the lens, registers every command of the window under its family, and the source
-    // that answers with the examples, the views, the stages, the levels and the presets.
+    // that answers with the examples, the views, the stages, the levels and the presets. At rest
+    // the lens offers the actions of the view in force, then the examples.
     mtd createLens()
     {
         with .lens = Lens.View.create(me)
         {
+            .addRestSource(func|window = me|(results) { window.describeViewActions(results) })
+            .addRestSource(func|window = me|(results) { window.describeExamples(results) })
             .addSource(.None, func|window = me|(results) { window.describeChoices(results) })
             .addCommands(func()->string => appStrings().lens_Source,
                          [PrismCommands.Compile, PrismCommands.FormatSource, PrismCommands.LiveEdit])
@@ -64,13 +72,40 @@ impl MainWindow
         .registerKeyShortcut(.CtrlShift, .C, PrismCommands.CopyListing)
     }
 
+    // Answers the lens at rest with the actions of the view in force, under the name of the view.
+    // Beside another build, the view to compare with is the one in force, and is not offered.
+    mtd describeViewActions(results: *Lens.Results)
+    {
+        let strings = appStrings()
+        var label   = strings.cmd_ShowColumns
+        var count   = RestCommandIds.count
+        if .view == .Stages
+        {
+            label = strings.cmd_ShowStages
+        }
+        elif .view == .Compare
+        {
+            label = strings.cmd_ShowCompare
+            count -= 1
+        }
+
+        let section = results.addSection(label)
+        .lens.addCommandRows(section, RestCommandIds[0 until count], enabledOnly: true)
+    }
+
+    // Answers the lens with the examples, the one open checked.
+    mtd describeExamples(results: *Lens.Results)
+    {
+        let names = [exampleName(.Plasma), exampleName(.Julia), exampleName(.Gui), exampleName(.Dot)]
+        .addChoices(results, appStrings().lens_Examples, names, cast(u64, .selectedExample), .Example, 0)
+    }
+
     // Answers the lens with the choices of the window, each in force checked: the examples, then
     // for each build shown its view, its stage, its optimization level and its preset.
     mtd describeChoices(results: *Lens.Results)
     {
         let strings = appStrings()
-        let names   = [exampleName(.Plasma), exampleName(.Julia), exampleName(.Gui), exampleName(.Dot)]
-        .addChoices(results, strings.lens_Examples, names, cast(u64, .selectedExample), .Example, 0)
+        .describeExamples(results)
 
         // Beside another build, each family is asked for one column at a time.
         for index in .panels.count where .isShown(index)

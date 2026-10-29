@@ -225,13 +225,13 @@ dialogs, then each application, then the written rules.
   The quiet outline in the reading margin is separate: it previews the first two heading levels
   and does not scroll. A first-use report says the Markdown viewer still feels like it has bars,
   and its information panel looks unattractive, too high and poorly rounded. The persistent
-  reading line and Arc progress thread are now removed from Markdown; details stay in the `I`
-  sheet, and the lens remains the visible route to zoom and options. Its explicit outline card
-  still needs the charter's quieter margin treatment.
-- Next: replace the Markdown outline card with an on-demand, quiet margin that lists every heading;
-  make its scroll state discoverable on hover and by keyboard, and compare the whole page in Encre
-  and Papier. Keep the always-on reading surface free of footer, progress strip and command bar.
+  reading line and Arc progress thread are removed from Markdown; details stay in the `I` sheet,
+  and the lens remains the visible route to zoom and options. The on-demand outline now stands
+  directly on the window ground as a quiet margin, without the floating information card.
+- Next: make outline scrolling discoverable on hover and by keyboard, then compare the whole page
+  in Encre and Papier. Keep the always-on reading surface free of footer, progress strip and
+  command bar.
 - Done when: the Markdown page reads without persistent bands, its full outline is available from
-  the lens in a quiet margin, every heading is reachable by wheel and keyboard, and the outline's
-  shape and placement match the charter in both themes.
+  the lens in a quiet margin, every heading is reachable and scrolling is discoverable, and the
+  outline's placement matches the charter in both themes.
 - Related: design.silence.004, design.silence.007

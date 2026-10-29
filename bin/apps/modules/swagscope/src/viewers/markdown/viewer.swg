@@ -516,7 +516,7 @@ func createViewer(host: Viewer.Host)
 
     with let zoomButton = ZoomButton.create(host.createInfoGroup(Viewer.ZoomSlotWidth), view)
     {
-        .outline = DocumentOutline.create(host)
+        .outline = DocumentOutline.create(host, floatingSurface: false)
         .outline.bindMarkdown(view, host.fileName())
     }
 

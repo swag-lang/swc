@@ -198,7 +198,7 @@ impl Viewer.Host for ViewerPluginHost
         return .session.commands
     }
 
-    mtd impl createSidePanel(width: f32, icon: Icon, toolTip: string)->Viewer.SidePanel
+    mtd impl createSidePanel(width: f32, icon: Icon, toolTip: string, floatingSurface = true)->Viewer.SidePanel
     {
         Swag.assert(.session.sidePanelHost == null)
         Swag.assert(width > 0)
@@ -209,8 +209,7 @@ impl Viewer.Host for ViewerPluginHost
             panelWidth = .window.rightPanelWidth
         panelWidth = Math.clamp(panelWidth, ViewerWindow.RightPanelMinWidth, ViewerWindow.RightPanelMaxWidth)
 
-        // The panel is a card in the shape of the sheet, standing the floating inset away from the
-        // edges of the window, beside the work rather than over it.
+        // The floating inset stands the panel away from the edges of the window, beside the work.
         with .session.sidePanelHost = Wnd.create'Wnd(.sidePanelParent, Math.Rectangle{0, 0, panelWidth + gutter, 0})
         {
             .dockStyle       = .None
@@ -219,13 +218,24 @@ impl Viewer.Host for ViewerPluginHost
             .hide()
         }
 
-        with let card = FloatingPanel.create(.session.sidePanelHost)
+        if floatingSurface
         {
-            .dockStyle = .Center
-            .setShadow(false)
+            with let card = FloatingPanel.create(.session.sidePanelHost)
+            {
+                .dockStyle = .Center
+                .setShadow(false)
+            }
+            .session.sidePanel = card
         }
-
-        .session.sidePanel = card
+        else
+        {
+            with .session.sidePanel = Wnd.create'Wnd(.session.sidePanelHost)
+            {
+                .dockStyle       = .Center
+                .backgroundStyle = .Transparent
+                .padding         = Math.Vector4{12, 8, 0, 8}
+            }
+        }
 
         let actionSize = themeActionButtonSize(.infoParent.themeMetrics())
         with .session.sidePanelButton = IconButton.create(.infoParent, icon, Math.Rectangle{0, 0, actionSize, actionSize}, flags: .Toggle)

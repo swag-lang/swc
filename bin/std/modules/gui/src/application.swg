@@ -841,8 +841,10 @@ private impl Application
             if cb do
                 cb(me)
 
+            // A frame that answered the box has asked the loop to end: the box is leaving, not
+            // waiting, so it is not watched any more.
             let watch = .modalWatch
-            if surface and watch and not cb
+            if surface and watch and not cb and not .endModal and not .mustQuit
             {
                 refused = watch(surface)
                 if not refused.isEmpty() do

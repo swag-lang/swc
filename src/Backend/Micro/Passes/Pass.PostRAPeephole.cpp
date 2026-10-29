@@ -457,6 +457,7 @@ namespace
                                            inst->op == MicroInstrOpcode::CmpAmcImm ||
                                            inst->op == MicroInstrOpcode::CmpAmcReg ||
                                            inst->op == MicroInstrOpcode::VecUnaryAmcRegMem ||
+                                           inst->op == MicroInstrOpcode::VecInsertHigh64Amc ||
                                            inst->op == MicroInstrOpcode::CmpRegAmc;
                 if (ops && indexedMemory)
                 {
@@ -1054,6 +1055,8 @@ namespace
         r.add(MicroInstrOpcode::TestMemImm, tryEraseDeadCompare);
         r.add(MicroInstrOpcode::TestRegReg, tryEraseDeadCompare);
         r.add(MicroInstrOpcode::TestRegImm, tryEraseDeadCompare);
+        r.add(MicroInstrOpcode::TestRegImm, tryFoldCanonicalMaskTest);
+        r.add(MicroInstrOpcode::CmpRegImm, tryFoldCanonicalMaskTest);
         r.add(MicroInstrOpcode::CmpRegReg, tryReuseAddFlagsForUnsignedWrap);
         r.add(MicroInstrOpcode::CmpRegReg, tryFactorCommonConditionalShiftNoCopy);
         r.add(MicroInstrOpcode::CmpRegReg, tryFactorCommonConditionalShiftBare);
@@ -1121,10 +1124,12 @@ namespace
         r.add(MicroInstrOpcode::LoadRegMem, tryFoldLoadIntoNarrowExtract);
         r.add(MicroInstrOpcode::LoadRegMem, tryFoldLoadIntoBinary);
         r.add(MicroInstrOpcode::LoadRegMem, tryEraseFloatClearBeforeFullWrite);
+        r.add(MicroInstrOpcode::ClearReg, tryEraseRepeatedVectorClear);
         r.add(MicroInstrOpcode::ClearReg, tryEraseFloatClearBeforeFullWrite);
         r.add(MicroInstrOpcode::LoadRegReg, tryFoldClearIntoResultCopy);
         r.add(MicroInstrOpcode::LoadRegReg, tryEraseFloatClearBeforeFullWrite);
         r.add(MicroInstrOpcode::LoadAmcRegMem, tryFoldIndexedFloatAccumulation);
+        r.add(MicroInstrOpcode::LoadAmcRegMem, tryFoldIndexedHigh64Insert);
         r.add(MicroInstrOpcode::LoadAmcRegMem, tryFoldIndexedFloatCompare);
         r.add(MicroInstrOpcode::LoadAmcRegMem, tryFoldLoadIntoBinary);
         r.add(MicroInstrOpcode::LoadAmcRegMem, tryFoldIndexedByteAverage);

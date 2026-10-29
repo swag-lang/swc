@@ -89,3 +89,30 @@ func assertWeightBi(src0, src1: [*] u8, width, height, logDenom, weight0, weight
         }
     }
 }
+
+// Both source weights can have the same sign, including the implicit/default 128.
+// Extreme samples and offsets exercise signed pair sums and both clipping limits.
+#test
+{
+    var src0, src1: [256] u8
+    for index in 256
+    {
+        src0[index] = index & 1 == 0 ? 255 : 0
+        src1[index] = index & 2 == 0 ? 255 : 0
+    }
+
+    for width in WeightWidths
+    {
+        for logDenom in WeightDenoms
+        {
+            for weight0 in WeightValues
+            {
+                for weight1 in WeightValues
+                {
+                    assertWeightBi(src0.buffer, src1.buffer, width, 8, logDenom, weight0, weight1, -128, 127)
+                    assertWeightBi(src0.buffer, src1.buffer, width, 8, logDenom, weight0, weight1, 127, 127)
+                }
+            }
+        }
+    }
+}

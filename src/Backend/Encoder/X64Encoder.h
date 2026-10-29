@@ -62,6 +62,7 @@ protected:
     void encodeLoadVecRegMem(MicroReg regDst, MicroReg memReg, uint64_t memOffset, MicroOpBits opBits) override;
     void encodeLoadRegTlsSlot(MicroReg regDst, MicroReg indexReg) override;
     void encodeVecUnaryRegMem(MicroReg regDst, MicroReg memReg, uint64_t memOffset, MicroOp op, MicroOpBits opBits) override;
+    void encodeVecInsertHigh64Amc(MicroReg regDst, MicroReg regBase, MicroReg regMul, uint64_t mulValue, uint64_t addValue, MicroOpBits opBitsBaseMul) override;
     void encodeVecUnaryAmcRegMem(MicroReg regDst, MicroReg regBase, MicroReg regMul, uint64_t mulValue, uint64_t addValue, MicroOpBits opBitsBaseMul, MicroOp op, MicroOpBits opBits) override;
     void encodeStoreVecMemReg(MicroReg memReg, uint64_t memOffset, MicroReg regSrc, MicroOpBits opBits) override;
     void encodeVecShuffleRegRegImm(MicroReg regDst, MicroReg regSrc, uint64_t control, MicroOpBits opBits) override;
@@ -87,6 +88,7 @@ protected:
     void encodeLoadMemReg(MicroReg memReg, uint64_t memOffset, MicroReg reg, MicroOpBits opBits) override;
     void encodeLoadMemImm(MicroReg memReg, uint64_t memOffset, const ApInt& value, MicroOpBits opBits) override;
     void encodeTestRegReg(MicroReg reg0, MicroReg reg1, MicroOpBits opBits) override;
+    void encodeVecTestReg(MicroReg reg) override;
     void encodeCmpRegReg(MicroReg reg0, MicroReg reg1, MicroOpBits opBits) override;
     void encodeTestMemReg(MicroReg memReg, uint64_t memOffset, MicroReg reg, MicroOpBits opBits) override;
     void encodeCmpMemReg(MicroReg memReg, uint64_t memOffset, MicroReg reg, MicroOpBits opBits) override;

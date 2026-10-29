@@ -41,6 +41,9 @@ private const GrayExpand1 = cast(Math.Simd.U8x16, [5'u8, 5, 6, 6, 6, 7, 7, 7, 8,
 private const GrayExpand2 = cast(Math.Simd.U8x16, [10'u8, 11, 11, 11, 12, 12, 12, 13, 13, 13, 14, 14, 14, 15, 15, 15])
 private const CmykGather  = cast(Math.Simd.U8x16, [0'u8, 1, 2, 4, 5, 6, 8, 9, 10, 12, 13, 14, 0x80, 0x80, 0x80, 0x80])
 private const CmykSpreadK = cast(Math.Simd.U8x16, [3'u8, 3, 3, 7, 7, 7, 11, 11, 11, 15, 15, 15, 0x80, 0x80, 0x80, 0x80])
+private const RgbaColors  = cast(Math.Simd.U8x16, [0'u8, 1, 2, 0x80, 3, 4, 5, 0x80, 6, 7, 8, 0x80, 9, 10, 11, 0x80])
+private const RgbaAlpha   = cast(Math.Simd.U8x16, [0x80'u8, 0x80, 0x80, 0, 0x80, 0x80, 0x80, 1, 0x80, 0x80, 0x80, 2, 0x80, 0x80, 0x80, 3])
+private const MaskBits     = cast(Math.Simd.U8x16, [128'u8, 64, 32, 16, 8, 4, 2, 1, 0, 0, 0, 0, 0, 0, 0, 0])
 
 private func expandGray8(destination: [*] u8, source: const [*] u8, count: u64)
 {
@@ -95,6 +98,158 @@ private func expandCmyk8(destination: [*] u8, source: const [*] u8, count: u64)
         src    += 4
         dst    += 3
         left   -= 1
+    }
+}
+
+private func invertMask8(destination: [*] u8, source: const [*] u8, count: u64)
+{
+    var src  = source
+    var dst  = destination
+    var left = count
+    let full = Math.Simd.splat(255'u8)
+    while left >= 16
+    {
+        Math.Simd.store(dst, full - Math.Simd.load(src))
+        src  += 16
+        dst  += 16
+        left -= 16
+    }
+
+    while left
+    {
+        dst[] = 255 - src[]
+        src  += 1
+        dst  += 1
+        left -= 1
+    }
+}
+
+private func(const Inverted: bool) expandMask1(destination: [*] u8, source: const [*] u8, width, height, rowBytes: u64)
+{
+    for y in height
+    {
+        var dst  = destination + y * width
+        var src  = source + y * rowBytes
+        var left = width
+        while left >= 8
+        {
+            let bits = Math.Simd.splat(src[])
+            #static if Inverted do
+                Math.Simd.storeLow8(dst, (bits & MaskBits) == Math.Simd.splat(0'u8))
+            else do
+                // Each low lane masks one bit, so equality tests whether that bit is set.
+                Math.Simd.storeLow8(dst, (bits & MaskBits) == MaskBits)
+            src  += 1
+            dst  += 8
+            left -= 8
+        }
+
+        if left
+        {
+            let bits = src[]
+            var bit  = 7'u32
+            while left
+            {
+                #static if Inverted do
+                    dst[] = bits & (1 << bit) == 0 ? 255 : 0
+                else do
+                    dst[] = bits & (1 << bit) != 0 ? 255 : 0
+                dst  += 1
+                bit  -= 1
+                left -= 1
+            }
+        }
+    }
+}
+
+private func colorKey8(destination: [*] u8, source: const [*] u8, count: u64, lower, upper: s64)
+{
+    if lower > 255 or upper < 0 or lower > upper
+    {
+        Memory.set(destination, 255, count)
+        return
+    }
+
+    let low  = cast(u8, Math.max(lower, 0))
+    let high = cast(u8, Math.min(upper, 255))
+    let lowVector  = Math.Simd.splat(low)
+    let highVector = Math.Simd.splat(high)
+    let zero       = Math.Simd.splat(0'u8)
+    let full       = Math.Simd.splat(255'u8)
+    var src  = source
+    var dst  = destination
+    var left = count
+    while left >= 16
+    {
+        let values  = Math.Simd.load(src)
+        let outside = Math.Simd.subSaturating(lowVector, values) | Math.Simd.subSaturating(values, highVector)
+        Math.Simd.store(dst, (outside == zero) ^ full)
+        src  += 16
+        dst  += 16
+        left -= 16
+    }
+
+    while left
+    {
+        dst[] = src[] >= low and src[] <= high ? 0 : 255
+        src  += 1
+        dst  += 1
+        left -= 1
+    }
+}
+
+private func composeRgba8(destination: [*] u8, colors, alpha: const [*] u8, count: u64)
+{
+    var dst  = destination
+    var rgb  = colors
+    var mask = alpha
+    var left = count
+    // A sixteen-byte RGB load needs at least six pixels remaining in this row.
+    while left >= 6
+    {
+        let packedRgb  = Math.Simd.shuffle(Math.Simd.load(rgb), RgbaColors)
+        let packedMask = cast #bit(Math.Simd.U8x16, Math.Simd.splat(cast(const [*] u32, mask)[0]))
+        Math.Simd.store(dst, packedRgb | Math.Simd.shuffle(packedMask, RgbaAlpha))
+        rgb  += 12
+        mask += 4
+        dst  += 16
+        left -= 4
+    }
+
+    while left
+    {
+        dst[0] = rgb[0]
+        dst[1] = rgb[1]
+        dst[2] = rgb[2]
+        dst[3] = mask[0]
+        rgb   += 3
+        mask  += 1
+        dst   += 4
+        left  -= 1
+    }
+}
+
+private func composeStencil8(destination: [*] u8, alpha: const [*] u8, count: u64, color: u32)
+{
+    var dst  = destination
+    var mask = alpha
+    var left = count
+    let rgb  = cast #bit(Math.Simd.U8x16, Math.Simd.splat(color))
+    while left >= 4
+    {
+        let packedMask = cast #bit(Math.Simd.U8x16, Math.Simd.splat(cast(const [*] u32, mask)[0]))
+        Math.Simd.store(dst, rgb | Math.Simd.shuffle(packedMask, RgbaAlpha))
+        mask += 4
+        dst  += 16
+        left -= 4
+    }
+
+    while left
+    {
+        cast([*] u32, dst)[0] = color | (cast(u32, mask[0]) << 24)
+        mask += 1
+        dst  += 4
+        left -= 1
     }
 }
 
@@ -564,6 +719,12 @@ private func applyColorKeyMask(parser: *PdfParser, nodeId: u32, plane: *SamplePl
         fail InvalidFormatError{"PDF color key mask does not cover every component"}
 
     plane.alpha.resize(cast(u64, plane.width) * cast(u64, plane.height))
+    if depth == 8 and space.components == 1
+    {
+        colorKey8(plane.alpha.storage(), bytes.buffer, plane.alpha.count, parser.integer(ranges[0]), parser.integer(ranges[1]))
+        return
+    }
+
     for i in plane.alpha.count do
         plane.alpha[i] = 0xFF
     for y in cast(u64, plane.height)
@@ -646,6 +807,27 @@ private func readMaskPlane(parser: *PdfParser, nodeId, _: u32, stencil: bool)->S
     result.width  = cast(s32, width)
     result.height = cast(s32, height)
     result.alpha.resize(cast(u64, width) * cast(u64, height))
+    if depth == 1 and width >= 8 and lowest == 1.0 and highest == 0.0
+    {
+        expandMask1'(true)(result.alpha.storage(), bytes.storage(), cast(u64, width), cast(u64, height), rowBytes)
+        return result
+    }
+    if depth == 1 and width >= 8 and lowest == 0.0 and highest == 1.0
+    {
+        expandMask1'(false)(result.alpha.storage(), bytes.storage(), cast(u64, width), cast(u64, height), rowBytes)
+        return result
+    }
+    if depth == 8 and lowest == 0.0 and highest == 1.0
+    {
+        Memory.copy(result.alpha.storage(), bytes.storage(), result.alpha.count)
+        return result
+    }
+    if depth == 8 and lowest == 1.0 and highest == 0.0
+    {
+        invertMask8(result.alpha.storage(), bytes.storage(), result.alpha.count)
+        return result
+    }
+
     for y in cast(u64, height)
     {
         let rowBase = y * rowBytes
@@ -657,14 +839,6 @@ private func readMaskPlane(parser: *PdfParser, nodeId, _: u32, stencil: bool)->S
     }
 
     return result
-}
-
-// Samples a coverage plane at the resolution of the image it masks.
-private func sampleAlpha(mask: const *SamplePlane, x, y: u64, width, height: u64)->u8
-{
-    let sourceX = Math.min(cast(u64, mask.width) - 1, x * cast(u64, mask.width) / width)
-    let sourceY = Math.min(cast(u64, mask.height) - 1, y * cast(u64, mask.height) / height)
-    return mask.alpha[sourceY * cast(u64, mask.width) + sourceX]
 }
 
 // Turns a top-down plane into a Pixel image, whose rows run bottom-up.
@@ -695,6 +869,19 @@ private func planeToImage(plane: const *SamplePlane, fill: const *Color?)->Image
     // are no samples to read.
     if fill
     {
+        if width >= 4
+        {
+            let color = cast(u32, fill.r) | (cast(u32, fill.g) << 8) | (cast(u32, fill.b) << 16)
+            for y in height
+            {
+                let out      = pixels + (height - y - 1) * cast(u64, result.rowStride)
+                let coverage = alpha + y * width
+                composeStencil8(out, coverage, width, color)
+            }
+
+            return #move result
+        }
+
         for y in height
         {
             var out      = pixels + (height - y - 1) * cast(u64, result.rowStride)
@@ -714,6 +901,19 @@ private func planeToImage(plane: const *SamplePlane, fill: const *Color?)->Image
     }
 
     let source = plane.rgb.storage()
+    if width >= 6
+    {
+        for y in height
+        {
+            let out      = pixels + (height - y - 1) * cast(u64, result.rowStride)
+            let colors   = source + y * width * 3
+            let coverage = alpha + y * width
+            composeRgba8(out, colors, coverage, width)
+        }
+
+        return #move result
+    }
+
     for y in height
     {
         var out       = pixels + (height - y - 1) * cast(u64, result.rowStride)
@@ -829,16 +1029,54 @@ internal func decodeImage(parser: *PdfParser, nodeId, resourcesId: u32, fillColo
 
     if maskId != InvalidNode
     {
-        let mask = #move try readMaskPlane(parser, maskId, resourcesId, stencil)
+        var mask = #move try readMaskPlane(parser, maskId, resourcesId, stencil)
         if mask.alpha.count
         {
             let width  = cast(u64, plane.width)
             let height = cast(u64, plane.height)
-            plane.alpha.resize(width * height)
-            for y in height
+            if mask.width == plane.width and mask.height == plane.height
             {
-                for x in width do
-                    plane.alpha[y * width + x] = sampleAlpha(&mask, x, y, width, height)
+                plane.alpha = #move mask.alpha
+            }
+            else
+            {
+                plane.alpha.resize(width * height)
+                let sourceWidth  = cast(u64, mask.width)
+                let sourceHeight = cast(u64, mask.height)
+                let sourceStep   = sourceWidth / width
+                let sourceRest   = sourceWidth % width
+                let rowStep      = sourceHeight / height
+                let rowRest      = sourceHeight % height
+                var sourceY      = 0'u64
+                var rowRemainder = 0'u64
+                // Each index and remainder is the quotient and remainder of the destination
+                // coordinate scaled by the corresponding source and destination dimensions.
+                for y in height
+                {
+                    let source      = mask.alpha.storage() + sourceY * sourceWidth
+                    let destination = plane.alpha.storage() + y * width
+                    var sourceX     = 0'u64
+                    var remainder   = 0'u64
+                    for x in width
+                    {
+                        destination[x] = source[sourceX]
+                        sourceX   += sourceStep
+                        remainder += sourceRest
+                        if remainder >= width
+                        {
+                            remainder -= width
+                            sourceX   += 1
+                        }
+                    }
+
+                    sourceY      += rowStep
+                    rowRemainder += rowRest
+                    if rowRemainder >= height
+                    {
+                        rowRemainder -= height
+                        sourceY      += 1
+                    }
+                }
             }
         }
     }

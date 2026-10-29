@@ -2,6 +2,34 @@
 
 using Swag, Core
 
+// The DC-only inverse transform clips each block pixel without touching its neighbours.
+#test
+{
+    var input = [0'u8]
+    var decoder = Webp.Vp8Decoder{source: &input[0]}
+    for coefficient in [-32768's32, -2048, -1025, -9, -4, 0, 3, 4, 9, 1024, 2048, 32767]
+    {
+        decoder.coeff[0] = cast(s16, coefficient)
+        let dc = (coefficient + 4) >> 3
+        for x in 29's32
+        {
+            for row in 4's32 do
+                for column in 32's32 do
+                    decoder.ybr[22 + row][column] = cast(u8, ((row * 61 + column * 37 + x * 11) & 255))
+            Webp.vp8InverseDct4Dc(&decoder, 22, x, 0)
+            for row in 4's32
+            {
+                for column in 32's32
+                {
+                    let original = (row * 61 + column * 37 + x * 11) & 255
+                    let expected = column >= x and column < x + 4 ? Math.clamp(original + dc, 0, 255) : original
+                    Swag.assert(decoder.ybr[22 + row][column] == expected)
+                }
+            }
+        }
+    }
+}
+
 func webpExpectedChannel(value: s32)->u8 => cast(u8, Math.clamp(value, 0, 255))
 
 func webpMultiplyHigh(value, coefficient: s32)->s32 => (value * coefficient) >> 8

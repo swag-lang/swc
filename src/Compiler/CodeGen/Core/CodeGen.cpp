@@ -901,12 +901,13 @@ void CodeGen::mergeLoweringNodePayloadMetadata(CodeGenNodePayload& payload, AstN
 CodeGenNodePayload& CodeGen::payload(AstNodeRef nodeRef)
 {
     const AstNodeRef    queryNodeRef = nodeRef;
-    CodeGenNodePayload* nodePayload  = safePayload(nodeRef);
+    const AstNodeRef    resolvedRef  = resolvedNodeRef(nodeRef);
+    CodeGenNodePayload* nodePayload  = safePayload(nodeRef, resolvedRef);
 
     // A void inline expansion can have side effects without a result register.
     // Re-emit only missing payloads or values still owed, never an already emitted void.
     const bool emittedWithoutValue = nodePayload && nodePayload->typeRef.isValid() && nodePayload->typeRef == typeMgr().typeVoid();
-    if (!emittedWithoutValue && (!nodePayload || !nodePayload->reg.isValid()) && nodeRef.isValid() && resolvedNodeRef(nodeRef) != curNodeRef())
+    if (!emittedWithoutValue && (!nodePayload || !nodePayload->reg.isValid()) && nodeRef.isValid() && resolvedRef != curNodeRef())
     {
         // Skipped substituted children materialize when a parent consumes their value.
         const Result materializeResult = emitNodeNow(nodeRef);
@@ -941,7 +942,11 @@ bool CodeGen::keepsFoldedConstant(AstNodeRef nodeRef)
 
 CodeGenNodePayload* CodeGen::safePayload(AstNodeRef nodeRef)
 {
-    const AstNodeRef resolvedRef = resolvedNodeRef(nodeRef);
+    return safePayload(nodeRef, resolvedNodeRef(nodeRef));
+}
+
+CodeGenNodePayload* CodeGen::safePayload(AstNodeRef nodeRef, const AstNodeRef resolvedRef)
+{
     if (resolvedRef.isInvalid())
         return nullptr;
 

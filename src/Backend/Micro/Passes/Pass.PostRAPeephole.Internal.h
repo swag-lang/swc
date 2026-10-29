@@ -126,9 +126,11 @@ namespace PostRaPeephole
     bool tryDropSignExtendBeforeNarrowCompare(Context& ctx, MicroInstrRef ref, const MicroInstr& inst);
     bool tryInvertBranchOverJump(Context& ctx, MicroInstrRef ref, const MicroInstr& inst);
     bool tryThreadJumpToJump(Context& ctx, MicroInstrRef ref, const MicroInstr& inst);
+    bool tryEraseRepeatedVectorClear(Context& ctx, MicroInstrRef ref, const MicroInstr& inst);
     bool tryEraseFloatClearBeforeFullWrite(Context& ctx, MicroInstrRef ref, const MicroInstr& inst);
     bool tryFoldFloatReturnSelectDiamond(Context& ctx, MicroInstrRef ref, const MicroInstr& inst);
     bool tryFoldCarryMask(Context& ctx, MicroInstrRef ref, const MicroInstr& inst);
+    bool tryFoldCanonicalMaskTest(Context& ctx, MicroInstrRef ref, const MicroInstr& inst);
     bool tryFoldZeroComparisonMask(Context& ctx, MicroInstrRef ref, const MicroInstr& inst);
     bool tryFoldCarryArithmetic(Context& ctx, MicroInstrRef ref, const MicroInstr& inst);
     bool tryFoldCarryComparisonSum(Context& ctx, MicroInstrRef ref, const MicroInstr& inst);
@@ -240,6 +242,7 @@ namespace PostRaPeephole
     bool tryFoldLoadIntoBinary(Context& ctx, MicroInstrRef loadRef, const MicroInstr& loadInst);
     bool tryFoldIndexedFloatAccumulation(Context& ctx, MicroInstrRef loadRef, const MicroInstr& loadInst);
     bool tryFoldIndexedFloatCompare(Context& ctx, MicroInstrRef loadRef, const MicroInstr& loadInst);
+    bool tryFoldIndexedHigh64Insert(Context& ctx, MicroInstrRef loadRef, const MicroInstr& loadInst);
     bool tryEraseScalarReturnConversionClear(Context& ctx, MicroInstrRef clearRef, const MicroInstr& clearInst);
     bool tryShareReturnEpilogue(Context& ctx, MicroInstrRef branchRef, const MicroInstr& branchInst);
     bool tryUseSelfOperandForFloatBinary(Context& ctx, MicroInstrRef opRef, const MicroInstr& opInst);

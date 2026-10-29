@@ -125,6 +125,51 @@ private func filterLumaSigned8(source: const [*] s16, stride: u64, taps: LumaTap
     return Simd.packSigned(low >> shift, high >> shift)
 }
 
+// Separate coefficient lanes keep the two-direction filter weights in registers across its rows.
+#[Swag.Inline]
+private func filterLumaUnsigned8Parts(source: const [*] u16, stride: u64, pair0, pair1, pair2, pair3: Simd.S16x8, shift: u32)->Simd.S16x8
+{
+    var first0  = Simd.load(source)
+    var second0 = Simd.load(source + stride)
+    var low     = Simd.mulAddPairs(cast #bit(Simd.S16x8, Simd.interleaveLow(first0, second0)), pair0)
+    var high    = Simd.mulAddPairs(cast #bit(Simd.S16x8, Simd.interleaveHigh(first0, second0)), pair0)
+    var first1  = Simd.load(source + 2 * stride)
+    var second1 = Simd.load(source + 3 * stride)
+    low  += Simd.mulAddPairs(cast #bit(Simd.S16x8, Simd.interleaveLow(first1, second1)), pair1)
+    high += Simd.mulAddPairs(cast #bit(Simd.S16x8, Simd.interleaveHigh(first1, second1)), pair1)
+    var first2  = Simd.load(source + 4 * stride)
+    var second2 = Simd.load(source + 5 * stride)
+    low  += Simd.mulAddPairs(cast #bit(Simd.S16x8, Simd.interleaveLow(first2, second2)), pair2)
+    high += Simd.mulAddPairs(cast #bit(Simd.S16x8, Simd.interleaveHigh(first2, second2)), pair2)
+    var first3  = Simd.load(source + 6 * stride)
+    var second3 = Simd.load(source + 7 * stride)
+    low  += Simd.mulAddPairs(cast #bit(Simd.S16x8, Simd.interleaveLow(first3, second3)), pair3)
+    high += Simd.mulAddPairs(cast #bit(Simd.S16x8, Simd.interleaveHigh(first3, second3)), pair3)
+    return Simd.packSigned(low >> shift, high >> shift)
+}
+
+#[Swag.Inline]
+private func filterLumaSigned8Parts(source: const [*] s16, stride: u64, pair0, pair1, pair2, pair3: Simd.S16x8, shift: u32)->Simd.S16x8
+{
+    var first0  = cast #bit(Simd.U16x8, Simd.load(source))
+    var second0 = cast #bit(Simd.U16x8, Simd.load(source + stride))
+    var low     = Simd.mulAddPairs(cast #bit(Simd.S16x8, Simd.interleaveLow(first0, second0)), pair0)
+    var high    = Simd.mulAddPairs(cast #bit(Simd.S16x8, Simd.interleaveHigh(first0, second0)), pair0)
+    var first1  = cast #bit(Simd.U16x8, Simd.load(source + 2 * stride))
+    var second1 = cast #bit(Simd.U16x8, Simd.load(source + 3 * stride))
+    low  += Simd.mulAddPairs(cast #bit(Simd.S16x8, Simd.interleaveLow(first1, second1)), pair1)
+    high += Simd.mulAddPairs(cast #bit(Simd.S16x8, Simd.interleaveHigh(first1, second1)), pair1)
+    var first2  = cast #bit(Simd.U16x8, Simd.load(source + 4 * stride))
+    var second2 = cast #bit(Simd.U16x8, Simd.load(source + 5 * stride))
+    low  += Simd.mulAddPairs(cast #bit(Simd.S16x8, Simd.interleaveLow(first2, second2)), pair2)
+    high += Simd.mulAddPairs(cast #bit(Simd.S16x8, Simd.interleaveHigh(first2, second2)), pair2)
+    var first3  = cast #bit(Simd.U16x8, Simd.load(source + 6 * stride))
+    var second3 = cast #bit(Simd.U16x8, Simd.load(source + 7 * stride))
+    low  += Simd.mulAddPairs(cast #bit(Simd.S16x8, Simd.interleaveLow(first3, second3)), pair3)
+    high += Simd.mulAddPairs(cast #bit(Simd.S16x8, Simd.interleaveHigh(first3, second3)), pair3)
+    return Simd.packSigned(low >> shift, high >> shift)
+}
+
 #[Swag.Inline]
 private func filterChromaUnsigned8(source: const [*] u16, stride: u64, taps: ChromaTaps, shift: u32)->Simd.S16x8
 {
@@ -451,52 +496,98 @@ impl Decoder
     // Interpolates one luma prediction block, clause 8.5.3.3.3.2.
     private mtd interpolateLuma(frame: *Frame, x, y: s32, width, height: u32, mvX, mvY: s16, list: u32)
     {
-        let sps      = unwrap .activeSps
-        let bitDepth = sps.bitDepthLuma
-        let shift1   = Math.min(4'u32, bitDepth - 8)
-        let shift2   = 6'u32
-        let shift3   = Math.max(2'u32, 14 - bitDepth)
+        let xInt  = x + (cast(s32, mvX) >> 2)
+        let yInt  = y + (cast(s32, mvY) >> 2)
+        let xFrac = cast(u32, (cast(s32, mvX) & 3))
+        let yFrac = cast(u32, (cast(s32, mvY) & 3))
 
-        let xInt      = x + (cast(s32, mvX) >> 2)
-        let yInt      = y + (cast(s32, mvY) >> 2)
-        let xFrac     = cast(u32, (cast(s32, mvX) & 3))
-        let yFrac     = cast(u32, (cast(s32, mvY) & 3))
-        let lumaTapsX = lumaTaps(xFrac)
-        let lumaTapsY = lumaTaps(yFrac)
-
-        var gathered:        [MaxRefSide * MaxRefSide] u16
-        var reference:       const [*] u16
-        var referenceStride: u64
         let firstX = xInt - 3
         let firstY = yInt - 3
 
-        // A reference picture is complete before any block predicts from it, and completing it
-        // replicates its edges through the whole padding. A window that stays inside that padding
-        // therefore already holds what the clamp of clause 8.5.3.3.3 would produce, so it is read
-        // where it lies instead of being gathered into a scratch block first.
+        // A complete reference already replicates its edge through the padding.
         let pad = cast(s32, FramePadding)
         if firstX >= -pad and
            firstY >= -pad and
            firstX + cast(s32, width) + 7 <= cast(s32, frame.width) + pad and
            firstY + cast(s32, height) + 7 <= cast(s32, frame.height) + pad
         {
-            reference       = unwrap frame.lumaAt(firstX, firstY)
-            referenceStride = frame.strideLuma
+            .interpolateLumaWindow(unwrap frame.lumaAt(firstX, firstY), frame.strideLuma, width, height, xFrac, yFrac, list)
+            return
         }
-        else
-        {
-            reference       = &gathered[0]
-            referenceStride = cast(u64, MaxRefSide)
-            .gatherReference(frame, 0, xInt, yInt, width, height, 3, 8, &gathered[0], referenceStride)
-        }
+
+        .interpolateLumaGathered(frame, xInt, yInt, width, height, xFrac, yFrac, list)
+    }
+
+    // The uncommon out-of-padding path owns the scratch window, so the direct
+    // path does not initialize it before using the completed reference.
+    #[Swag.NoInline]
+    private mtd interpolateLumaGathered(frame: *Frame, xInt, yInt: s32, width, height, xFrac, yFrac, list: u32)
+    {
+        var gathered: [MaxRefSide * MaxRefSide] u16
+        .gatherReference(frame, 0, xInt, yInt, width, height, 3, 8, &gathered[0], cast(u64, MaxRefSide))
+        .interpolateLumaWindow(&gathered[0], cast(u64, MaxRefSide), width, height, xFrac, yFrac, list)
+    }
+
+    #[Swag.NoInline]
+    private mtd interpolateLumaWindow(reference: const [*] u16, referenceStride: u64, width, height, xFrac, yFrac, list: u32)
+    {
+        let bitDepth = .activeSps!.bitDepthLuma
+        let shift1   = Math.min(4'u32, bitDepth - 8)
+        let shift3   = Math.max(2'u32, 14 - bitDepth)
+
+        let lumaTapsX = lumaTaps(xFrac)
+        let lumaTapsY = lumaTaps(yFrac)
 
         if not xFrac and not yFrac
         {
-            for row in height
+            if width >= 8
             {
-                let source = cast(u64, (row + 3)) * referenceStride + 3
-                for column in width do
-                    .predBuffer[list, row * width + column] = cast(s16, (cast(s32, reference[source + cast(u64, column)]) << shift3))
+                for row in height
+                {
+                    let source = cast(u64, (row + 3)) * referenceStride + 3
+                    var column = 0'u32
+                    while column + 8 <= width
+                    {
+                        let pixels = Simd.load(&reference[source + cast(u64, column)]) << shift3
+                        Simd.store(&.predBuffer[list, row * width + column], cast #bit(Simd.S16x8, pixels))
+                        column += 8
+                    }
+
+                    while column < width
+                    {
+                        .predBuffer[list, row * width + column] = cast(s16, (cast(s32, reference[source + cast(u64, column)]) << shift3))
+                        column += 1
+                    }
+                }
+            }
+            else
+            {
+                // The interpolation window includes four samples beyond the right edge, so this
+                // eight-lane load is inside the window even when only four lanes are stored.
+                if width >= 4
+                {
+                    for row in height
+                    {
+                        let source = cast(u64, (row + 3)) * referenceStride + 3
+                        let pixels = Simd.load(&reference[source]) << shift3
+                        storeLow4(&.predBuffer[list, row * width], cast #bit(Simd.S16x8, pixels))
+                        var column = 4'u32
+                        while column < width
+                        {
+                            .predBuffer[list, row * width + column] = cast(s16, (cast(s32, reference[source + cast(u64, column)]) << shift3))
+                            column += 1
+                        }
+                    }
+                }
+                else
+                {
+                    for row in height
+                    {
+                        let source = cast(u64, (row + 3)) * referenceStride + 3
+                        for column in width do
+                            .predBuffer[list, row * width + column] = cast(s16, (cast(s32, reference[source + cast(u64, column)]) << shift3))
+                    }
+                }
             }
 
             return
@@ -565,15 +656,44 @@ impl Decoder
             return
         }
 
-        // Both directions: the horizontal filter runs over every row the vertical one reads.
+        // Both directions need the horizontal result until the vertical filter consumes it.
+        // Most blocks fit the decoder-local scratch; the largest block needs a separate buffer.
+        // Four extra samples cover the high lanes of the final four-lane SIMD load.
+        if cast(u64, width) * cast(u64, (height + 7)) + 4 <= 64 * 64 do
+            .interpolateLumaBoth(reference, referenceStride, width, height, xFrac, yFrac, list, cast([*] s16, &.predSamples[0]))
+        else do
+            .interpolateLumaBothLarge(reference, referenceStride, width, height, xFrac, yFrac, list)
+    }
+
+    #[Swag.NoInline]
+    private mtd interpolateLumaBothLarge(reference: const [*] u16, referenceStride: u64, width, height, xFrac, yFrac, list: u32)
+    {
         var intermediate: [MaxRefSide * MaxPredSide] s16
+        .interpolateLumaBoth(reference, referenceStride, width, height, xFrac, yFrac, list, &intermediate[0])
+    }
+
+    #[Swag.NoInline]
+    private mtd interpolateLumaBoth(reference: const [*] u16, referenceStride: u64, width, height, xFrac, yFrac, list: u32, intermediate: [*] s16)
+    {
+        let shift1    = Math.min(4'u32, .activeSps!.bitDepthLuma - 8)
+        let shift2    = 6'u32
+        let lumaTapsX = lumaTaps(xFrac)
+        let lumaTapsY = lumaTaps(yFrac)
+        let x0 = lumaTapsX.pair0
+        let x1 = lumaTapsX.pair1
+        let x2 = lumaTapsX.pair2
+        let x3 = lumaTapsX.pair3
+        let y0 = lumaTapsY.pair0
+        let y1 = lumaTapsY.pair1
+        let y2 = lumaTapsY.pair2
+        let y3 = lumaTapsY.pair3
         for row in height + 7
         {
             let source = cast(u64, row) * referenceStride
             var column = 0'u32
             while column + 8 <= width
             {
-                Simd.store(&intermediate[cast(u64, row) * cast(u64, width) + cast(u64, column)], filterLumaUnsigned8(&reference[source + cast(u64, column)], 1, lumaTapsX, shift1))
+                Simd.store(&intermediate[cast(u64, row) * cast(u64, width) + cast(u64, column)], filterLumaUnsigned8Parts(&reference[source + cast(u64, column)], 1, x0, x1, x2, x3, shift1))
                 column += 8
             }
 
@@ -599,7 +719,7 @@ impl Decoder
             while column + 8 <= width
             {
                 let source = &intermediate[cast(u64, row) * cast(u64, width) + cast(u64, column)]
-                Simd.store(&.predBuffer[list, row * width + column], filterLumaSigned8(source, cast(u64, width), lumaTapsY, shift2))
+                Simd.store(&.predBuffer[list, row * width + column], filterLumaSigned8Parts(source, cast(u64, width), y0, y1, y2, y3, shift2))
                 column += 8
             }
 
@@ -624,23 +744,12 @@ impl Decoder
     // Interpolates one chroma prediction block, clause 8.5.3.3.3.3.
     private mtd interpolateChroma(frame: *Frame, component: u32, x, y: s32, width, height: u32, mvX, mvY: s16, list: u32)
     {
-        let sps      = unwrap .activeSps
-        let bitDepth = sps.bitDepthChroma
-        let shift1   = Math.min(4'u32, bitDepth - 8)
-        let shift2   = 6'u32
-        let shift3   = Math.max(2'u32, 14 - bitDepth)
-
         // In 4:2:0 the chroma vector is the luma one read in eighths of a chroma sample.
-        let xInt        = x + (cast(s32, mvX) >> 3)
-        let yInt        = y + (cast(s32, mvY) >> 3)
-        let xFrac       = cast(u32, (cast(s32, mvX) & 7))
-        let yFrac       = cast(u32, (cast(s32, mvY) & 7))
-        let chromaTapsX = chromaTaps(xFrac)
-        let chromaTapsY = chromaTaps(yFrac)
+        let xInt  = x + (cast(s32, mvX) >> 3)
+        let yInt  = y + (cast(s32, mvY) >> 3)
+        let xFrac = cast(u32, (cast(s32, mvX) & 7))
+        let yFrac = cast(u32, (cast(s32, mvY) & 7))
 
-        var gathered:        [MaxRefSide * MaxRefSide] u16
-        var reference:       const [*] u16
-        var referenceStride: u64
         let firstX = xInt - 1
         let firstY = yInt - 1
         let pad    = cast(s32, FramePadding)
@@ -649,24 +758,87 @@ impl Decoder
            firstX + cast(s32, width) + 3 <= cast(s32, frame.chromaWidth) + pad and
            firstY + cast(s32, height) + 3 <= cast(s32, frame.chromaHeight) + pad
         {
-            let plane = component == 1 ? frame.chromaB.storage() : frame.chromaR.storage()
-            reference       = plane + cast(u64, (firstY + cast(s32, FramePadding))) * frame.strideChroma + cast(u64, (firstX + cast(s32, FramePadding)))
-            referenceStride = frame.strideChroma
+            let plane     = component == 1 ? frame.chromaB.storage() : frame.chromaR.storage()
+            let reference = plane + cast(u64, (firstY + cast(s32, FramePadding))) * frame.strideChroma + cast(u64, (firstX + cast(s32, FramePadding)))
+            .interpolateChromaWindow(reference, frame.strideChroma, width, height, xFrac, yFrac, list)
+            return
         }
-        else
-        {
-            reference       = &gathered[0]
-            referenceStride = cast(u64, MaxRefSide)
-            .gatherReference(frame, component, xInt, yInt, width, height, 1, 4, &gathered[0], referenceStride)
-        }
+
+        .interpolateChromaGathered(frame, component, xInt, yInt, width, height, xFrac, yFrac, list)
+    }
+
+    #[Swag.NoInline]
+    private mtd interpolateChromaGathered(frame: *Frame, component: u32, xInt, yInt: s32, width, height, xFrac, yFrac, list: u32)
+    {
+        // Residual reconstruction starts after inter prediction. A chroma window is at most
+        // 35 by 35 samples, which fits in the decoder's residual scratch as 16-bit samples.
+        let gathered = cast([*] u16, &.residual[0])
+        let stride   = cast(u64, (width + 3))
+        .gatherReference(frame, component, xInt, yInt, width, height, 1, 4, gathered, stride)
+        .interpolateChromaWindow(gathered, stride, width, height, xFrac, yFrac, list)
+    }
+
+    #[Swag.NoInline]
+    private mtd interpolateChromaWindow(reference: const [*] u16, referenceStride: u64, width, height, xFrac, yFrac, list: u32)
+    {
+        let bitDepth = .activeSps!.bitDepthChroma
+        let shift1   = Math.min(4'u32, bitDepth - 8)
+        let shift2   = 6'u32
+        let shift3   = Math.max(2'u32, 14 - bitDepth)
+
+        let chromaTapsX = chromaTaps(xFrac)
+        let chromaTapsY = chromaTaps(yFrac)
 
         if not xFrac and not yFrac
         {
-            for row in height
+            if width >= 8
             {
-                let source = cast(u64, (row + 1)) * referenceStride + 1
-                for column in width do
-                    .predBuffer[list, row * width + column] = cast(s16, (cast(s32, reference[source + cast(u64, column)]) << shift3))
+                for row in height
+                {
+                    let source = cast(u64, (row + 1)) * referenceStride + 1
+                    var column = 0'u32
+                    while column + 8 <= width
+                    {
+                        let pixels = Simd.load(&reference[source + cast(u64, column)]) << shift3
+                        Simd.store(&.predBuffer[list, row * width + column], cast #bit(Simd.S16x8, pixels))
+                        column += 8
+                    }
+
+                    while column < width
+                    {
+                        .predBuffer[list, row * width + column] = cast(s16, (cast(s32, reference[source + cast(u64, column)]) << shift3))
+                        column += 1
+                    }
+                }
+            }
+            else
+            {
+                if width >= 4
+                {
+                    for row in height
+                    {
+                        let source = cast(u64, (row + 1)) * referenceStride + 1
+                        // The chroma window may not contain eight samples; read only four.
+                        let low    = cast(const [*] u64, &reference[source])[0]
+                        let pixels = cast #bit(Simd.U16x8, Simd.splat(low)) << shift3
+                        storeLow4(&.predBuffer[list, row * width], cast #bit(Simd.S16x8, pixels))
+                        var column = 4'u32
+                        while column < width
+                        {
+                            .predBuffer[list, row * width + column] = cast(s16, (cast(s32, reference[source + cast(u64, column)]) << shift3))
+                            column += 1
+                        }
+                    }
+                }
+                else
+                {
+                    for row in height
+                    {
+                        let source = cast(u64, (row + 1)) * referenceStride + 1
+                        for column in width do
+                            .predBuffer[list, row * width + column] = cast(s16, (cast(s32, reference[source + cast(u64, column)]) << shift3))
+                    }
+                }
             }
 
             return
@@ -735,7 +907,9 @@ impl Decoder
             return
         }
 
-        var intermediate: [MaxRefSide * MaxPredSide] s16
+        // Intra and inter prediction do not overlap on a decoder. The chroma window is at
+        // most 32 by 35 samples, so it fits in the existing intra prediction scratch.
+        let intermediate = cast([*] s16, &.predSamples[0])
         for row in height + 3
         {
             let source = cast(u64, row) * referenceStride

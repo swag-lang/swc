@@ -56,6 +56,37 @@ impl BitReader
     // Reads `count` bits as an unsigned value. `count` is at most 32.
     mtd read(count: u32)->u32
     {
+        if count == 1 do
+            return .bit()
+
+        if count >= 2 and count <= 32
+        {
+            let totalBits = .size * 8
+            if .bitPos <= totalBits and cast(u64, count) <= totalBits - .bitPos
+            {
+                let startBit  = .bitPos
+                let startByte = startBit >> 3
+                let endBit    = startBit + count
+                if .size - startByte >= 8
+                {
+                    // The full word is inside the payload, even when the requested field
+                    // uses fewer bytes. Its first stream bit becomes the high bit.
+                    let packed = Math.bigEndianToNative(cast(const [*] u64, unwrap .data + startByte)[0])
+                    let shift  = 64 - cast(u32, (startBit & 7)) - count
+                    .bitPos = endBit
+                    return cast(u32, ((packed >> shift) & ((1'u64 << count) - 1)))
+                }
+
+                let endByte = (endBit + 7) >> 3
+                var packed  = 0'u64
+                for index in startByte until endByte do
+                    packed = (packed << 8) | .data![index]
+                .bitPos = endBit
+                let shift = cast(u32, (endByte * 8 - endBit))
+                return cast(u32, ((packed >> shift) & ((1'u64 << count) - 1)))
+            }
+        }
+
         var result = 0'u32
         for count do
             result = (result << 1) | .bit()
@@ -65,8 +96,14 @@ impl BitReader
     // Returns the next 16 bits without consuming them, padding past the end with zeros.
     mtd const peek16()->u32
     {
-        var result    = 0'u32
         let byteIndex = .bitPos >> 3
+        if byteIndex <= .size and .size - byteIndex >= 4
+        {
+            let packed = Math.bigEndianToNative(cast(const [*] u32, unwrap .data + byteIndex)[0])
+            return (packed >> cast(u32, (16 - (.bitPos & 7)))) & 0xFFFF
+        }
+
+        var result = 0'u32
         for offset in 3'u64
         {
             result <<= 8
@@ -91,7 +128,20 @@ impl BitReader
     // Reads one unsigned Exp-Golomb value.
     mtd ue()->u32
     {
-        var zeros = 0'u32
+        if .bit() do
+            return 0
+        if .overran do
+            return 0
+        if .bit() do
+            return 1 + .read(1)
+        if .overran do
+            return 0
+        if .bit() do
+            return 3 + .read(2)
+        if .overran do
+            return 0
+
+        var zeros = 3'u32
         while not .bit()
         {
             zeros += 1
@@ -102,8 +152,6 @@ impl BitReader
             }
         }
 
-        if not zeros do
-            return 0
         return (1'u32 << zeros) - 1 + .read(zeros)
     }
 
@@ -121,18 +169,22 @@ impl BitReader
         if .overran or .bitPos >= .size * 8 do
             return false
 
-        // The payload ends with a stop bit and zero padding; data remains only when a set bit
-        // exists after the read position and is not the last set bit of the payload.
-        var lastSet = .size * 8
-        while lastSet > .bitPos
+        // The payload ends with a stop bit and zero padding. Its last set bit is the
+        // least significant set bit of the last nonzero byte.
+        let firstByte = .bitPos >> 3
+        var index     = .size
+        while index > firstByte
         {
-            lastSet -= 1
-            let value = (.data![lastSet >> 3] >> cast(u32, (7 - (lastSet & 7)))) & 1
-            if value do
-                break
+            index -= 1
+            let value = .data![index]
+            if value
+            {
+                let lastSet = index * 8 + 7 - cast(u64, Math.trailingZeros(value))
+                return lastSet > .bitPos
+            }
         }
 
-        return lastSet > .bitPos
+        return false
     }
 }
 
@@ -244,6 +296,8 @@ func unescapeRbspWithBounds(destination: *Array'u8, data: const [..] u8, escaped
     var produced = 0'u64
     var zeros    = 0'u32
     var boundary = 0'u64
+    var nextBlock = 0'u64
+    let threes   = Math.Simd.splat(3'u8)
 
     while index < count
     {
@@ -251,6 +305,25 @@ func unescapeRbspWithBounds(destination: *Array'u8, data: const [..] u8, escaped
         {
             unescapedBounds.add(produced)
             boundary += 1
+        }
+
+        // A block with no prevention byte can be copied intact, provided it does not
+        // cross a boundary. A nonzero byte in its last two positions also determines
+        // the exact zero-run length without scanning the block backwards.
+        if index >= nextBlock and count - index >= 16 and (boundary == escapedBounds.count or escapedBounds[boundary] - index >= 16)
+        {
+            let values = Math.Simd.load(data.buffer + index)
+            if not Math.Simd.anyTrue(values == threes) and (data[index + 14] != 0 or data[index + 15] != 0)
+            {
+                Math.Simd.store(output + produced, values)
+                zeros = data[index + 15] == 0 ? 1 : 0
+                index    += 16
+                produced += 16
+                continue
+            }
+            // A failed block is processed scalarly once, rather than testing the same
+            // escape or trailing zero run in overlapping blocks at every byte.
+            nextBlock = index + 16
         }
 
         let value = data[index]

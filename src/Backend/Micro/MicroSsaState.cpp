@@ -1055,9 +1055,7 @@ void MicroSsaState::renameBlock(const uint32_t blockIndex, RenameState& state)
 
         for (const MicroReg reg : info.useDef.uses)
         {
-            if (!isTrackedReg(reg))
-                continue;
-
+            // trackedRegs_ contains only virtual definitions; a miss rejects all other kinds.
             const uint32_t regIndex = trackedRegs_.find(reg);
             if (regIndex == MicroDenseRegIndex::K_INVALID_INDEX)
                 continue;

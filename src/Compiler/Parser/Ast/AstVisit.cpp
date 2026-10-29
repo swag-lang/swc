@@ -14,6 +14,10 @@ void AstVisit::start(Ast& ast, AstNodeRef root)
     ast_     = &ast;
     rootRef_ = root;
 
+#if SWC_HAS_VISIT_DEBUG_INFO
+    dbgCodeRefKnown_ = false;
+#endif
+
     stack_.clear();
     children_.clear();
 
@@ -40,27 +44,33 @@ AstVisitResult AstVisit::step(const TaskContext& ctx)
     Frame& frame = stack_.back();
 
 #if SWC_HAS_VISIT_DEBUG_INFO
-    dbgSrcFile = nullptr;
-    dbgNode    = ast_->hasNode(frame.nodeRef) ? &ast_->node(frame.nodeRef) : nullptr;
-    dbgTok     = nullptr;
-    dbgTokView = {};
-    dbgTokRef  = TokenRef::invalid();
-    dbgLoc     = {};
-
-    if (dbgNode)
+    if (!frame.node)
+        frame.node = &ast_->node(frame.nodeRef);
+    dbgNode    = frame.node;
+    const SourceCodeRef currentCodeRef = dbgNode->codeRef();
+    if (!dbgCodeRefKnown_ || currentCodeRef != dbgCodeRef_)
     {
-        dbgTokRef = dbgNode->tokRef();
+        dbgCodeRef_      = currentCodeRef;
+        dbgCodeRefKnown_ = true;
+        dbgSrcFile  = nullptr;
+        dbgTok      = nullptr;
+        dbgTokView  = {};
+        dbgTokRef   = currentCodeRef.tokRef;
+        dbgLoc      = {};
 
-        CompilerInstance::ResolvedSourceLocation resolvedLocation;
-        if (ctx.compiler().tryResolveSourceLocation(ctx, resolvedLocation, dbgNode->codeRef()))
+        if (currentCodeRef.isValid())
         {
-            dbgSrcFile = resolvedLocation.sourceFile;
-            dbgLoc     = resolvedLocation.codeRange;
+            CompilerInstance::ResolvedSourceLocation resolvedLocation;
+            if (ctx.compiler().tryResolveSourceLocation(ctx, resolvedLocation, currentCodeRef))
+            {
+                dbgSrcFile = resolvedLocation.sourceFile;
+                dbgLoc     = resolvedLocation.codeRange;
 
-            const SourceView& dbgView = *resolvedLocation.codeRange.srcView;
+                const SourceView& dbgView = *resolvedLocation.codeRange.srcView;
 
-            dbgTok     = dbgTokRef.isValid() ? &dbgView.token(dbgTokRef) : nullptr;
-            dbgTokView = dbgTok ? dbgTok->string(dbgView) : "";
+                dbgTok     = &dbgView.token(dbgTokRef);
+                dbgTokView = dbgTok->string(dbgView);
+            }
         }
     }
 #endif
@@ -122,10 +132,6 @@ AstVisitResult AstVisit::stepPreStage(Frame& frame)
 
     collectChildren(frame);
 
-    frame.preChildState    = Frame::CallState::NotCalled;
-    frame.pendingPostChild = false;
-    frame.postChildState   = Frame::CallState::NotCalled;
-
     frame.stage = frame.numChildren ? Frame::Stage::Children : Frame::Stage::Post;
     return AstVisitResult::Continue;
 }
@@ -145,7 +151,7 @@ AstVisitResult AstVisit::stepChildrenStage(Frame& frame)
         while (frame.nextChildIx < frame.numChildren)
         {
             const uint32_t   globalIx = frame.firstChildIx + frame.nextChildIx++;
-            const AstNodeRef childRef = children_[globalIx];
+            const AstNodeRef& childRef = children_[globalIx];
             if (childRef.isInvalid())
                 continue;
 

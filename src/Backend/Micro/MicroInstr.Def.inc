@@ -459,6 +459,18 @@ SWC_MICRO_INSTR_DEF(
     })
 
 SWC_MICRO_INSTR_DEF(
+    VecTestReg,
+    MicroInstrDef{
+        .regModes              = {MicroInstrRegMode::Use, MicroInstrRegMode::None},
+        .special               = MicroInstrRegSpecial::None,
+        .microOpIndex          = 0,
+        .callConvIndex         = 0,
+        .flags                 = MicroInstrFlagsE::DefinesCpuFlags,
+        .memBaseOperandIndex   = 0,
+        .memOffsetOperandIndex = 0,
+        .opBitsMask            = (1 << 1),
+    })
+SWC_MICRO_INSTR_DEF(
     TestRegReg,
     MicroInstrDef{
         .regModes              = {MicroInstrRegMode::Use, MicroInstrRegMode::Use, MicroInstrRegMode::None},
@@ -1094,6 +1106,21 @@ SWC_MICRO_INSTR_DEF(
         .microOpIndex          = 0,
         .callConvIndex         = 0,
         .flags                 = MicroInstrFlagsE::DefinesCpuFlags,
+        .memBaseOperandIndex   = 0,
+        .memOffsetOperandIndex = 0,
+        .opBitsMask            = (1 << 3) | (1 << 4),
+    })
+
+// Insert an indexed 64-bit memory value into the high half of a vector in place.
+// Layout [dst, base, index, valueBits, addrBits, mul, add].
+SWC_MICRO_INSTR_DEF(
+    VecInsertHigh64Amc,
+    MicroInstrDef{
+        .regModes              = {MicroInstrRegMode::UseDef, MicroInstrRegMode::Use, MicroInstrRegMode::Use},
+        .special               = MicroInstrRegSpecial::None,
+        .microOpIndex          = 0,
+        .callConvIndex         = 0,
+        .flags                 = MicroInstrFlagsE::Zero,
         .memBaseOperandIndex   = 0,
         .memOffsetOperandIndex = 0,
         .opBitsMask            = (1 << 3) | (1 << 4),

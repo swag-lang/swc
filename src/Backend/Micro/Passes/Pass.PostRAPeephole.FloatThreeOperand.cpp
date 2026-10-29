@@ -260,6 +260,15 @@ namespace PostRaPeephole
                 demand.read(ops[1].reg, source);
                 return;
             }
+            if (inst.op == MicroInstrOpcode::OpBinaryRegRegReg && ops[0].reg.isFloat() && ops[3].opBits == MicroOpBits::B128)
+            {
+                // A packed three-operand result defines the whole destination.
+                // Its inputs remain fully demanded, including when they alias it.
+                demand.clear(ops[0].reg);
+                demand.read(ops[1].reg, 15);
+                demand.read(ops[2].reg, 15);
+                return;
+            }
             if (inst.op == MicroInstrOpcode::OpBinaryRegRegImm && ops[2].opBits == MicroOpBits::B128 &&
                 ops[3].microOp == MicroOp::VecShiftRightBytes && ops[4].valueU64 % 4 == 0)
             {
@@ -1117,6 +1126,36 @@ namespace PostRaPeephole
             return false;
 
         ctx.emitErase(clearRef);
+        return true;
+    }
+
+    // A low-qword load followed by unpack-low can insert that qword directly from
+    // memory. The unpack must overwrite its first source, and the temporary dies.
+    bool tryFoldIndexedHigh64Insert(Context& ctx, const MicroInstrRef loadRef, const MicroInstr& loadInst)
+    {
+        if (loadInst.op != MicroInstrOpcode::LoadAmcRegMem || loadInst.numOperands < 7)
+            return false;
+        const MicroInstrOperand* load = ctx.operandsFor(loadRef);
+        if (!load || !load[0].reg.isFloat() || !load[1].reg.isInt() || !load[2].reg.isInt() ||
+            load[3].opBits != MicroOpBits::B64 || load[4].opBits != MicroOpBits::B64 ||
+            (load[2].reg == ctx.stackPointer && load[5].valueU64 != 1))
+            return false;
+        const MicroInstrRef      ref  = ctx.nextRef(loadRef);
+        const MicroInstr*        inst = ctx.instruction(ref);
+        const MicroInstrOperand* ops  = ctx.operandsFor(ref);
+        if (!inst || inst->op != MicroInstrOpcode::OpBinaryRegRegReg || inst->numOperands < 5 || !ops ||
+            ops[0].reg != ops[1].reg || ops[2].reg != load[0].reg || ops[0].reg == load[0].reg ||
+            !ops[0].reg.isFloat() || ops[3].opBits != MicroOpBits::B128 || ops[4].microOp != MicroOp::VecUnpackLo64 ||
+            (!regIsDeadAfter(ctx, ref, load[0].reg) && !ctx.isRegDeadAfter(load[0].reg, ctx.instructionIndex + 1)))
+            return false;
+        MicroInstrOperand rewritten[7] = {};
+        rewritten[0] = ops[0];
+        for (uint32_t i = 1; i < 7; ++i)
+            rewritten[i] = load[i];
+        if (!ctx.claimAll({loadRef, ref}))
+            return false;
+        ctx.emitRewrite(ref, MicroInstrOpcode::VecInsertHigh64Amc, std::span{rewritten, 7}, true);
+        ctx.emitErase(loadRef);
         return true;
     }
 

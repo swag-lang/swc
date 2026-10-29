@@ -1028,6 +1028,32 @@ func buildPng16(width, height: s32, colorType: u8, interlace: bool, samples: con
     assertLoadedPng("basi6a08.png", 32, 32, .RGBA8, 0'u8, 32'u8, 255'u8, 0'u8)
 }
 
+// Native 16-bit conversion handles unaligned vectors and every short tail
+// without touching the surrounding bytes.
+#test
+{
+    const Capacity = 160
+    var source: [Capacity] u8
+    var actual: [Capacity] u8
+    var expected: [Capacity] u8
+    for count in 65'u64
+    {
+        for i in Capacity
+        {
+            source[i] = cast(u8, ((i * 53 + count * 7) & 255))
+            actual[i] = 0xA5
+            expected[i] = 0xA5
+        }
+        for i in count
+        {
+            expected[3 + 2 * i] = source[2 + 2 * i]
+            expected[4 + 2 * i] = source[1 + 2 * i]
+        }
+        Png.convert16Samples(&source[1], &actual[3], count)
+        Swag.assert(actual == expected)
+    }
+}
+
 // Preserve high-depth color samples, while grayscale remains in its compact native channel count.
 #test
 {
@@ -1057,6 +1083,109 @@ func buildPng16(width, height: s32, colorType: u8, interlace: bool, samples: con
     Swag.assert(rgbaRaw[0] == 0x1234 and rgbaRaw[1] == 0x8080 and rgbaRaw[2] == 0xFFFF and rgbaRaw[3] == 0x0101)
 }
 
+// Gray transparency compares both bytes and writes exactly two words per sample.
+#test
+{
+    const Capacity = 300
+    var source: [Capacity] u8
+    var actual: [Capacity] u8
+    var expected: [Capacity] u8
+    for count in 65'u64
+    {
+        for i in Capacity
+        {
+            source[i] = cast(u8, ((i * 31 + count * 7) & 255))
+            actual[i] = 0xA5
+            expected[i] = 0xA5
+        }
+        for i in count
+        {
+            if (i % 3) == 0
+            {
+                source[1 + 2 * i] = 0x12
+                source[2 + 2 * i] = 0x34
+            }
+            let equal = source[1 + 2 * i] == 0x12 and source[2 + 2 * i] == 0x34
+            expected[3 + 4 * i] = source[2 + 2 * i]
+            expected[4 + 4 * i] = source[1 + 2 * i]
+            expected[5 + 4 * i] = equal ? 0 : 255
+            expected[6 + 4 * i] = equal ? 0 : 255
+        }
+        Png.convertGray16Transparency(&source[1], &actual[3], count, 0x1234)
+        Swag.assert(actual == expected)
+    }
+}
+
+// RGB transparency tests whole 16-bit channels, including neighboring pixels
+// that differ from the key in only one byte and every vector/tail boundary.
+#test
+{
+    const Capacity = 320
+    var source: [Capacity] u8
+    var actual: [Capacity] u8
+    var expected: [Capacity] u8
+    for count in 35'u64
+    {
+        for i in Capacity
+        {
+            source[i] = cast(u8, ((i * 43 + count * 13) & 255))
+            actual[i] = 0xA5
+            expected[i] = 0xA5
+        }
+        for i in count
+        {
+            if (i % 3) != 2
+            {
+                source[1 + 6 * i] = 0x12
+                source[2 + 6 * i] = 0x34
+                source[3 + 6 * i] = 0x80
+                source[4 + 6 * i] = 0x01
+                source[5 + 6 * i] = 0xFF
+                source[6 + 6 * i] = (i % 3) == 0 ? 0xFF : 0xFE
+            }
+            let equal = source[1 + 6 * i] == 0x12 and source[2 + 6 * i] == 0x34 and
+                        source[3 + 6 * i] == 0x80 and source[4 + 6 * i] == 0x01 and
+                        source[5 + 6 * i] == 0xFF and source[6 + 6 * i] == 0xFF
+            for component in 3'u64
+            {
+                expected[3 + 8 * i + 2 * component] = source[2 + 6 * i + 2 * component]
+                expected[4 + 8 * i + 2 * component] = source[1 + 6 * i + 2 * component]
+            }
+            expected[9 + 8 * i] = equal ? 0 : 255
+            expected[10 + 8 * i] = equal ? 0 : 255
+        }
+        Png.convertRgb16Transparency(&source[1], &actual[3], count, 0x1234, 0x8001, 0xFFFF)
+        Swag.assert(actual == expected)
+    }
+}
+
+// The packed conversion handles native alpha, while grayscale transparency
+// compares the complete 16-bit value before creating the alpha channel.
+#test
+{
+    var alphaSamples: Array'u16
+    for i in 18 do
+        alphaSamples.add(cast(u16, (0x1000 + i * 257)))
+    let alphaPng = buildPng16(9, 1, 4, false, alphaSamples.toSlice())
+    let alphaImage = expect Image.decode("gray-alpha16.png", nnBytes(alphaPng.toSlice()), {})
+    Swag.assert(alphaImage.pixelFormat == .GrayAlpha16)
+    let alphaRaw = cast(const [*] u16, alphaImage.pixels.storage())
+    for i in 18 do
+        Swag.assert(alphaRaw[i] == alphaSamples[i])
+
+    var graySamples: Array'u16
+    graySamples.add(0x1234)
+    graySamples.add(0x1235)
+    var key: Array'u16
+    key.add(0x1234)
+    let grayPng = buildPng16(2, 1, 0, false, graySamples.toSlice(), key.toSlice())
+    let grayImage = expect Image.decode("gray16-trns.png", nnBytes(grayPng.toSlice()), {})
+    Swag.assert(grayImage.pixelFormat == .GrayAlpha16)
+    let grayRaw = cast(const [*] u16, grayImage.pixels.storage())
+    Swag.assert(grayRaw[0] == 0x1234 and grayRaw[1] == 0)
+    Swag.assert(grayRaw[2] == 0x1235 and grayRaw[3] == 0xFFFF)
+}
+
 // A 16-bit tRNS key compares the original samples before reduction to 8 bits.
 #test
 {
@@ -1080,6 +1209,33 @@ func buildPng16(width, height: s32, colorType: u8, interlace: bool, samples: con
     let raw = cast(const [*] u16, img.pixels.storage())
     Swag.assert(raw[3] == 0'u16)
     Swag.assert(raw[7] == 0xFFFF'u16)
+}
+
+// The RGB16 transparency path carries complete colors through vector and tail pixels.
+#test
+{
+    var samples: Array'u16
+    for i in 7
+    {
+        samples.add(0x1234)
+        samples.add(0x8001)
+        samples.add(i % 2 == 0 ? 0xFFFF'u16 : 0xFFFE'u16)
+    }
+    var key: Array'u16
+    key.add(0x1234)
+    key.add(0x8001)
+    key.add(0xFFFF)
+    let png = buildPng16(7, 1, 2, false, samples.toSlice(), key.toSlice())
+    let img = expect Image.decode("rgb16-trns-vector.png", nnBytes(png.toSlice()), {})
+    Swag.assert(img.pixelFormat == .RGBA16)
+    let raw = cast(const [*] u16, img.pixels.storage())
+    for i in 7
+    {
+        Swag.assert(raw[4 * i] == samples[3 * i])
+        Swag.assert(raw[4 * i + 1] == samples[3 * i + 1])
+        Swag.assert(raw[4 * i + 2] == samples[3 * i + 2])
+        Swag.assert(raw[4 * i + 3] == (i % 2 == 0 ? 0'u16 : 0xFFFF'u16))
+    }
 }
 
 // Decode every Adam7 pass for a 16-bit RGB image and preserve pixel placement.

@@ -215,7 +215,8 @@ namespace MicroPassHelpers
         return inst.op == MicroInstrOpcode::LoadAmcRegMem ||
                inst.op == MicroInstrOpcode::LoadSignedExtAmcRegMem ||
                inst.op == MicroInstrOpcode::LoadZeroExtAmcRegMem ||
-               inst.op == MicroInstrOpcode::VecUnaryAmcRegMem;
+               inst.op == MicroInstrOpcode::VecUnaryAmcRegMem ||
+               inst.op == MicroInstrOpcode::VecInsertHigh64Amc;
     }
 
     // An atomic operation: the volatile load of 'Swag.atomicLoad', the volatile store of 'Swag.atomicStore',

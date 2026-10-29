@@ -1585,6 +1585,72 @@ SWC_TEST_BEGIN(Compiler_AstVisitResolvesChildrenWithoutFollowingActiveAncestors)
 }
 SWC_TEST_END()
 
+SWC_TEST_BEGIN(Compiler_AstVisitRefreshesDebugLocationWhenCodeRefChanges)
+{
+    CommandLine      cmdLine;
+    CompilerInstance compiler(ctx.global(), cmdLine);
+    TaskContext      compilerCtx(compiler);
+    SourceFile&      source = Unittest::addTestSource(compilerCtx, "Compiler", "AstVisitDebugLocation", "first second");
+    SWC_RESULT(source.loadContent(compilerCtx));
+    Ast&        ast  = source.ast();
+    SourceView& view = ast.srcView();
+    Lexer       lexer;
+    lexer.tokenize(compilerCtx, view, LexerFlagsE::Default);
+
+    const auto [root, rootNode]   = ast.makeNode<AstNodeId::ArrayLiteral>(TokenRef{0});
+    const auto [child, childNode] = ast.makeNode<AstNodeId::ArrayLiteral>(TokenRef::invalid());
+    const std::array children    = {child};
+    rootNode->spanChildrenRef = ast.pushSpan(std::span<const AstNodeRef>(children));
+
+    AstVisit visit;
+    bool     cleared   = false;
+    bool     refreshed = false;
+    visit.setPreNodeVisitor([&](AstNode& current) {
+        if (&current == rootNode)
+        {
+            if (visit.dbgTokRef != TokenRef{0} || visit.dbgTokView != "first")
+                return Result::Error;
+
+            current.setCodeRef(SourceCodeRef(view.ref(), TokenRef{1}));
+            return Result::Continue;
+        }
+
+        if (&current == childNode && visit.dbgTokRef.isInvalid() && visit.dbgTokView.empty() &&
+            !visit.dbgSrcFile && !visit.dbgLoc.srcView)
+        {
+            cleared = true;
+            return Result::Continue;
+        }
+
+        return Result::Error;
+    });
+    visit.setPostNodeVisitor([&](AstNode& current) {
+        if (&current == childNode)
+        {
+            if (visit.dbgTokRef.isValid() || !visit.dbgTokView.empty() || visit.dbgSrcFile || visit.dbgLoc.srcView)
+                return Result::Error;
+            return Result::Continue;
+        }
+        if (&current != rootNode || visit.dbgTokRef != TokenRef{1} || visit.dbgTokView != "second")
+            return Result::Error;
+
+        refreshed = true;
+        return Result::Continue;
+    });
+    visit.start(ast, root);
+    for (size_t step = 0; step < 10; ++step)
+    {
+        const AstVisitResult result = visit.step(compilerCtx);
+        if (result == AstVisitResult::Error)
+            return Result::Error;
+        if (result == AstVisitResult::Stop)
+            return cleared && refreshed ? Result::Continue : Result::Error;
+    }
+
+    return Result::Error;
+}
+SWC_TEST_END()
+
 SWC_TEST_BEGIN(Compiler_SymbolLocationSortKeepsStableTokenOrderWithinOneFile)
 {
     CommandLine      cmdLine;

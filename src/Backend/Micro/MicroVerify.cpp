@@ -200,6 +200,7 @@ namespace
             case MicroInstrOpcode::SanityRelease:
             case MicroInstrOpcode::LoadLabelAddress:
             case MicroInstrOpcode::LoadRegTlsSlot:
+            case MicroInstrOpcode::VecTestReg:
                 return 2;
 
             case MicroInstrOpcode::JumpCond:
@@ -268,6 +269,7 @@ namespace
             case MicroInstrOpcode::CmpAmcImm:
             case MicroInstrOpcode::CmpAmcReg:
             case MicroInstrOpcode::CmpRegAmc:
+            case MicroInstrOpcode::VecInsertHigh64Amc:
                 return 7;
 
             case MicroInstrOpcode::LoadAmcMemImm:
@@ -403,7 +405,7 @@ namespace
         if (hasAmc)
         {
             const MicroReg base         = ops[amcLayout.baseIdx].reg;
-            const bool     allowsNoBase = inst.op != MicroInstrOpcode::VecUnaryAmcRegMem;
+            const bool     allowsNoBase = inst.op != MicroInstrOpcode::VecUnaryAmcRegMem && inst.op != MicroInstrOpcode::VecInsertHigh64Amc;
             if (!isValidAnyRegister(base) || !(base.isAnyInt() || (allowsNoBase && base.isNoBase())))
                 return reportError(context, phase, std::format("instruction #{} references unknown memory base register {} at operand {}", instructionIndex, base.packed, amcLayout.baseIdx));
 

@@ -5740,7 +5740,7 @@ SWC_TEST_END()
 
 // A lane written into a vector that was stored whole is an insertion into that vector: no
 // narrow store, and no wide load stalled behind it. The vector register has to hold the same
-// value where the load stood, and a lane wider than a dword has no insertion.
+// value where the load stood, including a full-width qword lane.
 SWC_TEST_BEGIN(InstCombine_LaneWrittenIntoStoredVectorIsInserted)
 {
     const MicroReg     stack   = CallConv::get(CallConvKind::Swag).stackPointer;
@@ -5756,9 +5756,12 @@ SWC_TEST_BEGIN(InstCombine_LaneWrittenIntoStoredVectorIsInserted)
         ImmediateDwordLane,
         SourceRedefined,
         QwordLane,
+        ImmediateQwordLane,
+        UnalignedQwordLane,
+        ScalarRedefined,
     };
 
-    for (const Case testCase : {Case::ByteLane, Case::TwoWordLanes, Case::ImmediateDwordLane, Case::SourceRedefined, Case::QwordLane})
+    for (const Case testCase : {Case::ByteLane, Case::TwoWordLanes, Case::ImmediateDwordLane, Case::SourceRedefined, Case::QwordLane, Case::ImmediateQwordLane, Case::UnalignedQwordLane, Case::ScalarRedefined})
     {
         MicroBuilder builder(ctx);
         builder.emitLoadAddressRegMem(base, stack, 0x20, MicroOpBits::B64);
@@ -5779,9 +5782,18 @@ SWC_TEST_BEGIN(InstCombine_LaneWrittenIntoStoredVectorIsInserted)
                 builder.emitLoadMemImm(base, 0x48, ApInt(0x1234, 32), MicroOpBits::B32);
                 break;
             case Case::QwordLane:
+            case Case::ScalarRedefined:
                 builder.emitLoadMemReg(base, 0x48, scalar, MicroOpBits::B64);
                 break;
+            case Case::ImmediateQwordLane:
+                builder.emitLoadMemImm(base, 0x40, ApInt(0xFEDCBA9876543210ULL, 64), MicroOpBits::B64);
+                break;
+            case Case::UnalignedQwordLane:
+                builder.emitLoadMemReg(base, 0x44, scalar, MicroOpBits::B64);
+                break;
         }
+        if (testCase == Case::ScalarRedefined)
+            builder.emitLoadRegImm(scalar, ApInt(7, 64), MicroOpBits::B64);
         if (testCase == Case::SourceRedefined)
             builder.emitLoadRegReg(source, MicroReg::floatReg(1), MicroOpBits::B128);
         builder.emitLoadRegMem(updated, base, 0x40, MicroOpBits::B128);
@@ -5821,8 +5833,17 @@ SWC_TEST_BEGIN(InstCombine_LaneWrittenIntoStoredVectorIsInserted)
                 if (wholeLoads != 0 || inserts != 1 || insertOp != MicroOp::VecInsert32 || lastLane != 2)
                     return Result::Error;
                 break;
-            case Case::SourceRedefined:
             case Case::QwordLane:
+                if (wholeLoads != 0 || inserts != 1 || insertOp != MicroOp::VecInsert64 || lastLane != 1)
+                    return Result::Error;
+                break;
+            case Case::ImmediateQwordLane:
+                if (wholeLoads != 0 || inserts != 1 || insertOp != MicroOp::VecInsert64 || lastLane != 0)
+                    return Result::Error;
+                break;
+            case Case::SourceRedefined:
+            case Case::UnalignedQwordLane:
+            case Case::ScalarRedefined:
                 if (wholeLoads != 1 || inserts != 0)
                     return Result::Error;
                 break;
@@ -6495,6 +6516,112 @@ SWC_TEST_BEGIN(InstCombine_AffineChain_KeepsShortAndUnencodableProducts)
                 Backend::Unittest::countBinaryRegRegOp(builder, MicroOp::Add) != stages * 2)
                 return Result::Error;
         }
+    }
+    return Result::Continue;
+}
+SWC_TEST_END()
+
+SWC_TEST_BEGIN(InstCombine_ZeroVectorEqualityRequiresStableInput)
+{
+    constexpr MicroReg value  = MicroReg::virtualFloatReg(1);
+    constexpr MicroReg zero   = MicroReg::virtualFloatReg(2);
+    constexpr MicroReg vector = MicroReg::virtualFloatReg(3);
+    constexpr MicroReg mask   = MicroReg::virtualIntReg(1);
+    constexpr MicroReg result = MicroReg::virtualIntReg(2);
+    for (uint32_t variant = 0; variant < 3; ++variant)
+    {
+        MicroBuilder builder(ctx);
+        builder.emitLoadRegReg(value, MicroReg::floatReg(0), MicroOpBits::B128);
+        builder.emitClearReg(zero, MicroOpBits::B128);
+        builder.emitOpBinaryRegRegReg(vector, variant == 1 ? zero : value, variant == 1 ? value : zero, MicroOp::VecCmpEq16, MicroOpBits::B128);
+        if (variant == 2)
+            builder.emitClearReg(value, MicroOpBits::B128);
+        builder.emitVecUnaryRegReg(mask, vector, MicroOp::VecMoveMaskB, MicroOpBits::B128);
+        builder.emitCmpRegImm(mask, ApInt(0xFFFF, 32), MicroOpBits::B32);
+        builder.emitSetCondReg(result, MicroCond::NotEqual);
+        builder.emitLoadRegReg(MicroReg::intReg(0), result, MicroOpBits::B8);
+        builder.emitRet();
+        SWC_RESULT(runInstCombinePass(builder));
+        uint32_t xorCount = 0;
+        for (const MicroInstr& inst : builder.instructions().view())
+        {
+            const auto* ops = inst.ops(builder.operands());
+            if (inst.op == MicroInstrOpcode::OpBinaryRegRegReg && ops[4].microOp == MicroOp::VecXor)
+                ++xorCount;
+        }
+        if (Backend::Unittest::countOpcode(builder, MicroInstrOpcode::VecTestReg) != 1 || xorCount != (variant == 2 ? 1u : 0u))
+            return Result::Error;
+    }
+    return Result::Continue;
+}
+SWC_TEST_END()
+
+SWC_TEST_BEGIN(InstCombine_VectorEqualityMaskRequiresDeadValues)
+{
+    constexpr MicroReg left   = MicroReg::virtualFloatReg(1);
+    constexpr MicroReg right  = MicroReg::virtualFloatReg(2);
+    constexpr MicroReg vector = MicroReg::virtualFloatReg(3);
+    constexpr MicroReg mask   = MicroReg::virtualIntReg(1);
+    constexpr MicroReg result = MicroReg::virtualIntReg(2);
+    for (uint32_t variant = 0; variant < 8; ++variant)
+    {
+        MicroBuilder builder(ctx);
+        builder.emitLoadRegReg(left, MicroReg::floatReg(0), MicroOpBits::B128);
+        builder.emitLoadRegReg(right, MicroReg::floatReg(1), MicroOpBits::B128);
+        const MicroOp ops[] = {MicroOp::VecCmpEq8, MicroOp::VecCmpEq16, MicroOp::VecCmpEq32, MicroOp::VecCmpEq64};
+        builder.emitOpBinaryRegRegReg(vector, left, right, variant == 7 ? MicroOp::VecCmpGtS16 : ops[variant < 4 ? variant : 1], MicroOpBits::B128);
+        builder.emitVecUnaryRegReg(mask, vector, MicroOp::VecMoveMaskB, MicroOpBits::B128);
+        builder.emitCmpRegImm(mask, ApInt(0xFFFF, 32), MicroOpBits::B32);
+        builder.emitSetCondReg(result, MicroCond::NotEqual);
+        if (variant == 4)
+            builder.emitLoadMemReg(MicroReg::intReg(2), 0, vector, MicroOpBits::B128);
+        if (variant == 5)
+            builder.emitLoadRegReg(MicroReg::intReg(3), mask, MicroOpBits::B32);
+        if (variant == 6)
+            builder.emitSetCondReg(MicroReg::intReg(3), MicroCond::Parity);
+        builder.emitLoadRegReg(MicroReg::intReg(0), result, MicroOpBits::B8);
+        builder.emitRet();
+        SWC_RESULT(runInstCombinePass(builder));
+        if (Backend::Unittest::countOpcode(builder, MicroInstrOpcode::VecTestReg) != (variant < 4 ? 1u : 0u))
+            return Result::Error;
+    }
+    return Result::Continue;
+}
+SWC_TEST_END()
+
+SWC_TEST_BEGIN(InstCombine_WordComparisonMaskRequiresCanonicalLanes)
+{
+    constexpr MicroReg left   = MicroReg::virtualFloatReg(1);
+    constexpr MicroReg right  = MicroReg::virtualFloatReg(2);
+    constexpr MicroReg vector = MicroReg::virtualFloatReg(3);
+    constexpr MicroReg mask   = MicroReg::virtualIntReg(1);
+    constexpr MicroReg result = MicroReg::virtualIntReg(2);
+    for (uint32_t variant = 0; variant < 5; ++variant)
+    {
+        MicroBuilder builder(ctx);
+        builder.emitLoadRegReg(left, MicroReg::floatReg(0), MicroOpBits::B128);
+        builder.emitLoadRegReg(right, MicroReg::floatReg(1), MicroOpBits::B128);
+        builder.emitOpBinaryRegRegReg(vector, left, right, variant == 1 ? MicroOp::VecXor : MicroOp::VecCmpEq16, MicroOpBits::B128);
+        builder.emitVecUnaryRegReg(mask, vector, MicroOp::VecMoveMaskB, MicroOpBits::B128);
+        builder.emitOpBinaryRegImm(mask, ApInt(0xAAAA, 32), MicroOp::And, MicroOpBits::B32);
+        builder.emitCmpRegImm(mask, ApInt(0xAAAA, 32), MicroOpBits::B32);
+        builder.emitSetCondReg(result, variant == 2 ? MicroCond::Above : MicroCond::Equal);
+        if (variant == 3)
+            builder.emitLoadRegReg(MicroReg::intReg(3), mask, MicroOpBits::B32);
+        if (variant == 4)
+            builder.emitSetCondReg(MicroReg::intReg(3), MicroCond::Above);
+        builder.emitLoadRegReg(MicroReg::intReg(0), result, MicroOpBits::B8);
+        builder.emitRet();
+        SWC_RESULT(runInstCombinePass(builder));
+        uint32_t masks = 0;
+        for (const MicroInstr& inst : builder.instructions().view())
+        {
+            const auto* ops = inst.ops(builder.operands());
+            if (inst.op == MicroInstrOpcode::OpBinaryRegImm && ops[2].microOp == MicroOp::And)
+                ++masks;
+        }
+        if (masks != (variant == 0 ? 0u : 1u))
+            return Result::Error;
     }
     return Result::Continue;
 }

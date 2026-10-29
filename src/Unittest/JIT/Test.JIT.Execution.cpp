@@ -1019,6 +1019,34 @@ namespace
             builder.emitOpBinaryRegImm(rdx, ApInt(EXPECTED[word], 32), MicroOp::Xor, MicroOpBits::B32);
             builder.emitOpBinaryRegReg(callConv.intReturn, rdx, MicroOp::Or, MicroOpBits::B64);
         }
+        // Keep the first eight bytes of one vector and insert exactly eight
+        // bytes from a distinct indexed address into its upper half.
+        builder.emitLoadVecRegMem(xmm3, r8, 0, MicroOpBits::B128);
+        builder.emitClearReg(rdx, MicroOpBits::B64);
+        builder.emitVecInsertHigh64Amc(xmm3, r8, rdx, 4, 16, MicroOpBits::B64);
+        builder.emitStoreVecMemReg(r8, 176, xmm3, MicroOpBits::B128);
+        static constexpr uint32_t INSERT_EXPECTED[4] = {0x03020100, 0x07060504, 0xFCFDFEFF, 0xF8F9FAFB};
+        for (uint32_t word = 0; word < 4; ++word)
+        {
+            builder.emitLoadRegMem(rdx, r8, 176 + word * 4, MicroOpBits::B32);
+            builder.emitOpBinaryRegImm(rdx, ApInt(INSERT_EXPECTED[word], 32), MicroOp::Xor, MicroOpBits::B32);
+            builder.emitOpBinaryRegReg(callConv.intReturn, rdx, MicroOp::Or, MicroOpBits::B64);
+        }
+        // The register form inserts all 64 bits into either lane, including
+        // nonzero high halves, while preserving the other lane.
+        builder.emitClearReg(xmm3, MicroOpBits::B128);
+        builder.emitLoadRegImm(rcx, ApInt(0xFEDCBA9876543210ULL, 64), MicroOpBits::B64);
+        builder.emitOpTernaryRegRegRegImm(xmm3, xmm3, rcx, 1, MicroOp::VecInsert64, MicroOpBits::B128);
+        builder.emitLoadRegImm(rcx, ApInt(0x0123456789ABCDEFULL, 64), MicroOpBits::B64);
+        builder.emitOpTernaryRegRegRegImm(xmm3, xmm3, rcx, 0, MicroOp::VecInsert64, MicroOpBits::B128);
+        builder.emitStoreVecMemReg(r8, 176, xmm3, MicroOpBits::B128);
+        static constexpr uint32_t QWORD_INSERT_EXPECTED[4] = {0x89ABCDEF, 0x01234567, 0x76543210, 0xFEDCBA98};
+        for (uint32_t word = 0; word < 4; ++word)
+        {
+            builder.emitLoadRegMem(rdx, r8, 176 + word * 4, MicroOpBits::B32);
+            builder.emitOpBinaryRegImm(rdx, ApInt(QWORD_INSERT_EXPECTED[word], 32), MicroOp::Xor, MicroOpBits::B32);
+            builder.emitOpBinaryRegReg(callConv.intReturn, rdx, MicroOp::Or, MicroOpBits::B64);
+        }
         builder.emitRet();
     }
 

@@ -16,7 +16,7 @@ conversion, image codecs, text/crypto routines, Pixel spans, and SDF samples.
 
 ### cpu.simd.012 — Packed code generation misses idiomatic hardware forms
 
-- Intent: complete dynamic lane insertion and extraction and the remaining 64-bit lane writes.
+- Intent: complete dynamic lane insertion and extraction and prove the remaining 64-bit lane constructions.
   Immediate lane shuffles, horizontal reductions and SAD already lower through dedicated
   operations. Under `backend.math.fma` (on in `release`), a post-RA peephole contracts eligible
   scalar and packed product accumulations when the product is otherwise dead in every lane;
@@ -27,13 +27,15 @@ conversion, image codecs, text/crypto routines, Pixel spans, and SDF samples.
   down by bytes (`psrldq`) and leaves through the same move, extended from its own width. A
   constant lane written into a vector local is one `vpinsrb`/`vpinsrw`/`vpinsrd` where it was a
   sixteen-byte spill, a narrow store and a wide reload stalled behind it.
-  `bin/unittests/native/simd/lanes.swg` covers signed and unsigned narrow reads and the three
-  insertion widths. What still goes through the frame: a 64-bit lane write, and every dynamic
-  index - `v[i]` spills the vector and reads `[rsp + i * 4]`, `v[i] = x` spills, stores the lane
-  and reloads sixteen bytes.
-- Next: give the 64-bit lane write its `vpinsrq` and lower a dynamic lane read through a byte
-  shuffle with a computed control where that beats the spill, preserving the explicit `mulAdd`
-  rounding contract.
+  `bin/unittests/native/simd/lanes.swg` covers signed and unsigned narrow reads and all four
+  insertion widths, including `vpinsrq` when a whole stored vector is updated. A trial that also
+  built vectors from two qword stores changed H.264 output; those stores can form slices and other
+  scalar aggregates, so that broader rewrite is not retained without a stronger proof. Every
+  dynamic index still goes through the frame: `v[i]` spills the vector and reads `[rsp + i * 4]`,
+  `v[i] = x` spills, stores the lane and reloads sixteen bytes.
+- Next: isolate the two-qword aggregate failure and prove its alias and lifetime conditions;
+  lower a dynamic lane read through a byte shuffle with a computed control where that beats the
+  spill, preserving the explicit `mulAdd` rounding contract.
 - Done when: encoder tests and `PrintMicro` show each idiom on a representative standard-module
   kernel and end-to-end benchmarks show no regression on the fallback target.
 - Related: cpu.simd.010.
@@ -63,17 +65,17 @@ conversion, image codecs, text/crypto routines, Pixel spans, and SDF samples.
   the supported target policy with scalar-equivalent results and profitable cost decisions.
 - Related: cpu.simd.006, cpu.simd.015.
 
-### cpu.simd.028 — PNG Sub stride 6 and remaining sample conversion need a current profile
+### cpu.simd.028 — Remaining PNG sample conversion needs a current profile
 
 - Evidence: packed bit expansion, encoder filter/scoring kernels, decoder Up/Average/Paeth
-  and Sub for 1/2/3/4/8-byte pixels exist (`defilterSubRow` in `decode/png/filter.swg`);
+  and Sub for 1/2/3/4/6/8-byte pixels exist (`defilterSubRow` in `decode/png/filter.swg`);
   `image.png.test.swg` compares Sub against scalar recurrence across strides 1 through 8.
-  Gray and palette conversion have thresholded packed-word paths. `convert16` still
-  converts native 16-bit samples and transparency keys individually, and Sub stride 6
-  keeps scalar recurrence. Earlier rejections of packed Sub and gray shuffles predate
-  cross-module SIMD inlining and do not settle the current cost.
-- Next: profile current decoding by filter and bit depth, then remeasure Sub stride 6 and
-  native 16-bit conversion against their scalar forms in the same process. Keep Inflate's
+  Gray and palette conversion have thresholded packed-word paths. Native 16-bit samples
+  without transparency keys are byte-swapped eight at a time, and grayscale keys
+  are compared eight at a time; RGB keys are compared two pixels at a time. Earlier rejections of other packed
+  Sub and gray shuffles predate cross-module SIMD inlining and do not settle the current cost.
+- Next: profile current decoding by filter and bit depth, then compare the packed 16-bit
+  sample and transparency-key paths against their scalar forms in the same process. Keep Inflate's
   share separate from image conversion so a microkernel gain has an end-to-end
   interpretation.
 - Done when: remaining paths have a measured decision, odd/Adam7 tails and malformed rows
@@ -197,11 +199,12 @@ conversion, image codecs, text/crypto routines, Pixel spans, and SDF samples.
 
 ### cpu.simd.025 — Half-size and gradient paths still have unoptimized scalar work
 
-- Evidence: the legacy RGB/BGR half-size path calls `visitPixels`; other formats already use
-  parallel row loops. The two-color legacy gradient computes one row and copies it, while the
-  four-corner and logical-pixel paths still process pixels individually. Fill already copies rows.
-- Next: measure row/chunk replacements for the remaining half-size and gradient work and a
-  packed source-over kernel beyond its row-wise scalar implementation.
+- Evidence: RGB/BGR and RGBA/BGRA half-size paths use packed parallel row loops; other formats
+  still compute each pixel through `readPixelValue` and `writePixelValue`. The two-color legacy
+  gradient computes one row and copies it, while the four-corner and logical-pixel paths still
+  process pixels individually. Fill already copies rows.
+- Next: compare packed byte-color half-size rows and the remaining gradient work against
+  their scalar paths, and a packed source-over kernel against its row-wise scalar implementation.
 - Done when: supported pixel formats, alpha preservation, odd widths, stride, overlap, and tails
   match existing behavior and each retained kernel beats callback dispatch.
 - Related: cpu.simd.004, cpu.simd.006, cpu.simd.010.
@@ -248,8 +251,19 @@ conversion, image codecs, text/crypto routines, Pixel spans, and SDF samples.
 
 - Evidence: default 8-bit gray expansion and CMYK conversion already use packed shuffles in
   `decode.image.swg`; the remaining paths still use sample extraction and per-pixel composition.
-- Next: vectorize non-default decode arrays, packed and 16-bit samples, color-key comparison,
-  mask scaling, and alpha composition; use gather for indexed spaces only when profitable.
+- Progress: 8-bit soft masks with identity decode copy their samples directly; inverted masks
+  subtract sixteen samples at a time and handle the tail scalarly. PDF tests compare all 256
+  coverage values against the original scalar conversion and cover SIMD block boundaries.
+  Single-component 8-bit color keys also compare sixteen samples at once, with bounds resolved
+  once per image; out-of-range and inverted intervals retain the scalar behavior. RGB and alpha
+  planes and stencil fills combine into four RGBA pixels per SIMD iteration, with bounded row reads
+  and scalar tails; same-size mask planes transfer their buffer instead of resampling every pixel.
+  One-bit mask and stencil decodes expand eight bits per SIMD iteration for either standard
+  decode direction, retaining row padding.
+  Different-size mask resampling advances exact quotient-and-remainder coordinates rather than
+  dividing for each pixel or row.
+- Next: vectorize non-default decode arrays, packed and 16-bit samples, other color-key comparisons,
+  mask scaling, and remaining alpha composition; use gather for indexed spaces only when profitable.
 - Done when: PDF image fixtures preserve pixels across remaining bit depths, masks, decode
   arrays, and indexed spaces, with separate conversion benchmarks.
 - Related: cpu.simd.004, cpu.simd.007, cpu.simd.011.
@@ -260,7 +274,9 @@ conversion, image codecs, text/crypto routines, Pixel spans, and SDF samples.
   strong horizontal chroma are packed in `h264/deblock.swg`. `filterChromaStrongVertical`
   still filters two-line scalar segments through `filterChroma`. A transposed-tile
   vertical strong-chroma kernel, built the way `filterLumaVertical` is, was slower than
-  the scalar segments on the Release microkernel.
+  the scalar segments on the Release microkernel. A later direct two-row SIMD prototype
+  avoided the tile but added unconditional stack traffic and saved-register work on weak
+  and zero-strength segments; isolating the helper still spilled values across its call.
 - Next: find a vertical strong-chroma layout cheaper than the rejected transpose, and
   confirm the retained packed deblocking kernels in a complete 1080p decode profile.
 - Done when: decoded frames remain byte-exact, a profitable strong vertical chroma kernel is
@@ -375,6 +391,10 @@ conversion, image codecs, text/crypto routines, Pixel spans, and SDF samples.
 
 ### cpu.simd.030 — WebP reconstruction and transforms remain mostly scalar
 
+- Progress: the VP8 DC-only 4x4 inverse transform applies the residual to four pixels per
+  row with packed saturation when a wide read stays inside the row, and uses a scalar edge
+  path otherwise. Tests cover clipping, every valid block offset, untouched neighbours, and
+  lossy reference images. Its effect on decode performance remains unmeasured.
 - Next: vectorize VP8 inverse transforms, predictors, deblocking, YUV conversion, alpha filters,
   and lossless subtract-green/cross-color/predictor transforms.
 - Done when: lossy and lossless fixture pixels remain identical where specified, predictor and

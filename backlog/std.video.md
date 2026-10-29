@@ -44,6 +44,10 @@ the sampling layouts used by ffmpeg's 4:2:0, 4:2:2, and 4:4:4 Motion JPEG output
   FFmpeg with its hand-written assembly disabled; FFmpeg with assembly was about twice as fast.
   Measurements on the shared machine varied widely, and the decoder has since changed, so earlier
   profiles and instruction counts cannot rank current work.
+- Progress: CAVLC coefficient-token decoding uses a generated first-byte lookup for short codes
+  and keeps the ordered search for ambiguous prefixes. The lookup covers 248 to 252 of the 256
+  prefixes per table; exhaustive 16-bit prefix comparison and truncated-input tests preserve the
+  previous result and bit-reader state. Its effect on complete decoding still needs measurement.
 - Next: collect a current per-function profile, choose one remaining serial kernel, and compare the
   change against the same FFmpeg build and fixture. Keep decoded planes byte-exact across the
   existing Baseline, Main, High, and 4:4:4 corpus.
@@ -61,13 +65,13 @@ the sampling layouts used by ffmpeg's 4:2:0, 4:2:2, and 4:4:4 Motion JPEG output
 
 - Evidence: the last one-lane comparison on a 3840x2076 Main10 passage cost about three times
   FFmpeg's processor time per picture; the decoder and compiler have changed since, so it is
-  not a current ratio. `filterLumaEdge` sends only horizontal luma to packed
-  `filterLumaQuad`; vertical luma and `filterChromaEdge` remain scalar. Main/Main10 conformance
-  and container fixtures remain the correctness boundary; range-extension coverage belongs to
+  not a current ratio. `filterLumaEdge` uses packed four-line luma filtering in both
+  orientations, transposing vertical segments, while chroma packs two-line segments in both
+  orientations. Main/Main10 conformance and container fixtures remain the correctness boundary; range-extension coverage belongs to
   std.video.009, and wider SIMD capability to cpu.simd.002.
 - Next: rebaseline a redistributable Main10 clip with one decode lane against identical FFmpeg
   input, profile the remaining stages, and pick one lead: threshold/context derivation and
-  frame traffic, vertical/chroma filtering, band-local edge processing, or the separate
+  frame traffic, the vertical luma transpose, band-local edge processing, or the separate
   prediction-buffer combine for uni-predicted blocks.
 - Measurement: warm and decode forward without seeking back inside a measured window; prove
   which threads carry decoding; compare small stage changes by alternating implementations in

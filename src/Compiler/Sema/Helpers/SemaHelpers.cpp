@@ -792,11 +792,9 @@ TypeRef SemaHelpers::nullCoalescingResultType(Sema& sema, const TypeRef leftType
     return resultTypeRef == concreteRightTypeRef ? rightTypeRef : resultTypeRef;
 }
 
+// The caller enters only with a valid type and active flow-narrowing facts.
 TypeRef SemaHelpers::nullNarrowedTypeRef(Sema& sema, AstNodeRef nodeRef, TypeRef typeRef)
 {
-    if (!typeRef.isValid() || !sema.frame().hasNarrowFacts())
-        return TypeRef::invalid();
-
     // Preserve alias identity by clearing Nullable on the original type; unwrap
     // only to find a hidden flag. Most types are not nullable, so reject them
     // before reading the current node.

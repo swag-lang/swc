@@ -66,12 +66,32 @@ func vp8InverseDct4(decoder: *Vp8Decoder, y, x, coeffBase: s32)
     }
 }
 
-func vp8InverseDct4Dc(decoder: *Vp8Decoder, y, x, coeffBase: s32)
+#[Swag.NoInline]
+private func vp8InverseDct4DcEdge(decoder: *Vp8Decoder, y, x, dc: s32)
 {
-    let dc = (cast(s32, decoder.coeff[coeffBase]) + 4) >> 3
     for j in 4 do
         for i in 4 do
             decoder.ybr[y + j][x + i] = vp8Clip8(decoder.ybr[y + j][x + i] + dc)
+}
+
+func vp8InverseDct4Dc(decoder: *Vp8Decoder, y, x, coeffBase: s32)
+{
+    let dc = (cast(s32, decoder.coeff[coeffBase]) + 4) >> 3
+    if x <= 16
+    {
+        // The wide read stays in this 32-byte row; only the four block pixels are stored.
+        let delta = Math.Simd.splat(cast(s16, dc))
+        let zero  = Math.Simd.splat(0's16)
+        for j in 4
+        {
+            let row = &decoder.ybr[y + j][x]
+            let pixels = cast #bit(Math.Simd.S16x8, Math.Simd.widenLow(Math.Simd.load(row)))
+            Math.Simd.storeLow4(row, Math.Simd.packUnsigned(pixels + delta, zero))
+        }
+        return
+    }
+
+    vp8InverseDct4DcEdge(decoder, y, x, dc)
 }
 
 func vp8InverseDct8(decoder: *Vp8Decoder, y, x, coeffBase: s32)

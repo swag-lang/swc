@@ -703,7 +703,7 @@ SWC_TEST_BEGIN(PostRAPeephole_KeepsAddressedOutgoingSlotWithSpillDisplacement)
     parameter.setTypeRef(ctx.typeMgr().typeBlockPtrU8());
     callee.addParameter(&parameter);
     callee.setReturnTypeRef(ctx.typeMgr().typeVoid());
-    for (uint32_t variant = 0; variant < 3; ++variant)
+    for (uint32_t variant = 0; variant < 5; ++variant)
     {
         MicroBuilder builder(ctx);
         builder.emitLoadMemReg(stack, 0x80, spill, MicroOpBits::B64);
@@ -4635,6 +4635,47 @@ SWC_TEST_BEGIN(PostRAPeephole_IndexedFloatCompareUsesMemoryOperand)
 }
 SWC_TEST_END()
 
+// An indexed qword inserted as the high half reads exactly eight bytes and
+// preserves the first vector's low half. A live temporary or a different
+// output register must keep the original sequence.
+SWC_TEST_BEGIN(PostRAPeephole_IndexedQwordUnpackUsesMemoryInsert)
+{
+    constexpr MicroReg base   = MicroReg::intReg(7);
+    constexpr MicroReg index  = MicroReg::intReg(1);
+    constexpr MicroReg source = MicroReg::floatReg(3);
+    constexpr MicroReg loaded = MicroReg::floatReg(4);
+    constexpr MicroReg other  = MicroReg::floatReg(5);
+    for (const uint32_t test : {0u, 1u, 2u, 3u})
+    {
+        MicroBuilder builder(ctx);
+        const MicroOpBits bits = test == 3 ? MicroOpBits::B32 : MicroOpBits::B64;
+        builder.emitLoadAmcRegMem(loaded, bits, base, index, 8, 16, MicroOpBits::B64);
+        builder.emitOpBinaryRegRegReg(test == 2 ? other : source, source, loaded, MicroOp::VecUnpackLo64, MicroOpBits::B128);
+        builder.emitStoreVecMemReg(base, 32, test == 2 ? other : source, MicroOpBits::B128);
+        if (test == 1)
+            builder.emitStoreVecMemReg(base, 48, loaded, MicroOpBits::B128);
+        builder.emitRet();
+        X64Encoder encoder(ctx);
+        SWC_RESULT(runPostRaPeepholePass(builder, &encoder));
+        if (Backend::Unittest::countOpcode(builder, MicroInstrOpcode::VecInsertHigh64Amc) != (test == 0 ? 1 : 0))
+            return Result::Error;
+        if (test == 0)
+        {
+            for (const MicroInstr& inst : builder.instructions().view())
+            {
+                if (inst.op != MicroInstrOpcode::VecInsertHigh64Amc)
+                    continue;
+                const auto* ops = inst.ops(builder.operands());
+                if (!ops || ops[0].reg != source || ops[1].reg != base || ops[2].reg != index ||
+                    ops[3].opBits != MicroOpBits::B64 || ops[5].valueU64 != 8 || ops[6].valueU64 != 16)
+                    return Result::Error;
+            }
+        }
+    }
+    return Result::Continue;
+}
+SWC_TEST_END()
+
 // A scalar float copied only as the second operand of a three-operand
 // operation: the operation reads the source.
 // A two-operand float operation whose result is copied away is widened to the
@@ -6995,6 +7036,143 @@ SWC_TEST_BEGIN(PostRAPeephole_PackedContractionRespectsPolicyAndDependencies)
 }
 SWC_TEST_END()
 
+SWC_TEST_BEGIN(PostRAPeephole_CanonicalMaskTestPreservesObservations)
+{
+    const MicroReg     base   = CallConv::get(CallConvKind::C).intArgRegs[0];
+    constexpr MicroReg mask   = MicroReg::intReg(10);
+    constexpr MicroReg result = MicroReg::intReg(3);
+    constexpr MicroReg extra  = MicroReg::intReg(8);
+    constexpr MicroReg left   = MicroReg::floatReg(0);
+    constexpr MicroReg right  = MicroReg::floatReg(1);
+    constexpr MicroReg vector = MicroReg::floatReg(2);
+    for (uint32_t variant = 0; variant < 6; ++variant)
+    {
+        for (const uint64_t input : {0ull, 0x0001000200030004ull})
+        {
+            std::array<uint64_t, 6> expected{};
+            for (const bool optimize : {false, true})
+            {
+                std::array<uint64_t, 6> values = {input, input, 0, 0, 0, 0};
+                MicroBuilder builder(ctx);
+                builder.emitLoadVecRegMem(left, base, 0, MicroOpBits::B128);
+                builder.emitLoadVecRegMem(right, base, 16, MicroOpBits::B128);
+                const MicroOp compare = variant == 1 || variant == 5 ? MicroOp::VecXor : variant == 4 ? MicroOp::VecCmpEq8 : MicroOp::VecCmpEq16;
+                builder.emitOpBinaryRegRegReg(vector, left, right, compare, MicroOpBits::B128);
+                builder.emitVecUnaryRegReg(mask, vector, MicroOp::VecMoveMaskB, MicroOpBits::B128);
+                builder.emitSetCondReg(result, MicroCond::NotEqual);
+                const auto setRef = builder.instructions().lastInstructionRef();
+                MicroInstrOperand test[3] = {};
+                test[0].reg = mask;
+                test[1].opBits = MicroOpBits::B32;
+                test[2].setImmediateValue(ApInt(variant >= 4 ? 0 : 0xAAAA, 32));
+                builder.instructions().insertDerivedBefore(builder.operands(), setRef, variant >= 4 ? MicroInstrOpcode::CmpRegImm : MicroInstrOpcode::TestRegImm, test);
+                if (variant == 2)
+                    builder.emitLoadMemReg(base, 40, mask, MicroOpBits::B32);
+                if (variant == 3)
+                {
+                    builder.emitSetCondReg(extra, MicroCond::Parity);
+                    builder.emitLoadMemReg(base, 40, extra, MicroOpBits::B8);
+                }
+                builder.emitLoadMemReg(base, 32, result, MicroOpBits::B8);
+                builder.emitRet();
+                SWC_RESULT(executeForwardingCase(ctx, builder, values.data(), optimize));
+                if (!optimize)
+                    expected = values;
+                else if (values != expected || Backend::Unittest::countOpcode(builder, MicroInstrOpcode::VecTestReg) != (variant == 0 || variant == 4 ? 1u : 0u))
+                    return Result::Error;
+            }
+        }
+    }
+    return Result::Continue;
+}
+SWC_TEST_END()
+
+SWC_TEST_BEGIN(PostRAPeephole_RepeatedVectorClearAfterStore)
+{
+    const MicroReg     base   = CallConv::get(CallConvKind::C).intArgRegs[0];
+    constexpr MicroReg vector = MicroReg::floatReg(0);
+    constexpr MicroReg other  = MicroReg::floatReg(1);
+    for (uint32_t variant = 0; variant < 3; ++variant)
+    {
+        std::array<uint64_t, 6> expected{};
+        for (const bool optimize : {false, true})
+        {
+            std::array<uint64_t, 6> values = {1, 2, 3, 4, 5, 6};
+            MicroBuilder builder(ctx);
+            builder.emitLoadVecRegMem(other, base, 0, MicroOpBits::B128);
+            builder.emitLoadVecRegMem(vector, base, 0, MicroOpBits::B128);
+            builder.emitClearReg(variant == 2 ? other : vector, MicroOpBits::B128);
+            builder.emitLoadMemReg(base, 16, variant == 1 ? other : vector, MicroOpBits::B128);
+            builder.emitClearReg(vector, MicroOpBits::B128);
+            builder.emitLoadMemReg(base, 32, vector, MicroOpBits::B128);
+            builder.emitRet();
+            SWC_RESULT(executeForwardingCase(ctx, builder, values.data(), optimize));
+            if (!optimize)
+                expected = values;
+            else if (values != expected || (variant == 0 && Backend::Unittest::countOpcode(builder, MicroInstrOpcode::ClearReg) != 1))
+                return Result::Error;
+        }
+    }
+    return Result::Continue;
+}
+SWC_TEST_END()
+
+SWC_TEST_BEGIN(PostRAPeephole_AllEqualVectorMaskPreservesObservations)
+{
+    const MicroReg     base   = CallConv::get(CallConvKind::C).intArgRegs[0];
+    constexpr MicroReg mask   = MicroReg::intReg(10);
+    constexpr MicroReg result = MicroReg::intReg(3);
+    constexpr MicroReg extra  = MicroReg::intReg(8);
+    constexpr MicroReg left   = MicroReg::floatReg(0);
+    constexpr MicroReg right  = MicroReg::floatReg(1);
+    constexpr MicroReg vector = MicroReg::floatReg(2);
+    for (uint32_t variant = 0; variant < 8; ++variant)
+    {
+        for (const bool equal : {false, true})
+        {
+            std::array<uint64_t, 8> expected{};
+            for (const bool optimize : {false, true})
+            {
+                std::array<uint64_t, 8> values = {0x1122334455667788ull, 0x99aabbccddeeff00ull,
+                                                  equal ? 0x1122334455667788ull : 0x1122334455667789ull,
+                                                  0x99aabbccddeeff00ull, 0, 0, 0, 0};
+                MicroBuilder builder(ctx);
+                builder.emitLoadVecRegMem(left, base, 0, MicroOpBits::B128);
+                builder.emitLoadVecRegMem(right, base, 16, MicroOpBits::B128);
+                const MicroOp ops[] = {MicroOp::VecCmpEq8, MicroOp::VecCmpEq16, MicroOp::VecCmpEq32, MicroOp::VecCmpEq64};
+                const MicroOp compare = variant == 7 ? MicroOp::VecCmpGtS16 : ops[variant < 4 ? variant : 1];
+                builder.emitOpBinaryRegRegReg(vector, left, right, compare, MicroOpBits::B128);
+                builder.emitVecUnaryRegReg(mask, vector, MicroOp::VecMoveMaskB, MicroOpBits::B128);
+                builder.emitSetCondReg(result, MicroCond::NotEqual);
+                const auto setRef = builder.instructions().lastInstructionRef();
+                MicroInstrOperand test[3] = {};
+                test[0].reg = mask;
+                test[1].opBits = MicroOpBits::B32;
+                test[2].setImmediateValue(ApInt(0xFFFF, 32));
+                builder.instructions().insertDerivedBefore(builder.operands(), setRef, MicroInstrOpcode::CmpRegImm, test);
+                if (variant == 4)
+                    builder.emitLoadMemReg(base, 48, vector, MicroOpBits::B128);
+                if (variant == 5)
+                    builder.emitLoadMemReg(base, 40, mask, MicroOpBits::B32);
+                if (variant == 6)
+                {
+                    builder.emitSetCondReg(extra, MicroCond::Parity);
+                    builder.emitLoadMemReg(base, 40, extra, MicroOpBits::B8);
+                }
+                builder.emitLoadMemReg(base, 32, result, MicroOpBits::B8);
+                builder.emitRet();
+                SWC_RESULT(executeForwardingCase(ctx, builder, values.data(), optimize));
+                if (!optimize)
+                    expected = values;
+                else if (values != expected || Backend::Unittest::countOpcode(builder, MicroInstrOpcode::VecTestReg) != (variant < 4 ? 1u : 0u))
+                    return Result::Error;
+            }
+        }
+    }
+    return Result::Continue;
+}
+SWC_TEST_END()
+
 SWC_TEST_BEGIN(PostRAPeephole_ScalarClearTracksPackedLaneReads)
 {
     for (uint32_t variant = 0; variant < 6; ++variant)
@@ -7052,15 +7230,22 @@ SWC_TEST_BEGIN(PostRAPeephole_ShufflePreservesDemandedLanes)
             MicroBuilder builder(ctx);
             builder.emitLoadVecRegMem(source, base, 0, MicroOpBits::B128);
             builder.emitVecShuffleRegRegImm(source, source, variant == 2 ? 0x4E : 0x44, MicroOpBits::B128);
-            if (variant != 1)
+            if (variant >= 3)
+            {
+                builder.emitOpBinaryRegRegReg(other, source, source, MicroOp::VecUnpackLo64, MicroOpBits::B128);
+                builder.emitOpBinaryRegRegReg(source, variant == 3 ? other : source, other, MicroOp::VecXor, MicroOpBits::B128);
+                builder.emitStoreVecMemReg(base, 16, variant == 3 ? other : source, MicroOpBits::B128);
+            }
+            else if (variant != 1)
                 builder.emitOpBinaryRegRegReg(source, source, source, MicroOp::VecUnpackLo64, MicroOpBits::B128);
-            builder.emitStoreVecMemReg(base, 16, source, MicroOpBits::B128);
+            if (variant < 3)
+                builder.emitStoreVecMemReg(base, 16, source, MicroOpBits::B128);
             builder.emitClearReg(other, MicroOpBits::B128);
             builder.emitRet();
             SWC_RESULT(executeForwardingCase(ctx, builder, values.data(), optimize));
             if (!optimize)
                 expected = values;
-            else if (values != expected || Backend::Unittest::countOpcode(builder, MicroInstrOpcode::VecShuffleRegRegImm) != (variant == 0 ? 0u : 1u))
+            else if (values != expected || Backend::Unittest::countOpcode(builder, MicroInstrOpcode::VecShuffleRegRegImm) != (variant == 0 || variant == 3 ? 0u : 1u))
                 return Result::Error;
         }
     }
@@ -7072,7 +7257,7 @@ SWC_TEST_BEGIN(PostRAPeephole_BooleanRetestPreservesResultsAndFlags)
 {
     const MicroReg     base  = CallConv::get(CallConvKind::C).intArgRegs[0];
     constexpr MicroReg value = MicroReg::intReg(0);
-    constexpr MicroReg flag  = MicroReg::intReg(2);
+    constexpr MicroReg flag  = MicroReg::intReg(3);
     for (const bool inverted : {false, true})
     {
         for (const bool flagsLive : {false, true})

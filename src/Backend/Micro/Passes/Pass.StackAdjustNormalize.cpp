@@ -133,6 +133,7 @@ namespace
             case MicroInstrOpcode::LoadAmcRegMem:
             case MicroInstrOpcode::LoadAddrAmcRegMem:
             case MicroInstrOpcode::VecUnaryAmcRegMem:
+            case MicroInstrOpcode::VecInsertHigh64Amc:
                 amcBaseIndex = 1;
                 break;
 

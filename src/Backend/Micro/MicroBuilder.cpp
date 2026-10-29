@@ -602,6 +602,19 @@ void MicroBuilder::emitVecUnaryRegMem(MicroReg regDst, MicroReg memReg, uint64_t
     ops[4].microOp          = op;
 }
 
+void MicroBuilder::emitVecInsertHigh64Amc(MicroReg regDst, MicroReg regBase, MicroReg regMul, uint64_t mulValue, uint64_t addValue, MicroOpBits opBitsBaseMul)
+{
+    const auto&        inst = addInstruction(MicroInstrOpcode::VecInsertHigh64Amc, 7);
+    MicroInstrOperand* ops  = inst.ops(operands_);
+    ops[0].reg              = regDst;
+    ops[1].reg              = regBase;
+    ops[2].reg              = regMul;
+    ops[3].opBits           = MicroOpBits::B64;
+    ops[4].opBits           = opBitsBaseMul;
+    ops[5].valueU64         = mulValue;
+    ops[6].valueU64         = addValue;
+}
+
 void MicroBuilder::emitVecUnaryAmcRegMem(MicroReg regDst, MicroReg regBase, MicroReg regMul, uint64_t mulValue, uint64_t addValue, MicroOpBits opBitsBaseMul, MicroOp op, MicroOpBits opBits)
 {
     const auto&        inst = addInstruction(MicroInstrOpcode::VecUnaryAmcRegMem, 8);
@@ -853,6 +866,14 @@ void MicroBuilder::emitLoadMemImm(MicroReg memReg, uint64_t memOffset, const ApI
     ops[1].opBits           = opBits;
     ops[2].valueU64         = memOffset;
     ops[3].setImmediateValue(value);
+}
+
+void MicroBuilder::emitVecTestReg(MicroReg reg)
+{
+    const auto&        inst = addInstruction(MicroInstrOpcode::VecTestReg, 2);
+    MicroInstrOperand* ops  = inst.ops(operands_);
+    ops[0].reg              = reg;
+    ops[1].opBits = MicroOpBits::B128;
 }
 
 void MicroBuilder::emitCmpRegReg(MicroReg reg0, MicroReg reg1, MicroOpBits opBits)

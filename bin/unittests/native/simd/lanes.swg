@@ -101,6 +101,31 @@ func writeDwordLane(v: #simd [4] u32, value: u32)->#simd [4] u32
     return result
 }
 
+#[Swag.Optimize(true)]
+func writeQwordLanes(v: #simd [2] u64, low, high: u64)->#simd [2] u64
+{
+    var result = v
+    result[0] = low
+    result[1] = high
+    return result
+}
+
+#[Swag.Optimize(true)]
+func writeLowQwordLane(v: #simd [2] u64, low: u64)->#simd [2] u64
+{
+    var result = v
+    result[0] = low
+    return result
+}
+
+#[Swag.Optimize(true)]
+func writeHighQwordLane(v: #simd [2] u64, high: u64)->#simd [2] u64
+{
+    var result = v
+    result[1] = high
+    return result
+}
+
 // A dynamic index has no insertion form: the lane goes through the frame.
 #[Swag.Optimize(true)]
 func writeDynamicLane(v: #simd [4] u32, lane: u64, value: u32)->#simd [4] u32
@@ -143,6 +168,12 @@ func writeDynamicLane(v: #simd [4] u32, lane: u64, value: u32)->#simd [4] u32
 
     let words = cast([8] u16, writeWordLane(cast(#simd [8] u16, [10'u16, 11, 12, 13, 14, 15, 16, 17]), 0xBEEF))
     Swag.assert(words == [10, 11, 12, 13, 14, 15, 0xBEEF, 17])
+
+    let pairs = cast(#simd [2] u64, [0x0123456789ABCDEF'u64, 0xFEDCBA9876543210])
+    Swag.assert(cast([2] u64, writeLowQwordLane(pairs, 0x80000000FFFFFFFF)) == [0x80000000FFFFFFFF, 0xFEDCBA9876543210])
+    Swag.assert(cast([2] u64, writeHighQwordLane(pairs, 0x80000000FFFFFFFF)) == [0x0123456789ABCDEF, 0x80000000FFFFFFFF])
+    Swag.assert(cast([2] u64, writeQwordLanes(pairs, 0xFFFFFFFF00000001, 0x1234567887654321)) == [0xFFFFFFFF00000001, 0x1234567887654321])
+    Swag.assert(cast([2] u64, pairs) == [0x0123456789ABCDEF, 0xFEDCBA9876543210])
 
     let source = cast(#simd [4] u32, [1'u32, 2, 3, 4])
     Swag.assert(cast([4] u32, writeDwordLane(source, 0xDEAD_BEEF)) == [1, 2, 0xDEAD_BEEF, 4])

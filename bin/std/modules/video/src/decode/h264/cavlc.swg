@@ -15,9 +15,8 @@ using Core, Core.Errors
 //
 // Returns the matched entry index, or the entry count when nothing matches, which a valid
 // stream never produces.
-private func matchVlc(bits: *BitReader, lengths, values: const [..] u8)->u64
+private func matchVlcFromPeek(bits: *BitReader, peek: u32, lengths, values: const [..] u8)->u64
 {
-    let peek  = bits.peek16()
     let count = lengths.count
     for index in count
     {
@@ -32,6 +31,56 @@ private func matchVlc(bits: *BitReader, lengths, values: const [..] u8)->u64
     }
 
     return count
+}
+
+#[Swag.Inline]
+private func matchVlc(bits: *BitReader, lengths, values: const [..] u8)->u64 => matchVlcFromPeek(bits, bits.peek16(), lengths, values)
+
+// Short coefficient tokens can be resolved from the first byte. A prefix that might
+// match an earlier long token remains empty and uses the original ordered search.
+private const CoeffTokenPrefixes: [1024] u16 = #run buildCoeffTokenPrefixes()
+
+private func buildCoeffTokenPrefixes()->[1024] u16
+{
+    var result: #returntype
+    for table in 4'u64
+    {
+        for prefix in 256'u64
+        {
+            for index in 68'u64
+            {
+                let offset = table * 68 + index
+                let length = cast(u32, CoeffTokenLen[offset])
+                let value  = cast(u32, CoeffTokenBits[offset])
+                if not length do
+                    continue
+                if length > 8
+                {
+                    if value >> (length - 8) == prefix do
+                        break
+                }
+                elif prefix >> (8 - length) == value
+                {
+                    result[table * 256 + prefix] = cast(u16, ((length << 8) | cast(u32, (index + 1))))
+                    break
+                }
+            }
+        }
+    }
+    return result
+}
+
+func matchCoeffToken(bits: *BitReader, table: u64)->u64
+{
+    let peek   = bits.peek16()
+    let prefix = CoeffTokenPrefixes[table * 256 + (peek >> 8)]
+    if prefix
+    {
+        bits.skip(cast(u32, (prefix >> 8)))
+        return cast(u64, ((prefix & 255) - 1))
+    }
+
+    return matchVlcFromPeek(bits, peek, CoeffTokenLen[table * 68 until table * 68 + 68], CoeffTokenBits[table * 68 until table * 68 + 68])
 }
 
 // Decodes one CAVLC residual block into `coeffs`, filled in scan order.
@@ -63,7 +112,7 @@ func residualCavlc(bits: *BitReader, nC: s32, maxCoeffs: u32, coeffs: [*] s16)->
             table = 1
         elif nC < 8 do
             table = 2
-        let index = matchVlc(bits, CoeffTokenLen[table * 68 until table * 68 + 68], CoeffTokenBits[table * 68 until table * 68 + 68])
+        let index = matchCoeffToken(bits, table)
         if index == 68 do
             fail InvalidFormatError{"H.264 coefficient token does not decode"}
         totalCoeff   = cast(u32, (index / 4))

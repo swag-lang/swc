@@ -3,6 +3,41 @@
 
 using Core
 
+// Packed averaging rounds each byte upward and does not touch the rest of a row.
+// Unaligned rows, odd/even sums and both aliasing cases share the scalar reference.
+#test
+{
+    const Stride = 19'u64
+    const Height = 5's32
+    var a, b, out: [Stride * 5 + 1] u8
+    for index in a.count
+    {
+        a[index] = cast(u8, ((index * 37 + 251) & 0xFF))
+        b[index] = cast(u8, ((index * 71 + 3) & 0xFF))
+    }
+
+    for width in [3's32, 4, 8, 16]
+    {
+        for caseIndex in 3
+        {
+            var left  = a
+            var right = b
+            Memory.set(out.buffer, 0xA5, out.count)
+            let destination = caseIndex == 0 ? out.buffer : caseIndex == 1 ? left.buffer : right.buffer
+            H264.averagePlanes(destination + 1, Stride, left.buffer + 1, Stride, right.buffer + 1, Stride, width, Height)
+            for row in cast(u64, Height)
+            {
+                for column in Stride
+                {
+                    let index = 1 + row * Stride + column
+                    let expected = column < cast(u64, width) ? cast(u8, ((cast(u32, a[index]) + cast(u32, b[index]) + 1) >> 1)) : caseIndex == 0 ? 0xA5'u8 : caseIndex == 1 ? a[index] : b[index]
+                    Swag.assert(destination[index] == expected)
+                }
+            }
+        }
+    }
+}
+
 // Luma motion compensation against a direct reading of section 8.4.2.2.1: every quarter-sample
 // phase, every partition shape, over samples that push the six-tap filter to both clamps, at
 // positions read in place and at positions that go through the clamped window copy.
@@ -188,6 +223,45 @@ impl ChromaReference
                                         (8 - fracX) * fracY * reference.sample(px, py + 1) + fracX * fracY * reference.sample(px + 1, py + 1)
                             Swag.assert(got == cast(u8, ((value + 32) >> 6)))
                         }
+                    }
+                }
+            }
+        }
+    }
+}
+
+// Full-width interpolation can reuse its destination for the first half. Check every
+// phase against the scalar predictor with unaligned rows and untouched row padding.
+#test
+{
+    var frame: H264.Frame
+    frame.prepare(4, 4, 1)
+    var seed = 0x79B315D1'u32
+    for index in frame.luma.count
+    {
+        seed = seed * #wrap 1664525 + #wrap 1013904223
+        frame.luma[index] = cast(u8, (seed >> 24))
+    }
+
+    var reference = InterReference{frame: &frame}
+    var predicted: [21 * 16 + 1] u8
+    for height in [4's32, 8, 16]
+    {
+        for origin in [0's32, -30]
+        {
+            for phase in 16's32
+            {
+                let fracX = phase & 3
+                let fracY = phase >> 2
+                Memory.set(predicted.buffer, 0x5A, predicted.count)
+                H264.mcLuma(predicted.buffer + 1, 21, &frame, 0, origin, origin, fracX, fracY, 16, height)
+                for row in height
+                {
+                    for column in 21's32
+                    {
+                        let got = predicted[cast(u64, (1 + row * 21 + column))]
+                        let expected = column < 16 ? reference.predict(origin + column, origin + row, fracX, fracY) : 0x5A'u8
+                        Swag.assert(got == expected)
                     }
                 }
             }

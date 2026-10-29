@@ -144,6 +144,8 @@ namespace
         r.add(MicroInstrOpcode::CmpRegReg, tryReuseSubtractionFlags);
         r.add(MicroInstrOpcode::CmpRegReg, tryReuseSaturatingAddFlags);
         r.add(MicroInstrOpcode::CmpRegImm, tryDropDeadCompare);
+        r.add(MicroInstrOpcode::CmpRegImm, tryFoldVectorEqualityMask);
+        r.add(MicroInstrOpcode::CmpRegImm, tryFoldWordCompareMask);
         r.add(MicroInstrOpcode::CmpRegReg, tryFoldConstCompare);
         r.add(MicroInstrOpcode::CmpAmcReg, tryFoldConstAmcCompare);
         r.add(MicroInstrOpcode::CmpAmcReg, tryBypassByteCopyInIndexedCompare);

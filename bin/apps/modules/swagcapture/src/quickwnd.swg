@@ -1,11 +1,14 @@
 // A preset is a small picture of the shape it draws, in its own colours, painted by the painter
 // of the canvas: a cell of the raised ground, the preset in force ringed in Arc.
-const QuickCellWidth  = 44.0     // Width of the cell of a preset.
-const QuickCellHeight = 36.0     // Height of the cell of a preset.
-const QuickCellCorner = 7.0      // Corner of the cell.
-const QuickRingGap    = 2.0      // Air between the cell and the ring of the preset in force.
-const QuickRingWidth  = 2.0      // Weight of that ring.
-const QuickCellMargin = 6.0      // Least air between a sample and the edge of its cell.
+//
+// Five presets and the chip after them fill the width of the inspector, so the cell keeps the
+// proportions of the pictures' 44 by 36 at a smaller size.
+const QuickCellWidth  = 38.0     // Width of the cell of a preset.
+const QuickCellHeight = 31.0     // Height of the cell of a preset.
+const QuickCellCorner = 6.0      // Corner of the cell.
+const QuickRingGap    = 1.5      // Air between the cell and the ring of the preset in force.
+const QuickRingWidth  = 1.5      // Weight of that ring.
+const QuickCellMargin = 5.0      // Least air between a sample and the edge of its cell.
 
 // A chip holds its cell and the room of the ring around it, so two cells stand twice that room
 // apart, and the ring is never cut by the chip.
@@ -15,12 +18,12 @@ const QuickChipHeight = QuickCellHeight + 2 * QuickChipInset
 
 // The size the sample of a preset is painted at, as a frame its shape is laid out in, before the
 // room its stroke and its ends take is kept around it.
-const QuickSampleWidth  = 28.0
-const QuickSampleHeight = 18.0
-const QuickStrokeZoom   = 0.35'f32     // The scale a line or an arrow is painted at in its cell.
-const QuickTextHeight   = 16.0'f32     // The size the "Aa" of a text is painted at in its cell.
-const QuickMaskWidth    = 24.0         // Width of the pattern of a mask preset.
-const QuickMaskHeight   = 16.0         // Height of the pattern of a mask preset.
+const QuickSampleWidth  = 24.0
+const QuickSampleHeight = 15.0
+const QuickStrokeZoom   = 0.28'f32     // The scale a line or an arrow is painted at in its cell.
+const QuickTextHeight   = 14.0'f32     // The size the "Aa" of a text is painted at in its cell.
+const QuickMaskWidth    = 21.0         // Width of the pattern of a mask preset.
+const QuickMaskHeight   = 14.0         // Height of the pattern of a mask preset.
 const QuickLightDepth   = 0.16'f32     // How much deeper the cell of a light preset is, on a light ground.
 const QuickPopoverPad   = 12.0         // Air inside the popover holding every preset of a tool.
 const QuickPopoverColumns = 5          // Presets in a row of that popover.
@@ -322,8 +325,8 @@ impl QuickStylePaintForm
         var h = QuickSampleHeight
         switch paintItf
         {
-        case FormStep:  w, h = 18
-        case FormImage: w, h = 22
+        case FormStep:  w, h = 14
+        case FormImage: w, h = 19
         case FormText:  w, h = QuickCellHeight - 2 * QuickCellMargin
         }
 
@@ -408,12 +411,12 @@ impl QuickStylePaintForm
             cl.borderSize = Math.min(cl.borderSize, 1)
             cl.alignHorz = .Center
             cl.alignVert = .Center
-            cl.x         = cast(s32, Math.round((QuickCellWidth - 26) * 0.5))
-            cl.y         = 10
-            cl.w         = 26
-            cl.h         = 13
-            cl.tailX     = cl.x + 6
-            cl.tailY     = cl.y + cl.h + 5
+            cl.x         = cast(s32, Math.round((QuickCellWidth - 24) * 0.5))
+            cl.y         = cast(s32, Math.round((QuickCellHeight - 16) * 0.5))
+            cl.w         = 24
+            cl.h         = 12
+            cl.tailX     = cl.x + 5
+            cl.tailY     = cl.y + cl.h + 4
         }
 
         return result

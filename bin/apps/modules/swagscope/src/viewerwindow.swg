@@ -66,12 +66,12 @@ struct ViewerWindow
         filePanelHost:        *Wnd
         filePanel:            *SplitterCtrl
         recentPane:           *Wnd
-        recentLabel:          *Label
+        recentLabel:          *SectionLabel
         recentClearButton:    *IconButton
         recentList:           *ListCtrl
         folderPane:           *Wnd
         folderHistoryButton:  *IconButton
-        folderLabel:          *Label
+        folderLabel:          *SectionLabel
         folderFilterBox:      *EditBox
         folderList:           *ListCtrl
     }
@@ -1083,12 +1083,12 @@ impl ViewerWindow
         .searchOptionsButton.toolTip = texts.ui_SearchOptions
         .refreshSearchPresentation()
         .refreshSearchReadout()
-        .recentLabel.setText(String.toUpper(texts.ui_Recent, .Unicode))
+        .recentLabel.setText(texts.ui_Recent)
         for &instance in .instances where instance.view and not instance.failureReason.isEmpty() do
             assume cast(*ViewerErrorView, instance.view).retranslate()
         if .currentFile.isEmpty()
         {
-            .folderLabel.setText(String.toUpper(.explorerActive ? texts.explore_Folders : texts.ui_Folder, .Unicode))
+            .folderLabel.setText(.explorerActive ? texts.explore_Folders : texts.ui_Folder)
             .refreshHome()
         }
 
@@ -1109,7 +1109,7 @@ impl ViewerWindow
         let archive = roomy and .explorer!.listing.isArchive
         if archive
         {
-            .hintLine.addHint(texts.hint_KeyEnter, texts.hint_Open)
+            .hintLine.addHint(Gui.strings().key_Enter, texts.hint_Open)
             .hintLine.addHint(texts.hint_KeyBack, texts.hint_Parent)
         }
 
@@ -1117,11 +1117,11 @@ impl ViewerWindow
         let board = roomy and not archive ? .explorer!.grid.board : ExplorerBoard.Grid
         if board == .Covers
         {
-            .hintLine.addHint(texts.hint_KeyEnter, texts.hint_Open)
+            .hintLine.addHint(Gui.strings().key_Enter, texts.hint_Open)
             .hintLine.addHint("P", texts.hint_PlayAlbum)
         }
         elif board == .Album do
-            .hintLine.addHint(texts.hint_KeyEnter, texts.hint_Play)
+            .hintLine.addHint(Gui.strings().key_Enter, texts.hint_Play)
 
         .hintLine.addHint(Gui.strings().key_Space, texts.ui_HintLens)
         if roomy and not archive and (board == .Grid or board == .Posters) do

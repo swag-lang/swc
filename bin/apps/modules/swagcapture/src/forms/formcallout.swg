@@ -14,22 +14,23 @@ struct FormCallout
     // typed in stands above the face they are set in.
     #[Name("Text"), MultiLine]
     text: String
-    #[Name("Font"), FontName]
+    #[Name("Font"), FontName, Category("Text")]
     fontName: String
-    #[Name("Size"), SliderMinMax(MinFontSize, MaxFontSize)]
+    #[Name("Size"), SliderMinMax(MinFontSize, MaxFontSize), Category("Text")]
     fontSize: f32 = 40
-    #[Name("Style")]
+    #[Name("Style"), Category("Text")]
     fontStyle = FontFamilyStyle.Regular
-    // The mini-bar sets how the lines stand across the body; the inspector how they stand down it.
+    // The mini-bar sets how the lines stand in the body, across it and down it.
     #[Name("")]
     alignHorz = FormTextAlign.Center
-    #[Name("Vertical")]
+    #[Name("")]
     alignVert = FormTextAlign.Center
-    #[Name("Round"), SliderMinMax(MinRoundSize, MaxRoundSize)]
+    #[Name("Line Spacing"), SliderMinMax(MinLineSpacing, MaxLineSpacing), Category("Text")]
+    lineSpacing: f32 = 14
+    #[Name("Round"), SliderMinMax(MinRoundSize, MaxRoundSize), Category("Shape")]
     roundSize:    f32   = 16
     tailX, tailY: f32
     boldSize:     f32   = 0
-    lineSpacing:  f32   = 14
     textColor:    Color = Argb.White
 
     #[Serialization.NoSerialize]

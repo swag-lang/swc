@@ -60,6 +60,11 @@ internal impl IActionUI for ActionProperties
             evt.name          = strings().prop_Paste
             evt.icon          = theme.icon(.Paste)
             evt.disabled      = not prop.canChangeItem(item) or not Clipboard.hasTypedValue(unwrap item.type)
+            if prop.canChangeItem(item) and evt.disabled
+            {
+                evt.reason = strings().prop_NothingToPaste
+                evt.updatedFields.add(.Reason)
+            }
 
         case ActionProperties.ResetDefault:
             evt.updatedFields |= .Name | .Icon | .Disabled

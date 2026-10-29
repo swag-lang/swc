@@ -31,7 +31,12 @@ struct PropertiesCtrl
 
         readonly flags: PropertiesCtrlFlags     // Active optional UI features.
     }
+
+    sectionLines: Array'(*ListLine)     // Line of the section list of each section of the editor, in order.
 }
+
+// The commands of the presentations of the view menu, in the order of [[Gui.PropertiesKind]].
+private const KindCommands = ["property-view-list", "property-view-grid", "property-view-condensed", "property-view-panel"]
 
 impl PropertiesCtrl
 {
@@ -48,6 +53,7 @@ impl PropertiesCtrl
 
             .list = ListCtrl.createSimple(.splitter)
             .list.updateFlags(.ReserveExpandMargin)
+            .list.setFirstColumnIconMargin(false)
             .list.sigSelectionChanged += func|ed|(list)
             {
                 let sel = list.focusedLine()
@@ -60,6 +66,7 @@ impl PropertiesCtrl
             }
 
             .properties = Properties.create(.splitter, kind: kind)
+            .properties.sigValueChanged += func|ed|(_, _) { ed.refreshSectionCounts() }
 
             .splitter.addPane(.list)
             .splitter.addPane(.properties)
@@ -114,6 +121,7 @@ impl PropertiesCtrl
     private mtd fillSections()
     {
         .list.clear()
+        .sectionLines.clear()
 
         // In the filter bar
         if .tab != null
@@ -123,12 +131,14 @@ impl PropertiesCtrl
             tabItem.userData0 = cast(*void?, .properties.sections.count)
         }
 
-        var parentLine: *ListLine?
         for &it, idx in .properties.sections
         {
             let item = unwrap it.item
             var naked: String
-            if item.label != null do
+            // A category header writes its name in capitals; the list names it as declared.
+            if item.flags.has(.Category) do
+                naked = Properties.resolveText(item.typeValue.name orelse "")
+            elif item.label != null do
                 naked = RichString.plainText(item.label.text())
             else do
                 naked = Properties.resolveText(item.typeValue.name orelse "")
@@ -140,26 +150,79 @@ impl PropertiesCtrl
                 tabItem.userData0 = cast(*void?, idx)
             }
 
-            // In the left pane
-            if it.lvl == 0 do
-                parentLine = null
+            // In the left pane, under the section that holds it.
+            var parentLine: *ListLine?
+            var scan = item.parent
+            while scan and not parentLine
+            {
+                for line in .sectionLines where cast(*PropertiesItem?, line.userData0) == scan
+                {
+                    parentLine = line
+                    break
+                }
+
+                scan = scan.parent
+            }
 
             let line = .list.createLine(naked, parentLine: parentLine)
             line.userData0 = it.item
-
-            if it.lvl == 0 do
-                parentLine = line
+            .sectionLines.add(line)
         }
+
+        // Every section is listed.
+        for line in .sectionLines where not line.lines.isEmpty() do
+            .list.expand(line)
+
+        .refreshSectionCounts()
     }
 
-    // Filters the rows by `text` and writes how many fields it found after the words searched.
+    // Writes after each section of the list how many of its fields the filters let through. A
+    // section a filter leaves empty fades.
+    private mtd refreshSectionCounts()
+    {
+        let faint     = .themeColors().faintText
+        let filtering = .properties.hasActiveFilter()
+        var none: Color
+        for line, index in .sectionLines
+        {
+            let count = .properties.sectionFieldCount(index)
+            with let figure = line.setItem(1, Format.toString("%", count))
+            {
+                .horzAlign = .Right
+                .mono      = true
+                .colorFg   = faint
+            }
+
+            line.items[0]!.colorFg = filtering and count == 0 ? faint : none
+        }
+
+        .list.invalidate()
+    }
+
+    // Shows the editor in the `kind` presentation, with the same structures and filters.
+    mtd setKind(kind: PropertiesKind)
+    {
+        if .properties.kind == kind do
+            return
+        .properties.setKind(kind)
+        .fillSections()
+    }
+
+    // Filters the rows by `text` and writes how many fields it found at the end of the search field.
     private mtd applySearch(text: string)
     {
         .properties.setFilter(text)
-        if .properties.stringFilter.isEmpty() do
-            .search.setUnit("")
-        else do
-            .search.setUnit(Format.toString("%", .properties.matchCount()))
+        if .properties.stringFilter.isEmpty()
+        {
+            .search.setReading("")
+        }
+        else
+        {
+            let count = .properties.matchCount()
+            .search.setReading(Format.toString(count == 1 ? strings().prop_ResultOne : strings().prop_ResultMany, count))
+        }
+
+        .refreshSectionCounts()
     }
 
     private mtd openViewMenu()
@@ -171,6 +234,15 @@ impl PropertiesCtrl
 
         let menu     = MenuCtrl.createPopup(me)
         let gridLike = .properties.isGridLike()
+
+        // The presentations first, the one in force checked.
+        let texts = strings()
+        let kinds = [texts.prop_KindList, texts.prop_KindGrid, texts.prop_KindCondensed, texts.prop_KindPanel]
+        menu.addLabel(texts.prop_Presentation)
+        for name, index in kinds do
+            menu.addItem(name, KindCommands[index], checked: cast(u64, .properties.kind) == index)
+        menu.addSeparator()
+
         menu.addItem(strings().prop_ExpandAll, ExpandAll, .theme().icon(.ChevronDown), disabled: not gridLike)
         menu.addItem(strings().prop_CollapseAll, CollapseAll, .theme().icon(.ChevronUp), disabled: not gridLike)
         menu.addItem(strings().prop_ExpandModified, ExpandModified, .theme().icon(.Undo), disabled: not gridLike)
@@ -183,7 +255,12 @@ impl PropertiesCtrl
         case ExpandAll:      .properties.expandAll()
         case CollapseAll:    .properties.collapseAll()
         case ExpandModified: .properties.expandModified()
-        case ModifiedOnly:   .properties.setModifiedOnly(not .properties.modifiedOnly)
+        case ModifiedOnly:
+            .properties.setModifiedOnly(not .properties.modifiedOnly)
+            .refreshSectionCounts()
+        default:
+            for id, index in KindCommands where sel == id do
+                .setKind(cast(PropertiesKind, cast(u32, index)))
         }
     }
 

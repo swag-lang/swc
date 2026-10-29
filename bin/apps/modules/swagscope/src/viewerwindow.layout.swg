@@ -120,7 +120,6 @@ impl ViewerWindow
     }
 
     // Writes the name of a part of the file panel as a section label: in capitals.
-    private func panelHeading(text: string)->String => String.toUpper(text, .Unicode)
 
     // Creates one of the file lists of the side panel: a single-selection list of names that
     // fills `parent` and never scrolls sideways.
@@ -207,12 +206,9 @@ impl ViewerWindow
         // The panel is a card of the charter: its parts are named by section labels, and what its
         // headers once held as buttons — closing it, clearing the history, keeping one kind, the
         // folders read lately — is in the lens.
-        with .recentLabel = Label.create(recentHeader, panelHeading(appStrings().ui_Recent), Math.Rectangle{0, 0, 0, compactSize}, null, .SecondaryText)
+        with .recentLabel = SectionLabel.create(recentHeader, appStrings().ui_Recent, Math.Rectangle{0, 0, 0, compactSize})
         {
             .dockStyle = .Center
-            .style.setFont(me.theme().createDefaultFont(me.themeMetrics().sectionLabel_FontSize, .Bold), .Regular)
-            .style.addStyleSheetColors("label_TextLight $label_TextFaint")
-            .setTextAlignment(.Left, .Center)
         }
 
         with .recentList = createFileList(.recentPane, rowIconSize)
@@ -279,12 +275,9 @@ impl ViewerWindow
             .sigPressed += func|window = me|(_) { window.showFolderHistory() }
         }
 
-        with .folderLabel = Label.create(folderHeader, panelHeading(appStrings().ui_Folder), Math.Rectangle{0, 0, 0, compactSize}, null, .SecondaryText | .Ellipsis)
+        with .folderLabel = SectionLabel.create(folderHeader, appStrings().ui_Folder, Math.Rectangle{0, 0, 0, compactSize})
         {
             .dockStyle = .Center
-            .style.setFont(me.theme().createDefaultFont(me.themeMetrics().sectionLabel_FontSize, .Bold), .Regular)
-            .style.addStyleSheetColors("label_TextLight $label_TextFaint")
-            .setTextAlignment(.Left, .Center)
         }
 
         with .folderFilterBox = EditBox.create(.folderPane, "", Math.Rectangle{0, 0, 0, compactSize})

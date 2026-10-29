@@ -54,6 +54,7 @@ struct AppStrings
     ui_Height:                  string = "Height"
     ui_KeepRatio:               string = "Keep Ratio"
     ui_Anchor:                  string = "Anchor"
+    ui_AnchorVertical:          string = "Vertical Anchor"             // How the lines of a text stand down its box, in the mini-bar.
     ui_Frozen:                  string = "Selection is frozen"
     ui_Desktop:                 string = "Desktop"
     ui_MyImages:                string = "My Images"
@@ -97,11 +98,9 @@ struct AppStrings
     act_InpEditor:              string = "Editor"                      // Opens the capture in the editor, from the in-place editor.
     act_InpSave:                string = "Save…"                       // Saves the capture as an image file, from the in-place editor.
     act_InpCopy:                string = "Copy"                        // Copies the capture and closes the in-place editor.
-    key_Return:                 string = "Enter"                       // The Enter key, in a keycap of a hint line.
     hint_CopyClose:             string = "copy and close"              // What Enter does in the in-place editor.
     hint_Save:                  string = "save"                        // What Ctrl+S does in the in-place editor.
     hint_CalloutTail:           string = "Drag the point of the tail to aim it"     // Hint while the words of a callout are typed in place.
-    key_CtrlReturn:             string = "Ctrl+Enter"                  // The Ctrl and Enter keys, in a keycap of a hint line.
     hint_NewLine:               string = "new line"                    // What Enter does while the words of a form are typed in place.
     hint_KeepText:              string = "keep the text"               // What Ctrl+Enter does while the words of a form are typed in place.
     ui_Common:                  string = "Common"                      // Section of the inspector holding what several objects share.
@@ -130,6 +129,22 @@ struct AppStrings
     ui_ResetSteps:              string = "Reset"                       // Restarts the numbered-step counter.
     ui_OneObject:               string = "1 object"                    // Detail of the inspector title when one object is selected.
     ui_Objects:                 string = "% objects"                   // Inspector title when several objects are selected, with their count.
+
+    // How many objects of one kind a selection holds, as "singular|plural" words around the count;
+    // the inspector details a selection of several objects with them, such as "2 rectangles · 1 text".
+    count_Rectangle: string = "% rectangle|% rectangles"
+    count_Ellipse:   string = "% ellipse|% ellipses"
+    count_Arrow:     string = "% arrow|% arrows"
+    count_Line:      string = "% line|% lines"
+    count_Polygon:   string = "% polygon|% polygons"
+    count_Text:      string = "% text|% texts"
+    count_Callout:   string = "% callout|% callouts"
+    count_Draw:      string = "% drawing|% drawings"
+    count_Highlight: string = "% highlight|% highlights"
+    count_PixSel:    string = "% selection|% selections"
+    count_Step:      string = "% step|% steps"
+    count_Image:     string = "% image|% images"
+    count_Object:    string = "% object|% objects"
     ui_NextObjects:             string = "next objects"                // Detail of the inspector title when nothing is selected: the tool's settings apply to what is drawn next.
     hint_Space:                 string = "capture, open, library"      // What the Space key opens, on the hint line of the editor.
     hint_LibrarySpace:          string = "export, tag, rate, move"     // What the Space key opens, on the hint line of the library.
@@ -144,7 +159,6 @@ struct AppStrings
     ui_ModeActiveWindow:        string = "Active Window"               // Capture mode of the area overlay: the window in front.
     ui_ModeFullScreen:          string = "Full Screen"                 // Capture mode of the area overlay: every screen.
     ui_ModeLastArea:            string = "Last Area"                   // Capture mode of the area overlay: the zone of the previous capture.
-    key_Enter:                  string = "⏎"                           // The Enter key, in a keycap of a hint line.
     hint_Capture:               string = "capture"                     // What Enter does on the area overlay.
     ui_Delay:                   string = "Delay: %"                    // How long the area overlay waits before reading the screen, with that delay.
     ui_DelayNone:               string = "none"                        // No delay before the screen is read.
@@ -282,6 +296,8 @@ struct AppStrings
     act_MoveBackward:           string = "Move Backward"
     act_MoveForward:            string = "Move Forward"
     act_NewFromClipboard:       string = "New from Clipboard"
+    act_NoImageInClipboard:     string = "No image in the clipboard"
+    act_NothingToPaste:         string = "Nothing to paste"
     act_NewImage:               string = "New Image"
     act_OldestFirst:            string = "Oldest First"
     act_OpenImage:              string = "Open Image…"
@@ -386,9 +402,13 @@ struct AppStrings
     prop_Step:      string = "Step"           // Label of the step-numbering choice.
     prop_Strength:  string = "Strength"       // Label of the effect strength.
     prop_Style:     string = "Style"          // Label of the font style: regular, bold, italic or both.
-    prop_Text:      string = "Text"           // Label of the edited text.
+    prop_Text:      string = "Text"           // Label of the edited text, and section of the settings of the words.
+    prop_Shape:     string = "Shape"          // Section of the settings of the body of a shape.
+    prop_Stroke:    string = "Stroke"         // Section of the settings of a stroke or an outline.
+    prop_Ends:      string = "Ends"           // Section of the settings of the ends of a line.
+    prop_Effects:   string = "Effects"        // Section of the shadow, the opacity, the scale and the rotation.
+    prop_LineSpacing: string = "Line Spacing" // Label of the room between the lines of a text.
     prop_Thickness: string = "Thickness"      // Label of the stroke thickness.
-    prop_Vertical:  string = "Vertical"       // Label of how the lines of a text stand down its box.
 
     prop_Straight: string = "Straight"      // Line entry: a segment.
     prop_Bezier:   string = "Bezier"        // Line entry: a curve.

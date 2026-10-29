@@ -190,6 +190,7 @@ impl MainWindow
         let stages  = .view == .Stages
 
         var name:     string = ""
+        var reason:   string = ""
         var icon:     Icon
         var hidden:   bool
         var disabled: bool
@@ -240,11 +241,15 @@ impl MainWindow
             name     = strings.cmd_PreviousStage
             hidden   = not stages
             disabled = not micro or micro.step == 0
+            if micro and micro.step == 0 do
+                reason = strings.ui_AtFirstStage
 
         case PrismCommands.NextStage:
             name     = strings.cmd_NextStage
             hidden   = not stages
             disabled = not micro or micro.step + 1 >= micro.inspection.steps.count
+            if micro and micro.step + 1 >= micro.inspection.steps.count do
+                reason = strings.ui_AtLastStage
 
         case PrismCommands.ShowChange:
             name    = strings.cmd_ShowChange
@@ -302,6 +307,11 @@ impl MainWindow
         {
             evt.disabled = true
             evt.updatedFields.add(.Disabled)
+            if reason.count
+            {
+                evt.reason = reason
+                evt.updatedFields.add(.Reason)
+            }
         }
 
         if toggle

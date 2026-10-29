@@ -150,7 +150,6 @@ explore_Compression Compression
 cmd_OpenChosen Ouvrir
 hint_Open ouvrir
 hint_Parent dossier parent
-hint_KeyEnter Entrée
 mode_Names noms
 mode_Details détails
 mode_Thumbnails vignettes

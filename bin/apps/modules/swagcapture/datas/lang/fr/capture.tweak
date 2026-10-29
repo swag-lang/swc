@@ -44,6 +44,7 @@ ui_Width               Largeur
 ui_Height              Hauteur
 ui_KeepRatio           Conserver les proportions
 ui_Anchor              Ancrage
+ui_AnchorVertical      Ancrage vertical
 ui_Frozen              La sélection est figée
 ui_Desktop             Bureau
 ui_MyImages            Mes images
@@ -190,6 +191,8 @@ act_Minimize           Réduire
 act_MoveBackward       Reculer
 act_MoveForward        Avancer
 act_NewFromClipboard   Nouvelle depuis le presse-papiers
+act_NoImageInClipboard Aucune image dans le presse-papiers
+act_NothingToPaste     Rien à coller
 act_NewImage           Nouvelle image
 act_OldestFirst        Plus anciennes d'abord
 act_OpenImage          Ouvrir une image…
@@ -301,8 +304,12 @@ prop_Round                 Arrondi
 prop_Scale                 Échelle
 prop_Shadow                Ombre
 prop_Size                  Taille
+prop_Shape                 Forme
+prop_Stroke                Trait
+prop_Ends                  Extrémités
+prop_Effects               Effets
+prop_LineSpacing           Interligne
 prop_Style                 Style
-prop_Vertical              Vertical
 prop_StartSize             Taille de début
 prop_Step                  Numérotation
 prop_Strength              Intensité
@@ -361,6 +368,19 @@ prop_EditBackColor         Couleur de fond
 prop_EditBackColorDesc     Couleur de fond de la fenêtre d'édition de la capture
 ui_OneObject           1 objet
 ui_Objects             % objets
+count_Rectangle        % rectangle|% rectangles
+count_Ellipse          % ellipse|% ellipses
+count_Arrow            % flèche|% flèches
+count_Line             % ligne|% lignes
+count_Polygon          % polygone|% polygones
+count_Text             % texte|% textes
+count_Callout          % bulle|% bulles
+count_Draw             % dessin|% dessins
+count_Highlight        % surlignage|% surlignages
+count_PixSel           % sélection|% sélections
+count_Step             % étape|% étapes
+count_Image            % image|% images
+count_Object           % objet|% objets
 ui_NextObjects         prochains objets
 hint_Space             capturer, ouvrir, bibliothèque
 hint_LibrarySpace      exporter, étiqueter, noter, déplacer
@@ -417,11 +437,9 @@ act_Pin                Épingler
 act_InpEditor          Éditeur
 act_InpSave            Enregistrer…
 act_InpCopy            Copier
-key_Return             Entrée
 hint_CopyClose         copier et fermer
 hint_Save              enregistrer
 hint_CalloutTail       Glisser le point de la queue pour la diriger
-key_CtrlReturn         Ctrl+Entrée
 hint_NewLine           nouvelle ligne
 hint_KeepText          garder le texte
 ui_Common              En commun

@@ -747,7 +747,7 @@ impl IActionUI for Action
             evt.updatedFields |= .Name | .Icon | .Shortcut
             evt.name          = texts.ui_MenuCopyAll
             evt.icon          = theme.icon(.Copy)
-            evt.shortcut      = "Ctrl+C"
+            evt.shortcut      = "Ctrl C"
 
         case Action.CopyLine:
             evt.updatedFields |= .Name | .Icon | .Disabled
@@ -759,32 +759,32 @@ impl IActionUI for Action
             evt.updatedFields |= .Name | .Icon | .Shortcut
             evt.name          = texts.ui_MenuExpand
             evt.icon          = theme.icon(.ChevronRight)
-            evt.shortcut      = "Ctrl+E"
+            evt.shortcut      = "Ctrl E"
 
         case Action.CollapseAll:
             evt.updatedFields |= .Name | .Icon | .Shortcut
             evt.name          = texts.ui_MenuCollapse
             evt.icon          = theme.icon(.ChevronDown)
-            evt.shortcut      = "Ctrl+Shift+E"
+            evt.shortcut      = "Ctrl Shift E"
 
         case Action.GoTo:
             evt.updatedFields |= .Name | .Shortcut | .Disabled
             evt.name          = texts.ui_MenuGoTo
-            evt.shortcut      = "Ctrl+G"
+            evt.shortcut      = "Ctrl G"
             evt.disabled      = not view.doc.image.fileSize
 
         case Action.Back:
             evt.updatedFields |= .Name | .Icon | .Shortcut | .Disabled
             evt.name          = texts.ui_MenuBack
             evt.icon          = theme.icon(.ChevronLeft)
-            evt.shortcut      = "Alt+Left"
+            evt.shortcut      = "Alt Left"
             evt.disabled      = view.historyIndex == Swag.U64.Max or not view.historyIndex
 
         case Action.Forward:
             evt.updatedFields |= .Name | .Icon | .Shortcut | .Disabled
             evt.name          = texts.ui_MenuForward
             evt.icon          = theme.icon(.ChevronRight)
-            evt.shortcut      = "Alt+Right"
+            evt.shortcut      = "Alt Right"
             evt.disabled      = view.historyIndex == Swag.U64.Max or view.historyIndex + 1 >= view.history.count
         }
 

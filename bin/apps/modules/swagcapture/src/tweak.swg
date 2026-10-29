@@ -10,6 +10,8 @@ const MaxCapSize        = 8.0
 const MinFontSize       = 10.0
 const MaxFontSize       = 150.0
 const MinBoldSize       = 0.0
+const MinLineSpacing    = 0.0      // The tightest a text sets its lines, past their own height.
+const MaxLineSpacing    = 80.0     // The loosest.
 const MaxBoldSize       = 20.0
 
 // The colors the palette and the quick styles start from.

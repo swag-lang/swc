@@ -115,7 +115,7 @@ internal impl Properties
 
         // A section label in a panel is followed by one hairline to the end of the row: the
         // label and the line already say where a group starts, so no band stands behind it.
-        if .kind == .Panel and item.flags.has(.Category) and item.label != null
+        if .kind == .Panel and .sectionRules and item.flags.has(.Category) and item.label != null
         {
             // The words are tracked out, so their run is wider than the face alone measures it.
             let label    = item.label
@@ -190,7 +190,10 @@ internal impl Properties
     // when `modified`, otherwise the faint padlock of a read-only value.
     mtd paintNameMark(painter: *Painter, item: *PropertiesItem, modified: bool)
     {
-        // A self-labelled control of a panel carries its own words, and no mark is set beside them.
+        // A self-labelled control of a panel carries its own words: the mark follows them.
+        if .kind == .Panel and modified and .paintSelfLabelMark(painter, item) do
+            return
+
         // A row with no name at all, such as one flag of an enumeration, never assigned the label:
         // it is compared before it is read.
         if item.label == null do
@@ -222,5 +225,62 @@ internal impl Properties
 
         let lock = .theme().icon(.Lock, metrics.iconText_Margin + size)
         lock.paint(painter, x, centerY - lock.sizeY * 0.5, .themeColors().faintText)
+    }
+
+    // Paints the changed mark after the words of the self-labelled control of a panel row: the
+    // name of a slider or of a field, or the caption of a check button. Reports false when the
+    // row has no such control.
+    mtd paintSelfLabelMark(painter: *Painter, item: *PropertiesItem)->bool
+    {
+        var words: *Label?
+        if item.sliderBox != null
+        {
+            words = item.sliderBox.label
+        }
+        elif item.editBox != null and item.editBox.parent
+        {
+            let parent = item.editBox.parent
+            if parent is EditCtrl as ctrl do
+                words = ctrl.label
+        }
+        elif item.comboBox != null and item.comboBox.parent
+        {
+            let parent = item.comboBox.parent
+            if parent is ComboCtrl as ctrl do
+                words = ctrl.label
+        }
+
+        let metrics = .themeMetrics()
+        let size    = metrics.property_ModifiedMarkSize
+        var right, centerY: f32
+        if words
+        {
+            let font = words.font().regular
+            if not font or not words.isLocallyVisible() do
+                return false
+            let rect  = words.rectRelativeTo(item.line)
+            let width = Painter.measureString(RichString.plainText(words.text()), font).width
+            right   = rect.x + words.textPadding.x + Math.min(width, rect.width)
+            centerY = rect.vertCenter()
+        }
+        elif item.checkBox != null
+        {
+            let check = item.checkBox
+            let font  = check.font().regular
+            if not font do
+                return false
+            let rect  = check.rectRelativeTo(item.line)
+            let width = Painter.measureString(RichString.plainText(check.name.raw), font).width
+            right   = rect.x + metrics.btnCheck_Size + metrics.btnCheck_Padding + width
+            centerY = rect.vertCenter()
+        }
+        else
+        {
+            return false
+        }
+
+        painter.setParams(.Antialiased)
+        painter.fillCircle(right + size * 1.5, centerY, size * 0.5, .themeColors().arc)
+        return true
     }
 }

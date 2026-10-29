@@ -356,6 +356,15 @@ internal impl Properties
                 newParent = not categPath.isEmpty() ? categPath[categPath.count - 1].item : parentItem
             }
 
+            // A used structure files its settings under categories of its own, beside those of
+            // this one, never inside the category opened last; one of the same name goes on with
+            // it (see addCategoryHeader).
+            if value.flags.has(.HasUsing) and subCateg == null
+            {
+                categPath.count = 0
+                newParent       = parentItem
+            }
+
             // Decorators (Space / Header / HelpBox) go above the field, under the same parent so
             // they collapse with their category. Count them together with the field's own rows so
             // every open category shows a disclosure and hides its whole block when collapsed.
@@ -408,6 +417,12 @@ internal impl Properties
     // the header shown to the reader goes through the text resolver.
     mtd addCategoryHeader(name: string?, parentForCateg: *PropertiesItem?)->*PropertiesItem
     {
+        // A top-level category named like the one opened last goes on with it: a structure and
+        // the one it uses can both file settings under STROKE, read as one group.
+        let topLevel = not parentForCateg or not parentForCateg.flags.has(.Category)
+        if topLevel and .lastCategory and .lastCategory.typeValue.name == name and .items.count and .lastCategoryIsOpen() do
+            return .lastCategory
+
         let v    = Swag.TypeValue{name: name}
         let item = .addItem(v, null, parentForCateg)
         item.label.setText(String.from(resolveText(name orelse "")).toUpper(.Unicode))
@@ -418,7 +433,25 @@ internal impl Properties
         if not parentForCateg!.flags.has(.Category) do
             item.level = 0
         .sections.add({item, lvl: 1})
+        if topLevel do
+            .lastCategory = item
         return item
+    }
+
+    // Reports whether no other top-level category opened since the last one, so rows added now
+    // still stand under it.
+    mtd lastCategoryIsOpen()->bool
+    {
+        for i in reversed(.items.count)
+        {
+            let it = unwrap .items[i]
+            if it == .lastCategory do
+                return true
+            if it.flags.has(.Category) and it.level == 0 do
+                return false
+        }
+
+        return false
     }
 
     // Inject the decorator rows declared on 'value' (Space, Header, HelpBox) above the field, in a

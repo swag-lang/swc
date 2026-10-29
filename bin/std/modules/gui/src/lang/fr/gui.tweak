@@ -30,6 +30,7 @@ lens_Placeholder Rechercher ou lancer une commande
 lens_Empty       Aucun résultat.
 lens_Choose      choisir
 lens_Go          aller
+lens_Stay        rester
 lens_Line        ligne
 lens_Files       fichiers
 lens_Actions     actions
@@ -98,6 +99,7 @@ edit_SelectAll Tout sélectionner
 
 prop_Copy             Copier
 prop_Paste            Coller
+prop_NothingToPaste   Rien à coller
 prop_ResetDefault     Rétablir la valeur par défaut
 prop_MoveUp           Monter
 prop_MoveDown         Descendre
@@ -112,6 +114,13 @@ prop_ExpandAll        Tout développer
 prop_CollapseAll      Tout réduire
 prop_ExpandModified   Développer les propriétés modifiées
 prop_ShowModifiedOnly Afficher uniquement les propriétés modifiées
+prop_Presentation     Présentation
+prop_ResultOne        % résultat
+prop_ResultMany       % résultats
+prop_KindList         Liste
+prop_KindGrid         Grille
+prop_KindCondensed    Condensé
+prop_KindPanel        Panneau
 prop_MixedValues      Valeurs différentes
 
 prop_CategoryDebug       Débogage

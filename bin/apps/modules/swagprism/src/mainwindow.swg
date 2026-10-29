@@ -495,7 +495,7 @@ impl MainWindow
         elif not .doorKnown
         {
             if .view == .Columns do
-                .hintLine.addHint(strings.key_Compile, strings.hint_Compile)
+                .hintLine.addHint(Gui.strings().key_CtrlEnter, strings.hint_Compile)
             .hintLine.addHint(strings.key_Lens, strings.hint_Lens)
         }
 

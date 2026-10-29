@@ -122,9 +122,12 @@ internal impl Properties
 
         if Reflection.hasAttribute(value, .SliderMinMax)
         {
+            // The name reads from the leading edge, as every name of a panel does, and its
+            // changed mark follows it.
             with let slider = SliderCtrl.create(item.line, dispName.toString())
             {
                 .anchorStyle = .Right
+                .label.setTextAlignment(.Left, .Center)
 
                 // Enough for a 3-4 digit value plus a unit; a bigger box would eat the track.
                 .setLayoutMetrics(60, 64)
@@ -168,6 +171,7 @@ internal impl Properties
         {
             .anchorStyle = .Right
             .setLayoutMetrics(.labelWidth, 0)
+            .label.setTextHorizontalAlignment(.Left)
         }
 
         let unit = Reflection.attributeValue(value, .Unit, "value")

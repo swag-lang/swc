@@ -74,6 +74,8 @@ struct AppStrings
     cmd_Information:        string = "Information"
     cmd_PreviousStage:      string = "Previous Stage"
     cmd_NextStage:          string = "Next Stage"
+    ui_AtFirstStage:        string = "Already at the first stage"
+    ui_AtLastStage:         string = "Already at the last stage"
     cmd_ShowChange:         string = "Show the Change"
     cmd_ShowSourceLines:    string = "Show Source Lines"
     cmd_ShowOpcodes:        string = "Show Opcodes"
@@ -94,7 +96,6 @@ struct AppStrings
     lens_Preset:       string = "Build Preset"
 
     // The hint line: keys, in their keycaps, and what they do.
-    key_Compile:  string = "Ctrl ⏎"                           // The key that compiles.
     key_Lens:     string = "Ctrl K"                           // The key that opens the lens where Space types.
     key_Steps:    string = "← →"                              // The keys that step through the stages.
     hint_Compile: string = "compile"                          // What the compile key does.

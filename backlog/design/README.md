@@ -129,6 +129,11 @@ comme image…"). An ellipsis marks a command that asks for more before acting.
   scrollbar. A thin scrollbar (6 px) appears while scrolling or on hover.
 - A faint hint line ("Space — everything else") may sit 24 px above the bottom edge while the
   reader is new to the window or the surface is empty.
+- Keys are named the same way everywhere — a keycap of the hint line, the foot of the lens, the
+  end of a menu or lens row: `Space`, `Esc`, `Tab`, `↵` for Enter, and a chord as its keys
+  separated by spaces (`Ctrl K`, `Ctrl ↵`, `Ctrl Shift S`), written by `Input.formatKeyShortcut`
+  and the key names of `Gui.strings()`. What a key does is a few lowercase words after it
+  ("compile", "views, stages, examples").
 
 ## Motion
 
@@ -198,6 +203,8 @@ the reader is:
   so the reader learns it exists; it cannot be chosen.
 - Every action shows its shortcut in faint mono at the end of its row, so the lens also teaches
   the keys it stands in for.
+- A section label is always `Gui.SectionLabel` — small spaced semibold capitals in the faint ink —
+  whether a component, an application header or a painted list draws it; nobody shapes its own.
 
 ### Sheet (`I`)
 
@@ -494,18 +501,24 @@ the screen to its work.
   ink and alignment. Enter breaks the line (a step keeps its label on Enter), `Ctrl+Enter` or a
   click elsewhere keeps the words as one step of the history, `Esc` lets them go. A rotated shape
   straightens over `motion_QuickSeconds` while its words are typed, and turns back after.
-- The text mini-bar is compact — colour, face list, size in mono, **B** *I*, the three
-  alignments, delete, `•••` — and stands above or below the selection, never over the dock or
-  the inspector; while words are typed it stands below them. The inspector keeps the face, the
-  size, the style "Aa" segments and the vertical alignment; the alignment across lives in the
-  mini-bar.
+- The text mini-bar is compact — colour, face list, size in mono, **B** *I*, the alignments
+  across and down, delete, `•••` — and stands above or below the selection, never over the dock,
+  the inspector or an edge of the capture; while words are typed it stands below them. The
+  inspector keeps the face, the size and the style "Aa" segments.
 - The lens closes with the recent captures as a strip of pictures ended by `Library →`; `↓`
   reaches the strip, `←` `→` go along it, Enter opens the one ringed in Arc.
 - The inspector shows the presets of the selection's kind (of the tool in hand without a
-  selection; none for a selection of several kinds): one row of four and `+`, or four and `•••`
-  opening every preset with `+`. The preset in force is named under the row; a right click
+  selection; none for a selection of several kinds): one row of five and `+`, or five and `•••`
+  opening every preset with `+`, ordered by use; `↓` on `•••` opens the popover, the arrows,
+  Enter and `Esc` go through it. The preset in force is named under the row; a right click
   renames it, replaces it with the current style or removes it. The head rows of the inspector
-  scroll with its settings. Library folder tabs give their count in mono.
+  scroll with its settings, which stand 30 apart under TEXT, SHAPE, STROKE, ENDS, EFFECTS and
+  POSITION. Several objects are titled by their kinds ("2 rectangles · 1 text"), what they
+  share first. Library folder tabs give their count in mono.
+- The dock holds eight tools in 30-pixel cells: select, shape (and polygon), arrow (and line),
+  text, callout, draw (and highlighter), step, image (and pixel selection, favourites). A cell
+  with a corner mark lists its group on a click on the mark or a right click; every tool keeps
+  its command, its lens entry and its key, and comes into its cell when used.
 
 ![Arrow](imgs/capture.edit.arrow.png) ![Callout](imgs/capture.edit.callout.png)
 ![Mask](imgs/capture.edit.mask.png) ![Steps](imgs/capture.edit.steps.png)

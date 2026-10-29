@@ -57,6 +57,8 @@ cmd_ShowCompare        Comparer deux compilations
 cmd_Information        Informations
 cmd_PreviousStage      Étape précédente
 cmd_NextStage          Étape suivante
+ui_AtFirstStage        Déjà à la première étape
+ui_AtLastStage         Déjà à la dernière étape
 cmd_ShowChange         Montrer l'écart
 cmd_ShowSourceLines    Montrer les lignes de source
 cmd_ShowOpcodes        Montrer les opcodes

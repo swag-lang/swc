@@ -35,14 +35,17 @@ struct Strings
         optionSheet_Title: string = "Options"     // Title of the first page of an option sheet that names none.
 
         // The names of the keys a hint line or the foot of the lens writes in a keycap.
-        key_Space:  string = "Space"     // Name of the space bar.
-        key_Escape: string = "Esc"       // Name of the escape key.
-        key_Tab:    string = "Tab"       // Name of the tab key.
+        key_Space:     string = "Space"      // Name of the space bar.
+        key_Escape:    string = "Esc"        // Name of the escape key.
+        key_Tab:       string = "Tab"        // Name of the tab key.
+        key_Enter:     string = "↵"          // Name of the Enter key.
+        key_CtrlEnter: string = "Ctrl ↵"     // Names of the Ctrl and Enter keys, held together.
 
         lens_Placeholder: string = "Search or run a command"     // Placeholder of the input of the lens.
         lens_Empty:       string = "Nothing matches."            // Line the lens shows when no result answers the query.
         lens_Choose:      string = "choose"                      // What the arrow keys do, at the foot of the lens.
         lens_Go:          string = "go"                          // What Enter does, at the foot of the lens.
+        lens_Stay:        string = "stay"                        // What Ctrl Enter does on a setting: run it, the lens kept open.
         lens_Line:        string = "line"                        // What the `:` prefix looks for, at the foot of the lens.
         lens_Files:       string = "files"                       // What the `/` prefix looks for, at the foot of the lens.
         lens_Actions:     string = "actions"                     // What the `>` prefix looks for, at the foot of the lens.
@@ -113,6 +116,7 @@ struct Strings
 
         prop_Copy:             string = "Copy"                              // Copy the value of a property.
         prop_Paste:            string = "Paste"                             // Paste into a property.
+        prop_NothingToPaste:   string = "Nothing to paste"                  // Why Paste cannot run: the clipboard holds no value for the field.
         prop_ResetDefault:     string = "Reset to Default"                  // Restore the default value of a property.
         prop_MoveUp:           string = "Move Up"                           // Move a list element up.
         prop_MoveDown:         string = "Move Down"                         // Move a list element down.
@@ -127,6 +131,13 @@ struct Strings
         prop_CollapseAll:      string = "Collapse All"                      // Collapse every property group.
         prop_ExpandModified:   string = "Expand Modified"                   // Expand groups containing modified fields.
         prop_ShowModifiedOnly: string = "Show Modified Only"                // Restrict a property view to changed fields.
+        prop_Presentation:     string = "Presentation"                      // Label of the ways a property view can be shown.
+        prop_ResultOne:        string = "% result"                          // Reading of a property search that found one field.
+        prop_ResultMany:       string = "% results"                         // Reading of a property search that found none or several fields.
+        prop_KindList:         string = "List"                              // Property view as names stacked above their editors.
+        prop_KindGrid:         string = "Grid"                              // Property view as a column of names and a column of values.
+        prop_KindCondensed:    string = "Condensed"                         // Property view as a dense table of thin rows.
+        prop_KindPanel:        string = "Panel"                             // Property view as full-width self-labelled controls.
         prop_MixedValues:      string = "Mixed values"                      // Placeholder of a field whose value differs across the selected objects.
 
         // Wording of the [[Gui.ApplicationOptions]] rows a property grid generates from

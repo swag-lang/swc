@@ -79,6 +79,7 @@ struct EditBox
         {
             icon:           Icon              // Optional leading icon.
             unit:           String            // Optional trailing unit, such as "kg".
+            reading:        String            // Faint reading at the trailing edge, such as how many results a search found.
             prefix:         String            // Optional leading word written in the field before the text, such as the axis "x".
             form  = EditBoxForm.Rectangle     // Current background geometry.
             flags = EditBoxFlags.None         // Active interaction and presentation options.
@@ -320,6 +321,14 @@ impl IWnd for EditBox
 
         painter.popClippingRect()
         painter.translateTransform(.scrollPosX, 0)
+
+        // The reading stands after the text, outside the scroll, in the faint ink.
+        if not .reading.isEmpty()
+        {
+            let mono = .readingFont()
+            let edit = .editRect()
+            discard paintTextLine(bc.painter, edit.right() + metrics.iconText_Margin, edit.vertCenter(), .reading, mono, colors.faintText)
+        }
 
         // Right-aligned boxes pin the unit to the right edge, outside the scroll
         // transform, so it stays put while the value text scrolls underneath.
@@ -827,9 +836,20 @@ private impl EditBox
         var rect = .paddedClientRect()
         rect.x     += .leadingMargin
         rect.width -= .leadingMargin
-        rect.moveRight(-.trailingMargin - .clearBtnTextMargin)
+        rect.moveRight(-.trailingMargin - .clearBtnTextMargin - .readingRoom())
         return rect
     }
+
+    // Returns the room the reading takes at the trailing edge, its air before it included.
+    internal mtd readingRoom()->f32
+    {
+        if .reading.isEmpty() do
+            return 0
+        return Painter.measureString(.reading, .readingFont()).width + .themeMetrics().iconText_Margin
+    }
+
+    // Returns the face of the reading: a measure, in the fixed-width face one step smaller.
+    internal mtd readingFont()->*Font => .theme().createDefaultFontFs(.themeMetrics().defaultFontSize - 2)
 
     // Returns the left padding for text rendering (accounts for icon).
     internal mtd leftTextMargin()->f32
@@ -1394,6 +1414,16 @@ impl EditBox
     mtd setUnit(unit: string?)
     {
         .unit = unit orelse ""
+        .invalidate()
+    }
+
+    // Changes the faint reading at the trailing edge, such as "3 results" after a search; empty
+    // removes it. The text gives it its room.
+    mtd setReading(reading: string)
+    {
+        if .reading == reading do
+            return
+        .reading = reading
         .invalidate()
     }
 

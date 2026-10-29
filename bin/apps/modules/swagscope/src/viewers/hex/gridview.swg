@@ -1011,7 +1011,7 @@ impl IActionUI for Action
         case Action.CopyBytes:
             evt.updatedFields |= .Name | .Shortcut
             evt.name          = bounded ? Format.toString(texts().ui_CopyBytesMax, limit) : texts().ui_CopyBytes
-            evt.shortcut      = "Ctrl+C"
+            evt.shortcut      = "Ctrl C"
 
         case Action.CopyText:
             evt.updatedFields |= .Name
@@ -1024,12 +1024,12 @@ impl IActionUI for Action
         case Action.SelectAll:
             evt.updatedFields |= .Name | .Shortcut
             evt.name          = texts().ui_SelectAll
-            evt.shortcut      = "Ctrl+A"
+            evt.shortcut      = "Ctrl A"
 
         case Action.GoTo:
             evt.updatedFields |= .Name | .Shortcut
             evt.name          = texts().ui_GoTo
-            evt.shortcut      = "Ctrl+G"
+            evt.shortcut      = "Ctrl G"
         }
 
         return true

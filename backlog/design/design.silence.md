@@ -16,37 +16,17 @@ dialogs, then each application, then the written rules.
   `floating.test.swg`, `lens.test.swg` and their goldens, and `AppearanceButton.addToLens`; a
   hidden caption button keeps working and takes no room in the caption. Swag Capture, Swag Scope,
   Swag Prism and Swag Vault compose them (the remaining work of the first two is
-  design.silence.008 and design.silence.007). No component owns the quiet text
-  menu of a header (a word and a faint chevron opening a menu, as the pictures put above a column
-  or a page): Swag Scope's explorer, Swag Capture's library and Swag Prism's column headers each
-  configure an `IconButton` for it and fit it to its words themselves (`createQuietMenu` in each),
-  and the three differ.
-- Next: give the toolkit the quiet menu and move the three applications onto it; per remaining
-  application, register every command and `addToLens` on one lens bound to
+  design.silence.008 and design.silence.007). The quiet text menu of a header is
+  `IconButton.createQuiet` with `setQuietText`, and every application builds its quiet menus with
+  it; the section labels Swag Scope shaped itself (its panels, the days of a mosaic, the outline
+  margin) are `Gui.SectionLabel`; the keys are named one way (`Gui.strings().key_Enter`,
+  `key_CtrlEnter`, spaced shortcuts).
+- Next: per remaining application, register every command and `addToLens` on one lens bound to
   `Space` or `Ctrl K`, move readings to the sheet, tools to the dock and the mini-bar, properties
   to the inspector, and let the work reach into the strip where its picture shows it.
 - Done when: the four applications use the components, every command is a lens entry, and no
   application re-implements one or insets its whole root under the strip.
 - Related: design.silence.007, design.silence.008
-
-### design.silence.005 — The property grid control still lacks search marks and the layout menu
-
-- Evidence: the rows follow the charter (`properties.{grid,condensed,list,panel}.{ink,paper}`
-  goldens: Arc dot after a changed name, faint revert glyph, padlock of a read-only value, section
-  labels in faint spaced capitals with a faint chevron and, in Panel, a hairline; Condensed rows of
-  26 with a hairline; validation as a dot and a line in the tone; notes as the Arc notice).
-  A search marks the matched characters of a name on the highlight ground and counts the found
-  fields in the search field. `PropertiesCtrl` does not show counts in the section list, and the `•••` menu offers no Presentation choice, because
-  `Properties.kind` is fixed at creation. In Panel the self-labelled editors carry no changed-value
-  dot, a Condensed warning shows its line instead of a caution mark in the left margin, and the
-  Panel golden shows `Opacity` at 0 while the data holds 0.4 (it did before this restyle too).
-- Next: let `Properties` switch kind by rebuilding its rows, put List, Grid, Condensed and Panel
-  under a Presentation section of the joined `•••` menu with `✓` in Arc, count results in the
-  section list; then fix
-  the Panel slider refresh. The Panel and Grid rows of the charter also show a slider's value as a
-  mono reading with no box: Swag Capture's inspector sets the value face itself
-  (`PropWnd.fitFieldLabelColumn`).
-- Done when: `gui.properties.ctrl.paper` is reproduced by a `properties.ctrl.{ink,paper}` golden.
 
 ### design.silence.006 — The file box modes and details of its rows are not built
 
@@ -137,19 +117,23 @@ dialogs, then each application, then the written rules.
 
 ### design.silence.008 — Swag Capture's editing does not yet match its pictures
 
-- Evidence: the editor, the area capture, the in-place editor, the library and the lens have
-  goldens (`surface`, `edit.{arrow,callout,multi,step,mask,color.paper,text,text.paper}`, `area`,
-  `inplace{,.paper}`, `library.surface`, `lens.paper`, `lens.recent.paper`, `presets{,.paper}`).
-  What they still show differently: a tool's row holds four presets where the pictures show five
-  or six, because a 44-wide cell with its ring room leaves five chips across the inspector;
-  the row keeps the presets chosen last first, not the ones used most (no use count is kept);
-  the vertical alignment of a text is a dropdown in the inspector, where the pictures keep only
-  the alignment across, in the mini-bar; the "•••" popover of the presets cannot be reached
-  with the keys.
-- Next: decide whether a preset keeps a use count (serialized beside its name) and order the
-  row by it; give the presets popover the keys of the lens strip.
+- Evidence: a whole-screen comparison of every `capture.*` picture with its golden
+  (`surface`, `edit.{arrow,callout,multi,step,mask,color.paper,text,text.paper}`, `area`,
+  `inplace{,.paper}`, `library.surface`, `lens.paper`, `lens.recent.paper`, `presets{,.paper}`)
+  leaves these differences:
+  - the line and arrow settings read ENDS before STROKE, where the pictures put STROKE first: the
+    fields a line adds come before those of the form it uses, and the stroke fields belong to
+    the latter; the dash and the end glyphs stay in the head's STYLE section;
+  - a slider row stands a few pixels taller than the 30-pixel pitch of the other rows;
+  - past two kinds, a multiple selection is titled by its count ("5 objects");
+  - a preset cell is 38 by 31 where the pictures draw 44 by 36, so that five presets and their
+    chip fit across the inspector;
+  - the lens golden for a query lists more commands than the picture, so its recent captures sit
+    below the fold; `lens.recent.paper` shows them at rest.
+- Next: let the generated grid order a used structure's categories among the struct's own (an
+  `After` that crosses into the used structure), then put STROKE before ENDS.
 - Done when: each `capture.*` picture is reproduced by its golden.
-- Related: design.silence.004, design.silence.005
+- Related: design.silence.004
 
 ### design.silence.011 — The window scripts were not reviewed against the charter
 

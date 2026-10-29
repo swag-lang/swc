@@ -106,7 +106,7 @@ struct Properties
 
         readonly
         {
-            kind = PropertiesKind.List     // Presentation selected at creation.
+            kind = PropertiesKind.List     // Presentation in force; [[Gui.Properties.setKind]] changes it.
             editorWidth: s32 = 200         // Preferred maximum width of value editors.
 
             // Affects rows added after the option changes.
@@ -173,6 +173,8 @@ struct Properties
     // Grid state rebuilt from the rows: section index, hover and selection, and the transient
     // state of one gesture. The grid maintains all of it.
     sections: Array'{ item: *PropertiesItem?, lvl: s32 }     // Section rows and their depth.
+    lastCategory: *PropertiesItem?     // The top-level category opened last, which a category of the same name goes on.
+    sectionRules: bool = true          // Whether a section label of a panel is followed by a hairline.
 
     // Per data-column depth: does any row at that depth show a disclosure triangle? Drives the
     // reclaimed triangle gutter for all-leaf depths (see computeLevelMarks / itemLabelGutter).
@@ -220,6 +222,20 @@ struct Properties
     // Build-time state of the opt-in mode (addStructMulti 'onlyNamed'): only fields carrying an
     // explicit Properties.Name attribute get a row.
     buildOnlyNamed: bool
+
+    // What 'addStructMulti' was given, in order, so a change of presentation builds the same
+    // rows again.
+    added: Array'PropAddedStruct
+}
+
+// One structure a [[Gui.Properties]] shows, as it was added.
+internal struct PropAddedStruct
+{
+    typeof:     typeinfo?
+    bases:      Array'(*u8)
+    section:    String
+    hasSection: bool
+    onlyNamed:  bool
 }
 
 // The control's own IWnd events. Swag does not allow a split interface impl, so both entry points
@@ -290,6 +306,49 @@ impl IWnd for Properties
 // value editors can call them, but they are not part of the public API.
 internal impl Properties
 {
+    // Sets the fonts and the margins of the presentation in force.
+    mtd applyKindMetrics(theme: *Theme)
+    {
+        // Every kind titles a structure in bold one step above the body, and labels its
+        // sections in the small spaced semibold capitals of a section label.
+        .fontSection          = theme.createDefaultFontFamily(theme.metrics.defaultFontSize + 2)
+        .fontCategory         = theme.createDefaultFontFamily(theme.metrics.sectionLabel_FontSize)
+        .fontSection.regular  = .fontSection.bold
+        .fontCategory.regular = .fontCategory.semiBold
+        .fontName             = theme.res.fontDefault
+        .gridLineHeight       = 32
+        .gridLineMargin       = 4
+        if .kind == .List
+        {
+            .fontName.regular = .fontName.bold
+            .leftMargin       = 15
+            .rightMargin      = 15
+        }
+        else
+        {
+            .leftMargin  = 20
+            .rightMargin = 8
+        }
+
+        // Condensed: a dense table of rows, values as text, one hairline between rows.
+        // Inherits the grid-family fonts/layout set just above.
+        if .kind == .Condensed
+        {
+            .gridLineHeight = theme.metrics.property_CondensedRowHeight
+            .gridLineMargin = 0
+            .leftMargin     = 16
+        }
+
+        // Panel: full-width self-labeled rows, tight side margins. The line margin
+        // is the vertical breathing room between two rows (half above, half below).
+        if .kind == .Panel
+        {
+            .leftMargin     = 8
+            .rightMargin    = 8
+            .gridLineMargin = 8
+        }
+    }
+
     mtd hasActiveFilter()->bool => .modifiedOnly or not .stringFilter.isEmpty()
 
     mtd itemState(item: *PropertiesItem)->{ visible, enable: bool }
@@ -411,45 +470,7 @@ impl Properties
             .edView.focusPolicy = .Inner
             .edView.wndFlags    |= .NoScroll
             .focusDelegate      = .edView
-
-            let theme = parent.theme()
-
-            // Every kind titles a structure in bold one step above the body, and labels its
-            // sections in the small spaced semibold capitals of a section label.
-            .fontSection          = theme.createDefaultFontFamily(theme.metrics.defaultFontSize + 2)
-            .fontCategory         = theme.createDefaultFontFamily(theme.metrics.sectionLabel_FontSize)
-            .fontSection.regular  = .fontSection.bold
-            .fontCategory.regular = .fontCategory.semiBold
-            .fontName             = theme.res.fontDefault
-            if kind == .List
-            {
-                .fontName.regular = .fontName.bold
-                .leftMargin       = 15
-                .rightMargin      = 15
-            }
-            else
-            {
-                .leftMargin  = 20
-                .rightMargin = 8
-            }
-
-            // Condensed: a dense table of rows, values as text, one hairline between rows.
-            // Inherits the grid-family fonts/layout set just above.
-            if kind == .Condensed
-            {
-                .gridLineHeight = theme.metrics.property_CondensedRowHeight
-                .gridLineMargin = 0
-                .leftMargin     = 16
-            }
-
-            // Panel: full-width self-labeled rows, tight side margins. The line margin
-            // is the vertical breathing room between two rows (half above, half below).
-            if kind == .Panel
-            {
-                .leftMargin     = 8
-                .rightMargin    = 8
-                .gridLineMargin = 8
-            }
+            .applyKindMetrics(parent.theme())
 
             .hookOnChildEvent = func(wnd, evt) => onHookChildEvent(wnd, evt)
 
@@ -459,6 +480,26 @@ impl Properties
         }
 
         return ed
+    }
+
+    // Shows the same structures in the `kind` presentation.
+    //
+    // The rows are built again from the structures added so far, which keeps their values, the
+    // filters and the undo history; the selection, the expansion and the scroll position start
+    // over. A host that keeps its own rows beside the
+    // generated ones adds them again.
+    mtd setKind(kind: PropertiesKind)
+    {
+        if .kind == kind do
+            return
+
+        let added = #move .added
+        .clearRows()
+        .kind = kind
+        .applyKindMetrics(.theme())
+        for &one in added do
+            .addStructMulti(unwrap one.typeof, one.bases.toSlice(), one.hasSection ? one.section.toString() : null, one.onlyNamed)
+        .updateStates()
     }
 
     // Installs the host notify interface, consulted for every row before the per-structure ones.
@@ -505,6 +546,22 @@ impl Properties
         .edView.sendResizeEvent()
     }
 
+    // Sets the height of a row and the air between two rows, for a grid denser or looser than its
+    // kind, such as the settings of an inspector. Set it before the first row is added.
+    mtd setRowMetrics(height: f32, gap: f32)
+    {
+        .gridLineHeight = height
+        .gridLineMargin = cast(s32, gap)
+    }
+
+    // Shows or hides the hairline after a section label of a panel, for a column whose other
+    // sections are labels alone, such as an inspector.
+    mtd setSectionRules(visible: bool)
+    {
+        .sectionRules = visible
+        .invalidate()
+    }
+
     // Shows or hides reset-to-default affordances for modified values.
     mtd setRevertButtonsVisible(visible: bool)
     {
@@ -525,11 +582,18 @@ impl Properties
     {
         if not .externUndoMgr do
             .undoMgr.clear()
+        .added.clear()
+        .clearRows()
+    }
 
+    // Removes every row, leaving the undo history and the record of the added structures alone.
+    internal mtd clearRows()
+    {
         .generation += 1
         .dragItem   = null
         .dragCmd    = null
         .hotItem, .selItem, .menuItem = null
+        .lastCategory = null
 
         .freeDefaultRoots()
 
@@ -570,6 +634,17 @@ impl Properties
 
         .buildOnlyNamed = onlyNamed
         defer .buildOnlyNamed = false
+
+        with let record = .added.emplaceInitAddress()
+        {
+            .typeof     = typeof
+            .hasSection = section != null
+            .onlyNamed  = onlyNamed
+            if section do
+                .section = section
+            for b in bases do
+                .bases.add(b)
+        }
 
         let firstItemIdx   = .items.count
         var item: *PropertiesItem?
@@ -736,6 +811,34 @@ impl Properties
             let item = unwrap it
             if item.data != null and item.line.isLocallyVisible() and .nameMatch(item) != Swag.U64.Max do
                 result += 1
+        }
+
+        return result
+    }
+
+    // Counts the fields of the section `index` of the section index, its subsections included,
+    // that the filters in force let through: every field without a filter, the ones the search
+    // found or that differ from their defaults with one.
+    internal mtd sectionFieldCount(index: u64)->u32
+    {
+        let section = .sections[index].item
+        var result  = 0'u32
+        for it in .items
+        {
+            let item = unwrap it
+            if item.data == null or (item.parent != null and item.parent.data != null) do
+                continue
+
+            var scan = item.parent
+            while scan and scan != section do
+                scan = scan.parent
+            if not scan do
+                continue
+            if not .stringFilter.isEmpty() and .nameMatch(item) == Swag.U64.Max do
+                continue
+            if .modifiedOnly and not item.isModified do
+                continue
+            result += 1
         }
 
         return result

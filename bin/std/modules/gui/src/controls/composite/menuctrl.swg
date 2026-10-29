@@ -49,6 +49,7 @@ public struct PopupMenuItem
         size:       f32           // Extent along the menu axis, set by the layout pass.
         rg:         CommandStateEvent.RenderingHint     // Rendering hint, such as membership of an exclusive group.
         separator:  bool          // Whether the item is a separator.
+        label:      bool          // Whether the item is the label opening a group of a popup, never chosen.
         disabled:   bool          // Whether the item cannot be chosen.
         checked:    bool          // Whether the item shows a check or radio mark.
         hidden:     bool          // Whether the item is left out of the menu.
@@ -242,6 +243,14 @@ public impl IWnd for MenuCtrl
             {
                 let inset = metrics.menuPopup_SeparatorInset
                 painter.drawLine(labelPos.x + inset, labelPos.vertCenter(), labelPos.right() - inset, labelPos.vertCenter(), Pen.createSolid(colors.menuPopup_Separator))
+                continue
+            }
+
+            // A label opens a group in small spaced capitals, where the wording of the entries starts.
+            if it.label
+            {
+                labelPos.moveLeft(.popupHasGlyphs ? metrics.menuPopup_IconTextMargin + metrics.menuPopup_IconSize : metrics.menuPopup_IconMargin)
+                SectionLabel.paint(me, painter, labelPos, it.name.raw)
                 continue
             }
 
@@ -1287,6 +1296,23 @@ public impl MenuCtrl
         }
 
         return mitem
+    }
+
+    // Adds the label opening a group of entries of a popup, such as "Presentation" above the ways
+    // of showing a view, and returns it. It is written as a section label and is never chosen.
+    #[Swag.Discardable]
+    mtd addLabel(name: string)->*PopupMenuItem
+    {
+        with let item = me.items.allocate()
+        {
+            .name.set(name)
+            .label    = true
+            .disabled = true
+        }
+
+        .items.add(item)
+        .dirtyLayout = true
+        return item
     }
 
     // Adds a separator unless the menu is empty or already ends with one.

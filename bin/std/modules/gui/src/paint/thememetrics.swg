@@ -223,6 +223,7 @@ struct ThemeMetrics
         inspector_LabelWidth:    f32 = 88      // Width of the label column of an inspector.
         inspector_LabelGap:      f32 = 12      // Air between a label and its editor.
         inspector_RowGap:        f32 = 10      // Air between two rows of an inspector.
+        inspector_RowPitch:      f32 = 30      // Distance from one row of an inspector's settings to the next.
         inspector_SectionHeight: f32 = 30      // Height of the label that opens a section of an inspector.
         inspector_TitleFontSize: u32 = 15      // Size of the title of an inspector.
 
@@ -237,8 +238,8 @@ struct ThemeMetrics
 
         // The dock: a vertical floating column of tools at the leading edge, vertically centred.
         toolDock_Padding:  f32 = 6      // Air between the edge of the dock and its cells.
-        toolDock_CellSize: f32 = 36     // Side of a cell of the dock.
-        toolDock_Glyph:    f32 = 18     // Side of the glyph of a tool.
+        toolDock_CellSize: f32 = 30     // Side of a cell of the dock.
+        toolDock_Glyph:    f32 = 16     // Side of the glyph of a tool.
         toolDock_Gap:      f32 = 2      // Air between two cells of the dock.
 
         menuBar_Height:       f32 = 30     // Height of a menu bar.

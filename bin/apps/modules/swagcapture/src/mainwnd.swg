@@ -14,6 +14,9 @@ enum EditMode { Shape, Arrow, Line, Polygon, Text, Favorites, Draw, Highlight, S
 // object, the face of a text, the counter of a step, or the alignment of several objects.
 enum MiniBarKind { None, Single, Text, Step, Multi }
 
+// The most kinds the inspector names a selection of several objects by.
+const MaxKindsInTitle = 2
+
 // Identifies a glyph of the application icon set (`datas/icons.svg`), in the grid
 // order of the document. The set is rasterized on demand per size and scale through
 // [[Gui.IconSet]], so every glyph stays sharp at any display density.
@@ -551,6 +554,9 @@ impl MainWnd
 
     mtd updateState()
     {
+        // The tool in use stands in the dock, in the cell of its group when it has one.
+        if .dock != null do
+            discard .dock.selectTool(toolCommand(.editMode))
         .updateCommandState()
         .updateInspectorTitle()
         .fillHintLine()
@@ -605,6 +611,76 @@ impl MainWnd
     }
 
     // Returns the name of a tool, as the inspector heads the properties it edits.
+    // Returns the words counting one kind of object, from a table of "singular|plural" words.
+    func countWords(table: string, count: u64)->String
+    {
+        let parts = Tokenize.split(table, '|'u8, removeEmpty: false)
+        let words = (count == 1 or parts.count < 2) ? parts[0] : parts[1]
+        return Format.toString(words, count)
+    }
+
+    // Returns the words counting each kind of the selected objects, in the order they first come,
+    // such as "2 rectangles · 1 text"; nothing past two kinds, which would not read at a glance.
+    func describeKinds(capture: *Capture)->String
+    {
+        var tables: Array'string
+        var counts: Array'u64
+        for index in capture.selection
+        {
+            let table = kindCountTable(capture.forms[index])
+            var found = false
+            for t, i in tables where t == table
+            {
+                counts[i] += 1
+                found = true
+            }
+
+            if not found
+            {
+                tables.add(table)
+                counts.add(1)
+            }
+        }
+
+        var result: String
+        if tables.count > MaxKindsInTitle do
+            return result
+        for t, i in tables
+        {
+            if i do
+                result += " · "
+            result += countWords(t, counts[i])
+        }
+
+        return result
+    }
+
+    // Returns the "singular|plural" words counting objects of the kind of `form`.
+    func kindCountTable(form: IForm)->string
+    {
+        let texts = appStrings()
+        let base: *BaseForm = form
+        if base.subKind == .Highlight do
+            return texts.count_Highlight
+        if base.subKind == .PixSel do
+            return texts.count_PixSel
+
+        switch form
+        {
+        case FormShape as shape: return shape.kind == .Ellipse ? texts.count_Ellipse : texts.count_Rectangle
+        case FormArrow:          return texts.count_Arrow
+        case FormLine:           return texts.count_Line
+        case FormPolygon:        return texts.count_Polygon
+        case FormText:           return texts.count_Text
+        case FormCallout:        return texts.count_Callout
+        case FormDraw:           return texts.count_Draw
+        case FormStep:           return texts.count_Step
+        case FormImage:          return texts.count_Image
+        }
+
+        return texts.count_Object
+    }
+
     func editModeName(mode: EditMode)->string
     {
         switch #complete mode
@@ -674,8 +750,16 @@ impl MainWnd
 
         if count == 1 do
             .inspector.setTitle(editModeName(formToEditMode(capture!.forms[capture.selection.back()])), appStrings().ui_OneObject)
-        else do
-            .inspector.setTitle(Format.toString(appStrings().ui_Objects, count))
+        else
+        {
+            // Several objects are named by what they are, "2 rectangles · 1 text", while that
+            // stays short; past two kinds, by how many they are.
+            let kinds = describeKinds(unwrap capture)
+            if kinds.count do
+                .inspector.setTitle(kinds)
+            else do
+                .inspector.setTitle(Format.toString(appStrings().ui_Objects, count))
+        }
 
         // The actions are words: the commands they post carry glyphs for the lens.
         .inspector.addAction(appStrings().act_Duplicate).sigPressed += func|main = me|(_) { main.postCommandEvent(ActionCopyPaste.Duplicate) }

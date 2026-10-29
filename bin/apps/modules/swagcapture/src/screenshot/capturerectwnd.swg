@@ -21,8 +21,8 @@ const AreaLoupeRadius  = 60.0     // Radius of the pixel loupe.
 const AreaLoupePixels  = 21.0     // Desktop pixels across the loupe; odd, so one sits in the middle.
 const AreaLoupeOffset  = 28.0     // Distance between the pointer and the loupe.
 const AreaBarTop       = 24.0     // Air between the top of the screen and the mode bar.
-const AreaBarHeight    = 40.0     // Height of the mode bar.
-const AreaBarPadding   = 20.0     // Air inside the mode bar, and between two of its tabs.
+const AreaBarHeight    = 34.0     // Height of the mode bar.
+const AreaBarPadding   = 16.0     // Air inside the mode bar, and between two of its tabs.
 const AreaTabUnderline = 2.0      // Weight of the Arc underline of the mode in use.
 const AreaBarSeparatorGap    = 12.0     // Air around the hairline between the modes and how the screen is read.
 const AreaBarSeparatorHeight = 16.0     // Height of that hairline.
@@ -314,7 +314,7 @@ impl CaptureRectWnd
         with .hintLine = HintLine.create(me)
         {
             .setGrounded(true)
-            .addHint(appStrings().key_Enter, appStrings().hint_Capture)
+            .addHint(Gui.strings().key_Enter, appStrings().hint_Capture)
             .addHint(Gui.strings().key_Escape, appStrings().hint_Cancel)
         }
     }
@@ -443,7 +443,7 @@ impl CaptureRectWnd
     {
         let metrics = .themeMetrics()
         let colors  = .themeColors()
-        let font    = .theme().createDefaultFont(metrics.defaultFontSize)
+        let font    = .theme().createDefaultFont(metrics.defaultFontSize - 1)     // A step under the body, as the picture.
         let screen  = .clientRect()
 
         let delayText  = areaDelayName(cast(s32, .main.captureOptions.delay))
@@ -476,7 +476,7 @@ impl CaptureRectWnd
             let ink = active or hot.contains(.pointer) ? colors.text : colors.softText
             painter.drawString(x, font.opticalLineTop(.barRect.vertCenter()), name, font, ink)
             if active do
-                painter.fillRect(Math.Rectangle{x, .barRect.bottom() - 8, w, AreaTabUnderline}, colors.arc)
+                painter.fillRect(Math.Rectangle{x, .barRect.bottom() - 6, w, AreaTabUnderline}, colors.arc)
             x += w + AreaBarPadding
         }
 
@@ -500,6 +500,6 @@ impl CaptureRectWnd
         let cursorInk = cursorOn or .cursorRect.contains(.pointer) ? colors.text : colors.softText
         painter.drawString(x, font.opticalLineTop(.barRect.vertCenter()), cursorText, font, cursorInk)
         if cursorOn do
-            painter.fillRect(Math.Rectangle{x, .barRect.bottom() - 8, cursorW, AreaTabUnderline}, colors.arc)
+            painter.fillRect(Math.Rectangle{x, .barRect.bottom() - 6, cursorW, AreaTabUnderline}, colors.arc)
     }
 }

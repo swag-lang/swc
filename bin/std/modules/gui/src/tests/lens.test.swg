@@ -52,8 +52,9 @@ func lensCommandState(_: *Wnd, evt: IEvent)->bool
 
         if state.id == LensDisabled
         {
-            state.updatedFields.add(.Disabled)
+            state.updatedFields.add(.Disabled | .Reason)
             state.disabled = true
+            state.reason   = "Nothing selected"
         }
 
         state.accepted = true
@@ -162,6 +163,10 @@ func lensSetup(host: *Testing.HeadlessHost)->*Lens.View
     let theme = lens.results.sections[1]!.entries[0]
     Swag.assert(theme.title == "Center Theme" and theme.spans.count == 1 and theme.spans[0].count == 6)
     Swag.assert(theme.checked and not lens.results.sections[1]!.entries[1].checked)
+
+    // A command that cannot run says why in its detail.
+    let disabled = lens.results.sections[1]!.entries[1]
+    Swag.assert(disabled.disabled and disabled.detail == "Nothing selected" and not disabled.monoDetail)
 
     // The first row is chosen, the keys move the choice over the section labels, and the
     // disabled command is never chosen.
@@ -450,5 +455,81 @@ func addViewAsSection(results: *Lens.Results, chosen: *u64)
 
         var image = host.render()
         Pixel.Testing.assertImageGolden(&image, light ? "lens.inline.paper" : "lens.inline.ink")
+    }
+}
+
+// Ctrl Enter runs the chosen setting and keeps the lens open on it, its state asked for again,
+// so several settings can be flipped in a row; Enter still runs and closes.
+#test
+{
+    var posted: Array'String
+    var on   = true
+    var host: Testing.HeadlessHost
+    host.setup(800, 600)
+    let lens = lensSetup(&host)
+    host.root.hookOnEvent = func|posted = &posted, on = &on|(wnd, evt)->bool
+    {
+        if evt is CommandStateEvent as state where state.kind == .Compute and state.id == LensTheme
+        {
+            state.name    = "Center Theme"
+            state.checked = on[]
+            state.updatedFields.add(.Name | .Checked)
+            state.accepted = true
+            return true
+        }
+
+        if lensCommandState(wnd, evt) do
+            return true
+        if evt is CommandEvent as cmd
+        {
+            posted.add(cmd.id)
+            if cmd.id == LensTheme do
+                on[] = not on[]
+            cmd.accepted = true
+            return true
+        }
+
+        return false
+    }
+
+    lens.open(">center")
+    let theme = unwrap lens.chosenEntry()
+    Swag.assert(theme.title == "Center Theme" and theme.checkable and theme.checked)
+
+    host.keyPress(.Return, .Control)
+    Swag.assert(lens.isOpen() and posted.count == 1 and not on)
+    Swag.assert(lens.chosenEntry()!.title == "Center Theme" and not lens.chosenEntry()!.checked)
+
+    host.keyPress(.Return, .Control)
+    Swag.assert(lens.isOpen() and posted.count == 2 and on and lens.chosenEntry()!.checked)
+
+    // A command that is no setting is not checkable; Enter runs it and closes.
+    lens.setQuery(">save")
+    Swag.assert(not lens.chosenEntry()!.checkable)
+    host.keyPress(.Return)
+    Swag.assert(not lens.isOpen() and posted.count == 3 and posted[2] == LensSave)
+}
+
+// The foot teaches Ctrl Enter on a setting, in Encre and in Papier.
+#[Swag.TestTag("golden")]
+#test
+{
+    for light in [false, true]
+    {
+        var host: Testing.HeadlessHost
+        host.setup(800, 480)
+        if light
+        {
+            host.theme.setLight()
+            host.notify(.ThemeChanged)
+        }
+
+        let lens = lensSetup(&host)
+        lens.open(">")
+        for 2 do
+            host.keyPress(.Down)
+
+        var image = host.render()
+        Pixel.Testing.assertImageGolden(&image, light ? "lens.stay.paper" : "lens.stay.ink")
     }
 }

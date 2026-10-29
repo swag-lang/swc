@@ -16,6 +16,13 @@ func paintLensRecent(painter: *Painter, rect: Math.Rectangle, preview: Texture)
     painter.drawTexture(Math.Rectangle{rect.horzCenter() - w * 0.5, rect.vertCenter() - h * 0.5, w, h}, preview)
 }
 
+// The alignment a glyph of the text mini-bar stands for, and whether it is down the box rather
+// than across it, kept in the user data of the glyph.
+func alignUserData(align: FormTextAlign, vertical: bool)->*void => cast(*void, cast(u64, align) + (vertical ? AlignVerticalFlag : 0))
+func alignOfUserData(data: *void?)->FormTextAlign => cast(FormTextAlign, cast(u64, data) & ~AlignVerticalFlag)
+func alignIsVertical(data: *void?)->bool => (cast(u64, data) & AlignVerticalFlag) != 0
+const AlignVerticalFlag = 0x100'u64
+
 // The faces a text can be set in, listed by the face of the mini-bar, enumerated once.
 var g_MiniBarFonts: Array'SystemFontFamilyInfo
 
@@ -83,23 +90,46 @@ impl MainWnd
         let glyph = .themeMetrics().toolDock_Glyph
         .dock = ToolDock.create(.editArea)
 
+        // Eight cells, as the pictures; a cell with a mark stands for a group of tools, each of
+        // which keeps its command and its key.
         .dock.addTool(.icon(.Select, glyph), ActionToolMode.Selection)
-        .dock.addTool(.icon(.Shape, glyph), ActionToolMode.Shape)
-        .dock.addTool(.icon(.Arrow, glyph), ActionToolMode.Arrow)
-        .dock.addTool(.icon(.Line, glyph), ActionToolMode.Line)
-        .dock.addTool(.icon(.Polygon, glyph), ActionToolMode.Poly)
+        let shape = .dock.addTool(.icon(.Shape, glyph), ActionToolMode.Shape)
+        .dock.addToGroup(shape, .icon(.Polygon, glyph), ActionToolMode.Poly)
+        let arrow = .dock.addTool(.icon(.Arrow, glyph), ActionToolMode.Arrow)
+        .dock.addToGroup(arrow, .icon(.Line, glyph), ActionToolMode.Line)
         .dock.addTool(.icon(.Text, glyph), ActionToolMode.Text)
 
         // The callout has no sprite of its own: its cell draws the bubble.
         let callout = .dock.addTool(.icon(.Text, glyph), ActionToolMode.Callout)
         callout.iconPainter = func(btn, bc, pos, flags) { drawCalloutGlyph(btn, bc, pos, flags) }
 
-        .dock.addTool(.icon(.Draw, glyph), ActionToolMode.Draw)
-        .dock.addTool(.icon(.Highlight, glyph), ActionToolMode.Highlight)
+        let draw = .dock.addTool(.icon(.Draw, glyph), ActionToolMode.Draw)
+        .dock.addToGroup(draw, .icon(.Highlight, glyph), ActionToolMode.Highlight)
         .dock.addTool(.icon(.Step, glyph), ActionToolMode.Step)
-        .dock.addTool(.icon(.Image, glyph), ActionToolMode.Img)
-        .dock.addTool(.icon(.PixSel, glyph), ActionToolMode.PixSel)
-        .dock.addTool(.icon(.Favorites, glyph), ActionToolMode.Favorites)
+        let image = .dock.addTool(.icon(.Image, glyph), ActionToolMode.Img)
+        .dock.addToGroup(image, .icon(.PixSel, glyph), ActionToolMode.PixSel)
+        .dock.addToGroup(image, .icon(.Favorites, glyph), ActionToolMode.Favorites)
+    }
+
+    // Returns the command of the tool drawing in `mode`.
+    func toolCommand(mode: EditMode)->WndId
+    {
+        switch #complete mode
+        {
+        case .Shape:     return ActionToolMode.Shape
+        case .Arrow:     return ActionToolMode.Arrow
+        case .Line:      return ActionToolMode.Line
+        case .Polygon:   return ActionToolMode.Poly
+        case .Text:      return ActionToolMode.Text
+        case .Callout:   return ActionToolMode.Callout
+        case .Draw:      return ActionToolMode.Draw
+        case .Highlight: return ActionToolMode.Highlight
+        case .Step:      return ActionToolMode.Step
+        case .Image:     return ActionToolMode.Img
+        case .PixSel:    return ActionToolMode.PixSel
+        case .Favorites: return ActionToolMode.Favorites
+        case .Selection: return ActionToolMode.Selection
+        }
     }
 
     // The properties of the selection, or of the tool when nothing is selected: the quick styles
@@ -289,15 +319,15 @@ impl MainWnd
     }
 
     // Returns the face, the size, the style and the horizontal alignment of the selected text or callout.
-    mtd selectedTextStyle()->{found: bool, type: typeinfo, face: string, size: f32, style: FontFamilyStyle, align: FormTextAlign}
+    mtd selectedTextStyle()->{found: bool, type: typeinfo, face: string, size: f32, style: FontFamilyStyle, align: FormTextAlign, alignVert: FormTextAlign}
     {
         switch .getCapture()?.getSelectedBaseForm()
         {
-        case FormText as text:       return {true, FormText, text.fontName.toString(), text.fontSize, text.fontStyle, text.alignHorz}
-        case FormCallout as callout: return {true, FormCallout, callout.fontName.toString(), callout.fontSize, callout.fontStyle, callout.alignHorz}
+        case FormText as text:       return {true, FormText, text.fontName.toString(), text.fontSize, text.fontStyle, text.alignHorz, text.alignVert}
+        case FormCallout as callout: return {true, FormCallout, callout.fontName.toString(), callout.fontSize, callout.fontStyle, callout.alignHorz, callout.alignVert}
         }
 
-        return {false, FormText, "", 0, .Regular, .Center}
+        return {false, FormText, "", 0, .Regular, .Center, .Center}
     }
 
     // Adds the face of the text and its size to the mini-bar: the face is a quiet list of every
@@ -417,22 +447,32 @@ impl MainWnd
         if not style.found do
             return
 
+        // How the lines stand across the box, then down it: two groups of three glyphs.
         const Aligns = [FormTextAlign.LeftTop, FormTextAlign.Center, FormTextAlign.RightBottom]
-        const Glyphs = [CaptureIcons.TextAlignLeft, CaptureIcons.TextAlignCenter, CaptureIcons.TextAlignRight]
+        const Across = [CaptureIcons.TextAlignLeft, CaptureIcons.TextAlignCenter, CaptureIcons.TextAlignRight]
+        const Down   = [CaptureIcons.AlignTop, CaptureIcons.AlignMiddle, CaptureIcons.AlignBottom]
         let size = .themeMetrics().menuPopup_IconSize
-        for align, i in Aligns
+        for vertical in [false, true]
         {
-            with let button = .miniBar.addButton(.icon(Glyphs[i], size), toolTip: appStrings().ui_Anchor, flags: .Radio)
+            if vertical do
+                .miniBar.addSeparator()
+            for align, i in Aligns
             {
-                .userData = enumToUserData(align)
-                .setChecked(style.align == align)
-                .sigPressed += func|main = me, type = style.type|(btn)
+                let glyph = vertical ? Down[i] : Across[i]
+                let tip   = vertical ? appStrings().ui_AnchorVertical : appStrings().ui_Anchor
+                with let button = .miniBar.addButton(.icon(glyph, size), toolTip: tip, flags: .Radio)
                 {
-                    main.propWnd.pushTypedValue(cast(u32, enumFromUserData'FormTextAlign(btn.userData)), type, #nameof(FormText.alignHorz), true)
-                    for item in main.miniBar.items
+                    .userData = alignUserData(align, vertical)
+                    .setChecked((vertical ? style.alignVert : style.align) == align)
+                    .sigPressed += func|main = me, type = style.type, vertical|(btn)
                     {
-                        if item.wnd is IconButton as other where other.flags.has(.Radio) do
-                            other.setChecked(other == btn)
+                        let field = vertical ? #nameof(FormText.alignVert) : #nameof(FormText.alignHorz)
+                        main.propWnd.pushTypedValue(cast(u32, alignOfUserData(btn.userData)), type, field, true)
+                        for item in main.miniBar.items
+                        {
+                            if item.wnd is IconButton as other where other.flags.has(.Radio) and alignIsVertical(other.userData) == vertical do
+                                other.setChecked(other == btn)
+                        }
                     }
                 }
             }
@@ -565,16 +605,21 @@ impl MainWnd
     {
         if .hintLine == null do
             return
+
+        // The line stands in the room the dock and the inspector leave, never under them.
+        let insets = .floatingInsets()
+        .hintLine.margin = {insets.left, 0, insets.right, 0}
         .hintLine.clearHints()
         if .editWnd != null and .editWnd.editView.isEditingText()
         {
+            // The keys come first: a line cut by a narrow room loses the advice, not the keys.
             let view = .editWnd.editView
+            .hintLine.addHint(view.textSpec.step ? strings().key_Enter : strings().key_CtrlEnter, appStrings().hint_KeepText)
+            .hintLine.addHint(strings().key_Escape, appStrings().hint_Cancel)
+            if not view.textSpec.step do
+                .hintLine.addHint(strings().key_Enter, appStrings().hint_NewLine)
             if view.textEditForm() is FormCallout do
                 .hintLine.addHint("", appStrings().hint_CalloutTail)
-            if not view.textSpec.step do
-                .hintLine.addHint(appStrings().key_Return, appStrings().hint_NewLine)
-            .hintLine.addHint(view.textSpec.step ? appStrings().key_Return : appStrings().key_CtrlReturn, appStrings().hint_KeepText)
-            .hintLine.addHint(strings().key_Escape, appStrings().hint_Cancel)
             return
         }
 

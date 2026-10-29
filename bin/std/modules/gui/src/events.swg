@@ -103,6 +103,7 @@ struct CommandStateEvent
             ToolTip           // `toolTip` contains an updated value.
             Hidden            // `hidden` contains an updated value.
             RenderingHint     // `renderingHint` contains an updated value.
+            Reason            // `reason` contains an updated value.
         }
 
         // Provides presentation hints for a command.
@@ -135,6 +136,7 @@ struct CommandStateEvent
         disabled:      bool              // Disabled state when `UpdatedFields.Disabled` is set.
         checked:       bool              // Checked state when `UpdatedFields.Checked` is set.
         hidden:        bool              // Hidden state when `UpdatedFields.Hidden` is set.
+        reason:        String            // Why a disabled command cannot run now, in a few words, when `UpdatedFields.Reason` is set.
     }
 }
 

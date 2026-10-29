@@ -57,6 +57,7 @@ dlg_TitleChooseLibrary Choisir le dossier de la bibliothèque
 dlg_TitleBrowseFolder  Parcourir un dossier d'images
 dlg_TitleEditTags      Modifier les étiquettes
 dlg_TitleExportCaptures Exporter les captures
+dlg_TitleMoveCaptures  Déplacer les captures
 dlg_TitleResizeImage   Redimensionner l'image
 dlg_TitleExpandImage   Étendre l'image
 dlg_TitleExpandCapture Étendre la capture
@@ -65,6 +66,7 @@ dlg_BtnResize          Redimensionner
 dlg_BtnLoad            Charger
 dlg_BtnSave            Enregistrer
 dlg_BtnExport          Exporter
+dlg_BtnMove            Déplacer
 msg_RemoveAssociation  L'association avec l'image sera supprimée.
 msg_DeleteCaptures     Le ou les fichiers de capture seront supprimés.
 msg_OverwriteLinked    L'image d'origine sera écrasée.
@@ -85,6 +87,7 @@ msg_FailedLoadFile     Impossible de charger le fichier : %
 msg_FailedOpenLibrary  Impossible d'ouvrir le dossier de la bibliothèque
 msg_FailedSaveMetadata Impossible d'enregistrer les métadonnées de la capture
 msg_FailedExportCaptures Impossible d'exporter les captures sélectionnées
+msg_FailedMoveCaptures Certaines captures n'ont pas pu être déplacées. Elles sont restées à leur place.
 msg_ShortcutTaken      Impossible d'enregistrer le raccourci global '%'. 
 msg_ShortcutTakenWhy   Une autre application l'utilise probablement déjà !
 msg_ShortcutsTaken     Impossible d'enregistrer les raccourcis globaux %. 
@@ -130,6 +133,7 @@ act_OpenSelected       Ouvrir
 act_LocateImage        Afficher l'image dans son dossier
 act_EditTags           Modifier les étiquettes…
 act_ExportSelected     Exporter la sélection…
+act_MoveSelected       Déplacer vers un dossier…
 act_FavoriteCapture    Favori
 act_Rating             Note
 act_NoRating           Sans note

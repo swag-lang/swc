@@ -738,7 +738,7 @@ impl MainWnd
     {
         if .libraryMode
         {
-            .libWnd.describeLens(results)
+            .libWnd.describeLensRest(results)
             return
         }
 

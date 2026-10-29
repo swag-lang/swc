@@ -67,6 +67,7 @@ struct AppStrings
     dlg_TitleBrowseFolder:      string = "Browse Image Folder"
     dlg_TitleEditTags:          string = "Edit Tags"
     dlg_TitleExportCaptures:    string = "Export Captures"
+    dlg_TitleMoveCaptures:      string = "Move Captures"
     dlg_TitleResizeImage:       string = "Resize Image"
     dlg_TitleExpandImage:       string = "Expand Image"
     dlg_TitleExpandCapture:     string = "Expand Capture"
@@ -75,6 +76,7 @@ struct AppStrings
     dlg_BtnLoad:                string = "Load"
     dlg_BtnSave:                string = "Save"
     dlg_BtnExport:              string = "Export"
+    dlg_BtnMove:                string = "Move"
     msg_RemoveAssociation:      string = "This will remove the image association."
     msg_DeleteCaptures:         string = "This will delete the capture file(s)."
     msg_EraseTrash:             string = "This will permanently erase every capture in the recycle bin."
@@ -115,6 +117,7 @@ struct AppStrings
     msg_FailedOpenLibrary:      string = "Cannot open the library folder"
     msg_FailedSaveMetadata:     string = "Cannot save capture metadata"
     msg_FailedExportCaptures:   string = "Cannot export the selected captures"
+    msg_FailedMoveCaptures:     string = "Some captures could not be moved. They are still where they were."
     msg_ShortcutTaken:          string = "Cannot register global shortcut '%'. "
     msg_ShortcutTakenWhy:       string = "Another running application is probably already using it!"
     msg_ShortcutsTaken:         string = "Cannot register global shortcuts %. "     // Lists every unavailable shortcut, each one quoted.
@@ -240,6 +243,7 @@ struct AppStrings
     act_LocateImage:            string = "Show Image in Folder"
     act_EditTags:               string = "Edit Tags…"
     act_ExportSelected:         string = "Export Selected…"
+    act_MoveSelected:           string = "Move to Folder…"     // Moves the chosen captures of the library to another folder.
     act_FavoriteCapture:        string = "Favorite"
     act_Rating:                 string = "Rating"
     act_NoRating:               string = "No Rating"

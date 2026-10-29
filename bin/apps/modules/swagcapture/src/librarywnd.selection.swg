@@ -253,6 +253,40 @@ impl LibraryWnd
     }
 
     // Asks for a folder and writes every selected capture there as an image.
+    // Moves the chosen captures to a folder the user picks: they leave the page, and the library
+    // when the folder is outside it.
+    mtd moveSelected()
+    {
+        let files = .selectedFiles()
+        if files.isEmpty() do
+            return
+
+        let initialFolder = .currentFolder()
+        var options: FileDlgOptions
+        options.mode              = .SelectFolder
+        options.state             = &.main.exportFolderDlgState
+        options.initialFolder     = initialFolder
+        options.title             = appStrings().dlg_TitleMoveCaptures
+        options.confirmButtonText = appStrings().dlg_BtnMove
+        let dialog = FileDlg.create(unwrap .main.surface, options)
+        if dialog.doModal() != Dialog.BtnOk do
+            return
+
+        let folder = dialog.selectedPath()
+        if folder == initialFolder do
+            return
+
+        Cursor.activateWait()
+        var failed = false
+        for name in files where g_Library.moveTo(name, folder).isEmpty() do
+            failed = true
+
+        catch .view.fill()
+        .invalidate()
+        if failed do
+            MessageDlg.error(.main.surface, appStrings().msg_FailedMoveCaptures)
+    }
+
     mtd exportSelected()
     {
         let files = .selectedCaptureFiles()

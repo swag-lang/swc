@@ -101,6 +101,24 @@ Textures created by [[Pixel.IRenderer.addImage]] and targets created by
 [[Pixel.IRenderer.createRenderTarget]] belong to that renderer. Release them
 through the same interface. CPU and OpenGL handles are not interchangeable.
 
+## Backdrop materials
+
+[[Pixel.BackdropEffect.draw]] filters already painted opaque content, then returns control
+to the painter for a sharp foreground. [[Pixel.BackdropBlur.Gaussian]] uses normalized
+separable weights; [[Pixel.BackdropBlur.DualKawase]] uses complementary downsampling and
+reconstruction kernels. Radius is in logical pixels and follows the painter's content scale.
+
+```swag
+let material = BackdropEffect{radius: 12, saturation: 1}
+material.draw(&painter, Math.Rectangle{24, 24, 320, 180})
+```
+
+Leave saturation at one and tint transparent for pure blur. A lower saturation quiets color;
+an optional tint composes a frosted material. Opacity mixes the finished material with the
+original backdrop. The destination alpha coverage is preserved. The effect samples only
+the current target, with clamped edges, and requires a translation-only painter transform.
+Repaint the source scene before each application to avoid accumulating blur across frames.
+
 ## Pixel goldens
 
 [[Pixel.Testing.assertImageGolden]] stores a rendered PNG beside the calling

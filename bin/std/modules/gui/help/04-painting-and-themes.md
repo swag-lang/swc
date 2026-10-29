@@ -67,6 +67,30 @@ Paint only inside the invalidated region when possible. Call
 [[Gui.Application.notifyThemeChanged]] recomputes styles and invalidates the
 interface after editing shared theme data.
 
+## Defocus the backdrop of a floating window
+
+Set [[Gui.Wnd.backdrop]] to a [[Pixel.BackdropEffect]] before showing the window.
+The material filters the content already painted behind it; the window and its children
+are drawn afterward and stay sharp. Its opacity follows the window's presentation opacity,
+including arrival and departure. Call [[Gui.Wnd.invalidate]] after changing the material.
+
+```swag
+panel.backdrop = Pixel.BackdropEffect{radius: 12, saturation: 0.85}
+panel.invalidate()
+```
+
+[[Pixel.BackdropBlur.DualKawase]] uses a downsampling and reconstruction pyramid for broad
+defocus. [[Pixel.BackdropBlur.Gaussian]] provides a normalized separable filter for smaller
+extents. Both run through the CPU and OpenGL renderers. Optional tint and opacity controls
+compose a material without changing the foreground's colors.
+
+The lens uses the shared [[Gui.ThemeMetrics.lens_BlurRadius]] and
+[[Gui.ThemeMetrics.lens_Saturation]] in both themes, without a light or dark veil.
+While any backdrop is visible, its surface reconstructs the complete scene on each dirty
+frame, so a hover or caret repaint cannot repeatedly blur the previous frame. This costs
+more than an ordinary partial repaint. The material samples its current render target;
+an enclosing off-screen layer needs an opaque background of its own.
+
 ## Headless paint tests
 
 [[Gui.Testing.HeadlessHost]] builds a deterministic application and widget tree

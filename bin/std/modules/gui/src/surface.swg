@@ -503,6 +503,11 @@ impl Surface
         // the two on grids that disagree by one device pixel, leaving a cleared but
         // never-repainted seam along the dirty edge.
         var clipRect = .dirtyRect
+
+        // A backdrop reads neighbouring pixels from this frame. Reconstruct the scene first,
+        // including on caret/hover invalidations, instead of sampling last frame's material.
+        if root.hasBackdrop() do
+            clipRect = {0, 0, .position.width / .dpiScale, .position.height / .dpiScale}
         clipRect.round()
         .paintedWnds = 0
         .skippedWnds = 0

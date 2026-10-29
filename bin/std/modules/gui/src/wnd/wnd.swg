@@ -335,6 +335,13 @@ struct Wnd
         focusDelegate: *Wnd?
 
         backgroundStyle: BackgroundStyle = Transparent     // Semantic theme background painted before content.
+
+        // Material applied to the already painted backdrop, before this window fades.
+        //
+        // Zero opacity disables it, which is the default. Call `invalidate` after changing it.
+        // The owning surface repaints the complete scene
+        // while a backdrop is active so filtering never accumulates across partial repaints.
+        backdrop: BackdropEffect = {opacity: 0}
     }
 
     isAllocated:      bool     // Whether destruction must release this allocation.
@@ -906,6 +913,13 @@ impl Wnd
         if opacity <= 0 do
             return
 
+        if .backdrop.opacity > 0
+        {
+            var material = .backdrop
+            material.opacity *= opacity
+            material.draw(bc.painter, .presentationRect())
+        }
+
         let scaled = .presentationScale != Math.Point{1, 1}
         if opacity >= 1 and .presentationOffset == {} and not .hasPresentationClip and not scaled
         {
@@ -976,6 +990,22 @@ impl Wnd
         if .hasPresentationClip do
             painter.popClippingRect()
         painter.popState()
+    }
+
+    internal mtd hasBackdrop()->bool
+    {
+        if .presentationOpacity <= 0 do
+            return false
+        if .backdrop.opacity > 0 do
+            return true
+        for child in .children where not child.isPendingDestroy and
+                                     (not child.wndFlags.has(.Hidden) or child.paintsWhenHidden)
+        {
+            if child.hasBackdrop() do
+                return true
+        }
+
+        return false
     }
 
     private mtd paintContent(bc: *PaintContext)

@@ -189,6 +189,8 @@ struct ThemeMetrics
 
         // The lens: one input over results grouped under section labels, keys at its foot.
         lens_Width:          f32 = 640      // Widest the lens gets; a narrow window keeps the floating inset on both sides.
+        lens_BlurRadius:     f32 = 6        // Backdrop defocus extent in logical pixels, shared by both palettes.
+        lens_Saturation:     f32 = 1        // Remaining backdrop saturation while the lens is open; one keeps pure blur.
         lens_TopRatio:       f32 = 0.15     // Height of the window above the lens, as a fraction of the window.
         lens_MaxHeightRatio: f32 = 0.7      // Tallest the lens gets, as a fraction of the window.
         lens_InputHeight:    f32 = 64       // Height of the input band.

@@ -13,9 +13,10 @@ private
     const VertexShaderAA = #include("shaders/aa.vert")
     const PixelShaderAA  = #include("shaders/aa.frag")
 
-    const PixelShaderYuv     = #include("shaders/yuv.frag")
-    const PixelShaderBlur    = #include("shaders/blur.frag")
-    const PixelShaderResolve = #include("shaders/resolve.frag")
+    const PixelShaderYuv      = #include("shaders/yuv.frag")
+    const PixelShaderBlur     = #include("shaders/blur.frag")
+    const PixelShaderResolve  = #include("shaders/resolve.frag")
+    const PixelShaderBackdrop = #include("shaders/backdrop.frag")
 
     const VertexShaderFont    = #include("shaders/font.vert")
     const PixelShaderFont     = #include("shaders/font.frag")
@@ -163,10 +164,11 @@ struct RenderOgl
         stackReleasedRT: Array'(*RenderTarget?)     // Targets queued for deferred release.
         stackRT:         Array'(*RenderTarget?)     // Nested bound render targets.
         curRT:           *RenderTarget?             // Active off-screen target, if any.
-        curShader:       *ShaderBase?               // Active shader, or the default shader.
-        overlapMode:     bool                       // Whether overlap-safe alpha drawing is active.
-        alphaReplay:     bool                       // Whether commands are being replayed to rebuild a target's alpha plane.
-        contentScale:    f32 = 1                    // Device pixels per unit of the painter stream being drawn.
+        shaderBackdrop:  ShaderBackdrop
+        curShader:       *ShaderBase?     // Active shader, or the default shader.
+        overlapMode:     bool             // Whether overlap-safe alpha drawing is active.
+        alphaReplay:     bool             // Whether commands are being replayed to rebuild a target's alpha plane.
+        contentScale:    f32 = 1          // Device pixels per unit of the painter stream being drawn.
 
         // The clipping region, rendered as coverage into a texture the size of the target and read
         // by every fragment at its device position. The hardware stencil holds one bit per pixel,
@@ -398,6 +400,19 @@ private impl RenderOgl
             glUseProgram(cast(GLuint, .shaderResolve.handle))
             glUniform1i(text0, 0)
             .shaderResolve.factor = cast(glGetUniformLocation(cast(GLuint, .shaderResolve.handle), ("factor").buffer))
+        }
+
+        scope
+        {
+            expect .createShader(&.shaderBackdrop, VertexShaderSimple, PixelShaderBackdrop)
+            let handle = cast(GLuint, .shaderBackdrop.handle)
+            glUseProgram(handle)
+            glUniform1i(glGetUniformLocation(handle, ("inTexture0").buffer), 0)
+            .shaderBackdrop.mode       = cast(glGetUniformLocation(handle, ("mode").buffer))
+            .shaderBackdrop.radius     = cast(glGetUniformLocation(handle, ("radius").buffer))
+            .shaderBackdrop.saturation = cast(glGetUniformLocation(handle, ("saturation").buffer))
+            .shaderBackdrop.tint       = cast(glGetUniformLocation(handle, ("tint").buffer))
+            .shaderBackdrop.sourceSize = cast(glGetUniformLocation(handle, ("sourceSize").buffer))
         }
     }
 
@@ -1740,6 +1755,31 @@ impl RenderOgl
 
         case .ReleaseRenderTarget:
             .releaseRenderTargetImpl(cmd.renderTgt.tgt)
+
+        case .CaptureBackdrop:
+            let capture = &cmd.backdropCapture
+            let size    = .targetSizeImpl()
+            let rect    = capture.rect
+            .prepareFramebufferTouch()
+            glDisable(GL_SCISSOR_TEST)
+            glBindFramebuffer(GL_DRAW_FRAMEBUFFER, cast(GLuint, capture.tgt.handle))
+            glBlitFramebuffer(cast(GLint, rect.x), cast(GLint, (size.height - rect.bottom())), cast(GLint, rect.right()), cast(GLint, (size.height - rect.y)), 0, capture.tgt.colorBuffer.height - cast(GLint, rect.height), cast(GLint, rect.width), capture.tgt.colorBuffer.height, GL_COLOR_BUFFER_BIT, GL_NEAREST)
+            .rebindCurrentTarget()
+            if .scissorOn
+            {
+                var scissor = .scissorBox
+                .applyScissor(scissor)
+            }
+
+        case .SetBackdropShader:
+            let params = &cmd.backdropPass
+            .selectProgram(&.shaderBackdrop)
+            glUniform1i(cast(GLint, .shaderBackdrop.mode), params.mode)
+            glUniform1f(cast(GLint, .shaderBackdrop.radius), params.radius)
+            glUniform1f(cast(GLint, .shaderBackdrop.saturation), params.saturation)
+            glUniform2f(cast(GLint, .shaderBackdrop.sourceSize), params.width, params.height)
+            let tint = params.tint.toVector4()
+            glUniform4f(cast(GLint, .shaderBackdrop.tint), tint.x, tint.y, tint.z, tint.w)
 
         case .SetDefaultShader:
             let params = &cmd.defaultShader

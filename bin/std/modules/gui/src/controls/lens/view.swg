@@ -7,7 +7,7 @@ using Core, Pixel
 //
 // This is the lens of the charter. It opens near the top third of its window, at most
 // [[Gui.ThemeMetrics.lens_Width]] wide, on the surface ground with the floating corner and shadow,
-// and dims the work behind it. A 64 px input takes the query; the results stand under it grouped
+// and defocuses the work behind it. A 64 px input takes the query; the results stand under it grouped
 // under section labels, one row per entry with its glyph or number, the characters the query
 // matched highlighted, and the chosen row on the Arc selection ground. The keys are listed at its
 // foot. `↑` `↓` choose, Enter runs the chosen row, `Esc` or a click outside closes it.
@@ -148,7 +148,6 @@ impl IWnd for View
         let colors  = .themeColors()
         let body    = .body()
 
-        painter.fillRect(.clientRect(), colors.lens_Dim)
         paintFloatingShadow(me, painter, body, metrics.corner_Floating)
         paintFloatingGround(me, painter, body, metrics.corner_Floating)
 
@@ -283,6 +282,8 @@ impl IWnd for View
 
     mtd impl onNotifyEvent(evt: *NotifyEvent)
     {
+        if evt.kind == .ThemeChanged do
+            .updateBackdrop()
         if (evt.kind == .ThemeChanged or evt.kind == .LanguageChanged) and .isLocallyVisible()
         {
             .input.setPlaceholder(strings().lens_Placeholder)
@@ -487,6 +488,7 @@ impl View
     // The keyboard moves to the input and comes back where it was when the lens closes.
     mtd open(query: string = "")
     {
+        .updateBackdrop()
         .returnFocus = .focusedWindow()
         .input.setPlaceholder(strings().lens_Placeholder)
         .input.style.setFont(.theme().createDefaultFontFamily(.themeMetrics().lens_InputFontSize))
@@ -497,6 +499,12 @@ impl View
         .input.setSelection(query.count, query.count)
         .input.setFocus()
         .refresh()
+    }
+
+    private mtd updateBackdrop()
+    {
+        let metrics = .themeMetrics()
+        .backdrop = BackdropEffect{radius: metrics.lens_BlurRadius, saturation: metrics.lens_Saturation}
     }
 
     // Closes the lens without running anything.

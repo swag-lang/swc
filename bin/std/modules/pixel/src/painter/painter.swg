@@ -74,6 +74,8 @@ enum CommandId
     SetShader                 // Select a custom shader.
     SetShaderParam            // Update one custom-shader uniform.
     SetFontEffect             // Update MSDF font-effect uniforms.
+    CaptureBackdrop           // Snapshot already drawn target colors before filtering.
+    SetBackdropShader         // Select a portable backdrop filter or material pass.
 }
 
 // Controls optional painter behaviors.
@@ -265,21 +267,23 @@ struct Command
         // Operation the command performs, with the parameters that operation reads.
         using op: union(CommandId)
         {
-            case .Clear:                                       clear:          struct{ color: Color }
-            case .DrawTriangles:                               drawTriangles:  TriangleBatch
-            case .Transform:                                   transform:      struct{ tr: Transform2 }
-            case .SetClippingRect:                             clippingRect:   struct{ rect: Math.Rectangle }
-            case .StartClippingRegion, .SetClippingRegionMode: clippingRegion: struct{ mode: ClippingMode }
-            case .UpdateFont:                                  font:           struct{ fontRef: *Font }
-            case .SetBlendingMode:                             blendingMode:   struct{ mode: BlendingMode }
-            case .BindTextureFont:                             textureFont:    struct{ font: *Font, atlasIndex: s32 }
-            case .ColorMask:                                   colorMask:      ColorMask
-            case .BindRenderTarget, .ReleaseRenderTarget:      renderTgt:      struct{ tgt: *RenderTarget, paintAlpha: bool }
-            case .SetDefaultShader:                            defaultShader:  struct{ id: DefaultShaderId, axis: s32, radius: f32, factor: s32 }
-            case .SetShader:                                   shader:         struct{ shader: *ShaderBase? }
-            case .SetShaderParam:                              shaderParam:    struct{ param: ShaderParamHandle, type: typeinfo, _f32: f32, _s32: s32 }
-            case .SetFontEffect:                               fontEffect:     FontEffectParams
-            case .BindTexture0, .ReleaseTexture:               texture0:       BrushBinding
+            case .Clear:                                       clear:           struct{ color: Color }
+            case .DrawTriangles:                               drawTriangles:   TriangleBatch
+            case .Transform:                                   transform:       struct{ tr: Transform2 }
+            case .SetClippingRect:                             clippingRect:    struct{ rect: Math.Rectangle }
+            case .StartClippingRegion, .SetClippingRegionMode: clippingRegion:  struct{ mode: ClippingMode }
+            case .UpdateFont:                                  font:            struct{ fontRef: *Font }
+            case .SetBlendingMode:                             blendingMode:    struct{ mode: BlendingMode }
+            case .BindTextureFont:                             textureFont:     struct{ font: *Font, atlasIndex: s32 }
+            case .ColorMask:                                   colorMask:       ColorMask
+            case .BindRenderTarget, .ReleaseRenderTarget:      renderTgt:       struct{ tgt: *RenderTarget, paintAlpha: bool }
+            case .SetDefaultShader:                            defaultShader:   struct{ id: DefaultShaderId, axis: s32, radius: f32, factor: s32 }
+            case .SetShader:                                   shader:          struct{ shader: *ShaderBase? }
+            case .SetShaderParam:                              shaderParam:     struct{ param: ShaderParamHandle, type: typeinfo, _f32: f32, _s32: s32 }
+            case .SetFontEffect:                               fontEffect:      FontEffectParams
+            case .CaptureBackdrop:                             backdropCapture: struct{ tgt: *RenderTarget, rect: Math.Rectangle }
+            case .SetBackdropShader:                           backdropPass:    BackdropPass
+            case .BindTexture0, .ReleaseTexture:               texture0:        BrushBinding
         } = .ResetTexture0
     }
 }
@@ -1596,6 +1600,26 @@ impl Painter
         .usesDefaultShader = false
         .texture0Dirty     = true
         .newCommand(.SetDefaultShader, true).op = .SetDefaultShader{id: .Blur, axis: axis, radius: radius}
+    }
+
+    internal mtd backdropTargetBounds()->Math.Rectangle
+    {
+        let size   = .renderer().targetSize()
+        let width  = .curRT ? .curRT.colorBuffer.width : size.width
+        let height = .curRT ? .curRT.colorBuffer.height : size.height
+        return {0, 0, width / .contentScale(), height / .contentScale()}
+    }
+
+    internal mtd captureBackdrop(target: *RenderTarget, rect: Math.Rectangle)
+    {
+        .newCommand(.CaptureBackdrop, true).op = .CaptureBackdrop{target, rect}
+    }
+
+    internal mtd setBackdropShader(params: BackdropPass)
+    {
+        .usesDefaultShader = false
+        .texture0Dirty     = true
+        .newCommand(.SetBackdropShader, true).op = .SetBackdropShader{params}
     }
 
     // Selects the supersampling resolve program.

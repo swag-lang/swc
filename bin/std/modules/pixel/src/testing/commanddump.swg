@@ -245,6 +245,18 @@ private
 
             case .SetFontEffect:
                 .dumpFontEffect(&cmd.fontEffect)
+
+            case .CaptureBackdrop:
+                .body.appendFormat(" % rect=%", .targetRef(cmd.backdropCapture.tgt), cmd.backdropCapture.rect)
+
+            case .SetBackdropShader:
+                .body.appendFormat(" mode=% source=(%,%) radius=% saturation=% tint=%",
+                                   cmd.backdropPass.mode,
+                                   cmd.backdropPass.width,
+                                   cmd.backdropPass.height,
+                                   fmtF(cmd.backdropPass.radius),
+                                   fmtF(cmd.backdropPass.saturation),
+                                   cmd.backdropPass.tint)
             }
 
             .body += "\n"

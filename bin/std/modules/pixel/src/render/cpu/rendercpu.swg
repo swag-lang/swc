@@ -64,6 +64,7 @@ struct RenderCpu
         blurAxis:      s32
         blurRadius:    f32 = 4
         resolveFactor: s32 = 1
+        backdropPass:  BackdropPass
     }
 }
 
@@ -108,12 +109,13 @@ private
     // Rows per raster block, amortizing triangle setup without tying blocks to worker count.
     const CpuBandRows: s32 = 16
 
-    const CpuProgram_Default: u8 = 0
-    const CpuProgram_Simple:  u8 = 1
-    const CpuProgram_Font:    u8 = 2
-    const CpuProgram_Msdf:    u8 = 3
-    const CpuProgram_Blur:    u8 = 4
-    const CpuProgram_Resolve: u8 = 5
+    const CpuProgram_Default:  u8 = 0
+    const CpuProgram_Simple:   u8 = 1
+    const CpuProgram_Font:     u8 = 2
+    const CpuProgram_Msdf:     u8 = 3
+    const CpuProgram_Blur:     u8 = 4
+    const CpuProgram_Resolve:  u8 = 5
+    const CpuProgram_Backdrop: u8 = 6
 
     // Four BGRA pixels share these byte masks in the packed span kernels.
     const CpuBgraRgbMask   = cast(Math.Simd.U8x16, [255'u8, 255, 255, 0, 255, 255, 255, 0, 255, 255, 255, 0, 255, 255, 255, 0])
@@ -876,6 +878,79 @@ private impl RenderCpu
         return bilinearColor(c00, c10, c01, c11, fx, fy)
     }
 
+    mtd sampleBackdrop(batch: *RasterBatch, image: *Image, u, v: f32)->Color
+    {
+        let params  = &.backdropPass
+        let sourceU = u * params.width / image.width
+        let sourceV = 1 - (1 - v) * params.height / image.height
+        let sample  = func|image, params|(su, sv: f32)->Vector4
+        {
+            // Keep interpolation in float until the pass is complete. Quantizing each of the
+            // two bilinear lerps loses brightness repeatedly on the reconstruction pyramid.
+            let x      = Math.clamp(su * image.width - 0.5, 0.0, cast(f32, params.width - 1))
+            let y      = Math.clamp((1 - sv) * image.height - 0.5, 0.0, cast(f32, params.height - 1))
+            let x0     = cast(s32, Math.floor(x))
+            let y0     = cast(s32, Math.floor(y))
+            let x1     = Math.min(x0 + 1, params.width - 1)
+            let y1     = Math.min(y0 + 1, params.height - 1)
+            let c00    = fetchBgra8(image, x0, y0).toVector4()
+            let c10    = fetchBgra8(image, x1, y0).toVector4()
+            let c01    = fetchBgra8(image, x0, y1).toVector4()
+            let c11    = fetchBgra8(image, x1, y1).toVector4()
+            let top    = c00 + (c10 - c00) * (x - x0)
+            let bottom = c01 + (c11 - c01) * (x - x0)
+            return top + (bottom - top) * (y - y0)
+        }
+
+        var sum: Vector4
+        if params.mode < 2
+        {
+            let reach = Math.ceil(params.radius)
+            for i in batch.blurWeightCount
+            {
+                let offset = cast(f32, i) - reach
+                let su     = params.mode == 0 ? sourceU + offset / image.width : sourceU
+                let sv     = params.mode == 1 ? sourceV + offset / image.height : sourceV
+                sum += sample(su, sv) * batch.blurWeights![i]
+            }
+        }
+        elif params.mode < 4
+        {
+            let dx       = params.radius / image.width
+            let dy       = params.radius / image.height
+            let diagonal = sample(sourceU + dx, sourceV + dy) +
+                           sample(sourceU - dx, sourceV - dy) +
+                           sample(sourceU + dx, sourceV - dy) +
+                           sample(sourceU - dx, sourceV + dy)
+            if params.mode == 2
+            {
+                sum = (sample(sourceU, sourceV) * 4 + diagonal) / 8
+            }
+            else
+            {
+                sum = sample(sourceU - 2 * dx, sourceV) +
+                      sample(sourceU + 2 * dx, sourceV) +
+                      sample(sourceU, sourceV - 2 * dy) +
+                      sample(sourceU, sourceV + 2 * dy)
+                sum = (sum + diagonal * 2) / 12
+            }
+        }
+        else
+        {
+            sum = sample(sourceU, sourceV)
+            let luminance = sum.x * 0.2126 + sum.y * 0.7152 + sum.z * 0.0722
+            let gray      = Vector4{luminance, luminance, luminance, 1}
+            sum = gray + (sum - gray) * params.saturation
+            let tint = params.tint.toVector4()
+            sum = sum * (1 - tint.w) + tint * tint.w
+        }
+
+        return Color.fromArgb(255'u8,
+                              cast(u8, Math.round(Math.saturate(sum.x) * 255)),
+                              cast(u8, Math.round(Math.saturate(sum.y) * 255)),
+                              cast(u8, Math.round(Math.saturate(sum.z) * 255)))
+    }
+
     mtd sampleBlur(batch: *RasterBatch, image: *Image, u, v: f32)->Color
     {
         let radius = Math.max(.blurRadius, 0.0)
@@ -1013,7 +1088,8 @@ private impl RenderCpu
 
             if p.uvMode == .FillSubRect and
                .program != CpuProgram_Blur and
-               .program != CpuProgram_Resolve do
+               .program != CpuProgram_Resolve and
+               .program != CpuProgram_Backdrop do
                 return sampleSubRect(image, paintPos, &.paint, .contentScale)
 
             let w      = Math.max(p.boundRect.z - p.boundRect.x, 0.000001)
@@ -1037,6 +1113,8 @@ private impl RenderCpu
                 return .sampleBlur(batch, image, u, v)
             if .program == CpuProgram_Resolve do
                 return .sampleResolve(image, u, v)
+            if .program == CpuProgram_Backdrop do
+                return .sampleBackdrop(batch, image, u, v)
 
             if p.interpolationMode == .Linear do
                 return sampleLinear(image, u, v, repeat)
@@ -2084,6 +2162,25 @@ private impl RenderCpu
             }
         }
 
+        if .program == CpuProgram_Backdrop and .backdropPass.mode < 2
+        {
+            let radius = .backdropPass.radius
+            let reach  = cast(s32, Math.ceil(radius))
+            let sigma  = Math.max(radius / 3, 0.001)
+            var total  = 0.0'f32
+            for var offset = -reach; offset <= reach; offset += 1
+            {
+                let weight = Math.exp(-cast(f32, offset * offset) / (2 * sigma * sigma))
+                blurWeights.add(weight)
+                total += weight
+            }
+
+            for &weight in blurWeights do
+                weight[] /= total
+            batch.blurWeights     = blurWeights.storage()
+            batch.blurWeightCount = blurWeights.count
+        }
+
         if not .overlapMode or .alphaResolve
         {
             .rasterizeRange(&batch, bounds)
@@ -2447,6 +2544,20 @@ private impl RenderCpu
 
         case .ReleaseRenderTarget:
             .releaseRenderTargetImpl(cmd.renderTgt.tgt)
+
+        case .CaptureBackdrop:
+            let source = unwrap .currentImage()
+            let target = unwrap .findTexture(cmd.backdropCapture.tgt.colorBuffer.handle)
+            let rect   = cmd.backdropCapture.rect
+            for y in cast(s32, rect.height)
+            {
+                for x in cast(s32, rect.width) do
+                    writePixel(&target.image, x, y, readPixel(source, x + cast(s32, rect.x), y + cast(s32, rect.y)))
+            }
+
+        case .SetBackdropShader:
+            .program      = CpuProgram_Backdrop
+            .backdropPass = cmd.backdropPass
 
         case .SetDefaultShader:
             switch #complete cmd.defaultShader.id

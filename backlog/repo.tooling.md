@@ -132,3 +132,14 @@ being compiled by it.
 - Done when: GUI, Pixel, and OGL regressions can be assessed with repeatable paired module
   timings and memory peaks, and a sample disturbed after admission is identified in the record.
 - Related: compiler.optimization.029
+
+### repo.tooling.009 — Continue golden campaigns across empty workspaces
+
+- Evidence: `tools/goldens.bat dm test` stops after the examples workspace reports that no
+  test matches `--test-tag golden`; the application and reference stages are never reached.
+  The reference workspace also has no matching test when run separately.
+  Its early exits also prevent collection across failing workspaces.
+- Next: distinguish an empty golden selection from a failed test, continue through all four
+  workspaces, and aggregate genuine failures without accepting snapshots.
+- Done when: an empty examples selection still reaches application and reference goldens,
+  and a failing earlier workspace remains visible in the final exit status.

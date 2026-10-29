@@ -112,7 +112,7 @@ struct ThemeColors
         // The floating components of the charter — the lens, the information sheet, the
         // inspector, the mini-bar and the dock — stand on the surface ground with a hairline ring.
         floating_Shadow: Color     // Shadow a floating component casts.
-        lens_Dim:        Color     // Dim laid over the window while the lens floats above it, so the work reads faintly behind it.
+        lens_Dim:        Color     // Legacy lens veil, retained for theme-sheet compatibility; the lens now uses a backdrop material.
 
         view_Bk:           Color     // Ground content is read on.
         informationBar_Bk: Color     // Ground of a band reporting identity, context, or status.

@@ -110,3 +110,9 @@ struct ShaderResolve
         factor:     ShaderParamHandle     // Integer supersampling factor uniform.
     }
 }
+
+internal struct ShaderBackdrop
+{
+    using base: ShaderBase
+    mode, radius, saturation, tint, sourceSize: ShaderParamHandle
+}

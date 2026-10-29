@@ -182,8 +182,8 @@ be noticed: if a viewer remembers an animation, it was too much.
 - **Decelerate in, plain out.** Arrivals ease out: they start at speed and settle. Departures fade.
   No overshoot, bounce, spring, wobble, blur trail, or scale above one.
 - **Opacity carries the change; travel only says where from.** At most 8 px of travel for a
-  floating surface, 16 px for a page. The lens and a dialog fade in with their dim and do not
-  travel: a dim that moved would move the work. The sheet and the inspector arrive 8 px from the
+  floating surface, 16 px for a page. The lens fades in with its backdrop blur, a dialog with
+  its dim; neither travels, keeping the work stationary. The sheet and the inspector arrive 8 px from the
   edge they stand against; the mini-bar and a menu leave their anchor by 4 px, the mini-bar
   rising when it stands above its selection. A notice opens its own height, then its words
   fade in; dismissed, its words fade out first, then its height closes, so the content under it
@@ -206,7 +206,7 @@ be noticed: if a viewer remembers an animation, it was too much.
 | Hover, press, check, switch knob | 120 ms | ease out | knob slides its track |
 | Check mark, radio dot, disclosure chevron | 120 ms | ease out | mark grows, chevron turns |
 | Tab underline to the chosen tab | 180 ms | ease out | the underline slides |
-| Lens, dialog arriving, with their dim | 180 ms | ease out | none |
+| Lens with its blur, dialog with its dim | 180 ms | ease out | none |
 | Sheet, inspector arriving | 180 ms | ease out | 8 px from their edge |
 | Mini-bar, menu arriving | 180 ms | ease out | 4 px away from the anchor |
 | Any floating surface leaving | 120 ms | linear fade | none |
@@ -222,7 +222,9 @@ be noticed: if a viewer remembers an animation, it was too much.
 ![The lens on Papier](imgs/scope.lens.paper.png)
 
 Opened by `Ctrl Space`. 600–640 wide, near the top third, surface colour, corner 12, floating
-shadow. The document behind dims (about 16 % opacity, slight blur). An input of 64 px with 22 px
+shadow. The document behind is defocused with a Dual Kawase backdrop material (6 px logical
+extent, unchanged saturation), without a light or dark veil. Its position and overall brightness stay
+stable in both themes; the lens and its text stay sharp. An input of 64 px with 22 px
 light text; results grouped under section labels (In this file, Symbol, Open, View as, commands
 by family); rows of 38–40 px with a leading glyph or number, matched characters highlighted,
 the chosen row on the Arc selection ground. Selecting a row never shifts its shortcut or detail.

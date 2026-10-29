@@ -20,10 +20,10 @@ struct FormCallout
     fontSize: f32 = 40
     #[Name("Style")]
     fontStyle = FontFamilyStyle.Regular
-    // The mini-bar sets how the lines stand across the body; the inspector how they stand down it.
+    // The mini-bar sets how the lines stand in the body, across it and down it.
     #[Name("")]
     alignHorz = FormTextAlign.Center
-    #[Name("Vertical")]
+    #[Name("")]
     alignVert = FormTextAlign.Center
     #[Name("Round"), SliderMinMax(MinRoundSize, MaxRoundSize)]
     roundSize:    f32   = 16

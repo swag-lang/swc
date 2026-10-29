@@ -238,6 +238,7 @@ func testFindStyleButtons(prop: *PropWnd, tip: string)->Array'(*IconButton)
     // inspector sets the face, then its size, then its style, then how the lines stand down.
     Swag.assert(not testFindItem(prop, #nameof(FormText.text))!.line.isLocallyVisible())
     Swag.assert(not testFindItem(prop, #nameof(FormText.alignHorz))!.line.isLocallyVisible())
+    Swag.assert(not testFindItem(prop, #nameof(FormText.alignVert))!.line.isLocallyVisible())
     Swag.assert(testItemIndex(prop, #nameof(FormText.fontName)) < testItemIndex(prop, #nameof(FormText.fontSize)))
     Swag.assert(testItemIndex(prop, #nameof(FormText.fontSize)) < testItemIndex(prop, #nameof(FormText.fontStyle)))
     Swag.assert(testItemIndex(prop, #nameof(FormText.fontStyle)) < testItemIndex(prop, #nameof(FormText.alignVert)))
@@ -286,7 +287,11 @@ func testFindStyleButtons(prop: *PropWnd, tip: string)->Array'(*IconButton)
     prop.selectionHasChanged()
     f.gui.pump()
 
-    // Scroll all the way down (content is taller than the prop pane)
+    // Scroll all the way down: the pane is made shorter than its content first.
+    let body = unwrap prop.parent
+    body.resize(body.position.width, 300)
+    body.applyLayout()
+    f.gui.pump()
     prop.grid.scrollWnd.setScrollPos(0, 10000)
     let sc = prop.grid.scrollWnd.scrollPosition()
     Swag.assert(sc.y > 0)

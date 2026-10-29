@@ -24,10 +24,10 @@ struct FormText
     fontSize: f32 = 48
     #[Name("Style")]
     fontStyle = FontFamilyStyle.Regular
-    // The mini-bar sets how the lines stand across the box; the inspector how they stand down it.
+    // The mini-bar sets how the lines stand in the box, across it and down it.
     #[Name("")]
     alignHorz = FormTextAlign.Center
-    #[Name("Vertical")]
+    #[Name("")]
     alignVert = FormTextAlign.Center
     #[Name("Strength"), SliderMinMax(MinBoldSize, MaxBoldSize)]
     boldSize:    f32 = 0

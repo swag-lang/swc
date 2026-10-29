@@ -453,9 +453,9 @@ impl IPropertyNotify for PropWnd
             return (.gridBindType == FormText or .gridBindType == FormPolygon) and
                    base.subKind != .PixSel
 
-        // The words are typed in place, and how the lines stand across the box is set from the
+        // The words are typed in place, and how the lines stand in the box is set from the
         // mini-bar beside the selection.
-        case #nameof(FormText.text), #nameof(FormText.alignHorz):
+        case #nameof(FormText.text), #nameof(FormText.alignHorz), #nameof(FormText.alignVert):
             return false
 
         case #nameof(BaseForm.alpha), #nameof(BaseForm.paintShadow):

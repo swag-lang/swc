@@ -1010,3 +1010,39 @@ func testBeginInlineText(host: *Gui.Testing.HeadlessHost, main: *MainWnd, index:
         host.finishAnimations()
     }
 }
+
+// The text mini-bar sets how the lines stand in the box: three glyphs across it, three down it,
+// one of each group checked; a glyph down the box leaves the glyphs across it as they are.
+#test
+{
+    var host: Gui.Testing.HeadlessHost
+    let main = testSetupEditorSurface(&host, dark: true)
+    defer
+    {
+        main.libWnd.requestClose()
+        host.shutdown()
+        g_Main = null
+    }
+
+    let capture = unwrap main.getCapture()
+    let text    = assume cast(*FormText, capture.forms[0])
+    capture.selectionHasChanged()
+    main.updateMiniBar()
+
+    var across, down: Array'(*IconButton)
+    for item in main.miniBar.items
+    {
+        if item.wnd is IconButton as button where button.flags.has(.Radio)
+        {
+            if alignIsVertical(button.userData) do
+                down.add(button)
+            else do
+                across.add(button)
+        }
+    }
+
+    Swag.assert(across.count == 3 and down.count == 3)
+    host.clickWnd(down[2])
+    Swag.assert(text.alignVert == .RightBottom and text.alignHorz == .Center)
+    Swag.assert(down[2].isChecked and not down[1].isChecked and across[1].isChecked)
+}

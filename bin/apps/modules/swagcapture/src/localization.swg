@@ -54,6 +54,7 @@ struct AppStrings
     ui_Height:                  string = "Height"
     ui_KeepRatio:               string = "Keep Ratio"
     ui_Anchor:                  string = "Anchor"
+    ui_AnchorVertical:          string = "Vertical Anchor"             // How the lines of a text stand down its box, in the mini-bar.
     ui_Frozen:                  string = "Selection is frozen"
     ui_Desktop:                 string = "Desktop"
     ui_MyImages:                string = "My Images"
@@ -388,7 +389,6 @@ struct AppStrings
     prop_Style:     string = "Style"          // Label of the font style: regular, bold, italic or both.
     prop_Text:      string = "Text"           // Label of the edited text.
     prop_Thickness: string = "Thickness"      // Label of the stroke thickness.
-    prop_Vertical:  string = "Vertical"       // Label of how the lines of a text stand down its box.
 
     prop_Straight: string = "Straight"      // Line entry: a segment.
     prop_Bezier:   string = "Bezier"        // Line entry: a curve.

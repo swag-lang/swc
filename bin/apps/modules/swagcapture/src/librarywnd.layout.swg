@@ -184,7 +184,9 @@ impl LibraryWnd
         // of the library otherwise.
         let root      = Library.getFolder()
         let rootCount = .currentFolder() == root ? .view.allItems.count : g_Library.files.count
-        .folderTabs.addItem(Format.toString("%  %", appStrings().ui_AllCaptures, rootCount))
+        // A tab names its folder and counts its captures, the count in mono.
+        .folderTabs.addItem(appStrings().ui_AllCaptures)
+        .folderTabs.setItemCount(0, Format.toString("%", rootCount))
         .tabFolders.add(root)
 
         let dirs = catch Directory.enumerateDirectories(root)
@@ -197,7 +199,8 @@ impl LibraryWnd
             else do
                 count = (catch Library.enumerateSupportedFiles(d.fullName)).count
             let name = isTrash ? appStrings().act_RecycleBin : (Path.fileName(d.fullName) orelse d.fullName.toString())
-            .folderTabs.addItem(Format.toString("%  %", name, count))
+            .folderTabs.addItem(name)
+            .folderTabs.setItemCount(cast(u32, .folderTabs.items.count - 1), Format.toString("%", count))
             .tabFolders.add(d.fullName)
         }
 

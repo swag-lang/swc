@@ -13,6 +13,7 @@ func homeFixture(name: string)->String => Path.combine(unwrap Path.directoryName
 func homeWindow(host: *Testing.HeadlessHost, light: bool)->*ViewerWindow
 {
     host.setup(960, 640)
+    shipFrame(host)
     host.app.setAppIcon(expect Image.decode(".png", AppIcon))
     if light do
         host.theme.setLight()

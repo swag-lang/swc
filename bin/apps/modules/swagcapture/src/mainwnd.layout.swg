@@ -525,7 +525,30 @@ impl MainWnd
         var room   = .editArea.clientRect()
         room.x     += insets.left
         room.width -= insets.left + insets.right
-        .miniBar.showNear(rect, below: view.isEditingText(), room: room)
+        .miniBar.showNear(.miniBarAnchor(rect, place, view), below: view.isEditingText(), room: room)
+    }
+
+    // Returns the rectangle the mini-bar stands next to, for a selection at `rect`: the
+    // selection, reaching out to an edge of the capture when the bar would otherwise straddle that
+    // edge, so the bar stands either inside the capture or wholly outside it.
+    mtd miniBarAnchor(rect: Math.Rectangle, place: Math.Rectangle, view: *EditView)->Math.Rectangle
+    {
+        let metrics = .themeMetrics()
+        let reach   = metrics.miniBar_Distance + .miniBar.bodySize().y
+        let corner  = .editArea.surfaceToLocal(view.localToSurface(Math.Point{place.x - view.scrollPos.x, place.y - view.scrollPos.y}))
+        let top     = corner.y
+        let bottom  = corner.y + place.height
+
+        var result = rect
+        if result.y - reach < top and result.y > top
+        {
+            result.height += result.y - top
+            result.y = top
+        }
+
+        if result.bottom() + reach > bottom and result.bottom() < bottom do
+            result.height = bottom - result.y
+        return result
     }
 
     // The faint line at the foot of the work: the size and zoom of the capture, then the key

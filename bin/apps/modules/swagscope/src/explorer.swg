@@ -32,6 +32,16 @@ const ExplorerDurationFontSize = 11'u32
 const ExplorerDurationGround   = 0xB30B0B0D'u32
 const ExplorerDurationInk      = 0xFFE6E6EA'u32
 
+// Reports whether `word` opens a declaration or a statement, which a code cell sets in Arc.
+func isCardKeyword(word: string)->bool
+{
+    const Keywords = ["impl", "mtd", "func", "let", "var", "const", "for", "if", "while", "struct", "enum", "using", "return",
+                      "fn", "def", "class", "import", "public", "private", "static", "void", "int", "pub", "use"]
+    for one in Keywords where one == word do
+        return true
+    return false
+}
+
 // Returns the title of a track from its file name: without its extension and without the
 // number and separator a ripper writes before it.
 func trackTitle(name: string)->String
@@ -136,6 +146,8 @@ struct Explorer
     previewBudget:   u64      // How many previews of the shown listing run at once.
     extraction:      ArchiveExtraction
     toast:           *Toast?
+    forcedBoard:     ExplorerBoard     // The board the view menu forces, when `forced`.
+    forced:          bool
 }
 
 impl Explorer
@@ -463,9 +475,32 @@ impl Explorer
         for name, mode in [text.explore_Names, text.explore_Details, text.explore_Small, text.explore_Medium, text.explore_Large] do
             menu.addRadioItem(name, Format.toString("scope.explore.mode.%", mode), checked: cast(u64, .mode) == mode)
 
+        // The shape of the tiles: read from the folder, or forced.
+        menu.addSeparator()
+        let boards = [text.board_Automatic, text.board_Grid, text.board_Covers, text.board_Posters, text.board_Mosaic]
+        for name, board in boards
+        {
+            let checked = board == 0 ? not .forced : (.forced and cast(u64, .forcedBoard) == board - 1)
+            menu.addRadioItem(name, Format.toString("scope.explore.board.%", board), checked: checked)
+        }
+
         let chosen = menu.doModal(.modeMenu, autoDestroy: true) orelse ""
         for mode in 5 where chosen == Format.toString("scope.explore.mode.%", mode).toString() do
             .setMode(cast(ExplorerMode, cast(u32, mode)))
+        for board in boards.count where chosen == Format.toString("scope.explore.board.%", board).toString() do
+            .forceBoard(board != 0, board ? cast(ExplorerBoard, cast(u32, board - 1)) : .Grid)
+    }
+
+    // Forces the shape of the tiles to `board`, or without `forced` gives it back to what the
+    // folder holds.
+    mtd forceBoard(forced: bool, board = ExplorerBoard.Grid)
+    {
+        .forced      = forced
+        .forcedBoard = board
+        if .mode == .Names or .mode == .Details do
+            .setMode(.Medium)
+        else do
+            .fill()
     }
 
     // Shows the orders of the listing under its menu: the column, and whether it runs backward.
@@ -507,13 +542,23 @@ impl Explorer
         default: sort = text.sort_Name
         }
 
+        // A mosaic stands its pictures in the order they were taken.
+        if .grid.board == .Mosaic do
+            sort = text.sort_Modified
         .sortMenu.setQuietText(sort)
         .extractAll.setQuietText(text.cmd_ExtractAll)
         switch .mode
         {
         case .Names:   .modeMenu.setQuietText(text.mode_Names)
         case .Details: .modeMenu.setQuietText(text.mode_Details)
-        default:       .modeMenu.setQuietText(text.mode_Thumbnails)
+        default:
+            switch .grid.board
+            {
+            case .Covers: .modeMenu.setQuietText(text.mode_Covers)
+            case .Mosaic: .modeMenu.setQuietText(text.mode_Mosaic)
+            case .Posters: .modeMenu.setQuietText(text.mode_Posters)
+            default:      .modeMenu.setQuietText(text.mode_Thumbnails)
+            }
         }
         .layoutTools()
     }
@@ -762,6 +807,22 @@ impl Explorer
         sheet.setAction(appStrings().cmd_OpenChosen, ViewerCommands.OpenChosen)
         if .listing.isArchive do
             sheet.setSecondaryAction(appStrings().cmd_Extract, ViewerCommands.ExtractChosen)
+    }
+
+    // Plays what is chosen: an album from its first track, a piece of music with the folder
+    // after it.
+    mtd playChosen()
+    {
+        if .grid.board == .Album
+        {
+            .playAlbum(false)
+            return
+        }
+
+        if .grid.board != .Covers or .selected >= .entries.count do
+            return
+        .window.setPlayMode(.Folder)
+        .activate(.selected)
     }
 
     // Opens the first track of the album, or one drawn by chance with the folder played in
@@ -1153,6 +1214,8 @@ impl Explorer
     {
         if .listing.isArchive do
             return .Grid
+        if .forced do
+            return .forcedBoard
         var files, films, sounds, pictures: u64
         var album: String
         var oneAlbum = true
@@ -1215,12 +1278,59 @@ impl Explorer
             .shown.add(index)
         }
 
+        // Pictures are seen in the order they were taken.
+        let board = .listingBoard()
+        if board == .Mosaic
+        {
+            .shown.sort(func|explorer = me|(a, b)->s32
+            {
+                let order = Latin1.compareNatural(explorer.entries[a].modified, explorer.entries[b].modified)
+                if order != 0 do
+                    return order
+                return a < b ? -1 : (a > b ? 1 : 0)
+            })
+        }
+
         var count: String
         switch .shown.count
         {
         case 0:  count = appStrings().explore_Empty
         case 1:  count = appStrings().explore_OneItem
         default: count = Format.toString(appStrings().explore_Count, .shown.count)
+        }
+
+        // A folder of media counts what it holds in its own words.
+        if .shown.count > 1
+        {
+            var albums: Array'String
+            var tracks, photos, films: u64
+            for index in .shown
+            {
+                let entry = &.entries[index]
+                let kind  = .theme().fileGlyph(entry.name, entry.directory, 16).index
+                if kind == cast(s32, ThemeIcons.FileAudio)
+                {
+                    tracks += 1
+                    var known = false
+                    for one in albums where one[] == entry.music.title do
+                        known = true
+                    if not known do
+                        albums.add(entry.music.title.isEmpty() ? entry.name : entry.music.title)
+                }
+                elif kind == cast(s32, ThemeIcons.FileImage) do
+                    photos += 1
+                elif kind == cast(s32, ThemeIcons.FileVideo) do
+                    films += 1
+            }
+
+            if board == .Covers do
+                count = Format.toString("% · %", Format.toString(appStrings().explore_Albums, albums.count), Format.toString(appStrings().explore_Tracks, tracks))
+            elif board == .Album do
+                count = Format.toString(appStrings().explore_Tracks, tracks)
+            elif board == .Mosaic do
+                count = Format.toString(appStrings().explore_Photos, photos)
+            elif board == .Posters do
+                count = Format.toString(appStrings().explore_Films, films)
         }
 
         // A folder says what its files weigh; an archive what it weighs packed and what it will
@@ -1251,6 +1361,7 @@ impl Explorer
         }
 
         .grid.refreshLayout()
+        .refreshQuietMenus()
         .requestPreview()
         .window.teachHints(.isLocallyVisible())
     }
@@ -1646,6 +1757,7 @@ impl IWnd for Explorer
         case .Up where evt.modifiers.has(.Alt):    .goUp()
         case .Back:                                .goUp()
         case .Oem2 where evt.modifiers == .None:   .revealFilter()
+        case .P where evt.modifiers == .None:      .playChosen()
         default:                                   evt.accepted = false
         }
     }
@@ -1845,9 +1957,11 @@ impl ExplorerGrid
     {
         if row.isEmpty() do
             return y
-        let gaps   = MosaicGap * cast(f32, row.count - 1)
-        var height = (width - gaps) / Math.max(shape, 0.01)
-        if last and height > MosaicHeight do
+        // The last row of a day fills the width too, unless it holds too little to stand that tall.
+        let gaps    = MosaicGap * cast(f32, row.count - 1)
+        var height  = (width - gaps) / Math.max(shape, 0.01)
+        let short   = last and height > MosaicHeight * 1.25
+        if short do
             height = MosaicHeight
         height = Math.round(height)
         var x = CellInset
@@ -1855,7 +1969,7 @@ impl ExplorerGrid
         {
             let entry = &.explorer.entries[.explorer.shown[at]]
             var w     = Math.round(.shapeOf(entry) * height)
-            if i + 1 == row.count and not last do
+            if i + 1 == row.count and not short do
                 w = CellInset + width - x
             .places[at] = Math.Rectangle{x, y, w, height}
             x += w + MosaicGap
@@ -1990,7 +2104,11 @@ impl ExplorerGrid
 
         painter.fillRoundRect(tile, radius, radius, colors.raised)
         let glyph = .theme().fileGlyph(entry.name, entry.directory, 32)
-        if entry.texture.isValid()
+        if .board == .Grid and .paintCard(painter, tile, entry)
+        {
+            // The cell drew what the file is.
+        }
+        elif entry.texture.isValid()
         {
             let texture = entry.texture
             let fills   = .posters or .board == .Covers or .board == .Mosaic or glyph.index == cast(s32, ThemeIcons.FileImage) or glyph.index == cast(s32, ThemeIcons.FileVideo)
@@ -2072,6 +2190,115 @@ impl ExplorerGrid
         }
     }
 
+    // Draws what a file of the mixed board is, as its picture shows it, and returns whether it
+    // did: a PDF its first page on a paper card, code its first lines in mono, Markdown its
+    // heading over its lines, a font "Aa".
+    mtd paintCard(painter: *Painter, tile: Math.Rectangle, entry: const *ExplorerEntry)->bool
+    {
+        let colors = .themeColors()
+        let ext    = Path.lowercaseExtension(entry.name)
+        if ext == ".pdf"
+        {
+            // A page standing on the tile, with the shadow of paper.
+            let height = tile.height - 24
+            let width  = Math.round(height * 0.72)
+            let page   = Math.Rectangle{Math.round(tile.horzCenter() - width * 0.5), tile.y + 12, width, height}
+            .theme().drawFloatingShadow(painter, page, 2)
+            painter.fillRoundRect(page, 2, 2, Color.fromArgb(Argb.White))
+            if entry.texture.isValid()
+            {
+                var room = page
+                room.inflate(-2)
+                painter.fillRect(room, Brush.createTexture(entry.texture))
+            }
+            else
+            {
+                let ink  = Color.fromArgb(0xFF1A1A1E)
+                let rule = Color.fromArgb(0xFFDADAD6)
+                let x    = page.x + 10
+                painter.fillRect(Math.Rectangle{x, page.y + 14, width * 0.45, 6}, ink)
+                for i in 4 do
+                    painter.fillRect(Math.Rectangle{x, page.y + 30 + cast(f32, i) * 7, (width - 20) * (i == 3 ? 0.6 : 1.0), 2}, rule)
+                painter.fillRect(Math.Rectangle{x, page.y + 66, width - 20, 28}, Color.fromArgb(0xFFEAE8E4))
+            }
+
+            return true
+        }
+
+        if not entry.excerpt.isEmpty() and (ext == ".md" or ext == ".markdown")
+        {
+            // The first heading in bold, then the lines under it as rules, the next heading in soft.
+            let bold  = .theme().createDefaultFont(13, .Bold)
+            let small = .theme().createDefaultFont(10, .Bold)
+            var y     = tile.y + 22
+            var headings = 0'u64
+            for line in Tokenize.split(entry.excerpt, '\n'rune)
+            {
+                if y > tile.bottom() - 16 do
+                    break
+                if line.count and line[0] == '#'
+                {
+                    var at = 0'u64
+                    while at < line.count and (line[at] == '#' or line[at] == ' ') do
+                        at += 1
+                    let font = headings == 0 ? bold : small
+                    painter.pushClippingRect(Math.Rectangle{tile.x + 18, tile.y, tile.width - 36, tile.height})
+                    painter.drawString(tile.x + 18, font.opticalLineTop(y), line[at to], font, headings == 0 ? colors.text : colors.softText)
+                    painter.popClippingRect()
+                    headings += 1
+                    y += 18
+                }
+                elif line.count
+                {
+                    let width = Math.min(cast(f32, line.count) * 3.0, tile.width - 36)
+                    painter.fillRect(Math.Rectangle{tile.x + 18, y - 1, width, 2}, colors.line)
+                    y += 8
+                }
+            }
+
+            return true
+        }
+
+        if not entry.excerpt.isEmpty()
+        {
+            // The first lines in mono, a keyword in Arc.
+            let mono = .theme().createDefaultFontFs(10)
+            var y    = tile.y + 22
+            painter.pushClippingRect(Math.Rectangle{tile.x + 14, tile.y + 8, tile.width - 22, tile.height - 16})
+            for line in Tokenize.split(entry.excerpt, '\n'rune)
+            {
+                if y > tile.bottom() - 12 do
+                    break
+                var indent = 0'u64
+                while indent < line.count and (line[indent] == ' ' or line[indent] == '\t') do
+                    indent += 1
+                var word = indent
+                while word < line.count and Latin1.isLetter(line[word]) do
+                    word += 1
+                let x       = tile.x + 16 + cast(f32, indent) * 3.5
+                let keyword = isCardKeyword(line[indent until word])
+                painter.drawString(x, mono.opticalLineTop(y), line[indent until word], mono, keyword ? colors.arc : colors.softText)
+                let used = Painter.measureString(line[indent until word], mono).width
+                painter.drawString(x + used, mono.opticalLineTop(y), line[word to], mono, colors.softText)
+                y += 14
+            }
+
+            painter.popClippingRect()
+            return true
+        }
+
+        if ext == ".ttf" or ext == ".otf"
+        {
+            let font = .theme().createDefaultFont(32, .Bold)
+            let text = "Aa"
+            let size = Painter.measureString(text, font)
+            painter.drawString(Math.round(tile.horzCenter() - size.width * 0.5), font.opticalLineTop(tile.vertCenter()), text, font, colors.softText)
+            return true
+        }
+
+        return false
+    }
+
     // Writes the duration of a film in a mono chip at the corner of its tile.
     mtd paintDuration(painter: *Painter, tile: Math.Rectangle, entry: const *ExplorerEntry)
     {
@@ -2126,6 +2353,27 @@ impl ExplorerGrid
         }
     }
 
+    // Writes what is known of the picture under the pointer in a mono tip over its middle: its
+    // name, its size on screen once rendered, and its weight.
+    mtd paintPictureTip(painter: *Painter)
+    {
+        if .hovered >= .explorer.shown.count or .hovered >= .places.count do
+            return
+        let entry = &.explorer.entries[.explorer.shown[.hovered]]
+        let place = .places[.hovered]
+        var tip   = String.from(entry.name)
+        if entry.size do
+            tip = Format.toString("% · %", tip, StrConv.toDisplaySize(entry.size))
+        let mono   = .theme().createDefaultFontFs(11)
+        let width  = Painter.measureString(tip, mono).width + 28
+        let pill   = Math.Rectangle{Math.round(place.horzCenter() - width * 0.5), Math.round(place.vertCenter() - 14), Math.ceil(width), 28}
+        let radius = .themeMetrics().corner_Control
+        .theme().drawFloatingShadow(painter, pill, radius)
+        painter.fillRoundRect(pill, radius, radius, .themeColors().raised)
+        painter.drawRoundRect(pill, radius, radius, .themeColors().line)
+        painter.drawString(pill.x + 14, mono.opticalLineTop(pill.vertCenter()), tip, mono, .themeColors().softText)
+    }
+
     // Paints the label of each day of a mosaic: its words in spaced capitals, then how many
     // pictures it holds.
     mtd paintDays(painter: *Painter)
@@ -2174,6 +2422,7 @@ impl ExplorerGrid
         }
 
         let coverRect = Math.Rectangle{CellInset, CellInset, CoverSide, CoverSide}
+        .theme().drawFloatingShadow(painter, coverRect, radius)
         painter.fillRoundRect(coverRect, radius, radius, colors.raised)
         if cover
         {
@@ -2293,7 +2542,8 @@ impl ExplorerGrid
             painter.drawString(rect.x + 36, body.opticalLineTop(centerY), entry.name, body, colors.text)
             painter.popClippingRect()
 
-            let date = entry.modified.toString()[0 until Math.min(entry.modified.length, 10)]
+            // The date as briefly as a list reads it: the time today, the day this year, the date before.
+            let date = entry.when.year ? briefFileTime(entry.when, Time.DateTime.now()) : String.from("")
             painter.drawString(dateRight - Painter.measureString(date, mono).width, mono.opticalLineTop(centerY), date, mono, colors.faintText)
 
             var size: String
@@ -2349,6 +2599,22 @@ impl ExplorerGrid
 
             return result
         }
+
+        // What a file measures: a picture its size, a document its pages, code its lines,
+        // Markdown its sections, a font its face.
+        let texts = appStrings()
+        if entry.width and entry.height do
+            return Format.toString("% × %", entry.width, entry.height)
+        if entry.pages do
+            return entry.pages == 1 ? String.from(texts.explore_OnePage) : Format.toString(texts.explore_Pages, entry.pages)
+        if entry.sections do
+            return Format.toString(texts.explore_Sections, entry.sections)
+        if entry.lines do
+            return Format.toString(texts.explore_Lines, entry.lines)
+        if not entry.face.isEmpty() do
+            return String.from(entry.face)
+        if entry.members do
+            return Format.toString(texts.explore_Files, entry.members)
 
         if not entry.movie.date.isEmpty() do
             result = entry.movie.date.toString()[0 until Math.min(entry.movie.date.length, 4'u64)]
@@ -2468,6 +2734,8 @@ impl IWnd for ExplorerGrid
                 .paintDays(painter)
             for row in range.first until range.end do
                 .paintTile(painter, row)
+            if .board == .Mosaic do
+                .paintPictureTip(painter)
         }
 
         for spinner, slot in .spinners do

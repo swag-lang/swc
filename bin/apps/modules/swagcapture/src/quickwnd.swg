@@ -19,6 +19,12 @@ const QuickSampleWidth  = 28.0
 const QuickSampleHeight = 18.0
 const QuickStrokeZoom   = 0.35'f32     // The scale a line or an arrow is painted at in its cell.
 const QuickTextHeight   = 16.0'f32     // The size the "Aa" of a text is painted at in its cell.
+const QuickMaskWidth    = 24.0         // Width of the pattern of a mask preset.
+const QuickMaskHeight   = 16.0         // Height of the pattern of a mask preset.
+const QuickLightDepth   = 0.16'f32     // How much deeper the cell of a light preset is, on a light ground.
+const QuickPopoverPad   = 12.0         // Air inside the popover holding every preset of a tool.
+const QuickPopoverColumns = 5          // Presets in a row of that popover.
+const QuickCaptionHeight  = 34.0       // Height of the two lines naming the preset in force, under the row.
 
 // The glyph of the trailing chip, which keeps the selected shape as a new preset.
 const AddGlyphSize = 14.0
@@ -31,10 +37,12 @@ func clearChipGround(button: *IconButton)
         button.style.addStyleSheetColors(Format.toString("% 0x00000000", key))
 }
 
-// The preset forms one tool offers in the quick-style bar.
+// The preset forms one tool offers in the quick-style bar, and the name the reader gave each.
 struct QuickStyle
 {
     forms: Array'IForm
+    names: Array'String     // Name of each preset, by index; empty for a preset not named yet.
+    uses:  Array'u32        // How many times each preset was applied, by index; the row is ordered by it.
 }
 
 impl QuickStyle
@@ -76,7 +84,12 @@ impl QuickStyle
 
             // Stale serialized interface values can point to an unresolved type.
             .forms.removeAtOrdered(idx)
+            if idx < .names.count do
+                .names.removeAtOrdered(idx)
         }
+
+        .names.resize(.forms.count)
+        .uses.resize(.forms.count)
     }
 
     // Adopts a freshly built form as the last preset of the set.
@@ -84,12 +97,22 @@ impl QuickStyle
     {
         form.setup(null)
         .forms.add(form)
+        .names.resize(.forms.count)
+        .uses.resize(.forms.count)
     }
 
+    // Removes the preset `itf`, keeping the order of the others.
     mtd remove(itf: IForm)
     {
+        let index = .indexOf(itf)
+        if index >= .forms.count do
+            return
+        .forms.removeAtOrdered(index)
+        if index < .names.count do
+            .names.removeAtOrdered(index)
+        if index < .uses.count do
+            .uses.removeAtOrdered(index)
         deleteOne(itf)
-        .forms.remove(itf)
     }
 
     mtd clear()
@@ -97,6 +120,155 @@ impl QuickStyle
         for i in .forms do
             deleteOne(i)
         .forms.clear()
+        .names.clear()
+        .uses.clear()
+    }
+
+    // Returns the index of the preset `itf`, or the count of presets when it is not one of them.
+    mtd indexOf(itf: IForm)->u64
+    {
+        for f, i in .forms where f.buffer == itf.buffer do
+            return i
+        return .forms.count
+    }
+
+    // Returns the name of preset `index`: the one the reader gave it, or "Style" and its rank.
+    mtd nameOf(index: u64)->String
+    {
+        if index < .names.count and not .names[index].isEmpty() do
+            return .names[index]
+        if index < .forms.count
+        {
+            // A mask says what it does, which is the best name it has until it is given one.
+            let kind = quickStyleTip(.forms[index])
+            if kind.count do
+                return kind
+        }
+
+        return Format.toString(appStrings().ui_QuickStyleRank, index + 1)
+    }
+
+    // Names preset `index`.
+    mtd setName(index: u64, name: string)
+    {
+        .names.resize(.forms.count)
+        if index < .names.count do
+            .names[index] = name
+    }
+
+    // Counts one more use of preset `index`, and moves it before the presets used less, so the
+    // row shows the ones used most. Returns where the preset now stands.
+    mtd countUse(index: u64)->u64
+    {
+        if index >= .forms.count do
+            return index
+        .names.resize(.forms.count)
+        .uses.resize(.forms.count)
+        .uses[index] += 1
+
+        var at = index
+        while at > 0 and .uses[at - 1] < .uses[at]
+        {
+            .swap(at - 1, at)
+            at -= 1
+        }
+
+        return at
+    }
+
+    // Swaps presets `a` and `b`, with their names and their uses.
+    mtd swap(a, b: u64)
+    {
+        let form = .forms[a]
+        .forms[a] = .forms[b]
+        .forms[b] = form
+        let name: String = .names[a]
+        .names[a] = .names[b]
+        .names[b] = name
+        let use = .uses[a]
+        .uses[a] = .uses[b]
+        .uses[b] = use
+    }
+
+}
+
+// The popover holding every preset of a tool, which the keys go through: the arrows choose a
+// cell, Enter applies it, Escape closes the popover.
+struct PresetPopover
+{
+    using wnd:  Wnd
+    late quick: *QuickWnd
+    chosen:     u64     // The cell the keys stand on.
+}
+
+impl IWnd for PresetPopover
+{
+    mtd impl onKeyEvent(evt: *KeyEvent)
+    {
+        evt.accepted = false
+        if evt.kind != .Pressed do
+            return
+
+        let count = .children.count
+        let cols  = cast(u64, QuickPopoverColumns)
+        switch evt.key
+        {
+        case .Left:
+            if .chosen > 0 do
+                .choose(.chosen - 1)
+        case .Right:
+            if .chosen + 1 < count do
+                .choose(.chosen + 1)
+        case .Up:
+            if .chosen >= cols do
+                .choose(.chosen - cols)
+        case .Down:
+            if .chosen + cols < count do
+                .choose(.chosen + cols)
+        case .Return, .Space:
+            .press()
+        case .Escape:
+            let more = .quick.moreButton
+            if more
+            {
+                more.hidePopup()
+                more.setFocus()
+            }
+        default:
+            return
+        }
+
+        evt.accepted = true
+    }
+}
+
+impl PresetPopover
+{
+    // Moves the keys to cell `index`, which is ringed.
+    mtd choose(index: u64)
+    {
+        if index >= .children.count do
+            return
+        .chosen = index
+        for c, i in .children
+        {
+            let cell = assume cast(*QuickButton, c)
+            cell.keyChosen = i == index
+            cell.invalidate()
+        }
+    }
+
+    // Applies the preset the keys stand on, or keeps the current style as a new one.
+    mtd press()
+    {
+        if .chosen >= .children.count do
+            return
+        let cell  = assume cast(*QuickButton, .children[.chosen])
+        let quick = .quick
+        if cell.isModel do
+            quick.addCurrentStyle()
+        else do
+            quick.applyPreset(unwrap cell.formItf, fromPopover: true)
     }
 }
 
@@ -109,6 +281,15 @@ struct QuickButton
 
     // The trailing chip, which keeps the current tool style as a new preset.
     isModel: bool
+
+    // The chip opening every preset of the tool, when the row cannot hold them all.
+    isMore: bool
+
+    // A cell of that popover: choosing it closes the popover and brings the preset into the row.
+    inPopover: bool
+
+    // Whether the keys stand on this cell of the popover.
+    keyChosen: bool
 }
 
 // The disposable copy of a preset a cell paints. Painting a sample normalizes its geometry,
@@ -171,8 +352,19 @@ impl QuickStylePaintForm
 
         switch paintItf
         {
-        case FormPolygon as poly: poly.setDefaultShape()
-        case FormDraw as poly:    poly.setDefaultShape()
+        case FormPolygon as poly:
+            // A regular pentagon, point up.
+            poly.points.clear()
+            for i in 5
+            {
+                let a = Math.ConstF32.TwoPi * cast(f32, i) / 5 - Math.ConstF32.Pi * 0.5
+                poly.points.add({24 + 24 * Math.cos(a), 26 + 24 * Math.sin(a)})
+            }
+        case FormDraw as draw:
+            // One straight stroke rising across the cell.
+            draw.points.clear()
+            draw.points.add({0, 36})
+            draw.points.add({48, 12})
         case FormText as txt:
             txt.text      = "Aa"
             txt.alignHorz = .Center
@@ -316,6 +508,9 @@ struct QuickWnd
     qsCallout:   QuickStyle
 
     currentStyle: *QuickStyle?
+    moreButton:   *QuickButton?     // The chip opening every preset, in the row of the tool.
+    allPresets:   *Wnd?             // The cells of every preset, while the popover "•••" opens is up.
+    caption:      *Label?           // The name of the preset in force, under the row.
 }
 
 impl IWnd for QuickWnd
@@ -431,19 +626,88 @@ impl QuickWnd
     {
         with let menu = MenuCtrl.createPopup(me)
         {
+            .addItem(appStrings().ui_RenameQuickStyle, "rename", disabled: not btn)
+            .addItem(appStrings().ui_ReplaceQuickStyle, "replace", disabled: not btn)
             .addItem(appStrings().ui_RemoveQuickStyle, "0", disabled: not btn)
             .addSeparator()
             .addItem(ActionQuickStyle.Reset)
         }
 
         let result = menu.doModal(pos, autoDestroy: true)
-        if result == "0" and btn
+        if not result or not btn or not .currentStyle do
+            return
+
+        let qbtn  = assume cast(*QuickButton, btn)
+        let style = .currentStyle
+        let form  = unwrap qbtn.formItf
+        let index = style.indexOf(form)
+        switch result
         {
-            let qbtn = assume cast(*QuickButton, btn)
-            .currentStyle!.remove(unwrap qbtn.formItf)
+        case "0":
+            style.remove(form)
             qbtn.destroy()
-            .updateQuickStyles(forceRebuild: true)
+
+        case "rename":
+            let name = style.nameOf(index)
+            var options: EditDlgOptions
+            options.title   = appStrings().dlg_TitleRenameQuickStyle
+            options.message = appStrings().ui_QuickStyleName
+            options.text    = name
+            let dialog = EditDlg.createSingleLine(unwrap .surface, options)
+            if dialog.doModal() == Dialog.BtnOk do
+                style.setName(index, dialog.text())
+
+        case "replace":
+            // The preset takes the style of the tool, or of the selection, keeping its name.
+            if index < style.forms.count
+            {
+                let model = .main.newFormFromModel(.presetMode().mode)
+                QuickStyle.deleteOne(style.forms[index])
+                model.setup(null)
+                style.forms[index] = model
+            }
         }
+
+        .updateQuickStyles(forceRebuild: true)
+    }
+
+    // Writes the name of the preset in force under the row, and how to change it; no line when
+    // no preset is in force.
+    mtd updateCaption()
+    {
+        var name: String
+        if .currentStyle
+        {
+            var i = 0'u64
+            for c in .layout.children where not c.isPendingDestroy
+            {
+                let button = assume cast(*QuickButton, c)
+                if button.isModel or button.isMore do
+                    continue
+                if button.isChecked
+                {
+                    name = .currentStyle.nameOf(i)
+                    break
+                }
+
+                i += 1
+            }
+        }
+
+        let caption = .caption
+        if not caption do
+            return
+        if name.isEmpty()
+        {
+            caption.hide()
+        }
+        else
+        {
+            caption.setText(Format.toString(appStrings().ui_QuickStyleCaption, name))
+            caption.show()
+        }
+
+        .fitChips()
     }
 
     // Builds the quick style strip: one row of preset chips, scrolling sideways when they outnumber
@@ -461,6 +725,12 @@ impl QuickWnd
             .layout = Wnd.create'Wnd(quick, null, {0, 0, 0, QuickChipHeight})
             .layout.backgroundStyle = .Transparent
             .setView(quick.layout)
+
+            let caption = Label.create(quick, "", {0, QuickChipHeight, 0, QuickCaptionHeight}, flags: .SecondaryText | .WordWrap)
+            caption.style.setFont(quick.theme().createDefaultFontFamily(metrics.defaultFontSize - 1))
+            caption.setTextAlignment(.Left, .Top)
+            caption.hide()
+            .caption = caption
 
             .main = main
         }
@@ -855,13 +1125,29 @@ impl QuickWnd
         }
     }
 
+    // Returns the tool whose presets the row shows: the kind of the selection, or the tool in
+    // hand without one. `found` is false for a selection of several kinds.
+    mtd presetMode()->{found: bool, mode: EditMode}
+    {
+        let capture = .main.getCapture()
+        if capture and not capture.selection.isEmpty()
+        {
+            let first = MainWnd.formToolMode(capture.forms[capture.selection[0]])
+            for i in capture.selection where MainWnd.formToolMode(capture.forms[i]) != first do
+                return {false, first}
+            return {true, first}
+        }
+
+        return {true, .main.editMode == .Selection ? .main.getEditMode() : .main.editMode}
+    }
+
     // Checks the quick style button that matches the model of the active tool.
     mtd updateSelection()
     {
         if not .currentStyle do
             return
         var done = false
-        let mode = .main.getEditMode()
+        let mode = .presetMode().mode
 
         // The preset chips lead the strip in the order of the set; a chip of a previous set may
         // still be waiting for its deferred destruction, and the trailing chip adds a preset.
@@ -869,17 +1155,18 @@ impl QuickWnd
         for c in .layout.children where not c.isPendingDestroy
         {
             let button = assume cast(*QuickButton, c)
-            if button.isModel or i >= .currentStyle.forms.count do
+            if button.isModel or button.isMore or i >= .currentStyle.forms.count do
                 continue
 
             let it  = .currentStyle.forms[i]
             let mdl = .main.modelFor(Swag.kindOf(it))
-            button.setChecked(mode == MainWnd.formToEditMode(it) and it.isSame(mdl))
+            button.setChecked(mode == MainWnd.formToolMode(it) and it.isSame(mdl))
             if button.isChecked do
                 done = true
             i += 1
         }
 
+        .updateCaption()
         .invalidate()
     }
 
@@ -965,10 +1252,25 @@ impl QuickWnd
         let cell   = presetCell(btnp)
 
         painter.setParams(.Antialiased)
-        painter.fillRoundRect(cell, QuickCellCorner, QuickCellCorner, colors.raised)
+
+        // A light preset on a light ground stands on a deeper cell ringed with a hairline, so its
+        // words or its stroke still read.
+        let itf   = unwrap btnp.formItf
+        let light = luminance(colors.raised) > 0.6 and luminance(presetInk(itf)) > 0.75 and not (itf is FormImage)
+        painter.fillRoundRect(cell, QuickCellCorner, QuickCellCorner, light ? Color.lerpRgb(colors.raised, colors.text, QuickLightDepth) : colors.raised)
+        if light do
+            painter.drawRoundRect(cell, QuickCellCorner, QuickCellCorner, colors.strongLine, btnp.themeMetrics().separator_HairlineSize)
+
+        // A mask shows what it does to what it covers.
+        if itf is FormImage as image where image.subKind == .None
+        {
+            paintMaskPattern(painter, cell, image.kind, colors)
+            paintPresetRing(painter, btnp, cell)
+            return
+        }
 
         // Each sample is painted at the zoom and with the sizes its copy chose for the cell.
-        var paintForm = QuickStylePaintForm.create(unwrap btnp.formItf)
+        var paintForm = QuickStylePaintForm.create(itf)
         defer paintForm.release()
         painter.pushClippingRect(cell)
         painter.pushTransform()
@@ -977,31 +1279,99 @@ impl QuickWnd
         painter.popTransform()
         painter.popClippingRect()
 
-        if btnp.isChecked
+        paintPresetRing(painter, btnp, cell)
+    }
+
+    // Rings the cell of the preset in force in Arc, at a gap.
+    func paintPresetRing(painter: *Painter, btnp: *QuickButton, cell: Math.Rectangle)
+    {
+        // The cell the keys stand on is ringed in the focus ink, the preset in force in Arc.
+        if not btnp.isChecked and not btnp.keyChosen do
+            return
+        var ring = cell
+        ring.inflate(QuickRingGap + QuickRingWidth * 0.5)
+        let r      = QuickCellCorner + QuickRingGap + QuickRingWidth * 0.5
+        let colors = btnp.themeColors()
+        painter.drawRoundRect(ring, r, r, btnp.isChecked ? colors.arc : colors.focusRing, btnp.isChecked ? QuickRingWidth : 1.5)
+    }
+
+    // Returns the ink a preset is mostly seen in: the fill of words and of a step, the stroke of
+    // everything else.
+    func presetInk(itf: IForm)->Color
+    {
+        switch itf
         {
-            var ring = cell
-            ring.inflate(QuickRingGap + QuickRingWidth * 0.5)
-            let r = QuickCellCorner + QuickRingGap + QuickRingWidth * 0.5
-            painter.drawRoundRect(ring, r, r, colors.arc, QuickRingWidth)
+        case FormText as text:       return text.backColor
+        case FormCallout as callout: return callout.backColor
+        case FormStep as step:       return step.backColor
+        }
+
+        return itf.borderColor
+    }
+
+    // Returns how light `color` reads, from 0 to 1.
+    func luminance(color: Color)->f32 => (0.299 * cast(f32, color.r) + 0.587 * cast(f32, color.g) + 0.114 * cast(f32, color.b)) / 255
+
+    // Paints what a mask of `kind` does, in the middle of `cell`: the pixels of a pixelation,
+    // the soft pixels of a blur, a solid picture, a magnifier, a captured window.
+    func paintMaskPattern(painter: *Painter, cell: Math.Rectangle, kind: FormImageKind, colors: *ThemeColors)
+    {
+        let frame = Math.Rectangle{Math.round(cell.horzCenter() - QuickMaskWidth * 0.5), Math.round(cell.vertCenter() - QuickMaskHeight * 0.5), QuickMaskWidth, QuickMaskHeight}
+        let dark  = colors.softText
+        let pale  = colors.faintText
+        switch #complete kind
+        {
+        case .Pixelate, .Blur:
+            // Pixels in two tones; a blur keeps them closer and softer.
+            let side = QuickMaskHeight / 4
+            let cols = cast(s32, QuickMaskWidth / side)
+            for y in 4
+            {
+                for x in cols
+                {
+                    var color = (x + y) % 2 ? dark : pale
+                    if kind == .Blur do
+                        color = Color.lerpRgb(dark, pale, cast(f32, (x * 2 + y) % 3) * 0.25 + 0.25)
+                    painter.fillRect(Math.Rectangle{frame.x + cast(f32, x) * side, frame.y + cast(f32, y) * side, side, side}, color)
+                }
+            }
+
+        case .Image:
+            painter.fillRoundRect(frame, 2, 2, colors.text)
+
+        case .Zoom:
+            let r = QuickMaskHeight * 0.36
+            let cx = frame.horzCenter() - 2
+            let cy = frame.vertCenter() - 2
+            painter.drawCircle(cx, cy, r, dark, 1.8)
+            painter.drawLine(cx + r * 0.72, cy + r * 0.72, cx + r * 1.5, cy + r * 1.5, dark, 2.2)
+
+        case .Capture:
+            painter.drawRoundRect(frame, 2, 2, dark, 1.5)
+            painter.fillRect(Math.Rectangle{frame.x, frame.y, frame.width, 4}, dark)
         }
     }
 
-    // Paints the trailing chip: a hairline cell and its "+".
-    func paintAddPreset(painter: *Painter, btnp: *QuickButton)
+    // Paints the trailing chip, a hairline cell and its "+", or the chip opening every preset and
+    // its "•••".
+    func paintAddPreset(painter: *Painter, btnp: *QuickButton, more = false)
     {
         let colors  = btnp.themeColors()
         let metrics = btnp.themeMetrics()
         let cell    = presetCell(btnp)
         painter.setParams(.Antialiased)
         painter.drawRoundRect(cell, QuickCellCorner, QuickCellCorner, colors.line, metrics.separator_HairlineSize)
-        var icon = btnp.theme().icon(.Plus, AddGlyphSize)
+        paintPresetRing(painter, btnp, cell)
+        var icon = btnp.theme().icon(more ? ThemeIcons.More : ThemeIcons.Plus, AddGlyphSize)
         icon.paint(painter, Math.round(cell.horzCenter() - AddGlyphSize * 0.5), Math.round(cell.vertCenter() - AddGlyphSize * 0.5), colors.softText)
     }
 
-    // Adds the cell of one preset; checking it applies the preset to the tool and to the selection.
-    mtd addPresetButton(form: IForm)
+    // Adds the cell of one preset to `parent`, the row when null; checking it applies the preset to
+    // the tool and to the selection.
+    #[Swag.Discardable]
+    mtd addPresetButton(form: IForm, parent: *Wnd? = null)->*QuickButton
     {
-        with let button = Wnd.create'QuickButton(me.layout, null, {0, 0, QuickChipWidth, QuickChipHeight})
+        with let button = Wnd.create'QuickButton(parent orelse me.layout, null, {0, 0, QuickChipWidth, QuickChipHeight})
         {
             .updateFlags(.Radio)
             .setForm(.RoundedRectangle)
@@ -1014,7 +1384,7 @@ impl QuickWnd
             clearChipGround(button)
             .formItf  = form
             .quickWnd = me
-            .toolTip  = quickStyleTip(form)
+            .toolTip  = me.currentStyle ? me.currentStyle.nameOf(me.currentStyle.indexOf(form)) : ""
 
             .iconPainter     = func(button, bc, _, _) { paintPreset(bc.painter, assume cast(*QuickButton, button)) }
             .sigRightPressed += func(button) { button.quickWnd.btnPopup(button, button.surfaceRect().center()) }
@@ -1024,32 +1394,142 @@ impl QuickWnd
         {
             if not button.isChecked do
                 return
-
-            let quick = button.quickWnd
-            let it    = unwrap button.formItf
-            quick.main.updateModel(it)
-
-            let capture = unwrap quick.main.getCapture()
-            if not capture.selection.isEmpty()
-            {
-                with let undo = capture.newUndo(.SetFormFromModel)
-                {
-                    .mdlType  = Swag.kindOf(it)
-                    .mdlValue = MainWnd.newFormFromForm(it)
-                }
-
-                capture.pushUndo(undo)
-            }
-
-            quick.updateSelection()
-            quick.main.updateState()
+            button.quickWnd.applyPreset(unwrap button.formItf, fromPopover: button.inPopover)
         }
+
+        return button
     }
 
-    // Adds the trailing chip, which keeps the current style of the tool as a new preset.
-    mtd addModelButton(form: IForm)
+    // Applies the preset `it` to the tool and to the selection, as one step of the history, and
+    // counts the use: the presets used most lead the row.
+    mtd applyPreset(it: IForm, fromPopover = false)
+    {
+        .main.updateModel(it)
+
+        let capture = unwrap .main.getCapture()
+        if not capture.selection.isEmpty()
+        {
+            with let undo = capture.newUndo(.SetFormFromModel)
+            {
+                .mdlType  = Swag.kindOf(it)
+                .mdlValue = MainWnd.newFormFromForm(it)
+            }
+
+            capture.pushUndo(undo)
+        }
+
+        if .currentStyle
+        {
+            let index = .currentStyle.indexOf(it)
+            let moved = .currentStyle.countUse(index) != index
+            if fromPopover and .moreButton do
+                .moreButton.hidePopup()
+            if moved or fromPopover do
+                .updateQuickStyles(forceRebuild: true)
+        }
+
+        .updateSelection()
+        .main.updateState()
+    }
+
+    // Adds the chip opening every preset of the tool in a popover, shown when the row cannot hold
+    // them all.
+    mtd addMoreButton()
     {
         with let btn = Wnd.create'QuickButton(me.layout, null, {0, 0, QuickChipWidth, QuickChipHeight})
+        {
+            .updateFlags(.Popup)
+            .isMore   = true
+            .quickWnd = me
+            .toolTip  = appStrings().tip_AllQuickStyles
+            .setForm(.RoundedRectangle)
+            .setCheckIndicator(.None)
+            .setArrowPosition(.None)
+            .backgroundStyle = .Transparent
+            clearChipGround(btn)
+            .iconPainter = func(button, bc, _, _) { paintAddPreset(bc.painter, assume cast(*QuickButton, button), more: true) }
+        }
+
+        btn.sigPopupRequested += func|quick = me|(button) { quick.openAllPresets(assume cast(*QuickButton, button)) }
+
+        // Down on the chip opens the popover, and the keys go on in it.
+        btn.hookOnEvent = func|quick = me|(button, evt)->bool
+        {
+            if evt is KeyEvent as key where key.kind == .Pressed and key.key == .Down and quick.allPresets == null
+            {
+                quick.openAllPresets(assume cast(*QuickButton, button))
+                key.accepted = true
+                return true
+            }
+
+            return false
+        }
+        btn.sigPopupClosed += func|quick = me|(_) { quick.allPresets = null }
+        .moreButton = btn
+    }
+
+    // Opens every preset of the tool in a popover under `button`, in rows as wide as the inspector
+    // row; the preset in force is ringed there too.
+    mtd openAllPresets(button: *QuickButton)
+    {
+        let style = .currentStyle
+        if not style do
+            return
+
+        let model    = .main.editModeToModel(.presetMode().mode)
+        let canAdd   = .offersModel(model)
+        let count    = style.forms.count + (canAdd ? 1 : 0)
+        let perRow   = cast(u64, QuickPopoverColumns)
+        let rows     = (count + perRow - 1) / perRow
+        let width    = cast(f32, Math.min(count, perRow)) * QuickChipWidth + 2 * QuickPopoverPad
+        let height = cast(f32, rows) * QuickChipHeight + 2 * QuickPopoverPad
+        let frame  = button.createAnchorPopup(width, height)
+        with let body = Wnd.create'PresetPopover(frame, null, {})
+        {
+            .dockStyle       = .Center
+            .backgroundStyle = .Transparent
+            .focusPolicy     = .Tab
+            .quick           = me
+        }
+
+        .allPresets = body
+
+        let mode = .presetMode().mode
+        for it, i in style.forms
+        {
+            let cell = .addPresetButton(it, body)
+            cell.inPopover = true
+            cell.setPosition(Math.Rectangle{QuickPopoverPad + cast(f32, i % perRow) * QuickChipWidth, QuickPopoverPad + cast(f32, i / perRow) * QuickChipHeight, QuickChipWidth, QuickChipHeight})
+            cell.setChecked(mode == MainWnd.formToolMode(it) and it.isSame(.main.modelFor(Swag.kindOf(it))))
+        }
+
+        // "+" closes the popover too, keeping the current style as a new preset.
+        if canAdd
+        {
+            let i   = style.forms.count
+            let add = .addModelButton(model, body)
+            add.inPopover = true
+            add.setPosition(Math.Rectangle{QuickPopoverPad + cast(f32, i % perRow) * QuickChipWidth, QuickPopoverPad + cast(f32, i / perRow) * QuickChipHeight, QuickChipWidth, QuickChipHeight})
+        }
+
+        // The keys stand on the preset in force, or on the first one.
+        var start = 0'u64
+        for c, i in body.children
+        {
+            if (assume cast(*QuickButton, c)).isChecked do
+                start = i
+        }
+
+        body.choose(start)
+        body.setFocus()
+    }
+
+    // Adds the chip keeping the current style of the tool as a new preset to `parent`, the row
+    // when null.
+    #[Swag.Discardable]
+    mtd addModelButton(form: IForm, parent: *Wnd? = null)->*QuickButton
+    {
+        with let btn = Wnd.create'QuickButton(parent orelse me.layout, null, {0, 0, QuickChipWidth, QuickChipHeight})
         {
             .isModel = true
             .formItf = form
@@ -1061,33 +1541,59 @@ impl QuickWnd
             .iconPainter = func(button, bc, _, _) { paintAddPreset(bc.painter, assume cast(*QuickButton, button)) }
         }
 
-        btn.sigPressed += func|quickWnd = me|(_)
-        {
-            let main = quickWnd.main
-            let mdl  = main.newFormFromModel(main.getEditMode())
-            quickWnd.currentStyle!.forms.add(mdl)
-            quickWnd.updateQuickStyles()
-        }
+        btn.sigPressed += func|quickWnd = me|(_) { quickWnd.addCurrentStyle() }
+        return btn
+    }
+
+    // Keeps the current style of the tool, or of the selection, as a new preset.
+    mtd addCurrentStyle()
+    {
+        let style = .currentStyle
+        if not style do
+            return
+        style.add(.main.newFormFromModel(.presetMode().mode))
+        if .moreButton do
+            .moreButton.hidePopup()
+        .updateQuickStyles(forceRebuild: true)
     }
 
     // Shows the quick styles of the active tool, rebuilding the buttons when the set changed or
     // `forceRebuild` asks for it.
     mtd updateQuickStyles(forceRebuild = false)
     {
-        let edMode    = .main.editMode == .Selection ? .main.getEditMode() : .main.editMode
+        let presets   = .presetMode()
         let prevStyle = .currentStyle
-        let style     = .styleOf(edMode)
-        if not style do
-            return
-        .currentStyle = style
+        let style     = presets.found ? .styleOf(presets.mode) : null
+        if not style
+        {
+            // A selection of several kinds has no preset in common: the row leaves.
+            for c in .layout.children do
+                c.destroy()
+            .currentStyle = null
+            .moreButton   = null
+            if .isVisible()
+            {
+                .hide()
+                .parent?.applyLayout()
+            }
 
-        let formItf     = .main.editModeToModel(.main.getEditMode())
+            return
+        }
+
+        .currentStyle = style
+        if not .isVisible()
+        {
+            .show()
+            .parent?.applyLayout()
+        }
+
+        let formItf     = .main.editModeToModel(presets.mode)
         let canAddModel = .offersModel(formItf)
 
         // Light path: same style target and same button population. Destroying and
         // recreating every button is only needed when the style set itself changed;
         // check states and the model button repaint from live data.
-        let wantBtns = style.forms.count + (canAddModel ? 1 : 0)
+        let wantBtns = style.forms.count + 1 + (canAddModel ? 1 : 0)
         var liveBtns = 0'u64
         for c in .layout.children where not c.isPendingDestroy do
             liveBtns += 1
@@ -1099,8 +1605,10 @@ impl QuickWnd
 
         for c in .layout.children do
             c.destroy()
+        .moreButton = null
         for it in style.forms do
             .addPresetButton(it)
+        .addMoreButton()
         if canAddModel do
             .addModelButton(formItf)
 
@@ -1108,26 +1616,74 @@ impl QuickWnd
         .fitChips()
     }
 
-    // Lays the chips in rows across the width of the inspector column, as many as fit, and makes
-    // the strip as tall as its rows.
+    // Lays the chips in one row across the width of the inspector column: the presets the row
+    // holds, the most recently chosen first, then "+", or "•••" when some are left out.
     mtd fitChips()
     {
         if .layout == null do
             return
 
-        let perRow = Math.max(1, cast(s32, Math.floor((.position.width + 0.5) / QuickChipWidth)))
-        var count  = 0's32
+        var presets: Array'(*Wnd)
+        var more:    *Wnd?
+        var model:   *Wnd?
         for c in .layout.children where not c.isPendingDestroy
         {
-            let col = count % perRow
-            let row = count / perRow
-            c.setPosition(Math.Rectangle{cast(f32, col) * QuickChipWidth, cast(f32, row) * QuickChipHeight, QuickChipWidth, QuickChipHeight})
-            count += 1
+            let button = assume cast(*QuickButton, c)
+            if button.isMore do
+                more = c
+            elif button.isModel do
+                model = c
+            else do
+                presets.add(c)
         }
 
-        let rows   = Math.max(1, (count + perRow - 1) / perRow)
-        let height = cast(f32, rows) * QuickChipHeight
-        .layout.setPosition(Math.Rectangle{0, 0, cast(f32, Math.min(count, perRow)) * QuickChipWidth, height})
+        // When the row cannot hold every preset and "+", it holds the first presets and "•••",
+        // and "+" moves into the popover "•••" opens.
+        let perRow = cast(u64, Math.max(1, cast(s32, Math.floor((.position.width + 0.5) / QuickChipWidth))))
+        let all    = presets.count + (model ? 1 : 0) <= perRow
+        let shown  = all ? presets.count : perRow - 1
+
+        var x = 0'f32
+        for c, i in presets
+        {
+            c.show(i < shown)
+            if i < shown
+            {
+                c.setPosition(Math.Rectangle{x, 0, QuickChipWidth, QuickChipHeight})
+                x += QuickChipWidth
+            }
+        }
+
+        if more
+        {
+            more.show(not all)
+            if not all
+            {
+                more.setPosition(Math.Rectangle{x, 0, QuickChipWidth, QuickChipHeight})
+                x += QuickChipWidth
+            }
+        }
+
+        if model
+        {
+            model.show(all)
+            if all
+            {
+                model.setPosition(Math.Rectangle{x, 0, QuickChipWidth, QuickChipHeight})
+                x += QuickChipWidth
+            }
+        }
+
+        // The name of the preset in force stands under the row, across the column.
+        var height = QuickChipHeight
+        let caption = .caption
+        if caption and caption.isVisible()
+        {
+            caption.setPosition(Math.Rectangle{x: QuickChipInset, y: height, width: Math.max(.position.width - 2 * QuickChipInset, 0), height: QuickCaptionHeight})
+            height += QuickCaptionHeight
+        }
+
+        .layout.setPosition(Math.Rectangle{x: 0, y: 0, width: x, height: QuickChipHeight})
         .setScrollSize(0, 0)
         let wanted = height + .themeMetrics().inspector_RowGap
         if .position.height != wanted

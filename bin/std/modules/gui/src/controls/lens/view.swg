@@ -65,6 +65,8 @@ struct View
             results: Results       // Answer to the query on screen.
             chosen:  u64 = Swag.U64.Max     // Row the keys and the pointer chose, among `rows`, or `U64.Max`.
             rows:    Array'Row     // Section labels and entries, in the order they show.
+
+            chosenPicture: u64     // Picture of the chosen strip the keys stand on; past its pictures, its link.
         }
     }
 
@@ -93,6 +95,10 @@ const PictureRow = Swag.U64.Max - 1
 
 // The `entry` of the [[Gui.Lens.Row]] holding every row of an inline section, as segments.
 const InlineRow = Swag.U64.Max - 2
+
+// The ring of the picture the keys stand on, in a strip of the lens: its gap and its weight.
+internal const PictureRingGap   = 2.0
+internal const PictureRingWidth = 2.0
 
 // One line of the results of a [[Gui.Lens.View]]: the label of a section, one of its rows, or its strip of pictures.
 struct Row
@@ -198,11 +204,17 @@ impl IWnd for View
                 }
             }
 
-            // A picture under the pointer is ringed.
+            // A picture under the pointer is ringed, and the keys go on from it.
             let hot = .pictureAt(pos)
             if hot.row != .hotPicture.row or hot.index != .hotPicture.index
             {
                 .hotPicture = hot
+                if hot.row != Swag.U64.Max
+                {
+                    .chosen        = hot.row
+                    .chosenPicture = hot.index
+                }
+
                 .invalidate()
             }
 
@@ -525,7 +537,8 @@ impl View
 
         if last >= 0 and cast(u64, last) != .chosen
         {
-            .chosen = cast(u64, last)
+            .chosen        = cast(u64, last)
+            .chosenPicture = 0
             let row = .rows[.chosen]
             if row.entry == InlineRow do
                 .segment = .restingSegment(row.section)
@@ -542,7 +555,17 @@ impl View
         let row = .rows[.chosen]
         if row.entry == InlineRow do
             return .segment < row.section.entries.count ? &row.section.entries[.segment] : null
+        if row.entry == PictureRow do
+            return null
         return &row.section.entries[row.entry]
+    }
+
+    // Returns the strip of pictures the keys stand on, or null.
+    mtd chosenStrip()->*Section?
+    {
+        if .chosen >= .rows.count or .rows[.chosen].entry != PictureRow do
+            return null
+        return .rows[.chosen].section
     }
 
     // Closes the lens and runs the chosen row, as Enter does.
@@ -552,6 +575,17 @@ impl View
     // state, and the choice stays on the row that ran.
     mtd runChosen(keepOpen = false)
     {
+        // A picture of a strip, or its link, runs as a click does.
+        let strip = .chosenStrip()
+        if strip
+        {
+            let run = .chosenPicture < strip.pictures.count ? strip.pictures[.chosenPicture].run : strip.linkRun
+            .close()
+            if run do
+                run()
+            return
+        }
+
         let entry = .chosenEntry()
         if not entry or entry.disabled do
             return
@@ -603,6 +637,19 @@ private impl View
         }
 
         let page = Math.max(1's64, cast(s64, .listRect().height / .themeMetrics().lens_RowHeight) - 1)
+        // Along a strip of pictures, the arrows go from one picture to the next, then to its link.
+        let strip = .chosenStrip()
+        if strip and (key == .Left or key == .Right)
+        {
+            let count = strip.pictures.count + (strip.link.isEmpty() ? 0 : 1)
+            if key == .Left and .chosenPicture > 0 do
+                .chosenPicture -= 1
+            elif key == .Right and .chosenPicture + 1 < count do
+                .chosenPicture += 1
+            .invalidate()
+            return true
+        }
+
         switch key
         {
         case .Up:       .moveChoice(-1)
@@ -773,7 +820,9 @@ private impl View
             return false
         }
 
-        return row.entry != Swag.U64.Max and row.entry != PictureRow and not row.section.entries[row.entry].disabled
+        if row.entry == PictureRow do
+            return not row.section.pictures.isEmpty()
+        return row.entry != Swag.U64.Max and not row.section.entries[row.entry].disabled
     }
 
     // Returns the cell of picture `index` of a strip whose row stands at `rect`; `index` past the
@@ -940,6 +989,7 @@ private impl View
     // Paints the strip of pictures of `section`, then its link in the Arc ink.
     mtd paintPictureRow(painter: *Painter, rect: Math.Rectangle, section: *Section)
     {
+        let strip   = .chosenStrip()
         let metrics = .themeMetrics()
         let colors  = .themeColors()
         let radius  = metrics.corner_Chip
@@ -955,7 +1005,16 @@ private impl View
                 picture.paint(painter, cell)
             painter.popClippingRect()
 
-            let hot = .hotPicture.index == i and .hotPicture.row < .rows.count and .rows[.hotPicture.row].section == section
+            // The picture the keys stand on is ringed in Arc, the one under the pointer too.
+            let chosen = strip == section and .chosenPicture == i
+            let hot    = .hotPicture.index == i and .hotPicture.row < .rows.count and .rows[.hotPicture.row].section == section
+            if chosen
+            {
+                var ring = cell
+                ring.inflate(PictureRingGap + PictureRingWidth * 0.5)
+                painter.drawRoundRect(ring, radius + PictureRingGap, radius + PictureRingGap, colors.arc, PictureRingWidth)
+            }
+
             painter.drawRoundRect(cell, radius, radius, hot ? colors.arc : colors.line, hot ? 1.5 : metrics.separator_HairlineSize)
         }
 
@@ -963,6 +1022,13 @@ private impl View
         {
             let cell = .pictureRect(rect, section, section.pictures.count)
             let font = .theme().createDefaultFont(metrics.defaultFontSize)
+            if strip == section and .chosenPicture == section.pictures.count
+            {
+                var ground = cell
+                ground.inflate(metrics.lens_PictureGap * 0.5, metrics.lens_PictureGap)
+                painter.fillRoundRect(ground, metrics.corner_Control, metrics.corner_Control, colors.selection)
+            }
+
             discard paintTextLine(painter, cell.x, cell.vertCenter(), section.link, font, colors.arc)
         }
     }

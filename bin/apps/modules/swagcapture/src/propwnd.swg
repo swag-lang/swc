@@ -368,6 +368,7 @@ impl PropWnd
         .fitFieldLabelColumn()
 
         .topLayout.computeLayout()
+        .grid.layoutHeader()
         .applyLayout()
 
         let capture = .main.getCapture()
@@ -384,7 +385,6 @@ impl PropWnd
             .topLayout              = StackLayoutCtrl.create(prop)
             .topLayout.mode         = .Top
             .topLayout.fitToContent = true
-            .topLayout.dockStyle    = .Top
 
             // The head rows stand in the column of the inspector, which already keeps its
             // margins; only the air before the generated rows is the panel's own.
@@ -408,6 +408,11 @@ impl PropWnd
 
             .main = main
             .grid.setNotify(prop)
+
+            // The head rows scroll with the generated ones: one column of settings, read from
+            // the top down. The grid reaches past the column; the head keeps to it.
+            .grid.setHeader(prop.topLayout)
+            .topLayout.margin = {GridRowInset, 0, GridRowInset, 0}
         }
 
         // The panel defers a rebuild to the next frame (see `needRebuild`), so it has to ask for

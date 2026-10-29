@@ -331,6 +331,7 @@ func completeHexViewerAnalysis(host: *Testing.HeadlessHost, view: *Hex.Panel)
 
     var host: Testing.HeadlessHost
     host.setup(960, 680)
+    shipFrame(&host)
     var index  = createViewerPluginRegistry()
     let window = ViewerWindow.create(&host.surfaceWnd, #move index)
     window.openFile(fileName)
@@ -387,6 +388,7 @@ func completeHexViewerAnalysis(host: *Testing.HeadlessHost, view: *Hex.Panel)
 
     var host: Testing.HeadlessHost
     host.setup(1_100, 700)
+    shipFrame(&host)
 
     // Use the shipped window rather than a viewer-only approximation: the integration contract
     // includes the readings at the foot of the document and the panel beside it, whose toggle

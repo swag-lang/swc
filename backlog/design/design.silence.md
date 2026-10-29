@@ -79,19 +79,17 @@ dialogs, then each application, then the written rules.
     (`viewer.video.{ink,paper}`, `viewer.video.hover.{ink,paper}`); Scope reads no chapters, so
     the timeline shows no marks.
   What still differs from the pictures, screen by screen:
-  - Mixed board: a PDF, code, Markdown, sound and font cell show the preview the thumbnailer
-    renders, not the drawn paper card, mono lines, heading, waveform or "Aa" of the picture; the
-    facts line has no dimensions, pages, lines, sections or face (only length, count and size).
-    The title is Bold, not 800.
+  - Mixed board: a sound cell shows the thumbnailer's preview or its glyph, not a drawn
+    waveform; "Aa" is in the interface face, not the font's own; a film's facts have no size of
+    its picture. The title is Bold, not 800.
   - Films: no playback progress thread at the poster's foot and no "Resume at 1 h 12" / "or from
     the start" — Scope keeps no resume position for a film yet; the count says "items", not
     "films".
-  - Music and album: the hint line does not teach Enter / P; the count says "items", not
-    "albums · tracks"; the album's cover casts no shadow; nothing plays from the album page
-    itself, so no row is "playing" — the chosen one carries the ▶; the view menu cannot force
-    covers, posters or mosaic.
-  - Photos: the last row of a day is not justified; no mono tip of the camera facts under the
-    pointer; the order is the folder's, not by date.
+  - Album: nothing plays from the album page itself, so no row is "playing" — the chosen one
+    carries the ▶.
+  - Photos: the last row of a day stays at its aim when stretching it would make it much taller
+    than its aim; the tip names the file and its weight, not the camera's facts (Scope reads no
+    EXIF yet); "taken" is the file's modification date.
   - Archive: the sheet asks for the member's picture but the golden holds it still without one;
     dates are ISO, not the short day/month; the sheet's two buttons share the foot in halves.
   - PDF: the reading line still carries previous/next arrows beside "1 / 2"; no position thread
@@ -103,10 +101,17 @@ dialogs, then each application, then the written rules.
     outline), binary (report page), hex (structure tabs, large inspector), font (specimen page);
     the "Column ▾" quiet menu of text; the progress thread under the strip with documents
     scrolling under it.
-- Next: the mixed board's drawn cards (a PDF's first page on paper, code lines, a Markdown
-  heading, a waveform, "Aa" in a font's face) and its facts (dimensions, pages, lines); the
-  shipped frame for every Scope golden; then image, table, HTML, binary, hex and font on their
-  pictures; short dates in archive rows.
+  - Viewers photographed in the shipped frame against their pictures (`pictured.*`): the image
+    viewer stands on `scope.image`. The table (`pictured.table.paper`) is still a bare list: no
+    file name as title over a mono line of rows, columns, separator and encoding, no inferred type
+    under each column name, numbers not in mono, alternate grounds instead of hairlines, no sum of
+    the chosen column in the reading line. HTML (`pictured.html.paper`) has no reading column, no
+    faint mono address above it, no outline in the right margin, its code blocks are not cards.
+    The font viewer (`pictured.font.paper`) is not the specimen page: no large "Aa", family and
+    style tabs, glyph row with the chosen glyph on Arc, the sample field and sizes with mono labels.
+    Hex and binary have no framed golden yet; hex needs a binary fixture opened in the hex viewer.
+- Next: table, HTML, font, binary and hex on their pictures; the mixed board's waveform cells,
+  "Aa" in the font's own face, a film's picture size in its facts, and an ExtraBold page title.
 - Done when: every Scope golden matches its picture as a whole screen.
 - Related: design.silence.004
 
@@ -114,21 +119,15 @@ dialogs, then each application, then the written rules.
 
 - Evidence: the editor, the area capture, the in-place editor, the library and the lens have
   goldens (`surface`, `edit.{arrow,callout,multi,step,mask,color.paper,text,text.paper}`, `area`,
-  `inplace{,.paper}`, `library.surface`, `lens.paper`). Words are typed in place for every text
-  shape (aligned, level while a rotated shape is edited), the text mini-bar is compact and keeps
-  clear of the dock and the inspector, quick styles are pictures of their shapes (`presets`
-  goldens), the inspector head actions are
-  faint words, the style is one "Aa" row, the area bar offers the delay and the cursor, its keys
-  stand on the floating ground, the lens ends with the recent captures as pictures, and the
-  in-place bar stands beside the zone when the screen has no room above or below it. What they
-  still show differently: a quick style has no name (the picture writes « Repère orange » under
-  the pills); the inspector rows of the head do not scroll with the generated settings; the
-  library tab counts are in the proportional face (the tab bar sets one face per tab); a tool
-  offers up to sixteen presets, which wrap to four rows where the pictures show one; a white
-  text preset on Papier is white on the light cell; a mask preset is the glyph of its kind
-  rather than its pattern.
-- Next: give a quick style a name, shown under the strip and on its tooltip; let the inspector
-  scroll its head rows with its content.
+  `inplace{,.paper}`, `library.surface`, `lens.paper`, `lens.recent.paper`, `presets{,.paper}`).
+  What they still show differently: a tool's row holds four presets where the pictures show five
+  or six, because a 44-wide cell with its ring room leaves five chips across the inspector;
+  the row keeps the presets chosen last first, not the ones used most (no use count is kept);
+  the vertical alignment of a text is a dropdown in the inspector, where the pictures keep only
+  the alignment across, in the mini-bar; the "•••" popover of the presets cannot be reached
+  with the keys.
+- Next: decide whether a preset keeps a use count (serialized beside its name) and order the
+  row by it; give the presets popover the keys of the lens strip.
 - Done when: each `capture.*` picture is reproduced by its golden.
 - Related: design.silence.004
 

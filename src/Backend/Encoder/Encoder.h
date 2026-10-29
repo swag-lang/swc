@@ -133,7 +133,7 @@ protected:
 
     virtual void encodeLoadVecRegMem(MicroReg regDst, MicroReg memReg, uint64_t memOffset, MicroOpBits opBits)                                                                                = 0;
     virtual void encodeVecUnaryRegMem(MicroReg regDst, MicroReg memReg, uint64_t memOffset, MicroOp op, MicroOpBits opBits)                                                                   = 0;
-    virtual void encodeVecInsertHigh64Amc(MicroReg regDst, MicroReg regBase, MicroReg regMul, uint64_t mulValue, uint64_t addValue, MicroOpBits opBitsBaseMul) = 0;
+    virtual void encodeVecInsertHigh64Amc(MicroReg regDst, MicroReg regBase, MicroReg regMul, uint64_t mulValue, uint64_t addValue, MicroOpBits opBitsBaseMul)                                = 0;
     virtual void encodeVecUnaryAmcRegMem(MicroReg regDst, MicroReg regBase, MicroReg regMul, uint64_t mulValue, uint64_t addValue, MicroOpBits opBitsBaseMul, MicroOp op, MicroOpBits opBits) = 0;
     virtual void encodeStoreVecMemReg(MicroReg memReg, uint64_t memOffset, MicroReg regSrc, MicroOpBits opBits)                                                                               = 0;
     virtual void encodeVecShuffleRegRegImm(MicroReg regDst, MicroReg regSrc, uint64_t control, MicroOpBits opBits)                                                                            = 0;
@@ -159,7 +159,7 @@ protected:
     virtual void encodeLoadMemReg(MicroReg memReg, uint64_t memOffset, MicroReg reg, MicroOpBits opBits)                                                                                      = 0;
     virtual void encodeLoadMemImm(MicroReg memReg, uint64_t memOffset, const ApInt& value, MicroOpBits opBits)                                                                                = 0;
     virtual void encodeTestRegReg(MicroReg reg0, MicroReg reg1, MicroOpBits opBits)                                                                                                           = 0;
-    virtual void encodeVecTestReg(MicroReg reg) = 0;
+    virtual void encodeVecTestReg(MicroReg reg)                                                                                                                                               = 0;
     virtual void encodeCmpRegReg(MicroReg reg0, MicroReg reg1, MicroOpBits opBits)                                                                                                            = 0;
     virtual void encodeTestMemReg(MicroReg memReg, uint64_t memOffset, MicroReg reg, MicroOpBits opBits)                                                                                      = 0;
     virtual void encodeCmpMemReg(MicroReg memReg, uint64_t memOffset, MicroReg reg, MicroOpBits opBits)                                                                                       = 0;

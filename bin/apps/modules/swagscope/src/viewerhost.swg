@@ -225,6 +225,7 @@ impl Viewer.Host for ViewerPluginHost
                 .dockStyle = .Center
                 .setShadow(false)
             }
+
             .session.sidePanel = card
         }
         else

@@ -94,6 +94,7 @@ impl ViewerWindow
                     window.lens.addCommandRows(section, [ViewerCommands.Open, ViewerCommands.Close], enabledOnly: true)
                     return
                 }
+
                 window.lens.addCommandRows(section,
                                            [ViewerCommands.Open, ViewerCommands.Explore, ViewerCommands.Close],
                                            enabledOnly: true)

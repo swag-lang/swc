@@ -31,7 +31,12 @@ dialogs, then each application, then the written rules.
   entering Explorer, the empty-query lens leads with folder actions and offers Back, Forward, Up,
   Refresh, Edit Location and Open Chosen when each action can run. It keeps only Open and Close
   from the generic file actions in this context, with a first-screen test and whole-window goldens
-  in both themes.
+  in both themes. Explorer's tile painter drew the Arc selection ring before the preview, allowing
+  the picture to cover the selection mark; the name and facts under a selected thumbnail also had
+  no selection ground. The charter now states that both files and folders remain selected after
+  pointer exit, that rows carry a full Arc ground, and that thumbnail selection stays visible over
+  the picture in both themes. Ctrl+Space now opens the lens in the window's early child-event hook,
+  ahead of a focused viewer or field that consumes Space.
 - Next: review the empty-query lens in Capture, Prism and Vault against their first-use tasks in
   both themes; adjust the direct action order so their common tasks are visible before scrolling,
   then update and review the affected whole-screen goldens. In Scope, verify that the full Markdown
@@ -41,7 +46,8 @@ dialogs, then each application, then the written rules.
 - Done when: each application offers its common first-use tasks directly in the initial lens
   view, every other command remains reachable from the lens, and the whole-screen goldens match
   the approved design without any application re-implementing a shared component or insetting
-  its whole root under the strip.
+  its whole root under the strip. Explorer selection remains clear on files, folders and previews
+  after the pointer leaves, in Encre and Papier.
 - Related: design.silence.007, design.silence.008
 
 ### design.silence.006 — The file box does not fit its rows as its pictures do
@@ -52,8 +58,11 @@ dialogs, then each application, then the written rules.
   question ends on its destructive action. Against the pictures, the box keeps a tall empty list
   under a few rows instead of fitting them, the folder box's field says "Filter, or type a path"
   where the picture says "Filter folders", and the bar beside the field has no recent-places glyph.
+  At a narrow dialog width, its file list also extends slightly past the view and exposes a short
+  horizontal scroll bar; the default date and size columns are now narrower to give the name room.
 - Next: let the box size its list to the rows it shows within a minimum and a maximum, give the
-  folder mode its own placeholder, and decide on the recent-places glyph.
+  folder mode its own placeholder, decide on the recent-places glyph, and fit the file columns to
+  the list width before a horizontal bar is needed.
 - Done when: each `dialogs.file.*` golden matches its picture whole-screen.
 
 ### design.silence.007 — Swag Scope viewers keep their pre-charter shapes
@@ -61,7 +70,8 @@ dialogs, then each application, then the written rules.
 - Evidence: the window follows the charter — no band; every command is a lens entry; readings in
   the sheet (`I`) and faint at the foot; viewer controls on a floating mini-bar; panels are cards.
   Built on their pictures, each golden compared whole-screen with its picture:
-  - Home (`home.{ink,paper}`, `home.hover.{ink,paper}`).
+  - Home (`home.{ink,paper}`, `home.hover.{ink,paper}`): history glyphs now keep their file-kind
+    colour, and the invitation recalls both `Ctrl+O` and `Ctrl+E`.
   - Explorer boards: a mixed folder (`explorer.mixed`, `.paper`) — one even grid filling the page,
     pictures and films cropped to the tile, faint line glyphs and extensions for the rest, name
     and one mono line of facts; films (`explorer.films`) — upright posters, title then year and
@@ -93,8 +103,11 @@ dialogs, then each application, then the written rules.
     in mono) and a bottom veil (timeline with Arc progress, indexed part, white knob and a mono
     time tip; play, time, chips for subtitles, sound track and speed)
     (`viewer.video.{ink,paper}`, `viewer.video.hover.{ink,paper}`); Scope reads no chapters, so
-    the timeline shows no marks.
+    the timeline shows no marks. The playhead and its outline now stay inside the rail at either
+    endpoint; paired Encre/Papier goldens show both ends without clipping.
   What still differs from the pictures, screen by screen:
+  - Surface window shadows were reported as too dark. Their strength is now set independently
+    from floating panels and sheets, with a restrained shadow in each theme.
   - Mixed board: a sound cell shows the thumbnailer's preview or its glyph, not a drawn
     waveform; "Aa" is in the interface face, not the font's own; a film's facts have no size of
     its picture. The title is Bold, not 800.
@@ -233,7 +246,9 @@ dialogs, then each application, then the written rules.
   and its information panel looks unattractive, too high and poorly rounded. The persistent
   reading line and Arc progress thread are removed from Markdown; details stay in the `I` sheet,
   and the lens remains the visible route to zoom and options. The on-demand outline now stands
-  directly on the window ground as a quiet margin, without the floating information card.
+  directly on the window ground as a quiet margin, without the floating information card. Its
+  headerless list also exposed a horizontal bar when vertical overflow reduced the viewport by
+  the scrollbar width; simple lists now suppress that spurious horizontal axis.
 - Next: make outline scrolling discoverable on hover and by keyboard, then compare the whole page
   in Encre and Papier. Keep the always-on reading surface free of footer, progress strip and
   command bar.

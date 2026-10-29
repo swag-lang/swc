@@ -388,12 +388,12 @@ namespace
         SmallVector<ReturnStorageCandidate>   candidates;
         SmallVector<ReturnStorageReplacement> replacements;
         FlatKeyMap<uint32_t, uint64_t>        indexOf;
-        SmallVector<uint32_t>                 inScope;      // candidates declared in the open blocks
-        SmallVector<uint32_t>                 deferUses;    // candidates the active defers read or write
-        SmallVector<uint32_t>                 bodyUses;     // candidates used in the defers being walked
-        SmallVector<ReturnStorageBlock>       blocks;       // sizes of the lists above when each block opened
-        SmallVector<size_t>                   deferMarks;   // 'bodyUses' size when each defer body opened
-        SmallVector<AstNodeRef>               contextRefs;  // nodes that opened an inline context
+        SmallVector<uint32_t>                 inScope;     // candidates declared in the open blocks
+        SmallVector<uint32_t>                 deferUses;   // candidates the active defers read or write
+        SmallVector<uint32_t>                 bodyUses;    // candidates used in the defers being walked
+        SmallVector<ReturnStorageBlock>       blocks;      // sizes of the lists above when each block opened
+        SmallVector<size_t>                   deferMarks;  // 'bodyUses' size when each defer body opened
+        SmallVector<AstNodeRef>               contextRefs; // nodes that opened an inline context
         SmallVector<const SemaInlinePayload*> contexts;
         size_t                                activeDefers  = 0; // defers registered in the open blocks
         int                                   captureDepth  = 0;

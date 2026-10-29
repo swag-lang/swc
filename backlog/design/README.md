@@ -80,6 +80,24 @@ selection handles on a canvas; the "value changed from default" dot; information
 
 Never put Voltage text on Papier, never wash a row with Voltage, never draw a Voltage rail or band.
 
+### Pointing, focus and selection
+
+These are separate states and each keeps its own signal:
+
+- **Hover** is temporary. Raise the whole hit target under the pointer; do not highlight only its
+  text or glyph. It leaves when the pointer leaves.
+- **Keyboard focus** is where keys act. Show its 2 px focus ring in Voltage on Encre and ink on
+  Papier. Moving focus never silently changes which item is selected.
+- **Selection** is the file or folder the reader chose. Keep it visibly marked after the pointer
+  leaves and while the control is not focused. A row uses the Arc selection ground across its full
+  bounds. A thumbnail keeps its picture intact, with an Arc outline painted above the picture and
+  the Arc selection ground under its name and facts. The selected glyph may take the selection's
+  ink; unrelated text and facts stay neutral.
+
+Selection is never conveyed by hover alone, by a thin mark that the content covers, or by a glyph
+colour alone. Encre and Papier use the same distinction, and every selectable row and tile is
+checked in both.
+
 ## Measures
 
 | Part | Value |
@@ -133,10 +151,15 @@ comme image…"). An ellipsis marks a command that asks for more before acting.
 - The application glyph sits at (18, 16), 18 px, about 55 % opacity, monochrome soft colour.
 - The document's name is centred at the top, 12 px, faint. Nothing else is written there.
 - The window buttons are faint glyphs at the top right; they reach full contrast on hover.
+- The window shadow is restrained: 35 % on Encre and 24 % on Papier. It separates the surface
+  from its surroundings without competing with the work. Floating panels and sheets use the
+  stronger shadow described in [Measures](#measures).
 - A document shows its position with a 1 px thread on the right edge and a short mark, not a
   scrollbar. A thin scrollbar (6 px) appears while scrolling or on hover.
 - A faint hint line ("Ctrl Space — everything else") may sit 24 px above the bottom edge while the
   reader is new to the window or the surface is empty.
+- `Ctrl+Space` opens the lens from any focused control. The window handles it before the focused
+  viewer or field, even when that control also uses `Space`.
 - Keys are named the same way everywhere — a keycap of the hint line, the foot of the lens, the
   end of a menu or lens row: `Space`, `Esc`, `Tab`, `↵` for Enter, and a chord as its keys
   separated by spaces (`Ctrl K`, `Ctrl ↵`, `Ctrl Shift S`), written by `Input.formatKeyShortcut`
@@ -428,9 +451,10 @@ the screen to its work.
 ![Home](imgs/scope.home.png) ![Home, clearing the history](imgs/scope.home.paper.png)
 
 - Home: the empty window stays quiet. The Scope mark, large and faint, gives the page its
-  centre; one line under it invites a drop or `Ctrl+O`; under a hairline, the last six files as
-  plain rows — a small faint glyph of the kind, the same line glyph for every kind and never a
-  thumbnail, the name in soft, the time in faint mono — and nothing else: no title, no paths, no
+  centre; one line under it invites a drop or `Ctrl+O`, and recalls opening a folder with
+  `Ctrl+E`; under a hairline, the last six files as
+  plain rows — a small line glyph in its file-kind colour and never a thumbnail — the name in
+  soft, the time in faint mono, and nothing else: no title, no paths, no
   groups. The row under the pointer comes up on the raised
   ground with its folder in faint mono and a faint `×` that removes it from the history (Delete
   does the same on the chosen row). "Clear…", faint under the list, appears with the pointer and

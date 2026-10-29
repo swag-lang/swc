@@ -727,7 +727,6 @@ func onFrame(_: *Application)
             g_DarkTheme = false
     }
 
-
     let flags = SurfaceFlags.LargeCaption |
                 SurfaceFlags.MinimizeButton |
                 SurfaceFlags.CloseButton |

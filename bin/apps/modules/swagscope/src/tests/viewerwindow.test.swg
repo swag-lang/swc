@@ -36,12 +36,12 @@ func lensHasEntry(window: *ViewerWindow, title: string)->bool
 
 func lensEntryOnFirstPage(window: *ViewerWindow, title: string)->bool
 {
-    let metrics = window.lens.themeMetrics()
-    let bounds  = window.lens.clientRect()
-    let inset   = metrics.floating_Inset
-    let top     = Math.max(Math.round(bounds.height * metrics.lens_TopRatio), window.stripInset() + inset)
-    let fixed   = metrics.lens_InputHeight + metrics.lens_FooterHeight + 2 * metrics.separator_HairlineSize
-    let room    = Math.max(Math.min(bounds.height * metrics.lens_MaxHeightRatio, bounds.height - inset - top), fixed)
+    let metrics    = window.lens.themeMetrics()
+    let bounds     = window.lens.clientRect()
+    let inset      = metrics.floating_Inset
+    let top        = Math.max(Math.round(bounds.height * metrics.lens_TopRatio), window.stripInset() + inset)
+    let fixed      = metrics.lens_InputHeight + metrics.lens_FooterHeight + 2 * metrics.separator_HairlineSize
+    let room       = Math.max(Math.min(bounds.height * metrics.lens_MaxHeightRatio, bounds.height - inset - top), fixed)
     let listHeight = room - fixed
     for row in window.lens.rows where row.entry < row.section.entries.count
     {
@@ -2668,9 +2668,9 @@ func createPictureFolder(stem: string, names: const [..] string)->String
         }
     }
 
-    let file       = unwrap fileSection
-    let view       = unwrap viewSection
-    let outline    = window.currentSidePanelButton!.toolTip
+    let file    = unwrap fileSection
+    let view    = unwrap viewSection
+    let outline = window.currentSidePanelButton!.toolTip
     Swag.assert(window.lens.query() == "")
     Swag.assert(file.entries.count == 3)
     Swag.assert(file.entries[0].title == appStrings().cmd_Open)
@@ -2747,7 +2747,7 @@ func createPictureFolder(stem: string, names: const [..] string)->String
     for section in window.lens.results.sections where section and section.label == appStrings().lens_File do
         fileSection = section
     let folder = unwrap folderSection
-    let file = unwrap fileSection
+    let file   = unwrap fileSection
     Swag.assert(window.lens.query() == "")
     Swag.assert(lensHasEntry(window, appStrings().explore_Up))
     Swag.assert(lensHasEntry(window, appStrings().explore_Refresh))

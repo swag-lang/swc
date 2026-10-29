@@ -484,6 +484,7 @@ internal namespace Shell32Priv
     func SHCreateShellItemArrayFromIDLists(cidl: UINT, rgpidl: const [*] PCIDLIST_ABSOLUTE, ppsiItemArray: *(*IShellItemArray?))->HRESULT
     func SHGetFileInfoA(pszPath: LPCSTR, dwFileAttributes: DWORD, psfi: *SHFILEINFOA, cbFileInfo: UINT, uFlags: UINT)->DWORD_PTR
     func SHGetFileInfoW(pszPath: LPCWSTR, dwFileAttributes: DWORD, psfi: *SHFILEINFOW, cbFileInfo: UINT, uFlags: UINT)->DWORD_PTR
+
     // Allocates the returned UTF-16 path with CoTaskMemAlloc; callers release it with CoTaskMemFree, even on failure.
     func SHGetKnownFolderPath(rfid: const *GUID, dwFlags: DWORD, hToken: HANDLE, ppszPath: *LPWSTR?)->HRESULT
     func DragAcceptFiles(hWnd: HWND, fAccept: BOOL)

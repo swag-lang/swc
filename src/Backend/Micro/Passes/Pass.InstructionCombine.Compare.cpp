@@ -44,15 +44,15 @@ namespace InstructionCombine
         if ((condition != MicroCond::Equal && condition != MicroCond::NotEqual && condition != MicroCond::Zero && condition != MicroCond::NotZero) ||
             !ctx.areCpuFlagsDeadAfter(readerRef))
             return false;
-        const auto extracted = ctx.ssa->reachingDef(cmp[0].reg, cmpRef);
-        const auto* move     = extracted.inst ? extracted.inst->ops(*ctx.operands) : nullptr;
+        const auto  extracted = ctx.ssa->reachingDef(cmp[0].reg, cmpRef);
+        const auto* move      = extracted.inst ? extracted.inst->ops(*ctx.operands) : nullptr;
         if (!extracted.valid() || extracted.isPhi || !extracted.inst || extracted.inst->op != MicroInstrOpcode::VecUnaryRegReg ||
             extracted.instRef != ctx.storage->findPreviousInstructionRef(cmpRef) ||
             ctx.ssa->transitiveInstructionUseCount(extracted.valueId, 2) != 1 || !move || move[2].opBits != MicroOpBits::B128 ||
             move[3].microOp != MicroOp::VecMoveMaskB)
             return false;
-        const auto compared = ctx.ssa->reachingDef(move[1].reg, extracted.instRef);
-        const auto* vector  = compared.inst ? compared.inst->ops(*ctx.operands) : nullptr;
+        const auto  compared = ctx.ssa->reachingDef(move[1].reg, extracted.instRef);
+        const auto* vector   = compared.inst ? compared.inst->ops(*ctx.operands) : nullptr;
         if (!compared.valid() || compared.isPhi || !compared.inst || compared.inst->op != MicroInstrOpcode::OpBinaryRegRegReg ||
             ctx.ssa->transitiveInstructionUseCount(compared.valueId, 2) != 1 || !vector || vector[3].opBits != MicroOpBits::B128 ||
             (vector[4].microOp != MicroOp::VecCmpEq8 && vector[4].microOp != MicroOp::VecCmpEq16 &&
@@ -62,9 +62,9 @@ namespace InstructionCombine
         MicroReg testReg = move[1].reg;
         for (uint32_t zeroIndex : {1u, 2u})
         {
-            const auto zero = ctx.ssa->reachingDef(vector[zeroIndex].reg, compared.instRef);
-            const auto* zeroOps = zero.inst ? zero.inst->ops(*ctx.operands) : nullptr;
-            const MicroReg other = vector[zeroIndex == 1 ? 2 : 1].reg;
+            const auto     zero    = ctx.ssa->reachingDef(vector[zeroIndex].reg, compared.instRef);
+            const auto*    zeroOps = zero.inst ? zero.inst->ops(*ctx.operands) : nullptr;
+            const MicroReg other   = vector[zeroIndex == 1 ? 2 : 1].reg;
             if (zero.valid() && !zero.isPhi && zero.inst && zero.inst->op == MicroInstrOpcode::ClearReg &&
                 !ctx.isClaimed(zero.instRef) && !ctx.isRelocated(zero.instRef) && zeroOps && zeroOps[1].opBits == MicroOpBits::B128 &&
                 ctx.ssa->sameValueAt(other, compared.instRef, extracted.instRef))
@@ -74,8 +74,8 @@ namespace InstructionCombine
             }
         }
         MicroInstrOperand testOps[2] = {};
-        testOps[0].reg    = testReg;
-        testOps[1].opBits = MicroOpBits::B128;
+        testOps[0].reg               = testReg;
+        testOps[1].opBits            = MicroOpBits::B128;
         if (testReg != move[1].reg)
             ctx.emitErase(compared.instRef);
         else
@@ -112,8 +112,8 @@ namespace InstructionCombine
              setOps[1].cpuCond != MicroCond::Zero && setOps[1].cpuCond != MicroCond::NotZero) ||
             !ctx.areCpuFlagsDeadAfter(setRef))
             return false;
-        const auto masked = ctx.ssa->reachingDef(cmp[0].reg, cmpRef);
-        auto previous = cursor;
+        const auto masked   = ctx.ssa->reachingDef(cmp[0].reg, cmpRef);
+        auto       previous = cursor;
         --previous;
         if (!masked.valid() || masked.isPhi || !masked.inst || masked.inst->op != MicroInstrOpcode::OpBinaryRegImm ||
             masked.instRef != previous.current || ctx.ssa->transitiveInstructionUseCount(masked.valueId, 2) != 1)
@@ -122,13 +122,13 @@ namespace InstructionCombine
         if (!mask || mask[0].reg != cmp[0].reg || mask[1].opBits != MicroOpBits::B32 || mask[2].microOp != MicroOp::And ||
             mask[3].hasWideImmediateValue() || mask[3].valueU64 != 0xAAAA)
             return false;
-        const auto extracted = ctx.ssa->reachingDef(mask[0].reg, masked.instRef);
-        const auto* move = extracted.inst ? extracted.inst->ops(*ctx.operands) : nullptr;
+        const auto  extracted = ctx.ssa->reachingDef(mask[0].reg, masked.instRef);
+        const auto* move      = extracted.inst ? extracted.inst->ops(*ctx.operands) : nullptr;
         if (!extracted.valid() || extracted.isPhi || !extracted.inst || extracted.inst->op != MicroInstrOpcode::VecUnaryRegReg ||
             !move || move[2].opBits != MicroOpBits::B128 || move[3].microOp != MicroOp::VecMoveMaskB)
             return false;
-        const auto compared = ctx.ssa->reachingDef(move[1].reg, extracted.instRef);
-        const auto* vector = compared.inst ? compared.inst->ops(*ctx.operands) : nullptr;
+        const auto  compared = ctx.ssa->reachingDef(move[1].reg, extracted.instRef);
+        const auto* vector   = compared.inst ? compared.inst->ops(*ctx.operands) : nullptr;
         if (!compared.valid() || compared.isPhi || !compared.inst || compared.inst->op != MicroInstrOpcode::OpBinaryRegRegReg ||
             !vector || vector[3].opBits != MicroOpBits::B128 ||
             (vector[4].microOp != MicroOp::VecCmpEq16 && vector[4].microOp != MicroOp::VecCmpGtS16))

@@ -7,13 +7,13 @@ using Core, Gui, Pixel
 const W = 960
 const H = 680
 
-var app:        Application
-var g_Surface:  *Surface?
-var g_View:     *Wnd?
-var g_Browser:  *FileBrowserCtrl?
+var app:           Application
+var g_Surface:     *Surface?
+var g_View:        *Wnd?
+var g_Browser:     *FileBrowserCtrl?
 var g_ThemeButton: *PushButton?
-var g_StartDir: String
-var g_DarkTheme: bool
+var g_StartDir:    String
+var g_DarkTheme:   bool
 
 // Shared by every file dialog of the session: each one reopens with the previous
 // placement, folder, column widths and recent locations.
@@ -241,9 +241,9 @@ func onRootEvent(_: *Wnd, evt: IEvent)->bool
     if evt is DestroyEvent
     {
         app.sigFrame.disable()
-        g_Surface = null
-        g_View    = null
-        g_Browser = null
+        g_Surface     = null
+        g_View        = null
+        g_Browser     = null
         g_ThemeButton = null
         return true
     }

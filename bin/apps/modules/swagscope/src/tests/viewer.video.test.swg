@@ -550,7 +550,7 @@ func videoMatroskaFixturePath()->String => Path.combine(unwrap Path.directoryNam
                 not view.bottomVeil.isLocallyVisible())
     host.moveMouse(view.localToSurface(Math.Point{640, 300}))
     Swag.assert(view.veilsShown and view.bottomVeil.isLocallyVisible() and view.topVeil.isLocallyVisible())
-    Swag.assert(view.timeline.position.width == view.clientRect().width - 2 * Film.VeilInset)
+    Swag.assert(view.timeline.position.width == view.clientRect().width - 2 * Film.VeilInset + 16)
 
     // Still over the picture, the veils leave; resting on the controls, they stay.
     view.settleVeils(10_000)
@@ -565,7 +565,9 @@ func videoMatroskaFixturePath()->String => Path.combine(unwrap Path.directoryNam
 
     // A press on the timeline seeks to where it points.
     let timeline = view.timeline.surfaceRect()
-    host.click(Math.Point{timeline.x + timeline.width * 0.75, timeline.vertCenter()})
+    let trackX  = timeline.x + 8
+    let trackWidth = timeline.width - 16
+    host.click(Math.Point{trackX + trackWidth * 0.75, timeline.vertCenter()})
     waitForVideoFrame(view)
     Swag.assert(view.frameIndex == 3 and view.timeText() == "0:00 / 0:01")
 
@@ -662,6 +664,7 @@ func videoMatroskaFixturePath()->String => Path.combine(unwrap Path.directoryNam
         view.seekFrame(5)
         waitForVideoFrame(view)
         view.refreshTime()
+        view.timeline.setValueWithoutGesture(cast(f32, view.frameSeconds(view.frameIndex)))
         host.settleAnimations(window, 4)
 
         var rest = host.render(&host.surfaceWnd)
@@ -669,8 +672,10 @@ func videoMatroskaFixturePath()->String => Path.combine(unwrap Path.directoryNam
 
         // The first movement brings the veils, the next one reads a time on the timeline.
         let timeline = view.timeline.surfaceRect()
-        host.moveMouse(Math.Point{timeline.x + timeline.width * 0.6, timeline.vertCenter()})
-        host.moveMouse(Math.Point{timeline.x + timeline.width * 0.62, timeline.vertCenter()})
+        let trackX = timeline.x + 8
+        let trackWidth = timeline.width - 16
+        host.moveMouse(Math.Point{trackX + trackWidth * 0.6, timeline.vertCenter()})
+        host.moveMouse(Math.Point{trackX + trackWidth * 0.62, timeline.vertCenter()})
         host.settleAnimations(window, 4)
         var hover = host.render(&host.surfaceWnd)
         Pixel.Testing.assertImageGolden(&hover, light ? "viewer.video.hover.paper" : "viewer.video.hover.ink")
@@ -1399,6 +1404,40 @@ impl IWnd for SubtitleBackdropProbe
         painter.fillRect(band, 0, band, rect.height, Color.fromArgb(0xFF8A8F96))
         painter.fillRect(2 * band, 0, rect.width - 2 * band, rect.height, Color.fromArgb(0xFF101418))
     }
+}
+
+func assertVideoTimelineEndpoints(light: bool, golden: string)
+{
+    var host: Testing.HeadlessHost
+    host.setup(420, 90)
+    host.root.backgroundStyle = .Application
+    if light do
+        host.theme.setLight()
+    else do
+        host.theme.setDark()
+    host.notify(.ThemeChanged)
+
+    let start = Wnd.create'Film.VideoTimeline(&host.root, {24, 12, 372, 24})
+    let end   = Wnd.create'Film.VideoTimeline(&host.root, {24, 54, 372, 24})
+    start.setBounds(0, 100, 0)
+    end.setBounds(0, 100, 0)
+    start.setValueWithoutGesture(0)
+    end.setValueWithoutGesture(100)
+    let room = start.clientRect()
+    Swag.assert(start.positionOf(0) - room.x >= 7.99)
+    Swag.assert(room.right() - end.positionOf(100) >= 7.99)
+    host.root.applyLayout()
+
+    var image = host.render(&host.root)
+    Pixel.Testing.assertImageGolden(&image, golden)
+}
+
+// The playhead and its outline stay whole when the track is at its first or last frame.
+#[Swag.TestTag("golden")]
+#test
+{
+    assertVideoTimelineEndpoints(false, "viewer.video.timeline.endpoints.encre")
+    assertVideoTimelineEndpoints(true, "viewer.video.timeline.endpoints.paper")
 }
 
 func assertSubtitleEffect(effect: Film.SubtitleEffect, size: Film.SubtitleSize, dpiScale: f32, golden: string)

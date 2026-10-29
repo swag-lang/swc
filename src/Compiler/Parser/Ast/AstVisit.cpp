@@ -46,17 +46,17 @@ AstVisitResult AstVisit::step(const TaskContext& ctx)
 #if SWC_HAS_VISIT_DEBUG_INFO
     if (!frame.node)
         frame.node = &ast_->node(frame.nodeRef);
-    dbgNode    = frame.node;
+    dbgNode                            = frame.node;
     const SourceCodeRef currentCodeRef = dbgNode->codeRef();
     if (!dbgCodeRefKnown_ || currentCodeRef != dbgCodeRef_)
     {
         dbgCodeRef_      = currentCodeRef;
         dbgCodeRefKnown_ = true;
-        dbgSrcFile  = nullptr;
-        dbgTok      = nullptr;
-        dbgTokView  = {};
-        dbgTokRef   = currentCodeRef.tokRef;
-        dbgLoc      = {};
+        dbgSrcFile       = nullptr;
+        dbgTok           = nullptr;
+        dbgTokView       = {};
+        dbgTokRef        = currentCodeRef.tokRef;
+        dbgLoc           = {};
 
         if (currentCodeRef.isValid())
         {
@@ -150,7 +150,7 @@ AstVisitResult AstVisit::stepChildrenStage(Frame& frame)
 
         while (frame.nextChildIx < frame.numChildren)
         {
-            const uint32_t   globalIx = frame.firstChildIx + frame.nextChildIx++;
+            const uint32_t    globalIx = frame.firstChildIx + frame.nextChildIx++;
             const AstNodeRef& childRef = children_[globalIx];
             if (childRef.isInvalid())
                 continue;

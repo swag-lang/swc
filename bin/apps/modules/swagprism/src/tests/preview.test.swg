@@ -187,12 +187,14 @@ func assertPreviewSurface(gui: bool, light: bool)
     host.settleAnimations(window, 6)
     var image = host.render(&host.surfaceWnd)
     var tolerance: Pixel.Testing.ImageGoldenOptions
+
     // Release FMA shifts eight Plasma samples by at most six channel levels.
     #static if #cfg == "release"
     {
         tolerance.maxChannelDelta    = 6
         tolerance.maxDifferentPixels = 8
     }
+
     Pixel.Testing.assertImageGolden(&image, gui ? "surface.gui" : (light ? "surface.render.paper" : "surface.render"), tolerance)
     window.shutdown()
 }

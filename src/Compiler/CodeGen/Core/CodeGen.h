@@ -573,7 +573,7 @@ private:
     Result emitDeferredActionsFrom(size_t startScopeIndex, size_t startActionCount, size_t stopScopeIndex, bool hasStopScope, bool popStopErrorScope = true);
     bool   findInnermostDeferScopeIndex(AstNodeRef scopeRef, size_t& outScopeIndex) const;
 
-    void mergeLoweringNodePayloadMetadata(CodeGenNodePayload& payload, AstNodeRef nodeRef, AstNodeRef resolvedRef) const;
+    void                mergeLoweringNodePayloadMetadata(CodeGenNodePayload& payload, AstNodeRef nodeRef, AstNodeRef resolvedRef) const;
     CodeGenNodePayload* safePayload(AstNodeRef nodeRef, AstNodeRef resolvedRef);
 
     Sema*                     sema_ = nullptr;
@@ -590,15 +590,15 @@ private:
     uint32_t                                                variablePayloadCount_ = 0;
 
     // Filled only when a move asks whether it can be elided; most functions never do.
-    FlatKeyMap<CodeGenMoveElisionVar, uint64_t> moveElisionVars_;
-    PointerSet<const SymbolVariable>            elidedImplicitDrops_;
-    PointerSet<const SymbolVariable>            returnStorageLocals_;
-    PointerMap<SymbolVariable, const SemaInlinePayload> returnStorageLocalContexts_;
+    FlatKeyMap<CodeGenMoveElisionVar, uint64_t>               moveElisionVars_;
+    PointerSet<const SymbolVariable>                          elidedImplicitDrops_;
+    PointerSet<const SymbolVariable>                          returnStorageLocals_;
+    PointerMap<SymbolVariable, const SemaInlinePayload>       returnStorageLocalContexts_;
     SmallVector<std::pair<AstNodeRef, const SymbolVariable*>> replacingReturns_;
-    PointerSet<const SymbolVariable>                    demotedReturnStorages_;
-    const SymbolVariable*                               returnReplacedLocal_ = nullptr;
-    const SymbolVariable*                       returnMoveOutVar_    = nullptr;
-    bool                                        moveElisionAnalyzed_ = false;
+    PointerSet<const SymbolVariable>                          demotedReturnStorages_;
+    const SymbolVariable*                                     returnReplacedLocal_ = nullptr;
+    const SymbolVariable*                                     returnMoveOutVar_    = nullptr;
+    bool                                                      moveElisionAnalyzed_ = false;
 
     SymbolFunction* function_            = nullptr;
     MicroBuilder*   builder_             = nullptr;

@@ -410,8 +410,8 @@ namespace InstructionCombine
             }
 
             MicroOp insertOp() const { return laneBytes == 1 ? MicroOp::VecInsert8 : laneBytes == 2 ? MicroOp::VecInsert16
-                                                                                      : laneBytes == 4 ? MicroOp::VecInsert32
-                                                                                                       : MicroOp::VecInsert64; }
+                                                                                 : laneBytes == 4   ? MicroOp::VecInsert32
+                                                                                                    : MicroOp::VecInsert64; }
             MicroOp unpackOp(const uint32_t bytes) const { return bytes == 1 ? MicroOp::VecUnpackLo8 : bytes == 2 ? MicroOp::VecUnpackLo16
                                                                                                    : bytes == 4   ? MicroOp::VecUnpackLo32
                                                                                                                   : MicroOp::VecUnpackLo64; }

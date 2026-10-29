@@ -36,6 +36,7 @@ func viewerPlugin()->Viewer.Plugin
         .iconIndex    = cast(s32, ViewerIcons.Markdown)
         .create       = &createViewer
         .textual      = true
+        .showReadingLine = false
         .smokeFixture = "comprehensive.md"
         .addSelectors(".markdown;.md;.mdown;.mdwn;.mkd;.mkdn;.rmd")
     }
@@ -404,7 +405,7 @@ impl ZoomButton
 
     mtd showZoomMenu()
     {
-        let percent = Viewer.pickZoom(me, me, .zoomPercent)
+        let percent = Viewer.pickZoom(.view, .view, .zoomPercent)
         if percent do
             .applyZoom(percent)
     }
@@ -458,10 +459,11 @@ const ThemeCount = 6'u32
 
 // Opens how the document reads: its measure and its appearance. Both choices are remembered, and
 // the keyboard goes back to the document, where the reader was.
-func showOptions(button: *IconButton, view: *Markdown.View, zoom: *ZoomButton)
+func showOptions(anchor: *Wnd, view: *Markdown.View, zoom: *ZoomButton)
 {
-    let sheet = OptionSheet.View.create(button, func|view, zoom|(page) { describeOptions(page, view, zoom) }, owner: view)
-    sheet.doModal(button, autoDestroy: true)
+    let sheet = OptionSheet.View.create(anchor, func|view, zoom|(page) { describeOptions(page, view, zoom) }, owner: view)
+    let rect = anchor.surfaceRect()
+    sheet.doModal(Math.Point{rect.x, rect.y + rect.height}, autoDestroy: true)
     view.setFocus()
 }
 
@@ -523,13 +525,13 @@ func createViewer(host: Viewer.Host)
         showOptions(button, view, zoomButton)
     }
 
-    host.setLensSource(func|view, zoomButton, optionsButton|(entries)
+    host.setLensSource(func|view, zoomButton|(entries)
     {
         entries.addZoom(.In, zoomButton.zoomPercent, func|zoomButton, percent = Viewer.zoomTarget(.In, zoomButton.zoomPercent)|() { zoomButton.applyZoom(percent) })
         entries.addZoom(.Out, zoomButton.zoomPercent, func|zoomButton, percent = Viewer.zoomTarget(.Out, zoomButton.zoomPercent)|() { zoomButton.applyZoom(percent) })
         entries.addZoom(.Reset, zoomButton.zoomPercent, func|zoomButton, percent = Viewer.zoomTarget(.Reset, zoomButton.zoomPercent)|() { zoomButton.applyZoom(percent) })
         entries.add(appStrings().cmd_ZoomMenu, func|zoomButton|() { zoomButton.showZoomMenu() })
-        entries.add(appStrings().cmd_Options, func|view, zoomButton, optionsButton|() { showOptions(optionsButton, view, zoomButton) })
+        entries.add(appStrings().cmd_Options, func|view, zoomButton|() { showOptions(view, view, zoomButton) })
     })
 
     with zoomButton.readingMargin = ReadingMargin.create(view, unwrap zoomButton.outline)

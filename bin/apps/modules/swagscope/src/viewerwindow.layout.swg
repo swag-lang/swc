@@ -372,7 +372,7 @@ impl ViewerWindow
     mtd updateDocumentInsets()
     {
         let strip = .fullScreen or .isEdgeToEdge() ? 0 : .stripInset()
-        let top   = Math.max(strip, .themeMetrics().floating_Inset)
+        let top   = strip + .themeMetrics().floating_Inset
         .documentHost.padding    = Math.Vector4{0, strip, 0, 0}
         .filePanelHost.padding.y = top
         if .currentSidePanelHost do

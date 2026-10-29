@@ -84,15 +84,16 @@ private const ZoomPresets: [5] ZoomPreset = [
     ZoomPreset{150, "150%", "scope.zoom150"},
     ZoomPreset{200, "200%", "scope.zoom200"}]
 
-// Shows the zoom menu of a reading viewer under `anchor`, with the level in use checked, and
+// Shows the zoom menu of a reading viewer beside `anchor`, with the level in use checked, and
 // returns the level the reader picked, or 0 when the menu closed without a choice.
-func pickZoom(owner: *Wnd, anchor: *IconButton, current: u32)->u32
+func pickZoom(owner: *Wnd, anchor: *Wnd, current: u32)->u32
 {
     let menu = MenuCtrl.createPopup(owner, owner: owner)
     for preset in ZoomPresets do
         menu.addItem(preset.label, preset.id, checked: preset.percent == current)
 
-    let chosen = menu.doModal(anchor, autoDestroy: true) orelse ""
+    let rect   = anchor.surfaceRect()
+    let chosen = menu.doModal(Math.Point{rect.x, rect.y + rect.height}, autoDestroy: true) orelse ""
     for preset in ZoomPresets where preset.id == chosen do
         return preset.percent
     return 0

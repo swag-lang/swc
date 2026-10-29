@@ -370,10 +370,11 @@ the screen to its work.
 
 ![Reading](imgs/scope.read.png) ![Video](imgs/scope.video.png)
 
-- Reading: the document in a centred column, faint line numbers, the position thread, the name
-  at the top. The action bar, the information band and the options band are gone: search, open,
-  explore, view switch, go to, full screen and options are lens entries; readings (encoding,
-  lines, size, outline) are in the sheet (`I`).
+- Reading: the document alone in a centred column. Markdown has no persistent footer, progress
+  thread or action strip; its current section is marked in the quiet heading margin when the
+  window is wide. `Ctrl Space` opens the lens for file, view and reading actions; `I` opens file
+  and reading details. The full outline is opened on demand from the lens and remains a quiet,
+  scrollable list beside the page, without an information card.
 - Explorer: a page title (folder name, 44–56/800) under the faint path, a mono count, quiet sort
   and view menus on the title line, right-aligned with the grid; the chosen item ringed in Arc
   at a 2 px gap; the sheet for the chosen item. No side panel and no filter field until asked
@@ -414,8 +415,9 @@ the screen to its work.
 - Video: picture edge to edge; on hover a top veil with title, a bottom veil with the timeline
   (Arc progress, white knob, chapter ticks, hover time), time in mono, chips for subtitles,
   audio, speed.
-- Markdown: a reading column, the table of contents in the left margin when the window is wide
-  (active entry with an Arc left rule), reading progress as an Arc thread on the top edge.
+- Markdown: a reading column, the current section marked in the left margin when the window is
+  wide (active entry with an Arc left rule), and a full outline opened on demand in the opposite
+  margin. No footer or progress thread stays on the page.
 - Hex: structure as text tabs, an airy grid, Arc selection, Voltage cursor byte, a floating
   inspector with the value under the cursor in large type.
 - Font: a large specimen, the family name, style tabs, a glyph grid with the chosen glyph on the

@@ -1,14 +1,12 @@
 #global internal
 #global namespace Viewers.MarkdownText
 
-using Core, Gui, Pixel
+using Core, Gui
 
-// The reading progress of a document as an Arc thread along the top edge of the window, and its
-// table of contents in the left margin of a wide window.
+// The current Markdown section in the left margin of a wide reading column.
 //
-// The thread is as long as the share of the document already read; the margin lists the headings
-// of the first two levels, the one being read on an Arc rule over the faint rule of the list, and
-// goes away when the margin is too narrow to hold it. Neither scrolls with the document.
+// The margin lists the first two heading levels, with the section being read on an Arc rule over
+// the faint rule of the list. It goes away when the margin is too narrow to hold it.
 struct ReadingMargin
 {
     using wnd: Wnd
@@ -25,13 +23,12 @@ struct ReadingMargin
 
 impl ReadingMargin
 {
-    // The air between the margin and the edge of the window, and the weight of the thread.
-    const Inset      = 48.0
-    const RuleWeight = 2.0
+    // The air between the margin and the edge of the reading column.
+    const Inset = 48.0
 
     func create(view: *Markdown.View, outline: *DocumentOutline)->*ReadingMargin
     {
-        with let result = Wnd.create'ReadingMargin(view, Math.Rectangle{0, 0, 0, RuleWeight}, "scope.markdown.progress")
+        with let result = Wnd.create'ReadingMargin(view, Math.Rectangle{0, 0, 0, 0}, "scope.markdown.margin")
         {
             .view            = view
             .outline         = outline
@@ -64,13 +61,6 @@ impl ReadingMargin
         let client   = view.clientRect()
         let geometry = view.columnGeometry()
 
-        // The thread: the share of the document already read.
-        let progress = view.readingProgress()
-        .setPosition(Math.Rectangle{0, 0, Math.round(client.width * progress), RuleWeight}, computeLayout: false)
-        .show(progress > 0)
-        .bringToFront()
-        .invalidate()
-
         .entries.clear()
         .list.titles.clear()
         for heading, index in .outline.headings where heading.level <= 2
@@ -90,13 +80,5 @@ impl ReadingMargin
 
         .list.setActive(active)
         .list.place(Inset, client.y + view.documentStyle.topInset + 16, geometry.x - 2 * Inset + 24)
-    }
-}
-
-impl IWnd for ReadingMargin
-{
-    mtd impl onPaint(evt: *PaintEvent)
-    {
-        evt.paintContext.painter.fillRect(.clientRect(), .themeColors().arc)
     }
 }

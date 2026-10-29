@@ -23,7 +23,7 @@ struct Strings
         dlg_InfoTitle:     string = "Information"        // Title of an informational dialog.
         dlg_MultiLineHint: string = "Press Shift+Enter to add a new line"     // Keyboard hint above a multi-line dialog editor.
 
-        appearance_ToolTip:        string = "Appearance and application information"     // Tooltip of the application appearance caption button.
+        appearance_ToolTip:        string = "Appearance and Application Information"     // Tooltip of the application appearance caption button.
         appearance_Theme:          string = "Theme"               // Theme submenu label.
         appearance_Language:       string = "Language"            // Language submenu label.
         appearance_SystemLanguage: string = "System Language"     // Language choice following the user account.

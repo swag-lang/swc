@@ -50,6 +50,38 @@ using Core, Pixel, Gui, Gui.Testing, Viewers
     Swag.assert(scroll.scrollPosition().y < 2)
 }
 
+// A long outline remains reachable with the wheel after the panel itself fills its viewport.
+#test
+{
+    let fileName = Testing.tempFilePath("scope-outline-scroll-", ".md")
+    var source: String
+    for index in 40 do
+        source += Format.toString("# Section %\n\n", index)
+    discard expect File.writeAllBytes(fileName, source.toString())
+    defer discard catch File.delete(fileName)
+
+    var host: HeadlessHost
+    host.setup(880, 560)
+    let window = ViewerWindow.create(&host.surfaceWnd, createViewerPluginRegistry())
+    window.openFile(fileName, remember: false)
+    completeQueuedViewerFile(&host, window)
+
+    let zoom    = assume cast(*MarkdownText.ZoomButton, window.currentInfo!.children[0])
+    let outline = unwrap zoom.outline
+    outline.startMarkdown()
+    completeViewerBackgroundLoad(&host, &outline.load)
+    outline.toggle.setChecked(true)
+    outline.toggle.sigCheckedChanged.call(outline.toggle)
+    window.applyLayout()
+
+    let scroll = outline.list.scrollWnd
+    Swag.assert(outline.rows.count == 40)
+    Swag.assert(scroll.scrollSize.y > scroll.paddedClientRect().height)
+    let point = scroll.localToSurface(scroll.clientRect().center())
+    host.mouseWheel(point, -120)
+    Swag.assert(scroll.scrollTarget().y > 0)
+}
+
 // The panel is hosted at the information edge and exposes the document hierarchy in both languages.
 #[Swag.TestTag("golden")]
 #test
@@ -114,6 +146,8 @@ using Core, Pixel, Gui, Gui.Testing, Viewers
     var image = host.render(window)
     image.crop(outline.surfaceRect())
     Pixel.Testing.assertImageGolden(&image, "viewer.outline.markdown")
+    var whole = host.render(window)
+    Pixel.Testing.assertImageGolden(&whole, "viewer.outline.markdown.window")
     expect host.app.setLanguage("fr")
     host.notify(.LanguageChanged)
     window.resize(880, 420)

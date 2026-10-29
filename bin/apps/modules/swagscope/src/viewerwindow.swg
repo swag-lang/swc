@@ -28,10 +28,9 @@ func reportViewerFailure(view: *Wnd, reason: string) { viewerWindowFor(view).rep
 // The main window of Swag Scope: the document and nothing else on screen.
 //
 // Everything the window can do is an entry of its lens, which `Ctrl Space` opens; what
-// it knows about the open file is in the sheet `I` opens. The viewer's own commands float over
-// the foot of the document while the pointer moves, its readings sit faint under it, the search
-// floats at the top while it is asked for, and the files beside the open one stand in a panel
-// shown on demand.
+// it knows about the open file is in the sheet `I` opens. Viewers can contribute contextual
+// controls and readings around their document, while search floats at the top when asked for and
+// the files beside the open one stand in a panel shown on demand.
 struct ViewerWindow
 {
     using wnd: Wnd
@@ -868,7 +867,7 @@ impl ViewerWindow
             let flagsToRemove   = transitionFlags & ~.fullScreenRestoreFlags
             surface.updateFlags(add: flagsToAdd, remove: flagsToRemove)
             .documentPanel.backgroundStyle = .View
-            .readingLine.show(.readingLine.hasContent() and not .isEdgeToEdge())
+            .readingLine.show(.readingLine.hasContent() and .canShowReadingLine() and not .isEdgeToEdge())
             .mainSplitter.setPaneVisible(0, .panelVisible)
             .mainSplitter.items[2]!.view = .currentSidePanelHost orelse .sidePanelPlaceholder
             .mainSplitter.items[2]!.view.show(.currentSidePanelButton?.isChecked orelse false)

@@ -223,13 +223,15 @@ dialogs, then each application, then the written rules.
   scrollable `ListCtrl`; a focused test with forty headings confirms the wheel moves the list.
   The scrollbar follows the charter and fades at rest, which leaves no persistent visual cue.
   The quiet outline in the reading margin is separate: it previews the first two heading levels
-  and does not scroll. The full-window Encre golden records how the explicit panel sits beside
-  the Markdown page. A first-use report says the panel reads as an information card, sits too
-  high, and feels poorly rounded.
-- Next: compare the Markdown panel in Encre and Papier against the whole-window charter pictures;
-  review its top inset, corner, title and filter hierarchy, and make the full outline's scrolling
-  discoverable while preserving the quiet margin preview for quick jumps.
-- Done when: the explicit Outline action opens a comfortable, full-height list with all headings
-  reachable by wheel and keyboard, its shape and placement match the charter in both themes, and
-  the margin preview remains useful without implying that it contains every heading.
+  and does not scroll. A first-use report says the Markdown viewer still feels like it has bars,
+  and its information panel looks unattractive, too high and poorly rounded. The persistent
+  reading line and Arc progress thread are now removed from Markdown; details stay in the `I`
+  sheet, and the lens remains the visible route to zoom and options. Its explicit outline card
+  still needs the charter's quieter margin treatment.
+- Next: replace the Markdown outline card with an on-demand, quiet margin that lists every heading;
+  make its scroll state discoverable on hover and by keyboard, and compare the whole page in Encre
+  and Papier. Keep the always-on reading surface free of footer, progress strip and command bar.
+- Done when: the Markdown page reads without persistent bands, its full outline is available from
+  the lens in a quiet margin, every heading is reachable by wheel and keyboard, and the outline's
+  shape and placement match the charter in both themes.
 - Related: design.silence.004, design.silence.007

@@ -11,6 +11,14 @@ impl ViewerWindow
         return .index.plugins[.choices[.activeChoiceIndex].pluginIndex].edgeToEdge
     }
 
+    // Reports whether the selected viewer asks for the host's line of readings at the document foot.
+    mtd canShowReadingLine()->bool
+    {
+        if .activeChoiceIndex >= .choices.count do
+            return true
+        return .index.plugins[.choices[.activeChoiceIndex].pluginIndex].showReadingLine
+    }
+
     mtd isArchivePreview()->bool => not .isExploring() and
                                     .explorer and
                                     .explorer.listing.isArchive and
@@ -58,7 +66,7 @@ impl ViewerWindow
         // A document that takes the whole window writes its title itself, over its picture.
         .surface?.wnd.showTitle(not .isEdgeToEdge())
         .updateDocumentInsets()
-        .readingLine.show(.readingLine.hasContent() and not .fullScreen and not .isEdgeToEdge())
+        .readingLine.show(.readingLine.hasContent() and .canShowReadingLine() and not .fullScreen and not .isEdgeToEdge())
         .readingLine.computeLayout()
         .documentHost.applyLayout()
         .layoutViewerBar()

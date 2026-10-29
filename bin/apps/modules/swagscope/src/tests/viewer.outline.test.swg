@@ -105,6 +105,8 @@ using Core, Pixel, Gui, Gui.Testing, Viewers
     let window = ViewerWindow.create(&host.surfaceWnd, createViewerPluginRegistry())
     window.openFile(fileName, remember: false)
     completeQueuedViewerFile(&host, window)
+    Swag.assert(not window.readingLine.isLocallyVisible())
+    Swag.assert(not window.viewerBar.isLocallyVisible())
     let zoom    = assume cast(*MarkdownText.ZoomButton, window.currentInfo!.children[0])
     let outline = unwrap zoom.outline
     Swag.assert(not outline.load.started)
@@ -143,11 +145,32 @@ using Core, Pixel, Gui, Gui.Testing, Viewers
     let firstHeading = scroll.view.children[0]
     let inset        = assume cast(*Markdown.View, window.currentView).documentStyle.topInset
     Swag.assert(Math.abs(firstHeading.surfaceRect().y - scroll.surfaceRect().y - inset) < 2)
+    let sidePanelHost = unwrap window.currentSidePanelHost
+    let card = assume cast(*FloatingPanel, sidePanelHost.children[0])
+    let cardTop = card.surfaceRect().y - sidePanelHost.surfaceRect().y
+    Swag.assert(cardTop >= window.stripInset() + window.themeMetrics().floating_Inset)
+    Swag.assert(card.radius() == window.themeMetrics().corner_Floating)
     var image = host.render(window)
     image.crop(outline.surfaceRect())
     Pixel.Testing.assertImageGolden(&image, "viewer.outline.markdown")
     var whole = host.render(window)
     Pixel.Testing.assertImageGolden(&whole, "viewer.outline.markdown.window")
+
+    var paperHost: HeadlessHost
+    paperHost.setup(880, 560)
+    shipFrame(&paperHost)
+    paperHost.theme.setLight()
+    let paperWindow = ViewerWindow.create(&paperHost.surfaceWnd, createViewerPluginRegistry())
+    paperWindow.openFile(fileName, remember: false)
+    completeQueuedViewerFile(&paperHost, paperWindow)
+    let paperZoom = assume cast(*MarkdownText.ZoomButton, paperWindow.currentInfo!.children[0])
+    let paperOutline = unwrap paperZoom.outline
+    paperOutline.toggle.setChecked(true)
+    paperOutline.toggle.sigCheckedChanged.call(paperOutline.toggle)
+    completeViewerBackgroundLoad(&paperHost, &paperOutline.load)
+    paperWindow.applyLayout()
+    var paper = paperHost.render(paperWindow)
+    Pixel.Testing.assertImageGolden(&paper, "viewer.outline.markdown.window.paper")
     expect host.app.setLanguage("fr")
     host.notify(.LanguageChanged)
     window.resize(880, 420)
@@ -159,9 +182,11 @@ using Core, Pixel, Gui, Gui.Testing, Viewers
     french.crop(outline.surfaceRect())
     Pixel.Testing.assertImageGolden(&french, "viewer.outline.markdown.fr")
     window.setFullScreen(true)
-    Swag.assert(not window.currentSidePanelHost!.isVisible())
+    Swag.assert(not window.currentSidePanelHost.isVisible())
     window.setFullScreen(false)
     Swag.assert(window.currentSidePanelHost.isVisible())
+    Swag.assert(not window.readingLine.isLocallyVisible())
+    Swag.assert(not window.viewerBar.isLocallyVisible())
 }
 
 #test

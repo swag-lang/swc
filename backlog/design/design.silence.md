@@ -22,12 +22,15 @@ dialogs, then each application, then the written rules.
   `IconButton.createQuiet` with `setQuietText`, and every application builds its quiet menus with
   it; the section labels Swag Scope shaped itself (its panels, the days of a mosaic, the outline
   margin) are `Gui.SectionLabel`; the keys are named one way (`Gui.strings().key_Enter`,
-  `key_CtrlEnter`, spaced shortcuts).
-- Next: per remaining application, register every command and `addToLens` on one lens bound to
-  `Ctrl Space`, move readings to the sheet, tools to the dock and the mini-bar, properties
-  to the inspector, and let the work reach into the strip where its picture shows it.
-- Done when: the four applications use the components, every command is a lens entry, and no
-  application re-implements one or insets its whole root under the strip.
+  `key_CtrlEnter`, spaced shortcuts). The lens supports direct context actions at rest, but the
+  first screen can still be sparse when a viewer contributes few actions; basic application tasks
+  then require the reader to know what to type.
+- Next: audit the four applications' at-rest lens lists, choose a compact set of direct basic
+  actions for each, and make low-command contexts offer them without typing; then finish each
+  application's shared-component migration and review its whole-screen goldens.
+- Done when: the four applications use the components, every command is reachable from the lens,
+  each empty-query lens is a useful direct action list even in a low-command context, and no
+  application re-implements a shared component or insets its whole root under the strip.
 - Related: design.silence.007, design.silence.008
 
 ### design.silence.006 — The file box does not fit its rows as its pictures do

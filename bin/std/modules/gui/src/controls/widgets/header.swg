@@ -21,6 +21,7 @@ struct HeaderItem
         isClickable = true          // Whether the column can emit click actions.
         reservesIconSpace: bool     // Whether list rows reserve the header icon column.
         horzAlign = StringHorzAlignment.Left     // Alignment of the title, which follows its column's cells.
+        detail: String              // Faint mono line under the title, such as the kind of values the column holds; empty for none.
     }
 
     width:        f32     // Effective width in logical units.
@@ -45,6 +46,9 @@ enum HeaderSortDirection
     Ascending      // Displays an ascending sort marker.
     Descending     // Displays a descending sort marker.
 }
+
+// Height of the faint line a column's detail takes under its title.
+private const DetailBand = 16.0'f32
 
 // Displays named, optionally sortable and resizable columns.
 struct Header
@@ -89,7 +93,7 @@ impl IWnd for Header
     mtd impl measureContent(_: Math.Point)->Math.Point
     {
         let metrics = .themeMetrics()
-        return Math.Point{.contentWidth() + .padding.z, metrics.header_Height}
+        return Math.Point{.contentWidth() + .padding.z, metrics.header_Height + .detailBand()}
     }
 
     private mtd paintItem(bc: PaintContext, item: *HeaderItem, idx: u32, x: f32)
@@ -158,10 +162,28 @@ impl IWnd for Header
             }
         }
 
+        // A detail stands under the title, in faint mono, aligned as the title is.
+        let band = .detailBand()
+        if band > 0
+        {
+            labelPos.height -= band
+            if not item.detail.isEmpty()
+            {
+                let mono  = theme.createDefaultFontFs(metrics.defaultFontSize - 3)
+                let width = Painter.measureString(item.detail, mono).width
+                var left  = labelPos.x
+                if item.horzAlign == .Right do
+                    left = labelPos.right() - width
+                elif item.horzAlign == .Center do
+                    left = labelPos.horzCenter() - width * 0.5
+                painter.drawString(Math.round(left), mono.opticalLineTop(labelPos.bottom() + band * 0.5 - 4), item.detail, mono, colors.faintText)
+            }
+        }
+
         var format: RichStringFormat
         theme.setTextColors(&format, colorText)
         format.horzAlignment = item.horzAlign
-        format.vertAlignment = .Center
+        format.vertAlignment = band > 0 ? .Bottom : .Center
         format.flags         = .Clip
         format.font          = .font()
         Theme.drawIconText(painter, labelPos, item.icon, &item.name, format, metrics.iconText_Margin)
@@ -347,6 +369,24 @@ private impl Header
 impl Header
 {
     // Shows a sort direction for one logical column.
+    // Returns the room under the titles for their details: none when no column has one.
+    mtd const detailBand()->f32
+    {
+        for item in .items where item and not item.detail.isEmpty() do
+            return DetailBand
+        return 0
+    }
+
+    // Gives the header the height of its titles, and of their details when a column has one.
+    mtd fitHeight()
+    {
+        let height = .themeMetrics().header_Height + .detailBand()
+        if .position.height == height do
+            return
+        .position.height = height
+        .parent?.applyLayout()
+    }
+
     mtd setSortIndicator(column: u32, direction: HeaderSortDirection)
     {
         Swag.assert(column < .items.count)

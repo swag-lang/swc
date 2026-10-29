@@ -109,8 +109,15 @@ dialogs, then each application, then the written rules.
     that sets its own layout the address keeps the column's edge rather than the page's. The font
     viewer (`pictured.font.paper`) is not the specimen page yet: no large "Aa", family and style
     tabs, glyph row with the chosen glyph on Arc, the sample field and sizes with mono labels.
-    Hex and binary have no framed golden yet; hex needs a binary fixture opened in the hex viewer.
-- Next: font, binary and hex on their pictures; the mixed board's waveform cells,
+    The font viewer now stands on its specimen page (`pictured.font.paper`) but shows only its own
+    style as a tab, the glyph line has no Unicode name, and the sample field stays on the floating
+    bar. Hex (`pictured.hex`, a PNG forced into it) has no structure tabs over the grid, no
+    floating inspector with the value in large type and the readings of the structure, and keeps
+    its dense grid; binary (`pictured.binary`) is still the structure tree, not the report page —
+    title, mono identity line, large figures (sections, imports, entropy, strings), the sections as
+    one proportional bar with its legend, the imports by library.
+- Next: binary and hex on their pictures; the font's other styles, glyph names and sample field;
+  coloured code cards in HTML and the section being read marked; the table's row pitch; the mixed board's waveform cells,
   "Aa" in the font's own face, a film's picture size in its facts, and an ExtraBold page title.
 - Done when: every Scope golden matches its picture as a whole screen.
 - Related: design.silence.004

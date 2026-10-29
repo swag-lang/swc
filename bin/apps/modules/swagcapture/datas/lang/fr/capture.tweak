@@ -423,7 +423,7 @@ key_Return             Entrée
 hint_CopyClose         copier et fermer
 hint_Save              enregistrer
 hint_CalloutTail       Glisser le point de la queue pour la diriger
-key_CtrlReturn         Ctrl+Entrée
+key_CtrlReturn         Ctrl Entrée
 hint_NewLine           nouvelle ligne
 hint_KeepText          garder le texte
 ui_Common              En commun

@@ -103,7 +103,7 @@ struct AppStrings
     ui_MenuCopyName:                   string = "Copy File Name"                              // Panel menu entry copying the final path component.
     ui_MenuForget:                     string = "Remove This File from the History"           // Panel menu entry dropping one file from the recent list.
     ui_Search:                         string = "Find in document"                            // Placeholder of the search field.
-    ui_SearchPrevious:                 string = "Previous Match (Shift+F3)"                   // Tooltip of the previous-match button.
+    ui_SearchPrevious:                 string = "Previous Match (Shift F3)"                   // Tooltip of the previous-match button.
     ui_SearchNext:                     string = "Next Match (F3)"                             // Tooltip of the next-match button.
     ui_SearchOptions:                  string = "Search Options"                              // Tooltip of the search-options menu button.
     ui_SearchMode:                     string = "Search"                                      // Shared query mode that finds occurrences.

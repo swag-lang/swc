@@ -9,8 +9,8 @@ struct Texts
     ui_TipPlay:                string = "Play"                                                    // Tooltip while playback is stopped or paused.
     ui_TipPause:               string = "Pause"                                                   // Tooltip while playback is running.
     ui_TipStop:                string = "Stop"                                                    // Tooltip of the stop button.
-    ui_TipBackward:            string = "Back 10 Seconds (Left) · Ctrl+Left: previous frame"      // Tooltip of the backward seek button.
-    ui_TipForward:             string = "Forward 10 Seconds (Right) · Ctrl+Right: next frame"     // Tooltip of the forward seek button.
+    ui_TipBackward:            string = "Back 10 Seconds (Left) · Ctrl Left: previous frame"      // Tooltip of the backward seek button.
+    ui_TipForward:             string = "Forward 10 Seconds (Right) · Ctrl Right: next frame"     // Tooltip of the forward seek button.
     ui_TipSeek:                string = "Seek"                                                    // Tooltip of the playback timeline.
     ui_TipMute:                string = "Mute or Unmute (M)"                                      // Tooltip of the mute switch.
     ui_TipVolume:              string = "Volume"                                                  // Tooltip of the volume slider.

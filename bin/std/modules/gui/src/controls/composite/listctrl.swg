@@ -630,7 +630,7 @@ impl IWnd for ListView
                 rect.y = rect.bottom()
 
                 if .list.listFlags.has(.HorizontalLines) do
-                    painter.drawLine(rect.x, rect.y, rect.right(), rect.y, colors.listItem_Line, 1)
+                    painter.fillRect(Math.Rectangle{rect.x, rect.y - metrics.separator_HairlineSize, rect.width, metrics.separator_HairlineSize}, colors.listItem_Line)
             }
         }
         else
@@ -642,7 +642,7 @@ impl IWnd for ListView
                 rect.y = rect.bottom()
 
                 if .list.listFlags.has(.HorizontalLines) do
-                    painter.drawLine(rect.x, rect.y, rect.right(), rect.y, colors.listItem_Line, 1)
+                    painter.fillRect(Math.Rectangle{rect.x, rect.y - metrics.separator_HairlineSize, rect.width, metrics.separator_HairlineSize}, colors.listItem_Line)
             }
         }
 
@@ -1277,6 +1277,7 @@ impl ListCtrl
             .scrollWnd.dockStyle       = .Center
             .scrollWnd.backgroundStyle = .Transparent
             .scrollWnd.setAllPaddings(.themeMetrics().list_Padding)
+            .header.ruleInset = .themeMetrics().list_Padding
             .scrollWnd.sigScrollPositionChanged += func|header = list.header|(_, _, np)
             {
                 header.scrollPos.x = np.x

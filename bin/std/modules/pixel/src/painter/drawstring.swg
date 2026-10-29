@@ -597,6 +597,31 @@ impl Painter
         return measureStringSnapped(&shaped, atByte, deviceScale)
     }
 
+    // Returns `text` as it fits `maxWidth` on one line in `font`: whole when it fits, otherwise
+    // its longest fitting prefix ended by an ellipsis.
+    //
+    // This is the cut [[Pixel.StringFormatFlags.Ellipsis]] makes in a laid-out block, for one
+    // plain line drawn at a known width, such as a name or a path. The prefix is measured as
+    // [[Pixel.Painter.drawString]] draws it at `deviceScale`.
+    func elideString(text: string, font: *Font, maxWidth: f32, deviceScale = 1.0'f32)->String
+    {
+        let shaped = shapeRun(text, font)
+        if fitShapedPrefix(&shaped, maxWidth, deviceScale) == Swag.U64.Max do
+            return String.from(text)
+
+        let mark = font.resolveRune(EllipsisRune).glyphIndex(EllipsisRune) ? "…" : "..."
+        let room = Math.max(maxWidth - measureStringSnapped(mark, font, deviceScale: deviceScale), 0)
+        var cut  = fitShapedPrefix(&shaped, room, deviceScale)
+
+        // The mark follows the last word it keeps, never a space.
+        while cut > 0 and text[cut - 1] == ' 'u8 do
+            cut -= 1
+
+        var result = String.from(text[until cut])
+        result += mark
+        return result
+    }
+
     // Returns the byte length of the longest prefix of `run` that fits `maxWidth`, or
     // `Swag.U64.Max` when the whole run fits.
     //

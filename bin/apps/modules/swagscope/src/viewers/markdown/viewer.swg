@@ -403,9 +403,10 @@ impl ZoomButton
         g_ViewerSettings.zoomPercent = bounded
     }
 
+    // The page shows no line of readings, so the menu takes the place of the lens.
     mtd showZoomMenu()
     {
-        let percent = Viewer.pickZoom(.view, .view, .zoomPercent)
+        let percent = Viewer.pickZoom(.view, Lens.followUpPoint(.view, 0), .AnchorTopCenter, .zoomPercent)
         if percent do
             .applyZoom(percent)
     }
@@ -459,11 +460,12 @@ const ThemeCount = 6'u32
 
 // Opens how the document reads: its measure and its appearance. Both choices are remembered, and
 // the keyboard goes back to the document, where the reader was.
+//
+// The page shows no line of readings, so the sheet takes the place of the lens.
 func showOptions(anchor: *Wnd, view: *Markdown.View, zoom: *ZoomButton)
 {
     let sheet = OptionSheet.View.create(anchor, func|view, zoom|(page) { describeOptions(page, view, zoom) }, owner: view)
-    let rect  = anchor.surfaceRect()
-    sheet.doModal(Math.Point{rect.x, rect.y + rect.height}, autoDestroy: true)
+    sheet.doModal(Lens.followUpPoint(view, view.themeMetrics().optionSheet_Width), autoDestroy: true)
     view.setFocus()
 }
 

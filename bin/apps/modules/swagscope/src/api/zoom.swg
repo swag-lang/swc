@@ -88,12 +88,19 @@ private const ZoomPresets: [5] ZoomPreset = [
 // returns the level the reader picked, or 0 when the menu closed without a choice.
 func pickZoom(owner: *Wnd, anchor: *Wnd, current: u32)->u32
 {
+    let rect = anchor.surfaceRect()
+    return pickZoom(owner, Math.Point{rect.x, rect.y + rect.height}, .TopLeft, current)
+}
+
+// Shows the same zoom menu at the surface point `at`, placed around it as `pos` says: where the
+// lens stood, for a viewer whose window shows no zoom control to open it beside.
+func pickZoom(owner: *Wnd, at: Math.Point, pos: PopupPosition, current: u32)->u32
+{
     let menu = MenuCtrl.createPopup(owner, owner: owner)
     for preset in ZoomPresets do
         menu.addItem(preset.label, preset.id, checked: preset.percent == current)
 
-    let rect   = anchor.surfaceRect()
-    let chosen = menu.doModal(Math.Point{rect.x, rect.y + rect.height}, autoDestroy: true) orelse ""
+    let chosen = menu.doModal(at, pos, autoDestroy: true) orelse ""
     for preset in ZoomPresets where preset.id == chosen do
         return preset.percent
     return 0

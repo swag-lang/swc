@@ -73,10 +73,14 @@ internal func paintKeycap(wnd: *Wnd, painter: *Painter, x, centerY: f32, key: st
 }
 
 // Draws one line of `text` from `x`, its capitals centred on `centerY`, and returns its width.
-internal func paintTextLine(painter: *Painter, x, centerY: f32, text: string, font: *Font, color: Color)->f32
+//
+// A line wider than `maxWidth` ends with an ellipsis where it would leave its room, measured as
+// it is drawn at `deviceScale`.
+internal func paintTextLine(painter: *Painter, x, centerY: f32, text: string, font: *Font, color: Color, maxWidth = Swag.F32.Max, deviceScale = 1.0'f32)->f32
 {
     if text.count == 0 do
         return 0
-    painter.drawString(x, font.opticalLineTop(centerY), text, font, color)
-    return Painter.measureString(text, font).width
+    let fitted = Painter.elideString(text, font, maxWidth, deviceScale)
+    painter.drawString(x, font.opticalLineTop(centerY), fitted, font, color)
+    return Painter.measureString(fitted, font).width
 }

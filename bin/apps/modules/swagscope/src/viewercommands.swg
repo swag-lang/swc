@@ -908,10 +908,11 @@ impl ViewerWindow
         }
 
         let texts  = appStrings()
-        let path   = .explorer ? .explorer.displayPath(.currentFile) : .currentFile.toString()
-        let folder = Path.directoryName(path) orelse ""
+        // The file is placed by its last folders, as the home names them; the whole path is
+        // one link away.
+        let path = .explorer ? .explorer.displayPath(.currentFile) : .currentFile.toString()
         .infoSheet.setTitle(Path.fileName(path) orelse path)
-        .infoSheet.setIdentity(folder)
+        .infoSheet.setIdentity(ViewerHome.folderText(path))
 
         // A size reads as a figure and its unit: the figure is what the reader came for.
         let size  = .currentFileSize.toString()

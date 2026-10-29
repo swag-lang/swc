@@ -38,6 +38,7 @@ private
     // wave as a row of bars with the times under it.
     const CoverSize   = 180.0      // Side of the cover.
     const CoverTop    = 88.0       // Distance from the strip to the cover.
+    const MinCoverTop = 24.0       // Distance a short window keeps between the strip and the cover.
     const CoverCorner = 12.0       // Corner of the cover, the one of a floating surface.
     const TitleSize   = 28'u32     // Size of the name of the recording.
     const TitleGap    = 24.0       // Air between the cover and the name.
@@ -50,6 +51,7 @@ private
     const BarGap      = 3.5        // Air between two bars.
     const TimesGap    = 14.0       // Air between the bars and the times under them.
     const TimesHeight = 26.0       // Height of the line of times.
+    const WaveGap     = 32.0       // Least air between who made it and the wave.
 }
 
 // Loudness of a slice, in the two readings a level meter carries: the transient that clips and the
@@ -413,6 +415,7 @@ impl Panel
         .opened            = true
         .duration          = .sound.durationInSeconds()
         .waveform.duration = .duration
+        .arrangeWave()     // The tags read beside the sound may add a line of credits.
         if .duration > 0 do
             .timeline.setBounds(0, .duration, Math.min(0.01'f32, .duration / 100))
         .startWaveform()
@@ -469,11 +472,28 @@ impl Panel
         return result
     }
 
-    // Returns the band of the cover, centered across the page under the strip.
-    mtd coverRect()->Math.Rectangle
+    // Returns where the page stands: the cover centered under the strip, the top of the name
+    // under it, and the top of the wave's band.
+    //
+    // The wave keeps to the foot of the page and the name never runs into it: a short window
+    // gives up the air above the cover first.
+    mtd pageLayout()->{cover: Math.Rectangle, titleTop: f32, waveTop: f32}
     {
-        let room = .clientRect()
-        return Math.Rectangle{Math.round((room.width - CoverSize) * 0.5), .stripInset() + CoverTop, CoverSize, CoverSize}
+        let room  = .clientRect()
+        let theme = .theme()
+        var words = TitleGap + theme.createDefaultFont(TitleSize, .Bold).height
+        if not .credits().isEmpty() do
+            words += CreditGap + theme.createDefaultFont(CreditSize).height
+
+        let wave  = WaveHeight + TimesGap + TimesHeight
+        let strip = .stripInset()
+        let spare = room.height - strip - CoverSize - words - WaveGap - wave - WaveBottom
+
+        var result: #returntype
+        result.cover    = {Math.round((room.width - CoverSize) * 0.5), strip + Math.clamp(spare, MinCoverTop, CoverTop), CoverSize, CoverSize}
+        result.titleTop = result.cover.bottom() + TitleGap
+        result.waveTop  = Math.max(room.height - WaveBottom - wave, result.cover.bottom() + words + WaveGap)
+        return result
     }
 
     // Places the wave across the lower part of the page.
@@ -481,8 +501,7 @@ impl Panel
     {
         let room  = .clientRect()
         let width = Math.min(WaveWidth, Math.max(room.width - 2 * 48, 1))
-        let top   = Math.max(room.height - WaveBottom - WaveHeight - TimesGap - TimesHeight, .coverRect().bottom())
-        .waveform.setPosition(Math.Rectangle{Math.round((room.width - width) * 0.5), top, width, WaveHeight + TimesGap + TimesHeight})
+        .waveform.setPosition(Math.Rectangle{Math.round((room.width - width) * 0.5), .pageLayout().waveTop, width, WaveHeight + TimesGap + TimesHeight})
     }
 
     mtd retranslate()
@@ -827,7 +846,8 @@ impl IWnd for Panel
         let painter = evt.paintContext.painter
         let colors  = .themeColors()
         let room    = .clientRect()
-        let cover   = .coverRect()
+        let layout  = .pageLayout()
+        let cover   = layout.cover
 
         painter.setParams(.Antialiased)
         .theme().drawFloatingShadow(painter, cover, CoverCorner)
@@ -837,7 +857,7 @@ impl IWnd for Panel
 
         let titleFont = .theme().createDefaultFont(TitleSize, .Bold)
         let title     = .title()
-        var y         = cover.bottom() + TitleGap
+        var y         = layout.titleTop
         painter.drawString(Math.round((room.width - Painter.measureString(title, titleFont).width) * 0.5), y, title, titleFont, colors.text)
         y += titleFont.height + CreditGap
 

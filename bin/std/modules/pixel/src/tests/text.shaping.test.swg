@@ -267,6 +267,27 @@ func makeShapingTestFont(cache: *FontCache)->*Font
     Swag.assert(text.chunks[text.chunks.count - 1].visible)
 }
 
+// One plain line drawn at a known width — a name, a path — keeps all its words when they fit, and
+// otherwise as many as fit before an ellipsis, never a space before the mark.
+#test
+{
+    var cache: FontCache
+    let font = makeShapingTestFont(&cache)
+
+    let text  = "alpha beta gamma"
+    let whole = Painter.measureString(text, font).width
+    Swag.assert(Painter.elideString(text, font, whole + 1) == text)
+
+    let room  = Painter.measureString("alpha beta", font).width
+    let short = Painter.elideString(text, font, room)
+    Swag.assert(Utf8.endsWith(short, "…"))
+    Swag.assert(not Utf8.endsWith(short, " …"))
+    Swag.assert(Painter.measureStringSnapped(short, font) <= room)
+
+    // A room too narrow for even the mark leaves the mark alone, never a word cut by it.
+    Swag.assert(Painter.elideString(text, font, 1) == "…")
+}
+
 // A style boundary is not a place to break a line.
 //
 // Markup splits one word into several chunks — '<url>here</url>.' is three of them — and a wrap

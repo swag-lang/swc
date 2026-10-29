@@ -154,17 +154,20 @@ impl IWnd for InfoSheet
                 y += size.y + metrics.infoSheet_BlockGap
         }
 
+        // Nothing runs past the padding: a line longer than the sheet ends with an ellipsis.
+        let right     = x + width
+        let scale     = .deviceScale()
         let titleFont = theme.createDefaultFont(metrics.infoSheet_TitleFontSize, .Bold)
         if not .title.isEmpty()
         {
-            painter.drawString(headX, y, .title, titleFont, colors.text)
+            painter.drawString(headX, y, Painter.elideString(.title, titleFont, right - headX, scale), titleFont, colors.text)
             y += titleFont.height
         }
 
         let monoFont = theme.createDefaultFontFs(metrics.defaultFontSize - 1)
         if not .identity.isEmpty()
         {
-            painter.drawString(headX, y + metrics.infoSheet_LineGap, .identity, monoFont, colors.faintText)
+            painter.drawString(headX, y + metrics.infoSheet_LineGap, Painter.elideString(.identity, monoFont, right - headX, scale), monoFont, colors.faintText)
         }
 
         let bodyFont  = theme.createDefaultFont(metrics.defaultFontSize)
@@ -177,15 +180,17 @@ impl IWnd for InfoSheet
             switch block.kind
             {
             case .Fact:
-                let used = paintTextLine(painter, x + block.left, centerY, block.value, factFont, colors.text)
-                discard paintTextLine(painter, x + block.left + used + metrics.iconText_Margin * 0.5, centerY, block.label, monoFont, colors.faintText)
+                let left = x + block.left
+                let used = paintTextLine(painter, left, centerY, block.value, factFont, colors.text, right - left, scale)
+                let unit = left + used + metrics.iconText_Margin * 0.5
+                discard paintTextLine(painter, unit, centerY, block.label, monoFont, colors.faintText, right - unit, scale)
 
             case .Reading:
 
                 // A label longer than its column pushes its value along rather than running into it.
                 let used   = paintTextLine(painter, x, centerY, block.label, bodyFont, colors.softText)
                 let valueX = Math.max(x + metrics.infoSheet_LabelWidth, Math.ceil(x + used + metrics.iconText_Margin))
-                discard paintTextLine(painter, valueX, centerY, block.value, block.mono ? valueMono : bodyFont, colors.text)
+                discard paintTextLine(painter, valueX, centerY, block.value, block.mono ? valueMono : bodyFont, colors.text, right - valueX, scale)
 
             case .Section:
                 SectionLabel.paint(me, painter, Math.Rectangle{x, top, width, block.height}, block.label)
@@ -197,7 +202,7 @@ impl IWnd for InfoSheet
 
             case .Link:
                 let color = index == .hotLink ? colors.arc : colors.link
-                discard paintTextLine(painter, x, centerY, block.label, bodyFont, color)
+                discard paintTextLine(painter, x, centerY, block.label, bodyFont, color, width, scale)
             }
         }
     }

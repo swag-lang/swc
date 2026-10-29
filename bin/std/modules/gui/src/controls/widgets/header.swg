@@ -59,6 +59,7 @@ struct Header
 
         form = HeaderForm.Flat                           // Background and border presentation.
         itemPadding:      f32 = 5                        // Horizontal inset applied to each item label.
+        ruleInset:        f32                            // Inset of the rule under the header from each side, so it spans what the rows under it span.
         sigLayoutChanged: SigArray'func||(*Wnd)          // Emitted after an effective column width changes.
         sigColumnClicked: SigArray'func||(*Wnd, u32)     // Emitted after the user clicks a column.
 
@@ -210,7 +211,7 @@ impl IWnd for Header
         // Every header stands on one hairline: its labels are faint, and the rule is what tells
         // them from the first row.
         let lineSize = metrics.separator_HairlineSize
-        painter.fillRect(Math.Rectangle{clientRect.x, clientRect.bottom() - lineSize, clientRect.width, lineSize}, colors.headerItem_Separator)
+        painter.fillRect(Math.Rectangle{clientRect.x + .ruleInset, clientRect.bottom() - lineSize, Math.max(clientRect.width - 2 * .ruleInset, 0), lineSize}, colors.headerItem_Separator)
 
         // Keep the clip in the same local coordinate space as the item geometry. A presented
         // ancestor can paint this subtree into an off-screen layer whose origin differs from

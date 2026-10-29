@@ -277,6 +277,25 @@ impl IWnd for View
     }
 }
 
+// Returns the top of a lens opened over `over`, from the top of `over`: near its top third, and
+// clear of the window chrome.
+private func restingTop(over: *Wnd, height: f32)->f32
+{
+    let metrics = over.themeMetrics()
+    return Math.max(Math.round(height * metrics.lens_TopRatio), over.stripInset() + metrics.floating_Inset)
+}
+
+// Returns where a box `width` wide, opened by a command chosen in a lens over `over`, stands:
+// centred where the lens stood, its top on the top of the lens, in surface coordinates.
+//
+// A command chosen in the lens may ask for more, a zoom or an option sheet. Its box takes the
+// place the reader's eyes were on, not the corner of a control the window does not show.
+func followUpPoint(over: *Wnd, width: f32)->Math.Point
+{
+    let rect = over.surfaceRect()
+    return {Math.round(rect.horzCenter() - width * 0.5), rect.y + restingTop(over, rect.height)}
+}
+
 impl View
 {
     // Creates a hidden lens over the top view of `owner`.
@@ -905,6 +924,30 @@ private impl View
         return last.top + last.height + metrics.lens_RowInset
     }
 
+    // Returns the height of the results shown in at most `room`: all of them, or the rows that
+    // fit whole, so that the list never ends on half a row or on a section label alone.
+    //
+    // The air under a row is not part of what it shows: a row that only loses some of it stays.
+    mtd fittedContentHeight(room: f32)->f32
+    {
+        let whole = .contentHeight()
+        if whole <= room do
+            return whole
+
+        let inset  = .themeMetrics().lens_RowInset
+        var result = 0'f32
+        for row in .rows
+        {
+            let bottom = row.top + row.height
+            if bottom > room + inset do
+                break
+            if row.entry != Swag.U64.Max do
+                result = bottom
+        }
+
+        return result > 0 ? Math.min(result, room) : room
+    }
+
     // The visible lens, in local coordinates.
     mtd body()->Math.Rectangle
     {
@@ -913,11 +956,10 @@ private impl View
         let bounds  = .clientRect()
         let inset   = metrics.floating_Inset
         let width   = Math.min(metrics.lens_Width, bounds.width - 2 * inset)
-        let strip   = parent ? parent.stripInset() : 0
-        let top     = Math.max(Math.round(bounds.height * metrics.lens_TopRatio), strip + inset)
+        let top     = parent ? restingTop(parent, bounds.height) : inset
         let fixed   = metrics.lens_InputHeight + metrics.lens_FooterHeight + 2 * metrics.separator_HairlineSize
         let room    = Math.max(Math.min(bounds.height * metrics.lens_MaxHeightRatio, bounds.height - inset - top), fixed)
-        let height  = Math.min(fixed + .contentHeight(), room)
+        let height  = fixed + .fittedContentHeight(room - fixed)
         return {Math.round(bounds.horzCenter() - width * 0.5), top, width, height}
     }
 

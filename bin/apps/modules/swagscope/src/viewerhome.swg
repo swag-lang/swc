@@ -153,12 +153,12 @@ impl ViewerHome
         return Format.toString("%-%{02}-%{02}", when.year, when.month, when.day)
     }
 
-    // Names the folder of `file` by its last three levels, as a reader recognises it.
-    func folderText(file: string)->String
+    // Names the folder of `file` by its last `levels` levels, as a reader recognises it.
+    func folderText(file: string, levels = 3'u32)->String
     {
         var result: #returntype
         var path = Path.directoryName(file) orelse ""
-        for 3
+        for levels
         {
             let name = Path.fileName(path) orelse ""
             if not name.count do
@@ -308,14 +308,21 @@ impl IWnd for ViewerHome
                 right -= width + 12
             }
 
+            let scale = .deviceScale()
             painter.pushClippingRect(Math.Rectangle{nameX, rect.y, Math.max(right - nameX, 0), rect.height})
-            painter.drawString(nameX, body.opticalLineTop(centerY), name, body, hot ? colors.text : colors.softText)
+            painter.drawString(nameX, body.opticalLineTop(centerY), Painter.elideString(name, body, right - nameX, scale), body, hot ? colors.text : colors.softText)
 
             // The folder is named only for the row the hand is on.
             if hot
             {
-                let folder = ViewerHome.folderText(file)
-                painter.drawString(nameX + used + 10, mono.opticalLineTop(centerY), folder, mono, colors.faintText)
+                // A narrow row gives up the farthest folders first; the nearest one is what the
+                // reader recognises, and it ends with an ellipsis only when it alone is too long.
+                let folderX = nameX + used + 10
+                let room    = right - folderX
+                var folder  = ViewerHome.folderText(file)
+                for levels in [2'u32, 1] where Painter.measureStringSnapped(folder, mono, deviceScale: scale) > room do
+                    folder = ViewerHome.folderText(file, levels)
+                painter.drawString(folderX, mono.opticalLineTop(centerY), Painter.elideString(folder, mono, room, scale), mono, colors.faintText)
             }
 
             painter.popClippingRect()

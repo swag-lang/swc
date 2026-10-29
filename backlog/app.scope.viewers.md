@@ -154,14 +154,13 @@ integration belongs to [platform.portability.md](platform.portability.md). Reusa
   shipped platform bridge exposes the same model.
 - Related: platform.portability.048, app.scope.hexa.014
 
-### app.scope.viewers.008 — Viewer commands have no common discoverability or remapping surface
+### app.scope.viewers.008 — Viewer commands lack complete discovery and shortcut management
 
-- Evidence: viewer commands now occupy one centered lower band, while dynamic zoom/page/range
-  values use consistent clickable controls in the information band. Some operations remain split
-  between compact menus, context menus, and hard-coded key handlers; there is no command palette,
-  shortcut reference, conflict check, or consistent disabled-state explanation.
-- Next: register viewer actions as named commands with default gestures, applicability, and a
-  discoverable description before adding a palette and shortcut sheet.
+- Evidence: the lens now exposes common and viewer actions, but some operations remain split
+  between compact menus, context menus, and hard-coded key handlers. Scope still has no shortcut
+  reference, conflict check, remapping, or consistent disabled-state explanation.
+- Next: register every viewer action with a default gesture and applicability, then add shortcut
+  reference, conflict handling, remapping, and shared state across lens, menu, and key execution.
 - Done when: every non-pointer-only action can be found and invoked by name, shortcuts can be
   inspected and remapped, conflicts are reported, and toolbar/menu/key execution share one state.
 - Related: app.scope.hexa.016, std.gui.010

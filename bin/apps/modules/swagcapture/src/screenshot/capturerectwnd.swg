@@ -314,7 +314,7 @@ impl CaptureRectWnd
         with .hintLine = HintLine.create(me)
         {
             .setGrounded(true)
-            .addHint(appStrings().key_Enter, appStrings().hint_Capture)
+            .addHint(Gui.strings().key_Enter, appStrings().hint_Capture)
             .addHint(Gui.strings().key_Escape, appStrings().hint_Cancel)
         }
     }

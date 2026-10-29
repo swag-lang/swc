@@ -16,13 +16,12 @@ dialogs, then each application, then the written rules.
   `floating.test.swg`, `lens.test.swg` and their goldens, and `AppearanceButton.addToLens`; a
   hidden caption button keeps working and takes no room in the caption. Swag Capture, Swag Scope,
   Swag Prism and Swag Vault compose them (the remaining work of the first two is
-  design.silence.008 and design.silence.007). No component owns the quiet text
-  menu of a header (a word and a faint chevron opening a menu, as the pictures put above a column
-  or a page): Swag Scope's explorer, Swag Capture's library and Swag Prism's column headers each
-  configure an `IconButton` for it and fit it to its words themselves (`createQuietMenu` in each),
-  and the three differ.
-- Next: give the toolkit the quiet menu and move the three applications onto it; per remaining
-  application, register every command and `addToLens` on one lens bound to
+  design.silence.008 and design.silence.007). The quiet text menu of a header is
+  `IconButton.createQuiet` with `setQuietText`, and every application builds its quiet menus with
+  it; the section labels Swag Scope shaped itself (its panels, the days of a mosaic, the outline
+  margin) are `Gui.SectionLabel`; the keys are named one way (`Gui.strings().key_Enter`,
+  `key_CtrlEnter`, spaced shortcuts).
+- Next: per remaining application, register every command and `addToLens` on one lens bound to
   `Space` or `Ctrl K`, move readings to the sheet, tools to the dock and the mini-bar, properties
   to the inspector, and let the work reach into the strip where its picture shows it.
 - Done when: the four applications use the components, every command is a lens entry, and no

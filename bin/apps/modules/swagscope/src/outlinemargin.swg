@@ -95,9 +95,7 @@ impl IWnd for OutlineMargin
         if not .label.isEmpty()
         {
             // The label in faint spaced capitals, as every section label of the charter.
-            let labelFont = .theme().createDefaultFont(metrics.sectionLabel_FontSize, .Bold)
-            var shaped    = Painter.shapeRun(String.toUpper(.label.toString(), .Unicode), labelFont, letterSpacing: metrics.sectionLabel_LetterSpacing)
-            painter.drawShapedRun(12, labelFont.opticalLineTop(LabelHeight * 0.5), &shaped, labelFont, Brush.createSolid(colors.faintText))
+            SectionLabel.paint(me, painter, Math.Rectangle{12, 0, Math.max(client.width - 12, 0), LabelHeight}, .label.toString())
             top = LabelHeight
         }
 

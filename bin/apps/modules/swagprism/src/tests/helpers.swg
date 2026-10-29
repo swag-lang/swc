@@ -10,6 +10,7 @@ func testSetupMainWindow(host: *Testing.HeadlessHost, width = cast(f32, MainWind
     // title and the window buttons, and the page keeps clear of it as the real window does.
     host.setup(width, height, scale)
     host.surface.updateFlags(SurfaceFlags.StandardWindow | SurfaceFlags.NoShadow)
+    host.app.setAppIcon(expect Pixel.Image.decode(".png", AppIcon))
     host.bindApplication(&g_App)
 
     // The window resolves its application through its surface, so that is the one a language

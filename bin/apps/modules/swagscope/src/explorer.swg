@@ -2380,15 +2380,14 @@ impl ExplorerGrid
     {
         let metrics = .themeMetrics()
         let colors  = .themeColors()
-        let font    = .theme().createDefaultFont(metrics.sectionLabel_FontSize, .Bold)
         let count   = .theme().createDefaultFont(metrics.sectionLabel_FontSize)
+        let width   = .clientRect().width
         for &day in .days
         {
             let centerY = day.y + DayHeight * 0.5
-            var shaped  = Painter.shapeRun(String.toUpper(day.text.toString(), .Unicode), font, letterSpacing: metrics.sectionLabel_LetterSpacing)
-            painter.drawShapedRun(CellInset, font.opticalLineTop(centerY), &shaped, font, Brush.createSolid(colors.faintText))
-            let label = Format.toString("%", day.count)
-            painter.drawString(CellInset + shaped.metrics.width + 12, count.opticalLineTop(centerY), label, count, colors.faintText)
+            let words   = SectionLabel.paint(me, painter, Math.Rectangle{CellInset, day.y, Math.max(width - 2 * CellInset, 0), DayHeight}, day.text.toString())
+            let label   = Format.toString("%", day.count)
+            painter.drawString(CellInset + words + 12, count.opticalLineTop(centerY), label, count, colors.faintText)
         }
     }
 

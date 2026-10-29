@@ -97,11 +97,9 @@ struct AppStrings
     act_InpEditor:              string = "Editor"                      // Opens the capture in the editor, from the in-place editor.
     act_InpSave:                string = "Save…"                       // Saves the capture as an image file, from the in-place editor.
     act_InpCopy:                string = "Copy"                        // Copies the capture and closes the in-place editor.
-    key_Return:                 string = "Enter"                       // The Enter key, in a keycap of a hint line.
     hint_CopyClose:             string = "copy and close"              // What Enter does in the in-place editor.
     hint_Save:                  string = "save"                        // What Ctrl+S does in the in-place editor.
     hint_CalloutTail:           string = "Drag the point of the tail to aim it"     // Hint while the words of a callout are typed in place.
-    key_CtrlReturn:             string = "Ctrl Enter"                  // The Ctrl and Enter keys, in a keycap of a hint line.
     hint_NewLine:               string = "new line"                    // What Enter does while the words of a form are typed in place.
     hint_KeepText:              string = "keep the text"               // What Ctrl+Enter does while the words of a form are typed in place.
     ui_Common:                  string = "Common"                      // Section of the inspector holding what several objects share.
@@ -144,7 +142,6 @@ struct AppStrings
     ui_ModeActiveWindow:        string = "Active Window"               // Capture mode of the area overlay: the window in front.
     ui_ModeFullScreen:          string = "Full Screen"                 // Capture mode of the area overlay: every screen.
     ui_ModeLastArea:            string = "Last Area"                   // Capture mode of the area overlay: the zone of the previous capture.
-    key_Enter:                  string = "⏎"                           // The Enter key, in a keycap of a hint line.
     hint_Capture:               string = "capture"                     // What Enter does on the area overlay.
     ui_Delay:                   string = "Delay: %"                    // How long the area overlay waits before reading the screen, with that delay.
     ui_DelayNone:               string = "none"                        // No delay before the screen is read.

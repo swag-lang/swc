@@ -129,7 +129,6 @@ struct AppStrings
     ui_FailureUnreadable:              string = "The file could not be read."                 // A file the system or a decoder could not read, above the technical detail.
     ui_FailureFormat:                  string = "The file is damaged, or its format is not supported."     // A file whose content a decoder refused, above the technical detail.
     ui_AboutViewers:                   string = "Supported viewers"                           // Heading of the compact about block listing what the application opens.
-    hint_KeyEnter:                     string = "Enter"                                       // Name of the Enter key on a keycap.
     hint_KeyBack:                      string = "⌫"                                           // Name of the Backspace key on a keycap.
     hint_Open:                         string = "open"                                        // What Enter does on the hint line of an explored folder.
     hint_Parent:                       string = "parent folder"                               // What Backspace does on the hint line of an explored folder.

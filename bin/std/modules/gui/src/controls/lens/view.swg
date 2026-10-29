@@ -79,6 +79,7 @@ struct View
     scroll:       f32
     returnFocus:  *Wnd?
     hotPicture:   PictureHit
+    segment:      u64     // Segment the keys chose in the chosen row of an inline section, by index into its entries.
 }
 
 // A picture of a strip of the lens under a point: the row of the strip, and the picture, or the
@@ -92,6 +93,9 @@ internal struct PictureHit
 // The `entry` of the [[Gui.Lens.Row]] holding the strip of pictures of its section.
 const PictureRow = Swag.U64.Max - 1
 
+// The `entry` of the [[Gui.Lens.Row]] holding every row of an inline section, as segments.
+const InlineRow = Swag.U64.Max - 2
+
 // The ring of the picture the keys stand on, in a strip of the lens: its gap and its weight.
 internal const PictureRingGap   = 2.0
 internal const PictureRingWidth = 2.0
@@ -102,7 +106,7 @@ struct Row
     public
     {
         section: *Section     // Section the line belongs to.
-        entry:   u64          // Index of the row in its section, `U64.Max` for the section label, [[Gui.Lens.PictureRow]] for the strip.
+        entry:   u64          // Index of the row in its section, `U64.Max` for the section label, [[Gui.Lens.PictureRow]] for the strip, [[Gui.Lens.InlineRow]] for the segments.
         top:     f32          // Top of the line under the input, before scrolling.
         height:  f32          // Height of the line.
     }
@@ -169,6 +173,8 @@ impl IWnd for View
                 .paintSectionRow(painter, rect, row.section)
             elif row.entry == PictureRow do
                 .paintPictureRow(painter, rect, row.section)
+            elif row.entry == InlineRow do
+                .paintInlineRow(painter, rect, row.section, index == .chosen)
             else do
                 .paintEntryRow(painter, rect, &row.section.entries[row.entry], index == .chosen)
         }
@@ -183,11 +189,19 @@ impl IWnd for View
         switch evt.kind
         {
         case .Move:
+            // In a row of segments, the pointer chooses the segment under it.
             let row = .rowAt(pos)
-            if row != Swag.U64.Max and row != .chosen and (evt.delta.x != 0 or evt.delta.y != 0)
+            if row != Swag.U64.Max and (evt.delta.x != 0 or evt.delta.y != 0)
             {
-                .chosen = row
-                .invalidate()
+                let inline  = .rows[row].entry == InlineRow
+                let segment = inline ? .segmentAt(row, pos.x) : 0
+                if not (inline and segment == Swag.U64.Max) and (row != .chosen or (inline and segment != .segment))
+                {
+                    .chosen = row
+                    if inline do
+                        .segment = segment
+                    .invalidate()
+                }
             }
 
             // A picture under the pointer is ringed, and the keys go on from it.
@@ -228,6 +242,14 @@ impl IWnd for View
             let row = .rowAt(pos)
             if row != Swag.U64.Max
             {
+                if .rows[row].entry == InlineRow
+                {
+                    let segment = .segmentAt(row, pos.x)
+                    if segment == Swag.U64.Max do
+                        break
+                    .segment = segment
+                }
+
                 .chosen = row
                 .runChosen()
             }
@@ -465,13 +487,15 @@ impl View
                 .addCommandSections()
         }
 
-        // A source that marked nothing leaves the marking to the lens.
+        // A source that marked nothing leaves the marking to the lens; a row the query does not
+        // answer, shown for its group, is not marked.
         for section in .results.sections
         {
             for &entry in section!.entries where entry.spans.isEmpty() and .results.query.count > 0
             {
                 var found = match(.results.query, entry.title)
-                entry.spans = #move found.spans
+                if found.matched do
+                    entry.spans = #move found.spans
             }
         }
 
@@ -507,6 +531,9 @@ impl View
         {
             .chosen        = cast(u64, last)
             .chosenPicture = 0
+            let row = .rows[.chosen]
+            if row.entry == InlineRow do
+                .segment = .restingSegment(row.section)
             .revealChosen()
             .invalidate()
         }
@@ -518,6 +545,8 @@ impl View
         if .chosen >= .rows.count do
             return null
         let row = .rows[.chosen]
+        if row.entry == InlineRow do
+            return .segment < row.section.entries.count ? &row.section.entries[.segment] : null
         if row.entry == PictureRow do
             return null
         return &row.section.entries[row.entry]
@@ -591,10 +620,62 @@ private impl View
         case .PageDown: .moveChoice(page)
         case .Return:   .runChosen()
         case .Escape:   .backOut()
+        case .Left:     return .moveSegment(-1)
+        case .Right:    return .moveSegment(1)
         default:        return false
         }
 
         return true
+    }
+
+    // Moves the chosen segment of a row of segments by one, staying on the first or the last one.
+    // Reports false when the chosen row is not one, and the key belongs to the query.
+    mtd moveSegment(delta: s64)->bool
+    {
+        if .chosen >= .rows.count or .rows[.chosen].entry != InlineRow do
+            return false
+        let section = .rows[.chosen].section
+        var at      = 0's64
+        for i, pos in section.order where i == .segment do
+            at = cast(s64, pos)
+
+        var index = at + delta
+        while index >= 0 and index < cast(s64, section.order.count)
+        {
+            let entry = section.order[cast(u64, index)]
+            if not section.entries[entry].disabled
+            {
+                .segment = entry
+                .invalidate()
+                break
+            }
+
+            index += delta
+        }
+
+        return true
+    }
+
+    // Returns the segment the keys land on when they reach the row of `section`: the one the query
+    // answers best, else the one in force, else the first that can be chosen.
+    mtd restingSegment(section: *Section)->u64
+    {
+        var result = Swag.U64.Max
+        var best   = Swag.S64.Min
+        for i in section.order where not section.entries[i].disabled
+        {
+            let entry = &section.entries[i]
+            var score = cast(s64, entry.score) * 2
+            if entry.checked do
+                score += 1
+            if result == Swag.U64.Max or score > best
+            {
+                result = i
+                best   = score
+            }
+        }
+
+        return result
     }
 
     // Groups the matching commands by family, in the order they were registered.
@@ -670,7 +751,13 @@ private impl View
                 continue
             .rows.add(Row{section, Swag.U64.Max, y, metrics.lens_SectionHeight})
             y += metrics.lens_SectionHeight
-            for i in section.order
+            if section.inline and not section.order.isEmpty()
+            {
+                .rows.add(Row{section, InlineRow, y, metrics.lens_RowHeight})
+                y += metrics.lens_RowHeight
+            }
+
+            for i in section.order where not section.inline
             {
                 .rows.add(Row{section, i, y, metrics.lens_RowHeight})
                 y += metrics.lens_RowHeight
@@ -688,6 +775,13 @@ private impl View
     mtd isSelectable(index: u64)->bool
     {
         let row = .rows[index]
+        if row.entry == InlineRow
+        {
+            for i in row.section.order where not row.section.entries[i].disabled do
+                return true
+            return false
+        }
+
         if row.entry == PictureRow do
             return not row.section.pictures.isEmpty()
         return row.entry != Swag.U64.Max and not row.section.entries[row.entry].disabled
@@ -706,6 +800,42 @@ private impl View
         let font  = .theme().createDefaultFont(metrics.defaultFontSize)
         let width = Painter.measureString(section.link, font).width
         return {x, y, width, metrics.lens_PictureHeight}
+    }
+
+    // Returns the cell of the segment `entry` of the inline `section` whose row stands at `rect`.
+    mtd segmentRect(rect: Math.Rectangle, section: *Section, entry: u64)->Math.Rectangle
+    {
+        let metrics = .themeMetrics()
+        let font    = .theme().createDefaultFont(metrics.lens_RowFontSize)
+        let top     = Math.round(rect.vertCenter() - metrics.lens_SegmentHeight * 0.5)
+        var x       = rect.x + metrics.lens_TextInset
+        for i in section.order
+        {
+            let width = Math.round(Painter.measureString(section.entries[i].title, font).width + 2 * metrics.lens_SegmentInset)
+            if i == entry do
+                return {x, top, width, metrics.lens_SegmentHeight}
+            x += width
+        }
+
+        return {x, top, 0, 0}
+    }
+
+    // Returns the segment of the inline row `rowIndex` under the abscissa `x`, by index into the
+    // entries of its section, or `U64.Max` when none can be chosen there.
+    mtd segmentAt(rowIndex: u64, x: f32)->u64
+    {
+        let list    = .listRect()
+        let row     = .rows[rowIndex]
+        let rect    = Math.Rectangle{list.x, list.y + row.top - .scroll, list.width, row.height}
+        let section = row.section
+        for i in section.order
+        {
+            let cell = .segmentRect(rect, section, i)
+            if x >= cell.x and x < cell.right() do
+                return section.entries[i].disabled ? Swag.U64.Max : i
+        }
+
+        return Swag.U64.Max
     }
 
     // Returns the picture, or the link, of a strip under `pos`.
@@ -862,6 +992,54 @@ private impl View
             }
 
             discard paintTextLine(painter, cell.x, cell.vertCenter(), section.link, font, colors.arc)
+        }
+    }
+
+    // Paints the rows of an inline `section` as segments side by side: the one in force
+    // underlined in Arc, and the one the keys chose on the selection ground when the row is chosen.
+    mtd paintInlineRow(painter: *Painter, rect: Math.Rectangle, section: *Section, chosen: bool)
+    {
+        let metrics = .themeMetrics()
+        let colors  = .themeColors()
+        let theme   = .theme()
+        let font    = theme.createDefaultFont(metrics.lens_RowFontSize)
+        painter.setParams(.Antialiased)
+        for i in section.order
+        {
+            let entry = &section.entries[i]
+            let cell  = .segmentRect(rect, section, i)
+            if chosen and i == .segment do
+                painter.fillRoundRect(cell, metrics.corner_Control, metrics.corner_Control, colors.selection)
+
+            // The characters the query matched, on the highlight ground.
+            let left = cell.x + metrics.lens_SegmentInset
+            let top  = font.opticalLineTop(cell.vertCenter())
+            let mark = entry.disabled ? fadeColor(colors.highlight, 0.4) : colors.highlight
+            for span in entry.spans where span.start + span.count <= entry.title.length
+            {
+                let before = Painter.measureString(Swag.makeString(entry.title.buffer, span.start), font).width
+                let after  = Painter.measureString(Swag.makeString(entry.title.buffer, span.start + span.count), font).width
+                painter.fillRect(Math.Rectangle{Math.round(left + before), top, Math.round(after - before), font.height}, mark)
+            }
+
+            var ink = (entry.checked or (chosen and i == .segment)) ? colors.text : colors.softText
+            if entry.disabled do
+                ink = colors.disabled
+            painter.drawString(left, top, entry.title, font, ink)
+            if entry.checked
+            {
+                let width = Painter.measureString(entry.title, font).width
+                painter.fillRect(Math.Rectangle{left, top + font.height + 2, Math.round(width), 2}, entry.disabled ? colors.disabled : colors.arc)
+            }
+        }
+
+        // The key that runs the chosen segment, at the end of the row, where a chosen row has it.
+        if chosen
+        {
+            let small = theme.createDefaultFont(metrics.defaultFontSize - 1)
+            let enter = "↵"
+            let right = rect.right() - metrics.lens_TextInset
+            discard paintTextLine(painter, right - Painter.measureString(enter, small).width, rect.vertCenter(), enter, small, colors.faintText)
         }
     }
 
@@ -1081,7 +1259,7 @@ private impl View
 
                 var found = match(query, entry.title)
                 entry.score = found.matched ? found.score : 0
-                if entry.spans.isEmpty() do
+                if entry.spans.isEmpty() and found.matched do
                     entry.spans = #move found.spans
                 if section.ranked do
                     bestAll = Math.max(bestAll, entry.score)

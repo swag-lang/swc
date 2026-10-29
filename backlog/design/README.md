@@ -1,9 +1,17 @@
 # Silence — the Swag GUI charter
 
-This folder is the design contract of every surface under `bin/`: the GUI toolkit's controls,
-widgets and dialogs, its two themes, and the four standard applications (Swag Scope, Swag
-Capture, Swag Prism, Swag Vault). The pictures in [imgs/](imgs/) are the validated target; the
-text below states the rules they follow. Where a picture and a rule disagree, the rule wins.
+This folder is the design contract of the GUI toolkit's controls, widgets, dialogs and two
+themes, and of the four standard applications (Swag Scope, Swag Capture, Swag Prism, Swag
+Vault). The examples under `bin/examples/` are teaching programs, not Silence applications.
+Examples built on the GUI toolkit use its Swag-rendered caption, title and border. The direct
+Pixel and OpenGL examples still use low-level native windows; moving those renderers under the
+same Swag-drawn chrome is unresolved in [`design.silence.md`](design.silence.md).
+Examples with multiple pages or palettes keep their navigation and theme selector visible. GUI
+examples use Encre and Papier through the toolkit and may show menus, toolbars and other controls
+that the toolkit provides. The
+pictures in [imgs/](imgs/)
+are the validated target for the toolkit and standard applications; the text below states the
+rules they follow. Where a picture and a rule disagree, the rule wins.
 
 [design.silence.md](design.silence.md) lists what is still to migrate.
 
@@ -16,7 +24,7 @@ text below states the rules they follow. Where a picture and a rule disagree, th
 2. **Information is asked for.** Readings, outlines, metadata and settings appear on a key, a
    hover or a selection, then leave. They are never removed from the product: they move behind a
    gesture.
-3. **One door.** `Space` (or `Ctrl K` where Space types text) opens the lens: search, go to, open,
+3. **One door.** `Ctrl Space` opens the lens: search, go to, open,
    switch view, run any command. Every command of an application is reachable from its lens.
 4. **One accent at a time.** Voltage acts, Arc chooses. Two yellow things on one screen is one too
    many.
@@ -127,7 +135,7 @@ comme image…"). An ellipsis marks a command that asks for more before acting.
 - The window buttons are faint glyphs at the top right; they reach full contrast on hover.
 - A document shows its position with a 1 px thread on the right edge and a short mark, not a
   scrollbar. A thin scrollbar (6 px) appears while scrolling or on hover.
-- A faint hint line ("Space — everything else") may sit 24 px above the bottom edge while the
+- A faint hint line ("Ctrl Space — everything else") may sit 24 px above the bottom edge while the
   reader is new to the window or the surface is empty.
 - Keys are named the same way everywhere — a keycap of the hint line, the foot of the lens, the
   end of a menu or lens row: `Space`, `Esc`, `Tab`, `↵` for Enter, and a chord as its keys
@@ -184,7 +192,7 @@ be noticed: if a viewer remembers an animation, it was too much.
 
 ![The lens on Papier](imgs/scope.lens.paper.png)
 
-Opened by `Space`. 600–640 wide, near the top third, surface colour, corner 12, floating
+Opened by `Ctrl Space`. 600–640 wide, near the top third, surface colour, corner 12, floating
 shadow. The document behind dims (about 16 % opacity, slight blur). An input of 64 px with 22 px
 light text; results grouped under section labels (In this file, Symbol, Open, View as, commands
 by family); rows of 38–40 px with a leading glyph or number, matched characters highlighted,
@@ -535,7 +543,7 @@ the screen to its work.
 
   | Keys | Action |
   | --- | --- |
-  | `Space`, `Ctrl K` | the lens |
+  | `Ctrl Space` | the lens |
   | `I` | fold or unfold the inspector |
   | `V` `R` `P` `A` `L` `T` `C` `D` `H` `N` `M` `X` `F` | select, shape, polygon, arrow, line, text, callout, draw, highlighter, step, image, pixel selection, favourites |
   | `← ↑ → ↓`, `Shift` + arrow | nudge the selection 1 px, 10 px |
@@ -551,7 +559,6 @@ the screen to its work.
   | `Ctrl S`, `Ctrl Shift S` | save the linked image, save as |
   | `Ctrl Shift D`, `Ctrl Shift T` | duplicate the capture, flatten it |
   | `Ctrl +`, `Ctrl -`, `Ctrl 0` | zoom in, out, to 100 % |
-  | `Ctrl Space` | freeze the selection |
   | `Print`, `Ctrl Print`, `Alt Print`, `Ctrl Shift Print` | capture an area, the screen, the active window, the last area again |
   | `Ctrl Alt O` | options |
 

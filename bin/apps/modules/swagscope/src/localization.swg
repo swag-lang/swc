@@ -135,7 +135,7 @@ struct AppStrings
     hint_PlayAlbum:                    string = "play the album"                              // What P does on the hint line of a music library.
     hint_Play:                         string = "play"                                        // What Enter does on the hint line of an album.
     hint_Filter:                       string = "filter"                                      // What the slash key does on the hint line of an explored folder.
-    ui_HintLens:                       string = "everything else"                             // What the space bar opens, on the hint line of a window new to the reader.
+    ui_HintLens:                       string = "everything else"                             // What Ctrl Space opens, on the hint line of a window new to the reader.
 
     lens_File:          string = "File"                      // Lens section of the commands acting on the open file.
     lens_Find:          string = "Find"                      // Lens section of the search commands.

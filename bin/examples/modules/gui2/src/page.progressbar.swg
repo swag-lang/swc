@@ -19,15 +19,15 @@ func createProgressBarPage(parent: *Wnd)
     }
 
     let right = createPanel(parent,
-                            "Indeterminate",
-                            "An indeterminate bar animates itself during paint, and a spinner says the same thing where no bar fits.",
+                            "Infinite",
+                            "The built-in infinite mode animates itself during paint, and a spinner says the same thing where no bar fits.",
                             layout.right)
     scope
     {
         let prg = ProgressBar.create(right, {24, 116, 330})
         prg.updateFlags(.Indeterminate)
 
-        // Three sizes of the same three leaning bars: drawn rather than scaled, they stay exact at each.
+        // Three sizes of the same drawn ring: it is exact at each of them, which is the point.
         Spinner.create(right, {24, 154, 16})
         Spinner.create(right, {56, 154})
         Spinner.create(right, {96, 154, 40})

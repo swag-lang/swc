@@ -1,17 +1,14 @@
 using Core, Gui, Pixel
 
-// Every style takes its ink from a role of the theme: a heading in the body ink, emphasis in the
-// soft ink, a chip on the Arc selection ground, a cue in the link ink.
 func fillNarrativeEditor(ed: *RichEditCtrl)
 {
-    let colors = ed.themeColors()
-    ed.styles[1].colFg     = colors.text
+    ed.styles[1].colFg     = Argb.SteelBlue
     ed.styles[1].fontMode  = .Bold
-    ed.styles[2].colFg     = colors.softText
+    ed.styles[2].colFg     = Argb.SeaGreen
     ed.styles[2].fontMode  = .Italic
-    ed.styles[3].colFg     = colors.arc
-    ed.styles[3].colBk     = colors.selection
-    ed.styles[4].colFg     = colors.link
+    ed.styles[3].colFg     = Argb.White
+    ed.styles[3].colBk     = Color.fromArgb(190, Argb.SteelBlue)
+    ed.styles[4].colFg     = Argb.DarkOrange
     ed.styles[4].underline = .Underline
 
     ed.addText("Release notes\n", 1)
@@ -26,20 +23,17 @@ func fillNarrativeEditor(ed: *RichEditCtrl)
                0)
 }
 
-// The status words wear the tones of the notices: information in Arc, a warning in caution, an
-// error in critical.
 func fillPaletteEditor(ed: *RichEditCtrl)
 {
-    let colors = ed.themeColors()
-    ed.styles[1].colFg     = colors.info
+    ed.styles[1].colFg     = Argb.SeaGreen
     ed.styles[1].fontMode  = .Bold
-    ed.styles[2].colFg     = colors.caution
+    ed.styles[2].colFg     = Argb.DarkOrange
     ed.styles[2].fontMode  = .Bold
-    ed.styles[3].colFg     = colors.critical
+    ed.styles[3].colFg     = Argb.Crimson
     ed.styles[3].fontMode  = .Bold
-    ed.styles[4].colFg     = colors.text
-    ed.styles[4].colBk     = colors.raised
-    ed.styles[5].colFg     = colors.link
+    ed.styles[4].colFg     = Argb.White
+    ed.styles[4].colBk     = Color.fromArgb(190, Argb.MidnightBlue)
+    ed.styles[5].colFg     = Argb.Purple
     ed.styles[5].underline = .Underline
 
     ed.addText("Status palette\n", 4)
@@ -52,16 +46,14 @@ func fillPaletteEditor(ed: *RichEditCtrl)
     ed.addText("Links, diagnostics and tiny semantic chips can be modeled with a handful of styles.\n", 5)
 }
 
-// A log reads by its times in the faint ink and its levels in the tones of the notices.
 func fillLogEditor(ed: *RichEditCtrl)
 {
-    let colors = ed.themeColors()
-    ed.styles[1].colFg = colors.faintText
-    ed.styles[2].colFg = colors.info
-    ed.styles[3].colFg = colors.caution
-    ed.styles[4].colFg = colors.critical
-    ed.styles[5].colFg = colors.arc
-    ed.styles[5].colBk = colors.selection
+    ed.styles[1].colFg = Argb.Gray
+    ed.styles[2].colFg = Argb.SeaGreen
+    ed.styles[3].colFg = Argb.DarkOrange
+    ed.styles[4].colFg = Argb.Crimson
+    ed.styles[5].colFg = Argb.White
+    ed.styles[5].colBk = Color.fromArgb(165, Argb.SlateGray)
 
     ed.addText("[08:14:03] ", 1)
     ed.addText("INFO ", 2)
@@ -90,10 +82,11 @@ func createStylesPage(parent: *Wnd)
                            layout.left)
     scope
     {
-        let ed = createDocumentEditor(left,
-                                      editorRect(left),
-                                      "",
-                                      .ShowFocusSel | .WordWrap)
+        let rect = left.clientRect()
+        let ed   = createDocumentEditor(left,
+                                        Math.Rectangle{18, 88, rect.width - 36, rect.height - 106},
+                                        "",
+                                        .ShowFocusSel | .WordWrap)
         ed.lineSpacing = 2
         fillNarrativeEditor(ed)
     }
@@ -104,10 +97,11 @@ func createStylesPage(parent: *Wnd)
                             layout.right)
     scope
     {
-        let ed = createDemoEditor(right,
-                                  editorRect(right),
-                                  .ShowFocusSel | .ReadOnly | .WordWrap,
-                                  .Edit)
+        let rect = right.clientRect()
+        let ed   = createDemoEditor(right,
+                                    Math.Rectangle{18, 88, rect.width - 36, rect.height - 106},
+                                    .ShowFocusSel | .ReadOnly | .WordWrap,
+                                    .Edit)
         ed.marginLeft  = 18
         ed.marginRight = 18
         ed.lineSpacing = 2
@@ -120,9 +114,10 @@ func createStylesPage(parent: *Wnd)
                              layout.bottom)
     scope
     {
-        let ed = createDemoEditor(bottom,
-                                  editorRect(bottom),
-                                  .ShowFocusSel | .ReadOnly | .WordWrap)
+        let rect = bottom.clientRect()
+        let ed   = createDemoEditor(bottom,
+                                    Math.Rectangle{20, 92, rect.width - 40, rect.height - 112},
+                                    .ShowFocusSel | .ReadOnly | .WordWrap)
         ed.marginLeft  = 18
         ed.marginRight = 18
         ed.lineSpacing = 1

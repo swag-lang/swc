@@ -1,6 +1,7 @@
 using Core, Gui, Pixel
 
-const BadgeSize = 24.0
+const CardRadius = 10.0
+const BadgeSize  = 24.0
 
 // One tile of the choreography strip.
 //
@@ -38,20 +39,20 @@ impl IWnd for MotionCard
         let theme   = .theme()
         let rect    = .clientRect()
 
-        // A card stands on the raised ground; its rank is a chip on the Arc selection ground.
-        let metrics = .themeMetrics()
-        painter.fillRoundRect(rect, metrics.corner_Control, metrics.corner_Control, colors.raised)
+        painter.fillRoundRect(rect, CardRadius, CardRadius, colors.wnd_Bk)
+        painter.drawRoundRect(rect, CardRadius, CardRadius, colors.line, 1)
+        painter.fillRoundRect(Math.Rectangle{rect.x + 1, rect.y + 10, 3, rect.height - 20}, 1.5, 1.5, colors.signature)
 
         let badgeX = rect.x + 18
         let badgeY = rect.y + 16
-        painter.fillRoundRect(Math.Rectangle{badgeX, badgeY, BadgeSize, BadgeSize}, metrics.corner_Chip, metrics.corner_Chip, colors.selection)
+        painter.fillRoundRect(Math.Rectangle{badgeX, badgeY, BadgeSize, BadgeSize}, 6, 6, colors.signature)
 
         let badgeFont = theme.createDefaultFont(12, .Bold)
         painter.drawStringCenter(badgeX + BadgeSize * 0.5,
                                  badgeY + BadgeSize * 0.5,
                                  Format.toString("%", .rank),
                                  badgeFont,
-                                 colors.arc)
+                                 colors.onSignature)
 
         let titleFont = theme.createDefaultFont(14, .Bold)
         painter.drawString(rect.x + 18,

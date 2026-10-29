@@ -3,8 +3,8 @@
 Edit Swag source and see what the compiler makes of it. The window is two quiet columns separated by
 one hairline: the source at the left, a result at the right. Quiet text menus above each column
 carry its settings — the example the source started from; the viewer, the stage and the O0/O1/O2
-optimization level of the result. Everything else is in the lens, which `Ctrl K` opens (`Space`
-where nothing types): every command, the examples, the views, the stages, the levels, the presets,
+optimization level of the result. Everything else is in the lens, which `Ctrl Space` opens:
+every command, the examples, the views, the stages, the levels, the presets,
 the theme, the language and About. The readings of the build are in the sheet (`Ctrl I`, or `I`
 where nothing types). The foot of the window keeps a hint line at the left and the reading of the
 last build at the right.

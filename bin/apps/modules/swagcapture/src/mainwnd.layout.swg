@@ -648,7 +648,7 @@ impl MainWnd
         if .inspector != null and .inspector.folded do
             .hintLine.addHint(.inspector.foldKey, appStrings().hint_AllProperties)
         if not selected do
-            .hintLine.addHint(strings().key_Space, appStrings().hint_Space)
+            .hintLine.addHint(Input.formatKeyShortcut(.Control, .Space), appStrings().hint_Space)
     }
 
     // Returns what the tool in hand does, in a few words.

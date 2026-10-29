@@ -1,54 +1,34 @@
-// GUI9 - the dialogs instrument.
-//
-// Every predefined box, opened from one page: the messages, the prompt and the form, every mode
-// of the file box and its two questions, and About. Beside them stands `FileBrowserCtrl`, the
-// file box's composite used on its own, on the ground of the page. Each box is a lens entry too:
-// `Ctrl K` opens the lens, which reaches every box and the appearance. `--light` opens the window
-// on Papier.
-//
-// The file box asks its own two questions: "New folder" from the glyph at the end of its path
-// field, "Replace" when a save names a file that exists. Their two launchers open them directly.
-
+// Use --dark for Encre or --light for Papier to inspect the dialogs and file browser.
 using Core, Gui, Pixel
 
-const W = 1240
-const H = 820
+// GUI9 - showcase of the predefined dialogs and of the reusable FileBrowserCtrl
+// composite (the file-browsing control extracted from FileDlg, usable on its own).
 
-const PageMargin   = 48.0
-const ColumnGap    = 48.0
-const BrowserWidth = 560.0
-const TitleSize    = 34'u32
-const ButtonGap    = 8.0
-const GroupGap     = 32.0
+const W = 960
+const H = 680
 
-const CmdLens = "gui9.lens"
+var app:        Application
+var g_Surface:  *Surface?
+var g_View:     *Wnd?
+var g_Browser:  *FileBrowserCtrl?
+var g_ThemeButton: *PushButton?
+var g_StartDir: String
+var g_DarkTheme: bool
 
-var app:          Application
-var g_Surface:    *Surface?
-var g_View:       *Wnd?
-var g_Title:      *Label?
-var g_SubTitle:   *Label?
-var g_Browser:    *FileBrowserCtrl?
-var g_Launchers:  *Wnd?
-var g_Lens:       *Lens.View?
-var g_Appearance: *AppearanceButton?
-var g_Light:      bool
-var g_StartDir:   String
-
-// Shared by every file box of the session: each one reopens with the previous placement, folder,
-// column widths and recent locations.
+// Shared by every file dialog of the session: each one reopens with the previous
+// placement, folder, column widths and recent locations.
 var g_FileState: FileDlgState
 
-//////////////////////////////////////////////
-// The boxes
-//////////////////////////////////////////////
+//
+// Modal dialog launchers (run on button click in interactive mode).
+//
 
-func onAbout()
+func onAbout(_: *Button)
 {
     with var params: AboutDlgParams
     {
         .surfaceTitle = "About GUI9"
-        .contentTitle = "Swag GUI Dialogs"
+        .contentTitle = "Swag GUI dialogs"
         .identity     = "gui9 · predefined dialogs"
         .message      = "One composition for every predefined box: a floating sheet, its title as the first line, the content in one column and the primary action at the bottom right."
         .surfaceIcon  = app.theme.icon(.About, 18)
@@ -58,13 +38,32 @@ func onAbout()
     discard AboutDlg.create(unwrap g_Surface, params).doModal()
 }
 
-func onMsgOk() => MessageDlg.ok(unwrap g_Surface, "The capture was copied to the clipboard.")
-func onMsgOkCancel() { discard MessageDlg.okCancel(unwrap g_Surface, "Apply the pending changes?") }
-func onMsgYesNo() { discard MessageDlg.yesNo(unwrap g_Surface, "Keep the window on top of the others?") }
-func onMsgYesNoCancel() { discard MessageDlg.yesNoCancel(unwrap g_Surface, "Save the document before closing?") }
-func onMsgConfirm() { discard MessageDlg.confirm(unwrap g_Surface, "Every setting goes back to its default.") }
+func onMsgOk(_: *Button)
+{
+    MessageDlg.ok(unwrap g_Surface, "This is a simple information message.")
+}
 
-func onMsgError()
+func onMsgOkCancel(_: *Button)
+{
+    discard MessageDlg.okCancel(unwrap g_Surface, "Apply the pending changes?")
+}
+
+func onMsgYesNo(_: *Button)
+{
+    discard MessageDlg.yesNo(unwrap g_Surface, "Do you enjoy this showcase?")
+}
+
+func onMsgYesNoCancel(_: *Button)
+{
+    discard MessageDlg.yesNoCancel(unwrap g_Surface, "Save the document before closing?")
+}
+
+func onMsgConfirm(_: *Button)
+{
+    discard MessageDlg.confirm(unwrap g_Surface, "This will reset everything.")
+}
+
+func onMsgError(_: *Button)
 {
     var opt: MessageDlgOptions
     opt.title  = "Cannot mount the virtual disk."
@@ -72,7 +71,7 @@ func onMsgError()
     MessageDlg.error(unwrap g_Surface, "The password is incorrect or the container is damaged.", options: opt)
 }
 
-func onEditSingle()
+func onEditSingle(_: *Button)
 {
     var opt: EditDlgOptions
     opt.title   = "Go to Address"
@@ -82,7 +81,7 @@ func onEditSingle()
     discard EditDlg.createSingleLine(unwrap g_Surface, opt).doModal()
 }
 
-func onEditMulti()
+func onEditMulti(_: *Button)
 {
     var opt: EditDlgOptions
     opt.title = "Edit Description"
@@ -90,7 +89,7 @@ func onEditMulti()
     discard EditDlg.createMultiLine(unwrap g_Surface, opt).doModal()
 }
 
-func onForm()
+func onForm(_: *Button)
 {
     var opt: FormDlgOptions
     opt.title = "Change Profile"
@@ -98,7 +97,9 @@ func onForm()
 
     let dlg = FormDlg.create(unwrap g_Surface, opt)
     discard dlg.form.addTextField("Name", "Ada", placeholder: "Display name")
-    discard dlg.form.addPasswordField("Password", placeholder: "Optional password", help: "Leave empty to keep the current password.")
+    discard dlg.form.addPasswordField("Password",
+                                      placeholder: "Optional password",
+                                      help: "Leave empty to keep the current password.")
     let role = dlg.form.addChoiceField("Role")
     role.addItem("Developer")
     role.addItem("Designer")
@@ -107,320 +108,178 @@ func onForm()
     discard dlg.doModal()
 }
 
-// Opens a file box in `mode`, on `folder` when one is given, else where the last one closed.
-func openFileBox(mode: FileDlgMode, folder: string = "", name: string = "")
+func onFileOpen(_: *Button)
 {
     var opt: FileDlgOptions
-    opt.mode          = mode
-    opt.state         = &g_FileState
-    opt.initialFolder = folder
-    opt.initialName   = name
-    switch mode
-    {
-    case .SelectFile, .SelectFiles:
-        opt.filters.add({name: "All Files", extensions: ""})
-        opt.filters.add({name: "Images", extensions: ".png;.jpg;.bmp"})
-
-    case .CreateFile:
-        opt.filters.add({name: "PNG Image", extensions: ".png"})
-    }
-
+    opt.mode  = .SelectFile
+    opt.state = &g_FileState
+    opt.filters.add({name: "All files", extensions: ""})
+    opt.filters.add({name: "Images", extensions: ".png;.jpg;.bmp"})
     discard FileDlg.create(unwrap g_Surface, opt).doModal()
 }
 
-// Returns an existing capture in a scratch folder, which the Replace question is asked about.
-func scratchCapture()->String
+func onFileSave(_: *Button)
 {
-    let folder = Path.combine(Env.getSpecialDirectory(.Temp).toString(), "swag-gui9")
-    discard catch Directory.create(folder.toString(), recurse: true)
-    let file = Path.combine(folder.toString(), "capture.png")
-    if not File.exists(file.toString()) do
-        discard catch File.writeAllText(file.toString(), "A capture standing in for an existing file.")
-    return file
+    var opt: FileDlgOptions
+    opt.mode  = .CreateFile
+    opt.state = &g_FileState
+    opt.filters.add({name: "Text", extensions: ".txt"})
+    discard FileDlg.create(unwrap g_Surface, opt).doModal()
 }
 
-// Every box of the page, in the order the page and the lens list them.
-enum Box
+func onSelectFolder(_: *Button)
 {
-    Information
-    Question
-    YesNo
-    YesNoCancel
-    Confirm
-    Error
-    GoToAddress
-    EditDescription
-    ChangeProfile
-    Open
-    OpenSeveral
-    Save
-    ChooseFolder
-    NewFolder
-    Replace
-    About
+    var opt: FileDlgOptions
+    opt.mode  = .SelectFolder
+    opt.state = &g_FileState
+    discard FileDlg.create(unwrap g_Surface, opt).doModal()
 }
 
-const BoxCount = 16
+//
+// View
+//
 
-func boxName(box: Box)->string
+func addDlgButton(parent: *Wnd, text: string, fn: func(*Button))
 {
-    switch #complete box
-    {
-    case .Information:     return "Information"
-    case .Question:        return "Question"
-    case .YesNo:           return "Yes or No"
-    case .YesNoCancel:     return "Yes, No or Cancel"
-    case .Confirm:         return "Confirm"
-    case .Error:           return "Error"
-    case .GoToAddress:     return "Go to Address…"
-    case .EditDescription: return "Edit Description…"
-    case .ChangeProfile:   return "Change Profile…"
-    case .Open:            return "Open…"
-    case .OpenSeveral:     return "Open Several…"
-    case .Save:            return "Save…"
-    case .ChooseFolder:    return "Choose a Folder…"
-    case .NewFolder:       return "New Folder…"
-    case .Replace:         return "Replace…"
-    case .About:           return "About GUI9"
-    }
+    let btn = PushButton.create(parent, text, {0, 0, 220, 32})
+    btn.sigPressed += fn
 }
 
-// Returns the section label a box stands under.
-func boxGroup(box: Box)->string
+func applyTheme()
 {
-    switch box
-    {
-    case .Information, .Question, .YesNo, .YesNoCancel, .Confirm, .Error: return "Messages"
-    case .GoToAddress, .EditDescription, .ChangeProfile: return "Prompts and forms"
-    case .About: return "About"
-    }
+    if g_DarkTheme do
+        app.theme.setDark()
+    else do
+        app.theme.setLight()
 
-    return "File box"
+    let btn = g_ThemeButton
+    if btn do
+        btn.setText(g_DarkTheme ? "Switch to Papier" : "Switch to Encre")
+
+    app.notifyThemeChanged()
 }
 
-func openBox(box: Box)
+func toggleTheme(_: *Button)
 {
-    switch #complete box
-    {
-    case .Information:     onMsgOk()
-    case .Question:        onMsgOkCancel()
-    case .YesNo:           onMsgYesNo()
-    case .YesNoCancel:     onMsgYesNoCancel()
-    case .Confirm:         onMsgConfirm()
-    case .Error:           onMsgError()
-    case .GoToAddress:     onEditSingle()
-    case .EditDescription: onEditMulti()
-    case .ChangeProfile:   onForm()
-    case .Open:            openFileBox(.SelectFile)
-    case .OpenSeveral:     openFileBox(.SelectFiles)
-    case .Save:            openFileBox(.CreateFile, name: "capture-2026-10-28.png")
-    case .ChooseFolder:    openFileBox(.SelectFolder)
-    case .NewFolder:       discard FileDlg.askNewFolderName(unwrap g_Surface, Env.getSpecialDirectory(.UserDocuments).toString(), "Documents")
-    case .Replace:         discard FileDlg.askReplace(unwrap g_Surface, scratchCapture().toString())
-    case .About:           onAbout()
-    }
-}
-
-//////////////////////////////////////////////
-// The page
-//////////////////////////////////////////////
-
-// Sets the launchers in their groups: a section label, then the buttons wrapped to the column.
-func layoutLaunchers()
-{
-    let column = unwrap g_Launchers
-    let width  = column.clientRect().width
-    for child in column.children do
-        child.destroy()
-
-    let metrics = column.themeMetrics()
-    var y       = 0.0
-    var x       = 0.0
-    var group   = ""
-    for i in BoxCount
-    {
-        let box = cast(Box, cast(s32, i))
-        if boxGroup(box) != group
-        {
-            if group.count do
-                y += metrics.btnPush_Height + GroupGap
-            group = boxGroup(box)
-            SectionLabel.create(column, group, Math.Rectangle{0, y, width, 20})
-            y += 28
-            x = 0
-        }
-
-        let btn = PushButton.create(column, boxName(box), Math.Rectangle{0, 0, metrics.btnPush_Width, metrics.btnPush_Height})
-        btn.fitWidthToLabel(120)
-        if x > 0 and x + btn.position.width > width
-        {
-            x = 0
-            y += metrics.btnPush_Height + ButtonGap
-        }
-
-        btn.setPosition(Math.Rectangle{x, y, btn.position.width, metrics.btnPush_Height})
-        btn.sigPressed += func|box|(_) { openBox(box) }
-        x += btn.position.width + ButtonGap
-    }
-}
-
-// Places the header under the window strip, the browser at the left and the launchers at the
-// right, keeping the foot clear for the hint line.
-func layoutRootView()
-{
-    if not g_View or not g_Browser do
-        return
-
-    let view    = unwrap g_View
-    let metrics = view.themeMetrics()
-    let rect    = view.clientRect()
-    let top     = view.stripInset()
-    let width   = Math.max(rect.width - 2 * PageMargin, 1.0)
-
-    let titleHeight = view.theme().createDefaultFont(TitleSize, .Bold).height
-    g_Title!.setPosition(Math.Rectangle{PageMargin, top, width, titleHeight})
-    g_SubTitle!.setPosition(Math.Rectangle{PageMargin, top + titleHeight + 4, width, 22})
-
-    let bodyY      = top + titleHeight + 4 + 22 + 32
-    let bottom     = rect.height - metrics.hintLine_Bottom - metrics.hintLine_Height - 16
-    let bodyHeight = Math.max(bottom - bodyY, 1.0)
-    let browserW   = Math.min(BrowserWidth, width * 0.5)
-    g_Browser!.setPosition(Math.Rectangle{PageMargin, bodyY, browserW, bodyHeight})
-
-    let columnX = PageMargin + browserW + ColumnGap
-    g_Launchers!.setPosition(Math.Rectangle{columnX, bodyY, Math.max(rect.width - PageMargin - columnX, 1.0), bodyHeight})
-    layoutLaunchers()
-}
-
-// Answers the lens with every box, under the label of its group.
-func describeBoxes(results: *Lens.Results)
-{
-    var section: *Lens.Section?
-    var group = ""
-    for i in BoxCount
-    {
-        let box = cast(Box, cast(s32, i))
-        if not Lens.match(results.query, boxGroup(box)).matched and not Lens.match(results.query, boxName(box)).matched do
-            continue
-        if boxGroup(box) != group
-        {
-            group   = boxGroup(box)
-            section = results.addSection(group)
-        }
-
-        section!.addEntry(boxName(box)).run = func|box|() { openBox(box) }
-    }
-}
-
-func onRootEvent(_: *Wnd, evt: IEvent)->bool
-{
-    switch evt
-    {
-    case ResizeEvent:
-        layoutRootView()
-
-    case CommandEvent as cmd where cmd.id == CmdLens:
-        g_Lens!.open()
-        cmd.accepted = true
-        return true
-
-    case DestroyEvent:
-        app.sigFrame.disable()
-        g_Surface, g_View, g_Title, g_SubTitle, g_Browser, g_Launchers, g_Lens, g_Appearance = null
-    }
-
-    return false
+    g_DarkTheme = not g_DarkTheme
+    applyTheme()
 }
 
 func createRootView()
 {
     let view = g_Surface!.view()
     g_View = view
-    view.backgroundStyle = .Window
+    view.backgroundStyle = .View
 
-    with g_Title = Label.create(view, "Dialogs", {})
+    // Title bar (docked top so the layout reflows on resize).
+    with let title = Label.create(unwrap g_View, "GUI9 - Dialogs & FileBrowserCtrl", {0, 0, 0, 46})
     {
+        .dockStyle = .Top
+        .margin    = {16, 12, 16, 0}
         .setTextAlignment(.Left, .Center)
-        .style.setFont(view.theme().createDefaultFont(TitleSize, .Bold), .Regular)
+        .style.setFont(view.theme().createDefaultFont(24), .Regular)
     }
 
-    with g_SubTitle = Label.create(view, "Every predefined box, and the file browser they share, on its own.", {}, null, .SecondaryText | .Ellipsis)
-    {
-        .setTextAlignment(.Left, .Center)
-    }
+    // Content area below the title.
+    let content = Wnd.create'Wnd(unwrap g_View, {})
+    content.dockStyle       = .Center
+    content.backgroundStyle = .Transparent
 
-    // The file box's composite, on the ground of the page rather than in a box.
+    // Left: the reusable file-browsing composite (no dialog involved).
     g_StartDir = Env.getSpecialDirectory(.UserDocuments)
+
     var opt: FileDlgOptions
     opt.mode = .SelectFile
     opt.initialFolder = g_StartDir.toString()
-    opt.filters.add({name: "All Files", extensions: ""})
+    opt.filters.add({name: "All files", extensions: ""})
     opt.filters.add({name: "Text", extensions: ".txt"})
     opt.shortcuts.add({type: Env.SpecialDirectory.UserDocuments, name: "Documents"})
     opt.shortcuts.add({type: Env.SpecialDirectory.Desktop, name: "Desktop"})
-    g_Browser = FileBrowserCtrl.create(view, opt)
 
-    with g_Launchers = Wnd.create'Wnd(view, {})
+    with g_Browser = FileBrowserCtrl.create(content, opt, {0, 0, 620, 600})
     {
-        .backgroundStyle = .Transparent
+        .dockStyle = .Left
+        .margin    = {16, 8, 12, 16}
     }
 
-    with let hint = HintLine.create(view)
+    // Right: a column of buttons launching each predefined dialog.
+    let panel = Wnd.create'Wnd(content, {})
+    panel.dockStyle       = .Center
+    panel.backgroundStyle = .Transparent
+
+    with let stack = StackLayoutCtrl.create(panel, .Top, {})
     {
-        .addHint("Ctrl K", "every box, appearance")
+        .dockStyle = .Center
+        .spacing   = 6
+        .setAllPaddings(16)
+
+        addDlgButton(stack, "About", &onAbout)
+        addDlgButton(stack, "Message: OK", &onMsgOk)
+        addDlgButton(stack, "Message: OK / Cancel", &onMsgOkCancel)
+        addDlgButton(stack, "Message: Yes / No", &onMsgYesNo)
+        addDlgButton(stack, "Message: Yes / No / Cancel", &onMsgYesNoCancel)
+        addDlgButton(stack, "Message: Confirm", &onMsgConfirm)
+        addDlgButton(stack, "Message: Error", &onMsgError)
+        addDlgButton(stack, "Edit: single line", &onEditSingle)
+        addDlgButton(stack, "Edit: multi line", &onEditMulti)
+        addDlgButton(stack, "Form", &onForm)
+        addDlgButton(stack, "File: open", &onFileOpen)
+        addDlgButton(stack, "File: save", &onFileSave)
+        addDlgButton(stack, "File: select folder", &onSelectFolder)
+
+        with g_ThemeButton = PushButton.create(stack, "Switch to Encre", {0, 0, 220, 32})
+        {
+            .sigPressed += &toggleTheme
+        }
     }
 
-    // The appearance is a lens entry like every box; the button only owns the choice.
-    with g_Appearance = AppearanceButton.create(unwrap g_Surface)
-    {
-        .hide()
-        .setAppearanceTheme(g_Light ? .Light : .Dark)
-    }
-
-    with g_Lens = Lens.View.create(view)
-    {
-        .addSource(.None, &describeBoxes)
-    }
-
-    g_Appearance!.addToLens(unwrap g_Lens)
-
-    view.registerKeyShortcut(.Control, .K, CmdLens)
-    view.hookOnEvent = &onRootEvent
-    layoutRootView()
+    view.applyLayout()
 }
 
-var g_SmokeFrame: u32
-
-func onSmokeFrame(_: *Application)
+func onRootEvent(_: *Wnd, evt: IEvent)->bool
 {
-    g_SmokeFrame += 1
-    if g_SmokeFrame == 15 do
-        g_Lens?.open("file")
-    elif g_SmokeFrame == 30 do
-        g_Lens?.close()
-    elif g_SmokeFrame == 40 do
-        g_Appearance?.setAppearanceTheme(g_Light ? .Dark : .Light)
+    if evt is DestroyEvent
+    {
+        app.sigFrame.disable()
+        g_Surface = null
+        g_View    = null
+        g_Browser = null
+        g_ThemeButton = null
+        return true
+    }
+
+    return false
 }
 
 #main
 {
-    let surface = try app.createSurface(100, 60, W, H, SurfaceFlags.StandardWindow)
-    g_Surface = surface
-    surface.setTitle("GUI9 Dialogs")
-    surface.minSize = {960, 640}
-
-    for arg in Env.arguments() where arg == "--light" do
-        g_Light = true
-    createRootView()
-
-    // A smoke run builds the page and the composite, opens the lens once and turns the theme over;
-    // the boxes are modal and wait for a hand, so they are left to the reader.
-    if Env.isSmokeRun()
+    for arg in Env.arguments()
     {
-        app.maxRunFrame = 60
-        app.sigFrame    += &onSmokeFrame
+        if arg == "--dark" do
+            g_DarkTheme = true
+        elif arg == "--light" do
+            g_DarkTheme = false
     }
 
+    let flags = SurfaceFlags.LargeCaption |
+                SurfaceFlags.MinimizeButton |
+                SurfaceFlags.CloseButton |
+                SurfaceFlags.Border |
+                SurfaceFlags.Resizable
+    let surface = try app.createSurface(120, 90, W - 46, H - 31, flags)
+    g_Surface = surface
+    surface.setTitle("GUI9 dialogs showcase")
+
+    createRootView()
+    g_View!.hookOnEvent = &onRootEvent
+    applyTheme()
+
+    // In automated test mode we just exercise the composite/build and exit;
+    // the modal dialogs require interaction so they are not auto-opened.
+    if Env.isSmokeRun() do
+        app.maxRunFrame = 30
+
+    applyTheme()
     surface.show()
     app.run()
 }

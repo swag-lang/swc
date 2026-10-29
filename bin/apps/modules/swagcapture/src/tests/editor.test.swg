@@ -340,7 +340,8 @@ using Swag, Core
     Swag.assert(f.capture.selection[0] == 1)
 
     f.gui.shortcut(Input.Key.Space, Input.KeyModifiers.Control)
-    Swag.assert(f.main.freezeSel)
+    Swag.assert(f.main.lens.isOpen() and not f.main.freezeSel)
+    f.main.lens.close()
 
     f.editView.setZoom(1)
     f.gui.shortcut(Input.Key.Add, Input.KeyModifiers.Control)

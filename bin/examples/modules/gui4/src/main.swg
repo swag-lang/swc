@@ -1,34 +1,17 @@
-// GUI4 - the property control.
-//
-// One `PropertiesCtrl` edits several cards at once from a reflected struct: nested categories,
-// `Heading`, `Gap` and `HelpBox` decorators, conditional fields, validation and a custom editor
-// registered for a type. Each page shows the control in one of its four layouts; the segments
-// over the preview choose how many cards it edits. `Ctrl K` opens the lens, which reaches every
-// layout and the appearance. `--light` opens the window on Papier, `--page=N` on page N.
-
+// Use --dark for Encre or --light for Papier to inspect the property editor.
 using Core, Gui, Pixel
 using Properties
 
-const W        = 1360
-const H        = 900
-const MaxPages = 4
-const TestFramesPerPage = 60
-
-// The page keeps reading margins at its sides, and each section keeps one inset for its label, its
-// sentence and its controls, so the section labels stand on the left edge of the title.
-const PageMargin      = 48.0
-const SectionInset    = 24.0
-const SectionGap      = 24.0
-const TitleSize       = 34'u32
-const TopHeight       = 240.0
-const MinBottomHeight = 232.0
-
-const CmdLens         = "gui4.lens"
-const CmdNextPage     = "gui4.page.next"
-const CmdPreviousPage = "gui4.page.previous"
-
-const InspectorWidth = 560.0
-const NumCards       = 3
+const W                = 1360
+const H                = 900
+const RootMargin       = 24.0
+const PageTop          = 88.0
+const PageBottomMargin = 40.0
+const SplitGap         = 24.0
+const InspectorWidth   = 560.0
+const ThemeButtonWidth = 152.0
+const HeaderGap        = 18.0
+const NumCards         = 3
 
 // ---------------------------------------------------------------------------
 // Data. A single struct edited several instances at a time (multi-selection),
@@ -127,7 +110,7 @@ impl IPropertyNotify for SceneCard
         return true
     }
 
-    // Per-field validation, surfaced by the grid as a critical ring or a caution message.
+    // Per-field validation, surfaced by the grid as an accent bar + tooltip.
     mtd impl validateItem(_: *Properties, item: *PropertiesItem)->PropValidationResult
     {
         switch item.typeValue.name
@@ -145,67 +128,88 @@ impl IPropertyNotify for SceneCard
     }
 }
 
-struct PagePanelLayout
-{
-    left:   Math.Rectangle
-    right:  Math.Rectangle
-    bottom: Math.Rectangle
-}
+// ---------------------------------------------------------------------------
+// State
+// ---------------------------------------------------------------------------
 
 var app:           Application
 var g_Surface:     *Surface?
 var g_View:        *Wnd?
 var g_Title:       *Label?
 var g_SubTitle:    *Label?
-var g_Tabs:        *Tab?
+var g_ThemeButton: *PushButton?
 var g_PageView:    *Wnd?
-var g_Lens:        *Lens.View?
-var g_Appearance:  *AppearanceButton?
-var g_Page:        s32
-var g_TestFrame:   s32
-var g_Hint:        *HintLine?
+var g_Footer:      *Label?
+var g_DarkTheme:   bool
 var g_StatusText:  String
+
 var g_Cards:       [NumCards] SceneCard
 var g_CardCount:   s32 = 2
 var g_DisplayMode: PropertiesKind = .Grid
 var g_Filter:      String
-var g_ObjHost:     *Wnd?
-var g_PropCtrl:    *PropertiesCtrl?
-var g_Props:       *Properties?
-var g_Preview:     *Wnd?
-var g_CountTabs:   *Tab?
-var g_Light:       bool
+
+var g_ObjHost:      *Wnd?
+var g_PropCtrl:     *PropertiesCtrl?
+var g_Props:        *Properties?
+var g_Preview:      *Wnd?
+var g_DisplayCombo: *ComboBox?
+var g_CountCombo:   *ComboBox?
+
+var g_TestFrame: s32
+var g_TestStep:  s32
+
+// ---------------------------------------------------------------------------
+// Small helpers
+// ---------------------------------------------------------------------------
+
+func setLabelTextStyle(label: *Label, horizontal = StringHorzAlignment.Left, vertical = StringVertAlignment.Center)
+{
+    label.setTextAlignment(horizontal, vertical)
+}
 
 func createText(parent: *Wnd, text: string, rect: Math.Rectangle, flags = LabelFlags.None)->*Label
 {
     let label = Label.create(parent, text, rect, null, flags)
-    label.setTextAlignment(.Left, .Center)
+    setLabelTextStyle(label, .Left, .Center)
     return label
 }
 
-func createHelpText(parent: *Wnd, text: string, rect: Math.Rectangle)->*Label
+func createPanel(parent: *Wnd, title, subtitle: string, rect: Math.Rectangle)->*FrameWnd
 {
-    let label = createText(parent, text, rect, .WordWrap | .SecondaryText)
-    label.setTextVerticalAlignment(.Top)
-    return label
+    let frame = Wnd.create'FrameWnd(parent, rect)
+    frame.setFrameForm(.Round)
+    frame.setFrameFlags(.Borders)
+
+    let view = frame.createView'Wnd()
+    discard createText(view, title, Math.Rectangle{16, 10, rect.width - 32, 24})
+    let help = createText(view, subtitle, Math.Rectangle{16, 36, rect.width - 32, 42}, .WordWrap | .SecondaryText)
+    help.setTextVerticalAlignment(.Top)
+    return frame
 }
 
-// Opens a section of a page: its label, the sentence saying what it shows, and room for the
-// controls from `y = 88`, all on the same inset.
-func createPanel(parent: *Wnd, title, subtitle: string, rect: Math.Rectangle)->*Wnd
+func updateThemeButton()
 {
-    let view = Wnd.create'Wnd(parent, rect)
-    view.backgroundStyle = .Transparent
-    SectionLabel.create(view, title, Math.Rectangle{SectionInset, 0, rect.width - 2 * SectionInset, 20})
-    discard createHelpText(view, subtitle, Math.Rectangle{SectionInset, 28, rect.width - 2 * SectionInset, 44})
-    return view
+    let btn = g_ThemeButton
+    if not btn do
+        return
+    btn.name = g_DarkTheme ? "Switch to Papier" : "Switch to Encre"
+    btn.invalidate()
 }
 
-// Names the control that follows, in the faint ink of a caption.
-func createCaption(parent: *Wnd, text: string, x, y, width: f32)
+func applyTheme()
 {
-    let label = createText(parent, text, Math.Rectangle{x, y, width, 24}, .SecondaryText)
-    label.style.addStyleSheetColors("label_TextLight $label_TextFaint")
+    if g_DarkTheme do
+        app.theme.colors.setDark()
+    else do
+        app.theme.colors.setLight()
+    updateThemeButton()
+    app.notifyThemeChanged()
+}
+
+func toggleTheme(_: *Button)
+{
+    g_DarkTheme = not g_DarkTheme
+    applyTheme()
 }
 
 func initCard(c: *SceneCard,
@@ -269,12 +273,25 @@ func initDemoData()
              shadowKind: .Hard,
              badges: CardBadge.Accent)
 
-    g_StatusText = "no change yet"
+    g_StatusText = "Pick a display mode, edit 1-3 cards at once; a field that differs shows as mixed."
 }
 
 // ---------------------------------------------------------------------------
 // The single inspector page: one property control (multi-selection) + preview
 // ---------------------------------------------------------------------------
+
+func displayModeIndex(kind: PropertiesKind)->u32
+{
+    switch kind
+    {
+    case .Grid:      return 0
+    case .Condensed: return 1
+    case .List:      return 2
+    case .Panel:     return 3
+    }
+
+    return 0
+}
 
 func displayModeFromIndex(idx: u32)->PropertiesKind
 {
@@ -333,54 +350,66 @@ func rebuildInspector()
     objHost.applyLayout()
 }
 
+func setDisplayMode(kind: PropertiesKind)
+{
+    if g_DisplayMode == kind do
+        return
+    g_DisplayMode = kind
+    rebuildInspector()
+}
+
 func setCardCount(count: s32)
 {
     if g_CardCount == count do
         return
     g_CardCount = count
-    g_CountTabs?.setSelectedIndex(cast(u32, count - 1))
     rebuildInspector()
     g_Preview?.invalidate()
 }
 
-// Lays the page out in two sections: the property control at the left, in the layout the page
-// names, and the preview of the cards at the right with the number of cards it edits.
 func createInspectorPage(parent: *Wnd)
 {
-    g_DisplayMode = displayModeFromIndex(cast(u32, g_Page))
+    // Left column: a control row (display mode + edited count), then the property controller.
+    let objHost = Wnd.create'Wnd(parent, {0, 0, InspectorWidth, 10})
+    g_ObjHost         = objHost
+    objHost.dockStyle = .Left
+    objHost.margin.z  = SplitGap
 
-    let rect  = parent.clientRect()
-    let leftW = Math.min(InspectorWidth + 2 * SectionInset, rect.width * 0.55)
-    let left  = createPanel(parent,
-                            "Properties",
-                            "One control edits the cards chosen at the right at once; a field they disagree on reads as mixed.",
-                            Math.Rectangle{0, 0, leftW, rect.height})
-    let objHost = Wnd.create'Wnd(left, Math.Rectangle{SectionInset, 88, leftW - 2 * SectionInset, Math.max(rect.height - 88, 1.0)})
-    g_ObjHost = objHost
-    rebuildInspector()
+    let controls = Wnd.create'Wnd(objHost, {0, 0, 0, 44})
+    controls.dockStyle = .Top
+    controls.margin.w  = 8
 
-    let rightX = leftW + SectionGap
-    let right  = createPanel(parent,
-                             "Preview",
-                             "Each card is one edited instance; the ones ringed in Arc are bound to the control.",
-                             Math.Rectangle{rightX, 0, Math.max(rect.width - rightX, 1.0), rect.height})
-
-    // How many cards the control edits is a choice among three, so it is a group of segments.
-    with g_CountTabs = Tab.create(right, Math.Rectangle{SectionInset, 88, 300, right.themeMetrics().tabBar_RoundHeight})
+    discard createText(controls, "Display:", {0, 0, 60, 44})
+    with g_DisplayCombo = ComboBox.create(controls, {62, 8, 170, 28})
     {
-        .setForms(.Round, .Round, .None)
-        .setLayout(.Equal)
-        .addItem("1 Card")
-        .addItem("2 Cards")
-        .addItem("3 Cards")
-        .setSelectedIndex(cast(u32, g_CardCount - 1))
-        .sigSelectionChanged += func(tab) { setCardCount(cast(s32, cast(*Tab, tab).selectedIndex) + 1) }
+        .addItem("Normal")
+        .addItem("Condensed")
+        .addItem("List")
+        .addItem("Panel")
+        .setSelectedIndex(displayModeIndex(g_DisplayMode))
+        .sigChanged += func(_, idx) { setDisplayMode(displayModeFromIndex(idx)); }
     }
 
-    let preview = Wnd.create'Wnd(right, Math.Rectangle{0, 136, right.position.width, Math.max(rect.height - 136, 1.0)})
-    preview.backgroundStyle = .Transparent
-    preview.hookOnEvent     = &onPreviewEvent
+    discard createText(controls, "Edit:", {252, 0, 40, 44})
+    with g_CountCombo = ComboBox.create(controls, {294, 8, 150, 28})
+    {
+        .addItem("1 card")
+        .addItem("2 cards")
+        .addItem("3 cards")
+        .setSelectedIndex(cast(u32, (g_CardCount - 1)))
+        .sigChanged += func(_, idx) { setCardCount(cast(s32, idx) + 1); }
+    }
+
+    rebuildInspector()
+
+    let frame = createPanel(parent,
+                            "Live preview",
+                            "Each card is one edited instance; the highlighted ones are bound to the grid, so editing a field writes them all.",
+                            {})
+    frame.dockStyle = .Center
+    let preview = frame.view
     g_Preview = preview
+    preview.hookOnEvent = &onPreviewEvent
 }
 
 // ---------------------------------------------------------------------------
@@ -440,12 +469,10 @@ func drawCard(painter: *Painter, slot: Math.Rectangle, card: *SceneCard, selecte
         painter.fillRoundRect(tag, 11, 11, Color.fromArgb(cast(u8, (200.0 * card.opacity)), Argb.Black))
     }
 
-    // A card bound to the control is chosen, so it is ringed in Arc.
     if selected
     {
-        let corner = g_View!.themeMetrics().corner_Floating
-        let sel    = Math.Rectangle{slot.x + 6, slot.y + 4, slot.width - 12, slot.height - 8}
-        painter.drawRoundRect(sel, corner, corner, g_View!.themeColors().arc, 2.0)
+        let sel = Math.Rectangle{slot.x + 6, slot.y + 4, slot.width - 12, slot.height - 8}
+        painter.drawRoundRect(sel, 12, 12, g_View!.themeColors().arc, 2.0)
     }
 
     let font = g_View!.theme().createDefaultFont(15, .Bold)
@@ -460,8 +487,9 @@ func onPreviewEvent(view: *Wnd, evt: IEvent)->bool
     case PaintEvent as paintEvt:
         let painter = paintEvt.paintContext.painter
         let rect    = view.clientRect()
+        painter.fillRect(rect, view.themeColors().view_Bk)
 
-        const TopReserve = 0.0
+        const TopReserve = 72.0
         const Gap        = 16.0
         let avail = Math.max(rect.height - TopReserve - Gap, 1.0)
         let slotH = (avail - cast(f32, (NumCards - 1)) * Gap) / cast(f32, NumCards)
@@ -518,12 +546,11 @@ impl IPropertyEditor for RatingEditor
                     prop.commitItemChange(item)
                 }
 
-                // A pip that is on is chosen, so it is Arc; one that is off is a stronger rule.
-                .iconPainter = func|rating, idx, line|(_, bc, pos, _)
+                .iconPainter = func|rating, idx|(_, bc, pos, _)
                 {
                     bc.painter.setParams(.Antialiased)
                     let on  = idx < rating!.value
-                    let col = on ? line.themeColors().arc : line.themeColors().strongLine
+                    let col = on ? Argb.Goldenrod : Color.fromArgb(70'u8, Argb.Gray)
                     let rad = Math.min(pos.width, pos.height) * 0.28
                     bc.painter.fillCircle(pos.horzCenter(), pos.vertCenter(), rad, col)
                 }
@@ -545,7 +572,10 @@ impl IPropertyEditor for RatingEditor
     Properties.registerEditor'(RatingEditor)()
 }
 
-// Writes the last change in the hint line.
+// ---------------------------------------------------------------------------
+// Root view / app
+// ---------------------------------------------------------------------------
+
 func updateStatus(item: *PropertiesItem?)
 {
     if item == null do
@@ -559,117 +589,43 @@ func updateStatus(item: *PropertiesItem?)
     if name == "" do
         name = "section"
 
-    g_StatusText = Format.toString("last change: %", name)
-    g_Hint?.setReading(g_StatusText)
+    g_StatusText = Format.toString("Last change: %.", name)
+    updateHeader()
 }
 
-func getPagePanelLayout(parent: *Wnd)->PagePanelLayout
+func updateHeader()
 {
-    let rect      = parent.clientRect()
-    let width     = Math.max(rect.width, 1.0)
-    let halfWidth = (width - SectionGap) * 0.5
-    let bottomY   = TopHeight + SectionGap
-
-    var result: #returntype
-    result.left   = Math.Rectangle{0, 0, halfWidth, TopHeight}
-    result.right  = Math.Rectangle{halfWidth + SectionGap, 0, width - halfWidth - SectionGap, TopHeight}
-    result.bottom = Math.Rectangle{0, bottomY, width, Math.max(MinBottomHeight, rect.height - bottomY)}
-    return result
+    let title    = unwrap g_Title
+    let subTitle = unwrap g_SubTitle
+    let footer   = unwrap g_Footer
+    title.setText("GUI4 property control inspector")
+    subTitle.setText("One property control edits several cards at once (multi-selection). The card struct uses nested category subgroups plus Heading / Gap / HelpBox decorators; the combo switches the display mode.")
+    footer.setText(Format.toString("Grouping, decorators, multi-selection and live preview in one grid. %", g_StatusText))
 }
 
-const PageTitles = ["Grid", "Condensed", "List", "Panel"]
-
-func pageSubtitle(page: s32)->string
-{
-    switch page
-    {
-    case 0: return "A name column and a value column, with sections that fold."
-    case 1: return "Rows of 26 with values as text; the editor opens on a click."
-    case 2: return "Each setting stacks its label, its help and its editor."
-    case 3: return "Self-labelled controls under section labels."
-    }
-
-    unreachable
-}
-
-func clearPage()
-{
-    g_ObjHost, g_PropCtrl, g_Props, g_Preview, g_CountTabs = null
-    for child in g_PageView!.children do
-        child.destroy()
-}
-
-func buildPage()
-{
-    clearPage()
-    g_SubTitle!.setText(pageSubtitle(g_Page))
-
-    let pageView = unwrap g_PageView
-    switch g_Page
-    {
-    case 0:  createInspectorPage(pageView)
-    case 1:  createInspectorPage(pageView)
-    case 2:  createInspectorPage(pageView)
-    case 3:  createInspectorPage(pageView)
-    default: unreachable
-    }
-
-    pageView.invalidate()
-}
-
-func showPage(page: s32)
-{
-    g_Page = page
-    let tabs = unwrap g_Tabs
-    if tabs.selectedIndex != cast(u32, page) do
-        tabs.setSelectedIndex(cast(u32, page))
-    buildPage()
-}
-
-func nextPage()     => showPage((g_Page + 1) % MaxPages)
-func previousPage() => showPage((g_Page + MaxPages - 1) % MaxPages)
-
-// Places the header under the window strip, then the page under the tabs, keeping the foot clear
-// for the hint line.
 func layoutRootView()
 {
     if not g_View or not g_PageView do
         return
 
-    let view    = unwrap g_View
-    let metrics = view.themeMetrics()
-    let rect    = view.clientRect()
-    let top     = view.stripInset()
-    let width   = Math.max(rect.width - 2 * PageMargin, 1.0)
+    let view     = unwrap g_View
+    let pageView = unwrap g_PageView
 
-    let titleHeight = view.theme().createDefaultFont(TitleSize, .Bold).height
-    g_Title!.setPosition(Math.Rectangle{PageMargin, top, width, titleHeight})
-    g_SubTitle!.setPosition(Math.Rectangle{PageMargin, top + titleHeight + 4, width, 22})
+    let rect         = view.clientRect()
+    let contentWidth = Math.max(rect.width - 2 * RootMargin, 1.0)
+    let pageHeight   = Math.max(rect.height - PageTop - PageBottomMargin, 1.0)
+    let footerY      = Math.max(rect.height - 42.0, PageTop + pageHeight + 6.0)
+    let titleWidth   = Math.max(contentWidth - ThemeButtonWidth - HeaderGap, 1.0)
 
-    let tabsY = top + titleHeight + 4 + 22 + 16
-    g_Tabs!.setPosition(Math.Rectangle{PageMargin, tabsY, width, metrics.tabBar_FlatHeight})
-
-    let pageY  = tabsY + metrics.tabBar_FlatHeight + 24
-    let bottom = rect.height - metrics.hintLine_Bottom - metrics.hintLine_Height - 16
-    g_PageView!.setPosition(Math.Rectangle{PageMargin - SectionInset, pageY, width + 2 * SectionInset, Math.max(bottom - pageY, 1.0)})
-}
-
-// Answers the lens with the pages, the one shown checked.
-func describePages(results: *Lens.Results)
-{
-    const Family = "Layouts"
-    let all = Lens.match(results.query, Family).matched
-    var section: *Lens.Section?
-    for title, index in PageTitles where all or Lens.match(results.query, title).matched
-    {
-        if not section do
-            section = results.addSection(Family)
-        with let entry = section.addEntry(title)
-        {
-            .checked = cast(s32, index) == g_Page
-            .run     = func|index|() { showPage(cast(s32, index)) }
-        }
-    }
+    let title       = unwrap g_Title
+    let themeButton = unwrap g_ThemeButton
+    let subTitle    = unwrap g_SubTitle
+    let footer      = unwrap g_Footer
+    title.setPosition(Math.Rectangle{RootMargin, 18, titleWidth, 34})
+    themeButton.setPosition(Math.Rectangle{RootMargin + titleWidth + HeaderGap, 18, ThemeButtonWidth, 34})
+    subTitle.setPosition(Math.Rectangle{RootMargin + 2, 56, contentWidth - 4, 42})
+    pageView.setPosition(Math.Rectangle{RootMargin, PageTop, contentWidth, pageHeight})
+    footer.setPosition(Math.Rectangle{RootMargin, footerY, contentWidth, 28})
 }
 
 func onRootEvent(_: *Wnd, evt: IEvent)->bool
@@ -678,185 +634,117 @@ func onRootEvent(_: *Wnd, evt: IEvent)->bool
     {
     case ResizeEvent:
         layoutRootView()
-        buildPage()
-
-    case CommandStateEvent as state where state.kind == .Compute:
-        switch state.id
-        {
-        case CmdNextPage:     state.name = "Next Page"
-        case CmdPreviousPage: state.name = "Previous Page"
-        default: return false
-        }
-
-        state.updatedFields.add(.Name)
-        state.accepted = true
-        return true
-
-    case CommandEvent as cmd:
-        switch cmd.id
-        {
-        case CmdLens:         g_Lens!.open()
-        case CmdNextPage:     nextPage()
-        case CmdPreviousPage: previousPage()
-        default:              return false
-        }
-
-        cmd.accepted = true
-        return true
 
     case DestroyEvent:
         app.sigFrame.disable()
-        g_Surface, g_View, g_Title, g_SubTitle, g_Tabs, g_PageView, g_Lens, g_Appearance, g_Hint, g_ObjHost, g_PropCtrl, g_Props, g_Preview, g_CountTabs = null
+        g_Surface      = null
+        g_View         = null
+        g_Title        = null
+        g_SubTitle     = null
+        g_ThemeButton  = null
+        g_PageView     = null
+        g_Footer       = null
+        g_ObjHost      = null
+        g_PropCtrl     = null
+        g_Props        = null
+        g_Preview      = null
+        g_DisplayCombo = null
+        g_CountCombo   = null
     }
 
     return false
-}
-
-// Walks every page in Encre, then every page in Papier, and opens the lens once in each theme.
-func updateTestMode()
-{
-    if not Env.isSmokeRun() or not g_Surface do
-        return
-
-    g_TestFrame += 1
-    if g_Page == 0
-    {
-        if g_TestFrame == TestFramesPerPage / 3 do
-            g_Lens!.open("pa")
-        elif g_TestFrame == 2 * TestFramesPerPage / 3 do
-            g_Lens!.close()
-    }
-
-    if g_TestFrame < TestFramesPerPage do
-        return
-
-    g_TestFrame = 0
-    if g_Page + 1 < MaxPages
-    {
-        nextPage()
-        return
-    }
-
-    if g_Light
-    {
-        Env.exit(0)
-        return
-    }
-
-    g_Light = true
-    g_Appearance!.setAppearanceTheme(.Light)
-    showPage(0)
-}
-
-func onFrame(_: *Application)
-{
-    if not g_Surface or not g_View or not g_PageView do
-        return
-
-    // A smoke run edits one, two and three cards in turn on every layout.
-    if Env.isSmokeRun() and g_TestFrame == TestFramesPerPage / 2 do
-        setCardCount(g_CardCount % NumCards + 1)
-
-    updateTestMode()
 }
 
 func createRootView()
 {
     let view = g_Surface!.view()
     g_View = view
-    view.backgroundStyle = .Window
+    view.backgroundStyle = .View
 
-    with g_Title = Label.create(view, "Properties", {})
-    {
-        .setTextAlignment(.Left, .Center)
-        .style.setFont(view.theme().createDefaultFont(TitleSize, .Bold), .Regular)
-    }
+    let title = Label.create(view, "", {})
+    g_Title = title
+    setLabelTextStyle(title, .Left, .Center)
+    title.style.setFont(view.theme().createDefaultFont(28), .Regular)
 
-    with g_SubTitle = Label.create(view, "", {}, null, .SecondaryText | .Ellipsis)
-    {
-        .setTextAlignment(.Left, .Center)
-    }
+    let subTitle = Label.create(view, "", {}, null, .WordWrap | .SecondaryText)
+    g_SubTitle = subTitle
+    setLabelTextStyle(subTitle, .Left, .Top)
 
-    with g_Tabs = Tab.create(view, {})
-    {
-        .setForms(.Flat, .Flat, .None)
-        for title in PageTitles do
-            .addItem(title)
-        .sigSelectionChanged += func(tab)
-        {
-            let index = cast(s32, cast(*Tab, tab).selectedIndex)
-            if index != g_Page do
-                showPage(index)
-        }
-    }
+    let themeButton = PushButton.create(view, "", {})
+    g_ThemeButton = themeButton
+    themeButton.setForm(.Flat)
+    themeButton.setIcon(app.theme.icon(ThemeIcons.Picker, 18))
+    themeButton.sigPressed += &toggleTheme
 
-    with g_PageView = Wnd.create'Wnd(view, {})
-    {
-        .backgroundStyle = .Transparent
-    }
+    let pageView = Wnd.create'Wnd(view, {})
+    g_PageView = pageView
+    pageView.backgroundStyle = .Transparent
 
-    with g_Hint = HintLine.create(view)
-    {
-        .setReading(g_StatusText)
-        .addHint("Ctrl K", "layouts, appearance")
-        .addHint("F1", "next page")
-    }
+    let footer = Label.create(view, "", {})
+    g_Footer = footer
+    setLabelTextStyle(footer, .Left, .Center)
+    footer.updateFlags(.SecondaryText)
 
-    // The appearance is a lens entry like every other command; the button only owns the choice.
-    with g_Appearance = AppearanceButton.create(unwrap g_Surface)
-    {
-        .hide()
-        .setAppearanceTheme(g_Light ? .Light : .Dark)
-    }
-
-    with g_Lens = Lens.View.create(view)
-    {
-        .addSource(.None, &describePages)
-        .addCommands("Go", [CmdNextPage, CmdPreviousPage])
-    }
-
-    g_Appearance!.addToLens(unwrap g_Lens)
-
-    view.registerKeyShortcut(.Control, .K, CmdLens)
-    view.registerKeyShortcut(.None, .F1, CmdNextPage)
-    view.registerKeyShortcut(.Shift, .F1, CmdPreviousPage)
-    view.hookOnEvent = &onRootEvent
     layoutRootView()
+    view.hookOnEvent = &onRootEvent
 }
 
-// Reads the theme and the page the command line opens the window on.
-func readStartupSelection()
+// In test mode, cycle the display mode and the edited-card count through the combos (driving the
+// real rebuild path), then quit after a fixed number of frames.
+func updateTestMode()
 {
-    const PagePrefix = "--page="
-    for arg in Env.arguments()
+    if not Env.isSmokeRun() or not g_Surface do
+        return
+
+    g_TestFrame += 1
+    let displayCombo = g_DisplayCombo
+    let countCombo   = g_CountCombo
+    if g_TestFrame % 24 == 0 and displayCombo and countCombo
     {
-        if arg == "--light"
-        {
-            g_Light = true
-        }
-        elif Utf8.startsWith(arg, PagePrefix)
-        {
-            let page = catch StrConv.toS32(arg[PagePrefix.count to])
-            g_Page = Math.clamp(page - 1, 0, MaxPages - 1)
-        }
+        g_TestStep += 1
+        displayCombo.setSelectedIndex(cast(u32, (g_TestStep % 4)))
+        countCombo.setSelectedIndex(cast(u32, ((g_TestStep / 4) % 3)))
     }
+
+    if g_TestFrame >= 200 do
+        Env.exit(0)
+}
+
+func onFrame(_: *Application)
+{
+    updateTestMode()
 }
 
 #main
 {
-    let surface = try app.createSurface(100, 60, W, H, SurfaceFlags.StandardWindow)
-    g_Surface = surface
-    surface.setTitle("GUI4 Properties")
-    surface.minSize = {1100, 720}
-
-    readStartupSelection()
     initDemoData()
+
+    for arg in Env.arguments()
+    {
+        if arg == "--dark" do
+            g_DarkTheme = true
+        elif arg == "--light" do
+            g_DarkTheme = false
+    }
+
+
+    let flags = SurfaceFlags.LargeCaption |
+                SurfaceFlags.MinimizeButton |
+                SurfaceFlags.CloseButton |
+                SurfaceFlags.Border
+    let surface = try app.createSurface(100, 100, W - 46, H - 31, flags)
+    g_Surface = surface
+    surface.setTitle("GUI4 property control inspector")
+    surface.setIcon(app.theme.icon(ThemeIcons.Options, 18))
+
     createRootView()
-    showPage(g_Page)
+    createInspectorPage(unwrap g_PageView)
+    updateHeader()
+    applyTheme()
 
     app.sigFrame += &onFrame
     if Env.isSmokeRun() do
-        app.maxRunFrame = cast(u32, 2 * MaxPages * TestFramesPerPage + 20)
+        app.maxRunFrame = 240
 
     surface.show()
     app.run()

@@ -9,38 +9,39 @@
 // keeps its own clock, and no page moves a window by changing its layout rectangle: decoration
 // travels on presentation opacity, offset, and scale, so hit testing and focus never chase it.
 
+// Use --dark for Encre or --light for Papier to inspect the motion examples.
 using Core, Gui, Pixel
 
 const W = 1240
 const H = 860
 
-// The page keeps reading margins at its sides; the header stands under the window strip.
-const PageMargin   = 48.0
-const TitleSize    = 34'u32
-const BarHeight    = 34.0
-const ReducedWidth = 190.0
-const PagePad      = 18.0
-const NoteHeight   = 38.0
-const RowGap       = 12.0
-const PanelHeight  = 146.0
-const CaptionGap   = 22.0
-const MaxCardH     = 176.0
+const RootMargin  = 24.0
+const HeaderTop   = 16.0
+const BarHeight   = 34.0
+const BarY        = 96.0
+const TabsY       = 142.0
+const FooterSpace = 42.0
+const PagePad     = 18.0
+const NoteHeight  = 38.0
+const RowGap      = 12.0
+const PanelHeight = 146.0
+const CaptionGap  = 22.0
+const MaxCardH    = 176.0
 
 const SmokeFramesPerPage = 40
 
 var app: Application
 
-var g_Surface:    *Surface?
-var g_View:       *Wnd?
-var g_Title:      *Label?
-var g_SubTitle:   *Label?
-var g_Hint:       *HintLine?
-var g_Lens:       *Lens.View?
-var g_Appearance: *AppearanceButton?
-var g_Reduced:    *CheckButton?
-var g_Tabs:       *Tab?
+var g_Surface:     *Surface?
+var g_View:        *Wnd?
+var g_Title:       *Label?
+var g_SubTitle:    *Label?
+var g_Footer:      *Label?
+var g_ThemeButton: *PushButton?
+var g_Reduced:     *CheckButton?
+var g_Tabs:        *Tab?
 
-var g_Light:      bool
+var g_DarkTheme = true
 var g_SmokeFrame: u32
 
 // Curves page.
@@ -99,8 +100,31 @@ const CollapsedDetail = 1.0
 const ExpandedDetail  = 132.0
 
 //////////////////////////////////////////////
-// Motion preference
+// Theme and motion preference
 //////////////////////////////////////////////
+
+func applyTheme()
+{
+    if g_DarkTheme do
+        app.theme.setDark()
+    else do
+        app.theme.setLight()
+
+    let btn = g_ThemeButton
+    if btn
+    {
+        btn.name = g_DarkTheme ? "Switch to Papier" : "Switch to Encre"
+        btn.invalidate()
+    }
+
+    app.notifyThemeChanged()
+}
+
+func toggleTheme(_: *Button)
+{
+    g_DarkTheme = not g_DarkTheme
+    applyTheme()
+}
 
 // Restarts every endless track of the example.
 //
@@ -117,23 +141,15 @@ func onReducedChanged(box: *CheckButton)
 {
     app.setMotionPreference(box.state == .Checked ? .Reduced : .Full)
     restartLoops()
-    updateHint()
+    updateFooter()
 }
 
-func toggleReduced()
+func updateFooter()
 {
-    let box = unwrap g_Reduced
-    box.setState(box.state == .Checked ? .Unchecked : .Checked)
-    onReducedChanged(box)
-}
-
-// Teaches the lens, and says in a few words what the motion preference leaves running.
-func updateHint()
-{
-    let hint = unwrap g_Hint
-    hint.clearHints()
-    hint.addHint("Ctrl K", "pages, motion, appearance")
-    hint.addHint("", app.isReducedMotion() ? "reduced motion: decorative tracks rest, essential ones keep reporting" : "every track runs on the application frame clock")
+    let reduced = app.isReducedMotion()
+    g_Footer!.setText(reduced
+                      ? "Reduced motion is on: decorative tracks end on their resting frame, essential ones keep reporting."
+                      : "Reduced motion is off: every track runs on the application frame clock.")
 }
 
 //////////////////////////////////////////////
@@ -143,7 +159,7 @@ func updateHint()
 func buildCurvePage(parent: *Wnd)->*Wnd
 {
     let page = Wnd.create'Wnd(parent)
-    page.backgroundStyle = .Transparent
+    page.backgroundStyle = .View
     g_CurvePage = page
 
     g_CurveNote = Label.create(page, "Nine curves, one clock. The dot on the graph and the puck under it are the same number: the shape is the movement. The clock repeats forever and reverses on every play, which is one track, not a frame callback.", {}, null, .WordWrap | .SecondaryText)
@@ -195,7 +211,7 @@ func setCardScale(wnd: *Wnd, value: f32)
 func buildStagePage(parent: *Wnd)->*Wnd
 {
     let page = Wnd.create'Wnd(parent)
-    page.backgroundStyle = .Transparent
+    page.backgroundStyle = .View
     g_StagePage = page
 
     g_StageNote = Label.create(page, "Six tiles, one parallel group, eighteen tracks. Each tile fades, rises, and grows on the same timeline, offset by its rank. Nothing below moves: presentation state never touches a layout rectangle.", {}, null, .WordWrap | .SecondaryText)
@@ -369,7 +385,7 @@ func onStagePageEvent(_: *Wnd, evt: IEvent)->bool
 func buildFieldPage(parent: *Wnd)->*Wnd
 {
     let page = Wnd.create'Wnd(parent)
-    page.backgroundStyle = .Transparent
+    page.backgroundStyle = .View
     g_FieldPage = page
 
     g_FieldNote = Label.create(page, "One channel owns the puck. Clicking again while it travels does not stack a second animation: it replaces the first one from the value on screen, which is why the trail bends instead of jumping.", {}, null, .WordWrap | .SecondaryText)
@@ -527,7 +543,7 @@ func toggleExpander(_: *Button)
 func buildPrefPage(parent: *Wnd)->*Wnd
 {
     let page = Wnd.create'Wnd(parent)
-    page.backgroundStyle = .Transparent
+    page.backgroundStyle = .View
     g_PrefPage = page
 
     g_PrefNote = Label.create(page, "A track says whether it decorates or whether it reports. Turn reduced motion on in the header: the left loop ends on its resting frame and the right one keeps going, because only one of them is carrying information.", {}, null, .WordWrap | .SecondaryText)
@@ -558,7 +574,7 @@ func buildPrefPage(parent: *Wnd)->*Wnd
 
     let detail = Wnd.create'Wnd(host)
     g_Detail               = detail
-    detail.backgroundStyle = .Panel
+    detail.backgroundStyle = .Window
     detail.dockStyle       = .Top
     detail.preferredSize.y = CollapsedDetail
     detail.position.height = CollapsedDetail
@@ -615,83 +631,77 @@ func onPrefPageEvent(_: *Wnd, evt: IEvent)->bool
 // Surface
 //////////////////////////////////////////////
 
-// Places the header under the window strip, then the pages, keeping the foot clear for the hint
-// line. The reduced-motion switch stands at the right of the tabs: it is what every page answers.
 func layoutRootView()
 {
     let view = g_View
     if not view do
         return
 
-    let metrics = view.themeMetrics()
-    let rect    = view.clientRect()
-    let top     = view.stripInset()
-    let width   = Math.max(rect.width - 2 * PageMargin, 1.0)
+    let rect  = view.clientRect()
+    let width = Math.max(rect.width - 2 * RootMargin, 1.0)
 
-    let titleHeight = view.theme().createDefaultFont(TitleSize, .Bold).height
-    g_Title!.setPosition(Math.Rectangle{PageMargin, top, width, titleHeight})
-    g_SubTitle!.setPosition(Math.Rectangle{PageMargin, top + titleHeight + 4, width, 22})
+    g_Title!.setPosition(Math.Rectangle{RootMargin, HeaderTop, width, 36})
+    g_SubTitle!.setPosition(Math.Rectangle{RootMargin + 2, HeaderTop + 38, width - 4, 34})
+    g_ThemeButton!.setPosition({RootMargin, BarY, 136, BarHeight})
+    g_Reduced!.setPosition({RootMargin + 148, BarY, 190, BarHeight})
 
-    let tabsY  = top + titleHeight + 4 + 22 + 16
-    let bottom = rect.height - metrics.hintLine_Bottom - metrics.hintLine_Height - 16
-    g_Tabs!.setPosition(Math.Rectangle{PageMargin, tabsY, width, Math.max(bottom - tabsY, 120.0)})
-    g_Reduced!.setPosition(Math.Rectangle{PageMargin + width - ReducedWidth, tabsY + (metrics.tabBar_FlatHeight - BarHeight) * 0.5 - 4, ReducedWidth, BarHeight})
+    let tabsH = Math.max(rect.height - TabsY - FooterSpace, 120.0)
+    g_Tabs!.setPosition(Math.Rectangle{RootMargin, TabsY, width, tabsH})
+    g_Footer!.setPosition(Math.Rectangle{RootMargin, TabsY + tabsH + 8, width, 24})
 }
-
-// Answers the lens with the pages, the one shown checked, and the motion preference.
-func describeChoices(results: *Lens.Results)
-{
-    const PagesFamily = "Pages"
-    let tabs = unwrap g_Tabs
-    var section: *Lens.Section?
-    for name, index in PageNames
-    {
-        if not Lens.match(results.query, PagesFamily).matched and not Lens.match(results.query, name).matched do
-            continue
-        if not section do
-            section = results.addSection(PagesFamily)
-        with let entry = section.addEntry(name)
-        {
-            .checked = cast(u32, index) == tabs.selectedIndex
-            .run     = func|index|() { g_Tabs!.setSelectedIndex(cast(u32, index)) }
-        }
-    }
-
-    const MotionFamily = "Motion"
-    const Reduced      = "Reduced Motion"
-    if Lens.match(results.query, MotionFamily).matched or Lens.match(results.query, Reduced).matched
-    {
-        with let entry = results.addSection(MotionFamily).addEntry(Reduced)
-        {
-            .checked = app.isReducedMotion()
-            .run     = func() { toggleReduced() }
-        }
-    }
-}
-
-const CmdLens   = "gui11.lens"
-const PageNames = ["Curves", "Choreography", "Interruption", "Preference"]
 
 func onRootEvent(_: *Wnd, evt: IEvent)->bool
 {
-    switch evt
+    if evt is ResizeEvent
     {
-    case ResizeEvent:
         layoutRootView()
-
-    case CommandEvent as cmd where cmd.id == CmdLens:
-        g_Lens!.open()
-        cmd.accepted = true
-        return true
-
-    case DestroyEvent:
+    }
+    elif evt is DestroyEvent
+    {
         app.sigFrame.disable()
-        g_Surface, g_View, g_Title, g_SubTitle, g_Hint, g_Lens, g_Appearance, g_Reduced, g_Tabs = null
-        g_CurvePage, g_CurveNote, g_Wall = null
-        g_StagePage, g_StageNote, g_StageControls, g_StageEasing, g_StageDuration, g_StageStagger, g_StageReadout, g_StageReplay, g_StageHint = null
-        g_FieldPage, g_FieldNote, g_FieldControls, g_FieldEasing, g_FieldDuration, g_FieldReadout, g_FieldPreserve, g_FieldClear, g_FieldCaption, g_Field = null
-        g_PrefPage, g_PrefNote, g_Decorative, g_DecorativeBtn, g_DecorativeNote, g_Essential, g_EssentialLbl, g_EssentialNote = null
-        g_Expander, g_ExpandBtn, g_ExpandHost, g_Detail, g_DetailText = null
+        g_Surface        = null
+        g_View           = null
+        g_Title          = null
+        g_SubTitle       = null
+        g_Footer         = null
+        g_ThemeButton    = null
+        g_Reduced        = null
+        g_Tabs           = null
+        g_CurvePage      = null
+        g_CurveNote      = null
+        g_Wall           = null
+        g_StagePage      = null
+        g_StageNote      = null
+        g_StageControls  = null
+        g_StageEasing    = null
+        g_StageDuration  = null
+        g_StageStagger   = null
+        g_StageReadout   = null
+        g_StageReplay    = null
+        g_StageHint      = null
+        g_FieldPage      = null
+        g_FieldNote      = null
+        g_FieldControls  = null
+        g_FieldEasing    = null
+        g_FieldDuration  = null
+        g_FieldReadout   = null
+        g_FieldPreserve  = null
+        g_FieldClear     = null
+        g_FieldCaption   = null
+        g_Field          = null
+        g_PrefPage       = null
+        g_PrefNote       = null
+        g_Decorative     = null
+        g_DecorativeBtn  = null
+        g_DecorativeNote = null
+        g_Essential      = null
+        g_EssentialLbl   = null
+        g_EssentialNote  = null
+        g_Expander       = null
+        g_ExpandBtn      = null
+        g_ExpandHost     = null
+        g_Detail         = null
+        g_DetailText     = null
         g_Cards.clear()
         g_StageCaptions.clear()
     }
@@ -709,24 +719,7 @@ func onFrame(_: *Application)
     if g_SmokeFrame % SmokeFramesPerPage do
         return
 
-    // Every page in Encre, then every page in Papier, with the lens opened once on the way.
     let next = (g_Tabs!.selectedIndex + 1) % 4
-    if next == 0
-    {
-        if g_Light
-        {
-            Env.exit(0)
-            return
-        }
-
-        g_Light = true
-        g_Appearance!.setAppearanceTheme(.Light)
-    }
-
-    if next == 1 do
-        g_Lens!.open("re")
-    else do
-        g_Lens!.close()
     g_Tabs!.setSelectedIndex(next)
     switch next
     {
@@ -746,71 +739,70 @@ func createRootView()
 {
     let view = g_Surface!.view()
     g_View = view
-    view.backgroundStyle = .Window
+    view.backgroundStyle = .View
 
-    with g_Title = Label.create(view, "Motion", {})
-    {
-        .setTextAlignment(.Left, .Center)
-        .style.setFont(view.theme().createDefaultFont(TitleSize, .Bold), .Regular)
-    }
+    let title = Label.create(view, "GUI11 motion laboratory")
+    g_Title = title
+    title.style.setFont(view.theme().createDefaultFont(26), .Regular)
+    title.setTextAlignment(.Left, .Center)
 
-    with g_SubTitle = Label.create(view, "Curves, choreography, interruption, and the preference that ends all three.", {}, null, .SecondaryText | .Ellipsis)
-    {
-        .setTextAlignment(.Left, .Center)
-    }
+    let subTitle = Label.create(view, "Curves, choreography, interruption, and the preference that ends all three.", {}, null, .WordWrap | .SecondaryText)
+    g_SubTitle = subTitle
+    subTitle.setTextAlignment(.Left, .Top)
+
+    let themeButton = PushButton.create(view, "", {}, null, .Flat)
+    g_ThemeButton = themeButton
+    themeButton.setIcon(app.theme.icon(ThemeIcons.Picker, 18))
+    themeButton.sigPressed += &toggleTheme
+
+    let reduced = CheckButton.create(view, "Reduced motion")
+    g_Reduced = reduced
+    reduced.sigChanged += &onReducedChanged
 
     let tabs = Tab.create(view)
     g_Tabs = tabs
-    tabs.setForms(.Flat, .Flat, .None)
+    tabs.setForm(.Button)
     tabs.setPageTransitions(true)
-    tabs.addItem(PageNames[0], view: buildCurvePage(tabs))
-    tabs.addItem(PageNames[1], view: buildStagePage(tabs))
-    tabs.addItem(PageNames[2], view: buildFieldPage(tabs))
-    tabs.addItem(PageNames[3], view: buildPrefPage(tabs))
+    discard tabs.addItem("Curves", view: buildCurvePage(tabs))
+    discard tabs.addItem("Choreography", view: buildStagePage(tabs))
+    discard tabs.addItem("Interruption", view: buildFieldPage(tabs))
+    discard tabs.addItem("Preference", view: buildPrefPage(tabs))
 
-    // Created after the tabs, so it stands over their bar.
-    with g_Reduced = CheckButton.create(view, "Reduced motion")
-    {
-        .sigChanged += &onReducedChanged
-    }
+    g_Footer = Label.create(view, "", {}, null, .SecondaryText)
 
-    g_Hint = HintLine.create(view)
-
-    // The appearance is a lens entry like every other command; the button only owns the choice.
-    with g_Appearance = AppearanceButton.create(unwrap g_Surface)
-    {
-        .hide()
-        .setAppearanceTheme(g_Light ? .Light : .Dark)
-    }
-
-    with g_Lens = Lens.View.create(view)
-    {
-        .addSource(.None, &describeChoices)
-    }
-
-    g_Appearance!.addToLens(unwrap g_Lens)
-
-    view.registerKeyShortcut(.Control, .K, CmdLens)
-    view.hookOnEvent = &onRootEvent
     layoutRootView()
+    view.hookOnEvent = &onRootEvent
 }
 
 #main
 {
-    let surface = try app.createSurface(90, 60, W, H, SurfaceFlags.StandardWindow)
-    g_Surface = surface
-    surface.setTitle("GUI11 Motion")
-    surface.minSize = {1000, 720}
+    for arg in Env.arguments()
+    {
+        if arg == "--dark" do
+            g_DarkTheme = true
+        elif arg == "--light" do
+            g_DarkTheme = false
+    }
 
-    for arg in Env.arguments() where arg == "--light" do
-        g_Light = true
+    let flags = SurfaceFlags.LargeCaption |
+                SurfaceFlags.MinimizeButton |
+                SurfaceFlags.MaximizeButton |
+                SurfaceFlags.CloseButton |
+                SurfaceFlags.Border
+    let surface = try app.createSurface(90, 60, W - 46, H - 31, flags)
+    g_Surface = surface
+    surface.setTitle("GUI11 motion laboratory")
+    surface.setIcon(app.theme.icon(ThemeIcons.Play, 18))
+
     createRootView()
-    updateHint()
+    applyTheme()
+    updateFooter()
 
     app.sigFrame += &onFrame
     if Env.isSmokeRun() do
-        app.maxRunFrame = 8 * SmokeFramesPerPage + 20
+        app.maxRunFrame = 4 * SmokeFramesPerPage + 20
 
+    applyTheme()
     surface.show()
     g_View!.applyLayout()
     restartLoops()

@@ -647,8 +647,8 @@ impl MainWindow
         .hintLine.clearHints()
         switch .page
         {
-        case .List where .chosenPath.isEmpty(): .hintLine.addHint(strings().key_Space, appStrings().ui_HintList)
-        case .Options where .privacyMode:       .hintLine.addHint(strings().key_Space, appStrings().ui_HintPrivacy)
+        case .List where .chosenPath.isEmpty(): .hintLine.addHint(Input.formatKeyShortcut(.Control, .Space), appStrings().ui_HintList)
+        case .Options where .privacyMode:       .hintLine.addHint(Input.formatKeyShortcut(.Control, .Space), appStrings().ui_HintPrivacy)
         }
 
         .hintLine.show(not .hintLine.hints.isEmpty())

@@ -11,33 +11,30 @@ using Core, Gui, Pixel
 const W = 1280
 const H = 860
 
-const MaxPages = 5
+const MaxPages = 4
 const TestFramesPerPage = 30
 
-// The page keeps reading margins at its sides; the header stands under the window strip.
-const PageMargin  = 48.0
-const TitleSize   = 34'u32
-const FilterWidth = 240.0
-const RingsWidth  = 130.0
-const BarGap      = 16.0
-
-const CmdLens        = "gui10.lens"
-const CmdNextPage    = "gui10.page.next"
-const CmdNextPalette = "gui10.palette.next"
+const RootMargin       = 24.0
+const HeaderHeight     = 96.0
+const BarHeight        = 34.0
+const BarGap           = 10.0
+const PageBottomMargin = 46.0
+const FilterWidth      = 260.0
+const RingsWidth       = 130.0
 
 var app:        Application
 var g_Surface:  *Surface?
 var g_View:     *Wnd?
 var g_Title:    *Label?
 var g_SubTitle: *Label?
-var g_Tabs:     *Tab?
-var g_Variants: *Tab?
+var g_Footer:   *Label?
 var g_Filter:   *EditBox?
 var g_Rings:    *CheckButton?
 var g_Sheet:    *SheetWnd?
 var g_Widgets:  *WidgetWall?
-var g_Stage:    *ComponentStage?
-var g_Lens:     *Lens.View?
+
+var g_ThemeButtons: Array'(*PushButton)
+var g_PageButtons:  Array'(*PushButton)
 
 var g_Variant:   ThemeVariant
 var g_Page:      s32
@@ -117,11 +114,22 @@ func variantColors(variant: ThemeVariant)->ThemeColors
     return result
 }
 
-const PageTitles: [MaxPages] string = ["Colors", "Palettes", "Metrics", "Widgets", "Components"]
+func pageTitle(page: s32)->string
+{
+    switch page
+    {
+    case 0: return "Colors"
+    case 1: return "Palettes"
+    case 2: return "Metrics"
+    case 3: return "Widgets"
+    }
+
+    unreachable
+}
 
 // The command-line name of each palette and each page, in the order of the two enumerations.
 const VariantArgs: [ThemeVariantCount] string = ["--dark", "--light", "--sheet"]
-const PageArgs:    [MaxPages] string = ["--colors", "--palettes", "--metrics", "--widgets", "--components"]
+const PageArgs:    [MaxPages] string = ["--colors", "--palettes", "--metrics", "--widgets"]
 
 // Reads the palette and the page the command line asks the inspector to open on.
 //
@@ -148,7 +156,6 @@ func pageSubtitle(page: s32)->string
     case 1: return "The same value in Encre and in Papier, with the sheet-written example beside them."
     case 2: return "Every ThemeMetrics value of the active theme, in logical pixels."
     case 3: return "Live widgets in every state the palette answers for. Hover and press them to read the hot and pressed colors."
-    case 4: return "The floating components over a piece of work: dock, mini-bar, inspector, hint line. I shows the sheet; Ctrl K on the stage opens its lens."
     }
 
     unreachable
@@ -166,19 +173,42 @@ func sheetKindOfPage(page: s32)->SheetKind
     return .Colors
 }
 
-// Marks the tab of the active palette and the tab of the active page.
+func setLabelTextStyle(label: *Label, horizontal = StringHorzAlignment.Left, vertical = StringVertAlignment.Center)
+{
+    label.setTextAlignment(horizontal, vertical)
+}
+
+func createText(parent: *Wnd, text: string, rect: Math.Rectangle, flags = LabelFlags.None)->*Label
+{
+    let label = Label.create(parent, text, rect, null, flags)
+    setLabelTextStyle(label, .Left, .Center)
+    return label
+}
+
+// Marks the button standing for the active palette, and the one standing for the active page.
+//
+// The selected button takes the default form, which is the one form every palette fills with
+// its own accent: the selector then also reports what the accent of the palette it names is.
 func updateSelectors()
 {
-    let variant = cast(u32, cast(s32, g_Variant))
-    if g_Variants!.selectedIndex != variant do
-        g_Variants!.setSelectedIndex(variant)
-    if g_Tabs!.selectedIndex != cast(u32, g_Page) do
-        g_Tabs!.setSelectedIndex(cast(u32, g_Page))
+    for btn, idx in g_ThemeButtons
+    {
+        btn.setForm(cast(s32, idx) == cast(s32, g_Variant) ? .Default : .Flat)
+        btn.invalidate()
+    }
+
+    for btn, idx in g_PageButtons
+    {
+        btn.setForm(cast(s32, idx) == g_Page ? .Default : .Flat)
+        btn.invalidate()
+    }
 }
 
 func updateHeader()
 {
+    g_Title!.setText(Format.toString("GUI10 theme inspector - %", pageTitle(g_Page)))
     g_SubTitle!.setText(pageSubtitle(g_Page))
+    g_Footer!.setText(Format.toString("Palette: %. F1 : next page (%/%). F2 : next palette. The filter keeps only the values whose name contains it.", variantName(g_Variant), g_Page + 1, MaxPages))
 }
 
 func applyTheme()
@@ -203,10 +233,8 @@ func showPage(page: s32)
 
     let widgets = unwrap g_Widgets
     let sheet   = unwrap g_Sheet
-    let stage   = unwrap g_Stage
-    let isSheet = page < 3
-    widgets.show(page == 3)
-    stage.show(page == 4)
+    let isSheet = page != 3
+    widgets.show(not isSheet)
     sheet.show(isSheet)
     if isSheet do
         sheet.view.setKind(sheetKindOfPage(page))
@@ -221,111 +249,64 @@ func nextPage()
     showPage((g_Page + 1) % MaxPages)
 }
 
-// Places the header under the window strip: the title with the palettes at its right, then the
-// pages as text tabs with the focus-ring switch and the filter at their right, then the page,
-// keeping the foot clear for the hint line.
 func layoutRootView()
 {
     if not g_View do
         return
 
-    let view    = unwrap g_View
-    let metrics = view.themeMetrics()
-    let rect    = view.clientRect()
-    let top     = view.stripInset()
-    let width   = Math.max(rect.width - 2 * PageMargin, 1.0)
+    let view         = unwrap g_View
+    let rect         = view.clientRect()
+    let contentWidth = Math.max(rect.width - 2 * RootMargin, 1.0)
 
-    let titleHeight = view.theme().createDefaultFont(TitleSize, .Bold).height
-    g_Title!.setPosition(Math.Rectangle{PageMargin, top, width, titleHeight})
-    g_SubTitle!.setPosition(Math.Rectangle{PageMargin, top + titleHeight + 4, width, 22})
+    g_Title!.setPosition(Math.Rectangle{RootMargin, 16, contentWidth, 34})
+    g_SubTitle!.setPosition(Math.Rectangle{RootMargin + 2, 52, contentWidth - 4, 36})
 
-    let variantsWidth = 330.0
-    g_Variants!.setPosition(Math.Rectangle{PageMargin + width - variantsWidth, top + (titleHeight - metrics.tabBar_RoundHeight) * 0.5, variantsWidth, metrics.tabBar_RoundHeight})
-
-    let barY = top + titleHeight + 4 + 22 + 16
-    g_Tabs!.setPosition(Math.Rectangle{PageMargin, barY, width, metrics.tabBar_FlatHeight})
-    let fieldY = barY + (metrics.tabBar_FlatHeight - metrics.editBox_Height) * 0.5 - 4
-    g_Filter!.setPosition(Math.Rectangle{PageMargin + width - FilterWidth, fieldY, FilterWidth, metrics.editBox_Height})
-    g_Rings!.setPosition(Math.Rectangle{PageMargin + width - FilterWidth - RingsWidth - BarGap, fieldY, RingsWidth, metrics.editBox_Height})
-
-    let pageY      = barY + metrics.tabBar_FlatHeight + BarGap
-    let bottom     = rect.height - metrics.hintLine_Bottom - metrics.hintLine_Height - 16
-    let pageHeight = Math.max(bottom - pageY, 120.0)
-    g_Sheet!.setPosition(Math.Rectangle{PageMargin, pageY, width, pageHeight})
-    g_Widgets!.setPosition(Math.Rectangle{PageMargin, pageY, width, pageHeight})
-    g_Stage!.setPosition(Math.Rectangle{PageMargin, pageY, width, pageHeight})
-}
-
-// Answers the lens with the pages and the palettes, the ones shown checked.
-func describeChoices(results: *Lens.Results)
-{
-    const PagesFamily = "Pages"
-    var section: *Lens.Section?
-    for title, index in PageTitles where Lens.match(results.query, PagesFamily).matched or Lens.match(results.query, title).matched
+    var x = RootMargin
+    for btn in g_ThemeButtons
     {
-        if not section do
-            section = results.addSection(PagesFamily)
-        with let entry = section.addEntry(title)
-        {
-            .checked = cast(s32, index) == g_Page
-            .run     = func|index|() { showPage(cast(s32, index)) }
-        }
+        btn.setPosition(Math.Rectangle{x, HeaderHeight, 118, BarHeight})
+        x += 118 + 6
     }
 
-    const PalettesFamily = "Palettes"
-    section = null
-    for i in ThemeVariantCount
+    x = RootMargin
+    let barY = HeaderHeight + BarHeight + BarGap
+    for btn in g_PageButtons
     {
-        let variant = cast(ThemeVariant, cast(s32, i))
-        let name    = variantName(variant)
-        if not Lens.match(results.query, PalettesFamily).matched and not Lens.match(results.query, name).matched do
-            continue
-        if not section do
-            section = results.addSection(PalettesFamily)
-        with let entry = section.addEntry(name)
-        {
-            .checked = variant == g_Variant
-            .run     = func|variant|() { setVariant(variant) }
-        }
+        btn.setPosition(Math.Rectangle{x, barY, 104, BarHeight})
+        x += 104 + 6
     }
-}
 
-func nextVariant() => setVariant(cast(ThemeVariant, ((cast(s32, g_Variant) + 1) % ThemeVariantCount)))
+    g_Filter!.setPosition(Math.Rectangle{RootMargin + contentWidth - FilterWidth, barY, FilterWidth, BarHeight})
+    g_Rings!.setPosition(Math.Rectangle{RootMargin + contentWidth - FilterWidth - RingsWidth - 12, barY, RingsWidth, BarHeight})
+
+    let pageY      = barY + BarHeight + BarGap
+    let pageHeight = Math.max(rect.height - pageY - PageBottomMargin, 120.0)
+    g_Sheet!.setPosition(Math.Rectangle{RootMargin, pageY, contentWidth, pageHeight})
+    g_Widgets!.setPosition(Math.Rectangle{RootMargin, pageY, contentWidth, pageHeight})
+
+    g_Footer!.setPosition(Math.Rectangle{RootMargin, Math.max(rect.height - 34.0, pageY + pageHeight + 4.0), contentWidth, 26})
+}
 
 func onRootEvent(_: *Wnd, evt: IEvent)->bool
 {
-    switch evt
+    if evt is ResizeEvent
     {
-    case ResizeEvent:
         layoutRootView()
-
-    case CommandStateEvent as state where state.kind == .Compute:
-        switch state.id
-        {
-        case CmdNextPage:    state.name = "Next Page"
-        case CmdNextPalette: state.name = "Next Palette"
-        default: return false
-        }
-
-        state.updatedFields.add(.Name)
-        state.accepted = true
-        return true
-
-    case CommandEvent as cmd:
-        switch cmd.id
-        {
-        case CmdLens:        g_Lens!.open()
-        case CmdNextPage:    nextPage()
-        case CmdNextPalette: nextVariant()
-        default:             return false
-        }
-
-        cmd.accepted = true
-        return true
-
-    case DestroyEvent:
+    }
+    elif evt is DestroyEvent
+    {
         app.sigFrame.disable()
-        g_Surface, g_View, g_Title, g_SubTitle, g_Tabs, g_Variants, g_Filter, g_Rings, g_Sheet, g_Widgets, g_Stage, g_Lens = null
+        g_Surface  = null
+        g_View     = null
+        g_Title    = null
+        g_SubTitle = null
+        g_Footer   = null
+        g_Filter   = null
+        g_Rings    = null
+        g_Sheet    = null
+        g_Widgets  = null
+        g_ThemeButtons.clear()
+        g_PageButtons.clear()
     }
 
     return false
@@ -337,17 +318,6 @@ func updateTestMode()
         return
 
     g_TestFrame += 1
-
-    // The lens is exercised on its page: it opens a third of the way through and closes before
-    // the page turns.
-    if g_Page == 4
-    {
-        if g_TestFrame == TestFramesPerPage / 3 do
-            g_Stage!.lens.open("t")
-        elif g_TestFrame == 2 * TestFramesPerPage / 3 do
-            g_Stage!.lens.close()
-    }
-
     if g_TestFrame < TestFramesPerPage do
         return
 
@@ -371,10 +341,16 @@ func updateTestMode()
     setVariant(cast(ThemeVariant, (cast(s32, g_Variant) + 1)))
 }
 
-func onFrame(_: *Application)
+func onFrame(app: *Application)
 {
     if not g_Surface do
         return
+
+    if app.keyboard.isKeyJustPressed(.F1) do
+        nextPage()
+    if app.keyboard.isKeyJustPressed(.F2) do
+        setVariant(cast(ThemeVariant, ((cast(s32, g_Variant) + 1) % ThemeVariantCount)))
+
     updateTestMode()
 }
 
@@ -382,91 +358,71 @@ func createRootView()
 {
     let view = g_Surface!.view()
     g_View = view
-    view.backgroundStyle = .Window
+    view.backgroundStyle = .View
 
-    with g_Title = Label.create(view, "Theme", {})
+    let title = Label.create(view, "", {})
+    g_Title = title
+    setLabelTextStyle(title, .Left, .Center)
+    title.style.setFont(view.theme().createDefaultFont(26), .Regular)
+
+    let subTitle = Label.create(view, "", {}, null, .WordWrap | .SecondaryText)
+    g_SubTitle = subTitle
+    setLabelTextStyle(subTitle, .Left, .Top)
+
+    for i in ThemeVariantCount
     {
-        .setTextAlignment(.Left, .Center)
-        .style.setFont(view.theme().createDefaultFont(TitleSize, .Bold), .Regular)
+        let variant = cast(ThemeVariant, cast(s32, i))
+        let btn     = PushButton.create(view, variantName(variant), {})
+        btn.sigPressed += func|variant|(_) { setVariant(variant) }
+        g_ThemeButtons.add(btn)
     }
 
-    with g_SubTitle = Label.create(view, "", {}, null, .SecondaryText | .Ellipsis)
+    for i in MaxPages
     {
-        .setTextAlignment(.Left, .Center)
+        let page = cast(s32, i)
+        let btn  = PushButton.create(view, pageTitle(page), {})
+        btn.sigPressed += func|page|(_) { showPage(page) }
+        g_PageButtons.add(btn)
     }
 
-    // The palette is a choice among three, so it is a group of segments beside the title.
-    with g_Variants = Tab.create(view, {})
-    {
-        .setForms(.Round, .Round, .None)
-        .setLayout(.Equal)
-        for i in ThemeVariantCount do
-            .addItem(variantName(cast(ThemeVariant, cast(s32, i))))
-        .sigSelectionChanged += func(tab) { setVariant(cast(ThemeVariant, cast(s32, cast(*Tab, tab).selectedIndex))) }
-    }
-
-    with g_Tabs = Tab.create(view, {})
-    {
-        .setForms(.Flat, .Flat, .None)
-        for title in PageTitles do
-            .addItem(title)
-        .sigSelectionChanged += func(tab)
-        {
-            let index = cast(s32, cast(*Tab, tab).selectedIndex)
-            if index != g_Page do
-                showPage(index)
-        }
-    }
-
-    with g_Filter = EditBox.create(view, "", {})
-    {
-        .setPlaceholder("Filter by name")
-        .setIcon(app.theme.icon(.Search, 16))
-        .sigTextChanged += func(ed) { g_Sheet!.view.setFilter(ed.text()) }
-    }
+    let filter = EditBox.create(view, "", {})
+    g_Filter = filter
+    filter.setPlaceholder("filter by name")
+    filter.setIcon(app.theme.icon(.Search, 16))
+    filter.sigTextChanged += func(ed) { g_Sheet!.view.setFilter(ed.text()) }
 
     // Only one control of a surface can hold the keyboard, so the focus mark is the one state
     // the wall cannot show by standing still. The diagnostic draws every ring at once, which is
     // how the mark is judged against every shape a palette answers for rather than one at a time.
-    with g_Rings = CheckButton.create(view, "Focus rings", {})
+    let rings = CheckButton.create(view, "focus rings", {})
+    g_Rings = rings
+    rings.sigChanged += func(box)
     {
-        .sigChanged += func(box)
-        {
-            app.options.showFocusRings = box.state == .Checked
-            g_View!.invalidate()
-        }
+        app.options.showFocusRings = box.state == .Checked
+        g_View!.invalidate()
     }
 
     g_Sheet   = SheetWnd.create(view)
     g_Widgets = WidgetWall.create(view)
-    g_Stage   = ComponentStage.create(view)
 
-    with let hint = HintLine.create(view)
-    {
-        .addHint("Ctrl K", "pages, palettes")
-        .addHint("F1", "next page")
-        .addHint("F2", "next palette")
-    }
+    let footer = Label.create(view, "", {}, null, .SecondaryText)
+    g_Footer = footer
+    setLabelTextStyle(footer, .Left, .Center)
 
-    with g_Lens = Lens.View.create(view)
-    {
-        .addSource(.None, &describeChoices)
-        .addCommands("Go", [CmdNextPage, CmdNextPalette])
-    }
-
-    view.registerKeyShortcut(.Control, .K, CmdLens)
-    view.registerKeyShortcut(.None, .F1, CmdNextPage)
-    view.registerKeyShortcut(.None, .F2, CmdNextPalette)
-    view.hookOnEvent = &onRootEvent
     layoutRootView()
+    view.hookOnEvent = &onRootEvent
 }
 
 #main
 {
-    let surface = try app.createSurface(60, 40, W, H, SurfaceFlags.StandardWindow)
+    let flags = SurfaceFlags.LargeCaption |
+                SurfaceFlags.MinimizeButton |
+                SurfaceFlags.CloseButton |
+                SurfaceFlags.Border
+    let surface = try app.createSurface(60, 40, W - 46, H - 31, flags)
     g_Surface = surface
-    surface.setTitle("GUI10 Theme")
-    surface.minSize = {1000, 700}
+    surface.setTitle("GUI10 theme inspector")
+    surface.setIcon(app.theme.icon(ThemeIcons.Picker, 18))
     readStartupSelection()
     createRootView()
     showPage(g_Page)

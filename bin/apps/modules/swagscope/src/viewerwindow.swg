@@ -27,7 +27,7 @@ func reportViewerFailure(view: *Wnd, reason: string) { viewerWindowFor(view).rep
 
 // The main window of Swag Scope: the document and nothing else on screen.
 //
-// Everything the window can do is an entry of its lens, which `Space` or `Ctrl K` opens; what
+// Everything the window can do is an entry of its lens, which `Ctrl Space` opens; what
 // it knows about the open file is in the sheet `I` opens. The viewer's own commands float over
 // the foot of the document while the pointer moves, its readings sit faint under it, the search
 // floats at the top while it is asked for, and the files beside the open one stand in a panel
@@ -1129,7 +1129,7 @@ impl ViewerWindow
             .hintLine.addHint(Gui.strings().key_Enter, texts.hint_Play)
         }
 
-        .hintLine.addHint(Gui.strings().key_Space, texts.ui_HintLens)
+        .hintLine.addHint(Input.formatKeyShortcut(.Control, .Space), texts.ui_HintLens)
         if roomy and not archive and (board == .Grid or board == .Posters) do
             .hintLine.addHint("/", texts.hint_Filter)
         .hintLine.show(roomy or (not exploring and .home.isLocallyVisible()))

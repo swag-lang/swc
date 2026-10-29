@@ -28,7 +28,7 @@ func onEvent(view: *Wnd, evt: IEvent)->bool
 #main
 {
     let surface = try app.createSurface(100, 100, 440, 300, SurfaceFlags.StandardWindow)
-    surface.setTitle("GUI example")
+    surface.setTitle("GUI1 Button")
 
     let view = surface.view()
     view.hookOnEvent = &onEvent

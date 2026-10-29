@@ -235,22 +235,24 @@ are the specification and they are checked when the module compiles.
 
 ## Verify With gui10 And The Charter Pictures
 
-[`bin/examples/modules/gui10`](../../../bin/examples/modules/gui10) is the theme inspector:
+[`bin/examples/modules/gui10`](../../../bin/examples/modules/gui10) is the theme inspector. It is
+a teaching program with a Swag-rendered title and border and visible page and palette
+controls, rather than a Silence application surface:
 
 ```
 tools/examples.bat run gui10 --run-arg=--light --run-arg=--widgets
 ```
 
 `--dark` (Encre), `--light` (Papier) and `--sheet` choose the theme. `--colors`, `--palettes`,
-`--metrics`, `--widgets` and `--components` choose the page:
+`--metrics` and `--widgets` choose the page:
 
 - **Colors** shows every `ThemeColors` value over its grounds.
 - **Palettes** shows the same values across the three themes. Run it after any change to `apply`.
 - **Metrics** shows every `ThemeMetrics` value.
 - **Widgets** shows every widget in every state. Its **focus rings** switch turns on
   `ApplicationOptions.showFocusRings`, which draws the ring on every traversal stop at once.
-- **Components** shows the lens, the sheet, the inspector, the mini-bar, the dock and the hint
-  line.
+- The theme, page and focus-ring controls remain visible in the window; use them to inspect
+  Encre, Papier and the example theme sheet.
 
 Put each page beside the charter picture of the same theme and compare control by control:
 corner, ring, fill, glyph, accent. A control that differs from its picture is a finding even

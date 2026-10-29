@@ -9,7 +9,7 @@ func createColumnsPage(parent: *Wnd)
                            "Resizable columns, icon margins, alternating rows and stable first-column sizing.",
                            layout.left)
     let files = ListCtrl.createMultiColumns(left,
-                                            Math.Rectangle{SectionInset, 88, layout.left.width - 2 * SectionInset, layout.left.height - 88})
+                                            Math.Rectangle{18, 92, layout.left.width - 36, layout.left.height - 112})
     files.setFrameForm(.Round)
     files.frameFlags.add(.FocusBorder)
     files.setSelectionMode(.Multi)
@@ -39,7 +39,7 @@ func createColumnsPage(parent: *Wnd)
                             "Clicking headers changes sort order; the example opens on the priority column.",
                             layout.right)
     with let queue = ListCtrl.createMultiColumns(right,
-                                                 Math.Rectangle{SectionInset, 88, layout.right.width - 2 * SectionInset, layout.right.height - 88})
+                                                 Math.Rectangle{18, 92, layout.right.width - 36, layout.right.height - 112})
     {
         .setFrameForm(.Round)
         .setSelectionMode(.Single)
@@ -69,7 +69,7 @@ func createColumnsPage(parent: *Wnd)
                              "Horizontal scrolling keeps the header and list content aligned.",
                              layout.bottom)
     with let wide = ListCtrl.createMultiColumns(bottom,
-                                                Math.Rectangle{SectionInset, 88, layout.bottom.width - 2 * SectionInset, layout.bottom.height - 88})
+                                                Math.Rectangle{18, 92, layout.bottom.width - 36, layout.bottom.height - 112})
     {
         .setFrameForm(.Square)
         .setSelectionMode(.Multi)

@@ -198,3 +198,25 @@ var TabHeadlessSelChangedCount: u32
         Swag.assert(hint.preferred.x >= tab.minimumItemWidth * 2 + 10)
     }
 }
+
+// A tab can carry a count after its label, in the fixed-width face; the tab widens around it and
+// takes it back when the count is removed.
+#test
+{
+    var host: Testing.HeadlessHost
+    host.setup(320, 120)
+    let tab = Tab.create(&host.root, {0, 0, 320, 120})
+    tab.setForms(.Flat, .Flat, .None)
+    tab.addItem("Captures")
+    tab.addItem("Trash")
+    host.pump()
+
+    let bare = tab.items[0]!.width
+    tab.setItemCount(0, "248")
+    host.pump()
+    Swag.assert(tab.items[0]!.count == "248" and tab.items[0]!.width > bare)
+
+    tab.setItemCount(0, null)
+    host.pump()
+    Swag.assert(tab.items[0]!.count.isEmpty() and tab.items[0]!.width == bare)
+}

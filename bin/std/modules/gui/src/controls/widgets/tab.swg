@@ -53,6 +53,10 @@ struct TabItem
     {
         using item:    Item      // Embedded label, icon, identifier, and user data.
         readonly view: *Wnd?     // Page view owned by the tab control, if any.
+
+        // A reading after the label, such as how many things the page holds, set in the
+        // fixed-width face in the faint ink. Write it with [[Gui.Tab.setItemCount]].
+        readonly count: String
     }
 
     // Placement computed by the bar layout, and the color animations of the painted parts.
@@ -62,6 +66,9 @@ struct TabItem
     aniBorder: BlendColor     // Color animation of the border.
     aniText:   BlendColor     // Color animation of the label.
 }
+
+// The air between the label of a tab and its count.
+internal const TabCountGap = 6.0
 
 // Displays a selectable tab bar and one owned page view at a time.
 struct Tab
@@ -269,7 +276,23 @@ impl IWnd for Tab
         format.vertAlignment = .Center
         format.flags         = .Clip
         format.font          = .font()
-        Theme.drawIconText(painter, labelPos, v.icon, &v.name, format, metrics.iconText_Margin)
+
+        // A count follows the label in the fixed-width face, the two centred together.
+        if v.count.isEmpty()
+        {
+            Theme.drawIconText(painter, labelPos, v.icon, &v.name, format, metrics.iconText_Margin)
+        }
+        else
+        {
+            let mono   = .countFont()
+            let label  = .itemLabelWidth(v)
+            let count  = Painter.measureString(v.count, mono).width
+            var words  = labelPos
+            words.x     = Math.round(labelPos.horzCenter() - (label + TabCountGap + count) * 0.5)
+            words.width = label
+            Theme.drawIconText(painter, words, v.icon, &v.name, format, metrics.iconText_Margin)
+            painter.drawString(words.right() + TabCountGap, mono.opticalLineTop(labelPos.vertCenter()), v.count, mono, colors.faintText)
+        }
 
         // The keyboard stands on one tab, not on the whole control: a ring around the control
         // would enclose the page it shows, so the selected tab carries it. A form that grounds
@@ -508,15 +531,28 @@ private impl Tab
         return Swag.U32.Max
     }
 
-    // Returns the width one tab needs for its label, its optional icon, and the item padding.
+    // Returns the width one tab needs for its label, its optional icon, its count, and the item
+    // padding.
     mtd itemContentWidth(v: *TabItem)->f32
+    {
+        var result = .itemLabelWidth(v)
+        if not v.count.isEmpty() do
+            result += TabCountGap + Painter.measureString(v.count, .countFont()).width
+        return result + .itemPadding
+    }
+
+    // Returns the width of the label of one tab and of its optional icon.
+    mtd itemLabelWidth(v: *TabItem)->f32
     {
         let font   = nnFont(.font().regular)
         var result = Painter.measureString(v.item.name.raw, font).width
         if v.item.icon.isValid() do
             result += v.item.icon.sizeX + .themeMetrics().iconText_Margin
-        return result + .itemPadding
+        return result
     }
+
+    // Returns the fixed-width font a count is set in, a step under the label.
+    mtd countFont()->*Font => .theme().createDefaultFontFs(.themeMetrics().defaultFontSize - 1)
 
     // Returns the width every tab needs side by side under the content policy.
     mtd contentWidth()->f32
@@ -763,6 +799,16 @@ impl Tab
     {
         Swag.assert(index < .items.count)
         .items[index]!.name = name
+        .sendResizeEvent()
+        .invalidate()
+    }
+
+    // Sets the reading after the label of one tab, such as a count, or removes it with `null`,
+    // and measures the bar again.
+    mtd setItemCount(index: u32, count: string?)
+    {
+        Swag.assert(index < .items.count)
+        .items[index]!.count = count orelse ""
         .sendResizeEvent()
         .invalidate()
     }

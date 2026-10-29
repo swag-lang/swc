@@ -63,26 +63,6 @@ private func loadDocument(fileName: string)->Loaded fail
     return result
 }
 
-// Returns a decimal number with its thousands set apart, as the inspector prints a reading; any
-// other text, such as a hexadecimal or a float, is returned as it is.
-func groupThousands(text: string)->String
-{
-    let digits = (text.count and text[0] == '-') ? text.count - 1 : text.count
-    for index in text.count - digits until text.count where not Latin1.isDigit(text[index]) do
-        return text
-
-    var result: #returntype
-    for byte, at in text
-    {
-        let left = text.count - at
-        if at > text.count - digits and left % 3 == 0 do
-            result += " "
-        result += cast(rune, byte)
-    }
-
-    return result
-}
-
 // Reads `bytes` as one unsigned scalar, in the byte order `bigEndian` names.
 func readScalar(bytes: const [..] u8, bigEndian: bool)->u64
 {
@@ -511,7 +491,7 @@ impl Panel
             if bytes.count == row.length
             {
                 let kind = row.length == 1 ? String.from("u8") : Format.toString("u% %", row.length * 8, order)
-                view.headline = groupThousands(Format.toString("%", readScalar(bytes.toSlice(), bigEndian)))
+                view.headline = Viewer.groupThousands(readScalar(bytes.toSlice(), bigEndian))
                 view.caption  = Format.toString(texts().ui_InspectorAt, kind, .offsetText(row.offset))
                 return
             }
@@ -524,7 +504,7 @@ impl Panel
         let bytes    = .grid.doc.read(start, size)
         let grouping = .grid.grouping == .Bytes ? Grouping.Unsigned8 : .grid.grouping
         if bytes.count == size do
-            view.headline = groupThousands(formatScalar(grouping, readScalar(bytes.toSlice(), bigEndian)))
+            view.headline = Viewer.groupThousands(formatScalar(grouping, readScalar(bytes.toSlice(), bigEndian)))
         else do
             view.headline = String.from("--")
         view.caption = Format.toString(texts().ui_InspectorAt, kind, .offsetText(start))
@@ -535,19 +515,19 @@ impl Panel
     private mtd describeReadings(bytes: const [..] u8, bigEndian: bool)
     {
         let view = .inspectorView
-        view.readings.add({"u8", groupThousands(Format.toString("%", bytes[0])), false})
+        view.readings.add({"u8", Viewer.groupThousands(cast(u64, bytes[0])), false})
         if bytes.count >= 2
         {
             let value = readScalar(bytes[until 2], bigEndian)
-            view.readings.add({"u16", groupThousands(Format.toString("%", value)), false})
+            view.readings.add({"u16", Viewer.groupThousands(value), false})
         }
 
         if bytes.count < 4 do
             return
         let word  = readScalar(bytes[until 4], bigEndian)
         let other = readScalar(bytes[until 4], not bigEndian)
-        view.readings.add({"s32", groupThousands(Format.toString("%", signedScalar(word, 4))), false})
-        view.readings.add({bigEndian ? "u32 LE" : "u32 BE", groupThousands(Format.toString("%", other)), false})
+        view.readings.add({"s32", Viewer.groupThousands(Format.toString("%", signedScalar(word, 4))), false})
+        view.readings.add({bigEndian ? "u32 LE" : "u32 BE", Viewer.groupThousands(other), false})
         view.readings.add({"f32", Format.toString("%{g4}", cast #bit (f32, cast(u32, word))), false})
     }
 
@@ -571,7 +551,7 @@ impl Panel
             let row = &.structure.report.rows[rows[index]]
             var line: InspectorLine
             line.label  = row.label
-            line.value  = groupThousands(row.value)
+            line.value  = Viewer.groupThousands(row.value)
             line.strong = rows[index] == field
             if not row.detail.isEmpty() do
                 line.value = Format.toString("% · %", line.value, row.detail)
@@ -588,7 +568,7 @@ impl Panel
             .details = Format.toString(texts().ui_DetailsSelection,
                                        Format.toString("0x%{X}", .grid.selectionStart()),
                                        Format.toString("0x%{X}", .grid.selectionEnd()),
-                                       groupThousands(Format.toString("%", .grid.selectionLength())))
+                                       Viewer.groupThousands(.grid.selectionLength()))
         }
         else
         {

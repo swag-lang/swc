@@ -50,3 +50,10 @@ samples and no audio. It verifies RV40 opening and seeking through Swag Scope's 
 
 - SHA-256: `3f0ae80c6a2a54412c938a7105ffc1c6a5df2eb580f90454d7ec85d43f31f01a`
 - License: same as this repository.
+
+`viewer.console.exe` is a Windows console program built by this repository's compiler from a module
+whose `#main` is empty (`swc build -bc release`). The binary viewer's report page is photographed
+on it: a PE32+ image with its sections and its imports, small enough to keep in the tree.
+
+- SHA-256: `3bde0ddc065ea3b2497607f7d615ea420dad2e96b3fcd18d8a02d6cc1d35a0c9`
+- License: same as this repository.

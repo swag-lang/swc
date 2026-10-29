@@ -33,6 +33,40 @@ struct Row
     open:   bool       // Whether a group starts expanded.
 }
 
+// One section as the report page draws it: its name and the bytes it stores.
+struct OverviewSection
+{
+    name: String
+    size: u64
+}
+
+// One library a file imports from: the first names it takes, and how many it takes in all.
+struct OverviewLibrary
+{
+    name:    String
+    symbols: Array'String
+    count:   u64
+}
+
+// What the report page shows of a file before any structure: what it is in a few words, its
+// figures, its sections and what it imports.
+//
+// A reader fills what its format has; a format with no sections leaves them empty, and the page
+// shows only what is there.
+struct Overview
+{
+    identity:  Array'String     // Format, machine, kind, signature: the words of the identity line.
+    sections:  Array'OverviewSection
+    libraries: Array'OverviewLibrary
+    imports:   u64     // Symbols imported from every library.
+    entropy:   f32     // Bits per byte over the beginning of the file.
+    strings:   u64     // Runs of readable text long enough to be words.
+}
+
+// Libraries the overview keeps with their names, and names it keeps per library.
+const OverviewLibraryLimit = 64'u64
+const OverviewSymbolLimit  = 3'u64
+
 // Everything one file was made to say, as a flat sequence of levelled rows.
 //
 // A tree of owning nodes would carry the same information, but every consumer walks the rows in
@@ -43,6 +77,7 @@ struct Report
     formatName: String     // Short name of the format that was recognized.
     summary:    String     // One line for the host's information bar.
     rows:       Array'Row
+    overview:   Overview
     level:      u32     // Depth the next row is written at.
 }
 

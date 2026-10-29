@@ -15,6 +15,12 @@ ui_MenuGoTo       Aller au décalage du fichier
 ui_GoToMessage    Décalage hexadécimal dans le fichier, ou décalage signé depuis la ligne sélectionnée.
 ui_MenuBack       Emplacement précédent
 ui_MenuForward    Emplacement suivant
+ui_ShowStructure  Afficher la structure
+ui_ShowReport     Afficher le rapport
+ui_Imports        importations
+ui_Entropy        entropie, bits par octet
+ui_Strings        chaînes
+ui_MoreLibraries  % bibliothèques de plus
 ui_NotSet         non défini
 ui_NotDate        date invalide
 ui_Preview        Aperçu
@@ -107,6 +113,7 @@ pe_ExportTableOut la table d'adresses d'exportation est hors de toute section
 pe_ImportOutside  le répertoire d'importation est hors de toute section
 pe_ImportTotal    Total
 pe_ImportSymbols  symboles importés
+pe_Signed         signé
 pe_ImportLookup   table de recherche d'importation
 pe_ImportAddress  table d'adresses d'importation
 pe_Bound          lié à une version précise

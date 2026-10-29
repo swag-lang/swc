@@ -45,6 +45,7 @@ impl Document
     mtd open(fileName: string)->bool
     {
         .report.rows.clear()
+        .report.overview = {}
         .previews.clear()
         .report.level = 0
         .opened       = .image.load(fileName)
@@ -80,6 +81,7 @@ impl Document
 
         Swag.assert(.report.level == 0, "a format reader left a group open")
         .prependFileSummary()
+        .report.overview.strings = .countStrings()
 
         // Reports and previews own everything they retain. Keep the mapping for offset-driven
         // inspection, but stop charging the complete scanned prefix to the process working set.
@@ -120,6 +122,7 @@ impl Document
         {
             let entropy = .entropy()
             let value   = Format.toString("%{f2} / 8", entropy)
+            .report.overview.entropy = entropy
             var entropyLabel: string
             if entropy > 7.2 do
                 entropyLabel = texts.rep_EntropyHigh
@@ -175,6 +178,32 @@ impl Document
         }
 
         return cast(string, text.toSlice())
+    }
+
+    // Returns how many runs of at least `StringLength` printable ASCII bytes the loaded bytes hold.
+    //
+    // It is the reading `strings` gives: names, messages and paths a binary carries in clear.
+    private mtd const countStrings()->u64
+    {
+        const StringLength = 5'u64
+
+        var result = 0'u64
+        var run    = 0'u64
+        for value in .image.bytes
+        {
+            if value >= 32 and value < 127
+            {
+                run += 1
+                if run == StringLength do
+                    result += 1
+            }
+            else
+            {
+                run = 0
+            }
+        }
+
+        return result
     }
 
     // Returns the Shannon entropy of the beginning of the file, in bits per byte.

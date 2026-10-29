@@ -1259,14 +1259,27 @@ impl View
         return Math.clamp(.scroll.scrollPosition().y / extent, 0, 1)
     }
 
-    // Returns the source byte offset of the text read at the top of the view, or `U64.Max`
-    // while nothing is laid out there; the heading being read is the last one before it.
+    // Returns the source byte offset of the block nearest the top reading inset, or `U64.Max`
+    // while no block is laid out; the heading being read is the last one before it.
     mtd readingOffset()->u64
     {
-        let geometry = .documentGeometry()
         let viewport = .scroll.paddedClientRect()
-        let at       = .documentPositionAt(.scroll.localToSurface(Math.Point{geometry.x + 8, viewport.y + .documentStyle.topInset}))
-        return at.has ? at.offset : Swag.U64.Max
+        let top      = .scroll.localToSurface(Math.Point{0, viewport.y + .documentStyle.topInset}).y
+        let visible  = .retainedBlocks.isEmpty() ? .blocks.toSlice() : .retainedBlocks.toSlice()
+        var offset   = Swag.U64.Max
+        var nearest  = Swag.F32.Max
+        for block in visible
+        {
+            let rect     = block.wnd.surfaceRect()
+            let distance = Math.max(rect.y - top, top - rect.bottom(), 0)
+            if distance < nearest
+            {
+                nearest = distance
+                offset  = block.sourceOffset
+            }
+        }
+
+        return offset
     }
 
     // Creates an empty Markdown document view.

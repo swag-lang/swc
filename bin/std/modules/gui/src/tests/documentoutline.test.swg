@@ -52,6 +52,7 @@ using Core, Pixel
     }
 
     Swag.assert(found)
+    Swag.assert(view.readingOffset() == offset)
     let position = view.scroll.scrollPosition()
     for 64 where view.isLoading() do
         host.fireTimers()
@@ -110,6 +111,7 @@ using Core, Pixel
         }
 
         Swag.assert(found)
+        Swag.assert(view.readingOffset() == offsets[index])
         let position = view.scroll.scrollPosition()
         for 64 where view.isLoading() do
             host.fireTimers()

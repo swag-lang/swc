@@ -2623,6 +2623,7 @@ func createPictureFolder(stem: string, names: const [..] string)->String
 }
 
 // Opening the lens on a Markdown document keeps its basic actions and outline in the first viewport.
+#[Swag.TestTag("golden")]
 #test
 {
     let fileName = Testing.tempFilePath("scope-lens-markdown-", ".md")
@@ -2631,10 +2632,15 @@ func createPictureFolder(stem: string, names: const [..] string)->String
 
     var host: Testing.HeadlessHost
     host.setup(960, 680)
+    shipFrame(&host)
+    host.theme.setDark()
+    host.notify(.ThemeChanged)
     let window = ViewerWindow.create(&host.surfaceWnd, createViewerPluginRegistry())
+    window.resize(960, 680)
     window.openFile(fileName, remember: false)
     completeQueuedViewerFile(&host, window)
     window.lens.open()
+    host.finishAnimations()
 
     var fileSection: *Lens.Section?
     var viewSection: *Lens.Section?
@@ -2658,9 +2664,39 @@ func createPictureFolder(stem: string, names: const [..] string)->String
     Swag.assert(file.entries[1].title == appStrings().cmd_Explore)
     Swag.assert(file.entries[2].title == appStrings().ui_CloseFile)
     Swag.assert(view.entries[0].title == outline)
+    Swag.assert(lensEntryOnFirstPage(window, appStrings().cmd_Open))
     Swag.assert(lensEntryOnFirstPage(window, appStrings().cmd_Explore))
     Swag.assert(lensEntryOnFirstPage(window, appStrings().ui_CloseFile))
     Swag.assert(lensEntryOnFirstPage(window, outline))
+    Swag.assert(window.lens.results.sections[0]!.label == appStrings().lens_File)
+    Swag.assert(window.lens.results.sections[1]!.label == appStrings().lens_View)
+    Swag.assert(window.lens.chosenEntry()!.title == appStrings().cmd_Open)
+
+    window.resize(800, 600)
+    window.applyLayout()
+    Swag.assert(lensEntryOnFirstPage(window, appStrings().cmd_Open))
+    Swag.assert(lensEntryOnFirstPage(window, appStrings().cmd_Explore))
+    Swag.assert(lensEntryOnFirstPage(window, appStrings().ui_CloseFile))
+    Swag.assert(lensEntryOnFirstPage(window, outline))
+    window.resize(960, 680)
+    window.applyLayout()
+
+    var image = host.render(window)
+    Pixel.Testing.assertImageGolden(&image, "viewer.lens.markdown.encre")
+
+    var paperHost: Testing.HeadlessHost
+    paperHost.setup(960, 680)
+    shipFrame(&paperHost)
+    paperHost.theme.setLight()
+    paperHost.notify(.ThemeChanged)
+    let paperWindow = ViewerWindow.create(&paperHost.surfaceWnd, createViewerPluginRegistry())
+    paperWindow.resize(960, 680)
+    paperWindow.openFile(fileName, remember: false)
+    completeQueuedViewerFile(&paperHost, paperWindow)
+    paperWindow.lens.open()
+    paperHost.finishAnimations()
+    var paper = paperHost.render(paperWindow)
+    Pixel.Testing.assertImageGolden(&paper, "viewer.lens.markdown.paper")
 }
 
 // What a viewer can do is a row of the lens too, under the viewer's name, and choosing a row

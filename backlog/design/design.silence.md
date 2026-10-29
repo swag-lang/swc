@@ -24,16 +24,15 @@ dialogs, then each application, then the written rules.
   margin) are `Gui.SectionLabel`; the keys are named one way (`Gui.strings().key_Enter`,
   `key_CtrlEnter`, spaced shortcuts). Each application has an at-rest provider: Capture offers
   selection, capture or image actions; Prism offers the current view's actions and examples; Vault
-  offers the chosen vault and New/Open; Scope offers viewer choices, then file/view basics, then
-  viewer controls. In Scope, Close File, Explore Folder and the current side-panel action (for
-  Markdown, Outline) are direct rows. Their order and visibility in the first screen have not
-  been reviewed against first-use tasks in both themes.
-- Next: review the empty-query lens in each application's first-use contexts and both themes;
-  adjust the direct action order so the common tasks are visible before scrolling, then update
-  and review the affected whole-screen goldens. In Scope, keep Explore Folder and Close File
-  visible beside Outline, and verify that the full Markdown outline reaches its last heading by
-  wheel and keyboard. Because the scrollbar rests hidden by charter, check how a first-time reader
-  discovers scrolling.
+  offers the chosen vault and New/Open; Scope exposes file and view basics plus viewer controls.
+  Scope's first-use Markdown lens now orders Open, Explore Folder, Close File and Outline before
+  viewer choices and viewer-specific controls; a first-screen test and whole-window goldens pin
+  all four actions in Encre and Papier. The code-view golden confirms the same order at rest.
+- Next: review the empty-query lens in Capture, Prism and Vault against their first-use tasks in
+  both themes; adjust the direct action order so their common tasks are visible before scrolling,
+  then update and review the affected whole-screen goldens. In Scope, verify that the full Markdown
+  outline reaches its last heading by wheel and keyboard. Because the scrollbar rests hidden by
+  charter, check how a first-time reader discovers scrolling.
 - Done when: each application offers its common first-use tasks directly in the initial lens
   view, every other command remains reachable from the lens, and the whole-screen goldens match
   the approved design without any application re-implementing a shared component or insetting

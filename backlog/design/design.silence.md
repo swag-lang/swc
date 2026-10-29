@@ -102,15 +102,16 @@ dialogs, then each application, then the written rules.
     the "Column ▾" quiet menu of text; the progress thread under the strip with documents
     scrolling under it.
   - Viewers photographed in the shipped frame against their pictures (`pictured.*`): the image
-    viewer stands on `scope.image`. The table (`pictured.table.paper`) is still a bare list: no
-    file name as title over a mono line of rows, columns, separator and encoding, no inferred type
-    under each column name, numbers not in mono, alternate grounds instead of hairlines, no sum of
-    the chosen column in the reading line. HTML (`pictured.html.paper`) has no reading column, no
-    faint mono address above it, no outline in the right margin, its code blocks are not cards.
-    The font viewer (`pictured.font.paper`) is not the specimen page: no large "Aa", family and
-    style tabs, glyph row with the chosen glyph on Arc, the sample field and sizes with mono labels.
+    viewer stands on `scope.image`; the table (`pictured.table.paper`) is a page — title, mono
+    facts, each column's kind under its name, figures in mono, hairlines, the sum of a column at
+    the foot — but its rows are tighter than the picture's; HTML (`pictured.html.paper`) reads in
+    its column with its address above and its sections in the right margin, its code on a card,
+    but the code is not coloured, no section is marked as the one being read, and over a page
+    that sets its own layout the address keeps the column's edge rather than the page's. The font
+    viewer (`pictured.font.paper`) is not the specimen page yet: no large "Aa", family and style
+    tabs, glyph row with the chosen glyph on Arc, the sample field and sizes with mono labels.
     Hex and binary have no framed golden yet; hex needs a binary fixture opened in the hex viewer.
-- Next: table, HTML, font, binary and hex on their pictures; the mixed board's waveform cells,
+- Next: font, binary and hex on their pictures; the mixed board's waveform cells,
   "Aa" in the font's own face, a film's picture size in its facts, and an ExtraBold page title.
 - Done when: every Scope golden matches its picture as a whole screen.
 - Related: design.silence.004

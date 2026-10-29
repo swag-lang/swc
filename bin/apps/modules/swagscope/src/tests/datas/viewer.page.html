@@ -1,0 +1,19 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <title>Ownership, without ceremony</title>
+</head>
+<body>
+  <h1>Ownership, without ceremony</h1>
+  <h2>Ownership</h2>
+  <p>A value has one owner. When the owner goes, the value goes with it: no collector runs behind it, no counter is kept beside it.</p>
+  <h2>Moving</h2>
+  <p>Moving a value hands it over: <code>#move buffer</code> leaves the source empty and the destination responsible.</p>
+  <pre>var a = Array'u8{}
+var b = #move a
+// a is empty, b owns the bytes</pre>
+  <h2>Borrowing</h2>
+  <p>Read on: <a href="#borrowing">Borrowing</a> and <a href="#lifetimes">Lifetimes</a>.</p>
+</body>
+</html>

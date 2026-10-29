@@ -208,8 +208,11 @@ using Core, Pixel, Gui, Viewers
 #[Swag.TestTag("golden")]
 #test
 {
-    let fileName = Gui.Testing.tempFilePath("scope-table-golden-", ".tsv")
-    defer discard catch File.delete(fileName)
+    // The page takes the file's name as its title: the photographed file has a name of its own.
+    let folder   = Path.combine(Env.getSpecialDirectory(.Temp), Format.toString("scope-table-%", Guid64.random()))
+    expect Directory.create(folder)
+    defer discard catch Directory.delete(folder, recurse: true)
+    let fileName = Path.combine(folder, "projects.tsv")
     expect File.writeAllBytes(fileName, "Name\tLanguage\tFiles\tStatus\nCore\tSwag\t148\tReady\nGui\tSwag\t203\tReady\nSwag Scope\tSwag\t61\tActive\n")
 
     var host: Testing.HeadlessHost

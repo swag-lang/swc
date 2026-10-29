@@ -202,6 +202,28 @@ impl HtmlStyleResolver
             style.margin.top    = HtmlLength.pixels(parent)
             style.margin.bottom = HtmlLength.pixels(parent)
 
+            // A block of code stands on a card: the code ground, a hairline ring, the corner of a
+            // control, and air inside it.
+            style.background     = .defaults.codeBackground
+            style.padding.top    = HtmlLength.pixels(12)
+            style.padding.bottom = HtmlLength.pixels(12)
+            style.padding.left   = HtmlLength.pixels(16)
+            style.padding.right  = HtmlLength.pixels(16)
+            var ring: HtmlBorderEdge
+            ring.width        = 1
+            ring.style        = .Solid
+            ring.color        = .defaults.border
+            ring.hasColor     = true
+            style.borderTop    = ring
+            style.borderRight  = ring
+            style.borderBottom = ring
+            style.borderLeft   = ring
+
+            style.radiusTopLeft     = 6
+            style.radiusTopRight    = 6
+            style.radiusBottomRight = 6
+            style.radiusBottomLeft  = 6
+
         case .Hr:
             style.display            = .Block
             style.margin.top         = HtmlLength.pixels(parent * 0.5)

@@ -184,6 +184,8 @@ act_Minimize           Réduire
 act_MoveBackward       Reculer
 act_MoveForward        Avancer
 act_NewFromClipboard   Nouvelle depuis le presse-papiers
+act_NoImageInClipboard Aucune image dans le presse-papiers
+act_NothingToPaste     Rien à coller
 act_NewImage           Nouvelle image
 act_OldestFirst        Plus anciennes d'abord
 act_OpenImage          Ouvrir une image…

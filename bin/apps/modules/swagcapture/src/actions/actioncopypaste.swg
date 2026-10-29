@@ -41,8 +41,13 @@ impl IActionUI for ActionCopyPaste
             evt.updatedFields |= .Disabled | .Name | .Icon
             if not capture do
                 evt.disabled = true
-            elif not Clipboard.hasTypedValue(#typeof(CaptureClipboardForms)) and not Clipboard.hasImage() do
+            elif not Clipboard.hasTypedValue(#typeof(CaptureClipboardForms)) and not Clipboard.hasImage()
+            {
                 evt.disabled = true
+                evt.reason   = appStrings().act_NothingToPaste
+                evt.updatedFields.add(.Reason)
+            }
+
             evt.name = appStrings().act_Paste
             evt.icon = main.theme().icon(.Paste)
 

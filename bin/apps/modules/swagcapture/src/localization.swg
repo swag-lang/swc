@@ -275,6 +275,8 @@ struct AppStrings
     act_MoveBackward:           string = "Move Backward"
     act_MoveForward:            string = "Move Forward"
     act_NewFromClipboard:       string = "New from Clipboard"
+    act_NoImageInClipboard:     string = "No image in the clipboard"
+    act_NothingToPaste:         string = "Nothing to paste"
     act_NewImage:               string = "New Image"
     act_OldestFirst:            string = "Oldest First"
     act_OpenImage:              string = "Open Image…"

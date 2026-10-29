@@ -41,6 +41,11 @@ impl IActionUI for ActionFile
             evt.updatedFields |= .Name | .Disabled
             evt.name          = appStrings().act_NewFromClipboard
             evt.disabled      = not Clipboard.hasImage()
+            if evt.disabled
+            {
+                evt.reason = appStrings().act_NoImageInClipboard
+                evt.updatedFields.add(.Reason)
+            }
 
         case .SaveAsImage:
             evt.updatedFields |= .Name | .Disabled | .Icon

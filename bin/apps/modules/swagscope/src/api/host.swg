@@ -187,7 +187,9 @@ interface Host
     //
     // `width` is the content width in logical pixels; the host adds the themed integration
     // gutter. `icon` is displayed at the application toolbar size and `toolTip` is copied.
-    mtd createSidePanel(width: f32, icon: Icon, toolTip: string)->SidePanel
+    // `floatingSurface` gives the contents a sheet-shaped ground; set it to false for a quiet
+    // margin whose controls stand directly on the window ground.
+    mtd createSidePanel(width: f32, icon: Icon, toolTip: string, floatingSurface = true)->SidePanel
 
     // Attaches the document view produced by the plugin.
     mtd attachView(view: *Wnd)

@@ -29,21 +29,22 @@ private func loadMarkdownHeadings(fileName: string)->Array'DocumentHeading fail
     return Markdown.parseHeadings(cast(string, source.toSlice()))
 }
 
-// One heading hierarchy shared by every document viewer, hosted in the viewer's side panel.
+// One heading hierarchy shared by every document viewer, hosted beside its document.
 struct DocumentOutline
 {
     using wnd: Wnd
 
     late
     {
-        title:       *Label
         status:      *Label
         filterBox:   *EditBox
-        closeButton: *IconButton
         toggle:      *IconButton
         list:        *ListCtrl
     }
 
+    title:       *Label?
+    section:     *SectionLabel?
+    closeButton: *IconButton?
     rows:         Array'(*ListLine)
     levels:       Array'u32
     load:         Viewer.BackgroundLoad'(Array'DocumentHeading)
@@ -59,18 +60,21 @@ struct DocumentOutline
 impl DocumentOutline
 {
     // Creates the outline panel and its toggle in the side lane of the viewer `host` is building.
-    func create(host: Viewer.Host)->*DocumentOutline
+    func create(host: Viewer.Host, floatingSurface = true)->*DocumentOutline
     {
         host.application().resources.addEmbedded(FrenchOutlineStringsName, FrenchOutlineStrings)
         Gui.registerStrings'DocumentOutlineStrings(&g_DocumentOutlineStrings, "scope.outline")
         let theme = host.contentParent().theme()
-        let side  = host.createSidePanel(276, theme.icon(.Information, themeActionIconSize(&theme.metrics)), g_DocumentOutlineStrings.title)
+        let side  = host.createSidePanel(276,
+                                         theme.icon(.Information, themeActionIconSize(&theme.metrics)),
+                                         g_DocumentOutlineStrings.title,
+                                         floatingSurface: floatingSurface)
 
         with let result = Wnd.create'DocumentOutline(side.content, "scope.outline")
         {
             .dockStyle       = .Center
             .backgroundStyle = .Transparent
-            .padding         = {12, 8, 12, 8}
+            .padding         = floatingSurface ? Math.Vector4{12, 8, 12, 8} : Math.Vector4{0, 8, 0, 8}
             .toggle          = side.toggle
         }
 
@@ -82,21 +86,30 @@ impl DocumentOutline
             .backgroundStyle = .Transparent
         }
 
-        with result.closeButton = IconButton.create(header, theme.icon(.WndClose, themeRowIconSize(result.themeMetrics())), Math.Rectangle{0, 0, size, size})
+        if floatingSurface
         {
-            .dockStyle  = .Right
-            .sigPressed += func|panel = result|(_)
+            with result.closeButton = IconButton.create(header, theme.icon(.WndClose, themeRowIconSize(result.themeMetrics())), Math.Rectangle{0, 0, size, size})
             {
-                panel.toggle.setChecked(false)
-                panel.toggle.sigCheckedChanged.call(panel.toggle)
+                .dockStyle  = .Right
+                .sigPressed += func|panel = result|(_)
+                {
+                    panel.toggle.setChecked(false)
+                    panel.toggle.sigCheckedChanged.call(panel.toggle)
+                }
+            }
+            with result.title = Label.create(header, "", {}, null, .Ellipsis)
+            {
+                .dockStyle = .Center
+                .setTextAlignment(.Left, .Center)
+                .style.setFont(theme.createDefaultFont(13, .Bold), .Regular)
             }
         }
-
-        with result.title = Label.create(header, "", {}, null, .Ellipsis)
+        else
         {
-            .dockStyle = .Center
-            .setTextAlignment(.Left, .Center)
-            .style.setFont(theme.createDefaultFont(13, .Bold), .Regular)
+            with result.section = SectionLabel.create(header, g_DocumentOutlineStrings.title)
+            {
+                .dockStyle = .Center
+            }
         }
 
         with result.status = Label.create(result, "", {}, null, .WordWrap | .AutoHeight | .SecondaryText)
@@ -230,10 +243,12 @@ impl DocumentOutline
 
     mtd refresh()
     {
-        .title.setText(g_DocumentOutlineStrings.title)
+        .title?.setText(g_DocumentOutlineStrings.title)
+        .section?.setText(g_DocumentOutlineStrings.title)
         .filterBox.setPlaceholder(g_DocumentOutlineStrings.filter)
         .toggle.toolTip      = g_DocumentOutlineStrings.title
-        .closeButton.toolTip = g_DocumentOutlineStrings.close
+        if .closeButton do
+            .closeButton.toolTip = g_DocumentOutlineStrings.close
         var statusText: String
         if not .failure.isEmpty() do
             statusText = .failure.toString()

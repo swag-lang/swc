@@ -145,11 +145,8 @@ using Core, Pixel, Gui, Gui.Testing, Viewers
     let firstHeading = scroll.view.children[0]
     let inset        = assume cast(*Markdown.View, window.currentView).documentStyle.topInset
     Swag.assert(Math.abs(firstHeading.surfaceRect().y - scroll.surfaceRect().y - inset) < 2)
-    let sidePanelHost = unwrap window.currentSidePanelHost
-    let card = assume cast(*FloatingPanel, sidePanelHost.children[0])
-    let cardTop = card.surfaceRect().y - sidePanelHost.surfaceRect().y
-    Swag.assert(cardTop >= window.stripInset() + window.themeMetrics().floating_Inset)
-    Swag.assert(card.radius() == window.themeMetrics().corner_Floating)
+    Swag.assert(not (outline.parent is FloatingPanel))
+    Swag.assert(outline.surfaceRect().y - window.surfaceRect().y >= window.stripInset() + window.themeMetrics().floating_Inset)
     var image = host.render(window)
     image.crop(outline.surfaceRect())
     Pixel.Testing.assertImageGolden(&image, "viewer.outline.markdown")
@@ -175,14 +172,14 @@ using Core, Pixel, Gui, Gui.Testing, Viewers
     host.notify(.LanguageChanged)
     window.resize(880, 420)
     window.applyLayout()
-    Swag.assert(outline.title.text() == "Plan" and outline.toggle.toolTip == "Plan")
+    Swag.assert(outline.section!.text == "Plan" and outline.toggle.toolTip == "Plan")
     Swag.assert(outline.list.selectedLine() == outline.rows[0])
     Testing.assertContentFits(outline)
     var french = host.render(window)
     french.crop(outline.surfaceRect())
     Pixel.Testing.assertImageGolden(&french, "viewer.outline.markdown.fr")
     window.setFullScreen(true)
-    Swag.assert(not window.currentSidePanelHost.isVisible())
+    Swag.assert(not window.currentSidePanelHost!.isVisible())
     window.setFullScreen(false)
     Swag.assert(window.currentSidePanelHost.isVisible())
     Swag.assert(not window.readingLine.isLocallyVisible())

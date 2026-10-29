@@ -165,8 +165,15 @@ func completeQueuedViewerFile(host: *Testing.HeadlessHost, window: *ViewerWindow
                     break
             }
 
+            // Every timer of the loading viewer fires, but not the one that lets the floating
+            // commands go once the pointer rests: firing it would hide them only when the
+            // viewer happened to be still loading at this point, which is a race, not a state.
             Threading.Thread.sleep(1'ms)
+            let lingering = window.viewerBarTimer != null
+            window.stopTimer(&window.viewerBarTimer)
             host.fireTimers()
+            if lingering and not window.viewerBarTimer do
+                window.viewerBarTimer = window.addTimer(ViewerWindow.ViewerBarLinger)
         }
 
         steps += 1

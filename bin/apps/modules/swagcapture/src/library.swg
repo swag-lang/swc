@@ -200,6 +200,30 @@ impl Library
         }
     }
 
+    // Moves the capture or the image `name` to `folder` and returns where it went, empty when it
+    // could not move. A file of the library leaves it through `onDeleteFile`, and comes back in
+    // when `folder` is the library itself. `name` must outlive the observers of `onDeleteFile`,
+    // which may destroy the item it was read from: the caller passes a copy it owns.
+    mtd moveTo(name: String, folder: String)->String
+    {
+        discard g_CaptureSaves.flush(name)
+        let dst = moveFile(folder, name)
+        if dst.isEmpty() do
+            return dst
+
+        for fi, idx in .files where fi.fullName == name
+        {
+            .files.removeAtOrdered(idx)
+            .revision += 1
+            .onDeleteFile.call(name)
+            break
+        }
+
+        if folder == getFolder() do
+            .addFile(dst)
+        return dst
+    }
+
     mtd addFile(name: String)
     {
         let file = catch File.info(name)

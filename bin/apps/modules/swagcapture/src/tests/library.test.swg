@@ -699,3 +699,111 @@ impl IAllocator for LibraryRejectAllocator
     Swag.assert(lib.view.items.count == 1)
     Swag.assert(lib.view.items[0] == slack)
 }
+
+// At rest the lens offers what can be done with the chosen captures — open, export, tags,
+// favourite, move, delete — and their rating as one row of segments, then what the page shows;
+// with none chosen, what the page shows only.
+#test
+{
+    var f: HeadlessFixture
+    f.setup(width: 1100, height: 700)
+    defer f.shutdown()
+    testRegisterIoActions(f.main)
+
+    g_Library.loaded = true
+    g_Library.files.clear()
+    f.main.libWnd = LibraryWnd.create(f.main)
+    let lib = f.main.libWnd
+    lib.setPosition({0, 0, 1100, 700})
+    lib.applyLayout()
+    f.main.libraryMode = true
+
+    // The first capture is a real file, so rating it writes the file and reads it back.
+    let path = testTempCapturePath()
+    defer discard catch File.delete(path)
+    let saved = Memory.new'Capture()
+    saved.width, saved.widthOrg   = 8
+    saved.height, saved.heightOrg = 6
+    saved.backImg                 = Gui.Testing.indexedImage(8, 6)
+    saved.file                    = path
+    saved.rating                  = 3
+    saved.changed                 = true
+    expect saved.save()
+    Memory.delete(saved)
+
+    let first = testAddLibraryItem(lib.view, path, 10, 1)
+    first.capture!.rating = 3
+    discard testAddLibraryItem(lib.view, "second.scc", 10, 2)
+
+    var none: Lens.Results
+    lib.describeLensRest(&none)
+    Swag.assert(none.sections.count == 1)
+    let filter = unwrap none.sections[0]
+    Swag.assert(filter.label == appStrings().ui_BarFilter and filter.inline)
+    Swag.assert(filter.entries.count == ContentFilterIds.count)
+
+    lib.view.selModel.select(0)
+    lib.view.focusItem = 0
+    var chosen: Lens.Results
+    lib.describeLensRest(&chosen)
+    Swag.assert(chosen.sections.count == 3)
+
+    let texts   = appStrings()
+    let actions = unwrap chosen.sections[0]
+    Swag.assert(actions.label == texts.lens_Selection)
+    let titles = [texts.act_OpenSelected, texts.act_ExportSelected, texts.act_EditTags, texts.act_FavoriteCapture, texts.act_MoveSelected, texts.act_Delete]
+    Swag.assert(actions.entries.count == 6)
+    for title, i in titles do
+        Swag.assert(actions.entries[i].title == title)
+
+    let rating = unwrap chosen.sections[1]
+    Swag.assert(rating.label == texts.act_Rating and rating.inline and rating.entries.count == 6)
+    for entry, i in rating.entries do
+        Swag.assert(entry.checked == (i == 3))
+    Swag.assert(chosen.sections[2]!.label == texts.ui_BarFilter)
+
+    // Choosing a segment rates the chosen captures.
+    let rate = unwrap rating.entries[5].run
+    rate()
+    Swag.assert(first.capture.rating == 5)
+}
+
+// A capture moved to a folder leaves the library for it, and comes back when moved to the library.
+#test
+{
+    testUseScratchLibrary()
+    let root = Gui.Testing.tempFilePath("capture-library-move-", "")
+    expect Directory.create(root)
+    let elsewhere = Gui.Testing.tempFilePath("capture-library-elsewhere-", "")
+    expect Directory.create(elsewhere)
+    defer
+    {
+        discard catch Directory.delete(Path.combine(root, ".trash"))
+        discard catch Directory.delete(root)
+        discard catch Directory.delete(elsewhere)
+        discard catch g_Library.setFolder("")
+    }
+
+    let path    = Path.combine(root, "moved.scc")
+    let capture = Memory.new'Capture()
+    capture.width, capture.widthOrg   = 8
+    capture.height, capture.heightOrg = 6
+    capture.backImg                   = Gui.Testing.indexedImage(8, 6)
+    capture.file                      = path
+    capture.changed                   = true
+    expect capture.save()
+    Memory.delete(capture)
+
+    expect g_Library.setFolder(root)
+    g_Library.fill()
+    Swag.assert(g_Library.files.count == 1)
+
+    let away = g_Library.moveTo(path, elsewhere)
+    Swag.assert(not away.isEmpty() and File.exists(away) and not File.exists(path))
+    Swag.assert(g_Library.files.isEmpty())
+
+    let back = g_Library.moveTo(away, Library.getFolder())
+    Swag.assert(not back.isEmpty() and File.exists(back) and not File.exists(away))
+    Swag.assert(g_Library.files.count == 1)
+    discard catch File.delete(back)
+}

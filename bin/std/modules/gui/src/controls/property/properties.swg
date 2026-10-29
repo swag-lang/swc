@@ -173,6 +173,8 @@ struct Properties
     // Grid state rebuilt from the rows: section index, hover and selection, and the transient
     // state of one gesture. The grid maintains all of it.
     sections: Array'{ item: *PropertiesItem?, lvl: s32 }     // Section rows and their depth.
+    lastCategory: *PropertiesItem?     // The top-level category opened last, which a category of the same name goes on.
+    sectionRules: bool = true          // Whether a section label of a panel is followed by a hairline.
 
     // Per data-column depth: does any row at that depth show a disclosure triangle? Drives the
     // reclaimed triangle gutter for all-leaf depths (see computeLevelMarks / itemLabelGutter).
@@ -544,6 +546,97 @@ impl Properties
         .edView.sendResizeEvent()
     }
 
+    // Puts the top-level categories of the rows in the order `names` gives, each with the rows it
+    // holds; the rows before the first category stay first, and a category `names` leaves out
+    // keeps its place after those it orders.
+    //
+    // A structure files its settings under categories of its own and of the structure it uses,
+    // walked one after the other: this is how a host reads them as one column in the order it
+    // wants, such as STROKE before the ENDS a line adds to it.
+    mtd orderCategories(names: const [..] string)
+    {
+        // The rows in blocks: those before any category, then one block per top-level category.
+        var head:   Array'(*PropertiesItem)
+        var starts: Array'u64
+        for item, i in .items
+        {
+            let it = unwrap item
+            if it.flags.has(.Category) and it.level == 0 do
+                starts.add(i)
+            elif starts.isEmpty() do
+                head.add(it)
+        }
+
+        if starts.count < 2 do
+            return
+
+        var order: Array'(*PropertiesItem)
+        for it in head do
+            order.add(it)
+        var taken: Array'bool
+        taken.resize(starts.count)
+
+        // Each top-level category with the rows after it, up to the next one.
+        var blocks: Array'{first: u64, last: u64}
+        for start, b in starts do
+            blocks.add({start, b + 1 < starts.count ? starts[b + 1] : .items.count})
+
+        for name in names
+        {
+            for block, b in blocks where not taken[b] and .items[block.first]!.typeValue.name == name
+            {
+                for i in block.first until block.last do
+                    order.add(unwrap .items[i])
+                taken[b] = true
+            }
+        }
+
+        for block, b in blocks where not taken[b]
+        {
+            for i in block.first until block.last do
+                order.add(unwrap .items[i])
+        }
+
+        // The rows and their lines follow the new order; a header the host set stays first.
+        Swag.assert(order.count == .items.count)
+        for it, i in order do
+            .items[i] = it
+
+        var lines: Array'(*Wnd)
+        for c in .edView.children
+        {
+            var isLine = false
+            for it in order where it.line == c do
+                isLine = true
+            if not isLine do
+                lines.add(c)
+        }
+
+        for it in order do
+            lines.add(it.line)
+        Swag.assert(lines.count == .edView.children.count)
+        for c, i in lines do
+            .edView.children.buffer![i] = c
+
+        .edView.sendResizeEvent()
+    }
+
+    // Sets the height of a row and the air between two rows, for a grid denser or looser than its
+    // kind, such as the settings of an inspector. Set it before the first row is added.
+    mtd setRowMetrics(height: f32, gap: f32)
+    {
+        .gridLineHeight = height
+        .gridLineMargin = cast(s32, gap)
+    }
+
+    // Shows or hides the hairline after a section label of a panel, for a column whose other
+    // sections are labels alone, such as an inspector.
+    mtd setSectionRules(visible: bool)
+    {
+        .sectionRules = visible
+        .invalidate()
+    }
+
     // Shows or hides reset-to-default affordances for modified values.
     mtd setRevertButtonsVisible(visible: bool)
     {
@@ -575,6 +668,7 @@ impl Properties
         .dragItem   = null
         .dragCmd    = null
         .hotItem, .selItem, .menuItem = null
+        .lastCategory = null
 
         .freeDefaultRoots()
 

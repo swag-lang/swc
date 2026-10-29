@@ -489,7 +489,10 @@ the screen to its work.
 
   ![Editing in place](imgs/capture.inplace.png) ![Editing in place, Papier](imgs/capture.inplace.paper.png)
 - Library: page title, folders as text tabs with mono counts, tags as chips (chosen in Arc),
-  a grid of captures, rating and dates in mono.
+  a grid of captures, rating and dates in mono. The lens at rest offers what can be done with
+  the chosen captures — open, export, tags, favourite, move to a folder, delete — and their
+  rating as one row of segments, then what the page shows as another; every other command of
+  the page (view, sort, folders, dates, applications, tags) is one word away.
 - Shape editing, per kind: arrow (curve handles, start/end glyph pickers, sizes), callout (inline
   text, tail handle, font/size/style "Aa" segments), masks (image, blur, pixelation, magnifier,
   capture as a radio list), step numbers (mini-bar with number stepper and reset), multiple
@@ -501,18 +504,52 @@ the screen to its work.
   ink and alignment. Enter breaks the line (a step keeps its label on Enter), `Ctrl+Enter` or a
   click elsewhere keeps the words as one step of the history, `Esc` lets them go. A rotated shape
   straightens over `motion_QuickSeconds` while its words are typed, and turns back after.
-- The text mini-bar is compact — colour, face list, size in mono, **B** *I*, the three
-  alignments, delete, `•••` — and stands above or below the selection, never over the dock or
-  the inspector; while words are typed it stands below them. The inspector keeps the face, the
-  size, the style "Aa" segments and the vertical alignment; the alignment across lives in the
-  mini-bar.
+- The text mini-bar is compact — colour, face list, size in mono, **B** *I*, the alignments
+  across and down, delete, `•••` — and stands above or below the selection, never over the dock,
+  the inspector or an edge of the capture; while words are typed it stands below them. The
+  inspector keeps the face, the size and the style "Aa" segments.
 - The lens closes with the recent captures as a strip of pictures ended by `Library →`; `↓`
   reaches the strip, `←` `→` go along it, Enter opens the one ringed in Arc.
 - The inspector shows the presets of the selection's kind (of the tool in hand without a
-  selection; none for a selection of several kinds): one row of four and `+`, or four and `•••`
-  opening every preset with `+`. The preset in force is named under the row; a right click
+  selection; none for a selection of several kinds): one row of five and `+`, or five and `•••`
+  opening every preset with `+`, ordered by use; `↓` on `•••` opens the popover, the arrows,
+  Enter and `Esc` go through it. The preset in force is named under the row; a right click
   renames it, replaces it with the current style or removes it. The head rows of the inspector
-  scroll with its settings. Library folder tabs give their count in mono.
+  scroll with its settings, which stand 30 apart under TEXT, SHAPE, STROKE, ENDS, EFFECTS and
+  POSITION. Several objects are titled by their kinds ("2 rectangles · 1 text"), what they
+  share first. Library folder tabs give their count in mono.
+- The dock holds eight tools in 30-pixel cells: select, shape (and polygon), arrow (and line),
+  text, callout, draw (and highlighter), step, image (and pixel selection, favourites). A cell
+  with a corner mark lists its group on a click on the mark or a right click; every tool keeps
+  its command, its lens entry and its key, and comes into its cell when used.
+- Every action is reached by a key or by the lens, and the lens names the key at the end of the
+  row. A letter is typed when a field holds the focus, so a field keeps it; Tab walks the
+  inspector down its rows and the mini-bar along its controls. The hint line teaches the keys of
+  the mode in force: the tool in hand and `Space`; the selection (`← ↑ → ↓` nudge, `Ctrl D`, then
+  `↵` for the words of a shape that has some, `Delete` otherwise: four keys are what the room
+  beside the inspector holds); or the words being typed.
+
+  | Keys | Action |
+  | --- | --- |
+  | `Space`, `Ctrl K` | the lens |
+  | `I` | fold or unfold the inspector |
+  | `V` `R` `P` `A` `L` `T` `C` `D` `H` `N` `M` `X` `F` | select, shape, polygon, arrow, line, text, callout, draw, highlighter, step, image, pixel selection, favourites |
+  | `← ↑ → ↓`, `Shift` + arrow | nudge the selection 1 px, 10 px |
+  | `Delete` | delete the selection |
+  | `Ctrl D` | duplicate the selection |
+  | `Ctrl G`, `Ctrl Shift G` | group, ungroup |
+  | `]` `[`, `Ctrl ]` `Ctrl [` | forward, backward a step; to the front, to the back (also `PgUp` `PgDn`, `Home` `End`) |
+  | `Ctrl A`, `Esc`, `Ctrl Shift I` | select all, none, invert |
+  | `↵`, `F2` | type the words of the selection; then `Ctrl ↵` keeps them, `Esc` lets them go |
+  | `Ctrl C` `Ctrl X` `Ctrl V` | copy, cut, paste; `Ctrl Shift A` copies the whole picture |
+  | `Ctrl Z`, `Ctrl Y` | undo, redo |
+  | `Ctrl N`, `Ctrl Shift N`, `Ctrl O` | new capture, new from the clipboard, open an image |
+  | `Ctrl S`, `Ctrl Shift S` | save the linked image, save as |
+  | `Ctrl Shift D`, `Ctrl Shift T` | duplicate the capture, flatten it |
+  | `Ctrl +`, `Ctrl -`, `Ctrl 0` | zoom in, out, to 100 % |
+  | `Ctrl Space` | freeze the selection |
+  | `Print`, `Ctrl Print`, `Alt Print`, `Ctrl Shift Print` | capture an area, the screen, the active window, the last area again |
+  | `Ctrl Alt O` | options |
 
 ![Arrow](imgs/capture.edit.arrow.png) ![Callout](imgs/capture.edit.callout.png)
 ![Mask](imgs/capture.edit.mask.png) ![Steps](imgs/capture.edit.steps.png)

@@ -101,34 +101,36 @@ dialogs, then each application, then the written rules.
     the "Column ▾" quiet menu of text; the progress thread under the strip with documents
     scrolling under it.
   - Viewers photographed in the shipped frame against their pictures (`pictured.*`): the image
-    viewer stands on `scope.image`. The table (`pictured.table.paper`) is still a bare list: no
-    file name as title over a mono line of rows, columns, separator and encoding, no inferred type
-    under each column name, numbers not in mono, alternate grounds instead of hairlines, no sum of
-    the chosen column in the reading line. HTML (`pictured.html.paper`) has no reading column, no
-    faint mono address above it, no outline in the right margin, its code blocks are not cards.
-    The font viewer (`pictured.font.paper`) is not the specimen page: no large "Aa", family and
-    style tabs, glyph row with the chosen glyph on Arc, the sample field and sizes with mono labels.
-    Hex and binary have no framed golden yet; hex needs a binary fixture opened in the hex viewer.
-- Next: table, HTML, font, binary and hex on their pictures; the mixed board's waveform cells,
+    viewer stands on `scope.image`; the table (`pictured.table.paper`) is a page — title, mono
+    facts, each column's kind under its name, figures in mono, hairlines, the sum of a column at
+    the foot — but its rows are tighter than the picture's; HTML (`pictured.html.paper`) reads in
+    its column with its address above and its sections in the right margin, its code on a card,
+    but the code is not coloured, no section is marked as the one being read, and over a page
+    that sets its own layout the address keeps the column's edge rather than the page's. The font
+    viewer (`pictured.font.paper`) is not the specimen page yet: no large "Aa", family and style
+    tabs, glyph row with the chosen glyph on Arc, the sample field and sizes with mono labels.
+    The font viewer now stands on its specimen page (`pictured.font.paper`) but shows only its own
+    style as a tab, the glyph line has no Unicode name, and the sample field stays on the floating
+    bar. Hex (`pictured.hex`, a PNG forced into it) has no structure tabs over the grid, no
+    floating inspector with the value in large type and the readings of the structure, and keeps
+    its dense grid; binary (`pictured.binary`) is still the structure tree, not the report page —
+    title, mono identity line, large figures (sections, imports, entropy, strings), the sections as
+    one proportional bar with its legend, the imports by library.
+- Next: binary and hex on their pictures; the font's other styles, glyph names and sample field;
+  coloured code cards in HTML and the section being read marked; the table's row pitch; the mixed board's waveform cells,
   "Aa" in the font's own face, a film's picture size in its facts, and an ExtraBold page title.
 - Done when: every Scope golden matches its picture as a whole screen.
 - Related: design.silence.004
 
-### design.silence.008 — Swag Capture's editing does not yet match its pictures
+### design.silence.008 — Swag Capture's preset cells are smaller than in their pictures
 
-- Evidence: the editor, the area capture, the in-place editor, the library and the lens have
-  goldens (`surface`, `edit.{arrow,callout,multi,step,mask,color.paper,text,text.paper}`, `area`,
-  `inplace{,.paper}`, `library.surface`, `lens.paper`, `lens.recent.paper`, `presets{,.paper}`).
-  What they still show differently: a tool's row holds four presets where the pictures show five
-  or six, because a 44-wide cell with its ring room leaves five chips across the inspector;
-  the row keeps the presets chosen last first, not the ones used most (no use count is kept);
-  the vertical alignment of a text is a dropdown in the inspector, where the pictures keep only
-  the alignment across, in the mini-bar; the "•••" popover of the presets cannot be reached
-  with the keys.
-- Next: decide whether a preset keeps a use count (serialized beside its name) and order the
-  row by it; give the presets popover the keys of the lens strip.
-- Done when: each `capture.*` picture is reproduced by its golden.
-- Related: design.silence.004
+- Evidence: the `capture.*` pictures and their goldens agree, but for one choice: a preset cell
+  is 38 by 31 where the pictures draw 44 by 36, so that five presets and their chip fit across
+  the 264 the inspector leaves; at 44 by 36 a row holds four presets.
+- Next: decide with the charter owner between five smaller presets and four of the pictures'
+  size.
+- Done when: the preset row of the inspector matches its picture.
+- Related: design.silence.004, design.silence.005
 
 ### design.silence.011 — The window scripts were not reviewed against the charter
 

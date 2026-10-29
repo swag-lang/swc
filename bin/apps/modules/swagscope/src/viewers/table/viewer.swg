@@ -288,6 +288,65 @@ func detectDelimiter(fileName, text: string)->u8
     return result
 }
 
+// The air between the table and the edges of the window, and the height of its title and facts.
+const PageMargin = 112.0
+const HeadHeight = 72.0
+
+// Names the kind of values of a column, as its header writes it under its name.
+func kindName(kind: ColumnKind)->string
+{
+    switch #complete kind
+    {
+    case .Text:    return texts().ui_KindText
+    case .Integer: return texts().ui_KindInteger
+    case .Decimal: return texts().ui_KindDecimal
+    case .Date:    return texts().ui_KindDate
+    }
+}
+
+// Reports whether the commas of `text` only group its thousands: each followed by three digits.
+func isThousands(text: string)->bool
+{
+    for byte, at in text where byte == ','
+    {
+        var digits = 0'u64
+        var next   = at + 1
+        while next < text.count and Latin1.isDigit(text[next])
+        {
+            digits += 1
+            next   += 1
+        }
+
+        if digits != 3 do
+            return false
+    }
+
+    return true
+}
+
+// Writes `value` with its thousands grouped by a narrow space, two decimals when `decimal`.
+func groupThousands(value: f64, decimal: bool)->String
+{
+    let negative = value < 0
+    let whole    = cast(u64, Math.abs(value))
+    var digits   = Format.toString("%", whole)
+    var result: String
+    for byte, at in digits.toString()
+    {
+        if at and (digits.length - at) % 3 == 0 do
+            result += " "
+        result += cast(rune, byte)
+    }
+
+    if decimal
+    {
+        let cents = cast(u64, Math.round((Math.abs(value) - cast(f64, whole)) * 100))
+        result += Format.toString(".%{02}", cents)
+    }
+
+    return negative ? Format.toString("-%", result) : result
+}
+
 // Names the kind of delimited text that `delimiter` separates. Comma- and tab-separated text keep
 // the format names every language uses; the other delimiters are described.
 func delimiterKind(delimiter: u8)->string
@@ -377,12 +436,43 @@ private func countText(count: u64, one, many: string)->String
     return Format.toString(many, count)
 }
 
-// The table viewer: the parsed table in a virtual list, and where the current search match lies.
+// What the values of a column read as, written under its name.
+enum ColumnKind
+{
+    Text
+    Integer
+    Decimal
+    Date
+}
+
+// Reports whether `text` is a date written year first: four digits, a dash or a slash, then more.
+func isDateCell(text: string)->bool
+{
+    if text.count < 8 do
+        return false
+    for at in 4 where not Latin1.isDigit(text[at]) do
+        return false
+    return text[4] == '-' or text[4] == '/'
+}
+
+// The table viewer: the file as a page — its name as the title over a mono line of what it holds,
+// then its rows under the name and the kind of each column, numbers in mono on the right, a
+// hairline between two rows — and where the current search match lies.
 struct Panel
 {
     using wnd: Wnd
 
-    late list: *ListCtrl
+    late
+    {
+        list:  *ListCtrl
+        head:  *Wnd
+        title: *Label
+        facts: *Label
+    }
+
+    fileName:      String
+    kinds:         Array'ColumnKind
+    built:         bool     // Whether the parts exist: a resize reaches the panel while it is built.
 
     document:      Document
     numeric:       Array'bool
@@ -401,6 +491,12 @@ struct Panel
 
 private impl IWnd for Panel
 {
+    mtd impl onResizeEvent(_: *ResizeEvent)
+    {
+        if .built do
+            .fitWidth()
+    }
+
     mtd impl onNotifyEvent(evt: *NotifyEvent)
     {
         if evt.kind == .LanguageChanged and not .load.isPending() and .failureReason.isEmpty()
@@ -476,18 +572,92 @@ private impl Panel
             }
 
             .numeric.add(numeric and not textual)
-            let width = Math.clamp(cast(f32, longest) * CellWidth + 24, ColumnMinWidth, ColumnMaxWidth)
+
+            // The kind of a column, from its first rows: dates, whole numbers, decimals or words.
+            var kind = ColumnKind.Text
+            if numeric and not textual
+            {
+                kind = .Integer
+                for row in .document.rows.toSlice()[until Math.min(.document.rows.count, 128)] where index < row.cells.count
+                {
+                    let cell = row.cells[index].toString()
+                    if Utf8.contains(cell, ".") or (Utf8.contains(cell, ",") and not isThousands(cell)) do
+                        kind = .Decimal
+                }
+            }
+            elif textual
+            {
+                var dates = true
+                for row in .document.rows.toSlice()[until Math.min(.document.rows.count, 128)] where index < row.cells.count and row.cells[index].length
+                {
+                    if not isDateCell(row.cells[index].toString()) do
+                        dates = false
+                }
+
+                if dates do
+                    kind = .Date
+            }
+
+            .kinds.add(kind)
+            let width = Math.clamp(cast(f32, longest) * CellWidth + 32, ColumnMinWidth, ColumnMaxWidth)
             let range = cellPreviewRange(column.toString())
-            .list.addColumn(column.toString()[range.start until range.end], width)
+            let align = numeric and not textual ? StringHorzAlignment.Right : StringHorzAlignment.Left
+            let item  = .list.header.addColumn(column.toString()[range.start until range.end], width, {}, align)
+            item.detail = kindName(kind)
         }
+
+        .list.header.fitHeight()
+        .title.setText(Path.fileName(.fileName) orelse "")
+        .title.show(.fileName.length != 0)
 
         .order.clear()
         .rowLines.clear()
         .list.setVirtualCount(cast(u32, .document.rows.count))
         .applyLayout()
+        .fitWidth()
         .setInitialFocus(.list)
 
         .refreshDetails()
+    }
+
+    // Keeps the table as wide as its columns, its hairlines ending with its last column.
+    mtd fitWidth()
+    {
+        let room = .clientRect().width - .padding.x - .padding.z
+        let used = .list.header.contentWidth() + 8
+        let rest = Math.max(room - used, 0)
+        if .list.margin.z == rest do
+            return
+        .list.margin.z = rest
+        .applyLayout()
+    }
+
+    // Returns the column whose values the foot sums: the one the table is sorted on when it holds
+    // quantities, the first one holding them otherwise.
+    mtd sumColumn()->u64
+    {
+        if .sortColumn < .numeric.count and .numeric[.sortColumn] do
+            return .sortColumn
+        for numeric, column in .numeric where numeric do
+            return column
+        return Swag.U64.Max
+    }
+
+    // Writes the sum of the quantities of `column`, grouped by thousands.
+    mtd sumText(column: u64)->String
+    {
+        var total   = 0.0'f64
+        var decimal = false
+        for row in .document.rows where column < row.cells.count
+        {
+            var value: f64
+            if quantityOf(row.cells[column].toString(), &value) do
+                total += value
+        }
+
+        if column < .kinds.count do
+            decimal = .kinds[column] == .Decimal
+        return groupThousands(total, decimal)
     }
 
     // Returns the selected lines, or the focused one when none is selected, as a spreadsheet pastes
@@ -574,11 +744,31 @@ private impl Panel
         .list.invalidate()
     }
 
+    // Writes what the table holds under its title, and at the foot the row the keyboard is on
+    // and the sum of the column of quantities.
     mtd refreshDetails()
     {
         let rows    = countText(.document.rows.count, texts().ui_Row, texts().ui_Rows)
         let columns = countText(.document.columns.count, texts().ui_OneColumn, texts().ui_Columns)
-        .services.showDetails(me, Format.toString(texts().ui_Details, delimiterKind(.document.delimiter), rows, columns))
+        .facts.setText(Format.toString("% · % · % · UTF-8", rows, columns, delimiterKind(.document.delimiter)))
+
+        var foot: String
+        if .list.focusIndex < .document.rows.count
+        {
+            let row = &.document.rows[.documentRow(.list.focusIndex)]
+            foot = Format.toString(texts().ui_RowAt, .list.focusIndex + 1)
+            if row.cells.count and row.cells[0].length do
+                foot = Format.toString("% · %", foot, row.cells[0].toString())
+        }
+        else
+        {
+            foot = Format.toString(texts().ui_Details, delimiterKind(.document.delimiter), rows, columns)
+        }
+
+        let column = .sumColumn()
+        if column != Swag.U64.Max and column < .document.columns.count do
+            foot = Format.toString("% · Σ % %", foot, .document.columns[column].toString(), .sumText(column))
+        .services.showDetails(me, foot)
     }
 
     internal mtd retire()->bool
@@ -599,8 +789,11 @@ private impl Panel
             let value = column < row.cells.count ? row.cells[column].toString() : ""
             let range = cellPreviewRange(value, rowIndex == .searchRow and column == .searchColumn ? .searchOffset : Swag.U64.Max)
             let item  = line.setItem(cast(u32, column), value[range.start until range.end])
-            if column < .numeric.count and .numeric[column] do
+            if column < .numeric.count and .numeric[column]
+            {
                 item.horzAlign = .Right
+                item.mono      = true
+            }
             if rowIndex == .searchRow and column == .searchColumn
             {
                 item.colorBk = .themeColors().edit_SelectedBk
@@ -635,19 +828,48 @@ private impl Panel
         registerTexts(parent.app())
         let result = Wnd.create'Panel(parent, "scope.table")
         result.backgroundStyle = .View
+        result.padding         = Math.Vector4{PageMargin, 24, PageMargin, 0}
+
+        // The page: the file's name as its title, then a mono line of what it holds.
+        with result.head = Wnd.create'Wnd(result, Math.Rectangle{0, 0, 0, HeadHeight})
+        {
+            .dockStyle       = .Top
+            .backgroundStyle = .Transparent
+        }
+
+        with result.facts = Label.create(result.head, "", Math.Rectangle{0, 0, 0, 24}, null, .Ellipsis)
+        {
+            .dockStyle = .Bottom
+            .style.setFont(result.theme().createDefaultFontFs(12), .Regular)
+            .style.addStyleSheetColors("label_Text $label_TextFaint")
+            .setTextAlignment(.Left, .OpticalCenter)
+        }
+
+        with result.title = Label.create(result.head, "", {}, null, .Ellipsis)
+        {
+            .dockStyle = .Center
+            .style.setFont(result.theme().createDefaultFont(28, .Bold), .Regular)
+            .setTextAlignment(.Left, .Bottom)
+            .hide()
+        }
 
         with result.list = ListCtrl.createMultiColumns(result)
         {
             .dockStyle = .Center
-            .style.setFont(result.theme().createDefaultFontFamilyFs(result.themeMetrics().defaultFixedFontSize))
             .setSelectionMode(.Multi)
             .setFirstColumnIconMargin(false)
-            .updateFlags(.HotTrack | .AlternateLines | .Ellipsis)
+            .updateFlags(.HotTrack | .HorizontalLines | .Ellipsis)
             .header.form             = .Transparent
             .onFillVirtualLine       = &fillVirtualLine
+
+            // The name of a column is the text ink in bold over its kind in faint mono.
+            .header.style.setFont(result.theme().createDefaultFont(result.themeMetrics().defaultFontSize, .Bold), .Regular)
+            .header.style.addStyleSheetColors("headerItem_Text $label_Text")
             .header.sigColumnClicked += func|result|(_, column) { result.sortBy(column) }
+            .sigSelectionChanged     += func|result|(_) { result.refreshDetails() }
         }
 
+        result.built = true
         result.applyLayout()
         result.setInitialFocus(result.list)
         return result
@@ -722,6 +944,7 @@ impl Panel
         with let result = Panel.createBase(parent)
         {
             .services = services
+            .fileName = fileName
             .load.start(fileName, &loadDocument, result)
         }
 

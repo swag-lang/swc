@@ -358,7 +358,7 @@ using Swag, Core
     Swag.assert(quickStyle.forms.count == 0)
 }
 
-// The row of a tool holds four presets and "+"; past that it holds four presets and "•••", which
+// The row of a tool holds five presets and "+"; past that it holds five presets and "•••", which
 // opens every preset with "+" in a popover, and a preset chosen there comes to the front of the row.
 #test
 {
@@ -368,7 +368,7 @@ using Swag, Core
     let quick = QuickWnd.create(f.main, f.main)
     quick.setDefault()
     f.main.editMode = .Arrow
-    quick.setPosition(Math.Rectangle{0, 0, 5 * QuickChipWidth, QuickChipHeight})
+    quick.setPosition(Math.Rectangle{0, 0, 6 * QuickChipWidth, QuickChipHeight})
     quick.updateQuickStyles(forceRebuild: true)
     Swag.assert(quick.qsArrow.forms.count > 5)
 
@@ -387,7 +387,7 @@ using Swag, Core
             hidden += 1
     }
 
-    Swag.assert(shown == 4 and hidden > 0 and moreShown and not addShown)
+    Swag.assert(shown == 5 and hidden > 0 and moreShown and not addShown)
 
     // The popover holds every preset and "+".
     let more = unwrap quick.moreButton
@@ -412,7 +412,7 @@ using Swag, Core
     let quick = QuickWnd.create(f.main, f.main)
     quick.setDefault()
     f.main.editMode = .Arrow
-    quick.setPosition(Math.Rectangle{0, 0, 5 * QuickChipWidth, QuickChipHeight})
+    quick.setPosition(Math.Rectangle{0, 0, 6 * QuickChipWidth, QuickChipHeight})
     quick.updateQuickStyles(forceRebuild: true)
 
     let style = &quick.qsArrow
@@ -447,7 +447,7 @@ using Swag, Core
     let quick = QuickWnd.create(f.main, f.main)
     quick.setDefault()
     f.main.editMode = .Arrow
-    quick.setPosition(Math.Rectangle{0, 0, 5 * QuickChipWidth, QuickChipHeight})
+    quick.setPosition(Math.Rectangle{0, 0, 6 * QuickChipWidth, QuickChipHeight})
     quick.updateQuickStyles(forceRebuild: true)
 
     let style = &quick.qsArrow

@@ -54,6 +54,7 @@ struct AppStrings
     ui_Height:                  string = "Height"
     ui_KeepRatio:               string = "Keep Ratio"
     ui_Anchor:                  string = "Anchor"
+    ui_AnchorVertical:          string = "Vertical Anchor"             // How the lines of a text stand down its box, in the mini-bar.
     ui_Frozen:                  string = "Selection is frozen"
     ui_Desktop:                 string = "Desktop"
     ui_MyImages:                string = "My Images"
@@ -66,6 +67,7 @@ struct AppStrings
     dlg_TitleBrowseFolder:      string = "Browse Image Folder"
     dlg_TitleEditTags:          string = "Edit Tags"
     dlg_TitleExportCaptures:    string = "Export Captures"
+    dlg_TitleMoveCaptures:      string = "Move Captures"
     dlg_TitleResizeImage:       string = "Resize Image"
     dlg_TitleExpandImage:       string = "Expand Image"
     dlg_TitleExpandCapture:     string = "Expand Capture"
@@ -74,6 +76,7 @@ struct AppStrings
     dlg_BtnLoad:                string = "Load"
     dlg_BtnSave:                string = "Save"
     dlg_BtnExport:              string = "Export"
+    dlg_BtnMove:                string = "Move"
     msg_RemoveAssociation:      string = "This will remove the image association."
     msg_DeleteCaptures:         string = "This will delete the capture file(s)."
     msg_EraseTrash:             string = "This will permanently erase every capture in the recycle bin."
@@ -101,6 +104,11 @@ struct AppStrings
     hint_Save:                  string = "save"                        // What Ctrl+S does in the in-place editor.
     hint_CalloutTail:           string = "Drag the point of the tail to aim it"     // Hint while the words of a callout are typed in place.
     hint_NewLine:               string = "new line"                    // What Enter does while the words of a form are typed in place.
+    key_Arrows:                 string = "← ↑ → ↓"                     // The arrow keys, in a keycap of a hint line.
+    hint_Nudge:                 string = "nudge, Shift ×10"            // What the arrows do to the selection.
+    hint_Duplicate:             string = "duplicate"                   // What Ctrl+D does to the selection.
+    hint_Delete:                string = "delete"                      // What Delete does to the selection.
+    hint_TypeWords:             string = "type the words"              // What Enter does to a selected form with words.
     hint_KeepText:              string = "keep the text"               // What Ctrl+Enter does while the words of a form are typed in place.
     ui_Common:                  string = "Common"                      // Section of the inspector holding what several objects share.
     ui_NoColor:                 string = "none"                        // Value of a colour row whose colour is fully transparent.
@@ -109,6 +117,7 @@ struct AppStrings
     msg_FailedOpenLibrary:      string = "Cannot open the library folder"
     msg_FailedSaveMetadata:     string = "Cannot save capture metadata"
     msg_FailedExportCaptures:   string = "Cannot export the selected captures"
+    msg_FailedMoveCaptures:     string = "Some captures could not be moved. They are still where they were."
     msg_ShortcutTaken:          string = "Cannot register global shortcut '%'. "
     msg_ShortcutTakenWhy:       string = "Another running application is probably already using it!"
     msg_ShortcutsTaken:         string = "Cannot register global shortcuts %. "     // Lists every unavailable shortcut, each one quoted.
@@ -128,6 +137,22 @@ struct AppStrings
     ui_ResetSteps:              string = "Reset"                       // Restarts the numbered-step counter.
     ui_OneObject:               string = "1 object"                    // Detail of the inspector title when one object is selected.
     ui_Objects:                 string = "% objects"                   // Inspector title when several objects are selected, with their count.
+
+    // How many objects of one kind a selection holds, as "singular|plural" words around the count;
+    // the inspector details a selection of several objects with them, such as "2 rectangles · 1 text".
+    count_Rectangle: string = "% rectangle|% rectangles"
+    count_Ellipse:   string = "% ellipse|% ellipses"
+    count_Arrow:     string = "% arrow|% arrows"
+    count_Line:      string = "% line|% lines"
+    count_Polygon:   string = "% polygon|% polygons"
+    count_Text:      string = "% text|% texts"
+    count_Callout:   string = "% callout|% callouts"
+    count_Draw:      string = "% drawing|% drawings"
+    count_Highlight: string = "% highlight|% highlights"
+    count_PixSel:    string = "% selection|% selections"
+    count_Step:      string = "% step|% steps"
+    count_Image:     string = "% image|% images"
+    count_Object:    string = "% object|% objects"
     ui_NextObjects:             string = "next objects"                // Detail of the inspector title when nothing is selected: the tool's settings apply to what is drawn next.
     hint_Space:                 string = "capture, open, library"      // What the Space key opens, on the hint line of the editor.
     hint_LibrarySpace:          string = "export, tag, rate, move"     // What the Space key opens, on the hint line of the library.
@@ -218,6 +243,7 @@ struct AppStrings
     act_LocateImage:            string = "Show Image in Folder"
     act_EditTags:               string = "Edit Tags…"
     act_ExportSelected:         string = "Export Selected…"
+    act_MoveSelected:           string = "Move to Folder…"     // Moves the chosen captures of the library to another folder.
     act_FavoriteCapture:        string = "Favorite"
     act_Rating:                 string = "Rating"
     act_NoRating:               string = "No Rating"
@@ -385,9 +411,13 @@ struct AppStrings
     prop_Step:      string = "Step"           // Label of the step-numbering choice.
     prop_Strength:  string = "Strength"       // Label of the effect strength.
     prop_Style:     string = "Style"          // Label of the font style: regular, bold, italic or both.
-    prop_Text:      string = "Text"           // Label of the edited text.
+    prop_Text:      string = "Text"           // Label of the edited text, and section of the settings of the words.
+    prop_Shape:     string = "Shape"          // Section of the settings of the body of a shape.
+    prop_Stroke:    string = "Stroke"         // Section of the settings of a stroke or an outline.
+    prop_Ends:      string = "Ends"           // Section of the settings of the ends of a line.
+    prop_Effects:   string = "Effects"        // Section of the shadow, the opacity, the scale and the rotation.
+    prop_LineSpacing: string = "Line Spacing" // Label of the room between the lines of a text.
     prop_Thickness: string = "Thickness"      // Label of the stroke thickness.
-    prop_Vertical:  string = "Vertical"       // Label of how the lines of a text stand down its box.
 
     prop_Straight: string = "Straight"      // Line entry: a segment.
     prop_Bezier:   string = "Bezier"        // Line entry: a curve.

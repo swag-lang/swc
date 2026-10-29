@@ -253,15 +253,17 @@ impl PropWnd
     // A panel category is a quiet section cue, like the labels used by the other standard
     // applications. Keep the system face at its normal weight and let the live theme supply
     // its secondary ink; bold property-grid headings read as a second title hierarchy here.
+    // The sections of the generated settings read like those of the head: small spaced capitals,
+    // flush with the labels of the column, with no air of their own past the height of a row.
     mtd styleCategoryLabels()
     {
         for item in .grid.items
         {
             let it = unwrap item
-            if not it.flags.has(.Category) do
+            if not it.flags.has(.Category) or it.label == null do
                 continue
-            it.label.style.setFont(.theme().res.fontDefault)
-            it.label.updateFlags(.SecondaryText)
+            it.line.margin.y = 0
+            it.line.margin.w = 0
         }
     }
 
@@ -281,10 +283,15 @@ impl PropWnd
         }
 
         width = Math.ceil(width)
-        let gap = metrics.inspector_LabelGap
+        let gap    = metrics.inspector_LabelGap
+        let height = metrics.control_InspectorHeight
         for item in .grid.items where item!.line.isVisible()
         {
             fieldLabel(item)?.setTextAlignment(.Left, .Center)
+
+            // Every row is the height of a control of the inspector, so the rows keep its pitch.
+            for c in item.line.children where c.position.height > height do
+                c.resize(c.position.width, height)
             if item.sliderBox != null
             {
                 // The value of a slider is a measure read beside its track: mono, with no box
@@ -355,14 +362,19 @@ impl PropWnd
             it.destroy()
         .grid.clear()
 
-        .addArrangeRows()
+        // What several objects share comes first, then how to align, arrange and pick them; a
+        // mask first says what it does.
         .addMaskKindRows()
         .addColorRows()
+        .addArrangeRows()
         .addStyleRows()
         .propNextStep()
         .propPixSel()
 
         .bindGrid()
+
+        // The sections read in the order of the pictures, whichever structure files them.
+        .grid.orderCategories(["Text", "Shape", "Stroke", "Ends", "Effects"])
         .styleCategoryLabels()
         .propXY()
         .fitFieldLabelColumn()
@@ -388,11 +400,16 @@ impl PropWnd
 
             // The head rows stand in the column of the inspector, which already keeps its
             // margins; only the air before the generated rows is the panel's own.
-            .topLayout.spacing = prop.themeMetrics().inspector_RowGap
-            .topLayout.padding = {0, 0, 0, prop.themeMetrics().inspector_RowGap}
+            .topLayout.spacing = prop.themeMetrics().inspector_RowPitch - prop.themeMetrics().control_InspectorHeight
+            .topLayout.padding = {0, 0, 0, 0}
 
             .grid = Properties.create(prop, kind: .Panel)
             .grid.dockStyle = .Center
+
+            // The settings stand at the pitch of the inspector, denser than a panel's.
+            let metrics = prop.themeMetrics()
+            .grid.setRowMetrics(metrics.control_InspectorHeight, metrics.inspector_RowPitch - metrics.control_InspectorHeight)
+            .grid.setSectionRules(false)
 
             // The panel layout keeps its own margin before each row; the grid reaches past the
             // column by that much so its labels stand on the edge of the inspector's labels.
@@ -453,9 +470,9 @@ impl IPropertyNotify for PropWnd
             return (.gridBindType == FormText or .gridBindType == FormPolygon) and
                    base.subKind != .PixSel
 
-        // The words are typed in place, and how the lines stand across the box is set from the
+        // The words are typed in place, and how the lines stand in the box is set from the
         // mini-bar beside the selection.
-        case #nameof(FormText.text), #nameof(FormText.alignHorz):
+        case #nameof(FormText.text), #nameof(FormText.alignHorz), #nameof(FormText.alignVert):
             return false
 
         case #nameof(BaseForm.alpha), #nameof(BaseForm.paintShadow):

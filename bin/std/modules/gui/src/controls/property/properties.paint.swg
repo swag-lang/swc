@@ -115,7 +115,7 @@ internal impl Properties
 
         // A section label in a panel is followed by one hairline to the end of the row: the
         // label and the line already say where a group starts, so no band stands behind it.
-        if .kind == .Panel and item.flags.has(.Category) and item.label != null
+        if .kind == .Panel and .sectionRules and item.flags.has(.Category) and item.label != null
         {
             // The words are tracked out, so their run is wider than the face alone measures it.
             let label    = item.label

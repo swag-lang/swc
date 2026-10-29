@@ -18,19 +18,20 @@ struct FormText
     // dresses them. A face picked above an empty box asks a question in the wrong order.
     #[Name("Text"), MultiLine]
     text: String
-    #[Name("Font"), FontName]
+    #[Name("Font"), FontName, Category("Text")]
     fontName: String
-    #[Name("Size"), SliderMinMax(MinFontSize, MaxFontSize)]
+    #[Name("Size"), SliderMinMax(MinFontSize, MaxFontSize), Category("Text")]
     fontSize: f32 = 48
-    #[Name("Style")]
+    #[Name("Style"), Category("Text")]
     fontStyle = FontFamilyStyle.Regular
-    // The mini-bar sets how the lines stand across the box; the inspector how they stand down it.
+    // The mini-bar sets how the lines stand in the box, across it and down it.
     #[Name("")]
     alignHorz = FormTextAlign.Center
-    #[Name("Vertical")]
+    #[Name("")]
     alignVert = FormTextAlign.Center
-    #[Name("Strength"), SliderMinMax(MinBoldSize, MaxBoldSize)]
-    boldSize:    f32 = 0
+    #[Name("Strength"), SliderMinMax(MinBoldSize, MaxBoldSize), Category("Text")]
+    boldSize: f32 = 0
+    #[Name("Line Spacing"), SliderMinMax(MinLineSpacing, MaxLineSpacing), Category("Text")]
     lineSpacing: f32 = 14
 
     #[Serialization.NoSerialize]

@@ -56,7 +56,7 @@ impl ListingView
 {
     const Padding     = 4.0      // Air above the first row and under the last one.
     const NoteGap     = 24.0     // Air between the last row and the note.
-    const LineSpacing = 8.0      // Air added to the height of the face, as the source editor has it.
+    const LineSpacing = 6.0      // Air added to the height of the face, as the source editor has it: rows of 25.
 
     // Creates an empty listing in a scrolling frame of `parent`; the caller places `result.scroll`.
     func create(parent: *Wnd, id: WndId? = null)->*ListingView

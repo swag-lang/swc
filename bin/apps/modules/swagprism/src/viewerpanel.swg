@@ -64,7 +64,7 @@ impl ViewerPanel
 {
     const MinWidth  = 300.0
     const CompareHeaderHeight = 44.0     // A header carrying the count of the instructions, large.
-    const HeaderGap = 20.0               // Air between the header and what it heads.
+    const HeaderGap = 16.0               // Air between the header and what it heads.
     const CountSize = 32'u32             // Size of the count heading a compared build.
 
     // Builds a panel showing the microcode viewer, with its header and build options.

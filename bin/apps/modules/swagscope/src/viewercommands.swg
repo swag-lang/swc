@@ -81,8 +81,16 @@ impl ViewerWindow
             {
                 let section = results.addSection(appStrings().lens_File)
                 window.lens.addCommandRows(section,
-                                           [ViewerCommands.Open, ViewerCommands.Explore, ViewerCommands.PreviousFile,
-                                            ViewerCommands.NextFile, ViewerCommands.Information, ViewerCommands.OpenWith],
+                                           [ViewerCommands.Open, ViewerCommands.Explore, ViewerCommands.Close,
+                                            ViewerCommands.PreviousFile, ViewerCommands.NextFile, ViewerCommands.Information,
+                                            ViewerCommands.OpenWith],
+                                           enabledOnly: true)
+            })
+            .addRestSource(func|window = me|(results)
+            {
+                let section = results.addSection(appStrings().lens_View)
+                window.lens.addCommandRows(section,
+                                           [ViewerCommands.SidePanel, ViewerCommands.FullScreen],
                                            enabledOnly: true)
             })
             .addSource(.None, func|window = me|(results) { window.describeViewerChoices(results) })

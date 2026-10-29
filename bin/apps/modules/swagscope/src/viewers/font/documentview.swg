@@ -6,8 +6,18 @@ using Core, Pixel, Gui, TrueType
 private
 {
     // Air around the document, and the width the pixel-size label reserves beside a specimen line.
-    const ContentInset     = 32.0
-    const SampleLabelWidth = 48.0
+    const ContentInset     = 48.0
+    const SampleLabelWidth = 40.0
+
+    // The specimen page: the size of its large "Aa", of the family's name, the width of its left
+    // column, the air between the two columns, and the pitch of the row of glyphs.
+    const SpecimenSize = 160'u32
+    const FamilySize   = 28'u32
+    const LeftColumn   = 400.0
+    const ColumnGap    = 64.0
+    const RowGlyphSize = 22'u32
+    const RowPitch     = 34.0
+    const WideWidth    = 900.0
 
     // Air between the two bands of the page, between a caption and what it names, and between two
     // specimen lines.
@@ -27,8 +37,13 @@ private
     const GlyphSize   = 40'u32
     const CaptionSize = 12'u32
     const CodeSize    = 11'u32
-    const SampleCount = 4
-    const SampleSizes: [SampleCount] u32 = [22, 32, 46, 64]
+    const SampleCount = 5
+    const SampleSizes: [SampleCount] u32 = [64, 36, 22, 15, 11]
+
+    // The glyphs the row under the name shows, those the face maps, and the one chosen in it.
+    const RowGlyphs: [12] rune = ['A', 'g', 'ß', 'é', 'ç', 'Ω', '&', '@', '€', '≠', '→', '3']
+    const ChosenGlyph: rune = 'é'
+
 
     const CharacterPageSize = 192'u64
     const FirstCharacter    = 0x20'u32
@@ -82,6 +97,14 @@ struct DocumentCell
 // have been measured; a constant would work for one face and let a tall one overlap.
 struct DocumentLayout
 {
+    wide:       bool        // Whether the specimen stands in two columns beside the name.
+    aaTop:      f32         // Top of the large "Aa".
+    tabsTop:    f32         // Top of the style tabs.
+    glyphsTop:  f32         // Top of the glyph-row caption.
+    rowTop:     f32         // Top of the row of glyphs.
+    glyphNameTop: f32       // Top of the line naming the chosen glyph.
+    sampleLeft: f32         // Left edge of the specimen lines.
+    sampleWidth: f32        // Width the specimen lines may take.
     nameTop:    f32         // Top of the family name.
     metricsTop: f32         // Top of the style, version, glyph count and units-per-em line.
     noticeTop:  f32         // Top of the designer and copyright line, when the face names either.
@@ -181,31 +204,76 @@ private impl DocumentView
     // the view would only duplicate `SampleSizes` in a second place.
     mtd sampleFont(size: u32)->*Font => .app().renderer.fontCache().createFont(.typeFace, size)
 
-    // Paints the font's family and metrics, then the sample text at each of `SampleSizes`.
+    // Paints the specimen page: a large "Aa" in the face, the family's name over its identity and
+    // its style as a tab, the row of glyphs with the chosen one on the Arc ground and its code,
+    // then the sample text at each of `SampleSizes`, each led by its size in mono — beside that
+    // column on a wide page, under it otherwise.
     mtd paintSpecimen(painter: *Painter)
     {
         let colors = .themeColors()
         let family = .face!.familyName
         let style  = .face.styleName.isEmpty() ? texts().ui_Regular : .face.styleName.toString()
+        let left   = ContentInset
 
-        painter.drawString(ContentInset, .layout.nameTop, family, .fontName, colors.label_Text)
+        painter.drawString(left - 4, .layout.aaTop, "Aa", .sampleFont(SpecimenSize), colors.text)
+        let familyFont = .theme().createDefaultFont(FamilySize, .Bold)
+        painter.drawString(left, .layout.nameTop, family, familyFont, colors.text)
         let version  = .versionText()
-        let identity = version.count ? Format.toString("% · %", style, version) : String.from(style)
+        let identity = version.count ? Format.toString("TrueType · %", version) : String.from("TrueType")
         let metrics  = Format.toString(texts().ui_Metrics, identity, .face.glyphCount, .face.unitsPerEm)
-        painter.drawString(ContentInset, .layout.metricsTop, metrics, .fontCode, colors.label_TextFaint)
-        let notice = .noticeText()
-        if notice.count do
-            painter.drawString(ContentInset, .layout.noticeTop, notice, .fontCode, colors.label_TextFaint)
-        painter.drawString(ContentInset, .layout.captionTop, texts().ui_Specimen, .fontLabel, colors.label_TextFaint)
+        painter.drawString(left, .layout.metricsTop, metrics, .fontCode, colors.faintText)
 
+        // The style is a tab, the one in use.
+        let tabFont  = .theme().createDefaultFont(13)
+        let tabWidth = Painter.measureString(style, tabFont).width
+        painter.drawString(left, tabFont.opticalLineTop(.layout.tabsTop + 10), style, tabFont, colors.text)
+        painter.fillRect(Math.Rectangle{left, .layout.tabsTop + 22, tabWidth, 2}, colors.arc)
+
+        // The row of glyphs, the chosen one on the Arc ground.
+        SectionLabel.paint(me, painter, Math.Rectangle{left, .layout.glyphsTop, LeftColumn, .fontLabel.height}, texts().ui_Glyphs)
+        let glyphFont = .sampleFont(RowGlyphSize)
+        let radius    = .themeMetrics().corner_Control
+        var x = left
+        var chosen = Swag.U32.Max
+        for glyph in RowGlyphs where .face.hasChar(glyph)
+        {
+            var text: String
+            text.append(glyph)
+            let width = Math.max(Painter.measureString(text, glyphFont).width, 14)
+            if x + width > left + LeftColumn do
+                break
+            let cell = Math.Rectangle{x - 6, .layout.rowTop, width + 12, RowPitch}
+            if glyph == ChosenGlyph or (chosen == Swag.U32.Max and glyph == RowGlyphs[0] and not .face.hasChar(ChosenGlyph))
+            {
+                chosen = cast(u32, glyph)
+                painter.fillRoundRect(cell, radius, radius, colors.selection)
+            }
+
+            painter.drawString(x, glyphFont.opticalLineTop(cell.vertCenter()), text, glyphFont, colors.text)
+            x += width + 18
+        }
+
+        if chosen != Swag.U32.Max
+        {
+            var text: String
+            text.append(cast(rune, chosen))
+            let line = Format.toString("% · U+%{X04}", text, chosen)
+            painter.drawString(left, .layout.glyphNameTop, line, .fontCode, colors.faintText)
+        }
+
+        // The sample at each size, its size in mono before it.
         let sample = .sampleEdit.text()
+        painter.pushClippingRect(Math.Rectangle{.layout.sampleLeft, 0, .layout.sampleWidth + SampleLabelWidth, .layout.mapTop})
         for size, index in SampleSizes
         {
-            let top      = .layout.sampleTops[index]
-            let sizeText = Format.toString("% px", size)
-            painter.drawString(ContentInset, top + CellPadding, sizeText, .fontCode, colors.label_TextFaint)
-            painter.drawString(ContentInset + SampleLabelWidth, top, sample, .sampleFont(size), colors.label_Text)
+            let top  = .layout.sampleTops[index]
+            let font = .sampleFont(size)
+            let sizeText = Format.toString("%", size)
+            painter.drawString(.layout.sampleLeft, font.opticalLineTop(top + font.height * 0.5) + (font.height - .fontCode.height) * 0.35, sizeText, .fontCode, colors.faintText)
+            painter.drawString(.layout.sampleLeft + SampleLabelWidth, top, sample, font, colors.text)
         }
+
+        painter.popClippingRect()
     }
 
     // Draws the cells the viewport crosses, `band` being the document band it shows.
@@ -372,22 +440,42 @@ impl DocumentView
     // Measures every band of the page for the current width, then republishes the scrollable height.
     mtd refreshLayout()
     {
-        var y = ContentInset
+        let client = .clientRect()
+        .layout.wide = client.width >= WideWidth
+
+        // The left column: "Aa", the name, the identity, the style, the row of glyphs.
+        // The "Aa" stands on its own ink: the room a face keeps above its capitals is left out.
+        let aa = .sampleFont(SpecimenSize)
+        var y  = ContentInset
+        .layout.aaTop = y - Math.round(aa.height * 0.2)
+        y = .layout.aaTop + aa.height
         .layout.nameTop = y
-        y += .fontName.height
-
-        .layout.metricsTop = y
+        y += .theme().createDefaultFont(FamilySize, .Bold).height
+        .layout.metricsTop = y + 2
+        y += .fontCode.height + 18
+        .layout.tabsTop = y
+        y += 24 + 28
+        .layout.glyphsTop = y
+        y += .fontLabel.height + 8
+        .layout.rowTop = y
+        y += RowPitch + 8
+        .layout.glyphNameTop = y
         y += .fontCode.height
-        if .face and .noticeText().count
+        let leftBottom = y
+
+        // The specimen lines: beside the column on a wide page, under it otherwise.
+        if .layout.wide
         {
-            .layout.noticeTop = y + 4
-            y += .fontCode.height + 4
+            .layout.sampleLeft  = ContentInset + LeftColumn + ColumnGap
+            .layout.sampleWidth = Math.max(client.width - .layout.sampleLeft - SampleLabelWidth - ContentInset, 120)
+            y = ContentInset + 16
         }
-
-        y += SectionGap
-
-        .layout.captionTop = y
-        y += .fontLabel.height + CaptionGap
+        else
+        {
+            .layout.sampleLeft  = ContentInset
+            .layout.sampleWidth = Math.max(client.width - 2 * ContentInset - SampleLabelWidth, 120)
+            y = leftBottom + SectionGap
+        }
 
         for size, index in SampleSizes
         {
@@ -395,17 +483,17 @@ impl DocumentView
             y += .sampleFont(size).height + SampleGap
         }
 
-        .layout.mapTop     = y - SampleGap + SectionGap
+        y = Math.max(y - SampleGap, leftBottom)
+        .layout.captionTop = 0
+        .layout.mapTop     = y + SectionGap
         .layout.gridTop    = .layout.mapTop + .fontLabel.height + CaptionGap
         .layout.cellHeight = 3 * CellPadding + .fontGlyph.height + .fontCode.height
 
-        let client = .clientRect()
         let usable = Math.max(client.width - 2 * ContentInset, CellWidth)
         .layout.columns = Math.max(1, cast(u32, ((usable + CellGap) / (CellWidth + CellGap))))
         .layout.rows    = (.cells.count + .layout.columns - 1) / .layout.columns
 
-        // The grid starts on the same edge as the name, the specimen, and the section captions, so
-        // the page reads as one column.
+        // The grid starts on the same edge as the name, so the page reads as one column.
         .layout.gridLeft = ContentInset
 
         var grid = .fontCode.height

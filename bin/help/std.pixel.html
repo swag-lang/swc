@@ -1006,7 +1006,7 @@ layer.<span class="SFct">draw</span>({dstRect: <span class="SCst"><a href="std.c
 <p><a href="#Pixel_Testing_assertImageGolden">Pixel.Testing.assertImageGolden</a> stores a rendered PNG beside the calling test. The default comparison is exact; pass <a href="#Pixel_Testing_ImageGoldenOptions">Pixel.Testing.ImageGoldenOptions</a> only when a workflow has a justified bounded tolerance.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">let</span> image = cpu.<span class="SFct">surfaceImage</span>()
 <span class="SCst"><a href="#namespace_Pixel_Testing">Testing</a></span>.<span class="SFct">assertImageGolden</span>(&amp;image, <span class="SStr">"toolbar.enabled"</span>)</span></div>
-<p>The first run creates <span class="code-inline">goldens/toolbar.enabled.png</span> and passes so the new file can be reviewed. A mismatch fails and writes <span class="code-inline">toolbar.enabled.actual.png</span>. After reviewing both images, <span class="code-inline">swc tools\goldens.swgs</span> promotes pending snapshots.</p>
+<p>The first run creates <span class="code-inline">goldens/toolbar.enabled.png</span> and passes so the new file can be reviewed. A mismatch fails and writes <span class="code-inline">toolbar.enabled.actual.png</span>. After reviewing both images, <span class="code-inline">tools\goldens.bat accept</span> promotes pending snapshots.</p>
 <p>Use <a href="#Pixel_Testing_assertImagesNear">Pixel.Testing.assertImagesNear</a> when two backends render the same scene in one test. It writes both images on failure. The channel-delta limit absorbs small rounding differences; the different-pixel limit separately bounds raster-edge outliers, so neither tolerance can hide a broad rendering regression.</p>
 <p><a href="#Pixel_RenderCpu">Pixel.RenderCpu</a> interprets built-in shapes, brushes, textures, clipping, blending, bitmap and MSDF text effects, render targets, blur, and supersampling. Custom GLSL shaders remain OpenGL-only. Keep a small OpenGL integration suite for shader compiler, driver, context, and presentation coverage, and compare its portable scenes with CPU output.</p>
 <div class="blockquote blockquote-warning">
@@ -3786,7 +3786,11 @@ painter.<span class="SFct">drawString</span>(<span class="SNum">20</span>, <span
 </td></tr>
 <tr><td id="Pixel_FontFamily_italic" class="code-type">italic</td><td class="code-type">*<a href="#Pixel_Font">Pixel.Font</a>?</td><td><p>Italic face, when available.</p>
 </td></tr>
+<tr><td id="Pixel_FontFamily_light" class="code-type">light</td><td class="code-type">*<a href="#Pixel_Font">Pixel.Font</a>?</td><td><p>Light face, for a large figure read at a glance, when available.</p>
+</td></tr>
 <tr><td id="Pixel_FontFamily_regular" class="code-type">regular</td><td class="code-type">*<a href="#Pixel_Font">Pixel.Font</a>?</td><td><p>Regular face, when available.</p>
+</td></tr>
+<tr><td id="Pixel_FontFamily_semiBold" class="code-type">semiBold</td><td class="code-type">*<a href="#Pixel_Font">Pixel.Font</a>?</td><td><p>Semibold face, for a name that leads a row, when available.</p>
 </td></tr>
 </tbody>
 </table>
@@ -5795,7 +5799,7 @@ label.<span class="SFct">compute</span>()</span></div>
 <table class="table-enumeration api-summary">
 <thead><tr><th>Name</th><th>Type</th><th>Description</th></tr></thead>
 <tbody>
-<tr><td id="Pixel_SystemFontFamilyInfo_faces" class="code-type">faces</td><td class="code-type">[4] <a href="#Pixel_SystemFontFaceInfo">Pixel.SystemFontFaceInfo</a></td><td><p>Face descriptor indexed by <a href="#Pixel_FontFamilyStyle">Pixel.FontFamilyStyle</a>.</p>
+<tr><td id="Pixel_SystemFontFamilyInfo_faces" class="code-type">faces</td><td class="code-type">[6] <a href="#Pixel_SystemFontFaceInfo">Pixel.SystemFontFaceInfo</a></td><td><p>Face descriptor indexed by <a href="#Pixel_FontFamilyStyle">Pixel.FontFamilyStyle</a>.</p>
 </td></tr>
 <tr><td id="Pixel_SystemFontFamilyInfo_name" class="code-type">name</td><td class="code-type"><a href="std.core.html#Core_String">Core.String</a></td><td><p>Family name.</p>
 </td></tr>
@@ -7061,7 +7065,7 @@ doc.<span class="SFct">addPath</span>(path, <span class="SCst"><a href="#Pixel_C
 </tbody>
 </table>
 <section class="api-symbol">
-<div class="api-item api-item-enum"><span id="Pixel_FontFamilyStyle" class="api-item-title"><span class="api-item-title-kind">enum</span> <span class="api-item-title-strong">Pixel.FontFamilyStyle</span> <a class="api-item-permalink" href="#Pixel_FontFamilyStyle" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/pixel/src/text/fontfamily.swg#L19">src</a></div>
+<div class="api-item api-item-enum"><span id="Pixel_FontFamilyStyle" class="api-item-title"><span class="api-item-title-kind">enum</span> <span class="api-item-title-strong">Pixel.FontFamilyStyle</span> <a class="api-item-permalink" href="#Pixel_FontFamilyStyle" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/pixel/src/text/fontfamily.swg#L21">src</a></div>
 <p>Style slot within a <a href="#Pixel_FontFamily">Pixel.FontFamily</a>.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">enum</span> <span class="SCst"><a href="#Pixel_FontFamilyStyle">FontFamilyStyle</a></span></span></div>
 </section>
@@ -7075,7 +7079,11 @@ doc.<span class="SFct">addPath</span>(path, <span class="SCst"><a href="#Pixel_C
 </td></tr>
 <tr><td id="Pixel_FontFamilyStyle_Italic" class="code-type">Italic</td><td><p>Slanted text with normal weight.</p>
 </td></tr>
+<tr><td id="Pixel_FontFamilyStyle_Light" class="code-type">Light</td><td><p>Upright text lighter than regular.</p>
+</td></tr>
 <tr><td id="Pixel_FontFamilyStyle_Regular" class="code-type">Regular</td><td><p>Upright text with normal weight.</p>
+</td></tr>
+<tr><td id="Pixel_FontFamilyStyle_SemiBold" class="code-type">SemiBold</td><td><p>Upright text between regular and bold.</p>
 </td></tr>
 </tbody>
 </table>
@@ -8366,13 +8374,13 @@ cache.<span class="SFct">setFallbackTypeFaces</span>([symbols], <span class="SKw
 <div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SFct">findSystemFont</span>(fontFamily: <span class="STpe">string</span>)-&gt;<span class="SCst"><a href="#Pixel_SystemFontFamilyInfo">SystemFontFamilyInfo</a></span></span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Pixel_FontFamily_getFont" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">FontFamily.getFont</span> <a class="api-item-permalink" href="#Pixel_FontFamily_getFont" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/pixel/src/text/fontfamily.swg#L33">src</a></div>
+<div class="api-item api-item-func"><span id="Pixel_FontFamily_getFont" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">FontFamily.getFont</span> <a class="api-item-permalink" href="#Pixel_FontFamily_getFont" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/pixel/src/text/fontfamily.swg#L38">src</a></div>
 <p>Returns the font of the requested style, falling back to the closest available face.</p>
-<p>Bold-italic falls back to italic, then bold, then regular; bold and italic fall back to regular. Returns <span class="code-inline">null</span> when no candidate slot is set.</p>
+<p>Bold-italic falls back to italic, then bold, then regular; semibold falls back to bold, then regular; bold, italic and light fall back to regular. Returns <span class="code-inline">null</span> when no candidate slot is set.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SKwd">const</span> <span class="SFct">getFont</span>(style: <span class="SCst"><a href="#Pixel_FontFamilyStyle">FontFamilyStyle</a></span>)-&gt;*<span class="SCst"><a href="#Pixel_Font">Font</a></span>?</span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Pixel_FontFamily_setFont" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">FontFamily.setFont</span> <a class="api-item-permalink" href="#Pixel_FontFamily_setFont" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/pixel/src/text/fontfamily.swg#L68">src</a></div>
+<div class="api-item api-item-func"><span id="Pixel_FontFamily_setFont" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">FontFamily.setFont</span> <a class="api-item-permalink" href="#Pixel_FontFamily_setFont" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/pixel/src/text/fontfamily.swg#L87">src</a></div>
 <p>Assigns a font to the given style slot.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">setFont</span>(fnt: *<span class="SCst"><a href="#Pixel_Font">Font</a></span>, style: <span class="SCst"><a href="#Pixel_FontFamilyStyle">FontFamilyStyle</a></span>)</span></div>
 </section>
@@ -8643,12 +8651,12 @@ cache.<span class="SFct">setFallbackTypeFaces</span>([symbols], <span class="SKw
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">grayscale</span>(factor: <span class="STpe">f32</span> = <span class="SNum">1</span>)</span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Pixel_Image_halve" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Image.halve</span> <a class="api-item-permalink" href="#Pixel_Image_halve" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/pixel/src/image/transform/halfsize.swg#L62">src</a></div>
+<div class="api-item api-item-func"><span id="Pixel_Image_halve" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Image.halve</span> <a class="api-item-permalink" href="#Pixel_Image_halve" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/pixel/src/image/transform/halfsize.swg#L134">src</a></div>
 <p>Halves both image dimensions with a 2x2 box filter.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">halve</span>()</span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Pixel_Image_halved" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Image.halved</span> <a class="api-item-permalink" href="#Pixel_Image_halved" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/pixel/src/image/transform/halfsize.swg#L71">src</a></div>
+<div class="api-item api-item-func"><span id="Pixel_Image_halved" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Image.halved</span> <a class="api-item-permalink" href="#Pixel_Image_halved" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/pixel/src/image/transform/halfsize.swg#L143">src</a></div>
 <p>Returns a copy with both dimensions halved by a 2x2 box filter.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SKwd">const</span> <span class="SFct">halved</span>()-&gt;<span class="SCst"><a href="#Pixel_Image">Image</a></span></span></div>
 </section>
@@ -9713,10 +9721,10 @@ shape.<span class="SFct">intersect</span>(&amp;frame)</span></div>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">fillRoundRect</span>(rect: <span class="SCst"><a href="std.core.html#namespace_Core_Math">Math</a></span>.<span class="SCst">Rectangle</span>, topLeft, topRight, bottomRight, bottomLeft: <span class="STpe">f32</span>, color: <span class="SCst"><a href="#Pixel_Color">Color</a></span>)</span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Pixel_Painter_fillShadow" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Painter.fillShadow</span> <a class="api-item-permalink" href="#Pixel_Painter_fillShadow" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/pixel/src/painter/drawrect.swg#L306">src</a></div>
+<div class="api-item api-item-func"><span id="Pixel_Painter_fillShadow" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Painter.fillShadow</span> <a class="api-item-permalink" href="#Pixel_Painter_fillShadow" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/pixel/src/painter/drawrect.swg#L305">src</a></div>
 <p>Fills a soft shadow around a rounded rectangle, from a faint outer edge in to its border.</p>
-<p><span class="code-inline">spread</span> is how far the shadow reaches beyond the shape, in logical units, and <span class="code-inline">color</span>'s alpha is the darkening it reaches where it meets the shape — not the alpha of any one part of it. Nothing is drawn inside the shape, which the caller paints over the result.</p>
-<p>The shadow is built out of nested rings. They are filled shapes stacked on one another, so what a pixel ends up with is the product of everything painted over it: handing each ring the alpha the profile asks for at its own distance would darken the shadow with every ring added, and the whole picture would change the moment the ring count were tuned for smoothness. Each ring's alpha is solved from what the stack has already reached instead, so the accumulated profile is the same at any ring count and the count is a pure quality knob: one ring per device pixel of spread, below which the gradient bands and above which the extra rings land on a pixel that is already covered.</p>
+<p><span class="code-inline">spread</span> is how far the shadow reaches beyond the shape, in logical units, and <span class="code-inline">color</span>'s alpha is the darkening it reaches where it meets the shape. The shape itself is filled at that strength, so a shadow offset from the shape that casts it leaves no gap beside it; paint the shape over the result.</p>
+<p>The ramp is smoothstep: a long faint tail where it meets the ground and a flat shoulder against the shape, which is what reads as air under it rather than as an outline drawn around it. It is painted as eight gradient tiles — one along each side, one around each corner — that meet on the device grid, so every pixel is blended exactly once. A stack of nested translucent rings drew the same ramp, but each ring rounded the ground it landed on, and a wide shadow, one ring per device pixel, came out much darker than it was asked to be.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">fillShadow</span>(rect: <span class="SCst"><a href="std.core.html#namespace_Core_Math">Math</a></span>.<span class="SCst">Rectangle</span>, cornerRadius, spread: <span class="STpe">f32</span>, color: <span class="SCst"><a href="#Pixel_Color">Color</a></span>)</span></div>
 </section>
 <section class="api-symbol">
@@ -10525,7 +10533,7 @@ painter.<span class="SFct">resetClippingRegion</span>()</span></div>
 <p>Compares the display list recorded by <span class="code-inline">painter</span> against the golden named <span class="code-inline">name</span>.</p>
 <p>The painter is serialized with <a href="#Pixel_Testing_dumpPainter">Pixel.Testing.dumpPainter</a>, so this asserts on the <i>commands</i> a drawing emits, not on the pixels it would produce: it needs no GPU and no window, and its result is identical on every machine.</p>
 <p>Goldens live in a <span class="code-inline">goldens</span> folder next to the calling source file, one <span class="code-inline">.txt</span> file per name. <span class="code-inline">name</span> may contain <span class="code-inline">/</span> to group goldens in sub-folders.</p>
-<p>There is no recording mode and no flag to pass. A name with no golden yet writes one and passes, so a new test starts by producing its reference; the file then shows up as untracked, which is where it gets reviewed and committed. A name whose golden no longer matches writes the produced text next to it as <span class="code-inline">&lt;name&gt;.actual.txt</span>, prints the first differing line, and fails. Accepting the new output is therefore a copy, which <span class="code-inline">swc tools/goldens.swgs</span> does in bulk.</p>
+<p>There is no recording mode and no flag to pass. A name with no golden yet writes one and passes, so a new test starts by producing its reference; the file then shows up as untracked, which is where it gets reviewed and committed. A name whose golden no longer matches writes the produced text next to it as <span class="code-inline">&lt;name&gt;.actual.txt</span>, prints the first differing line, and fails. Accepting the new output is therefore a copy, which <span class="code-inline">tools/goldens.bat accept</span> does in bulk.</p>
 <p>These checks remain active when Pixel is built as a release dependency.</p>
 <p>Both writes land in the module source tree, which a sandboxed run reaches only through the corpus 'swc test' grants it. See <a href="std.core.html#Core_Env_grantCorpus">Core.Env.grantCorpus</a>.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SFct">assertGolden</span>(painter: <span class="SKwd">const</span> *<span class="SCst"><a href="#Pixel_Painter">Painter</a></span>, name: <span class="STpe">string</span>, level = <span class="SCst"><a href="#Pixel_Testing_DumpLevel">DumpLevel</a></span>.<span class="SCst"><a href="#Pixel_Testing_DumpLevel_Full">Full</a></span>, loc = <span class="SCmp">#callerlocation</span>)</span></div>
@@ -11384,7 +11392,9 @@ painter.<span class="SFct">resetClippingRegion</span>()</span></div>
 "v|Pixel.FontFamily.bold|Pixel_FontFamily_bold|Bold face, when available.",
 "v|Pixel.FontFamily.boldItalic|Pixel_FontFamily_boldItalic|Combined bold and italic face, when available.",
 "v|Pixel.FontFamily.italic|Pixel_FontFamily_italic|Italic face, when available.",
+"v|Pixel.FontFamily.light|Pixel_FontFamily_light|Light face, for a large figure read at a glance, when available.",
 "v|Pixel.FontFamily.regular|Pixel_FontFamily_regular|Regular face, when available.",
+"v|Pixel.FontFamily.semiBold|Pixel_FontFamily_semiBold|Semibold face, for a name that leads a row, when available.",
 "s|Pixel.GlyphAtlas|Pixel_GlyphAtlas|Pixel storage for one page of cached glyph bitmaps.",
 "s|Pixel.GlyphCache|Pixel_GlyphCache|Stores glyphs shared by compatible Pixel.Font views.",
 "s|Pixel.GlyphDesc|Pixel_GlyphDesc|Cached placement and metrics for one rendered glyph.",
@@ -11784,7 +11794,9 @@ painter.<span class="SFct">resetClippingRegion</span>()</span></div>
 "k|Pixel.FontFamilyStyle.Bold|Pixel_FontFamilyStyle_Bold|Upright text with bold weight.",
 "k|Pixel.FontFamilyStyle.BoldItalic|Pixel_FontFamilyStyle_BoldItalic|Slanted text with bold weight.",
 "k|Pixel.FontFamilyStyle.Italic|Pixel_FontFamilyStyle_Italic|Slanted text with normal weight.",
+"k|Pixel.FontFamilyStyle.Light|Pixel_FontFamilyStyle_Light|Upright text lighter than regular.",
 "k|Pixel.FontFamilyStyle.Regular|Pixel_FontFamilyStyle_Regular|Upright text with normal weight.",
+"k|Pixel.FontFamilyStyle.SemiBold|Pixel_FontFamilyStyle_SemiBold|Upright text between regular and bold.",
 "e|Pixel.FontRenderMode|Pixel_FontRenderMode|Selects the glyph rendering technique used by a Pixel.Font.",
 "k|Pixel.FontRenderMode.Auto|Pixel_FontRenderMode_Auto|Select bitmap or MSDF rendering from the effective on-screen size.",
 "k|Pixel.FontRenderMode.Bitmap|Pixel_FontRenderMode_Bitmap|Rasterize crisp grayscale glyphs at the exact pixel size.",

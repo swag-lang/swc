@@ -28,6 +28,9 @@ public func getSpecialDirectory(what: SpecialDirectory)->String
 // Returns an empty string when the directory cannot be resolved.
 public func realSpecialDirectory(what: SpecialDirectory)->String
 {
+    if what == SpecialDirectory.Downloads do
+        return downloadsDirectory()
+
     if what == SpecialDirectory.Temp
     {
         var a: [MAX_PATH] u8
@@ -48,6 +51,7 @@ public func realSpecialDirectory(what: SpecialDirectory)->String
     case .Temp:           unreachable
     case .Font:           v = CSIDL_FONTS
     case .Desktop:        v = CSIDL_DESKTOP
+    case .Downloads:      unreachable
     case .CommonAppData:  v = CSIDL_COMMON_APPDATA
     case .CommonPictures: v = CSIDL_COMMON_PICTURES
     case .CommonVideos:   v = CSIDL_COMMON_VIDEO
@@ -70,6 +74,32 @@ public func realSpecialDirectory(what: SpecialDirectory)->String
     }
 
     return result
+}
+
+// Resolves Downloads through the shell so a redirected folder keeps its configured path.
+private func downloadsDirectory()->String
+{
+    let initResult = Win32.CoInitializeEx(null, Win32.COINIT_APARTMENTTHREADED)
+    if initResult < 0 and initResult != Win32.RPC_E_CHANGED_MODE do
+        return ""
+    if initResult >= 0 do
+        defer Win32.CoUninitialize()
+
+    var nativePath: LPWSTR?
+    var folderId = Win32.FOLDERID_Downloads
+    let result = Win32.SHGetKnownFolderPath(&folderId, 0, null, &nativePath)
+    if nativePath do
+        defer Win32.CoTaskMemFree(cast(*void?, nativePath))
+    if result != Win32.S_OK or not nativePath do
+        return ""
+
+    let pathBuffer = nativePath
+    var pathLength = 0'u64
+    while pathBuffer[pathLength] != 0 do
+        pathLength += 1
+    var path = Utf8.fromUtf16(Swag.makeSlice(pathBuffer, pathLength))
+    Path.normalize(&path)
+    return path
 }
 
 // Returns snapshots of all active display monitors, ordered from left to right.

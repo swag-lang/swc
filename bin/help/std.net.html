@@ -1,0 +1,807 @@
+<!DOCTYPE html>
+<html lang="en" style="--swag-code-default: #222222">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Module net</title>
+<link rel="icon" type="image/svg+xml" href="favicon.svg">
+<link rel="stylesheet" type="text/css" href="css/style.css">
+</head>
+<body>
+<a class="skip-link" href="#content">Skip to content</a>
+<header class="site-header">
+<nav class="site-nav" aria-label="Main navigation">
+<a class="site-brand" href="index.html">SWAG</a>
+<div class="site-links">
+<a href="index.html">Home</a>
+<a href="language.html">Documentation</a>
+<a href="swag.runtime.html">Runtime</a>
+<a href="std.html">Std</a>
+<a href="https://www.youtube.com/channel/UC9dkBu1nNfJDxUML7r7QH1Q">YouTube</a>
+<a href="https://github.com/swag-lang/swc">GitHub</a>
+</div>
+</nav>
+</header>
+<main class="container">
+<aside class="left"><nav class="left-page" aria-label="Contents">
+<h2>Table of Contents</h2>
+<h3>Start here</h3>
+<ul>
+<li><a href="#overview">Overview</a></li>
+</ul>
+<h3>API reference</h3>
+<ul>
+<li><a href="#api-reference">At a glance</a></li>
+<li><a href="#detailed-reference">Detailed reference</a></li>
+</ul>
+<details class="toc-group" open>
+<summary><span class="toc-label">Namespaces</span><span class="toc-count">3</span></summary>
+<ul class="toc-symbols">
+<li><a href="#summary-namespaces">All Namespaces</a></li>
+<li><a href="#namespace_Net">Net</a></li>
+<li><a href="#namespace_Net_Http">Net.Http</a></li>
+<li><a href="#namespace_Net_Url">Net.Url</a></li>
+</ul>
+</details>
+<details class="toc-group" open>
+<summary><span class="toc-label">Types</span><span class="toc-count">8</span></summary>
+<ul class="toc-symbols">
+<li><a href="#summary-types">All Types</a></li>
+<li><a href="#Net_Http_GetOptions">Http.GetOptions</a></li>
+<li><a href="#Net_Http_Header">Http.Header</a></li>
+<li><a href="#Net_Http_Response">Http.Response</a></li>
+<li><a href="#Net_Endpoint">Net.Endpoint</a></li>
+<li><a href="#Net_NetworkError">Net.NetworkError</a></li>
+<li><a href="#Net_TcpListener">Net.TcpListener</a></li>
+<li><a href="#Net_TcpStream">Net.TcpStream</a></li>
+<li><a href="#Net_Url_HttpTarget">Url.HttpTarget</a></li>
+</ul>
+</details>
+<details class="toc-group" open>
+<summary><span class="toc-label">Functions</span><span class="toc-count">15</span></summary>
+<ul class="toc-symbols">
+<li><a href="#summary-functions">All Functions</a></li>
+<li><a href="#Net_Http_get">Http.get</a></li>
+<li><a href="#Net_TcpListener_accept">TcpListener.accept</a></li>
+<li><a href="#Net_TcpListener_close">TcpListener.close</a></li>
+<li><a href="#Net_TcpListener_listen">TcpListener.listen</a></li>
+<li><a href="#Net_TcpListener_localEndpoint">TcpListener.localEndpoint</a></li>
+<li><a href="#Net_TcpListener_opDrop">TcpListener.opDrop</a></li>
+<li><a href="#Net_TcpStream_close">TcpStream.close</a></li>
+<li><a href="#Net_TcpStream_connect">TcpStream.connect</a></li>
+<li><a href="#Net_TcpStream_isOpen">TcpStream.isOpen</a></li>
+<li><a href="#Net_TcpStream_opDrop">TcpStream.opDrop</a></li>
+<li><a href="#Net_TcpStream_read">TcpStream.read</a></li>
+<li><a href="#Net_TcpStream_write">TcpStream.write</a></li>
+<li><a href="#Net_Url_decodeComponent">Url.decodeComponent</a></li>
+<li><a href="#Net_Url_encodeComponent">Url.encodeComponent</a></li>
+<li><a href="#Net_Url_parseHttp">Url.parseHttp</a></li>
+</ul>
+</details>
+</nav></aside>
+<section class="right"><article class="right-page" id="content">
+<section class="module-overview"><h1 id="overview">Module net</h1>
+<p>Net provides blocking IPv4 TCP connections, bounded HTTP GET requests and URL helpers.</p>
+<h2 id="overview_Connect_over_TCP">Connect over TCP</h2>
+<div class="code-block"><span class="SCde"><span class="SCmp">#import</span>(<span class="SStr">"net"</span>)
+<span class="SKwd">using</span> <span class="SCst"><a href="#namespace_Net">Net</a></span>
+
+<span class="SFct">#main</span>
+{
+    <span class="SKwd">var</span> connection = <span class="SKwd">try</span> <span class="SCst"><a href="#Net_TcpStream">TcpStream</a></span>.<span class="SFct">connect</span>({address: [<span class="SNum">127</span>, <span class="SNum">0</span>, <span class="SNum">0</span>, <span class="SNum">1</span>], port: <span class="SNum">8080</span>})
+    <span class="SKwd">let</span> request = <span class="SKwd">cast</span>(<span class="SKwd">const</span> [..] <span class="STpe">u8</span>, <span class="SStr">"hello"</span>)
+    <span class="SKwd">var</span> offset = <span class="SNum">0</span>'<span class="STpe">u64</span>
+    <span class="SLgc">while</span> offset &lt; request.count
+    {
+        <span class="SKwd">let</span> sent = <span class="SKwd">try</span> connection.<span class="SFct">write</span>(request[offset <span class="SLgc">to</span>])
+        <span class="SLgc">if</span> sent == <span class="SNum">0</span> <span class="SLgc">do</span>
+            <span class="SLgc">break</span>
+        offset += sent
+    }
+}</span></div>
+<p>Streams own their connections and close them on drop. Operations can fail and may transfer fewer bytes than requested. Networking is available on Windows in this implementation.</p>
+<h2 id="overview_Request_an_HTTPS_resource">Request an HTTPS resource</h2>
+<div class="code-block"><span class="SCde"><span class="SCmp">#import</span>(<span class="SStr">"net"</span>)
+<span class="SKwd">using</span> <span class="SCst">Core</span>, <span class="SCst"><a href="#namespace_Net">Net</a></span>
+
+<span class="SFct">#main</span>
+{
+    <span class="SKwd">let</span> target = <span class="SKwd">try</span> <span class="SCst"><a href="#namespace_Net_Url">Url</a></span>.<span class="SFct">parseHttp</span>(<span class="SStr">"https://example.com/?q=swag"</span>)
+    <span class="SKwd">let</span> response = <span class="SKwd">try</span> <span class="SCst"><a href="#namespace_Net_Http">Http</a></span>.<span class="SFct">get</span>(target.host, target.port, target.path, target.secure)
+    <span class="SLgc">if</span> response.status == <span class="SNum">200</span> <span class="SLgc">do</span>
+        <span class="SCst"><a href="std.core.html#namespace_Core_Console">Console</a></span>.<span class="SFct">println</span>(<span class="SKwd">cast</span>(<span class="STpe">string</span>, response.body.<span class="SFct">toSlice</span>()))
+}</span></div>
+<p>HTTPS uses the Windows trust store. Requests have bounded response bodies and return redirects without following them, so the caller can decide which destinations are acceptable.</p>
+</section>
+<section class="api-overview">
+<h2 id="api-reference">API reference</h2>
+<p>Use these summaries to find the right entry point. Every linked symbol also has one standalone, fully qualified reference entry below.</p>
+<h3 id="summary-namespaces">Namespaces</h3>
+<table class="api-summary">
+<thead><tr><th>Namespace</th></tr></thead>
+<tbody>
+<tr><td class="code-type"><a href="#namespace_Net">Net</a></td></tr>
+<tr><td class="code-type"><a href="#namespace_Net_Http">Net.Http</a></td></tr>
+<tr><td class="code-type"><a href="#namespace_Net_Url">Net.Url</a></td></tr>
+</tbody>
+</table>
+<h3 id="summary-types">Types</h3>
+<table class="api-summary">
+<thead><tr><th>Name</th><th>Kind</th><th>Description</th></tr></thead>
+<tbody>
+<tr><td class="code-type"><a href="#Net_Http_GetOptions">Http.GetOptions</a></td><td><span class="kind-chip kind-struct">struct</span></td><td><p>Limits and headers for a synchronous GET request.</p>
+</td></tr>
+<tr><td class="code-type"><a href="#Net_Http_Header">Http.Header</a></td><td><span class="kind-chip kind-struct">struct</span></td><td><p>One HTTP request header; both strings are borrowed for the duration of the request.</p>
+</td></tr>
+<tr><td class="code-type"><a href="#Net_Http_Response">Http.Response</a></td><td><span class="kind-chip kind-struct">struct</span></td><td><p>An HTTP response whose body storage is owned by the value.</p>
+</td></tr>
+<tr><td class="code-type"><a href="#Net_Endpoint">Net.Endpoint</a></td><td><span class="kind-chip kind-struct">struct</span></td><td><p>An IPv4 address and TCP port in host byte order.</p>
+</td></tr>
+<tr><td class="code-type"><a href="#Net_NetworkError">Net.NetworkError</a></td><td><span class="kind-chip kind-struct">struct</span></td><td><p>Reports a network operation failure with the host's diagnostic code.</p>
+</td></tr>
+<tr><td class="code-type"><a href="#Net_TcpListener">Net.TcpListener</a></td><td><span class="kind-chip kind-struct">struct</span></td><td><p>Owns a blocking TCP listener; it cannot be copied.</p>
+</td></tr>
+<tr><td class="code-type"><a href="#Net_TcpStream">Net.TcpStream</a></td><td><span class="kind-chip kind-struct">struct</span></td><td><p>Owns a blocking TCP connection; it cannot be copied.</p>
+</td></tr>
+<tr><td class="code-type"><a href="#Net_Url_HttpTarget">Url.HttpTarget</a></td><td><span class="kind-chip kind-struct">struct</span></td><td><p>The owned parts needed for an HTTP request to a DNS name or IPv4 address.</p>
+</td></tr>
+</tbody>
+</table>
+<h3 id="summary-functions">Functions</h3>
+<table class="api-summary">
+<thead><tr><th>Name</th><th>Description</th></tr></thead>
+<tbody>
+<tr><td class="code-type"><a href="#Net_Http_get">Http.get</a></td><td><p>Issues a bounded HTTP or HTTPS GET to <span class="code-inline">host</span>, <span class="code-inline">port</span> and an absolute request <span class="code-inline">path</span>.</p>
+</td></tr>
+<tr><td class="code-type"><a href="#Net_TcpListener_accept">TcpListener.accept</a></td><td><p>Blocks until a peer connects and returns an independently owned stream.</p>
+</td></tr>
+<tr><td class="code-type"><a href="#Net_TcpListener_close">TcpListener.close</a></td><td><p>Closes the listener; repeated calls do nothing.</p>
+</td></tr>
+<tr><td class="code-type"><a href="#Net_TcpListener_listen">TcpListener.listen</a></td><td><p>Binds an IPv4 endpoint and starts listening for connections.</p>
+</td></tr>
+<tr><td class="code-type"><a href="#Net_TcpListener_localEndpoint">TcpListener.localEndpoint</a></td><td><p>Returns the bound local address and port.</p>
+</td></tr>
+<tr><td class="code-type"><a href="#Net_TcpListener_opDrop">TcpListener.opDrop</a></td><td><p>Closes the listener when this owner is dropped.</p>
+</td></tr>
+<tr><td class="code-type"><a href="#Net_TcpStream_close">TcpStream.close</a></td><td><p>Closes the connection; repeated calls do nothing.</p>
+</td></tr>
+<tr><td class="code-type"><a href="#Net_TcpStream_connect">TcpStream.connect</a></td><td><p>Connects to an IPv4 endpoint, returning an owned blocking stream.</p>
+</td></tr>
+<tr><td class="code-type"><a href="#Net_TcpStream_isOpen">TcpStream.isOpen</a></td><td><p>Returns whether this stream still owns a connection.</p>
+</td></tr>
+<tr><td class="code-type"><a href="#Net_TcpStream_opDrop">TcpStream.opDrop</a></td><td><p>Closes the connection when this owner is dropped.</p>
+</td></tr>
+<tr><td class="code-type"><a href="#Net_TcpStream_read">TcpStream.read</a></td><td><p>Reads up to <span class="code-inline">buffer.count</span> bytes; zero indicates EOF or an empty buffer.</p>
+</td></tr>
+<tr><td class="code-type"><a href="#Net_TcpStream_write">TcpStream.write</a></td><td><p>Writes up to <span class="code-inline">buffer.count</span> bytes and returns the amount accepted by the host.</p>
+</td></tr>
+<tr><td class="code-type"><a href="#Net_Url_decodeComponent">Url.decodeComponent</a></td><td><p>Decodes percent escapes in one URL component into its original bytes.</p>
+</td></tr>
+<tr><td class="code-type"><a href="#Net_Url_encodeComponent">Url.encodeComponent</a></td><td><p>Percent-encodes bytes for one URL component using the RFC 3986 unreserved alphabet.</p>
+</td></tr>
+<tr><td class="code-type"><a href="#Net_Url_parseHttp">Url.parseHttp</a></td><td><p>Parses an absolute HTTP or HTTPS URL into owned request parts.</p>
+</td></tr>
+</tbody>
+</table>
+</section>
+<h2 id="detailed-reference">Detailed reference</h2>
+<h3 id="namespaces">Namespaces</h3>
+<section class="api-symbol">
+<div class="api-item api-item-namespace"><span id="namespace_Net" class="api-item-title"><span class="api-item-title-kind">namespace</span> <span class="api-item-title-strong">Net</span> <a class="api-item-permalink" href="#namespace_Net" aria-label="Permalink">#</a></span></div>
+<p>Public API declared directly in <span class="code-inline">Net</span>.</p>
+<h3 id="namespace_Net_namespaces">Namespaces</h3>
+<table class="api-summary">
+<thead><tr><th>Namespace</th></tr></thead>
+<tbody>
+<tr><td class="code-type"><a href="#namespace_Net_Http">Net.Http</a></td></tr>
+<tr><td class="code-type"><a href="#namespace_Net_Url">Net.Url</a></td></tr>
+</tbody>
+</table>
+<h3 id="namespace_Net_types">Types</h3>
+<table class="api-summary">
+<thead><tr><th>Name</th><th>Kind</th><th>Description</th></tr></thead>
+<tbody>
+<tr><td class="code-type"><a href="#Net_Endpoint">Net.Endpoint</a></td><td><span class="kind-chip kind-struct">struct</span></td><td><p>An IPv4 address and TCP port in host byte order.</p>
+</td></tr>
+<tr><td class="code-type"><a href="#Net_NetworkError">Net.NetworkError</a></td><td><span class="kind-chip kind-struct">struct</span></td><td><p>Reports a network operation failure with the host's diagnostic code.</p>
+</td></tr>
+<tr><td class="code-type"><a href="#Net_TcpListener">Net.TcpListener</a></td><td><span class="kind-chip kind-struct">struct</span></td><td><p>Owns a blocking TCP listener; it cannot be copied.</p>
+</td></tr>
+<tr><td class="code-type"><a href="#Net_TcpStream">Net.TcpStream</a></td><td><span class="kind-chip kind-struct">struct</span></td><td><p>Owns a blocking TCP connection; it cannot be copied.</p>
+</td></tr>
+</tbody>
+</table>
+</section>
+<section class="api-symbol">
+<div class="api-item api-item-namespace"><span id="namespace_Net_Http" class="api-item-title"><span class="api-item-title-kind">namespace</span> <span class="api-item-title-strong">Net.Http</span> <a class="api-item-permalink" href="#namespace_Net_Http" aria-label="Permalink">#</a></span></div>
+<p>Public API declared directly in <span class="code-inline">Net.Http</span>.</p>
+<h3 id="namespace_Net_Http_types">Types</h3>
+<table class="api-summary">
+<thead><tr><th>Name</th><th>Kind</th><th>Description</th></tr></thead>
+<tbody>
+<tr><td class="code-type"><a href="#Net_Http_GetOptions">Http.GetOptions</a></td><td><span class="kind-chip kind-struct">struct</span></td><td><p>Limits and headers for a synchronous GET request.</p>
+</td></tr>
+<tr><td class="code-type"><a href="#Net_Http_Header">Http.Header</a></td><td><span class="kind-chip kind-struct">struct</span></td><td><p>One HTTP request header; both strings are borrowed for the duration of the request.</p>
+</td></tr>
+<tr><td class="code-type"><a href="#Net_Http_Response">Http.Response</a></td><td><span class="kind-chip kind-struct">struct</span></td><td><p>An HTTP response whose body storage is owned by the value.</p>
+</td></tr>
+</tbody>
+</table>
+<h3 id="namespace_Net_Http_functions">Functions</h3>
+<table class="api-summary">
+<thead><tr><th>Name</th><th>Description</th></tr></thead>
+<tbody>
+<tr><td class="code-type"><a href="#Net_Http_get">Http.get</a></td><td><p>Issues a bounded HTTP or HTTPS GET to <span class="code-inline">host</span>, <span class="code-inline">port</span> and an absolute request <span class="code-inline">path</span>.</p>
+</td></tr>
+</tbody>
+</table>
+</section>
+<section class="api-symbol">
+<div class="api-item api-item-namespace"><span id="namespace_Net_Url" class="api-item-title"><span class="api-item-title-kind">namespace</span> <span class="api-item-title-strong">Net.Url</span> <a class="api-item-permalink" href="#namespace_Net_Url" aria-label="Permalink">#</a></span></div>
+<p>Public API declared directly in <span class="code-inline">Net.Url</span>.</p>
+<h3 id="namespace_Net_Url_types">Types</h3>
+<table class="api-summary">
+<thead><tr><th>Name</th><th>Kind</th><th>Description</th></tr></thead>
+<tbody>
+<tr><td class="code-type"><a href="#Net_Url_HttpTarget">Url.HttpTarget</a></td><td><span class="kind-chip kind-struct">struct</span></td><td><p>The owned parts needed for an HTTP request to a DNS name or IPv4 address.</p>
+</td></tr>
+</tbody>
+</table>
+<h3 id="namespace_Net_Url_functions">Functions</h3>
+<table class="api-summary">
+<thead><tr><th>Name</th><th>Description</th></tr></thead>
+<tbody>
+<tr><td class="code-type"><a href="#Net_Url_decodeComponent">Url.decodeComponent</a></td><td><p>Decodes percent escapes in one URL component into its original bytes.</p>
+</td></tr>
+<tr><td class="code-type"><a href="#Net_Url_encodeComponent">Url.encodeComponent</a></td><td><p>Percent-encodes bytes for one URL component using the RFC 3986 unreserved alphabet.</p>
+</td></tr>
+<tr><td class="code-type"><a href="#Net_Url_parseHttp">Url.parseHttp</a></td><td><p>Parses an absolute HTTP or HTTPS URL into owned request parts.</p>
+</td></tr>
+</tbody>
+</table>
+</section>
+<h3 id="types">Types</h3>
+<section class="api-symbol">
+<div class="api-item api-item-struct"><span id="Net_Http_GetOptions" class="api-item-title"><span class="api-item-title-kind">struct</span> <span class="api-item-title-strong">Http.GetOptions</span> <a class="api-item-permalink" href="#Net_Http_GetOptions" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/net/src/http/request.swg#L17">src</a></div>
+<p>Limits and headers for a synchronous GET request.</p>
+<div class="code-block"><span class="SCde"><span class="SKwd">struct</span> <span class="SCst"><a href="#Net_Http_GetOptions">GetOptions</a></span></span></div>
+</section>
+<h3>Fields</h3>
+<table class="table-enumeration api-summary">
+<thead><tr><th>Name</th><th>Type</th><th>Description</th></tr></thead>
+<tbody>
+<tr><td id="Net_Http_GetOptions_headers" class="code-type">headers</td><td class="code-type"><a href="std.core.html#Core_Array">Core.Array</a>'(<a href="#Net_Http_Header">Net.Http.Header</a>)</td><td><p>Request headers, whose strings are borrowed for the call.</p>
+</td></tr>
+<tr><td id="Net_Http_GetOptions_maxBodyBytes" class="code-type">maxBodyBytes</td><td class="code-type">u64</td><td><p>Maximum response body size in bytes.</p>
+</td></tr>
+<tr><td id="Net_Http_GetOptions_timeoutMs" class="code-type">timeoutMs</td><td class="code-type">u32</td><td><p>WinHTTP timeout setting per phase, in milliseconds; not a strict deadline.</p>
+</td></tr>
+<tr><td id="Net_Http_GetOptions_userAgent" class="code-type">userAgent</td><td class="code-type">string</td><td><p>User-Agent sent to the server.</p>
+</td></tr>
+</tbody>
+</table>
+<section class="api-symbol">
+<div class="api-item api-item-struct"><span id="Net_Http_Header" class="api-item-title"><span class="api-item-title-kind">struct</span> <span class="api-item-title-strong">Http.Header</span> <a class="api-item-permalink" href="#Net_Http_Header" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/net/src/http/request.swg#L7">src</a></div>
+<p>One HTTP request header; both strings are borrowed for the duration of the request.</p>
+<div class="code-block"><span class="SCde"><span class="SKwd">struct</span> <span class="SCst"><a href="#Net_Http_Header">Header</a></span></span></div>
+</section>
+<h3>Fields</h3>
+<table class="table-enumeration api-summary">
+<thead><tr><th>Name</th><th>Type</th><th>Description</th></tr></thead>
+<tbody>
+<tr><td id="Net_Http_Header_name" class="code-type">name</td><td class="code-type">string</td><td><p>HTTP token field name using ASCII letters, digits, and permitted punctuation.</p>
+</td></tr>
+<tr><td id="Net_Http_Header_value" class="code-type">value</td><td class="code-type">string</td><td><p>Field value without control characters.</p>
+</td></tr>
+</tbody>
+</table>
+<section class="api-symbol">
+<div class="api-item api-item-struct"><span id="Net_Http_Response" class="api-item-title"><span class="api-item-title-kind">struct</span> <span class="api-item-title-strong">Http.Response</span> <a class="api-item-permalink" href="#Net_Http_Response" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/net/src/http/request.swg#L29">src</a></div>
+<p>An HTTP response whose body storage is owned by the value.</p>
+<div class="code-block"><span class="SCde"><span class="SKwd">struct</span> <span class="SCst"><a href="#Net_Http_Response">Response</a></span></span></div>
+</section>
+<h3>Fields</h3>
+<table class="table-enumeration api-summary">
+<thead><tr><th>Name</th><th>Type</th><th>Description</th></tr></thead>
+<tbody>
+<tr><td id="Net_Http_Response_body" class="code-type">body</td><td class="code-type"><a href="std.core.html#Core_Array">Core.Array</a>'(u8)</td><td><p>Response body bytes.</p>
+</td></tr>
+<tr><td id="Net_Http_Response_location" class="code-type">location</td><td class="code-type"><a href="std.core.html#Core_String">Core.String</a></td><td><p>Redirect location when supplied; empty otherwise.</p>
+</td></tr>
+<tr><td id="Net_Http_Response_status" class="code-type">status</td><td class="code-type">u32</td><td><p>HTTP status code, including non-success responses.</p>
+</td></tr>
+</tbody>
+</table>
+<section class="api-symbol">
+<div class="api-item api-item-struct"><span id="Net_Endpoint" class="api-item-title"><span class="api-item-title-kind">struct</span> <span class="api-item-title-strong">Net.Endpoint</span> <a class="api-item-permalink" href="#Net_Endpoint" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/net/src/endpoint.swg#L4">src</a></div>
+<p>An IPv4 address and TCP port in host byte order.</p>
+<div class="code-block"><span class="SCde"><span class="SKwd">struct</span> <span class="SCst"><a href="#Net_Endpoint">Endpoint</a></span></span></div>
+</section>
+<h3>Fields</h3>
+<table class="table-enumeration api-summary">
+<thead><tr><th>Name</th><th>Type</th><th>Description</th></tr></thead>
+<tbody>
+<tr><td id="Net_Endpoint_address" class="code-type">address</td><td class="code-type">[4] u8</td><td><p>IPv4 octets in their usual display order.</p>
+</td></tr>
+<tr><td id="Net_Endpoint_port" class="code-type">port</td><td class="code-type">u16</td><td><p>TCP port; zero asks the host to choose a listening port.</p>
+</td></tr>
+</tbody>
+</table>
+<section class="api-symbol">
+<div class="api-item api-item-struct"><span id="Net_NetworkError" class="api-item-title"><span class="api-item-title-kind">struct</span> <span class="api-item-title-strong">Net.NetworkError</span> <a class="api-item-permalink" href="#Net_NetworkError" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/net/src/networkerror.swg#L4">src</a></div>
+<p>Reports a network operation failure with the host's diagnostic code.</p>
+<div class="code-block"><span class="SCde"><span class="SKwd">struct</span> <span class="SCst"><a href="#Net_NetworkError">NetworkError</a></span></span></div>
+</section>
+<h3>Fields</h3>
+<table class="table-enumeration api-summary">
+<thead><tr><th>Name</th><th>Type</th><th>Description</th></tr></thead>
+<tbody>
+<tr><td id="Net_NetworkError_base" class="code-type">base</td><td class="code-type"><a href="swag.runtime.html#Swag_BaseError">Swag.BaseError</a></td><td><p>Error state.</p>
+</td></tr>
+<tr><td id="Net_NetworkError_code" class="code-type">code</td><td class="code-type">s32</td><td><p>Host error code.</p>
+</td></tr>
+</tbody>
+</table>
+<section class="api-symbol">
+<div class="api-item api-item-struct"><span id="Net_TcpListener" class="api-item-title"><span class="api-item-title-kind">struct</span> <span class="api-item-title-strong">Net.TcpListener</span> <a class="api-item-permalink" href="#Net_TcpListener" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/net/src/tcplistener.swg#L5">src</a></div>
+<p>Owns a blocking TCP listener; it cannot be copied.</p>
+<div class="code-block"><span class="SCde"><span class="SAtr">#[</span><span class="SNsp">Swag</span>.<span class="SAtr">NoCopy]</span>
+<span class="SKwd">struct</span> <span class="SCst"><a href="#Net_TcpListener">TcpListener</a></span></span></div>
+</section>
+<h3 id="Net_TcpListener_methods">Methods</h3>
+<table class="api-summary">
+<thead><tr><th>Name</th><th>Description</th></tr></thead>
+<tbody>
+<tr><td class="code-type"><a href="#Net_TcpListener_accept">accept</a></td><td><p>Blocks until a peer connects and returns an independently owned stream.</p>
+</td></tr>
+<tr><td class="code-type"><a href="#Net_TcpListener_close">close</a></td><td><p>Closes the listener; repeated calls do nothing.</p>
+</td></tr>
+<tr><td class="code-type"><a href="#Net_TcpListener_listen">listen</a></td><td><p>Binds an IPv4 endpoint and starts listening for connections.</p>
+</td></tr>
+<tr><td class="code-type"><a href="#Net_TcpListener_localEndpoint">localEndpoint</a></td><td><p>Returns the bound local address and port.</p>
+</td></tr>
+<tr><td class="code-type"><a href="#Net_TcpListener_opDrop">opDrop</a></td><td><p>Closes the listener when this owner is dropped.</p>
+</td></tr>
+</tbody>
+</table>
+<section class="api-symbol">
+<div class="api-item api-item-struct"><span id="Net_TcpStream" class="api-item-title"><span class="api-item-title-kind">struct</span> <span class="api-item-title-strong">Net.TcpStream</span> <a class="api-item-permalink" href="#Net_TcpStream" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/net/src/tcpstream.swg#L5">src</a></div>
+<p>Owns a blocking TCP connection; it cannot be copied.</p>
+<div class="code-block"><span class="SCde"><span class="SAtr">#[</span><span class="SNsp">Swag</span>.<span class="SAtr">NoCopy]</span>
+<span class="SKwd">struct</span> <span class="SCst"><a href="#Net_TcpStream">TcpStream</a></span></span></div>
+</section>
+<h3 id="Net_TcpStream_methods">Methods</h3>
+<table class="api-summary">
+<thead><tr><th>Name</th><th>Description</th></tr></thead>
+<tbody>
+<tr><td class="code-type"><a href="#Net_TcpStream_close">close</a></td><td><p>Closes the connection; repeated calls do nothing.</p>
+</td></tr>
+<tr><td class="code-type"><a href="#Net_TcpStream_connect">connect</a></td><td><p>Connects to an IPv4 endpoint, returning an owned blocking stream.</p>
+</td></tr>
+<tr><td class="code-type"><a href="#Net_TcpStream_isOpen">isOpen</a></td><td><p>Returns whether this stream still owns a connection.</p>
+</td></tr>
+<tr><td class="code-type"><a href="#Net_TcpStream_opDrop">opDrop</a></td><td><p>Closes the connection when this owner is dropped.</p>
+</td></tr>
+<tr><td class="code-type"><a href="#Net_TcpStream_read">read</a></td><td><p>Reads up to <span class="code-inline">buffer.count</span> bytes; zero indicates EOF or an empty buffer.</p>
+</td></tr>
+<tr><td class="code-type"><a href="#Net_TcpStream_write">write</a></td><td><p>Writes up to <span class="code-inline">buffer.count</span> bytes and returns the amount accepted by the host.</p>
+</td></tr>
+</tbody>
+</table>
+<section class="api-symbol">
+<div class="api-item api-item-struct"><span id="Net_Url_HttpTarget" class="api-item-title"><span class="api-item-title-kind">struct</span> <span class="api-item-title-strong">Url.HttpTarget</span> <a class="api-item-permalink" href="#Net_Url_HttpTarget" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/net/src/url.swg#L7">src</a></div>
+<p>The owned parts needed for an HTTP request to a DNS name or IPv4 address.</p>
+<div class="code-block"><span class="SCde"><span class="SKwd">struct</span> <span class="SCst"><a href="#Net_Url_HttpTarget">HttpTarget</a></span></span></div>
+</section>
+<h3>Fields</h3>
+<table class="table-enumeration api-summary">
+<thead><tr><th>Name</th><th>Type</th><th>Description</th></tr></thead>
+<tbody>
+<tr><td id="Net_Url_HttpTarget_hasPort" class="code-type">hasPort</td><td class="code-type">bool</td><td><p>True if the URL contained an explicit port.</p>
+</td></tr>
+<tr><td id="Net_Url_HttpTarget_host" class="code-type">host</td><td class="code-type"><a href="std.core.html#Core_String">Core.String</a></td><td><p>Lowercase ASCII host, without a port.</p>
+</td></tr>
+<tr><td id="Net_Url_HttpTarget_path" class="code-type">path</td><td class="code-type"><a href="std.core.html#Core_String">Core.String</a></td><td><p>Absolute request path and optional query, without a fragment.</p>
+</td></tr>
+<tr><td id="Net_Url_HttpTarget_port" class="code-type">port</td><td class="code-type">u16</td><td><p>Explicit port, or the scheme's default.</p>
+</td></tr>
+<tr><td id="Net_Url_HttpTarget_secure" class="code-type">secure</td><td class="code-type">bool</td><td><p>True for HTTPS.</p>
+</td></tr>
+</tbody>
+</table>
+<h3 id="functions">Functions</h3>
+<section class="api-symbol">
+<div class="api-item api-item-func"><span id="Net_Http_get" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Http.get</span> <a class="api-item-permalink" href="#Net_Http_get" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/net/src/http/client.win32.swg#L48">src</a></div>
+<p>Issues a bounded HTTP or HTTPS GET to <span class="code-inline">host</span>, <span class="code-inline">port</span> and an absolute request <span class="code-inline">path</span>.</p>
+<p><span class="code-inline">path</span> must already be percent-encoded. HTTPS verifies the peer using the Windows trust store. Redirects are returned to the caller instead of being followed. Each phase has the configured timeout setting; WinHTTP may enforce it with coarse timing and can exceed the requested value. The operation is synchronous and cannot be cancelled while a native call is blocked. The result owns its body and includes non-success status codes. Invalid input, transport errors, and a body exceeding <span class="code-inline">maxBodyBytes</span> fail without returning a partial result.</p>
+<div class="code-block"><span class="SCde"><span class="SCmp">#import</span>(<span class="SStr">"net"</span>)
+<span class="SKwd">using</span> <span class="SCst">Core</span>, <span class="SCst"><a href="#namespace_Net">Net</a></span>
+
+<span class="SFct">#main</span>
+{
+    <span class="SKwd">let</span> target = <span class="SKwd">try</span> <span class="SCst"><a href="#namespace_Net_Url">Url</a></span>.<span class="SFct">parseHttp</span>(<span class="SStr">"https://example.com/"</span>)
+    <span class="SKwd">let</span> response = <span class="SKwd">try</span> <span class="SCst"><a href="#namespace_Net_Http">Http</a></span>.<span class="SFct">get</span>(target.host, target.port, target.path, target.secure)
+    <span class="SCst"><a href="std.core.html#namespace_Core_Console">Console</a></span>.<span class="SFct">println</span>(response.status)
+}</span></div>
+<div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SFct">get</span>(host: <span class="STpe">string</span>, port: <span class="STpe">u16</span>, path: <span class="STpe">string</span>, secure = <span class="SKwd">true</span>, options: <span class="SCst"><a href="#Net_Http_GetOptions">GetOptions</a></span> = {})-&gt;<span class="SCst"><a href="#Net_Http_Response">Response</a></span> <span class="SKwd">fail</span></span></div>
+</section>
+<section class="api-symbol">
+<div class="api-item api-item-func"><span id="Net_TcpListener_accept" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">TcpListener.accept</span> <a class="api-item-permalink" href="#Net_TcpListener_accept" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/net/src/tcp.win32.swg#L146">src</a></div>
+<p>Blocks until a peer connects and returns an independently owned stream.</p>
+<div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">accept</span>()-&gt;<span class="SCst"><a href="#Net_TcpStream">TcpStream</a></span> <span class="SKwd">fail</span></span></div>
+</section>
+<section class="api-symbol">
+<div class="api-item api-item-func"><span id="Net_TcpListener_close" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">TcpListener.close</span> <a class="api-item-permalink" href="#Net_TcpListener_close" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/net/src/tcp.win32.swg#L162">src</a></div>
+<p>Closes the listener; repeated calls do nothing.</p>
+<div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">close</span>()</span></div>
+</section>
+<section class="api-symbol">
+<div class="api-item api-item-func"><span id="Net_TcpListener_listen" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">TcpListener.listen</span> <a class="api-item-permalink" href="#Net_TcpListener_listen" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/net/src/tcp.win32.swg#L116">src</a></div>
+<p>Binds an IPv4 endpoint and starts listening for connections.</p>
+<p>Port zero selects an available port, which <a href="#Net_TcpListener_localEndpoint">Net.TcpListener.localEndpoint</a> returns.</p>
+<div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SFct">listen</span>(endpoint: <span class="SCst"><a href="#Net_Endpoint">Endpoint</a></span>, backlog = <span class="SNum">16</span>)-&gt;<span class="SCst"><a href="#Net_TcpListener">TcpListener</a></span> <span class="SKwd">fail</span></span></div>
+</section>
+<section class="api-symbol">
+<div class="api-item api-item-func"><span id="Net_TcpListener_localEndpoint" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">TcpListener.localEndpoint</span> <a class="api-item-permalink" href="#Net_TcpListener_localEndpoint" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/net/src/tcp.win32.swg#L134">src</a></div>
+<p>Returns the bound local address and port.</p>
+<div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">localEndpoint</span>()-&gt;<span class="SCst"><a href="#Net_Endpoint">Endpoint</a></span> <span class="SKwd">fail</span></span></div>
+</section>
+<section class="api-symbol">
+<div class="api-item api-item-func"><span id="Net_TcpListener_opDrop" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">TcpListener.opDrop</span> <a class="api-item-permalink" href="#Net_TcpListener_opDrop" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/net/src/tcp.win32.swg#L172">src</a></div>
+<p>Closes the listener when this owner is dropped.</p>
+<div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">opDrop</span>()</span></div>
+</section>
+<section class="api-symbol">
+<div class="api-item api-item-func"><span id="Net_TcpStream_close" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">TcpStream.close</span> <a class="api-item-permalink" href="#Net_TcpStream_close" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/net/src/tcp.win32.swg#L98">src</a></div>
+<p>Closes the connection; repeated calls do nothing.</p>
+<div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">close</span>()</span></div>
+</section>
+<section class="api-symbol">
+<div class="api-item api-item-func"><span id="Net_TcpStream_connect" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">TcpStream.connect</span> <a class="api-item-permalink" href="#Net_TcpStream_connect" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/net/src/tcp.win32.swg#L54">src</a></div>
+<p>Connects to an IPv4 endpoint, returning an owned blocking stream.</p>
+<div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SFct">connect</span>(endpoint: <span class="SCst"><a href="#Net_Endpoint">Endpoint</a></span>)-&gt;<span class="SCst"><a href="#Net_TcpStream">TcpStream</a></span> <span class="SKwd">fail</span></span></div>
+</section>
+<section class="api-symbol">
+<div class="api-item api-item-func"><span id="Net_TcpStream_isOpen" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">TcpStream.isOpen</span> <a class="api-item-permalink" href="#Net_TcpStream_isOpen" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/net/src/tcp.win32.swg#L69">src</a></div>
+<p>Returns whether this stream still owns a connection.</p>
+<div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SKwd">const</span> <span class="SFct">isOpen</span>()-&gt;<span class="STpe">bool</span></span></div>
+</section>
+<section class="api-symbol">
+<div class="api-item api-item-func"><span id="Net_TcpStream_opDrop" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">TcpStream.opDrop</span> <a class="api-item-permalink" href="#Net_TcpStream_opDrop" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/net/src/tcp.win32.swg#L108">src</a></div>
+<p>Closes the connection when this owner is dropped.</p>
+<div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">opDrop</span>()</span></div>
+</section>
+<section class="api-symbol">
+<div class="api-item api-item-func"><span id="Net_TcpStream_read" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">TcpStream.read</span> <a class="api-item-permalink" href="#Net_TcpStream_read" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/net/src/tcp.win32.swg#L72">src</a></div>
+<p>Reads up to <span class="code-inline">buffer.count</span> bytes; zero indicates EOF or an empty buffer.</p>
+<div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">read</span>(buffer: [..] <span class="STpe">u8</span>)-&gt;<span class="STpe">u64</span> <span class="SKwd">fail</span></span></div>
+</section>
+<section class="api-symbol">
+<div class="api-item api-item-func"><span id="Net_TcpStream_write" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">TcpStream.write</span> <a class="api-item-permalink" href="#Net_TcpStream_write" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/net/src/tcp.win32.swg#L85">src</a></div>
+<p>Writes up to <span class="code-inline">buffer.count</span> bytes and returns the amount accepted by the host.</p>
+<div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">write</span>(buffer: <span class="SKwd">const</span> [..] <span class="STpe">u8</span>)-&gt;<span class="STpe">u64</span> <span class="SKwd">fail</span></span></div>
+</section>
+<section class="api-symbol">
+<div class="api-item api-item-func"><span id="Net_Url_decodeComponent" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Url.decodeComponent</span> <a class="api-item-permalink" href="#Net_Url_decodeComponent" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/net/src/url.swg#L144">src</a></div>
+<p>Decodes percent escapes in one URL component into its original bytes.</p>
+<p><span class="code-inline">+</span> remains <span class="code-inline">+</span>. A truncated escape or a non-hexadecimal digit fails; unescaped bytes are copied without interpreting or validating UTF-8.</p>
+<div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SFct">decodeComponent</span>(text: <span class="STpe">string</span>)-&gt;<span class="SFct">Array</span>'<span class="STpe">u8</span> <span class="SKwd">fail</span></span></div>
+</section>
+<section class="api-symbol">
+<div class="api-item api-item-func"><span id="Net_Url_encodeComponent" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Url.encodeComponent</span> <a class="api-item-permalink" href="#Net_Url_encodeComponent" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/net/src/url.swg#L113">src</a></div>
+<p>Percent-encodes bytes for one URL component using the RFC 3986 unreserved alphabet.</p>
+<p>UTF-8 text is encoded byte by byte. Spaces become <span class="code-inline">%20</span>, not <span class="code-inline">+</span>; separators such as <span class="code-inline">&amp;</span>, <span class="code-inline">=</span>, <span class="code-inline">/</span> and <span class="code-inline">%</span> are encoded so the result can be inserted as one query value or path segment.</p>
+<div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SFct">encodeComponent</span>(bytes: <span class="SKwd">const</span> [..] <span class="STpe">u8</span>)-&gt;<span class="SCst"><a href="std.core.html#Core_String">String</a></span></span></div>
+</section>
+<section class="api-symbol">
+<div class="api-item api-item-func"><span id="Net_Url_parseHttp" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Url.parseHttp</span> <a class="api-item-permalink" href="#Net_Url_parseHttp" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/net/src/url.swg#L25">src</a></div>
+<p>Parses an absolute HTTP or HTTPS URL into owned request parts.</p>
+<p>This deliberately accepts only ASCII host names and IPv4 literals as hosts. User information, IPv6 literals, relative references and non-ASCII URL text are rejected. The path and query stay percent-encoded, an absent path becomes <span class="code-inline">/</span>, and a fragment is omitted. Invalid escapes, malformed ports, spaces and control characters fail.</p>
+<div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SFct">parseHttp</span>(text: <span class="STpe">string</span>)-&gt;<span class="SCst"><a href="#Net_Url_HttpTarget">HttpTarget</a></span> <span class="SKwd">fail</span></span></div>
+</section>
+</article>
+<footer class="site-footer">
+<div class="swag-watermark">Generated with <a href="https://github.com/swag-lang/swc">swc</a> 0.1.1173</div>
+</footer>
+</section>
+</main>
+<script>
+(function (rows) {
+    "use strict";
+
+    var nav = document.querySelector(".site-nav");
+    if (!nav || !rows.length)
+        return;
+
+    var KINDS = {
+        n: "namespace", s: "struct", i: "interface", e: "enum",
+        c: "const", a: "alias", t: "attr", f: "func", h: "section",
+        v: "field", k: "case"
+    };
+    var LIMIT = 30;
+
+    // A row is "kind|name|anchor|summary". The summary is the remainder of the row, so it
+    // is the only field allowed to hold the separator.
+    var items = [];
+    for (var r = 0; r < rows.length; r++) {
+        var row = rows[r];
+        var kindEnd = row.indexOf("|");
+        var nameEnd = row.indexOf("|", kindEnd + 1);
+        var anchorEnd = row.indexOf("|", nameEnd + 1);
+        var name = row.slice(kindEnd + 1, nameEnd);
+        items.push({
+            kind: KINDS[row.slice(0, kindEnd)] || "func",
+            name: name,
+            lower: name.toLowerCase(),
+            anchor: row.slice(nameEnd + 1, anchorEnd),
+            detail: row.slice(anchorEnd + 1)
+        });
+    }
+
+    // Where a name really starts: after a qualifier, and at every word boundary inside it.
+    function isBoundary(name, at) {
+        if (!at)
+            return true;
+        var previous = name.charAt(at - 1);
+        if (previous === "." || previous === "_")
+            return true;
+        return previous === previous.toLowerCase() && name.charAt(at) !== name.charAt(at).toLowerCase();
+    }
+
+    // An exact name wins, then one starting on a boundary, then any substring, then the
+    // characters merely in order. A shorter name breaks a tie, so "add" stays above
+    // "addRange" for the same query.
+    function rank(item, query) {
+        var lower = item.lower;
+        var positions = [];
+        var value;
+        var at = lower.indexOf(query);
+        if (at >= 0) {
+            value = lower.length === query.length ? 1000 : (isBoundary(item.name, at) ? 800 : 600);
+            value -= at * 0.5;
+            for (var c = 0; c < query.length; c++)
+                positions.push(at + c);
+        } else {
+            var typed = 0;
+            var run = 0;
+            value = 300;
+            for (var i = 0; i < lower.length && typed < query.length; i++) {
+                if (lower.charAt(i) !== query.charAt(typed)) {
+                    run = 0;
+                    continue;
+                }
+                run++;
+                value += run + (isBoundary(item.name, i) ? 6 : 0);
+                positions.push(i);
+                typed++;
+            }
+            if (typed < query.length)
+                return null;
+            value -= (positions[positions.length - 1] - positions[0]) * 0.4;
+        }
+        return { value: value - lower.length * 0.2, positions: positions, item: item };
+    }
+
+    function search(query) {
+        var found = [];
+        for (var i = 0; i < items.length; i++) {
+            var hit = rank(items[i], query);
+            if (hit)
+                found.push(hit);
+        }
+        found.sort(function (left, right) {
+            if (left.value !== right.value)
+                return right.value - left.value;
+            if (left.item.name === right.item.name)
+                return 0;
+            return left.item.name < right.item.name ? -1 : 1;
+        });
+        return found;
+    }
+
+    function escape(text) {
+        return text.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+    }
+
+    function highlight(name, positions) {
+        var html = "";
+        var done = 0;
+        var at = 0;
+        while (at < positions.length) {
+            var start = positions[at];
+            var end = start + 1;
+            while (at + 1 < positions.length && positions[at + 1] === end) {
+                end++;
+                at++;
+            }
+            html += escape(name.slice(done, start)) + "<mark>" + escape(name.slice(start, end)) + "</mark>";
+            done = end;
+            at++;
+        }
+        return html + escape(name.slice(done));
+    }
+
+    var form = document.createElement("form");
+    form.className = "site-search";
+    form.setAttribute("role", "search");
+
+    var input = document.createElement("input");
+    input.type = "search";
+    input.className = "site-search-input";
+    input.placeholder = "Search this page";
+    input.setAttribute("aria-label", "Search this page");
+    input.setAttribute("aria-controls", "search-panel");
+    input.setAttribute("aria-expanded", "false");
+    input.setAttribute("autocomplete", "off");
+    input.setAttribute("spellcheck", "false");
+
+    var shortcut = document.createElement("kbd");
+    shortcut.className = "site-search-shortcut";
+    shortcut.textContent = "/";
+
+    var panel = document.createElement("div");
+    panel.id = "search-panel";
+    panel.className = "search-panel";
+    panel.setAttribute("role", "listbox");
+    panel.hidden = true;
+
+    form.appendChild(input);
+    form.appendChild(shortcut);
+    form.appendChild(panel);
+    nav.insertBefore(form, nav.querySelector(".site-links"));
+
+    var hits = [];
+    var current = -1;
+
+    function close() {
+        panel.hidden = true;
+        input.setAttribute("aria-expanded", "false");
+    }
+
+    function select(at) {
+        var rendered = panel.querySelectorAll(".search-hit");
+        for (var i = 0; i < rendered.length; i++) {
+            var isCurrent = i === at;
+            rendered[i].classList.toggle("is-current", isCurrent);
+            rendered[i].setAttribute("aria-selected", isCurrent ? "true" : "false");
+            if (isCurrent)
+                rendered[i].scrollIntoView({ block: "nearest" });
+        }
+        current = at;
+    }
+
+    function render() {
+        var query = input.value.trim().toLowerCase();
+        if (!query) {
+            hits = [];
+            close();
+            return;
+        }
+
+        var found = search(query);
+        hits = found.slice(0, LIMIT);
+
+        var html = "";
+        for (var i = 0; i < hits.length; i++) {
+            var item = hits[i].item;
+            html += '<a class="search-hit search-hit-' + item.kind + '" role="option" href="#' + item.anchor + '">' +
+                '<span class="kind-chip kind-' + item.kind + '">' + item.kind + "</span>" +
+                '<span class="search-hit-name">' + highlight(item.name, hits[i].positions) + "</span>" +
+                (item.detail ? '<span class="search-hit-detail">' + escape(item.detail) + "</span>" : "");
+            html += "</a>";
+        }
+        if (!hits.length)
+            html = '<p class="search-none">No match on this page.</p>';
+        else if (found.length > hits.length)
+            html += '<p class="search-more">' + hits.length + " of " + found.length + " matches</p>";
+
+        panel.innerHTML = html;
+        panel.hidden = false;
+        input.setAttribute("aria-expanded", "true");
+        select(hits.length ? 0 : -1);
+    }
+
+    function open(at) {
+        if (at < 0 || at >= hits.length)
+            return;
+        window.location.hash = "#" + hits[at].item.anchor;
+        close();
+    }
+
+    input.addEventListener("input", render);
+    input.addEventListener("focus", render);
+
+    input.addEventListener("keydown", function (event) {
+        if (event.key === "ArrowDown")
+            select(Math.min(current + 1, hits.length - 1));
+        else if (event.key === "ArrowUp")
+            select(Math.max(current - 1, 0));
+        else if (event.key === "Enter")
+            open(current);
+        else if (event.key === "Escape") {
+            input.value = "";
+            close();
+            input.blur();
+        } else
+            return;
+        event.preventDefault();
+    });
+
+    form.addEventListener("submit", function (event) {
+        event.preventDefault();
+        open(current);
+    });
+
+    panel.addEventListener("click", function () {
+        close();
+    });
+
+    document.addEventListener("click", function (event) {
+        if (!form.contains(event.target))
+            close();
+    });
+
+    // The box is reachable without the mouse from anywhere on the page, and the browser's
+    // own find stays available: "/" is only taken when nothing else is being typed into.
+    document.addEventListener("keydown", function (event) {
+        if (event.defaultPrevented || event.altKey)
+            return;
+        var active = document.activeElement;
+        var typing = active && (active.tagName === "INPUT" || active.tagName === "TEXTAREA" || active.isContentEditable);
+        var takes = (event.key === "/" && !typing) || ((event.ctrlKey || event.metaKey) && event.key === "k");
+        if (!takes)
+            return;
+        event.preventDefault();
+        input.focus();
+        input.select();
+    });
+})
+([
+"n|Net|namespace_Net|",
+"n|Net.Http|namespace_Net_Http|",
+"n|Net.Url|namespace_Net_Url|",
+"s|Net.Endpoint|Net_Endpoint|An IPv4 address and TCP port in host byte order.",
+"v|Net.Endpoint.address|Net_Endpoint_address|IPv4 octets in their usual display order.",
+"v|Net.Endpoint.port|Net_Endpoint_port|TCP port; zero asks the host to choose a listening port.",
+"s|Net.NetworkError|Net_NetworkError|Reports a network operation failure with the host's diagnostic code.",
+"v|Net.NetworkError.base|Net_NetworkError_base|Error state.",
+"v|Net.NetworkError.code|Net_NetworkError_code|Host error code.",
+"s|Net.TcpListener|Net_TcpListener|Owns a blocking TCP listener; it cannot be copied.",
+"s|Net.TcpStream|Net_TcpStream|Owns a blocking TCP connection; it cannot be copied.",
+"s|Net.Url.HttpTarget|Net_Url_HttpTarget|The owned parts needed for an HTTP request to a DNS name or IPv4 address.",
+"v|Net.Url.HttpTarget.hasPort|Net_Url_HttpTarget_hasPort|True if the URL contained an explicit port.",
+"v|Net.Url.HttpTarget.host|Net_Url_HttpTarget_host|Lowercase ASCII host, without a port.",
+"v|Net.Url.HttpTarget.path|Net_Url_HttpTarget_path|Absolute request path and optional query, without a fragment.",
+"v|Net.Url.HttpTarget.port|Net_Url_HttpTarget_port|Explicit port, or the scheme's default.",
+"v|Net.Url.HttpTarget.secure|Net_Url_HttpTarget_secure|True for HTTPS.",
+"s|Net.Http.GetOptions|Net_Http_GetOptions|Limits and headers for a synchronous GET request.",
+"v|Net.Http.GetOptions.headers|Net_Http_GetOptions_headers|Request headers, whose strings are borrowed for the call.",
+"v|Net.Http.GetOptions.maxBodyBytes|Net_Http_GetOptions_maxBodyBytes|Maximum response body size in bytes.",
+"v|Net.Http.GetOptions.timeoutMs|Net_Http_GetOptions_timeoutMs|WinHTTP timeout setting per phase, in milliseconds; not a strict deadline.",
+"v|Net.Http.GetOptions.userAgent|Net_Http_GetOptions_userAgent|User-Agent sent to the server.",
+"s|Net.Http.Header|Net_Http_Header|One HTTP request header; both strings are borrowed for the duration of the request.",
+"v|Net.Http.Header.name|Net_Http_Header_name|HTTP token field name using ASCII letters, digits, and permitted punctuation.",
+"v|Net.Http.Header.value|Net_Http_Header_value|Field value without control characters.",
+"s|Net.Http.Response|Net_Http_Response|An HTTP response whose body storage is owned by the value.",
+"v|Net.Http.Response.body|Net_Http_Response_body|Response body bytes.",
+"v|Net.Http.Response.location|Net_Http_Response_location|Redirect location when supplied; empty otherwise.",
+"v|Net.Http.Response.status|Net_Http_Response_status|HTTP status code, including non-success responses.",
+"f|Net.TcpListener.accept|Net_TcpListener_accept|Blocks until a peer connects and returns an independently owned stream.",
+"f|Net.TcpListener.close|Net_TcpListener_close|Closes the listener; repeated calls do nothing.",
+"f|Net.TcpListener.listen|Net_TcpListener_listen|Binds an IPv4 endpoint and starts listening for connections.",
+"f|Net.TcpListener.localEndpoint|Net_TcpListener_localEndpoint|Returns the bound local address and port.",
+"f|Net.TcpListener.opDrop|Net_TcpListener_opDrop|Closes the listener when this owner is dropped.",
+"f|Net.TcpStream.close|Net_TcpStream_close|Closes the connection; repeated calls do nothing.",
+"f|Net.TcpStream.connect|Net_TcpStream_connect|Connects to an IPv4 endpoint, returning an owned blocking stream.",
+"f|Net.TcpStream.isOpen|Net_TcpStream_isOpen|Returns whether this stream still owns a connection.",
+"f|Net.TcpStream.opDrop|Net_TcpStream_opDrop|Closes the connection when this owner is dropped.",
+"f|Net.TcpStream.read|Net_TcpStream_read|Reads up to buffer.count bytes; zero indicates EOF or an empty buffer.",
+"f|Net.TcpStream.write|Net_TcpStream_write|Writes up to buffer.count bytes and returns the amount accepted by the host.",
+"f|Net.Url.decodeComponent|Net_Url_decodeComponent|Decodes percent escapes in one URL component into its original bytes.",
+"f|Net.Url.encodeComponent|Net_Url_encodeComponent|Percent-encodes bytes for one URL component using the RFC 3986 unreserved alphabet.",
+"f|Net.Url.parseHttp|Net_Url_parseHttp|Parses an absolute HTTP or HTTPS URL into owned request parts.",
+"f|Net.Http.get|Net_Http_get|Issues a bounded HTTP or HTTPS GET to host, port and an absolute request path.",
+]);
+</script>
+</body>
+</html>

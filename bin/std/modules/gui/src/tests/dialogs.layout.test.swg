@@ -213,7 +213,6 @@ func filler(count: u64)->String
         opt.mode          = .SelectFile
         opt.showDrives    = false
         opt.initialFolder = folder.toString()
-        opt.shortcuts.add({type: Env.SpecialDirectory.Temp, name: "Documents"})
         let dlg = FileDlg.create(&host.surface, opt)
 
         // Keep folders and files visible together so their glyphs can be compared.

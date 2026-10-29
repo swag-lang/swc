@@ -82,6 +82,7 @@ struct Strings
 
         browser_Desktop:     string = "Desktop"                    // Default shortcut to the desktop.
         browser_Documents:   string = "Documents"                  // Default shortcut to the documents folder.
+        browser_Downloads:   string = "Downloads"                  // Default shortcut to the downloads folder.
         browser_Pictures:    string = "Pictures"                   // Default shortcut to the pictures folder.
         browser_Music:       string = "Music"                      // Default shortcut to the music folder.
         browser_Videos:      string = "Videos"                     // Default shortcut to the videos folder.

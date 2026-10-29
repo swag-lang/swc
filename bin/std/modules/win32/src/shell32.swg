@@ -265,6 +265,9 @@ struct GUID
     }
 }
 
+// Known folder identifier for the current user's Downloads directory (`FOLDERID_Downloads`).
+const FOLDERID_Downloads = GUID{0x374DE290, 0x123F, 0x4565, [0x91, 0x64, 0x39, 0xC4, 0x92, 0x5E, 0x46, 0x7B]}
+
 // Registered formats for files held in memory rather than on disk.
 //
 // The group descriptor lists what is offered, and one `FileContents` medium per index
@@ -481,6 +484,8 @@ internal namespace Shell32Priv
     func SHCreateShellItemArrayFromIDLists(cidl: UINT, rgpidl: const [*] PCIDLIST_ABSOLUTE, ppsiItemArray: *(*IShellItemArray?))->HRESULT
     func SHGetFileInfoA(pszPath: LPCSTR, dwFileAttributes: DWORD, psfi: *SHFILEINFOA, cbFileInfo: UINT, uFlags: UINT)->DWORD_PTR
     func SHGetFileInfoW(pszPath: LPCWSTR, dwFileAttributes: DWORD, psfi: *SHFILEINFOW, cbFileInfo: UINT, uFlags: UINT)->DWORD_PTR
+    // Allocates the returned UTF-16 path with CoTaskMemAlloc; callers release it with CoTaskMemFree, even on failure.
+    func SHGetKnownFolderPath(rfid: const *GUID, dwFlags: DWORD, hToken: HANDLE, ppszPath: *LPWSTR?)->HRESULT
     func DragAcceptFiles(hWnd: HWND, fAccept: BOOL)
     func DragQueryFileW(hDrop: HDROP, iFile: UINT, lpszFile: LPWSTR?, cch: UINT)->UINT
     func DragQueryPoint(hDrop: HDROP, ppt: *POINT)->BOOL

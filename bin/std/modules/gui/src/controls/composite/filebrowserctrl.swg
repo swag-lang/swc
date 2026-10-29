@@ -72,7 +72,7 @@ struct FileBrowserStop
     }
 }
 
-// The places of a file browser, set as text tabs: shortcuts, then drives.
+// The places of a file browser, set as text tabs: preferred locations, built-in folders, then drives.
 //
 // The place the current folder lies in carries the Arc underline; a click browses to a place.
 struct FilePlacesBar
@@ -84,6 +84,7 @@ struct FilePlacesBar
 
     late browser:    *FileBrowserCtrl          // Browser the places lead.
     stops:           Array'FileBrowserStop     // Places in display order.
+    private primaryCount: u64                  // Preferred locations kept on the row before built-in folders.
     hotIdx = Swag.U64.Max                      // Place under the pointer.
     visibleCount:    u64                       // Places that fit before the overflow button.
     moreButton: *IconButton?                   // Opens places and drives that do not fit in the row.
@@ -196,7 +197,7 @@ impl IWnd for FilePlacesBar
 impl FilePlacesBar
 {
     // Opens the places that do not fit in the row and browses to the chosen one.
-    mtd openOverflowMenu()
+    internal mtd openOverflowMenu()
     {
         let menu = MenuCtrl.createPopup(.browser)
         for idx in .visibleCount until .stops.count
@@ -245,15 +246,16 @@ impl FilePlacesBar
         let height      = .clientRect().height
         let buttonWidth = .moreButton.position.width
         var totalWidth  = 0'f32
-        for &stop in .stops
+        for idx in 0 until .primaryCount
         {
+            let stop = .stops[idx]
             totalWidth += Painter.measureString(stop.name.toString(), font).width + .themeMetrics().fileBrowser_PlaceGap
         }
 
-        if totalWidth do
+        if totalWidth and .primaryCount do
             totalWidth -= .themeMetrics().fileBrowser_PlaceGap
 
-        if totalWidth <= .clientRect().width
+        if .primaryCount == .stops.count and totalWidth <= .clientRect().width
         {
             .moreButton.hide()
             .visibleCount = .stops.count
@@ -264,8 +266,9 @@ impl FilePlacesBar
             let available = Math.max(0'f32, .clientRect().width - buttonWidth - .themeMetrics().fileBrowser_PlaceGap)
             .visibleCount = 0
             var used = 0'f32
-            for &stop in .stops
+            for idx in 0 until .primaryCount
             {
+                let stop  = .stops[idx]
                 let width = Painter.measureString(stop.name.toString(), font).width
                 if used + width > available do
                     break
@@ -288,7 +291,7 @@ impl FilePlacesBar
     }
 
     // Marks the overflow control when the current folder belongs to a hidden place.
-    mtd updateSelection()
+    internal mtd updateSelection()
     {
         let current = .currentIndex()
         .moreButton?.setIconColor(current != Swag.U64.Max and current >= .visibleCount ? .themeColors().arc : Color{})
@@ -944,14 +947,20 @@ impl FileBrowserCtrl
         fileBrowser.backgroundStyle = .Transparent
         let metrics = fileBrowser.themeMetrics()
 
-        if fileBrowser.options.shortcuts.isEmpty()
+        let primaryShortcutCount = fileBrowser.options.shortcuts.count
+        func addDefaultShortcut(browser: *FileBrowserCtrl, directory: Env.SpecialDirectory, name: string)
         {
-            fileBrowser.options.shortcuts.add({type: Env.SpecialDirectory.Desktop, name: strings().browser_Desktop})
-            fileBrowser.options.shortcuts.add({type: Env.SpecialDirectory.UserDocuments, name: strings().browser_Documents})
-            fileBrowser.options.shortcuts.add({type: Env.SpecialDirectory.UserPictures, name: strings().browser_Pictures})
-            fileBrowser.options.shortcuts.add({type: Env.SpecialDirectory.UserMusic, name: strings().browser_Music})
-            fileBrowser.options.shortcuts.add({type: Env.SpecialDirectory.UserVideos, name: strings().browser_Videos})
+            for &shortcut in browser.options.shortcuts where shortcut.type == directory do
+                return
+            browser.options.shortcuts.add({type: directory, name})
         }
+
+        addDefaultShortcut(fileBrowser, .Desktop, strings().browser_Desktop)
+        addDefaultShortcut(fileBrowser, .UserDocuments, strings().browser_Documents)
+        addDefaultShortcut(fileBrowser, .Downloads, strings().browser_Downloads)
+        addDefaultShortcut(fileBrowser, .UserPictures, strings().browser_Pictures)
+        addDefaultShortcut(fileBrowser, .UserMusic, strings().browser_Music)
+        addDefaultShortcut(fileBrowser, .UserVideos, strings().browser_Videos)
 
         if fileBrowser.options.mode != .SelectFolder and fileBrowser.options.filters.isEmpty() do
             fileBrowser.options.filters.add({name: strings().browser_AllFiles, extensions: ""})
@@ -964,6 +973,7 @@ impl FileBrowserCtrl
                 .dockStyle   = .Top
                 .focusPolicy = .Click
                 .browser     = fileBrowser
+                .primaryCount = primaryShortcutCount
                 with .moreButton = IconButton.create(places, .theme().icon(.More, metrics.fileBrowser_GlyphSize), {0, 0, metrics.fileBrowser_PlacesHeight, metrics.fileBrowser_PlacesHeight})
                 {
                     .dockStyle  = .Right

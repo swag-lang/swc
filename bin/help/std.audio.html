@@ -307,7 +307,7 @@ voice.<span class="SFct">destroy</span>()</span></div>
 <h3 id="file_src_file_soundfile_swg"><code>src/file/soundfile.swg</code></h3>
 <p>Format: Format-neutral sound-file model. Supported: Describing decoded PCM and indexed packet streams, validated metadata fields, and source ownership. Not supported: This file does not parse or write a concrete sound container. Role: This file owns the shared sound-file metadata and storage contracts used by container subfolders.</p>
 <h3 id="file_src_file_tags_swg"><code>src/file/tags.swg</code></h3>
-<p>Format: Descriptive tags of sound files. Supported: ID3v2.2, v2.3, and v2.4 text frames at the head of an MP3 file, and the Vorbis comment block of a FLAC file. Not supported: ID3v1 trailers, unsynchronised ID3 tags, Ogg and MP4 comments, pictures, and writing tags. Role: This file owns reading the title, artist, album, and year a sound file declares.</p>
+<p>Format: Descriptive tags of sound files. Supported: ID3v2.2, v2.3, and v2.4 text frames at the head of an MP3 file, and the Vorbis comment block of a FLAC file. Not supported: ID3v1 trailers, unsynchronised ID3 tags, Ogg and MP4 comments, pictures, and writing tags. Role: This file owns reading the title, artist, album artist, album, and year a sound file declares.</p>
 <h3 id="file_src_file_wav_wav_swg"><code>src/file/wav/wav.swg</code></h3>
 <p>Format: RIFF/WAVE sound-file decoder. Supported: PCM8/16/24/32 and IEEE Float32 in classic or WAVE_FORMAT_EXTENSIBLE <span class="code-inline">fmt </span> chunks, including speaker masks and streamed <span class="code-inline">data</span> chunks, and Microsoft or IMA ADPCM blocks indexed as a streamed packet sound. Not supported: Other compressed WAVE codecs, IEEE Float64, RF64/WAVE64, big-endian RIFX, and multiple data segments. Role: This file owns RIFF chunk traversal, WAVE format validation, metadata, and SoundFile construction.</p>
 </section>
@@ -345,7 +345,7 @@ voice.<span class="SFct">destroy</span>()</span></div>
 </td></tr>
 <tr><td class="code-type"><a href="#Audio_SoundPcm16Consumer">Audio.SoundPcm16Consumer</a></td><td><span class="kind-chip kind-alias">type alias</span></td><td><p>Receives one borrowed chunk of interleaved PCM16 samples.</p>
 </td></tr>
-<tr><td class="code-type"><a href="#Audio_SoundTags">Audio.SoundTags</a></td><td><span class="kind-chip kind-struct">struct</span></td><td><p>What a sound file says about the recording it holds. Every field is empty when the file does</p>
+<tr><td class="code-type"><a href="#Audio_SoundTags">Audio.SoundTags</a></td><td><span class="kind-chip kind-struct">struct</span></td><td><p>What a sound file says about the recording it holds.</p>
 </td></tr>
 <tr><td class="code-type"><a href="#Audio_Voice">Audio.Voice</a></td><td><span class="kind-chip kind-struct">struct</span></td><td><p>Controls one playback instance of a sound file.</p>
 </td></tr>
@@ -571,7 +571,7 @@ voice.<span class="SFct">destroy</span>()</span></div>
 </td></tr>
 <tr><td class="code-type"><a href="#Audio_SoundPcm16Consumer">Audio.SoundPcm16Consumer</a></td><td><span class="kind-chip kind-alias">type alias</span></td><td><p>Receives one borrowed chunk of interleaved PCM16 samples.</p>
 </td></tr>
-<tr><td class="code-type"><a href="#Audio_SoundTags">Audio.SoundTags</a></td><td><span class="kind-chip kind-struct">struct</span></td><td><p>What a sound file says about the recording it holds. Every field is empty when the file does</p>
+<tr><td class="code-type"><a href="#Audio_SoundTags">Audio.SoundTags</a></td><td><span class="kind-chip kind-struct">struct</span></td><td><p>What a sound file says about the recording it holds.</p>
 </td></tr>
 <tr><td class="code-type"><a href="#Audio_Voice">Audio.Voice</a></td><td><span class="kind-chip kind-struct">struct</span></td><td><p>Controls one playback instance of a sound file.</p>
 </td></tr>
@@ -867,8 +867,9 @@ voice.<span class="SFct">destroy</span>()</span></div>
 <div class="code-block"><span class="SCde"><span class="SKwd">alias</span> <span class="SCst"><a href="#Audio_SoundPcm16Consumer">SoundPcm16Consumer</a></span> = <span class="SKwd">func</span>||(<span class="SKwd">const</span> [..] <span class="STpe">s16</span>)-&gt;<span class="STpe">bool</span></span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-struct"><span id="Audio_SoundTags" class="api-item-title"><span class="api-item-title-kind">struct</span> <span class="api-item-title-strong">Audio.SoundTags</span> <a class="api-item-permalink" href="#Audio_SoundTags" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/audio/src/file/tags.swg#L12">src</a></div>
-<p>What a sound file says about the recording it holds. Every field is empty when the file does not name it.</p>
+<div class="api-item api-item-struct"><span id="Audio_SoundTags" class="api-item-title"><span class="api-item-title-kind">struct</span> <span class="api-item-title-strong">Audio.SoundTags</span> <a class="api-item-permalink" href="#Audio_SoundTags" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/audio/src/file/tags.swg#L13">src</a></div>
+<p>What a sound file says about the recording it holds.</p>
+<p>Every field is empty when the file does not name it.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">struct</span> <span class="SCst"><a href="#Audio_SoundTags">SoundTags</a></span></span></div>
 </section>
 <h3>Fields</h3>
@@ -876,6 +877,8 @@ voice.<span class="SFct">destroy</span>()</span></div>
 <thead><tr><th>Name</th><th>Type</th><th>Description</th></tr></thead>
 <tbody>
 <tr><td id="Audio_SoundTags_album" class="code-type">album</td><td class="code-type"><a href="std.core.html#Core_String">Core.String</a></td><td><p>Collection the recording belongs to.</p>
+</td></tr>
+<tr><td id="Audio_SoundTags_albumArtist" class="code-type">albumArtist</td><td class="code-type"><a href="std.core.html#Core_String">Core.String</a></td><td><p>Performer credited to the album, when the tag names one.</p>
 </td></tr>
 <tr><td id="Audio_SoundTags_artist" class="code-type">artist</td><td class="code-type"><a href="std.core.html#Core_String">Core.String</a></td><td><p>Performer or author of the recording.</p>
 </td></tr>
@@ -1427,12 +1430,12 @@ voice.<span class="SFct">destroy</span>()</span></div>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SKwd">const</span> <span class="SFct">timelineStartSeconds</span>()-&gt;<span class="STpe">f64</span></span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Audio_SoundTags_isEmpty" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">SoundTags.isEmpty</span> <a class="api-item-permalink" href="#Audio_SoundTags_isEmpty" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/audio/src/file/tags.swg#L29">src</a></div>
+<div class="api-item api-item-func"><span id="Audio_SoundTags_isEmpty" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">SoundTags.isEmpty</span> <a class="api-item-permalink" href="#Audio_SoundTags_isEmpty" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/audio/src/file/tags.swg#L31">src</a></div>
 <p>Reports whether the file named nothing at all.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SKwd">const</span> <span class="SFct">isEmpty</span>()-&gt;<span class="STpe">bool</span></span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Audio_SoundTags_read" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">SoundTags.read</span> <a class="api-item-permalink" href="#Audio_SoundTags_read" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/audio/src/file/tags.swg#L37">src</a></div>
+<div class="api-item api-item-func"><span id="Audio_SoundTags_read" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">SoundTags.read</span> <a class="api-item-permalink" href="#Audio_SoundTags_read" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/audio/src/file/tags.swg#L43">src</a></div>
 <p>Reads the tags of <span class="code-inline">fileName</span>: the ID3v2 tag that opens an MP3 file, or the Vorbis comment block of a FLAC file.</p>
 <p>Tags only describe a recording, so a file without them, a format this reader does not know, a tag larger than 16 MiB, or one that does not decode all give empty tags rather than an error.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SFct">read</span>(fileName: <span class="STpe">string</span>)-&gt;<span class="SCst"><a href="#Audio_SoundTags">SoundTags</a></span></span></div>
@@ -1817,8 +1820,9 @@ voice.<span class="SFct">destroy</span>()</span></div>
 "v|Audio.SoundPacket.byteSize|Audio_SoundPacket_byteSize|Packet or chunk payload size in bytes.",
 "v|Audio.SoundPacket.sampleFrameCount|Audio_SoundPacket_sampleFrameCount|Decoded sample frames contributed by this packet.",
 "v|Audio.SoundPacket.sourceOffset|Audio_SoundPacket_sourceOffset|Absolute byte offset of the packet payload in the source file.",
-"s|Audio.SoundTags|Audio_SoundTags|What a sound file says about the recording it holds. Every field is empty when the file does",
+"s|Audio.SoundTags|Audio_SoundTags|What a sound file says about the recording it holds.",
 "v|Audio.SoundTags.album|Audio_SoundTags_album|Collection the recording belongs to.",
+"v|Audio.SoundTags.albumArtist|Audio_SoundTags_albumArtist|Performer credited to the album, when the tag names one.",
 "v|Audio.SoundTags.artist|Audio_SoundTags_artist|Performer or author of the recording.",
 "v|Audio.SoundTags.title|Audio_SoundTags_title|Name of the recording.",
 "v|Audio.SoundTags.year|Audio_SoundTags_year|Year of the recording or its release, as the file spells it.",

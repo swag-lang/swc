@@ -440,7 +440,7 @@
 </ul>
 </details>
 <details class="toc-group">
-<summary><span class="toc-label">Functions</span><span class="toc-count">1720</span></summary>
+<summary><span class="toc-label">Functions</span><span class="toc-count">1722</span></summary>
 <ul class="toc-symbols">
 <li><a href="#summary-functions">All Functions</a></li>
 <li><a href="#Core_Hash_Adler32_compute">Adler32.compute</a></li>
@@ -740,6 +740,7 @@
 <li><a href="#Core_Time_DateTime_now">DateTime.now</a></li>
 <li><a href="#Core_Time_DateTime_parse">DateTime.parse</a></li>
 <li><a href="#Core_Time_DateTime_setNow">DateTime.setNow</a></li>
+<li><a href="#Core_Time_DateTime_toLocal">DateTime.toLocal</a></li>
 <li><a href="#Core_Time_DateTime_toString">DateTime.toString</a></li>
 <li><a href="#Core_Time_DateTime_utcNow">DateTime.utcNow</a></li>
 <li><a href="#Core_Globalization_DateTimeFormatInfo_dayName">DateTimeFormatInfo.dayName</a></li>
@@ -786,6 +787,7 @@
 <li><a href="#Core_Directory_enumerateDirectories">Directory.enumerateDirectories</a></li>
 <li><a href="#Core_Directory_enumerateFiles">Directory.enumerateFiles</a></li>
 <li><a href="#Core_Directory_exists">Directory.exists</a></li>
+<li><a href="#Core_Directory_freeSpace">Directory.freeSpace</a></li>
 <li><a href="#Core_Directory_isRemote">Directory.isRemote</a></li>
 <li><a href="#Core_Directory_setCurrentPath">Directory.setCurrentPath</a></li>
 <li><a href="#Core_Directory_volumes">Directory.volumes</a></li>
@@ -3761,6 +3763,8 @@ encoder.serializer.options.saveBlanks = <span class="SKwd">true</span>
 </td></tr>
 <tr><td class="code-type"><a href="#Core_Time_DateTime_setNow">DateTime.setNow</a></td><td><p>Replaces this value with the current local date and time.</p>
 </td></tr>
+<tr><td class="code-type"><a href="#Core_Time_DateTime_toLocal">DateTime.toLocal</a></td><td><p>Returns this date and time, read as UTC, in the local time zone.</p>
+</td></tr>
 <tr><td class="code-type"><a href="#Core_Time_DateTime_toString">DateTime.toString</a></td><td><p>Returns this value as text in the layout <span class="code-inline">fmt</span> selects.</p>
 </td></tr>
 <tr><td class="code-type"><a href="#Core_Time_DateTime_utcNow">DateTime.utcNow</a></td><td><p>Returns the current UTC date and time.</p>
@@ -3852,6 +3856,8 @@ encoder.serializer.options.saveBlanks = <span class="SKwd">true</span>
 <tr><td class="code-type"><a href="#Core_Directory_enumerateFiles">Directory.enumerateFiles</a></td><td><p>Returns the files of <span class="code-inline">dirName</span>, optionally restricted to one extension and extended to its subdirectories.</p>
 </td></tr>
 <tr><td class="code-type"><a href="#Core_Directory_exists">Directory.exists</a></td><td><p>Returns whether <span class="code-inline">dirName</span> names an existing directory.</p>
+</td></tr>
+<tr><td class="code-type"><a href="#Core_Directory_freeSpace">Directory.freeSpace</a></td><td><p>Returns how many bytes the caller may still write on the volume holding the directory <span class="code-inline">dirName</span>.</p>
 </td></tr>
 <tr><td class="code-type"><a href="#Core_Directory_isRemote">Directory.isRemote</a></td><td><p>Returns whether <span class="code-inline">path</span> lives on a network share rather than on a local volume.</p>
 </td></tr>
@@ -4395,7 +4401,7 @@ encoder.serializer.options.saveBlanks = <span class="SKwd">true</span>
 </td></tr>
 <tr><td class="code-type"><a href="#Core_Compress_Inflate_decompress">Inflate.decompress</a></td><td><p>Decompresses the Deflate data in <span class="code-inline">buf</span> and appends it to <span class="code-inline">result</span>.</p>
 </td></tr>
-<tr><td class="code-type"><a href="#Core_Input_formatKeyShortcut">Input.formatKeyShortcut</a></td><td><p>Formats <span class="code-inline">modifiers</span> and <span class="code-inline">key</span> as a display-ready shortcut such as <span class="code-inline">Ctrl+S</span>.</p>
+<tr><td class="code-type"><a href="#Core_Input_formatKeyShortcut">Input.formatKeyShortcut</a></td><td><p>Formats <span class="code-inline">modifiers</span> and <span class="code-inline">key</span> as a display-ready shortcut such as <span class="code-inline">Ctrl S</span> or <span class="code-inline">Ctrl Shift S</span>:</p>
 </td></tr>
 <tr><td class="code-type"><a href="#Core_Input_mousePosition">Input.mousePosition</a></td><td><p>Returns the cursor position in physical desktop pixels.</p>
 </td></tr>
@@ -7074,6 +7080,8 @@ encoder.serializer.options.saveBlanks = <span class="SKwd">true</span>
 </td></tr>
 <tr><td class="code-type"><a href="#Core_Directory_exists">Directory.exists</a></td><td><p>Returns whether <span class="code-inline">dirName</span> names an existing directory.</p>
 </td></tr>
+<tr><td class="code-type"><a href="#Core_Directory_freeSpace">Directory.freeSpace</a></td><td><p>Returns how many bytes the caller may still write on the volume holding the directory <span class="code-inline">dirName</span>.</p>
+</td></tr>
 <tr><td class="code-type"><a href="#Core_Directory_isRemote">Directory.isRemote</a></td><td><p>Returns whether <span class="code-inline">path</span> lives on a network share rather than on a local volume.</p>
 </td></tr>
 <tr><td class="code-type"><a href="#Core_Directory_setCurrentPath">Directory.setCurrentPath</a></td><td><p>Changes the current directory of the process to <span class="code-inline">dirName</span>.</p>
@@ -7546,7 +7554,7 @@ encoder.serializer.options.saveBlanks = <span class="SKwd">true</span>
 <table class="api-summary">
 <thead><tr><th>Name</th><th>Description</th></tr></thead>
 <tbody>
-<tr><td class="code-type"><a href="#Core_Input_formatKeyShortcut">Input.formatKeyShortcut</a></td><td><p>Formats <span class="code-inline">modifiers</span> and <span class="code-inline">key</span> as a display-ready shortcut such as <span class="code-inline">Ctrl+S</span>.</p>
+<tr><td class="code-type"><a href="#Core_Input_formatKeyShortcut">Input.formatKeyShortcut</a></td><td><p>Formats <span class="code-inline">modifiers</span> and <span class="code-inline">key</span> as a display-ready shortcut such as <span class="code-inline">Ctrl S</span> or <span class="code-inline">Ctrl Shift S</span>:</p>
 </td></tr>
 <tr><td class="code-type"><a href="#Core_Input_mousePosition">Input.mousePosition</a></td><td><p>Returns the cursor position in physical desktop pixels.</p>
 </td></tr>
@@ -10847,7 +10855,7 @@ encoder.serializer.options.saveBlanks = <span class="SKwd">true</span>
 </tbody>
 </table>
 <section class="api-symbol">
-<div class="api-item api-item-struct"><span id="Core_Env_Monitor" class="api-item-title"><span class="api-item-title-kind">struct</span> <span class="api-item-title-strong">Env.Monitor</span> <a class="api-item-permalink" href="#Core_Env_Monitor" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/system/environment.swg#L72">src</a></div>
+<div class="api-item api-item-struct"><span id="Core_Env_Monitor" class="api-item-title"><span class="api-item-title-kind">struct</span> <span class="api-item-title-strong">Env.Monitor</span> <a class="api-item-permalink" href="#Core_Env_Monitor" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/system/environment.swg#L73">src</a></div>
 <p>Describes a physical monitor.</p>
 <div class="code-block"><span class="SCde"><span class="SAtr">#[</span><span class="SNsp">Swag</span>.<span class="SAtr">Operators(opEquals, opCompare)]</span>
 <span class="SKwd">struct</span> <span class="SCst"><a href="#Core_Env_Monitor">Monitor</a></span></span></div>
@@ -14635,6 +14643,8 @@ bundle.<span class="SFct">addFolder</span>(<span class="SStr">"datas"</span>)
 </td></tr>
 <tr><td class="code-type"><a href="#Core_Time_DateTime_setNow">setNow</a></td><td><p>Replaces this value with the current local date and time.</p>
 </td></tr>
+<tr><td class="code-type"><a href="#Core_Time_DateTime_toLocal">toLocal</a></td><td><p>Returns this date and time, read as UTC, in the local time zone.</p>
+</td></tr>
 <tr><td class="code-type"><a href="#Core_Time_DateTime_toString">toString</a></td><td><p>Returns this value as text in the layout <span class="code-inline">fmt</span> selects.</p>
 </td></tr>
 <tr><td class="code-type"><a href="#Core_Time_DateTime_utcNow">utcNow</a></td><td><p>Returns the current UTC date and time.</p>
@@ -15176,6 +15186,8 @@ bundle.<span class="SFct">addFolder</span>(<span class="SStr">"datas"</span>)
 </td></tr>
 <tr><td id="Core_Env_SpecialDirectory_Desktop" class="code-type">Desktop</td><td><p>Desktop for the current user.</p>
 </td></tr>
+<tr><td id="Core_Env_SpecialDirectory_Downloads" class="code-type">Downloads</td><td><p>Downloads for the current user.</p>
+</td></tr>
 <tr><td id="Core_Env_SpecialDirectory_Font" class="code-type">Font</td><td><p>Installed system fonts.</p>
 </td></tr>
 <tr><td id="Core_Env_SpecialDirectory_Temp" class="code-type">Temp</td><td><p>Temporary files for the current user.</p>
@@ -15210,7 +15222,7 @@ bundle.<span class="SFct">addFolder</span>(<span class="SStr">"datas"</span>)
 </tbody>
 </table>
 <section class="api-symbol">
-<div class="api-item api-item-enum"><span id="Core_Env_SystemMetric" class="api-item-title"><span class="api-item-title-kind">enum</span> <span class="api-item-title-strong">Env.SystemMetric</span> <a class="api-item-permalink" href="#Core_Env_SystemMetric" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/system/environment.swg#L148">src</a></div>
+<div class="api-item api-item-enum"><span id="Core_Env_SystemMetric" class="api-item-title"><span class="api-item-title-kind">enum</span> <span class="api-item-title-strong">Env.SystemMetric</span> <a class="api-item-permalink" href="#Core_Env_SystemMetric" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/system/environment.swg#L149">src</a></div>
 <p>Identifies a virtual-desktop system metric.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">enum</span> <span class="SCst"><a href="#Core_Env_SystemMetric">SystemMetric</a></span></span></div>
 </section>
@@ -18899,44 +18911,50 @@ bundle.<span class="SFct">addFolder</span>(<span class="SStr">"datas"</span>)
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SKwd">const</span> <span class="SFct">evaluate</span>(x: <span class="STpe">f32</span>)-&gt;<span class="STpe">f32</span></span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Core_Time_DateTime_dayOfWeek" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">DateTime.dayOfWeek</span> <a class="api-item-permalink" href="#Core_Time_DateTime_dayOfWeek" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/time/datetime.swg#L135">src</a></div>
+<div class="api-item api-item-func"><span id="Core_Time_DateTime_dayOfWeek" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">DateTime.dayOfWeek</span> <a class="api-item-permalink" href="#Core_Time_DateTime_dayOfWeek" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/time/datetime.swg#L146">src</a></div>
 <p>Returns the day of the week of this date. Panics when the date components are invalid.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SKwd">const</span> <span class="SFct">dayOfWeek</span>()-&gt;<span class="SCst"><a href="#Core_Time_DayOfWeek">DayOfWeek</a></span></span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Core_Time_DateTime_dayOfWeekName" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">DateTime.dayOfWeekName</span> <a class="api-item-permalink" href="#Core_Time_DateTime_dayOfWeekName" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/time/datetime.swg#L158">src</a></div>
+<div class="api-item api-item-func"><span id="Core_Time_DateTime_dayOfWeekName" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">DateTime.dayOfWeekName</span> <a class="api-item-permalink" href="#Core_Time_DateTime_dayOfWeekName" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/time/datetime.swg#L169">src</a></div>
 <p>Returns the English name of <span class="code-inline">day</span>.</p>
 <p>Panics when <span class="code-inline">day</span> is outside the supported range.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SFct">dayOfWeekName</span>(day: <span class="SCst"><a href="#Core_Time_DayOfWeek">DayOfWeek</a></span>)-&gt;<span class="STpe">string</span></span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Core_Time_DateTime_isValid" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">DateTime.isValid</span> <a class="api-item-permalink" href="#Core_Time_DateTime_isValid" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/time/datetime.swg#L108">src</a></div>
+<div class="api-item api-item-func"><span id="Core_Time_DateTime_isValid" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">DateTime.isValid</span> <a class="api-item-permalink" href="#Core_Time_DateTime_isValid" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/time/datetime.swg#L119">src</a></div>
 <p>Returns whether every component is in range and the day exists in its month.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SKwd">const</span> <span class="SFct">isValid</span>()-&gt;<span class="STpe">bool</span></span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Core_Time_DateTime_monthName" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">DateTime.monthName</span> <a class="api-item-permalink" href="#Core_Time_DateTime_monthName" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/time/datetime.swg#L149">src</a></div>
+<div class="api-item api-item-func"><span id="Core_Time_DateTime_monthName" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">DateTime.monthName</span> <a class="api-item-permalink" href="#Core_Time_DateTime_monthName" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/time/datetime.swg#L160">src</a></div>
 <p>Returns the English name of <span class="code-inline">month</span>, numbered from 1 to 12.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SFct">monthName</span>(month: <span class="STpe">u16</span>)-&gt;<span class="STpe">string</span></span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Core_Time_DateTime_now" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">DateTime.now</span> <a class="api-item-permalink" href="#Core_Time_DateTime_now" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/time/datetime.swg#L94">src</a></div>
+<div class="api-item api-item-func"><span id="Core_Time_DateTime_now" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">DateTime.now</span> <a class="api-item-permalink" href="#Core_Time_DateTime_now" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/time/datetime.swg#L105">src</a></div>
 <p>Returns the current local date and time.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SFct">now</span>()-&gt;<span class="SCst"><a href="#Core_Time_DateTime">DateTime</a></span></span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Core_Time_DateTime_parse" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">DateTime.parse</span> <a class="api-item-permalink" href="#Core_Time_DateTime_parse" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/time/datetime.swg#L220">src</a></div>
+<div class="api-item api-item-func"><span id="Core_Time_DateTime_parse" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">DateTime.parse</span> <a class="api-item-permalink" href="#Core_Time_DateTime_parse" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/time/datetime.swg#L231">src</a></div>
 <p>Parses a date, optionally followed by a time, at the start of <span class="code-inline">str</span> and returns it with the number of bytes consumed.</p>
 <p>The date is either <span class="code-inline">YYYY-MM-DD</span> or <span class="code-inline">DAYOFWEEK MONTH DAY YYYY</span> with English names, and the time, after one space, is <span class="code-inline">HH:MM</span>, optionally followed by <span class="code-inline">:SS</span> and <span class="code-inline">.ZZZ</span>. These are the layouts <a href="#Core_Time_DateTime_toString">Core.Time.DateTime.toString</a> writes. With <span class="code-inline">checkDate</span>, the day of the week must match the date and every component must be in range. Fails with a <a href="#Core_Errors_SyntaxError">Core.Errors.SyntaxError</a> otherwise.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SFct">parse</span>(str: <span class="STpe">string</span>, checkDate = <span class="SKwd">true</span>)-&gt;{ value: <span class="SCst"><a href="#Core_Time_DateTime">DateTime</a></span>, eat: <span class="STpe">u32</span> } <span class="SKwd">fail</span></span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Core_Time_DateTime_setNow" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">DateTime.setNow</span> <a class="api-item-permalink" href="#Core_Time_DateTime_setNow" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/time/datetime.swg#L102">src</a></div>
+<div class="api-item api-item-func"><span id="Core_Time_DateTime_setNow" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">DateTime.setNow</span> <a class="api-item-permalink" href="#Core_Time_DateTime_setNow" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/time/datetime.swg#L113">src</a></div>
 <p>Replaces this value with the current local date and time.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">setNow</span>()</span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Core_Time_DateTime_toString" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">DateTime.toString</span> <a class="api-item-permalink" href="#Core_Time_DateTime_toString" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/time/datetime.swg#L330">src</a></div>
+<div class="api-item api-item-func"><span id="Core_Time_DateTime_toLocal" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">DateTime.toLocal</span> <a class="api-item-permalink" href="#Core_Time_DateTime_toLocal" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/time/datetime.swg#L97">src</a></div>
+<p>Returns this date and time, read as UTC, in the local time zone.</p>
+<p>The offset is the one in force on that date, daylight saving included, so a file written in winter reads in winter time in summer. A value the system cannot convert is returned as is.</p>
+<div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SKwd">const</span> <span class="SFct">toLocal</span>()-&gt;<span class="SCst"><a href="#Core_Time_DateTime">DateTime</a></span></span></div>
+</section>
+<section class="api-symbol">
+<div class="api-item api-item-func"><span id="Core_Time_DateTime_toString" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">DateTime.toString</span> <a class="api-item-permalink" href="#Core_Time_DateTime_toString" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/time/datetime.swg#L341">src</a></div>
 <p>Returns this value as text in the layout <span class="code-inline">fmt</span> selects.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SKwd">const</span> <span class="SFct">toString</span>(fmt = <span class="SCst"><a href="#Core_Time_DateTimeFormat">DateTimeFormat</a></span>.<span class="SCst"><a href="#Core_Time_DateTime">DateTime</a></span>)-&gt;<span class="SCst"><a href="#Core_String">String</a></span></span></div>
 </section>
@@ -19202,6 +19220,12 @@ bundle.<span class="SFct">addFolder</span>(<span class="SStr">"datas"</span>)
 <div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SFct">exists</span>(dirName: <span class="STpe">string</span>)-&gt;<span class="STpe">bool</span></span></div>
 </section>
 <section class="api-symbol">
+<div class="api-item api-item-func"><span id="Core_Directory_freeSpace" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Directory.freeSpace</span> <a class="api-item-permalink" href="#Core_Directory_freeSpace" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/filesystem/directory.win32.swg#L161">src</a></div>
+<p>Returns how many bytes the caller may still write on the volume holding the directory <span class="code-inline">dirName</span>.</p>
+<p>The answer honours the quota of the account, so it can be less than what the volume has free. <span class="code-inline">dirName</span> must name an existing directory; a file, a missing path or a volume that does not answer reports an error.</p>
+<div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SFct">freeSpace</span>(dirName: <span class="STpe">string</span>)-&gt;<span class="STpe">u64</span> <span class="SKwd">fail</span></span></div>
+</section>
+<section class="api-symbol">
 <div class="api-item api-item-func"><span id="Core_Directory_isRemote" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Directory.isRemote</span> <a class="api-item-permalink" href="#Core_Directory_isRemote" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/filesystem/directory.win32.swg#L143">src</a></div>
 <p>Returns whether <span class="code-inline">path</span> lives on a network share rather than on a local volume.</p>
 <p>Reading many files at once from a share is bounded by the round trips of the remote storage, not by the processors: a caller that fans work out over the files of a folder sizes it by this.</p>
@@ -19213,7 +19237,7 @@ bundle.<span class="SFct">addFolder</span>(<span class="SStr">"datas"</span>)
 <div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SFct">setCurrentPath</span>(dirName: <span class="STpe">string</span>) <span class="SKwd">fail</span></span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Core_Directory_volumes" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Directory.volumes</span> <a class="api-item-permalink" href="#Core_Directory_volumes" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/filesystem/directory.win32.swg#L159">src</a></div>
+<div class="api-item api-item-func"><span id="Core_Directory_volumes" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Directory.volumes</span> <a class="api-item-permalink" href="#Core_Directory_volumes" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/filesystem/directory.win32.swg#L180">src</a></div>
 <p>Returns the first mount point of every mounted volume, with normalized separators.</p>
 <p>A volume without a mount point is skipped.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SFct">volumes</span>()-&gt;<span class="SFct">Array</span>'<span class="SCst"><a href="#Core_String">String</a></span> <span class="SKwd">fail</span></span></div>
@@ -19303,14 +19327,14 @@ bundle.<span class="SFct">addFolder</span>(<span class="SStr">"datas"</span>)
 <div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SFct">arguments</span>()-&gt;<span class="SKwd">const</span> [..] <span class="STpe">string</span></span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Core_Env_associateFileExtension" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Env.associateFileExtension</span> <a class="api-item-permalink" href="#Core_Env_associateFileExtension" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/system/environment.win32.swg#L314">src</a></div>
+<div class="api-item api-item-func"><span id="Core_Env_associateFileExtension" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Env.associateFileExtension</span> <a class="api-item-permalink" href="#Core_Env_associateFileExtension" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/system/environment.win32.swg#L344">src</a></div>
 <p>Offers <span class="code-inline">appName</span> in the shell's <i>Open with</i> list for <span class="code-inline">extension</span>, for the current user, and returns whether every registry write succeeded.</p>
 <p>The registered command runs <span class="code-inline">appPath</span> with the opened file, and the default application of the extension is left alone; <a href="#Core_Env_claimFileExtension">Core.Env.claimFileExtension</a> takes the extension over instead. Refused under a sandbox, which reports it as not associated: claiming a file extension changes what the shell does on the whole machine.</p>
 <div class="code-block"><span class="SCde"><span class="SAtr">#[</span><span class="SNsp">Swag</span>.<span class="SAtr">Discardable]</span>
 <span class="SKwd">func</span> <span class="SFct">associateFileExtension</span>(extension, appName, appPath: <span class="STpe">string</span>)-&gt;<span class="STpe">bool</span></span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Core_Env_claimFileExtension" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Env.claimFileExtension</span> <a class="api-item-permalink" href="#Core_Env_claimFileExtension" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/system/environment.win32.swg#L406">src</a></div>
+<div class="api-item api-item-func"><span id="Core_Env_claimFileExtension" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Env.claimFileExtension</span> <a class="api-item-permalink" href="#Core_Env_claimFileExtension" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/system/environment.win32.swg#L436">src</a></div>
 <p>Makes <span class="code-inline">appPath</span> the program the shell runs for <span class="code-inline">extension</span>, for the current user.</p>
 <p>This is the strong form of <a href="#Core_Env_associateFileExtension">Core.Env.associateFileExtension</a>: that one offers the application in the <i>Open with</i> list and leaves the default alone, which is what an application wants for a format it merely reads. This one takes the extension over, so opening one of those files — from a double-click, from <span class="code-inline">cmd</span>, from anywhere the shell resolves a document — runs <span class="code-inline">appPath</span>. Reserve it for an extension the application defines.</p>
 <p><span class="code-inline">progId</span> is the class name the extension points at, conventionally <span class="code-inline">Vendor.Kind</span>. It is what distinguishes this claim from another program's, so keep it stable: registering the same <span class="code-inline">progId</span> again updates the claim instead of adding a second one. <span class="code-inline">description</span> is the file type as the shell shows it in a folder listing.</p>
@@ -19343,7 +19367,7 @@ bundle.<span class="SFct">addFolder</span>(<span class="SStr">"datas"</span>)
 <div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SFct">deniedSystemMutations</span>()-&gt;<span class="STpe">u64</span></span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Core_Env_enableDpiAwareness" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Env.enableDpiAwareness</span> <a class="api-item-permalink" href="#Core_Env_enableDpiAwareness" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/system/environment.win32.swg#L505">src</a></div>
+<div class="api-item api-item-func"><span id="Core_Env_enableDpiAwareness" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Env.enableDpiAwareness</span> <a class="api-item-permalink" href="#Core_Env_enableDpiAwareness" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/system/environment.win32.swg#L535">src</a></div>
 <p>Declares this process per-monitor DPI aware, so windows receive physical pixels.</p>
 <p>Every window-creation path calls this before its first native window exists; an application only needs it directly when it creates native windows on its own. Once enabled, monitor and cursor coordinates are physical desktop pixels and the system no longer stretches window content on scaled displays. Repeated calls do nothing, and a failure (for example when the awareness was already set by other means) is ignored.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SFct">enableDpiAwareness</span>()</span></div>
@@ -19367,12 +19391,12 @@ bundle.<span class="SFct">addFolder</span>(<span class="SStr">"datas"</span>)
 <div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SFct">exit</span>(exitCode: <span class="STpe">s32</span>)</span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Core_Env_getDpiScale" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Env.getDpiScale</span> <a class="api-item-permalink" href="#Core_Env_getDpiScale" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/system/environment.win32.swg#L486">src</a></div>
+<div class="api-item api-item-func"><span id="Core_Env_getDpiScale" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Env.getDpiScale</span> <a class="api-item-permalink" href="#Core_Env_getDpiScale" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/system/environment.win32.swg#L516">src</a></div>
 <p>Returns the current logical-to-physical desktop scale factor.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SFct">getDpiScale</span>()-&gt;<span class="STpe">f32</span></span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Core_Env_getMonitors" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Env.getMonitors</span> <a class="api-item-permalink" href="#Core_Env_getMonitors" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/system/environment.win32.swg#L76">src</a></div>
+<div class="api-item api-item-func"><span id="Core_Env_getMonitors" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Env.getMonitors</span> <a class="api-item-permalink" href="#Core_Env_getMonitors" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/system/environment.win32.swg#L106">src</a></div>
 <p>Returns snapshots of all active display monitors, ordered from left to right.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SFct">getMonitors</span>()-&gt;<span class="SFct">Array</span>'<span class="SCst"><a href="#Core_Env_Monitor">Monitor</a></span></span></div>
 </section>
@@ -19384,7 +19408,7 @@ bundle.<span class="SFct">addFolder</span>(<span class="SStr">"datas"</span>)
 <div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SFct">getSpecialDirectory</span>(what: <span class="SCst"><a href="#Core_Env_SpecialDirectory">SpecialDirectory</a></span>)-&gt;<span class="SCst"><a href="#Core_String">String</a></span></span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Core_Env_getSystemMetric" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Env.getSystemMetric</span> <a class="api-item-permalink" href="#Core_Env_getSystemMetric" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/system/environment.win32.swg#L214">src</a></div>
+<div class="api-item api-item-func"><span id="Core_Env_getSystemMetric" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Env.getSystemMetric</span> <a class="api-item-permalink" href="#Core_Env_getSystemMetric" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/system/environment.win32.swg#L244">src</a></div>
 <p>Returns one virtual-desktop metric in physical pixels.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SFct">getSystemMetric</span>(what: <span class="SCst"><a href="#Core_Env_SystemMetric">SystemMetric</a></span>)-&gt;<span class="STpe">s32</span></span></div>
 </section>
@@ -19440,40 +19464,40 @@ bundle.<span class="SFct">addFolder</span>(<span class="SStr">"datas"</span>)
 <div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SFct">joinArguments</span>(arguments: <span class="SKwd">const</span> [..] <span class="STpe">string</span>)-&gt;<span class="SCst"><a href="#Core_String">String</a></span></span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Core_Env_monitorForPoint" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Env.monitorForPoint</span> <a class="api-item-permalink" href="#Core_Env_monitorForPoint" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/system/environment.swg#L88">src</a></div>
+<div class="api-item api-item-func"><span id="Core_Env_monitorForPoint" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Env.monitorForPoint</span> <a class="api-item-permalink" href="#Core_Env_monitorForPoint" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/system/environment.swg#L89">src</a></div>
 <p>Returns the monitor containing <span class="code-inline">point</span>, or the nearest monitor otherwise.</p>
 <p><span class="code-inline">point</span> is in physical desktop pixels, the space of window positions and of the cursor once the process is DPI aware.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SFct">monitorForPoint</span>(point: <span class="SCst"><a href="#namespace_Core_Math">Math</a></span>.<span class="SCst"><a href="#Core_Math_Point">Point</a></span>)-&gt;<span class="SCst"><a href="#namespace_Core_Env">Env</a></span>.<span class="SCst"><a href="#Core_Env_Monitor">Monitor</a></span></span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Core_Env_monitorForRectangle" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Env.monitorForRectangle</span> <a class="api-item-permalink" href="#Core_Env_monitorForRectangle" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/system/environment.swg#L125">src</a></div>
+<div class="api-item api-item-func"><span id="Core_Env_monitorForRectangle" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Env.monitorForRectangle</span> <a class="api-item-permalink" href="#Core_Env_monitorForRectangle" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/system/environment.swg#L126">src</a></div>
 <p>Returns the monitor with the largest intersection with <span class="code-inline">rectangle</span>.</p>
 <p><span class="code-inline">rectangle</span> is in physical desktop pixels. The first monitor is returned when the rectangle does not intersect a monitor, and a default value when there is none.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SFct">monitorForRectangle</span>(rectangle: <span class="SCst"><a href="#namespace_Core_Math">Math</a></span>.<span class="SCst"><a href="#Core_Math_Rectangle">Rectangle</a></span>)-&gt;<span class="SCst"><a href="#namespace_Core_Env">Env</a></span>.<span class="SCst"><a href="#Core_Env_Monitor">Monitor</a></span></span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Core_Env_openFile" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Env.openFile</span> <a class="api-item-permalink" href="#Core_Env_openFile" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/system/environment.win32.swg#L182">src</a></div>
+<div class="api-item api-item-func"><span id="Core_Env_openFile" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Env.openFile</span> <a class="api-item-permalink" href="#Core_Env_openFile" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/system/environment.win32.swg#L212">src</a></div>
 <p>Opens <span class="code-inline">path</span> with its system-default application.</p>
 <p>The request is handed to the Windows shell and returns before the application finishes. The result reports whether the shell accepted the request; it does not report what the application subsequently did with the file.</p>
 <div class="code-block"><span class="SCde"><span class="SAtr">#[</span><span class="SNsp">Swag</span>.<span class="SAtr">Discardable]</span>
 <span class="SKwd">func</span> <span class="SFct">openFile</span>(path: <span class="STpe">string</span>)-&gt;<span class="STpe">bool</span></span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Core_Env_openFileWith" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Env.openFileWith</span> <a class="api-item-permalink" href="#Core_Env_openFileWith" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/system/environment.win32.swg#L158">src</a></div>
+<div class="api-item api-item-func"><span id="Core_Env_openFileWith" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Env.openFileWith</span> <a class="api-item-permalink" href="#Core_Env_openFileWith" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/system/environment.win32.swg#L188">src</a></div>
 <p>Asks the platform to let the user pick which application opens <span class="code-inline">path</span>.</p>
 <p>The chooser is the shell's own, so it offers the same applications, the same default-handler checkbox and the same store lookup the file explorer offers. It runs in its own process: the call returns as soon as the request is handed over, long before the user has chosen anything, and reports only whether the chooser could be started.</p>
 <div class="code-block"><span class="SCde"><span class="SAtr">#[</span><span class="SNsp">Swag</span>.<span class="SAtr">Discardable]</span>
 <span class="SKwd">func</span> <span class="SFct">openFileWith</span>(path: <span class="STpe">string</span>)-&gt;<span class="STpe">bool</span></span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Core_Env_openUrl" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Env.openUrl</span> <a class="api-item-permalink" href="#Core_Env_openUrl" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/system/environment.win32.swg#L200">src</a></div>
+<div class="api-item api-item-func"><span id="Core_Env_openUrl" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Env.openUrl</span> <a class="api-item-permalink" href="#Core_Env_openUrl" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/system/environment.win32.swg#L230">src</a></div>
 <p>Opens <span class="code-inline">url</span> with the system's default handler and returns whether the system accepted it.</p>
 <p>Only an address <a href="#Core_Env_isWebUrl">Env.isWebUrl</a> accepts is handed over; anything else is refused without being opened and returns <span class="code-inline">false</span>. Links taken from a displayed document can therefore be passed as they are, without turning a <span class="code-inline">file:</span> URL or a relative path into a program launch.</p>
 <div class="code-block"><span class="SCde"><span class="SAtr">#[</span><span class="SNsp">Swag</span>.<span class="SAtr">Discardable]</span>
 <span class="SKwd">func</span> <span class="SFct">openUrl</span>(url: <span class="STpe">string</span>)-&gt;<span class="STpe">bool</span></span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Core_Env_processWindowMessages" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Env.processWindowMessages</span> <a class="api-item-permalink" href="#Core_Env_processWindowMessages" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/system/environment.win32.swg#L635">src</a></div>
+<div class="api-item api-item-func"><span id="Core_Env_processWindowMessages" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Env.processWindowMessages</span> <a class="api-item-permalink" href="#Core_Env_processWindowMessages" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/system/environment.win32.swg#L665">src</a></div>
 <p>Processes all pending window messages and returns false when the application should exit.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SFct">processWindowMessages</span>()-&gt;<span class="STpe">bool</span></span></div>
 </section>
@@ -19491,7 +19515,7 @@ bundle.<span class="SFct">addFolder</span>(<span class="SStr">"datas"</span>)
 <div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SFct">realSpecialDirectory</span>(what: <span class="SCst"><a href="#Core_Env_SpecialDirectory">SpecialDirectory</a></span>)-&gt;<span class="SCst"><a href="#Core_String">String</a></span></span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Core_Env_registerApplication" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Env.registerApplication</span> <a class="api-item-permalink" href="#Core_Env_registerApplication" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/system/environment.win32.swg#L249">src</a></div>
+<div class="api-item api-item-func"><span id="Core_Env_registerApplication" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Env.registerApplication</span> <a class="api-item-permalink" href="#Core_Env_registerApplication" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/system/environment.win32.swg#L279">src</a></div>
 <p>Registers <span class="code-inline">appName</span> with the shell for the current user, under the display name <span class="code-inline">appFriendly</span>.</p>
 <p>Registry writes that fail are ignored. Refused under a sandbox: this writes to the user's registry, which a test or a smoke run has no business touching.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SFct">registerApplication</span>(appName, appFriendly: <span class="STpe">string</span>)</span></div>
@@ -19515,7 +19539,7 @@ bundle.<span class="SFct">addFolder</span>(<span class="SStr">"datas"</span>)
 <div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SFct">sandboxRoot</span>()-&gt;<span class="STpe">string</span></span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Core_Env_showInFileExplorer" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Env.showInFileExplorer</span> <a class="api-item-permalink" href="#Core_Env_showInFileExplorer" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/system/environment.win32.swg#L137">src</a></div>
+<div class="api-item api-item-func"><span id="Core_Env_showInFileExplorer" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Env.showInFileExplorer</span> <a class="api-item-permalink" href="#Core_Env_showInFileExplorer" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/system/environment.win32.swg#L167">src</a></div>
 <p>Opens the platform file explorer with <span class="code-inline">path</span> selected and returns whether the shell accepted the request.</p>
 <div class="code-block"><span class="SCde"><span class="SAtr">#[</span><span class="SNsp">Swag</span>.<span class="SAtr">Discardable]</span>
 <span class="SKwd">func</span> <span class="SFct">showInFileExplorer</span>(path: <span class="STpe">string</span>)-&gt;<span class="STpe">bool</span></span></div>
@@ -19536,7 +19560,7 @@ bundle.<span class="SFct">addFolder</span>(<span class="SStr">"datas"</span>)
 <div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SFct">startProcess</span>(info: <span class="SCst"><a href="#Core_Env_StartInfo">StartInfo</a></span>)-&gt;<span class="SCst"><a href="#Core_Env_Process">Process</a></span> <span class="SKwd">fail</span></span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Core_Env_userLocaleName" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Env.userLocaleName</span> <a class="api-item-permalink" href="#Core_Env_userLocaleName" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/system/environment.win32.swg#L228">src</a></div>
+<div class="api-item api-item-func"><span id="Core_Env_userLocaleName" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Env.userLocaleName</span> <a class="api-item-permalink" href="#Core_Env_userLocaleName" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/system/environment.win32.swg#L258">src</a></div>
 <p>Returns the user's preferred locale name, such as <span class="code-inline">"fr-FR"</span>, or an empty string when the system cannot provide one.</p>
 <p>The part before <span class="code-inline">-</span> is the language tag an application can hand to its localization layer.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SFct">userLocaleName</span>()-&gt;<span class="SCst"><a href="#Core_String">String</a></span></span></div>
@@ -20801,8 +20825,8 @@ bundle.<span class="SFct">addFolder</span>(<span class="SStr">"datas"</span>)
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">decompress</span>(result: *<span class="SFct">Array</span>'<span class="STpe">u8</span>, buf: <span class="SKwd">const</span> [..] <span class="STpe">u8</span>, winSize: <span class="STpe">u32</span> = <span class="SCst"><a href="#Core_Compress_Inflate_MaxDistance">MaxDistance</a></span>, maxOutputSize: <span class="STpe">u64</span> = <span class="SNsp">Swag</span>.<span class="SCst"><a href="swag.runtime.html#namespace_Swag_U64">U64</a></span>.<span class="SCst">Max</span>) <span class="SKwd">fail</span></span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Core_Input_formatKeyShortcut" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Input.formatKeyShortcut</span> <a class="api-item-permalink" href="#Core_Input_formatKeyShortcut" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/input/key.swg#L210">src</a></div>
-<p>Formats <span class="code-inline">modifiers</span> and <span class="code-inline">key</span> as a display-ready shortcut such as <span class="code-inline">Ctrl+S</span>.</p>
+<div class="api-item api-item-func"><span id="Core_Input_formatKeyShortcut" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Input.formatKeyShortcut</span> <a class="api-item-permalink" href="#Core_Input_formatKeyShortcut" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/input/key.swg#L211">src</a></div>
+<p>Formats <span class="code-inline">modifiers</span> and <span class="code-inline">key</span> as a display-ready shortcut such as <span class="code-inline">Ctrl S</span> or <span class="code-inline">Ctrl Shift S</span>: the names of the keys separated by spaces, as a menu or a lens writes them in faint mono.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SFct">formatKeyShortcut</span>(modifiers: <span class="SCst"><a href="#Core_Input_KeyModifiers">KeyModifiers</a></span>, key: <span class="SCst">Key</span>)-&gt;<span class="SCst"><a href="#Core_String">String</a></span></span></div>
 </section>
 <section class="api-symbol">
@@ -23759,7 +23783,7 @@ bundle.<span class="SFct">addFolder</span>(<span class="SStr">"datas"</span>)
 <span class="SKwd">func</span> <span class="SFct">readFieldValue</span>(destination: *<span class="STpe">void</span>?, field: <span class="SKwd">const</span> *<span class="SCst"><a href="swag.runtime.html#Swag_TypeValue">TypeValue</a></span>?, source: *<span class="STpe">void</span>?)</span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Core_Reflection_registerType" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Reflection.registerType</span> <a class="api-item-permalink" href="#Core_Reflection_registerType" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/reflection/reflection.swg#L310">src</a></div>
+<div class="api-item api-item-func"><span id="Core_Reflection_registerType" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Reflection.registerType</span> <a class="api-item-permalink" href="#Core_Reflection_registerType" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/reflection/reflection.swg#L348">src</a></div>
 <p>Registers <span class="code-inline">type</span> and every type reachable from its reflected graph.</p>
 <p>Registered types can then be found by <a href="#Core_Reflection_typeFromCrc">Core.Reflection.typeFromCrc</a> and <a href="#Core_Reflection_typeFromName">Core.Reflection.typeFromName</a>. Types exported by loaded modules are registered automatically at startup.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SFct">registerType</span>(type: <span class="STpe">typeinfo</span>)</span></div>
@@ -23788,12 +23812,12 @@ bundle.<span class="SFct">addFolder</span>(<span class="SStr">"datas"</span>)
 <div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SFct">swapRuntimeValues</span>(basePointer: *<span class="STpe">void</span>?, valueType: <span class="STpe">typeinfo</span>?, indexA, indexB: <span class="STpe">u64</span>)</span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Core_Reflection_typeFromCrc" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Reflection.typeFromCrc</span> <a class="api-item-permalink" href="#Core_Reflection_typeFromCrc" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/reflection/reflection.swg#L345">src</a></div>
+<div class="api-item api-item-func"><span id="Core_Reflection_typeFromCrc" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Reflection.typeFromCrc</span> <a class="api-item-permalink" href="#Core_Reflection_typeFromCrc" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/reflection/reflection.swg#L383">src</a></div>
 <p>Returns the registered type whose CRC is <span class="code-inline">crc</span>, or null when none is registered.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SFct">typeFromCrc</span>(crc: <span class="STpe">u32</span>)-&gt;<span class="STpe">typeinfo</span>?</span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Core_Reflection_typeFromName" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Reflection.typeFromName</span> <a class="api-item-permalink" href="#Core_Reflection_typeFromName" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/reflection/reflection.swg#L354">src</a></div>
+<div class="api-item api-item-func"><span id="Core_Reflection_typeFromName" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Reflection.typeFromName</span> <a class="api-item-permalink" href="#Core_Reflection_typeFromName" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/reflection/reflection.swg#L392">src</a></div>
 <p>Returns the registered type named <span class="code-inline">name</span>, or null when none is registered.</p>
 <p><span class="code-inline">name</span> is the type's full name; a type without a full name is registered under its bare name.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SFct">typeFromName</span>(name: <span class="STpe">string</span>)-&gt;<span class="STpe">typeinfo</span>?</span></div>
@@ -27395,7 +27419,7 @@ bundle.<span class="SFct">addFolder</span>(<span class="SStr">"datas"</span>)
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">opDrop</span>()</span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Core_Env_Window_acquireWin32DeviceContext" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Window.acquireWin32DeviceContext</span> <a class="api-item-permalink" href="#Core_Env_Window_acquireWin32DeviceContext" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/system/environment.win32.swg#L656">src</a></div>
+<div class="api-item api-item-func"><span id="Core_Env_Window_acquireWin32DeviceContext" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Window.acquireWin32DeviceContext</span> <a class="api-item-permalink" href="#Core_Env_Window_acquireWin32DeviceContext" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/system/environment.win32.swg#L686">src</a></div>
 <p>Acquires the Windows device context used by an explicit Windows rendering adapter.</p>
 <p>Every successful call must be paired with <a href="#Core_Env_Window_releaseWin32DeviceContext">Core.Env.Window.releaseWin32DeviceContext</a> on the same window.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">acquireWin32DeviceContext</span>()-&gt;<span class="SCst"><a href="std.win32.html#Win32_HDC">HDC</a></span></span></div>
@@ -27407,7 +27431,7 @@ bundle.<span class="SFct">addFolder</span>(<span class="SStr">"datas"</span>)
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">close</span>() <span class="SKwd">fail</span></span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Core_Env_Window_dpiScale" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Window.dpiScale</span> <a class="api-item-permalink" href="#Core_Env_Window_dpiScale" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/system/environment.win32.swg#L675">src</a></div>
+<div class="api-item api-item-func"><span id="Core_Env_Window_dpiScale" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Window.dpiScale</span> <a class="api-item-permalink" href="#Core_Env_Window_dpiScale" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/system/environment.win32.swg#L705">src</a></div>
 <p>Returns the physical device pixels per logical unit on the window's monitor.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SKwd">const</span> <span class="SFct">dpiScale</span>()-&gt;<span class="STpe">f32</span></span></div>
 </section>
@@ -27433,7 +27457,7 @@ bundle.<span class="SFct">addFolder</span>(<span class="SStr">"datas"</span>)
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">opPostMove</span>()</span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Core_Env_Window_releaseWin32DeviceContext" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Window.releaseWin32DeviceContext</span> <a class="api-item-permalink" href="#Core_Env_Window_releaseWin32DeviceContext" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/system/environment.win32.swg#L659">src</a></div>
+<div class="api-item api-item-func"><span id="Core_Env_Window_releaseWin32DeviceContext" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Window.releaseWin32DeviceContext</span> <a class="api-item-permalink" href="#Core_Env_Window_releaseWin32DeviceContext" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/system/environment.win32.swg#L689">src</a></div>
 <p>Releases a device context returned by <a href="#Core_Env_Window_acquireWin32DeviceContext">Core.Env.Window.acquireWin32DeviceContext</a>.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">releaseWin32DeviceContext</span>(deviceContext: <span class="SCst"><a href="std.win32.html#Win32_HDC">HDC</a></span>)</span></div>
 </section>
@@ -28869,6 +28893,7 @@ bundle.<span class="SFct">addFolder</span>(<span class="SStr">"datas"</span>)
 "k|Core.Env.SpecialDirectory.CommonPictures|Core_Env_SpecialDirectory_CommonPictures|Pictures shared by all users.",
 "k|Core.Env.SpecialDirectory.CommonVideos|Core_Env_SpecialDirectory_CommonVideos|Videos shared by all users.",
 "k|Core.Env.SpecialDirectory.Desktop|Core_Env_SpecialDirectory_Desktop|Desktop for the current user.",
+"k|Core.Env.SpecialDirectory.Downloads|Core_Env_SpecialDirectory_Downloads|Downloads for the current user.",
 "k|Core.Env.SpecialDirectory.Font|Core_Env_SpecialDirectory_Font|Installed system fonts.",
 "k|Core.Env.SpecialDirectory.Temp|Core_Env_SpecialDirectory_Temp|Temporary files for the current user.",
 "k|Core.Env.SpecialDirectory.UserAppData|Core_Env_SpecialDirectory_UserAppData|Roaming application data for the current user.",
@@ -29461,6 +29486,7 @@ bundle.<span class="SFct">addFolder</span>(<span class="SStr">"datas"</span>)
 "f|Core.Directory.enumerateDirectories|Core_Directory_enumerateDirectories|Returns the subdirectories of dirName, optionally restricted to one extension and extended to their own subdir...",
 "f|Core.Directory.enumerateFiles|Core_Directory_enumerateFiles|Returns the files of dirName, optionally restricted to one extension and extended to its subdirectories.",
 "f|Core.Directory.exists|Core_Directory_exists|Returns whether dirName names an existing directory.",
+"f|Core.Directory.freeSpace|Core_Directory_freeSpace|Returns how many bytes the caller may still write on the volume holding the directory dirName.",
 "f|Core.Directory.isRemote|Core_Directory_isRemote|Returns whether path lives on a network share rather than on a local volume.",
 "f|Core.Directory.setCurrentPath|Core_Directory_setCurrentPath|Changes the current directory of the process to dirName.",
 "f|Core.Directory.volumes|Core_Directory_volumes|Returns the first mount point of every mounted volume, with normalized separators.",
@@ -29589,7 +29615,7 @@ bundle.<span class="SFct">addFolder</span>(<span class="SStr">"datas"</span>)
 "f|Core.Globalization.DateTimeFormatInfo.formatTime|Core_Globalization_DateTimeFormatInfo_formatTime|Formats a time using a long or short pattern.",
 "f|Core.Globalization.DateTimeFormatInfo.monthName|Core_Globalization_DateTimeFormatInfo_monthName|Returns the localized full name of a month numbered from 1 through 12.",
 "f|Core.Globalization.NumberFormatInfo.format|Core_Globalization_NumberFormatInfo_format|Formats an unsigned decimal integer, optionally applying this culture's grouping rules.",
-"f|Core.Input.formatKeyShortcut|Core_Input_formatKeyShortcut|Formats modifiers and key as a display-ready shortcut such as Ctrl+S.",
+"f|Core.Input.formatKeyShortcut|Core_Input_formatKeyShortcut|Formats modifiers and key as a display-ready shortcut such as Ctrl S or Ctrl Shift S:",
 "f|Core.Input.Gamepad.clear|Core_Input_Gamepad_clear|Resets the previous and the current state.",
 "f|Core.Input.Gamepad.isButtonJustPressed|Core_Input_Gamepad_isButtonJustPressed|Returns whether button became pressed during the latest update.",
 "f|Core.Input.Gamepad.isButtonJustReleased|Core_Input_Gamepad_isButtonJustReleased|Returns whether button became released during the latest update.",
@@ -30738,6 +30764,7 @@ bundle.<span class="SFct">addFolder</span>(<span class="SStr">"datas"</span>)
 "f|Core.Time.DateTime.now|Core_Time_DateTime_now|Returns the current local date and time.",
 "f|Core.Time.DateTime.parse|Core_Time_DateTime_parse|Parses a date, optionally followed by a time, at the start of str and returns it with the number of bytes cons...",
 "f|Core.Time.DateTime.setNow|Core_Time_DateTime_setNow|Replaces this value with the current local date and time.",
+"f|Core.Time.DateTime.toLocal|Core_Time_DateTime_toLocal|Returns this date and time, read as UTC, in the local time zone.",
 "f|Core.Time.DateTime.toString|Core_Time_DateTime_toString|Returns this value as text in the layout fmt selects.",
 "f|Core.Time.DateTime.utcNow|Core_Time_DateTime_utcNow|Returns the current UTC date and time.",
 "f|Core.Time.dateToTicks|Core_Time_dateToTicks|Returns the ticks from 0001-01-01 to midnight of the given Gregorian date.",

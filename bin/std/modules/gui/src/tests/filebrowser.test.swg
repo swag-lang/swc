@@ -27,7 +27,8 @@ using Swag, Core, File
     Swag.assert((fb.newFolderButton != null))
     Swag.assert(fb.placesBar == null)
     Swag.assert(fb.comboType.items.count == 1)
-    Swag.assert(fb.options.shortcuts.count == 5)
+    Swag.assert(fb.options.shortcuts.count == 6)
+    Swag.assert(fb.options.shortcuts[2].type == Env.SpecialDirectory.Downloads)
     Swag.assert(not fb.canGoBack())
     Swag.assert(not fb.canGoForward())
 
@@ -217,6 +218,51 @@ using Swag, Core, File
     fb.pathField.setFocus()
     host.keyPress(.Back)
     Swag.assert(fb.listCtrl.lines.count == 3)
+}
+
+// The overflow menu keeps the full list of places reachable while only three tabs stay on the row.
+#test
+{
+    let root = Path.combine(Env.getSpecialDirectory(.Temp).toString(), "swag-filebrowser-places")
+    discard catch Directory.delete(root.toString(), recurse: true)
+    expect Directory.create(root.toString(), recurse: true)
+    defer discard catch Directory.delete(root.toString(), recurse: true)
+
+    var host: Testing.HeadlessHost
+    host.setup(640, 460)
+    var opt: FileDlgOptions
+    opt.mode = .SelectFile
+    opt.showDrives = false
+    opt.initialFolder = root.toString()
+    opt.shortcuts.add({type: Env.SpecialDirectory.Temp, name: "Current"})
+    let fb = FileBrowserCtrl.create(&host.root, opt, {0, 0, 180, 300})
+    let places = unwrap fb.placesBar
+    for name in ["Documents", "Downloads", "Pictures", "Music", "Videos"]
+    {
+        let folder = Path.combine(root.toString(), name)
+        expect Directory.create(folder.toString())
+        places.addPlace(name, folder.toString())
+    }
+    host.root.applyLayout()
+    places.arrange()
+    Swag.assert(places.visibleCount == 1)
+    let target = places.stops[places.visibleCount].path.toString()
+
+    var opened: bool
+    host.app.sigFrame += func|host = &host, places, target, opened = &opened|(_)
+    {
+        if opened[] do
+            return
+        let popup = unwrap host.capturedPopupMenu()
+        Swag.assert(popup.items.count == places.stops.count - places.visibleCount)
+        opened[] = true
+        popup.setEndModal(target)
+    }
+
+    let moreButton = unwrap places.moreButton
+    moreButton.sigPressed.call(moreButton)
+    Swag.assert(opened)
+    Swag.assert(fb.currentFolder.toString() == target)
 }
 
 // Opening a file from another folder works through the modal box's path field, not only in an

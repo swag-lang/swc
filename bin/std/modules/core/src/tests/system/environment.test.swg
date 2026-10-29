@@ -10,6 +10,10 @@ using Swag
     Swag.assert(not tempDir.isEmpty())
     Swag.assert(Path.isRooted(tempDir.toString()))
     Swag.assert(Directory.exists(tempDir.toString()))
+
+    let downloadsDir = Env.realSpecialDirectory(.Downloads)
+    Swag.assert(not downloadsDir.isEmpty())
+    Swag.assert(Path.isRooted(downloadsDir.toString()))
 }
 
 // A '#test' is a program run, whether it executes in the JIT pass of 'swc test' or in the

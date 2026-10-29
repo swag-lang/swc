@@ -59,6 +59,7 @@ enum SpecialDirectory
     UserDocuments      // Documents for the current user.
     CommonAppData      // Application data shared by all users.
     Desktop            // Desktop for the current user.
+    Downloads          // Downloads for the current user.
     UserPictures       // Pictures for the current user.
     UserVideos         // Videos for the current user.
     UserMusic          // Music for the current user.

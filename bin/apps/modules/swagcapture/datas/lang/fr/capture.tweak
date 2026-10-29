@@ -366,6 +366,19 @@ prop_EditBackColor         Couleur de fond
 prop_EditBackColorDesc     Couleur de fond de la fenêtre d'édition de la capture
 ui_OneObject           1 objet
 ui_Objects             % objets
+count_Rectangle        % rectangle|% rectangles
+count_Ellipse          % ellipse|% ellipses
+count_Arrow            % flèche|% flèches
+count_Line             % ligne|% lignes
+count_Polygon          % polygone|% polygones
+count_Text             % texte|% textes
+count_Callout          % bulle|% bulles
+count_Draw             % dessin|% dessins
+count_Highlight        % surlignage|% surlignages
+count_PixSel           % sélection|% sélections
+count_Step             % étape|% étapes
+count_Image            % image|% images
+count_Object           % objet|% objets
 ui_NextObjects         prochains objets
 hint_Space             capturer, ouvrir, bibliothèque
 hint_LibrarySpace      exporter, étiqueter, noter, déplacer

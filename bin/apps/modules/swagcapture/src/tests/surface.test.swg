@@ -285,8 +285,11 @@ func testCollectSwatches(wnd: *Wnd, result: *Array'(*IconButton))
     text.text = "Cards"
     testAssertEditGolden(&host, main, [0, 1, 2], "edit.multi")
 
-    // Shapes and a text have no preset in common: the row of presets leaves.
+    // Shapes and a text have no preset in common: the row of presets leaves. The head counts
+    // each kind, one or several.
     Swag.assert(not main.quickWnd.isVisible())
+    Swag.assert(main.inspector.title == "2 ellipses · 1 text")
+    Swag.assert(MainWnd.countWords("% étape|% étapes", 1) == "1 étape" and MainWnd.countWords("% étape|% étapes", 3) == "3 étapes")
 
     // The layers list every object, the selected ones chosen; a row chooses its object alone.
     Swag.assert(capture.selection.count == 3)

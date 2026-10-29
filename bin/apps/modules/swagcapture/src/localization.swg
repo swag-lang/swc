@@ -131,6 +131,22 @@ struct AppStrings
     ui_ResetSteps:              string = "Reset"                       // Restarts the numbered-step counter.
     ui_OneObject:               string = "1 object"                    // Detail of the inspector title when one object is selected.
     ui_Objects:                 string = "% objects"                   // Inspector title when several objects are selected, with their count.
+
+    // How many objects of one kind a selection holds, as "singular|plural" words around the count;
+    // the inspector details a selection of several objects with them, such as "2 rectangles · 1 text".
+    count_Rectangle: string = "% rectangle|% rectangles"
+    count_Ellipse:   string = "% ellipse|% ellipses"
+    count_Arrow:     string = "% arrow|% arrows"
+    count_Line:      string = "% line|% lines"
+    count_Polygon:   string = "% polygon|% polygons"
+    count_Text:      string = "% text|% texts"
+    count_Callout:   string = "% callout|% callouts"
+    count_Draw:      string = "% drawing|% drawings"
+    count_Highlight: string = "% highlight|% highlights"
+    count_PixSel:    string = "% selection|% selections"
+    count_Step:      string = "% step|% steps"
+    count_Image:     string = "% image|% images"
+    count_Object:    string = "% object|% objects"
     ui_NextObjects:             string = "next objects"                // Detail of the inspector title when nothing is selected: the tool's settings apply to what is drawn next.
     hint_Space:                 string = "capture, open, library"      // What the Space key opens, on the hint line of the editor.
     hint_LibrarySpace:          string = "export, tag, rate, move"     // What the Space key opens, on the hint line of the library.

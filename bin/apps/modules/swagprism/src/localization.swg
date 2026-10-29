@@ -74,6 +74,8 @@ struct AppStrings
     cmd_Information:        string = "Information"
     cmd_PreviousStage:      string = "Previous Stage"
     cmd_NextStage:          string = "Next Stage"
+    ui_AtFirstStage:        string = "Already at the first stage"
+    ui_AtLastStage:         string = "Already at the last stage"
     cmd_ShowChange:         string = "Show the Change"
     cmd_ShowSourceLines:    string = "Show Source Lines"
     cmd_ShowOpcodes:        string = "Show Opcodes"

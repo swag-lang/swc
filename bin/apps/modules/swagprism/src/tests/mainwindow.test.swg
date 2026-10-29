@@ -207,6 +207,22 @@ func lensHasEntry(window: *MainWindow, title: string)->bool
     window.lens.open(">")
     for name in [strings.cmd_PreviousStage, strings.cmd_NextStage, strings.cmd_ShowChange] do
         Swag.assert(lensHasEntry(window, name))
+
+    // A step that cannot be taken says why.
+    var reasons = 0
+    for section in window.lens.results.sections
+    {
+        for &entry in section!.entries where entry.disabled
+        {
+            if entry.title == strings.cmd_PreviousStage do
+                Swag.assert(entry.detail == strings.ui_AtFirstStage)
+            if entry.title == strings.cmd_NextStage do
+                Swag.assert(entry.detail == strings.ui_AtLastStage)
+            reasons += 1
+        }
+    }
+
+    Swag.assert(reasons >= 1)
     window.lens.close()
 
     window.applyView(.Compare)

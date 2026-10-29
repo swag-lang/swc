@@ -66,7 +66,8 @@ dialogs, then each application, then the written rules.
 - Evidence: the window follows the charter — no band; every command is a lens entry; readings in
   the sheet (`I`) and faint at the foot; viewer controls on a floating mini-bar; panels are cards.
   Built on their pictures, each golden compared whole-screen with its picture:
-  - Home (`home.{ink,paper}`, `home.hover.{ink,paper}`).
+  - Home (`home.{ink,paper}`, `home.hover.{ink,paper}`): history glyphs now keep their file-kind
+    colour, and the invitation recalls both `Ctrl+O` and `Ctrl+E`.
   - Explorer boards: a mixed folder (`explorer.mixed`, `.paper`) — one even grid filling the page,
     pictures and films cropped to the tile, faint line glyphs and extensions for the rest, name
     and one mono line of facts; films (`explorer.films`) — upright posters, title then year and

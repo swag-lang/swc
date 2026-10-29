@@ -26,9 +26,10 @@ using Core, Pixel
 // Opened with nothing typed, the lens is a palette of what can be done here and now, not a list
 // of everything: the sections of the rest sources ([[Gui.Lens.View.addRestSource]]) — the actions
 // of the object in hand — then the commands chosen last. An application that declares neither
-// still lists all its commands at rest. Typed into, sections rank by their best title match.
+// still lists all its commands at rest. Typed into, sections rank by their best match. Declared
+// aliases and family names also find commands without changing their displayed labels.
 // Sources keep their own row order, while commands rank from the best answer down. Commands
-// matched only by scattered letters or a typo are left out when others answer precisely.
+// matched only by scattered letters or a typo are left out when usable commands answer precisely.
 //
 // Applications open the lens with `Ctrl Space` by calling [[Gui.Lens.View.open]].
 //
@@ -68,16 +69,18 @@ struct View
         }
     }
 
-    late input:   *EditBox
-    commands:     Array'Command
-    sources:      Array'Source
-    restSources:  Array'Provider     // What the lens offers before anything is typed.
-    recent:       Array'String       // Commands chosen last, the latest first.
-    sectionOrder: Array'u64          // Sections in the order they show, by index into the results.
-    scroll:       f32
-    returnFocus:  *Wnd?
-    hotPicture:   PictureHit
-    segment:      u64     // Segment the keys chose in the chosen row of an inline section, by index into its entries.
+    late previousPage: *IconButton
+    late nextPage:     *IconButton
+    late input:        *EditBox
+    commands:          Array'Command
+    sources:           Array'Source
+    restSources:       Array'Provider     // What the lens offers before anything is typed.
+    recent:            Array'String       // Commands chosen last, the latest first.
+    sectionOrder:      Array'u64          // Sections in the order they show, by index into the results.
+    scroll:            f32
+    returnFocus:       *Wnd?
+    hotPicture:        PictureHit
+    segment:           u64     // Segment the keys chose in the chosen row of an inline section, by index into its entries.
 }
 
 // A picture of a strip of the lens under a point: the row of the strip, and the picture, or the
@@ -116,6 +119,7 @@ internal struct Command
     id:         WndId = ""
     family:     String
     familyText: MenuLabelResolver?
+    aliases:    MenuLabelResolver?
 }
 
 // A source registered on a [[Gui.Lens.View]].
@@ -134,6 +138,7 @@ impl IWnd for View
             return
         .setPosition(parent.clientRect())
         .placeInput()
+        .placePaging()
     }
 
     mtd impl onPaint(evt: *PaintEvent)
@@ -188,7 +193,7 @@ impl IWnd for View
         {
         case .Move:
 
-            .cursor = Cursor.from(.prefixAt(pos) != .None ? CursorShape.Hand : CursorShape.Arrow)
+            .cursor = Cursor.from((.prefixAt(pos) != .None or (.results.prefix != .None and .prefixRect(.None).contains(pos))) ? CursorShape.Hand : CursorShape.Arrow)
 
             // In a row of segments, the pointer chooses the segment under it.
             let row = .rowAt(pos)
@@ -230,7 +235,7 @@ impl IWnd for View
 
             // The source names are also navigation: browsing needs no prefix vocabulary.
             let prefix = .prefixAt(pos)
-            if prefix != .None
+            if prefix != .None or (.results.prefix != .None and .prefixRect(.None).contains(pos))
             {
                 var query: String = prefixText(prefix)
                 query.append(.results.query)
@@ -362,6 +367,18 @@ impl View
             }
         }
 
+        with result.previousPage = IconButton.createQuiet(result, menu: false)
+        {
+            .dockStyle  = .Float
+            .sigPressed += func|lens = result|(_) { lens.pageResults(-1) }
+        }
+
+        with result.nextPage = IconButton.createQuiet(result, menu: false)
+        {
+            .dockStyle  = .Float
+            .sigPressed += func|lens = result|(_) { lens.pageResults(1) }
+        }
+
         return result
     }
 
@@ -369,16 +386,19 @@ impl View
     //
     // The row shows the label, glyph and shortcut the owner computes for the command, and is left
     // out while the command is hidden. A disabled command shows faint and cannot be chosen.
-    mtd addCommand(family: string, id: WndId)
+    // `aliases` resolves semicolon-separated alternative phrases in the current language. They
+    // find the same command below precise title matches, without highlighting unrelated title bytes.
+    mtd addCommand(family: string, id: WndId, aliases: MenuLabelResolver? = null)
     {
-        .commands.add(Command{id: id, family: family})
+        .commands.add(Command{id: id, family: family, aliases: aliases})
     }
 
     // Registers the command `id` under a section label read from `family` each time the lens
-    // opens, so it follows the language of the application.
-    mtd addCommand(family: MenuLabelResolver, id: WndId)
+    // opens, so it follows the language of the application. `aliases` follows the same contract
+    // as the overload with a fixed family label.
+    mtd addCommand(family: MenuLabelResolver, id: WndId, aliases: MenuLabelResolver? = null)
     {
-        .commands.add(Command{id: id, familyText: family})
+        .commands.add(Command{id: id, familyText: family, aliases: aliases})
     }
 
     // Registers several commands under the section label `family`.
@@ -468,6 +488,8 @@ impl View
     mtd open(query: string = "")
     {
         .returnFocus = .focusedWindow()
+        .input.setPlaceholder(strings().lens_Placeholder)
+        .input.style.setFont(.theme().createDefaultFontFamily(.themeMetrics().lens_InputFontSize))
         .itf.onLayout()
         .bringToFront()
         discard .app().animator.arrive(me)
@@ -530,7 +552,7 @@ impl View
         // answer, shown for its group, is not marked.
         for section in .results.sections
         {
-            for &entry in section!.entries where entry.spans.isEmpty() and .results.query.count > 0
+            for &entry in section!.entries where entry.spans.isEmpty() and not entry.matchedAlias and .results.query.count > 0
             {
                 var found = match(.results.query, entry.title)
                 if found.matched do
@@ -781,9 +803,18 @@ private impl View
                 if title.isEmpty() do
                     continue
 
-                let found = match(.results.query, title, tolerateTypos: true)
-                if not found.matched do
-                    continue
+                var found = command.find(.results.query, title)
+                if not found.matched
+                {
+                    let familyMatch = match(.results.query, family[])
+                    if not familyMatch.matched or familyMatch.spans.count != 1 do
+                        continue
+                    let span = familyMatch.spans[0]
+                    if span.start != 0 or span.count != family.length do
+                        continue
+                    found.matched = true
+                    found.score   = ClearMatchScore
+                }
 
                 if not section
                 {
@@ -792,6 +823,8 @@ private impl View
                 }
 
                 addCommandEntry(section, command.id, title, state)
+                section.entries.backPtr().score        = found.score
+                section.entries.backPtr().matchedAlias = .results.query.count > 0 and found.spans.isEmpty()
             }
         }
     }
@@ -959,13 +992,10 @@ private impl View
             if row.entry != Swag.U64.Max and row.top < room and bottom - room <= air do
                 return room
 
-            // Only a list at rest is cut: once the choice goes past the cut, the list scrolls
-            // instead of hiding where the choice went.
+            // Keep the viewport stable while the choice moves; scrolling reveals later rows.
             let label = index > 0 and .rows[index - 1].entry == Swag.U64.Max
             let first = label ? index - 1 : index
-            if .scroll > 0 or (.chosen < .rows.count and .chosen >= first) do
-                return room
-            let cut = .rows[first].top
+            let cut   = .rows[first].top
             return cut > 0 ? Math.min(cut, room) : room
         }
 
@@ -975,26 +1005,30 @@ private impl View
     // The visible lens, in local coordinates.
     mtd body()->Math.Rectangle
     {
-        let parent  = .parent
-        let metrics = .themeMetrics()
-        let bounds  = .clientRect()
-        let inset   = metrics.floating_Inset
-        let width   = Math.min(metrics.lens_Width, bounds.width - 2 * inset)
-        let top     = parent ? restingTop(parent, bounds.height) : inset
-        let fixed   = metrics.lens_InputHeight + metrics.lens_FooterHeight + 2 * metrics.separator_HairlineSize
-        let room    = Math.max(Math.min(bounds.height * metrics.lens_MaxHeightRatio, bounds.height - inset - top), fixed)
-        let height  = fixed + .fittedContentHeight(room - fixed)
+        let parent   = .parent
+        let metrics  = .themeMetrics()
+        let bounds   = .clientRect()
+        let inset    = metrics.floating_Inset
+        let width    = Math.min(metrics.lens_Width, bounds.width - 2 * inset)
+        let top      = parent ? restingTop(parent, bounds.height) : inset
+        let fixed    = metrics.lens_InputHeight + metrics.lens_FooterHeight + 2 * metrics.separator_HairlineSize
+        let room     = Math.max(Math.min(bounds.height * metrics.lens_MaxHeightRatio, bounds.height - inset - top), fixed)
+        let overflow = .contentHeight() > room - fixed
+        let paging   = overflow ? metrics.quiet_Height : 0
+        let height   = fixed + paging + .fittedContentHeight(Math.max(room - fixed - paging, 0))
         return {Math.round(bounds.horzCenter() - width * 0.5), top, width, height}
     }
 
     // The results, between the input band and the footer.
     mtd listRect()->Math.Rectangle
     {
-        let metrics = .themeMetrics()
-        let body    = .body()
-        let top     = body.y + metrics.lens_InputHeight + metrics.separator_HairlineSize
-        let bottom  = body.bottom() - metrics.lens_FooterHeight - metrics.separator_HairlineSize
-        return {body.x, top, body.width, Math.max(bottom - top, 0)}
+        let metrics   = .themeMetrics()
+        let body      = .body()
+        let top       = body.y + metrics.lens_InputHeight + metrics.separator_HairlineSize
+        let bottom    = body.bottom() - metrics.lens_FooterHeight - metrics.separator_HairlineSize
+        let available = Math.max(bottom - top, 0)
+        let paging    = .contentHeight() > available ? metrics.quiet_Height : 0
+        return {body.x, top, body.width, Math.max(available - paging, 0)}
     }
 
     mtd placeInput()
@@ -1004,6 +1038,46 @@ private impl View
         let escape  = Painter.measureString(strings().key_Escape, .theme().createDefaultFont(metrics.defaultFontSize)).width
         let room    = body.width - 2 * metrics.lens_TextInset - escape - metrics.hintLine_GroupGap
         .input.setPosition(Math.Rectangle{body.x + metrics.lens_TextInset, body.y, room, metrics.lens_InputHeight})
+    }
+
+    // A named pair makes overflow reachable without a wheel or knowledge of the navigation keys.
+    mtd placePaging()
+    {
+        if .previousPage == null or .nextPage == null do
+            return
+        let list = .listRect()
+        .scroll = Math.clamp(.scroll, 0, Math.max(.contentHeight() - list.height, 0))
+        let overflow = .contentHeight() > list.height
+        .previousPage.show(overflow)
+        .nextPage.show(overflow)
+        if not overflow do
+            return
+        let metrics = .themeMetrics()
+        .previousPage.setQuietText(strings().lens_PreviousResults)
+        .nextPage.setQuietText(strings().lens_MoreResults)
+        .previousPage.setPosition({list.x + metrics.lens_TextInset, list.bottom(), .previousPage.position.width, metrics.quiet_Height})
+        .nextPage.setPosition({list.right() - metrics.lens_TextInset - .nextPage.position.width, list.bottom(), .nextPage.position.width, metrics.quiet_Height})
+        .previousPage.enable(.scroll > 0)
+        .nextPage.enable(.scroll < .contentHeight() - list.height)
+    }
+
+    mtd pageResults(direction: f32)
+    {
+        .scrollBy(direction * Math.max(.listRect().height - .themeMetrics().lens_RowHeight, .themeMetrics().lens_RowHeight))
+        .chosen = Swag.U64.Max
+        let list = .listRect()
+        for row, index in .rows where .isSelectable(index) and
+                                      row.top >= .scroll and
+                                      row.top + row.height <= .scroll + list.height
+        {
+            .chosen        = index
+            .chosenPicture = 0
+            if row.entry == InlineRow do
+                .segment = .restingSegment(row.section)
+            break
+        }
+
+        .input.setFocus()
     }
 
     mtd rowAt(pos: Math.Point)->u64
@@ -1021,6 +1095,7 @@ private impl View
     {
         let list = .listRect()
         .scroll = Math.clamp(.scroll + delta, 0, Math.max(.contentHeight() - list.height, 0))
+        .placePaging()
         .invalidate()
     }
 
@@ -1040,6 +1115,7 @@ private impl View
         elif row.top + row.height > .scroll + list.height do
             .scroll = row.top + row.height - list.height + .themeMetrics().lens_RowInset
         .scroll = Math.clamp(.scroll, 0, Math.max(.contentHeight() - list.height, 0))
+        .placePaging()
     }
 
     mtd paintSectionRow(painter: *Painter, rect: Math.Rectangle, section: *Section)
@@ -1226,7 +1302,7 @@ private impl View
         // Source links remain usable in a narrow window or a longer translation. Secondary key
         // advice uses only the room they leave; it never paints over a link.
         var hintsRight = body.right() - metrics.lens_TextInset
-        for prefix in [Prefix.Action, Prefix.File, Prefix.Line] where .answers(prefix) do
+        for prefix in [Prefix.Action, Prefix.File, Prefix.Line, Prefix.None] where .answers(prefix) do
             hintsRight = Math.min(hintsRight, .prefixRect(prefix).x - metrics.hintLine_GroupGap)
         let chooseWidth = keycapWidth(me, "↑↓") + metrics.hintLine_KeyGap + Painter.measureString(strings().lens_Choose, font).width
         let goWidth     = keycapWidth(me, strings().key_Enter) + metrics.hintLine_KeyGap + Painter.measureString(strings().lens_Go, font).width
@@ -1252,13 +1328,14 @@ private impl View
         }
 
         // A source is a link as well as a keyboard hint.
-        for prefix in [Prefix.Action, Prefix.File, Prefix.Line] where .answers(prefix)
+        for prefix in [Prefix.Action, Prefix.File, Prefix.Line, Prefix.None] where .answers(prefix)
         {
             let rect  = .prefixRect(prefix)
             let words = prefixWords(prefix)
-            let left  = rect.x + keycapWidth(me, prefixText(prefix)) + metrics.hintLine_KeyGap
+            let left  = rect.x + (prefix == .None ? 0 : keycapWidth(me, prefixText(prefix)) + metrics.hintLine_KeyGap)
             discard paintTextLine(painter, left, centerY, words, font, colors.link)
-            discard paintKeycap(me, painter, rect.x, centerY, prefixText(prefix))
+            if prefix != .None do
+                discard paintKeycap(me, painter, rect.x, centerY, prefixText(prefix))
         }
     }
 
@@ -1269,10 +1346,10 @@ private impl View
         let body    = .body()
         let font    = .theme().createDefaultFont(metrics.hintLine_FontSize)
         var right   = body.right() - metrics.lens_TextInset
-        for prefix in [Prefix.Action, Prefix.File, Prefix.Line] where .answers(prefix)
+        for prefix in [Prefix.Action, Prefix.File, Prefix.Line, Prefix.None] where .answers(prefix)
         {
             let width = Painter.measureString(prefixWords(prefix), font).width +
-                        metrics.hintLine_KeyGap + keycapWidth(me, prefixText(prefix))
+                        (prefix == .None ? 0 : metrics.hintLine_KeyGap + keycapWidth(me, prefixText(prefix)))
             if prefix == wanted do
                 return {right - width, body.bottom() - metrics.lens_FooterHeight, width, metrics.lens_FooterHeight}
             right -= width + metrics.hintLine_GroupGap
@@ -1283,7 +1360,7 @@ private impl View
 
     mtd prefixAt(pos: Math.Point)->Prefix
     {
-        for prefix in [Prefix.Action, Prefix.File, Prefix.Line] where .answers(prefix)
+        for prefix in [Prefix.Action, Prefix.File, Prefix.Line, Prefix.None] where .answers(prefix)
         {
             if .prefixRect(prefix).contains(pos) do
                 return prefix
@@ -1305,6 +1382,8 @@ private impl View
     // Reports whether a source, or the commands for `>`, answers the queries of `prefix`.
     mtd answers(prefix: Prefix)->bool
     {
+        if prefix == .None do
+            return .results.prefix != .None
         if prefix == .Action and not .commands.isEmpty() do
             return true
         for source in .sources where source.prefix == prefix do
@@ -1318,6 +1397,7 @@ private func prefixWords(prefix: Prefix)->string
 {
     switch prefix
     {
+    case .None: return strings().lens_All
     case .Line: return strings().lens_Line
     case .File: return strings().lens_Files
     default:    return strings().lens_Actions
@@ -1415,10 +1495,10 @@ private impl View
                 }
 
                 var found = match(query, entry.title, tolerateTypos: section.ranked)
-                entry.score = found.matched ? found.score : 0
-                if entry.spans.isEmpty() and found.matched do
+                entry.score = Math.max(entry.score, found.matched ? found.score : 0)
+                if entry.spans.isEmpty() and not entry.matchedAlias and found.matched do
                     entry.spans = #move found.spans
-                if section.ranked do
+                if section.ranked and not entry.disabled do
                     bestAll = Math.max(bestAll, entry.score)
             }
         }
@@ -1476,3 +1556,26 @@ private func rankKey(score: s32, index: u64)->u64
 
 // Highest score a key distinguishes; every score of the matcher stays under it.
 private const MaxRankScore = 1000000's32
+
+private impl Command
+{
+    mtd const find(query, title: string)->Match
+    {
+        var best = match(query, title, tolerateTypos: true)
+        if query.count == 0 or not .aliases do
+            return best
+        for phrase in Tokenize.split(.aliases(), ';'rune) where phrase.count > 0
+        {
+            var found = match(query, phrase, tolerateTypos: true)
+            if not found.matched do
+                continue
+            found.score = Math.min(found.score, 8500)
+            if best.matched and best.score >= found.score do
+                continue
+            found.spans.clear()
+            best = #move found
+        }
+
+        return best
+    }
+}

@@ -190,3 +190,7 @@ explore_Pages % pages
 explore_Lines % lignes
 explore_Sections % sections
 explore_Files % fichiers
+
+search_Open ouvrir film;ouvrir vidéo;ouvrir image
+search_Browse parcourir bibliothèque;parcourir dossier;médiathèque
+search_FullScreen cinéma;plein écran

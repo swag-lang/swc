@@ -43,21 +43,23 @@ impl MainWindow
     const RestVaultIds = [VaultCommands.OpenDrive, VaultCommands.Mount, VaultCommands.Unmount, VaultCommands.Stop]
 
     // Creates the lens, registers every command of the window under its family, the vaults it
-    // knows as a source, and the appearance. At rest the lens offers the actions of the chosen
-    // vault, then the way to another one.
+    // knows as a source, and the appearance. At rest the lens keeps New Vault and Open File
+    // first, followed by the actions of the chosen vault.
     mtd createLens()
     {
         with .lens = Lens.View.create(me)
         {
-            .addRestSource(func|window = me|(results) { window.describeChosenVault(results) })
             .addRestSource(func|window = me|(results)
             {
                 let section = results.addSection(appStrings().lens_File)
                 window.lens.addCommandRows(section, [VaultCommands.NewVault, VaultCommands.OpenFile], enabledOnly: true)
             })
+            .addRestSource(func|window = me|(results) { window.describeChosenVault(results) })
             .addSource(.File, func|window = me|(results) { window.describeVaults(results) })
+            .addCommand(func()->string => appStrings().lens_File, VaultCommands.NewVault, func()->string => appStrings().search_Create)
+            .addCommand(func()->string => appStrings().lens_File, VaultCommands.OpenFile, func()->string => appStrings().search_Open)
             .addCommands(func()->string => appStrings().lens_File,
-                         [VaultCommands.NewVault, VaultCommands.OpenFile, VaultCommands.Vaults, VaultCommands.Options])
+                         [VaultCommands.Vaults, VaultCommands.Options])
             .addCommands(func()->string => appStrings().lens_Vault, VaultCommandIds)
             .addCommands(func()->string => appStrings().lens_Privacy, [VaultCommands.PrivacyMode, VaultCommands.UnmountOnLock, VaultCommands.UnmountOnSuspend,
                                                                        VaultCommands.UnmountOnIdle])

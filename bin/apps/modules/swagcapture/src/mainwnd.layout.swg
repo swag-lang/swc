@@ -741,15 +741,17 @@ impl MainWnd
                 if main.libraryMode do
                     main.libWnd.describeLens(results)
             })
+            .addCommand(func()->string => appStrings().ui_MenuCapture, ActionCapture.Area, func()->string => appStrings().search_Capture)
             .addCommands(func()->string => appStrings().ui_MenuCapture, [
-                ActionCapture.DoIt, ActionCapture.Area, ActionCapture.LastArea, ActionCapture.FullScreen, ActionCapture.ActiveWnd])
+                ActionCapture.DoIt, ActionCapture.LastArea, ActionCapture.FullScreen, ActionCapture.ActiveWnd])
             for idx in me.monitors.count do
                 .addCommand(func()->string => appStrings().ui_MenuCapture, ActionCapture.screenId(idx))
             .addCommands(func()->string => appStrings().ui_MenuCapture, [
                 ActionCaptureDelay.Delay0, ActionCaptureDelay.Delay1, ActionCaptureDelay.Delay2, ActionCaptureDelay.Delay5, ActionCaptureDelay.Delay9,
                 ActionCapture.HideEditor, ActionCapture.CaptureCursor, ActionCapture.ToInPlace, ActionCapture.ToEditor, ActionCapture.ToClipboard])
+            .addCommand(func()->string => appStrings().ui_MenuFile, ActionFile.SaveAsImage, func()->string => appStrings().search_Export)
             .addCommands(func()->string => appStrings().ui_MenuFile, [
-                ActionFile.NewImage, ActionFile.NewFromClipboard, ActionFile.OpenImage, ActionFile.SaveAsImage,
+                ActionFile.NewImage, ActionFile.NewFromClipboard, ActionFile.OpenImage,
                 ActionFile.SaveAsLinkedImage, ActionFile.UpdateLinkedImage, ActionFile.UnlinkImage,
                 ActionFile.DupCapture, ActionFile.RenameCapture, ActionFile.DeleteCapture,
                 ActionFile.CaptureFileLocation, ActionFile.LinkedFileLocation, ActionFile.FileDetails])
@@ -777,7 +779,7 @@ impl MainWnd
             .addCommands(func()->string => appStrings().ui_MenuView, [
                 ActionView.Inspector, ActionView.Recent, ActionZoom.ZoomIn, ActionZoom.ZoomOut, ActionZoom.Zoom1, ActionZoom.ZoomFit,
                 ActionRecentSize.RecentSmall, ActionRecentSize.RecentMedium, ActionRecentSize.RecentBig, ActionView.Clip])
-            .addCommands(func()->string => appStrings().act_Library, [ActionGlobal.ShowLibrary])
+            .addCommand(func()->string => appStrings().act_Library, ActionGlobal.ShowLibrary, func()->string => appStrings().search_Library)
             .addCommands(func()->string => strings().lens_Application, [ActionOptions.Options, ActionGlobal.Minimize, ActionGlobal.Exit])
         }
 

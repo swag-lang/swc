@@ -1308,3 +1308,32 @@ func testBeginInlineText(host: *Gui.Testing.HeadlessHost, main: *MainWnd, index:
     main.updateState()
     Swag.assert(main.inspector.title == appStrings().act_PixSel)
 }
+
+// Common task vocabulary reaches the real command in either shipped language.
+#test
+{
+    var host: Gui.Testing.HeadlessHost
+    let window = testSetupEditorSurface(&host, true)
+    defer
+    {
+        window.libWnd.requestClose()
+        host.shutdown()
+        g_Main = null
+    }
+
+    defer discard catch g_App.setLanguage(ReferenceLanguage)
+    for french in [false, true]
+    {
+        expect g_App.setLanguage(french ? "fr" : ReferenceLanguage)
+        host.notify(.LanguageChanged)
+        window.lens.open(french ? "copie ecran" : "screenshot")
+        Swag.assert(window.lens.chosenEntry()!.id == ActionCapture.Area)
+        window.lens.close()
+        window.lens.open(french ? "historique" : "history")
+        Swag.assert(window.lens.chosenEntry()!.id == ActionGlobal.ShowLibrary)
+        window.lens.close()
+        window.lens.open(french ? "exporter image" : "export image")
+        Swag.assert(window.lens.chosenEntry()!.id == ActionFile.SaveAsImage)
+        window.lens.close()
+    }
+}

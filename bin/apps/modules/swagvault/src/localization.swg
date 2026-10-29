@@ -10,6 +10,10 @@ using Core, Gui
 // [[appStrings]]; never keep a copy across a language switch.
 struct AppStrings
 {
+    // Alternative phrases for command discovery; semicolons separate complete phrases.
+    search_Create: string = "create vault;new container"
+    search_Open:   string = "open vault;open container"
+
     ui_WindowTitle: string = "Swag Vault — Private virtual drives"
 
     // The list of vaults, and what a row says about the vault it names. The state words are

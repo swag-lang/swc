@@ -256,8 +256,7 @@ the reader is:
 #### Direct controls and task walkthroughs
 
 These walkthroughs are design checks against the source and whole-window goldens, not results
-from observed user sessions. They set the acceptance tasks for the implementation tracked in
-[design.silence.004](design.silence.md#designsilence004--the-lens-needs-a-discoverable-pointer-entrance-and-direct-task-controls).
+from observed user sessions. They set the acceptance tasks for lens and application changes.
 
 | Task | Cost when everything goes through the lens | Required direct route |
 | --- | --- | --- |
@@ -269,6 +268,8 @@ from observed user sessions. They set the acceptance tasks for the implementatio
 | Open a film, pause, seek, change volume | Modal search interrupts watching and hides the timeline | A transport with play/pause, seek, volume and full screen; subtitles, audio and speed in its adjacent controls |
 | Browse films, open one, return to the folder | Repeated lens calls for Back or Up make ordinary exploration expensive | Stable Back/Forward/Up and current location in the page header; sorting and view choices remain nearby |
 | Resume a film later | A beautifully empty player cannot replace a missing resume feature | Store playback position and offer Resume / Start from Beginning; this is product behavior, not a cosmetic lens fix |
+| Compile edited code in Prism | When automatic compilation is off, a keyboard hint alone leaves a mouse user searching | Keep Compile beside the source; compile, format and live-edit actions lead the lens before stage-specific actions |
+| Create or unlock a Vault | An unfamiliar command entrance must not be required before the first task | Visible New Vault and Open File, an explicit return from the creation form, and Mount in the unlocked row; keep file actions first in the lens |
 | Find an unfamiliar action | A blank search field requires the product's exact vocabulary | Browse command families without typing; search recognizes localized synonyms and restrained spelling errors |
 
 There is no universal top toolbar copied across every mode. A folder gets navigation, a player
@@ -286,8 +287,8 @@ pointer; an experienced reader must be able to complete it without the pointer.
 #### Search intent and predictable ranking
 
 Search must be deterministic and local. It does not need a remote language model. The following
-is the target contract; the matcher currently supports case folding, substrings, initials and
-ordered characters. The remaining work is tracked with the lens migration.
+is the ranking contract. The shared matcher handles normalized words and one-edit recovery;
+applications supply alternative phrases through their translated command registrations.
 
 1. Normalize surrounding and repeated whitespace, case and accents for comparison while
    preserving the original label and correct UTF-8 highlight spans. Treat terminal command
@@ -299,7 +300,8 @@ ordered characters. The remaining work is tracked with the lens migration.
    Use context and recent use only as bounded tie-breakers. Keep deterministic ties in the
    declared order; never rearrange the empty-query basic actions according to usage history.
 4. Only offer typo recovery as a fallback for meaningful words: initially one insertion,
-   deletion, substitution or adjacent transposition for words of at least four characters.
+   deletion, substitution or adjacent transposition in one word of at least four characters per
+   query. Every other word must match a distinct word prefix; two misspelled words do not qualify.
    Never fuzz numbers, paths, shortcuts or line addresses. Show the real command label, never
    silently rewrite the input or run a guessed action. Keep exact disabled matches visible with
    their reason, without treating an unavailable match as grounds to hide usable alternatives.
@@ -314,9 +316,32 @@ ordered characters. The remaining work is tracked with the lens migration.
 
 When nothing matches, keep the query, identify the active scope, and offer All Commands or a
 scope reset. Do not leave the user with an unexplained empty list. A list that overflows must
-advertise that it scrolls; a clipped last row or a discoverable scroll indicator is needed even
-before the first wheel movement. Keep navigation and source controls reachable at minimum width
+advertise that it scrolls before the first wheel movement. The lens keeps named Previous Results
+and More Results controls below an overflowing list. They overlap one row between pages and
+keep the keyboard choice in view; wheel and Page Up / Page Down remain available. The list
+height stays stable while browsing. A named All Sources link removes a source prefix while
+preserving the query. Keep navigation and source controls reachable at minimum width
 and with French labels, without colliding with the keyboard help.
+
+The executable corpus includes these task phrases in the application's active language:
+
+| Application | English query | French query | Command |
+| --- | --- | --- | --- |
+| Capture | screenshot | copie ecran | Capture Area |
+| Capture | export image | exporter image | Save as Image |
+| Capture | history | historique | Library |
+| Scope | open movie | ouvrir film | Open |
+| Scope | media library | mediatheque | Explore |
+| Scope | cinema | cinema | Full Screen |
+| Prism | run code | executer code | Compile |
+| Prism | indent | indenter | Format Source |
+| Vault | new container | nouveau conteneur | New Vault |
+| Vault | open container | ouvrir conteneur | Open File |
+
+The toolkit corpus also checks `svae image`, `image svae`, insertions, deletions and substitutions;
+rejects two errors, short-word guesses, paths and numbers; and keeps UTF-8 spans on the original
+label. An alias never paints its byte offsets onto a different displayed title. Exact title
+matches outrank aliases, and a disabled exact match does not suppress a usable fallback.
 
 #### Acceptance of a lens change
 

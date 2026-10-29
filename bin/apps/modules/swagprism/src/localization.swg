@@ -8,6 +8,10 @@ using Core, Gui
 // what the reader types into the attribute, so neither is translated.
 struct AppStrings
 {
+    // Alternative phrases for command discovery; semicolons separate complete phrases.
+    search_Compile: string = "build;run code;execute"
+    search_Format:  string = "format code;indent;tidy code"
+
     // The examples, the viewers and what a viewer says before it has run.
     ui_Examples:      string = "Examples"                             // Menu of the source examples.
     ui_Plasma:        string = "Plasma Waves"                         // Name of the animated plasma example.

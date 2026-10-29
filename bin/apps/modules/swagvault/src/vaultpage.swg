@@ -8,7 +8,9 @@ using Core, Gui, Pixel
 // around them.
 const PageColumnWidth = 584'f32     // Width of the column the words of a page stand in.
 const PageGutter      = 32'f32      // Least air kept between the column and a window edge.
-const PageTop         = 72'f32      // Distance from the top of the window to the head of a page.
+const PageTop         = 64'f32      // Distance from the top of the window to the head of a page.
+const PageFoot        = 48'f32      // The foot of the window the hint line stands in; a centred column is centred above it.
+const ListTop         = 64'f32      // Distance from the strip to the title of the list, which has no way back above it.
 const PageTitleSize   = 40'u32      // Size of a page title.
 const PageHeadGap     = 32'f32      // Air between the head of a page and what it introduces.
 const RowOutset       = 28'f32      // How far a row's ground reaches past the column on each side.
@@ -113,7 +115,7 @@ func placePageColumn(page: *Wnd, column: *Wnd, centred = false)
 
     var top = PageTop
     if centred do
-        top = Math.max(PageTop, Math.round((room.height - height) * 0.5))
+        top = Math.max(PageTop, Math.round((room.height - PageFoot - height) * 0.5))
     column.arrange(Math.Rectangle{Math.round((room.width - width) * 0.5), top, width, height})
 
     // A new wording can change what the column holds without changing its size.

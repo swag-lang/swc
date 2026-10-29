@@ -492,7 +492,9 @@ the screen to its work.
   a grid of captures, rating and dates in mono. The lens at rest offers what can be done with
   the chosen captures — open, export, tags, favourite, move to a folder, delete — and their
   rating as one row of segments, then what the page shows as another; every other command of
-  the page (view, sort, folders, dates, applications, tags) is one word away.
+  the page (view, sort, folders, dates, applications, tags) is one word away. The hint line
+  teaches the keys of the page, `Space` last: `↵` open, `Del` delete, `F2` rename, `0–5` rate,
+  `/` filter.
 - Shape editing, per kind: arrow (curve handles, start/end glyph pickers, sizes), callout (inline
   text, tail handle, font/size/style "Aa" segments), masks (image, blur, pixelation, magnifier,
   capture as a radio list), step numbers (mini-bar with number stepper and reset), multiple

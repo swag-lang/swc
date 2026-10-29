@@ -84,7 +84,7 @@ impl LibraryWnd
         }
 
         .hintLine = HintLine.create(me)
-        .hintLine.addHint(strings().key_Space, appStrings().hint_LibrarySpace)
+        .fillHintLine()
     }
 
     // The captures themselves, on the ground of the window.

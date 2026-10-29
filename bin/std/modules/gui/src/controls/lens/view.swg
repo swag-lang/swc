@@ -924,28 +924,40 @@ private impl View
         return last.top + last.height + metrics.lens_RowInset
     }
 
-    // Returns the height of the results shown in at most `room`: all of them, or the rows that
-    // fit whole, so that the list never ends on half a row or on a section label alone.
+    // Returns the height of the results shown in at most `room`: all of them, or, at rest, the
+    // list cut above the row its foot would cross, so that it never ends on half a row or on a
+    // section label alone.
     //
-    // The air under a row is not part of what it shows: a row that only loses some of it stays.
+    // The air under a row is not part of what it shows: a row that only loses some of it stays,
+    // as a strip of pictures does that loses the gap under its pictures.
     mtd fittedContentHeight(room: f32)->f32
     {
         let whole = .contentHeight()
         if whole <= room do
             return whole
 
-        let inset  = .themeMetrics().lens_RowInset
-        var result = 0'f32
-        for row in .rows
+        let metrics = .themeMetrics()
+        for row, index in .rows
         {
             let bottom = row.top + row.height
-            if bottom > room + inset do
-                break
-            if row.entry != Swag.U64.Max do
-                result = bottom
+            if bottom <= room do
+                continue
+
+            let air = metrics.lens_RowInset + (row.entry == PictureRow ? metrics.lens_PictureGap : 0)
+            if row.entry != Swag.U64.Max and row.top < room and bottom - room <= air do
+                return room
+
+            // Only a list at rest is cut: once the choice goes past the cut, the list scrolls
+            // instead of hiding where the choice went.
+            let label = index > 0 and .rows[index - 1].entry == Swag.U64.Max
+            let first = label ? index - 1 : index
+            if .scroll > 0 or (.chosen < .rows.count and .chosen >= first) do
+                return room
+            let cut = .rows[first].top
+            return cut > 0 ? Math.min(cut, room) : room
         }
 
-        return result > 0 ? Math.min(result, room) : room
+        return room
     }
 
     // The visible lens, in local coordinates.

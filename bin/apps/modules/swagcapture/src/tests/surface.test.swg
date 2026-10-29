@@ -289,10 +289,20 @@ func testCollectSwatches(wnd: *Wnd, result: *Array'(*IconButton))
     // each kind, one or several.
     Swag.assert(not main.quickWnd.isVisible())
     Swag.assert(main.inspector.title == "2 ellipses · 1 text")
+
     Swag.assert(MainWnd.countWords("% étape|% étapes", 1) == "1 étape" and MainWnd.countWords("% étape|% étapes", 3) == "3 étapes")
 
     // The layers list every object, the selected ones chosen; a row chooses its object alone.
     Swag.assert(capture.selection.count == 3)
+
+    // A third kind is named too when the words fit before the actions of the head.
+    discard testAddArrow(capture, 20, 200, 120, 220)
+    capture.selection.add(3)
+    capture.selectionHasChanged()
+    main.updateState()
+    let kinds = MainWnd.describeKinds(capture)
+    Swag.assert(kinds == "2 ellipses · 1 text · 1 arrow")
+    Swag.assert(main.inspector.title == (main.titleFits(kinds) ? kinds.toString() : "4 objects"))
 }
 
 // A step marker: its shapes and its number on the mini-bar, in Encre.

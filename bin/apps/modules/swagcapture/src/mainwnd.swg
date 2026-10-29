@@ -14,9 +14,6 @@ enum EditMode { Shape, Arrow, Line, Polygon, Text, Favorites, Draw, Highlight, S
 // object, the face of a text, the counter of a step, or the alignment of several objects.
 enum MiniBarKind { None, Single, Text, Step, Multi }
 
-// The most kinds the inspector names a selection of several objects by.
-const MaxKindsInTitle = 2
-
 // Identifies a glyph of the application icon set (`datas/icons.svg`), in the grid
 // order of the document. The set is rasterized on demand per size and scale through
 // [[Gui.IconSet]], so every glyph stays sharp at any display density.
@@ -611,6 +608,18 @@ impl MainWnd
     }
 
     // Returns the name of a tool, as the inspector heads the properties it edits.
+    // Reports whether `title` fits the head of the inspector before its actions.
+    mtd titleFits(title: string)->bool
+    {
+        let metrics = .themeMetrics()
+        let theme   = .theme()
+        let words   = Painter.measureString(title, theme.createDefaultFont(metrics.inspector_TitleFontSize, .Bold)).width
+        let small   = theme.createDefaultFont(metrics.defaultFontSize - 1)
+        let actions = Painter.measureString(Format.toString("% · %", appStrings().act_Duplicate, appStrings().act_Delete), small).width
+        let room    = metrics.inspector_Width - 2 * metrics.inspector_Padding - actions - 2 * metrics.btnIcon_SpacingTextH - metrics.iconText_Margin
+        return words <= room
+    }
+
     // Returns the words counting one kind of object, from a table of "singular|plural" words.
     func countWords(table: string, count: u64)->String
     {
@@ -620,7 +629,7 @@ impl MainWnd
     }
 
     // Returns the words counting each kind of the selected objects, in the order they first come,
-    // such as "2 rectangles · 1 text"; nothing past two kinds, which would not read at a glance.
+    // such as "2 rectangles · 1 text".
     func describeKinds(capture: *Capture)->String
     {
         var tables: Array'string
@@ -643,8 +652,6 @@ impl MainWnd
         }
 
         var result: String
-        if tables.count > MaxKindsInTitle do
-            return result
         for t, i in tables
         {
             if i do
@@ -752,10 +759,10 @@ impl MainWnd
             .inspector.setTitle(editModeName(formToEditMode(capture!.forms[capture.selection.back()])), appStrings().ui_OneObject)
         else
         {
-            // Several objects are named by what they are, "2 rectangles · 1 text", while that
-            // stays short; past two kinds, by how many they are.
+            // Several objects are named by what they are, "2 rectangles · 1 text", when that fits
+            // before the actions of the head; otherwise by how many they are.
             let kinds = describeKinds(unwrap capture)
-            if kinds.count do
+            if .titleFits(kinds) do
                 .inspector.setTitle(kinds)
             else do
                 .inspector.setTitle(Format.toString(appStrings().ui_Objects, count))

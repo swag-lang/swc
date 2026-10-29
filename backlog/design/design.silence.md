@@ -167,13 +167,6 @@ dialogs, then each application, then the written rules.
 - Next: give `noise.swgs` the strip's inset, then look at both scripts in both themes.
 - Done when: the window scripts build and smoke clean in both themes.
 
-### design.silence.012 — The skills still describe the old identity
-
-- Next: rewrite `design-swag-identity`, `design-swag-themes`, `design-swag-dialogs` and
-  `build-swag-standard-apps` so they state this charter and nothing that contradicts it.
-- Done when: a new control, dialog or application written from the skills alone matches the
-  charter.
-
 ### design.silence.017 — The gui examples show no application glyph in their strip
 
 - Evidence: the examples gui2 to gui11 set no application icon, so their strip starts with the
@@ -181,3 +174,27 @@ dialogs, then each application, then the written rules.
 - Next: give each example window an application icon, a neutral sample mark.
 - Done when: every gui example window shows a glyph at the start of its strip, in both themes.
 
+
+### design.silence.018 — The charter and the code disagree on measures and leftovers
+
+- Evidence, found while the skills were rewritten on the charter:
+  - Floating shadow: the charter says `0 30px 80px` at 45–60 % (Encre) and 12–16 % (Papier); the
+    code blurs 64 at offset 24, about 27 % and 10 % (`FloatingShadowDarkShare`, `LightShare`).
+  - Dock: the Measures table says a 36 cell and an 18–20 glyph, the Capture section 30; the code
+    has `toolDock_CellSize` 30 and `toolDock_Glyph` 16.
+  - Scroll bar: 6 px under Window chrome, 8 px under Controls; `scrollBar_Size` is 8.
+  - Lens: no blur behind it, only the dim; its foot does not list `Tab`.
+  - Section label: the charter says 10.5, `sectionLabel_FontSize` is 10.
+  - Swag Scope's current search match pulses a glow (`ViewerSearchOverlay`, `searchMatch_Glow`);
+    the Motion section forbids pulses and glows at rest.
+  - `dialog.swg` still documents a faint `Esc` hint at the bottom left it no longer paints.
+  - Band leftovers: `informationBar_Bk`, `commandBar_Bk`, `toolBar_Bk` (all the ground), the
+    window styles `.InformationBar`, `.InformationPanel`, `.CommandBar`, `.ToolBar`, the metrics
+    `menuBar_*`, `iconBar_*`, `panel_GutterSize`; `action_IconSize` 20 gives a 36 cell where the
+    charter says 32 with a 16 glyph.
+  - The documentation page deepens Voltage on paper (`--swag-active: #7e8000`), against the rule
+    that Voltage is never deepened.
+- Next: decide each line with the charter owner — fix the charter or the code — and delete the
+  band leftovers once nothing paints them.
+- Done when: every measure the charter states is the one the code uses, and no band style,
+  color or metric remains.

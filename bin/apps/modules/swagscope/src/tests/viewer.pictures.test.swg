@@ -22,6 +22,6 @@ func picturedFixture(name: string)->String => Path.combine(unwrap Path.directory
 {
     picturedViewer(picturedFixture("imageset-real-review.webp"), false, "pictured.image")
     picturedViewer(picturedFixture("viewer.csv"), true, "pictured.table.paper")
-    picturedViewer(picturedFixture("viewer.html"), true, "pictured.html.paper")
+    picturedViewer(picturedFixture("viewer.page.html"), true, "pictured.html.paper")
     picturedViewer(picturedFixture("segoeui.ttf"), true, "pictured.font.paper")
 }

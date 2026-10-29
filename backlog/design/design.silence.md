@@ -120,8 +120,17 @@ dialogs, then each application, then the written rules.
     outline), binary (report page), hex (structure tabs, large inspector), font (specimen page);
     the "Column ▾" quiet menu of text; the progress thread under the strip with documents
     scrolling under it.
-- Next: the shipped frame for every Scope golden; then image, table, HTML, binary, hex and font
-  on their pictures; short dates in archive rows.
+  - Viewers photographed in the shipped frame against their pictures (`pictured.*`): the image
+    viewer stands on `scope.image`. The table (`pictured.table.paper`) is still a bare list: no
+    file name as title over a mono line of rows, columns, separator and encoding, no inferred type
+    under each column name, numbers not in mono, alternate grounds instead of hairlines, no sum of
+    the chosen column in the reading line. HTML (`pictured.html.paper`) has no reading column, no
+    faint mono address above it, no outline in the right margin, its code blocks are not cards.
+    The font viewer (`pictured.font.paper`) is not the specimen page: no large "Aa", family and
+    style tabs, glyph row with the chosen glyph on Arc, the sample field and sizes with mono labels.
+    Hex and binary have no framed golden yet; hex needs a binary fixture opened in the hex viewer.
+- Next: table, HTML, font, binary and hex on their pictures; the mixed board's waveform cells,
+  "Aa" in the font's own face, a film's picture size in its facts, and an ExtraBold page title.
 - Done when: every Scope golden matches its picture as a whole screen.
 - Related: design.silence.004
 

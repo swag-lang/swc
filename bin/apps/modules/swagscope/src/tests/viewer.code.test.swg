@@ -373,6 +373,7 @@ struct CodeLanguageSample
 
     var host: Testing.HeadlessHost
     host.setup(1100, 700)
+    shipFrame(&host)
     host.app.setAppIcon(expect Image.decode(".png", AppIcon))
     var index  = createViewerPluginRegistry()
     let window = ViewerWindow.create(&host.surfaceWnd, #move index)

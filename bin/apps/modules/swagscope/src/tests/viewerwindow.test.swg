@@ -909,6 +909,7 @@ func assertFolderFiles(window: *ViewerWindow, names: const [..] String)
 
     var host: Testing.HeadlessHost
     host.setup(960, 680)
+    shipFrame(&host)
 
     var index = createViewerPluginRegistry()
 
@@ -1120,6 +1121,7 @@ func assertFolderFiles(window: *ViewerWindow, names: const [..] String)
 {
     var host: Testing.HeadlessHost
     host.setup(900, 700)
+    shipFrame(&host)
 
     let appIcon = expect Image.decode(".png", AppIcon)
     host.app.setAppIcon(appIcon)
@@ -1705,6 +1707,7 @@ func assertFolderFiles(window: *ViewerWindow, names: const [..] String)
 {
     var host: Testing.HeadlessHost
     host.setup(800, 560)
+    shipFrame(&host)
 
     let fileName = writeTempFile("html", "<p>ready</p>")
     defer discard catch File.delete(fileName)
@@ -2072,6 +2075,7 @@ func assertFolderFiles(window: *ViewerWindow, names: const [..] String)
 {
     var host: Testing.HeadlessHost
     host.setup(960, 680)
+    shipFrame(&host)
     host.app.setAppIcon(expect Image.decode(".png", AppIcon))
 
     var index  = createViewerPluginRegistry()
@@ -2147,6 +2151,7 @@ func assertFolderFiles(window: *ViewerWindow, names: const [..] String)
 {
     var host: Testing.HeadlessHost
     host.setup(960, 680)
+    shipFrame(&host)
 
     host.theme.setDark()
     host.theme.metrics.surfaceWnd_ShadowSize   = 0

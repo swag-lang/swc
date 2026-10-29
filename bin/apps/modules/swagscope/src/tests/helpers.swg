@@ -277,6 +277,16 @@ func storedZipBytes(files: const [..] StoredZipFile)->Array'u8
 // The failure text a viewer shows: the plain statement, then the technical detail.
 func failureShape(statement, detail: string)->String => Format.toString("%\n\n%", statement, detail)
 
+// Gives the test surface the frame of the shipped one, its strip over the top of the window, so a
+// picture of the window stands where the application puts it; the shadow and the corner are left
+// out of the photograph.
+func shipFrame(host: *Testing.HeadlessHost)
+{
+    host.surface.updateFlags(SurfaceFlags.StandardWindow | SurfaceFlags.NoShadow)
+    host.theme.metrics.surfaceWnd_ShadowSize   = 0
+    host.theme.metrics.surfaceWnd_CornerRadius = 0
+}
+
 // Opens `fileName` in a viewer window built inside the frame of the shipped surface, at the size
 // of the charter's pictures, in Encre or in Papier, and lets the viewer finish loading.
 //

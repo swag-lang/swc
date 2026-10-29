@@ -2542,7 +2542,8 @@ impl ExplorerGrid
             painter.drawString(rect.x + 36, body.opticalLineTop(centerY), entry.name, body, colors.text)
             painter.popClippingRect()
 
-            let date = entry.modified.toString()[0 until Math.min(entry.modified.length, 10)]
+            // The date as briefly as a list reads it: the time today, the day this year, the date before.
+            let date = entry.when.year ? briefFileTime(entry.when, Time.DateTime.now()) : String.from("")
             painter.drawString(dateRight - Painter.measureString(date, mono).width, mono.opticalLineTop(centerY), date, mono, colors.faintText)
 
             var size: String

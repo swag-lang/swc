@@ -63,6 +63,7 @@ using Core, Pixel, Gui, Gui.Testing, Viewers
     defer discard catch File.delete(fileName)
     var host: HeadlessHost
     host.setup(880, 560)
+    shipFrame(&host)
     defer discard catch host.app.setLanguage(ReferenceLanguage)
 
     host.theme.setDark()

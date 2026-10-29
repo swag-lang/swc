@@ -1386,7 +1386,14 @@ impl FileBrowserCtrl
 
 // Writes `time` as briefly as a file list can still read it against `now`: "21:30" today,
 // "10-26 21:30" within the year, "2025-03-01" before.
-private func briefFileTime(time, now: Time.DateTime)->String
+//
+// Both are wall-clock times of the same zone: a file system's UTC times go through
+// [[Core.Time.DateTime.toLocal]] first, with `now` from [[Core.Time.DateTime.now]].
+//
+// ```swag
+// let when = briefFileTime(file.lastWriteTime.toLocal(), Time.DateTime.now())
+// ```
+func briefFileTime(time, now: Time.DateTime)->String
 {
     if time.year == now.year and time.month == now.month and time.day == now.day do
         return time.toString(.TimeIsoHm)

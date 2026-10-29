@@ -255,6 +255,7 @@ private func createPdfFixture()->String
     {
         var host: HeadlessHost
         host.setup(960, 640)
+        shipFrame(&host)
         if light do
             host.theme.setLight()
         else do

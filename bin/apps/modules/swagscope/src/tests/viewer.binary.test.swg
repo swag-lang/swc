@@ -950,6 +950,7 @@ func binaryCellText(line: *ListLine, column: Binary.Column)->String => RichStrin
 
     var host: Testing.HeadlessHost
     host.setup(960, 680)
+    shipFrame(&host)
 
     var index = createViewerPluginRegistry()
 

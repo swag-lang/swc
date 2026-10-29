@@ -90,23 +90,46 @@ impl MainWnd
         let glyph = .themeMetrics().toolDock_Glyph
         .dock = ToolDock.create(.editArea)
 
+        // Eight cells, as the pictures; a cell with a mark stands for a group of tools, each of
+        // which keeps its command and its key.
         .dock.addTool(.icon(.Select, glyph), ActionToolMode.Selection)
-        .dock.addTool(.icon(.Shape, glyph), ActionToolMode.Shape)
-        .dock.addTool(.icon(.Arrow, glyph), ActionToolMode.Arrow)
-        .dock.addTool(.icon(.Line, glyph), ActionToolMode.Line)
-        .dock.addTool(.icon(.Polygon, glyph), ActionToolMode.Poly)
+        let shape = .dock.addTool(.icon(.Shape, glyph), ActionToolMode.Shape)
+        .dock.addToGroup(shape, .icon(.Polygon, glyph), ActionToolMode.Poly)
+        let arrow = .dock.addTool(.icon(.Arrow, glyph), ActionToolMode.Arrow)
+        .dock.addToGroup(arrow, .icon(.Line, glyph), ActionToolMode.Line)
         .dock.addTool(.icon(.Text, glyph), ActionToolMode.Text)
 
         // The callout has no sprite of its own: its cell draws the bubble.
         let callout = .dock.addTool(.icon(.Text, glyph), ActionToolMode.Callout)
         callout.iconPainter = func(btn, bc, pos, flags) { drawCalloutGlyph(btn, bc, pos, flags) }
 
-        .dock.addTool(.icon(.Draw, glyph), ActionToolMode.Draw)
-        .dock.addTool(.icon(.Highlight, glyph), ActionToolMode.Highlight)
+        let draw = .dock.addTool(.icon(.Draw, glyph), ActionToolMode.Draw)
+        .dock.addToGroup(draw, .icon(.Highlight, glyph), ActionToolMode.Highlight)
         .dock.addTool(.icon(.Step, glyph), ActionToolMode.Step)
-        .dock.addTool(.icon(.Image, glyph), ActionToolMode.Img)
-        .dock.addTool(.icon(.PixSel, glyph), ActionToolMode.PixSel)
-        .dock.addTool(.icon(.Favorites, glyph), ActionToolMode.Favorites)
+        let image = .dock.addTool(.icon(.Image, glyph), ActionToolMode.Img)
+        .dock.addToGroup(image, .icon(.PixSel, glyph), ActionToolMode.PixSel)
+        .dock.addToGroup(image, .icon(.Favorites, glyph), ActionToolMode.Favorites)
+    }
+
+    // Returns the command of the tool drawing in `mode`.
+    func toolCommand(mode: EditMode)->WndId
+    {
+        switch #complete mode
+        {
+        case .Shape:     return ActionToolMode.Shape
+        case .Arrow:     return ActionToolMode.Arrow
+        case .Line:      return ActionToolMode.Line
+        case .Polygon:   return ActionToolMode.Poly
+        case .Text:      return ActionToolMode.Text
+        case .Callout:   return ActionToolMode.Callout
+        case .Draw:      return ActionToolMode.Draw
+        case .Highlight: return ActionToolMode.Highlight
+        case .Step:      return ActionToolMode.Step
+        case .Image:     return ActionToolMode.Img
+        case .PixSel:    return ActionToolMode.PixSel
+        case .Favorites: return ActionToolMode.Favorites
+        case .Selection: return ActionToolMode.Selection
+        }
     }
 
     // The properties of the selection, or of the tool when nothing is selected: the quick styles

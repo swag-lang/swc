@@ -68,10 +68,22 @@ func testSetupGlobalMain(main: *MainWnd)
     // The tools stand in the dock, one cell per tool, the glyph at the size of the dock.
     let metrics   = f.main.themeMetrics()
     let firstTool = f.main.dock.tools[0]
-    Swag.assert(f.main.dock.tools.count == 13)
+    Swag.assert(f.main.dock.tools.count == 8)
     Swag.assert(firstTool.id == ActionToolMode.Selection)
     Swag.assert(firstTool.position.width == metrics.toolDock_CellSize)
     Swag.assert(firstTool.icon.sizeX == metrics.toolDock_Glyph)
+
+    // A tool of a group keeps its command: chosen from the lens or its key, it comes into the
+    // cell of its group, which then carries its command; the first tool of the group comes back
+    // the same way.
+    let lineCell = f.main.dock.tools[2]
+    Swag.assert(lineCell.id == ActionToolMode.Arrow)
+    f.main.editMode = .Line
+    f.main.updateState()
+    Swag.assert(lineCell.id == ActionToolMode.Line and lineCell.isChecked)
+    f.main.dock.chooseInGroup(lineCell, ActionToolMode.Arrow)
+    f.gui.pump()
+    Swag.assert(lineCell.id == ActionToolMode.Arrow and f.main.editMode == .Arrow)
 
     // The wait indicator of a library scan stands in the command bar, not over the captures. It
     // used to be a child of the scroll window at 8,8 — which is exactly where the view's own

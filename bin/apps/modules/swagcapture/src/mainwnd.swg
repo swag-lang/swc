@@ -554,6 +554,9 @@ impl MainWnd
 
     mtd updateState()
     {
+        // The tool in use stands in the dock, in the cell of its group when it has one.
+        if .dock != null do
+            discard .dock.selectTool(toolCommand(.editMode))
         .updateCommandState()
         .updateInspectorTitle()
         .fillHintLine()

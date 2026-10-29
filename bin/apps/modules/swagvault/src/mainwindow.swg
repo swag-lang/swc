@@ -487,6 +487,7 @@ impl MainWindow
         result.createAppearanceButton()
         result.createPages()
         result.createLens()
+        Lens.Launcher.create(result, VaultCommands.Lens)
         result.createHint()
         result.fillDriveChoice()
         result.applyLanguage()

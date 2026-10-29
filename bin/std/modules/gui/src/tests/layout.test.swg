@@ -57,6 +57,29 @@ using Swag, Core
     Swag.assert(next.position == after)
 }
 
+// Command-supplied labels reflow an unsized button just like an explicitly changed label.
+#test
+{
+    var host: Testing.HeadlessHost
+    host.setup(720, 100)
+    let stack  = StackLayoutCtrl.create(&host.root, .Left, {0, 0, 700, 80})
+    let button = IconButton.createQuiet(stack, "test.label", menu: false)
+    let next   = PushButton.create(stack, "Next")
+    button.setText("Copy")
+    host.pump()
+    let before = next.position.x
+    var state: CommandStateEvent
+    state.id   = "test.label"
+    state.updatedFields = .Name | .Icon
+    state.name = "Copy Image to Clipboard"
+    state.icon = host.theme.icon(.Copy, 16)
+    button.itf.onApplyStateEvent(&state)
+    host.pump()
+    Swag.assert(next.position.x > before)
+    Swag.assert(button.position.width >= Math.floor(button.itf.measureContent({}).x))
+    Swag.assert(next.position.x >= button.position.right() + stack.spacing)
+}
+
 // StackLayoutCtrl Left stacks children horizontally with spacing.
 #test
 {

@@ -183,16 +183,16 @@ func lensFooterActionPosition(lens: *Lens.View)->Math.Point
     let disabled = lens.results.sections[1]!.entries[1]
     Swag.assert(disabled.disabled and disabled.detail == "Nothing selected" and not disabled.monoDetail)
 
-    // The first row is chosen, the keys move the choice over the section labels, and the
-    // disabled command is never chosen.
+    // A more precise command precedes a source registered first. A scope keeps navigation local.
+    Swag.assert(lens.chosenEntry()!.title == "Center Theme")
+    lens.setQuery(":center")
     Swag.assert(lens.chosenEntry()!.title == "if not .centerGroup do")
     host.keyPress(.Down)
     Swag.assert(lens.chosenEntry()!.title == "let group = .centerGroup")
-    for 5 do
-        host.keyPress(.Down)
-    Swag.assert(lens.chosenEntry()!.title == "Center Theme")
-    host.keyPress(.Up)
+    host.keyPress(.Down)
     Swag.assert(lens.chosenEntry()!.title == "elif .fillCenterGroup do")
+    host.keyPress(.Up)
+    Swag.assert(lens.chosenEntry()!.title == "let group = .centerGroup")
 
     let nothing = "zzz"
     lens.setQuery(nothing)
@@ -235,6 +235,34 @@ func lensFooterActionPosition(lens: *Lens.View)->Math.Point
     Swag.assert(host.app.keyboardFocusWnd == &lens.input.wnd)
 }
 
+// French source links remain legible beside a checkable result in a narrow lens.
+#[Swag.TestTag("golden")]
+#test
+{
+    for light in [false, true]
+    {
+        var host: Testing.HeadlessHost
+        host.setup(480, 560)
+        defer discard catch host.app.setLanguage(ReferenceLanguage)
+        if light
+        {
+            host.theme.setLight()
+            host.notify(.ThemeChanged)
+        }
+
+        expect host.app.setLanguage("fr")
+        let lens = lensSetup(&host)
+        lens.addSource(.File, func(_) {})
+        lens.open("center")
+        Swag.assert(lens.chosenEntry()!.checked)
+        host.settleAnimations(&host.root)
+        var image = host.render(&host.root)
+        Pixel.Testing.assertImageGolden(&image, light ? "lens.narrow.fr.paper" : "lens.narrow.fr.ink")
+        host.click(lensFooterActionPosition(lens))
+        Swag.assert(lens.results.prefix == .Action and lens.results.query == "center")
+    }
+}
+
 // Enter closes the lens and posts the chosen command; Escape closes it and gives the keyboard back.
 #test
 {
@@ -273,6 +301,37 @@ func lensFooterActionPosition(lens: *Lens.View)->Math.Point
     host.keyPress(.Escape)
     Swag.assert(not lens.isOpen() and posted.count == 1)
     Swag.assert(host.app.keyboardFocusWnd == &field.wnd)
+}
+
+// Search accepts task words in either order, omitted accents, and bounded command misspellings.
+#test
+{
+    let words = Lens.match("  image   save ", "Save as Image…")
+    Swag.assert(words.matched and words.spans.count == 2)
+    Swag.assert(words.spans[0].start == 0 and words.spans[1].start == 8)
+    Swag.assert(not Lens.match("save save", "Save as Image…").matched)
+    let accent = Lens.match("ete", "Été")
+    Swag.assert(accent.matched and accent.spans[0].start == 0 and accent.spans[0].count == 5)
+    let decomposed = Lens.match("ete", "E\u0301te\u0301")
+    Swag.assert(decomposed.matched and decomposed.spans[0].count == 7)
+    Swag.assert(Lens.match("  \t ", "Save").matched)
+    for query in ["captuer", "capturre", "cature", "capxure"] do
+        Swag.assert(Lens.match(query, "Capture Area", tolerateTypos: true).matched)
+    Swag.assert(not Lens.match("captuer", "Capture").matched)
+    Swag.assert(not Lens.match("caxtuer", "Capture Area", tolerateTypos: true).matched)
+    Swag.assert(not Lens.match("svae", "Save", tolerateTypos: false).matched)
+    Swag.assert(not Lens.match("cat", "Cut", tolerateTypos: true).matched)
+    Swag.assert(not Lens.match("2025", "2026", tolerateTypos: true).matched)
+    Swag.assert(not Lens.match("c:/svae", "c:/save", tolerateTypos: true).matched)
+    Swag.assert(Lens.match("capture", "Capture Area").score > Lens.match("captuer", "Capture Area", tolerateTypos: true).score)
+
+    var host: Testing.HeadlessHost
+    host.setup(800, 600)
+    let lens = lensSetup(&host)
+    lens.open("svae")
+    Swag.assert(lens.chosenEntry()!.id == LensSave)
+    lens.setQuery("image save")
+    Swag.assert(lens.chosenEntry()!.id == LensSave)
 }
 
 // A click outside the lens closes it without running anything; a row with an action runs it.
@@ -341,7 +400,7 @@ func lensFooterActionPosition(lens: *Lens.View)->Math.Point
 }
 
 // The families of commands rank by their best command, and a command matched only by scattered
-// letters is left out when another answers better; a source keeps its place and its order.
+// letters is left out when another answers better; sources retain their internal row order.
 #test
 {
     var host: Testing.HeadlessHost
@@ -356,8 +415,8 @@ func lensFooterActionPosition(lens: *Lens.View)->Math.Point
         Swag.assert(row.entry == Swag.U64.Max or row.section.entries[row.entry].title != "Capture Area")
 
     lens.setQuery("center")
-    Swag.assert(lens.rows[0].section.label == "In this file")
-    Swag.assert(lens.chosenEntry()!.title == "if not .centerGroup do")
+    Swag.assert(lens.rows[0].section.label == "View")
+    Swag.assert(lens.chosenEntry()!.title == "Center Theme")
 }
 
 // At rest, a lens with a context offers it and the commands chosen last, not every command;

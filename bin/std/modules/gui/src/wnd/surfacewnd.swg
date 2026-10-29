@@ -241,7 +241,7 @@ impl IWnd for SurfaceWnd
             if not isShownCaptionButton(button) do
                 continue
             var appButtonPos = pos
-            appButtonPos.width = Math.max(metrics.wnd_CaptionButtonGlyph + 2 * metrics.wnd_CaptionButtonMargin, pos.height * 0.75)
+            appButtonPos.width = Math.max(button.preferredSize.x, Math.max(metrics.wnd_CaptionButtonGlyph + 2 * metrics.wnd_CaptionButtonMargin, pos.height * 0.75))
             appButtonPos.x     = buttonRight - appButtonPos.width
             button.setPosition(appButtonPos)
             buttonRight = appButtonPos.x

@@ -11,23 +11,25 @@ dialogs, then each application, then the written rules.
 
 ### design.silence.004 — The lens needs a discoverable pointer entrance and direct task controls
 
-- Evidence: the current command entrance is taught by a Ctrl Space hint; a named pointer
-  entrance is missing. Capture has a dock and selection tools, but output and the next capture
-  still depend on the lens. Scope offers folder navigation inside the lens, making repeated
-  Back/Up operations indirect. The empty-query lens has a bounded viewport without a visible
-  overflow cue. Its footer has source links, but no named reset to all sources. The matcher
-  folds case and supports substrings, initials and ordered characters; it has no word-order,
-  accent, alias or typo policy. `View.rankResults` always places provider sections before
-  command families. A loose content hit can therefore precede an exact action.
-- Next: implement the charter's [task walkthroughs](README.md#direct-controls-and-task-walkthroughs)
-  as separate, reviewable changes: a shared visible Commands entrance; Capture's compact
-  capture/output group; Scope's direct folder navigation. Preserve command routing and use the
-  shared toolkit controls. Add a visible overflow affordance and a scope reset to the lens.
-  Then build the query corpus described under [Search intent](README.md#search-intent-and-predictable-ranking)
-  before changing normalization, aliases and ranking; use relevance tiers rather than
-  provider registration order, and bound typo recovery to meaningful words. Check the footer
-  at minimum width with French labels and a selected checkable row: source links and Ctrl Enter
-  help must not overlap. Review Prism and Vault against the same first-use contract.
+- Evidence: hiding the main command entrance behind Ctrl Space made the first mouse-only task
+  depend on knowing the shortcut. Capture output and repeated folder traversal in Scope also
+  took a detour through the lens. Provider registration order buried precise commands under
+  weaker content matches, and translated footer hints could overlap source links.
+- Implemented: a shared, localized `Lens.Launcher` provides a named Commands caption action in
+  Capture, Scope, Prism and Vault, posting the same command as Ctrl Space. Capture keeps capture,
+  library, copy-image and save-image actions in a compact task row. Scope exposes Back, Forward
+  and Up beside its breadcrumb, including while editing a path. Command-updated button labels
+  invalidate layout, and quiet buttons can measure their words instead of inheriting a fixed
+  width. Lens sections rank by their best title match; an empty query keeps its stable order.
+  Search normalizes whitespace and common Latin accents, accepts word prefixes in either order,
+  and optionally recovers one edit or transposition in command words of at least four letters.
+  UTF-8 highlight spans retain original byte offsets. The footer reserves space for source links
+  before displaying secondary keyboard advice.
+- Next: add a visible overflow affordance and a named reset to all sources. Extend the
+  [query corpus](README.md#search-intent-and-predictable-ranking) with localized aliases and
+  multiword typo cases before broadening tolerance. Continue the first-use walkthroughs in
+  Prism and Vault beyond their shared command entrance. Scope's playback-resume walkthrough
+  requires product state, not another command-palette control.
 - Done when: a new user can complete each charter walkthrough with the pointer alone, and an
   experienced user can complete it with keys alone; basic actions fit the first lens viewport,
   changing a selection does not move them, all other actions can be browsed without typing,

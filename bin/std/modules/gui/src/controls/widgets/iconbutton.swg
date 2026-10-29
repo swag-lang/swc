@@ -853,6 +853,7 @@ impl IconButton
         let metrics     = parent.themeMetrics()
         with let result = IconButton.create(parent, {}, Math.Rectangle{0, 0, 0, metrics.quiet_Height}, id, flags: .CenterContent)
         {
+            .preferredSize.x = 0
             .quiet = true
             .setForm(.RoundedRectangle)
             .setTextPosition(.Right)

@@ -10,22 +10,22 @@ struct AppStrings
 {
     // The examples, the viewers and what a viewer says before it has run.
     ui_Examples:      string = "Examples"                             // Menu of the source examples.
-    ui_Plasma:        string = "Plasma waves"                         // Name of the animated plasma example.
-    ui_Julia:         string = "Julia fractal"                        // Name of the animated Julia-set example.
-    ui_GuiExample:    string = "Live interface"                       // Name of the interactive control example.
-    ui_Dot:           string = "Dot product"                          // Name of the optimization example.
+    ui_Plasma:        string = "Plasma Waves"                         // Name of the animated plasma example.
+    ui_Julia:         string = "Julia Fractal"                        // Name of the animated Julia-set example.
+    ui_GuiExample:    string = "Live Interface"                       // Name of the interactive control example.
+    ui_Dot:           string = "Dot Product"                          // Name of the optimization example.
     ui_Microcode:     string = "Microcode"                            // Name of the instruction-listing viewer.
-    ui_Render2D:      string = "2D render"                            // Name of the native pixel renderer.
+    ui_Render2D:      string = "2D Render"                            // Name of the native pixel renderer.
     ui_Gui:           string = "GUI"                                  // Name of the native GUI preview.
     ui_RenderHint:    string = "shade(x, y, time: f32)->u32"          // Function contract shown in an empty 2D viewer.
     ui_GuiHint:       string = "buildView(parent: *Gui.Wnd)"          // Function contract shown in an empty GUI viewer.
     ui_ChooseExample: string = "Choose an example, then compile."     // Help for an empty execution viewer.
 
     // The header of a column of results and its menus.
-    ui_ViewerType:      string = "Viewer type"                  // Tooltip of the menu of the viewer a column shows.
+    ui_ViewerType:      string = "Viewer Type"                  // Tooltip of the menu of the viewer a column shows.
     ui_Stage:           string = "Stage"                        // Tooltip of the stage menu, and the reading of the stage.
-    ui_Optimize:        string = "Optimization level"           // Tooltip of the optimization menu, and its reading.
-    ui_BuildPreset:     string = "Build preset"                 // Tooltip of the menu of the configuration a build starts from.
+    ui_Optimize:        string = "Optimization Level"           // Tooltip of the optimization menu, and its reading.
+    ui_BuildPreset:     string = "Build Preset"                 // Tooltip of the menu of the configuration a build starts from.
     ui_Pause:           string = "Pause"                        // Pauses consumption of preview frames.
     ui_Resume:          string = "Resume"                       // Resumes the paused preview.
     ui_CloseBuild:      string = "Close"                        // Closes the build configuration and shows the viewer again.
@@ -113,18 +113,18 @@ struct AppStrings
     // One name per offered pipeline stage, in the order of `Pipeline.Stages`. Each says what the
     // code has had done to it by the time it is read, not which pass is about to run.
     ui_StageGenerated:       string = "Generated"                   // Code as it left the generator, before anything optimized it.
-    ui_StageMemToReg:        string = "Stack slots promoted"        // After locals that never needed an address became registers.
-    ui_StageConstFold:       string = "Constants folded"            // After expressions with known operands became their result.
-    ui_StageInstCombine:     string = "Instructions combined"       // After neighbouring operations merged into single ones.
-    ui_StageValueNumbering:  string = "Values numbered"             // After a value computed twice is computed once.
-    ui_StageStrengthReduce:  string = "Strength reduced"            // After costly operations became cheaper equivalents.
-    ui_StageLoopUnroll:      string = "Loops unrolled"              // After short loops were written out in full.
-    ui_StageLicm:            string = "Loop invariants hoisted"     // After work that does not change moved out of its loop.
+    ui_StageMemToReg:        string = "Stack Slots Promoted"        // After locals that never needed an address became registers.
+    ui_StageConstFold:       string = "Constants Folded"            // After expressions with known operands became their result.
+    ui_StageInstCombine:     string = "Instructions Combined"       // After neighbouring operations merged into single ones.
+    ui_StageValueNumbering:  string = "Values Numbered"             // After a value computed twice is computed once.
+    ui_StageStrengthReduce:  string = "Strength Reduced"            // After costly operations became cheaper equivalents.
+    ui_StageLoopUnroll:      string = "Loops Unrolled"              // After short loops were written out in full.
+    ui_StageLicm:            string = "Loop Invariants Hoisted"     // After work that does not change moved out of its loop.
     ui_StageVectorize:       string = "Vectorized"                  // After neighbouring operations became one wide instruction.
-    ui_StageDce:             string = "Dead code removed"           // After instructions nothing reads were dropped.
-    ui_StageBeforeRegisters: string = "Before registers"            // Last form still written in unlimited virtual registers.
-    ui_StageRegalloc:        string = "Registers allocated"         // After every value took a machine register or a stack slot.
-    ui_StagePeephole:        string = "Peephole applied"            // After the final local rewrites over real registers.
+    ui_StageDce:             string = "Dead Code Removed"           // After instructions nothing reads were dropped.
+    ui_StageBeforeRegisters: string = "Before Registers"            // Last form still written in unlimited virtual registers.
+    ui_StageRegalloc:        string = "Registers Allocated"         // After every value took a machine register or a stack slot.
+    ui_StagePeephole:        string = "Peephole Applied"            // After the final local rewrites over real registers.
     ui_StageFinal:           string = "Final"                       // The instruction list handed to the encoder.
 }
 

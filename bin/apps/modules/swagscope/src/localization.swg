@@ -61,7 +61,7 @@ struct AppStrings
     explore_ExtractedKept:     string = "%, % already there kept"    // Toast after an extraction that left files already in the folder as they were.
     explore_ExtractFailed:     string = "Not everything could be extracted"     // Toast when an extraction stopped on an error.
     explore_NotFound:          string = "Location not found"          // Exploration control or status.
-    explore_MediaOptions:      string = "Online media options"
+    explore_MediaOptions:      string = "Online Media Options"
     explore_OnlineMovies:      string = "Use Online Movie Posters and Details"
     explore_ChooseMusic:       string = "Choose MusicBrainz Release Group ID…"
     explore_ChooseMusicHelp:   string = "Enter the release group ID from MusicBrainz. Leave empty to use automatic matching."
@@ -84,12 +84,12 @@ struct AppStrings
     ui_Files:                          string = "Files Beside This One"                       // Tooltip of the file-panel button.
     ui_SameKind:                       string = "Only Files of the Same Kind"                 // Tooltip of the folder-navigation filter toggle.
     ui_Options:                        string = "Options"                                     // Tooltip of the button opening the options of a viewer.
-    ui_PlayMode:                       string = "Play mode"                                   // Tooltip of the play-mode button, and its row among the options.
+    ui_PlayMode:                       string = "Play Mode"                                   // Tooltip of the play-mode button, and its row among the options.
     ui_PlayOnce:                       string = "Stop at the End"                             // Play-mode entry leaving a played file where it ended.
     ui_PlayRepeat:                     string = "Repeat the File"                             // Play-mode entry replaying the same file.
     ui_PlayFolder:                     string = "Play the Folder in Order"                    // Play-mode entry continuing with the next file of the same kind.
     ui_PlayShuffle:                    string = "Play the Folder Shuffled"                    // Play-mode entry continuing with a random file of the same kind.
-    ui_PlaySlide:                      string = "Time per picture"                            // Option choosing how long a still picture stays.
+    ui_PlaySlide:                      string = "Time per Picture"                            // Option choosing how long a still picture stays.
     ui_Recent:                         string = "Recent"                                      // Panel section listing what was read before.
     ui_ClearHistory:                   string = "Clear History"                               // Tooltip of the clear-history button.
     ui_ConfirmClearHistory:            string = "The whole file history will be cleared."     // Consequence stated before confirming that the recent list is emptied.
@@ -198,7 +198,7 @@ struct AppStrings
 
     dlg_TitleOpen:                     string = "Open a File"                                 // Title of the open dialog.
     dlg_ButtonOpen:                    string = "Open"                                        // Confirmation button of the open dialog.
-    dlg_AllFiles:                      string = "All files"                                   // Filter matching every extension.
+    dlg_AllFiles:                      string = "All Files"                                   // Filter matching every extension.
 }
 
 private const FrenchStringsName = "lang/fr/scope.tweak"

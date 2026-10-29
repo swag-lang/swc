@@ -9,7 +9,7 @@ using Core, Gui
 // proper names rather than sentences, and only `Application` names something this program owns.
 struct Texts
 {
-    ui_Width:        string = "Reading width"             // Option choosing the reading measure.
+    ui_Width:        string = "Reading Width"             // Option choosing the reading measure.
     ui_Narrow:       string = "Narrow"                    // Narrowest reading measure.
     ui_Medium:       string = "Medium"                    // Default reading measure.
     ui_Wide:         string = "Wide"                      // Widest fixed reading measure.

@@ -9,7 +9,7 @@ using Core, Gui
 // than in this table.
 struct Texts
 {
-    ui_Name:         string = "Basic text"             // Name of this viewer in the viewer selector.
+    ui_Name:         string = "Basic Text"             // Name of this viewer in the viewer selector.
     ui_Wrap:         string = "Wrap Long Lines"        // Option folding long lines into the view; Ctrl+W also switches it.
     ui_Numbers:      string = "Line Numbers"           // Option numbering the lines in a gutter.
     ui_Encoding:     string = "Character Encoding"     // Option choosing how the bytes are read as text.

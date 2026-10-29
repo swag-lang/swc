@@ -877,7 +877,7 @@ func completeHexViewerAnalysis(host: *Testing.HeadlessHost, view: *Hex.Panel)
     Swag.assert(Hex.texts().ui_Empty == "This file is empty.")
     var options: OptionSheet.Page
     view.describeOptions(&options)
-    Swag.assert(options.rows[1].value == "8-bit" and options.rows[3].value == "Little endian")
+    Swag.assert(options.rows[1].value == "8-bit" and options.rows[3].value == "Little Endian")
     discard host.render(view)
 
     expect host.app.setLanguage("fr")
@@ -886,7 +886,7 @@ func completeHexViewerAnalysis(host: *Testing.HeadlessHost, view: *Hex.Panel)
     var translated: OptionSheet.Page
     view.describeOptions(&translated)
     Swag.assert(translated.rows[1].label == "Largeur des valeurs" and translated.rows[1].value == "8 bits")
-    Swag.assert(translated.rows[3].value == "Little endian")
+    Swag.assert(translated.rows[3].value == "Little Endian")
     Swag.assert(view.optionsButton.toolTip == "Options")
     Swag.assert(view.details == "0x00000000")
     Swag.assert(view.analysisButton.toolTip == "Analyser la sélection, ou le fichier entier lorsqu’un seul octet est sélectionné")

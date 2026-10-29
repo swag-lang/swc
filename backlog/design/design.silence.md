@@ -28,18 +28,17 @@ dialogs, then each application, then the written rules.
   application re-implements one or insets its whole root under the strip.
 - Related: design.silence.007, design.silence.008
 
-### design.silence.006 — The file box modes and details of its rows are not built
+### design.silence.006 — The file box does not fit its rows as its pictures do
 
-- Evidence: `FileDlg` and the embedded `FileBrowserCtrl` follow the open file box of the dialog
-  pictures (`dialogs.file.{ink,paper}`), but not the other modes of
-  `dialogs.file.modes.{paper,ink}.png`: folder choice shows no chosen path and names nothing in
-  its primary action, a save writes the extension into the name field, multiple choice has no
-  checkboxes nor count, the new-folder form says nothing of where the folder goes, and the
-  replace question is not destructive. The rows already set dates and sizes in mono
-  (`ListItem.mono`), mark the typed words (`ListItem.matchStart`, `matchCount`), and give the name
-  column the room the others leave (`ListFlags.StretchFirstColumn`).
-- Next: build each mode against its picture.
-- Done when: a golden per mode matches `dialogs.file.modes.{paper,ink}.png`.
+- Evidence: every mode has a golden in Encre and Papier (`dialogs.file.{folder,save,files,newfolder,replace}`
+  beside `dialogs.file`), the file list ends a long name with an ellipsis and has no header, as
+  `dialogs.file.modes.{paper,ink}.png` draws it; the new-folder form fits its text and the replace
+  question ends on its destructive action. Against the pictures, the box keeps a tall empty list
+  under a few rows instead of fitting them, the folder box's field says "Filter, or type a path"
+  where the picture says "Filter folders", and the bar beside the field has no recent-places glyph.
+- Next: let the box size its list to the rows it shows within a minimum and a maximum, give the
+  folder mode its own placeholder, and decide on the recent-places glyph.
+- Done when: each `dialogs.file.*` golden matches its picture whole-screen.
 
 ### design.silence.007 — Swag Scope viewers keep their pre-charter shapes
 
@@ -150,12 +149,14 @@ dialogs, then each application, then the written rules.
   size; keep the tool letters to the editor; run swagcapture once without
   `SWAG_GOLDEN_CONTINUE`.
 - Done when: the preset row of the inspector matches its picture.
-- Related: design.silence.004, design.silence.005
+- Related: design.silence.004
 
 ### design.silence.011 — The window scripts were not reviewed against the charter
 
 - Evidence: the example scripts that open windows (`chess.swgs`, `noise.swgs`) were not reviewed
-  against the charter.
+  against the charter. A first reading of the code: `chess.swgs` writes its game state in
+  `Argb.White`, unreadable on Papier, and names its button "Restart !"; `noise.swgs` reserves a
+  48 px caption room of its own instead of the strip's inset.
 - Next: review the two scripts on their pictures, in both themes.
 - Done when: the window scripts build and smoke clean in both themes.
 
@@ -166,9 +167,10 @@ dialogs, then each application, then the written rules.
 - Done when: a new control, dialog or application written from the skills alone matches the
   charter.
 
-### design.silence.014 — Command labels are in sentence case
+### design.silence.017 — The gui examples show no application glyph in their strip
 
-- Next: move every English command label of `bin/` string tables (menus, lens entries, buttons,
-  dialog actions, tabs, command tooltips) to the title-style capitalization of the charter,
-  leaving sentences and French translations alone.
-- Done when: a search of the English reference tables finds no command label in sentence case.
+- Evidence: the examples gui2 to gui11 set no application icon, so their strip starts with the
+  title alone where the charter puts the glyph at (18, 16).
+- Next: give each example window an application icon, a neutral sample mark.
+- Done when: every gui example window shows a glyph at the start of its strip, in both themes.
+

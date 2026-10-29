@@ -118,7 +118,7 @@ func openFileBox(mode: FileDlgMode, folder: string = "", name: string = "")
     switch mode
     {
     case .SelectFile, .SelectFiles:
-        opt.filters.add({name: "All files", extensions: ""})
+        opt.filters.add({name: "All Files", extensions: ""})
         opt.filters.add({name: "Images", extensions: ".png;.jpg;.bmp"})
 
     case .CreateFile:
@@ -354,7 +354,7 @@ func createRootView()
     var opt: FileDlgOptions
     opt.mode = .SelectFile
     opt.initialFolder = g_StartDir.toString()
-    opt.filters.add({name: "All files", extensions: ""})
+    opt.filters.add({name: "All Files", extensions: ""})
     opt.filters.add({name: "Text", extensions: ".txt"})
     opt.shortcuts.add({type: Env.SpecialDirectory.UserDocuments, name: "Documents"})
     opt.shortcuts.add({type: Env.SpecialDirectory.Desktop, name: "Desktop"})

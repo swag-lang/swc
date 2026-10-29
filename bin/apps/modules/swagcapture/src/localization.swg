@@ -23,11 +23,11 @@ struct AppStrings
     ui_Search:                  string = "Search"
     ui_BarView:                 string = "View"
     ui_Overlays:                string = "Overlays"
-    ui_ThumbnailSize:           string = "Thumbnail size"     // Option choosing how large the thumbnails of the library are.
-    ui_SortBy:                  string = "Sort by"            // Option choosing the order of the library.
+    ui_ThumbnailSize:           string = "Thumbnail Size"     // Option choosing how large the thumbnails of the library are.
+    ui_SortBy:                  string = "Sort By"            // Option choosing the order of the library.
     ui_FilterContent:           string = "Content"            // Filter on what kind of item the library shows.
     ui_FilterRating:            string = "Rating"             // Filter on the rating of the captures.
-    ui_FilterLinks:             string = "Linked images"      // Filters on the state of the images linked to captures.
+    ui_FilterLinks:             string = "Linked Images"      // Filters on the state of the images linked to captures.
     ui_BarFilter:               string = "Filter"
     ui_BarFolders:              string = "Folders"
     ui_RenameQuickStyle:        string = "Rename Quick Style…"         // Names a quick style.

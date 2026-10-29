@@ -33,7 +33,7 @@ struct AppStrings
     ui_RenameQuickStyle:       string = "Rename Quick Style…"            // Names a quick style.
     ui_ReplaceQuickStyle:      string = "Replace with Current Style"     // Gives a quick style the style of the tool or the selection.
     ui_QuickStyleRank:         string = "Style %"     // Name of a quick style the reader has not named, with its rank.
-    ui_QuickStyleCaption:      string = "Quick style “%” · right-click to rename, replace or remove it"     // Under the quick styles: the one in force.
+    ui_QuickStyleTip:          string = "% · right-click to rename, replace or remove it"     // Tooltip of a quick style: its name, and what its menu offers.
     ui_QuickStyleName:         string = "Name of the quick style"        // Prompt of the quick-style rename dialog.
     dlg_TitleRenameQuickStyle: string = "Rename Quick Style"             // Title of the quick-style rename dialog.
     ui_RemoveQuickStyle:       string = "Remove Quick Style"
@@ -153,7 +153,7 @@ struct AppStrings
     count_Step:                 string = "% step|% steps"
     count_Image:                string = "% image|% images"
     count_Object:               string = "% object|% objects"
-    ui_NextObjects:             string = "next objects"                                          // Detail of the inspector title when nothing is selected: the tool's settings apply to what is drawn next.
+    ui_NextObjects:             string = "new objects"                                           // Detail of the inspector title when nothing is selected: the tool's settings apply to what is drawn next.
     hint_Space:                 string = "capture, open, library"                                // What Ctrl Space opens, on the hint line of the editor.
     hint_Open:                  string = "open"                                                  // What Enter does to the chosen capture of the library.
     hint_Rename:                string = "rename"                                                // What F2 does to the chosen capture of the library.

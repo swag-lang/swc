@@ -24,7 +24,7 @@ ui_RemoveQuickStyle    Supprimer le style rapide
 ui_RenameQuickStyle    Renommer le style rapide…
 ui_ReplaceQuickStyle   Remplacer par le style actuel
 ui_QuickStyleRank      Style %
-ui_QuickStyleCaption   Style rapide « % » · clic droit pour le renommer, le remplacer ou le supprimer
+ui_QuickStyleTip       % · clic droit pour le renommer, le remplacer ou le supprimer
 ui_QuickStyleName      Nom du style rapide
 dlg_TitleRenameQuickStyle Renommer le style rapide
 ui_SectionEditor       Éditeur

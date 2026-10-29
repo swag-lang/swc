@@ -664,7 +664,7 @@ private impl FileBrowserCtrl
             .setSelectionMode(me.options.mode == FileDlgMode.SelectFiles ? ListSelectionMode.Multi : ListSelectionMode.Single)
             .dockStyle = .Center
             .margin.y  = metrics.fileBrowser_RowGap
-            .updateFlags(.HotTrack | .StretchFirstColumn)
+            .updateFlags(.HotTrack | .StretchFirstColumn | .Ellipsis)
             .setLineHeight(metrics.fileBrowser_LineHeight)
             .backgroundStyle = .Transparent
 
@@ -675,6 +675,9 @@ private impl FileBrowserCtrl
             .addColumn(strings().browser_ColModified, me.options.state ? cast(f32, me.options.state.modifiedColumnWidth) : 130.0)
             .addColumn(strings().browser_ColSize, me.options.state ? cast(f32, me.options.state.sizeColumnWidth) : 90.0, align: .Right)
             .header.form = .Transparent
+
+            // The rows say what they are without a header: a name, a faint mono date and size.
+            .header.hide()
 
             // A key the browsing gesture claims is marked handled, so the list does not read it a
             // second time as a movement of its own: Enter opens what is selected instead of also

@@ -142,24 +142,31 @@ impl FileDlg
     // an application that writes a file by other means asks the same question through this.
     func askReplace(from: *Surface, path: string)->bool
     {
-        // The options borrow their strings, so the strings live here for as long as the box.
-        let title = Format.toString(strings().fileDlg_ReplaceTitle, Path.fileName(path) orelse path)
-
         // A file that cannot be read leaves an empty description, and the question stands without it.
         var detail: String
         let info = catch File.info(path)
         if info.size do
             detail = Format.toString(strings().fileDlg_ReplaceDetail, Format.byteSize(info.size), info.lastWriteTime.toString(.DateTimeIsoHm))
 
-        var options: MessageDlgOptions
-        options.title  = title.toString()
-        options.detail = detail.toString()
-
-        let box = MessageDlg.create(from, strings().fileDlg_ReplaceText, options)
-        box.addButton(strings().fileDlg_BtnReplace, Dialog.BtnYes, true).setForm(.Destructive)
-        box.addButton(strings().dlg_Cancel, Dialog.BtnCancel)
-        box.adaptSizeToMessage()
+        let box = createReplaceBox(from, Path.fileName(path) orelse path, detail)
         return box.doModal() == Dialog.BtnYes
+    }
+
+    // Builds the question [[Gui.FileDlg.askReplace]] asks about the file `name`, with `detail` as
+    // its mono line, without running it.
+    internal func createReplaceBox(from: *Surface, name, detail: string)->*MessageDlg
+    {
+        var options: MessageDlgOptions
+        let title = Format.toString(strings().fileDlg_ReplaceTitle, name)
+        options.title  = title.toString()
+        options.detail = detail
+
+        // The answer finishes the box at its bottom right, as in every other box.
+        let box = MessageDlg.create(from, strings().fileDlg_ReplaceText, options)
+        box.addButton(strings().dlg_Cancel, Dialog.BtnCancel)
+        box.addButton(strings().fileDlg_BtnReplace, Dialog.BtnYes, true).setForm(.Destructive)
+        box.adaptSizeToMessage()
+        return box
     }
 
     // Asks for the name of a new folder inside `folder`, in a box over `from`, and returns it; an
@@ -170,19 +177,9 @@ impl FileDlg
     // already exists, and creates nothing: the caller does, once it has the name.
     func askNewFolderName(from: *Surface, folder, place: string)->String
     {
-        var options: FormDlgOptions
-        options.title  = strings().fileDlg_NewFolderTitle
-        options.width  = cast(s32, MessageDlg.MinMessageWidth)
-        options.height = 220
-
-        options.confirmButtonText = strings().fileDlg_BtnCreate
-
-        let dlg      = FormDlg.create(from, options)
-        let location = Format.toString(strings().fileDlg_NewFolderWhere, place)
-        let edit     = dlg.form.addTextField(strings().fileDlg_NewFolderField, strings().fileDlg_NewFolderDefault, placeholder: strings().fileDlg_NewFolderHint, help: location.toString())
-        dlg.form.computeLayout()
-        edit.selectAll()
-        edit.setFocus()
+        let box  = createNewFolderBox(from, place)
+        let dlg  = box.dlg
+        let edit = box.edit
 
         // The box answers before this call returns, so the closure may borrow `folder`.
         dlg.validateResult = func|dlg, folder, edit|(_, btnid)
@@ -225,6 +222,27 @@ impl FileDlg
         var result = String.from(edit.text())
         result.trim()
         return result
+    }
+
+    // Builds the form [[Gui.FileDlg.askNewFolderName]] asks with, the folder going to `place`,
+    // its proposed name chosen, without running it.
+    internal func createNewFolderBox(from: *Surface, place: string)->{ dlg: *FormDlg, edit: *EditBox }
+    {
+        var options: FormDlgOptions
+        options.title  = strings().fileDlg_NewFolderTitle
+        options.width = cast(s32, MessageDlg.MinMessageWidth)
+
+        options.confirmButtonText = strings().fileDlg_BtnCreate
+
+        // The box fits what it holds, so the line saying where the folder goes is never cut.
+        let dlg      = FormDlg.create(from, options)
+        let location = Format.toString(strings().fileDlg_NewFolderWhere, place)
+        let edit     = dlg.form.addTextField(strings().fileDlg_NewFolderField, strings().fileDlg_NewFolderDefault, placeholder: strings().fileDlg_NewFolderHint, help: location.toString())
+        dlg.form.computeLayout()
+        dlg.adaptSizeToForm()
+        edit.selectAll()
+        edit.setFocus()
+        return {dlg, edit}
     }
 
     // Creates a file dialog on its own surface, centered on `from` or placed where [[Gui.FileDlgOptions.state]] last left it.

@@ -296,6 +296,20 @@ func filler(count: u64)->String
             dlg.surface!.destroy()
             host.pump()
         }
+
+        // The two questions a file box asks on the way: the name of a new folder, and whether a
+        // save replaces a file.
+        let folderBox = FileDlg.createNewFolderBox(&host.surface, "Documents / swag")
+        var image     = renderDialog(&host, &folderBox.dlg.dialog)
+        Pixel.Testing.assertImageGolden(&image, Format.toString("dialogs.file.newfolder.%", suffix).toString())
+        folderBox.dlg.surface!.destroy()
+        host.pump()
+
+        let replace = FileDlg.createReplaceBox(&host.surface, "rapport.pdf", "2.4 MB · modified 2026-10-27 11:20")
+        image = renderDialog(&host, &replace.dialog)
+        Pixel.Testing.assertImageGolden(&image, Format.toString("dialogs.file.replace.%", suffix).toString())
+        replace.surface!.destroy()
+        host.pump()
     }
 }
 

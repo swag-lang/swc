@@ -1195,7 +1195,7 @@ impl ListCtrl
             .wndFlags            |= .NoFocusRing
             .scrollWnd           = .createView'ScrollWnd()
             .scrollWnd.dockStyle = .Center
-            .scrollWnd.flags    |= .DisableHorizontal
+            .scrollWnd.updateFlags(.DisableHorizontal)
             .scrollWnd.setAllPaddings(.themeMetrics().list_Padding)
 
             .listView             = .scrollWnd.createView'ListView()

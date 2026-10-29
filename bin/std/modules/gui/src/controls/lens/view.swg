@@ -408,6 +408,13 @@ impl View
                     .glyph = state.icon
                 if state.updatedFields.has(.Shortcut) do
                     .detail = state.shortcut
+
+                // A row that cannot run says why instead of the key that would run it.
+                if .disabled and state.updatedFields.has(.Reason)
+                {
+                    .detail     = state.reason
+                    .monoDetail = false
+                }
             }
         }
     }
@@ -1171,6 +1178,13 @@ private func addCommandEntry(section: *Section, id: WndId, title: string, state:
             .glyph = state.icon
         if state.updatedFields.has(.Shortcut) do
             .detail = state.shortcut
+
+        // A row that cannot run says why instead of the key that would run it.
+        if .disabled and state.updatedFields.has(.Reason)
+        {
+            .detail     = state.reason
+            .monoDetail = false
+        }
     }
 }
 

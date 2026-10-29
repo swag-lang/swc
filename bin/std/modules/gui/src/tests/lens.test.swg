@@ -52,8 +52,9 @@ func lensCommandState(_: *Wnd, evt: IEvent)->bool
 
         if state.id == LensDisabled
         {
-            state.updatedFields.add(.Disabled)
+            state.updatedFields.add(.Disabled | .Reason)
             state.disabled = true
+            state.reason   = "Nothing selected"
         }
 
         state.accepted = true
@@ -162,6 +163,10 @@ func lensSetup(host: *Testing.HeadlessHost)->*Lens.View
     let theme = lens.results.sections[1]!.entries[0]
     Swag.assert(theme.title == "Center Theme" and theme.spans.count == 1 and theme.spans[0].count == 6)
     Swag.assert(theme.checked and not lens.results.sections[1]!.entries[1].checked)
+
+    // A command that cannot run says why in its detail.
+    let disabled = lens.results.sections[1]!.entries[1]
+    Swag.assert(disabled.disabled and disabled.detail == "Nothing selected" and not disabled.monoDetail)
 
     // The first row is chosen, the keys move the choice over the section labels, and the
     // disabled command is never chosen.

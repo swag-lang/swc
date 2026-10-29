@@ -115,6 +115,7 @@ struct Strings
 
         prop_Copy:             string = "Copy"                              // Copy the value of a property.
         prop_Paste:            string = "Paste"                             // Paste into a property.
+        prop_NothingToPaste:   string = "Nothing to paste"                  // Why Paste cannot run: the clipboard holds no value for the field.
         prop_ResetDefault:     string = "Reset to Default"                  // Restore the default value of a property.
         prop_MoveUp:           string = "Move Up"                           // Move a list element up.
         prop_MoveDown:         string = "Move Down"                         // Move a list element down.

@@ -100,6 +100,7 @@ edit_SelectAll Tout sélectionner
 
 prop_Copy             Copier
 prop_Paste            Coller
+prop_NothingToPaste   Rien à coller
 prop_ResetDefault     Rétablir la valeur par défaut
 prop_MoveUp           Monter
 prop_MoveDown         Descendre

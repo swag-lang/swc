@@ -421,8 +421,8 @@ using Swag, Core
 
     style.setName(2, "Orange mark")
     Swag.assert(style.nameOf(2) == "Orange mark")
-    style.moveToFront(2)
-    Swag.assert(style.nameOf(0) == "Orange mark")
+    Swag.assert(style.countUse(2) == 0)
+    Swag.assert(style.nameOf(0) == "Orange mark" and style.uses[0] == 1)
 
     // The style in force is the first one: its name is written under the row.
     quick.applyPreset(style.forms[0])
@@ -434,4 +434,49 @@ using Swag, Core
     let first = style.forms[0]
     style.remove(first)
     Swag.assert(style.names.count == count - 1 and style.nameOf(0) != "Orange mark")
+}
+
+// The row is ordered by use: a preset applied more than those before it moves ahead of them. The
+// popover "•••" opens is gone through with the keys: Down on the chip opens it, the arrows choose
+// a cell, Enter applies it, Escape closes it.
+#test
+{
+    var f: HeadlessFixture
+    f.setup()
+    defer f.shutdown()
+    let quick = QuickWnd.create(f.main, f.main)
+    quick.setDefault()
+    f.main.editMode = .Arrow
+    quick.setPosition(Math.Rectangle{0, 0, 5 * QuickChipWidth, QuickChipHeight})
+    quick.updateQuickStyles(forceRebuild: true)
+
+    let style = &quick.qsArrow
+    let third = style.forms[2]
+    quick.applyPreset(third)
+    Swag.assert(style.forms[0].buffer == third.buffer and style.uses[0] == 1)
+    let second = style.forms[1]
+    quick.applyPreset(second)
+    quick.applyPreset(second)
+    Swag.assert(style.forms[0].buffer == second.buffer and style.uses[0] == 2 and style.uses[1] == 1)
+
+    // Down on the chip opens the popover with the keys on the preset in force.
+    let more = unwrap quick.moreButton
+    more.setFocus()
+    f.gui.keyPress(.Down)
+    let popover = assume cast(*PresetPopover, unwrap quick.allPresets)
+    Swag.assert(popover.chosen == 0)
+    f.gui.keyPress(.Right)
+    f.gui.keyPress(.Down)
+    Swag.assert(popover.chosen == 1 + QuickPopoverColumns)
+
+    // Enter applies the cell the keys stand on, and the popover closes.
+    let chosen = style.forms[popover.chosen]
+    f.gui.keyPress(.Return)
+    Swag.assert(quick.allPresets == null)
+    Swag.assert(style.indexOf(chosen) < style.forms.count and style.uses[style.indexOf(chosen)] == 1)
+
+    // Escape closes it without applying anything.
+    quick.openAllPresets(quick.moreButton)
+    f.gui.keyPress(.Escape)
+    Swag.assert(quick.allPresets == null)
 }

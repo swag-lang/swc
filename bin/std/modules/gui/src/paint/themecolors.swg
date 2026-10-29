@@ -735,7 +735,9 @@ impl ThemeColors
         .wnd_BtnPressedBk      = p.raised
         .wnd_BtnCloseHotIcon   = critical.mark
         .wnd_BtnClosePressedBk = critical.ground
-        .wnd_Shadow            = p.shadow
+        // A window's shadow only lifts its edge from the desktop. Keep it quieter than the ink
+        // used by floating sheets; that palette token remains dedicated to floating components.
+        .wnd_Shadow            = p.ground.relativeLuminance() <= 0.5 ? Color.fromArgb(0x5A000000) : Color.fromArgb(0x3C000000)
 
         .floating_Shadow = p.shadow
         .lens_Dim        = p.ground.withAlpha(LensDimAlpha)

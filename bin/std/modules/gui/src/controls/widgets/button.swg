@@ -44,15 +44,13 @@ impl IWnd for Button
         if evt.updatedFields.has(.Icon) and (.icon.imageList != evt.icon.imageList or .icon.index != evt.icon.index)
         {
             evt.accepted = true
-            .icon        = evt.icon
-            .invalidate()
+            .setIcon(evt.icon)
         }
 
         if evt.updatedFields.has(.Name) and .name != evt.name
         {
             evt.accepted = true
-            .name        = evt.name
-            .invalidate()
+            .setText(evt.name)
         }
 
         if evt.updatedFields.has(.Disabled)
@@ -87,6 +85,7 @@ impl Button
             return
         .icon = icon
         .invalidate()
+        .invalidateLayout()
     }
 
     // Removes the displayed icon and repaints the button.

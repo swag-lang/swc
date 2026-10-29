@@ -92,6 +92,7 @@ struct MainWnd
     late
     {
         editArea, recentBar: *Wnd
+        taskBar:             *StackLayoutCtrl
         editWnd:             *EditWnd
         dock:                *ToolDock
         inspector:           *Inspector
@@ -555,6 +556,8 @@ impl MainWnd
         if .dock != null do
             discard .dock.selectTool(toolCommand(.editMode))
         .updateCommandState()
+        if .taskBar != null do
+            .taskBar.invalidateLayout()
         .updateInspectorTitle()
         .fillHintLine()
         if .propWnd != null do
@@ -978,6 +981,7 @@ impl MainWnd
 
         result.createAppearanceButton()
         result.createRecentBar()
+        result.createTaskBar()
         result.createEditArea()
         result.createDock()
         result.createInspector()
@@ -1003,6 +1007,7 @@ impl MainWnd
             .libWnd = LibraryWnd.create(result)
             .libWnd.hide()
             .createLens()
+            Lens.Launcher.create(result, ActionView.Lens)
             .updateReading()
             .updateState()
         }

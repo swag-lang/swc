@@ -159,7 +159,38 @@ func archivePage(host: *Testing.HeadlessHost, light: bool)->*ViewerWindow
         host.settleAnimations(window)
         var image = host.render(window)
         Pixel.Testing.assertImageGolden(&image, light ? "explorer.archive.paper" : "explorer.archive")
+        var frame = host.render(&host.surfaceWnd)
+        Pixel.Testing.assertImageGolden(&frame, light ? "explorer.frame.paper" : "explorer.frame.encre")
     }
+}
+
+// Folder traversal uses the visible buttons and restores their enabled state in both directions.
+#test
+{
+    var host: Testing.HeadlessHost
+    let window   = archivePage(&host, light: false)
+    let explorer = unwrap window.explorer
+    let back     = explorer.address.navigation.children[0]
+    let forward  = explorer.address.navigation.children[1]
+    let up       = explorer.address.navigation.children[2]
+    window.updateCommandState()
+    Swag.assert(not back.isEnabled() and not forward.isEnabled())
+    explorer.navigate(explorer.listing.path, "docs/")
+    completeExplorer(&host, explorer)
+    window.updateCommandState()
+    Swag.assert(back.isEnabled() and not forward.isEnabled())
+    host.click(back.surfaceRect().center())
+    completeExplorer(&host, explorer)
+    window.updateCommandState()
+    Swag.assert(explorer.folder.isEmpty() and not back.isEnabled() and forward.isEnabled())
+    host.click(forward.surfaceRect().center())
+    completeExplorer(&host, explorer)
+    Swag.assert(explorer.folder == "docs/")
+    host.click(up.surfaceRect().center())
+    completeExplorer(&host, explorer)
+    Swag.assert(explorer.folder.isEmpty())
+    explorer.address.beginEdit()
+    Swag.assert(back.isVisible() and up.position.right() <= explorer.address.edit.position.x)
 }
 
 func completeExtraction(host: *Testing.HeadlessHost, explorer: *Explorer)

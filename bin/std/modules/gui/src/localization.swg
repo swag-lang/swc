@@ -41,6 +41,7 @@ struct Strings
         key_Enter:     string = "↵"          // Name of the Enter key.
         key_CtrlEnter: string = "Ctrl ↵"     // Names of the Ctrl and Enter keys, held together.
 
+        lens_Commands:    string = "Commands"                    // Named caption entry point to the lens.
         lens_Placeholder: string = "Search or run a command"     // Placeholder of the input of the lens.
         lens_Empty:       string = "Nothing matches."            // Line the lens shows when no result answers the query.
         lens_Choose:      string = "choose"                      // What the arrow keys do, at the foot of the lens.

@@ -24,19 +24,23 @@ struct Match
     }
 }
 
-// Matches `query` against `text`, ignoring case, the way the lens ranks and marks its rows.
+// Matches `query` against `text`, ignoring case and common Latin accents, with original UTF-8 spans.
 //
 // A query found whole in the text answers best, and better still where a word starts — at the
 // beginning of the text, after a separator, or at a capital inside a camel-case name — and the
-// earlier the better. Then the initials of its words in order: "cla" answers "Capture Last Area".
+// earlier the better. Word prefixes separated by spaces may appear in any order, followed by
+// the initials of its words in order: "cla" answers "Capture Last Area".
 // Otherwise its characters must appear in the text in order, which answers less well the further
 // they are scattered. An empty query answers every text with a score of zero.
+// Whitespace is trimmed and collapsed. With `tolerateTypos`, a single word of at least four
+// letters also answers a whole word with one insertion, deletion, substitution or transposition.
+// This fallback ranks below precise matches and is intended for commands, not paths or numbers.
 //
 // ```swag
 // let found = Lens.match("cgr", "centerGroup")
 // Swag.assert(found.matched and found.spans.count == 2)
 // ```
-func match(query: string, text: string)->Match
+func match(query: string, text: string, tolerateTypos = false)->Match
 {
     var result: #returntype
     if query.count == 0
@@ -47,8 +51,14 @@ func match(query: string, text: string)->Match
 
     let needle   = foldRunes(query)
     let haystack = foldRunes(text)
-    if needle.count == 0 or needle.count > haystack.count do
+    if needle.count == 0
+    {
+        result.matched = true
         return result
+    }
+
+    if needle.count > haystack.count do
+        return tolerateTypos ? typoMatch(needle.toSlice(), haystack.toSlice()) : result
 
     // A whole occurrence: the first one that starts a word, else the first one at all.
     var found = Swag.U64.Max
@@ -84,6 +94,10 @@ func match(query: string, text: string)->Match
         return result
     }
 
+    let words = wordMatch(needle.toSlice(), haystack.toSlice())
+    if words.matched do
+        return words
+
     // The initials of the words, in order, each the next word start that carries it.
     var initials: Array'Span
     var at = 0'u64
@@ -113,7 +127,7 @@ func match(query: string, text: string)->Match
         while next < haystack.count and haystack[next].folded != r.folded do
             next += 1
         if next == haystack.count do
-            return result
+            return tolerateTypos ? typoMatch(needle.toSlice(), haystack.toSlice()) : Match{}
 
         let at = haystack[next]
         if not result.spans.isEmpty() and result.spans.back().start + result.spans.back().count == at.offset
@@ -132,6 +146,131 @@ func match(query: string, text: string)->Match
 
     result.matched = true
     result.score   = OrderScore - scattered * ScatterCost - cast(s32, result.spans.front().start)
+    return result
+}
+
+// Words typed in another order still name the same task; each must consume a distinct word.
+private func wordMatch(needle, haystack: const [..] FoldedRune)->Match
+{
+    var result: #returntype
+    var used:   Array'u64
+    var begin = 0'u64
+    while begin < needle.count
+    {
+        var end = begin
+        while end < needle.count and Unicode.isLetter(needle[end].folded) do
+            end += 1
+        if end == begin or (end < needle.count and needle[end].folded != ' ') do
+            return Match{}
+
+        var found = false
+        for start in haystack.count
+        {
+            if not haystack[start].wordStart or
+               used.contains(start) or
+               start + end - begin > haystack.count do
+                continue
+            var same = true
+            for i in end - begin
+            {
+                if haystack[start + i].folded != needle[begin + i].folded or
+                   (i != 0 and haystack[start + i].wordStart)
+                {
+                    same = false
+                    break
+                }
+            }
+
+            if not same do
+                continue
+            let first = haystack[start]
+            let last  = haystack[start + end - begin - 1]
+            result.spans.add({first.offset, last.offset + last.size - first.offset})
+            used.add(start)
+            found = true
+            break
+        }
+
+        if not found do
+            return Match{}
+        begin = end + 1
+    }
+
+    result.matched = used.count > 1
+    result.score   = 9000 - cast(s32, haystack.count)
+    result.spans.sort(func(a, b) => a.start <=> b.start)
+    return result
+}
+
+// Bounded edit distance, including adjacent transposition, without a matrix allocation.
+private func oneEditApart(a, b: const [..] FoldedRune)->bool
+{
+    if a.count > b.count + 1 or b.count > a.count + 1 do
+        return false
+    var i, j  = 0'u64
+    var edits = 0
+    while i < a.count and j < b.count
+    {
+        if a[i].folded == b[j].folded
+        {
+            i += 1
+            j += 1
+            continue
+        }
+
+        edits += 1
+        if edits > 1 do
+            return false
+        if a.count > b.count
+        {
+            i += 1
+        }
+        elif b.count > a.count
+        {
+            j += 1
+        }
+        elif i + 1 < a.count and
+             j + 1 < b.count and
+             a[i].folded == b[j + 1].folded and
+             a[i + 1].folded == b[j].folded
+        {
+            i += 2
+            j += 2
+        }
+        else
+        {
+            i += 1
+            j += 1
+        }
+    }
+
+    return edits + cast(s32, a.count - i + b.count - j) <= 1
+}
+
+private func typoMatch(needle, haystack: const [..] FoldedRune)->Match
+{
+    var result: #returntype
+    if needle.count < 4 do
+        return result
+    for one in needle where not Unicode.isLetter(one.folded) do
+        return result
+    for start in haystack.count where haystack[start].wordStart and Unicode.isLetter(haystack[start].folded)
+    {
+        var end = start + 1
+        while end < haystack.count and
+              Unicode.isLetter(haystack[end].folded) and
+              not haystack[end].wordStart do
+            end += 1
+        if not oneEditApart(needle, Swag.makeSlice(haystack.buffer + start, end - start)) do
+            continue
+        let first = haystack[start]
+        let last  = haystack[end - 1]
+        result.matched = true
+        result.score   = 3000 - cast(s32, start)
+        result.spans.add({first.offset, last.offset + last.size - first.offset})
+        return result
+    }
+
     return result
 }
 
@@ -170,11 +309,44 @@ private func foldRunes(text: string)->Array'FoldedRune
 
         let afterSeparator = offset == 0 or not Unicode.isLetterOrDigit(previous)
         let camelHump      = Unicode.isUpper(c) and Unicode.isLower(previous)
-        result.add(FoldedRune{Unicode.toLower(c), offset, size, afterSeparator or camelHump})
+        if c >= 0x300 and c <= 0x36F and not result.isEmpty()
+        {
+            result.backPtr().size += size
+            offset += size
+            continue
+        }
+
+        if Unicode.isSpace(c)
+        {
+            if not result.isEmpty() and result.back().folded != ' ' do
+                result.add(FoldedRune{' ', offset, size, false})
+        }
+        else
+        {
+            result.add(FoldedRune{foldAccent(Unicode.toLower(c)), offset, size, afterSeparator or camelHump})
+        }
 
         previous = c
         offset   += size
     }
 
+    if not result.isEmpty() and result.back().folded == ' ' do
+        discard result.popBack()
     return result
+}
+
+private func foldAccent(c: rune)->rune
+{
+    switch c
+    {
+    case 'à', 'á', 'â', 'ã', 'ä', 'å': return 'a'
+    case 'ç':                          return 'c'
+    case 'è', 'é', 'ê', 'ë':           return 'e'
+    case 'ì', 'í', 'î', 'ï':           return 'i'
+    case 'ñ':                          return 'n'
+    case 'ò', 'ó', 'ô', 'õ', 'ö':      return 'o'
+    case 'ù', 'ú', 'û', 'ü':           return 'u'
+    case 'ý', 'ÿ':                     return 'y'
+    default:                           return c
+    }
 }

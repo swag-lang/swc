@@ -74,10 +74,26 @@ impl ViewerWindow
     {
         with .lens = Lens.View.create(me)
         {
-            // Keep file and view actions at the door, ahead of viewer-specific choices and controls.
+            // In Explorer, make the folder the subject of the empty-query lens. A document keeps
+            // the file and view actions at the door, ahead of viewer-specific choices and controls.
+            .addRestSource(func|window = me|(results)
+            {
+                if not window.isExploring() do
+                    return
+                let section = results.addSection(appStrings().lens_Folder)
+                window.lens.addCommandRows(section,
+                                           [ViewerCommands.OpenChosen, ViewerCommands.Up, ViewerCommands.Refresh,
+                                            ViewerCommands.EditLocation, ViewerCommands.Back, ViewerCommands.Forward],
+                                           enabledOnly: true)
+            })
             .addRestSource(func|window = me|(results)
             {
                 let section = results.addSection(appStrings().lens_File)
+                if window.isExploring()
+                {
+                    window.lens.addCommandRows(section, [ViewerCommands.Open, ViewerCommands.Close], enabledOnly: true)
+                    return
+                }
                 window.lens.addCommandRows(section,
                                            [ViewerCommands.Open, ViewerCommands.Explore, ViewerCommands.Close],
                                            enabledOnly: true)

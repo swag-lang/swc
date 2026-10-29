@@ -27,12 +27,17 @@ dialogs, then each application, then the written rules.
   offers the chosen vault and New/Open; Scope exposes file and view basics plus viewer controls.
   Scope's first-use Markdown lens now orders Open, Explore Folder, Close File and Outline before
   viewer choices and viewer-specific controls; a first-screen test and whole-window goldens pin
-  all four actions in Encre and Papier. The code-view golden confirms the same order at rest.
+  all four actions in Encre and Papier. The code-view golden confirms the same order at rest. After
+  entering Explorer, the empty-query lens leads with folder actions and offers Back, Forward, Up,
+  Refresh, Edit Location and Open Chosen when each action can run. It keeps only Open and Close
+  from the generic file actions in this context, with a first-screen test and whole-window goldens
+  in both themes.
 - Next: review the empty-query lens in Capture, Prism and Vault against their first-use tasks in
   both themes; adjust the direct action order so their common tasks are visible before scrolling,
   then update and review the affected whole-screen goldens. In Scope, verify that the full Markdown
   outline reaches its last heading by wheel and keyboard. Because the scrollbar rests hidden by
-  charter, check how a first-time reader discovers scrolling.
+  charter, check how a first-time reader discovers scrolling. Keep reviewing Explorer's direct
+  actions for archive and media locations.
 - Done when: each application offers its common first-use tasks directly in the initial lens
   view, every other command remains reachable from the lens, and the whole-screen goldens match
   the approved design without any application re-implementing a shared component or insetting
@@ -73,7 +78,9 @@ dialogs, then each application, then the written rules.
     the commands on a mini-bar.
   - PDF (`viewer.pdf.page`, `.paper`): pages as paper with the floating shadow, the outline in
     the left margin under "Contents".
-  - Code and text in their reading columns, Markdown with its margin outline and Arc thread.
+  - Code and text in their reading columns, Markdown with its margin outline and Arc thread. The
+    main splitter now hides its idle full-height dividers and keeps the resize affordance on hover;
+    the whole-window outline goldens cover both themes.
   - Subtitles read as a list under the file's name and mono line: number, mono time range,
     words, the current cue on the selection ground, the rhythm of the minute around it, its rank
     and time at the foot (`viewer.subtitle.{ink,paper}`, in the shipped frame). A MIDI score reads

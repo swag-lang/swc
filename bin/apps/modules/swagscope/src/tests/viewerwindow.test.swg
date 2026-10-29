@@ -53,6 +53,19 @@ func lensEntryOnFirstPage(window: *ViewerWindow, title: string)->bool
     return false
 }
 
+func completeLensExplorer(host: *Testing.HeadlessHost, explorer: *Explorer)
+{
+    for 16
+    {
+        if not explorer.load.started do
+            return
+        explorer.load.task.wait()
+        host.pump()
+    }
+
+    Swag.assert(false, "exploration did not settle")
+}
+
 func loadViewerState(window: *ViewerWindow, bytes: const [..] u8)
 {
     var decoder:    Serialization.Decoder'Serialization.Read.TagBin
@@ -2697,6 +2710,82 @@ func createPictureFolder(stem: string, names: const [..] string)->String
     paperHost.finishAnimations()
     var paper = paperHost.render(paperWindow)
     Pixel.Testing.assertImageGolden(&paper, "viewer.lens.markdown.paper")
+}
+
+// Entering folder exploration puts its common actions in the lens without a command query.
+#[Swag.TestTag("golden")]
+#test
+{
+    let fileName = Testing.tempFilePath("scope-lens-explorer-", ".md")
+    discard expect File.writeAllBytes(fileName, "# Guide\n")
+    defer discard catch File.delete(fileName)
+
+    var host: Testing.HeadlessHost
+    host.setup(960, 680)
+    shipFrame(&host)
+    host.theme.setDark()
+    host.notify(.ThemeChanged)
+    let window = ViewerWindow.create(&host.surfaceWnd, createViewerPluginRegistry())
+    window.resize(960, 680)
+    window.openFile(fileName, remember: false)
+    completeQueuedViewerFile(&host, window)
+    window.exploreFolder()
+    let explorer = unwrap window.explorer
+    completeLensExplorer(&host, explorer)
+    var selected = Swag.U64.Max
+    for &entry, index in explorer.entries where entry.name == Path.fileName(fileName) do
+        selected = index
+    Swag.assert(selected != Swag.U64.Max)
+    explorer.selected = selected
+    window.lens.open()
+    host.finishAnimations()
+
+    var folderSection: *Lens.Section?
+    var fileSection:   *Lens.Section?
+    for section in window.lens.results.sections where section and section.label == appStrings().lens_Folder do
+        folderSection = section
+    for section in window.lens.results.sections where section and section.label == appStrings().lens_File do
+        fileSection = section
+    let folder = unwrap folderSection
+    let file = unwrap fileSection
+    Swag.assert(window.lens.query() == "")
+    Swag.assert(lensHasEntry(window, appStrings().explore_Up))
+    Swag.assert(lensHasEntry(window, appStrings().explore_Refresh))
+    Swag.assert(lensHasEntry(window, appStrings().cmd_EditLocation))
+    Swag.assert(lensHasEntry(window, appStrings().cmd_OpenChosen))
+    Swag.assert(lensEntryOnFirstPage(window, appStrings().explore_Up))
+    Swag.assert(lensEntryOnFirstPage(window, appStrings().explore_Refresh))
+    Swag.assert(lensEntryOnFirstPage(window, appStrings().cmd_EditLocation))
+    Swag.assert(lensEntryOnFirstPage(window, appStrings().cmd_OpenChosen))
+    Swag.assert(window.lens.results.sections[0]!.label == appStrings().lens_Folder)
+    Swag.assert(file.entries.count == 2 and file.entries[0].title == appStrings().cmd_Open)
+    Swag.assert(file.entries[1].title == appStrings().ui_CloseFile)
+    Swag.assert(folder.entries.count >= 4)
+
+    var image = host.render(window)
+    Pixel.Testing.assertImageGolden(&image, "viewer.lens.explorer.encre")
+
+    var paperHost: Testing.HeadlessHost
+    paperHost.setup(960, 680)
+    shipFrame(&paperHost)
+    paperHost.theme.setLight()
+    paperHost.notify(.ThemeChanged)
+    let paperWindow = ViewerWindow.create(&paperHost.surfaceWnd, createViewerPluginRegistry())
+    paperWindow.resize(960, 680)
+    paperWindow.openFile(fileName, remember: false)
+    completeQueuedViewerFile(&paperHost, paperWindow)
+    paperWindow.exploreFolder()
+    let paperExplorer = unwrap paperWindow.explorer
+    completeLensExplorer(&paperHost, paperExplorer)
+    selected = Swag.U64.Max
+    for &entry, index in paperExplorer.entries where entry.name == Path.fileName(fileName) do
+        selected = index
+    Swag.assert(selected != Swag.U64.Max)
+    paperExplorer.selected = selected
+    paperWindow.lens.open()
+    paperHost.finishAnimations()
+    var paper = paperHost.render(paperWindow)
+    Pixel.Testing.assertImageGolden(&paper, "viewer.lens.explorer.paper")
 }
 
 // What a viewer can do is a row of the lens too, under the viewer's name, and choosing a row

@@ -525,3 +525,22 @@ func floatingHost(host: *Testing.HeadlessHost, width, height: f32, light: bool)
     }
 }
 
+// A dock cell can stand for a group of tools: it shows the one chosen last, and a tool of the
+// group made the active one by its command comes into the cell.
+#test
+{
+    var host: Testing.HeadlessHost
+    floatingHost(&host, 480, 400, false)
+
+    let dock = ToolDock.create(&host.root)
+    discard dock.addTool(host.theme.icon(.Edit, 18), "dock.select", "Select")
+    let shape = dock.addTool(host.theme.icon(.Plus, 18), "dock.rectangle", "Rectangle")
+    dock.addToGroup(shape, host.theme.icon(.Link, 18), "dock.ellipse", "Ellipse")
+    host.root.applyLayout()
+    Swag.assert(dock.tools.count == 2)
+
+    Swag.assert(dock.selectTool("dock.ellipse"))
+    Swag.assert(shape.id == "dock.ellipse" and shape.toolTip == "Ellipse" and shape.isChecked)
+    Swag.assert(dock.selectTool("dock.rectangle") and shape.id == "dock.rectangle")
+    Swag.assert(not dock.selectTool("dock.unknown"))
+}

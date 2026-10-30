@@ -1827,10 +1827,14 @@ impl Wnd
     // window, by the difference between `oldSize` and the current size.
     mtd applyLayout(oldSize: Math.Point)
     {
+        if .children.isEmpty() do
+            return
+
         var clientRect = .paddedClientRect()
 
         var centerLayout: Array'(*Wnd)
         var oldSizes:     Array'Math.Point
+        oldSizes.reserve(.children.count)
 
         for c in .children
         {

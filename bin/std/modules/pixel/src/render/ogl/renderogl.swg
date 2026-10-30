@@ -310,9 +310,38 @@ private impl RenderOgl
 
     mtd createShaders()
     {
+        // Programs share three vertex stages. Keep those compiled objects for the whole batch
+        // instead of compiling the same source again for each fragment stage.
+        func compileVertex(source: const [..] u8)->GLuint fail
+        {
+            var text: String = shaderSource(source)
+            text.replace("#include base", shaderSource(BaseVertexShader))
+            let shader = glCreateShader(GL_VERTEX_SHADER)
+            defer #fail glDeleteShader(shader)
+            var pointer = text.buffer
+            var length  = cast(GLint, text.length)
+            glShaderSource(shader, 1, &pointer, &length)
+            glCompileShader(shader)
+            try checkShaderCompiled(shader)
+            return shader
+        }
+
+        let simple = expect compileVertex(VertexShaderSimple)
+        defer glDeleteShader(simple)
+        let aa = expect compileVertex(VertexShaderAA)
+        defer glDeleteShader(aa)
+        let font = expect compileVertex(VertexShaderFont)
+        defer glDeleteShader(font)
+
+        var baseBuilder: StringBuilder
+        if .usesKhrAdvancedBlending() do
+            baseBuilder.appendString(KhrAdvancedBlendShaderHeader)
+        baseBuilder.appendString(shaderSource(BasePixelShader))
+        let baseSource = baseBuilder.moveToString()
+
         scope
         {
-            expect .createShader(&.shaderSimple, VertexShaderSimple, PixelShaderSimple)
+            expect .createShader(&.shaderSimple, simple, PixelShaderSimple, baseSource)
             let text0 = glGetUniformLocation(cast(GLuint, .shaderSimple.handle), ("inTexture0").buffer)
             glUseProgram(cast(GLuint, .shaderSimple.handle))
             glUniform1i(text0, 0)
@@ -320,7 +349,7 @@ private impl RenderOgl
 
         scope
         {
-            expect .createShader(&.shaderAA, VertexShaderAA, PixelShaderAA)
+            expect .createShader(&.shaderAA, aa, PixelShaderAA, baseSource)
             let text0 = glGetUniformLocation(cast(GLuint, .shaderAA.handle), ("inTexture0").buffer)
             let text1 = glGetUniformLocation(cast(GLuint, .shaderAA.handle), ("inTexture1").buffer)
             glUseProgram(cast(GLuint, .shaderAA.handle))
@@ -332,7 +361,7 @@ private impl RenderOgl
         {
             // The picture arrives as three planes on units 0, 3 and 4, and the shader converts
             // while it samples: that is what lets a decoder skip the conversion entirely.
-            expect .createShader(&.shaderYuv, VertexShaderSimple, PixelShaderYuv)
+            expect .createShader(&.shaderYuv, simple, PixelShaderYuv, baseSource)
             let text0   = glGetUniformLocation(cast(GLuint, .shaderYuv.handle), ("inTexture0").buffer)
             let chromaB = glGetUniformLocation(cast(GLuint, .shaderYuv.handle), ("inChromaB").buffer)
             let chromaR = glGetUniformLocation(cast(GLuint, .shaderYuv.handle), ("inChromaR").buffer)
@@ -346,7 +375,7 @@ private impl RenderOgl
 
         scope
         {
-            expect .createShader(&.shaderFont, VertexShaderFont, PixelShaderFont)
+            expect .createShader(&.shaderFont, font, PixelShaderFont, baseSource)
             let text0 = glGetUniformLocation(cast(GLuint, .shaderFont.handle), ("inTexture0").buffer)
             let text1 = glGetUniformLocation(cast(GLuint, .shaderFont.handle), ("inTexture1").buffer)
             let gamma = glGetUniformLocation(cast(GLuint, .shaderFont.handle), ("fontGamma").buffer)
@@ -358,7 +387,7 @@ private impl RenderOgl
 
         scope
         {
-            expect .createShader(&.shaderFontMsdf, VertexShaderFont, PixelShaderFontMsdf)
+            expect .createShader(&.shaderFontMsdf, font, PixelShaderFontMsdf, baseSource)
             let text0 = glGetUniformLocation(cast(GLuint, .shaderFontMsdf.handle), ("inTexture0").buffer)
             let text1 = glGetUniformLocation(cast(GLuint, .shaderFontMsdf.handle), ("inTexture1").buffer)
             let gamma = glGetUniformLocation(cast(GLuint, .shaderFontMsdf.handle), ("fontGamma").buffer)
@@ -385,7 +414,7 @@ private impl RenderOgl
 
         scope
         {
-            expect .createShader(&.shaderBlur, VertexShaderSimple, PixelShaderBlur)
+            expect .createShader(&.shaderBlur, simple, PixelShaderBlur, baseSource)
             let text0 = glGetUniformLocation(cast(GLuint, .shaderBlur.handle), ("inTexture0").buffer)
             glUseProgram(cast(GLuint, .shaderBlur.handle))
             glUniform1i(text0, 0)
@@ -395,7 +424,7 @@ private impl RenderOgl
 
         scope
         {
-            expect .createShader(&.shaderResolve, VertexShaderSimple, PixelShaderResolve)
+            expect .createShader(&.shaderResolve, simple, PixelShaderResolve, baseSource)
             let text0 = glGetUniformLocation(cast(GLuint, .shaderResolve.handle), ("inTexture0").buffer)
             glUseProgram(cast(GLuint, .shaderResolve.handle))
             glUniform1i(text0, 0)
@@ -404,7 +433,7 @@ private impl RenderOgl
 
         scope
         {
-            expect .createShader(&.shaderBackdrop, VertexShaderSimple, PixelShaderBackdrop)
+            expect .createShader(&.shaderBackdrop, simple, PixelShaderBackdrop, baseSource)
             let handle = cast(GLuint, .shaderBackdrop.handle)
             glUseProgram(handle)
             glUniform1i(glGetUniformLocation(handle, ("inTexture0").buffer), 0)
@@ -2107,26 +2136,10 @@ impl RenderOgl
         .stackReleasedRT.add(tgt)
     }
 
-    // Compiles and links a shader program into `base`.
-    internal mtd createShader(base: *ShaderBase, vertex, pixel: const [..] u8) fail
+    // Compiles a fragment stage and links it with the shared vertex stage into `base`.
+    internal mtd createShader(base: *ShaderBase, vertexShaderID: GLuint, pixel: const [..] u8, baseSource: string) fail
     {
-        var buf: String = shaderSource(vertex)
-        buf.replace("#include base", shaderSource(BaseVertexShader))
-
-        let vertexShaderID = glCreateShader(GL_VERTEX_SHADER)
-        defer glDeleteShader(vertexShaderID)
-        var vertexSourcePointer = buf.buffer
-        var vertexSourceLength  = cast(GLint, buf.length)
-        glShaderSource(vertexShaderID, 1, &vertexSourcePointer, &vertexSourceLength)
-        glCompileShader(vertexShaderID)
-        try checkShaderCompiled(vertexShaderID)
-
-        buf = shaderSource(pixel)
-        var baseBuilder: StringBuilder
-        if .usesKhrAdvancedBlending() do
-            baseBuilder.appendString(KhrAdvancedBlendShaderHeader)
-        baseBuilder.appendString(shaderSource(BasePixelShader))
-        let baseSource = baseBuilder.moveToString()
+        var buf: String = shaderSource(pixel)
         buf.replace("#include base", baseSource)
 
         let fragmentShaderID = glCreateShader(GL_FRAGMENT_SHADER)

@@ -1,0 +1,2778 @@
+{
+  "note": "Exact rounded live-block occupancy and available block-slot capacity from mi_subproc_visit_heaps/mi_heap_visit_blocks at naturally global-idle scheduler points. Main thread only, scheduler mutex held, no progress animator. Callbacks do not allocate. All worker allocations/frees finish before activeWorkers reaches zero. Slots equal page.capacity * full_block_size, not OS commit; page metadata/tails, unused arena slices and proximity/mappings are outside the page totals. Occupied includes size-class rounding and padding; it is not requested or useful bytes. Snapshot RSS comes from mi_process_info at the same global-idle point; the process peak can occur between snapshots.",
+  "measurement": {
+    "exit": 0,
+    "started_unix": 1793371362.069789,
+    "affinity_mask": 349185,
+    "effective_affinity_mask": 349185,
+    "system_affinity_mask": 4194303,
+    "affinity_verified": true,
+    "host_busy_pct": 77.39733950260266,
+    "other_process_cpu_ms_estimate": 2640484.375,
+    "wall_ms": 190808.3216,
+    "first_stdout_ms": null,
+    "cpu_ms": 600453.125,
+    "user_cpu_ms": 571921.875,
+    "kernel_cpu_ms": 28531.25,
+    "job_cpu_ms": 600468.75,
+    "page_faults": 874903,
+    "job_processes": 2,
+    "peak_job_bytes": 1571520512,
+    "peak_proc_bytes": 1570299904,
+    "peak_working_set_bytes": 1578500096,
+    "stderr": "",
+    "harness_sha256": "20a4c33520539d62e67dc2e80a58120e088e68718ed1a690da3a0f0dd2fe7dbf",
+    "allocator_error": false,
+    "mimalloc_options": {},
+    "command": [
+      "C:\\Users\\chris\\AppData\\Local\\swc-agent-builds\\mimalloc-360-20261030-071336\\install\\swc.heap-census-v3.dm.exe",
+      "build",
+      "--workspace",
+      "C:\\Users\\chris\\AppData\\Local\\swc-agent-builds\\mimalloc-360-20261030-071336\\install\\apps",
+      "--workspace-module",
+      "swagcapture",
+      "--num-cores",
+      "6",
+      "--rebuild",
+      "--no-log-color",
+      "--no-log-progress"
+    ],
+    "compiler_sha256": "40173816af0912b2146d8077af04cf1334cc17638e5e81c8fb12761e8e902772",
+    "stdout_sha256": "4ade97599406f902a102e1f6d981a1652ff058df727ece1065d940622e6ee330",
+    "profiling_enabled": true,
+    "timing_comparable": false,
+    "timing_note": "Global-idle mimalloc page traversal; excluded from speed comparisons. Read-only traversal subtracts pending remote frees without collecting or purging."
+  },
+  "build": {
+    "command": [
+      "C:/Program Files/Microsoft Visual Studio/18/Enterprise/MSBuild/Current/Bin/MSBuild.exe",
+      "swc.vcxproj",
+      "/m:6",
+      "/p:SwcCompileJobs=6",
+      "/p:Platform=x64",
+      "/p:Configuration=DevMode",
+      "/nologo",
+      "/v:minimal"
+    ],
+    "revision": "7eed62a7a783072f23986636ee53bd329df8c8a6",
+    "exit_code": 0,
+    "compiler_sha256": "40173816af0912b2146d8077af04cf1334cc17638e5e81c8fb12761e8e902772",
+    "wall_seconds": 18.770681142807007
+  },
+  "snapshots": [
+    {
+      "seq": 1,
+      "elapsed": 41,
+      "rss": 30744576,
+      "peak_rss": 30744576,
+      "commit": 24625152,
+      "heaps": 1,
+      "areas": 210,
+      "blocks": 2474,
+      "occupied": 4353408,
+      "slots": 13456496,
+      "ok": 1,
+      "overflow": 0,
+      "free_slots": 9103088
+    },
+    {
+      "seq": 2,
+      "elapsed": 555,
+      "rss": 115187712,
+      "peak_rss": 115187712,
+      "commit": 104120320,
+      "heaps": 1,
+      "areas": 481,
+      "blocks": 50485,
+      "occupied": 35849776,
+      "slots": 81653968,
+      "ok": 1,
+      "overflow": 0,
+      "free_slots": 45804192
+    },
+    {
+      "seq": 3,
+      "elapsed": 1460,
+      "rss": 165875712,
+      "peak_rss": 165875712,
+      "commit": 147030016,
+      "heaps": 1,
+      "areas": 558,
+      "blocks": 61983,
+      "occupied": 41959696,
+      "slots": 114049456,
+      "ok": 1,
+      "overflow": 0,
+      "free_slots": 72089760
+    },
+    {
+      "seq": 4,
+      "elapsed": 2378,
+      "rss": 207024128,
+      "peak_rss": 207024128,
+      "commit": 187609088,
+      "heaps": 1,
+      "areas": 624,
+      "blocks": 76745,
+      "occupied": 48309376,
+      "slots": 150107344,
+      "ok": 1,
+      "overflow": 0,
+      "free_slots": 101797968
+    },
+    {
+      "seq": 5,
+      "elapsed": 3964,
+      "rss": 250826752,
+      "peak_rss": 250826752,
+      "commit": 231424000,
+      "heaps": 1,
+      "areas": 725,
+      "blocks": 90772,
+      "occupied": 61406464,
+      "slots": 185765024,
+      "ok": 1,
+      "overflow": 0,
+      "free_slots": 124358560
+    },
+    {
+      "seq": 6,
+      "elapsed": 6389,
+      "rss": 437133312,
+      "peak_rss": 437133312,
+      "commit": 420311040,
+      "heaps": 1,
+      "areas": 1738,
+      "blocks": 215238,
+      "occupied": 202107088,
+      "slots": 378631888,
+      "ok": 1,
+      "overflow": 0,
+      "free_slots": 176524800
+    },
+    {
+      "seq": 7,
+      "elapsed": 6637,
+      "rss": 474017792,
+      "peak_rss": 474017792,
+      "commit": 459550720,
+      "heaps": 1,
+      "areas": 1763,
+      "blocks": 225057,
+      "occupied": 227081328,
+      "slots": 402165040,
+      "ok": 1,
+      "overflow": 0,
+      "free_slots": 175083712
+    },
+    {
+      "seq": 8,
+      "elapsed": 11821,
+      "rss": 726474752,
+      "peak_rss": 726474752,
+      "commit": 712437760,
+      "heaps": 1,
+      "areas": 2470,
+      "blocks": 275721,
+      "occupied": 313220304,
+      "slots": 572897328,
+      "ok": 1,
+      "overflow": 0,
+      "free_slots": 259677024
+    },
+    {
+      "seq": 9,
+      "elapsed": 12340,
+      "rss": 640659456,
+      "peak_rss": 741351424,
+      "commit": 625590272,
+      "heaps": 1,
+      "areas": 2522,
+      "blocks": 475711,
+      "occupied": 333156592,
+      "slots": 582047104,
+      "ok": 1,
+      "overflow": 0,
+      "free_slots": 248890512
+    },
+    {
+      "seq": 10,
+      "elapsed": 12749,
+      "rss": 689606656,
+      "peak_rss": 741351424,
+      "commit": 678125568,
+      "heaps": 1,
+      "areas": 2680,
+      "blocks": 486835,
+      "occupied": 361164656,
+      "slots": 607744352,
+      "ok": 1,
+      "overflow": 0,
+      "free_slots": 246579696
+    },
+    {
+      "seq": 11,
+      "elapsed": 14119,
+      "rss": 733757440,
+      "peak_rss": 741351424,
+      "commit": 717881344,
+      "heaps": 1,
+      "areas": 2219,
+      "blocks": 292999,
+      "occupied": 337729808,
+      "slots": 580056672,
+      "ok": 1,
+      "overflow": 0,
+      "free_slots": 242326864
+    },
+    {
+      "seq": 12,
+      "elapsed": 15500,
+      "rss": 827187200,
+      "peak_rss": 827187200,
+      "commit": 810098688,
+      "heaps": 1,
+      "areas": 1972,
+      "blocks": 328900,
+      "occupied": 433940432,
+      "slots": 652138688,
+      "ok": 1,
+      "overflow": 0,
+      "free_slots": 218198256
+    },
+    {
+      "seq": 13,
+      "elapsed": 16923,
+      "rss": 865918976,
+      "peak_rss": 867069952,
+      "commit": 848732160,
+      "heaps": 1,
+      "areas": 2730,
+      "blocks": 494215,
+      "occupied": 541202112,
+      "slots": 768270672,
+      "ok": 1,
+      "overflow": 0,
+      "free_slots": 227068560
+    },
+    {
+      "seq": 14,
+      "elapsed": 18200,
+      "rss": 936566784,
+      "peak_rss": 936566784,
+      "commit": 919924736,
+      "heaps": 1,
+      "areas": 2876,
+      "blocks": 552799,
+      "occupied": 595264048,
+      "slots": 823192496,
+      "ok": 1,
+      "overflow": 0,
+      "free_slots": 227928448
+    },
+    {
+      "seq": 15,
+      "elapsed": 38686,
+      "rss": 1223749632,
+      "peak_rss": 1231699968,
+      "commit": 1211408384,
+      "heaps": 1,
+      "areas": 3715,
+      "blocks": 624219,
+      "occupied": 767145568,
+      "slots": 1107487984,
+      "ok": 1,
+      "overflow": 0,
+      "free_slots": 340342416
+    },
+    {
+      "seq": 16,
+      "elapsed": 38897,
+      "rss": 1094819840,
+      "peak_rss": 1231699968,
+      "commit": 1078370304,
+      "heaps": 1,
+      "areas": 3391,
+      "blocks": 358903,
+      "occupied": 649295504,
+      "slots": 1012995424,
+      "ok": 1,
+      "overflow": 0,
+      "free_slots": 363699920
+    },
+    {
+      "seq": 17,
+      "elapsed": 39194,
+      "rss": 1158811648,
+      "peak_rss": 1231699968,
+      "commit": 1149603840,
+      "heaps": 1,
+      "areas": 3499,
+      "blocks": 640988,
+      "occupied": 698225152,
+      "slots": 1043152960,
+      "ok": 1,
+      "overflow": 0,
+      "free_slots": 344927808
+    },
+    {
+      "seq": 18,
+      "elapsed": 39895,
+      "rss": 1246420992,
+      "peak_rss": 1246420992,
+      "commit": 1238052864,
+      "heaps": 1,
+      "areas": 4114,
+      "blocks": 783126,
+      "occupied": 807468992,
+      "slots": 1128161648,
+      "ok": 1,
+      "overflow": 0,
+      "free_slots": 320692656
+    },
+    {
+      "seq": 19,
+      "elapsed": 47175,
+      "rss": 1210904576,
+      "peak_rss": 1253982208,
+      "commit": 1200173056,
+      "heaps": 1,
+      "areas": 3851,
+      "blocks": 457228,
+      "occupied": 762136736,
+      "slots": 1135696736,
+      "ok": 1,
+      "overflow": 0,
+      "free_slots": 373560000
+    },
+    {
+      "seq": 20,
+      "elapsed": 53736,
+      "rss": 1245523968,
+      "peak_rss": 1271369728,
+      "commit": 1233510400,
+      "heaps": 1,
+      "areas": 3800,
+      "blocks": 584701,
+      "occupied": 806522800,
+      "slots": 1156944560,
+      "ok": 1,
+      "overflow": 0,
+      "free_slots": 350421760
+    },
+    {
+      "seq": 21,
+      "elapsed": 128732,
+      "rss": 1318756352,
+      "peak_rss": 1438285824,
+      "commit": 1305116672,
+      "heaps": 1,
+      "areas": 4678,
+      "blocks": 630679,
+      "occupied": 854677616,
+      "slots": 1231623584,
+      "ok": 1,
+      "overflow": 0,
+      "free_slots": 376945968
+    },
+    {
+      "seq": 22,
+      "elapsed": 151292,
+      "rss": 1325559808,
+      "peak_rss": 1438285824,
+      "commit": 1312448512,
+      "heaps": 1,
+      "areas": 4746,
+      "blocks": 654962,
+      "occupied": 870911648,
+      "slots": 1238980384,
+      "ok": 1,
+      "overflow": 0,
+      "free_slots": 368068736
+    },
+    {
+      "seq": 23,
+      "elapsed": 157637,
+      "rss": 1398280192,
+      "peak_rss": 1438285824,
+      "commit": 1392431104,
+      "heaps": 1,
+      "areas": 5084,
+      "blocks": 1049154,
+      "occupied": 950361680,
+      "slots": 1310640288,
+      "ok": 1,
+      "overflow": 0,
+      "free_slots": 360278608
+    },
+    {
+      "seq": 24,
+      "elapsed": 161563,
+      "rss": 1461030912,
+      "peak_rss": 1461030912,
+      "commit": 1459429376,
+      "heaps": 1,
+      "areas": 5194,
+      "blocks": 1163053,
+      "occupied": 960785376,
+      "slots": 1327472608,
+      "ok": 1,
+      "overflow": 0,
+      "free_slots": 366687232
+    },
+    {
+      "seq": 25,
+      "elapsed": 179062,
+      "rss": 1532297216,
+      "peak_rss": 1578500096,
+      "commit": 1524002816,
+      "heaps": 1,
+      "areas": 6242,
+      "blocks": 1421206,
+      "occupied": 1071587168,
+      "slots": 1404089984,
+      "ok": 1,
+      "overflow": 0,
+      "free_slots": 332502816
+    },
+    {
+      "seq": 26,
+      "elapsed": 182965,
+      "rss": 1083846656,
+      "peak_rss": 1578500096,
+      "commit": 1069576192,
+      "heaps": 1,
+      "areas": 3106,
+      "blocks": 339533,
+      "occupied": 612986112,
+      "slots": 997800768,
+      "ok": 1,
+      "overflow": 0,
+      "free_slots": 384814656
+    },
+    {
+      "seq": 27,
+      "elapsed": 184019,
+      "rss": 1146478592,
+      "peak_rss": 1578500096,
+      "commit": 1133891584,
+      "heaps": 1,
+      "areas": 3200,
+      "blocks": 440972,
+      "occupied": 673829360,
+      "slots": 1048052976,
+      "ok": 1,
+      "overflow": 0,
+      "free_slots": 374223616
+    },
+    {
+      "seq": 28,
+      "elapsed": 186193,
+      "rss": 1279778816,
+      "peak_rss": 1578500096,
+      "commit": 1272500224,
+      "heaps": 1,
+      "areas": 3468,
+      "blocks": 455648,
+      "occupied": 694550928,
+      "slots": 1077474480,
+      "ok": 1,
+      "overflow": 0,
+      "free_slots": 382923552
+    },
+    {
+      "seq": 29,
+      "elapsed": 187644,
+      "rss": 1333514240,
+      "peak_rss": 1578500096,
+      "commit": 1330208768,
+      "heaps": 1,
+      "areas": 3788,
+      "blocks": 809808,
+      "occupied": 773400416,
+      "slots": 1158128432,
+      "ok": 1,
+      "overflow": 0,
+      "free_slots": 384728016
+    },
+    {
+      "seq": 30,
+      "elapsed": 189700,
+      "rss": 1517137920,
+      "peak_rss": 1578500096,
+      "commit": 1524838400,
+      "heaps": 1,
+      "areas": 4863,
+      "blocks": 1519237,
+      "occupied": 863991808,
+      "slots": 1289113024,
+      "ok": 1,
+      "overflow": 0,
+      "free_slots": 425121216
+    }
+  ],
+  "max_rss_snapshot": {
+    "seq": 25,
+    "elapsed": 179062,
+    "rss": 1532297216,
+    "peak_rss": 1578500096,
+    "commit": 1524002816,
+    "heaps": 1,
+    "areas": 6242,
+    "blocks": 1421206,
+    "occupied": 1071587168,
+    "slots": 1404089984,
+    "ok": 1,
+    "overflow": 0,
+    "free_slots": 332502816,
+    "bins": [
+      {
+        "block_size": 20480,
+        "areas": 387,
+        "blocks": 9109,
+        "occupied": 186552320,
+        "slots": 197713920,
+        "free_slots": 11161600
+      },
+      {
+        "block_size": 65536,
+        "areas": 42,
+        "blocks": 2443,
+        "occupied": 160104448,
+        "slots": 173408256,
+        "free_slots": 13303808
+      },
+      {
+        "block_size": 54525952,
+        "areas": 1,
+        "blocks": 1,
+        "occupied": 54525952,
+        "slots": 54525952,
+        "free_slots": 0
+      },
+      {
+        "block_size": 320,
+        "areas": 603,
+        "blocks": 116585,
+        "occupied": 37307200,
+        "slots": 39182400,
+        "free_slots": 1875200
+      },
+      {
+        "block_size": 160,
+        "areas": 491,
+        "blocks": 183154,
+        "occupied": 29304640,
+        "slots": 32032960,
+        "free_slots": 2728320
+      },
+      {
+        "block_size": 23068672,
+        "areas": 1,
+        "blocks": 1,
+        "occupied": 23068672,
+        "slots": 23068672,
+        "free_slots": 0
+      },
+      {
+        "block_size": 64,
+        "areas": 314,
+        "blocks": 302767,
+        "occupied": 19377088,
+        "slots": 20469568,
+        "free_slots": 1092480
+      },
+      {
+        "block_size": 18874368,
+        "areas": 1,
+        "blocks": 1,
+        "occupied": 18874368,
+        "slots": 18874368,
+        "free_slots": 0
+      },
+      {
+        "block_size": 163840,
+        "areas": 8,
+        "blocks": 109,
+        "occupied": 17858560,
+        "slots": 31621120,
+        "free_slots": 13762560
+      },
+      {
+        "block_size": 48,
+        "areas": 277,
+        "blocks": 361081,
+        "occupied": 17331888,
+        "slots": 18035904,
+        "free_slots": 704016
+      },
+      {
+        "block_size": 327680,
+        "areas": 7,
+        "blocks": 52,
+        "occupied": 17039360,
+        "slots": 27525120,
+        "free_slots": 10485760
+      },
+      {
+        "block_size": 5120,
+        "areas": 464,
+        "blocks": 3147,
+        "occupied": 16112640,
+        "slots": 28508160,
+        "free_slots": 12395520
+      },
+      {
+        "block_size": 15728640,
+        "areas": 1,
+        "blocks": 1,
+        "occupied": 15728640,
+        "slots": 15728640,
+        "free_slots": 0
+      },
+      {
+        "block_size": 256,
+        "areas": 237,
+        "blocks": 58747,
+        "occupied": 15039232,
+        "slots": 15313408,
+        "free_slots": 274176
+      },
+      {
+        "block_size": 10240,
+        "areas": 261,
+        "blocks": 1446,
+        "occupied": 14807040,
+        "slots": 16035840,
+        "free_slots": 1228800
+      },
+      {
+        "block_size": 2359296,
+        "areas": 6,
+        "blocks": 6,
+        "occupied": 14155776,
+        "slots": 14155776,
+        "free_slots": 0
+      },
+      {
+        "block_size": 393216,
+        "areas": 8,
+        "blocks": 35,
+        "occupied": 13762560,
+        "slots": 28311552,
+        "free_slots": 14548992
+      },
+      {
+        "block_size": 12582912,
+        "areas": 1,
+        "blocks": 1,
+        "occupied": 12582912,
+        "slots": 12582912,
+        "free_slots": 0
+      },
+      {
+        "block_size": 1179648,
+        "areas": 10,
+        "blocks": 10,
+        "occupied": 11796480,
+        "slots": 11796480,
+        "free_slots": 0
+      },
+      {
+        "block_size": 11534336,
+        "areas": 1,
+        "blocks": 1,
+        "occupied": 11534336,
+        "slots": 11534336,
+        "free_slots": 0
+      },
+      {
+        "block_size": 81920,
+        "areas": 30,
+        "blocks": 135,
+        "occupied": 11059200,
+        "slots": 14745600,
+        "free_slots": 3686400
+      },
+      {
+        "block_size": 5242880,
+        "areas": 2,
+        "blocks": 2,
+        "occupied": 10485760,
+        "slots": 10485760,
+        "free_slots": 0
+      },
+      {
+        "block_size": 7168,
+        "areas": 169,
+        "blocks": 1412,
+        "occupied": 10121216,
+        "slots": 10902528,
+        "free_slots": 781312
+      },
+      {
+        "block_size": 1280,
+        "areas": 205,
+        "blocks": 7887,
+        "occupied": 10095360,
+        "slots": 13273600,
+        "free_slots": 3178240
+      },
+      {
+        "block_size": 40960,
+        "areas": 31,
+        "blocks": 244,
+        "occupied": 9994240,
+        "slots": 15237120,
+        "free_slots": 5242880
+      },
+      {
+        "block_size": 1638400,
+        "areas": 6,
+        "blocks": 6,
+        "occupied": 9830400,
+        "slots": 9830400,
+        "free_slots": 0
+      },
+      {
+        "block_size": 9437184,
+        "areas": 1,
+        "blocks": 1,
+        "occupied": 9437184,
+        "slots": 9437184,
+        "free_slots": 0
+      },
+      {
+        "block_size": 3072,
+        "areas": 153,
+        "blocks": 3049,
+        "occupied": 9366528,
+        "slots": 9870336,
+        "free_slots": 503808
+      },
+      {
+        "block_size": 2560,
+        "areas": 199,
+        "blocks": 3382,
+        "occupied": 8657920,
+        "slots": 12736000,
+        "free_slots": 4078080
+      },
+      {
+        "block_size": 851968,
+        "areas": 10,
+        "blocks": 10,
+        "occupied": 8519680,
+        "slots": 8519680,
+        "free_slots": 0
+      },
+      {
+        "block_size": 8388608,
+        "areas": 1,
+        "blocks": 1,
+        "occupied": 8388608,
+        "slots": 8388608,
+        "free_slots": 0
+      },
+      {
+        "block_size": 196608,
+        "areas": 6,
+        "blocks": 42,
+        "occupied": 8257536,
+        "slots": 24772608,
+        "free_slots": 16515072
+      },
+      {
+        "block_size": 589824,
+        "areas": 14,
+        "blocks": 14,
+        "occupied": 8257536,
+        "slots": 8257536,
+        "free_slots": 0
+      },
+      {
+        "block_size": 448,
+        "areas": 134,
+        "blocks": 18071,
+        "occupied": 8095808,
+        "slots": 8520960,
+        "free_slots": 425152
+      },
+      {
+        "block_size": 786432,
+        "areas": 10,
+        "blocks": 10,
+        "occupied": 7864320,
+        "slots": 7864320,
+        "free_slots": 0
+      },
+      {
+        "block_size": 7864320,
+        "areas": 1,
+        "blocks": 1,
+        "occupied": 7864320,
+        "slots": 7864320,
+        "free_slots": 0
+      },
+      {
+        "block_size": 458752,
+        "areas": 6,
+        "blocks": 16,
+        "occupied": 7340032,
+        "slots": 24772608,
+        "free_slots": 17432576
+      },
+      {
+        "block_size": 896,
+        "areas": 113,
+        "blocks": 7701,
+        "occupied": 6900096,
+        "slots": 7161728,
+        "free_slots": 261632
+      },
+      {
+        "block_size": 6144,
+        "areas": 121,
+        "blocks": 1116,
+        "occupied": 6856704,
+        "slots": 7434240,
+        "free_slots": 577536
+      },
+      {
+        "block_size": 192,
+        "areas": 123,
+        "blocks": 35710,
+        "occupied": 6856320,
+        "slots": 7860864,
+        "free_slots": 1004544
+      },
+      {
+        "block_size": 98304,
+        "areas": 6,
+        "blocks": 67,
+        "occupied": 6586368,
+        "slots": 24772608,
+        "free_slots": 18186240
+      },
+      {
+        "block_size": 640,
+        "areas": 420,
+        "blocks": 10010,
+        "occupied": 6406400,
+        "slots": 27347200,
+        "free_slots": 20940800
+      },
+      {
+        "block_size": 1536,
+        "areas": 118,
+        "blocks": 4101,
+        "occupied": 6299136,
+        "slots": 7612416,
+        "free_slots": 1313280
+      },
+      {
+        "block_size": 524288,
+        "areas": 6,
+        "blocks": 12,
+        "occupied": 6291456,
+        "slots": 19922944,
+        "free_slots": 13631488
+      },
+      {
+        "block_size": 6291456,
+        "areas": 1,
+        "blocks": 1,
+        "occupied": 6291456,
+        "slots": 6291456,
+        "free_slots": 0
+      },
+      {
+        "block_size": 1792,
+        "areas": 155,
+        "blocks": 3409,
+        "occupied": 6108928,
+        "slots": 9999360,
+        "free_slots": 3890432
+      },
+      {
+        "block_size": 114688,
+        "areas": 7,
+        "blocks": 52,
+        "occupied": 5963776,
+        "slots": 28901376,
+        "free_slots": 22937600
+      },
+      {
+        "block_size": 2048,
+        "areas": 97,
+        "blocks": 2845,
+        "occupied": 5826560,
+        "slots": 6356992,
+        "free_slots": 530432
+      },
+      {
+        "block_size": 5767168,
+        "areas": 1,
+        "blocks": 1,
+        "occupied": 5767168,
+        "slots": 5767168,
+        "free_slots": 0
+      },
+      {
+        "block_size": 917504,
+        "areas": 6,
+        "blocks": 6,
+        "occupied": 5505024,
+        "slots": 5505024,
+        "free_slots": 0
+      },
+      {
+        "block_size": 5505024,
+        "areas": 1,
+        "blocks": 1,
+        "occupied": 5505024,
+        "slots": 5505024,
+        "free_slots": 0
+      },
+      {
+        "block_size": 224,
+        "areas": 85,
+        "blocks": 22878,
+        "occupied": 5124672,
+        "slots": 5500096,
+        "free_slots": 375424
+      },
+      {
+        "block_size": 4096,
+        "areas": 78,
+        "blocks": 1140,
+        "occupied": 4669440,
+        "slots": 5111808,
+        "free_slots": 442368
+      },
+      {
+        "block_size": 3584,
+        "areas": 97,
+        "blocks": 1282,
+        "occupied": 4594688,
+        "slots": 6257664,
+        "free_slots": 1662976
+      },
+      {
+        "block_size": 1507328,
+        "areas": 3,
+        "blocks": 3,
+        "occupied": 4521984,
+        "slots": 4521984,
+        "free_slots": 0
+      },
+      {
+        "block_size": 1114112,
+        "areas": 4,
+        "blocks": 4,
+        "occupied": 4456448,
+        "slots": 4456448,
+        "free_slots": 0
+      },
+      {
+        "block_size": 4456448,
+        "areas": 1,
+        "blocks": 1,
+        "occupied": 4456448,
+        "slots": 4456448,
+        "free_slots": 0
+      },
+      {
+        "block_size": 12288,
+        "areas": 43,
+        "blocks": 345,
+        "occupied": 4239360,
+        "slots": 22192128,
+        "free_slots": 17952768
+      },
+      {
+        "block_size": 1024,
+        "areas": 68,
+        "blocks": 4087,
+        "occupied": 4185088,
+        "slots": 4358144,
+        "free_slots": 173056
+      },
+      {
+        "block_size": 2031616,
+        "areas": 2,
+        "blocks": 2,
+        "occupied": 4063232,
+        "slots": 4063232,
+        "free_slots": 0
+      },
+      {
+        "block_size": 24576,
+        "areas": 17,
+        "blocks": 162,
+        "occupied": 3981312,
+        "slots": 8773632,
+        "free_slots": 4792320
+      },
+      {
+        "block_size": 3932160,
+        "areas": 1,
+        "blocks": 1,
+        "occupied": 3932160,
+        "slots": 3932160,
+        "free_slots": 0
+      },
+      {
+        "block_size": 229376,
+        "areas": 6,
+        "blocks": 17,
+        "occupied": 3899392,
+        "slots": 24772608,
+        "free_slots": 20873216
+      },
+      {
+        "block_size": 49152,
+        "areas": 18,
+        "blocks": 77,
+        "occupied": 3784704,
+        "slots": 8847360,
+        "free_slots": 5062656
+      },
+      {
+        "block_size": 80,
+        "areas": 101,
+        "blocks": 47175,
+        "occupied": 3774000,
+        "slots": 6596960,
+        "free_slots": 2822960
+      },
+      {
+        "block_size": 3670016,
+        "areas": 1,
+        "blocks": 1,
+        "occupied": 3670016,
+        "slots": 3670016,
+        "free_slots": 0
+      },
+      {
+        "block_size": 32,
+        "areas": 75,
+        "blocks": 112458,
+        "occupied": 3598656,
+        "slots": 4899136,
+        "free_slots": 1300480
+      },
+      {
+        "block_size": 16384,
+        "areas": 18,
+        "blocks": 208,
+        "occupied": 3407872,
+        "slots": 9175040,
+        "free_slots": 5767168
+      },
+      {
+        "block_size": 131072,
+        "areas": 7,
+        "blocks": 24,
+        "occupied": 3145728,
+        "slots": 27131904,
+        "free_slots": 23986176
+      },
+      {
+        "block_size": 1572864,
+        "areas": 2,
+        "blocks": 2,
+        "occupied": 3145728,
+        "slots": 3145728,
+        "free_slots": 0
+      },
+      {
+        "block_size": 3145728,
+        "areas": 1,
+        "blocks": 1,
+        "occupied": 3145728,
+        "slots": 3145728,
+        "free_slots": 0
+      },
+      {
+        "block_size": 262144,
+        "areas": 5,
+        "blocks": 11,
+        "occupied": 2883584,
+        "slots": 17301504,
+        "free_slots": 14417920
+      },
+      {
+        "block_size": 2883584,
+        "areas": 1,
+        "blocks": 1,
+        "occupied": 2883584,
+        "slots": 2883584,
+        "free_slots": 0
+      },
+      {
+        "block_size": 57344,
+        "areas": 11,
+        "blocks": 50,
+        "occupied": 2867200,
+        "slots": 5677056,
+        "free_slots": 2809856
+      },
+      {
+        "block_size": 8192,
+        "areas": 51,
+        "blocks": 334,
+        "occupied": 2736128,
+        "slots": 3342336,
+        "free_slots": 606208
+      },
+      {
+        "block_size": 384,
+        "areas": 46,
+        "blocks": 6948,
+        "occupied": 2668032,
+        "slots": 2838144,
+        "free_slots": 170112
+      },
+      {
+        "block_size": 28672,
+        "areas": 10,
+        "blocks": 93,
+        "occupied": 2666496,
+        "slots": 4730880,
+        "free_slots": 2064384
+      },
+      {
+        "block_size": 655360,
+        "areas": 4,
+        "blocks": 4,
+        "occupied": 2621440,
+        "slots": 2621440,
+        "free_slots": 0
+      },
+      {
+        "block_size": 2621440,
+        "areas": 1,
+        "blocks": 1,
+        "occupied": 2621440,
+        "slots": 2621440,
+        "free_slots": 0
+      },
+      {
+        "block_size": 32768,
+        "areas": 11,
+        "blocks": 77,
+        "occupied": 2523136,
+        "slots": 5439488,
+        "free_slots": 2916352
+      },
+      {
+        "block_size": 14336,
+        "areas": 9,
+        "blocks": 171,
+        "occupied": 2451456,
+        "slots": 4644864,
+        "free_slots": 2193408
+      },
+      {
+        "block_size": 720896,
+        "areas": 3,
+        "blocks": 3,
+        "occupied": 2162688,
+        "slots": 2162688,
+        "free_slots": 0
+      },
+      {
+        "block_size": 768,
+        "areas": 38,
+        "blocks": 2728,
+        "occupied": 2095104,
+        "slots": 2348544,
+        "free_slots": 253440
+      },
+      {
+        "block_size": 96,
+        "areas": 40,
+        "blocks": 20820,
+        "occupied": 1998720,
+        "slots": 2456256,
+        "free_slots": 457536
+      },
+      {
+        "block_size": 1835008,
+        "areas": 1,
+        "blocks": 1,
+        "occupied": 1835008,
+        "slots": 1835008,
+        "free_slots": 0
+      },
+      {
+        "block_size": 1703936,
+        "areas": 1,
+        "blocks": 1,
+        "occupied": 1703936,
+        "slots": 1703936,
+        "free_slots": 0
+      },
+      {
+        "block_size": 112,
+        "areas": 41,
+        "blocks": 13843,
+        "occupied": 1550416,
+        "slots": 2634912,
+        "free_slots": 1084496
+      },
+      {
+        "block_size": 512,
+        "areas": 27,
+        "blocks": 2816,
+        "occupied": 1441792,
+        "slots": 1728512,
+        "free_slots": 286720
+      },
+      {
+        "block_size": 1376256,
+        "areas": 1,
+        "blocks": 1,
+        "occupied": 1376256,
+        "slots": 1376256,
+        "free_slots": 0
+      },
+      {
+        "block_size": 1048576,
+        "areas": 1,
+        "blocks": 1,
+        "occupied": 1048576,
+        "slots": 1048576,
+        "free_slots": 0
+      },
+      {
+        "block_size": 983040,
+        "areas": 1,
+        "blocks": 1,
+        "occupied": 983040,
+        "slots": 983040,
+        "free_slots": 0
+      },
+      {
+        "block_size": 16,
+        "areas": 16,
+        "blocks": 42907,
+        "occupied": 686512,
+        "slots": 988096,
+        "free_slots": 301584
+      },
+      {
+        "block_size": 128,
+        "areas": 21,
+        "blocks": 2514,
+        "occupied": 321792,
+        "slots": 1372288,
+        "free_slots": 1050496
+      }
+    ]
+  },
+  "max_occupied_snapshot": {
+    "seq": 25,
+    "elapsed": 179062,
+    "rss": 1532297216,
+    "peak_rss": 1578500096,
+    "commit": 1524002816,
+    "heaps": 1,
+    "areas": 6242,
+    "blocks": 1421206,
+    "occupied": 1071587168,
+    "slots": 1404089984,
+    "ok": 1,
+    "overflow": 0,
+    "free_slots": 332502816,
+    "bins": [
+      {
+        "block_size": 20480,
+        "areas": 387,
+        "blocks": 9109,
+        "occupied": 186552320,
+        "slots": 197713920,
+        "free_slots": 11161600
+      },
+      {
+        "block_size": 65536,
+        "areas": 42,
+        "blocks": 2443,
+        "occupied": 160104448,
+        "slots": 173408256,
+        "free_slots": 13303808
+      },
+      {
+        "block_size": 54525952,
+        "areas": 1,
+        "blocks": 1,
+        "occupied": 54525952,
+        "slots": 54525952,
+        "free_slots": 0
+      },
+      {
+        "block_size": 320,
+        "areas": 603,
+        "blocks": 116585,
+        "occupied": 37307200,
+        "slots": 39182400,
+        "free_slots": 1875200
+      },
+      {
+        "block_size": 160,
+        "areas": 491,
+        "blocks": 183154,
+        "occupied": 29304640,
+        "slots": 32032960,
+        "free_slots": 2728320
+      },
+      {
+        "block_size": 23068672,
+        "areas": 1,
+        "blocks": 1,
+        "occupied": 23068672,
+        "slots": 23068672,
+        "free_slots": 0
+      },
+      {
+        "block_size": 64,
+        "areas": 314,
+        "blocks": 302767,
+        "occupied": 19377088,
+        "slots": 20469568,
+        "free_slots": 1092480
+      },
+      {
+        "block_size": 18874368,
+        "areas": 1,
+        "blocks": 1,
+        "occupied": 18874368,
+        "slots": 18874368,
+        "free_slots": 0
+      },
+      {
+        "block_size": 163840,
+        "areas": 8,
+        "blocks": 109,
+        "occupied": 17858560,
+        "slots": 31621120,
+        "free_slots": 13762560
+      },
+      {
+        "block_size": 48,
+        "areas": 277,
+        "blocks": 361081,
+        "occupied": 17331888,
+        "slots": 18035904,
+        "free_slots": 704016
+      },
+      {
+        "block_size": 327680,
+        "areas": 7,
+        "blocks": 52,
+        "occupied": 17039360,
+        "slots": 27525120,
+        "free_slots": 10485760
+      },
+      {
+        "block_size": 5120,
+        "areas": 464,
+        "blocks": 3147,
+        "occupied": 16112640,
+        "slots": 28508160,
+        "free_slots": 12395520
+      },
+      {
+        "block_size": 15728640,
+        "areas": 1,
+        "blocks": 1,
+        "occupied": 15728640,
+        "slots": 15728640,
+        "free_slots": 0
+      },
+      {
+        "block_size": 256,
+        "areas": 237,
+        "blocks": 58747,
+        "occupied": 15039232,
+        "slots": 15313408,
+        "free_slots": 274176
+      },
+      {
+        "block_size": 10240,
+        "areas": 261,
+        "blocks": 1446,
+        "occupied": 14807040,
+        "slots": 16035840,
+        "free_slots": 1228800
+      },
+      {
+        "block_size": 2359296,
+        "areas": 6,
+        "blocks": 6,
+        "occupied": 14155776,
+        "slots": 14155776,
+        "free_slots": 0
+      },
+      {
+        "block_size": 393216,
+        "areas": 8,
+        "blocks": 35,
+        "occupied": 13762560,
+        "slots": 28311552,
+        "free_slots": 14548992
+      },
+      {
+        "block_size": 12582912,
+        "areas": 1,
+        "blocks": 1,
+        "occupied": 12582912,
+        "slots": 12582912,
+        "free_slots": 0
+      },
+      {
+        "block_size": 1179648,
+        "areas": 10,
+        "blocks": 10,
+        "occupied": 11796480,
+        "slots": 11796480,
+        "free_slots": 0
+      },
+      {
+        "block_size": 11534336,
+        "areas": 1,
+        "blocks": 1,
+        "occupied": 11534336,
+        "slots": 11534336,
+        "free_slots": 0
+      },
+      {
+        "block_size": 81920,
+        "areas": 30,
+        "blocks": 135,
+        "occupied": 11059200,
+        "slots": 14745600,
+        "free_slots": 3686400
+      },
+      {
+        "block_size": 5242880,
+        "areas": 2,
+        "blocks": 2,
+        "occupied": 10485760,
+        "slots": 10485760,
+        "free_slots": 0
+      },
+      {
+        "block_size": 7168,
+        "areas": 169,
+        "blocks": 1412,
+        "occupied": 10121216,
+        "slots": 10902528,
+        "free_slots": 781312
+      },
+      {
+        "block_size": 1280,
+        "areas": 205,
+        "blocks": 7887,
+        "occupied": 10095360,
+        "slots": 13273600,
+        "free_slots": 3178240
+      },
+      {
+        "block_size": 40960,
+        "areas": 31,
+        "blocks": 244,
+        "occupied": 9994240,
+        "slots": 15237120,
+        "free_slots": 5242880
+      },
+      {
+        "block_size": 1638400,
+        "areas": 6,
+        "blocks": 6,
+        "occupied": 9830400,
+        "slots": 9830400,
+        "free_slots": 0
+      },
+      {
+        "block_size": 9437184,
+        "areas": 1,
+        "blocks": 1,
+        "occupied": 9437184,
+        "slots": 9437184,
+        "free_slots": 0
+      },
+      {
+        "block_size": 3072,
+        "areas": 153,
+        "blocks": 3049,
+        "occupied": 9366528,
+        "slots": 9870336,
+        "free_slots": 503808
+      },
+      {
+        "block_size": 2560,
+        "areas": 199,
+        "blocks": 3382,
+        "occupied": 8657920,
+        "slots": 12736000,
+        "free_slots": 4078080
+      },
+      {
+        "block_size": 851968,
+        "areas": 10,
+        "blocks": 10,
+        "occupied": 8519680,
+        "slots": 8519680,
+        "free_slots": 0
+      },
+      {
+        "block_size": 8388608,
+        "areas": 1,
+        "blocks": 1,
+        "occupied": 8388608,
+        "slots": 8388608,
+        "free_slots": 0
+      },
+      {
+        "block_size": 196608,
+        "areas": 6,
+        "blocks": 42,
+        "occupied": 8257536,
+        "slots": 24772608,
+        "free_slots": 16515072
+      },
+      {
+        "block_size": 589824,
+        "areas": 14,
+        "blocks": 14,
+        "occupied": 8257536,
+        "slots": 8257536,
+        "free_slots": 0
+      },
+      {
+        "block_size": 448,
+        "areas": 134,
+        "blocks": 18071,
+        "occupied": 8095808,
+        "slots": 8520960,
+        "free_slots": 425152
+      },
+      {
+        "block_size": 786432,
+        "areas": 10,
+        "blocks": 10,
+        "occupied": 7864320,
+        "slots": 7864320,
+        "free_slots": 0
+      },
+      {
+        "block_size": 7864320,
+        "areas": 1,
+        "blocks": 1,
+        "occupied": 7864320,
+        "slots": 7864320,
+        "free_slots": 0
+      },
+      {
+        "block_size": 458752,
+        "areas": 6,
+        "blocks": 16,
+        "occupied": 7340032,
+        "slots": 24772608,
+        "free_slots": 17432576
+      },
+      {
+        "block_size": 896,
+        "areas": 113,
+        "blocks": 7701,
+        "occupied": 6900096,
+        "slots": 7161728,
+        "free_slots": 261632
+      },
+      {
+        "block_size": 6144,
+        "areas": 121,
+        "blocks": 1116,
+        "occupied": 6856704,
+        "slots": 7434240,
+        "free_slots": 577536
+      },
+      {
+        "block_size": 192,
+        "areas": 123,
+        "blocks": 35710,
+        "occupied": 6856320,
+        "slots": 7860864,
+        "free_slots": 1004544
+      },
+      {
+        "block_size": 98304,
+        "areas": 6,
+        "blocks": 67,
+        "occupied": 6586368,
+        "slots": 24772608,
+        "free_slots": 18186240
+      },
+      {
+        "block_size": 640,
+        "areas": 420,
+        "blocks": 10010,
+        "occupied": 6406400,
+        "slots": 27347200,
+        "free_slots": 20940800
+      },
+      {
+        "block_size": 1536,
+        "areas": 118,
+        "blocks": 4101,
+        "occupied": 6299136,
+        "slots": 7612416,
+        "free_slots": 1313280
+      },
+      {
+        "block_size": 524288,
+        "areas": 6,
+        "blocks": 12,
+        "occupied": 6291456,
+        "slots": 19922944,
+        "free_slots": 13631488
+      },
+      {
+        "block_size": 6291456,
+        "areas": 1,
+        "blocks": 1,
+        "occupied": 6291456,
+        "slots": 6291456,
+        "free_slots": 0
+      },
+      {
+        "block_size": 1792,
+        "areas": 155,
+        "blocks": 3409,
+        "occupied": 6108928,
+        "slots": 9999360,
+        "free_slots": 3890432
+      },
+      {
+        "block_size": 114688,
+        "areas": 7,
+        "blocks": 52,
+        "occupied": 5963776,
+        "slots": 28901376,
+        "free_slots": 22937600
+      },
+      {
+        "block_size": 2048,
+        "areas": 97,
+        "blocks": 2845,
+        "occupied": 5826560,
+        "slots": 6356992,
+        "free_slots": 530432
+      },
+      {
+        "block_size": 5767168,
+        "areas": 1,
+        "blocks": 1,
+        "occupied": 5767168,
+        "slots": 5767168,
+        "free_slots": 0
+      },
+      {
+        "block_size": 917504,
+        "areas": 6,
+        "blocks": 6,
+        "occupied": 5505024,
+        "slots": 5505024,
+        "free_slots": 0
+      },
+      {
+        "block_size": 5505024,
+        "areas": 1,
+        "blocks": 1,
+        "occupied": 5505024,
+        "slots": 5505024,
+        "free_slots": 0
+      },
+      {
+        "block_size": 224,
+        "areas": 85,
+        "blocks": 22878,
+        "occupied": 5124672,
+        "slots": 5500096,
+        "free_slots": 375424
+      },
+      {
+        "block_size": 4096,
+        "areas": 78,
+        "blocks": 1140,
+        "occupied": 4669440,
+        "slots": 5111808,
+        "free_slots": 442368
+      },
+      {
+        "block_size": 3584,
+        "areas": 97,
+        "blocks": 1282,
+        "occupied": 4594688,
+        "slots": 6257664,
+        "free_slots": 1662976
+      },
+      {
+        "block_size": 1507328,
+        "areas": 3,
+        "blocks": 3,
+        "occupied": 4521984,
+        "slots": 4521984,
+        "free_slots": 0
+      },
+      {
+        "block_size": 1114112,
+        "areas": 4,
+        "blocks": 4,
+        "occupied": 4456448,
+        "slots": 4456448,
+        "free_slots": 0
+      },
+      {
+        "block_size": 4456448,
+        "areas": 1,
+        "blocks": 1,
+        "occupied": 4456448,
+        "slots": 4456448,
+        "free_slots": 0
+      },
+      {
+        "block_size": 12288,
+        "areas": 43,
+        "blocks": 345,
+        "occupied": 4239360,
+        "slots": 22192128,
+        "free_slots": 17952768
+      },
+      {
+        "block_size": 1024,
+        "areas": 68,
+        "blocks": 4087,
+        "occupied": 4185088,
+        "slots": 4358144,
+        "free_slots": 173056
+      },
+      {
+        "block_size": 2031616,
+        "areas": 2,
+        "blocks": 2,
+        "occupied": 4063232,
+        "slots": 4063232,
+        "free_slots": 0
+      },
+      {
+        "block_size": 24576,
+        "areas": 17,
+        "blocks": 162,
+        "occupied": 3981312,
+        "slots": 8773632,
+        "free_slots": 4792320
+      },
+      {
+        "block_size": 3932160,
+        "areas": 1,
+        "blocks": 1,
+        "occupied": 3932160,
+        "slots": 3932160,
+        "free_slots": 0
+      },
+      {
+        "block_size": 229376,
+        "areas": 6,
+        "blocks": 17,
+        "occupied": 3899392,
+        "slots": 24772608,
+        "free_slots": 20873216
+      },
+      {
+        "block_size": 49152,
+        "areas": 18,
+        "blocks": 77,
+        "occupied": 3784704,
+        "slots": 8847360,
+        "free_slots": 5062656
+      },
+      {
+        "block_size": 80,
+        "areas": 101,
+        "blocks": 47175,
+        "occupied": 3774000,
+        "slots": 6596960,
+        "free_slots": 2822960
+      },
+      {
+        "block_size": 3670016,
+        "areas": 1,
+        "blocks": 1,
+        "occupied": 3670016,
+        "slots": 3670016,
+        "free_slots": 0
+      },
+      {
+        "block_size": 32,
+        "areas": 75,
+        "blocks": 112458,
+        "occupied": 3598656,
+        "slots": 4899136,
+        "free_slots": 1300480
+      },
+      {
+        "block_size": 16384,
+        "areas": 18,
+        "blocks": 208,
+        "occupied": 3407872,
+        "slots": 9175040,
+        "free_slots": 5767168
+      },
+      {
+        "block_size": 131072,
+        "areas": 7,
+        "blocks": 24,
+        "occupied": 3145728,
+        "slots": 27131904,
+        "free_slots": 23986176
+      },
+      {
+        "block_size": 1572864,
+        "areas": 2,
+        "blocks": 2,
+        "occupied": 3145728,
+        "slots": 3145728,
+        "free_slots": 0
+      },
+      {
+        "block_size": 3145728,
+        "areas": 1,
+        "blocks": 1,
+        "occupied": 3145728,
+        "slots": 3145728,
+        "free_slots": 0
+      },
+      {
+        "block_size": 262144,
+        "areas": 5,
+        "blocks": 11,
+        "occupied": 2883584,
+        "slots": 17301504,
+        "free_slots": 14417920
+      },
+      {
+        "block_size": 2883584,
+        "areas": 1,
+        "blocks": 1,
+        "occupied": 2883584,
+        "slots": 2883584,
+        "free_slots": 0
+      },
+      {
+        "block_size": 57344,
+        "areas": 11,
+        "blocks": 50,
+        "occupied": 2867200,
+        "slots": 5677056,
+        "free_slots": 2809856
+      },
+      {
+        "block_size": 8192,
+        "areas": 51,
+        "blocks": 334,
+        "occupied": 2736128,
+        "slots": 3342336,
+        "free_slots": 606208
+      },
+      {
+        "block_size": 384,
+        "areas": 46,
+        "blocks": 6948,
+        "occupied": 2668032,
+        "slots": 2838144,
+        "free_slots": 170112
+      },
+      {
+        "block_size": 28672,
+        "areas": 10,
+        "blocks": 93,
+        "occupied": 2666496,
+        "slots": 4730880,
+        "free_slots": 2064384
+      },
+      {
+        "block_size": 655360,
+        "areas": 4,
+        "blocks": 4,
+        "occupied": 2621440,
+        "slots": 2621440,
+        "free_slots": 0
+      },
+      {
+        "block_size": 2621440,
+        "areas": 1,
+        "blocks": 1,
+        "occupied": 2621440,
+        "slots": 2621440,
+        "free_slots": 0
+      },
+      {
+        "block_size": 32768,
+        "areas": 11,
+        "blocks": 77,
+        "occupied": 2523136,
+        "slots": 5439488,
+        "free_slots": 2916352
+      },
+      {
+        "block_size": 14336,
+        "areas": 9,
+        "blocks": 171,
+        "occupied": 2451456,
+        "slots": 4644864,
+        "free_slots": 2193408
+      },
+      {
+        "block_size": 720896,
+        "areas": 3,
+        "blocks": 3,
+        "occupied": 2162688,
+        "slots": 2162688,
+        "free_slots": 0
+      },
+      {
+        "block_size": 768,
+        "areas": 38,
+        "blocks": 2728,
+        "occupied": 2095104,
+        "slots": 2348544,
+        "free_slots": 253440
+      },
+      {
+        "block_size": 96,
+        "areas": 40,
+        "blocks": 20820,
+        "occupied": 1998720,
+        "slots": 2456256,
+        "free_slots": 457536
+      },
+      {
+        "block_size": 1835008,
+        "areas": 1,
+        "blocks": 1,
+        "occupied": 1835008,
+        "slots": 1835008,
+        "free_slots": 0
+      },
+      {
+        "block_size": 1703936,
+        "areas": 1,
+        "blocks": 1,
+        "occupied": 1703936,
+        "slots": 1703936,
+        "free_slots": 0
+      },
+      {
+        "block_size": 112,
+        "areas": 41,
+        "blocks": 13843,
+        "occupied": 1550416,
+        "slots": 2634912,
+        "free_slots": 1084496
+      },
+      {
+        "block_size": 512,
+        "areas": 27,
+        "blocks": 2816,
+        "occupied": 1441792,
+        "slots": 1728512,
+        "free_slots": 286720
+      },
+      {
+        "block_size": 1376256,
+        "areas": 1,
+        "blocks": 1,
+        "occupied": 1376256,
+        "slots": 1376256,
+        "free_slots": 0
+      },
+      {
+        "block_size": 1048576,
+        "areas": 1,
+        "blocks": 1,
+        "occupied": 1048576,
+        "slots": 1048576,
+        "free_slots": 0
+      },
+      {
+        "block_size": 983040,
+        "areas": 1,
+        "blocks": 1,
+        "occupied": 983040,
+        "slots": 983040,
+        "free_slots": 0
+      },
+      {
+        "block_size": 16,
+        "areas": 16,
+        "blocks": 42907,
+        "occupied": 686512,
+        "slots": 988096,
+        "free_slots": 301584
+      },
+      {
+        "block_size": 128,
+        "areas": 21,
+        "blocks": 2514,
+        "occupied": 321792,
+        "slots": 1372288,
+        "free_slots": 1050496
+      }
+    ]
+  },
+  "artifacts": {
+    "heap-census-readonly.h": "746028b07cb237750a339e408907b46c9112a1e27fe68f08a509aa12e4fb2246",
+    "heap-census-v3.patch": "4ea526ca949a5135cdffca1fb3f7b85068679d578d6aade59c6a70d00d869d69",
+    "heap-census-v3-app.json": "6771da85cd2d91af21055cb1642c02fd35e56aeb97b663dc871565f3f3e99c52"
+  },
+  "last_snapshot": {
+    "seq": 30,
+    "elapsed": 189700,
+    "rss": 1517137920,
+    "peak_rss": 1578500096,
+    "commit": 1524838400,
+    "heaps": 1,
+    "areas": 4863,
+    "blocks": 1519237,
+    "occupied": 863991808,
+    "slots": 1289113024,
+    "ok": 1,
+    "overflow": 0,
+    "free_slots": 425121216,
+    "bins": [
+      {
+        "block_size": 20480,
+        "areas": 276,
+        "blocks": 6178,
+        "occupied": 126525440,
+        "slots": 141312000,
+        "free_slots": 14786560
+      },
+      {
+        "block_size": 65536,
+        "areas": 40,
+        "blocks": 1874,
+        "occupied": 122814464,
+        "slots": 161087488,
+        "free_slots": 38273024
+      },
+      {
+        "block_size": 54525952,
+        "areas": 1,
+        "blocks": 1,
+        "occupied": 54525952,
+        "slots": 54525952,
+        "free_slots": 0
+      },
+      {
+        "block_size": 37748736,
+        "areas": 1,
+        "blocks": 1,
+        "occupied": 37748736,
+        "slots": 37748736,
+        "free_slots": 0
+      },
+      {
+        "block_size": 48,
+        "areas": 911,
+        "blocks": 729060,
+        "occupied": 34994880,
+        "slots": 59353776,
+        "free_slots": 24358896
+      },
+      {
+        "block_size": 64,
+        "areas": 598,
+        "blocks": 368120,
+        "occupied": 23559680,
+        "slots": 38976064,
+        "free_slots": 15416384
+      },
+      {
+        "block_size": 23068672,
+        "areas": 1,
+        "blocks": 1,
+        "occupied": 23068672,
+        "slots": 23068672,
+        "free_slots": 0
+      },
+      {
+        "block_size": 10485760,
+        "areas": 2,
+        "blocks": 2,
+        "occupied": 20971520,
+        "slots": 20971520,
+        "free_slots": 0
+      },
+      {
+        "block_size": 18874368,
+        "areas": 1,
+        "blocks": 1,
+        "occupied": 18874368,
+        "slots": 18874368,
+        "free_slots": 0
+      },
+      {
+        "block_size": 160,
+        "areas": 322,
+        "blocks": 115044,
+        "occupied": 18407040,
+        "slots": 20999200,
+        "free_slots": 2592160
+      },
+      {
+        "block_size": 17825792,
+        "areas": 1,
+        "blocks": 1,
+        "occupied": 17825792,
+        "slots": 17825792,
+        "free_slots": 0
+      },
+      {
+        "block_size": 16777216,
+        "areas": 1,
+        "blocks": 1,
+        "occupied": 16777216,
+        "slots": 16777216,
+        "free_slots": 0
+      },
+      {
+        "block_size": 13631488,
+        "areas": 1,
+        "blocks": 1,
+        "occupied": 13631488,
+        "slots": 13631488,
+        "free_slots": 0
+      },
+      {
+        "block_size": 256,
+        "areas": 209,
+        "blocks": 51210,
+        "occupied": 13109760,
+        "slots": 13670400,
+        "free_slots": 560640
+      },
+      {
+        "block_size": 12582912,
+        "areas": 1,
+        "blocks": 1,
+        "occupied": 12582912,
+        "slots": 12582912,
+        "free_slots": 0
+      },
+      {
+        "block_size": 851968,
+        "areas": 14,
+        "blocks": 14,
+        "occupied": 11927552,
+        "slots": 11927552,
+        "free_slots": 0
+      },
+      {
+        "block_size": 1179648,
+        "areas": 10,
+        "blocks": 10,
+        "occupied": 11796480,
+        "slots": 11796480,
+        "free_slots": 0
+      },
+      {
+        "block_size": 5767168,
+        "areas": 2,
+        "blocks": 2,
+        "occupied": 11534336,
+        "slots": 11534336,
+        "free_slots": 0
+      },
+      {
+        "block_size": 327680,
+        "areas": 7,
+        "blocks": 32,
+        "occupied": 10485760,
+        "slots": 27525120,
+        "free_slots": 17039360
+      },
+      {
+        "block_size": 1638400,
+        "areas": 6,
+        "blocks": 6,
+        "occupied": 9830400,
+        "slots": 9830400,
+        "free_slots": 0
+      },
+      {
+        "block_size": 393216,
+        "areas": 8,
+        "blocks": 24,
+        "occupied": 9437184,
+        "slots": 31457280,
+        "free_slots": 22020096
+      },
+      {
+        "block_size": 2359296,
+        "areas": 4,
+        "blocks": 4,
+        "occupied": 9437184,
+        "slots": 9437184,
+        "free_slots": 0
+      },
+      {
+        "block_size": 9437184,
+        "areas": 1,
+        "blocks": 1,
+        "occupied": 9437184,
+        "slots": 9437184,
+        "free_slots": 0
+      },
+      {
+        "block_size": 163840,
+        "areas": 7,
+        "blocks": 49,
+        "occupied": 8028160,
+        "slots": 28672000,
+        "free_slots": 20643840
+      },
+      {
+        "block_size": 5120,
+        "areas": 317,
+        "blocks": 1558,
+        "occupied": 7976960,
+        "slots": 19476480,
+        "free_slots": 11499520
+      },
+      {
+        "block_size": 7864320,
+        "areas": 1,
+        "blocks": 1,
+        "occupied": 7864320,
+        "slots": 7864320,
+        "free_slots": 0
+      },
+      {
+        "block_size": 10240,
+        "areas": 159,
+        "blocks": 748,
+        "occupied": 7659520,
+        "slots": 9768960,
+        "free_slots": 2109440
+      },
+      {
+        "block_size": 589824,
+        "areas": 12,
+        "blocks": 12,
+        "occupied": 7077888,
+        "slots": 7077888,
+        "free_slots": 0
+      },
+      {
+        "block_size": 229376,
+        "areas": 7,
+        "blocks": 28,
+        "occupied": 6422528,
+        "slots": 28901376,
+        "free_slots": 22478848
+      },
+      {
+        "block_size": 196608,
+        "areas": 7,
+        "blocks": 32,
+        "occupied": 6291456,
+        "slots": 25559040,
+        "free_slots": 19267584
+      },
+      {
+        "block_size": 3145728,
+        "areas": 2,
+        "blocks": 2,
+        "occupied": 6291456,
+        "slots": 6291456,
+        "free_slots": 0
+      },
+      {
+        "block_size": 524288,
+        "areas": 5,
+        "blocks": 11,
+        "occupied": 5767168,
+        "slots": 18874368,
+        "free_slots": 13107200
+      },
+      {
+        "block_size": 81920,
+        "areas": 24,
+        "blocks": 68,
+        "occupied": 5570560,
+        "slots": 11796480,
+        "free_slots": 6225920
+      },
+      {
+        "block_size": 1114112,
+        "areas": 5,
+        "blocks": 5,
+        "occupied": 5570560,
+        "slots": 5570560,
+        "free_slots": 0
+      },
+      {
+        "block_size": 7168,
+        "areas": 93,
+        "blocks": 772,
+        "occupied": 5533696,
+        "slots": 5999616,
+        "free_slots": 465920
+      },
+      {
+        "block_size": 917504,
+        "areas": 6,
+        "blocks": 6,
+        "occupied": 5505024,
+        "slots": 5505024,
+        "free_slots": 0
+      },
+      {
+        "block_size": 2621440,
+        "areas": 2,
+        "blocks": 2,
+        "occupied": 5242880,
+        "slots": 5242880,
+        "free_slots": 0
+      },
+      {
+        "block_size": 5242880,
+        "areas": 1,
+        "blocks": 1,
+        "occupied": 5242880,
+        "slots": 5242880,
+        "free_slots": 0
+      },
+      {
+        "block_size": 458752,
+        "areas": 6,
+        "blocks": 11,
+        "occupied": 5046272,
+        "slots": 24772608,
+        "free_slots": 19726336
+      },
+      {
+        "block_size": 448,
+        "areas": 86,
+        "blocks": 10660,
+        "occupied": 4775680,
+        "slots": 5600000,
+        "free_slots": 824320
+      },
+      {
+        "block_size": 786432,
+        "areas": 6,
+        "blocks": 6,
+        "occupied": 4718592,
+        "slots": 4718592,
+        "free_slots": 0
+      },
+      {
+        "block_size": 1280,
+        "areas": 162,
+        "blocks": 3663,
+        "occupied": 4688640,
+        "slots": 10494720,
+        "free_slots": 5806080
+      },
+      {
+        "block_size": 720896,
+        "areas": 6,
+        "blocks": 6,
+        "occupied": 4325376,
+        "slots": 4325376,
+        "free_slots": 0
+      },
+      {
+        "block_size": 262144,
+        "areas": 7,
+        "blocks": 16,
+        "occupied": 4194304,
+        "slots": 20709376,
+        "free_slots": 16515072
+      },
+      {
+        "block_size": 2560,
+        "areas": 94,
+        "blocks": 1627,
+        "occupied": 4165120,
+        "slots": 6016000,
+        "free_slots": 1850880
+      },
+      {
+        "block_size": 2031616,
+        "areas": 2,
+        "blocks": 2,
+        "occupied": 4063232,
+        "slots": 4063232,
+        "free_slots": 0
+      },
+      {
+        "block_size": 40960,
+        "areas": 20,
+        "blocks": 98,
+        "occupied": 4014080,
+        "slots": 9830400,
+        "free_slots": 5816320
+      },
+      {
+        "block_size": 3932160,
+        "areas": 1,
+        "blocks": 1,
+        "occupied": 3932160,
+        "slots": 3932160,
+        "free_slots": 0
+      },
+      {
+        "block_size": 3072,
+        "areas": 66,
+        "blocks": 1200,
+        "occupied": 3686400,
+        "slots": 4257792,
+        "free_slots": 571392
+      },
+      {
+        "block_size": 1835008,
+        "areas": 2,
+        "blocks": 2,
+        "occupied": 3670016,
+        "slots": 3670016,
+        "free_slots": 0
+      },
+      {
+        "block_size": 3670016,
+        "areas": 1,
+        "blocks": 1,
+        "occupied": 3670016,
+        "slots": 3670016,
+        "free_slots": 0
+      },
+      {
+        "block_size": 224,
+        "areas": 68,
+        "blocks": 15629,
+        "occupied": 3500896,
+        "slots": 4392640,
+        "free_slots": 891744
+      },
+      {
+        "block_size": 98304,
+        "areas": 7,
+        "blocks": 35,
+        "occupied": 3440640,
+        "slots": 28901376,
+        "free_slots": 25460736
+      },
+      {
+        "block_size": 640,
+        "areas": 147,
+        "blocks": 5347,
+        "occupied": 3422080,
+        "slots": 9571840,
+        "free_slots": 6149760
+      },
+      {
+        "block_size": 1572864,
+        "areas": 2,
+        "blocks": 2,
+        "occupied": 3145728,
+        "slots": 3145728,
+        "free_slots": 0
+      },
+      {
+        "block_size": 320,
+        "areas": 82,
+        "blocks": 9825,
+        "occupied": 3144000,
+        "slots": 5342400,
+        "free_slots": 2198400
+      },
+      {
+        "block_size": 896,
+        "areas": 60,
+        "blocks": 3508,
+        "occupied": 3143168,
+        "slots": 3850112,
+        "free_slots": 706944
+      },
+      {
+        "block_size": 80,
+        "areas": 105,
+        "blocks": 39093,
+        "occupied": 3127440,
+        "slots": 6801120,
+        "free_slots": 3673680
+      },
+      {
+        "block_size": 1507328,
+        "areas": 2,
+        "blocks": 2,
+        "occupied": 3014656,
+        "slots": 3014656,
+        "free_slots": 0
+      },
+      {
+        "block_size": 114688,
+        "areas": 6,
+        "blocks": 25,
+        "occupied": 2867200,
+        "slots": 24772608,
+        "free_slots": 21905408
+      },
+      {
+        "block_size": 49152,
+        "areas": 15,
+        "blocks": 56,
+        "occupied": 2752512,
+        "slots": 7372800,
+        "free_slots": 4620288
+      },
+      {
+        "block_size": 6144,
+        "areas": 50,
+        "blocks": 425,
+        "occupied": 2611200,
+        "slots": 3072000,
+        "free_slots": 460800
+      },
+      {
+        "block_size": 1792,
+        "areas": 117,
+        "blocks": 1407,
+        "occupied": 2521344,
+        "slots": 7547904,
+        "free_slots": 5026560
+      },
+      {
+        "block_size": 1536,
+        "areas": 44,
+        "blocks": 1610,
+        "occupied": 2472960,
+        "slots": 2838528,
+        "free_slots": 365568
+      },
+      {
+        "block_size": 32,
+        "areas": 73,
+        "blocks": 75682,
+        "occupied": 2421824,
+        "slots": 4769216,
+        "free_slots": 2347392
+      },
+      {
+        "block_size": 28672,
+        "areas": 9,
+        "blocks": 83,
+        "occupied": 2379776,
+        "slots": 4644864,
+        "free_slots": 2265088
+      },
+      {
+        "block_size": 24576,
+        "areas": 14,
+        "blocks": 90,
+        "occupied": 2211840,
+        "slots": 7225344,
+        "free_slots": 5013504
+      },
+      {
+        "block_size": 57344,
+        "areas": 10,
+        "blocks": 37,
+        "occupied": 2121728,
+        "slots": 5160960,
+        "free_slots": 3039232
+      },
+      {
+        "block_size": 131072,
+        "areas": 7,
+        "blocks": 16,
+        "occupied": 2097152,
+        "slots": 21626880,
+        "free_slots": 19529728
+      },
+      {
+        "block_size": 4096,
+        "areas": 37,
+        "blocks": 482,
+        "occupied": 1974272,
+        "slots": 2424832,
+        "free_slots": 450560
+      },
+      {
+        "block_size": 983040,
+        "areas": 2,
+        "blocks": 2,
+        "occupied": 1966080,
+        "slots": 1966080,
+        "free_slots": 0
+      },
+      {
+        "block_size": 3584,
+        "areas": 70,
+        "blocks": 519,
+        "occupied": 1860096,
+        "slots": 4515840,
+        "free_slots": 2655744
+      },
+      {
+        "block_size": 2048,
+        "areas": 36,
+        "blocks": 878,
+        "occupied": 1798144,
+        "slots": 2359296,
+        "free_slots": 561152
+      },
+      {
+        "block_size": 16384,
+        "areas": 17,
+        "blocks": 108,
+        "occupied": 1769472,
+        "slots": 8634368,
+        "free_slots": 6864896
+      },
+      {
+        "block_size": 32768,
+        "areas": 10,
+        "blocks": 49,
+        "occupied": 1605632,
+        "slots": 4947968,
+        "free_slots": 3342336
+      },
+      {
+        "block_size": 96,
+        "areas": 66,
+        "blocks": 16411,
+        "occupied": 1575456,
+        "slots": 4235136,
+        "free_slots": 2659680
+      },
+      {
+        "block_size": 112,
+        "areas": 37,
+        "blocks": 11594,
+        "occupied": 1298528,
+        "slots": 2381904,
+        "free_slots": 1083376
+      },
+      {
+        "block_size": 192,
+        "areas": 46,
+        "blocks": 6638,
+        "occupied": 1274496,
+        "slots": 2969472,
+        "free_slots": 1694976
+      },
+      {
+        "block_size": 12288,
+        "areas": 23,
+        "blocks": 101,
+        "occupied": 1241088,
+        "slots": 11870208,
+        "free_slots": 10629120
+      },
+      {
+        "block_size": 14336,
+        "areas": 9,
+        "blocks": 81,
+        "occupied": 1161216,
+        "slots": 4644864,
+        "free_slots": 3483648
+      },
+      {
+        "block_size": 1048576,
+        "areas": 1,
+        "blocks": 1,
+        "occupied": 1048576,
+        "slots": 1048576,
+        "free_slots": 0
+      },
+      {
+        "block_size": 8192,
+        "areas": 30,
+        "blocks": 117,
+        "occupied": 958464,
+        "slots": 1966080,
+        "free_slots": 1007616
+      },
+      {
+        "block_size": 1024,
+        "areas": 20,
+        "blocks": 872,
+        "occupied": 892928,
+        "slots": 1310720,
+        "free_slots": 417792
+      },
+      {
+        "block_size": 384,
+        "areas": 20,
+        "blocks": 2273,
+        "occupied": 872832,
+        "slots": 1304448,
+        "free_slots": 431616
+      },
+      {
+        "block_size": 768,
+        "areas": 21,
+        "blocks": 881,
+        "occupied": 676608,
+        "slots": 1370880,
+        "free_slots": 694272
+      },
+      {
+        "block_size": 512,
+        "areas": 21,
+        "blocks": 1122,
+        "occupied": 574464,
+        "slots": 1376256,
+        "free_slots": 801792
+      },
+      {
+        "block_size": 16,
+        "areas": 15,
+        "blocks": 29957,
+        "occupied": 479312,
+        "slots": 980032,
+        "free_slots": 500720
+      },
+      {
+        "block_size": 128,
+        "areas": 39,
+        "blocks": 2102,
+        "occupied": 269056,
+        "slots": 2500352,
+        "free_slots": 2231296
+      }
+    ]
+  },
+  "diagnostic_visitor_note": "The normal visitor aborts on an ownership assertion in _mi_page_update_sample_countdown while collecting a page. The frozen diagnostic adds a scoped read-only visitor branch: initialize the area, count its pending xthread_free linked list using mimalloc decoding, subtract that count from area.used, and invoke the callback. The scheduler mutex excludes workers; no metadata/free list/ownership/statistics is modified by this branch. The temporary vendor and JobManager changes were restored after freezing the binary.",
+  "failed_normal_visitor": {
+    "binary_sha256": "b416c62adda994362fe0772af122747fd8ef44c6940eef4048012ed2cfbc1d77",
+    "exit_code": 3221226505,
+    "assertion": "mi_page_is_owned(page)",
+    "file": "src/Support/Memory/mimalloc/src/alloc/page.c",
+    "line": 291
+  },
+  "large_bin_candidate": {
+    "areas": 102,
+    "blocks": 572,
+    "occupied": 104087552,
+    "slots": 294551552,
+    "free_slots": 190464000,
+    "note": "Observed occupancy, not a predicted or measured saving. MI_ENABLE_LARGE_PAGES=0 removes 4 MiB regular pages for this range; singleton rounding, metadata, purge behavior and allocation time still require comparison."
+  }
+}

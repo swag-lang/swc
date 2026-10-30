@@ -721,3 +721,43 @@ reuse and is not accepted as a speed-preserving solution.
    a compressed replacement must account for each access before implementation.
 4. Group correctness and Release validation with the next optimization batch. Repeat unprofiled
    before/after timings under stable host load before accepting the compilation-speed result.
+
+### Live allocator blocks versus retained free slots
+
+[heap-census.json](heap-census.json) records 30 naturally global-idle snapshots from another
+successful DevMode application build. The diagnostic runs on the scheduler's setup/main thread
+with its mutex held, zero active workers, zero ready jobs and progress animation disabled. It
+visits every registered mimalloc heap using fixed stack counters. It does not force a global
+barrier or collect/purge memory. This is an occupancy diagnostic, never a timing result.
+
+The normal public visitor triggered an ownership assertion while collecting a page's free list;
+the diagnostic therefore uses a temporary read-only visitor branch that subtracts pending
+cross-thread frees from the area count. Both the scheduler and vendor patches were restored;
+the unresolved normal visitor defect is tracked in `compiler.core.095`.
+
+| Same observation point | MiB |
+| --- | ---: |
+| Highest captured process working set | 1,461.313 |
+| Live mimalloc blocks, including size-class rounding and padding | 1,021.945 |
+| Free block slots in the visited pages | 317.099 |
+| Total initialized block-slot capacity | 1,339.045 |
+
+The process's recorded peak was 1,505.375 MiB, 44.062 MiB above the highest captured idle point.
+Live plus free slots equals capacity. Capacity is `page.capacity * full_block_size`; it excludes
+page metadata/tails, unused arena slices, proximity storage, stacks and mappings. It is not an
+OS residency total. In particular, neither the 317 MiB nor the difference from RSS is an amount
+that can necessarily be returned immediately. A page may mix live and free blocks.
+
+At the final snapshot, live blocks occupy 823.967 MiB and free slots 405.427 MiB, while RSS is
+1,446.855 MiB. This confirms substantial retention in addition to the compiler's live structures.
+The live allocations still need owner attribution beyond the existing page/arena/backend counts.
+
+The strongest allocator lead is the 64–512 KiB range: at the highest-RSS snapshot, 572 live blocks
+occupy **99.266 MiB** in 102 areas with **181.641 MiB of free slots**. Mimalloc's own
+`MI_ENABLE_LARGE_PAGES` comment identifies partially used 4 MiB pages as a risk for this workload
+shape. Defining it as zero routes larger blocks through singleton allocation and keeps 64 KiB
+blocks in medium pages. This supported compile-time choice is the next isolated experiment;
+there is no default change yet. The free-slot count is not a promised saving: singleton rounding,
+metadata and allocation cost must be measured. Preserve the ordinary packed binary as control,
+check the same frozen app and C++ allocator boundary, and accept only with the speed tradeoff
+established under the user's priority on compilation time.

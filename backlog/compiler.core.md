@@ -590,6 +590,20 @@ Entries stay in one flat list. Keep only measurements that affect the next actio
 - Done when: a `sema` or `jit` suite case holding the typed declaration reads the returned
   bytes under both compiler executables.
 
+### compiler.core.095 — Make allocator heap inspection safe for abandoned pages
+
+- Evidence: with mimalloc 3.6.0 and `MI_DEBUG=3`, a diagnostic traversal through
+  `mi_subproc_visit_heaps` and `mi_heap_visit_blocks(..., false, ...)` aborts in
+  `_mi_page_update_sample_countdown` on `mi_page_is_owned(page)`. It runs on the main
+  thread while the scheduler mutex is held, no worker is active or ready, and progress
+  animation is disabled. `mi_heap_visit_page` collects deferred frees even when only
+  areas are requested; its abandoned-page ownership guard is conditional on `MI_QSBR`.
+- Next: reduce the failure to a standalone allocated/abandoned-page visitor test and
+  establish the ownership transition needed by collection. Keep the memory census on
+  its temporary read-only path until the normal visitor contract is validated.
+- Done when: visiting live and abandoned pages with pending cross-thread frees preserves
+  exact block counts and passes the allocator's internal assertions without weakening them.
+
 ## Deliberately out of scope
 
 - **An LLVM back end.** The native and Micro back ends are the supported architecture. Reconsider only if a concrete platform or optimization requirement cannot be met within them.

@@ -1350,7 +1350,7 @@ void CodeGen::registerTemporaryDrop(AstNodeRef valueRef, TypeRef typeRef, const 
         flushRootRef = parentRef;
     }
 
-    temporaryDrops_.push_back({flushRootRef, &storage, typeRef});
+    temporaryDrops_.push_back({flushRootRef, typeRef, &storage});
 }
 
 Result CodeGen::emitTemporaryDropsForFailure(AstNodeRef scopeRef)

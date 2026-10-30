@@ -45,8 +45,8 @@ struct CodeGenGlobalToDropEntry
 struct CodeGenTemporaryDrop
 {
     AstNodeRef            flushRootRef = AstNodeRef::invalid();
-    const SymbolVariable* storageSym   = nullptr;
     TypeRef               typeRef      = TypeRef::invalid();
+    const SymbolVariable* storageSym   = nullptr;
 };
 
 enum class CodeGenLifecycleKind : uint8_t
@@ -103,17 +103,22 @@ struct CodeGenDeferredAction
         EndValueBorrow,
     };
 
-    Kind     kind               = Kind::DeferStmt;
-    uint32_t borrowRecordOffset = 0;
+    Kind                 kind               = Kind::DeferStmt;
+    CodeGenLifecycleKind lifecycleKind      = CodeGenLifecycleKind::Drop;
+    uint32_t             borrowRecordOffset = 0;
 
     AstNodeRef       deferStmtRef = AstNodeRef::invalid();
     AstNodeRef       bodyRef      = AstNodeRef::invalid();
     AstModifierFlags modifierFlags;
 
-    const SymbolVariable* variable         = nullptr;
     TypeRef               lifecycleTypeRef = TypeRef::invalid();
-    CodeGenLifecycleKind  lifecycleKind    = CodeGenLifecycleKind::Drop;
+    const SymbolVariable* variable         = nullptr;
 };
+
+#if !SWC_HAS_REF_DEBUG_INFO
+static_assert(sizeof(void*) != 8 || sizeof(CodeGenDeferredAction) == 32);
+static_assert(sizeof(void*) != 8 || sizeof(CodeGenTemporaryDrop) == 16);
+#endif
 
 struct CodeGenDeferScope
 {
@@ -163,12 +168,12 @@ public:
 
     struct InlineContext
     {
-        AstNodeRef               rootNodeRef = AstNodeRef::invalid();
-        const SemaInlinePayload* payload     = nullptr;
+        const SemaInlinePayload* payload          = nullptr;
+        SymbolVariable*         resultStorageSym = nullptr;
 
-        MicroLabelRef   doneLabel        = MicroLabelRef::invalid();
-        MicroReg        resultStorageReg = MicroReg::invalid();
-        SymbolVariable* resultStorageSym = nullptr;
+        AstNodeRef    rootNodeRef      = AstNodeRef::invalid();
+        MicroLabelRef doneLabel        = MicroLabelRef::invalid();
+        MicroReg      resultStorageReg = MicroReg::invalid();
 
         bool noOuterDoneLabel    = false; // true when in local-function context
         bool directReturnStorage = false; // the result is built in the enclosing return storage
@@ -212,11 +217,16 @@ private:
 
     MicroLabelRef currentLoopContinueLabel_   = MicroLabelRef::invalid();
     MicroLabelRef currentLoopBreakLabel_      = MicroLabelRef::invalid();
+    AstNodeRef    inlineBoundaryRootRef_      = AstNodeRef::invalid();
     bool          currentLoopHasContinueJump_ = false;
 
     InlineContext inlineContext_;
-    AstNodeRef    inlineBoundaryRootRef_ = AstNodeRef::invalid();
 };
+
+#if !SWC_HAS_REF_DEBUG_INFO
+static_assert(sizeof(void*) != 8 || sizeof(CodeGenFrame::InlineContext) == 32);
+static_assert(sizeof(void*) != 8 || sizeof(CodeGenFrame) == 72);
+#endif
 
 class CodeGen
 {

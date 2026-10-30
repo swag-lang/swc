@@ -159,8 +159,44 @@ This is a clean observed reduction of **560.64 MiB (22.47%)** for this workload.
 comparison, not a statistical performance campaign. The shared host varies significantly:
 the earlier allocator-integration campaign already included an 83.31-second run with the
 original 3.6.0 compiler. Do not interpret the wall-time pair above as an established speedup.
-The updated Release compiler and the remaining DevMode/Release gap still need measurement.
+The updated Release compiler also built successfully and passed the same 32 focused JIT/native
+tests. Its clean frozen-application run peaked at 1,787.84 MiB (64.06 s wall, 265.36 s process
+CPU). The observed DevMode excess is now 146.37 MiB, or 8.19%, on these first clean runs.
+
+A later DevMode pair confirmed lower memory but raised an unresolved timing concern:
+
+| Compiler | Peak working set | Wall time | Process CPU time |
+| --- | ---: | ---: | ---: |
+| Original 3.6.0 DevMode, repeated | 2,541.51 MiB | 74.95 s | 348.64 s |
+| Memory changes and branch-state fix, repeated | 1,898.01 MiB | 152.38 s | 611.44 s |
+
+Both runs completed cleanly with identical application token/function counts. The shared host
+can affect wall and CPU time, but that does not establish the cause of this reversal. The batch
+has **not** met the no-compilation-slowdown acceptance condition. A controlled timing comparison
+and investigation of the changed cache and payload paths remain necessary before acceptance.
 
 Commands, binary hashes, counters, test output and excluded failed runs are retained in
 [measurements.json](measurements.json). The current compiler's source matches code revision
 `3965e1b51`; its SHA-256 is `43755fc41b9709c32234b29c04c18bea9fe215274839ae939a58224f56fb9d57`.
+
+## Common compiler layout batch, awaiting a grouped build
+
+The next batch targets both compiler executables. These are x64 representation deductions,
+not additional measured process-memory savings; the binaries above do not include them.
+
+- `AstVisit::Frame` stores its four three-state callback flags in byte-sized enums: 48 to
+  32 bytes without reference inspection metadata, saving 1,024 bytes in each visitor's
+  64-entry inline stack. State transitions and stack capacity are unchanged.
+- `TaskState` places the auto-scope reference in existing padding: 96 to 88 bytes without
+  reference inspection metadata. Wait targets, diagnostics and state updates are unchanged.
+- `CodeGenDeferredAction` groups its small tags and references: 40 to 32 bytes. Each
+  `CodeGen` reserves 32 scopes with four inline actions each, saving another 1,024 bytes.
+- `CodeGenTemporaryDrop` groups its references: 24 to 16 bytes; its positional initializer
+  follows the new declaration order.
+- `CodeGenFrame::InlineContext` groups pointers and references: 40 to 32 bytes. Moving the
+  boundary reference into the surrounding frame's header padding reduces that frame from
+  88 to 72 bytes.
+
+All records retain their fields, defaults and natural alignment. No packing, bitfields,
+side tables or allocation-policy changes are introduced. Compile-time size assertions guard
+the normal x64 layouts at the next grouped build.

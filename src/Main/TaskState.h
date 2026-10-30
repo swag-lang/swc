@@ -44,15 +44,15 @@ struct TaskState
     TaskStateKind         kind                     = TaskStateKind::None;
     bool                  jitEmissionError         = false;
 
-    // A type-info waiter observes the exact owner generation that blocked it.
-    // The source lives with the compiler's metadata storage, beyond its jobs.
-    std::atomic<uint64_t>* typeInfoOwner      = nullptr;
-    uint64_t               typeInfoGeneration = 0;
-
     // Scope an unresolved `.member` was looked up in, when the identifier wait comes from
     // auto-scope resolution. It survives the pause so a stalled wait can still name the type
     // and list what it does offer, instead of degrading to a bare unknown-symbol report.
     TypeRef autoScopeTypeRef = TypeRef::invalid();
+
+    // A type-info waiter observes the exact owner generation that blocked it.
+    // The source lives with the compiler's metadata storage, beyond its jobs.
+    std::atomic<uint64_t>* typeInfoOwner      = nullptr;
+    uint64_t               typeInfoGeneration = 0;
 
     // Scope a qualified 'Scope.member' lookup waited on, so a stalled wait can still name that
     // scope and the closest name it offers.
@@ -71,5 +71,9 @@ private:
     // The fields every active state rewrites: its location, and no wait target.
     void resetActiveLocation(AstNodeRef currentNodeRef, const SourceCodeRef& currentCodeRef);
 };
+
+#if !SWC_HAS_REF_DEBUG_INFO
+static_assert(sizeof(void*) != 8 || sizeof(TaskState) == 88);
+#endif
 
 SWC_END_NAMESPACE();

@@ -96,7 +96,7 @@ private:
         AstNodeRef nodeRef;
         Stage      stage = Stage::Pre;
 
-        enum class CallState
+        enum class CallState : uint8_t
         {
             NotCalled,
             Paused,
@@ -111,6 +111,10 @@ private:
         bool pendingPostChild = false;
         bool firstPass        = true;
     };
+
+#if !SWC_HAS_REF_DEBUG_INFO
+    static_assert(sizeof(void*) != 8 || sizeof(Frame) == 32);
+#endif
 
     Ast*       ast_     = nullptr;
     AstNodeRef rootRef_ = AstNodeRef::invalid();

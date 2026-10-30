@@ -7,9 +7,9 @@ builds and comparative measurements are periodic checkpoints, not a per-edit req
 ## Debugger-only metadata
 
 `SWC_DEBUG_MODE=1` now owns the metadata maintained only for interactive C++ inspection.
-MSBuild exposes it through `SwcDebugMode=true` and writes a separate `swc.dbg.exe` with PDB
-information and separate intermediates. Normal DevMode keeps assertions, race detection,
-compiler validators, allocator checks and unit tests.
+It is disabled by default in `src/pch.h` and can be enabled manually before rebuilding.
+There is no additional MSBuild configuration, property or executable. Normal DevMode keeps
+assertions, race detection, compiler validators, allocator checks and unit tests.
 
 Static x64 layout consequences:
 
@@ -28,8 +28,8 @@ Compile-time size assertions protect the compact representations.
 The AST visitor inspection test is registered only when its inspection fields exist. All
 semantic traversal tests and the ordinary compiler checks remain enabled in DevMode.
 
-This batch has not yet been compiled or measured. These are local representation savings,
-not a measured process peak or a measured compilation speedup. The preserved pre-change
+The DevMode build passed the representation assertions. These are local representation savings,
+not an accepted process-peak or compilation-speed result. The preserved pre-change
 3.6.0 executables and frozen workloads from the
 [integration report](../20261030-mimalloc360/README.md) provide the comparison checkpoint.
 
@@ -52,3 +52,115 @@ MSVC STL does. Microsoft's [ABI explanation](https://devblogs.microsoft.com/cppb
 documents why the standard spelling alone does not enable this optimization in the MSVC ABI.
 Other compilers use the standard attribute. These changes add no side table, indirection,
 allocation, hash lookup or compaction pass; the storage savings apply to Release too.
+
+## Constant graph cache ownership
+
+The allocation-walk cache used to own its tables and copied relocations in thread-local
+storage. Segment identities are unique, so entries from destroyed constant managers could
+never hit again, but remained allocated until the worker exited.
+
+Each `ConstantManager` now owns one table per calling thread. A trivial TLS shortcut retains
+only the current owner's unique identity and a non-owning table pointer. Repeated lookups
+take no registration lock. Switching between live managers finds the thread's existing table
+without evicting its useful entries; destroying a manager destroys all its tables and payloads.
+The identity check also distinguishes a new manager constructed at a previous owner's address.
+External threads use the same ownership path and do not share a worker-index slot.
+
+Within an owner, the full shard/offset pair forms the table key. This removes the segment ID
+and repeated query offset from every entry (168 to 152 bytes on x64 after the preceding layout
+changes). It also preserves the low offset bit: the previous composite key forced that bit to
+one, so neighboring byte offsets could replace each other's entries despite the stable-entry
+contract. Flat probing, table growth, version invalidation and stable deque addresses remain.
+
+Three focused C++ regressions cover complete cache deallocation at owner destruction, reuse
+of the owner's address, interleaved owners and neighboring offsets, and independent concurrent
+threads. Existing relocation-graph and table-growth tests continue to exercise refreshes.
+All 1,687 C++ tests passed with this batch, including the three ownership regressions.
+This ownership change removes proven retained storage; its process-memory and timing effects
+remain pending a clean grouped comparison.
+
+## Validation checkpoint and allocator investigation
+
+The first complete DevMode build succeeded. On the frozen `swagcapture` inputs, the original
+3.6.0 DevMode compiler peaked at 2,494.84 MiB working set. The compact compiler's run emitted
+a mimalloc error while destroying a CodeGen payload arena, despite exiting with code zero.
+That run is invalid as performance evidence. The measurement harness now treats allocator
+errors as failures independently of the exit code. A subsequent diagnostic executable with
+guarded allocations completed without an allocator error; it is not a timing comparison.
+
+Symbolization located the reported 544-byte block at `CodeGen`'s 512-byte payload arena plus
+its block header. Static inspection found two relevant defects:
+
+- A metadata lookup could allocate only `CodeGenNodePayload`, then specialized lowering
+  reused it as a larger conditional, logical, optional-chain or assertion payload. Branch
+  labels and stages are now separate small records in the existing auxiliary table, keyed
+  by the original node; values remain keyed by the resolved substitute. Trivial auxiliary
+  records use the job arena. Invalidation only touches already allocated value payloads.
+  A C++ regression covers early metadata, substitution and independent branch state for all
+  five types; compile-time checks forbid downcasting a value payload to a larger subtype.
+- Mimalloc 3.6.0 could read an uninitialized `is_double_free` flag after detecting an overwritten
+  padding byte with an intact canary. Its local diagnostic fix initializes that flag; overflow
+  detection remains enabled. The vendor provenance document records the patch.
+
+An intermediate attempt selected the full allocation from the resolved AST kind. Its normal
+DevMode build and 1,615 fast C++ tests passed, but `swagcapture` failed an assertion placing a
+branch label in `Core.Hash.hash32` at `value orelse ""`. The existing 27 null-coalescing native
+tests passed with that binary. A standalone generic function passing `value orelse ""` to a
+nullable byte-slice parameter reproduced the same assertion; it is now the
+`null_coalescing_slice_argument.swg` native regression. This exposed the need to separate
+control-flow identity from shared value identity. The revised separation and the layout batch
+below now compile in DevMode, including both new size assertions. The reduced native regression
+passes in JIT and native execution with the revised compiler after failing with the intermediate
+allocation-by-node-kind compiler. All 1,615 fast C++ tests then passed, including the revised
+state-isolation regression. A selection of seven native source files passed all 32 tests in
+both JIT and native execution: slice-argument coalescing, conditional lifecycles, logical
+operators, optional chains, inline optional guards and short-circuit cases.
+No application gain or speed result is accepted from the failed runs.
+
+## Subsequent layout batch
+
+- `MicroRelocation::privateGlobal` fills the space beside its byte-sized kind and form,
+  removing eight bytes from the normal x64 record (56 to 48). Its designated initializer
+  follows declaration order; relocation values and encoding remain unchanged.
+- `AttributeList::observesExternalBorrows` moves beside `backendOptimize`, occupying existing
+  padding instead of interrupting the sequence of 64-bit masks. This saves eight bytes in
+  each attribute list, including copies embedded in semantic frames.
+- `SemaFrame` groups its five booleans into the access-header padding and places its 32-bit
+  binding count beside the normal 32-bit inline-context reference. These fields keep their
+  initializers; no packing pragma, bitfield, indirection or runtime decoding is introduced.
+- `JobRecord` groups its priority, state and registration flags, reducing its x64 size from
+  80 to 72 bytes in both compiler configurations. `CodeGenJob` places its three booleans beside
+  the normal 32-bit root reference, removing another eight bytes per retained job. Scheduler
+  counters and state transitions remain unchanged.
+- `CodeGenLoweringPayload` groups its two array-fill references and moves the safety mask
+  beside the wrapper token ID: 88 to 80 bytes on x64 without reference inspection metadata.
+  Every value payload embeds these metadata too. A compile-time size check protects the layout.
+- `NodePayload::SubstituteStorage` groups its two 16-bit fields: 20 to 16 bytes without
+  reference inspection metadata. Its designated initializer follows the new order and a
+  compile-time size check protects the compact record.
+
+These storage-layout changes passed the grouped DevMode build. The early application runs and
+the intermediate compiler's 1,615-test result do not describe this later batch.
+
+## First clean DevMode application comparison
+
+The corrected compiler rebuilt the frozen `swagcapture` workspace with no allocator error.
+The runtime, standard-library and application snapshot was checked byte for byte again.
+Both runs below report 592,024 tokens, 5,142 tuned functions and 2,411 forged functions for
+the application. Both use six workers, `--rebuild`, isolated temporary/cache roots and the
+default program `devmode` preset without `--debug`.
+
+| Compiler | Peak working set | Wall time | Process CPU time |
+| --- | ---: | ---: | ---: |
+| Original 3.6.0 DevMode | 2,494.84 MiB | 123.24 s | 544.75 s |
+| Memory changes and branch-state fix | 1,934.20 MiB | 83.51 s | 369.44 s |
+
+This is a clean observed reduction of **560.64 MiB (22.47%)** for this workload. It is a first
+comparison, not a statistical performance campaign. The shared host varies significantly:
+the earlier allocator-integration campaign already included an 83.31-second run with the
+original 3.6.0 compiler. Do not interpret the wall-time pair above as an established speedup.
+The updated Release compiler and the remaining DevMode/Release gap still need measurement.
+
+Commands, binary hashes, counters, test output and excluded failed runs are retained in
+[measurements.json](measurements.json). The current compiler's source matches code revision
+`3965e1b51`; its SHA-256 is `43755fc41b9709c32234b29c04c18bea9fe215274839ae939a58224f56fb9d57`.

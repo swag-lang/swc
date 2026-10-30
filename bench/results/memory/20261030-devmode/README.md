@@ -4,6 +4,12 @@ The current objective is to reduce memory common to both compiler configurations
 compilation speed priority. Changes with a static storage or work reduction are grouped;
 builds and comparative measurements are periodic checkpoints, not a per-edit requirement.
 
+The latest uninstrumented DevMode application observation is **1,443.543 MiB peak working set**
+at compiler checkpoint `f484c97a40`, compared with **1,472.266 MiB** for its immediately
+preceding compact-liveness control. This pair shows 28.723 MiB less resident memory; host-load
+differences prevent speed acceptance. See [effects-cache.json](effects-cache.json). Release
+validation of this latest batch remains pending; its last validated checkpoint is `8bcdc4259b`.
+
 ## Current occupation map and priorities
 
 The AST alone does not explain the process footprint. The strongest measured waste so far is
@@ -75,12 +81,15 @@ allocation stacks and aggregation by owning function are retained in the census 
 
 The next work follows the measured owners:
 
-1. Complete controlled timing validation of compact acyclic liveness storage.
-   Its first application observation reduces peak working set by 64.969 MiB. Cyclic matrices
+1. Complete controlled timing validation of compact acyclic liveness storage and the effects/cache
+   batch. Compact rows observed 36.781–64.969 MiB less working set than two dense-baseline runs;
+   the latest effects/cache pair observes another 28.723 MiB reduction. These are not additive
+   controlled guarantees. Cyclic matrices
    remain dense; discarding all reusable worker buffers is not an established speed-preserving solution.
 2. Inspect the other retained microcode analyses (78.343 MiB), then linker peak buffers. Use the
    captured owning stacks to choose concrete containers and preserve useful reuse.
-3. Split the 149.927 MiB of mixed arena payloads and count small sema containers. Preserve direct
+3. Split the 149.927 MiB of mixed arena payloads with the prepared typed-arena census, then count
+   small sema containers. Preserve direct
    allocator calls, OS mappings and ambiguous inlined storage as explicit measurement limits.
 4. Finish the large-page candidate's timing and output-equivalence checks, then group Release
    validation. Its 11.94% observed memory saving is not yet an accepted default change.
@@ -1076,9 +1085,19 @@ remaining body difference. Reordered duplicate generic names explain the apparen
 changes. No extra instruction, memory access, call or branch was found in the compared bodies.
 This comparison does not recover overload call-target identity absent from the listing.
 
-Frozen-application observations and grouped Release validation remain pending. Timing admission
-has repeatedly found concurrent host pressure above the stricter measurement threshold; no
-compilation-speed or process-memory claim is made for this batch yet.
+The frozen application rebuilds successfully with both preserved binaries and no allocator
+error. Tracked source bytes match. The candidate peaks at **1,443.543 MiB working set**, versus
+**1,472.266 MiB** for the immediately following compact-liveness control: an observed reduction
+of **28.723 MiB (1.95%)**. Peak private memory is 32.098 MiB lower. Both runs report 592,047
+tokens / 5,143 tuned / 2,411 forged functions. Their 46 published `.swg` API files are
+byte-identical, including the previously varying Lens borrow summary; eleven worker-partitioned
+`.swgsrc` files differ. This is not a whole-generated-output equivalence claim.
+
+Strict start admission passed for both runs, but average host CPU use rose to 50.84% for the
+candidate and 63.37% for the control. Candidate wall/process CPU times are 69.177/307.094 s,
+versus 147.401/443.953 s for the control; these differences are excluded from speed acceptance.
+Controlled timing and grouped Release validation remain pending. The memory figures are
+observations of this pair, not a constant guaranteed saving.
 
 ### Remaining attribution work
 
@@ -1089,7 +1108,9 @@ type, at the same setup-thread/global-idle observation boundary. Its accounting 
 tracks raw allocations, finalizer records, block headers, alignment padding and unused tails.
 Separately owned vector/map/string buffers remain outside those inline type totals. Diagnostic
 maps and an extra arena field affect instrumented RSS; this probe cannot validate speed or be
-silently combined with a previous run's simultaneous owner totals. It has not been built or run.
+silently combined with a previous run's simultaneous owner totals. Its diagnostic build passes;
+the normal compiler and all instrumented source files were restored. The application observation
+is pending machine-load admission; no typed-arena measurement is available yet.
 
 The next backend design target remains large cyclic liveness matrices. The density census
 shows sparse row bands there too, but the current in-place fixed point needs mutable rows.

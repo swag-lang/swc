@@ -338,7 +338,9 @@ impl IWnd for IconButton
                      .checkIndicator != .Ink
         if marked and .checkIndicator == .Frame
         {
-            bc.painter.drawRoundRect(clientRect, framedRadius, framedRadius, colorChecked, 1)
+            var frame = clientRect
+            frame.inflate(-0.5)
+            bc.painter.drawRoundRect(frame, framedRadius, framedRadius, colorChecked, 1)
         }
         elif marked
         {

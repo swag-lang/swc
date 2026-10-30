@@ -476,6 +476,23 @@ impl ViewerWindow
             .clearRecent()
     }
 
+    // Offers to forget a file that disappeared after it was added to the history.
+    mtd confirmForgetMissingRecent(fileName: string)
+    {
+        let file = String.from(fileName)
+        if not .recent.contains(file) do
+            return
+
+        let texts = appStrings()
+        var options: MessageDlgOptions
+        options.title = texts.home_MissingTitle
+        if MessageDlg.confirm(unwrap .surface,
+                              texts.ui_FailureNotFound,
+                              texts.home_AskForgetMissing,
+                              options: options) == Dialog.BtnYes do
+            .forgetRecent(file)
+    }
+
     // Opens the file a panel row names, unless the row was selected by the refresh itself.
     private mtd openListSelection(list: *ListCtrl, files: const [..] String)
     {

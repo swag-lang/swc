@@ -1,0 +1,1291 @@
+{
+  "note": "Snapshot partitions live arena backing at globally idle points. Typed bytes are inline sizeof(T)*count storage, excluding separately owned vector/map/string buffers. Raw allocations remain untyped. Headers, alignment, finalizer records and unused tails are disjoint. Profile maps and the added per-arena unique_ptr are diagnostic overhead present in RSS, excluded from these owner sums. This is not a timing measurement or the exact process-peak snapshot.",
+  "build": {
+    "command": [
+      "C:/Program Files/Microsoft Visual Studio/18/Enterprise/MSBuild/Current/Bin/MSBuild.exe",
+      "swc.vcxproj",
+      "/m:6",
+      "/p:SwcCompileJobs=6",
+      "/p:Platform=x64",
+      "/p:Configuration=DevMode",
+      "/nologo",
+      "/v:minimal"
+    ],
+    "revision": "9d895cdeaab4f13b46b803b7d055cf17eb32ccdb",
+    "source_sha256": {
+      "src/Support/Memory/Arena.h": "74d920f86082ee5eceebb14cd7031a4ce263136b326746c0682ab0511cefafb3",
+      "src/Support/Memory/Arena.cpp": "b4d22e834ffa3455b342b9cdd545ab190ed41d98e70442298c78bb69a25e4620",
+      "src/Support/Thread/JobManager.cpp": "03608b7a7b5c8cb4c09d455e0bf359654396db5b21dd2df3000cab98624d27ba"
+    },
+    "probe_sha256": "5fa678d7cc0e4f79d1072a2fec5a99c1565d1559da273c279dc6f4bf3fba833a",
+    "patch_sha256": "a2d08b23af9bc9f7ca14427f9a0454660f47e1499cc33da96b35ef1bc6a775b9",
+    "timing_comparable": false,
+    "note": "Typed requested arena payloads plus exact backing/header/padding/tail accounting at global idle. Diagnostic profile maps and added arena pointer are excluded from owner totals, but present in measured RSS. Raw/trivial non-template allocations remain separately unattributed.",
+    "exit_code": 0,
+    "compiler_sha256": "9379b3df074fe31299f8d69a266471c0dc6ccf61577fb5473f7192cb53f9b96d",
+    "wall_seconds": 790.2973518371582
+  },
+  "measurement": {
+    "exit": 0,
+    "started_unix": 1793381785.0811062,
+    "affinity_mask": 349185,
+    "effective_affinity_mask": 349185,
+    "system_affinity_mask": 4194303,
+    "affinity_verified": true,
+    "host_busy_pct": 65.42036304983012,
+    "other_process_cpu_ms_estimate": 1667234.375,
+    "wall_ms": 161335.1363,
+    "first_stdout_ms": null,
+    "cpu_ms": 652218.75,
+    "user_cpu_ms": 630187.5,
+    "kernel_cpu_ms": 22031.25,
+    "job_cpu_ms": 652234.375,
+    "page_faults": 837331,
+    "job_processes": 2,
+    "peak_job_bytes": 1467355136,
+    "peak_proc_bytes": 1466134528,
+    "peak_working_set_bytes": 1480839168,
+    "stderr": "\r\n",
+    "harness_sha256": "20a4c33520539d62e67dc2e80a58120e088e68718ed1a690da3a0f0dd2fe7dbf",
+    "allocator_error": false,
+    "mimalloc_options": {},
+    "command": [
+      "C:\\Users\\chris\\AppData\\Local\\swc-agent-builds\\mimalloc-360-20261030-071336\\install\\swc.arena-types.dm.exe",
+      "build",
+      "--workspace",
+      "C:\\Users\\chris\\AppData\\Local\\swc-agent-builds\\mimalloc-360-20261030-071336\\install\\apps",
+      "--workspace-module",
+      "swagcapture",
+      "--num-cores",
+      "6",
+      "--rebuild",
+      "--no-log-color",
+      "--no-log-progress"
+    ],
+    "compiler_sha256": "9379b3df074fe31299f8d69a266471c0dc6ccf61577fb5473f7192cb53f9b96d",
+    "stdout_sha256": "4efe8cb30008168bf952d0bd3cebfe142383e3dce8391a8d0ba1f3c7fbd5a29a",
+    "non_probe_stdout": "  \u25c6  swag        build \u2022 apps [swagcapture] \u2022 devmode\n  \u2713  module      win32 \u2022 48 files \u2022 866 ms\n  \u2713  module      gdi32 \u2022 44 files \u2022 887 ms\n  \u2713  module      xinput \u2022 43 files \u2022 460 ms\n  \u2713  module      core \u2022 378 files \u2022 core.dll \u2022 10 s 663 ms\n  \u2713  module      ogl \u2022 98 files \u2022 ogl.dll \u2022 4 s 295 ms\n  \u2713  module      truetype \u2022 99 files \u2022 truetype.dll \u2022 3 s 295 ms\n  \u2713  module      pixel \u2022 318 files \u2022 pixel.dll \u2022 22 s 464 ms\n  \u2713  module      gui \u2022 366 files \u2022 gui.dll \u2022 1 min 46 s\n  \u2713  workspace   std [gui] \u2022 8 modules \u2022 2 min 33 s\n  \u2713  checked     136 files \u2022 592_047 tokens \u2022 1 s 943 ms\n  \u2713  tuned       5_143 functions \u2022 3 s 116 ms\n  \u2713  forged      2_411 functions \u2022 swagcapture.exe \u2022 3 s 175 ms\n  \u2713  module      swagcapture \u2022 182 files \u2022 swagcapture.exe \u2022 6 s 67 ms\n  \u2713  workspace   apps [swagcapture] \u2022 1 module \u2022 2 min 40 s\n  \u2713  clean       2 min 40 s",
+    "profiling_enabled": true,
+    "timing_comparable": false
+  },
+  "snapshot_count": 29,
+  "max_captured_rss": {
+    "snapshot": 25,
+    "rss": 1434636288,
+    "peak_rss": 1480839168,
+    "private": 1419837440,
+    "elapsed": 153555,
+    "arenas": 24,
+    "complete": true,
+    "totals": {
+      "backing": 158007538,
+      "headers": 83072,
+      "blocks": 2596,
+      "requested": 156526280,
+      "typed": 150885695,
+      "finalizers": 4889696,
+      "padding": 39945,
+      "untyped": 750889,
+      "unused_tail": 1358241
+    },
+    "types": {
+      "struct swc::AttributeList": {
+        "objects": 76326,
+        "bytes": 47627424,
+        "allocations": 76326,
+        "inline_object_size": 624
+      },
+      "class swc::SymbolFunction": {
+        "objects": 31719,
+        "bytes": 47451624,
+        "allocations": 31719,
+        "inline_object_size": 1496
+      },
+      "class swc::SymbolVariable": {
+        "objects": 161607,
+        "bytes": 21978552,
+        "allocations": 161607,
+        "inline_object_size": 136
+      },
+      "struct swc::SemaInlinePayload": {
+        "objects": 22078,
+        "bytes": 16249408,
+        "allocations": 22078,
+        "inline_object_size": 736
+      },
+      "struct swc::CodeGenLoweringPayload": {
+        "objects": 77504,
+        "bytes": 6200320,
+        "allocations": 77504,
+        "inline_object_size": 80
+      },
+      "class swc::SymbolStruct": {
+        "objects": 2045,
+        "bytes": 2274040,
+        "allocations": 2045,
+        "inline_object_size": 1112
+      },
+      "struct swc::LoopSemaPayload": {
+        "objects": 3172,
+        "bytes": 1700192,
+        "allocations": 3172,
+        "inline_object_size": 536
+      },
+      "struct std::atomic<unsigned __int64>": {
+        "objects": 157184,
+        "bytes": 1257472,
+        "allocations": 2024,
+        "inline_object_size": 8
+      },
+      "struct std::atomic<class swc::Symbol *>": {
+        "objects": 157184,
+        "bytes": 1257472,
+        "allocations": 2024,
+        "inline_object_size": 8
+      },
+      "class swc::SymbolImpl": {
+        "objects": 3894,
+        "bytes": 1152624,
+        "allocations": 3894,
+        "inline_object_size": 296
+      },
+      "struct swc::SemaCompilerIf": {
+        "objects": 8855,
+        "bytes": 991760,
+        "allocations": 8855,
+        "inline_object_size": 112
+      },
+      "struct swc::SemaInlineContextOverride": {
+        "objects": 58620,
+        "bytes": 468960,
+        "allocations": 58620,
+        "inline_object_size": 8
+      },
+      "struct swc::`anonymous-namespace'::IfSemaPayload": {
+        "objects": 26480,
+        "bytes": 423680,
+        "allocations": 26480,
+        "inline_object_size": 16
+      },
+      "class swc::SymbolConstant": {
+        "objects": 5118,
+        "bytes": 327552,
+        "allocations": 5118,
+        "inline_object_size": 64
+      },
+      "struct swc::SemaLookupScopeOverrideNodes": {
+        "objects": 3521,
+        "bytes": 253512,
+        "allocations": 3521,
+        "inline_object_size": 72
+      },
+      "class swc::SymbolNamespace": {
+        "objects": 989,
+        "bytes": 221536,
+        "allocations": 989,
+        "inline_object_size": 224
+      },
+      "class swc::SymbolEnum": {
+        "objects": 292,
+        "bytes": 151840,
+        "allocations": 292,
+        "inline_object_size": 520
+      },
+      "class swc::SymbolEnumValue": {
+        "objects": 2351,
+        "bytes": 150464,
+        "allocations": 2351,
+        "inline_object_size": 64
+      },
+      "struct swc::`anonymous-namespace'::CompilerIfSemaPayload": {
+        "objects": 8792,
+        "bytes": 140672,
+        "allocations": 8792,
+        "inline_object_size": 16
+      },
+      "struct swc::SwitchPayload": {
+        "objects": 400,
+        "bytes": 137600,
+        "allocations": 400,
+        "inline_object_size": 344
+      },
+      "struct swc::`anonymous-namespace'::SwitchStmtCodeGenPayload": {
+        "objects": 377,
+        "bytes": 90480,
+        "allocations": 377,
+        "inline_object_size": 240
+      },
+      "class swc::SymbolAlias": {
+        "objects": 874,
+        "bytes": 62928,
+        "allocations": 874,
+        "inline_object_size": 72
+      },
+      "struct swc::SymbolImplChain::Link": {
+        "objects": 3522,
+        "bytes": 56352,
+        "allocations": 3522,
+        "inline_object_size": 16
+      },
+      "struct swc::SymbolMap::HeadTable": {
+        "objects": 2024,
+        "bytes": 48576,
+        "allocations": 2024,
+        "inline_object_size": 24
+      },
+      "struct swc::`anonymous-namespace'::ErrorManagementPayload": {
+        "objects": 9404,
+        "bytes": 37616,
+        "allocations": 9404,
+        "inline_object_size": 4
+      },
+      "struct swc::IndexSpecOpSemaPayload": {
+        "objects": 2042,
+        "bytes": 32672,
+        "allocations": 2042,
+        "inline_object_size": 16
+      },
+      "struct swc::SymbolMap::Shard": {
+        "objects": 240,
+        "bytes": 30720,
+        "allocations": 30,
+        "inline_object_size": 128
+      },
+      "struct swc::InlineValueBorrowSemaPayload": {
+        "objects": 1548,
+        "bytes": 24768,
+        "allocations": 1548,
+        "inline_object_size": 16
+      },
+      "struct swc::`anonymous-namespace'::CompilerSwitchSemaPayload": {
+        "objects": 63,
+        "bytes": 20664,
+        "allocations": 63,
+        "inline_object_size": 328
+      },
+      "struct swc::RelationalSpecOpPayload": {
+        "objects": 1102,
+        "bytes": 17632,
+        "allocations": 1102,
+        "inline_object_size": 16
+      },
+      "struct swc::SymbolMap::UsingSymMap": {
+        "objects": 478,
+        "bytes": 15296,
+        "allocations": 478,
+        "inline_object_size": 32
+      },
+      "struct swc::CastSpecOpPayload": {
+        "objects": 584,
+        "bytes": 9344,
+        "allocations": 584,
+        "inline_object_size": 16
+      },
+      "struct swc::AssignSpecOpPayload": {
+        "objects": 874,
+        "bytes": 6992,
+        "allocations": 874,
+        "inline_object_size": 8
+      },
+      "class swc::SymbolInterface": {
+        "objects": 22,
+        "bytes": 5632,
+        "allocations": 22,
+        "inline_object_size": 256
+      },
+      "struct swc::SliceIndexSemaPayload": {
+        "objects": 227,
+        "bytes": 2724,
+        "allocations": 227,
+        "inline_object_size": 12
+      },
+      "struct swc::DynamicStructSwitchCasePayload": {
+        "objects": 39,
+        "bytes": 2184,
+        "allocations": 39,
+        "inline_object_size": 56
+      },
+      "struct swc::SemaNamedScope": {
+        "objects": 86,
+        "bytes": 1376,
+        "allocations": 86,
+        "inline_object_size": 16
+      },
+      "struct swc::CastSetPayload": {
+        "objects": 52,
+        "bytes": 1248,
+        "allocations": 52,
+        "inline_object_size": 24
+      },
+      "struct swc::BinarySpecOpPayload": {
+        "objects": 50,
+        "bytes": 400,
+        "allocations": 50,
+        "inline_object_size": 8
+      },
+      "class swc::StrongRef<class swc::ConstantValue>": {
+        "objects": 86,
+        "bytes": 344,
+        "allocations": 75,
+        "inline_object_size": 4
+      },
+      "struct swc::VarInitSpecOpPayload": {
+        "objects": 31,
+        "bytes": 248,
+        "allocations": 31,
+        "inline_object_size": 8
+      },
+      "class swc::SymbolModule": {
+        "objects": 1,
+        "bytes": 224,
+        "allocations": 1,
+        "inline_object_size": 224
+      },
+      "struct swc::CountOfSpecOpPayload": {
+        "objects": 26,
+        "bytes": 208,
+        "allocations": 26,
+        "inline_object_size": 8
+      },
+      "struct swc::DeferredIndexAssignSpecOpPayload": {
+        "objects": 169,
+        "bytes": 169,
+        "allocations": 169,
+        "inline_object_size": 1
+      },
+      "struct swc::SliceSpecOpSemaPayload": {
+        "objects": 2,
+        "bytes": 96,
+        "allocations": 2,
+        "inline_object_size": 48
+      },
+      "struct swc::DynamicStructSwitchAsCastPayload": {
+        "objects": 38,
+        "bytes": 38,
+        "allocations": 38,
+        "inline_object_size": 1
+      },
+      "struct swc::ScopedBreakSemaPayload": {
+        "objects": 7,
+        "bytes": 28,
+        "allocations": 7,
+        "inline_object_size": 4
+      },
+      "struct swc::UnarySpecOpPayload": {
+        "objects": 2,
+        "bytes": 16,
+        "allocations": 2,
+        "inline_object_size": 8
+      },
+      "struct swc::TaggedIsPayload": {
+        "objects": 1,
+        "bytes": 16,
+        "allocations": 1,
+        "inline_object_size": 16
+      }
+    }
+  },
+  "max_captured_arena_backing": {
+    "snapshot": 23,
+    "rss": 1323610112,
+    "peak_rss": 1350557696,
+    "private": 1314295808,
+    "elapsed": 147839,
+    "arenas": 24,
+    "complete": true,
+    "totals": {
+      "backing": 158007538,
+      "headers": 83072,
+      "blocks": 2596,
+      "requested": 156526280,
+      "typed": 150885695,
+      "finalizers": 4889696,
+      "padding": 39945,
+      "untyped": 750889,
+      "unused_tail": 1358241
+    },
+    "types": {
+      "struct swc::AttributeList": {
+        "objects": 76326,
+        "bytes": 47627424,
+        "allocations": 76326,
+        "inline_object_size": 624
+      },
+      "class swc::SymbolFunction": {
+        "objects": 31719,
+        "bytes": 47451624,
+        "allocations": 31719,
+        "inline_object_size": 1496
+      },
+      "class swc::SymbolVariable": {
+        "objects": 161607,
+        "bytes": 21978552,
+        "allocations": 161607,
+        "inline_object_size": 136
+      },
+      "struct swc::SemaInlinePayload": {
+        "objects": 22078,
+        "bytes": 16249408,
+        "allocations": 22078,
+        "inline_object_size": 736
+      },
+      "struct swc::CodeGenLoweringPayload": {
+        "objects": 77504,
+        "bytes": 6200320,
+        "allocations": 77504,
+        "inline_object_size": 80
+      },
+      "class swc::SymbolStruct": {
+        "objects": 2045,
+        "bytes": 2274040,
+        "allocations": 2045,
+        "inline_object_size": 1112
+      },
+      "struct swc::LoopSemaPayload": {
+        "objects": 3172,
+        "bytes": 1700192,
+        "allocations": 3172,
+        "inline_object_size": 536
+      },
+      "struct std::atomic<unsigned __int64>": {
+        "objects": 157184,
+        "bytes": 1257472,
+        "allocations": 2024,
+        "inline_object_size": 8
+      },
+      "struct std::atomic<class swc::Symbol *>": {
+        "objects": 157184,
+        "bytes": 1257472,
+        "allocations": 2024,
+        "inline_object_size": 8
+      },
+      "class swc::SymbolImpl": {
+        "objects": 3894,
+        "bytes": 1152624,
+        "allocations": 3894,
+        "inline_object_size": 296
+      },
+      "struct swc::SemaCompilerIf": {
+        "objects": 8855,
+        "bytes": 991760,
+        "allocations": 8855,
+        "inline_object_size": 112
+      },
+      "struct swc::SemaInlineContextOverride": {
+        "objects": 58620,
+        "bytes": 468960,
+        "allocations": 58620,
+        "inline_object_size": 8
+      },
+      "struct swc::`anonymous-namespace'::IfSemaPayload": {
+        "objects": 26480,
+        "bytes": 423680,
+        "allocations": 26480,
+        "inline_object_size": 16
+      },
+      "class swc::SymbolConstant": {
+        "objects": 5118,
+        "bytes": 327552,
+        "allocations": 5118,
+        "inline_object_size": 64
+      },
+      "struct swc::SemaLookupScopeOverrideNodes": {
+        "objects": 3521,
+        "bytes": 253512,
+        "allocations": 3521,
+        "inline_object_size": 72
+      },
+      "class swc::SymbolNamespace": {
+        "objects": 989,
+        "bytes": 221536,
+        "allocations": 989,
+        "inline_object_size": 224
+      },
+      "class swc::SymbolEnum": {
+        "objects": 292,
+        "bytes": 151840,
+        "allocations": 292,
+        "inline_object_size": 520
+      },
+      "class swc::SymbolEnumValue": {
+        "objects": 2351,
+        "bytes": 150464,
+        "allocations": 2351,
+        "inline_object_size": 64
+      },
+      "struct swc::`anonymous-namespace'::CompilerIfSemaPayload": {
+        "objects": 8792,
+        "bytes": 140672,
+        "allocations": 8792,
+        "inline_object_size": 16
+      },
+      "struct swc::SwitchPayload": {
+        "objects": 400,
+        "bytes": 137600,
+        "allocations": 400,
+        "inline_object_size": 344
+      },
+      "struct swc::`anonymous-namespace'::SwitchStmtCodeGenPayload": {
+        "objects": 377,
+        "bytes": 90480,
+        "allocations": 377,
+        "inline_object_size": 240
+      },
+      "class swc::SymbolAlias": {
+        "objects": 874,
+        "bytes": 62928,
+        "allocations": 874,
+        "inline_object_size": 72
+      },
+      "struct swc::SymbolImplChain::Link": {
+        "objects": 3522,
+        "bytes": 56352,
+        "allocations": 3522,
+        "inline_object_size": 16
+      },
+      "struct swc::SymbolMap::HeadTable": {
+        "objects": 2024,
+        "bytes": 48576,
+        "allocations": 2024,
+        "inline_object_size": 24
+      },
+      "struct swc::`anonymous-namespace'::ErrorManagementPayload": {
+        "objects": 9404,
+        "bytes": 37616,
+        "allocations": 9404,
+        "inline_object_size": 4
+      },
+      "struct swc::IndexSpecOpSemaPayload": {
+        "objects": 2042,
+        "bytes": 32672,
+        "allocations": 2042,
+        "inline_object_size": 16
+      },
+      "struct swc::SymbolMap::Shard": {
+        "objects": 240,
+        "bytes": 30720,
+        "allocations": 30,
+        "inline_object_size": 128
+      },
+      "struct swc::InlineValueBorrowSemaPayload": {
+        "objects": 1548,
+        "bytes": 24768,
+        "allocations": 1548,
+        "inline_object_size": 16
+      },
+      "struct swc::`anonymous-namespace'::CompilerSwitchSemaPayload": {
+        "objects": 63,
+        "bytes": 20664,
+        "allocations": 63,
+        "inline_object_size": 328
+      },
+      "struct swc::RelationalSpecOpPayload": {
+        "objects": 1102,
+        "bytes": 17632,
+        "allocations": 1102,
+        "inline_object_size": 16
+      },
+      "struct swc::SymbolMap::UsingSymMap": {
+        "objects": 478,
+        "bytes": 15296,
+        "allocations": 478,
+        "inline_object_size": 32
+      },
+      "struct swc::CastSpecOpPayload": {
+        "objects": 584,
+        "bytes": 9344,
+        "allocations": 584,
+        "inline_object_size": 16
+      },
+      "struct swc::AssignSpecOpPayload": {
+        "objects": 874,
+        "bytes": 6992,
+        "allocations": 874,
+        "inline_object_size": 8
+      },
+      "class swc::SymbolInterface": {
+        "objects": 22,
+        "bytes": 5632,
+        "allocations": 22,
+        "inline_object_size": 256
+      },
+      "struct swc::SliceIndexSemaPayload": {
+        "objects": 227,
+        "bytes": 2724,
+        "allocations": 227,
+        "inline_object_size": 12
+      },
+      "struct swc::DynamicStructSwitchCasePayload": {
+        "objects": 39,
+        "bytes": 2184,
+        "allocations": 39,
+        "inline_object_size": 56
+      },
+      "struct swc::SemaNamedScope": {
+        "objects": 86,
+        "bytes": 1376,
+        "allocations": 86,
+        "inline_object_size": 16
+      },
+      "struct swc::CastSetPayload": {
+        "objects": 52,
+        "bytes": 1248,
+        "allocations": 52,
+        "inline_object_size": 24
+      },
+      "struct swc::BinarySpecOpPayload": {
+        "objects": 50,
+        "bytes": 400,
+        "allocations": 50,
+        "inline_object_size": 8
+      },
+      "class swc::StrongRef<class swc::ConstantValue>": {
+        "objects": 86,
+        "bytes": 344,
+        "allocations": 75,
+        "inline_object_size": 4
+      },
+      "struct swc::VarInitSpecOpPayload": {
+        "objects": 31,
+        "bytes": 248,
+        "allocations": 31,
+        "inline_object_size": 8
+      },
+      "class swc::SymbolModule": {
+        "objects": 1,
+        "bytes": 224,
+        "allocations": 1,
+        "inline_object_size": 224
+      },
+      "struct swc::CountOfSpecOpPayload": {
+        "objects": 26,
+        "bytes": 208,
+        "allocations": 26,
+        "inline_object_size": 8
+      },
+      "struct swc::DeferredIndexAssignSpecOpPayload": {
+        "objects": 169,
+        "bytes": 169,
+        "allocations": 169,
+        "inline_object_size": 1
+      },
+      "struct swc::SliceSpecOpSemaPayload": {
+        "objects": 2,
+        "bytes": 96,
+        "allocations": 2,
+        "inline_object_size": 48
+      },
+      "struct swc::DynamicStructSwitchAsCastPayload": {
+        "objects": 38,
+        "bytes": 38,
+        "allocations": 38,
+        "inline_object_size": 1
+      },
+      "struct swc::ScopedBreakSemaPayload": {
+        "objects": 7,
+        "bytes": 28,
+        "allocations": 7,
+        "inline_object_size": 4
+      },
+      "struct swc::UnarySpecOpPayload": {
+        "objects": 2,
+        "bytes": 16,
+        "allocations": 2,
+        "inline_object_size": 8
+      },
+      "struct swc::TaggedIsPayload": {
+        "objects": 1,
+        "bytes": 16,
+        "allocations": 1,
+        "inline_object_size": 16
+      }
+    }
+  },
+  "snapshots": [
+    {
+      "snapshot": 1,
+      "rss": 31367168,
+      "peak_rss": 31367168,
+      "private": 25837568,
+      "elapsed": 23,
+      "arenas": 0,
+      "complete": true,
+      "totals": {
+        "backing": 0,
+        "typed": 0,
+        "finalizers": 0,
+        "untyped": 0,
+        "padding": 0,
+        "unused_tail": 0,
+        "headers": 0
+      }
+    },
+    {
+      "snapshot": 2,
+      "rss": 110706688,
+      "peak_rss": 110706688,
+      "private": 99704832,
+      "elapsed": 241,
+      "arenas": 23,
+      "complete": true,
+      "totals": {
+        "backing": 5374912,
+        "headers": 3136,
+        "blocks": 98,
+        "requested": 5006317,
+        "typed": 4830168,
+        "finalizers": 153088,
+        "padding": 288,
+        "untyped": 23061,
+        "unused_tail": 365171
+      }
+    },
+    {
+      "snapshot": 3,
+      "rss": 159080448,
+      "peak_rss": 159080448,
+      "private": 144359424,
+      "elapsed": 774,
+      "arenas": 23,
+      "complete": true,
+      "totals": {
+        "backing": 5309408,
+        "headers": 3104,
+        "blocks": 97,
+        "requested": 5005865,
+        "typed": 4830048,
+        "finalizers": 153024,
+        "padding": 192,
+        "untyped": 22793,
+        "unused_tail": 300247
+      }
+    },
+    {
+      "snapshot": 4,
+      "rss": 199229440,
+      "peak_rss": 199229440,
+      "private": 180273152,
+      "elapsed": 1470,
+      "arenas": 23,
+      "complete": true,
+      "totals": {
+        "backing": 5374912,
+        "headers": 3136,
+        "blocks": 98,
+        "requested": 5005866,
+        "typed": 4830176,
+        "finalizers": 153056,
+        "padding": 288,
+        "untyped": 22634,
+        "unused_tail": 365622
+      }
+    },
+    {
+      "snapshot": 5,
+      "rss": 245182464,
+      "peak_rss": 245182464,
+      "private": 225861632,
+      "elapsed": 4145,
+      "arenas": 23,
+      "complete": true,
+      "totals": {
+        "backing": 8912128,
+        "headers": 4864,
+        "blocks": 152,
+        "requested": 8492401,
+        "typed": 8210280,
+        "finalizers": 261024,
+        "padding": 820,
+        "untyped": 21097,
+        "unused_tail": 414043
+      }
+    },
+    {
+      "snapshot": 6,
+      "rss": 417574912,
+      "peak_rss": 417574912,
+      "private": 400654336,
+      "elapsed": 8882,
+      "arenas": 24,
+      "complete": true,
+      "totals": {
+        "backing": 45999104,
+        "headers": 23552,
+        "blocks": 736,
+        "requested": 45417239,
+        "typed": 43940223,
+        "finalizers": 1374464,
+        "padding": 11149,
+        "untyped": 102552,
+        "unused_tail": 547164
+      }
+    },
+    {
+      "snapshot": 7,
+      "rss": 457572352,
+      "peak_rss": 457572352,
+      "private": 442875904,
+      "elapsed": 9322,
+      "arenas": 24,
+      "complete": true,
+      "totals": {
+        "backing": 48754336,
+        "headers": 24928,
+        "blocks": 779,
+        "requested": 48044025,
+        "typed": 46477391,
+        "finalizers": 1456704,
+        "padding": 12229,
+        "untyped": 109930,
+        "unused_tail": 673154
+      }
+    },
+    {
+      "snapshot": 8,
+      "rss": 708341760,
+      "peak_rss": 708341760,
+      "private": 693391360,
+      "elapsed": 15735,
+      "arenas": 24,
+      "complete": true,
+      "totals": {
+        "backing": 49112928,
+        "headers": 26784,
+        "blocks": 837,
+        "requested": 48446657,
+        "typed": 46640207,
+        "finalizers": 1464448,
+        "padding": 12309,
+        "untyped": 342002,
+        "unused_tail": 627178
+      }
+    },
+    {
+      "snapshot": 9,
+      "rss": 742723584,
+      "peak_rss": 742723584,
+      "private": 727678976,
+      "elapsed": 16750,
+      "arenas": 24,
+      "complete": true,
+      "totals": {
+        "backing": 49178432,
+        "headers": 26816,
+        "blocks": 838,
+        "requested": 48583107,
+        "typed": 46769831,
+        "finalizers": 1470560,
+        "padding": 12389,
+        "untyped": 342716,
+        "unused_tail": 556120
+      }
+    },
+    {
+      "snapshot": 10,
+      "rss": 537526272,
+      "peak_rss": 742723584,
+      "private": 519098368,
+      "elapsed": 18072,
+      "arenas": 23,
+      "complete": true,
+      "totals": {
+        "backing": 37794848,
+        "headers": 19424,
+        "blocks": 607,
+        "requested": 37151365,
+        "typed": 35911872,
+        "finalizers": 1141312,
+        "padding": 2700,
+        "untyped": 98181,
+        "unused_tail": 621359
+      }
+    },
+    {
+      "snapshot": 11,
+      "rss": 654811136,
+      "peak_rss": 742723584,
+      "private": 637882368,
+      "elapsed": 18721,
+      "arenas": 23,
+      "complete": true,
+      "totals": {
+        "backing": 45180064,
+        "headers": 23392,
+        "blocks": 731,
+        "requested": 44500091,
+        "typed": 43102536,
+        "finalizers": 1265952,
+        "padding": 7872,
+        "untyped": 131603,
+        "unused_tail": 648709
+      }
+    },
+    {
+      "snapshot": 12,
+      "rss": 713625600,
+      "peak_rss": 742723584,
+      "private": 696082432,
+      "elapsed": 20465,
+      "arenas": 23,
+      "complete": true,
+      "totals": {
+        "backing": 45319200,
+        "headers": 23520,
+        "blocks": 735,
+        "requested": 44551425,
+        "typed": 43147236,
+        "finalizers": 1266816,
+        "padding": 7908,
+        "untyped": 137373,
+        "unused_tail": 736347
+      }
+    },
+    {
+      "snapshot": 13,
+      "rss": 799977472,
+      "peak_rss": 799977472,
+      "private": 783945728,
+      "elapsed": 21818,
+      "arenas": 46,
+      "complete": true,
+      "totals": {
+        "backing": 81816640,
+        "headers": 41920,
+        "blocks": 1310,
+        "requested": 80521354,
+        "typed": 77995607,
+        "finalizers": 2335680,
+        "padding": 12961,
+        "untyped": 190067,
+        "unused_tail": 1240405
+      }
+    },
+    {
+      "snapshot": 14,
+      "rss": 855240704,
+      "peak_rss": 855240704,
+      "private": 838496256,
+      "elapsed": 23793,
+      "arenas": 46,
+      "complete": true,
+      "totals": {
+        "backing": 82012672,
+        "headers": 42496,
+        "blocks": 1328,
+        "requested": 80652844,
+        "typed": 78079339,
+        "finalizers": 2337888,
+        "padding": 12997,
+        "untyped": 235617,
+        "unused_tail": 1304335
+      }
+    },
+    {
+      "snapshot": 15,
+      "rss": 1141751808,
+      "peak_rss": 1147281408,
+      "private": 1125883904,
+      "elapsed": 46026,
+      "arenas": 23,
+      "complete": true,
+      "totals": {
+        "backing": 107857394,
+        "headers": 56768,
+        "blocks": 1774,
+        "requested": 106789773,
+        "typed": 102997941,
+        "finalizers": 3281024,
+        "padding": 21207,
+        "untyped": 510808,
+        "unused_tail": 989646
+      }
+    },
+    {
+      "snapshot": 16,
+      "rss": 1099137024,
+      "peak_rss": 1147281408,
+      "private": 1082449920,
+      "elapsed": 46169,
+      "arenas": 23,
+      "complete": true,
+      "totals": {
+        "backing": 107988402,
+        "headers": 56832,
+        "blocks": 1776,
+        "requested": 106933890,
+        "typed": 103132873,
+        "finalizers": 3287200,
+        "padding": 21299,
+        "untyped": 513817,
+        "unused_tail": 976381
+      }
+    },
+    {
+      "snapshot": 17,
+      "rss": 982798336,
+      "peak_rss": 1147281408,
+      "private": 965115904,
+      "elapsed": 46269,
+      "arenas": 23,
+      "complete": true,
+      "totals": {
+        "backing": 107988402,
+        "headers": 56832,
+        "blocks": 1776,
+        "requested": 106933890,
+        "typed": 103132873,
+        "finalizers": 3287200,
+        "padding": 21299,
+        "untyped": 513817,
+        "unused_tail": 976381
+      }
+    },
+    {
+      "snapshot": 18,
+      "rss": 1032577024,
+      "peak_rss": 1147281408,
+      "private": 1019342848,
+      "elapsed": 46355,
+      "arenas": 23,
+      "complete": true,
+      "totals": {
+        "backing": 107988402,
+        "headers": 56832,
+        "blocks": 1776,
+        "requested": 106933890,
+        "typed": 103132873,
+        "finalizers": 3287200,
+        "padding": 21299,
+        "untyped": 513817,
+        "unused_tail": 976381
+      }
+    },
+    {
+      "snapshot": 19,
+      "rss": 1067560960,
+      "peak_rss": 1147281408,
+      "private": 1057591296,
+      "elapsed": 46390,
+      "arenas": 23,
+      "complete": true,
+      "totals": {
+        "backing": 107988402,
+        "headers": 56832,
+        "blocks": 1776,
+        "requested": 106933890,
+        "typed": 103132873,
+        "finalizers": 3287200,
+        "padding": 21299,
+        "untyped": 513817,
+        "unused_tail": 976381
+      }
+    },
+    {
+      "snapshot": 20,
+      "rss": 1155129344,
+      "peak_rss": 1155129344,
+      "private": 1146138624,
+      "elapsed": 46861,
+      "arenas": 23,
+      "complete": true,
+      "totals": {
+        "backing": 107988402,
+        "headers": 56832,
+        "blocks": 1776,
+        "requested": 106933890,
+        "typed": 103132873,
+        "finalizers": 3287200,
+        "padding": 21299,
+        "untyped": 513817,
+        "unused_tail": 976381
+      }
+    },
+    {
+      "snapshot": 21,
+      "rss": 1204936704,
+      "peak_rss": 1204936704,
+      "private": 1189015552,
+      "elapsed": 54089,
+      "arenas": 24,
+      "complete": true,
+      "totals": {
+        "backing": 156945138,
+        "headers": 80512,
+        "blocks": 2516,
+        "requested": 155437338,
+        "typed": 150113471,
+        "finalizers": 4847072,
+        "padding": 39489,
+        "untyped": 476795,
+        "unused_tail": 1387799
+      }
+    },
+    {
+      "snapshot": 22,
+      "rss": 1233719296,
+      "peak_rss": 1350557696,
+      "private": 1216471040,
+      "elapsed": 132002,
+      "arenas": 24,
+      "complete": true,
+      "totals": {
+        "backing": 157348434,
+        "headers": 82720,
+        "blocks": 2585,
+        "requested": 155871838,
+        "typed": 150270771,
+        "finalizers": 4860064,
+        "padding": 39533,
+        "untyped": 741003,
+        "unused_tail": 1354343
+      }
+    },
+    {
+      "snapshot": 23,
+      "rss": 1323610112,
+      "peak_rss": 1350557696,
+      "private": 1314295808,
+      "elapsed": 147839,
+      "arenas": 24,
+      "complete": true,
+      "totals": {
+        "backing": 158007538,
+        "headers": 83072,
+        "blocks": 2596,
+        "requested": 156526280,
+        "typed": 150885695,
+        "finalizers": 4889696,
+        "padding": 39945,
+        "untyped": 750889,
+        "unused_tail": 1358241
+      }
+    },
+    {
+      "snapshot": 24,
+      "rss": 1393102848,
+      "peak_rss": 1393102848,
+      "private": 1383948288,
+      "elapsed": 149662,
+      "arenas": 24,
+      "complete": true,
+      "totals": {
+        "backing": 158007538,
+        "headers": 83072,
+        "blocks": 2596,
+        "requested": 156526280,
+        "typed": 150885695,
+        "finalizers": 4889696,
+        "padding": 39945,
+        "untyped": 750889,
+        "unused_tail": 1358241
+      }
+    },
+    {
+      "snapshot": 25,
+      "rss": 1434636288,
+      "peak_rss": 1480839168,
+      "private": 1419837440,
+      "elapsed": 153555,
+      "arenas": 24,
+      "complete": true,
+      "totals": {
+        "backing": 158007538,
+        "headers": 83072,
+        "blocks": 2596,
+        "requested": 156526280,
+        "typed": 150885695,
+        "finalizers": 4889696,
+        "padding": 39945,
+        "untyped": 750889,
+        "unused_tail": 1358241
+      }
+    },
+    {
+      "snapshot": 26,
+      "rss": 1008508928,
+      "peak_rss": 1480839168,
+      "private": 987455488,
+      "elapsed": 155887,
+      "arenas": 24,
+      "complete": true,
+      "totals": {
+        "backing": 119775197,
+        "headers": 60992,
+        "blocks": 1906,
+        "requested": 118491821,
+        "typed": 114582040,
+        "finalizers": 3584992,
+        "padding": 19728,
+        "untyped": 324789,
+        "unused_tail": 1202656
+      }
+    },
+    {
+      "snapshot": 27,
+      "rss": 1160802304,
+      "peak_rss": 1480839168,
+      "private": 1143820288,
+      "elapsed": 157798,
+      "arenas": 24,
+      "complete": true,
+      "totals": {
+        "backing": 120047965,
+        "headers": 62656,
+        "blocks": 1958,
+        "requested": 118868416,
+        "typed": 114757164,
+        "finalizers": 3593920,
+        "padding": 19796,
+        "untyped": 517332,
+        "unused_tail": 1097097
+      }
+    },
+    {
+      "snapshot": 28,
+      "rss": 1205014528,
+      "peak_rss": 1480839168,
+      "private": 1188159488,
+      "elapsed": 159134,
+      "arenas": 24,
+      "complete": true,
+      "totals": {
+        "backing": 120899517,
+        "headers": 63072,
+        "blocks": 1971,
+        "requested": 119577237,
+        "typed": 115430248,
+        "finalizers": 3626240,
+        "padding": 20288,
+        "untyped": 520749,
+        "unused_tail": 1238920
+      }
+    },
+    {
+      "snapshot": 29,
+      "rss": 1379270656,
+      "peak_rss": 1480839168,
+      "private": 1382342656,
+      "elapsed": 160653,
+      "arenas": 24,
+      "complete": true,
+      "totals": {
+        "backing": 120899517,
+        "headers": 63072,
+        "blocks": 1971,
+        "requested": 119577237,
+        "typed": 115430248,
+        "finalizers": 3626240,
+        "padding": 20288,
+        "untyped": 520749,
+        "unused_tail": 1238920
+      }
+    }
+  ],
+  "artifacts": {
+    "arena-type-census-app.json": "564677e429e53e1ca0537bbdc6b349cd86a27978b18a6191e91cca6a2663e312",
+    "arena-type-census-analysis.json": "eaa7706e9356fefe92473e2238aef3665861bc7a12343c173bd236a5e2978256",
+    "arena-type-census-build.log": "b3fb5eee5266ae8b6199275169ce1b942430f1fb81dae7f03a18ec0964af252c",
+    "arena-type-census.h": "5fa678d7cc0e4f79d1072a2fec5a99c1565d1559da273c279dc6f4bf3fba833a",
+    "arena-type-census.patch": "a2d08b23af9bc9f7ca14427f9a0454660f47e1499cc33da96b35ef1bc6a775b9"
+  }
+}

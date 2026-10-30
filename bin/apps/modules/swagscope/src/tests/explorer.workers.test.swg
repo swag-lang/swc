@@ -3,6 +3,16 @@
 
 using Core, Gui, Pixel
 
+// Explorer preview slots follow the process-wide runtime worker pool.
+#test
+{
+    var host: Testing.HeadlessHost
+    host.setup(320, 240)
+    let window   = ViewerWindow.create(&host.surfaceWnd, createViewerPluginRegistry())
+    let explorer = Explorer.create(window.documentPanel, window)
+    Swag.assert(explorer.previews.count == cast(u64, Swag.workerCount()))
+}
+
 // Selecting a media file in a row view loads its cached provider details without a gallery.
 #test
 {
@@ -86,6 +96,8 @@ using Core, Gui, Pixel
     explorer.requestPreview()
     for &preview, index in explorer.previews do
         Swag.assert(preview.started == (index < count) and (not preview.started or preview.index == index))
+    for preview in explorer.previews where preview.started do
+        Swag.assert(preview.task.priority == .Background)
     explorer.hide()
     explorer.leave()
     for &preview in explorer.previews do

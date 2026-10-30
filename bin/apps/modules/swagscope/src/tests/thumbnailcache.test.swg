@@ -78,28 +78,78 @@ using Core, Pixel, Gui
     }
 }
 
-// A forced refresh never answers from the cache. The test binary cannot serve as the isolated
-// renderer, so the forced preview fails here instead of replacing the entry; answering with the
-// cached image would have succeeded.
+// A local film frame is published from cache while its online details are still due. Once the
+// provider result is stamped, revisiting the folder has no network work to schedule.
 #test
 {
     var host: Testing.HeadlessHost
     host.setup(64, 64)
-    let source = Path.combine(Env.getSpecialDirectory(.Temp), "thumbnail-refreshed.txt")
-    discard expect File.writeAllText(source, "refreshed document")
+    let source = Path.combine(Env.getSpecialDirectory(.Temp), Format.toString("scope-staged-%.mkv", Guid64.random()))
+    discard expect File.writeAllText(source, "fixture")
     defer catch File.delete(source)
-    let key = expect ThumbnailCache.key(source)
+    var buffer: ConcatBuffer
+    var encoder: Serialization.Encoder'Serialization.Write.TagBin
+    expect encoder.writeAll(&buffer, ThumbnailSettings{onlineMovies: true})
+    let settings = buffer.toString()
+    let key = expect ThumbnailCache.key(source, settings: settings)
     defer catch File.delete(key)
-    var image = Image.create(24, 18, .RGB8)
-    image.fill(Color.fromRgb(0, 0, 255))
-    expect ThumbnailCache.write(key, &image)
+    var frame = Image.create(24, 18, .RGB8)
+    expect ThumbnailCache.write(key, &frame)
 
     var preview: ExplorerPreview
-    preview.path        = source
-    preview.bypassCache = true
+    preview.path = source
+    preview.settings = settings
     preview.start(&host.surfaceWnd)
     preview.wait()
     host.pump()
-    Swag.assert(not preview.image.isValid() or preview.image.width != image.width)
+    Swag.assert(preview.image.isValid() and preview.needsOnline)
     Swag.assert(not preview.service.process.isRunning())
+
+    stampMovieCache(&frame)
+    expect ThumbnailCache.write(key, &frame)
+    var visited: ExplorerPreview
+    visited.path = source
+    visited.settings = settings
+    visited.start(&host.surfaceWnd)
+    visited.wait()
+    host.pump()
+    Swag.assert(visited.image.isValid() and not visited.needsOnline)
+}
+
+#test
+{
+    let folder = Path.combine(Env.getSpecialDirectory(.Temp), Format.toString("scope-album-%", Guid64.random()))
+    expect Directory.create(folder)
+    defer catch Directory.delete(folder, recurse: true)
+    let song = Path.combine(folder, "01.flac")
+    let cover = Path.combine(folder, "cover.jpg")
+    discard expect File.writeAllText(song, "fixture")
+    Swag.assert(localAlbumArtwork(song).isEmpty())
+    discard expect File.writeAllText(cover, "artwork fixture")
+    Swag.assert(localAlbumArtwork(song) == cover)
+    let key = expect ThumbnailCache.key(folder)
+    defer catch File.delete(key)
+    var placeholder = Image.create(1, 1, .RGBA8)
+    expect ThumbnailCache.write(key, &placeholder)
+    Swag.assert(ThumbnailCache.read(key).isValid())
+}
+
+// A later album folder is identified only when its tile enters the viewport.
+#test
+{
+    var host: Testing.HeadlessHost
+    host.setup(64, 64)
+    let folder = Path.combine(Env.getSpecialDirectory(.Temp), Format.toString("scope-lazy-album-%", Guid64.random()))
+    expect Directory.create(folder)
+    defer catch Directory.delete(folder, recurse: true)
+    let song = Path.combine(folder, "01.flac")
+    discard expect File.writeAllText(song, "fixture")
+    let key = expect ThumbnailCache.key(folder)
+    defer catch File.delete(key)
+    var preview: ExplorerPreview
+    preview.path = folder
+    preview.start(&host.surfaceWnd)
+    preview.wait()
+    host.pump()
+    Swag.assert(preview.mediaFile == song and preview.image.isValid() and preview.image.width == 1)
 }

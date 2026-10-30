@@ -143,6 +143,33 @@ func compositeColorChanged(_: *ColorPickerCtrl)
     Swag.assert(ctrl.edit.text() == "40")
 }
 
+// A typed reading commits on Enter, cancels on Escape, and rejects invalid input on blur.
+#test
+{
+    var host: Testing.HeadlessHost
+    host.setup(320, 80)
+    defer host.shutdown()
+    let ctrl = SliderCtrl.create(&host.root, "Size", {0, 0, 300, 30})
+    ctrl.edit.updateFlags(.ReleaseFocusOnEnterOrEscape)
+    ctrl.setFloatBounds(1, 100)
+    ctrl.setValue(40)
+
+    ctrl.edit.setFocus()
+    ctrl.edit.setText("72")
+    host.keyPress(.Return)
+    Swag.assert(Math.abs(ctrl.value() - 72) < 0.01)
+
+    ctrl.edit.setFocus()
+    ctrl.edit.setText("18")
+    host.keyPress(.Escape)
+    Swag.assert(Math.abs(ctrl.value() - 72) < 0.01)
+
+    ctrl.edit.setFocus()
+    ctrl.edit.setText("invalid")
+    host.root.setFocus()
+    Swag.assert(Math.abs(ctrl.value() - 72) < 0.01)
+}
+
 // ComboCtrl pairs a label with a combobox.
 #test
 {

@@ -378,7 +378,7 @@ impl IWnd for ViewerHome
             }
 
             .chosen = row
-            .window.queueFile(String.from(.rows[row].file))
+            .window.queueFile(String.from(.rows[row].file), offerForgetMissing: true)
 
         default:
             evt.accepted = false
@@ -402,7 +402,7 @@ impl IWnd for ViewerHome
             .chosen = .chosen == Swag.U64.Max ? 0 : Math.min(.chosen + 1, .rows.count - 1)
 
         case .Return where .chosen < .rows.count:
-            .window.queueFile(String.from(.rows[.chosen].file))
+            .window.queueFile(String.from(.rows[.chosen].file), offerForgetMissing: true)
 
         case .Delete where .chosen < .rows.count:
             .removeRow(.chosen)

@@ -63,3 +63,42 @@ func writeLarge(value: Large, target: *Large)->u8
         Swag.assert(large.bytes[2047] == 17)
     }
 }
+
+struct SharedBorrow
+{
+    small:   Small
+    large:   Large
+    ready:   Swag.Semaphore
+    release: Swag.Semaphore
+}
+
+#[Swag.NoInline]
+func holdAcrossThreads(small: Small, large: Large, state: *SharedBorrow)->u64
+{
+    state.ready.release()
+    state.release.acquire()
+    return cast(u64, small.bytes[95]) + large.bytes[2047]
+}
+
+// The writer is a different thread from the borrower. Both short and wide ranges must
+// remain protected, then allow writes after their owner returns.
+#test
+{
+    // The JIT runs tasks inline, so it cannot rendezvous with its submitting thread.
+    if Swag.jit() do return
+    Swag.startWorkers()
+    var state: SharedBorrow
+    var task:  Swag.Task'u64
+    task.submit(func|&state|() => holdAcrossThreads(state.small, state.large, &state))
+    state.ready.acquire()
+    let small = Swag.catchPanic(func|&state|() { state.small.bytes[95] = 7 })
+    let large = Swag.catchPanic(func|&state|() { state.large.bytes[2047] = 11 })
+    state.release.release()
+    let result = expect task.take()
+    Swag.assert(small.raised and large.raised and result == 0)
+    Swag.assert(small.message() == "write overlaps storage borrowed by a value argument")
+    Swag.assert(large.message() == "write overlaps storage borrowed by a value argument")
+    state.small.bytes[95]   = 13
+    state.large.bytes[2047] = 17
+    Swag.assert(state.small.bytes[95] == 13 and state.large.bytes[2047] == 17)
+}

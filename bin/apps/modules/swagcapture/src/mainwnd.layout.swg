@@ -266,7 +266,25 @@ impl MainWnd
         }
 
         .miniBar.updateCommandState()
+        .updateMiniBarTextControls()
         .placeMiniBar()
+    }
+
+    // Keep the face and size in step with the inspector and undo without replacing a live edit.
+    mtd updateMiniBarTextControls()
+    {
+        if .miniBar == null or .libraryMode do
+            return
+        let style = .selectedTextStyle()
+        if not style.found do
+            return
+        for item in .miniBar.items
+        {
+            if item.wnd is ComboBox as face do
+                face.setSelectedIndex(miniBarFontIndex(style.face), notify: false)
+            elif item.wnd is EditBox as edit where not edit.hasFocus() do
+                edit.setText(Format.toString("%", cast(s32, Math.round(style.size))), notify: false)
+        }
     }
 
     // Fills the mini-bar with what applies to a selection of `kind`. Every button is also a lens
@@ -339,11 +357,32 @@ impl MainWnd
         .miniBar.addSeparator()
         .miniBar.addButton(theme.icon(.Remove, size), ActionSelection.DeleteSelection, appStrings().act_Delete)
 
-        // `•••` opens the inspector; it is not a state of the selection, so it posts the command
-        // rather than showing it checked.
-        .miniBar.addButton(theme.icon(.More, size), toolTip: appStrings().act_ShowInspector).sigPressed += func|main = me|(_)
+        // Secondary selection commands stay reachable even while the inspector is already open.
+        with let more = .miniBar.addButton(theme.icon(.More, size), toolTip: appStrings().lens_Selection, flags: .Popup)
         {
-            main.inspector.setFolded(false)
+            .setArrowPosition(.None)
+            .sigPopupRequested += func|main = me|(button)
+            {
+                with let menu = MenuCtrl.createPopup(main)
+                {
+                    .addItem(ActionEdit.EditText)
+                    .addItem(ActionCopyPaste.Duplicate)
+                    .addItem(ActionCopyPaste.CopyAsImage)
+                    .addSeparator()
+                    .addItem(ActionAlign.SendToFront)
+                    .addItem(ActionAlign.MoveForward)
+                    .addItem(ActionAlign.MoveBackward)
+                    .addItem(ActionAlign.SendToBack)
+                    .addSeparator()
+                    .addItem(ActionGroup.Group)
+                    .addItem(ActionGroup.Ungroup)
+                    .addItem(ActionEdit.ResetRotation)
+                    .addSeparator()
+                    .addItem(ActionView.Inspector)
+                }
+
+                discard menu.doModal(assume cast(*IconButton, button), autoDestroy: true)
+            }
         }
     }
 
@@ -357,6 +396,14 @@ impl MainWnd
         }
 
         return {false, FormText, "", 0, .Regular, .Center, .Center}
+    }
+
+    // The theme face and separator precede the installed font families.
+    func miniBarFontIndex(face: string)->u32
+    {
+        for &font, index in g_MiniBarFonts where font.name == face do
+            return cast(u32, index) + 2
+        return 0
     }
 
     // Adds the face of the text and its size to the mini-bar: the face is a quiet list of every
@@ -380,15 +427,10 @@ impl MainWnd
             .toolTip = appStrings().prop_Font
             .addItem(defaultFace)
             .addSeparator()
-            var selected = 0'u32
-            for &fnt, i in g_MiniBarFonts
-            {
+            for &fnt in g_MiniBarFonts do
                 .addItem(fnt.name)
-                if fnt.name == style.face do
-                    selected = cast(u32, i) + 2
-            }
 
-            .setSelectedIndex(selected, notify: false)
+            .setSelectedIndex(miniBarFontIndex(style.face), notify: false)
             .sigChanged += func|main = me|(_, index)
             {
                 main.setSelectedFace(index < 2 ? "" : g_MiniBarFonts[index - 2].name.toString())
@@ -399,7 +441,7 @@ impl MainWnd
 
         let mono      = .theme().createDefaultFontFs(metrics.defaultFontSize)
         let digit     = Painter.measureString("000", mono).width
-        with let size = EditBox.create(.miniBar, Format.toString("%", cast(s32, Math.round(style.size))), {0, 0, Math.ceil(digit + 2 * metrics.comboBox_Padding), metrics.miniBar_ButtonSize})
+        with let size = EditBox.create(.miniBar, Format.toString("%", cast(s32, Math.round(style.size))), {0, 0, Math.ceil(digit + 2 * metrics.comboBox_Padding), metrics.miniBar_ButtonSize}, flags: .ReleaseFocusOnEnterOrEscape)
         {
             .toolTip = appStrings().prop_Size
             .setForm(.Transparent)
@@ -408,7 +450,7 @@ impl MainWnd
             .sigCommitted += func|main = me, type = style.type|(wnd)
             {
                 let edit = assume cast(*EditBox, wnd)
-                if not edit.isValid() do
+                if edit.revalidate() != .Valid do
                     return
                 let {value, eat: _, ovf: _} = catch StrConv.parseU32(edit.text())
                 if not value do

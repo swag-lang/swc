@@ -126,6 +126,7 @@ struct ViewerWindow
     pendingFile:             String
     pendingEmpty:            String
     pendingRemember:         bool = true
+    pendingForgetMissing:    bool
     fileWatch:               ViewerFileWatch
     fileWatchTimer:          *Timer?
     readingState:            ViewerReadingState
@@ -630,10 +631,8 @@ impl ViewerWindow
     const SearchChunkSize   = 256 * 1024'u64
     const SearchCarryMargin = 4'u64
 
-    // How often the halo of the current match follows a moving view, and how long one pulse of its
-    // glow lasts.
+    // How often the current match follows a moving or progressively loaded view.
     const SearchBoundsPoll: Time.Duration = 16'ms
-    const SearchGlowPeriod = 1.35'f32
 
     // How long a viewer may keep the window waiting before the activity mark appears, how long the
     // mark then stays once it has, and how often the wait is looked at.
@@ -828,7 +827,8 @@ impl ViewerWindow
         let group   = .searchGroup.itf.measureContent({})
         let width   = Math.min(group.x, Math.max(area.width - 2 * metrics.floating_Inset - pad.x - pad.z, 0))
         let height  = .searchGroup.position.height + pad.y + pad.w
-        .searchBar.setPosition(Math.Rectangle{area.right() - metrics.floating_Inset - width - pad.x - pad.z, area.y + metrics.floating_Inset * 0.5, width + pad.x + pad.z, height}, computeLayout: false)
+        let top     = Math.max(area.y, .stripInset()) + metrics.floating_Inset * 0.5
+        .searchBar.setPosition(Math.Rectangle{area.right() - metrics.floating_Inset - width - pad.x - pad.z, top, width + pad.x + pad.z, height}, computeLayout: false)
         .searchGroup.setPosition(Math.Rectangle{pad.x, pad.y, width, .searchGroup.position.height}, computeLayout: false)
         .searchGroup.computeLayout()
         if .searchBar.isLocallyVisible() do
@@ -947,7 +947,7 @@ impl ViewerWindow
         // families without turning About into a file-association inventory.
         let dialog = AboutDlg.createApplication(unwrap .surface, about)
         dialog.addSection(appStrings().ui_AboutViewers, .aboutViewerList())
-        dialog.addSection("Wikipedia / Wikidata", appStrings().ui_AboutWikiNotice)
+        dialog.addSection("Apple / Wikipedia / Wikidata", appStrings().ui_AboutWikiNotice)
         return dialog
     }
 

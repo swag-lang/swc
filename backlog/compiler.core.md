@@ -298,12 +298,15 @@ Entries stay in one flat list. Keep only measurements that affect the next actio
 
 ### compiler.core.005 — Set and enforce a compiler memory budget
 
-- Evidence: the compiler still has no enforced workload memory budget. Fixed-source, six-worker
-  measurements put the final DevMode peak at 2453.8 MiB for a full Swag Capture rebuild and
-  2842.3 MiB for focused GUI layout tests; the Release compiler used 1767.0 MiB for the same
-  application/program preset. See the [allocation-lifetime report](../bench/results/memory/20261029-lifetimes/README.md)
-  for the before/after counters and scope. The earlier `core` and hello workloads also remain
-  above their 250 MiB and 50 MiB targets; see the [core memory report](../bench/results/memory/20261023-alternate45/README.md).
+- Evidence: the compiler still has no enforced workload memory budget. Frozen-source,
+  six-worker application observations reach 1,443.543 MiB for the latest DevMode checkpoint;
+  the preceding validated Release checkpoint reaches 1,290.176 MiB. Different compiler
+  checkpoints, host load and publication variation prevent treating these as a controlled
+  configuration gap. See the [memory report](../bench/results/memory/20261030-devmode/README.md).
+  Earlier focused GUI layout tests reached 2,842.3 MiB; `core` and hello also exceeded their
+  250 MiB and 50 MiB targets. Refresh those workloads rather than extrapolating the application
+  saving; see the [lifetime report](../bench/results/memory/20261029-lifetimes/README.md) and
+  [core report](../bench/results/memory/20261023-alternate45/README.md).
 - Next: attribute the remaining per-module peak and establish host-normalized limits across the
   benchmark workloads. Measure compiler memory while an application remains open: native
   `runAfterLink` currently waits for the child while its compiler state remains alive. The build-only
@@ -596,7 +599,22 @@ Entries stay in one flat list. Keep only measurements that affect the next actio
 - Done when: a `sema` or `jit` suite case holding the typed declaration reads the returned
   bytes under both compiler executables.
 
-### compiler.core.095 — Make allocator heap inspection safe for abandoned pages
+### compiler.core.095 — Workspace golden tests can lose their writable corpus
+
+- Evidence: `tools/goldens.bat dm test -bc devmode` with `SWAG_GOLDEN_CONTINUE=1`
+  reaches the GUI tests after Pixel, but refuses to write `backdrop.lens.paper.actual.png`,
+  `lens.paper.actual.png`, and `lens.inline.paper.actual.png` as outside the sandbox.
+  The collection continues without producing those images. The test command is supposed to
+  grant the module or workspace corpus through `effectiveGeneratedArtifactRunArgs`.
+- Workaround verified on this campaign: pass
+  `--run-arg=swag.sandbox.corpus=C:\Perso\swag-lang\swc\bin` explicitly. The missing GUI
+  images are then recorded with the sandbox still enabled.
+- Next: reduce this to two workspace modules that record a file beside their tests; trace the
+  generated run arguments and the lifetime of Core's process-wide corpus across JIT modules.
+- Done when: every module can record inside its own authorized corpus in a workspace test,
+  writes outside that corpus remain refused, and a workspace regression covers the transition.
+
+### compiler.core.096 — Make allocator heap inspection safe for abandoned pages
 
 - Evidence: with mimalloc 3.6.0 and `MI_DEBUG=3`, a diagnostic traversal through
   `mi_subproc_visit_heaps` and `mi_heap_visit_blocks(..., false, ...)` aborts in
@@ -609,6 +627,70 @@ Entries stay in one flat list. Keep only measurements that affect the next actio
   its temporary read-only path until the normal visitor contract is validated.
 - Done when: visiting live and abandoned pages with pending cross-thread frees preserves
   exact block counts and passes the allocator's internal assertions without weakening them.
+
+### compiler.core.097 — Reduce the largest retained compiler allocations
+
+- Evidence: the synchronized large-allocation census attributes 157.679 MiB to register
+  allocation, 78.343 MiB to other Micro analyses, 94.676 MiB to AST/parser storage and
+  149.927 MiB to mixed arenas at one observation. Those requested-byte totals exclude small
+  C++ allocations, direct allocator calls and OS mappings. A separate typed-arena census
+  partitions 150.688 MiB of arena backing: 45.421 MiB of `AttributeList`, 45.253 MiB of
+  `SymbolFunction`, 20.960 MiB of `SymbolVariable`, 15.497 MiB of `SemaInlinePayload`,
+  5.913 MiB of `CodeGenLoweringPayload`, 4.663 MiB of finalizers and only 1.295 MiB of unused
+  tails. Do not add the two diagnostic runs as if they shared one process peak. See the
+  [occupation report](../bench/results/memory/20261030-devmode/README.md) and
+  [typed-arena census](../bench/results/memory/20261030-devmode/arena-types.json).
+- Next: work down the concrete owners below. Keep useful buffer reuse, stable pointers,
+  publication ordering and compilation speed; do not exchange a small memory reduction for
+  extra allocations, lookups or repeated analysis without a justified measurement.
+
+| Owner | Remaining investigation |
+| --- | --- |
+| Attribute lists | Count populated inline attribute/parameter slots and identical inherited snapshots among the 76,326 lists (624 bytes each). Evaluate smaller representations or immutable sharing while preserving scope overrides, equality, publication and fast lookup. |
+| Function symbols | Profile member presence among 31,719 objects (1,496 bytes each), especially retained JIT/order caches, borrow-field vectors and cold metadata. Quantify each proposal before adding indirection or heap allocation. |
+| Variable symbols and inline payloads | Review padding and duplicated binding/context records in the 161,607 variable symbols (136 bytes each) and 22,078 inline payloads (736 bytes each). Keep atomic access, reference identities and direct hot-path reads. |
+| Cyclic register liveness | Dense cyclic matrices remain; measured examples have 21.978/17.763/12.090 MiB dense storage versus 5.458/4.561/2.339 MiB trimmed-band estimates. Consider an exact basic-block fixed point followed by one compact instruction-row reconstruction. Bound temporary matrices and fall back for dense/high-block-count graphs. Differentially check disconnected components, self-loops, use-before-definition, both allocators and retained capacity across functions. |
+| Other retained Micro buffers | Refresh the census after mask/operand-list compaction, then inspect SSA, generic instruction use/def records, rewrite queues and per-worker high-water capacities. Avoid unconditional shrink/reallocation between functions. |
+| Linker, native emission and caches | At a separate traced peak linker storage was 111.198 MiB and native emission 35.639 MiB. Attribute merged sections, relocations, final image buffers and outstanding record owners after current move/mapping changes before removing another copy or shortening a lifetime. |
+| AST and semantic containers | Count clone pages, node payloads and nested small vector/map capacities by module and phase; page occupancy was already high, so do not infer a saving from smaller pages alone. |
+| Allocator page slack | A synchronized heap observation had 369.187 MiB of free slots in retained pages. The external `MI_ENABLE_LARGE_PAGES=0` candidate observed 178.516 MiB less working set (11.94%), but remains disabled by default. Repeat against current code in both compiler configurations, establish speed and output equivalence, and distinguish reclaimable pages from live-page slack. |
+| Missing ownership coverage | Add small C++ allocations, direct mimalloc allocations and OS/proximity mappings to synchronized accounting, with module/phase/worker identity and shared backing deduplicated. Keep requested bytes, allocator rounding, committed capacity and residency separate. |
+
+- Done when: the dominant retained owners are reduced with preserved behavior and accepted
+  compilation speed, and a reproducible census explains the remaining peak without summing
+  independent maxima. Low-volume finalizer/header/tail savings must not distract from the
+  dominant objects and allocator slack.
+- Related: compiler.core.005 (budgets and compiler retention while a child application runs),
+  compiler.core.085 (nondeterministic publication), compiler.core.096 (safe allocator inspection),
+  compiler.core.098 (performance acceptance).
+
+### compiler.core.098 — Close compilation-speed acceptance for memory reductions
+
+- Evidence: the memory campaign has successful focused correctness, application and generated-code
+  checks, but host contention changed substantially during its comparisons despite quiet start
+  admission. Lower observed wall/CPU time does not prove an optimization is speed-neutral.
+  The latest DevMode effects/cache pair observes 1,472.266 to 1,443.543 MiB working set; the
+  corresponding host CPU averages are 63.37% and 50.84%. Earlier constant packing and compact
+  acyclic liveness checkpoints have the same unresolved timing limitation. Exact observations,
+  binary hashes, source revisions and exclusions are in the
+  [memory report](../bench/results/memory/20261030-devmode/README.md).
+- Next: compare preserved adjacent checkpoints on identical frozen sources, isolated caches,
+  verified affinity and stable host load, in DevMode and Release. Cover constant-page packing,
+  compact acyclic matrices (including wide dense rows), physical effect masks, fixed virtual
+  operand lists and mapped cache publication. Check warm/incremental cache behavior as well as
+  full builds, and separate resident memory from private backing. Keep the independent
+  no-large-pages allocator candidate in compiler.core.097 separate from accepted defaults.
+- Preserve unresolved failures and variation: compiler.core.085 owns generic instance/string
+  differences and the varying `Lens.View.create` borrow mask; compiler.core.096 owns the heap
+  visitor assertion. Improve generic specialization identity in Micro listings before treating
+  reordered duplicate printed names as exact call-target equivalence. Do not normalize arbitrary
+  integer constants to hide differences. Exercise manually enabled `SWC_DEBUG_MODE` when its
+  inspection-only path is next changed; no additional build configuration is required.
+- Done when: controlled comparisons bound any regression and establish that the retained
+  changes respect compilation-speed priority. A slowdown is acceptable only with a genuinely
+  substantial memory saving explicitly evaluated against it. Keep validation outcomes in the
+  report and remove completed acceptance work from this entry.
+- Related: compiler.core.004, compiler.core.005, compiler.core.097.
 
 ## Deliberately out of scope
 

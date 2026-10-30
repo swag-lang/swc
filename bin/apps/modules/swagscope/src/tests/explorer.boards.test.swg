@@ -45,9 +45,10 @@ func boardPicture(width, height: s32, top, bottom: u32)->Image
 
 // Builds the real window in the shipped frame, at the size of the pictures, its explorer showing
 // `entries` under the title `folder` beside the path `parent`.
-func boardWindow(host: *Testing.HeadlessHost, light: bool, films: bool)->*ViewerWindow
+func boardWindow(host: *Testing.HeadlessHost, light: bool, films: bool, scale = 1.0, width = 1280, height = 800)->*ViewerWindow
 {
-    host.setup(1280, 800)
+    host.setup(width, height, scale)
+    registerAppStrings(&host.app.resources)
     host.surface.updateFlags(SurfaceFlags.StandardWindow | SurfaceFlags.NoShadow)
     if light do
         host.theme.setLight()
@@ -104,6 +105,132 @@ func addPictured(host: *Testing.HeadlessHost, explorer: *Explorer, name: string,
     explorer.entries.add(#move entry)
 }
 
+// The same view command acts from the lens and the menu; Covers and Posters must not trade places.
+#test
+{
+    var host: Testing.HeadlessHost
+    let window   = boardWindow(&host, false, films: false)
+    let explorer = unwrap window.explorer
+    explorer.entries.add({name: "notes.txt", path: "notes.txt", attempted: true})
+    explorer.fill()
+    for language in [ReferenceLanguage, "fr"]
+    {
+        expect host.app.setLanguage(language)
+        host.notify(.LanguageChanged)
+        for command, index in ViewerCommands.Boards
+        {
+            window.sendCommandEvent(command)
+            let state = window.sendComputeCommandStateEvent(command)
+            Swag.assert(state.checked and not state.hidden and not state.disabled)
+            Swag.assert(explorer.forced == (index != 0))
+            if index do
+                Swag.assert(cast(u64, explorer.forcedBoard) == index - 1)
+            if index == 2 do
+                Swag.assert(state.name == appStrings().board_Posters and explorer.grid.board == .Posters)
+            if index == 3 do
+                Swag.assert(state.name == appStrings().board_Covers and explorer.grid.board == .Covers)
+            window.lens.open(state.name)
+            var found = false
+            for section in window.lens.results.sections
+            {
+                for entry in section!.entries where entry.id == command do
+                    found = true
+            }
+
+            Swag.assert(found)
+            window.lens.close()
+        }
+
+        for command, index in ViewerCommands.Modes
+        {
+            window.sendCommandEvent(command)
+            Swag.assert(cast(u64, explorer.mode) == index)
+            Swag.assert(window.sendComputeCommandStateEvent(command).checked)
+        }
+    }
+}
+
+// A narrow explorer keeps its title, actions and filter apart in both languages and at 150%.
+#[Swag.TestTag("golden")]
+#test
+{
+    for light in [false, true]
+    {
+        for language in [ReferenceLanguage, "fr"]
+        {
+            var host: Testing.HeadlessHost
+            let window   = boardWindow(&host, light, films: false, scale: language == "fr" ? 1.5 : 1.0, width: ViewerWindow.MinWidth, height: 680)
+            let explorer = unwrap window.explorer
+            expect host.app.setLanguage(language)
+            host.notify(.LanguageChanged)
+            for name in ["Documents", "A file with a descriptive name.txt", "Project notes.md", "Archive.zip"] do
+                explorer.entries.add({name: name, path: name, attempted: true, directory: name == "Documents"})
+            showBoard(&host, window, "Documents", "Project reference documents")
+            window.resize(ViewerWindow.MinWidth, 680)
+            explorer.selected = 1
+            window.updateCommandState()
+            explorer.layoutTools()
+            window.applyLayout()
+
+            let title = explorer.title.surfaceRect()
+            let tools = explorer.tools.surfaceRect()
+            Swag.assert(title.bottom() <= tools.y or title.right() <= tools.x)
+            Swag.assert(explorer.status.isLocallyVisible() or explorer.summary.isLocallyVisible())
+            for child in explorer.address.actions.children do
+                Swag.assert(child.surfaceRect().bottom() <= explorer.address.surfaceRect().bottom())
+            Swag.assert(explorer.address.navigation.surfaceRect().right() <= explorer.address.pathScroll.surfaceRect().x)
+            Swag.assert(explorer.address.pathScroll.surfaceRect().right() <= explorer.address.actions.surfaceRect().x)
+
+            host.clickWnd(explorer.address.actions.children[1])
+            Swag.assert(explorer.filter.isVisible() and explorer.filter.hasFocus())
+            explorer.filter.setText("missing")
+            Swag.assert(explorer.shown.isEmpty())
+            host.settleAnimations(window)
+            var empty = host.render(&host.surfaceWnd)
+            Pixel.Testing.assertImageGolden(&empty, Format.toString("explorer.empty.%.%", light ? "paper" : "encre", language == "fr" ? "fr" : "en"))
+            explorer.filter.setText("")
+            Swag.assert(explorer.shown.count == 4)
+            host.settleAnimations(window)
+            var image = host.render(&host.surfaceWnd)
+            Pixel.Testing.assertImageGolden(&image, Format.toString("explorer.narrow.%.%", light ? "paper" : "encre", language == "fr" ? "fr" : "en"))
+        }
+    }
+}
+
+// An album makes room for the sheet, keeps its view menu and filter, and translates its actions.
+#[Swag.TestTag("golden")]
+#test
+{
+    for light in [false, true]
+    {
+        var host: Testing.HeadlessHost
+        let window   = boardWindow(&host, light, films: false, width: ViewerWindow.MinWidth, height: 680)
+        let explorer = unwrap window.explorer
+        for name in ["01 - First track.flac", "02 - Second track.flac"] do
+            explorer.entries.add({name: name, path: name, attempted: true, duration: 120,
+                                  music: {title: "Discovery", artist: "Daft Punk", date: "2001", source: "tags"}})
+        showBoard(&host, window, "Music", "Discovery")
+        window.resize(ViewerWindow.MinWidth, 680)
+        expect host.app.setLanguage("fr")
+        host.notify(.LanguageChanged)
+        explorer.selected = 0
+        window.toggleInformation()
+        explorer.revealFilter()
+        window.applyLayout()
+        let grid = explorer.grid
+        Swag.assert(grid.board == .Album and explorer.modeMenu.isVisible())
+        Swag.assert(grid.places[0].y > grid.albumCover.bottom())
+        Swag.assert(grid.places[0].width > grid.albumText.width)
+        Swag.assert(grid.albumText.right() <= grid.clientRect().width)
+        Swag.assert(explorer.filter.surfaceRect().bottom() <= explorer.header.surfaceRect().bottom())
+        Swag.assert(grid.playButton!.text() == appStrings().explore_Play)
+        Swag.assert(not window.sendComputeCommandStateEvent(ViewerCommands.AlbumPlay).hidden)
+        host.settleAnimations(window)
+        var image = host.render(&host.surfaceWnd)
+        Pixel.Testing.assertImageGolden(&image, light ? "explorer.album.narrow.paper" : "explorer.album.narrow.encre")
+    }
+}
+
 // A mixed folder: every cell the same shape, a picture filling its cell, a film with its length
 // in a chip, a folder with its count, anything without a picture the faint page of its kind with
 // its extension; the name, then one mono line of facts.
@@ -154,12 +281,18 @@ func addPictured(host: *Testing.HeadlessHost, explorer: *Explorer, name: string,
         Swag.assert(not grid.posters and grid.columns == 6)
         Swag.assert(grid.tileRect(1).x - grid.tileRect(0).right() == ExplorerGrid.Gap)
         Swag.assert(not explorer.filter.isLocallyVisible())
-        var image = host.render(window)
+        var image = host.render(&host.surfaceWnd)
         Pixel.Testing.assertImageGolden(&image, light ? "explorer.mixed.paper" : "explorer.mixed")
 
-        // The view menu can force a shape, and give it back to what the folder holds.
-        explorer.forceBoard(true, .Mosaic)
-        Swag.assert(grid.board == .Mosaic and explorer.modeMenu.name.raw == appStrings().mode_Mosaic)
+        // A forced presentation does not turn a mixed folder's total into the number of films,
+        // albums or photos found among its files.
+        for board in [ExplorerBoard.Posters, .Covers, .Mosaic]
+        {
+            explorer.forceBoard(true, board)
+            Swag.assert(grid.board == board)
+            Swag.assert(Utf8.startsWith(explorer.status.text(), Format.toString(appStrings().explore_Count, explorer.shown.count)))
+        }
+        Swag.assert(explorer.modeMenu.name.raw == appStrings().mode_Mosaic)
         explorer.forceBoard(false)
         Swag.assert(grid.board == .Grid)
     }
@@ -181,7 +314,9 @@ func addPictured(host: *Testing.HeadlessHost, explorer: *Explorer, name: string,
     for name, index in names
     {
         let file = Format.toString("%.mkv", name)
-        addPictured(&host, explorer, file, boardPicture(120, 176, tops[index], bottoms[index]), 8 * 1024 * 1024 * 1024, lengths[index] * 60)
+        let wide = index == 7
+        addPictured(&host, explorer, file, boardPicture(wide ? 192 : 120, wide ? 108 : 176, tops[index], bottoms[index]),
+                    8 * 1024 * 1024 * 1024, lengths[index] * 60)
         let last = explorer.entries.count - 1
         explorer.entries[last].movie.title = name
         explorer.entries[last].movie.date  = years[index]
@@ -193,7 +328,7 @@ func addPictured(host: *Testing.HeadlessHost, explorer: *Explorer, name: string,
         .movie.director   = "Ridley Scott"
         .movie.actors     = "Harrison Ford, Rutger Hauer"
         .movie.overview   = "A science-fiction film directed by Ridley Scott, adapted from the novel by Philip K. Dick."
-        .movie.sources    = "Apple · Wikipedia · Wikidata"
+        .movie.sources    = "Wikipedia · Wikidata"
     }
 
     explorer.selected = 0
@@ -206,7 +341,7 @@ func addPictured(host: *Testing.HeadlessHost, explorer: *Explorer, name: string,
     Swag.assert(grid.posters and grid.tile.y > grid.tile.x)
     Swag.assert(window.infoSheet.beside and Utf8.contains(window.infoSheet.text(), "1982 · 117 min"))
     Swag.assert(grid.tileRect(0).right() < window.infoSheet.surfaceRect().x)
-    var image = host.render(window)
+    var image = host.render(&host.surfaceWnd)
     Pixel.Testing.assertImageGolden(&image, "explorer.films")
 }
 
@@ -234,8 +369,67 @@ func addPictured(host: *Testing.HeadlessHost, explorer: *Explorer, name: string,
     let grid = explorer.grid
     Swag.assert(grid.board == .Covers and grid.tile.x == grid.tile.y)
     Swag.assert(Utf8.startsWith(explorer.status.text(), Format.toString("% · %", Format.toString(appStrings().explore_Albums, 8), Format.toString(appStrings().explore_Tracks, 8))))
-    var image = host.render(window)
+    var image = host.render(&host.surfaceWnd)
     Pixel.Testing.assertImageGolden(&image, "explorer.music")
+}
+
+// Albums stored as directories take the same cover board and open into their track pages.
+#test
+{
+    let root = Path.combine(Env.getSpecialDirectory(.Temp), Format.toString("scope-library-%", Guid64.random()))
+    expect Directory.create(root)
+    defer catch Directory.delete(root, recurse: true)
+    for name in ["Discovery", "In Rainbows"]
+    {
+        let album = Path.combine(root, name)
+        expect Directory.create(album)
+        for index in 2 do
+            discard expect File.writeAllText(Path.combine(album, Format.toString("%.flac", index)), "fixture")
+    }
+
+    var listing = expect ExplorerListing.load(root)
+    Swag.assert(listing.entries.count == 2)
+    for &entry in listing.entries do
+        Swag.assert(entry.directory and not entry.albumTrack.isEmpty() and entry.music.title == entry.name)
+
+    var host: Testing.HeadlessHost
+    let window = boardWindow(&host, false, films: false)
+    let explorer = unwrap window.explorer
+    explorer.entries = #move listing.entries
+    showBoard(&host, window, "Music", "Albums")
+    Swag.assert(explorer.grid.board == .Covers)
+    Swag.assert(Utf8.startsWith(explorer.status.text(), Format.toString(appStrings().explore_Albums, 2)))
+}
+
+#[Swag.TestTag("golden")]
+#test
+{
+    for light in [false, true]
+    {
+        var host: Testing.HeadlessHost
+        let window = boardWindow(&host, light, films: false)
+        let explorer = unwrap window.explorer
+        let names: [6] string = ["Discovery", "Random Access Memories", "In Rainbows", "Kid A", "Moon Safari", "Homework"]
+        let artists: [6] string = ["Daft Punk", "Daft Punk", "Radiohead", "Radiohead", "Air", "Daft Punk"]
+        let years: [6] string = ["2001", "2013", "2007", "2000", "1998", "1997"]
+        let tops: [6] u32 = [0x2A1A4A, 0x2A2418, 0xF0B050, 0xD8E2EA, 0xEDE6D2, 0x141414]
+        let bottoms: [6] u32 = [0xD8508A, 0xC8A040, 0xE04848, 0x5A7A96, 0x7A98C0, 0x3A3A3A]
+        for name, index in names
+        {
+            var picture = index == 5 ? Image.create(1, 1, .RGBA8) :
+                          boardPicture(120, 120, tops[index], bottoms[index])
+            var entry = ExplorerEntry{name: name, path: name, directory: true, albumTrack: "01.flac",
+                                      attempted: true, music: {title: name, artist: artists[index], date: years[index], source: "tags"}}
+            entry.texture = host.app.renderer.addImage(&picture)
+            explorer.entries.add(#move entry)
+        }
+
+        explorer.selected = 0
+        showBoard(&host, window, "Music", "Albums")
+        Swag.assert(explorer.grid.board == .Covers)
+        var image = host.render(&host.surfaceWnd)
+        Pixel.Testing.assertImageGolden(&image, light ? "explorer.albumfolders.paper" : "explorer.albumfolders.encre")
+    }
 }
 
 // One album: its cover large with Play and Shuffle, then its kind and year, its title, who made
@@ -269,7 +463,7 @@ func addPictured(host: *Testing.HeadlessHost, explorer: *Explorer, name: string,
                     grid.playButton!.isLocallyVisible() and
                     not explorer.title.isLocallyVisible())
         Swag.assert(trackTitle("03 - Digital Love.flac") == "Digital Love")
-        var image = host.render(window)
+        var image = host.render(&host.surfaceWnd)
         Pixel.Testing.assertImageGolden(&image, light ? "explorer.album.paper" : "explorer.album")
     }
 }
@@ -302,7 +496,7 @@ func addPictured(host: *Testing.HeadlessHost, explorer: *Explorer, name: string,
     Swag.assert(Utf8.startsWith(explorer.status.text(), Format.toString(appStrings().explore_Photos, 12)))
     Swag.assert(grid.board == .Mosaic and grid.days.count == 2 and grid.days[0].count == 8)
     Swag.assert(grid.days[0].text == "Wednesday 21 October")
-    var image = host.render(window)
+    var image = host.render(&host.surfaceWnd)
     Pixel.Testing.assertImageGolden(&image, "explorer.photos")
 }
 

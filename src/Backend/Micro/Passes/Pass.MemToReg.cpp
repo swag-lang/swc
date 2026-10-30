@@ -858,35 +858,28 @@ Result MicroMemToRegPass::run(MicroPassContext& context)
         // exposes exactly that object - poison it and keep going, like any
         // other address escape. Index and stored-value registers still go
         // through the generic escape scan below.
-        MicroReg amcBase = MicroReg::invalid();
-        switch (inst.op)
-        {
-            case MicroInstrOpcode::LoadAmcRegMem:
-            case MicroInstrOpcode::LoadSignedExtAmcRegMem:
-            case MicroInstrOpcode::LoadZeroExtAmcRegMem:
-            case MicroInstrOpcode::LoadAddrAmcRegMem:
-                amcBase = ops[1].reg;
-                break;
-            case MicroInstrOpcode::LoadAmcMemReg:
-            case MicroInstrOpcode::LoadAmcMemImm:
-            case MicroInstrOpcode::CmpAmcImm:
-            case MicroInstrOpcode::OpUnaryAmcMem:
-            case MicroInstrOpcode::OpBinaryAmcMemImm:
-            case MicroInstrOpcode::CmpAmcReg:
-                amcBase = ops[0].reg;
-                break;
-            default:
-                break;
-        }
-        if (amcBase.isValid() && (isFrameRegister(amcBase) || isTracked(amcBase)))
+        MicroPassHelpers::AmcLayout amcLayout;
+        const bool                  hasAmc    = MicroPassHelpers::amcLayoutFor(amcLayout, inst.op);
+        const MicroReg              amcBase   = hasAmc ? ops[amcLayout.baseIdx].reg : MicroReg::invalid();
+        const auto&                 instrInfo = MicroInstr::info(inst.op);
+
+        const bool hasOpaqueMemory = !isHandledScalarMemOp(inst.op) &&
+                                     instrInfo.flags.has(MicroInstrFlagsE::HasMemBaseOffsetOperands);
+
+        const MicroReg opaqueBase = hasOpaqueMemory ? ops[instrInfo.memBaseOperandIndex].reg : MicroReg::invalid();
+        const MicroReg memoryBase = hasAmc ? amcBase : opaqueBase;
+        if (memoryBase.isValid() && (isFrameRegister(memoryBase) || isTracked(memoryBase)))
         {
             // The object is the one at the base's offset plus the access's
             // displacement: a lea of the array's address folded into the
             // indexed form leaves the array behind the displacement, not
             // behind the base.
-            MicroPassHelpers::AmcLayout layout;
-            uint64_t                    escapedOffset = 0;
-            if (!MicroPassHelpers::amcLayoutFor(layout, inst.op) || !escapedObjectOffset(amcBase, escapedOffset) || !poisonTrackedEscape(amcBase, escapedOffset, ops[layout.addIdx].valueU64))
+            // Fixed-offset accesses without a promotion rule need the same
+            // displacement-aware treatment. In particular, a folded SIMD widen
+            // still reads its source slot even though it is no longer a load.
+            const uint64_t displacement  = ops[hasAmc ? amcLayout.addIdx : instrInfo.memOffsetOperandIndex].valueU64;
+            uint64_t       escapedOffset = 0;
+            if (!escapedObjectOffset(memoryBase, escapedOffset) || !poisonTrackedEscape(memoryBase, escapedOffset, displacement))
             {
                 bail = true;
                 break;
@@ -923,10 +916,10 @@ Result MicroMemToRegPass::run(MicroPassContext& context)
             if (!reg.isValid() || reg.isNoBase() ||
                 !(isTracked(reg) || reg == stackPointer))
                 continue;
-            const bool isExplainedBase    = baseValid && reg == baseReg && isHandledScalarMemOp(inst.op);
-            const bool isExplainedValue   = storesTrackedValue && reg == valueReg;
-            const bool isExplainedAmcBase = amcBase.isValid() && reg == amcBase;
-            if (isExplainedBase || isExplainedValue || isExplainedAmcBase)
+            const bool isExplainedBase       = baseValid && reg == baseReg && isHandledScalarMemOp(inst.op);
+            const bool isExplainedValue      = storesTrackedValue && reg == valueReg;
+            const bool isExplainedMemoryBase = memoryBase.isValid() && reg == memoryBase;
+            if (isExplainedBase || isExplainedValue || isExplainedMemoryBase)
                 continue;
             // The frame base read as a value - added to an element offset,
             // copied into an argument register, compared, stored - is the

@@ -638,6 +638,23 @@ impl RenderOgl
     // callers presenting on the UI thread cannot process input during that wait.
     internal mtd endImpl()
     {
+        // Keep hot scratch images, but retire those unused by this frame (for example,
+        // the full-window backdrop targets after the lens closes).
+        for index in reversed(.stackReleasedRT.count)
+        {
+            let target = unwrap .stackReleasedRT[index]
+            if not target.poolUsed
+            {
+                .stackReleasedRT.removeAt(index)
+                .deleteRenderTargetImpl(target)
+                Memory.delete(target)
+            }
+            else
+            {
+                target.poolUsed = false
+            }
+        }
+
         glFlush()
         .native.swapBuffers(oglContext(.curRC)[])
     }
@@ -966,17 +983,11 @@ impl RenderOgl
         glBindFramebuffer(GL_FRAMEBUFFER, fbo)
         glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, colorID, 0)
 
-        var rbo: GLuint
-        glGenRenderbuffers(1, &rbo)
-        glBindRenderbuffer(GL_RENDERBUFFER, rbo)
-        glRenderbufferStorage(GL_RENDERBUFFER, GL_DEPTH24_STENCIL8, w, h)
-        glBindRenderbuffer(GL_RENDERBUFFER, 0)
-        glFramebufferRenderbuffer(GL_FRAMEBUFFER, GL_DEPTH_STENCIL_ATTACHMENT, GL_RENDERBUFFER, rbo)
-
+        // Clipping uses coverage textures; no draw enables hardware depth or stencil tests.
         glBindFramebuffer(GL_FRAMEBUFFER, 0)
 
         var result: #returntype
-        result.attach(cast(RenderTargetHandle, fbo), cast(TextureHandle, colorID), .RGBA8, w, h, cast(RenderTargetSurfaceHandle, rbo))
+        result.attach(cast(RenderTargetHandle, fbo), cast(TextureHandle, colorID), .RGBA8, w, h)
         return result
     }
 
@@ -1586,6 +1597,7 @@ impl RenderOgl
             let curShader = unwrap .curShader
             glUniform4fv(cast(GLint, curShader.boundRect), 1, &params.boundRect.x)
             glUniform4fv(cast(GLint, curShader.textureRect), 1, &params.textureRect.x)
+            glUniform4fv(cast(GLint, curShader.texturePixelBounds), 1, &params.texturePixelBounds.x)
             glUniform1f(cast(GLint, curShader.uvMode), cast(GLfloat, params.uvMode))
 
             // At a fractional content scale, pixel sampling switches to the sharp
@@ -2066,23 +2078,15 @@ impl RenderOgl
     internal mtd acquireRenderTargetImpl(width, height: s32)->*RenderTarget
     {
         Swag.assert(width > 0 and height > 0)
-        let w2 = Math.roundUpToPowerOf2(cast(u32, width))
-        let h2 = Math.roundUpToPowerOf2(cast(u32, height))
+
+        // Small buckets absorb resize jitter without doubling each full-window dimension.
+        let bucketWidth  = RenderTarget.pooledExtent(width)
+        let bucketHeight = RenderTarget.pooledExtent(height)
 
         for rt, i in .stackReleasedRT
         {
             let r = unwrap rt
-            if r.colorBuffer.width == w2 and r.colorBuffer.height == h2
-            {
-                .stackReleasedRT.removeAt(i)
-                return r
-            }
-        }
-
-        for rt, i in .stackReleasedRT
-        {
-            let r = unwrap rt
-            if r.colorBuffer.width >= w2 and r.colorBuffer.height >= h2
+            if r.colorBuffer.width == bucketWidth and r.colorBuffer.height == bucketHeight
             {
                 .stackReleasedRT.removeAt(i)
                 return r
@@ -2090,7 +2094,7 @@ impl RenderOgl
         }
 
         var rt = Memory.new'RenderTarget()
-        rt[] = .createRenderTargetImpl(cast(s32, w2), cast(s32, h2))
+        rt[] = .createRenderTargetImpl(cast(s32, bucketWidth), cast(s32, bucketHeight))
         return rt
     }
 
@@ -2099,6 +2103,7 @@ impl RenderOgl
     {
         if not tgt do
             return
+        tgt.poolUsed = true
         .stackReleasedRT.add(tgt)
     }
 
@@ -2147,6 +2152,7 @@ impl RenderOgl
         base.mdl                    = cast(glGetUniformLocation(progID, ("mdl").buffer))
         base.boundRect              = cast(glGetUniformLocation(progID, ("boundRect").buffer))
         base.textureRect            = cast(glGetUniformLocation(progID, ("textureRect").buffer))
+        base.texturePixelBounds     = cast(glGetUniformLocation(progID, ("texturePixelBounds").buffer))
         base.uvMode                 = cast(glGetUniformLocation(progID, ("uvMode").buffer))
         base.interpolationMode      = cast(glGetUniformLocation(progID, ("interpolationMode").buffer))
         base.copyMode               = cast(glGetUniformLocation(progID, ("copyMode").buffer))

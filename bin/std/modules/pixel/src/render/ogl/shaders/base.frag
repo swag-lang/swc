@@ -4,6 +4,7 @@ uniform vec4  boundRect;
 uniform float textureW; // texture resolution
 uniform float textureH; // texture resolution
 uniform vec4  textureRect;
+uniform vec4  texturePixelBounds;
 uniform float uvMode;
 uniform float interpolationMode;
 
@@ -112,12 +113,12 @@ vec4 sampleGradientStops(float t)
 
 vec2 subRectPixelMin()
 {
-    return floor(vec2(textureRect.x * textureW, textureRect.y * textureH));
+    return texturePixelBounds.xy;
 }
 
 vec2 subRectPixelMax()
 {
-    return floor(vec2(textureRect.z * textureW, textureRect.w * textureH));
+    return texturePixelBounds.zw;
 }
 
 vec2 subRectUVFromPixel(vec2 p)

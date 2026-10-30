@@ -18,11 +18,19 @@ struct RenderTarget
     {
         paintAlpha:    bool     // Whether alpha requires a separate resolve pass.
         paintAlphaIdx: u64      // Renderer sequence number associated with the alpha resolve state.
+        poolUsed:      bool     // Whether a borrower returned this target during the current frame.
     }
 }
 
 internal impl RenderTarget
 {
+    // Keep tiny scratch images small, then grow in 64-pixel steps for window-sized layers.
+    func pooledExtent(size: s32)->u32
+    {
+        let extent = cast(u32, size)
+        return extent <= 64 ? Core.Math.roundUpToPowerOf2(extent) : (extent + 63) & ~63'u32
+    }
+
     // Establishes a descriptor for resources created by a renderer.
     mtd attach(handle: RenderTargetHandle, textureHandle: TextureHandle, pixelFormat: PixelFormat, width, height: s32, depthStencil = InvalidRenderTargetSurfaceHandle)
     {

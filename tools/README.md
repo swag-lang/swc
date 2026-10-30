@@ -60,6 +60,11 @@ per run.
 | `vsix.bat` | Test and package the VSCode extension |
 | `setup.bat` | Add this checkout's `bin/` to the user `PATH` and set `SWAG_PATH` |
 
+The golden campaign discovers tags in module test files (`*.test.swg`) and skips workspaces
+that declare no golden tests; quoted tags in reference prose do not select a workspace. Its argument
+forwarding, and failure propagation can be checked without a compiler or desktop:
+`powershell -NoProfile -ExecutionPolicy Bypass -File tools/tests/goldens.ps1`.
+
 The batch setup does not claim the `.swgs` file association. It updates the user environment;
 open a new terminal after running it.
 

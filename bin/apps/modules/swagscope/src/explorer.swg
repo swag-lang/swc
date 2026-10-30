@@ -75,19 +75,6 @@ func thumbnailDuration(image: const *Image)->u64
     return 0
 }
 
-// Returns how many isolated renderers the Explorer keeps busy.
-//
-// Each renderer is a child process decoding on one thread, so one per logical processor saturates
-// the machine; two are left to the interface and to the decoders of the open viewer.
-func explorerWorkerCount()->u64 => Math.max(cast(u64, Hardware.processorCount()), 3'u64) - 2
-
-// How many previews of a folder on a network share run at once.
-//
-// A share answers a bounded number of scattered reads a second, and every renderer past what it
-// keeps busy only lengthens the queue in front of it: on a NAS, twenty renderers filled the folder
-// half as fast as a handful.
-const ExplorerRemoteWorkerCount = 6'u64
-
 struct ExplorerTemporary
 {
     file:  String
@@ -122,6 +109,7 @@ struct Explorer
         grid:       *ExplorerGrid
     }
 
+    layingHeader:    bool
     mode:            ExplorerMode = .Medium
     history:         NavigationHistory
     listing:         ExplorerListing
@@ -141,9 +129,7 @@ struct Explorer
     descending:      bool
     menuPaths:       Array'String
     previewSettings: String
-    bypassCache:     bool     // Whether the previews of the shown listing ignore the persistent cache, after a forced refresh.
     previewAspect:   f32 = ExplorerTilePreviewAspect     // Shape of the tiles, chosen from what the listing holds.
-    previewBudget:   u64      // How many previews of the shown listing run at once.
     extraction:      ArchiveExtraction
     toast:           *Toast?
     forcedBoard:     ExplorerBoard     // The board the view menu forces, when `forced`.
@@ -155,11 +141,11 @@ impl Explorer
     // The air between the page and the edges of the document, the height of its header, and the
     // size its title is set in.
     const PageMargin       = 72.0
-    const HeaderHeight     = 94.0
+    const HeaderHeight     = 112.0
     const TitleFontSize    = 44'u32
     const MinTitleFontSize = 28'u32
     const ToolHeight       = 32.0
-    const AddressHeight    = 24.0
+    const AddressHeight    = 32.0
     const SummaryHeight    = 24.0
 
     func create(parent: *Wnd, window: *ViewerWindow)->*Explorer
@@ -248,8 +234,7 @@ impl Explorer
         }
 
         result.retranslate()
-        result.previews.resize(explorerWorkerCount())
-        result.previewBudget = result.previews.count
+        result.previews.resize(cast(u64, Swag.workerCount()))
         result.grid.busy.resize(result.previews.count)
         for result.previews.count
         {
@@ -314,6 +299,7 @@ impl Explorer
         with .tools = StackLayoutCtrl.create(line, .Left, {0, 0, 0, 0})
         {
             .dockStyle       = .Right
+            .anchorStyle     = .Right | .Bottom
             .backgroundStyle = .Transparent
             .spacing         = 8
         }
@@ -353,11 +339,10 @@ impl Explorer
         }
 
         // An archive offers to extract all it holds, a quiet word acting at once.
-        with .extractAll = IconButton.createQuiet(.tools, menu: false)
+        with .extractAll = IconButton.createQuiet(.tools, ViewerCommands.ExtractAll, menu: false)
         {
             .layoutSpec.alignY = .End
             .hide()
-            .sigPressed += func|view = me|(_) { view.chooseExtraction(all: true) }
         }
 
         with .sortMenu = IconButton.createQuiet(.tools)
@@ -388,73 +373,62 @@ impl Explorer
         .filter.setFocus()
     }
 
-    // Gives the head of the page the height of the lines it shows: the path, the title, and the
-    // summary of an archive and the filter when they show.
-    mtd fitHeader()
-    {
-        // One album stands its own title beside its cover: the page keeps only its path.
-        let album = .grid.board == .Album
-        .title.show(not album)
-        .tools.show(not album)
-        if album
-        {
-            let height = AddressHeight + 8
-            if .header.position.height != height
-            {
-                .header.position.height = height
-                .applyLayout()
-            }
+    // The header grows for a filter, a summary or a narrow title line; no action overlaps the title.
+    mtd fitHeader() => .layoutTools()
 
-            return
-        }
-
-        var height = HeaderHeight
-        if .summary.isLocallyVisible() do
-            height += SummaryHeight
-        if .filter.isLocallyVisible() do
-            height += ToolHeight + 4
-        if .header.position.height != height
-        {
-            .header.position.height = height
-            .applyLayout()
-        }
-
-        .layoutTools()
-    }
-
-    // Fits the tools of the header to what they hold, after a word in them changed.
-    //
-    // The title comes first: on a narrow page the count leaves the line before the title would be
-    // cut, and comes back when there is room for both.
     mtd layoutTools()
     {
+        if .layingHeader or .grid == null do
+            return
+        .layingHeader = true
+        defer .layingHeader = false
+
+        let metrics = .themeMetrics()
+        let inset   = Math.clamp(.clientRect().width / 16, metrics.floating_Inset, PageMargin)
+        .header.padding.x = inset
+        .header.padding.z = inset
+        .list.margin.x    = inset - ExplorerGrid.CellInset
+        .list.margin.z    = inset - ExplorerGrid.CellInset
+        .scroll.margin.x  = .list.margin.x
+        .scroll.margin.z  = .list.margin.z
+        .applyLayout()
+
+        let album    = .grid.board == .Album and .scroll.isLocallyVisible()
         let line     = unwrap .tools.parent
         let text     = .title.text()
         let full     = Painter.measureString(text, .theme().createDefaultFont(TitleFontSize, .Bold)).width
         let smallest = Painter.measureString(text, .theme().createDefaultFont(MinTitleFontSize, .Bold)).width
-        let space    = line.clientRect().width - 24
+        let gap      = metrics.infoSheet_BlockGap
+        let space    = line.clientRect().width
+        .title.show(not album)
+        .tools.show()
         .extractAll.show(.listing.isArchive)
-        .status.show(not .listing.isArchive and not .status.name.raw.isEmpty())
+        .status.show(not album and not .listing.isArchive and not .status.name.raw.isEmpty())
         var width = Math.ceil(.tools.itf.measureContent({}).x)
-        if .status.isLocallyVisible() and width + full > space
+        if .status.isLocallyVisible() and width + full + gap > space
         {
             .status.hide()
             width = Math.ceil(.tools.itf.measureContent({}).x)
         }
 
-        // Extracting the whole archive is a lens entry too: it leaves the line before the title
-        // would be cut at its smallest.
-        if .extractAll.isLocallyVisible() and width + smallest > space
-        {
-            .extractAll.hide()
-            width = Math.ceil(.tools.itf.measureContent({}).x)
-        }
+        // Counts and failures move under the title instead of disappearing when space is tight.
+        let summary = not album and not .status.isLocallyVisible() and .status.text().count != 0
+        .summary.setText(summary ? .status.text() : "")
+        .summary.show(summary)
+        let stacked = not album and width + smallest + gap > space
+        var height  = album ? AddressHeight + ToolHeight + gap : HeaderHeight
+        if stacked do
+            height += ToolHeight + gap
+        if summary do
+            height += SummaryHeight
+        if .filter.isLocallyVisible() do
+            height += ToolHeight + metrics.infoSheet_LineGap
+        .header.position.height = height
+        .tools.dockStyle        = .None
+        .title.margin.z         = stacked ? 0 : width + gap
+        .title.margin.w         = stacked ? ToolHeight + gap : 0
 
-        .tools.position.width = width
-
-        // Then the title steps down the scale of page titles before it would be cut. A folder of
-        // an archive is a page within a document, titled at the foot of the scale.
-        let room = space - width
+        let room = stacked ? space : space - width - gap
         for size in [TitleFontSize, 36'u32, MinTitleFontSize]
         {
             if .listing.isArchive and size != MinTitleFontSize do
@@ -467,7 +441,9 @@ impl Explorer
             }
         }
 
-        .header.applyLayout()
+        .applyLayout()
+        let bounds = line.clientRect()
+        .tools.setPosition({Math.max(bounds.right() - width, 0), Math.max(bounds.bottom() - ToolHeight, 0), width, ToolHeight})
         .tools.computeLayout()
     }
 
@@ -476,23 +452,23 @@ impl Explorer
     {
         let text = appStrings()
         let menu = MenuCtrl.createPopup(me, owner: me)
-        for name, mode in [text.explore_Names, text.explore_Details, text.explore_Small, text.explore_Medium, text.explore_Large] do
-            menu.addRadioItem(name, Format.toString("scope.explore.mode.%", mode), checked: cast(u64, .mode) == mode)
-
-        // The shape of the tiles: read from the folder, or forced.
-        menu.addSeparator()
-        let boards = [text.board_Automatic, text.board_Grid, text.board_Covers, text.board_Posters, text.board_Mosaic]
-        for name, board in boards
+        for id, index in ViewerCommands.Modes
         {
-            let checked = board == 0 ? not .forced : (.forced and cast(u64, .forcedBoard) == board - 1)
-            menu.addRadioItem(name, Format.toString("scope.explore.board.%", board), checked: checked)
+            let names = [text.explore_Names, text.explore_Details, text.explore_Small, text.explore_Medium, text.explore_Large]
+            menu.addRadioItem(names[index], id, checked: cast(u64, .mode) == index)
+        }
+
+        menu.addSeparator()
+        for id, index in ViewerCommands.Boards
+        {
+            let names   = [text.board_Automatic, text.board_Grid, text.board_Posters, text.board_Covers, text.board_Mosaic]
+            let checked = index == 0 ? not .forced : (.forced and cast(u64, .forcedBoard) == index - 1)
+            menu.addRadioItem(names[index], id, checked: checked)
         }
 
         let chosen = menu.doModal(.modeMenu, autoDestroy: true) orelse ""
-        for mode in 5 where chosen == Format.toString("scope.explore.mode.%", mode).toString() do
-            .setMode(cast(ExplorerMode, cast(u32, mode)))
-        for board in boards.count where chosen == Format.toString("scope.explore.board.%", board).toString() do
-            .forceBoard(board != 0, board ? cast(ExplorerBoard, cast(u32, board - 1)) : .Grid)
+        if chosen.count do
+            discard .window.runCommand(chosen)
     }
 
     // Forces the shape of the tiles to `board`, or without `forced` gives it back to what the
@@ -609,12 +585,6 @@ impl Explorer
     // Reports what the location holds, or why it holds nothing, on the title's line.
     mtd setStatus(text: string)
     {
-        // An archive says it under its title, where its counts and weights have the room.
-        let archive = .listing.isArchive
-        .summary.setText(archive ? text : "")
-        .summary.show(archive)
-        .fitHeader()
-        .status.show(not archive)
         .status.setText(text)
         .status.position.width = Math.ceil(.status.itf.measureContent({}).x)
         .layoutTools()
@@ -684,7 +654,7 @@ impl Explorer
     mtd fitToSheet(open: bool)
     {
         let metrics = .themeMetrics()
-        let room    = open ? metrics.infoSheet_Width + 2 * metrics.floating_Inset - PageMargin : 0
+        let room    = open ? metrics.infoSheet_Width + metrics.floating_Inset : 0
         if .padding.z == room do
             return
         .padding.z = room
@@ -707,7 +677,7 @@ impl Explorer
         }
 
         let entry = &.entries[.selected]
-        if entry.texture.isValid() do
+        if entry.texture.isValid() and entry.texture.width > 1 do
             sheet.setPicture(entry.texture)
 
         let title = not entry.movie.title.isEmpty() ? entry.movie.title.toString() :
@@ -783,7 +753,8 @@ impl Explorer
             sheet.addSection(strings.explore_MediaDetails)
             addSheetReading(sheet, strings.explore_Artist, entry.music.artist)
             addSheetReading(sheet, strings.explore_FirstRelease, entry.music.date)
-            addSheetReading(sheet, strings.explore_Source, "MusicBrainz")
+            addSheetReading(sheet, strings.explore_Source,
+                            entry.music.source == "tags" ? strings.explore_FileTags : "MusicBrainz")
         }
 
         if .listing.isArchive and entry.archiveIndex < .listing.archive.entries.count
@@ -833,6 +804,12 @@ impl Explorer
         if .grid.board != .Covers or .selected >= .entries.count do
             return
         .window.setPlayMode(.Folder)
+        let entry = &.entries[.selected]
+        if not entry.albumTrack.isEmpty()
+        {
+            .window.queueFile(entry.albumTrack)
+            return
+        }
         .activate(.selected)
     }
 
@@ -960,8 +937,7 @@ impl Explorer
 
     mtd navigate(path: string, folder: string = "", remember = true)
     {
-        .generation  += 1
-        .bypassCache = false
+        .generation += 1
         .suspend()
         .pendingOpen     = Swag.U64.Max
         .requested       = path
@@ -973,14 +949,11 @@ impl Explorer
             .startListing()
     }
 
-    // Lists the folder again and renders its previews anew instead of reading them from the cache.
-    //
-    // The cache already follows a file that changed, so a forced refresh is what the user reaches
-    // for when a preview is wrong anyway; the previews it renders replace the cached ones.
+    // Lists the folder again. Changed files have new cache identities; unchanged previews remain
+    // immediately available while the listing is refreshed.
     mtd forceRefresh()
     {
         .navigate(.listing.path, .folder, false)
-        .bypassCache = true
     }
 
     private mtd startListing()
@@ -1185,7 +1158,6 @@ impl Explorer
         .selected = Swag.U64.Max
         .showMediaInfo()
         .previewAspect = .listingPreviewAspect()
-        .previewBudget = Directory.isRemote(.listing.path) ? Math.min(ExplorerRemoteWorkerCount, .previews.count) : .previews.count
         .updateBreadcrumb()
 
         .filter.setText("", notify: false)
@@ -1232,9 +1204,18 @@ impl Explorer
         var files, films, sounds, pictures: u64
         var album: String
         var oneAlbum = true
-        for &entry in .entries where not entry.directory
+        for &entry in .entries
         {
+            if entry.directory and entry.albumTrack.isEmpty() and entry.children == Swag.U64.Max do
+                continue
             files += 1
+            if entry.directory
+            {
+                if not entry.albumTrack.isEmpty() do
+                    sounds += 1
+                oneAlbum = false
+                continue
+            }
             let kind = .theme().fileGlyph(entry.name, false, 16).index
             if kind == cast(s32, ThemeIcons.FileVideo)
             {
@@ -1307,19 +1288,25 @@ impl Explorer
         var count: String
         switch .shown.count
         {
-        case 0:  count = appStrings().explore_Empty
+        case 0:  count = Format.toString(appStrings().explore_Count, 0)
         case 1:  count = appStrings().explore_OneItem
         default: count = Format.toString(appStrings().explore_Count, .shown.count)
         }
 
-        // A folder of media counts what it holds in its own words.
-        if .shown.count > 1
+        // A homogeneous media folder can count in its own words. Forcing a board only changes
+        // presentation; the count must still describe every item left on the page.
+        if .shown.count > 1 and not .forced
         {
             var albums: Array'String
-            var tracks, photos, films: u64
+            var tracks, albumFolders, photos: u64
             for index in .shown
             {
                 let entry = &.entries[index]
+                if not entry.albumTrack.isEmpty()
+                {
+                    albumFolders += 1
+                    continue
+                }
                 let kind  = .theme().fileGlyph(entry.name, entry.directory, 16).index
                 if kind == cast(s32, ThemeIcons.FileAudio)
                 {
@@ -1334,20 +1321,16 @@ impl Explorer
                 {
                     photos += 1
                 }
-                elif kind == cast(s32, ThemeIcons.FileVideo)
-                {
-                    films += 1
-                }
             }
 
-            if board == .Covers do
+            if board == .Covers and albumFolders == .shown.count do
+                count = Format.toString(appStrings().explore_Albums, albumFolders)
+            elif board == .Covers and tracks == .shown.count do
                 count = Format.toString("% · %", Format.toString(appStrings().explore_Albums, albums.count), Format.toString(appStrings().explore_Tracks, tracks))
-            elif board == .Album do
+            elif board == .Album and tracks == .shown.count do
                 count = Format.toString(appStrings().explore_Tracks, tracks)
-            elif board == .Mosaic do
+            elif board == .Mosaic and photos == .shown.count do
                 count = Format.toString(appStrings().explore_Photos, photos)
-            elif board == .Posters do
-                count = Format.toString(appStrings().explore_Films, films)
         }
 
         // A folder says what its files weigh; an archive what it weighs packed and what it will
@@ -1368,6 +1351,7 @@ impl Explorer
         }
 
         .setStatus(count)
+        .list.setEmptyText(query.count ? appStrings().explore_NoMatches : appStrings().explore_Empty)
 
         .list.setVirtualCount(cast(u32, .shown.count))
         for index, row in .shown where index == .selected
@@ -1403,8 +1387,13 @@ impl Explorer
     {
         for &preview in .previews
         {
-            if preview.started and preview.generation == .generation and preview.index < .entries.count do
-                .entries[preview.index].attempted = false
+            if preview.started and preview.generation == .generation and preview.index < .entries.count
+            {
+                if preview.online do
+                    .entries[preview.index].onlinePending = true
+                else do
+                    .entries[preview.index].attempted = false
+            }
             preview.task.cancel()
         }
     }
@@ -1450,8 +1439,14 @@ impl Explorer
                 visible = true
             if not visible
             {
-                if preview.generation == .generation and preview.index < .entries.count do
-                    .entries[preview.index].attempted = false
+                if preview.generation == .generation and preview.index < .entries.count
+                {
+                    if preview.online do
+                        .entries[preview.index].onlinePending = true
+                    else do
+                        .entries[preview.index].attempted = false
+                }
+                preview.generation = Swag.U64.Max
                 preview.task.cancel()
             }
         }
@@ -1489,17 +1484,11 @@ impl Explorer
     mtd requestPreview()
     {
         .refreshPreviewSettings()
-        var running = 0'u64
-        for &preview in .previews where preview.started do
-            running += 1
+
+        // Submit useful previews; the runtime shares background admission across every owner.
         for &preview in .previews where not preview.started
         {
-            // Opening a file is what the user waits for; only background previews keep the budget.
-            if running >= .previewBudget and .pendingOpen == Swag.U64.Max do
-                break
             .startPreview(preview)
-            if preview.started do
-                running += 1
         }
     }
 
@@ -1532,6 +1521,7 @@ impl Explorer
         for &entry in .entries
         {
             entry.attempted = false
+            entry.onlinePending = false
             entry.movie     = {}
             entry.music     = {}
         }
@@ -1556,6 +1546,7 @@ impl Explorer
         if .load.started or (not .isVisible() and .pendingOpen == Swag.U64.Max) do
             return
         var wanted  = .pendingOpen
+        var online  = false
         let opening = wanted != Swag.U64.Max
         if not opening
         {
@@ -1566,12 +1557,13 @@ impl Explorer
                 let selected = &.entries[.selected]
                 let movie    = .window.onlineMovies and Reader.canOpen(selected.path)
                 let music    = .window.onlineMusic and (Path.hasExtension(selected.path, ".mp3") or Path.hasExtension(selected.path, ".flac"))
-                if selected.directory or
-                   selected.attempted or
+                if (selected.directory and selected.albumTrack.isEmpty()) or
+                   (selected.attempted and not selected.onlinePending) or
                    not (movie or music or .grid.rows) or
                    .previewSlot(.selected) != Swag.U64.Max do
                     return
                 wanted = .selected
+                online = selected.onlinePending
             }
             else
             {
@@ -1580,7 +1572,8 @@ impl Explorer
                 {
                     let index = .shown[row]
                     if index < .entries.count and
-                       not .entries[index].directory and
+                       (not .entries[index].directory or not .entries[index].albumTrack.isEmpty() or
+                        (.grid.board == .Covers and .entries[index].children == Swag.U64.Max)) and
                        not .entries[index].attempted and
                        .previewSlot(index) == Swag.U64.Max
                     {
@@ -1588,12 +1581,29 @@ impl Explorer
                         break
                     }
                 }
+
+                // Every visible tile gets its local image before network enrichment occupies a
+                // worker. Scrolling away can then cancel only the remote pass.
+                if wanted == Swag.U64.Max
+                {
+                    for row in Math.min(range.first, .shown.count) until Math.min(range.end, .shown.count)
+                    {
+                        let index = .shown[row]
+                        if index < .entries.count and .entries[index].onlinePending and
+                           .previewSlot(index) == Swag.U64.Max
+                        {
+                            wanted = index
+                            online = true
+                            break
+                        }
+                    }
+                }
             }
         }
 
         if wanted >= .entries.count do
             return
-        if not opening and .cached.count >= 128
+        if not opening and not online and .cached.count >= 128
         {
             let range = .grid.visibleRange()
             var evict = Swag.U64.Max
@@ -1624,15 +1634,19 @@ impl Explorer
             return
         .pendingOpen        = Swag.U64.Max
         preview.path        = entry.path
+        preview.mediaFile   = entry.albumTrack
         preview.index       = wanted
         preview.generation  = .generation
         preview.opening     = opening
-        preview.bypassCache = .bypassCache
+        preview.online      = online
         preview.settings    = ThumbnailSettings.capture(.window, entry)
         preview.archivePath = .listing.isArchive ? .listing.path : {}
         if .listing.isArchive do
             preview.entry = .listing.archive.entries[entry.archiveIndex]
-        entry.attempted = true
+        if online do
+            entry.onlinePending = false
+        else do
+            entry.attempted = true
         preview.start(me)
         .grid.invalidate()
     }
@@ -1702,9 +1716,14 @@ impl IWnd for Explorer
                     }
                     elif preview.image.isValid()
                     {
+                        if .entries[preview.index].directory and not preview.mediaFile.isEmpty() do
+                            .entries[preview.index].albumTrack = preview.mediaFile
+                        if not preview.online do
+                            .entries[preview.index].onlinePending = preview.needsOnline
                         if preview.index == .selected and not preview.error.isEmpty() do
                             .setStatus(preview.error)
-                        if .cached.count >= 128
+                        let replacing = .entries[preview.index].texture.isValid()
+                        if not replacing and .cached.count >= 128
                         {
                             let old = .cached[0]
                             .app().renderer.removeTexture(&.entries[old].texture)
@@ -1714,14 +1733,26 @@ impl IWnd for Explorer
                                 .showMediaInfo()
                         }
 
+                        if replacing do
+                            .app().renderer.removeTexture(&.entries[preview.index].texture)
                         .entries[preview.index].texture  = .app().renderer.addImage(preview.image)
-                        .entries[preview.index].duration = thumbnailDuration(&preview.image)
+                        let duration = thumbnailDuration(&preview.image)
+                        if duration or not preview.online do
+                            .entries[preview.index].duration = duration
                         .entries[preview.index].movie    = MovieSummary.fromImage(&preview.image)
-                        .entries[preview.index].music    = MusicSummary.fromImage(&preview.image)
+                        var music = MusicSummary.fromImage(&preview.image)
+                        if music.title.isEmpty() and not .entries[preview.index].albumTrack.isEmpty()
+                        {
+                            music = .entries[preview.index].music
+                            if music.title.isEmpty() do
+                                music.title = .entries[preview.index].name
+                        }
+                        .entries[preview.index].music = #move music
                         if .selected == preview.index do
                             .showMediaInfo()
-                        .cached.add(preview.index)
-                        if .grid.board == .Mosaic or .grid.board == .Album do
+                        if not replacing do
+                            .cached.add(preview.index)
+                        if .grid.board == .Mosaic or .grid.board == .Album or .grid.board == .Covers do
                             .grid.refreshLayout()
                         .grid.invalidate()
                     }
@@ -1813,6 +1844,8 @@ struct ExplorerGrid
     places:        Array'Math.Rectangle       // Where each shown item stands in a mosaic or an album.
     days:          Array'ExplorerDayLabel     // The days of a mosaic.
     contentHeight: f32
+    albumCover:    Math.Rectangle
+    albumText:     Math.Rectangle
     playButton:    *PushButton?
     shuffleButton: *PushButton?
 }
@@ -1830,7 +1863,7 @@ impl ExplorerGrid
     // width, upright for posters; and the band under a tile for its name and its facts.
     const Gap          = 24.0
     const TileWidth    = 160.0
-    const TileAspect   = 0.885
+    const TileAspect   = 3.0 / 4.0
     const PosterWidth  = 170.0
     const PosterAspect = 1.38
     const TextBand     = 72.0
@@ -1885,6 +1918,7 @@ impl ExplorerGrid
         {
             .board   = .Grid
             .posters = false
+            .refreshAlbumButtons()
             .columns = 1
             .cell    = Math.Point{Math.max(.clientRect().width - 2 * CellInset, 200), RowPitch}
             .explorer.scroll.setScrollSize(0, cast(f32, .explorer.shown.count) * RowPitch + 2 * CellInset)
@@ -2037,20 +2071,25 @@ impl ExplorerGrid
     mtd layoutAlbum()
     {
         let explorer = .explorer
-        let width    = Math.max(.clientRect().width - 2 * CellInset, 400)
+        let width    = Math.max(.clientRect().width - 2 * CellInset, 1)
+        let stacked  = width < CoverSide * 2 + AlbumGap
+        let cover    = Math.min(stacked ? TileWidth : CoverSide, width)
+        .albumCover = Math.Rectangle{CellInset, CellInset, cover, cover}
+        let gap = stacked ? .themeMetrics().floating_Inset : AlbumGap
+        let textX = CellInset + cover + gap
+        .albumText = Math.Rectangle{textX, CellInset, Math.max(width - cover - gap, 1), AlbumHead}
         .places.clear()
         .places.resize(explorer.shown.count)
         .days.clear()
         .columns = 1
-        let left = CellInset + CoverSide + AlbumGap
-        .cell = Math.Point{width - CoverSide - AlbumGap, TrackPitch}
-        var y = CellInset + AlbumHead
+        .cell    = Math.Point{stacked ? width : .albumText.width, TrackPitch}
+        var y = stacked ? Math.max(.albumText.bottom(), .albumCover.bottom() + .themeMetrics().btnPush_Height + AlbumGap) : .albumText.bottom()
         for index, at in explorer.shown
         {
             let entry = &explorer.entries[index]
             if entry.directory or .theme().fileGlyph(entry.name, false, 16).index != cast(s32, ThemeIcons.FileAudio) do
                 continue
-            .places[at] = Math.Rectangle{left, y, .cell.x, TrackPitch - 4}
+            .places[at] = Math.Rectangle{stacked ? CellInset : .albumText.x, y, .cell.x, TrackPitch - 4}
             y += TrackPitch
         }
 
@@ -2066,16 +2105,8 @@ impl ExplorerGrid
         let album = .board == .Album
         if album and not .playButton
         {
-            let explorer  = .explorer
-            with let play = PushButton.create(me, Format.toString("▶ %", appStrings().explore_Play), {}, null, .Strong)
-            {
-                .sigPressed += func|explorer|(_) { explorer.playAlbum(false) }
-            }
-
-            with let shuffle = PushButton.create(me, appStrings().explore_Shuffle, {})
-            {
-                .sigPressed += func|explorer|(_) { explorer.playAlbum(true) }
-            }
+            let play    = PushButton.create(me, appStrings().explore_Play, {}, ViewerCommands.AlbumPlay, .Strong)
+            let shuffle = PushButton.create(me, appStrings().explore_Shuffle, {}, ViewerCommands.AlbumShuffle)
 
             .playButton    = play
             .shuffleButton = shuffle
@@ -2084,9 +2115,11 @@ impl ExplorerGrid
         if not .playButton do
             return
         let height = .themeMetrics().btnPush_Height
-        let top    = CellInset + CoverSide + 22
+        let top    = .albumCover.bottom() + .themeMetrics().infoSheet_BlockGap
         .playButton.setPosition(Math.Rectangle{CellInset, top, 96, height})
         .shuffleButton!.setPosition(Math.Rectangle{CellInset + 106, top, 96, height})
+        .playButton.setText(appStrings().explore_Play)
+        .shuffleButton.setText(appStrings().explore_Shuffle)
         .playButton.show(album)
         .shuffleButton.show(album)
     }
@@ -2125,6 +2158,10 @@ impl ExplorerGrid
         {
             // The cell drew what the file is.
         }
+        elif .board == .Covers and entry.texture.isValid() and entry.texture.width <= 1
+        {
+            .paintBlankCover(painter, tile)
+        }
         elif entry.texture.isValid()
         {
             let texture = entry.texture
@@ -2133,7 +2170,21 @@ impl ExplorerGrid
                           .board == .Mosaic or
                           glyph.index == cast(s32, ThemeIcons.FileImage) or
                           glyph.index == cast(s32, ThemeIcons.FileVideo)
-            if fills
+            if .posters and texture.width > texture.height
+            {
+                // An extracted film frame is wide. Keep the entire frame inside the upright
+                // poster cell until a real poster arrives; its muted colour fills the sleeve.
+                var ambient = Brush.createTexture(texture)
+                ambient.uvMode = .FillSubRect
+                let crop = tile.width * cast(f32, texture.height) / tile.height
+                ambient.uvRect = Math.Rectangle{(cast(f32, texture.width) - crop) * 0.5, 0, crop, cast(f32, texture.height)}
+                ambient.setOpacityF32(0.16)
+                painter.fillRoundRect(tile, radius, radius, ambient)
+                let height = Math.round(tile.width * cast(f32, texture.height) / cast(f32, texture.width))
+                let frame = Math.Rectangle{tile.x, Math.round(tile.vertCenter() - height * 0.5), tile.width, height}
+                painter.fillRoundRect(frame, radius, radius, Brush.createTexture(texture))
+            }
+            elif fills
             {
                 // Crop the picture to the shape of the tile, around its centre.
                 let tw    = cast(f32, texture.width)
@@ -2175,6 +2226,11 @@ impl ExplorerGrid
                 painter.drawString(tile.x + 12, mono.opticalLineTop(tile.bottom() - 16), ext, mono, colors.faintText)
             }
         }
+
+        // A thumbnail can cover its ground, so mark the whole hovered target with a strong edge.
+        // Selection keeps its Arc ring and stays visible after the pointer leaves.
+        if .board != .Mosaic and .hovered == row and .explorer.selected != index do
+            painter.drawRoundRect(tile, radius, radius, colors.strongLine, RingWeight)
 
         // Draw the selection after the preview so the picture cannot cover its Arc outline.
         if .explorer.selected == index
@@ -2219,6 +2275,17 @@ impl ExplorerGrid
             painter.drawString(tile.x, factsY, facts, mono, colors.faintText)
             painter.popClippingRect()
         }
+    }
+
+    // A missing album image stays a neutral sleeve, never a byte-map page masquerading as art.
+    mtd paintBlankCover(painter: *Painter, tile: Math.Rectangle)
+    {
+        let colors = .themeColors()
+        let radius = Math.max(12.0, Math.min(tile.width, tile.height) * 0.32)
+        let center = Math.Point{tile.horzCenter(), tile.vertCenter()}
+        painter.drawCircle(center.x, center.y, radius, colors.faintText, 1.5)
+        painter.drawCircle(center.x, center.y, radius * 0.68, colors.line)
+        painter.fillCircle(center.x, center.y, 5, colors.softText)
     }
 
     // Draws what a file of the mixed board is, as its picture shows it, and returns whether it
@@ -2351,9 +2418,10 @@ impl ExplorerGrid
     // the item is hovered or chosen.
     mtd paintName(painter: *Painter, nameRect: Math.Rectangle, row, index: u64, font: *Font, text: string)
     {
-        let width   = Painter.measureString(text, font).width
+        let safe    = safeMediaText(text)
+        let width   = Painter.measureString(safe, font).width
         let scrolls = width > nameRect.width and (.hovered == row or .explorer.selected == index)
-        var name:   RichString = text
+        var name:   RichString = safe.toString()
         var format: RichStringFormat
         format.font = .font()
         me.theme().setTextColors(&format, me.themeColors().text)
@@ -2444,17 +2512,16 @@ impl ExplorerGrid
             let entry = &explorer.entries[index]
             if not first do
                 first = entry
-            if not cover and entry.texture.isValid() do
+            if not cover and entry.texture.isValid() and entry.texture.width > 1 do
                 cover = entry
             tracks  += 1
             seconds += entry.duration
             bytes   += entry.size
         }
 
-        let coverRect = Math.Rectangle{CellInset, CellInset, CoverSide, CoverSide}
-        .theme().drawFloatingShadow(painter, coverRect, radius)
+        let coverRect = .albumCover
         painter.fillRoundRect(coverRect, radius, radius, colors.raised)
-        if cover
+        if cover and cover.texture.width > 1
         {
             let texture = cover.texture
             let tw      = cast(f32, texture.width)
@@ -2467,24 +2534,27 @@ impl ExplorerGrid
         }
         else
         {
-            let glyph = .theme().fileGlyph("album.flac", false, 48)
-            glyph.paint(painter, coverRect.horzCenter() - 24, coverRect.vertCenter() - 24, glyph.color.a ? glyph.color : colors.faintText)
+            .paintBlankCover(painter, coverRect)
         }
 
         if not first do
             return
-        let left  = CellInset + CoverSide + AlbumGap
+        let left  = .albumText.x
+        let top   = .albumText.y
         let texts = appStrings()
         var kind  = String.from(texts.explore_Album)
         if first.music.date.length >= 4 do
             kind = Format.toString("% · %", kind, first.music.date.toString()[0 until 4])
-        painter.drawString(left, mono.opticalLineTop(CellInset + 8), String.toUpper(kind.toString(), .Unicode), mono, colors.faintText)
+        painter.pushClippingRect(.albumText)
+        painter.drawString(left, mono.opticalLineTop(top + 8), String.toUpper(kind.toString(), .Unicode), mono, colors.faintText)
 
-        let titleFont = .theme().createDefaultFont(44, .Bold)
         var title     = first.music.title.length ? String.from(first.music.title) : explorer.locationName()
-        painter.drawString(left, titleFont.opticalLineTop(CellInset + 48), title, titleFont, colors.text)
+        var titleFont = .theme().createDefaultFont(Explorer.TitleFontSize, .Bold)
+        if Painter.measureString(title, titleFont).width > .albumText.width do
+            titleFont = .theme().createDefaultFont(Explorer.MinTitleFontSize, .Bold)
+        painter.drawString(left, titleFont.opticalLineTop(top + 48), title, titleFont, colors.text)
         if first.music.artist.length do
-            painter.drawString(left, body.opticalLineTop(CellInset + 86), first.music.artist, body, colors.softText)
+            painter.drawString(left, body.opticalLineTop(top + 86), first.music.artist, body, colors.softText)
 
         var facts = Format.toString(texts.explore_Tracks, tracks)
         if seconds
@@ -2497,7 +2567,9 @@ impl ExplorerGrid
 
         if bytes do
             facts = Format.toString("% · %", facts, StrConv.toDisplaySize(bytes))
-        painter.drawString(left, mono.opticalLineTop(CellInset + 114), facts, mono, colors.faintText)
+        painter.drawString(left, mono.opticalLineTop(top + 114), facts, mono, colors.faintText)
+
+        painter.popClippingRect()
 
         // The tracks.
         var number = 0'u64
@@ -2515,16 +2587,9 @@ impl ExplorerGrid
             elif .hovered == at do
                 painter.fillRoundRect(place, radius, radius, colors.raised)
 
-            let ink = chosen ? colors.arc : colors.text
-            if chosen
-            {
-                painter.drawString(place.x + 12, body.opticalLineTop(centerY), "▶", body, colors.arc)
-            }
-            else
-            {
-                let label = Format.toString("%", number)
-                painter.drawString(place.x + 12, mono.opticalLineTop(centerY), label, mono, colors.faintText)
-            }
+            let ink   = chosen ? colors.arc : colors.text
+            let label = Format.toString("%", number)
+            painter.drawString(place.x + 12, mono.opticalLineTop(centerY), label, mono, colors.faintText)
 
             let length      = entry.duration ? formatDuration(entry.duration) : String.from("")
             let lengthWidth = Painter.measureString(length, mono).width
@@ -2610,6 +2675,17 @@ impl ExplorerGrid
     mtd reading(entry: const *ExplorerEntry)->String
     {
         var result: #returntype
+        if .board == .Covers and not entry.albumTrack.isEmpty()
+        {
+            result = entry.music.artist
+            if entry.music.date.length >= 4
+            {
+                if result.length do
+                    result += " · "
+                result += entry.music.date.toString()[0 until 4]
+            }
+            return result
+        }
         if entry.directory
         {
             if entry.children == 1 do
@@ -2748,6 +2824,17 @@ impl IWnd for ExplorerGrid
     {
         let painter = evt.paintContext.painter
         let range   = .visibleRange()
+        if .explorer.shown.isEmpty()
+        {
+            let text = .explorer.filter.text().count ? appStrings().explore_NoMatches : appStrings().explore_Empty
+            let font = unwrap .font().regular
+            let x    = Math.max(CellInset, (.clientRect().width - Painter.measureString(text, font).width) * 0.5)
+            painter.drawString(x, font.opticalLineTop(.themeMetrics().floating_Inset * 2), text, font, .themeColors().faintText)
+            for spinner in .spinners do
+                spinner.hide()
+            return
+        }
+
         if .rows
         {
             .paintRows(painter, range.first, range.end)

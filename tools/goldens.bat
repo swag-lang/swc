@@ -26,13 +26,22 @@ if not exist "%compiler%" (
     echo error: compiler not found: "%compiler%"
     exit /b 1
 )
-call "%~dp0std.bat" %compilerArgs% test --test-tag golden %arguments%
+call :testWorkspace std
 if errorlevel 1 exit /b 1
-call "%~dp0examples.bat" %compilerArgs% test --test-tag golden %arguments%
+call :testWorkspace examples
 if errorlevel 1 exit /b 1
-call "%~dp0apps.bat" %compilerArgs% test --test-tag golden %arguments%
+call :testWorkspace apps
 if errorlevel 1 exit /b 1
-call "%~dp0reference.bat" %compilerArgs% test --test-tag golden %arguments%
+call :testWorkspace reference
+exit /b %errorlevel%
+
+:testWorkspace
+rem An empty workspace is normal; the compiler rightly rejects an unmatched test filter.
+rem Module tests live in *.test.swg; reference prose can also quote a golden tag.
+findstr /s /m /r /c:"TestTag.*golden" "%~dp0..\bin\%~1\modules\*.test.swg" >nul
+if errorlevel 2 exit /b 1
+if errorlevel 1 exit /b 0
+call "%~dp0%~1.bat" %compilerArgs% test --test-tag golden %arguments%
 exit /b %errorlevel%
 
 :usage

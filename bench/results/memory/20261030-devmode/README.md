@@ -88,8 +88,8 @@ The next work follows the measured owners:
    remain dense; discarding all reusable worker buffers is not an established speed-preserving solution.
 2. Inspect the other retained microcode analyses (78.343 MiB), then linker peak buffers. Use the
    captured owning stacks to choose concrete containers and preserve useful reuse.
-3. Split the 149.927 MiB of mixed arena payloads with the prepared typed-arena census, then count
-   small sema containers. Preserve direct
+3. Use the typed-arena census below to prioritize attribute lists, function/variable symbols and
+   inline payloads, then count small sema containers. Preserve direct
    allocator calls, OS mappings and ambiguous inlined storage as explicit measurement limits.
 4. Finish the large-page candidate's timing and output-equivalence checks, then group Release
    validation. Its 11.94% observed memory saving is not yet an accepted default change.
@@ -827,7 +827,7 @@ barrier or collect/purge memory. This is an occupancy diagnostic, never a timing
 The normal public visitor triggered an ownership assertion while collecting a page's free list;
 the diagnostic therefore uses a temporary read-only visitor branch that subtracts pending
 cross-thread frees from the area count. Both the scheduler and vendor patches were restored;
-the unresolved normal visitor defect is tracked in `compiler.core.095`.
+the unresolved normal visitor defect is tracked in `compiler.core.096`.
 
 | Same observation point | MiB |
 | --- | ---: |
@@ -1102,15 +1102,34 @@ observations of this pair, not a constant guaranteed saving.
 ### Remaining attribution work
 
 The 149.927 MiB mixed-arena category in the earlier large-allocation census is backing storage,
-not an AST or semantic payload total. An external diagnostic patch is prepared to count the
-inline `sizeof(T) * count` storage allocated through `Arena::make` and `makeArray`, grouped by
-type, at the same setup-thread/global-idle observation boundary. Its accounting separately
-tracks raw allocations, finalizer records, block headers, alignment padding and unused tails.
-Separately owned vector/map/string buffers remain outside those inline type totals. Diagnostic
-maps and an extra arena field affect instrumented RSS; this probe cannot validate speed or be
-silently combined with a previous run's simultaneous owner totals. Its diagnostic build passes;
-the normal compiler and all instrumented source files were restored. The application observation
-is pending machine-load admission; no typed-arena measurement is available yet.
+not an AST or semantic payload total. The external typed-arena diagnostic now counts inline
+`sizeof(T) * count` storage allocated through `Arena::make` and `makeArray` at the same
+setup-thread/global-idle boundary. Its build and frozen application pass without an allocator
+error. Normal sources and the uninstrumented compiler were restored; all diagnostic working
+files remain outside the checkout. [arena-types.json](arena-types.json) preserves the evidence.
+
+At the highest captured RSS point (1,368.176 MiB, snapshot 25 of 29), the disjoint arena
+partition is 143.896 MiB typed payload, 4.663 MiB finalizer records, 0.716 MiB raw/untyped
+allocations, 0.079 MiB block headers, 0.038 MiB alignment padding and 1.295 MiB unused tails:
+**150.688 MiB total arena backing**. Every owner and snapshot reconciles exactly. This run's
+actual process peak between observations is 1,412.238 MiB; the snapshot is not that exact peak.
+
+| Largest inline arena object | Objects | Bytes per object | MiB |
+| --- | ---: | ---: | ---: |
+| `AttributeList` | 76,326 | 624 | 45.421 |
+| `SymbolFunction` | 31,719 | 1,496 | 45.253 |
+| `SymbolVariable` | 161,607 | 136 | 20.960 |
+| `SemaInlinePayload` | 22,078 | 736 | 15.497 |
+| `CodeGenLoweringPayload` | 77,504 | 80 | 5.913 |
+| `SymbolStruct` | 2,045 | 1,112 | 2.169 |
+| `LoopSemaPayload` | 3,172 | 536 | 1.621 |
+
+These are object bodies, including inline storage and container descriptors; separately owned
+vector/map/string buffers remain outside these type totals. Function symbols span semantic and
+backend responsibilities, so their full body is not assigned blindly to one compiler phase.
+Diagnostic maps and the extra arena field affect instrumented RSS. This probe does not validate
+speed, establish another memory saving, or permit adding its totals to a different run's owner
+census. Arena tails are now a low-priority target compared with attributes, symbols and payloads.
 
 The next backend design target remains large cyclic liveness matrices. The density census
 shows sparse row bands there too, but the current in-place fixed point needs mutable rows.
@@ -1119,3 +1138,8 @@ instruction rows once after convergence. Before adopting it, bound temporary blo
 storage, handle disconnected components and self-loops, preserve use-before-definition order,
 and compare every reconstructed row with the existing instruction-level solver. Dense storage
 must remain available where the block count or row density defeats the memory/speed trade.
+
+Remaining investigations are maintained in `compiler.core.097`; controlled speed acceptance is
+in `compiler.core.098`, allocator visitor correctness in `compiler.core.096`, publication
+variation in `compiler.core.085`, and workload budgets/child-process retention in
+`compiler.core.005`. The external no-large-pages experiment remains disabled by default.

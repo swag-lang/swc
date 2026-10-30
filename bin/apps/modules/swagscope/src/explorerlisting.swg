@@ -1,6 +1,6 @@
 #global internal
 
-using Core, Pixel, Gui
+using Core, Pixel, Gui, Audio
 
 // One immediate child of a filesystem or archive location.
 struct ExplorerEntry
@@ -13,6 +13,7 @@ struct ExplorerEntry
     modified:      String
     when:          Time.DateTime     // When it was modified, in local time; zero when unknown.
     directory:     bool
+    albumTrack:    String     // First direct audio file when this folder is an album.
     archiveIndex:  u64 = Swag.U64.Max
     texture:       Texture
     duration:      u64     // Seconds of a time-based medium, from its thumbnail; zero for anything else.
@@ -33,6 +34,7 @@ struct ExplorerEntry
     movie:     MovieSummary
     music:     MusicSummary
     attempted: bool
+    onlinePending: bool
 }
 
 // The extensions whose content a cell of the mixed board draws, compared without case.
@@ -65,6 +67,13 @@ private func readHead(path: string, limit: u64)->Array'u8 fail
 func probeEntry(entry: *ExplorerEntry)->bool
 {
     let name = entry.name.toString()
+    if Path.hasExtension(name, ".mp3") or Path.hasExtension(name, ".flac")
+    {
+        let tags = SoundTags.read(entry.path)
+        entry.music = localMusicSummary(&tags)
+        return true
+    }
+
     if probeKind(name, ProbeImageExtensions)
     {
         // The size of a picture is in its head; the pixels are not decoded.
@@ -219,6 +228,23 @@ impl ExplorerListing
                 counted += 1
                 let inside = catch Directory.enumerate(entry.path, {})
                 entry.children = inside.count
+                var tracks = 0'u64
+                var first: String
+                for &file in inside where not file.isDirectory() and albumAudio(file.fullName)
+                {
+                    tracks += 1
+                    if first.isEmpty() do
+                        first = file.fullName
+                }
+
+                if tracks and tracks * 2 >= inside.count
+                {
+                    entry.albumTrack = #move first
+                    let tags = SoundTags.read(entry.albumTrack)
+                    entry.music = localMusicSummary(&tags)
+                    if entry.music.title.isEmpty() do
+                        entry.music.title = entry.name
+                }
             }
         }
         else

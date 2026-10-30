@@ -11,7 +11,7 @@ last build at the right.
 
 - **2D render:** define `func shade(x, y, time: f32)->u32`. The viewer runs native code for each
   pixel of a 640 by 400 image. Coordinates span approximately `[-1.6, 1.6]` horizontally and
-  `[-1, 1]` vertically. Return an ARGB color. Rows run in parallel on up to six workers. Animation
+  `[-1, 1]` vertically. Return an ARGB color. Rows run in parallel on the runtime's worker pool. Animation
   uses elapsed time; `shade` must support concurrent calls (avoid unsynchronized writes to shared state).
 - **GUI:** define `func buildView(parent: *Gui.Wnd)`. Build controls under the supplied parent;
   the viewer displays the actual GUI and forwards clicks into it. The current preview supports
@@ -84,8 +84,8 @@ has a 60-second deadline, and an unresponsive preview has a 10-second frame dead
 For a development compiler, pass `--run-arg=--compiler=<absolute compiler path>` to select the
 compiler used by snippets and formatting. `--run-arg=--compiler-workers=6` limits those child
 compilers too; the outer `--num-cores` option only bounds the compiler building Prism. Positive
-worker limits are capped at twelve and leave one processor free when the machine has more than two.
-Without these options, Prism keeps its normal compiler discovery and worker budget.
+worker limits are explicit development overrides. Without one, the child compiler chooses its own
+worker budget; Prism imposes no fixed ceiling. Preview hosts likewise use the runtime's automatic pool.
 
 From the repository root:
 

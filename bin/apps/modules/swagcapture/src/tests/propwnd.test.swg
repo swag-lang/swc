@@ -52,6 +52,75 @@ func testFindStyleButtons(prop: *PropWnd, tip: string)->Array'(*IconButton)
     return result
 }
 
+// Editing a tool's defaults with no selection leaves the document clean.
+#[Swag.TestTag("capture.interaction")]
+#test
+{
+    var f: HeadlessFixture
+    f.setup()
+    defer f.shutdown()
+    let prop = testSetupPropWnd(&f)
+    f.main.editMode = .Text
+    prop.selectionHasChanged()
+    f.gui.pump()
+    f.capture.changed = false
+    let model = unwrap prop.getSelectedForm'FormText()
+    let value = model.fontSize == 48 ? 36'f32 : 48'f32
+    let size  = unwrap testFindItem(prop, #nameof(FormText.fontSize))
+    size.sliderBox.setValue(value)
+    Swag.assert(model.fontSize == value)
+    Swag.assert(not f.capture.changed and not f.capture.canUndo())
+}
+
+// A grid command still invalidates its original form after selecting another one.
+#test
+{
+    var f: HeadlessFixture
+    f.setup()
+    defer f.shutdown()
+    let prop = testSetupPropWnd(&f)
+    let text = testAddText(f.capture, 20, 20, 120, 80)
+    text.text     = "Size"
+    text.fontSize = 24
+    discard testAddShape(f.capture, 200, 20, 60, 60)
+    f.capture.selection.add(0)
+    prop.selectionHasChanged()
+    f.gui.pump()
+    discard f.gui.render(f.main)
+
+    testFindItem(prop, #nameof(FormText.fontSize))!.sliderBox.setValue(48)
+    Swag.assert(text.fontSize == 48)
+    var edited = f.gui.render(f.main)
+    f.capture.invalidateAllFormCaches()
+    var fresh = f.gui.render(f.main)
+    Pixel.Testing.assertImagesNear(&fresh, &edited, "propwnd.cache.edit", {maxChannelDelta: 2})
+
+    f.capture.selection.clear()
+    f.capture.selection.add(1)
+    prop.selectionHasChanged()
+    f.gui.pump()
+    discard f.gui.render(f.main)
+    f.capture.changed = false
+    f.capture.undo()
+    Swag.assert(text.fontSize == 24 and f.capture.changed)
+    var undone = f.gui.render(f.main)
+    f.capture.invalidateAllFormCaches()
+    fresh = f.gui.render(f.main)
+    Pixel.Testing.assertImagesNear(&fresh, &undone, "propwnd.cache.undo", {maxChannelDelta: 2})
+    f.capture.redo()
+    Swag.assert(text.fontSize == 48)
+    var redone = f.gui.render(f.main)
+    f.capture.invalidateAllFormCaches()
+    fresh = f.gui.render(f.main)
+    Pixel.Testing.assertImagesNear(&fresh, &redone, "propwnd.cache.redo", {maxChannelDelta: 2})
+
+    f.capture.selection.clear()
+    prop.selectionHasChanged()
+    f.capture.changed = false
+    f.capture.undo()
+    Swag.assert(text.fontSize == 24 and f.capture.changed)
+}
+
 // Replacing the editor document from history retargets the panel after the old capture
 // is released. With no form selected, the controls edit the live tool model.
 #test
@@ -359,6 +428,15 @@ func testFindStyleButtons(prop: *PropWnd, tip: string)->Array'(*IconButton)
     width.sigCommitted.call(width)
     f.gui.pump()
     Swag.assert(text.w == 140)
+
+    // A cleared or out-of-range field must not collapse the object to zero on blur.
+    for invalid in ["", "0", "invalid"]
+    {
+        width.setFocus()
+        width.setText(invalid)
+        f.main.setFocus()
+        Swag.assert(text.w == 140)
+    }
 }
 
 // A selected step form hides the whole border/joins block and gets no position/size rows.
@@ -490,6 +568,38 @@ func testFindStyleButtons(prop: *PropWnd, tip: string)->Array'(*IconButton)
     Swag.assert(thickness.label.name == "Épaisseur")
     Swag.assert(thickness.labelWidth >= expectedWidth)
     Swag.assert(testFindItem(prop, "Effects")!.label.name == "EFFETS")
+}
+
+// A retained callout swatch can repaint between the selection change and the panel rebuild.
+#[Swag.TestTag("capture.interaction")]
+#test
+{
+    var f: HeadlessFixture
+    f.setup()
+    defer f.shutdown()
+    let prop = testSetupPropWnd(&f)
+    discard testAddCallout(f.capture, 10, 10, 120, 60)
+    discard testAddShape(f.capture, 180, 10, 80, 60)
+    f.capture.selection.add(0)
+    prop.selectionHasChanged()
+    f.gui.pump()
+
+    let buttons = testFindStyleButtons(prop, appStrings().act_Text)
+    Swag.assert(buttons.count == 1)
+    let button = buttons[0]
+    let paint  = unwrap button.iconPainter
+    var calls: u32
+    button.iconPainter = func|paint = &paint, calls = &calls|(btn, bc, pos, flags)
+    {
+        calls[] += 1
+        paint[](btn, bc, pos, flags)
+    }
+
+    f.capture.selection.clear()
+    f.capture.selection.add(1)
+    discard f.gui.render(f.main)
+    Swag.assert(calls > 0)
+    Swag.assert(prop.getSelectedForm'FormCallout() == null)
 }
 
 // A property editor is built for the kind that was selected, and the painters and handlers it

@@ -44,7 +44,6 @@ struct AppStrings
     explore_Files:             string = "% files"        // Facts of an archive under its cell: the files it holds.
     explore_Albums:            string = "% albums"       // How many albums a music library holds.
     explore_Photos:            string = "% photos"       // How many pictures a folder of photographs holds.
-    explore_Films:             string = "% films"        // How many films a folder of films holds.
     explore_Album:             string = "Album"          // Kind of the folder an album page shows, before its year.
     explore_Tracks:            string = "% tracks"       // How many tracks an album holds.
     explore_Play:              string = "Play"           // Button playing an album from its first track.
@@ -55,8 +54,10 @@ struct AppStrings
     explore_Artist:            string = "Artist"
     explore_FirstRelease:      string = "First release"
     explore_Source:            string = "Source"
+    explore_FileTags:          string = "File tags"
     explore_Loading:           string = "Reading folder…"                         // Exploration control or status.
     explore_Empty:             string = "No files to show"                        // Exploration control or status.
+    explore_NoMatches:         string = "No files match this filter."              // Empty filtered folder.
     explore_OneItem:           string = "1 item"                                  // Exploration control or status.
     explore_Count:             string = "% items"                                 // Exploration control or status.
     explore_ArchiveSummary:    string = "% · % compressed · % once extracted"     // Contents of an archive: its count, its packed and its extracted weight.
@@ -80,7 +81,7 @@ struct AppStrings
     explore_OnlineMusic:       string = "Use Online Music Covers and Details"
     explore_MusicArtist:       string = "Artist: %"
     explore_MusicDate:         string = "First release: %"
-    ui_AboutWikiNotice:        string = "Film information and summaries come from Wikipedia and Wikidata. Wikipedia text is available under CC BY-SA 4.0: https://creativecommons.org/licenses/by-sa/4.0/. Each film links to its source article."
+    ui_AboutWikiNotice:        string = "Apple supplies film posters and summaries when a film matches its catalogue. Wikipedia and Wikidata provide a fallback when it does not. Wikipedia text is available under CC BY-SA 4.0: https://creativecommons.org/licenses/by-sa/4.0/."
 
     ui_OpenDefault:                    string = "Open with Default Application"               // Tooltip of the system-default application button.
     ui_CloseFile:                      string = "Close File"                                  // Tooltip of the close-file button.
@@ -124,6 +125,8 @@ struct AppStrings
     home_InviteFolder:                 string = "Open a folder"                               // Folder invitation on the home page; the key follows it.
     home_Clear:                        string = "Clear…"                                      // Quiet command under the last files, opening the clears.
     home_ClearMissing:                 string = "Remove Missing Files"                        // Clear of the history entries whose file is gone.
+    home_MissingTitle:                 string = "File not found."                              // Title of the question after a recent file is missing.
+    home_AskForgetMissing:             string = "Remove it from the file history?"            // Question offering to drop the missing file from the history.
     home_ClearOlder:                   string = "Older Than a Month"                          // Clear of the history entries last opened more than a month ago.
     home_ClearAll:                     string = "Clear All…"                                  // Clear of the whole history, after a question.
     home_Yesterday:                    string = "yesterday"                                   // When a file was last opened, the day before today.
@@ -162,6 +165,7 @@ struct AppStrings
     cmd_NextFile:       string = "Next File"                 // Command opening the file after this one in its folder.
     cmd_ClearHistory:   string = "Clear History…"            // Command emptying the list of recent files, after a confirmation.
     cmd_Find:           string = "Find in Document"          // Command showing the find bar.
+    cmd_FilterFiles:    string = "Filter Files"              // Command showing the folder filter.
     cmd_FindNext:       string = "Next Match"                // Command moving to the next occurrence.
     cmd_FindPrevious:   string = "Previous Match"            // Command moving to the previous occurrence.
     cmd_Information:    string = "Information"               // Command showing the sheet of readings about the open file.

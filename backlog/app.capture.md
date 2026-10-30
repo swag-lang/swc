@@ -22,14 +22,6 @@ still-image editing and output work.
   and the chosen bindings survive restart.
 - Related: app.capture.010
 
-### app.capture.023 — Add a regression test for stale property-panel selections
-
-- Evidence: property painters now use typed selection accessors or explicit kind checks. Existing
-  headless tests cover the accessor but do not reach the stale selection used by a painter callback.
-- Next: identify a test paint context that invokes the callback after the selection changes, then
-  assert the painter safely ignores the mismatched form.
-- Done when: a focused test fails without the selection guard and passes with it.
-
 ### app.capture.015 — Assembling complete captures has no layout command
 
 - Evidence: `Capture.paste` inserts clipboard images or form groups into the active canvas with

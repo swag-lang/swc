@@ -296,6 +296,22 @@ of simplicity when every useful helper needs an unchecked contract.
   all give each worker its own deque and steal from the others.
 - Related: language.parallelism.001, language.parallelism.003, language.parallelism.005
 
+### language.parallelism.012 — Extend pressure admission to nested work and dedicated decoders
+
+- Evidence: pool admission counts `Background` task bodies, but a body can submit normal children
+  or enter `parallel for`, and dedicated executors sit outside that admission. Video's AVC/HEVC
+  streams still size fixed arrays for sixteen/eight frame lanes with separate 640 MiB budgets;
+  both deblock passes cap their lanes at eight. These are implementation budgets, not format limits.
+- Evidence: the Windows CPU sampler declines `GetSystemTimes` above 64 processors because its
+  group-local totals cannot be subtracted from process-wide CPU time. Admission then retains a
+  conservative budget and still responds to memory pressure.
+- Next: carry resource accounting through nested work without blocking dependency joins, expose
+  decoder working-set estimates to shared admission while preserving executor affinity, and use
+  processor-group-aware CPU counters. Keep reference-picture and reorder bounds separate.
+- Done when: nested workloads and simultaneous streams share a measured CPU/memory budget without
+  local concurrency ceilings or dependency starvation, including hosts with several processor groups.
+- Related: language.parallelism.001, language.parallelism.003, language.parallelism.006, std.video.013
+
 ### language.parallelism.004 — Partitions cannot prove disjointness
 
 - Evidence: `try/catch/expect parallel for` now carries failures across the join, but there is

@@ -35,8 +35,11 @@ dialogs, then each application, then the written rules.
     pictures and films cropped to the tile, faint line glyphs and extensions for the rest, name
     and one mono line of facts; films (`explorer.films`) — upright posters, title then year and
     length, the sheet headed by the poster beside its title with Open under it and the sources at
-    its foot. The poster and synopsis come from the Apple catalogue first, credits and rating
-    from Wikipedia and Wikidata. Music (`explorer.music`) as square covers; one album
+    its foot. Apple is consulted before the Wikipedia/Wikidata fallback; a local film frame is
+    published first and remains uncropped while the poster is fetched. Music (`explorer.music`)
+    reads tags and nearby cover files locally before MusicBrainz, with a quiet sleeve when no
+    cover exists; album folders now carry covers in the parent gallery and open into their track
+    page; one album
     (`explorer.album`, `.paper`) with its cover, Play and Shuffle and its tracks; photographs
     (`explorer.photos`) as a justified mosaic by day.
   - The lens answers a typed query over code, text and Markdown with the lines of the file
@@ -47,7 +50,8 @@ dialogs, then each application, then the written rules.
     the commands on a mini-bar.
   - PDF (`viewer.pdf.page`, `.paper`): pages as paper with the floating shadow, the outline in
     the left margin under "Contents".
-  - Code and text in their reading columns, Markdown with its margin outline. The
+  - Code and text in their reading columns; Markdown in its reading column with the full outline
+    in the right panel. The
     main splitter now hides its idle full-height dividers and keeps the resize affordance on hover;
     the whole-window outline goldens cover both themes.
   - Subtitles read as a list under the file's name and mono line: number, mono time range,
@@ -73,8 +77,6 @@ dialogs, then each application, then the written rules.
   - Films: no playback progress thread at the poster's foot and no "Resume at 1 h 12" / "or from
     the start" — Scope keeps no resume position for a film yet; the count says "items", not
     "films".
-  - Album: nothing plays from the album page itself, so no row is "playing" — the chosen one
-    carries the ▶.
   - Photos: the last row of a day stays at its aim when stretching it would make it much taller
     than its aim; the tip names the file and its weight, not the camera's facts (Scope reads no
     EXIF yet); "taken" is the file's modification date.
@@ -92,8 +94,7 @@ dialogs, then each application, then the written rules.
     (`viewer.media.information`) is a two-column
     property list. The charter reads them in the margin, quiet, without a card.
   - The MusicBrainz choice box (`explorer.music.choice`) carries its menu label as title, with
-    its ellipsis; the About box credits Wikipedia and Wikidata, not the Apple catalogue the
-    posters and synopses now come from.
+    its ellipsis.
   - Not yet rebuilt on their pictures: image (`scope.image`), table, HTML (column, address,
     outline), font (specimen page);
     the "Column ▾" quiet menu of text; the progress thread under the strip with documents
@@ -178,8 +179,6 @@ dialogs, then each application, then the written rules.
   - Scroll bar: 6 px under Window chrome, 8 px under Controls; `scrollBar_Size` is 8.
   - The lens foot does not list `Tab`.
   - Section label: the charter says 10.5, `sectionLabel_FontSize` is 10.
-  - Swag Scope's current search match pulses a glow (`ViewerSearchOverlay`, `searchMatch_Glow`);
-    the Motion section forbids pulses and glows at rest.
   - `dialog.swg` still documents a faint `Esc` hint at the bottom left it no longer paints.
   - Band leftovers: `informationBar_Bk`, `commandBar_Bk`, `toolBar_Bk` (all the ground), the
     window styles `.InformationBar`, `.InformationPanel`, `.CommandBar`, `.ToolBar`, the metrics

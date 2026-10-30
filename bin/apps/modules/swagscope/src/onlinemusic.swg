@@ -45,6 +45,7 @@ struct MusicSummary
     title:  String
     artist: String
     date:   String
+    source: String
 }
 
 struct CoverTarget
@@ -57,6 +58,7 @@ struct CoverTarget
 const MusicTitleTag    = "ScopeMBTitle"
 const MusicArtistTag   = "ScopeMBArtist"
 const MusicDateTag     = "ScopeMBDate"
+const MusicSourceTag   = "ScopeMusicSource"
 const MusicCachedAtTag = "ScopeMBCachedAt"
 
 private var g_MusicLookupLock:  Swag.Mutex
@@ -183,6 +185,19 @@ func stampMusicCache(image: *Image)
     musicTag(image, MusicCachedAtTag, Format.toString("%", Time.Timestamp.utcNow().ticks))
 }
 
+func localMusicSummary(tags: const *SoundTags)->MusicSummary =>
+    {title: tags.album, artist: musicSearchArtist(tags), date: tags.year,
+     source: tags.album.isEmpty() ? "" : "tags"}
+
+func labelLocalMusic(image: *Image, tags: const *SoundTags)
+{
+    let summary = localMusicSummary(tags)
+    musicTag(image, MusicTitleTag, summary.title)
+    musicTag(image, MusicArtistTag, summary.artist)
+    musicTag(image, MusicDateTag, summary.date)
+    musicTag(image, MusicSourceTag, summary.source)
+}
+
 // Cover Art Archive redirects to Internet Archive. Never follow a URL to an unrelated host.
 func coverRedirect(location: string, current: CoverTarget, source: MusicSource)->CoverTarget fail
 {
@@ -222,6 +237,8 @@ impl MusicSummary
                 result.artist = value
             elif record.isTag(cast(const [..] u8, MusicDateTag)) do
                 result.date = value
+            elif record.isTag(cast(const [..] u8, MusicSourceTag)) do
+                result.source = value
         }
 
         return result
@@ -231,7 +248,8 @@ impl MusicSummary
     {
         if .title.isEmpty() do
             return {}
-        var result  = Format.toString("%  ·  MusicBrainz", safeMediaText(.title))
+        let origin = .source == "tags" ? appStrings().explore_FileTags : "MusicBrainz"
+        var result = Format.toString("%  ·  %", safeMediaText(.title), origin)
         let strings = appStrings()
         if not .artist.isEmpty() do
             result += Format.toString("\n%", Format.toString(strings.explore_MusicArtist, safeMediaText(.artist)))
@@ -364,6 +382,7 @@ impl OnlineMusic
         let artist = .artistText()
         musicTag(image, MusicArtistTag, artist.isEmpty() ? musicSearchArtist(tags) : artist.toString())
         musicTag(image, MusicDateTag, .firstReleaseDate)
+        musicTag(image, MusicSourceTag, "musicbrainz")
         stampMusicCache(image)
     }
 

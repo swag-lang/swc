@@ -1,7 +1,8 @@
 // Geometry of the sample a line-end glyph draws.
 const CapPlainStroke  = 6.0     // Stroke a plain end is drawn on: heavy enough to show its shape.
 const CapAnchorStroke = 2.0     // Stroke an anchor is drawn on.
-const CapAnchorScale  = 4.0     // Scale of an anchor across its stroke, so it reads at glyph size.
+const CapAnchorScale  = 5.0     // Scale across the stroke, so anchors read at glyph size.
+const CapAnchorDepth  = 1.0     // Keep the anchor short enough to leave a visible shaft.
 const CapGlyphInset   = 5.0     // Air between the sample and the sides of its cell.
 
 // Air the panel layout of the property grid keeps before each of its rows: the label column of a
@@ -45,6 +46,7 @@ func drawCapGlyph(painter: *Painter, cap: LineCapStyle, begin: bool, pos: Math.R
     let size  = plain ? CapPlainStroke : CapAnchorStroke
     var pen   = Pen.createSolid(color, size)
     pen.capBegScaleX, pen.capEndScaleX = CapAnchorScale
+    pen.capBegScaleY, pen.capEndScaleY = CapAnchorDepth
     pen.begCapStyle, pen.endCapStyle   = LineCapStyle.None
 
     let {l: reach} = Painter.capStyleExtent(cap, size, CapAnchorScale)
@@ -69,7 +71,7 @@ func drawCapGlyph(painter: *Painter, cap: LineCapStyle, begin: bool, pos: Math.R
     if plain
     {
         let tick = size * 0.5 + 3
-        painter.drawLine(stop, y - tick, stop, y + tick, Pen.createSolid(color, 1))
+        painter.drawLine(stop, y - tick, stop, y + tick, Pen.createSolid(color.withAlpha(64), 1))
     }
 }
 
@@ -334,6 +336,7 @@ impl PropWnd
                 let ctrl = item.sliderBox
                 ctrl.setLayoutMetrics(width, SliderValueWidth, gap)
                 ctrl.edit.setForm(.Transparent)
+                ctrl.edit.updateFlags(.ReleaseFocusOnEnterOrEscape)
                 ctrl.edit.style.setFont(.theme().res.fontDefaultFs)
             }
             elif fieldComboCtrl(item)
@@ -577,12 +580,26 @@ impl IPropertyNotify for PropWnd
     mtd impl itemHasChanged(_: *Properties, item: *PropertiesItem?)
     {
         let capture = .main.getCapture()
-        if capture and capture.selection.count
+        if capture and (capture.selection.count or item == null)
         {
-            capture.updateModelFromSelection()
+            // Grid edits bypass the capture's typed undo commands. Replaying a grid
+            // command can also touch a form that is no longer selected.
+            if item
+            {
+                for index in capture.selection do
+                    capture.invalidateFormCache(capture.forms[index])
+            }
+            else
+            {
+                capture.invalidateAllFormCaches()
+            }
+
+            if capture.selection.count do
+                capture.updateModelFromSelection()
             capture.hasChanged()
         }
 
+        .main.updateMiniBarTextControls()
         .main.quickWnd.updateSelection()
         .main.editWnd.invalidate()
 
@@ -622,6 +639,7 @@ impl IWnd for PropWnd
         {
             .needRebuild = false
             .selectionHasChanged()
+            .main.updateMiniBarTextControls()
         }
     }
 

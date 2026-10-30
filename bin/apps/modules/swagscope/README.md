@@ -2,14 +2,18 @@
 
 ## Online movie posters and music covers
 
-Folder exploration automatically looks up film posters and synopses in the Apple iTunes Search
-API, direction, cast and IMDb ratings through Wikipedia and Wikidata, and album information and artwork through MusicBrainz and Cover Art Archive. No account
-or API key is needed. Two lens entries of the explored folder turn either lookup off. Film filenames and music
-tags are sent to these public services to find a match; only a film that alone answers to its
-title, and to its year when the file name gives one, is taken, questions to the Apple catalogue
-stand apart, and uncertain or unavailable results fall back to local previews. Film descriptions, credits and IMDb ratings are shown where available in the
-sources. Cached results expire after 120 days. Wikipedia text is available under CC BY-SA; individual
+Folder exploration asks the Apple iTunes Search API first for a film's poster and synopsis. If
+Apple has no exact match, Wikipedia and Wikidata supply an article, poster and available credits.
+Album information and artwork come from local file tags and nearby `cover.jpg`, `folder.jpg` or
+their PNG variants first, then MusicBrainz and Cover Art Archive. No account or API key is needed.
+Two lens entries of the explored folder turn either online lookup off. Film filenames and music
+tags are sent to those services to find a match; only an unambiguous title and year are taken.
+The local film frame or album cover appears before any network request completes. An album
+without artwork keeps a neutral sleeve. Cached results expire after 120 days; refreshing an
+unchanged folder reuses its previews. Wikipedia text is available under CC BY-SA; individual
 images have their own licenses, which can be checked from the linked source article.
+Folders containing album tracks appear as albums in their parent gallery; opening one shows its
+track page, while the Play shortcut starts its first track.
 
 ## Explore folders and archives
 
@@ -30,9 +34,9 @@ up, and F5 refreshes the location.
 Enumeration, metadata, sorting, archive extraction and thumbnail decoding run asynchronously.
 Lists and thumbnail grids render only their visible rows. A reusable child process renders
 thumbnails through the existing viewer registry, including documents, source code, fonts and
-audio. A viewer can optionally provide `Viewer.Plugin.thumbnail` as a direct image decoder;
+video. Audio uses its file tags and local cover art instead of a rendered byte map. A viewer can optionally provide `Viewer.Plugin.thumbnail` as a direct image decoder;
 otherwise its ordinary viewer renders offscreen with `Viewer.Host.isThumbnail()` set. This mode
-must not play media or persist reader preferences. One request runs at a time, obsolete requests
+must not play media or persist reader preferences. Obsolete requests
 are cancelled, and at most 128 thumbnails are retained in the renderer. A decoder failure or
 timeout leaves the file's type icon available for opening it normally.
 
@@ -208,7 +212,7 @@ a second so that it never flickers, and leaves the previous document on screen m
 file that arrives quickly changes without any mark at all; switching viewers retires hidden
 progressive work.
 
-The window shows the document and nothing else. Every command is an entry of the lens, which
+The window keeps the document dominant. Every command is an entry of the lens, which
 `Ctrl Space` opens: opening, exploring, closing and reloading, the files beside the open
 one and the recent files and folders (`/`), the viewers the file can be seen in, find and its
 options, full screen, the play modes, the explored folder's history and order, the theme, the
@@ -217,6 +221,12 @@ open file are in the information sheet (`I`) and, faint, on the line at the foot
 the viewer's own controls float over that foot while the pointer moves; the find bar floats at the
 top on `Ctrl+F`; the files beside the open one and the viewer's side panel stand as cards beside
 the work when asked for.
+
+The explorer keeps Back, Forward and Parent Folder beside its path, with Refresh, Filter Files
+and Information at the other end. Sort and view remain quiet menus. The view menu and the lens
+share the same choices and checked state, including automatic layout, grid, covers, posters and
+mosaic. At narrow widths, counts move below the title and actions take their own line; an album
+stacks its cover and tracks when the information sheet needs the space beside it.
 
 Without a file the window is its home: the Scope mark, large and faint, one line inviting a drop or
 `Ctrl+O`, and under a hairline the last six files opened, each a quiet row with the faint glyph of

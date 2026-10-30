@@ -2,11 +2,40 @@
 
 using Core, Pixel, Gui, Video, Audio
 
-// A single bounded worker produces a thumbnail or an extracted preview, never GUI resources.
+func albumAudio(file: string)->bool => Path.hasExtension(file, ".mp3") or Path.hasExtension(file, ".flac")
+
+func localAlbumArtwork(file: string)->String
+{
+    if not albumAudio(file) do
+        return {}
+    let folder = Path.directoryName(file) orelse ""
+    for name in ["cover.jpg", "folder.jpg", "front.jpg", "cover.png", "folder.png", "front.png"]
+    {
+        let image = Path.combine(folder, name)
+        if File.exists(image) do
+            return image
+    }
+    return {}
+}
+
+func onlinePreviewWanted(file: string, settings: const *ThumbnailSettings)->bool =>
+    (settings.onlineMovies and not albumAudio(file) and Reader.canOpen(file)) or
+    (settings.onlineMusic and albumAudio(file))
+
+func onlinePreviewStamped(image: const *Image)->bool
+{
+    for &record in image.metadata where record.isTag(cast(const [..] u8, MovieCachedAtTag)) or
+                                        record.isTag(cast(const [..] u8, MusicCachedAtTag)) do
+        return true
+    return false
+}
+
+// One scheduled operation produces a thumbnail or an extracted preview, never GUI resources.
 struct ExplorerPreview
 {
     using operation: Viewer.BackgroundOperation
     path:            String
+    mediaFile:       String     // First track for a folder that represents an album.
     archivePath:     String
     entry:           Viewers.Archive.ZipEntry
     service:         ThumbnailService
@@ -16,7 +45,8 @@ struct ExplorerPreview
     index:           u64
     generation:      u64
     opening:         bool
-    bypassCache:     bool     // Renders even when a cached preview exists, and replaces it.
+    online:          bool     // The second pass enriches a published local preview.
+    needsOnline:     bool
     settings:        String
 }
 
@@ -25,6 +55,7 @@ impl ExplorerPreview
     mtd start(owner: *Wnd)
     {
         .image = {}
+        .needsOnline = false
         .error.clear()
         .temporary.clear()
         let operation = me
@@ -32,27 +63,53 @@ impl ExplorerPreview
         {
             catch operation.produce() { operation.error = Viewer.failureText(Swag.err) }
         },
-                owner)
+                owner,
+                priority: .opening ? Swag.TaskPriority.Normal : Swag.TaskPriority.Background)
     }
 
     private mtd produce() fail
     {
+        // The listing probes only a bounded number of folders. A large library discovers the
+        // remaining albums as their tiles enter the viewport.
+        if .archivePath.isEmpty() and .mediaFile.isEmpty() and Directory.exists(.path)
+        {
+            let inside = try Directory.enumerate(.path, {})
+            var tracks = 0'u64
+            for &entry in inside where not entry.isDirectory() and albumAudio(entry.fullName)
+            {
+                tracks += 1
+                if .mediaFile.isEmpty() do
+                    .mediaFile = entry.fullName
+            }
+            if not tracks or tracks * 2 < inside.count do
+                return
+        }
+
         let source = .archivePath.isEmpty() ? .path.toString() : .archivePath.toString()
-        let member = .archivePath.isEmpty() ? "" : .path.toString()
+        let media  = .mediaFile.isEmpty() ? .path.toString() : .mediaFile.toString()
+        var member = String.from(.archivePath.isEmpty() ? "" : .path.toString())
+        let localArtwork = .archivePath.isEmpty() ? localAlbumArtwork(media) : String.from("")
+        if not localArtwork.isEmpty()
+        {
+            let info = catch File.info(localArtwork)
+            member += Format.toString("\n%\n%\n%", localArtwork, info.size, Hash.hash64(info.lastWriteTime))
+        }
         var cache: String
         if not .opening
         {
             ThumbnailCache.pruneOnce()
             cache = catch ThumbnailCache.key(source, member, settings: .settings)
-            if not .bypassCache
+            .image = ThumbnailCache.read(cache)
+            if .image.isValid() and not .online
             {
-                .image = ThumbnailCache.read(cache)
-                if .image.isValid() do
-                    return
+                let settings = try ThumbnailSettings.decode(.settings)
+                .needsOnline = .archivePath.isEmpty() and onlinePreviewWanted(media, &settings) and
+                               not onlinePreviewStamped(&.image)
+                return
             }
         }
 
-        var file = String.from(.path)
+        var file = String.from(media)
         if not .archivePath.isEmpty()
         {
             var extension = String.from(Path.extension(.path) orelse ".bin")
@@ -81,20 +138,40 @@ impl ExplorerPreview
             var settings = try ThumbnailSettings.decode(.settings)
             if not settings.musicId.isEmpty()
             {
-                let info = try File.info(file)
+                let info = try File.info(.mediaFile.isEmpty() ? file.toString() : source)
                 if not settings.choiceMatches(&info)
                 {
                     settings.musicId.clear()
                 }
             }
 
+            if not .online
+            {
+                .needsOnline = .archivePath.isEmpty() and onlinePreviewWanted(file, &settings)
+                if albumAudio(file)
+                {
+                    if not localArtwork.isEmpty() do
+                        .image = catch .service.render(localArtwork, .settings)
+                    if not .image.isValid() do
+                        .image = Image.create(1, 1, .RGBA8)
+                    let tags = SoundTags.read(file)
+                    labelLocalMusic(&.image, &tags)
+                }
+                else do
+                    .image = try .service.render(file, .settings)
+                let current = catch ThumbnailCache.key(source, member, settings: .settings)
+                if not Swag.isCancelled() and cache == current do
+                    catch ThumbnailCache.write(cache, &.image)
+                return
+            }
+
             var movie:     OnlineMovie
             var music:     OnlineMusic
             var musicTags: SoundTags
+            let localDuration = thumbnailDuration(&.image)
             var providerFailed    = false
             var providerAttempted = false
-            var musicAttempted    = false
-            if settings.onlineMovies and .archivePath.isEmpty() and Reader.canOpen(file)
+            if settings.onlineMovies and .archivePath.isEmpty() and not albumAudio(file) and Reader.canOpen(file)
             {
                 providerAttempted = true
                 catch
@@ -111,15 +188,12 @@ impl ExplorerPreview
                     providerFailed = true
                 }
             }
-            elif settings.onlineMusic and
-                 .archivePath.isEmpty() and
-                 (Path.hasExtension(file, ".mp3") or Path.hasExtension(file, ".flac"))
+            elif settings.onlineMusic and .archivePath.isEmpty() and albumAudio(file)
             {
                 musicTags = SoundTags.read(file)
                 if not settings.musicId.isEmpty() or (not musicTags.album.isEmpty() and musicSearchArtist(&musicTags).count > 0)
                 {
                     providerAttempted = true
-                    musicAttempted    = true
                     catch
                     {
                         music = try OnlineMusic.lookup(&musicTags, chosenId: settings.musicId)
@@ -138,13 +212,30 @@ impl ExplorerPreview
                 }
             }
 
-            if not .image.isValid() do
-                .image = try .service.render(file, .settings)
+            if not .image.isValid()
+            {
+                if albumAudio(file)
+                {
+                    if not localArtwork.isEmpty() do
+                        .image = catch .service.render(localArtwork, .settings)
+                    if not .image.isValid() do
+                        .image = Image.create(1, 1, .RGBA8)
+                }
+                else do
+                    .image = try .service.render(file, .settings)
+            }
+            if localDuration and .image.isValid() and not thumbnailDuration(&.image)
+            {
+                var duration: ImageMetadata
+                duration.tag   = Viewer.ThumbnailDurationTag
+                duration.value = Format.toString("%", localDuration)
+                .image.metadata.add(#move duration)
+            }
             if movie.found() and .image.isValid() do
                 movie.label(&.image)
             elif not music.id.isEmpty() and .image.isValid() do
                 music.label(&.image, &musicTags)
-            elif musicAttempted and not providerFailed and .image.isValid() do
+            elif settings.onlineMusic and albumAudio(file) and not providerFailed and .image.isValid() do
                 stampMusicCache(&.image)
             elif providerAttempted and not providerFailed and .image.isValid() do
                 stampMovieCache(&.image)

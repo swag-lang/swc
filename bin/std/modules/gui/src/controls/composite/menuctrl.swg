@@ -831,7 +831,8 @@ impl MenuCtrl
         sub.ignoreNextRelease = false
         sub.setPopupBarAnchor(.hotIdx, anchorRect)
 
-        // Be sure popup menu is in the client area of the top view
+        // Keep the popup body in the client area. Its shadow may fall outside the parent; clamping
+        // the whole window moves the attached body away from the bar at the top and side edges.
         sub.updateState()
         sub.computeLayoutPopup()
 
@@ -844,8 +845,9 @@ impl MenuCtrl
         let bounds      = popupParent.clientRect()
         var pt          = popupParent.surfaceToLocal(Math.Point{pos.x, pos.y})
         let subPos      = sub.position
-        pt.x = Math.clamp(pt.x, bounds.x, Math.max(bounds.right() - subPos.width, bounds.x))
-        pt.y = Math.clamp(pt.y, bounds.y, Math.max(bounds.bottom() - subPos.height, bounds.y))
+        let shadow      = metrics.menuPopup_ShadowSize
+        pt.x = Math.clamp(pt.x, bounds.x - shadow, Math.max(bounds.right() - subPos.width + shadow, bounds.x - shadow))
+        pt.y = Math.clamp(pt.y, bounds.y - shadow, Math.max(bounds.bottom() - subPos.height + shadow, bounds.y - shadow))
 
         pt = popupParent.localToSurface(pt)
         .showSubVisible(pt)

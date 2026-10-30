@@ -11,7 +11,6 @@ private const HalfHeight = cast(f32, FrameChannel.Height) / 2
 // A replacement process gets fresh globals, callbacks and worker state for its module.
 func runPreviewHost(channelPath: string, libraryPath: string, gui: bool) fail
 {
-    Swag.setWorkerCount(6)
     var channel: FrameChannel
     try channel.open(channelPath)
     var library = try NativeLibrary.load(libraryPath)

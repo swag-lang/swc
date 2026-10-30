@@ -85,3 +85,25 @@ mutex and the placement of 22 threads across three classes of core: 64-element l
 on 22 workers against 13.7 ms on one, and `spawn-task` throughput falls from 2.1 to 0.5 children
 per microsecond over the same range. Neither is a completion problem, and neither is addressed
 here. `language.parallelism.006` carries that work with these numbers as its evidence.
+
+## Check of 2026-10-30: timing inconclusive
+
+Compared the runtime at `76213b697c` with `ecef542163`, including background admission and
+single-worker wakeup when a background slot becomes free. Both copies used the same preserved
+`swc.dm.exe` (SHA-256 `34ee7b7e4d64aa67c80703b11cc0a8e98c1bd3681a64e86821c965053685485c`),
+isolated runtime/standard-library resources and caches, release program configuration, and six
+compiler workers. The corrected benchmark source was identical in both copies, with worker steps
+restricted to `[1, 2, 6]` and five samples per case.
+
+The [captured medians](results-20261030.csv) contain eight executions in
+`base, candidate, candidate, base, base, candidate, candidate, base` order. All eight completed
+their checksum assertions. Each invocation waited for measured CPU use below 20% as well as the
+repository's memory admission thresholds. Other work resumed during some executions, so admission
+alone did not provide a quiet interval for the measurement.
+
+The candidate's six-worker observed `herd` case ranged from 1,838 to 87,541 microseconds, over a
+47-fold spread. These timings establish neither a speedup nor the absence of a regression. Repeat
+the full alternating protocol during a quiet interval before making either claim. Background
+pressure transitions and dependency progress are covered separately by
+`bin/unittests/native/runtime/scheduler_background.swg`; the normal queue's global mutex remains
+the scaling work tracked in `language.parallelism.006`.

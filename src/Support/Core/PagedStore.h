@@ -21,7 +21,13 @@ public:
     class SpanView;
     static constexpr uint32_t K_DEFAULT_PAGE_SIZE = 16u * 1024u;
 
-    explicit PagedStore(uint32_t pageSize = K_DEFAULT_PAGE_SIZE);
+    enum class ReverseLookup : uint8_t
+    {
+        Enabled,
+        Disabled,
+    };
+
+    explicit PagedStore(uint32_t pageSize = K_DEFAULT_PAGE_SIZE, ReverseLookup reverseLookup = ReverseLookup::Enabled);
 
     PagedStore(const PagedStore&)            = delete;
     PagedStore& operator=(const PagedStore&) = delete;
@@ -63,7 +69,8 @@ public:
     SpanRef pushSpanRaw(const void* data, uint32_t elemSize, uint32_t elemAlign, uint32_t count);
 
     SpanView spanView(Ref ref, uint32_t elemSize, uint32_t elemAlign) const;
-    Ref      findRef(const void* ptr) const noexcept;
+    // Requires ReverseLookup::Enabled; stores addressed only by Ref can omit the index.
+    Ref findRef(const void* ptr) const noexcept;
 
     template<class T>
     Ref pushBack(const T& v)
@@ -261,9 +268,10 @@ private:
     // A page size is a power of two, which the constructor enforces, so splitting a reference into
     // a page and an offset is a shift and a mask. Keeping the size alone would leave the divisor a
     // runtime value and cost a hardware division on every dereference.
-    uint32_t pageShift_      = std::countr_zero(K_DEFAULT_PAGE_SIZE);
-    uint32_t pageMask_       = K_DEFAULT_PAGE_SIZE - 1;
-    bool     proximityPages_ = false;
+    uint32_t      pageShift_      = std::countr_zero(K_DEFAULT_PAGE_SIZE);
+    uint32_t      pageMask_       = K_DEFAULT_PAGE_SIZE - 1;
+    bool          proximityPages_ = false;
+    ReverseLookup reverseLookup_  = ReverseLookup::Enabled;
 
     Page*    curPage_      = nullptr;
     uint32_t curPageIndex_ = 0;

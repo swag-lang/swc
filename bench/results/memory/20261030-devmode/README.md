@@ -1,6 +1,6 @@
 # Compiler memory work, 2026-10-30
 
-The objective is to reduce compiler memory and the DevMode/Release gap while giving
+The current objective is to reduce memory common to both compiler configurations while giving
 compilation speed priority. Changes with a static storage or work reduction are grouped;
 builds and comparative measurements are periodic checkpoints, not a per-edit requirement.
 
@@ -289,3 +289,30 @@ over the compilation. Other processes used an estimated 3,532.58 CPU-seconds dur
 217.48 seconds, against 412.03 CPU-seconds for the compiler job. Exclude this run from
 compilation-speed conclusions. The new DevMode application's peak has not yet been measured;
 do not combine the older DevMode result with this Release result to claim a new configuration gap.
+
+## Omit unused reverse indexes
+
+Static call-site inspection found that only AST storage and `DataSegment` use
+`PagedStore::findRef` in production. Type records, identifier records, identifier strings,
+node payload records and encoder bytes are accessed through stored references or direct
+pointers. Their five store declarations now disable reverse lookup at construction.
+The default remains enabled for existing consumers; AST and `DataSegment` are unchanged.
+
+Disabled stores publish the same direct page table but skip all sorted range snapshots.
+This eliminates N(N+1)/2 retained 24-byte range records for N pages, or 12N(N+1) bytes:
+12.01 MiB at 1,024 pages, before vector objects and allocator overhead. It also removes
+the repeated allocation, population and sort. The policy occupies existing x64 padding;
+direct reference access and ordinary allocation within a page gain no branch or indirection.
+The policy check runs only when publishing a new page table. Both compiler configurations
+use the same change.
+
+Move construction carries the policy; move assignment swaps it with the storage. A focused
+C++ regression covers reference and pointer stability over growth, both move operations,
+reuse and clear, including reverse lookup on the enabled store exchanged by assignment.
+The new regression and this batch have not yet been compiled or run. Formatting, call-site
+inspection and diff checks are the current validation; grouped builds are deferred as requested.
+Neither the measurements above nor the frozen `swc.pages` binaries include this batch.
+
+A heap-profile run of the frozen Release checkpoint is prepared but has not started:
+the stricter 20% CPU admission check continued to report `wait`. Profiling results will be
+used to attribute retained allocations, never as compilation-speed measurements.

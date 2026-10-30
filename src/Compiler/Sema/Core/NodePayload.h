@@ -276,7 +276,7 @@ private:
         mutable std::shared_mutex foldedSourceSymbolsMutex;
         mutable std::shared_mutex resolvedCallArgsMutex;
 
-        PagedStore store;
+        PagedStore store{PagedStore::K_DEFAULT_PAGE_SIZE, PagedStore::ReverseLookup::Disabled};
 
         RefPointerMap<AstNodeRef> loweringPayloads;
         RefPointerMap<AstNodeRef> inlinePayloads;

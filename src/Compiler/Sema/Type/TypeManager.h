@@ -253,7 +253,7 @@ private:
     struct Shard
     {
         // Keep storage alive until all interned payloads have been destroyed.
-        PagedStore store;
+        PagedStore store{PagedStore::K_DEFAULT_PAGE_SIZE, PagedStore::ReverseLookup::Disabled};
 
         std::array<InternStripe, INTERN_STRIPE_COUNT> internStripes;
 

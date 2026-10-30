@@ -577,6 +577,45 @@ SWC_TEST_BEGIN(PagedStore_ReadersKeepReferencesAcrossPageGrowth)
 }
 SWC_TEST_END()
 
+SWC_TEST_BEGIN(PagedStore_ReferencesSurviveGrowthAndMovesWithoutReverseLookup)
+{
+    PagedStore                source(64, PagedStore::ReverseLookup::Disabled);
+    std::array<Ref, 65>       refs;
+    std::array<uint32_t*, 65> addresses;
+    for (uint32_t index = 0; index < refs.size(); ++index)
+    {
+        refs[index]       = source.reserveRange(64, 1, true);
+        addresses[index]  = source.ptr<uint32_t>(refs[index]);
+        *addresses[index] = index + 1;
+    }
+
+    PagedStore moved(std::move(source));
+    PagedStore target(32);
+    const Ref  oldRef = target.pushBack(uint32_t{99});
+    target            = std::move(moved);
+    for (uint32_t index = 0; index < refs.size(); ++index)
+    {
+        if (!target.containsRef(refs[index], 64) || target.ptr<uint32_t>(refs[index]) != addresses[index] || *addresses[index] != index + 1)
+            return Result::Error;
+    }
+
+    // Move assignment swaps ownership, including the enabled index of the old target.
+    if (moved.findRef(moved.ptr<uint32_t>(oldRef)) != oldRef || moved.at<uint32_t>(oldRef) != 99)
+        return Result::Error;
+    const Ref indexed = moved.reserveRange(32, 1, true);
+    if (moved.findRef(moved.ptr<uint32_t>(indexed)) != indexed)
+        return Result::Error;
+
+    const Ref reused = source.pushBack(uint32_t{42});
+    if (source.at<uint32_t>(reused) != 42)
+        return Result::Error;
+    target.clear();
+    const Ref afterClear = target.pushBack(uint32_t{17});
+    if (target.at<uint32_t>(afterClear) != 17)
+        return Result::Error;
+}
+SWC_TEST_END()
+
 SWC_TEST_BEGIN(PagedStore_FindRefRejectsAddressesOutsideLiveBytes)
 {
     PagedStore store(64);

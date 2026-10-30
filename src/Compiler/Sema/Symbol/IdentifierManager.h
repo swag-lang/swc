@@ -269,8 +269,8 @@ private:
 
     struct Shard
     {
-        PagedStore store;
-        PagedStore stringStore;
+        PagedStore store{PagedStore::K_DEFAULT_PAGE_SIZE, PagedStore::ReverseLookup::Disabled};
+        PagedStore stringStore{PagedStore::K_DEFAULT_PAGE_SIZE, PagedStore::ReverseLookup::Disabled};
 
         std::array<InternStripe, INTERN_STRIPE_COUNT> internStripes;
 

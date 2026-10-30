@@ -221,7 +221,7 @@ protected:
     }
 
     TaskContext*                         ctx_ = nullptr;
-    PagedStore                           store_;
+    PagedStore                           store_{PagedStore::K_DEFAULT_PAGE_SIZE, PagedStore::ReverseLookup::Disabled};
     uint32_t                             textSectionOffset_ = 0;
     uint32_t                             symCsIndex_        = 0;
     EncoderFunction*                     cpuFct_            = nullptr;

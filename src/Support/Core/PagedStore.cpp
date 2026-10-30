@@ -22,10 +22,11 @@ namespace
     }
 }
 
-PagedStore::PagedStore(uint32_t pageSize) :
+PagedStore::PagedStore(uint32_t pageSize, ReverseLookup reverseLookup) :
     pageSizeValue_(pageSize),
     pageShift_(static_cast<uint32_t>(std::countr_zero(pageSize))),
-    pageMask_(pageSize - 1)
+    pageMask_(pageSize - 1),
+    reverseLookup_(reverseLookup)
 {
     SWC_ASSERT(pageSizeValue_ > 0 && (pageSizeValue_ & (pageSizeValue_ - 1)) == 0);
     publishPages();
@@ -40,6 +41,7 @@ PagedStore::PagedStore(PagedStore&& other) noexcept :
     pageShift_(other.pageShift_),
     pageMask_(other.pageMask_),
     proximityPages_(other.proximityPages_),
+    reverseLookup_(other.reverseLookup_),
     curPage_(other.curPage_),
     curPageIndex_(other.curPageIndex_),
     lastPtr_(other.lastPtr_)
@@ -81,6 +83,7 @@ PagedStore& PagedStore::operator=(PagedStore&& other) noexcept
         std::swap(pageShift_, other.pageShift_);
         std::swap(pageMask_, other.pageMask_);
         std::swap(proximityPages_, other.proximityPages_);
+        std::swap(reverseLookup_, other.reverseLookup_);
         std::swap(curPage_, other.curPage_);
         std::swap(curPageIndex_, other.curPageIndex_);
         std::swap(lastPtr_, other.lastPtr_);
@@ -522,6 +525,7 @@ PagedStore::Page* PagedStore::newPage()
 
 Ref PagedStore::findRef(const void* ptr) const noexcept
 {
+    SWC_ASSERT(reverseLookup_ == ReverseLookup::Enabled);
     if (!ptr)
         return std::numeric_limits<Ref>::max();
 
@@ -622,6 +626,12 @@ void PagedStore::publishPages()
         pages->entries[pageCount - 1].store(pagesStorage_.back().get(), std::memory_order_release);
     }
     pages->count.store(pageCount, std::memory_order_release);
+    publishedPages_.store(pages, std::memory_order_release);
+
+    // These snapshots serve only pointer-to-reference lookup. Most owners already keep
+    // references, so building and retaining a sorted copy for each page wastes memory.
+    if (reverseLookup_ == ReverseLookup::Disabled)
+        return;
 
     auto pageRanges = std::make_unique<std::vector<PageRange>>();
     pageRanges->reserve(pagesStorage_.size());
@@ -635,7 +645,6 @@ void PagedStore::publishPages()
 
     publishedPageRangesStorage_.push_back(std::move(pageRanges));
     const auto* publishedRanges = publishedPageRangesStorage_.back().get();
-    publishedPages_.store(pages, std::memory_order_release);
     publishedPageRanges_.store(publishedRanges, std::memory_order_release);
 }
 

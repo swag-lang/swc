@@ -1,7 +1,10 @@
 {
-  "compiler_code_revision": "3965e1b51",
+  "compiler_code_revisions": {
+    "control": "3965e1b51",
+    "pages": "ecb64e0f2e"
+  },
   "baseline": "Original mimalloc 3.6.0 DevMode compiler, before the memory changes",
-  "current": "Debugger metadata disabled by default, compact records, owner-scoped constant walks, separate branch state",
+  "current": "Control checkpoint plus common layout savings, compact page ranges and geometric direct page tables",
   "sources": "The frozen application/runtime/standard-library snapshot from 20261030-mimalloc360",
   "note": "Single observations on a shared host; failed runs are retained as diagnostic evidence and excluded from performance conclusions.",
   "runs": {
@@ -412,6 +415,39 @@
       "valid": true,
       "timing_comparable": false,
       "timing_note": "Host busy for 79.20% of the run; admission sampled 13%, but unrelated load rose during the run."
+    },
+    "pages-cpp": {
+      "exit": 0,
+      "started_unix": 1793357648.6884236,
+      "affinity_mask": 0,
+      "host_busy_pct": 56.98616793298266,
+      "other_process_cpu_ms_estimate": 325390.625,
+      "wall_ms": 36683.7736,
+      "first_stdout_ms": null,
+      "cpu_ms": 131562.5,
+      "user_cpu_ms": 42265.625,
+      "kernel_cpu_ms": 89296.875,
+      "job_cpu_ms": 131656.25,
+      "page_faults": 138827,
+      "job_processes": 4,
+      "peak_job_bytes": 391880704,
+      "peak_proc_bytes": 384638976,
+      "peak_working_set_bytes": 407781376,
+      "stdout": "  \u25c6  swag        unittest \u2022 sources\r\n  \u2713  tested      1_617 passed \u2022 36 s 124 ms\r\n  \u2713  clean       36 s 151 ms\r\n",
+      "stderr": "\r\n",
+      "allocator_error": false,
+      "mimalloc_options": {},
+      "command": [
+        "install\\swc.pages.dm.exe",
+        "unittest",
+        "--num-cores",
+        "6",
+        "--no-log-color",
+        "--no-log-progress"
+      ],
+      "compiler_sha256": "f085648aeea0f185c7212ae1cb4d226874e2617ed59ede6f137b8d4b4ecd33ed",
+      "valid": true,
+      "compiler_code_revision": "ecb64e0f2e"
     }
   }
 }

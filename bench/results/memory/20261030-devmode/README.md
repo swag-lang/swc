@@ -187,7 +187,7 @@ Commands, binary hashes, counters, test output and excluded failed runs are reta
 [measurements.json](measurements.json). The current compiler's source matches code revision
 `3965e1b51`; its SHA-256 is `43755fc41b9709c32234b29c04c18bea9fe215274839ae939a58224f56fb9d57`.
 
-## Common compiler layout batch, awaiting a grouped build
+## Common compiler layout batch
 
 The next batch targets both compiler executables. These are x64 representation deductions,
 not additional measured process-memory savings; the binaries above do not include them.
@@ -207,9 +207,9 @@ not additional measured process-memory savings; the binaries above do not includ
 
 All records retain their fields, defaults and natural alignment. No packing, bitfields,
 side tables or allocation-policy changes are introduced. Compile-time size assertions guard
-the normal x64 layouts at the next grouped build.
+the normal x64 layouts; they passed the grouped DevMode build described below.
 
-## Retained page-range indexes, awaiting a grouped build
+## Retained page-range indexes
 
 `PagedStore` publishes and retains immutable page indexes for concurrent readers whenever a
 page is added. Its address-range record used to store both the start address and the end of
@@ -222,7 +222,7 @@ full-page bounds branch. The normal lookup still subtracts the start and loads t
 it gains no allocation, lock, indirection or pass. The subtraction stays pointer-sized until
 after validation, so an address more than 4 GiB away cannot wrap to a valid 32-bit offset.
 A focused C++ regression covers live boundaries, unused tails, cleared pages and that distant
-address case. It will run with the next grouped validation.
+address case. It passed with the grouped DevMode validation described below.
 
 For a store that grows to N pages, the retained range arrays contain N(N+1)/2 entries. The
 static saving is therefore 4N(N+1) bytes per store, excluding allocator rounding: 4.00 MiB
@@ -252,5 +252,8 @@ existing storage and reference contracts.
 
 A new C++ regression runs two readers while a writer publishes 256 full pages, checking old
 and new references, values and reverse lookup. It also moves the grown store and reuses the
-moved-from store. The grouped DevMode build includes this change, the range-boundary regression
-and the preceding common layout batch; its result is pending.
+moved-from store. The grouped DevMode build succeeded, including this change, the range-boundary
+regression and the preceding common layout batch. All 1,617 fast C++ tests passed with no allocator
+error, including both new page-store regressions. The compiler code is `ecb64e0f2e`; the preserved
+DevMode executable has SHA-256 `f085648aeea0f185c7212ae1cb4d226874e2617ed59ede6f137b8d4b4ecd33ed`.
+The Release build and application comparisons for this checkpoint are still pending.

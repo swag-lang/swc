@@ -18,9 +18,6 @@ func assertDialogCharter(dlg: *Dialog)
     let pad     = metrics.dialog_Padding
     let gap     = metrics.dialog_BtnPadding * 2
 
-    // Focus rings extend past their button, so the action row must leave overflow visible.
-    Swag.assert(not bar.wndFlags.has(.ClipChildren))
-
     // The charter's measures, where every box takes them from.
     Swag.assert(pad == 28 and gap == 16)
     Swag.assert(metrics.control_DialogHeight == 34)

@@ -98,3 +98,30 @@ func homeWindow(host: *Testing.HeadlessHost, light: bool)->*ViewerWindow
     window.removeOlderRecent()
     Swag.assert(window.recent.isEmpty() and window.recentOpened.isEmpty() and window.home.rows.isEmpty())
 }
+
+// Opening a missing home row offers to forget that exact history entry and leaves the home
+// invitation in place whether the reader keeps or removes it.
+#test
+{
+    var host: Testing.HeadlessHost
+    let window = homeWindow(&host, false)
+    window.home.removeRow(5)
+
+    let missing = homeFixture("gone-for-good.txt")
+    window.recent.add(missing)
+    window.recentOpened.add(HomeNow)
+    window.home.refresh()
+    Swag.assert(not File.exists(missing))
+
+    host.clickModalButtonWhenShown(Dialog.BtnNo)
+    window.queueFile(missing.toString(), offerForgetMissing: true)
+    completeViewerWindowClassification(&host, window)
+    Swag.assert(host.autoHandled and window.home.isLocallyVisible())
+    Swag.assert(window.home.message.isEmpty() and window.recent.contains(missing))
+
+    host.clickModalButtonWhenShown(Dialog.BtnYes)
+    window.queueFile(missing.toString(), offerForgetMissing: true)
+    completeViewerWindowClassification(&host, window)
+    Swag.assert(host.autoHandled and window.home.isLocallyVisible())
+    Swag.assert(window.home.message.isEmpty() and not window.recent.contains(missing))
+}

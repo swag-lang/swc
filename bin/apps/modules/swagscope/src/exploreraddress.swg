@@ -16,6 +16,7 @@ struct ExplorerAddress
     {
         explorer:   *Explorer
         navigation: *StackLayoutCtrl
+        actions:    *StackLayoutCtrl
         pathScroll: *ScrollWnd
         breadcrumb: *BreadcrumbCtrl
         edit:       *EditBox
@@ -51,12 +52,36 @@ impl ExplorerAddress
         {
             let glyphs      = [ThemeIcons.ChevronLeft, .ChevronRight, .ParentFolder]
             with let button = IconButton.create(result.navigation,
-                                                result.theme().icon(glyphs[index], 16),
+                                                result.theme().icon(glyphs[index], result.themeMetrics().menuPopup_IconSize),
                                                 {0, 0, Explorer.AddressHeight, Explorer.AddressHeight},
                                                 command,
-                                                .IconOnly | .Flat)
+                                                .IconOnly)
             {
                 .layoutSpec.alignY = .Center
+                .setForm(.RoundedRectangle)
+            }
+        }
+
+        // Repeated folder actions stay beside the path, with the same state as their lens rows.
+        with result.actions = StackLayoutCtrl.create(result, .Left)
+        {
+            .dockStyle       = .Right
+            .backgroundStyle = .Transparent
+            .spacing         = result.themeMetrics().infoSheet_LineGap
+            .margin.x        = result.themeMetrics().infoSheet_BlockGap
+        }
+
+        for command, index in [ViewerCommands.Refresh, ViewerCommands.Find, ViewerCommands.Information]
+        {
+            let glyphs      = [ThemeIcons.Update, .Search, .Information]
+            with let button = IconButton.create(result.actions,
+                                                result.theme().icon(glyphs[index], result.themeMetrics().menuPopup_IconSize),
+                                                {0, 0, Explorer.ToolHeight, Explorer.ToolHeight},
+                                                command,
+                                                .IconOnly)
+            {
+                .layoutSpec.alignY = .Center
+                .setForm(.RoundedRectangle)
             }
         }
 

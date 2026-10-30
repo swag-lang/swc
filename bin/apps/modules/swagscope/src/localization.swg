@@ -57,6 +57,7 @@ struct AppStrings
     explore_Source:            string = "Source"
     explore_Loading:           string = "Reading folder…"                         // Exploration control or status.
     explore_Empty:             string = "No files to show"                        // Exploration control or status.
+    explore_NoMatches:         string = "No files match this filter."              // Empty filtered folder.
     explore_OneItem:           string = "1 item"                                  // Exploration control or status.
     explore_Count:             string = "% items"                                 // Exploration control or status.
     explore_ArchiveSummary:    string = "% · % compressed · % once extracted"     // Contents of an archive: its count, its packed and its extracted weight.
@@ -164,6 +165,7 @@ struct AppStrings
     cmd_NextFile:       string = "Next File"                 // Command opening the file after this one in its folder.
     cmd_ClearHistory:   string = "Clear History…"            // Command emptying the list of recent files, after a confirmation.
     cmd_Find:           string = "Find in Document"          // Command showing the find bar.
+    cmd_FilterFiles:    string = "Filter Files"              // Command showing the folder filter.
     cmd_FindNext:       string = "Next Match"                // Command moving to the next occurrence.
     cmd_FindPrevious:   string = "Previous Match"            // Command moving to the previous occurrence.
     cmd_Information:    string = "Information"               // Command showing the sheet of readings about the open file.

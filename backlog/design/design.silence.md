@@ -74,8 +74,6 @@ dialogs, then each application, then the written rules.
   - Films: no playback progress thread at the poster's foot and no "Resume at 1 h 12" / "or from
     the start" — Scope keeps no resume position for a film yet; the count says "items", not
     "films".
-  - Album: nothing plays from the album page itself, so no row is "playing" — the chosen one
-    carries the ▶.
   - Photos: the last row of a day stays at its aim when stretching it would make it much taller
     than its aim; the tip names the file and its weight, not the camera's facts (Scope reads no
     EXIF yet); "taken" is the file's modification date.
@@ -179,8 +177,6 @@ dialogs, then each application, then the written rules.
   - Scroll bar: 6 px under Window chrome, 8 px under Controls; `scrollBar_Size` is 8.
   - The lens foot does not list `Tab`.
   - Section label: the charter says 10.5, `sectionLabel_FontSize` is 10.
-  - Swag Scope's current search match pulses a glow (`ViewerSearchOverlay`, `searchMatch_Glow`);
-    the Motion section forbids pulses and glows at rest.
   - `dialog.swg` still documents a faint `Esc` hint at the bottom left it no longer paints.
   - Band leftovers: `informationBar_Bk`, `commandBar_Bk`, `toolBar_Bk` (all the ground), the
     window styles `.InformationBar`, `.InformationPanel`, `.CommandBar`, `.ToolBar`, the metrics

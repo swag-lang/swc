@@ -126,7 +126,7 @@ struct ViewerLoadingOverlay
 
 // One application-owned marker for every current occurrence. Viewers report the band they painted
 // over what they revealed and nothing else; this layer supplies the air around it, the corner, the
-// themed wash, its own edge and a quiet electric pulse, so PDF text and a byte in the hexadecimal
+// themed wash and its own edge, so PDF text and a byte in the hexadecimal
 // view speak exactly the same visual language.
 //
 // The band takes the corner a selected row already takes, and its edge is drawn inside its
@@ -135,7 +135,6 @@ struct ViewerLoadingOverlay
 struct ViewerSearchOverlay
 {
     using wnd: Wnd
-    phase:     f32
 }
 
 impl IWnd for ViewerSearchOverlay
@@ -144,28 +143,10 @@ impl IWnd for ViewerSearchOverlay
     {
         let painter = evt.paintContext.painter
         let colors  = .themeColors()
-        let pulse   = 0.5'f32 + 0.5'f32 * Math.sin(.phase * Math.ConstF32.TwoPi)
 
-        // The band, and around it the room the halo falls off in.
-        var mark = .clientRect()
-        mark.applyPadding(Math.Vector4{GlowReach, GlowReach, GlowReach, GlowReach})
+        let mark = .clientRect()
         if mark.isEmpty() do
             return
-
-        // The halo is a stack of filled rounded rectangles, drawn from the outermost inward: each
-        // one covers those inside it, so their alphas add up toward the band while the outermost
-        // ring stays a breath. Filling rather than stroking also keeps the whole marker off the
-        // renderer's antialiased no-overlap pass, which clears alpha on a translucent top layer
-        // and leaves seams as the pulse changes intensity.
-        let glowStrength = (0.35'f32 + pulse * 0.65) / cast(f32, GlowSteps)
-        let glow         = colors.searchMatch_Glow.withAlpha(cast(u8, (cast(f32, colors.searchMatch_Glow.a) * glowStrength)))
-        for step in GlowSteps
-        {
-            let reach = GlowReach * cast(f32, GlowSteps - step) / cast(f32, GlowSteps)
-            var ring  = mark
-            ring.inflate(reach)
-            painter.fillRoundRect(ring, MarkRadius + reach, MarkRadius + reach, glow)
-        }
 
         painter.fillRoundRect(mark, MarkRadius, MarkRadius, colors.searchMatch_Bk)
 
@@ -177,16 +158,14 @@ impl IWnd for ViewerSearchOverlay
 
 impl ViewerSearchOverlay
 {
-    // The rounded mark around a match and the glow that pulses around it. The overlay extends past
-    // the match by the padding plus the glow reach, so the glow is never clipped.
-    const MarkPadX   = 5.0
-    const MarkPadY   = 2.0
-    const MarkRadius = 4.0
-    const MarkEdge   = 1.0
-    const GlowReach  = 5.0
-    const GlowSteps  = 4'u32
-    const InsetX     = MarkPadX + GlowReach
-    const InsetY     = MarkPadY + GlowReach
+    // The current occurrence stays still while its geometry follows the document.
+    const MarkPadX       = 5.0
+    const MarkTopInset   = 2.0
+    const MarkMinHeight  = 18.0
+    const MarkHeightPart = 0.64
+    const MarkRadius     = 4.0
+    const MarkEdge       = 1.0
+    const InsetX         = MarkPadX
 
     func create(parent: *Wnd)->*ViewerSearchOverlay
     {
@@ -202,13 +181,15 @@ impl ViewerSearchOverlay
 
     // Follows a surface-coordinate match without entering the viewer's own layout or hit testing.
     //
-    // `bounds` is the band the view painted; the air is added here, wider than it is tall because
-    // a line's leading is what bounds the marker vertically while nothing bounds it horizontally.
+    // `bounds` is the line or cell band the view painted. Its lower leading often extends well
+    // beyond the letters, so use a shorter mark near the top of the band while retaining the
+    // reported horizontal extent. This keeps the air around the wording even on a tall line.
     mtd showMatch(bounds: Math.Rectangle)
     {
-        let parent  = unwrap .parent
-        let topLeft = parent.surfaceToLocal(Math.Point{bounds.x, bounds.y})
-        .setPosition(Math.Rectangle{topLeft.x - InsetX, topLeft.y - InsetY, bounds.width + InsetX * 2, bounds.height + InsetY * 2}, computeLayout: false)
+        let parent     = unwrap .parent
+        let topLeft    = parent.surfaceToLocal(Math.Point{bounds.x, bounds.y})
+        let markHeight = Math.max(MarkMinHeight, bounds.height * MarkHeightPart)
+        .setPosition(Math.Rectangle{topLeft.x - InsetX, topLeft.y + MarkTopInset, bounds.width + InsetX * 2, markHeight}, computeLayout: false)
         .show()
         .bringToFront()
     }

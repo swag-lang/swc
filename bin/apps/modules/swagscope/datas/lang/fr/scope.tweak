@@ -1,4 +1,6 @@
 # French strings of Swag Scope. A key omitted here keeps its English value.
+cmd_FilterFiles Filtrer les fichiers
+explore_NoMatches Aucun fichier ne correspond à ce filtre.
 
 ui_OpenDefault  Ouvrir avec l'application par défaut
 ui_CloseFile    Fermer le fichier

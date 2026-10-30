@@ -2,7 +2,12 @@
 
 The `mimalloc/` directory contains Microsoft mimalloc **3.6.0**, from the official
 [v3.6.0 tag](https://github.com/microsoft/mimalloc/releases/tag/v3.6.0).
-Generated `docs/` output is omitted, as in the previous import. There are no local source patches.
+Generated `docs/` output is omitted, as in the previous import.
+
+One local diagnostic fix initializes `is_double_free` in `src/alloc/free.c`. When the
+canary is intact but a padding byte was overwritten, upstream leaves that output unset;
+reading it can misreport a buffer overflow as a double free. Padding checks and failure
+reporting remain enabled.
 
 Archive: `https://codeload.github.com/microsoft/mimalloc/tar.gz/refs/tags/v3.6.0`
 

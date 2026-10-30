@@ -847,7 +847,7 @@ mi_decl_nodiscard static bool mi_check_padding_on_free(const mi_page_t* page, co
   }
   else {
     size_t wrong;
-    bool is_double_free;
+    bool is_double_free = false;
     if mi_unlikely(!mi_verify_padding(page,block,usable_size,&wrong,&is_double_free)) {
       if (is_double_free) {
         _mi_error_message(EAGAIN, "double free detected of heap block %p with size %zu\n", block, *usable_size);

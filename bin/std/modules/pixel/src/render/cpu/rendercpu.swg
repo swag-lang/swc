@@ -849,10 +849,10 @@ private impl RenderCpu
 
     func sampleSubRect(image: *Image, paintPos: Vector2, p: const *BrushBinding, contentScale: f32)->Color
     {
-        let minX = cast(s32, Math.floor(p.textureRect.x * image.width))
-        let minY = cast(s32, Math.floor(p.textureRect.y * image.height))
-        let maxX = cast(s32, Math.floor(p.textureRect.z * image.width))
-        let maxY = cast(s32, Math.floor(p.textureRect.w * image.height))
+        let minX = cast(s32, p.texturePixelBounds.x)
+        let minY = cast(s32, p.texturePixelBounds.y)
+        let maxX = cast(s32, p.texturePixelBounds.z)
+        let maxY = cast(s32, p.texturePixelBounds.w)
         let dstW = Math.max(p.boundRect.z - p.boundRect.x, 0.000001)
         let dstH = Math.max(p.boundRect.w - p.boundRect.y, 0.000001)
         let tx   = Math.saturate((paintPos.x - p.boundRect.x) / dstW)
@@ -1020,11 +1020,13 @@ private impl RenderCpu
 
     mtd sampleResolve(image: *Image, u, v: f32)->Color
     {
-        let factor    = Math.clamp(.resolveFactor, 1, 8)
-        let dstWidth  = Math.max(image.width / factor, 1)
-        let dstHeight = Math.max(image.height / factor, 1)
-        let baseX     = cast(s32, Math.floor(Math.clamp(u, 0.0, 0.999999) * dstWidth)) * factor
-        let baseY     = cast(s32, Math.floor(Math.clamp(1.0 - v, 0.0, 0.999999) * dstHeight)) * factor
+        let factor = Math.clamp(.resolveFactor, 1, 8)
+
+        // Resolve blocks follow source texels, not a truncated quotient of the padded allocation.
+        let sourceX = Math.clamp(u, 0.0, 0.999999) * image.width
+        let sourceY = Math.clamp(1.0 - v, 0.0, 0.999999) * image.height
+        let baseX   = cast(s32, Math.floor(sourceX / factor)) * factor
+        let baseY   = cast(s32, Math.floor(sourceY / factor)) * factor
 
         var sumA, sumR, sumG, sumB: f32
         for var y: s32; y < factor; y += 1
@@ -1800,10 +1802,10 @@ private impl RenderCpu
             {
                 // Everything the sampler recomputes per pixel from the paint command is
                 // constant over the triangle.
-                let texMinX = cast(s32, Math.floor(paint.textureRect.x * source.width))
-                let texMinY = cast(s32, Math.floor(paint.textureRect.y * source.height))
-                let texMaxX = cast(s32, Math.floor(paint.textureRect.z * source.width))
-                let texMaxY = cast(s32, Math.floor(paint.textureRect.w * source.height))
+                let texMinX = cast(s32, paint.texturePixelBounds.x)
+                let texMinY = cast(s32, paint.texturePixelBounds.y)
+                let texMaxX = cast(s32, paint.texturePixelBounds.z)
+                let texMaxY = cast(s32, paint.texturePixelBounds.w)
                 let spanX   = cast(f32, (texMaxX - texMinX + 1))
                 let spanY   = cast(f32, (texMaxY - texMinY + 1))
                 let dstW    = Math.max(paint.boundRect.z - paint.boundRect.x, 0.000001)
@@ -2144,10 +2146,10 @@ private impl RenderCpu
            cast(f32, dstBottom) != deviceBottomRight.y do
             return false
 
-        let srcX      = cast(s32, Math.floor(params.textureRect.x * source.width))
-        let srcY      = cast(s32, Math.floor(params.textureRect.y * source.height))
-        let srcRight  = cast(s32, Math.floor(params.textureRect.z * source.width)) + 1
-        let srcBottom = cast(s32, Math.floor(params.textureRect.w * source.height)) + 1
+        let srcX      = cast(s32, params.texturePixelBounds.x)
+        let srcY      = cast(s32, params.texturePixelBounds.y)
+        let srcRight  = cast(s32, params.texturePixelBounds.z) + 1
+        let srcBottom = cast(s32, params.texturePixelBounds.w) + 1
         let width     = dstRight - dstX
         let height    = dstBottom - dstY
         if width <= 0 or height <= 0 or srcRight - srcX != width or srcBottom - srcY != height do
@@ -3101,14 +3103,14 @@ impl RenderCpu
     internal mtd acquireRenderTargetImpl(width, height: s32)->*RenderTarget
     {
         Swag.assert(width > 0 and height > 0, "acquireRenderTarget needs positive width and height")
-        let w2 = (cast(u32, width) + 63) & ~63'u32
-        let h2 = (cast(u32, height) + 63) & ~63'u32
+        let bucketWidth  = RenderTarget.pooledExtent(width)
+        let bucketHeight = RenderTarget.pooledExtent(height)
 
         // Match RenderOgl's small buckets and let larger, unused targets expire.
         for rt, idx in .stackReleasedRT
         {
             let candidate = unwrap rt
-            if candidate.colorBuffer.width == w2 and candidate.colorBuffer.height == h2
+            if candidate.colorBuffer.width == bucketWidth and candidate.colorBuffer.height == bucketHeight
             {
                 .stackReleasedRT.removeAt(idx)
                 return candidate
@@ -3116,7 +3118,7 @@ impl RenderCpu
         }
 
         let result = Memory.new'RenderTarget()
-        result[] = .createRenderTargetImpl(cast(s32, w2), cast(s32, h2))
+        result[] = .createRenderTargetImpl(cast(s32, bucketWidth), cast(s32, bucketHeight))
         return result
     }
 

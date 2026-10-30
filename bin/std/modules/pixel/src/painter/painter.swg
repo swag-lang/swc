@@ -254,6 +254,9 @@ struct BrushBinding
         gradientStopStart: u64                   // First stop in the painter's gradient-stop table.
         gradientStopCount: u64                   // Number of stops, or zero for no gradient.
     }
+
+    // Inclusive texel bounds, kept before normalization so fractional edges cannot lose a texel.
+    texturePixelBounds: Vector4
 }
 
 // Stores one deferred painter command and its command-specific payload.
@@ -611,6 +614,11 @@ impl Painter
         let {w: wt, h: ht} = getTextureSize(brush)
         if brush.uvMode == .FillSubRect
         {
+            params.texturePixelBounds = {
+                Math.floor(brush.uvRect.x + 0.5),
+                Math.floor(brush.uvRect.y + 0.5),
+                Math.floor(brush.uvRect.right() - 0.5),
+                Math.floor(brush.uvRect.bottom() - 0.5)}
             params.textureRect.x = brush.uvRect.x / wt
             params.textureRect.y = brush.uvRect.y / ht
             params.textureRect.z = brush.uvRect.right() / wt
@@ -622,10 +630,11 @@ impl Painter
         }
         else
         {
-            params.textureRect.x = 0
-            params.textureRect.y = 0
-            params.textureRect.z = wt
-            params.textureRect.w = ht
+            params.texturePixelBounds = {}
+            params.textureRect.x      = 0
+            params.textureRect.y      = 0
+            params.textureRect.z      = wt
+            params.textureRect.w      = ht
         }
 
         params.type              = brush.type

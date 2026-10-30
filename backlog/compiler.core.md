@@ -590,6 +590,21 @@ Entries stay in one flat list. Keep only measurements that affect the next actio
 - Done when: a `sema` or `jit` suite case holding the typed declaration reads the returned
   bytes under both compiler executables.
 
+### compiler.core.095 — Workspace golden tests can lose their writable corpus
+
+- Evidence: `tools/goldens.bat dm test -bc devmode` with `SWAG_GOLDEN_CONTINUE=1`
+  reaches the GUI tests after Pixel, but refuses to write `backdrop.lens.paper.actual.png`,
+  `lens.paper.actual.png`, and `lens.inline.paper.actual.png` as outside the sandbox.
+  The collection continues without producing those images. The test command is supposed to
+  grant the module or workspace corpus through `effectiveGeneratedArtifactRunArgs`.
+- Workaround verified on this campaign: pass
+  `--run-arg=swag.sandbox.corpus=C:\Perso\swag-lang\swc\bin` explicitly. The missing GUI
+  images are then recorded with the sandbox still enabled.
+- Next: reduce this to two workspace modules that record a file beside their tests; trace the
+  generated run arguments and the lifetime of Core's process-wide corpus across JIT modules.
+- Done when: every module can record inside its own authorized corpus in a workspace test,
+  writes outside that corpus remain refused, and a workspace regression covers the transition.
+
 ## Deliberately out of scope
 
 - **An LLVM back end.** The native and Micro back ends are the supported architecture. Reconsider only if a concrete platform or optimization requirement cannot be met within them.

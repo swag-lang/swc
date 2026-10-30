@@ -14,8 +14,9 @@ void main()
     int f = clamp(factor, 1, 8);
 
     vec2 texSize = vec2(textureSize(inTexture0, 0));
-    vec2 dstSize = max(texSize / float(f), vec2(1.0));
-    vec2 basePx  = floor(clamp(vuv0, vec2(0.0), vec2(0.999999)) * dstSize) * float(f);
+    // Anchor blocks at the content's top-left, independently of bottom padding in the texture.
+    vec2 sourcePx = clamp(vec2(vuv0.x, 1.0 - vuv0.y), vec2(0.0), vec2(0.999999)) * texSize;
+    vec2 basePx = floor(sourcePx / float(f)) * float(f);
 
     vec4 acc = vec4(0.0);
     for(int y = 0; y < 8; ++y)
@@ -29,6 +30,7 @@ void main()
                 break;
 
             vec2 uv = (basePx + vec2(x, y) + vec2(0.5)) / texSize;
+            uv.y = 1.0 - uv.y;
             vec4 s  = texture(inTexture0, uv);
 
             // The source comes from a paintAlpha render target: RGB has already been

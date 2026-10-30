@@ -43,6 +43,7 @@ struct ShaderBase
     premultiplyBlendSource: ShaderParamHandle = InvalidShaderParamHandle
     clipMaskMode:           ShaderParamHandle = InvalidShaderParamHandle
     clipMaskSize:           ShaderParamHandle = InvalidShaderParamHandle
+    texturePixelBounds:     ShaderParamHandle = InvalidShaderParamHandle
 }
 
 // Describes the standard program without antialiasing coverage.

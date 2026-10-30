@@ -13,6 +13,9 @@ using Core
     Swag.assert(target.colorBuffer.width >= 1025 and target.colorBuffer.width < 1089)
     Swag.assert(target.colorBuffer.height >= 513 and target.colorBuffer.height < 577)
     renderer.releaseRenderTarget(target)
+    let tiny = renderer.acquireRenderTarget(12, 7)
+    Swag.assert(tiny.colorBuffer.width == 16 and tiny.colorBuffer.height == 8)
+    renderer.releaseRenderTarget(tiny)
     renderer.end()
 }
 

@@ -1597,6 +1597,7 @@ impl RenderOgl
             let curShader = unwrap .curShader
             glUniform4fv(cast(GLint, curShader.boundRect), 1, &params.boundRect.x)
             glUniform4fv(cast(GLint, curShader.textureRect), 1, &params.textureRect.x)
+            glUniform4fv(cast(GLint, curShader.texturePixelBounds), 1, &params.texturePixelBounds.x)
             glUniform1f(cast(GLint, curShader.uvMode), cast(GLfloat, params.uvMode))
 
             // At a fractional content scale, pixel sampling switches to the sharp
@@ -2079,13 +2080,13 @@ impl RenderOgl
         Swag.assert(width > 0 and height > 0)
 
         // Small buckets absorb resize jitter without doubling each full-window dimension.
-        let w2 = (cast(u32, width) + 63) & ~63'u32
-        let h2 = (cast(u32, height) + 63) & ~63'u32
+        let bucketWidth  = RenderTarget.pooledExtent(width)
+        let bucketHeight = RenderTarget.pooledExtent(height)
 
         for rt, i in .stackReleasedRT
         {
             let r = unwrap rt
-            if r.colorBuffer.width == w2 and r.colorBuffer.height == h2
+            if r.colorBuffer.width == bucketWidth and r.colorBuffer.height == bucketHeight
             {
                 .stackReleasedRT.removeAt(i)
                 return r
@@ -2093,7 +2094,7 @@ impl RenderOgl
         }
 
         var rt = Memory.new'RenderTarget()
-        rt[] = .createRenderTargetImpl(cast(s32, w2), cast(s32, h2))
+        rt[] = .createRenderTargetImpl(cast(s32, bucketWidth), cast(s32, bucketHeight))
         return rt
     }
 
@@ -2151,6 +2152,7 @@ impl RenderOgl
         base.mdl                    = cast(glGetUniformLocation(progID, ("mdl").buffer))
         base.boundRect              = cast(glGetUniformLocation(progID, ("boundRect").buffer))
         base.textureRect            = cast(glGetUniformLocation(progID, ("textureRect").buffer))
+        base.texturePixelBounds     = cast(glGetUniformLocation(progID, ("texturePixelBounds").buffer))
         base.uvMode                 = cast(glGetUniformLocation(progID, ("uvMode").buffer))
         base.interpolationMode      = cast(glGetUniformLocation(progID, ("interpolationMode").buffer))
         base.copyMode               = cast(glGetUniformLocation(progID, ("copyMode").buffer))

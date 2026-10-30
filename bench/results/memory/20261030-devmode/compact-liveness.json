@@ -1,5 +1,5 @@
 {
-  "status": "DevMode C++ and frozen application pass; generated-code comparison, controlled timing and Release validation pending.",
+  "status": "DevMode C++ and frozen application pass; twelve benchmark checksums match and listing differences reviewed. Controlled timing and Release validation pending.",
   "baseline_source_revision": "0d8010eb98",
   "storage_policy": "Acyclic virtual liveness matrices >= 1 MiB with more than two words per row store trimmed row spans. Cyclic and smaller matrices remain dense.",
   "limitations": [
@@ -123,16 +123,291 @@
     "compiler_sha256": "624ad4435443ed67ac33543e009fff3bc749a0da3880efe8c9c1a1b6a97761b8",
     "stdout_sha256": "20f71973985ad49b14d6a765dab156054b02a93de90174d34aa2b0f62497a1e0"
   },
+  "repeated_baseline": {
+    "exit": 0,
+    "started_unix": 1793377252.858688,
+    "affinity_mask": 349185,
+    "effective_affinity_mask": 349185,
+    "system_affinity_mask": 4194303,
+    "affinity_verified": true,
+    "host_busy_pct": 66.77994902293968,
+    "other_process_cpu_ms_estimate": 1951890.625,
+    "wall_ms": 172207.0219,
+    "first_stdout_ms": null,
+    "cpu_ms": 578031.25,
+    "user_cpu_ms": 550640.625,
+    "kernel_cpu_ms": 27390.625,
+    "job_cpu_ms": 578046.875,
+    "page_faults": 862506,
+    "job_processes": 2,
+    "peak_job_bytes": 1584664576,
+    "peak_proc_bytes": 1583448064,
+    "peak_working_set_bytes": 1577177088,
+    "stderr": "\r\n",
+    "harness_sha256": "20a4c33520539d62e67dc2e80a58120e088e68718ed1a690da3a0f0dd2fe7dbf",
+    "allocator_error": false,
+    "mimalloc_options": {},
+    "command": [
+      "C:\\Users\\chris\\AppData\\Local\\swc-agent-builds\\mimalloc-360-20261030-071336\\install\\swc.liveness-baseline.dm.exe",
+      "build",
+      "--workspace",
+      "C:\\Users\\chris\\AppData\\Local\\swc-agent-builds\\mimalloc-360-20261030-071336\\install\\apps",
+      "--workspace-module",
+      "swagcapture",
+      "--num-cores",
+      "6",
+      "--rebuild",
+      "--no-log-color",
+      "--no-log-progress"
+    ],
+    "compiler_sha256": "c61d7801bf42336c8937885f393e18500ea8c9e8befdc168c4601b70e6975627",
+    "stdout_sha256": "a956ae7d7c8b7b952a878713911454f32c375988928a0f7df6d43062afc0253a"
+  },
   "observed_difference": {
     "peak_working_set_bytes": -68124672,
     "peak_proc_bytes": -56332288,
     "wall_ms": -11555.5642,
     "cpu_ms": -34156.25
   },
+  "repeated_baseline_note": "Host busy 66.78%; timing excluded. Known publication variation returned (592047 tokens/5143 tuned versus 592024/5142); this run is not output-equivalent evidence.",
+  "microdiff": {
+    "baseline_sha256": "c61d7801bf42336c8937885f393e18500ea8c9e8befdc168c4601b70e6975627",
+    "candidate_sha256": "624ad4435443ed67ac33543e009fff3bc749a0da3880efe8c9c1a1b6a97761b8",
+    "api_sha256": "5d601664bfd36fe8917543e7331fbcf1a86309537b3fd31e5d4e5ddc07eac706",
+    "configuration": "devmode",
+    "workers": 6,
+    "command": [
+      "microdiff.py",
+      "--base",
+      "C:\\Users\\chris\\AppData\\Local\\swc-agent-builds\\mimalloc-360-20261030-071336\\install\\swc.liveness-baseline.dm.exe",
+      "--new",
+      "C:\\Users\\chris\\AppData\\Local\\swc-agent-builds\\mimalloc-360-20261030-071336\\install\\swc.compact-liveness.dm.exe",
+      "--cfg",
+      "devmode",
+      "--cores",
+      "6",
+      "--verbose",
+      "--save-dir",
+      "C:\\Users\\chris\\AppData\\Local\\swc-agent-builds\\mimalloc-360-20261030-071336\\compact-liveness-microdiff"
+    ],
+    "exit_code": 0,
+    "normalization": "Repository Micro normalizer, including named call relocation addresses. Duplicate printed names additionally compared as multisets of complete normalized bodies; multiplicity preserved. This establishes listing-body equality, not overload call-target identity absent from the printer.",
+    "normalizer_sha256": "261a515b41c14f2456a46373d241bedc89230d00892020bbeb00c0ea9a6089a1",
+    "tasks": {
+      "wordfreq": {
+        "capture_sha256": [
+          "cd05dcdf19668e3469d8000e36a7d9ad4bc53126fe038d859bfb33e8ef9e9089",
+          "e70d6fba8f91462597f3a4d2df0be46eff39b781a9c60f1b535a869db07e50b4"
+        ],
+        "functions": [
+          440,
+          440
+        ],
+        "different_ordered_names": 5,
+        "removed_or_changed_bodies": 1,
+        "added_or_changed_bodies": 1,
+        "reviewed_compile_time_difference": [
+          "load_reg_imm rdx, b64, 0x1040",
+          "load_reg_imm rdx, b64, 0xFC0"
+        ]
+      },
+      "csvagg": {
+        "capture_sha256": [
+          "a95d07d84794b3c540b1dcefc1122a16e1e7e94d488427055ec260f8bcfdaf27",
+          "9bf38e6c8d922145f1497a15d1286b247ff8eab3cf915f97a201bda46dec386e"
+        ],
+        "functions": [
+          440,
+          440
+        ],
+        "different_ordered_names": 5,
+        "removed_or_changed_bodies": 1,
+        "added_or_changed_bodies": 1,
+        "reviewed_compile_time_difference": [
+          "load_reg_imm rdx, b64, 0xE40",
+          "load_reg_imm rdx, b64, 0xF80"
+        ]
+      },
+      "sha256": {
+        "capture_sha256": [
+          "c0f74db625e631abc0e162f6f1304110602bab2b1b8f464d933908e85cdcbeeb",
+          "1924c6a91e5d0fd8a6259d7f40a3d65ca35a3fa97433e64e96694f3f18f59523"
+        ],
+        "functions": [
+          434,
+          434
+        ],
+        "different_ordered_names": 5,
+        "removed_or_changed_bodies": 1,
+        "added_or_changed_bodies": 1,
+        "reviewed_compile_time_difference": [
+          "load_reg_imm rdx, b64, 0x1240",
+          "load_reg_imm rdx, b64, 0xCC0"
+        ]
+      },
+      "dijkstra": {
+        "capture_sha256": [
+          "ac8c61d745e3e0924650f1c02bbc8989b3bd90def0717a52ee8024943932fb6e",
+          "44201aecd02d30a9c41404ff6712b26fb7012e42415e8e82379fdb557bc71ae5"
+        ],
+        "functions": [
+          435,
+          435
+        ],
+        "different_ordered_names": 7,
+        "removed_or_changed_bodies": 1,
+        "added_or_changed_bodies": 1,
+        "reviewed_compile_time_difference": [
+          "load_reg_imm rdx, b64, 0x1300",
+          "load_reg_imm rdx, b64, 0xD40"
+        ]
+      },
+      "raytrace": {
+        "capture_sha256": [
+          "1cc0add9d66c70acaf916cfe7f681a091ffb2400559e7e388f840a904a144a20",
+          "776d7337d34720b65a4b40c27678d14a3198a0fdbd8800cb310efe5990a23d63"
+        ],
+        "functions": [
+          435,
+          435
+        ],
+        "different_ordered_names": 3,
+        "removed_or_changed_bodies": 1,
+        "added_or_changed_bodies": 1,
+        "reviewed_compile_time_difference": [
+          "load_reg_imm rdx, b64, 0x1240",
+          "load_reg_imm rdx, b64, 0x12C0"
+        ]
+      },
+      "leven": {
+        "capture_sha256": [
+          "4ca64e52e3843b36aa9cf3216c95a13e39e1a1304ac657c90292df4facccb8cc",
+          "ad5fcf9e514a15e91868888fc5fde483fe6f28ebe765c427a4553e1fba55fdc0"
+        ],
+        "functions": [
+          433,
+          433
+        ],
+        "different_ordered_names": 3,
+        "removed_or_changed_bodies": 1,
+        "added_or_changed_bodies": 1,
+        "reviewed_compile_time_difference": [
+          "load_reg_imm rdx, b64, 0xEC0",
+          "load_reg_imm rdx, b64, 0xCC0"
+        ]
+      },
+      "chacha": {
+        "capture_sha256": [
+          "89da77d362b1afd0d484a10a2463b4dee30d8c4b459fa757457af05c04665689",
+          "62cab9c012fe918c892b9b7f2bceb9af49a79e62d6e2acf2b30d8f339e0e80df"
+        ],
+        "functions": [
+          435,
+          435
+        ],
+        "different_ordered_names": 3,
+        "removed_or_changed_bodies": 1,
+        "added_or_changed_bodies": 1,
+        "reviewed_compile_time_difference": [
+          "load_reg_imm rdx, b64, 0xDC0",
+          "load_reg_imm rdx, b64, 0xE80"
+        ]
+      },
+      "nbody": {
+        "capture_sha256": [
+          "c5ca2ea39654a972c23a3637d2c0af2892b31cd26f8d049cd94811cd318c80db",
+          "5be72f6e680e6c5cb14089c2500615bbd4bc559a9922309590757db49e908484"
+        ],
+        "functions": [
+          437,
+          437
+        ],
+        "different_ordered_names": 3,
+        "removed_or_changed_bodies": 1,
+        "added_or_changed_bodies": 1,
+        "reviewed_compile_time_difference": [
+          "load_reg_imm rdx, b64, 0x1180",
+          "load_reg_imm rdx, b64, 0xEC0"
+        ]
+      },
+      "fannkuch": {
+        "capture_sha256": [
+          "1f7a87b7412b78195ad1985202e1c674893e58164420fd25c24c855513a544c7",
+          "0bec41e20e4c1cba199360cf0f6bd37eed0c460f2644765dfd7b5a0f76c2cded"
+        ],
+        "functions": [
+          433,
+          433
+        ],
+        "different_ordered_names": 1,
+        "removed_or_changed_bodies": 1,
+        "added_or_changed_bodies": 1,
+        "reviewed_compile_time_difference": [
+          "load_reg_imm rdx, b64, 0xD00",
+          "load_reg_imm rdx, b64, 0x1040"
+        ]
+      },
+      "binarytrees": {
+        "capture_sha256": [
+          "c854147f7a61154a1eb249c489fa7f12633bb379e9c77dd8ce2cc8fc044e0977",
+          "1471efb7f8d92a96596d7428d18a367827a0023c7ab5c2de786db8ba280426b8"
+        ],
+        "functions": [
+          437,
+          437
+        ],
+        "different_ordered_names": 9,
+        "removed_or_changed_bodies": 1,
+        "added_or_changed_bodies": 1,
+        "reviewed_compile_time_difference": [
+          "load_reg_imm rdx, b64, 0xE80",
+          "load_reg_imm rdx, b64, 0x1340"
+        ]
+      },
+      "lz77": {
+        "capture_sha256": [
+          "0e7d9e87abf3f660cd15fee42bcd60dd0b28500f33c9b221d9fe2084e5564b31",
+          "0a5e35354028f48c5695ce30e44a372ed3243a61e347307cdb44f863d4c97519"
+        ],
+        "functions": [
+          434,
+          434
+        ],
+        "different_ordered_names": 5,
+        "removed_or_changed_bodies": 1,
+        "added_or_changed_bodies": 1,
+        "reviewed_compile_time_difference": [
+          "load_reg_imm rdx, b64, 0x1300",
+          "load_reg_imm rdx, b64, 0x12C0"
+        ]
+      },
+      "sort": {
+        "capture_sha256": [
+          "da92b38f22651dd398fd27ff5d16eddeb1c29dbb1e0617c467c3678010f862f2",
+          "83f0a727e48a1ef0cb71bb1c77334f1ed52ed052c5e99f08e3193a1df7c56d77"
+        ],
+        "functions": [
+          435,
+          435
+        ],
+        "different_ordered_names": 3,
+        "removed_or_changed_bodies": 1,
+        "added_or_changed_bodies": 1,
+        "reviewed_compile_time_difference": [
+          "load_reg_imm rdx, b64, 0xD40",
+          "load_reg_imm rdx, b64, 0x10C0"
+        ]
+      }
+    },
+    "review": "All runtime/task body multisets match. Reordered duplicate printed names explain apparent atomic loop changes. The only remaining difference is the compilation-local TypeRef passed to persistCompilerRunValue by the #run at runtime/core.swg:565, emitted in CodeGenFunctionHelpers.cpp:1574. Its instructions, accesses, branches and calls are otherwise identical. No broad integer normalization was applied."
+  },
   "artifacts": {
     "liveness-baseline-app.json": "045f9b5ae003d46c9209bb06b5bd37a4b0aaa35e1eee07ae5986e8bc4bfd4ac3",
     "compact-liveness-app.json": "5d5f7a6e901928519211e44de89c8225c3722f43ac0ab3a99680a8cdc7b5a94a",
     "compact-liveness-cpp.json": "b4018dea1fe06ceae94637bd4ce8d7fe9e56f4c36d129bd1fb742af24b18f844",
-    "compact-liveness-build.log": "fde16877e126b906d83136d777c1105479d21be2c6994c1af08bd5344e1383e3"
+    "compact-liveness-repeat-baseline.json": "254a5103fef47667264f6117cd0d91d1c8a9b96a9235da00a950556575b1ab31",
+    "compact-liveness-build.log": "fde16877e126b906d83136d777c1105479d21be2c6994c1af08bd5344e1383e3",
+    "compact-liveness-microdiff.log": "b68d4e1dc2998869234ed73b4cc224eca9e4b4e02a4d8cd17cf993463b6661dd",
+    "compact-liveness-microdiff-analysis.json": "8f337e93aa40ff4fe1091fb6a6b7e25a5d50b5e150d8ea0ea69b8a6dc3f7cbad"
   }
 }

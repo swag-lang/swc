@@ -64,6 +64,23 @@ class ListingTests(unittest.TestCase):
         self.assertNotEqual(md.normalized(md.parse(a)["Csvagg.scan"]),
                             md.normalized(md.parse(b)["Csvagg.scan"]))
 
+    def test_named_call_addresses_do_not_create_false_code_changes(self):
+        for op in ("call_local", "call_extern"):
+            with self.subTest(op=op):
+                a = "  function : Csvagg.scan\n001 010 %s swag, <0x12345678> | call Csvagg.target\n" % op
+                b = a.replace("0x12345678", "0x87654321")
+                self.assertEqual(md.normalized(md.parse(a)["Csvagg.scan"]),
+                                 md.normalized(md.parse(b)["Csvagg.scan"]))
+                self.assertNotEqual(md.normalized(md.parse(a)["Csvagg.scan"]),
+                                    md.normalized(md.parse(b.replace("swag,", "c,"))["Csvagg.scan"]))
+
+    def test_unnamed_call_addresses_remain_visible(self):
+        for natural in ("", " | call <reloc>"):
+            a = "  function : Csvagg.scan\n001 010 call_local swag, <0x12345678>" + natural + "\n"
+            b = a.replace("0x12345678", "0x87654321")
+            self.assertNotEqual(md.normalized(md.parse(a)["Csvagg.scan"]),
+                                md.normalized(md.parse(b)["Csvagg.scan"]))
+
     def test_legacy_indexed_extensions_count_as_memory_reads(self):
         body = [instruction(1, "load_zero_ext_amc_reg_mem", "7 operand(s)"),
                 instruction(2, "load_signed_ext_amc_reg_mem", "7 operand(s)")]

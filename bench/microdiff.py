@@ -96,6 +96,10 @@ def normalized(instructions):
         # offsets are part of the generated work, regardless of their magnitude.
         if i["op"] in ("load_reg_ptr_reloc", "load_reg_ptr_imm"):
             operands = HEX.sub("0xADDR", operands)
+        if i["op"] in ("call_local", "call_extern") and i.get("natural", "").startswith("call ") and i["natural"] != "call <reloc>":
+            # The operand is a process-local relocation address. The resolved
+            # callee below retains target identity across independent captures.
+            operands = re.sub(r"<0x[0-9A-Fa-f]+>", "<0xADDR>", operands)
         text = i["op"] + " " + operands
         if i["op"].startswith("jump"):
             text = re.sub(r"\d+$", lambda m: labels.get(int(m[0]), "unresolved:" + m[0]), text)

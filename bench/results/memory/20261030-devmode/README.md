@@ -75,7 +75,7 @@ allocation stacks and aggregation by owning function are retained in the census 
 
 The next work follows the measured owners:
 
-1. Complete generated-code and controlled timing validation of compact acyclic liveness storage.
+1. Complete controlled timing and Release validation of compact acyclic liveness storage.
    Its first application observation reduces peak working set by 64.969 MiB. Cyclic matrices
    remain dense; discarding all reusable worker buffers is not an established speed-preserving solution.
 2. Inspect the other retained microcode analyses (78.343 MiB), then linker peak buffers. Use the
@@ -974,9 +974,29 @@ successfully with no allocator error. Tracked frozen input sources match byte fo
 The observed working-set reduction is **64.969 MiB (4.24%)**. The lower wall/CPU observations
 are not an accepted speedup: concurrent host load differs. Both application runs report 592,024
 tokens / 5,142 tuned functions / 2,411 forged functions; these counts alone do not establish
-generated-code equality. A repeated immediate baseline, all twelve benchmark Micro/checksum
-comparisons and grouped Release validation remain pending. The machine rose to 78% CPU during
-admission for the repeated baseline, so no additional validation was started.
+generated-code equality. The first repeated baseline completed at 1,504.113 MiB peak working
+set, 172.207 s wall and 578.031 s process CPU, with 66.78% average host CPU use. Its timing is
+excluded, and the known publication variation returned (592,047 tokens / 5,143 tuned functions).
+Compared with this second observation, the candidate is 36.781 MiB lower; the first 64.969 MiB
+reduction must not be presented as a repeatable constant. Controlled timing and grouped Release
+validation remain pending.
+
+All twelve benchmark tasks were rebuilt once per compiler in program configuration `devmode`,
+with isolated caches and the same published Win32 interface. Every executed checksum matches.
+The comparator now normalizes process-local addresses for named direct calls while retaining
+callee names and calling conventions; unnamed calls remain distinguishable. Its 15 focused
+Python tests pass. The preserved captures were reanalyzed without another build.
+
+After this normalization, some `Swag.AtomicValue` instantiations appear in a different print
+order. Comparing the complete normalized bodies as multisets under their printed names,
+preserving multiplicity, finds identical runtime and task bodies. This avoids interpreting an
+exchanged 32/64-bit specialization as a loop regression; it does not invent missing overload
+identity in the printer. The only remaining body difference in every task is one immediate in
+`__run_expr_76b3847dcadfc02c`, the compile-time expression at `runtime/core.swg:565`. It passes
+the compilation-local `TypeRef` to `persistCompilerRunValue`, emitted explicitly by
+`CodeGenFunctionHelpers.cpp:1574`. Instruction widths, registers, accesses, branches and call
+counts are otherwise identical. Integer constants are not globally normalized. The exact
+residual immediates, capture hashes and reviewed counts are preserved in the result JSON.
 
 The candidate's DevMode SHA-256 is
 `624ad4435443ed67ac33543e009fff3bc749a0da3880efe8c9c1a1b6a97761b8`.

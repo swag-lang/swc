@@ -308,6 +308,58 @@ SWC_TEST_BEGIN(Linker_ImportLibraryNamesSurviveAliasedOutput)
 }
 SWC_TEST_END()
 
+SWC_FILESYSTEM_TEST_BEGIN(Linker_OptimizedCallsDoNotRetainReflection)
+{
+    const LinkerTestDirectory  testDir("emitted_roots");
+    constexpr std::string_view source = R"(struct UnreachableReflectionPayload
+{
+    value: [64] u64
+}
+
+struct RetainedReflectionPayload
+{
+    value: u64
+}
+
+#[Swag.NoInline]
+func deadReflection()
+{
+    reflect(#typeof(UnreachableReflectionPayload))
+}
+
+#[Swag.NoInline]
+func reflect(type: typeinfo)
+{
+    let info = assume cast(const *Swag.TypeInfoStruct, type)
+    Swag.assert(info.fields.count == 1)
+    Swag.print(type.fullname)
+}
+
+var gCallback = &reflect
+
+#main
+{
+    var enabled = false
+    if enabled do
+        deadReflection()
+    gCallback(#typeof(RetainedReflectionPayload))
+}
+)";
+    SWC_RESULT(testDir.write("main.swg", source));
+    const std::vector<Utf8> args = {"run", "-f", Utf8(testDir.path() / "main.swg"), "-n", "emitted", "--artifact-kind", "executable", "--out-dir", Utf8(testDir.path() / "output"), "--work-dir", Utf8(testDir.path() / "work"), "--build-cfg", "devmode", "--num-cores", "6", "--no-log-color"};
+    SWC_RESULT(runCompiler(args, ExitCode::Success, "RetainedReflectionPayload"));
+
+    ByteArray               bytes;
+    FileSystem::IoErrorInfo ioError;
+    SWC_RESULT(FileSystem::readBinaryFile(testDir.path() / "output" / "emitted.exe", bytes, ioError));
+    const std::string_view image{reinterpret_cast<const char*>(bytes.data()), bytes.size()};
+    // The branch disappears during lowering, after its semantic call edge was recorded.
+    // Its callee must not retain type records, names or transitive field descriptors.
+    if (image.contains("UnreachableReflectionPayload") || !image.contains("RetainedReflectionPayload"))
+        return Result::Error;
+}
+SWC_TEST_END()
+
 SWC_TEST_BEGIN(Linker_ArchiveSymbolViewsFollowOwnership)
 {
     static_assert(!std::is_copy_constructible_v<Archive>);

@@ -597,21 +597,41 @@ namespace
         return changed;
     }
 
-    bool appendConstantFunctionDependencies(const NativeBackendBuilder& builder, std::vector<SymbolFunction*>& functions, PointerSet<SymbolFunction>& seenFunctions, StampedKeySet& visitedAllocations, bool& globalInitScanned, size_t& nextFunctionIndex)
+    void collectEmittedFunctionDependencies(const NativeBackendBuilder& builder, std::vector<SymbolFunction*>& functions, PointerSet<SymbolFunction>& seenFunctions)
     {
-        bool changed = appendGlobalConstantFunctionDependencies(builder, functions, seenFunctions, visitedAllocations, globalInitScanned);
+        StampedKeySet visitedAllocations;
+        bool          globalInitScanned = false;
+        appendGlobalConstantFunctionDependencies(builder, functions, seenFunctions, visitedAllocations, globalInitScanned);
 
-        // Newly discovered constant dependencies are appended to 'functions', so iterate by
-        // index to keep traversal stable while still visiting the new entries in the same pass.
-        for (; nextFunctionIndex < functions.size(); ++nextFunctionIndex)
+        // Lowering can erase a call without erasing its semantic dependency. Only emitted
+        // references retain native functions and their reflection graphs. The work list grows
+        // through both code and constants, so each reached function is visited once.
+        for (size_t nextFunctionIndex = 0; nextFunctionIndex < functions.size(); ++nextFunctionIndex)
         {
             const SymbolFunction* function = functions[nextFunctionIndex];
             if (!function)
                 continue;
 
             const MachineCode& code = function->loweredCode();
+            if (code.bytes.empty())
+            {
+                // Incremental objects have no in-memory relocation stream. Preserve their
+                // recorded dependencies until their archive members resolve at link time.
+                SmallVector<SymbolFunction*> dependencies;
+                function->appendCallDependencies(dependencies);
+                for (SymbolFunction* target : dependencies)
+                    if (target && isIncludableDependency(builder, *target) && seenFunctions.insert(target))
+                        functions.push_back(target);
+            }
             for (const MicroRelocation& relocation : code.codeRelocations)
             {
+                if (relocation.kind == MicroRelocation::Kind::LocalFunctionAddress)
+                {
+                    auto* target = relocation.targetSymbol ? relocation.targetSymbol->safeCast<SymbolFunction>() : nullptr;
+                    if (target && isIncludableDependency(builder, *target) && seenFunctions.insert(target))
+                        functions.push_back(target);
+                    continue;
+                }
                 if (relocation.kind != MicroRelocation::Kind::ConstantAddress)
                     continue;
 
@@ -619,11 +639,9 @@ namespace
                 if (!builder.tryResolveConstantSourceRef(sourceRef, relocation))
                     continue;
 
-                changed = appendConstantFunctionDependenciesRec(builder, functions, seenFunctions, visitedAllocations, sourceRef.shardIndex, sourceRef.offset) || changed;
+                appendConstantFunctionDependenciesRec(builder, functions, seenFunctions, visitedAllocations, sourceRef.shardIndex, sourceRef.offset);
             }
         }
-
-        return changed;
     }
 
     // What the code-generation rounds have already learned from constant data. The data graph does
@@ -1784,21 +1802,7 @@ Result NativeBackendBuilder::prepare()
                         executableFunctions[uniqueRootCount++] = function;
                 }
                 executableFunctions.resize(uniqueRootCount);
-                StampedKeySet visitedAllocations;
-                bool          globalInitScanned         = false;
-                size_t        nextCallFunctionIndex     = 0;
-                size_t        nextConstantFunctionIndex = 0;
-
-                // Lowering is complete, so each dependency source is now immutable. Keep
-                // independent cursors to preserve the call/constant discovery order while
-                // visiting only the suffix added by the preceding phase.
-                while (true)
-                {
-                    const bool addedCallDeps     = appendCodeGenDependencies(*this, executableFunctions, seenFunctions, nextCallFunctionIndex);
-                    const bool addedConstantDeps = appendConstantFunctionDependencies(*this, executableFunctions, seenFunctions, visitedAllocations, globalInitScanned, nextConstantFunctionIndex);
-                    if (!addedCallDeps && !addedConstantDeps)
-                        break;
-                }
+                collectEmittedFunctionDependencies(*this, executableFunctions, seenFunctions);
                 SymbolSort::sortByLocation(executableFunctions, *compiler_, sortKeys);
                 functions = std::move(executableFunctions);
             }

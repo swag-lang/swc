@@ -1759,7 +1759,11 @@ struct Holder
 }
 
 #[Swag.NoInline]
-func directlyUsed()->u32 => 11
+func directlyUsed()->u32
+{
+    Swag.print("direct call")
+    return 11
+}
 
 #[Swag.NoInline]
 func staticallyReferenced()->u32 => 17
@@ -1769,7 +1773,9 @@ var GHolder:  Holder
 
 #main
 {
-    Swag.assert(directlyUsed() == 11)
+    let value = directlyUsed()
+    Swag.print(value)
+    Swag.assert(value == 11)
     Swag.assert(GValueFn() == 17)
     Swag.assert(GHolder.text.count == 0)
 }
@@ -1961,6 +1967,12 @@ func neverCalled()->s32 => 99
     }
     functions[1]->addCallDependency(functions[2]);
     functions[3]->addCallDependency(functions[4]);
+    for (const size_t ownerIdx : {1u, 3u})
+    {
+        auto& code = const_cast<MachineCode&>(functions[ownerIdx]->loweredCode());
+        code.bytes = ByteArray{std::byte{0xE8}, std::byte{}, std::byte{}, std::byte{}, std::byte{}, std::byte{0xC3}};
+        code.codeRelocations.push_back({.kind = MicroRelocation::Kind::LocalFunctionAddress, .form = MicroRelocation::Form::Relative32, .codeOffset = 1, .relativeEndOffset = 5, .targetSymbol = functions[ownerIdx + 1]});
+    }
 
     DataSegment& constantSegment = compiler.cstMgr().shardDataSegment(0);
     for (const size_t ownerIdx : {0u, 2u})

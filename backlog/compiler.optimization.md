@@ -640,10 +640,12 @@ new language syntax.
 - Evidence: `partitionArchiveObjects` already emits one function/read-only allocation per archive
   member; `PELinker::resolveSymbols` extracts demanded members and folds some identical functions/
   data. Transformations can create new dead code/data and reveal equivalence before machine emission.
-- Next: define complete artifact roots and recompute reachability after graph-changing passes,
-  before emission and when binding changes the graph. Include entry points, exports, initializers,
-  address uses, callback registrations, interface tables, runtime type information, TLS, and
-  explicitly retained symbols.
+- Next: extend the emitted-reference reachability boundary to incremental objects and library
+  binding. Cached functions without an in-memory relocation stream still retain their semantic
+  dependency sets. Global initialization scans also root every recorded constant/function target,
+  even when its allocation is not emitted. Recover precise roots without dropping initializer
+  effects, exports, address uses, callback registrations, interface tables, runtime type
+  information, TLS, or explicitly retained symbols.
 - Expansion: omit unreachable bodies, data, and metadata edges; remove initialization only when
   its effects permit; recover granularity where unrelated writable globals share an object.
   Evaluate semantic merging of specialized/generic bodies beyond byte equality while preserving
@@ -902,16 +904,30 @@ new language syntax.
   `IMAGE_REL_BASED_DIR64` sites, versus 9,619 in the experimental Rust Capture image. Decoding
   Swag's runtime descriptors attributes 110,541 sites (83.509%) to reflection metadata. The
   dominant cost is the number of retained absolute pointers, not the PE relocation encoding.
-- Next: reproduce the section and relocation census below on a preserved Release image, then
-  trace repeated type descriptors and their retaining edges back to native objects, imported
-  archives, and semantic type identities. Start with the five equivalent-looking `u64`
-  descriptors. Establish which identities can legally share one record before changing layout
-  or removing metadata. Attribute the remaining 21,829 relocation sites as a separate category.
-- Done when: a bounded implementation removes demonstrably redundant metadata/retaining edges
-  or replaces eligible internal pointers with relative references; linked Release consumers show
-  fewer metadata bytes and base relocations, with type identity, reflection, serialization,
-  dynamic dispatch, lifecycle callbacks, rebased loading, and native/JIT behavior preserved.
-  Record size and load-time effects separately; a smaller table alone is not a measured speedup.
+- Retention boundary: `NativeRDataCollector` already follows allocations from emitted code and
+  globals, and archive extraction follows referenced symbols. A live type descriptor still
+  retains its complete reflection closure, even when runtime code only needs type identity or
+  dynamic dispatch. Separate those uses from field/method enumeration, attributes, generics,
+  and lifecycle reflection; merely exporting a type must not imply retaining every category.
+- Deduplication barrier: complete archive graph comparison still separates the repeated `u64`
+  descriptors in the `core`, `pixel`, `gui`, and `truetype` static archives. Their dynamic
+  identities reach `Swag.TypeInfoNative`, `Swag.TypeInfoStruct`,
+  `Swag.TypeInfo`, `Swag.TypeValue`, and other runtime descriptors whose `opInit` callbacks
+  have module-local `__swc_fn_<scope>_<ordinal>_<hash>` symbols. The comparison of two `u64`
+  closures reaches 391 allocation pairs; distinct generated initialization callbacks and
+  zero-filled `.rbss` constant symbols prevent canonicalization. Equal names and bytes of the
+  outer type records therefore do not establish equivalent relocation graphs.
+- Next: track reflection demand from retained code through constants and imported functions.
+  Preserve demand summaries across archive/cache boundaries, distinguish identity-only uses
+  from reflective reads, and keep unknown pointer escapes conservative. Discard undemanded
+  metadata edges before extracting their allocation and callback closures, using bounded work
+  proportional to reached code/data rather than repeated whole-program scans. Attribute the
+  remaining retained roots before considering graph interning or a runtime ABI change.
+- Done when: only demanded reflection metadata survives across module and executable boundaries,
+  with a substantial reduction in metadata bytes and base relocations, preserving type identity,
+  reflection, serialization, dynamic dispatch, lifecycle callbacks, rebased loading, and native/JIT
+  behavior. Check compiler CPU time and memory as well as image size; a smaller relocation table
+  alone is not a measured startup improvement.
 - Related: compiler.optimization.119 (whole-image reachability), compiler.optimization.092
   (indexed constant addressing, a different source of relocations), std.gui.060 (measured
   startup dominated by GUI atlas preparation in a separately identified Release artifact).
@@ -1052,12 +1068,16 @@ does not establish canonicalization of equivalent type graphs across linked modu
 
 **Implementation questions and proof boundary**
 
-First identify the producer and retaining root of each repeated descriptor. Determine whether
-independent module generation, archive import, or a required semantic distinction explains it.
-Compare entire recursive graphs with a cycle-safe identity scheme before interning; preserve
-address-observable identity and cross-module behavior. Then inspect reachability roots under
-compiler.optimization.119, including methods retained through reflection and initializer effects.
-Do not remove metadata merely because the application's direct call graph does not name it.
+First identify the actual reflective use behind each retaining root. Runtime type casts use
+identity, pointer/alias targets, interfaces, and `usingFields`; this does not by itself demand
+ordinary field enumeration, attributes, method signatures, or generic-origin descriptions.
+Track those demands through retained code and module boundaries under compiler.optimization.119,
+including indirect reflection and initializer effects. A metadata pointer escaping to unknown
+code needs conservative retention. Do not infer non-use from the direct call graph alone.
+
+After removing undemanded edges, determine whether independent module generation, archive import,
+or a required semantic distinction explains the remaining duplicate records. Compare complete
+recursive graphs before interning; preserve address-observable identity and cross-module behavior.
 
 Relative offsets or indices could remove relocations for eligible internal metadata tables and
 potentially shrink pointer storage. This is a runtime representation/ABI proposal, not a local

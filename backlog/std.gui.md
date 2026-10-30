@@ -561,16 +561,17 @@ preview. Validate requested settings against the capabilities supplied by platfo
   successful window-message response. A library with no capture still takes about 778 ms to
   visibility. These measurements identify GUI preparation as the dominant observed delay;
   they do not attribute the delay to compiler relocations or capture decoding.
-- Next: inventory the stock GUI/Capture atlas and cell-size requests below, then prototype
-  build-generated embedded rasters for those sizes using the same rasterizer, supersampling,
-  alpha convention and color space as the current runtime path. Compare decoding/upload cost
-  with the measured rasterization baseline. Keep SVG sources authoritative and define the
-  fallback for custom resources, unsupported sizes and monitor-DPI changes before selecting
-  a generated-asset layout. Reuse the existing atlas/cache API rather than adding app-local
-  icon handling.
+- Next: inventory the stock GUI/Capture atlas and cell-size requests below, then prototype one
+  sufficiently detailed runtime raster per SVG document, reused across requested icon sizes.
+  Compare its resampling with the existing size-specific output at actual display sizes and
+  supported DPI, especially small strokes. Measure startup, EXE size and retained CPU/GPU memory
+  together. Keep size-specific rasterization only where a useful visual improvement is
+  demonstrated. Evaluate build-generated embedded rasters only after this simpler cache policy;
+  they are not the default solution. Preserve SVG overrides and monitor-DPI changes through the
+  existing atlas/cache API rather than adding app-local icon handling.
 - Done when: normal application startup avoids the measured stock-atlas rasterization work,
-  matched Release launches improve visibility and first-present latency, and exact-size
-  generated rasters preserve the current pixels or explicitly reviewed visual goldens.
+  matched Release launches improve visibility and first-present latency, and reviewed visual
+  comparisons establish equivalent perceived quality or justify each retained size-specific path.
   Validate both palettes, small glyphs, fractional DPI, mixed-DPI monitor changes, custom SVG
   overrides, fallback sizes and cache invalidation. Report executable-size and memory costs
   alongside startup gains; do not exchange established rendering correctness for an earlier
@@ -712,11 +713,26 @@ measurement establishes that the Rust icons are uniformly inferior, equivalent, 
 Do not infer visible quality from startup time alone, or adopt the Rust sampling policy merely
 because it is faster in the incomplete clone.
 
+The measured cost of the current policy is established; its perceptible benefit over a shared
+high-resolution raster is not. Treat possible excess work as the first hypothesis to test.
+Keep one shared raster per source document (GUI and Capture are distinct sources), choose its
+resolution from actual required sizes/DPI, and bound its memory rather than choosing an
+arbitrarily large texture. Compare the current and proposed outputs at native display size as
+well as magnified crops: a pixel difference alone does not establish a useful quality gain.
+Review thin diagonals, outlines, alpha edges, both palettes, and fractional-scale filtering.
+Retain additional size-specific rasters only for cases whose visible improvement warrants their
+startup and memory cost. Goldens may change after that explicit review; byte identity with the
+current sampling policy is not itself the objective of this first experiment.
+
 Offline generation of the same target sizes with the same SVG inputs, rasterizer, sample count,
 premultiplied alpha and color space can preserve the current raster pixels. Use lossless storage
 and deterministic generation, and prove the embedded decode matches the runtime reference.
-The timing of generation need not lower quality. Evaluate a bounded stock size/DPI set against
-one high-resolution atlas with reviewed resampling; they are distinct quality/size tradeoffs.
+The timing of generation need not lower quality, but embedding several rasters generally adds
+EXE bytes, particularly when SVG sources and the runtime fallback remain. Compression does not
+make that cost disappear: record the actual binary delta and decoding cost. Prerasterization
+moves work into build time and storage; it does not establish that all those sizes were needed.
+Consider it only if the shared-raster experiment leaves a demonstrated quality or startup need,
+and compare a bounded generated size/DPI set with the measured shared-raster alternative.
 Keep custom SVG and ungenerated sizes on a correct runtime fallback. Include source content and
 rasterization/version parameters in any persistent-cache key, and avoid stale assets after theme
 or renderer changes. Measure added EXE bytes, decode time, retained CPU/GPU pixels and fallback

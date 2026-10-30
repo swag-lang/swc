@@ -67,6 +67,52 @@ using Core, Gui, Pixel
 
 }
 
+// Every sort field has a deterministic order in both directions, including ties and folders.
+#test
+{
+    for column in 4
+    {
+        for descending in [false, true]
+        {
+            var load: ExplorerListingLoad
+            load.sortColumn = cast(u32, column)
+            load.descending = descending
+            load.result.entries.add({name: "track10.txt", size: 10, modified: "2026-02-01 00:00"})
+            load.result.entries.add({name: "Folder", directory: true})
+            load.result.entries.add({name: "track2.md", size: 20, modified: "2026-01-01 00:00"})
+            load.result.entries.add({name: "readme.txt", size: 5, modified: "2026-03-01 00:00"})
+            load.result.entries.add({name: "a.md", size: 20, modified: "2026-01-01 00:00"})
+            load.sortEntries()
+
+            for index in 1 until load.result.entries.count
+            {
+                let previous = &load.result.entries[index - 1]
+                let current  = &load.result.entries[index]
+                Swag.assert(previous.directory or not current.directory)
+                if previous.directory or current.directory do
+                    continue
+
+                var order: s32
+                switch column
+                {
+                case 1:
+                    order = Latin1.compareNatural(Path.extension(previous.name) orelse "",
+                                                  Path.extension(current.name) orelse "")
+                case 2:
+                    order = previous.size == current.size ? 0 : (previous.size < current.size ? -1 : 1)
+                case 3:
+                    order = Latin1.compareNatural(previous.modified, current.modified)
+                default: order = Latin1.compareNatural(previous.name, current.name)
+                }
+
+                if order == 0 do
+                    order = Latin1.compareNatural(previous.name, current.name)
+                Swag.assert(descending ? order >= 0 : order <= 0)
+            }
+        }
+    }
+}
+
 // Hover marks a thumbnail with the theme's stronger edge in both palettes.
 #test
 {

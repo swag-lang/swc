@@ -340,7 +340,12 @@ bool CompilerCacheStore::publish(Archive& outArchive, const fs::path& path, cons
     FileSystem::IoErrorInfo error;
     if (FileSystem::writeBinaryFileAtomic(path, owner->data(), owner->size(), error) != Result::Continue)
         return false;
-    outArchive = Archive::decode(Record{owner, ByteView(owner->span())});
+    // Reuse the published file's backing instead of retaining a private copy
+    // for the rest of this process. Another compiler may already have folded
+    // the segment, so a failed mapping must preserve the successful publication.
+    outArchive = load(path);
+    if (!outArchive.record)
+        outArchive = Archive::decode(Record{owner, ByteView(owner->span())});
     return true;
 }
 

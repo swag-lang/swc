@@ -76,6 +76,37 @@ public:
 #endif
 
 private:
+    // Only explicit operands introduce virtual registers. ABI and encoder
+    // effects are physical, so these lists cannot outgrow the operand modes.
+    class VirtualIndices
+    {
+    public:
+        const uint32_t* begin() const { return values_.data(); }
+        const uint32_t* end() const { return values_.data() + count_; }
+        uint32_t        size() const { return count_; }
+        bool            empty() const { return count_ == 0; }
+        uint32_t        front() const
+        {
+            SWC_ASSERT(count_);
+            return values_[0];
+        }
+
+        void addUnique(uint32_t value)
+        {
+            for (const uint32_t existing : *this)
+                if (existing == value)
+                    return;
+            SWC_ASSERT(count_ < values_.size());
+            values_[count_++] = value;
+        }
+
+    private:
+        static constexpr size_t          K_CAPACITY = std::tuple_size_v<decltype(MicroInstrDef::regModes)>;
+        std::array<uint32_t, K_CAPACITY> values_;
+        uint32_t                         count_ = 0;
+    };
+    static_assert(sizeof(VirtualIndices) == 16);
+
     struct PendingInsert
     {
         MicroInstrOpcode op     = MicroInstrOpcode::Nop;
@@ -366,8 +397,8 @@ private:
     // Whether this walk holds one callee-saved integer register back for the
     // legalization that runs on its output. Only a function whose first walk
     // left nothing free pays it.
-    std::vector<SmallVector<uint32_t, 4>>            useVirtualIndices_;
-    std::vector<SmallVector<uint32_t, 4>>            defVirtualIndices_;
+    std::vector<VirtualIndices>                      useVirtualIndices_;
+    std::vector<VirtualIndices>                      defVirtualIndices_;
     std::vector<SmallVector<uint32_t, 4>>            useConcreteIndices_;
     std::vector<SmallVector<uint32_t, 4>>            defConcreteIndices_;
     std::vector<std::vector<uint32_t>>               usePositionsByDenseVirtual_;

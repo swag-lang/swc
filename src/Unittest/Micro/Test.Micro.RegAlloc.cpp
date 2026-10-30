@@ -890,6 +890,44 @@ SWC_TEST_BEGIN(RegAlloc_NoCalls)
 }
 SWC_TEST_END()
 
+SWC_TEST_BEGIN(RegAlloc_IndexedStoresKeepThreeVirtualUsesAndRepeatedOperands)
+{
+    const CallConv& conv = CallConv::get(CallConvKind::C);
+    for (const auto level : {Runtime::BuildCfgBackendOptimLevel::O0, Runtime::BuildCfgBackendOptimLevel::O2})
+    {
+        MicroBuilder builder(ctx);
+        builder.setBackendBuildCfg({.optimLevel = level});
+        constexpr auto base  = MicroReg::virtualIntReg(0);
+        constexpr auto index = MicroReg::virtualIntReg(1);
+        constexpr auto value = MicroReg::virtualIntReg(2);
+        builder.emitLoadRegReg(base, conv.intArgRegs[0], MicroOpBits::B64);
+        builder.emitLoadRegImm(index, ApInt(1, 64), MicroOpBits::B64);
+        builder.emitLoadRegImm(value, ApInt(42, 64), MicroOpBits::B64);
+        builder.emitLoadAmcMemReg(base, index, 8, 0, MicroOpBits::B64, value, MicroOpBits::B64);
+        builder.emitLoadAmcMemReg(base, index, 8, 8, MicroOpBits::B64, index, MicroOpBits::B64);
+        builder.emitRet();
+
+        MicroRegisterAllocationPass allocation;
+        MicroPrologEpilogPass       prolog;
+        MicroPassManager            passes;
+        passes.addStartPass(allocation);
+        passes.addStartPass(prolog);
+        MicroPassContext passContext;
+        passContext.callConvKind           = CallConvKind::C;
+        passContext.preservePersistentRegs = true;
+        SWC_RESULT(builder.runPasses(passes, nullptr, passContext));
+        SWC_RESULT(Backend::Unittest::assertNoVirtualRegs(builder));
+        if (passContext.intervalAllocated != (level == Runtime::BuildCfgBackendOptimLevel::O2))
+            return Result::Error;
+        std::array<uint64_t, 4> values{};
+        SWC_RESULT(Backend::Unittest::executeMicroCase(ctx, builder, values.data()));
+        if (values != std::array<uint64_t, 4>{0, 42, 1, 0})
+            return Result::Error;
+    }
+    return Result::Continue;
+}
+SWC_TEST_END()
+
 SWC_TEST_BEGIN(RegAlloc_MixedIntFloat)
 {
     SWC_RESULT(runCase(ctx, buildMixedIntFloat));

@@ -148,6 +148,36 @@ SWC_FILESYSTEM_TEST_BEGIN(CompilerCacheStore_RetainsEveryPublication)
 }
 SWC_TEST_END()
 
+SWC_FILESYSTEM_TEST_BEGIN(CompilerCacheStore_PublishedRecordOutlivesWriterAndInvalidation)
+{
+    CacheStoreTestDirectory    directory;
+    const Utf8                 key = testKey(1);
+    CompilerCacheStore::Record retained;
+    {
+        auto writer = CompilerCacheStoreTestAccess::open(directory.path);
+        writer->write(key, ByteArray(4096, std::byte{17}));
+        CompilerCacheStoreTestAccess::flush(*writer);
+        retained = writer->read(key);
+        if (!retained)
+            return Result::Error;
+    }
+    {
+        auto writer = CompilerCacheStoreTestAccess::open(directory.path);
+        writer->write(key, ByteArray{std::byte{23}});
+        CompilerCacheStoreTestAccess::flush(*writer);
+        const auto replacement = writer->read(key);
+        if (!replacement || replacement.bytes.size() != 1 || replacement.bytes.data()[0] != std::byte{23})
+            return Result::Error;
+        CompilerCacheStoreTestAccess::invalidate(*writer);
+        CompilerCacheStoreTestAccess::flush(*writer);
+    }
+    if (retained.bytes.size() != 4096 ||
+        !std::ranges::all_of(retained.bytes.span(), [](std::byte value) { return value == std::byte{17}; }))
+        return Result::Error;
+    return Result::Continue;
+}
+SWC_TEST_END()
+
 // Small publications accumulate until a fold merges them; the large first segment
 // stays untouched and every record stays readable.
 SWC_FILESYSTEM_TEST_BEGIN(CompilerCacheStore_FoldsSmallSegments)

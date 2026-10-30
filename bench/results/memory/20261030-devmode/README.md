@@ -1036,3 +1036,32 @@ This batch is formatted and statically reviewed but **not yet built or executed*
 saving is not included in any measurement above. The existing physical-liveness/loop-hoist C++
 tests, generated-code comparison and frozen application are the next grouped validation
 boundaries; the preserved compact-liveness binaries remain the baseline for this batch.
+
+### Virtual operand lists and newly published cache backing
+
+The same pending batch removes two further retained allocations:
+
+- Register allocation's virtual-use and virtual-definition lists now store up to three indices
+  directly, in 16 bytes rather than 40 bytes per list. The bound is derived from
+  `MicroInstrDef::regModes`; `collectUseDef` adds virtual registers only from these explicit
+  operands, while ABI and x64 encoder effects add physical registers. Encounter order,
+  duplicate elimination and direct iteration are unchanged. There is no new indirection or
+  per-instruction heap allocation. Physical-index lists keep their variable-length storage.
+  The earlier census recorded 5,091,080 bytes of independent instance maxima for each of the
+  two virtual-index vectors. At those element capacities, the new layout removes 60% of their
+  backing (about 5.827 MiB across those maxima), not a proven simultaneous process-peak saving.
+  A new executed-code test covers an indexed store with three virtual uses and another whose
+  index is also its source, through both allocation algorithms.
+- Cache publication now reopens its immutable output with the existing read-only mapping
+  owner, releasing the private serialization buffer after publication. The census attributed
+  24,814,564 requested bytes to retained `CompilerCacheStore::publish` buffers. A mapping
+  failure falls back to the valid in-memory publication, including when another process has
+  already removed the segment. A filesystem regression holds a published record across
+  writer destruction, newer publication and invalidation. This removes a duplicate private
+  backing, not all resident file pages. Mapping syscalls and subsequent page faults still need
+  the grouped timing/memory observation.
+
+These changes are statically reviewed and formatted but remain unbuilt with the physical-mask
+batch above. Validation will use DevMode C++ tests with `--dev-full` so the cache filesystem
+tests actually run, the twelve benchmark tasks, and the frozen application. Cache ownership
+also requires grouped Release validation. No performance claim is made for this pending batch.

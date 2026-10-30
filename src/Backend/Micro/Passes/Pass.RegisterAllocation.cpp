@@ -2171,7 +2171,7 @@ void MicroRegisterAllocationPass::analyzeLiveness()
             if (reg.isVirtual())
             {
                 const uint32_t regIndex = denseVirtualRegs_.ensure(reg);
-                appendUniqueDenseIndex(usesV, regIndex);
+                usesV.addUnique(regIndex);
             }
             else if (reg.isInt() || reg.isFloat())
             {
@@ -2185,7 +2185,7 @@ void MicroRegisterAllocationPass::analyzeLiveness()
             if (reg.isVirtual())
             {
                 const uint32_t regIndex = denseVirtualRegs_.ensure(reg);
-                appendUniqueDenseIndex(defsV, regIndex);
+                defsV.addUnique(regIndex);
             }
             else if (reg.isInt() || reg.isFloat())
             {

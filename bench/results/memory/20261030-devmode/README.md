@@ -264,5 +264,28 @@ The preserved Release executable has SHA-256
 direct-page path falling from 31 to 26 non-NOP instructions, including prologue and return.
 Keeping the page pointer locally removes two redundant memory reads. The large-block fallback
 is unchanged. This verifies that representative hot access, not whole-compilation speed.
-Application memory and timing comparisons for this checkpoint remain pending; the latest
-timing admission sampled 78% CPU, above the stricter 20% comparison threshold.
+Whole-compilation timing comparisons for this checkpoint remain pending.
+
+## First common-memory Release application observation
+
+The new Release compiler completed the frozen application with no allocator error. Tracked
+runtime, standard-library and application sources were checked byte for byte again before the
+run. Both Release observations report 592,047 application tokens, 5,143 tuned functions and
+2,411 forged functions, with six workers, `--rebuild`, isolated temporary roots and the
+default program `devmode` preset without `--debug`.
+
+| Release compiler | Peak working set | Peak private bytes | Wall time | Process CPU time |
+| --- | ---: | ---: | ---: | ---: |
+| Previous control checkpoint | 1,787.84 MiB | 1,815.08 MiB | 64.06 s | 265.36 s |
+| Common layout and page-index batch | 1,658.96 MiB | 1,684.70 MiB | 217.48 s | 412.00 s |
+
+This is an observed reduction of **128.88 MiB (7.21%)** in peak working set and **7.18%**
+in peak private bytes. It is one application observation, not an established statistical gain:
+the earlier run used default CPU affinity, while the new run used six performance cores.
+Repeat the baseline with the same affinity before accepting the controlled comparison.
+
+The new run started after a 9% CPU admission sample, but host utilization averaged 82.76%
+over the compilation. Other processes used an estimated 3,532.58 CPU-seconds during its
+217.48 seconds, against 412.03 CPU-seconds for the compiler job. Exclude this run from
+compilation-speed conclusions. The new DevMode application's peak has not yet been measured;
+do not combine the older DevMode result with this Release result to claim a new configuration gap.

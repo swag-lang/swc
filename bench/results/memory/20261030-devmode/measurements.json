@@ -448,6 +448,46 @@
       "compiler_sha256": "f085648aeea0f185c7212ae1cb4d226874e2617ed59ede6f137b8d4b4ecd33ed",
       "valid": true,
       "compiler_code_revision": "ecb64e0f2e"
+    },
+    "pages-release-app": {
+      "exit": 0,
+      "started_unix": 1793359187.7484515,
+      "affinity_mask": 349185,
+      "host_busy_pct": 82.76019197230563,
+      "other_process_cpu_ms_estimate": 3532578.125,
+      "wall_ms": 217484.103,
+      "first_stdout_ms": null,
+      "cpu_ms": 412000.0,
+      "user_cpu_ms": 394000.0,
+      "kernel_cpu_ms": 18000.0,
+      "job_cpu_ms": 412031.25,
+      "page_faults": 836217,
+      "job_processes": 2,
+      "peak_job_bytes": 1767763968,
+      "peak_proc_bytes": 1766531072,
+      "peak_working_set_bytes": 1739542528,
+      "stdout": "  \u25c6  swag        build \u2022 apps [swagcapture] \u2022 devmode\r\n  \u2713  module      win32 \u2022 48 files \u2022 411 ms\r\n  \u2713  module      gdi32 \u2022 44 files \u2022 370 ms\r\n  \u2713  module      xinput \u2022 43 files \u2022 157 ms\r\n  \u2713  module      core \u2022 378 files \u2022 core.dll \u2022 6 s 530 ms\r\n  \u2713  module      ogl \u2022 98 files \u2022 ogl.dll \u2022 2 s 981 ms\r\n  \u2713  module      truetype \u2022 99 files \u2022 truetype.dll \u2022 3 s 466 ms\r\n  \u2713  module      pixel \u2022 318 files \u2022 pixel.dll \u2022 2 min 55 s\r\n  \u2713  module      gui \u2022 366 files \u2022 gui.dll \u2022 13 s 363 ms\r\n  \u2713  workspace   std [gui] \u2022 8 modules \u2022 3 min 26 s\r\n  \u2713  checked     136 files \u2022 592_047 tokens \u2022 3 s 210 ms\r\n  \u2713  tuned       5_143 functions \u2022 4 s 301 ms\r\n  \u2713  forged      2_411 functions \u2022 swagcapture.exe \u2022 4 s 375 ms\r\n  \u2713  module      swagcapture \u2022 182 files \u2022 swagcapture.exe \u2022 8 s 486 ms\r\n  \u2713  workspace   apps [swagcapture] \u2022 1 module \u2022 3 min 36 s\r\n  \u2713  clean       3 min 36 s\r\n",
+      "stderr": "\r\n",
+      "allocator_error": false,
+      "mimalloc_options": {},
+      "command": [
+        "install\\swc.pages.exe",
+        "build",
+        "--workspace",
+        "C:\\Users\\chris\\AppData\\Local\\swc-agent-builds\\mimalloc-360-20261030-071336\\install\\apps",
+        "--workspace-module",
+        "swagcapture",
+        "--num-cores",
+        "6",
+        "--rebuild",
+        "--no-log-color",
+        "--no-log-progress"
+      ],
+      "compiler_sha256": "0ecd72a7b7f813e02c7e8ceb8237ff94239a8b7ad3c602ecd8ef184fad768ffb",
+      "valid": true,
+      "compiler_code_revision": "ecb64e0f2e",
+      "timing_comparable": false,
+      "timing_note": "Host busy for 82.76% of the run; admission sampled 9%. The earlier Release checkpoint used default affinity, while this run used six performance cores."
     }
   }
 }

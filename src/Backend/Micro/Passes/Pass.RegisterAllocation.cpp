@@ -166,11 +166,11 @@ namespace
     // Widens [lo, hi] for every register set in a liveness row, so that after a
     // full scan each register carries the hull of the range it is live over.
     // Rows arrive in instruction order, making this position the new upper bound.
-    void widenSpansFromLiveRow(std::vector<uint32_t>& lo, std::vector<uint32_t>& hi, const std::span<const uint64_t> row, const uint32_t instructionIndex)
+    void widenSpansFromLiveRow(std::vector<uint32_t>& lo, std::vector<uint32_t>& hi, const MicroLivenessMatrix::Row row, const uint32_t instructionIndex)
     {
-        for (size_t wordIndex = 0; wordIndex < row.size(); ++wordIndex)
+        for (size_t wordIndex = row.firstWord; wordIndex < row.endWord(); ++wordIndex)
         {
-            uint64_t wordBits = row[wordIndex];
+            uint64_t wordBits = row.words[wordIndex - row.firstWord];
             while (wordBits)
             {
                 const size_t denseIndex = wordIndex * 64ull + std::countr_zero(wordBits);
@@ -432,7 +432,9 @@ bool MicroRegisterAllocationPass::isLiveInAt(const MicroDenseRegIndex& regs, con
 
 bool MicroRegisterAllocationPass::isLiveInAt(uint32_t denseIndex, uint32_t instructionIndex) const
 {
-    return isLiveInAt(denseVirtualRegs_, liveInVirtualBits_, denseIndex, instructionIndex);
+    if (instructionIndex >= instructionCount_ || denseIndex == MicroDenseRegIndex::K_INVALID_INDEX || !denseVirtualRegs_.wordCount())
+        return false;
+    return liveInVirtualBits_.contains(instructionIndex, denseIndex);
 }
 
 bool MicroRegisterAllocationPass::isConcreteLiveInAt(uint32_t denseIndex, uint32_t instructionIndex) const
@@ -635,10 +637,9 @@ void MicroRegisterAllocationPass::computeVirtualLiveSpans()
     // upper bound at least once, so a reused buffer needs no initialization before that walk.
     virtualSpanHi_.resize(denseVirtualRegs_.regs().size());
 
-    const uint32_t wordCount = denseVirtualRegs_.wordCount();
     for (uint32_t idx = 0; idx < instructionCount_; ++idx)
     {
-        widenSpansFromLiveRow(virtualSpanLo_, virtualSpanHi_, DenseBits::row(liveInVirtualBits_, idx, wordCount), idx);
+        widenSpansFromLiveRow(virtualSpanLo_, virtualSpanHi_, liveInVirtualBits_.row(idx), idx);
 
         // A def is not live-in at its own instruction, and a last use is not
         // live-in at the one after it, so neither endpoint appears in the
@@ -719,8 +720,7 @@ void MicroRegisterAllocationPass::computeGlobalBenefits(std::vector<uint64_t>& o
     if (!hasControlFlow_)
         return;
 
-    const uint32_t wordCount = denseVirtualRegs_.wordCount();
-    uint32_t       idx       = 0;
+    uint32_t idx = 0;
     for (auto it = instructions_->view().begin(), endIt = instructions_->view().end(); it != endIt && idx < instructionCount_; ++it, ++idx)
     {
         if (!isFlushBoundary(idx, *it))
@@ -745,10 +745,10 @@ void MicroRegisterAllocationPass::computeGlobalBenefits(std::vector<uint64_t>& o
 
         const uint64_t weight = K_LOOP_DEPTH_WEIGHTS[std::min(depth, static_cast<uint32_t>(K_LOOP_DEPTH_WEIGHTS.size() - 1))];
 
-        const std::span<const uint64_t> liveRow = DenseBits::row(liveInVirtualBits_, idx, wordCount);
-        for (size_t wordIndex = 0; wordIndex < liveRow.size(); ++wordIndex)
+        const auto liveRow = liveInVirtualBits_.row(idx);
+        for (size_t wordIndex = liveRow.firstWord; wordIndex < liveRow.endWord(); ++wordIndex)
         {
-            uint64_t wordBits = liveRow[wordIndex];
+            uint64_t wordBits = liveRow.words[wordIndex - liveRow.firstWord];
             while (wordBits)
             {
                 const size_t denseIndex = wordIndex * 64ull + std::countr_zero(wordBits);
@@ -1245,12 +1245,11 @@ void MicroRegisterAllocationPass::beginLoopResidency(const LoopRegion& region, c
     };
     SmallVector<PreloadCandidate> preloads;
 
-    const auto&                     vregs         = denseVirtualRegs_.regs();
-    const uint32_t                  wordCount     = denseVirtualRegs_.wordCount();
-    const std::span<const uint64_t> headerLiveRow = DenseBits::row(liveInVirtualBits_, region.header, wordCount);
+    const auto& vregs         = denseVirtualRegs_.regs();
+    const auto  headerLiveRow = liveInVirtualBits_.row(region.header);
     for (uint32_t denseIndex = 0; denseIndex < vregs.size(); ++denseIndex)
     {
-        if (!DenseBits::contains(headerLiveRow, denseIndex))
+        if (!headerLiveRow.contains(denseIndex))
             continue;
 
         auto& regState = states_[denseIndex];
@@ -1955,8 +1954,7 @@ void MicroRegisterAllocationPass::preallocateLoopCarriedSlots()
     if (!hasControlFlow_ || instructionCount_ == 0 || !functionHasLoop_)
         return;
 
-    const auto&    vregs     = denseVirtualRegs_.regs();
-    const uint32_t wordCount = denseVirtualRegs_.wordCount();
+    const auto& vregs = denseVirtualRegs_.regs();
 
     SmallVector<uint32_t> loopHeaders;
     for (uint32_t s = 0; s < instructionCount_; ++s)
@@ -1984,8 +1982,8 @@ void MicroRegisterAllocationPass::preallocateLoopCarriedSlots()
         bool loopCarried = false;
         for (const uint32_t header : loopHeaders)
         {
-            const std::span<const uint64_t> liveRow = DenseBits::row(liveInVirtualBits_, header, wordCount);
-            if (DenseBits::contains(liveRow, denseIndex))
+            const auto liveRow = liveInVirtualBits_.row(header);
+            if (liveRow.contains(denseIndex))
             {
                 loopCarried = true;
                 break;
@@ -2299,10 +2297,9 @@ void MicroRegisterAllocationPass::analyzeLiveness()
     // must preserve its contents. Keep the same geometric capacity and reuse policy.
     // Without growth, the acyclic sweep overwrites retained rows before predecessors
     // read them. Only dense register indices are set, preserving zero padding bits.
-    if (functionHasLoop_ || virtualBitCount > liveInVirtualBits_.capacity())
-        liveInVirtualBits_.assign(virtualBitCount, 0);
-    else
-        liveInVirtualBits_.resize(virtualBitCount);
+    const bool compactVirtual = !functionHasLoop_ && virtualWordCount > 2 &&
+                                virtualBitCount * sizeof(uint64_t) >= MicroOptimizationLimits::RegisterAllocation::K_COMPACT_LIVENESS_MIN_BYTES;
+    liveInVirtualBits_.reset(instructionCount_, virtualWordCount, compactVirtual, functionHasLoop_);
 
     if (functionHasLoop_ || concreteBitCount > liveInConcreteBits_.capacity())
         liveInConcreteBits_.assign(concreteBitCount, 0);
@@ -2335,26 +2332,52 @@ void MicroRegisterAllocationPass::analyzeLiveness()
     };
 
     const auto computeAcyclicLiveIn = [&](const uint32_t instructionIndex) {
-        const auto& successors = controlFlowGraph.successors(instructionIndex);
-        auto        inVirtual  = DenseBits::row(liveInVirtualBits_, instructionIndex, virtualWordCount);
-        auto        inConcrete = DenseBits::row(liveInConcreteBits_, instructionIndex, concreteWordCount);
+        const auto& successors       = controlFlowGraph.successors(instructionIndex);
+        auto        inVirtual        = compactVirtual ? std::span<uint64_t>{tempOutVirtual_} : liveInVirtualBits_.denseRow(instructionIndex);
+        auto        inConcrete       = DenseBits::row(liveInConcreteBits_, instructionIndex, concreteWordCount);
+        uint32_t    firstVirtualWord = 0;
+        uint32_t    lastVirtualWord  = virtualWordCount;
+        if (compactVirtual)
+        {
+            firstVirtualWord = virtualWordCount;
+            lastVirtualWord  = 0;
+            for (const uint32_t successor : successors)
+            {
+                const auto row = liveInVirtualBits_.row(successor);
+                if (row.words.empty())
+                    continue;
+                firstVirtualWord = std::min(firstVirtualWord, row.firstWord);
+                lastVirtualWord  = std::max(lastVirtualWord, row.endWord());
+            }
+            for (const uint32_t bit : useVirtualIndices_[instructionIndex])
+            {
+                firstVirtualWord = std::min(firstVirtualWord, bit >> 6u);
+                lastVirtualWord  = std::max(lastVirtualWord, (bit >> 6u) + 1);
+            }
+            if (firstVirtualWord > lastVirtualWord)
+                firstVirtualWord = lastVirtualWord = 0;
+            std::ranges::fill(inVirtual.subspan(firstVirtualWord, lastVirtualWord - firstVirtualWord), 0);
+            for (const uint32_t successor : successors)
+                liveInVirtualBits_.row(successor).mergeInto(inVirtual);
+        }
         if (successors.size() == 1)
         {
             SWC_ASSERT(successors[0] < instructionCount_);
-            std::ranges::copy(DenseBits::row(liveInVirtualBits_, successors[0], virtualWordCount), inVirtual.begin());
+            if (!compactVirtual)
+                liveInVirtualBits_.row(successors[0]).copyTo(inVirtual);
             std::ranges::copy(DenseBits::row(liveInConcreteBits_, successors[0], concreteWordCount), inConcrete.begin());
         }
         else
         {
-            std::ranges::fill(inVirtual, 0);
+            if (!compactVirtual)
+                std::ranges::fill(inVirtual, 0);
             std::ranges::fill(inConcrete, 0);
             for (const uint32_t succIdx : successors)
             {
                 SWC_ASSERT(succIdx < instructionCount_);
-                const auto succInVirtual  = DenseBits::row(liveInVirtualBits_, succIdx, virtualWordCount);
                 const auto succInConcrete = DenseBits::row(liveInConcreteBits_, succIdx, concreteWordCount);
-                for (size_t word = 0; word < virtualWordCount; ++word)
-                    inVirtual[word] |= succInVirtual[word];
+                if (!compactVirtual)
+                    liveInVirtualBits_.row(succIdx).mergeInto(inVirtual);
                 for (size_t word = 0; word < concreteWordCount; ++word)
                     inConcrete[word] |= succInConcrete[word];
             }
@@ -2364,6 +2387,8 @@ void MicroRegisterAllocationPass::analyzeLiveness()
             DenseBits::clear(inVirtual, bitIndex);
         for (const uint32_t bitIndex : useVirtualIndices_[instructionIndex])
             DenseBits::set(inVirtual, bitIndex);
+        if (compactVirtual)
+            liveInVirtualBits_.assignRow(instructionIndex, firstVirtualWord, inVirtual.subspan(firstVirtualWord, lastVirtualWord - firstVirtualWord));
         for (const uint32_t bitIndex : defConcreteIndices_[instructionIndex])
             DenseBits::clear(inConcrete, bitIndex);
         for (const uint32_t bitIndex : useConcreteIndices_[instructionIndex])
@@ -2376,6 +2401,7 @@ void MicroRegisterAllocationPass::analyzeLiveness()
     {
         for (uint32_t idx = instructionCount_; idx != 0;)
             computeAcyclicLiveIn(--idx);
+        liveInVirtualBits_.finishRows();
     }
     else
     {
@@ -2391,7 +2417,7 @@ void MicroRegisterAllocationPass::analyzeLiveness()
             worklist_.pop_back();
             inWorklist_[instructionIndex] = 0;
             computeLiveIn(instructionIndex);
-            const bool changedVirtual  = DenseBits::copyIfChanged(DenseBits::row(liveInVirtualBits_, instructionIndex, virtualWordCount), tempOutVirtual_);
+            const bool changedVirtual  = DenseBits::copyIfChanged(liveInVirtualBits_.denseRow(instructionIndex), tempOutVirtual_);
             const bool changedConcrete = DenseBits::copyIfChanged(DenseBits::row(liveInConcreteBits_, instructionIndex, concreteWordCount), tempOutConcrete_);
             if (!changedVirtual && !changedConcrete)
                 continue;
@@ -2434,9 +2460,9 @@ void MicroRegisterAllocationPass::analyzeLiveness()
         if (successors.size() == 1)
         {
             SWC_ASSERT(successors[0] < instructionCount_);
-            const auto succInVirtual = DenseBits::row(liveInVirtualBits_, successors[0], virtualWordCount);
-            for (size_t wordIndex = 0; wordIndex < succInVirtual.size(); ++wordIndex)
-                recordLiveOutWord(wordIndex, succInVirtual[wordIndex]);
+            const auto succInVirtual = liveInVirtualBits_.row(successors[0]);
+            for (size_t wordIndex = succInVirtual.firstWord; wordIndex < succInVirtual.endWord(); ++wordIndex)
+                recordLiveOutWord(wordIndex, succInVirtual.words[wordIndex - succInVirtual.firstWord]);
         }
         else
         {
@@ -2446,7 +2472,7 @@ void MicroRegisterAllocationPass::analyzeLiveness()
                 for (const uint32_t succIdx : successors)
                 {
                     SWC_ASSERT(succIdx < instructionCount_);
-                    wordBits |= DenseBits::row(liveInVirtualBits_, succIdx, virtualWordCount)[wordIndex];
+                    wordBits |= liveInVirtualBits_.row(succIdx)[wordIndex];
                 }
                 recordLiveOutWord(wordIndex, wordBits);
             }
@@ -2489,9 +2515,9 @@ void MicroRegisterAllocationPass::computeCurrentLiveOutBits(const uint32_t instr
     if (successors.size() == 1)
     {
         SWC_ASSERT(successors[0] < instructionCount_);
-        const auto succInVirtual  = DenseBits::row(liveInVirtualBits_, successors[0], denseVirtualRegs_.wordCount());
+        const auto succInVirtual  = liveInVirtualBits_.row(successors[0]);
         const auto succInConcrete = DenseBits::row(liveInConcreteBits_, successors[0], denseConcreteRegs_.wordCount());
-        std::ranges::copy(succInVirtual, tempOutVirtual_.begin());
+        succInVirtual.copyTo(tempOutVirtual_);
         std::ranges::copy(succInConcrete, tempOutConcrete_.begin());
         return;
     }
@@ -2504,10 +2530,9 @@ void MicroRegisterAllocationPass::computeCurrentLiveOutBits(const uint32_t instr
     for (const uint32_t succIdx : successors)
     {
         SWC_ASSERT(succIdx < instructionCount_);
-        const std::span<const uint64_t> succInVirtual  = DenseBits::row(liveInVirtualBits_, succIdx, denseVirtualRegs_.wordCount());
+        const auto                      succInVirtual  = liveInVirtualBits_.row(succIdx);
         const std::span<const uint64_t> succInConcrete = DenseBits::row(liveInConcreteBits_, succIdx, denseConcreteRegs_.wordCount());
-        for (size_t word = 0; word < tempOutVirtual_.size(); ++word)
-            tempOutVirtual_[word] |= succInVirtual[word];
+        succInVirtual.mergeInto(tempOutVirtual_);
         for (size_t word = 0; word < tempOutConcrete_.size(); ++word)
             tempOutConcrete_[word] |= succInConcrete[word];
     }
@@ -2546,10 +2571,10 @@ void MicroRegisterAllocationPass::markCurrentVirtualLiveOut(const uint32_t instr
     if (successors.size() == 1)
     {
         SWC_ASSERT(successors[0] < instructionCount_);
-        const std::span<const uint64_t> succInVirtual = DenseBits::row(liveInVirtualBits_, successors[0], denseVirtualRegs_.wordCount());
-        for (size_t wordIndex = 0; wordIndex < succInVirtual.size(); ++wordIndex)
+        const auto succInVirtual = liveInVirtualBits_.row(successors[0]);
+        for (size_t wordIndex = succInVirtual.firstWord; wordIndex < succInVirtual.endWord(); ++wordIndex)
         {
-            uint64_t wordBits = succInVirtual[wordIndex];
+            uint64_t wordBits = succInVirtual.words[wordIndex - succInVirtual.firstWord];
             while (wordBits)
             {
                 const uint32_t bitInWord = std::countr_zero(wordBits);
@@ -2568,7 +2593,7 @@ void MicroRegisterAllocationPass::markCurrentVirtualLiveOut(const uint32_t instr
         for (const uint32_t succIdx : successors)
         {
             SWC_ASSERT(succIdx < instructionCount_);
-            wordBits |= DenseBits::row(liveInVirtualBits_, succIdx, denseVirtualRegs_.wordCount())[wordIndex];
+            wordBits |= liveInVirtualBits_.row(succIdx)[wordIndex];
         }
         while (wordBits)
         {

@@ -2,6 +2,7 @@
 #include "Backend/Micro/MicroBuilder.h"
 #include "Backend/Micro/MicroDenseRegIndex.h"
 #include "Backend/Micro/MicroInstr.h"
+#include "Backend/Micro/MicroLivenessMatrix.h"
 #include "Backend/Micro/MicroPassManager.h"
 #include "Support/Core/PointerSet.h"
 #include "Support/Core/RefTypes.h"
@@ -373,7 +374,7 @@ private:
     std::vector<std::vector<uint32_t>>               concreteTouchPositionsByDenseIndex_;
     std::vector<uint32_t>                            nextUsePositionCursor_;
     std::vector<uint32_t>                            nextConcreteTouchCursor_;
-    std::vector<uint64_t>                            liveInVirtualBits_;
+    MicroLivenessMatrix                              liveInVirtualBits_;
     std::vector<uint64_t>                            liveInConcreteBits_;
     std::span<const MicroControlFlowGraph::EdgeList> predecessors_;
     std::vector<uint32_t>                            loopDepth_;

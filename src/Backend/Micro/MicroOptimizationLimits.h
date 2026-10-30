@@ -528,6 +528,10 @@ namespace MicroOptimizationLimits
 
     namespace RegisterAllocation
     {
+        // [storage-policy] Compact finalized acyclic liveness rows once their dense matrix
+        // reaches 1 MiB. Smaller matrices keep direct dense storage and avoid row metadata.
+        inline constexpr size_t K_COMPACT_LIVENESS_MIN_BYTES = 1024 * 1024;
+
         // [register-reserve] Keep integer scratch capacity when reserving registers for resident values.
         inline constexpr size_t K_RESIDENT_MIN_FREE_INT = 4;
 

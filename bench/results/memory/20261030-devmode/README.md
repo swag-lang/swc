@@ -75,8 +75,9 @@ allocation stacks and aggregation by owning function are retained in the census 
 
 The next work follows the measured owners:
 
-1. Evaluate compact liveness storage against every hot reader before changing it. Discarding all
-   reusable worker buffers after each function is not an established speed-preserving solution.
+1. Complete generated-code and controlled timing validation of compact acyclic liveness storage.
+   Its first application observation reduces peak working set by 64.969 MiB. Cyclic matrices
+   remain dense; discarding all reusable worker buffers is not an established speed-preserving solution.
 2. Inspect the other retained microcode analyses (78.343 MiB), then linker peak buffers. Use the
    captured owning stacks to choose concrete containers and preserve useful reuse.
 3. Split the 149.927 MiB of mixed arena payloads and count small sema containers. Preserve direct
@@ -945,3 +946,41 @@ averaged 38.62% during execution. This is a baseline observation, not a speed-ac
 Its application counts are 592,024 tokens / 5,142 tuned functions / 2,411 forged functions, versus
 592,047 / 5,143 / 2,411 in the diagnostic run; the known frozen-input publication variation
 remains tracked in `compiler.core.085` and must not be silently treated as identical output.
+
+### Compact acyclic liveness implementation
+
+Large acyclic virtual-register matrices now store only the first-to-last nonzero word span of
+each row. Global register numbering is unchanged, and missing prefix/suffix words read as zero.
+Rows use offsets into one reusable word vector, so growth cannot invalidate their descriptors.
+The reverse sweep merges only successor spans and current uses before applying definitions.
+Several downstream set-bit walks also skip the omitted zero words. Cyclic fixed points and
+matrices below 1 MiB retain dense storage. Existing backing capacity remains reusable.
+
+The DevMode build and all **1,622 C++ tests pass**. New tests cover reconstruction and bit
+queries across storage growth/reuse, and execute large branch-bearing listings through both
+register allocators. The same pass alternates compact acyclic listings and a dense cyclic
+listing, with results checked against a scalar oracle. The frozen application also rebuilds
+successfully with no allocator error. Tracked frozen input sources match byte for byte.
+
+[compact-liveness.json](compact-liveness.json) preserves the binary hashes and observations:
+
+| Frozen application rebuild | Dense baseline | Compact candidate |
+| --- | ---: | ---: |
+| Peak working set (MiB) | 1,532.301 | 1,467.332 |
+| Wall time (seconds) | 63.924 | 52.368 |
+| Process CPU (seconds) | 245.391 | 211.234 |
+| Average host CPU use (%) | 38.62 | 26.28 |
+
+The observed working-set reduction is **64.969 MiB (4.24%)**. The lower wall/CPU observations
+are not an accepted speedup: concurrent host load differs. Both application runs report 592,024
+tokens / 5,142 tuned functions / 2,411 forged functions; these counts alone do not establish
+generated-code equality. A repeated immediate baseline, all twelve benchmark Micro/checksum
+comparisons and grouped Release validation remain pending. The machine rose to 78% CPU during
+admission for the repeated baseline, so no additional validation was started.
+
+The candidate's DevMode SHA-256 is
+`624ad4435443ed67ac33543e009fff3bc749a0da3880efe8c9c1a1b6a97761b8`.
+The matrix density figures above remain representation estimates: the process observation does
+not isolate each buffer's saving. Wide fully populated acyclic rows can add descriptor/copy
+cost, and retained capacity depends on earlier functions; controlled speed acceptance is still
+required before treating this representation as a finished optimization.

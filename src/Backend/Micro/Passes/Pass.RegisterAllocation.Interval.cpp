@@ -51,8 +51,6 @@ void MicroRegisterAllocationPass::buildLiveIntervals(std::vector<LiveInterval>& 
     out.clear();
     out.resize(virtualCount);
 
-    const uint32_t wordCount = denseVirtualRegs_.wordCount();
-
     for (uint32_t denseIndex = 0; denseIndex < virtualCount; ++denseIndex)
         out[denseIndex].denseIndex = denseIndex;
 
@@ -109,7 +107,7 @@ void MicroRegisterAllocationPass::buildLiveIntervals(std::vector<LiveInterval>& 
         size_t   defCursor = 0;
         bool     open      = false;
         uint32_t openFrom  = 0;
-        bool     liveIn    = (liveInVirtualBits_[static_cast<size_t>(spanLo) * wordCount + wordIndex] & bitMask) != 0;
+        bool     liveIn    = (liveInVirtualBits_.word(spanLo, wordIndex) & bitMask) != 0;
 
         for (uint32_t idx = spanLo; idx <= spanHi; ++idx)
         {
@@ -136,7 +134,7 @@ void MicroRegisterAllocationPass::buildLiveIntervals(std::vector<LiveInterval>& 
             // gap; otherwise it closes at the last slot this instruction
             // holds the value.
             const bool liveNext = idx + 1 < instructionCount_ &&
-                                  (liveInVirtualBits_[static_cast<size_t>(idx + 1) * wordCount + wordIndex] & bitMask) != 0;
+                                  (liveInVirtualBits_.word(idx + 1, wordIndex) & bitMask) != 0;
             if (open && !liveNext)
             {
                 const uint32_t to = definedHere ? idx * 2 + 2 : idx * 2 + 1;
@@ -1359,7 +1357,6 @@ bool MicroRegisterAllocationPass::applyIntervalAllocation(IntervalWalkResult& re
         const LiveInterval* to         = nullptr;
     };
     SmallVector<EdgeMove, 8> edgeMoves;
-    const uint32_t           wordCount = denseVirtualRegs_.wordCount();
     // Without split children every value has one location across all edges.
     const uint32_t edgeInstructionCount = result.nodes.size() == virtualCount ? 0 : instructionCount_;
     for (uint32_t s = 0; s < edgeInstructionCount; ++s)
@@ -1367,7 +1364,7 @@ bool MicroRegisterAllocationPass::applyIntervalAllocation(IntervalWalkResult& re
         const MicroInstr* labelInst = instructions_->ptr(controlFlowGraph_->instructionRefs()[s]);
         if (!labelInst || labelInst->op != MicroInstrOpcode::Label)
             continue;
-        const std::span<const uint64_t> liveRow = DenseBits::row(liveInVirtualBits_, s, wordCount);
+        const auto liveRow = liveInVirtualBits_.row(s);
         for (const uint32_t p : predecessors_[s])
         {
             SWC_ASSERT(p < instructionCount_);
@@ -1388,7 +1385,7 @@ bool MicroRegisterAllocationPass::applyIntervalAllocation(IntervalWalkResult& re
             // edge as a whole.
             edgeMoves.clear();
 
-            for (size_t wordIndex = 0; wordIndex < liveRow.size(); ++wordIndex)
+            for (size_t wordIndex = liveRow.firstWord; wordIndex < liveRow.endWord(); ++wordIndex)
             {
                 uint64_t wordBits = liveRow[wordIndex];
                 while (wordBits)
@@ -1480,8 +1477,8 @@ bool MicroRegisterAllocationPass::applyIntervalAllocation(IntervalWalkResult& re
                         // sent an MP4 sample table through the wrong bounds.
                         // Input-slot coverage comes from live-in. Values absent
                         // from this row cannot own the fall-through register.
-                        const auto fallThroughLive = DenseBits::row(liveInVirtualBits_, p + 1, wordCount);
-                        for (size_t wordIndex = 0; plainOk && wordIndex < fallThroughLive.size(); ++wordIndex)
+                        const auto fallThroughLive = liveInVirtualBits_.row(p + 1);
+                        for (size_t wordIndex = fallThroughLive.firstWord; plainOk && wordIndex < fallThroughLive.endWord(); ++wordIndex)
                         {
                             uint64_t wordBits = fallThroughLive[wordIndex];
                             while (plainOk && wordBits)
@@ -2252,19 +2249,18 @@ bool MicroRegisterAllocationPass::coalesceSameValueCopies()
     if (!intervalAllocationAccepts() || !instructionCount_)
         return false;
 
-    const auto&    virtualRegs = denseVirtualRegs_.regs();
-    const uint32_t wordCount   = denseVirtualRegs_.wordCount();
-    const auto     instrRefs   = controlFlowGraph_->instructionRefs();
+    const auto& virtualRegs = denseVirtualRegs_.regs();
+    const auto  instrRefs   = controlFlowGraph_->instructionRefs();
 
     // The integer values whose every definition clears the top half of the
     // register, and which no caller hands in: a 32-bit copy of one of them
     // copies every bit.
     std::vector<uint8_t> zeroHigh(virtualRegs.size(), 1);
     {
-        const auto liveInEntry = DenseBits::row(liveInVirtualBits_, 0, wordCount);
+        const auto liveInEntry = liveInVirtualBits_.row(0);
         for (uint32_t dense = 0; dense < virtualRegs.size(); ++dense)
         {
-            if (DenseBits::contains(liveInEntry, dense))
+            if (liveInEntry.contains(dense))
                 zeroHigh[dense] = 0;
         }
         for (uint32_t idx = 0; idx < instructionCount_; ++idx)
@@ -2356,7 +2352,7 @@ bool MicroRegisterAllocationPass::coalesceSameValueCopies()
                 SWC_ASSERT(succ < instructionCount_);
                 if (succ >= head && succ <= tail)
                     continue;
-                if (DenseBits::contains(DenseBits::row(liveInVirtualBits_, succ, wordCount), src))
+                if (liveInVirtualBits_.contains(succ, src))
                     return false;
             }
         }
@@ -2371,7 +2367,7 @@ bool MicroRegisterAllocationPass::coalesceSameValueCopies()
     const auto sourceLeavesCopyBlock = [&](const uint32_t copyIdx, const uint32_t src) {
         for (uint32_t idx = copyIdx + 1; idx < instructionCount_; ++idx)
         {
-            if (!DenseBits::contains(DenseBits::row(liveInVirtualBits_, idx, wordCount), src))
+            if (!liveInVirtualBits_.contains(idx, src))
                 return false;
             const MicroInstr* inst = instructions_->ptr(instrRefs[idx]);
             if (!inst || inst->op == MicroInstrOpcode::Label)
@@ -2410,8 +2406,8 @@ bool MicroRegisterAllocationPass::coalesceSameValueCopies()
         // probing two bits needs no copies of the virtual and concrete rows.
         if (idx + 1 == instructionCount_)
             continue;
-        const auto liveOut = DenseBits::row(liveInVirtualBits_, idx + 1, wordCount);
-        if (!DenseBits::contains(liveOut, src) || !DenseBits::contains(liveOut, dst))
+        const auto liveOut = liveInVirtualBits_.row(idx + 1);
+        if (!liveOut.contains(src) || !liveOut.contains(dst))
             continue;
 
         if (!sourceLeavesCopyBlock(idx, src))
@@ -2436,11 +2432,11 @@ bool MicroRegisterAllocationPass::coalesceSameValueCopies()
     if (candidates.empty())
         return false;
 
-    const auto liveInEntry      = DenseBits::row(liveInVirtualBits_, 0, wordCount);
+    const auto liveInEntry      = liveInVirtualBits_.row(0);
     size_t     activeCandidates = 0;
     for (Candidate& c : candidates)
     {
-        c.rejected |= DenseBits::contains(liveInEntry, c.dst) && DenseBits::contains(liveInEntry, c.src);
+        c.rejected |= liveInEntry.contains(c.dst) && liveInEntry.contains(c.src);
         activeCandidates += !c.rejected;
     }
 
@@ -2493,7 +2489,7 @@ bool MicroRegisterAllocationPass::coalesceSameValueCopies()
         };
 
         bool           haveLiveOut = false;
-        const auto     liveIn      = DenseBits::row(liveInVirtualBits_, idx, wordCount);
+        const auto     liveIn      = liveInVirtualBits_.row(idx);
         const uint32_t depth       = depthAt(idx);
         for (Candidate& c : candidates)
         {
@@ -2505,7 +2501,7 @@ bool MicroRegisterAllocationPass::coalesceSameValueCopies()
             // one of them in memory there and the other in a register, and
             // one joined value would make it split, and store, inside that
             // loop to save a move outside it.
-            if (depth > c.copyDepth && DenseBits::contains(liveIn, c.dst) && DenseBits::contains(liveIn, c.src))
+            if (depth > c.copyDepth && liveIn.contains(c.dst) && liveIn.contains(c.src))
             {
                 c.rejected = true;
                 --activeCandidates;

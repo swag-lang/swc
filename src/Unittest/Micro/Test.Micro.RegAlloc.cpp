@@ -783,6 +783,60 @@ SWC_TEST_BEGIN(RegAlloc_FoldsLocalStackBaseIntoStackPointer)
 }
 SWC_TEST_END()
 
+SWC_TEST_BEGIN(RegAlloc_LivenessRowsPreserveGlobalBitsAcrossStorageReuse)
+{
+    MicroLivenessMatrix                           matrix;
+    constexpr uint32_t                            rows  = 9;
+    constexpr uint32_t                            words = 132;
+    std::array<std::array<uint64_t, words>, rows> expected{};
+    for (uint32_t row = 1; row < rows; ++row)
+    {
+        expected[row][row * 7]         = 1ull << (row * 5);
+        expected[row][words - row - 1] = 1ull << (63 - row);
+    }
+
+    for (const bool compact : {true, false, true})
+    {
+        matrix.reset(rows, words, compact, true);
+        for (uint32_t row = rows; row-- > 0;)
+        {
+            if (compact)
+                matrix.assignRow(row, row, std::span<const uint64_t>{expected[row]}.subspan(row));
+            else
+                std::ranges::copy(expected[row], matrix.denseRow(row).begin());
+        }
+        matrix.finishRows();
+
+        for (uint32_t row = 0; row < rows; ++row)
+        {
+            std::array<uint64_t, words> copy;
+            copy.fill(~0ull);
+            matrix.row(row).copyTo(copy);
+            if (copy != expected[row])
+                return Result::Error;
+
+            copy.fill(1);
+            matrix.row(row).mergeInto(copy);
+            for (uint32_t word = 0; word < words; ++word)
+            {
+                if (matrix.word(row, word) != expected[row][word] || copy[word] != (expected[row][word] | 1))
+                    return Result::Error;
+                for (uint32_t bit = 0; bit < 64; ++bit)
+                    if (matrix.contains(row, word * 64 + bit) != ((expected[row][word] & (1ull << bit)) != 0))
+                        return Result::Error;
+            }
+        }
+    }
+    matrix.reset(1, words, false, true);
+    if (std::ranges::any_of(matrix.row(0).words, [](uint64_t word) { return word != 0; }))
+        return Result::Error;
+    matrix.reset(1, words, true, false);
+    matrix.assignRow(0, words, {});
+    matrix.finishRows();
+    return matrix.row(0).words.empty() && !matrix.contains(0, words * 64 - 1) ? Result::Continue : Result::Error;
+}
+SWC_TEST_END()
+
 SWC_TEST_BEGIN(RegAlloc_PersistentAcross)
 {
     SWC_RESULT(runCase(ctx, buildPersistentAcross));
@@ -1354,6 +1408,80 @@ SWC_TEST_BEGIN(RegAlloc_ReusedPassBorrowsCurrentCfgAcrossDifferentControlFlow)
             }
             if (listings[0] != listings[1] || intervalAllocated[0] != intervalAllocated[1])
                 return Result::Error;
+        }
+    }
+    return Result::Continue;
+}
+SWC_TEST_END()
+
+SWC_TEST_BEGIN(RegAlloc_CompactLivenessAcrossBranchesAndPassReuse)
+{
+    const CallConv& conv = CallConv::get(CallConvKind::C);
+    for (const auto level : {Runtime::BuildCfgBackendOptimLevel::O0, Runtime::BuildCfgBackendOptimLevel::O2})
+    {
+        MicroRegisterAllocationPass allocation;
+        // The large acyclic listings exceed the compact-storage threshold; the
+        // small loop in between overwrites the same backing through dense rows.
+        for (const uint32_t count : {1024u, 3u, 1024u})
+        {
+            const bool   loop = count == 3;
+            MicroBuilder builder(ctx);
+            builder.setBackendBuildCfg({.optimLevel = level});
+            const auto pointer = conv.intArgRegs[0];
+            const auto counter = MicroReg::virtualIntReg(2000);
+            const auto header  = builder.createLabel();
+            if (loop)
+            {
+                builder.emitLoadRegImm(counter, ApInt(2, 64), MicroOpBits::B64);
+                builder.placeLabel(header);
+            }
+            for (uint32_t index = 0; index < count; ++index)
+            {
+                const auto value = MicroReg::virtualIntReg(index);
+                const auto small = builder.createLabel();
+                const auto join  = builder.createLabel();
+                builder.emitLoadRegMem(value, pointer, index * sizeof(uint64_t), MicroOpBits::B64);
+                builder.emitCmpRegImm(value, ApInt(8, 64), MicroOpBits::B64);
+                builder.emitJumpToLabel(MicroCond::Below, MicroOpBits::B32, small);
+                builder.emitOpBinaryRegImm(value, ApInt(3, 64), MicroOp::Add, MicroOpBits::B64);
+                builder.emitJumpToLabel(MicroCond::Unconditional, MicroOpBits::B32, join);
+                builder.placeLabel(small);
+                builder.emitOpBinaryRegImm(value, ApInt(5, 64), MicroOp::Subtract, MicroOpBits::B64);
+                builder.placeLabel(join);
+                builder.emitLoadMemReg(pointer, index * sizeof(uint64_t), value, MicroOpBits::B64);
+            }
+            if (loop)
+            {
+                builder.emitOpBinaryRegImm(counter, ApInt(1, 64), MicroOp::Subtract, MicroOpBits::B64);
+                builder.emitCmpRegImm(counter, ApInt(0, 64), MicroOpBits::B64);
+                builder.emitJumpToLabel(MicroCond::NotEqual, MicroOpBits::B32, header);
+            }
+            builder.emitRet();
+
+            MicroPrologEpilogPass prolog;
+            MicroPassManager      passes;
+            passes.addStartPass(allocation);
+            passes.addStartPass(prolog);
+            MicroPassContext passContext;
+            passContext.callConvKind           = CallConvKind::C;
+            passContext.preservePersistentRegs = true;
+            SWC_RESULT(builder.runPasses(passes, nullptr, passContext));
+            SWC_RESULT(Backend::Unittest::assertNoVirtualRegs(builder));
+            if (passContext.intervalAllocated != (level == Runtime::BuildCfgBackendOptimLevel::O2))
+                return Result::Error;
+
+            std::vector<uint64_t> values(count);
+            for (uint32_t index = 0; index < count; ++index)
+                values[index] = index % 17;
+            SWC_RESULT(Backend::Unittest::executeMicroCase(ctx, builder, values.data()));
+            for (uint32_t index = 0; index < count; ++index)
+            {
+                uint64_t expected = index % 17;
+                for (uint32_t iteration = 0; iteration < (loop ? 2u : 1u); ++iteration)
+                    expected = expected < 8 ? expected - 5 : expected + 3;
+                if (values[index] != expected)
+                    return Result::Error;
+            }
         }
     }
     return Result::Continue;

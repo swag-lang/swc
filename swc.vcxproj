@@ -605,6 +605,7 @@
     </ItemGroup>
     <ItemGroup>
         <ClInclude Include="src\Backend\Micro\MicroDenseRegIndex.h"/>
+        <ClInclude Include="src\Backend\Micro\MicroLivenessMatrix.h"/>
         <ClInclude Include="src\Backend\Micro\MicroPass.h"/>
         <ClInclude Include="src\Backend\Micro\MicroPassContext.h"/>
         <ClInclude Include="src\Backend\Micro\MicroVerify.h"/>

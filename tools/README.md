@@ -68,14 +68,9 @@ build entry point.
 
 DevMode keeps assertions, compiler validators, race checks, allocator checks and C++ tests.
 Fields maintained only for debugger inspection are disabled by default in both compiler builds.
-For an interactive C++ debugging session, opt in with MSBuild:
-
-```text
-msbuild swc.sln /m:6 /p:Configuration=DevMode /p:Platform=x64 /p:SwcCompileJobs=6 /p:SwcDebugMode=true
-```
-
-`SwcDebugMode=true` defines `SWC_DEBUG_MODE=1`, enables compiler PDB information and produces
-`bin/swc.dbg.exe` with separate intermediates. It restores reference debug pointers, token
-locations and AST visitor inspection fields. Normal `swc.dm.exe` and `swc.exe` stay independent.
-This switch concerns debugging the compiler itself; the compiler's `--debug` option concerns
+For an interactive C++ debugging session, manually set `SWC_DEBUG_MODE` to `1` in `src/pch.h`
+and rebuild the compiler. This restores reference debug pointers, token locations and AST
+visitor inspection fields. Reset it to `0` and rebuild when finished. There is no additional
+build configuration or executable; compiler PDB settings remain a separate manual choice.
+This define concerns debugging the compiler itself; the compiler's `--debug` option concerns
 debug information in the Swag program it generates.

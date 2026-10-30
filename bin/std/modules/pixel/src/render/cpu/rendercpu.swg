@@ -2170,6 +2170,106 @@ private impl RenderCpu
         return true
     }
 
+    // An aligned full-target resolve has one source block per destination pixel. Skip the
+    // triangle coverage, interpolated paint coordinates and format dispatch for this case.
+    // Other mappings and render states keep the general shader path.
+    mtd tryResolveTextureRect(batch: *RasterBatch)->bool
+    {
+        if batch.count != 6 or .program != CpuProgram_Resolve or not batch.transform.isIdentity() do
+            return false
+        if .blendingMode != .Copy or
+           not .colorMask.r or
+           not .colorMask.g or
+           not .colorMask.b or
+           not .colorMask.a or
+           .stencilOn or
+           .stencilWrite or
+           .scissorOn or
+           .overlapMode or
+           .alphaResolve do
+            return false
+
+        let source = batch.paintImage
+        let target = batch.image
+        if not source or
+           not target or
+           source == target or
+           source.pixelFormat != .BGRA8 or
+           target.pixelFormat != .BGRA8 do
+            return false
+
+        let factor = Math.clamp(.resolveFactor, 1, 8)
+        if source.width != target.width * factor or source.height != target.height * factor do
+            return false
+        let params = &.paint
+        let insetX = 0.5'f32 / source.width
+        let insetY = 0.5'f32 / source.height
+        if params.type != .Texture or
+           params.uvMode != .FillSubRect or
+           params.boundRect != Vector4{0, 0, cast(f32, target.width), cast(f32, target.height)} or
+           params.textureRect != Vector4{insetX, insetY, 1 - insetX, 1 - insetY} do
+            return false
+
+        let vertices = batch.painter!.vertexBuffer.storage() + batch.start
+        let corners  = [Vector2{0, 0}, Vector2{target.width, 0}, Vector2{target.width, target.height},
+                        Vector2{0, 0}, Vector2{target.width, target.height}, Vector2{0, target.height}]
+        for i in 6 where vertices[i].pos != corners[i] or vertices[i].color != Argb.White do
+            return false
+
+        func resolveRows(source, target: *Image, factor, firstRow, endRow: s32)
+        {
+            // Keep the shader's normalized additions in the same top-to-bottom sample order.
+            // Integer averaging changes truncation at byte boundaries, even for opaque mattes.
+            for y in firstRow until endRow
+            {
+                let destination = target.pixels.storage() + cast(u64, y) * cast(u64, target.rowStride)
+                for x in target.width
+                {
+                    var sum: Math.Simd.F32x4
+                    for row in factor
+                    {
+                        let sourceRow = y * factor + factor - row - 1
+                        let pixels    = source.pixels.storage() + cast(u64, sourceRow) * cast(u64, source.rowStride) + cast(u64, x * factor) * 4
+                        for column in factor
+                        {
+                            let pixel = pixels + cast(u64, column) * 4
+                            sum += cast(Math.Simd.F32x4, [cast(f32, pixel[0]), cast(f32, pixel[1]), cast(f32, pixel[2]), cast(f32, pixel[3])]) / 255.0
+                        }
+                    }
+
+                    let alpha = sum[3] / cast(f32, factor * factor)
+                    let color = sum[3] <= 0.00001 ? Color.fromArgbF32(alpha, 0, 0, 0) : Color.fromArgbF32(alpha, sum[2] / sum[3], sum[1] / sum[3], sum[0] / sum[3])
+                    let pixel = destination + cast(u64, x) * 4
+                    pixel[0] = color.b
+                    pixel[1] = color.g
+                    pixel[2] = color.r
+                    pixel[3] = color.a
+                }
+            }
+        }
+
+        // Work scales with source samples, not destination pixels. Bands own disjoint rows;
+        // the synchronous join keeps both texture buffers alive until every store completes.
+        let sampleCount = cast(u64, source.width) * cast(u64, source.height)
+        if sampleCount < CpuBandPixelThreshold or
+           target.height <= CpuBandRows or
+           Swag.workerCount() <= 1
+        {
+            resolveRows(source, target, factor, 0, target.height)
+        }
+        else
+        {
+            let bandCount = (target.height - 1) / CpuBandRows + 1
+            parallel for |source = unwrap source, target = unwrap target, factor| index in cast(u64, bandCount)
+            {
+                let firstRow = cast(s32, index) * CpuBandRows
+                resolveRows(source, target, factor, firstRow, Math.min(firstRow + CpuBandRows, target.height))
+            }
+        }
+
+        return true
+    }
+
     mtd drawTriangles(painter: *Painter, start, count: u32)
     {
         let image = .currentImage()
@@ -2182,7 +2282,7 @@ private impl RenderCpu
 
         var batch: RasterBatch
         .setupBatch(&batch, image, painter, start, count)
-        if .tryCopyTextureRect(&batch) do
+        if .tryCopyTextureRect(&batch) or .tryResolveTextureRect(&batch) do
             return
 
         // The blur kernel depends only on the active shader radius. Building it once here

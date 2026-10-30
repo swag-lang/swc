@@ -4154,6 +4154,7 @@ impl Drawing
         let tileHeight    = Math.min(height, Math.max(sampleTileSide / ss, 1))
         let sampledWidth  = tileWidth * ss
         let sampledHeight = tileHeight * ss
+        let whiteMask     = .hasOnlyWhiteShapes()
 
         // Strokes use destination alpha as scratch. Recover source-over coverage from two
         // opaque mattes instead: white minus black is the uncovered fraction. Both passes
@@ -4181,7 +4182,7 @@ impl Drawing
             {
                 let copyWidth = Math.min(tileWidth, width - tileX)
                 var mattes: [2] Image
-                for matte in 2
+                for matte in (whiteMask ? 1 : 2)
                 {
                     var painter = Painter.create(renderer)
                     painter.begin()
@@ -4225,9 +4226,24 @@ impl Drawing
                 for row in copyHeight
                 {
                     let black       = mattes[0].pixels.storage() + cast(u64, row) * cast(u64, mattes[0].rowStride)
-                    let white       = mattes[1].pixels.storage() + cast(u64, row) * cast(u64, mattes[1].rowStride)
                     let resultRow   = result.height - tileY - copyHeight + row
                     let destination = result.pixels.storage() + cast(u64, resultRow) * cast(u64, result.rowStride) + cast(u64, tileX) * result.bytesPerPixel
+
+                    // White source-over ink leaves the white matte unchanged. The black
+                    // matte alone carries its coverage, including overlaps and stroke scratch.
+                    if whiteMask
+                    {
+                        for column in copyWidth
+                        {
+                            let offset = cast(u64, column) * 4
+                            destination[offset], destination[offset + 1], destination[offset + 2] = 255
+                            destination[offset + 3] = black[offset]
+                        }
+
+                        continue
+                    }
+
+                    let white = mattes[1].pixels.storage() + cast(u64, row) * cast(u64, mattes[1].rowStride)
                     for column in copyWidth
                     {
                         let offset = cast(u64, column) * 4
@@ -4248,5 +4264,27 @@ impl Drawing
         }
 
         return result
+    }
+
+    // White masks need one matte. Keep pictures, text, paint servers and filters on the
+    // general path: their final color cannot be established from a solid brush alone.
+    private mtd const hasOnlyWhiteShapes()->bool
+    {
+        for item in .items
+        {
+            if item.kind != .Shape do
+                return false
+            let shape = &.shapes[item.index]
+            if not shape.filterId.isEmpty() or
+               not shape.fillPaintId.isEmpty() or
+               not shape.strokePaintId.isEmpty() do
+                return false
+            if shape.hasFill and (shape.fillBrush.type != .SolidColor or (shape.fillBrush.color.argb & 0xFFFFFF) != 0xFFFFFF) do
+                return false
+            if shape.hasStroke and (shape.strokeBrush.type != .SolidColor or (shape.strokeBrush.color.argb & 0xFFFFFF) != 0xFFFFFF) do
+                return false
+        }
+
+        return true
     }
 }

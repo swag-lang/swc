@@ -86,3 +86,28 @@ func solutionArea(paths: Pixel.Clipper.ClipperPaths)->f64
         total += contourArea(path)
     return Math.abs(total)
 }
+
+// White masks recover coverage from one black matte. An invisible colored shape selects the
+// two-matte reference without changing its pixels, including clipped translucent overlaps.
+func assertSvgWhiteMaskRaster(renderer: IRenderer, sampleTileSide: s32)
+{
+    const Content = """
+        <defs><clipPath id='c'><circle cx='46' cy='38' r='34'/></clipPath></defs>
+        <g clip-path='url(#c)' fill='white' stroke='white' stroke-width='1.4'>
+          <rect x='8' y='5' width='52' height='48' rx='5' fill-opacity='0.3'/>
+          <circle cx='54' cy='40' r='25' fill-opacity='0.6'/>
+          <path d='M4 68L82 7M9 10L84 64' fill='none' stroke-opacity='0.4'/>
+        </g>
+        """
+    let source          = Format.toString("<svg width='91' height='75'>%</svg>", Content)
+    let referenceSource = Format.toString("<svg width='91' height='75'>%<rect width='1' height='1' fill='red' fill-opacity='0'/></svg>", Content)
+    let drawing         = expect Svg.Drawing.parse(source.toString())
+    let reference       = expect Svg.Drawing.parse(referenceSource.toString())
+    for samples in [1'u8, 2'u8, 4'u8, 8'u8]
+    {
+        let image    = drawing.rasterizeWithSampleTileSide(renderer, 91, 75, samples, sampleTileSide)
+        let expected = reference.rasterizeWithSampleTileSide(renderer, 91, 75, samples, sampleTileSide)
+        for value, index in image.pixels do
+            Swag.assert(value == expected.pixels[index])
+    }
+}

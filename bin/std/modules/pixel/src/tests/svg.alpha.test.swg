@@ -3,6 +3,16 @@
 
 using Swag, Core
 
+// Tiled white masks preserve CPU coverage at every supersampling factor.
+#test
+{
+    var cpu: RenderCpu
+    cpu.begin(91, 75)
+    let renderer: IRenderer = &cpu
+    defer renderer.end()
+    assertSvgWhiteMaskRaster(renderer, 64)
+}
+
 // An intersected clip must remain visible in every raster tile, including tiles whose origin
 // lies beyond the generated contour's first vertex.
 #test

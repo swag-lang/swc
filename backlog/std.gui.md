@@ -553,203 +553,38 @@ preview. Validate requested settings against the capabilities supplied by platfo
   shape, and GUI rendering goldens pass at the supported scales.
 - Evidence: the current 352 × 352 atlas contains substantial unused space between tile groups.
 
-### std.gui.060 — Avoid rebuilding stock icon atlases before the first window is visible
+### std.gui.060 — Reduce the remaining work before the first usable application frame
 
-- Evidence: Release Swag Capture spends 402-427 ms in five initial icon-atlas rasterizations
-  and another 82-83 ms in its widgets atlas before the first window becomes visible. Three
-  unprofiled launches have a 764 ms median to visibility and a 782 ms median to the first
-  successful window-message response. A library with no capture still takes about 778 ms to
-  visibility. These measurements identify GUI preparation as the dominant observed delay;
-  they do not attribute the delay to compiler relocations or capture decoding.
-- Next: inventory the stock GUI/Capture atlas and cell-size requests below, then prototype one
-  sufficiently detailed runtime raster per SVG document, reused across requested icon sizes.
-  Compare its resampling with the existing size-specific output at actual display sizes and
-  supported DPI, especially small strokes. Measure startup, EXE size and retained CPU/GPU memory
-  together. Keep size-specific rasterization only where a useful visual improvement is
-  demonstrated. Evaluate build-generated embedded rasters only after this simpler cache policy;
-  they are not the default solution. Preserve SVG overrides and monitor-DPI changes through the
-  existing atlas/cache API rather than adding app-local icon handling.
-- Done when: normal application startup avoids the measured stock-atlas rasterization work,
-  matched Release launches improve visibility and first-present latency, and reviewed visual
-  comparisons establish equivalent perceived quality or justify each retained size-specific path.
-  Validate both palettes, small glyphs, fractional DPI, mixed-DPI monitor changes, custom SVG
-  overrides, fallback sizes and cache invalidation. Report executable-size and memory costs
-  alongside startup gains; do not exchange established rendering correctness for an earlier
-  blank window.
+- Evidence: matched Release Capture launches still take a median 688 ms to a visible window
+  and 711 ms to its first successful `WM_NULL` response. These are four alternating warm
+  launches against a rebuilt baseline (1,035/1,056 ms), using the same compiler, isolated copies
+  of the same settings and one capture, and no other task-owned build during measurement.
+  Process creation is the clock origin; tool/compiler launch is excluded. Polling is about
+  5 ms, CPU admission is at most 25%, and no OS-cache flush is performed. Visibility and message
+  response do not establish first usable presentation or cold-start latency.
+- Next: re-profile the remaining startup with the current one-matte white-mask rasterizer and
+  parallel full-target resolve. Attribute remaining time to icon/widget geometry, glyphs,
+  placement restoration and initial presentation before choosing the next change. In particular,
+  check whether placement restoration during `Surface.show` presents a frame that the remainder
+  of `show` immediately paints again; preserve the complete first frame and placement contract.
+  The old 402-427 ms icon / 82-83 ms widget spans predate the current renderer and are not a
+  current cost breakdown.
+- A shared 96-pixel-per-cell raster with linear filtering produced visibly uneven small strokes
+  and diagonals at 14-24 px in the GUI/Capture sheets. Do not replace size-specific supersampling
+  with that policy without a better reviewed resampling method. If current attribution still
+  warrants caching, compare a bounded generated or persistent cache with the current renderer,
+  retaining custom SVG, unsupported sizes and monitor-DPI changes through the existing API.
+  Include source content and rasterization parameters in cache identity; measure EXE size,
+  decode latency and retained CPU/GPU memory alongside startup.
+- Done when: matched process-to-first-usable-frame measurements show that avoidable atlas and
+  duplicate presentation work no longer delay normal startup, with both palettes, small glyphs,
+  fractional/mixed DPI and SVG overrides covered. Do not count an earlier blank window as a gain.
+- Reproduction: `%LOCALAPPDATA%/swc-agent-builds/app-startup-opt-20261030/results.json` records
+  current artifact hashes, individual launches, CPU/memory measurements and the exact comparison
+  method; `probe.py` and `ab.py` reproduce the external milestones through `tools/apps.bat`.
+  Recreate both builds from the same source/compiler before replaying; their temporary worktrees
+  are disposable. The initial function-attribution probe remains in
+  `%LOCALAPPDATA%/swc-agent-builds/capture-startup-20261030`. Debug or terminate only probe-owned
+  processes, and never use the personal library as a writable benchmark profile.
 - Related: std.gui.059 (widgets packing), std.gui.057 (layered presentation), std.gui.054
   (input-to-display measurement), compiler.optimization.136 (distinct relocation investigation).
-
-**Measured artifacts and isolation**
-
-The probe launches the actual applications through `tools/apps.bat run swagcapture -bc release`
-and the Rust worktree's `tools/capture-rust.ps1 run`; compiler/tool startup is excluded from
-application elapsed times. These are pre-existing Release binaries; source provenance must be
-established again for a rebuilt baseline. In particular, the Swag image here is not the earlier
-size/relocation artifact recorded in compiler.optimization.136.
-
-| Artifact | SHA-256 |
-| --- | --- |
-| `bin/apps/.output/swagcapture/executable/release/x86_64/swagcapture.exe` | `6ae73aa6fdd34260a1e90b1435195129b8bff50a1d76439636206ad2add3693f` |
-| Rust `release/swagcapture-rust-preview.exe` | `d63a6058e5737b112b4331a0b29d43a51eca5eec60cc19db7e1cda953621eda2` |
-
-Each launch gets a private profile. Swag uses `swag.sandbox=<root>`, with copies of the original
-`settings.scc` and capture in `<root>/UserDocuments/Swag Capture`; Rust uses `--data-dir` and its
-previously imported JSON settings, redirected to that same isolated library. The source settings
-hash is `23c8b578a1a05abf6fa76489cef018e6449dbe62404784d492935c500533bcd0`; its modification
-precedes the measurements and its bytes match the copied profile. The original library and
-settings are not written. Sandbox restrictions suppress Swag's shell-registration side effects,
-so this is not an unrestricted personal-profile launch.
-
-The library contains one actual capture,
-`10_30_2026_13_59_56_35CF40B6F62B4B10.scc` (677 x 303), rather than all 753 library items.
-The no-document variant keeps the same settings but omits the capture. Both applications restore
-comparable placement on the left display. DPI-aware physical rectangles are Swag
-`[-3383, 135, -818, 1923]` and Rust `[-3356, 162, -845, 1896]`; Swag's outer shadow margin makes
-its outer bounds larger. Feature, renderer and settings-schema parity are not established.
-
-**External launch measurements**
-
-All times below are milliseconds from OS process creation, using `GetProcessTimes` creation
-FILETIME, `GetSystemTimePreciseAsFileTime` and QPC. The probe polls at approximately 5 ms and
-calls `SetProcessDPIAware` before querying geometry. Machine-load admission runs before each
-launch. No OS-cache flush or reboot is performed: these are repeated warm launches on a shared
-machine, not cold-start numbers. Debugger/profile runs are excluded from the launch medians.
-
-| Milestone | Swag median (range), n=3 | Rust median (range), n=3 |
-| --- | ---: | ---: |
-| First detected application HWND, possibly hidden | 58.9 (57.3-60.1) | 72.8 (61.9-109.2) |
-| First visible application HWND at least 500 x 300 physical pixels | 763.7 (752.6-777.0) | 175.8 (165.2-219.8) |
-| First successful `WM_NULL` response after visibility | 782.0 (766.8-791.6) | 364.8 (276.8-437.5) |
-
-Individual retained runs, in the order `(HWND created, visible, message response)`:
-
-- Swag: `(58.9, 777.0, 791.6)`, `(57.3, 752.6, 766.8)`, `(60.1, 763.7, 782.0)`.
-- Rust: `(61.9, 175.8, 276.8)`, `(109.2, 219.8, 437.5)`, `(72.8, 165.2, 364.8)`.
-- Swag with no capture: visible at 777.7 and 778.6; message response at 795.0 and 795.9.
-
-Visibility is not first pixel presentation, and a successful `WM_NULL` is not proof that the
-document is loaded or its final frame displayed. The different visibility/response gaps show
-why these milestones must not be conflated. Rust's existing `first_ui_update_ms` starts after
-part of application/renderer initialization and cannot replace a process-to-first-frame metric.
-Early exploratory runs used a coarser system/monotonic clock; they are excluded from this table.
-
-Process CPU before visibility is 1,468.8-2,250.0 ms for Swag (median 1,968.8) and 93.8-140.6 ms
-for Rust (median 109.4). CPU is summed across threads and can exceed elapsed time; it also ends
-at different initialization milestones in the two applications. Before the message-response
-milestone, the two Rust runs that recorded CPU use 312.5 and 343.8 ms. These are not equivalent
-whole-startup work budgets, but they support substantial parallel CPU work before Swag shows.
-
-**Function-level attribution**
-
-Two separate probe-owned Swag launches attach a debugger and place entry/return breakpoints at
-functions resolved from the executable's embedded `.swagdbg` table. Handler-processing time is
-subtracted from spans, but trap delivery, event polling and scheduling overhead remain. Fast
-cache-hit calls are particularly sensitive to that overhead. These approximate spans are not
-used to compute the unprofiled launch medians; the traced launches become visible at 792.1 and
-833.8 ms. Main-thread stack sampling in two additional runs corroborates icon/widget CPU
-rasterization, MSDF glyph generation, and the OpenGL readback/presentation path.
-
-| Function/path | Trace A | Trace B | Scope |
-| --- | ---: | ---: | --- |
-| `Theme.setupDefault` | 90.4 | 90.4 | Includes widgets and default font initialization |
-| `themeWidgetsImage` | 82.6 | 81.8 | One initial rasterization |
-| `Theme.setupDefaultFonts` | 3.2 | 3.8 | Typeface/default-font setup, not all later glyph generation |
-| `IconAtlas.image`, first five expensive calls | 402.4 | 427.3 | Stock GUI and Capture sheets at several cell sizes |
-| `IconAtlas.image`, all nine observed calls | 409.8 | 432.6 | Also includes immediate warm/cache-hit calls |
-| `MainWnd.create` | 277.8 | 292.3 | Includes some of the icon work above |
-| `Application.loadState` | 204.2 | 224.7 | Includes downstream repaint/icon work; not isolated file I/O |
-| `Surface.show` | 246.1 | 270.3 | Includes state restoration and initial presentation |
-| `Surface.prepareNativePresentation`, two calls | 55.5 | 48.4 | GPU readback, CPU copy, initial bitmap preparation |
-| `Surface.publishNativePresentation`, six observed calls | 29.5 | 34.1 | Includes immediate post-show updates |
-| `Capture.load`, two observed attempts | 13.0 | 14.2 | After `Surface.show`; successful document load about 11.1/12.5 |
-
-Spans overlap through nesting: do not add `MainWnd.create`, `Surface.show`, `loadState` and their
-icon/readback children to manufacture a startup total. The measured default-font initialization
-is small; MSDF glyph generation seen during painting is a separate cost not isolated by these
-breakpoints. Capture loading follows the display path in both traces, consistent with the
-no-document control not materially shortening time to visibility.
-
-The five initial icon calls request physical cell sizes `32, 32, 40, 48, 28`:
-
-| Request | Trace A | Trace B |
-| --- | ---: | ---: |
-| GUI sheet at 32 px | 64.4 | 66.1 |
-| Capture sheet at 32 px | 38.9 | 40.7 |
-| 40 px sheet | 73.7 | 72.1 |
-| 48 px sheet | 130.9 | 141.7 |
-| 28 px sheet | 94.5 | 106.8 |
-
-The two 32 px requests belong to different atlas owners, as their callers show; they are not
-evidence that a same-key cache lookup rerasterizes one sheet. Subsequent 48/28 px requests are
-cheap in the trace. The actionable issue is preparing entire sheets for several first-use sizes
-before showing the interface.
-
-**Current resource design and the Rust comparison**
-
-`IconAtlas.image` in `paint/iconset.swg` caches by physical cell size. `IconSet.list` rounds the
-device scale upward and combines it with logical icon size. A missing size rasterizes the entire
-SVG grid with supersampling initially set to four, bounded by an 8192-pixel internal width.
-The cache lives only in the process. The theme widgets follow the same general pattern through
-`Theme.ensureAtlasScale` and `themeWidgetsImage`, with their own scale and buffer bound.
-
-The present design keeps a vector source for arbitrary sizes/DPI and resource overrides. CPU
-rasterization also avoids a recorded hidden-window OpenGL/DisplayLink failure. That history
-explains the runtime path; it does not require repeating the stock asset work at every launch
-or rule out offline generation using the same CPU renderer.
-
-The Rust prototype does **not** embed prerasterized Capture icons. In its `src/icons.rs`,
-`include_bytes!` embeds the original SVG; the first `paint` call parses it with resvg, renders it
-into one 768 x 480 texture at scale four, and stores the texture in the egui context. Each
-24-unit icon thus has a 96 x 96 source cell. Later paints reuse that one texture with linear
-filtering. The prototype also does not reproduce Swag's widgets atlas: egui draws its controls.
-It performs less atlas construction, with a different rasterizer and sampling policy. The
-complete difference must not be described as Rust using offline images or as a compiler win.
-
-**Quality and generated-asset decision**
-
-A single large atlas resized for all output sizes can change small-stroke coverage and edge
-sharpness relative to Swag's size-specific supersampled rasterization. No matched visual/error
-measurement establishes that the Rust icons are uniformly inferior, equivalent, or superior.
-Do not infer visible quality from startup time alone, or adopt the Rust sampling policy merely
-because it is faster in the incomplete clone.
-
-The measured cost of the current policy is established; its perceptible benefit over a shared
-high-resolution raster is not. Treat possible excess work as the first hypothesis to test.
-Keep one shared raster per source document (GUI and Capture are distinct sources), choose its
-resolution from actual required sizes/DPI, and bound its memory rather than choosing an
-arbitrarily large texture. Compare the current and proposed outputs at native display size as
-well as magnified crops: a pixel difference alone does not establish a useful quality gain.
-Review thin diagonals, outlines, alpha edges, both palettes, and fractional-scale filtering.
-Retain additional size-specific rasters only for cases whose visible improvement warrants their
-startup and memory cost. Goldens may change after that explicit review; byte identity with the
-current sampling policy is not itself the objective of this first experiment.
-
-Offline generation of the same target sizes with the same SVG inputs, rasterizer, sample count,
-premultiplied alpha and color space can preserve the current raster pixels. Use lossless storage
-and deterministic generation, and prove the embedded decode matches the runtime reference.
-The timing of generation need not lower quality, but embedding several rasters generally adds
-EXE bytes, particularly when SVG sources and the runtime fallback remain. Compression does not
-make that cost disappear: record the actual binary delta and decoding cost. Prerasterization
-moves work into build time and storage; it does not establish that all those sizes were needed.
-Consider it only if the shared-raster experiment leaves a demonstrated quality or startup need,
-and compare a bounded generated size/DPI set with the measured shared-raster alternative.
-Keep custom SVG and ungenerated sizes on a correct runtime fallback. Include source content and
-rasterization/version parameters in any persistent-cache key, and avoid stale assets after theme
-or renderer changes. Measure added EXE bytes, decode time, retained CPU/GPU pixels and fallback
-cost before choosing PNG, raw data, compression, or a persistent disk cache.
-
-Initial presentation is a secondary independent cost. In the measured image,
-`prepareNativePresentation` reads the full OpenGL target back to CPU memory and copies it into
-the layered window's DIB; `publishNativePresentation` calls `UpdateLayeredWindowIndirect`.
-Preserve the existing geometry/pixel publication contract and monitor-adapter correctness when
-investigating redundant startup frames under std.gui.057. Do not blindly restore the rejected
-hidden-window GPU-rasterization path or assume dirty-region optimizations remove full initial
-presentation cost.
-
-The full local reproduction material is under
-`%LOCALAPPDATA%/swc-agent-builds/capture-startup-20261030`: `probe.py`, `trace.py`, `summary.json`,
-per-run admission/launcher logs, raw timing results and stack/entry-return traces. Reconstruct
-the isolated profiles and use the normal launch tools when replaying. Only probe-owned processes
-may be debugged, suspended or terminated. No application source or executable was modified on
-disk for the measurement. True process-to-first-present and input-to-photon timing remain to be
-added before claiming equivalent usable-frame startup or a cold-launch improvement.

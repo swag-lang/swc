@@ -2047,7 +2047,10 @@ void CodeGen::invalidateNodePayloadRegs(AstNodeRef nodeRef)
         if (currentRef.isInvalid() || !visited.insert(currentRef))
             continue;
 
-        if (CodeGenNodePayload* payload = safePayload(currentRef))
+        // Invalidation only visits state created by an earlier emission. Avoid
+        // allocating payloads from sema metadata for nodes not emitted yet.
+        auto* payload = static_cast<CodeGenNodePayload*>(nodePayloads_.find(currentRef));
+        if (payload)
         {
             payload->reg = MicroReg::invalid();
 

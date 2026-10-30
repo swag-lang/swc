@@ -4,6 +4,7 @@
 
 #include "Backend/Micro/MicroRelocation.h"
 #include "Backend/Native/SymbolSort.h"
+#include "Compiler/CodeGen/Core/CodeGen.h"
 #include "Compiler/Lexer/LangSpec.h"
 #include "Compiler/Lexer/Lexer.h"
 #include "Compiler/Lexer/SourceView.h"
@@ -1297,6 +1298,107 @@ SWC_TEST_END()
 SWC_TEST_BEGIN(Compiler_GenericUnionDeductionRemainsStableForHistoricalRandomSeed1143)
 {
     return runGenericUnionDeductionRandomizedSeed(ctx, 1143);
+}
+SWC_TEST_END()
+
+namespace
+{
+    template<AstNodeId NODE_ID, typename Payload>
+    Result checkControlPayloadAfterValueMetadata(TaskContext& ctx, SourceFile& file)
+    {
+        Sema sema(ctx, file.nodePayloadContext(), false);
+        sema.enableLocalLoweringPayloads();
+        CodeGen codeGen(sema);
+        const auto [nodeRef, node] = file.ast().makeNode<NODE_ID>(TokenRef::invalid());
+        if constexpr (NODE_ID == AstNodeId::IntrinsicCallExpr)
+            node->intrinsicId = TokenId::IntrinsicAssert;
+
+        const auto otherRef = file.ast().makeNode<AstNodeId::Identifier>(TokenRef::invalid()).first;
+        sema.setSubstitute(nodeRef, otherRef);
+
+        CodeGenLoweringPayload lowering;
+        lowering.ownsValue = true;
+        sema.setLoweringPayload(nodeRef, &lowering);
+        CodeGenNodePayload* early = codeGen.safePayload(nodeRef);
+        if (!early || !early->ownsValue)
+            return Result::Error;
+        if (codeGen.safeNodePayload<Payload>(nodeRef))
+            return Result::Error;
+
+        // The original and substitute share a value, but own separate branch state.
+        if (codeGen.safePayload(otherRef) != early)
+            return Result::Error;
+        auto& payload = codeGen.ensureNodePayload<Payload>(nodeRef);
+        if (payload.doneLabel.isValid())
+            return Result::Error;
+        payload.doneLabel = MicroLabelRef(7);
+        auto& other       = codeGen.ensureNodePayload<Payload>(otherRef);
+        if (&other == &payload || other.doneLabel.isValid())
+            return Result::Error;
+        if (codeGen.safePayload(nodeRef) != early || payload.doneLabel != MicroLabelRef(7))
+            return Result::Error;
+        return Result::Continue;
+    }
+}
+
+SWC_TEST_BEGIN(Compiler_ControlFlowPayloadsStayIndependentOfValues)
+{
+    const fs::path sourcePath = Unittest::makeTestSourcePath("Compiler", "DeferredPayloadInvalidation");
+    CommandLine    cmdLine;
+    cmdLine.command  = CommandKind::Sema;
+    cmdLine.name     = "compiler_deferred_payload_invalidation";
+    cmdLine.silent   = true;
+    cmdLine.numCores = 1;
+    cmdLine.files.insert(sourcePath);
+    CommandLineParser::refreshBuildCfg(cmdLine);
+
+    const uint64_t    errorsBefore = Stats::getNumErrors();
+    RestoreErrorCount restoreErrors{errorsBefore};
+    CompilerInstance  compiler(ctx.global(), cmdLine);
+    Unittest::registerTestSource(compiler, sourcePath, "");
+    Command::sema(compiler);
+    if (Stats::getNumErrors() != errorsBefore)
+        return Result::Error;
+
+    TaskContext compilerCtx(compiler);
+    for (SourceFile* file : compiler.files())
+    {
+        if (!FileSystem::pathEquals(file->path(), sourcePath))
+            continue;
+
+        const auto nodeRef = file->ast().makeNode<AstNodeId::OptionalChainExpr>(TokenRef::invalid()).first;
+        Sema       sema(compilerCtx, file->nodePayloadContext(), false);
+        sema.enableLocalLoweringPayloads();
+        CodeGenLoweringPayload lowering;
+        lowering.ownsValue = true;
+        sema.setLoweringPayload(nodeRef, &lowering);
+        CodeGen codeGen(sema);
+
+        // A first deferred emission has metadata, but no backend state to invalidate.
+        codeGen.invalidateNodePayloadRegs(nodeRef);
+        if (codeGen.safeNodePayload<CodeGenNodePayload>(nodeRef))
+            return Result::Error;
+
+        auto& payload = codeGen.ensureNodePayload<OptionalChainCodeGenPayload>(nodeRef);
+        auto& value   = codeGen.ensureNodePayload<CodeGenNodePayload>(nodeRef);
+        if (!value.ownsValue || payload.falseLabel.isValid() || payload.doneLabel.isValid())
+            return Result::Error;
+        value.reg          = MicroReg::virtualIntReg(7);
+        payload.falseLabel = MicroLabelRef(3);
+
+        // Later emissions invalidate registers in place without changing the state's kind.
+        codeGen.invalidateNodePayloadRegs(nodeRef);
+        if (codeGen.safeNodePayload<OptionalChainCodeGenPayload>(nodeRef) != &payload || value.reg.isValid() || payload.falseLabel != MicroLabelRef(3))
+            return Result::Error;
+
+        SWC_RESULT((checkControlPayloadAfterValueMetadata<AstNodeId::ConditionalExpr, ConditionalExprCodeGenPayload>(compilerCtx, *file)));
+        SWC_RESULT((checkControlPayloadAfterValueMetadata<AstNodeId::NullCoalescingExpr, NullCoalescingCodeGenPayload>(compilerCtx, *file)));
+        SWC_RESULT((checkControlPayloadAfterValueMetadata<AstNodeId::OptionalChainExpr, OptionalChainCodeGenPayload>(compilerCtx, *file)));
+        SWC_RESULT((checkControlPayloadAfterValueMetadata<AstNodeId::LogicalExpr, LogicalExprCodeGenPayload>(compilerCtx, *file)));
+        SWC_RESULT((checkControlPayloadAfterValueMetadata<AstNodeId::IntrinsicCallExpr, AssertCodeGenPayload>(compilerCtx, *file)));
+        return Result::Continue;
+    }
+    return Result::Error;
 }
 SWC_TEST_END()
 

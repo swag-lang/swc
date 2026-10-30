@@ -13,11 +13,6 @@ SWC_BEGIN_NAMESPACE();
 
 namespace
 {
-    struct LogicalExprCodeGenPayload : CodeGenNodePayload
-    {
-        MicroLabelRef doneLabel = MicroLabelRef::invalid();
-    };
-
     void materializeLogicalOperand(MicroReg& outReg, CodeGen& codeGen, const CodeGenNodePayload& operandPayload, TypeRef operandTypeRef)
     {
         const TypeInfo& operandType = codeGen.typeMgr().get(operandTypeRef);
@@ -52,8 +47,9 @@ namespace
         materializeLogicalOperand(rightReg, codeGen, rightPayload, rightType);
 
         // Reuse the lhs result register so both control-flow paths converge on a single payload.
-        if (state->reg != rightReg)
-            codeGen.builder().emitLoadRegReg(state->reg, rightReg, MicroOpBits::B8);
+        const CodeGenNodePayload& resultPayload = codeGen.payload(nodeRef);
+        if (resultPayload.reg != rightReg)
+            codeGen.builder().emitLoadRegReg(resultPayload.reg, rightReg, MicroOpBits::B8);
 
         codeGen.builder().placeLabel(state->doneLabel);
         state->doneLabel = MicroLabelRef::invalid();
@@ -79,7 +75,7 @@ Result AstLogicalExpr::codeGenPostNodeChild(CodeGen& codeGen, const AstNodeRef& 
         LogicalExprCodeGenPayload& state   = codeGen.ensureNodePayload<LogicalExprCodeGenPayload>(codeGen.curNodeRef());
         MicroBuilder&              builder = codeGen.builder();
 
-        // The rhs overwrites state.reg. Copy a bool held in a parameter/local
+        // The rhs overwrites the result register. Copy a bool held in a parameter/local
         // register so short-circuit evaluation cannot clobber that variable.
         if (leftReg == leftPayload.reg)
         {
@@ -88,13 +84,14 @@ Result AstLogicalExpr::codeGenPostNodeChild(CodeGen& codeGen, const AstNodeRef& 
             leftReg = resultReg;
         }
 
-        state.reg     = leftReg;
-        state.typeRef = codeGen.curViewType().typeRef();
-        state.setIsValue();
+        auto& resultPayload   = codeGen.ensureNodePayload<CodeGenNodePayload>(codeGen.curNodeRef());
+        resultPayload.reg     = leftReg;
+        resultPayload.typeRef = codeGen.curViewType().typeRef();
+        resultPayload.setIsValue();
         state.doneLabel = builder.createLabel();
 
         // Keep the lhs result and evaluate the rhs only when required.
-        builder.emitCmpRegImm(state.reg, ApInt(0, 64), MicroOpBits::B8);
+        builder.emitCmpRegImm(resultPayload.reg, ApInt(0, 64), MicroOpBits::B8);
         const Token& tok = codeGen.token(codeRef());
         if (tok.id == TokenId::KwdAnd)
             builder.emitJumpToLabel(MicroCond::Equal, MicroOpBits::B32, state.doneLabel);

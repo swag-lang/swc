@@ -75,11 +75,42 @@ struct CodeGenNodePayload : CodeGenLoweringPayload
     }
 };
 
+enum class ConditionalExprStage : uint8_t
+{
+    TrueBranch,
+    FalseBranch,
+};
+
+// Branch state belongs to the original expression. Its value may be shared with
+// a substitute, but that must not alias labels or require a larger value payload.
+struct ConditionalExprCodeGenPayload
+{
+    MicroLabelRef        falseLabel = MicroLabelRef::invalid();
+    MicroLabelRef        doneLabel  = MicroLabelRef::invalid();
+    ConditionalExprStage stage      = ConditionalExprStage::TrueBranch;
+};
+
+struct NullCoalescingCodeGenPayload
+{
+    MicroLabelRef falseLabel = MicroLabelRef::invalid();
+    MicroLabelRef doneLabel  = MicroLabelRef::invalid();
+};
+
+struct LogicalExprCodeGenPayload
+{
+    MicroLabelRef doneLabel = MicroLabelRef::invalid();
+};
+
+struct AssertCodeGenPayload
+{
+    MicroLabelRef doneLabel = MicroLabelRef::invalid();
+};
+
 // Lowering state of an OptionalChainExpr root. Created before the chain body is
 // generated so every '?.' link can jump to 'falseLabel' when its left side is null.
 // A fused chain (scalar result consumed by 'orelse') leaves its labels valid for the
 // enclosing coalescing to adopt; a standalone chain invalidates them once placed.
-struct OptionalChainCodeGenPayload : CodeGenNodePayload
+struct OptionalChainCodeGenPayload
 {
     MicroLabelRef falseLabel = MicroLabelRef::invalid();
     MicroLabelRef doneLabel  = MicroLabelRef::invalid();

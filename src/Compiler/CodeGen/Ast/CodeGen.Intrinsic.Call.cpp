@@ -43,11 +43,6 @@ namespace
 {
     constexpr uint64_t K_RUNTIME_EXCEPTION_KIND_ASSERT = 3;
 
-    struct AssertCodeGenPayload : CodeGenNodePayload
-    {
-        MicroLabelRef doneLabel = MicroLabelRef::invalid();
-    };
-
     ConstantRef makeZeroStructConstant(CodeGen& codeGen, TypeRef typeRef)
     {
         const ConstantRef cstRef = codeGen.cstMgr().addZeroPayloadConstant(codeGen.ctx(), typeRef);

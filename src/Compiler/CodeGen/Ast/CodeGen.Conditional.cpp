@@ -17,26 +17,6 @@ SWC_BEGIN_NAMESPACE();
 
 namespace
 {
-    enum class ConditionalExprStage : uint8_t
-    {
-        TrueBranch,
-        FalseBranch,
-    };
-
-    struct ConditionalExprCodeGenPayload : CodeGenNodePayload
-    {
-        MicroLabelRef falseLabel = MicroLabelRef::invalid();
-        MicroLabelRef doneLabel  = MicroLabelRef::invalid();
-
-        ConditionalExprStage stage = ConditionalExprStage::TrueBranch;
-    };
-
-    struct NullCoalescingCodeGenPayload : CodeGenNodePayload
-    {
-        MicroLabelRef falseLabel = MicroLabelRef::invalid();
-        MicroLabelRef doneLabel  = MicroLabelRef::invalid();
-    };
-
     template<typename T>
     inline void resetConditionalLabels(T& payload)
     {
@@ -95,10 +75,11 @@ Result AstConditionalExpr::codeGenPostNodeChild(CodeGen& codeGen, const AstNodeR
         newState.stage                          = ConditionalExprStage::TrueBranch;
         if (ownsValue)
         {
-            newState.reg     = codeGen.runtimeStorageAddressReg(codeGen.curNodeRef());
-            newState.typeRef = resultTypeRef;
-            newState.setIsAddress();
-            newState.ownsValue = true;
+            auto& resultPayload   = codeGen.ensureNodePayload<CodeGenNodePayload>(codeGen.curNodeRef());
+            resultPayload.reg     = codeGen.runtimeStorageAddressReg(codeGen.curNodeRef());
+            resultPayload.typeRef = resultTypeRef;
+            resultPayload.setIsAddress();
+            resultPayload.ownsValue = true;
         }
 
         CodeGenCompareHelpers::emitCompareRegZero(codeGen, condReg, condType, condBits);
@@ -108,14 +89,15 @@ Result AstConditionalExpr::codeGenPostNodeChild(CodeGen& codeGen, const AstNodeR
 
     if (ownsValue)
     {
-        const CodeGenNodePayload& branch = codeGen.payload(resolvedChildRef);
-        CodeGenMemoryHelpers::storePayloadToAddress(codeGen, state->reg, branch, CodeGenFunctionHelpers::checkedTypeSizeInBytes(codeGen, codeGen.typeMgr().get(resultTypeRef)));
-        SWC_RESULT(CodeGenMemoryHelpers::emitDynamicIdentity(codeGen, resultTypeRef, state->reg));
+        const CodeGenNodePayload& resultPayload = codeGen.payload(codeGen.curNodeRef());
+        const CodeGenNodePayload& branch        = codeGen.payload(resolvedChildRef);
+        CodeGenMemoryHelpers::storePayloadToAddress(codeGen, resultPayload.reg, branch, CodeGenFunctionHelpers::checkedTypeSizeInBytes(codeGen, codeGen.typeMgr().get(resultTypeRef)));
+        SWC_RESULT(CodeGenMemoryHelpers::emitDynamicIdentity(codeGen, resultTypeRef, resultPayload.reg));
 
         const bool copiesBranch = !branch.ownsValue && SemaHelpers::expressionBorrowsStorage(codeGen.sema(), resolvedChildRef);
         const auto postKind     = copiesBranch ? CodeGen::LifecycleKind::PostCopy : CodeGen::LifecycleKind::PostMove;
         if (codeGen.hasLifecycle(resultTypeRef, postKind))
-            SWC_RESULT(codeGen.emitLifecycle(resultTypeRef, postKind, state->reg));
+            SWC_RESULT(codeGen.emitLifecycle(resultTypeRef, postKind, resultPayload.reg));
 
         if (branch.ownsValue && branch.runtimeStorageSym)
             codeGen.cancelTemporaryDrop(*branch.runtimeStorageSym);

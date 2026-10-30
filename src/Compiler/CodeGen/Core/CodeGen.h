@@ -317,7 +317,9 @@ public:
     template<typename T>
     T* safeNodePayload(AstNodeRef nodeRef)
     {
-        nodeRef = resolvedNodeRef(nodeRef);
+        static_assert(!std::is_base_of_v<CodeGenNodePayload, T> || std::is_same_v<CodeGenNodePayload, T>);
+        if constexpr (std::is_base_of_v<CodeGenNodePayload, T>)
+            nodeRef = resolvedNodeRef(nodeRef);
         if (nodeRef.isInvalid())
             return nullptr;
 
@@ -330,7 +332,9 @@ public:
     template<typename T>
     const T* safeNodePayload(AstNodeRef nodeRef) const
     {
-        nodeRef = resolvedNodeRef(nodeRef);
+        static_assert(!std::is_base_of_v<CodeGenNodePayload, T> || std::is_same_v<CodeGenNodePayload, T>);
+        if constexpr (std::is_base_of_v<CodeGenNodePayload, T>)
+            nodeRef = resolvedNodeRef(nodeRef);
         if (nodeRef.isInvalid())
             return nullptr;
 
@@ -344,23 +348,26 @@ public:
     T& ensureNodePayload(AstNodeRef nodeRef)
     {
         const AstNodeRef queryNodeRef = nodeRef;
-        nodeRef                       = resolvedNodeRef(nodeRef);
+        if constexpr (std::is_base_of_v<CodeGenNodePayload, T>)
+        {
+            static_assert(std::is_same_v<CodeGenNodePayload, T>);
+            nodeRef = resolvedNodeRef(nodeRef);
+        }
         SWC_ASSERT(nodeRef.isValid());
 
         RefPointerMap<AstNodeRef>& payloads = std::is_base_of_v<CodeGenNodePayload, T> ? nodePayloads_ : auxNodePayloads_;
         T*                         payload  = static_cast<T*>(payloads.find(nodeRef));
         if (!payload)
         {
-            if constexpr (std::is_base_of_v<CodeGenNodePayload, T>)
+            if constexpr (std::is_trivially_destructible_v<T>)
             {
-                static_assert(std::is_trivially_destructible_v<T>);
                 payload = nodePayloadArena_.make<T>();
             }
             else
             {
-                payload = ctx().allocate<T>();
+                payload  = ctx().allocate<T>();
+                *payload = {};
             }
-            *payload = {};
             if constexpr (std::is_base_of_v<CodeGenNodePayload, T>)
                 mergeLoweringNodePayloadMetadata(*payload, queryNodeRef, nodeRef);
             payloads.set(nodeRef, payload);
@@ -581,6 +588,7 @@ private:
     std::vector<CodeGenFrame> frames_;
 
     RefPointerMap<AstNodeRef> nodePayloads_;
+    // Control-flow state is keyed by the original node, not its value substitute.
     RefPointerMap<AstNodeRef> auxNodePayloads_;
     // These payloads only serve this CodeGen job, including while it is paused.
     Arena nodePayloadArena_{512};

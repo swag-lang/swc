@@ -107,9 +107,18 @@ ships; history lives in Git, not here.
   computes coverage derivatives and samples the glyph-mask texture even for these rectangles.
   Replacing it blindly with `simple.frag` changes zero-alpha discard behavior in non-copy blend
   modes, and can override explicit blur, resolve, font, or custom programs.
+  The CPU counterpart also remains expensive: a warm 1024x640 Capture lens frame takes about
+  278 ms in DevMode and 107 ms in Release while both Gaussian passes hit their cache in under
+  1 ms each. The material pass alone takes about 50-60 ms and 9-18 ms respectively; ordinary
+  textured batches account for much of the remainder. These are diagnostic scene timings,
+  not a portable performance threshold.
 - Next: measure these remaining batches separately from `Copy` blits, establish equivalence for
   each blend and clip-mask operation, then select the cheapest correct program centrally. Include
   the extra program switches in the cost rather than counting fragment instructions alone.
+  Profile CPU sampling, color modulation, coverage and blending separately. Packing all four
+  bilinear channels into U32 SIMD preserved the reference pixels but did not demonstrate a frame
+  gain under shared-machine load; inspect its final instructions and use matched load before
+  revisiting it. Preserve the two 16.16 quantization steps covered by `render.bilinear.test.swg`.
 - Done when: the safe cases have a measured program-selection policy, transparent-texel and
   clip-mask regressions cover its boundaries, and native CPU/GPU comparisons preserve output.
 

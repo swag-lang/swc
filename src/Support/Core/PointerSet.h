@@ -483,7 +483,8 @@ public:
         {
             if (slots_.size() > RELEASE_CAPACITY && count_ * 8 < slots_.size())
             {
-                slots_ = {};
+                // Empty initializer-list assignment keeps vector capacity alive.
+                std::vector<Slot>().swap(slots_);
                 if constexpr (TrackOccupiedSlots)
                     std::vector<size_t>().swap(occupiedSlots_);
             }

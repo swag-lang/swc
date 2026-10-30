@@ -313,6 +313,47 @@ The new regression and this batch have not yet been compiled or run. Formatting,
 inspection and diff checks are the current validation; grouped builds are deferred as requested.
 Neither the measurements above nor the frozen `swc.pages` binaries include this batch.
 
-A heap-profile run of the frozen Release checkpoint is prepared but has not started:
-the stricter 20% CPU admission check continued to report `wait`. Profiling results will be
-used to attribute retained allocations, never as compilation-speed measurements.
+## Sampled allocation profile
+
+The frozen Release checkpoint `ecb64e0f2e` completed an opt-in mimalloc heap-profile run
+without allocator errors. It used the normal repository admission threshold (65%, sampled
+23% before launch); the stricter 20% threshold is reserved for timing comparisons. The
+tracked frozen inputs still matched the worktree byte for byte after the run.
+
+Profiling sampled every 512 KiB on average and wrote snapshots at 128 MiB in-use intervals.
+The largest captured sampled heap estimate was 513.12 MiB. This is neither the total process
+peak nor necessarily the exact heap peak: non-mimalloc mappings are outside this profile,
+and threshold snapshots are discrete. The run's process working set peaked at 1,722.76 MiB,
+including profiler overhead. Its 72.39-second wall time is excluded from speed comparisons.
+
+Inclusive allocation-stack estimates in that snapshot include 114.90 MiB under register
+liveness analysis and 86.63 MiB under archive-file reads. These totals overlap their callers
+and must not be added to them. Symbolization uses the matching linker map and loaded image
+base; folded-function aliases are preserved. [heap-profile.json](heap-profile.json) records
+the hashes, snapshot sizes, leading allocation stacks and raw process measurement. These
+observations guide the next investigations; they do not quantify a gain from subsequent edits.
+
+## Release sparse worker maps when requested
+
+`FlatKeyMap::clear` already selected large, sparsely reused tables for release, but used
+`slots_ = {}`. The installed MSVC vector implementation resolves this to initializer-list
+assignment, which destroys elements while retaining capacity. An empty-vector swap now
+actually releases the allocation in this existing branch, matching the occupied-slot tracker's
+existing release path. The ordinary retained-capacity path is unchanged.
+
+Previously, the next insertion saw an empty vector and allocated a new initial table anyway;
+rehashing then destroyed the retained old buffer. The change brings that same deallocation
+forward to clear, without adding a reallocation on reuse. Existing tracked and untracked
+large/small-fill tests cover the lookup/refill behavior; they have not been rerun for this edit.
+
+## Compact register-allocation records
+
+Inspection of the profiled register-allocation path found padding between fields of its
+per-register state. Grouping the wide fields and the small tags reduces normal x64
+`VRegState` from 136 to 112 bytes. Moving `PendingInsert::hasRelocation` into header padding
+reduces that queued record from 192 to 184 bytes. All fields, default values, capacities and
+algorithms remain; no packing, decoding or additional lookup is introduced.
+
+Compile-time size assertions guard these layouts. The map-release fix and this layout batch
+have passed static review and diff checks, but are not yet built or measured. They are grouped
+with the unused reverse-index change for the next compiler validation checkpoint.

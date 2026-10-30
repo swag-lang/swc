@@ -23,22 +23,22 @@ public:
     Result            run(MicroPassContext& context) override;
     struct VRegState
     {
-        MicroReg          phys;
         uint64_t          spillOffset    = 0;
-        MicroOpBits       spillBits      = MicroOpBits::B64;
         MicroInstrOperand rematImmediate = {};
-        MicroOpBits       rematBits      = MicroOpBits::B64;
         // The address of a global, constant or function is materialized by an
         // instruction the emitter patches, so remaking it means remaking its
         // relocation too. Kept by value: the builder's relocation vector grows
         // as remade loads are inserted, which would move any pointer into it.
-        MicroRelocation rematRelocation  = {};
-        bool            rematIsRelocated = false;
+        MicroRelocation rematRelocation = {};
+        MicroReg        phys;
         // Original instruction that defined a rematerializable value. If the value
         // is evicted or expires before any user reads its physical mapping, the
         // defining instruction is unreachable and gets pruned at the end of RA.
         MicroInstrRef rematDefInstRef  = MicroInstrRef::invalid();
         uint32_t      mappedListIndex  = std::numeric_limits<uint32_t>::max();
+        MicroOpBits   spillBits        = MicroOpBits::B64;
+        MicroOpBits   rematBits        = MicroOpBits::B64;
+        bool          rematIsRelocated = false;
         bool          mapped           = false;
         bool          hasSpill         = false;
         bool          dirty            = false;
@@ -70,17 +70,25 @@ public:
         bool wideFloat = false;
     };
 
+#if !SWC_HAS_REF_DEBUG_INFO
+    static_assert(sizeof(VRegState) == 112);
+#endif
+
 private:
     struct PendingInsert
     {
-        MicroInstrOpcode  op     = MicroInstrOpcode::Nop;
-        uint8_t           numOps = 0;
-        MicroInstrOperand ops[4] = {};
+        MicroInstrOpcode op     = MicroInstrOpcode::Nop;
+        uint8_t          numOps = 0;
         // Filled in when the inserted instruction is a remade address load; the
         // insertion site binds it to the fresh instruction.
-        MicroRelocation relocation    = {};
-        bool            hasRelocation = false;
+        bool              hasRelocation = false;
+        MicroInstrOperand ops[4]        = {};
+        MicroRelocation   relocation    = {};
     };
+
+#if !SWC_HAS_REF_DEBUG_INFO
+    static_assert(sizeof(PendingInsert) == 184);
+#endif
 
     struct AllocRequest
     {

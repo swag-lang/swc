@@ -104,6 +104,8 @@ impl SliderCtrl
             .edit.setTrailingMargin(metrics.editBox_UnitMargin)
             .edit.sigCommitted += func|ctrl|(edit)
             {
+                if edit.revalidate() != .Valid do
+                    return
                 switch edit.inputMode
                 {
                 case .UnsignedInteger: let {value: val, eat: _, ovf: _} = catch StrConv.parseU64(edit.text())

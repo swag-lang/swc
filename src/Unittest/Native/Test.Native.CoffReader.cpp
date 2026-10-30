@@ -265,6 +265,53 @@ SWC_TEST_BEGIN(CoffReader_ArchiveIndexesDefinitionsOnly)
 }
 SWC_TEST_END()
 
+SWC_TEST_BEGIN(CoffReader_MergeConsumesBuffersAndPreservesRebasedSymbols)
+{
+    const ByteArray         bytes = makeCoffReaderObject(false);
+    std::vector<CoffObject> objects(1);
+    Diagnostic              diag;
+    LinkImage               image;
+    if (!readCoffObject(objects[0], diag, bytes))
+        return Result::Error;
+
+    const std::byte* firstBytes = objects[0].sections[0].bytes.data();
+    if (!mergeCoffObjectsIntoImage(image, diag, std::move(objects)))
+        return Result::Error;
+    if (image.sections.size() != 2 || image.sections[0].bytes.data() != firstBytes ||
+        !objects[0].sections[0].bytes.empty() || !objects[0].sections[0].relocs.empty())
+        return Result::Error;
+
+    // Append an aligned object to a populated image. Duplicate definitions keep the first value.
+    objects.clear();
+    objects.resize(1);
+    if (!readCoffObject(objects[0], diag, bytes))
+        return Result::Error;
+    objects[0].sections[0].characteristics |= IMAGE_SCN_ALIGN_16BYTES;
+    objects[0].definedSymbols.push_back({.name = "second_function_name", .sectionIndex = 0, .value = 2});
+    if (!mergeCoffObjectsIntoImage(image, diag, std::move(objects)))
+        return Result::Error;
+    if (!objects[0].sections[0].bytes.empty() || !objects[0].sections[0].relocs.empty())
+        return Result::Error;
+    objects.clear();
+
+    const LinkSection& text = image.sections[0];
+    if (text.bytes.size() != 20 || text.align != 16 || text.bytes.readLe32(0) != 0x12345678 || text.bytes.readLe32(16) != 0x12345678)
+        return Result::Error;
+    for (size_t i = 4; i < 16; ++i)
+    {
+        if (text.bytes[i] != std::byte{0})
+            return Result::Error;
+    }
+    if (text.relocs.size() != 4 || text.relocs[0].offset != 1 || text.relocs[2].offset != 17 ||
+        text.relocs[2].symbolName != "external" || text.relocs[3].symbolName != "defined_function_name" ||
+        text.relocs[2].kind != LinkRelocKind::Rel32 || image.sections[1].bssSize != 128)
+        return Result::Error;
+    if (image.symbols.size() != 4 || image.symbols[0].name != "defined_function_name" || image.symbols[0].value != 1 ||
+        image.symbols[3].name != "second_function_name" || image.symbols[3].sectionIndex != 0 || image.symbols[3].value != 18)
+        return Result::Error;
+}
+SWC_TEST_END()
+
 SWC_END_NAMESPACE();
 
 #endif

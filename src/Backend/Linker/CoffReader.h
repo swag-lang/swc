@@ -15,9 +15,11 @@ class Diagnostic;
 struct CoffInputReloc
 {
     uint32_t offset = 0; // patch offset within the section
+    uint16_t type   = 0; // IMAGE_REL_AMD64_*
     Utf8     symbolName;
-    uint16_t type = 0; // IMAGE_REL_AMD64_*
 };
+
+static_assert(sizeof(void*) != 8 || sizeof(CoffInputReloc) == 40);
 
 struct CoffInputSection
 {

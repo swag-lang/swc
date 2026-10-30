@@ -34,12 +34,19 @@ enum class LinkRelocKind : uint8_t
 
 struct LinkReloc
 {
-    uint32_t      sectionIndex = 0; // section whose bytes are patched (index into LinkImage::sections)
-    uint32_t      offset       = 0; // byte offset of the patch site within that section
-    Utf8          symbolName;       // name of the target symbol
-    int64_t       addend = 0;
+    uint32_t      offset = 0; // byte offset of the patch site in the containing LinkSection
     LinkRelocKind kind   = LinkRelocKind::Abs64;
+#if SWC_DEBUG_MODE
+    // Production accesses already carry the containing section; keep its index only for inspection.
+    uint32_t sectionIndex = 0;
+#endif
+    Utf8    symbolName; // name of the target symbol
+    int64_t addend = 0;
 };
+
+#if !SWC_DEBUG_MODE
+static_assert(sizeof(void*) != 8 || sizeof(LinkReloc) == 48);
+#endif
 
 struct LinkSection
 {

@@ -351,7 +351,7 @@ SWC_FILESYSTEM_TEST_BEGIN(PeWriter_MinimalExecutableCallsExitProcess)
     textSection.bytes = std::move(text);
     textSection.align = 16;
     textSection.flags = LinkSectionFlagsE::Code | LinkSectionFlagsE::Execute | LinkSectionFlagsE::Read;
-    textSection.relocs.push_back({.sectionIndex = 0, .offset = relocOffset, .symbolName = "ExitProcess", .addend = 0, .kind = LinkRelocKind::Rel32});
+    textSection.relocs.push_back({.offset = relocOffset, .kind = LinkRelocKind::Rel32, .symbolName = "ExitProcess", .addend = 0});
 
     LinkImage image;
     image.sections.push_back(std::move(textSection));
@@ -437,9 +437,13 @@ SWC_TEST_BEGIN(PeWriter_FoldsIdenticalUnwindInfo)
         const uint32_t offset       = i * 12;
         const Utf8     functionName = std::format("function{}", i);
         const Utf8     unwindName   = std::format("unwind{}", i);
-        pdataSection.relocs.push_back({.sectionIndex = 2, .offset = offset, .symbolName = functionName, .kind = LinkRelocKind::Rva32});
-        pdataSection.relocs.push_back({.sectionIndex = 2, .offset = offset + 4, .symbolName = functionName, .addend = 1, .kind = LinkRelocKind::Rva32});
-        pdataSection.relocs.push_back({.sectionIndex = 2, .offset = offset + 8, .symbolName = unwindName, .kind = LinkRelocKind::Rva32});
+        pdataSection.relocs.push_back({.offset = offset, .kind = LinkRelocKind::Rva32, .symbolName = functionName});
+        pdataSection.relocs.push_back({.offset = offset + 4, .kind = LinkRelocKind::Rva32, .symbolName = functionName, .addend = 1});
+        pdataSection.relocs.push_back({.offset = offset + 8, .kind = LinkRelocKind::Rva32, .symbolName = unwindName});
+#if SWC_DEBUG_MODE
+        for (size_t relocIndex = pdataSection.relocs.size() - 3; relocIndex < pdataSection.relocs.size(); ++relocIndex)
+            pdataSection.relocs[relocIndex].sectionIndex = 2;
+#endif
     }
 
     LinkImage image;

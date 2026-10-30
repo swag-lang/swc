@@ -341,8 +341,16 @@ bool mergeCoffObjectsIntoImage(LinkImage& outImage, Diagnostic& outDiag, std::ve
             else
             {
                 base = Math::alignUpU32(static_cast<uint32_t>(merged.bytes.size()), align);
-                merged.bytes.resize(base, std::byte{0});
-                merged.bytes.insert(merged.bytes.end(), section.bytes.begin(), section.bytes.end());
+                if (merged.bytes.empty())
+                {
+                    merged.bytes = std::move(section.bytes);
+                }
+                else
+                {
+                    merged.bytes.resize(base, std::byte{0});
+                    merged.bytes.insert(merged.bytes.end(), section.bytes.begin(), section.bytes.end());
+                    section.bytes = ByteArray{};
+                }
             }
 
             placements[s] = {.base = base, .mergedIndex = mergedIdx};
@@ -359,12 +367,17 @@ bool mergeCoffObjectsIntoImage(LinkImage& outImage, Diagnostic& outDiag, std::ve
                 }
 
                 LinkReloc out;
+#if SWC_DEBUG_MODE
                 out.sectionIndex = mergedIdx;
-                out.offset       = base + reloc.offset;
-                out.symbolName   = std::move(reloc.symbolName);
-                out.kind         = kind;
+#endif
+                out.offset     = base + reloc.offset;
+                out.symbolName = std::move(reloc.symbolName);
+                out.kind       = kind;
                 merged.relocs.push_back(std::move(out));
             }
+
+            // These records are consumed; only definition names must survive the whole merge.
+            std::vector<CoffInputReloc>().swap(section.relocs);
         }
 
         for (const CoffInputSymbol& symbol : object.definedSymbols)

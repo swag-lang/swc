@@ -814,10 +814,12 @@ namespace
             }
 
             LinkReloc linkReloc;
+#if SWC_DEBUG_MODE
             linkReloc.sectionIndex = sectionIndex;
-            linkReloc.offset       = patchOffset;
-            linkReloc.symbolName   = std::move(symbolName);
-            linkReloc.kind         = kind;
+#endif
+            linkReloc.offset     = patchOffset;
+            linkReloc.symbolName = std::move(symbolName);
+            linkReloc.kind       = kind;
             section.relocs.push_back(std::move(linkReloc));
 
             return Result::Continue;
@@ -1197,10 +1199,17 @@ namespace
         section.name  = Utf8(SymbolTable::IMAGE_SECTION);
         section.align = 4;
 
+#if SWC_DEBUG_MODE
         const uint32_t sectionIndex = static_cast<uint32_t>(image.sections.size());
+#endif
         section.relocs.reserve(symbols.size());
         for (size_t i = 0; i < symbols.size(); ++i)
-            section.relocs.push_back({.sectionIndex = sectionIndex, .offset = SymbolTable::HEADER_SIZE + static_cast<uint32_t>(i) * SymbolTable::ENTRY_SIZE + SymbolTable::ENTRY_START_RVA, .symbolName = std::move(symbols[i].symbolName), .kind = LinkRelocKind::Rva32});
+        {
+            section.relocs.push_back({.offset = SymbolTable::HEADER_SIZE + static_cast<uint32_t>(i) * SymbolTable::ENTRY_SIZE + SymbolTable::ENTRY_START_RVA, .kind = LinkRelocKind::Rva32, .symbolName = std::move(symbols[i].symbolName)});
+#if SWC_DEBUG_MODE
+            section.relocs.back().sectionIndex = sectionIndex;
+#endif
+        }
 
         image.sections.push_back(std::move(section));
     }

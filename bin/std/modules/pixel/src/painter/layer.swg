@@ -306,10 +306,16 @@ impl Layer
         {
             .buildShadow(info.shadow)
             let margin = Math.max(info.shadow.margin, 0)
-            dstRect.offset(info.shadow.offsetX - cast(f32, margin), info.shadow.offsetY - cast(f32, margin))
-            dstRect.width, dstRect.height += cast(f32, (2 * margin))
-            srcRect = Math.Rectangle{0, 0, (.width + 2 * margin) * .deviceScale, (.height + 2 * margin) * .deviceScale}
-            texture = .shadowTarget!.colorBuffer
+
+            // The shadow texture includes its margins and the shifted content. Scale
+            // all of them together, or resizing a retained layer moves its content.
+            let scaleX = dstRect.width / .width
+            let scaleY = dstRect.height / .height
+            dstRect.offset((info.shadow.offsetX - margin) * scaleX, (info.shadow.offsetY - margin) * scaleY)
+            dstRect.width  += 2 * margin * scaleX
+            dstRect.height += 2 * margin * scaleY
+            srcRect        = Math.Rectangle{0, 0, (.width + 2 * margin) * .deviceScale, (.height + 2 * margin) * .deviceScale}
+            texture        = .shadowTarget!.colorBuffer
         }
         else
         {

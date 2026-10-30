@@ -118,7 +118,9 @@ func testSetupGlobalMain(main: *MainWnd)
 
     // The page arrives from a little below, and is reachable at once.
     let pageTravel = f.main.themeMetrics().motion_PageOffset
-    Swag.assert(f.main.app().animator.isActive(f.main.libWnd, AnimationChannel.from("Gui.Float.Opacity")))
+    Swag.assert(f.main.app().animator.isActive(f.main.libWnd, AnimationChannel.from("Capture.Page.Offset")))
+    Swag.assert(not f.main.app().animator.isActive(f.main.libWnd, AnimationChannel.from("Gui.Float.Opacity")))
+    Swag.assert(f.main.libWnd.presentationOpacity == 1)
     Swag.assert(f.main.libWnd.presentationOffset.y > 0 and f.main.libWnd.presentationOffset.y <= pageTravel)
     f.main.app().animator.finishAll()
     Swag.assert(f.main.libWnd.presentationOpacity == 1 and f.main.libWnd.presentationOffset == Math.Point{})

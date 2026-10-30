@@ -100,11 +100,22 @@ impl MainWnd
         let outgoing = .libraryMode ? .editArea : cast(*Wnd, .libWnd)
         let incoming = .libraryMode ? cast(*Wnd, .libWnd) : .editArea
 
-        // A change of page: the page leaving goes at once, the one coming arrives from a little
-        // below. Fading both would record two full-size subtrees into off-screen layers on every
-        // frame, which costs an image editor and its thumbnail library far more than it says.
+        // Slide the incoming page without fading it: opacity would record the whole
+        // editor or library into an off-screen layer on every animation frame.
         outgoing.hide()
-        discard .app().animator.arrive(incoming, {0, .themeMetrics().motion_PageOffset})
+        outgoing.resetPresentation()
+        incoming.show()
+        let travel = Math.Point{0, .themeMetrics().motion_PageOffset}
+        incoming.setPresentationOffset(travel)
+        var options: AnimationOptions
+        options.duration = Time.Duration.fromSeconds(.themeMetrics().motion_PageSeconds)
+        options.easing   = .EaseOut
+        discard .app().animator.animatePoint(incoming,
+                                             AnimationChannel.from("Capture.Page.Offset"),
+                                             travel,
+                                             {},
+                                             func(wnd, value) { wnd.setPresentationOffset(value) },
+                                             options)
 
         .applyLayout()
         .updateState()

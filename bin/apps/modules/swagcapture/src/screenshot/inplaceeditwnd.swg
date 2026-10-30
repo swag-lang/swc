@@ -60,7 +60,8 @@ struct InPlaceEditWnd
     editMode:         InPlaceEditMode = .Arrow
     editColor:        Color = Argb.Red
     editColorHilight: Color = Argb.Yellow
-    captureScale:     f32   = 1     // DPI scale of the monitor the capture sits on
+    captureScale:     f32   = 1          // DPI scale of the monitor the capture sits on
+    barRoom:          Math.Rectangle     // Captured monitor in overlay-local logical units.
 }
 
 // Returns the DPI scale of the monitor the captured area sits on.
@@ -85,9 +86,20 @@ impl InPlaceEditWnd
         with let frame = createMainFrame(main, parent, capture)
         {
             .captureScale = captureMonitorScale(capture)
+            let center = Math.Point{cast(f32, g_DesktopX) - capture.backImagePos.x + capture.width * 0.5,
+                                    cast(f32, g_DesktopY) - capture.backImagePos.y + capture.height * 0.5}
+            for monitor in main.monitors where monitor.physicalBounds.contains(center)
+            {
+                .barRoom = monitor.physicalBounds
+                .barRoom.offset(-g_DesktopX, -g_DesktopY)
+                .barRoom *= .editWnd.editView.zoom
+                break
+            }
+
             .createBar(main)
             .createHintLine()
             .setupCapture(capture)
+            .app().registerFrameEvent(frame)
         }
 
         return frame
@@ -366,12 +378,22 @@ impl InPlaceEditWnd
     // draws the capture into: one conversion, and the bar cannot drift away from the zone.
     mtd placeBar()
     {
-        .bar.showNear(.editWnd.editView.getCaptureRect(), below: true)
+        let view = .editWnd.editView
+        var room = .barRoom
+        room.intersect(view.clientRect())
+        .bar.showNear(view.getCaptureRect(), below: true, room: room)
     }
 }
 
 impl IWnd for InPlaceEditWnd
 {
+    mtd impl onFrameEvent(_: *FrameEvent)
+    {
+        // The host assigns the overlay its desktop-sized view after construction. Follow the
+        // settled layout as well as gizmo changes; construction still has the default bounds.
+        .placeBar()
+    }
+
     // Enter copies and closes, Ctrl+S saves, Escape leaves without keeping anything.
     mtd impl onKeyEvent(evt: *KeyEvent)
     {

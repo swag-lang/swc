@@ -199,16 +199,21 @@ private func activeScheduler()->*Scheduler
     if sched.started.load() != 0 do
         return sched
 
-    var wanted = sched.requested
-    if wanted == 0
-    {
-        let hardware = __hostProcessorCount()
-        wanted = hardware > 1 ? hardware - 1 : 1
-    }
-
-    startWorkers(sched, wanted)
+    startWorkers(sched, sched.requested)
     sched.started.store(1)
     return sched
+}
+
+// Resolve every request through the same policy, including a return to automatic after startup.
+internal func schedulerWorkerTarget(requested, hardware: u32)->u32
+{
+    var available = hardware == 0 ? 1'u32 : hardware
+    var target    = requested
+    if target == 0 do
+        target = available > 1 ? available - 1 : 1
+    if available > MaxWorkers do
+        available = MaxWorkers
+    return target > available ? available : target
 }
 
 // Brings the roster up to `wanted` threads. The caller holds the scheduler mutex.
@@ -220,10 +225,9 @@ private func startWorkers(sched: *Scheduler, wanted: u32)
     if Swag.jit() do
         return
 
-    var target = wanted
-    if target > MaxWorkers do
-        target = MaxWorkers
-    var count = sched.count.load()
+    let hardware = __hostProcessorCount()
+    var target   = schedulerWorkerTarget(wanted, hardware)
+    var count    = sched.count.load()
     if target <= count do
         return
 
@@ -231,9 +235,7 @@ private func startWorkers(sched: *Scheduler, wanted: u32)
     {
         // The roster is allocated once and never moves: a worker's context and its host thread
         // hold its address for the life of the process.
-        var capacity = __hostProcessorCount()
-        if capacity < target do
-            capacity = target
+        var capacity = hardware
         if capacity > MaxWorkers do
             capacity = MaxWorkers
 

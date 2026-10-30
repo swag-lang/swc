@@ -1552,6 +1552,16 @@ namespace Os
         return p >= base && p < base + K_PROXIMITY_RESERVE;
     }
 
+    void freeProximityMemory(void* ptr, const uint32_t size)
+    {
+        SWC_ASSERT(ptr && size && isProximityMemory(ptr));
+        // Each carve starts on a page boundary. Keep the common address reservation, but
+        // return its physical backing when the owning compiler or JIT manager is destroyed.
+        const BOOL released = VirtualFree(ptr, size, MEM_DECOMMIT);
+        SWC_ASSERT(released != FALSE);
+        SWC_UNUSED(released);
+    }
+
     void* allocExecutableMemory(uint32_t size)
     {
         // Carve from the proximity arena first, so JIT code lands within
@@ -1581,15 +1591,15 @@ namespace Os
         return FlushInstructionCache(GetCurrentProcess(), ptr, size) ? true : false;
     }
 
-    void freeExecutableMemory(void* ptr)
+    void freeExecutableMemory(void* ptr, const uint32_t size)
     {
         if (!ptr)
             return;
-        // An arena carve is not an allocation base; its address space stays
-        // with the arena (committed pages are cheap and the JIT frees its
-        // blocks only at teardown).
         if (isProximityMemory(ptr))
+        {
+            freeProximityMemory(ptr, size);
             return;
+        }
         (void) VirtualFree(ptr, 0, MEM_RELEASE);
     }
 

@@ -63,6 +63,8 @@ public:
     {
     }
 
+    ~SymbolStruct();
+
     SymbolStructFlags structFlags() const noexcept { return extraFlags(); }
 
     uint64_t sizeOf() const;

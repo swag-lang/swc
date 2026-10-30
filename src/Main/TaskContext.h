@@ -1,5 +1,6 @@
 #pragma once
 #include "Main/TaskState.h"
+#include "Support/Memory/Arena.h"
 #include "Support/Report/Assert.h"
 
 SWC_BEGIN_NAMESPACE();
@@ -62,8 +63,7 @@ public:
     template<typename T, typename... ARGS>
     T* allocate(ARGS&&... args)
     {
-        void* mem = allocate(sizeof(T), alignof(T));
-        return new (mem) T(std::forward<ARGS>(args)...);
+        return allocationArena().make<T>(std::forward<ARGS>(args)...);
     }
 
     bool silentDiagnostic() const { return silentDiagnostic_; }
@@ -89,6 +89,8 @@ public:
 
 private:
     friend class TaskScopedContext;
+
+    Arena& allocationArena();
 
     const Global*      global_           = nullptr;
     const CommandLine* cmdLine_          = nullptr;

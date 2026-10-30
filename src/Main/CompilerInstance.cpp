@@ -389,22 +389,6 @@ CompilerInstance::CompilerInstance(const Global& global, const CommandLine& cmdL
     setupRuntimeCompiler();
 }
 
-namespace
-{
-#if SWC_DEV_MODE
-    // Fill a segment with a pattern no valid pointer, length or flag is likely to hold.
-    void poisonDataSegment(const DataSegment& segment)
-    {
-        const uint32_t extent = segment.extentSize();
-        if (!extent)
-            return;
-
-        const std::vector poison(extent, std::byte{0xCD});
-        segment.restoreFromPreserveOffsets(poison);
-    }
-#endif
-}
-
 CompilerInstance::~CompilerInstance()
 {
     CompilerCacheStore::flushAll();
@@ -419,18 +403,18 @@ CompilerInstance::~CompilerInstance()
         });
     }
 
-    // SymbolFunction instances are arena-allocated, so their JITMemory destructors do not reliably
-    // run during compiler teardown. Unregister prepared function tables before executable pages are
-    // released or stale Windows unwind entries can survive into the next compiler instance.
+    // Unregister prepared function tables while their symbols and executable pages are alive.
+    // Arena cleanup later destroys the symbols, whose JITMemory is already reset here.
     resetPreparedJitFunctions();
 
 #if SWC_DEV_MODE
     // Code this instance handed across the JIT boundary can keep a pointer into its global
     // storage after it is gone. That storage usually still holds its old bytes, so the stale read
     // looks healthy; poisoned, it fails on its first use instead.
-    poisonDataSegment(globalZeroSegment_);
-    poisonDataSegment(globalInitSegment_);
-    poisonDataSegment(compilerSegment_);
+    // Fill in place: a temporary snapshot would double the segment's memory during teardown.
+    globalZeroSegment_.fill(std::byte{0xCD});
+    globalInitSegment_.fill(std::byte{0xCD});
+    compilerSegment_.fill(std::byte{0xCD});
 #endif
 }
 

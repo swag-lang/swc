@@ -69,6 +69,8 @@ public:
     {
     }
 
+    ~SymbolFunction();
+
     TypeRef returnTypeRef() const { return returnType_; }
 
     SourceCodeRef codeRefIfDeclared() const noexcept

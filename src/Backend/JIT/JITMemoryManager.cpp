@@ -30,7 +30,7 @@ JITMemoryManager::~JITMemoryManager()
     for (const auto& block : blocks_)
     {
         if (block->ptr)
-            Os::freeExecutableMemory(block->ptr);
+            Os::freeExecutableMemory(block->ptr, block->size);
     }
 
     blocks_.clear();

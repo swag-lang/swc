@@ -1,0 +1,317 @@
+{
+  "date": "2026-10-29",
+  "workers": 6,
+  "variants": {
+    "base": "Pre-change compiler",
+    "arena": "Arena destructors and generic symbol ownership only",
+    "final": "Arena and proximity-page fixes, before in-place DevMode poisoning",
+    "cache": "Rejected experiment: file-backed cache publications",
+    "stream": "Rejected experiment: file-backed and streamed cache publications",
+    "release": "Release compiler with the retained arena and proximity-page fixes; poisoning is DevMode-only",
+    "fill": "Final DevMode compiler: arena ownership, page decommit, and in-place poisoning; cache experiments reverted"
+  },
+  "measurement": "Windows process peak working set and private commit; fresh job object also records process-tree commit. One uninstrumented run per row, full rebuild, shared host; timing is not a speed comparison.",
+  "frozen_sources": {
+    "runtime": {
+      "files": 28,
+      "sha256": "37fed8126210cd272f6a5ea21d684c2781e2ae6f9fd0739a501be4cbbff348da"
+    },
+    "std": {
+      "files": 1141,
+      "sha256": "caa84980e835fae41fe7866504b3990823ed6bc56d1984aa3c181b9500a8cc93"
+    },
+    "apps": {
+      "files": 109,
+      "sha256": "13e254774388ae416b15387b1a249c88541f8c45c979f31d6b4702afec93af87"
+    }
+  },
+  "baseline_cpp_sources": {
+    "files": 861,
+    "sha256": "b4f7680661dc26ae862e4f066fbcda0c201d7195406e1c38d21022244b509a6b"
+  },
+  "measurements": [
+    {
+      "name": "base-cold",
+      "command": [
+        "swc.base.dm.exe",
+        "test",
+        "--workspace",
+        "<frozen-install>\\std",
+        "--workspace-module",
+        "gui",
+        "--num-cores",
+        "6",
+        "--test-file",
+        "layout.test.swg",
+        "--no-log-color",
+        "--no-log-progress",
+        "--rebuild"
+      ],
+      "compiler_sha256": "070777a4a2819dd1014bf20c95b8f6e5dd7a20d4f6e89b8172340f46f186a733",
+      "exit": 0,
+      "wall_ms": 243871.7775,
+      "cpu_ms": 1030140.625,
+      "job_cpu_ms": 1030203.125,
+      "job_processes": 2,
+      "peak_working_set_bytes": 3748810752,
+      "peak_proc_bytes": 3764715520,
+      "peak_job_bytes": 3765956608,
+      "output": "  \u25c6  swag        test \u2022 std [gui] \u2022 devmode\r\n  \u2713  module      win32 \u2022 48 files \u2022 797 ms\r\n  \u2713  module      gdi32 \u2022 44 files \u2022 858 ms\r\n  \u2713  module      xinput \u2022 43 files \u2022 328 ms\r\n  \u2713  module      core \u2022 378 files \u2022 core.dll \u2022 11 s 934 ms\r\n  \u2713  module      ogl \u2022 98 files \u2022 ogl.dll \u2022 5 s 507 ms\r\n  \u2713  module      truetype \u2022 99 files \u2022 truetype.dll \u2022 5 s 291 ms\r\n  \u2713  module      pixel \u2022 318 files \u2022 pixel.dll \u2022 36 s 481 ms\r\n  \u2713  module      gui \u2022 366 files \u2022 gui.dll \u2022 2 min 2 s\r\n  \u2713  workspace   std [gui] \u2022 8 modules \u2022 3 min 9 s\r\n  \u2713  checked     321 files \u2022 1_074_995 tokens \u2022 9 s 724 ms\r\n  \u2713  tuned       10_793 functions \u2022 23 s 784 ms\r\n  \u2713  executed    32 passed \u2022 38 s 629 ms\r\n  \u2713  verified    93 us\r\n  \u2713  tested      32 passed \u2022 48 s 402 ms\r\n  \u2713  module      gui \u2022 366 files \u2022 32 passed \u2022 48 s 420 ms\r\n  \u2713  workspace   std [gui] \u2022 1 module \u2022 32 passed \u2022 4 min 2 s\r\n  \u2713  clean       4 min 3 s\r\n"
+    },
+    {
+      "name": "arena-cold",
+      "command": [
+        "swc.new.dm.exe",
+        "test",
+        "--workspace",
+        "<frozen-install>\\std",
+        "--workspace-module",
+        "gui",
+        "--num-cores",
+        "6",
+        "--test-file",
+        "layout.test.swg",
+        "--no-log-color",
+        "--no-log-progress",
+        "--rebuild"
+      ],
+      "compiler_sha256": "f089cbf0374156e611d68829ab784ce3ba4489537d290721852507ccb0d70ed6",
+      "exit": 0,
+      "wall_ms": 128448.0566,
+      "cpu_ms": 630656.25,
+      "job_cpu_ms": 630687.5,
+      "job_processes": 2,
+      "peak_working_set_bytes": 3482828800,
+      "peak_proc_bytes": 3495428096,
+      "peak_job_bytes": 3496648704,
+      "output": "  \u25c6  swag        test \u2022 std [gui] \u2022 devmode\r\n  \u2713  module      win32 \u2022 48 files \u2022 376 ms\r\n  \u2713  module      gdi32 \u2022 44 files \u2022 413 ms\r\n  \u2713  module      xinput \u2022 43 files \u2022 229 ms\r\n  \u2713  module      core \u2022 378 files \u2022 core.dll \u2022 5 s 808 ms\r\n  \u2713  module      ogl \u2022 98 files \u2022 ogl.dll \u2022 3 s 129 ms\r\n  \u2713  module      truetype \u2022 99 files \u2022 truetype.dll \u2022 2 s 283 ms\r\n  \u2713  module      pixel \u2022 318 files \u2022 pixel.dll \u2022 17 s 265 ms\r\n  \u2713  module      gui \u2022 366 files \u2022 gui.dll \u2022 30 s 53 ms\r\n  \u2713  workspace   std [gui] \u2022 8 modules \u2022 1 min 3 s\r\n  \u2713  checked     321 files \u2022 1_074_995 tokens \u2022 18 s 370 ms\r\n  \u2713  tuned       10_793 functions \u2022 34 s 763 ms\r\n  \u2713  executed    32 passed \u2022 42 s 893 ms\r\n  \u2713  verified    119 us\r\n  \u2713  tested      32 passed \u2022 1 min 1 s\r\n  \u2713  module      gui \u2022 366 files \u2022 32 passed \u2022 1 min 1 s\r\n  \u2713  workspace   std [gui] \u2022 1 module \u2022 32 passed \u2022 2 min 7 s\r\n  \u2713  clean       2 min 7 s\r\n"
+    },
+    {
+      "name": "final-gui-cold",
+      "command": [
+        "swc.final.dm.exe",
+        "test",
+        "--workspace",
+        "<frozen-install>\\std",
+        "--workspace-module",
+        "gui",
+        "--num-cores",
+        "6",
+        "--test-file",
+        "layout.test.swg",
+        "--no-log-color",
+        "--no-log-progress",
+        "--rebuild"
+      ],
+      "compiler_sha256": "dfc00831eed2a8fe8403a89cd1d01537077cccc3f1fd08e5fb53d3a7cb28ec16",
+      "exit": 0,
+      "wall_ms": 145297.6376,
+      "cpu_ms": 648906.25,
+      "job_cpu_ms": 648937.5,
+      "job_processes": 2,
+      "peak_working_set_bytes": 2951622656,
+      "peak_proc_bytes": 2966876160,
+      "peak_job_bytes": 2968100864,
+      "output": "  \u25c6  swag        test \u2022 std [gui] \u2022 devmode\r\n  \u2713  module      win32 \u2022 48 files \u2022 791 ms\r\n  \u2713  module      gdi32 \u2022 44 files \u2022 974 ms\r\n  \u2713  module      xinput \u2022 43 files \u2022 380 ms\r\n  \u2713  module      core \u2022 378 files \u2022 core.dll \u2022 9 s 658 ms\r\n  \u2713  module      ogl \u2022 98 files \u2022 ogl.dll \u2022 3 s 317 ms\r\n  \u2713  module      truetype \u2022 99 files \u2022 truetype.dll \u2022 2 s 272 ms\r\n  \u2713  module      pixel \u2022 318 files \u2022 pixel.dll \u2022 18 s 562 ms\r\n  \u2713  module      gui \u2022 366 files \u2022 gui.dll \u2022 21 s 322 ms\r\n  \u2713  workspace   std [gui] \u2022 8 modules \u2022 1 min 3 s\r\n  \u2713  checked     321 files \u2022 1_074_995 tokens \u2022 21 s 994 ms\r\n  \u2713  tuned       10_793 functions \u2022 32 s 22 ms\r\n  \u2713  executed    32 passed \u2022 55 s 36 ms\r\n  \u2713  verified    180 us\r\n  \u2713  tested      32 passed \u2022 1 min 17 s\r\n  \u2713  module      gui \u2022 366 files \u2022 32 passed \u2022 1 min 17 s\r\n  \u2713  workspace   std [gui] \u2022 1 module \u2022 32 passed \u2022 2 min 24 s\r\n  \u2713  clean       2 min 24 s\r\n"
+    },
+    {
+      "name": "base-app-cold",
+      "command": [
+        "swc.base.dm.exe",
+        "build",
+        "--workspace",
+        "<frozen-install>\\apps",
+        "--workspace-module",
+        "swagcapture",
+        "--num-cores",
+        "6",
+        "--no-log-color",
+        "--no-log-progress",
+        "--rebuild"
+      ],
+      "compiler_sha256": "070777a4a2819dd1014bf20c95b8f6e5dd7a20d4f6e89b8172340f46f186a733",
+      "exit": 0,
+      "wall_ms": 92092.4758,
+      "cpu_ms": 409000.0,
+      "job_cpu_ms": 409015.625,
+      "job_processes": 2,
+      "peak_working_set_bytes": 2881286144,
+      "peak_proc_bytes": 2925154304,
+      "peak_job_bytes": 2926370816,
+      "output": "  \u25c6  swag        build \u2022 apps [swagcapture] \u2022 devmode\r\n  \u2713  module      win32 \u2022 48 files \u2022 454 ms\r\n  \u2713  module      gdi32 \u2022 44 files \u2022 407 ms\r\n  \u2713  module      xinput \u2022 43 files \u2022 187 ms\r\n  \u2713  module      core \u2022 378 files \u2022 core.dll \u2022 6 s 228 ms\r\n  \u2713  module      ogl \u2022 98 files \u2022 ogl.dll \u2022 3 s 127 ms\r\n  \u2713  module      truetype \u2022 99 files \u2022 truetype.dll \u2022 2 s 517 ms\r\n  \u2713  module      pixel \u2022 318 files \u2022 pixel.dll \u2022 25 s 241 ms\r\n  \u2713  module      gui \u2022 366 files \u2022 gui.dll \u2022 24 s 149 ms\r\n  \u2713  workspace   std [gui] \u2022 8 modules \u2022 1 min 6 s\r\n  \u2713  checked     136 files \u2022 591_948 tokens \u2022 7 s 684 ms\r\n  \u2713  tuned       5_143 functions \u2022 8 s 566 ms\r\n  \u2713  forged      2_411 functions \u2022 swagcapture.exe \u2022 8 s 751 ms\r\n  \u2713  module      swagcapture \u2022 182 files \u2022 swagcapture.exe \u2022 19 s 449 ms\r\n  \u2713  workspace   apps [swagcapture] \u2022 1 module \u2022 1 min 30 s\r\n  \u2713  clean       1 min 30 s\r\n"
+    },
+    {
+      "name": "final-app-cold",
+      "command": [
+        "swc.final.dm.exe",
+        "build",
+        "--workspace",
+        "<frozen-install>\\apps",
+        "--workspace-module",
+        "swagcapture",
+        "--num-cores",
+        "6",
+        "--no-log-color",
+        "--no-log-progress",
+        "--rebuild"
+      ],
+      "compiler_sha256": "dfc00831eed2a8fe8403a89cd1d01537077cccc3f1fd08e5fb53d3a7cb28ec16",
+      "exit": 0,
+      "wall_ms": 172806.13,
+      "cpu_ms": 643781.25,
+      "job_cpu_ms": 643781.25,
+      "job_processes": 2,
+      "peak_working_set_bytes": 2502795264,
+      "peak_proc_bytes": 2545049600,
+      "peak_job_bytes": 2546286592,
+      "output": "  \u25c6  swag        build \u2022 apps [swagcapture] \u2022 devmode\r\n  \u2713  module      win32 \u2022 48 files \u2022 478 ms\r\n  \u2713  module      gdi32 \u2022 44 files \u2022 443 ms\r\n  \u2713  module      xinput \u2022 43 files \u2022 194 ms\r\n  \u2713  module      core \u2022 378 files \u2022 core.dll \u2022 6 s 65 ms\r\n  \u2713  module      ogl \u2022 98 files \u2022 ogl.dll \u2022 3 s 198 ms\r\n  \u2713  module      truetype \u2022 99 files \u2022 truetype.dll \u2022 3 s 238 ms\r\n  \u2713  module      pixel \u2022 318 files \u2022 pixel.dll \u2022 37 s 913 ms\r\n  \u2713  module      gui \u2022 366 files \u2022 gui.dll \u2022 1 min 7 s\r\n  \u2713  workspace   std [gui] \u2022 8 modules \u2022 2 min 6 s\r\n  \u2713  checked     136 files \u2022 591_948 tokens \u2022 18 s 805 ms\r\n  \u2713  tuned       5_143 functions \u2022 17 s 450 ms\r\n  \u2713  forged      2_411 functions \u2022 swagcapture.exe \u2022 17 s 741 ms\r\n  \u2713  module      swagcapture \u2022 182 files \u2022 swagcapture.exe \u2022 40 s 517 ms\r\n  \u2713  workspace   apps [swagcapture] \u2022 1 module \u2022 2 min 51 s\r\n  \u2713  clean       2 min 51 s\r\n"
+    },
+    {
+      "name": "cache-app-cold",
+      "command": [
+        "swc.cache.dm.exe",
+        "build",
+        "--workspace",
+        "<frozen-install>\\apps",
+        "--workspace-module",
+        "swagcapture",
+        "--num-cores",
+        "6",
+        "--no-log-color",
+        "--no-log-progress",
+        "--rebuild"
+      ],
+      "compiler_sha256": "bd3273fa9bd9f693fc548b3af6e01a9396274a0c8784ecd12f1968b44a992b59",
+      "exit": 0,
+      "wall_ms": 184987.3304,
+      "cpu_ms": 720062.5,
+      "job_cpu_ms": 720078.125,
+      "job_processes": 2,
+      "peak_working_set_bytes": 2492162048,
+      "peak_proc_bytes": 2523987968,
+      "peak_job_bytes": 2525216768,
+      "output": "  \u25c6  swag        build \u2022 apps [swagcapture] \u2022 devmode\r\n  \u2713  module      win32 \u2022 48 files \u2022 618 ms\r\n  \u2713  module      gdi32 \u2022 44 files \u2022 634 ms\r\n  \u2713  module      xinput \u2022 43 files \u2022 348 ms\r\n  \u2713  module      core \u2022 378 files \u2022 core.dll \u2022 9 s 631 ms\r\n  \u2713  module      ogl \u2022 98 files \u2022 ogl.dll \u2022 5 s 786 ms\r\n  \u2713  module      truetype \u2022 99 files \u2022 truetype.dll \u2022 5 s 387 ms\r\n  \u2713  module      pixel \u2022 318 files \u2022 pixel.dll \u2022 1 min 5 s\r\n  \u2713  module      gui \u2022 366 files \u2022 gui.dll \u2022 1 min 11 s\r\n  \u2713  workspace   std [gui] \u2022 8 modules \u2022 2 min 47 s\r\n  \u2713  checked     136 files \u2022 591_948 tokens \u2022 4 s 703 ms\r\n  \u2713  tuned       5_143 functions \u2022 6 s 519 ms\r\n  \u2713  forged      2_411 functions \u2022 swagcapture.exe \u2022 6 s 684 ms\r\n  \u2713  module      swagcapture \u2022 182 files \u2022 swagcapture.exe \u2022 13 s 370 ms\r\n  \u2713  workspace   apps [swagcapture] \u2022 1 module \u2022 3 min 4 s\r\n  \u2713  clean       3 min 4 s\r\n"
+    },
+    {
+      "name": "stream-app-cold",
+      "command": [
+        "swc.stream.dm.exe",
+        "build",
+        "--workspace",
+        "<frozen-install>\\apps",
+        "--workspace-module",
+        "swagcapture",
+        "--num-cores",
+        "6",
+        "--no-log-color",
+        "--no-log-progress",
+        "--rebuild"
+      ],
+      "compiler_sha256": "0e43c113d3768c6a0556fb94d580a2f4a6597c470fc6c0e9f35868afc4c1a5a5",
+      "exit": 0,
+      "wall_ms": 181902.7745,
+      "cpu_ms": 748109.375,
+      "job_cpu_ms": 748125.0,
+      "job_processes": 2,
+      "peak_working_set_bytes": 2507579392,
+      "peak_proc_bytes": 2529554432,
+      "peak_job_bytes": 2530770944,
+      "output": "  \u25c6  swag        build \u2022 apps [swagcapture] \u2022 devmode\r\n  \u2713  module      win32 \u2022 48 files \u2022 620 ms\r\n  \u2713  module      gdi32 \u2022 44 files \u2022 693 ms\r\n  \u2713  module      xinput \u2022 43 files \u2022 366 ms\r\n  \u2713  module      core \u2022 378 files \u2022 core.dll \u2022 10 s 833 ms\r\n  \u2713  module      ogl \u2022 98 files \u2022 ogl.dll \u2022 6 s 27 ms\r\n  \u2713  module      truetype \u2022 99 files \u2022 truetype.dll \u2022 4 s 964 ms\r\n  \u2713  module      pixel \u2022 318 files \u2022 pixel.dll \u2022 55 s 657 ms\r\n  \u2713  module      gui \u2022 366 files \u2022 gui.dll \u2022 1 min 20 s\r\n  \u2713  workspace   std [gui] \u2022 8 modules \u2022 2 min 47 s\r\n  \u2713  checked     136 files \u2022 591_948 tokens \u2022 3 s 568 ms\r\n  \u2713  tuned       5_143 functions \u2022 5 s 346 ms\r\n  \u2713  forged      2_411 functions \u2022 swagcapture.exe \u2022 5 s 499 ms\r\n  \u2713  module      swagcapture \u2022 182 files \u2022 swagcapture.exe \u2022 10 s 798 ms\r\n  \u2713  workspace   apps [swagcapture] \u2022 1 module \u2022 3 min 1 s\r\n  \u2713  clean       3 min 1 s\r\n"
+    },
+    {
+      "name": "release-app-cold",
+      "command": [
+        "swc.final.exe",
+        "build",
+        "--workspace",
+        "<frozen-install>\\apps",
+        "--workspace-module",
+        "swagcapture",
+        "--num-cores",
+        "6",
+        "--no-log-color",
+        "--no-log-progress",
+        "--rebuild"
+      ],
+      "compiler_sha256": "33027519eb416eda80ecbfa2835183fdfc0275cfff6da20497870f5a899211e5",
+      "exit": 0,
+      "wall_ms": 83781.6318,
+      "cpu_ms": 363750.0,
+      "job_cpu_ms": 363765.625,
+      "job_processes": 2,
+      "peak_working_set_bytes": 1852792832,
+      "peak_proc_bytes": 1907027968,
+      "peak_job_bytes": 1908244480,
+      "output": "  \u25c6  swag        build \u2022 apps [swagcapture] \u2022 devmode\r\n  \u2713  module      win32 \u2022 48 files \u2022 236 ms\r\n  \u2713  module      gdi32 \u2022 44 files \u2022 236 ms\r\n  \u2713  module      xinput \u2022 43 files \u2022 113 ms\r\n  \u2713  module      core \u2022 378 files \u2022 core.dll \u2022 3 s 961 ms\r\n  \u2713  module      ogl \u2022 98 files \u2022 ogl.dll \u2022 3 s 252 ms\r\n  \u2713  module      truetype \u2022 99 files \u2022 truetype.dll \u2022 3 s 365 ms\r\n  \u2713  module      pixel \u2022 318 files \u2022 pixel.dll \u2022 24 s 405 ms\r\n  \u2713  module      gui \u2022 366 files \u2022 gui.dll \u2022 23 s 756 ms\r\n  \u2713  workspace   std [gui] \u2022 8 modules \u2022 1 min 2 s\r\n  \u2713  checked     136 files \u2022 591_927 tokens \u2022 4 s 934 ms\r\n  \u2713  tuned       5_143 functions \u2022 10 s 167 ms\r\n  \u2713  forged      2_411 functions \u2022 swagcapture.exe \u2022 10 s 410 ms\r\n  \u2713  module      swagcapture \u2022 182 files \u2022 swagcapture.exe \u2022 17 s 405 ms\r\n  \u2713  workspace   apps [swagcapture] \u2022 1 module \u2022 1 min 22 s\r\n  \u2713  clean       1 min 22 s\r\n"
+    },
+    {
+      "name": "fill-app-cold",
+      "command": [
+        "swc.fill.dm.exe",
+        "build",
+        "--workspace",
+        "<frozen-install>\\apps",
+        "--workspace-module",
+        "swagcapture",
+        "--num-cores",
+        "6",
+        "--no-log-color",
+        "--no-log-progress",
+        "--rebuild"
+      ],
+      "compiler_sha256": "34ee7b7e4d64aa67c80703b11cc0a8e98c1bd3681a64e86821c965053685485c",
+      "exit": 0,
+      "wall_ms": 67492.8925,
+      "cpu_ms": 318796.875,
+      "job_cpu_ms": 318812.5,
+      "job_processes": 2,
+      "peak_working_set_bytes": 2573041664,
+      "peak_proc_bytes": 2591326208,
+      "peak_job_bytes": 2592555008,
+      "output": "  \u25c6  swag        build \u2022 apps [swagcapture] \u2022 devmode\r\n  \u2713  module      win32 \u2022 48 files \u2022 376 ms\r\n  \u2713  module      gdi32 \u2022 44 files \u2022 377 ms\r\n  \u2713  module      xinput \u2022 43 files \u2022 191 ms\r\n  \u2713  module      core \u2022 378 files \u2022 core.dll \u2022 5 s 644 ms\r\n  \u2713  module      ogl \u2022 98 files \u2022 ogl.dll \u2022 3 s 26 ms\r\n  \u2713  module      truetype \u2022 99 files \u2022 truetype.dll \u2022 2 s 384 ms\r\n  \u2713  module      pixel \u2022 318 files \u2022 pixel.dll \u2022 17 s 856 ms\r\n  \u2713  module      gui \u2022 366 files \u2022 gui.dll \u2022 21 s 379 ms\r\n  \u2713  workspace   std [gui] \u2022 8 modules \u2022 54 s 685 ms\r\n  \u2713  checked     136 files \u2022 591_925 tokens \u2022 3 s 600 ms\r\n  \u2713  tuned       5_142 functions \u2022 5 s 540 ms\r\n  \u2713  forged      2_411 functions \u2022 swagcapture.exe \u2022 5 s 679 ms\r\n  \u2713  module      swagcapture \u2022 182 files \u2022 swagcapture.exe \u2022 10 s 779 ms\r\n  \u2713  workspace   apps [swagcapture] \u2022 1 module \u2022 1 min 7 s\r\n  \u2713  clean       1 min 7 s\r\n"
+    },
+    {
+      "name": "fill-gui-cold",
+      "command": [
+        "swc.fill.dm.exe",
+        "test",
+        "--workspace",
+        "<frozen-install>\\std",
+        "--workspace-module",
+        "gui",
+        "--num-cores",
+        "6",
+        "--test-file",
+        "layout.test.swg",
+        "--no-log-color",
+        "--no-log-progress",
+        "--rebuild"
+      ],
+      "compiler_sha256": "34ee7b7e4d64aa67c80703b11cc0a8e98c1bd3681a64e86821c965053685485c",
+      "exit": 0,
+      "wall_ms": 153468.8815,
+      "cpu_ms": 634546.875,
+      "job_cpu_ms": 634593.75,
+      "job_processes": 2,
+      "peak_working_set_bytes": 2980356096,
+      "peak_proc_bytes": 2999865344,
+      "peak_job_bytes": 3001085952,
+      "output": "  \u25c6  swag        test \u2022 std [gui] \u2022 devmode\r\n  \u2713  module      win32 \u2022 48 files \u2022 413 ms\r\n  \u2713  module      gdi32 \u2022 44 files \u2022 401 ms\r\n  \u2713  module      xinput \u2022 43 files \u2022 199 ms\r\n  \u2713  module      core \u2022 378 files \u2022 core.dll \u2022 6 s 387 ms\r\n  \u2713  module      ogl \u2022 98 files \u2022 ogl.dll \u2022 3 s 57 ms\r\n  \u2713  module      truetype \u2022 99 files \u2022 truetype.dll \u2022 3 s 240 ms\r\n  \u2713  module      pixel \u2022 318 files \u2022 pixel.dll \u2022 1 min 29 s\r\n  \u2713  module      gui \u2022 366 files \u2022 gui.dll \u2022 13 s 368 ms\r\n  \u2713  workspace   std [gui] \u2022 8 modules \u2022 2 min 0 s\r\n  \u2713  checked     321 files \u2022 1_074_995 tokens \u2022 7 s 37 ms\r\n  \u2713  tuned       10_793 functions \u2022 11 s 716 ms\r\n  \u2713  executed    32 passed \u2022 22 s 538 ms\r\n  \u2713  verified    70 us\r\n  \u2713  tested      32 passed \u2022 29 s 608 ms\r\n  \u2713  module      gui \u2022 366 files \u2022 32 passed \u2022 29 s 620 ms\r\n  \u2713  workspace   std [gui] \u2022 1 module \u2022 32 passed \u2022 2 min 32 s\r\n  \u2713  clean       2 min 32 s\r\n"
+    }
+  ],
+  "validation": {
+    "cpp": {
+      "command": "swc.dm.exe unittest --dev-full --num-cores 6 --no-log-color",
+      "passed": 1684,
+      "failed": 0
+    },
+    "gui": {
+      "passed": 32,
+      "failed": 0
+    },
+    "app_builds": [
+      "DevMode compiler: exit 0",
+      "Release compiler: exit 0"
+    ]
+  }
+}

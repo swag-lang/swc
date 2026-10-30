@@ -639,6 +639,13 @@ struct SymbolFunction::GenericData
     std::atomic<SymbolFunction*> erasedInstance = nullptr;
 };
 
+SymbolFunction::~SymbolFunction()
+{
+    releaseMicroInstrBuilder();
+    auto* data = genericData();
+    heapDelete(data);
+}
+
 RtAttributeFlags SymbolFunction::rtAttributeFlags() const
 {
     if (rtAttributeBitIndex_ == K_INVALID_RT_ATTRIBUTE_BIT_INDEX)

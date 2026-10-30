@@ -1123,6 +1123,12 @@ struct SymbolStruct::GenericData
     std::vector<SymbolInternal::GenericEvalEntry> evalCache;
 };
 
+SymbolStruct::~SymbolStruct()
+{
+    auto* data = genericData();
+    heapDelete(data);
+}
+
 const SymbolImpl* SymbolStruct::findInterfaceImpl(IdentifierRef interfaceIdRef) const
 {
     const std::shared_lock lk(mutexInterfaces_);

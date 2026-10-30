@@ -7,6 +7,14 @@
 
 SWC_BEGIN_NAMESPACE();
 
+void DataSegment::LargeBlockStorageDeleter::operator()(std::byte* ptr) const noexcept
+{
+    if (proximitySize)
+        Os::freeProximityMemory(ptr, proximitySize);
+    else
+        delete[] ptr;
+}
+
 namespace
 {
     bool containsLargeBlockRange(const DataSegment::LargeBlock& block, const Ref ref, const uint32_t size) noexcept
@@ -256,6 +264,14 @@ void DataSegment::restoreFromPreserveOffsets(std::span<const std::byte> src) con
     }
 }
 
+void DataSegment::fill(const std::byte value) const
+{
+    const std::unique_lock lock(mutex_);
+    store_.fill(value);
+    for (const LargeBlock& block : largeBlocks_)
+        std::memset(block.storage.get(), std::to_integer<int>(value), block.size);
+}
+
 std::vector<DataSegmentRelocation> DataSegment::copyRelocations() const
 {
     const std::shared_lock lock(relocationsMutex_);
@@ -460,7 +476,7 @@ std::pair<uint32_t, std::byte*> DataSegment::allocateStorageLocked(uint32_t size
         if (proximityStorage_)
         {
             if (auto* arena = static_cast<std::byte*>(Os::allocProximityMemory(size)))
-                block.storage = LargeBlockStorage(arena, {.proximity = true});
+                block.storage = LargeBlockStorage(arena, {.proximitySize = size});
         }
         if (!block.storage)
             block.storage = LargeBlockStorage(new std::byte[size], {});

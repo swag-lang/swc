@@ -2073,6 +2073,47 @@ SWC_TEST_BEGIN(Compiler_SharedApiTextSurvivesSnapshotAndEditorRevision)
 }
 SWC_TEST_END()
 
+SWC_TEST_BEGIN(Compiler_ArenaAllocationsReleaseOwnedResources)
+{
+    std::weak_ptr<uint64_t> retained;
+    {
+        CommandLine      cmdLine;
+        CompilerInstance compiler(ctx.global(), cmdLine);
+        TaskContext      compilerCtx(compiler);
+        auto             resource = std::make_shared<uint64_t>(42);
+        retained                  = resource;
+
+        compiler.allocate<std::shared_ptr<uint64_t>>(resource);
+        compilerCtx.allocate<std::shared_ptr<uint64_t>>(resource);
+        auto* array = compiler.allocateArray<std::shared_ptr<uint64_t>>(2);
+        array[0]    = resource;
+        array[1]    = resource;
+        if (resource.use_count() != 5)
+            return Result::Error;
+    }
+    return retained.expired() ? Result::Continue : Result::Error;
+}
+SWC_TEST_END()
+
+SWC_TEST_BEGIN(Compiler_ArenaFunctionReleasesGenericState)
+{
+    std::weak_ptr<uint64_t> retained;
+    {
+        CommandLine      cmdLine;
+        CompilerInstance compiler(ctx.global(), cmdLine);
+        TaskContext      compilerCtx(compiler);
+        auto             resource = std::make_shared<uint64_t>(42);
+        retained                  = resource;
+
+        auto* function                                = compiler.allocate<SymbolFunction>(nullptr, TokenRef::invalid(), IdentifierRef::invalid(), SymbolFlags{});
+        function->ensureLazyBodyRunState(compilerCtx) = resource;
+        if (resource.use_count() != 2)
+            return Result::Error;
+    }
+    return retained.expired() ? Result::Continue : Result::Error;
+}
+SWC_TEST_END()
+
 SWC_END_NAMESPACE();
 
 #endif

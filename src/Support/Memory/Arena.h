@@ -26,15 +26,43 @@ public:
     template<typename T, typename... ARGS>
     T* make(ARGS&&... args)
     {
-        void* mem = allocate(sizeof(T), alignof(T));
-        return new (mem) T(std::forward<ARGS>(args)...);
+        void*      mem       = allocate(sizeof(T), alignof(T));
+        Finalizer* finalizer = nullptr;
+        if constexpr (!std::is_trivially_destructible_v<T>)
+            finalizer = static_cast<Finalizer*>(allocate(sizeof(Finalizer), alignof(Finalizer)));
+
+        T* value = new (mem) T(std::forward<ARGS>(args)...);
+        if constexpr (!std::is_trivially_destructible_v<T>)
+            own(finalizer, value, 1);
+        return value;
     }
 
     template<typename T>
-    static void destroy(T* ptr)
+    T* makeArray(size_t count)
     {
-        if (ptr)
-            ptr->~T();
+        auto*      values    = static_cast<T*>(allocate(sizeof(T) * count, alignof(T)));
+        Finalizer* finalizer = nullptr;
+        if constexpr (!std::is_trivially_destructible_v<T>)
+            finalizer = static_cast<Finalizer*>(allocate(sizeof(Finalizer), alignof(Finalizer)));
+
+        if constexpr (!std::is_trivially_default_constructible_v<T>)
+        {
+            size_t constructed = 0;
+            try
+            {
+                for (; constructed < count; ++constructed)
+                    new (values + constructed) T();
+            }
+            catch (...)
+            {
+                destroyObjects<T>(values, constructed);
+                throw;
+            }
+        }
+
+        if constexpr (!std::is_trivially_destructible_v<T>)
+            own(finalizer, values, count);
+        return values;
     }
 
     void reset()
@@ -44,6 +72,31 @@ public:
     }
 
 private:
+    // Releasing arena pages alone loses the heap storage owned by their vectors, maps and
+    // shared pointers. Keep cleanup records in the arena too; trivial payloads need none.
+    struct Finalizer
+    {
+        void*  values;
+        size_t count;
+        void (*destroy)(void*, size_t) noexcept;
+        Finalizer* previous;
+    };
+
+    template<typename T>
+    void own(Finalizer* finalizer, T* values, size_t count)
+    {
+        *finalizer  = {values, count, &destroyObjects<T>, finalizers_};
+        finalizers_ = finalizer;
+    }
+
+    template<typename T>
+    static void destroyObjects(void* ptr, size_t count) noexcept
+    {
+        auto* values = static_cast<T*>(ptr);
+        while (count)
+            std::destroy_at(values + --count);
+    }
+
     struct Block
     {
         std::size_t   size;
@@ -54,6 +107,7 @@ private:
 
     Block*      head_;
     std::size_t defaultBlockSize_;
+    Finalizer*  finalizers_ = nullptr;
 
     static bool canAllocateFrom(const Block* block, std::size_t size, std::size_t alignment) noexcept;
     Block*      addBlock(std::size_t minSize);

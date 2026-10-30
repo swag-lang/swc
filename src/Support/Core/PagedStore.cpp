@@ -195,6 +195,12 @@ void PagedStore::restoreFromPreserveOffsets(std::span<const std::byte> src) cons
     }
 }
 
+void PagedStore::fill(const std::byte value) const
+{
+    for (Page* page : *snapshotPages())
+        std::memset(page->bytes(), std::to_integer<int>(value), page->used.load(std::memory_order_relaxed));
+}
+
 std::pair<SpanRef, uint32_t> PagedStore::writeChunkRaw(const uint8_t* src, uint32_t elemSize, uint32_t elemAlign, uint32_t remaining, uint32_t totalElems)
 {
     SWC_ASSERT(elemSize > 0);
@@ -482,7 +488,7 @@ PagedStore::Page::Page(uint32_t pageSize, bool proximity)
     if (proximity)
     {
         storage       = static_cast<std::byte*>(Os::allocProximityMemory(pageSize));
-        fromProximity = storage != nullptr;
+        proximitySize = storage ? pageSize : 0;
     }
     if (!storage)
         storage = allocateAligned(pageSize);
@@ -490,8 +496,9 @@ PagedStore::Page::Page(uint32_t pageSize, bool proximity)
 
 PagedStore::Page::~Page()
 {
-    // Arena carves stay with the arena; see Os::allocProximityMemory.
-    if (!fromProximity)
+    if (proximitySize)
+        Os::freeProximityMemory(storage, proximitySize);
+    else
         deallocateAligned(storage);
 }
 

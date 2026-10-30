@@ -437,22 +437,13 @@ public:
     template<typename T, typename... ARGS>
     T* allocate(ARGS&&... args)
     {
-        void* mem = threadArena().allocate(sizeof(T), alignof(T));
-        return new (mem) T(std::forward<ARGS>(args)...);
+        return threadArena().make<T>(std::forward<ARGS>(args)...);
     }
 
     template<typename T>
     T* allocateArray(size_t count)
     {
-        void* mem = threadArena().allocate(sizeof(T) * count, alignof(T));
-        T*    ptr = static_cast<T*>(mem);
-        if constexpr (!std::is_trivially_default_constructible_v<T>)
-        {
-            for (size_t i = 0; i < count; ++i)
-                new (ptr + i) T();
-        }
-
-        return ptr;
+        return threadArena().makeArray<T>(count);
     }
 
     static bool dbgDevStop;

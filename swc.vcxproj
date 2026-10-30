@@ -165,6 +165,7 @@
         <ClCompile Include="src\Unittest\Format\Test.Format.Using.cpp"/>
         <ClCompile Include="src\Unittest\Format\Test.Format.Wrap.cpp"/>
         <ClCompile Include="src\Unittest\JIT\Test.JIT.Execution.cpp"/>
+        <ClCompile Include="src\Unittest\JIT\Test.JIT.Memory.cpp"/>
         <ClCompile Include="src\Unittest\Micro\Test.Micro.BranchSimplify.cpp"/>
         <ClCompile Include="src\Unittest\Micro\Test.Micro.ColdBlockLayout.cpp"/>
         <ClCompile Include="src\Unittest\Micro\Test.Micro.ConstantFolding.cpp"/>
@@ -211,6 +212,7 @@
         <ClCompile Include="src\Unittest\Support\Test.Support.Sha256.cpp"/>
         <ClCompile Include="src\Unittest\Support\Test.Support.FlatTables.cpp"/>
         <ClCompile Include="src\Unittest\Support\Test.Support.PagedStore.cpp"/>
+        <ClCompile Include="src\Unittest\Support\Test.Support.Arena.cpp"/>
         <ClCompile Include="src\Unittest\Support\Test.Support.SmallVector.cpp"/>
         <ClCompile Include="src\Unittest\Support\Test.Support.StringMap.cpp"/>
         <ClCompile Include="src\Unittest\Support\Test.Support.Logger.cpp"/>

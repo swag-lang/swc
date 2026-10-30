@@ -56,14 +56,9 @@ class DataSegment
 public:
     struct LargeBlockStorageDeleter
     {
-        bool proximity = false;
+        uint32_t proximitySize = 0;
 
-        void operator()(std::byte* p) const noexcept
-        {
-            // Arena carves stay with the arena; see Os::allocProximityMemory.
-            if (!proximity)
-                delete[] p;
-        }
+        void operator()(std::byte* ptr) const noexcept;
     };
     using LargeBlockStorage = std::unique_ptr<std::byte[], LargeBlockStorageDeleter>;
 
@@ -123,6 +118,7 @@ public:
     void copyTo(std::span<std::byte> dst) const;
     void copyToPreserveOffsets(std::span<std::byte> dst) const;
     void restoreFromPreserveOffsets(std::span<const std::byte> src) const;
+    void fill(std::byte value) const;
 
     std::vector<DataSegmentRelocation> copyRelocations() const;
     // Copies only targets of function-symbol relocations, in relocation order.

@@ -5,9 +5,11 @@ SWC_BEGIN_NAMESPACE();
 
 Arena::Arena(Arena&& other) noexcept :
     head_(other.head_),
-    defaultBlockSize_(other.defaultBlockSize_)
+    defaultBlockSize_(other.defaultBlockSize_),
+    finalizers_(other.finalizers_)
 {
-    other.head_ = nullptr;
+    other.head_       = nullptr;
+    other.finalizers_ = nullptr;
 }
 
 Arena& Arena::operator=(Arena&& other) noexcept
@@ -17,7 +19,9 @@ Arena& Arena::operator=(Arena&& other) noexcept
         releaseAll();
         head_             = other.head_;
         defaultBlockSize_ = other.defaultBlockSize_;
+        finalizers_       = other.finalizers_;
         other.head_       = nullptr;
+        other.finalizers_ = nullptr;
     }
     return *this;
 }
@@ -92,6 +96,13 @@ Arena::Block* Arena::addBlock(std::size_t minSize)
 
 void Arena::releaseAll()
 {
+    while (finalizers_)
+    {
+        Finalizer* finalizer = finalizers_;
+        finalizers_          = finalizer->previous;
+        finalizer->destroy(finalizer->values, finalizer->count);
+    }
+
     Block* block = head_;
     while (block)
     {

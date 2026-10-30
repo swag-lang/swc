@@ -292,11 +292,21 @@ Entries stay in one flat list. Keep only measurements that affect the next actio
 
 ### compiler.core.005 — Set and enforce a compiler memory budget
 
-- Evidence: a six-worker DevMode `core` rebuild measured 1008.9 MiB peak working set and 7360 ms median wall time before the SSA capacity change, and 957.4 MiB and 6338 ms after it (three alternating rounds, same source revision). A hello build measured 139.8 MiB and 259 ms before, and 138.1 MiB and 258 ms after. Both workloads remain above the 250 MiB and 50 MiB targets. An external sampled heap profile points to retained `MicroSsaState` buffers, but its instrumentation raised the observed peak to 1141 MiB and its sampled live-byte totals do not represent resident memory. A follow-up per-function CodeGen arena check measured 940.6 MiB baseline versus 933.7 MiB candidate peak working set and 965.8 versus 953.1 MiB peak commit on `core_rebuild`; the paired median ratios were 0.986 working set, 0.980 commit, and 0.837 wall time. This is incremental evidence on top of the SSA change, not a comparison to the original compiler. The ValueBorrow fast-path scratch now uses the same size-aware SSA release policy: three six-worker DevMode core_rebuild pairs measured 19.0 MiB lower working-set peak and 14.1 MiB lower commit peak, with a small unconfirmed timing cost.
-- A live six-worker `swc.dm.exe test --workspace bin/std --workspace-module gui --test-file layout.resize.test.swg --test-file application.wait.test.swg --test-file layout.test.swg` process reached 2924.8 MiB peak working set and 2885.2 MiB peak private commit, read from Windows process counters. This was an existing process on an actively edited checkout, not a controlled benchmark; its compilation and JIT-test phases were not attributed. File filters select test execution while retaining whole-module compilation. The application launcher already caps workers at six, and `swagcapture` imports `gui`.
-- Next: reproduce the focused GUI command on fixed sources, separate compilation from JIT-test execution, and compare DevMode and Release compiler memory with identical program options. Attribute the remaining peak and measure the benchmark-task workloads before making a campaign-wide memory claim.
-- Done when: the campaign publishes host-normalized memory limits, every selected workload stays within them, and a regression report names the responsible subsystem.
+- Evidence: the compiler still has no enforced workload memory budget. Fixed-source, six-worker
+  measurements put the final DevMode peak at 2453.8 MiB for a full Swag Capture rebuild and
+  2842.3 MiB for focused GUI layout tests; the Release compiler used 1767.0 MiB for the same
+  application/program preset. See the [allocation-lifetime report](../bench/results/memory/20261029-lifetimes/README.md)
+  for the before/after counters and scope. The earlier `core` and hello workloads also remain
+  above their 250 MiB and 50 MiB targets; see the [core memory report](../bench/results/memory/20261023-alternate45/README.md).
+- Next: attribute the remaining per-module peak and establish host-normalized limits across the
+  benchmark workloads. Measure compiler memory while an application remains open: native
+  `runAfterLink` currently waits for the child while its compiler state remains alive. The build-only
+  measurements do not cover that lifetime. Keep compilation and JIT-test execution distinct;
+  file filters reduce test execution while retaining whole-module compilation.
+- Done when: the campaign publishes host-normalized memory limits, every selected workload stays
+  within them, and a regression report names the responsible subsystem.
 - Related: compiler.core.004, compiler.core.007.
+
 ### compiler.core.003 — Code-generation invalidation is module-wide
 
 - Evidence: the per-function code cache (`functionCacheFingerprint` in

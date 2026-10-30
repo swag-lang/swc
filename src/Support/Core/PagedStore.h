@@ -44,6 +44,7 @@ public:
     void copyTo(std::span<std::byte> dst) const;
     void copyToPreserveOffsets(std::span<std::byte> dst) const;
     void restoreFromPreserveOffsets(std::span<const std::byte> src) const;
+    void fill(std::byte value) const;
 
     uint8_t* pushU8(uint8_t v) { return pushPod(v); }
     uint8_t* pushU16(uint16_t v) { return pushPod(v); }
@@ -166,7 +167,7 @@ private:
     {
         std::byte*            storage       = nullptr;
         std::atomic<uint32_t> used          = 0;
-        bool                  fromProximity = false;
+        uint32_t              proximitySize = 0;
 
         static std::byte* allocateAligned(uint32_t size);
         static void       deallocateAligned(std::byte* p) noexcept;

@@ -97,7 +97,12 @@ const IdentifierManager& TaskContext::idMgr() const
 
 void* TaskContext::allocate(size_t size, size_t alignment)
 {
-    return compiler().threadArena().allocate(size, alignment);
+    return allocationArena().allocate(size, alignment);
+}
+
+Arena& TaskContext::allocationArena()
+{
+    return compiler().threadArena();
 }
 
 void TaskContext::notifyAlive()

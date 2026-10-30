@@ -9,6 +9,80 @@
 
 SWC_BEGIN_NAMESPACE();
 
+SWC_TEST_BEGIN(PagedStore_ReleasedProximityPagesAreDecommitted)
+{
+    PagedStore survivor(4096);
+    survivor.enableProximityPages();
+    const Ref live              = survivor.reserveRange(4, 1, true);
+    survivor.at<uint32_t>(live) = 42;
+
+    void* released = nullptr;
+    {
+        PagedStore store(8192);
+        store.enableProximityPages();
+        const Ref allocation = store.reserveRange(4, 1, true);
+        released             = store.ptr<std::byte>(allocation);
+        if (!Os::isProximityMemory(released))
+            return Result::Error;
+    }
+    MEMORY_BASIC_INFORMATION memory{};
+    if (!VirtualQuery(released, &memory, sizeof(memory)) || memory.State != MEM_RESERVE || survivor.at<uint32_t>(live) != 42)
+        return Result::Error;
+}
+SWC_TEST_END()
+
+SWC_TEST_BEGIN(DataSegment_ReleasedLargeProximityBlocksAreDecommitted)
+{
+    void* released = nullptr;
+    {
+        DataSegment segment;
+        segment.enableProximityStorage();
+        const auto [offset, ptr] = segment.reserveBytes(PagedStore::K_DEFAULT_PAGE_SIZE * 2 + 3, 1, true);
+        SWC_UNUSED(offset);
+        released = ptr;
+        if (!Os::isProximityMemory(released))
+            return Result::Error;
+    }
+    MEMORY_BASIC_INFORMATION memory{};
+    if (!VirtualQuery(released, &memory, sizeof(memory)) || memory.State != MEM_RESERVE)
+        return Result::Error;
+}
+SWC_TEST_END()
+
+SWC_TEST_BEGIN(DataSegment_FillPreservesOffsetsAcrossPagesAndLargeBlocks)
+{
+    for (const bool proximity : {false, true})
+    {
+        DataSegment segment;
+        if (proximity)
+            segment.enableProximityStorage();
+        segment.fill(std::byte{0xCD});
+
+        constexpr std::array<uint32_t, 4> sizes = {PagedStore::K_DEFAULT_PAGE_SIZE - 5, 17, PagedStore::K_DEFAULT_PAGE_SIZE * 2 + 3, 9};
+        std::array<std::pair<uint32_t, std::byte*>, sizes.size()> allocations;
+        for (size_t i = 0; i < sizes.size(); ++i)
+            allocations[i] = segment.reserveBytes(sizes[i], 64, true);
+        const uint32_t extent = segment.extentSize();
+        segment.fill(std::byte{0xCD});
+        if (segment.extentSize() != extent)
+            return Result::Error;
+
+        for (size_t i = 0; i < sizes.size(); ++i)
+        {
+            const auto [offset, ptr] = allocations[i];
+            if (segment.ptr<std::byte>(offset) != ptr || segment.findRef(ptr) != offset)
+                return Result::Error;
+            if (!std::ranges::all_of(std::span{ptr, sizes[i]}, [](std::byte value) { return value == std::byte{0xCD}; }))
+                return Result::Error;
+        }
+        const auto [offset, ptr] = segment.reserveBytes(4, 1, true);
+        SWC_UNUSED(offset);
+        if (*ptr != std::byte{0})
+            return Result::Error;
+    }
+}
+SWC_TEST_END()
+
 SWC_TEST_BEGIN(PagedStore_MoveConstructionPreservesProximityAllocation)
 {
     PagedStore source(32);

@@ -761,3 +761,35 @@ there is no default change yet. The free-slot count is not a promised saving: si
 metadata and allocation cost must be measured. Preserve the ordinary packed binary as control,
 check the same frozen app and C++ allocator boundary, and accept only with the speed tradeoff
 established under the user's priority on compilation time.
+
+### Isolated experiment: disable regular large allocator pages
+
+[no-large-pages-experiment.json](no-large-pages-experiment.json) preserves an external DevMode
+candidate built with only `MI_ENABLE_LARGE_PAGES=0` in the wrapper before the vendor include.
+The vendor source is unchanged and no census instrumentation is enabled. Normal sources and
+`bin/swc.dm.exe` were restored; the default is **not changed**. The candidate passes all 1,620
+ordinary C++ tests and a complete rebuild of the same frozen Swag Capture workspace, with six
+workers, verified affinity and isolated caches/TEMP.
+
+| Measurement | Packed control | Candidate |
+| --- | ---: | ---: |
+| Peak resident MiB | 1,495.594 | 1,317.078 |
+| Peak private MiB | 1,494.434 | 1,321.312 |
+| Wall seconds | 174.700 | 82.001 |
+| Process CPU seconds | 449.891 | 310.562 |
+| Host busy percent | 67.047 | 49.402 |
+
+The observed resident reduction is **178.516 MiB
+(11.94%)**; private memory is
+11.58% lower. Both runs report 592,047 tokens,
+5,143 tuned functions and 2,411 forged functions. Both passed strict start admission, but external
+work resumed during the builds. The lower observed wall/CPU times therefore do not establish a
+controlled speedup or complete the speed acceptance requirement.
+
+Generated API comparison finds one differing line: `Lens.View.create` publishes a return-borrow
+mask of zero in this control and one in the candidate. The value one already appears in the
+earlier archive and backing-census captures without this option, so the variation is not unique
+to the allocator experiment. It remains unexplained semantic metadata, not dismissed as harmless
+ordering. The exact diff is retained in the experiment record and the reproducibility work is
+tracked in `compiler.core.085`. Promotion still needs a stable timing comparison, this output
+variation understood, and grouped Release validation.

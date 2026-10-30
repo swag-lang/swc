@@ -1,0 +1,177 @@
+{
+  "status": "External candidate only; default unchanged. One application pair supports lower peak memory; timing interference, varying exported borrow metadata and Release validation remain unresolved.",
+  "build": {
+    "command": [
+      "C:/Program Files/Microsoft Visual Studio/18/Enterprise/MSBuild/Current/Bin/MSBuild.exe",
+      "swc.vcxproj",
+      "/m:6",
+      "/p:SwcCompileJobs=6",
+      "/p:Platform=x64",
+      "/p:Configuration=DevMode",
+      "/nologo",
+      "/v:minimal"
+    ],
+    "revision": "7eed62a7a783072f23986636ee53bd329df8c8a6",
+    "experiment": "MI_ENABLE_LARGE_PAGES=0; no instrumentation; ordinary compiler and source restored after build",
+    "exit_code": 0,
+    "compiler_sha256": "0db2f9c3d474db2f51008f7b49b2affcb9541f90de738c9af3c0fb7b1bb9a35e",
+    "wall_seconds": 11.580133438110352
+  },
+  "cpp": {
+    "exit": 0,
+    "started_unix": 1793371922.4439356,
+    "affinity_mask": 349185,
+    "effective_affinity_mask": 349185,
+    "system_affinity_mask": 4194303,
+    "affinity_verified": true,
+    "host_busy_pct": 65.2493321460374,
+    "other_process_cpu_ms_estimate": 422000.0,
+    "wall_ms": 35370.3944,
+    "first_stdout_ms": null,
+    "cpu_ms": 81687.5,
+    "user_cpu_ms": 34890.625,
+    "kernel_cpu_ms": 46796.875,
+    "job_cpu_ms": 81765.625,
+    "page_faults": 117709,
+    "job_processes": 4,
+    "peak_job_bytes": 280047616,
+    "peak_proc_bytes": 276467712,
+    "peak_working_set_bytes": 300670976,
+    "stdout": "  \u25c6  swag        unittest \u2022 sources\r\n  \u2713  tested      1_620 passed \u2022 34 s 547 ms\r\n  \u2713  clean       34 s 593 ms\r\n",
+    "stderr": "\r\n",
+    "harness_sha256": "20a4c33520539d62e67dc2e80a58120e088e68718ed1a690da3a0f0dd2fe7dbf",
+    "allocator_error": false,
+    "mimalloc_options": {},
+    "command": [
+      "C:\\Users\\chris\\AppData\\Local\\swc-agent-builds\\mimalloc-360-20261030-071336\\install\\swc.no-large-pages.dm.exe",
+      "unittest",
+      "--num-cores",
+      "6",
+      "--no-log-color",
+      "--no-log-progress"
+    ],
+    "compiler_sha256": "0db2f9c3d474db2f51008f7b49b2affcb9541f90de738c9af3c0fb7b1bb9a35e"
+  },
+  "comparison": {
+    "note": "One isolated comparison, not repeated speed acceptance. Same frozen input/workspace, six workers, rebuild, verified CPU affinity and isolated TEMP/cache. Host interference and logical workload counters must be considered.",
+    "control": {
+      "exit": 0,
+      "started_unix": 1793372222.3161197,
+      "affinity_mask": 349185,
+      "effective_affinity_mask": 349185,
+      "system_affinity_mask": 4194303,
+      "affinity_verified": true,
+      "host_busy_pct": 67.04747346210294,
+      "other_process_cpu_ms_estimate": 2126906.25,
+      "wall_ms": 174699.6182,
+      "first_stdout_ms": null,
+      "cpu_ms": 449890.625,
+      "user_cpu_ms": 428453.125,
+      "kernel_cpu_ms": 21437.5,
+      "job_cpu_ms": 449906.25,
+      "page_faults": 915619,
+      "job_processes": 2,
+      "peak_job_bytes": 1568264192,
+      "peak_proc_bytes": 1567027200,
+      "peak_working_set_bytes": 1568243712,
+      "stdout": "  \u25c6  swag        build \u2022 apps [swagcapture] \u2022 devmode\r\n  \u2713  module      win32 \u2022 48 files \u2022 605 ms\r\n  \u2713  module      gdi32 \u2022 44 files \u2022 847 ms\r\n  \u2713  module      xinput \u2022 43 files \u2022 420 ms\r\n  \u2713  module      core \u2022 378 files \u2022 core.dll \u2022 10 s 16 ms\r\n  \u2713  module      ogl \u2022 98 files \u2022 ogl.dll \u2022 3 s 397 ms\r\n  \u2713  module      truetype \u2022 99 files \u2022 truetype.dll \u2022 2 s 677 ms\r\n  \u2713  module      pixel \u2022 318 files \u2022 pixel.dll \u2022 21 s 113 ms\r\n  \u2713  module      gui \u2022 366 files \u2022 gui.dll \u2022 1 min 26 s\r\n  \u2713  workspace   std [gui] \u2022 8 modules \u2022 2 min 24 s\r\n  \u2713  checked     136 files \u2022 592_047 tokens \u2022 17 s 679 ms\r\n  \u2713  tuned       5_143 functions \u2022 3 s 426 ms\r\n  \u2713  forged      2_411 functions \u2022 swagcapture.exe \u2022 3 s 507 ms\r\n  \u2713  module      swagcapture \u2022 182 files \u2022 swagcapture.exe \u2022 22 s 388 ms\r\n  \u2713  workspace   apps [swagcapture] \u2022 1 module \u2022 2 min 54 s\r\n  \u2713  clean       2 min 54 s\r\n",
+      "stderr": "\r\n",
+      "harness_sha256": "20a4c33520539d62e67dc2e80a58120e088e68718ed1a690da3a0f0dd2fe7dbf",
+      "allocator_error": false,
+      "mimalloc_options": {},
+      "command": [
+        "C:\\Users\\chris\\AppData\\Local\\swc-agent-builds\\mimalloc-360-20261030-071336\\install\\swc.packed.dm.exe",
+        "build",
+        "--workspace",
+        "C:\\Users\\chris\\AppData\\Local\\swc-agent-builds\\mimalloc-360-20261030-071336\\install\\apps",
+        "--workspace-module",
+        "swagcapture",
+        "--num-cores",
+        "6",
+        "--rebuild",
+        "--no-log-color",
+        "--no-log-progress"
+      ],
+      "compiler_sha256": "70acd323b7d3e0f116ac5c59c824362f9e98ca5c43b3e5eff4424cb6c1beaf46",
+      "counters": {
+        "tokens": [
+          592047
+        ],
+        "tuned": [
+          5143
+        ],
+        "forged": [
+          2411
+        ]
+      }
+    },
+    "candidate": {
+      "exit": 0,
+      "started_unix": 1793372477.0046837,
+      "affinity_mask": 349185,
+      "effective_affinity_mask": 349185,
+      "system_affinity_mask": 4194303,
+      "affinity_verified": true,
+      "host_busy_pct": 49.40190040623998,
+      "other_process_cpu_ms_estimate": 580578.125,
+      "wall_ms": 82001.4207,
+      "first_stdout_ms": null,
+      "cpu_ms": 310562.5,
+      "user_cpu_ms": 304625.0,
+      "kernel_cpu_ms": 5937.5,
+      "job_cpu_ms": 310578.125,
+      "page_faults": 763819,
+      "job_processes": 2,
+      "peak_job_bytes": 1386725376,
+      "peak_proc_bytes": 1385496576,
+      "peak_working_set_bytes": 1381056512,
+      "stdout": "  \u25c6  swag        build \u2022 apps [swagcapture] \u2022 devmode\r\n  \u2713  module      win32 \u2022 48 files \u2022 476 ms\r\n  \u2713  module      gdi32 \u2022 44 files \u2022 552 ms\r\n  \u2713  module      xinput \u2022 43 files \u2022 182 ms\r\n  \u2713  module      core \u2022 378 files \u2022 core.dll \u2022 9 s 385 ms\r\n  \u2713  module      ogl \u2022 98 files \u2022 ogl.dll \u2022 2 s 646 ms\r\n  \u2713  module      truetype \u2022 99 files \u2022 truetype.dll \u2022 2 s 168 ms\r\n  \u2713  module      pixel \u2022 318 files \u2022 pixel.dll \u2022 21 s 72 ms\r\n  \u2713  module      gui \u2022 366 files \u2022 gui.dll \u2022 24 s 131 ms\r\n  \u2713  workspace   std [gui] \u2022 8 modules \u2022 1 min 3 s\r\n  \u2713  checked     136 files \u2022 592_047 tokens \u2022 4 s 398 ms\r\n  \u2713  tuned       5_143 functions \u2022 9 s 184 ms\r\n  \u2713  forged      2_411 functions \u2022 swagcapture.exe \u2022 9 s 349 ms\r\n  \u2713  module      swagcapture \u2022 182 files \u2022 swagcapture.exe \u2022 15 s 771 ms\r\n  \u2713  workspace   apps [swagcapture] \u2022 1 module \u2022 1 min 21 s\r\n  \u2713  clean       1 min 21 s\r\n",
+      "stderr": "\r\n",
+      "harness_sha256": "20a4c33520539d62e67dc2e80a58120e088e68718ed1a690da3a0f0dd2fe7dbf",
+      "allocator_error": false,
+      "mimalloc_options": {},
+      "command": [
+        "C:\\Users\\chris\\AppData\\Local\\swc-agent-builds\\mimalloc-360-20261030-071336\\install\\swc.no-large-pages.dm.exe",
+        "build",
+        "--workspace",
+        "C:\\Users\\chris\\AppData\\Local\\swc-agent-builds\\mimalloc-360-20261030-071336\\install\\apps",
+        "--workspace-module",
+        "swagcapture",
+        "--num-cores",
+        "6",
+        "--rebuild",
+        "--no-log-color",
+        "--no-log-progress"
+      ],
+      "compiler_sha256": "0db2f9c3d474db2f51008f7b49b2affcb9541f90de738c9af3c0fb7b1bb9a35e",
+      "counters": {
+        "tokens": [
+          592047
+        ],
+        "tuned": [
+          5143
+        ],
+        "forged": [
+          2411
+        ]
+      }
+    },
+    "reduction_percent": {
+      "peak_working_set_bytes": 11.936103972084666,
+      "peak_proc_bytes": 11.584395216624191,
+      "wall_ms": 53.061476868184705,
+      "cpu_ms": 30.969332823950264,
+      "page_faults": 16.57894823065052
+    },
+    "memory_reduction_bytes": 187187200
+  },
+  "generated_api_comparison": {
+    "control_files": 77,
+    "candidate_files": 77,
+    "changed_published_api_files": [
+      "std\\gui\\shared-library\\devmode\\x86_64\\gui.swg"
+    ],
+    "diff": "--- \n+++ \n@@ -5700,7 +5700,7 @@\n     func followUpPoint(over: *Wnd, width: f32)->Math.Point\n     impl View\n     {\n-        #[Foreign, BorrowSummary(0, 0, 0, 0, 1, 0, 0, observesExternal: true), Swag.Discardable]\n+        #[Foreign, BorrowSummary(1, 0, 0, 0, 1, 0, 0, observesExternal: true), Swag.Discardable]\n         func create(owner: *Wnd)->*View\n         #[Foreign(function: \"lens__view__add_command___string__string__nullable__func__void__ret__string\"), BorrowSummary(0, 0, 0, 0, 1, 0, 0, observesExternal: true)]\n         mtd addCommand(family: string, id: WndId, aliases: MenuLabelResolver? = null)\n",
+    "prior_observation": "Lens.View.create BorrowSummary return mask is 1 in generated-sources-archive (cc9549202b, before packing) and generated-sources-census (packed code with backing-store probe). It is 0 in this packed control and 1 in this no-large-pages candidate. The variation is not unique to the new allocator option; its cause is not established."
+  }
+}

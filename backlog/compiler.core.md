@@ -28,7 +28,13 @@ Entries stay in one flat list. Keep only measurements that affect the next actio
   three such constants in one build and two in the next. The machine-code cache keys ignore
   both string copies and global placement; the varying instance set alone still adds one or two
   records per six-worker `core` build.
-- Next: log which call sites create `Core.Math.max` instances in two builds and find the
+- The generated GUI API also varies: `Lens.View.create(owner: *Wnd)->*View` exports a
+  `BorrowSummary` return mask of zero in one frozen-input control and one in other captures,
+  including captures without the allocator experiment. This is semantic metadata, not an image
+  timestamp; retain it in reproducibility comparisons. See the
+  [memory experiment](../bench/results/memory/20261030-devmode/no-large-pages-experiment.json).
+- Next: trace when `Lens.View.create` acquires its return-borrow mask and whether export observes
+  completed callee effects. Log which call sites create `Core.Math.max` instances in two builds and find the
   speculative instantiation; then trace the `showInFileExplorer` string constants back to
   `materializeRuntimeStringConstant` and `materializeRuntimeBufferConstant` to see which cache
   lets one value materialize twice.

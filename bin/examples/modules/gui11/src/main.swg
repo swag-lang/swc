@@ -528,7 +528,7 @@ func startEssentialBreath()
                                     AnimationChannel.from("Gui11.Pref.Breath"),
                                     1,
                                     0.35,
-                                    &setCardOpacity,
+                                    func(label, value) { label.setPresentationOpacity(value) },
                                     options)
 }
 

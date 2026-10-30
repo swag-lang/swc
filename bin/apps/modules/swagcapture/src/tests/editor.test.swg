@@ -3,6 +3,30 @@
 
 using Swag, Core
 
+// Wheel zoom preserves the image point under the pointer while the centred origin moves.
+#test
+{
+    var f: HeadlessFixture
+    f.setup()
+    defer f.shutdown()
+    f.capture.width  = 2000
+    f.capture.height = 1200
+    f.editView.setZoom(1)
+    f.editView.scroll.setScrollPos(200, 150)
+    let pointer = Math.Point{600, 450}
+    f.gui.moveMouse(f.editView.localToSurface(pointer))
+    let before = f.editView.getCaptureRect()
+    let point  = (pointer + f.editView.scrollPos - Math.Point{before.x, before.y}) / f.editView.zoom
+
+    for zoom in [2.0, 1.5, 1.0]
+    {
+        f.editView.setZoom(zoom, mouseCenter: true)
+        let after  = f.editView.getCaptureRect()
+        let actual = (pointer + f.editView.scrollPos - Math.Point{after.x, after.y}) / f.editView.zoom
+        Swag.assert(Math.abs(actual.x - point.x) < 1 and Math.abs(actual.y - point.y) < 1)
+    }
+}
+
 // Editor drags should create forms through the real EditView/Capture mouse path.
 #test
 {

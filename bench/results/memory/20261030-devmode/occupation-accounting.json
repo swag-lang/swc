@@ -1,4 +1,5 @@
 {
+  "heap_sample_interpretation": "Heap component bytes are raw sampled allocations without inverse-probability weighting, not estimates of complete component sizes. Unsampled live allocations are omitted. The difference from resident mimalloc arenas is not a fragmentation estimate. ConstantManager data is in the separate proximity arena and is absent from these heap samples.",
   "measurement": {
     "exit": 0,
     "started_unix": 1793363834.6050694,

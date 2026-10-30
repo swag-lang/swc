@@ -562,7 +562,7 @@ size permanently ends paged allocation, and every subsequent value gets an indiv
 For proximity storage this commits at least 4 KiB even for a small constant record. This explains
 a major part of the previously unattributed read/write proximity storage.
 
-The pending fix packs subsequent small values into 16 KiB blocks. It keeps existing pointers,
+The fix in `28b98a8f8e` packs subsequent small values into 16 KiB blocks. It keeps existing pointers,
 monotonic logical offsets, separate allocation records and the existing locking protocol.
 Alignment gaps are zeroed for offset-preserving copies. Normal paged-only segments keep their
 existing allocation and lookup paths. Packing also removes OS allocation calls and block-index
@@ -570,6 +570,49 @@ entries; it does not introduce collection, compaction or repeated page faults.
 
 Validation selected for this substantive change: DevMode C++ tests for packed allocation,
 pointer stability, reverse lookup, alignment, zeroing, copy/restore and block rollover, followed
-by the same linked application with the Release compiler. No post-fix process gain is claimed
-until that measurement completes. Full mimalloc live-object accounting remains necessary;
+by the same linked application with the rebuilt DevMode compiler. A Release rebuild/comparison
+is deferred to the next grouped campaign rather than immediately repeating the long common-header
+rebuild. Full mimalloc live-object accounting remains necessary;
 the raw sampled component table above cannot replace it.
+
+The DevMode build completed successfully. `unittest --num-cores 6` passed **1,620 tests**,
+including the new packed-storage regression and the previously unbuilt COFF-consumption tests.
+This is the ordinary C++ campaign, not `--dev-full`. The linked application also completed with
+no allocator error. [packed-checkpoint.json](packed-checkpoint.json) preserves both results and
+the frozen compiler SHA-256 `70acd323b7d3e0f116ac5c59c824362f9e98ca5c43b3e5eff4424cb6c1beaf46`.
+
+The new application peak is **1,517.97 MiB resident** and **1,522.97 MiB private**. Historical
+DevMode observations were 1,934.20 MiB at `3965e1b51` and 2,494.84 MiB at the original mimalloc
+3.6.0 checkpoint: observed differences of **416.23 MiB (21.52%)** and **976.87 MiB (39.16%)**.
+These are cumulative historical comparisons, not an isolated A/B result for the packing fix.
+The new run is pinned and verifies its mask; the historical runs used default affinity. It
+reports 592,047 tokens and 5,143 tuned functions versus 592,024/5,142 in those older DevMode
+outputs, so repeat a preserved baseline on the current frozen input before a controlled claim.
+All runs report 2,411 forged functions.
+
+The run took 206.44 seconds wall and 787.66 seconds process CPU while the host averaged 77.14%
+busy. Both are materially above the historical control (83.51 seconds wall, 369.44 seconds CPU).
+Host contention and differing affinity prevent attributing the difference, but do not prove it
+harmless: **compilation-speed acceptance remains open**. Next compare the preserved immediate
+pre-packing DevMode checkpoint and this binary under the same verified affinity and stable host
+load; investigate any surviving regression before accepting the optimization as complete.
+
+### Complete census still required
+
+The next diagnostic must count owned storage directly, without interpreting raw sample ratios as
+component ratios. Record useful bytes, retained capacity and allocator/OS-rounded storage
+separately, with module, phase and worker identity. Deduplicate shared backing allocations.
+
+| Owner | Storage to count | Useful observation points |
+| --- | --- | --- |
+| AST/parser | All Ast shard pages, spans, page tables and reverse indexes | End of parse, sema and module API export |
+| Sema | NodePayload, types and identifiers; symbol/thread arenas; nested vector/map capacities; constant segments | End of sema and before module destruction |
+| Backend | Per-worker register-liveness matrices, SSA and other retained pass buffers; emitted code and relocation buffers | Scratch growth and function completion, retaining each worker's high-water owner |
+| Linker/caches | Archive mappings, extracted members, parsed objects, merged sections, final image and cached copies | Archive load, merge and image publication |
+| Allocator/OS | Aggregated heap/thread stats, page occupancy, committed and resident regions | Alongside component snapshots and near the process high-water mark |
+
+`MicroBuilder::runPasses` keeps a thread-local pipeline, so backend scratch capacity survives
+individual functions and module instances. A large buffer can therefore be retained reuse rather
+than currently needed liveness. Preserve that distinction before proposing release policies.
+Mimalloc statistics are periodically merged; include active thread heaps and account for pending
+page statistics instead of treating an exclusive subprocess counter as the live total.

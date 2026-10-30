@@ -1,0 +1,119 @@
+{
+  "compiler_code_revision": "28b98a8f8e",
+  "note": "Historical DevMode application peak observations across grouped code checkpoints, not an isolated A/B test of DataSegment alone. Earlier observations used default affinity and reported 592024 tokens/5142 tuned functions; the new run verifies a fixed six-CPU mask and reports 592047 tokens/5143 tuned functions. A fresh baseline on the current frozen workload is needed before a controlled gain or speed claim. No whole-compilation speed acceptance is inferred from these runs. Release is not rebuilt for this checkpoint.",
+  "build": {
+    "revision": "28b98a8f8e3d2454778bb7833597f5408c82164e",
+    "configuration": "DevMode",
+    "command": [
+      "C:/Program Files/Microsoft Visual Studio/18/Enterprise/MSBuild/Current/Bin/MSBuild.exe",
+      "swc.vcxproj",
+      "/m:6",
+      "/p:SwcCompileJobs=6",
+      "/p:Platform=x64",
+      "/p:Configuration=DevMode",
+      "/nologo",
+      "/v:minimal"
+    ],
+    "exit_code": 0,
+    "started_unix": 1793365887.1863713,
+    "wall_seconds": 1025.2866351604462,
+    "log": "C:\\Users\\chris\\AppData\\Local\\swc-agent-builds\\mimalloc-360-20261030-071336\\segment-packed-devmode-build.log"
+  },
+  "compiler": {
+    "source_revision": "28b98a8f8e3d2454778bb7833597f5408c82164e",
+    "binary": "C:\\Users\\chris\\AppData\\Local\\swc-agent-builds\\mimalloc-360-20261030-071336\\install\\swc.packed.dm.exe",
+    "sha256": "70acd323b7d3e0f116ac5c59c824362f9e98ca5c43b3e5eff4424cb6c1beaf46",
+    "size": 16428544
+  },
+  "cpp_tests": {
+    "exit": 0,
+    "started_unix": 1793366939.2163298,
+    "affinity_mask": 349185,
+    "effective_affinity_mask": 349185,
+    "system_affinity_mask": 4194303,
+    "affinity_verified": true,
+    "host_busy_pct": 73.37500847821663,
+    "other_process_cpu_ms_estimate": 1715734.375,
+    "wall_ms": 125822.1459,
+    "first_stdout_ms": null,
+    "cpu_ms": 312625.0,
+    "user_cpu_ms": 113093.75,
+    "kernel_cpu_ms": 199531.25,
+    "job_cpu_ms": 312671.875,
+    "page_faults": 146234,
+    "job_processes": 4,
+    "peak_job_bytes": 388034560,
+    "peak_proc_bytes": 380235776,
+    "peak_working_set_bytes": 403259392,
+    "stdout": "  \u25c6  swag        unittest \u2022 sources\r\n  \u2713  tested      1_620 passed \u2022 2 min 5 s\r\n  \u2713  clean       2 min 5 s\r\n",
+    "stderr": "\r\n",
+    "harness_sha256": "20a4c33520539d62e67dc2e80a58120e088e68718ed1a690da3a0f0dd2fe7dbf",
+    "allocator_error": false,
+    "mimalloc_options": {},
+    "command": [
+      "C:\\Users\\chris\\AppData\\Local\\swc-agent-builds\\mimalloc-360-20261030-071336\\install\\swc.packed.dm.exe",
+      "unittest",
+      "--num-cores",
+      "6",
+      "--no-log-color",
+      "--no-log-progress"
+    ],
+    "compiler_sha256": "70acd323b7d3e0f116ac5c59c824362f9e98ca5c43b3e5eff4424cb6c1beaf46"
+  },
+  "application": {
+    "exit": 0,
+    "started_unix": 1793367095.2418282,
+    "affinity_mask": 349185,
+    "effective_affinity_mask": 349185,
+    "system_affinity_mask": 4194303,
+    "affinity_verified": true,
+    "host_busy_pct": 77.13711675015138,
+    "other_process_cpu_ms_estimate": 2715703.125,
+    "wall_ms": 206439.9877,
+    "first_stdout_ms": null,
+    "cpu_ms": 787656.25,
+    "user_cpu_ms": 763140.625,
+    "kernel_cpu_ms": 24515.625,
+    "job_cpu_ms": 787671.875,
+    "page_faults": 977108,
+    "job_processes": 2,
+    "peak_job_bytes": 1598164992,
+    "peak_proc_bytes": 1596948480,
+    "peak_working_set_bytes": 1591709696,
+    "stdout": "  \u25c6  swag        build \u2022 apps [swagcapture] \u2022 devmode\r\n  \u2713  module      win32 \u2022 48 files \u2022 282 ms\r\n  \u2713  module      gdi32 \u2022 44 files \u2022 350 ms\r\n  \u2713  module      xinput \u2022 43 files \u2022 160 ms\r\n  \u2713  module      core \u2022 378 files \u2022 core.dll \u2022 4 s 986 ms\r\n  \u2713  module      ogl \u2022 98 files \u2022 ogl.dll \u2022 3 s 483 ms\r\n  \u2713  module      truetype \u2022 99 files \u2022 truetype.dll \u2022 4 s 432 ms\r\n  \u2713  module      pixel \u2022 318 files \u2022 pixel.dll \u2022 38 s 437 ms\r\n  \u2713  module      gui \u2022 366 files \u2022 gui.dll \u2022 2 min 21 s\r\n  \u2713  workspace   std [gui] \u2022 8 modules \u2022 3 min 16 s\r\n  \u2713  checked     136 files \u2022 592_047 tokens \u2022 2 s 547 ms\r\n  \u2713  tuned       5_143 functions \u2022 3 s 960 ms\r\n  \u2713  forged      2_411 functions \u2022 swagcapture.exe \u2022 4 s 39 ms\r\n  \u2713  module      swagcapture \u2022 182 files \u2022 swagcapture.exe \u2022 7 s 773 ms\r\n  \u2713  workspace   apps [swagcapture] \u2022 1 module \u2022 3 min 26 s\r\n  \u2713  clean       3 min 26 s\r\n",
+    "stderr": "\r\n",
+    "harness_sha256": "20a4c33520539d62e67dc2e80a58120e088e68718ed1a690da3a0f0dd2fe7dbf",
+    "allocator_error": false,
+    "mimalloc_options": {},
+    "command": [
+      "C:\\Users\\chris\\AppData\\Local\\swc-agent-builds\\mimalloc-360-20261030-071336\\install\\swc.packed.dm.exe",
+      "build",
+      "--workspace",
+      "C:\\Users\\chris\\AppData\\Local\\swc-agent-builds\\mimalloc-360-20261030-071336\\install\\apps",
+      "--workspace-module",
+      "swagcapture",
+      "--num-cores",
+      "6",
+      "--rebuild",
+      "--no-log-color",
+      "--no-log-progress"
+    ],
+    "compiler_sha256": "70acd323b7d3e0f116ac5c59c824362f9e98ca5c43b3e5eff4424cb6c1beaf46"
+  },
+  "observed_comparisons": [
+    {
+      "previous_measurement": "control-app",
+      "before_peak_working_set_bytes": 2028158976,
+      "after_peak_working_set_bytes": 1591709696,
+      "reduction_bytes": 436449280,
+      "reduction_percent": 21.519480729305513
+    },
+    {
+      "previous_measurement": "compact-base-app",
+      "before_peak_working_set_bytes": 2616029184,
+      "after_peak_working_set_bytes": 1591709696,
+      "reduction_bytes": 1024319488,
+      "reduction_percent": 39.15550691348862
+    }
+  ]
+}

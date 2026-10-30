@@ -512,6 +512,71 @@ SWC_TEST_BEGIN(PagedStore_ReserveSpanReturnsWritableContiguousStorage)
 }
 SWC_TEST_END()
 
+SWC_TEST_BEGIN(PagedStore_ReadersKeepReferencesAcrossPageGrowth)
+{
+    constexpr uint32_t                 pageCount = 256;
+    PagedStore                         store(64);
+    std::array<Ref, pageCount>         refs{};
+    std::array<const void*, pageCount> addresses{};
+    std::atomic<uint32_t>              published{0};
+    std::atomic<bool>                  done{false};
+    std::atomic<bool>                  failed{false};
+    std::latch                         ready(2);
+
+    auto readPages = [&] {
+        ready.count_down();
+        do
+        {
+            const uint32_t count = published.load(std::memory_order_acquire);
+            if (!count)
+            {
+                std::this_thread::yield();
+                continue;
+            }
+            for (const uint32_t index : {0u, count / 2, count - 1})
+            {
+                const Ref ref = refs[index];
+                if (!store.containsRef(ref, 64) || store.ptr<uint32_t>(ref) != addresses[index] ||
+                    store.at<uint32_t>(ref) != index || store.at<uint32_t>(ref + 60) != ~index ||
+                    store.findRef(addresses[index]) != ref)
+                {
+                    failed.store(true, std::memory_order_relaxed);
+                    return;
+                }
+            }
+        } while (!done.load(std::memory_order_acquire));
+    };
+
+    std::jthread first(readPages);
+    std::jthread second(readPages);
+    ready.wait();
+    for (uint32_t index = 0; index < pageCount; ++index)
+    {
+        const auto [bytes, ref]      = store.reserveSpan(64);
+        store.at<uint32_t>(ref)      = index;
+        store.at<uint32_t>(ref + 60) = ~index;
+        refs[index]                  = ref;
+        addresses[index]             = bytes.data();
+        published.store(index + 1, std::memory_order_release);
+    }
+    done.store(true, std::memory_order_release);
+    first.join();
+    second.join();
+    if (failed.load(std::memory_order_relaxed))
+        return Result::Error;
+
+    PagedStore moved(std::move(store));
+    for (uint32_t index = 0; index < pageCount; ++index)
+    {
+        if (moved.ptr<uint32_t>(refs[index]) != addresses[index] || moved.at<uint32_t>(refs[index]) != index)
+            return Result::Error;
+    }
+    const Ref reused = store.pushBack(uint32_t{42});
+    if (store.at<uint32_t>(reused) != 42)
+        return Result::Error;
+}
+SWC_TEST_END()
+
 SWC_TEST_BEGIN(PagedStore_FindRefRejectsAddressesOutsideLiveBytes)
 {
     PagedStore store(64);

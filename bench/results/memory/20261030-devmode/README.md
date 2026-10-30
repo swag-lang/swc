@@ -227,4 +227,30 @@ address case. It will run with the next grouped validation.
 For a store that grows to N pages, the retained range arrays contain N(N+1)/2 entries. The
 static saving is therefore 4N(N+1) bytes per store, excluding allocator rounding: 4.00 MiB
 at 1,024 pages. This is a representation calculation, not a measured whole-compiler gain.
-The quadratic snapshot-retention policy itself is unchanged and remains a separate lead.
+The address-sorted range snapshots still retain a quadratic number of entries; the direct
+page-number index is addressed separately below.
+
+## Geometric direct page tables
+
+The direct page-number index previously retained a full vector copy for every new page too.
+It now publishes fixed-capacity arrays of atomic page pointers, doubling capacity when needed.
+A new page fills one previously unused slot and then publishes the count. Existing slots are
+never rewritten, and old tables stay owned by the store so concurrent readers keep valid data.
+The address-sorted range index and its binary search are unchanged by this step.
+
+The direct pointer arrays now retain fewer than four slots per page, instead of N(N+1)/2
+slots for N pages. At 1,024 pages the pointer arrays use 16,376 bytes instead of 4,198,400 bytes,
+excluding table objects and allocator rounding. Growing within capacity also eliminates a
+table allocation, an array allocation and the copy of all existing page pointers.
+
+Lookups still index one contiguous array without locking. Pointer slots use acquire loads;
+on x64 these need no locked operation or fence, but generated code and grouped timing still
+need verification before claiming the no-slowdown condition. Each lookup retains its loaded
+page pointer locally. Iteration captures the published count once rather than following a
+count that may grow concurrently. Move construction, move assignment and clear retain the
+existing storage and reference contracts.
+
+A new C++ regression runs two readers while a writer publishes 256 full pages, checking old
+and new references, values and reverse lookup. It also moves the grown store and reuses the
+moved-from store. The grouped DevMode build includes this change, the range-boundary regression
+and the preceding common layout batch; its result is pending.

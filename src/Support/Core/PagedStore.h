@@ -188,6 +188,18 @@ private:
 
     static_assert(sizeof(void*) != 8 || sizeof(PageRange) == 24);
 
+    // Append page slots in place; only capacity growth publishes a new table. Keep older
+    // tables alive for readers, with immutable slots once their page has been published.
+    struct PageTable
+    {
+        std::unique_ptr<std::atomic<Page*>[]> entries;
+        std::atomic<size_t>                   count{0};
+        size_t                                capacity = 0;
+
+        size_t size() const noexcept { return count.load(std::memory_order_acquire); }
+        Page*  operator[](size_t index) const noexcept { return entries[index].load(std::memory_order_acquire); }
+    };
+
     struct SpanHdrRaw
     {
         uint32_t total = 0;
@@ -206,7 +218,7 @@ private:
     std::pair<SpanRef, uint32_t> writeChunkRaw(const uint8_t* src, uint32_t elemSize, uint32_t elemAlign, uint32_t remaining, uint32_t totalElems);
 
     template<class T>
-    static T* ptrImpl(const std::vector<Page*>* pages, uint32_t pageShift, uint32_t pageMask, Ref ref)
+    static T* ptrImpl(const PageTable* pages, uint32_t pageShift, uint32_t pageMask, Ref ref)
     {
         SWC_ASSERT(ref != INVALID_REF);
         const uint32_t pageIndex = ref >> pageShift;
@@ -214,18 +226,19 @@ private:
 
         SWC_ASSERT(pages);
         SWC_ASSERT(pageIndex < pages->size());
-        SWC_ASSERT((*pages)[pageIndex] != nullptr);
-        const uint32_t pageUsed = (*pages)[pageIndex]->used.load(std::memory_order_relaxed);
+        Page* page = (*pages)[pageIndex];
+        SWC_ASSERT(page != nullptr);
+        const uint32_t pageUsed = page->used.load(std::memory_order_relaxed);
         SWC_ASSERT(offset <= pageUsed);
         SWC_ASSERT(offset + sizeof(T) <= pageUsed);
         SWC_ASSERT(offset + sizeof(T) <= pageMask + 1);
 
-        return reinterpret_cast<T*>((*pages)[pageIndex]->bytes() + offset);
+        return reinterpret_cast<T*>(page->bytes() + offset);
     }
 
     // Node, type and symbol handles all read this snapshot on the semantic hot path.
     // Keep the load inline to avoid a call on every dereference.
-    const std::vector<Page*>* snapshotPages() const noexcept
+    const PageTable* snapshotPages() const noexcept
     {
         const auto* pages = publishedPages_.load(std::memory_order_acquire);
         SWC_ASSERT(pages != nullptr);
@@ -236,10 +249,10 @@ private:
     void                          publishPages();
 
     std::vector<std::unique_ptr<Page>>                         pagesStorage_;
-    std::vector<std::unique_ptr<const std::vector<Page*>>>     publishedPagesStorage_;
+    std::vector<std::unique_ptr<PageTable>>                    publishedPagesStorage_;
     std::vector<std::unique_ptr<const std::vector<PageRange>>> publishedPageRangesStorage_;
 
-    std::atomic<const std::vector<Page*>*>     publishedPages_{nullptr};
+    std::atomic<const PageTable*>              publishedPages_{nullptr};
     std::atomic<const std::vector<PageRange>*> publishedPageRanges_{nullptr};
 
     uint64_t totalBytes_    = 0;

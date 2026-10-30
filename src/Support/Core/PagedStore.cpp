@@ -162,16 +162,18 @@ void PagedStore::copyToPreserveOffsets(std::span<std::byte> dst) const
 
     std::memset(dst.data(), 0, dst.size_bytes());
 
-    const auto* pages = snapshotPages();
-    for (size_t i = 0; i < pages->size(); ++i)
+    const auto*  pages = snapshotPages();
+    const size_t count = pages->size();
+    for (size_t i = 0; i < count; ++i)
     {
-        const uint32_t used = (*pages)[i]->used.load(std::memory_order_relaxed);
+        const Page*    page = (*pages)[i];
+        const uint32_t used = page->used.load(std::memory_order_relaxed);
         if (!used)
             continue;
 
         const uint64_t dstOffset = i * pageSizeValue_;
         SWC_ASSERT(dstOffset + used <= dst.size_bytes());
-        std::memcpy(dst.data() + dstOffset, (*pages)[i]->bytes(), used);
+        std::memcpy(dst.data() + dstOffset, page->bytes(), used);
     }
 }
 
@@ -182,23 +184,30 @@ void PagedStore::restoreFromPreserveOffsets(std::span<const std::byte> src) cons
     if (src.empty())
         return;
 
-    const auto* pages = snapshotPages();
-    for (size_t i = 0; i < pages->size(); ++i)
+    const auto*  pages = snapshotPages();
+    const size_t count = pages->size();
+    for (size_t i = 0; i < count; ++i)
     {
-        const uint32_t used = (*pages)[i]->used.load(std::memory_order_relaxed);
+        Page*          page = (*pages)[i];
+        const uint32_t used = page->used.load(std::memory_order_relaxed);
         if (!used)
             continue;
 
         const uint64_t srcOffset = i * pageSizeValue_;
         SWC_ASSERT(srcOffset + used <= src.size_bytes());
-        std::memcpy((*pages)[i]->bytes(), src.data() + srcOffset, used);
+        std::memcpy(page->bytes(), src.data() + srcOffset, used);
     }
 }
 
 void PagedStore::fill(const std::byte value) const
 {
-    for (Page* page : *snapshotPages())
+    const auto*  pages = snapshotPages();
+    const size_t count = pages->size();
+    for (size_t i = 0; i < count; ++i)
+    {
+        Page* page = (*pages)[i];
         std::memset(page->bytes(), std::to_integer<int>(value), page->used.load(std::memory_order_relaxed));
+    }
 }
 
 std::pair<SpanRef, uint32_t> PagedStore::writeChunkRaw(const uint8_t* src, uint32_t elemSize, uint32_t elemAlign, uint32_t remaining, uint32_t totalElems)
@@ -553,12 +562,13 @@ bool PagedStore::containsRef(Ref ref, uint32_t minSize) const noexcept
     const auto* pages = snapshotPages();
     if (!pages || pageIndex >= pages->size())
         return false;
-    if (!(*pages)[pageIndex])
+    const Page* page = (*pages)[pageIndex];
+    if (!page)
         return false;
     if (offset + minSize > pageSizeValue_)
         return false;
 
-    const uint32_t pageUsed = (*pages)[pageIndex]->used.load(std::memory_order_relaxed);
+    const uint32_t pageUsed = page->used.load(std::memory_order_relaxed);
     return offset < pageUsed && offset + minSize <= pageUsed;
 }
 
@@ -592,24 +602,40 @@ const std::vector<PagedStore::PageRange>* PagedStore::snapshotPageRanges() const
 
 void PagedStore::publishPages()
 {
-    auto pages = std::make_unique<std::vector<Page*>>();
-    pages->reserve(pagesStorage_.size());
+    const size_t pageCount = pagesStorage_.size();
+    PageTable*   pages     = publishedPagesStorage_.empty() ? nullptr : publishedPagesStorage_.back().get();
+    if (!pages || pageCount > pages->capacity)
+    {
+        auto grown      = std::make_unique<PageTable>();
+        grown->capacity = pageCount ? std::bit_ceil(pageCount) : 0;
+        if (grown->capacity)
+            grown->entries = std::make_unique<std::atomic<Page*>[]>(grown->capacity);
+        for (size_t index = 0; index < pageCount; ++index)
+            grown->entries[index].store(pagesStorage_[index].get(), std::memory_order_relaxed);
+        pages = grown.get();
+        publishedPagesStorage_.push_back(std::move(grown));
+    }
+    else if (pageCount)
+    {
+        // A published slot is never rewritten. The new slot is visible before the count
+        // or any reference into that page is handed to a reader.
+        pages->entries[pageCount - 1].store(pagesStorage_.back().get(), std::memory_order_release);
+    }
+    pages->count.store(pageCount, std::memory_order_release);
+
     auto pageRanges = std::make_unique<std::vector<PageRange>>();
     pageRanges->reserve(pagesStorage_.size());
     for (uint32_t index = 0; index < pagesStorage_.size(); ++index)
     {
-        const std::unique_ptr<Page>& page = pagesStorage_[index];
-        pages->push_back(page.get());
-        const auto begin = reinterpret_cast<uintptr_t>(page->bytes());
+        const std::unique_ptr<Page>& page  = pagesStorage_[index];
+        const auto                   begin = reinterpret_cast<uintptr_t>(page->bytes());
         pageRanges->push_back({.begin = begin, .index = index, .page = page.get()});
     }
     std::ranges::sort(*pageRanges, {}, &PageRange::begin);
 
-    publishedPagesStorage_.push_back(std::move(pages));
-    const auto* published = publishedPagesStorage_.back().get();
     publishedPageRangesStorage_.push_back(std::move(pageRanges));
     const auto* publishedRanges = publishedPageRangesStorage_.back().get();
-    publishedPages_.store(published, std::memory_order_release);
+    publishedPages_.store(pages, std::memory_order_release);
     publishedPageRanges_.store(publishedRanges, std::memory_order_release);
 }
 

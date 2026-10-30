@@ -268,6 +268,8 @@ impl EditView
             mousePos  = .screenToSurface(mousePos)
             mousePos  = .surfaceToLocal(mousePos)
             mousePos1 = mousePos + .scrollPos
+            let before = .getCaptureRect()
+            mousePos1 -= Math.Point{before.x, before.y}
             mousePos1 /= .zoom
         }
 
@@ -280,7 +282,10 @@ impl EditView
 
         if mouseCenter
         {
+            // Updating the virtual extent also moves its centred capture origin.
+            let after = .getCaptureRect()
             mousePos1 *= .zoom
+            mousePos1 += Math.Point{after.x, after.y}
             mousePos1 -= mousePos
             .scroll.setScrollPos(mousePos1.x, mousePos1.y)
         }

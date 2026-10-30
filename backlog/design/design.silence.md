@@ -38,7 +38,8 @@ dialogs, then each application, then the written rules.
     its foot. Apple is consulted before the Wikipedia/Wikidata fallback; a local film frame is
     published first and remains uncropped while the poster is fetched. Music (`explorer.music`)
     reads tags and nearby cover files locally before MusicBrainz, with a quiet sleeve when no
-    cover exists; one album
+    cover exists; album folders now carry covers in the parent gallery and open into their track
+    page; one album
     (`explorer.album`, `.paper`) with its cover, Play and Shuffle and its tracks; photographs
     (`explorer.photos`) as a justified mosaic by day.
   - The lens answers a typed query over code, text and Markdown with the lines of the file

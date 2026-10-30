@@ -12,6 +12,8 @@ The local film frame or album cover appears before any network request completes
 without artwork keeps a neutral sleeve. Cached results expire after 120 days; refreshing an
 unchanged folder reuses its previews. Wikipedia text is available under CC BY-SA; individual
 images have their own licenses, which can be checked from the linked source article.
+Folders containing album tracks appear as albums in their parent gallery; opening one shows its
+track page, while the Play shortcut starts its first track.
 
 ## Explore folders and archives
 

@@ -19,7 +19,7 @@ func localAlbumArtwork(file: string)->String
 }
 
 func onlinePreviewWanted(file: string, settings: const *ThumbnailSettings)->bool =>
-    (settings.onlineMovies and Reader.canOpen(file)) or
+    (settings.onlineMovies and not albumAudio(file) and Reader.canOpen(file)) or
     (settings.onlineMusic and albumAudio(file))
 
 func onlinePreviewStamped(image: const *Image)->bool
@@ -35,6 +35,7 @@ struct ExplorerPreview
 {
     using operation: Viewer.BackgroundOperation
     path:            String
+    mediaFile:       String     // First track for a folder that represents an album.
     archivePath:     String
     entry:           Viewers.Archive.ZipEntry
     service:         ThumbnailService
@@ -68,9 +69,26 @@ impl ExplorerPreview
 
     private mtd produce() fail
     {
+        // The listing probes only a bounded number of folders. A large library discovers the
+        // remaining albums as their tiles enter the viewport.
+        if .archivePath.isEmpty() and .mediaFile.isEmpty() and Directory.exists(.path)
+        {
+            let inside = try Directory.enumerate(.path, {})
+            var tracks = 0'u64
+            for &entry in inside where not entry.isDirectory() and albumAudio(entry.fullName)
+            {
+                tracks += 1
+                if .mediaFile.isEmpty() do
+                    .mediaFile = entry.fullName
+            }
+            if not tracks or tracks * 2 < inside.count do
+                return
+        }
+
         let source = .archivePath.isEmpty() ? .path.toString() : .archivePath.toString()
+        let media  = .mediaFile.isEmpty() ? .path.toString() : .mediaFile.toString()
         var member = String.from(.archivePath.isEmpty() ? "" : .path.toString())
-        let localArtwork = .archivePath.isEmpty() ? localAlbumArtwork(.path) : String.from("")
+        let localArtwork = .archivePath.isEmpty() ? localAlbumArtwork(media) : String.from("")
         if not localArtwork.isEmpty()
         {
             let info = catch File.info(localArtwork)
@@ -85,13 +103,13 @@ impl ExplorerPreview
             if .image.isValid() and not .online
             {
                 let settings = try ThumbnailSettings.decode(.settings)
-                .needsOnline = .archivePath.isEmpty() and onlinePreviewWanted(.path, &settings) and
+                .needsOnline = .archivePath.isEmpty() and onlinePreviewWanted(media, &settings) and
                                not onlinePreviewStamped(&.image)
                 return
             }
         }
 
-        var file = String.from(.path)
+        var file = String.from(media)
         if not .archivePath.isEmpty()
         {
             var extension = String.from(Path.extension(.path) orelse ".bin")
@@ -120,7 +138,7 @@ impl ExplorerPreview
             var settings = try ThumbnailSettings.decode(.settings)
             if not settings.musicId.isEmpty()
             {
-                let info = try File.info(file)
+                let info = try File.info(.mediaFile.isEmpty() ? file.toString() : source)
                 if not settings.choiceMatches(&info)
                 {
                     settings.musicId.clear()
@@ -132,7 +150,10 @@ impl ExplorerPreview
                 .needsOnline = .archivePath.isEmpty() and onlinePreviewWanted(file, &settings)
                 if albumAudio(file)
                 {
-                    .image = localArtwork.isEmpty() ? Image.create(1, 1, .RGBA8) : try .service.render(localArtwork, .settings)
+                    if not localArtwork.isEmpty() do
+                        .image = catch .service.render(localArtwork, .settings)
+                    if not .image.isValid() do
+                        .image = Image.create(1, 1, .RGBA8)
                     let tags = SoundTags.read(file)
                     labelLocalMusic(&.image, &tags)
                 }
@@ -150,8 +171,7 @@ impl ExplorerPreview
             let localDuration = thumbnailDuration(&.image)
             var providerFailed    = false
             var providerAttempted = false
-            var musicAttempted    = false
-            if settings.onlineMovies and .archivePath.isEmpty() and Reader.canOpen(file)
+            if settings.onlineMovies and .archivePath.isEmpty() and not albumAudio(file) and Reader.canOpen(file)
             {
                 providerAttempted = true
                 catch
@@ -174,7 +194,6 @@ impl ExplorerPreview
                 if not settings.musicId.isEmpty() or (not musicTags.album.isEmpty() and musicSearchArtist(&musicTags).count > 0)
                 {
                     providerAttempted = true
-                    musicAttempted    = true
                     catch
                     {
                         music = try OnlineMusic.lookup(&musicTags, chosenId: settings.musicId)
@@ -195,8 +214,13 @@ impl ExplorerPreview
 
             if not .image.isValid()
             {
-                if albumAudio(file) do
-                    .image = localArtwork.isEmpty() ? Image.create(1, 1, .RGBA8) : try .service.render(localArtwork, .settings)
+                if albumAudio(file)
+                {
+                    if not localArtwork.isEmpty() do
+                        .image = catch .service.render(localArtwork, .settings)
+                    if not .image.isValid() do
+                        .image = Image.create(1, 1, .RGBA8)
+                }
                 else do
                     .image = try .service.render(file, .settings)
             }
@@ -211,7 +235,7 @@ impl ExplorerPreview
                 movie.label(&.image)
             elif not music.id.isEmpty() and .image.isValid() do
                 music.label(&.image, &musicTags)
-            elif musicAttempted and not providerFailed and .image.isValid() do
+            elif settings.onlineMusic and albumAudio(file) and not providerFailed and .image.isValid() do
                 stampMusicCache(&.image)
             elif providerAttempted and not providerFailed and .image.isValid() do
                 stampMovieCache(&.image)

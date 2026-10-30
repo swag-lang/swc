@@ -13,6 +13,7 @@ struct ExplorerEntry
     modified:      String
     when:          Time.DateTime     // When it was modified, in local time; zero when unknown.
     directory:     bool
+    albumTrack:    String     // First direct audio file when this folder is an album.
     archiveIndex:  u64 = Swag.U64.Max
     texture:       Texture
     duration:      u64     // Seconds of a time-based medium, from its thumbnail; zero for anything else.
@@ -227,6 +228,23 @@ impl ExplorerListing
                 counted += 1
                 let inside = catch Directory.enumerate(entry.path, {})
                 entry.children = inside.count
+                var tracks = 0'u64
+                var first: String
+                for &file in inside where not file.isDirectory() and albumAudio(file.fullName)
+                {
+                    tracks += 1
+                    if first.isEmpty() do
+                        first = file.fullName
+                }
+
+                if tracks and tracks * 2 >= inside.count
+                {
+                    entry.albumTrack = #move first
+                    let tags = SoundTags.read(entry.albumTrack)
+                    entry.music = localMusicSummary(&tags)
+                    if entry.music.title.isEmpty() do
+                        entry.music.title = entry.name
+                }
             }
         }
         else

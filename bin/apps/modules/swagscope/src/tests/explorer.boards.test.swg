@@ -373,6 +373,65 @@ func addPictured(host: *Testing.HeadlessHost, explorer: *Explorer, name: string,
     Pixel.Testing.assertImageGolden(&image, "explorer.music")
 }
 
+// Albums stored as directories take the same cover board and open into their track pages.
+#test
+{
+    let root = Path.combine(Env.getSpecialDirectory(.Temp), Format.toString("scope-library-%", Guid64.random()))
+    expect Directory.create(root)
+    defer catch Directory.delete(root, recurse: true)
+    for name in ["Discovery", "In Rainbows"]
+    {
+        let album = Path.combine(root, name)
+        expect Directory.create(album)
+        for index in 2 do
+            discard expect File.writeAllText(Path.combine(album, Format.toString("%.flac", index)), "fixture")
+    }
+
+    var listing = expect ExplorerListing.load(root)
+    Swag.assert(listing.entries.count == 2)
+    for &entry in listing.entries do
+        Swag.assert(entry.directory and not entry.albumTrack.isEmpty() and entry.music.title == entry.name)
+
+    var host: Testing.HeadlessHost
+    let window = boardWindow(&host, false, films: false)
+    let explorer = unwrap window.explorer
+    explorer.entries = #move listing.entries
+    showBoard(&host, window, "Music", "Albums")
+    Swag.assert(explorer.grid.board == .Covers)
+    Swag.assert(Utf8.startsWith(explorer.status.text(), Format.toString(appStrings().explore_Albums, 2)))
+}
+
+#[Swag.TestTag("golden")]
+#test
+{
+    for light in [false, true]
+    {
+        var host: Testing.HeadlessHost
+        let window = boardWindow(&host, light, films: false)
+        let explorer = unwrap window.explorer
+        let names: [6] string = ["Discovery", "Random Access Memories", "In Rainbows", "Kid A", "Moon Safari", "Homework"]
+        let artists: [6] string = ["Daft Punk", "Daft Punk", "Radiohead", "Radiohead", "Air", "Daft Punk"]
+        let years: [6] string = ["2001", "2013", "2007", "2000", "1998", "1997"]
+        let tops: [6] u32 = [0x2A1A4A, 0x2A2418, 0xF0B050, 0xD8E2EA, 0xEDE6D2, 0x141414]
+        let bottoms: [6] u32 = [0xD8508A, 0xC8A040, 0xE04848, 0x5A7A96, 0x7A98C0, 0x3A3A3A]
+        for name, index in names
+        {
+            var picture = index == 5 ? Image.create(1, 1, .RGBA8) :
+                          boardPicture(120, 120, tops[index], bottoms[index])
+            var entry = ExplorerEntry{name: name, path: name, directory: true, albumTrack: "01.flac",
+                                      attempted: true, music: {title: name, artist: artists[index], date: years[index], source: "tags"}}
+            entry.texture = host.app.renderer.addImage(&picture)
+            explorer.entries.add(#move entry)
+        }
+
+        explorer.selected = 0
+        showBoard(&host, window, "Music", "Albums")
+        Swag.assert(explorer.grid.board == .Covers)
+        var image = host.render(&host.surfaceWnd)
+        Pixel.Testing.assertImageGolden(&image, light ? "explorer.albumfolders.paper" : "explorer.albumfolders.encre")
+    }
+}
+
 // One album: its cover large with Play and Shuffle, then its kind and year, its title, who made
 // it, its facts, and its tracks with their lengths in mono, the chosen one led by ▶ on the Arc ground.
 #[Swag.TestTag("golden")]

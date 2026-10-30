@@ -127,4 +127,29 @@ using Core, Pixel, Gui
     Swag.assert(localAlbumArtwork(song).isEmpty())
     discard expect File.writeAllText(cover, "artwork fixture")
     Swag.assert(localAlbumArtwork(song) == cover)
+    let key = expect ThumbnailCache.key(folder)
+    defer catch File.delete(key)
+    var placeholder = Image.create(1, 1, .RGBA8)
+    expect ThumbnailCache.write(key, &placeholder)
+    Swag.assert(ThumbnailCache.read(key).isValid())
+}
+
+// A later album folder is identified only when its tile enters the viewport.
+#test
+{
+    var host: Testing.HeadlessHost
+    host.setup(64, 64)
+    let folder = Path.combine(Env.getSpecialDirectory(.Temp), Format.toString("scope-lazy-album-%", Guid64.random()))
+    expect Directory.create(folder)
+    defer catch Directory.delete(folder, recurse: true)
+    let song = Path.combine(folder, "01.flac")
+    discard expect File.writeAllText(song, "fixture")
+    let key = expect ThumbnailCache.key(folder)
+    defer catch File.delete(key)
+    var preview: ExplorerPreview
+    preview.path = folder
+    preview.start(&host.surfaceWnd)
+    preview.wait()
+    host.pump()
+    Swag.assert(preview.mediaFile == song and preview.image.isValid() and preview.image.width == 1)
 }

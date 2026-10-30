@@ -677,7 +677,7 @@ impl Explorer
         }
 
         let entry = &.entries[.selected]
-        if entry.texture.isValid() do
+        if entry.texture.isValid() and entry.texture.width > 1 do
             sheet.setPicture(entry.texture)
 
         let title = not entry.movie.title.isEmpty() ? entry.movie.title.toString() :
@@ -804,6 +804,12 @@ impl Explorer
         if .grid.board != .Covers or .selected >= .entries.count do
             return
         .window.setPlayMode(.Folder)
+        let entry = &.entries[.selected]
+        if not entry.albumTrack.isEmpty()
+        {
+            .window.queueFile(entry.albumTrack)
+            return
+        }
         .activate(.selected)
     }
 
@@ -1198,9 +1204,18 @@ impl Explorer
         var files, films, sounds, pictures: u64
         var album: String
         var oneAlbum = true
-        for &entry in .entries where not entry.directory
+        for &entry in .entries
         {
+            if entry.directory and entry.albumTrack.isEmpty() and entry.children == Swag.U64.Max do
+                continue
             files += 1
+            if entry.directory
+            {
+                if not entry.albumTrack.isEmpty() do
+                    sounds += 1
+                oneAlbum = false
+                continue
+            }
             let kind = .theme().fileGlyph(entry.name, false, 16).index
             if kind == cast(s32, ThemeIcons.FileVideo)
             {
@@ -1283,10 +1298,15 @@ impl Explorer
         if .shown.count > 1 and not .forced
         {
             var albums: Array'String
-            var tracks, photos: u64
+            var tracks, albumFolders, photos: u64
             for index in .shown
             {
                 let entry = &.entries[index]
+                if not entry.albumTrack.isEmpty()
+                {
+                    albumFolders += 1
+                    continue
+                }
                 let kind  = .theme().fileGlyph(entry.name, entry.directory, 16).index
                 if kind == cast(s32, ThemeIcons.FileAudio)
                 {
@@ -1303,7 +1323,9 @@ impl Explorer
                 }
             }
 
-            if board == .Covers and tracks == .shown.count do
+            if board == .Covers and albumFolders == .shown.count do
+                count = Format.toString(appStrings().explore_Albums, albumFolders)
+            elif board == .Covers and tracks == .shown.count do
                 count = Format.toString("% · %", Format.toString(appStrings().explore_Albums, albums.count), Format.toString(appStrings().explore_Tracks, tracks))
             elif board == .Album and tracks == .shown.count do
                 count = Format.toString(appStrings().explore_Tracks, tracks)
@@ -1535,7 +1557,7 @@ impl Explorer
                 let selected = &.entries[.selected]
                 let movie    = .window.onlineMovies and Reader.canOpen(selected.path)
                 let music    = .window.onlineMusic and (Path.hasExtension(selected.path, ".mp3") or Path.hasExtension(selected.path, ".flac"))
-                if selected.directory or
+                if (selected.directory and selected.albumTrack.isEmpty()) or
                    (selected.attempted and not selected.onlinePending) or
                    not (movie or music or .grid.rows) or
                    .previewSlot(.selected) != Swag.U64.Max do
@@ -1550,7 +1572,8 @@ impl Explorer
                 {
                     let index = .shown[row]
                     if index < .entries.count and
-                       not .entries[index].directory and
+                       (not .entries[index].directory or not .entries[index].albumTrack.isEmpty() or
+                        (.grid.board == .Covers and .entries[index].children == Swag.U64.Max)) and
                        not .entries[index].attempted and
                        .previewSlot(index) == Swag.U64.Max
                     {
@@ -1611,6 +1634,7 @@ impl Explorer
             return
         .pendingOpen        = Swag.U64.Max
         preview.path        = entry.path
+        preview.mediaFile   = entry.albumTrack
         preview.index       = wanted
         preview.generation  = .generation
         preview.opening     = opening
@@ -1692,6 +1716,8 @@ impl IWnd for Explorer
                     }
                     elif preview.image.isValid()
                     {
+                        if .entries[preview.index].directory and not preview.mediaFile.isEmpty() do
+                            .entries[preview.index].albumTrack = preview.mediaFile
                         if not preview.online do
                             .entries[preview.index].onlinePending = preview.needsOnline
                         if preview.index == .selected and not preview.error.isEmpty() do
@@ -1714,7 +1740,14 @@ impl IWnd for Explorer
                         if duration or not preview.online do
                             .entries[preview.index].duration = duration
                         .entries[preview.index].movie    = MovieSummary.fromImage(&preview.image)
-                        .entries[preview.index].music    = MusicSummary.fromImage(&preview.image)
+                        var music = MusicSummary.fromImage(&preview.image)
+                        if music.title.isEmpty() and not .entries[preview.index].albumTrack.isEmpty()
+                        {
+                            music = .entries[preview.index].music
+                            if music.title.isEmpty() do
+                                music.title = .entries[preview.index].name
+                        }
+                        .entries[preview.index].music = #move music
                         if .selected == preview.index do
                             .showMediaInfo()
                         if not replacing do
@@ -2385,9 +2418,10 @@ impl ExplorerGrid
     // the item is hovered or chosen.
     mtd paintName(painter: *Painter, nameRect: Math.Rectangle, row, index: u64, font: *Font, text: string)
     {
-        let width   = Painter.measureString(text, font).width
+        let safe    = safeMediaText(text)
+        let width   = Painter.measureString(safe, font).width
         let scrolls = width > nameRect.width and (.hovered == row or .explorer.selected == index)
-        var name:   RichString = text
+        var name:   RichString = safe.toString()
         var format: RichStringFormat
         format.font = .font()
         me.theme().setTextColors(&format, me.themeColors().text)
@@ -2641,6 +2675,17 @@ impl ExplorerGrid
     mtd reading(entry: const *ExplorerEntry)->String
     {
         var result: #returntype
+        if .board == .Covers and not entry.albumTrack.isEmpty()
+        {
+            result = entry.music.artist
+            if entry.music.date.length >= 4
+            {
+                if result.length do
+                    result += " · "
+                result += entry.music.date.toString()[0 until 4]
+            }
+            return result
+        }
         if entry.directory
         {
             if entry.children == 1 do

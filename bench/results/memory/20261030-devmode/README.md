@@ -75,7 +75,7 @@ allocation stacks and aggregation by owning function are retained in the census 
 
 The next work follows the measured owners:
 
-1. Complete controlled timing and Release validation of compact acyclic liveness storage.
+1. Complete controlled timing validation of compact acyclic liveness storage.
    Its first application observation reduces peak working set by 64.969 MiB. Cyclic matrices
    remain dense; discarding all reusable worker buffers is not an established speed-preserving solution.
 2. Inspect the other retained microcode analyses (78.343 MiB), then linker peak buffers. Use the
@@ -978,8 +978,7 @@ generated-code equality. The first repeated baseline completed at 1,504.113 MiB 
 set, 172.207 s wall and 578.031 s process CPU, with 66.78% average host CPU use. Its timing is
 excluded, and the known publication variation returned (592,047 tokens / 5,143 tuned functions).
 Compared with this second observation, the candidate is 36.781 MiB lower; the first 64.969 MiB
-reduction must not be presented as a repeatable constant. Controlled timing and grouped Release
-validation remain pending.
+reduction must not be presented as a repeatable constant. Controlled timing remains pending.
 
 All twelve benchmark tasks were rebuilt once per compiler in program configuration `devmode`,
 with isolated caches and the same published Win32 interface. Every executed checksum matches.
@@ -1004,3 +1003,36 @@ The matrix density figures above remain representation estimates: the process ob
 not isolate each buffer's saving. Wide fully populated acyclic rows can add descriptor/copy
 cost, and retained capacity depends on earlier functions; controlled speed acceptance is still
 required before treating this representation as a finished optimization.
+
+The grouped Release compiler build and frozen application rebuild pass as well. This includes
+the constant-page packing and preceding backend changes that had only been exercised with the
+DevMode compiler at earlier checkpoints. The Release binary SHA-256 is
+`6c68aef843c9ec3d6f9abc6996ef3d691e94e6bfa745abed9c91bd43f2ea53cf`, built from compiler
+source checkpoint `8bcdc4259b` and preserved outside the checkout. Its working-set peak is
+**1,290.176 MiB**, versus 1,467.332 MiB in the DevMode candidate observation: an observed gap
+of 177.156 MiB. This is not a controlled difference or an exact output-equivalence assertion.
+Host CPU use averaged 72.62%; wall time was 162.520 s, process CPU 589.656 s, and timing is
+excluded. The application reports 592,026 tokens / 5,143 tuned / 2,411 forged functions.
+Its 77 generated source/API files were preserved for the publication-variation investigation;
+tracked frozen sources still match byte for byte. No allocator error was reported.
+
+### Prepared physical-liveness record compaction
+
+The next source batch replaces `MicroPhysLiveness::useDefs`' generic instruction records with
+two physical-register masks and one call flag. On x64 the record changes from 88 to 24 bytes,
+with a compile-time assertion on the new layout. Calls previously retained heap-backed
+register vectors per instruction. A single generic collector now lives in the existing
+worker-local graph scratch, retaining its capacity between requests; its masks are published
+into the compact records. Ordinary instructions use the existing direct operand-mode path.
+
+The loop-hoist readers now query bits, combine masks, and intersect call definitions with
+live-out instead of scanning those vectors. Frame-base masks are computed outside the body
+walk. Only physical registers represented by the existing liveness word are in these sets;
+unknown-register live-out queries retain their conservative behavior. The existing reuse test
+also compares every physical use/definition bit with the generic collector, including call
+effects. No generated-code policy or convergence rule changes.
+
+This batch is formatted and statically reviewed but **not yet built or executed**. Its process
+saving is not included in any measurement above. The existing physical-liveness/loop-hoist C++
+tests, generated-code comparison and frozen application are the next grouped validation
+boundaries; the preserved compact-liveness binaries remain the baseline for this batch.

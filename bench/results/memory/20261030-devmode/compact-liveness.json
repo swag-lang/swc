@@ -1,6 +1,7 @@
 {
-  "status": "DevMode C++ and frozen application pass; twelve benchmark checksums match and listing differences reviewed. Controlled timing and Release validation pending.",
+  "status": "DevMode C++ and frozen application pass; twelve benchmark checksums match and listing differences reviewed. Release build and frozen application pass. Controlled timing pending.",
   "baseline_source_revision": "0d8010eb98",
+  "candidate_source_revision": "8bcdc4259b",
   "storage_policy": "Acyclic virtual liveness matrices >= 1 MiB with more than two words per row store trimmed row spans. Cyclic and smaller matrices remain dense.",
   "limitations": [
     "Measurements are process observations, not a complete owner census.",
@@ -163,6 +164,46 @@
     "compiler_sha256": "c61d7801bf42336c8937885f393e18500ea8c9e8befdc168c4601b70e6975627",
     "stdout_sha256": "a956ae7d7c8b7b952a878713911454f32c375988928a0f7df6d43062afc0253a"
   },
+  "release": {
+    "exit": 0,
+    "started_unix": 1793378405.218618,
+    "affinity_mask": 349185,
+    "effective_affinity_mask": 349185,
+    "system_affinity_mask": 4194303,
+    "affinity_verified": true,
+    "host_busy_pct": 72.61976093735649,
+    "other_process_cpu_ms_estimate": 2004703.125,
+    "wall_ms": 162520.4011,
+    "first_stdout_ms": null,
+    "cpu_ms": 589656.25,
+    "user_cpu_ms": 569453.125,
+    "kernel_cpu_ms": 20203.125,
+    "job_cpu_ms": 589671.875,
+    "page_faults": 643439,
+    "job_processes": 2,
+    "peak_job_bytes": 1378729984,
+    "peak_proc_bytes": 1377501184,
+    "peak_working_set_bytes": 1352847360,
+    "stderr": "\r\n",
+    "harness_sha256": "20a4c33520539d62e67dc2e80a58120e088e68718ed1a690da3a0f0dd2fe7dbf",
+    "allocator_error": false,
+    "mimalloc_options": {},
+    "command": [
+      "C:\\Users\\chris\\AppData\\Local\\swc-agent-builds\\mimalloc-360-20261030-071336\\install\\swc.compact-liveness.exe",
+      "build",
+      "--workspace",
+      "C:\\Users\\chris\\AppData\\Local\\swc-agent-builds\\mimalloc-360-20261030-071336\\install\\apps",
+      "--workspace-module",
+      "swagcapture",
+      "--num-cores",
+      "6",
+      "--rebuild",
+      "--no-log-color",
+      "--no-log-progress"
+    ],
+    "compiler_sha256": "6c68aef843c9ec3d6f9abc6996ef3d691e94e6bfa745abed9c91bd43f2ea53cf",
+    "stdout_sha256": "9f833463b84afb26c16d64b0119b7457229c8d5b81b88f17effdadc5c3eb415d"
+  },
   "observed_difference": {
     "peak_working_set_bytes": -68124672,
     "peak_proc_bytes": -56332288,
@@ -170,6 +211,7 @@
     "cpu_ms": -34156.25
   },
   "repeated_baseline_note": "Host busy 66.78%; timing excluded. Known publication variation returned (592047 tokens/5143 tuned versus 592024/5142); this run is not output-equivalent evidence.",
+  "release_note": "Release compiler, devmode program configuration, same frozen application workspace. Host busy 72.62%; timing excluded. Counts 592026 tokens/5143 tuned/2411 forged differ from DevMode, so this is successful cross-configuration validation and a memory observation, not an exact output-equivalence claim.",
   "microdiff": {
     "baseline_sha256": "c61d7801bf42336c8937885f393e18500ea8c9e8befdc168c4601b70e6975627",
     "candidate_sha256": "624ad4435443ed67ac33543e009fff3bc749a0da3880efe8c9c1a1b6a97761b8",
@@ -406,7 +448,9 @@
     "compact-liveness-app.json": "5d5f7a6e901928519211e44de89c8225c3722f43ac0ab3a99680a8cdc7b5a94a",
     "compact-liveness-cpp.json": "b4018dea1fe06ceae94637bd4ce8d7fe9e56f4c36d129bd1fb742af24b18f844",
     "compact-liveness-repeat-baseline.json": "254a5103fef47667264f6117cd0d91d1c8a9b96a9235da00a950556575b1ab31",
+    "compact-liveness-release-app.json": "34a905590184ef476e3606ce1b6ccff5c8e9c34e6f1a0a7d2a875866f0267bbc",
     "compact-liveness-build.log": "fde16877e126b906d83136d777c1105479d21be2c6994c1af08bd5344e1383e3",
+    "compact-liveness-release-build.log": "e361ebc63e7d6c5a1a9ffac6d6ead803ef625c73355fb2829980eeb8d7322276",
     "compact-liveness-microdiff.log": "b68d4e1dc2998869234ed73b4cc224eca9e4b4e02a4d8cd17cf993463b6661dd",
     "compact-liveness-microdiff-analysis.json": "8f337e93aa40ff4fe1091fb6a6b7e25a5d50b5e150d8ea0ea69b8a6dc3f7cbad"
   }

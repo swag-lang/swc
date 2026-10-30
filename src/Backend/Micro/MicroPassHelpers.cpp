@@ -1159,6 +1159,7 @@ namespace
         std::vector<uint32_t> postorder;
         std::vector<uint64_t> useMasks;
         std::vector<uint64_t> defMasks;
+        MicroInstrUseDef      useDef;
     };
 
     GraphWalkScratch& graphWalkScratch()
@@ -1185,14 +1186,6 @@ void MicroPassHelpers::computePhysicalLiveness(MicroPhysLiveness& out, const Mic
     if (!instCount)
         return;
 
-    // A register the mask cannot name (a special, or an index past the word)
-    // contributes nothing to the set, and isLiveOut answers "live" for it, so
-    // dropping it here stays conservative on both sides.
-    auto maskOf = [](const MicroReg reg) -> uint64_t {
-        const uint32_t bit = MicroPhysLiveness::bitOf(reg);
-        return bit < MicroPhysLiveness::K_INVALID_BIT ? 1ull << bit : 0ull;
-    };
-
     auto&      scratch        = graphWalkScratch();
     const bool retainUseDefs  = mode == MicroPhysLivenessMode::WithUseDefs;
     const bool recordDeadDefs = mode == MicroPhysLivenessMode::DeadDefs || mode == MicroPhysLivenessMode::DeadDefsBeforePrologue;
@@ -1206,15 +1199,13 @@ void MicroPassHelpers::computePhysicalLiveness(MicroPhysLiveness& out, const Mic
         out.deadDefs.clear();
     scratch.useMasks.resize(instCount);
     scratch.defMasks.resize(instCount);
-    MicroInstrUseDef scratchUseDef;
     for (uint32_t i = 0; i < instCount; ++i)
     {
         const MicroInstr* inst = context.instructions->ptr(instructionRefs[i]);
         if (!inst)
             return;
         const MicroInstrDef& info = MicroInstr::info(inst->op);
-        if (!retainUseDefs &&
-            !info.flags.has(MicroInstrFlagsE::IsCallInstruction) &&
+        if (!info.flags.has(MicroInstrFlagsE::IsCallInstruction) &&
             (!context.encoder || !info.flags.has(MicroInstrFlagsE::EncoderRegUseDef)))
         {
             uint64_t useMask       = 0;
@@ -1228,7 +1219,7 @@ void MicroPassHelpers::computePhysicalLiveness(MicroPhysLiveness& out, const Mic
                 {
                     if (modes[operand] == MicroInstrRegMode::None)
                         continue;
-                    const uint64_t bit = maskOf(ops[operand].reg);
+                    const uint64_t bit = MicroPhysLiveness::maskOf(ops[operand].reg);
                     if (modes[operand] == MicroInstrRegMode::Use || modes[operand] == MicroInstrRegMode::UseDef)
                         useMask |= bit;
                     if (modes[operand] == MicroInstrRegMode::Def || modes[operand] == MicroInstrRegMode::UseDef)
@@ -1244,23 +1235,27 @@ void MicroPassHelpers::computePhysicalLiveness(MicroPhysLiveness& out, const Mic
             }
             scratch.useMasks[i] = useMask;
             scratch.defMasks[i] = defMask;
+            if (retainUseDefs)
+                out.useDefs[i] = {useMask, defMask, false};
             if (recordDeadDefs)
                 out.deadDefs[i] = hasDef && !hasUnknownDef;
             continue;
         }
 
-        MicroInstrUseDef& useDef = retainUseDefs ? out.useDefs[i] : scratchUseDef;
+        // Calls can exceed the inline vector capacity. Reuse one collector per
+        // worker rather than allocating per instruction or per analysis request.
+        MicroInstrUseDef& useDef = scratch.useDef;
         inst->collectUseDef(useDef, *context.operands, context.encoder);
         uint64_t useMask = 0;
         uint64_t defMask = 0;
         for (const MicroReg reg : useDef.uses)
-            useMask |= maskOf(reg);
+            useMask |= MicroPhysLiveness::maskOf(reg);
         if (recordDeadDefs)
         {
             bool hasUnknownDef = false;
             for (const MicroReg reg : useDef.defs)
             {
-                const uint64_t bit = maskOf(reg);
+                const uint64_t bit = MicroPhysLiveness::maskOf(reg);
                 defMask |= bit;
                 hasUnknownDef |= bit == 0;
             }
@@ -1269,26 +1264,28 @@ void MicroPassHelpers::computePhysicalLiveness(MicroPhysLiveness& out, const Mic
         else
         {
             for (const MicroReg reg : useDef.defs)
-                defMask |= maskOf(reg);
+                defMask |= MicroPhysLiveness::maskOf(reg);
         }
         scratch.useMasks[i] = useMask;
         scratch.defMasks[i] = defMask;
+        if (retainUseDefs)
+            out.useDefs[i] = {useMask, defMask, useDef.isCall};
     }
 
     const CallConv& conv        = CallConv::get(context.callConvKind);
     uint64_t        exitLiveOut = 0;
     if (context.usesIntReturnRegOnRet)
-        exitLiveOut |= maskOf(conv.intReturn);
+        exitLiveOut |= MicroPhysLiveness::maskOf(conv.intReturn);
     if (context.usesFloatReturnRegOnRet)
-        exitLiveOut |= maskOf(conv.floatReturn);
-    exitLiveOut |= maskOf(conv.stackPointer);
-    exitLiveOut |= maskOf(conv.framePointer);
+        exitLiveOut |= MicroPhysLiveness::maskOf(conv.floatReturn);
+    exitLiveOut |= MicroPhysLiveness::maskOf(conv.stackPointer);
+    exitLiveOut |= MicroPhysLiveness::maskOf(conv.framePointer);
     if (mode != MicroPhysLivenessMode::DeadDefsBeforePrologue)
     {
         for (const MicroReg reg : conv.intPersistentRegs)
-            exitLiveOut |= maskOf(reg);
+            exitLiveOut |= MicroPhysLiveness::maskOf(reg);
         for (const MicroReg reg : conv.floatPersistentRegs)
-            exitLiveOut |= maskOf(reg);
+            exitLiveOut |= MicroPhysLiveness::maskOf(reg);
     }
 
     // Every node is visited below. Its live-out is overwritten on its first

@@ -494,13 +494,13 @@ namespace
             if (inst->op == MicroInstrOpcode::Label)
                 return false;
 
-            const MicroInstrDef&    info   = MicroInstr::info(inst->op);
-            const MicroInstrUseDef& useDef = liveness.useDefs[k];
+            const MicroInstrDef& info   = MicroInstr::info(inst->op);
+            const auto&          useDef = liveness.useDefs[k];
             if (info.flags.has(MicroInstrFlagsE::IsCallInstruction) || useDef.isCall)
                 return false;
 
-            const bool usesDead = std::ranges::find(useDef.uses, dead) != useDef.uses.end();
-            const bool defsDead = std::ranges::find(useDef.defs, dead) != useDef.defs.end();
+            const bool usesDead = useDef.usesReg(dead);
+            const bool defsDead = useDef.definesReg(dead);
 
             // A read-modify-write of the destination is both, and rewriting only
             // its read half would change what it writes.
@@ -804,8 +804,7 @@ namespace
                 {
                     if (!inBody[k] || k == use.storeIndex - 1)
                         continue;
-                    const auto& defs = liveness.useDefs[k].defs;
-                    otherDefinition  = std::ranges::find(defs, source) != defs.end();
+                    otherDefinition = liveness.useDefs[k].definesReg(source);
                 }
                 if (otherDefinition)
                     continue;
@@ -882,8 +881,8 @@ namespace
                 }
                 if (!inBody[k])
                     continue;
-                const MicroInstrUseDef& useDef = liveness.useDefs[k];
-                usable                         = std::ranges::find(useDef.defs, use.reg) == useDef.defs.end() && std::ranges::find(useDef.uses, use.reg) == useDef.uses.end();
+                const auto& useDef = liveness.useDefs[k];
+                usable             = !useDef.definesReg(use.reg) && !useDef.usesReg(use.reg);
             }
             if (!usable)
                 continue;
@@ -989,7 +988,7 @@ namespace
             // accesses; indexed or escaped addresses need a wider proof.
             for (const MicroReg frameBase : {reach.localBaseReg, conv.framePointer})
             {
-                if (!frameBase.isValid() || frameBase == conv.stackPointer || std::ranges::find(useDef.uses, frameBase) == useDef.uses.end())
+                if (!frameBase.isValid() || frameBase == conv.stackPointer || !useDef.usesReg(frameBase))
                     continue;
                 const MicroInstr* inst = storage.ptr(refs[index]);
                 const auto*       ops  = inst ? inst->ops(operands) : nullptr;
@@ -1015,12 +1014,8 @@ namespace
                     return false;
                 localTouches.push_back({frameBase, offset, offset + width});
             }
-            for (const MicroReg reg : useDef.uses)
-                if (reg.isInt() || reg.isFloat())
-                    unavailable |= 1ull << MicroPhysLiveness::bitOf(reg);
-            for (const MicroReg reg : useDef.defs)
-                if ((reg.isInt() || reg.isFloat()) && (!useDef.isCall || liveness.isLiveOut(index, reg)))
-                    unavailable |= 1ull << MicroPhysLiveness::bitOf(reg);
+            unavailable |= useDef.uses;
+            unavailable |= useDef.isCall ? useDef.defs & liveness.liveOut[index] : useDef.defs;
             if (useDef.isCall)
                 calls.push_back(index);
         }
@@ -1079,7 +1074,7 @@ namespace
             if (!loop.inBody[index])
                 continue;
             const auto& useDef = liveness.useDefs[index];
-            if (std::ranges::find(useDef.defs, conv.stackPointer) != useDef.defs.end())
+            if (useDef.definesReg(conv.stackPointer))
                 return false;
             const MicroInstr* inst = storage.ptr(refs[index]);
             const auto*       ops  = inst ? inst->ops(operands) : nullptr;
@@ -1095,7 +1090,7 @@ namespace
 
             // A derived stack address or indexed stack access needs a wider
             // alias proof. Other fixed accesses only block overlapping slots.
-            if (std::ranges::find(useDef.uses, conv.stackPointer) == useDef.uses.end())
+            if (!useDef.usesReg(conv.stackPointer))
                 continue;
             const bool                  load  = inst->op == MicroInstrOpcode::LoadRegMem;
             const bool                  store = inst->op == MicroInstrOpcode::LoadMemReg;
@@ -1179,7 +1174,7 @@ namespace
             const MicroReg cached       = available[selected];
             const auto     needsRestore = [&](const uint32_t call) {
                 return call + 1 < refs.size() && loop.inBody[call + 1] &&
-                       std::ranges::find(liveness.useDefs[call].defs, cached) != liveness.useDefs[call].defs.end();
+                       liveness.useDefs[call].definesReg(cached);
             };
             // A called loop must reuse the home enough to repay its explicit
             // entry/restore reads. Otherwise the cold arms grow memory traffic.
@@ -1400,6 +1395,10 @@ namespace
             return false;
         };
 
+        const uint64_t frameBases = MicroPhysLiveness::maskOf(conv.stackPointer) |
+                                   MicroPhysLiveness::maskOf(conv.framePointer) |
+                                   MicroPhysLiveness::maskOf(reach.localBaseReg);
+
         for (const NaturalLoop* loop : loops)
         {
             const uint32_t      header    = loop->header;
@@ -1439,21 +1438,10 @@ namespace
                     break;
                 }
                 // The frame base must mean the same thing on every iteration.
-                for (const MicroReg use : liveness.useDefs[i].uses)
-                {
-                    const uint32_t bit = MicroPhysLiveness::bitOf(use);
-                    if (bit < MicroPhysLiveness::K_INVALID_BIT)
-                        usedRegs |= 1ull << bit;
-                }
-                uint64_t instructionDefs = 0;
-                for (const MicroReg def : liveness.useDefs[i].defs)
-                {
-                    const uint32_t bit = MicroPhysLiveness::bitOf(def);
-                    if (bit < MicroPhysLiveness::K_INVALID_BIT)
-                        instructionDefs |= 1ull << bit;
-                    if (isFrameBaseRegister(def, conv) || (reach.localBaseReg.isValid() && def == reach.localBaseReg))
-                        bodyOpaque = true;
-                }
+                usedRegs |= liveness.useDefs[i].uses;
+                const uint64_t instructionDefs = liveness.useDefs[i].defs;
+                if (instructionDefs & frameBases)
+                    bodyOpaque = true;
                 multiplyDefinedRegs |= definedRegs & instructionDefs;
                 definedRegs |= instructionDefs;
                 if (bodyOpaque)
@@ -1564,12 +1552,7 @@ namespace
                             {
                                 if (useDef.isCall)
                                     continue;
-                                for (const MicroReg reg : useDef.uses)
-                                    if (reg.isFloat())
-                                        unavailableCacheRegs |= 1ull << MicroPhysLiveness::bitOf(reg);
-                                for (const MicroReg reg : useDef.defs)
-                                    if (reg.isFloat())
-                                        unavailableCacheRegs |= 1ull << MicroPhysLiveness::bitOf(reg);
+                                unavailableCacheRegs |= (useDef.uses | useDef.defs) & (~0ull << MicroPhysLiveness::K_FLOAT_BIT_BASE);
                             }
                             cacheRegsComputed = true;
                         }
@@ -1857,7 +1840,7 @@ namespace
                         flags.has(MicroInstrFlagsE::TerminatorInstruction) || flags.has(MicroInstrFlagsE::IsCallInstruction) ||
                         flags.has(MicroInstrFlagsE::WritesMemory))
                         break;
-                    if (std::ranges::find(liveness.useDefs[j].defs, base) != liveness.useDefs[j].defs.end())
+                    if (liveness.useDefs[j].definesReg(base))
                         break;
                     const MicroInstrOperand* priorOps = prior->ops(operands);
                     if (prior->op == MicroInstrOpcode::OpBinaryRegMem && priorOps && !relocatedRefs.contains(refs[j].get()) && priorOps[1].reg == base &&
@@ -1891,7 +1874,7 @@ namespace
                     }
                     else if (flags.has(MicroInstrFlagsE::WritesMemory) || bodyInst->op == MicroInstrOpcode::Push || bodyInst->op == MicroInstrOpcode::Pop)
                         stable = false;
-                    if (std::ranges::find(liveness.useDefs[j].defs, base) != liveness.useDefs[j].defs.end())
+                    if (liveness.useDefs[j].definesReg(base))
                         stable = false;
                 }
                 if (!stable)
@@ -1906,14 +1889,14 @@ namespace
                     for (uint32_t j = entryReadIndex; j < header && unused; ++j)
                     {
                         const auto& useDef = liveness.useDefs[j];
-                        unused             = std::ranges::find(useDef.uses, scratch) == useDef.uses.end() && std::ranges::find(useDef.defs, scratch) == useDef.defs.end();
+                        unused             = !useDef.usesReg(scratch) && !useDef.definesReg(scratch);
                     }
                     for (uint32_t j = loop.bodyBegin; j < loop.bodyEnd && unused; ++j)
                     {
                         if (!loop.inBody[j])
                             continue;
                         const auto& useDef = liveness.useDefs[j];
-                        unused             = std::ranges::find(useDef.uses, scratch) == useDef.uses.end() && std::ranges::find(useDef.defs, scratch) == useDef.defs.end();
+                        unused             = !useDef.usesReg(scratch) && !useDef.definesReg(scratch);
                     }
                     if (!unused)
                         continue;

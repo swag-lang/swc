@@ -374,9 +374,30 @@ namespace MicroPassHelpers
             return K_INVALID_BIT;
         }
 
-        std::vector<MicroInstrUseDef> useDefs;
-        std::vector<uint64_t>         liveIn;
-        std::vector<uint64_t>         liveOut;
+        static uint64_t maskOf(const MicroReg reg)
+        {
+            const uint32_t bit = bitOf(reg);
+            return bit < K_INVALID_BIT ? 1ull << bit : 0;
+        }
+
+        // Consumers query physical registers or combine their sets. Retaining
+        // generic use/def vectors duplicates these masks and allocates for calls.
+        // Special and out-of-range registers are outside these physical sets;
+        // isLiveOut continues to treat their liveness conservatively.
+        struct UseDef
+        {
+            uint64_t uses   = 0;
+            uint64_t defs   = 0;
+            bool     isCall = false;
+
+            bool usesReg(MicroReg reg) const { return (uses & maskOf(reg)) != 0; }
+            bool definesReg(MicroReg reg) const { return (defs & maskOf(reg)) != 0; }
+        };
+        static_assert(sizeof(UseDef) == 24);
+
+        std::vector<UseDef>   useDefs;
+        std::vector<uint64_t> liveIn;
+        std::vector<uint64_t> liveOut;
         // Set only in DeadDefs mode, after the liveness fixed point.
         std::vector<uint8_t> deadDefs;
         bool                 valid = false;

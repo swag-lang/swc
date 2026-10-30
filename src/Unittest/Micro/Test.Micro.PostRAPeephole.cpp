@@ -2256,11 +2256,27 @@ SWC_TEST_BEGIN(MicroPassHelpers_PhysicalLivenessReuseReplacesInstructionEffectsA
             return Result::Error;
         for (size_t i = 0; i < reused.useDefs.size(); ++i)
         {
-            const MicroInstrUseDef& actual   = reused.useDefs[i];
-            const MicroInstrUseDef& expected = fresh.useDefs[i];
-            if (actual.isCall != expected.isCall || actual.callConv != expected.callConv ||
-                !std::ranges::equal(actual.uses, expected.uses) || !std::ranges::equal(actual.defs, expected.defs))
+            const auto& actual   = reused.useDefs[i];
+            const auto& expected = fresh.useDefs[i];
+            if (actual.isCall != expected.isCall || actual.uses != expected.uses || actual.defs != expected.defs)
                 return Result::Error;
+
+            // The compact analysis must retain every physical effect reported
+            // by the generic collector, including implicit call registers.
+            const auto       ref = builder.controlFlowGraph().instructionRefs()[i];
+            MicroInstrUseDef generic;
+            builder.instructions().ptr(ref)->collectUseDef(generic, builder.operands(), nullptr);
+            if (actual.isCall != generic.isCall)
+                return Result::Error;
+            for (uint32_t index = 0; index < MicroPhysLiveness::K_FLOAT_BIT_BASE; ++index)
+            {
+                for (const auto reg : {MicroReg::intReg(index), MicroReg::floatReg(index)})
+                {
+                    if (actual.usesReg(reg) != (std::ranges::find(generic.uses, reg) != generic.uses.end()) ||
+                        actual.definesReg(reg) != (std::ranges::find(generic.defs, reg) != generic.defs.end()))
+                        return Result::Error;
+                }
+            }
         }
 
         uint64_t exitRoots = (1ull << MicroPhysLiveness::bitOf(conv.stackPointer)) |

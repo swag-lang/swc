@@ -616,3 +616,108 @@ individual functions and module instances. A large buffer can therefore be retai
 than currently needed liveness. Preserve that distinction before proposing release policies.
 Mimalloc statistics are periodically merged; include active thread heaps and account for pending
 page statistics instead of treating an exclusive subprocess counter as the live total.
+
+### Repeated immediate baseline with verified affinity
+
+The preserved `cc9549202b` DevMode binary completed a fresh rebuild of the same frozen application
+with the same six-worker command, verified affinity mask and measurement-harness hash as the
+packed binary. [packed-pair-observations.json](packed-pair-observations.json) retains both runs.
+The earlier checkpoint reached **1,873.27 MiB resident**, versus **1,517.97 MiB** for the packed
+checkpoint: **355.30 MiB (18.97%) lower**. Private memory was 18.45% lower. This pair also includes
+the intervening COFF-consumption change, so it does not isolate DataSegment alone.
+
+The immediate baseline took 267.13 seconds wall and 909.53 seconds CPU, versus 206.44/787.66 for
+the packed binary. Both hosts averaged about 77% busy, with large differences in where module
+time accumulated. The lower observed times do not establish a controlled speedup or dismiss the
+earlier historical slowdown. Further timed repetitions require stable low external load.
+
+The immediate baseline reproduced 592,024 tokens and 5,142 tuned application functions; the
+packed binary produced 592,047/5,143. The tracked inputs match. The subsequent diagnostic run's
+published generated `.swg` API files are byte-for-byte identical to the baseline. Ten worker
+`.swgsrc` dumps differ; after grouping complete generated blocks by module and ignoring worker
+order, three removed and two added blocks remain. They concern generated hash calls and array
+division. These dumps are not proven exhaustive generated-program captures, and the counter
+difference is still unexplained; it is not dismissed as mere worker redistribution.
+
+### Exhaustive backing-storage trace after packing
+
+[storage-census.json](storage-census.json) records 777,580 consecutive allocation/free events with
+no missing free, duplicate live pointer or unfreed block. The temporary diagnostic instrumented
+PagedStore page backing, DataSegment large blocks and Arena blocks in three translation units.
+It built and ran successfully; all probe source/project changes and normal binaries were restored.
+There is no new build configuration or executable in the checkout. Diagnostic timing is excluded.
+
+| Owner | At maximum traced capacity (MiB) | Independent maximum (MiB) |
+| --- | ---: | ---: |
+| Mixed compiler object/string arenas | 171.205 | 171.205 |
+| AST pages identified by stack/owner | 84.203 | 85.672 |
+| Sema node-payload pages | 24.297 | 50.078 |
+| Paged storage without decisive owner evidence | 20.078 | 48.141 |
+| Constant pages and large blocks | 16.728 | 17.009 |
+| Identifier pages | 3.250 | 3.250 |
+| Type pages | 2.406 | 2.422 |
+| **Simultaneous traced total** | **322.167** | **Do not sum independent peaks** |
+
+These are requested backing capacities, not useful bytes or resident memory. The maximum traced
+capacity is not necessarily the process peak. Inlined AST allocation paths can remain in the
+unattributed page row, so the identified AST row is a lower bound on AST backing. Arena blocks
+are deliberately not assigned to the object that happened to trigger block growth: each can
+contain symbols, codegen payloads, strings and finalizers from several call sites. Ordinary
+vectors/maps, page metadata, allocator overhead, stacks and mappings are outside this census.
+
+At the traced maximum, heap backing accounts for 305.392 MiB and proximity backing for 16.774 MiB.
+The latter records actual allocation origin, unlike the earlier reconstructed pre-packing page
+rounding. It supports the diagnosis of the constant-allocation policy, but is not a simultaneous
+before/after resident-memory comparison. Next count retained backend containers directly,
+especially register-allocation liveness matrices and nested per-instruction vectors, then
+reconcile ordinary heap allocations and allocator occupancy with process memory.
+
+The arena blocks alive at the traced peak eventually used 167.324 MiB out of 171.205 MiB
+requested. This is their end-of-lifetime occupancy, not simultaneous useful bytes at the peak;
+it includes alignment and finalizers. It argues against simply shrinking arena blocks as the
+next large reduction. The AST blocks similarly eventually used 77.127 MiB of 84.203 MiB.
+
+### Register-allocation container census
+
+[backend-census.json](backend-census.json) records a second successful diagnostic application
+build, with 24,056 retained-capacity-change observations and seven pass/thread identities.
+One temporary translation-unit patch reads 58 member containers, two public dense-register
+lists and nested vector/SmallVector storage. Inline payload is counted once through its parent
+object; it is not counted again as external storage. The diagnostic compiler was copied outside
+the checkout, and the source and normal binary restored. Its timing is not a benchmark.
+
+| Register-allocation buffers | Sum at independent pass maxima (MiB) |
+| --- | ---: |
+| Virtual-register live-in bit matrices | 115.062 |
+| Instruction use/def descriptors | 12.713 |
+| Four per-instruction dense-index lists | 20.043 |
+| Virtual-register states | 4.206 |
+| Other traced containers | 9.945 |
+| **Total** | **161.969** |
+
+Individual pass maxima range from 0.085 to 63.151 MiB. **The sum is not a simultaneous process
+peak**: these are independent observations; pass destruction and address reuse are not traced.
+Private dense-index tables, FlatKeyMap storage, temporary locals, other optimizer passes, emitted
+code, linker buffers and allocator rounding are excluded. Do not add this table to the earlier
+backing census or subtract the sum from a process peak: they come from separate runs and times.
+
+One late observed function has 27 instructions and three virtual registers, while its worker
+still owns 24.929 MiB of traced capacity, including 17.763 MiB for virtual liveness. The current
+matrix representation stores `instructionCount * ceil(virtualRegisters / 64)` 64-bit words;
+capacities survive functions in the thread-local pipeline. A compact representation is the next
+backend design target. Releasing all capacity after every function would discard deliberate
+reuse and is not accepted as a speed-preserving solution.
+
+### Next occupation work, in order
+
+1. Reconcile allocated heap blocks, allocator-retained pages and OS commitment at the same
+   observation points. Existing raw heap samples cannot establish this gap. Any mimalloc block
+   traversal must honor its no-concurrent-heap-access contract; waiting on one module's jobs is
+   insufficient while deferred links or other clients can allocate.
+2. Count the remaining sema containers and backend/linker storage at those points, without
+   double-counting arena payloads or nested buffers. Preserve an explicit unattributed remainder.
+3. Design the liveness reduction around measured retained matrices and their hot readers. Direct
+   bit tests, row unions, global-register spans and interval allocation all use the current rows;
+   a compressed replacement must account for each access before implementation.
+4. Group correctness and Release validation with the next optimization batch. Repeat unprofiled
+   before/after timings under stable host load before accepting the compilation-speed result.

@@ -1,0 +1,3697 @@
+{
+  "note": "Requested retained capacities of 58 register-allocation member containers, two public dense-register lists and nested vector/SmallVector storage, observed at pass return when total capacity changes. Inline payload is counted once via enclosing object capacity. Excludes private dense-index tables, FlatKeyMap storage, temporary locals, other passes and allocator rounding. Pass identities are addresses plus thread IDs, not destruction-tracked lifetimes; maxima are independent and their sum is NOT a simultaneous peak.",
+  "measurement": {
+    "exit": 0,
+    "started_unix": 1793370021.6683676,
+    "affinity_mask": 349185,
+    "effective_affinity_mask": 349185,
+    "system_affinity_mask": 4194303,
+    "affinity_verified": true,
+    "host_busy_pct": 71.41713914704394,
+    "other_process_cpu_ms_estimate": 2342031.25,
+    "wall_ms": 188458.0975,
+    "first_stdout_ms": null,
+    "cpu_ms": 614109.375,
+    "user_cpu_ms": 582656.25,
+    "kernel_cpu_ms": 31453.125,
+    "job_cpu_ms": 614125.0,
+    "page_faults": 942581,
+    "job_processes": 2,
+    "peak_job_bytes": 1596289024,
+    "peak_proc_bytes": 1595064320,
+    "peak_working_set_bytes": 1603756032,
+    "stderr": "\r\n",
+    "harness_sha256": "20a4c33520539d62e67dc2e80a58120e088e68718ed1a690da3a0f0dd2fe7dbf",
+    "allocator_error": false,
+    "mimalloc_options": {},
+    "command": [
+      "C:\\Users\\chris\\AppData\\Local\\swc-agent-builds\\mimalloc-360-20261030-071336\\install\\swc.backend-census.dm.exe",
+      "build",
+      "--workspace",
+      "C:\\Users\\chris\\AppData\\Local\\swc-agent-builds\\mimalloc-360-20261030-071336\\install\\apps",
+      "--workspace-module",
+      "swagcapture",
+      "--num-cores",
+      "6",
+      "--rebuild",
+      "--no-log-color",
+      "--no-log-progress"
+    ],
+    "compiler_sha256": "fc356a3a3a58401c1d534c421a994de82b57b2ff9f0baa90683e5f610dcf448a",
+    "stdout_sha256": "14503192b0e4f941c443dc6aff7bc48bae9411131a5fc76275cb3d102130d38d",
+    "profiling_enabled": true,
+    "timing_comparable": false,
+    "timing_note": "Direct container-capacity census; excluded from speed comparisons."
+  },
+  "events": 24056,
+  "pass_identities": 7,
+  "sum_independent_pass_maxima": 169836671,
+  "contributions_at_independent_pass_maxima": {
+    "liveInVirtualBits_": 120650824,
+    "instructionUseDefs_": 13330832,
+    "defConcreteIndices_": 5742088,
+    "useConcreteIndices_": 5093384,
+    "useVirtualIndices_": 5091080,
+    "defVirtualIndices_": 5091080,
+    "states_": 4410224,
+    "concreteClaimPositionsByDenseIndex_": 1434120,
+    "usePositionsByDenseVirtual_": 1153008,
+    "liveInConcreteBits_": 1152496,
+    "denseVirtualRegList": 1018440,
+    "concreteTouchPositionsByDenseIndex_": 970892,
+    "relocationSnapshots_": 912528,
+    "boundarySnapshots_": 793848,
+    "worklist_": 509108,
+    "loopDepthDelta_": 505020,
+    "loopDepth_": 504996,
+    "nextUsePositionCursor_": 157508,
+    "virtualSpanLo_": 157508,
+    "virtualSpanHi_": 157508,
+    "definitionCounts_": 157508,
+    "mappedVirtualIndices_": 150808,
+    "reachableInstructions_": 144062,
+    "inWorklist_": 127277,
+    "guardedCallPositions_": 104357,
+    "pendingErasures_": 67220,
+    "callPositions_": 58200,
+    "hotCallPositions_": 56780,
+    "vregsLiveAcrossCall_": 39377,
+    "vregsLiveAcrossHotCall_": 39377,
+    "callSpillFlags_": 39377,
+    "tempOutVirtual_": 4960,
+    "globalRangesByPhysDense_": 2160,
+    "edgeRegisterHint_": 1292,
+    "liveStampByDenseIndex_": 1292,
+    "denseConcreteRegList": 924,
+    "nextConcreteTouchCursor_": 800,
+    "freeIntTransient_": 768,
+    "reservedInt_": 740,
+    "reservedIntPersistent_": 740,
+    "pending_": 736,
+    "globalBenefits_": 480,
+    "globalAccessBenefits_": 480,
+    "currentConcreteLiveOut_": 408,
+    "tempOutConcrete_": 56,
+    "intPersistentRegs_": 0,
+    "floatPersistentRegs_": 0,
+    "freeIntPersistent_": 0,
+    "freeFloatTransient_": 0,
+    "freeFloatPersistent_": 0,
+    "pendingBorrowRestores_": 0,
+    "pinnedCallSavedDense_": 0,
+    "sealedLoopRegions_": 0,
+    "activeLoopResidency_": 0,
+    "boundaryPending_": 0,
+    "deferredLoopCarriedStores_": 0,
+    "loopRegionIsLabelAt_": 0,
+    "loopRegionJumpsToOwnNextLabel_": 0,
+    "reservedFloat_": 0,
+    "reservedFloatPersistent_": 0
+  },
+  "pass_maxima": [
+    {
+      "owner": "3d380b68d40",
+      "thread": 15068,
+      "instructions": 20129,
+      "regs": 4754,
+      "size": 19114973,
+      "capacity": 66219136,
+      "buffers": {
+        "instructionUseDefs_": {
+          "size": 1915992,
+          "capacity": 3713816
+        },
+        "useVirtualIndices_": {
+          "size": 805160,
+          "capacity": 1607080
+        },
+        "defVirtualIndices_": {
+          "size": 805160,
+          "capacity": 1607080
+        },
+        "useConcreteIndices_": {
+          "size": 805792,
+          "capacity": 1608072
+        },
+        "defConcreteIndices_": {
+          "size": 949148,
+          "capacity": 1784296
+        },
+        "usePositionsByDenseVirtual_": {
+          "size": 152928,
+          "capacity": 299680
+        },
+        "concreteTouchPositionsByDenseIndex_": {
+          "size": 161932,
+          "capacity": 216560
+        },
+        "nextUsePositionCursor_": {
+          "size": 19016,
+          "capacity": 41472
+        },
+        "nextConcreteTouchCursor_": {
+          "size": 56,
+          "capacity": 124
+        },
+        "liveInVirtualBits_": {
+          "size": 12077400,
+          "capacity": 52069392
+        },
+        "liveInConcreteBits_": {
+          "size": 161032,
+          "capacity": 321416
+        },
+        "loopDepth_": {
+          "size": 80516,
+          "capacity": 90732
+        },
+        "edgeRegisterHint_": {
+          "size": 4,
+          "capacity": 320
+        },
+        "boundarySnapshots_": {
+          "size": 152152,
+          "capacity": 211024
+        },
+        "virtualSpanLo_": {
+          "size": 19016,
+          "capacity": 41472
+        },
+        "virtualSpanHi_": {
+          "size": 19016,
+          "capacity": 41472
+        },
+        "concreteClaimPositionsByDenseIndex_": {
+          "size": 241816,
+          "capacity": 311172
+        },
+        "globalRangesByPhysDense_": {
+          "size": 0,
+          "capacity": 432
+        },
+        "reachableInstructions_": {
+          "size": 20129,
+          "capacity": 40177
+        },
+        "worklist_": {
+          "size": 0,
+          "capacity": 160708
+        },
+        "inWorklist_": {
+          "size": 20129,
+          "capacity": 40177
+        },
+        "tempOutVirtual_": {
+          "size": 600,
+          "capacity": 1296
+        },
+        "tempOutConcrete_": {
+          "size": 8,
+          "capacity": 8
+        },
+        "definitionCounts_": {
+          "size": 19016,
+          "capacity": 41472
+        },
+        "liveStampByDenseIndex_": {
+          "size": 0,
+          "capacity": 320
+        },
+        "vregsLiveAcrossCall_": {
+          "size": 4754,
+          "capacity": 10368
+        },
+        "guardedCallPositions_": {
+          "size": 20129,
+          "capacity": 20130
+        },
+        "callPositions_": {
+          "size": 11076,
+          "capacity": 14388
+        },
+        "hotCallPositions_": {
+          "size": 10932,
+          "capacity": 14388
+        },
+        "vregsLiveAcrossHotCall_": {
+          "size": 4754,
+          "capacity": 10368
+        },
+        "callSpillFlags_": {
+          "size": 4754,
+          "capacity": 10368
+        },
+        "mappedVirtualIndices_": {
+          "size": 0,
+          "capacity": 41472
+        },
+        "currentConcreteLiveOut_": {
+          "size": 0,
+          "capacity": 76
+        },
+        "intPersistentRegs_": {
+          "size": 0,
+          "capacity": 0
+        },
+        "floatPersistentRegs_": {
+          "size": 0,
+          "capacity": 0
+        },
+        "freeIntTransient_": {
+          "size": 28,
+          "capacity": 256
+        },
+        "freeIntPersistent_": {
+          "size": 0,
+          "capacity": 0
+        },
+        "freeFloatTransient_": {
+          "size": 0,
+          "capacity": 0
+        },
+        "freeFloatPersistent_": {
+          "size": 0,
+          "capacity": 0
+        },
+        "states_": {
+          "size": 532448,
+          "capacity": 1161216
+        },
+        "pendingErasures_": {
+          "size": 0,
+          "capacity": 14388
+        },
+        "pending_": {
+          "size": 0,
+          "capacity": 184
+        },
+        "pendingBorrowRestores_": {
+          "size": 0,
+          "capacity": 0
+        },
+        "pinnedCallSavedDense_": {
+          "size": 0,
+          "capacity": 0
+        },
+        "sealedLoopRegions_": {
+          "size": 0,
+          "capacity": 0
+        },
+        "activeLoopResidency_": {
+          "size": 0,
+          "capacity": 0
+        },
+        "boundaryPending_": {
+          "size": 0,
+          "capacity": 0
+        },
+        "deferredLoopCarriedStores_": {
+          "size": 0,
+          "capacity": 0
+        },
+        "relocationSnapshots_": {
+          "size": 0,
+          "capacity": 258960
+        },
+        "loopDepthDelta_": {
+          "size": 80520,
+          "capacity": 90736
+        },
+        "loopRegionIsLabelAt_": {
+          "size": 0,
+          "capacity": 0
+        },
+        "loopRegionJumpsToOwnNextLabel_": {
+          "size": 0,
+          "capacity": 0
+        },
+        "globalBenefits_": {
+          "size": 96,
+          "capacity": 96
+        },
+        "globalAccessBenefits_": {
+          "size": 96,
+          "capacity": 96
+        },
+        "reservedInt_": {
+          "size": 148,
+          "capacity": 148
+        },
+        "reservedFloat_": {
+          "size": 0,
+          "capacity": 0
+        },
+        "reservedIntPersistent_": {
+          "size": 148,
+          "capacity": 148
+        },
+        "reservedFloatPersistent_": {
+          "size": 0,
+          "capacity": 0
+        },
+        "denseVirtualRegList": {
+          "size": 19016,
+          "capacity": 321448
+        },
+        "denseConcreteRegList": {
+          "size": 56,
+          "capacity": 132
+        }
+      }
+    },
+    {
+      "owner": "3d3809246c0",
+      "thread": 29792,
+      "instructions": 18998,
+      "regs": 79,
+      "size": 6211593,
+      "capacity": 26641103,
+      "buffers": {
+        "instructionUseDefs_": {
+          "size": 1736644,
+          "capacity": 1892960
+        },
+        "useVirtualIndices_": {
+          "size": 759920,
+          "capacity": 824160
+        },
+        "defVirtualIndices_": {
+          "size": 759920,
+          "capacity": 824160
+        },
+        "useConcreteIndices_": {
+          "size": 760052,
+          "capacity": 824352
+        },
+        "defConcreteIndices_": {
+          "size": 824608,
+          "capacity": 903776
+        },
+        "usePositionsByDenseVirtual_": {
+          "size": 2212,
+          "capacity": 179120
+        },
+        "concreteTouchPositionsByDenseIndex_": {
+          "size": 141732,
+          "capacity": 206968
+        },
+        "nextUsePositionCursor_": {
+          "size": 316,
+          "capacity": 28688
+        },
+        "nextConcreteTouchCursor_": {
+          "size": 84,
+          "capacity": 124
+        },
+        "liveInVirtualBits_": {
+          "size": 303968,
+          "capacity": 18626016
+        },
+        "liveInConcreteBits_": {
+          "size": 151984,
+          "capacity": 164832
+        },
+        "loopDepth_": {
+          "size": 75992,
+          "capacity": 82416
+        },
+        "edgeRegisterHint_": {
+          "size": 316,
+          "capacity": 316
+        },
+        "boundarySnapshots_": {
+          "size": 166584,
+          "capacity": 211024
+        },
+        "virtualSpanLo_": {
+          "size": 316,
+          "capacity": 28688
+        },
+        "virtualSpanHi_": {
+          "size": 316,
+          "capacity": 28688
+        },
+        "concreteClaimPositionsByDenseIndex_": {
+          "size": 207956,
+          "capacity": 266436
+        },
+        "globalRangesByPhysDense_": {
+          "size": 0,
+          "capacity": 432
+        },
+        "reachableInstructions_": {
+          "size": 18998,
+          "capacity": 20604
+        },
+        "worklist_": {
+          "size": 0,
+          "capacity": 82416
+        },
+        "inWorklist_": {
+          "size": 18998,
+          "capacity": 20604
+        },
+        "tempOutVirtual_": {
+          "size": 16,
+          "capacity": 904
+        },
+        "tempOutConcrete_": {
+          "size": 8,
+          "capacity": 8
+        },
+        "definitionCounts_": {
+          "size": 316,
+          "capacity": 28688
+        },
+        "liveStampByDenseIndex_": {
+          "size": 316,
+          "capacity": 316
+        },
+        "vregsLiveAcrossCall_": {
+          "size": 79,
+          "capacity": 7172
+        },
+        "guardedCallPositions_": {
+          "size": 0,
+          "capacity": 6507
+        },
+        "callPositions_": {
+          "size": 4976,
+          "capacity": 6396
+        },
+        "hotCallPositions_": {
+          "size": 4976,
+          "capacity": 6396
+        },
+        "vregsLiveAcrossHotCall_": {
+          "size": 79,
+          "capacity": 7172
+        },
+        "callSpillFlags_": {
+          "size": 79,
+          "capacity": 7172
+        },
+        "mappedVirtualIndices_": {
+          "size": 0,
+          "capacity": 28688
+        },
+        "currentConcreteLiveOut_": {
+          "size": 40,
+          "capacity": 76
+        },
+        "intPersistentRegs_": {
+          "size": 0,
+          "capacity": 0
+        },
+        "floatPersistentRegs_": {
+          "size": 0,
+          "capacity": 0
+        },
+        "freeIntTransient_": {
+          "size": 124,
+          "capacity": 128
+        },
+        "freeIntPersistent_": {
+          "size": 0,
+          "capacity": 0
+        },
+        "freeFloatTransient_": {
+          "size": 0,
+          "capacity": 0
+        },
+        "freeFloatPersistent_": {
+          "size": 0,
+          "capacity": 0
+        },
+        "states_": {
+          "size": 8848,
+          "capacity": 803264
+        },
+        "pendingErasures_": {
+          "size": 0,
+          "capacity": 14388
+        },
+        "pending_": {
+          "size": 0,
+          "capacity": 184
+        },
+        "pendingBorrowRestores_": {
+          "size": 0,
+          "capacity": 0
+        },
+        "pinnedCallSavedDense_": {
+          "size": 0,
+          "capacity": 0
+        },
+        "sealedLoopRegions_": {
+          "size": 0,
+          "capacity": 0
+        },
+        "activeLoopResidency_": {
+          "size": 0,
+          "capacity": 0
+        },
+        "boundaryPending_": {
+          "size": 0,
+          "capacity": 0
+        },
+        "deferredLoopCarriedStores_": {
+          "size": 0,
+          "capacity": 0
+        },
+        "relocationSnapshots_": {
+          "size": 183936,
+          "capacity": 258960
+        },
+        "loopDepthDelta_": {
+          "size": 75996,
+          "capacity": 82420
+        },
+        "loopRegionIsLabelAt_": {
+          "size": 0,
+          "capacity": 0
+        },
+        "loopRegionJumpsToOwnNextLabel_": {
+          "size": 0,
+          "capacity": 0
+        },
+        "globalBenefits_": {
+          "size": 96,
+          "capacity": 96
+        },
+        "globalAccessBenefits_": {
+          "size": 96,
+          "capacity": 96
+        },
+        "reservedInt_": {
+          "size": 148,
+          "capacity": 148
+        },
+        "reservedFloat_": {
+          "size": 0,
+          "capacity": 0
+        },
+        "reservedIntPersistent_": {
+          "size": 148,
+          "capacity": 148
+        },
+        "reservedFloatPersistent_": {
+          "size": 0,
+          "capacity": 0
+        },
+        "denseVirtualRegList": {
+          "size": 316,
+          "capacity": 164864
+        },
+        "denseConcreteRegList": {
+          "size": 84,
+          "capacity": 132
+        }
+      }
+    },
+    {
+      "owner": "3d38180a900",
+      "thread": 27164,
+      "instructions": 20579,
+      "regs": 4889,
+      "size": 19812056,
+      "capacity": 26493799,
+      "buffers": {
+        "instructionUseDefs_": {
+          "size": 1955592,
+          "capacity": 2531800
+        },
+        "useVirtualIndices_": {
+          "size": 823160,
+          "capacity": 823200
+        },
+        "defVirtualIndices_": {
+          "size": 823160,
+          "capacity": 823200
+        },
+        "useConcreteIndices_": {
+          "size": 823792,
+          "capacity": 824192
+        },
+        "defConcreteIndices_": {
+          "size": 967148,
+          "capacity": 1000416
+        },
+        "usePositionsByDenseVirtual_": {
+          "size": 157068,
+          "capacity": 182636
+        },
+        "concreteTouchPositionsByDenseIndex_": {
+          "size": 161932,
+          "capacity": 204572
+        },
+        "nextUsePositionCursor_": {
+          "size": 19556,
+          "capacity": 21260
+        },
+        "nextConcreteTouchCursor_": {
+          "size": 56,
+          "capacity": 124
+        },
+        "liveInVirtualBits_": {
+          "size": 12676664,
+          "capacity": 17972640
+        },
+        "liveInConcreteBits_": {
+          "size": 164632,
+          "capacity": 213960
+        },
+        "loopDepth_": {
+          "size": 82316,
+          "capacity": 106980
+        },
+        "edgeRegisterHint_": {
+          "size": 4,
+          "capacity": 200
+        },
+        "boundarySnapshots_": {
+          "size": 106128,
+          "capacity": 140712
+        },
+        "virtualSpanLo_": {
+          "size": 19556,
+          "capacity": 21260
+        },
+        "virtualSpanHi_": {
+          "size": 19556,
+          "capacity": 21260
+        },
+        "concreteClaimPositionsByDenseIndex_": {
+          "size": 243616,
+          "capacity": 311172
+        },
+        "globalRangesByPhysDense_": {
+          "size": 0,
+          "capacity": 0
+        },
+        "reachableInstructions_": {
+          "size": 20579,
+          "capacity": 26745
+        },
+        "worklist_": {
+          "size": 0,
+          "capacity": 82320
+        },
+        "inWorklist_": {
+          "size": 20579,
+          "capacity": 20580
+        },
+        "tempOutVirtual_": {
+          "size": 616,
+          "capacity": 672
+        },
+        "tempOutConcrete_": {
+          "size": 8,
+          "capacity": 8
+        },
+        "definitionCounts_": {
+          "size": 19556,
+          "capacity": 21260
+        },
+        "liveStampByDenseIndex_": {
+          "size": 0,
+          "capacity": 200
+        },
+        "vregsLiveAcrossCall_": {
+          "size": 4889,
+          "capacity": 5315
+        },
+        "guardedCallPositions_": {
+          "size": 20579,
+          "capacity": 26745
+        },
+        "callPositions_": {
+          "size": 11076,
+          "capacity": 14388
+        },
+        "hotCallPositions_": {
+          "size": 10932,
+          "capacity": 14388
+        },
+        "vregsLiveAcrossHotCall_": {
+          "size": 4889,
+          "capacity": 5315
+        },
+        "callSpillFlags_": {
+          "size": 4889,
+          "capacity": 5315
+        },
+        "mappedVirtualIndices_": {
+          "size": 0,
+          "capacity": 21260
+        },
+        "currentConcreteLiveOut_": {
+          "size": 0,
+          "capacity": 76
+        },
+        "intPersistentRegs_": {
+          "size": 0,
+          "capacity": 0
+        },
+        "floatPersistentRegs_": {
+          "size": 0,
+          "capacity": 0
+        },
+        "freeIntTransient_": {
+          "size": 28,
+          "capacity": 128
+        },
+        "freeIntPersistent_": {
+          "size": 0,
+          "capacity": 0
+        },
+        "freeFloatTransient_": {
+          "size": 0,
+          "capacity": 0
+        },
+        "freeFloatPersistent_": {
+          "size": 0,
+          "capacity": 0
+        },
+        "states_": {
+          "size": 547568,
+          "capacity": 595280
+        },
+        "pendingErasures_": {
+          "size": 0,
+          "capacity": 9592
+        },
+        "pending_": {
+          "size": 0,
+          "capacity": 184
+        },
+        "pendingBorrowRestores_": {
+          "size": 0,
+          "capacity": 0
+        },
+        "pinnedCallSavedDense_": {
+          "size": 0,
+          "capacity": 0
+        },
+        "sealedLoopRegions_": {
+          "size": 0,
+          "capacity": 0
+        },
+        "activeLoopResidency_": {
+          "size": 0,
+          "capacity": 0
+        },
+        "boundaryPending_": {
+          "size": 0,
+          "capacity": 0
+        },
+        "deferredLoopCarriedStores_": {
+          "size": 0,
+          "capacity": 0
+        },
+        "relocationSnapshots_": {
+          "size": 0,
+          "capacity": 172656
+        },
+        "loopDepthDelta_": {
+          "size": 82320,
+          "capacity": 106984
+        },
+        "loopRegionIsLabelAt_": {
+          "size": 0,
+          "capacity": 0
+        },
+        "loopRegionJumpsToOwnNextLabel_": {
+          "size": 0,
+          "capacity": 0
+        },
+        "globalBenefits_": {
+          "size": 0,
+          "capacity": 0
+        },
+        "globalAccessBenefits_": {
+          "size": 0,
+          "capacity": 0
+        },
+        "reservedInt_": {
+          "size": 0,
+          "capacity": 0
+        },
+        "reservedFloat_": {
+          "size": 0,
+          "capacity": 0
+        },
+        "reservedIntPersistent_": {
+          "size": 0,
+          "capacity": 0
+        },
+        "reservedFloatPersistent_": {
+          "size": 0,
+          "capacity": 0
+        },
+        "denseVirtualRegList": {
+          "size": 19556,
+          "capacity": 164672
+        },
+        "denseConcreteRegList": {
+          "size": 56,
+          "capacity": 132
+        }
+      }
+    },
+    {
+      "owner": "3d3817e8c80",
+      "thread": 2136,
+      "instructions": 19849,
+      "regs": 4955,
+      "size": 19006780,
+      "capacity": 24151301,
+      "buffers": {
+        "instructionUseDefs_": {
+          "size": 1826116,
+          "capacity": 2607048
+        },
+        "useVirtualIndices_": {
+          "size": 793960,
+          "capacity": 793960
+        },
+        "defVirtualIndices_": {
+          "size": 793960,
+          "capacity": 793960
+        },
+        "useConcreteIndices_": {
+          "size": 793960,
+          "capacity": 793960
+        },
+        "defConcreteIndices_": {
+          "size": 873364,
+          "capacity": 891688
+        },
+        "usePositionsByDenseVirtual_": {
+          "size": 168004,
+          "capacity": 213516
+        },
+        "concreteTouchPositionsByDenseIndex_": {
+          "size": 97784,
+          "capacity": 111064
+        },
+        "nextUsePositionCursor_": {
+          "size": 19820,
+          "capacity": 26520
+        },
+        "nextConcreteTouchCursor_": {
+          "size": 56,
+          "capacity": 124
+        },
+        "liveInVirtualBits_": {
+          "size": 12385776,
+          "capacity": 15968400
+        },
+        "liveInConcreteBits_": {
+          "size": 158792,
+          "capacity": 228120
+        },
+        "loopDepth_": {
+          "size": 79396,
+          "capacity": 114060
+        },
+        "edgeRegisterHint_": {
+          "size": 4,
+          "capacity": 72
+        },
+        "boundarySnapshots_": {
+          "size": 22264,
+          "capacity": 27808
+        },
+        "virtualSpanLo_": {
+          "size": 19820,
+          "capacity": 26520
+        },
+        "virtualSpanHi_": {
+          "size": 19820,
+          "capacity": 26520
+        },
+        "concreteClaimPositionsByDenseIndex_": {
+          "size": 192084,
+          "capacity": 234448
+        },
+        "globalRangesByPhysDense_": {
+          "size": 0,
+          "capacity": 432
+        },
+        "reachableInstructions_": {
+          "size": 19849,
+          "capacity": 28515
+        },
+        "worklist_": {
+          "size": 0,
+          "capacity": 79396
+        },
+        "inWorklist_": {
+          "size": 19849,
+          "capacity": 19849
+        },
+        "tempOutVirtual_": {
+          "size": 624,
+          "capacity": 840
+        },
+        "tempOutConcrete_": {
+          "size": 8,
+          "capacity": 8
+        },
+        "definitionCounts_": {
+          "size": 19820,
+          "capacity": 26520
+        },
+        "liveStampByDenseIndex_": {
+          "size": 0,
+          "capacity": 72
+        },
+        "vregsLiveAcrossCall_": {
+          "size": 4955,
+          "capacity": 6630
+        },
+        "guardedCallPositions_": {
+          "size": 19849,
+          "capacity": 28515
+        },
+        "callPositions_": {
+          "size": 6108,
+          "capacity": 14388
+        },
+        "hotCallPositions_": {
+          "size": 6104,
+          "capacity": 14388
+        },
+        "vregsLiveAcrossHotCall_": {
+          "size": 4955,
+          "capacity": 6630
+        },
+        "callSpillFlags_": {
+          "size": 4955,
+          "capacity": 6630
+        },
+        "mappedVirtualIndices_": {
+          "size": 0,
+          "capacity": 19820
+        },
+        "currentConcreteLiveOut_": {
+          "size": 0,
+          "capacity": 52
+        },
+        "intPersistentRegs_": {
+          "size": 0,
+          "capacity": 0
+        },
+        "floatPersistentRegs_": {
+          "size": 0,
+          "capacity": 0
+        },
+        "freeIntTransient_": {
+          "size": 0,
+          "capacity": 0
+        },
+        "freeIntPersistent_": {
+          "size": 0,
+          "capacity": 0
+        },
+        "freeFloatTransient_": {
+          "size": 0,
+          "capacity": 0
+        },
+        "freeFloatPersistent_": {
+          "size": 0,
+          "capacity": 0
+        },
+        "states_": {
+          "size": 554960,
+          "capacity": 742560
+        },
+        "pendingErasures_": {
+          "size": 0,
+          "capacity": 9592
+        },
+        "pending_": {
+          "size": 0,
+          "capacity": 0
+        },
+        "pendingBorrowRestores_": {
+          "size": 0,
+          "capacity": 0
+        },
+        "pinnedCallSavedDense_": {
+          "size": 0,
+          "capacity": 0
+        },
+        "sealedLoopRegions_": {
+          "size": 0,
+          "capacity": 0
+        },
+        "activeLoopResidency_": {
+          "size": 0,
+          "capacity": 0
+        },
+        "boundaryPending_": {
+          "size": 0,
+          "capacity": 0
+        },
+        "deferredLoopCarriedStores_": {
+          "size": 0,
+          "capacity": 0
+        },
+        "relocationSnapshots_": {
+          "size": 0,
+          "capacity": 15168
+        },
+        "loopDepthDelta_": {
+          "size": 79400,
+          "capacity": 114064
+        },
+        "loopRegionIsLabelAt_": {
+          "size": 0,
+          "capacity": 0
+        },
+        "loopRegionJumpsToOwnNextLabel_": {
+          "size": 0,
+          "capacity": 0
+        },
+        "globalBenefits_": {
+          "size": 96,
+          "capacity": 96
+        },
+        "globalAccessBenefits_": {
+          "size": 96,
+          "capacity": 96
+        },
+        "reservedInt_": {
+          "size": 148,
+          "capacity": 148
+        },
+        "reservedFloat_": {
+          "size": 0,
+          "capacity": 0
+        },
+        "reservedIntPersistent_": {
+          "size": 148,
+          "capacity": 148
+        },
+        "reservedFloatPersistent_": {
+          "size": 0,
+          "capacity": 0
+        },
+        "denseVirtualRegList": {
+          "size": 19820,
+          "capacity": 158824
+        },
+        "denseConcreteRegList": {
+          "size": 56,
+          "capacity": 132
+        }
+      }
+    },
+    {
+      "owner": "3d3863ac4c0",
+      "thread": 27140,
+      "instructions": 13418,
+      "regs": 4908,
+      "size": 12997512,
+      "capacity": 13354331,
+      "buffers": {
+        "instructionUseDefs_": {
+          "size": 1230620,
+          "capacity": 1280232
+        },
+        "useVirtualIndices_": {
+          "size": 536720,
+          "capacity": 536720
+        },
+        "defVirtualIndices_": {
+          "size": 536720,
+          "capacity": 536720
+        },
+        "useConcreteIndices_": {
+          "size": 536740,
+          "capacity": 536752
+        },
+        "defConcreteIndices_": {
+          "size": 586536,
+          "capacity": 598032
+        },
+        "usePositionsByDenseVirtual_": {
+          "size": 151676,
+          "capacity": 154064
+        },
+        "concreteTouchPositionsByDenseIndex_": {
+          "size": 66732,
+          "capacity": 82820
+        },
+        "nextUsePositionCursor_": {
+          "size": 19632,
+          "capacity": 19632
+        },
+        "nextConcreteTouchCursor_": {
+          "size": 56,
+          "capacity": 124
+        },
+        "liveInVirtualBits_": {
+          "size": 8265488,
+          "capacity": 8265488
+        },
+        "liveInConcreteBits_": {
+          "size": 107344,
+          "capacity": 110808
+        },
+        "loopDepth_": {
+          "size": 53672,
+          "capacity": 55404
+        },
+        "edgeRegisterHint_": {
+          "size": 4,
+          "capacity": 116
+        },
+        "boundarySnapshots_": {
+          "size": 45760,
+          "capacity": 62568
+        },
+        "virtualSpanLo_": {
+          "size": 19632,
+          "capacity": 19632
+        },
+        "virtualSpanHi_": {
+          "size": 19632,
+          "capacity": 19632
+        },
+        "concreteClaimPositionsByDenseIndex_": {
+          "size": 127520,
+          "capacity": 165796
+        },
+        "globalRangesByPhysDense_": {
+          "size": 0,
+          "capacity": 432
+        },
+        "reachableInstructions_": {
+          "size": 13418,
+          "capacity": 13851
+        },
+        "worklist_": {
+          "size": 0,
+          "capacity": 53672
+        },
+        "inWorklist_": {
+          "size": 13418,
+          "capacity": 13418
+        },
+        "tempOutVirtual_": {
+          "size": 616,
+          "capacity": 616
+        },
+        "tempOutConcrete_": {
+          "size": 8,
+          "capacity": 8
+        },
+        "definitionCounts_": {
+          "size": 19632,
+          "capacity": 19632
+        },
+        "liveStampByDenseIndex_": {
+          "size": 0,
+          "capacity": 116
+        },
+        "vregsLiveAcrossCall_": {
+          "size": 4908,
+          "capacity": 4908
+        },
+        "guardedCallPositions_": {
+          "size": 0,
+          "capacity": 8290
+        },
+        "callPositions_": {
+          "size": 3832,
+          "capacity": 4264
+        },
+        "hotCallPositions_": {
+          "size": 3832,
+          "capacity": 4264
+        },
+        "vregsLiveAcrossHotCall_": {
+          "size": 4908,
+          "capacity": 4908
+        },
+        "callSpillFlags_": {
+          "size": 4908,
+          "capacity": 4908
+        },
+        "mappedVirtualIndices_": {
+          "size": 0,
+          "capacity": 19632
+        },
+        "currentConcreteLiveOut_": {
+          "size": 0,
+          "capacity": 52
+        },
+        "intPersistentRegs_": {
+          "size": 0,
+          "capacity": 0
+        },
+        "floatPersistentRegs_": {
+          "size": 0,
+          "capacity": 0
+        },
+        "freeIntTransient_": {
+          "size": 0,
+          "capacity": 0
+        },
+        "freeIntPersistent_": {
+          "size": 0,
+          "capacity": 0
+        },
+        "freeFloatTransient_": {
+          "size": 0,
+          "capacity": 0
+        },
+        "freeFloatPersistent_": {
+          "size": 0,
+          "capacity": 0
+        },
+        "states_": {
+          "size": 549696,
+          "capacity": 549696
+        },
+        "pendingErasures_": {
+          "size": 0,
+          "capacity": 9592
+        },
+        "pending_": {
+          "size": 0,
+          "capacity": 0
+        },
+        "pendingBorrowRestores_": {
+          "size": 0,
+          "capacity": 0
+        },
+        "pinnedCallSavedDense_": {
+          "size": 0,
+          "capacity": 0
+        },
+        "sealedLoopRegions_": {
+          "size": 0,
+          "capacity": 0
+        },
+        "activeLoopResidency_": {
+          "size": 0,
+          "capacity": 0
+        },
+        "boundaryPending_": {
+          "size": 0,
+          "capacity": 0
+        },
+        "deferredLoopCarriedStores_": {
+          "size": 0,
+          "capacity": 0
+        },
+        "relocationSnapshots_": {
+          "size": 0,
+          "capacity": 34128
+        },
+        "loopDepthDelta_": {
+          "size": 53676,
+          "capacity": 55408
+        },
+        "loopRegionIsLabelAt_": {
+          "size": 0,
+          "capacity": 0
+        },
+        "loopRegionJumpsToOwnNextLabel_": {
+          "size": 0,
+          "capacity": 0
+        },
+        "globalBenefits_": {
+          "size": 96,
+          "capacity": 96
+        },
+        "globalAccessBenefits_": {
+          "size": 96,
+          "capacity": 96
+        },
+        "reservedInt_": {
+          "size": 148,
+          "capacity": 148
+        },
+        "reservedFloat_": {
+          "size": 0,
+          "capacity": 0
+        },
+        "reservedIntPersistent_": {
+          "size": 148,
+          "capacity": 148
+        },
+        "reservedFloatPersistent_": {
+          "size": 0,
+          "capacity": 0
+        },
+        "denseVirtualRegList": {
+          "size": 19632,
+          "capacity": 107376
+        },
+        "denseConcreteRegList": {
+          "size": 56,
+          "capacity": 132
+        }
+      }
+    },
+    {
+      "owner": "3d380c81d80",
+      "thread": 28844,
+      "instructions": 11133,
+      "regs": 67,
+      "size": 3702180,
+      "capacity": 12887461,
+      "buffers": {
+        "instructionUseDefs_": {
+          "size": 1025420,
+          "capacity": 1275176
+        },
+        "useVirtualIndices_": {
+          "size": 445320,
+          "capacity": 496560
+        },
+        "defVirtualIndices_": {
+          "size": 445320,
+          "capacity": 496560
+        },
+        "useConcreteIndices_": {
+          "size": 445380,
+          "capacity": 496656
+        },
+        "defConcreteIndices_": {
+          "size": 490976,
+          "capacity": 552752
+        },
+        "usePositionsByDenseVirtual_": {
+          "size": 1876,
+          "capacity": 122824
+        },
+        "concreteTouchPositionsByDenseIndex_": {
+          "size": 89812,
+          "capacity": 146548
+        },
+        "nextUsePositionCursor_": {
+          "size": 268,
+          "capacity": 19836
+        },
+        "nextConcreteTouchCursor_": {
+          "size": 84,
+          "capacity": 124
+        },
+        "liveInVirtualBits_": {
+          "size": 178128,
+          "capacity": 7746336
+        },
+        "liveInConcreteBits_": {
+          "size": 89064,
+          "capacity": 110808
+        },
+        "loopDepth_": {
+          "size": 44532,
+          "capacity": 55404
+        },
+        "edgeRegisterHint_": {
+          "size": 268,
+          "capacity": 268
+        },
+        "boundarySnapshots_": {
+          "size": 111496,
+          "capacity": 140712
+        },
+        "virtualSpanLo_": {
+          "size": 268,
+          "capacity": 19836
+        },
+        "virtualSpanHi_": {
+          "size": 268,
+          "capacity": 19836
+        },
+        "concreteClaimPositionsByDenseIndex_": {
+          "size": 112100,
+          "capacity": 140920
+        },
+        "globalRangesByPhysDense_": {
+          "size": 0,
+          "capacity": 432
+        },
+        "reachableInstructions_": {
+          "size": 11133,
+          "capacity": 13851
+        },
+        "worklist_": {
+          "size": 0,
+          "capacity": 49656
+        },
+        "inWorklist_": {
+          "size": 11133,
+          "capacity": 12414
+        },
+        "tempOutVirtual_": {
+          "size": 16,
+          "capacity": 624
+        },
+        "tempOutConcrete_": {
+          "size": 8,
+          "capacity": 8
+        },
+        "definitionCounts_": {
+          "size": 268,
+          "capacity": 19836
+        },
+        "liveStampByDenseIndex_": {
+          "size": 268,
+          "capacity": 268
+        },
+        "vregsLiveAcrossCall_": {
+          "size": 67,
+          "capacity": 4959
+        },
+        "guardedCallPositions_": {
+          "size": 11133,
+          "capacity": 13851
+        },
+        "callPositions_": {
+          "size": 3512,
+          "capacity": 4264
+        },
+        "hotCallPositions_": {
+          "size": 452,
+          "capacity": 2844
+        },
+        "vregsLiveAcrossHotCall_": {
+          "size": 67,
+          "capacity": 4959
+        },
+        "callSpillFlags_": {
+          "size": 67,
+          "capacity": 4959
+        },
+        "mappedVirtualIndices_": {
+          "size": 0,
+          "capacity": 19836
+        },
+        "currentConcreteLiveOut_": {
+          "size": 36,
+          "capacity": 76
+        },
+        "intPersistentRegs_": {
+          "size": 0,
+          "capacity": 0
+        },
+        "floatPersistentRegs_": {
+          "size": 0,
+          "capacity": 0
+        },
+        "freeIntTransient_": {
+          "size": 144,
+          "capacity": 256
+        },
+        "freeIntPersistent_": {
+          "size": 0,
+          "capacity": 0
+        },
+        "freeFloatTransient_": {
+          "size": 0,
+          "capacity": 0
+        },
+        "freeFloatPersistent_": {
+          "size": 0,
+          "capacity": 0
+        },
+        "states_": {
+          "size": 7504,
+          "capacity": 555408
+        },
+        "pendingErasures_": {
+          "size": 0,
+          "capacity": 9592
+        },
+        "pending_": {
+          "size": 0,
+          "capacity": 184
+        },
+        "pendingBorrowRestores_": {
+          "size": 0,
+          "capacity": 0
+        },
+        "pinnedCallSavedDense_": {
+          "size": 0,
+          "capacity": 0
+        },
+        "sealedLoopRegions_": {
+          "size": 0,
+          "capacity": 0
+        },
+        "activeLoopResidency_": {
+          "size": 0,
+          "capacity": 0
+        },
+        "boundaryPending_": {
+          "size": 0,
+          "capacity": 0
+        },
+        "deferredLoopCarriedStores_": {
+          "size": 0,
+          "capacity": 0
+        },
+        "relocationSnapshots_": {
+          "size": 130416,
+          "capacity": 172656
+        },
+        "loopDepthDelta_": {
+          "size": 44536,
+          "capacity": 55408
+        },
+        "loopRegionIsLabelAt_": {
+          "size": 0,
+          "capacity": 0
+        },
+        "loopRegionJumpsToOwnNextLabel_": {
+          "size": 0,
+          "capacity": 0
+        },
+        "globalBenefits_": {
+          "size": 96,
+          "capacity": 96
+        },
+        "globalAccessBenefits_": {
+          "size": 96,
+          "capacity": 96
+        },
+        "reservedInt_": {
+          "size": 148,
+          "capacity": 148
+        },
+        "reservedFloat_": {
+          "size": 0,
+          "capacity": 0
+        },
+        "reservedIntPersistent_": {
+          "size": 148,
+          "capacity": 148
+        },
+        "reservedFloatPersistent_": {
+          "size": 0,
+          "capacity": 0
+        },
+        "denseVirtualRegList": {
+          "size": 268,
+          "capacity": 99344
+        },
+        "denseConcreteRegList": {
+          "size": 84,
+          "capacity": 132
+        }
+      }
+    },
+    {
+      "owner": "3d380327e40",
+      "thread": 23872,
+      "instructions": 235,
+      "regs": 25,
+      "size": 75805,
+      "capacity": 89540,
+      "buffers": {
+        "instructionUseDefs_": {
+          "size": 22084,
+          "capacity": 29800
+        },
+        "useVirtualIndices_": {
+          "size": 9400,
+          "capacity": 9400
+        },
+        "defVirtualIndices_": {
+          "size": 9400,
+          "capacity": 9400
+        },
+        "useConcreteIndices_": {
+          "size": 9400,
+          "capacity": 9400
+        },
+        "defConcreteIndices_": {
+          "size": 10804,
+          "capacity": 11128
+        },
+        "usePositionsByDenseVirtual_": {
+          "size": 1108,
+          "capacity": 1168
+        },
+        "concreteTouchPositionsByDenseIndex_": {
+          "size": 2100,
+          "capacity": 2360
+        },
+        "nextUsePositionCursor_": {
+          "size": 100,
+          "capacity": 100
+        },
+        "nextConcreteTouchCursor_": {
+          "size": 56,
+          "capacity": 56
+        },
+        "liveInVirtualBits_": {
+          "size": 1880,
+          "capacity": 2552
+        },
+        "liveInConcreteBits_": {
+          "size": 1880,
+          "capacity": 2552
+        },
+        "loopDepth_": {
+          "size": 0,
+          "capacity": 0
+        },
+        "edgeRegisterHint_": {
+          "size": 0,
+          "capacity": 0
+        },
+        "boundarySnapshots_": {
+          "size": 0,
+          "capacity": 0
+        },
+        "virtualSpanLo_": {
+          "size": 100,
+          "capacity": 100
+        },
+        "virtualSpanHi_": {
+          "size": 100,
+          "capacity": 100
+        },
+        "concreteClaimPositionsByDenseIndex_": {
+          "size": 3572,
+          "capacity": 4176
+        },
+        "globalRangesByPhysDense_": {
+          "size": 0,
+          "capacity": 0
+        },
+        "reachableInstructions_": {
+          "size": 235,
+          "capacity": 319
+        },
+        "worklist_": {
+          "size": 0,
+          "capacity": 940
+        },
+        "inWorklist_": {
+          "size": 0,
+          "capacity": 235
+        },
+        "tempOutVirtual_": {
+          "size": 8,
+          "capacity": 8
+        },
+        "tempOutConcrete_": {
+          "size": 8,
+          "capacity": 8
+        },
+        "definitionCounts_": {
+          "size": 100,
+          "capacity": 100
+        },
+        "liveStampByDenseIndex_": {
+          "size": 0,
+          "capacity": 0
+        },
+        "vregsLiveAcrossCall_": {
+          "size": 25,
+          "capacity": 25
+        },
+        "guardedCallPositions_": {
+          "size": 235,
+          "capacity": 319
+        },
+        "callPositions_": {
+          "size": 108,
+          "capacity": 112
+        },
+        "hotCallPositions_": {
+          "size": 96,
+          "capacity": 112
+        },
+        "vregsLiveAcrossHotCall_": {
+          "size": 25,
+          "capacity": 25
+        },
+        "callSpillFlags_": {
+          "size": 25,
+          "capacity": 25
+        },
+        "mappedVirtualIndices_": {
+          "size": 0,
+          "capacity": 100
+        },
+        "currentConcreteLiveOut_": {
+          "size": 0,
+          "capacity": 0
+        },
+        "intPersistentRegs_": {
+          "size": 0,
+          "capacity": 0
+        },
+        "floatPersistentRegs_": {
+          "size": 0,
+          "capacity": 0
+        },
+        "freeIntTransient_": {
+          "size": 0,
+          "capacity": 0
+        },
+        "freeIntPersistent_": {
+          "size": 0,
+          "capacity": 0
+        },
+        "freeFloatTransient_": {
+          "size": 0,
+          "capacity": 0
+        },
+        "freeFloatPersistent_": {
+          "size": 0,
+          "capacity": 0
+        },
+        "states_": {
+          "size": 2800,
+          "capacity": 2800
+        },
+        "pendingErasures_": {
+          "size": 0,
+          "capacity": 76
+        },
+        "pending_": {
+          "size": 0,
+          "capacity": 0
+        },
+        "pendingBorrowRestores_": {
+          "size": 0,
+          "capacity": 0
+        },
+        "pinnedCallSavedDense_": {
+          "size": 0,
+          "capacity": 0
+        },
+        "sealedLoopRegions_": {
+          "size": 0,
+          "capacity": 0
+        },
+        "activeLoopResidency_": {
+          "size": 0,
+          "capacity": 0
+        },
+        "boundaryPending_": {
+          "size": 0,
+          "capacity": 0
+        },
+        "deferredLoopCarriedStores_": {
+          "size": 0,
+          "capacity": 0
+        },
+        "relocationSnapshots_": {
+          "size": 0,
+          "capacity": 0
+        },
+        "loopDepthDelta_": {
+          "size": 0,
+          "capacity": 0
+        },
+        "loopRegionIsLabelAt_": {
+          "size": 0,
+          "capacity": 0
+        },
+        "loopRegionJumpsToOwnNextLabel_": {
+          "size": 0,
+          "capacity": 0
+        },
+        "globalBenefits_": {
+          "size": 0,
+          "capacity": 0
+        },
+        "globalAccessBenefits_": {
+          "size": 0,
+          "capacity": 0
+        },
+        "reservedInt_": {
+          "size": 0,
+          "capacity": 0
+        },
+        "reservedFloat_": {
+          "size": 0,
+          "capacity": 0
+        },
+        "reservedIntPersistent_": {
+          "size": 0,
+          "capacity": 0
+        },
+        "reservedFloatPersistent_": {
+          "size": 0,
+          "capacity": 0
+        },
+        "denseVirtualRegList": {
+          "size": 100,
+          "capacity": 1912
+        },
+        "denseConcreteRegList": {
+          "size": 56,
+          "capacity": 132
+        }
+      }
+    }
+  ],
+  "last_observations": [
+    {
+      "owner": "3d380327e40",
+      "thread": 23872,
+      "instructions": 175,
+      "regs": 25,
+      "size": 57769,
+      "capacity": 89028,
+      "buffers": {
+        "instructionUseDefs_": {
+          "size": 16596,
+          "capacity": 29544
+        },
+        "useVirtualIndices_": {
+          "size": 7000,
+          "capacity": 9400
+        },
+        "defVirtualIndices_": {
+          "size": 7000,
+          "capacity": 9400
+        },
+        "useConcreteIndices_": {
+          "size": 7000,
+          "capacity": 9400
+        },
+        "defConcreteIndices_": {
+          "size": 8196,
+          "capacity": 10872
+        },
+        "usePositionsByDenseVirtual_": {
+          "size": 940,
+          "capacity": 1168
+        },
+        "concreteTouchPositionsByDenseIndex_": {
+          "size": 1668,
+          "capacity": 2360
+        },
+        "nextUsePositionCursor_": {
+          "size": 100,
+          "capacity": 100
+        },
+        "nextConcreteTouchCursor_": {
+          "size": 56,
+          "capacity": 56
+        },
+        "liveInVirtualBits_": {
+          "size": 1400,
+          "capacity": 2552
+        },
+        "liveInConcreteBits_": {
+          "size": 1400,
+          "capacity": 2552
+        },
+        "loopDepth_": {
+          "size": 0,
+          "capacity": 0
+        },
+        "edgeRegisterHint_": {
+          "size": 0,
+          "capacity": 0
+        },
+        "boundarySnapshots_": {
+          "size": 0,
+          "capacity": 0
+        },
+        "virtualSpanLo_": {
+          "size": 100,
+          "capacity": 100
+        },
+        "virtualSpanHi_": {
+          "size": 100,
+          "capacity": 100
+        },
+        "concreteClaimPositionsByDenseIndex_": {
+          "size": 2564,
+          "capacity": 4176
+        },
+        "globalRangesByPhysDense_": {
+          "size": 0,
+          "capacity": 0
+        },
+        "reachableInstructions_": {
+          "size": 175,
+          "capacity": 319
+        },
+        "worklist_": {
+          "size": 0,
+          "capacity": 940
+        },
+        "inWorklist_": {
+          "size": 0,
+          "capacity": 235
+        },
+        "tempOutVirtual_": {
+          "size": 8,
+          "capacity": 8
+        },
+        "tempOutConcrete_": {
+          "size": 8,
+          "capacity": 8
+        },
+        "definitionCounts_": {
+          "size": 100,
+          "capacity": 100
+        },
+        "liveStampByDenseIndex_": {
+          "size": 0,
+          "capacity": 0
+        },
+        "vregsLiveAcrossCall_": {
+          "size": 25,
+          "capacity": 25
+        },
+        "guardedCallPositions_": {
+          "size": 175,
+          "capacity": 319
+        },
+        "callPositions_": {
+          "size": 92,
+          "capacity": 112
+        },
+        "hotCallPositions_": {
+          "size": 60,
+          "capacity": 112
+        },
+        "vregsLiveAcrossHotCall_": {
+          "size": 25,
+          "capacity": 25
+        },
+        "callSpillFlags_": {
+          "size": 25,
+          "capacity": 25
+        },
+        "mappedVirtualIndices_": {
+          "size": 0,
+          "capacity": 100
+        },
+        "currentConcreteLiveOut_": {
+          "size": 0,
+          "capacity": 0
+        },
+        "intPersistentRegs_": {
+          "size": 0,
+          "capacity": 0
+        },
+        "floatPersistentRegs_": {
+          "size": 0,
+          "capacity": 0
+        },
+        "freeIntTransient_": {
+          "size": 0,
+          "capacity": 0
+        },
+        "freeIntPersistent_": {
+          "size": 0,
+          "capacity": 0
+        },
+        "freeFloatTransient_": {
+          "size": 0,
+          "capacity": 0
+        },
+        "freeFloatPersistent_": {
+          "size": 0,
+          "capacity": 0
+        },
+        "states_": {
+          "size": 2800,
+          "capacity": 2800
+        },
+        "pendingErasures_": {
+          "size": 0,
+          "capacity": 76
+        },
+        "pending_": {
+          "size": 0,
+          "capacity": 0
+        },
+        "pendingBorrowRestores_": {
+          "size": 0,
+          "capacity": 0
+        },
+        "pinnedCallSavedDense_": {
+          "size": 0,
+          "capacity": 0
+        },
+        "sealedLoopRegions_": {
+          "size": 0,
+          "capacity": 0
+        },
+        "activeLoopResidency_": {
+          "size": 0,
+          "capacity": 0
+        },
+        "boundaryPending_": {
+          "size": 0,
+          "capacity": 0
+        },
+        "deferredLoopCarriedStores_": {
+          "size": 0,
+          "capacity": 0
+        },
+        "relocationSnapshots_": {
+          "size": 0,
+          "capacity": 0
+        },
+        "loopDepthDelta_": {
+          "size": 0,
+          "capacity": 0
+        },
+        "loopRegionIsLabelAt_": {
+          "size": 0,
+          "capacity": 0
+        },
+        "loopRegionJumpsToOwnNextLabel_": {
+          "size": 0,
+          "capacity": 0
+        },
+        "globalBenefits_": {
+          "size": 0,
+          "capacity": 0
+        },
+        "globalAccessBenefits_": {
+          "size": 0,
+          "capacity": 0
+        },
+        "reservedInt_": {
+          "size": 0,
+          "capacity": 0
+        },
+        "reservedFloat_": {
+          "size": 0,
+          "capacity": 0
+        },
+        "reservedIntPersistent_": {
+          "size": 0,
+          "capacity": 0
+        },
+        "reservedFloatPersistent_": {
+          "size": 0,
+          "capacity": 0
+        },
+        "denseVirtualRegList": {
+          "size": 100,
+          "capacity": 1912
+        },
+        "denseConcreteRegList": {
+          "size": 56,
+          "capacity": 132
+        }
+      }
+    },
+    {
+      "owner": "3d3817e8c80",
+      "thread": 2136,
+      "instructions": 256,
+      "regs": 121,
+      "size": 155511,
+      "capacity": 23786741,
+      "buffers": {
+        "instructionUseDefs_": {
+          "size": 23828,
+          "capacity": 2510920
+        },
+        "useVirtualIndices_": {
+          "size": 10240,
+          "capacity": 793960
+        },
+        "defVirtualIndices_": {
+          "size": 10240,
+          "capacity": 793960
+        },
+        "useConcreteIndices_": {
+          "size": 10240,
+          "capacity": 793960
+        },
+        "defConcreteIndices_": {
+          "size": 11540,
+          "capacity": 795560
+        },
+        "usePositionsByDenseVirtual_": {
+          "size": 3512,
+          "capacity": 162644
+        },
+        "concreteTouchPositionsByDenseIndex_": {
+          "size": 2052,
+          "capacity": 15472
+        },
+        "nextUsePositionCursor_": {
+          "size": 484,
+          "capacity": 26520
+        },
+        "nextConcreteTouchCursor_": {
+          "size": 56,
+          "capacity": 124
+        },
+        "liveInVirtualBits_": {
+          "size": 4096,
+          "capacity": 15968400
+        },
+        "liveInConcreteBits_": {
+          "size": 2048,
+          "capacity": 228120
+        },
+        "loopDepth_": {
+          "size": 1024,
+          "capacity": 114060
+        },
+        "edgeRegisterHint_": {
+          "size": 4,
+          "capacity": 1608
+        },
+        "boundarySnapshots_": {
+          "size": 42768,
+          "capacity": 62568
+        },
+        "virtualSpanLo_": {
+          "size": 484,
+          "capacity": 26520
+        },
+        "virtualSpanHi_": {
+          "size": 484,
+          "capacity": 26520
+        },
+        "concreteClaimPositionsByDenseIndex_": {
+          "size": 3252,
+          "capacity": 118280
+        },
+        "globalRangesByPhysDense_": {
+          "size": 0,
+          "capacity": 1944
+        },
+        "reachableInstructions_": {
+          "size": 256,
+          "capacity": 28515
+        },
+        "worklist_": {
+          "size": 0,
+          "capacity": 79396
+        },
+        "inWorklist_": {
+          "size": 256,
+          "capacity": 19849
+        },
+        "tempOutVirtual_": {
+          "size": 16,
+          "capacity": 840
+        },
+        "tempOutConcrete_": {
+          "size": 8,
+          "capacity": 8
+        },
+        "definitionCounts_": {
+          "size": 484,
+          "capacity": 26520
+        },
+        "liveStampByDenseIndex_": {
+          "size": 0,
+          "capacity": 1608
+        },
+        "vregsLiveAcrossCall_": {
+          "size": 121,
+          "capacity": 6630
+        },
+        "guardedCallPositions_": {
+          "size": 256,
+          "capacity": 28515
+        },
+        "callPositions_": {
+          "size": 100,
+          "capacity": 14388
+        },
+        "hotCallPositions_": {
+          "size": 92,
+          "capacity": 14388
+        },
+        "vregsLiveAcrossHotCall_": {
+          "size": 121,
+          "capacity": 6630
+        },
+        "callSpillFlags_": {
+          "size": 121,
+          "capacity": 6630
+        },
+        "mappedVirtualIndices_": {
+          "size": 0,
+          "capacity": 19820
+        },
+        "currentConcreteLiveOut_": {
+          "size": 0,
+          "capacity": 76
+        },
+        "intPersistentRegs_": {
+          "size": 0,
+          "capacity": 0
+        },
+        "floatPersistentRegs_": {
+          "size": 0,
+          "capacity": 0
+        },
+        "freeIntTransient_": {
+          "size": 0,
+          "capacity": 0
+        },
+        "freeIntPersistent_": {
+          "size": 0,
+          "capacity": 0
+        },
+        "freeFloatTransient_": {
+          "size": 0,
+          "capacity": 0
+        },
+        "freeFloatPersistent_": {
+          "size": 0,
+          "capacity": 0
+        },
+        "states_": {
+          "size": 13552,
+          "capacity": 742560
+        },
+        "pendingErasures_": {
+          "size": 0,
+          "capacity": 9592
+        },
+        "pending_": {
+          "size": 0,
+          "capacity": 184
+        },
+        "pendingBorrowRestores_": {
+          "size": 0,
+          "capacity": 0
+        },
+        "pinnedCallSavedDense_": {
+          "size": 0,
+          "capacity": 0
+        },
+        "sealedLoopRegions_": {
+          "size": 0,
+          "capacity": 0
+        },
+        "activeLoopResidency_": {
+          "size": 0,
+          "capacity": 0
+        },
+        "boundaryPending_": {
+          "size": 0,
+          "capacity": 184
+        },
+        "deferredLoopCarriedStores_": {
+          "size": 0,
+          "capacity": 0
+        },
+        "relocationSnapshots_": {
+          "size": 0,
+          "capacity": 51168
+        },
+        "loopDepthDelta_": {
+          "size": 1028,
+          "capacity": 114064
+        },
+        "loopRegionIsLabelAt_": {
+          "size": 0,
+          "capacity": 0
+        },
+        "loopRegionJumpsToOwnNextLabel_": {
+          "size": 0,
+          "capacity": 0
+        },
+        "globalBenefits_": {
+          "size": 2576,
+          "capacity": 3216
+        },
+        "globalAccessBenefits_": {
+          "size": 2576,
+          "capacity": 3216
+        },
+        "reservedInt_": {
+          "size": 3528,
+          "capacity": 4324
+        },
+        "reservedFloat_": {
+          "size": 0,
+          "capacity": 0
+        },
+        "reservedIntPersistent_": {
+          "size": 3528,
+          "capacity": 4324
+        },
+        "reservedFloatPersistent_": {
+          "size": 0,
+          "capacity": 0
+        },
+        "denseVirtualRegList": {
+          "size": 484,
+          "capacity": 158824
+        },
+        "denseConcreteRegList": {
+          "size": 56,
+          "capacity": 132
+        }
+      }
+    },
+    {
+      "owner": "3d3809246c0",
+      "thread": 29792,
+      "instructions": 27,
+      "regs": 3,
+      "size": 178185,
+      "capacity": 26140003,
+      "buffers": {
+        "instructionUseDefs_": {
+          "size": 2792,
+          "capacity": 1813664
+        },
+        "useVirtualIndices_": {
+          "size": 1080,
+          "capacity": 824160
+        },
+        "defVirtualIndices_": {
+          "size": 1080,
+          "capacity": 824160
+        },
+        "useConcreteIndices_": {
+          "size": 1080,
+          "capacity": 824160
+        },
+        "defConcreteIndices_": {
+          "size": 1496,
+          "capacity": 824672
+        },
+        "usePositionsByDenseVirtual_": {
+          "size": 108,
+          "capacity": 176432
+        },
+        "concreteTouchPositionsByDenseIndex_": {
+          "size": 812,
+          "capacity": 18352
+        },
+        "nextUsePositionCursor_": {
+          "size": 12,
+          "capacity": 28688
+        },
+        "nextConcreteTouchCursor_": {
+          "size": 56,
+          "capacity": 124
+        },
+        "liveInVirtualBits_": {
+          "size": 216,
+          "capacity": 18626016
+        },
+        "liveInConcreteBits_": {
+          "size": 216,
+          "capacity": 164832
+        },
+        "loopDepth_": {
+          "size": 0,
+          "capacity": 82416
+        },
+        "edgeRegisterHint_": {
+          "size": 4,
+          "capacity": 316
+        },
+        "boundarySnapshots_": {
+          "size": 166584,
+          "capacity": 211024
+        },
+        "virtualSpanLo_": {
+          "size": 12,
+          "capacity": 28688
+        },
+        "virtualSpanHi_": {
+          "size": 12,
+          "capacity": 28688
+        },
+        "concreteClaimPositionsByDenseIndex_": {
+          "size": 980,
+          "capacity": 115232
+        },
+        "globalRangesByPhysDense_": {
+          "size": 0,
+          "capacity": 432
+        },
+        "reachableInstructions_": {
+          "size": 0,
+          "capacity": 20604
+        },
+        "worklist_": {
+          "size": 0,
+          "capacity": 82416
+        },
+        "inWorklist_": {
+          "size": 0,
+          "capacity": 20604
+        },
+        "tempOutVirtual_": {
+          "size": 8,
+          "capacity": 904
+        },
+        "tempOutConcrete_": {
+          "size": 8,
+          "capacity": 8
+        },
+        "definitionCounts_": {
+          "size": 12,
+          "capacity": 28688
+        },
+        "liveStampByDenseIndex_": {
+          "size": 0,
+          "capacity": 316
+        },
+        "vregsLiveAcrossCall_": {
+          "size": 3,
+          "capacity": 7172
+        },
+        "guardedCallPositions_": {
+          "size": 0,
+          "capacity": 6507
+        },
+        "callPositions_": {
+          "size": 32,
+          "capacity": 6396
+        },
+        "hotCallPositions_": {
+          "size": 32,
+          "capacity": 6396
+        },
+        "vregsLiveAcrossHotCall_": {
+          "size": 3,
+          "capacity": 7172
+        },
+        "callSpillFlags_": {
+          "size": 3,
+          "capacity": 7172
+        },
+        "mappedVirtualIndices_": {
+          "size": 0,
+          "capacity": 28688
+        },
+        "currentConcreteLiveOut_": {
+          "size": 0,
+          "capacity": 76
+        },
+        "intPersistentRegs_": {
+          "size": 0,
+          "capacity": 0
+        },
+        "floatPersistentRegs_": {
+          "size": 0,
+          "capacity": 0
+        },
+        "freeIntTransient_": {
+          "size": 28,
+          "capacity": 128
+        },
+        "freeIntPersistent_": {
+          "size": 0,
+          "capacity": 0
+        },
+        "freeFloatTransient_": {
+          "size": 0,
+          "capacity": 0
+        },
+        "freeFloatPersistent_": {
+          "size": 0,
+          "capacity": 0
+        },
+        "states_": {
+          "size": 336,
+          "capacity": 803264
+        },
+        "pendingErasures_": {
+          "size": 0,
+          "capacity": 14388
+        },
+        "pending_": {
+          "size": 0,
+          "capacity": 184
+        },
+        "pendingBorrowRestores_": {
+          "size": 0,
+          "capacity": 0
+        },
+        "pinnedCallSavedDense_": {
+          "size": 0,
+          "capacity": 0
+        },
+        "sealedLoopRegions_": {
+          "size": 0,
+          "capacity": 0
+        },
+        "activeLoopResidency_": {
+          "size": 0,
+          "capacity": 0
+        },
+        "boundaryPending_": {
+          "size": 0,
+          "capacity": 0
+        },
+        "deferredLoopCarriedStores_": {
+          "size": 0,
+          "capacity": 0
+        },
+        "relocationSnapshots_": {
+          "size": 0,
+          "capacity": 258960
+        },
+        "loopDepthDelta_": {
+          "size": 624,
+          "capacity": 82420
+        },
+        "loopRegionIsLabelAt_": {
+          "size": 0,
+          "capacity": 0
+        },
+        "loopRegionJumpsToOwnNextLabel_": {
+          "size": 0,
+          "capacity": 0
+        },
+        "globalBenefits_": {
+          "size": 96,
+          "capacity": 96
+        },
+        "globalAccessBenefits_": {
+          "size": 96,
+          "capacity": 96
+        },
+        "reservedInt_": {
+          "size": 148,
+          "capacity": 148
+        },
+        "reservedFloat_": {
+          "size": 0,
+          "capacity": 0
+        },
+        "reservedIntPersistent_": {
+          "size": 148,
+          "capacity": 148
+        },
+        "reservedFloatPersistent_": {
+          "size": 0,
+          "capacity": 0
+        },
+        "denseVirtualRegList": {
+          "size": 12,
+          "capacity": 164864
+        },
+        "denseConcreteRegList": {
+          "size": 56,
+          "capacity": 132
+        }
+      }
+    },
+    {
+      "owner": "3d380c81d80",
+      "thread": 28844,
+      "instructions": 115,
+      "regs": 60,
+      "size": 170338,
+      "capacity": 12585971,
+      "buffers": {
+        "instructionUseDefs_": {
+          "size": 10796,
+          "capacity": 1219720
+        },
+        "useVirtualIndices_": {
+          "size": 4600,
+          "capacity": 496560
+        },
+        "defVirtualIndices_": {
+          "size": 4600,
+          "capacity": 496560
+        },
+        "useConcreteIndices_": {
+          "size": 4600,
+          "capacity": 496560
+        },
+        "defConcreteIndices_": {
+          "size": 5276,
+          "capacity": 497392
+        },
+        "usePositionsByDenseVirtual_": {
+          "size": 1700,
+          "capacity": 123996
+        },
+        "concreteTouchPositionsByDenseIndex_": {
+          "size": 1248,
+          "capacity": 17272
+        },
+        "nextUsePositionCursor_": {
+          "size": 240,
+          "capacity": 19836
+        },
+        "nextConcreteTouchCursor_": {
+          "size": 56,
+          "capacity": 124
+        },
+        "liveInVirtualBits_": {
+          "size": 920,
+          "capacity": 7746336
+        },
+        "liveInConcreteBits_": {
+          "size": 920,
+          "capacity": 110808
+        },
+        "loopDepth_": {
+          "size": 0,
+          "capacity": 55404
+        },
+        "edgeRegisterHint_": {
+          "size": 4,
+          "capacity": 1288
+        },
+        "boundarySnapshots_": {
+          "size": 111496,
+          "capacity": 140712
+        },
+        "virtualSpanLo_": {
+          "size": 240,
+          "capacity": 19836
+        },
+        "virtualSpanHi_": {
+          "size": 240,
+          "capacity": 19836
+        },
+        "concreteClaimPositionsByDenseIndex_": {
+          "size": 1828,
+          "capacity": 61400
+        },
+        "globalRangesByPhysDense_": {
+          "size": 0,
+          "capacity": 1944
+        },
+        "reachableInstructions_": {
+          "size": 0,
+          "capacity": 13851
+        },
+        "worklist_": {
+          "size": 0,
+          "capacity": 49656
+        },
+        "inWorklist_": {
+          "size": 0,
+          "capacity": 12414
+        },
+        "tempOutVirtual_": {
+          "size": 8,
+          "capacity": 624
+        },
+        "tempOutConcrete_": {
+          "size": 8,
+          "capacity": 8
+        },
+        "definitionCounts_": {
+          "size": 240,
+          "capacity": 19836
+        },
+        "liveStampByDenseIndex_": {
+          "size": 0,
+          "capacity": 1288
+        },
+        "vregsLiveAcrossCall_": {
+          "size": 60,
+          "capacity": 4959
+        },
+        "guardedCallPositions_": {
+          "size": 0,
+          "capacity": 13851
+        },
+        "callPositions_": {
+          "size": 52,
+          "capacity": 4264
+        },
+        "hotCallPositions_": {
+          "size": 52,
+          "capacity": 2844
+        },
+        "vregsLiveAcrossHotCall_": {
+          "size": 60,
+          "capacity": 4959
+        },
+        "callSpillFlags_": {
+          "size": 60,
+          "capacity": 4959
+        },
+        "mappedVirtualIndices_": {
+          "size": 0,
+          "capacity": 19836
+        },
+        "currentConcreteLiveOut_": {
+          "size": 0,
+          "capacity": 76
+        },
+        "intPersistentRegs_": {
+          "size": 0,
+          "capacity": 0
+        },
+        "floatPersistentRegs_": {
+          "size": 0,
+          "capacity": 0
+        },
+        "freeIntTransient_": {
+          "size": 28,
+          "capacity": 256
+        },
+        "freeIntPersistent_": {
+          "size": 0,
+          "capacity": 0
+        },
+        "freeFloatTransient_": {
+          "size": 0,
+          "capacity": 0
+        },
+        "freeFloatPersistent_": {
+          "size": 0,
+          "capacity": 0
+        },
+        "states_": {
+          "size": 6720,
+          "capacity": 555408
+        },
+        "pendingErasures_": {
+          "size": 0,
+          "capacity": 9592
+        },
+        "pending_": {
+          "size": 0,
+          "capacity": 184
+        },
+        "pendingBorrowRestores_": {
+          "size": 0,
+          "capacity": 0
+        },
+        "pinnedCallSavedDense_": {
+          "size": 0,
+          "capacity": 0
+        },
+        "sealedLoopRegions_": {
+          "size": 0,
+          "capacity": 0
+        },
+        "activeLoopResidency_": {
+          "size": 0,
+          "capacity": 160
+        },
+        "boundaryPending_": {
+          "size": 0,
+          "capacity": 736
+        },
+        "deferredLoopCarriedStores_": {
+          "size": 0,
+          "capacity": 184
+        },
+        "relocationSnapshots_": {
+          "size": 0,
+          "capacity": 172656
+        },
+        "loopDepthDelta_": {
+          "size": 1088,
+          "capacity": 55408
+        },
+        "loopRegionIsLabelAt_": {
+          "size": 347,
+          "capacity": 347
+        },
+        "loopRegionJumpsToOwnNextLabel_": {
+          "size": 347,
+          "capacity": 347
+        },
+        "globalBenefits_": {
+          "size": 2576,
+          "capacity": 2576
+        },
+        "globalAccessBenefits_": {
+          "size": 2576,
+          "capacity": 2576
+        },
+        "reservedInt_": {
+          "size": 3528,
+          "capacity": 3528
+        },
+        "reservedFloat_": {
+          "size": 0,
+          "capacity": 0
+        },
+        "reservedIntPersistent_": {
+          "size": 3528,
+          "capacity": 3528
+        },
+        "reservedFloatPersistent_": {
+          "size": 0,
+          "capacity": 0
+        },
+        "denseVirtualRegList": {
+          "size": 240,
+          "capacity": 99344
+        },
+        "denseConcreteRegList": {
+          "size": 56,
+          "capacity": 132
+        }
+      }
+    },
+    {
+      "owner": "3d380b68d40",
+      "thread": 15068,
+      "instructions": 115,
+      "regs": 60,
+      "size": 209836,
+      "capacity": 65448700,
+      "buffers": {
+        "instructionUseDefs_": {
+          "size": 10796,
+          "capacity": 3536408
+        },
+        "useVirtualIndices_": {
+          "size": 4600,
+          "capacity": 1607080
+        },
+        "defVirtualIndices_": {
+          "size": 4600,
+          "capacity": 1607080
+        },
+        "useConcreteIndices_": {
+          "size": 4600,
+          "capacity": 1607080
+        },
+        "defConcreteIndices_": {
+          "size": 5276,
+          "capacity": 1607912
+        },
+        "usePositionsByDenseVirtual_": {
+          "size": 1700,
+          "capacity": 252000
+        },
+        "concreteTouchPositionsByDenseIndex_": {
+          "size": 1248,
+          "capacity": 26808
+        },
+        "nextUsePositionCursor_": {
+          "size": 240,
+          "capacity": 41472
+        },
+        "nextConcreteTouchCursor_": {
+          "size": 56,
+          "capacity": 124
+        },
+        "liveInVirtualBits_": {
+          "size": 920,
+          "capacity": 52069392
+        },
+        "liveInConcreteBits_": {
+          "size": 920,
+          "capacity": 321416
+        },
+        "loopDepth_": {
+          "size": 0,
+          "capacity": 90732
+        },
+        "edgeRegisterHint_": {
+          "size": 4,
+          "capacity": 1288
+        },
+        "boundarySnapshots_": {
+          "size": 152152,
+          "capacity": 211024
+        },
+        "virtualSpanLo_": {
+          "size": 240,
+          "capacity": 41472
+        },
+        "virtualSpanHi_": {
+          "size": 240,
+          "capacity": 41472
+        },
+        "concreteClaimPositionsByDenseIndex_": {
+          "size": 1828,
+          "capacity": 117600
+        },
+        "globalRangesByPhysDense_": {
+          "size": 0,
+          "capacity": 1944
+        },
+        "reachableInstructions_": {
+          "size": 0,
+          "capacity": 40177
+        },
+        "worklist_": {
+          "size": 0,
+          "capacity": 160708
+        },
+        "inWorklist_": {
+          "size": 0,
+          "capacity": 40177
+        },
+        "tempOutVirtual_": {
+          "size": 8,
+          "capacity": 1296
+        },
+        "tempOutConcrete_": {
+          "size": 8,
+          "capacity": 8
+        },
+        "definitionCounts_": {
+          "size": 240,
+          "capacity": 41472
+        },
+        "liveStampByDenseIndex_": {
+          "size": 0,
+          "capacity": 1288
+        },
+        "vregsLiveAcrossCall_": {
+          "size": 60,
+          "capacity": 10368
+        },
+        "guardedCallPositions_": {
+          "size": 0,
+          "capacity": 20130
+        },
+        "callPositions_": {
+          "size": 52,
+          "capacity": 14388
+        },
+        "hotCallPositions_": {
+          "size": 52,
+          "capacity": 14388
+        },
+        "vregsLiveAcrossHotCall_": {
+          "size": 60,
+          "capacity": 10368
+        },
+        "callSpillFlags_": {
+          "size": 60,
+          "capacity": 10368
+        },
+        "mappedVirtualIndices_": {
+          "size": 0,
+          "capacity": 41472
+        },
+        "currentConcreteLiveOut_": {
+          "size": 0,
+          "capacity": 76
+        },
+        "intPersistentRegs_": {
+          "size": 0,
+          "capacity": 0
+        },
+        "floatPersistentRegs_": {
+          "size": 0,
+          "capacity": 0
+        },
+        "freeIntTransient_": {
+          "size": 28,
+          "capacity": 256
+        },
+        "freeIntPersistent_": {
+          "size": 0,
+          "capacity": 0
+        },
+        "freeFloatTransient_": {
+          "size": 0,
+          "capacity": 0
+        },
+        "freeFloatPersistent_": {
+          "size": 0,
+          "capacity": 0
+        },
+        "states_": {
+          "size": 6720,
+          "capacity": 1161216
+        },
+        "pendingErasures_": {
+          "size": 0,
+          "capacity": 14388
+        },
+        "pending_": {
+          "size": 0,
+          "capacity": 184
+        },
+        "pendingBorrowRestores_": {
+          "size": 0,
+          "capacity": 0
+        },
+        "pinnedCallSavedDense_": {
+          "size": 0,
+          "capacity": 0
+        },
+        "sealedLoopRegions_": {
+          "size": 0,
+          "capacity": 0
+        },
+        "activeLoopResidency_": {
+          "size": 0,
+          "capacity": 0
+        },
+        "boundaryPending_": {
+          "size": 0,
+          "capacity": 184
+        },
+        "deferredLoopCarriedStores_": {
+          "size": 0,
+          "capacity": 0
+        },
+        "relocationSnapshots_": {
+          "size": 0,
+          "capacity": 258960
+        },
+        "loopDepthDelta_": {
+          "size": 624,
+          "capacity": 90736
+        },
+        "loopRegionIsLabelAt_": {
+          "size": 0,
+          "capacity": 0
+        },
+        "loopRegionJumpsToOwnNextLabel_": {
+          "size": 0,
+          "capacity": 0
+        },
+        "globalBenefits_": {
+          "size": 2576,
+          "capacity": 2576
+        },
+        "globalAccessBenefits_": {
+          "size": 2576,
+          "capacity": 2576
+        },
+        "reservedInt_": {
+          "size": 3528,
+          "capacity": 3528
+        },
+        "reservedFloat_": {
+          "size": 0,
+          "capacity": 0
+        },
+        "reservedIntPersistent_": {
+          "size": 3528,
+          "capacity": 3528
+        },
+        "reservedFloatPersistent_": {
+          "size": 0,
+          "capacity": 0
+        },
+        "denseVirtualRegList": {
+          "size": 240,
+          "capacity": 321448
+        },
+        "denseConcreteRegList": {
+          "size": 56,
+          "capacity": 132
+        }
+      }
+    },
+    {
+      "owner": "3d38180a900",
+      "thread": 27164,
+      "instructions": 238,
+      "regs": 114,
+      "size": 199860,
+      "capacity": 25708183,
+      "buffers": {
+        "instructionUseDefs_": {
+          "size": 22140,
+          "capacity": 2355032
+        },
+        "useVirtualIndices_": {
+          "size": 9520,
+          "capacity": 823200
+        },
+        "defVirtualIndices_": {
+          "size": 9520,
+          "capacity": 823200
+        },
+        "useConcreteIndices_": {
+          "size": 9520,
+          "capacity": 823200
+        },
+        "defConcreteIndices_": {
+          "size": 10716,
+          "capacity": 824672
+        },
+        "usePositionsByDenseVirtual_": {
+          "size": 3300,
+          "capacity": 134568
+        },
+        "concreteTouchPositionsByDenseIndex_": {
+          "size": 1916,
+          "capacity": 14840
+        },
+        "nextUsePositionCursor_": {
+          "size": 456,
+          "capacity": 21260
+        },
+        "nextConcreteTouchCursor_": {
+          "size": 56,
+          "capacity": 124
+        },
+        "liveInVirtualBits_": {
+          "size": 3808,
+          "capacity": 17972640
+        },
+        "liveInConcreteBits_": {
+          "size": 1904,
+          "capacity": 213960
+        },
+        "loopDepth_": {
+          "size": 952,
+          "capacity": 106980
+        },
+        "edgeRegisterHint_": {
+          "size": 4,
+          "capacity": 200
+        },
+        "boundarySnapshots_": {
+          "size": 106128,
+          "capacity": 140712
+        },
+        "virtualSpanLo_": {
+          "size": 456,
+          "capacity": 21260
+        },
+        "virtualSpanHi_": {
+          "size": 456,
+          "capacity": 21260
+        },
+        "concreteClaimPositionsByDenseIndex_": {
+          "size": 3032,
+          "capacity": 116860
+        },
+        "globalRangesByPhysDense_": {
+          "size": 0,
+          "capacity": 0
+        },
+        "reachableInstructions_": {
+          "size": 238,
+          "capacity": 26745
+        },
+        "worklist_": {
+          "size": 0,
+          "capacity": 82320
+        },
+        "inWorklist_": {
+          "size": 238,
+          "capacity": 20580
+        },
+        "tempOutVirtual_": {
+          "size": 16,
+          "capacity": 672
+        },
+        "tempOutConcrete_": {
+          "size": 8,
+          "capacity": 8
+        },
+        "definitionCounts_": {
+          "size": 456,
+          "capacity": 21260
+        },
+        "liveStampByDenseIndex_": {
+          "size": 0,
+          "capacity": 200
+        },
+        "vregsLiveAcrossCall_": {
+          "size": 114,
+          "capacity": 5315
+        },
+        "guardedCallPositions_": {
+          "size": 238,
+          "capacity": 26745
+        },
+        "callPositions_": {
+          "size": 92,
+          "capacity": 14388
+        },
+        "hotCallPositions_": {
+          "size": 84,
+          "capacity": 14388
+        },
+        "vregsLiveAcrossHotCall_": {
+          "size": 114,
+          "capacity": 5315
+        },
+        "callSpillFlags_": {
+          "size": 114,
+          "capacity": 5315
+        },
+        "mappedVirtualIndices_": {
+          "size": 0,
+          "capacity": 21260
+        },
+        "currentConcreteLiveOut_": {
+          "size": 0,
+          "capacity": 76
+        },
+        "intPersistentRegs_": {
+          "size": 0,
+          "capacity": 0
+        },
+        "floatPersistentRegs_": {
+          "size": 0,
+          "capacity": 0
+        },
+        "freeIntTransient_": {
+          "size": 28,
+          "capacity": 128
+        },
+        "freeIntPersistent_": {
+          "size": 0,
+          "capacity": 0
+        },
+        "freeFloatTransient_": {
+          "size": 0,
+          "capacity": 0
+        },
+        "freeFloatPersistent_": {
+          "size": 0,
+          "capacity": 0
+        },
+        "states_": {
+          "size": 12768,
+          "capacity": 595280
+        },
+        "pendingErasures_": {
+          "size": 0,
+          "capacity": 9592
+        },
+        "pending_": {
+          "size": 0,
+          "capacity": 184
+        },
+        "pendingBorrowRestores_": {
+          "size": 0,
+          "capacity": 0
+        },
+        "pinnedCallSavedDense_": {
+          "size": 0,
+          "capacity": 0
+        },
+        "sealedLoopRegions_": {
+          "size": 0,
+          "capacity": 0
+        },
+        "activeLoopResidency_": {
+          "size": 0,
+          "capacity": 0
+        },
+        "boundaryPending_": {
+          "size": 0,
+          "capacity": 0
+        },
+        "deferredLoopCarriedStores_": {
+          "size": 0,
+          "capacity": 0
+        },
+        "relocationSnapshots_": {
+          "size": 0,
+          "capacity": 172656
+        },
+        "loopDepthDelta_": {
+          "size": 956,
+          "capacity": 106984
+        },
+        "loopRegionIsLabelAt_": {
+          "size": 0,
+          "capacity": 0
+        },
+        "loopRegionJumpsToOwnNextLabel_": {
+          "size": 0,
+          "capacity": 0
+        },
+        "globalBenefits_": {
+          "size": 0,
+          "capacity": 0
+        },
+        "globalAccessBenefits_": {
+          "size": 0,
+          "capacity": 0
+        },
+        "reservedInt_": {
+          "size": 0,
+          "capacity": 0
+        },
+        "reservedFloat_": {
+          "size": 0,
+          "capacity": 0
+        },
+        "reservedIntPersistent_": {
+          "size": 0,
+          "capacity": 0
+        },
+        "reservedFloatPersistent_": {
+          "size": 0,
+          "capacity": 0
+        },
+        "denseVirtualRegList": {
+          "size": 456,
+          "capacity": 164672
+        },
+        "denseConcreteRegList": {
+          "size": 56,
+          "capacity": 132
+        }
+      }
+    },
+    {
+      "owner": "3d3863ac4c0",
+      "thread": 27140,
+      "instructions": 115,
+      "regs": 60,
+      "size": 103348,
+      "capacity": 13065251,
+      "buffers": {
+        "instructionUseDefs_": {
+          "size": 10796,
+          "capacity": 1219720
+        },
+        "useVirtualIndices_": {
+          "size": 4600,
+          "capacity": 536720
+        },
+        "defVirtualIndices_": {
+          "size": 4600,
+          "capacity": 536720
+        },
+        "useConcreteIndices_": {
+          "size": 4600,
+          "capacity": 536720
+        },
+        "defConcreteIndices_": {
+          "size": 5276,
+          "capacity": 537552
+        },
+        "usePositionsByDenseVirtual_": {
+          "size": 1700,
+          "capacity": 127672
+        },
+        "concreteTouchPositionsByDenseIndex_": {
+          "size": 1248,
+          "capacity": 13136
+        },
+        "nextUsePositionCursor_": {
+          "size": 240,
+          "capacity": 19632
+        },
+        "nextConcreteTouchCursor_": {
+          "size": 56,
+          "capacity": 124
+        },
+        "liveInVirtualBits_": {
+          "size": 920,
+          "capacity": 8265488
+        },
+        "liveInConcreteBits_": {
+          "size": 920,
+          "capacity": 110808
+        },
+        "loopDepth_": {
+          "size": 0,
+          "capacity": 55404
+        },
+        "edgeRegisterHint_": {
+          "size": 4,
+          "capacity": 1288
+        },
+        "boundarySnapshots_": {
+          "size": 45760,
+          "capacity": 62568
+        },
+        "virtualSpanLo_": {
+          "size": 240,
+          "capacity": 19632
+        },
+        "virtualSpanHi_": {
+          "size": 240,
+          "capacity": 19632
+        },
+        "concreteClaimPositionsByDenseIndex_": {
+          "size": 1828,
+          "capacity": 77872
+        },
+        "globalRangesByPhysDense_": {
+          "size": 0,
+          "capacity": 1944
+        },
+        "reachableInstructions_": {
+          "size": 0,
+          "capacity": 13851
+        },
+        "worklist_": {
+          "size": 0,
+          "capacity": 53672
+        },
+        "inWorklist_": {
+          "size": 0,
+          "capacity": 13418
+        },
+        "tempOutVirtual_": {
+          "size": 8,
+          "capacity": 616
+        },
+        "tempOutConcrete_": {
+          "size": 8,
+          "capacity": 8
+        },
+        "definitionCounts_": {
+          "size": 240,
+          "capacity": 19632
+        },
+        "liveStampByDenseIndex_": {
+          "size": 0,
+          "capacity": 1288
+        },
+        "vregsLiveAcrossCall_": {
+          "size": 60,
+          "capacity": 4908
+        },
+        "guardedCallPositions_": {
+          "size": 0,
+          "capacity": 8290
+        },
+        "callPositions_": {
+          "size": 52,
+          "capacity": 4264
+        },
+        "hotCallPositions_": {
+          "size": 52,
+          "capacity": 4264
+        },
+        "vregsLiveAcrossHotCall_": {
+          "size": 60,
+          "capacity": 4908
+        },
+        "callSpillFlags_": {
+          "size": 60,
+          "capacity": 4908
+        },
+        "mappedVirtualIndices_": {
+          "size": 0,
+          "capacity": 19632
+        },
+        "currentConcreteLiveOut_": {
+          "size": 0,
+          "capacity": 52
+        },
+        "intPersistentRegs_": {
+          "size": 0,
+          "capacity": 0
+        },
+        "floatPersistentRegs_": {
+          "size": 0,
+          "capacity": 0
+        },
+        "freeIntTransient_": {
+          "size": 0,
+          "capacity": 0
+        },
+        "freeIntPersistent_": {
+          "size": 0,
+          "capacity": 0
+        },
+        "freeFloatTransient_": {
+          "size": 0,
+          "capacity": 0
+        },
+        "freeFloatPersistent_": {
+          "size": 0,
+          "capacity": 0
+        },
+        "states_": {
+          "size": 6720,
+          "capacity": 549696
+        },
+        "pendingErasures_": {
+          "size": 0,
+          "capacity": 9592
+        },
+        "pending_": {
+          "size": 0,
+          "capacity": 184
+        },
+        "pendingBorrowRestores_": {
+          "size": 0,
+          "capacity": 0
+        },
+        "pinnedCallSavedDense_": {
+          "size": 0,
+          "capacity": 0
+        },
+        "sealedLoopRegions_": {
+          "size": 0,
+          "capacity": 0
+        },
+        "activeLoopResidency_": {
+          "size": 0,
+          "capacity": 0
+        },
+        "boundaryPending_": {
+          "size": 0,
+          "capacity": 184
+        },
+        "deferredLoopCarriedStores_": {
+          "size": 0,
+          "capacity": 0
+        },
+        "relocationSnapshots_": {
+          "size": 0,
+          "capacity": 34128
+        },
+        "loopDepthDelta_": {
+          "size": 556,
+          "capacity": 55408
+        },
+        "loopRegionIsLabelAt_": {
+          "size": 0,
+          "capacity": 0
+        },
+        "loopRegionJumpsToOwnNextLabel_": {
+          "size": 0,
+          "capacity": 0
+        },
+        "globalBenefits_": {
+          "size": 2576,
+          "capacity": 2576
+        },
+        "globalAccessBenefits_": {
+          "size": 2576,
+          "capacity": 2576
+        },
+        "reservedInt_": {
+          "size": 3528,
+          "capacity": 3528
+        },
+        "reservedFloat_": {
+          "size": 0,
+          "capacity": 0
+        },
+        "reservedIntPersistent_": {
+          "size": 3528,
+          "capacity": 3528
+        },
+        "reservedFloatPersistent_": {
+          "size": 0,
+          "capacity": 0
+        },
+        "denseVirtualRegList": {
+          "size": 240,
+          "capacity": 107376
+        },
+        "denseConcreteRegList": {
+          "size": 56,
+          "capacity": 132
+        }
+      }
+    }
+  ],
+  "build": {
+    "command": [
+      "C:/Program Files/Microsoft Visual Studio/18/Enterprise/MSBuild/Current/Bin/MSBuild.exe",
+      "swc.vcxproj",
+      "/m:6",
+      "/p:SwcCompileJobs=6",
+      "/p:Platform=x64",
+      "/p:Configuration=DevMode",
+      "/nologo",
+      "/v:minimal"
+    ],
+    "revision": "fd217784d6eb1894a7c56f44dc1fb654cf60408c",
+    "fields": [
+      "instructionUseDefs_",
+      "useVirtualIndices_",
+      "defVirtualIndices_",
+      "useConcreteIndices_",
+      "defConcreteIndices_",
+      "usePositionsByDenseVirtual_",
+      "concreteTouchPositionsByDenseIndex_",
+      "nextUsePositionCursor_",
+      "nextConcreteTouchCursor_",
+      "liveInVirtualBits_",
+      "liveInConcreteBits_",
+      "loopDepth_",
+      "edgeRegisterHint_",
+      "boundarySnapshots_",
+      "virtualSpanLo_",
+      "virtualSpanHi_",
+      "concreteClaimPositionsByDenseIndex_",
+      "globalRangesByPhysDense_",
+      "reachableInstructions_",
+      "worklist_",
+      "inWorklist_",
+      "tempOutVirtual_",
+      "tempOutConcrete_",
+      "definitionCounts_",
+      "liveStampByDenseIndex_",
+      "vregsLiveAcrossCall_",
+      "guardedCallPositions_",
+      "callPositions_",
+      "hotCallPositions_",
+      "vregsLiveAcrossHotCall_",
+      "callSpillFlags_",
+      "mappedVirtualIndices_",
+      "currentConcreteLiveOut_",
+      "intPersistentRegs_",
+      "floatPersistentRegs_",
+      "freeIntTransient_",
+      "freeIntPersistent_",
+      "freeFloatTransient_",
+      "freeFloatPersistent_",
+      "states_",
+      "pendingErasures_",
+      "pending_",
+      "pendingBorrowRestores_",
+      "pinnedCallSavedDense_",
+      "sealedLoopRegions_",
+      "activeLoopResidency_",
+      "boundaryPending_",
+      "deferredLoopCarriedStores_",
+      "relocationSnapshots_",
+      "loopDepthDelta_",
+      "loopRegionIsLabelAt_",
+      "loopRegionJumpsToOwnNextLabel_",
+      "globalBenefits_",
+      "globalAccessBenefits_",
+      "reservedInt_",
+      "reservedFloat_",
+      "reservedIntPersistent_",
+      "reservedFloatPersistent_"
+    ],
+    "exit_code": 0,
+    "compiler_sha256": "fc356a3a3a58401c1d534c421a994de82b57b2ff9f0baa90683e5f610dcf448a",
+    "wall_seconds": 22.944849491119385
+  },
+  "artifacts": {
+    "backend-census.h": "75d55dbfb14ca3881e4e59b8d7755e8dc976e238d63b3e5b1f6e7d2a762beeb4",
+    "backend-census.patch": "81c69449cd235e894f0779414bbc520838b8887ed641510c7cefa76d19baf337",
+    "analyze-backend-census.py": "23e8dccf7e31f42d3b2e690ae0b122710e5d127d72fafa31cc77621d68249aab",
+    "backend-census-app.json": "2f79ef6079754d4dc2e772e0257d02a542739530d9acde48ea25ccd2e6506c33"
+  }
+}

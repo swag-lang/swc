@@ -1,0 +1,168 @@
+{
+  "note": "Exact requested backing capacities from every traced PagedStore page, DataSegment large block and Arena block allocation/free. Component names use stack evidence across each owner lifetime. This excludes container metadata, ordinary vectors/maps and allocator rounding. Arena blocks can contain mixed payloads. Independent component peaks are not additive; this is not a complete process census or a timing measurement.",
+  "measurement": {
+    "exit": 0,
+    "started_unix": 1793368682.211239,
+    "affinity_mask": 349185,
+    "effective_affinity_mask": 349185,
+    "system_affinity_mask": 4194303,
+    "affinity_verified": true,
+    "host_busy_pct": 84.26596903565887,
+    "other_process_cpu_ms_estimate": 3988437.5,
+    "wall_ms": 255214.5601,
+    "first_stdout_ms": null,
+    "cpu_ms": 737390.625,
+    "user_cpu_ms": 707718.75,
+    "kernel_cpu_ms": 29671.875,
+    "job_cpu_ms": 737421.875,
+    "page_faults": 921979,
+    "job_processes": 2,
+    "peak_job_bytes": 1541816320,
+    "peak_proc_bytes": 1540603904,
+    "peak_working_set_bytes": 1545617408,
+    "stderr": "\r\n",
+    "harness_sha256": "20a4c33520539d62e67dc2e80a58120e088e68718ed1a690da3a0f0dd2fe7dbf",
+    "allocator_error": false,
+    "mimalloc_options": {},
+    "command": [
+      "C:\\Users\\chris\\AppData\\Local\\swc-agent-builds\\mimalloc-360-20261030-071336\\install\\swc.census.dm.exe",
+      "build",
+      "--workspace",
+      "C:\\Users\\chris\\AppData\\Local\\swc-agent-builds\\mimalloc-360-20261030-071336\\install\\apps",
+      "--workspace-module",
+      "swagcapture",
+      "--num-cores",
+      "6",
+      "--rebuild",
+      "--no-log-color",
+      "--no-log-progress"
+    ],
+    "compiler_sha256": "5a1ab010c6f21bd67c61710aaeed07b275d39b2a3cf322de8ef7c8119c8c4a5b",
+    "profiling_enabled": true,
+    "timing_comparable": false,
+    "timing_note": "Exhaustive backing-storage trace enabled; excluded from speed comparisons.",
+    "stdout_sha256": "fc58392c40e86246bf52126a2091307885b75bb5f7f469f54bdf11a1fc28a6c3"
+  },
+  "events": 777580,
+  "unfreed_blocks": 0,
+  "live_capacity_at_exit": {
+    "Unattributed paged storage": 0,
+    "AST pages": 0,
+    "Identifier pages": 0,
+    "Type pages": 0,
+    "Constant storage": 0,
+    "Compiler object/string arenas (mixed payloads)": 0,
+    "Sema node-payload pages": 0
+  },
+  "peak_traced_capacity": {
+    "sequence": 585967,
+    "total_capacity": 337816510,
+    "categories": {
+      "Unattributed paged storage": 21053440,
+      "AST pages": 88293376,
+      "Identifier pages": 3407872,
+      "Type pages": 2523136,
+      "Constant storage": 17540140,
+      "Compiler object/string arenas (mixed payloads)": 179521426,
+      "Sema node-payload pages": 25477120
+    },
+    "by_kind": {
+      "paged": 142901248,
+      "arena": 179521426,
+      "segment": 15393836
+    },
+    "by_domain": {
+      "heap": 320227218,
+      "proximity": 17589292
+    }
+  },
+  "independent_peak_capacity": {
+    "Unattributed paged storage": 50479104,
+    "AST pages": 89833472,
+    "Identifier pages": 3407872,
+    "Type pages": 2539520,
+    "Constant storage": 17835052,
+    "Compiler object/string arenas (mixed payloads)": 179521426,
+    "Sema node-payload pages": 52510720
+  },
+  "runtime_image_base": "0x7ff6293e0000",
+  "final_used_of_blocks_live_at_traced_peak": {
+    "Unattributed paged storage": 6090901,
+    "AST pages": 80873260,
+    "Identifier pages": 3270884,
+    "Type pages": 2442816,
+    "Constant storage": 2015108,
+    "Compiler object/string arenas (mixed payloads)": 175452176,
+    "Sema node-payload pages": 20199776
+  },
+  "final_used_note": "PagedStore/Arena used bytes at destruction, for blocks alive at the traced capacity peak. Not simultaneous live useful bytes: blocks may grow after the peak. Excludes segment blocks, metadata and nested allocations. Difference from capacity includes block headers/alignment and unused tails.",
+  "build": {
+    "command": [
+      "C:/Program Files/Microsoft Visual Studio/18/Enterprise/MSBuild/Current/Bin/MSBuild.exe",
+      "swc.vcxproj",
+      "/m:6",
+      "/p:SwcCompileJobs=6",
+      "/p:Platform=x64",
+      "/p:Configuration=DevMode",
+      "/nologo",
+      "/v:minimal"
+    ],
+    "revision": "fd217784d6eb1894a7c56f44dc1fb654cf60408c",
+    "exit_code": 0,
+    "compiler_sha256": "5a1ab010c6f21bd67c61710aaeed07b275d39b2a3cf322de8ef7c8119c8c4a5b",
+    "map_sha256": "f6755550681beca47c973cd2a7fa01f85aa0f08fd1eb30c929e4f06d7a036ffc",
+    "wall_seconds": 19.721215963363647
+  },
+  "artifacts": {
+    "storage-census.h": "357d26ef17a461d9160e03602483889c7e4b392bd6432eaa3570122b0167d54b",
+    "storage-census.patch": "2f58e57161f3af6df19266f0f52036eb2e7c315d36997f30260eef91f9b19889",
+    "analyze-storage-census.py": "932dfd1ccee9374e864a1e7efd347922ac43cb75e528aaa1bab70f07a300ef24",
+    "storage-census-app.json": "345a3ff5699082e9850e5e8315bee871abfaceeeedccf53a6e6750cfec8d54d8"
+  },
+  "symbolization_note": "The logged function pointer is an incremental-link jump thunk. Its unique executable E9 target in the exact PE plus 64 KiB image alignment establishes image base 0x7ff6293e0000. The older heap-profile parser obtains the image base from process mappings and is unaffected.",
+  "generated_source_comparison": {
+    "changed_files": [
+      "std\\core\\shared-library\\devmode\\x86_64\\core.gen.4.swgsrc",
+      "std\\gui\\shared-library\\devmode\\x86_64\\gui.gen.0.swgsrc",
+      "std\\gui\\shared-library\\devmode\\x86_64\\gui.gen.1.swgsrc",
+      "std\\gui\\shared-library\\devmode\\x86_64\\gui.gen.2.swgsrc",
+      "std\\gui\\shared-library\\devmode\\x86_64\\gui.gen.3.swgsrc",
+      "std\\gui\\shared-library\\devmode\\x86_64\\gui.gen.4.swgsrc",
+      "std\\gui\\shared-library\\devmode\\x86_64\\gui.gen.5.swgsrc",
+      "std\\pixel\\shared-library\\devmode\\x86_64\\pixel.gen.1.swgsrc",
+      "std\\pixel\\shared-library\\devmode\\x86_64\\pixel.gen.3.swgsrc",
+      "std\\pixel\\shared-library\\devmode\\x86_64\\pixel.gen.5.swgsrc"
+    ],
+    "api_diff_lines": 0
+  },
+  "generated_block_comparison": {
+    "normalization": "Multiset of complete #ast source blocks grouped by module/output directory; worker filename and block order ignored, content and multiplicity preserved.",
+    "before_blocks": 85,
+    "after_blocks": 84,
+    "removed": [
+      {
+        "module": "std\\core\\shared-library\\devmode\\x86_64",
+        "text": "// #ast source: C:\\Users\\chris\\AppData\\Local\\swc-agent-builds\\mimalloc-360-20261030-071336\\install\\std\\modules\\core\\src\\crypto\\hash32.swg\n// #ast line: 84\nreturn Core.Guid128.IHash32.compute(value)",
+        "count": 1
+      },
+      {
+        "module": "std\\pixel\\shared-library\\devmode\\x86_64",
+        "text": "// #ast source: C:\\Users\\chris\\AppData\\Local\\swc-agent-builds\\mimalloc-360-20261030-071336\\install\\std\\.output\\core\\shared-library\\devmode\\x86_64\\array.swg\n// #ast line: 123\nbuffer[index] /= value",
+        "count": 2
+      }
+    ],
+    "added": [
+      {
+        "module": "std\\core\\shared-library\\devmode\\x86_64",
+        "text": "// #ast source: C:\\Users\\chris\\AppData\\Local\\swc-agent-builds\\mimalloc-360-20261030-071336\\install\\std\\modules\\core\\src\\crypto\\hash32.swg\n// #ast line: 84\nreturn Core.String.IHash32.compute(value)",
+        "count": 1
+      },
+      {
+        "module": "std\\pixel\\shared-library\\devmode\\x86_64",
+        "text": "// #ast source: C:\\Users\\chris\\AppData\\Local\\swc-agent-builds\\mimalloc-360-20261030-071336\\install\\std\\.output\\core\\shared-library\\devmode\\x86_64\\core.swg\n// #ast line: 442\nreturn Core.String.IHash32.compute(value)",
+        "count": 1
+      }
+    ]
+  },
+  "classification_note": "Nearest recognized owner frame, then consistent evidence propagated within each owner lifetime; ambiguous or absent evidence remains unattributed."
+}

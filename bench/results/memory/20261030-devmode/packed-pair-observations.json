@@ -1,0 +1,111 @@
+{
+  "note": "Same preserved inputs, six workers, isolated TEMP/cache and verified affinity/harness. Both runs encountered high external CPU load and occurred in new-then-old order. Generated workload counts differ (592047/5143 new, 592024/5142 old); exported API comparison is pending. These observations support the memory reduction but do not establish speed acceptance or isolate packing from the COFF-consumption follow-up.",
+  "before_revision": "cc9549202b",
+  "after_revision": "28b98a8f8e",
+  "before": {
+    "exit": 0,
+    "started_unix": 1793367592.6213737,
+    "affinity_mask": 349185,
+    "effective_affinity_mask": 349185,
+    "system_affinity_mask": 4194303,
+    "affinity_verified": true,
+    "host_busy_pct": 77.60898388204662,
+    "other_process_cpu_ms_estimate": 3645187.5,
+    "wall_ms": 267127.9571,
+    "first_stdout_ms": null,
+    "cpu_ms": 909531.25,
+    "user_cpu_ms": 868703.125,
+    "kernel_cpu_ms": 40828.125,
+    "job_cpu_ms": 909562.5,
+    "page_faults": 1166102,
+    "job_processes": 2,
+    "peak_job_bytes": 1959505920,
+    "peak_proc_bytes": 1958293504,
+    "peak_working_set_bytes": 1964265472,
+    "stdout": "  \u25c6  swag        build \u2022 apps [swagcapture] \u2022 devmode\r\n  \u2713  module      win32 \u2022 48 files \u2022 915 ms\r\n  \u2713  module      gdi32 \u2022 44 files \u2022 847 ms\r\n  \u2713  module      xinput \u2022 43 files \u2022 763 ms\r\n  \u2713  module      core \u2022 378 files \u2022 core.dll \u2022 17 s 992 ms\r\n  \u2713  module      ogl \u2022 98 files \u2022 ogl.dll \u2022 7 s 895 ms\r\n  \u2713  module      truetype \u2022 99 files \u2022 truetype.dll \u2022 5 s 719 ms\r\n  \u2713  module      pixel \u2022 318 files \u2022 pixel.dll \u2022 47 s 901 ms\r\n  \u2713  module      gui \u2022 366 files \u2022 gui.dll \u2022 37 s 427 ms\r\n  \u2713  workspace   std [gui] \u2022 8 modules \u2022 2 min 8 s\r\n  \u2713  checked     136 files \u2022 592_024 tokens \u2022 22 s 425 ms\r\n  \u2713  tuned       5_142 functions \u2022 1 min 33 s\r\n  \u2713  forged      2_411 functions \u2022 swagcapture.exe \u2022 1 min 34 s\r\n  \u2713  module      swagcapture \u2022 182 files \u2022 swagcapture.exe \u2022 2 min 15 s\r\n  \u2713  workspace   apps [swagcapture] \u2022 1 module \u2022 4 min 26 s\r\n  \u2713  clean       4 min 26 s\r\n",
+    "stderr": "\r\n",
+    "harness_sha256": "20a4c33520539d62e67dc2e80a58120e088e68718ed1a690da3a0f0dd2fe7dbf",
+    "allocator_error": false,
+    "mimalloc_options": {},
+    "command": [
+      "C:\\Users\\chris\\AppData\\Local\\swc-agent-builds\\mimalloc-360-20261030-071336\\install\\swc.archive.dm.exe",
+      "build",
+      "--workspace",
+      "C:\\Users\\chris\\AppData\\Local\\swc-agent-builds\\mimalloc-360-20261030-071336\\install\\apps",
+      "--workspace-module",
+      "swagcapture",
+      "--num-cores",
+      "6",
+      "--rebuild",
+      "--no-log-color",
+      "--no-log-progress"
+    ],
+    "compiler_sha256": "3c25a7753e6c9dbfcb87527f339f617464ce33ee857f247ca65942d4d833f7de"
+  },
+  "after": {
+    "exit": 0,
+    "started_unix": 1793367095.2418282,
+    "affinity_mask": 349185,
+    "effective_affinity_mask": 349185,
+    "system_affinity_mask": 4194303,
+    "affinity_verified": true,
+    "host_busy_pct": 77.13711675015138,
+    "other_process_cpu_ms_estimate": 2715703.125,
+    "wall_ms": 206439.9877,
+    "first_stdout_ms": null,
+    "cpu_ms": 787656.25,
+    "user_cpu_ms": 763140.625,
+    "kernel_cpu_ms": 24515.625,
+    "job_cpu_ms": 787671.875,
+    "page_faults": 977108,
+    "job_processes": 2,
+    "peak_job_bytes": 1598164992,
+    "peak_proc_bytes": 1596948480,
+    "peak_working_set_bytes": 1591709696,
+    "stdout": "  \u25c6  swag        build \u2022 apps [swagcapture] \u2022 devmode\r\n  \u2713  module      win32 \u2022 48 files \u2022 282 ms\r\n  \u2713  module      gdi32 \u2022 44 files \u2022 350 ms\r\n  \u2713  module      xinput \u2022 43 files \u2022 160 ms\r\n  \u2713  module      core \u2022 378 files \u2022 core.dll \u2022 4 s 986 ms\r\n  \u2713  module      ogl \u2022 98 files \u2022 ogl.dll \u2022 3 s 483 ms\r\n  \u2713  module      truetype \u2022 99 files \u2022 truetype.dll \u2022 4 s 432 ms\r\n  \u2713  module      pixel \u2022 318 files \u2022 pixel.dll \u2022 38 s 437 ms\r\n  \u2713  module      gui \u2022 366 files \u2022 gui.dll \u2022 2 min 21 s\r\n  \u2713  workspace   std [gui] \u2022 8 modules \u2022 3 min 16 s\r\n  \u2713  checked     136 files \u2022 592_047 tokens \u2022 2 s 547 ms\r\n  \u2713  tuned       5_143 functions \u2022 3 s 960 ms\r\n  \u2713  forged      2_411 functions \u2022 swagcapture.exe \u2022 4 s 39 ms\r\n  \u2713  module      swagcapture \u2022 182 files \u2022 swagcapture.exe \u2022 7 s 773 ms\r\n  \u2713  workspace   apps [swagcapture] \u2022 1 module \u2022 3 min 26 s\r\n  \u2713  clean       3 min 26 s\r\n",
+    "stderr": "\r\n",
+    "harness_sha256": "20a4c33520539d62e67dc2e80a58120e088e68718ed1a690da3a0f0dd2fe7dbf",
+    "allocator_error": false,
+    "mimalloc_options": {},
+    "command": [
+      "C:\\Users\\chris\\AppData\\Local\\swc-agent-builds\\mimalloc-360-20261030-071336\\install\\swc.packed.dm.exe",
+      "build",
+      "--workspace",
+      "C:\\Users\\chris\\AppData\\Local\\swc-agent-builds\\mimalloc-360-20261030-071336\\install\\apps",
+      "--workspace-module",
+      "swagcapture",
+      "--num-cores",
+      "6",
+      "--rebuild",
+      "--no-log-color",
+      "--no-log-progress"
+    ],
+    "compiler_sha256": "70acd323b7d3e0f116ac5c59c824362f9e98ca5c43b3e5eff4424cb6c1beaf46"
+  },
+  "comparison": {
+    "peak_working_set_bytes": {
+      "before": 1964265472,
+      "after": 1591709696,
+      "reduction": 372555776,
+      "reduction_percent": 18.96667132374254
+    },
+    "peak_proc_bytes": {
+      "before": 1958293504,
+      "after": 1596948480,
+      "reduction": 361345024,
+      "reduction_percent": 18.452036084576626
+    },
+    "wall_ms": {
+      "before": 267127.9571,
+      "after": 206439.9877,
+      "reduction": 60687.9694,
+      "reduction_percent": 22.71868884816175
+    },
+    "cpu_ms": {
+      "before": 909531.25,
+      "after": 787656.25,
+      "reduction": 121875.0,
+      "reduction_percent": 13.399759491496306
+    }
+  }
+}

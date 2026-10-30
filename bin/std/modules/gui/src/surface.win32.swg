@@ -1071,9 +1071,12 @@ impl Surface
         if not .isDisabled do
             return
         .isDisabled = false
+
+        // The presented bitmap was tinted across the whole surface. A local repaint cannot
+        // restore the untouched pixels when native presentation resumes copying dirty regions.
+        .invalidate()
         if not .app.renderer.needsNativeWindow()
         {
-            .invalidate()
             return
         }
 
@@ -1086,9 +1089,9 @@ impl Surface
         if .isDisabled do
             return
         .isDisabled = true
+        .invalidate()
         if not .app.renderer.needsNativeWindow()
         {
-            .invalidate()
             return
         }
 

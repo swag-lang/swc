@@ -236,9 +236,8 @@ impl IWnd for MainWnd
         {
         case .Init:
 
-            // Runs while the window is still hidden, so restoring the persisted
-            // size/position and loading content happens before the surface is
-            // ever displayed (no black/empty flash on startup).
+            // Restore placement while the window is hidden. Recent-document loading
+            // starts on a deferred event-loop turn after the initial surface is shown.
             .firstShow = false
             catch g_App.loadState()
             .surface?.constrainPositionToScreen(topLeft: true, margin: 10)

@@ -566,6 +566,8 @@ preview. Validate requested settings against the capabilities supplied by platfo
   (1.83%). Checked-in derivatives use
   DevMode to preserve the established goldens; Release SVG coverage can differ by one alpha level.
 - Next: measure process-to-document presentation without debugger stops, including cold starts.
+  The existing `FrameTrace` is armed in `Application.run` after initial show and discards its
+  first 20 painted frames; it cannot serve as a startup clock without a dedicated mode.
   Attribute state restoration and initial native frame preparation; examine the pending empty
   frame that is published after document selection but before the first document-bearing paint.
   The current layered readback blocks recording another frame while a previous snapshot is pending.

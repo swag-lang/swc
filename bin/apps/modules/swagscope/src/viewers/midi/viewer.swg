@@ -17,6 +17,7 @@ func viewerPlugin()->Viewer.Plugin
         .iconAtlas    = viewerIcons()
         .iconIndex    = cast(s32, ViewerIcons.Midi)
         .create       = &createViewer
+        .options      = &addViewerOptions
         .probe        = &pluginProbe
         .smokeFixture = "viewer.mid"
         .addSelectors(".mid;.midi")
@@ -30,7 +31,9 @@ private const CommandWidth = 64.0
 // Display preferences of the MIDI viewer, persisted with the main window.
 struct ViewerSettings
 {
+    #[Properties.Name("Pitch Labels")]
     pitchLabelMode:    PitchLabelMode = .Scientific
+    #[Properties.Name("Keyboard Width"), Properties.MinMax(0, 2)]
     keyboardWidthMode: u32 = 1
 }
 
@@ -45,6 +48,8 @@ impl ViewerSettings
 }
 
 var g_ViewerSettings: ViewerSettings
+
+private func addViewerOptions(grid: *PropertiesCtrl, section: string) => grid.addStruct(g_ViewerSettings, section)
 
 // Presents a Standard MIDI File as a piano roll, with a track filter and a zoom menu.
 struct Panel

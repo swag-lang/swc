@@ -2763,6 +2763,7 @@ func createPictureFolder(stem: string, names: const [..] string)->String
     Swag.assert(folder.entries.count >= 4)
 
     var image = host.render(window)
+    image.crop(window.lens.body())
     Pixel.Testing.assertImageGolden(&image, "viewer.lens.explorer.encre")
 
     var paperHost: Testing.HeadlessHost
@@ -2790,6 +2791,7 @@ func createPictureFolder(stem: string, names: const [..] string)->String
     Swag.assert(lensEntryOnFirstPage(paperWindow, appStrings().explore_Up))
     paperHost.finishAnimations()
     var paper = paperHost.render(paperWindow)
+    paper.crop(paperWindow.lens.body())
     Pixel.Testing.assertImageGolden(&paper, "viewer.lens.explorer.paper")
 }
 

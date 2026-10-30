@@ -221,18 +221,8 @@ public impl AboutDlg
     // tall as the display it opens on. Past this the column keeps the box a box.
     const MaxSectionsHeight = 320.0'f32
 
-    // Adds a titled block of application-specific detail under the standard provenance text.
-    //
-    // This is where an application says what the reader cannot read off its name: the formats it
-    // opens, the plugins it carries, what it was built against. `title` names the block and
-    // `content` is the rich text under it, wrapped like the rest of the box; either may be empty.
-    // The blocks stack in one column and that column scrolls once it reaches
-    // [[Gui.AboutDlg.MaxSectionsHeight]], so a long list never makes the box taller than the
-    // display it opens on.
-    mtd addSection(title, content: string)
+    private mtd sectionStack()->*StackLayoutCtrl
     {
-        Swag.assert(title.count or content.count, "an about section carries no text")
-
         let metrics = .themeMetrics()
         if not .sectionsScroll
         {
@@ -253,7 +243,22 @@ public impl AboutDlg
             }
         }
 
-        let stack = unwrap .sectionsStack
+        return unwrap .sectionsStack
+    }
+
+    // Adds a titled block of application-specific detail under the standard provenance text.
+    //
+    // This is where an application says what the reader cannot read off its name: the formats it
+    // opens, the plugins it carries, what it was built against. `title` names the block and
+    // `content` is the rich text under it, wrapped like the rest of the box; either may be empty.
+    // The blocks stack in one column and that column scrolls once it reaches
+    // [[Gui.AboutDlg.MaxSectionsHeight]], so a long list never makes the box taller than the
+    // display it opens on.
+    mtd addSection(title, content: string)
+    {
+        Swag.assert(title.count or content.count, "an about section carries no text")
+
+        let stack = .sectionStack()
         if title.count
         {
             // The heading is set through the rich-text marker rather than through a face of its
@@ -269,6 +274,19 @@ public impl AboutDlg
             label.setTextAlignment(.Left, .Top)
         }
 
+        .fitToContent()
+    }
+
+    // Adds a small image to the application-specific section column, without tinting it.
+    //
+    // The dialog uploads its own copy, so the caller may release `image` after this call. The
+    // image keeps its supplied aspect ratio and contributes `width` by `height` to the fitted box.
+    mtd addSectionImage(image: Image, width, height: f32)
+    {
+        Swag.assert(image.isValid() and width > 0 and height > 0)
+        let row  = Wnd.create'Wnd(.sectionStack(), "", {0, 0, width, height})
+        let view = ImageRect.create(row, {0, 0, width, height})
+        view.setImage(image)
         .fitToContent()
     }
 

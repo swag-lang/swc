@@ -12,6 +12,12 @@ enum PropertiesCtrlFlags
     SectionTabs           // Adds top tabs that filter by section.
 }
 
+private struct PropertiesSectionIcon
+{
+    name: String
+    icon: Icon
+}
+
 // Combines a property editor with optional section navigation, tabs, and search.
 struct PropertiesCtrl
 {
@@ -33,6 +39,7 @@ struct PropertiesCtrl
     }
 
     sectionLines: Array'(*ListLine)     // Line of the section list of each section of the editor, in order.
+    sectionIcons: Array'PropertiesSectionIcon     // Caller-owned section glyphs, reapplied when the list is rebuilt.
 }
 
 // The commands of the presentations of the view menu, in the order of [[Gui.PropertiesKind]].
@@ -144,10 +151,14 @@ impl PropertiesCtrl
             else do
                 naked = Properties.resolveText(item.typeValue.name orelse "")
 
+            var icon: Icon
+            for &entry in .sectionIcons where entry.name == naked do
+                icon = entry.icon
+
             // In the filter bar
             if .tab != null and it.lvl == 0
             {
-                let tabItem = .tab.addItem(naked)
+                let tabItem = .tab.addItem(naked, icon)
                 tabItem.userData0 = cast(*void?, idx)
             }
 
@@ -167,6 +178,8 @@ impl PropertiesCtrl
 
             let line = .list.createLine(naked, parentLine: parentLine)
             line.userData0 = it.item
+            if icon.isValid() do
+                line.setItem(0, naked, icon)
             .sectionLines.add(line)
         }
 
@@ -175,6 +188,8 @@ impl PropertiesCtrl
             .list.expand(line)
 
         .refreshSectionCounts()
+        if .flags.has(.SectionNavigation) and .list.lineCount() > 0 do
+            .list.selectLine(0)
     }
 
     // Writes after each section of the list how many of its fields the filters let through. A
@@ -279,6 +294,45 @@ impl PropertiesCtrl
         .fillSections()
     }
 
+    // Gives one section of the navigation list or tab bar its icon, including after a view-mode rebuild.
+    // The icon borrows its atlas from the caller for the lifetime of this control.
+    mtd setSectionIcon(section: string, icon: Icon)
+    {
+        for &entry in .sectionIcons where entry.name == section
+        {
+            entry.icon = icon
+            for line in .sectionLines where RichString.plainText(line.items[0]!.name.raw) == section do
+                line.setItem(0, section, icon)
+            if .tab != null
+            {
+                for item in .tab.items where item
+                {
+                    if item.name == section do
+                        item.icon = icon
+                }
+                .tab.applyLayout()
+            }
+            .list.setFirstColumnIconMargin(true)
+            .list.invalidate()
+            return
+        }
+
+        .sectionIcons.add({name: section, icon: icon})
+        for line in .sectionLines where RichString.plainText(line.items[0]!.name.raw) == section do
+            line.setItem(0, section, icon)
+        if .tab != null
+        {
+            for item in .tab.items where item
+            {
+                if item.name == section do
+                    item.icon = icon
+            }
+            .tab.applyLayout()
+        }
+        .list.setFirstColumnIconMargin(true)
+        .list.invalidate()
+    }
+
     // Removes every row, along with the section tabs and the section list built from them.
     //
     // The counterpart of [[Gui.PropertiesCtrl.addStruct]]: a caller that adds the same
@@ -288,6 +342,7 @@ impl PropertiesCtrl
     mtd clear()
     {
         .properties.clear()
+        .sectionIcons.clear()
         .fillSections()
     }
 

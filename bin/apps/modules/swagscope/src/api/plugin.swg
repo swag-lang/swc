@@ -7,7 +7,7 @@ using Core, Gui
 //
 // A descriptor whose version the host does not support is rejected before any of its callbacks
 // runs. Increasing this value denotes an incompatible contract change.
-const ApiVersion = 10'u32
+const ApiVersion = 11'u32
 
 // Prepares one plugin for the application it joined, before any other callback runs.
 //
@@ -86,6 +86,12 @@ alias PluginProbe = func(ProbeContent)->bool
 // Resolves a translated or otherwise dynamic viewer name on the GUI thread.
 alias PluginName = func()->string
 
+// Adds a viewer's saved options to the application's central options page.
+//
+// The callback is invoked without opening a document. It lends the grid its own long-lived
+// settings storage, and uses `section` as the translated name of its section.
+alias PluginOptions = func(*PropertiesCtrl, string)
+
 // Produces an owned still image directly from file data, off the GUI thread and without creating a viewer.
 //
 // Use this when the format has a useful direct thumbnail decoder. The shared source renderer handles
@@ -121,6 +127,7 @@ struct Plugin
         late create:     PluginCreate          // Synchronous presentation factory.
         probe:           PluginProbe?          // Optional content-aware discovery callback.
         thumbnail:       PluginThumbnail?      // Optional direct decoder; null uses the shared source renderer without creating a viewer.
+        options:         PluginOptions?        // Optional saved settings shown even when this viewer is not active.
         matchNames:      bool = true           // Whether non-wildcard selectors offer this plugin directly.
         textual:         bool                  // Whether this format's bytes are text a reader may also want raw.
         edgeToEdge:      bool                  // Whether the document takes the whole window, beneath the lens strip.

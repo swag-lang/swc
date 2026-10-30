@@ -49,6 +49,7 @@ namespace ViewerCommands
     const SortDescending    = "scope.explore.sort.descending"
     const OnlineMovies      = "scope.explore.onlineMovies"
     const OnlineMusic       = "scope.explore.onlineMusic"
+    const GeneralOptions    = "scope.generalOptions"
     const ChooseMusic       = "scope.explore.chooseMusic"
     const OpenChosen        = "scope.explore.openChosen"
     const ExtractAll        = "scope.explore.extractAll"
@@ -110,7 +111,7 @@ impl ViewerWindow
             {
                 let section = results.addSection(appStrings().lens_View)
                 window.lens.addCommandRows(section,
-                                           [ViewerCommands.SidePanel, ViewerCommands.FullScreen],
+                                           [ViewerCommands.SidePanel, ViewerCommands.FullScreen, ViewerCommands.GeneralOptions],
                                            enabledOnly: true)
             })
             .addRestSource(func|window = me|(results) { window.describeViewerChoices(results) })
@@ -137,7 +138,7 @@ impl ViewerWindow
                                                                     ViewerCommands.FilterMode, ViewerCommands.MatchCase, ViewerCommands.WholeWord, ViewerCommands.RegularExpression])
             .addCommand(func()->string => appStrings().lens_View, ViewerCommands.FullScreen, func()->string => appStrings().search_FullScreen)
             .addCommands(func()->string => appStrings().lens_View,
-                         [ViewerCommands.Information, ViewerCommands.SidePanel])
+                         [ViewerCommands.Information, ViewerCommands.SidePanel, ViewerCommands.GeneralOptions])
             .addCommands(func()->string => appStrings().lens_Playback,
                          [ViewerCommands.PlayOnce, ViewerCommands.PlayRepeat, ViewerCommands.PlayFolder, ViewerCommands.PlayShuffle])
         }
@@ -463,6 +464,10 @@ impl ViewerWindow
             toggle   = true
             checked  = .infoSheet.isLocallyVisible()
 
+        case ViewerCommands.GeneralOptions:
+            name = texts.ui_GeneralOptions
+            icon = .commandGlyph(.Settings)
+
         case ViewerCommands.Open:
             name = texts.cmd_Open
             icon = .commandGlyph(.OpenFile)
@@ -780,6 +785,9 @@ impl ViewerWindow
 
         case ViewerCommands.Information:
             .toggleInformation()
+
+        case ViewerCommands.GeneralOptions:
+            .showGeneralOptions()
 
         case ViewerCommands.Open:
             .chooseFile()

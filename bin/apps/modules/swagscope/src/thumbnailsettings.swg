@@ -9,6 +9,7 @@ struct ThumbnailSettings
     onlineMovies:        bool
     onlineMusic:         bool
     movieLanguage:       String
+    movieProviderStamp:  u64
     musicId:             String
     choiceSize:          u64
     choiceCreationStamp: u64
@@ -23,8 +24,17 @@ impl ThumbnailSettings
         settings.preferences  = window.preferences
         settings.onlineMovies = window.onlineMovies
         settings.onlineMusic  = window.onlineMusic
-        if window.onlineMovies do
+        if window.onlineMovies
+        {
             settings.movieLanguage = window.app().language()
+            var token = tmdbStoredCredential("tmdb.token")
+            var key   = tmdbStoredCredential("tmdb.key")
+            if token.isEmpty() do
+                token = Env.variable("SWAG_SCOPE_TMDB_TOKEN")
+            if key.isEmpty() do
+                key = Env.variable("SWAG_SCOPE_TMDB_KEY")
+            settings.movieProviderStamp = Hash.hash64(Format.toString("%:%", token, key))
+        }
         if entry
         {
             settings.musicId = musicChoiceId(window.musicChoices.toSlice(), entry)

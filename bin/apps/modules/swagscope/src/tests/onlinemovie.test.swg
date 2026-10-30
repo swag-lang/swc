@@ -10,6 +10,8 @@ struct MovieServerFixture
     poster:        Array'u8
     requests:      [3] String
     appleMiss:     bool
+    tmdbHit:       bool
+    tmdbMiss:      bool
 }
 
 func writeMovieBytes(stream: *TcpStream, bytes: const [..] u8)
@@ -27,7 +29,7 @@ func writeMovieBytes(stream: *TcpStream, bytes: const [..] u8)
 func serveMovies(thread: const *Threading.Thread)
 {
     let fixture = cast(*MovieServerFixture, unwrap thread.userParam)
-    for index in (fixture.appleMiss ? 3 : 2)
+    for index in (fixture.appleMiss or fixture.tmdbMiss ? 3 : 2)
     {
         var stream = expect fixture.listener.accept()
         var bytes: [1024] u8
@@ -40,7 +42,16 @@ func serveMovies(thread: const *Threading.Thread)
         }
 
         var body: Array'u8
-        if fixture.appleMiss and index == 0
+        if fixture.tmdbMiss and index == 0
+        {
+            body.add(cast(const [..] u8, """{"results":[]}"""))
+        }
+        elif fixture.tmdbHit and index == 0
+        {
+            let json = """{"results":[{"id":78,"title":"Blade Runner","original_title":"Blade Runner","release_date":"1982-06-25","overview":"A detective hunts replicants.","poster_path":"/blade-runner.jpg","vote_average":8.1,"vote_count":1000},{"id":335984,"title":"Blade Runner 2049","release_date":"2017-10-06"}]}"""
+            body.add(cast(const [..] u8, json))
+        }
+        elif fixture.appleMiss and index == 0
         {
             body.add(cast(const [..] u8, """{"resultCount":0,"results":[]}"""))
         }
@@ -54,7 +65,7 @@ func serveMovies(thread: const *Threading.Thread)
             let json = """{"results":{"bindings":[{"directorLabel":{"value":"Ridley Scott"},"castLabel":{"value":"Harrison Ford"},"score":{"value":"8.1/10"},"scoreDate":{"value":"2026-02-25T00:00:00Z"}}]}}"""
             body.add(cast(const [..] u8, json))
         }
-        elif index == 0
+        elif index == 0 or (fixture.tmdbMiss and index == 1)
         {
             // A trimmed catalogue response: one exact match and one different sequel.
             let json = Format.toString("""{"resultCount":2,"results":[{"trackName":"Blade Runner","trackViewUrl":"https://tv.apple.com/movie/blade-runner","releaseDate":"1982-06-25T07:00:00Z","artworkUrl100":"http://127.0.0.1:%/poster/100x100bb.jpg","longDescription":"In a dark future, a blade runner hunts replicants.","primaryGenreName":"Sci-Fi & Fantasy"},{"trackName":"Blade Runner 2049","releaseDate":"2017-10-06T07:00:00Z","artworkUrl100":"http://127.0.0.1:%/other/100x100bb.jpg"}]}""", fixture.port, fixture.port)
@@ -69,6 +80,51 @@ func serveMovies(thread: const *Threading.Thread)
         writeMovieBytes(&stream, cast(const [..] u8, header.toString()))
         writeMovieBytes(&stream, body.toSlice())
     }
+}
+
+// A TMDB miss still reaches the Apple catalogue before Wikipedia.
+#test
+{
+    var listener = expect TcpListener.listen({address: [127, 0, 0, 1], port: 0})
+    let endpoint = expect listener.localEndpoint()
+    var fixture  = MovieServerFixture{listener: &listener, port: endpoint.port, tmdbMiss: true}
+    var image    = Image.create(8, 8, .RGB8)
+    let encoded  = expect image.encode("poster.png")
+    fixture.poster.add(unwrap encoded.toSlice())
+    var thread: Threading.Thread
+    expect thread.init(&serveMovies, &fixture)
+    expect thread.start()
+    let host = MovieSource{tmdbHost: "127.0.0.1", tmdbToken: "fixture-token-abcdefghijkl", appleHost: "127.0.0.1",
+                           imageHost: "127.0.0.1", port: endpoint.port, secure: false, useLocalCredentials: false}
+    let movie = expect OnlineMovie.lookup("Blade.Runner (1982).mkv", host, "fr")
+    discard expect movie.posterBytes(host)
+    thread.wait()
+    Swag.assert(movie.id == "apple" and movie.sources == "Apple")
+    Swag.assert(Utf8.contains(fixture.requests[0].toString(), "/3/search/movie?"))
+    Swag.assert(Utf8.contains(fixture.requests[1].toString(), "/search?term=Blade%20Runner"))
+    Swag.assert(Utf8.contains(fixture.requests[2].toString(), "/poster/600x900bb.jpg"))
+}
+
+// A v3 key works when no token is configured; neither credential is embedded in the app.
+#test
+{
+    var listener = expect TcpListener.listen({address: [127, 0, 0, 1], port: 0})
+    let endpoint = expect listener.localEndpoint()
+    var fixture  = MovieServerFixture{listener: &listener, port: endpoint.port, tmdbHit: true}
+    var image    = Image.create(8, 8, .RGB8)
+    let encoded  = expect image.encode("poster.png")
+    fixture.poster.add(unwrap encoded.toSlice())
+    var thread: Threading.Thread
+    expect thread.init(&serveMovies, &fixture)
+    expect thread.start()
+    let host = MovieSource{tmdbHost: "127.0.0.1", tmdbKey: "0123456789abcdef0123456789abcdef",
+                           imageHost: "127.0.0.1", port: endpoint.port, secure: false, useLocalCredentials: false}
+    let movie = expect OnlineMovie.lookup("Blade.Runner (1982).mkv", host)
+    discard expect movie.posterBytes(host)
+    thread.wait()
+    Swag.assert(movie.id == "tmdb:78")
+    Swag.assert(Utf8.contains(fixture.requests[0].toString(), "api_key=0123456789abcdef0123456789abcdef"))
+    Swag.assert(not Utf8.contains(fixture.requests[0].toString(), "Authorization: Bearer"))
 }
 
 #test
@@ -98,7 +154,7 @@ func serveMovies(thread: const *Threading.Thread)
     var thread: Threading.Thread
     expect thread.init(&serveMovies, &fixture)
     expect thread.start()
-    let host = MovieSource{wikiHost: "127.0.0.1", dataHost: "127.0.0.1", appleHost: "127.0.0.1",
+    let host = MovieSource{wikiHost: "127.0.0.1", dataHost: "127.0.0.1", appleHost: "127.0.0.1", tmdbHost: "",
                            imageHost: "127.0.0.1", port: endpoint.port, secure: false}
     var movie       = expect OnlineMovie.lookup("Blade.Runner (1982).mkv", host, "fr")
     let posterBytes = expect movie.posterBytes(host)
@@ -136,7 +192,7 @@ func serveMovies(thread: const *Threading.Thread)
     var thread: Threading.Thread
     expect thread.init(&serveMovies, &fixture)
     expect thread.start()
-    let host = MovieSource{wikiHost: "127.0.0.1", dataHost: "127.0.0.1", appleHost: "127.0.0.1",
+    let host = MovieSource{wikiHost: "127.0.0.1", dataHost: "127.0.0.1", appleHost: "127.0.0.1", tmdbHost: "",
                            port: endpoint.port, secure: false}
     let movie = expect OnlineMovie.lookup("Blade.Runner (1982).mkv", host, "fr")
     thread.wait()
@@ -146,17 +202,54 @@ func serveMovies(thread: const *Threading.Thread)
     Swag.assert(Utf8.contains(fixture.requests[2].toString(), "/sparql?"))
 }
 
+#test
+{
+    var listener = expect TcpListener.listen({address: [127, 0, 0, 1], port: 0})
+    let endpoint = expect listener.localEndpoint()
+    var fixture  = MovieServerFixture{listener: &listener, port: endpoint.port, tmdbHit: true}
+    var image    = Image.create(8, 8, .RGB8)
+    let encoded  = expect image.encode("poster.png")
+    fixture.poster.add(unwrap encoded.toSlice())
+    var thread: Threading.Thread
+    expect thread.init(&serveMovies, &fixture)
+    expect thread.start()
+    let host = MovieSource{tmdbHost: "127.0.0.1", tmdbToken: "fixture-token-abcdefghijkl", appleHost: "127.0.0.1",
+                           imageHost: "127.0.0.1", port: endpoint.port, secure: false, useLocalCredentials: false}
+    var movie = expect OnlineMovie.lookup("Blade.Runner (1982).mkv", host, "fr")
+    let expectedPoster = Format.toString("http://127.0.0.1:%/t/p/w500/blade-runner.jpg", endpoint.port)
+    Swag.assert(movie.posterUrl == expectedPoster, movie.posterUrl)
+    let posterBytes = expect movie.posterBytes(host)
+    var poster = expect Image.decode("poster.png", posterBytes.toSlice())
+    thread.wait()
+    Swag.assert(movie.id == "tmdb:78" and movie.sources == "TMDB" and poster.isValid())
+    Swag.assert(movie.ratingSource == "TMDB" and movie.imdbRating == "8.1/10")
+    Swag.assert(Utf8.contains(fixture.requests[0].toString(), "/3/search/movie?query=Blade%20Runner&language=fr-FR"))
+    Swag.assert(Utf8.contains(fixture.requests[0].toString(), "Authorization: Bearer fixture-token-abcdefghijkl"))
+    Swag.assert(Utf8.contains(fixture.requests[1].toString(), "/t/p/w500/blade-runner.jpg"))
+    movie.label(&poster)
+    let summary = MovieSummary.fromImage(&poster)
+    Swag.assert(summary.ratingSource == "TMDB" and Utf8.contains(summary.text().toString(), "TMDB rating: 8.1/10"))
+
+    let json = """{"results":[{"id":10,"title":"Dune","release_date":"1984-12-14"},{"id":11,"title":"Dune","release_date":"2021-10-22"}]}"""
+    var decoder: Serialization.Decoder'Serialization.Read.Json
+    let search = expect decoder.readAll'TmdbSearch(cast(const [..] u8, json))
+    defer Memory.delete(search)
+    Swag.assert(MovieQuery{title: "Dune", year: "2021"}.chooseTMDB(search) == 1)
+    Swag.assert(MovieQuery{title: "Dune"}.chooseTMDB(search) == Swag.U64.Max)
+}
+
 #[Swag.TestTag("integration.network")]
 #test
 {
-    var movie = expect OnlineMovie.lookup("Blade Runner (1982).mkv", language: "en")
+    let source = MovieSource{tmdbHost: ""}
+    var movie = expect OnlineMovie.lookup("Blade Runner (1982).mkv", source, language: "en")
     Swag.assert(movie.id == "Q184843" and not movie.overview.isEmpty())
     let poster = expect movie.posterBytes()
     Swag.assert(poster.count > 100)
-    var french = expect OnlineMovie.lookup("Blade Runner (1982).mkv", language: "fr")
+    var french = expect OnlineMovie.lookup("Blade Runner (1982).mkv", source, language: "fr")
     Swag.assert(french.id == movie.id and not french.overview.isEmpty())
     let frenchPoster = expect french.posterBytes()
     Swag.assert(frenchPoster.count > 100 and Utf8.contains(french.posterUrl.toString(), "/wikipedia/en/"))
-    var matrix = expect OnlineMovie.lookup("The Matrix (1999).mkv", language: "fr")
+    var matrix = expect OnlineMovie.lookup("The Matrix (1999).mkv", source, language: "fr")
     Swag.assert(matrix.id == "Q83495" and (expect matrix.posterBytes()).count > 100)
 }

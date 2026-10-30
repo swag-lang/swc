@@ -1014,8 +1014,8 @@ private impl View
         return room
     }
 
-    // The visible lens, in local coordinates.
-    mtd body()->Math.Rectangle
+    // Returns the visible floating card in local coordinates, excluding its backdrop.
+    public mtd body()->Math.Rectangle
     {
         let parent   = .parent
         let metrics  = .themeMetrics()

@@ -11,6 +11,10 @@ private func fillOptions(opt: *PropertiesCtrl, main: *MainWnd)
     opt.addStruct(main.captureOptions, appStrings().ui_MenuCapture)
     opt.addStruct(main.editorOptions, appStrings().ui_SectionEditor)
     opt.addStruct(main.app().options, appStrings().ui_SectionApplication)
+    let size = themeRowIconSize(main.themeMetrics())
+    opt.setSectionIcon(appStrings().ui_MenuCapture, main.theme().icon(.FileImage, size))
+    opt.setSectionIcon(appStrings().ui_SectionEditor, main.theme().icon(.Edit, size))
+    opt.setSectionIcon(appStrings().ui_SectionApplication, main.theme().icon(.Settings, size))
 }
 
 impl ActionOptions

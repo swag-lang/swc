@@ -17,6 +17,7 @@ func viewerPlugin()->Viewer.Plugin
         .iconAtlas    = viewerIcons()
         .iconIndex    = cast(s32, ViewerIcons.Video)
         .create       = &createViewer
+        .options      = &addViewerOptions
         .thumbnail    = &loadThumbnail
         .smokeFixture = "glint-aac-mjpeg.mp4"
         .edgeToEdge   = true

@@ -9,9 +9,9 @@ integration around those engines.
 
 - Evidence: `DocumentOutline` lists Markdown headings with depth and distinct source offsets
   and reveals them through `Markdown.View.revealHeading`. Filtering and keyboard navigation use
-  source offsets, and the reading margin follows the first two heading levels. The full outline
-  still keeps the last chosen row rather than following reading position; it has no breadcrumb
-  path or navigation history, and its worker reads the complete source.
+  source offsets. The full outline still keeps the last chosen row rather than following reading
+  position; it has no breadcrumb path or navigation history, and its worker reads the complete
+  source.
 - Next: build a bounded heading index and synchronize the full outline with the document's
   current block; retain source offsets as identity and add bounded back/forward history.
 - Done when: the visible section updates the full outline's selected heading/breadcrumb,

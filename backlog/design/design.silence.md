@@ -47,7 +47,8 @@ dialogs, then each application, then the written rules.
     the commands on a mini-bar.
   - PDF (`viewer.pdf.page`, `.paper`): pages as paper with the floating shadow, the outline in
     the left margin under "Contents".
-  - Code and text in their reading columns, Markdown with its margin outline. The
+  - Code and text in their reading columns; Markdown in its reading column with the full outline
+    in the right panel. The
     main splitter now hides its idle full-height dividers and keeps the resize affordance on hover;
     the whole-window outline goldens cover both themes.
   - Subtitles read as a list under the file's name and mono line: number, mono time range,

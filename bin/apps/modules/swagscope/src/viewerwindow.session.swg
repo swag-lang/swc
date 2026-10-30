@@ -35,10 +35,13 @@ impl ViewerWindow
         .pendingRemember = remember
         .pendingForgetMissing = offerForgetMissing
 
-        // The home is not what a window opening a file should paint first: hidden now, the first
-        // frame shows the surface the document is about to fill.
-        .home.hide()
-        .hintLine.hide()
+        // Normal opens hide the home before the first frame. A recent-row open keeps it in place
+        // while the file is checked, so a missing file can prompt without revealing it mid-open.
+        if not offerForgetMissing
+        {
+            .home.hide()
+            .hintLine.hide()
+        }
         if .explorer
         {
             .explorer.leave()
@@ -135,6 +138,8 @@ impl ViewerWindow
                 archive = false
             if not .thumbnailMode and (classified.isDirectory or archive)
             {
+                .home.hide()
+                .hintLine.hide()
                 if archive and remember
                 {
                     .rememberRecent(classified.absoluteFileName)
@@ -762,6 +767,9 @@ impl ViewerWindow
     // plain text as the fallback. `remember` records it in the recent files and folders.
     private mtd openClassifiedFile(classified: #move ViewerClassifiedFile, remember: bool)
     {
+        .home.hide()
+        .hintLine.hide()
+
         .fileWatch.current       = #move classified.metadata
         .fileWatch.hasCandidate  = false
         .fileWatch.ignorePending = .fileWatch.load.started
@@ -813,9 +821,6 @@ impl ViewerWindow
 
             .reloading = false
         }
-
-        .home.hide()
-        .hintLine.hide()
 
         if remember
         {

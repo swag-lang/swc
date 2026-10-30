@@ -19,18 +19,25 @@ using Core, Pixel, Gui, Gui.Testing, Viewers
     completeViewerBackgroundLoad(&host, &outline.load)
     Swag.assert(outline.rows.count == 1)
     Swag.assert(outline.headings[0].title == title)
-    Swag.assert(outline.rows[0].items[0]!.name == title)
+    Swag.assert(Pixel.RichString.plainText(outline.rows[0].items[0]!.name.raw) == title)
 
     outline.add(" \t\r\n\u00A0\u2003First\t\r\n\u00A0\u2003second \t\u00A0", 2, 1)
     Swag.assert(outline.rows[1].items[0]!.name == "First second")
     outline.add(" \t\r\n\u00A0\u2003", 2, 2)
     Swag.assert(outline.rows[2].items[0]!.name == "")
+
+    let literal = "<b>Literal</b> <url>address</url> <p1>ink</p>"
+    outline.add(literal, 4, 3)
+    let display = Pixel.RichString.plainText(outline.rows[3].items[0]!.name.raw)
+    display.replace("\u2060", "")
+    Swag.assert(display == literal)
+    Swag.assert(outline.rows[3].level == 3)
 }
 
 #test
 {
     let fileName = Testing.tempFilePath("scope-outline-", ".html")
-    discard expect File.writeAllBytes(fileName, "<html><body><h1>Guide</h1><div style='height:800px'></div><h2>Details</h2><div style='height:800px'></div></body></html>")
+    discard expect File.writeAllBytes(fileName, "<html><body><h1>Guide</h1><div style='height:800px'></div><h3>Details</h3><div style='height:800px'></div></body></html>")
     defer discard catch File.delete(fileName)
     var host: HeadlessHost
     host.setup(640, 360)
@@ -40,7 +47,7 @@ using Core, Pixel, Gui, Gui.Testing, Viewers
     for 128 where session.isLoading!() do
         host.fireTimers()
     let outline = assume cast(*DocumentOutline, session.sidePanel!.children[0])
-    Swag.assert(outline.rows.count == 2)
+    Swag.assert(outline.rows.count == 2 and outline.rows[0].level == 0 and outline.rows[1].level == 2)
     outline.list.selectLine(1)
     let scroll = assume cast(*ScrollWnd, view.view.children[0])
     Swag.assert(scroll.scrollPosition().y > 700)
@@ -90,7 +97,7 @@ using Core, Pixel, Gui, Gui.Testing, Viewers
     defer MarkdownText.g_ViewerSettings = previous
     MarkdownText.g_ViewerSettings = {}
     let fileName = Testing.tempFilePath("scope-outline-", ".md")
-    let source   = "# Document guide\n\nAn introduction to this document.\n\n## Getting started\n\nRead the first steps.\n\n### Installation\n\nInstall the application.\n\n### Configuration\n\nChoose your preferences.\n\n## Reference\n\nThe complete reference.\n\n### Commands\n\nThe available commands.\n"
+    let source   = "# Document guide\n\nAn introduction to this document.\n\n## Getting started\n\nRead the first steps.\n\n### Installation\n\nInstall the application.\n\n### Configuration\n\nChoose your preferences.\n\n## Reference\n\nThe complete reference.\n\n### Commands\n\nThe available commands.\n\n###### Literal <b>tags</b> remain part of the heading, with a deliberately long title that continues well beyond the width of the outline panel and must remain available in full when the row is hovered.\n"
     discard expect File.writeAllBytes(fileName, source)
     defer discard catch File.delete(fileName)
     var host: HeadlessHost
@@ -114,10 +121,10 @@ using Core, Pixel, Gui, Gui.Testing, Viewers
     outline.toggle.sigCheckedChanged.call(outline.toggle)
     if outline.load.isPending() do
         completeViewerBackgroundLoad(&host, &outline.load)
-    Swag.assert(outline.rows.count == 6 and outline.list.lineCount() == 6)
+    Swag.assert(outline.rows.count == 7 and outline.list.lineCount() == 7)
     window.applyLayout()
     let firstText = outline.list.cellTextRect(0, 0)
-    let depths    = [0, 1, 2, 2, 1, 2]
+    let depths    = [0, 1, 2, 2, 1, 2, 5]
     for row, index in outline.rows
     {
         Swag.assert(row.parent == null and not row.canExpand())
@@ -125,10 +132,14 @@ using Core, Pixel, Gui, Gui.Testing, Viewers
         Swag.assert(Math.abs(text.x - firstText.x - depths[index] * 16) <= 1)
     }
 
+    let longCell = outline.list.cellTextRect(6, 0)
+    host.moveMouse(outline.list.listView.localToSurface(longCell.center()))
+    Swag.assert(outline.list.listView.toolTip == outline.headings[6].title)
+
     outline.list.selectLine(0)
     host.focus(outline.list.listView)
     host.keyPress(.Left)
-    Swag.assert(outline.list.lineCount() == 6)
+    Swag.assert(outline.list.lineCount() == 7)
     window.applyLayout()
     let previousScroll = assume cast(*ScrollWnd, window.currentView!.children[0]).scrollPosition().y
     let cell = outline.list.cellTextRect(5, 0)

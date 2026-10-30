@@ -46,6 +46,7 @@ struct DocumentOutline
     section:      *SectionLabel?
     closeButton:  *IconButton?
     rows:         Array'(*ListLine)
+    rowTitles:    Array'String
     levels:       Array'u32
     load:         Viewer.BackgroundLoad'(Array'DocumentHeading)
     failure:      String
@@ -147,8 +148,18 @@ impl DocumentOutline
 
         result.hookOnChildEvent = func|panel = result|(_, evt)
         {
-            if evt is MouseEvent as mouse where mouse.kind == .Move or mouse.kind == .Enter do
-                panel.list.scrollWnd.revealScrollBars()
+            if evt is MouseEvent as mouse
+            {
+                if mouse.kind == .Move or mouse.kind == .Enter
+                {
+                    panel.list.scrollWnd.revealScrollBars()
+                    panel.updateHeadingTooltip(mouse.surfacePos)
+                }
+                elif mouse.kind == .Leave
+                {
+                    panel.list.listView.toolTip = ""
+                }
+            }
             return false
         }
 
@@ -159,8 +170,24 @@ impl DocumentOutline
     mtd clear()
     {
         .rows.clear()
+        .rowTitles.clear()
         .levels.clear()
         .list.clear()
+    }
+
+    // Uses the full heading as a tooltip when its row is shortened to fit the panel.
+    private mtd updateHeadingTooltip(surfacePos: Math.Point)
+    {
+        let local = .list.listView.surfaceToLocal(surfacePos)
+        if local.y < 0 or local.y >= .list.listView.clientRect().height
+        {
+            .list.listView.toolTip = ""
+            return
+        }
+
+        let y = local.y + .list.scrollWnd.scrollPosition().y
+        let index = cast(u32, y / .list.lineHeight())
+        .list.listView.toolTip = index < .rowTitles.count ? .rowTitles[index].toString() : ""
     }
 
     // Keeps a quiet outline on the document's local palette, independently of application panels.
@@ -204,11 +231,19 @@ impl DocumentOutline
             }
         }
 
-        // Every heading stays visible. Indentation expresses depth without disclosure controls.
-        let line = .list.createLine(label)
-        line.level     = cast(u32, .levels.count)
+        // Keep document text literal: RichString's inline markers belong to presentation, not
+        // heading content. A word joiner preserves the visible spelling of marker-like text.
+        var literal = String.from(label.toString())
+        literal.replace("<", "<\u2060")
+        var display = literal
+        if level == 1 do
+            display = Format.toString("<b>%</b>", literal)
+
+        let line = .list.createLine(display)
+        line.level     = Math.min(level ? level - 1 : 0, 5)
         line.userData0 = cast(*void, target + 1)
         .rows.add(line)
+        .rowTitles.add(label)
         .levels.add(level)
     }
 

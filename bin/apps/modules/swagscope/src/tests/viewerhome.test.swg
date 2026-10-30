@@ -115,13 +115,28 @@ func homeWindow(host: *Testing.HeadlessHost, light: bool)->*ViewerWindow
 
     host.clickModalButtonWhenShown(Dialog.BtnNo)
     window.queueFile(missing.toString(), offerForgetMissing: true)
+    Swag.assert(window.home.isLocallyVisible() and window.home.message.isEmpty())
     completeViewerWindowClassification(&host, window)
     Swag.assert(host.autoHandled and window.home.isLocallyVisible())
     Swag.assert(window.home.message.isEmpty() and window.recent.contains(missing))
 
     host.clickModalButtonWhenShown(Dialog.BtnYes)
     window.queueFile(missing.toString(), offerForgetMissing: true)
+    Swag.assert(window.home.isLocallyVisible() and window.home.message.isEmpty())
     completeViewerWindowClassification(&host, window)
     Swag.assert(host.autoHandled and window.home.isLocallyVisible())
     Swag.assert(window.home.message.isEmpty() and not window.recent.contains(missing))
+}
+
+// A recent row stays visible while classification runs, then gives way to the file when it opens.
+#test
+{
+    var host: Testing.HeadlessHost
+    let window = homeWindow(&host, false)
+    let file   = String.from(window.home.rows[0].file)
+
+    window.queueFile(file.toString(), offerForgetMissing: true)
+    Swag.assert(window.home.isLocallyVisible())
+    completeViewerWindowClassification(&host, window)
+    Swag.assert(not window.home.isLocallyVisible() and not window.currentFile.isEmpty())
 }

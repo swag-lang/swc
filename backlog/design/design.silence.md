@@ -35,8 +35,10 @@ dialogs, then each application, then the written rules.
     pictures and films cropped to the tile, faint line glyphs and extensions for the rest, name
     and one mono line of facts; films (`explorer.films`) — upright posters, title then year and
     length, the sheet headed by the poster beside its title with Open under it and the sources at
-    its foot. The poster and synopsis come from the Apple catalogue first, credits and rating
-    from Wikipedia and Wikidata. Music (`explorer.music`) as square covers; one album
+    its foot. Apple is consulted before the Wikipedia/Wikidata fallback; a local film frame is
+    published first and remains uncropped while the poster is fetched. Music (`explorer.music`)
+    reads tags and nearby cover files locally before MusicBrainz, with a quiet sleeve when no
+    cover exists; one album
     (`explorer.album`, `.paper`) with its cover, Play and Shuffle and its tracks; photographs
     (`explorer.photos`) as a justified mosaic by day.
   - The lens answers a typed query over code, text and Markdown with the lines of the file
@@ -91,8 +93,7 @@ dialogs, then each application, then the written rules.
     (`viewer.media.information`) is a two-column
     property list. The charter reads them in the margin, quiet, without a card.
   - The MusicBrainz choice box (`explorer.music.choice`) carries its menu label as title, with
-    its ellipsis; the About box credits Wikipedia and Wikidata, not the Apple catalogue the
-    posters and synopses now come from.
+    its ellipsis.
   - Not yet rebuilt on their pictures: image (`scope.image`), table, HTML (column, address,
     outline), font (specimen page);
     the "Column ▾" quiet menu of text; the progress thread under the strip with documents

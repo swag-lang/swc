@@ -208,7 +208,7 @@ func addPictured(host: *Testing.HeadlessHost, explorer: *Explorer, name: string,
         let explorer = unwrap window.explorer
         for name in ["01 - First track.flac", "02 - Second track.flac"] do
             explorer.entries.add({name: name, path: name, attempted: true, duration: 120,
-                                  music: {title: "Discovery", artist: "Daft Punk", date: "2001"}})
+                                  music: {title: "Discovery", artist: "Daft Punk", date: "2001", source: "tags"}})
         showBoard(&host, window, "Music", "Discovery")
         window.resize(ViewerWindow.MinWidth, 680)
         expect host.app.setLanguage("fr")
@@ -314,7 +314,9 @@ func addPictured(host: *Testing.HeadlessHost, explorer: *Explorer, name: string,
     for name, index in names
     {
         let file = Format.toString("%.mkv", name)
-        addPictured(&host, explorer, file, boardPicture(120, 176, tops[index], bottoms[index]), 8 * 1024 * 1024 * 1024, lengths[index] * 60)
+        let wide = index == 7
+        addPictured(&host, explorer, file, boardPicture(wide ? 192 : 120, wide ? 108 : 176, tops[index], bottoms[index]),
+                    8 * 1024 * 1024 * 1024, lengths[index] * 60)
         let last = explorer.entries.count - 1
         explorer.entries[last].movie.title = name
         explorer.entries[last].movie.date  = years[index]
@@ -326,7 +328,7 @@ func addPictured(host: *Testing.HeadlessHost, explorer: *Explorer, name: string,
         .movie.director   = "Ridley Scott"
         .movie.actors     = "Harrison Ford, Rutger Hauer"
         .movie.overview   = "A science-fiction film directed by Ridley Scott, adapted from the novel by Philip K. Dick."
-        .movie.sources    = "Apple · Wikipedia · Wikidata"
+        .movie.sources    = "Wikipedia · Wikidata"
     }
 
     explorer.selected = 0

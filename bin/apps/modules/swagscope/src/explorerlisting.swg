@@ -1,6 +1,6 @@
 #global internal
 
-using Core, Pixel, Gui
+using Core, Pixel, Gui, Audio
 
 // One immediate child of a filesystem or archive location.
 struct ExplorerEntry
@@ -33,6 +33,7 @@ struct ExplorerEntry
     movie:     MovieSummary
     music:     MusicSummary
     attempted: bool
+    onlinePending: bool
 }
 
 // The extensions whose content a cell of the mixed board draws, compared without case.
@@ -65,6 +66,13 @@ private func readHead(path: string, limit: u64)->Array'u8 fail
 func probeEntry(entry: *ExplorerEntry)->bool
 {
     let name = entry.name.toString()
+    if Path.hasExtension(name, ".mp3") or Path.hasExtension(name, ".flac")
+    {
+        let tags = SoundTags.read(entry.path)
+        entry.music = localMusicSummary(&tags)
+        return true
+    }
+
     if probeKind(name, ProbeImageExtensions)
     {
         // The size of a picture is in its head; the pixels are not decoded.

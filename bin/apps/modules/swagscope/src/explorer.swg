@@ -129,7 +129,6 @@ struct Explorer
     descending:      bool
     menuPaths:       Array'String
     previewSettings: String
-    bypassCache:     bool     // Whether the previews of the shown listing ignore the persistent cache, after a forced refresh.
     previewAspect:   f32 = ExplorerTilePreviewAspect     // Shape of the tiles, chosen from what the listing holds.
     extraction:      ArchiveExtraction
     toast:           *Toast?
@@ -754,7 +753,8 @@ impl Explorer
             sheet.addSection(strings.explore_MediaDetails)
             addSheetReading(sheet, strings.explore_Artist, entry.music.artist)
             addSheetReading(sheet, strings.explore_FirstRelease, entry.music.date)
-            addSheetReading(sheet, strings.explore_Source, "MusicBrainz")
+            addSheetReading(sheet, strings.explore_Source,
+                            entry.music.source == "tags" ? strings.explore_FileTags : "MusicBrainz")
         }
 
         if .listing.isArchive and entry.archiveIndex < .listing.archive.entries.count
@@ -931,8 +931,7 @@ impl Explorer
 
     mtd navigate(path: string, folder: string = "", remember = true)
     {
-        .generation  += 1
-        .bypassCache = false
+        .generation += 1
         .suspend()
         .pendingOpen     = Swag.U64.Max
         .requested       = path
@@ -944,14 +943,11 @@ impl Explorer
             .startListing()
     }
 
-    // Lists the folder again and renders its previews anew instead of reading them from the cache.
-    //
-    // The cache already follows a file that changed, so a forced refresh is what the user reaches
-    // for when a preview is wrong anyway; the previews it renders replace the cached ones.
+    // Lists the folder again. Changed files have new cache identities; unchanged previews remain
+    // immediately available while the listing is refreshed.
     mtd forceRefresh()
     {
         .navigate(.listing.path, .folder, false)
-        .bypassCache = true
     }
 
     private mtd startListing()
@@ -1369,8 +1365,13 @@ impl Explorer
     {
         for &preview in .previews
         {
-            if preview.started and preview.generation == .generation and preview.index < .entries.count do
-                .entries[preview.index].attempted = false
+            if preview.started and preview.generation == .generation and preview.index < .entries.count
+            {
+                if preview.online do
+                    .entries[preview.index].onlinePending = true
+                else do
+                    .entries[preview.index].attempted = false
+            }
             preview.task.cancel()
         }
     }
@@ -1416,8 +1417,14 @@ impl Explorer
                 visible = true
             if not visible
             {
-                if preview.generation == .generation and preview.index < .entries.count do
-                    .entries[preview.index].attempted = false
+                if preview.generation == .generation and preview.index < .entries.count
+                {
+                    if preview.online do
+                        .entries[preview.index].onlinePending = true
+                    else do
+                        .entries[preview.index].attempted = false
+                }
+                preview.generation = Swag.U64.Max
                 preview.task.cancel()
             }
         }
@@ -1492,6 +1499,7 @@ impl Explorer
         for &entry in .entries
         {
             entry.attempted = false
+            entry.onlinePending = false
             entry.movie     = {}
             entry.music     = {}
         }
@@ -1516,6 +1524,7 @@ impl Explorer
         if .load.started or (not .isVisible() and .pendingOpen == Swag.U64.Max) do
             return
         var wanted  = .pendingOpen
+        var online  = false
         let opening = wanted != Swag.U64.Max
         if not opening
         {
@@ -1527,11 +1536,12 @@ impl Explorer
                 let movie    = .window.onlineMovies and Reader.canOpen(selected.path)
                 let music    = .window.onlineMusic and (Path.hasExtension(selected.path, ".mp3") or Path.hasExtension(selected.path, ".flac"))
                 if selected.directory or
-                   selected.attempted or
+                   (selected.attempted and not selected.onlinePending) or
                    not (movie or music or .grid.rows) or
                    .previewSlot(.selected) != Swag.U64.Max do
                     return
                 wanted = .selected
+                online = selected.onlinePending
             }
             else
             {
@@ -1548,12 +1558,29 @@ impl Explorer
                         break
                     }
                 }
+
+                // Every visible tile gets its local image before network enrichment occupies a
+                // worker. Scrolling away can then cancel only the remote pass.
+                if wanted == Swag.U64.Max
+                {
+                    for row in Math.min(range.first, .shown.count) until Math.min(range.end, .shown.count)
+                    {
+                        let index = .shown[row]
+                        if index < .entries.count and .entries[index].onlinePending and
+                           .previewSlot(index) == Swag.U64.Max
+                        {
+                            wanted = index
+                            online = true
+                            break
+                        }
+                    }
+                }
             }
         }
 
         if wanted >= .entries.count do
             return
-        if not opening and .cached.count >= 128
+        if not opening and not online and .cached.count >= 128
         {
             let range = .grid.visibleRange()
             var evict = Swag.U64.Max
@@ -1587,12 +1614,15 @@ impl Explorer
         preview.index       = wanted
         preview.generation  = .generation
         preview.opening     = opening
-        preview.bypassCache = .bypassCache
+        preview.online      = online
         preview.settings    = ThumbnailSettings.capture(.window, entry)
         preview.archivePath = .listing.isArchive ? .listing.path : {}
         if .listing.isArchive do
             preview.entry = .listing.archive.entries[entry.archiveIndex]
-        entry.attempted = true
+        if online do
+            entry.onlinePending = false
+        else do
+            entry.attempted = true
         preview.start(me)
         .grid.invalidate()
     }
@@ -1662,9 +1692,12 @@ impl IWnd for Explorer
                     }
                     elif preview.image.isValid()
                     {
+                        if not preview.online do
+                            .entries[preview.index].onlinePending = preview.needsOnline
                         if preview.index == .selected and not preview.error.isEmpty() do
                             .setStatus(preview.error)
-                        if .cached.count >= 128
+                        let replacing = .entries[preview.index].texture.isValid()
+                        if not replacing and .cached.count >= 128
                         {
                             let old = .cached[0]
                             .app().renderer.removeTexture(&.entries[old].texture)
@@ -1674,14 +1707,19 @@ impl IWnd for Explorer
                                 .showMediaInfo()
                         }
 
+                        if replacing do
+                            .app().renderer.removeTexture(&.entries[preview.index].texture)
                         .entries[preview.index].texture  = .app().renderer.addImage(preview.image)
-                        .entries[preview.index].duration = thumbnailDuration(&preview.image)
+                        let duration = thumbnailDuration(&preview.image)
+                        if duration or not preview.online do
+                            .entries[preview.index].duration = duration
                         .entries[preview.index].movie    = MovieSummary.fromImage(&preview.image)
                         .entries[preview.index].music    = MusicSummary.fromImage(&preview.image)
                         if .selected == preview.index do
                             .showMediaInfo()
-                        .cached.add(preview.index)
-                        if .grid.board == .Mosaic or .grid.board == .Album do
+                        if not replacing do
+                            .cached.add(preview.index)
+                        if .grid.board == .Mosaic or .grid.board == .Album or .grid.board == .Covers do
                             .grid.refreshLayout()
                         .grid.invalidate()
                     }
@@ -2087,6 +2125,10 @@ impl ExplorerGrid
         {
             // The cell drew what the file is.
         }
+        elif .board == .Covers and entry.texture.isValid() and entry.texture.width <= 1
+        {
+            .paintBlankCover(painter, tile)
+        }
         elif entry.texture.isValid()
         {
             let texture = entry.texture
@@ -2095,7 +2137,21 @@ impl ExplorerGrid
                           .board == .Mosaic or
                           glyph.index == cast(s32, ThemeIcons.FileImage) or
                           glyph.index == cast(s32, ThemeIcons.FileVideo)
-            if fills
+            if .posters and texture.width > texture.height
+            {
+                // An extracted film frame is wide. Keep the entire frame inside the upright
+                // poster cell until a real poster arrives; its muted colour fills the sleeve.
+                var ambient = Brush.createTexture(texture)
+                ambient.uvMode = .FillSubRect
+                let crop = tile.width * cast(f32, texture.height) / tile.height
+                ambient.uvRect = Math.Rectangle{(cast(f32, texture.width) - crop) * 0.5, 0, crop, cast(f32, texture.height)}
+                ambient.setOpacityF32(0.16)
+                painter.fillRoundRect(tile, radius, radius, ambient)
+                let height = Math.round(tile.width * cast(f32, texture.height) / cast(f32, texture.width))
+                let frame = Math.Rectangle{tile.x, Math.round(tile.vertCenter() - height * 0.5), tile.width, height}
+                painter.fillRoundRect(frame, radius, radius, Brush.createTexture(texture))
+            }
+            elif fills
             {
                 // Crop the picture to the shape of the tile, around its centre.
                 let tw    = cast(f32, texture.width)
@@ -2186,6 +2242,17 @@ impl ExplorerGrid
             painter.drawString(tile.x, factsY, facts, mono, colors.faintText)
             painter.popClippingRect()
         }
+    }
+
+    // A missing album image stays a neutral sleeve, never a byte-map page masquerading as art.
+    mtd paintBlankCover(painter: *Painter, tile: Math.Rectangle)
+    {
+        let colors = .themeColors()
+        let radius = Math.max(12.0, Math.min(tile.width, tile.height) * 0.32)
+        let center = Math.Point{tile.horzCenter(), tile.vertCenter()}
+        painter.drawCircle(center.x, center.y, radius, colors.faintText, 1.5)
+        painter.drawCircle(center.x, center.y, radius * 0.68, colors.line)
+        painter.fillCircle(center.x, center.y, 5, colors.softText)
     }
 
     // Draws what a file of the mixed board is, as its picture shows it, and returns whether it
@@ -2411,7 +2478,7 @@ impl ExplorerGrid
             let entry = &explorer.entries[index]
             if not first do
                 first = entry
-            if not cover and entry.texture.isValid() do
+            if not cover and entry.texture.isValid() and entry.texture.width > 1 do
                 cover = entry
             tracks  += 1
             seconds += entry.duration
@@ -2420,7 +2487,7 @@ impl ExplorerGrid
 
         let coverRect = .albumCover
         painter.fillRoundRect(coverRect, radius, radius, colors.raised)
-        if cover
+        if cover and cover.texture.width > 1
         {
             let texture = cover.texture
             let tw      = cast(f32, texture.width)
@@ -2433,8 +2500,7 @@ impl ExplorerGrid
         }
         else
         {
-            let glyph = .theme().fileGlyph("album.flac", false, 48)
-            glyph.paint(painter, coverRect.horzCenter() - 24, coverRect.vertCenter() - 24, glyph.color.a ? glyph.color : colors.faintText)
+            .paintBlankCover(painter, coverRect)
         }
 
         if not first do

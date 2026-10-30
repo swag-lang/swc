@@ -54,6 +54,7 @@ struct AppStrings
     explore_Artist:            string = "Artist"
     explore_FirstRelease:      string = "First release"
     explore_Source:            string = "Source"
+    explore_FileTags:          string = "File tags"
     explore_Loading:           string = "Reading folder…"                         // Exploration control or status.
     explore_Empty:             string = "No files to show"                        // Exploration control or status.
     explore_NoMatches:         string = "No files match this filter."              // Empty filtered folder.
@@ -80,7 +81,7 @@ struct AppStrings
     explore_OnlineMusic:       string = "Use Online Music Covers and Details"
     explore_MusicArtist:       string = "Artist: %"
     explore_MusicDate:         string = "First release: %"
-    ui_AboutWikiNotice:        string = "Film information and summaries come from Wikipedia and Wikidata. Wikipedia text is available under CC BY-SA 4.0: https://creativecommons.org/licenses/by-sa/4.0/. Each film links to its source article."
+    ui_AboutWikiNotice:        string = "Apple supplies film posters and summaries when a film matches its catalogue. Wikipedia and Wikidata provide a fallback when it does not. Wikipedia text is available under CC BY-SA 4.0: https://creativecommons.org/licenses/by-sa/4.0/."
 
     ui_OpenDefault:                    string = "Open with Default Application"               // Tooltip of the system-default application button.
     ui_CloseFile:                      string = "Close File"                                  // Tooltip of the close-file button.

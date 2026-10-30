@@ -68,6 +68,7 @@ struct WikiDetails
 struct AppleMovie
 {
     trackName:        String
+    trackViewUrl:     String
     releaseDate:      String
     artworkUrl100:    String
     longDescription:  String
@@ -107,10 +108,9 @@ struct OnlineMovie
 
 private var g_MovieLookupLock: Swag.Mutex
 
-// When the Apple catalogue was last asked, in ticks. Its rate limit is not documented, so two
-// questions stand a little apart.
+// Keep Apple catalogue requests within its approximate limit of twenty per minute.
 private var g_AppleLastRequest: u64
-const AppleRequestSpacing = 1500'u64     // Milliseconds between two questions to the Apple catalogue.
+const AppleRequestSpacing = 3000'u64     // Milliseconds between two questions to the Apple catalogue.
 
 // Waiting workers can retire promptly when a navigation change cancels their task.
 func lockMediaLookup(mutex: *Swag.Mutex)->bool
@@ -216,7 +216,7 @@ impl MovieSummary
         if not .overview.isEmpty() do
             result += Format.toString("\n%", Format.toString(strings.explore_MovieOverview, safeMediaText(.overview)))
         if not .source.isEmpty() do
-            result += Format.toString("\nWikipedia / Wikidata: %", safeMediaText(.source))
+            result += Format.toString("\n%: %", safeMediaText(.sources), safeMediaText(.source))
         return result
     }
 }
@@ -348,7 +348,7 @@ impl OnlineMovie
     // Reports whether anything was found for the film: an article, or a poster from the catalogue.
     mtd const found()->bool => not .id.isEmpty() or not .posterUrl.isEmpty()
 
-    // Wikipedia provides the article and illustration; Wikidata supplies structured credits.
+    // Ask Apple first. An unavailable or unmatched film can still use the Wikipedia article.
     func lookup(path: string, source: MovieSource = {}, language: string = "en")->OnlineMovie fail
     {
         let query = MovieQuery.fromFile(path)
@@ -357,15 +357,17 @@ impl OnlineMovie
         if not lockMediaLookup(&g_MovieLookupLock) do
             return {}
         defer g_MovieLookupLock.unlock()
-        var movie = try lookupArticle(query, source, language)
+        var movie: OnlineMovie
+        catch movie.lookupApple(query, source, language)
+        if movie.found() do
+            return movie
+
+        movie = try lookupArticle(query, source, language)
         if movie.id.isEmpty() and language == "fr" do
             movie = try lookupArticle(query, source, "en")
         if not movie.id.isEmpty() do
             movie.sources = String.from("Wikipedia · Wikidata")
 
-        // The Apple catalogue holds the real poster and the synopsis of a film; Wikipedia and
-        // Wikidata keep its direction, its cast and its rating.
-        catch movie.lookupApple(query, source, language)
         return movie
     }
 
@@ -405,8 +407,10 @@ impl OnlineMovie
             return
 
         let film = &search.results[index]
+        .id = "apple"
         if .title.isEmpty() do
             .title = query.title
+        .articleUrl = film.trackViewUrl
         if .releaseDate.isEmpty() and film.releaseDate.length >= 4 do
             .releaseDate = film.releaseDate.toString()[0 until 4]
         if not film.longDescription.isEmpty() do
@@ -422,7 +426,7 @@ impl OnlineMovie
                 .posterUrl = film.artworkUrl100
         }
 
-        .sources = .sources.isEmpty() ? String.from("Apple") : Format.toString("Apple · %", .sources)
+        .sources = "Apple"
     }
 
     private func lookupArticle(query: MovieQuery, source: MovieSource, language: string)->OnlineMovie fail

@@ -947,7 +947,7 @@ impl ViewerWindow
         // families without turning About into a file-association inventory.
         let dialog = AboutDlg.createApplication(unwrap .surface, about)
         dialog.addSection(appStrings().ui_AboutViewers, .aboutViewerList())
-        dialog.addSection("Wikipedia / Wikidata", appStrings().ui_AboutWikiNotice)
+        dialog.addSection("Apple / Wikipedia / Wikidata", appStrings().ui_AboutWikiNotice)
         return dialog
     }
 

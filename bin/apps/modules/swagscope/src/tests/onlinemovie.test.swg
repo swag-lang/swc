@@ -8,7 +8,8 @@ struct MovieServerFixture
     late listener: *TcpListener
     port:          u16
     poster:        Array'u8
-    requests:      [4] String
+    requests:      [3] String
+    appleMiss:     bool
 }
 
 func writeMovieBytes(stream: *TcpStream, bytes: const [..] u8)
@@ -26,7 +27,7 @@ func writeMovieBytes(stream: *TcpStream, bytes: const [..] u8)
 func serveMovies(thread: const *Threading.Thread)
 {
     let fixture = cast(*MovieServerFixture, unwrap thread.userParam)
-    for index in 4
+    for index in (fixture.appleMiss ? 3 : 2)
     {
         var stream = expect fixture.listener.accept()
         var bytes: [1024] u8
@@ -39,20 +40,24 @@ func serveMovies(thread: const *Threading.Thread)
         }
 
         var body: Array'u8
-        if index == 0
+        if fixture.appleMiss and index == 0
+        {
+            body.add(cast(const [..] u8, """{"resultCount":0,"results":[]}"""))
+        }
+        elif fixture.appleMiss and index == 1
         {
             let json = Format.toString("""{"query":{"pages":[{"title":"Blade Runner (film)","description":"film de Ridley Scott sorti en 1982","extract":"A futuristic detective story.","pageprops":{"wikibase_item":"Q184843"},"thumbnail":{"source":"http://127.0.0.1:%/poster.png","width":100,"height":150}}]}}""", fixture.port)
             body.add(cast(const [..] u8, json.toString()))
         }
-        elif index == 1
+        elif fixture.appleMiss and index == 2
         {
             let json = """{"results":{"bindings":[{"directorLabel":{"value":"Ridley Scott"},"castLabel":{"value":"Harrison Ford"},"score":{"value":"8.1/10"},"scoreDate":{"value":"2026-02-25T00:00:00Z"}}]}}"""
             body.add(cast(const [..] u8, json))
         }
-        elif index == 2
+        elif index == 0
         {
-            // A response of the Apple catalogue, recorded and trimmed: two films of the title, one of the year asked.
-            let json = Format.toString("""{"resultCount":2,"results":[{"trackName":"Blade Runner","releaseDate":"1982-06-25T07:00:00Z","artworkUrl100":"http://127.0.0.1:%/poster/100x100bb.jpg","longDescription":"In a dark future, a blade runner hunts replicants.","primaryGenreName":"Sci-Fi & Fantasy"},{"trackName":"Blade Runner 2049","releaseDate":"2017-10-06T07:00:00Z","artworkUrl100":"http://127.0.0.1:%/other/100x100bb.jpg"}]}""", fixture.port, fixture.port)
+            // A trimmed catalogue response: one exact match and one different sequel.
+            let json = Format.toString("""{"resultCount":2,"results":[{"trackName":"Blade Runner","trackViewUrl":"https://tv.apple.com/movie/blade-runner","releaseDate":"1982-06-25T07:00:00Z","artworkUrl100":"http://127.0.0.1:%/poster/100x100bb.jpg","longDescription":"In a dark future, a blade runner hunts replicants.","primaryGenreName":"Sci-Fi & Fantasy"},{"trackName":"Blade Runner 2049","releaseDate":"2017-10-06T07:00:00Z","artworkUrl100":"http://127.0.0.1:%/other/100x100bb.jpg"}]}""", fixture.port, fixture.port)
             body.add(cast(const [..] u8, json.toString()))
         }
         else
@@ -99,18 +104,15 @@ func serveMovies(thread: const *Threading.Thread)
     let posterBytes = expect movie.posterBytes(host)
     var poster      = expect Image.decode("poster.png", posterBytes.toSlice())
     thread.wait()
-    Swag.assert(movie.id == "Q184843" and poster.isValid())
-    Swag.assert(Utf8.contains(fixture.requests[0].toString(), "/w/api.php"))
-    Swag.assert(Utf8.contains(fixture.requests[1].toString(), "/sparql?"))
-    Swag.assert(Utf8.contains(fixture.requests[2].toString(), "/search?term=Blade%20Runner&entity=movie"))
-    Swag.assert(Utf8.contains(fixture.requests[3].toString(), "/poster/600x900bb.jpg"))
-    Swag.assert(movie.sources == "Apple · Wikipedia · Wikidata")
+    Swag.assert(movie.id == "apple" and poster.isValid())
+    Swag.assert(Utf8.contains(fixture.requests[0].toString(), "/search?term=Blade%20Runner&entity=movie"))
+    Swag.assert(Utf8.contains(fixture.requests[1].toString(), "/poster/600x900bb.jpg"))
+    Swag.assert(movie.sources == "Apple" and movie.articleUrl == "https://tv.apple.com/movie/blade-runner")
     movie.label(&poster)
     let summary = MovieSummary.fromImage(&poster)
-    Swag.assert(summary.title == "Blade Runner" and summary.director == "Ridley Scott")
-    Swag.assert(summary.actors == "Harrison Ford" and summary.imdbRating == "8.1/10 (2026-02-25)")
+    Swag.assert(summary.title == "Blade Runner" and summary.director.isEmpty())
     Swag.assert(summary.overview == "In a dark future, a blade runner hunts replicants.")
-    Swag.assert(summary.sources == "Apple · Wikipedia · Wikidata")
+    Swag.assert(summary.sources == "Apple" and Utf8.contains(summary.text().toString(), "Apple: https://tv.apple.com"))
 
     // Only one film of the catalogue answers to a title and a year; a title alone that several
     // films share is not taken.
@@ -124,6 +126,24 @@ func serveMovies(thread: const *Threading.Thread)
     Swag.assert(dated.chooseApple(search) == 1)
     Swag.assert(undated.chooseApple(search) == Swag.U64.Max)
     Swag.assert(other.chooseApple(search) == Swag.U64.Max)
+}
+
+#test
+{
+    var listener = expect TcpListener.listen({address: [127, 0, 0, 1], port: 0})
+    let endpoint = expect listener.localEndpoint()
+    var fixture  = MovieServerFixture{listener: &listener, port: endpoint.port, appleMiss: true}
+    var thread: Threading.Thread
+    expect thread.init(&serveMovies, &fixture)
+    expect thread.start()
+    let host = MovieSource{wikiHost: "127.0.0.1", dataHost: "127.0.0.1", appleHost: "127.0.0.1",
+                           port: endpoint.port, secure: false}
+    let movie = expect OnlineMovie.lookup("Blade.Runner (1982).mkv", host, "fr")
+    thread.wait()
+    Swag.assert(movie.id == "Q184843" and movie.sources == "Wikipedia · Wikidata")
+    Swag.assert(Utf8.contains(fixture.requests[0].toString(), "/search?term=Blade%20Runner&entity=movie"))
+    Swag.assert(Utf8.contains(fixture.requests[1].toString(), "/w/api.php"))
+    Swag.assert(Utf8.contains(fixture.requests[2].toString(), "/sparql?"))
 }
 
 #[Swag.TestTag("integration.network")]

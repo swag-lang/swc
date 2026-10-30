@@ -75,6 +75,7 @@ explore_Synopsis Synopsis
 explore_Artist Artiste
 explore_FirstRelease Première sortie
 explore_Source Source
+explore_FileTags Métadonnées du fichier
 explore_Loading Lecture du dossier…
 explore_Empty Aucun fichier à afficher
 explore_OneItem 1 élément
@@ -94,7 +95,7 @@ explore_MovieCast Distribution : %
 explore_OnlineMusic Utiliser les pochettes et informations musicales en ligne
 explore_MusicArtist Artiste : %
 explore_MusicDate Première sortie : %
-ui_AboutWikiNotice Les informations et résumés des films proviennent de Wikipédia et Wikidata. Les textes de Wikipédia sont sous licence CC BY-SA 4.0 : https://creativecommons.org/licenses/by-sa/4.0/. Chaque film indique son article source.
+ui_AboutWikiNotice Apple fournit les affiches et résumés des films correspondants à son catalogue. Wikipédia et Wikidata servent de repli lorsqu'il n'y a pas de correspondance. Les textes de Wikipédia sont sous licence CC BY-SA 4.0 : https://creativecommons.org/licenses/by-sa/4.0/.
 
 ui_CloseFiles  Fermer le panneau des fichiers
 ui_HintLens tout le reste

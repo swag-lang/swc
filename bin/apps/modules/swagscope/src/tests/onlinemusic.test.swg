@@ -15,6 +15,8 @@ using Core, Net, Pixel, Audio
     Swag.assert(search.choose(&tags) == 0)
     let compilation = SoundTags{album: "A collaboration", artist: "Guest Performer", albumArtist: "Artist One & Artist Two"}
     Swag.assert(search.choose(&compilation) == 0)
+    let local = localMusicSummary(&compilation)
+    Swag.assert(local.title == "A collaboration" and local.artist == "Artist One & Artist Two" and local.source == "tags")
 }
 
 struct MusicServerFixture

@@ -727,11 +727,11 @@ void MicroBuilder::emitLoadRegDataSegmentReloc(MicroReg reg, const DataSegmentKi
 
     addRelocation({
         .kind           = dataSegmentRelocationKind(kind),
+        .privateGlobal  = privateGlobal,
         .instructionRef = instRef,
         .targetAddress  = offset,
         .targetSymbol   = nullptr,
         .constantRef    = ConstantRef::invalid(),
-        .privateGlobal  = privateGlobal,
     });
 }
 

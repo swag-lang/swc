@@ -82,14 +82,13 @@ struct AttributeList
 
     RtAttributeFlags rtFlags = RtAttributeFlagsE::Zero;
 
-    uint64_t            returnBorrowsParamsMask  = 0;
-    uint64_t            storesParamsMask         = 0;
-    uint64_t            storesIntoParamPairs     = 0;
-    uint64_t            freesParamsMask          = 0;
-    uint64_t            reallocatesParamsMask    = 0;
-    uint64_t            returnsPayloadParamsMask = 0;
-    uint64_t            returnsStorageParamsMask = 0;
-    std::optional<bool> observesExternalBorrows;
+    uint64_t returnBorrowsParamsMask  = 0;
+    uint64_t storesParamsMask         = 0;
+    uint64_t storesIntoParamPairs     = 0;
+    uint64_t freesParamsMask          = 0;
+    uint64_t reallocatesParamsMask    = 0;
+    uint64_t returnsPayloadParamsMask = 0;
+    uint64_t returnsStorageParamsMask = 0;
 
     uint64_t returnsIndirectParamsMask    = 0;
     uint64_t storesIndirectParamsMask     = 0;
@@ -103,6 +102,7 @@ struct AttributeList
 
     WarningPolicy       warnings;
     std::optional<bool> backendOptimize;
+    std::optional<bool> observesExternalBorrows;
 
     bool                        hasForeign = false;
     Utf8                        foreignModuleName;

@@ -39,17 +39,17 @@ private:
     std::unique_ptr<Sema>    ownedSema_;
     std::unique_ptr<CodeGen> codeGen_;
 
-    SymbolFunction* symbolFunc_     = nullptr;
-    NodePayload*    nodePayloadCtx_ = nullptr;
-    AstNodeRef      root_           = AstNodeRef::invalid();
+    SymbolFunction* symbolFunc_          = nullptr;
+    NodePayload*    nodePayloadCtx_      = nullptr;
+    AstNodeRef      root_                = AstNodeRef::invalid();
+    bool            readsCalleeClobbers_ = false;
+    bool            loweringStarted_     = false;
+    bool            bodyEmitted_         = false;
 
     // The functions the lowered body calls directly, read while the job still owned it. An
     // optimized body is emitted once the leaf candidates among them are lowered (see
     // SymbolFunction::resolveCallClobbers).
     SmallVector<SymbolFunction*> directCallees_;
-    bool                         readsCalleeClobbers_ = false;
-    bool                         loweringStarted_     = false;
-    bool                         bodyEmitted_         = false;
 };
 
 SWC_END_NAMESPACE();

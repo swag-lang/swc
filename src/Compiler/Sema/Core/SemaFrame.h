@@ -282,9 +282,15 @@ public:
 private:
     SymbolAccess     access_ = SymbolAccess::Internal;
     MemberAccessSpec memberAccess_;
+    // Fill the access header instead of reserving an aligned word for each flag group.
+    bool globalCompilerIfEnabled_       = true;
+    bool bindingScoped_                 = false;
+    bool deferBody_                     = false;
+    bool ignoreRuntimeAccess_           = false;
+    bool ignoreRedirectedLookupSymMaps_ = false;
+
     const SymbolMap* memberAccessMap_ = nullptr;
 
-    bool          globalCompilerIfEnabled_ = true;
     AttributeList attributes_;
 
     SmallVector8<IdentifierRef> nsPath_;
@@ -301,19 +307,14 @@ private:
 
     SemaInlinePayload* inlinePayload_        = nullptr;
     AstNodeRef         inlineContextRootRef_ = AstNodeRef::invalid();
+    uint32_t           scopeBindingCount_    = 0;
 
     SemaScope*                          lookupScope_              = nullptr;
     const SemaLookupScopeOverrideNodes* lookupScopeOverrideNodes_ = nullptr;
     SemaScope*                          upLookupScope_            = nullptr;
 
-    bool bindingScoped_ = false;
-
-    bool                     deferBody_          = false;
     const SymbolFunction*    deferFunction_      = nullptr;
     const SemaInlinePayload* deferInlinePayload_ = nullptr;
-
-    bool ignoreRuntimeAccess_           = false;
-    bool ignoreRedirectedLookupSymMaps_ = false;
 
     BreakContext breakable_;
     BreakContext continuable_;
@@ -329,7 +330,6 @@ private:
     SymbolVariable* runtimeStorageSym_     = nullptr;
 
     SmallVector2<TypeRef> bindingTypes_;
-    uint32_t              scopeBindingCount_ = 0;
 
     SmallVector2<SymbolVariable*> bindingVars_;
 

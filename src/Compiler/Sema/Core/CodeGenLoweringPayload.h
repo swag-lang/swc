@@ -12,6 +12,7 @@ class SymbolVariable;
 struct CodeGenLoweringPayload
 {
     TypeRef         runtimeArrayFillTypeRef = TypeRef::invalid();
+    ConstantRef     runtimeArrayFillCstRef  = ConstantRef::invalid();
     SymbolVariable* runtimeStorageSym       = nullptr;
 
     // Reattach this node's original storage after a folded cast or a sema pause,
@@ -22,13 +23,11 @@ struct CodeGenLoweringPayload
     SymbolVariable* errOwnerSym        = nullptr; // lexical owner of the captured error view
     SymbolVariable* errHandlerOwnerSym = nullptr; // owner while a catch handler is active
 
-    SymbolFunction* runtimeFunctionSymbol  = nullptr;
-    ConstantRef     runtimeArrayFillCstRef = ConstantRef::invalid();
-
-    uint16_t runtimeSafetyMask = 0;
+    SymbolFunction* runtimeFunctionSymbol = nullptr;
 
     AstNodeRef fallibleWrapperOwnerRef = AstNodeRef::invalid();
     TokenId    fallibleWrapperTokenId  = TokenId::Invalid;
+    uint16_t   runtimeSafetyMask       = 0;
 
     int8_t valueBorrowSafetyOverride          = -1; // Local override; otherwise use the function or inline body.
     bool   ifVarDeclWhereUsesConditionBinding = false;
@@ -82,5 +81,9 @@ struct CodeGenLoweringPayload
         return fallibleWrapperTokenId != TokenId::Invalid;
     }
 };
+
+#if !SWC_HAS_REF_DEBUG_INFO
+static_assert(sizeof(void*) != 8 || sizeof(CodeGenLoweringPayload) == 80);
+#endif
 
 SWC_END_NAMESPACE();

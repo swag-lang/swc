@@ -74,7 +74,6 @@ struct JobRecord
 {
     Job*        job      = nullptr;
     uint32_t    index    = 0;
-    JobPriority priority = JobPriority::Normal;
     JobClientId clientId = 0;
 
     enum class State : uint8_t
@@ -85,15 +84,16 @@ struct JobRecord
         Done     // completed
     };
 
-    State state{State::Ready};
-
-    // Dependency registration while Waiting (only set when registered in the wait registry).
-    WaitKey waitKey{};
-    bool    registered = false;
+    JobPriority priority = JobPriority::Normal;
+    State       state{State::Ready};
+    bool        registered = false;
 #if SWC_DEV_MODE
     // Moved back by a barrier wakeAll and not parked since; scheduler statistics only.
     bool wokenByBarrier = false;
 #endif
+
+    // Dependency registration while Waiting (only set when registered in the wait registry).
+    WaitKey waitKey{};
 
     // Intrusive wait indexes, mutated only under the owning manager's mutex.
     JobRecord* clientWaitPrevious = nullptr;

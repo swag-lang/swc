@@ -224,10 +224,14 @@ private:
     {
         AstNodeRef       substNodeRef  = AstNodeRef::invalid();
         NodePayloadKind  originalKind  = NodePayloadKind::Invalid;
+        NodePayloadFlags originalFlags = static_cast<NodePayloadFlags>(0);
         uint32_t         originalRef   = 0;
         uint32_t         originalShard = 0;
-        NodePayloadFlags originalFlags = static_cast<NodePayloadFlags>(0);
     };
+
+#if !SWC_HAS_REF_DEBUG_INFO
+    static_assert(sizeof(SubstituteStorage) == 16);
+#endif
 
     struct PayloadInfo
     {

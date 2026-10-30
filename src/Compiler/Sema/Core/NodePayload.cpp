@@ -377,9 +377,9 @@ void NodePayload::setSubstitute(AstNodeRef nodeRef, AstNodeRef substNodeRef)
         *stored = {
             .substNodeRef  = substNodeRef,
             .originalKind  = static_cast<NodePayloadKind>(bits & NODE_PAYLOAD_KIND_MASK),
+            .originalFlags = static_cast<NodePayloadFlags>(bits & NODE_PAYLOAD_FLAGS_MASK),
             .originalRef   = AstNode::payloadRefFromState(expected),
             .originalShard = static_cast<uint32_t>((bits & NODE_PAYLOAD_SHARD_MASK) >> NODE_PAYLOAD_SHARD_SHIFT),
-            .originalFlags = static_cast<NodePayloadFlags>(bits & NODE_PAYLOAD_FLAGS_MASK),
         };
 
         const uint16_t newBits = static_cast<uint16_t>((bits & ~(NODE_PAYLOAD_KIND_MASK | NODE_PAYLOAD_SHARD_MASK)) |

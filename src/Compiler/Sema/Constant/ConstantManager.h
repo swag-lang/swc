@@ -28,6 +28,7 @@ public:
     };
 
     ConstantManager();
+    ~ConstantManager();
 
     void setup(const TaskContext& ctx);
 
@@ -87,9 +88,7 @@ public:
     // reuse avoids locking, searching and copying unchanged allocation metadata.
     struct WalkedAllocation
     {
-        uint64_t segmentId         = 0;
-        uint32_t queryOffset       = 0;
-        uint64_t relocationVersion = 0;
+        uint64_t relocationVersion = std::numeric_limits<uint64_t>::max();
 
         DataSegmentAllocation                 allocation;
         SmallVector<DataSegmentRelocation, 4> relocations;
@@ -99,10 +98,10 @@ public:
         mutable uint64_t dataOnlyRelocationVersions = 0;
     };
 
-    // Per-worker entry for this offset, refreshed when relocation versions change.
+    // Per-thread entry owned by this manager, refreshed when relocation versions change.
     // Null if no allocation contains it. Other lookups preserve its address; only
-    // another lookup of this same segment/offset can replace its contents.
-    static const WalkedAllocation* walkedAllocation(const DataSegment& segment, uint32_t offset);
+    // another lookup of this same shard/offset can replace its contents.
+    const WalkedAllocation* walkedAllocation(uint32_t shardIndex, uint32_t offset) const;
 
     struct RuntimeBufferConstantCacheKey
     {
@@ -235,6 +234,9 @@ public:
     };
 
 private:
+    struct WalkedAllocations;
+    WalkedAllocations& walkedAllocations() const;
+
     ConstantRef        addConstantSlow(const TaskContext& ctx, const ConstantValue& value);
     ConstantRef        cachedS32(int32_t value) const;
     ConstantRef        constantRefFromRaw(uint32_t raw) const;
@@ -258,6 +260,9 @@ private:
     static constexpr uint32_t SMALL_SCALAR_CACHE_LEN = SMALL_INT_TYPE_COUNT * SMALL_INT_RANGE;
 
     Shard shards_[ConstantStorageLayout::SHARD_COUNT];
+
+    mutable std::mutex                                      walkedAllocationsMutex_;
+    mutable std::vector<std::unique_ptr<WalkedAllocations>> walkedAllocations_;
 
     std::array<std::atomic<uint32_t>, SMALL_SCALAR_CACHE_LEN> smallScalarRefs_;
 

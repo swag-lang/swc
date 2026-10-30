@@ -591,6 +591,99 @@ SWC_TEST_BEGIN(ConstantManager_ConcurrentInterningKeepsCanonicalStorage)
 }
 SWC_TEST_END()
 
+SWC_TEST_BEGIN(ConstantManager_ReleasesRelocationWalksWithTheirOwner)
+{
+    // Reconstruct at the same address while the calling thread stays alive. A TLS shortcut
+    // must distinguish the new owner, and every old cache allocation must have been freed.
+    std::optional<ConstantManager> manager;
+    for (uint32_t generation = 0; generation < 2; ++generation)
+    {
+        Unittest::ScopedHeap heap;
+        manager.emplace();
+        auto&      segment = manager->shardDataSegment(0);
+        const auto offset  = segment.reserveSpan<uint64_t>(8).first;
+        for (uint32_t index = 0; index < 8; ++index)
+            segment.addRelocation(offset + index * sizeof(uint64_t), offset);
+
+        // Eight relocations also exercise the cache entry's heap-backed payload.
+        const auto* walked = manager->walkedAllocation(0, offset);
+        const bool  valid  = walked && walked->relocations.size() == 8 && walked->dataOnlyRelocationVersions == 0;
+        if (walked)
+            walked->dataOnlyRelocationVersions = 123;
+        manager.reset();
+        const bool released = heap.empty();
+        heap.release();
+        if (!valid || !released)
+            return Result::Error;
+    }
+}
+SWC_TEST_END()
+
+SWC_TEST_BEGIN(ConstantManager_RelocationWalkPreservesOffsetsAndInterleavedOwners)
+{
+    std::array<std::unique_ptr<ConstantManager>, 2>                        managers;
+    std::array<std::array<const ConstantManager::WalkedAllocation*, 3>, 2> entries{};
+    std::array<uint32_t, 2>                                                offsets{};
+    for (uint32_t owner = 0; owner < managers.size(); ++owner)
+    {
+        managers[owner] = std::make_unique<ConstantManager>();
+        offsets[owner]  = managers[owner]->shardDataSegment(0).reserveSpan<std::byte>(3).first;
+        for (uint32_t index = 0; index < entries[owner].size(); ++index)
+        {
+            const auto* walked = managers[owner]->walkedAllocation(0, offsets[owner] + index);
+            if (!walked || walked->allocation.offset != offsets[owner])
+                return Result::Error;
+            walked->dataOnlyRelocationVersions = 100 + owner * 10 + index;
+            entries[owner][index]              = walked;
+        }
+    }
+
+    // Neighboring byte offsets must have distinct stable entries. Switching back to a live
+    // owner must reuse its table rather than discard work or invalidate retained pointers.
+    for (uint32_t owner = 0; owner < managers.size(); ++owner)
+    {
+        for (uint32_t index = 0; index < entries[owner].size(); ++index)
+        {
+            const auto* walked = managers[owner]->walkedAllocation(0, offsets[owner] + index);
+            if (walked != entries[owner][index] || walked->dataOnlyRelocationVersions != 100 + owner * 10 + index)
+                return Result::Error;
+        }
+        if (managers[owner]->walkedAllocation(0, INVALID_REF))
+            return Result::Error;
+    }
+}
+SWC_TEST_END()
+
+SWC_TEST_BEGIN(ConstantManager_RelocationWalkKeepsThreadsIndependent)
+{
+    ConstantManager                                         manager;
+    const auto                                              offset = manager.shardDataSegment(0).reserveSpan<uint64_t>(1).first;
+    std::array<const ConstantManager::WalkedAllocation*, 2> entries{};
+    std::array<std::thread, 2>                              workers;
+    std::barrier                                            ready(2);
+    std::atomic<bool>                                       failed = false;
+    for (uint32_t index = 0; index < workers.size(); ++index)
+    {
+        workers[index] = std::thread([&, index] {
+            entries[index] = manager.walkedAllocation(0, offset);
+            ready.arrive_and_wait();
+            if (!entries[index] || entries[0] == entries[1])
+            {
+                failed.store(true, std::memory_order_relaxed);
+                return;
+            }
+            entries[index]->dataOnlyRelocationVersions = index + 1;
+            if (manager.walkedAllocation(0, offset) != entries[index] || entries[index]->dataOnlyRelocationVersions != index + 1)
+                failed.store(true, std::memory_order_relaxed);
+        });
+    }
+    for (auto& worker : workers)
+        worker.join();
+    if (failed.load(std::memory_order_relaxed))
+        return Result::Error;
+}
+SWC_TEST_END()
+
 SWC_TEST_BEGIN(ConstantManager_ChecksSharedRelocationGraphsPerQuery)
 {
     ConstantManager manager;

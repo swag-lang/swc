@@ -451,7 +451,7 @@ namespace
                 walk.shardVersions.push_back({current.shardIndex, segment.relocationVersion()});
             }
 
-            const ConstantManager::WalkedAllocation* walked = ConstantManager::walkedAllocation(segment, current.offset);
+            const ConstantManager::WalkedAllocation* walked = sema.cstMgr().walkedAllocation(current.shardIndex, current.offset);
             if (!walked)
                 continue;
 

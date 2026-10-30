@@ -101,6 +101,67 @@ namespace
     }
 }
 
+// Each manager owns a separate table per calling thread. The flat key array keeps
+// repeated graph walks cheap; the deque preserves entry addresses while the table grows.
+struct ConstantManager::WalkedAllocations
+{
+    const std::thread::id threadId = std::this_thread::get_id();
+
+    std::vector<uint64_t>       keys;
+    std::unique_ptr<uint32_t[]> entryIndices;
+    // A deque, so an entry handed out stays put when the next one is recorded.
+    std::deque<ConstantManager::WalkedAllocation> entries;
+    size_t                                        used = 0;
+
+    WalkedAllocations()
+    {
+        keys.resize(1024);
+        entryIndices = std::make_unique_for_overwrite<uint32_t[]>(keys.size());
+    }
+
+    ConstantManager::WalkedAllocation& slotFor(const uint64_t key)
+    {
+        const size_t mask  = keys.size() - 1;
+        size_t       index = FlatTable::slotIndex(key, mask);
+        while (keys[index] != 0)
+        {
+            if (keys[index] == key)
+                return entries[entryIndices[index]];
+            index = (index + 1) & mask;
+        }
+
+        keys[index]         = key;
+        entryIndices[index] = static_cast<uint32_t>(entries.size());
+        entries.emplace_back();
+        ++used;
+
+        ConstantManager::WalkedAllocation& slot = entries.back();
+        if (used * 4 > keys.size() * 3)
+            grow();
+        return slot;
+    }
+
+    void grow()
+    {
+        std::vector<uint64_t> oldKeys         = std::move(keys);
+        auto                  oldEntryIndices = std::move(entryIndices);
+        keys.assign(oldKeys.size() * 2, 0);
+        entryIndices = std::make_unique_for_overwrite<uint32_t[]>(keys.size());
+
+        const size_t mask = keys.size() - 1;
+        for (size_t i = 0; i < oldKeys.size(); ++i)
+        {
+            if (oldKeys[i] == 0)
+                continue;
+            size_t index = FlatTable::slotIndex(oldKeys[i], mask);
+            while (keys[index] != 0)
+                index = (index + 1) & mask;
+            keys[index]         = oldKeys[i];
+            entryIndices[index] = oldEntryIndices[i];
+        }
+    }
+};
+
 ConstantManager::ConstantManager()
 {
     for (Shard& shard : shards_)
@@ -109,6 +170,8 @@ ConstantManager::ConstantManager()
     for (auto& ref : smallScalarRefs_)
         ref.store(INVALID_REF, std::memory_order_relaxed);
 }
+
+ConstantManager::~ConstantManager() = default;
 
 void ConstantManager::setup(const TaskContext& ctx)
 {
@@ -1010,83 +1073,47 @@ bool ConstantManager::resolveDataSegmentRef(DataSegmentRef& outRef, const void* 
     return false;
 }
 
-namespace
+ConstantManager::WalkedAllocations& ConstantManager::walkedAllocations() const
 {
-    // One entry per offset a walk has resolved, per worker. The table is open-addressed over a
-    // separate key array: the walks ask this question millions of times per module, and following
-    // a node per lookup costs more than the answer it returns.
-    struct WalkedAllocations
+    // Registration happens only on an owner switch. A thread's table remains private and
+    // keeps its entries when work from another live manager runs on that thread.
+    const auto            threadId = std::this_thread::get_id();
+    const std::lock_guard lock(walkedAllocationsMutex_);
+    for (const auto& cache : walkedAllocations_)
     {
-        std::vector<uint64_t>       keys;
-        std::unique_ptr<uint32_t[]> entryIndices;
-        // A deque, so an entry handed out stays put when the next one is recorded.
-        std::deque<ConstantManager::WalkedAllocation> entries;
-        size_t                                        used = 0;
-
-        WalkedAllocations()
-        {
-            keys.resize(1024);
-            entryIndices = std::make_unique_for_overwrite<uint32_t[]>(keys.size());
-        }
-
-        ConstantManager::WalkedAllocation& slotFor(const uint64_t key)
-        {
-            const size_t mask  = keys.size() - 1;
-            size_t       index = FlatTable::slotIndex(key, mask);
-            while (keys[index] != 0)
-            {
-                if (keys[index] == key)
-                    return entries[entryIndices[index]];
-                index = (index + 1) & mask;
-            }
-
-            keys[index]         = key;
-            entryIndices[index] = static_cast<uint32_t>(entries.size());
-            entries.emplace_back();
-            ++used;
-
-            ConstantManager::WalkedAllocation& slot = entries.back();
-            if (used * 4 > keys.size() * 3)
-                grow();
-            return slot;
-        }
-
-        void grow()
-        {
-            std::vector<uint64_t> oldKeys         = std::move(keys);
-            auto                  oldEntryIndices = std::move(entryIndices);
-            keys.assign(oldKeys.size() * 2, 0);
-            entryIndices = std::make_unique_for_overwrite<uint32_t[]>(keys.size());
-
-            const size_t mask = keys.size() - 1;
-            for (size_t i = 0; i < oldKeys.size(); ++i)
-            {
-                if (oldKeys[i] == 0)
-                    continue;
-                size_t index = FlatTable::slotIndex(oldKeys[i], mask);
-                while (keys[index] != 0)
-                    index = (index + 1) & mask;
-                keys[index]         = oldKeys[i];
-                entryIndices[index] = oldEntryIndices[i];
-            }
-        }
-    };
-
-    ConstantManager::WalkedAllocation& walkedAllocationSlot(const uint64_t segmentId, const uint32_t offset)
-    {
-        static thread_local WalkedAllocations walked;
-        // Zero marks a free slot, so the key never is.
-        return walked.slotFor((segmentId * 1099511628211ULL + offset) | 1ULL);
+        if (cache->threadId == threadId)
+            return *cache;
     }
+
+    walkedAllocations_.push_back(std::make_unique<WalkedAllocations>());
+    return *walkedAllocations_.back();
 }
 
-const ConstantManager::WalkedAllocation* ConstantManager::walkedAllocation(const DataSegment& segment, const uint32_t offset)
+const ConstantManager::WalkedAllocation* ConstantManager::walkedAllocation(const uint32_t shardIndex, const uint32_t offset) const
 {
+    struct ThreadCache
+    {
+        uint64_t           ownerId = 0;
+        WalkedAllocations* cache   = nullptr;
+    };
+
+    // TLS remembers where to find the last owner's table, but owns no allocation. Segment
+    // identities are never reused, so a destroyed manager's pointer cannot be used again,
+    // even when the next manager occupies the same address. Keep registration off the hot path.
+    static thread_local ThreadCache current;
+    const uint64_t                  ownerId = shards_[0].dataSegment.id();
+    if (current.ownerId != ownerId)
+        current = {.ownerId = ownerId, .cache = &walkedAllocations()};
+
+    const DataSegment& segment = shardDataSegment(shardIndex);
     // The version is read before the relocations: one added in between is served again by the
     // next lookup, never missed.
-    const uint64_t    version = segment.relocationVersion();
-    WalkedAllocation& walked  = walkedAllocationSlot(segment.id(), offset);
-    if (walked.segmentId == segment.id() && walked.queryOffset == offset && walked.relocationVersion == version)
+    const uint64_t version = segment.relocationVersion();
+    // Keep every offset bit: neighboring byte offsets must not overwrite each other's
+    // entries. The high bit makes the first shard's offset zero a nonempty table key.
+    const uint64_t    key    = 1ULL << 63 | static_cast<uint64_t>(shardIndex) << 32 | offset;
+    WalkedAllocation& walked = current.cache->slotFor(key);
+    if (walked.relocationVersion == version)
         return &walked;
 
     DataSegmentAllocation allocation;
@@ -1094,8 +1121,6 @@ const ConstantManager::WalkedAllocation* ConstantManager::walkedAllocation(const
         return nullptr;
 
     segment.copyRelocations(walked.relocations, allocation.offset, allocation.size);
-    walked.segmentId         = segment.id();
-    walked.queryOffset       = offset;
     walked.relocationVersion = version;
     walked.allocation        = allocation;
     return &walked;
@@ -1122,7 +1147,7 @@ bool ConstantManager::hasUnpublishedFunctionRelocations(const std::span<const Da
             const DataSegmentRef current = pending.back();
             pending.pop_back();
 
-            const WalkedAllocation* walked = walkedAllocation(shardDataSegment(current.shardIndex), current.offset);
+            const WalkedAllocation* walked = walkedAllocation(current.shardIndex, current.offset);
             if (!walked)
                 continue;
 

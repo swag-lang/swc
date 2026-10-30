@@ -1064,7 +1064,7 @@ namespace
             *outDataOnly = false;
 
         DataSegment&                             segment = ctx.compiler().cstMgr().shardDataSegment(shardIndex);
-        const ConstantManager::WalkedAllocation* walked  = ConstantManager::walkedAllocation(segment, sourceOffset);
+        const ConstantManager::WalkedAllocation* walked  = ctx.compiler().cstMgr().walkedAllocation(shardIndex, sourceOffset);
         if (!walked)
             return Result::Continue;
 

@@ -157,6 +157,56 @@ SWC_TEST_BEGIN(MemToReg_CapturedStackAddressRespectsObjectExtent)
 }
 SWC_TEST_END()
 
+// Folded vector reads keep their displacement when they expose a frame object.
+// The independent first local must still promote, in both addressing forms.
+SWC_TEST_BEGIN(MemToReg_FoldedVectorReadKeepsSourceStores)
+{
+    for (const bool indexed : {false, true})
+    {
+        SymbolFunction function(nullptr, TokenRef::invalid(), IdentifierRef::invalid(), SymbolFlagsE::Zero);
+        SymbolVariable independent(nullptr, TokenRef::invalid(), IdentifierRef::invalid(), SymbolFlagsE::Zero);
+        SymbolVariable packed(nullptr, TokenRef::invalid(), IdentifierRef::invalid(), SymbolFlagsE::Zero);
+        for (SymbolVariable* local : {&independent, &packed})
+        {
+            local->setTypeRef(ctx.typeMgr().typeU64());
+            local->addExtraFlag(SymbolVariableFlagsE::CodeGenLocalStack);
+            local->setCodeGenLocalSize(8);
+            function.addLocalVariable(ctx, local);
+        }
+        independent.setOffset(0);
+        packed.setOffset(8);
+
+        const MicroReg     sp    = CallConv::get(CallConvKind::Swag).stackPointer;
+        constexpr MicroReg frame = MicroReg::virtualIntReg(1);
+        constexpr MicroReg value = MicroReg::virtualIntReg(2);
+        constexpr MicroReg index = MicroReg::virtualIntReg(3);
+        constexpr MicroReg wide  = MicroReg::virtualFloatReg(1);
+        MicroBuilder       builder(ctx);
+        builder.emitLoadAddressRegMem(frame, sp, 0, MicroOpBits::B64);
+        builder.emitLoadMemImm(frame, 0, ApInt(42, 64), MicroOpBits::B64);
+        const MicroInstrRef independentStore = builder.instructions().lastInstructionRef();
+        builder.emitLoadMemImm(frame, 8, ApInt(0xFF0503FF, 64), MicroOpBits::B64);
+        const MicroInstrRef sourceStore = builder.instructions().lastInstructionRef();
+        if (indexed)
+        {
+            builder.emitLoadRegImm(index, ApInt(0, 64), MicroOpBits::B64);
+            builder.emitVecUnaryAmcRegMem(wide, frame, index, 1, 8, MicroOpBits::B64, MicroOp::VecWidenLoU8, MicroOpBits::B128);
+        }
+        else
+            builder.emitVecUnaryRegMem(wide, frame, 8, MicroOp::VecWidenLoU8, MicroOpBits::B128);
+        builder.emitLoadRegMem(value, frame, 0, MicroOpBits::B64);
+        builder.emitRet();
+
+        SWC_RESULT(runMemToRegPass(builder, &function, frame));
+        if (builder.instructions().ptr(sourceStore)->op != MicroInstrOpcode::LoadMemImm)
+            return Result::Error;
+        if (builder.instructions().ptr(independentStore)->op != MicroInstrOpcode::LoadRegImm)
+            return Result::Error;
+    }
+    return Result::Continue;
+}
+SWC_TEST_END()
+
 SWC_TEST_BEGIN(MemToReg_MixedSlotsKeepDistinctFreshRegisters)
 {
     const MicroReg     sp    = CallConv::get(CallConvKind::Swag).stackPointer;

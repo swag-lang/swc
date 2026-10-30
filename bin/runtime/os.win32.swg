@@ -61,6 +61,19 @@ namespace __Win32RT
         Type:              DWORD
     }
 
+    struct MEMORYSTATUSEX
+    {
+        dwLength:                u32
+        dwMemoryLoad:            u32
+        ullTotalPhys:            u64
+        ullAvailPhys:            u64
+        ullTotalPageFile:        u64
+        ullAvailPageFile:        u64
+        ullTotalVirtual:         u64
+        ullAvailVirtual:         u64
+        ullAvailExtendedVirtual: u64
+    }
+
     const PF_AVX2_INSTRUCTIONS_AVAILABLE = 40'u32
     const CP_UTF8 = 65001'u32
 
@@ -110,6 +123,9 @@ namespace __Win32RT
         func SetThreadPriority(hThread: HANDLE, nPriority: s32)->BOOL
         func Sleep(dwMilliseconds: DWORD)
         func GetActiveProcessorCount(groupNumber: USHORT)->DWORD
+        func GetSystemTimes(idle, kernel, user: *u64)->s32
+        func GetProcessTimes(process: HANDLE, creation, exit, kernel, user: *u64)->s32
+        func GlobalMemoryStatusEx(status: *MEMORYSTATUSEX)->s32
         func QueryPerformanceCounter(counter: *s64)->s32
         func QueryPerformanceFrequency(frequency: *s64)->s32
         func GetCurrentProcessId()->DWORD
@@ -215,6 +231,36 @@ func __hostProcessorCount()->u32
 {
     let count = __Win32RT.GetActiveProcessorCount(__Win32RT.ALL_PROCESSOR_GROUPS)
     return count == 0 ? 1 : count
+}
+
+// GetSystemTimes includes idle time in kernel time. Above one processor group it cannot
+// be compared to process-wide CPU time, so retain memory admission without that CPU signal.
+func __hostWorkPressure()->Swag.WorkPressure
+{
+    var result: Swag.WorkPressure
+    var idle, kernel, user, creation, exit, processKernel, processUser: u64
+    if __hostProcessorCount() <= 64
+    {
+        let systemRead  = __Win32RT.GetSystemTimes(&idle, &kernel, &user)
+        let processRead = __Win32RT.GetProcessTimes(__Win32RT.GetCurrentProcess(),
+                                                    &creation,
+                                                    &exit,
+                                                    &processKernel,
+                                                    &processUser)
+        result.cpuValid     = systemRead != 0 and processRead != 0
+        result.totalTicks   = kernel + user
+        result.idleTicks    = idle
+        result.processTicks = processKernel + processUser
+    }
+
+    var memory: __Win32RT.MEMORYSTATUSEX
+    memory.dwLength             = cast(u32, #sizeof(__Win32RT.MEMORYSTATUSEX))
+    result.memoryValid          = __Win32RT.GlobalMemoryStatusEx(&memory) != 0
+    result.physicalBytes        = memory.ullTotalPhys
+    result.availableBytes       = memory.ullAvailPhys
+    result.commitBytes          = memory.ullTotalPageFile
+    result.availableCommitBytes = memory.ullAvailPageFile
+    return result
 }
 
 // Reads the monotonic host counter without wall-clock adjustments.

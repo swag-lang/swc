@@ -24,10 +24,11 @@ const MaxObservers = 64'u32
 #[Swag.DynCast]
 struct WorkNode
 {
-    entry:    (func(*WorkNode))?     // Runs the work. Set by the owner before submission.
-    next:     *WorkNode?             // Next node in the scheduler's ready stack.
-    previous: *WorkNode?             // Previous ready node; permits a joined target to be removed in constant time.
-    state:    AtomicValue'u32        // One of the work states below.
+    entry:      (func(*WorkNode))?     // Runs the work. Set by the owner before submission.
+    next:       *WorkNode?             // Next node in the scheduler's ready stack.
+    previous:   *WorkNode?             // Previous ready node; permits a joined target to be removed in constant time.
+    state:      AtomicValue'u32        // One of the work states below.
+    background: bool                   // Uses the background FIFO and its shared admission budget.
 }
 
 // The work has never been submitted, or its last run was collected.
@@ -67,21 +68,27 @@ struct Worker
 #[Swag.NoDoc]
 struct Scheduler
 {
-    mutex:     Mutex               // Guards the ready stack and the worker roster.
-    ready:     Condition           // Wakes a worker when work is pushed.
-    finished:  Condition           // Wakes completion observers and process drains.
-    head:      *WorkNode?          // Ready work, most recently submitted first.
-    accepted:  AtomicValue'u32     // Submitted and not yet finished.
-    joining:   AtomicValue'u32     // Registered completion waiters; each registration holds the mutex.
-    stopping:  AtomicValue'u32     // Set once, at shutdown.
-    started:   AtomicValue'u32     // Set once the worker roster exists.
-    count:     AtomicValue'u32     // Published worker count; the roster itself stays under the mutex.
-    observed:  [MaxObservers] AtomicValue'u64     // The node address each parked observer waits for; zero when the slot is free.
-    occupancy: AtomicValue'u64     // One bit per taken slot, so a completion reads one cache line instead of every slot.
-    unslotted: AtomicValue'u32     // Parked observers that found no free slot, and therefore still need a broadcast.
-    capacity:  u32                 // Worker slots the roster holds.
-    requested: u32                 // Worker count the program asked for, zero for automatic.
-    workers:   [*] Worker?         // The worker roster, allocated once.
+    mutex:             Mutex          // Guards the ready stack and the worker roster.
+    ready:             Condition      // Wakes a worker when work is pushed.
+    finished:          Condition      // Wakes completion observers and process drains.
+    head:              *WorkNode?     // Ready work, most recently submitted first.
+    backgroundHead:    *WorkNode?     // Background work, oldest first.
+    backgroundTail:    *WorkNode?
+    backgroundRunning: u32     // Claimed background nodes, guarded by the mutex.
+    backgroundBudget:  BackgroundBudget
+    pressureAt:        u64                 // Next host sample in monotonic ticks; guarded by the mutex.
+    normalStreak:      u32                 // Bound priority preference so admitted background work progresses.
+    accepted:          AtomicValue'u32     // Submitted and not yet finished.
+    joining:           AtomicValue'u32     // Registered completion waiters; each registration holds the mutex.
+    stopping:          AtomicValue'u32     // Set once, at shutdown.
+    started:           AtomicValue'u32     // Set once the worker roster exists.
+    count:             AtomicValue'u32     // Published worker count; the roster itself stays under the mutex.
+    observed:          [MaxObservers] AtomicValue'u64     // The node address each parked observer waits for; zero when the slot is free.
+    occupancy:         AtomicValue'u64     // One bit per taken slot, so a completion reads one cache line instead of every slot.
+    unslotted:         AtomicValue'u32     // Parked observers that found no free slot, and therefore still need a broadcast.
+    capacity:          u32                 // Worker slots the roster holds.
+    requested:         u32                 // Worker count the program asked for, zero for automatic.
+    workers:           [*] Worker?         // The worker roster, allocated once.
 }
 
 // The anchor key of the scheduler inside one process.
@@ -127,6 +134,7 @@ internal func schedulerInstance()->*Scheduler
     let created = cast(*Scheduler?, __bootstrapAlloc(#sizeof(Scheduler)))
     if not created do
         Swag.panic("cannot allocate the runtime scheduler", #curlocation)
+    created.backgroundBudget.limit = 1
 
     let winner = cast(*Scheduler, __hostProcessSingleton(SchedulerAnchorKey, created))
     if winner == created
@@ -205,6 +213,7 @@ private func activeScheduler()->*Scheduler
 }
 
 // Resolve every request through the same policy, including a return to automatic after startup.
+#[Swag.NoDoc]
 internal func schedulerWorkerTarget(requested, hardware: u32)->u32
 {
     var available = hardware == 0 ? 1'u32 : hardware
@@ -299,12 +308,22 @@ private func runWork(sched: *Scheduler, node: *WorkNode, accounted: bool)
 {
     // The address is kept before the work runs, because the registry below is consulted after
     // this node may already belong to someone else.
-    let address = cast(u64, node)
-    let entry   = node.entry
+    let address    = cast(u64, node)
+    let entry      = node.entry
+    let background = accounted and node.background
     if entry
     {
         let safeEntry = entry orelse func(unused: *WorkNode) {}
         safeEntry(node)
+    }
+
+    if background
+    {
+        sched.mutex.lock()
+        sched.backgroundRunning -= 1
+        if sched.backgroundHead do
+            sched.ready.wakeAll()
+        sched.mutex.unlock()
     }
 
     // Past this store the owner may reuse or destroy the node, so nothing may read it again.
@@ -401,28 +420,97 @@ private func wakeWorkObservers(sched: *Scheduler)
     sched.mutex.unlock()
 }
 
+// Removes one queued node. The caller holds the mutex and has checked its queued state.
+#[Swag.Inline]
+private func unlinkWork(sched: *Scheduler, node: *WorkNode)
+{
+    if node.previous do
+        node.previous.next = node.next
+    elif node.background do
+        sched.backgroundHead = node.next
+    else do
+        sched.head = node.next
+    if node.next do
+        node.next.previous = node.previous
+    elif node.background do
+        sched.backgroundTail = node.previous
+    node.next     = null
+    node.previous = null
+}
+
+// A non-helping join makes its dependency urgent without running it on the waiting thread.
+// Otherwise a background parent could hold the last admission slot while idle workers cannot
+// start its child. The task body still keeps its requested host priority.
+#[Swag.NoDoc]
+internal func requestWork(node: *WorkNode)
+{
+    if node.state.load() != WorkStateQueued do
+        return
+    let sched = schedulerInstance()
+    sched.mutex.lock()
+    defer sched.mutex.unlock()
+    if node.state.load() != WorkStateQueued or not node.background do
+        return
+
+    unlinkWork(sched, node)
+    node.background = false
+    node.next       = sched.head
+    if sched.head do
+        sched.head.previous = node
+    sched.head = node
+    sched.ready.wake()
+}
+
 // Claims the requested ready node, or the stack head when no target was supplied.
 // Queue links and the transition to Running share the lock, so a waiter cannot claim a node
 // already removed by a worker. Removing a specific target never scans unrelated queued work.
+// A targeted join bypasses admission: the caller must be able to run its own dependency even
+// while every background slot is held by an ancestor. Its body still counts until it returns.
 private func popWork(sched: *Scheduler, target: *WorkNode? = null)->*WorkNode?
 {
     sched.mutex.lock()
     defer sched.mutex.unlock()
 
-    let node = target orelse sched.head
+    var node = target
+    if not node
+    {
+        if sched.backgroundHead
+        {
+            let now = __hostMonotonicTicks()
+            if now >= sched.pressureAt
+            {
+                let previousLimit = sched.backgroundBudget.limit
+                sched.backgroundBudget.update(__hostWorkPressure(), sched.count.load(), sched.backgroundRunning)
+                sched.pressureAt = now + __hostMonotonicFrequency() / 4
+                if sched.backgroundBudget.limit > previousLimit do
+                    sched.ready.wakeAll()
+            }
+
+            if sched.backgroundRunning < sched.backgroundBudget.limit and
+               (not sched.head or sched.normalStreak >= 8) do
+                node = sched.backgroundHead
+        }
+
+        if not node do
+            node = sched.head
+    }
+
     if not node do
         return null
     if node.state.load() != WorkStateQueued do
         return null
 
-    if node.previous do
-        node.previous.next = node.next
-    else do
-        sched.head = node.next
-    if node.next do
-        node.next.previous = node.previous
-    node.next     = null
-    node.previous = null
+    unlinkWork(sched, node)
+    if node.background
+    {
+        sched.backgroundRunning += 1
+        sched.normalStreak      = 0
+    }
+    elif sched.normalStreak < 8
+    {
+        sched.normalStreak += 1
+    }
+
     node.state.store(WorkStateRunning)
     return node
 }
@@ -463,8 +551,21 @@ private func schedulerWorkerEntry(param: *void?)->u32
             break
         }
 
-        if not sched.head do
-            sched.ready.wait(&sched.mutex)
+        if not sched.head
+        {
+            // A full background budget parks workers too. A timeout resamples pressure even
+            // when no task finishes; submission and completion still wake them immediately.
+            if sched.backgroundHead
+            {
+                if sched.backgroundRunning >= sched.backgroundBudget.limit do
+                    discard sched.ready.waitFor(&sched.mutex, 250)
+            }
+            else
+            {
+                sched.ready.wait(&sched.mutex)
+            }
+        }
+
         sched.mutex.unlock()
     }
 
@@ -476,11 +577,12 @@ private func schedulerWorkerEntry(param: *void?)->u32
 //
 // The node and everything its entry reads must stay alive until the work is observed finished.
 // With no worker thread the work runs here, so a submitted unit always completes.
-internal func submitWork(node: *WorkNode)
+internal func submitWork(node: *WorkNode, background = false)
 {
     let sched = activeScheduler()
-    node.next     = null
-    node.previous = null
+    node.next       = null
+    node.previous   = null
+    node.background = background
     node.state.store(WorkStateQueued)
 
     if sched.count.load() == 0
@@ -493,10 +595,23 @@ internal func submitWork(node: *WorkNode)
     sched.accepted.add(1)
 
     sched.mutex.lock()
-    node.next = sched.head
-    if sched.head do
-        sched.head.previous = node
-    sched.head = node
+    if background
+    {
+        node.previous = sched.backgroundTail
+        if sched.backgroundTail do
+            sched.backgroundTail.next = node
+        else do
+            sched.backgroundHead = node
+        sched.backgroundTail = node
+    }
+    else
+    {
+        node.next = sched.head
+        if sched.head do
+            sched.head.previous = node
+        sched.head = node
+    }
+
     sched.mutex.unlock()
 
     sched.ready.wake()
@@ -543,6 +658,7 @@ internal func waitWork(node: *WorkNode)
 // until that work ends. A worker runs it instead; with no worker, it already ran when submitted.
 internal func waitWorkUnlessCancelled(node: *WorkNode)->bool
 {
+    requestWork(node)
     var spins = 0'u32
     for
     {

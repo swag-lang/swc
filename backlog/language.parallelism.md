@@ -296,6 +296,18 @@ of simplicity when every useful helper needs an unchecked contract.
   all give each worker its own deque and steal from the others.
 - Related: language.parallelism.001, language.parallelism.003, language.parallelism.005
 
+### language.parallelism.012 — The runtime does not adapt background work to resource pressure
+
+- Evidence: the process-wide scheduler chooses its worker count from logical processors once;
+  it has no memory-pressure signal or admission policy for blocking background tasks.
+- Next: add process-wide background-work admission that follows available CPU and memory while
+  preserving foreground responsiveness; callers should submit useful work without choosing a
+  machine-specific concurrency limit.
+- Done when: deterministic scheduler tests show the shared budget grows beyond six on a capable
+  host, contracts under constrained memory or CPU pressure, and queued work completes without
+  per-module limits or starvation.
+- Related: language.parallelism.001, language.parallelism.006
+
 ### language.parallelism.004 — Partitions cannot prove disjointness
 
 - Evidence: `try/catch/expect parallel for` now carries failures across the join, but there is

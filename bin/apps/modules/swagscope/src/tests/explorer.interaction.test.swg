@@ -3,6 +3,27 @@
 
 using Core, Gui, Pixel
 
+func assertExplorerRenderStable(host: *Testing.HeadlessHost, window: *ViewerWindow, explorer: *Explorer)
+{
+    host.settleAnimations(window)
+    let before = host.render(window)
+    let after  = host.render(window)
+    let rect   = explorer.surfaceRect()
+    var changed: u32
+    for y in cast(s32, rect.height)
+    {
+        for x in cast(s32, rect.width)
+        {
+            let px = cast(s32, rect.x) + x
+            let py = cast(s32, rect.y) + y
+            if before.pixelColor(px, py) != after.pixelColor(px, py) do
+                changed += 1
+        }
+    }
+
+    Swag.assert(changed == 0)
+}
+
 // Filtering ignores case, narrows the shown indices, and restores the full listing when cleared.
 #test
 {
@@ -111,6 +132,90 @@ using Core, Gui, Pixel
             }
         }
     }
+}
+
+// Double-clicking a folder and a file works through the list; closing the viewer restores the
+// folder, mode, and selection, and Return opens the selected file through the keyboard path.
+#test
+{
+    var host: Testing.HeadlessHost
+    host.setup(960, 640)
+    let root = Gui.Testing.tempFilePath("scope-explorer-flow-", "")
+    let nested = Path.combine(root, "Nested")
+    expect Directory.create(root)
+    expect Directory.create(nested)
+    let file = Path.combine(nested, "readme.txt")
+    discard expect File.writeAllText(file, "Explorer round trip")
+    defer discard catch Directory.delete(root, recurse: true)
+
+    let window = ViewerWindow.create(&host.surfaceWnd, createViewerPluginRegistry())
+    window.openExplorer(root)
+    let explorer = unwrap window.explorer
+    for 16
+    {
+        if not explorer.load.started do
+            break
+        explorer.load.task.wait()
+        host.pump()
+    }
+
+    Swag.assert(not explorer.load.started and explorer.entries.count == 1)
+    explorer.suspend()
+    for &preview in explorer.previews where preview.started
+    {
+        preview.task.wait()
+        host.pump()
+    }
+
+    explorer.setMode(.Names)
+    window.applyLayout()
+    var listRect = explorer.list.listView.surfaceRect()
+    var rowPoint = Math.Point{listRect.x + 32, listRect.y + explorer.list.lineHeight() * 0.5}
+    host.click(rowPoint)
+    Swag.assert(explorer.selected == 0)
+    host.doubleClick(rowPoint)
+    for 16
+    {
+        if not explorer.load.started do
+            break
+        explorer.load.task.wait()
+        host.pump()
+    }
+
+    Swag.assert(explorer.listing.path == (expect Path.absolute(nested)) and explorer.entries.count == 1)
+    explorer.setMode(.Details)
+    Swag.assert(explorer.mode == .Details and explorer.list.lineCount() == 1)
+    window.applyLayout()
+    listRect = explorer.list.listView.surfaceRect()
+    rowPoint = Math.Point{listRect.x + 32, listRect.y + explorer.list.lineHeight() * 0.5}
+    host.click(rowPoint)
+    Swag.assert(explorer.selected == 0)
+    host.doubleClick(rowPoint)
+    completeQueuedViewerFile(&host, window)
+    Swag.assert(window.currentView != null and window.currentFile == (expect Path.absolute(file)))
+    Swag.assert(not explorer.isLocallyVisible())
+
+    window.closeFile()
+    host.pump()
+    Swag.assert(explorer.isLocallyVisible() and explorer.folder.isEmpty())
+    Swag.assert(explorer.listing.path == (expect Path.absolute(nested)))
+    Swag.assert(explorer.mode == .Details and explorer.selected == 0)
+    assertExplorerRenderStable(&host, window, explorer)
+
+    explorer.setMode(.Names)
+    window.applyLayout()
+    host.focus(explorer.list.listView)
+    host.keyPress(.Return)
+    completeQueuedViewerFile(&host, window)
+    Swag.assert(window.currentView != null and window.currentFile == (expect Path.absolute(file)))
+    window.closeFile()
+    host.pump()
+    Swag.assert(explorer.mode == .Names and explorer.selected == 0)
+    assertExplorerRenderStable(&host, window, explorer)
+
+    window.closeFile()
+    host.pump()
+    Swag.assert(not window.explorerActive and window.home.isLocallyVisible())
 }
 
 // Hover marks a thumbnail with the theme's stronger edge in both palettes.

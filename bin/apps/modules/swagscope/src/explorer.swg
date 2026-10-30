@@ -75,19 +75,6 @@ func thumbnailDuration(image: const *Image)->u64
     return 0
 }
 
-// Returns how many isolated renderers the Explorer keeps busy.
-//
-// Each renderer is a child process decoding on one thread, so one per logical processor saturates
-// the machine; two are left to the interface and to the decoders of the open viewer.
-func explorerWorkerCount()->u64 => Math.max(cast(u64, Hardware.processorCount()), 3'u64) - 2
-
-// How many previews of a folder on a network share run at once.
-//
-// A share answers a bounded number of scattered reads a second, and every renderer past what it
-// keeps busy only lengthens the queue in front of it: on a NAS, twenty renderers filled the folder
-// half as fast as a handful.
-const ExplorerRemoteWorkerCount = 6'u64
-
 struct ExplorerTemporary
 {
     file:  String
@@ -248,7 +235,7 @@ impl Explorer
         }
 
         result.retranslate()
-        result.previews.resize(explorerWorkerCount())
+        result.previews.resize(cast(u64, Swag.workerCount()))
         result.previewBudget = result.previews.count
         result.grid.busy.resize(result.previews.count)
         for result.previews.count
@@ -1185,7 +1172,7 @@ impl Explorer
         .selected = Swag.U64.Max
         .showMediaInfo()
         .previewAspect = .listingPreviewAspect()
-        .previewBudget = Directory.isRemote(.listing.path) ? Math.min(ExplorerRemoteWorkerCount, .previews.count) : .previews.count
+        .previewBudget = .previews.count
         .updateBreadcrumb()
 
         .filter.setText("", notify: false)

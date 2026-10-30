@@ -895,3 +895,188 @@ new language syntax.
   padding.
 - Done when: the literal above and a local of the return type filled field by field write each
   byte of the slot once.
+
+### compiler.optimization.136 — Reduce reflection metadata and absolute-pointer relocations in native images
+
+- Evidence: the existing Windows x64 Release Swag Capture image contains 132,370 distinct
+  `IMAGE_REL_BASED_DIR64` sites, versus 9,619 in the experimental Rust Capture image. Decoding
+  Swag's runtime descriptors attributes 110,541 sites (83.509%) to reflection metadata. The
+  dominant cost is the number of retained absolute pointers, not the PE relocation encoding.
+- Next: reproduce the section and relocation census below on a preserved Release image, then
+  trace repeated type descriptors and their retaining edges back to native objects, imported
+  archives, and semantic type identities. Start with the five equivalent-looking `u64`
+  descriptors. Establish which identities can legally share one record before changing layout
+  or removing metadata. Attribute the remaining 21,829 relocation sites as a separate category.
+- Done when: a bounded implementation removes demonstrably redundant metadata/retaining edges
+  or replaces eligible internal pointers with relative references; linked Release consumers show
+  fewer metadata bytes and base relocations, with type identity, reflection, serialization,
+  dynamic dispatch, lifecycle callbacks, rebased loading, and native/JIT behavior preserved.
+  Record size and load-time effects separately; a smaller table alone is not a measured speedup.
+- Related: compiler.optimization.119 (whole-image reachability), compiler.optimization.092
+  (indexed constant addressing, a different source of relocations).
+
+**Artifact identity and comparison boundary**
+
+The measurements below describe pre-existing binaries, inspected without executing or rebuilding
+them. They do not establish which current compiler commit produced the Swag image. Preserve the
+hashes when reproducing the baseline; do not silently substitute a later build.
+
+| Artifact | Identification |
+| --- | --- |
+| Swag Capture Release | `bin/apps/.output/swagcapture/executable/release/x86_64/swagcapture.exe` |
+| Swag SHA-256 | `5c359bc33b62674820d7194c9226f1ff0ee7547ec13a36002f379fc00886734c` |
+| Rust Capture Release | `package/swagcapture-rust.exe` in the external `capture-rust-20261030` build output |
+| Rust SHA-256 | `d63a6058e5737b112b4331a0b29d43a51eca5eec60cc19db7e1cda953621eda2` |
+
+The Rust prototype is based on checkout `dec813751c`, with uncommitted port changes in the
+separate `experiment/capture-rust-20261030` worktree. Its Release profile uses optimization level
+3, 16 codegen units, no cross-crate LTO, panic abort, stripped symbols, and a static CRT.
+Its UI/renderer uses egui/eframe rather than Swag GUI; substantial application behavior is still
+missing. These are whole-executable measurements, including linked libraries and resources, not
+application-only code sizes or an equivalent-feature language comparison. Both inspected import
+tables contain only Windows system imports, with no delayed imports or appended file overlay.
+
+**On-disk section sizes, in bytes**
+
+| Section or grouping | Swag Release | Rust Release |
+| --- | ---: | ---: |
+| `.text` | 4,709,376 | 5,285,888 |
+| `.rdata` | 6,218,240 | 6,382,080 |
+| `.data` | 105,984 | 7,680 |
+| `.xdata` | 23,552 | no separate section |
+| `.pdata` | 164,352 | 82,944 |
+| `.swagdbg` | 277,504 | absent |
+| `.idata` | 9,216 | no separate section |
+| `.rsrc` | 22,528 | 21,504 |
+| `.reloc` | 274,432 | 20,992 |
+| `.fptable` | absent | 512 |
+| Headers | 1,024 | 1,024 |
+| Total | 11,806,208 | 11,802,624 |
+
+Swag's `.rbss` and `.bss` have zero raw bytes. A missing separate section does not mean the
+corresponding information is absent: linkers may place it inside another section. In particular,
+`.rdata` is not exclusively strings or assets. Rust is only 3,584 bytes smaller (0.030357%), while
+its `.text` is 576,512 bytes larger and its `.rdata` is 163,840 bytes larger. Other sections and
+headers total 878,592 bytes in Swag versus 134,656 in Rust, offsetting those differences.
+
+Swag's `.swagdbg` is a compressed runtime symbol table for stack traces, not an embedded PDB.
+The PE debug-directory size is zero in this Swag artifact; the Rust directory is 84 bytes.
+Treat optional runtime symbolization and metadata retention as separate decisions.
+
+**Base-relocation census**
+
+| Property | Swag Release | Rust Release |
+| --- | ---: | ---: |
+| Relocation directory payload bytes | 274,244 | 20,748 |
+| 4 KiB page blocks | 1,055 | 170 |
+| Active `DIR64` entries (type 10) | 132,370 | 9,619 |
+| Padding entries (type 0) | 532 | 75 |
+| Distinct active sites | 132,370 | 9,619 |
+| Sites inside `.rdata` | 127,626 | 9,385 |
+| Sites inside `.data` | 4,191 | 234 |
+| Sites inside `.text` | 553 | 0 |
+
+Both files use the same compact PE representation: an eight-byte header per page block and a
+two-byte type/offset entry per site. Swag's payload reconciles exactly as
+`132370 * 2 + 532 * 2 + 1055 * 8 = 274244`; Rust's as
+`9619 * 2 + 75 * 2 + 170 * 8 = 20748`. Raw section sizes also include file alignment padding.
+There are no repeated active sites and no other active relocation types. The 13.76-fold active
+entry count is not explained by duplicate relocation records, larger individual records, or
+padding. Repeated metadata records at different addresses are a different question.
+
+| Pointer location -> pointed-to section | Swag sites | Rust sites |
+| --- | ---: | ---: |
+| `.rdata` -> `.rdata` | 116,255 | 6,323 |
+| `.rdata` -> `.text` | 9,219 | 2,999 |
+| `.rdata` -> `.rbss` | 2,152 | 0 |
+| `.rdata` -> `.data` | 0 | 63 |
+| `.data` -> `.data` | 4,191 | 95 |
+| `.data` -> `.rdata` | 0 | 108 |
+| `.data` -> `.text` | 0 | 31 |
+| `.text` -> `.text` | 553 | 0 |
+
+All 553 Swag code sites have the immediate-address prefix of an x64 `mov reg, imm64` and point
+into `.text`. They account for only 0.418% of its entries. Replacing these address materializations
+cannot explain or remove the dominant metadata cost. The `.swagdbg` entries use image-relative
+addresses and are not the source of the large base-relocation table.
+
+**Decoded reflection ownership**
+
+The binary contains 4,702 recognizable runtime type records with 2,332 distinct full names:
+1,864 structs, 1,628 pointers, 460 enums, 340 functions, 175 arrays, 77 native types,
+75 interfaces, 55 slices, 23 aliases, and 5 typed variadics. The census follows the actual layouts
+in `src/Backend/RuntimeTypeInfo.h` and allocation cases in
+`src/Compiler/Sema/Type/TypeGen.Payload.cpp`. Interfaces occupy the base `TypeInfo` record only;
+interpreting them as full `TypeInfoStruct` records would incorrectly walk adjacent allocations.
+
+| Metadata owner | Distinct relocation sites attributed |
+| --- | ---: |
+| Type descriptors | 33,097 |
+| Fields, methods, parameters, enum values, and other `TypeValue` arrays | 47,065 |
+| Attributes | 7,147 |
+| Attribute parameters | 13,545 |
+| Dynamic identities | 9,402 |
+| Dynamic slots | 285 |
+| Total attributed | 110,541 |
+| Not attributed by this traversal | 21,829 |
+
+Count each site once even when metadata is shared. The final traversal found no invalid array
+descriptors. Full names alone are not a safe interning key: qualifiers, module identity, generic
+arguments, lifecycle functions, attributes, and dynamic behavior must be checked. As a concrete
+lead, `u64` appears at RVAs 4714544, 6274632, 6352440, 6395632, and 6517080; all five have size 8,
+flags 266, CRC 1716744063, and a self-referencing `unqualified` pointer. This establishes repeated
+descriptors with matching inspected properties, not permission to merge every same-named type.
+
+**Reproduction and source ownership**
+
+Read the PE32+ section headers and base-relocation data directory (directory index 5). For each
+page block, separate the entry's high four type bits from its low twelve page-offset bits;
+ignore type zero padding. Map each active site RVA through the section headers, read its 64-bit
+pointer, subtract the optional header's image base, and classify the destination section. Check
+unique sites and reconcile payload bytes independently of `SizeOfRawData`.
+
+Identify candidate type records through their valid full-name/name pointer-length pairs, kind,
+flags, and mapped storage. Follow the appropriate descriptor layout, `TypeValue` arrays,
+attributes and parameters, dynamic identities and dynamic slots; intersect their pointer fields
+with the independently decoded relocation-site set. Validate counts and mapped ranges before
+walking arrays. Retain unclassified sites rather than guessing their owners.
+
+`PEWriter::applyRelocations` writes an absolute image-base-plus-target address for `Abs64` and
+adds its site to `baseRelocSites_`. `Rva32` and `Rel32` do not need base relocations.
+`PEWriter::buildBaseRelocations` already groups the sites by page in the standard encoding.
+`TypeGen.Payload.cpp` constructs the pointer-rich reflection graph, including type links,
+name strings, field/method arrays, attributes and lifecycle callbacks.
+`NativeRDataCollector` already interns equal reachable strings in its collection scope; that
+does not establish canonicalization of equivalent type graphs across linked module artifacts.
+
+**Implementation questions and proof boundary**
+
+First identify the producer and retaining root of each repeated descriptor. Determine whether
+independent module generation, archive import, or a required semantic distinction explains it.
+Compare entire recursive graphs with a cycle-safe identity scheme before interning; preserve
+address-observable identity and cross-module behavior. Then inspect reachability roots under
+compiler.optimization.119, including methods retained through reflection and initializer effects.
+Do not remove metadata merely because the application's direct call graph does not name it.
+
+Relative offsets or indices could remove relocations for eligible internal metadata tables and
+potentially shrink pointer storage. This is a runtime representation/ABI proposal, not a local
+PE-writer substitution: current consumers dereference ordinary pointers. Specify native/JIT and
+shared-library boundaries, cross-image references, null encoding, offset range, cache identity,
+and any materialization/accessor cost before prototyping it. Keep ASLR enabled; stripping the
+relocation table while leaving absolute pointers would produce an invalid rebasing contract.
+
+Validate the chosen change first with focused type-identity, recursive/generic metadata,
+reflection, dynamic-interface, lifecycle and serialization cases spanning multiple modules;
+then inspect a real Release Capture artifact and exercise loading at a different image base.
+Measure final image bytes, metadata bytes, active relocations, touched pages and startup/runtime
+cost separately. The current census establishes no launch-time or memory-residency regression.
+
+**Comparison confounders to preserve when interpreting results**
+
+The Rust image contains two byte-identical copies of a 1,208,322-byte dependency-license blob
+inside `.rdata`, at file offsets 5,348,336 and 6,571,368 (2,416,644 bytes total). Swag embeds ten
+theme font variants; Rust embeds five of those and four egui fallback fonts. Exact matching of
+the inspected font/SVG files accounts for 2,660,723 bytes in Swag and 2,958,742 in Rust; these are
+identified assets, not a complete classification of `.rdata`. Resource differences and incomplete
+feature parity prevent attributing total executable size to language/code-generation efficiency.
+The license duplication belongs to the experimental port; it is not a Swag compiler defect.

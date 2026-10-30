@@ -402,7 +402,7 @@ namespace
                 const auto& cfg = builder.controlFlowGraph();
                 if (cfg.hasUnsupportedControlFlowForCfgLiveness() || !cfg.supportsDeadCodeLiveness())
                     return false;
-                MicroPassHelpers::computePhysicalLiveness(liveness, context);
+                MicroPassHelpers::computePhysicalLiveness(liveness, context, MicroPassHelpers::MicroPhysLivenessMode::LiveOutOnly);
                 if (!liveness.valid)
                     return false;
                 for (const auto ref : order)

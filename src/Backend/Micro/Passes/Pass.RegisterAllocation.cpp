@@ -2294,20 +2294,20 @@ void MicroRegisterAllocationPass::analyzeLiveness()
 
     const size_t virtualBitCount  = static_cast<size_t>(instructionCount_) * virtualWordCount;
     const size_t concreteBitCount = static_cast<size_t>(instructionCount_) * concreteWordCount;
-    if (functionHasLoop_)
-    {
-        // The fixed point starts empty. Only dense register indices are set,
-        // so union and clearing also preserve zero padding bits.
+    // The fixed point starts empty. On growth, discard stale rows even for an acyclic
+    // function: assign can release the old allocation before replacing it, while resize
+    // must preserve its contents. Keep the same geometric capacity and reuse policy.
+    // Without growth, the acyclic sweep overwrites retained rows before predecessors
+    // read them. Only dense register indices are set, preserving zero padding bits.
+    if (functionHasLoop_ || virtualBitCount > liveInVirtualBits_.capacity())
         liveInVirtualBits_.assign(virtualBitCount, 0);
-        liveInConcreteBits_.assign(concreteBitCount, 0);
-    }
     else
-    {
-        // The reverse sweep overwrites every row before a predecessor reads it.
-        // Preserve existing storage without zeroing it a second time.
         liveInVirtualBits_.resize(virtualBitCount);
+
+    if (functionHasLoop_ || concreteBitCount > liveInConcreteBits_.capacity())
+        liveInConcreteBits_.assign(concreteBitCount, 0);
+    else
         liveInConcreteBits_.resize(concreteBitCount);
-    }
 
     // computeCurrentLiveOutBits overwrites both rows before their first read.
     tempOutVirtual_.resize(virtualWordCount);

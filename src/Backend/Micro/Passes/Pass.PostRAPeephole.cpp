@@ -1002,7 +1002,7 @@ namespace
 
                     if (!livenessReady)
                     {
-                        MicroPassHelpers::computePhysicalLiveness(liveness, context);
+                        MicroPassHelpers::computePhysicalLiveness(liveness, context, MicroPassHelpers::MicroPhysLivenessMode::LiveOutOnly);
                         livenessReady = true;
                     }
                     const uint32_t bit = MicroPassHelpers::MicroPhysLiveness::bitOf(dst);

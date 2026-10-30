@@ -345,7 +345,7 @@ namespace PostRaPeephole
                     if (!ctx.physicalLivenessReady)
                     {
                         ctx.physicalLivenessReady = true;
-                        MicroPassHelpers::computePhysicalLiveness(ctx.physicalLiveness, *ctx.passContext);
+                        MicroPassHelpers::computePhysicalLiveness(ctx.physicalLiveness, *ctx.passContext, MicroPassHelpers::MicroPhysLivenessMode::LiveOutOnly);
                     }
                     const uint32_t bit         = MicroPassHelpers::MicroPhysLiveness::bitOf(load[0].reg);
                     bool           deadOnTaken = ctx.physicalLiveness.valid && bit < 64 && cfg.successors(candidateIndex + 2).size() == 2;

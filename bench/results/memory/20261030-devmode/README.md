@@ -877,3 +877,33 @@ to the allocator experiment. It remains unexplained semantic metadata, not dismi
 ordering. The exact diff is retained in the experiment record and the reproducibility work is
 tracked in `compiler.core.085`. Promotion still needs a stable timing comparison, this output
 variation understood, and grouped Release validation.
+
+### Backend batch after the allocation census: validation pending
+
+The allocation census led to four focused source edits, without another build/test cycle yet:
+
+- When an acyclic register-liveness matrix exceeds its retained capacity, use `assign(count, 0)`
+  instead of `resize(count)`. Its previous rows are dead. The installed MSVC 14.50 vector
+  implementation uses the same geometric growth calculation in both paths, but `assign` releases
+  the old allocation before buying the new one; `resize` allocates first and moves the old words.
+  This removes the transient overlap and stale-word copy on this path. In-capacity acyclic reuse
+  and cyclic initialization are unchanged. Retained matrix capacity is unchanged: this is not a
+  claim to recover the 115 MiB of retained matrices.
+- The branch-target RIP-load rewrite, private-frame reload rewrite and scan-loop rotation now
+  request the existing `LiveOutOnly` physical-liveness mode. They read live-in/out masks and never
+  consume the per-instruction use/def vectors. This mode still computes both masks. The measured
+  branch-target rewrite alone retained 2.882 MiB of unnecessary use/def vector backing at the
+  synchronized point. This is eliminated storage, not a measured process-peak saving.
+
+The source diff passes formatting and whitespace checks. Existing
+`RegAlloc_ReusedPassBorrowsCurrentCfgAcrossDifferentControlFlow` exercises reused pass storage
+while instruction counts/register-word counts grow and shrink across cyclic and acyclic cases.
+The existing physical-liveness and affected peephole/rotation tests are the other relevant C++
+boundaries for the next grouped validation; no new test duplicates the implementation. The normal
+checkout executable still belongs to the previous validated source checkpoint.
+
+The larger matrix redesign remains open. An external diagnostic patch is prepared to count
+nonzero words, the first-to-last nonzero word span per row, empty rows and adjacent duplicate
+rows for matrices of at least 1 MiB, distinguishing cyclic from acyclic functions. It has not run.
+These measurements will estimate compact-storage candidates before adding an indirection or
+changing the hot bit-test/row-union paths. No diagnostic code is enabled in normal sources.

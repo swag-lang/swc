@@ -555,18 +555,16 @@ preview. Validate requested settings against the capabilities supplied by platfo
 
 ### std.gui.060 — Reduce the remaining work before the first usable application frame
 
-- Evidence: matched Release Capture launches still take a median 688 ms to a visible window
-  and 711 ms to its first successful `WM_NULL` response. These are four alternating warm
-  launches against a rebuilt baseline (1,035/1,056 ms), using the same compiler, isolated copies
+- Evidence: matched Release Capture launches still take a median 653 ms to a visible window
+  and 674 ms to its first successful `WM_NULL` response. These are four alternating warm
+  launches against a rebuilt baseline (723/753 ms), using the same compiler, isolated copies
   of the same settings and one capture, and no other task-owned build during measurement.
   Process creation is the clock origin; tool/compiler launch is excluded. Polling is about
   5 ms, CPU admission is at most 25%, and no OS-cache flush is performed. Visibility and message
   response do not establish first usable presentation or cold-start latency.
-- Next: re-profile the remaining startup with the current one-matte white-mask rasterizer and
-  parallel full-target resolve. Attribute remaining time to icon/widget geometry, glyphs,
-  placement restoration and initial presentation before choosing the next change. In particular,
-  check whether placement restoration during `Surface.show` presents a frame that the remainder
-  of `show` immediately paints again; preserve the complete first frame and placement contract.
+- Next: re-profile the remaining startup with the current one-matte white-mask rasterizer,
+  parallel full-target resolve and batched first-show initialization. Attribute remaining time to
+  icon/widget geometry, glyphs and native readback/presentation before choosing the next change.
   The old 402-427 ms icon / 82-83 ms widget spans predate the current renderer and are not a
   current cost breakdown.
 - A shared 96-pixel-per-cell raster with linear filtering produced visibly uneven small strokes
@@ -579,9 +577,10 @@ preview. Validate requested settings against the capabilities supplied by platfo
 - Done when: matched process-to-first-usable-frame measurements show that avoidable atlas and
   duplicate presentation work no longer delay normal startup, with both palettes, small glyphs,
   fractional/mixed DPI and SVG overrides covered. Do not count an earlier blank window as a gain.
-- Reproduction: `%LOCALAPPDATA%/swc-agent-builds/app-startup-opt-20261030/results.json` records
-  current artifact hashes, individual launches, CPU/memory measurements and the exact comparison
-  method; `probe.py` and `ab.py` reproduce the external milestones through `tools/apps.bat`.
+- Reproduction: `%LOCALAPPDATA%/swc-agent-builds/app-startup-opt-20261030/results-stage2.json`
+  records current artifact hashes, individual launches, CPU/memory measurements and the exact
+  comparison method; `results.json` isolates the renderer comparison. `probe.py` and `ab.py`
+  reproduce the external milestones through `tools/apps.bat`.
   Recreate both builds from the same source/compiler before replaying; their temporary worktrees
   are disposable. The initial function-attribution probe remains in
   `%LOCALAPPDATA%/swc-agent-builds/capture-startup-20261030`. Debug or terminate only probe-owned

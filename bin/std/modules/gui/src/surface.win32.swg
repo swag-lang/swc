@@ -67,6 +67,9 @@ internal struct NativeSurface
     // Whether the desktop loop timer is armed for this window.
     inDesktopLoop: bool
 
+    // First-show setup can restore several placements before its content is ready to paint.
+    initializing: bool
+
     // A discrete placement prepares its expensive frame before USER32 exposes the new size.
     inDiscretePlacement:                   bool
     preparingFrame:                        bool
@@ -94,7 +97,7 @@ private impl Surface
     // A window is sized before it is shown and again while it is being taken down, and neither
     // of those transactions has a frame to publish: the first has no content yet, the second no
     // rendering context left.
-    mtd const canPresentNow()->bool => not .isHidden and not .isMinimized and not .wnd.isPendingDestroy
+    mtd const canPresentNow()->bool => not .isHidden and not .initializing and not .isMinimized and not .wnd.isPendingDestroy
 
     // Keeps the application clock running while the desktop owns the message loop.
     //
@@ -286,7 +289,7 @@ private func winProc(hWnd: HWND, msg: UINT, wParam: WPARAM, lParam: LPARAM)->LRE
 
             // A prepared frame belongs to the upcoming placement. Do not replace it with an
             // ordinary repaint while preparing or publishing that placement.
-            if surface.preparingFrame or surface.preparedFrame
+            if surface.initializing or surface.preparingFrame or surface.preparedFrame
             {
                 EndPaint(hWnd, &ps)
                 return 0
@@ -340,6 +343,15 @@ private func winProc(hWnd: HWND, msg: UINT, wParam: WPARAM, lParam: LPARAM)->LRE
             return 0
 
         case WM_WINDOWPOSCHANGING:
+
+            // Placement restoration may maximize or restore the HWND inside Init. Keep the
+            // final geometry and native show state, but expose it only after show paints it.
+            if surface.initializing
+            {
+                let next = cast(*WINDOWPOS, cast #bit (u64, lParam))
+                next.flags &= ~SWP_SHOWWINDOW
+            }
+
             if surface.inDiscretePlacement and not surface.preparingFrame and surface.canPresentNow()
             {
                 let next = cast(*WINDOWPOS, cast #bit (u64, lParam))
@@ -1141,7 +1153,9 @@ impl Surface
         if not .isInitialized
         {
             .isInitialized = true
+            .initializing  = true
             .wnd.view.sendStateEvent(.Init)
+            .initializing = false
         }
 
         .invalidate()

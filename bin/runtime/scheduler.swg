@@ -322,7 +322,7 @@ private func runWork(sched: *Scheduler, node: *WorkNode, accounted: bool)
         sched.mutex.lock()
         sched.backgroundRunning -= 1
         if sched.backgroundHead do
-            sched.ready.wakeAll()
+            sched.ready.wake()
         sched.mutex.unlock()
     }
 

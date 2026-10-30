@@ -4,6 +4,90 @@ The current objective is to reduce memory common to both compiler configurations
 compilation speed priority. Changes with a static storage or work reduction are grouped;
 builds and comparative measurements are periodic checkpoints, not a per-edit requirement.
 
+## Current occupation map and priorities
+
+The AST alone does not explain the process footprint. The strongest measured waste so far is
+constant-storage page rounding (fixed), followed by partially occupied allocator pages (an
+external candidate saves 178.516 MiB). The live heap still needs a complete owner census.
+
+| Measured storage | MiB | What this establishes |
+| --- | ---: | --- |
+| Live allocator blocks at the latest highest captured RSS point | 909.603 | Rounded block occupancy, including allocator padding |
+| Free slots in those same allocator pages | 369.187 | Retention/fragmentation; not necessarily immediately reclaimable |
+| AST backing, independent maximum | 85.672 | Identified pages only; excludes ordinary containers and ambiguous stacks |
+| Sema node-payload backing, independent maximum | 50.078 | Node records only; not all semantic analysis |
+| Mixed object/string arenas, independent maximum | 171.205 | Symbols, codegen payloads and strings still share this category |
+| Register-allocation buffers, sum of independent instance maxima | 161.969 | Includes 115.062 MiB of virtual liveness matrices; not a simultaneous peak |
+
+The last four rows come from separate diagnostic runs. They overlap the first row and must not
+be summed with it, or subtracted from it to manufacture an unexplained remainder. The highest
+captured RSS point in the latest run is 1,448.344 MiB; the actual process peak between snapshots
+is 1,515.418 MiB.
+Page capacity and OS residency measure different things.
+
+In the preceding heap-only census, at its highest captured RSS point, the disjoint live-block
+size ranges are 166.000 MiB up to 1 KiB,
+110.961 MiB from 1 to 16 KiB, 355.219 MiB from 16 to 64 KiB, 99.266 MiB from 64 to 512 KiB,
+and 290.500 MiB above 512 KiB. Thus 744.985 MiB lies above 16 KiB. These are allocator size
+classes, not ownership: for example, the 20 KiB class alone holds 177.910 MiB, but its size does
+not prove that every block is a PagedStore page.
+
+The new [large-allocation census](large-allocation-census.json) follows every C++ allocation
+whose usable size is at least 16 KiB. At the latest highest captured RSS point, the disjoint
+requested-byte attribution is:
+
+| Allocation owner or entry point | MiB |
+| --- | ---: |
+| Backend register allocation | 157.679 |
+| Mixed object/string arenas | 149.927 |
+| AST and parsing, including AST cloning | 94.676 |
+| Other microcode analyses and optimization | 78.343 |
+| Sema analysis and node payloads | 44.952 |
+| Linker and object/archive I/O | 34.575 |
+| Compiler artifact caches | 26.128 |
+| Native emission | 25.281 |
+| Source text and tokens | 17.643 |
+| Sema AST handlers with inlined storage | 9.641 |
+| Constants | 9.108 |
+| Symbols and identifiers | 6.861 |
+| Types | 5.141 |
+| Orchestration | 2.385 |
+| Codegen | 0.137 |
+| Unattributed traced allocation | 0.071 |
+| **Simultaneous traced requested bytes** | **662.548** |
+
+The 827,939 allocation/free/snapshot events have consecutive sequence numbers, no duplicate live
+pointer, no missing free, stable usable sizes and no remaining tracked allocation at exit. The
+trace matches the exact binary and linker map, resolving the incremental-link address thunk.
+There are 29 synchronized heap snapshots. The backend excluding linker owns 261.440 MiB of
+these large allocations at this point; sema categories own 75.703 MiB. These are lower bounds on
+their storage, not complete component totals. In particular, arena contents remain mixed and
+small heap allocations are outside the trace. The 909.603 minus 662.548 MiB difference combines
+untraced allocations and allocator rounding; it is not a clean small-allocation total.
+
+The largest simultaneous traced requested total is 753.346 MiB at a different observation: the
+linker then owns 111.198 MiB, native emission 35.639 MiB and register allocation 157.679 MiB.
+This is a trace peak, not the RSS peak. The register-allocation total confirms the earlier
+container census without adding independent worker maxima. Two uint64 vector allocation stacks
+in `analyzeLiveness` account for 115.072 MiB at the synchronized RSS observation.
+Among the other microcode analyses, `computePhysicalLiveness` owns 20.741 MiB. The exact
+allocation stacks and aggregation by owning function are retained in the census artifact.
+
+The next work follows the measured owners:
+
+1. Evaluate compact liveness storage against every hot reader before changing it. Discarding all
+   reusable worker buffers after each function is not an established speed-preserving solution.
+2. Inspect the other retained microcode analyses (78.343 MiB), then linker peak buffers. Use the
+   captured owning stacks to choose concrete containers and preserve useful reuse.
+3. Split the 149.927 MiB of mixed arena payloads and count small sema containers. Preserve direct
+   allocator calls, OS mappings and ambiguous inlined storage as explicit measurement limits.
+4. Finish the large-page candidate's timing and output-equivalence checks, then group Release
+   validation. Its 11.94% observed memory saving is not yet an accepted default change.
+
+The diagnostic build and frozen application rebuild pass. All instrumentation and normal
+compiler outputs were restored; diagnostic files and preserved binaries stay outside the
+checkout. No compiler timing claim comes from this instrumented run.
+
 ## Debugger-only metadata
 
 `SWC_DEBUG_MODE=1` now owns the metadata maintained only for interactive C++ inspection.

@@ -1,0 +1,7209 @@
+{
+  "note": "All C++ new/delete allocations with usable size >=16 KiB, requested-byte accounting. Direct mimalloc calls, small C++ allocations and OS mappings excluded. Mixed arena backing remains mixed; stack attribution is not a payload census. Exact synchronized heap observations contain rounding and are a different metric.",
+  "measurement": {
+    "exit": 0,
+    "started_unix": 1793373575.5675151,
+    "affinity_mask": 349185,
+    "effective_affinity_mask": 349185,
+    "system_affinity_mask": 4194303,
+    "affinity_verified": true,
+    "host_busy_pct": 66.91187503125886,
+    "other_process_cpu_ms_estimate": 2111046.875,
+    "wall_ms": 170564.1852,
+    "first_stdout_ms": null,
+    "cpu_ms": 397406.25,
+    "user_cpu_ms": 373515.625,
+    "kernel_cpu_ms": 23890.625,
+    "job_cpu_ms": 397437.5,
+    "page_faults": 906782,
+    "job_processes": 2,
+    "peak_job_bytes": 1581092864,
+    "peak_proc_bytes": 1579855872,
+    "peak_working_set_bytes": 1589030912,
+    "stderr": "\r\n",
+    "harness_sha256": "20a4c33520539d62e67dc2e80a58120e088e68718ed1a690da3a0f0dd2fe7dbf",
+    "allocator_error": false,
+    "mimalloc_options": {},
+    "command": [
+      "C:\\Users\\chris\\AppData\\Local\\swc-agent-builds\\mimalloc-360-20261030-071336\\install\\swc.large-allocation-census-v2.dm.exe",
+      "build",
+      "--workspace",
+      "C:\\Users\\chris\\AppData\\Local\\swc-agent-builds\\mimalloc-360-20261030-071336\\install\\apps",
+      "--workspace-module",
+      "swagcapture",
+      "--num-cores",
+      "6",
+      "--rebuild",
+      "--no-log-color",
+      "--no-log-progress"
+    ],
+    "compiler_sha256": "2bc16a5aec0f886635e2be939a7c7f6e26d9dddb6499e4b2b038bfe22c19bfe1",
+    "profiling_enabled": true,
+    "timing_comparable": false,
+    "timing_note": "C++ allocations with usable size >= 16 KiB traced, synchronized with global-idle heap census. Not a speed measurement.",
+    "stdout_sha256": "7a06c88a38c86687bdbd28f37072ccaa2218a51e90d72c0132cdbbee0019f951",
+    "non_probe_stdout": "  \u25c6  swag        build \u2022 apps [swagcapture] \u2022 devmode\n  \u2713  module      win32 \u2022 48 files \u2022 564 ms\n  \u2713  module      gdi32 \u2022 44 files \u2022 496 ms\n  \u2713  module      xinput \u2022 43 files \u2022 415 ms\n  \u2713  module      core \u2022 378 files \u2022 core.dll \u2022 7 s 335 ms\n  \u2713  module      ogl \u2022 98 files \u2022 ogl.dll \u2022 2 s 438 ms\n  \u2713  module      truetype \u2022 99 files \u2022 truetype.dll \u2022 3 s 178 ms\n  \u2713  module      pixel \u2022 318 files \u2022 pixel.dll \u2022 1 min 53 s\n  \u2713  module      gui \u2022 366 files \u2022 gui.dll \u2022 22 s 872 ms\n  \u2713  workspace   std [gui] \u2022 8 modules \u2022 2 min 35 s\n  \u2713  checked     136 files \u2022 592_047 tokens \u2022 3 s 262 ms\n  \u2713  tuned       5_143 functions \u2022 5 s 871 ms\n  \u2713  forged      2_411 functions \u2022 swagcapture.exe \u2022 5 s 973 ms\n  \u2713  module      swagcapture \u2022 182 files \u2022 swagcapture.exe \u2022 11 s 822 ms\n  \u2713  workspace   apps [swagcapture] \u2022 1 module \u2022 2 min 49 s\n  \u2713  clean       2 min 49 s"
+  },
+  "events": 827939,
+  "unfreed_blocks": 0,
+  "end": {
+    "sequence": 827939,
+    "requested_bytes": 0,
+    "blocks": 0,
+    "categories": {
+      "Unattributed: shared or external allocation": 0,
+      "Orchestration": 0,
+      "Backend: native emission": 0,
+      "Source text and tokens": 0,
+      "AST and parsing": 0,
+      "Sema: symbols and identifiers": 0,
+      "Sema: types": 0,
+      "Mixed compiler object/string arenas": 0,
+      "Sema: analysis and payloads": 0,
+      "Sema: constants": 0,
+      "Sema: AST handlers (inlined storage)": 0,
+      "Backend: microcode and optimization": 0,
+      "Compiler artifact caches": 0,
+      "Backend: register allocation": 0,
+      "Backend: codegen": 0,
+      "Backend: JIT": 0,
+      "Linker and object/archive I/O": 0
+    },
+    "largest_sites": []
+  },
+  "peak_traced_requested": {
+    "sequence": 668282,
+    "requested_bytes": 789940267,
+    "blocks": 12980,
+    "categories": {
+      "Unattributed: shared or external allocation": 73975,
+      "Orchestration": 7093534,
+      "Backend: native emission": 37370164,
+      "Source text and tokens": 18500446,
+      "AST and parsing": 99275180,
+      "Sema: symbols and identifiers": 6604793,
+      "Sema: types": 5390269,
+      "Mixed compiler object/string arenas": 157209600,
+      "Sema: analysis and payloads": 47135210,
+      "Sema: constants": 9550735,
+      "Sema: AST handlers (inlined storage)": 10108928,
+      "Backend: microcode and optimization": 82148309,
+      "Compiler artifact caches": 27397566,
+      "Backend: register allocation": 165338152,
+      "Backend: codegen": 143958,
+      "Backend: JIT": 0,
+      "Linker and object/archive I/O": 116599448
+    },
+    "largest_sites": [
+      {
+        "requested_bytes": 68592291,
+        "frames": [
+          {
+            "names": [
+              "operator new"
+            ]
+          },
+          {
+            "names": [
+              "std::vector<unsigned __int64,std::allocator<unsigned __int64> >::assign"
+            ]
+          },
+          {
+            "names": [
+              "swc::MicroRegisterAllocationPass::analyzeLiveness"
+            ]
+          },
+          {
+            "names": [
+              "`swc::MicroRegisterAllocationPass::run'::`2'::<lambda_1>::operator()"
+            ]
+          },
+          {
+            "names": [
+              "swc::MicroRegisterAllocationPass::run"
+            ]
+          },
+          {
+            "names": [
+              "swc::`anonymous namespace'::runPass"
+            ]
+          },
+          {
+            "names": [
+              "swc::`anonymous namespace'::runLoopPasses"
+            ]
+          },
+          {
+            "names": [
+              "swc::MicroPassManager::run"
+            ]
+          },
+          {
+            "names": [
+              "swc::MicroBuilder::runPasses"
+            ]
+          },
+          {
+            "names": [
+              "swc::MachineCode::emit"
+            ]
+          },
+          {
+            "names": [
+              "swc::SymbolFunction::emitLowered"
+            ]
+          },
+          {
+            "names": [
+              "swc::CodeGenJob::execImpl"
+            ]
+          },
+          {
+            "names": [
+              "swc::CodeGenJob::exec"
+            ]
+          },
+          {
+            "names": [
+              "swc::JobManager::executeJob"
+            ]
+          },
+          {
+            "names": [
+              "swc::JobManager::workerLoop"
+            ]
+          },
+          {
+            "names": [
+              "std::thread::_Invoke<std::tuple<`swc::JobManager::growWorkersForLoadLocked'::`8'::<lambda_1> >,0>"
+            ]
+          },
+          {
+            "names": []
+          },
+          {
+            "names": []
+          },
+          {
+            "names": []
+          }
+        ],
+        "owner": "Backend: register allocation",
+        "owner_frame": "swc::MicroRegisterAllocationPass::analyzeLiveness"
+      },
+      {
+        "requested_bytes": 52069431,
+        "frames": [
+          {
+            "names": [
+              "operator new"
+            ]
+          },
+          {
+            "names": [
+              "std::vector<unsigned __int64,std::allocator<unsigned __int64> >::_Resize_reallocate<std::_Value_init_tag>"
+            ]
+          },
+          {
+            "names": [
+              "swc::MicroRegisterAllocationPass::analyzeLiveness"
+            ]
+          },
+          {
+            "names": [
+              "`swc::MicroRegisterAllocationPass::run'::`2'::<lambda_1>::operator()"
+            ]
+          },
+          {
+            "names": [
+              "swc::MicroRegisterAllocationPass::run"
+            ]
+          },
+          {
+            "names": [
+              "swc::`anonymous namespace'::runPass"
+            ]
+          },
+          {
+            "names": [
+              "swc::`anonymous namespace'::runLoopPasses"
+            ]
+          },
+          {
+            "names": [
+              "swc::MicroPassManager::run"
+            ]
+          },
+          {
+            "names": [
+              "swc::MicroBuilder::runPasses"
+            ]
+          },
+          {
+            "names": [
+              "swc::MachineCode::emit"
+            ]
+          },
+          {
+            "names": [
+              "swc::SymbolFunction::emitLowered"
+            ]
+          },
+          {
+            "names": [
+              "swc::CodeGenJob::execImpl"
+            ]
+          },
+          {
+            "names": [
+              "swc::CodeGenJob::exec"
+            ]
+          },
+          {
+            "names": [
+              "swc::JobManager::executeJob"
+            ]
+          },
+          {
+            "names": [
+              "swc::JobManager::workerLoop"
+            ]
+          },
+          {
+            "names": [
+              "std::thread::_Invoke<std::tuple<`swc::JobManager::growWorkersForLoadLocked'::`8'::<lambda_1> >,0>"
+            ]
+          },
+          {
+            "names": []
+          },
+          {
+            "names": []
+          },
+          {
+            "names": []
+          }
+        ],
+        "owner": "Backend: register allocation",
+        "owner_frame": "swc::MicroRegisterAllocationPass::analyzeLiveness"
+      },
+      {
+        "requested_bytes": 43666435,
+        "frames": [
+          {
+            "names": [
+              "operator new"
+            ]
+          },
+          {
+            "names": [
+              "std::vector<enum std::byte,std::allocator<enum std::byte> >::reserve"
+            ]
+          },
+          {
+            "names": [
+              "swc::`anonymous namespace'::emitArchive"
+            ]
+          },
+          {
+            "names": [
+              "swc::buildCoffStaticArchive"
+            ]
+          },
+          {
+            "names": [
+              "swc::`anonymous namespace'::runInternalLink"
+            ]
+          },
+          {
+            "names": [
+              "swc::Linker::executeLink"
+            ]
+          },
+          {
+            "names": [
+              "swc::NativeLinkJob::exec"
+            ]
+          },
+          {
+            "names": [
+              "swc::JobManager::executeJob"
+            ]
+          },
+          {
+            "names": [
+              "swc::JobManager::workerLoop"
+            ]
+          },
+          {
+            "names": [
+              "std::thread::_Invoke<std::tuple<`swc::JobManager::growWorkersForLoadLocked'::`8'::<lambda_1> >,0>"
+            ]
+          },
+          {
+            "names": []
+          },
+          {
+            "names": []
+          },
+          {
+            "names": []
+          }
+        ],
+        "owner": "Linker and object/archive I/O",
+        "owner_frame": "swc::buildCoffStaticArchive"
+      },
+      {
+        "requested_bytes": 17948096,
+        "frames": [
+          {
+            "names": [
+              "operator new"
+            ]
+          },
+          {
+            "names": [
+              "swc::Arena::allocate"
+            ]
+          },
+          {
+            "names": [
+              "swc::SemaHelpers::registerSymbol<swc::SymbolFunction>"
+            ]
+          },
+          {
+            "names": [
+              "swc::`anonymous namespace'::registerFunctionSymbol"
+            ]
+          },
+          {
+            "names": [
+              "swc::AstFunctionDecl::semaPreDecl"
+            ]
+          },
+          {
+            "names": [
+              "swc::AstVisit::stepPreStage"
+            ]
+          },
+          {
+            "names": [
+              "swc::Sema::runCurrentVisit"
+            ]
+          },
+          {
+            "names": [
+              "swc::Sema::execResult"
+            ]
+          },
+          {
+            "names": [
+              "swc::SemaGeneric::`anonymous namespace'::runCachedSema<std::unordered_map<swc::SemaGeneric::`anonymous namespace'::GenericImplBlockRunKey,swc::SemaGeneric::A0xb49ca7bb::CachedSemaRun,swc::SemaGeneric::A0xb49ca7bb::GenericImplBlockRunKeyHash,std::equal_to<swc::SemaGeneric::`anonymous namespace'::GenericImplBlockRunKey>,std::allocator<std::pair<swc::SemaGeneric::`anonymous namespace'::GenericImplBlockRunKey const ,swc::SemaGeneric::A0xb49ca7bb::CachedSemaRun> > >,swc::SemaGeneric::`anonymous namespace'::GenericImplBlockRunKey,swc::SemaGeneric::A0xb49ca7bb::GenericImplBlockRunInitializer>"
+            ]
+          },
+          {
+            "names": [
+              "swc::SemaGeneric::`anonymous namespace'::runGenericImplBlockPass"
+            ]
+          },
+          {
+            "names": [
+              "swc::SemaGeneric::`anonymous namespace'::runGenericImplClonePasses"
+            ]
+          },
+          {
+            "names": [
+              "swc::SemaGeneric::`anonymous namespace'::instantiateGenericStructImpl"
+            ]
+          },
+          {
+            "names": [
+              "swc::SemaGeneric::Internal::instantiateGenericStructImpls"
+            ]
+          },
+          {
+            "names": [
+              "swc::SemaGeneric::`anonymous namespace'::finalizeGenericInstance"
+            ]
+          },
+          {
+            "names": [
+              "swc::SemaGeneric::`anonymous namespace'::createGenericInstance"
+            ]
+          },
+          {
+            "names": [
+              "swc::SemaGeneric::`anonymous namespace'::instantiateGenericExplicit"
+            ]
+          },
+          {
+            "names": [
+              "swc::SemaGeneric::instantiateStructExplicit"
+            ]
+          },
+          {
+            "names": [
+              "swc::`anonymous namespace'::semaQuotedGenericCommon<swc::AstQuotedExpr>"
+            ]
+          },
+          {
+            "names": [
+              "swc::Sema::postNode"
+            ]
+          },
+          {
+            "names": [
+              "swc::AstVisit::step"
+            ]
+          }
+        ],
+        "owner": "Mixed compiler object/string arenas",
+        "owner_frame": "swc::Arena::allocate"
+      },
+      {
+        "requested_bytes": 14931543,
+        "frames": [
+          {
+            "names": [
+              "operator new"
+            ]
+          },
+          {
+            "names": [
+              "std::vector<swc::LinkReloc,std::allocator<swc::LinkReloc> >::_Emplace_reallocate<swc::LinkReloc>"
+            ]
+          },
+          {
+            "names": [
+              "swc::`anonymous namespace'::NativeImageLowering::appendNativeSection"
+            ]
+          },
+          {
+            "names": [
+              "swc::PELinker::buildNativeImage"
+            ]
+          },
+          {
+            "names": [
+              "swc::PELinker::prepareImageLinkParallel"
+            ]
+          },
+          {
+            "names": [
+              "swc::PELinker::prepareLink"
+            ]
+          },
+          {
+            "names": [
+              "swc::NativeBackendBuilder::prepareForLink"
+            ]
+          },
+          {
+            "names": [
+              "swc::Command::`anonymous namespace'::finishBuildBackend"
+            ]
+          },
+          {
+            "names": [
+              "swc::Command::build"
+            ]
+          },
+          {
+            "names": [
+              "swc::CompilerInstance::runWorkspaceModule"
+            ]
+          },
+          {
+            "names": [
+              "swc::CompilerInstance::runWorkspace"
+            ]
+          },
+          {
+            "names": [
+              "swc::CompilerInstance::prepareDependencyPlan"
+            ]
+          },
+          {
+            "names": [
+              "swc::CompilerInstance::runWorkspace"
+            ]
+          },
+          {
+            "names": [
+              "swc::CompilerInstance::run"
+            ]
+          },
+          {
+            "names": [
+              "swc::runCompilerCli"
+            ]
+          },
+          {
+            "names": [
+              "main"
+            ]
+          },
+          {
+            "names": [
+              "__scrt_common_main_seh"
+            ]
+          },
+          {
+            "names": []
+          },
+          {
+            "names": []
+          }
+        ],
+        "owner": "Linker and object/archive I/O",
+        "owner_frame": "swc::`anonymous namespace'::NativeImageLowering::appendNativeSection"
+      },
+      {
+        "requested_bytes": 14283575,
+        "frames": [
+          {
+            "names": [
+              "operator new"
+            ]
+          },
+          {
+            "names": [
+              "std::vector<enum std::byte,std::allocator<enum std::byte> >::reserve"
+            ]
+          },
+          {
+            "names": [
+              "swc::CompilerCacheStore::publish"
+            ]
+          },
+          {
+            "names": [
+              "swc::CompilerCacheStore::flush"
+            ]
+          },
+          {
+            "names": [
+              "swc::CompilerCacheStore::invalidateAll"
+            ]
+          },
+          {
+            "names": [
+              "swc::CompilerInstance::CompilerInstance"
+            ]
+          },
+          {
+            "names": [
+              "swc::CompilerInstance::runWorkspaceModule"
+            ]
+          },
+          {
+            "names": [
+              "swc::CompilerInstance::runWorkspace"
+            ]
+          },
+          {
+            "names": [
+              "swc::CompilerInstance::prepareDependencyPlan"
+            ]
+          },
+          {
+            "names": [
+              "swc::CompilerInstance::runWorkspace"
+            ]
+          },
+          {
+            "names": [
+              "swc::CompilerInstance::run"
+            ]
+          },
+          {
+            "names": [
+              "swc::runCompilerCli"
+            ]
+          },
+          {
+            "names": [
+              "main"
+            ]
+          },
+          {
+            "names": [
+              "__scrt_common_main_seh"
+            ]
+          },
+          {
+            "names": []
+          },
+          {
+            "names": []
+          }
+        ],
+        "owner": "Compiler artifact caches",
+        "owner_frame": "swc::CompilerCacheStore::publish"
+      },
+      {
+        "requested_bytes": 14148864,
+        "frames": [
+          {
+            "names": [
+              "operator new"
+            ]
+          },
+          {
+            "names": [
+              "swc::Arena::allocate"
+            ]
+          },
+          {
+            "names": [
+              "swc::SemaHelpers::registerSymbol<swc::SymbolFunction>"
+            ]
+          },
+          {
+            "names": [
+              "swc::`anonymous namespace'::registerFunctionSymbol"
+            ]
+          },
+          {
+            "names": [
+              "swc::AstFunctionDecl::semaPreDecl"
+            ]
+          },
+          {
+            "names": [
+              "swc::AstVisit::stepPreStage"
+            ]
+          },
+          {
+            "names": [
+              "swc::Sema::runCurrentVisit"
+            ]
+          },
+          {
+            "names": [
+              "swc::Sema::execResult"
+            ]
+          },
+          {
+            "names": [
+              "swc::Sema::exec"
+            ]
+          },
+          {
+            "names": [
+              "swc::SemaJob::exec"
+            ]
+          },
+          {
+            "names": [
+              "swc::JobManager::executeJob"
+            ]
+          },
+          {
+            "names": [
+              "swc::JobManager::workerLoop"
+            ]
+          },
+          {
+            "names": [
+              "std::thread::_Invoke<std::tuple<`swc::JobManager::growWorkersForLoadLocked'::`8'::<lambda_1> >,0>"
+            ]
+          },
+          {
+            "names": []
+          },
+          {
+            "names": []
+          },
+          {
+            "names": []
+          }
+        ],
+        "owner": "Mixed compiler object/string arenas",
+        "owner_frame": "swc::Arena::allocate"
+      },
+      {
+        "requested_bytes": 12642272,
+        "frames": [
+          {
+            "names": [
+              "operator new"
+            ]
+          },
+          {
+            "names": [
+              "swc::Arena::allocate"
+            ]
+          },
+          {
+            "names": [
+              "swc::Symbol::setAttributes"
+            ]
+          },
+          {
+            "names": [
+              "swc::AstSingleVarDecl::semaPreNode"
+            ]
+          },
+          {
+            "names": [
+              "swc::Sema::preNode"
+            ]
+          },
+          {
+            "names": [
+              "swc::AstVisit::stepPreStage"
+            ]
+          },
+          {
+            "names": [
+              "swc::Sema::runCurrentVisit"
+            ]
+          },
+          {
+            "names": [
+              "swc::Sema::execResult"
+            ]
+          },
+          {
+            "names": [
+              "swc::Sema::exec"
+            ]
+          },
+          {
+            "names": [
+              "swc::SemaJob::exec"
+            ]
+          },
+          {
+            "names": [
+              "swc::JobManager::executeJob"
+            ]
+          },
+          {
+            "names": [
+              "swc::JobManager::workerLoop"
+            ]
+          },
+          {
+            "names": [
+              "std::thread::_Invoke<std::tuple<`swc::JobManager::growWorkersForLoadLocked'::`8'::<lambda_1> >,0>"
+            ]
+          },
+          {
+            "names": []
+          },
+          {
+            "names": []
+          },
+          {
+            "names": []
+          }
+        ],
+        "owner": "Mixed compiler object/string arenas",
+        "owner_frame": "swc::Arena::allocate"
+      },
+      {
+        "requested_bytes": 12344258,
+        "frames": [
+          {
+            "names": [
+              "operator new"
+            ]
+          },
+          {
+            "names": [
+              "std::vector<swc::MicroInstrUseDef,std::allocator<swc::MicroInstrUseDef> >::_Resize_reallocate<std::_Value_init_tag>"
+            ]
+          },
+          {
+            "names": [
+              "`swc::MicroRegisterAllocationPass::run'::`2'::<lambda_1>::operator()"
+            ]
+          },
+          {
+            "names": [
+              "swc::MicroRegisterAllocationPass::run"
+            ]
+          },
+          {
+            "names": [
+              "swc::`anonymous namespace'::runPass"
+            ]
+          },
+          {
+            "names": [
+              "swc::`anonymous namespace'::runLoopPasses"
+            ]
+          },
+          {
+            "names": [
+              "swc::MicroPassManager::run"
+            ]
+          },
+          {
+            "names": [
+              "swc::MicroBuilder::runPasses"
+            ]
+          },
+          {
+            "names": [
+              "swc::MachineCode::emit"
+            ]
+          },
+          {
+            "names": [
+              "swc::SymbolFunction::emitLowered"
+            ]
+          },
+          {
+            "names": [
+              "swc::CodeGenJob::execImpl"
+            ]
+          },
+          {
+            "names": [
+              "swc::CodeGenJob::exec"
+            ]
+          },
+          {
+            "names": [
+              "swc::JobManager::executeJob"
+            ]
+          },
+          {
+            "names": [
+              "swc::JobManager::workerLoop"
+            ]
+          },
+          {
+            "names": [
+              "std::thread::_Invoke<std::tuple<`swc::JobManager::growWorkersForLoadLocked'::`8'::<lambda_1> >,0>"
+            ]
+          },
+          {
+            "names": []
+          },
+          {
+            "names": []
+          },
+          {
+            "names": []
+          }
+        ],
+        "owner": "Backend: register allocation",
+        "owner_frame": "`swc::MicroRegisterAllocationPass::run'::`2'::<lambda_1>::operator()"
+      },
+      {
+        "requested_bytes": 12315687,
+        "frames": [
+          {
+            "names": [
+              "operator new"
+            ]
+          },
+          {
+            "names": [
+              "swc::ByteArray::resize"
+            ]
+          },
+          {
+            "names": [
+              "swc::PEWriter::emit"
+            ]
+          },
+          {
+            "names": [
+              "swc::PEWriter::writeImage"
+            ]
+          },
+          {
+            "names": [
+              "swc::`anonymous namespace'::runInternalLink"
+            ]
+          },
+          {
+            "names": [
+              "swc::Linker::executeLink"
+            ]
+          },
+          {
+            "names": [
+              "swc::NativeLinkJob::exec"
+            ]
+          },
+          {
+            "names": [
+              "swc::JobManager::executeJob"
+            ]
+          },
+          {
+            "names": [
+              "swc::JobManager::workerLoop"
+            ]
+          },
+          {
+            "names": [
+              "std::thread::_Invoke<std::tuple<`swc::JobManager::growWorkersForLoadLocked'::`8'::<lambda_1> >,0>"
+            ]
+          },
+          {
+            "names": []
+          },
+          {
+            "names": []
+          },
+          {
+            "names": []
+          }
+        ],
+        "owner": "Linker and object/archive I/O",
+        "owner_frame": "swc::PEWriter::emit"
+      },
+      {
+        "requested_bytes": 9829398,
+        "frames": [
+          {
+            "names": [
+              "operator new"
+            ]
+          },
+          {
+            "names": [
+              "swc::ByteArray::resize"
+            ]
+          },
+          {
+            "names": [
+              "swc::PEWriter::buildImports"
+            ]
+          },
+          {
+            "names": [
+              "swc::PEWriter::writeImage"
+            ]
+          },
+          {
+            "names": [
+              "swc::`anonymous namespace'::runInternalLink"
+            ]
+          },
+          {
+            "names": [
+              "swc::Linker::executeLink"
+            ]
+          },
+          {
+            "names": [
+              "swc::NativeLinkJob::exec"
+            ]
+          },
+          {
+            "names": [
+              "swc::JobManager::executeJob"
+            ]
+          },
+          {
+            "names": [
+              "swc::JobManager::workerLoop"
+            ]
+          },
+          {
+            "names": [
+              "std::thread::_Invoke<std::tuple<`swc::JobManager::growWorkersForLoadLocked'::`8'::<lambda_1> >,0>"
+            ]
+          },
+          {
+            "names": []
+          },
+          {
+            "names": []
+          },
+          {
+            "names": []
+          }
+        ],
+        "owner": "Linker and object/archive I/O",
+        "owner_frame": "swc::PEWriter::buildImports"
+      },
+      {
+        "requested_bytes": 9367072,
+        "frames": [
+          {
+            "names": [
+              "operator new"
+            ]
+          },
+          {
+            "names": [
+              "swc::Arena::allocate"
+            ]
+          },
+          {
+            "names": [
+              "swc::SemaInline::tryInlineCall"
+            ]
+          },
+          {
+            "names": [
+              "swc::`anonymous namespace'::semaCallExprCommon<swc::AstCallExpr>"
+            ]
+          },
+          {
+            "names": [
+              "swc::Sema::postNode"
+            ]
+          },
+          {
+            "names": [
+              "swc::AstVisit::step"
+            ]
+          },
+          {
+            "names": [
+              "swc::Sema::runCurrentVisit"
+            ]
+          },
+          {
+            "names": [
+              "swc::Sema::execResult"
+            ]
+          },
+          {
+            "names": [
+              "swc::Sema::exec"
+            ]
+          },
+          {
+            "names": [
+              "swc::SemaJob::exec"
+            ]
+          },
+          {
+            "names": [
+              "swc::JobManager::executeJob"
+            ]
+          },
+          {
+            "names": [
+              "swc::JobManager::workerLoop"
+            ]
+          },
+          {
+            "names": [
+              "std::thread::_Invoke<std::tuple<`swc::JobManager::growWorkersForLoadLocked'::`8'::<lambda_1> >,0>"
+            ]
+          },
+          {
+            "names": []
+          },
+          {
+            "names": []
+          },
+          {
+            "names": []
+          }
+        ],
+        "owner": "Mixed compiler object/string arenas",
+        "owner_frame": "swc::Arena::allocate"
+      },
+      {
+        "requested_bytes": 8816426,
+        "frames": [
+          {
+            "names": [
+              "operator new"
+            ]
+          },
+          {
+            "names": [
+              "std::vector<swc::MicroInstrUseDef,std::allocator<swc::MicroInstrUseDef> >::_Resize_reallocate<std::_Value_init_tag>"
+            ]
+          },
+          {
+            "names": [
+              "swc::MicroPassHelpers::computePhysicalLiveness"
+            ]
+          },
+          {
+            "names": [
+              "swc::`anonymous namespace'::hoistRound"
+            ]
+          },
+          {
+            "names": [
+              "swc::MicroPostRaLoopHoistPass::run"
+            ]
+          },
+          {
+            "names": [
+              "swc::`anonymous namespace'::runPass"
+            ]
+          },
+          {
+            "names": [
+              "swc::MicroPassManager::run"
+            ]
+          },
+          {
+            "names": [
+              "swc::MicroBuilder::runPasses"
+            ]
+          },
+          {
+            "names": [
+              "swc::MachineCode::emit"
+            ]
+          },
+          {
+            "names": [
+              "swc::SymbolFunction::emitLowered"
+            ]
+          },
+          {
+            "names": [
+              "swc::CodeGenJob::execImpl"
+            ]
+          },
+          {
+            "names": [
+              "swc::CodeGenJob::exec"
+            ]
+          },
+          {
+            "names": [
+              "swc::JobManager::executeJob"
+            ]
+          },
+          {
+            "names": [
+              "swc::JobManager::workerLoop"
+            ]
+          },
+          {
+            "names": [
+              "std::thread::_Invoke<std::tuple<`swc::JobManager::growWorkersForLoadLocked'::`8'::<lambda_1> >,0>"
+            ]
+          },
+          {
+            "names": []
+          },
+          {
+            "names": []
+          },
+          {
+            "names": []
+          }
+        ],
+        "owner": "Backend: microcode and optimization",
+        "owner_frame": "swc::MicroPassHelpers::computePhysicalLiveness"
+      },
+      {
+        "requested_bytes": 8222989,
+        "frames": [
+          {
+            "names": [
+              "operator new"
+            ]
+          },
+          {
+            "names": [
+              "std::vector<enum std::byte,std::allocator<enum std::byte> >::_Insert_counted_range<enum std::byte const * __ptr64>"
+            ]
+          },
+          {
+            "names": [
+              "swc::`anonymous namespace'::NativeImageLowering::placeNativeSection"
+            ]
+          },
+          {
+            "names": [
+              "swc::`anonymous namespace'::NativeImageLowering::appendNativeSection"
+            ]
+          },
+          {
+            "names": [
+              "swc::PELinker::buildNativeImage"
+            ]
+          },
+          {
+            "names": [
+              "swc::PELinker::prepareImageLinkParallel"
+            ]
+          },
+          {
+            "names": [
+              "swc::PELinker::prepareLink"
+            ]
+          },
+          {
+            "names": [
+              "swc::NativeBackendBuilder::prepareForLink"
+            ]
+          },
+          {
+            "names": [
+              "swc::Command::`anonymous namespace'::finishBuildBackend"
+            ]
+          },
+          {
+            "names": [
+              "swc::Command::build"
+            ]
+          },
+          {
+            "names": [
+              "swc::CompilerInstance::runWorkspaceModule"
+            ]
+          },
+          {
+            "names": [
+              "swc::CompilerInstance::runWorkspace"
+            ]
+          },
+          {
+            "names": [
+              "swc::CompilerInstance::prepareDependencyPlan"
+            ]
+          },
+          {
+            "names": [
+              "swc::CompilerInstance::runWorkspace"
+            ]
+          },
+          {
+            "names": [
+              "swc::CompilerInstance::run"
+            ]
+          },
+          {
+            "names": [
+              "swc::runCompilerCli"
+            ]
+          },
+          {
+            "names": [
+              "main"
+            ]
+          },
+          {
+            "names": [
+              "__scrt_common_main_seh"
+            ]
+          },
+          {
+            "names": []
+          },
+          {
+            "names": []
+          }
+        ],
+        "owner": "Linker and object/archive I/O",
+        "owner_frame": "swc::`anonymous namespace'::NativeImageLowering::placeNativeSection"
+      },
+      {
+        "requested_bytes": 7925984,
+        "frames": [
+          {
+            "names": [
+              "operator new"
+            ]
+          },
+          {
+            "names": [
+              "swc::Arena::allocate"
+            ]
+          },
+          {
+            "names": [
+              "swc::Symbol::setAttributes"
+            ]
+          },
+          {
+            "names": [
+              "swc::AstFunctionDecl::semaPreNode"
+            ]
+          },
+          {
+            "names": [
+              "swc::Sema::preNode"
+            ]
+          },
+          {
+            "names": [
+              "swc::AstVisit::stepPreStage"
+            ]
+          },
+          {
+            "names": [
+              "swc::Sema::runCurrentVisit"
+            ]
+          },
+          {
+            "names": [
+              "swc::Sema::execResult"
+            ]
+          },
+          {
+            "names": [
+              "swc::Sema::exec"
+            ]
+          },
+          {
+            "names": [
+              "swc::SemaJob::exec"
+            ]
+          },
+          {
+            "names": [
+              "swc::JobManager::executeJob"
+            ]
+          },
+          {
+            "names": [
+              "swc::JobManager::workerLoop"
+            ]
+          },
+          {
+            "names": [
+              "std::thread::_Invoke<std::tuple<`swc::JobManager::growWorkersForLoadLocked'::`8'::<lambda_1> >,0>"
+            ]
+          },
+          {
+            "names": []
+          },
+          {
+            "names": []
+          },
+          {
+            "names": []
+          }
+        ],
+        "owner": "Mixed compiler object/string arenas",
+        "owner_frame": "swc::Arena::allocate"
+      },
+      {
+        "requested_bytes": 6852451,
+        "frames": [
+          {
+            "names": [
+              "operator new"
+            ]
+          },
+          {
+            "names": [
+              "swc::FlatKeyMap<swc::Ast::ReachableNodeIndex::Entry,unsigned __int64,0>::rehash"
+            ]
+          },
+          {
+            "names": [
+              "swc::Ast::buildReachableNodeIndex"
+            ]
+          },
+          {
+            "names": [
+              "swc::Ast::reachableNodeRef"
+            ]
+          },
+          {
+            "names": [
+              "swc::ModuleApi::findSymbolDeclRef"
+            ]
+          },
+          {
+            "names": [
+              "swc::`anonymous namespace'::isExportedLibraryFunction"
+            ]
+          },
+          {
+            "names": [
+              "swc::NativeBackendBuilder::prepare"
+            ]
+          },
+          {
+            "names": [
+              "swc::NativeBackendBuilder::buildArtifactObjects"
+            ]
+          },
+          {
+            "names": [
+              "swc::NativeBackendBuilder::prepareForLink"
+            ]
+          },
+          {
+            "names": [
+              "swc::Command::`anonymous namespace'::finishBuildBackend"
+            ]
+          },
+          {
+            "names": [
+              "swc::Command::build"
+            ]
+          },
+          {
+            "names": [
+              "swc::CompilerInstance::runWorkspaceModule"
+            ]
+          },
+          {
+            "names": [
+              "swc::CompilerInstance::runWorkspace"
+            ]
+          },
+          {
+            "names": [
+              "swc::CompilerInstance::prepareDependencyPlan"
+            ]
+          },
+          {
+            "names": [
+              "swc::CompilerInstance::runWorkspace"
+            ]
+          },
+          {
+            "names": [
+              "swc::CompilerInstance::run"
+            ]
+          },
+          {
+            "names": [
+              "swc::runCompilerCli"
+            ]
+          },
+          {
+            "names": [
+              "main"
+            ]
+          },
+          {
+            "names": [
+              "__scrt_common_main_seh"
+            ]
+          },
+          {
+            "names": []
+          }
+        ],
+        "owner": "AST and parsing",
+        "owner_frame": "swc::Ast::buildReachableNodeIndex"
+      },
+      {
+        "requested_bytes": 6481906,
+        "frames": [
+          {
+            "names": [
+              "operator new"
+            ]
+          },
+          {
+            "names": [
+              "swc::SourceFile::loadContent"
+            ]
+          },
+          {
+            "names": [
+              "`swc::JobManager::parallelForIndexed<`swc::parseSourceFiles'::`2'::<lambda_1> >'::`2'::WorkerJob::exec"
+            ]
+          },
+          {
+            "names": [
+              "swc::JobManager::executeJob"
+            ]
+          },
+          {
+            "names": [
+              "swc::JobManager::workerLoop"
+            ]
+          },
+          {
+            "names": [
+              "std::thread::_Invoke<std::tuple<`swc::JobManager::growWorkersForLoadLocked'::`8'::<lambda_1> >,0>"
+            ]
+          },
+          {
+            "names": []
+          },
+          {
+            "names": []
+          },
+          {
+            "names": []
+          }
+        ],
+        "owner": "Source text and tokens",
+        "owner_frame": "swc::SourceFile::loadContent"
+      },
+      {
+        "requested_bytes": 6389760,
+        "frames": [
+          {
+            "names": [
+              "operator new"
+            ]
+          },
+          {
+            "names": [
+              "swc::PagedStore::newPage"
+            ]
+          },
+          {
+            "names": [
+              "swc::PagedStore::allocate"
+            ]
+          },
+          {
+            "names": [
+              "swc::`anonymous namespace'::makeAutoMemberAccessExpr"
+            ]
+          },
+          {
+            "names": [
+              "swc::AstAutoMemberAccessExpr::semaPreNodeChild"
+            ]
+          },
+          {
+            "names": [
+              "swc::Sema::preNodeChild"
+            ]
+          },
+          {
+            "names": [
+              "swc::AstVisit::stepChildrenStage"
+            ]
+          },
+          {
+            "names": [
+              "swc::Sema::runCurrentVisit"
+            ]
+          },
+          {
+            "names": [
+              "swc::Sema::execResult"
+            ]
+          },
+          {
+            "names": [
+              "swc::Sema::exec"
+            ]
+          },
+          {
+            "names": [
+              "swc::SemaJob::exec"
+            ]
+          },
+          {
+            "names": [
+              "swc::JobManager::executeJob"
+            ]
+          },
+          {
+            "names": [
+              "swc::JobManager::workerLoop"
+            ]
+          },
+          {
+            "names": [
+              "std::thread::_Invoke<std::tuple<`swc::JobManager::growWorkersForLoadLocked'::`8'::<lambda_1> >,0>"
+            ]
+          },
+          {
+            "names": []
+          },
+          {
+            "names": []
+          },
+          {
+            "names": []
+          }
+        ],
+        "owner": "Sema: AST handlers (inlined storage)",
+        "owner_frame": "swc::AstAutoMemberAccessExpr::semaPreNodeChild"
+      },
+      {
+        "requested_bytes": 6353888,
+        "frames": [
+          {
+            "names": [
+              "operator new"
+            ]
+          },
+          {
+            "names": [
+              "swc::Arena::allocate"
+            ]
+          },
+          {
+            "names": [
+              "swc::SemaHelpers::registerSymbol<swc::SymbolVariable>"
+            ]
+          },
+          {
+            "names": [
+              "swc::AstSingleVarDecl::semaPreDecl"
+            ]
+          },
+          {
+            "names": [
+              "swc::AstSingleVarDecl::semaPreNode"
+            ]
+          },
+          {
+            "names": [
+              "swc::Sema::preNode"
+            ]
+          },
+          {
+            "names": [
+              "swc::AstVisit::stepPreStage"
+            ]
+          },
+          {
+            "names": [
+              "swc::Sema::runCurrentVisit"
+            ]
+          },
+          {
+            "names": [
+              "swc::Sema::execResult"
+            ]
+          },
+          {
+            "names": [
+              "swc::Sema::exec"
+            ]
+          },
+          {
+            "names": [
+              "swc::SemaJob::exec"
+            ]
+          },
+          {
+            "names": [
+              "swc::JobManager::executeJob"
+            ]
+          },
+          {
+            "names": [
+              "swc::JobManager::workerLoop"
+            ]
+          },
+          {
+            "names": [
+              "std::thread::_Invoke<std::tuple<`swc::JobManager::growWorkersForLoadLocked'::`8'::<lambda_1> >,0>"
+            ]
+          },
+          {
+            "names": []
+          },
+          {
+            "names": []
+          },
+          {
+            "names": []
+          }
+        ],
+        "owner": "Mixed compiler object/string arenas",
+        "owner_frame": "swc::Arena::allocate"
+      },
+      {
+        "requested_bytes": 6269015,
+        "frames": [
+          {
+            "names": [
+              "operator new"
+            ]
+          },
+          {
+            "names": [
+              "std::vector<swc::NativeObjDescription,std::allocator<swc::NativeObjDescription> >::_Resize<std::_Value_init_tag>"
+            ]
+          },
+          {
+            "names": [
+              "swc::NativeArtifactBuilder::partitionArchiveObjects"
+            ]
+          },
+          {
+            "names": [
+              "swc::PELinker::prepareStaticLibrarySideArchive"
+            ]
+          },
+          {
+            "names": [
+              "swc::NativeBackendBuilder::prepareForLink"
+            ]
+          },
+          {
+            "names": [
+              "swc::Command::`anonymous namespace'::finishBuildBackend"
+            ]
+          },
+          {
+            "names": [
+              "swc::Command::build"
+            ]
+          },
+          {
+            "names": [
+              "swc::CompilerInstance::runWorkspaceModule"
+            ]
+          },
+          {
+            "names": [
+              "swc::CompilerInstance::runWorkspace"
+            ]
+          },
+          {
+            "names": [
+              "swc::CompilerInstance::prepareDependencyPlan"
+            ]
+          },
+          {
+            "names": [
+              "swc::CompilerInstance::runWorkspace"
+            ]
+          },
+          {
+            "names": [
+              "swc::CompilerInstance::run"
+            ]
+          },
+          {
+            "names": [
+              "swc::runCompilerCli"
+            ]
+          },
+          {
+            "names": [
+              "main"
+            ]
+          },
+          {
+            "names": [
+              "__scrt_common_main_seh"
+            ]
+          },
+          {
+            "names": []
+          },
+          {
+            "names": []
+          }
+        ],
+        "owner": "Backend: native emission",
+        "owner_frame": "swc::NativeArtifactBuilder::partitionArchiveObjects"
+      },
+      {
+        "requested_bytes": 5960864,
+        "frames": [
+          {
+            "names": [
+              "operator new"
+            ]
+          },
+          {
+            "names": [
+              "swc::Arena::allocate"
+            ]
+          },
+          {
+            "names": [
+              "swc::SemaHelpers::registerSymbol<swc::SymbolFunction>"
+            ]
+          },
+          {
+            "names": [
+              "swc::`anonymous namespace'::registerFunctionSymbol"
+            ]
+          },
+          {
+            "names": [
+              "swc::AstFunctionDecl::semaPreDecl"
+            ]
+          },
+          {
+            "names": [
+              "swc::AstVisit::stepPreStage"
+            ]
+          },
+          {
+            "names": [
+              "swc::Sema::runCurrentVisit"
+            ]
+          },
+          {
+            "names": [
+              "swc::Sema::execResult"
+            ]
+          },
+          {
+            "names": [
+              "swc::SemaGeneric::`anonymous namespace'::runCachedSema<std::unordered_map<swc::SemaGeneric::`anonymous namespace'::GenericImplBlockRunKey,swc::SemaGeneric::A0xb49ca7bb::CachedSemaRun,swc::SemaGeneric::A0xb49ca7bb::GenericImplBlockRunKeyHash,std::equal_to<swc::SemaGeneric::`anonymous namespace'::GenericImplBlockRunKey>,std::allocator<std::pair<swc::SemaGeneric::`anonymous namespace'::GenericImplBlockRunKey const ,swc::SemaGeneric::A0xb49ca7bb::CachedSemaRun> > >,swc::SemaGeneric::`anonymous namespace'::GenericImplBlockRunKey,swc::SemaGeneric::A0xb49ca7bb::GenericImplBlockRunInitializer>"
+            ]
+          },
+          {
+            "names": [
+              "swc::SemaGeneric::`anonymous namespace'::runGenericImplBlockPass"
+            ]
+          },
+          {
+            "names": [
+              "swc::SemaGeneric::`anonymous namespace'::runGenericImplClonePasses"
+            ]
+          },
+          {
+            "names": [
+              "swc::SemaGeneric::`anonymous namespace'::instantiateGenericStructImpl"
+            ]
+          },
+          {
+            "names": [
+              "swc::SemaGeneric::Internal::instantiateGenericStructImpls"
+            ]
+          },
+          {
+            "names": [
+              "swc::SemaGeneric::`anonymous namespace'::finalizeGenericInstance"
+            ]
+          },
+          {
+            "names": [
+              "swc::SemaGeneric::`anonymous namespace'::createGenericInstance"
+            ]
+          },
+          {
+            "names": [
+              "swc::SemaGeneric::`anonymous namespace'::instantiateGenericExplicit"
+            ]
+          },
+          {
+            "names": [
+              "swc::SemaGeneric::instantiateStructExplicit"
+            ]
+          },
+          {
+            "names": [
+              "swc::`anonymous namespace'::semaQuotedGenericCommon<swc::AstQuotedListExpr>"
+            ]
+          },
+          {
+            "names": [
+              "swc::Sema::postNode"
+            ]
+          },
+          {
+            "names": [
+              "swc::AstVisit::step"
+            ]
+          }
+        ],
+        "owner": "Mixed compiler object/string arenas",
+        "owner_frame": "swc::Arena::allocate"
+      },
+      {
+        "requested_bytes": 5577543,
+        "frames": [
+          {
+            "names": [
+              "operator new"
+            ]
+          },
+          {
+            "names": [
+              "std::vector<enum std::byte,std::allocator<enum std::byte> >::reserve"
+            ]
+          },
+          {
+            "names": [
+              "swc::CompilerCacheStore::publish"
+            ]
+          },
+          {
+            "names": [
+              "swc::CompilerCacheStore::flush"
+            ]
+          },
+          {
+            "names": [
+              "swc::CompilerInstance::~CompilerInstance"
+            ]
+          },
+          {
+            "names": [
+              "swc::Formatter::prepareSource"
+            ]
+          },
+          {
+            "names": [
+              "swc::Formatter::prepare"
+            ]
+          },
+          {
+            "names": [
+              "swc::`anonymous namespace'::formatGeneratedModuleApiContent"
+            ]
+          },
+          {
+            "names": [
+              "swc::ModuleApiExport::writeGeneratedModuleImports"
+            ]
+          },
+          {
+            "names": [
+              "swc::ModuleApi::exportFiles"
+            ]
+          },
+          {
+            "names": [
+              "swc::CompilerInstance::exportModuleApi"
+            ]
+          },
+          {
+            "names": [
+              "swc::Command::sema"
+            ]
+          },
+          {
+            "names": [
+              "swc::Command::build"
+            ]
+          },
+          {
+            "names": [
+              "swc::CompilerInstance::runWorkspaceModule"
+            ]
+          },
+          {
+            "names": [
+              "swc::CompilerInstance::runWorkspace"
+            ]
+          },
+          {
+            "names": [
+              "swc::CompilerInstance::prepareDependencyPlan"
+            ]
+          },
+          {
+            "names": [
+              "swc::CompilerInstance::runWorkspace"
+            ]
+          },
+          {
+            "names": [
+              "swc::CompilerInstance::run"
+            ]
+          },
+          {
+            "names": [
+              "swc::runCompilerCli"
+            ]
+          },
+          {
+            "names": [
+              "main"
+            ]
+          }
+        ],
+        "owner": "Compiler artifact caches",
+        "owner_frame": "swc::CompilerCacheStore::publish"
+      },
+      {
+        "requested_bytes": 5448132,
+        "frames": [
+          {
+            "names": [
+              "operator new"
+            ]
+          },
+          {
+            "names": [
+              "swc::ByteArray::resize"
+            ]
+          },
+          {
+            "names": [
+              "swc::NativeRDataCollector::emitReachableAllocations"
+            ]
+          },
+          {
+            "names": [
+              "swc::NativeArtifactBuilder::finishDataSections"
+            ]
+          },
+          {
+            "names": [
+              "swc::NativeArtifactBuilder::buildStartupAndDataSectionsParallel"
+            ]
+          },
+          {
+            "names": [
+              "swc::NativeArtifactBuilder::build"
+            ]
+          },
+          {
+            "names": [
+              "swc::NativeBackendBuilder::buildArtifactObjects"
+            ]
+          },
+          {
+            "names": [
+              "swc::NativeBackendBuilder::prepareForLink"
+            ]
+          },
+          {
+            "names": [
+              "swc::Command::`anonymous namespace'::finishBuildBackend"
+            ]
+          },
+          {
+            "names": [
+              "swc::Command::build"
+            ]
+          },
+          {
+            "names": [
+              "swc::CompilerInstance::runWorkspaceModule"
+            ]
+          },
+          {
+            "names": [
+              "swc::CompilerInstance::runWorkspace"
+            ]
+          },
+          {
+            "names": [
+              "swc::CompilerInstance::prepareDependencyPlan"
+            ]
+          },
+          {
+            "names": [
+              "swc::CompilerInstance::runWorkspace"
+            ]
+          },
+          {
+            "names": [
+              "swc::CompilerInstance::run"
+            ]
+          },
+          {
+            "names": [
+              "swc::runCompilerCli"
+            ]
+          },
+          {
+            "names": [
+              "main"
+            ]
+          },
+          {
+            "names": [
+              "__scrt_common_main_seh"
+            ]
+          },
+          {
+            "names": []
+          },
+          {
+            "names": []
+          }
+        ],
+        "owner": "Backend: native emission",
+        "owner_frame": "swc::NativeRDataCollector::emitReachableAllocations"
+      },
+      {
+        "requested_bytes": 5310531,
+        "frames": [
+          {
+            "names": [
+              "operator new"
+            ]
+          },
+          {
+            "names": [
+              "std::vector<enum std::byte,std::allocator<enum std::byte> >::_Buy_raw"
+            ]
+          },
+          {
+            "names": [
+              "swc::PEWriter::writeImage"
+            ]
+          },
+          {
+            "names": [
+              "swc::`anonymous namespace'::runInternalLink"
+            ]
+          },
+          {
+            "names": [
+              "swc::Linker::executeLink"
+            ]
+          },
+          {
+            "names": [
+              "swc::NativeLinkJob::exec"
+            ]
+          },
+          {
+            "names": [
+              "swc::JobManager::executeJob"
+            ]
+          },
+          {
+            "names": [
+              "swc::JobManager::workerLoop"
+            ]
+          },
+          {
+            "names": [
+              "std::thread::_Invoke<std::tuple<`swc::JobManager::growWorkersForLoadLocked'::`8'::<lambda_1> >,0>"
+            ]
+          },
+          {
+            "names": []
+          },
+          {
+            "names": []
+          },
+          {
+            "names": []
+          }
+        ],
+        "owner": "Linker and object/archive I/O",
+        "owner_frame": "swc::PEWriter::writeImage"
+      },
+      {
+        "requested_bytes": 5267514,
+        "frames": [
+          {
+            "names": [
+              "operator new"
+            ]
+          },
+          {
+            "names": [
+              "std::vector<swc::SmallVector<unsigned int,4>,std::allocator<swc::SmallVector<unsigned int,4> > >::reserve"
+            ]
+          },
+          {
+            "names": [
+              "swc::MicroRegisterAllocationPass::initState"
+            ]
+          },
+          {
+            "names": [
+              "`swc::MicroRegisterAllocationPass::run'::`2'::<lambda_1>::operator()"
+            ]
+          },
+          {
+            "names": [
+              "swc::MicroRegisterAllocationPass::run"
+            ]
+          },
+          {
+            "names": [
+              "swc::`anonymous namespace'::runPass"
+            ]
+          },
+          {
+            "names": [
+              "swc::`anonymous namespace'::runLoopPasses"
+            ]
+          },
+          {
+            "names": [
+              "swc::MicroPassManager::run"
+            ]
+          },
+          {
+            "names": [
+              "swc::MicroBuilder::runPasses"
+            ]
+          },
+          {
+            "names": [
+              "swc::MachineCode::emit"
+            ]
+          },
+          {
+            "names": [
+              "swc::SymbolFunction::emitLowered"
+            ]
+          },
+          {
+            "names": [
+              "swc::CodeGenJob::execImpl"
+            ]
+          },
+          {
+            "names": [
+              "swc::CodeGenJob::exec"
+            ]
+          },
+          {
+            "names": [
+              "swc::JobManager::executeJob"
+            ]
+          },
+          {
+            "names": [
+              "swc::JobManager::workerLoop"
+            ]
+          },
+          {
+            "names": [
+              "std::thread::_Invoke<std::tuple<`swc::JobManager::growWorkersForLoadLocked'::`8'::<lambda_1> >,0>"
+            ]
+          },
+          {
+            "names": []
+          },
+          {
+            "names": []
+          },
+          {
+            "names": []
+          }
+        ],
+        "owner": "Backend: register allocation",
+        "owner_frame": "swc::MicroRegisterAllocationPass::initState"
+      }
+    ]
+  },
+  "snapshots": [
+    {
+      "sequence": 176,
+      "requested_bytes": 3031904,
+      "blocks": 129,
+      "categories": {
+        "Unattributed: shared or external allocation": 57591,
+        "Orchestration": 44878,
+        "Backend: native emission": 16384,
+        "Source text and tokens": 1340187,
+        "AST and parsing": 1572864
+      },
+      "heap": {
+        "seq": 1,
+        "elapsed": 25,
+        "rss": 31526912,
+        "peak_rss": 31526912,
+        "commit": 25436160,
+        "heaps": 1,
+        "areas": 224,
+        "blocks": 2474,
+        "occupied": 4353632,
+        "slots": 14312112,
+        "ok": 1,
+        "overflow": 0
+      }
+    },
+    {
+      "sequence": 3843,
+      "requested_bytes": 22030983,
+      "blocks": 567,
+      "categories": {
+        "Unattributed: shared or external allocation": 73975,
+        "Orchestration": 534100,
+        "Backend: native emission": 49152,
+        "Source text and tokens": 1340187,
+        "AST and parsing": 2736128,
+        "Sema: symbols and identifiers": 262144,
+        "Sema: types": 273569,
+        "Mixed compiler object/string arenas": 5305824,
+        "Sema: analysis and payloads": 1278147,
+        "Sema: constants": 313046,
+        "Sema: AST handlers (inlined storage)": 507904,
+        "Backend: microcode and optimization": 7788454,
+        "Compiler artifact caches": 0,
+        "Backend: register allocation": 1568353,
+        "Backend: codegen": 0,
+        "Backend: JIT": 0
+      },
+      "heap": {
+        "seq": 2,
+        "elapsed": 301,
+        "rss": 112758784,
+        "peak_rss": 112758784,
+        "commit": 100761600,
+        "heaps": 1,
+        "areas": 481,
+        "blocks": 51755,
+        "occupied": 35628496,
+        "slots": 78493296,
+        "ok": 1,
+        "overflow": 0
+      }
+    },
+    {
+      "sequence": 11714,
+      "requested_bytes": 27095687,
+      "blocks": 595,
+      "categories": {
+        "Unattributed: shared or external allocation": 73975,
+        "Orchestration": 556539,
+        "Backend: native emission": 49152,
+        "Source text and tokens": 1340187,
+        "AST and parsing": 2867200,
+        "Sema: symbols and identifiers": 262144,
+        "Sema: types": 273569,
+        "Mixed compiler object/string arenas": 5240320,
+        "Sema: analysis and payloads": 1376568,
+        "Sema: constants": 280200,
+        "Sema: AST handlers (inlined storage)": 425984,
+        "Backend: microcode and optimization": 11354411,
+        "Compiler artifact caches": 680032,
+        "Backend: register allocation": 2315406,
+        "Backend: codegen": 0,
+        "Backend: JIT": 0
+      },
+      "heap": {
+        "seq": 3,
+        "elapsed": 948,
+        "rss": 167804928,
+        "peak_rss": 167804928,
+        "commit": 148426752,
+        "heaps": 1,
+        "areas": 558,
+        "blocks": 66377,
+        "occupied": 42897552,
+        "slots": 113287456,
+        "ok": 1,
+        "overflow": 0
+      }
+    },
+    {
+      "sequence": 23278,
+      "requested_bytes": 30133562,
+      "blocks": 602,
+      "categories": {
+        "Unattributed: shared or external allocation": 73975,
+        "Orchestration": 556539,
+        "Backend: native emission": 49152,
+        "Source text and tokens": 1340187,
+        "AST and parsing": 2703360,
+        "Sema: symbols and identifiers": 262144,
+        "Sema: types": 273569,
+        "Mixed compiler object/string arenas": 5174816,
+        "Sema: analysis and payloads": 1392952,
+        "Sema: constants": 345814,
+        "Sema: AST handlers (inlined storage)": 425984,
+        "Backend: microcode and optimization": 13296600,
+        "Compiler artifact caches": 1700080,
+        "Backend: register allocation": 2538390,
+        "Backend: codegen": 0,
+        "Backend: JIT": 0
+      },
+      "heap": {
+        "seq": 4,
+        "elapsed": 1990,
+        "rss": 202743808,
+        "peak_rss": 202743808,
+        "commit": 183341056,
+        "heaps": 1,
+        "areas": 635,
+        "blocks": 75586,
+        "occupied": 47672672,
+        "slots": 145733376,
+        "ok": 1,
+        "overflow": 0
+      }
+    },
+    {
+      "sequence": 39660,
+      "requested_bytes": 40705304,
+      "blocks": 805,
+      "categories": {
+        "Unattributed: shared or external allocation": 73975,
+        "Orchestration": 685995,
+        "Backend: native emission": 49152,
+        "Source text and tokens": 1907996,
+        "AST and parsing": 3997696,
+        "Sema: symbols and identifiers": 262144,
+        "Sema: types": 369030,
+        "Mixed compiler object/string arenas": 8843040,
+        "Sema: analysis and payloads": 1933780,
+        "Sema: constants": 292631,
+        "Sema: AST handlers (inlined storage)": 589824,
+        "Backend: microcode and optimization": 15452208,
+        "Compiler artifact caches": 3081533,
+        "Backend: register allocation": 3166300,
+        "Backend: codegen": 0,
+        "Backend: JIT": 0
+      },
+      "heap": {
+        "seq": 5,
+        "elapsed": 3751,
+        "rss": 241795072,
+        "peak_rss": 241795072,
+        "commit": 222531584,
+        "heaps": 1,
+        "areas": 708,
+        "blocks": 91150,
+        "occupied": 62159760,
+        "slots": 179512640,
+        "ok": 1,
+        "overflow": 0
+      }
+    },
+    {
+      "sequence": 58994,
+      "requested_bytes": 138643780,
+      "blocks": 4322,
+      "categories": {
+        "Unattributed: shared or external allocation": 73975,
+        "Orchestration": 5276792,
+        "Backend: native emission": 49152,
+        "Source text and tokens": 7468682,
+        "AST and parsing": 31211520,
+        "Sema: symbols and identifiers": 1064999,
+        "Sema: types": 1103377,
+        "Mixed compiler object/string arenas": 45852800,
+        "Sema: analysis and payloads": 16781038,
+        "Sema: constants": 1354736,
+        "Sema: AST handlers (inlined storage)": 4784128,
+        "Backend: microcode and optimization": 16572588,
+        "Compiler artifact caches": 3883693,
+        "Backend: register allocation": 3166300,
+        "Backend: codegen": 0,
+        "Backend: JIT": 0
+      },
+      "heap": {
+        "seq": 6,
+        "elapsed": 6452,
+        "rss": 434987008,
+        "peak_rss": 434987008,
+        "commit": 418926592,
+        "heaps": 1,
+        "areas": 1667,
+        "blocks": 216201,
+        "occupied": 202449584,
+        "slots": 371034496,
+        "ok": 1,
+        "overflow": 0
+      }
+    },
+    {
+      "sequence": 60576,
+      "requested_bytes": 161427778,
+      "blocks": 4527,
+      "categories": {
+        "Unattributed: shared or external allocation": 73975,
+        "Orchestration": 6751496,
+        "Backend: native emission": 146707,
+        "Source text and tokens": 7468682,
+        "AST and parsing": 32555008,
+        "Sema: symbols and identifiers": 1102833,
+        "Sema: types": 1159077,
+        "Mixed compiler object/string arenas": 48538464,
+        "Sema: analysis and payloads": 17387558,
+        "Sema: constants": 1354736,
+        "Sema: AST handlers (inlined storage)": 4947968,
+        "Backend: microcode and optimization": 28049753,
+        "Compiler artifact caches": 3883693,
+        "Backend: register allocation": 8007828,
+        "Backend: codegen": 0,
+        "Backend: JIT": 0
+      },
+      "heap": {
+        "seq": 7,
+        "elapsed": 6750,
+        "rss": 476893184,
+        "peak_rss": 476893184,
+        "commit": 460795904,
+        "heaps": 1,
+        "areas": 1617,
+        "blocks": 225892,
+        "occupied": 227184800,
+        "slots": 397878112,
+        "ok": 1,
+        "overflow": 0
+      }
+    },
+    {
+      "sequence": 124592,
+      "requested_bytes": 204272148,
+      "blocks": 4978,
+      "categories": {
+        "Unattributed: shared or external allocation": 73975,
+        "Orchestration": 762248,
+        "Backend: native emission": 1174182,
+        "Source text and tokens": 7468682,
+        "AST and parsing": 36998933,
+        "Sema: symbols and identifiers": 1288369,
+        "Sema: types": 1146934,
+        "Mixed compiler object/string arenas": 48669472,
+        "Sema: analysis and payloads": 17420326,
+        "Sema: constants": 2709879,
+        "Sema: AST handlers (inlined storage)": 4980736,
+        "Backend: microcode and optimization": 47581503,
+        "Compiler artifact caches": 4845232,
+        "Backend: register allocation": 29086898,
+        "Backend: codegen": 64779,
+        "Backend: JIT": 0
+      },
+      "heap": {
+        "seq": 8,
+        "elapsed": 11726,
+        "rss": 747966464,
+        "peak_rss": 747966464,
+        "commit": 733282304,
+        "heaps": 1,
+        "areas": 2463,
+        "blocks": 279714,
+        "occupied": 310083744,
+        "slots": 578725152,
+        "ok": 1,
+        "overflow": 0
+      }
+    },
+    {
+      "sequence": 140466,
+      "requested_bytes": 145565554,
+      "blocks": 2549,
+      "categories": {
+        "Unattributed: shared or external allocation": 57591,
+        "Orchestration": 2853791,
+        "Backend: native emission": 950272,
+        "Source text and tokens": 4165651,
+        "AST and parsing": 15171584,
+        "Sema: symbols and identifiers": 524288,
+        "Sema: types": 2833717,
+        "Mixed compiler object/string arenas": 37664800,
+        "Sema: analysis and payloads": 6161632,
+        "Sema: constants": 641155,
+        "Sema: AST handlers (inlined storage)": 1146880,
+        "Backend: microcode and optimization": 34492332,
+        "Compiler artifact caches": 9870580,
+        "Backend: register allocation": 29031281,
+        "Backend: codegen": 0,
+        "Backend: JIT": 0,
+        "Linker and object/archive I/O": 0
+      },
+      "heap": {
+        "seq": 9,
+        "elapsed": 13075,
+        "rss": 547332096,
+        "peak_rss": 776245248,
+        "commit": 528936960,
+        "heaps": 1,
+        "areas": 1545,
+        "blocks": 157386,
+        "occupied": 190025360,
+        "slots": 426041968,
+        "ok": 1,
+        "overflow": 0
+      }
+    },
+    {
+      "sequence": 147507,
+      "requested_bytes": 242889564,
+      "blocks": 7947,
+      "categories": {
+        "Unattributed: shared or external allocation": 57591,
+        "Orchestration": 4459462,
+        "Backend: native emission": 950272,
+        "Source text and tokens": 4656233,
+        "AST and parsing": 36913152,
+        "Sema: symbols and identifiers": 655360,
+        "Sema: types": 3388565,
+        "Mixed compiler object/string arenas": 45066752,
+        "Sema: analysis and payloads": 48874837,
+        "Sema: constants": 1027942,
+        "Sema: AST handlers (inlined storage)": 22416155,
+        "Backend: microcode and optimization": 35488536,
+        "Compiler artifact caches": 9903426,
+        "Backend: register allocation": 29031281,
+        "Backend: codegen": 0,
+        "Backend: JIT": 0,
+        "Linker and object/archive I/O": 0
+      },
+      "heap": {
+        "seq": 10,
+        "elapsed": 13393,
+        "rss": 651698176,
+        "peak_rss": 776245248,
+        "commit": 635015168,
+        "heaps": 1,
+        "areas": 2272,
+        "blocks": 296686,
+        "occupied": 334102112,
+        "slots": 570704640,
+        "ok": 1,
+        "overflow": 0
+      }
+    },
+    {
+      "sequence": 154750,
+      "requested_bytes": 328943310,
+      "blocks": 8023,
+      "categories": {
+        "Unattributed: shared or external allocation": 57591,
+        "Orchestration": 2214766,
+        "Backend: native emission": 1308798,
+        "Source text and tokens": 4656233,
+        "AST and parsing": 37617820,
+        "Sema: symbols and identifiers": 865351,
+        "Sema: types": 3063850,
+        "Mixed compiler object/string arenas": 45197760,
+        "Sema: analysis and payloads": 48907605,
+        "Sema: constants": 1459345,
+        "Sema: AST handlers (inlined storage)": 22416155,
+        "Backend: microcode and optimization": 59930455,
+        "Compiler artifact caches": 10363632,
+        "Backend: register allocation": 90883949,
+        "Backend: codegen": 0,
+        "Backend: JIT": 0,
+        "Linker and object/archive I/O": 0
+      },
+      "heap": {
+        "seq": 11,
+        "elapsed": 14402,
+        "rss": 770101248,
+        "peak_rss": 776245248,
+        "commit": 753393664,
+        "heaps": 1,
+        "areas": 1976,
+        "blocks": 332244,
+        "occupied": 429640384,
+        "slots": 646059552,
+        "ok": 1,
+        "overflow": 0
+      }
+    },
+    {
+      "sequence": 163880,
+      "requested_bytes": 390799743,
+      "blocks": 10316,
+      "categories": {
+        "Unattributed: shared or external allocation": 73975,
+        "Orchestration": 5979955,
+        "Backend: native emission": 4732272,
+        "Source text and tokens": 8598221,
+        "AST and parsing": 56312042,
+        "Sema: symbols and identifiers": 1536416,
+        "Sema: types": 3971648,
+        "Mixed compiler object/string arenas": 79652864,
+        "Sema: analysis and payloads": 56018802,
+        "Sema: constants": 2000109,
+        "Sema: AST handlers (inlined storage)": 23612187,
+        "Backend: microcode and optimization": 43601487,
+        "Compiler artifact caches": 10464026,
+        "Backend: register allocation": 90717444,
+        "Backend: codegen": 0,
+        "Backend: JIT": 0,
+        "Linker and object/archive I/O": 3528295
+      },
+      "heap": {
+        "seq": 12,
+        "elapsed": 15601,
+        "rss": 863358976,
+        "peak_rss": 863358976,
+        "commit": 848031744,
+        "heaps": 1,
+        "areas": 2753,
+        "blocks": 495649,
+        "occupied": 533307136,
+        "slots": 765861984,
+        "ok": 1,
+        "overflow": 0
+      }
+    },
+    {
+      "sequence": 182920,
+      "requested_bytes": 435186815,
+      "blocks": 10591,
+      "categories": {
+        "Unattributed: shared or external allocation": 73975,
+        "Orchestration": 3562692,
+        "Backend: native emission": 4994455,
+        "Source text and tokens": 8598221,
+        "AST and parsing": 57868756,
+        "Sema: symbols and identifiers": 1788740,
+        "Sema: types": 4014603,
+        "Mixed compiler object/string arenas": 81683488,
+        "Sema: analysis and payloads": 56741107,
+        "Sema: constants": 2133818,
+        "Sema: AST handlers (inlined storage)": 23726875,
+        "Backend: microcode and optimization": 66608435,
+        "Compiler artifact caches": 11383331,
+        "Backend: register allocation": 108480024,
+        "Backend: codegen": 0,
+        "Backend: JIT": 0,
+        "Linker and object/archive I/O": 3528295
+      },
+      "heap": {
+        "seq": 13,
+        "elapsed": 17596,
+        "rss": 920829952,
+        "peak_rss": 920829952,
+        "commit": 905486336,
+        "heaps": 1,
+        "areas": 2876,
+        "blocks": 554005,
+        "occupied": 592406624,
+        "slots": 841401024,
+        "ok": 1,
+        "overflow": 0
+      }
+    },
+    {
+      "sequence": 373970,
+      "requested_bytes": 575985148,
+      "blocks": 9530,
+      "categories": {
+        "Unattributed: shared or external allocation": 73975,
+        "Orchestration": 2012589,
+        "Backend: native emission": 5082793,
+        "Source text and tokens": 12421484,
+        "AST and parsing": 69978365,
+        "Sema: symbols and identifiers": 4373659,
+        "Sema: types": 2612678,
+        "Mixed compiler object/string arenas": 107295552,
+        "Sema: analysis and payloads": 37424068,
+        "Sema: constants": 3130292,
+        "Sema: AST handlers (inlined storage)": 5636096,
+        "Backend: microcode and optimization": 147034030,
+        "Compiler artifact caches": 14990623,
+        "Backend: register allocation": 163918944,
+        "Backend: codegen": 0,
+        "Backend: JIT": 0,
+        "Linker and object/archive I/O": 0
+      },
+      "heap": {
+        "seq": 14,
+        "elapsed": 121390,
+        "rss": 1166524416,
+        "peak_rss": 1208770560,
+        "commit": 1153191936,
+        "heaps": 1,
+        "areas": 3719,
+        "blocks": 609278,
+        "occupied": 746032624,
+        "slots": 1083182928,
+        "ok": 1,
+        "overflow": 0
+      }
+    },
+    {
+      "sequence": 376000,
+      "requested_bytes": 501199198,
+      "blocks": 9285,
+      "categories": {
+        "Unattributed: shared or external allocation": 73975,
+        "Orchestration": 2081804,
+        "Backend: native emission": 6188859,
+        "Source text and tokens": 12421484,
+        "AST and parsing": 70158589,
+        "Sema: symbols and identifiers": 4422811,
+        "Sema: types": 2629062,
+        "Mixed compiler object/string arenas": 107426560,
+        "Sema: analysis and payloads": 37505988,
+        "Sema: constants": 3149468,
+        "Sema: AST handlers (inlined storage)": 5636096,
+        "Backend: microcode and optimization": 70749789,
+        "Compiler artifact caches": 15019466,
+        "Backend: register allocation": 163735247,
+        "Backend: codegen": 0,
+        "Backend: JIT": 0,
+        "Linker and object/archive I/O": 0
+      },
+      "heap": {
+        "seq": 15,
+        "elapsed": 124163,
+        "rss": 1121263616,
+        "peak_rss": 1208770560,
+        "commit": 1107980288,
+        "heaps": 1,
+        "areas": 3379,
+        "blocks": 358523,
+        "occupied": 639777072,
+        "slots": 989186784,
+        "ok": 1,
+        "overflow": 0
+      }
+    },
+    {
+      "sequence": 376185,
+      "requested_bytes": 504024940,
+      "blocks": 9307,
+      "categories": {
+        "Unattributed: shared or external allocation": 73975,
+        "Orchestration": 1975742,
+        "Backend: native emission": 7283745,
+        "Source text and tokens": 12421484,
+        "AST and parsing": 71961219,
+        "Sema: symbols and identifiers": 4422811,
+        "Sema: types": 2629062,
+        "Mixed compiler object/string arenas": 107426560,
+        "Sema: analysis and payloads": 37505988,
+        "Sema: constants": 3149468,
+        "Sema: AST handlers (inlined storage)": 5636096,
+        "Backend: microcode and optimization": 70774749,
+        "Compiler artifact caches": 15019466,
+        "Backend: register allocation": 163744575,
+        "Backend: codegen": 0,
+        "Backend: JIT": 0,
+        "Linker and object/archive I/O": 0
+      },
+      "heap": {
+        "seq": 16,
+        "elapsed": 125850,
+        "rss": 1058758656,
+        "peak_rss": 1208770560,
+        "commit": 1043099648,
+        "heaps": 1,
+        "areas": 3293,
+        "blocks": 402171,
+        "occupied": 646902592,
+        "slots": 983191376,
+        "ok": 1,
+        "overflow": 0
+      }
+    },
+    {
+      "sequence": 379367,
+      "requested_bytes": 531217975,
+      "blocks": 9346,
+      "categories": {
+        "Unattributed: shared or external allocation": 73975,
+        "Orchestration": 1975742,
+        "Backend: native emission": 27059091,
+        "Source text and tokens": 12421484,
+        "AST and parsing": 71961219,
+        "Sema: symbols and identifiers": 4422811,
+        "Sema: types": 2629062,
+        "Mixed compiler object/string arenas": 107426560,
+        "Sema: analysis and payloads": 37505988,
+        "Sema: constants": 3149468,
+        "Sema: AST handlers (inlined storage)": 5636096,
+        "Backend: microcode and optimization": 70774749,
+        "Compiler artifact caches": 15019466,
+        "Backend: register allocation": 163744575,
+        "Backend: codegen": 0,
+        "Backend: JIT": 0,
+        "Linker and object/archive I/O": 7417689
+      },
+      "heap": {
+        "seq": 17,
+        "elapsed": 127280,
+        "rss": 1097187328,
+        "peak_rss": 1208770560,
+        "commit": 1086816256,
+        "heaps": 1,
+        "areas": 3440,
+        "blocks": 591585,
+        "occupied": 684958160,
+        "slots": 1026954368,
+        "ok": 1,
+        "overflow": 0
+      }
+    },
+    {
+      "sequence": 379529,
+      "requested_bytes": 531999723,
+      "blocks": 9333,
+      "categories": {
+        "Unattributed: shared or external allocation": 73975,
+        "Orchestration": 1975742,
+        "Backend: native emission": 13294617,
+        "Source text and tokens": 12421484,
+        "AST and parsing": 71961219,
+        "Sema: symbols and identifiers": 4972321,
+        "Sema: types": 2629062,
+        "Mixed compiler object/string arenas": 107426560,
+        "Sema: analysis and payloads": 37505988,
+        "Sema: constants": 3149468,
+        "Sema: AST handlers (inlined storage)": 5636096,
+        "Backend: microcode and optimization": 70774749,
+        "Compiler artifact caches": 15019466,
+        "Backend: register allocation": 163744575,
+        "Backend: codegen": 0,
+        "Backend: JIT": 0,
+        "Linker and object/archive I/O": 21414401
+      },
+      "heap": {
+        "seq": 18,
+        "elapsed": 127984,
+        "rss": 1131024384,
+        "peak_rss": 1208770560,
+        "commit": 1123561472,
+        "heaps": 1,
+        "areas": 3467,
+        "blocks": 640613,
+        "occupied": 688707120,
+        "slots": 1030297936,
+        "ok": 1,
+        "overflow": 0
+      }
+    },
+    {
+      "sequence": 382768,
+      "requested_bytes": 586600187,
+      "blocks": 11029,
+      "categories": {
+        "Unattributed: shared or external allocation": 73975,
+        "Orchestration": 5199875,
+        "Backend: native emission": 18573296,
+        "Source text and tokens": 30796440,
+        "AST and parsing": 92834435,
+        "Sema: symbols and identifiers": 4689693,
+        "Sema: types": 2629062,
+        "Mixed compiler object/string arenas": 107426560,
+        "Sema: analysis and payloads": 37505988,
+        "Sema: constants": 3149468,
+        "Sema: AST handlers (inlined storage)": 5636096,
+        "Backend: microcode and optimization": 70774749,
+        "Compiler artifact caches": 21329460,
+        "Backend: register allocation": 163744575,
+        "Backend: codegen": 0,
+        "Backend: JIT": 0,
+        "Linker and object/archive I/O": 22236515
+      },
+      "heap": {
+        "seq": 19,
+        "elapsed": 136740,
+        "rss": 1209208832,
+        "peak_rss": 1209208832,
+        "commit": 1202577408,
+        "heaps": 1,
+        "areas": 4084,
+        "blocks": 782775,
+        "occupied": 797959760,
+        "slots": 1113707024,
+        "ok": 1,
+        "overflow": 0
+      }
+    },
+    {
+      "sequence": 465556,
+      "requested_bytes": 617883797,
+      "blocks": 12228,
+      "categories": {
+        "Unattributed: shared or external allocation": 73975,
+        "Orchestration": 18022978,
+        "Backend: native emission": 4335326,
+        "Source text and tokens": 18500446,
+        "AST and parsing": 88981504,
+        "Sema: symbols and identifiers": 5651775,
+        "Sema: types": 4917653,
+        "Mixed compiler object/string arenas": 156292544,
+        "Sema: analysis and payloads": 46888419,
+        "Sema: constants": 6346244,
+        "Sema: AST handlers (inlined storage)": 10092544,
+        "Backend: microcode and optimization": 72794987,
+        "Compiler artifact caches": 21707398,
+        "Backend: register allocation": 163260901,
+        "Backend: codegen": 17103,
+        "Backend: JIT": 0,
+        "Linker and object/archive I/O": 0
+      },
+      "heap": {
+        "seq": 20,
+        "elapsed": 142797,
+        "rss": 1255120896,
+        "peak_rss": 1268465664,
+        "commit": 1244991488,
+        "heaps": 1,
+        "areas": 3792,
+        "blocks": 579586,
+        "occupied": 797598752,
+        "slots": 1157571216,
+        "ok": 1,
+        "overflow": 0
+      }
+    },
+    {
+      "sequence": 646018,
+      "requested_bytes": 630565072,
+      "blocks": 12703,
+      "categories": {
+        "Unattributed: shared or external allocation": 73975,
+        "Orchestration": 2524074,
+        "Backend: native emission": 7250498,
+        "Source text and tokens": 18500446,
+        "AST and parsing": 96112600,
+        "Sema: symbols and identifiers": 6081237,
+        "Sema: types": 5373885,
+        "Mixed compiler object/string arenas": 156554560,
+        "Sema: analysis and payloads": 46888419,
+        "Sema: constants": 8260371,
+        "Sema: AST handlers (inlined storage)": 10108928,
+        "Backend: microcode and optimization": 80156894,
+        "Compiler artifact caches": 27197075,
+        "Backend: register allocation": 165338152,
+        "Backend: codegen": 143958,
+        "Backend: JIT": 0,
+        "Linker and object/archive I/O": 0
+      },
+      "heap": {
+        "seq": 21,
+        "elapsed": 152669,
+        "rss": 1455730688,
+        "peak_rss": 1455730688,
+        "commit": 1445408768,
+        "heaps": 1,
+        "areas": 4697,
+        "blocks": 627648,
+        "occupied": 848125040,
+        "slots": 1237821776,
+        "ok": 1,
+        "overflow": 0
+      }
+    },
+    {
+      "sequence": 667243,
+      "requested_bytes": 694731580,
+      "blocks": 12847,
+      "categories": {
+        "Unattributed: shared or external allocation": 73975,
+        "Orchestration": 2501283,
+        "Backend: native emission": 26508898,
+        "Source text and tokens": 18500446,
+        "AST and parsing": 99275180,
+        "Sema: symbols and identifiers": 7194555,
+        "Sema: types": 5390269,
+        "Mixed compiler object/string arenas": 157209600,
+        "Sema: analysis and payloads": 47135210,
+        "Sema: constants": 9550735,
+        "Sema: AST handlers (inlined storage)": 10108928,
+        "Backend: microcode and optimization": 82148309,
+        "Compiler artifact caches": 27397566,
+        "Backend: register allocation": 165338152,
+        "Backend: codegen": 143958,
+        "Backend: JIT": 0,
+        "Linker and object/archive I/O": 36254516
+      },
+      "heap": {
+        "seq": 22,
+        "elapsed": 154208,
+        "rss": 1518698496,
+        "peak_rss": 1518698496,
+        "commit": 1510408192,
+        "heaps": 1,
+        "areas": 5203,
+        "blocks": 1159139,
+        "occupied": 953788080,
+        "slots": 1340908384,
+        "ok": 1,
+        "overflow": 0
+      }
+    },
+    {
+      "sequence": 696033,
+      "requested_bytes": 494945706,
+      "blocks": 7368,
+      "categories": {
+        "Unattributed: shared or external allocation": 73975,
+        "Orchestration": 8548795,
+        "Backend: native emission": 6553600,
+        "Source text and tokens": 9050269,
+        "AST and parsing": 52150272,
+        "Sema: symbols and identifiers": 1458215,
+        "Sema: types": 3022930,
+        "Mixed compiler object/string arenas": 103975082,
+        "Sema: analysis and payloads": 22219570,
+        "Sema: constants": 2689886,
+        "Sema: AST handlers (inlined storage)": 3293184,
+        "Backend: microcode and optimization": 78899134,
+        "Compiler artifact caches": 37715880,
+        "Backend: register allocation": 165294914,
+        "Backend: codegen": 0,
+        "Backend: JIT": 0,
+        "Linker and object/archive I/O": 0
+      },
+      "heap": {
+        "seq": 23,
+        "elapsed": 157783,
+        "rss": 1335963648,
+        "peak_rss": 1589030912,
+        "commit": 1325772800,
+        "heaps": 1,
+        "areas": 3017,
+        "blocks": 336580,
+        "occupied": 605347280,
+        "slots": 983730304,
+        "ok": 1,
+        "overflow": 0
+      }
+    },
+    {
+      "sequence": 720858,
+      "requested_bytes": 533502040,
+      "blocks": 8540,
+      "categories": {
+        "Unattributed: shared or external allocation": 73975,
+        "Orchestration": 11737385,
+        "Backend: native emission": 6553600,
+        "Source text and tokens": 9084775,
+        "AST and parsing": 60784640,
+        "Sema: symbols and identifiers": 1998887,
+        "Sema: types": 4172578,
+        "Mixed compiler object/string arenas": 119368522,
+        "Sema: analysis and payloads": 27107472,
+        "Sema: constants": 4869450,
+        "Sema: AST handlers (inlined storage)": 5505024,
+        "Backend: microcode and optimization": 79171278,
+        "Compiler artifact caches": 37779540,
+        "Backend: register allocation": 165294914,
+        "Backend: codegen": 0,
+        "Backend: JIT": 0,
+        "Linker and object/archive I/O": 0
+      },
+      "heap": {
+        "seq": 24,
+        "elapsed": 159124,
+        "rss": 1393885184,
+        "peak_rss": 1589030912,
+        "commit": 1383239680,
+        "heaps": 1,
+        "areas": 3133,
+        "blocks": 436980,
+        "occupied": 666090208,
+        "slots": 1035872960,
+        "ok": 1,
+        "overflow": 0
+      }
+    },
+    {
+      "sequence": 779593,
+      "requested_bytes": 540088683,
+      "blocks": 8760,
+      "categories": {
+        "Unattributed: shared or external allocation": 73975,
+        "Orchestration": 2690978,
+        "Backend: native emission": 7944820,
+        "Source text and tokens": 9084775,
+        "AST and parsing": 60817408,
+        "Sema: symbols and identifiers": 2343778,
+        "Sema: types": 5356240,
+        "Mixed compiler object/string arenas": 119565034,
+        "Sema: analysis and payloads": 27205854,
+        "Sema: constants": 5464623,
+        "Sema: AST handlers (inlined storage)": 5505024,
+        "Backend: microcode and optimization": 83442350,
+        "Compiler artifact caches": 38354627,
+        "Backend: register allocation": 172222094,
+        "Backend: codegen": 17103,
+        "Backend: JIT": 0,
+        "Linker and object/archive I/O": 0
+      },
+      "heap": {
+        "seq": 25,
+        "elapsed": 162849,
+        "rss": 1275342848,
+        "peak_rss": 1589030912,
+        "commit": 1267064832,
+        "heaps": 1,
+        "areas": 3405,
+        "blocks": 453652,
+        "occupied": 687453120,
+        "slots": 1062257600,
+        "ok": 1,
+        "overflow": 0
+      }
+    },
+    {
+      "sequence": 815717,
+      "requested_bytes": 544114566,
+      "blocks": 8877,
+      "categories": {
+        "Unattributed: shared or external allocation": 139550,
+        "Orchestration": 3203704,
+        "Backend: native emission": 9146728,
+        "Source text and tokens": 9084775,
+        "AST and parsing": 61521920,
+        "Sema: symbols and identifiers": 2409314,
+        "Sema: types": 5372624,
+        "Mixed compiler object/string arenas": 120285578,
+        "Sema: analysis and payloads": 27469107,
+        "Sema: constants": 5625620,
+        "Sema: AST handlers (inlined storage)": 5537792,
+        "Backend: microcode and optimization": 83427069,
+        "Compiler artifact caches": 38668691,
+        "Backend: register allocation": 172222094,
+        "Backend: codegen": 0,
+        "Backend: JIT": 0,
+        "Linker and object/archive I/O": 0
+      },
+      "heap": {
+        "seq": 26,
+        "elapsed": 164975,
+        "rss": 1233055744,
+        "peak_rss": 1589030912,
+        "commit": 1221337088,
+        "heaps": 1,
+        "areas": 3506,
+        "blocks": 476284,
+        "occupied": 704531488,
+        "slots": 1078130560,
+        "ok": 1,
+        "overflow": 0
+      }
+    },
+    {
+      "sequence": 818106,
+      "requested_bytes": 582540168,
+      "blocks": 8937,
+      "categories": {
+        "Unattributed: shared or external allocation": 73975,
+        "Orchestration": 2668562,
+        "Backend: native emission": 32870086,
+        "Source text and tokens": 9084775,
+        "AST and parsing": 61521920,
+        "Sema: symbols and identifiers": 2409314,
+        "Sema: types": 5372624,
+        "Mixed compiler object/string arenas": 120285578,
+        "Sema: analysis and payloads": 27469107,
+        "Sema: constants": 5625620,
+        "Sema: AST handlers (inlined storage)": 5537792,
+        "Backend: microcode and optimization": 83427069,
+        "Compiler artifact caches": 38668691,
+        "Backend: register allocation": 172222094,
+        "Backend: codegen": 0,
+        "Backend: JIT": 0,
+        "Linker and object/archive I/O": 15302961
+      },
+      "heap": {
+        "seq": 27,
+        "elapsed": 165185,
+        "rss": 1266630656,
+        "peak_rss": 1589030912,
+        "commit": 1255862272,
+        "heaps": 1,
+        "areas": 3691,
+        "blocks": 731572,
+        "occupied": 759907984,
+        "slots": 1128313488,
+        "ok": 1,
+        "overflow": 0
+      }
+    },
+    {
+      "sequence": 818271,
+      "requested_bytes": 588859130,
+      "blocks": 8925,
+      "categories": {
+        "Unattributed: shared or external allocation": 73975,
+        "Orchestration": 2668562,
+        "Backend: native emission": 21399652,
+        "Source text and tokens": 9084775,
+        "AST and parsing": 61521920,
+        "Sema: symbols and identifiers": 2944225,
+        "Sema: types": 5372624,
+        "Mixed compiler object/string arenas": 120285578,
+        "Sema: analysis and payloads": 27469107,
+        "Sema: constants": 5625620,
+        "Sema: AST handlers (inlined storage)": 5537792,
+        "Backend: microcode and optimization": 83427069,
+        "Compiler artifact caches": 38668691,
+        "Backend: register allocation": 172222094,
+        "Backend: codegen": 0,
+        "Backend: JIT": 0,
+        "Linker and object/archive I/O": 32557446
+      },
+      "heap": {
+        "seq": 28,
+        "elapsed": 165314,
+        "rss": 1305989120,
+        "peak_rss": 1589030912,
+        "commit": 1302769664,
+        "heaps": 1,
+        "areas": 3749,
+        "blocks": 816231,
+        "occupied": 771064384,
+        "slots": 1140618288,
+        "ok": 1,
+        "overflow": 0
+      }
+    },
+    {
+      "sequence": 819015,
+      "requested_bytes": 637888441,
+      "blocks": 8906,
+      "categories": {
+        "Unattributed: shared or external allocation": 73975,
+        "Orchestration": 2668562,
+        "Backend: native emission": 21399652,
+        "Source text and tokens": 9084775,
+        "AST and parsing": 61521920,
+        "Sema: symbols and identifiers": 3079560,
+        "Sema: types": 5372624,
+        "Mixed compiler object/string arenas": 120285578,
+        "Sema: analysis and payloads": 27469107,
+        "Sema: constants": 5625620,
+        "Sema: AST handlers (inlined storage)": 5537792,
+        "Backend: microcode and optimization": 83427069,
+        "Compiler artifact caches": 38668691,
+        "Backend: register allocation": 172222094,
+        "Backend: codegen": 0,
+        "Backend: JIT": 0,
+        "Linker and object/archive I/O": 81451422
+      },
+      "heap": {
+        "seq": 29,
+        "elapsed": 169519,
+        "rss": 1498882048,
+        "peak_rss": 1589030912,
+        "commit": 1504460800,
+        "heaps": 1,
+        "areas": 4846,
+        "blocks": 1525662,
+        "occupied": 861655872,
+        "slots": 1269510912,
+        "ok": 1,
+        "overflow": 0
+      }
+    }
+  ],
+  "max_rss_snapshot": {
+    "sequence": 667243,
+    "requested_bytes": 694731580,
+    "blocks": 12847,
+    "categories": {
+      "Unattributed: shared or external allocation": 73975,
+      "Orchestration": 2501283,
+      "Backend: native emission": 26508898,
+      "Source text and tokens": 18500446,
+      "AST and parsing": 99275180,
+      "Sema: symbols and identifiers": 7194555,
+      "Sema: types": 5390269,
+      "Mixed compiler object/string arenas": 157209600,
+      "Sema: analysis and payloads": 47135210,
+      "Sema: constants": 9550735,
+      "Sema: AST handlers (inlined storage)": 10108928,
+      "Backend: microcode and optimization": 82148309,
+      "Compiler artifact caches": 27397566,
+      "Backend: register allocation": 165338152,
+      "Backend: codegen": 143958,
+      "Backend: JIT": 0,
+      "Linker and object/archive I/O": 36254516
+    },
+    "largest_sites": [
+      {
+        "requested_bytes": 68592291,
+        "frames": [
+          {
+            "names": [
+              "operator new"
+            ]
+          },
+          {
+            "names": [
+              "std::vector<unsigned __int64,std::allocator<unsigned __int64> >::assign"
+            ]
+          },
+          {
+            "names": [
+              "swc::MicroRegisterAllocationPass::analyzeLiveness"
+            ]
+          },
+          {
+            "names": [
+              "`swc::MicroRegisterAllocationPass::run'::`2'::<lambda_1>::operator()"
+            ]
+          },
+          {
+            "names": [
+              "swc::MicroRegisterAllocationPass::run"
+            ]
+          },
+          {
+            "names": [
+              "swc::`anonymous namespace'::runPass"
+            ]
+          },
+          {
+            "names": [
+              "swc::`anonymous namespace'::runLoopPasses"
+            ]
+          },
+          {
+            "names": [
+              "swc::MicroPassManager::run"
+            ]
+          },
+          {
+            "names": [
+              "swc::MicroBuilder::runPasses"
+            ]
+          },
+          {
+            "names": [
+              "swc::MachineCode::emit"
+            ]
+          },
+          {
+            "names": [
+              "swc::SymbolFunction::emitLowered"
+            ]
+          },
+          {
+            "names": [
+              "swc::CodeGenJob::execImpl"
+            ]
+          },
+          {
+            "names": [
+              "swc::CodeGenJob::exec"
+            ]
+          },
+          {
+            "names": [
+              "swc::JobManager::executeJob"
+            ]
+          },
+          {
+            "names": [
+              "swc::JobManager::workerLoop"
+            ]
+          },
+          {
+            "names": [
+              "std::thread::_Invoke<std::tuple<`swc::JobManager::growWorkersForLoadLocked'::`8'::<lambda_1> >,0>"
+            ]
+          },
+          {
+            "names": []
+          },
+          {
+            "names": []
+          },
+          {
+            "names": []
+          }
+        ],
+        "owner": "Backend: register allocation",
+        "owner_frame": "swc::MicroRegisterAllocationPass::analyzeLiveness"
+      },
+      {
+        "requested_bytes": 52069431,
+        "frames": [
+          {
+            "names": [
+              "operator new"
+            ]
+          },
+          {
+            "names": [
+              "std::vector<unsigned __int64,std::allocator<unsigned __int64> >::_Resize_reallocate<std::_Value_init_tag>"
+            ]
+          },
+          {
+            "names": [
+              "swc::MicroRegisterAllocationPass::analyzeLiveness"
+            ]
+          },
+          {
+            "names": [
+              "`swc::MicroRegisterAllocationPass::run'::`2'::<lambda_1>::operator()"
+            ]
+          },
+          {
+            "names": [
+              "swc::MicroRegisterAllocationPass::run"
+            ]
+          },
+          {
+            "names": [
+              "swc::`anonymous namespace'::runPass"
+            ]
+          },
+          {
+            "names": [
+              "swc::`anonymous namespace'::runLoopPasses"
+            ]
+          },
+          {
+            "names": [
+              "swc::MicroPassManager::run"
+            ]
+          },
+          {
+            "names": [
+              "swc::MicroBuilder::runPasses"
+            ]
+          },
+          {
+            "names": [
+              "swc::MachineCode::emit"
+            ]
+          },
+          {
+            "names": [
+              "swc::SymbolFunction::emitLowered"
+            ]
+          },
+          {
+            "names": [
+              "swc::CodeGenJob::execImpl"
+            ]
+          },
+          {
+            "names": [
+              "swc::CodeGenJob::exec"
+            ]
+          },
+          {
+            "names": [
+              "swc::JobManager::executeJob"
+            ]
+          },
+          {
+            "names": [
+              "swc::JobManager::workerLoop"
+            ]
+          },
+          {
+            "names": [
+              "std::thread::_Invoke<std::tuple<`swc::JobManager::growWorkersForLoadLocked'::`8'::<lambda_1> >,0>"
+            ]
+          },
+          {
+            "names": []
+          },
+          {
+            "names": []
+          },
+          {
+            "names": []
+          }
+        ],
+        "owner": "Backend: register allocation",
+        "owner_frame": "swc::MicroRegisterAllocationPass::analyzeLiveness"
+      },
+      {
+        "requested_bytes": 17948096,
+        "frames": [
+          {
+            "names": [
+              "operator new"
+            ]
+          },
+          {
+            "names": [
+              "swc::Arena::allocate"
+            ]
+          },
+          {
+            "names": [
+              "swc::SemaHelpers::registerSymbol<swc::SymbolFunction>"
+            ]
+          },
+          {
+            "names": [
+              "swc::`anonymous namespace'::registerFunctionSymbol"
+            ]
+          },
+          {
+            "names": [
+              "swc::AstFunctionDecl::semaPreDecl"
+            ]
+          },
+          {
+            "names": [
+              "swc::AstVisit::stepPreStage"
+            ]
+          },
+          {
+            "names": [
+              "swc::Sema::runCurrentVisit"
+            ]
+          },
+          {
+            "names": [
+              "swc::Sema::execResult"
+            ]
+          },
+          {
+            "names": [
+              "swc::SemaGeneric::`anonymous namespace'::runCachedSema<std::unordered_map<swc::SemaGeneric::`anonymous namespace'::GenericImplBlockRunKey,swc::SemaGeneric::A0xb49ca7bb::CachedSemaRun,swc::SemaGeneric::A0xb49ca7bb::GenericImplBlockRunKeyHash,std::equal_to<swc::SemaGeneric::`anonymous namespace'::GenericImplBlockRunKey>,std::allocator<std::pair<swc::SemaGeneric::`anonymous namespace'::GenericImplBlockRunKey const ,swc::SemaGeneric::A0xb49ca7bb::CachedSemaRun> > >,swc::SemaGeneric::`anonymous namespace'::GenericImplBlockRunKey,swc::SemaGeneric::A0xb49ca7bb::GenericImplBlockRunInitializer>"
+            ]
+          },
+          {
+            "names": [
+              "swc::SemaGeneric::`anonymous namespace'::runGenericImplBlockPass"
+            ]
+          },
+          {
+            "names": [
+              "swc::SemaGeneric::`anonymous namespace'::runGenericImplClonePasses"
+            ]
+          },
+          {
+            "names": [
+              "swc::SemaGeneric::`anonymous namespace'::instantiateGenericStructImpl"
+            ]
+          },
+          {
+            "names": [
+              "swc::SemaGeneric::Internal::instantiateGenericStructImpls"
+            ]
+          },
+          {
+            "names": [
+              "swc::SemaGeneric::`anonymous namespace'::finalizeGenericInstance"
+            ]
+          },
+          {
+            "names": [
+              "swc::SemaGeneric::`anonymous namespace'::createGenericInstance"
+            ]
+          },
+          {
+            "names": [
+              "swc::SemaGeneric::`anonymous namespace'::instantiateGenericExplicit"
+            ]
+          },
+          {
+            "names": [
+              "swc::SemaGeneric::instantiateStructExplicit"
+            ]
+          },
+          {
+            "names": [
+              "swc::`anonymous namespace'::semaQuotedGenericCommon<swc::AstQuotedExpr>"
+            ]
+          },
+          {
+            "names": [
+              "swc::Sema::postNode"
+            ]
+          },
+          {
+            "names": [
+              "swc::AstVisit::step"
+            ]
+          }
+        ],
+        "owner": "Mixed compiler object/string arenas",
+        "owner_frame": "swc::Arena::allocate"
+      },
+      {
+        "requested_bytes": 14931543,
+        "frames": [
+          {
+            "names": [
+              "operator new"
+            ]
+          },
+          {
+            "names": [
+              "std::vector<swc::LinkReloc,std::allocator<swc::LinkReloc> >::_Emplace_reallocate<swc::LinkReloc>"
+            ]
+          },
+          {
+            "names": [
+              "swc::`anonymous namespace'::NativeImageLowering::appendNativeSection"
+            ]
+          },
+          {
+            "names": [
+              "swc::PELinker::buildNativeImage"
+            ]
+          },
+          {
+            "names": [
+              "swc::PELinker::prepareImageLinkParallel"
+            ]
+          },
+          {
+            "names": [
+              "swc::PELinker::prepareLink"
+            ]
+          },
+          {
+            "names": [
+              "swc::NativeBackendBuilder::prepareForLink"
+            ]
+          },
+          {
+            "names": [
+              "swc::Command::`anonymous namespace'::finishBuildBackend"
+            ]
+          },
+          {
+            "names": [
+              "swc::Command::build"
+            ]
+          },
+          {
+            "names": [
+              "swc::CompilerInstance::runWorkspaceModule"
+            ]
+          },
+          {
+            "names": [
+              "swc::CompilerInstance::runWorkspace"
+            ]
+          },
+          {
+            "names": [
+              "swc::CompilerInstance::prepareDependencyPlan"
+            ]
+          },
+          {
+            "names": [
+              "swc::CompilerInstance::runWorkspace"
+            ]
+          },
+          {
+            "names": [
+              "swc::CompilerInstance::run"
+            ]
+          },
+          {
+            "names": [
+              "swc::runCompilerCli"
+            ]
+          },
+          {
+            "names": [
+              "main"
+            ]
+          },
+          {
+            "names": [
+              "__scrt_common_main_seh"
+            ]
+          },
+          {
+            "names": []
+          },
+          {
+            "names": []
+          }
+        ],
+        "owner": "Linker and object/archive I/O",
+        "owner_frame": "swc::`anonymous namespace'::NativeImageLowering::appendNativeSection"
+      },
+      {
+        "requested_bytes": 14283575,
+        "frames": [
+          {
+            "names": [
+              "operator new"
+            ]
+          },
+          {
+            "names": [
+              "std::vector<enum std::byte,std::allocator<enum std::byte> >::reserve"
+            ]
+          },
+          {
+            "names": [
+              "swc::CompilerCacheStore::publish"
+            ]
+          },
+          {
+            "names": [
+              "swc::CompilerCacheStore::flush"
+            ]
+          },
+          {
+            "names": [
+              "swc::CompilerCacheStore::invalidateAll"
+            ]
+          },
+          {
+            "names": [
+              "swc::CompilerInstance::CompilerInstance"
+            ]
+          },
+          {
+            "names": [
+              "swc::CompilerInstance::runWorkspaceModule"
+            ]
+          },
+          {
+            "names": [
+              "swc::CompilerInstance::runWorkspace"
+            ]
+          },
+          {
+            "names": [
+              "swc::CompilerInstance::prepareDependencyPlan"
+            ]
+          },
+          {
+            "names": [
+              "swc::CompilerInstance::runWorkspace"
+            ]
+          },
+          {
+            "names": [
+              "swc::CompilerInstance::run"
+            ]
+          },
+          {
+            "names": [
+              "swc::runCompilerCli"
+            ]
+          },
+          {
+            "names": [
+              "main"
+            ]
+          },
+          {
+            "names": [
+              "__scrt_common_main_seh"
+            ]
+          },
+          {
+            "names": []
+          },
+          {
+            "names": []
+          }
+        ],
+        "owner": "Compiler artifact caches",
+        "owner_frame": "swc::CompilerCacheStore::publish"
+      },
+      {
+        "requested_bytes": 14148864,
+        "frames": [
+          {
+            "names": [
+              "operator new"
+            ]
+          },
+          {
+            "names": [
+              "swc::Arena::allocate"
+            ]
+          },
+          {
+            "names": [
+              "swc::SemaHelpers::registerSymbol<swc::SymbolFunction>"
+            ]
+          },
+          {
+            "names": [
+              "swc::`anonymous namespace'::registerFunctionSymbol"
+            ]
+          },
+          {
+            "names": [
+              "swc::AstFunctionDecl::semaPreDecl"
+            ]
+          },
+          {
+            "names": [
+              "swc::AstVisit::stepPreStage"
+            ]
+          },
+          {
+            "names": [
+              "swc::Sema::runCurrentVisit"
+            ]
+          },
+          {
+            "names": [
+              "swc::Sema::execResult"
+            ]
+          },
+          {
+            "names": [
+              "swc::Sema::exec"
+            ]
+          },
+          {
+            "names": [
+              "swc::SemaJob::exec"
+            ]
+          },
+          {
+            "names": [
+              "swc::JobManager::executeJob"
+            ]
+          },
+          {
+            "names": [
+              "swc::JobManager::workerLoop"
+            ]
+          },
+          {
+            "names": [
+              "std::thread::_Invoke<std::tuple<`swc::JobManager::growWorkersForLoadLocked'::`8'::<lambda_1> >,0>"
+            ]
+          },
+          {
+            "names": []
+          },
+          {
+            "names": []
+          },
+          {
+            "names": []
+          }
+        ],
+        "owner": "Mixed compiler object/string arenas",
+        "owner_frame": "swc::Arena::allocate"
+      },
+      {
+        "requested_bytes": 12642272,
+        "frames": [
+          {
+            "names": [
+              "operator new"
+            ]
+          },
+          {
+            "names": [
+              "swc::Arena::allocate"
+            ]
+          },
+          {
+            "names": [
+              "swc::Symbol::setAttributes"
+            ]
+          },
+          {
+            "names": [
+              "swc::AstSingleVarDecl::semaPreNode"
+            ]
+          },
+          {
+            "names": [
+              "swc::Sema::preNode"
+            ]
+          },
+          {
+            "names": [
+              "swc::AstVisit::stepPreStage"
+            ]
+          },
+          {
+            "names": [
+              "swc::Sema::runCurrentVisit"
+            ]
+          },
+          {
+            "names": [
+              "swc::Sema::execResult"
+            ]
+          },
+          {
+            "names": [
+              "swc::Sema::exec"
+            ]
+          },
+          {
+            "names": [
+              "swc::SemaJob::exec"
+            ]
+          },
+          {
+            "names": [
+              "swc::JobManager::executeJob"
+            ]
+          },
+          {
+            "names": [
+              "swc::JobManager::workerLoop"
+            ]
+          },
+          {
+            "names": [
+              "std::thread::_Invoke<std::tuple<`swc::JobManager::growWorkersForLoadLocked'::`8'::<lambda_1> >,0>"
+            ]
+          },
+          {
+            "names": []
+          },
+          {
+            "names": []
+          },
+          {
+            "names": []
+          }
+        ],
+        "owner": "Mixed compiler object/string arenas",
+        "owner_frame": "swc::Arena::allocate"
+      },
+      {
+        "requested_bytes": 12344258,
+        "frames": [
+          {
+            "names": [
+              "operator new"
+            ]
+          },
+          {
+            "names": [
+              "std::vector<swc::MicroInstrUseDef,std::allocator<swc::MicroInstrUseDef> >::_Resize_reallocate<std::_Value_init_tag>"
+            ]
+          },
+          {
+            "names": [
+              "`swc::MicroRegisterAllocationPass::run'::`2'::<lambda_1>::operator()"
+            ]
+          },
+          {
+            "names": [
+              "swc::MicroRegisterAllocationPass::run"
+            ]
+          },
+          {
+            "names": [
+              "swc::`anonymous namespace'::runPass"
+            ]
+          },
+          {
+            "names": [
+              "swc::`anonymous namespace'::runLoopPasses"
+            ]
+          },
+          {
+            "names": [
+              "swc::MicroPassManager::run"
+            ]
+          },
+          {
+            "names": [
+              "swc::MicroBuilder::runPasses"
+            ]
+          },
+          {
+            "names": [
+              "swc::MachineCode::emit"
+            ]
+          },
+          {
+            "names": [
+              "swc::SymbolFunction::emitLowered"
+            ]
+          },
+          {
+            "names": [
+              "swc::CodeGenJob::execImpl"
+            ]
+          },
+          {
+            "names": [
+              "swc::CodeGenJob::exec"
+            ]
+          },
+          {
+            "names": [
+              "swc::JobManager::executeJob"
+            ]
+          },
+          {
+            "names": [
+              "swc::JobManager::workerLoop"
+            ]
+          },
+          {
+            "names": [
+              "std::thread::_Invoke<std::tuple<`swc::JobManager::growWorkersForLoadLocked'::`8'::<lambda_1> >,0>"
+            ]
+          },
+          {
+            "names": []
+          },
+          {
+            "names": []
+          },
+          {
+            "names": []
+          }
+        ],
+        "owner": "Backend: register allocation",
+        "owner_frame": "`swc::MicroRegisterAllocationPass::run'::`2'::<lambda_1>::operator()"
+      },
+      {
+        "requested_bytes": 9367072,
+        "frames": [
+          {
+            "names": [
+              "operator new"
+            ]
+          },
+          {
+            "names": [
+              "swc::Arena::allocate"
+            ]
+          },
+          {
+            "names": [
+              "swc::SemaInline::tryInlineCall"
+            ]
+          },
+          {
+            "names": [
+              "swc::`anonymous namespace'::semaCallExprCommon<swc::AstCallExpr>"
+            ]
+          },
+          {
+            "names": [
+              "swc::Sema::postNode"
+            ]
+          },
+          {
+            "names": [
+              "swc::AstVisit::step"
+            ]
+          },
+          {
+            "names": [
+              "swc::Sema::runCurrentVisit"
+            ]
+          },
+          {
+            "names": [
+              "swc::Sema::execResult"
+            ]
+          },
+          {
+            "names": [
+              "swc::Sema::exec"
+            ]
+          },
+          {
+            "names": [
+              "swc::SemaJob::exec"
+            ]
+          },
+          {
+            "names": [
+              "swc::JobManager::executeJob"
+            ]
+          },
+          {
+            "names": [
+              "swc::JobManager::workerLoop"
+            ]
+          },
+          {
+            "names": [
+              "std::thread::_Invoke<std::tuple<`swc::JobManager::growWorkersForLoadLocked'::`8'::<lambda_1> >,0>"
+            ]
+          },
+          {
+            "names": []
+          },
+          {
+            "names": []
+          },
+          {
+            "names": []
+          }
+        ],
+        "owner": "Mixed compiler object/string arenas",
+        "owner_frame": "swc::Arena::allocate"
+      },
+      {
+        "requested_bytes": 8816426,
+        "frames": [
+          {
+            "names": [
+              "operator new"
+            ]
+          },
+          {
+            "names": [
+              "std::vector<swc::MicroInstrUseDef,std::allocator<swc::MicroInstrUseDef> >::_Resize_reallocate<std::_Value_init_tag>"
+            ]
+          },
+          {
+            "names": [
+              "swc::MicroPassHelpers::computePhysicalLiveness"
+            ]
+          },
+          {
+            "names": [
+              "swc::`anonymous namespace'::hoistRound"
+            ]
+          },
+          {
+            "names": [
+              "swc::MicroPostRaLoopHoistPass::run"
+            ]
+          },
+          {
+            "names": [
+              "swc::`anonymous namespace'::runPass"
+            ]
+          },
+          {
+            "names": [
+              "swc::MicroPassManager::run"
+            ]
+          },
+          {
+            "names": [
+              "swc::MicroBuilder::runPasses"
+            ]
+          },
+          {
+            "names": [
+              "swc::MachineCode::emit"
+            ]
+          },
+          {
+            "names": [
+              "swc::SymbolFunction::emitLowered"
+            ]
+          },
+          {
+            "names": [
+              "swc::CodeGenJob::execImpl"
+            ]
+          },
+          {
+            "names": [
+              "swc::CodeGenJob::exec"
+            ]
+          },
+          {
+            "names": [
+              "swc::JobManager::executeJob"
+            ]
+          },
+          {
+            "names": [
+              "swc::JobManager::workerLoop"
+            ]
+          },
+          {
+            "names": [
+              "std::thread::_Invoke<std::tuple<`swc::JobManager::growWorkersForLoadLocked'::`8'::<lambda_1> >,0>"
+            ]
+          },
+          {
+            "names": []
+          },
+          {
+            "names": []
+          },
+          {
+            "names": []
+          }
+        ],
+        "owner": "Backend: microcode and optimization",
+        "owner_frame": "swc::MicroPassHelpers::computePhysicalLiveness"
+      },
+      {
+        "requested_bytes": 8222989,
+        "frames": [
+          {
+            "names": [
+              "operator new"
+            ]
+          },
+          {
+            "names": [
+              "std::vector<enum std::byte,std::allocator<enum std::byte> >::_Insert_counted_range<enum std::byte const * __ptr64>"
+            ]
+          },
+          {
+            "names": [
+              "swc::`anonymous namespace'::NativeImageLowering::placeNativeSection"
+            ]
+          },
+          {
+            "names": [
+              "swc::`anonymous namespace'::NativeImageLowering::appendNativeSection"
+            ]
+          },
+          {
+            "names": [
+              "swc::PELinker::buildNativeImage"
+            ]
+          },
+          {
+            "names": [
+              "swc::PELinker::prepareImageLinkParallel"
+            ]
+          },
+          {
+            "names": [
+              "swc::PELinker::prepareLink"
+            ]
+          },
+          {
+            "names": [
+              "swc::NativeBackendBuilder::prepareForLink"
+            ]
+          },
+          {
+            "names": [
+              "swc::Command::`anonymous namespace'::finishBuildBackend"
+            ]
+          },
+          {
+            "names": [
+              "swc::Command::build"
+            ]
+          },
+          {
+            "names": [
+              "swc::CompilerInstance::runWorkspaceModule"
+            ]
+          },
+          {
+            "names": [
+              "swc::CompilerInstance::runWorkspace"
+            ]
+          },
+          {
+            "names": [
+              "swc::CompilerInstance::prepareDependencyPlan"
+            ]
+          },
+          {
+            "names": [
+              "swc::CompilerInstance::runWorkspace"
+            ]
+          },
+          {
+            "names": [
+              "swc::CompilerInstance::run"
+            ]
+          },
+          {
+            "names": [
+              "swc::runCompilerCli"
+            ]
+          },
+          {
+            "names": [
+              "main"
+            ]
+          },
+          {
+            "names": [
+              "__scrt_common_main_seh"
+            ]
+          },
+          {
+            "names": []
+          },
+          {
+            "names": []
+          }
+        ],
+        "owner": "Linker and object/archive I/O",
+        "owner_frame": "swc::`anonymous namespace'::NativeImageLowering::placeNativeSection"
+      },
+      {
+        "requested_bytes": 7925984,
+        "frames": [
+          {
+            "names": [
+              "operator new"
+            ]
+          },
+          {
+            "names": [
+              "swc::Arena::allocate"
+            ]
+          },
+          {
+            "names": [
+              "swc::Symbol::setAttributes"
+            ]
+          },
+          {
+            "names": [
+              "swc::AstFunctionDecl::semaPreNode"
+            ]
+          },
+          {
+            "names": [
+              "swc::Sema::preNode"
+            ]
+          },
+          {
+            "names": [
+              "swc::AstVisit::stepPreStage"
+            ]
+          },
+          {
+            "names": [
+              "swc::Sema::runCurrentVisit"
+            ]
+          },
+          {
+            "names": [
+              "swc::Sema::execResult"
+            ]
+          },
+          {
+            "names": [
+              "swc::Sema::exec"
+            ]
+          },
+          {
+            "names": [
+              "swc::SemaJob::exec"
+            ]
+          },
+          {
+            "names": [
+              "swc::JobManager::executeJob"
+            ]
+          },
+          {
+            "names": [
+              "swc::JobManager::workerLoop"
+            ]
+          },
+          {
+            "names": [
+              "std::thread::_Invoke<std::tuple<`swc::JobManager::growWorkersForLoadLocked'::`8'::<lambda_1> >,0>"
+            ]
+          },
+          {
+            "names": []
+          },
+          {
+            "names": []
+          },
+          {
+            "names": []
+          }
+        ],
+        "owner": "Mixed compiler object/string arenas",
+        "owner_frame": "swc::Arena::allocate"
+      },
+      {
+        "requested_bytes": 6852451,
+        "frames": [
+          {
+            "names": [
+              "operator new"
+            ]
+          },
+          {
+            "names": [
+              "swc::FlatKeyMap<swc::Ast::ReachableNodeIndex::Entry,unsigned __int64,0>::rehash"
+            ]
+          },
+          {
+            "names": [
+              "swc::Ast::buildReachableNodeIndex"
+            ]
+          },
+          {
+            "names": [
+              "swc::Ast::reachableNodeRef"
+            ]
+          },
+          {
+            "names": [
+              "swc::ModuleApi::findSymbolDeclRef"
+            ]
+          },
+          {
+            "names": [
+              "swc::`anonymous namespace'::isExportedLibraryFunction"
+            ]
+          },
+          {
+            "names": [
+              "swc::NativeBackendBuilder::prepare"
+            ]
+          },
+          {
+            "names": [
+              "swc::NativeBackendBuilder::buildArtifactObjects"
+            ]
+          },
+          {
+            "names": [
+              "swc::NativeBackendBuilder::prepareForLink"
+            ]
+          },
+          {
+            "names": [
+              "swc::Command::`anonymous namespace'::finishBuildBackend"
+            ]
+          },
+          {
+            "names": [
+              "swc::Command::build"
+            ]
+          },
+          {
+            "names": [
+              "swc::CompilerInstance::runWorkspaceModule"
+            ]
+          },
+          {
+            "names": [
+              "swc::CompilerInstance::runWorkspace"
+            ]
+          },
+          {
+            "names": [
+              "swc::CompilerInstance::prepareDependencyPlan"
+            ]
+          },
+          {
+            "names": [
+              "swc::CompilerInstance::runWorkspace"
+            ]
+          },
+          {
+            "names": [
+              "swc::CompilerInstance::run"
+            ]
+          },
+          {
+            "names": [
+              "swc::runCompilerCli"
+            ]
+          },
+          {
+            "names": [
+              "main"
+            ]
+          },
+          {
+            "names": [
+              "__scrt_common_main_seh"
+            ]
+          },
+          {
+            "names": []
+          }
+        ],
+        "owner": "AST and parsing",
+        "owner_frame": "swc::Ast::buildReachableNodeIndex"
+      },
+      {
+        "requested_bytes": 6481906,
+        "frames": [
+          {
+            "names": [
+              "operator new"
+            ]
+          },
+          {
+            "names": [
+              "swc::SourceFile::loadContent"
+            ]
+          },
+          {
+            "names": [
+              "`swc::JobManager::parallelForIndexed<`swc::parseSourceFiles'::`2'::<lambda_1> >'::`2'::WorkerJob::exec"
+            ]
+          },
+          {
+            "names": [
+              "swc::JobManager::executeJob"
+            ]
+          },
+          {
+            "names": [
+              "swc::JobManager::workerLoop"
+            ]
+          },
+          {
+            "names": [
+              "std::thread::_Invoke<std::tuple<`swc::JobManager::growWorkersForLoadLocked'::`8'::<lambda_1> >,0>"
+            ]
+          },
+          {
+            "names": []
+          },
+          {
+            "names": []
+          },
+          {
+            "names": []
+          }
+        ],
+        "owner": "Source text and tokens",
+        "owner_frame": "swc::SourceFile::loadContent"
+      },
+      {
+        "requested_bytes": 6389760,
+        "frames": [
+          {
+            "names": [
+              "operator new"
+            ]
+          },
+          {
+            "names": [
+              "swc::PagedStore::newPage"
+            ]
+          },
+          {
+            "names": [
+              "swc::PagedStore::allocate"
+            ]
+          },
+          {
+            "names": [
+              "swc::`anonymous namespace'::makeAutoMemberAccessExpr"
+            ]
+          },
+          {
+            "names": [
+              "swc::AstAutoMemberAccessExpr::semaPreNodeChild"
+            ]
+          },
+          {
+            "names": [
+              "swc::Sema::preNodeChild"
+            ]
+          },
+          {
+            "names": [
+              "swc::AstVisit::stepChildrenStage"
+            ]
+          },
+          {
+            "names": [
+              "swc::Sema::runCurrentVisit"
+            ]
+          },
+          {
+            "names": [
+              "swc::Sema::execResult"
+            ]
+          },
+          {
+            "names": [
+              "swc::Sema::exec"
+            ]
+          },
+          {
+            "names": [
+              "swc::SemaJob::exec"
+            ]
+          },
+          {
+            "names": [
+              "swc::JobManager::executeJob"
+            ]
+          },
+          {
+            "names": [
+              "swc::JobManager::workerLoop"
+            ]
+          },
+          {
+            "names": [
+              "std::thread::_Invoke<std::tuple<`swc::JobManager::growWorkersForLoadLocked'::`8'::<lambda_1> >,0>"
+            ]
+          },
+          {
+            "names": []
+          },
+          {
+            "names": []
+          },
+          {
+            "names": []
+          }
+        ],
+        "owner": "Sema: AST handlers (inlined storage)",
+        "owner_frame": "swc::AstAutoMemberAccessExpr::semaPreNodeChild"
+      },
+      {
+        "requested_bytes": 6353888,
+        "frames": [
+          {
+            "names": [
+              "operator new"
+            ]
+          },
+          {
+            "names": [
+              "swc::Arena::allocate"
+            ]
+          },
+          {
+            "names": [
+              "swc::SemaHelpers::registerSymbol<swc::SymbolVariable>"
+            ]
+          },
+          {
+            "names": [
+              "swc::AstSingleVarDecl::semaPreDecl"
+            ]
+          },
+          {
+            "names": [
+              "swc::AstSingleVarDecl::semaPreNode"
+            ]
+          },
+          {
+            "names": [
+              "swc::Sema::preNode"
+            ]
+          },
+          {
+            "names": [
+              "swc::AstVisit::stepPreStage"
+            ]
+          },
+          {
+            "names": [
+              "swc::Sema::runCurrentVisit"
+            ]
+          },
+          {
+            "names": [
+              "swc::Sema::execResult"
+            ]
+          },
+          {
+            "names": [
+              "swc::Sema::exec"
+            ]
+          },
+          {
+            "names": [
+              "swc::SemaJob::exec"
+            ]
+          },
+          {
+            "names": [
+              "swc::JobManager::executeJob"
+            ]
+          },
+          {
+            "names": [
+              "swc::JobManager::workerLoop"
+            ]
+          },
+          {
+            "names": [
+              "std::thread::_Invoke<std::tuple<`swc::JobManager::growWorkersForLoadLocked'::`8'::<lambda_1> >,0>"
+            ]
+          },
+          {
+            "names": []
+          },
+          {
+            "names": []
+          },
+          {
+            "names": []
+          }
+        ],
+        "owner": "Mixed compiler object/string arenas",
+        "owner_frame": "swc::Arena::allocate"
+      },
+      {
+        "requested_bytes": 5960864,
+        "frames": [
+          {
+            "names": [
+              "operator new"
+            ]
+          },
+          {
+            "names": [
+              "swc::Arena::allocate"
+            ]
+          },
+          {
+            "names": [
+              "swc::SemaHelpers::registerSymbol<swc::SymbolFunction>"
+            ]
+          },
+          {
+            "names": [
+              "swc::`anonymous namespace'::registerFunctionSymbol"
+            ]
+          },
+          {
+            "names": [
+              "swc::AstFunctionDecl::semaPreDecl"
+            ]
+          },
+          {
+            "names": [
+              "swc::AstVisit::stepPreStage"
+            ]
+          },
+          {
+            "names": [
+              "swc::Sema::runCurrentVisit"
+            ]
+          },
+          {
+            "names": [
+              "swc::Sema::execResult"
+            ]
+          },
+          {
+            "names": [
+              "swc::SemaGeneric::`anonymous namespace'::runCachedSema<std::unordered_map<swc::SemaGeneric::`anonymous namespace'::GenericImplBlockRunKey,swc::SemaGeneric::A0xb49ca7bb::CachedSemaRun,swc::SemaGeneric::A0xb49ca7bb::GenericImplBlockRunKeyHash,std::equal_to<swc::SemaGeneric::`anonymous namespace'::GenericImplBlockRunKey>,std::allocator<std::pair<swc::SemaGeneric::`anonymous namespace'::GenericImplBlockRunKey const ,swc::SemaGeneric::A0xb49ca7bb::CachedSemaRun> > >,swc::SemaGeneric::`anonymous namespace'::GenericImplBlockRunKey,swc::SemaGeneric::A0xb49ca7bb::GenericImplBlockRunInitializer>"
+            ]
+          },
+          {
+            "names": [
+              "swc::SemaGeneric::`anonymous namespace'::runGenericImplBlockPass"
+            ]
+          },
+          {
+            "names": [
+              "swc::SemaGeneric::`anonymous namespace'::runGenericImplClonePasses"
+            ]
+          },
+          {
+            "names": [
+              "swc::SemaGeneric::`anonymous namespace'::instantiateGenericStructImpl"
+            ]
+          },
+          {
+            "names": [
+              "swc::SemaGeneric::Internal::instantiateGenericStructImpls"
+            ]
+          },
+          {
+            "names": [
+              "swc::SemaGeneric::`anonymous namespace'::finalizeGenericInstance"
+            ]
+          },
+          {
+            "names": [
+              "swc::SemaGeneric::`anonymous namespace'::createGenericInstance"
+            ]
+          },
+          {
+            "names": [
+              "swc::SemaGeneric::`anonymous namespace'::instantiateGenericExplicit"
+            ]
+          },
+          {
+            "names": [
+              "swc::SemaGeneric::instantiateStructExplicit"
+            ]
+          },
+          {
+            "names": [
+              "swc::`anonymous namespace'::semaQuotedGenericCommon<swc::AstQuotedListExpr>"
+            ]
+          },
+          {
+            "names": [
+              "swc::Sema::postNode"
+            ]
+          },
+          {
+            "names": [
+              "swc::AstVisit::step"
+            ]
+          }
+        ],
+        "owner": "Mixed compiler object/string arenas",
+        "owner_frame": "swc::Arena::allocate"
+      },
+      {
+        "requested_bytes": 5577543,
+        "frames": [
+          {
+            "names": [
+              "operator new"
+            ]
+          },
+          {
+            "names": [
+              "std::vector<enum std::byte,std::allocator<enum std::byte> >::reserve"
+            ]
+          },
+          {
+            "names": [
+              "swc::CompilerCacheStore::publish"
+            ]
+          },
+          {
+            "names": [
+              "swc::CompilerCacheStore::flush"
+            ]
+          },
+          {
+            "names": [
+              "swc::CompilerInstance::~CompilerInstance"
+            ]
+          },
+          {
+            "names": [
+              "swc::Formatter::prepareSource"
+            ]
+          },
+          {
+            "names": [
+              "swc::Formatter::prepare"
+            ]
+          },
+          {
+            "names": [
+              "swc::`anonymous namespace'::formatGeneratedModuleApiContent"
+            ]
+          },
+          {
+            "names": [
+              "swc::ModuleApiExport::writeGeneratedModuleImports"
+            ]
+          },
+          {
+            "names": [
+              "swc::ModuleApi::exportFiles"
+            ]
+          },
+          {
+            "names": [
+              "swc::CompilerInstance::exportModuleApi"
+            ]
+          },
+          {
+            "names": [
+              "swc::Command::sema"
+            ]
+          },
+          {
+            "names": [
+              "swc::Command::build"
+            ]
+          },
+          {
+            "names": [
+              "swc::CompilerInstance::runWorkspaceModule"
+            ]
+          },
+          {
+            "names": [
+              "swc::CompilerInstance::runWorkspace"
+            ]
+          },
+          {
+            "names": [
+              "swc::CompilerInstance::prepareDependencyPlan"
+            ]
+          },
+          {
+            "names": [
+              "swc::CompilerInstance::runWorkspace"
+            ]
+          },
+          {
+            "names": [
+              "swc::CompilerInstance::run"
+            ]
+          },
+          {
+            "names": [
+              "swc::runCompilerCli"
+            ]
+          },
+          {
+            "names": [
+              "main"
+            ]
+          }
+        ],
+        "owner": "Compiler artifact caches",
+        "owner_frame": "swc::CompilerCacheStore::publish"
+      },
+      {
+        "requested_bytes": 5448132,
+        "frames": [
+          {
+            "names": [
+              "operator new"
+            ]
+          },
+          {
+            "names": [
+              "swc::ByteArray::resize"
+            ]
+          },
+          {
+            "names": [
+              "swc::NativeRDataCollector::emitReachableAllocations"
+            ]
+          },
+          {
+            "names": [
+              "swc::NativeArtifactBuilder::finishDataSections"
+            ]
+          },
+          {
+            "names": [
+              "swc::NativeArtifactBuilder::buildStartupAndDataSectionsParallel"
+            ]
+          },
+          {
+            "names": [
+              "swc::NativeArtifactBuilder::build"
+            ]
+          },
+          {
+            "names": [
+              "swc::NativeBackendBuilder::buildArtifactObjects"
+            ]
+          },
+          {
+            "names": [
+              "swc::NativeBackendBuilder::prepareForLink"
+            ]
+          },
+          {
+            "names": [
+              "swc::Command::`anonymous namespace'::finishBuildBackend"
+            ]
+          },
+          {
+            "names": [
+              "swc::Command::build"
+            ]
+          },
+          {
+            "names": [
+              "swc::CompilerInstance::runWorkspaceModule"
+            ]
+          },
+          {
+            "names": [
+              "swc::CompilerInstance::runWorkspace"
+            ]
+          },
+          {
+            "names": [
+              "swc::CompilerInstance::prepareDependencyPlan"
+            ]
+          },
+          {
+            "names": [
+              "swc::CompilerInstance::runWorkspace"
+            ]
+          },
+          {
+            "names": [
+              "swc::CompilerInstance::run"
+            ]
+          },
+          {
+            "names": [
+              "swc::runCompilerCli"
+            ]
+          },
+          {
+            "names": [
+              "main"
+            ]
+          },
+          {
+            "names": [
+              "__scrt_common_main_seh"
+            ]
+          },
+          {
+            "names": []
+          },
+          {
+            "names": []
+          }
+        ],
+        "owner": "Backend: native emission",
+        "owner_frame": "swc::NativeRDataCollector::emitReachableAllocations"
+      },
+      {
+        "requested_bytes": 5267514,
+        "frames": [
+          {
+            "names": [
+              "operator new"
+            ]
+          },
+          {
+            "names": [
+              "std::vector<swc::SmallVector<unsigned int,4>,std::allocator<swc::SmallVector<unsigned int,4> > >::reserve"
+            ]
+          },
+          {
+            "names": [
+              "swc::MicroRegisterAllocationPass::initState"
+            ]
+          },
+          {
+            "names": [
+              "`swc::MicroRegisterAllocationPass::run'::`2'::<lambda_1>::operator()"
+            ]
+          },
+          {
+            "names": [
+              "swc::MicroRegisterAllocationPass::run"
+            ]
+          },
+          {
+            "names": [
+              "swc::`anonymous namespace'::runPass"
+            ]
+          },
+          {
+            "names": [
+              "swc::`anonymous namespace'::runLoopPasses"
+            ]
+          },
+          {
+            "names": [
+              "swc::MicroPassManager::run"
+            ]
+          },
+          {
+            "names": [
+              "swc::MicroBuilder::runPasses"
+            ]
+          },
+          {
+            "names": [
+              "swc::MachineCode::emit"
+            ]
+          },
+          {
+            "names": [
+              "swc::SymbolFunction::emitLowered"
+            ]
+          },
+          {
+            "names": [
+              "swc::CodeGenJob::execImpl"
+            ]
+          },
+          {
+            "names": [
+              "swc::CodeGenJob::exec"
+            ]
+          },
+          {
+            "names": [
+              "swc::JobManager::executeJob"
+            ]
+          },
+          {
+            "names": [
+              "swc::JobManager::workerLoop"
+            ]
+          },
+          {
+            "names": [
+              "std::thread::_Invoke<std::tuple<`swc::JobManager::growWorkersForLoadLocked'::`8'::<lambda_1> >,0>"
+            ]
+          },
+          {
+            "names": []
+          },
+          {
+            "names": []
+          },
+          {
+            "names": []
+          }
+        ],
+        "owner": "Backend: register allocation",
+        "owner_frame": "swc::MicroRegisterAllocationPass::initState"
+      },
+      {
+        "requested_bytes": 5267514,
+        "frames": [
+          {
+            "names": [
+              "operator new"
+            ]
+          },
+          {
+            "names": [
+              "std::vector<swc::SmallVector<unsigned int,4>,std::allocator<swc::SmallVector<unsigned int,4> > >::reserve"
+            ]
+          },
+          {
+            "names": [
+              "swc::MicroRegisterAllocationPass::initState"
+            ]
+          },
+          {
+            "names": [
+              "`swc::MicroRegisterAllocationPass::run'::`2'::<lambda_1>::operator()"
+            ]
+          },
+          {
+            "names": [
+              "swc::MicroRegisterAllocationPass::run"
+            ]
+          },
+          {
+            "names": [
+              "swc::`anonymous namespace'::runPass"
+            ]
+          },
+          {
+            "names": [
+              "swc::`anonymous namespace'::runLoopPasses"
+            ]
+          },
+          {
+            "names": [
+              "swc::MicroPassManager::run"
+            ]
+          },
+          {
+            "names": [
+              "swc::MicroBuilder::runPasses"
+            ]
+          },
+          {
+            "names": [
+              "swc::MachineCode::emit"
+            ]
+          },
+          {
+            "names": [
+              "swc::SymbolFunction::emitLowered"
+            ]
+          },
+          {
+            "names": [
+              "swc::CodeGenJob::execImpl"
+            ]
+          },
+          {
+            "names": [
+              "swc::CodeGenJob::exec"
+            ]
+          },
+          {
+            "names": [
+              "swc::JobManager::executeJob"
+            ]
+          },
+          {
+            "names": [
+              "swc::JobManager::workerLoop"
+            ]
+          },
+          {
+            "names": [
+              "std::thread::_Invoke<std::tuple<`swc::JobManager::growWorkersForLoadLocked'::`8'::<lambda_1> >,0>"
+            ]
+          },
+          {
+            "names": []
+          },
+          {
+            "names": []
+          },
+          {
+            "names": []
+          }
+        ],
+        "owner": "Backend: register allocation",
+        "owner_frame": "swc::MicroRegisterAllocationPass::initState"
+      },
+      {
+        "requested_bytes": 5267514,
+        "frames": [
+          {
+            "names": [
+              "operator new"
+            ]
+          },
+          {
+            "names": [
+              "std::vector<swc::SmallVector<unsigned int,4>,std::allocator<swc::SmallVector<unsigned int,4> > >::reserve"
+            ]
+          },
+          {
+            "names": [
+              "swc::MicroRegisterAllocationPass::initState"
+            ]
+          },
+          {
+            "names": [
+              "`swc::MicroRegisterAllocationPass::run'::`2'::<lambda_1>::operator()"
+            ]
+          },
+          {
+            "names": [
+              "swc::MicroRegisterAllocationPass::run"
+            ]
+          },
+          {
+            "names": [
+              "swc::`anonymous namespace'::runPass"
+            ]
+          },
+          {
+            "names": [
+              "swc::`anonymous namespace'::runLoopPasses"
+            ]
+          },
+          {
+            "names": [
+              "swc::MicroPassManager::run"
+            ]
+          },
+          {
+            "names": [
+              "swc::MicroBuilder::runPasses"
+            ]
+          },
+          {
+            "names": [
+              "swc::MachineCode::emit"
+            ]
+          },
+          {
+            "names": [
+              "swc::SymbolFunction::emitLowered"
+            ]
+          },
+          {
+            "names": [
+              "swc::CodeGenJob::execImpl"
+            ]
+          },
+          {
+            "names": [
+              "swc::CodeGenJob::exec"
+            ]
+          },
+          {
+            "names": [
+              "swc::JobManager::executeJob"
+            ]
+          },
+          {
+            "names": [
+              "swc::JobManager::workerLoop"
+            ]
+          },
+          {
+            "names": [
+              "std::thread::_Invoke<std::tuple<`swc::JobManager::growWorkersForLoadLocked'::`8'::<lambda_1> >,0>"
+            ]
+          },
+          {
+            "names": []
+          },
+          {
+            "names": []
+          },
+          {
+            "names": []
+          }
+        ],
+        "owner": "Backend: register allocation",
+        "owner_frame": "swc::MicroRegisterAllocationPass::initState"
+      },
+      {
+        "requested_bytes": 5267514,
+        "frames": [
+          {
+            "names": [
+              "operator new"
+            ]
+          },
+          {
+            "names": [
+              "std::vector<swc::SmallVector<unsigned int,4>,std::allocator<swc::SmallVector<unsigned int,4> > >::reserve"
+            ]
+          },
+          {
+            "names": [
+              "swc::MicroRegisterAllocationPass::initState"
+            ]
+          },
+          {
+            "names": [
+              "`swc::MicroRegisterAllocationPass::run'::`2'::<lambda_1>::operator()"
+            ]
+          },
+          {
+            "names": [
+              "swc::MicroRegisterAllocationPass::run"
+            ]
+          },
+          {
+            "names": [
+              "swc::`anonymous namespace'::runPass"
+            ]
+          },
+          {
+            "names": [
+              "swc::`anonymous namespace'::runLoopPasses"
+            ]
+          },
+          {
+            "names": [
+              "swc::MicroPassManager::run"
+            ]
+          },
+          {
+            "names": [
+              "swc::MicroBuilder::runPasses"
+            ]
+          },
+          {
+            "names": [
+              "swc::MachineCode::emit"
+            ]
+          },
+          {
+            "names": [
+              "swc::SymbolFunction::emitLowered"
+            ]
+          },
+          {
+            "names": [
+              "swc::CodeGenJob::execImpl"
+            ]
+          },
+          {
+            "names": [
+              "swc::CodeGenJob::exec"
+            ]
+          },
+          {
+            "names": [
+              "swc::JobManager::executeJob"
+            ]
+          },
+          {
+            "names": [
+              "swc::JobManager::workerLoop"
+            ]
+          },
+          {
+            "names": [
+              "std::thread::_Invoke<std::tuple<`swc::JobManager::growWorkersForLoadLocked'::`8'::<lambda_1> >,0>"
+            ]
+          },
+          {
+            "names": []
+          },
+          {
+            "names": []
+          },
+          {
+            "names": []
+          }
+        ],
+        "owner": "Backend: register allocation",
+        "owner_frame": "swc::MicroRegisterAllocationPass::initState"
+      },
+      {
+        "requested_bytes": 5209644,
+        "frames": [
+          {
+            "names": [
+              "operator new"
+            ]
+          },
+          {
+            "names": [
+              "std::vector<enum std::byte,std::allocator<enum std::byte> >::_Insert_counted_range<enum std::byte const * __ptr64>"
+            ]
+          },
+          {
+            "names": [
+              "swc::`anonymous namespace'::NativeImageLowering::placeNativeSection"
+            ]
+          },
+          {
+            "names": [
+              "swc::`anonymous namespace'::NativeImageLowering::appendNativeSection"
+            ]
+          },
+          {
+            "names": [
+              "swc::PELinker::buildNativeImage"
+            ]
+          },
+          {
+            "names": [
+              "swc::PELinker::prepareImageLinkParallel"
+            ]
+          },
+          {
+            "names": [
+              "swc::PELinker::prepareLink"
+            ]
+          },
+          {
+            "names": [
+              "swc::NativeBackendBuilder::prepareForLink"
+            ]
+          },
+          {
+            "names": [
+              "swc::Command::`anonymous namespace'::finishBuildBackend"
+            ]
+          },
+          {
+            "names": [
+              "swc::Command::build"
+            ]
+          },
+          {
+            "names": [
+              "swc::CompilerInstance::runWorkspaceModule"
+            ]
+          },
+          {
+            "names": [
+              "swc::CompilerInstance::runWorkspace"
+            ]
+          },
+          {
+            "names": [
+              "swc::CompilerInstance::prepareDependencyPlan"
+            ]
+          },
+          {
+            "names": [
+              "swc::CompilerInstance::runWorkspace"
+            ]
+          },
+          {
+            "names": [
+              "swc::CompilerInstance::run"
+            ]
+          },
+          {
+            "names": [
+              "swc::runCompilerCli"
+            ]
+          },
+          {
+            "names": [
+              "main"
+            ]
+          },
+          {
+            "names": [
+              "__scrt_common_main_seh"
+            ]
+          },
+          {
+            "names": []
+          },
+          {
+            "names": []
+          }
+        ],
+        "owner": "Linker and object/archive I/O",
+        "owner_frame": "swc::`anonymous namespace'::NativeImageLowering::placeNativeSection"
+      },
+      {
+        "requested_bytes": 5161559,
+        "frames": [
+          {
+            "names": [
+              "operator new"
+            ]
+          },
+          {
+            "names": [
+              "std::vector<swc::NativeSectionRelocation,std::allocator<swc::NativeSectionRelocation> >::_Emplace_reallocate<swc::NativeSectionRelocation>"
+            ]
+          },
+          {
+            "names": [
+              "swc::NativeRDataCollector::emitReachableAllocations"
+            ]
+          },
+          {
+            "names": [
+              "swc::NativeArtifactBuilder::finishDataSections"
+            ]
+          },
+          {
+            "names": [
+              "swc::NativeArtifactBuilder::buildStartupAndDataSectionsParallel"
+            ]
+          },
+          {
+            "names": [
+              "swc::NativeArtifactBuilder::build"
+            ]
+          },
+          {
+            "names": [
+              "swc::NativeBackendBuilder::buildArtifactObjects"
+            ]
+          },
+          {
+            "names": [
+              "swc::NativeBackendBuilder::prepareForLink"
+            ]
+          },
+          {
+            "names": [
+              "swc::Command::`anonymous namespace'::finishBuildBackend"
+            ]
+          },
+          {
+            "names": [
+              "swc::Command::build"
+            ]
+          },
+          {
+            "names": [
+              "swc::CompilerInstance::runWorkspaceModule"
+            ]
+          },
+          {
+            "names": [
+              "swc::CompilerInstance::runWorkspace"
+            ]
+          },
+          {
+            "names": [
+              "swc::CompilerInstance::prepareDependencyPlan"
+            ]
+          },
+          {
+            "names": [
+              "swc::CompilerInstance::runWorkspace"
+            ]
+          },
+          {
+            "names": [
+              "swc::CompilerInstance::run"
+            ]
+          },
+          {
+            "names": [
+              "swc::runCompilerCli"
+            ]
+          },
+          {
+            "names": [
+              "main"
+            ]
+          },
+          {
+            "names": [
+              "__scrt_common_main_seh"
+            ]
+          },
+          {
+            "names": []
+          },
+          {
+            "names": []
+          }
+        ],
+        "owner": "Backend: native emission",
+        "owner_frame": "swc::NativeRDataCollector::emitReachableAllocations"
+      }
+    ],
+    "heap": {
+      "seq": 22,
+      "elapsed": 154208,
+      "rss": 1518698496,
+      "peak_rss": 1518698496,
+      "commit": 1510408192,
+      "heaps": 1,
+      "areas": 5203,
+      "blocks": 1159139,
+      "occupied": 953788080,
+      "slots": 1340908384,
+      "ok": 1,
+      "overflow": 0
+    }
+  },
+  "map_sha256": "178173339a1a15f370c8ad808929c9191fa60738eb37fbd6678cca4263b07d8b",
+  "build": {
+    "command": [
+      "C:/Program Files/Microsoft Visual Studio/18/Enterprise/MSBuild/Current/Bin/MSBuild.exe",
+      "swc.vcxproj",
+      "/m:6",
+      "/p:SwcCompileJobs=6",
+      "/p:Platform=x64",
+      "/p:Configuration=DevMode",
+      "/nologo",
+      "/v:minimal"
+    ],
+    "revision": "822f6bcd65b4828c91409f1c55852d7962da8a3b",
+    "exit_code": 0,
+    "compiler_sha256": "2bc16a5aec0f886635e2be939a7c7f6e26d9dddb6499e4b2b038bfe22c19bfe1",
+    "map_sha256": "178173339a1a15f370c8ad808929c9191fa60738eb37fbd6678cca4263b07d8b",
+    "wall_seconds": 13.0977783203125
+  },
+  "live_owner_sites_at_max_rss": [
+    {
+      "owner": "Mixed compiler object/string arenas",
+      "frame": "swc::Arena::allocate",
+      "requested_bytes": 157209600
+    },
+    {
+      "owner": "Backend: register allocation",
+      "frame": "swc::MicroRegisterAllocationPass::analyzeLiveness",
+      "requested_bytes": 127460091
+    },
+    {
+      "owner": "Compiler artifact caches",
+      "frame": "swc::CompilerCacheStore::publish",
+      "requested_bytes": 24814564
+    },
+    {
+      "owner": "AST and parsing",
+      "frame": "swc::Ast::makeNode<11>",
+      "requested_bytes": 24707072
+    },
+    {
+      "owner": "Backend: microcode and optimization",
+      "frame": "swc::MicroPassHelpers::computePhysicalLiveness",
+      "requested_bytes": 21748634
+    },
+    {
+      "owner": "Backend: register allocation",
+      "frame": "swc::MicroRegisterAllocationPass::initState",
+      "requested_bytes": 21719542
+    },
+    {
+      "owner": "Linker and object/archive I/O",
+      "frame": "swc::`anonymous namespace'::NativeImageLowering::appendNativeSection",
+      "requested_bytes": 19389909
+    },
+    {
+      "owner": "Backend: native emission",
+      "frame": "swc::NativeRDataCollector::emitReachableAllocations",
+      "requested_bytes": 17116154
+    },
+    {
+      "owner": "Linker and object/archive I/O",
+      "frame": "swc::`anonymous namespace'::NativeImageLowering::placeNativeSection",
+      "requested_bytes": 13677943
+    },
+    {
+      "owner": "Sema: analysis and payloads",
+      "frame": "swc::NodePayload::setSymbolListImpl",
+      "requested_bytes": 12648448
+    },
+    {
+      "owner": "Sema: analysis and payloads",
+      "frame": "swc::NodePayload::setInlinePayload",
+      "requested_bytes": 12637563
+    },
+    {
+      "owner": "Backend: register allocation",
+      "frame": "`swc::MicroRegisterAllocationPass::run'::`2'::<lambda_1>::operator()",
+      "requested_bytes": 12372369
+    },
+    {
+      "owner": "Sema: analysis and payloads",
+      "frame": "swc::NodePayload::setSymbol",
+      "requested_bytes": 10928128
+    },
+    {
+      "owner": "Sema: AST handlers (inlined storage)",
+      "frame": "swc::AstAutoMemberAccessExpr::semaPreNodeChild",
+      "requested_bytes": 9814016
+    },
+    {
+      "owner": "AST and parsing",
+      "frame": "swc::Ast::buildReachableNodeIndex",
+      "requested_bytes": 9474476
+    },
+    {
+      "owner": "Backend: microcode and optimization",
+      "frame": "swc::MicroSsaState::build",
+      "requested_bytes": 7275723
+    },
+    {
+      "owner": "Source text and tokens",
+      "frame": "swc::SourceFile::loadContent",
+      "requested_bytes": 6481906
+    },
+    {
+      "owner": "Backend: microcode and optimization",
+      "frame": "swc::MicroPreRaPeepholePass::run",
+      "requested_bytes": 6127850
+    },
+    {
+      "owner": "Source text and tokens",
+      "frame": "swc::Lexer::tokenize",
+      "requested_bytes": 5874924
+    },
+    {
+      "owner": "Backend: microcode and optimization",
+      "frame": "swc::MicroPeephole::RewriteQueue<swc::InstructionCombine::Action>::emitRewrite",
+      "requested_bytes": 5013699
+    },
+    {
+      "owner": "Backend: microcode and optimization",
+      "frame": "swc::MicroConstantFoldingPass::run",
+      "requested_bytes": 4580183
+    },
+    {
+      "owner": "AST and parsing",
+      "frame": "swc::Ast::makeNode<85>",
+      "requested_bytes": 4554752
+    },
+    {
+      "owner": "Source text and tokens",
+      "frame": "swc::Lexer::lexSymbol",
+      "requested_bytes": 4523118
+    },
+    {
+      "owner": "AST and parsing",
+      "frame": "swc::AstMemberAccessExpr::semaClone",
+      "requested_bytes": 4440064
+    },
+    {
+      "owner": "AST and parsing",
+      "frame": "swc::Parser::parse",
+      "requested_bytes": 4276224
+    },
+    {
+      "owner": "Backend: microcode and optimization",
+      "frame": "swc::MicroEmitPass::encodeInstruction",
+      "requested_bytes": 3627978
+    },
+    {
+      "owner": "Backend: microcode and optimization",
+      "frame": "swc::MicroPeephole::RewriteQueue<swc::PostRaPeephole::Action>::emitRewrite",
+      "requested_bytes": 3621020
+    },
+    {
+      "owner": "AST and parsing",
+      "frame": "swc::AstCallExpr::semaClone",
+      "requested_bytes": 3555328
+    },
+    {
+      "owner": "AST and parsing",
+      "frame": "swc::AstAutoMemberAccessExpr::semaClone",
+      "requested_bytes": 3538944
+    },
+    {
+      "owner": "Backend: microcode and optimization",
+      "frame": "swc::MicroBranchSimplifyPass::run",
+      "requested_bytes": 3518722
+    },
+    {
+      "owner": "Sema: symbols and identifiers",
+      "frame": "swc::IdentifierManager::addIdentifierInternal",
+      "requested_bytes": 3407872
+    },
+    {
+      "owner": "Sema: constants",
+      "frame": "swc::ConstantManager::addSourceCodeLocation",
+      "requested_bytes": 3351678
+    },
+    {
+      "owner": "Backend: microcode and optimization",
+      "frame": "swc::MicroSsaState::renameIntoSsa",
+      "requested_bytes": 3014656
+    },
+    {
+      "owner": "AST and parsing",
+      "frame": "swc::AstEmbeddedBlock::semaClone",
+      "requested_bytes": 2867200
+    },
+    {
+      "owner": "Backend: microcode and optimization",
+      "frame": "swc::MicroStackAdjustNormalizePass::run",
+      "requested_bytes": 2785764
+    },
+    {
+      "owner": "Backend: microcode and optimization",
+      "frame": "swc::MicroInstructionCombinePass::run",
+      "requested_bytes": 2640347
+    },
+    {
+      "owner": "Backend: microcode and optimization",
+      "frame": "swc::MicroSsaState::placePhiNodes",
+      "requested_bytes": 2595105
+    },
+    {
+      "owner": "Compiler artifact caches",
+      "frame": "swc::MachineCodeCache::write",
+      "requested_bytes": 2583002
+    },
+    {
+      "owner": "Sema: types",
+      "frame": "swc::TypeManager::addTypeAfterMiss",
+      "requested_bytes": 2539520
+    },
+    {
+      "owner": "AST and parsing",
+      "frame": "swc::AstSingleVarDecl::semaClone",
+      "requested_bytes": 2539520
+    },
+    {
+      "owner": "Backend: native emission",
+      "frame": "swc::NativeArtifactBuilder::buildRuntimeHook",
+      "requested_bytes": 2439022
+    },
+    {
+      "owner": "Backend: microcode and optimization",
+      "frame": "swc::MicroEmitPass::run",
+      "requested_bytes": 2368783
+    },
+    {
+      "owner": "Sema: constants",
+      "frame": "swc::ConstantManager::WalkedAllocations::grow",
+      "requested_bytes": 2359530
+    },
+    {
+      "owner": "Backend: microcode and optimization",
+      "frame": "swc::MicroPostRaPeepholePass::run",
+      "requested_bytes": 2291453
+    },
+    {
+      "owner": "Backend: microcode and optimization",
+      "frame": "swc::MicroCopyEliminationPass::run",
+      "requested_bytes": 2155394
+    },
+    {
+      "owner": "AST and parsing",
+      "frame": "swc::Ast::makeNode<6>",
+      "requested_bytes": 2129920
+    },
+    {
+      "owner": "Sema: symbols and identifiers",
+      "frame": "swc::IdentifierManager::publishInterned",
+      "requested_bytes": 2097152
+    },
+    {
+      "owner": "Sema: analysis and payloads",
+      "frame": "swc::NodePayload::setSubstitute",
+      "requested_bytes": 2064384
+    },
+    {
+      "owner": "Sema: analysis and payloads",
+      "frame": "swc::SemaJIT::runFunctionResult",
+      "requested_bytes": 2018067
+    },
+    {
+      "owner": "AST and parsing",
+      "frame": "swc::AstBinaryExpr::semaClone",
+      "requested_bytes": 1769472
+    },
+    {
+      "owner": "AST and parsing",
+      "frame": "swc::Parser::parseVarDecl",
+      "requested_bytes": 1736704
+    },
+    {
+      "owner": "AST and parsing",
+      "frame": "swc::Ast::makeNode<94>",
+      "requested_bytes": 1736704
+    },
+    {
+      "owner": "Sema: types",
+      "frame": "swc::TypeGen::wireRelocations",
+      "requested_bytes": 1687329
+    },
+    {
+      "owner": "Sema: constants",
+      "frame": "swc::ConstantManager::hasUnpublishedFunctionRelocations",
+      "requested_bytes": 1573098
+    },
+    {
+      "owner": "AST and parsing",
+      "frame": "swc::Parser::lowerSwagIntrinsicCall",
+      "requested_bytes": 1474560
+    },
+    {
+      "owner": "Backend: microcode and optimization",
+      "frame": "swc::MicroValueBorrowFastPathPass::run",
+      "requested_bytes": 1445091
+    },
+    {
+      "owner": "Sema: analysis and payloads",
+      "frame": "swc::NodePayload::setLoweringPayload",
+      "requested_bytes": 1394083
+    },
+    {
+      "owner": "AST and parsing",
+      "frame": "swc::AstRelationalExpr::semaClone",
+      "requested_bytes": 1359872
+    },
+    {
+      "owner": "AST and parsing",
+      "frame": "swc::AstIfStmt::semaClone",
+      "requested_bytes": 1343488
+    },
+    {
+      "owner": "Linker and object/archive I/O",
+      "frame": "swc::`anonymous namespace'::NativeImageLowering::placeUnwindSections",
+      "requested_bytes": 1310919
+    },
+    {
+      "owner": "AST and parsing",
+      "frame": "swc::AstFunctionDecl::semaClone",
+      "requested_bytes": 1294336
+    },
+    {
+      "owner": "Source text and tokens",
+      "frame": "swc::Lexer::lexIdentifier",
+      "requested_bytes": 1241778
+    },
+    {
+      "owner": "Orchestration",
+      "frame": "swc::ModuleSetupInputApplier::apply",
+      "requested_bytes": 1187966
+    },
+    {
+      "owner": "Backend: native emission",
+      "frame": "swc::X64Encoder::encodeCallRelative",
+      "requested_bytes": 1179648
+    },
+    {
+      "owner": "Sema: analysis and payloads",
+      "frame": "swc::NodePayload::setInlineContextOverride",
+      "requested_bytes": 1164005
+    },
+    {
+      "owner": "Linker and object/archive I/O",
+      "frame": "swc::Archive::decode",
+      "requested_bytes": 1147426
+    },
+    {
+      "owner": "Backend: native emission",
+      "frame": "swc::X64Encoder::encodeJump",
+      "requested_bytes": 1097728
+    },
+    {
+      "owner": "Sema: symbols and identifiers",
+      "frame": "swc::`anonymous namespace'::SymbolTableJob::exec",
+      "requested_bytes": 1096934
+    },
+    {
+      "owner": "Backend: microcode and optimization",
+      "frame": "swc::MicroPassHelpers::computeInstructionDominators",
+      "requested_bytes": 1071487
+    },
+    {
+      "owner": "AST and parsing",
+      "frame": "swc::AstAssignStmt::semaClone",
+      "requested_bytes": 1064960
+    },
+    {
+      "owner": "Backend: microcode and optimization",
+      "frame": "swc::MicroDenseRegIndex::reserve",
+      "requested_bytes": 1053834
+    },
+    {
+      "owner": "AST and parsing",
+      "frame": "swc::AstUnaryExpr::semaClone",
+      "requested_bytes": 999424
+    },
+    {
+      "owner": "Sema: analysis and payloads",
+      "frame": "swc::NodePayload::setSemaPayload",
+      "requested_bytes": 983352
+    },
+    {
+      "owner": "AST and parsing",
+      "frame": "swc::Parser::parseAutoMemberAccessExpr",
+      "requested_bytes": 983040
+    },
+    {
+      "owner": "AST and parsing",
+      "frame": "swc::Parser::parseCompoundContentUntil",
+      "requested_bytes": 983040
+    },
+    {
+      "owner": "AST and parsing",
+      "frame": "swc::AstBuiltinType::semaClone",
+      "requested_bytes": 983040
+    },
+    {
+      "owner": "Backend: register allocation",
+      "frame": "swc::MicroRegisterAllocationPass::rewriteInstructions",
+      "requested_bytes": 965802
+    },
+    {
+      "owner": "AST and parsing",
+      "frame": "swc::Parser::parseLiteral",
+      "requested_bytes": 933888
+    },
+    {
+      "owner": "Backend: register allocation",
+      "frame": "swc::MicroRegisterAllocationPass::computeLoopDepth",
+      "requested_bytes": 927456
+    },
+    {
+      "owner": "Backend: native emission",
+      "frame": "swc::X64Encoder::encodeLoadRegReg",
+      "requested_bytes": 917504
+    },
+    {
+      "owner": "Sema: analysis and payloads",
+      "frame": "swc::Sema::postNode",
+      "requested_bytes": 868352
+    },
+    {
+      "owner": "Sema: analysis and payloads",
+      "frame": "swc::NodePayload::setConstAssignSourceParameter",
+      "requested_bytes": 852514
+    },
+    {
+      "owner": "Backend: microcode and optimization",
+      "frame": "swc::MicroPeephole::RewriteQueue<swc::PostRaPeephole::Action>::emitErase",
+      "requested_bytes": 835662
+    },
+    {
+      "owner": "Backend: microcode and optimization",
+      "frame": "swc::MicroDenseRegIndex::directIndexSlot",
+      "requested_bytes": 829436
+    },
+    {
+      "owner": "Backend: register allocation",
+      "frame": "swc::MicroRegisterAllocationPass::flushAtBoundary",
+      "requested_bytes": 828842
+    },
+    {
+      "owner": "AST and parsing",
+      "frame": "swc::Ast::makeNode<3>",
+      "requested_bytes": 802816
+    },
+    {
+      "owner": "Sema: constants",
+      "frame": "swc::ConstantManager::WalkedAllocations::slotFor",
+      "requested_bytes": 786666
+    },
+    {
+      "owner": "AST and parsing",
+      "frame": "swc::AstNamedType::semaClone",
+      "requested_bytes": 786432
+    },
+    {
+      "owner": "AST and parsing",
+      "frame": "swc::AstErrorManagementExpr::semaClone",
+      "requested_bytes": 753664
+    },
+    {
+      "owner": "Backend: microcode and optimization",
+      "frame": "swc::MicroBuilder::emitCallLocal",
+      "requested_bytes": 749964
+    },
+    {
+      "owner": "Linker and object/archive I/O",
+      "frame": "swc::PELinker::buildNativeImage",
+      "requested_bytes": 728319
+    },
+    {
+      "owner": "AST and parsing",
+      "frame": "swc::AstIntegerLiteral::semaClone",
+      "requested_bytes": 704512
+    },
+    {
+      "owner": "AST and parsing",
+      "frame": "swc::AstIntrinsicCallExpr::semaClone",
+      "requested_bytes": 704512
+    },
+    {
+      "owner": "Sema: types",
+      "frame": "swc::TypeGen::initTypeInfoPayload",
+      "requested_bytes": 671822
+    },
+    {
+      "owner": "AST and parsing",
+      "frame": "swc::AstFunctionParamList::semaClone",
+      "requested_bytes": 655360
+    },
+    {
+      "owner": "Backend: native emission",
+      "frame": "swc::X64Encoder::encodeLoadMemImm",
+      "requested_bytes": 638976
+    },
+    {
+      "owner": "Backend: microcode and optimization",
+      "frame": "swc::MicroEmitPass::labelInfo",
+      "requested_bytes": 636074
+    },
+    {
+      "owner": "Backend: native emission",
+      "frame": "swc::X64Encoder::encodeOpBinaryRegImm",
+      "requested_bytes": 622592
+    },
+    {
+      "owner": "AST and parsing",
+      "frame": "swc::Parser::parseSingleType",
+      "requested_bytes": 622592
+    },
+    {
+      "owner": "AST and parsing",
+      "frame": "swc::AstReturnStmt::semaClone",
+      "requested_bytes": 622592
+    },
+    {
+      "owner": "AST and parsing",
+      "frame": "swc::AstCompilerIf::semaClone",
+      "requested_bytes": 622592
+    },
+    {
+      "owner": "Sema: analysis and payloads",
+      "frame": "swc::NodePayload::setResolvedCallArguments",
+      "requested_bytes": 590292
+    },
+    {
+      "owner": "Backend: register allocation",
+      "frame": "swc::MicroRegisterAllocationPass::computeConcreteClaimPositions",
+      "requested_bytes": 580193
+    },
+    {
+      "owner": "AST and parsing",
+      "frame": "swc::Parser::parseFunctionDecl",
+      "requested_bytes": 557056
+    },
+    {
+      "owner": "Sema: constants",
+      "frame": "swc::ConstantLower::materializeStaticPayload",
+      "requested_bytes": 539147
+    },
+    {
+      "owner": "AST and parsing",
+      "frame": "swc::Ast::pushSpan<swc::StrongRef<swc::AstNode> >",
+      "requested_bytes": 524288
+    },
+    {
+      "owner": "AST and parsing",
+      "frame": "swc::AstLogicalExpr::semaClone",
+      "requested_bytes": 491520
+    },
+    {
+      "owner": "AST and parsing",
+      "frame": "swc::AstCompilerExpression::semaClone",
+      "requested_bytes": 491520
+    },
+    {
+      "owner": "Backend: microcode and optimization",
+      "frame": "swc::MicroBuilder::emitLoadRegPtrReloc",
+      "requested_bytes": 488694
+    },
+    {
+      "owner": "Backend: native emission",
+      "frame": "swc::X64Encoder::encodeLoadAddressRegMem",
+      "requested_bytes": 458752
+    },
+    {
+      "owner": "AST and parsing",
+      "frame": "swc::AstIndexExpr::semaClone",
+      "requested_bytes": 458752
+    },
+    {
+      "owner": "AST and parsing",
+      "frame": "swc::Ast::makeNode<62>",
+      "requested_bytes": 458752
+    },
+    {
+      "owner": "Backend: microcode and optimization",
+      "frame": "swc::MicroBuilder::emitLoadRegDataSegmentReloc",
+      "requested_bytes": 424161
+    },
+    {
+      "owner": "Sema: symbols and identifiers",
+      "frame": "swc::SymbolFunction::emitLowered",
+      "requested_bytes": 420534
+    },
+    {
+      "owner": "AST and parsing",
+      "frame": "swc::Parser::parseBinaryExpr",
+      "requested_bytes": 409600
+    },
+    {
+      "owner": "AST and parsing",
+      "frame": "swc::AstStringLiteral::semaClone",
+      "requested_bytes": 409600
+    },
+    {
+      "owner": "AST and parsing",
+      "frame": "swc::Parser::parseFunctionParamList",
+      "requested_bytes": 393216
+    },
+    {
+      "owner": "AST and parsing",
+      "frame": "swc::Parser::parseAssignStmt",
+      "requested_bytes": 393216
+    },
+    {
+      "owner": "Sema: types",
+      "frame": "swc::TypeManager::publishInterned",
+      "requested_bytes": 393216
+    },
+    {
+      "owner": "Orchestration",
+      "frame": "swc::CompilerInstance::ownJob",
+      "requested_bytes": 388611
+    },
+    {
+      "owner": "Backend: native emission",
+      "frame": "swc::X64Encoder::encodeCmpRegImm",
+      "requested_bytes": 376832
+    },
+    {
+      "owner": "AST and parsing",
+      "frame": "swc::AstStructDecl::semaClone",
+      "requested_bytes": 376832
+    },
+    {
+      "owner": "AST and parsing",
+      "frame": "swc::AstValuePointerType::semaClone",
+      "requested_bytes": 376832
+    },
+    {
+      "owner": "Backend: microcode and optimization",
+      "frame": "swc::MicroSsaState::buildBlocks",
+      "requested_bytes": 369012
+    },
+    {
+      "owner": "Sema: constants",
+      "frame": "swc::ConstantManager::addConstantSlow",
+      "requested_bytes": 368991
+    },
+    {
+      "owner": "Backend: native emission",
+      "frame": "swc::Encoder::addDebugSourceRange",
+      "requested_bytes": 360267
+    },
+    {
+      "owner": "Backend: native emission",
+      "frame": "swc::X64Encoder::encodeLoadMemReg",
+      "requested_bytes": 344064
+    },
+    {
+      "owner": "AST and parsing",
+      "frame": "swc::AstCompilerInject::semaClone",
+      "requested_bytes": 344064
+    },
+    {
+      "owner": "Backend: microcode and optimization",
+      "frame": "swc::MicroDeadCodeEliminationPass::run",
+      "requested_bytes": 312099
+    },
+    {
+      "owner": "AST and parsing",
+      "frame": "swc::Parser::parseEmbeddedStmt",
+      "requested_bytes": 311296
+    },
+    {
+      "owner": "Sema: constants",
+      "frame": "swc::ConstantManager::walkedAllocation",
+      "requested_bytes": 295380
+    },
+    {
+      "owner": "AST and parsing",
+      "frame": "swc::AstCompilerCallOne::semaClone",
+      "requested_bytes": 294912
+    },
+    {
+      "owner": "AST and parsing",
+      "frame": "swc::AstCompilerCodeExpr::semaClone",
+      "requested_bytes": 294912
+    },
+    {
+      "owner": "Sema: analysis and payloads",
+      "frame": "swc::SemaGeneric::`anonymous namespace'::findOrCreateGenericInstance",
+      "requested_bytes": 281393
+    },
+    {
+      "owner": "Backend: register allocation",
+      "frame": "swc::MicroRegisterAllocationPass::computeVirtualLiveSpans",
+      "requested_bytes": 280302
+    },
+    {
+      "owner": "AST and parsing",
+      "frame": "swc::Parser::parseRelationalExpr",
+      "requested_bytes": 278528
+    },
+    {
+      "owner": "AST and parsing",
+      "frame": "swc::Parser::parseIdentifierType",
+      "requested_bytes": 278528
+    },
+    {
+      "owner": "AST and parsing",
+      "frame": "swc::Parser::parseAttributeValue",
+      "requested_bytes": 278528
+    },
+    {
+      "owner": "AST and parsing",
+      "frame": "swc::AstParenExpr::semaClone",
+      "requested_bytes": 278528
+    },
+    {
+      "owner": "AST and parsing",
+      "frame": "swc::Ast::makeNode<111>",
+      "requested_bytes": 278528
+    },
+    {
+      "owner": "Source text and tokens",
+      "frame": "swc::Lexer::lexHexNumber",
+      "requested_bytes": 277563
+    },
+    {
+      "owner": "AST and parsing",
+      "frame": "swc::Parser::parseSubTypeNoQualifiers",
+      "requested_bytes": 262144
+    },
+    {
+      "owner": "AST and parsing",
+      "frame": "swc::AstAttributeList::semaClone",
+      "requested_bytes": 262144
+    },
+    {
+      "owner": "AST and parsing",
+      "frame": "swc::AstForStmt::semaClone",
+      "requested_bytes": 262144
+    },
+    {
+      "owner": "AST and parsing",
+      "frame": "swc::AstQualifiedType::semaClone",
+      "requested_bytes": 262144
+    },
+    {
+      "owner": "AST and parsing",
+      "frame": "swc::Parser::parseIf",
+      "requested_bytes": 229376
+    },
+    {
+      "owner": "AST and parsing",
+      "frame": "swc::Ast::makeNode<79>",
+      "requested_bytes": 212992
+    },
+    {
+      "owner": "Backend: native emission",
+      "frame": "swc::X64Encoder::encodeLoadRegMem",
+      "requested_bytes": 196608
+    },
+    {
+      "owner": "AST and parsing",
+      "frame": "swc::Parser::parseLogicalExpr",
+      "requested_bytes": 196608
+    },
+    {
+      "owner": "AST and parsing",
+      "frame": "swc::Parser::parseFunctionBody",
+      "requested_bytes": 196608
+    },
+    {
+      "owner": "Orchestration",
+      "frame": "swc::CompilerInstance::makeJob<swc::CodeGenJob,swc::TaskContext & __ptr64,swc::Sema & __ptr64,swc::SymbolFunction & __ptr64,swc::StrongRef<swc::AstNode> const & __ptr64>",
+      "requested_bytes": 194286
+    },
+    {
+      "owner": "AST and parsing",
+      "frame": "swc::Ast::makeNode<72>",
+      "requested_bytes": 180224
+    },
+    {
+      "owner": "AST and parsing",
+      "frame": "swc::AstBlockPointerType::semaClone",
+      "requested_bytes": 180224
+    },
+    {
+      "owner": "Sema: constants",
+      "frame": "swc::ConstantManager::addPayloadBuffer",
+      "requested_bytes": 179102
+    },
+    {
+      "owner": "Orchestration",
+      "frame": "swc::CompilerInstance::setupSema",
+      "requested_bytes": 164736
+    },
+    {
+      "owner": "AST and parsing",
+      "frame": "swc::Ast::makeNode<98>",
+      "requested_bytes": 163840
+    },
+    {
+      "owner": "Sema: analysis and payloads",
+      "frame": "swc::SemaSpecOp::canResolveVisit",
+      "requested_bytes": 163840
+    },
+    {
+      "owner": "Backend: microcode and optimization",
+      "frame": "swc::MicroPassHelpers::collectStackPointerOffsets",
+      "requested_bytes": 147612
+    },
+    {
+      "owner": "AST and parsing",
+      "frame": "swc::Parser::parseAccessModifier",
+      "requested_bytes": 147456
+    },
+    {
+      "owner": "AST and parsing",
+      "frame": "swc::Parser::parseInitializerList",
+      "requested_bytes": 147456
+    },
+    {
+      "owner": "Sema: AST handlers (inlined storage)",
+      "frame": "swc::AstSingleVarDecl::semaPostNode",
+      "requested_bytes": 147456
+    },
+    {
+      "owner": "AST and parsing",
+      "frame": "swc::AstVarDeclList::semaClone",
+      "requested_bytes": 147456
+    },
+    {
+      "owner": "AST and parsing",
+      "frame": "swc::AstIntrinsicCall::semaClone",
+      "requested_bytes": 147456
+    },
+    {
+      "owner": "Backend: codegen",
+      "frame": "swc::CodeGenConstantHelpers::materializeRuntimeBufferConstant",
+      "requested_bytes": 143958
+    },
+    {
+      "owner": "Backend: native emission",
+      "frame": "swc::X64Encoder::encodeLoadRegImm",
+      "requested_bytes": 131072
+    },
+    {
+      "owner": "Backend: native emission",
+      "frame": "swc::X64Encoder::encodeLoadAddressAmcRegMem",
+      "requested_bytes": 131072
+    },
+    {
+      "owner": "AST and parsing",
+      "frame": "swc::Parser::parseNamedArg",
+      "requested_bytes": 131072
+    },
+    {
+      "owner": "AST and parsing",
+      "frame": "swc::Ast::makeNode<12>",
+      "requested_bytes": 131072
+    },
+    {
+      "owner": "AST and parsing",
+      "frame": "swc::Parser::parseCompound<32>",
+      "requested_bytes": 131072
+    },
+    {
+      "owner": "AST and parsing",
+      "frame": "swc::AstSliceType::semaClone",
+      "requested_bytes": 131072
+    },
+    {
+      "owner": "Sema: analysis and payloads",
+      "frame": "swc::SemaSpecOp::collectSetCandidates",
+      "requested_bytes": 131072
+    },
+    {
+      "owner": "Orchestration",
+      "frame": "swc::CompilerInstance::registerNativeCodeFunction",
+      "requested_bytes": 130350
+    },
+    {
+      "owner": "Backend: register allocation",
+      "frame": "swc::MicroRegisterAllocationPass::computeReachability",
+      "requested_bytes": 126580
+    },
+    {
+      "owner": "Orchestration",
+      "frame": "swc::CompilerInstance::addEscapeSummaryEdge",
+      "requested_bytes": 125702
+    },
+    {
+      "owner": "Backend: microcode and optimization",
+      "frame": "swc::MicroPassHelpers::areCpuFlagsDeadAfterInCfg",
+      "requested_bytes": 123381
+    },
+    {
+      "owner": "AST and parsing",
+      "frame": "swc::AstAttribute::semaClone",
+      "requested_bytes": 114688
+    },
+    {
+      "owner": "AST and parsing",
+      "frame": "swc::AstConstraintExpr::semaClone",
+      "requested_bytes": 114688
+    },
+    {
+      "owner": "Sema: symbols and identifiers",
+      "frame": "swc::SymbolInternal::cacheGenericEvalNode",
+      "requested_bytes": 106410
+    },
+    {
+      "owner": "Source text and tokens",
+      "frame": "swc::Lexer::eatOneEol",
+      "requested_bytes": 101157
+    },
+    {
+      "owner": "Backend: native emission",
+      "frame": "swc::X64Encoder::encodeCmpRegReg",
+      "requested_bytes": 98304
+    },
+    {
+      "owner": "Backend: native emission",
+      "frame": "swc::X64Encoder::encodeLoadRegTlsSlot",
+      "requested_bytes": 98304
+    },
+    {
+      "owner": "Backend: native emission",
+      "frame": "swc::X64Encoder::encodeTrap",
+      "requested_bytes": 98304
+    },
+    {
+      "owner": "Backend: native emission",
+      "frame": "swc::X64Encoder::encodeOpBinaryRegReg",
+      "requested_bytes": 98304
+    },
+    {
+      "owner": "AST and parsing",
+      "frame": "swc::Ast::makeNode<15>",
+      "requested_bytes": 98304
+    },
+    {
+      "owner": "AST and parsing",
+      "frame": "swc::Parser::parseGeneratedContent",
+      "requested_bytes": 98304
+    },
+    {
+      "owner": "Sema: constants",
+      "frame": "swc::ConstantManager::addUniqueMaterializedPayloadConstant",
+      "requested_bytes": 97143
+    },
+    {
+      "owner": "Backend: microcode and optimization",
+      "frame": "swc::MicroSsaState::removeUsesWithoutRenaming",
+      "requested_bytes": 94948
+    },
+    {
+      "owner": "AST and parsing",
+      "frame": "swc::Parser::parseQualifiedIdentifier",
+      "requested_bytes": 81920
+    },
+    {
+      "owner": "Sema: AST handlers (inlined storage)",
+      "frame": "swc::AstIsTypeExpr::semaPostNode",
+      "requested_bytes": 81920
+    },
+    {
+      "owner": "AST and parsing",
+      "frame": "swc::AstAccessModifier::semaClone",
+      "requested_bytes": 81920
+    },
+    {
+      "owner": "AST and parsing",
+      "frame": "swc::AstMultiVarDecl::semaClone",
+      "requested_bytes": 81920
+    },
+    {
+      "owner": "AST and parsing",
+      "frame": "swc::Ast::makeNode<13>",
+      "requested_bytes": 81920
+    },
+    {
+      "owner": "Sema: analysis and payloads",
+      "frame": "swc::Cast::cast",
+      "requested_bytes": 81920
+    },
+    {
+      "owner": "Sema: analysis and payloads",
+      "frame": "swc::SemaInline::tryInlineCall",
+      "requested_bytes": 81920
+    },
+    {
+      "owner": "Backend: register allocation",
+      "frame": "swc::MicroRegisterAllocationPass::computeGuardedCallPositions",
+      "requested_bytes": 76975
+    },
+    {
+      "owner": "Backend: microcode and optimization",
+      "frame": "`swc::MicroMemToRegPass::run'::`2'::<lambda_5>::operator()",
+      "requested_bytes": 76932
+    },
+    {
+      "owner": "Orchestration",
+      "frame": "swc::CompilerInstance::CompilerInstance",
+      "requested_bytes": 67317
+    },
+    {
+      "owner": "Orchestration",
+      "frame": "swc::JobManager::parkLocked",
+      "requested_bytes": 65575
+    },
+    {
+      "owner": "Orchestration",
+      "frame": "swc::JobManager::pushReady",
+      "requested_bytes": 65575
+    },
+    {
+      "owner": "Sema: types",
+      "frame": "swc::TypeGen::makeTypeInfo",
+      "requested_bytes": 65575
+    },
+    {
+      "owner": "AST and parsing",
+      "frame": "swc::Parser::parseCast",
+      "requested_bytes": 65536
+    },
+    {
+      "owner": "AST and parsing",
+      "frame": "swc::Parser::parseImpl",
+      "requested_bytes": 65536
+    },
+    {
+      "owner": "AST and parsing",
+      "frame": "swc::AstCodeParam::semaClone",
+      "requested_bytes": 65536
+    },
+    {
+      "owner": "AST and parsing",
+      "frame": "swc::Ast::makeNode<145>",
+      "requested_bytes": 65536
+    },
+    {
+      "owner": "Orchestration",
+      "frame": "swc::CompilerInstance::addBufferedSourceView",
+      "requested_bytes": 59135
+    },
+    {
+      "owner": "Unattributed: shared or external allocation",
+      "frame": "swc::`anonymous namespace'::`dynamic initializer for 'reg_ByteArray_WordAccessPreservesByteOrderAndNeighbours''",
+      "requested_bytes": 57591
+    },
+    {
+      "owner": "Orchestration",
+      "frame": "swc::CompilerInstance::registerPreparedJitFunction",
+      "requested_bytes": 52030
+    },
+    {
+      "owner": "Backend: microcode and optimization",
+      "frame": "swc::MicroBuilder::emitCallExtern",
+      "requested_bytes": 51207
+    },
+    {
+      "owner": "Sema: symbols and identifiers",
+      "frame": "swc::SymbolFunction::classifyLoweredBody",
+      "requested_bytes": 49230
+    },
+    {
+      "owner": "AST and parsing",
+      "frame": "swc::Ast::makeNode<138>",
+      "requested_bytes": 49152
+    },
+    {
+      "owner": "AST and parsing",
+      "frame": "swc::Parser::parseEnumValue",
+      "requested_bytes": 49152
+    },
+    {
+      "owner": "AST and parsing",
+      "frame": "swc::Parser::parseSwitch",
+      "requested_bytes": 49152
+    },
+    {
+      "owner": "AST and parsing",
+      "frame": "swc::Parser::parseAggregateAccessModifier",
+      "requested_bytes": 49152
+    },
+    {
+      "owner": "AST and parsing",
+      "frame": "swc::AstGenericParamType::semaClone",
+      "requested_bytes": 49152
+    },
+    {
+      "owner": "AST and parsing",
+      "frame": "swc::AstAggregateBody::semaClone",
+      "requested_bytes": 49152
+    },
+    {
+      "owner": "AST and parsing",
+      "frame": "swc::AstIntrinsicInit::semaClone",
+      "requested_bytes": 49152
+    },
+    {
+      "owner": "Sema: analysis and payloads",
+      "frame": "swc::SemaGeneric::`anonymous namespace'::cloneGenericImplBlock",
+      "requested_bytes": 49152
+    },
+    {
+      "owner": "Sema: AST handlers (inlined storage)",
+      "frame": "swc::AstCompilerInject::semaPostNode",
+      "requested_bytes": 49152
+    },
+    {
+      "owner": "AST and parsing",
+      "frame": "swc::AstNullCoalescingExpr::semaClone",
+      "requested_bytes": 49152
+    },
+    {
+      "owner": "AST and parsing",
+      "frame": "swc::AstQuotedListExpr::semaClone",
+      "requested_bytes": 49152
+    },
+    {
+      "owner": "AST and parsing",
+      "frame": "swc::AstGenericParamValue::semaClone",
+      "requested_bytes": 49152
+    },
+    {
+      "owner": "Sema: analysis and payloads",
+      "frame": "swc::SemaSpecOp::tryResolveIndex",
+      "requested_bytes": 49152
+    },
+    {
+      "owner": "AST and parsing",
+      "frame": "swc::AstContinueStmt::semaClone",
+      "requested_bytes": 49152
+    },
+    {
+      "owner": "Sema: analysis and payloads",
+      "frame": "swc::SemaSpecOp::tryResolveVisit",
+      "requested_bytes": 49152
+    },
+    {
+      "owner": "AST and parsing",
+      "frame": "swc::AstCompilerCodeBlock::semaClone",
+      "requested_bytes": 49152
+    },
+    {
+      "owner": "AST and parsing",
+      "frame": "swc::AstBoolLiteral::semaClone",
+      "requested_bytes": 49152
+    },
+    {
+      "owner": "Backend: native emission",
+      "frame": "swc::NativeArtifactBuilder::finishDataSections",
+      "requested_bytes": 39855
+    },
+    {
+      "owner": "Backend: microcode and optimization",
+      "frame": "swc::MicroMemToRegPass::run",
+      "requested_bytes": 33518
+    },
+    {
+      "owner": "Sema: analysis and payloads",
+      "frame": "swc::NodePayload::recordFoldedSourceSymbol",
+      "requested_bytes": 32846
+    },
+    {
+      "owner": "Sema: analysis and payloads",
+      "frame": "swc::SemaJIT::runStatementImmediate",
+      "requested_bytes": 32807
+    },
+    {
+      "owner": "Sema: types",
+      "frame": "swc::TypeGen::processTypeInfo",
+      "requested_bytes": 32807
+    },
+    {
+      "owner": "AST and parsing",
+      "frame": "swc::Parser::parseSwitchCaseDefault",
+      "requested_bytes": 32768
+    },
+    {
+      "owner": "AST and parsing",
+      "frame": "swc::Parser::parseExpression",
+      "requested_bytes": 32768
+    },
+    {
+      "owner": "AST and parsing",
+      "frame": "swc::Parser::parseLiteralExpression",
+      "requested_bytes": 32768
+    },
+    {
+      "owner": "AST and parsing",
+      "frame": "swc::Parser::parseParenExpr",
+      "requested_bytes": 32768
+    },
+    {
+      "owner": "AST and parsing",
+      "frame": "swc::Parser::parseCompound<47>",
+      "requested_bytes": 32768
+    },
+    {
+      "owner": "AST and parsing",
+      "frame": "swc::AstIntrinsicDrop::semaClone",
+      "requested_bytes": 32768
+    },
+    {
+      "owner": "AST and parsing",
+      "frame": "swc::AstScopedBreakStmt::semaClone",
+      "requested_bytes": 32768
+    },
+    {
+      "owner": "AST and parsing",
+      "frame": "swc::AstSwitchCaseStmt::semaClone",
+      "requested_bytes": 32768
+    },
+    {
+      "owner": "AST and parsing",
+      "frame": "swc::AstWithVarDecl::semaClone",
+      "requested_bytes": 32768
+    },
+    {
+      "owner": "AST and parsing",
+      "frame": "swc::Ast::makeNode<58>",
+      "requested_bytes": 32768
+    },
+    {
+      "owner": "Sema: analysis and payloads",
+      "frame": "swc::Sema::preNodeChild",
+      "requested_bytes": 32768
+    },
+    {
+      "owner": "AST and parsing",
+      "frame": "swc::AstCompilerSwitchCase::semaClone",
+      "requested_bytes": 32768
+    },
+    {
+      "owner": "AST and parsing",
+      "frame": "swc::AstFunctionParamMe::semaClone",
+      "requested_bytes": 32768
+    },
+    {
+      "owner": "AST and parsing",
+      "frame": "swc::Ast::pushSpan<swc::StrongRef<swc::AstNode> const >",
+      "requested_bytes": 32768
+    },
+    {
+      "owner": "AST and parsing",
+      "frame": "swc::AstConditionalExpr::semaClone",
+      "requested_bytes": 32768
+    },
+    {
+      "owner": "AST and parsing",
+      "frame": "swc::AstFloatLiteral::semaClone",
+      "requested_bytes": 32768
+    },
+    {
+      "owner": "Backend: microcode and optimization",
+      "frame": "swc::MicroLegalizePass::run",
+      "requested_bytes": 22791
+    },
+    {
+      "owner": "Backend: microcode and optimization",
+      "frame": "swc::MicroPassHelpers::collectFrameVariableExtents",
+      "requested_bytes": 17095
+    },
+    {
+      "owner": "Sema: symbols and identifiers",
+      "frame": "swc::SymbolFunction::addLocalVariable",
+      "requested_bytes": 16423
+    },
+    {
+      "owner": "Backend: native emission",
+      "frame": "swc::X64Encoder::encodeCmpMemReg",
+      "requested_bytes": 16384
+    },
+    {
+      "owner": "Backend: native emission",
+      "frame": "swc::X64Encoder::encodeCmpMemImm",
+      "requested_bytes": 16384
+    },
+    {
+      "owner": "Backend: native emission",
+      "frame": "swc::X64Encoder::encodeClearReg",
+      "requested_bytes": 16384
+    },
+    {
+      "owner": "Backend: native emission",
+      "frame": "swc::X64Encoder::encodeLoadSignedExtendRegReg",
+      "requested_bytes": 16384
+    },
+    {
+      "owner": "AST and parsing",
+      "frame": "swc::Parser::parseDefer",
+      "requested_bytes": 16384
+    },
+    {
+      "owner": "AST and parsing",
+      "frame": "swc::Parser::parseLambdaParam",
+      "requested_bytes": 16384
+    },
+    {
+      "owner": "AST and parsing",
+      "frame": "swc::Parser::parseLambdaExpression",
+      "requested_bytes": 16384
+    },
+    {
+      "owner": "AST and parsing",
+      "frame": "swc::Parser::parseType",
+      "requested_bytes": 16384
+    },
+    {
+      "owner": "AST and parsing",
+      "frame": "swc::Ast::pushSpan<swc::StrongRef<swc::Token> >",
+      "requested_bytes": 16384
+    },
+    {
+      "owner": "AST and parsing",
+      "frame": "swc::Ast::makeNode<77>",
+      "requested_bytes": 16384
+    },
+    {
+      "owner": "AST and parsing",
+      "frame": "swc::Ast::makeNode<70>",
+      "requested_bytes": 16384
+    },
+    {
+      "owner": "AST and parsing",
+      "frame": "swc::Ast::makeNode<89>",
+      "requested_bytes": 16384
+    },
+    {
+      "owner": "AST and parsing",
+      "frame": "swc::Parser::parseClosureArg",
+      "requested_bytes": 16384
+    },
+    {
+      "owner": "AST and parsing",
+      "frame": "swc::Parser::parseLiteralStruct",
+      "requested_bytes": 16384
+    },
+    {
+      "owner": "AST and parsing",
+      "frame": "swc::Parser::parseCompilerExpression",
+      "requested_bytes": 16384
+    },
+    {
+      "owner": "AST and parsing",
+      "frame": "swc::Parser::parseAggregateDecl<48>",
+      "requested_bytes": 16384
+    },
+    {
+      "owner": "AST and parsing",
+      "frame": "swc::Parser::parseErrorManagementStmt",
+      "requested_bytes": 16384
+    },
+    {
+      "owner": "AST and parsing",
+      "frame": "swc::Parser::parseFor",
+      "requested_bytes": 16384
+    },
+    {
+      "owner": "AST and parsing",
+      "frame": "swc::Parser::parseEnumDecl",
+      "requested_bytes": 16384
+    },
+    {
+      "owner": "AST and parsing",
+      "frame": "swc::Parser::parseCompilerSwitch<3>",
+      "requested_bytes": 16384
+    },
+    {
+      "owner": "AST and parsing",
+      "frame": "swc::Ast::makeNode<21>",
+      "requested_bytes": 16384
+    },
+    {
+      "owner": "AST and parsing",
+      "frame": "swc::Parser::parseAttributeList<2>",
+      "requested_bytes": 16384
+    },
+    {
+      "owner": "AST and parsing",
+      "frame": "swc::Parser::parseUsing",
+      "requested_bytes": 16384
+    },
+    {
+      "owner": "AST and parsing",
+      "frame": "swc::Parser::parseLambdaType",
+      "requested_bytes": 16384
+    },
+    {
+      "owner": "AST and parsing",
+      "frame": "swc::AstCharacterLiteral::semaClone",
+      "requested_bytes": 16384
+    },
+    {
+      "owner": "AST and parsing",
+      "frame": "swc::AstDiscardExpr::semaClone",
+      "requested_bytes": 16384
+    },
+    {
+      "owner": "AST and parsing",
+      "frame": "swc::AstCompilerShortFunc::semaClone",
+      "requested_bytes": 16384
+    },
+    {
+      "owner": "AST and parsing",
+      "frame": "swc::AstCompilerCall::semaClone",
+      "requested_bytes": 16384
+    },
+    {
+      "owner": "Sema: AST handlers (inlined storage)",
+      "frame": "swc::AstSwitchCaseStmt::semaPostNodeChild",
+      "requested_bytes": 16384
+    },
+    {
+      "owner": "AST and parsing",
+      "frame": "swc::AstCodeType::semaClone",
+      "requested_bytes": 16384
+    },
+    {
+      "owner": "AST and parsing",
+      "frame": "swc::AstForCStyleStmt::semaClone",
+      "requested_bytes": 16384
+    },
+    {
+      "owner": "AST and parsing",
+      "frame": "swc::AstNamedArgument::semaClone",
+      "requested_bytes": 16384
+    },
+    {
+      "owner": "AST and parsing",
+      "frame": "swc::AstDeferStmt::semaClone",
+      "requested_bytes": 16384
+    },
+    {
+      "owner": "AST and parsing",
+      "frame": "swc::AstSwitchCaseBody::semaClone",
+      "requested_bytes": 16384
+    },
+    {
+      "owner": "AST and parsing",
+      "frame": "swc::AstSwitchStmt::semaClone",
+      "requested_bytes": 16384
+    },
+    {
+      "owner": "AST and parsing",
+      "frame": "swc::AstMoveRefType::semaClone",
+      "requested_bytes": 16384
+    },
+    {
+      "owner": "Unattributed: shared or external allocation",
+      "frame": "swc::DataSegment::allocateStorageLocked",
+      "requested_bytes": 16384
+    },
+    {
+      "owner": "AST and parsing",
+      "frame": "swc::AstSuffixLiteral::semaClone",
+      "requested_bytes": 16384
+    },
+    {
+      "owner": "AST and parsing",
+      "frame": "swc::AstNullLiteral::semaClone",
+      "requested_bytes": 16384
+    },
+    {
+      "owner": "AST and parsing",
+      "frame": "swc::AstHexaLiteral::semaClone",
+      "requested_bytes": 16384
+    },
+    {
+      "owner": "AST and parsing",
+      "frame": "swc::Ast::makeNode<110>",
+      "requested_bytes": 16384
+    },
+    {
+      "owner": "AST and parsing",
+      "frame": "swc::AstStructLiteral::semaClone",
+      "requested_bytes": 16384
+    },
+    {
+      "owner": "AST and parsing",
+      "frame": "swc::AstStructInitializerList::semaClone",
+      "requested_bytes": 16384
+    }
+  ],
+  "artifacts": {
+    "large-allocation-census.h": "f8382bf054e16ad5c4e628559e9619a22eeb527cd4e45d82a509ad0c5c9048a4",
+    "heap-census-large.h": "41c4dc1bd2af4d65d1145fc796df935c1080bd32bfda6a915267c9d8422cae32",
+    "large-allocation-census-v2.patch": "8387d44ffa2632c6ca2ce16aaee29d4dc8170df1d1b1dac3ec7324522622adb2",
+    "large-allocation-census-v2-app.json": "fe6161ac3db11ad889e2c891bd85899afda575c9a7e6e3d17b6955eab4f85fdf",
+    "analyze-large-allocation-census.py": "a51d5bda7e50f553029c2768f1274b3396bfb0f69ba440c3d57a4dc048574890",
+    "inspect-large-census-sites.py": "c6569f895f3926daecec1dd82bef284db683e11b8108a93909aede762a7f2e32"
+  }
+}

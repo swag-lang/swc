@@ -1,7 +1,7 @@
 {
   "source_revision": "f484c97a40",
   "baseline_source_revision": "8bcdc4259b",
-  "status": "DevMode build, C++ validation with focused fixture recovery, twelve benchmark checksums/listings and frozen application pass. Candidate/control memory observations recorded; differing concurrent host load prevents speed acceptance. Release validation pending.",
+  "status": "DevMode build, C++ validation with focused fixture recovery, twelve benchmark checksums/listings and frozen application pass. Release integration build and frozen application also pass; see final-integration.json. Controlled compilation-speed acceptance remains pending.",
   "changes": [
     "Physical use/def records: 88 to 24 bytes, masks replace vector queries.",
     "Virtual operand index lists: 40 to 16 bytes, at most three explicit virtual operands.",
@@ -395,5 +395,6 @@
     "effects-cache-build.log": "a0bc2e8ef0100eab05123e095b307580b18e4b96e3ff1e42833ff02bc2cd1170",
     "effects-cache-microdiff.log": "53ea60a271c72b8252f163e75b9e357975eb18f511aa778f90b1f8b7251b1eba",
     "effects-cache-microdiff-analysis.json": "e7e68c13a29e26de9c94f75bdd489719d5dd22fef74329a621fbf2d5b2388125"
-  }
+  },
+  "release_integration_report": "final-integration.json"
 }

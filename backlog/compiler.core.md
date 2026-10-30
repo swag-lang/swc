@@ -300,7 +300,7 @@ Entries stay in one flat list. Keep only measurements that affect the next actio
 
 - Evidence: the compiler still has no enforced workload memory budget. Frozen-source,
   six-worker application observations reach 1,443.543 MiB for the latest DevMode checkpoint;
-  the preceding validated Release checkpoint reaches 1,290.176 MiB. Different compiler
+  the final integrated Release checkpoint reaches 1,221.801 MiB. Different compiler
   checkpoints, host load and publication variation prevent treating these as a controlled
   configuration gap. See the [memory report](../bench/results/memory/20261030-devmode/README.md).
   Earlier focused GUI layout tests reached 2,842.3 MiB; `core` and hello also exceeded their
@@ -680,6 +680,8 @@ Entries stay in one flat list. Keep only measurements that affect the next actio
   operand lists and mapped cache publication. Check warm/incremental cache behavior as well as
   full builds, and separate resident memory from private backing. Keep the independent
   no-large-pages allocator candidate in compiler.core.097 separate from accepted defaults.
+  Rebuild DevMode from the integrated source before resuming: its retained executable predates
+  master's independent `MemToReg` repair; the final integrated Release build/application passed.
 - Preserve unresolved failures and variation: compiler.core.085 owns generic instance/string
   differences and the varying `Lens.View.create` borrow mask; compiler.core.096 owns the heap
   visitor assertion. Improve generic specialization identity in Micro listings before treating

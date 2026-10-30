@@ -1,0 +1,77 @@
+{
+  "compiler_source_revision": "58e5b3c04b94dd47a75a54d07d4abe7e0e6cac05",
+  "integration": "Master includes the complete memory branch plus its independent MemToReg folded-vector repair. The only merge conflict was concurrent backlog identifier 095; master keeps the workspace-corpus entry and the allocator-visitor entry is now 096.",
+  "release_build": {
+    "exit": 0,
+    "configuration": "Release",
+    "platform": "x64",
+    "msbuild_nodes": 6,
+    "cpp_workers": 6,
+    "log_sha256": "de413799a0a42920ff79cc0ca7070628deb66048f8ca347ce63922662b86cbdf"
+  },
+  "release_application": {
+    "exit": 0,
+    "started_unix": 1793382799.7180014,
+    "affinity_mask": 349185,
+    "effective_affinity_mask": 349185,
+    "system_affinity_mask": 4194303,
+    "affinity_verified": true,
+    "host_busy_pct": 62.44161730430857,
+    "other_process_cpu_ms_estimate": 753406.25,
+    "wall_ms": 77531.7082,
+    "first_stdout_ms": null,
+    "cpu_ms": 305656.25,
+    "user_cpu_ms": 297968.75,
+    "kernel_cpu_ms": 7687.5,
+    "job_cpu_ms": 305671.875,
+    "page_faults": 772899,
+    "job_processes": 2,
+    "peak_job_bytes": 1302831104,
+    "peak_proc_bytes": 1301618688,
+    "peak_working_set_bytes": 1281150976,
+    "stdout": "  \u25c6  swag        build \u2022 apps [swagcapture] \u2022 devmode\r\n  \u2713  module      win32 \u2022 48 files \u2022 502 ms\r\n  \u2713  module      gdi32 \u2022 44 files \u2022 594 ms\r\n  \u2713  module      xinput \u2022 43 files \u2022 287 ms\r\n  \u2713  module      core \u2022 378 files \u2022 core.dll \u2022 10 s 84 ms\r\n  \u2713  module      ogl \u2022 98 files \u2022 ogl.dll \u2022 3 s 30 ms\r\n  \u2713  module      truetype \u2022 99 files \u2022 truetype.dll \u2022 2 s 557 ms\r\n  \u2713  module      pixel \u2022 318 files \u2022 pixel.dll \u2022 17 s 147 ms\r\n  \u2713  module      gui \u2022 366 files \u2022 gui.dll \u2022 24 s 763 ms\r\n  \u2713  workspace   std [gui] \u2022 8 modules \u2022 1 min 2 s\r\n  \u2713  checked     136 files \u2022 592_047 tokens \u2022 3 s 564 ms\r\n  \u2713  tuned       5_143 functions \u2022 6 s 748 ms\r\n  \u2713  forged      2_411 functions \u2022 swagcapture.exe \u2022 6 s 901 ms\r\n  \u2713  module      swagcapture \u2022 182 files \u2022 swagcapture.exe \u2022 11 s 826 ms\r\n  \u2713  workspace   apps [swagcapture] \u2022 1 module \u2022 1 min 16 s\r\n  \u2713  clean       1 min 16 s\r\n",
+    "stderr": "\r\n",
+    "harness_sha256": "20a4c33520539d62e67dc2e80a58120e088e68718ed1a690da3a0f0dd2fe7dbf",
+    "allocator_error": false,
+    "mimalloc_options": {},
+    "command": [
+      "C:\\Users\\chris\\AppData\\Local\\swc-agent-builds\\mimalloc-360-20261030-071336\\install\\swc.final-memory.exe",
+      "build",
+      "--workspace",
+      "C:\\Users\\chris\\AppData\\Local\\swc-agent-builds\\mimalloc-360-20261030-071336\\install\\apps",
+      "--workspace-module",
+      "swagcapture",
+      "--num-cores",
+      "6",
+      "--rebuild",
+      "--no-log-color",
+      "--no-log-progress"
+    ],
+    "compiler_sha256": "ed17f7cb9169b400478d3447a1343ab65ce2c8ecc6bb18281a0d1e77ea34a2dc",
+    "timing_comparable": false,
+    "timing_note": "Final correctness validation under ordinary load admission; host busy averaged 62.44%. Not a controlled speed comparison."
+  },
+  "prior_devmode_validation": {
+    "compiler_source_revision": "f484c97a40",
+    "compiler_sha256": "470134d0f8007aa6b4d322d8b48aa293a94c73b4d39d9c70cc8b61ca45bd8bad",
+    "report": "effects-cache.json",
+    "cpp_passed": 1697,
+    "missing_fixture_test_passed_separately": 1,
+    "benchmark_tasks": 12,
+    "note": "Before importing the independent master MemToReg change. The latest Release compiler/application validate the integrated source; no post-merge DevMode rebuild or repeated full C++ campaign was run."
+  },
+  "generated_source_snapshot": {
+    "files": 77,
+    "manifest_sha256": "0d080831cc675016347542db8ea58471e009ca73a42fa5f2d2db9654836b21b0"
+  },
+  "retained_branch": "codex/mimalloc-360-20261030",
+  "retained_worktree": "C:\\Perso\\swag-lang\\swc-mimalloc-360-20261030",
+  "backlog": [
+    "compiler.core.005",
+    "compiler.core.085",
+    "compiler.core.096",
+    "compiler.core.097",
+    "compiler.core.098"
+  ],
+  "handoff": "Branch and worktree retained at the owner request. No further optimization campaign is running. Diagnostic binaries/probes/logs and adjacent compiler controls remain in the external session directory. Compiler executables are checkout-local build outputs; Git integration does not replace executables in another checkout."
+}

@@ -7,8 +7,10 @@ builds and comparative measurements are periodic checkpoints, not a per-edit req
 The latest uninstrumented DevMode application observation is **1,443.543 MiB peak working set**
 at compiler checkpoint `f484c97a40`, compared with **1,472.266 MiB** for its immediately
 preceding compact-liveness control. This pair shows 28.723 MiB less resident memory; host-load
-differences prevent speed acceptance. See [effects-cache.json](effects-cache.json). Release
-validation of this latest batch remains pending; its last validated checkpoint is `8bcdc4259b`.
+differences prevent speed acceptance. See [effects-cache.json](effects-cache.json). The final
+integrated Release build and frozen application pass at `58e5b3c04`, with a 1,221.801 MiB working-set
+observation; see [final-integration.json](final-integration.json). This is not a controlled
+DevMode/Release comparison.
 
 ## Current occupation map and priorities
 
@@ -1096,7 +1098,7 @@ byte-identical, including the previously varying Lens borrow summary; eleven wor
 Strict start admission passed for both runs, but average host CPU use rose to 50.84% for the
 candidate and 63.37% for the control. Candidate wall/process CPU times are 69.177/307.094 s,
 versus 147.401/443.953 s for the control; these differences are excluded from speed acceptance.
-Controlled timing and grouped Release validation remain pending. The memory figures are
+Controlled timing remains pending; final integrated Release validation is recorded below. The memory figures are
 observations of this pair, not a constant guaranteed saving.
 
 ### Remaining attribution work
@@ -1143,3 +1145,31 @@ Remaining investigations are maintained in `compiler.core.097`; controlled speed
 in `compiler.core.098`, allocator visitor correctness in `compiler.core.096`, publication
 variation in `compiler.core.085`, and workload budgets/child-process retention in
 `compiler.core.005`. The external no-large-pages experiment remains disabled by default.
+
+### Integration and retained worktree
+
+The complete branch is integrated in `master`. Its merge with the independent master changes
+preserves the folded-vector `MemToReg` repair and its regression. Both concurrent backlog entries
+are retained: `compiler.core.095` is the workspace-corpus issue; allocator inspection is now
+`compiler.core.096`.
+
+The integrated source checkpoint `58e5b3c04` builds successfully as Release, capped at six C++
+workers. Its frozen Swag Capture rebuild in program configuration `devmode` succeeds without
+an allocator error: 592,047 tokens / 5,143 tuned / 2,411 forged functions. The Release compiler
+SHA-256 is `ed17f7cb9169b400478d3447a1343ab65ce2c8ecc6bb18281a0d1e77ea34a2dc`.
+Peak working set is 1,221.801 MiB and private memory 1,241.320 MiB. Host CPU averages 62.44%;
+77.532 s wall and 305.656 s process CPU are validation observations, not accepted timing gains.
+The 77 generated source/API files are preserved externally.
+
+The earlier DevMode C++/benchmark/application evidence remains at `f484c97a40`, before the
+independent master `MemToReg` change. Its preserved and checkout-local DevMode binary has
+SHA-256 `470134d0f8007aa6b4d322d8b48aa293a94c73b4d39d9c70cc8b61ca45bd8bad`.
+No post-merge DevMode rebuild or repeated full C++ campaign was run; rebuild before validating
+future compiler edits. Executables are checkout-local outputs, not files transferred by Git
+integration into another checkout.
+
+At the owner's request, branch `codex/mimalloc-360-20261030` and worktree
+`C:/Perso/swag-lang/swc-mimalloc-360-20261030` remain available for resumption. No optimization
+or diagnostic command remains running after handoff. The external session directory retains
+the diagnostic sources, logs, generated snapshots and adjacent control binaries needed by the
+backlog. Remaining work is tracked by the backlog identifiers above.

@@ -2,7 +2,7 @@
   "binary": "C:\\Users\\chris\\AppData\\Local\\swc-agent-builds\\mimalloc-360-20261030-071336\\install\\swc.pages.exe",
   "binary_sha256": "0ecd72a7b7f813e02c7e8ceb8237ff94239a8b7ad3c602ecd8ef184fad768ffb",
   "map_sha256": "9a8df7b8b7f84e80b6a04eaad95c6891c3b8a0e0811e42c784fb4cabd20fcf8b",
-  "note": "Sampled heap estimates, not process working set. Inclusive frames overlap; folded code may have multiple symbol aliases. Profiling runs are excluded from timing comparisons.",
+  "note": "Raw sampled allocation bytes, without inverse-probability weighting: these are not estimates of total live memory or process working set. Inclusive frames overlap; folded code may have multiple symbol aliases. Profiling runs are excluded from timing comparisons.",
   "snapshots": [
     {
       "file": "profile-pages-release.0001.heap",

@@ -58,7 +58,7 @@ SWC_TEST_BEGIN(DataSegment_FillPreservesOffsetsAcrossPagesAndLargeBlocks)
             segment.enableProximityStorage();
         segment.fill(std::byte{0xCD});
 
-        constexpr std::array<uint32_t, 4> sizes = {PagedStore::K_DEFAULT_PAGE_SIZE - 5, 17, PagedStore::K_DEFAULT_PAGE_SIZE * 2 + 3, 9};
+        constexpr std::array<uint32_t, 4>                         sizes = {PagedStore::K_DEFAULT_PAGE_SIZE - 5, 17, PagedStore::K_DEFAULT_PAGE_SIZE * 2 + 3, 9};
         std::array<std::pair<uint32_t, std::byte*>, sizes.size()> allocations;
         for (size_t i = 0; i < sizes.size(); ++i)
             allocations[i] = segment.reserveBytes(sizes[i], 64, true);
@@ -363,6 +363,77 @@ SWC_TEST_BEGIN(DataSegment_LargeBlockPointersPreservePagedPrefixAndAlignedAlloca
             return Result::Error;
         if (allocation.bytes[0] != std::byte{0x31} || allocation.bytes[allocation.size - 1] != std::byte{0x32})
             return Result::Error;
+    }
+}
+SWC_TEST_END()
+
+SWC_TEST_BEGIN(DataSegment_SmallAllocationsAfterLargeBlocksShareStorage)
+{
+    for (const bool proximity : {false, true})
+    {
+        DataSegment segment;
+        if (proximity)
+            segment.enableProximityStorage();
+        const auto [prefixOffset, prefix] = segment.reserveBytes(7, 1, true);
+        const auto [largeOffset, large]   = segment.reserveBytes(PagedStore::K_DEFAULT_PAGE_SIZE + 3, 8, true);
+        prefix[0]                         = std::byte{0x31};
+        large[0]                          = std::byte{0x42};
+
+        std::vector<std::pair<uint32_t, std::byte*>> values;
+        std::set<uintptr_t>                          physicalPages;
+        for (uint32_t i = 0; i < 1024; ++i)
+        {
+            const auto [offset, bytes] = segment.reserveBytes(45, 8, true);
+            if (offset % 8 || reinterpret_cast<uintptr_t>(bytes) % 8)
+                return Result::Error;
+            if (!std::ranges::all_of(std::span{bytes, 45}, [](std::byte value) { return value == std::byte{0}; }))
+                return Result::Error;
+            bytes[0]  = std::byte{0x53};
+            bytes[44] = std::byte{0x64};
+            values.emplace_back(offset, bytes);
+            const auto address = reinterpret_cast<uintptr_t>(bytes);
+            physicalPages.insert(address / 4096);
+            physicalPages.insert((address + 44) / 4096);
+        }
+        // Each 48-byte aligned value previously consumed its own 4 KiB proximity allocation.
+        if (proximity && physicalPages.size() > 16)
+            return Result::Error;
+        if (values[1].second != values[0].second + (values[1].first - values[0].first))
+            return Result::Error;
+
+        const auto [nextLargeOffset, nextLarge] = segment.reserveBytes(PagedStore::K_DEFAULT_PAGE_SIZE * 2 + 3, 8, true);
+        const auto [tailOffset, tail]           = segment.reserveBytes(45, 8, true);
+        nextLarge[0]                            = std::byte{0x75};
+        tail[0]                                 = std::byte{0x53};
+        tail[44]                                = std::byte{0x64};
+        values.emplace_back(tailOffset, tail);
+        std::vector<std::byte> expected(segment.extentSize() + 11, std::byte{0});
+        expected[prefixOffset]    = std::byte{0x31};
+        expected[largeOffset]     = std::byte{0x42};
+        expected[nextLargeOffset] = std::byte{0x75};
+        for (const auto& [offset, bytes] : values)
+        {
+            if (segment.ptr<std::byte>(offset) != bytes || segment.findRef(bytes + 44) != offset + 44)
+                return Result::Error;
+            DataSegmentAllocation allocation;
+            if (!segment.findAllocation(allocation, offset + 44) || allocation.offset != offset || allocation.size != 45)
+                return Result::Error;
+            expected[offset]      = std::byte{0x53};
+            expected[offset + 44] = std::byte{0x64};
+        }
+        std::vector<std::byte> actual(expected.size(), std::byte{0xCC});
+        segment.copyToPreserveOffsets(actual);
+        if (actual != expected)
+            return Result::Error;
+        std::ranges::fill(actual, std::byte{0xCC});
+        segment.copyTo(actual);
+        if (actual != expected)
+            return Result::Error;
+        segment.fill(std::byte{0xDD});
+        segment.restoreFromPreserveOffsets(expected);
+        for (const auto& [offset, bytes] : values)
+            if (segment.ptr<std::byte>(offset) != bytes || bytes[0] != std::byte{0x53} || bytes[44] != std::byte{0x64})
+                return Result::Error;
     }
 }
 SWC_TEST_END()

@@ -64,8 +64,9 @@ public:
 
     struct LargeBlock
     {
-        uint32_t offset = 0;
-        uint32_t size   = 0;
+        uint32_t offset   = 0;
+        uint32_t size     = 0;
+        uint32_t capacity = 0;
 
         LargeBlockStorage storage;
     };
@@ -77,8 +78,8 @@ public:
     };
 
     // Allocate this segment's payload (pages and large blocks) from the
-    // proximity arena, so JIT code can reach it RIP-relative. Meant for the
-    // mutable global segments; call before the segment grows.
+    // proximity arena, so JIT code can reach constants and mutable globals RIP-relative.
+    // Call before the segment grows.
     void enableProximityStorage() noexcept
     {
         store_.enableProximityPages();

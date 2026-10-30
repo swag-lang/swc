@@ -1,0 +1,74 @@
+﻿diff --git a/src/Main/CompilerInstance.cpp b/src/Main/CompilerInstance.cpp
+index 8158031fab..5829b64ec6 100644
+--- a/src/Main/CompilerInstance.cpp
++++ b/src/Main/CompilerInstance.cpp
+@@ -41,6 +41,54 @@
+ 
+ SWC_BEGIN_NAMESPACE();
+ 
++#if defined(SWC_MEMORY_PROFILE) && SWC_MEMORY_PROFILE
++namespace
++{
++    // A shutdown-only probe: reconstruct the current DataSegment allocation policy through
++    // its public allocation records. No counters or branches enter the allocation hot path.
++    // The rounded storage total assumes successful Windows proximity allocations (4 KiB pages).
++    void reportSegmentStorage(const char* module, const char* owner, uint32_t shard, const DataSegment& segment)
++    {
++        constexpr uint64_t pageSize        = PagedStore::K_DEFAULT_PAGE_SIZE;
++        constexpr uint64_t osPageSize      = 4096;
++        const uint32_t     extent          = segment.extentSize();
++        uint64_t           payload         = 0;
++        uint64_t           count           = 0;
++        uint64_t           pagedExtent     = 0;
++        uint64_t           largePayload    = 0;
++        uint64_t           largeRounded    = 0;
++        uint64_t           largeCount      = 0;
++        uint64_t           smallLargeCount = 0;
++        bool               large           = false;
++        for (uint32_t offset = 0; offset < extent;)
++        {
++            DataSegmentAllocation allocation;
++            if (!segment.findAllocation(allocation, offset))
++            {
++                ++offset;
++                continue;
++            }
++
++            ++count;
++            payload += allocation.size;
++            large |= allocation.size > pageSize;
++            if (large)
++            {
++                ++largeCount;
++                smallLargeCount += allocation.size < osPageSize;
++                largePayload += allocation.size;
++                largeRounded += (allocation.size + osPageSize - 1) / osPageSize * osPageSize;
++            }
++            else
++                pagedExtent = static_cast<uint64_t>(allocation.offset) + allocation.size;
++            offset = allocation.offset + allocation.size;
++        }
++        const uint64_t pagedBytes = (pagedExtent + pageSize - 1) / pageSize * pageSize;
++        std::println("segment-memory module={} owner={} shard={} allocations={} payload={} paged={} large-count={} small-large-count={} large-payload={} large-rounded={} extent={}", module, owner, shard, count, payload, pagedBytes, largeCount, smallLargeCount, largePayload, largeRounded, extent);
++    }
++}
++#endif
++
+ struct alignas(64) CompilerInstance::OwnedJobStorage
+ {
+     // Appending jobs changes the vector's control words. Keep neighboring workers
+@@ -391,6 +439,14 @@ CompilerInstance::CompilerInstance(const Global& global, const CommandLine& cmdL
+ 
+ CompilerInstance::~CompilerInstance()
+ {
++#if defined(SWC_MEMORY_PROFILE) && SWC_MEMORY_PROFILE
++    const Utf8 profileModule = moduleNamespaceName();
++    if (cstMgr_)
++        for (uint32_t shard = 0; shard < ConstantStorageLayout::SHARD_COUNT; ++shard)
++            reportSegmentStorage(profileModule.c_str(), "constants", shard, cstMgr_->shardDataSegment(shard));
++    reportSegmentStorage(profileModule.c_str(), "global-zero", 0, globalZeroSegment_);
++    reportSegmentStorage(profileModule.c_str(), "global-init", 0, globalInitSegment_);
++#endif
+     CompilerCacheStore::flushAll();
+     // JIT code can register fiber-local storage whose cleanup callback is its own code reading its
+     // own globals, such as the runtime allocator's thread heap. Windows would run it when a thread

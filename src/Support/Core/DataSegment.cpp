@@ -470,16 +470,38 @@ std::pair<uint32_t, std::byte*> DataSegment::allocateStorageLocked(uint32_t size
 
     if (!largeBlocks_.empty() || size > store_.pageSize())
     {
+        if (!largeBlocks_.empty())
+        {
+            LargeBlock&    last     = largeBlocks_.back();
+            const uint32_t offset   = Math::alignUpU32(last.offset + last.size, align);
+            const uint32_t relative = offset - last.offset;
+            const auto     begin    = reinterpret_cast<uintptr_t>(last.storage.get());
+            if (relative <= last.capacity && size <= last.capacity - relative && (begin + relative) % align == 0)
+            {
+                // Keep alignment gaps zero for offset-preserving copies and snapshots.
+                std::memset(last.storage.get() + last.size, 0, relative - last.size);
+                std::byte* ptr = last.storage.get() + relative;
+                if (zeroInit)
+                    std::memset(ptr, 0, size);
+                last.size                                       = relative + size;
+                largeBlockRanges_.find(begin)->second.offsetEnd = begin + last.size;
+                return {offset, ptr};
+            }
+        }
+
+        // Large allocations end the paged prefix, but small values that follow still share
+        // storage. One OS allocation per value would round each tiny constant to a 4 KiB page.
         LargeBlock block;
-        block.offset = Math::alignUpU32(currentExtentLocked(), align);
-        block.size   = size;
+        block.offset   = Math::alignUpU32(currentExtentLocked(), std::max(align, static_cast<uint32_t>(alignof(std::max_align_t))));
+        block.size     = size;
+        block.capacity = std::max(size, store_.pageSize());
         if (proximityStorage_)
         {
-            if (auto* arena = static_cast<std::byte*>(Os::allocProximityMemory(size)))
-                block.storage = LargeBlockStorage(arena, {.proximitySize = size});
+            if (auto* arena = static_cast<std::byte*>(Os::allocProximityMemory(block.capacity)))
+                block.storage = LargeBlockStorage(arena, {.proximitySize = block.capacity});
         }
         if (!block.storage)
-            block.storage = LargeBlockStorage(new std::byte[size], {});
+            block.storage = LargeBlockStorage(new std::byte[block.capacity], {});
         if (zeroInit)
             std::memset(block.storage.get(), 0, size);
 

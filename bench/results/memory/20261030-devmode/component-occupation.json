@@ -3,7 +3,7 @@
   "compiler_sha256": "0ecd72a7b7f813e02c7e8ceb8237ff94239a8b7ad3c602ecd8ef184fad768ffb",
   "map_sha256": "9a8df7b8b7f84e80b6a04eaad95c6891c3b8a0e0811e42c784fb4cabd20fcf8b",
   "method": "Each sampled live stack is counted once, by its nearest recognized compiler owner beyond generic containers. This is allocation-stack attribution, not a census of logical objects. Folded ownership conflicts are left unattributed. The snapshot need not coincide with the process peak.",
-  "limitation": "Four growth-triggered sampled heap snapshots. They are not phase boundaries or a complete process-memory census. No process-wide percentage is inferred from them.",
+  "limitation": "Four growth-triggered raw sampled heap snapshots without inverse-probability weighting. They omit unsampled live allocations, are biased toward large allocations, and are not phase boundaries or a complete process-memory census. No process-wide percentage is inferred from them.",
   "snapshots": [
     {
       "snapshot": "profile-pages-release.0001.heap",

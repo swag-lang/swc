@@ -320,12 +320,12 @@ without allocator errors. It used the normal repository admission threshold (65%
 tracked frozen inputs still matched the worktree byte for byte after the run.
 
 Profiling sampled every 512 KiB on average and wrote snapshots at 128 MiB in-use intervals.
-The largest captured sampled heap estimate was 513.12 MiB. This is neither the total process
+The largest captured raw sampled heap was 513.12 MiB. This is neither the total process
 peak nor necessarily the exact heap peak: non-mimalloc mappings are outside this profile,
 and threshold snapshots are discrete. The run's process working set peaked at 1,722.76 MiB,
 including profiler overhead. Its 72.39-second wall time is excluded from speed comparisons.
 
-Inclusive allocation-stack estimates in that snapshot include 114.90 MiB under register
+Inclusive raw allocation-stack samples in that snapshot include 114.90 MiB under register
 liveness analysis and 86.63 MiB under archive-file reads. These totals overlap their callers
 and must not be added to them. Symbolization uses the matching linker map and loaded image
 base; folded-function aliases are preserved. [heap-profile.json](heap-profile.json) records
@@ -428,7 +428,11 @@ Folded code with conflicting owners remains unattributed. The detailed data is i
 | Orchestration and unattributed | 0.99 MiB | 0.96 MiB | 1.25 MiB | 0.97 MiB |
 | Total sampled live heap | 163.45 MiB | 257.69 MiB | 390.38 MiB | 513.12 MiB |
 
-These are sampled heap estimates for `ecb64e0f2e`, not whole-process totals or exact phase peaks.
+These are raw sampled allocation bytes for `ecb64e0f2e`, not estimates of each component's total,
+whole-process totals or exact phase peaks. Mimalloc's text profile records requested bytes of
+sampled allocations without inverse-probability weighting (`profile/pprof.c`, `on_alloc` and
+`mi_pprof_snapshot_text`). Small allocations are especially underrepresented; the component
+ratios must not be interpreted as a complete occupation plan.
 The snapshots were triggered by heap growth, so a short parsing peak could fall between them.
 At snapshot 4, register allocation accounts for 145.15 MiB, including about 114.75 MiB attributed
 directly to liveness analysis; other micro passes account for 78.56 MiB. Backend and linker
@@ -471,9 +475,11 @@ host. Reserved-but-uncommitted address space is excluded from the resident total
 The proximity reservation was independently verified against the live compiler's actual
 `g_proximityArena.base`, using the matching linker map and the verified process executable.
 It held **418.06 MiB committed: 9.23 MiB executable/read-only and 408.83 MiB read/write**.
-This owner serves both JIT allocations and mutable global data. Protection alone cannot assign
-all read/write bytes to global values: unfinished code allocations and unused block tails must
-also be distinguished. The generated DLLs have only tens of KiB of `.data`/`.bss`, which does
+This owner serves JIT allocations, mutable global data, **and ConstantManager shard storage**.
+Constant payloads and canonical constant records are therefore absent from the mimalloc heap
+breakdown below. Protection alone cannot assign all read/write bytes to one component:
+unfinished code allocations and unused block tails must also be distinguished.
+The generated DLLs have only tens of KiB of `.data`/`.bss`, which does
 not explain that amount of compile-time storage; native dead-data selection and compile-time
 allocation lifetime differ, so this is a lead rather than proof of waste.
 
@@ -482,7 +488,7 @@ The nearest heap snapshot was written 0.63 seconds before the start of that Wind
 | Sampled live allocation owner near the captured process peak | MiB |
 | --- | ---: |
 | Backend | 305.47 |
-| Sema, symbols, types and constants | 53.77 |
+| Sema, symbols, types and constant metadata (mimalloc only) | 53.77 |
 | Compiler artifact caches | 24.38 |
 | AST and parsing | 11.06 |
 | Sources and tokens | 5.84 |
@@ -490,10 +496,11 @@ The nearest heap snapshot was written 0.63 seconds before the start of that Wind
 | Linker | 1.18 |
 | Total sampled live heap | about 403 |
 
-These allocations are **inside**, not additional to, mimalloc's arenas. The roughly 800 MiB gap
-between resident arenas and the sampled live estimate is not yet proven to be reclaimable:
-retained free pages, partially occupied pages, size rounding, profiler metadata, sampling error
-and the non-atomic timing must be separated. Subprocess `allocated` counters alone are not a
+These allocations are **inside**, not additional to, mimalloc's arenas. The roughly 800 MiB
+difference is **not a fragmentation estimate**: the text profile omits unsampled live allocations
+and does not extrapolate them. Full live-object accounting is needed before separating retained
+free pages, partially occupied pages, size rounding and profiler metadata. The observations are
+also non-atomic. Subprocess `allocated` counters alone are not a
 live-allocation total: active heap/thread statistics have not been aggregated into them.
 
 Across all 40 snapshots, independent sampled component maxima were 311.85 MiB for the backend,
@@ -508,9 +515,10 @@ The occupation plan now prioritizes the measured dominant owners:
    retained free capacity, then attribute retained capacity to the phases that grew it. Do not
    add blanket collection or decommit policies that could repeatedly fault hot memory back in.
 2. **Explain the 408.83 MiB read/write proximity region:** attribute committed bytes and useful
-   bytes to JIT blocks, global-zero and global-initialized storage, with their owning module and
-   lifetime. Investigate oversized reservations, eager initialization and unnecessary retention
-   only after that attribution.
+    bytes to constant shards, JIT blocks, global-zero and global-initialized storage, with their
+    owning module and lifetime. DataSegment permanently switches to individual allocations after
+    its first allocation larger than 16 KiB; each subsequent proximity allocation rounds to at
+    least 4 KiB. Quantify that padding before changing allocation policy.
 3. **Backend retained analyses:** prioritize register liveness (about 113 MiB in the nearest
    snapshot), SSA, physical-liveness and native-section buffers. Separate useful size from
    retained capacity before changing algorithms; preserve direct accesses and scratch reuse
@@ -518,9 +526,50 @@ The occupation plan now prioritizes the measured dominant owners:
 4. **Linker peaks:** investigate overlapping archive/object/image ownership, using the existing
    mapped-archive checkpoint and the set-aside consumption patch. Treat its peak separately from
    earlier sema/backend peaks.
-5. **AST and sema layouts:** lower priority until evidence shows a larger missed lifetime or
-   peak. Their currently observed sizes cannot explain the bulk of process memory.
+5. **AST and heap-only sema layouts:** lower priority than the unaccounted constant storage and
+   allocator occupancy. The small raw sema sample is not its total memory footprint.
 
 No further micro-optimization build is scheduled until this occupation analysis identifies the
 largest practical reduction. Any retained implementation still needs a grouped speed comparison
 on stable host load; no whole-compilation speed acceptance has been claimed.
+
+## Constant storage: identified page-rounding waste
+
+A shutdown-only diagnostic reconstructed DataSegment storage from its allocation records on the
+same frozen application sources. The Release diagnostic built successfully, and the application
+completed without allocator errors. Its binary SHA-256 is
+`0caa6f5a70e95d7477cf69ca88cb423a1be9437b89916616f6028fd708fda978`.
+It includes `7a00a18050` but precedes the packing fix described below. Its time is excluded from
+speed comparisons. [segment-storage.json](segment-storage.json) retains the command, output,
+counts and grouping; [segment-profile-before.patch](segment-profile-before.patch) preserves the
+probe against `7829b67d16`. The probe was enabled with a source-local `SWC_MEMORY_PROFILE=1`
+after the PCH include, copied outside the checkout, then removed. No build configuration changed.
+
+| Constant segments at destruction of the main module instance | Useful payload MiB | Rounded storage MiB | Difference MiB |
+| --- | ---: | ---: | ---: |
+| Gui | 16.223 | 339.746 | 323.523 |
+| Swagcapture | 3.707 | 125.344 | 121.636 |
+
+These are separate instance-end observations, **not additive process peaks**. The module-wide
+totals including setup instances are 340.074 MiB and 125.672 MiB respectively. Gui made 83,716
+individual blocks smaller than 4 KiB after large allocations; Swagcapture made 31,475. Mutable
+global segments are small (tens of KiB each). Rounded storage follows the actual pre-fix policy,
+assuming successful proximity allocations and Windows 4 KiB OS pages; it is not a resident-page
+measurement and does not include segment metadata.
+
+The root cause is `DataSegment::allocateStorageLocked`: one allocation above the 16 KiB page
+size permanently ends paged allocation, and every subsequent value gets an individual block.
+For proximity storage this commits at least 4 KiB even for a small constant record. This explains
+a major part of the previously unattributed read/write proximity storage.
+
+The pending fix packs subsequent small values into 16 KiB blocks. It keeps existing pointers,
+monotonic logical offsets, separate allocation records and the existing locking protocol.
+Alignment gaps are zeroed for offset-preserving copies. Normal paged-only segments keep their
+existing allocation and lookup paths. Packing also removes OS allocation calls and block-index
+entries; it does not introduce collection, compaction or repeated page faults.
+
+Validation selected for this substantive change: DevMode C++ tests for packed allocation,
+pointer stability, reverse lookup, alignment, zeroing, copy/restore and block rollover, followed
+by the same linked application with the Release compiler. No post-fix process gain is claimed
+until that measurement completes. Full mimalloc live-object accounting remains necessary;
+the raw sampled component table above cannot replace it.

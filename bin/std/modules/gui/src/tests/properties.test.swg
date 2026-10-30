@@ -55,6 +55,39 @@ struct PropHeadlessSliderData
     level: s32 = 5
 }
 
+struct PropHeadlessFontData
+{
+    #[Properties.FontName]
+    face: String
+}
+
+// The separator after the default face is not an entry in the system font table.
+#[Swag.TestTag("properties.font")]
+#test
+{
+    var host: Testing.HeadlessHost
+    host.setup(320, 200)
+    var data: PropHeadlessFontData
+    let prop = Properties.create(&host.root, {0, 0, 300, 180}, .Panel)
+    prop.addStruct(data)
+    let item  = unwrap findFieldItem(prop, #nameof(PropHeadlessFontData.face))
+    let combo = item.comboBox
+    Swag.assert(combo != null and combo.items.count > 2)
+    for index in [2'u32, cast(u32, combo.items.count - 1)]
+    {
+        let name: String = combo.items[index]!.name.raw
+        combo.setSelectedIndex(index)
+        Swag.assert(data.face == name)
+        prop.refresh()
+        Swag.assert(combo.selectedIndex == index)
+    }
+
+    combo.setSelectedIndex(0)
+    Swag.assert(data.face.isEmpty())
+    prop.refresh()
+    Swag.assert(combo.selectedIndex == 0)
+}
+
 struct PropHeadlessGroupedData
 {
     #[Category("Numbers")]

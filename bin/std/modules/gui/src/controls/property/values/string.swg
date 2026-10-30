@@ -29,7 +29,7 @@ internal impl Properties
         for &fnt, idx in g_PropSysFonts
         {
             if cur[] == fnt.name do
-                sel = cast(u32, idx) + 1
+                sel = cast(u32, idx) + 2
         }
 
         item.comboBox.setSelectedIndex(sel, notify: false)
@@ -45,7 +45,7 @@ internal impl Properties
         if sel == 0 do
             data.clear()
         else do
-            data[] = g_PropSysFonts[sel - 1].name
+            data[] = g_PropSysFonts[sel - 2].name
 
         .commitItemChange(item)
     }

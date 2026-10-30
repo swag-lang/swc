@@ -175,6 +175,35 @@ func renderDialog(host: *Testing.HeadlessHost, dlg: *Dialog)->Image
     }
 }
 
+// The confirmation helper's default answer takes keyboard focus when the modal opens. Keep that
+// combined state in the dialog goldens at a scaled display size, where the ring has been clipped.
+#[Swag.TestTag("golden")]
+#test
+{
+    for light in [false, true]
+    {
+        var host: Testing.HeadlessHost
+        host.setup(600, 400, dpiScale: 1.5)
+        if light
+        {
+            host.theme.setLight()
+            host.notify(.ThemeChanged)
+        }
+
+        let suffix = light ? "paper" : "ink"
+        let dlg    = MessageDlg.create(&host.surface, "The file could not be found.\n\nRemove it from the file history?", {title: "File not found."})
+        dlg.addButton(strings().dlg_Yes, Dialog.BtnYes)
+        let no = dlg.addButton(strings().dlg_No, Dialog.BtnNo, true)
+        host.app.setFocusVisible(true)
+        no.setFocus()
+        dlg.adaptSizeToMessage()
+
+        Swag.assert(no.hasVisibleFocus())
+        let image = renderDialog(&host, &dlg.dialog)
+        Pixel.Testing.assertImageGolden(&image, Format.toString("dialogs.message.focus.%", suffix).toString())
+    }
+}
+
 // Returns `count` bytes of text, for a file of a known size.
 func filler(count: u64)->String
 {

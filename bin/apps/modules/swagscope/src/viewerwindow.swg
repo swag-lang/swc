@@ -126,6 +126,7 @@ struct ViewerWindow
     pendingFile:             String
     pendingEmpty:            String
     pendingRemember:         bool = true
+    pendingForgetMissing:    bool
     fileWatch:               ViewerFileWatch
     fileWatchTimer:          *Timer?
     readingState:            ViewerReadingState

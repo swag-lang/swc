@@ -14,6 +14,33 @@ func unbreakableMessage()->String
     return result
 }
 
+// Every standard message action returns the button the reader chose from a real modal surface.
+#test
+{
+    var host: Testing.HeadlessHost
+    host.setup(900, 500)
+
+    host.clickModalButtonWhenShown(Dialog.BtnOk)
+    MessageDlg.ok(&host.surface, "The operation is complete.")
+    Swag.assert(host.autoHandled)
+
+    host.clickModalButtonWhenShown(Dialog.BtnOk)
+    let okCancel = MessageDlg.okCancel(&host.surface, "Save the changes?")
+    Swag.assert(host.autoHandled and okCancel == Dialog.BtnOk)
+
+    host.clickModalButtonWhenShown(Dialog.BtnYes)
+    let yesNo = MessageDlg.yesNo(&host.surface, "Continue?")
+    Swag.assert(host.autoHandled and yesNo == Dialog.BtnYes)
+
+    host.clickModalButtonWhenShown(Dialog.BtnCancel)
+    let yesNoCancel = MessageDlg.yesNoCancel(&host.surface, "Save the changes?")
+    Swag.assert(host.autoHandled and yesNoCancel == Dialog.BtnCancel)
+
+    host.clickModalButtonWhenShown(Dialog.BtnNo)
+    let confirmation = MessageDlg.confirm(&host.surface, "The file could not be found.", "Remove it from the history?")
+    Swag.assert(host.autoHandled and confirmation == Dialog.BtnNo)
+}
+
 // A box is bounded by its maximum width, whatever the message is made of.
 //
 // Word wrapping has nothing to break a run carrying no space on, so a box holding a path measured

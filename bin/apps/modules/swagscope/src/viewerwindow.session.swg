@@ -12,7 +12,10 @@ impl ViewerWindow
     }
 
     // Opens `fileName` after the surface has had a chance to paint its first frame.
-    mtd queueFile(fileName: string, remember = true, preserveReading = false)
+    mtd queueFile(fileName: string,
+                  remember = true,
+                  preserveReading = false,
+                  offerForgetMissing = false)
     {
         .reloading = preserveReading
         if not preserveReading do
@@ -30,6 +33,7 @@ impl ViewerWindow
         .pendingFile = fileName
         .pendingEmpty.clear()
         .pendingRemember = remember
+        .pendingForgetMissing = offerForgetMissing
 
         // The home is not what a window opening a file should paint first: hidden now, the first
         // frame shows the surface the document is about to fill.
@@ -114,11 +118,15 @@ impl ViewerWindow
             }
 
             let remember   = .pendingRemember
+            let offerForgetMissing = .pendingForgetMissing
+            let requested  = String.from(.pendingFile)
             var classified = .choiceLoad.finish()
             .pendingFile.clear()
             if not classified.exists
             {
-                .showEmpty(appStrings().ui_OpenStopped)
+                .showEmpty(appStrings().ui_DropTitle)
+                if offerForgetMissing do
+                    .confirmForgetMissingRecent(requested)
                 return
             }
 

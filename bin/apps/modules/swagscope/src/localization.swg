@@ -124,6 +124,8 @@ struct AppStrings
     home_InviteFolder:                 string = "Open a folder"                               // Folder invitation on the home page; the key follows it.
     home_Clear:                        string = "Clear…"                                      // Quiet command under the last files, opening the clears.
     home_ClearMissing:                 string = "Remove Missing Files"                        // Clear of the history entries whose file is gone.
+    home_MissingTitle:                 string = "File not found."                              // Title of the question after a recent file is missing.
+    home_AskForgetMissing:             string = "Remove it from the file history?"            // Question offering to drop the missing file from the history.
     home_ClearOlder:                   string = "Older Than a Month"                          // Clear of the history entries last opened more than a month ago.
     home_ClearAll:                     string = "Clear All…"                                  // Clear of the whole history, after a question.
     home_Yesterday:                    string = "yesterday"                                   // When a file was last opened, the day before today.

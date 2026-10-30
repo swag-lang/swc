@@ -167,6 +167,11 @@ impl Dialog
             .spacing   = metrics.dialog_BtnPadding
             .mode      = .HorizontalEnd
             .dockStyle = .Bottom
+
+            // A focused button paints its ring outside its own rectangle. The dialog surface
+            // still clips at its edge, and its inset leaves room for the ring; the action row
+            // must not cut it off at the primary button's trailing edge.
+            .wndFlags ^= .ClipChildren
         }
 
         .updateInset()

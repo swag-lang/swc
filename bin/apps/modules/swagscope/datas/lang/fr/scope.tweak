@@ -142,6 +142,8 @@ home_Invite Déposez un fichier, ou ouvrez-en un
 home_InviteFolder Ouvrir un dossier
 home_Clear Effacer…
 home_ClearMissing Retirer les introuvables
+home_MissingTitle Fichier introuvable.
+home_AskForgetMissing Le retirer de l'historique des fichiers ?
 home_ClearOlder Plus vieux qu'un mois
 home_ClearAll Tout effacer…
 home_Yesterday hier

@@ -2176,6 +2176,11 @@ impl ExplorerGrid
             }
         }
 
+        // A thumbnail can cover its ground, so mark the whole hovered target with a strong edge.
+        // Selection keeps its Arc ring and stays visible after the pointer leaves.
+        if .board != .Mosaic and .hovered == row and .explorer.selected != index do
+            painter.drawRoundRect(tile, radius, radius, colors.strongLine, RingWeight)
+
         // Draw the selection after the preview so the picture cannot cover its Arc outline.
         if .explorer.selected == index
         {

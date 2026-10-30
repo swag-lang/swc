@@ -141,7 +141,8 @@ private func defaultThemeImages()->*ThemeImages
         // so the parsers and the resource bundle share one static copy.
         cache.widgets = expect Svg.Drawing.parse(Swag.makeString(DefaultImage.buffer, DefaultImage.count))
         expect cache.icons.setup(Swag.makeString(DefaultIcons.buffer, DefaultIcons.count))
-        cache.decoded = true
+        cache.icons.embedded = true
+        cache.decoded        = true
     }
 
     return cache
@@ -149,8 +150,9 @@ private func defaultThemeImages()->*ThemeImages
 
 // Returns the shared widgets atlas rasterized at `scale` device pixels per authored texel.
 //
-// The atlas is rasterized on the processor, whatever renderer the application draws with. The
-// banded software rasterizer fills the supersampled buffer in a few hundred milliseconds, while
+// The stock atlas decodes a lossless embedded PNG at common scales. Other scales and custom art
+// are rasterized on the processor, whatever renderer the application draws with. The
+// banded software rasterizer fills the supersampled buffer, while
 // the OpenGL path reads every tile back across the bus and took seconds on a busy adapter. It
 // also ran before the first window was shown, on that window's own context, and an OpenGL
 // window whose context did that heavy offscreen work while hidden could come up with none of
@@ -165,6 +167,13 @@ private func themeWidgetsImage(cache: *ThemeImages, scale: f32)->*Image
     let found = cache.widgetsRasters.tryFind(key)
     if found do
         return &found.value
+
+    if cache == &g_DefaultThemeImages
+    {
+        let bytes = themeWidgetRaster(key)
+        if bytes do
+            return &cache.widgetsRasters.add(key, decodeThemeRaster(bytes)).value
+    }
 
     let w = cast(s32, Math.round(cache.widgets.width * scale))
     let h = cast(s32, Math.round(cache.widgets.height * scale))

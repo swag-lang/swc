@@ -14,9 +14,10 @@ using Core, Pixel
 // [[Gui.Theme.icon]], and an application owns its own beside its icon source.
 struct IconAtlas
 {
-    lock:    Swag.Mutex      // Guards the rasterizations against concurrent first use.
-    drawing: Svg.Drawing     // The vector document, parsed once.
-    rasters: HashTable'(s64, Image)     // Rasterizations of `drawing`, by cell size in device pixels.
+    lock:     Swag.Mutex      // Guards the rasterizations against concurrent first use.
+    drawing:  Svg.Drawing     // The vector document, parsed once.
+    rasters:  HashTable'(s64, Image)     // Rasterizations of `drawing`, by cell size in device pixels.
+    embedded: bool            // Only the unmodified stock document can use the shipped rasters.
 }
 
 impl IconAtlas
@@ -30,7 +31,8 @@ impl IconAtlas
     {
         Sync.scopedLock(&.lock)
         .rasters.clear()
-        .drawing = try Svg.Drawing.parse(source)
+        .embedded = false
+        .drawing  = try Svg.Drawing.parse(source)
     }
 
     // Returns the sheet rasterized with `cell` device pixels per glyph, building it on first use.
@@ -38,12 +40,11 @@ impl IconAtlas
     // The image is borrowed from the atlas and stays valid for its lifetime; a caller uploads a
     // copy of it into its own renderer rather than holding this one.
     //
-    // The sheet is rasterized on the processor, whatever renderer the application draws with, as
-    // the theme's widgets atlas is. A window builds its controls, and asks for their icons, before
+    // Common stock sizes decode their lossless embedded PNG; other sheets are rasterized on the
+    // processor, whatever renderer the application draws with. A window builds its controls before
     // it is first shown, and an OpenGL window whose context did offscreen rasterization while still
     // hidden could come up with none of its frames ever reaching the compositor: a taskbar entry
-    // and no window, on a display chained through a DisplayLink adapter. The processor costs about
-    // a hundred milliseconds more at startup for the sheets a window first needs.
+    // and no window, on a display chained through a DisplayLink adapter.
     internal mtd image(cell: s32)->*Image
     {
         Sync.scopedLock(&.lock)
@@ -52,6 +53,13 @@ impl IconAtlas
         let found = .rasters.tryFind(key)
         if found do
             return &found.value
+
+        if .embedded
+        {
+            let bytes = themeIconRaster(cell)
+            if bytes do
+                return &.rasters.add(key, decodeThemeRaster(bytes)).value
+        }
 
         let cols = cast(s32, Math.round(.drawing.width / 24))
         let rows = cast(s32, Math.round(.drawing.height / 24))

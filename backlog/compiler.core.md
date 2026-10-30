@@ -664,6 +664,25 @@ Entries stay in one flat list. Keep only measurements that affect the next actio
   compiler.core.085 (nondeterministic publication), compiler.core.096 (safe allocator inspection),
   compiler.core.098 (performance acceptance).
 
+### compiler.core.099 — Materialize owning compile-time buffers safely in native programs
+
+- Evidence: a `#run` function that rasterizes a small SVG and returns `image.encode(".png").toArray()`
+  can initialize `const Packed` and decode it successfully in a JIT script. The same constant in
+  a native Release workspace crashes with `0xC0000005` when its slice is decoded. Trying to copy
+  `Packed.storage()` into a fixed array in a second `#run` instead reports the internal error
+  "cannot materialize a struct constant payload". Inferring a static array directly from the
+  returned `Array'u8` is also refused, despite the conversion described in reference 014_002.
+- Next: reduce this to an owning byte-array return and inspect constant payload relocation,
+  allocator pointers and lifetime in the JIT-to-native boundary. Diagnose unsupported owning
+  constants before native emission, or snapshot their reachable buffers with an explicit contract.
+  Returning a fixed-size byte array works; evaluating the encoder twice just to discover that
+  size is not a satisfactory embedding API.
+- Done when: the supported buffer form is documented and covered in JIT and native tests, and
+  unsupported forms report an ordinary diagnostic rather than emitting stale pointers or an ICE.
+- Reproduction: `%LOCALAPPDATA%/swc-agent-builds/startup-midnight-20261030/raster-workspace`
+  and `compile-raster.swgs` contain the image-sized witness; preserve the owning-array variant
+  when reducing it, since the final fixed-array variant succeeds.
+
 ### compiler.core.098 — Close compilation-speed acceptance for memory reductions
 
 - Evidence: the memory campaign has successful focused correctness, application and generated-code

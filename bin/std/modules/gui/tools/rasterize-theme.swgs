@@ -1,0 +1,33 @@
+// Regenerates the lossless theme rasters beside their SVG masters.
+// Run with: bin/swc.dm.exe run -f bin/std/modules/gui/tools/rasterize-theme.swgs --num-cores 6
+#import("pixel", location: "swag@std")
+
+using Core, Pixel
+
+#[Swag.Propagate]
+func generate(name: string, sizes: const [..] s32, units: f32, limit: s32) fail
+{
+    let folder  = Path.combine(unwrap Path.directoryName(#curlocation.fileName), "../src/theme")
+    let source  = File.readAllText(Path.combine(folder.toString(), Format.toString("%.svg", name).toString()))
+    let drawing = Svg.Drawing.parse(source.toString())
+    for size in sizes
+    {
+        let width   = cast(s32, Math.round(drawing.width * cast(f32, size) / units))
+        let height  = cast(s32, Math.round(drawing.height * cast(f32, size) / units))
+        var samples = 4'u8
+        while samples > 1 and width * cast(s32, samples) > limit do
+            samples /= 2
+
+        let image   = drawing.rasterize(width, height, samples)
+        let encoded = image.encode(".png")
+        let path    = Path.combine(folder.toString(), Format.toString("%-%px.png", name, size).toString())
+        discard File.writeAllBytes(path, encoded.toArray().toSlice())
+        Console.printf("%\n", path)
+    }
+}
+
+#main
+{
+    expect generate("icons", [16, 20, 24, 28, 32, 40, 48], 24, 8192)
+    expect generate("widgets", [1, 2], 1, 4096)
+}

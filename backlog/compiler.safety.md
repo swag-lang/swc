@@ -55,10 +55,19 @@ is the current scorecard.
   with no remaining write check registers no borrow. Earlier same-program comparisons found
   about 1.9x for nbody, 1.4x for fannkuch and 1.3x for dijkstra; they predate the latest hoists
   and do not establish their current overhead.
+  CPU backdrop convolution also exposes process-wide registration-lock contention: a native
+  DevMode Gaussian pass exceeded 300 seconds with the default worker pool, while a single
+  worker completed the scene. Small `Vector4` arithmetic repeatedly enters and leaves the
+  same registry. Packed SIMD channel arithmetic removes that pressure from this renderer,
+  but ordinary parallel value calls still need a scalable guard. A sharded prototype passes
+  128 native borrow tests, including cross-thread writes, but its permanently widened extent
+  and empty-registry write cost need measurement before adopting that runtime design.
 - Next: repeat the paired fixture on a quiet machine with an unchanged A/A control, then
   measure a representative application. Attribute remaining loop checks, argument copies,
   cold failure-call layout and per-value-parameter borrow registration before choosing another
-  change. Checking a writing function's own ranges inline still needs a runtime entry that
+  change. Include parallel small-value arithmetic, shard collisions, and writes after the last
+  borrow closes; retain cross-thread conflicts and panic checkpoints. Checking a writing
+  function's own ranges inline still needs a runtime entry that
   reports a conflict. Tiny-call ratios must not stand in for application overhead.
 - Done when: reproducible measurements state the workload, compiler and program configurations,
   guard settings and variability, and give a bounded assessment of the runtime overhead.

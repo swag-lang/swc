@@ -1,0 +1,4132 @@
+{
+  "compiler_revision": "ecb64e0f2e",
+  "compiler_sha256": "0ecd72a7b7f813e02c7e8ceb8237ff94239a8b7ad3c602ecd8ef184fad768ffb",
+  "map_sha256": "9a8df7b8b7f84e80b6a04eaad95c6891c3b8a0e0811e42c784fb4cabd20fcf8b",
+  "method": "Each sampled live stack is counted once, by its nearest recognized compiler owner beyond generic containers. This is allocation-stack attribution, not a census of logical objects. Folded ownership conflicts are left unattributed. The snapshot need not coincide with the process peak.",
+  "limitation": "Four growth-triggered sampled heap snapshots. They are not phase boundaries or a complete process-memory census. No process-wide percentage is inferred from them.",
+  "snapshots": [
+    {
+      "snapshot": "profile-pages-release.0001.heap",
+      "file_timestamp_unix": 1793360548.275118,
+      "inuse_bytes": 171391751,
+      "categories": {
+        "Backend": 139683686,
+        "Compiler artifact caches": 9243542,
+        "Sema, symbols, types and constants": 14788714,
+        "AST and parsing": 4783517,
+        "Source text and tokens": 1859204,
+        "Orchestration": 1032898,
+        "Unattributed: shared or external allocation": 190
+      },
+      "detailed_categories": {
+        "Backend: register allocation": 87335556,
+        "Backend: microcode and optimization": 52277809,
+        "Compiler artifact caches": 9243542,
+        "Sema: analysis and payloads": 8514748,
+        "AST and parsing": 4783517,
+        "Sema: symbols and identifiers": 3800920,
+        "Sema: types": 2404300,
+        "Source text and tokens": 1859204,
+        "Orchestration": 1032898,
+        "Backend: native emission": 70321,
+        "Sema: constants": 68746,
+        "Unattributed: shared or external allocation": 190
+      },
+      "allocation_sites": [
+        {
+          "owner": "Backend: register allocation",
+          "frame": "swc::MicroRegisterAllocationPass::analyzeLiveness",
+          "inuse_bytes": 69406261
+        },
+        {
+          "owner": "Backend: microcode and optimization",
+          "frame": "swc::MicroSsaState::build",
+          "inuse_bytes": 18676159
+        },
+        {
+          "owner": "Backend: register allocation",
+          "frame": "swc::MicroRegisterAllocationPass::initState",
+          "inuse_bytes": 10919798
+        },
+        {
+          "owner": "Compiler artifact caches",
+          "frame": "swc::CompilerCacheStore::publish",
+          "inuse_bytes": 9222864
+        },
+        {
+          "owner": "Backend: microcode and optimization",
+          "frame": "swc::MicroStorage::insertBefore",
+          "inuse_bytes": 8602620
+        },
+        {
+          "owner": "Backend: register allocation",
+          "frame": "`swc::MicroRegisterAllocationPass::run'::`2'::<lambda_1>::operator()",
+          "inuse_bytes": 6779444
+        },
+        {
+          "owner": "Backend: microcode and optimization",
+          "frame": "swc::MicroSsaState::renameIntoSsa",
+          "inuse_bytes": 5291344
+        },
+        {
+          "owner": "Sema: analysis and payloads",
+          "frame": "swc::SemaHelpers::registerSymbol<swc::SymbolFunction>",
+          "inuse_bytes": 3734127
+        },
+        {
+          "owner": "Backend: microcode and optimization",
+          "frame": "swc::MicroPreRaPeepholePass::run",
+          "inuse_bytes": 3621094
+        },
+        {
+          "owner": "Sema: symbols and identifiers",
+          "frame": "swc::Symbol::setAttributes",
+          "inuse_bytes": 3472083
+        },
+        {
+          "owner": "Backend: microcode and optimization",
+          "frame": "swc::MicroPassHelpers::computePhysicalLiveness",
+          "inuse_bytes": 3324840
+        },
+        {
+          "owner": "Backend: microcode and optimization",
+          "frame": "swc::MicroControlFlowGraph::build",
+          "inuse_bytes": 3155966
+        },
+        {
+          "owner": "Sema: analysis and payloads",
+          "frame": "swc::NodePayload::setSymbol",
+          "inuse_bytes": 2384815
+        },
+        {
+          "owner": "Backend: microcode and optimization",
+          "frame": "swc::MicroPeephole::RewriteQueue<swc::InstructionCombine::Action>::emitRewrite",
+          "inuse_bytes": 2228316
+        },
+        {
+          "owner": "Sema: types",
+          "frame": "swc::TypeGen::wireRelocations",
+          "inuse_bytes": 1821416
+        },
+        {
+          "owner": "Backend: microcode and optimization",
+          "frame": "swc::MicroSsaState::placePhiNodes",
+          "inuse_bytes": 1689955
+        },
+        {
+          "owner": "AST and parsing",
+          "frame": "swc::Parser::parse",
+          "inuse_bytes": 1414496
+        },
+        {
+          "owner": "Backend: microcode and optimization",
+          "frame": "swc::MicroInstructionCombinePass::run",
+          "inuse_bytes": 1114204
+        },
+        {
+          "owner": "Source text and tokens",
+          "frame": "swc::Lexer::lexSymbol",
+          "inuse_bytes": 1104129
+        },
+        {
+          "owner": "AST and parsing",
+          "frame": "swc::AstAutoMemberAccessExpr::semaPreNodeChild",
+          "inuse_bytes": 970373
+        },
+        {
+          "owner": "Backend: microcode and optimization",
+          "frame": "swc::MicroBuilder::addRelocation",
+          "inuse_bytes": 887187
+        },
+        {
+          "owner": "Sema: analysis and payloads",
+          "frame": "swc::SemaHelpers::registerSymbol<swc::SymbolVariable>",
+          "inuse_bytes": 851643
+        },
+        {
+          "owner": "Backend: microcode and optimization",
+          "frame": "swc::MicroStackAdjustNormalizePass::run",
+          "inuse_bytes": 745338
+        },
+        {
+          "owner": "Backend: microcode and optimization",
+          "frame": "swc::MicroPeephole::RewriteQueue<swc::PostRaPeephole::Action>::emitRewrite",
+          "inuse_bytes": 696412
+        },
+        {
+          "owner": "AST and parsing",
+          "frame": "swc::Ast::buildReachableNodeIndex",
+          "inuse_bytes": 675006
+        },
+        {
+          "owner": "AST and parsing",
+          "frame": "swc::AstLambdaType::semaPostNode",
+          "inuse_bytes": 655110
+        },
+        {
+          "owner": "Orchestration",
+          "frame": "swc::CompilerInstance::appendGeneratedSource",
+          "inuse_bytes": 643908
+        },
+        {
+          "owner": "Backend: microcode and optimization",
+          "frame": "swc::MicroBranchSimplifyPass::run",
+          "inuse_bytes": 607732
+        },
+        {
+          "owner": "Backend: microcode and optimization",
+          "frame": "swc::MicroConstantFoldingPass::run",
+          "inuse_bytes": 525064
+        },
+        {
+          "owner": "Sema: types",
+          "frame": "swc::TypeGen::initTypeInfoPayload",
+          "inuse_bytes": 491652
+        },
+        {
+          "owner": "Source text and tokens",
+          "frame": "swc::SourceFile::loadContent",
+          "inuse_bytes": 363179
+        },
+        {
+          "owner": "Sema: analysis and payloads",
+          "frame": "swc::SemaInline::tryInlineCall",
+          "inuse_bytes": 327555
+        },
+        {
+          "owner": "Sema: analysis and payloads",
+          "frame": "swc::SemaHelpers::registerUniqueRuntimeStorageSymbol",
+          "inuse_bytes": 327555
+        },
+        {
+          "owner": "Backend: microcode and optimization",
+          "frame": "swc::MicroEmitPass::run",
+          "inuse_bytes": 314466
+        },
+        {
+          "owner": "Backend: microcode and optimization",
+          "frame": "swc::MicroPeephole::RewriteQueue<swc::InstructionCombine::Action>::emitErase",
+          "inuse_bytes": 278574
+        },
+        {
+          "owner": "Sema: analysis and payloads",
+          "frame": "swc::NodePayload::setInlinePayload",
+          "inuse_bytes": 266378
+        },
+        {
+          "owner": "Backend: microcode and optimization",
+          "frame": "swc::MicroSsaState::buildBlocks",
+          "inuse_bytes": 211212
+        },
+        {
+          "owner": "Backend: register allocation",
+          "frame": "swc::MicroRegisterAllocationPass::computeLoopDepth",
+          "inuse_bytes": 200296
+        },
+        {
+          "owner": "AST and parsing",
+          "frame": "swc::Ast::makeNode<11>",
+          "inuse_bytes": 197364
+        },
+        {
+          "owner": "Sema: analysis and payloads",
+          "frame": "swc::SemaHelpers::ensureCodeGenLoweringPayload",
+          "inuse_bytes": 196533
+        },
+        {
+          "owner": "Source text and tokens",
+          "frame": "swc::Lexer::lexIdentifier",
+          "inuse_bytes": 163569
+        },
+        {
+          "owner": "Backend: microcode and optimization",
+          "frame": "swc::MicroBuilder::preserveVirtualCopy",
+          "inuse_bytes": 131118
+        },
+        {
+          "owner": "Sema: symbols and identifiers",
+          "frame": "swc::Symbol::make<swc::SymbolVariable>",
+          "inuse_bytes": 131022
+        },
+        {
+          "owner": "Orchestration",
+          "frame": "swc::CompilerInstance::allocate<swc::SemaCompilerIf>",
+          "inuse_bytes": 131022
+        },
+        {
+          "owner": "AST and parsing",
+          "frame": "swc::AstFile::semaPreDecl",
+          "inuse_bytes": 131022
+        },
+        {
+          "owner": "Sema: symbols and identifiers",
+          "frame": "swc::Symbol::make<swc::SymbolStruct>",
+          "inuse_bytes": 131022
+        },
+        {
+          "owner": "Source text and tokens",
+          "frame": "swc::Lexer::lexNumber",
+          "inuse_bytes": 126082
+        },
+        {
+          "owner": "Backend: microcode and optimization",
+          "frame": "swc::MicroCopyEliminationPass::run",
+          "inuse_bytes": 90430
+        },
+        {
+          "owner": "Source text and tokens",
+          "frame": "swc::Lexer::tokenize",
+          "inuse_bytes": 82697
+        },
+        {
+          "owner": "Sema: analysis and payloads",
+          "frame": "swc::NodePayload::setSemaPayload",
+          "inuse_bytes": 78168
+        },
+        {
+          "owner": "Orchestration",
+          "frame": "swc::ModuleSetupInputApplier::apply",
+          "inuse_bytes": 67589
+        },
+        {
+          "owner": "AST and parsing",
+          "frame": "swc::Parser::lowerSwagIntrinsicCall",
+          "inuse_bytes": 65788
+        },
+        {
+          "owner": "AST and parsing",
+          "frame": "swc::Parser::parseAutoMemberAccessExpr",
+          "inuse_bytes": 65788
+        },
+        {
+          "owner": "Orchestration",
+          "frame": "swc::CompilerInstance::prepareCompilerMessageTypeInfo",
+          "inuse_bytes": 65582
+        },
+        {
+          "owner": "Sema: types",
+          "frame": "swc::TypeGen::makeTypeInfo",
+          "inuse_bytes": 65582
+        },
+        {
+          "owner": "Sema: analysis and payloads",
+          "frame": "swc::SemaHelpers::registerSymbol<swc::SymbolStruct>",
+          "inuse_bytes": 65511
+        },
+        {
+          "owner": "Sema: analysis and payloads",
+          "frame": "swc::SemaHelpers::registerSymbol<swc::SymbolAlias>",
+          "inuse_bytes": 65511
+        },
+        {
+          "owner": "Sema: analysis and payloads",
+          "frame": "swc::SemaGeneric::`anonymous namespace'::createGenericInstanceSymbol",
+          "inuse_bytes": 65511
+        },
+        {
+          "owner": "Sema: analysis and payloads",
+          "frame": "swc::SemaHelpers::registerSymbol<swc::SymbolEnum>",
+          "inuse_bytes": 65511
+        },
+        {
+          "owner": "Orchestration",
+          "frame": "swc::CompilerInstance::registerCompilerMessageFunction",
+          "inuse_bytes": 53660
+        },
+        {
+          "owner": "Backend: microcode and optimization",
+          "frame": "swc::MicroPostRaPeepholePass::run",
+          "inuse_bytes": 51307
+        },
+        {
+          "owner": "AST and parsing",
+          "frame": "swc::Parser::parseBinaryExpr",
+          "inuse_bytes": 49341
+        },
+        {
+          "owner": "Sema: analysis and payloads",
+          "frame": "swc::NodePayload::setSymbolListImpl",
+          "inuse_bytes": 49341
+        },
+        {
+          "owner": "Orchestration",
+          "frame": "swc::CompilerInstance::ownJob",
+          "inuse_bytes": 43206
+        },
+        {
+          "owner": "Backend: native emission",
+          "frame": "swc::X64Encoder::encodeLoadMemImm",
+          "inuse_bytes": 32894
+        },
+        {
+          "owner": "AST and parsing",
+          "frame": "swc::AstNamedType::semaClone",
+          "inuse_bytes": 32894
+        },
+        {
+          "owner": "Sema: symbols and identifiers",
+          "frame": "swc::IdentifierManager::addIdentifierInternal",
+          "inuse_bytes": 32894
+        },
+        {
+          "owner": "AST and parsing",
+          "frame": "swc::Ast::makeNode<94>",
+          "inuse_bytes": 32894
+        },
+        {
+          "owner": "AST and parsing",
+          "frame": "swc::AstFunctionDecl::semaClone",
+          "inuse_bytes": 32894
+        },
+        {
+          "owner": "AST and parsing",
+          "frame": "swc::AstStructDecl::semaClone",
+          "inuse_bytes": 32894
+        },
+        {
+          "owner": "AST and parsing",
+          "frame": "swc::Parser::parseCompoundContentUntil",
+          "inuse_bytes": 32894
+        },
+        {
+          "owner": "AST and parsing",
+          "frame": "swc::Parser::parseVarDecl",
+          "inuse_bytes": 32894
+        },
+        {
+          "owner": "AST and parsing",
+          "frame": "swc::AstSingleVarDecl::semaClone",
+          "inuse_bytes": 32894
+        },
+        {
+          "owner": "AST and parsing",
+          "frame": "swc::Ast::makeNode<85>",
+          "inuse_bytes": 32894
+        },
+        {
+          "owner": "AST and parsing",
+          "frame": "swc::Parser::parseAssignStmt",
+          "inuse_bytes": 32894
+        },
+        {
+          "owner": "Sema: symbols and identifiers",
+          "frame": "swc::SymbolSort::sortByLocation<swc::SymbolVariable>",
+          "inuse_bytes": 32814
+        },
+        {
+          "owner": "Sema: constants",
+          "frame": "swc::ConstantManager::WalkedAllocations::grow",
+          "inuse_bytes": 32814
+        },
+        {
+          "owner": "Backend: register allocation",
+          "frame": "swc::MicroRegisterAllocationPass::flushAtBoundary",
+          "inuse_bytes": 27854
+        },
+        {
+          "owner": "Sema: analysis and payloads",
+          "frame": "swc::NodePayload::setLoweringPayload",
+          "inuse_bytes": 23731
+        },
+        {
+          "owner": "Backend: microcode and optimization",
+          "frame": "swc::MicroStorage::releaseErasedRefs",
+          "inuse_bytes": 23374
+        },
+        {
+          "owner": "Orchestration",
+          "frame": "swc::CompilerInstance::CompilerInstance",
+          "inuse_bytes": 22446
+        },
+        {
+          "owner": "Sema: constants",
+          "frame": "swc::ConstantManager::addConstantSlow",
+          "inuse_bytes": 18025
+        },
+        {
+          "owner": "Source text and tokens",
+          "frame": "swc::SourceFile::SourceFile",
+          "inuse_bytes": 17933
+        },
+        {
+          "owner": "Sema: types",
+          "frame": "swc::TypeManager::addTypeAfterMiss",
+          "inuse_bytes": 17582
+        },
+        {
+          "owner": "Sema: constants",
+          "frame": "swc::ConstantManager::WalkedAllocations::slotFor",
+          "inuse_bytes": 17543
+        },
+        {
+          "owner": "AST and parsing",
+          "frame": "swc::Ast::makeNode<62>",
+          "inuse_bytes": 16447
+        },
+        {
+          "owner": "AST and parsing",
+          "frame": "swc::AstBinaryExpr::semaClone",
+          "inuse_bytes": 16447
+        },
+        {
+          "owner": "AST and parsing",
+          "frame": "swc::AstMultiVarDecl::semaClone",
+          "inuse_bytes": 16447
+        },
+        {
+          "owner": "AST and parsing",
+          "frame": "swc::Parser::parseSubTypeNoQualifiers",
+          "inuse_bytes": 16447
+        },
+        {
+          "owner": "AST and parsing",
+          "frame": "swc::AstBuiltinType::semaClone",
+          "inuse_bytes": 16447
+        },
+        {
+          "owner": "AST and parsing",
+          "frame": "swc::Parser::parseCompilerSwitch<3>",
+          "inuse_bytes": 16447
+        },
+        {
+          "owner": "AST and parsing",
+          "frame": "swc::AstIntrinsicCallExpr::semaClone",
+          "inuse_bytes": 16447
+        },
+        {
+          "owner": "Backend: native emission",
+          "frame": "swc::X64Encoder::encodeCallRelative",
+          "inuse_bytes": 16447
+        },
+        {
+          "owner": "Backend: native emission",
+          "frame": "swc::X64Encoder::encodeLoadAddressRegMem",
+          "inuse_bytes": 16447
+        },
+        {
+          "owner": "AST and parsing",
+          "frame": "swc::AstIndexExpr::semaClone",
+          "inuse_bytes": 16447
+        },
+        {
+          "owner": "AST and parsing",
+          "frame": "swc::Parser::parseIf",
+          "inuse_bytes": 16447
+        },
+        {
+          "owner": "AST and parsing",
+          "frame": "swc::AstCallExpr::semaClone",
+          "inuse_bytes": 16447
+        },
+        {
+          "owner": "AST and parsing",
+          "frame": "swc::Ast::makeNode<15>",
+          "inuse_bytes": 16447
+        },
+        {
+          "owner": "AST and parsing",
+          "frame": "swc::AstEmbeddedBlock::semaClone",
+          "inuse_bytes": 16447
+        },
+        {
+          "owner": "AST and parsing",
+          "frame": "swc::Parser::parseQualifiedIdentifier",
+          "inuse_bytes": 16447
+        },
+        {
+          "owner": "AST and parsing",
+          "frame": "swc::AstLogicalExpr::semaClone",
+          "inuse_bytes": 16447
+        },
+        {
+          "owner": "AST and parsing",
+          "frame": "swc::AstRelationalExpr::semaClone",
+          "inuse_bytes": 16447
+        },
+        {
+          "owner": "AST and parsing",
+          "frame": "swc::AstAssignStmt::semaClone",
+          "inuse_bytes": 16447
+        },
+        {
+          "owner": "Compiler artifact caches",
+          "frame": "swc::ModuleApi::onSymbolSemaCompleted",
+          "inuse_bytes": 11397
+        },
+        {
+          "owner": "Backend: microcode and optimization",
+          "frame": "swc::MicroMemToRegPass::run",
+          "inuse_bytes": 8238
+        },
+        {
+          "owner": "Compiler artifact caches",
+          "frame": "swc::CompilerCacheStore::write",
+          "inuse_bytes": 8238
+        },
+        {
+          "owner": "Sema: types",
+          "frame": "swc::TypeManager::publishInterned",
+          "inuse_bytes": 7189
+        },
+        {
+          "owner": "Sema: analysis and payloads",
+          "frame": "swc::NodePayload::recordFoldedSourceSymbol",
+          "inuse_bytes": 6186
+        },
+        {
+          "owner": "Backend: native emission",
+          "frame": "swc::Encoder::addDebugSourceRange",
+          "inuse_bytes": 4533
+        },
+        {
+          "owner": "Sema: analysis and payloads",
+          "frame": "swc::SemaGeneric::`anonymous namespace'::findOrCreateGenericInstance",
+          "inuse_bytes": 4142
+        },
+        {
+          "owner": "Orchestration",
+          "frame": "swc::CompilerInstance::addResolvedLoadedFile",
+          "inuse_bytes": 3883
+        },
+        {
+          "owner": "Backend: register allocation",
+          "frame": "swc::MicroRegisterAllocationPass::computeConcreteClaimPositions",
+          "inuse_bytes": 1903
+        },
+        {
+          "owner": "Source text and tokens",
+          "frame": "swc::Lexer::lexWhitespace",
+          "inuse_bytes": 1615
+        },
+        {
+          "owner": "Backend: microcode and optimization",
+          "frame": "swc::MicroSsaState::renameBlock",
+          "inuse_bytes": 1496
+        },
+        {
+          "owner": "Orchestration",
+          "frame": "swc::CompilerInstance::enqueueCompilerMessageTypeInfoPreparation",
+          "inuse_bytes": 1195
+        },
+        {
+          "owner": "Sema: analysis and payloads",
+          "frame": "swc::Sema::enqueueTopLevelSemaJob",
+          "inuse_bytes": 1195
+        },
+        {
+          "owner": "Sema: symbols and identifiers",
+          "frame": "swc::SymbolFunction::addLocalVariable",
+          "inuse_bytes": 1054
+        },
+        {
+          "owner": "Compiler artifact caches",
+          "frame": "swc::CompilerCacheStore::Archive::decode",
+          "inuse_bytes": 1043
+        },
+        {
+          "owner": "Backend: microcode and optimization",
+          "frame": "swc::MicroPostRaLoopHoistPass::run",
+          "inuse_bytes": 1031
+        },
+        {
+          "owner": "Sema: types",
+          "frame": "swc::TypeGen::processTypeInfo",
+          "inuse_bytes": 879
+        },
+        {
+          "owner": "Sema: analysis and payloads",
+          "frame": "swc::NodePayload::setResolvedCallArguments",
+          "inuse_bytes": 540
+        },
+        {
+          "owner": "Sema: analysis and payloads",
+          "frame": "swc::SemaJob::exec",
+          "inuse_bytes": 478
+        },
+        {
+          "owner": "Orchestration",
+          "frame": "swc::CompilerInstance::makeJob<swc::CodeGenJob,swc::TaskContext & __ptr64,swc::Sema & __ptr64,swc::SymbolFunction & __ptr64,swc::StrongRef<swc::AstNode> const & __ptr64>",
+          "inuse_bytes": 407
+        },
+        {
+          "owner": "Sema: analysis and payloads",
+          "frame": "swc::SemaSpecOp::ensureGeneratedEquality",
+          "inuse_bytes": 239
+        },
+        {
+          "owner": "Sema: constants",
+          "frame": "swc::ConstantManager::walkedAllocation",
+          "inuse_bytes": 199
+        },
+        {
+          "owner": "Unattributed: shared or external allocation",
+          "frame": "swc::`anonymous namespace'::`dynamic initializer for 'g_GeneratedRuntimeDocs''",
+          "inuse_bytes": 190
+        },
+        {
+          "owner": "Sema: constants",
+          "frame": "swc::ConstantManager::addSourceCodeLocation",
+          "inuse_bytes": 165
+        },
+        {
+          "owner": "Backend: microcode and optimization",
+          "frame": "swc::MicroSsaState::updateUseDef",
+          "inuse_bytes": 142
+        },
+        {
+          "owner": "Backend: microcode and optimization",
+          "frame": "swc::MicroBuilder::addVirtualRegForbiddenPhysRegs",
+          "inuse_bytes": 119
+        },
+        {
+          "owner": "Backend: microcode and optimization",
+          "frame": "swc::MicroInstr::collectUseDef",
+          "inuse_bytes": 71
+        },
+        {
+          "owner": "Sema: analysis and payloads",
+          "frame": "swc::SemaJIT::tryRunConstCall",
+          "inuse_bytes": 47
+        },
+        {
+          "owner": "Sema: symbols and identifiers",
+          "frame": "swc::SymbolFunction::addParameter",
+          "inuse_bytes": 31
+        },
+        {
+          "owner": "AST and parsing",
+          "frame": "swc::Ast::Shard::Shard",
+          "inuse_bytes": 31
+        },
+        {
+          "owner": "Sema: analysis and payloads",
+          "frame": "swc::NodePayload::Shard::Shard",
+          "inuse_bytes": 31
+        }
+      ]
+    },
+    {
+      "snapshot": "profile-pages-release.0002.heap",
+      "file_timestamp_unix": 1793360559.5020597,
+      "inuse_bytes": 270210160,
+      "categories": {
+        "Backend": 215007405,
+        "Sema, symbols, types and constants": 31272090,
+        "Compiler artifact caches": 11628029,
+        "AST and parsing": 7421604,
+        "Source text and tokens": 3875847,
+        "Orchestration": 988548,
+        "Unattributed: shared or external allocation": 16637
+      },
+      "detailed_categories": {
+        "Backend: microcode and optimization": 109863601,
+        "Backend: register allocation": 104737249,
+        "Sema: analysis and payloads": 21429361,
+        "Compiler artifact caches": 11628029,
+        "Sema: symbols and identifiers": 8882490,
+        "AST and parsing": 7421604,
+        "Source text and tokens": 3875847,
+        "Orchestration": 988548,
+        "Sema: constants": 574599,
+        "Sema: types": 385640,
+        "Backend: native emission": 248771,
+        "Backend: codegen": 157784,
+        "Unattributed: shared or external allocation": 16637
+      },
+      "allocation_sites": [
+        {
+          "owner": "Backend: register allocation",
+          "frame": "swc::MicroRegisterAllocationPass::analyzeLiveness",
+          "inuse_bytes": 82205218
+        },
+        {
+          "owner": "Backend: microcode and optimization",
+          "frame": "swc::MicroSsaState::build",
+          "inuse_bytes": 27023963
+        },
+        {
+          "owner": "Backend: register allocation",
+          "frame": "swc::MicroRegisterAllocationPass::initState",
+          "inuse_bytes": 13654044
+        },
+        {
+          "owner": "Backend: microcode and optimization",
+          "frame": "swc::MicroSsaState::renameIntoSsa",
+          "inuse_bytes": 12696338
+        },
+        {
+          "owner": "Backend: microcode and optimization",
+          "frame": "swc::MicroSsaState::placePhiNodes",
+          "inuse_bytes": 12012816
+        },
+        {
+          "owner": "Backend: microcode and optimization",
+          "frame": "swc::MicroPassHelpers::computePhysicalLiveness",
+          "inuse_bytes": 11915218
+        },
+        {
+          "owner": "Backend: microcode and optimization",
+          "frame": "swc::MicroOperandStorage::emplaceUninitArray",
+          "inuse_bytes": 10871558
+        },
+        {
+          "owner": "Compiler artifact caches",
+          "frame": "swc::CompilerCacheStore::publish",
+          "inuse_bytes": 10737968
+        },
+        {
+          "owner": "Backend: register allocation",
+          "frame": "`swc::MicroRegisterAllocationPass::run'::`2'::<lambda_1>::operator()",
+          "inuse_bytes": 8370308
+        },
+        {
+          "owner": "Sema: symbols and identifiers",
+          "frame": "swc::Symbol::setAttributes",
+          "inuse_bytes": 6878726
+        },
+        {
+          "owner": "Sema: analysis and payloads",
+          "frame": "swc::NodePayload::setInlinePayload",
+          "inuse_bytes": 6182198
+        },
+        {
+          "owner": "Sema: analysis and payloads",
+          "frame": "swc::SemaHelpers::registerSymbol<swc::SymbolFunction>",
+          "inuse_bytes": 5699457
+        },
+        {
+          "owner": "Backend: microcode and optimization",
+          "frame": "swc::MicroPreRaPeepholePass::run",
+          "inuse_bytes": 5570836
+        },
+        {
+          "owner": "Backend: microcode and optimization",
+          "frame": "swc::MicroControlFlowGraph::build",
+          "inuse_bytes": 3934134
+        },
+        {
+          "owner": "Sema: analysis and payloads",
+          "frame": "swc::SemaInline::tryInlineCall",
+          "inuse_bytes": 3570488
+        },
+        {
+          "owner": "Backend: microcode and optimization",
+          "frame": "swc::MicroConstantFoldingPass::run",
+          "inuse_bytes": 3428756
+        },
+        {
+          "owner": "Backend: microcode and optimization",
+          "frame": "swc::MicroPeephole::RewriteQueue<swc::InstructionCombine::Action>::emitRewrite",
+          "inuse_bytes": 3342474
+        },
+        {
+          "owner": "Backend: microcode and optimization",
+          "frame": "swc::MicroStorage::emplaceUninit",
+          "inuse_bytes": 3156024
+        },
+        {
+          "owner": "Backend: microcode and optimization",
+          "frame": "swc::MicroPeephole::RewriteQueue<swc::PostRaPeephole::Action>::emitRewrite",
+          "inuse_bytes": 3063946
+        },
+        {
+          "owner": "AST and parsing",
+          "frame": "swc::Ast::buildReachableNodeIndex",
+          "inuse_bytes": 2556548
+        },
+        {
+          "owner": "Source text and tokens",
+          "frame": "swc::Lexer::tokenize",
+          "inuse_bytes": 2236739
+        },
+        {
+          "owner": "Backend: microcode and optimization",
+          "frame": "swc::MicroInstructionCombinePass::run",
+          "inuse_bytes": 2228362
+        },
+        {
+          "owner": "Sema: analysis and payloads",
+          "frame": "swc::SemaHelpers::registerSymbol<swc::SymbolVariable>",
+          "inuse_bytes": 1899819
+        },
+        {
+          "owner": "Backend: microcode and optimization",
+          "frame": "swc::MicroCopyEliminationPass::run",
+          "inuse_bytes": 1412088
+        },
+        {
+          "owner": "Backend: microcode and optimization",
+          "frame": "swc::MicroStackAdjustNormalizePass::run",
+          "inuse_bytes": 1196282
+        },
+        {
+          "owner": "AST and parsing",
+          "frame": "swc::Ast::makeNode<11>",
+          "inuse_bytes": 1159598
+        },
+        {
+          "owner": "Sema: symbols and identifiers",
+          "frame": "swc::Symbol::make<swc::SymbolVariable>",
+          "inuse_bytes": 1113687
+        },
+        {
+          "owner": "Source text and tokens",
+          "frame": "swc::Lexer::lexSymbol",
+          "inuse_bytes": 1055899
+        },
+        {
+          "owner": "Backend: microcode and optimization",
+          "frame": "swc::MicroBranchSimplifyPass::run",
+          "inuse_bytes": 1017743
+        },
+        {
+          "owner": "Backend: microcode and optimization",
+          "frame": "swc::MicroStorage::insertBefore",
+          "inuse_bytes": 1011822
+        },
+        {
+          "owner": "Backend: microcode and optimization",
+          "frame": "swc::MicroSsaState::buildBlocks",
+          "inuse_bytes": 962575
+        },
+        {
+          "owner": "Backend: microcode and optimization",
+          "frame": "swc::MicroEmitPass::run",
+          "inuse_bytes": 814770
+        },
+        {
+          "owner": "Sema: analysis and payloads",
+          "frame": "swc::SemaHelpers::registerUniqueRuntimeStorageSymbol",
+          "inuse_bytes": 720621
+        },
+        {
+          "owner": "Orchestration",
+          "frame": "swc::ModuleSetupInputApplier::apply",
+          "inuse_bytes": 697181
+        },
+        {
+          "owner": "Compiler artifact caches",
+          "frame": "swc::MachineCodeCache::write",
+          "inuse_bytes": 652662
+        },
+        {
+          "owner": "Backend: microcode and optimization",
+          "frame": "swc::MicroBuilder::emitLoadRegPtrReloc",
+          "inuse_bytes": 632423
+        },
+        {
+          "owner": "Sema: symbols and identifiers",
+          "frame": "swc::SymbolMap::tableReserve",
+          "inuse_bytes": 589599
+        },
+        {
+          "owner": "Backend: microcode and optimization",
+          "frame": "swc::MicroPeephole::RewriteQueue<swc::PostRaPeephole::Action>::emitErase",
+          "inuse_bytes": 557102
+        },
+        {
+          "owner": "Backend: microcode and optimization",
+          "frame": "swc::MicroSsaState::removeUsesWithoutRenaming",
+          "inuse_bytes": 549286
+        },
+        {
+          "owner": "Sema: constants",
+          "frame": "swc::ConstantManager::addSourceCodeLocation",
+          "inuse_bytes": 529213
+        },
+        {
+          "owner": "Sema: analysis and payloads",
+          "frame": "swc::NodePayload::setSymbolListImpl",
+          "inuse_bytes": 509857
+        },
+        {
+          "owner": "Backend: microcode and optimization",
+          "frame": "swc::MicroBuilder::addRelocation",
+          "inuse_bytes": 495950
+        },
+        {
+          "owner": "Sema: analysis and payloads",
+          "frame": "swc::SemaHelpers::ensureCodeGenLoweringPayload",
+          "inuse_bytes": 458577
+        },
+        {
+          "owner": "Sema: analysis and payloads",
+          "frame": "swc::NodePayload::setSymbol",
+          "inuse_bytes": 444069
+        },
+        {
+          "owner": "Backend: microcode and optimization",
+          "frame": "swc::MicroPostRaPeepholePass::run",
+          "inuse_bytes": 438720
+        },
+        {
+          "owner": "Backend: microcode and optimization",
+          "frame": "swc::MicroEmitPass::encodeInstruction",
+          "inuse_bytes": 388462
+        },
+        {
+          "owner": "Sema: analysis and payloads",
+          "frame": "swc::NodePayload::setLoweringPayload",
+          "inuse_bytes": 340244
+        },
+        {
+          "owner": "Source text and tokens",
+          "frame": "swc::SourceFile::loadContent",
+          "inuse_bytes": 330221
+        },
+        {
+          "owner": "AST and parsing",
+          "frame": "swc::Ast::makeNode<85>",
+          "inuse_bytes": 270486
+        },
+        {
+          "owner": "Sema: analysis and payloads",
+          "frame": "swc::NodePayload::setSemaPayload",
+          "inuse_bytes": 268408
+        },
+        {
+          "owner": "Backend: microcode and optimization",
+          "frame": "swc::MicroPassHelpers::collectStackPointerOffsets",
+          "inuse_bytes": 262236
+        },
+        {
+          "owner": "Sema: analysis and payloads",
+          "frame": "swc::SemaHelpers::registerSymbol<swc::SymbolStruct>",
+          "inuse_bytes": 262044
+        },
+        {
+          "owner": "Backend: register allocation",
+          "frame": "swc::MicroRegisterAllocationPass::computeLoopDepth",
+          "inuse_bytes": 249620
+        },
+        {
+          "owner": "Sema: analysis and payloads",
+          "frame": "swc::NodePayload::setInlineContextOverride",
+          "inuse_bytes": 233656
+        },
+        {
+          "owner": "Backend: microcode and optimization",
+          "frame": "swc::MicroBuilder::preserveVirtualCopy",
+          "inuse_bytes": 229545
+        },
+        {
+          "owner": "Compiler artifact caches",
+          "frame": "swc::MachineCodeCache::inputKey",
+          "inuse_bytes": 218530
+        },
+        {
+          "owner": "AST and parsing",
+          "frame": "swc::AstAutoMemberAccessExpr::semaPreNodeChild",
+          "inuse_bytes": 213811
+        },
+        {
+          "owner": "AST and parsing",
+          "frame": "swc::AstAutoMemberAccessExpr::semaClone",
+          "inuse_bytes": 213811
+        },
+        {
+          "owner": "AST and parsing",
+          "frame": "swc::AstMemberAccessExpr::semaClone",
+          "inuse_bytes": 197364
+        },
+        {
+          "owner": "AST and parsing",
+          "frame": "swc::AstBinaryExpr::semaClone",
+          "inuse_bytes": 166781
+        },
+        {
+          "owner": "Sema: types",
+          "frame": "swc::TypeGen::processTypeInfo",
+          "inuse_bytes": 164765
+        },
+        {
+          "owner": "Backend: microcode and optimization",
+          "frame": "swc::MicroBuilder::emitCallLocal",
+          "inuse_bytes": 159257
+        },
+        {
+          "owner": "Backend: microcode and optimization",
+          "frame": "swc::MicroPassHelpers::computeInstructionDominators",
+          "inuse_bytes": 152016
+        },
+        {
+          "owner": "Sema: types",
+          "frame": "swc::TypeGen::allocateTypeInfoPayload",
+          "inuse_bytes": 145702
+        },
+        {
+          "owner": "Sema: analysis and payloads",
+          "frame": "swc::NodePayload::setResolvedCallArguments",
+          "inuse_bytes": 142519
+        },
+        {
+          "owner": "Backend: microcode and optimization",
+          "frame": "swc::MicroControlFlowGraph::indexOf",
+          "inuse_bytes": 136178
+        },
+        {
+          "owner": "AST and parsing",
+          "frame": "swc::AstIfStmt::semaClone",
+          "inuse_bytes": 131576
+        },
+        {
+          "owner": "Sema: analysis and payloads",
+          "frame": "swc::NodePayload::setSubstitute",
+          "inuse_bytes": 131576
+        },
+        {
+          "owner": "AST and parsing",
+          "frame": "swc::AstCallExpr::semaClone",
+          "inuse_bytes": 131576
+        },
+        {
+          "owner": "AST and parsing",
+          "frame": "swc::AstCompilerCallOne::semaPostNode",
+          "inuse_bytes": 131053
+        },
+        {
+          "owner": "AST and parsing",
+          "frame": "swc::AstLambdaType::semaPostNode",
+          "inuse_bytes": 131022
+        },
+        {
+          "owner": "Source text and tokens",
+          "frame": "swc::Lexer::lexIdentifier",
+          "inuse_bytes": 130024
+        },
+        {
+          "owner": "AST and parsing",
+          "frame": "swc::Ast::makeNode<3>",
+          "inuse_bytes": 119144
+        },
+        {
+          "owner": "Orchestration",
+          "frame": "swc::CompilerInstance::setupSema",
+          "inuse_bytes": 116543
+        },
+        {
+          "owner": "AST and parsing",
+          "frame": "swc::Parser::parse",
+          "inuse_bytes": 115129
+        },
+        {
+          "owner": "Sema: symbols and identifiers",
+          "frame": "swc::IdentifierManager::addIdentifierInternal",
+          "inuse_bytes": 115129
+        },
+        {
+          "owner": "AST and parsing",
+          "frame": "swc::Parser::parseLiteral",
+          "inuse_bytes": 115129
+        },
+        {
+          "owner": "Sema: analysis and payloads",
+          "frame": "swc::NodePayload::setConstAssignSourceParameter",
+          "inuse_bytes": 114872
+        },
+        {
+          "owner": "Backend: register allocation",
+          "frame": "swc::MicroRegisterAllocationPass::computeConcreteClaimPositions",
+          "inuse_bytes": 108139
+        },
+        {
+          "owner": "Orchestration",
+          "frame": "swc::CompilerInstance::ownJob",
+          "inuse_bytes": 107988
+        },
+        {
+          "owner": "Backend: register allocation",
+          "frame": "swc::MicroRegisterAllocationPass::flushAtBoundary",
+          "inuse_bytes": 98706
+        },
+        {
+          "owner": "AST and parsing",
+          "frame": "swc::Ast::makeNode<94>",
+          "inuse_bytes": 98682
+        },
+        {
+          "owner": "AST and parsing",
+          "frame": "swc::AstEmbeddedBlock::semaClone",
+          "inuse_bytes": 98682
+        },
+        {
+          "owner": "AST and parsing",
+          "frame": "swc::Parser::parseVarDecl",
+          "inuse_bytes": 98682
+        },
+        {
+          "owner": "Source text and tokens",
+          "frame": "swc::Lexer::lexNumber",
+          "inuse_bytes": 94978
+        },
+        {
+          "owner": "Sema: symbols and identifiers",
+          "frame": "swc::IdentifierManager::publishInterned",
+          "inuse_bytes": 92223
+        },
+        {
+          "owner": "Backend: microcode and optimization",
+          "frame": "swc::MicroPassHelpers::NaturalLoop::collectBody",
+          "inuse_bytes": 89696
+        },
+        {
+          "owner": "AST and parsing",
+          "frame": "swc::AstRelationalExpr::semaClone",
+          "inuse_bytes": 87409
+        },
+        {
+          "owner": "AST and parsing",
+          "frame": "swc::AstIndexExpr::semaClone",
+          "inuse_bytes": 82235
+        },
+        {
+          "owner": "AST and parsing",
+          "frame": "swc::AstBuiltinType::semaClone",
+          "inuse_bytes": 82235
+        },
+        {
+          "owner": "Backend: codegen",
+          "frame": "swc::CodeGen::ensureNodePayload<swc::CodeGenNodePayload>",
+          "inuse_bytes": 68404
+        },
+        {
+          "owner": "AST and parsing",
+          "frame": "swc::Parser::parseSingleType",
+          "inuse_bytes": 65788
+        },
+        {
+          "owner": "AST and parsing",
+          "frame": "swc::Parser::parseFunctionDecl",
+          "inuse_bytes": 65788
+        },
+        {
+          "owner": "AST and parsing",
+          "frame": "swc::AstNamedType::semaClone",
+          "inuse_bytes": 65788
+        },
+        {
+          "owner": "AST and parsing",
+          "frame": "swc::AstNamespaceDecl::pushNamespace",
+          "inuse_bytes": 65511
+        },
+        {
+          "owner": "Sema: analysis and payloads",
+          "frame": "swc::SemaHelpers::registerSymbol<swc::SymbolConstant>",
+          "inuse_bytes": 65511
+        },
+        {
+          "owner": "AST and parsing",
+          "frame": "swc::AstEnumValue::semaPostNode",
+          "inuse_bytes": 65511
+        },
+        {
+          "owner": "AST and parsing",
+          "frame": "swc::AstSwitchStmt::semaPreNode",
+          "inuse_bytes": 65511
+        },
+        {
+          "owner": "Sema: analysis and payloads",
+          "frame": "swc::SemaGeneric::`anonymous namespace'::createGenericInstanceSymbol",
+          "inuse_bytes": 65511
+        },
+        {
+          "owner": "Sema: analysis and payloads",
+          "frame": "swc::Sema::ensureSemaPayload<swc::`anonymous namespace'::CompilerSwitchSemaPayload>",
+          "inuse_bytes": 65511
+        },
+        {
+          "owner": "Sema: analysis and payloads",
+          "frame": "swc::SemaSpecOp::tryResolveIndex",
+          "inuse_bytes": 65511
+        },
+        {
+          "owner": "AST and parsing",
+          "frame": "swc::AstFile::semaPreDecl",
+          "inuse_bytes": 65511
+        },
+        {
+          "owner": "Sema: analysis and payloads",
+          "frame": "swc::Sema::ensureSemaPayload<swc::LoopSemaPayload>",
+          "inuse_bytes": 65511
+        },
+        {
+          "owner": "Backend: codegen",
+          "frame": "swc::CodeGen::ensureNodePayload<swc::`anonymous namespace'::SwitchStmtCodeGenPayload>",
+          "inuse_bytes": 65511
+        },
+        {
+          "owner": "Orchestration",
+          "frame": "swc::CompilerInstance::allocate<swc::SemaCompilerIf>",
+          "inuse_bytes": 65511
+        },
+        {
+          "owner": "Sema: analysis and payloads",
+          "frame": "swc::SemaHelpers::registerUniqueSymbol<swc::SymbolStruct>",
+          "inuse_bytes": 65511
+        },
+        {
+          "owner": "AST and parsing",
+          "frame": "swc::AstIdentifier::semaClone",
+          "inuse_bytes": 65511
+        },
+        {
+          "owner": "Sema: symbols and identifiers",
+          "frame": "swc::SymbolFunction::emitLowered",
+          "inuse_bytes": 59871
+        },
+        {
+          "owner": "Backend: register allocation",
+          "frame": "swc::MicroRegisterAllocationPass::rewriteInstructions",
+          "inuse_bytes": 51214
+        },
+        {
+          "owner": "Sema: types",
+          "frame": "swc::TypeManager::addTypeAfterMiss",
+          "inuse_bytes": 51036
+        },
+        {
+          "owner": "Backend: native emission",
+          "frame": "swc::Encoder::addDebugSourceRange",
+          "inuse_bytes": 49372
+        },
+        {
+          "owner": "AST and parsing",
+          "frame": "swc::Ast::makeNode<145>",
+          "inuse_bytes": 49341
+        },
+        {
+          "owner": "AST and parsing",
+          "frame": "swc::AstFunctionDecl::semaClone",
+          "inuse_bytes": 49341
+        },
+        {
+          "owner": "AST and parsing",
+          "frame": "swc::AstAssignStmt::semaClone",
+          "inuse_bytes": 49341
+        },
+        {
+          "owner": "AST and parsing",
+          "frame": "swc::AstSingleVarDecl::semaClone",
+          "inuse_bytes": 34173
+        },
+        {
+          "owner": "Sema: constants",
+          "frame": "swc::ConstantManager::WalkedAllocations::slotFor",
+          "inuse_bytes": 33291
+        },
+        {
+          "owner": "Backend: native emission",
+          "frame": "swc::X64Encoder::encodeLoadMemImm",
+          "inuse_bytes": 32894
+        },
+        {
+          "owner": "AST and parsing",
+          "frame": "swc::Ast::makeNode<6>",
+          "inuse_bytes": 32894
+        },
+        {
+          "owner": "Backend: native emission",
+          "frame": "swc::X64Encoder::encodeCallRelative",
+          "inuse_bytes": 32894
+        },
+        {
+          "owner": "AST and parsing",
+          "frame": "swc::Parser::lowerSwagIntrinsicCall",
+          "inuse_bytes": 32894
+        },
+        {
+          "owner": "Backend: native emission",
+          "frame": "swc::X64Encoder::encodeJump",
+          "inuse_bytes": 32894
+        },
+        {
+          "owner": "AST and parsing",
+          "frame": "swc::AstCompilerIf::semaClone",
+          "inuse_bytes": 32894
+        },
+        {
+          "owner": "Backend: native emission",
+          "frame": "swc::X64Encoder::encodeLoadRegReg",
+          "inuse_bytes": 32894
+        },
+        {
+          "owner": "Backend: native emission",
+          "frame": "swc::X64Encoder::encodeLoadAddressRegMem",
+          "inuse_bytes": 32894
+        },
+        {
+          "owner": "AST and parsing",
+          "frame": "swc::AstCompilerExpression::semaClone",
+          "inuse_bytes": 32894
+        },
+        {
+          "owner": "Backend: microcode and optimization",
+          "frame": "swc::MicroSsaState::transitiveInstructionUseCount",
+          "inuse_bytes": 29666
+        },
+        {
+          "owner": "Backend: microcode and optimization",
+          "frame": "swc::MicroSsaState::computeDominators",
+          "inuse_bytes": 28108
+        },
+        {
+          "owner": "Backend: microcode and optimization",
+          "frame": "swc::MicroSsaState::renameBlock",
+          "inuse_bytes": 23380
+        },
+        {
+          "owner": "Sema: analysis and payloads",
+          "frame": "swc::SemaGeneric::`anonymous namespace'::findOrCreateGenericInstance",
+          "inuse_bytes": 23253
+        },
+        {
+          "owner": "Source text and tokens",
+          "frame": "swc::Lexer::lexWhitespace",
+          "inuse_bytes": 18865
+        },
+        {
+          "owner": "Sema: symbols and identifiers",
+          "frame": "swc::SymbolFunction::classifyLoweredBody",
+          "inuse_bytes": 17475
+        },
+        {
+          "owner": "Sema: analysis and payloads",
+          "frame": "swc::Sema::postNode",
+          "inuse_bytes": 16447
+        },
+        {
+          "owner": "AST and parsing",
+          "frame": "swc::Parser::parseSwitch",
+          "inuse_bytes": 16447
+        },
+        {
+          "owner": "AST and parsing",
+          "frame": "swc::Parser::parseAttributeValue",
+          "inuse_bytes": 16447
+        },
+        {
+          "owner": "AST and parsing",
+          "frame": "swc::AstMoveRefType::semaClone",
+          "inuse_bytes": 16447
+        },
+        {
+          "owner": "AST and parsing",
+          "frame": "swc::Parser::parseCompound<32>",
+          "inuse_bytes": 16447
+        },
+        {
+          "owner": "AST and parsing",
+          "frame": "swc::Parser::parseAssignStmt",
+          "inuse_bytes": 16447
+        },
+        {
+          "owner": "AST and parsing",
+          "frame": "swc::Parser::parseAggregateAccessModifier",
+          "inuse_bytes": 16447
+        },
+        {
+          "owner": "AST and parsing",
+          "frame": "swc::AstNullLiteral::semaClone",
+          "inuse_bytes": 16447
+        },
+        {
+          "owner": "AST and parsing",
+          "frame": "swc::Parser::parseGeneratedContent",
+          "inuse_bytes": 16447
+        },
+        {
+          "owner": "AST and parsing",
+          "frame": "swc::AstSingleVarDecl::semaPostNode",
+          "inuse_bytes": 16447
+        },
+        {
+          "owner": "AST and parsing",
+          "frame": "swc::AstStructDecl::semaClone",
+          "inuse_bytes": 16447
+        },
+        {
+          "owner": "AST and parsing",
+          "frame": "swc::Ast::makeNode<62>",
+          "inuse_bytes": 16447
+        },
+        {
+          "owner": "AST and parsing",
+          "frame": "swc::AstLogicalExpr::semaClone",
+          "inuse_bytes": 16447
+        },
+        {
+          "owner": "AST and parsing",
+          "frame": "swc::AstNullCoalescingExpr::semaClone",
+          "inuse_bytes": 16447
+        },
+        {
+          "owner": "AST and parsing",
+          "frame": "swc::Parser::parseCompoundContentUntil",
+          "inuse_bytes": 16447
+        },
+        {
+          "owner": "Backend: native emission",
+          "frame": "swc::X64Encoder::encodeTrap",
+          "inuse_bytes": 16447
+        },
+        {
+          "owner": "AST and parsing",
+          "frame": "swc::Parser::parseFunctionParamList",
+          "inuse_bytes": 16447
+        },
+        {
+          "owner": "AST and parsing",
+          "frame": "swc::AstSuffixLiteral::semaClone",
+          "inuse_bytes": 16447
+        },
+        {
+          "owner": "AST and parsing",
+          "frame": "swc::Parser::parseParenExpr",
+          "inuse_bytes": 16447
+        },
+        {
+          "owner": "Unattributed: shared or external allocation",
+          "frame": "swc::DataSegment::allocateStorageLocked",
+          "inuse_bytes": 16447
+        },
+        {
+          "owner": "AST and parsing",
+          "frame": "swc::AstParenExpr::semaClone",
+          "inuse_bytes": 16447
+        },
+        {
+          "owner": "Backend: native emission",
+          "frame": "swc::X64Encoder::encodeLoadRegMem",
+          "inuse_bytes": 16447
+        },
+        {
+          "owner": "AST and parsing",
+          "frame": "swc::AstCompilerCallOne::semaClone",
+          "inuse_bytes": 16447
+        },
+        {
+          "owner": "AST and parsing",
+          "frame": "swc::Parser::parseRelationalExpr",
+          "inuse_bytes": 16447
+        },
+        {
+          "owner": "AST and parsing",
+          "frame": "swc::AstErrorManagementExpr::semaClone",
+          "inuse_bytes": 16447
+        },
+        {
+          "owner": "AST and parsing",
+          "frame": "swc::Parser::parseAutoMemberAccessExpr",
+          "inuse_bytes": 16447
+        },
+        {
+          "owner": "AST and parsing",
+          "frame": "swc::AstConditionalExpr::semaClone",
+          "inuse_bytes": 16447
+        },
+        {
+          "owner": "Sema: types",
+          "frame": "swc::TypeManager::publishInterned",
+          "inuse_bytes": 14364
+        },
+        {
+          "owner": "Sema: symbols and identifiers",
+          "frame": "swc::SymbolFunction::addLocalVariable",
+          "inuse_bytes": 12912
+        },
+        {
+          "owner": "Backend: codegen",
+          "frame": "swc::CodeGenJob::initSemaAndCodeGen",
+          "inuse_bytes": 12549
+        },
+        {
+          "owner": "Sema: constants",
+          "frame": "swc::ConstantManager::addConstantSlow",
+          "inuse_bytes": 10552
+        },
+        {
+          "owner": "Sema: analysis and payloads",
+          "frame": "swc::NodePayload::recordFoldedSourceSymbol",
+          "inuse_bytes": 10300
+        },
+        {
+          "owner": "Backend: microcode and optimization",
+          "frame": "swc::MicroSsaState::copyInstructionDominators",
+          "inuse_bytes": 10086
+        },
+        {
+          "owner": "Sema: types",
+          "frame": "swc::TypeGen::wireRelocations",
+          "inuse_bytes": 9638
+        },
+        {
+          "owner": "Source text and tokens",
+          "frame": "swc::SourceFile::SourceFile",
+          "inuse_bytes": 8970
+        },
+        {
+          "owner": "Backend: microcode and optimization",
+          "frame": "swc::MicroMemToRegPass::run",
+          "inuse_bytes": 8693
+        },
+        {
+          "owner": "Compiler artifact caches",
+          "frame": "swc::CompilerCacheStore::write",
+          "inuse_bytes": 8238
+        },
+        {
+          "owner": "Backend: microcode and optimization",
+          "frame": "swc::MicroBuilder::emitCallExtern",
+          "inuse_bytes": 6814
+        },
+        {
+          "owner": "Compiler artifact caches",
+          "frame": "swc::MachineCodeCache::MachineCodeCache",
+          "inuse_bytes": 6670
+        },
+        {
+          "owner": "Backend: codegen",
+          "frame": "swc::CodeGen::ensureNodePayload<swc::`anonymous namespace'::IfStmtCodeGenPayload>",
+          "inuse_bytes": 5148
+        },
+        {
+          "owner": "Backend: codegen",
+          "frame": "swc::CodeGen::ensureVariablePayloadState",
+          "inuse_bytes": 5141
+        },
+        {
+          "owner": "Backend: microcode and optimization",
+          "frame": "swc::MicroBuilder::emitLoadRegDataSegmentReloc",
+          "inuse_bytes": 4558
+        },
+        {
+          "owner": "Compiler artifact caches",
+          "frame": "swc::CompilerCacheStore::Archive::decode",
+          "inuse_bytes": 3802
+        },
+        {
+          "owner": "AST and parsing",
+          "frame": "swc::AstQualifiedType::semaClone",
+          "inuse_bytes": 3679
+        },
+        {
+          "owner": "Sema: analysis and payloads",
+          "frame": "swc::Sema::enqueueTopLevelSemaJob",
+          "inuse_bytes": 3585
+        },
+        {
+          "owner": "Sema: analysis and payloads",
+          "frame": "swc::SemaHelpers::addCurrentFunctionLocalVariable",
+          "inuse_bytes": 3260
+        },
+        {
+          "owner": "Backend: native emission",
+          "frame": "swc::NativeBackendBuilder::prepare",
+          "inuse_bytes": 2035
+        },
+        {
+          "owner": "Sema: symbols and identifiers",
+          "frame": "swc::SymbolFunction::refreshJitOrderCache",
+          "inuse_bytes": 1655
+        },
+        {
+          "owner": "Sema: constants",
+          "frame": "swc::ConstantManager::walkedAllocation",
+          "inuse_bytes": 1543
+        },
+        {
+          "owner": "Sema: symbols and identifiers",
+          "frame": "swc::SymbolFunction::addCallDependency",
+          "inuse_bytes": 1031
+        },
+        {
+          "owner": "Backend: microcode and optimization",
+          "frame": "swc::MicroPostRaLoopHoistPass::run",
+          "inuse_bytes": 1031
+        },
+        {
+          "owner": "Backend: codegen",
+          "frame": "swc::CodeGen::ensureNodePayload<swc::ConditionalExprCodeGenPayload>",
+          "inuse_bytes": 1031
+        },
+        {
+          "owner": "Sema: analysis and payloads",
+          "frame": "swc::SemaHelpers::completeRuntimeStorageSymbol",
+          "inuse_bytes": 775
+        },
+        {
+          "owner": "Orchestration",
+          "frame": "swc::CompilerInstance::addResolvedFile",
+          "inuse_bytes": 551
+        },
+        {
+          "owner": "Orchestration",
+          "frame": "swc::CompilerInstance::addBufferedSourceView",
+          "inuse_bytes": 528
+        },
+        {
+          "owner": "Backend: microcode and optimization",
+          "frame": "swc::MicroBuilder::addVirtualRegForbiddenPhysRegs",
+          "inuse_bytes": 476
+        },
+        {
+          "owner": "Unattributed: shared or external allocation",
+          "frame": "swc::`anonymous namespace'::`dynamic initializer for 'g_GeneratedRuntimeDocs''",
+          "inuse_bytes": 190
+        },
+        {
+          "owner": "Orchestration",
+          "frame": "swc::CompilerInstance::runWorkspace",
+          "inuse_bytes": 167
+        },
+        {
+          "owner": "Sema: symbols and identifiers",
+          "frame": "swc::Symbol::registerCompilerIf",
+          "inuse_bytes": 159
+        },
+        {
+          "owner": "Compiler artifact caches",
+          "frame": "swc::ModuleApi::onSymbolSemaCompleted",
+          "inuse_bytes": 159
+        },
+        {
+          "owner": "Source text and tokens",
+          "frame": "swc::SourceFile::pathString",
+          "inuse_bytes": 151
+        },
+        {
+          "owner": "Backend: microcode and optimization",
+          "frame": "swc::MicroSsaState::updateUseDef",
+          "inuse_bytes": 142
+        },
+        {
+          "owner": "Sema: types",
+          "frame": "swc::TypeGen::initTypeInfoPayload",
+          "inuse_bytes": 135
+        },
+        {
+          "owner": "Sema: analysis and payloads",
+          "frame": "swc::NodePayload::Shard::Shard",
+          "inuse_bytes": 135
+        },
+        {
+          "owner": "Sema: analysis and payloads",
+          "frame": "swc::SemaGeneric::`anonymous namespace'::runGenericNode",
+          "inuse_bytes": 135
+        },
+        {
+          "owner": "Orchestration",
+          "frame": "swc::JobManager::enqueue",
+          "inuse_bytes": 79
+        },
+        {
+          "owner": "Backend: microcode and optimization",
+          "frame": "swc::MicroInstr::collectUseDef",
+          "inuse_bytes": 71
+        },
+        {
+          "owner": "Sema: symbols and identifiers",
+          "frame": "swc::SymbolFunction::addParameter",
+          "inuse_bytes": 23
+        }
+      ]
+    },
+    {
+      "snapshot": "profile-pages-release.0003.heap",
+      "file_timestamp_unix": 1793360591.4598794,
+      "inuse_bytes": 409343620,
+      "categories": {
+        "Backend": 312027741,
+        "Sema, symbols, types and constants": 53856994,
+        "Compiler artifact caches": 23904925,
+        "AST and parsing": 10209097,
+        "Source text and tokens": 5409653,
+        "Linker and object/archive I/O": 2622263,
+        "Orchestration": 1312757,
+        "Unattributed: shared or external allocation": 190
+      },
+      "detailed_categories": {
+        "Backend: register allocation": 137138284,
+        "Backend: native emission": 96307595,
+        "Backend: microcode and optimization": 78491219,
+        "Sema: analysis and payloads": 31747643,
+        "Compiler artifact caches": 23904925,
+        "Sema: symbols and identifiers": 12934880,
+        "AST and parsing": 10209097,
+        "Sema: constants": 5832321,
+        "Source text and tokens": 5409653,
+        "Sema: types": 3342150,
+        "Linker and object/archive I/O": 2622263,
+        "Orchestration": 1312757,
+        "Backend: codegen": 90412,
+        "Backend: JIT": 231,
+        "Unattributed: shared or external allocation": 190
+      },
+      "allocation_sites": [
+        {
+          "owner": "Backend: register allocation",
+          "frame": "swc::MicroRegisterAllocationPass::analyzeLiveness",
+          "inuse_bytes": 108943736
+        },
+        {
+          "owner": "Backend: native emission",
+          "frame": "swc::`anonymous namespace'::NativeImageLowering::appendNativeSection",
+          "inuse_bytes": 35214893
+        },
+        {
+          "owner": "Compiler artifact caches",
+          "frame": "swc::CompilerCacheStore::publish",
+          "inuse_bytes": 23056628
+        },
+        {
+          "owner": "Backend: native emission",
+          "frame": "swc::NativeBackendBuilder::appendCodeRelocation",
+          "inuse_bytes": 20646897
+        },
+        {
+          "owner": "Backend: register allocation",
+          "frame": "swc::MicroRegisterAllocationPass::initState",
+          "inuse_bytes": 16200270
+        },
+        {
+          "owner": "Backend: microcode and optimization",
+          "frame": "swc::MicroPassHelpers::computePhysicalLiveness",
+          "inuse_bytes": 16105432
+        },
+        {
+          "owner": "Backend: native emission",
+          "frame": "swc::NativeRDataCollector::emitReachableAllocations",
+          "inuse_bytes": 16008329
+        },
+        {
+          "owner": "Backend: microcode and optimization",
+          "frame": "swc::MicroSsaState::build",
+          "inuse_bytes": 15859444
+        },
+        {
+          "owner": "Backend: native emission",
+          "frame": "swc::`anonymous namespace'::NativeImageLowering::placeNativeSection",
+          "inuse_bytes": 10976031
+        },
+        {
+          "owner": "Backend: register allocation",
+          "frame": "`swc::MicroRegisterAllocationPass::run'::`2'::<lambda_1>::operator()",
+          "inuse_bytes": 10290070
+        },
+        {
+          "owner": "Sema: symbols and identifiers",
+          "frame": "swc::Symbol::setAttributes",
+          "inuse_bytes": 10285536
+        },
+        {
+          "owner": "Sema: analysis and payloads",
+          "frame": "swc::SemaHelpers::registerSymbol<swc::SymbolFunction>",
+          "inuse_bytes": 9957672
+        },
+        {
+          "owner": "Backend: native emission",
+          "frame": "swc::`anonymous namespace'::NativeImageLowering::buildTextSection",
+          "inuse_bytes": 8736564
+        },
+        {
+          "owner": "Sema: analysis and payloads",
+          "frame": "swc::NodePayload::setInlinePayload",
+          "inuse_bytes": 8658113
+        },
+        {
+          "owner": "Backend: microcode and optimization",
+          "frame": "swc::MicroSsaState::renameIntoSsa",
+          "inuse_bytes": 6275064
+        },
+        {
+          "owner": "Backend: microcode and optimization",
+          "frame": "swc::MicroSsaState::placePhiNodes",
+          "inuse_bytes": 5707400
+        },
+        {
+          "owner": "Backend: microcode and optimization",
+          "frame": "swc::MicroPreRaPeepholePass::run",
+          "inuse_bytes": 5570836
+        },
+        {
+          "owner": "Backend: microcode and optimization",
+          "frame": "swc::MicroInstructionCombinePass::run",
+          "inuse_bytes": 4456632
+        },
+        {
+          "owner": "AST and parsing",
+          "frame": "swc::Ast::buildReachableNodeIndex",
+          "inuse_bytes": 3998662
+        },
+        {
+          "owner": "Backend: microcode and optimization",
+          "frame": "swc::MicroConstantFoldingPass::run",
+          "inuse_bytes": 3697412
+        },
+        {
+          "owner": "Backend: microcode and optimization",
+          "frame": "swc::MicroOperandStorage::emplaceUninitArray",
+          "inuse_bytes": 3669802
+        },
+        {
+          "owner": "Sema: analysis and payloads",
+          "frame": "swc::SemaInline::tryInlineCall",
+          "inuse_bytes": 3406572
+        },
+        {
+          "owner": "Backend: microcode and optimization",
+          "frame": "swc::MicroPeephole::RewriteQueue<swc::PostRaPeephole::Action>::emitRewrite",
+          "inuse_bytes": 3063946
+        },
+        {
+          "owner": "Sema: constants",
+          "frame": "swc::ConstantManager::addSourceCodeLocation",
+          "inuse_bytes": 2649464
+        },
+        {
+          "owner": "Linker and object/archive I/O",
+          "frame": "swc::`anonymous namespace'::loadArchiveItem",
+          "inuse_bytes": 2425240
+        },
+        {
+          "owner": "Source text and tokens",
+          "frame": "swc::Lexer::tokenize",
+          "inuse_bytes": 2419735
+        },
+        {
+          "owner": "Backend: microcode and optimization",
+          "frame": "swc::MicroPeephole::RewriteQueue<swc::InstructionCombine::Action>::emitRewrite",
+          "inuse_bytes": 2228316
+        },
+        {
+          "owner": "Backend: native emission",
+          "frame": "swc::NativeArtifactBuilder::buildRuntimeHook",
+          "inuse_bytes": 2176526
+        },
+        {
+          "owner": "Sema: types",
+          "frame": "swc::TypeGen::processTypeInfo",
+          "inuse_bytes": 2131311
+        },
+        {
+          "owner": "Sema: analysis and payloads",
+          "frame": "swc::SemaHelpers::registerSymbol<swc::SymbolVariable>",
+          "inuse_bytes": 2030841
+        },
+        {
+          "owner": "Backend: microcode and optimization",
+          "frame": "swc::MicroCopyEliminationPass::run",
+          "inuse_bytes": 1546416
+        },
+        {
+          "owner": "Backend: microcode and optimization",
+          "frame": "swc::MicroEmitPass::run",
+          "inuse_bytes": 1459206
+        },
+        {
+          "owner": "Backend: native emission",
+          "frame": "swc::`anonymous namespace'::NativeImageLowering::buildDescription",
+          "inuse_bytes": 1439436
+        },
+        {
+          "owner": "Sema: constants",
+          "frame": "swc::ConstantManager::hasUnpublishedFunctionRelocations",
+          "inuse_bytes": 1310950
+        },
+        {
+          "owner": "Source text and tokens",
+          "frame": "swc::Lexer::lexSymbol",
+          "inuse_bytes": 1281017
+        },
+        {
+          "owner": "Backend: microcode and optimization",
+          "frame": "swc::MicroStackAdjustNormalizePass::run",
+          "inuse_bytes": 1230950
+        },
+        {
+          "owner": "Source text and tokens",
+          "frame": "swc::SourceFile::loadContent",
+          "inuse_bytes": 1192023
+        },
+        {
+          "owner": "Sema: analysis and payloads",
+          "frame": "swc::SemaHelpers::registerUniqueRuntimeStorageSymbol",
+          "inuse_bytes": 1179198
+        },
+        {
+          "owner": "Backend: microcode and optimization",
+          "frame": "swc::MicroBranchSimplifyPass::run",
+          "inuse_bytes": 1171802
+        },
+        {
+          "owner": "AST and parsing",
+          "frame": "swc::Ast::makeNode<11>",
+          "inuse_bytes": 1095790
+        },
+        {
+          "owner": "Sema: constants",
+          "frame": "swc::ConstantManager::WalkedAllocations::grow",
+          "inuse_bytes": 1048728
+        },
+        {
+          "owner": "Sema: analysis and payloads",
+          "frame": "swc::SemaHelpers::ensureCodeGenLoweringPayload",
+          "inuse_bytes": 1048176
+        },
+        {
+          "owner": "Backend: microcode and optimization",
+          "frame": "swc::MicroStorage::insertBefore",
+          "inuse_bytes": 1011822
+        },
+        {
+          "owner": "Sema: symbols and identifiers",
+          "frame": "swc::Symbol::make<swc::SymbolVariable>",
+          "inuse_bytes": 982665
+        },
+        {
+          "owner": "Sema: analysis and payloads",
+          "frame": "swc::SemaJIT::runFunctionResult",
+          "inuse_bytes": 909355
+        },
+        {
+          "owner": "Backend: register allocation",
+          "frame": "swc::MicroRegisterAllocationPass::rewriteInstructions",
+          "inuse_bytes": 863416
+        },
+        {
+          "owner": "Orchestration",
+          "frame": "swc::ModuleSetupInputApplier::apply",
+          "inuse_bytes": 847734
+        },
+        {
+          "owner": "Backend: microcode and optimization",
+          "frame": "swc::MicroPostRaPeepholePass::run",
+          "inuse_bytes": 760300
+        },
+        {
+          "owner": "Sema: analysis and payloads",
+          "frame": "swc::NodePayload::setLoweringPayload",
+          "inuse_bytes": 719336
+        },
+        {
+          "owner": "Backend: microcode and optimization",
+          "frame": "swc::MicroEmitPass::encodeInstruction",
+          "inuse_bytes": 663915
+        },
+        {
+          "owner": "Sema: types",
+          "frame": "swc::TypeGen::wireRelocations",
+          "inuse_bytes": 655549
+        },
+        {
+          "owner": "Sema: analysis and payloads",
+          "frame": "swc::NodePayload::setSymbolListImpl",
+          "inuse_bytes": 651174
+        },
+        {
+          "owner": "Backend: register allocation",
+          "frame": "swc::MicroRegisterAllocationPass::flushAtBoundary",
+          "inuse_bytes": 633750
+        },
+        {
+          "owner": "Backend: microcode and optimization",
+          "frame": "swc::MicroControlFlowGraph::build",
+          "inuse_bytes": 623068
+        },
+        {
+          "owner": "Compiler artifact caches",
+          "frame": "swc::MachineCodeCache::write",
+          "inuse_bytes": 610978
+        },
+        {
+          "owner": "Backend: microcode and optimization",
+          "frame": "swc::MicroStorage::emplaceUninit",
+          "inuse_bytes": 582670
+        },
+        {
+          "owner": "Sema: analysis and payloads",
+          "frame": "swc::NodePayload::setSymbol",
+          "inuse_bytes": 575645
+        },
+        {
+          "owner": "Backend: microcode and optimization",
+          "frame": "swc::MicroPeephole::RewriteQueue<swc::PostRaPeephole::Action>::emitErase",
+          "inuse_bytes": 557102
+        },
+        {
+          "owner": "Backend: microcode and optimization",
+          "frame": "swc::MicroBuilder::addRelocation",
+          "inuse_bytes": 546539
+        },
+        {
+          "owner": "AST and parsing",
+          "frame": "swc::AstAutoMemberAccessExpr::semaPreNodeChild",
+          "inuse_bytes": 532566
+        },
+        {
+          "owner": "Sema: analysis and payloads",
+          "frame": "swc::NodePayload::setInlineContextOverride",
+          "inuse_bytes": 528536
+        },
+        {
+          "owner": "Sema: symbols and identifiers",
+          "frame": "swc::Symbol::make<swc::SymbolStruct>",
+          "inuse_bytes": 524088
+        },
+        {
+          "owner": "Sema: symbols and identifiers",
+          "frame": "swc::SymbolMap::tableReserve",
+          "inuse_bytes": 524088
+        },
+        {
+          "owner": "Backend: native emission",
+          "frame": "swc::`anonymous namespace'::NativeImageLowering::placeUnwindSections",
+          "inuse_bytes": 485676
+        },
+        {
+          "owner": "Sema: analysis and payloads",
+          "frame": "swc::NodePayload::setSemaPayload",
+          "inuse_bytes": 470267
+        },
+        {
+          "owner": "Backend: microcode and optimization",
+          "frame": "swc::MicroBuilder::emitCallLocal",
+          "inuse_bytes": 404231
+        },
+        {
+          "owner": "Sema: constants",
+          "frame": "swc::ConstantManager::WalkedAllocations::slotFor",
+          "inuse_bytes": 400350
+        },
+        {
+          "owner": "Sema: constants",
+          "frame": "swc::ConstantLower::materializeStaticPayload",
+          "inuse_bytes": 358140
+        },
+        {
+          "owner": "Sema: analysis and payloads",
+          "frame": "swc::NodePayload::setConstAssignSourceParameter",
+          "inuse_bytes": 313496
+        },
+        {
+          "owner": "Backend: microcode and optimization",
+          "frame": "swc::MicroBuilder::emitLoadRegDataSegmentReloc",
+          "inuse_bytes": 294662
+        },
+        {
+          "owner": "Sema: types",
+          "frame": "swc::TypeGen::initTypeInfoPayload",
+          "inuse_bytes": 279106
+        },
+        {
+          "owner": "Source text and tokens",
+          "frame": "swc::Lexer::lexNumber",
+          "inuse_bytes": 277570
+        },
+        {
+          "owner": "Sema: symbols and identifiers",
+          "frame": "swc::IdentifierManager::addIdentifierInternal",
+          "inuse_bytes": 263152
+        },
+        {
+          "owner": "AST and parsing",
+          "frame": "swc::AstCallExpr::semaClone",
+          "inuse_bytes": 250648
+        },
+        {
+          "owner": "AST and parsing",
+          "frame": "swc::Ast::makeNode<85>",
+          "inuse_bytes": 246705
+        },
+        {
+          "owner": "Backend: microcode and optimization",
+          "frame": "swc::MicroPassHelpers::computeInstructionDominators",
+          "inuse_bytes": 238070
+        },
+        {
+          "owner": "Compiler artifact caches",
+          "frame": "swc::MachineCodeCache::inputKey",
+          "inuse_bytes": 218530
+        },
+        {
+          "owner": "AST and parsing",
+          "frame": "swc::AstMemberAccessExpr::semaClone",
+          "inuse_bytes": 217713
+        },
+        {
+          "owner": "AST and parsing",
+          "frame": "swc::Parser::parse",
+          "inuse_bytes": 213811
+        },
+        {
+          "owner": "Source text and tokens",
+          "frame": "swc::Lexer::lexIdentifier",
+          "inuse_bytes": 207536
+        },
+        {
+          "owner": "AST and parsing",
+          "frame": "swc::Ast::makeNode<94>",
+          "inuse_bytes": 197364
+        },
+        {
+          "owner": "Linker and object/archive I/O",
+          "frame": "swc::Archive::load",
+          "inuse_bytes": 196746
+        },
+        {
+          "owner": "Sema: analysis and payloads",
+          "frame": "swc::SemaGeneric::`anonymous namespace'::createGenericInstanceSymbol",
+          "inuse_bytes": 196533
+        },
+        {
+          "owner": "AST and parsing",
+          "frame": "swc::AstIdentifier::semaClone",
+          "inuse_bytes": 196533
+        },
+        {
+          "owner": "AST and parsing",
+          "frame": "swc::AstFile::semaPreDecl",
+          "inuse_bytes": 196533
+        },
+        {
+          "owner": "Orchestration",
+          "frame": "swc::CompilerInstance::allocate<swc::SemaCompilerIf>",
+          "inuse_bytes": 196533
+        },
+        {
+          "owner": "Backend: microcode and optimization",
+          "frame": "swc::MicroSsaState::removeUsesWithoutRenaming",
+          "inuse_bytes": 179832
+        },
+        {
+          "owner": "AST and parsing",
+          "frame": "swc::AstEmbeddedBlock::semaClone",
+          "inuse_bytes": 178801
+        },
+        {
+          "owner": "Sema: types",
+          "frame": "swc::TypeManager::addTypeAfterMiss",
+          "inuse_bytes": 164470
+        },
+        {
+          "owner": "Sema: symbols and identifiers",
+          "frame": "swc::IdentifierManager::publishInterned",
+          "inuse_bytes": 159821
+        },
+        {
+          "owner": "AST and parsing",
+          "frame": "swc::AstAutoMemberAccessExpr::semaClone",
+          "inuse_bytes": 154075
+        },
+        {
+          "owner": "Sema: symbols and identifiers",
+          "frame": "swc::SymbolFunction::emitLowered",
+          "inuse_bytes": 141880
+        },
+        {
+          "owner": "AST and parsing",
+          "frame": "swc::AstRelationalExpr::semaClone",
+          "inuse_bytes": 138541
+        },
+        {
+          "owner": "Backend: microcode and optimization",
+          "frame": "swc::MicroPassHelpers::collectStackPointerOffsets",
+          "inuse_bytes": 131118
+        },
+        {
+          "owner": "Sema: analysis and payloads",
+          "frame": "swc::SemaHelpers::signalCallbackTypeForOwner",
+          "inuse_bytes": 131022
+        },
+        {
+          "owner": "AST and parsing",
+          "frame": "swc::AstImpl::semaPostDeclChild",
+          "inuse_bytes": 131022
+        },
+        {
+          "owner": "Sema: analysis and payloads",
+          "frame": "swc::SemaGeneric::checkErasedCallArgs",
+          "inuse_bytes": 131022
+        },
+        {
+          "owner": "Sema: analysis and payloads",
+          "frame": "swc::SemaHelpers::registerSymbol<swc::SymbolConstant>",
+          "inuse_bytes": 131022
+        },
+        {
+          "owner": "Sema: analysis and payloads",
+          "frame": "swc::Sema::ensureSemaPayload<swc::LoopSemaPayload>",
+          "inuse_bytes": 131022
+        },
+        {
+          "owner": "AST and parsing",
+          "frame": "swc::AstLambdaType::semaPostNode",
+          "inuse_bytes": 131022
+        },
+        {
+          "owner": "Orchestration",
+          "frame": "swc::CompilerInstance::registerNativeCodeFunction",
+          "inuse_bytes": 130364
+        },
+        {
+          "owner": "Backend: microcode and optimization",
+          "frame": "swc::MicroSsaState::buildBlocks",
+          "inuse_bytes": 125205
+        },
+        {
+          "owner": "AST and parsing",
+          "frame": "swc::Ast::makeNode<3>",
+          "inuse_bytes": 121607
+        },
+        {
+          "owner": "Backend: microcode and optimization",
+          "frame": "swc::MicroBuilder::emitLoadRegPtrReloc",
+          "inuse_bytes": 117385
+        },
+        {
+          "owner": "AST and parsing",
+          "frame": "swc::AstUnaryExpr::semaClone",
+          "inuse_bytes": 115129
+        },
+        {
+          "owner": "Sema: types",
+          "frame": "swc::TypeManager::publishInterned",
+          "inuse_bytes": 111714
+        },
+        {
+          "owner": "Backend: register allocation",
+          "frame": "swc::MicroRegisterAllocationPass::computeConcreteClaimPositions",
+          "inuse_bytes": 109598
+        },
+        {
+          "owner": "Orchestration",
+          "frame": "swc::CompilerInstance::addEscapeSummaryEdge",
+          "inuse_bytes": 109286
+        },
+        {
+          "owner": "AST and parsing",
+          "frame": "swc::Parser::parseVarDecl",
+          "inuse_bytes": 98682
+        },
+        {
+          "owner": "AST and parsing",
+          "frame": "swc::Parser::parseCompoundContentUntil",
+          "inuse_bytes": 98682
+        },
+        {
+          "owner": "Backend: register allocation",
+          "frame": "swc::MicroRegisterAllocationPass::computeLoopDepth",
+          "inuse_bytes": 97444
+        },
+        {
+          "owner": "Backend: microcode and optimization",
+          "frame": "swc::MicroPassHelpers::NaturalLoop::collectBody",
+          "inuse_bytes": 89696
+        },
+        {
+          "owner": "AST and parsing",
+          "frame": "swc::AstBinaryExpr::semaClone",
+          "inuse_bytes": 89073
+        },
+        {
+          "owner": "AST and parsing",
+          "frame": "swc::AstSingleVarDecl::semaClone",
+          "inuse_bytes": 87273
+        },
+        {
+          "owner": "Backend: native emission",
+          "frame": "swc::X64Encoder::encodeCallRelative",
+          "inuse_bytes": 82235
+        },
+        {
+          "owner": "Backend: native emission",
+          "frame": "swc::X64Encoder::encodeJump",
+          "inuse_bytes": 82235
+        },
+        {
+          "owner": "AST and parsing",
+          "frame": "swc::AstBuiltinType::semaClone",
+          "inuse_bytes": 82235
+        },
+        {
+          "owner": "AST and parsing",
+          "frame": "swc::AstFunctionDecl::semaClone",
+          "inuse_bytes": 82235
+        },
+        {
+          "owner": "Sema: analysis and payloads",
+          "frame": "swc::Cast::cast",
+          "inuse_bytes": 81958
+        },
+        {
+          "owner": "Sema: analysis and payloads",
+          "frame": "swc::NodePayload::setResolvedCallArguments",
+          "inuse_bytes": 78530
+        },
+        {
+          "owner": "Backend: native emission",
+          "frame": "swc::Encoder::addDebugSourceRange",
+          "inuse_bytes": 77184
+        },
+        {
+          "owner": "AST and parsing",
+          "frame": "swc::AstNamedType::semaClone",
+          "inuse_bytes": 75033
+        },
+        {
+          "owner": "AST and parsing",
+          "frame": "swc::AstIntegerLiteral::semaClone",
+          "inuse_bytes": 73466
+        },
+        {
+          "owner": "AST and parsing",
+          "frame": "swc::AstAssignStmt::semaClone",
+          "inuse_bytes": 71594
+        },
+        {
+          "owner": "Backend: native emission",
+          "frame": "swc::X64Encoder::encodeLoadAddressRegMem",
+          "inuse_bytes": 68315
+        },
+        {
+          "owner": "Backend: native emission",
+          "frame": "swc::X64Encoder::encodeLoadMemImm",
+          "inuse_bytes": 65788
+        },
+        {
+          "owner": "AST and parsing",
+          "frame": "swc::Parser::lowerSwagIntrinsicCall",
+          "inuse_bytes": 65788
+        },
+        {
+          "owner": "AST and parsing",
+          "frame": "swc::Ast::makeNode<6>",
+          "inuse_bytes": 65788
+        },
+        {
+          "owner": "Sema: analysis and payloads",
+          "frame": "swc::SemaHelpers::registerSymbol<swc::SymbolStruct>",
+          "inuse_bytes": 65511
+        },
+        {
+          "owner": "AST and parsing",
+          "frame": "swc::AstSwitchStmt::semaPreNode",
+          "inuse_bytes": 65511
+        },
+        {
+          "owner": "Sema: analysis and payloads",
+          "frame": "swc::SemaHelpers::registerUniqueSymbol<swc::SymbolStruct>",
+          "inuse_bytes": 65511
+        },
+        {
+          "owner": "Sema: analysis and payloads",
+          "frame": "swc::SemaHelpers::registerSymbol<swc::SymbolEnum>",
+          "inuse_bytes": 65511
+        },
+        {
+          "owner": "Sema: analysis and payloads",
+          "frame": "swc::SemaGeneric::`anonymous namespace'::createGenericImplClone",
+          "inuse_bytes": 65511
+        },
+        {
+          "owner": "Backend: codegen",
+          "frame": "swc::CodeGenConstantHelpers::materializeRuntimeBufferConstant",
+          "inuse_bytes": 57598
+        },
+        {
+          "owner": "AST and parsing",
+          "frame": "swc::Ast::makeNode<62>",
+          "inuse_bytes": 56419
+        },
+        {
+          "owner": "AST and parsing",
+          "frame": "swc::Parser::parseFunctionParamList",
+          "inuse_bytes": 49341
+        },
+        {
+          "owner": "Sema: analysis and payloads",
+          "frame": "swc::Sema::postNode",
+          "inuse_bytes": 49341
+        },
+        {
+          "owner": "AST and parsing",
+          "frame": "swc::AstCompilerIf::semaClone",
+          "inuse_bytes": 49341
+        },
+        {
+          "owner": "Backend: native emission",
+          "frame": "swc::X64Encoder::encodeLoadRegMem",
+          "inuse_bytes": 49341
+        },
+        {
+          "owner": "Sema: analysis and payloads",
+          "frame": "swc::NodePayload::setSubstitute",
+          "inuse_bytes": 49341
+        },
+        {
+          "owner": "AST and parsing",
+          "frame": "swc::AstIfStmt::semaClone",
+          "inuse_bytes": 49341
+        },
+        {
+          "owner": "AST and parsing",
+          "frame": "swc::Parser::parseLiteral",
+          "inuse_bytes": 49341
+        },
+        {
+          "owner": "AST and parsing",
+          "frame": "swc::Ast::makeNode<79>",
+          "inuse_bytes": 49341
+        },
+        {
+          "owner": "AST and parsing",
+          "frame": "swc::AstCompilerCallOne::semaClone",
+          "inuse_bytes": 49341
+        },
+        {
+          "owner": "AST and parsing",
+          "frame": "swc::AstReturnStmt::semaClone",
+          "inuse_bytes": 49341
+        },
+        {
+          "owner": "Sema: constants",
+          "frame": "swc::ConstantManager::walkedAllocation",
+          "inuse_bytes": 44748
+        },
+        {
+          "owner": "AST and parsing",
+          "frame": "swc::AstFunctionParamList::semaClone",
+          "inuse_bytes": 39852
+        },
+        {
+          "owner": "Backend: native emission",
+          "frame": "swc::X64Encoder::encodeLoadRegReg",
+          "inuse_bytes": 35373
+        },
+        {
+          "owner": "AST and parsing",
+          "frame": "swc::Ast::makeNode<145>",
+          "inuse_bytes": 32894
+        },
+        {
+          "owner": "AST and parsing",
+          "frame": "swc::AstValuePointerType::semaClone",
+          "inuse_bytes": 32894
+        },
+        {
+          "owner": "AST and parsing",
+          "frame": "swc::Parser::parseAutoMemberAccessExpr",
+          "inuse_bytes": 32894
+        },
+        {
+          "owner": "AST and parsing",
+          "frame": "swc::AstForStmt::semaClone",
+          "inuse_bytes": 32894
+        },
+        {
+          "owner": "AST and parsing",
+          "frame": "swc::Parser::parseRelationalExpr",
+          "inuse_bytes": 32894
+        },
+        {
+          "owner": "AST and parsing",
+          "frame": "swc::AstLogicalExpr::semaClone",
+          "inuse_bytes": 32894
+        },
+        {
+          "owner": "Backend: native emission",
+          "frame": "swc::X64Encoder::encodeTrap",
+          "inuse_bytes": 32894
+        },
+        {
+          "owner": "AST and parsing",
+          "frame": "swc::AstConstraintExpr::semaClone",
+          "inuse_bytes": 32894
+        },
+        {
+          "owner": "AST and parsing",
+          "frame": "swc::Ast::makeNode<98>",
+          "inuse_bytes": 32894
+        },
+        {
+          "owner": "Backend: native emission",
+          "frame": "swc::X64Encoder::encodeCmpRegImm",
+          "inuse_bytes": 32894
+        },
+        {
+          "owner": "Backend: codegen",
+          "frame": "swc::CodeGen::ensureNodePayload<swc::CodeGenNodePayload>",
+          "inuse_bytes": 32814
+        },
+        {
+          "owner": "Backend: microcode and optimization",
+          "frame": "swc::MicroBuilder::preserveVirtualCopy",
+          "inuse_bytes": 32814
+        },
+        {
+          "owner": "Backend: microcode and optimization",
+          "frame": "swc::MicroSsaState::transitiveInstructionUseCount",
+          "inuse_bytes": 29666
+        },
+        {
+          "owner": "Orchestration",
+          "frame": "swc::CompilerInstance::setupSema",
+          "inuse_bytes": 27647
+        },
+        {
+          "owner": "Backend: native emission",
+          "frame": "swc::NativeArtifactBuilder::partitionObjects",
+          "inuse_bytes": 24276
+        },
+        {
+          "owner": "Backend: microcode and optimization",
+          "frame": "swc::MicroSsaState::renameBlock",
+          "inuse_bytes": 22936
+        },
+        {
+          "owner": "Sema: symbols and identifiers",
+          "frame": "swc::SymbolFunction::refreshJitOrderCache",
+          "inuse_bytes": 20630
+        },
+        {
+          "owner": "Sema: constants",
+          "frame": "swc::ConstantManager::addConstantSlow",
+          "inuse_bytes": 19941
+        },
+        {
+          "owner": "Backend: native emission",
+          "frame": "swc::X64Encoder::encodeLoadMemReg",
+          "inuse_bytes": 17870
+        },
+        {
+          "owner": "AST and parsing",
+          "frame": "swc::AstIndexExpr::semaClone",
+          "inuse_bytes": 16447
+        },
+        {
+          "owner": "AST and parsing",
+          "frame": "swc::Parser::parseFunctionDecl",
+          "inuse_bytes": 16447
+        },
+        {
+          "owner": "Sema: analysis and payloads",
+          "frame": "swc::SemaSpecOp::collectSetCandidates",
+          "inuse_bytes": 16447
+        },
+        {
+          "owner": "AST and parsing",
+          "frame": "swc::AstCompilerExpression::semaClone",
+          "inuse_bytes": 16447
+        },
+        {
+          "owner": "AST and parsing",
+          "frame": "swc::AstWhileStmt::semaClone",
+          "inuse_bytes": 16447
+        },
+        {
+          "owner": "AST and parsing",
+          "frame": "swc::AstGenericParamType::semaClone",
+          "inuse_bytes": 16447
+        },
+        {
+          "owner": "Backend: native emission",
+          "frame": "swc::X64Encoder::encodeLoadAddressAmcRegMem",
+          "inuse_bytes": 16447
+        },
+        {
+          "owner": "AST and parsing",
+          "frame": "swc::Parser::parseSwitchCaseDefault",
+          "inuse_bytes": 16447
+        },
+        {
+          "owner": "AST and parsing",
+          "frame": "swc::Parser::parseBinaryExpr",
+          "inuse_bytes": 16447
+        },
+        {
+          "owner": "AST and parsing",
+          "frame": "swc::AstStringLiteral::semaClone",
+          "inuse_bytes": 16447
+        },
+        {
+          "owner": "AST and parsing",
+          "frame": "swc::AstCompilerInject::semaClone",
+          "inuse_bytes": 16447
+        },
+        {
+          "owner": "Sema: analysis and payloads",
+          "frame": "swc::SemaSpecOp::tryResolveVisit",
+          "inuse_bytes": 16447
+        },
+        {
+          "owner": "AST and parsing",
+          "frame": "swc::Parser::parseNamedArg",
+          "inuse_bytes": 16447
+        },
+        {
+          "owner": "AST and parsing",
+          "frame": "swc::AstAttributeList::semaClone",
+          "inuse_bytes": 16447
+        },
+        {
+          "owner": "AST and parsing",
+          "frame": "swc::Parser::parseInitializerList",
+          "inuse_bytes": 16447
+        },
+        {
+          "owner": "AST and parsing",
+          "frame": "swc::Parser::parseAttributeValue",
+          "inuse_bytes": 16447
+        },
+        {
+          "owner": "AST and parsing",
+          "frame": "swc::Ast::makeNode<13>",
+          "inuse_bytes": 16447
+        },
+        {
+          "owner": "AST and parsing",
+          "frame": "swc::Parser::parseSingleType",
+          "inuse_bytes": 16447
+        },
+        {
+          "owner": "AST and parsing",
+          "frame": "swc::Ast::makeNode<111>",
+          "inuse_bytes": 16447
+        },
+        {
+          "owner": "AST and parsing",
+          "frame": "swc::Parser::parseSubTypeNoQualifiers",
+          "inuse_bytes": 16447
+        },
+        {
+          "owner": "AST and parsing",
+          "frame": "swc::AstIsTypeExpr::semaPostNode",
+          "inuse_bytes": 16447
+        },
+        {
+          "owner": "AST and parsing",
+          "frame": "swc::Parser::parseLiteralExpression",
+          "inuse_bytes": 16447
+        },
+        {
+          "owner": "AST and parsing",
+          "frame": "swc::AstIntrinsicCallExpr::semaClone",
+          "inuse_bytes": 16447
+        },
+        {
+          "owner": "Backend: native emission",
+          "frame": "swc::X64Encoder::encodeLoadRegImm",
+          "inuse_bytes": 16447
+        },
+        {
+          "owner": "AST and parsing",
+          "frame": "swc::AstCodeType::semaClone",
+          "inuse_bytes": 16447
+        },
+        {
+          "owner": "AST and parsing",
+          "frame": "swc::Parser::parseEmbeddedStmt",
+          "inuse_bytes": 16447
+        },
+        {
+          "owner": "AST and parsing",
+          "frame": "swc::Ast::makeNode<72>",
+          "inuse_bytes": 16447
+        },
+        {
+          "owner": "Backend: native emission",
+          "frame": "swc::X64Encoder::encodeLoadRegTlsSlot",
+          "inuse_bytes": 16447
+        },
+        {
+          "owner": "AST and parsing",
+          "frame": "swc::AstIntrinsicCall::semaClone",
+          "inuse_bytes": 16447
+        },
+        {
+          "owner": "AST and parsing",
+          "frame": "swc::AstErrorManagementExpr::semaClone",
+          "inuse_bytes": 16447
+        },
+        {
+          "owner": "AST and parsing",
+          "frame": "swc::AstAttribute::semaClone",
+          "inuse_bytes": 16447
+        },
+        {
+          "owner": "Source text and tokens",
+          "frame": "swc::SourceFile::SourceFile",
+          "inuse_bytes": 16445
+        },
+        {
+          "owner": "Source text and tokens",
+          "frame": "swc::Lexer::lexWhitespace",
+          "inuse_bytes": 15327
+        },
+        {
+          "owner": "Backend: microcode and optimization",
+          "frame": "swc::MicroPassHelpers::collectFrameVariableExtents",
+          "inuse_bytes": 11422
+        },
+        {
+          "owner": "Sema: symbols and identifiers",
+          "frame": "swc::SymbolFunction::classifyLoweredBody",
+          "inuse_bytes": 11106
+        },
+        {
+          "owner": "Backend: microcode and optimization",
+          "frame": "swc::MicroSsaState::copyInstructionDominators",
+          "inuse_bytes": 10086
+        },
+        {
+          "owner": "Sema: symbols and identifiers",
+          "frame": "swc::SymbolStruct::addField",
+          "inuse_bytes": 9347
+        },
+        {
+          "owner": "Backend: microcode and optimization",
+          "frame": "swc::MicroMemToRegPass::run",
+          "inuse_bytes": 8693
+        },
+        {
+          "owner": "Sema: analysis and payloads",
+          "frame": "swc::SemaGeneric::`anonymous namespace'::runCachedSema<std::unordered_map<swc::SemaGeneric::`anonymous namespace'::GenericNodeRunKey,swc::SemaGeneric::A0xb49ca7bb::CachedSemaRun,swc::SemaGeneric::A0xb49ca7bb::GenericNodeRunKeyHash,std::equal_to<swc::SemaGeneric::`anonymous namespace'::GenericNodeRunKey>,std::allocator<std::pair<swc::SemaGeneric::`anonymous namespace'::GenericNodeRunKey const ,swc::SemaGeneric::A0xb49ca7bb::CachedSemaRun> > >,swc::SemaGeneric::`anonymous namespace'::GenericNodeRunKey,swc::SemaGeneric::A0xb49ca7bb::GenericNodeRunInitializer>",
+          "inuse_bytes": 8366
+        },
+        {
+          "owner": "Compiler artifact caches",
+          "frame": "swc::CompilerCacheStore::write",
+          "inuse_bytes": 8238
+        },
+        {
+          "owner": "Sema: symbols and identifiers",
+          "frame": "swc::SymbolFunction::addLocalVariable",
+          "inuse_bytes": 7736
+        },
+        {
+          "owner": "Compiler artifact caches",
+          "frame": "swc::MachineCodeCache::MachineCodeCache",
+          "inuse_bytes": 6670
+        },
+        {
+          "owner": "Backend: microcode and optimization",
+          "frame": "swc::MicroBuilder::emitCallExtern",
+          "inuse_bytes": 6108
+        },
+        {
+          "owner": "Sema: analysis and payloads",
+          "frame": "swc::SemaGeneric::`anonymous namespace'::cloneGenericImplBlock",
+          "inuse_bytes": 4870
+        },
+        {
+          "owner": "Sema: analysis and payloads",
+          "frame": "swc::NodePayload::recordFoldedSourceSymbol",
+          "inuse_bytes": 4124
+        },
+        {
+          "owner": "Compiler artifact caches",
+          "frame": "swc::CompilerCacheStore::Archive::decode",
+          "inuse_bytes": 3802
+        },
+        {
+          "owner": "Backend: native emission",
+          "frame": "swc::NativeBackendBuilder::prepare",
+          "inuse_bytes": 3469
+        },
+        {
+          "owner": "Sema: analysis and payloads",
+          "frame": "swc::Sema::enqueueTopLevelSemaJob",
+          "inuse_bytes": 3346
+        },
+        {
+          "owner": "AST and parsing",
+          "frame": "swc::AstIntrinsicInit::semaClone",
+          "inuse_bytes": 2815
+        },
+        {
+          "owner": "Sema: analysis and payloads",
+          "frame": "swc::Sema::Sema",
+          "inuse_bytes": 2462
+        },
+        {
+          "owner": "Sema: symbols and identifiers",
+          "frame": "swc::SymbolSort::LocationKeyCache::key<swc::SymbolFunction>",
+          "inuse_bytes": 2125
+        },
+        {
+          "owner": "Backend: native emission",
+          "frame": "swc::NativeBackendBuilder::resolveFunctionSymbolName",
+          "inuse_bytes": 2028
+        },
+        {
+          "owner": "Sema: symbols and identifiers",
+          "frame": "swc::SymbolFunction::ensureLazyBodyRunState",
+          "inuse_bytes": 1395
+        },
+        {
+          "owner": "AST and parsing",
+          "frame": "swc::AstConditionalExpr::semaClone",
+          "inuse_bytes": 1231
+        },
+        {
+          "owner": "Sema: analysis and payloads",
+          "frame": "swc::SemaJIT::tryRunConstCall",
+          "inuse_bytes": 1095
+        },
+        {
+          "owner": "Backend: microcode and optimization",
+          "frame": "swc::MicroPostRaLoopHoistPass::run",
+          "inuse_bytes": 1031
+        },
+        {
+          "owner": "Orchestration",
+          "frame": "swc::CompilerInstance::makeJob<swc::CodeGenJob,swc::TaskContext & __ptr64,swc::Sema & __ptr64,swc::SymbolFunction & __ptr64,swc::StrongRef<swc::AstNode> const & __ptr64>",
+          "inuse_bytes": 814
+        },
+        {
+          "owner": "AST and parsing",
+          "frame": "swc::AstCompilerCallOne::semaPostNode",
+          "inuse_bytes": 737
+        },
+        {
+          "owner": "Sema: symbols and identifiers",
+          "frame": "swc::SymbolFunction::setGenericInstance",
+          "inuse_bytes": 558
+        },
+        {
+          "owner": "Sema: symbols and identifiers",
+          "frame": "swc::SymbolFunction::findGenericEvalNode",
+          "inuse_bytes": 279
+        },
+        {
+          "owner": "Sema: symbols and identifiers",
+          "frame": "swc::SymbolFunction::addCallDependency",
+          "inuse_bytes": 263
+        },
+        {
+          "owner": "Backend: JIT",
+          "frame": "swc::JITPatchJob::schedule",
+          "inuse_bytes": 231
+        },
+        {
+          "owner": "Unattributed: shared or external allocation",
+          "frame": "swc::`anonymous namespace'::`dynamic initializer for 'g_GeneratedRuntimeDocs''",
+          "inuse_bytes": 190
+        },
+        {
+          "owner": "Linker and object/archive I/O",
+          "frame": "swc::PELinker::prepareImageLinkParallel",
+          "inuse_bytes": 167
+        },
+        {
+          "owner": "Orchestration",
+          "frame": "swc::CompilerInstance::runWorkspace",
+          "inuse_bytes": 167
+        },
+        {
+          "owner": "Orchestration",
+          "frame": "swc::JobManager::enqueue",
+          "inuse_bytes": 158
+        },
+        {
+          "owner": "Sema: analysis and payloads",
+          "frame": "swc::SemaGeneric::Internal::runGenericInstanceNode",
+          "inuse_bytes": 135
+        },
+        {
+          "owner": "Sema: analysis and payloads",
+          "frame": "swc::SemaGeneric::`anonymous namespace'::runGenericNode",
+          "inuse_bytes": 135
+        },
+        {
+          "owner": "Backend: microcode and optimization",
+          "frame": "swc::MicroBuilder::addVirtualRegForbiddenPhysRegs",
+          "inuse_bytes": 119
+        },
+        {
+          "owner": "Linker and object/archive I/O",
+          "frame": "swc::PELinker::buildNativeImage",
+          "inuse_bytes": 110
+        },
+        {
+          "owner": "Compiler artifact caches",
+          "frame": "swc::ModuleApi::onSymbolSemaCompleted",
+          "inuse_bytes": 79
+        },
+        {
+          "owner": "Sema: symbols and identifiers",
+          "frame": "swc::SymbolFunction::computePublicApiBaseSymbolName",
+          "inuse_bytes": 78
+        },
+        {
+          "owner": "Backend: microcode and optimization",
+          "frame": "swc::MicroInstr::collectUseDef",
+          "inuse_bytes": 71
+        },
+        {
+          "owner": "Sema: symbols and identifiers",
+          "frame": "swc::SymbolFunction::resolveForeignFunctionName",
+          "inuse_bytes": 55
+        },
+        {
+          "owner": "Sema: symbols and identifiers",
+          "frame": "swc::SymbolFunction::addLifecycleDependency",
+          "inuse_bytes": 55
+        },
+        {
+          "owner": "Orchestration",
+          "frame": "swc::CompilerInstance::addBufferedSourceView",
+          "inuse_bytes": 31
+        },
+        {
+          "owner": "Sema: symbols and identifiers",
+          "frame": "swc::SymbolFunction::addParameter",
+          "inuse_bytes": 23
+        },
+        {
+          "owner": "Orchestration",
+          "frame": "swc::JobManager::pushReady",
+          "inuse_bytes": 23
+        }
+      ]
+    },
+    {
+      "snapshot": "profile-pages-release.0004.heap",
+      "file_timestamp_unix": 1793360607.1290116,
+      "inuse_bytes": 538049505,
+      "categories": {
+        "Linker and object/archive I/O": 201767064,
+        "Backend": 247763324,
+        "Compiler artifact caches": 36318845,
+        "Sema, symbols, types and constants": 43436800,
+        "AST and parsing": 4652580,
+        "Source text and tokens": 3098342,
+        "Orchestration": 1012360,
+        "Unattributed: shared or external allocation": 190
+      },
+      "detailed_categories": {
+        "Linker and object/archive I/O": 201767064,
+        "Backend: register allocation": 152197864,
+        "Backend: microcode and optimization": 82372959,
+        "Compiler artifact caches": 36318845,
+        "Sema: analysis and payloads": 24873747,
+        "Backend: native emission": 13159687,
+        "Sema: symbols and identifiers": 13105124,
+        "AST and parsing": 4652580,
+        "Source text and tokens": 3098342,
+        "Sema: types": 2969767,
+        "Sema: constants": 2488162,
+        "Orchestration": 1012360,
+        "Backend: codegen": 32814,
+        "Unattributed: shared or external allocation": 190
+      },
+      "allocation_sites": [
+        {
+          "owner": "Backend: register allocation",
+          "frame": "swc::MicroRegisterAllocationPass::analyzeLiveness",
+          "inuse_bytes": 120326912
+        },
+        {
+          "owner": "Linker and object/archive I/O",
+          "frame": "swc::`anonymous namespace'::loadArchiveItem",
+          "inuse_bytes": 90835194
+        },
+        {
+          "owner": "Linker and object/archive I/O",
+          "frame": "swc::mergeCoffObjectsIntoImage",
+          "inuse_bytes": 80344186
+        },
+        {
+          "owner": "Compiler artifact caches",
+          "frame": "swc::CompilerCacheStore::publish",
+          "inuse_bytes": 35708810
+        },
+        {
+          "owner": "Backend: register allocation",
+          "frame": "swc::MicroRegisterAllocationPass::initState",
+          "inuse_bytes": 18711436
+        },
+        {
+          "owner": "Linker and object/archive I/O",
+          "frame": "swc::PELinker::resolveSymbols",
+          "inuse_bytes": 18540715
+        },
+        {
+          "owner": "Backend: microcode and optimization",
+          "frame": "swc::MicroPassHelpers::computePhysicalLiveness",
+          "inuse_bytes": 17812842
+        },
+        {
+          "owner": "Backend: microcode and optimization",
+          "frame": "swc::MicroSsaState::build",
+          "inuse_bytes": 16590797
+        },
+        {
+          "owner": "Backend: native emission",
+          "frame": "swc::NativeRDataCollector::emitReachableAllocations",
+          "inuse_bytes": 11716923
+        },
+        {
+          "owner": "Backend: register allocation",
+          "frame": "`swc::MicroRegisterAllocationPass::run'::`2'::<lambda_1>::operator()",
+          "inuse_bytes": 11435744
+        },
+        {
+          "owner": "Sema: analysis and payloads",
+          "frame": "swc::SemaHelpers::registerSymbol<swc::SymbolFunction>",
+          "inuse_bytes": 8843985
+        },
+        {
+          "owner": "Linker and object/archive I/O",
+          "frame": "swc::Archive::load",
+          "inuse_bytes": 8589648
+        },
+        {
+          "owner": "Sema: symbols and identifiers",
+          "frame": "swc::Symbol::setAttributes",
+          "inuse_bytes": 8450919
+        },
+        {
+          "owner": "Sema: analysis and payloads",
+          "frame": "swc::NodePayload::setInlinePayload",
+          "inuse_bytes": 5440132
+        },
+        {
+          "owner": "Backend: microcode and optimization",
+          "frame": "swc::MicroSsaState::placePhiNodes",
+          "inuse_bytes": 5215394
+        },
+        {
+          "owner": "Backend: microcode and optimization",
+          "frame": "swc::MicroSsaState::renameIntoSsa",
+          "inuse_bytes": 5041217
+        },
+        {
+          "owner": "Backend: microcode and optimization",
+          "frame": "swc::MicroPreRaPeepholePass::run",
+          "inuse_bytes": 5013734
+        },
+        {
+          "owner": "Backend: microcode and optimization",
+          "frame": "swc::MicroInstructionCombinePass::run",
+          "inuse_bytes": 3899530
+        },
+        {
+          "owner": "Backend: microcode and optimization",
+          "frame": "swc::MicroConstantFoldingPass::run",
+          "inuse_bytes": 3883076
+        },
+        {
+          "owner": "Backend: microcode and optimization",
+          "frame": "swc::MicroOperandStorage::emplaceUninitArray",
+          "inuse_bytes": 3669802
+        },
+        {
+          "owner": "Linker and object/archive I/O",
+          "frame": "swc::`anonymous namespace'::readCoffContent",
+          "inuse_bytes": 3457321
+        },
+        {
+          "owner": "Backend: microcode and optimization",
+          "frame": "swc::MicroPeephole::RewriteQueue<swc::PostRaPeephole::Action>::emitRewrite",
+          "inuse_bytes": 3342474
+        },
+        {
+          "owner": "Backend: microcode and optimization",
+          "frame": "swc::MicroPeephole::RewriteQueue<swc::InstructionCombine::Action>::emitRewrite",
+          "inuse_bytes": 3342474
+        },
+        {
+          "owner": "Sema: symbols and identifiers",
+          "frame": "swc::SymbolTable::read",
+          "inuse_bytes": 2707062
+        },
+        {
+          "owner": "Sema: analysis and payloads",
+          "frame": "swc::SemaInline::tryInlineCall",
+          "inuse_bytes": 2178333
+        },
+        {
+          "owner": "Backend: microcode and optimization",
+          "frame": "swc::MicroEmitPass::run",
+          "inuse_bytes": 1815172
+        },
+        {
+          "owner": "Backend: microcode and optimization",
+          "frame": "swc::MicroStackAdjustNormalizePass::run",
+          "inuse_bytes": 1705348
+        },
+        {
+          "owner": "Backend: microcode and optimization",
+          "frame": "swc::MicroCopyEliminationPass::run",
+          "inuse_bytes": 1639248
+        },
+        {
+          "owner": "Sema: analysis and payloads",
+          "frame": "swc::SemaHelpers::registerSymbol<swc::SymbolVariable>",
+          "inuse_bytes": 1572264
+        },
+        {
+          "owner": "Sema: types",
+          "frame": "swc::TypeGen::processTypeInfo",
+          "inuse_bytes": 1480111
+        },
+        {
+          "owner": "Sema: constants",
+          "frame": "swc::ConstantManager::hasUnpublishedFunctionRelocations",
+          "inuse_bytes": 1311149
+        },
+        {
+          "owner": "Sema: types",
+          "frame": "swc::TypeGen::initTypeInfoPayload",
+          "inuse_bytes": 1310955
+        },
+        {
+          "owner": "Backend: microcode and optimization",
+          "frame": "swc::MicroBranchSimplifyPass::run",
+          "inuse_bytes": 1298726
+        },
+        {
+          "owner": "Backend: microcode and optimization",
+          "frame": "swc::MicroPeephole::RewriteQueue<swc::PreRaPeephole::Action>::emitErase",
+          "inuse_bytes": 1114158
+        },
+        {
+          "owner": "Backend: microcode and optimization",
+          "frame": "swc::MicroPostRaPeepholePass::run",
+          "inuse_bytes": 1094832
+        },
+        {
+          "owner": "Backend: microcode and optimization",
+          "frame": "swc::MicroStorage::insertBefore",
+          "inuse_bytes": 1011822
+        },
+        {
+          "owner": "Source text and tokens",
+          "frame": "swc::Lexer::lexSymbol",
+          "inuse_bytes": 985072
+        },
+        {
+          "owner": "Source text and tokens",
+          "frame": "swc::Lexer::tokenize",
+          "inuse_bytes": 938549
+        },
+        {
+          "owner": "Backend: microcode and optimization",
+          "frame": "swc::MicroEmitPass::encodeInstruction",
+          "inuse_bytes": 922921
+        },
+        {
+          "owner": "Source text and tokens",
+          "frame": "swc::Lexer::lexNumber",
+          "inuse_bytes": 921934
+        },
+        {
+          "owner": "Sema: analysis and payloads",
+          "frame": "swc::SemaHelpers::ensureCodeGenLoweringPayload",
+          "inuse_bytes": 917154
+        },
+        {
+          "owner": "Backend: register allocation",
+          "frame": "swc::MicroRegisterAllocationPass::rewriteInstructions",
+          "inuse_bytes": 863416
+        },
+        {
+          "owner": "Sema: symbols and identifiers",
+          "frame": "swc::Symbol::make<swc::SymbolVariable>",
+          "inuse_bytes": 851643
+        },
+        {
+          "owner": "Sema: analysis and payloads",
+          "frame": "swc::SemaHelpers::registerUniqueRuntimeStorageSymbol",
+          "inuse_bytes": 851643
+        },
+        {
+          "owner": "Backend: microcode and optimization",
+          "frame": "swc::MicroBuilder::addRelocation",
+          "inuse_bytes": 838277
+        },
+        {
+          "owner": "AST and parsing",
+          "frame": "swc::Ast::makeNode<11>",
+          "inuse_bytes": 833938
+        },
+        {
+          "owner": "Backend: native emission",
+          "frame": "swc::NativeBackendBuilder::prepare",
+          "inuse_bytes": 823580
+        },
+        {
+          "owner": "Sema: analysis and payloads",
+          "frame": "swc::SemaJIT::runFunctionResult",
+          "inuse_bytes": 814422
+        },
+        {
+          "owner": "Sema: analysis and payloads",
+          "frame": "swc::NodePayload::setLoweringPayload",
+          "inuse_bytes": 714103
+        },
+        {
+          "owner": "Orchestration",
+          "frame": "swc::CompilerInstance::prepareDependencyPlan",
+          "inuse_bytes": 699612
+        },
+        {
+          "owner": "Sema: analysis and payloads",
+          "frame": "swc::NodePayload::setSemaPayload",
+          "inuse_bytes": 658637
+        },
+        {
+          "owner": "Backend: register allocation",
+          "frame": "swc::MicroRegisterAllocationPass::flushAtBoundary",
+          "inuse_bytes": 633750
+        },
+        {
+          "owner": "Backend: microcode and optimization",
+          "frame": "swc::MicroControlFlowGraph::build",
+          "inuse_bytes": 623068
+        },
+        {
+          "owner": "Sema: symbols and identifiers",
+          "frame": "swc::SymbolMap::tableReserve",
+          "inuse_bytes": 589599
+        },
+        {
+          "owner": "Backend: microcode and optimization",
+          "frame": "swc::MicroStorage::emplaceUninit",
+          "inuse_bytes": 582670
+        },
+        {
+          "owner": "Backend: microcode and optimization",
+          "frame": "swc::MicroPeephole::RewriteQueue<swc::PostRaPeephole::Action>::emitErase",
+          "inuse_bytes": 557102
+        },
+        {
+          "owner": "AST and parsing",
+          "frame": "swc::AstAutoMemberAccessExpr::semaPreNodeChild",
+          "inuse_bytes": 479562
+        },
+        {
+          "owner": "Sema: constants",
+          "frame": "swc::ConstantManager::WalkedAllocations::grow",
+          "inuse_bytes": 458897
+        },
+        {
+          "owner": "Sema: analysis and payloads",
+          "frame": "swc::NodePayload::setSymbolListImpl",
+          "inuse_bytes": 411175
+        },
+        {
+          "owner": "Sema: constants",
+          "frame": "swc::ConstantManager::WalkedAllocations::slotFor",
+          "inuse_bytes": 396216
+        },
+        {
+          "owner": "Sema: analysis and payloads",
+          "frame": "swc::NodePayload::setSymbol",
+          "inuse_bytes": 378281
+        },
+        {
+          "owner": "Compiler artifact caches",
+          "frame": "swc::MachineCodeCache::write",
+          "inuse_bytes": 372668
+        },
+        {
+          "owner": "Backend: microcode and optimization",
+          "frame": "swc::MicroPassHelpers::computeInstructionDominators",
+          "inuse_bytes": 346336
+        },
+        {
+          "owner": "Backend: microcode and optimization",
+          "frame": "swc::MicroBuilder::emitCallLocal",
+          "inuse_bytes": 311861
+        },
+        {
+          "owner": "Sema: analysis and payloads",
+          "frame": "swc::NodePayload::setInlineContextOverride",
+          "inuse_bytes": 299121
+        },
+        {
+          "owner": "Sema: analysis and payloads",
+          "frame": "swc::NodePayload::setConstAssignSourceParameter",
+          "inuse_bytes": 264291
+        },
+        {
+          "owner": "Sema: analysis and payloads",
+          "frame": "swc::SemaHelpers::registerSymbol<swc::SymbolStruct>",
+          "inuse_bytes": 262044
+        },
+        {
+          "owner": "AST and parsing",
+          "frame": "swc::AstImpl::semaPostDeclChild",
+          "inuse_bytes": 262044
+        },
+        {
+          "owner": "Sema: analysis and payloads",
+          "frame": "swc::Sema::ensureSemaPayload<swc::LoopSemaPayload>",
+          "inuse_bytes": 262044
+        },
+        {
+          "owner": "AST and parsing",
+          "frame": "swc::AstCallExpr::semaClone",
+          "inuse_bytes": 239407
+        },
+        {
+          "owner": "Compiler artifact caches",
+          "frame": "swc::MachineCodeCache::inputKey",
+          "inuse_bytes": 218530
+        },
+        {
+          "owner": "Sema: constants",
+          "frame": "swc::ConstantManager::addSourceCodeLocation",
+          "inuse_bytes": 214854
+        },
+        {
+          "owner": "Sema: analysis and payloads",
+          "frame": "swc::SemaGeneric::`anonymous namespace'::createGenericInstanceSymbol",
+          "inuse_bytes": 196533
+        },
+        {
+          "owner": "Backend: microcode and optimization",
+          "frame": "swc::MicroSsaState::removeUsesWithoutRenaming",
+          "inuse_bytes": 179832
+        },
+        {
+          "owner": "Sema: analysis and payloads",
+          "frame": "swc::NodePayload::setResolvedCallArguments",
+          "inuse_bytes": 176639
+        },
+        {
+          "owner": "AST and parsing",
+          "frame": "swc::Ast::makeNode<85>",
+          "inuse_bytes": 165197
+        },
+        {
+          "owner": "Backend: register allocation",
+          "frame": "swc::MicroRegisterAllocationPass::computeLoopDepth",
+          "inuse_bytes": 153732
+        },
+        {
+          "owner": "AST and parsing",
+          "frame": "swc::AstMemberAccessExpr::semaClone",
+          "inuse_bytes": 148023
+        },
+        {
+          "owner": "Orchestration",
+          "frame": "swc::CompilerInstance::setupSema",
+          "inuse_bytes": 144190
+        },
+        {
+          "owner": "Source text and tokens",
+          "frame": "swc::Lexer::lexIdentifier",
+          "inuse_bytes": 137535
+        },
+        {
+          "owner": "AST and parsing",
+          "frame": "swc::AstAutoMemberAccessExpr::semaClone",
+          "inuse_bytes": 137142
+        },
+        {
+          "owner": "Backend: microcode and optimization",
+          "frame": "swc::MicroSsaState::buildBlocks",
+          "inuse_bytes": 132655
+        },
+        {
+          "owner": "Sema: symbols and identifiers",
+          "frame": "swc::IdentifierManager::addIdentifierInternal",
+          "inuse_bytes": 131576
+        },
+        {
+          "owner": "Backend: microcode and optimization",
+          "frame": "swc::MicroPassHelpers::collectStackPointerOffsets",
+          "inuse_bytes": 131118
+        },
+        {
+          "owner": "Sema: symbols and identifiers",
+          "frame": "swc::Symbol::make<swc::SymbolStruct>",
+          "inuse_bytes": 131022
+        },
+        {
+          "owner": "Sema: analysis and payloads",
+          "frame": "swc::SemaHelpers::registerSymbol<swc::SymbolConstant>",
+          "inuse_bytes": 131022
+        },
+        {
+          "owner": "Sema: symbols and identifiers",
+          "frame": "swc::Symbol::make<swc::SymbolFunction>",
+          "inuse_bytes": 131022
+        },
+        {
+          "owner": "AST and parsing",
+          "frame": "swc::AstLambdaType::semaPostNode",
+          "inuse_bytes": 131022
+        },
+        {
+          "owner": "AST and parsing",
+          "frame": "swc::Parser::parse",
+          "inuse_bytes": 115129
+        },
+        {
+          "owner": "Backend: native emission",
+          "frame": "swc::X64Encoder::encodeJump",
+          "inuse_bytes": 115129
+        },
+        {
+          "owner": "AST and parsing",
+          "frame": "swc::Ast::makeNode<6>",
+          "inuse_bytes": 115129
+        },
+        {
+          "owner": "AST and parsing",
+          "frame": "swc::Parser::parseLiteral",
+          "inuse_bytes": 115129
+        },
+        {
+          "owner": "Source text and tokens",
+          "frame": "swc::SourceFile::loadContent",
+          "inuse_bytes": 108697
+        },
+        {
+          "owner": "Sema: types",
+          "frame": "swc::TypeManager::addTypeAfterMiss",
+          "inuse_bytes": 98682
+        },
+        {
+          "owner": "AST and parsing",
+          "frame": "swc::Parser::parseCompoundContentUntil",
+          "inuse_bytes": 98682
+        },
+        {
+          "owner": "AST and parsing",
+          "frame": "swc::AstRelationalExpr::semaClone",
+          "inuse_bytes": 98682
+        },
+        {
+          "owner": "Orchestration",
+          "frame": "swc::CompilerInstance::makeJob<swc::CodeGenJob,swc::TaskContext & __ptr64,swc::Sema & __ptr64,swc::SymbolFunction & __ptr64,swc::StrongRef<swc::AstNode> const & __ptr64>",
+          "inuse_bytes": 97557
+        },
+        {
+          "owner": "Backend: microcode and optimization",
+          "frame": "swc::MicroPassHelpers::NaturalLoop::collectBody",
+          "inuse_bytes": 89696
+        },
+        {
+          "owner": "Backend: native emission",
+          "frame": "swc::X64Encoder::encodeLoadAddressRegMem",
+          "inuse_bytes": 84762
+        },
+        {
+          "owner": "Sema: analysis and payloads",
+          "frame": "swc::NodePayload::setSubstitute",
+          "inuse_bytes": 84642
+        },
+        {
+          "owner": "AST and parsing",
+          "frame": "swc::Parser::parseVarDecl",
+          "inuse_bytes": 82235
+        },
+        {
+          "owner": "Backend: native emission",
+          "frame": "swc::X64Encoder::encodeCallRelative",
+          "inuse_bytes": 82235
+        },
+        {
+          "owner": "AST and parsing",
+          "frame": "swc::AstEmbeddedBlock::semaClone",
+          "inuse_bytes": 82235
+        },
+        {
+          "owner": "AST and parsing",
+          "frame": "swc::AstBinaryExpr::semaClone",
+          "inuse_bytes": 82235
+        },
+        {
+          "owner": "AST and parsing",
+          "frame": "swc::AstAssignStmt::semaClone",
+          "inuse_bytes": 82235
+        },
+        {
+          "owner": "AST and parsing",
+          "frame": "swc::AstIfStmt::semaClone",
+          "inuse_bytes": 82235
+        },
+        {
+          "owner": "Sema: types",
+          "frame": "swc::TypeManager::publishInterned",
+          "inuse_bytes": 79956
+        },
+        {
+          "owner": "Backend: register allocation",
+          "frame": "swc::MicroRegisterAllocationPass::computeConcreteClaimPositions",
+          "inuse_bytes": 72874
+        },
+        {
+          "owner": "AST and parsing",
+          "frame": "swc::Ast::makeNode<94>",
+          "inuse_bytes": 65788
+        },
+        {
+          "owner": "Backend: native emission",
+          "frame": "swc::X64Encoder::encodeLoadMemImm",
+          "inuse_bytes": 65788
+        },
+        {
+          "owner": "AST and parsing",
+          "frame": "swc::Parser::lowerSwagIntrinsicCall",
+          "inuse_bytes": 65788
+        },
+        {
+          "owner": "Backend: native emission",
+          "frame": "swc::X64Encoder::encodeLoadRegMem",
+          "inuse_bytes": 65788
+        },
+        {
+          "owner": "AST and parsing",
+          "frame": "swc::AstBuiltinType::semaClone",
+          "inuse_bytes": 65788
+        },
+        {
+          "owner": "Sema: analysis and payloads",
+          "frame": "swc::SemaSpecOp::ensureGeneratedEquality",
+          "inuse_bytes": 65750
+        },
+        {
+          "owner": "Sema: analysis and payloads",
+          "frame": "swc::SemaHelpers::registerSymbol<swc::SymbolEnum>",
+          "inuse_bytes": 65511
+        },
+        {
+          "owner": "Orchestration",
+          "frame": "swc::CompilerInstance::allocate<swc::SemaCompilerIf>",
+          "inuse_bytes": 65511
+        },
+        {
+          "owner": "Sema: analysis and payloads",
+          "frame": "swc::SemaSpecOp::ensureGeneratedLifecycleFunctions",
+          "inuse_bytes": 65511
+        },
+        {
+          "owner": "Sema: analysis and payloads",
+          "frame": "swc::SemaHelpers::signalCallbackTypeForOwner",
+          "inuse_bytes": 65511
+        },
+        {
+          "owner": "AST and parsing",
+          "frame": "swc::AstSwitchStmt::semaPreNode",
+          "inuse_bytes": 65511
+        },
+        {
+          "owner": "Sema: analysis and payloads",
+          "frame": "swc::SemaGeneric::resolveFunctionCallParamType",
+          "inuse_bytes": 65511
+        },
+        {
+          "owner": "Sema: analysis and payloads",
+          "frame": "swc::SemaGeneric::`anonymous namespace'::createGenericImplClone",
+          "inuse_bytes": 65511
+        },
+        {
+          "owner": "AST and parsing",
+          "frame": "swc::AstEnumValue::semaPostNode",
+          "inuse_bytes": 65511
+        },
+        {
+          "owner": "Sema: constants",
+          "frame": "swc::ConstantManager::walkedAllocation",
+          "inuse_bytes": 58125
+        },
+        {
+          "owner": "AST and parsing",
+          "frame": "swc::AstFunctionDecl::semaClone",
+          "inuse_bytes": 49341
+        },
+        {
+          "owner": "AST and parsing",
+          "frame": "swc::Ast::makeNode<3>",
+          "inuse_bytes": 49341
+        },
+        {
+          "owner": "AST and parsing",
+          "frame": "swc::Parser::parseSingleType",
+          "inuse_bytes": 49341
+        },
+        {
+          "owner": "AST and parsing",
+          "frame": "swc::AstValuePointerType::semaClone",
+          "inuse_bytes": 49341
+        },
+        {
+          "owner": "AST and parsing",
+          "frame": "swc::Parser::parseFunctionDecl",
+          "inuse_bytes": 49341
+        },
+        {
+          "owner": "AST and parsing",
+          "frame": "swc::AstSingleVarDecl::semaClone",
+          "inuse_bytes": 49341
+        },
+        {
+          "owner": "AST and parsing",
+          "frame": "swc::AstParenExpr::semaClone",
+          "inuse_bytes": 49341
+        },
+        {
+          "owner": "Sema: symbols and identifiers",
+          "frame": "swc::SymbolFunction::emitLowered",
+          "inuse_bytes": 46637
+        },
+        {
+          "owner": "Sema: constants",
+          "frame": "swc::ConstantLower::materializeStaticPayload",
+          "inuse_bytes": 38422
+        },
+        {
+          "owner": "Backend: microcode and optimization",
+          "frame": "swc::MicroBuilder::emitLoadRegPtrReloc",
+          "inuse_bytes": 38026
+        },
+        {
+          "owner": "AST and parsing",
+          "frame": "swc::AstCompilerCallOne::semaClone",
+          "inuse_bytes": 36861
+        },
+        {
+          "owner": "Backend: native emission",
+          "frame": "swc::X64Encoder::encodeLoadRegReg",
+          "inuse_bytes": 35373
+        },
+        {
+          "owner": "AST and parsing",
+          "frame": "swc::AstNamedType::semaClone",
+          "inuse_bytes": 34269
+        },
+        {
+          "owner": "AST and parsing",
+          "frame": "swc::AstIntegerLiteral::semaClone",
+          "inuse_bytes": 32894
+        },
+        {
+          "owner": "AST and parsing",
+          "frame": "swc::AstUnaryExpr::semaClone",
+          "inuse_bytes": 32894
+        },
+        {
+          "owner": "Backend: native emission",
+          "frame": "swc::X64Encoder::encodeTrap",
+          "inuse_bytes": 32894
+        },
+        {
+          "owner": "AST and parsing",
+          "frame": "swc::Parser::parseAutoMemberAccessExpr",
+          "inuse_bytes": 32894
+        },
+        {
+          "owner": "Backend: native emission",
+          "frame": "swc::X64Encoder::encodeCmpRegImm",
+          "inuse_bytes": 32894
+        },
+        {
+          "owner": "AST and parsing",
+          "frame": "swc::AstReturnStmt::semaClone",
+          "inuse_bytes": 32894
+        },
+        {
+          "owner": "Backend: codegen",
+          "frame": "swc::CodeGen::ensureNodePayload<swc::CodeGenNodePayload>",
+          "inuse_bytes": 32814
+        },
+        {
+          "owner": "Backend: microcode and optimization",
+          "frame": "swc::MicroBuilder::preserveVirtualCopy",
+          "inuse_bytes": 32814
+        },
+        {
+          "owner": "Backend: microcode and optimization",
+          "frame": "swc::MicroSsaState::transitiveInstructionUseCount",
+          "inuse_bytes": 29666
+        },
+        {
+          "owner": "Sema: symbols and identifiers",
+          "frame": "swc::IdentifierManager::publishInterned",
+          "inuse_bytes": 28700
+        },
+        {
+          "owner": "Backend: native emission",
+          "frame": "swc::Encoder::addDebugSourceRange",
+          "inuse_bytes": 28248
+        },
+        {
+          "owner": "AST and parsing",
+          "frame": "swc::Ast::makeNode<12>",
+          "inuse_bytes": 21797
+        },
+        {
+          "owner": "Sema: symbols and identifiers",
+          "frame": "swc::SymbolFunction::refreshJitOrderCache",
+          "inuse_bytes": 20310
+        },
+        {
+          "owner": "Backend: microcode and optimization",
+          "frame": "swc::MicroSsaState::renameBlock",
+          "inuse_bytes": 19269
+        },
+        {
+          "owner": "AST and parsing",
+          "frame": "swc::AstCompilerIf::semaClone",
+          "inuse_bytes": 18734
+        },
+        {
+          "owner": "Backend: native emission",
+          "frame": "swc::X64Encoder::encodeLoadMemReg",
+          "inuse_bytes": 17870
+        },
+        {
+          "owner": "Backend: native emission",
+          "frame": "swc::X64Encoder::encodeLoadAddressAmcRegMem",
+          "inuse_bytes": 16447
+        },
+        {
+          "owner": "AST and parsing",
+          "frame": "swc::Parser::parseRelationalExpr",
+          "inuse_bytes": 16447
+        },
+        {
+          "owner": "AST and parsing",
+          "frame": "swc::AstLogicalExpr::semaClone",
+          "inuse_bytes": 16447
+        },
+        {
+          "owner": "AST and parsing",
+          "frame": "swc::AstCompilerExpression::semaClone",
+          "inuse_bytes": 16447
+        },
+        {
+          "owner": "AST and parsing",
+          "frame": "swc::AstStructDecl::semaClone",
+          "inuse_bytes": 16447
+        },
+        {
+          "owner": "AST and parsing",
+          "frame": "swc::Parser::parseAttributeValue",
+          "inuse_bytes": 16447
+        },
+        {
+          "owner": "AST and parsing",
+          "frame": "swc::AstBlockPointerType::semaClone",
+          "inuse_bytes": 16447
+        },
+        {
+          "owner": "AST and parsing",
+          "frame": "swc::AstAttribute::semaClone",
+          "inuse_bytes": 16447
+        },
+        {
+          "owner": "AST and parsing",
+          "frame": "swc::AstFunctionParamList::semaClone",
+          "inuse_bytes": 16447
+        },
+        {
+          "owner": "AST and parsing",
+          "frame": "swc::AstMultiVarDecl::semaClone",
+          "inuse_bytes": 16447
+        },
+        {
+          "owner": "AST and parsing",
+          "frame": "swc::Parser::parseBinaryExpr",
+          "inuse_bytes": 16447
+        },
+        {
+          "owner": "AST and parsing",
+          "frame": "swc::Ast::makeNode<62>",
+          "inuse_bytes": 16447
+        },
+        {
+          "owner": "AST and parsing",
+          "frame": "swc::AstQualifiedType::semaClone",
+          "inuse_bytes": 16447
+        },
+        {
+          "owner": "AST and parsing",
+          "frame": "swc::Parser::parseEmbeddedStmt",
+          "inuse_bytes": 16447
+        },
+        {
+          "owner": "AST and parsing",
+          "frame": "swc::AstSwitchCaseStmt::semaPostNodeChild",
+          "inuse_bytes": 16447
+        },
+        {
+          "owner": "AST and parsing",
+          "frame": "swc::AstConstraintExpr::semaClone",
+          "inuse_bytes": 16447
+        },
+        {
+          "owner": "AST and parsing",
+          "frame": "swc::AstCompilerCodeExpr::semaClone",
+          "inuse_bytes": 16447
+        },
+        {
+          "owner": "Sema: analysis and payloads",
+          "frame": "swc::SemaGeneric::`anonymous namespace'::cloneGenericImplBlock",
+          "inuse_bytes": 16447
+        },
+        {
+          "owner": "AST and parsing",
+          "frame": "swc::AstIndexExpr::semaClone",
+          "inuse_bytes": 16447
+        },
+        {
+          "owner": "AST and parsing",
+          "frame": "swc::Parser::parseFunctionParamList",
+          "inuse_bytes": 16447
+        },
+        {
+          "owner": "AST and parsing",
+          "frame": "swc::AstForStmt::semaClone",
+          "inuse_bytes": 16447
+        },
+        {
+          "owner": "AST and parsing",
+          "frame": "swc::Parser::parseAggregateAccessModifier",
+          "inuse_bytes": 16447
+        },
+        {
+          "owner": "Backend: native emission",
+          "frame": "swc::X64Encoder::encodeLoadRegImm",
+          "inuse_bytes": 16447
+        },
+        {
+          "owner": "AST and parsing",
+          "frame": "swc::AstErrorManagementExpr::semaClone",
+          "inuse_bytes": 16447
+        },
+        {
+          "owner": "AST and parsing",
+          "frame": "swc::Parser::parseSwitchCaseDefault",
+          "inuse_bytes": 16447
+        },
+        {
+          "owner": "Backend: native emission",
+          "frame": "swc::X64Encoder::encodeLoadRegTlsSlot",
+          "inuse_bytes": 16447
+        },
+        {
+          "owner": "AST and parsing",
+          "frame": "swc::Parser::parseIf",
+          "inuse_bytes": 16447
+        },
+        {
+          "owner": "Backend: microcode and optimization",
+          "frame": "swc::MicroBuilder::emitLoadRegDataSegmentReloc",
+          "inuse_bytes": 15651
+        },
+        {
+          "owner": "Backend: microcode and optimization",
+          "frame": "swc::MicroPassHelpers::collectFrameVariableExtents",
+          "inuse_bytes": 11422
+        },
+        {
+          "owner": "Sema: constants",
+          "frame": "swc::ConstantManager::addConstantSlow",
+          "inuse_bytes": 10499
+        },
+        {
+          "owner": "Backend: microcode and optimization",
+          "frame": "swc::MicroSsaState::copyInstructionDominators",
+          "inuse_bytes": 10086
+        },
+        {
+          "owner": "Backend: microcode and optimization",
+          "frame": "swc::MicroMemToRegPass::run",
+          "inuse_bytes": 8693
+        },
+        {
+          "owner": "Compiler artifact caches",
+          "frame": "swc::CompilerCacheStore::write",
+          "inuse_bytes": 8365
+        },
+        {
+          "owner": "Backend: native emission",
+          "frame": "swc::NativeArtifactBuilder::partitionObjects",
+          "inuse_bytes": 6902
+        },
+        {
+          "owner": "AST and parsing",
+          "frame": "swc::AstStringLiteral::semaClone",
+          "inuse_bytes": 6893
+        },
+        {
+          "owner": "Compiler artifact caches",
+          "frame": "swc::MachineCodeCache::MachineCodeCache",
+          "inuse_bytes": 6670
+        },
+        {
+          "owner": "Sema: symbols and identifiers",
+          "frame": "swc::SymbolFunction::classifyLoweredBody",
+          "inuse_bytes": 5674
+        },
+        {
+          "owner": "Sema: symbols and identifiers",
+          "frame": "swc::SymbolStruct::addField",
+          "inuse_bytes": 5272
+        },
+        {
+          "owner": "Orchestration",
+          "frame": "swc::CompilerInstance::addBufferedSourceView",
+          "inuse_bytes": 4858
+        },
+        {
+          "owner": "Source text and tokens",
+          "frame": "swc::SourceFile::SourceFile",
+          "inuse_bytes": 4485
+        },
+        {
+          "owner": "Sema: analysis and payloads",
+          "frame": "swc::Sema::enqueueTopLevelSemaJob",
+          "inuse_bytes": 4302
+        },
+        {
+          "owner": "Sema: symbols and identifiers",
+          "frame": "swc::SymbolFunction::addLocalVariable",
+          "inuse_bytes": 4140
+        },
+        {
+          "owner": "Compiler artifact caches",
+          "frame": "swc::CompilerCacheStore::Archive::decode",
+          "inuse_bytes": 3802
+        },
+        {
+          "owner": "Sema: analysis and payloads",
+          "frame": "swc::NodePayload::recordFoldedSourceSymbol",
+          "inuse_bytes": 3093
+        },
+        {
+          "owner": "Source text and tokens",
+          "frame": "swc::Lexer::lexWhitespace",
+          "inuse_bytes": 1919
+        },
+        {
+          "owner": "Backend: microcode and optimization",
+          "frame": "swc::MicroPostRaLoopHoistPass::run",
+          "inuse_bytes": 1031
+        },
+        {
+          "owner": "Backend: native emission",
+          "frame": "swc::NativeBackendBuilder::resolveFunctionSymbolName",
+          "inuse_bytes": 990
+        },
+        {
+          "owner": "Orchestration",
+          "frame": "swc::CompilerInstance::addResolvedFile",
+          "inuse_bytes": 363
+        },
+        {
+          "owner": "Backend: native emission",
+          "frame": "swc::NativeBackendBuilder::appendCodeRelocation",
+          "inuse_bytes": 351
+        },
+        {
+          "owner": "Sema: symbols and identifiers",
+          "frame": "swc::SymbolFunction::genericEvalRunMutex",
+          "inuse_bytes": 279
+        },
+        {
+          "owner": "Sema: symbols and identifiers",
+          "frame": "swc::SymbolFunction::findGenericEvalNode",
+          "inuse_bytes": 279
+        },
+        {
+          "owner": "Sema: symbols and identifiers",
+          "frame": "swc::SymbolFunction::setGenericInstance",
+          "inuse_bytes": 279
+        },
+        {
+          "owner": "Sema: symbols and identifiers",
+          "frame": "swc::SymbolFunction::ensureLazyBodyRunState",
+          "inuse_bytes": 279
+        },
+        {
+          "owner": "Backend: native emission",
+          "frame": "swc::`anonymous namespace'::NativeImageLowering::buildDescription",
+          "inuse_bytes": 275
+        },
+        {
+          "owner": "Backend: native emission",
+          "frame": "swc::`anonymous namespace'::NativeImageLowering::appendNativeSection",
+          "inuse_bytes": 234
+        },
+        {
+          "owner": "Sema: symbols and identifiers",
+          "frame": "swc::SymbolSort::LocationKeyCache::key<swc::SymbolFunction>",
+          "inuse_bytes": 222
+        },
+        {
+          "owner": "Unattributed: shared or external allocation",
+          "frame": "swc::`anonymous namespace'::`dynamic initializer for 'g_GeneratedRuntimeDocs''",
+          "inuse_bytes": 190
+        },
+        {
+          "owner": "Orchestration",
+          "frame": "swc::CompilerInstance::runWorkspace",
+          "inuse_bytes": 167
+        },
+        {
+          "owner": "Source text and tokens",
+          "frame": "swc::SourceFile::genericPathString",
+          "inuse_bytes": 151
+        },
+        {
+          "owner": "Sema: analysis and payloads",
+          "frame": "swc::SemaGeneric::`anonymous namespace'::runGenericImplBlockPass",
+          "inuse_bytes": 135
+        },
+        {
+          "owner": "AST and parsing",
+          "frame": "swc::AstSwitchStmt::codeGenPostNode",
+          "inuse_bytes": 135
+        },
+        {
+          "owner": "Backend: microcode and optimization",
+          "frame": "swc::MicroBuilder::addVirtualRegForbiddenPhysRegs",
+          "inuse_bytes": 119
+        },
+        {
+          "owner": "Backend: native emission",
+          "frame": "swc::`anonymous namespace'::NativeImageLowering::placeUnwindSections",
+          "inuse_bytes": 110
+        },
+        {
+          "owner": "Sema: symbols and identifiers",
+          "frame": "swc::SymbolFunction::addParameter",
+          "inuse_bytes": 109
+        },
+        {
+          "owner": "Orchestration",
+          "frame": "swc::JobManager::enqueue",
+          "inuse_bytes": 79
+        },
+        {
+          "owner": "Sema: symbols and identifiers",
+          "frame": "swc::Symbol::appendFullScopedName",
+          "inuse_bytes": 78
+        },
+        {
+          "owner": "Sema: types",
+          "frame": "swc::TypeGen::wireRelocations",
+          "inuse_bytes": 63
+        },
+        {
+          "owner": "Sema: symbols and identifiers",
+          "frame": "swc::SymbolFunction::addLifecycleDependency",
+          "inuse_bytes": 23
+        },
+        {
+          "owner": "Orchestration",
+          "frame": "swc::JobManager::pushReady",
+          "inuse_bytes": 23
+        }
+      ]
+    }
+  ]
+}

@@ -381,7 +381,146 @@ page-store and map tests, with no mimalloc error. The executable hashes are:
 - DevMode: `3c25a7753e6c9dbfcb87527f339f617464ce33ee857f247ca65942d4d833f7de`
 - Release: `adfef54e3b0f715075e9fab72f65e10c1ddd818dcf81dda55d50086d542f9acf`
 
-The real linked application measurement is pending. Timing remains a separate controlled
+The real linked application also completed without allocator errors on the same frozen inputs.
+Its peak working set was 1,684.43 MiB and peak private bytes 1,705.49 MiB: **25.48 MiB more**
+resident memory than the preceding `pages-release-app` observation. This does not establish an
+additional whole-process gain. Application counts remained 592,047 tokens, 5,143 tuned functions
+and 2,411 forged functions. Despite an 8% CPU admission sample, host utilization averaged 76.00%;
+the 186.51-second wall time is excluded from speed conclusions. Timing remains a separate controlled
 comparison; avoiding file copies is not by itself a measured speed result. The measurement
 harness now checks the effective process affinity before starting execution and records its own
 source hash. Earlier pinned observations recorded the requested mask without that readback.
+
+## Prepared linker follow-up, not yet validated
+
+The source tree also contains a subsequent batch, excluded from all binaries and measurements
+above. It is set aside while component-level memory accounting takes priority.
+
+- `CoffInputReloc` groups its offset/type before the string: 48 to 40 bytes on normal x64.
+- `LinkReloc` groups offset/kind and keeps its write-only section index behind the existing
+  manual `SWC_DEBUG_MODE` switch: 56 to 48 bytes normally. Production access already carries
+  the containing section; inspection builds still populate the index.
+- COFF merging transfers the first section buffer into an empty image section and releases
+  consumed source bytes and relocation arrays after subsequent appends. Definition names remain
+  alive for the merge's borrowed-name index. A regression covers buffer ownership, append alignment,
+  rebased relocations, BSS and first-definition-wins semantics.
+
+Only static call-site/lifetime review, formatting and diff checks have been performed for this
+follow-up. No new build or timing result is attributed to it.
+
+## Component occupation: initial sampled evidence
+
+The user requested a component-level occupation plan before further optimization. Every live
+allocation stack in the four existing snapshots is now attributed once, to the nearest recognized
+compiler owner beyond generic containers. This avoids adding overlapping inclusive stack totals.
+Anonymous archive-loading jobs belong to the linker; their job-scheduler callers are not owners.
+Folded code with conflicting owners remains unattributed. The detailed data is in
+[component-occupation.json](component-occupation.json).
+
+| Component | Snapshot 1 | Snapshot 2 | Snapshot 3 | Snapshot 4 |
+| --- | ---: | ---: | ---: | ---: |
+| Backend | 133.21 MiB | 205.05 MiB | 297.57 MiB | 236.29 MiB |
+| Linker and archive/object I/O | 0 MiB | 0 MiB | 2.50 MiB | 192.42 MiB |
+| Sema, symbols, types and constants | 14.10 MiB | 29.82 MiB | 51.36 MiB | 41.42 MiB |
+| Compiler artifact caches | 8.82 MiB | 11.09 MiB | 22.80 MiB | 34.64 MiB |
+| AST and parsing | 4.56 MiB | 7.08 MiB | 9.74 MiB | 4.44 MiB |
+| Source text and tokens | 1.77 MiB | 3.70 MiB | 5.16 MiB | 2.95 MiB |
+| Orchestration and unattributed | 0.99 MiB | 0.96 MiB | 1.25 MiB | 0.97 MiB |
+| Total sampled live heap | 163.45 MiB | 257.69 MiB | 390.38 MiB | 513.12 MiB |
+
+These are sampled heap estimates for `ecb64e0f2e`, not whole-process totals or exact phase peaks.
+The snapshots were triggered by heap growth, so a short parsing peak could fall between them.
+At snapshot 4, register allocation accounts for 145.15 MiB, including about 114.75 MiB attributed
+directly to liveness analysis; other micro passes account for 78.56 MiB. Backend and linker
+therefore dominate the captured live allocations, while AST size is not established as a primary
+target by this evidence.
+
+## Process accounting and occupation plan
+
+A second diagnostic run of the same frozen `ecb64e0f2e` Release binary collected 40 heap snapshots
+and 36 successful Windows memory snapshots. The compiler completed the application with no allocator
+error. Its process peak working set was 1,711.21 MiB; the largest captured resident-page set was
+1,647.00 MiB, or 96.25% of that high-water mark. This is a near-peak observation, not an exact
+atomic peak census. The external observer does not suspend or inject code into the compiler.
+One read raced process exit and failed; it is retained separately. The wrapper also encountered
+a console-encoding error while displaying the already-saved successful result, after the compiler
+had exited. Neither error is reported as a compiler failure.
+
+[occupation-accounting.json](occupation-accounting.json) contains the measurement, allocation
+regions at the largest captured resident set, timestamped series, heap-owner breakdowns and
+module output events. The Windows classification uses
+[VirtualQueryEx](https://learn.microsoft.com/en-us/windows/win32/api/memoryapi/nf-memoryapi-virtualqueryex)
+and [QueryWorkingSet](https://learn.microsoft.com/en-us/windows/win32/api/psapi/nf-psapi-queryworkingset).
+Mimalloc arena addresses are read from the matching binary's mapped `mi_process_subproc_main`,
+with owner/index and statistics-version checks. The allocation stack maps and binary hashes
+are preserved. Profiling and observer costs exclude this run from compilation-speed comparisons.
+
+| Resident memory at largest captured snapshot | MiB |
+| --- | ---: |
+| Mimalloc arenas | 1,205.28 |
+| Compiler JIT/proximity arena | 417.82 |
+| Executable and DLL images | 18.56 |
+| Other private regions, including stacks | 4.57 |
+| Mapped files and other mapped sections | 0.75 |
+| Total | 1,647.00 |
+
+Every queried resident page in this snapshot was assigned to one region. Region queries and
+working-set queries are sequential rather than atomic; this capture took 6.85 seconds on the busy
+host. Reserved-but-uncommitted address space is excluded from the resident total.
+
+The proximity reservation was independently verified against the live compiler's actual
+`g_proximityArena.base`, using the matching linker map and the verified process executable.
+It held **418.06 MiB committed: 9.23 MiB executable/read-only and 408.83 MiB read/write**.
+This owner serves both JIT allocations and mutable global data. Protection alone cannot assign
+all read/write bytes to global values: unfinished code allocations and unused block tails must
+also be distinguished. The generated DLLs have only tens of KiB of `.data`/`.bss`, which does
+not explain that amount of compile-time storage; native dead-data selection and compile-time
+allocation lifetime differ, so this is a lead rather than proof of waste.
+
+The nearest heap snapshot was written 0.63 seconds before the start of that Windows capture:
+
+| Sampled live allocation owner near the captured process peak | MiB |
+| --- | ---: |
+| Backend | 305.47 |
+| Sema, symbols, types and constants | 53.77 |
+| Compiler artifact caches | 24.38 |
+| AST and parsing | 11.06 |
+| Sources and tokens | 5.84 |
+| Orchestration | 1.21 |
+| Linker | 1.18 |
+| Total sampled live heap | about 403 |
+
+These allocations are **inside**, not additional to, mimalloc's arenas. The roughly 800 MiB gap
+between resident arenas and the sampled live estimate is not yet proven to be reclaimable:
+retained free pages, partially occupied pages, size rounding, profiler metadata, sampling error
+and the non-atomic timing must be separated. Subprocess `allocated` counters alone are not a
+live-allocation total: active heap/thread statistics have not been aggregated into them.
+
+Across all 40 snapshots, independent sampled component maxima were 311.85 MiB for the backend,
+183.48 MiB for the linker, 53.77 MiB for sema and its records, 36.28 MiB for artifact caches,
+and 11.06 MiB for AST/parsing. These occur at different times and must not be added. One profile
+header differed from its summed stack rows by 1,031 bytes; the report retains that discrepancy
+and uses summed rows for its disjoint owner totals.
+
+The occupation plan now prioritizes the measured dominant owners:
+
+1. **Reconcile mimalloc occupancy:** distinguish live objects, partially occupied pages and
+   retained free capacity, then attribute retained capacity to the phases that grew it. Do not
+   add blanket collection or decommit policies that could repeatedly fault hot memory back in.
+2. **Explain the 408.83 MiB read/write proximity region:** attribute committed bytes and useful
+   bytes to JIT blocks, global-zero and global-initialized storage, with their owning module and
+   lifetime. Investigate oversized reservations, eager initialization and unnecessary retention
+   only after that attribution.
+3. **Backend retained analyses:** prioritize register liveness (about 113 MiB in the nearest
+   snapshot), SSA, physical-liveness and native-section buffers. Separate useful size from
+   retained capacity before changing algorithms; preserve direct accesses and scratch reuse
+   where they save compilation time.
+4. **Linker peaks:** investigate overlapping archive/object/image ownership, using the existing
+   mapped-archive checkpoint and the set-aside consumption patch. Treat its peak separately from
+   earlier sema/backend peaks.
+5. **AST and sema layouts:** lower priority until evidence shows a larger missed lifetime or
+   peak. Their currently observed sizes cannot explain the bulk of process memory.
+
+No further micro-optimization build is scheduled until this occupation analysis identifies the
+largest practical reduction. Any retained implementation still needs a grouped speed comparison
+on stable host load; no whole-compilation speed acceptance has been claimed.

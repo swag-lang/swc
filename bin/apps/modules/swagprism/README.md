@@ -11,7 +11,7 @@ last build at the right.
 
 - **2D render:** define `func shade(x, y, time: f32)->u32`. The viewer runs native code for each
   pixel of a 640 by 400 image. Coordinates span approximately `[-1.6, 1.6]` horizontally and
-  `[-1, 1]` vertically. Return an ARGB color. Rows run in parallel on up to six workers. Animation
+  `[-1, 1]` vertically. Return an ARGB color. Rows run in parallel on the runtime's worker pool. Animation
   uses elapsed time; `shade` must support concurrent calls (avoid unsynchronized writes to shared state).
 - **GUI:** define `func buildView(parent: *Gui.Wnd)`. Build controls under the supplied parent;
   the viewer displays the actual GUI and forwards clicks into it. The current preview supports

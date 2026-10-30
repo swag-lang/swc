@@ -232,7 +232,7 @@ struct ObserverPayload
     late task: *Swag.Task
 }
 
-func observerEntry(th: Threading.Thread)
+func observerEntry(th: const *Threading.Thread)
 {
     let payload = cast(*ObserverPayload, unwrap th.userParam)
     payload.task.wait()
@@ -300,8 +300,8 @@ func measureHerd(observed: bool)
         for index in occupied
         {
             payloads[index].task = &sleepers[index]
-            discard expect threads[index].init(&observerEntry, &payloads[index])
-            discard expect threads[index].start()
+            expect threads[index].init(&observerEntry, &payloads[index])
+            expect threads[index].start()
         }
 
         // Give every observer time to exhaust its spin and park on the scheduler condition.

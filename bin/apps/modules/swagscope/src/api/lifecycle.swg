@@ -69,12 +69,15 @@ struct BackgroundOperation
 impl BackgroundOperation
 {
     // Submits `body`. When `owner` is given, it receives a [[Gui.TaskEvent]] once the work ends.
-    mtd submit(body: func||(), owner: *Wnd? = null)
+    //
+    // `Background` priority shares the runtime's adaptive admission budget; use it for speculative
+    // work such as thumbnails. Work the reader explicitly requested keeps normal priority.
+    mtd submit(body: func||(), owner: *Wnd? = null, priority = Swag.TaskPriority.Normal)
     {
         Swag.assert(not .started)
         .started = true
         .owner   = owner
-        .task.submit(body, owner ? owner.taskNotifier(&.task) : null)
+        .task.submit(body, owner ? owner.taskNotifier(&.task) : null, priority: priority)
     }
 
     // Reports whether a started operation has finished running on its worker.

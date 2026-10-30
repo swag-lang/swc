@@ -130,7 +130,6 @@ struct Explorer
     previewSettings: String
     bypassCache:     bool     // Whether the previews of the shown listing ignore the persistent cache, after a forced refresh.
     previewAspect:   f32 = ExplorerTilePreviewAspect     // Shape of the tiles, chosen from what the listing holds.
-    previewBudget:   u64      // How many previews of the shown listing run at once.
     extraction:      ArchiveExtraction
     toast:           *Toast?
     forcedBoard:     ExplorerBoard     // The board the view menu forces, when `forced`.
@@ -236,7 +235,6 @@ impl Explorer
 
         result.retranslate()
         result.previews.resize(cast(u64, Swag.workerCount()))
-        result.previewBudget = result.previews.count
         result.grid.busy.resize(result.previews.count)
         for result.previews.count
         {
@@ -1172,7 +1170,6 @@ impl Explorer
         .selected = Swag.U64.Max
         .showMediaInfo()
         .previewAspect = .listingPreviewAspect()
-        .previewBudget = .previews.count
         .updateBreadcrumb()
 
         .filter.setText("", notify: false)
@@ -1476,17 +1473,11 @@ impl Explorer
     mtd requestPreview()
     {
         .refreshPreviewSettings()
-        var running = 0'u64
-        for &preview in .previews where preview.started do
-            running += 1
+
+        // Submit useful previews; the runtime shares background admission across every owner.
         for &preview in .previews where not preview.started
         {
-            // Opening a file is what the user waits for; only background previews keep the budget.
-            if running >= .previewBudget and .pendingOpen == Swag.U64.Max do
-                break
             .startPreview(preview)
-            if preview.started do
-                running += 1
         }
     }
 

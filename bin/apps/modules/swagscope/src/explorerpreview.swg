@@ -2,7 +2,7 @@
 
 using Core, Pixel, Gui, Video, Audio
 
-// A single bounded worker produces a thumbnail or an extracted preview, never GUI resources.
+// One scheduled operation produces a thumbnail or an extracted preview, never GUI resources.
 struct ExplorerPreview
 {
     using operation: Viewer.BackgroundOperation
@@ -32,7 +32,8 @@ impl ExplorerPreview
         {
             catch operation.produce() { operation.error = Viewer.failureText(Swag.err) }
         },
-                owner)
+                owner,
+                priority: .opening ? Swag.TaskPriority.Normal : Swag.TaskPriority.Background)
     }
 
     private mtd produce() fail

@@ -96,7 +96,6 @@ func renderThumbnail(registry: const *ViewerPluginRegistry,
 // Runs only in the dedicated child process. Its renderer and decoder cache survive between jobs.
 func runThumbnailWorker(directory: string) fail
 {
-    Swag.setWorkerCount(1)
     let registry = createViewerPluginRegistry()
     var renderer = try ThumbnailRenderer.create()
 

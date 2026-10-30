@@ -35,6 +35,27 @@ impl IconAtlas
         .drawing  = try Svg.Drawing.parse(source)
     }
 
+    // Supplies a precomputed sheet for `cell` device pixels per glyph.
+    //
+    // Call after [[Gui.IconAtlas.setup]], before creating icon sets from this atlas. `image`
+    // must represent the same SVG grid at this size; the atlas owns a copy of its pixels. A
+    // repeated call replaces that size, and setup discards all supplied rasters. Sizes not
+    // supplied still rasterize on demand. Existing renderer textures are not refreshed.
+    // Fails without changing the cache if the size is not positive or the image dimensions
+    // do not match the document's 24-unit grid.
+    mtd setRaster(cell: s32, image: Image) fail
+    {
+        Sync.scopedLock(&.lock)
+        let cols = cast(f64, Math.round(.drawing.width / 24))
+        let rows = cast(f64, Math.round(.drawing.height / 24))
+        if cell <= 0 or
+           not image.isValid() or
+           cast(f64, image.width) != cols * cell or
+           cast(f64, image.height) != rows * cell do
+            fail Core.Errors.BadParameterError{"icon raster dimensions do not match the SVG grid"}
+        .rasters.add(cast(s64, cell), image)
+    }
+
     // Returns the sheet rasterized with `cell` device pixels per glyph, building it on first use.
     //
     // The image is borrowed from the atlas and stays valid for its lifetime; a caller uploads a

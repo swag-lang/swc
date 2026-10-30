@@ -555,22 +555,21 @@ preview. Validate requested settings against the capabilities supplied by platfo
 
 ### std.gui.060 — Reduce the remaining work before the first usable application frame
 
-- Evidence: the shared-raster prototype takes a median 402 ms to a visible Release Capture
-  window and 426 ms to its first successful `WM_NULL` response, still above the 325 ms target.
-  These are four alternating warm launches against a rebuilt baseline (646/672 ms), using the same compiler, isolated copies
+- Evidence: the shared and Capture rasters, with redundant preference application removed,
+  take a median 331 ms to a visible Release Capture window and 364 ms to its first successful
+  `WM_NULL` response, still above the 325 ms target. These are four alternating warm launches
+  against a rebuilt baseline (693/701 ms), using the same compiler, isolated copies
   of the same settings and one capture, and no other task-owned build during measurement.
   Process creation is the clock origin; tool/compiler launch is excluded. Polling is about
-  5 ms, CPU admission is at most 25%, and no OS-cache flush is performed. Visibility and message
+  5 ms, CPU admission is at most 15%, and no OS-cache flush is performed. Visibility and message
   response do not establish first usable presentation or cold-start latency.
-- The prototype adds 190,464 executable bytes (1.61%) and its median settled working set is
-  20,307,968 bytes smaller. Its assets were generated in Release; the checked-in derivatives use
-  DevMode to preserve the established goldens (11 icon coverage bytes differ by one level).
+- The median settled working set is 28,313,600 bytes smaller. Checked-in derivatives use
+  DevMode to preserve the established goldens; Release SVG coverage can differ by one alpha level.
 - Next: remove the remaining avoidable startup work, then repeat the matched comparison on
-  the final artifacts. Function tracing attributes about 50 ms to Capture's own 32/40-pixel
-  icon rasters, 25 ms to shader creation, 67 ms to state restoration and 38 ms to native frame
-  preparation. These spans are not additive: callers include their descendants, and the
-  debugger perturbs scheduling. Investigate app-provided rasters, repeated state/layout work
-  and presentation before changing their contracts.
+  the final artifacts. Reattribute shader creation, state restoration, native frame preparation
+  and recent-document scheduling now that the raster and repeated language costs are gone.
+  Traced spans are not additive: callers include their descendants, and the debugger perturbs
+  scheduling. Measure the first document-bearing presentation as well as window visibility.
 - A shared 96-pixel-per-cell raster with linear filtering produced visibly uneven small strokes
   and diagonals at 14-24 px in the GUI/Capture sheets. Do not replace size-specific supersampling
   with that policy without a better reviewed resampling method. If current attribution still
@@ -582,7 +581,7 @@ preview. Validate requested settings against the capabilities supplied by platfo
   duplicate presentation work no longer delay normal startup, with both palettes, small glyphs,
   fractional/mixed DPI and SVG overrides covered. Do not count an earlier blank window as a gain.
 - Reproduction: `%LOCALAPPDATA%/swc-agent-builds/startup-midnight-20261030` contains the
-  `baseline-png-*` and `png-*` launch records, artifact hashes, CPU/memory measurements,
+  `baseline-final-*` and `final-*` launch records, artifact hashes, CPU/memory measurements,
   `png-trace-3` attribution and `compare-release.log` for exact-size versus reduced rasters.
   `probe.py` and `ab.py`
   reproduce the external milestones through `tools/apps.bat`.

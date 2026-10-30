@@ -1,0 +1,21 @@
+// Regenerates the common icon sizes beside their SVG master.
+// Run with the checkout compiler's run -f command and --num-cores 6.
+#import("pixel", location: "swag@std")
+using Core, Pixel
+
+#main
+{
+    let folder  = Path.combine(unwrap Path.directoryName(#curlocation.fileName), "../datas")
+    let source  = try File.readAllText(Path.combine(folder.toString(), "icons.svg"))
+    let drawing = try Svg.Drawing.parse(source.toString())
+    for size in [32, 40]
+    {
+        let cols    = cast(s32, Math.round(drawing.width / 24))
+        let rows    = cast(s32, Math.round(drawing.height / 24))
+        let image   = drawing.rasterize(cols * size, rows * size, 4)
+        let encoded = try image.encode(".png")
+        let path    = Path.combine(folder.toString(), Format.toString("icons.%px.png", size).toString())
+        discard try File.writeAllBytes(path, encoded.toArray().toSlice())
+        Console.printf("%\n", path)
+    }
+}

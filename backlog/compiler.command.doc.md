@@ -103,3 +103,16 @@ not the discovery.
   cover the focused `doc` command at the command boundary.
 - Done when: an isolated child source generates valid HTML without an assertion or malformed
   list nesting, and the complete reference keeps its chapter hierarchy.
+
+### compiler.command.doc.010 — Resolve signature links by symbol identity
+
+- Evidence: GUI method signatures link `Image`, including the qualified `Pixel.Image` in
+  `Application.setAppIcon`, to `Gui.Pdf.ItemKind.Image` instead of `Pixel.Image`. The newly
+  generated `IconAtlas.setRaster` signature inherits the same error, while explicit prose
+  links and semantic field tables resolve the type correctly. The GUI page audit also finds
+  a broken cross-page `std.pixel.html#Property_name` link.
+- Next: preserve semantic symbol identity when coloring declaration signatures; do not let
+  a same-spelled enum value win over the resolved parameter type. Reduce the broken property
+  link separately and add generated-page assertions for both targets.
+- Done when: imported types and same-spelled members link to their canonical declarations in
+  signatures, and the GUI page has no broken cross-page property anchor.

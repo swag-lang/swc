@@ -69,6 +69,8 @@ func captureIcons()->*Gui.IconAtlas
     if not g_CaptureIconsParsed
     {
         expect g_CaptureIcons.setup(cast(string, IconsSvg))
+        expect g_CaptureIcons.setRaster(32, expect Image.decode(".png", #include("../datas/icons.32px.png")))
+        expect g_CaptureIcons.setRaster(40, expect Image.decode(".png", #include("../datas/icons.40px.png")))
         g_CaptureIconsParsed = true
     }
 
@@ -256,6 +258,9 @@ impl IWnd for MainWnd
         if .inPlaceEdit do
             return
 
+        let previousTheme    = .editorOptions.theme
+        let previousLanguage = .editorOptions.language
+
         catch
         {
             with evt.serializer
@@ -298,8 +303,13 @@ impl IWnd for MainWnd
 
             if not .libraryFolder.isEmpty() do
                 discard catch g_Library.setFolder(.libraryFolder)
-            .setTheme()
-            .setLanguage()
+
+            // Construction already applied these defaults. Reapplying an unchanged language
+            // rebuilds localized controls throughout the tree during first-show restoration.
+            if .editorOptions.theme != previousTheme do
+                .setTheme()
+            if .editorOptions.language != previousLanguage do
+                .setLanguage()
             .setBottomSize(.bottomSize, animated: false)
             .showRecentBar(.showRecent)
             .inspector.setFolded(.inspectorFolded)
@@ -1009,7 +1019,11 @@ impl MainWnd
             .monitors        = Env.getMonitors()
         }
 
+        // Establish defaults before constructing localized controls, so they do not need
+        // to rebuild immediately after construction. Saved preferences are applied on show.
         result.createAppearanceButton()
+        result.setTheme()
+        result.setLanguage()
         result.createRecentBar()
         result.createTaskBar()
         result.createEditArea()
@@ -1026,11 +1040,6 @@ impl MainWnd
 
         with result
         {
-            // Theme and language come before anything is built from a string. A first run has
-            // no persisted state to read them from, and would otherwise stay on the reference
-            // English wording whatever the locale.
-            .setTheme()
-            .setLanguage()
             .registerActions()
             .registerShortcuts()
             .setBottomSize(.Medium, animated: false)

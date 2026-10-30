@@ -1,7 +1,72 @@
 #global if #command == Swag.CompilerCommand.Test
 #global private
 
+using Core.Serialization
 using Swag, Core
+
+// Restoring unchanged preferences does not rebuild the localized controls. Changed saved
+// preferences still reach the application before its first frame.
+#test
+{
+    var languageChanges: u32
+    var host: Gui.Testing.HeadlessHost
+    let main = testSetupSurfaceMain(&host)
+    defer
+    {
+        host.shutdown()
+        g_Main = null
+    }
+
+    main.editorOptions.theme    = .Dark
+    main.editorOptions.language = .English
+    main.setTheme()
+    main.setLanguage()
+
+    var buffer: ConcatBuffer
+    var writer: Encoder'Write.TagBin
+    var output: Serializer
+    expect output.startWrite(&writer, &buffer)
+    expect output.beginSection(.Unordered)
+    var writeEvent = SerializeStateEvent{serializer: &output}
+    main.IWnd.onSerializeStateEvent(&writeEvent)
+    expect output.endSection()
+    expect output.end()
+    buffer.makeLinear()
+
+    main.hookOnEvent = func|count = &languageChanges|(_, evt)->bool
+    {
+        if evt is NotifyEvent as notify where notify.kind == .LanguageChanged do
+            count[] += 1
+        return false
+    }
+
+    func restore(main: *MainWnd, bytes: const [..] u8)
+    {
+        var reader: Decoder'Read.TagBin
+        var input:  Serializer
+        expect input.startRead(&reader, bytes)
+        expect input.beginSection(.Unordered)
+        var event = SerializeStateEvent{serializer: &input}
+        main.IWnd.onSerializeStateEvent(&event)
+        expect input.endSection()
+        expect input.end()
+    }
+
+    let revision = host.app.dirtyTheme
+    restore(main, unwrap buffer.toSlice())
+    Swag.assert(host.app.dirtyTheme == revision and languageChanges == 0)
+
+    main.editorOptions.theme    = .Light
+    main.editorOptions.language = .French
+    main.setTheme()
+    main.setLanguage()
+    languageChanges = 0
+    let changedRevision = host.app.dirtyTheme
+    restore(main, unwrap buffer.toSlice())
+    Swag.assert(host.app.dirtyTheme == changedRevision + 1 and languageChanges == 1)
+    Swag.assert(main.appearanceButton.appearanceTheme == .Dark)
+    Swag.assert(Application.language() == "en")
+}
 
 // Optional load regression over an external, read-only corpus. Only the ordinary test
 // sandbox receives application state; the corpus is enumerated and decoded, never saved.

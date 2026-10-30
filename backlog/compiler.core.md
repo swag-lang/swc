@@ -713,6 +713,20 @@ Entries stay in one flat list. Keep only measurements that affect the next actio
   report and remove completed acceptance work from this entry.
 - Related: compiler.core.004, compiler.core.005, compiler.core.097.
 
+### compiler.core.100 — Preserve forwarding overload identity in exported module interfaces
+
+- Evidence: an exported `IconAtlas.setRaster(cell: s32, image: #fwd Image)` instantiated
+  by GUI tests emitted two foreign declarations into `gui.swg`, one for the copy symbol and
+  one for the move symbol, both retaining the identical `#fwd Image` parameter. Capture's
+  call with `expect Image.decode(...)` then failed with `ambiguous function name 'setRaster'`.
+  Both candidates pointed to those adjacent generated declarations. The same API passed its
+  two in-module JIT tests before the downstream import failed.
+- Next: reduce to a producer and consumer with one exported non-generic forwarding method;
+  inspect export specialization and import reconstruction. Preserve copy/move distinction
+  without exporting two identical source signatures or changing their native bindings.
+- Done when: separate-workspace consumers can call both forwarding forms after producer
+  specialization, with native and JIT coverage and no ambiguous import candidates.
+
 ## Deliberately out of scope
 
 - **An LLVM back end.** The native and Micro back ends are the supported architecture. Reconsider only if a concrete platform or optimization requirement cannot be met within them.

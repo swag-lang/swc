@@ -3,6 +3,31 @@
 
 using Swag, Core, Pixel
 
+// Supplied rasters own their pixels; invalid geometry leaves the cache unchanged.
+#test
+{
+    var atlas: IconAtlas
+    expect atlas.setup("<svg width='24' height='24'><rect width='24' height='24' fill='blue'/></svg>")
+    var pixels = Image.create(32, 32, .BGRA8)
+    pixels.fill(Argb.Blue)
+    expect atlas.setRaster(32, pixels)
+    pixels.fill(Argb.Red)
+    Swag.assert(atlas.image(32).pixelColor(16, 16).argb == cast(u32, Argb.Blue))
+
+    for cell in [0, -1, 31]
+    {
+        var failure: Swag.Error
+        catch atlas.setRaster(cell, pixels) as failure
+        Swag.assert(failure.value() != null)
+        Swag.assert(atlas.image(32).pixelColor(16, 16).argb == cast(u32, Argb.Blue))
+    }
+
+    let fallback = atlas.image(40)
+    Swag.assert(fallback.width == 40 and fallback.pixelColor(20, 20).argb == cast(u32, Argb.Blue))
+    expect atlas.setup("<svg width='24' height='24'><rect width='24' height='24' fill='red'/></svg>")
+    Swag.assert(atlas.image(32).pixelColor(16, 16).argb == cast(u32, Argb.Red))
+}
+
 // Icons already stored in controls remain valid when another request raises the atlas density.
 #test
 {

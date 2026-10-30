@@ -913,7 +913,8 @@ new language syntax.
   dynamic dispatch, lifecycle callbacks, rebased loading, and native/JIT behavior preserved.
   Record size and load-time effects separately; a smaller table alone is not a measured speedup.
 - Related: compiler.optimization.119 (whole-image reachability), compiler.optimization.092
-  (indexed constant addressing, a different source of relocations).
+  (indexed constant addressing, a different source of relocations), std.gui.060 (measured
+  startup dominated by GUI atlas preparation in a separately identified Release artifact).
 
 **Artifact identity and comparison boundary**
 

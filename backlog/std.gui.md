@@ -555,19 +555,22 @@ preview. Validate requested settings against the capabilities supplied by platfo
 
 ### std.gui.060 — Reduce the remaining work before the first usable application frame
 
-- Evidence: the shared and Capture rasters, with redundant preference application removed,
-  take a median 331 ms to a visible Release Capture window and 364 ms to its first successful
-  `WM_NULL` response, still above the 325 ms target. These are four alternating warm launches
-  against a rebuilt baseline (693/701 ms), using the same compiler, isolated copies
+- Evidence: Release Capture takes a median 324 ms to a visible window and 340 ms to its first
+  successful `WM_NULL` response. The 325 ms usable-frame target remains unproven. These are
+  eight alternating warm launches against a rebuilt baseline (660/688 ms), using the same compiler, isolated copies
   of the same settings and one capture, and no other task-owned build during measurement.
   Process creation is the clock origin; tool/compiler launch is excluded. Polling is about
   5 ms, CPU admission is at most 15%, and no OS-cache flush is performed. Visibility and message
   response do not establish first usable presentation or cold-start latency.
-- The median settled working set is 28,313,600 bytes smaller. Checked-in derivatives use
+- The median settled working set is about 28 MiB smaller; the native EXE grows by 216,576 bytes
+  (1.83%). Checked-in derivatives use
   DevMode to preserve the established goldens; Release SVG coverage can differ by one alpha level.
-- Next: remove the remaining avoidable startup work, then repeat the matched comparison on
-  the final artifacts. Reattribute shader creation, state restoration, native frame preparation
-  and recent-document scheduling now that the raster and repeated language costs are gone.
+- Next: measure process-to-document presentation without debugger stops, including cold starts.
+  Attribute state restoration and initial native frame preparation; examine the pending empty
+  frame that is published after document selection but before the first document-bearing paint.
+  The current layered readback blocks recording another frame while a previous snapshot is pending.
+  Compare bounded early restoration of the selected document with the deferred recent-list scan,
+  preserving responsiveness for large libraries, corrupt candidates and explicit file arguments.
   Traced spans are not additive: callers include their descendants, and the debugger perturbs
   scheduling. Measure the first document-bearing presentation as well as window visibility.
 - A shared 96-pixel-per-cell raster with linear filtering produced visibly uneven small strokes
@@ -581,9 +584,12 @@ preview. Validate requested settings against the capabilities supplied by platfo
   duplicate presentation work no longer delay normal startup, with both palettes, small glyphs,
   fractional/mixed DPI and SVG overrides covered. Do not count an earlier blank window as a gain.
 - Reproduction: `%LOCALAPPDATA%/swc-agent-builds/startup-midnight-20261030` contains the
-  `baseline-final-*` and `final-*` launch records, artifact hashes, CPU/memory measurements,
-  `png-trace-3` attribution and `compare-release.log` for exact-size versus reduced rasters.
-  `probe.py` and `ab.py`
+  `baseline-document-*` and `document-*` launch records, artifact hashes, CPU/memory measurements,
+  `document-content-*` attribution and `compare-release.log` for exact-size versus reduced rasters.
+  The [startup report](../bench/results/startup/20261030/README.md) preserves all samples and
+  distinguishes visibility from the instrumented document-publication diagnostic (512-558 ms
+  in the two final traces, versus 794-798 ms for baseline; debugger overhead is included).
+  `probe.py` and `ab-document.py`
   reproduce the external milestones through `tools/apps.bat`.
   Recreate both builds from the same source/compiler before replaying; their temporary worktrees
   are disposable. The initial function-attribution probe remains in

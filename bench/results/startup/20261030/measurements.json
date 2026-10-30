@@ -1,0 +1,796 @@
+{
+  "baseline_commit": "4fc60967f988c4d1050425e808a0ef9891de127c",
+  "candidate_commit": "46a982c042d7fb36f74014f13a9602d2b931959c",
+  "artifacts": {
+    "baseline": {
+      "bytes": 11829760,
+      "sha256": "fd70eb28ad999261c7bb26bc831cf0a620b4a52044213357d612698f936fbeb0",
+      "compiler_sha256": "34ee7b7e4d64aa67c80703b11cc0a8e98c1bd3681a64e86821c965053685485c"
+    },
+    "final": {
+      "bytes": 12046336,
+      "sha256": "2bd98997598e54143cf78b4c577cc8d4637eba8c9d7bac61dbb46250ccb14fb7",
+      "compiler_sha256": "34ee7b7e4d64aa67c80703b11cc0a8e98c1bd3681a64e86821c965053685485c"
+    }
+  },
+  "campaigns": {
+    "eight_pairs_before_final_timer_change": {
+      "baseline": [
+        {
+          "label": "baseline-accepted-1",
+          "sha256": "fd70eb28ad999261c7bb26bc831cf0a620b4a52044213357d612698f936fbeb0",
+          "visible_ms": 639.3531000067014,
+          "responsive_ms": 673.0924000148661,
+          "cpu_at_visible_ms": 1375.0,
+          "settled_working_set": 276729856,
+          "settled_private_bytes": 306642944,
+          "peak_working_set": 295075840
+        },
+        {
+          "label": "baseline-accepted-2",
+          "sha256": "fd70eb28ad999261c7bb26bc831cf0a620b4a52044213357d612698f936fbeb0",
+          "visible_ms": 690.6686000002082,
+          "responsive_ms": 693.9560000027996,
+          "cpu_at_visible_ms": 1531.25,
+          "settled_working_set": 276590592,
+          "settled_private_bytes": 306843648,
+          "peak_working_set": 294432768
+        },
+        {
+          "label": "baseline-accepted-3",
+          "sha256": "fd70eb28ad999261c7bb26bc831cf0a620b4a52044213357d612698f936fbeb0",
+          "visible_ms": 784.5526000019163,
+          "responsive_ms": 820.1911999931326,
+          "cpu_at_visible_ms": 1578.125,
+          "settled_working_set": 274718720,
+          "settled_private_bytes": 305954816,
+          "peak_working_set": 292577280
+        },
+        {
+          "label": "baseline-accepted-4",
+          "sha256": "fd70eb28ad999261c7bb26bc831cf0a620b4a52044213357d612698f936fbeb0",
+          "visible_ms": 673.7609000119846,
+          "responsive_ms": 689.3063000024995,
+          "cpu_at_visible_ms": 1875.0,
+          "settled_working_set": 276733952,
+          "settled_private_bytes": 306569216,
+          "peak_working_set": 294596608
+        },
+        {
+          "label": "baseline-accepted-5",
+          "sha256": "fd70eb28ad999261c7bb26bc831cf0a620b4a52044213357d612698f936fbeb0",
+          "visible_ms": 644.2600999871502,
+          "responsive_ms": 682.043299995712,
+          "cpu_at_visible_ms": 1468.75,
+          "settled_working_set": 276647936,
+          "settled_private_bytes": 307441664,
+          "peak_working_set": 294510592
+        },
+        {
+          "label": "baseline-accepted-6",
+          "sha256": "fd70eb28ad999261c7bb26bc831cf0a620b4a52044213357d612698f936fbeb0",
+          "visible_ms": 631.5212000044994,
+          "responsive_ms": 657.5130999990506,
+          "cpu_at_visible_ms": 1843.75,
+          "settled_working_set": 276680704,
+          "settled_private_bytes": 305618944,
+          "peak_working_set": 295022592
+        },
+        {
+          "label": "baseline-accepted-7",
+          "sha256": "fd70eb28ad999261c7bb26bc831cf0a620b4a52044213357d612698f936fbeb0",
+          "visible_ms": 634.8155000014231,
+          "responsive_ms": 659.0557000017725,
+          "cpu_at_visible_ms": 1078.125,
+          "settled_working_set": 276713472,
+          "settled_private_bytes": 306094080,
+          "peak_working_set": 295051264
+        },
+        {
+          "label": "baseline-accepted-8",
+          "sha256": "fd70eb28ad999261c7bb26bc831cf0a620b4a52044213357d612698f936fbeb0",
+          "visible_ms": 696.4972999994643,
+          "responsive_ms": 708.4109999996144,
+          "cpu_at_visible_ms": 1609.375,
+          "settled_working_set": 276701184,
+          "settled_private_bytes": 306458624,
+          "peak_working_set": 295047168
+        }
+      ],
+      "candidate": [
+        {
+          "label": "accepted-1",
+          "sha256": "1189052aa0af7ab07c92dcfafee48b246077d50f048ff7d26bb7460b4b0566f0",
+          "visible_ms": 351.3276999874506,
+          "responsive_ms": 358.80199998791795,
+          "cpu_at_visible_ms": 218.75,
+          "settled_working_set": 247160832,
+          "settled_private_bytes": 276750336,
+          "peak_working_set": 265498624
+        },
+        {
+          "label": "accepted-2",
+          "sha256": "1189052aa0af7ab07c92dcfafee48b246077d50f048ff7d26bb7460b4b0566f0",
+          "visible_ms": 326.9376999960514,
+          "responsive_ms": 358.51289999845903,
+          "cpu_at_visible_ms": 312.5,
+          "settled_working_set": 247394304,
+          "settled_private_bytes": 276557824,
+          "peak_working_set": 265719808
+        },
+        {
+          "label": "accepted-3",
+          "sha256": "1189052aa0af7ab07c92dcfafee48b246077d50f048ff7d26bb7460b4b0566f0",
+          "visible_ms": 319.99369998811744,
+          "responsive_ms": 327.1412999893073,
+          "cpu_at_visible_ms": 281.25,
+          "settled_working_set": 247238656,
+          "settled_private_bytes": 280285184,
+          "peak_working_set": 265080832
+        },
+        {
+          "label": "accepted-4",
+          "sha256": "1189052aa0af7ab07c92dcfafee48b246077d50f048ff7d26bb7460b4b0566f0",
+          "visible_ms": 350.3594000067096,
+          "responsive_ms": 354.740100010531,
+          "cpu_at_visible_ms": 281.25,
+          "settled_working_set": 247246848,
+          "settled_private_bytes": 277446656,
+          "peak_working_set": 265584640
+        },
+        {
+          "label": "accepted-5",
+          "sha256": "1189052aa0af7ab07c92dcfafee48b246077d50f048ff7d26bb7460b4b0566f0",
+          "visible_ms": 314.4953000009991,
+          "responsive_ms": 338.66480000142474,
+          "cpu_at_visible_ms": 281.25,
+          "settled_working_set": 247238656,
+          "settled_private_bytes": 276848640,
+          "peak_working_set": 265576448
+        },
+        {
+          "label": "accepted-6",
+          "sha256": "1189052aa0af7ab07c92dcfafee48b246077d50f048ff7d26bb7460b4b0566f0",
+          "visible_ms": 335.3255999973044,
+          "responsive_ms": 347.4910000077216,
+          "cpu_at_visible_ms": 296.875,
+          "settled_working_set": 247279616,
+          "settled_private_bytes": 277774336,
+          "peak_working_set": 265551872
+        },
+        {
+          "label": "accepted-7",
+          "sha256": "1189052aa0af7ab07c92dcfafee48b246077d50f048ff7d26bb7460b4b0566f0",
+          "visible_ms": 312.3395000002347,
+          "responsive_ms": 328.4905000036815,
+          "cpu_at_visible_ms": 265.625,
+          "settled_working_set": 247234560,
+          "settled_private_bytes": 277422080,
+          "peak_working_set": 265052160
+        },
+        {
+          "label": "accepted-8",
+          "sha256": "1189052aa0af7ab07c92dcfafee48b246077d50f048ff7d26bb7460b4b0566f0",
+          "visible_ms": 333.90340000914875,
+          "responsive_ms": 347.5571000162745,
+          "cpu_at_visible_ms": 296.875,
+          "settled_working_set": 247255040,
+          "settled_private_bytes": 280829952,
+          "peak_working_set": 265592832
+        }
+      ]
+    },
+    "eight_pairs_final": {
+      "baseline": [
+        {
+          "label": "baseline-document-1",
+          "sha256": "fd70eb28ad999261c7bb26bc831cf0a620b4a52044213357d612698f936fbeb0",
+          "visible_ms": 570.7741999940481,
+          "responsive_ms": 575.3327999991598,
+          "cpu_at_visible_ms": 1343.75,
+          "settled_working_set": 276697088,
+          "settled_private_bytes": 306954240,
+          "peak_working_set": 294555648
+        },
+        {
+          "label": "baseline-document-2",
+          "sha256": "fd70eb28ad999261c7bb26bc831cf0a620b4a52044213357d612698f936fbeb0",
+          "visible_ms": 650.1471999945352,
+          "responsive_ms": 680.7552999962354,
+          "cpu_at_visible_ms": 2046.875,
+          "settled_working_set": 276676608,
+          "settled_private_bytes": 307740672,
+          "peak_working_set": 295022592
+        },
+        {
+          "label": "baseline-document-3",
+          "sha256": "fd70eb28ad999261c7bb26bc831cf0a620b4a52044213357d612698f936fbeb0",
+          "visible_ms": 700.9593999973731,
+          "responsive_ms": 712.8217999998014,
+          "cpu_at_visible_ms": 1750.0,
+          "settled_working_set": 276635648,
+          "settled_private_bytes": 307118080,
+          "peak_working_set": 294981632
+        },
+        {
+          "label": "baseline-document-4",
+          "sha256": "fd70eb28ad999261c7bb26bc831cf0a620b4a52044213357d612698f936fbeb0",
+          "visible_ms": 681.0739000065951,
+          "responsive_ms": 694.5793000049889,
+          "cpu_at_visible_ms": 1031.25,
+          "settled_working_set": 276541440,
+          "settled_private_bytes": 306044928,
+          "peak_working_set": 294404096
+        },
+        {
+          "label": "baseline-document-5",
+          "sha256": "fd70eb28ad999261c7bb26bc831cf0a620b4a52044213357d612698f936fbeb0",
+          "visible_ms": 647.7598000055877,
+          "responsive_ms": 652.9869999940274,
+          "cpu_at_visible_ms": 1265.625,
+          "settled_working_set": 276660224,
+          "settled_private_bytes": 306642944,
+          "peak_working_set": 295002112
+        },
+        {
+          "label": "baseline-document-6",
+          "sha256": "fd70eb28ad999261c7bb26bc831cf0a620b4a52044213357d612698f936fbeb0",
+          "visible_ms": 657.3214000090957,
+          "responsive_ms": 668.0110000015702,
+          "cpu_at_visible_ms": 1890.625,
+          "settled_working_set": 276750336,
+          "settled_private_bytes": 306196480,
+          "peak_working_set": 294612992
+        },
+        {
+          "label": "baseline-document-7",
+          "sha256": "fd70eb28ad999261c7bb26bc831cf0a620b4a52044213357d612698f936fbeb0",
+          "visible_ms": 662.2071999881882,
+          "responsive_ms": 698.3636999939336,
+          "cpu_at_visible_ms": 1718.75,
+          "settled_working_set": 276627456,
+          "settled_private_bytes": 308072448,
+          "peak_working_set": 294973440
+        },
+        {
+          "label": "baseline-document-8",
+          "sha256": "fd70eb28ad999261c7bb26bc831cf0a620b4a52044213357d612698f936fbeb0",
+          "visible_ms": 727.7457999880426,
+          "responsive_ms": 736.409699980868,
+          "cpu_at_visible_ms": 1750.0,
+          "settled_working_set": 274657280,
+          "settled_private_bytes": 305651712,
+          "peak_working_set": 292995072
+        }
+      ],
+      "candidate": [
+        {
+          "label": "document-1",
+          "sha256": "2bd98997598e54143cf78b4c577cc8d4637eba8c9d7bac61dbb46250ccb14fb7",
+          "visible_ms": 291.1051999981282,
+          "responsive_ms": 294.1571999981534,
+          "cpu_at_visible_ms": 265.625,
+          "settled_working_set": 247414784,
+          "settled_private_bytes": 280621056,
+          "peak_working_set": 265752576
+        },
+        {
+          "label": "document-2",
+          "sha256": "2bd98997598e54143cf78b4c577cc8d4637eba8c9d7bac61dbb46250ccb14fb7",
+          "visible_ms": 332.25960000709165,
+          "responsive_ms": 337.7669000037713,
+          "cpu_at_visible_ms": 296.875,
+          "settled_working_set": 247382016,
+          "settled_private_bytes": 280420352,
+          "peak_working_set": 265723904
+        },
+        {
+          "label": "document-3",
+          "sha256": "2bd98997598e54143cf78b4c577cc8d4637eba8c9d7bac61dbb46250ccb14fb7",
+          "visible_ms": 311.4424999948824,
+          "responsive_ms": 318.7690999911865,
+          "cpu_at_visible_ms": 296.875,
+          "settled_working_set": 247336960,
+          "settled_private_bytes": 280518656,
+          "peak_working_set": 265674752
+        },
+        {
+          "label": "document-4",
+          "sha256": "2bd98997598e54143cf78b4c577cc8d4637eba8c9d7bac61dbb46250ccb14fb7",
+          "visible_ms": 345.3769000043394,
+          "responsive_ms": 372.8553999972064,
+          "cpu_at_visible_ms": 296.875,
+          "settled_working_set": 247271424,
+          "settled_private_bytes": 276930560,
+          "peak_working_set": 265109504
+        },
+        {
+          "label": "document-5",
+          "sha256": "2bd98997598e54143cf78b4c577cc8d4637eba8c9d7bac61dbb46250ccb14fb7",
+          "visible_ms": 329.2185999889625,
+          "responsive_ms": 343.1230999849504,
+          "cpu_at_visible_ms": 296.875,
+          "settled_working_set": 247328768,
+          "settled_private_bytes": 280858624,
+          "peak_working_set": 265654272
+        },
+        {
+          "label": "document-6",
+          "sha256": "2bd98997598e54143cf78b4c577cc8d4637eba8c9d7bac61dbb46250ccb14fb7",
+          "visible_ms": 318.7249000038719,
+          "responsive_ms": 334.8852000053739,
+          "cpu_at_visible_ms": 250.0,
+          "settled_working_set": 247201792,
+          "settled_private_bytes": 276901888,
+          "peak_working_set": 265039872
+        },
+        {
+          "label": "document-7",
+          "sha256": "2bd98997598e54143cf78b4c577cc8d4637eba8c9d7bac61dbb46250ccb14fb7",
+          "visible_ms": 334.29379999870434,
+          "responsive_ms": 381.4925000042422,
+          "cpu_at_visible_ms": 468.75,
+          "settled_working_set": 247365632,
+          "settled_private_bytes": 276901888,
+          "peak_working_set": 265707520
+        },
+        {
+          "label": "document-8",
+          "sha256": "2bd98997598e54143cf78b4c577cc8d4637eba8c9d7bac61dbb46250ccb14fb7",
+          "visible_ms": 314.8911999887787,
+          "responsive_ms": 401.76869998686016,
+          "cpu_at_visible_ms": 312.5,
+          "settled_working_set": 247279616,
+          "settled_private_bytes": 280363008,
+          "peak_working_set": 265617408
+        }
+      ]
+    }
+  },
+  "instrumented_traces": [
+    {
+      "label": "baseline-content-1",
+      "sha256": "fd70eb28ad999261c7bb26bc831cf0a620b4a52044213357d612698f936fbeb0",
+      "selected_ms": 752.7221000054851,
+      "document_publication_ms": 794.0284999931464,
+      "trace_origin_ms": 69.78150000213645,
+      "samples": [
+        {
+          "name": "Swagcapture.EditView.IWnd.onPaint",
+          "start_ms": 424.34230000071693,
+          "end_ms": 428.2051999907708
+        },
+        {
+          "name": "Surface.publishNativePresentation",
+          "start_ms": 524.6670999913476,
+          "end_ms": 535.0192999903811
+        },
+        {
+          "name": "Swagcapture.EditView.IWnd.onPaint",
+          "start_ms": 567.8314999968279,
+          "end_ms": 572.7021999919089
+        },
+        {
+          "name": "Surface.queueNativePresentation",
+          "start_ms": 577.2594000009121,
+          "end_ms": 584.3212000036146
+        },
+        {
+          "name": "Surface.publishNativePresentation",
+          "start_ms": 625.9311000030721,
+          "end_ms": 641.2721999950008
+        },
+        {
+          "name": "Swagcapture.EditView.IWnd.onPaint",
+          "start_ms": 643.0858999956399,
+          "end_ms": 646.1023000010755
+        },
+        {
+          "name": "Surface.queueNativePresentation",
+          "start_ms": 648.2747999980347,
+          "end_ms": 652.1011000004364
+        },
+        {
+          "name": "RecentView.selectLoaded",
+          "start_ms": 671.0992000007536,
+          "end_ms": 682.9406000033487
+        },
+        {
+          "name": "Surface.publishNativePresentation",
+          "start_ms": 684.0234999981476,
+          "end_ms": 686.9267000001855
+        },
+        {
+          "name": "Swagcapture.EditView.IWnd.onPaint",
+          "start_ms": 687.8529999958118,
+          "end_ms": 693.408899998758
+        },
+        {
+          "name": "Surface.queueNativePresentation",
+          "start_ms": 698.0983999965247,
+          "end_ms": 701.9716999930097
+        },
+        {
+          "name": "Surface.publishNativePresentation",
+          "start_ms": 711.5863999933936,
+          "end_ms": 724.24699999101
+        },
+        {
+          "name": "Swagcapture.EditView.IWnd.onPaint",
+          "start_ms": 725.0390999979572,
+          "end_ms": 728.4593999938807
+        },
+        {
+          "name": "Surface.queueNativePresentation",
+          "start_ms": 732.1395000035409,
+          "end_ms": 734.9706999957561
+        },
+        {
+          "name": "Surface.publishNativePresentation",
+          "start_ms": 737.8883999917889,
+          "end_ms": 743.056199993589
+        }
+      ]
+    },
+    {
+      "label": "baseline-content-2",
+      "sha256": "fd70eb28ad999261c7bb26bc831cf0a620b4a52044213357d612698f936fbeb0",
+      "selected_ms": 749.9613999971189,
+      "document_publication_ms": 797.526199996355,
+      "trace_origin_ms": 80.40910000272561,
+      "samples": [
+        {
+          "name": "Swagcapture.EditView.IWnd.onPaint",
+          "start_ms": 401.77789999870583,
+          "end_ms": 405.7357999990927
+        },
+        {
+          "name": "Surface.publishNativePresentation",
+          "start_ms": 496.0317999939434,
+          "end_ms": 506.8838000006508
+        },
+        {
+          "name": "Swagcapture.EditView.IWnd.onPaint",
+          "start_ms": 529.9652999965474,
+          "end_ms": 532.4389000015799
+        },
+        {
+          "name": "Surface.queueNativePresentation",
+          "start_ms": 537.0043000002624,
+          "end_ms": 540.6597999972291
+        },
+        {
+          "name": "Surface.publishNativePresentation",
+          "start_ms": 627.878100000089,
+          "end_ms": 636.6754999908153
+        },
+        {
+          "name": "Swagcapture.EditView.IWnd.onPaint",
+          "start_ms": 638.0702999886125,
+          "end_ms": 639.9734000005992
+        },
+        {
+          "name": "Surface.queueNativePresentation",
+          "start_ms": 641.7578999971738,
+          "end_ms": 645.5952999967849
+        },
+        {
+          "name": "RecentView.selectLoaded",
+          "start_ms": 661.0427999985404,
+          "end_ms": 669.5522999943933
+        },
+        {
+          "name": "Surface.publishNativePresentation",
+          "start_ms": 674.9929999932647,
+          "end_ms": 677.1155999886105
+        },
+        {
+          "name": "Swagcapture.EditView.IWnd.onPaint",
+          "start_ms": 678.2893999916269,
+          "end_ms": 682.1594999928493
+        },
+        {
+          "name": "Surface.queueNativePresentation",
+          "start_ms": 687.1640999888768,
+          "end_ms": 689.1285000019707
+        },
+        {
+          "name": "Surface.publishNativePresentation",
+          "start_ms": 707.583399998839,
+          "end_ms": 717.1170999936294
+        },
+        {
+          "name": "Swagcapture.EditView.IWnd.onPaint",
+          "start_ms": 718.6684999905992,
+          "end_ms": 721.6140999953495
+        },
+        {
+          "name": "Surface.queueNativePresentation",
+          "start_ms": 723.6120000015944,
+          "end_ms": 727.3873999947682
+        },
+        {
+          "name": "Surface.publishNativePresentation",
+          "start_ms": 728.2231999997748,
+          "end_ms": 732.7236999990419
+        }
+      ]
+    },
+    {
+      "label": "content-1",
+      "sha256": "1189052aa0af7ab07c92dcfafee48b246077d50f048ff7d26bb7460b4b0566f0",
+      "selected_ms": 385.0188999931561,
+      "document_publication_ms": 469.68029999698047,
+      "trace_origin_ms": 68.84110000100918,
+      "samples": [
+        {
+          "name": "Swagcapture.EditView.IWnd.onPaint",
+          "start_ms": 167.6922999904491,
+          "end_ms": 174.0235000033863
+        },
+        {
+          "name": "Surface.publishNativePresentation",
+          "start_ms": 235.0321999983862,
+          "end_ms": 244.09159999049734
+        },
+        {
+          "name": "Swagcapture.EditView.IWnd.onPaint",
+          "start_ms": 271.67079999344423,
+          "end_ms": 275.96600000106264
+        },
+        {
+          "name": "Surface.queueNativePresentation",
+          "start_ms": 280.8824999956414,
+          "end_ms": 285.5358999950113
+        },
+        {
+          "name": "RecentView.selectLoaded",
+          "start_ms": 306.71150000125635,
+          "end_ms": 316.1777999921469
+        },
+        {
+          "name": "Surface.publishNativePresentation",
+          "start_ms": 319.0289999911329,
+          "end_ms": 329.85559999360703
+        },
+        {
+          "name": "Swagcapture.EditView.IWnd.onPaint",
+          "start_ms": 330.90590000210796,
+          "end_ms": 336.51069999905303
+        },
+        {
+          "name": "Surface.queueNativePresentation",
+          "start_ms": 340.60609999869484,
+          "end_ms": 341.79130000120495
+        },
+        {
+          "name": "Surface.publishNativePresentation",
+          "start_ms": 393.61069998994935,
+          "end_ms": 400.8391999959713
+        },
+        {
+          "name": "Swagcapture.EditView.IWnd.onPaint",
+          "start_ms": 402.15739999257494,
+          "end_ms": 405.1127999991877
+        },
+        {
+          "name": "Surface.queueNativePresentation",
+          "start_ms": 406.8334000039613,
+          "end_ms": 408.6431000032462
+        },
+        {
+          "name": "Surface.publishNativePresentation",
+          "start_ms": 423.8865999941481,
+          "end_ms": 426.9447999977274
+        }
+      ]
+    },
+    {
+      "label": "content-2",
+      "sha256": "1189052aa0af7ab07c92dcfafee48b246077d50f048ff7d26bb7460b4b0566f0",
+      "selected_ms": 386.5471999888541,
+      "document_publication_ms": 475.16749998612795,
+      "trace_origin_ms": 67.08339999022428,
+      "samples": [
+        {
+          "name": "Swagcapture.EditView.IWnd.onPaint",
+          "start_ms": 171.47970000223722,
+          "end_ms": 174.08339999383315
+        },
+        {
+          "name": "Surface.publishNativePresentation",
+          "start_ms": 241.09280000266153,
+          "end_ms": 250.50460000056773
+        },
+        {
+          "name": "Swagcapture.EditView.IWnd.onPaint",
+          "start_ms": 274.81810000608675,
+          "end_ms": 277.7753999980632
+        },
+        {
+          "name": "Surface.queueNativePresentation",
+          "start_ms": 283.1127999961609,
+          "end_ms": 287.560199998552
+        },
+        {
+          "name": "RecentView.selectLoaded",
+          "start_ms": 308.31989999569487,
+          "end_ms": 319.46379999862984
+        },
+        {
+          "name": "Surface.publishNativePresentation",
+          "start_ms": 325.1324000011664,
+          "end_ms": 334.81050000409596
+        },
+        {
+          "name": "Swagcapture.EditView.IWnd.onPaint",
+          "start_ms": 336.47799999744166,
+          "end_ms": 342.8150999970967
+        },
+        {
+          "name": "Surface.queueNativePresentation",
+          "start_ms": 348.0044000025373,
+          "end_ms": 349.9264999991283
+        },
+        {
+          "name": "Surface.publishNativePresentation",
+          "start_ms": 399.8859999992419,
+          "end_ms": 408.08409999590367
+        },
+        {
+          "name": "Swagcapture.EditView.IWnd.onPaint",
+          "start_ms": 409.29440000036266,
+          "end_ms": 411.129100000835
+        },
+        {
+          "name": "Surface.queueNativePresentation",
+          "start_ms": 414.31789999478497,
+          "end_ms": 416.1907999950927
+        },
+        {
+          "name": "Surface.publishNativePresentation",
+          "start_ms": 418.73459999624174,
+          "end_ms": 422.16679999546614
+        }
+      ]
+    },
+    {
+      "label": "document-content-1",
+      "sha256": "2bd98997598e54143cf78b4c577cc8d4637eba8c9d7bac61dbb46250ccb14fb7",
+      "selected_ms": 435.959800001001,
+      "document_publication_ms": 512.3439000017243,
+      "trace_origin_ms": 96.41099999134894,
+      "samples": [
+        {
+          "name": "Swagcapture.EditView.IWnd.onPaint",
+          "start_ms": 166.09620000235736,
+          "end_ms": 168.75810000055935
+        },
+        {
+          "name": "Surface.publishNativePresentation",
+          "start_ms": 244.49480000475887,
+          "end_ms": 254.4709000067087
+        },
+        {
+          "name": "Swagcapture.EditView.IWnd.onPaint",
+          "start_ms": 290.4508000065107,
+          "end_ms": 294.63270000997
+        },
+        {
+          "name": "Surface.queueNativePresentation",
+          "start_ms": 298.78960001224186,
+          "end_ms": 303.6799000110477
+        },
+        {
+          "name": "RecentView.selectLoaded",
+          "start_ms": 326.0576000029687,
+          "end_ms": 339.54880000965204
+        },
+        {
+          "name": "Surface.publishNativePresentation",
+          "start_ms": 353.50160000962205,
+          "end_ms": 366.48100000456907
+        },
+        {
+          "name": "Swagcapture.EditView.IWnd.onPaint",
+          "start_ms": 370.12970000796486,
+          "end_ms": 376.5599000034854
+        },
+        {
+          "name": "Surface.queueNativePresentation",
+          "start_ms": 380.82540000323206,
+          "end_ms": 384.2457000137074
+        },
+        {
+          "name": "Surface.publishNativePresentation",
+          "start_ms": 404.1546000080416,
+          "end_ms": 415.9329000103753
+        },
+        {
+          "name": "Swagcapture.EditView.IWnd.onPaint",
+          "start_ms": 417.9836000112118,
+          "end_ms": 422.0225000026403
+        },
+        {
+          "name": "Surface.queueNativePresentation",
+          "start_ms": 424.14950000238605,
+          "end_ms": 427.86330000672024
+        },
+        {
+          "name": "Surface.publishNativePresentation",
+          "start_ms": 429.60950000269804,
+          "end_ms": 434.24110001069494
+        }
+      ]
+    },
+    {
+      "label": "document-content-2",
+      "sha256": "2bd98997598e54143cf78b4c577cc8d4637eba8c9d7bac61dbb46250ccb14fb7",
+      "selected_ms": 468.5006999934558,
+      "document_publication_ms": 558.5255999903893,
+      "trace_origin_ms": 106.66549998859409,
+      "samples": [
+        {
+          "name": "Swagcapture.EditView.IWnd.onPaint",
+          "start_ms": 193.88610000896733,
+          "end_ms": 196.519500008435
+        },
+        {
+          "name": "Surface.publishNativePresentation",
+          "start_ms": 265.34920000995044,
+          "end_ms": 274.12110001023393
+        },
+        {
+          "name": "Swagcapture.EditView.IWnd.onPaint",
+          "start_ms": 313.2657000096515,
+          "end_ms": 318.75220000802074
+        },
+        {
+          "name": "Surface.queueNativePresentation",
+          "start_ms": 322.79469999775756,
+          "end_ms": 329.7651000029873
+        },
+        {
+          "name": "RecentView.selectLoaded",
+          "start_ms": 348.8407999975607,
+          "end_ms": 361.8352000048617
+        },
+        {
+          "name": "Surface.publishNativePresentation",
+          "start_ms": 376.89189999946393,
+          "end_ms": 388.3983999985503
+        },
+        {
+          "name": "Swagcapture.EditView.IWnd.onPaint",
+          "start_ms": 392.3434000025736,
+          "end_ms": 398.870100005297
+        },
+        {
+          "name": "Surface.queueNativePresentation",
+          "start_ms": 404.92480000830255,
+          "end_ms": 409.7844000061741
+        },
+        {
+          "name": "Surface.publishNativePresentation",
+          "start_ms": 440.05590000597294,
+          "end_ms": 451.8601000017952
+        },
+        {
+          "name": "Swagcapture.EditView.IWnd.onPaint",
+          "start_ms": 453.4073999966495,
+          "end_ms": 456.08820000779815
+        },
+        {
+          "name": "Surface.queueNativePresentation",
+          "start_ms": 459.06900000409223,
+          "end_ms": 462.081899997429
+        },
+        {
+          "name": "Surface.publishNativePresentation",
+          "start_ms": 465.0841000111541,
+          "end_ms": 469.1975000023376
+        }
+      ]
+    }
+  ]
+}

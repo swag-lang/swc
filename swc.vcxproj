@@ -212,6 +212,7 @@
         <ClCompile Include="src\Unittest\Support\Test.Support.Sha256.cpp"/>
         <ClCompile Include="src\Unittest\Support\Test.Support.FlatTables.cpp"/>
         <ClCompile Include="src\Unittest\Support\Test.Support.PagedStore.cpp"/>
+        <ClCompile Include="src\Unittest\Support\Test.Support.Allocator.cpp"/>
         <ClCompile Include="src\Unittest\Support\Test.Support.Arena.cpp"/>
         <ClCompile Include="src\Unittest\Support\Test.Support.SmallVector.cpp"/>
         <ClCompile Include="src\Unittest\Support\Test.Support.StringMap.cpp"/>

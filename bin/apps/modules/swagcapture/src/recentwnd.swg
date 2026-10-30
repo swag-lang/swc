@@ -472,7 +472,9 @@ impl RecentWnd
         for r in result where Capture.isFileName(r.fullName) and not Path.equals(r.fullName, state) do
             .pendingRecentFiles.add(r.fullName)
 
-        .scheduleLoadNextRecent()
+        // Enumeration already runs on the deferred startup turn. Open the first candidate
+        // now; another timer would allow a redundant empty-editor frame in between.
+        .loadNextRecent()
     }
 
     mtd scheduleLoadNextRecent()

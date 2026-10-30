@@ -816,6 +816,8 @@ func testPrepareRecentLibrary(main: *MainWnd)
     f.gui.fireTimer(f.main.recentWnd.loadTimer)
     Swag.assert(f.main.recentWnd.loadDone)
     Swag.assert(f.main.recentWnd.pendingRecentFiles.count == 1)
+    Swag.assert(f.main.editWnd.getCapture()!.file == capturePath)
+    Swag.assert(not f.main.recentWnd.loadTimer)
     Swag.assert((expect Library.enumerateSupportedFiles(root)).count == 1)
 
     // The same basename remains an ordinary capture outside the reserved state path.

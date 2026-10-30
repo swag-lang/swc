@@ -284,9 +284,15 @@ func addPictured(host: *Testing.HeadlessHost, explorer: *Explorer, name: string,
         var image = host.render(&host.surfaceWnd)
         Pixel.Testing.assertImageGolden(&image, light ? "explorer.mixed.paper" : "explorer.mixed")
 
-        // The view menu can force a shape, and give it back to what the folder holds.
-        explorer.forceBoard(true, .Mosaic)
-        Swag.assert(grid.board == .Mosaic and explorer.modeMenu.name.raw == appStrings().mode_Mosaic)
+        // A forced presentation does not turn a mixed folder's total into the number of films,
+        // albums or photos found among its files.
+        for board in [ExplorerBoard.Posters, .Covers, .Mosaic]
+        {
+            explorer.forceBoard(true, board)
+            Swag.assert(grid.board == board)
+            Swag.assert(Utf8.startsWith(explorer.status.text(), Format.toString(appStrings().explore_Count, explorer.shown.count)))
+        }
+        Swag.assert(explorer.modeMenu.name.raw == appStrings().mode_Mosaic)
         explorer.forceBoard(false)
         Swag.assert(grid.board == .Grid)
     }

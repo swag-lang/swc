@@ -44,7 +44,6 @@ struct AppStrings
     explore_Files:             string = "% files"        // Facts of an archive under its cell: the files it holds.
     explore_Albums:            string = "% albums"       // How many albums a music library holds.
     explore_Photos:            string = "% photos"       // How many pictures a folder of photographs holds.
-    explore_Films:             string = "% films"        // How many films a folder of films holds.
     explore_Album:             string = "Album"          // Kind of the folder an album page shows, before its year.
     explore_Tracks:            string = "% tracks"       // How many tracks an album holds.
     explore_Play:              string = "Play"           // Button playing an album from its first track.

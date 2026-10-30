@@ -1285,11 +1285,12 @@ impl Explorer
         default: count = Format.toString(appStrings().explore_Count, .shown.count)
         }
 
-        // A folder of media counts what it holds in its own words.
-        if .shown.count > 1
+        // A homogeneous media folder can count in its own words. Forcing a board only changes
+        // presentation; the count must still describe every item left on the page.
+        if .shown.count > 1 and not .forced
         {
             var albums: Array'String
-            var tracks, photos, films: u64
+            var tracks, photos: u64
             for index in .shown
             {
                 let entry = &.entries[index]
@@ -1307,20 +1308,14 @@ impl Explorer
                 {
                     photos += 1
                 }
-                elif kind == cast(s32, ThemeIcons.FileVideo)
-                {
-                    films += 1
-                }
             }
 
-            if board == .Covers do
+            if board == .Covers and tracks == .shown.count do
                 count = Format.toString("% · %", Format.toString(appStrings().explore_Albums, albums.count), Format.toString(appStrings().explore_Tracks, tracks))
-            elif board == .Album do
+            elif board == .Album and tracks == .shown.count do
                 count = Format.toString(appStrings().explore_Tracks, tracks)
-            elif board == .Mosaic do
+            elif board == .Mosaic and photos == .shown.count do
                 count = Format.toString(appStrings().explore_Photos, photos)
-            elif board == .Posters do
-                count = Format.toString(appStrings().explore_Films, films)
         }
 
         // A folder says what its files weigh; an archive what it weighs packed and what it will

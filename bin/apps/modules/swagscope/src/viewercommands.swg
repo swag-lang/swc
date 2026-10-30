@@ -2,9 +2,8 @@ using Core, Gui
 
 // The commands of the main window.
 //
-// The window keeps no toolbar: each command is an entry of its lens, found by its name, and the
-// ones a key runs are registered as shortcuts so the lens writes the key beside the entry. The
-// same identifiers name the entries of the file menu a list row opens.
+// Direct controls, menus and the lens share command identities and state. Shortcuts are
+// registered once so every route teaches the same gesture.
 namespace ViewerCommands
 {
     const Lens              = "scope.lens"
@@ -54,6 +53,14 @@ namespace ViewerCommands
     const OpenChosen        = "scope.explore.openChosen"
     const ExtractAll        = "scope.explore.extractAll"
     const ExtractChosen     = "scope.explore.extractChosen"
+    const AlbumPlay         = "scope.explore.album.play"
+    const AlbumShuffle      = "scope.explore.album.shuffle"
+
+    // Ordered like ExplorerMode and the automatic choice followed by ExplorerBoard.
+    const Modes = ["scope.explore.mode.0", "scope.explore.mode.1", "scope.explore.mode.2",
+                   "scope.explore.mode.3", "scope.explore.mode.4"]
+    const Boards = ["scope.explore.board.0", "scope.explore.board.1", "scope.explore.board.2",
+                    "scope.explore.board.3", "scope.explore.board.4"]
 }
 
 // Files the lens lists in one section for a query typed without the `/` prefix, which stands
@@ -122,7 +129,10 @@ impl ViewerWindow
                                                                       ViewerCommands.EditLocation, ViewerCommands.SortName, ViewerCommands.SortType, ViewerCommands.SortSize,
                                                                       ViewerCommands.SortModified, ViewerCommands.SortDescending, ViewerCommands.OnlineMovies,
                                                                       ViewerCommands.OnlineMusic, ViewerCommands.ChooseMusic, ViewerCommands.OpenChosen,
-                                                                      ViewerCommands.ExtractAll, ViewerCommands.ExtractChosen])
+                                                                      ViewerCommands.ExtractAll, ViewerCommands.ExtractChosen,
+                                                                      ViewerCommands.AlbumPlay, ViewerCommands.AlbumShuffle])
+            .addCommands(func()->string => appStrings().lens_View, ViewerCommands.Modes)
+            .addCommands(func()->string => appStrings().lens_View, ViewerCommands.Boards)
             .addCommands(func()->string => appStrings().lens_Find, [ViewerCommands.Find, ViewerCommands.FindNext, ViewerCommands.FindPrevious, ViewerCommands.SearchMode,
                                                                     ViewerCommands.FilterMode, ViewerCommands.MatchCase, ViewerCommands.WholeWord, ViewerCommands.RegularExpression])
             .addCommand(func()->string => appStrings().lens_View, ViewerCommands.FullScreen, func()->string => appStrings().search_FullScreen)
@@ -160,6 +170,8 @@ impl ViewerWindow
         var section: *Lens.Section?
         if .isExploring()
         {
+            if query.count do
+                return
             let explorer = unwrap .explorer
             for name, mode in [texts.explore_Names, texts.explore_Details, texts.explore_Small, texts.explore_Medium, texts.explore_Large]
             {
@@ -175,7 +187,7 @@ impl ViewerWindow
                 with let entry = section.addEntry(name)
                 {
                     .checked = explorer.mode == chosen
-                    .run     = func|explorer, chosen|() { explorer.setMode(chosen) }
+                    .id      = ViewerCommands.Modes[mode]
                 }
             }
 
@@ -526,7 +538,7 @@ impl ViewerWindow
             disabled = .recent.isEmpty()
 
         case ViewerCommands.Find:
-            name   = texts.cmd_Find
+            name   = exploring ? texts.cmd_FilterFiles : texts.cmd_Find
             icon   = .commandGlyph(.Search)
             hidden = not search and not exploring
 
@@ -677,20 +689,49 @@ impl ViewerWindow
                        .explorer!.extraction.started or
                        .explorer!.selected >= .explorer.entries.count
 
+        case ViewerCommands.AlbumPlay, ViewerCommands.AlbumShuffle:
+            name     = evt.id == ViewerCommands.AlbumPlay ? texts.explore_Play : texts.explore_Shuffle
+            hidden   = not exploring or .explorer!.grid.board != .Album
+            disabled = hidden or .explorer!.shown.isEmpty()
+
         case ViewerCommands.ChooseMusic:
             name     = texts.explore_ChooseMusic
             hidden   = not exploring
             disabled = not exploring or not .explorer!.canChooseMusic()
 
         default:
-            return false
+            for id, index in ViewerCommands.Modes where evt.id == id
+            {
+                let names = [texts.explore_Names, texts.explore_Details, texts.explore_Small, texts.explore_Medium, texts.explore_Large]
+                name    = names[index]
+                hidden  = not exploring
+                toggle  = true
+                checked = exploring and cast(u64, .explorer!.mode) == index
+            }
+
+            for id, index in ViewerCommands.Boards where evt.id == id
+            {
+                let names = [texts.board_Automatic, texts.board_Grid, texts.board_Posters, texts.board_Covers, texts.board_Mosaic]
+                name    = names[index]
+                hidden  = not exploring
+                toggle  = true
+                checked = exploring and
+                          (index == 0 ? not .explorer!.forced :
+                           (.explorer!.forced and cast(u64, .explorer.forcedBoard) == index - 1))
+            }
+
+            if not name.count do
+                return false
         }
 
         evt.name = name
         evt.updatedFields.add(.Name)
         if evt.id == ViewerCommands.Back or
            evt.id == ViewerCommands.Forward or
-           evt.id == ViewerCommands.Up
+           evt.id == ViewerCommands.Up or
+           evt.id == ViewerCommands.Refresh or
+           evt.id == ViewerCommands.Find or
+           evt.id == ViewerCommands.Information
         {
             evt.toolTip = name
             evt.updatedFields.add(.ToolTip)
@@ -847,24 +888,66 @@ impl ViewerWindow
         let explorer = .explorer
         switch id
         {
-        case ViewerCommands.Back:           explorer.goBack()
-        case ViewerCommands.Forward:        explorer.goForward()
-        case ViewerCommands.Up:             explorer.goUp()
-        case ViewerCommands.Refresh:        explorer.forceRefresh()
-        case ViewerCommands.EditLocation:   explorer.address.beginEdit()
-        case ViewerCommands.SortDescending: explorer.sortBy(explorer.sortColumn, not explorer.descending)
-        case ViewerCommands.OnlineMovies:   explorer.setOnlineMedia(not .onlineMovies, .onlineMusic)
-        case ViewerCommands.OnlineMusic:    explorer.setOnlineMedia(.onlineMovies, not .onlineMusic)
-        case ViewerCommands.ChooseMusic:    explorer.chooseMusic()
-        case ViewerCommands.OpenChosen:     explorer.activate(explorer.selected)
-        case ViewerCommands.ExtractAll:     explorer.chooseExtraction(all: true)
-        case ViewerCommands.ExtractChosen:  explorer.chooseExtraction(all: false)
+        case ViewerCommands.Back:
+            explorer.goBack()
+
+        case ViewerCommands.Forward:
+            explorer.goForward()
+
+        case ViewerCommands.Up:
+            explorer.goUp()
+
+        case ViewerCommands.Refresh:
+            explorer.forceRefresh()
+
+        case ViewerCommands.EditLocation:
+            explorer.address.beginEdit()
+
+        case ViewerCommands.SortDescending:
+            explorer.sortBy(explorer.sortColumn, not explorer.descending)
+
+        case ViewerCommands.OnlineMovies:
+            explorer.setOnlineMedia(not .onlineMovies, .onlineMusic)
+
+        case ViewerCommands.OnlineMusic:
+            explorer.setOnlineMedia(.onlineMovies, not .onlineMusic)
+
+        case ViewerCommands.ChooseMusic:
+            explorer.chooseMusic()
+
+        case ViewerCommands.OpenChosen:
+            explorer.activate(explorer.selected)
+
+        case ViewerCommands.ExtractAll:
+            explorer.chooseExtraction(all: true)
+
+        case ViewerCommands.ExtractChosen:
+            explorer.chooseExtraction(all: false)
+
+        case ViewerCommands.AlbumPlay:
+            explorer.playAlbum(false)
+
+        case ViewerCommands.AlbumShuffle:
+            explorer.playAlbum(true)
 
         case ViewerCommands.SortName, ViewerCommands.SortType,
              ViewerCommands.SortSize, ViewerCommands.SortModified:
             explorer.sortBy(sortColumnOf(id), explorer.descending)
 
-        default: return false
+        default:
+            for command, index in ViewerCommands.Modes where id == command
+            {
+                explorer.setMode(cast(ExplorerMode, cast(u32, index)))
+                return true
+            }
+
+            for command, index in ViewerCommands.Boards where id == command
+            {
+                explorer.forceBoard(index != 0, index ? cast(ExplorerBoard, cast(u32, index - 1)) : .Grid)
+                return true
+            }
+
+            return false
         }
 
         return true

@@ -631,10 +631,8 @@ impl ViewerWindow
     const SearchChunkSize   = 256 * 1024'u64
     const SearchCarryMargin = 4'u64
 
-    // How often the halo of the current match follows a moving view, and how long one pulse of its
-    // glow lasts.
+    // How often the current match follows a moving or progressively loaded view.
     const SearchBoundsPoll: Time.Duration = 16'ms
-    const SearchGlowPeriod = 1.35'f32
 
     // How long a viewer may keep the window waiting before the activity mark appears, how long the
     // mark then stays once it has, and how often the wait is looked at.

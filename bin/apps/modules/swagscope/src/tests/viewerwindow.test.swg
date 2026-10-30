@@ -1313,12 +1313,14 @@ func assertFolderFiles(window: *ViewerWindow, names: const [..] String)
     var matchBounds: Math.Rectangle
     Swag.assert(basic.searchBounds(&matchBounds))
     Swag.assert(window.searchOverlay.position.width == Math.round(matchBounds.width + ViewerSearchOverlay.InsetX * 2))
-    Swag.assert(window.searchOverlay.position.height == Math.round(matchBounds.height + ViewerSearchOverlay.InsetY * 2))
-    window.searchOverlay.phase = 0.25
-    let firstPulse = host.render(window)
+    Swag.assert(window.searchOverlay.position.height >= ViewerSearchOverlay.MarkMinHeight and
+                window.searchOverlay.position.height < Math.round(matchBounds.height))
+    let firstMark = host.render(window)
+    for 8 do
+        host.fireTimer(window.searchBoundsTimer)
     window.searchOverlay.invalidate()
-    let repeatedPulse = host.render(window)
-    Swag.assert(Hash.hashBytes32(firstPulse.pixels.toSlice()) == Hash.hashBytes32(repeatedPulse.pixels.toSlice()))
+    let repeatedMark = host.render(window)
+    Swag.assert(Hash.hashBytes32(firstMark.pixels.toSlice()) == Hash.hashBytes32(repeatedMark.pixels.toSlice()))
 
     window.findPrevious()
     Swag.assert(window.searchIndex == 4 and window.searchMatch == 25 and window.searchCountLabel.text() == "5/5")
@@ -2223,7 +2225,6 @@ func assertFolderFiles(window: *ViewerWindow, names: const [..] String)
     completeViewerSearch(&host, window)
     discard host.render(window)
     host.fireTimers()
-    window.searchOverlay.phase = 0.125
     var searchDark = host.render(window)
     Pixel.Testing.assertImageGolden(&searchDark, "search.dark")
     window.searchBox.setText("")
@@ -2241,7 +2242,6 @@ func assertFolderFiles(window: *ViewerWindow, names: const [..] String)
     completeViewerSearch(&host, window)
     discard host.render(window)
     host.fireTimers()
-    window.searchOverlay.phase = 0.125
     var searchLight = host.render(window)
     Pixel.Testing.assertImageGolden(&searchLight, "search.light")
 }

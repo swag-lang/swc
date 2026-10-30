@@ -324,7 +324,7 @@ impl ViewerWindow
         .searchBox.toolTip = .searchError.isEmpty() ? .searchToolTip.toString() : .searchError.toString()
     }
 
-    // Scrolls the active viewer to the current match and refreshes the readout and glow, leaving
+    // Scrolls the active viewer to the current match and refreshes the readout and highlight, leaving
     // the keyboard in the search box when the reveal started there.
     private mtd revealCurrentSearchMatch()
     {
@@ -349,8 +349,8 @@ impl ViewerWindow
         .refreshSearchHighlight()
     }
 
-    // Places the glow over the current match, clipped to the viewer, and keeps polling its bounds
-    // on a timer while it stays current. Hides the glow when the viewer cannot locate the match.
+    // Places the highlight over the current match, clipped to the viewer, and keeps polling its bounds
+    // on a timer while it stays current. Hides the highlight when the viewer cannot locate the match.
     private mtd refreshSearchHighlight()
     {
         if .searchIndex >= .searchMatches.count or .activeChoiceIndex >= .instances.count
@@ -380,12 +380,6 @@ impl ViewerWindow
         {
             .searchOverlay.hide()
         }
-
-        // Animation advances on the host timer, outside painting. Invalidating from inside a
-        // translucent paint pass can enqueue another partial pass before the backing content has
-        // been restored, which accumulates alpha and leaves trails around the word.
-        .searchOverlay.phase = Math.fract(.searchOverlay.phase + cast(f32, SearchBoundsPoll.seconds) / SearchGlowPeriod)
-        .searchOverlay.invalidate()
 
         // A streamed document can materialize the result after revealMatch returns, and any
         // viewer can still adjust its scroll or layout. Follow the geometry for as long as this
@@ -475,7 +469,7 @@ impl ViewerWindow
             .viewerFocusTarget()?.setFocus()
     }
 
-    // Cancels the search in progress and hides its glow; `clearPresentation` also clears the
+    // Cancels the search in progress and hides its highlight; `clearPresentation` also clears the
     // matches the viewer highlights.
     mtd stopSearch(clearPresentation = true)
     {

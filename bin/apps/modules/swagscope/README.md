@@ -208,7 +208,7 @@ a second so that it never flickers, and leaves the previous document on screen m
 file that arrives quickly changes without any mark at all; switching viewers retires hidden
 progressive work.
 
-The window shows the document and nothing else. Every command is an entry of the lens, which
+The window keeps the document dominant. Every command is an entry of the lens, which
 `Ctrl Space` opens: opening, exploring, closing and reloading, the files beside the open
 one and the recent files and folders (`/`), the viewers the file can be seen in, find and its
 options, full screen, the play modes, the explored folder's history and order, the theme, the
@@ -217,6 +217,12 @@ open file are in the information sheet (`I`) and, faint, on the line at the foot
 the viewer's own controls float over that foot while the pointer moves; the find bar floats at the
 top on `Ctrl+F`; the files beside the open one and the viewer's side panel stand as cards beside
 the work when asked for.
+
+The explorer keeps Back, Forward and Parent Folder beside its path, with Refresh, Filter Files
+and Information at the other end. Sort and view remain quiet menus. The view menu and the lens
+share the same choices and checked state, including automatic layout, grid, covers, posters and
+mosaic. At narrow widths, counts move below the title and actions take their own line; an album
+stacks its cover and tracks when the information sheet needs the space beside it.
 
 Without a file the window is its home: the Scope mark, large and faint, one line inviting a drop or
 `Ctrl+O`, and under a hairline the last six files opened, each a quiet row with the faint glyph of

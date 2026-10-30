@@ -1,4 +1,6 @@
 # French strings of Swag Scope. A key omitted here keeps its English value.
+cmd_FilterFiles Filtrer les fichiers
+explore_NoMatches Aucun fichier ne correspond à ce filtre.
 
 ui_OpenDefault  Ouvrir avec l'application par défaut
 ui_CloseFile    Fermer le fichier
@@ -186,7 +188,6 @@ board_Posters Affiches
 board_Mosaic Mosaïque
 explore_Albums % albums
 explore_Photos % photos
-explore_Films % films
 explore_OnePage 1 page
 explore_Pages % pages
 explore_Lines % lignes

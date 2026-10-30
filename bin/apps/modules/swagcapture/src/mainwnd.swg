@@ -560,6 +560,11 @@ impl MainWnd
         .updateCommandState()
         if .taskBar != null do
             .taskBar.invalidateLayout()
+
+        // The library owns its selection and controls. Rebuild the editor when it
+        // becomes visible again, not while its whole subtree is hidden.
+        if .libraryMode do
+            return
         .updateInspectorTitle()
         .fillHintLine()
         if .propWnd != null do

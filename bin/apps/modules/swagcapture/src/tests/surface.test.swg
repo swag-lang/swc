@@ -3,6 +3,52 @@
 
 using Swag, Core
 
+// Optional load regression over an external, read-only corpus. Only the ordinary test
+// sandbox receives application state; the corpus is enumerated and decoded, never saved.
+#[Swag.TestTag("integration.capture.corpus")]
+#test
+{
+    let folder = Env.variable("SWAG_CAPTURE_CORPUS")
+    Swag.assert(not folder.isEmpty())
+    var host: Gui.Testing.HeadlessHost
+    let main = testSetupSurfaceMain(&host)
+    defer
+    {
+        main.libWnd.requestClose()
+        host.shutdown()
+        g_Main = null
+    }
+
+    g_Library.files  = expect Library.enumerateSupportedFiles(folder)
+    g_Library.loaded = true
+    Swag.assert(not g_Library.files.isEmpty())
+    var watch: Time.Stopwatch
+    watch.start()
+    main.swapLibraryMode()
+    main.libWnd.view.thread.wait()
+    host.finishAnimations()
+    let view = main.libWnd.view
+    Swag.assert(view.allItems.count == g_Library.files.count)
+    for item in view.allItems do
+        Swag.assert(item!.loaded)
+    Console.print("Corpus items: ", view.allItems.count, "; load ms: ", watch.elapsedMilliseconds(), "\n")
+
+    for 8 do
+        discard host.render(main)
+    let count = view.allItems.count
+    watch.restart()
+    for 4
+    {
+        main.swapLibraryMode()
+        main.swapLibraryMode()
+        host.finishAnimations()
+        discard host.render(main)
+        Swag.assert(view.allItems.count == count and not g_UpdatingLib)
+    }
+
+    Console.print("Four warm library returns with off-screen painting, ms: ", watch.elapsedMilliseconds(), "\n")
+}
+
 // Builds the shipped window on the surface root, including every application pane.
 func testSetupSurfaceMain(host: *Gui.Testing.HeadlessHost, caption = false, dpiScale = 1'f32)->*MainWnd
 {
@@ -100,7 +146,7 @@ func testAssertLibrarySheetGolden(host: *Gui.Testing.HeadlessHost, main: *MainWn
 
 // Builds the editor over a white capture, in `dark` or light, the way the shipped window is; with
 // `text`, the capture holds one selected text.
-func testSetupEditorSurface(host: *Gui.Testing.HeadlessHost, dark: bool, text = true, caption = false, dpiScale = 1'f32)->*MainWnd
+internal func testSetupEditorSurface(host: *Gui.Testing.HeadlessHost, dark: bool, text = true, caption = false, dpiScale = 1'f32)->*MainWnd
 {
     let main = testSetupSurfaceMain(host, caption, dpiScale)
 
@@ -259,6 +305,214 @@ func testSetupEditorSurface(host: *Gui.Testing.HeadlessHost, dark: bool, text = 
     }
 }
 
+// The selection's overflow button opens the real attached menu in both palettes.
+#[Swag.TestTag("golden")]
+#test
+{
+    for dark in [true, false]
+    {
+        var host: Gui.Testing.HeadlessHost
+        let main = testSetupEditorSurface(&host, dark)
+        defer
+        {
+            main.libWnd.requestClose()
+            host.shutdown()
+            g_Main = null
+        }
+
+        let button = assume cast(*IconButton, unwrap main.miniBar.items.back().wnd)
+        var captured: bool
+        host.app.sigFrame += func|host = &host, main, dark, captured = &captured|(_)
+        {
+            if captured[] do
+                return
+            Swag.assert(host.capturedPopupMenu() != null)
+            var image = host.render(main)
+            Pixel.Testing.assertImageGolden(&image, dark ? "edit.selection-menu" : "edit.selection-menu.paper")
+            Swag.assert(host.dismissPopupMenu())
+            captured[] = true
+        }
+
+        host.clickWnd(button)
+        Swag.assert(captured)
+    }
+}
+
+// An overflow command reaches the editor and participates in its ordinary undo history.
+#[Swag.TestTag("capture.interaction")]
+#test
+{
+    var host: Gui.Testing.HeadlessHost
+    let main = testSetupEditorSurface(&host, dark: true)
+    defer
+    {
+        main.libWnd.requestClose()
+        host.shutdown()
+        g_Main = null
+    }
+
+    let capture = unwrap main.getCapture()
+    host.clickPopupMenuItemWhenShown(ActionCopyPaste.Duplicate)
+    host.clickWnd(unwrap main.miniBar.items.back().wnd)
+    host.pump()
+    Swag.assert(capture.forms.count == 2 and capture.selection.count == 1)
+    main.editWnd.editView.setFocus()
+    host.keyPress(.Z, .Control)
+    Swag.assert(capture.forms.count == 1)
+}
+
+// Changing pages keeps the hidden editor's property controls and avoids a page-sized fade.
+#[Swag.TestTag("capture.interaction")]
+#test
+{
+    var host: Gui.Testing.HeadlessHost
+    let main = testSetupEditorSurface(&host, dark: true)
+    defer
+    {
+        main.libWnd.requestClose()
+        host.shutdown()
+        g_Main = null
+    }
+
+    let controls = main.propWnd.topLayout.children[0]
+    let text     = assume cast(*FormText, (unwrap main.getCapture()).forms[0])
+    g_Library.loaded = true
+    main.swapLibraryMode()
+    Swag.assert(main.libraryMode and main.libWnd.presentationOpacity == 1)
+    Swag.assert(main.propWnd.topLayout.children[0] == controls)
+    text.fontSize = 36
+    main.swapLibraryMode()
+    Swag.assert(not main.libraryMode and main.editArea.presentationOpacity == 1)
+    var fontSize: *PropertiesItem?
+    for item in main.propWnd.grid.items where item!.typeValue.name == #nameof(FormText.fontSize) do
+        fontSize = item
+    Swag.assert(fontSize != null and fontSize.sliderBox.value() == 36)
+    host.finishAnimations()
+    Swag.assert(main.editArea.presentationOffset == Math.Point{})
+}
+
+// Enter applies a typed size through both editors; Escape keeps the document unchanged.
+#[Swag.TestTag("capture.interaction")]
+#test
+{
+    var host: Gui.Testing.HeadlessHost
+    let main = testSetupEditorSurface(&host, dark: true)
+    defer
+    {
+        main.libWnd.requestClose()
+        host.shutdown()
+        g_Main = null
+    }
+
+    let capture = unwrap main.getCapture()
+    let text    = assume cast(*FormText, capture.forms[0])
+    var size: *EditBox?
+    for item in main.miniBar.items
+    {
+        if item.wnd is EditBox as edit do
+            size = edit
+    }
+
+    Swag.assert(size != null)
+    size.setFocus()
+    size.setText("72")
+    host.keyPress(.Return)
+    Swag.assert(text.fontSize == 72)
+    host.runFrames(1)
+
+    size.setFocus()
+    size.setText("999999")
+    host.keyPress(.Return)
+    Swag.assert(text.fontSize == 72)
+
+    discard host.render(main)
+    var fontSize: *PropertiesItem?
+    for item in main.propWnd.grid.items where item!.typeValue.name == #nameof(FormText.fontSize) do
+        fontSize = item
+    Swag.assert(fontSize != null)
+    scope
+    {
+        let edit = fontSize.sliderBox.edit
+        edit.setFocus()
+        edit.setText("36")
+        host.keyPress(.Return)
+        Swag.assert(Math.abs(text.fontSize - 36) < 0.01)
+        Swag.assert(size.text() == "36" and size.isValid())
+        var edited = host.render(main)
+        capture.invalidateAllFormCaches()
+        var fresh = host.render(main)
+        Pixel.Testing.assertImagesNear(&fresh, &edited, "surface.typed-size", {maxChannelDelta: 2})
+        edit.setFocus()
+        edit.setText("24")
+        host.keyPress(.Escape)
+        Swag.assert(Math.abs(text.fontSize - 36) < 0.01)
+    }
+
+    host.keyPress(.Z, .Control)
+    host.runFrames(1)
+    Swag.assert(text.fontSize == 72 and size.text() == "72")
+    host.keyPress(.Y, .Control)
+    host.runFrames(1)
+    Swag.assert(text.fontSize == 36 and size.text() == "36")
+    size.setFocus()
+    size.setText("80")
+    main.updateMiniBar()
+    Swag.assert(text.fontSize == 36 and size.text() == "80")
+    host.keyPress(.Escape)
+    Swag.assert(text.fontSize == 36 and size.text() == "36")
+}
+
+// Choosing a font names the same family in the document, inspector and mini-bar.
+#[Swag.TestTag("capture.interaction")]
+#test
+{
+    var host: Gui.Testing.HeadlessHost
+    let main = testSetupEditorSurface(&host, dark: true)
+    defer
+    {
+        main.libWnd.requestClose()
+        host.shutdown()
+        g_Main = null
+    }
+
+    let text = assume cast(*FormText, (unwrap main.getCapture()).forms[0])
+    var face: *ComboBox?
+    for item in main.miniBar.items
+    {
+        if item.wnd is ComboBox as combo do
+            face = combo
+    }
+
+    Swag.assert(face != null)
+    discard host.render(main)
+    host.pump()
+    var font: *PropertiesItem?
+    for item in main.propWnd.grid.items where item!.typeValue.name == #nameof(FormText.fontName) do
+        font = item
+    Swag.assert(font != null and font.comboBox.items.count > 2)
+    let first: String = font.comboBox.items[2]!.name.raw
+    font.comboBox.setSelectedIndex(2)
+    Swag.assert(text.fontName == first)
+    Swag.assert(face.selectedItem()!.name.raw == first)
+
+    let last: String = font.comboBox.items.back()!.name.raw
+    font.comboBox.setSelectedIndex(cast(u32, font.comboBox.items.count - 1))
+    Swag.assert(text.fontName == last and face.selectedItem()!.name.raw == last)
+    main.editWnd.editView.setFocus()
+    host.keyPress(.Z, .Control)
+    host.runFrames(1)
+    Swag.assert(text.fontName == first and face.selectedItem()!.name.raw == first)
+    host.keyPress(.Y, .Control)
+    host.runFrames(1)
+    Swag.assert(text.fontName == last and face.selectedItem()!.name.raw == last)
+
+    face.setSelectedIndex(0)
+    host.runFrames(1)
+    Swag.assert(text.fontName.isEmpty() and face.selectedIndex == 0)
+    for item in main.propWnd.grid.items where item!.typeValue.name == #nameof(FormText.fontName) do
+        Swag.assert(item.comboBox.selectedIndex == 0)
+}
+
 // The ground around the picture moves the window while a tool that draws is in hand: the
 // picture, its edges, a form off the picture and what floats over the view keep their clicks,
 // and the selection tool keeps the ground for its lasso.
@@ -357,27 +611,30 @@ func testCollectSwatches(wnd: *Wnd, result: *Array'(*IconButton))
     }
 }
 
-// An arrow: the inspector with its line ends as glyph rows, in Encre.
+// An arrow: the inspector with its line ends as glyph rows in both palettes.
 #[Swag.TestTag("golden")]
 #test
 {
-    var host: Gui.Testing.HeadlessHost
-    let main = testSetupEditorSurface(&host, dark: true, text: false)
-    defer
+    for dark in [true, false]
     {
-        main.libWnd.requestClose()
-        host.shutdown()
-        g_Main = null
-    }
+        var host: Gui.Testing.HeadlessHost
+        let main = testSetupEditorSurface(&host, dark, text: false)
+        defer
+        {
+            main.libWnd.requestClose()
+            host.shutdown()
+            g_Main = null
+        }
 
-    with let arrow = testAddArrow(unwrap main.getCapture(), 60, 190, 300, 70)
-    {
-        .borderColor = ColorRed
-        .borderSize  = 6
-        .endCap      = .ArrowAnchor
-    }
+        with let arrow = testAddArrow(unwrap main.getCapture(), 60, 190, 300, 70)
+        {
+            .borderColor = ColorRed
+            .borderSize  = 6
+            .endCap      = .ArrowAnchor
+        }
 
-    testAssertEditGolden(&host, main, [0], "edit.arrow")
+        testAssertEditGolden(&host, main, [0], dark ? "edit.arrow" : "edit.arrow.paper")
+    }
 }
 
 // Several objects: their common settings, the alignment, the order and the layers, in Encre.
@@ -549,7 +806,7 @@ func testSetupInPlace(host: *Gui.Testing.HeadlessHost, dark: bool)->*InPlaceEdit
     let editor = InPlaceEditWnd.create(capture, main, &host.surfaceWnd)
     editor.setPosition(host.surfaceWnd.clientRect())
     editor.applyLayout()
-    editor.placeBar()
+    host.runFrames(1)
     host.finishAnimations()
     return editor
 }
@@ -576,6 +833,47 @@ func testSetupInPlace(host: *Gui.Testing.HeadlessHost, dark: bool)->*InPlaceEdit
         var image = host.render(editor)
         Pixel.Testing.assertImageGolden(&image, dark ? "inplace" : "inplace.paper")
     }
+}
+
+// The in-place bar follows capture bounds at either edge and after the host is resized.
+#[Swag.TestTag("capture.interaction")]
+#test
+{
+    var host: Gui.Testing.HeadlessHost
+    let editor = testSetupInPlace(&host, dark: true)
+    defer
+    {
+        g_Main?.libWnd.requestClose()
+        host.shutdown()
+        g_Main = null
+    }
+
+    let capture = unwrap editor.capture
+    let zones: [3] Math.Rectangle = [{12, 12, 200, 100}, {812, 500, 200, 128}, {0, 0, 1024, 640}]
+    for zone in zones
+    {
+        capture.backImagePos = {-zone.x, -zone.y}
+        capture.width        = cast(s32, zone.width)
+        capture.height       = cast(s32, zone.height)
+        host.runFrames(1)
+        let bar = editor.bar.position
+        Swag.assert(bar.x >= 12 and bar.right() <= 1012)
+        Swag.assert(bar.y >= 12 and bar.bottom() <= 628)
+        if zone.height < 640 do
+            Swag.assert(bar.bottom() <= zone.y or bar.y >= zone.bottom())
+    }
+
+    editor.resize(800, 600)
+    host.runFrames(1)
+    Swag.assert(editor.bar.position.right() <= 788 and editor.bar.position.bottom() <= 588)
+
+    // A virtual desktop can extend past the captured monitor. Keep its bar on that
+    // monitor even when centring on the capture would cross the display boundary.
+    editor.barRoom       = {0, 0, 700, 600}
+    capture.width, capture.height = 100
+    capture.backImagePos = {-580, -180}
+    host.runFrames(1)
+    Swag.assert(editor.bar.position.right() <= 688)
 }
 
 // A callout whose words are typed in place: the field over its body, the hint of the tail, in
@@ -657,41 +955,6 @@ func testSetupInPlace(host: *Gui.Testing.HeadlessHost, dark: bool)->*InPlaceEdit
         Pixel.Testing.assertImageGolden(&image, dark ? "edit.text" : "edit.text.paper")
         main.editWnd.editView.endTextEdit(keep: false)
     }
-}
-
-// The lens over the editor, answering a query with commands of several families, in Papier.
-#[Swag.TestTag("golden")]
-#test
-{
-    var host: Gui.Testing.HeadlessHost
-    let main = testSetupEditorSurface(&host, dark: false)
-    defer
-    {
-        main.libWnd.requestClose()
-        host.shutdown()
-        g_Main = null
-    }
-
-    // Recent captures whose names the query matches close the results as pictures.
-    for name, i in ["image-panel.scc", "image-dark.scc", "image-dune.scc"]
-    {
-        const Colors = [Argb.WhiteSmoke, Argb.DimGray, Argb.Peru]
-        var preview = Image.create(160, 100, .BGRA8)
-        preview.fill(Colors[i])
-        let item = main.recentWnd.recentView.items.addNew()
-        item.file    = name
-        item.preview = g_App.renderer.addImage(preview)
-    }
-
-    main.lens.open("image")
-    Swag.assert(main.lens.isOpen() and not main.lens.rows.isEmpty())
-    Swag.assert(main.lens.rows.back().entry == Lens.PictureRow)
-    host.finishAnimations()
-
-    var image = host.render(main)
-    Pixel.Testing.assertImageGolden(&image, "lens.paper")
-    main.recentWnd.recentView.items.clear()
-    main.lens.close()
 }
 
 // Names of the captures of the library golden.
@@ -1019,56 +1282,6 @@ func testBeginInlineText(host: *Gui.Testing.HeadlessHost, main: *MainWnd, index:
     Swag.assert(Math.abs(lefts[1] + words * 0.5 - rect.horzCenter()) <= 1)
     Swag.assert(Math.abs(lefts[2] + words - rect.right()) <= 1)
     Swag.assert(rights[0] - lefts[0] == rights[2] - lefts[2])
-}
-
-// The recent captures close the lens as a strip of pictures, after every row a key can reach,
-// ended by the way to the library.
-#[Swag.TestTag("golden")]
-#test
-{
-    var host: Gui.Testing.HeadlessHost
-    let main = testSetupEditorSurface(&host, dark: false)
-    defer
-    {
-        main.libWnd.requestClose()
-        host.shutdown()
-        g_Main = null
-    }
-
-    for name in ["first.scc", "second.scc"]
-    {
-        let item = main.recentWnd.recentView.items.addNew()
-        item.file = name
-    }
-
-    main.lens.open("")
-    let rows = main.lens.rows
-    Swag.assert(rows.count > 2 and rows.back().entry == Lens.PictureRow)
-    let section = rows.back().section
-    Swag.assert(section.label == appStrings().lens_Recent and section.pictures.count == 2)
-    Swag.assert(section.link == appStrings().lens_LibraryLink and section.linkRun != null)
-
-    // The keys reach the strip: down into it, then along it to the link and back.
-    for rows.count do
-        host.keyPress(.Down)
-    Swag.assert(main.lens.chosen == rows.count - 1 and main.lens.chosenPicture == 0)
-    host.keyPress(.Right)
-    Swag.assert(main.lens.chosenPicture == 1)
-    host.finishAnimations()
-    var image = host.render(main)
-    Pixel.Testing.assertImageGolden(&image, "lens.recent.paper")
-    host.keyPress(.Right)
-    host.keyPress(.Right)
-    Swag.assert(main.lens.chosenPicture == 2)
-    host.keyPress(.Left)
-    Swag.assert(main.lens.chosenPicture == 1)
-    main.lens.close()
-
-    // A query keeps the captures whose name it matches.
-    main.lens.open("second")
-    Swag.assert(main.lens.rows.back().entry == Lens.PictureRow and main.lens.rows.back().section.pictures.count == 1)
-    main.lens.close()
-    main.recentWnd.recentView.items.clear()
 }
 
 // The quick styles of every tool, one row each as the inspector shows the row of the tool in

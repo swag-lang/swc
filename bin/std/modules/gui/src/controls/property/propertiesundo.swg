@@ -234,8 +234,14 @@ internal impl Properties
     // at their addresses, there is nothing to refresh here.
     mtd postUndoRefresh(generation: u64)
     {
-        if generation != .generation do
+        if generation != .generation
+        {
+            // The old rows are gone, but their document still changed. Let the host
+            // invalidate retained content and update its dirty state without a row.
+            .sigValueChanged.call(me, null)
+            .hostNtfy?.itemHasChanged(me, null)
             return
+        }
 
         .applyingUndo = true
         .refresh()

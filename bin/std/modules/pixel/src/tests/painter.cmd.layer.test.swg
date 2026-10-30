@@ -2,6 +2,44 @@
 
 using Swag, Core
 
+// Resizing a retained shadowed layer must match scaling its whole composite, including
+// margins and offsets. Compare images so a misplaced coloured body cannot hide in a shadow.
+#test
+{
+    func renderScaledLayer(transformed: bool)->Image
+    {
+        var cpu:      RenderCpu
+        let renderer: IRenderer = &cpu
+        renderer.init()
+        var target = renderer.createRenderTarget(240, 160)
+        defer renderer.deleteRenderTarget(&target)
+        var painter = Painter.create(renderer)
+        painter.begin()
+        painter.bindRenderTarget(&target)
+        painter.setColorMaskFull()
+        painter.clear(Color.fromArgb(Argb.White))
+
+        var layer: Layer
+        layer.begin(&painter, {width: 64, height: 32})
+        painter.fillRoundRect({8, 4, 48, 24}, 4, 4, Color.fromArgb(Argb.Red))
+        layer.end()
+        var draw: LayerDrawInfo
+        draw.dstRect = transformed ? Math.Rectangle{20, 20, 64, 32} : Math.Rectangle{40, 60, 128, 96}
+        draw.shadow  = {enabled: true, radius: 4, offsetX: 3, offsetY: 5}
+        if transformed do
+            painter.scaleTransform(2, 3)
+        layer.draw(draw)
+        painter.unbindRenderTarget()
+        painter.end()
+        renderer.draw(&painter)
+        return renderer.readRenderTarget(&target, 0, 0, 240, 160)
+    }
+
+    var expected = renderScaledLayer(true)
+    var actual   = renderScaledLayer(false)
+    Testing.assertImagesNear(&expected, &actual, "layer.scaled-shadow", {maxChannelDelta: 2})
+}
+
 // Command-stream goldens for off-screen layers.
 //
 // A layer is the most command-heavy thing the painter does: it acquires render targets, redirects

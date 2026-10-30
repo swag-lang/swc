@@ -1,10 +1,11 @@
 {
   "compiler_code_revisions": {
     "control": "3965e1b51",
-    "pages": "ecb64e0f2e"
+    "pages": "ecb64e0f2e",
+    "archive": "cc9549202b"
   },
   "baseline": "Original mimalloc 3.6.0 DevMode compiler, before the memory changes",
-  "current": "Control checkpoint plus common layout savings, compact page ranges and geometric direct page tables",
+  "current": "Common memory batches through mapped archives; application measurements are identified by source revision",
   "sources": "The frozen application/runtime/standard-library snapshot from 20261030-mimalloc360",
   "note": "Single observations on a shared host; failed runs are retained as diagnostic evidence and excluded from performance conclusions.",
   "runs": {
@@ -488,6 +489,46 @@
       "compiler_code_revision": "ecb64e0f2e",
       "timing_comparable": false,
       "timing_note": "Host busy for 82.76% of the run; admission sampled 9%. The earlier Release checkpoint used default affinity, while this run used six performance cores."
+    },
+    "archive-cpp": {
+      "exit": 0,
+      "started_unix": 1793362604.0803406,
+      "affinity_mask": 0,
+      "effective_affinity_mask": 4194303,
+      "system_affinity_mask": 4194303,
+      "affinity_verified": false,
+      "host_busy_pct": 73.33556875518937,
+      "other_process_cpu_ms_estimate": 3061578.125,
+      "wall_ms": 223455.7503,
+      "first_stdout_ms": null,
+      "cpu_ms": 187609.375,
+      "user_cpu_ms": 151140.625,
+      "kernel_cpu_ms": 36468.75,
+      "job_cpu_ms": 526593.75,
+      "page_faults": 260814,
+      "job_processes": 112,
+      "peak_job_bytes": 541138944,
+      "peak_proc_bytes": 436998144,
+      "peak_working_set_bytes": 466255872,
+      "stdout": "  \u25c6  swag        unittest \u2022 sources\r\n  \u2713  tested      1_692 passed \u2022 3 min 41 s\r\n  \u2713  clean       3 min 42 s\r\n",
+      "stderr": "\r\n",
+      "harness_sha256": "c9842f214d4c6c223ced251e7a65c9ff860707c2e3318fc73acdf13c0a795f95",
+      "allocator_error": false,
+      "mimalloc_options": {},
+      "command": [
+        "C:\\Perso\\swag-lang\\swc-mimalloc-360-20261030\\bin\\swc.dm.exe",
+        "unittest",
+        "--dev-full",
+        "--num-cores",
+        "6",
+        "--no-log-color",
+        "--no-log-progress"
+      ],
+      "compiler_sha256": "3c25a7753e6c9dbfcb87527f339f617464ce33ee857f247ca65942d4d833f7de",
+      "valid": true,
+      "compiler_code_revision": "cc9549202b",
+      "timing_comparable": false,
+      "timing_note": "Correctness validation with filesystem tests, not an application timing comparison."
     }
   }
 }

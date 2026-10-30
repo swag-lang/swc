@@ -309,8 +309,7 @@ use the same change.
 Move construction carries the policy; move assignment swaps it with the storage. A focused
 C++ regression covers reference and pointer stability over growth, both move operations,
 reuse and clear, including reverse lookup on the enabled store exchanged by assignment.
-The new regression and this batch have not yet been compiled or run. Formatting, call-site
-inspection and diff checks are the current validation; grouped builds are deferred as requested.
+The new regression passed the grouped validation of revision `cc9549202b` described below.
 Neither the measurements above nor the frozen `swc.pages` binaries include this batch.
 
 ## Sampled allocation profile
@@ -344,7 +343,7 @@ existing release path. The ordinary retained-capacity path is unchanged.
 Previously, the next insertion saw an empty vector and allocated a new initial table anyway;
 rehashing then destroyed the retained old buffer. The change brings that same deallocation
 forward to clear, without adding a reallocation on reuse. Existing tracked and untracked
-large/small-fill tests cover the lookup/refill behavior; they have not been rerun for this edit.
+large/small-fill tests cover the lookup/refill behavior and passed the grouped validation below.
 
 ## Compact register-allocation records
 
@@ -354,9 +353,8 @@ per-register state. Grouping the wide fields and the small tags reduces normal x
 reduces that queued record from 192 to 184 bytes. All fields, default values, capacities and
 algorithms remain; no packing, decoding or additional lookup is introduced.
 
-Compile-time size assertions guard these layouts. The map-release fix and this layout batch
-have passed static review and diff checks, but are not yet built or measured. They are grouped
-with the unused reverse-index change for the next compiler validation checkpoint.
+Compile-time size assertions guard these layouts and passed both grouped compiler builds.
+Application measurements for this batch are separate from those of the preceding checkpoint.
 
 ## Map linker archives instead of copying entire files
 
@@ -376,7 +374,14 @@ without forcing a two-second scanner retry.
 A filesystem regression checks that returned member bytes are actually mapped, survive archive
 moves and file replacement, and decode the correct old/new imports. It also covers reloading
 between mapped and owned storage, missing files, malformed archives and the empty-file fallback.
-This change is not yet built or measured. The next grouped checkpoint covers it, omitted reverse
-indexes, sparse map release and register-allocation record layouts: both compiler builds, internal
-C++ tests including filesystem cases, and a real linked application. Timing remains a separate
-controlled comparison; avoiding file copies is not by itself a measured speed result.
+Both compiler builds succeeded at revision `cc9549202b`. All 1,692 DevMode C++ tests passed
+with `unittest --dev-full --num-cores 6`, including the filesystem regression and the preceding
+page-store and map tests, with no mimalloc error. The executable hashes are:
+
+- DevMode: `3c25a7753e6c9dbfcb87527f339f617464ce33ee857f247ca65942d4d833f7de`
+- Release: `adfef54e3b0f715075e9fab72f65e10c1ddd818dcf81dda55d50086d542f9acf`
+
+The real linked application measurement is pending. Timing remains a separate controlled
+comparison; avoiding file copies is not by itself a measured speed result. The measurement
+harness now checks the effective process affinity before starting execution and records its own
+source hash. Earlier pinned observations recorded the requested mask without that readback.

@@ -77,6 +77,7 @@ internal struct CpuBackdropCache
     result: Image
     key:    CpuBackdropCacheKey
     valid:  bool
+    used:   bool
     hits:   u64
 }
 
@@ -95,7 +96,7 @@ internal impl CpuBackdropCache
 
     func acceptsSize(width, height: s32)->bool => width > 0 and height > 0 and cast(u64, width) <= MaxBytes / 8 / cast(u64, height)
 
-    mtd retainedBytes()->u64 => .source.pixels.count + .result.pixels.count
+    mtd const retainedBytes()->u64 => .source.pixels.count + .result.pixels.count
 }
 
 // A texture of [[Pixel.RenderCpu]], held in system memory.
@@ -2313,8 +2314,9 @@ private impl RenderCpu
         // The sampler clamps to the declared useful extent. Mapping and physical texture
         // dimensions also belong in the key because they affect floating-point coordinates.
         let cache = &.backdropCache[.backdropPass.mode]
-        let key   = CpuBackdropCacheKey{.backdropPass.radius, .contentScale, source.width, source.height,
-                                        target.width, target.height, .paint.textureRect, .paint.boundRect, batch.transform}
+        cache.used = true
+        let key = CpuBackdropCacheKey{.backdropPass.radius, .contentScale, source.width, source.height,
+                                      target.width, target.height, .paint.textureRect, .paint.boundRect, batch.transform}
         let rowBytes = cast(u64, width) * 4
         var same     = cache.valid and
                        cache.source.width == width and
@@ -2797,7 +2799,36 @@ impl RenderCpu
     // Finishes a CPU frame.
     //
     // CPU rendering is synchronous, so this operation does not present or wait for work.
-    internal mtd endImpl() {}
+    internal mtd endImpl()
+    {
+        for &cache in .backdropCache
+        {
+            if cache.used
+            {
+                cache.used = false
+            }
+            else
+            {
+                Swag.drop(cache, 1)
+                Swag.init(cache, 1)
+            }
+        }
+
+        for index in reversed(.stackReleasedRT.count)
+        {
+            let target = unwrap .stackReleasedRT[index]
+            if not target.poolUsed
+            {
+                .stackReleasedRT.removeAt(index)
+                .deleteRenderTargetImpl(target)
+                Memory.delete(target)
+            }
+            else
+            {
+                target.poolUsed = false
+            }
+        }
+    }
 
     // Returns an owned copy of the current surface pixels.
     mtd surfaceImage()->Image
@@ -3070,26 +3101,14 @@ impl RenderCpu
     internal mtd acquireRenderTargetImpl(width, height: s32)->*RenderTarget
     {
         Swag.assert(width > 0 and height > 0, "acquireRenderTarget needs positive width and height")
-        let w2 = Math.roundUpToPowerOf2(cast(u32, width))
-        let h2 = Math.roundUpToPowerOf2(cast(u32, height))
+        let w2 = (cast(u32, width) + 63) & ~63'u32
+        let h2 = (cast(u32, height) + 63) & ~63'u32
 
-        // Prefer the same-size bucket before consuming a larger target. Besides retaining
-        // the expensive large allocations for draws that need them, this mirrors RenderOgl
-        // and keeps the sampled texture extent aligned with the requested layer whenever possible.
+        // Match RenderOgl's small buckets and let larger, unused targets expire.
         for rt, idx in .stackReleasedRT
         {
             let candidate = unwrap rt
             if candidate.colorBuffer.width == w2 and candidate.colorBuffer.height == h2
-            {
-                .stackReleasedRT.removeAt(idx)
-                return candidate
-            }
-        }
-
-        for rt, idx in .stackReleasedRT
-        {
-            let candidate = unwrap rt
-            if candidate.colorBuffer.width >= w2 and candidate.colorBuffer.height >= h2
             {
                 .stackReleasedRT.removeAt(idx)
                 return candidate
@@ -3107,7 +3126,9 @@ impl RenderCpu
     // [[Pixel.RenderCpu.acquireRenderTarget]]. Ownership transfers back to the renderer.
     internal mtd releaseRenderTargetImpl(target: *RenderTarget?)
     {
-        if target do
-            .stackReleasedRT.add(target)
+        if not target do
+            return
+        target.poolUsed = true
+        .stackReleasedRT.add(target)
     }
 }

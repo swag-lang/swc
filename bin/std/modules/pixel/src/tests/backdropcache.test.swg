@@ -67,7 +67,7 @@ func assertSamePixels(first, second: Image)
 }
 
 // Device scale and extent belong in the key. Clipped and translated draws use the general
-// path and must neither consume nor overwrite the complete-rectangle cache.
+// path and let the unused complete-rectangle cache expire.
 #test
 {
     var source = Image.create(40, 24, .BGRA8)
@@ -81,13 +81,31 @@ func assertSamePixels(first, second: Image)
     Swag.assert(cpu.backdropCache[0].hits == 1)
     assertSamePixels(drawGaussian(&cpu, source, clipped: true), drawGaussian(&fresh, source, clipped: true))
     assertSamePixels(drawGaussian(&cpu, source, translated: true), drawGaussian(&fresh, source, translated: true))
-    Swag.assert(cpu.backdropCache[0].hits == 1)
+    Swag.assert(cpu.backdropCache[0].retainedBytes() == 0)
 
     source = Image.create(31, 19, .BGRA8)
     source.fill(Argb.Green)
     assertSamePixels(drawGaussian(&cpu, source), drawGaussian(&fresh, source))
-    Swag.assert(cpu.backdropCache[0].hits == 1)
+    Swag.assert(cpu.backdropCache[0].hits == 0)
     Swag.assert(cpu.backdropCache[0].source.width == 31 and cpu.backdropCache[0].source.height == 19)
+}
+
+// Closing a backdrop releases the cached source/result images on the next ordinary frame.
+#test
+{
+    var source = Image.create(40, 24, .BGRA8)
+    source.fill(Argb.Red)
+    var cpu: RenderCpu
+    discard drawGaussian(&cpu, source)
+    discard drawGaussian(&cpu, source)
+    Swag.assert(cpu.backdropCache[0].hits == 1)
+    Swag.assert(cpu.backdropCache[0].retainedBytes() == 40 * 24 * 8)
+
+    let renderer: IRenderer = &cpu
+    renderer.begin({width: 40, height: 24})
+    renderer.end()
+    for cache in cpu.backdropCache do
+        Swag.assert(cache.retainedBytes() == 0 and not cache.valid)
 }
 
 // Both passes fit a 4K screen using useful texels, within a fixed total retention budget.

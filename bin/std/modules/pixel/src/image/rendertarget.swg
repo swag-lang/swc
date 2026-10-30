@@ -18,6 +18,7 @@ struct RenderTarget
     {
         paintAlpha:    bool     // Whether alpha requires a separate resolve pass.
         paintAlphaIdx: u64      // Renderer sequence number associated with the alpha resolve state.
+        poolUsed:      bool     // Whether a borrower returned this target during the current frame.
     }
 }
 

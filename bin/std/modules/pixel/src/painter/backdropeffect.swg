@@ -99,10 +99,15 @@ impl BackdropEffect
         painter.releaseRenderTarget(content.target)
 
         // All intermediate coordinates are logical; their textures retain device resolution.
-        let pass = func|painter, renderer, scale|(source: BackdropImage, w, h: s32, params: BackdropPass)->BackdropImage
+        let pass = func|painter, renderer, scale|(source: BackdropImage,
+                                                  w,
+                                                  h: s32,
+                                                  params: BackdropPass,
+                                                  reuse: *RenderTarget?)->BackdropImage
         {
-            let target = renderer.acquireRenderTarget(w, h)
-            painter.releaseRenderTarget(target)
+            let target = reuse orelse renderer.acquireRenderTarget(w, h)
+            if not reuse do
+                painter.releaseRenderTarget(target)
             painter.bindRenderTarget(target)
             painter.setAntialiased(false)
             painter.setInterpolationMode(.Linear)
@@ -124,8 +129,12 @@ impl BackdropEffect
             switch #complete algorithm
             {
             case .Gaussian:
-                content = pass(content, width, height, {mode: 0, radius: radius * scale})
-                content = pass(content, width, height, {mode: 1, radius: radius * scale})
+
+                // The capture is no longer read after the horizontal pass. Reuse its storage
+                // for the vertical result; recorded commands preserve that dependency order.
+                let captureTarget = content.target
+                content = pass(content, width, height, {mode: 0, radius: radius * scale}, null)
+                content = pass(content, width, height, {mode: 1, radius: radius * scale}, captureTarget)
 
             case .DualKawase:
 
@@ -148,11 +157,11 @@ impl BackdropEffect
                     let w        = Math.max(1, (previous.x + 1) / 2)
                     let h        = Math.max(1, (previous.y + 1) / 2)
                     sizes[level + 1] = {w, h}
-                    content = pass(content, w, h, {mode: 2, radius: offset})
+                    content = pass(content, w, h, {mode: 2, radius: offset}, null)
                 }
 
                 for var level = levels - 1; level >= 0; level -= 1 do
-                    content = pass(content, sizes[level].x, sizes[level].y, {mode: 3, radius: offset})
+                    content = pass(content, sizes[level].x, sizes[level].y, {mode: 3, radius: offset}, null)
             }
         }
 

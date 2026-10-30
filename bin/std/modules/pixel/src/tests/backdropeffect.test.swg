@@ -2,6 +2,24 @@
 
 using Core
 
+// The separable Gaussian reuses its capture for the second axis.
+#test
+{
+    var cpu:      RenderCpu
+    let renderer: IRenderer = &cpu
+    renderer.begin({width: 96, height: 64})
+    var painter = Painter.create(renderer)
+    painter.begin()
+    BackdropEffect{algorithm: .Gaussian, radius: 6}.draw(&painter, {0, 0, 96, 64})
+    painter.end()
+    var targets = 0
+    for command in painter.commandBuffer where Swag.kindOf(command.op) == .ReleaseRenderTarget do
+        targets += 1
+    Swag.assert(targets == 2)
+    renderer.draw(&painter)
+    renderer.end()
+}
+
 // Both backends run this scene, with a translated, clipped material over an opaque ground.
 func renderBackdropScene(renderer: IRenderer, algorithm: BackdropBlur, scale: f32 = 1)->Image
 {

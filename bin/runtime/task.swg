@@ -163,9 +163,16 @@ impl Task
     // [[Swag.Task.take]] will not wait, for example by posting an event to a window. It must be
     // short, and must not wait for this task.
     //
-    // A `Background` task runs its body at a lower thread priority, whichever thread runs it, so
-    // a long load or count does not slow the interface down. An `executor` runs the task on its own
-    // thread, after every task submitted to it before; otherwise a pool worker runs it.
+    // A `Background` task runs its body at a lower thread priority. On the shared pool, background
+    // work is admitted in submission order against one process-wide CPU and memory budget.
+    // Pressure reduces new admissions; already running bodies finish normally. Normal work has
+    // priority, with bounded preference so admitted background work can still progress.
+    //
+    // Waiting for a task promotes its queued work past admission; a direct wait can run it itself.
+    // This also applies to [[Swag.whenAll]] and [[Swag.whenAny]]. The budget
+    // is not a synchronization primitive or a memory guarantee: pool tasks must not block waiting
+    // for unrelated queued tasks. Use an [[Swag.Executor]] for thread-affine or blocking work.
+    // An `executor` runs the task on its own thread, in submission order, outside pool admission.
     //
     // The task must not already be in flight. A task may be submitted again after it finished;
     // an outcome nobody took is released then.
@@ -277,7 +284,7 @@ private impl Task
         if executor do
             executor.post(&.node)
         else do
-            submitWork(&.node)
+            submitWork(&.node, .priority == .Background)
     }
 
     // Runs a body that cannot fail and stores its value.
@@ -635,6 +642,8 @@ private func runFallibleChild(child: *GroupChild)
 // task's error again. Every task must be submitted, and its outcome not taken yet.
 public func(T) whenAll(tasks: [..] Task'T) fail
 {
+    for &task in tasks do
+        requestWork(&task.node)
     waitWorkChange(func|tasks|()->bool
     {
         var pending = false
@@ -668,6 +677,8 @@ public func(T) whenAll(tasks: [..] Task'T) fail
 public func(T) whenAny(tasks: [..] Task'T)->u64 fail
 {
     Swag.assert(tasks.count != 0, "whenAny needs at least one task")
+    for &task in tasks do
+        requestWork(&task.node)
     waitWorkChange(func|tasks|()->bool
     {
         var pending = false

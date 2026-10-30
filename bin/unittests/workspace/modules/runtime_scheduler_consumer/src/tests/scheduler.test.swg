@@ -15,11 +15,12 @@ private func sleep(milliseconds: u32)
     var started: Swag.AtomicFlag
     var parked = false
     var task:    Swag.Task
-    for 16
+    for round in 16
     {
         started.reset()
         parked = false
-        SchedulerDll.submitObserved(&task, &started, &parked)
+        SchedulerDll.submitObserved(&task, &started, &parked,
+                                    priority: round % 2 == 0 ? Swag.TaskPriority.Background : Swag.TaskPriority.Normal)
         for 1000
         {
             if started.isRaised() do
@@ -29,5 +30,9 @@ private func sleep(milliseconds: u32)
         task.wait()
         Swag.assert(started.isRaised() and parked and task.isDone())
         Swag.assert(scheduler.joining.load() == 0)
+        scheduler.mutex.lock()
+        let backgroundRunning = scheduler.backgroundRunning
+        scheduler.mutex.unlock()
+        Swag.assert(backgroundRunning == 0)
     }
 }

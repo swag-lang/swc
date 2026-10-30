@@ -12,7 +12,6 @@ const SurfaceId   = "swag.prism"
     // The theme atlas and the editor's own measurement work fan through the runtime's shared
     // worker pool, and so does the compilation the window runs off its own thread. Starting it
     // here keeps that cost out of the first compilation.
-    Swag.startWorkers()
 
     g_App.setAppIcon(expect Image.decode(".png", AppIcon))
     g_App.setStatePath(Path.combine(Env.getSpecialDirectory(.UserAppData), "Swag", "prism", "settings.scc"))

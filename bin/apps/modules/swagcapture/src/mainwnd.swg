@@ -999,19 +999,16 @@ impl MainWnd
         let srf = unwrap parent.surface
         srf.minSize = {1024, 512}
 
-        var imgApp: Image
-        #static if #command == Swag.CompilerCommand.Test do
-            imgApp = Image.create(512, 512, .RGBA8)
-        else do
-            imgApp = expect Image.decode(".png", AppIcon)
-
         let renderer = parent.app().renderer
 
         with let result = Wnd.create'MainWnd(parent, "capture.mainwnd")
         {
             result.surface!.setView(result)
             .icons.setup(renderer, captureIcons())
-            .appIcon.set(renderer.addImage(imgApp))
+            #static if #command == Swag.CompilerCommand.Test do
+                .appIcon.set(renderer.addImage(Image.create(512, 512, .RGBA8)))
+            else do
+                .appIcon.set(renderer.addImage(parent.app().appIcon))
             .backgroundStyle = .Window
             .mdlFavorite     = &result.mdlFormShape
             .mdlHighlight    = &result.mdlFormShape

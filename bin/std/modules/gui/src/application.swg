@@ -1134,12 +1134,6 @@ impl Application
             .renderer.setCurrentContext(surface.rc)
             .renderer.init()
 
-            // Spin up the shared worker pool before anything rasterizes. The theme setup
-            // right below is the heaviest CPU work of a startup and its rasterizers band
-            // themselves across the pool; starting the pool after it would leave that one
-            // step, the only one that matters, running on a single thread.
-            Swag.startWorkers()
-
             .theme.setupDefault(.renderer, &.resources, surface.dpiScale)
             .mainSurface = surface
         }

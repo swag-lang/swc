@@ -64,7 +64,6 @@ private func registerViewerFileTypes(registry: const *ViewerPluginRegistry)
 
     // Large image, audio, and video viewers fan their independent work through the runtime's
     // shared worker pool. Starting it here keeps that cost out of the first opened file.
-    Swag.startWorkers()
 
     g_App.setAppIcon(expect Image.decode(".png", AppIcon))
     g_App.setStatePath(Path.combine(Env.getSpecialDirectory(.UserAppData), "Swag", "scope", "settings.scc"))

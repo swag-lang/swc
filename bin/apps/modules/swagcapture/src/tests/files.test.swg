@@ -794,7 +794,13 @@ func testPrepareRecentLibrary(main: *MainWnd)
     let root = Gui.Testing.tempFilePath("capture-startup-", "")
     expect Directory.create(root)
     defer discard catch Directory.delete(root, recurse: true)
+    let previousDefault = g_Library.defaultFolder
+    defer g_Library.defaultFolder = previousDefault
+    g_Library.defaultFolder = root
     expect g_Library.setFolder(root)
+
+    // State shares the file extension but must never consume a recent-document load turn.
+    discard expect File.writeAllText(Library.getStatePath(), "application state")
 
     f.capture.preview = Gui.Testing.indexedImage(32, 20)
     f.capture.file    = Path.combine(root, "newest.scc")
@@ -805,7 +811,19 @@ func testPrepareRecentLibrary(main: *MainWnd)
     f.editView.capture = null
     Memory.delete(f.capture)
     f.main.recentWnd = RecentWnd.create(f.main, f.main)
-    f.main.recentWnd.loadRecent()
+    f.main.recentWnd.scheduleLoadRecent()
+    Swag.assert(not f.main.recentWnd.loadDone)
+    f.gui.fireTimer(f.main.recentWnd.loadTimer)
+    Swag.assert(f.main.recentWnd.loadDone)
+    Swag.assert(f.main.recentWnd.pendingRecentFiles.count == 1)
+    Swag.assert((expect Library.enumerateSupportedFiles(root)).count == 1)
+
+    // The same basename remains an ordinary capture outside the reserved state path.
+    let elsewhere = Path.combine(root, "elsewhere")
+    expect Directory.create(elsewhere)
+    let captureBytes = expect File.readAllBytes(capturePath)
+    discard expect File.writeAllBytes(Path.combine(elsewhere, "settings.scc"), captureBytes.toSlice())
+    Swag.assert((expect Library.enumerateSupportedFiles(elsewhere)).count == 1)
 
     Swag.assert(not g_Library.loaded)
     while f.main.recentWnd.loadTimer

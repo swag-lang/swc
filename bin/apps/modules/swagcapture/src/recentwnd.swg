@@ -418,7 +418,7 @@ impl RecentWnd
         if .loadDone or .loadTimer do
             return
         .prepareLoadRecent = true
-        .loadTimer         = .addTimer(100'ms)
+        .loadTimer         = .addTimer(1'ms)
     }
 
     // Drops `file` from the recent strip once the library deleted it.
@@ -467,7 +467,9 @@ impl RecentWnd
         var result = catch Directory.enumerateFiles(Library.getFolder())
         result.sort(func(a, b) => b.lastWriteTime <=> a.lastWriteTime)
 
-        for r in result where Capture.isFileName(r.fullName) do
+        // The application state is an SCC container too, but never a capture to open.
+        let state = Library.getStatePath()
+        for r in result where Capture.isFileName(r.fullName) and not Path.equals(r.fullName, state) do
             .pendingRecentFiles.add(r.fullName)
 
         .scheduleLoadNextRecent()

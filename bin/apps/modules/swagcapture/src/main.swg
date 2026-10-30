@@ -33,11 +33,10 @@ const OpenImageMessage = 1'u32
             return
     }
 
-    Swag.startWorkers()
     try Library.init()
 
     // Settings use a role-based file name so a product rename does not change their identity.
-    g_App.setStatePath(Path.combine(Library.getDefaultFolder(), "settings.scc"))
+    g_App.setStatePath(Library.getStatePath())
 
     let appIcon = expect Image.decode(".png", AppIcon)
     g_App.setAppIcon(appIcon)

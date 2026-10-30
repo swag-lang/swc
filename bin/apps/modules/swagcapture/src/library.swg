@@ -49,6 +49,10 @@ impl Library
         return g_Library.defaultFolder
     }
 
+    // Returns the application state file, outside the capture index even though it shares
+    // the SCC extension. It stays in the default folder when the library is redirected.
+    func getStatePath()->String => Path.combine(getDefaultFolder(), "settings.scc")
+
     // Returns the configured folder holding captures and browsable images.
     //
     // Nothing here knows about testing: a sandboxed run answers the documents folder inside
@@ -93,7 +97,9 @@ impl Library
     {
         var result: #returntype
         let files = try Directory.enumerateFiles(folder)
-        for fi in files where Capture.isFileName(fi.fullName) or Image.canLoad(fi.fullName) do
+        let state = getStatePath()
+        for fi in files where not Path.equals(fi.fullName, state) and
+                              (Capture.isFileName(fi.fullName) or Image.canLoad(fi.fullName)) do
             result.add(fi)
         return result
     }

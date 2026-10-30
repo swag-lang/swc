@@ -29,8 +29,19 @@ internal func paintFloatingShadow(wnd: *Wnd, painter: *Painter, body: Math.Recta
 // `paintFloatingShadow`.
 internal func paintFloatingGround(wnd: *Wnd, painter: *Painter, body: Math.Rectangle, radius: f32)
 {
+    let theme   = wnd.theme()
     let colors  = wnd.themeColors()
     let metrics = wnd.themeMetrics()
+
+    // The standard floating corner already has an atlas mask. Use it for the shared surface so
+    // panels and framed panels take the same shape from `widgets.svg`; keep direct painting for
+    // the smaller component-specific corners and an explicitly customized FloatingPanel radius.
+    if radius == metrics.corner_Floating
+    {
+        theme.drawSubRect(painter, body, &theme.rects.frameWnd_RoundBk, colors.surface)
+        theme.drawSubRect(painter, body, &theme.rects.frameWnd_RoundBorder, colors.line)
+        return
+    }
 
     // The painter strokes a hairline on the half pixel inside the edges it is given, so the ring
     // traces the body itself: inset by hand as well, it lands a whole pixel in on the left and top

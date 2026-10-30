@@ -567,6 +567,7 @@ impl ThemeColors
     // state as an opacity of 40 to 45 percent; written as a mix it stays opaque, so a disabled
     // label drawn twice never reads darker than one drawn once.
     private const StrongLineMix = 0.4'f32
+    private const FieldBorderMix = 0.25'f32
     private const DisabledMix   = 0.42'f32
 
     // The ring of an unavailable control is the hairline at the opacity of disabled ink, so it
@@ -664,6 +665,9 @@ impl ThemeColors
 
         let pressed    = shiftState(p.raised, PressedShift)
         let strongLine = Color.lerpRgb(p.line, p.faintText, StrongLineMix)
+        // Resting fields and popup surfaces need a clearer edge on the dark palette. Keep the
+        // general hairline and separators quiet, and lift just these two outlines toward the ink.
+        let fieldBorder = p.ground.relativeLuminance() <= 0.5 ? Color.lerpRgb(p.line, p.faintText, FieldBorderMix) : p.line
         let disabled   = Color.lerpRgb(p.ground, p.text, DisabledMix)
         let faintLine  = Color.lerpRgb(p.ground, p.line, DisabledLineMix)
 
@@ -930,9 +934,9 @@ impl ThemeColors
         .url_HotText = shiftState(.link, StrongHotShift)
         .url_HotText.ensureContrast(p.ground, LinkContrast)
 
-        // A field is the surface with a hairline ring. Hover strengthens the ring; the focus
+        // A field is the surface with a clear resting ring. Hover strengthens the ring; the focus
         // replaces it with two pixels of what acts, and a rejected value with two of critical.
-        .edit_Border         = p.line
+        .edit_Border         = fieldBorder
         .edit_FocusBorder    = signature.mark
         .edit_HotBorder      = strongLine
         .edit_DisabledBorder = faintLine
@@ -1044,10 +1048,10 @@ impl ThemeColors
         .tabView_FlatBk                   = .transparent
         .tabView_RoundBk                  = p.surface
 
-        // A menu is a floating surface with a hairline ring. Its entry under the pointer is
+        // A menu is a floating surface with a clear resting outline. Its entry under the pointer is
         // chosen, so it is the selection ground; a check is Arc, a shortcut and a chevron faint.
         .menuPopup_Bk         = p.surface
-        .menuPopup_Border     = p.line
+        .menuPopup_Border     = fieldBorder
         .menuPopup_Shadow     = p.shadow
         .menuPopup_Separator  = p.line
         .menuBar_Bk           = p.ground

@@ -829,7 +829,8 @@ impl ViewerWindow
         let group   = .searchGroup.itf.measureContent({})
         let width   = Math.min(group.x, Math.max(area.width - 2 * metrics.floating_Inset - pad.x - pad.z, 0))
         let height  = .searchGroup.position.height + pad.y + pad.w
-        .searchBar.setPosition(Math.Rectangle{area.right() - metrics.floating_Inset - width - pad.x - pad.z, area.y + metrics.floating_Inset * 0.5, width + pad.x + pad.z, height}, computeLayout: false)
+        let top     = Math.max(area.y, .stripInset()) + metrics.floating_Inset * 0.5
+        .searchBar.setPosition(Math.Rectangle{area.right() - metrics.floating_Inset - width - pad.x - pad.z, top, width + pad.x + pad.z, height}, computeLayout: false)
         .searchGroup.setPosition(Math.Rectangle{pad.x, pad.y, width, .searchGroup.position.height}, computeLayout: false)
         .searchGroup.computeLayout()
         if .searchBar.isLocallyVisible() do

@@ -188,6 +188,8 @@ using Swag, Core, Pixel
     var encre, papier: ThemeColors
     encre.setDark()
     papier.setLight()
+    Swag.assert(encre.edit_Border.contrastRatio(encre.surface) >= 1.5)
+    Swag.assert(encre.menuPopup_Border == encre.edit_Border)
     Swag.assert(markReadsOn(encre.ground))
     Swag.assert(not markReadsOn(papier.ground))
 }

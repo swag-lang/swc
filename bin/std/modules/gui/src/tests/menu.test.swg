@@ -786,7 +786,15 @@ func assertMenuMarkerGolden(palette: MenuMarkerPalette, golden: string)
 
     Swag.assert(sub.popupBarItemSurfaceRect.y == expectedItemY)
     Swag.assert(sub.popupBarItemSurfaceRect.height == metrics.menuBar_Height)
-    Swag.assert(sub.position.y == Math.max(expectedItemY - metrics.menuPopup_ShadowSize, 0))
+    Swag.assert(sub.position.y == expectedItemY - metrics.menuPopup_ShadowSize)
+
+    var localAnchor = sub.popupBarItemSurfaceRect
+    let popupRect   = sub.surfaceRect()
+    localAnchor.x -= popupRect.x
+    localAnchor.y -= popupRect.y
+    let body = sub.getPopupBodyRect()
+    Swag.assert(Math.abs(localAnchor.x - body.x) <= metrics.wnd_BorderSize)
+    Swag.assert(Math.abs(localAnchor.bottom() - body.y) <= metrics.wnd_BorderSize)
 
     var image = host.render()
     Pixel.Testing.assertImageGolden(&image, "menu.popup.text-anchor.tall")

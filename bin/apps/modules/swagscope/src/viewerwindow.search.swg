@@ -21,6 +21,15 @@ impl ViewerWindow
     // [[ViewerWindow.setSearchOption]] applies either.
     private mtd showSearchOptionsMenu()
     {
+        let chosen = .createSearchOptionsMenu().doModal(.searchOptionsButton, autoDestroy: true) orelse ""
+        if chosen.count do
+            .setSearchOption(chosen)
+    }
+
+    // Builds the current search choices. Kept module-visible so the menu's checked state can be
+    // verified without entering a modal loop in the headless test host.
+    internal mtd createSearchOptionsMenu()->*MenuCtrl
+    {
         let texts     = appStrings()
         let menu      = MenuCtrl.createPopup(me, owner: me)
         let canFilter = .activeChoiceIndex < .instances.count and .instances[.activeChoiceIndex].filterSearch != null
@@ -34,10 +43,7 @@ impl ViewerWindow
         menu.addItem(texts.ui_SearchMatchCase, ViewerCommands.MatchCase, checked: .searchMatchCaseOption)
         menu.addItem(texts.ui_SearchWholeWord, ViewerCommands.WholeWord, checked: .searchWholeWordOption)
         menu.addItem(texts.ui_SearchRegularExpression, ViewerCommands.RegularExpression, checked: .searchRegexOption)
-
-        let chosen = menu.doModal(.searchOptionsButton, autoDestroy: true) orelse ""
-        if chosen.count do
-            .setSearchOption(chosen)
+        return menu
     }
 
     // Validates the query in the search box: a viewer with its own query syntax judges it,

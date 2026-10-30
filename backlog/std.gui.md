@@ -544,3 +544,11 @@ preview. Validate requested settings against the capabilities supplied by platfo
 - Done when: the assert holds across the std and application suites and the Scope suite runs
   twice green with the teardown change.
 - Related: app.scope.007
+
+### std.gui.059 — Pack the widgets vector atlas more tightly
+
+- Next: inventory occupied and unused regions in `widgets.svg`, then pack the unique tiles and
+  update their `ThemeImageRects` coordinates from one reviewed layout.
+- Done when: the atlas has no avoidable gaps, every tile coordinate resolves to its intended
+  shape, and GUI rendering goldens pass at the supported scales.
+- Evidence: the current 352 × 352 atlas contains substantial unused space between tile groups.

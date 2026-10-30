@@ -2455,6 +2455,9 @@ func sectionCountText(ctrl: *PropertiesCtrl, index: u64)->string => ctrl.section
     host.pump()
 
     Swag.assert(ctrl.sectionLines.count == 6)
+    let firstSection = String.from(ctrl.sectionLines[0].items[0]!.name.raw)
+    ctrl.setSectionIcon(firstSection, host.theme.icon(.Options, 16))
+    Swag.assert(ctrl.sectionLines[0].items[0]!.icon.isValid() and ctrl.list.isLineSelected(0))
     for expected, index in ["2", "2", "1", "2", "1", "1"] do
         Swag.assert(sectionCountText(ctrl, index) == expected)
 
@@ -2470,6 +2473,7 @@ func sectionCountText(ctrl: *PropertiesCtrl, index: u64)->string => ctrl.section
         host.pump()
         Swag.assert(ctrl.properties.kind == kind and ctrl.properties.matchCount() == 3)
         Swag.assert(ctrl.sectionLines.count == 6 and sectionCountText(ctrl, 3) == "1")
+        Swag.assert(ctrl.sectionLines[0].items[0]!.icon.isValid())
 
         // A slider shows the value the data holds, whatever the presentation.
         let opacity = unwrap findFieldItem(ctrl.properties, #nameof(PropCtrlGoldenData.opacity))
@@ -2478,6 +2482,20 @@ func sectionCountText(ctrl: *PropertiesCtrl, index: u64)->string => ctrl.section
 
     ctrl.search.setText("")
     Swag.assert(sectionCountText(ctrl, 1) == "2")
+}
+
+// The same section icon also survives a tabbed grid's presentation changes.
+#test
+{
+    var host: Testing.HeadlessHost
+    host.setup(640, 440)
+    var data: PropHeadlessData
+    let ctrl = PropertiesCtrl.create(&host.root, flags: .SectionTabs | .SearchBar)
+    ctrl.addStruct(data, "General")
+    ctrl.setSectionIcon("General", host.theme.icon(.Options, 16))
+    Swag.assert(ctrl.tab.items[1]!.icon.isValid())
+    ctrl.setKind(.Grid)
+    Swag.assert(ctrl.tab.items[1]!.icon.isValid())
 }
 
 // The section list with its counts, the search and the presentation menu open over the grid,

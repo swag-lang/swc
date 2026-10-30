@@ -947,7 +947,10 @@ impl ViewerWindow
         // families without turning About into a file-association inventory.
         let dialog = AboutDlg.createApplication(unwrap .surface, about)
         dialog.addSection(appStrings().ui_AboutViewers, .aboutViewerList())
-        dialog.addSection("Apple / Wikipedia / Wikidata", appStrings().ui_AboutWikiNotice)
+        const TmdbLogo = #include("../datas/tmdb.svg")
+        let logoDrawing = expect Svg.Drawing.parse(Swag.makeString(TmdbLogo.buffer, TmdbLogo.count))
+        dialog.addSectionImage(logoDrawing.rasterize(138, 100), 138, 100)
+        dialog.addSection("TMDB / Apple / Wikipedia / Wikidata", appStrings().ui_AboutWikiNotice)
         return dialog
     }
 

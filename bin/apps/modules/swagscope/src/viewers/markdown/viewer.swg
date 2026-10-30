@@ -6,8 +6,11 @@ using Core, Gui
 // Reading preferences of the Markdown viewer, kept across files and persisted by the window.
 struct ViewerSettings
 {
+    #[Properties.Name("Document Theme")]
     themeIndex:  u32           // Document appearance, in the order of the appearance selector.
+    #[Properties.Name("Reading Width")]
     widthIndex:  u32 = 1       // Reading measure, in the order of the width selector.
+    #[Properties.Name("Zoom"), Properties.MinMax(25, 400), Properties.Unit("%")]
     zoomPercent: u32 = 100     // Document zoom.
 }
 
@@ -24,6 +27,8 @@ impl ViewerSettings
 
 var g_ViewerSettings: ViewerSettings
 
+private func addViewerOptions(grid: *PropertiesCtrl, section: string) => grid.addStruct(g_ViewerSettings, section)
+
 // Describes the Markdown viewer to the host.
 func viewerPlugin()->Viewer.Plugin
 {
@@ -35,6 +40,7 @@ func viewerPlugin()->Viewer.Plugin
         .iconAtlas       = viewerIcons()
         .iconIndex       = cast(s32, ViewerIcons.Markdown)
         .create          = &createViewer
+        .options         = &addViewerOptions
         .textual         = true
         .showReadingLine = false
         .smokeFixture    = "comprehensive.md"

@@ -82,6 +82,31 @@ explore_OneItem 1 élément
 explore_Count % éléments
 explore_NotFound Emplacement introuvable
 explore_MediaOptions Options des informations de médias en ligne
+ui_GeneralOptions Options générales…
+ui_GeneralOptionsTitle Options
+ui_SaveOptions Enregistrer
+options_OnlineMovieHelp TMDB d'abord, puis Apple et Wikipédia.
+options_DocumentTheme Thème du document
+options_ReadingWidth Largeur de lecture
+options_Zoom Zoom
+options_PitchLabels Noms des notes
+options_KeyboardWidth Largeur du clavier
+options_SubtitleFont Police des sous-titres
+options_SubtitleSize Taille des sous-titres
+options_SubtitleEffect Effet des sous-titres
+options_SubtitlePosition Position des sous-titres
+options_SubtitleColor Couleur des sous-titres
+options_SubtitleDelay Décalage des sous-titres
+ui_TMDBToken Jeton d'accès en lecture TMDB
+ui_TMDBKey Clé API TMDB
+ui_TMDBTokenHelp Laissez vide pour conserver le jeton enregistré. TMDB est la première source pour les films.
+ui_TMDBKeyHelp Laissez vide pour conserver la clé enregistrée. Elle est utilisée en l'absence de jeton.
+ui_TMDBClear Supprimer les identifiants TMDB enregistrés
+ui_TMDBClearHelp Le jeton et la clé sont conservés uniquement dans la configuration de Swag Scope sur cet ordinateur.
+ui_OnlineMusicHelp MusicBrainz et Cover Art Archive ne nécessitent pas de clé API.
+ui_InvalidTMDBToken Saisissez un jeton d'accès en lecture TMDB valide.
+ui_InvalidTMDBKey Saisissez une clé API TMDB hexadécimale de 32 caractères.
+ui_SaveMediaOptionsFailed Impossible d'enregistrer les options des médias en ligne.
 explore_OnlineMovies Utiliser les affiches et informations de films en ligne
 explore_ChooseMusic Choisir l’identifiant MusicBrainz du groupe de parutions…
 explore_ChooseMusicHelp Saisissez l’identifiant du groupe de parutions MusicBrainz. Laissez vide pour le choix automatique.
@@ -90,12 +115,13 @@ explore_ChosenMusicFailed Impossible de charger la parution choisie. Vérifiez s
 explore_MovieDate Sortie : %
 explore_MovieOverview Synopsis : %
 explore_ImdbRating Note IMDb via Wikidata : %
+explore_TmdbRating Note TMDB : %
 explore_MovieDirector Réalisation : %
 explore_MovieCast Distribution : %
 explore_OnlineMusic Utiliser les pochettes et informations musicales en ligne
 explore_MusicArtist Artiste : %
 explore_MusicDate Première sortie : %
-ui_AboutWikiNotice Apple fournit les affiches et résumés des films correspondants à son catalogue. Wikipédia et Wikidata servent de repli lorsqu'il n'y a pas de correspondance. Les textes de Wikipédia sont sous licence CC BY-SA 4.0 : https://creativecommons.org/licenses/by-sa/4.0/.
+ui_AboutWikiNotice Ce produit utilise l'API TMDB, mais n'est ni approuvé ni certifié par TMDB. TMDB fournit les affiches, résumés et notes des films. Apple, puis Wikipédia et Wikidata, fournissent des informations de repli. Les textes de Wikipédia sont sous licence CC BY-SA 4.0 : https://creativecommons.org/licenses/by-sa/4.0/.
 
 ui_CloseFiles  Fermer le panneau des fichiers
 ui_HintLens tout le reste

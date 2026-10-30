@@ -80,10 +80,89 @@ struct AppleSearch
     results: Array'AppleMovie
 }
 
+struct TmdbMovie
+{
+    id:          u64
+    title:       String
+    #[Serialization.Key("original_title")]
+    originalTitle: String
+    overview:    String
+    #[Serialization.Key("release_date")]
+    releaseDate: String
+    #[Serialization.Key("poster_path")]
+    posterPath:  String
+    #[Serialization.Key("vote_average")]
+    voteAverage: f64
+    #[Serialization.Key("vote_count")]
+    voteCount:   u32
+}
+
+struct TmdbSearch
+{
+    results: Array'TmdbMovie
+}
+
+func tmdbSettingsDirectory()->String => Path.combine(Env.getSpecialDirectory(.UserAppData), "Swag", "scope")
+
+func tmdbStoredCredential(name: string, directory: string = "")->String
+{
+    let root = directory.count ? String.from(directory) : tmdbSettingsDirectory()
+    let path = Path.combine(root, name)
+    if not File.exists(path) do
+        return {}
+    let value = catch File.readAllText(path) { return {} }
+    return Latin1.trim(value.toString())
+}
+
+func validTMDBToken(token: string)->bool
+{
+    if token.count < 20 or token.count > 1024 do
+        return false
+    for byte in token where not Latin1.isLetterOrDigit(byte) and byte != '-' and byte != '_' and byte != '.' do
+        return false
+    return true
+}
+
+func validTMDBKey(key: string)->bool
+{
+    if key.count != 32 do
+        return false
+    for byte in key where not Latin1.isHexDigit(byte) do
+        return false
+    return true
+}
+
+func saveTMDBCredentials(directory, token, key: string, clear: bool) fail
+{
+    let tokenPath = Path.combine(directory, "tmdb.token")
+    let keyPath   = Path.combine(directory, "tmdb.key")
+    if clear
+    {
+        if File.exists(tokenPath) do
+            try File.delete(tokenPath)
+        if File.exists(keyPath) do
+            try File.delete(keyPath)
+        return
+    }
+    if (token.count and not validTMDBToken(token)) or (key.count and not validTMDBKey(key)) do
+        fail Errors.InvalidFormatError{}
+    if not token.count and not key.count do
+        return
+    try Directory.create(directory, recurse: true)
+    if token.count do
+        discard try File.writeAllText(tokenPath, token)
+    if key.count do
+        discard try File.writeAllText(keyPath, key)
+}
+
 struct MovieSource
 {
     // Empty wikiHost selects the Wikipedia language; tests can supply a local service.
     wikiHost:  string = ""
+    tmdbHost:  string = "api.themoviedb.org"
+    tmdbToken: string = ""
+    tmdbKey:   string = ""
+    useLocalCredentials: bool = true
     appleHost: string = "itunes.apple.com"
     dataHost:  string = "query.wikidata.org"
     imageHost: string = ""
@@ -100,6 +179,7 @@ struct OnlineMovie
     director:    String
     actors:      String
     imdbRating:  String
+    ratingSource: String
     ratingDate:  String
     posterUrl:   String
     articleUrl:  String
@@ -133,6 +213,7 @@ func lockMediaLookup(mutex: *Swag.Mutex)->bool
 
 const MovieTitleTag      = "ScopeWikiTitle"
 const MovieImdbRatingTag = "ScopeWikiIMDbRating"
+const MovieRatingSourceTag = "ScopeMovieRatingSource"
 const MovieDirectorTag   = "ScopeWikiDirector"
 const MovieCastTag       = "ScopeWikiCast"
 const MovieDateTag       = "ScopeWikiDate"
@@ -145,6 +226,7 @@ struct MovieSummary
 {
     title:      String
     imdbRating: String
+    ratingSource: String
     director:   String
     actors:     String
     date:       String
@@ -182,6 +264,8 @@ impl MovieSummary
                 result.title = value
             elif record.isTag(cast(const [..] u8, MovieImdbRatingTag)) do
                 result.imdbRating = value
+            elif record.isTag(cast(const [..] u8, MovieRatingSourceTag)) do
+                result.ratingSource = value
             elif record.isTag(cast(const [..] u8, MovieDirectorTag)) do
                 result.director = value
             elif record.isTag(cast(const [..] u8, MovieCastTag)) do
@@ -205,8 +289,11 @@ impl MovieSummary
             return {}
         var result  = safeMediaText(.title)
         let strings = appStrings()
-        if not .imdbRating.isEmpty() do
-            result += Format.toString("  ·  %", Format.toString(strings.explore_ImdbRating, safeMediaText(.imdbRating)))
+        if not .imdbRating.isEmpty()
+        {
+            let label = .ratingSource == "TMDB" ? strings.explore_TmdbRating : strings.explore_ImdbRating
+            result += Format.toString("  ·  %", Format.toString(label, safeMediaText(.imdbRating)))
+        }
         if not .date.isEmpty() do
             result += Format.toString("  ·  %", Format.toString(strings.explore_MovieDate, safeMediaText(.date)))
         if not .director.isEmpty() do
@@ -303,6 +390,32 @@ impl MovieQuery
         return chosen
     }
 
+    // Do not borrow a popular result when the filename identifies another edition or year.
+    mtd const chooseTMDB(search: const *TmdbSearch)->u64
+    {
+        let wanted = .title.toLower(.Unicode)
+        var chosen = Swag.U64.Max
+        var year: String
+        for &film, index in search.results
+        {
+            let title = film.title.toLower(.Unicode)
+            let original = film.originalTitle.toLower(.Unicode)
+            if title != wanted and original != wanted do
+                continue
+            let filmYear = film.releaseDate.length >= 4 ? String.from(film.releaseDate.toString()[0 until 4]) : String.from("")
+            if not .year.isEmpty() and filmYear != .year do
+                continue
+            if chosen != Swag.U64.Max and search.results[chosen].id != film.id and filmYear != year do
+                return Swag.U64.Max
+            if chosen == Swag.U64.Max
+            {
+                chosen = index
+                year = filmYear
+            }
+        }
+        return chosen
+    }
+
     // Require one exact article title, optionally followed by a film disambiguator.
     mtd const choose(search: const *MovieSearch)->u64
     {
@@ -338,6 +451,7 @@ impl OnlineMovie
         addMovieTag(image, MovieDateTag, .releaseDate)
         addMovieTag(image, MovieOverviewTag, .overview)
         addMovieTag(image, MovieImdbRatingTag, .imdbRating)
+        addMovieTag(image, MovieRatingSourceTag, .ratingSource)
         addMovieTag(image, MovieDirectorTag, .director)
         addMovieTag(image, MovieCastTag, .actors)
         addMovieTag(image, MovieSourceTag, .articleUrl)
@@ -348,16 +462,16 @@ impl OnlineMovie
     // Reports whether anything was found for the film: an article, or a poster from the catalogue.
     mtd const found()->bool => not .id.isEmpty() or not .posterUrl.isEmpty()
 
-    // Ask Apple first. An unavailable or unmatched film can still use the Wikipedia article.
+    // TMDB supplies the preferred poster and synopsis; Apple and Wikipedia remain fallbacks.
     func lookup(path: string, source: MovieSource = {}, language: string = "en")->OnlineMovie fail
     {
         let query = MovieQuery.fromFile(path)
         if query.title.isEmpty() or query.title.length > 256 do
             return {}
-        if not lockMediaLookup(&g_MovieLookupLock) do
-            return {}
-        defer g_MovieLookupLock.unlock()
         var movie: OnlineMovie
+        catch movie.lookupTMDB(query, source, language)
+        if movie.found() do
+            return movie
         catch movie.lookupApple(query, source, language)
         if movie.found() do
             return movie
@@ -371,12 +485,90 @@ impl OnlineMovie
         return movie
     }
 
+    private mtd lookupTMDB(query: MovieQuery, source: MovieSource, language: string) fail
+    {
+        if not source.tmdbHost.count do
+            return
+        var token = String.from(source.tmdbToken)
+        if token.isEmpty() and source.useLocalCredentials do
+            token = tmdbStoredCredential("tmdb.token")
+        if token.isEmpty() and source.useLocalCredentials do
+            token = Env.variable("SWAG_SCOPE_TMDB_TOKEN")
+        var key = String.from(source.tmdbKey)
+        if key.isEmpty() and source.useLocalCredentials do
+            key = tmdbStoredCredential("tmdb.key")
+        if key.isEmpty() and source.useLocalCredentials do
+            key = Env.variable("SWAG_SCOPE_TMDB_KEY")
+        token = Latin1.trim(token.toString())
+        key   = Latin1.trim(key.toString())
+        if not token.isEmpty() and not validTMDBToken(token) do
+            token.clear()
+        if not key.isEmpty() and not validTMDBKey(key) do
+            key.clear()
+        if token.isEmpty() and key.isEmpty() do
+            return
+
+        let locale = language == "fr" ? "fr-FR" : "en-US"
+        var path = Format.toString("/3/search/movie?query=%&language=%&include_adult=false", Url.encodeComponent(cast(const [..] u8, query.title.toString())), locale)
+        if not query.year.isEmpty() do
+            path += Format.toString("&year=%", query.year)
+        var authorization: String
+        var options: Http.GetOptions
+        options.userAgent = "SwagScope/1.0 (https://github.com/swag-lang/swc)"
+        options.timeoutMs = 5_000
+        if not token.isEmpty()
+        {
+            authorization = Format.toString("Bearer %", token)
+            options.headers.add({name: "Authorization", value: authorization})
+        }
+        else do
+            path += Format.toString("&api_key=%", Url.encodeComponent(cast(const [..] u8, key.toString())))
+        let response = try Http.get(source.tmdbHost, source.port, path.toString(), source.secure, options)
+        if response.status != 200 do
+            return
+        var decoder: Serialization.Decoder'Serialization.Read.Json
+        let search = try decoder.readAll'TmdbSearch(response.body.toSlice())
+        defer Memory.delete(search)
+        let index = query.chooseTMDB(search)
+        if index == Swag.U64.Max do
+            return
+        let film = &search.results[index]
+        .id = Format.toString("tmdb:%", film.id)
+        .title = film.title
+        .overview = film.overview
+        if film.releaseDate.length >= 4 do
+            .releaseDate = film.releaseDate.toString()[0 until 4]
+        if film.posterPath.length > 1 and film.posterPath[0] == '/' and
+           not Utf8.contains(film.posterPath.toString(), "..") and
+           not Utf8.contains(film.posterPath.toString(), "?")
+        {
+            let scheme = source.secure ? "https" : "http"
+            let host = source.imageHost.count ? source.imageHost : "image.tmdb.org"
+            .posterUrl = Format.toString("%://%", scheme, host)
+            if source.port != 443 do
+                .posterUrl += Format.toString(":%", source.port)
+            .posterUrl += "/t/p/w500"
+            .posterUrl += film.posterPath
+        }
+        if film.voteCount > 0
+        {
+            let tenths = cast(u32, Math.round(film.voteAverage * 10))
+            .imdbRating = Format.toString("%.%/10", tenths / 10, tenths % 10)
+            .ratingSource = "TMDB"
+        }
+        .articleUrl = Format.toString("https://www.themoviedb.org/movie/%", film.id)
+        .sources = "TMDB"
+    }
+
     // Asks the Apple catalogue for the film `query` names, and takes its poster, its synopsis and
     // its year when exactly one film answers to its title, and to its year when the name says it.
     private mtd lookupApple(query: MovieQuery, source: MovieSource, language: string) fail
     {
         if not source.appleHost.count do
             return
+        if not lockMediaLookup(&g_MovieLookupLock) do
+            return
+        defer g_MovieLookupLock.unlock()
 
         // Questions stand apart, and a cancelled preview stops waiting.
         while true
@@ -514,7 +706,7 @@ impl OnlineMovie
         }
     }
 
-    // Restrict redirects and the final request to the image hosts of Wikimedia and Apple.
+    // Restrict redirects and the final request to the image hosts of TMDB, Wikimedia and Apple.
     mtd posterBytes(source: MovieSource = {})->Array'u8 fail
     {
         if .posterUrl.isEmpty() do
@@ -527,7 +719,7 @@ impl OnlineMovie
         }
         elif not target.secure or
              target.port != 443 or
-             (target.host != "upload.wikimedia.org" and target.host != "thumb.wikimedia.org" and not Utf8.endsWith(target.host, ".mzstatic.com"))
+             (target.host != "image.tmdb.org" and target.host != "upload.wikimedia.org" and target.host != "thumb.wikimedia.org" and not Utf8.endsWith(target.host, ".mzstatic.com"))
         {
             fail Errors.InvalidFormatError{}
         }

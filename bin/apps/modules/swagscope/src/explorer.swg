@@ -721,7 +721,7 @@ impl Explorer
                 let slash  = Utf8.indexOf(rating, "/")
                 if slash != Swag.U64.Max do
                     rating = String.from(rating.toString()[0 until slash])
-                sheet.addFact(rating, "IMDb")
+                sheet.addFact(rating, entry.movie.ratingSource == "TMDB" ? "TMDB" : "IMDb")
             }
 
             sheet.setAction(appStrings().cmd_OpenChosen, ViewerCommands.OpenChosen)
@@ -746,7 +746,7 @@ impl Explorer
 
         // A rating is the fact a reader of a film comes for, set large with its source as its unit.
         if not entry.movie.imdbRating.isEmpty() do
-            sheet.addFact(safeMediaText(entry.movie.imdbRating), "IMDb")
+            sheet.addFact(safeMediaText(entry.movie.imdbRating), entry.movie.ratingSource == "TMDB" ? "TMDB" : "IMDb")
 
         if not entry.music.title.isEmpty()
         {

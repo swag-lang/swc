@@ -35,7 +35,7 @@ dialogs, then each application, then the written rules.
     pictures and films cropped to the tile, faint line glyphs and extensions for the rest, name
     and one mono line of facts; films (`explorer.films`) — upright posters, title then year and
     length, the sheet headed by the poster beside its title with Open under it and the sources at
-    its foot. Apple is consulted before the Wikipedia/Wikidata fallback; a local film frame is
+    its foot. TMDB is consulted before Apple and the Wikipedia/Wikidata fallback; a local film frame is
     published first and remains uncropped while the poster is fetched. Music (`explorer.music`)
     reads tags and nearby cover files locally before MusicBrainz, with a quiet sleeve when no
     cover exists; album folders now carry covers in the parent gallery and open into their track

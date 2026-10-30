@@ -55,11 +55,17 @@ enum SubtitleColor
 // with the window state.
 struct SubtitleSettings
 {
+    #[Properties.Name("Subtitle Font")]
     font:     SubtitleFont
+    #[Properties.Name("Subtitle Size")]
     size:     SubtitleSize = .Normal
+    #[Properties.Name("Subtitle Effect")]
     effect:   SubtitleEffect
+    #[Properties.Name("Subtitle Position")]
     position: SubtitlePosition
+    #[Properties.Name("Subtitle Color")]
     color:    SubtitleColor
+    #[Properties.Name("Subtitle Delay"), Properties.SliderMinMax(-60, 60), Properties.Unit("s")]
     delay:    f64
 }
 
@@ -73,6 +79,8 @@ impl SubtitleSettings
 }
 
 var g_SubtitleSettings: SubtitleSettings
+
+private func addViewerOptions(grid: *PropertiesCtrl, section: string) => grid.addStruct(g_SubtitleSettings, section)
 
 // Replaces `result` with the cues showing at `seconds`, one per line, and returns the next time that text changes.
 func subtitlePresentationAt(track: const *Subtitle.Track, seconds: f64, result: *String)->f64

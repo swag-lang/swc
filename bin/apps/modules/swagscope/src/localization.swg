@@ -68,6 +68,31 @@ struct AppStrings
     explore_ExtractFailed:     string = "Not everything could be extracted"       // Toast when an extraction stopped on an error.
     explore_NotFound:          string = "Location not found"                      // Exploration control or status.
     explore_MediaOptions:      string = "Online Media Options"
+    ui_GeneralOptions:         string = "General Options…"
+    ui_GeneralOptionsTitle:    string = "Options"
+    ui_SaveOptions:            string = "Save Options"
+    options_OnlineMovieHelp:   string = "TMDB first, then Apple and Wikipedia."
+    options_DocumentTheme:     string = "Document Theme"
+    options_ReadingWidth:      string = "Reading Width"
+    options_Zoom:              string = "Zoom"
+    options_PitchLabels:       string = "Pitch Labels"
+    options_KeyboardWidth:     string = "Keyboard Width"
+    options_SubtitleFont:      string = "Subtitle Font"
+    options_SubtitleSize:      string = "Subtitle Size"
+    options_SubtitleEffect:    string = "Subtitle Effect"
+    options_SubtitlePosition:  string = "Subtitle Position"
+    options_SubtitleColor:     string = "Subtitle Color"
+    options_SubtitleDelay:     string = "Subtitle Delay"
+    ui_TMDBToken:              string = "TMDB Read Access Token"
+    ui_TMDBKey:                string = "TMDB API Key"
+    ui_TMDBTokenHelp:          string = "Leave empty to keep the saved token. TMDB is the first movie source."
+    ui_TMDBKeyHelp:            string = "Leave empty to keep the saved key. It is used when no token is available."
+    ui_TMDBClear:              string = "Remove Saved TMDB Credentials"
+    ui_TMDBClearHelp:          string = "The token and key are stored only in this computer's Swag Scope settings."
+    ui_OnlineMusicHelp:        string = "MusicBrainz and Cover Art Archive do not need an API key."
+    ui_InvalidTMDBToken:       string = "Enter a valid TMDB read access token."
+    ui_InvalidTMDBKey:         string = "Enter a 32-character hexadecimal TMDB API key."
+    ui_SaveMediaOptionsFailed: string = "Could not save the online media options."
     explore_OnlineMovies:      string = "Use Online Movie Posters and Details"
     explore_ChooseMusic:       string = "Choose MusicBrainz Release Group ID…"
     explore_ChooseMusicHelp:   string = "Enter the release group ID from MusicBrainz. Leave empty to use automatic matching."
@@ -76,12 +101,13 @@ struct AppStrings
     explore_MovieDate:         string = "Released: %"
     explore_MovieOverview:     string = "Synopsis: %"
     explore_ImdbRating:        string = "IMDb rating via Wikidata: %"
+    explore_TmdbRating:        string = "TMDB rating: %"
     explore_MovieDirector:     string = "Director: %"
     explore_MovieCast:         string = "Cast: %"
     explore_OnlineMusic:       string = "Use Online Music Covers and Details"
     explore_MusicArtist:       string = "Artist: %"
     explore_MusicDate:         string = "First release: %"
-    ui_AboutWikiNotice:        string = "Apple supplies film posters and summaries when a film matches its catalogue. Wikipedia and Wikidata provide a fallback when it does not. Wikipedia text is available under CC BY-SA 4.0: https://creativecommons.org/licenses/by-sa/4.0/."
+    ui_AboutWikiNotice:        string = "This product uses the TMDB API but is not endorsed or certified by TMDB. TMDB supplies film posters, summaries and ratings. Apple, then Wikipedia and Wikidata, provide fallback information. Wikipedia text is available under CC BY-SA 4.0: https://creativecommons.org/licenses/by-sa/4.0/."
 
     ui_OpenDefault:                    string = "Open with Default Application"               // Tooltip of the system-default application button.
     ui_CloseFile:                      string = "Close File"                                  // Tooltip of the close-file button.
@@ -219,6 +245,37 @@ private var g_AppStrings: AppStrings
 // Returns the visible strings of Swag Scope in the active language.
 func appStrings()->const *AppStrings => &g_AppStrings
 
+// Resolves the property page's compile-time field names in the current language.
+private func resolveScopePropertyText(key: string)->string?
+{
+    let texts = appStrings()
+    switch key
+    {
+    case "Online Movie Posters and Details": return texts.explore_OnlineMovies
+    case "Online Music Covers and Details": return texts.explore_OnlineMusic
+    case "TMDB first, then Apple and Wikipedia.": return texts.options_OnlineMovieHelp
+    case "MusicBrainz and Cover Art Archive need no API key.": return texts.ui_OnlineMusicHelp
+    case "TMDB Read Access Token": return texts.ui_TMDBToken
+    case "TMDB API Key": return texts.ui_TMDBKey
+    case "Paste a new token, or leave empty to keep the saved one. TMDB is the first movie source.": return texts.ui_TMDBTokenHelp
+    case "Paste a new key, or leave empty to keep the saved one. Used only without a token.": return texts.ui_TMDBKeyHelp
+    case "Remove Saved TMDB Credentials": return texts.ui_TMDBClear
+    case "Remove the local token and key when this page closes.": return texts.ui_TMDBClearHelp
+    case "Document Theme": return texts.options_DocumentTheme
+    case "Reading Width": return texts.options_ReadingWidth
+    case "Zoom": return texts.options_Zoom
+    case "Pitch Labels": return texts.options_PitchLabels
+    case "Keyboard Width": return texts.options_KeyboardWidth
+    case "Subtitle Font": return texts.options_SubtitleFont
+    case "Subtitle Size": return texts.options_SubtitleSize
+    case "Subtitle Effect": return texts.options_SubtitleEffect
+    case "Subtitle Position": return texts.options_SubtitlePosition
+    case "Subtitle Color": return texts.options_SubtitleColor
+    case "Subtitle Delay": return texts.options_SubtitleDelay
+    default: return null
+    }
+}
+
 // Registers the Swag Scope string table and its embedded translations.
 //
 // The resource is published before the table is registered: [[Gui.registerStrings]] translates a
@@ -230,6 +287,7 @@ func registerAppStrings(bundle: *Core.Resources.Bundle)
     // The file name here becomes `lang/<tag>/scope.tweak`, which must be the exact resource
     // name published above: a mismatch does not fail, it silently shows English.
     Gui.registerStrings'AppStrings(&g_AppStrings, "scope")
+    Gui.Properties.setTextResolver(&resolveScopePropertyText)
 }
 
 #run

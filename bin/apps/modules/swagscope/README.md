@@ -2,10 +2,16 @@
 
 ## Online movie posters and music covers
 
-Folder exploration asks the Apple iTunes Search API first for a film's poster and synopsis. If
-Apple has no exact match, Wikipedia and Wikidata supply an article, poster and available credits.
+Folder exploration asks TMDB first for a film's poster, synopsis and rating. If TMDB has no exact
+match, Apple is consulted, then Wikipedia and Wikidata supply an article and available credits.
+TMDB uses a personal read access token in `%APPDATA%\Swag\scope\tmdb.token`, or the
+`SWAG_SCOPE_TMDB_TOKEN` environment variable. A v3 API key in `tmdb.key` or
+`SWAG_SCOPE_TMDB_KEY` is also supported when no token is present. Neither credential is shipped
+with the application. Open **General Options** from the lens (`Ctrl+Space`) to edit the saved
+credentials and to turn movie or music lookups on or off. Saved credentials live only in the
+user's local Swag Scope configuration. Without one, the Apple and Wikipedia fallbacks still work.
 Album information and artwork come from local file tags and nearby `cover.jpg`, `folder.jpg` or
-their PNG variants first, then MusicBrainz and Cover Art Archive. No account or API key is needed.
+their PNG variants first, then MusicBrainz and Cover Art Archive. Music lookup needs no account.
 Two lens entries of the explored folder turn either online lookup off. Film filenames and music
 tags are sent to those services to find a match; only an unambiguous title and year are taken.
 The local film frame or album cover appears before any network request completes. An album
@@ -14,6 +20,10 @@ unchanged folder reuses its previews. Wikipedia text is available under CC BY-SA
 images have their own licenses, which can be checked from the linked source article.
 Folders containing album tracks appear as albums in their parent gallery; opening one shows its
 track page, while the Play shortcut starts its first track.
+
+The TMDB mark in About is the unmodified [approved TMDB logo](https://www.themoviedb.org/about/logos-attribution)
+from TMDB's own asset host. TMDB data and images are attributed in About and in each film's
+information sheet.
 
 ## Explore folders and archives
 

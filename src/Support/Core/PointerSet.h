@@ -590,7 +590,7 @@ private:
     }
 
     std::vector<Slot>                   slots_;
-    [[no_unique_address]] OccupiedSlots occupiedSlots_;
+    SWC_NO_UNIQUE_ADDRESS OccupiedSlots occupiedSlots_;
     size_t                              count_ = 0;
     V                                   freeKeyValue_{};
     bool                                hasFreeKey_ = false;

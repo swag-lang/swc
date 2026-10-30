@@ -136,7 +136,7 @@ void DataSegment::addFunctionRelocation(uint32_t offset, const SymbolFunction* t
 {
     const std::unique_lock lock(relocationsMutex_);
     const uint32_t         relocationIndex = static_cast<uint32_t>(relocations_.size());
-    relocations_.push_back({.offset = offset, .kind = DataSegmentRelocationKind::FunctionSymbol, .targetOffset = INVALID_REF, .targetShardIndex = INVALID_REF, .targetSymbol = targetSymbol, .allowUnresolvedFunction = allowUnresolvedFunction});
+    relocations_.push_back({.offset = offset, .kind = DataSegmentRelocationKind::FunctionSymbol, .allowUnresolvedFunction = allowUnresolvedFunction, .targetOffset = INVALID_REF, .targetShardIndex = INVALID_REF, .targetSymbol = targetSymbol});
     recordRelocationIndexLocked(relocationIndex);
 }
 

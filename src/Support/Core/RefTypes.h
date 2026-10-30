@@ -23,4 +23,8 @@ using MicroOperandRef = StrongRef<MicroOperandRefTag>;
 using MicroLabelRef   = StrongRef<MicroLabelRefTag>;
 using MicroInstrRef   = StrongRef<MicroInstrRefTag>;
 
+#if !SWC_HAS_REF_DEBUG_INFO
+static_assert(sizeof(AstNodeRef) == sizeof(uint32_t));
+#endif
+
 SWC_END_NAMESPACE();

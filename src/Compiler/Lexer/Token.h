@@ -186,4 +186,8 @@ struct Token
 #endif
 };
 
+#if !SWC_HAS_TOKEN_DEBUG_INFO
+static_assert(sizeof(Token) == 12);
+#endif
+
 SWC_END_NAMESPACE();

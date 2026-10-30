@@ -13,7 +13,7 @@ SWC_BEGIN_NAMESPACE();
 class TaskContext;
 class TypeInfo;
 
-enum class ConstantKind
+enum class ConstantKind : uint8_t
 {
     Invalid,
 
@@ -289,14 +289,14 @@ private:
     static uint64_t       packDataSegmentRef(DataSegmentRef ref) noexcept;
     static DataSegmentRef unpackDataSegmentRef(uint64_t packedRef) noexcept;
 
-    ConstantKind kind_    = ConstantKind::Invalid;
-    TypeRef      typeRef_ = TypeRef::invalid();
+    // Borrowed Struct/Array/Slice spans require backing storage that outlives this
+    // constant, typically a DataSegment allocation. Keep the flag beside the kind
+    // instead of adding another aligned word before the payload union.
+    ConstantKind kind_            = ConstantKind::Invalid;
+    bool         payloadBorrowed_ = false;
+    TypeRef      typeRef_         = TypeRef::invalid();
 
     std::atomic<uint64_t> dataSegmentRef_{packDataSegmentRef({})};
-
-    // Borrowed Struct/Array/Slice spans require backing storage that outlives this
-    // constant, typically a DataSegment allocation.
-    bool payloadBorrowed_ = false;
 
     union
     {

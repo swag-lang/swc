@@ -25,14 +25,14 @@ enum class DataSegmentRelocationKind : uint8_t
 
 struct DataSegmentRelocation
 {
-    uint32_t                  offset = 0;
-    DataSegmentRelocationKind kind   = DataSegmentRelocationKind::DataSegmentOffset;
+    uint32_t                  offset                  = 0;
+    DataSegmentRelocationKind kind                    = DataSegmentRelocationKind::DataSegmentOffset;
+    bool                      allowUnresolvedFunction = false;
 
     uint32_t targetOffset     = INVALID_REF;
     uint32_t targetShardIndex = INVALID_REF;
 
-    const SymbolFunction* targetSymbol            = nullptr;
-    bool                  allowUnresolvedFunction = false;
+    const SymbolFunction* targetSymbol = nullptr;
 };
 
 struct DataSegmentAllocation

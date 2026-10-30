@@ -206,18 +206,18 @@ void ConstantValue::constructPayloadFrom(OTHER& other)
 
 ConstantValue::ConstantValue(const ConstantValue& other) :
     kind_(other.kind_),
+    payloadBorrowed_(other.payloadBorrowed_),
     typeRef_(other.typeRef_),
-    dataSegmentRef_(other.dataSegmentRef_.load(std::memory_order_relaxed)),
-    payloadBorrowed_(other.payloadBorrowed_)
+    dataSegmentRef_(other.dataSegmentRef_.load(std::memory_order_relaxed))
 {
     constructPayloadFrom<false>(other);
 }
 
 ConstantValue::ConstantValue(ConstantValue&& other) noexcept :
     kind_(other.kind_),
+    payloadBorrowed_(other.payloadBorrowed_),
     typeRef_(other.typeRef_),
-    dataSegmentRef_(other.dataSegmentRef_.load(std::memory_order_relaxed)),
-    payloadBorrowed_(other.payloadBorrowed_)
+    dataSegmentRef_(other.dataSegmentRef_.load(std::memory_order_relaxed))
 {
     constructPayloadFrom<true>(other);
 

@@ -621,10 +621,10 @@ private:
         return begin() + idx;
     }
 
-    allocator_type alloc_{};
-    T*             ptr_           = nullptr;
-    size_type      sizeValue_     = 0;
-    size_type      capacityValue_ = InlineCapacity;
+    SWC_NO_UNIQUE_ADDRESS allocator_type alloc_{};
+    T*                                   ptr_           = nullptr;
+    size_type                            sizeValue_     = 0;
+    size_type                            capacityValue_ = InlineCapacity;
     // Raw storage, deliberately left as it comes: every element is constructed before it is
     // read, and zeroing the buffer first made each vector pay for its whole inline capacity
     // at construction, used or not.

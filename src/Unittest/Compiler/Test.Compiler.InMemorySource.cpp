@@ -1585,6 +1585,7 @@ SWC_TEST_BEGIN(Compiler_AstVisitResolvesChildrenWithoutFollowingActiveAncestors)
 }
 SWC_TEST_END()
 
+#if SWC_HAS_VISIT_DEBUG_INFO
 SWC_TEST_BEGIN(Compiler_AstVisitRefreshesDebugLocationWhenCodeRefChanges)
 {
     CommandLine      cmdLine;
@@ -1650,6 +1651,8 @@ SWC_TEST_BEGIN(Compiler_AstVisitRefreshesDebugLocationWhenCodeRefChanges)
     return Result::Error;
 }
 SWC_TEST_END()
+
+#endif
 
 SWC_TEST_BEGIN(Compiler_SymbolLocationSortKeepsStableTokenOrderWithinOneFile)
 {

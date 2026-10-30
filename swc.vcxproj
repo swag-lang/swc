@@ -53,6 +53,7 @@
              machine. Override with the SWC_COMPILE_JOBS environment variable or -p:SwcCompileJobs=N. -->
         <SwcCompileJobs Condition="'$(SwcCompileJobs)' == ''">$(SWC_COMPILE_JOBS)</SwcCompileJobs>
         <SwcCompileJobs Condition="'$(SwcCompileJobs)' == ''">6</SwcCompileJobs>
+        <SwcDebugMode Condition="'$(SwcDebugMode)' == ''">false</SwcDebugMode>
     </PropertyGroup>
     <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
         <LinkIncremental>false</LinkIncremental>
@@ -67,6 +68,10 @@
         <IntDir>.tmp/x64/devmode/</IntDir>
         <TargetName>swc.dm</TargetName>
         <IncludePath>src/;src/support/memory/mimalloc/include</IncludePath>
+    </PropertyGroup>
+    <PropertyGroup Condition="'$(SwcDebugMode)'=='true'">
+        <IntDir>.tmp/x64/$(Configuration)-debug/</IntDir>
+        <TargetName>swc.dbg</TargetName>
     </PropertyGroup>
     <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
         <ClCompile>
@@ -126,6 +131,15 @@
         <Manifest>
             <AdditionalManifestFiles>swc.manifest;%(AdditionalManifestFiles)</AdditionalManifestFiles>
         </Manifest>
+    </ItemDefinitionGroup>
+    <ItemDefinitionGroup Condition="'$(SwcDebugMode)'=='true'">
+        <ClCompile>
+            <PreprocessorDefinitions>SWC_DEBUG_MODE=1;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+            <DebugInformationFormat>ProgramDatabase</DebugInformationFormat>
+        </ClCompile>
+        <Link>
+            <GenerateDebugInformation>true</GenerateDebugInformation>
+        </Link>
     </ItemDefinitionGroup>
     <ItemGroup>
         <ClCompile Include="src\Backend\BinaryPatch.cpp"/>

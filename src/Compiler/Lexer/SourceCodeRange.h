@@ -33,4 +33,8 @@ struct SourceCodeRef
     static SourceCodeRef invalid() { return {}; }
 };
 
+#if !SWC_HAS_REF_DEBUG_INFO
+static_assert(sizeof(SourceCodeRef) == 2 * sizeof(uint32_t));
+#endif
+
 SWC_END_NAMESPACE();

@@ -84,8 +84,8 @@ has a 60-second deadline, and an unresponsive preview has a 10-second frame dead
 For a development compiler, pass `--run-arg=--compiler=<absolute compiler path>` to select the
 compiler used by snippets and formatting. `--run-arg=--compiler-workers=6` limits those child
 compilers too; the outer `--num-cores` option only bounds the compiler building Prism. Positive
-worker limits are capped at twelve and leave one processor free when the machine has more than two.
-Without these options, Prism keeps its normal compiler discovery and worker budget.
+worker limits are explicit development overrides. Without one, the child compiler chooses its own
+worker budget; Prism imposes no fixed ceiling. Preview hosts likewise use the runtime's automatic pool.
 
 From the repository root:
 

@@ -114,28 +114,14 @@ func compilerPath()->String
 }
 
 /*
-Number of compiler workers one snippet compilation asks for.
+Explicit worker limit requested for child compilers, or zero for their automatic scheduler.
 
-The compiler creates exactly the workers it is given and never clamps the count to the machine, so
-the number has to be computed here. Two facts bound it. The application is drawing while the
-compiler runs, so it keeps a processor for itself. And the compiler stops paying for workers long
-before a large machine runs out: measured on a twenty-two processor machine, one snippet takes
-324 ms with six workers, 264 ms with twelve, and 266 ms with twenty-two — the last for a quarter
-more processor time, which the interface then has to compete with.
-
-The `--compiler-workers=<count>` launch argument can lower this budget for shared-machine runs.
+The application does not impose its own machine budget. `--compiler-workers=<count>` remains
+an explicit development override for shared-machine runs.
 */
 func compilerWorkerCount()->u32
 {
-    // Where another worker stops buying wall time and only takes processor time from the interface.
-    const MaxWorkers = 12'u32
-
-    let available = Hardware.processorCount()
-    if available <= 2 do
-        return 1
-    let requested = catch StrConv.toU32(compilerArgument("--compiler-workers="))
-    let limit     = requested != 0 ? Math.min(requested, MaxWorkers) : MaxWorkers
-    return Math.min(available - 1, limit)
+    return catch StrConv.toU32(compilerArgument("--compiler-workers="))
 }
 
 // Explicit launch options let development runs select the compiler and share a worker budget.

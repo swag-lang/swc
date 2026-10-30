@@ -96,6 +96,8 @@ using Core, Gui, Pixel
     explorer.requestPreview()
     for &preview, index in explorer.previews do
         Swag.assert(preview.started == (index < count) and (not preview.started or preview.index == index))
+    for preview in explorer.previews where preview.started do
+        Swag.assert(preview.task.priority == .Background)
     explorer.hide()
     explorer.leave()
     for &preview in explorer.previews do

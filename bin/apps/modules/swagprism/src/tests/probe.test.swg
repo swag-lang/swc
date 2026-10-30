@@ -148,13 +148,14 @@ using Core
     }
 }
 
-// The worker count fits the machine and always leaves it something to draw the interface with.
+// The compiler owns its automatic budget; only an explicit launch argument overrides it.
 #test
 {
-    let workers = Pipeline.compilerWorkerCount()
-    let machine = Hardware.processorCount()
-    Swag.assert(workers >= 1 and workers <= 12)
-    Swag.assert(workers < machine or machine <= 2)
+    let workers   = Pipeline.compilerWorkerCount()
+    var requested = 0'u32
+    for argument in Env.arguments() where Utf8.startsWith(argument, "--compiler-workers=") do
+        requested = catch StrConv.toU32(argument[19 to])
+    Swag.assert(workers == requested)
 }
 
 // Writing what a file already holds leaves its modification time alone, which is what the

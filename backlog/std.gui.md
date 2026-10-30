@@ -591,3 +591,16 @@ preview. Validate requested settings against the capabilities supplied by platfo
   processes, and never use the personal library as a writable benchmark profile.
 - Related: std.gui.059 (widgets packing), std.gui.057 (layered presentation), std.gui.054
   (input-to-display measurement), compiler.optimization.136 (distinct relocation investigation).
+
+### std.gui.061 — Keep borrowed atlas images stable across cache growth
+
+- Evidence: `IconAtlas.image` and `themeWidgetsImage` return a pointer to an `Image` stored
+  directly in a `HashTable`, then release the cache mutex before the caller uploads it.
+  Inserting another size can grow that table and move its values. `IconAtlas.image` currently
+  describes the borrow as valid for the atlas lifetime; the storage does not establish that
+  contract across growth. Ordinary same-thread immediate uploads have not reproduced a failure.
+- Next: exercise concurrent first requests for distinct sizes with an upload paused after lookup.
+  Establish stable owned image storage, or keep the borrow inside a lock-scoped upload contract,
+  before parallelizing atlas requests. Include widget scales and explicit cache reset in the review.
+- Done when: cache growth cannot invalidate an image being uploaded, reset/lifetime rules are
+  explicit, and the concurrency boundary has a native regression test.

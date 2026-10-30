@@ -14,10 +14,11 @@ using Core, Pixel
 // [[Gui.Theme.icon]], and an application owns its own beside its icon source.
 struct IconAtlas
 {
-    lock:     Swag.Mutex      // Guards the rasterizations against concurrent first use.
-    drawing:  Svg.Drawing     // The vector document, parsed once.
-    rasters:  HashTable'(s64, Image)     // Rasterizations of `drawing`, by cell size in device pixels.
-    embedded: bool            // Only the unmodified stock document can use the shipped rasters.
+    lock:          Swag.Mutex      // Guards the rasterizations against concurrent first use.
+    drawing:       Svg.Drawing     // The vector document, parsed once.
+    rasters:       HashTable'(s64, Image)     // Rasterizations of `drawing`, by cell size in device pixels.
+    embedded:      bool            // Only the unmodified stock document can use the shipped rasters.
+    pendingSource: string?         // Static stock source, parsed only when an uncached size needs it.
 }
 
 impl IconAtlas
@@ -31,8 +32,9 @@ impl IconAtlas
     {
         Sync.scopedLock(&.lock)
         .rasters.clear()
-        .embedded = false
-        .drawing  = try Svg.Drawing.parse(source)
+        .embedded      = false
+        .pendingSource = null
+        .drawing       = try Svg.Drawing.parse(source)
     }
 
     // Supplies a precomputed sheet for `cell` device pixels per glyph.
@@ -46,6 +48,7 @@ impl IconAtlas
     mtd setRaster(cell: s32, image: Image) fail
     {
         Sync.scopedLock(&.lock)
+        .ensureDrawing()
         let cols = cast(f64, Math.round(.drawing.width / 24))
         let rows = cast(f64, Math.round(.drawing.height / 24))
         if cell <= 0 or
@@ -82,6 +85,7 @@ impl IconAtlas
                 return &.rasters.add(key, decodeThemeRaster(bytes)).value
         }
 
+        .ensureDrawing()
         let cols = cast(s32, Math.round(.drawing.width / 24))
         let rows = cast(s32, Math.round(.drawing.height / 24))
 
@@ -92,6 +96,16 @@ impl IconAtlas
             ss /= 2
 
         return &.rasters.add(key, .drawing.rasterize(cols * cell, rows * cell, ss)).value
+    }
+
+    // The caller holds the atlas lock. Custom sources were already checked by setup.
+    private mtd ensureDrawing()
+    {
+        if let source = .pendingSource
+        {
+            .drawing       = expect Svg.Drawing.parse(source)
+            .pendingSource = null
+        }
     }
 }
 

@@ -64,8 +64,20 @@ func checkThemeRaster(source: const [..] u8, bytes: const [..] u8, size: s32, un
 
     var custom: IconAtlas
     custom.embedded = true
+    const Source = #include("../theme/icons.svg")
+    custom.pendingSource = Swag.makeString(Source.buffer, Source.count)
+    Swag.assert(custom.image(32).width == 8 * 32)
     expect custom.setup("<svg width='24' height='24'><rect width='24' height='24' fill='red'/></svg>")
     let red = custom.image(32)
     Swag.assert(red.width == 32 and red.height == 32)
     Swag.assert(red.pixelColor(16, 16).argb == 0xFFFF0000)
+
+    var supplied: IconAtlas
+    supplied.embedded      = true
+    supplied.pendingSource = Swag.makeString(Source.buffer, Source.count)
+    expect supplied.setRaster(32, decoded)
+    Swag.assert(supplied.image(32).byteCount == decoded.byteCount)
+
+    host.theme.ensureAtlasScale(&host.renderer, 3)
+    Swag.assert(host.theme.res.imgWidgets.width == 352 * 3 and host.theme.res.imgWidgets.height == 352 * 3)
 }

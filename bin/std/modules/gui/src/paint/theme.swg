@@ -34,8 +34,8 @@ private const DefaultIcons            = #include(DefaultIconsName)
 // Parsed theme art and its cached rasterizations, the backing type of a [[Gui.Theme]].
 //
 // The embedded sources are shared by every default Theme instance; a theme with resource
-// overrides owns a separate cache. Parsing the embedded sources is pure CPU work whose result
-// never changes, so it is done once per process (same policy as the TypeFace/Font caches). Every
+// overrides owns a separate cache. Embedded SVG is parsed only when a requested size has no
+// shipped raster, once per process (same sharing policy as the TypeFace/Font caches). Every
 // piece of theme art is a vector document, and rasterizing one depends on the requested size and
 // scale alone, so the results are cached beside the drawings: widget atlases here by scale, icon
 // sheets inside the [[Gui.IconAtlas]] by cell size. A process that builds many themes — a test
@@ -45,7 +45,8 @@ private const DefaultIcons            = #include(DefaultIconsName)
 internal struct ThemeImages
 {
     lock:           Swag.Mutex
-    decoded:        bool
+    initialized:    bool
+    widgetsSource:  string?         // Static stock source, parsed only for an uncached scale.
     widgets:        Svg.Drawing     // Vector widgets atlas, parsed once.
     widgetsRasters: HashTable'(s32, Image)     // Rasterizations of `widgets`, by whole scale.
     icons:          IconAtlas       // Vector icon set, parsed once, with its own frames.
@@ -135,14 +136,14 @@ private func defaultThemeImages()->*ThemeImages
 {
     let cache = &g_DefaultThemeImages
     Sync.scopedLock(&cache.lock)
-    if not cache.decoded
+    if not cache.initialized
     {
         // The include payloads own their bytes for the process lifetime. Borrow them as strings
-        // so the parsers and the resource bundle share one static copy.
-        cache.widgets = expect Svg.Drawing.parse(Swag.makeString(DefaultImage.buffer, DefaultImage.count))
-        expect cache.icons.setup(Swag.makeString(DefaultIcons.buffer, DefaultIcons.count))
-        cache.icons.embedded = true
-        cache.decoded        = true
+        // so unsupported sizes can still parse them without retaining another copy.
+        cache.widgetsSource       = Swag.makeString(DefaultImage.buffer, DefaultImage.count)
+        cache.icons.pendingSource = Swag.makeString(DefaultIcons.buffer, DefaultIcons.count)
+        cache.icons.embedded      = true
+        cache.initialized         = true
     }
 
     return cache
@@ -173,6 +174,12 @@ private func themeWidgetsImage(cache: *ThemeImages, scale: f32)->*Image
         let bytes = themeWidgetRaster(key)
         if bytes do
             return &cache.widgetsRasters.add(key, decodeThemeRaster(bytes)).value
+    }
+
+    if let source = cache.widgetsSource
+    {
+        cache.widgets       = expect Svg.Drawing.parse(source)
+        cache.widgetsSource = null
     }
 
     let w = cast(s32, Math.round(cache.widgets.width * scale))
@@ -400,7 +407,7 @@ impl Theme
             .images              = images
             images.widgets       = themeDrawing(resources, ResImageName, DefaultImage)
             images.icons.drawing = themeDrawing(resources, ResIconsName, DefaultIcons)
-            images.decoded       = true
+            images.initialized   = true
         }
 
         .ensureAtlasScale(renderer, dpiScale)

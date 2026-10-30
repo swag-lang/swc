@@ -1016,7 +1016,7 @@ excluded. The application reports 592,026 tokens / 5,143 tuned / 2,411 forged fu
 Its 77 generated source/API files were preserved for the publication-variation investigation;
 tracked frozen sources still match byte for byte. No allocator error was reported.
 
-### Prepared physical-liveness record compaction
+### Physical-liveness record compaction
 
 The next source batch replaces `MicroPhysLiveness::useDefs`' generic instruction records with
 two physical-register masks and one call flag. On x64 the record changes from 88 to 24 bytes,
@@ -1032,14 +1032,13 @@ unknown-register live-out queries retain their conservative behavior. The existi
 also compares every physical use/definition bit with the generic collector, including call
 effects. No generated-code policy or convergence rule changes.
 
-This batch is formatted and statically reviewed but **not yet built or executed**. Its process
-saving is not included in any measurement above. The existing physical-liveness/loop-hoist C++
-tests, generated-code comparison and frozen application are the next grouped validation
-boundaries; the preserved compact-liveness binaries remain the baseline for this batch.
+The grouped DevMode build, physical-liveness/loop-hoist C++ tests and generated-code comparison
+pass, as detailed below. Its process saving is not included in any measurement above. The
+preserved compact-liveness binaries remain the baseline for this batch.
 
 ### Virtual operand lists and newly published cache backing
 
-The same pending batch removes two further retained allocations:
+The same batch removes two further retained allocations:
 
 - Register allocation's virtual-use and virtual-definition lists now store up to three indices
   directly, in 16 bytes rather than 40 bytes per list. The bound is derived from
@@ -1061,7 +1060,41 @@ The same pending batch removes two further retained allocations:
   backing, not all resident file pages. Mapping syscalls and subsequent page faults still need
   the grouped timing/memory observation.
 
-These changes are statically reviewed and formatted but remain unbuilt with the physical-mask
-batch above. Validation will use DevMode C++ tests with `--dev-full` so the cache filesystem
-tests actually run, the twelve benchmark tasks, and the frozen application. Cache ownership
-also requires grouped Release validation. No performance claim is made for this pending batch.
+The grouped DevMode build succeeds at source checkpoint `f484c97a40`; the preserved binary's
+SHA-256 is `470134d0f8007aa6b4d322d8b48aa293a94c73b4d39d9c70cc8b61ca45bd8bad`.
+The `--dev-full` run reports **1,697 passed and one failed**. That failure is the external
+installation's missing `unittests/sanity/expected_error_native_roots.swg`, required by
+`Linker_NativeTestsDiscardRejectedCallees`. After copying the byte-identical tracked fixture,
+the exact child command passes its one native test. The full C++ suite was not repeated;
+the original failure and focused recovery are retained in [effects-cache.json](effects-cache.json).
+The cache filesystem cases and new register-allocation case passed in the original run.
+
+All twelve benchmark tasks rebuild and execute with matching checksums. Complete normalized
+runtime/task body multisets match, preserving multiplicity. Ten tasks differ only in the
+compilation-local `TypeRef` immediate of the previously identified runtime `#run`; two have no
+remaining body difference. Reordered duplicate generic names explain the apparent atomic-loop
+changes. No extra instruction, memory access, call or branch was found in the compared bodies.
+This comparison does not recover overload call-target identity absent from the listing.
+
+Frozen-application observations and grouped Release validation remain pending. Timing admission
+has repeatedly found concurrent host pressure above the stricter measurement threshold; no
+compilation-speed or process-memory claim is made for this batch yet.
+
+### Remaining attribution work
+
+The 149.927 MiB mixed-arena category in the earlier large-allocation census is backing storage,
+not an AST or semantic payload total. An external diagnostic patch is prepared to count the
+inline `sizeof(T) * count` storage allocated through `Arena::make` and `makeArray`, grouped by
+type, at the same setup-thread/global-idle observation boundary. Its accounting separately
+tracks raw allocations, finalizer records, block headers, alignment padding and unused tails.
+Separately owned vector/map/string buffers remain outside those inline type totals. Diagnostic
+maps and an extra arena field affect instrumented RSS; this probe cannot validate speed or be
+silently combined with a previous run's simultaneous owner totals. It has not been built or run.
+
+The next backend design target remains large cyclic liveness matrices. The density census
+shows sparse row bands there too, but the current in-place fixed point needs mutable rows.
+One candidate is to solve exact transfer sets at basic-block boundaries and reconstruct compact
+instruction rows once after convergence. Before adopting it, bound temporary block-matrix
+storage, handle disconnected components and self-loops, preserve use-before-definition order,
+and compare every reconstructed row with the existing instruction-level solver. Dense storage
+must remain available where the block count or row density defeats the memory/speed trade.

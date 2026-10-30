@@ -1,0 +1,290 @@
+{
+  "source_revision": "f484c97a40",
+  "baseline_source_revision": "8bcdc4259b",
+  "status": "DevMode build passes; 1697 full C++ tests pass, with one missing external fixture repaired and its exact command passing separately. All twelve benchmark checksums and runtime/task listing bodies match after reviewed normalization. App memory/timing and Release validation pending.",
+  "changes": [
+    "Physical use/def records: 88 to 24 bytes, masks replace vector queries.",
+    "Virtual operand index lists: 40 to 16 bytes, at most three explicit virtual operands.",
+    "Published cache records use existing immutable file mapping, retaining the valid buffer if mapping fails."
+  ],
+  "limitations": [
+    "Static object-size reductions are not process-peak measurements.",
+    "Mapped cache pages can remain resident; private backing and working set are different metrics.",
+    "Controlled compilation-speed acceptance remains pending."
+  ],
+  "cpp": {
+    "exit": 4,
+    "started_unix": 1793379744.075056,
+    "affinity_mask": 349185,
+    "effective_affinity_mask": 349185,
+    "system_affinity_mask": 4194303,
+    "affinity_verified": true,
+    "host_busy_pct": 65.87822227073441,
+    "other_process_cpu_ms_estimate": 2413140.625,
+    "wall_ms": 195376.6535,
+    "first_stdout_ms": null,
+    "cpu_ms": 267875.0,
+    "user_cpu_ms": 94656.25,
+    "kernel_cpu_ms": 173218.75,
+    "job_cpu_ms": 415968.75,
+    "page_faults": 243826,
+    "job_processes": 110,
+    "peak_job_bytes": 490405888,
+    "peak_proc_bytes": 411463680,
+    "peak_working_set_bytes": 436547584,
+    "stdout": "  \u25c6  swag        unittest \u2022 sources\r\n  Test-Linker_NativeTestsDiscardRejectedCallees  fail (737 ms)\r\n  \u2716  testing     1_697 passed \u2022 1 did not pass \u2022 3 min 15 s\r\n  \u2713  clean       3 min 15 s\r\n",
+    "stderr": "\r\n[linker-test] compiler result=0, exit=1\r\n\r\r\nerror: cannot use file 'C:\\Users\\chris\\AppData\\Local\\swc-agent-builds\\mimalloc-360-20261030-071336\\install\\unittests\\sanity\\expected_error_native_roots.swg': path does not exist\r\r\n\r\r\n\r\n",
+    "harness_sha256": "20a4c33520539d62e67dc2e80a58120e088e68718ed1a690da3a0f0dd2fe7dbf",
+    "allocator_error": false,
+    "mimalloc_options": {},
+    "command": [
+      "C:\\Users\\chris\\AppData\\Local\\swc-agent-builds\\mimalloc-360-20261030-071336\\install\\swc.effects-cache.dm.exe",
+      "unittest",
+      "--dev-full",
+      "--num-cores",
+      "6",
+      "--no-log-color",
+      "--no-log-progress"
+    ],
+    "compiler_sha256": "470134d0f8007aa6b4d322d8b48aa293a94c73b4d39d9c70cc8b61ca45bd8bad"
+  },
+  "cpp_recovery": {
+    "test": "Linker_NativeTestsDiscardRejectedCallees",
+    "cause": "External install lacked unittests/sanity/expected_error_native_roots.swg; no compiler failure.",
+    "fixture_sha256": "c56555f39d6e0a908575bd9d4ee0b88cbf4c151fab72bf6746988dde640a2888",
+    "command": "swc.effects-cache.dm.exe test --artifact-kind executable -f <install>/unittests/sanity/expected_error_native_roots.swg --out-dir <scratch>/effects-cache-native-roots/output --work-dir <scratch>/effects-cache-native-roots/work --build-cfg devmode --no-test-jit --num-cores 6 --no-log-color",
+    "exit": 0,
+    "passed": 1,
+    "full_cpp_suite_rerun": false,
+    "log_sha256": "23f3e994834a4194343a8382db0d07dc10c59463b8ff7f727c8dfeec9c95b6e1"
+  },
+  "microdiff": {
+    "baseline_sha256": "624ad4435443ed67ac33543e009fff3bc749a0da3880efe8c9c1a1b6a97761b8",
+    "candidate_sha256": "470134d0f8007aa6b4d322d8b48aa293a94c73b4d39d9c70cc8b61ca45bd8bad",
+    "api_sha256": "5d601664bfd36fe8917543e7331fbcf1a86309537b3fd31e5d4e5ddc07eac706",
+    "configuration": "devmode",
+    "workers": 6,
+    "command": [
+      "microdiff.py",
+      "--base",
+      "C:\\Users\\chris\\AppData\\Local\\swc-agent-builds\\mimalloc-360-20261030-071336\\install\\swc.compact-liveness.dm.exe",
+      "--new",
+      "C:\\Users\\chris\\AppData\\Local\\swc-agent-builds\\mimalloc-360-20261030-071336\\install\\swc.effects-cache.dm.exe",
+      "--cfg",
+      "devmode",
+      "--cores",
+      "6",
+      "--verbose",
+      "--save-dir",
+      "C:\\Users\\chris\\AppData\\Local\\swc-agent-builds\\mimalloc-360-20261030-071336\\effects-cache-microdiff"
+    ],
+    "exit_code": 0,
+    "normalization": "Repository Micro normalizer, including named call relocation addresses. Duplicate printed names additionally compared as multisets of complete normalized bodies; multiplicity preserved. This establishes listing-body equality, not overload call-target identity absent from the printer.",
+    "normalizer_sha256": "261a515b41c14f2456a46373d241bedc89230d00892020bbeb00c0ea9a6089a1",
+    "tasks": {
+      "wordfreq": {
+        "capture_sha256": [
+          "84a896e6e664aa20bd4d55e5ab7ffed922104f425f4caf5a4102e4440c59b4e8",
+          "05e6c0a10a710e09e651ada83df0940827681e17faa1c9efe5020a35decdf88c"
+        ],
+        "functions": [
+          440,
+          440
+        ],
+        "different_ordered_names": 9,
+        "removed_or_changed_bodies": 1,
+        "added_or_changed_bodies": 1,
+        "reviewed_compile_time_difference": [
+          "load_reg_imm rdx, b64, 0x1400",
+          "load_reg_imm rdx, b64, 0xEC0"
+        ]
+      },
+      "csvagg": {
+        "capture_sha256": [
+          "b59ed25ef4885bb39b761c5c8f832d2a2027c07406c657423b667110989bba86",
+          "51778c0a398c277775e34acdd91a44149b61ad05d61616c8bbc597c34b03e162"
+        ],
+        "functions": [
+          440,
+          440
+        ],
+        "different_ordered_names": 3,
+        "removed_or_changed_bodies": 1,
+        "added_or_changed_bodies": 1,
+        "reviewed_compile_time_difference": [
+          "load_reg_imm rdx, b64, 0x11C0",
+          "load_reg_imm rdx, b64, 0x1040"
+        ]
+      },
+      "sha256": {
+        "capture_sha256": [
+          "4f2bd87a9e521501b6e8f7e2550af755dcece13312bf0239eb409259504ff0c7",
+          "5907b4c48a4fc35eeb5526dda0c5f885c356335e4081f98acd71d09105bdfc92"
+        ],
+        "functions": [
+          434,
+          434
+        ],
+        "different_ordered_names": 5,
+        "removed_or_changed_bodies": 1,
+        "added_or_changed_bodies": 1,
+        "reviewed_compile_time_difference": [
+          "load_reg_imm rdx, b64, 0xFC0",
+          "load_reg_imm rdx, b64, 0x1200"
+        ]
+      },
+      "dijkstra": {
+        "capture_sha256": [
+          "1c471dccd4894a807f7a5030a4cb259dcd56dbf4c009b6b77aa7d4973ed80e19",
+          "04dfe8ad55825f5aab51671012f82bc03cfc82865c9cade9bbb2a0a6139eedfe"
+        ],
+        "functions": [
+          435,
+          435
+        ],
+        "different_ordered_names": 2,
+        "removed_or_changed_bodies": 0,
+        "added_or_changed_bodies": 0
+      },
+      "raytrace": {
+        "capture_sha256": [
+          "09ead2f6be2877d10ee22cf0a19092600e9367db3b5d1f0b4d78abe58002e910",
+          "df0573bc2a0cd6e79958ca68977e55564dc861fc605d38c6a7737e8a44ece428"
+        ],
+        "functions": [
+          435,
+          435
+        ],
+        "different_ordered_names": 5,
+        "removed_or_changed_bodies": 1,
+        "added_or_changed_bodies": 1,
+        "reviewed_compile_time_difference": [
+          "load_reg_imm rdx, b64, 0xE00",
+          "load_reg_imm rdx, b64, 0x1080"
+        ]
+      },
+      "leven": {
+        "capture_sha256": [
+          "da689636197ec968e520193b52cc7d266765f3346660f99ea30046f27a49d2be",
+          "0b331de3a396cc9efaea7deed56ed7a57ffc552ce00fbf5b70d2f4ed4fc450b9"
+        ],
+        "functions": [
+          433,
+          433
+        ],
+        "different_ordered_names": 2,
+        "removed_or_changed_bodies": 0,
+        "added_or_changed_bodies": 0
+      },
+      "chacha": {
+        "capture_sha256": [
+          "e818a315645a6a8c2e2e38424d5357fb8a3fc46806c082d8d2d94a9a08758a2e",
+          "6166543de596cf309e0d2c6b42340911e8f24e113549472d00e57ef6fe5b0aa7"
+        ],
+        "functions": [
+          435,
+          435
+        ],
+        "different_ordered_names": 3,
+        "removed_or_changed_bodies": 1,
+        "added_or_changed_bodies": 1,
+        "reviewed_compile_time_difference": [
+          "load_reg_imm rdx, b64, 0xEC0",
+          "load_reg_imm rdx, b64, 0x1280"
+        ]
+      },
+      "nbody": {
+        "capture_sha256": [
+          "4b6244939e0f529d65c54fede3b4e205cb45e987445b730f7c7dca3042775d55",
+          "637ff0069bf18cadc4c7896050e75c2ab59959d6e941d004f5ac3946ebdddd18"
+        ],
+        "functions": [
+          437,
+          437
+        ],
+        "different_ordered_names": 3,
+        "removed_or_changed_bodies": 1,
+        "added_or_changed_bodies": 1,
+        "reviewed_compile_time_difference": [
+          "load_reg_imm rdx, b64, 0x11C0",
+          "load_reg_imm rdx, b64, 0xE00"
+        ]
+      },
+      "fannkuch": {
+        "capture_sha256": [
+          "30380f7091169de1762e253e2d479e6495b2bdd350c1e8d9e10f33ddbab67a98",
+          "1db4d7d8f777044dc5d173269f3da95f43491428886b29cdd917a7b74333b8c3"
+        ],
+        "functions": [
+          433,
+          433
+        ],
+        "different_ordered_names": 3,
+        "removed_or_changed_bodies": 1,
+        "added_or_changed_bodies": 1,
+        "reviewed_compile_time_difference": [
+          "load_reg_imm rdx, b64, 0xE00",
+          "load_reg_imm rdx, b64, 0x1240"
+        ]
+      },
+      "binarytrees": {
+        "capture_sha256": [
+          "d8343bd9a56870012aabeed6e50244e3fbd3e9ab4bba58e7f2ff7c407bfc24ed",
+          "c058e7b37843db333167e17e5605c00c1e9e83af95af350a642744805744e27c"
+        ],
+        "functions": [
+          437,
+          437
+        ],
+        "different_ordered_names": 3,
+        "removed_or_changed_bodies": 1,
+        "added_or_changed_bodies": 1,
+        "reviewed_compile_time_difference": [
+          "load_reg_imm rdx, b64, 0xA80",
+          "load_reg_imm rdx, b64, 0xDC0"
+        ]
+      },
+      "lz77": {
+        "capture_sha256": [
+          "c7177772b2db0ee0c1011037f0858411556ea7efd763a137bd2443f7139dd27a",
+          "2ef43ea8bac41194c4ecdf4b43d55f0c5ec7e3feb9a7dc2a30d31587d4963923"
+        ],
+        "functions": [
+          434,
+          434
+        ],
+        "different_ordered_names": 5,
+        "removed_or_changed_bodies": 1,
+        "added_or_changed_bodies": 1,
+        "reviewed_compile_time_difference": [
+          "load_reg_imm rdx, b64, 0xFC0",
+          "load_reg_imm rdx, b64, 0xF40"
+        ]
+      },
+      "sort": {
+        "capture_sha256": [
+          "c89f8210263b5e94defef2a28edd9557d4ae7fec72f410cfad36388b3ea05887",
+          "b40685ab1882a9e3e360e2d2423b57f28a31ca814a4f464ed829e253ba46d32e"
+        ],
+        "functions": [
+          435,
+          435
+        ],
+        "different_ordered_names": 3,
+        "removed_or_changed_bodies": 1,
+        "added_or_changed_bodies": 1,
+        "reviewed_compile_time_difference": [
+          "load_reg_imm rdx, b64, 0xD00",
+          "load_reg_imm rdx, b64, 0x1040"
+        ]
+      }
+    },
+    "review": "Runtime/task normalized body multisets match, preserving multiplicity. Differences are duplicate generic-name print ordering and, in ten tasks, the compilation-local TypeRef supplied to persistCompilerRunValue by runtime/core.swg:565. No global integer-constant normalization. This does not recover generic call-target identity missing from the printer."
+  },
+  "artifacts": {
+    "effects-cache-cpp.json": "9242d9b203abf48a5bd62216bdb33e38a101b2e298c7a1b5b0e582746f00de1d",
+    "effects-cache-build.log": "a0bc2e8ef0100eab05123e095b307580b18e4b96e3ff1e42833ff02bc2cd1170",
+    "effects-cache-microdiff.log": "53ea60a271c72b8252f163e75b9e357975eb18f511aa778f90b1f8b7251b1eba",
+    "effects-cache-microdiff-analysis.json": "e7e68c13a29e26de9c94f75bdd489719d5dd22fef74329a621fbf2d5b2388125"
+  }
+}

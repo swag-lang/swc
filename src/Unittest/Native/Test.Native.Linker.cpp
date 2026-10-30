@@ -355,6 +355,68 @@ SWC_TEST_BEGIN(Linker_ArchiveSymbolViewsFollowOwnership)
 }
 SWC_TEST_END()
 
+SWC_FILESYSTEM_TEST_BEGIN(Linker_MappedArchivesKeepBytesAcrossMovesAndReplacement)
+{
+    const LinkerTestDirectory testDir("mapped_archive");
+    const fs::path            path = testDir.path() / "input.lib";
+    ByteArray                 bytes;
+    Diagnostic                diag;
+    if (!buildCoffImportLibrary(bytes, diag, "old.dll", {"original"}))
+        return Result::Error;
+    SWC_RESULT(testDir.write("input.lib", {reinterpret_cast<const char*>(bytes.data()), bytes.size()}));
+
+    Archive original;
+    if (!original.loadFile(diag, path))
+        return Result::Error;
+    const uint32_t           offset = original.memberOffsetForSymbol("original");
+    const auto               member = original.memberData(diag, offset);
+    MEMORY_BASIC_INFORMATION memory{};
+    if (member.empty() || !VirtualQuery(member.data(), &memory, sizeof(memory)) || memory.Type != MEM_MAPPED)
+        return Result::Error;
+
+    std::vector<Archive> archives;
+    archives.push_back(std::move(original));
+    archives.reserve(archives.capacity() + 1);
+    Archive assigned;
+    if (!assigned.load(diag, bytes))
+        return Result::Error;
+    assigned = std::move(archives.front());
+    archives.clear();
+    if (assigned.memberData(diag, offset).data() != member.data())
+        return Result::Error;
+
+    if (!buildCoffImportLibrary(bytes, diag, "new.dll", {"replacement"}))
+        return Result::Error;
+    FileSystem::IoErrorInfo ioError;
+    SWC_RESULT(FileSystem::writeBinaryFileAtomic(path, bytes.data(), bytes.size(), ioError, FileSystem::FileReplacement::Mapped));
+    if (!original.loadFile(diag, path))
+        return Result::Error;
+    ArchiveImport imported;
+    if (!assigned.tryReadImport(imported, diag, offset) || imported.dll != "old.dll" || imported.importName != "original")
+        return Result::Error;
+    if (assigned.memberOffsetForSymbol("replacement") || original.memberOffsetForSymbol("original"))
+        return Result::Error;
+    const uint32_t replacementOffset = original.memberOffsetForSymbol("replacement");
+    if (!replacementOffset || !original.tryReadImport(imported, diag, replacementOffset) || imported.dll != "new.dll")
+        return Result::Error;
+
+    // Reload a mapped owner from memory, then reuse that owner for another mapping.
+    if (!assigned.load(diag, std::move(bytes)) || assigned.memberOffsetForSymbol("original") || !assigned.memberOffsetForSymbol("replacement"))
+        return Result::Error;
+    if (!assigned.loadFile(diag, path) || !assigned.memberOffsetForSymbol("replacement"))
+        return Result::Error;
+    if (assigned.loadFile(diag, testDir.path() / "missing.lib") || !assigned.memberOffsetForSymbol("replacement"))
+        return Result::Error;
+    SWC_RESULT(testDir.write("invalid.lib", "not an archive"));
+    if (assigned.loadFile(diag, testDir.path() / "invalid.lib") || assigned.memberOffsetForSymbol("replacement"))
+        return Result::Error;
+    // Empty files cannot be mapped; the ordinary-read fallback still rejects their contents.
+    SWC_RESULT(testDir.write("empty.lib", ""));
+    if (assigned.loadFile(diag, testDir.path() / "empty.lib") || assigned.memberOffsetForSymbol("replacement"))
+        return Result::Error;
+}
+SWC_TEST_END()
+
 SWC_FILESYSTEM_TEST_BEGIN(Linker_NativeTestsDiscardRejectedCallees)
 {
     const LinkerTestDirectory testDir("rejected_callee");

@@ -15,10 +15,10 @@ namespace
 {
     // Writes the produced bytes through the shared FileSystem helper, recording a ready-to-report
     // diagnostic on the job if the write fails (finishLink reports it on the foreground thread).
-    bool writeJobArtifact(LinkJob& job, const fs::path& path, const ByteArray& bytes)
+    bool writeJobArtifact(LinkJob& job, const fs::path& path, const ByteArray& bytes, FileSystem::FileReplacement replacement = FileSystem::FileReplacement::Ordinary)
     {
         FileSystem::IoErrorInfo ioError;
-        if (FileSystem::writeBinaryFileAtomic(path, bytes.data(), bytes.size(), ioError) != Result::Continue)
+        if (FileSystem::writeBinaryFileAtomic(path, bytes.data(), bytes.size(), ioError, replacement) != Result::Continue)
         {
             job.error = Diagnostic::get(DiagnosticId::cmd_err_link_artifact_write_failed);
             job.error.addArgument(Diagnostic::ARG_PATH, Utf8(path));
@@ -37,7 +37,7 @@ namespace
         if (job.incrementalObjects.empty() && job.incrementalCacheFiles.empty())
             return;
 
-        const auto publish = [](std::vector<LinkJob::IncrementalObject>& objects) {
+        const auto publish = [](std::vector<LinkJob::IncrementalObject>& objects, FileSystem::FileReplacement replacement) {
             for (LinkJob::IncrementalObject& object : objects)
             {
                 std::error_code ec;
@@ -46,14 +46,15 @@ namespace
                     return false;
 
                 FileSystem::IoErrorInfo ioError;
-                if (FileSystem::writeBinaryFileAtomic(object.path, object.bytes.data(), object.bytes.size(), ioError) != Result::Continue)
+                if (FileSystem::writeBinaryFileAtomic(object.path, object.bytes.data(), object.bytes.size(), ioError, replacement) != Result::Continue)
                     return false;
             }
 
             return true;
         };
 
-        if (!publish(job.incrementalObjects) || !publish(job.incrementalCacheFiles))
+        // Cached function archives can still be mapped by another linker.
+        if (!publish(job.incrementalObjects, FileSystem::FileReplacement::Ordinary) || !publish(job.incrementalCacheFiles, FileSystem::FileReplacement::Mapped))
             return;
 
         job.incrementalCachePublished = true;
@@ -83,7 +84,8 @@ namespace
                 break;
         }
 
-        if (!writeJobArtifact(job, job.outputPath, bytes))
+        const auto replacement = job.output == LinkJob::Output::StaticLibrary ? FileSystem::FileReplacement::Mapped : FileSystem::FileReplacement::Ordinary;
+        if (!writeJobArtifact(job, job.outputPath, bytes, replacement))
             return false;
 
         // Replace the PDB when generated; otherwise remove debug data from an earlier build.
@@ -126,7 +128,7 @@ namespace
                 return false;
 
             const fs::path libPath = fs::path(job.outputPath).replace_extension(".lib");
-            if (!writeJobArtifact(job, libPath, libBytes))
+            if (!writeJobArtifact(job, libPath, libBytes, FileSystem::FileReplacement::Mapped))
                 return false;
         }
 
@@ -138,7 +140,7 @@ namespace
             if (!writer.buildStaticArchive(archiveBytes, job.error, job.staticLibraryMembers))
                 return false;
 
-            if (!writeJobArtifact(job, job.staticLibraryPath, archiveBytes))
+            if (!writeJobArtifact(job, job.staticLibraryPath, archiveBytes, FileSystem::FileReplacement::Mapped))
                 return false;
         }
 

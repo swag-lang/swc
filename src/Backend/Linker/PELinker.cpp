@@ -520,14 +520,9 @@ namespace
 
     Result loadArchiveItem(ArchiveLoadItem& item)
     {
-        FileSystem::IoErrorInfo ioError;
-        ByteArray               bytes;
-        if (FileSystem::readBinaryFile(item.path, bytes, ioError) != Result::Continue)
-            return Result::Continue;
-
         Archive    archive;
         Diagnostic diag; // a non-archive candidate is silently skipped
-        if (archive.load(diag, std::move(bytes)))
+        if (archive.loadFile(diag, item.path))
         {
             archive.setSourcePath(item.path);
             item.archive = std::move(archive);

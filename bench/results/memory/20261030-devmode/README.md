@@ -357,3 +357,26 @@ algorithms remain; no packing, decoding or additional lookup is introduced.
 Compile-time size assertions guard these layouts. The map-release fix and this layout batch
 have passed static review and diff checks, but are not yet built or measured. They are grouped
 with the unused reverse-index change for the next compiler validation checkpoint.
+
+## Map linker archives instead of copying entire files
+
+The archive-loading stacks in the profile led to `loadArchiveItem`, which read every candidate
+library into a separate heap buffer before decoding its symbol directory. `Archive::loadFile`
+now uses the existing `Os::ReadOnlyFileMapping` owner and `ByteView` reader. Only directory and
+selected object bytes need to become resident; no whole-file heap copy is allocated on the
+mapped path. If mapping is unavailable, the existing file-read path remains available.
+Archives generated in memory keep their owned `ByteArray` path.
+
+The archive owns its mapping until the borrowed symbol names and member spans are no longer
+needed. Move operations carry that owner and view together without allocating a replacement
+symbol table, and clear the moved-from byte view. Library and incremental-cache publication
+use the existing mapped-file replacement policy so another linker can retain the old generation
+without forcing a two-second scanner retry.
+
+A filesystem regression checks that returned member bytes are actually mapped, survive archive
+moves and file replacement, and decode the correct old/new imports. It also covers reloading
+between mapped and owned storage, missing files, malformed archives and the empty-file fallback.
+This change is not yet built or measured. The next grouped checkpoint covers it, omitted reverse
+indexes, sparse map release and register-allocation record layouts: both compiler builds, internal
+C++ tests including filesystem cases, and a real linked application. Timing remains a separate
+controlled comparison; avoiding file copies is not by itself a measured speed result.

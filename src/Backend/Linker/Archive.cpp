@@ -1,6 +1,7 @@
 #include "pch.h"
 #include "Backend/Linker/Archive.h"
 #include "Backend/Linker/CoffReader.h"
+#include "Main/FileSystem.h"
 #include "Support/Math/Hash.h"
 #include "Support/Math/Helpers.h"
 #include "Support/Report/Assert.h"
@@ -17,7 +18,7 @@ namespace
     constexpr uint16_t         IMPORT_MACHINE_AMD64 = 0x8664;
 
     // Member sizes are stored as a right-padded decimal ASCII string.
-    bool parseMemberSize(uint32_t& outSize, const ByteArray& bytes, size_t headerOffset)
+    bool parseMemberSize(uint32_t& outSize, const ByteView bytes, size_t headerOffset)
     {
         if (!bytes.containsRange(headerOffset, MEMBER_HEADER_SIZE))
             return false;
@@ -25,7 +26,7 @@ namespace
         outSize = 0;
         for (size_t i = 48; i < 58; ++i)
         {
-            const char c = static_cast<char>(bytes[headerOffset + i]);
+            const char c = static_cast<char>(bytes.data()[headerOffset + i]);
             if (c == ' ')
                 break;
             if (c < '0' || c > '9')
@@ -48,11 +49,58 @@ namespace
     }
 }
 
+Archive::Archive(Archive&& other) noexcept :
+    ownedBytes_(std::move(other.ownedBytes_)),
+    mapping_(std::move(other.mapping_)),
+    bytes_(std::exchange(other.bytes_, ByteView{})),
+    symbolToMember_(std::move(other.symbolToMember_)),
+    sourcePath_(std::move(other.sourcePath_))
+{
+}
+
+Archive& Archive::operator=(Archive&& other) noexcept
+{
+    if (this != &other)
+    {
+        symbolToMember_ = std::move(other.symbolToMember_);
+        ownedBytes_     = std::move(other.ownedBytes_);
+        mapping_        = std::move(other.mapping_);
+        bytes_          = std::exchange(other.bytes_, ByteView{});
+        sourcePath_     = std::move(other.sourcePath_);
+    }
+    return *this;
+}
+
 bool Archive::load(Diagnostic& outDiag, ByteArray bytes)
 {
     symbolToMember_.clear();
-    bytes_ = std::move(bytes);
+    mapping_.reset();
+    ownedBytes_ = std::move(bytes);
+    bytes_      = ByteView(ownedBytes_.span());
+    return decode(outDiag);
+}
 
+bool Archive::loadFile(Diagnostic& outDiag, const fs::path& path)
+{
+    auto mapping = std::make_unique<Os::ReadOnlyFileMapping>();
+    if (!mapping->open(path, std::numeric_limits<size_t>::max()))
+    {
+        FileSystem::IoErrorInfo ioError;
+        ByteArray               bytes;
+        if (FileSystem::readBinaryFile(path, bytes, ioError) != Result::Continue)
+            return false;
+        return load(outDiag, std::move(bytes));
+    }
+
+    symbolToMember_.clear();
+    ownedBytes_ = ByteArray{};
+    mapping_    = std::move(mapping);
+    bytes_      = ByteView(mapping_->bytes());
+    return decode(outDiag);
+}
+
+bool Archive::decode(Diagnostic& outDiag)
+{
     if (!bytes_.containsRange(0, ARCHIVE_MAGIC.size()) || std::memcmp(bytes_.data(), ARCHIVE_MAGIC.data(), ARCHIVE_MAGIC.size()) != 0)
     {
         outDiag = Diagnostic::get(DiagnosticId::cmd_err_link_archive_bad_magic);

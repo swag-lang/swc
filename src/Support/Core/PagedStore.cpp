@@ -523,15 +523,15 @@ Ref PagedStore::findRef(const void* ptr) const noexcept
         return std::numeric_limits<Ref>::max();
 
     const PageRange& range = *std::prev(nextIt);
-    if (address >= range.end || !range.page)
-        return std::numeric_limits<Ref>::max();
-
-    const uint32_t offset   = static_cast<uint32_t>(address - range.begin);
-    const uint32_t pageUsed = range.page->used.load(std::memory_order_relaxed);
+    SWC_ASSERT(range.page != nullptr);
+    // Keep the full address difference until the bounds check: an unrelated address
+    // more than 4 GiB away must not wrap into this page's live bytes.
+    const uintptr_t offset   = address - range.begin;
+    const uint32_t  pageUsed = range.page->used.load(std::memory_order_relaxed);
     if (offset >= pageUsed)
         return std::numeric_limits<Ref>::max();
 
-    return makeRef(pageSizeValue_, range.index, offset);
+    return makeRef(pageSizeValue_, range.index, static_cast<uint32_t>(offset));
 }
 
 Ref PagedStore::makeRef(uint32_t pageSize, uint32_t pageIndex, uint32_t offset) noexcept
@@ -601,7 +601,7 @@ void PagedStore::publishPages()
         const std::unique_ptr<Page>& page = pagesStorage_[index];
         pages->push_back(page.get());
         const auto begin = reinterpret_cast<uintptr_t>(page->bytes());
-        pageRanges->push_back({.begin = begin, .end = begin + pageSizeValue_, .index = index, .page = page.get()});
+        pageRanges->push_back({.begin = begin, .index = index, .page = page.get()});
     }
     std::ranges::sort(*pageRanges, {}, &PageRange::begin);
 

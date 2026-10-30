@@ -373,6 +373,45 @@
       ],
       "compiler_sha256": "43755fc41b9709c32234b29c04c18bea9fe215274839ae939a58224f56fb9d57",
       "valid": true
+    },
+    "pinned-control-app": {
+      "exit": 0,
+      "started_unix": 1793355778.8214474,
+      "affinity_mask": 349185,
+      "host_busy_pct": 79.1961534071453,
+      "other_process_cpu_ms_estimate": 2875984.375,
+      "wall_ms": 199120.3569,
+      "first_stdout_ms": null,
+      "cpu_ms": 593203.125,
+      "user_cpu_ms": 574578.125,
+      "kernel_cpu_ms": 18625.0,
+      "job_cpu_ms": 593203.125,
+      "page_faults": 1077390,
+      "job_processes": 2,
+      "peak_job_bytes": 1996431360,
+      "peak_proc_bytes": 1995214848,
+      "peak_working_set_bytes": 1995640832,
+      "stdout": "  \u25c6  swag        build \u2022 apps [swagcapture] \u2022 devmode\r\n  \u2713  module      win32 \u2022 48 files \u2022 387 ms\r\n  \u2713  module      gdi32 \u2022 44 files \u2022 423 ms\r\n  \u2713  module      xinput \u2022 43 files \u2022 240 ms\r\n  \u2713  module      core \u2022 378 files \u2022 core.dll \u2022 8 s 104 ms\r\n  \u2713  module      ogl \u2022 98 files \u2022 ogl.dll \u2022 6 s 81 ms\r\n  \u2713  module      truetype \u2022 99 files \u2022 truetype.dll \u2022 5 s 402 ms\r\n  \u2713  module      pixel \u2022 318 files \u2022 pixel.dll \u2022 2 min 16 s\r\n  \u2713  module      gui \u2022 366 files \u2022 gui.dll \u2022 17 s 113 ms\r\n  \u2713  workspace   std [gui] \u2022 8 modules \u2022 2 min 58 s\r\n  \u2713  checked     136 files \u2022 592_047 tokens \u2022 5 s 333 ms\r\n  \u2713  tuned       5_143 functions \u2022 10 s 678 ms\r\n  \u2713  forged      2_411 functions \u2022 swagcapture.exe \u2022 10 s 902 ms\r\n  \u2713  module      swagcapture \u2022 182 files \u2022 swagcapture.exe \u2022 18 s 452 ms\r\n  \u2713  workspace   apps [swagcapture] \u2022 1 module \u2022 3 min 18 s\r\n  \u2713  clean       3 min 18 s\r\n",
+      "stderr": "\r\n",
+      "allocator_error": false,
+      "mimalloc_options": {},
+      "command": [
+        "install\\swc.control.dm.exe",
+        "build",
+        "--workspace",
+        "C:\\Users\\chris\\AppData\\Local\\swc-agent-builds\\mimalloc-360-20261030-071336\\install\\apps",
+        "--workspace-module",
+        "swagcapture",
+        "--num-cores",
+        "6",
+        "--rebuild",
+        "--no-log-color",
+        "--no-log-progress"
+      ],
+      "compiler_sha256": "43755fc41b9709c32234b29c04c18bea9fe215274839ae939a58224f56fb9d57",
+      "valid": true,
+      "timing_comparable": false,
+      "timing_note": "Host busy for 79.20% of the run; admission sampled 13%, but unrelated load rose during the run."
     }
   }
 }

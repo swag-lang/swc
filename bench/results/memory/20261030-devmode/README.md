@@ -175,6 +175,14 @@ can affect wall and CPU time, but that does not establish the cause of this reve
 has **not** met the no-compilation-slowdown acceptance condition. A controlled timing comparison
 and investigation of the changed cache and payload paths remain necessary before acceptance.
 
+A diagnostic repeat pinned the compiler to the six performance cores and recorded host CPU
+counters around the run. Admission sampled 13% CPU, but the host averaged 79.20% during the
+199.12-second compilation; an estimated 2,875.98 CPU-seconds belonged to other processes,
+against 593.20 CPU-seconds for the compiler job. The application completed without allocator
+errors. This run is excluded from controlled timing comparisons. It demonstrates interference
+in that repeat, but does not establish the cause of the earlier timing reversal. No baseline
+repeat was started while the stricter 20% timing-admission threshold reported `wait`.
+
 Commands, binary hashes, counters, test output and excluded failed runs are retained in
 [measurements.json](measurements.json). The current compiler's source matches code revision
 `3965e1b51`; its SHA-256 is `43755fc41b9709c32234b29c04c18bea9fe215274839ae939a58224f56fb9d57`.
@@ -200,3 +208,23 @@ not additional measured process-memory savings; the binaries above do not includ
 All records retain their fields, defaults and natural alignment. No packing, bitfields,
 side tables or allocation-policy changes are introduced. Compile-time size assertions guard
 the normal x64 layouts at the next grouped build.
+
+## Retained page-range indexes, awaiting a grouped build
+
+`PagedStore` publishes and retains immutable page indexes for concurrent readers whenever a
+page is added. Its address-range record used to store both the start address and the end of
+the full page, as well as a pointer to the page whose live byte count bounds every valid lookup.
+The end address is redundant: `upper_bound` already selects a start no greater than the query,
+and the full-width address difference can be compared directly against the live byte count.
+
+Removing the end address shrinks the x64 record from 32 to 24 bytes and removes the separate
+full-page bounds branch. The normal lookup still subtracts the start and loads the live count;
+it gains no allocation, lock, indirection or pass. The subtraction stays pointer-sized until
+after validation, so an address more than 4 GiB away cannot wrap to a valid 32-bit offset.
+A focused C++ regression covers live boundaries, unused tails, cleared pages and that distant
+address case. It will run with the next grouped validation.
+
+For a store that grows to N pages, the retained range arrays contain N(N+1)/2 entries. The
+static saving is therefore 4N(N+1) bytes per store, excluding allocator rounding: 4.00 MiB
+at 1,024 pages. This is a representation calculation, not a measured whole-compiler gain.
+The quadratic snapshot-retention policy itself is unchanged and remains a separate lead.

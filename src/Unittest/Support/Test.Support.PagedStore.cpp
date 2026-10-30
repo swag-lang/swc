@@ -512,6 +512,35 @@ SWC_TEST_BEGIN(PagedStore_ReserveSpanReturnsWritableContiguousStorage)
 }
 SWC_TEST_END()
 
+SWC_TEST_BEGIN(PagedStore_FindRefRejectsAddressesOutsideLiveBytes)
+{
+    PagedStore store(64);
+    if (store.findRef(nullptr) != INVALID_REF)
+        return Result::Error;
+
+    const auto [bytes, ref] = store.reserveSpan(8);
+    const uintptr_t begin   = reinterpret_cast<uintptr_t>(bytes.data());
+    if (store.findRef(bytes.data()) != ref || store.findRef(bytes.data() + 7) != ref + 7)
+        return Result::Error;
+    for (const uintptr_t address : {begin - 1, begin + 8, begin + 63, begin + 64})
+    {
+        if (store.findRef(reinterpret_cast<const void*>(address)) != INVALID_REF)
+            return Result::Error;
+    }
+
+    if constexpr (sizeof(uintptr_t) > sizeof(uint32_t))
+    {
+        const uintptr_t farAddress = begin + (uint64_t{1} << 32);
+        if (store.findRef(reinterpret_cast<const void*>(farAddress)) != INVALID_REF)
+            return Result::Error;
+    }
+
+    store.clear();
+    if (store.findRef(bytes.data()) != INVALID_REF)
+        return Result::Error;
+}
+SWC_TEST_END()
+
 SWC_TEST_BEGIN(PagedStore_EmptyCopySpanDoesNotAllocateStorage)
 {
     PagedStore store(32);

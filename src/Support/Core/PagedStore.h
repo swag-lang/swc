@@ -182,10 +182,11 @@ private:
     struct PageRange
     {
         uintptr_t   begin = 0;
-        uintptr_t   end   = 0;
         uint32_t    index = 0;
         const Page* page  = nullptr;
     };
+
+    static_assert(sizeof(void*) != 8 || sizeof(PageRange) == 24);
 
     struct SpanHdrRaw
     {

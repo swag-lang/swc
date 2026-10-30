@@ -244,8 +244,7 @@ excluding table objects and allocator rounding. Growing within capacity also eli
 table allocation, an array allocation and the copy of all existing page pointers.
 
 Lookups still index one contiguous array without locking. Pointer slots use acquire loads;
-on x64 these need no locked operation or fence, but generated code and grouped timing still
-need verification before claiming the no-slowdown condition. Each lookup retains its loaded
+the generated x64 path uses no locked operation or fence. Each lookup retains its loaded
 page pointer locally. Iteration captures the published count once rather than following a
 count that may grow concurrently. Move construction, move assignment and clear retain the
 existing storage and reference contracts.
@@ -256,4 +255,14 @@ moved-from store. The grouped DevMode build succeeded, including this change, th
 regression and the preceding common layout batch. All 1,617 fast C++ tests passed with no allocator
 error, including both new page-store regressions. The compiler code is `ecb64e0f2e`; the preserved
 DevMode executable has SHA-256 `f085648aeea0f185c7212ae1cb4d226874e2617ed59ede6f137b8d4b4ecd33ed`.
-The Release build and application comparisons for this checkpoint are still pending.
+The Release build also succeeded. A subsequent link-only invocation emitted a map for later
+heap-profile symbolization; it did not recompile sources or introduce a build configuration.
+The preserved Release executable has SHA-256
+`0ecd72a7b7f813e02c7e8ceb8237ff94239a8b7ad3c602ecd8ef184fad768ffb`.
+
+[The before/after x64 assembly](paged-store-get.asm) of `ConstantManager::get` shows the
+direct-page path falling from 31 to 26 non-NOP instructions, including prologue and return.
+Keeping the page pointer locally removes two redundant memory reads. The large-block fallback
+is unchanged. This verifies that representative hot access, not whole-compilation speed.
+Application memory and timing comparisons for this checkpoint remain pending; the latest
+timing admission sampled 78% CPU, above the stricter 20% comparison threshold.

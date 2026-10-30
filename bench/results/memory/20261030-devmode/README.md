@@ -878,9 +878,9 @@ ordering. The exact diff is retained in the experiment record and the reproducib
 tracked in `compiler.core.085`. Promotion still needs a stable timing comparison, this output
 variation understood, and grouped Release validation.
 
-### Backend batch after the allocation census: validation pending
+### Backend batch after the allocation census
 
-The allocation census led to four focused source edits, without another build/test cycle yet:
+The allocation census led to four focused source edits:
 
 - When an acyclic register-liveness matrix exceeds its retained capacity, use `assign(count, 0)`
   instead of `resize(count)`. Its previous rows are dead. The installed MSVC 14.50 vector
@@ -899,11 +899,49 @@ The source diff passes formatting and whitespace checks. Existing
 `RegAlloc_ReusedPassBorrowsCurrentCfgAcrossDifferentControlFlow` exercises reused pass storage
 while instruction counts/register-word counts grow and shrink across cyclic and acyclic cases.
 The existing physical-liveness and affected peephole/rotation tests are the other relevant C++
-boundaries for the next grouped validation; no new test duplicates the implementation. The normal
-checkout executable still belongs to the previous validated source checkpoint.
+boundaries. The grouped DevMode build, all 1,620 ordinary C++ tests and the frozen application's
+complete rebuild pass. The tests and application used the density-instrumented binary; the normal
+compiler was then rebuilt without the probe and completed a further frozen application rebuild.
+No new test duplicates the implementation.
 
 The larger matrix redesign remains open. An external diagnostic patch is prepared to count
 nonzero words, the first-to-last nonzero word span per row, empty rows and adjacent duplicate
-rows for matrices of at least 1 MiB, distinguishing cyclic from acyclic functions. It has not run.
-These measurements will estimate compact-storage candidates before adding an indirection or
-changing the hot bit-test/row-union paths. No diagnostic code is enabled in normal sources.
+rows for matrices of at least 1 MiB, distinguishing cyclic from acyclic functions. The resulting
+measurements below estimate compact-storage candidates before adding an indirection or changing
+the hot bit-test/row-union paths. No diagnostic code is enabled in normal sources.
+
+### Populated liveness-matrix density
+
+[liveness-density.json](liveness-density.json) records 52 observations after the virtual liveness
+fixed point: four acyclic and 48 cyclic matrices of at least 1 MiB. Repeated analysis of one
+function appears repeatedly, so totals across observations describe scanned work, not retained
+memory. The instrumentation reads the matrix and is excluded from timing comparisons.
+
+| Matrix shape | Dense words (MiB) | Packed per-row spans plus 16-byte row metadata (MiB) |
+| --- | ---: | ---: |
+| 40,177 instructions, 162 words per row, acyclic | 49.657 | 0.910 |
+| 22,683 instructions, 127 words per row, cyclic | 21.978 | 5.458 |
+| 20,604 instructions, 113 words per row, cyclic | 17.763 | 4.561 |
+| 20,580 instructions, 77 words per row, cyclic | 12.090 | 2.339 |
+
+The largest matrix has at most **one nonzero uint64 word per row**: its nonzero words total
+311,040 bytes, and 1,297 rows are empty. The 0.910 MiB estimate adds 642,832 bytes for one
+16-byte descriptor per instruction. It excludes vector growth slack and temporary workspaces;
+it is a representation estimate, not a measured process saving. Adjacent-row sharing alone
+would still need about 20.978 MiB, so storing each useful word span is the stronger lead.
+
+The first implementation target is large acyclic matrices. A reverse sweep reads already final
+successor rows, merges their useful spans into temporary storage, applies use/def masks, then
+stores one trimmed row. Cyclic functions retain the dense mutable fixed point initially. Readers
+must preserve zero words outside each stored span, global register indices and stable row offsets
+across backing-vector growth. Span iteration can avoid scanning known-zero words; random bit
+queries add range/offset work whose compilation-time effect still needs measurement.
+
+The uninstrumented source checkpoint is `0d8010eb98`; its normal DevMode binary SHA-256 is
+`c61d7801bf42336c8937885f393e18500ea8c9e8befdc168c4601b70e6975627` and is also preserved
+externally as `swc.liveness-baseline.dm.exe`. Its first frozen rebuild uses 1,532.301 MiB peak
+working set, 63.924 s wall and 245.391 s process CPU. Strict start admission passed, but host load
+averaged 38.62% during execution. This is a baseline observation, not a speed-acceptance result.
+Its application counts are 592,024 tokens / 5,142 tuned functions / 2,411 forged functions, versus
+592,047 / 5,143 / 2,411 in the diagnostic run; the known frozen-input publication variation
+remains tracked in `compiler.core.085` and must not be silently treated as identical output.

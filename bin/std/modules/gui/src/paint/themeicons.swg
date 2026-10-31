@@ -106,6 +106,7 @@ enum ThemeIcons
     FileArchive     // An archive of other files.
     Star            // An outlined rating star.
     StarFilled      // A filled rating star.
+    Outline         // Document heading hierarchy.
 }
 
 // Extensions read as each kind of file, compared without case.

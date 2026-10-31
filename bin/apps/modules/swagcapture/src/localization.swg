@@ -37,7 +37,7 @@ struct AppStrings
     ui_BarFolders:             string = "Folders"
     ui_RenameQuickStyle:       string = "Rename Quick Style…"            // Names a quick style.
     ui_ReplaceQuickStyle:      string = "Replace with Current Style"     // Gives a quick style the style of the tool or the selection.
-    ui_QuickStyleRank:         string = "Style %"     // Name of a quick style the reader has not named, with its rank.
+    ui_KeepCurrentQuickStyle:  string = "Keep Current Style as Quick Style" // Saves the current tool or selection style as a preset.
     ui_QuickStyleTip:          string = "% · right-click to rename, replace or remove it"     // Tooltip of a quick style: its name, and what its menu offers.
     ui_QuickStyleName:         string = "Name of the quick style"        // Prompt of the quick-style rename dialog.
     dlg_TitleRenameQuickStyle: string = "Rename Quick Style"             // Title of the quick-style rename dialog.
@@ -189,6 +189,7 @@ struct AppStrings
     act_ResetSteps:             string = "Reset Step Numbers"                                    // Restarts the numbering of the step markers at 1.
     tip_AllQuickStyles:         string = "All Styles"                                            // The chip opening every quick style of the tool.
     tip_AddQuickStyle:          string = "Keep the current style as a quick style"               // The chip after the quick styles of the inspector.
+    tip_QuickStyleActions:      string = "Right-click to rename, replace or remove this quick style" // Actions available for an unnamed preset.
     ui_RecentColors:            string = "Recent"                                                // Section of the colour popover: the colours used last.
     ui_Palette:                 string = "Palette"                                               // Section of the colour popover: the palette.
     ui_Layers:                  string = "Layers"                                                // Section of the inspector listing the objects of the capture.

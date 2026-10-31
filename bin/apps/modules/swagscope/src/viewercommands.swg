@@ -32,6 +32,7 @@ namespace ViewerCommands
     const WholeWord         = "scope.search.wholeWord"
     const RegularExpression = "scope.search.regularExpression"
     const FullScreen        = "scope.fullScreen"
+    const Outline           = "scope.outline"
     const SidePanel         = "scope.sidePanel"
     const PlayOnce          = "scope.play.once"
     const PlayRepeat        = "scope.play.repeat"
@@ -111,7 +112,7 @@ impl ViewerWindow
             {
                 let section = results.addSection(appStrings().lens_View)
                 window.lens.addCommandRows(section,
-                                           [ViewerCommands.SidePanel, ViewerCommands.FullScreen, ViewerCommands.GeneralOptions],
+                                           [ViewerCommands.Outline, ViewerCommands.SidePanel, ViewerCommands.FullScreen, ViewerCommands.GeneralOptions],
                                            enabledOnly: true)
             })
             .addRestSource(func|window = me|(results) { window.describeViewerChoices(results) })
@@ -138,7 +139,7 @@ impl ViewerWindow
                                                                     ViewerCommands.FilterMode, ViewerCommands.MatchCase, ViewerCommands.WholeWord, ViewerCommands.RegularExpression])
             .addCommand(func()->string => appStrings().lens_View, ViewerCommands.FullScreen, func()->string => appStrings().search_FullScreen)
             .addCommands(func()->string => appStrings().lens_View,
-                         [ViewerCommands.Information, ViewerCommands.SidePanel, ViewerCommands.GeneralOptions])
+                         [ViewerCommands.Information, ViewerCommands.Outline, ViewerCommands.SidePanel, ViewerCommands.GeneralOptions])
             .addCommands(func()->string => appStrings().lens_Playback,
                          [ViewerCommands.PlayOnce, ViewerCommands.PlayRepeat, ViewerCommands.PlayFolder, ViewerCommands.PlayShuffle])
         }
@@ -148,6 +149,7 @@ impl ViewerWindow
         // The lens uses one chord everywhere.
         .registerKeyShortcut(.Control, .Space, ViewerCommands.Lens)
         .registerKeyShortcut(.None, .I, ViewerCommands.Information)
+        .registerKeyShortcut(Input.KeyModifiers.Control | .Shift, .O, ViewerCommands.Outline)
         .registerKeyShortcut(.Control, .O, ViewerCommands.Open)
         .registerKeyShortcut(.Control, .E, ViewerCommands.Explore)
         .registerKeyShortcut(.None, .F5, ViewerCommands.Reload)
@@ -595,11 +597,24 @@ impl ViewerWindow
             toggle  = true
             checked = .fullScreen
 
+        case ViewerCommands.Outline:
+            name   = outlineTitle()
+            icon   = .commandGlyph(.Outline)
+            hidden = true
+            toggle = true
+            if .currentSidePanelButton
+            {
+                hidden  = .currentSidePanelButton.id != OutlineToggleId
+                checked = .currentSidePanelButton.isChecked
+            }
+
         case ViewerCommands.SidePanel:
             hidden = .currentSidePanelButton == null
             if .currentSidePanelButton
             {
                 name    = .currentSidePanelButton.toolTip
+                icon    = .commandGlyph(.Information)
+                hidden  = .currentSidePanelButton.id == OutlineToggleId
                 toggle  = true
                 checked = .currentSidePanelButton.isChecked
             }
@@ -861,13 +876,12 @@ impl ViewerWindow
         case ViewerCommands.FullScreen:
             .setFullScreen(not .fullScreen)
 
+        case ViewerCommands.Outline:
+            if .currentSidePanelButton and .currentSidePanelButton.id == OutlineToggleId do
+                .toggleSidePanel()
+
         case ViewerCommands.SidePanel:
-            if .currentSidePanelButton
-            {
-                let toggle = .currentSidePanelButton
-                toggle.setChecked(not toggle.isChecked)
-                toggle.sigCheckedChanged.call(toggle)
-            }
+            .toggleSidePanel()
 
         case ViewerCommands.PlayOnce:
             .setPlayMode(.Once)
@@ -886,6 +900,15 @@ impl ViewerWindow
         }
 
         return true
+    }
+
+    private mtd toggleSidePanel()
+    {
+        if not .currentSidePanelButton do
+            return
+        let toggle = .currentSidePanelButton
+        toggle.setChecked(not toggle.isChecked)
+        toggle.sigCheckedChanged.call(toggle)
     }
 
     // Runs one command of the explored folder, and reports whether it was one.

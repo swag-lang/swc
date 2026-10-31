@@ -330,13 +330,16 @@ impl ViewerWindow
 
     // Moves the host-owned panel toggle with the viewer it belongs to. The toggle stays off the
     // window: the lens names it after its panel and turns it, and its panel takes the right-side
-    // lane while it is on.
+    // lane while it is on. An outline also has a direct action in the caption strip.
     private mtd setCurrentSidePanel(panel: *Wnd?, button: *IconButton?)
     {
         .currentSidePanelHost?.hide()
         .currentSidePanelButton?.hide()
         .currentSidePanelHost   = panel
         .currentSidePanelButton = button
+        if button and button.id == OutlineToggleId do
+            .refreshOutlineCaption()
+        .outlineCaptionButton.show(button and button.id == OutlineToggleId and not .fullScreen)
         .updateDocumentInsets()
 
         let visible = button and button.isChecked and not .fullScreen

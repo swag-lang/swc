@@ -359,8 +359,8 @@ using Swag, Core
     Swag.assert(quickStyle.forms.count == 0)
 }
 
-// The row of a tool holds five presets and "+"; past that it holds five presets and "•••", which
-// opens every preset with "+" in a popover, and a preset chosen there comes to the front of the row.
+// The row shows the live style first when it is unsaved, and keeps it with a separate "+".
+// More saved styles move behind "•••" and remain reachable in its popover.
 #test
 {
     var f: HeadlessFixture
@@ -369,6 +369,7 @@ using Swag, Core
     let quick = QuickWnd.create(f.main, f.main)
     quick.setDefault()
     f.main.editMode = .Arrow
+    f.main.mdlFormArrow.borderColor = Argb.Magenta
     quick.setPosition(Math.Rectangle{0, 0, 6 * QuickChipWidth, QuickChipHeight})
     quick.updateQuickStyles(forceRebuild: true)
     Swag.assert(quick.qsArrow.forms.count > 5)
@@ -388,13 +389,15 @@ using Swag, Core
             hidden += 1
     }
 
-    Swag.assert(shown == 5 and hidden > 0 and moreShown and not addShown)
+    Swag.assert(shown == 4 and hidden > 0 and moreShown and addShown)
+    let cells = quick.rowCells()
+    Swag.assert(cells[0].isTransient and cells[1].isModel)
 
     // The popover holds every preset and "+".
     let more = unwrap quick.moreButton
     quick.openAllPresets(more)
     let body = unwrap quick.allPresets
-    Swag.assert(body.children.count == quick.qsArrow.forms.count + 1)
+    Swag.assert(body.children.count == quick.qsArrow.forms.count + 2)
 
     // A preset chosen there comes to the front, and the popover closes.
     let last = quick.qsArrow.forms.back()
@@ -403,8 +406,7 @@ using Swag, Core
     Swag.assert(quick.allPresets == null)
 }
 
-// A quick style has a name: "Style" and its rank until the reader gives one, written under the
-// row while it is in force, and kept when the style moves to the front.
+// A quick style keeps its optional name for editing, without taking a caption line under the row.
 #test
 {
     var f: HeadlessFixture
@@ -417,24 +419,60 @@ using Swag, Core
     quick.updateQuickStyles(forceRebuild: true)
 
     let style = &quick.qsArrow
-    Swag.assert(style.nameOf(0) == Format.toString(appStrings().ui_QuickStyleRank, 1))
-    Swag.assert(quick.caption != null and quick.caption.isVisible())
+    Swag.assert(style.nameOf(0).isEmpty())
+    Swag.assert(quick.position.height == QuickChipHeight + quick.themeMetrics().inspector_RowGap)
 
     style.setName(2, "Orange mark")
     Swag.assert(style.nameOf(2) == "Orange mark")
     Swag.assert(style.countUse(2) == 0)
     Swag.assert(style.nameOf(0) == "Orange mark" and style.uses[0] == 1)
 
-    // The style in force is the first one: its name is written under the row.
+    // The style can be named without adding a label beneath the presets.
     quick.applyPreset(style.forms[0])
-    let words: String = quick.caption.text()
-    Swag.assert(quick.caption.isVisible() and words.indexOf("Orange mark") != Swag.U64.Max)
+    Swag.assert(quick.position.height == QuickChipHeight + quick.themeMetrics().inspector_RowGap)
 
     // Removing a style removes its name with it.
     let count = style.names.count
     let first = style.forms[0]
     style.remove(first)
     Swag.assert(style.names.count == count - 1 and style.nameOf(0) != "Orange mark")
+}
+
+// A selection whose properties are not saved is the first quick-style cell, followed by the
+// saved presets and a separate control that keeps it. Saving removes the transient cell.
+#test
+{
+    var f: HeadlessFixture
+    f.setup()
+    defer f.shutdown()
+    let quick = QuickWnd.create(f.main, f.main)
+    quick.setDefault()
+    f.main.editMode = .Shape
+    quick.setPosition(Math.Rectangle{0, 0, 6 * QuickChipWidth, QuickChipHeight})
+
+    let shape = testAddShape(f.capture, 10, 12, 40, 24)
+    shape.borderColor = Argb.Magenta
+    f.capture.selection.add(0)
+    f.capture.selectionHasChanged()
+    quick.updateQuickStyles(forceRebuild: true)
+
+    var cells = quick.rowCells()
+    Swag.assert(cells[0].isTransient and cells[0].isChecked)
+    Swag.assert(cells[1].isModel and cells[1].position.x == QuickChipWidth)
+    Swag.assert(quick.canAddCurrentStyle())
+    Swag.assert(cells.back().isMore)
+
+    quick.openAllPresets(unwrap quick.moreButton)
+    let popover = unwrap quick.allPresets
+    Swag.assert(popover.children.count == quick.qsShape.forms.count + 2)
+    Swag.assert((assume cast(*QuickButton, popover.children.back())).isModel)
+
+    quick.addCurrentStyle()
+    cells = quick.rowCells()
+    Swag.assert(not quick.canAddCurrentStyle())
+    for cell in cells do
+        Swag.assert(not cell.isTransient and not cell.isModel)
+    Swag.assert(quick.qsShape.forms.back().borderColor == Argb.Magenta)
 }
 
 // The row is ordered by use: a preset applied more than those before it moves ahead of them, when

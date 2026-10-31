@@ -315,6 +315,11 @@ impl IWnd for LibraryView
             painter.resetClippingRegion()
         }
 
+        // The picture is the cell's surface. A light theme veil makes its hover visible without
+        // replacing the thumbnail or introducing a separate outline language.
+        if infos.hot do
+            painter.fillRoundRect(rect, corner, corner, colors.veilSoft)
+
         RecentView.paintLinkBadge(me, painter, rect, infos, corner)
 
         if infos.selected

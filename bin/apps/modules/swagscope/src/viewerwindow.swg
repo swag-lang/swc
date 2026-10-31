@@ -49,6 +49,7 @@ struct ViewerWindow
         searchNext:           *IconButton
         searchOptionsButton:  *IconButton
         appearanceButton:     *AppearanceButton
+        outlineCaptionButton: *CaptionButton
         lens:                 *Lens.View
         infoSheet:            *InfoSheet
         hintLine:             *HintLine
@@ -705,9 +706,16 @@ impl ViewerWindow
     // Keeps the few decorative glyphs aligned with the active palette and document kind.
     mtd refreshArtwork()
     {
+        .outlineCaptionButton.button.setIcon(.theme().icon(.Outline, .themeMetrics().wnd_CaptionButtonGlyph))
         .searchPrevious.setIcon(.theme().icon(.SearchPrevious, themeActionIconSize(.themeMetrics())))
         .searchNext.setIcon(.theme().icon(.SearchNext, themeActionIconSize(.themeMetrics())))
         .refreshSearchPresentation()
+    }
+
+    mtd refreshOutlineCaption()
+    {
+        .outlineCaptionButton.toolTip = Format.toString("% (%)", outlineTitle(),
+                                                       Input.formatKeyShortcut(Input.KeyModifiers.Control | .Shift, .O))
     }
 
     // Lays the home out again for the history, the theme or the language in force.
@@ -883,6 +891,7 @@ impl ViewerWindow
                 surface.showNormalAt(.fullScreenRestorePosition)
         }
 
+        .outlineCaptionButton.show(not .fullScreen and .currentSidePanelButton and .currentSidePanelButton.id == OutlineToggleId)
         surface.invalidate()
         .refreshReadingAppearance()
         .applyLayout()
@@ -916,6 +925,13 @@ impl ViewerWindow
         result.createSheetAndHint()
         result.createLens()
         Lens.Launcher.create(result, ViewerCommands.Lens)
+        with result.outlineCaptionButton = CaptionButton.create(result.surface, .Outline)
+        {
+            .focusPolicy = .Tab
+            .wndFlags.add(.ActivatesOnKey)
+            .sigPressed += func|window = result|(_) { window.sendCommandEvent(ViewerCommands.Outline) }
+            .hide()
+        }
         result.hookChildEvents()
 
         result.applyLanguage()
@@ -1087,6 +1103,7 @@ impl ViewerWindow
         .searchPrevious.toolTip      = texts.ui_SearchPrevious
         .searchNext.toolTip          = texts.ui_SearchNext
         .searchOptionsButton.toolTip = texts.ui_SearchOptions
+        .refreshOutlineCaption()
         .refreshSearchPresentation()
         .refreshSearchReadout()
         .recentLabel.setText(texts.ui_Recent)

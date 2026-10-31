@@ -76,9 +76,10 @@ impl IActionUI for ActionCopyPaste
             }
 
         case .CopyAsImage:
-            evt.updatedFields |= .Disabled | .Name
+            evt.updatedFields |= .Disabled | .Name | .Icon
             evt.disabled      = not capture
             evt.name          = appStrings().act_CopyImageToClipboard
+            evt.icon          = main.theme().icon(.Copy)
 
         case .Duplicate:
             evt.updatedFields |= .Disabled | .Name | .Icon

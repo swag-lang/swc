@@ -89,6 +89,35 @@ using Core, Pixel, Gui, Gui.Testing, Viewers
     Swag.assert(scroll.scrollTarget().y > 0)
 }
 
+// Its caption glyph and shortcut open the same panel while focus is inside the outline.
+#test
+{
+    let fileName = Testing.tempFilePath("scope-outline-action-", ".md")
+    discard expect File.writeAllBytes(fileName, "# Guide\n\n## Last section\n\nDone.\n")
+    defer discard catch File.delete(fileName)
+
+    var host: HeadlessHost
+    host.setup(880, 560)
+    shipFrame(&host)
+    let window = ViewerWindow.create(&host.surfaceWnd, createViewerPluginRegistry())
+    window.openFile(fileName, remember: false)
+    completeQueuedViewerFile(&host, window)
+    window.applyLayout()
+
+    let outline = unwrap (assume cast(*MarkdownText.ZoomButton, window.currentInfo!.children[0])).outline
+    let caption = window.outlineCaptionButton
+    Swag.assert(caption.isLocallyVisible() and caption.icon.isValid())
+    Swag.assert(window.currentSidePanelButton!.id == OutlineToggleId)
+
+    host.click(caption.surfaceRect().center())
+    Swag.assert(outline.toggle.isChecked and window.mainSplitter.isPaneVisible(2),
+                Format.toString("caption=%, checked=%, pane=%", caption.surfaceRect(),
+                                outline.toggle.isChecked, window.mainSplitter.isPaneVisible(2)).toString())
+    host.focus(outline.list.listView)
+    host.keyPress(.O, Input.KeyModifiers.Control | .Shift)
+    Swag.assert(not outline.toggle.isChecked and not window.mainSplitter.isPaneVisible(2))
+}
+
 // The panel is hosted at the information edge and exposes the document hierarchy in both languages.
 #[Swag.TestTag("golden")]
 #test
@@ -185,6 +214,8 @@ using Core, Pixel, Gui, Gui.Testing, Viewers
     window.resize(880, 420)
     window.applyLayout()
     Swag.assert(outline.section!.text == "Plan" and outline.toggle.toolTip == "Plan")
+    Swag.assert(window.outlineCaptionButton.toolTip == Format.toString("Plan (%)",
+                                                                       Input.formatKeyShortcut(Input.KeyModifiers.Control | .Shift, .O)))
     Swag.assert(outline.list.selectedLine() == outline.rows[0])
     Testing.assertContentFits(outline)
     var french = host.render(window)
@@ -192,8 +223,10 @@ using Core, Pixel, Gui, Gui.Testing, Viewers
     Pixel.Testing.assertImageGolden(&french, "viewer.outline.markdown.fr")
     window.setFullScreen(true)
     Swag.assert(not window.currentSidePanelHost!.isVisible())
+    Swag.assert(not window.outlineCaptionButton.isLocallyVisible())
     window.setFullScreen(false)
     Swag.assert(window.currentSidePanelHost.isVisible())
+    Swag.assert(window.outlineCaptionButton.isLocallyVisible())
     Swag.assert(not window.readingLine.isLocallyVisible())
     Swag.assert(not window.viewerBar.isLocallyVisible())
 }

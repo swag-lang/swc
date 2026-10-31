@@ -520,8 +520,9 @@ the screen to its work.
 - Reading: the document alone in a centred column. Markdown has no persistent footer, progress
   thread or action strip; its current section is marked in the quiet heading margin when the
   window is wide. `Ctrl Space` opens the lens for file, view and reading actions; `I` opens file
-  and reading details. The full outline is opened on demand from the lens and remains a quiet,
-  scrollable list beside the page, without an information card.
+  and reading details. A quiet outline glyph in the top strip, `Ctrl Shift O` and the lens open
+  the full outline on demand. It remains a scrollable list beside the page, without an
+  information card.
 - Explorer: a page title (folder name, 44–56/800) under the faint path, a mono count, quiet sort
   and view menus on the title line, right-aligned with the grid; the chosen item ringed in Arc
   at a 2 px gap; the sheet for the chosen item. No side panel and no filter field until asked

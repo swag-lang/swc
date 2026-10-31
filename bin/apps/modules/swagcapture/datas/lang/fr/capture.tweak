@@ -23,7 +23,7 @@ ui_BarFolders          Dossiers
 ui_RemoveQuickStyle    Supprimer le style rapide
 ui_RenameQuickStyle    Renommer le style rapide…
 ui_ReplaceQuickStyle   Remplacer par le style actuel
-ui_QuickStyleRank      Style %
+ui_KeepCurrentQuickStyle Enregistrer le style actuel comme style rapide
 ui_QuickStyleTip       % · clic droit pour le renommer, le remplacer ou le supprimer
 ui_QuickStyleName      Nom du style rapide
 dlg_TitleRenameQuickStyle Renommer le style rapide
@@ -416,6 +416,7 @@ ui_Cursor              Curseur
 hint_Cancel            annuler
 tip_AllQuickStyles     Tous les styles
 tip_AddQuickStyle      Garder le style actuel comme style rapide
+tip_QuickStyleActions  Clic droit pour renommer, remplacer ou supprimer ce style rapide
 ui_RecentColors        Récentes
 ui_Palette             Palette
 ui_Layers              Calques

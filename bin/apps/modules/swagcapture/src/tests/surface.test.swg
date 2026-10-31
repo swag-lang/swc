@@ -1067,6 +1067,7 @@ const LibraryGoldenTitles = ["Side panel", "Error bubble", "Swag lexer", "Dark e
     }
 
     lib.view.selModel.select(1)
+    lib.view.hotItem = 2
     lib.refreshAutomaticFilters(force: true)
     main.applyLayout()
 
@@ -1426,6 +1427,7 @@ func testBeginInlineText(host: *Gui.Testing.HeadlessHost, main: *MainWnd, index:
             .backgroundStyle = .Window
         }
 
+        var hoverCell: *QuickButton?
         var x = Pad
         var y = Pad
         for mode, index in Modes
@@ -1442,6 +1444,8 @@ func testBeginInlineText(host: *Gui.Testing.HeadlessHost, main: *MainWnd, index:
             quick.setPosition(Math.Rectangle{x + LabelWidth, y, strip, QuickChipHeight})
             quick.updateQuickStyles(forceRebuild: true)
             Swag.assert(quick.layout.children.count > 1)
+            if mode == .Shape do
+                hoverCell = quick.rowCells()[0]
             Label.create(panel, MainWnd.editModeName(mode), Math.Rectangle{x, y, LabelWidth, QuickChipHeight}, flags: .SecondaryText)
             y += quick.position.height + metrics.inspector_RowGap
         }
@@ -1449,6 +1453,41 @@ func testBeginInlineText(host: *Gui.Testing.HeadlessHost, main: *MainWnd, index:
         host.finishAnimations()
         var image = host.render(panel)
         Pixel.Testing.assertImageGolden(&image, dark ? "presets" : "presets.paper")
+
+        let cell = unwrap hoverCell
+        host.moveMouse(cell.surfaceRect().center())
+        host.finishAnimations()
+        image = host.render(panel)
+        Pixel.Testing.assertImageGolden(&image, dark ? "presets.hover" : "presets.hover.paper")
+    }
+}
+
+// A selected form whose properties are not saved leads the QuickStyle strip, ahead of saved
+// presets, with a separate plus that keeps that style. Both shipped palettes show the state.
+#[Swag.TestTag("golden")]
+#test
+{
+    for dark in [true, false]
+    {
+        var host: Gui.Testing.HeadlessHost
+        let main = testSetupEditorSurface(&host, dark: dark, text: false)
+        defer
+        {
+            main.libWnd.requestClose()
+            host.shutdown()
+            g_Main = null
+        }
+
+        let capture = unwrap main.getCapture()
+        let shape = testAddShape(capture, 64, 48, 72, 48)
+        shape.borderColor = Argb.Blue
+        capture.selection.add(capture.forms.count - 1)
+        capture.selectionHasChanged()
+        main.quickWnd.updateQuickStyles(forceRebuild: true)
+        host.finishAnimations()
+
+        var image = host.render(main)
+        Pixel.Testing.assertImageGolden(&image, dark ? "quickstyle.selection.encre" : "quickstyle.selection.paper")
     }
 }
 

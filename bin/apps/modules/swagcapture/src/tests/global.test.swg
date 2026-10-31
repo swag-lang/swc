@@ -105,8 +105,13 @@ func testSetupGlobalMain(main: *MainWnd)
     var evt = Gui.Testing.commandState(ActionGlobal.ShowLibrary)
     Swag.assert(Gui.Testing.actionUpdate'ActionGlobal(f.main, ActionGlobal.ShowLibrary, &evt))
     Swag.assert(not evt.name.isEmpty())
+    Swag.assert(evt.updatedFields.has(.Icon) and evt.icon.isValid())
     Swag.assert(not evt.checked)
     Swag.assert(f.main.icon(.RatingStar, RatingGlyphSize).isValid())
+
+    var copyImage = Gui.Testing.commandState(ActionCopyPaste.CopyAsImage)
+    Swag.assert(Gui.Testing.actionUpdate'ActionCopyPaste(f.main, ActionCopyPaste.CopyAsImage, &copyImage))
+    Swag.assert(copyImage.updatedFields.has(.Icon) and copyImage.icon.isValid())
 
     // The library is a lens entry: the work area, with the dock and the inspector it carries,
     // leaves while the library is on screen.
@@ -134,8 +139,13 @@ func testSetupGlobalMain(main: *MainWnd)
     Swag.assert(Gui.Testing.actionUpdate'ActionToolMode(f.main, ActionToolMode.Shape, &tool))
     Swag.assert(tool.disabled)
 
+    let loading = g_UpdatingLib
+    g_UpdatingLib = true
+    spinner.show()
     Swag.assert(Gui.Testing.actionExecute'ActionGlobal(f.main, ActionGlobal.ShowLibrary))
     Swag.assert(not f.main.libraryMode)
+    Swag.assert(not spinner.isLocallyVisible())
+    g_UpdatingLib = loading
     Swag.assert(f.main.editArea.isLocallyVisible())
     tool = Gui.Testing.commandState(ActionToolMode.Shape)
     Swag.assert(Gui.Testing.actionUpdate'ActionToolMode(f.main, ActionToolMode.Shape, &tool))

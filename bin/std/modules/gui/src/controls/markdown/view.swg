@@ -427,6 +427,13 @@ private impl View
             }
         }
 
+        // Once the file tail is laid out, its measured end replaces the byte-based estimate.
+        if .fileSize and not .hasUnloadedSource()
+        {
+            .virtualHeight  = loadedHeight
+            estimatedHeight = loadedHeight
+        }
+
         // Refine estimates without publishing incomplete replacement geometry to the viewport.
         if not .retainedBlocks.isEmpty() do
             return
@@ -1843,8 +1850,11 @@ impl View
 
         // Outline offsets already identify a complete block and a UTF-8 boundary. Reading from
         // that boundary makes the work depend on the viewport, not on the preceding section.
-        let start         = exactHeading ? requested : requested > RevealContextSize ? requested - RevealContextSize : 0
         let viewportBytes = cast(u64, Math.ceil(.scroll.paddedClientRect().height * cast(f32, .fileSize) / Math.max(.virtualHeight, 1)))
+        let tailContext   = Math.min(Math.max(viewportBytes * 4, 4096'u64), RevealContextSize)
+        let headingTail   = exactHeading and .fileSize - requested <= tailContext
+        let start         = headingTail ? requested - Math.min(requested, tailContext) :
+                            exactHeading ? requested : requested > RevealContextSize ? requested - RevealContextSize : 0
         let revealTail    = viewportFirst and .fileSize - requested <= viewportBytes * 2
         if revealTail do
             .jumpToEnd = true
@@ -1853,7 +1863,7 @@ impl View
             .stream = catch File.openReadLive(.fileName.toString()) { return false }
             let actual = Math.min(start + adjustment, .fileSize)
             discard catch .stream.seek(.Begin, actual)
-            var chunk = catch .stream.readUtf8Chunk(exactHeading ? StreamChunkSize : RevealChunkSize)
+            var chunk = catch .stream.readUtf8Chunk(exactHeading and not headingTail ? StreamChunkSize : RevealChunkSize)
             {
                 .stream.close()
                 continue
@@ -1864,7 +1874,14 @@ impl View
             // A direct jump starts at its block. Overlapping prefetch retains leading context
             // so reverse scrolling can continue through the previous resident boundary.
             var boundary: u64
-            if viewportFirst
+            if headingTail
+            {
+                // Leave enough source before a short final section to cover the viewport above it.
+                let reserve  = tailContext * 3 / 4
+                let probeEnd = localTarget > reserve ? localTarget - reserve : 0
+                boundary = streamBoundary(chunk.toString()[0 until probeEnd])
+            }
+            elif viewportFirst
             {
                 // Locate a complete block without laying out its offscreen predecessors.
                 // At EOF retain enough preceding source to fill the final viewport as well.

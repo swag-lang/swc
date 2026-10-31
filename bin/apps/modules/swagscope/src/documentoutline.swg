@@ -18,6 +18,11 @@ private const FrenchOutlineStrings     = #include("../datas/lang/fr/scope.outlin
 
 private var g_DocumentOutlineStrings: DocumentOutlineStrings
 
+// Distinguishes a document outline from the other viewer-owned side panels.
+const OutlineToggleId = "scope.outline.toggle"
+
+func outlineTitle()->string => g_DocumentOutlineStrings.title
+
 #run
 {
     expect Gui.validateStrings'DocumentOutlineStrings(cast(string, FrenchOutlineStrings))
@@ -67,9 +72,10 @@ impl DocumentOutline
         Gui.registerStrings'DocumentOutlineStrings(&g_DocumentOutlineStrings, "scope.outline")
         let theme = host.contentParent().theme()
         let side  = host.createSidePanel(276,
-                                         theme.icon(.Information, themeActionIconSize(&theme.metrics)),
+                                         theme.icon(.Outline, themeActionIconSize(&theme.metrics)),
                                          g_DocumentOutlineStrings.title,
                                          floatingSurface: floatingSurface)
+        side.toggle.id = OutlineToggleId
 
         with let result = Wnd.create'DocumentOutline(side.content, "scope.outline")
         {

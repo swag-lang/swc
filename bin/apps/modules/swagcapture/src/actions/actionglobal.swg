@@ -22,13 +22,15 @@ impl IActionUI for ActionGlobal
         switch cxt.id
         {
         case .ShowEditor:
-            evt.updatedFields |= .Name
-            evt.name = appStrings().act_ShowEditor
+            evt.updatedFields |= .Name | .Icon
+            evt.name          = appStrings().act_ShowEditor
+            evt.icon          = main.theme().icon(.Edit)
 
         case .ShowLibrary:
-            evt.updatedFields |= .Name | .Checked
+            evt.updatedFields |= .Name | .Checked | .Icon
             evt.name          = appStrings().act_Library
             evt.checked       = main.libraryMode
+            evt.icon          = main.icon(.Library)
 
         case .Exit:
             evt.updatedFields |= .Name | .Icon
@@ -94,8 +96,14 @@ impl MainWnd
         // editor: in library mode there is no form to draw and no form to style, so they leave
         // with it instead of standing empty. The recent strip is a strip of the editor too.
         .recentBar.show(.showRecent and not .libraryMode)
-        if .libraryMode do
+        if .libraryMode
+        {
+            if g_UpdatingLib do
+                .libWnd.view.imgSpin.show()
             .libWnd.fill()
+        }
+        else do
+            .libWnd.view.imgSpin.hide()
 
         let outgoing = .libraryMode ? .editArea : cast(*Wnd, .libWnd)
         let incoming = .libraryMode ? cast(*Wnd, .libWnd) : .editArea

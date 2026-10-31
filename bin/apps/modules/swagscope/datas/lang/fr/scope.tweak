@@ -139,6 +139,7 @@ lens_Folder Dossier
 lens_InFolder Dans ce dossier
 cmd_Open Ouvrir…
 cmd_Explore Explorer le dossier
+cmd_ReturnToExplorer Retour à l’explorateur
 cmd_Reload Recharger
 cmd_PreviousFile Fichier précédent
 cmd_NextFile Fichier suivant
@@ -197,6 +198,15 @@ explore_ExtractedOne 1 fichier extrait
 explore_ExtractedKept %, % déjà présents conservés
 explore_ExtractFailed Tout n’a pas pu être extrait
 explore_File Fichier
+explore_FilterByType Filtrer par type
+explore_FilterAll Tous les éléments
+explore_FilterVideos Vidéos
+explore_FilterImages Images
+explore_FilterAudio Audio
+explore_FilterDocuments Documents
+explore_FilterSubtitles Sous-titres
+explore_FilterArchives Archives
+explore_FilterFolders Dossiers
 hint_Filter filtrer
 explore_Length % h %
 explore_Sources Sources

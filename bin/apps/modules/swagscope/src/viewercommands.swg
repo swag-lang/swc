@@ -10,6 +10,7 @@ namespace ViewerCommands
     const Information       = "scope.information"
     const Open              = "scope.open"
     const Explore           = "scope.explore"
+    const ReturnToExplorer  = "scope.explore.return"
     const Close             = "scope.close"
     const Reload            = "scope.reload"
     const PreviousFile      = "scope.previousFile"
@@ -48,6 +49,14 @@ namespace ViewerCommands
     const SortSize          = "scope.explore.sort.size"
     const SortModified      = "scope.explore.sort.modified"
     const SortDescending    = "scope.explore.sort.descending"
+    const FilterAll         = "scope.explore.filter.all"
+    const FilterVideos      = "scope.explore.filter.videos"
+    const FilterImages      = "scope.explore.filter.images"
+    const FilterAudio       = "scope.explore.filter.audio"
+    const FilterDocuments   = "scope.explore.filter.documents"
+    const FilterSubtitles   = "scope.explore.filter.subtitles"
+    const FilterArchives    = "scope.explore.filter.archives"
+    const FilterFolders     = "scope.explore.filter.folders"
     const OnlineMovies      = "scope.explore.onlineMovies"
     const OnlineMusic       = "scope.explore.onlineMusic"
     const GeneralOptions    = "scope.generalOptions"
@@ -63,6 +72,8 @@ namespace ViewerCommands
                    "scope.explore.mode.3", "scope.explore.mode.4"]
     const Boards = ["scope.explore.board.0", "scope.explore.board.1", "scope.explore.board.2",
                     "scope.explore.board.3", "scope.explore.board.4"]
+    const KindFilters = [FilterAll, FilterVideos, FilterImages, FilterAudio,
+                         FilterDocuments, FilterSubtitles, FilterArchives, FilterFolders]
 }
 
 // Files the lens lists in one section for a query typed without the `/` prefix, which stands
@@ -105,7 +116,7 @@ impl ViewerWindow
                 }
 
                 window.lens.addCommandRows(section,
-                                           [ViewerCommands.Open, ViewerCommands.Explore, ViewerCommands.Close],
+                                           [ViewerCommands.Open, ViewerCommands.Explore, ViewerCommands.ReturnToExplorer, ViewerCommands.Close],
                                            enabledOnly: true)
             })
             .addRestSource(func|window = me|(results)
@@ -123,13 +134,16 @@ impl ViewerWindow
             .addSource(.Line, func|window = me|(results) { window.describeFileLines(results) })
             .addCommand(func()->string => appStrings().lens_File, ViewerCommands.Open, func()->string => appStrings().search_Open)
             .addCommand(func()->string => appStrings().lens_File, ViewerCommands.Explore, func()->string => appStrings().search_Browse)
-            .addCommands(func()->string => appStrings().lens_File, [ViewerCommands.Close, ViewerCommands.Reload,
+            .addCommands(func()->string => appStrings().lens_File, [ViewerCommands.Close, ViewerCommands.ReturnToExplorer, ViewerCommands.Reload,
                                                                     ViewerCommands.PreviousFile, ViewerCommands.NextFile, ViewerCommands.OpenDefault, ViewerCommands.OpenWith,
                                                                     ViewerCommands.Locate, ViewerCommands.CopyPath, ViewerCommands.CopyName, ViewerCommands.Forget,
                                                                     ViewerCommands.Files, ViewerCommands.SameKind, ViewerCommands.ClearHistory])
             .addCommands(func()->string => appStrings().lens_Folder, [ViewerCommands.Back, ViewerCommands.Forward, ViewerCommands.Up, ViewerCommands.Refresh,
                                                                       ViewerCommands.EditLocation, ViewerCommands.SortName, ViewerCommands.SortType, ViewerCommands.SortSize,
-                                                                      ViewerCommands.SortModified, ViewerCommands.SortDescending, ViewerCommands.OnlineMovies,
+                                                                      ViewerCommands.SortModified, ViewerCommands.SortDescending,
+                                                                      ViewerCommands.FilterAll, ViewerCommands.FilterVideos, ViewerCommands.FilterImages,
+                                                                      ViewerCommands.FilterAudio, ViewerCommands.FilterDocuments, ViewerCommands.FilterSubtitles,
+                                                                      ViewerCommands.FilterArchives, ViewerCommands.FilterFolders, ViewerCommands.OnlineMovies,
                                                                       ViewerCommands.OnlineMusic, ViewerCommands.ChooseMusic, ViewerCommands.OpenChosen,
                                                                       ViewerCommands.ExtractAll, ViewerCommands.ExtractChosen,
                                                                       ViewerCommands.AlbumPlay, ViewerCommands.AlbumShuffle])
@@ -478,8 +492,14 @@ impl ViewerWindow
             name = texts.cmd_Explore
             icon = .commandGlyph(.Folder)
 
+        case ViewerCommands.ReturnToExplorer:
+            name   = texts.cmd_ReturnToExplorer
+            icon   = .commandGlyph(.ChevronLeft)
+            hidden = not .canReturnToExplorer()
+
         case ViewerCommands.Close:
             name   = texts.ui_CloseFile
+            icon   = .commandGlyph(.WndClose)
             hidden = not hasFile and not exploring
 
         case ViewerCommands.Reload:
@@ -509,6 +529,7 @@ impl ViewerWindow
 
         case ViewerCommands.Locate:
             name   = texts.ui_MenuLocate
+            icon   = .commandGlyph(.Folder)
             hidden = not hasFile
 
         case ViewerCommands.CopyPath:
@@ -563,30 +584,35 @@ impl ViewerWindow
 
         case ViewerCommands.SearchMode:
             name    = texts.ui_SearchMode
+            icon    = .commandGlyph(.Search)
             hidden  = not search or not canFilter
             toggle  = true
             checked = not .searchFilterMode
 
         case ViewerCommands.FilterMode:
             name    = texts.ui_FilterMode
+            icon    = .commandGlyph(.Filter)
             hidden  = not search or not canFilter
             toggle  = true
             checked = .searchFilterMode
 
         case ViewerCommands.MatchCase:
             name    = texts.ui_SearchMatchCase
+            icon    = .commandGlyph(.Edit)
             hidden  = not search
             toggle  = true
             checked = .searchMatchCaseOption
 
         case ViewerCommands.WholeWord:
             name    = texts.ui_SearchWholeWord
+            icon    = .commandGlyph(.MatchWholeWord)
             hidden  = not search
             toggle  = true
             checked = .searchWholeWordOption
 
         case ViewerCommands.RegularExpression:
             name    = texts.ui_SearchRegularExpression
+            icon    = .commandGlyph(.Edit)
             hidden  = not search
             toggle  = true
             checked = .searchRegexOption
@@ -621,21 +647,25 @@ impl ViewerWindow
 
         case ViewerCommands.PlayOnce:
             name    = texts.ui_PlayOnce
+            icon    = .commandGlyph(.Play)
             toggle  = true
             checked = .playMode == .Once
 
         case ViewerCommands.PlayRepeat:
             name    = texts.ui_PlayRepeat
+            icon    = .commandGlyph(.RepeatOne)
             toggle  = true
             checked = .playMode == .Repeat
 
         case ViewerCommands.PlayFolder:
             name    = texts.ui_PlayFolder
+            icon    = .commandGlyph(.RepeatAll)
             toggle  = true
             checked = .playMode == .Folder
 
         case ViewerCommands.PlayShuffle:
             name    = texts.ui_PlayShuffle
+            icon    = .commandGlyph(.Shuffle)
             toggle  = true
             checked = .playMode == .Shuffle
 
@@ -663,6 +693,7 @@ impl ViewerWindow
 
         case ViewerCommands.EditLocation:
             name   = texts.cmd_EditLocation
+            icon   = .commandGlyph(.Edit)
             hidden = not exploring
 
         case ViewerCommands.SortName, ViewerCommands.SortType,
@@ -676,34 +707,40 @@ impl ViewerWindow
 
         case ViewerCommands.SortDescending:
             name    = texts.cmd_SortDescending
+            icon    = .commandGlyph(.ChevronDown)
             hidden  = not exploring
             toggle  = true
             checked = exploring and .explorer!.descending
 
         case ViewerCommands.OnlineMovies:
             name    = texts.explore_OnlineMovies
+            icon    = .commandGlyph(.FileVideo)
             hidden  = not exploring
             toggle  = true
             checked = .onlineMovies
 
         case ViewerCommands.OnlineMusic:
             name    = texts.explore_OnlineMusic
+            icon    = .commandGlyph(.FileAudio)
             hidden  = not exploring
             toggle  = true
             checked = .onlineMusic
 
         case ViewerCommands.OpenChosen:
             name     = texts.cmd_OpenChosen
+            icon     = .commandGlyph(.OpenFile)
             hidden   = not exploring
             disabled = not exploring or .explorer!.selected >= .explorer.entries.count
 
         case ViewerCommands.ExtractAll:
             name     = texts.cmd_ExtractAll
+            icon     = .commandGlyph(.Download)
             hidden   = not exploring or not .explorer!.listing.isArchive
             disabled = hidden or .explorer!.extraction.started
 
         case ViewerCommands.ExtractChosen:
             name     = texts.cmd_Extract
+            icon     = .commandGlyph(.Download)
             hidden   = not exploring or not .explorer!.listing.isArchive
             disabled = hidden or
                        .explorer!.extraction.started or
@@ -711,11 +748,13 @@ impl ViewerWindow
 
         case ViewerCommands.AlbumPlay, ViewerCommands.AlbumShuffle:
             name     = evt.id == ViewerCommands.AlbumPlay ? texts.explore_Play : texts.explore_Shuffle
+            icon     = .commandGlyph(evt.id == ViewerCommands.AlbumPlay ? .Play : .Shuffle)
             hidden   = not exploring or .explorer!.grid.board != .Album
             disabled = hidden or .explorer!.shown.isEmpty()
 
         case ViewerCommands.ChooseMusic:
             name     = texts.explore_ChooseMusic
+            icon     = .commandGlyph(.AudioTracks)
             hidden   = not exploring
             disabled = not exploring or not .explorer!.canChooseMusic()
 
@@ -723,16 +762,34 @@ impl ViewerWindow
             for id, index in ViewerCommands.Modes where evt.id == id
             {
                 let names = [texts.explore_Names, texts.explore_Details, texts.explore_Small, texts.explore_Medium, texts.explore_Large]
+                let icons = [ThemeIcons.File, ThemeIcons.Sort, ThemeIcons.ZoomOut, ThemeIcons.FitView, ThemeIcons.ZoomIn]
                 name    = names[index]
+                icon    = .commandGlyph(icons[index])
                 hidden  = not exploring
                 toggle  = true
                 checked = exploring and cast(u64, .explorer!.mode) == index
             }
 
+            for id, index in ViewerCommands.KindFilters where evt.id == id
+            {
+                let names = [texts.explore_FilterAll, texts.explore_FilterVideos, texts.explore_FilterImages,
+                             texts.explore_FilterAudio, texts.explore_FilterDocuments, texts.explore_FilterSubtitles,
+                             texts.explore_FilterArchives, texts.explore_FilterFolders]
+                let icons = [ThemeIcons.File, ThemeIcons.FileVideo, ThemeIcons.FileImage, ThemeIcons.FileAudio,
+                             ThemeIcons.FileCode, ThemeIcons.FileCode, ThemeIcons.FileArchive, ThemeIcons.Folder]
+                name    = names[index]
+                icon    = .commandGlyph(icons[index])
+                hidden  = not exploring
+                toggle  = true
+                checked = exploring and cast(u64, .explorer!.kindFilter) == index
+            }
+
             for id, index in ViewerCommands.Boards where evt.id == id
             {
                 let names = [texts.board_Automatic, texts.board_Grid, texts.board_Posters, texts.board_Covers, texts.board_Mosaic]
+                let icons = [ThemeIcons.Filter, ThemeIcons.File, ThemeIcons.FileVideo, ThemeIcons.FileAudio, ThemeIcons.FileImage]
                 name    = names[index]
+                icon    = .commandGlyph(icons[index])
                 hidden  = not exploring
                 toggle  = true
                 checked = exploring and
@@ -809,6 +866,9 @@ impl ViewerWindow
 
         case ViewerCommands.Explore:
             .exploreFolder()
+
+        case ViewerCommands.ReturnToExplorer:
+            .closeFile()
 
         case ViewerCommands.Close:
             .closeFile()
@@ -934,6 +994,15 @@ impl ViewerWindow
 
         case ViewerCommands.EditLocation:
             explorer.address.beginEdit()
+
+        case ViewerCommands.FilterAll, ViewerCommands.FilterVideos, ViewerCommands.FilterImages,
+             ViewerCommands.FilterAudio, ViewerCommands.FilterDocuments, ViewerCommands.FilterSubtitles,
+             ViewerCommands.FilterArchives, ViewerCommands.FilterFolders:
+            for command, index in ViewerCommands.KindFilters where id == command
+            {
+                explorer.setKindFilter(cast(ExplorerKindFilter, cast(u32, index)))
+                return true
+            }
 
         case ViewerCommands.SortDescending:
             explorer.sortBy(explorer.sortColumn, not explorer.descending)

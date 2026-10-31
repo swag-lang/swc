@@ -62,6 +62,7 @@ struct ViewerWindow
         searchOverlay:        *ViewerSearchOverlay
         dropHighlight:        *ViewerDropHighlight
         viewerBar:            *FloatingPanel
+        returnExplorerButton: *IconButton
         home:                 *ViewerHome
         filePanelHost:        *Wnd
         filePanel:            *SplitterCtrl
@@ -737,15 +738,19 @@ impl ViewerWindow
     // Puts the commands of the active viewer in the floating bar, or empties it.
     mtd updateViewerBar()
     {
-        if not .currentCommands do
+        if not .currentCommands and not .canReturnToExplorer() do
             .viewerBarShown = false
         .layoutViewerBar()
     }
 
+    // The explorer remains the place to return to while a file opened from it is being read.
+    mtd canReturnToExplorer()->bool => .explorerActive and .explorer != null and
+                                       not .currentFile.isEmpty() and not .explorer.isLocallyVisible()
+
     // Shows the viewer's commands for as long as the pointer keeps moving.
     mtd revealViewerBar()
     {
-        if not .currentCommands do
+        if not .currentCommands and not .canReturnToExplorer() do
             return
         .viewerBarShown = true
         .layoutViewerBar()
@@ -785,9 +790,11 @@ impl ViewerWindow
     mtd layoutViewerBar()
     {
         let commands = .currentCommands
-        let visible  = commands != null and .viewerBarShown
+        let hasReturn = .canReturnToExplorer()
+        .returnExplorerButton.show(hasReturn)
+        let visible = (commands != null or hasReturn) and .viewerBarShown
         .viewerBar.show(visible)
-        if not commands do
+        if not commands and not hasReturn do
             return
 
         let metrics = .themeMetrics()
@@ -795,14 +802,26 @@ impl ViewerWindow
         let inset   = metrics.floating_Inset
         let pad     = .viewerBar.padding
         let room    = Math.max(area.width - 2 * inset - pad.x - pad.z, 0)
-        let wanted  = commands.preferredSize.x > 0 ? commands.preferredSize.x : room
-        let width   = Math.min(wanted, room)
-        let height  = commands.position.height + pad.y + pad.w
+        let requestedWidth = commands ? (commands.preferredSize.x > 0 ? commands.preferredSize.x : room) : 0
+        let commandHeight = commands ? commands.position.height : 0
+        let returnSize = hasReturn ? .returnExplorerButton.position.width : 0
+        let gap = hasReturn and commands ? metrics.miniBar_Gap : 0
+        let commandRoom = Math.max(room - returnSize - gap, 0)
+        let commandWidth = Math.min(requestedWidth, commandRoom)
+        let width = commandWidth + returnSize + gap
+        let height  = Math.max(commandHeight, hasReturn ? .returnExplorerButton.position.height : 0) + pad.y + pad.w
         let bottom  = area.bottom() - (.readingLine.isLocallyVisible() ? metrics.miniBar_Distance : inset)
         .viewerBar.setPosition(Math.Rectangle{Math.round(area.horzCenter() - (width + pad.x + pad.z) * 0.5), bottom - height, width + pad.x + pad.z, height}, computeLayout: false)
-        commands.dockStyle = .None
-        commands.setPosition(Math.Rectangle{pad.x, pad.y, width, commands.position.height}, computeLayout: false)
-        commands.applyLayout()
+        if commands
+        {
+            commands.dockStyle = .None
+            commands.setPosition(Math.Rectangle{pad.x, pad.y, Math.min(commandWidth, width), commandHeight}, computeLayout: false)
+            commands.applyLayout()
+        }
+        if hasReturn do
+            .returnExplorerButton.setPosition(Math.Rectangle{pad.x + Math.min(commandWidth, width) + gap,
+                                                              pad.y + (height - pad.y - pad.w - .returnExplorerButton.position.height) * 0.5,
+                                                              returnSize, .returnExplorerButton.position.height}, computeLayout: false)
         if visible do
             .viewerBar.bringToFront()
     }
@@ -1102,6 +1121,7 @@ impl ViewerWindow
         .teachHints(.isExploring())
         .searchPrevious.toolTip      = texts.ui_SearchPrevious
         .searchNext.toolTip          = texts.ui_SearchNext
+        .returnExplorerButton.toolTip = texts.cmd_ReturnToExplorer
         .searchOptionsButton.toolTip = texts.ui_SearchOptions
         .refreshOutlineCaption()
         .refreshSearchPresentation()

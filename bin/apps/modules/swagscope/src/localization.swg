@@ -27,6 +27,15 @@ struct AppStrings
     explore_Type:              string = "Type"                  // Exploration control or status.
     explore_Size:              string = "Size"                  // Exploration control or status.
     explore_Modified:          string = "Modified"              // Exploration control or status.
+    explore_FilterByType:      string = "Filter by type"        // Tooltip of the file-kind menu in the explorer.
+    explore_FilterAll:         string = "All items"              // Explorer file-kind filter.
+    explore_FilterVideos:      string = "Videos"                 // Explorer file-kind filter.
+    explore_FilterImages:      string = "Images"                 // Explorer file-kind filter.
+    explore_FilterAudio:       string = "Audio"                  // Explorer file-kind filter.
+    explore_FilterDocuments:   string = "Documents"              // Explorer file-kind filter.
+    explore_FilterSubtitles:   string = "Subtitles"              // Explorer file-kind filter.
+    explore_FilterArchives:    string = "Archives"               // Explorer file-kind filter.
+    explore_FilterFolders:     string = "Folders"                // Explorer file-kind filter.
     explore_SelectFile:        string = "Select a file to see its information."
     explore_FileProperties:    string = "File"     // Heading for local file properties.
     explore_MediaDetails:      string = "Media details"     // Heading for online media information.
@@ -191,6 +200,7 @@ struct AppStrings
     cmd_ExtractAll:     string = "Extract All…"              // Command extracting the whole explored archive to a folder.
     cmd_Extract:        string = "Extract…"                  // Command extracting the chosen member or folder of the archive to a folder.
     cmd_Explore:        string = "Explore Folder"            // Command showing the folder of the open file as a contact sheet.
+    cmd_ReturnToExplorer: string = "Return to Explorer"       // Command returning to the folder after opening one of its files.
     cmd_Reload:         string = "Reload"                    // Command reading the open file again.
     cmd_PreviousFile:   string = "Previous File"             // Command opening the file before this one in its folder.
     cmd_NextFile:       string = "Next File"                 // Command opening the file after this one in its folder.

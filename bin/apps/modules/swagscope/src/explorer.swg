@@ -3,6 +3,7 @@
 using Core, Gui, Pixel, Video
 
 enum ExplorerMode { Names, Details, Small, Medium, Large }
+enum ExplorerKindFilter { All, Videos, Images, Audio, Documents, Subtitles, Archives, Folders }
 
 // The shape the tiles of a folder take, read from what most of it holds.
 enum ExplorerBoard
@@ -101,6 +102,7 @@ struct Explorer
         title:      *Label
         status:     *Label
         extractAll: *IconButton
+        kindMenu:   *IconButton
         sortMenu:   *IconButton
         modeMenu:   *IconButton
         filter:     *EditBox
@@ -127,6 +129,7 @@ struct Explorer
     cached:          Array'u64
     sortColumn:      u32
     descending:      bool
+    kindFilter:      ExplorerKindFilter
     menuPaths:       Array'String
     previewSettings: String
     previewAspect:   f32 = ExplorerTilePreviewAspect     // Shape of the tiles, chosen from what the listing holds.
@@ -351,6 +354,14 @@ impl Explorer
             .sigPressed        += func|view = me|(_) { view.showSortMenu() }
         }
 
+        with .kindMenu = IconButton.createQuiet(.tools)
+        {
+            .layoutSpec.alignY = .End
+            .setIcon(me.theme().icon(.Filter, themeRowIconSize(me.themeMetrics())))
+            .toolTip    = appStrings().explore_FilterByType
+            .sigPressed += func|view = me|(_) { view.showKindFilterMenu() }
+        }
+
         with .modeMenu = IconButton.createQuiet(.tools)
         {
             .layoutSpec.alignY = .End
@@ -500,6 +511,53 @@ impl Explorer
             .sortBy(sortColumnOf(chosen), .descending)
     }
 
+    // Filters the folder by the kind of file the reader wants to see.
+    mtd showKindFilterMenu()
+    {
+        let text  = appStrings()
+        let menu  = MenuCtrl.createPopup(me, owner: me)
+        let names = [text.explore_FilterAll, text.explore_FilterVideos, text.explore_FilterImages,
+                     text.explore_FilterAudio, text.explore_FilterDocuments, text.explore_FilterSubtitles,
+                     text.explore_FilterArchives, text.explore_FilterFolders]
+        let icons = [ThemeIcons.File, ThemeIcons.FileVideo, ThemeIcons.FileImage, ThemeIcons.FileAudio,
+                     ThemeIcons.FileCode, ThemeIcons.FileCode, ThemeIcons.FileArchive, ThemeIcons.Folder]
+        for id, index in ViewerCommands.KindFilters
+        {
+            let item = menu.addRadioItem(names[index], id, checked: cast(u64, .kindFilter) == index)
+            item.icon = .theme().icon(icons[index], themeRowIconSize(.themeMetrics()))
+        }
+
+        let chosen = menu.doModal(.kindMenu, autoDestroy: true) orelse ""
+        if chosen.count do
+            discard .window.runCommand(chosen)
+    }
+
+    // Writes the chosen kind on its menu so the active filter stays visible.
+    mtd filterKindName()->string
+    {
+        let text = appStrings()
+        switch .kindFilter
+        {
+        case .Videos:     return text.explore_FilterVideos
+        case .Images:     return text.explore_FilterImages
+        case .Audio:      return text.explore_FilterAudio
+        case .Documents:  return text.explore_FilterDocuments
+        case .Subtitles:  return text.explore_FilterSubtitles
+        case .Archives:   return text.explore_FilterArchives
+        case .Folders:    return text.explore_FilterFolders
+        default:          return text.explore_FilterAll
+        }
+    }
+
+    mtd setKindFilter(filter: ExplorerKindFilter)
+    {
+        if .kindFilter == filter do
+            return
+        .kindFilter = filter
+        .refreshQuietMenus()
+        .fill()
+    }
+
     // Orders the listing by `column`, backward when `descending`, and lists the folder again.
     mtd sortBy(column: u32, descending: bool)
     {
@@ -526,6 +584,7 @@ impl Explorer
         if .grid.board == .Mosaic do
             sort = text.sort_Modified
         .sortMenu.setQuietText(sort)
+        .kindMenu.setQuietText(.filterKindName())
         .extractAll.setQuietText(text.cmd_ExtractAll)
         switch .mode
         {
@@ -928,6 +987,7 @@ impl Explorer
         let text = appStrings()
         .showMediaInfo()
         .filter.setPlaceholder(text.ui_FilterFiles)
+        .kindMenu.toolTip = text.explore_FilterByType
         .list.header.itemAt(0).name = text.explore_Name
         .list.header.itemAt(1).name = text.explore_Type
         .list.header.itemAt(2).name = text.explore_Size
@@ -1155,9 +1215,9 @@ impl Explorer
         .clearTextures()
         let entering = .listing.isArchive and not .grid.rows
         .entries  = #move .listing.entries
+        .shown.clear()
         .selected = Swag.U64.Max
         .showMediaInfo()
-        .previewAspect = .listingPreviewAspect()
         .updateBreadcrumb()
 
         .filter.setText("", notify: false)
@@ -1179,8 +1239,11 @@ impl Explorer
     mtd listingPreviewAspect()->f32
     {
         var files, films: u64
-        for &entry in .entries where not entry.directory
+        for index in .shown
         {
+            let entry = &.entries[index]
+            if entry.directory do
+                continue
             files += 1
             var pluginIndex: u64
             if .window.index.namePlugin(entry.path, &pluginIndex) and .window.index.plugins[pluginIndex].key == "video" do
@@ -1201,11 +1264,18 @@ impl Explorer
             return .Grid
         if .forced do
             return .forcedBoard
+        if .kindFilter == .Videos do
+            return .Posters
+        if .kindFilter == .Images do
+            return .Mosaic
+        if .kindFilter == .Audio do
+            return .Covers
         var files, films, sounds, pictures: u64
         var album: String
         var oneAlbum = true
-        for &entry in .entries
+        for index in .shown
         {
+            let entry = &.entries[index]
             if entry.directory and entry.albumTrack.isEmpty() and entry.children == Swag.U64.Max do
                 continue
             files += 1
@@ -1259,6 +1329,35 @@ impl Explorer
         return .theme().icon(.OpenFile, size)
     }
 
+    // Keeps folders navigable in file-kind filters, while the folder choice isolates them.
+    private mtd matchesKind(index: u64)->bool
+    {
+        let entry = &.entries[index]
+        if .kindFilter == .All do
+            return true
+        if .kindFilter == .Folders do
+            return entry.directory
+        if entry.directory do
+            return true
+
+        var pluginIndex: u64
+        if not .window.index.namePlugin(entry.path, &pluginIndex) do
+            return false
+        let key = .window.index.plugins[pluginIndex].key
+        let glyph = .theme().fileGlyph(entry.name, false, 16).index
+        switch .kindFilter
+        {
+        case .Videos:     return glyph == cast(s32, ThemeIcons.FileVideo)
+        case .Images:     return glyph == cast(s32, ThemeIcons.FileImage)
+        case .Audio:      return glyph == cast(s32, ThemeIcons.FileAudio)
+        case .Subtitles:  return key == "subtitle"
+        case .Archives:   return glyph == cast(s32, ThemeIcons.FileArchive)
+        case .Documents:  return glyph == cast(s32, ThemeIcons.FileCode) or
+                                 (glyph == cast(s32, ThemeIcons.File) and key != "binary")
+        default:          return true
+        }
+    }
+
     mtd fill()
     {
         .grid.hovered = Swag.U64.Max
@@ -1267,10 +1366,18 @@ impl Explorer
         let query = .filter.text()
         for &entry, index in .entries
         {
+            if not .matchesKind(index) do
+                continue
             if query.count and Utf8.indexOf(entry.name, query, comparisonType: .Latin1NoCase) == Swag.U64.Max do
                 continue
             .shown.add(index)
         }
+        var selectionVisible = false
+        for index in .shown where index == .selected do
+            selectionVisible = true
+        if not selectionVisible do
+            .selected = Swag.U64.Max
+        .previewAspect = .listingPreviewAspect()
 
         // Pictures are seen in the order they were taken.
         let board = .listingBoard()
@@ -1351,7 +1458,7 @@ impl Explorer
         }
 
         .setStatus(count)
-        .list.setEmptyText(query.count ? appStrings().explore_NoMatches : appStrings().explore_Empty)
+        .list.setEmptyText(query.count or .kindFilter != .All ? appStrings().explore_NoMatches : appStrings().explore_Empty)
 
         .list.setVirtualCount(cast(u32, .shown.count))
         for index, row in .shown where index == .selected

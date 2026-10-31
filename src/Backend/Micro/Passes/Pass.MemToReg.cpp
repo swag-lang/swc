@@ -965,6 +965,8 @@ Result MicroMemToRegPass::run(MicroPassContext& context)
 
     if (bail)
         return Result::Continue;
+    if (slots.empty())
+        return Result::Continue;
 
     bool       erasedDeadStores = false;
     const auto finish           = [&] {

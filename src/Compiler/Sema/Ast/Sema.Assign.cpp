@@ -4,6 +4,7 @@
 #include "Compiler/Sema/Cast/Cast.h"
 #include "Compiler/Sema/Core/SemaNodeView.h"
 #include "Compiler/Sema/Helpers/SemaCheck.h"
+#include "Compiler/Sema/Helpers/SemaCheck.Modifier.h"
 #include "Compiler/Sema/Helpers/SemaError.h"
 #include "Compiler/Sema/Helpers/SemaEscape.h"
 #include "Compiler/Sema/Helpers/SemaHelpers.h"
@@ -73,18 +74,6 @@ namespace
             return SemaError::raise(sema, DiagnosticId::sema_err_relocate_modifier_conflict, sema.curNodeRef());
 
         return Result::Continue;
-    }
-
-    Result checkIntegerModifiers(Sema& sema, const AstAssignStmt& node, const SemaNodeView& nodeLeftView)
-    {
-        if (!node.modifierFlags.hasAny({AstModifierFlagsE::Wrap, AstModifierFlagsE::Promote}))
-            return Result::Continue;
-
-        const auto targetLeftView = assignmentTargetView(sema, nodeLeftView);
-        if (SemaHelpers::aliasType(sema, targetLeftView).isIntLike())
-            return Result::Continue;
-
-        return SemaError::raiseModifierOnlyInteger(sema, node, targetLeftView.typeRef());
     }
 
     bool needsAssignOverflowRuntimeSafety(const AstAssignStmt& node, TokenId op, const SemaNodeView& nodeLeftView, const SemaNodeView& nodeRightView, Sema& sema)
@@ -449,7 +438,11 @@ Result AstAssignStmt::semaPostNode(Sema& sema) const
         SWC_RESULT(SemaHelpers::checkBinaryOperandTypes(sema, sema.curNodeRef(), binOp, nodeLeftRef, nodeRightRef, targetLeftView, nodeRightView));
     }
 
-    SWC_RESULT(checkIntegerModifiers(sema, *this, nodeLeftView));
+    if (modifierFlags.hasAny({AstModifierFlagsE::Wrap, AstModifierFlagsE::Promote}))
+    {
+        const auto targetLeftView = assignmentTargetView(sema, nodeLeftView);
+        SWC_RESULT(SemaCheck::checkIntegerModifierTarget(sema, *this, targetLeftView));
+    }
     SWC_RESULT(castAndResultType(sema, tok.id, nodeLeftView, nodeRightView));
 
     if (tok.id == TokenId::SymEqual)

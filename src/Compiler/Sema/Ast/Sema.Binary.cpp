@@ -5,6 +5,7 @@
 #include "Compiler/Sema/Constant/ConstantManager.h"
 #include "Compiler/Sema/Core/SemaNodeView.h"
 #include "Compiler/Sema/Helpers/SemaCheck.h"
+#include "Compiler/Sema/Helpers/SemaCheck.Modifier.h"
 #include "Compiler/Sema/Helpers/SemaError.h"
 #include "Compiler/Sema/Helpers/SemaHelpers.h"
 #include "Compiler/Sema/Helpers/SemaSpecOp.h"
@@ -21,17 +22,6 @@ SWC_BEGIN_NAMESPACE();
 
 namespace
 {
-    Result checkIntegerModifiers(Sema& sema, const AstBinaryExpr& node, const SemaNodeView& nodeLeftView)
-    {
-        if (!node.modifierFlags.hasAny({AstModifierFlagsE::Wrap, AstModifierFlagsE::Promote}))
-            return Result::Continue;
-
-        if (SemaHelpers::aliasType(sema, nodeLeftView).isIntLike())
-            return Result::Continue;
-
-        return SemaError::raiseModifierOnlyInteger(sema, node, nodeLeftView.typeRef());
-    }
-
     bool needsBinaryOverflowRuntimeSafety(Sema& sema, const AstBinaryExpr& node, TokenId op, const SemaNodeView& nodeLeftView, const SemaNodeView& nodeRightView)
     {
         if (!nodeLeftView.type() || !nodeRightView.type())
@@ -331,7 +321,8 @@ namespace
                 break;
         }
 
-        SWC_RESULT(checkIntegerModifiers(sema, node, nodeLeftView));
+        if (node.modifierFlags.hasAny({AstModifierFlagsE::Wrap, AstModifierFlagsE::Promote}))
+            SWC_RESULT(SemaCheck::checkIntegerModifierTarget(sema, node, nodeLeftView));
         return Result::Continue;
     }
 

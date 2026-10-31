@@ -16,6 +16,7 @@
 #include "Backend/Micro/Passes/Pass.LoopInvariantCodeMotion.h"
 #include "Backend/Micro/Passes/Pass.LoopLoadForward.h"
 #include "Backend/Micro/Passes/Pass.LoopUnroll.h"
+#include "Backend/Micro/Passes/Pass.PostRALoopHoist.h"
 #include "Backend/Micro/Passes/Pass.PostRALoopRotate.h"
 #include "Backend/Micro/Passes/Pass.VecLoopPromote.h"
 #include "Backend/Encoder/X64Encoder.h"
@@ -138,6 +139,7 @@ SWC_TEST_BEGIN(LoopPasses_SkipCfgForBuildersWithoutLabels)
     const MicroReg value = MicroReg::virtualIntReg(1);
     for (uint32_t index = 0; index < 6; ++index)
         builder.emitOpBinaryRegImm(value, ApInt(index + 1, 64), MicroOp::Add, MicroOpBits::B64);
+    builder.emitOpBinaryRegMem(MicroReg::intReg(8), MicroReg::intReg(5), 0, MicroOp::And, MicroOpBits::B64);
     builder.emitRet();
 
     Runtime::BuildCfgBackend backendCfg{};
@@ -154,8 +156,9 @@ SWC_TEST_BEGIN(LoopPasses_SkipCfgForBuildersWithoutLabels)
     SWC_RESULT(Backend::Unittest::runMicroPass<MicroVecLoopPromotePass>(builder, &encoder));
     SWC_RESULT(Backend::Unittest::runMicroPass<MicroLoopUnrollPass>(builder, &encoder));
     SWC_RESULT(Backend::Unittest::runMicroPass<MicroColdBlockLayoutPass>(builder, &encoder));
+    SWC_RESULT(Backend::Unittest::runMicroPass<MicroPostRaLoopHoistPass>(builder, &encoder));
     SWC_RESULT(Backend::Unittest::runMicroPass<MicroPostRaLoopRotatePass>(builder, &encoder));
-    if (builder.controlFlowGraphBuildId() != cfgBuildId || builder.instructions().count() != 7)
+    if (builder.controlFlowGraphBuildId() != cfgBuildId || builder.instructions().count() != 8)
         return Result::Error;
     return Result::Continue;
 }

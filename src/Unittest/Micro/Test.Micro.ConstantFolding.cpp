@@ -14,6 +14,14 @@
 
 SWC_BEGIN_NAMESPACE();
 
+SWC_TEST_BEGIN(ConstantFolding_EmptyStreamIsUnchanged)
+{
+    MicroBuilder builder(ctx);
+    SWC_RESULT(Backend::Unittest::runMicroPass<MicroConstantFoldingPass>(builder));
+    return builder.instructions().count() == 0 ? Result::Continue : Result::Error;
+}
+SWC_TEST_END()
+
 // A partial constant must not define bits its write preserved from an
 // unknown input. Dword writes, in contrast, define a zero upper half.
 SWC_TEST_BEGIN(ConstantFolding_PartialDefinitionsKeepUnknownBits)

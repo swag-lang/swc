@@ -62,6 +62,14 @@ namespace
     }
 }
 
+SWC_TEST_BEGIN(BranchSimplify_EmptyStreamIsUnchanged)
+{
+    MicroBuilder builder(ctx);
+    SWC_RESULT(Backend::Unittest::runMicroPass<MicroBranchSimplifyPass>(builder));
+    return builder.instructions().count() == 0 ? Result::Continue : Result::Error;
+}
+SWC_TEST_END()
+
 // je L0 ; L0: -> erase jump.
 SWC_TEST_BEGIN(BranchSimplify_ErasesJumpToImmediateLabel)
 {

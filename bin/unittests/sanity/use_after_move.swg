@@ -104,6 +104,43 @@ func lifecycleSafetyEnabled()->bool
 // Valid programs: must NOT be flagged.
 // ---------------------------------------------------------------------------
 
+// Reinitializing one field repairs that field without making another moved-from
+// field readable.
+#[Swag.Sanity(.Lifecycle, true)]
+#test
+{
+    var a = UamItem{x: 1, y: 2}
+    var b = #move a
+    a.x = 23
+    Swag.assert(a.x == 23)
+    Swag.assert(a.y == 2)     // swc-expected-error {{sanity_err_use_after_move}}
+    discard b
+}
+
+// A wide read that starts in the repaired field still overlaps the moved range.
+#[Swag.Sanity(.Lifecycle, true)]
+#test
+{
+    var a = UamItem{x: 5, y: 6}
+    var b = #move a
+    a.x = 27
+    let wide = cast(*u64, &a.x)
+    Swag.assert(wide[] == 0)   // swc-expected-error {{sanity_err_use_after_move}}
+    discard b
+}
+
+// Reinitializing another field does not make a pointer into the moved field writable.
+#[Swag.Sanity(.Lifecycle, true)]
+#test
+{
+    var a = UamItem{x: 3, y: 4}
+    let p = &a.y
+    var b = #move a
+    a.x = 25
+    p[] = 26                   // swc-expected-error {{sanity_err_write_after_move}}
+    discard b
+}
+
 // Reassigning the moved-from local makes it readable again.
 #[Swag.Sanity(.Lifecycle, true)]
 #test

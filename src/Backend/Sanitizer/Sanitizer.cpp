@@ -1098,11 +1098,9 @@ bool Sanitizer::joinInto(SanitizerState& into, const SanitizerState& from)
 
 namespace
 {
-    // Moved-from ranges must never survive a write they could alias, or the analysis
-    // would report a false positive after a legitimate re-initialization. The store
-    // width is not always recoverable from the operands, so overlap is tested against a
-    // conservative maximal store size.
-    constexpr uint64_t K_ASSUMED_STORE_SIZE = 16;
+    // Unknown memory widths keep a conservative bound so less common instructions cannot
+    // leave stale moved-from facts behind.
+    constexpr uint64_t K_ASSUMED_ACCESS_SIZE = 16;
 
     uint64_t memoryWriteSize(const MicroInstr& inst, const MicroInstrOperand* ops)
     {
@@ -1118,27 +1116,57 @@ namespace
             case MicroInstrOpcode::LoadAmcMemImm:
                 return getNumBits(ops[4].opBits) / 8;
             default:
-                return K_ASSUMED_STORE_SIZE;
+                return K_ASSUMED_ACCESS_SIZE;
         }
     }
 
-    void clearMovedFromOverlaps(SanitizerState& state, const int64_t slot)
+    uint64_t memoryReadSize(const MicroInstr& inst, const MicroInstrOperand* ops)
     {
+        switch (inst.op)
+        {
+            case MicroInstrOpcode::LoadRegMem:
+            case MicroInstrOpcode::LoadVolatileRegMem:
+                return getNumBits(ops[2].opBits) / 8;
+            case MicroInstrOpcode::LoadSignedExtRegMem:
+            case MicroInstrOpcode::LoadZeroExtRegMem:
+                return getNumBits(ops[2].opBits) / 8;
+            case MicroInstrOpcode::LoadAmcRegMem:
+            case MicroInstrOpcode::LoadSignedExtAmcRegMem:
+                return getNumBits(ops[4].opBits) / 8;
+            default:
+                // Preserve the address-only check when an instruction's read width is unknown.
+                return 1;
+        }
+    }
+
+    void clearMovedFromOverlaps(SanitizerState& state, const int64_t slot, const uint64_t size)
+    {
+        std::vector<std::pair<int64_t, SanitizerMovedRange>> retained;
+        const int64_t writeEnd = slot + static_cast<int64_t>(size);
         for (auto it = state.movedFrom.begin(); it != state.movedFrom.end();)
         {
             const int64_t rangeStart = it->first;
             const int64_t rangeEnd   = rangeStart + static_cast<int64_t>(it->second.size);
-            if (slot + static_cast<int64_t>(K_ASSUMED_STORE_SIZE) > rangeStart && slot < rangeEnd)
+            if (writeEnd > rangeStart && slot < rangeEnd)
+            {
+                const SanitizerMovedRange range = it->second;
+                if (rangeStart < slot)
+                    retained.emplace_back(rangeStart, SanitizerMovedRange{.size = static_cast<uint64_t>(slot - rangeStart), .origin = range.origin});
+                if (writeEnd < rangeEnd)
+                    retained.emplace_back(writeEnd, SanitizerMovedRange{.size = static_cast<uint64_t>(rangeEnd - writeEnd), .origin = range.origin});
                 it = state.movedFrom.erase(it);
+            }
             else
                 ++it;
         }
+        for (const auto& [start, range] : retained)
+            state.movedFrom.insertOrAssign(start, range);
     }
 
     // A pointer-wide fact at 'slot' is invalidated by a store at 'written'.
     bool storeOverlapsPointer(const int64_t slot, const int64_t written)
     {
-        return written + static_cast<int64_t>(K_ASSUMED_STORE_SIZE) > slot && written < slot + static_cast<int64_t>(sizeof(void*));
+        return written + static_cast<int64_t>(K_ASSUMED_ACCESS_SIZE) > slot && written < slot + static_cast<int64_t>(sizeof(void*));
     }
 
 }
@@ -1297,7 +1325,7 @@ void Sanitizer::applyValueEffects(SanitizerState& state, const MicroInstr& inst,
             int64_t slot = 0;
             if (def.flags.has(MicroInstrFlagsE::HasMemBaseOffsetOperands) &&
                 resolveStackSlot(state, ops[def.memBaseOperandIndex].reg, ops[def.memOffsetOperandIndex].valueU64, slot))
-                clearMovedFromOverlaps(state, slot);
+                clearMovedFromOverlaps(state, slot, memoryWriteSize(inst, ops));
             else
                 state.movedFrom.clear();
         }
@@ -2175,9 +2203,13 @@ void Sanitizer::reportAccessToMovedRange(const MicroInstr& inst, const MicroInst
     if (!resolveAccessStackSlot(slot, state, inst, def, ops))
         return;
 
+    const bool     readsVolatileMemory = inst.op == MicroInstrOpcode::LoadVolatileRegMem;
+    const uint64_t accessSize          = def.flags.has(MicroInstrFlagsE::WritesMemory) && !readsVolatileMemory ? memoryWriteSize(inst, ops) : memoryReadSize(inst, ops);
+    const int64_t  accessEnd            = slot + static_cast<int64_t>(accessSize);
     for (const auto& [rangeStart, range] : state.movedFrom)
     {
-        if (slot < rangeStart || slot >= rangeStart + static_cast<int64_t>(range.size))
+        const int64_t  rangeEnd   = rangeStart + static_cast<int64_t>(range.size);
+        if (accessEnd <= rangeStart || slot >= rangeEnd)
             continue;
 
         std::array<ReportNote, 2> notes;

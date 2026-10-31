@@ -943,6 +943,9 @@ namespace
     {
         if (!context.builder)
             return false;
+        auto& relocations = context.builder->codeRelocations();
+        if (relocations.empty())
+            return false;
 
         MicroStorage&        storage  = *context.instructions;
         MicroOperandStorage& operands = *context.operands;
@@ -953,7 +956,7 @@ namespace
         const auto                                       refs = cfg.instructionRefs();
         thread_local MicroPassHelpers::MicroPhysLiveness liveness;
         bool                                             livenessReady = false;
-        for (MicroRelocation& relocation : context.builder->codeRelocations())
+        for (MicroRelocation& relocation : relocations)
         {
             if (relocation.form != MicroRelocation::Form::Relative32 ||
                 (relocation.kind != MicroRelocation::Kind::ConstantAddress &&
@@ -1208,6 +1211,8 @@ Result MicroPostRaPeepholePass::run(MicroPassContext& context)
 {
     SWC_ASSERT(context.instructions != nullptr);
     SWC_ASSERT(context.operands != nullptr);
+    if (context.instructions->count() == 0)
+        return Result::Continue;
 
     if (reuseLocalStoresForSpillReloads(context) || eraseGuardedReload(context) || sinkFrameReloadToFallthrough(context) || sinkFrameStoreIntoBranchTarget(context) || sinkRipLoadIntoBranchTarget(context) ||
         eraseDeadSpillStore(context))

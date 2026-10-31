@@ -658,12 +658,6 @@ void NodePayload::copyResolvedCallArguments(AstNodeRef dstNodeRef, AstNodeRef sr
     setResolvedCallArguments(dstNodeRef, args.span());
 }
 
-void NodePayload::updatePayloadFlags(AstNode& node, std::span<const Symbol*> symbols)
-{
-    const uint16_t clearMask = static_cast<uint16_t>(NodePayloadFlags::Value) | static_cast<uint16_t>(NodePayloadFlags::LValue);
-    node.updatePayloadBits(clearMask, applySymbolPayloadFlags(0, symbols));
-}
-
 void NodePayload::setResolvedCallArguments(AstNodeRef nodeRef, std::span<const ResolvedCallArgument> args)
 {
     SWC_ASSERT(nodeRef.isValid());

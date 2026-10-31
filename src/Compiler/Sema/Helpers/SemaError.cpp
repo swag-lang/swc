@@ -467,7 +467,7 @@ Result SemaError::raiseDuplicateCaseValue(Sema& sema, DiagnosticId id, AstNodeRe
     return Result::Error;
 }
 
-// A '#wrap' or '#promote' modifier on an operator whose operand is not an integer.
+// A '#wrap' or '#promote' modifier on a target that is not an integer.
 Result SemaError::raiseModifierOnlyInteger(Sema& sema, const AstNode& node, TypeRef typeRef)
 {
     const SourceView& srcView = sema.compiler().srcView(node.srcViewRef());

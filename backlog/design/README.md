@@ -249,7 +249,12 @@ the reader is:
 - An action that cannot run now stays listed, in the disabled ink and with its matches faded,
   so the reader learns it exists; it cannot be chosen.
 - Every action shows its shortcut in faint mono at the end of its row, so the lens also teaches
-  the keys it stands in for.
+  the keys it stands in for. An action rendered by a provider keeps its glyph and shortcut too;
+  alternate title painting changes only how the searchable title is drawn.
+- Exclusive choices sit together in child `ComboBox` widgets, using the same segmented control as
+  form properties. Do not draw a substitute control in the lens. Alternate choice titles may use
+  familiar marks, such as filled stars for ratings, while keeping their words searchable and their
+  segments sized to the painted mark.
 - Inside the lens, keep the common actions as a short group of named rows. Do not duplicate them
   in an icon toolbar above the results: that spends the first viewport twice and creates a second
   navigation order. An inline row is for one exclusive choice, not unrelated action shortcuts.

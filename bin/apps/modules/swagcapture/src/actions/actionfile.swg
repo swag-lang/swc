@@ -77,6 +77,11 @@ impl IActionUI for ActionFile
 
         case .DeleteCapture:
             evt.updatedFields |= .Name | .Disabled | .Icon
+            if main.libraryMode
+            {
+                evt.updatedFields |= .Shortcut
+                evt.shortcut = main.libWnd.keyShortcutName(ActionLibSel.Delete)
+            }
             evt.name          = appStrings().act_Delete
             evt.disabled      = not capture
             evt.icon          = main.theme().icon(.Remove)

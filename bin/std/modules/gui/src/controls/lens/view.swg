@@ -81,6 +81,15 @@ struct View
     returnFocus:       *Wnd?
     hotPicture:        PictureHit
     segment:           u64     // Segment the keys chose in the chosen row of an inline section, by index into its entries.
+    inlineChoices:     Array'InlineChoice
+}
+
+internal struct InlineChoice
+{
+    combo:  *ComboBox
+    section: *Section
+    row:    u64
+    width:  f32
 }
 
 // A picture of a strip of the lens under a point: the row of the strip, and the picture, or the
@@ -176,7 +185,7 @@ impl IWnd for View
             elif row.entry == PictureRow do
                 .paintPictureRow(painter, rect, row.section)
             elif row.entry == InlineRow do
-                .paintInlineRow(painter, rect, row.section, index == .chosen)
+                continue
             else do
                 .paintEntryRow(painter, rect, &row.section.entries[row.entry], index == .chosen)
         }
@@ -194,17 +203,13 @@ impl IWnd for View
 
             .cursor = Cursor.from((.prefixAt(pos) != .None or (.results.prefix != .None and .prefixRect(.None).contains(pos))) ? CursorShape.Hand : CursorShape.Arrow)
 
-            // In a row of segments, the pointer chooses the segment under it.
+            // A real child ComboBox owns pointer movement and selection for inline rows.
             let row = .rowAt(pos)
-            if row != Swag.U64.Max and (evt.delta.x != 0 or evt.delta.y != 0)
+            if row != Swag.U64.Max and .rows[row].entry != InlineRow and (evt.delta.x != 0 or evt.delta.y != 0)
             {
-                let inline  = .rows[row].entry == InlineRow
-                let segment = inline ? .segmentAt(row, pos.x) : 0
-                if not (inline and segment == Swag.U64.Max) and (row != .chosen or (inline and segment != .segment))
+                if row != .chosen
                 {
                     .chosen = row
-                    if inline do
-                        .segment = segment
                     .invalidate()
                 }
             }
@@ -258,13 +263,8 @@ impl IWnd for View
             let row = .rowAt(pos)
             if row != Swag.U64.Max
             {
-                if .rows[row].entry == InlineRow
-                {
-                    let segment = .segmentAt(row, pos.x)
-                    if segment == Swag.U64.Max do
-                        break
-                    .segment = segment
-                }
+                if .rows[row].entry == InlineRow do
+                    break
 
                 .chosen = row
                 .runChosen()
@@ -541,6 +541,13 @@ impl View
     {
         let typed = .input.text()
         let split = splitPrefix(typed)
+        var noWidths: Array'f32
+        for choice in .inlineChoices
+        {
+            choice.combo.hide()
+            choice.combo.clear()
+            choice.combo.setSegmentWidths(noWidths)
+        }
         .results.reset(split.rest, split.prefix)
 
         // At rest the lens is a palette of the context and the commands chosen last; an
@@ -574,6 +581,7 @@ impl View
 
         .rankResults()
         .buildRows()
+        .buildInlineChoices()
         .scroll = 0
         .chosen = Swag.U64.Max
         .moveChoice(1)
@@ -608,6 +616,7 @@ impl View
             if row.entry == InlineRow do
                 .segment = .restingSegment(row.section)
             .revealChosen()
+            .syncInlineSelection()
             .invalidate()
         }
     }
@@ -757,6 +766,7 @@ private impl View
             index += delta
         }
 
+        .syncInlineSelection()
         return true
     }
 
@@ -918,42 +928,6 @@ private impl View
         return {x, y, width, metrics.lens_PictureHeight}
     }
 
-    // Returns the cell of the segment `entry` of the inline `section` whose row stands at `rect`.
-    mtd segmentRect(rect: Math.Rectangle, section: *Section, entry: u64)->Math.Rectangle
-    {
-        let metrics = .themeMetrics()
-        let font    = .theme().createDefaultFont(metrics.lens_RowFontSize)
-        let top     = Math.round(rect.vertCenter() - metrics.lens_SegmentHeight * 0.5)
-        var x       = rect.x + metrics.lens_TextInset
-        for i in section.order
-        {
-            let width = Math.round(Painter.measureString(section.entries[i].title, font).width + 2 * metrics.lens_SegmentInset)
-            if i == entry do
-                return {x, top, width, metrics.lens_SegmentHeight}
-            x += width
-        }
-
-        return {x, top, 0, 0}
-    }
-
-    // Returns the segment of the inline row `rowIndex` under the abscissa `x`, by index into the
-    // entries of its section, or `U64.Max` when none can be chosen there.
-    mtd segmentAt(rowIndex: u64, x: f32)->u64
-    {
-        let list    = .listRect()
-        let row     = .rows[rowIndex]
-        let rect    = Math.Rectangle{list.x, list.y + row.top - .scroll, list.width, row.height}
-        let section = row.section
-        for i in section.order
-        {
-            let cell = .segmentRect(rect, section, i)
-            if x >= cell.x and x < cell.right() do
-                return section.entries[i].disabled ? Swag.U64.Max : i
-        }
-
-        return Swag.U64.Max
-    }
-
     // Returns the picture, or the link, of a strip under `pos`.
     mtd pictureAt(pos: Math.Point)->PictureHit
     {
@@ -1052,6 +1026,121 @@ private impl View
         .input.setPosition(Math.Rectangle{body.x + metrics.lens_TextInset, body.y, room, metrics.lens_InputHeight})
     }
 
+    // Builds real segmented ComboBox children for the inline choice rows.
+    mtd buildInlineChoices()
+    {
+        let metrics = .themeMetrics()
+        let font    = .theme().createDefaultFont(metrics.lens_RowFontSize)
+        var index   = 0'u64
+        for row, rowIndex in .rows where row.entry == InlineRow
+        {
+            if index >= .inlineChoices.count
+            {
+                let combo = ComboBox.create(me, flags: .Segmented)
+                combo.focusPolicy = .None
+                combo.setTextAlignment(.Center)
+                combo.style.setFont(.theme().createDefaultFontFamily(metrics.lens_RowFontSize))
+                combo.sigChanged += func|lens = me, choiceIndex = index|(_, selected) { lens.activateInlineChoice(choiceIndex, cast(u64, selected)) }
+                .inlineChoices.add(InlineChoice{combo, row.section, rowIndex})
+            }
+
+            let choice = &.inlineChoices[index]
+            choice.section = row.section
+            choice.row     = rowIndex
+            choice.combo.clear()
+
+            var widths: Array'f32
+            for entryIndex in row.section.order
+            {
+                let entry = &row.section.entries[entryIndex]
+                let item  = choice.combo.addItem(entry.title)
+                item.disabled   = entry.disabled
+                item.paint      = entry.paint
+                item.paintWidth = entry.paintWidth
+
+                let titleWidth = entry.paintWidth > 0 ? entry.paintWidth : Painter.measureString(entry.title, font).width
+                widths.add(Math.ceil(titleWidth + 2 * metrics.comboBox_Padding))
+            }
+            choice.combo.setSegmentWidths(widths)
+
+            var width = 2 * metrics.comboBox_SegmentInset
+            for segmentWidth in widths do
+                width += segmentWidth
+            choice.width       = width
+            choice.combo.minSize.x = width
+
+            let resting = .restingSegment(row.section)
+            for itemIndex, entryIndex in row.section.order where entryIndex == resting do
+                choice.combo.setSelectedIndex(cast(u32, itemIndex), notify: false)
+
+            index += 1
+        }
+
+        for i in index until .inlineChoices.count
+        {
+            .inlineChoices[i].combo.hide()
+            .inlineChoices[i].row = Swag.U64.Max
+        }
+    }
+
+    // Keeps the child controls inside the visible list and at their scrolled row positions.
+    mtd placeInlineChoices()
+    {
+        let list    = .listRect()
+        let metrics = .themeMetrics()
+        for choice in .inlineChoices do
+            choice.combo.hide()
+
+        var choiceIndex = 0'u64
+        for row in .rows where row.entry == InlineRow
+        {
+            if choiceIndex >= .inlineChoices.count do
+                break
+            let choice  = &.inlineChoices[choiceIndex]
+            let combo   = choice.combo
+            let height  = combo.position.height
+            let x       = list.x + metrics.lens_TextInset
+            let y       = list.y + row.top - .scroll + (row.height - height) * 0.5
+            let control = Math.Rectangle{x, y, choice.width, height}
+            if control.y >= list.y and control.bottom() <= list.bottom()
+            {
+                combo.setPosition(control)
+                combo.show()
+            }
+            choiceIndex += 1
+        }
+    }
+
+    // Lets the Lens own keyboard navigation while the ComboBox owns its selected segment paint.
+    mtd syncInlineSelection()
+    {
+        for choice in .inlineChoices
+        {
+            if choice.row >= .rows.count do
+                continue
+            let section = choice.section
+            let entry   = .chosen == choice.row ? .segment : .restingSegment(section)
+            for itemIndex, entryIndex in section.order where entryIndex == entry
+            {
+                choice.combo.setSelectedIndex(cast(u32, itemIndex), notify: false)
+                break
+            }
+        }
+    }
+
+    // A pointer selection in a child ComboBox closes the Lens and runs the corresponding entry.
+    mtd activateInlineChoice(choiceIndex, itemIndex: u64)
+    {
+        if choiceIndex >= .inlineChoices.count do
+            return
+        let choice = &.inlineChoices[choiceIndex]
+        if itemIndex >= choice.section.order.count do
+            return
+        .chosen  = choice.row
+        .segment = choice.section.order[itemIndex]
+        .runChosen()
+    }
+
     // A named pair makes overflow reachable without a wheel or knowledge of the navigation keys.
     mtd placePaging()
     {
@@ -1059,6 +1148,7 @@ private impl View
             return
         let list = .listRect()
         .scroll = Math.clamp(.scroll, 0, Math.max(.contentHeight() - list.height, 0))
+        .placeInlineChoices()
         let overflow = .contentHeight() > list.height
         .previousPage.show(overflow)
         .nextPage.show(overflow)
@@ -1089,6 +1179,7 @@ private impl View
             break
         }
 
+        .syncInlineSelection()
         .input.setFocus()
     }
 
@@ -1191,45 +1282,6 @@ private impl View
         }
     }
 
-    // Paints the rows of an inline `section` as segments side by side: the one in force
-    // underlined in Arc, and the one the keys chose on the selection ground when the row is chosen.
-    mtd paintInlineRow(painter: *Painter, rect: Math.Rectangle, section: *Section, chosen: bool)
-    {
-        let metrics = .themeMetrics()
-        let colors  = .themeColors()
-        let theme   = .theme()
-        let font    = theme.createDefaultFont(metrics.lens_RowFontSize)
-        painter.setParams(.Antialiased)
-        for i in section.order
-        {
-            let entry = &section.entries[i]
-            let cell  = .segmentRect(rect, section, i)
-            if chosen and i == .segment do
-                painter.fillRoundRect(cell, metrics.corner_Control, metrics.corner_Control, colors.selection)
-
-            // The characters the query matched, on the highlight ground.
-            let left = cell.x + metrics.lens_SegmentInset
-            let top  = font.opticalLineTop(cell.vertCenter())
-            let mark = entry.disabled ? fadeColor(colors.highlight, 0.4) : colors.highlight
-            for span in entry.spans where span.start + span.count <= entry.title.length
-            {
-                let before = Painter.measureString(Swag.makeString(entry.title.buffer, span.start), font).width
-                let after  = Painter.measureString(Swag.makeString(entry.title.buffer, span.start + span.count), font).width
-                painter.fillRect(Math.Rectangle{Math.round(left + before), top, Math.round(after - before), font.height}, mark)
-            }
-
-            var ink = (entry.checked or (chosen and i == .segment)) ? colors.text : colors.softText
-            if entry.disabled do
-                ink = colors.disabled
-            painter.drawString(left, top, entry.title, font, ink)
-            if entry.checked
-            {
-                let width = Painter.measureString(entry.title, font).width
-                painter.fillRect(Math.Rectangle{left, top + font.height + 2, Math.round(width), 2}, entry.disabled ? colors.disabled : colors.arc)
-            }
-        }
-    }
-
     mtd paintEntryRow(painter: *Painter, rect: Math.Rectangle, entry: *Entry, chosen: bool)
     {
         let metrics = .themeMetrics()
@@ -1291,14 +1343,21 @@ private impl View
         // A row that cannot be chosen keeps its matches, faded with its words.
         let top  = font.opticalLineTop(centerY)
         let mark = entry.disabled ? fadeColor(colors.highlight, 0.4) : colors.highlight
-        for span in entry.spans where span.start + span.count <= entry.title.length
+        if entry.paint
         {
-            let before = Painter.measureString(Swag.makeString(entry.title.buffer, span.start), font).width
-            let after  = Painter.measureString(Swag.makeString(entry.title.buffer, span.start + span.count), font).width
-            painter.fillRect(Math.Rectangle{Math.round(titleLeft + before), top, Math.round(after - before), font.height}, mark)
+            entry.paint(painter, Math.Rectangle{titleLeft, rect.y, Math.max(trailing - titleLeft, 0), rect.height})
         }
+        else
+        {
+            for span in entry.spans where span.start + span.count <= entry.title.length
+            {
+                let before = Painter.measureString(Swag.makeString(entry.title.buffer, span.start), font).width
+                let after  = Painter.measureString(Swag.makeString(entry.title.buffer, span.start + span.count), font).width
+                painter.fillRect(Math.Rectangle{Math.round(titleLeft + before), top, Math.round(after - before), font.height}, mark)
+            }
 
-        painter.drawString(titleLeft, top, entry.title, font, inkText)
+            painter.drawString(titleLeft, top, entry.title, font, inkText)
+        }
         painter.popClippingRect()
     }
 

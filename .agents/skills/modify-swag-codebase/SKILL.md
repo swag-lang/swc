@@ -91,15 +91,28 @@ admission thresholds, not targets for a running machine.
 
 ## Bound Agent Compiler CPU Usage
 
-Every compiler invocation launched by an AI agent for compilation or testing must cap Swag's own
-worker pool at three with `--num-cores 3`. This is separate from `/MP3`, which limits the C++
-compiler only while building `swc` itself.
+Every Swag compiler invocation launched by an AI agent for compilation or testing must cap Swag's
+own worker pool at three with `--num-cores 3`. This runtime limit does not constrain native C++
+builds of `swc`.
 
-Never invoke `tools/release.bat`. It is an owner-only interactive entry point that deliberately
-uses the repository's three-job ceiling. Release disables whole-program optimization and LTCG to
-keep iteration practical. An agent builds it only when the validation rules require it or the
-user explicitly requests it, after load admission, and through direct MSBuild with both its
-process count and `/MP` compilation capped at three.
+When building `swc` with MSVC, bound native compilation at each parallelism layer:
+
+- `SwcCompileJobs` sets the C++ project's multiprocess compilation limit (`/MP`). MSVC's default
+  `/cgthreads4` allows up to four threads per `cl.exe` during optimization and code generation;
+  pass `/cgthreads1` through the inherited `CL` environment variable to reduce that internal
+  concurrency. Preserve any existing `CL` options when adding it. This only limits those compiler
+  phases, not every thread or process in the build.
+- MSBuild `/m:P` and C++ `/MP:C` are separate limits. When several projects compile concurrently,
+  their process limits can multiply. Keep the effective number of concurrent C++ compilations at
+  three or fewer; do not set both levels to three by default.
+- For the current one-project `swc.sln`, use `/m:1` with `/p:SwcCompileJobs=3` and ensure
+  `CL` includes `/cgthreads1`. If a build includes multiple C++ projects, choose `/m` and
+  `SwcCompileJobs` values whose product does not exceed three.
+
+Never invoke `tools/release.bat`. It is an owner-only interactive entry point. Release disables
+whole-program optimization and LTCG to keep iteration practical. An agent builds it only when the
+validation rules require it or the user explicitly requests it, after load admission, and through
+direct MSBuild with native parallelism bounded as above.
 
 - Apply the cap to both checkout-local executables: `bin\swc.exe` and
   `bin\swc.dm.exe`.

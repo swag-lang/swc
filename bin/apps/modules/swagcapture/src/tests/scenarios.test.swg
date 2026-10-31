@@ -86,6 +86,37 @@ func scenarioDeleteCaptureFiles(path: String)
     discard catch File.delete(Path.combine(Library.getTrashFolder(), Path.fileName(path)))
 }
 
+// Pressing Enter on the default No in Delete confirmation leaves keyboard focus in the library.
+#test
+{
+    var f: ScenarioFixture
+    f.setup()
+    defer f.shutdown()
+
+    let path = scenarioNewCapture(f.main, "Scenario Delete Cancel")
+    defer scenarioDeleteCaptureFiles(path)
+    f.toggleLibrary()
+    f.main.libWnd.view.focusItem = 0
+    f.main.libWnd.view.selModel.select(0)
+    f.main.libWnd.view.setFocus()
+    Swag.assert(f.main.libWnd.view.hasFocus())
+
+    var answered = false
+    f.gui.app.sigFrame += func|host = &f.gui, answered = &answered|(_)
+    {
+        if answered[] do
+            return
+        answered[] = true
+        host.keyPress(.Return)
+    }
+
+    f.gui.keyPress(.Delete)
+    f.gui.pump()
+    Swag.assert(answered and f.main.libraryMode)
+    Swag.assert(f.main.libWnd.view.hasFocus())
+    Swag.assert(File.exists(path) and g_Library.files.count == 1)
+}
+
 // A captured image crosses the complete editor/history/library boundary. Loading and painting
 // the populated library is essential: automatic filters are refreshed from the loaded capture
 // during paint, which a component-only library fixture never exercises.

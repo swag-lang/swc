@@ -184,6 +184,21 @@ private impl FocusOrder
     // is asked for, and a window that means to stay out of reach says so by being hidden.
     func isReachable(wnd: *Wnd)->bool => wnd.isLocallyVisible() and wnd.isLocallyEnabled()
 
+    // Finds a live window in the reachable tree, including controls that accept pointer focus but
+    // are not stops in keyboard traversal. Comparing before descending never dereferences the
+    // previously focused pointer unless it is still part of the current tree.
+    internal func contains(root: *Wnd, target: *Wnd)->bool
+    {
+        if not FocusOrder.isReachable(root) do
+            return false
+        if root == target do
+            return true
+
+        for child in root.children where FocusOrder.contains(child, target) do
+            return true
+        return false
+    }
+
     // Returns the children of `wnd` in the order their rectangles read.
     func readingOrder(wnd: *Wnd)->Array'(*Wnd)
     {

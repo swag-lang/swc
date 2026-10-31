@@ -30,6 +30,13 @@ struct ComboBoxItem
         // The style the words of the entry are set in where the combo shows its entries as
         // segments, such as a choice of font styles lettered each in its own style.
         fontStyle = FontFamilyStyle.Regular
+        // Keeps the item visible in the list or segment group while preventing selection.
+        disabled: bool
+        // Paints alternate content in a segmented combo; `name` remains the popup label. The
+        // callback receives a borrowed painter and content rectangle.
+        paint: (func||(*Painter, Math.Rectangle))?
+        // Width of the alternate segment content in logical units; zero measures `name`.
+        paintWidth: f32
     }
 }
 
@@ -64,6 +71,7 @@ struct ComboBox
     pointerFocusReturn: *Wnd?                  // Focus owner restored after pointer use.
     maxIconSize:        s32                    // Widest item icon, sizing the icon column.
     hotSegment:         u32 = Swag.U32.Max     // Segment under the pointer, when segmented.
+    segmentWidths:      Array'f32             // Optional content widths for a hosted segmented choice.
 
     aniBk:     BlendColor     // Color animation of the background.
     aniBorder: BlendColor     // Color animation of the border.
@@ -221,9 +229,17 @@ impl IWnd for ComboBox
         if .flags.has(.Segmented)
         {
             var width = 0'f32
-            for item in .items where not item!.isSeparator do
-                width += Painter.measureString(item.name.raw, unwrap .font().regular).width + 2 * metrics.comboBox_Padding
-            return Math.Point{width, metrics.comboBox_Height}
+            if .segmentWidths.count == .items.count
+            {
+                for segmentWidth in .segmentWidths do
+                    width += segmentWidth
+            }
+            else
+            {
+                for item in .items where not item!.isSeparator do
+                    width += Painter.measureString(item.name.raw, unwrap .font().regular).width + 2 * metrics.comboBox_Padding
+            }
+            return Math.Point{width + 2 * metrics.comboBox_SegmentInset, metrics.comboBox_Height}
         }
 
         var format: RichStringFormat
@@ -268,7 +284,7 @@ impl IWnd for ComboBox
             if .showsSegments()
             {
                 let index = .segmentAt(.surfaceToLocal(evt.surfacePos))
-                if index < .items.count and index != .selectedIndex do
+                if index < .items.count and not .items[index]!.disabled and index != .selectedIndex do
                     .applySelectedIndex(index, notify: true)
                 break
             }
@@ -370,10 +386,27 @@ private impl ComboBox
             return false
         let metrics = .themeMetrics()
         let font    = unwrap .font().regular
+        if .segmentWidths.count == .items.count
+        {
+            var total = 2 * metrics.comboBox_SegmentInset
+            for item, index in .items
+            {
+                let item = unwrap item
+                if item.isSeparator do
+                    return false
+                let width = item.paintWidth > 0 ? item.paintWidth : Painter.measureString(item.name.raw, font).width
+                if width + 2 * metrics.comboBox_Padding > .segmentWidths[index] do
+                    return false
+                total += .segmentWidths[index]
+            }
+            return total <= .clientRect().width
+        }
         let share   = (.clientRect().width - 2 * metrics.comboBox_SegmentInset) / cast(f32, .items.count)
         for item in .items
         {
-            if item!.isSeparator or Painter.measureString(item.name.raw, font).width + 2 * metrics.comboBox_Padding > share do
+            let item = unwrap item
+            let width = item.paintWidth > 0 ? item.paintWidth : Painter.measureString(item.name.raw, font).width
+            if item.isSeparator or width + 2 * metrics.comboBox_Padding > share do
                 return false
         }
 
@@ -387,6 +420,13 @@ private impl ComboBox
         let gap   = .themeMetrics().comboBox_SegmentInset
         var frame = .clientRect()
         frame.inflate(-gap)
+        if .segmentWidths.count == count
+        {
+            var x = frame.x
+            for i in index do
+                x += .segmentWidths[i]
+            return Math.Rectangle{x, frame.y, .segmentWidths[index], frame.height}
+        }
         let width = frame.width / cast(f32, Math.max(count, 1))
         return Math.Rectangle{frame.x + width * cast(f32, index), frame.y, width, frame.height}
     }
@@ -395,8 +435,12 @@ private impl ComboBox
     mtd segmentAt(pos: Math.Point)->u32
     {
         let count = .items.count
-        for i in count where .segmentRect(i, count).contains(pos) do
+        for i in count where .segmentRect(i, count).contains(pos)
+        {
+            if .items[i]!.disabled do
+                return Swag.U32.Max
             return cast(u32, i)
+        }
         return Swag.U32.Max
     }
 
@@ -405,6 +449,7 @@ private impl ComboBox
     mtd paintSegments(painter: *Painter, disabled: bool)
     {
         let colors = .themeColors()
+        let metrics = .themeMetrics()
         let rects  = .themeRects()
         let theme  = .theme()
         let count  = .items.count
@@ -414,6 +459,7 @@ private impl ComboBox
         painter.setParams(.Antialiased)
         for item, i in .items
         {
+            let item = unwrap item
             let rect = .segmentRect(i, count)
             if i == .selectedIndex
             {
@@ -433,12 +479,21 @@ private impl ComboBox
             }
 
             var ink = i == .selectedIndex ? colors.tabItem_SelectedText : colors.tabItem_HotText
-            if disabled do
+            if disabled or item.disabled do
                 ink = colors.comboBox_DisabledText
-            let face  = .font().getFont(item!.fontStyle) orelse font
-            let text  = item.name.raw
-            let width = Painter.measureString(text, face).width
-            painter.drawString(Math.round(rect.horzCenter() - width * 0.5), face.opticalLineTop(rect.vertCenter()), text, face, ink)
+            if item.paint
+            {
+                var content = rect
+                content.inflate(-metrics.comboBox_Padding, 0)
+                item.paint(painter, content)
+            }
+            else
+            {
+                let face  = .font().getFont(item.fontStyle) orelse font
+                let text  = item.name.raw
+                let width = Painter.measureString(text, face).width
+                painter.drawString(Math.round(rect.horzCenter() - width * 0.5), face.opticalLineTop(rect.vertCenter()), text, face, ink)
+            }
         }
     }
 
@@ -460,7 +515,7 @@ private impl ComboBox
             idx += dir
             if idx < 0 or idx >= cast(s32, .items.count) do
                 return
-            if not .items[idx]!.isSeparator do
+            if not .items[idx]!.isSeparator and not .items[idx]!.disabled do
                 break
         }
 
@@ -472,9 +527,10 @@ private impl ComboBox
     {
         if forward
         {
-            for item, idx in .items
+            for itemIt, idx in .items
             {
-                if not item!.isSeparator
+                let item = unwrap itemIt
+                if not item.isSeparator and not item.disabled
                 {
                     .setSelectedIndex(cast(u32, idx))
                     return
@@ -485,7 +541,7 @@ private impl ComboBox
         {
             for var i = cast(s32, .items.count) - 1; i >= 0; i -= 1
             {
-                if not .items[i]!.isSeparator
+                if not .items[i]!.isSeparator and not .items[i]!.disabled
                 {
                     .setSelectedIndex(cast(u32, i))
                     return
@@ -507,8 +563,11 @@ private impl ComboBox
             let item = unwrap itemIt
             if item.isSeparator do
                 popup.addSeparator()
-            else do
-                popup.addItem(item.name.raw, item.id, item.icon, item.userData0, item.userData1)
+            else
+            {
+                let popupItem = popup.addItem(item.name.raw, item.id, item.icon, item.userData0, item.userData1)
+                popupItem.disabled = item.disabled
+            }
         }
 
         popup.setSelectedIndex(.selectedIndex)
@@ -693,12 +752,24 @@ impl ComboBox
         .flags.remove(remove)
         .invalidate()
     }
+
+    // Gives a hosted segmented combo the measured width of each item, instead of equal shares.
+    // An empty list restores the usual equal-width rule.
+    internal mtd setSegmentWidths(widths: Array'f32)
+    {
+        .segmentWidths.clear()
+        for width in widths do
+            .segmentWidths.add(width)
+        .invalidate()
+    }
 }
 
 private impl ComboBox
 {
     mtd applySelectedIndex(index: u32, notify: bool)
     {
+        if index < .items.count and .items[index]!.disabled do
+            return
         if index == .selectedIndex do
             return
 

@@ -104,6 +104,8 @@ enum ThemeIcons
     FileAudio       // A sound.
     FileVideo       // A film.
     FileArchive     // An archive of other files.
+    Star            // An outlined rating star.
+    StarFilled      // A filled rating star.
 }
 
 // Extensions read as each kind of file, compared without case.

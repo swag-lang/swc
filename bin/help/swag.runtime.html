@@ -3593,7 +3593,7 @@ task.<span class="SFct">submit</span>(<span class="SKwd">func</span>() =&gt; <sp
 </tbody>
 </table>
 <section class="api-symbol">
-<div class="api-item api-item-struct"><span id="Swag_TaskGroup" class="api-item-title"><span class="api-item-title-kind">struct</span> <span class="api-item-title-strong">Swag.TaskGroup</span> <a class="api-item-permalink" href="#Swag_TaskGroup" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/runtime/task.swg#L428">src</a></div>
+<div class="api-item api-item-struct"><span id="Swag_TaskGroup" class="api-item-title"><span class="api-item-title-kind">struct</span> <span class="api-item-title-strong">Swag.TaskGroup</span> <a class="api-item-permalink" href="#Swag_TaskGroup" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/runtime/task.swg#L435">src</a></div>
 <p>Owns a set of child tasks and joins every one of them before it is released.</p>
 <p>The group is the lifetime that makes a spawn safe: a child can borrow anything that outlives the group, because the group cannot be released while a child is still running. Leaving the scope of a group joins its children, whether the scope ends normally, by an early return, or by a raised error. Children use the same isolated error state as <a href="#Swag_Task">Swag.Task</a>, including when the joining caller executes them during cleanup.</p>
 <p>A child can fail. The first error a child raises asks every other child to stop, and <a href="#Swag_TaskGroup_join">Swag.TaskGroup.join</a> raises it once every child has finished. Leaving the group's scope joins the children too, but drops an error nobody joined.</p>
@@ -4489,7 +4489,7 @@ task.<span class="SFct">submit</span>(<span class="SKwd">func</span>() =&gt; <sp
 </table>
 <h3 id="constants">Constants</h3>
 <section class="api-symbol">
-<div class="api-item api-item-const"><span id="AllocatorHostCommitGranularity" class="api-item-title"><span class="api-item-title-kind">const</span> <span class="api-item-title-strong">AllocatorHostCommitGranularity</span> <a class="api-item-permalink" href="#AllocatorHostCommitGranularity" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/runtime/os.win32.swg#L136">src</a></div>
+<div class="api-item api-item-const"><span id="AllocatorHostCommitGranularity" class="api-item-title"><span class="api-item-title-kind">const</span> <span class="api-item-title-strong">AllocatorHostCommitGranularity</span> <a class="api-item-permalink" href="#AllocatorHostCommitGranularity" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/runtime/os.win32.swg#L152">src</a></div>
 <p>Windows implementation of the host primitives used by common allocator and TLS policy.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">const</span> <span class="SCst"><a href="#AllocatorHostCommitGranularity">AllocatorHostCommitGranularity</a></span> = <span class="SNum">4096</span>'<span class="STpe">u64</span></span></div>
 </section>
@@ -4576,7 +4576,7 @@ task.<span class="SFct">submit</span>(<span class="SKwd">func</span>() =&gt; <sp
 <div class="code-block"><span class="SCde"><span class="SKwd">const</span> <span class="SCst">NegInf</span>    = <span class="SKwd">cast</span> <span class="SItr">#bit</span> (<span class="STpe">f64</span>, <span class="SNum">0xFFF0000000000000</span>)</span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-const"><span id="HostResumeStorageSize" class="api-item-title"><span class="api-item-title-kind">const</span> <span class="api-item-title-strong">HostResumeStorageSize</span> <a class="api-item-permalink" href="#HostResumeStorageSize" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/runtime/os.win32.swg#L615">src</a></div>
+<div class="api-item api-item-const"><span id="HostResumeStorageSize" class="api-item-title"><span class="api-item-title-kind">const</span> <span class="api-item-title-strong">HostResumeStorageSize</span> <a class="api-item-permalink" href="#HostResumeStorageSize" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/runtime/os.win32.swg#L661">src</a></div>
 <p>A resume point for <span class="code-inline">catchPanic</span>, in storage the caller keeps alive.</p>
 <p>RtlCaptureContext and RtlRestoreContext need a 16-byte aligned CONTEXT, so the storage leaves room to align one.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">const</span> <span class="SCst"><a href="#HostResumeStorageSize">HostResumeStorageSize</a></span> = <span class="SNum">1360</span> + <span class="SNum">15</span></span></div>
@@ -4774,27 +4774,27 @@ task.<span class="SFct">submit</span>(<span class="SKwd">func</span>() =&gt; <sp
 <div class="code-block"><span class="SCde"><span class="SKwd">const</span> <span class="SCst"><a href="#Swag_MaxWorkers">MaxWorkers</a></span> = <span class="SNum">64</span>'<span class="STpe">u32</span></span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-const"><span id="Swag_WorkStateDedicated" class="api-item-title"><span class="api-item-title-kind">const</span> <span class="api-item-title-strong">Swag.WorkStateDedicated</span> <a class="api-item-permalink" href="#Swag_WorkStateDedicated" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/runtime/scheduler.swg#L46">src</a></div>
+<div class="api-item api-item-const"><span id="Swag_WorkStateDedicated" class="api-item-title"><span class="api-item-title-kind">const</span> <span class="api-item-title-strong">Swag.WorkStateDedicated</span> <a class="api-item-permalink" href="#Swag_WorkStateDedicated" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/runtime/scheduler.swg#L47">src</a></div>
 <p>The work is queued on an <a href="#Swag_Executor">Swag.Executor</a>, which alone may start it: no join claims it.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">internal</span> <span class="SKwd">const</span> <span class="SCst"><a href="#Swag_WorkStateDedicated">WorkStateDedicated</a></span> = <span class="SNum">4</span>'<span class="STpe">u32</span></span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-const"><span id="Swag_WorkStateDone" class="api-item-title"><span class="api-item-title-kind">const</span> <span class="api-item-title-strong">Swag.WorkStateDone</span> <a class="api-item-permalink" href="#Swag_WorkStateDone" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/runtime/scheduler.swg#L43">src</a></div>
+<div class="api-item api-item-const"><span id="Swag_WorkStateDone" class="api-item-title"><span class="api-item-title-kind">const</span> <span class="api-item-title-strong">Swag.WorkStateDone</span> <a class="api-item-permalink" href="#Swag_WorkStateDone" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/runtime/scheduler.swg#L44">src</a></div>
 <p>The work finished. The owner may reuse or destroy the node.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">internal</span> <span class="SKwd">const</span> <span class="SCst"><a href="#Swag_WorkStateDone">WorkStateDone</a></span> = <span class="SNum">3</span>'<span class="STpe">u32</span></span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-const"><span id="Swag_WorkStateIdle" class="api-item-title"><span class="api-item-title-kind">const</span> <span class="api-item-title-strong">Swag.WorkStateIdle</span> <a class="api-item-permalink" href="#Swag_WorkStateIdle" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/runtime/scheduler.swg#L34">src</a></div>
+<div class="api-item api-item-const"><span id="Swag_WorkStateIdle" class="api-item-title"><span class="api-item-title-kind">const</span> <span class="api-item-title-strong">Swag.WorkStateIdle</span> <a class="api-item-permalink" href="#Swag_WorkStateIdle" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/runtime/scheduler.swg#L35">src</a></div>
 <p>The work has never been submitted, or its last run was collected.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">internal</span> <span class="SKwd">const</span> <span class="SCst"><a href="#Swag_WorkStateIdle">WorkStateIdle</a></span> = <span class="SNum">0</span>'<span class="STpe">u32</span></span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-const"><span id="Swag_WorkStateQueued" class="api-item-title"><span class="api-item-title-kind">const</span> <span class="api-item-title-strong">Swag.WorkStateQueued</span> <a class="api-item-permalink" href="#Swag_WorkStateQueued" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/runtime/scheduler.swg#L37">src</a></div>
+<div class="api-item api-item-const"><span id="Swag_WorkStateQueued" class="api-item-title"><span class="api-item-title-kind">const</span> <span class="api-item-title-strong">Swag.WorkStateQueued</span> <a class="api-item-permalink" href="#Swag_WorkStateQueued" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/runtime/scheduler.swg#L38">src</a></div>
 <p>The work is submitted and not started.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">internal</span> <span class="SKwd">const</span> <span class="SCst"><a href="#Swag_WorkStateQueued">WorkStateQueued</a></span> = <span class="SNum">1</span>'<span class="STpe">u32</span></span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-const"><span id="Swag_WorkStateRunning" class="api-item-title"><span class="api-item-title-kind">const</span> <span class="api-item-title-strong">Swag.WorkStateRunning</span> <a class="api-item-permalink" href="#Swag_WorkStateRunning" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/runtime/scheduler.swg#L40">src</a></div>
+<div class="api-item api-item-const"><span id="Swag_WorkStateRunning" class="api-item-title"><span class="api-item-title-kind">const</span> <span class="api-item-title-strong">Swag.WorkStateRunning</span> <a class="api-item-permalink" href="#Swag_WorkStateRunning" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/runtime/scheduler.swg#L41">src</a></div>
 <p>A thread is running the work.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">internal</span> <span class="SKwd">const</span> <span class="SCst"><a href="#Swag_WorkStateRunning">WorkStateRunning</a></span> = <span class="SNum">2</span>'<span class="STpe">u32</span></span></div>
 </section>
@@ -6223,7 +6223,7 @@ task.<span class="SFct">submit</span>(<span class="SKwd">func</span>() =&gt; <sp
 <span class="SKwd">attr</span> <span class="SFct">Discardable</span>()</span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Swag_drainWork" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Swag.drainWork</span> <a class="api-item-permalink" href="#Swag_drainWork" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/runtime/scheduler.swg#L636">src</a></div>
+<div class="api-item api-item-func"><span id="Swag_drainWork" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Swag.drainWork</span> <a class="api-item-permalink" href="#Swag_drainWork" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/runtime/scheduler.swg#L754">src</a></div>
 <p>Runs ready work until every unit submitted to the process has finished.</p>
 <p>This is a shutdown and test convenience over the whole process, not a structured join: it cannot tell one owner's work from another's. Prefer waiting on the <a href="#Swag_Task">Swag.Task</a> or <a href="#Swag_TaskGroup">Swag.TaskGroup</a> that owns the work.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SFct">drainWork</span>()</span></div>
@@ -6236,7 +6236,7 @@ task.<span class="SFct">submit</span>(<span class="SKwd">func</span>() =&gt; <sp
 <span class="SKwd">attr</span> <span class="SFct">DynCast</span>()</span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Swag_enterWorkerContext" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Swag.enterWorkerContext</span> <a class="api-item-permalink" href="#Swag_enterWorkerContext" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/runtime/scheduler.swg#L280">src</a></div>
+<div class="api-item api-item-func"><span id="Swag_enterWorkerContext" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Swag.enterWorkerContext</span> <a class="api-item-permalink" href="#Swag_enterWorkerContext" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/runtime/scheduler.swg#L291">src</a></div>
 <p>Installs a prepared context on the calling thread and gives its scratch allocators their capacity.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">internal</span> <span class="SKwd">func</span> <span class="SFct">enterWorkerContext</span>(context: *<span class="SCst"><a href="#Swag_Context">Context</a></span>)</span></div>
 </section>
@@ -6302,7 +6302,7 @@ task.<span class="SFct">submit</span>(<span class="SKwd">func</span>() =&gt; <sp
 <div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SFct">globalsToDrop</span>()-&gt;<span class="SKwd">const</span> [..] <span class="SNsp">Swag</span>.<span class="SCst"><a href="#Swag_GlobalToDrop">GlobalToDrop</a></span>?</span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Swag_hasSerialWorkerPool" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Swag.hasSerialWorkerPool</span> <a class="api-item-permalink" href="#Swag_hasSerialWorkerPool" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/runtime/scheduler.swg#L99">src</a></div>
+<div class="api-item api-item-func"><span id="Swag_hasSerialWorkerPool" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Swag.hasSerialWorkerPool</span> <a class="api-item-permalink" href="#Swag_hasSerialWorkerPool" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/runtime/scheduler.swg#L106">src</a></div>
 <p>Observe an existing roster without creating a scheduler or starting workers.</p>
 <p>A concurrent growth can leave this call serial; the next call observes the larger pool. Before startup completes, a zero count says nothing about the requested roster.</p>
 <div class="code-block"><span class="SCde"><span class="SAtr">#[</span><span class="SNsp">Swag</span>.<span class="SAtr">Inline]</span>
@@ -6346,7 +6346,7 @@ task.<span class="SFct">submit</span>(<span class="SKwd">func</span>() =&gt; <sp
 <div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SFct">isCancelled</span>()-&gt;<span class="STpe">bool</span></span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Swag_isWorkPending" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Swag.isWorkPending</span> <a class="api-item-permalink" href="#Swag_isWorkPending" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/runtime/scheduler.swg#L50">src</a></div>
+<div class="api-item api-item-func"><span id="Swag_isWorkPending" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Swag.isWorkPending</span> <a class="api-item-permalink" href="#Swag_isWorkPending" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/runtime/scheduler.swg#L51">src</a></div>
 <p>Returns whether a node in <span class="code-inline">state</span> still has work to start or finish.</p>
 <div class="code-block"><span class="SCde"><span class="SAtr">#[</span><span class="SNsp">Swag</span>.<span class="SAtr">Inline]</span>
 <span class="SKwd">internal</span> <span class="SKwd">func</span> <span class="SFct">isWorkPending</span>(state: <span class="STpe">u32</span>)-&gt;<span class="STpe">bool</span></span></div>
@@ -6368,7 +6368,7 @@ task.<span class="SFct">submit</span>(<span class="SKwd">func</span>() =&gt; <sp
 <div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SFct">leadingZeros</span>(value: <span class="SItr">#simd</span> [<span class="SNum">2</span>] <span class="STpe">u64</span>)-&gt;<span class="SItr">#simd</span> [<span class="SNum">2</span>] <span class="STpe">u64</span></span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Swag_leaveWorkerContext" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Swag.leaveWorkerContext</span> <a class="api-item-permalink" href="#Swag_leaveWorkerContext" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/runtime/scheduler.swg#L288">src</a></div>
+<div class="api-item api-item-func"><span id="Swag_leaveWorkerContext" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Swag.leaveWorkerContext</span> <a class="api-item-permalink" href="#Swag_leaveWorkerContext" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/runtime/scheduler.swg#L299">src</a></div>
 <p>Releases what a worker context owns before its thread ends.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">internal</span> <span class="SKwd">func</span> <span class="SFct">leaveWorkerContext</span>(context: *<span class="SCst"><a href="#Swag_Context">Context</a></span>)</span></div>
 </section>
@@ -6596,7 +6596,7 @@ task.<span class="SFct">submit</span>(<span class="SKwd">func</span>() =&gt; <sp
 <div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SFct">prefetch</span>(addr: <span class="SKwd">const</span> [*] <span class="STpe">void</span>?)</span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Swag_prepareWorkerContext" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Swag.prepareWorkerContext</span> <a class="api-item-permalink" href="#Swag_prepareWorkerContext" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/runtime/scheduler.swg#L271">src</a></div>
+<div class="api-item api-item-func"><span id="Swag_prepareWorkerContext" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Swag.prepareWorkerContext</span> <a class="api-item-permalink" href="#Swag_prepareWorkerContext" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/runtime/scheduler.swg#L282">src</a></div>
 <p>Gives a thread the runtime is about to start a context of its own, copied from this thread's.</p>
 <p>The copy keeps the settings but still points at this thread's scratch blocks; resetting it lets the new thread own its storage instead of releasing the creator's. The thread serves every later task, whatever allocator was active where it started, so it starts from the default one.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">internal</span> <span class="SKwd">func</span> <span class="SFct">prepareWorkerContext</span>(context: *<span class="SCst"><a href="#Swag_Context">Context</a></span>)</span></div>
@@ -6676,7 +6676,7 @@ task.<span class="SFct">submit</span>(<span class="SKwd">func</span>() =&gt; <sp
 <div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SFct">round</span>(value: <span class="STpe">f64</span>)-&gt;<span class="STpe">f64</span></span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Swag_runPendingWork" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Swag.runPendingWork</span> <a class="api-item-permalink" href="#Swag_runPendingWork" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/runtime/scheduler.swg#L429">src</a></div>
+<div class="api-item api-item-func"><span id="Swag_runPendingWork" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Swag.runPendingWork</span> <a class="api-item-permalink" href="#Swag_runPendingWork" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/runtime/scheduler.swg#L519">src</a></div>
 <p>Runs one ready node if there is one, and returns whether it ran anything.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">internal</span> <span class="SKwd">func</span> <span class="SFct">runPendingWork</span>()-&gt;<span class="STpe">bool</span></span></div>
 </section>
@@ -6703,7 +6703,7 @@ task.<span class="SFct">submit</span>(<span class="SKwd">func</span>() =&gt; <sp
 <span class="SKwd">attr</span> <span class="SFct">Sanity</span>(what: <span class="SCst"><a href="#Swag_SafetyWhat">SafetyWhat</a></span>, value: <span class="STpe">bool</span>)</span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Swag_schedulerInstance" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Swag.schedulerInstance</span> <a class="api-item-permalink" href="#Swag_schedulerInstance" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/runtime/scheduler.swg#L113">src</a></div>
+<div class="api-item api-item-func"><span id="Swag_schedulerInstance" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Swag.schedulerInstance</span> <a class="api-item-permalink" href="#Swag_schedulerInstance" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/runtime/scheduler.swg#L120">src</a></div>
 <p>Returns the process scheduler, creating it on first use.</p>
 <p>Creating it starts no thread and reserves no execution resource: a program that never submits work only pays for one small allocation.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">internal</span> <span class="SKwd">func</span> <span class="SFct">schedulerInstance</span>()-&gt;*<span class="SCst">Scheduler</span></span></div>
@@ -6727,7 +6727,7 @@ task.<span class="SFct">submit</span>(<span class="SKwd">func</span>() =&gt; <sp
 <div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SFct">setContext</span>(context: <span class="SKwd">const</span> *<span class="SNsp">Swag</span>.<span class="SCst"><a href="#Swag_Context">Context</a></span>)</span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Swag_setWorkerCount" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Swag.setWorkerCount</span> <a class="api-item-permalink" href="#Swag_setWorkerCount" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/runtime/scheduler.swg#L178">src</a></div>
+<div class="api-item api-item-func"><span id="Swag_setWorkerCount" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Swag.setWorkerCount</span> <a class="api-item-permalink" href="#Swag_setWorkerCount" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/runtime/scheduler.swg#L186">src</a></div>
 <p>Sets how many worker threads the process runs.</p>
 <p>Zero, the default, lets the runtime choose from the host processor count. Asking for more than the pool currently runs starts the missing threads, up to one per host processor; asking for fewer never stops a running one. One process has one budget, whichever artifact sets it.</p>
 <p>Compile-time execution runs no worker at all, so the count stays zero there.</p>
@@ -6765,7 +6765,7 @@ task.<span class="SFct">submit</span>(<span class="SKwd">func</span>() =&gt; <sp
 <div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SFct">sqrt</span>(value: <span class="SItr">#simd</span> [<span class="SNum">2</span>] <span class="STpe">f64</span>)-&gt;<span class="SItr">#simd</span> [<span class="SNum">2</span>] <span class="STpe">f64</span></span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Swag_startWorkers" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Swag.startWorkers</span> <a class="api-item-permalink" href="#Swag_startWorkers" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/runtime/scheduler.swg#L152">src</a></div>
+<div class="api-item api-item-func"><span id="Swag_startWorkers" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Swag.startWorkers</span> <a class="api-item-permalink" href="#Swag_startWorkers" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/runtime/scheduler.swg#L160">src</a></div>
 <p>Starts the process worker pool now, if it is not running yet.</p>
 <p>The pool starts on its own at the first submission, so this is only useful to move that cost out of the first parallel section -- a program whose first parallel work is also its most latency-sensitive can pay for the threads earlier.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SFct">startWorkers</span>()</span></div>
@@ -6782,10 +6782,10 @@ task.<span class="SFct">submit</span>(<span class="SKwd">func</span>() =&gt; <sp
 <div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SFct">stringCmp</span>(str1: <span class="STpe">string</span>?, str2: <span class="STpe">string</span>?)-&gt;<span class="STpe">bool</span></span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Swag_submitWork" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Swag.submitWork</span> <a class="api-item-permalink" href="#Swag_submitWork" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/runtime/scheduler.swg#L477">src</a></div>
+<div class="api-item api-item-func"><span id="Swag_submitWork" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Swag.submitWork</span> <a class="api-item-permalink" href="#Swag_submitWork" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/runtime/scheduler.swg#L580">src</a></div>
 <p>Submits <span class="code-inline">node</span> for one execution.</p>
 <p>The node and everything its entry reads must stay alive until the work is observed finished. With no worker thread the work runs here, so a submitted unit always completes.</p>
-<div class="code-block"><span class="SCde"><span class="SKwd">internal</span> <span class="SKwd">func</span> <span class="SFct">submitWork</span>(node: *<span class="SCst">WorkNode</span>)</span></div>
+<div class="code-block"><span class="SCde"><span class="SKwd">internal</span> <span class="SKwd">func</span> <span class="SFct">submitWork</span>(node: *<span class="SCst">WorkNode</span>, background = <span class="SKwd">false</span>)</span></div>
 </section>
 <section class="api-symbol">
 <div class="api-item api-item-func"><span id="Swag_tableOf" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Swag.tableOf</span> <a class="api-item-permalink" href="#Swag_tableOf" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/runtime/core.swg#L486">src</a></div>
@@ -7134,25 +7134,25 @@ task.<span class="SFct">submit</span>(<span class="SKwd">func</span>() =&gt; <sp
 <div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SFct">vecWidenLo</span>(value: <span class="SItr">#simd</span> [<span class="SNum">4</span>] <span class="STpe">s32</span>)-&gt;<span class="SItr">#simd</span> [<span class="SNum">2</span>] <span class="STpe">s64</span></span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Swag_waitWork" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Swag.waitWork</span> <a class="api-item-permalink" href="#Swag_waitWork" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/runtime/scheduler.swg#L508">src</a></div>
+<div class="api-item api-item-func"><span id="Swag_waitWork" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Swag.waitWork</span> <a class="api-item-permalink" href="#Swag_waitWork" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/runtime/scheduler.swg#L625">src</a></div>
 <p>Runs <span class="code-inline">node</span> if it is still queued, or waits for the thread that already claimed it.</p>
 <p>Helping stays on this join's dependency path. Running an unrelated queue entry here could reenter code that needs a lock held by the caller. Descendant-only joins still progress when every worker is busy: each joining thread can claim the specific child it needs.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">internal</span> <span class="SKwd">func</span> <span class="SFct">waitWork</span>(node: *<span class="SCst">WorkNode</span>)</span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Swag_waitWorkChange" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Swag.waitWorkChange</span> <a class="api-item-permalink" href="#Swag_waitWorkChange" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/runtime/scheduler.swg#L565">src</a></div>
+<div class="api-item api-item-func"><span id="Swag_waitWorkChange" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Swag.waitWorkChange</span> <a class="api-item-permalink" href="#Swag_waitWorkChange" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/runtime/scheduler.swg#L683">src</a></div>
 <p>Parks until <span class="code-inline">check</span> answers true, which is how a thread waits on several nodes at once.</p>
 <p>While it waits, every completion and every cancellation request wakes it to ask again, so <span class="code-inline">check</span> must only read state those publish. The caller counts as an observer without a slot before asking, and a completion publishes Done before reading that count: one of the two always sees the other. It never runs the nodes itself.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">internal</span> <span class="SKwd">func</span> <span class="SFct">waitWorkChange</span>(check: <span class="SKwd">func</span>||()-&gt;<span class="STpe">bool</span>)</span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Swag_waitWorkUnlessCancelled" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Swag.waitWorkUnlessCancelled</span> <a class="api-item-permalink" href="#Swag_waitWorkUnlessCancelled" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/runtime/scheduler.swg#L542">src</a></div>
+<div class="api-item api-item-func"><span id="Swag_waitWorkUnlessCancelled" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Swag.waitWorkUnlessCancelled</span> <a class="api-item-permalink" href="#Swag_waitWorkUnlessCancelled" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/runtime/scheduler.swg#L659">src</a></div>
 <p>Waits like <span class="code-inline">waitWork</span>, but returns false as soon as the work running on this thread is asked to stop, and true once <span class="code-inline">node</span> has finished.</p>
 <p>It never runs <span class="code-inline">node</span> itself: a thread running the work it waits for could not notice the request until that work ends. A worker runs it instead; with no worker, it already ran when submitted.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">internal</span> <span class="SKwd">func</span> <span class="SFct">waitWorkUnlessCancelled</span>(node: *<span class="SCst">WorkNode</span>)-&gt;<span class="STpe">bool</span></span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Swag_wakeCancelledObservers" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Swag.wakeCancelledObservers</span> <a class="api-item-permalink" href="#Swag_wakeCancelledObservers" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/runtime/scheduler.swg#L590">src</a></div>
+<div class="api-item api-item-func"><span id="Swag_wakeCancelledObservers" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Swag.wakeCancelledObservers</span> <a class="api-item-permalink" href="#Swag_wakeCancelledObservers" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/runtime/scheduler.swg#L708">src</a></div>
 <p>Wakes the parked observers so a cancellable one can notice that its work was asked to stop.</p>
 <p>A request names no node, and requests are rare, so every parked observer wakes and rechecks. The request is raised before this reads the parked count, and an observer counts itself before reading the request, so one of the two always sees the other.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">internal</span> <span class="SKwd">func</span> <span class="SFct">wakeCancelledObservers</span>()</span></div>
@@ -7169,48 +7169,48 @@ task.<span class="SFct">submit</span>(<span class="SKwd">func</span>() =&gt; <sp
 <span class="SKwd">attr</span> <span class="SFct">Warning</span>(what: <span class="STpe">string</span>, level: <span class="SCst"><a href="#Swag_WarningLevel">WarningLevel</a></span>)</span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Swag_whenAll" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Swag.whenAll</span> <a class="api-item-permalink" href="#Swag_whenAll" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/runtime/task.swg#L636">src</a></div>
+<div class="api-item api-item-func"><span id="Swag_whenAll" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Swag.whenAll</span> <a class="api-item-permalink" href="#Swag_whenAll" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/runtime/task.swg#L643">src</a></div>
 <p>Waits for every task of <span class="code-inline">tasks</span>. As soon as one of them fails, the others are asked to stop; once they have all finished, the error of the first failed task, in the order of <span class="code-inline">tasks</span>, is raised.</p>
 <p>The tasks keep their outcomes: take each value with <a href="#Swag_Task_take">Swag.Task.take</a>, which raises a failed task's error again. Every task must be submitted, and its outcome not taken yet.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">func</span>(<span class="SCst">T</span>) <span class="SFct">whenAll</span>(tasks: [..] <span class="SFct">Task</span>'<span class="SCst">T</span>) <span class="SKwd">fail</span></span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Swag_whenAny" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Swag.whenAny</span> <a class="api-item-permalink" href="#Swag_whenAny" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/runtime/task.swg#L668">src</a></div>
+<div class="api-item api-item-func"><span id="Swag_whenAny" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Swag.whenAny</span> <a class="api-item-permalink" href="#Swag_whenAny" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/runtime/task.swg#L677">src</a></div>
 <p>Waits until one task of <span class="code-inline">tasks</span> succeeds, asks the others to stop, and returns its index. When every task fails, raises the error of the first one, in the order of <span class="code-inline">tasks</span>.</p>
 <p>The winner keeps its value for <a href="#Swag_Task_take">Swag.Task.take</a>. The others still have to be waited for, or destroyed, before what they borrow is released. Every task must be submitted, and its outcome not taken yet.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">func</span>(<span class="SCst">T</span>) <span class="SFct">whenAny</span>(tasks: [..] <span class="SFct">Task</span>'<span class="SCst">T</span>)-&gt;<span class="STpe">u64</span> <span class="SKwd">fail</span></span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Swag_workerCount" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Swag.workerCount</span> <a class="api-item-permalink" href="#Swag_workerCount" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/runtime/scheduler.swg#L165">src</a></div>
+<div class="api-item api-item-func"><span id="Swag_workerCount" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Swag.workerCount</span> <a class="api-item-permalink" href="#Swag_workerCount" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/runtime/scheduler.swg#L173">src</a></div>
 <p>Returns the number of worker threads that run submitted work.</p>
 <p>Asking starts the pool, because asking is how a program sizes the partitioning it is about to submit. The answer is zero under compile-time execution, where work runs on the submitting thread.</p>
 <p>Use it to size a partitioning, never to decide whether a submitted unit will complete: a submitted unit always completes, on a worker or on the submitting thread.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SFct">workerCount</span>()-&gt;<span class="STpe">u32</span></span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Swag_Task_cancel" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Task.cancel</span> <a class="api-item-permalink" href="#Swag_Task_cancel" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/runtime/task.swg#L200">src</a></div>
+<div class="api-item api-item-func"><span id="Swag_Task_cancel" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Task.cancel</span> <a class="api-item-permalink" href="#Swag_Task_cancel" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/runtime/task.swg#L207">src</a></div>
 <p>Asks the running work to stop.</p>
 <p>The request is idempotent and covers the current submission only. It stops nothing by itself: the body observes it through <a href="#Swag_isCancelled">Swag.isCancelled</a>, as does every task-group child and <span class="code-inline">parallel for</span> partition the body starts.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">cancel</span>()</span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Swag_Task_hasFailed" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Task.hasFailed</span> <a class="api-item-permalink" href="#Swag_Task_hasFailed" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/runtime/task.swg#L210">src</a></div>
+<div class="api-item api-item-func"><span id="Swag_Task_hasFailed" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Task.hasFailed</span> <a class="api-item-permalink" href="#Swag_Task_hasFailed" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/runtime/task.swg#L217">src</a></div>
 <p>Returns whether the last submission finished with an error that was not taken yet.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SKwd">const</span> <span class="SFct">hasFailed</span>()-&gt;<span class="STpe">bool</span></span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Swag_Task_isCancelled" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Task.isCancelled</span> <a class="api-item-permalink" href="#Swag_Task_isCancelled" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/runtime/task.swg#L207">src</a></div>
+<div class="api-item api-item-func"><span id="Swag_Task_isCancelled" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Task.isCancelled</span> <a class="api-item-permalink" href="#Swag_Task_isCancelled" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/runtime/task.swg#L214">src</a></div>
 <p>Returns whether a stop was requested for the current submission.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SKwd">const</span> <span class="SFct">isCancelled</span>()-&gt;<span class="STpe">bool</span></span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Swag_Task_isDone" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Task.isDone</span> <a class="api-item-permalink" href="#Swag_Task_isDone" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/runtime/task.swg#L222">src</a></div>
+<div class="api-item api-item-func"><span id="Swag_Task_isDone" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Task.isDone</span> <a class="api-item-permalink" href="#Swag_Task_isDone" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/runtime/task.swg#L229">src</a></div>
 <p>Returns whether the last submission finished and its outcome was not taken yet.</p>
 <p>A task that was never submitted is not done: it has nothing to report.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SKwd">const</span> <span class="SFct">isDone</span>()-&gt;<span class="STpe">bool</span></span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Swag_Task_isPending" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Task.isPending</span> <a class="api-item-permalink" href="#Swag_Task_isPending" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/runtime/task.swg#L213">src</a></div>
+<div class="api-item api-item-func"><span id="Swag_Task_isPending" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Task.isPending</span> <a class="api-item-permalink" href="#Swag_Task_isPending" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/runtime/task.swg#L220">src</a></div>
 <p>Returns whether the task is submitted and not finished.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SKwd">const</span> <span class="SFct">isPending</span>()-&gt;<span class="STpe">bool</span></span></div>
 </section>
@@ -7220,57 +7220,58 @@ task.<span class="SFct">submit</span>(<span class="SKwd">func</span>() =&gt; <sp
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">opDrop</span>()</span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Swag_Task_submit" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Task.submit</span> <a class="api-item-permalink" href="#Swag_Task_submit" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/runtime/task.swg#L172">src</a></div>
+<div class="api-item api-item-func"><span id="Swag_Task_submit" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Task.submit</span> <a class="api-item-permalink" href="#Swag_Task_submit" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/runtime/task.swg#L179">src</a></div>
 <p>Submits <span class="code-inline">body</span> for one execution.</p>
 <p><span class="code-inline">notify</span>, when given, runs once on the thread that finished the work, after the outcome is stored and before the task reads as done. It is how an owner on another thread learns that <a href="#Swag_Task_take">Swag.Task.take</a> will not wait, for example by posting an event to a window. It must be short, and must not wait for this task.</p>
-<p>A <span class="code-inline">Background</span> task runs its body at a lower thread priority, whichever thread runs it, so a long load or count does not slow the interface down. An <span class="code-inline">executor</span> runs the task on its own thread, after every task submitted to it before; otherwise a pool worker runs it.</p>
+<p>A <span class="code-inline">Background</span> task runs its body at a lower thread priority. On the shared pool, background work is admitted in submission order against one process-wide CPU and memory budget. Pressure reduces new admissions; already running bodies finish normally. Normal work has priority, with bounded preference so admitted background work can still progress.</p>
+<p>Waiting for a task promotes its queued work past admission; a direct wait can run it itself. This also applies to <a href="#Swag_whenAll">Swag.whenAll</a> and <a href="#Swag_whenAny">Swag.whenAny</a>. The budget is not a synchronization primitive or a memory guarantee: pool tasks must not block waiting for unrelated queued tasks. Use an <a href="#Swag_Executor">Swag.Executor</a> for thread-affine or blocking work. An <span class="code-inline">executor</span> runs the task on its own thread, in submission order, outside pool admission.</p>
 <p>The task must not already be in flight. A task may be submitted again after it finished; an outcome nobody took is released then.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">submit</span>(body: <span class="SKwd">func</span>||()-&gt;<span class="SCst">T</span>, notify: (<span class="SKwd">func</span>||())? = <span class="SKwd">null</span>, priority = <span class="SCst"><a href="#Swag_TaskPriority">TaskPriority</a></span>.<span class="SCst"><a href="#Swag_TaskPriority_Normal">Normal</a></span>, executor: *<span class="SCst"><a href="#Swag_Executor">Executor</a></span>? = <span class="SKwd">null</span>)</span></div>
 <p>Submits a <span class="code-inline">body</span> that can fail for one execution; <a href="#Swag_Task_take">Swag.Task.take</a> raises its error.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">submit</span>(body: <span class="SKwd">func</span>||()-&gt;<span class="SCst">T</span> <span class="SKwd">fail</span>, notify: (<span class="SKwd">func</span>||())? = <span class="SKwd">null</span>, priority = <span class="SCst"><a href="#Swag_TaskPriority">TaskPriority</a></span>.<span class="SCst"><a href="#Swag_TaskPriority_Normal">Normal</a></span>, executor: *<span class="SCst"><a href="#Swag_Executor">Executor</a></span>? = <span class="SKwd">null</span>)</span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Swag_Task_take" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Task.take</span> <a class="api-item-permalink" href="#Swag_Task_take" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/runtime/task.swg#L243">src</a></div>
+<div class="api-item api-item-func"><span id="Swag_Task_take" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Task.take</span> <a class="api-item-permalink" href="#Swag_Task_take" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/runtime/task.swg#L250">src</a></div>
 <p>Waits for the work, then hands over its outcome: the value it produced, or the error it raised, with its dynamic type.</p>
 <p>The outcome is handed over once. Afterwards the task is no longer done, and can be submitted again.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">take</span>()-&gt;<span class="SCst">T</span> <span class="SKwd">fail</span></span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Swag_Task_wait" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Task.wait</span> <a class="api-item-permalink" href="#Swag_Task_wait" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/runtime/task.swg#L229">src</a></div>
+<div class="api-item api-item-func"><span id="Swag_Task_wait" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Task.wait</span> <a class="api-item-permalink" href="#Swag_Task_wait" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/runtime/task.swg#L236">src</a></div>
 <p>Waits until the last submission has finished.</p>
 <p>The waiting thread can run this task if it is still queued; it does not run unrelated ready tasks. Descendant-only joins therefore progress even when every worker is busy. Waiting on a task that was never submitted returns immediately.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">wait</span>()</span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Swag_Task_waitUnlessCancelled" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Task.waitUnlessCancelled</span> <a class="api-item-permalink" href="#Swag_Task_waitUnlessCancelled" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/runtime/task.swg#L236">src</a></div>
+<div class="api-item api-item-func"><span id="Swag_Task_waitUnlessCancelled" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Task.waitUnlessCancelled</span> <a class="api-item-permalink" href="#Swag_Task_waitUnlessCancelled" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/runtime/task.swg#L243">src</a></div>
 <p>Waits like <a href="#Swag_Task_wait">Swag.Task.wait</a>, but returns early when the work that waits is asked to stop (<a href="#Swag_isCancelled">Swag.isCancelled</a>). Returns whether this task has finished.</p>
 <p>The waiting thread never runs this task itself, so it stays free to notice the request; the task keeps going on its own, and its owner still has to wait for it or cancel it.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">waitUnlessCancelled</span>()-&gt;<span class="STpe">bool</span></span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Swag_TaskGroup_cancel" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">TaskGroup.cancel</span> <a class="api-item-permalink" href="#Swag_TaskGroup_cancel" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/runtime/task.swg#L521">src</a></div>
+<div class="api-item api-item-func"><span id="Swag_TaskGroup_cancel" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">TaskGroup.cancel</span> <a class="api-item-permalink" href="#Swag_TaskGroup_cancel" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/runtime/task.swg#L528">src</a></div>
 <p>Requests that every child stop.</p>
 <p>The request is idempotent and is never withdrawn. It stops nothing by itself: a child observes it through <a href="#Swag_isCancelled">Swag.isCancelled</a> and returns early on its own.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">cancel</span>()</span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Swag_TaskGroup_isCancelled" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">TaskGroup.isCancelled</span> <a class="api-item-permalink" href="#Swag_TaskGroup_isCancelled" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/runtime/task.swg#L528">src</a></div>
+<div class="api-item api-item-func"><span id="Swag_TaskGroup_isCancelled" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">TaskGroup.isCancelled</span> <a class="api-item-permalink" href="#Swag_TaskGroup_isCancelled" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/runtime/task.swg#L535">src</a></div>
 <p>Returns whether cancellation was requested for this group, or for the work that spawned it.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SKwd">const</span> <span class="SFct">isCancelled</span>()-&gt;<span class="STpe">bool</span></span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Swag_TaskGroup_join" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">TaskGroup.join</span> <a class="api-item-permalink" href="#Swag_TaskGroup_join" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/runtime/task.swg#L489">src</a></div>
+<div class="api-item api-item-func"><span id="Swag_TaskGroup_join" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">TaskGroup.join</span> <a class="api-item-permalink" href="#Swag_TaskGroup_join" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/runtime/task.swg#L496">src</a></div>
 <p>Waits for every child, then raises the first error a child raised, if any.</p>
 <p>The group is then empty again: it can take new children, and the stop request a failure or <a href="#Swag_TaskGroup_cancel">Swag.TaskGroup.cancel</a> made is withdrawn.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">join</span>() <span class="SKwd">fail</span></span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Swag_TaskGroup_opDrop" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">TaskGroup.opDrop</span> <a class="api-item-permalink" href="#Swag_TaskGroup_opDrop" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/runtime/task.swg#L455">src</a></div>
+<div class="api-item api-item-func"><span id="Swag_TaskGroup_opDrop" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">TaskGroup.opDrop</span> <a class="api-item-permalink" href="#Swag_TaskGroup_opDrop" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/runtime/task.swg#L462">src</a></div>
 <p>Joins every child, then releases the group's storage. An error nobody joined is dropped.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">opDrop</span>()</span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Swag_TaskGroup_spawn" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">TaskGroup.spawn</span> <a class="api-item-permalink" href="#Swag_TaskGroup_spawn" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/runtime/task.swg#L465">src</a></div>
+<div class="api-item api-item-func"><span id="Swag_TaskGroup_spawn" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">TaskGroup.spawn</span> <a class="api-item-permalink" href="#Swag_TaskGroup_spawn" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/runtime/task.swg#L472">src</a></div>
 <p>Creates a child task running <span class="code-inline">body</span> and submits it.</p>
 <p>The child belongs to this group until the group joins it. <span class="code-inline">body</span> reads the group's cancellation state, and that of the work spawning it, through <a href="#Swag_isCancelled">Swag.isCancelled</a>.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">spawn</span>(body: <span class="SKwd">func</span>||())</span></div>
@@ -7279,7 +7280,7 @@ task.<span class="SFct">submit</span>(<span class="SKwd">func</span>() =&gt; <sp
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">spawn</span>(body: <span class="SKwd">func</span>||() <span class="SKwd">fail</span>)</span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Swag_TaskGroup_wait" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">TaskGroup.wait</span> <a class="api-item-permalink" href="#Swag_TaskGroup_wait" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/runtime/task.swg#L503">src</a></div>
+<div class="api-item api-item-func"><span id="Swag_TaskGroup_wait" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">TaskGroup.wait</span> <a class="api-item-permalink" href="#Swag_TaskGroup_wait" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/runtime/task.swg#L510">src</a></div>
 <p>Waits until every child spawned so far has finished.</p>
 <p>The waiting thread can run the child it is joining, but does not run unrelated ready tasks. Children spawned after this call are not covered by it; leaving the group's scope joins those too.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">wait</span>()</span></div>

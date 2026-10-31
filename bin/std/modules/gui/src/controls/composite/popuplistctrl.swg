@@ -9,6 +9,7 @@ struct PopupListCtrlItem
     {
         using base:  Item     // Embedded label, icon, identifier, and user data.
         isSeparator: bool     // Whether this entry separates groups and cannot be selected.
+        disabled:    bool     // Whether the entry stays visible but cannot be chosen.
 
         // Optional content painter, called inside this entry's selection ground instead of its
         // icon and wording. It receives Checked for the stored selection and Hot for the row
@@ -149,7 +150,7 @@ internal impl IWnd for PopupListView
             {
                 if v.isSeparator do
                     return Swag.U32.Max
-                return cast(u32, i)
+                return v.disabled ? Swag.U32.Max : cast(u32, i)
             }
 
             y -= h
@@ -184,6 +185,8 @@ internal impl IWnd for PopupListView
 
             var format: RichStringFormat
             colorText = colors.popupList_Text
+            if it.disabled do
+                colorText = colors.disabled
 
             // Separator
             if it.isSeparator
@@ -199,6 +202,8 @@ internal impl IWnd for PopupListView
             var colorCheck = colors.popupList_CheckMark
             let isHot      = .hotIdx == idx
             var paintFlags: PaintItemFlags = .None
+            if it.disabled do
+                paintFlags.add(.Disabled)
             if idx == .list.selectedIndex do
                 paintFlags.add(.Checked)
             if isHot
@@ -314,7 +319,8 @@ private impl PopupListView
             idx += dir
             if idx < 0 or idx >= cast(s64, .list.items.count) do
                 return
-            if not .list.items[cast(u64, idx)]!.isSeparator do
+            let item = unwrap .list.items[cast(u64, idx)]
+            if not item.isSeparator and not item.disabled do
                 break
         }
 
@@ -326,9 +332,10 @@ private impl PopupListView
     {
         if forward
         {
-            for v, idx in .list.items
+            for vIt, idx in .list.items
             {
-                if not v!.isSeparator
+                let item = unwrap vIt
+                if not item.isSeparator and not item.disabled
                 {
                     .hotIdx = cast(u32, idx)
                     .invalidate()
@@ -340,7 +347,7 @@ private impl PopupListView
         {
             for var i = cast(s64, .list.items.count) - 1; i >= 0; i -= 1
             {
-                if not .list.items[cast(u64, i)]!.isSeparator
+                if not .list.items[cast(u64, i)]!.isSeparator and not .list.items[cast(u64, i)]!.disabled
                 {
                     .hotIdx = cast(u32, i)
                     .invalidate()
@@ -484,7 +491,7 @@ impl PopupListCtrl
     // Sets the item highlighted when the popup opens, or clears it with U32.Max.
     mtd setSelectedIndex(index: u32)
     {
-        Swag.assert(index == Swag.U32.Max or index < .items.count and not .items[index]!.isSeparator)
+        Swag.assert(index == Swag.U32.Max or index < .items.count and not .items[index]!.isSeparator and not .items[index]!.disabled)
         .selectedIndex = index
     }
 }

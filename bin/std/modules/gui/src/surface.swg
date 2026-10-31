@@ -1004,20 +1004,23 @@ impl Surface
 
     // Gives the keyboard back to where it stood on this surface, and reports whether it landed.
     //
-    // The control it left is preferred, and it is recognized by comparing it against the stops
-    // that are there now — never by following it, so a control destroyed meanwhile is simply not
-    // found. What answers then is the rank it had, clamped to a ring that may have shrunk.
+    // The control it left is preferred when it still belongs to the reachable tree, even when it
+    // accepts pointer focus without taking a place in Tab traversal. The tree comparison never
+    // follows the saved pointer, so a control destroyed meanwhile is simply not found. What
+    // answers then is the rank it had, clamped to a ring that may have shrunk.
     internal mtd restoreFocus()->bool
     {
-        let order = FocusOrder.collect(.focusRoot orelse .wnd)
-        if order.stops.isEmpty() do
-            return false
-
-        for stop in order.stops where stop == .focusWnd
+        let root    = .focusRoot orelse .wnd
+        let order   = FocusOrder.collect(root)
+        let focused = .focusWnd
+        if focused and FocusOrder.contains(root, focused)
         {
-            stop.setFocus()
+            focused.setFocus()
             return true
         }
+
+        if order.stops.isEmpty() do
+            return false
 
         var target = .focusIndex
         if target < 0 do

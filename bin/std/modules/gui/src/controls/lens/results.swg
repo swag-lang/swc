@@ -54,6 +54,11 @@ struct Entry
         detail:     String          // Faint reading at the end of the row: a line, a path, a shortcut.
         lead:       String          // Mono reading leading the row, such as a line number; shown instead of the glyph.
         glyph:      Icon            // Glyph leading the row when it has no lead reading.
+        // Paints alternate title content in place of the words and match marks. The title stays
+        // searchable, and the callback receives a borrowed painter and content rectangle.
+        paint:      (func||(*Painter, Math.Rectangle))?
+        // Width of the alternate painted content in logical units; zero measures `title`.
+        paintWidth: f32
         monoTitle:  bool            // Whether the title is code or a measure, set in the fixed-width face.
         monoDetail: bool            // Whether the detail is a measure or a shortcut, set in the fixed-width face.
         disabled:   bool            // Whether the row is shown faint and cannot be chosen.
@@ -86,10 +91,9 @@ struct Picture
 // A group can also hold a strip of pictures after its rows, such as the recent documents of an
 // application, ended by a link to where every one of them is, such as "Library →".
 //
-// An exclusive choice, such as a view, a theme or a language, reads better as one row of segments
-// than as a column of rows: with `inline`, the rows show side by side as words, the one in force
-// underlined in Arc. The keys reach the row with `↑↓`, move along it with `←→`, and `Enter` runs
-// the segment they chose.
+// An exclusive choice, such as a view, a theme or a language, reads better as one segmented
+// control than as a column of rows. The keys reach the control with `↑↓`, move along it with `←→`,
+// and `Enter` runs the segment they chose.
 struct Section
 {
     public

@@ -14,10 +14,13 @@ Follow the machine-load admission rules in
 command. Builds and tests may run concurrently only when a fresh CPU and memory check admits the
 additional work.
 
-Also follow its compiler CPU bound: every validation command driven by `swc.exe` or
-`swc.dm.exe` uses at most three workers through `--num-cores 3`. For a repository tool script,
-cap both the compiler executing the script and the compiler processes the tool starts, as described
-there. Choosing a focused test reduces scope; it does not replace the worker limit.
+Also follow its Swag compiler CPU bound: every validation command driven by `swc.exe` or
+`swc.dm.exe` uses at most three workers through `--num-cores 3`. This does not limit native C++
+compilation while building either executable. For MSVC builds, also apply the process and per-
+`cl.exe` thread limits in `modify-swag-codebase`, including `/cgthreads1`; do not assume that the
+Swag worker limit or `/MP` alone bounds native CPU use. For a repository tool script, cap both the
+compiler executing the script and the compiler processes the tool starts, as described there.
+Choosing a focused test reduces scope; it does not replace either worker limit.
 
 Follow the external scratch-directory rule in
 [modify-swag-codebase](../modify-swag-codebase/SKILL.md) for every campaign: logs, temporary

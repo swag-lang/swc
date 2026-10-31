@@ -486,6 +486,9 @@ func addViewAsSection(results: *Lens.Results, chosen: *u64)
     lens.addRestSource(func|chosen = &chosen|(results) { addViewAsSection(results, chosen) })
 
     lens.open()
+    Swag.assert(lens.inlineChoices.count == 1)
+    Swag.assert(lens.inlineChoices[0].combo.isVisible())
+    Swag.assert(lens.inlineChoices[0].combo.position.height > 0)
     Swag.assert(lens.rows.count == 4 and lens.rows[3].entry == Lens.InlineRow)
     Swag.assert(lens.chosenEntry()!.title == "Duplicate")
     host.keyPress(.Down)
@@ -517,6 +520,51 @@ func addViewAsSection(results: *Lens.Results, chosen: *u64)
     lens.open()
     lens.setQuery("binary")
     Swag.assert(lens.chosenEntry()!.title == "Binary")
+}
+
+// A pointer click in the child ComboBox chooses and runs its segment.
+#test
+{
+    var chosen = Swag.U64.Max
+    var host: Testing.HeadlessHost
+    host.setup(800, 600)
+    defer host.shutdown()
+
+    let lens = lensSetup(&host)
+    lens.addRestSource(func(results) { results.addSection("Selection").addEntry("Duplicate") })
+    lens.addRestSource(func|chosen = &chosen|(results) { addViewAsSection(results, chosen) })
+    lens.open()
+
+    let combo = lens.inlineChoices[0].combo
+    var point = combo.localToSurface(Math.Point{combo.position.width - 20, combo.position.height * 0.5})
+    combo.surface!.surfaceToScreen(&point)
+    host.click(point)
+
+    Swag.assert(not lens.isOpen() and chosen == 3)
+}
+
+// Refreshing from a populated inline section to none leaves its pooled child out of selection sync.
+#test
+{
+    var showChoices = true
+    var chosen = Swag.U64.Max
+    var host: Testing.HeadlessHost
+    host.setup(800, 600)
+    defer host.shutdown()
+
+    let lens = lensSetup(&host)
+    lens.addRestSource(func(results) { results.addSection("Selection").addEntry("Duplicate") })
+    lens.addRestSource(func|showChoices = &showChoices, chosen = &chosen|(results)
+    {
+        if showChoices[] do
+            addViewAsSection(results, chosen)
+    })
+
+    lens.open()
+    Swag.assert(lens.inlineChoices.count == 1 and lens.inlineChoices[0].combo.isVisible())
+    showChoices = false
+    lens.refresh()
+    Swag.assert(lens.inlineChoices[0].row == Swag.U64.Max and not lens.inlineChoices[0].combo.isVisible())
 }
 
 // The lens with a row of segments, the keys on a segment beside the one in force, in Encre and

@@ -759,11 +759,16 @@ impl IAllocator for LibraryRejectAllocator
     Swag.assert(actions.entries.count == 6)
     for title, i in titles do
         Swag.assert(actions.entries[i].title == title)
+    Swag.assert(actions.entries[0].glyph.isValid() and actions.entries[0].detail == Input.formatKeyShortcut(.None, .Return))
+    Swag.assert(actions.entries[5].glyph.isValid() and actions.entries[5].detail == Input.formatKeyShortcut(.None, .Delete))
 
     let rating = unwrap chosen.sections[1]
     Swag.assert(rating.label == texts.act_Rating and rating.inline and rating.entries.count == 6)
     for entry, i in rating.entries do
         Swag.assert(entry.checked == (i == 3))
+    Swag.assert(rating.entries[0].paint == null and rating.entries[0].detail == "0")
+    Swag.assert(rating.entries[1].paint != null and rating.entries[1].paintWidth == RatingStarSize)
+    Swag.assert(rating.entries[5].paint != null and rating.entries[5].paintWidth == 5 * RatingStarSize + 4 * RatingStarGap)
     Swag.assert(chosen.sections[2]!.label == texts.ui_BarFilter)
 
     // Choosing a segment rates the chosen captures.

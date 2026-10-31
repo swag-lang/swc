@@ -457,11 +457,15 @@ private impl Application
         // Modifiers
         let modifiers = .keyboard.pressedModifiers()
 
+        // A key handler can enter a modal loop, which updates the shared states before this scan finishes.
+        let previous = .keyboard.previousState
+        let current  = .keyboard.currentState
+
         // Detect changes
-        for i in (.keyboard.previousState.pressed).count
+        for i in previous.pressed.count
         {
-            let lastP = .keyboard.previousState.pressed[i]
-            let curP  = .keyboard.currentState.pressed[i]
+            let lastP = previous.pressed[i]
+            let curP  = current.pressed[i]
 
             // A surface nothing has focused yet would be deaf to the keyboard. The first key
             // pressed is what seeds the focus, so a window can be driven from the keyboard without

@@ -945,9 +945,11 @@ hashes when reproducing the baseline; do not silently substitute a later build.
 | Rust Capture Release | `package/swagcapture-rust.exe` in the external `capture-rust-20261030` build output |
 | Rust SHA-256 | `d63a6058e5737b112b4331a0b29d43a51eca5eec60cc19db7e1cda953621eda2` |
 
-The Rust prototype is based on checkout `dec813751c`, with uncommitted port changes in the
-separate `experiment/capture-rust-20261030` worktree. Its Release profile uses optimization level
-3, 16 codegen units, no cross-crate LTO, panic abort, stripped symbols, and a static CRT.
+The Rust prototype source is maintained under [`bench/clone/capture-rust`](../bench/clone/capture-rust/README.md),
+initially based on checkout `dec813751c`; its current state and open parity work are tracked in
+[`backlog/clones.md`](clones.md). The Release artifact identified above is a pre-existing build;
+do not assume it corresponds to the current source tree. Its profile uses optimization level 3,
+16 codegen units, no cross-crate LTO, panic abort, stripped symbols, and a static CRT.
 Its UI/renderer uses egui/eframe rather than Swag GUI; substantial application behavior is still
 missing. These are whole-executable measurements, including linked libraries and resources, not
 application-only code sizes or an equivalent-feature language comparison. Both inspected import

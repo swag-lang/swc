@@ -12,7 +12,7 @@ if not exist "%compiler%" (
     echo error: compiler not found: "%compiler%"
     exit /b 1
 )
-"%compiler%" format -d "%~dp0..\bin" -d "%~dp0..\bench\src" --num-cores 6 %arguments%
+"%compiler%" format -d "%~dp0..\bin" -d "%~dp0..\bench\src" --num-cores 3 %arguments%
 exit /b %errorlevel%
 :usage
 echo Usage: format.bat [dm] [swc options]

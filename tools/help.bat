@@ -15,10 +15,10 @@ if not exist "%compiler%" (
     exit /b 1
 )
 pushd "%~dp0.."
-"%compiler%" doc --workspace bin\std --doc-output-dir bin\help --rebuild --num-cores 6 %arguments%
+"%compiler%" doc --workspace bin\std --doc-output-dir bin\help --rebuild --num-cores 3 %arguments%
 set "result=%ERRORLEVEL%"
 if not "%result%"=="0" goto done
-"%compiler%" doc --workspace bin\reference --doc-output-dir bin\help --rebuild --num-cores 6 %arguments%
+"%compiler%" doc --workspace bin\reference --doc-output-dir bin\help --rebuild --num-cores 3 %arguments%
 set "result=%ERRORLEVEL%"
 :done
 popd

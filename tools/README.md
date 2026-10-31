@@ -5,7 +5,7 @@ compiler directly; launching a tool no longer compiles a Swag script first. Buil
 once with `tools\devmode.bat` or `tools\release.bat` before using the launchers.
 
 Run the checkout's own compiler whenever more than one worktree exists. `dm` selects
-`bin\swc.dm.exe`; without it, tools use `bin\swc.exe`. Tool compiler calls default to six workers.
+`bin\swc.dm.exe`; without it, tools use `bin\swc.exe`. Tool compiler calls default to three workers.
 Compiler options can be forwarded after the command and module.
 
 ## Workspaces

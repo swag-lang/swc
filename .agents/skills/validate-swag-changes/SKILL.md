@@ -15,7 +15,7 @@ command. Builds and tests may run concurrently only when a fresh CPU and memory 
 additional work.
 
 Also follow its compiler CPU bound: every validation command driven by `swc.exe` or
-`swc.dm.exe` uses at most six workers through `--num-cores 6`. For a repository tool script,
+`swc.dm.exe` uses at most three workers through `--num-cores 3`. For a repository tool script,
 cap both the compiler executing the script and the compiler processes the tool starts, as described
 there. Choosing a focused test reduces scope; it does not replace the worker limit.
 

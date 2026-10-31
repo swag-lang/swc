@@ -18,7 +18,7 @@ if not exist "%compiler%" (
 )
 set "workspace=%~dp0..\bin\apps"
 set "appDir=%workspace%\.output\swagvault\executable\release\x86_64"
-"%compiler%" build --workspace "%workspace%" --workspace-module swagvault --build-cfg release --tag vault.integration --num-cores 6 %arguments%
+"%compiler%" build --workspace "%workspace%" --workspace-module swagvault --build-cfg release --tag vault.integration --num-cores 3 %arguments%
 if errorlevel 1 exit /b %errorlevel%
 copy /y "%workspace%\modules\swagvault\vendor\winfsp\runtime\winfsp-x64.dll" "%appDir%\winfsp-x64.dll" >nul
 copy /y "%workspace%\modules\swagvault\vendor\winfsp\runtime\winfsp-x64.sys" "%appDir%\winfsp-x64.sys" >nul

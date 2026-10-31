@@ -56,7 +56,7 @@ exit /b %errorlevel%
 :run
 set "name=%~1"
 if /i "%name:~-5%"==".swgs" set "name=%name:~0,-5%"
-"%compiler%" %action% -f "%~dp0..\bin\examples\scripts\%name%.swgs" --num-cores 6 %arguments%
+"%compiler%" %action% -f "%~dp0..\bin\examples\scripts\%name%.swgs" --num-cores 3 %arguments%
 exit /b %errorlevel%
 :usage
 echo Usage: scripts.bat [dm] [run^|smoke] [script] [swc options]

@@ -73,11 +73,11 @@ if /i "%tool%"=="apps" if /i "%action%"=="run" if not defined module (
 set "appTest="
 set "appRunArguments="
 if /i "%tool%"=="apps" if /i "%action%"=="test" set "appTest=--no-test-jit"
-if /i "%tool%"=="apps" if /i not "%action%"=="build" if /i "%module%"=="swagprism" set "appRunArguments=--run-arg=--compiler="%compiler%" --run-arg=--compiler-workers=6"
+if /i "%tool%"=="apps" if /i not "%action%"=="build" if /i "%module%"=="swagprism" set "appRunArguments=--run-arg=--compiler="%compiler%" --run-arg=--compiler-workers=3"
 if defined module (
-    "%compiler%" %action% --workspace "%workspace%" --workspace-module "%module%" %appTest% %appRunArguments% --num-cores 6 %options%
+    "%compiler%" %action% --workspace "%workspace%" --workspace-module "%module%" %appTest% %appRunArguments% --num-cores 3 %options%
 ) else (
-    "%compiler%" %action% --workspace "%workspace%" %appTest% %appRunArguments% --num-cores 6 %options%
+    "%compiler%" %action% --workspace "%workspace%" %appTest% %appRunArguments% --num-cores 3 %options%
 )
 set "result=%ERRORLEVEL%"
 if not "%result%"=="0" exit /b %result%

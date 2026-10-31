@@ -92,24 +92,24 @@ admission thresholds, not targets for a running machine.
 ## Bound Agent Compiler CPU Usage
 
 Every compiler invocation launched by an AI agent for compilation or testing must cap Swag's own
-worker pool at six with `--num-cores 6`. This is separate from `/MP6`, which limits the C++
+worker pool at three with `--num-cores 3`. This is separate from `/MP3`, which limits the C++
 compiler only while building `swc` itself.
 
 Never invoke `tools/release.bat`. It is an owner-only interactive entry point that deliberately
-uses every logical processor. Release currently disables whole-program optimization and LTCG to
+uses the repository's three-job ceiling. Release disables whole-program optimization and LTCG to
 keep iteration practical. An agent builds it only when the validation rules require it or the
 user explicitly requests it, after load admission, and through direct MSBuild with both its
-process count and `/MP` compilation capped at six.
+process count and `/MP` compilation capped at three.
 
 - Apply the cap to both checkout-local executables: `bin\swc.exe` and
   `bin\swc.dm.exe`.
 - For a direct compiler command, pass one cap, for example
-  `bin\swc.dm.exe sema ... --num-cores 6`.
-- Repository batch tools invoke the checkout compiler directly and default to six compiler
+  `bin\swc.dm.exe sema ... --num-cores 3`.
+- Repository batch tools invoke the checkout compiler directly and default to three compiler
   workers. Forward an explicit `--num-cores` only when a command needs a lower limit or when a
   user explicitly asks to exceed the default, for example `tools\unittests.bat dm cpp`.
 - Preserve an explicit lower limit. `--randomize` and `--seed` already force one compiler worker.
-  Exceed six only when the user explicitly requests it or a concurrency reproducer genuinely
+  Exceed three only when the user explicitly requests it or a concurrency reproducer genuinely
   requires it, and state that exception before launching the command.
 
 ## Keep The Compiler Version Stable During Ordinary Changes

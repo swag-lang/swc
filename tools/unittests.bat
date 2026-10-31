@@ -26,7 +26,7 @@ if not exist "%compiler%" (
 if not defined suite goto all
 if /i "%suite%"=="cpp" (
     if /i not "%compiler%"=="%~dp0..\bin\swc.dm.exe" exit /b 0
-    "%compiler%" unittest --dev-full --num-cores 6 %arguments%
+    "%compiler%" unittest --dev-full --num-cores 3 %arguments%
     exit /b %errorlevel%
 )
 if /i "%suite%"=="lexer" (
@@ -81,7 +81,7 @@ set "kind=%~3"
 set "stage=%~4"
 set "sourceArguments="
 for /f "tokens=1,2,3,4,*" %%A in ("%*") do set "sourceArguments=%%E"
-"%compiler%" test -d "%~dp0..\bin\unittests\%folder%" --module-namespace "%namespace%" --artifact-kind "%kind%" --num-cores 6 %stage% %sourceArguments%
+"%compiler%" test -d "%~dp0..\bin\unittests\%folder%" --module-namespace "%namespace%" --artifact-kind "%kind%" --num-cores 3 %stage% %sourceArguments%
 exit /b %errorlevel%
 
 :workspace
@@ -95,7 +95,7 @@ for /d %%M in ("%~dp0..\bin\unittests\workspace\modules\*") do (
 )
 
 set "scriptOutput=%TEMP%\swc-workspace-script-%RANDOM%-%RANDOM%.txt"
-"%compiler%" --build-cfg "%buildCfg%" --num-cores 6 "%~dp0..\bin\unittests\workspace\import_core_without_using.swgs" > "%scriptOutput%"
+"%compiler%" --build-cfg "%buildCfg%" --num-cores 3 "%~dp0..\bin\unittests\workspace\import_core_without_using.swgs" > "%scriptOutput%"
 if errorlevel 1 (
     type "%scriptOutput%"
     del /q "%scriptOutput%"
@@ -114,10 +114,10 @@ exit /b 0
 :workspaceModule
 set "module=%~1"
 if /i "%module%"=="sandbox_consumer" (
-    "%compiler%" test --workspace "%~dp0..\bin\unittests\workspace" --workspace-module "%module%" --rebuild --no-test-native --num-cores 6 %arguments%
+    "%compiler%" test --workspace "%~dp0..\bin\unittests\workspace" --workspace-module "%module%" --rebuild --no-test-native --num-cores 3 %arguments%
 ) else if /i "%module%"=="runtime_context_dynamic_consumer" (
-    "%compiler%" test --workspace "%~dp0..\bin\unittests\workspace" --workspace-module "%module%" --no-test-jit --num-cores 6 "--run-arg=--dynamic-runtime-library=%dynamicLibrary%" %arguments%
+    "%compiler%" test --workspace "%~dp0..\bin\unittests\workspace" --workspace-module "%module%" --no-test-jit --num-cores 3 "--run-arg=--dynamic-runtime-library=%dynamicLibrary%" %arguments%
 ) else (
-    "%compiler%" test --workspace "%~dp0..\bin\unittests\workspace" --workspace-module "%module%" --no-test-jit --num-cores 6 %arguments%
+    "%compiler%" test --workspace "%~dp0..\bin\unittests\workspace" --workspace-module "%module%" --no-test-jit --num-cores 3 %arguments%
 )
 exit /b %errorlevel%

@@ -150,7 +150,7 @@ Code failures always come first; documentation, backlog, and hygiene follow once
 
 Read AGENTS.md, modify-swag-codebase, and validate-swag-changes before the first build. Read any
 other skill only when the work enters its scope. Follow the machine-load admission rules before
-every build and test, cap every compiler at six workers (`--num-cores 6` on the compiler and on
+every build and test, cap every compiler at three workers (`--num-cores 3` on the compiler and on
 the tool), and use the checkout-local compilers (`bin\swc.exe`, `bin\swc.dm.exe`). Keep
 `SWC_BUILD_NUM` unchanged.
 
@@ -167,7 +167,7 @@ Then, once, before anything else:
     and `bin\swc.exe clean --cache`. Preview with `--dry-run` first and confirm the targets are
     gone afterwards.
   - Rebuild both compilers from fresh objects with MSBuild `/t:Rebuild` (DevMode, then Release,
-    `/m:6` and `SwcCompileJobs=6`; never `tools/release.bat`).
+    `/m:3` and `SwcCompileJobs=3`; never `tools/release.bat`).
 
 This clean start is the only one. After a fix, build incrementally (`/t:Build`) only the compiler
 the fix affects; never rebuild from scratch or clean the workspaces again mid-campaign.
@@ -417,7 +417,7 @@ SESSION CAMPAIGN
 
 After integrating a group of up to three accepted batches, or at the end of a longer campaign
 session, run a full campaign of that combined revision:
-`tools\bench.bat --no-build --swc-cores 6 --label "prompt 2 <date>"`
+`tools\bench.bat --no-build --swc-cores 3 --label "prompt 2 <date>"`
 after building that revision's swc.exe. Wait for a quiet window for this one run; if none comes
 before the session's end, say so plainly, and the next prompt 2 session starts with this
 campaign before any new batch. Then read bench/history.json, not raw milliseconds:

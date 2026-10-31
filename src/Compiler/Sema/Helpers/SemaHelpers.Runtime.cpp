@@ -306,11 +306,6 @@ Result SemaHelpers::attachRuntimeAsFunctionToNode(Sema& sema, AstNodeRef nodeRef
     return attachRuntimeFunctionToNode(sema, nodeRef, IdentifierManager::RuntimeFunctionKind::As, codeRef);
 }
 
-Result SemaHelpers::attachRuntimeIsFunctionToNode(Sema& sema, AstNodeRef nodeRef, const SourceCodeRef& codeRef)
-{
-    return attachRuntimeFunctionToNode(sema, nodeRef, IdentifierManager::RuntimeFunctionKind::Is, codeRef);
-}
-
 Result SemaHelpers::attachRuntimeStringCmpFunctionToNode(Sema& sema, AstNodeRef nodeRef, const SourceCodeRef& codeRef)
 {
     return attachRuntimeFunctionToNode(sema, nodeRef, IdentifierManager::RuntimeFunctionKind::StringCmp, codeRef);

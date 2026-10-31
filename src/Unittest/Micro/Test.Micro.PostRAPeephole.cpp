@@ -113,6 +113,50 @@ namespace
     }
 }
 
+SWC_TEST_BEGIN(PostRAPeephole_UpperHalfFlowPreservesStateWithoutLabels)
+{
+    constexpr MicroReg reg = MicroReg::intReg(1);
+    MicroBuilder       builder(ctx);
+
+    builder.emitLoadRegImm(reg, ApInt(7, 32), MicroOpBits::B32);
+    builder.emitLoadRegReg(reg, reg, MicroOpBits::B32);
+    const auto zeroedCopy = builder.instructions().lastInstructionRef();
+    builder.emitLoadRegImm(reg, ApInt(UINT64_MAX, 64), MicroOpBits::B64);
+    builder.emitLoadRegReg(reg, reg, MicroOpBits::B32);
+    const auto unknownCopy = builder.instructions().lastInstructionRef();
+    builder.emitRet();
+
+    PostRaPeephole::Context context;
+    context.builder  = &builder;
+    context.storage  = &builder.instructions();
+    context.operands = &builder.operands();
+    if (!context.isUpperHalfZeroBefore(zeroedCopy, reg) || context.isUpperHalfZeroBefore(unknownCopy, reg))
+        return Result::Error;
+    return Result::Continue;
+}
+SWC_TEST_END()
+
+SWC_TEST_BEGIN(PostRAPeephole_UpperHalfFlowSkipsCfgWithoutLabels)
+{
+    constexpr MicroReg reg = MicroReg::intReg(1);
+    MicroBuilder       builder(ctx);
+    builder.emitLoadRegImm(reg, ApInt(7, 32), MicroOpBits::B32);
+    builder.emitLoadRegReg(reg, reg, MicroOpBits::B32);
+    const auto copy = builder.instructions().lastInstructionRef();
+
+    PostRaPeephole::Context context;
+    context.builder  = &builder;
+    context.storage  = &builder.instructions();
+    context.operands = &builder.operands();
+    const uint64_t cfgBuildId = builder.controlFlowGraphBuildId();
+    if (!context.isUpperHalfZeroBefore(copy, reg))
+        return Result::Error;
+    if (builder.controlFlowGraphBuildId() != cfgBuildId)
+        return Result::Error;
+    return Result::Continue;
+}
+SWC_TEST_END()
+
 SWC_TEST_BEGIN(PostRAPeephole_GrowingRewritePreservesAdjacentOperands)
 {
     constexpr MicroReg value    = MicroReg::intReg(0);

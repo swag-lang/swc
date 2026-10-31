@@ -4107,75 +4107,105 @@ namespace PostRaPeephole
             upperHalfReady = true;
             if (!builder)
                 return false;
-            const MicroControlFlowGraph& cfg = builder->controlFlowGraph();
-            if (cfg.hasUnsupportedControlFlowForCfgLiveness())
-                return false;
 
-            const uint32_t count = cfg.instructionCount();
-            const auto     refs  = cfg.instructionRefs();
-            // Both CFG paths write every live instruction slot before a query.
-            // Dead slots are never queried, so retain the old buffer without
-            // zeroing it once more for each function.
-            upperHalfZeroIn.resize(storage->slotCount());
-            if (!cfg.hasLoop())
+            if (!builder->hasLabelReferences())
             {
-                // Every predecessor has a lower index, so one forward pass
-                // sees its final state and can store it by instruction slot.
-                std::vector<UpperHalfState> out(count);
-                for (uint32_t index = 0; index < count; ++index)
+                upperHalfZeroIn.resize(storage->slotCount());
+                UpperHalfState state        = 0;
+                bool           first        = true;
+                bool           fallsThrough = false;
+                for (auto it = storage->view().begin(), endIt = storage->view().end(); it != endIt; ++it)
                 {
-                    UpperHalfState state = index == 0 ? 0 : ~UpperHalfState{0};
-                    for (const uint32_t pred : cfg.predecessors(index))
-                        state &= out[pred];
-                    upperHalfZeroIn[refs[index].get()] = state;
-
-                    const MicroInstr* inst = storage->ptr(refs[index]);
-                    if (!inst)
+                    const MicroInstr& inst = *it;
+                    if (inst.op == MicroInstrOpcode::JumpCondImm ||
+                        (inst.op == MicroInstrOpcode::JumpReg && inst.numOperands < 2))
                         return false;
-                    out[index] = upperHalfAfter(*this, *inst, state);
+
+                    // A terminator leaves the next listed instruction predecessorless.
+                    if (first)
+                        state = 0;
+                    else if (!fallsThrough)
+                        state = ~UpperHalfState{0};
+                    upperHalfZeroIn[it.current.get()] = state;
+                    state = upperHalfAfter(*this, inst, state);
+
+                    first        = false;
+                    fallsThrough = !MicroInstr::info(inst.op).flags.has(MicroInstrFlagsE::TerminatorInstruction);
                 }
+                upperHalfValid = true;
             }
             else
             {
-                std::vector<UpperHalfState> out(count, ~UpperHalfState{0});
-                std::vector<uint8_t>        queued(count, 1);
-                SmallVector<uint32_t>       worklist;
-                for (uint32_t i = count; i > 0; --i)
-                    worklist.push_back(i - 1);
+                const MicroControlFlowGraph& cfg = builder->controlFlowGraph();
+                if (cfg.hasUnsupportedControlFlowForCfgLiveness())
+                    return false;
 
-                while (!worklist.empty())
+                const uint32_t count = cfg.instructionCount();
+                const auto     refs  = cfg.instructionRefs();
+                // Both CFG paths write every live instruction slot before a query.
+                // Dead slots are never queried, so retain the old buffer without
+                // zeroing it once more for each function.
+                upperHalfZeroIn.resize(storage->slotCount());
+                if (!cfg.hasLoop())
                 {
-                    const uint32_t index = worklist.back();
-                    worklist.pop_back();
-                    queued[index] = 0;
-
-                    UpperHalfState state = index == 0 ? 0 : ~UpperHalfState{0};
-                    for (const uint32_t pred : cfg.predecessors(index))
-                        state &= out[pred];
-                    // Every node is initially queued. Its final visit writes the result slot,
-                    // and queries remain disabled until the whole worklist has converged.
-                    const MicroInstrRef instRef    = refs[index];
-                    upperHalfZeroIn[instRef.get()] = state;
-
-                    const MicroInstr* inst = storage->ptr(instRef);
-                    if (!inst)
-                        return false;
-                    const UpperHalfState after = upperHalfAfter(*this, *inst, state);
-                    if (after == out[index])
-                        continue;
-                    out[index] = after;
-                    for (const uint32_t succ : cfg.successors(index))
+                    // Every predecessor has a lower index, so one forward pass
+                    // sees its final state and can store it by instruction slot.
+                    std::vector<UpperHalfState> out(count);
+                    for (uint32_t index = 0; index < count; ++index)
                     {
-                        if (!queued[succ])
+                        UpperHalfState state = index == 0 ? 0 : ~UpperHalfState{0};
+                        for (const uint32_t pred : cfg.predecessors(index))
+                            state &= out[pred];
+                        upperHalfZeroIn[refs[index].get()] = state;
+
+                        const MicroInstr* inst = storage->ptr(refs[index]);
+                        if (!inst)
+                            return false;
+                        out[index] = upperHalfAfter(*this, *inst, state);
+                    }
+                }
+                else
+                {
+                    std::vector<UpperHalfState> out(count, ~UpperHalfState{0});
+                    std::vector<uint8_t>        queued(count, 1);
+                    SmallVector<uint32_t>       worklist;
+                    for (uint32_t i = count; i > 0; --i)
+                        worklist.push_back(i - 1);
+
+                    while (!worklist.empty())
+                    {
+                        const uint32_t index = worklist.back();
+                        worklist.pop_back();
+                        queued[index] = 0;
+
+                        UpperHalfState state = index == 0 ? 0 : ~UpperHalfState{0};
+                        for (const uint32_t pred : cfg.predecessors(index))
+                            state &= out[pred];
+                        // Every node is initially queued. Its final visit writes the result slot,
+                        // and queries remain disabled until the whole worklist has converged.
+                        const MicroInstrRef instRef    = refs[index];
+                        upperHalfZeroIn[instRef.get()] = state;
+
+                        const MicroInstr* inst = storage->ptr(instRef);
+                        if (!inst)
+                            return false;
+                        const UpperHalfState after = upperHalfAfter(*this, *inst, state);
+                        if (after == out[index])
+                            continue;
+                        out[index] = after;
+                        for (const uint32_t succ : cfg.successors(index))
                         {
-                            queued[succ] = 1;
-                            worklist.push_back(succ);
+                            if (!queued[succ])
+                            {
+                                queued[succ] = 1;
+                                worklist.push_back(succ);
+                            }
                         }
                     }
                 }
-            }
 
-            upperHalfValid = true;
+                upperHalfValid = true;
+            }
         }
 
         if (!upperHalfValid || !ref.isValid() || ref.get() >= upperHalfZeroIn.size())

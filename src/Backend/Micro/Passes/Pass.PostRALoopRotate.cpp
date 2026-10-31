@@ -1391,6 +1391,8 @@ Result MicroPostRaLoopRotatePass::run(MicroPassContext& context)
 
     if (!context.builder)
         return Result::Continue;
+    if (!context.builder->hasLabelReferences())
+        return Result::Continue;
 
     MicroStorage&        storage  = *context.instructions;
     MicroOperandStorage& operands = *context.operands;

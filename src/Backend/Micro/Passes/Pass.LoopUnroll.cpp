@@ -957,6 +957,8 @@ Result MicroLoopUnrollPass::run(MicroPassContext& context)
     MicroStorage&        storage  = *context.instructions;
     MicroOperandStorage& operands = *context.operands;
     MicroBuilder&        builder  = *context.builder;
+    if (!builder.hasLabelReferences())
+        return Result::Continue;
     if (storage.count() < 5)
         return Result::Continue;
 

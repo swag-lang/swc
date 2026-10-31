@@ -1297,6 +1297,8 @@ Result MicroLoopInvariantCodeMotionPass::run(MicroPassContext& context)
     SWC_ASSERT(context.operands != nullptr);
     if (!context.builder)
         return Result::Continue;
+    if (!context.builder->hasLabelReferences())
+        return Result::Continue;
 
     // Loop-invariant code motion is meaningless without loops. A cheap back-edge
     // test on the (cached) CFG lets the overwhelmingly common loop-free functions

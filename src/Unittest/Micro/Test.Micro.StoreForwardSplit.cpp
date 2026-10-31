@@ -11,6 +11,25 @@
 
 SWC_BEGIN_NAMESPACE();
 
+SWC_TEST_BEGIN(StoreForwardSplit_EmptyStreamIsUnchanged)
+{
+    MicroBuilder             builder(ctx);
+    X64Encoder               encoder(ctx);
+    Runtime::BuildCfgBackend backendCfg{};
+    backendCfg.optimLevel = Runtime::BuildCfgBackendOptimLevel::O2;
+    builder.setBackendBuildCfg(backendCfg);
+
+    MicroPassContext passContext;
+    passContext.builder      = &builder;
+    passContext.instructions = &builder.instructions();
+    passContext.operands     = &builder.operands();
+    passContext.encoder      = &encoder;
+    MicroStoreForwardSplitPass pass;
+    SWC_RESULT(pass.run(passContext));
+    return builder.instructions().count() == 0 ? Result::Continue : Result::Error;
+}
+SWC_TEST_END()
+
 SWC_TEST_BEGIN(StoreForwardSplit_SplitsWideLoadsBehindNarrowStoresOfTheLoop)
 {
     // A loop reads sixteen bytes at [object + 0x18]. Variants:

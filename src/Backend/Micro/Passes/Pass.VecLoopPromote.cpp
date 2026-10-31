@@ -605,6 +605,8 @@ Result MicroVecLoopPromotePass::run(MicroPassContext& context)
     const Runtime::BuildCfgBackend& backendCfg = context.builder->backendBuildCfg();
     if (!backendCfg.optimizes() || !backendCfg.vectorize)
         return Result::Continue;
+    if (!context.builder->hasLabelReferences())
+        return Result::Continue;
 
     if (!context.builder->controlFlowGraph().hasLoop())
         return Result::Continue;

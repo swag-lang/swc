@@ -11,8 +11,17 @@
 #include "Backend/Micro/MicroPassManager.h"
 #include "Backend/Micro/MicroSsaState.h"
 #include "Backend/Micro/MicroVerify.h"
+#include "Backend/Micro/Passes/Pass.ColdBlockLayout.h"
+#include "Backend/Micro/Passes/Pass.InductionVariable.h"
+#include "Backend/Micro/Passes/Pass.LoopInvariantCodeMotion.h"
+#include "Backend/Micro/Passes/Pass.LoopLoadForward.h"
+#include "Backend/Micro/Passes/Pass.LoopUnroll.h"
+#include "Backend/Micro/Passes/Pass.PostRALoopRotate.h"
+#include "Backend/Micro/Passes/Pass.VecLoopPromote.h"
+#include "Backend/Encoder/X64Encoder.h"
 #include "Main/Stats.h"
 #include "Unittest/Unittest.h"
+#include "Unittest/UnittestHelpers.h"
 
 SWC_BEGIN_NAMESPACE();
 
@@ -121,6 +130,36 @@ namespace
         size_t saved_;
     };
 }
+
+SWC_TEST_BEGIN(LoopPasses_SkipCfgForBuildersWithoutLabels)
+{
+    MicroBuilder builder(ctx);
+    X64Encoder   encoder(ctx);
+    const MicroReg value = MicroReg::virtualIntReg(1);
+    for (uint32_t index = 0; index < 6; ++index)
+        builder.emitOpBinaryRegImm(value, ApInt(index + 1, 64), MicroOp::Add, MicroOpBits::B64);
+    builder.emitRet();
+
+    Runtime::BuildCfgBackend backendCfg{};
+    backendCfg.optimLevel = Runtime::BuildCfgBackendOptimLevel::O2;
+    backendCfg.vectorize  = true;
+    builder.setBackendBuildCfg(backendCfg);
+
+    if (builder.hasLabelReferences())
+        return Result::Error;
+    const uint64_t cfgBuildId = builder.controlFlowGraphBuildId();
+    SWC_RESULT(Backend::Unittest::runMicroPass<MicroInductionVariablePass>(builder, &encoder));
+    SWC_RESULT(Backend::Unittest::runMicroPass<MicroLoopInvariantCodeMotionPass>(builder, &encoder));
+    SWC_RESULT(Backend::Unittest::runMicroPass<MicroLoopLoadForwardPass>(builder, &encoder));
+    SWC_RESULT(Backend::Unittest::runMicroPass<MicroVecLoopPromotePass>(builder, &encoder));
+    SWC_RESULT(Backend::Unittest::runMicroPass<MicroLoopUnrollPass>(builder, &encoder));
+    SWC_RESULT(Backend::Unittest::runMicroPass<MicroColdBlockLayoutPass>(builder, &encoder));
+    SWC_RESULT(Backend::Unittest::runMicroPass<MicroPostRaLoopRotatePass>(builder, &encoder));
+    if (builder.controlFlowGraphBuildId() != cfgBuildId || builder.instructions().count() != 7)
+        return Result::Error;
+    return Result::Continue;
+}
+SWC_TEST_END()
 
 SWC_TEST_BEGIN(MicroOptimizerStats_DistinguishesCapStopsFromFinalSweepConvergence)
 {

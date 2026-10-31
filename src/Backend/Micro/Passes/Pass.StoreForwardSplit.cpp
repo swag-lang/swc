@@ -273,6 +273,8 @@ Result MicroStoreForwardSplitPass::run(MicroPassContext& context)
         return Result::Continue;
     if (!context.builder->backendBuildCfg().optimizes())
         return Result::Continue;
+    if (!context.builder->hasLabelReferences())
+        return Result::Continue;
 
     SmallVector<MicroInstrRef, 8> wideLoads;
     for (auto it = context.instructions->view().begin(), endIt = context.instructions->view().end(); it != endIt; ++it)

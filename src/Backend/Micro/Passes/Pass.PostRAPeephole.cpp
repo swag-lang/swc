@@ -31,7 +31,7 @@ namespace
     // outgoing edge may reuse it, provided no other edge enters the reload.
     bool eraseGuardedReload(MicroPassContext& context)
     {
-        if (!context.builder)
+        if (!context.builder || context.instructions->count() < 3)
             return false;
         auto&       storage  = *context.instructions;
         auto&       operands = *context.operands;

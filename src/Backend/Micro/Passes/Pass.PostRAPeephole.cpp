@@ -31,7 +31,7 @@ namespace
     // outgoing edge may reuse it, provided no other edge enters the reload.
     bool eraseGuardedReload(MicroPassContext& context)
     {
-        if (!context.builder || context.instructions->count() < 3)
+        if (!context.builder || !context.builder->hasLabelReferences() || context.instructions->count() < 3)
             return false;
         auto&       storage  = *context.instructions;
         auto&       operands = *context.operands;
@@ -98,7 +98,7 @@ namespace
     // leaves alone: a branch on the joined value typically comes first.
     bool sinkFrameReloadToFallthrough(MicroPassContext& context)
     {
-        if (!context.builder || context.instructions->count() < 3)
+        if (!context.builder || !context.builder->hasLabelReferences() || context.instructions->count() < 3)
             return false;
 
         MicroStorage&        storage  = *context.instructions;
@@ -353,7 +353,7 @@ namespace
     // them, and every explicit frame access can be checked at its stack depth.
     bool sinkFrameStoreIntoBranchTarget(MicroPassContext& context)
     {
-        if (!context.builder || context.instructions->count() < 3 || context.spillAreaLo >= context.spillAreaHi ||
+        if (!context.builder || !context.builder->hasLabelReferences() || context.instructions->count() < 3 || context.spillAreaLo >= context.spillAreaHi ||
             context.spillAreaHi - context.spillAreaLo < sizeof(uint64_t))
             return false;
 
@@ -941,7 +941,7 @@ namespace
     // leaves allocation and the successful path's instruction count intact.
     bool sinkRipLoadIntoBranchTarget(MicroPassContext& context)
     {
-        if (!context.builder)
+        if (!context.builder || !context.builder->hasLabelReferences())
             return false;
         auto& relocations = context.builder->codeRelocations();
         if (relocations.empty() || context.instructions->count() < 5)

@@ -64,10 +64,6 @@ namespace Match
     AstNodeRef resolveCallArgumentValueRef(Sema& sema, AstNodeRef argRef);
     void       resolveCallArgumentValues(Sema& sema, SmallVector<AstNodeRef>& outArgs, std::span<const AstNodeRef> args);
 
-    // Recognize freshly formed move references from '#move' and the move variant of '#fwd'.
-    // Reading a variable with a move-reference type does not count as an explicit move.
-    bool isExplicitMoveArgument(Sema& sema, AstNodeRef argRef);
-
     int    compareFunctionCandidateRankings(const FunctionCandidateRanking& a, const FunctionCandidateRanking& b);
     int    compareFunctionCandidateProbes(const FunctionCandidateProbe& a, const FunctionCandidateProbe& b);
     Result probeFunctionCandidates(Sema& sema, const SemaNodeView& nodeCallee, std::span<Symbol* const> symbols, std::span<AstNodeRef> args, AstNodeRef ufcsArg, FunctionCandidateProbe& outProbe, bool allowNoMatch = false, ResolveCallMode mode = ResolveCallMode::Normal);

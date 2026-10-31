@@ -53,7 +53,7 @@ public:
 
 private:
     void addEdge(uint32_t source, uint32_t target);
-    void build(const MicroStorage& storage, const MicroOperandStorage& operands);
+    void build(const MicroStorage& storage, const MicroOperandStorage& operands, bool hasLabelReferences);
 
     std::vector<MicroInstrRef>    instructionRefs_;
     mutable std::vector<uint32_t> indexBySlot_;

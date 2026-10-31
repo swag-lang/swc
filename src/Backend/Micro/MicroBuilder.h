@@ -85,6 +85,8 @@ public:
     bool                                                       pruneDeadRelocations();
     std::vector<MicroRelocation>&                              codeRelocations() { return relocations_; }
     const std::vector<MicroRelocation>&                        codeRelocations() const { return relocations_; }
+    // A nonempty table may contain unused labels; an empty table proves there are no label instructions.
+    bool                                                       hasLabelReferences() const { return !labels_.empty(); }
     const std::unordered_map<MicroReg, SmallVector<MicroReg>>& virtualRegForbiddenPhysRegs() const;
     const std::unordered_set<MicroReg>&                        preservedVirtualCopyRegs() const;
     void                                                       addVirtualRegForbiddenPhysReg(MicroReg virtualReg, MicroReg forbiddenReg);

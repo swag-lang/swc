@@ -141,6 +141,10 @@ Result MicroColdBlockLayoutPass::run(MicroPassContext& context)
     context.coldTailRef = MicroInstrRef::invalid();
     if (!context.builder)
         return Result::Continue;
+    if (context.instructions->count() == 0)
+        return Result::Continue;
+    if (!context.builder->hasLabelReferences())
+        return Result::Continue;
 
     // Generated value-borrow calls are the fallback of an inline extent test. They return
     // normally and use the same cold-block return edge as a report does.

@@ -46,6 +46,15 @@ namespace
     }
 }
 
+SWC_TEST_BEGIN(ColdBlockLayout_EmptyStreamIsUnchanged)
+{
+    MicroBuilder      builder(ctx);
+    MicroPassContext  passContext;
+    SWC_RESULT(runColdBlockLayoutPass(builder, passContext));
+    return builder.instructions().count() == 0 && !passContext.coldTailRef.isValid() ? Result::Continue : Result::Error;
+}
+SWC_TEST_END()
+
 // A guard that jumps over its report keeps the test and takes the inverted jump
 // to the report, which now sits behind the return and comes back by a jump.
 SWC_TEST_BEGIN(ColdBlockLayout_MovesSkippedReportBehindReturn)

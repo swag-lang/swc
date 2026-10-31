@@ -843,6 +843,8 @@ Result MicroInductionVariablePass::run(MicroPassContext& context)
     SWC_ASSERT(context.operands != nullptr);
     if (!context.builder)
         return Result::Continue;
+    if (!context.builder->hasLabelReferences())
+        return Result::Continue;
 
     // Loop-free functions are the common case: the cached back-edge test lets
     // them skip the dominator work.

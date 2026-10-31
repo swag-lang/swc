@@ -581,6 +581,8 @@ Result MicroLoopLoadForwardPass::run(MicroPassContext& context)
 {
     if (!context.builder || !context.instructions || !context.operands || !context.encoder)
         return Result::Continue;
+    if (!context.builder->hasLabelReferences())
+        return Result::Continue;
     if (!context.builder->controlFlowGraph().hasLoop())
         return Result::Continue;
 

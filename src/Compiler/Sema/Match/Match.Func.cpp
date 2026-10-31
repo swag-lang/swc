@@ -3192,11 +3192,6 @@ AstNodeRef Match::resolveCallArgumentRef(Sema& sema, AstNodeRef argRef)
     return finalRef;
 }
 
-bool Match::isExplicitMoveArgument(Sema& sema, const AstNodeRef argRef)
-{
-    return isExplicitMoveArgumentNode(sema, argRef);
-}
-
 AstNodeRef Match::resolveCallArgumentValueRef(Sema& sema, AstNodeRef argRef)
 {
     const AstNodeRef finalRef = resolveCallArgumentRef(sema, argRef);

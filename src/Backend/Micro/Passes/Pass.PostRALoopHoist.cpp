@@ -1234,6 +1234,9 @@ namespace
 
     bool hoistRound(MicroPassContext& context, const CallConv& conv, FrameReachability& framePrivacy)
     {
+        if (!context.builder->hasLabelReferences())
+            return false;
+
         MicroStorage&        storage  = *context.instructions;
         MicroOperandStorage& operands = *context.operands;
 
@@ -1746,6 +1749,9 @@ namespace
     // instruction in it may write memory or redefine the address base.
     bool hoistFoldedBitwiseOperand(MicroPassContext& context, const CallConv& conv)
     {
+        if (!context.builder->hasLabelReferences())
+            return false;
+
         MicroStorage&        storage                 = *context.instructions;
         MicroOperandStorage& operands                = *context.operands;
         bool                 hasFoldedBitwiseOperand = false;

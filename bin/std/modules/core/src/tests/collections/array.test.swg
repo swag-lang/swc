@@ -186,9 +186,14 @@ func arrayPtr2Rejects(values: *Array's32, x, y, w: u64)->bool
 
     #static if #safety(Swag.SafetyWhat.BoundCheck)
     {
-        let rejectedRowOverflow    = arrayPtr2Rejects(&values, Swag.U64.Max, 1, 2)
-        let rejectedColumnOverflow = arrayPtr2Rejects(&values, 1, Swag.U64.Max / 2 + 1, 2)
-        Swag.assert(rejectedRowOverflow and rejectedColumnOverflow)
+        let rejectedRowOverflow      = arrayPtr2Rejects(&values, Swag.U64.Max, 1, 2)
+        let rejectedColumnOverflow   = arrayPtr2Rejects(&values, 1, Swag.U64.Max / 2 + 1, 2)
+        let rejectedColumnOutsideRow = arrayPtr2Rejects(&values, 2, 0, 2)
+        let rejectedZeroWidth        = arrayPtr2Rejects(&values, 0, 0, 0)
+        Swag.assert(rejectedRowOverflow and
+                    rejectedColumnOverflow and
+                    rejectedColumnOutsideRow and
+                    rejectedZeroWidth)
     }
 
     let expectedGrid: [4] s32 = [9, 1, 3, 7]

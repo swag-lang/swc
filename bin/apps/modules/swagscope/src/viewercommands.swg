@@ -877,8 +877,9 @@ impl ViewerWindow
             .setFullScreen(not .fullScreen)
 
         case ViewerCommands.Outline:
-            if .currentSidePanelButton and .currentSidePanelButton.id == OutlineToggleId do
-                .toggleSidePanel()
+            if not .currentSidePanelButton or .currentSidePanelButton.id != OutlineToggleId do
+                return false
+            .toggleSidePanel()
 
         case ViewerCommands.SidePanel:
             .toggleSidePanel()

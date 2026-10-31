@@ -9801,6 +9801,8 @@ sheet.<span class="SFct">toggle</span>()</span></div>
 </td></tr>
 <tr><td id="Gui_Inspector_title" class="code-type">title</td><td class="code-type"><a href="std.core.html#Core_String">Core.String</a></td><td><p>Name of the selection, bold at the head of the inspector.</p>
 </td></tr>
+<tr><td id="Gui_Inspector_topOffset" class="code-type">topOffset</td><td class="code-type">f32</td><td><p>Moves the inspector from its strip-aware top edge, in logical pixels.</p>
+</td></tr>
 <tr><td id="Gui_Inspector_wnd" class="code-type">wnd</td><td class="code-type"><a href="#Gui_Wnd">Gui.Wnd</a></td><td><p>Embedded window behavior and presentation.</p>
 </td></tr>
 </tbody>
@@ -18984,6 +18986,8 @@ sheet.<span class="SFct">doModal</span>(button, autoDestroy: <span class="SKwd">
 </td></tr>
 <tr><td id="Gui_ThemeIcons_Options" class="code-type">Options</td><td><p>Options or settings action.</p>
 </td></tr>
+<tr><td id="Gui_ThemeIcons_Outline" class="code-type">Outline</td><td><p>Document heading hierarchy.</p>
+</td></tr>
 <tr><td id="Gui_ThemeIcons_ParentFolder" class="code-type">ParentFolder</td><td><p>Up navigation toward the parent location.</p>
 </td></tr>
 <tr><td id="Gui_ThemeIcons_Paste" class="code-type">Paste</td><td><p>Clipboard paste action.</p>
@@ -19686,12 +19690,12 @@ sheet.<span class="SFct">doModal</span>(button, autoDestroy: <span class="SKwd">
 <div class="code-block"><span class="SCde"><span class="SKwd">const</span> <span class="SCst"><a href="#Gui_Stepper_PageSteps">PageSteps</a></span> = <span class="SNum">10</span>'<span class="STpe">s64</span></span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-const"><span id="Gui_Markdown_View_CtxCopy" class="api-item-title"><span class="api-item-title-kind">const</span> <span class="api-item-title-strong">View.CtxCopy</span> <a class="api-item-permalink" href="#Gui_Markdown_View_CtxCopy" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/gui/src/controls/markdown/view.swg#L1636">src</a></div>
+<div class="api-item api-item-const"><span id="Gui_Markdown_View_CtxCopy" class="api-item-title"><span class="api-item-title-kind">const</span> <span class="api-item-title-strong">View.CtxCopy</span> <a class="api-item-permalink" href="#Gui_Markdown_View_CtxCopy" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/gui/src/controls/markdown/view.swg#L1643">src</a></div>
 <p>Command the context menu's copy entry posts.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">const</span> <span class="SCst"><a href="#Gui_Markdown_View_CtxCopy">CtxCopy</a></span>      = <span class="SStr">"Markdown.CtxCopy"</span></span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-const"><span id="Gui_Markdown_View_CtxSelectAll" class="api-item-title"><span class="api-item-title-kind">const</span> <span class="api-item-title-strong">View.CtxSelectAll</span> <a class="api-item-permalink" href="#Gui_Markdown_View_CtxSelectAll" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/gui/src/controls/markdown/view.swg#L1637">src</a></div>
+<div class="api-item api-item-const"><span id="Gui_Markdown_View_CtxSelectAll" class="api-item-title"><span class="api-item-title-kind">const</span> <span class="api-item-title-strong">View.CtxSelectAll</span> <a class="api-item-permalink" href="#Gui_Markdown_View_CtxSelectAll" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/gui/src/controls/markdown/view.swg#L1644">src</a></div>
 <p>Command the context menu's select-all entry posts.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">const</span> <span class="SCst"><a href="#Gui_Markdown_View_CtxSelectAll">CtxSelectAll</a></span> = <span class="SStr">"Markdown.CtxSelectAll"</span></span></div>
 </section>
@@ -22656,65 +22660,65 @@ view.<span class="SFct">updateVideoFrame</span>(&amp;planes)</span></div>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">toggle</span>()</span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Gui_Inspector_addAction" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Inspector.addAction</span> <a class="api-item-permalink" href="#Gui_Inspector_addAction" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/gui/src/controls/floating/inspector.swg#L219">src</a></div>
+<div class="api-item api-item-func"><span id="Gui_Inspector_addAction" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Inspector.addAction</span> <a class="api-item-permalink" href="#Gui_Inspector_addAction" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/gui/src/controls/floating/inspector.swg#L220">src</a></div>
 <p>Appends a quiet action to the head of the inspector, such as "Duplicate", and returns it.</p>
 <p>The actions are small faint words after the title, a middle dot between two of them: they say what can be done with the selection without standing out like buttons of a form.</p>
 <div class="code-block"><span class="SCde"><span class="SAtr">#[</span><span class="SNsp">Swag</span>.<span class="SAtr">Discardable]</span>
 <span class="SKwd">mtd</span> <span class="SFct">addAction</span>(text: <span class="STpe">string</span>, id: <span class="SCst"><a href="#Gui_WndId">WndId</a></span>? = <span class="SKwd">null</span>)-&gt;*<span class="SCst"><a href="#Gui_IconButton">IconButton</a></span></span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Gui_Inspector_addRow" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Inspector.addRow</span> <a class="api-item-permalink" href="#Gui_Inspector_addRow" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/gui/src/controls/floating/inspector.swg#L248">src</a></div>
+<div class="api-item api-item-func"><span id="Gui_Inspector_addRow" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Inspector.addRow</span> <a class="api-item-permalink" href="#Gui_Inspector_addRow" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/gui/src/controls/floating/inspector.swg#L249">src</a></div>
 <p>Appends a row of <span class="code-inline">label</span> and <span class="code-inline">editor</span>, and returns the editor.</p>
 <p>The inspector adopts <span class="code-inline">editor</span> and destroys it with the row. With <span class="code-inline">fill</span>, the editor takes the inspector height and the width of the editor column, as a field, a slider or a segment group does; otherwise it keeps the size it measures, as a switch or a check box does, and stands at the start of the column, centred on the row.</p>
 <div class="code-block"><span class="SCde"><span class="SAtr">#[</span><span class="SNsp">Swag</span>.<span class="SAtr">Discardable]</span>
 <span class="SKwd">mtd</span> <span class="SFct">addRow</span>(label: <span class="STpe">string</span>, editor: *<span class="SCst"><a href="#Gui_Wnd">Wnd</a></span>, fill = <span class="SKwd">true</span>)-&gt;*<span class="SCst"><a href="#Gui_Wnd">Wnd</a></span></span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Gui_Inspector_addSection" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Inspector.addSection</span> <a class="api-item-permalink" href="#Gui_Inspector_addSection" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/gui/src/controls/floating/inspector.swg#L235">src</a></div>
+<div class="api-item api-item-func"><span id="Gui_Inspector_addSection" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Inspector.addSection</span> <a class="api-item-permalink" href="#Gui_Inspector_addSection" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/gui/src/controls/floating/inspector.swg#L236">src</a></div>
 <p>Appends a section label opening the rows that follow.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">addSection</span>(label: <span class="STpe">string</span>)</span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Gui_Inspector_addWideRow" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Inspector.addWideRow</span> <a class="api-item-permalink" href="#Gui_Inspector_addWideRow" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/gui/src/controls/floating/inspector.swg#L259">src</a></div>
+<div class="api-item api-item-func"><span id="Gui_Inspector_addWideRow" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Inspector.addWideRow</span> <a class="api-item-permalink" href="#Gui_Inspector_addWideRow" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/gui/src/controls/floating/inspector.swg#L260">src</a></div>
 <p>Appends an editor spanning both columns, such as a row of alignment buttons, and returns it.</p>
 <div class="code-block"><span class="SCde"><span class="SAtr">#[</span><span class="SNsp">Swag</span>.<span class="SAtr">Discardable]</span>
 <span class="SKwd">mtd</span> <span class="SFct">addWideRow</span>(editor: *<span class="SCst"><a href="#Gui_Wnd">Wnd</a></span>)-&gt;*<span class="SCst"><a href="#Gui_Wnd">Wnd</a></span></span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Gui_Inspector_clear" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Inspector.clear</span> <a class="api-item-permalink" href="#Gui_Inspector_clear" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/gui/src/controls/floating/inspector.swg#L279">src</a></div>
+<div class="api-item api-item-func"><span id="Gui_Inspector_clear" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Inspector.clear</span> <a class="api-item-permalink" href="#Gui_Inspector_clear" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/gui/src/controls/floating/inspector.swg#L280">src</a></div>
 <p>Removes the title, the actions and every row, destroying their editors. The content set by <a href="#Gui_Inspector_setContent">Gui.Inspector.setContent</a> stays.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">clear</span>()</span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Gui_Inspector_create" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Inspector.create</span> <a class="api-item-permalink" href="#Gui_Inspector_create" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/gui/src/controls/floating/inspector.swg#L195">src</a></div>
+<div class="api-item api-item-func"><span id="Gui_Inspector_create" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Inspector.create</span> <a class="api-item-permalink" href="#Gui_Inspector_create" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/gui/src/controls/floating/inspector.swg#L196">src</a></div>
 <p>Creates an empty inspector floating over <span class="code-inline">parent</span>, unfolded.</p>
 <div class="code-block"><span class="SCde"><span class="SAtr">#[</span><span class="SNsp">Swag</span>.<span class="SAtr">Discardable]</span>
 <span class="SKwd">func</span> <span class="SFct">create</span>(parent: *<span class="SCst"><a href="#Gui_Wnd">Wnd</a></span>, id: <span class="SCst"><a href="#Gui_WndId">WndId</a></span>? = <span class="SKwd">null</span>)-&gt;*<span class="SCst"><a href="#Gui_Inspector">Inspector</a></span></span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Gui_Inspector_measureBody" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Inspector.measureBody</span> <a class="api-item-permalink" href="#Gui_Inspector_measureBody" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/gui/src/controls/floating/inspector.swg#L313">src</a></div>
+<div class="api-item api-item-func"><span id="Gui_Inspector_measureBody" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Inspector.measureBody</span> <a class="api-item-permalink" href="#Gui_Inspector_measureBody" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/gui/src/controls/floating/inspector.swg#L314">src</a></div>
 <p>Returns the height the body needs to hold the header and every row.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">measureBody</span>()-&gt;<span class="STpe">f32</span></span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Gui_Inspector_setContent" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Inspector.setContent</span> <a class="api-item-permalink" href="#Gui_Inspector_setContent" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/gui/src/controls/floating/inspector.swg#L268">src</a></div>
+<div class="api-item api-item-func"><span id="Gui_Inspector_setContent" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Inspector.setContent</span> <a class="api-item-permalink" href="#Gui_Inspector_setContent" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/gui/src/controls/floating/inspector.swg#L269">src</a></div>
 <p>Hands <span class="code-inline">content</span> the rest of the column under the rows, and returns it.</p>
 <p>The inspector adopts <span class="code-inline">content</span>, places it under the last row, between the paddings, down to its bottom padding, and destroys it with itself; <a href="#Gui_Inspector_clear">Gui.Inspector.clear</a> keeps it. Use it for settings the application generates, such as a <a href="#Gui_Properties">Gui.Properties</a> grid, which scrolls on its own. The inspector then stands the whole height of its parent.</p>
 <div class="code-block"><span class="SCde"><span class="SAtr">#[</span><span class="SNsp">Swag</span>.<span class="SAtr">Discardable]</span>
 <span class="SKwd">mtd</span> <span class="SFct">setContent</span>(content: *<span class="SCst"><a href="#Gui_Wnd">Wnd</a></span>)-&gt;*<span class="SCst"><a href="#Gui_Wnd">Wnd</a></span></span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Gui_Inspector_setFolded" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Inspector.setFolded</span> <a class="api-item-permalink" href="#Gui_Inspector_setFolded" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/gui/src/controls/floating/inspector.swg#L293">src</a></div>
+<div class="api-item api-item-func"><span id="Gui_Inspector_setFolded" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Inspector.setFolded</span> <a class="api-item-permalink" href="#Gui_Inspector_setFolded" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/gui/src/controls/floating/inspector.swg#L294">src</a></div>
 <p>Folds the inspector to its edge tab, or unfolds it.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">setFolded</span>(folded: <span class="STpe">bool</span>)</span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Gui_Inspector_setTitle" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Inspector.setTitle</span> <a class="api-item-permalink" href="#Gui_Inspector_setTitle" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/gui/src/controls/floating/inspector.swg#L207">src</a></div>
+<div class="api-item api-item-func"><span id="Gui_Inspector_setTitle" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Inspector.setTitle</span> <a class="api-item-permalink" href="#Gui_Inspector_setTitle" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/gui/src/controls/floating/inspector.swg#L208">src</a></div>
 <p>Names the selection: a bold <span class="code-inline">title</span> and an optional faint mono <span class="code-inline">detail</span>, such as a count.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">setTitle</span>(title: <span class="STpe">string</span>, detail: <span class="STpe">string</span>? = <span class="SKwd">null</span>)</span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Gui_Inspector_toggleFolded" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Inspector.toggleFolded</span> <a class="api-item-permalink" href="#Gui_Inspector_toggleFolded" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/gui/src/controls/floating/inspector.swg#L310">src</a></div>
+<div class="api-item api-item-func"><span id="Gui_Inspector_toggleFolded" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Inspector.toggleFolded</span> <a class="api-item-permalink" href="#Gui_Inspector_toggleFolded" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/gui/src/controls/floating/inspector.swg#L311">src</a></div>
 <p>Folds an unfolded inspector and unfolds a folded one, as its key does.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">toggleFolded</span>()</span></div>
 </section>
@@ -26184,7 +26188,7 @@ btnPush_Hot      $btnPush_Normal</span></div>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">ensureAtlasScale</span>(renderer: <span class="SCst"><a href="std.pixel.html#Pixel_IRenderer">IRenderer</a></span>, scale: <span class="STpe">f32</span>)</span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Gui_Theme_fileGlyph" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Theme.fileGlyph</span> <a class="api-item-permalink" href="#Gui_Theme_fileGlyph" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/gui/src/paint/themeicons.swg#L147">src</a></div>
+<div class="api-item api-item-func"><span id="Gui_Theme_fileGlyph" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Theme.fileGlyph</span> <a class="api-item-permalink" href="#Gui_Theme_fileGlyph" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/gui/src/paint/themeicons.swg#L148">src</a></div>
 <p>Returns the line glyph of a file named <span class="code-inline">name</span> at <span class="code-inline">size</span> logical pixels: a folder, or a page marked with the kind its extension says — a picture, code, a sound, a film, a paged document, an archive.</p>
 <p>A listing draws these rather than the colored icons of the system, so a row reads by its name first and the glyph only says what kind of thing it is. A file kind carries its quiet hue (<span class="code-inline">fileKind_*</span>); a folder uses Arc, the mark of a place to go. A plain file takes the ink its row gives it. A selected row may draw any of them in its own ink.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">fileGlyph</span>(name: <span class="STpe">string</span>, isDirectory: <span class="STpe">bool</span>, size = <span class="SNum">16</span>'<span class="STpe">f32</span>)-&gt;<span class="SCst"><a href="#Gui_Icon">Icon</a></span></span></div>
@@ -26201,7 +26205,7 @@ btnPush_Hot      $btnPush_Normal</span></div>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">floatingShadowReach</span>()-&gt;<span class="SCst"><a href="std.core.html#namespace_Core_Math">Math</a></span>.<span class="SCst"><a href="std.core.html#Core_Math_Vector4">Vector4</a></span></span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Gui_Theme_icon" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Theme.icon</span> <a class="api-item-permalink" href="#Gui_Theme_icon" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/gui/src/paint/themeicons.swg#L137">src</a></div>
+<div class="api-item api-item-func"><span id="Gui_Theme_icon" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Theme.icon</span> <a class="api-item-permalink" href="#Gui_Theme_icon" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/gui/src/paint/themeicons.swg#L138">src</a></div>
 <p>Creates an icon descriptor for a theme glyph displayed at <span class="code-inline">size</span> logical pixels.</p>
 <p>The frames behind a given size are rasterized once from the vector icon set, at the current atlas scale, and shared by every icon of that size.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">icon</span>(idx: <span class="SCst"><a href="#Gui_ThemeIcons">ThemeIcons</a></span>, size = <span class="SNum">24</span>'<span class="STpe">f32</span>)-&gt;<span class="SCst"><a href="#Gui_Icon">Icon</a></span></span></div>
@@ -26546,12 +26550,12 @@ btnPush_Hot      $btnPush_Normal</span></div>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">chosenStrip</span>()-&gt;*<span class="SCst"><a href="#Gui_Lens_Section">Section</a></span>?</span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Gui_Markdown_View_clearSearchHighlight" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">View.clearSearchHighlight</span> <a class="api-item-permalink" href="#Gui_Markdown_View_clearSearchHighlight" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/gui/src/controls/markdown/view.swg#L1939">src</a></div>
+<div class="api-item api-item-func"><span id="Gui_Markdown_View_clearSearchHighlight" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">View.clearSearchHighlight</span> <a class="api-item-permalink" href="#Gui_Markdown_View_clearSearchHighlight" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/gui/src/controls/markdown/view.swg#L1956">src</a></div>
 <p>Removes a programmatic search mark and cancels any unfinished reveal destination.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">clearSearchHighlight</span>()</span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Gui_Markdown_View_clearSelection" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">View.clearSelection</span> <a class="api-item-permalink" href="#Gui_Markdown_View_clearSelection" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/gui/src/controls/markdown/view.swg#L1527">src</a></div>
+<div class="api-item api-item-func"><span id="Gui_Markdown_View_clearSelection" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">View.clearSelection</span> <a class="api-item-permalink" href="#Gui_Markdown_View_clearSelection" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/gui/src/controls/markdown/view.swg#L1534">src</a></div>
 <p>Empties the selection.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">clearSelection</span>()</span></div>
 </section>
@@ -26566,13 +26570,13 @@ btnPush_Hot      $btnPush_Normal</span></div>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">close</span>()</span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Gui_Markdown_View_columnGeometry" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">View.columnGeometry</span> <a class="api-item-permalink" href="#Gui_Markdown_View_columnGeometry" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/gui/src/controls/markdown/view.swg#L1252">src</a></div>
+<div class="api-item api-item-func"><span id="Gui_Markdown_View_columnGeometry" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">View.columnGeometry</span> <a class="api-item-permalink" href="#Gui_Markdown_View_columnGeometry" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/gui/src/controls/markdown/view.swg#L1259">src</a></div>
 <p>Returns where the reading column stands across the view: its left edge and its width.</p>
 <p>A host places what belongs beside the text, such as a table of contents, in the margins this leaves.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">columnGeometry</span>()-&gt;{x: <span class="STpe">f32</span>, width: <span class="STpe">f32</span>}</span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Gui_Markdown_View_copySelection" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">View.copySelection</span> <a class="api-item-permalink" href="#Gui_Markdown_View_copySelection" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/gui/src/controls/markdown/view.swg#L1625">src</a></div>
+<div class="api-item api-item-func"><span id="Gui_Markdown_View_copySelection" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">View.copySelection</span> <a class="api-item-permalink" href="#Gui_Markdown_View_copySelection" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/gui/src/controls/markdown/view.swg#L1632">src</a></div>
 <p>Puts the selected text on the clipboard, and reports whether there was one.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">copySelection</span>()-&gt;<span class="STpe">bool</span></span></div>
 </section>
@@ -26584,7 +26588,7 @@ btnPush_Hot      $btnPush_Normal</span></div>
 <span class="SKwd">func</span> <span class="SFct">create</span>(owner: *<span class="SCst"><a href="#Gui_Wnd">Wnd</a></span>)-&gt;*<span class="SCst">View</span></span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Gui_Markdown_View_create" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">View.create</span> <a class="api-item-permalink" href="#Gui_Markdown_View_create" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/gui/src/controls/markdown/view.swg#L1287">src</a></div>
+<div class="api-item api-item-func"><span id="Gui_Markdown_View_create" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">View.create</span> <a class="api-item-permalink" href="#Gui_Markdown_View_create" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/gui/src/controls/markdown/view.swg#L1294">src</a></div>
 <p>Creates an empty Markdown document view.</p>
 <div class="code-block"><span class="SCde"><span class="SAtr">#[</span><span class="SNsp">Swag</span>.<span class="SAtr">Discardable]</span>
 <span class="SKwd">func</span> <span class="SFct">create</span>(contentParent: *<span class="SCst"><a href="#Gui_Wnd">Wnd</a></span>, documentStyle: <span class="SCst"><a href="#Gui_Markdown_Style">Style</a></span> = {})-&gt;*<span class="SCst">View</span></span></div>
@@ -26597,13 +26601,13 @@ btnPush_Hot      $btnPush_Normal</span></div>
 <span class="SKwd">func</span> <span class="SFct">create</span>(parent: *<span class="SCst"><a href="#Gui_Wnd">Wnd</a></span>, build: <span class="SCst"><a href="#Gui_OptionSheet_Builder">Builder</a></span>, owner: *<span class="SCst"><a href="#Gui_Wnd">Wnd</a></span>? = <span class="SKwd">null</span>)-&gt;*<span class="SCst">View</span></span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Gui_Markdown_View_createFile" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">View.createFile</span> <a class="api-item-permalink" href="#Gui_Markdown_View_createFile" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/gui/src/controls/markdown/view.swg#L1467">src</a></div>
+<div class="api-item api-item-func"><span id="Gui_Markdown_View_createFile" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">View.createFile</span> <a class="api-item-permalink" href="#Gui_Markdown_View_createFile" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/gui/src/controls/markdown/view.swg#L1474">src</a></div>
 <p>Creates a view and progressively loads a UTF-8 Markdown file.</p>
 <p>File-open and decoding failures remain visible in the document and are also exposed through <a href="#Gui_Markdown_View_failureReason">Gui.Markdown.View.failureReason</a> and <a href="#Gui_Markdown_View_sigLoadFailed">Gui.Markdown.View.sigLoadFailed</a>.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SFct">createFile</span>(contentParent: *<span class="SCst"><a href="#Gui_Wnd">Wnd</a></span>, fileName: <span class="STpe">string</span>, documentStyle: <span class="SCst"><a href="#Gui_Markdown_Style">Style</a></span> = {})-&gt;*<span class="SCst">View</span></span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Gui_Markdown_View_createText" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">View.createText</span> <a class="api-item-permalink" href="#Gui_Markdown_View_createText" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/gui/src/controls/markdown/view.swg#L1448">src</a></div>
+<div class="api-item api-item-func"><span id="Gui_Markdown_View_createText" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">View.createText</span> <a class="api-item-permalink" href="#Gui_Markdown_View_createText" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/gui/src/controls/markdown/view.swg#L1455">src</a></div>
 <p>Creates a view and renders the complete Markdown source.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SFct">createText</span>(contentParent: *<span class="SCst"><a href="#Gui_Wnd">Wnd</a></span>, source: <span class="STpe">string</span>, documentStyle: <span class="SCst"><a href="#Gui_Markdown_Style">Style</a></span> = {})-&gt;*<span class="SCst">View</span></span></div>
 </section>
@@ -26627,17 +26631,17 @@ btnPush_Hot      $btnPush_Normal</span></div>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SKwd">const</span> <span class="SFct">findRow</span>(label: <span class="STpe">string</span>)-&gt;<span class="STpe">u32</span></span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Gui_Markdown_View_findText" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">View.findText</span> <a class="api-item-permalink" href="#Gui_Markdown_View_findText" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/gui/src/controls/markdown/view.swg#L1657">src</a></div>
+<div class="api-item api-item-func"><span id="Gui_Markdown_View_findText" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">View.findText</span> <a class="api-item-permalink" href="#Gui_Markdown_View_findText" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/gui/src/controls/markdown/view.swg#L1664">src</a></div>
 <p>Scrolls to the next rendered block containing <span class="code-inline">text</span>, wrapping once at the end.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">findText</span>(text: <span class="STpe">string</span>)-&gt;<span class="STpe">bool</span></span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Gui_Markdown_View_hasSelection" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">View.hasSelection</span> <a class="api-item-permalink" href="#Gui_Markdown_View_hasSelection" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/gui/src/controls/markdown/view.swg#L1524">src</a></div>
+<div class="api-item api-item-func"><span id="Gui_Markdown_View_hasSelection" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">View.hasSelection</span> <a class="api-item-permalink" href="#Gui_Markdown_View_hasSelection" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/gui/src/controls/markdown/view.swg#L1531">src</a></div>
 <p>Reports whether the reader selected something.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SKwd">const</span> <span class="SFct">hasSelection</span>()-&gt;<span class="STpe">bool</span></span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Gui_Markdown_View_hasUnloadedSource" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">View.hasUnloadedSource</span> <a class="api-item-permalink" href="#Gui_Markdown_View_hasUnloadedSource" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/gui/src/controls/markdown/view.swg#L1518">src</a></div>
+<div class="api-item api-item-func"><span id="Gui_Markdown_View_hasUnloadedSource" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">View.hasUnloadedSource</span> <a class="api-item-permalink" href="#Gui_Markdown_View_hasUnloadedSource" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/gui/src/controls/markdown/view.swg#L1525">src</a></div>
 <p>Reports whether file source remains to be read, parsed, or displayed.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SKwd">const</span> <span class="SFct">hasUnloadedSource</span>()-&gt;<span class="STpe">bool</span></span></div>
 </section>
@@ -26647,7 +26651,7 @@ btnPush_Hot      $btnPush_Normal</span></div>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SKwd">const</span> <span class="SFct">isClosed</span>()-&gt;<span class="STpe">bool</span></span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Gui_Markdown_View_isLoading" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">View.isLoading</span> <a class="api-item-permalink" href="#Gui_Markdown_View_isLoading" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/gui/src/controls/markdown/view.swg#L1515">src</a></div>
+<div class="api-item api-item-func"><span id="Gui_Markdown_View_isLoading" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">View.isLoading</span> <a class="api-item-permalink" href="#Gui_Markdown_View_isLoading" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/gui/src/controls/markdown/view.swg#L1522">src</a></div>
 <p>Reports whether progressive file-loading work is currently scheduled.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SKwd">const</span> <span class="SFct">isLoading</span>()-&gt;<span class="STpe">bool</span></span></div>
 </section>
@@ -26657,7 +26661,7 @@ btnPush_Hot      $btnPush_Normal</span></div>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">isOpen</span>()-&gt;<span class="STpe">bool</span></span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Gui_Markdown_View_loadedDocumentHeight" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">View.loadedDocumentHeight</span> <a class="api-item-permalink" href="#Gui_Markdown_View_loadedDocumentHeight" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/gui/src/controls/markdown/view.swg#L1521">src</a></div>
+<div class="api-item api-item-func"><span id="Gui_Markdown_View_loadedDocumentHeight" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">View.loadedDocumentHeight</span> <a class="api-item-permalink" href="#Gui_Markdown_View_loadedDocumentHeight" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/gui/src/controls/markdown/view.swg#L1528">src</a></div>
 <p>Reports the laid-out height of the source rendered so far.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SKwd">const</span> <span class="SFct">loadedDocumentHeight</span>()-&gt;<span class="STpe">f32</span></span></div>
 </section>
@@ -26683,12 +26687,12 @@ btnPush_Hot      $btnPush_Normal</span></div>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">query</span>()-&gt;<span class="STpe">string</span></span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Gui_Markdown_View_readingOffset" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">View.readingOffset</span> <a class="api-item-permalink" href="#Gui_Markdown_View_readingOffset" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/gui/src/controls/markdown/view.swg#L1264">src</a></div>
+<div class="api-item api-item-func"><span id="Gui_Markdown_View_readingOffset" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">View.readingOffset</span> <a class="api-item-permalink" href="#Gui_Markdown_View_readingOffset" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/gui/src/controls/markdown/view.swg#L1271">src</a></div>
 <p>Returns the source byte offset of the block nearest the top reading inset, or <span class="code-inline">U64.Max</span> while no block is laid out; the heading being read is the last one before it.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">readingOffset</span>()-&gt;<span class="STpe">u64</span></span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Gui_Markdown_View_readingProgress" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">View.readingProgress</span> <a class="api-item-permalink" href="#Gui_Markdown_View_readingProgress" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/gui/src/controls/markdown/view.swg#L1256">src</a></div>
+<div class="api-item api-item-func"><span id="Gui_Markdown_View_readingProgress" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">View.readingProgress</span> <a class="api-item-permalink" href="#Gui_Markdown_View_readingProgress" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/gui/src/controls/markdown/view.swg#L1263">src</a></div>
 <p>Returns the share of the document above the bottom of the view, from 0 at the top to 1 at the end, as a reading progress shows it.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">readingProgress</span>()-&gt;<span class="STpe">f32</span></span></div>
 </section>
@@ -26704,13 +26708,13 @@ btnPush_Hot      $btnPush_Normal</span></div>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">refresh</span>()</span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Gui_Markdown_View_revealFileOffset" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">View.revealFileOffset</span> <a class="api-item-permalink" href="#Gui_Markdown_View_revealFileOffset" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/gui/src/controls/markdown/view.swg#L1739">src</a></div>
+<div class="api-item api-item-func"><span id="Gui_Markdown_View_revealFileOffset" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">View.revealFileOffset</span> <a class="api-item-permalink" href="#Gui_Markdown_View_revealFileOffset" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/gui/src/controls/markdown/view.swg#L1746">src</a></div>
 <p>Repositions the streamed document at the byte <span class="code-inline">offset</span> and reveals <span class="code-inline">text</span> once its block is materialized.</p>
 <p>The preceding bytes are not parsed. Returns whether the reveal was queued.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">revealFileOffset</span>(offset: <span class="STpe">u64</span>, text: <span class="STpe">string</span>)-&gt;<span class="STpe">bool</span></span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Gui_Markdown_View_revealHeading" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">View.revealHeading</span> <a class="api-item-permalink" href="#Gui_Markdown_View_revealHeading" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/gui/src/controls/markdown/view.swg#L1747">src</a></div>
+<div class="api-item api-item-func"><span id="Gui_Markdown_View_revealHeading" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">View.revealHeading</span> <a class="api-item-permalink" href="#Gui_Markdown_View_revealHeading" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/gui/src/controls/markdown/view.swg#L1754">src</a></div>
 <p>Brings the heading at a source byte offset to the top reading inset without a search mark.</p>
 <p>Use offsets from <a href="#Gui_Markdown_parseHeadings">Gui.Markdown.parseHeadings</a>. A distant file-backed heading starts its own viewport, without laying out preceding blocks. Text is prepared for the next paint; images may finish asynchronously. True means the destination was shown or queued. In-memory views return false if the offset does not identify a heading.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">revealHeading</span>(offset: <span class="STpe">u64</span>)-&gt;<span class="STpe">bool</span></span></div>
@@ -26722,30 +26726,30 @@ btnPush_Hot      $btnPush_Normal</span></div>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">runChosen</span>(keepOpen = <span class="SKwd">false</span>)</span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Gui_Markdown_View_searchMatchRect" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">View.searchMatchRect</span> <a class="api-item-permalink" href="#Gui_Markdown_View_searchMatchRect" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/gui/src/controls/markdown/view.swg#L1958">src</a></div>
+<div class="api-item api-item-func"><span id="Gui_Markdown_View_searchMatchRect" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">View.searchMatchRect</span> <a class="api-item-permalink" href="#Gui_Markdown_View_searchMatchRect" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/gui/src/controls/markdown/view.swg#L1975">src</a></div>
 <p>Reports the current search highlight in surface coordinates.</p>
 <p>Returns false while a streamed occurrence has not produced its visual block yet. The host owns presentation and may poll after <a href="#Gui_Markdown_View_revealFileOffset">Gui.Markdown.View.revealFileOffset</a>.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">searchMatchRect</span>(result: *<span class="SCst"><a href="std.core.html#namespace_Core_Math">Math</a></span>.<span class="SCst">Rectangle</span>)-&gt;<span class="STpe">bool</span></span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Gui_Markdown_View_selectAll" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">View.selectAll</span> <a class="api-item-permalink" href="#Gui_Markdown_View_selectAll" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/gui/src/controls/markdown/view.swg#L1541">src</a></div>
+<div class="api-item api-item-func"><span id="Gui_Markdown_View_selectAll" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">View.selectAll</span> <a class="api-item-permalink" href="#Gui_Markdown_View_selectAll" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/gui/src/controls/markdown/view.swg#L1548">src</a></div>
 <p>Selects the whole rendered document.</p>
 <p>What is rendered is what a streamed file has materialized so far, which is what the reader can see; the rest of the file has no position to select.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">selectAll</span>()</span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Gui_Markdown_View_selectedText" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">View.selectedText</span> <a class="api-item-permalink" href="#Gui_Markdown_View_selectedText" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/gui/src/controls/markdown/view.swg#L1556">src</a></div>
+<div class="api-item api-item-func"><span id="Gui_Markdown_View_selectedText" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">View.selectedText</span> <a class="api-item-permalink" href="#Gui_Markdown_View_selectedText" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/gui/src/controls/markdown/view.swg#L1563">src</a></div>
 <p>Returns the selected text, as one line per block and one tab between table cells.</p>
 <p>Inline formatting resolves to the words it decorated, a formula to its mathematical source, and an embedded page to its text. What comes back is the document as it reads, not the Markdown that produced it.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">selectedText</span>()-&gt;<span class="SCst"><a href="std.core.html#Core_String">String</a></span></span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Gui_Markdown_View_setDocumentStyle" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">View.setDocumentStyle</span> <a class="api-item-permalink" href="#Gui_Markdown_View_setDocumentStyle" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/gui/src/controls/markdown/view.swg#L1495">src</a></div>
+<div class="api-item api-item-func"><span id="Gui_Markdown_View_setDocumentStyle" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">View.setDocumentStyle</span> <a class="api-item-permalink" href="#Gui_Markdown_View_setDocumentStyle" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/gui/src/controls/markdown/view.swg#L1502">src</a></div>
 <p>Replaces the document metrics and optional typefaces while keeping the active colors.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">setDocumentStyle</span>(documentStyle: <span class="SCst"><a href="#Gui_Markdown_Style">Style</a></span>)</span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Gui_Markdown_View_setDocumentThemeColors" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">View.setDocumentThemeColors</span> <a class="api-item-permalink" href="#Gui_Markdown_View_setDocumentThemeColors" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/gui/src/controls/markdown/view.swg#L1505">src</a></div>
+<div class="api-item api-item-func"><span id="Gui_Markdown_View_setDocumentThemeColors" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">View.setDocumentThemeColors</span> <a class="api-item-permalink" href="#Gui_Markdown_View_setDocumentThemeColors" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/gui/src/controls/markdown/view.swg#L1512">src</a></div>
 <p>Applies document-local theme colors to the complete view, including blocks created later.</p>
 <p>Blocks a streaming file creates afterwards receive the same colors. Pass an empty sheet to resume the application theme.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">setDocumentThemeColors</span>(styleSheetColors: <span class="STpe">string</span>)</span></div>
@@ -26756,7 +26760,7 @@ btnPush_Hot      $btnPush_Normal</span></div>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">setQuery</span>(query: <span class="STpe">string</span>)</span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Gui_Markdown_View_showContextMenu" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">View.showContextMenu</span> <a class="api-item-permalink" href="#Gui_Markdown_View_showContextMenu" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/gui/src/controls/markdown/view.swg#L1640">src</a></div>
+<div class="api-item api-item-func"><span id="Gui_Markdown_View_showContextMenu" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">View.showContextMenu</span> <a class="api-item-permalink" href="#Gui_Markdown_View_showContextMenu" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/gui/src/controls/markdown/view.swg#L1647">src</a></div>
 <p>Shows the reading context menu at <span class="code-inline">surfacePos</span>: copy and select all, with their keyboard shortcuts.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">showContextMenu</span>(surfacePos: <span class="SCst"><a href="std.core.html#namespace_Core_Math">Math</a></span>.<span class="SCst"><a href="std.core.html#Core_Math_Point">Point</a></span>)</span></div>
 </section>
@@ -28290,6 +28294,7 @@ btnPush_Hot      $btnPush_Normal</span></div>
 "v|Gui.Inspector.foldKey|Gui_Inspector_foldKey|Key the application binds to fold and unfold the inspector, written on the edge tab.",
 "v|Gui.Inspector.sigFoldChanged|Gui_Inspector_sigFoldChanged|Emitted after the inspector folds or unfolds.",
 "v|Gui.Inspector.title|Gui_Inspector_title|Name of the selection, bold at the head of the inspector.",
+"v|Gui.Inspector.topOffset|Gui_Inspector_topOffset|Moves the inspector from its strip-aware top edge, in logical pixels.",
 "v|Gui.Inspector.wnd|Gui_Inspector_wnd|Embedded window behavior and presentation.",
 "s|Gui.MiniBar|Gui_MiniBar|A small floating toolbar placed next to the selected object.",
 "v|Gui.MiniBar.items|Gui_MiniBar_items|Items and separators, from the leading edge.",
@@ -30532,6 +30537,7 @@ btnPush_Hot      $btnPush_Normal</span></div>
 "k|Gui.ThemeIcons.OpenExternal|Gui_ThemeIcons_OpenExternal|Open content in another application or window.",
 "k|Gui.ThemeIcons.OpenFile|Gui_ThemeIcons_OpenFile|Open-file action glyph.",
 "k|Gui.ThemeIcons.Options|Gui_ThemeIcons_Options|Options or settings action.",
+"k|Gui.ThemeIcons.Outline|Gui_ThemeIcons_Outline|Document heading hierarchy.",
 "k|Gui.ThemeIcons.ParentFolder|Gui_ThemeIcons_ParentFolder|Up navigation toward the parent location.",
 "k|Gui.ThemeIcons.Paste|Gui_ThemeIcons_Paste|Clipboard paste action.",
 "k|Gui.ThemeIcons.Pause|Gui_ThemeIcons_Pause|Media pause action glyph.",

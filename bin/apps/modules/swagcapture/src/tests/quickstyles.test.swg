@@ -370,7 +370,7 @@ using Swag, Core
     quick.setDefault()
     f.main.editMode = .Arrow
     f.main.mdlFormArrow.borderColor = Argb.Magenta
-    quick.setPosition(Math.Rectangle{0, 0, 6 * QuickChipWidth, QuickChipHeight})
+    quick.setPosition(Math.Rectangle{0, 0, 3 * QuickChipWidth, QuickChipHeight})
     quick.updateQuickStyles(forceRebuild: true)
     Swag.assert(quick.qsArrow.forms.count > 5)
 
@@ -392,6 +392,8 @@ using Swag, Core
     Swag.assert(shown == 4 and hidden > 0 and moreShown and addShown)
     let cells = quick.rowCells()
     Swag.assert(cells[0].isTransient and cells[1].isModel)
+    Swag.assert(cells.back().position.y == QuickChipHeight)
+    Swag.assert(quick.position.height == 2 * QuickChipHeight + quick.themeMetrics().inspector_RowGap)
 
     // The popover holds every preset and "+".
     let more = unwrap quick.moreButton
@@ -420,7 +422,7 @@ using Swag, Core
 
     let style = &quick.qsArrow
     Swag.assert(style.nameOf(0).isEmpty())
-    Swag.assert(quick.position.height == QuickChipHeight + quick.themeMetrics().inspector_RowGap)
+    Swag.assert(quick.position.height == quick.layout.position.height + quick.themeMetrics().inspector_RowGap)
 
     style.setName(2, "Orange mark")
     Swag.assert(style.nameOf(2) == "Orange mark")
@@ -429,7 +431,7 @@ using Swag, Core
 
     // The style can be named without adding a label beneath the presets.
     quick.applyPreset(style.forms[0])
-    Swag.assert(quick.position.height == QuickChipHeight + quick.themeMetrics().inspector_RowGap)
+    Swag.assert(quick.position.height == quick.layout.position.height + quick.themeMetrics().inspector_RowGap)
 
     // Removing a style removes its name with it.
     let count = style.names.count
@@ -448,7 +450,7 @@ using Swag, Core
     let quick = QuickWnd.create(f.main, f.main)
     quick.setDefault()
     f.main.editMode = .Shape
-    quick.setPosition(Math.Rectangle{0, 0, 6 * QuickChipWidth, QuickChipHeight})
+    quick.setPosition(Math.Rectangle{0, 0, 3 * QuickChipWidth, QuickChipHeight})
 
     let shape = testAddShape(f.capture, 10, 12, 40, 24)
     shape.borderColor = Argb.Magenta
@@ -461,6 +463,7 @@ using Swag, Core
     Swag.assert(cells[1].isModel and cells[1].position.x == QuickChipWidth)
     Swag.assert(quick.canAddCurrentStyle())
     Swag.assert(cells.back().isMore)
+    Swag.assert(cells.back().position.y == QuickChipHeight)
 
     quick.openAllPresets(unwrap quick.moreButton)
     let popover = unwrap quick.allPresets
@@ -487,8 +490,9 @@ using Swag, Core
     let quick = QuickWnd.create(f.main, f.main)
     quick.setDefault()
     f.main.editMode = .Arrow
-    quick.setPosition(Math.Rectangle{0, 0, 6 * QuickChipWidth, QuickChipHeight})
     quick.updateQuickStyles(forceRebuild: true)
+    quick.setPosition(Math.Rectangle{0, 0, 2 * QuickChipWidth, 2 * QuickChipHeight + quick.themeMetrics().inspector_RowGap})
+    quick.fitChips()
 
     let style = &quick.qsArrow
     let third = style.forms[2]
@@ -536,8 +540,9 @@ using Swag, Core
     let quick = QuickWnd.create(f.main, f.main)
     quick.setDefault()
     f.main.editMode = .Arrow
-    quick.setPosition(Math.Rectangle{0, 0, 6 * QuickChipWidth, QuickChipHeight})
     quick.updateQuickStyles(forceRebuild: true)
+    quick.setPosition(Math.Rectangle{0, 0, 2 * QuickChipWidth, 2 * QuickChipHeight + quick.themeMetrics().inspector_RowGap})
+    quick.fitChips()
 
     let stops = Gui.FocusOrder.collect(quick).stops
     Swag.assert(stops.count == 1 and stops[0] == quick.layout)
@@ -561,14 +566,9 @@ using Swag, Core
     Swag.assert(applied.isChecked and (unwrap applied.formItf).buffer == chosen.buffer and applied.keyChosen)
 
     // Enter on "•••" opens every preset; Escape gives the keys back to the row.
-    for 10
-    {
-        if quick.rowCells()[quick.keyCell].isMore do
-            break
-        f.gui.keyPress(.Right)
-    }
-
-    Swag.assert(quick.rowCells()[quick.keyCell].isMore)
+    quick.chooseRowCell(1)
+    f.gui.keyPress(.Down)
+    Swag.assert(quick.rowCells()[quick.keyCell].isMore and quick.rowCells()[quick.keyCell].position.y == QuickChipHeight)
     f.gui.keyPress(.Return)
     Swag.assert(quick.allPresets != null)
     f.gui.keyPress(.Escape)

@@ -27,6 +27,7 @@ const QuickMaskHeight     = 14.0         // Height of the pattern of a mask pres
 const QuickLightDepth     = 0.09'f32     // How much deeper the cell of a light preset is, on a light ground.
 const QuickPopoverPad     = 12.0         // Air inside the popover holding every preset of a tool.
 const QuickPopoverColumns = 5            // Presets in a row of that popover.
+const QuickVisibleRows    = 2            // Rows of presets the inspector shows before its popover.
 
 // The glyph of the chip that keeps the selected shape as a new preset.
 const AddGlyphSize = 14.0
@@ -1537,13 +1538,18 @@ impl QuickWnd
         .moreButton = btn
     }
 
-    // Returns the chips the row shows, from left to right.
+    // Returns the chips the grid shows, from top to bottom and left to right.
     mtd rowCells()->Array'(*QuickButton)
     {
         var result: #returntype
         for c in .layout.children where not c.isPendingDestroy and c.isLocallyVisible() do
             result.add(assume cast(*QuickButton, c))
-        result.sort(func(a, b: *QuickButton)->s32 => a.position.x < b.position.x ? -1 : (a.position.x > b.position.x ? 1 : 0))
+        result.sort(func(a, b: *QuickButton)->s32
+        {
+            if a.position.y != b.position.y do
+                return a.position.y < b.position.y ? -1 : 1
+            return a.position.x < b.position.x ? -1 : (a.position.x > b.position.x ? 1 : 0)
+        })
         return result
     }
 
@@ -1567,7 +1573,7 @@ impl QuickWnd
         return 0
     }
 
-    // Answers the keys while the row holds the keyboard. Left and Right go along the chips; Enter
+    // Answers the keys while the grid holds the keyboard. Arrows move among the chips; Enter
     // or Space applies the preset the keys stand on, opens the popover on "•••" and keeps the
     // current style on "+"; Down on "•••" opens the popover too.
     mtd onRowEvent(evt: IEvent)->bool
@@ -1595,17 +1601,24 @@ impl QuickWnd
         switch key.key
         {
         case .Left:
-            if .keyCell > 0 do
+            if cell.position.x > 0 do
                 .chooseRowCell(.keyCell - 1)
 
         case .Right:
-            if .keyCell + 1 < cells.count do
+            if .keyCell + 1 < cells.count and cells[.keyCell + 1].position.y == cell.position.y do
                 .chooseRowCell(.keyCell + 1)
 
+        case .Up:
+            let perRow = cast(u64, Math.max(1, cast(s32, Math.floor((.position.width + 0.5) / QuickChipWidth))))
+            if .keyCell >= perRow do
+                .chooseRowCell(.keyCell - perRow)
+
         case .Down:
-            if not cell.isMore or .allPresets != null do
-                return false
-            .openAllPresets(cell)
+            let perRow = cast(u64, Math.max(1, cast(s32, Math.floor((.position.width + 0.5) / QuickChipWidth))))
+            if .keyCell + perRow < cells.count do
+                .chooseRowCell(.keyCell + perRow)
+            elif cell.isMore and .allPresets == null do
+                .openAllPresets(cell)
 
         case .Return, .Space:
             if cell.isMore
@@ -1795,7 +1808,7 @@ impl QuickWnd
         .fitChips()
     }
 
-    // Lays the chips in one row across the width of the inspector column: the presets the row
+    // Lays the chips in two rows across the width of the inspector column: the presets the row
     // holds, the most recently chosen first, then "+", or "•••" when some are left out.
     mtd fitChips()
     {
@@ -1821,27 +1834,28 @@ impl QuickWnd
 
         // Keep the live style and its save action first; overflow only saved presets.
         let perRow = cast(u64, Math.max(1, cast(s32, Math.floor((.position.width + 0.5) / QuickChipWidth))))
+        let capacity = perRow * QuickVisibleRows
         var fixed = 0'u64
         if transient do
             fixed += 1
         if model do
             fixed += 1
-        let all = presets.count + fixed <= perRow
-        let shown = all ? presets.count : (perRow > fixed ? perRow - fixed - 1 : 0)
+        let all = presets.count + fixed <= capacity
+        let shown = all ? presets.count : (capacity > fixed ? capacity - fixed - 1 : 0)
 
-        var x = 0'f32
+        var index = 0'u64
         if transient
         {
             transient.show(true)
-            transient.setPosition(Math.Rectangle{x, 0, QuickChipWidth, QuickChipHeight})
-            x += QuickChipWidth
+            transient.setPosition(Math.Rectangle{cast(f32, index % perRow) * QuickChipWidth, cast(f32, index / perRow) * QuickChipHeight, QuickChipWidth, QuickChipHeight})
+            index += 1
         }
 
         if model
         {
             model.show(true)
-            model.setPosition(Math.Rectangle{x, 0, QuickChipWidth, QuickChipHeight})
-            x += QuickChipWidth
+            model.setPosition(Math.Rectangle{cast(f32, index % perRow) * QuickChipWidth, cast(f32, index / perRow) * QuickChipHeight, QuickChipWidth, QuickChipHeight})
+            index += 1
         }
 
         for c, i in presets
@@ -1849,25 +1863,26 @@ impl QuickWnd
             c.show(i < shown)
             if i < shown
             {
-                c.setPosition(Math.Rectangle{x, 0, QuickChipWidth, QuickChipHeight})
-                x += QuickChipWidth
+                c.setPosition(Math.Rectangle{cast(f32, index % perRow) * QuickChipWidth, cast(f32, index / perRow) * QuickChipHeight, QuickChipWidth, QuickChipHeight})
+                index += 1
             }
         }
 
         if more
         {
-            let showMore = not all and perRow > fixed
+            let showMore = not all and capacity > fixed
             more.show(showMore)
             if showMore
             {
-                more.setPosition(Math.Rectangle{x, 0, QuickChipWidth, QuickChipHeight})
-                x += QuickChipWidth
+                more.setPosition(Math.Rectangle{cast(f32, index % perRow) * QuickChipWidth, cast(f32, index / perRow) * QuickChipHeight, QuickChipWidth, QuickChipHeight})
+                index += 1
             }
         }
 
-        .layout.setPosition(Math.Rectangle{x: 0, y: 0, width: x, height: QuickChipHeight})
+        let rows = Math.max(1, (index + perRow - 1) / perRow)
+        .layout.setPosition(Math.Rectangle{0, 0, .position.width, cast(f32, rows) * QuickChipHeight})
         .setScrollSize(0, 0)
-        let wanted = QuickChipHeight + .themeMetrics().inspector_RowGap
+        let wanted = cast(f32, rows) * QuickChipHeight + .themeMetrics().inspector_RowGap
         if .position.height != wanted
         {
             .resize(.position.width, wanted)

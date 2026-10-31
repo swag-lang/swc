@@ -343,6 +343,30 @@ func floatingHost(host: *Testing.HeadlessHost, width, height: f32, light: bool)
     Swag.assert(content.position.y == pad + metrics.control_InspectorHeight + metrics.inspector_RowGap)
 }
 
+// A small negative top offset balances the top and bottom insets without crossing the parent's
+// floating inset when the strip is hidden.
+#test
+{
+    var host: Testing.HeadlessHost
+    host.setup(640, 480)
+    host.surface.flags      = .StandardWindow
+    host.surfaceWnd.padding = {1, 1, 1, 1}
+    host.surfaceWnd.create(&host.root, null)
+    host.surfaceWnd.sendResizeEvent()
+
+    let metrics = host.theme.metrics
+    let inspector = Inspector.create(&host.root)
+    inspector.topOffset = -8
+    host.root.applyLayout()
+
+    Swag.assert(host.root.stripInset() > metrics.floating_Inset)
+    Swag.assert(inspector.position.y == host.root.stripInset() - 8)
+    host.surface.flags = .None
+    host.surfaceWnd.sendResizeEvent()
+    host.root.applyLayout()
+    Swag.assert(inspector.position.y == metrics.floating_Inset)
+}
+
 // A mini-bar is filled again for each selection: clearing it destroys what it held.
 #test
 {

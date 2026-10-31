@@ -14,6 +14,16 @@ belongs in [compiler.core.md](compiler.core.md) and [language.design.md](languag
 Scrolling and recorded capture require a timed acquisition and export subsystem; those outcomes come after the
 still-image editing and output work.
 
+### app.capture.027 — Lens goldens still show the previous editor background
+
+- Evidence: `lens.paper` and `lens.recent.paper` in `lens.test.swg` differ on the CPU
+  headless renderer. Their blurred editor background
+  still shows the previous caption actions and preset positions; the foreground lens agrees.
+- Next: review the current editor layout against those two references, then correct the layout
+  or regenerate the approved snapshots through the golden tool.
+- Done when: both lens goldens match the intended editor background and pass without promotion
+  of unrelated snapshots.
+
 ### app.capture.009 — Let users rebind capture hotkeys and resolve conflicts
 
 - Next: persist shortcut choices in the existing options and add a conflict-resolution flow for

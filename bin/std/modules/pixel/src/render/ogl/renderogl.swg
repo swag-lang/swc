@@ -1349,6 +1349,13 @@ impl RenderOgl
             .clipMaskWriting = true
             .clipMaskOn      = false
             let mask = .clipMasks[cast(u64, .clipMaskIndex)]
+
+            // The shader still declares the mask sampler while writing coverage. Leaving the
+            // destination bound there creates a texture feedback loop, even when a uniform
+            // branch skips the lookup. Only EndClippingRegion exposes the finished mask again.
+            glActiveTexture(GL_TEXTURE5)
+            glBindTexture(GL_TEXTURE_2D, .whiteTexture)
+            glActiveTexture(GL_TEXTURE0)
             glBindFramebuffer(GL_FRAMEBUFFER, mask.framebuffer)
             glViewport(0, 0, width, height)
             glColorMask(GL_TRUE, GL_TRUE, GL_TRUE, GL_TRUE)

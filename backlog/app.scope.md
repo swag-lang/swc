@@ -20,6 +20,15 @@ owned by a viewer lives in the corresponding domain:
 
 Reusable engine work remains in the backlog of the standard module that owns it.
 
+### app.scope.009 — The Markdown lens golden omits the outline icon and shortcut
+
+- Evidence: `viewer.lens.markdown.encre` in `viewerwindow.test.swg` differs on the CPU
+  headless renderer only around the Outline entry: the current row includes its icon and
+  `Ctrl Shift O`, which the reference omits.
+- Next: confirm the intended Outline entry and update its approved golden through the golden
+  tool, preserving the rest of the lens.
+- Done when: the Markdown lens golden agrees with its intended icon and shortcut and passes.
+
 ### app.scope.001 — One document per window
 
 - Evidence: `src/main.swg` creates one `ViewerWindow`, which owns one active file and viewer.

@@ -101,14 +101,13 @@ private func splitArgumentsEx(args: const [..] string, options: ParseOptions)->A
             continue
         }
 
-        let split = Tokenize.splitAny(argument, [':'rune, '='rune], 1)
+        let split = Tokenize.splitAny(argument, [':'rune, '='rune], 1, false)
         if split.count == 2
         {
             let name = Latin1.trim(split[0])
             result.add(SplitArgument{value: name, raw: argument})
             let value = Latin1.trim(split[1])
-            if value.count do
-                result.add(SplitArgument{value: value, raw: "", attachedValue: true})
+            result.add(SplitArgument{value: value, raw: "", attachedValue: true})
         }
         else
         {
@@ -125,8 +124,12 @@ private func splitArgumentsEx(args: const [..] string, options: ParseOptions)->A
 func splitArguments(args: const [..] string, options: ParseOptions)->Array'(string)
 {
     var result: #returntype
-    for it in splitArgumentsEx(args, options) do
-        result.add(it.value)
+    for it in splitArgumentsEx(args, options)
+    {
+        if it.value.count do
+            result.add(it.value)
+    }
+
     return result
 }
 
@@ -205,6 +208,8 @@ func getField(typeStruct: const *Swag.TypeInfoStruct, name: string)->FieldResult
 // ask for it to be captured: 'capturePositionals' collects the leading non-option tokens, and
 // 'captureUnknown' collects every unrecognized token verbatim, which is how a caller forwards
 // what it does not understand to another program.
+// An explicit empty attached value such as `-name=` stays separate from the next argument.
+// String fields receive the empty value; other field types validate it normally.
 func(T) parse(st: *T, args: const [..] string, options = ParseOptions{})->Result fail
 {
     #[Swag.Mixin]
@@ -287,10 +292,15 @@ func(T) parse(st: *T, args: const [..] string, options = ParseOptions{})->Result
              Reflection.isEnum(typeField)
         {
             try requireNextValue(typeField)
+            var value     = tokens[argumentIndex + 1].value
             var remaining = ""
             var errOutcome: Swag.Error
+            if tokens[argumentIndex + 1].attachedValue and
+               not value.count and
+               typeField == #typeof(Core.String) do
+                value = "\"\""
             catch {
-                remaining = try StrConv.parseValue(destination, typeField, tokens[argumentIndex + 1].value)
+                remaining = try StrConv.parseValue(destination, typeField, value)
             } as errOutcome
 
             let err = errOutcome.value()

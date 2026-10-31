@@ -153,6 +153,19 @@ func assertStringValues(values: Array'String, expected: const [..] string)->bool
 
 #test
 {
+    var options: NameOptions
+    let result = expect CommandLine.parse(&options, ["-n=", "Alice"], {captureUnknown: true})
+    let split  = CommandLine.splitArguments(["-n="], {})
+
+    Swag.assert(options.name.isEmpty())
+    Swag.assert(result.isSet.name)
+    Swag.assert(result.unknown.count == 1 and result.unknown[0] == "Alice")
+    Swag.assert(split.count == 1 and split[0] == "-n")
+    Swag.assert(parseFailed(["-count=", "42"]))
+}
+
+#test
+{
     var options: NumericOptions
     let result = expect CommandLine.parse(&options, ["-enabled", "false"])
     Swag.assert(not options.enabled)

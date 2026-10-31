@@ -206,8 +206,10 @@ public enum Key
     Zoom                   // Zoom key
 }
 
-// Formats `modifiers` and `key` as a display-ready shortcut such as `Ctrl S` or `Ctrl Shift S`:
-// the names of the keys separated by spaces, as a menu or a lens writes them in faint mono.
+// Returns the display text for a key shortcut.
+//
+// Modifier and key names are separated by spaces, such as `Ctrl Shift S`. Menus and lens
+// commands show the result in faint monospace text.
 public func formatKeyShortcut(modifiers: KeyModifiers, key: Key)->String
 {
     var result: #returntype

@@ -4401,7 +4401,7 @@ encoder.serializer.options.saveBlanks = <span class="SKwd">true</span>
 </td></tr>
 <tr><td class="code-type"><a href="#Core_Compress_Inflate_decompress">Inflate.decompress</a></td><td><p>Decompresses the Deflate data in <span class="code-inline">buf</span> and appends it to <span class="code-inline">result</span>.</p>
 </td></tr>
-<tr><td class="code-type"><a href="#Core_Input_formatKeyShortcut">Input.formatKeyShortcut</a></td><td><p>Formats <span class="code-inline">modifiers</span> and <span class="code-inline">key</span> as a display-ready shortcut such as <span class="code-inline">Ctrl S</span> or <span class="code-inline">Ctrl Shift S</span>:</p>
+<tr><td class="code-type"><a href="#Core_Input_formatKeyShortcut">Input.formatKeyShortcut</a></td><td><p>Returns the display text for a key shortcut.</p>
 </td></tr>
 <tr><td class="code-type"><a href="#Core_Input_mousePosition">Input.mousePosition</a></td><td><p>Returns the cursor position in physical desktop pixels.</p>
 </td></tr>
@@ -7554,7 +7554,7 @@ encoder.serializer.options.saveBlanks = <span class="SKwd">true</span>
 <table class="api-summary">
 <thead><tr><th>Name</th><th>Description</th></tr></thead>
 <tbody>
-<tr><td class="code-type"><a href="#Core_Input_formatKeyShortcut">Input.formatKeyShortcut</a></td><td><p>Formats <span class="code-inline">modifiers</span> and <span class="code-inline">key</span> as a display-ready shortcut such as <span class="code-inline">Ctrl S</span> or <span class="code-inline">Ctrl Shift S</span>:</p>
+<tr><td class="code-type"><a href="#Core_Input_formatKeyShortcut">Input.formatKeyShortcut</a></td><td><p>Returns the display text for a key shortcut.</p>
 </td></tr>
 <tr><td class="code-type"><a href="#Core_Input_mousePosition">Input.mousePosition</a></td><td><p>Returns the cursor position in physical desktop pixels.</p>
 </td></tr>
@@ -9099,7 +9099,7 @@ encoder.serializer.options.saveBlanks = <span class="SKwd">true</span>
 </section>
 <h3 id="types">Types</h3>
 <section class="api-symbol">
-<div class="api-item api-item-struct"><span id="Core_CommandLine_FieldResult" class="api-item-title"><span class="api-item-title-kind">struct</span> <span class="api-item-title-strong">CommandLine.FieldResult</span> <a class="api-item-permalink" href="#Core_CommandLine_FieldResult" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/system/commandline.swg#L134">src</a></div>
+<div class="api-item api-item-struct"><span id="Core_CommandLine_FieldResult" class="api-item-title"><span class="api-item-title-kind">struct</span> <span class="api-item-title-strong">CommandLine.FieldResult</span> <a class="api-item-permalink" href="#Core_CommandLine_FieldResult" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/system/commandline.swg#L138">src</a></div>
 <p>Locates the field of a struct that an option designates.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">struct</span> <span class="SCst"><a href="#Core_CommandLine_FieldResult">FieldResult</a></span></span></div>
 </section>
@@ -18264,7 +18264,7 @@ bundle.<span class="SFct">addFolder</span>(<span class="SStr">"datas"</span>)
 <div class="code-block"><span class="SCde"><span class="SKwd">attr</span> <span class="SFct">ArgParams</span>(nameAlias: <span class="STpe">string</span>? = <span class="SKwd">null</span>)</span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Core_CommandLine_getField" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">CommandLine.getField</span> <a class="api-item-permalink" href="#Core_CommandLine_getField" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/system/commandline.swg#L175">src</a></div>
+<div class="api-item api-item-func"><span id="Core_CommandLine_getField" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">CommandLine.getField</span> <a class="api-item-permalink" href="#Core_CommandLine_getField" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/system/commandline.swg#L179">src</a></div>
 <p>Returns the field of <span class="code-inline">typeStruct</span> whose name or <a href="#Core_CommandLine_ArgParams">Core.CommandLine.ArgParams</a> alias designates the option <span class="code-inline">name</span>.</p>
 <p>Names are matched like <a href="#Core_CommandLine_isSameName">Core.CommandLine.isSameName</a> does. The result has a null <span class="code-inline">field</span> when no field matches.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SFct">getField</span>(typeStruct: <span class="SKwd">const</span> *<span class="SNsp">Swag</span>.<span class="SCst"><a href="swag.runtime.html#Swag_TypeInfoStruct">TypeInfoStruct</a></span>, name: <span class="STpe">string</span>)-&gt;<span class="SCst"><a href="#Core_CommandLine_FieldResult">FieldResult</a></span></span></div>
@@ -18275,7 +18275,7 @@ bundle.<span class="SFct">addFolder</span>(<span class="SStr">"datas"</span>)
 <div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SFct">isOption</span>(oneArg: <span class="STpe">string</span>, <span class="SKwd">_</span>: <span class="SCst"><a href="#Core_CommandLine_ParseOptions">ParseOptions</a></span>)-&gt;<span class="STpe">bool</span></span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Core_CommandLine_isSameName" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">CommandLine.isSameName</span> <a class="api-item-permalink" href="#Core_CommandLine_isSameName" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/system/commandline.swg#L147">src</a></div>
+<div class="api-item api-item-func"><span id="Core_CommandLine_isSameName" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">CommandLine.isSameName</span> <a class="api-item-permalink" href="#Core_CommandLine_isSameName" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/system/commandline.swg#L151">src</a></div>
 <p>Returns whether the option name <span class="code-inline">name</span> designates the declared name <span class="code-inline">candidate</span>.</p>
 <p>The comparison ignores case and the <span class="code-inline">-</span> and <span class="code-inline">_</span> separators, so an option spelled <span class="code-inline">build-cfg</span> designates a field declared <span class="code-inline">buildCfg</span>.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SFct">isSameName</span>(candidate: <span class="STpe">string</span>, name: <span class="STpe">string</span>)-&gt;<span class="STpe">bool</span></span></div>
@@ -18287,9 +18287,9 @@ bundle.<span class="SFct">addFolder</span>(<span class="SStr">"datas"</span>)
 <div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SFct">isValue</span>(oneArg: <span class="STpe">string</span>, typeField: <span class="STpe">typeinfo</span>, options: <span class="SCst"><a href="#Core_CommandLine_ParseOptions">ParseOptions</a></span>)-&gt;<span class="STpe">bool</span></span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Core_CommandLine_parse" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">CommandLine.parse</span> <a class="api-item-permalink" href="#Core_CommandLine_parse" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/system/commandline.swg#L208">src</a></div>
+<div class="api-item api-item-func"><span id="Core_CommandLine_parse" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">CommandLine.parse</span> <a class="api-item-permalink" href="#Core_CommandLine_parse" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/system/commandline.swg#L214">src</a></div>
 <p>Parses <span class="code-inline">args</span> into the fields of <span class="code-inline">st</span> and returns which fields were set.</p>
-<p>An option is written <span class="code-inline">-name</span>, <span class="code-inline">--name</span>, <span class="code-inline">-name value</span>, or <span class="code-inline">-name:value</span> (<span class="code-inline">=</span> works like <span class="code-inline">:</span>), and designates the field of <span class="code-inline">T</span> whose name or <span class="code-inline">ArgParams</span> alias it matches, ignoring case and the <span class="code-inline">-</span>/<span class="code-inline">_</span> separators. What matches nothing fails the parse, unless the options ask for it to be captured: <span class="code-inline">capturePositionals</span> collects the leading non-option tokens, and <span class="code-inline">captureUnknown</span> collects every unrecognized token verbatim, which is how a caller forwards what it does not understand to another program.</p>
+<p>An option is written <span class="code-inline">-name</span>, <span class="code-inline">--name</span>, <span class="code-inline">-name value</span>, or <span class="code-inline">-name:value</span> (<span class="code-inline">=</span> works like <span class="code-inline">:</span>), and designates the field of <span class="code-inline">T</span> whose name or <span class="code-inline">ArgParams</span> alias it matches, ignoring case and the <span class="code-inline">-</span>/<span class="code-inline">_</span> separators. What matches nothing fails the parse, unless the options ask for it to be captured: <span class="code-inline">capturePositionals</span> collects the leading non-option tokens, and <span class="code-inline">captureUnknown</span> collects every unrecognized token verbatim, which is how a caller forwards what it does not understand to another program. An explicit empty attached value such as <span class="code-inline">-name=</span> stays separate from the next argument. String fields receive the empty value; other field types validate it normally.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">func</span>(<span class="SCst">T</span>) <span class="SFct">parse</span>(st: *<span class="SCst">T</span>, args: <span class="SKwd">const</span> [..] <span class="STpe">string</span>, options = <span class="SCst"><a href="#Core_CommandLine_ParseOptions">ParseOptions</a></span>{})-&gt;<span class="SCst"><a href="#Core_CommandLine_Result">Result</a></span> <span class="SKwd">fail</span></span></div>
 </section>
 <section class="api-symbol">
@@ -20825,8 +20825,9 @@ bundle.<span class="SFct">addFolder</span>(<span class="SStr">"datas"</span>)
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">decompress</span>(result: *<span class="SFct">Array</span>'<span class="STpe">u8</span>, buf: <span class="SKwd">const</span> [..] <span class="STpe">u8</span>, winSize: <span class="STpe">u32</span> = <span class="SCst"><a href="#Core_Compress_Inflate_MaxDistance">MaxDistance</a></span>, maxOutputSize: <span class="STpe">u64</span> = <span class="SNsp">Swag</span>.<span class="SCst"><a href="swag.runtime.html#namespace_Swag_U64">U64</a></span>.<span class="SCst">Max</span>) <span class="SKwd">fail</span></span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Core_Input_formatKeyShortcut" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Input.formatKeyShortcut</span> <a class="api-item-permalink" href="#Core_Input_formatKeyShortcut" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/input/key.swg#L211">src</a></div>
-<p>Formats <span class="code-inline">modifiers</span> and <span class="code-inline">key</span> as a display-ready shortcut such as <span class="code-inline">Ctrl S</span> or <span class="code-inline">Ctrl Shift S</span>: the names of the keys separated by spaces, as a menu or a lens writes them in faint mono.</p>
+<div class="api-item api-item-func"><span id="Core_Input_formatKeyShortcut" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Input.formatKeyShortcut</span> <a class="api-item-permalink" href="#Core_Input_formatKeyShortcut" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/input/key.swg#L213">src</a></div>
+<p>Returns the display text for a key shortcut.</p>
+<p>Modifier and key names are separated by spaces, such as <span class="code-inline">Ctrl Shift S</span>. Menus and lens commands show the result in faint monospace text.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SFct">formatKeyShortcut</span>(modifiers: <span class="SCst"><a href="#Core_Input_KeyModifiers">KeyModifiers</a></span>, key: <span class="SCst">Key</span>)-&gt;<span class="SCst"><a href="#Core_String">String</a></span></span></div>
 </section>
 <section class="api-symbol">
@@ -29615,7 +29616,7 @@ bundle.<span class="SFct">addFolder</span>(<span class="SStr">"datas"</span>)
 "f|Core.Globalization.DateTimeFormatInfo.formatTime|Core_Globalization_DateTimeFormatInfo_formatTime|Formats a time using a long or short pattern.",
 "f|Core.Globalization.DateTimeFormatInfo.monthName|Core_Globalization_DateTimeFormatInfo_monthName|Returns the localized full name of a month numbered from 1 through 12.",
 "f|Core.Globalization.NumberFormatInfo.format|Core_Globalization_NumberFormatInfo_format|Formats an unsigned decimal integer, optionally applying this culture's grouping rules.",
-"f|Core.Input.formatKeyShortcut|Core_Input_formatKeyShortcut|Formats modifiers and key as a display-ready shortcut such as Ctrl S or Ctrl Shift S:",
+"f|Core.Input.formatKeyShortcut|Core_Input_formatKeyShortcut|Returns the display text for a key shortcut.",
 "f|Core.Input.Gamepad.clear|Core_Input_Gamepad_clear|Resets the previous and the current state.",
 "f|Core.Input.Gamepad.isButtonJustPressed|Core_Input_Gamepad_isButtonJustPressed|Returns whether button became pressed during the latest update.",
 "f|Core.Input.Gamepad.isButtonJustReleased|Core_Input_Gamepad_isButtonJustReleased|Returns whether button became released during the latest update.",

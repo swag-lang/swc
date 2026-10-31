@@ -712,14 +712,7 @@ private:
     TypeRef              typeRefOfStored(AstNodeRef n) const { return nodePayloadContext().getTypeRef(ctx(), n); }
     ConstantRef          constantRefOfStored(AstNodeRef n) const { return nodePayloadContext().getConstantRef(ctx(), n); }
 
-    bool       hasType(AstNodeRef n) const { return nodePayloadContext().hasType(ctx(), resolvedNodeRef(n)); }
-    bool       hasConstant(AstNodeRef n) const { return nodePayloadContext().hasConstant(ctx(), resolvedNodeRef(n)); }
-    bool       hasSymbol(AstNodeRef n) const { return nodePayloadContext().hasSymbol(resolvedNodeRef(n)); }
     AstNodeRef getSubstituteRef(AstNodeRef n) const { return resolvedNodeRef(n); }
-
-    bool                     hasSymbolList(AstNodeRef n) const { return nodePayloadContext().hasSymbolList(resolvedNodeRef(n)); }
-    std::span<const Symbol*> getSymbolList(AstNodeRef n) const { return nodePayloadContext().getSymbolList(resolvedNodeRef(n)); }
-    std::span<Symbol*>       getSymbolList(AstNodeRef n) { return nodePayloadContext().getSymbolList(resolvedNodeRef(n)); }
 
     NodePayload::ResolvedSymbols resolveSymbols(AstNodeRef n) const { return nodePayloadContext().resolveSymbols(resolvedNodeRef(n)); }
     NodePayload::ResolvedSymbols resolveSymbolsStored(AstNodeRef n) const { return nodePayloadContext().resolveSymbols(n); }

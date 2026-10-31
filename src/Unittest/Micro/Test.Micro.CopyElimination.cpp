@@ -10,6 +10,14 @@
 
 SWC_BEGIN_NAMESPACE();
 
+SWC_TEST_BEGIN(CopyElim_EmptyStreamIsUnchanged)
+{
+    MicroBuilder builder(ctx);
+    SWC_RESULT(Backend::Unittest::runMicroPass<MicroCopyEliminationPass>(builder));
+    return builder.instructions().count() == 0 ? Result::Continue : Result::Error;
+}
+SWC_TEST_END()
+
 // mov v1, v1 -> erased.
 SWC_TEST_BEGIN(CopyElim_SelfCopy_Erased)
 {

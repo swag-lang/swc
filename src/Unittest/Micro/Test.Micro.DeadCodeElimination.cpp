@@ -10,6 +10,14 @@
 
 SWC_BEGIN_NAMESPACE();
 
+SWC_TEST_BEGIN(DeadCodeElimination_EmptyStreamIsUnchanged)
+{
+    MicroBuilder builder(ctx);
+    SWC_RESULT(Backend::Unittest::runMicroPass<MicroDeadCodeEliminationPass>(builder));
+    return builder.instructions().count() == 0 ? Result::Continue : Result::Error;
+}
+SWC_TEST_END()
+
 SWC_TEST_BEGIN(DeadCodeElimination_RemovesEntireDeadChain)
 {
     MicroBuilder builder(ctx);

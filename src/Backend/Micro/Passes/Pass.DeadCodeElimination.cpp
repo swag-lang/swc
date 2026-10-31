@@ -283,6 +283,8 @@ Result MicroDeadCodeEliminationPass::run(MicroPassContext& context)
     SWC_ASSERT(context.instructions != nullptr);
     SWC_ASSERT(context.operands != nullptr);
     SWC_ASSERT(context.builder != nullptr);
+    if (context.instructions->count() == 0)
+        return Result::Continue;
 
     MicroStorage&                storage = *context.instructions;
     std::optional<MicroSsaState> localSsaState;

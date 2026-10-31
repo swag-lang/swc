@@ -96,6 +96,7 @@ private:
     {
         SanitizerCheck* check     = nullptr;
         uint8_t         interests = 0;
+        uint16_t        safetyMask = 0;
     };
 
     struct ReportNote

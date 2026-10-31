@@ -33,18 +33,26 @@ Result MicroSanityPass::run(MicroPassContext& context)
 {
     context.passChanged = false;
 
-    if (context.sanitizerSafetyMask == 0)
-        return Result::Continue;
     if (!context.instructions || !context.operands || !context.taskContext || !context.builder)
         return Result::Continue;
     if (context.instructions->count() == 0)
+        return Result::Continue;
+
+    uint16_t enabledSanityMask = context.sanitizerSafetyMask;
+    if (enabledSanityMask != static_cast<uint16_t>(Runtime::SafetyWhat::All))
+    {
+        for (const MicroInstr& inst : context.instructions->view())
+            if (inst.debugSourceInfo.hasSanityMaskOverride)
+                enabledSanityMask |= inst.debugSourceInfo.sanityMaskOverride;
+    }
+    if (enabledSanityMask == 0)
         return Result::Continue;
 
     // Register every available check, then keep only those whose safety guard is enabled
     // for this function. Adding a check is: subclass SanitizerCheck and list it here.
     SmallVector<SanitizerCheck*> enabledChecks;
     for (SanitizerCheck* check : allChecks)
-        if (context.sanitizerSafetyMask & static_cast<uint16_t>(check->safety()))
+        if (enabledSanityMask & static_cast<uint16_t>(check->safety()))
             enabledChecks.push_back(check);
 
     if (enabledChecks.empty())

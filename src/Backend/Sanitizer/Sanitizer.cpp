@@ -353,7 +353,7 @@ bool Sanitizer::run(std::span<SanitizerCheck* const> checks, SmallVector<MicroIn
         if (!hasMoveInvalidation_)
             interests &= ~static_cast<uint8_t>(SanitizerCheckInterest::MovedStorage);
         if (interests)
-            enabledChecks.push_back({.check = check, .interests = interests});
+            enabledChecks.push_back({.check = check, .interests = interests, .safetyMask = static_cast<uint16_t>(check->safety())});
     }
     if (enabledChecks.empty())
         return reported_;
@@ -606,8 +606,9 @@ void Sanitizer::walkChain(uint32_t head, SanitizerState cur, const std::span<con
         if (!checks.empty())
         {
             const uint8_t interests = sanitizerCheckInterests(inst, def);
+            const uint16_t sanityMask = inst.debugSourceInfo.hasSanityMaskOverride ? inst.debugSourceInfo.sanityMaskOverride : context_.sanitizerSafetyMask;
             for (const EnabledCheck& enabled : checks)
-                if (interests & enabled.interests)
+                if ((interests & enabled.interests) && (sanityMask & enabled.safetyMask))
                     enabled.check->run(*this, cur, inst, def, ops);
         }
 

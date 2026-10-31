@@ -500,6 +500,8 @@ Utf8 MachineCodeCache::inputKey(TaskContext& ctx, std::vector<DebugSourceInfo>& 
         identity.pushBack(static_cast<std::byte>(instruction.numOperands));
         identity.pushBack(static_cast<std::byte>(instruction.compilerSafetyCall));
         identity.pushBack(static_cast<std::byte>(instruction.frameWriteGuard));
+        identity.appendLe16(instruction.debugSourceInfo.hasSanityMaskOverride ? instruction.debugSourceInfo.sanityMaskOverride : 0);
+        identity.pushBack(static_cast<std::byte>(instruction.debugSourceInfo.hasSanityMaskOverride));
         const auto* operands = instruction.ops(builder.operands());
         for (uint32_t index = 0; index < instruction.numOperands; ++index)
         {

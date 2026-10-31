@@ -89,6 +89,12 @@ void MicroBuilder::setCurrentDebugNoStep(const bool value)
     currentDebugSourceInfo_.debugNoStep = value;
 }
 
+void MicroBuilder::setCurrentSanityMaskOverride(const uint16_t mask, const bool enabled)
+{
+    currentDebugSourceInfo_.sanityMaskOverride    = mask;
+    currentDebugSourceInfo_.hasSanityMaskOverride = enabled;
+}
+
 void MicroBuilder::addRelocation(const MicroRelocation& relocation)
 {
     SWC_ASSERT((relocation.constantShard == INVALID_REF) == (relocation.constantOffset == INVALID_REF));

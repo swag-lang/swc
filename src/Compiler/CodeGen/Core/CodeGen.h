@@ -281,6 +281,7 @@ public:
     CodeGenFrame&                 frame() { return frames_.back(); }
     const CodeGenFrame&           frame() const { return frames_.back(); }
     std::span<const CodeGenFrame> frames() const { return frames_; }
+    uint16_t                      effectiveSanityMask() const;
 
     SemaNodeView view(AstNodeRef nodeRef) { return sema().view(nodeRef); }
     SemaNodeView view(AstNodeRef nodeRef, EnumFlags<SemaNodeViewPartE> part) { return sema().view(nodeRef, part); }
@@ -569,6 +570,7 @@ private:
     VariablePayloadState& ensureVariablePayloadState(const SymbolVariable& sym);
 
     void   setVisitors();
+    void   setCurrentInlineSanityMask();
     Result preNode(AstNode& node);
     Result postNode(AstNode& node);
     Result preNodeChild(AstNode& node, AstNodeRef& childRef);

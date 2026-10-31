@@ -607,7 +607,7 @@ bool CodeGenSafety::hasLifecycleRuntimeSafety(const CodeGen& codeGen)
 bool CodeGenSafety::hasLifecycleSanity(const CodeGen& codeGen)
 {
     // Swag.Sanity controls static use-after-move markers independently of runtime guards.
-    const uint16_t mask = codeGen.function().attributes().effectiveSanityMask(codeGen.buildCfg().sanityGuards);
+    const uint16_t mask = codeGen.effectiveSanityMask();
     return (mask & static_cast<uint16_t>(Runtime::SafetyWhat::Lifecycle)) != 0;
 }
 
@@ -1092,7 +1092,7 @@ Result CodeGenSafety::emitDivOrModIntLike(CodeGen& codeGen, const AstNode& node,
 {
     // The guard bypasses the hardware operation on MIN/-1, even without runtime safety.
     // Keep its source-level overflow visible to sanity before pruning guarded branches.
-    const uint16_t sanityMask = codeGen.function().attributes().effectiveSanityMask(codeGen.buildCfg().sanityGuards);
+    const uint16_t sanityMask = codeGen.effectiveSanityMask();
     if (isSigned && (sanityMask & static_cast<uint16_t>(Runtime::SafetyWhat::Overflow)))
         codeGen.builder().emitSanityIntDivision(leftReg, rightReg, opBits);
 

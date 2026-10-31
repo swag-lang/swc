@@ -135,7 +135,6 @@ protected:
     void                   setFileNamespace(SymbolNamespace& ns) { fileNamespace_ = &ns; }
 
     bool                 hasConstant(const TaskContext& ctx, AstNodeRef nodeRef) const;
-    const ConstantValue& getConstant(const TaskContext& ctx, AstNodeRef nodeRef) const;
     ConstantRef          getConstantRef(const TaskContext& ctx, AstNodeRef nodeRef) const;
     void                 setConstant(AstNodeRef nodeRef, ConstantRef ref);
     void                 clearConstant(AstNodeRef nodeRef);
@@ -200,7 +199,6 @@ protected:
     void  setInlinePayload(AstNodeRef nodeRef, void* payload);
     void* getInlinePayload(AstNodeRef nodeRef) const;
 
-    bool  hasInlineContextOverride(AstNodeRef nodeRef) const;
     void  setInlineContextOverride(AstNodeRef nodeRef, void* payload);
     void* getInlineContextOverride(AstNodeRef nodeRef) const;
     void  getInlineContext(AstNodeRef nodeRef, void*& outPayload, void*& outOverride) const;

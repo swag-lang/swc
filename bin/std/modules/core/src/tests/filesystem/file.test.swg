@@ -1,7 +1,7 @@
 #global if #command == Swag.CompilerCommand.Test
 #global private
 
-using Swag
+using Swag, Core.Errors
 
 // Live readers leave no idle handle and follow replacements without losing their cursor.
 #test
@@ -152,6 +152,12 @@ using Swag
     expect stream.skip(0x8000_0000)
     Swag.assert(expect stream.position() == 0x1_0000_0000)
     Swag.assert(expect stream.size() == 0)
+
+    let previousPosition = expect stream.position()
+    var overflowOutcome: Swag.Error
+    discard catch stream.skip(Swag.U64.Max) as overflowOutcome
+    Swag.assert(overflowOutcome.value() is BadParameterError)
+    Swag.assert(expect stream.position() == previousPosition)
 }
 
 #test

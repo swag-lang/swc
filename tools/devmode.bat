@@ -17,7 +17,8 @@ if not defined MSBUILD (
 )
 
 pushd "%~dp0.."
-"%MSBUILD%" swc.sln /m:3 /p:Configuration=DevMode /p:Platform=x64 /p:SwcCompileJobs=3
+set "CL=%CL% /cgthreads1"
+"%MSBUILD%" swc.sln /m:1 /p:Configuration=DevMode /p:Platform=x64 /p:SwcCompileJobs=3
 set "BUILD_EXIT=%ERRORLEVEL%"
 popd
 

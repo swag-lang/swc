@@ -28,6 +28,14 @@ namespace
     }
 }
 
+SWC_TEST_BEGIN(ValueNumbering_EmptyStreamIsUnchanged)
+{
+    MicroBuilder builder(ctx);
+    SWC_RESULT(runValueNumberingPass(builder));
+    return builder.instructions().count() == 0 ? Result::Continue : Result::Error;
+}
+SWC_TEST_END()
+
 // Two identical adds on the same values: the second becomes a plain copy.
 SWC_TEST_BEGIN(ValueNumbering_DedupIdenticalCompute)
 {

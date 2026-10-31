@@ -708,6 +708,8 @@ Result MicroValueNumberingPass::run(MicroPassContext& context)
 
     MicroStorage&        storage  = *context.instructions;
     MicroOperandStorage& operands = *context.operands;
+    if (storage.count() == 0)
+        return Result::Continue;
 
     if (!context.builder)
         return Result::Continue;

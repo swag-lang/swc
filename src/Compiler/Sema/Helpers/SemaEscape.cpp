@@ -4895,11 +4895,6 @@ namespace SemaEscape
         }
     }
 
-    bool typeCanCarryBorrow(Sema& sema, TypeRef typeRef)
-    {
-        return typeCanCarryBorrowImpl(sema, typeRef);
-    }
-
     Result checkVariableInitializer(Sema& sema, const SymbolVariable& symVar, AstNodeRef initRef, TypeRef targetTypeRef)
     {
         if (symVar.hasExtraFlag(SymbolVariableFlagsE::Parameter) || symVar.isClosureCapture())

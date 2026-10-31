@@ -251,7 +251,6 @@ public:
     Runtime::BuildCfgBackendKind    buildCfgBackendKind() const { return buildCfg().backendKind; }
     bool                            isDebugInfoEnabled() const { return buildCfgBackend().debugInfo; }
     bool                            isNativeBuild() const { return Runtime::backendKindProducesNativeArtifact(buildCfgBackendKind()); }
-    bool                            isNativeExecutableBuild() const { return buildCfgBackendKind() == Runtime::BuildCfgBackendKind::Executable; }
 
     ConstantManager&         cstMgr();
     const ConstantManager&   cstMgr() const;
@@ -304,17 +303,9 @@ public:
 
     SemaNodeView curView() { return view(curNodeRef()); }
     SemaNodeView curView(EnumFlags<SemaNodeViewPartE> part) { return view(curNodeRef(), part); }
-    SemaNodeView curViewZero() { return curView(SemaNodeViewPartE::Zero); }
-    SemaNodeView curViewNode() { return curView(SemaNodeViewPartE::Node); }
     SemaNodeView curViewType() { return curView(SemaNodeViewPartE::Type); }
     SemaNodeView curViewConstant() { return curView(SemaNodeViewPartE::Constant); }
     SemaNodeView curViewSymbol() { return curView(SemaNodeViewPartE::Symbol); }
-    SemaNodeView curViewTypeConstant() { return curView(SemaNodeViewPartE::Type | SemaNodeViewPartE::Constant); }
-    SemaNodeView curViewTypeSymbol() { return curView(SemaNodeViewPartE::Type | SemaNodeViewPartE::Symbol); }
-    SemaNodeView curViewNodeType() { return curView(SemaNodeViewPartE::Node | SemaNodeViewPartE::Type); }
-    SemaNodeView curViewNodeTypeConstant() { return curView(SemaNodeViewPartE::Node | SemaNodeViewPartE::Type | SemaNodeViewPartE::Constant); }
-    SemaNodeView curViewNodeTypeSymbol() { return curView(SemaNodeViewPartE::Node | SemaNodeViewPartE::Type | SemaNodeViewPartE::Symbol); }
-    SemaNodeView curViewNodeTypeConstantSymbol() { return curView(SemaNodeViewPartE::Node | SemaNodeViewPartE::Type | SemaNodeViewPartE::Constant | SemaNodeViewPartE::Symbol); }
 
     const CodeGenLoweringPayload* loweringPayload(AstNodeRef nodeRef) const;
     const SymbolVariable*         runtimeStorageSymbol(AstNodeRef nodeRef) const;

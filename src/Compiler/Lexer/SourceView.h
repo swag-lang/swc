@@ -69,16 +69,11 @@ public:
     uint32_t                     numTokens() const { return static_cast<uint32_t>(tokens_.size()); }
     const std::vector<uint32_t>& triviaStart() const { return triviaStart_; }
     std::vector<uint32_t>&       triviaStart() { return triviaStart_; }
-    bool                         hasParseFlag(SourceViewFlagsE flag) const { return parseFlags_.has(flag); }
-    void                         addParseFlag(SourceViewFlagsE flag) { parseFlags_.add(flag); }
     void                         clearParseFlags() { parseFlags_.clear(); }
     bool                         mustSkip() const { return parseFlags_.has(SourceViewFlagsE::MustSkip); }
     void                         setMustSkip() { parseFlags_.add(SourceViewFlagsE::MustSkip); }
-    bool                         isLexOnly() const { return parseFlags_.has(SourceViewFlagsE::LexOnly); }
     void                         setLexOnly() { parseFlags_.add(SourceViewFlagsE::LexOnly); }
-    bool                         isSyntaxOnly() const { return parseFlags_.has(SourceViewFlagsE::SyntaxOnly); }
     void                         setSyntaxOnly() { parseFlags_.add(SourceViewFlagsE::SyntaxOnly); }
-    bool                         isSemaOnly() const { return parseFlags_.has(SourceViewFlagsE::SemaOnly); }
     void                         setSemaOnly() { parseFlags_.add(SourceViewFlagsE::SemaOnly); }
     bool                         runsParser() const { return parseFlags_.hasNot(SourceViewFlagsE::LexOnly); }
     bool                         runsSema() const { return runsParser() && parseFlags_.hasNot(SourceViewFlagsE::SyntaxOnly); }

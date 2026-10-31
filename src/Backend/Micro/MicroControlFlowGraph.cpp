@@ -123,19 +123,28 @@ void MicroControlFlowGraph::build(const MicroStorage& storage, const MicroOperan
     supportsDeadCodeLiveness_                = true;
     hasLoop_                                 = false;
     instructionRefs_.reserve(instructionCount);
+    bool hasControlFlowInstruction = false;
+    bool previousFallsThrough      = false;
 
     for (auto it = storage.view().begin(), endIt = storage.view().end(); it != endIt; ++it)
     {
         const uint32_t instructionIndex = static_cast<uint32_t>(instructionRefs_.size());
-        // No edges are read or added until the second walk. Clear their lists
-        // here to avoid separate sweeps, retaining overflow storage for joins.
         successors_[instructionIndex].clear();
         predecessors_[instructionIndex].clear();
+        if (instructionIndex && previousFallsThrough)
+            addEdge(instructionIndex - 1, instructionIndex);
         instructionRefs_.push_back(it.current);
         maxSlot_               = std::max(maxSlot_, it.current.get());
-        const MicroInstr& inst = *it;
+        const MicroInstr&    inst = *it;
+        const MicroInstrDef& info = MicroInstr::info(inst.op);
         if ((inst.op == MicroInstrOpcode::JumpReg && inst.numOperands < 2) || inst.op == MicroInstrOpcode::JumpCondImm)
             hasUnsupportedControlFlowForCfgLiveness_ = true;
+        hasControlFlowInstruction |= inst.op == MicroInstrOpcode::Label || inst.op == MicroInstrOpcode::LoadLabelAddress ||
+                                     info.flags.has(MicroInstrFlagsE::JumpInstruction);
+        if (MicroInstrInfo::isTerminatorInstruction(inst) && inst.op != MicroInstrOpcode::Ret && inst.op != MicroInstrOpcode::Trap &&
+            !info.flags.has(MicroInstrFlagsE::JumpInstruction))
+            supportsDeadCodeLiveness_ = false;
+        previousFallsThrough = !MicroInstrInfo::isTerminatorInstruction(inst);
 
         if (inst.op == MicroInstrOpcode::Label)
         {
@@ -155,6 +164,17 @@ void MicroControlFlowGraph::build(const MicroStorage& storage, const MicroOperan
                 labelToInstructionIndex_[labelIndex] = instructionIndex;
             }
         }
+    }
+
+    if (!hasControlFlowInstruction)
+        return;
+
+    // The first walk added only fallthrough edges. Discard them before the
+    // full control-flow walk adds branch targets and conditional fallthroughs.
+    for (uint32_t index = 0; index < instructionRefs_.size(); ++index)
+    {
+        successors_[index].clear();
+        predecessors_[index].clear();
     }
 
     uint32_t instructionIndex = 0;

@@ -189,6 +189,8 @@ Result MicroWebRenamePass::run(MicroPassContext& context)
 {
     if (!context.builder || !context.instructions || !context.operands)
         return Result::Continue;
+    if (context.instructions->count() == 0)
+        return Result::Continue;
 
     bool hasVirtualFloat = false;
     if (preserveRepeatedLoads(context, hasVirtualFloat))

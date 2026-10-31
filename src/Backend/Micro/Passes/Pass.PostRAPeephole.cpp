@@ -745,14 +745,42 @@ namespace
 
         MicroStorage&        storage  = *context.instructions;
         MicroOperandStorage& operands = *context.operands;
-        const auto&          cfg      = context.builder->controlFlowGraph();
+        const MicroReg       stack    = CallConv::get(context.callConvKind).stackPointer;
+
+        // An indexed access through the stack pointer can name any slot. Find
+        // possible spill stores in the same scan so empty functions can return
+        // before allocating the per-instruction walk state below.
+        bool hasSpillStoreCandidate = false;
+        for (const MicroInstr& inst : storage.view())
+        {
+            if (inst.op == MicroInstrOpcode::LoadMemReg)
+            {
+                const auto* saved = inst.ops(operands);
+                if (saved && saved[0].reg == stack && (saved[2].opBits == MicroOpBits::B64 || saved[2].opBits == MicroOpBits::B128))
+                {
+                    const uint64_t slotSize = getNumBytes(saved[2].opBits);
+                    hasSpillStoreCandidate |= saved[3].valueU64 >= context.spillAreaLo && saved[3].valueU64 <= context.spillAreaHi &&
+                                              slotSize <= context.spillAreaHi - saved[3].valueU64;
+                }
+            }
+            MicroPassHelpers::AmcLayout layout;
+            if (!MicroPassHelpers::amcLayoutFor(layout, inst.op))
+                continue;
+            const auto* ops = inst.ops(operands);
+            if (!ops || ops[layout.baseIdx].reg == stack || ops[layout.indexIdx].reg == stack)
+                return false;
+        }
+        if (!hasSpillStoreCandidate)
+            return false;
+
+        const auto& cfg = context.builder->controlFlowGraph();
         if (!cfg.supportsDeadCodeLiveness() || cfg.hasUnsupportedControlFlowForCfgLiveness())
             return false;
 
-        const auto     refs  = cfg.instructionRefs();
-        const MicroReg stack = CallConv::get(context.callConvKind).stackPointer;
+        const auto refs = cfg.instructionRefs();
         if (refs.empty())
             return false;
+
         std::optional<FlatKeyMap<uint64_t>> stackOffsets;
         std::optional<FlatKeySet>           registerOnlyCalls;
         const auto                          absoluteOffset = [&](uint32_t index, uint64_t displacement) -> std::optional<int64_t> {
@@ -767,35 +795,6 @@ namespace
                 return std::nullopt;
             return signedDelta + signedDisplacement;
         };
-
-        // An indexed access through the stack pointer can name any slot. Find
-        // possible spill stores in the same scan so empty functions can return
-        // before allocating the per-instruction walk state below.
-        bool hasSpillStoreCandidate = false;
-        for (uint32_t index = 0; index < refs.size(); ++index)
-        {
-            const MicroInstr* inst = storage.ptr(refs[index]);
-            if (!inst)
-                return false;
-            if (inst->op == MicroInstrOpcode::LoadMemReg)
-            {
-                const auto* saved = inst->ops(operands);
-                if (saved && saved[0].reg == stack && (saved[2].opBits == MicroOpBits::B64 || saved[2].opBits == MicroOpBits::B128))
-                {
-                    const uint64_t slotSize = getNumBytes(saved[2].opBits);
-                    hasSpillStoreCandidate |= saved[3].valueU64 >= context.spillAreaLo && saved[3].valueU64 <= context.spillAreaHi &&
-                                              slotSize <= context.spillAreaHi - saved[3].valueU64;
-                }
-            }
-            MicroPassHelpers::AmcLayout layout;
-            if (!MicroPassHelpers::amcLayoutFor(layout, inst->op))
-                continue;
-            const auto* ops = inst->ops(operands);
-            if (!ops || ops[layout.baseIdx].reg == stack || ops[layout.indexIdx].reg == stack)
-                return false;
-        }
-        if (!hasSpillStoreCandidate)
-            return false;
 
         enum class SlotAccess : uint8_t
         {

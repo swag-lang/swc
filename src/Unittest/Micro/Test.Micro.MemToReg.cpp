@@ -35,6 +35,29 @@ namespace
 
 }
 
+SWC_TEST_BEGIN(MemToReg_NoFrameSlotsIsUnchanged)
+{
+    constexpr MicroReg value = MicroReg::virtualIntReg(1);
+    MicroBuilder      builder(ctx);
+    builder.emitLoadRegImm(value, ApInt(1, 64), MicroOpBits::B64);
+    const auto load = builder.instructions().lastInstructionRef();
+    builder.emitOpBinaryRegImm(value, ApInt(2, 64), MicroOp::Add, MicroOpBits::B64);
+    const auto add = builder.instructions().lastInstructionRef();
+    builder.emitRet();
+    const auto ret = builder.instructions().lastInstructionRef();
+
+    SWC_RESULT(runMemToRegPass(builder));
+
+    const MicroInstr* loadInst = builder.instructions().ptr(load);
+    const MicroInstr* addInst  = builder.instructions().ptr(add);
+    const MicroInstr* retInst  = builder.instructions().ptr(ret);
+    if (builder.instructions().count() != 3 || !loadInst || loadInst->op != MicroInstrOpcode::LoadRegImm || !addInst ||
+        addInst->op != MicroInstrOpcode::OpBinaryRegImm || !retInst || retInst->op != MicroInstrOpcode::Ret)
+        return Result::Error;
+    return Result::Continue;
+}
+SWC_TEST_END()
+
 // A frame slot only ever reached as the constant-offset base of scalar
 // accesses promotes to a virtual register: the immediate store becomes a
 // register immediate, the load becomes a copy.

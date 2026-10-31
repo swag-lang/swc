@@ -268,7 +268,6 @@ public:
     const Runtime::BuildCfgBackend& buildCfgBackend() const { return buildCfg().backend; }
     Runtime::BuildCfgBackendKind    buildCfgBackendKind() const { return buildCfg().backendKind; }
     bool                            isNativeBuild() const { return Runtime::backendKindProducesNativeArtifact(buildCfgBackendKind()); }
-    bool                            isNativeExecutableBuild() const { return buildCfgBackendKind() == Runtime::BuildCfgBackendKind::Executable; }
 
     SymbolFunction*       currentFunction() { return frame().currentFunction(); }
     const SymbolFunction* currentFunction() const { return frame().currentFunction(); }
@@ -414,17 +413,10 @@ public:
     SemaNodeView curView();
     SemaNodeView curView(EnumFlags<SemaNodeViewPartE> part);
 
-    SemaNodeView curViewZero() { return curView(SemaNodeViewPartE::Zero); }
-    SemaNodeView curViewNode() { return curView(SemaNodeViewPartE::Node); }
     SemaNodeView curViewType() { return curView(SemaNodeViewPartE::Type); }
     SemaNodeView curViewConstant() { return curView(SemaNodeViewPartE::Constant); }
     SemaNodeView curViewSymbol() { return curView(SemaNodeViewPartE::Symbol); }
-    SemaNodeView curViewTypeConstant() { return curView(SemaNodeViewPartE::Type | SemaNodeViewPartE::Constant); }
-    SemaNodeView curViewTypeSymbol() { return curView(SemaNodeViewPartE::Type | SemaNodeViewPartE::Symbol); }
-    SemaNodeView curViewNodeType() { return curView(SemaNodeViewPartE::Node | SemaNodeViewPartE::Type); }
     SemaNodeView curViewNodeTypeConstant() { return curView(SemaNodeViewPartE::Node | SemaNodeViewPartE::Type | SemaNodeViewPartE::Constant); }
-    SemaNodeView curViewNodeTypeSymbol() { return curView(SemaNodeViewPartE::Node | SemaNodeViewPartE::Type | SemaNodeViewPartE::Symbol); }
-    SemaNodeView curViewNodeTypeConstantSymbol() { return curView(SemaNodeViewPartE::Node | SemaNodeViewPartE::Type | SemaNodeViewPartE::Constant | SemaNodeViewPartE::Symbol); }
 
     void setType(AstNodeRef n, TypeRef ref) { nodePayloadContext().setType(n, ref); }
     void setConstant(AstNodeRef n, ConstantRef ref) { nodePayloadContext().setConstant(n, ref); }

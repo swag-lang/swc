@@ -553,7 +553,6 @@ public:
     void                                      setGlobalsToDropScratchLayout(uint32_t offset, uint32_t size, std::span<const CodeGenGlobalToDropEntry> entries);
     bool                                      hasGlobalsToDropScratchLayout() const { return globalsToDropScratchSize_ != 0; }
     uint32_t                                  globalsToDropScratchOffset() const { return globalsToDropScratchOffset_; }
-    uint32_t                                  globalsToDropScratchSize() const { return globalsToDropScratchSize_; }
     std::span<const CodeGenGlobalToDropEntry> globalsToDropScratchEntries() const { return globalsToDropScratchEntries_; }
 
     void pushFrame(const CodeGenFrame& frame);

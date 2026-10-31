@@ -1,7 +1,6 @@
 #include "pch.h"
 #include "Backend/Micro/Passes/Pass.SinkToUse.h"
 #include "Backend/Micro/MicroBuilder.h"
-#include "Backend/Micro/MicroControlFlowGraph.h"
 #include "Backend/Micro/MicroDenseRegIndex.h"
 #include "Backend/Micro/MicroInstr.h"
 #include "Backend/Micro/MicroOptimizationLimits.h"
@@ -47,6 +46,7 @@ namespace
 
     struct SinkScratch
     {
+        std::vector<MicroInstrRef>    instructionRefs;
         std::vector<uint32_t>         blockIds;
         std::vector<MicroInstrUseDef> useDefs;
         MicroDenseRegIndex            virtualRegs;
@@ -159,12 +159,16 @@ namespace
         MicroStorage&        storage  = *context.instructions;
         MicroOperandStorage& operands = *context.operands;
 
-        const MicroControlFlowGraph& cfg = context.builder->controlFlowGraph();
-        const uint32_t               n   = cfg.instructionCount();
+        auto& instructionRefs = sinkScratch.instructionRefs;
+        instructionRefs.clear();
+        instructionRefs.reserve(storage.count());
+        for (auto it = storage.view().begin(), endIt = storage.view().end(); it != endIt; ++it)
+            instructionRefs.push_back(it.current);
+
+        const uint32_t n = static_cast<uint32_t>(instructionRefs.size());
         if (!n)
             return false;
 
-        const auto instrRefs = cfg.instructionRefs();
         auto&      scratch   = sinkScratch;
 
         // Block ids from the linear listing: a label opens a block, a
@@ -183,7 +187,7 @@ namespace
             bool     openBlock = true;
             for (uint32_t i = 0; i < n; ++i)
             {
-                const MicroInstr* inst = storage.ptr(instrRefs[i]);
+                const MicroInstr* inst = storage.ptr(instructionRefs[i]);
                 if (!inst)
                     return false;
                 // Release the old backing stores before filling this entry directly.
@@ -235,7 +239,7 @@ namespace
 
         for (uint32_t i = 0; i < n; ++i)
         {
-            const MicroInstr* inst = storage.ptr(instrRefs[i]);
+            const MicroInstr* inst = storage.ptr(instructionRefs[i]);
             if (!inst || scratch.foldedConsumers.contains(i))
                 continue;
 
@@ -256,7 +260,7 @@ namespace
                 (useIdx == i + 1 && inst->op != MicroInstrOpcode::LoadAddrRegMem))
                 continue;
             const MicroInstrOperand*    ops      = inst->ops(operands);
-            const MicroInstr*           consumer = storage.ptr(instrRefs[useIdx]);
+            const MicroInstr*           consumer = storage.ptr(instructionRefs[useIdx]);
             MicroPassHelpers::AmcLayout layout;
             bool                        foldAddress  = false;
             uint64_t                    displacement = 0;
@@ -293,7 +297,7 @@ namespace
                         ++context.optimizerStats->activePass->ssaBuilds;
                     addressSsaReady = true;
                 }
-                if (!addressSsa.sameValueAt(ops[1].reg, instrRefs[i], instrRefs[useIdx]))
+                if (!addressSsa.sameValueAt(ops[1].reg, instructionRefs[i], instructionRefs[useIdx]))
                     continue;
             }
 
@@ -306,7 +310,7 @@ namespace
                 }
                 relocationsReady = true;
             }
-            if (scratch.relocationRefs.contains(instrRefs[i].get()))
+            if (scratch.relocationRefs.contains(instructionRefs[i].get()))
                 continue;
 
             // Nothing between the definition and its consumer may redefine
@@ -321,7 +325,7 @@ namespace
             bool       meaningfulGap = false;
             for (uint32_t k = i + 1; !crossesBlocks && k < useIdx && !blocked; ++k)
             {
-                const MicroInstr*       between       = storage.ptr(instrRefs[k]);
+                const MicroInstr*       between       = storage.ptr(instructionRefs[k]);
                 const MicroInstrUseDef* betweenUseDef = &scratch.useDefs[k];
                 if (!between)
                 {
@@ -375,8 +379,8 @@ namespace
             {
                 const auto* consumerOps = consumer->ops(operands);
                 Move        fold;
-                fold.ref         = instrRefs[i];
-                fold.beforeRef   = instrRefs[useIdx];
+                fold.ref         = instructionRefs[i];
+                fold.beforeRef   = instructionRefs[useIdx];
                 fold.foldAddress = true;
                 fold.ops.assign(consumerOps, consumerOps + consumer->numOperands);
                 fold.ops[layout.baseIdx].reg     = ops[1].reg;
@@ -390,8 +394,8 @@ namespace
                 continue;
 
             Move move;
-            move.ref       = instrRefs[i];
-            move.beforeRef = instrRefs[useIdx];
+            move.ref       = instructionRefs[i];
+            move.beforeRef = instructionRefs[useIdx];
             move.op        = inst->op;
             if (ops && inst->numOperands)
                 move.ops.assign(ops, ops + inst->numOperands);

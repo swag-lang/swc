@@ -36,6 +36,33 @@ SWC_TEST_BEGIN(SinkToUse_MovesDefinitionToItsConsumer)
 }
 SWC_TEST_END()
 
+SWC_TEST_BEGIN(SinkToUse_StraightlineDoesNotBuildCfg)
+{
+    constexpr MicroReg value  = MicroReg::virtualIntReg(1);
+    constexpr MicroReg other  = MicroReg::virtualIntReg(2);
+    constexpr MicroReg result = MicroReg::virtualIntReg(3);
+    MicroBuilder       builder(ctx);
+
+    builder.emitLoadRegImm(value, ApInt(7, 64), MicroOpBits::B64);
+    builder.emitLoadRegImm(other, ApInt(2, 64), MicroOpBits::B64);
+    builder.emitOpBinaryRegImm(other, ApInt(1, 64), MicroOp::Add, MicroOpBits::B64);
+    builder.emitLoadRegReg(result, value, MicroOpBits::B64);
+    builder.emitRet();
+
+    const uint64_t cfgBuildId = builder.controlFlowGraphBuildId();
+    MicroSinkToUsePass pass;
+    MicroPassContext   context;
+    context.builder      = &builder;
+    context.instructions = &builder.instructions();
+    context.operands     = &builder.operands();
+    context.callConvKind = CallConvKind::Swag;
+    SWC_RESULT(pass.run(context));
+    if (builder.controlFlowGraphBuildId() != cfgBuildId)
+        return Result::Error;
+    return Result::Continue;
+}
+SWC_TEST_END()
+
 SWC_TEST_BEGIN(SinkToUse_LoadCannotCrossBaseRedefinition)
 {
     constexpr MicroReg base   = MicroReg::virtualIntReg(1);

@@ -261,13 +261,6 @@ bool NodePayload::hasConstant(const TaskContext& ctx, AstNodeRef nodeRef) const
     return cstRef.isValid();
 }
 
-const ConstantValue& NodePayload::getConstant(const TaskContext& ctx, AstNodeRef nodeRef) const
-{
-    const ConstantRef cstRef = getConstantRef(ctx, nodeRef);
-    SWC_ASSERT(cstRef.isValid());
-    return ctx.cstMgr().get(cstRef);
-}
-
 ConstantRef NodePayload::getConstantRef(const TaskContext& ctx, AstNodeRef nodeRef) const
 {
     if (nodeRef.isInvalid())
@@ -810,11 +803,6 @@ void* NodePayload::getInlinePayload(AstNodeRef nodeRef) const
         return nullptr;
 
     return findSharedPayload(shard->inlinePayloads, shard->inlinePayloadsMutex, shard->inlinePayloadsCount, nodeRef);
-}
-
-bool NodePayload::hasInlineContextOverride(AstNodeRef nodeRef) const
-{
-    return getInlineContextOverride(nodeRef) != nullptr;
 }
 
 void NodePayload::setInlineContextOverride(AstNodeRef nodeRef, void* payload)

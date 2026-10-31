@@ -1079,6 +1079,53 @@ const LibraryGoldenTitles = ["Side panel", "Error bubble", "Swag lexer", "Dark e
     Pixel.Testing.assertImageGolden(&image, "library.surface")
 }
 
+// The Library lens paints a selected rating with the theme's filled star glyph.
+#[Swag.TestTag("golden")]
+#test
+{
+    var host: Gui.Testing.HeadlessHost
+    let main = testSetupLibrarySurface(&host)
+    defer
+    {
+        main.libWnd.requestClose()
+        host.shutdown()
+        g_Main = null
+    }
+
+    let capture = testAddLibraryItem(main.libWnd.view, "rating.scc", 1000, 22)
+    capture.capture!.rating = 3
+    main.libWnd.view.selModel.select(0)
+    main.libWnd.view.focusItem = 0
+    main.lens.open()
+    var ratingRow = Swag.U64.Max
+    var steps = 0'u64
+    for row, index in main.lens.rows
+    {
+        if row.entry == Lens.InlineRow and row.section.label == appStrings().act_Rating
+        {
+            ratingRow = index
+            break
+        }
+        if row.entry == Lens.InlineRow or row.entry < row.section.entries.count do
+            steps += 1
+    }
+    Swag.assert(ratingRow != Swag.U64.Max)
+    for steps do
+        host.keyPress(.Down)
+    Swag.assert(main.lens.chosen == ratingRow)
+    host.finishAnimations()
+
+    var rating: *Lens.Section?
+    for section in main.lens.results.sections where section and section.label == appStrings().act_Rating do
+        rating = section
+    Swag.assert(rating and rating.entries[3].paint != null)
+
+    var image = host.render(main)
+    Pixel.Testing.assertImageGolden(&image, "library.lens.rating")
+    main.lens.close()
+    host.finishAnimations()
+}
+
 // The quiet menus of the library open their sheet or their menu joined to the word that opened it.
 #[Swag.TestTag("golden")]
 #test

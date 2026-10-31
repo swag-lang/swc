@@ -1024,6 +1024,36 @@ SWC_TEST_BEGIN(PostRAPeephole_ErasesReloadOnlyOnProvenGuardEdges)
 }
 SWC_TEST_END()
 
+SWC_TEST_BEGIN(PostRAPeephole_KeepsReloadForOutOfOrderAddressTakenLabels)
+{
+    MicroBuilder      builder(ctx);
+    X64Encoder        encoder(ctx);
+    const MicroReg    value       = MicroReg::intReg(0);
+    const MicroReg    base        = MicroReg::intReg(7);
+    const MicroLabelRef first     = builder.createLabel();
+    const MicroLabelRef addressed = builder.createLabel();
+
+    // The CFG records targets in LoadLabelAddress order, which is not their
+    // instruction order here. Membership must still protect `addressed`.
+    builder.emitLoadLabelAddress(MicroReg::intReg(6), addressed);
+    builder.emitLoadLabelAddress(MicroReg::intReg(6), first);
+    builder.emitLoadRegMem(value, base, 8, MicroOpBits::B64);
+    builder.emitCmpRegImm(value, ApInt(0, 64), MicroOpBits::B64);
+    builder.emitJumpToLabel(MicroCond::NotEqual, MicroOpBits::B32, addressed);
+    builder.emitClearReg(value, MicroOpBits::B64);
+    builder.emitRet();
+    builder.placeLabel(first);
+    builder.emitRet();
+    builder.placeLabel(addressed);
+    builder.emitLoadRegMem(value, base, 8, MicroOpBits::B64);
+    const auto reload = builder.instructions().lastInstructionRef();
+    builder.emitRet();
+
+    SWC_RESULT(runPostRaPeepholePass(builder, &encoder));
+    return builder.instructions().ptr(reload) ? Result::Continue : Result::Error;
+}
+SWC_TEST_END()
+
 SWC_TEST_BEGIN(PostRAPeephole_ForwardsPrivateFrameReloadAcrossBranches)
 {
     constexpr MicroReg localBase = MicroReg::intReg(3);

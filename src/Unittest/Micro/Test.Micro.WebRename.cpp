@@ -27,6 +27,15 @@ namespace
     }
 }
 
+SWC_TEST_BEGIN(WebRename_EmptyStreamIsUnchanged)
+{
+    MicroBuilder builder(ctx);
+    X64Encoder   encoder(ctx);
+    SWC_RESULT(renameWebs(builder, encoder));
+    return builder.instructions().count() == 0 ? Result::Continue : Result::Error;
+}
+SWC_TEST_END()
+
 SWC_TEST_BEGIN(WebRename_SplitsOnlyStoredValuesHiddenByRegisterReuse)
 {
     for (uint32_t variant = 0; variant < 4; ++variant)

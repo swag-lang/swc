@@ -90,6 +90,14 @@ namespace
     }
 }
 
+SWC_TEST_BEGIN(StrengthReduction_EmptyStreamIsUnchanged)
+{
+    MicroBuilder builder(ctx);
+    SWC_RESULT(Backend::Unittest::runMicroPass<MicroStrengthReductionPass>(builder));
+    return builder.instructions().count() == 0 ? Result::Continue : Result::Error;
+}
+SWC_TEST_END()
+
 // mul r, 8 -> shl r, 3
 SWC_TEST_BEGIN(StrengthReduction_MultiplyPowerOfTwo)
 {

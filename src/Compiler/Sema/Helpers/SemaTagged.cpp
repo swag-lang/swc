@@ -7,6 +7,7 @@
 #include "Compiler/Sema/Core/Sema.h"
 #include "Compiler/Sema/Core/SemaNodeView.h"
 #include "Compiler/Sema/Helpers/SemaError.h"
+#include "Compiler/Sema/Helpers/SemaEscape.h"
 #include "Compiler/Sema/Helpers/SemaHelpers.h"
 #include "Compiler/Sema/Symbol/Symbol.Enum.h"
 #include "Compiler/Sema/Symbol/Symbol.Struct.h"
@@ -297,6 +298,9 @@ void SemaTagged::noteAssignedCase(Sema& sema, AstNodeRef leftRef, AstNodeRef rig
     const SymbolStruct* tagged      = unionOf(sema.ctx(), leftTypeRef);
     if (!tagged && (!sema.anyFrameHasNarrowFacts() || !sema.typeMgr().get(leftTypeRef).unwrapAliasTypeOrSelf(sema.ctx()).isStruct()))
         return;
+
+    if (tagged)
+        SemaEscape::noteTaggedUnionAssignment(sema, sema.curNodeRef(), leftRef);
 
     SmallVector4<const Symbol*> path;
     if (!SemaHelpers::extractNarrowPath(sema, leftRef, path))

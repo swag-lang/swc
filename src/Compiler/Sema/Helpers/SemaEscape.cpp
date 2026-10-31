@@ -5269,7 +5269,7 @@ namespace SemaEscape
     // after the mutation (for example, reading v after 'v = s; s.append(...)').
     namespace
     {
-        void recordBorrowInvalidation(Sema& sema, AstNodeRef callRef, const SymbolFunction& calledFn, const SemaEscapeProjection& mutationProjection)
+        void recordBorrowInvalidation(Sema& sema, AstNodeRef callRef, const SymbolFunction* calledFn, const SemaEscapeProjection& mutationProjection, bool replacesTaggedPayload)
         {
             const SymbolVariable* root = mutationProjection.root;
 
@@ -5290,7 +5290,7 @@ namespace SemaEscape
 
             // Only owning payloads can move or be freed here. Views of a plain aggregate
             // survive changes to its fields because there is no payload to reallocate.
-            if (!designatedStorageHasOwningLifecycle(sema, root->typeRef()))
+            if (!replacesTaggedPayload && !designatedStorageHasOwningLifecycle(sema, root->typeRef()))
                 return;
 
             for (const auto& [viewVar, info] : sema.variableEscapeInfos())
@@ -5311,13 +5311,15 @@ namespace SemaEscape
                 SemaBorrowInvalidation record;
                 record.viewVar                 = viewVar;
                 record.sourceVar               = root;
-                record.callee                  = &calledFn;
+                record.callee                  = calledFn;
+                record.alwaysInvalidated       = replacesTaggedPayload;
                 record.bodyRef                 = currentAnalysisBodyRef(sema);
                 record.mutationRef             = callRef;
                 record.mutationRange           = mutationRange;
                 record.evaluationEndOffset     = evaluationEndSpan;
                 const AstNode& mutation        = sema.node(callRef);
-                record.mutationName            = mutation.is(AstNodeId::ErrorManagementExpr) || mutation.is(AstNodeId::ErrorManagementStmt) ? std::string_view("catch") : calledFn.name(sema.ctx());
+                record.mutationName            = mutation.is(AstNodeId::ErrorManagementExpr) || mutation.is(AstNodeId::ErrorManagementStmt) ? std::string_view("catch") : calledFn ? calledFn->name(sema.ctx())
+                                                                                                                                                                                   : std::string_view("assignment");
                 record.borrowedPayloadField    = borrowedField ? borrowedField : (ownedPayloadProjection(sema, info, sourceProjection) ? firstProjectionField(sourceProjection) : nullptr);
                 record.receiverProjectionField = firstProjectionField(mutationProjection);
 
@@ -5339,7 +5341,7 @@ namespace SemaEscape
             return;
         SemaEscapeProjection projection;
         if (mutatedReceiverProjection(sema, callRef, projection))
-            recordBorrowInvalidation(sema, callRef, calledFn, projection);
+            recordBorrowInvalidation(sema, callRef, &calledFn, projection, false);
     }
 
     void noteBorrowInvalidation(Sema& sema, AstNodeRef mutationRef, AstNodeRef ownerAddressRef, const SymbolFunction& calledFn)
@@ -5355,7 +5357,7 @@ namespace SemaEscape
         normalizeProjectionRoot(sema, projection);
         if (!projection.root)
             return;
-        recordBorrowInvalidation(sema, mutationRef, calledFn, projection);
+        recordBorrowInvalidation(sema, mutationRef, &calledFn, projection, false);
 
         // Capturing through a caller-owned place replaces its payload on both paths.
         // Publish that effect even though the runtime call is implicit in the AST.
@@ -5369,6 +5371,17 @@ namespace SemaEscape
             else
                 function->addReallocatesParam(index);
         }
+    }
+
+    void noteTaggedUnionAssignment(Sema& sema, AstNodeRef mutationRef, AstNodeRef unionRef)
+    {
+        SemaEscapeProjection projection;
+        if (!storageProjection(sema, unionRef, projection))
+            return;
+
+        normalizeProjectionRoot(sema, projection);
+        if (projection.root)
+            recordBorrowInvalidation(sema, mutationRef, nullptr, projection, true);
     }
 
     Result reportBorrowInvalidations(Sema& sema, AstNodeRef declRef)
@@ -5416,6 +5429,7 @@ namespace SemaEscape
             check.callee                  = record.callee;
             check.paramIndex              = 0; // the receiver
             check.judgeReallocates        = true;
+            check.alwaysInvalidated       = record.alwaysInvalidated;
             check.borrowedPayloadField    = record.borrowedPayloadField;
             check.receiverProjectionField = record.receiverProjectionField;
             check.detachedPayloadFields   = std::move(record.detachedPayloadFields);
@@ -6278,7 +6292,7 @@ namespace SemaEscape
         const SemaEscapeDeferredCheck* previous = nullptr;
         for (const SemaEscapeDeferredCheck& check : checks)
         {
-            if (!check.callee)
+            if (!check.callee && !check.alwaysInvalidated)
                 continue;
 
             // A site can be recorded once per escape route; a re-run sema node must
@@ -6301,11 +6315,11 @@ namespace SemaEscape
             previous = &check;
 
             DiagnosticId diagId = check.diagId;
-            if (check.judgeReallocates)
+            if (check.judgeReallocates && !check.alwaysInvalidated)
             {
                 // A method that cannot move or release what its receiver owns leaves
                 // every view into that payload valid.
-                if (!((check.callee->reallocatesParamsMask() >> check.paramIndex) & 1))
+                if (!check.alwaysInvalidated && !((check.callee->reallocatesParamsMask() >> check.paramIndex) & 1))
                     continue;
 
                 // An accessor exposes the payload; identity wrappers can forward
@@ -6385,6 +6399,10 @@ namespace SemaEscape
                     if (!fieldHit)
                         continue;
                 }
+            }
+            else if (check.alwaysInvalidated)
+            {
+                // Tagged-union assignment replaces the payload selected by this path.
             }
             else if (check.judgeAlways)
             {

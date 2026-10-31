@@ -28,6 +28,7 @@ namespace SemaEscape
     // mutation checks apply the same rule specifically to loops.
     void noteBorrowInvalidation(Sema& sema, AstNodeRef callRef, const SymbolFunction& calledFn);
     void noteBorrowInvalidation(Sema& sema, AstNodeRef mutationRef, AstNodeRef ownerAddressRef, const SymbolFunction& calledFn);
+    void noteTaggedUnionAssignment(Sema& sema, AstNodeRef mutationRef, AstNodeRef unionRef);
 
     // Check later view reads after the entire body has resolved.
     Result reportBorrowInvalidations(Sema& sema, AstNodeRef declRef);

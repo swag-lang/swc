@@ -6,6 +6,27 @@
 #global #[Swag.Sanity(.Lifecycle, true)]
 using Swag
 
+enum BorrowInvTaggedKind
+{
+    Empty
+    Circle
+    Rect
+}
+
+struct BorrowInvTagged
+{
+    using geometry: union(BorrowInvTaggedKind)
+    {
+        case .Circle: circle: struct{ radius: f32 }
+        case .Rect:   rect:   struct{ w, h: f32 }
+    } = .Empty
+}
+
+struct BorrowInvTaggedHolder
+{
+    using shape: BorrowInvTagged
+}
+
 // A minimal owner: one heap payload it allocates, reallocates and frees itself through
 // the language allocator interface, the way 'Core.String' does. The owning lifecycle is
 // what ties the payload's life to the value's.
@@ -328,6 +349,35 @@ func borrowInvThroughFreeHelper()->u8
     let view = box.view()
     box.reset()     // swc-expected-error {{sanity_err_borrow_invalidated}}
     return view[0]
+}
+
+// A payload view becomes invalid when its tagged union selects a different case.
+func borrowInvTaggedPayloadPointer()->f32
+{
+    var shape: BorrowInvTagged
+    shape.geometry = .Circle{radius: 2}
+    let payload = &shape.circle
+    shape.geometry = .Rect{w: 3, h: 4}     // swc-expected-error {{sanity_err_borrow_invalidated}}
+    return payload.radius
+}
+
+func borrowInvTaggedPayloadThroughUsingHolder()->f32
+{
+    var holder: BorrowInvTaggedHolder
+    holder.shape.geometry = .Circle{radius: 2}
+    let payload = &holder.circle
+    holder.shape.geometry = .Rect{w: 3, h: 4}     // swc-expected-error {{sanity_err_borrow_invalidated}}
+    return payload.radius
+}
+
+// A view taken from the newly selected case refers to the current payload.
+func borrowInvTaggedPayloadRebound()->f32
+{
+    var shape: BorrowInvTagged
+    shape.geometry = .Circle{radius: 2}
+    shape.geometry = .Rect{w: 3, h: 4}
+    let payload = &shape.rect
+    return payload.w
 }
 
 // ---------------------------------------------------------------------------

@@ -28,9 +28,10 @@ struct SemaEscapeDeferredGuard
 
 struct SemaEscapeDeferredCheck
 {
-    const SymbolFunction* callee     = nullptr;
-    uint32_t              paramIndex = 0;
-    bool                  indirect   = false; // judge the copied pointee contents
+    const SymbolFunction* callee            = nullptr;
+    uint32_t              paramIndex        = 0;
+    bool                  indirect          = false; // judge the copied pointee contents
+    bool                  alwaysInvalidated = false;
 
     // Check retained arguments (STORES), rather than borrows in the result (RETURN).
     bool judgeStores = false;
@@ -94,9 +95,10 @@ struct SemaEscapeDeferredCheck
 // body resolution, when symbols and loop back-edge uses can be matched reliably.
 struct SemaBorrowInvalidation
 {
-    const SymbolVariable* viewVar   = nullptr;
-    const SymbolVariable* sourceVar = nullptr;
-    const SymbolFunction* callee    = nullptr;
+    const SymbolVariable* viewVar           = nullptr;
+    const SymbolVariable* sourceVar         = nullptr;
+    const SymbolFunction* callee            = nullptr;
+    bool                  alwaysInvalidated = false;
 
     // The complete function or inline-expansion body that owns this mutation. Capturing
     // it here avoids consulting the caller's partially substituted tree at report time.

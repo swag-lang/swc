@@ -65,7 +65,6 @@ public:
     bool isRuntime() const { return (flags_.has(FileFlagsE::Runtime)); }
     bool isImportedApi() const { return flags_.has(FileFlagsE::ImportedApi); }
     bool mustSkipFormat() const { return flags_.has(FileFlagsE::SkipFmt); }
-    void setMustSkipFormat() { flags_.add(FileFlagsE::SkipFmt); }
 
     // Default module for Foreign attributes in a generated public API file.
     const Utf8& apiModuleName() const { return apiModuleName_; }

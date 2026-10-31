@@ -133,8 +133,9 @@ namespace
                 at[2].opBits != MicroOpBits::B64 || isAddressTakenLabel(cfg, labelIndex))
                 continue;
 
+            // CFG construction adds predecessors while scanning source instructions in order.
             const auto& incoming = cfg.predecessors(labelIndex);
-            if (incoming.size() < 2 || std::ranges::find(incoming, labelIndex - 1) == incoming.end())
+            if (incoming.size() < 2 || !std::ranges::binary_search(incoming, labelIndex - 1))
                 continue;
             const MicroInstr* fallthrough = storage.ptr(refs[labelIndex - 1]);
             if (!fallthrough || MicroInstr::info(fallthrough->op).flags.has(MicroInstrFlagsE::TerminatorInstruction))

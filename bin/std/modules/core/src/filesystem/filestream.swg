@@ -185,8 +185,12 @@ impl FileStream
     }
 
     // Advances by `count` bytes from the current position.
+    //
+    // Fails when `count` cannot be represented as a positive signed file offset.
     mtd skip(count: u64) fail
     {
+        if count > (Swag.U64.Max >> 1) do
+            fail Errors.BadParameterError{"file skip distance exceeds the supported range"}
         try .seek(.Current, count)
     }
 

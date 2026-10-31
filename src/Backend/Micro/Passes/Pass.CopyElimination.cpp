@@ -291,6 +291,8 @@ Result MicroCopyEliminationPass::run(MicroPassContext& context)
 {
     SWC_ASSERT(context.instructions != nullptr);
     SWC_ASSERT(context.operands != nullptr);
+    if (context.instructions->count() == 0)
+        return Result::Continue;
 
     MicroStorage&                storage  = *context.instructions;
     MicroOperandStorage&         operands = *context.operands;

@@ -42,6 +42,14 @@ namespace
     }
 }
 
+SWC_TEST_BEGIN(PreRAPeephole_EmptyStreamIsUnchanged)
+{
+    MicroBuilder builder(ctx);
+    SWC_RESULT(runPreRaPeepholePass(builder));
+    return builder.instructions().count() == 0 ? Result::Continue : Result::Error;
+}
+SWC_TEST_END()
+
 // One run hands an address to every reader on its straight line, so an
 // unrolled loop does not cost the optimization loop a sweep per trip. A reader
 // that rewrites the base still takes the address and ends the line.

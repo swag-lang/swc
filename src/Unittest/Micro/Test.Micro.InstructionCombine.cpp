@@ -53,6 +53,14 @@ namespace
     }
 }
 
+SWC_TEST_BEGIN(InstCombine_EmptyStreamIsUnchanged)
+{
+    MicroBuilder builder(ctx);
+    SWC_RESULT(runInstCombinePass(builder));
+    return builder.instructions().count() == 0 ? Result::Continue : Result::Error;
+}
+SWC_TEST_END()
+
 // add v, 0  -> erased when v is dead.
 SWC_TEST_BEGIN(InstCombine_Identity_AddZero_Erased)
 {

@@ -248,6 +248,8 @@ Result MicroInstructionCombinePass::run(MicroPassContext& context)
 {
     SWC_ASSERT(context.instructions != nullptr);
     SWC_ASSERT(context.operands != nullptr);
+    if (context.instructions->count() == 0)
+        return Result::Continue;
 
     // The optimization loop supplies shared SSA. Construct the fallback only
     // when this pass is run standalone.

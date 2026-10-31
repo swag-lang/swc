@@ -79,7 +79,7 @@ struct Strings
         fileDlg_BtnReplace:        string = "Replace"                                     // Destructive action of the overwrite confirmation.
         fileDlg_BtnCreate:         string = "Create"                                      // Primary action of the folder-creation form.
         fileDlg_NewFolderWhere:    string = "In %"                                        // Where a created folder goes, under its name field.
-        fileDlg_BtnChooseNamed:    string = "Choose “%”"                                  // Primary action of a folder box, naming the folder.
+        fileDlg_BtnChooseNamed:    string = "Choose %"                                    // Primary action of a folder box, naming the folder.
         fileDlg_BtnOpenCount:      string = "Open the %"                                  // Primary action of a multiple file box, counting the files.
         fileDlg_BtnSave:           string = "Save"                                        // Confirmation button when saving a file.
         fileDlg_BtnOpen:           string = "Open"                                        // Confirmation button when opening a file.

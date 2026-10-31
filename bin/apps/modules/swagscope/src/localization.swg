@@ -83,10 +83,15 @@ struct AppStrings
     options_SubtitlePosition:  string = "Subtitle Position"
     options_SubtitleColor:     string = "Subtitle Color"
     options_SubtitleDelay:     string = "Subtitle Delay"
-    ui_TMDBToken:              string = "TMDB Read Access Token"
-    ui_TMDBKey:                string = "TMDB API Key"
-    ui_TMDBTokenHelp:          string = "Leave empty to keep the saved token. TMDB is the first movie source."
-    ui_TMDBKeyHelp:            string = "Leave empty to keep the saved key. It is used when no token is available."
+    ui_TMDBCredentials:        string = "Configured TMDB Credentials"
+    ui_ReplaceTMDBToken:       string = "Replace TMDB Read Access Token"
+    ui_ReplaceTMDBKey:         string = "Replace TMDB API Key"
+    ui_TMDBCredentialsHelp:    string = "Credential values are never shown. Enter a replacement below, or leave the fields empty to keep the current credentials."
+    ui_TMDBCredentialHelp:     string = "Saved credentials are not shown. Enter a replacement, or leave empty to keep the current value."
+    ui_TMDBBothConfigured:     string = "Read access token and API key configured"
+    ui_TMDBTokenConfigured:    string = "Read access token configured"
+    ui_TMDBKeyConfigured:      string = "API key configured"
+    ui_TMDBNoneConfigured:     string = "No TMDB credentials configured"
     ui_TMDBClear:              string = "Remove Saved TMDB Credentials"
     ui_TMDBClearHelp:          string = "The token and key are stored only in this computer's Swag Scope settings."
     ui_OnlineMusicHelp:        string = "MusicBrainz and Cover Art Archive do not need an API key."
@@ -255,10 +260,11 @@ private func resolveScopePropertyText(key: string)->string?
     case "Online Music Covers and Details": return texts.explore_OnlineMusic
     case "TMDB first, then Apple and Wikipedia.": return texts.options_OnlineMovieHelp
     case "MusicBrainz and Cover Art Archive need no API key.": return texts.ui_OnlineMusicHelp
-    case "TMDB Read Access Token": return texts.ui_TMDBToken
-    case "TMDB API Key": return texts.ui_TMDBKey
-    case "Paste a new token, or leave empty to keep the saved one. TMDB is the first movie source.": return texts.ui_TMDBTokenHelp
-    case "Paste a new key, or leave empty to keep the saved one. Used only without a token.": return texts.ui_TMDBKeyHelp
+    case "Configured TMDB Credentials": return texts.ui_TMDBCredentials
+    case "Replace TMDB Read Access Token": return texts.ui_ReplaceTMDBToken
+    case "Replace TMDB API Key": return texts.ui_ReplaceTMDBKey
+    case "Credential values are never shown. Enter a replacement below, or leave the fields empty to keep the current credentials.": return texts.ui_TMDBCredentialsHelp
+    case "Saved credentials are not shown. Enter a replacement, or leave empty to keep the current value.": return texts.ui_TMDBCredentialHelp
     case "Remove Saved TMDB Credentials": return texts.ui_TMDBClear
     case "Remove the local token and key when this page closes.": return texts.ui_TMDBClearHelp
     case "Document Theme": return texts.options_DocumentTheme

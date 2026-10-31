@@ -61,7 +61,7 @@ fileDlg_ReplaceDetail     % · modifié le %
 fileDlg_BtnReplace        Remplacer
 fileDlg_BtnCreate         Créer
 fileDlg_NewFolderWhere    Dans %
-fileDlg_BtnChooseNamed    Choisir « % »
+fileDlg_BtnChooseNamed    Choisir %
 fileDlg_BtnOpenCount      Ouvrir les %
 fileDlg_BtnSave           Enregistrer
 fileDlg_BtnOpen           Ouvrir

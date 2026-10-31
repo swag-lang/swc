@@ -465,6 +465,8 @@ impl SplitterCtrl
 
         let res = Wnd.create'SplitterCtrl(parent, null, position, id)
         res.wndFlags |= .AfterChildrenPaint
+        // A splitter handles pointer drags across its panes, so a sheet must not treat them as a drag of its own ground.
+        res.focusPolicy = .Click
         if vertical do
             res.flags.add(.Vertical)
         return res

@@ -97,10 +97,15 @@ options_SubtitleEffect Effet des sous-titres
 options_SubtitlePosition Position des sous-titres
 options_SubtitleColor Couleur des sous-titres
 options_SubtitleDelay Décalage des sous-titres
-ui_TMDBToken Jeton d'accès en lecture TMDB
-ui_TMDBKey Clé API TMDB
-ui_TMDBTokenHelp Laissez vide pour conserver le jeton enregistré. TMDB est la première source pour les films.
-ui_TMDBKeyHelp Laissez vide pour conserver la clé enregistrée. Elle est utilisée en l'absence de jeton.
+ui_TMDBCredentials Identifiants TMDB configurés
+ui_ReplaceTMDBToken Remplacer le jeton d'accès en lecture TMDB
+ui_ReplaceTMDBKey Remplacer la clé API TMDB
+ui_TMDBCredentialsHelp Les identifiants ne sont jamais affichés. Saisissez un remplacement ci-dessous ou laissez les champs vides pour conserver les identifiants actuels.
+ui_TMDBCredentialHelp Les identifiants enregistrés ne sont pas affichés. Saisissez un remplacement ou laissez vide pour conserver la valeur actuelle.
+ui_TMDBBothConfigured Jeton d'accès en lecture et clé API configurés
+ui_TMDBTokenConfigured Jeton d'accès en lecture configuré
+ui_TMDBKeyConfigured Clé API configurée
+ui_TMDBNoneConfigured Aucun identifiant TMDB configuré
 ui_TMDBClear Supprimer les identifiants TMDB enregistrés
 ui_TMDBClearHelp Le jeton et la clé sont conservés uniquement dans la configuration de Swag Scope sur cet ordinateur.
 ui_OnlineMusicHelp MusicBrainz et Cover Art Archive ne nécessitent pas de clé API.

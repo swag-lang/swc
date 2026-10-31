@@ -2,8 +2,8 @@
 
 using Core, Gui
 
-// The general section of Scope's one options page. Credentials are input-only; saved values
-// remain in the user's configuration files and are never copied into the property grid.
+// The general section of Scope's one options page. Saved credentials stay out of the property grid;
+// empty replacement fields leave the user's current credentials untouched.
 struct ScopeMediaOptions
 {
     #[Properties.Name("Online Movie Posters and Details"), Properties.Description("TMDB first, then Apple and Wikipedia.")]
@@ -12,10 +12,13 @@ struct ScopeMediaOptions
     #[Properties.Name("Online Music Covers and Details"), Properties.Description("MusicBrainz and Cover Art Archive need no API key.")]
     onlineMusic: bool
 
-    #[Properties.Name("TMDB Read Access Token"), Properties.Description("Paste a new token, or leave empty to keep the saved one. TMDB is the first movie source.")]
+    #[Properties.Name("Configured TMDB Credentials"), Properties.Description("Credential values are never shown. Enter a replacement below, or leave the fields empty to keep the current credentials."), Properties.ReadOnly(), Properties.EditSize(260)]
+    tmdbCredentialStatus: String
+
+    #[Properties.Name("Replace TMDB Read Access Token"), Properties.Description("Saved credentials are not shown. Enter a replacement, or leave empty to keep the current value."), Properties.EditSize(420)]
     tmdbToken: String
 
-    #[Properties.Name("TMDB API Key"), Properties.Description("Paste a new key, or leave empty to keep the saved one. Used only without a token.")]
+    #[Properties.Name("Replace TMDB API Key"), Properties.Description("Saved credentials are not shown. Enter a replacement, or leave empty to keep the current value."), Properties.EditSize(420)]
     tmdbKey: String
 
     #[Properties.Name("Remove Saved TMDB Credentials"), Properties.Description("Remove the local token and key when this page closes.")]
@@ -27,7 +30,7 @@ impl ViewerWindow
     // Creates the searchable general and viewer-owned settings page for the supplied draft.
     mtd createGeneralOptionsDialog(media: *ScopeMediaOptions)->*Dialog
     {
-        let dialog = Dialog.create(unwrap .surface, 800, 700, title: appStrings().ui_GeneralOptionsTitle, flags: .Resizable)
+        let dialog = Dialog.create(unwrap .surface, 900, 700, title: appStrings().ui_GeneralOptionsTitle, flags: .Resizable)
         dialog.addButton(Gui.strings().dlg_Cancel, Dialog.BtnCancel)
         dialog.addButton(appStrings().ui_SaveOptions, Dialog.BtnOk, true)
 
@@ -51,7 +54,19 @@ impl ViewerWindow
     // The general section and every viewer-owned settings section share one searchable page.
     mtd showGeneralOptions()
     {
-        var media = ScopeMediaOptions{onlineMovies: .onlineMovies, onlineMusic: .onlineMusic}
+        let hasToken = not tmdbStoredCredential("tmdb.token").isEmpty() or
+                       not Env.variable("SWAG_SCOPE_TMDB_TOKEN").isEmpty()
+        let hasKey   = not tmdbStoredCredential("tmdb.key").isEmpty() or
+                       not Env.variable("SWAG_SCOPE_TMDB_KEY").isEmpty()
+        var status   = appStrings().ui_TMDBNoneConfigured
+        if hasToken and hasKey do
+            status = appStrings().ui_TMDBBothConfigured
+        elif hasToken do
+            status = appStrings().ui_TMDBTokenConfigured
+        elif hasKey do
+            status = appStrings().ui_TMDBKeyConfigured
+        var media = ScopeMediaOptions{onlineMovies: .onlineMovies, onlineMusic: .onlineMusic,
+                                      tmdbCredentialStatus: status}
         let oldMarkdown = Viewers.MarkdownText.g_ViewerSettings
         let oldMidi     = Viewers.Midi.g_ViewerSettings
         let oldSubtitle = Viewers.Film.g_SubtitleSettings

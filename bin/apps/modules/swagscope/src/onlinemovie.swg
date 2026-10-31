@@ -64,6 +64,57 @@ struct WikiDetails
     results: WikiRows
 }
 
+// Catalogues vary in punctuation and spacing; retain every letter and digit when comparing titles.
+func normalizedMovieTitle(value: string)->String
+{
+    let lower = String.from(value).toLower(.Unicode)
+    var result: String
+    for character in lower
+    {
+        if Unicode.isLetterOrDigit(character) do
+            result.append(character)
+    }
+
+    return result
+}
+
+// Uses edit distance only after punctuation and spacing have been removed from both titles.
+func movieTitleDistance(left, right: string)->u64
+{
+    if left.count == 0 do
+        return right.count
+    if right.count == 0 do
+        return left.count
+
+    var costs: Array'u64
+    costs.resize(right.count + 1)
+    for index in right.count + 1 do
+        costs[index] = index
+
+    for leftIndex in left.count
+    {
+        var diagonal = costs[0]
+        costs[0] = leftIndex + 1
+        for rightIndex in right.count
+        {
+            let previous = costs[rightIndex + 1]
+            let substitution = diagonal + (left[leftIndex] == right[rightIndex] ? 0 : 1)
+            costs[rightIndex + 1] = Math.min(Math.min(costs[rightIndex] + 1, previous + 1), substitution)
+            diagonal = previous
+        }
+    }
+
+    return costs[right.count]
+}
+
+// Keep short titles exact; longer titles can tolerate one or two mistyped characters.
+func movieTitleDistanceLimit(title: string)->u64
+{
+    if title.count < 6 do
+        return 0
+    return title.count < 16 ? 1 : 2
+}
+
 // One film of the Apple iTunes Search API, as much of it as Scope reads.
 struct AppleMovie
 {
@@ -363,57 +414,67 @@ impl MovieQuery
         return result
     }
 
-    // Requires films of the catalogue named exactly the title, of its year when the name says one,
+    // Matches a catalogue title by its letters and digits, of its year when the name says one,
     // and all of one year; a title several films share without a year says which is ambiguous.
     mtd const chooseApple(search: const *AppleSearch)->u64
     {
-        let wanted = .title.toLower(.Unicode)
+        let wanted = normalizedMovieTitle(.title)
         var chosen = Swag.U64.Max
-        var year: String
+        var bestDistance = Swag.U64.Max
+        var ambiguous = false
         for &film, index in search.results
         {
-            let title = film.trackName.toLower(.Unicode)
-            if title != wanted do
+            let distance = movieTitleDistance(wanted.toString(), normalizedMovieTitle(film.trackName.toString()).toString())
+            if distance > movieTitleDistanceLimit(wanted.toString()) do
                 continue
             let filmYear = film.releaseDate.length >= 4 ? String.from(film.releaseDate.toString()[0 until 4]) : String.from("")
             if not .year.isEmpty() and filmYear != .year do
                 continue
-            if chosen != Swag.U64.Max and filmYear != year do
-                return Swag.U64.Max
-            if chosen == Swag.U64.Max
+            if distance < bestDistance
             {
                 chosen = index
-                year   = filmYear
+                bestDistance = distance
+                ambiguous = false
+            }
+            if distance == bestDistance and chosen != Swag.U64.Max and chosen != index and search.results[chosen].trackViewUrl != film.trackViewUrl
+            {
+                ambiguous = true
             }
         }
 
-        return chosen
+        return ambiguous ? Swag.U64.Max : chosen
     }
 
     // Do not borrow a popular result when the filename identifies another edition or year.
     mtd const chooseTMDB(search: const *TmdbSearch)->u64
     {
-        let wanted = .title.toLower(.Unicode)
+        let wanted = normalizedMovieTitle(.title)
         var chosen = Swag.U64.Max
-        var year: String
+        var bestDistance = Swag.U64.Max
+        var ambiguous = false
         for &film, index in search.results
         {
-            let title = film.title.toLower(.Unicode)
-            let original = film.originalTitle.toLower(.Unicode)
-            if title != wanted and original != wanted do
+            let title    = normalizedMovieTitle(film.title.toString())
+            let original = normalizedMovieTitle(film.originalTitle.toString())
+            var distance = movieTitleDistance(wanted.toString(), title.toString())
+            distance = Math.min(distance, movieTitleDistance(wanted.toString(), original.toString()))
+            if distance > movieTitleDistanceLimit(wanted.toString()) do
                 continue
             let filmYear = film.releaseDate.length >= 4 ? String.from(film.releaseDate.toString()[0 until 4]) : String.from("")
             if not .year.isEmpty() and filmYear != .year do
                 continue
-            if chosen != Swag.U64.Max and search.results[chosen].id != film.id and filmYear != year do
-                return Swag.U64.Max
-            if chosen == Swag.U64.Max
+            if distance < bestDistance
             {
                 chosen = index
-                year = filmYear
+                bestDistance = distance
+                ambiguous = false
+            }
+            if distance == bestDistance and chosen != Swag.U64.Max and chosen != index and search.results[chosen].id != film.id
+            {
+                ambiguous = true
             }
         }
-        return chosen
+        return ambiguous ? Swag.U64.Max : chosen
     }
 
     // Require one exact article title, optionally followed by a film disambiguator.
@@ -470,19 +531,53 @@ impl OnlineMovie
             return {}
         var movie: OnlineMovie
         catch movie.lookupTMDB(query, source, language)
+        if not movie.posterUrl.isEmpty() do
+            return movie
+        var apple: OnlineMovie
+        catch apple.lookupApple(query, source, language)
+        if not apple.posterUrl.isEmpty()
+        {
+            if movie.id.isEmpty() do
+                return apple
+            movie.posterUrl = #move apple.posterUrl
+            movie.sources += " · Apple"
+            return movie
+        }
+        var article: OnlineMovie
+            var articleErrorOutcome: Swag.Error
+            catch { article = try lookupArticle(query, source, language) } as articleErrorOutcome
+        if article.posterUrl.isEmpty()
+        {
+            var alternate: OnlineMovie
+            let alternateLanguage = Utf8.startsWith(language, "fr") ? "en" : "fr"
+            var alternateArticleErrorOutcome: Swag.Error
+            catch { alternate = try lookupArticle(query, source, alternateLanguage) } as alternateArticleErrorOutcome
+            if not alternate.posterUrl.isEmpty() or (article.id.isEmpty() and not alternate.id.isEmpty()) do
+                article = #move alternate
+        }
+        if not article.id.isEmpty() do
+            article.sources = "Wikipedia · Wikidata"
+        if not article.posterUrl.isEmpty()
+        {
+            if not movie.id.isEmpty()
+            {
+                movie.posterUrl = #move article.posterUrl
+                movie.sources += " · Wikipedia"
+                return movie
+            }
+            if not apple.id.isEmpty()
+            {
+                apple.posterUrl = #move article.posterUrl
+                apple.sources += " · Wikipedia"
+                return apple
+            }
+        }
+
         if movie.found() do
             return movie
-        catch movie.lookupApple(query, source, language)
-        if movie.found() do
-            return movie
-
-        movie = try lookupArticle(query, source, language)
-        if movie.id.isEmpty() and language == "fr" do
-            movie = try lookupArticle(query, source, "en")
-        if not movie.id.isEmpty() do
-            movie.sources = String.from("Wikipedia · Wikidata")
-
-        return movie
+        if apple.found() do
+            return apple
+        return article
     }
 
     private mtd lookupTMDB(query: MovieQuery, source: MovieSource, language: string) fail
@@ -508,7 +603,25 @@ impl OnlineMovie
         if token.isEmpty() and key.isEmpty() do
             return
 
-        let locale = language == "fr" ? "fr-FR" : "en-US"
+        // Film filenames often use the other shipped language from the application's interface.
+        let french = Utf8.startsWith(language, "fr")
+        var movie: OnlineMovie
+        var movieErrorOutcome: Swag.Error
+        catch { movie = try .lookupTMDBAtLocale(query, source, french ? "fr-FR" : "en-US", token, key) } as movieErrorOutcome
+        // Another locale or provider may have the artwork even when the first match does not.
+        if movie.posterUrl.isEmpty()
+        {
+            var alternate: OnlineMovie
+            var alternateMovieErrorOutcome: Swag.Error
+            catch { alternate = try .lookupTMDBAtLocale(query, source, french ? "en-US" : "fr-FR", token, key) } as alternateMovieErrorOutcome
+            if not alternate.posterUrl.isEmpty() or (not movie.found() and alternate.found()) do
+                movie = #move alternate
+        }
+        me[] = #move movie
+    }
+
+    private mtd lookupTMDBAtLocale(query: MovieQuery, source: MovieSource, locale, token, key: string)->OnlineMovie fail
+    {
         var path = Format.toString("/3/search/movie?query=%&language=%&include_adult=false", Url.encodeComponent(cast(const [..] u8, query.title.toString())), locale)
         if not query.year.isEmpty() do
             path += Format.toString("&year=%", query.year)
@@ -516,48 +629,50 @@ impl OnlineMovie
         var options: Http.GetOptions
         options.userAgent = "SwagScope/1.0 (https://github.com/swag-lang/swc)"
         options.timeoutMs = 5_000
-        if not token.isEmpty()
+        if token.count != 0
         {
             authorization = Format.toString("Bearer %", token)
             options.headers.add({name: "Authorization", value: authorization})
         }
         else do
-            path += Format.toString("&api_key=%", Url.encodeComponent(cast(const [..] u8, key.toString())))
+            path += Format.toString("&api_key=%", Url.encodeComponent(cast(const [..] u8, key)))
         let response = try Http.get(source.tmdbHost, source.port, path.toString(), source.secure, options)
         if response.status != 200 do
-            return
+            return {}
         var decoder: Serialization.Decoder'Serialization.Read.Json
         let search = try decoder.readAll'TmdbSearch(response.body.toSlice())
         defer Memory.delete(search)
         let index = query.chooseTMDB(search)
         if index == Swag.U64.Max do
-            return
+            return {}
+        var movie: OnlineMovie
         let film = &search.results[index]
-        .id = Format.toString("tmdb:%", film.id)
-        .title = film.title
-        .overview = film.overview
+        movie.id = Format.toString("tmdb:%", film.id)
+        movie.title = film.title
+        movie.overview = film.overview
         if film.releaseDate.length >= 4 do
-            .releaseDate = film.releaseDate.toString()[0 until 4]
+            movie.releaseDate = film.releaseDate.toString()[0 until 4]
         if film.posterPath.length > 1 and film.posterPath[0] == '/' and
            not Utf8.contains(film.posterPath.toString(), "..") and
            not Utf8.contains(film.posterPath.toString(), "?")
         {
             let scheme = source.secure ? "https" : "http"
             let host = source.imageHost.count ? source.imageHost : "image.tmdb.org"
-            .posterUrl = Format.toString("%://%", scheme, host)
+            movie.posterUrl = Format.toString("%://%", scheme, host)
             if source.port != 443 do
-                .posterUrl += Format.toString(":%", source.port)
-            .posterUrl += "/t/p/w500"
-            .posterUrl += film.posterPath
+                movie.posterUrl += Format.toString(":%", source.port)
+            movie.posterUrl += "/t/p/w500"
+            movie.posterUrl += film.posterPath
         }
         if film.voteCount > 0
         {
             let tenths = cast(u32, Math.round(film.voteAverage * 10))
-            .imdbRating = Format.toString("%.%/10", tenths / 10, tenths % 10)
-            .ratingSource = "TMDB"
+            movie.imdbRating = Format.toString("%.%/10", tenths / 10, tenths % 10)
+            movie.ratingSource = "TMDB"
         }
-        .articleUrl = Format.toString("https://www.themoviedb.org/movie/%", film.id)
-        .sources = "TMDB"
+        movie.articleUrl = Format.toString("https://www.themoviedb.org/movie/%", film.id)
+        movie.sources = "TMDB"
+        return movie
     }
 
     // Asks the Apple catalogue for the film `query` names, and takes its poster, its synopsis and
@@ -583,7 +698,7 @@ impl OnlineMovie
         }
 
         g_AppleLastRequest = Time.Timestamp.utcNow().ticks
-        let country = language == "fr" ? "FR" : "US"
+        let country = Utf8.startsWith(language, "fr") ? "FR" : "US"
         let path    = Format.toString("/search?term=%&entity=movie&limit=10&country=%", Url.encodeComponent(cast(const [..] u8, query.title.toString())), country)
         var options: Http.GetOptions
         options.userAgent = "SwagScope/1.0 (https://github.com/swag-lang/swc)"
@@ -623,7 +738,8 @@ impl OnlineMovie
 
     private func lookupArticle(query: MovieQuery, source: MovieSource, language: string)->OnlineMovie fail
     {
-        let wikiHost   = source.wikiHost.count ? source.wikiHost : (language == "fr" ? "fr.wikipedia.org" : "en.wikipedia.org")
+        let french     = Utf8.startsWith(language, "fr")
+        let wikiHost   = source.wikiHost.count ? source.wikiHost : (french ? "fr.wikipedia.org" : "en.wikipedia.org")
         let term       = Format.toString("% film", query.title)
         let searchPath = Format.toString("/w/api.php?action=query&generator=search&gsrsearch=%&gsrlimit=10&prop=pageimages%%7Cdescription%%7Cextracts%%7Cpageprops&piprop=thumbnail&pithumbsize=350&pilicense=any&exintro=1&explaintext=1&exchars=400&format=json&formatversion=2", Url.encodeComponent(cast(const [..] u8, term.toString())))
         var options: Http.GetOptions
@@ -651,7 +767,7 @@ impl OnlineMovie
         catch movie.loadDetails(source, options, language)
 
         // The French article often has a landscape logo while the English one has the poster.
-        if language == "fr" and (page.thumbnail.height <= page.thumbnail.width or page.thumbnail.source.isEmpty()) do
+        if french and (page.thumbnail.height <= page.thumbnail.width or page.thumbnail.source.isEmpty()) do
             catch movie.loadEnglishPoster(query, source, searchPath, options)
         return movie
     }
@@ -677,7 +793,7 @@ impl OnlineMovie
     {
         if not validWikiId(.id) do
             return
-        let lang     = language == "fr" ? "fr,en" : "en"
+        let lang     = Utf8.startsWith(language, "fr") ? "fr,en" : "en"
         let sparql   = Format.toString("""SELECT ?directorLabel ?castLabel ?score ?scoreDate WHERE { OPTIONAL { wd:% wdt:P57 ?director } OPTIONAL { wd:% wdt:P161 ?cast } OPTIONAL { wd:% p:P444 ?s . ?s ps:P444 ?score; pq:P447 wd:Q37312 . OPTIONAL { ?s pq:P585 ?scoreDate } } SERVICE wikibase:label { bd:serviceParam wikibase:language "%" . } } LIMIT 20""", .id, .id, .id, lang)
         let request  = Format.toString("/sparql?query=%&format=json", Url.encodeComponent(cast(const [..] u8, sparql.toString())))
         let response = try Http.get(source.dataHost, source.port, request.toString(), source.secure, options)

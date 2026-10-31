@@ -172,3 +172,31 @@ func inlineSafetyWrapAdd(value, delta: u8)->u8
     const Value = #run inlineSafetyWrapAdd(255'u8, 1'u8)
     #assert(Value == 0'u8)
 }
+
+#[Swag.Inline, Swag.Safety(.Math, false), Swag.Sanity(.Math, false)]
+func inlineSanityMathDisabled()->f64
+{
+    var Value = -1.0'f64
+    return Swag.sqrt(Value)
+}
+
+#[Swag.Safety(.Math, false), Swag.Sanity(.Math, true)]
+#test
+{
+    let Value = inlineSanityMathDisabled()
+    Swag.assert(Value != Value)
+}
+
+#[Swag.Inline, Swag.Safety(.Math, false), Swag.Sanity(.Math, true)]
+func inlineSanityMathEnabled()->f64
+{
+    var Value = -1.0'f64
+    return Swag.sqrt(Value)     // swc-expected-error {{sanity_err_invalid_argument}}
+}
+
+#[Swag.Safety(.Math, false), Swag.Sanity(.Math, false)]
+#test
+{
+    let Value = inlineSanityMathEnabled()
+    discard Value
+}

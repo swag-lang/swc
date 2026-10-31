@@ -3227,6 +3227,7 @@ Result SemaInline::tryInlineCall(Sema& sema, AstNodeRef callRef, const SymbolFun
     }
 
     inlinePayload->runtimeSafetyMask = frame.currentAttributes().effectiveRuntimeSafetyMask(sema.runtimeSafetyGuards());
+    inlinePayload->sanityMask        = fn.attributes().effectiveSanityMask(sema.buildCfg().sanityGuards);
 
     const bool needsOwnerScope = isMacro;
     SemaScope* ownerScope      = nullptr;

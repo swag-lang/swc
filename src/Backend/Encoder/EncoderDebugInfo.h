@@ -9,7 +9,9 @@ class TaskContext;
 struct DebugSourceInfo
 {
     SourceCodeRef sourceCodeRef = SourceCodeRef::invalid();
-    bool          debugNoStep   = false;
+    uint16_t      sanityMaskOverride     = 0;
+    bool          hasSanityMaskOverride  = false;
+    bool          debugNoStep            = false;
 
     bool isValid() const { return sourceCodeRef.isValid(); }
     bool isStepVisible() const { return isValid() && !debugNoStep; }
@@ -21,6 +23,8 @@ struct DebugSourceInfo
                sourceCodeRef.tokRef == other.sourceCodeRef.tokRef;
     }
 };
+
+static_assert(sizeof(DebugSourceInfo) == sizeof(SourceCodeRef) + 4);
 
 struct EncoderDebugSourceRange
 {

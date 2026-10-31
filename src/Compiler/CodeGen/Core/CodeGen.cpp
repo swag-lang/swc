@@ -2142,7 +2142,10 @@ Result CodeGen::emitNodeNow(AstNodeRef nodeRef)
     visit_                            = std::move(savedVisit);
 
     if (curNodeRef().isValid())
+    {
         builder().setCurrentDebugSourceCodeRef(node(curNodeRef()).codeRef());
+        setCurrentInlineSanityMask();
+    }
 
     return result;
 }
@@ -2249,6 +2252,39 @@ void CodeGen::setVisitors()
     visit_.setPostNodeVisitor([this](AstNode& node) { return postNode(node); });
 }
 
+void CodeGen::setCurrentInlineSanityMask()
+{
+    const SemaInlinePayload* inlinePayload = nullptr;
+    for (auto it = frames_.rbegin(); it != frames_.rend(); ++it)
+    {
+        if (!it->hasCurrentInlineContext())
+            continue;
+
+        const SemaInlinePayload* candidate = it->currentInlineContext().payload;
+        if (candidate->sourceFunction && !candidate->sourceFunction->attributes().hasMacroOrMixin())
+        {
+            inlinePayload = candidate;
+            break;
+        }
+    }
+    const bool isInlineFunction = inlinePayload != nullptr;
+    builder().setCurrentSanityMaskOverride(isInlineFunction ? inlinePayload->sanityMask : 0, isInlineFunction);
+}
+
+uint16_t CodeGen::effectiveSanityMask() const
+{
+    for (auto it = frames_.rbegin(); it != frames_.rend(); ++it)
+    {
+        if (!it->hasCurrentInlineContext())
+            continue;
+
+        const SemaInlinePayload* candidate = it->currentInlineContext().payload;
+        if (candidate->sourceFunction && !candidate->sourceFunction->attributes().hasMacroOrMixin())
+            return candidate->sanityMask;
+    }
+    return function().attributes().effectiveSanityMask(buildCfg().sanityGuards);
+}
+
 Result CodeGen::preNode(AstNode& node)
 {
     builder().setCurrentDebugSourceCodeRef(node.codeRef());
@@ -2327,6 +2363,8 @@ Result CodeGen::preNode(AstNode& node)
         pushFrame(frame);
     }
 
+    setCurrentInlineSanityMask();
+
     if (curViewConstant().hasConstant() || keepsFoldedConstant(currentNodeRef))
         return Result::SkipChildren;
 
@@ -2392,6 +2430,7 @@ Result CodeGen::postNode(AstNode& node)
         }
 
         popFrame();
+        setCurrentInlineSanityMask();
     }
 
     if (valueBorrowValueScopeRefs.contains(curNodeRef()))

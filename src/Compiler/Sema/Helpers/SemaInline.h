@@ -34,6 +34,7 @@ struct SemaInlinePayload
     bool     crossAstInline          = false;
     uint16_t runtimeSafetyMask       = 0;
     uint16_t callerRuntimeSafetyMask = 0;
+    uint16_t sanityMask              = 0; // Effective checks for instructions lowered from this function body.
 
     SymbolVariable* resultVar = nullptr;
 

@@ -62,6 +62,7 @@ public:
     const SourceCodeRef&            currentDebugSourceCodeRef() const { return currentDebugSourceInfo_.sourceCodeRef; }
     void                            setCurrentDebugNoStep(bool value);
     bool                            currentDebugNoStep() const { return currentDebugSourceInfo_.debugNoStep; }
+    void                            setCurrentSanityMaskOverride(uint16_t mask, bool enabled);
     void                            setPrintPassOptions(std::span<const Utf8> options) { printPassOptions_.assign(options.begin(), options.end()); }
     bool                            hasPrintPassOptions() const { return !printPassOptions_.empty(); }
     void                            setBackendBuildCfg(const Runtime::BuildCfgBackend& value) { backendBuildCfg_ = value; }

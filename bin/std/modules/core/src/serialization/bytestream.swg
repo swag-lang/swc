@@ -118,7 +118,7 @@ public impl ByteStream
             fail OverflowError{"byte stream overflow"}
         if not count do
             return
-        Memory.copy(dest, .data() + .seek, count)
+        Memory.copyOverlapping(dest, .data() + .seek, count)
         .seek += count
     }
 

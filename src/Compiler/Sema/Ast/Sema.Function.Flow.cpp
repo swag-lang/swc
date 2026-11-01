@@ -1384,7 +1384,7 @@ namespace
             return SemaHelpers::requireRuntimeFunctionDependency(sema, IdentifierManager::RuntimeFunctionKind::TlsGetPtr, node.codeRef());
         }
 
-        return SemaHelpers::attachRuntimeFunctionToNode(sema, sema.curNodeRef(), IdentifierManager::RuntimeFunctionKind::TlsGetValue, node.codeRef());
+        return Result::Continue;
     }
 
     Result setupIntrinsicSetContextRuntimeCall(Sema& sema, const AstIntrinsicCallExpr& node)
@@ -1396,9 +1396,11 @@ namespace
             SWC_RESULT(SemaEscape::checkSetContext(sema, sema.curNodeRef(), contextRef));
 
         if (sema.isNativeBuild())
+        {
             SWC_RESULT(SemaHelpers::requireRuntimeFunctionDependency(sema, IdentifierManager::RuntimeFunctionKind::TlsAlloc, node.codeRef()));
-
-        return SemaHelpers::attachRuntimeFunctionToNode(sema, sema.curNodeRef(), IdentifierManager::RuntimeFunctionKind::TlsSetValue, node.codeRef());
+            return SemaHelpers::attachRuntimeFunctionToNode(sema, sema.curNodeRef(), IdentifierManager::RuntimeFunctionKind::TlsSetValue, node.codeRef());
+        }
+        return Result::Continue;
     }
 
     Result setupIntrinsicAssertRuntimeCall(Sema& sema, const AstIntrinsicCallExpr& node)

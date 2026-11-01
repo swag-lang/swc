@@ -1,5 +1,6 @@
 #include "pch.h"
 #include "Backend/Micro/MachineCode.h"
+#include "Backend/RuntimeName.h"
 #include "Backend/ABI/CallConv.h"
 #include "Backend/Encoder/X64Encoder.h"
 #include "Backend/Micro/MicroBuilder.h"
@@ -85,6 +86,13 @@ bool MachineCode::tryResolveDebugSourceRangeAtOffset(const TaskContext& ctx, Res
     return tryResolveDebugSourceRange(ctx, outResolvedRange, *range);
 }
 
+const ByteArray& MachineCode::jitUnwindInfo(const TaskContext& ctx) const
+{
+    // A Windows leaf legitimately has no unwind bytes; emptiness cannot select
+    // between the native target format and the compiler host format.
+    return ctx.cmdLine().targetOs == hostTargetOs() ? unwindInfo : hostUnwindInfo;
+}
+
 Result MachineCode::emit(TaskContext& ctx, MicroBuilder& builder, MicroReg debugStackBaseVirtualReg, uint16_t sanitizerSafetyMask, const SymbolFunction* function)
 {
     const Runtime::BuildCfgBackend& backendBuildCfg = ctx.compiler().buildCfg().backend;
@@ -146,6 +154,7 @@ Result MachineCode::emit(TaskContext& ctx, MicroBuilder& builder, MicroReg debug
     X64Encoder&  encoder = *lease.encoder;
 #endif
 
+    encoder.enableHostUnwind();
     encoder.setBackendBuildCfg(builder.backendBuildCfg());
     encoder.clearDebugSourceRanges();
 
@@ -164,9 +173,15 @@ Result MachineCode::emit(TaskContext& ctx, MicroBuilder& builder, MicroReg debug
     bytes.resize(codeSize);
     encoder.copyTo(bytes);
     if (computeUnwindInfo)
+    {
         encoder.buildUnwindInfo(unwindInfo);
+        encoder.buildHostUnwindInfo(hostUnwindInfo);
+    }
     else
+    {
         unwindInfo.clear();
+        hostUnwindInfo.clear();
+    }
 
     // Both producers end here: the encoder is local, and every builder handed to this function is
     // discarded once its code is lowered.

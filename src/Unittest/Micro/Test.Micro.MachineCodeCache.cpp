@@ -95,6 +95,8 @@ SWC_FILESYSTEM_TEST_BEGIN(MachineCodeCache_ReusesModuleSourceWithRelocations)
 
     MachineCode expected;
     expected.bytes.resize(8, std::byte{0});
+    expected.unwindInfo.appendLe32(0x12345678);
+    expected.hostUnwindInfo.appendLe64(0xABCDEF0123456789);
     expected.codeAlignment                 = 16;
     expected.codeRelocations               = builder.codeRelocations();
     expected.codeRelocations[0].codeOffset = 0;
@@ -103,6 +105,10 @@ SWC_FILESYSTEM_TEST_BEGIN(MachineCodeCache_ReusesModuleSourceWithRelocations)
     cache.write(expected);
     MachineCode restored;
     if (!cache.read(restored) || restored.bytes.size() != 8 || restored.codeRelocations.size() != 1 || restored.codeRelocations[0].targetSymbol != target)
+        return Result::Error;
+
+    if (restored.unwindInfo.size() != 4 || restored.unwindInfo.readLe32(0) != 0x12345678 ||
+        restored.hostUnwindInfo.size() != 8 || restored.hostUnwindInfo.readLe64(0) != 0xABCDEF0123456789)
         return Result::Error;
 
     auto*               relocatedTarget = makeCacheFunction(localCtx, "cacheModuleTarget");

@@ -47,12 +47,7 @@ namespace
 
     Result requireHostTarget(TaskContext& ctx)
     {
-#ifdef _WIN32
-        constexpr auto hostOs = Runtime::TargetOs::Windows;
-#elif defined(__linux__)
-        constexpr auto hostOs = Runtime::TargetOs::Linux;
-#endif
-        if (ctx.cmdLine().targetOs == hostOs)
+        if (ctx.cmdLine().targetOs == hostTargetOs())
             return Result::Continue;
         auto diagnostic = Diagnostic::get(DiagnosticId::cmd_err_jit_host_target);
         diagnostic.addArgument(Diagnostic::ARG_TARGET, targetOsName(ctx.cmdLine().targetOs));
@@ -101,6 +96,7 @@ namespace
         ForeignModuleMissing,
         ForeignFunctionMissing,
         ForeignLookupFailed,
+        HostTargetMismatch,
     };
 
     struct RelocationResolveFailure
@@ -214,6 +210,7 @@ namespace
         const auto& runtimeImports = ctx.compiler().nativeRuntimeImports();
         if (runtimeImports.empty())
             return Result::Continue;
+        SWC_RESULT(requireHostTarget(ctx));
 
         ctx.compiler().markImportedNativeExecution();
 
@@ -420,6 +417,14 @@ namespace
     bool tryResolveForeignFunctionAddress(TaskContext& ctx, void*& outFunctionAddress, const SymbolFunction& targetFunction, RelocationResolveFailure* outFailure, JITRelocationPatchContext* patchContext = nullptr)
     {
         outFunctionAddress = nullptr;
+        if (ctx.cmdLine().targetOs != hostTargetOs())
+        {
+            if (outFailure)
+                outFailure->kind = RelocationResolveFailureKind::HostTargetMismatch;
+            else
+                static_cast<void>(requireHostTarget(ctx));
+            return false;
+        }
         if (!targetFunction.isForeign())
         {
             if (outFailure)
@@ -977,6 +982,8 @@ namespace
 
     Result reportRelocationFailure(TaskContext& ctx, DiagnosticId diagId, std::string_view symbolName, const RelocationResolveFailure& failure)
     {
+        if (failure.kind == RelocationResolveFailureKind::HostTargetMismatch)
+            return requireHostTarget(ctx);
         Diagnostic diag = Diagnostic::get(diagId);
         diag.addArgument(Diagnostic::ARG_SYM, symbolName);
         addRelocationFailureNotes(diag, ctx, failure);
@@ -1319,7 +1326,6 @@ namespace
 
 Result JIT::prepare(TaskContext& ctx, JITMemory& outExecutableMemory, const ByteArray& linearCode, const ByteArray& unwindInfo, const std::span<const MicroRelocation> relocations)
 {
-    SWC_RESULT(requireHostTarget(ctx));
     prepare(ctx.compiler().jitMemMgr(), outExecutableMemory, linearCode, unwindInfo, relocations);
     return Result::Continue;
 }
@@ -1487,8 +1493,6 @@ void* JIT::getNativeInterfaceAdapter(TaskContext& ctx, void* targetFn, const uin
 {
     SWC_ASSERT(targetFn != nullptr);
     SWC_ASSERT(numArgs <= 2);
-    if (requireHostTarget(ctx) != Result::Continue)
-        return nullptr;
 
     struct Adapter
     {
@@ -1517,10 +1521,8 @@ void* JIT::getNativeInterfaceAdapter(TaskContext& ctx, void* targetFn, const uin
 
     const TaskScopedContext scopedContext(ctx);
     const CallConv&         incomingConv = CallConv::get(CallConvKind::Swag);
-    // These are compiler-host callbacks, not imported target functions. Host-target
-    // validation above makes the concrete host convention unambiguous even before
-    // the language's C profile is activated for a new target.
-    const CallConvKind nativeKind = ctx.cmdLine().targetOs == Runtime::TargetOs::Linux ? CallConvKind::SystemVAMD64 : CallConvKind::WindowsX64;
+    // Compiler callbacks always use the host ABI, independently of native output.
+    const CallConvKind nativeKind = CallConv::hostKind();
     const CallConv& nativeConv = CallConv::get(nativeKind);
     SWC_ASSERT(incomingConv.intReturn == nativeConv.intReturn);
 
@@ -1554,7 +1556,7 @@ void* JIT::getNativeInterfaceAdapter(TaskContext& ctx, void* targetFn, const uin
     SWC_ASSERT(loweredCode.codeRelocations.empty());
 
     JITMemory executableMemory;
-    prepare(cache.memoryManager, executableMemory, loweredCode.bytes, loweredCode.unwindInfo, {});
+    prepare(cache.memoryManager, executableMemory, loweredCode.bytes, loweredCode.jitUnwindInfo(ctx), {});
     finalize(executableMemory);
 
     void* const entryPoint = executableMemory.entryPoint();
@@ -1564,7 +1566,6 @@ void* JIT::getNativeInterfaceAdapter(TaskContext& ctx, void* targetFn, const uin
 
 Result JIT::emitAndCall(TaskContext& ctx, void* targetFn, std::span<const JITArgument> args, const JITReturn& ret, CallConvKind callConvKind)
 {
-    SWC_RESULT(requireHostTarget(ctx));
     const TaskScopedContext scopedContext(ctx);
     SWC_ASSERT(targetFn != nullptr);
 
@@ -1714,7 +1715,7 @@ Result JIT::emitAndCall(TaskContext& ctx, void* targetFn, std::span<const JITArg
         const MicroReg targetReg = MicroReg::virtualIntReg(3);
         const MicroReg resultReg = MicroReg::virtualIntReg(4);
 
-        const CallConvKind nativeKind = ctx.cmdLine().targetOs == Runtime::TargetOs::Linux ? CallConvKind::SystemVAMD64 : CallConvKind::WindowsX64;
+        const CallConvKind nativeKind = CallConv::hostKind();
         builder.emitLoadRegReg(frameReg, CallConv::get(nativeKind).intArgRegs[0], MicroOpBits::B64);
         builder.emitLoadRegMem(argsReg, frameReg, offsetof(CallFrame, arguments), MicroOpBits::B64);
         builder.emitLoadRegMem(targetReg, frameReg, offsetof(CallFrame, target), MicroOpBits::B64);
@@ -1744,7 +1745,7 @@ Result JIT::emitAndCall(TaskContext& ctx, void* targetFn, std::span<const JITArg
         SWC_ASSERT(loweredCode.codeRelocations.empty());
 
         JITMemory executableMemory;
-        prepare(cache.memoryManager, executableMemory, loweredCode.bytes, loweredCode.unwindInfo, {});
+        prepare(cache.memoryManager, executableMemory, loweredCode.bytes, loweredCode.jitUnwindInfo(ctx), {});
         finalize(executableMemory);
 
         invoker = executableMemory.entryPoint();
@@ -2170,7 +2171,6 @@ namespace
 
 Result JIT::call(TaskContext& ctx, void* invoker, const uint64_t* arg0, JITCallErrorKind* outErrorKind, const JITRuntimeSetupMode setupMode, const CallConvKind callConvKind)
 {
-    SWC_RESULT(requireHostTarget(ctx));
     const TaskScopedContext scopedContext(ctx);
     SWC_ASSERT(invoker != nullptr);
 

@@ -1,6 +1,7 @@
 #include "pch.h"
 #include "Backend/ABI/CallConv.h"
 #include "Backend/RuntimeBase.h"
+#include "Backend/RuntimeName.h"
 #include "Support/Report/Assert.h"
 
 SWC_BEGIN_NAMESPACE();
@@ -250,6 +251,11 @@ bool CallConv::tryPickIntScratchRegs(MicroReg& outReg0, MicroReg& outReg1, Micro
     }
 
     return true;
+}
+
+CallConvKind CallConv::hostKind()
+{
+    return resolveTargetCallConvKind(hostTargetOs());
 }
 
 void CallConv::setup(const Runtime::TargetOs targetOs)

@@ -1,6 +1,7 @@
 #include "pch.h"
 #include "Backend/Encoder/X64Encoder.h"
 #include "Backend/Encoder/X64Immediate.h"
+#include "Backend/RuntimeName.h"
 #include "Backend/Micro/MicroInstr.h"
 #include "Main/Command/CommandLine.h"
 #include "Main/CompilerInstance.h"
@@ -1122,6 +1123,12 @@ X64Encoder::X64Encoder(TaskContext& ctx) :
 {
 }
 
+void X64Encoder::enableHostUnwind()
+{
+    if (unwindTargetOs_ != hostTargetOs() && !hostUnwind_)
+        hostUnwind_ = X64Unwind::create(hostTargetOs());
+}
+
 void X64Encoder::reset(TaskContext& ctx)
 {
     // The tracker is the target's; a job for another target gets another one.
@@ -1130,6 +1137,7 @@ void X64Encoder::reset(TaskContext& ctx)
     {
         unwind_         = X64Unwind::create(targetOs);
         unwindTargetOs_ = targetOs;
+        hostUnwind_.reset();
     }
 
     Encoder::reset(ctx);
@@ -1139,11 +1147,15 @@ void X64Encoder::resetCode()
 {
     Encoder::resetCode();
     unwind_->reset();
+    if (hostUnwind_)
+        hostUnwind_->reset();
 }
 
 void X64Encoder::prepareUnwind(MicroBuilder& builder, const CallConvKind callConv)
 {
     unwind_->prepare(builder, callConv, this);
+    if (hostUnwind_)
+        hostUnwind_->prepare(builder, callConv, this);
 }
 
 void X64Encoder::buildUnwindInfo(ByteArray& outUnwindInfo) const
@@ -1152,16 +1164,27 @@ void X64Encoder::buildUnwindInfo(ByteArray& outUnwindInfo) const
     unwind_->buildInfo(outUnwindInfo, size());
 }
 
+void X64Encoder::buildHostUnwindInfo(ByteArray& outUnwindInfo) const
+{
+    outUnwindInfo.clear();
+    if (hostUnwind_)
+        hostUnwind_->buildInfo(outUnwindInfo, size());
+}
+
 void X64Encoder::setUnwindFrameRegister(const MicroReg reg)
 {
     SWC_ASSERT(unwind_);
     unwind_->setFrameRegister(reg);
+    if (hostUnwind_)
+        hostUnwind_->setFrameRegister(reg);
 }
 
 void X64Encoder::onInstructionEncoded(const MicroInstr& inst, const MicroInstrOperand* ops, const uint32_t codeStartOffset, const uint32_t codeEndOffset)
 {
     SWC_ASSERT(unwind_);
     unwind_->onInstructionEncoded(inst, ops, codeStartOffset, codeEndOffset);
+    if (hostUnwind_)
+        hostUnwind_->onInstructionEncoded(inst, ops, codeStartOffset, codeEndOffset);
 }
 
 // ============================================================================

@@ -25,6 +25,8 @@ struct MachineCode
 
     ByteArray                     bytes;
     ByteArray                     unwindInfo;
+    // Present only across host/target OS boundaries; native output keeps unwindInfo.
+    ByteArray                     hostUnwindInfo;
     std::vector<MicroRelocation>  codeRelocations;
     std::vector<DebugSourceRange> debugSourceRanges;
 
@@ -39,6 +41,7 @@ struct MachineCode
     // MicroInstr::K_CALL_CLOBBERS_ALL for any other code.
     uint64_t callClobbers = MicroInstr::K_CALL_CLOBBERS_ALL;
 
+    const ByteArray&        jitUnwindInfo(const TaskContext& ctx) const;
     const DebugSourceRange* findDebugSourceRangeAtOffset(uint32_t codeOffset) const;
     static bool             tryResolveDebugSourceRange(const TaskContext& ctx, ResolvedDebugSourceRange& outResolvedRange, const DebugSourceRange& range);
     bool                    tryResolveDebugSourceRangeAtOffset(const TaskContext& ctx, ResolvedDebugSourceRange& outResolvedRange, uint32_t codeOffset) const;

@@ -20,6 +20,8 @@ public:
     void reset(TaskContext& ctx) override;
 
     void        buildUnwindInfo(ByteArray& outUnwindInfo) const override;
+    void        enableHostUnwind();
+    void        buildHostUnwindInfo(ByteArray& outUnwindInfo) const;
     void        prepareUnwind(MicroBuilder& builder, CallConvKind callConv) override;
     std::string formatRegisterName(MicroReg reg) const override;
     MicroReg    stackPointerReg() const override { return MicroReg::intReg(4); }
@@ -129,6 +131,7 @@ protected:
     bool supportsFusedFloatMultiplyAdd() const override { return true; }
 
     std::unique_ptr<X64Unwind> unwind_;
+    std::unique_ptr<X64Unwind> hostUnwind_;
     Runtime::TargetOs          unwindTargetOs_;
 };
 

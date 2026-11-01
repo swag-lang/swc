@@ -788,6 +788,41 @@ SWC_TEST_BEGIN(ABI_SystemVGeneratedCalleeReturnsPartialAndVectorValues)
 }
 SWC_TEST_END()
 
+SWC_TEST_BEGIN(JIT_LinuxHostUnwindsGeneratedCodeForEitherOutputTarget)
+{
+    // Reuse the worker encoder across target changes. Both the native format and
+    // the additional host format must be reset with each emitted function.
+    for (const auto target : {Runtime::TargetOs::Windows, Runtime::TargetOs::Linux, Runtime::TargetOs::Windows})
+    {
+        CommandLine commandLine = ctx.cmdLine();
+        commandLine.targetOs = target;
+        CompilerInstance compiler(ctx.global(), commandLine);
+        TaskContext context(compiler);
+        MicroBuilder builder(context);
+        const std::array<ABICall::Arg, 2> args{{{.value = 31, .numBits = 64}, {.value = 37, .numBits = 64}}};
+        ABICall::callAddress(builder, CallConv::hostKind(), reinterpret_cast<uint64_t>(nativeCallbackThrows), args, {});
+        builder.emitRet();
+        MachineCode lowered;
+        SWC_RESULT(lowered.emit(context, builder));
+        if (lowered.unwindInfo.empty() || lowered.hostUnwindInfo.empty() != (target == Runtime::TargetOs::Linux))
+            return Result::Error;
+        JITMemory memory;
+        SWC_RESULT(JIT::emit(context, memory, lowered.bytes, lowered.codeRelocations, lowered.jitUnwindInfo(context)));
+        bool caught = false;
+        try
+        {
+            SWC_RESULT(JIT::call(context, memory.entryPoint(), nullptr, nullptr, JITRuntimeSetupMode::None, CallConvKind::Swag));
+        }
+        catch (const CallbackException& error)
+        {
+            caught = error.value == 31 * 7 + 37 * 11;
+        }
+        if (!caught)
+            return Result::Error;
+    }
+}
+SWC_TEST_END()
+
 SWC_TEST_BEGIN(JIT_LinuxNativeInterfaceAdaptersTranslateArgumentsAndOutliveCompiler)
 {
     std::array<void*, 3> adapters{};

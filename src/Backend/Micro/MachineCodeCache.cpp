@@ -1,6 +1,7 @@
 #include "pch.h"
 #include "Backend/Micro/MachineCodeCache.h"
 #include "Backend/ABI/ABITypeNormalize.h"
+#include "Backend/RuntimeName.h"
 #include "Backend/Micro/MachineCode.h"
 #include "Backend/Micro/MicroBuilder.h"
 #include "Backend/Micro/MicroPassContext.h"
@@ -24,8 +25,8 @@ SWC_BEGIN_NAMESPACE();
 
 namespace
 {
-    constexpr uint64_t K_MAGIC                = 0x3445444f434d5753; // SWMCODE4
-    constexpr uint32_t K_CHECKSUM_OFFSET      = 48;
+    constexpr uint64_t K_MAGIC                = 0x3545444f434d5753; // SWMCODE5
+    constexpr uint32_t K_CHECKSUM_OFFSET      = 52;
     constexpr uint32_t K_HEADER_SIZE          = K_CHECKSUM_OFFSET + 32;
     constexpr uint32_t K_RELOCATION_SIZE      = 28;
     constexpr uint32_t K_SOURCE_SIZE          = 12;
@@ -435,6 +436,8 @@ Utf8 MachineCodeCache::inputKey(TaskContext& ctx, std::vector<DebugSourceInfo>& 
     const CommandLine& command = ctx.cmdLine();
     ByteArray          identity;
     appendString(identity, compilerIdentity);
+    identity.appendLe64(K_MAGIC);
+    identity.appendLe32(static_cast<uint32_t>(hostTargetOs()));
     builder.backendBuildCfg().appendCacheIdentity(identity);
     identity.appendLe32(ctx.compiler().buildCfg().backend.enableExceptions);
     identity.appendLe32(static_cast<uint32_t>(command.targetOs));
@@ -541,9 +544,10 @@ bool MachineCodeCache::read(MachineCode& out) const
         return false;
     const ByteView& bytes    = record.bytes;
     const uint32_t  codeSize = bytes.readLe32(8), unwindSize = bytes.readLe32(12);
+    const uint32_t  hostUnwindSize = bytes.readLe32(48);
     const uint32_t  relocations = bytes.readLe32(24), sources = bytes.readLe32(28);
     const uint32_t  constants = bytes.readLe32(40), constantBytes = bytes.readLe32(44);
-    const uint64_t  constantsStart = K_HEADER_SIZE + static_cast<uint64_t>(codeSize) + unwindSize + static_cast<uint64_t>(relocations) * K_RELOCATION_SIZE + static_cast<uint64_t>(sources) * K_SOURCE_SIZE;
+    const uint64_t  constantsStart = K_HEADER_SIZE + static_cast<uint64_t>(codeSize) + unwindSize + hostUnwindSize + static_cast<uint64_t>(relocations) * K_RELOCATION_SIZE + static_cast<uint64_t>(sources) * K_SOURCE_SIZE;
     if (constantsStart + constantBytes != bytes.size() || !codeSize || constants > constantBytes / (K_CONSTANT_HEADER_SIZE + 1))
         return false;
     std::array<uint8_t, 32> checksum;
@@ -582,6 +586,8 @@ bool MachineCodeCache::read(MachineCode& out) const
     cursor += codeSize;
     code.unwindInfo.append(bytes.span().subspan(cursor, unwindSize));
     cursor += unwindSize;
+    code.hostUnwindInfo.append(bytes.span().subspan(cursor, hostUnwindSize));
+    cursor += hostUnwindSize;
     for (uint32_t index = 0; index < relocations; ++index, cursor += K_RELOCATION_SIZE)
     {
         const uint32_t target          = bytes.readLe32(cursor);
@@ -711,9 +717,11 @@ void MachineCodeCache::write(const MachineCode& code) const
     bytes.appendLe64(code.callClobbers);
     bytes.appendLe32(static_cast<uint32_t>(constants.indices.size()));
     bytes.appendLe32(static_cast<uint32_t>(constants.bytes.size()));
+    bytes.appendLe32(static_cast<uint32_t>(code.hostUnwindInfo.size()));
     bytes.resize(K_HEADER_SIZE, std::byte{0});
     bytes.append(image);
     bytes.append(code.unwindInfo);
+    bytes.append(code.hostUnwindInfo);
     bytes.append(records);
     bytes.append(constants.bytes);
     if (bytes.size() > K_MAX_IMAGE_SIZE)

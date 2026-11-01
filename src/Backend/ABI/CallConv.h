@@ -111,6 +111,7 @@ struct CallConv
     MicroReg             preferredLocalStackBaseReg() const;
     bool                 tryPickIntScratchRegs(MicroReg& outReg0, MicroReg& outReg1, MicroRegSpan forbidden = {}) const;
 
+    static CallConvKind    hostKind();
     static void            setup(Runtime::TargetOs targetOs);
     static const CallConv& get(CallConvKind kind);
     static const CallConv& swag();

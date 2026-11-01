@@ -314,6 +314,10 @@ private func readLayout(stream: *File.FileStream)->Layout fail
                     fail InvalidFormatError{"invalid riff chunk"}
                 stage = .FindFmt
             }
+            else
+            {
+                try stream.skip(header.chunkSize)
+            }
 
         case .SND_WAV_FOURCC_fmt:
             if stage == .FindFmt
@@ -326,6 +330,10 @@ private func readLayout(stream: *File.FileStream)->Layout fail
                     fail InvalidFormatError{"invalid wav"}
                 result.format = try parseFormat(bytes.toSlice())
                 stage         = .FindData
+            }
+            else
+            {
+                try stream.skip(header.chunkSize)
             }
 
         case .SND_WAV_FOURCC_fact:
@@ -353,6 +361,10 @@ private func readLayout(stream: *File.FileStream)->Layout fail
                     fail InvalidFormatError{"WAV audio data is truncated"}
                 result.dataSize   = header.chunkSize
                 return result
+            }
+            else
+            {
+                try stream.skip(header.chunkSize)
             }
 
         case .SND_WAV_FOURCC_cue, .SND_WAV_FOURCC_LIST, .SND_WAV_FOURCC_labl,

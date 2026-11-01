@@ -1034,7 +1034,7 @@ impl MenuCtrl
             if it.label
             {
                 let labelFont = .theme().createDefaultFont(metrics.sectionLabel_FontSize, .SemiBold)
-                let labelText = String.toUpper(it.name.raw, .Unicode)
+                let labelText = it.name.raw.toUpper(.Unicode)
                 w = Painter.shapeRun(labelText, labelFont, letterSpacing: metrics.sectionLabel_LetterSpacing).metrics.width
             }
 

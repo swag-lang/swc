@@ -820,7 +820,7 @@ func assertMenuMarkerGolden(palette: MenuMarkerPalette, golden: string)
     Swag.assert(bar.subVisible == sub)
     Swag.assert(sub.popupBarItemIdx == 0)
     Swag.assert(sub.popupBarItemSurfaceRect.height == bar.position.height)
-    Swag.assert(sub.position.y == 0)
+    Swag.assert(sub.position.y == -metrics.menuPopup_ShadowSize)
     Swag.assert(sub.items[0]!.pos > metrics.menuPopup_ShadowSize + bar.position.height)
 }
 

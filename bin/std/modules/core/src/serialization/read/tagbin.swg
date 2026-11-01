@@ -11,6 +11,14 @@ alias Buffer = Array'u8
 // overhead. A payload announcing more expansion than this is corrupt.
 private const DeflateMaxExpansion = 1032'u64
 
+// Checks the format's maximum Deflate expansion without overflowing a multiplication.
+private func deflateExpansionFits(uncompressedSize, compressedSize: u64)->bool
+{
+    let requiredCompressed = uncompressedSize / DeflateMaxExpansion +
+                             (uncompressedSize % DeflateMaxExpansion != 0 ? 1'u64 : 0)
+    return compressedSize >= requiredCompressed
+}
+
 // Shape index of a field reference coming from a stream without shapes.
 private const NoShapeIndex = 0xFFFFFFFF'u32
 
@@ -524,6 +532,9 @@ private impl TagBin
         if compressedSize > .remaining() do
             fail SerializationError{"compressed payload runs past the end of the stream", field: val}
 
+        if not deflateExpansionFits(uncompressedSize, compressedSize) do
+            fail SerializationError{"corrupted compressed payload", field: val}
+
         if uncompressedSize == compressedSize
         {
             .elemStack.add({compressed: false, tmpBuf: null})
@@ -532,12 +543,9 @@ private impl TagBin
 
         let decompressedBuffer = .acquireTmpBuf()
 
-        // The announced size is only a sizing hint: 'decompress' grows the
-        // buffer on its own and rejects a malformed payload. Honour it only
-        // while it stays within what deflate can produce from this input, so
-        // a corrupt header cannot ask for an arbitrary allocation.
-        if uncompressedSize <= compressedSize * DeflateMaxExpansion do
-            decompressedBuffer.reserve(uncompressedSize)
+        // The announced size passed the format ratio check above. Reserve it once,
+        // and give the same size to the inflater as a hard output limit.
+        decompressedBuffer.reserve(uncompressedSize)
 
         // Feed the decompressor exactly the announced run, so a malformed payload can
         // never consume the bytes of the elements that follow.
@@ -546,7 +554,7 @@ private impl TagBin
 
         var decompressor: Core.Compress.Inflate
         var errOutcome:   Swag.Error
-        catch decompressor.decompress(decompressedBuffer, input) as errOutcome
+        catch decompressor.decompress(decompressedBuffer, input, maxOutputSize: uncompressedSize) as errOutcome
         let err = errOutcome.value()
         if err != null or decompressedBuffer.count != uncompressedSize
         {
@@ -658,6 +666,9 @@ private impl TagBin
             if compressedSize > .remaining() do
                 fail SerializationError{"compressed body runs past the end of the stream"}
 
+            if not deflateExpansionFits(uncompressedSize, compressedSize) do
+                fail SerializationError{"corrupted compressed body"}
+
             let rem = .stream.remainingBytes()
             if uncompressedSize == compressedSize
             {
@@ -665,12 +676,13 @@ private impl TagBin
             }
             else
             {
-                if uncompressedSize <= compressedSize * DeflateMaxExpansion do
-                    .bodyBuffer.reserve(uncompressedSize)
+                .bodyBuffer.reserve(uncompressedSize)
 
                 var decompressor: Core.Compress.Inflate
                 var errOutcome:   Swag.Error
-                catch decompressor.decompress(&.bodyBuffer, Swag.makeSlice(rem.buffer, compressedSize)) as errOutcome
+                catch decompressor.decompress(&.bodyBuffer,
+                                              Swag.makeSlice(rem.buffer, compressedSize),
+                                              maxOutputSize: uncompressedSize) as errOutcome
                 let err = errOutcome.value()
                 if err != null or .bodyBuffer.count != uncompressedSize do
                     fail SerializationError{"corrupted compressed body"}

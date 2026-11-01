@@ -1126,6 +1126,20 @@ func corruptTagBinCompressedSizes(bytes: String, fieldName: string, uncompressed
     Swag.assert(errsz != null)
 }
 
+// A compressed field cannot announce an expansion beyond Deflate's format bound.
+#test
+{
+    let payload = makeTagBinPayload()
+    let bytes   = encodeTagBin(payload)
+    let sizes   = readTagBinCompressedSizes(bytes.toSlice(), "blob")
+    let patched = corruptTagBinCompressedSizes(bytes, "blob", Swag.U64.Max, sizes.compressed)
+
+    var decoder:    Serialization.Decoder'Serialization.Read.TagBin
+    var errorOutcome: Swag.Error
+    catch CoreTests.readAndDelete'(TagBinPayload, Serialization.Read.TagBin)(&decoder, patched.toSlice()) as errorOutcome
+    Swag.assert(errorOutcome.value() != null)
+}
+
 // A field whose header does not decode is skipped without unbalancing the element
 // stack, so the fields around it still read back.
 #test

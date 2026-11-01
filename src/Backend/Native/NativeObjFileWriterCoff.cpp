@@ -23,13 +23,6 @@ namespace
 {
     constexpr size_t COFF_RELOCATION_OVERFLOW_LIMIT = 0xFFFFu;
 
-    uint32_t coffAlignmentCharacteristics(const uint32_t align)
-    {
-        SWC_ASSERT(std::has_single_bit(align));
-        const uint32_t clampedAlign = std::min(align, 8192u);
-        return (std::countr_zero(clampedAlign) + 1) << 20;
-    }
-
     bool needsCoffRelocationOverflow(size_t relocationCount)
     {
         return relocationCount >= COFF_RELOCATION_OVERFLOW_LIMIT;
@@ -37,7 +30,7 @@ namespace
 }
 
 NativeObjFileWriterCoff::NativeObjFileWriterCoff(NativeBackendBuilder& builder) :
-    builder_(&builder)
+    NativeObjFileWriter(builder)
 {
 }
 
@@ -81,6 +74,8 @@ Result NativeObjFileWriterCoff::buildObjectFile(ByteArray& outBytes, const Nativ
     {
         CoffSectionBuild section;
         section.data = builder_->mergedData;
+        if (description.splitRDataReferences)
+            SWC_RESULT(builder_->remapRDataReferences(section.data));
         SWC_RESULT(applySectionRelocations(section));
         sections.push_back(std::move(section));
     }
@@ -154,21 +149,6 @@ Result NativeObjFileWriterCoff::buildObjectFile(ByteArray& outBytes, const Nativ
     return buildCoffFile(outBytes, sections, symbols, symbolIndex);
 }
 
-Result NativeObjFileWriterCoff::writeObjectFile(const NativeObjDescription& description)
-{
-    ByteArray fileData;
-    SWC_RESULT(buildObjectFile(fileData, description));
-
-    FileSystem::IoErrorInfo ioError;
-    if (FileSystem::writeBinaryFile(description.objPath, fileData.data(), fileData.size(), ioError) == Result::Continue)
-        return Result::Continue;
-
-    if (ioError.problem == FileSystem::IoProblem::OpenWrite)
-        return builder_->reportError(DiagnosticId::cmd_err_native_obj_open_failed, Diagnostic::ARG_PATH, Utf8(description.objPath));
-
-    return builder_->reportError(DiagnosticId::cmd_err_native_obj_write_failed, Diagnostic::ARG_PATH, Utf8(description.objPath));
-}
-
 Result NativeObjFileWriterCoff::buildTextSection(const NativeObjDescription& description, CoffSectionBuild& textSection) const
 {
     if (description.startup)
@@ -186,57 +166,7 @@ Result NativeObjFileWriterCoff::buildTextSection(const NativeObjDescription& des
 
 Result NativeObjFileWriterCoff::buildRDataAllocationSection(CoffSectionBuild& section, const NativeRDataAllocationMapEntry& allocation) const
 {
-    SWC_ASSERT(allocation.emittedOffset + allocation.size <= builder_->mergedRData.bytes.size());
-
-    // The collector emits allocations in offset order and sorts each allocation's relocations.
-    // Visit only this allocation's range instead of scanning the entire module for every object.
-    const auto&                      relocations = builder_->mergedRData.relocations;
-    const auto                       first       = std::ranges::lower_bound(relocations, allocation.emittedOffset, {}, &NativeSectionRelocation::offset);
-    const std::span<const std::byte> allocationBytes{builder_->mergedRData.bytes.data() + allocation.emittedOffset, allocation.size};
-    const bool                       hasRelocations = first != relocations.end() && first->offset - allocation.emittedOffset < allocation.size;
-
-    if (!hasRelocations && allocation.zeroFilled)
-    {
-        // Keep all-zero allocations as uninitialized data without copying bytes
-        // into a section that would immediately discard them again.
-        section.data.name            = ".rbss";
-        section.data.characteristics = PE::SCN_CNT_UNINITIALIZED_DATA | PE::SCN_MEM_READ | coffAlignmentCharacteristics(allocation.align);
-        section.data.bss             = true;
-        section.data.bssSize         = allocation.size;
-        return Result::Continue;
-    }
-
-    section.data.name            = ".rdata";
-    section.data.characteristics = PE::SCN_CNT_INITIALIZED_DATA | PE::SCN_MEM_READ | coffAlignmentCharacteristics(allocation.align);
-    section.data.bytes.append(allocationBytes);
-
-    const NativeBackendBuilder::ScopedSymbolNames* names = nullptr;
-    for (auto it = first; it != relocations.end(); ++it)
-    {
-        const NativeSectionRelocation& sourceRelocation = *it;
-        if (sourceRelocation.offset - allocation.emittedOffset >= allocation.size)
-            break;
-
-        NativeSectionRelocation relocation = sourceRelocation;
-        relocation.offset -= allocation.emittedOffset;
-        if (!names)
-            names = &builder_->scopedSymbolNames();
-        if (relocation.symbolName == names->rdataBase)
-        {
-            const auto* targetAllocation = builder_->tryFindRDataEmittedAllocation(static_cast<uint32_t>(relocation.addend));
-            if (!targetAllocation)
-            {
-                const Utf8 ownerName = nativeScopedRDataAllocationSymbol(names->scopeHash, allocation.emittedOffset);
-                return builder_->reportError(DiagnosticId::cmd_err_native_constant_payload_unsupported, Diagnostic::ARG_SYM, ownerName);
-            }
-
-            relocation.symbolName = builder_->rdataAllocationSymbol(*targetAllocation);
-            relocation.addend -= targetAllocation->emittedOffset;
-        }
-
-        section.data.relocations.push_back(std::move(relocation));
-    }
-
+    SWC_RESULT(builder_->buildRDataAllocationSection(section.data, allocation));
     return applySectionRelocations(section);
 }
 

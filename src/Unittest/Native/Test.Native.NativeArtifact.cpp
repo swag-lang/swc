@@ -1207,6 +1207,13 @@ SWC_FILESYSTEM_TEST_BEGIN(NativeArtifact_RDataKeepsReferencedDependencies)
     if (emittedRootOffset == emittedNestedOffset || emittedNestedOffset == emittedStringOffset)
         return Result::Error;
 
+    // A writable global can point into a read-only allocation too. Its relocation
+    // has to follow the archive split just like a code or read-only-data reference.
+    auto& globalData = fixture.nativeBuilder->mergedData;
+    const uint32_t globalPointerOffset = static_cast<uint32_t>(globalData.bytes.size());
+    globalData.bytes.appendLe64(0);
+    globalData.relocations.push_back({.offset = globalPointerOffset, .symbolName = fixture.nativeBuilder->scopedSymbolNames().rdataBase, .addend = emittedNestedOffset + sizeof(uint64_t)});
+
     SWC_RESULT(fixture.artifactBuilder->partitionArchiveObjects());
     SWC_RESULT(fixture.nativeBuilder->buildObjectBytes());
 
@@ -1242,6 +1249,14 @@ SWC_FILESYSTEM_TEST_BEGIN(NativeArtifact_RDataKeepsReferencedDependencies)
     const Utf8 nestedSymbol = nativeScopedRDataAllocationSymbol(*fixture.compiler, emittedNestedOffset);
 
     Diagnostic diag;
+    CoffObject writableObject;
+    if (!readCoffObject(writableObject, diag, fixture.nativeBuilder->objectDescriptions.front().objBytes))
+        return Result::Error;
+    const auto writableData = std::ranges::find(writableObject.sections, Utf8(".data"), &CoffInputSection::name);
+    if (writableData == writableObject.sections.end() || writableData->bytes.readLe64(globalPointerOffset) != sizeof(uint64_t) ||
+        !std::ranges::any_of(writableData->relocs, [&](const CoffInputReloc& relocation) { return relocation.offset == globalPointerOffset && relocation.symbolName == nestedSymbol; }))
+        return failNativeArtifactTest("NativeArtifact_RDataKeepsReferencedDependencies", "global pointer does not reference its archive allocation");
+
     CoffObject functionObject;
     CoffObject rootObject;
     CoffObject nestedObject;
@@ -2436,6 +2451,62 @@ SWC_TEST_BEGIN(SymbolTable_DeduplicatesNamesAndOwnsSerializedStrings)
         return Result::Error;
 }
 SWC_TEST_END()
+
+#if defined(__linux__) && defined(__x86_64__)
+SWC_FILESYSTEM_TEST_BEGIN(NativeArtifact_ElfArchiveKeepsGlobalConstantPointers)
+{
+    CommandLine commandLine = makeStandaloneNativeArtifactCmdLine("elf_archive_global_pointer", Runtime::BuildCfgBackendKind::StaticLibrary);
+    commandLine.targetOs = Runtime::TargetOs::Linux;
+    const NativeArtifactTestFixture fixture(ctx.global(), commandLine);
+    NativeBackendBuilder& builder = *fixture.nativeBuilder;
+    builder.mergedRData.name = ".rdata";
+    builder.mergedRData.bytes.append("padpayload");
+    builder.mergedRData.bytes.pushBack(std::byte{0});
+    builder.rdataAllocations.push_back({.sourceOffset = 0, .size = 11, .align = 1, .emittedOffset = 0});
+    builder.mergedData.name = ".data";
+    builder.mergedData.characteristics = PE::SCN_CNT_INITIALIZED_DATA | PE::SCN_MEM_READ | PE::SCN_MEM_WRITE | PE::SCN_ALIGN_8BYTES;
+    builder.mergedData.bytes.appendLe64(0);
+    builder.mergedData.relocations.push_back({.offset = 0, .symbolName = builder.scopedSymbolNames().rdataBase, .addend = 3});
+
+    const auto writer = NativeObjFileWriter::create(builder);
+    std::error_code directoryError;
+    fs::create_directories(commandLine.workDir, directoryError);
+    if (directoryError)
+        return Result::Error;
+    NativeObjDescription globals;
+    globals.objPath = commandLine.workDir / "globals.o";
+    globals.includeData = true;
+    globals.splitRDataReferences = true;
+    SWC_RESULT(writer->writeObjectFile(globals));
+    NativeObjDescription constant;
+    constant.objPath = commandLine.workDir / "constant.o";
+    constant.rdataAllocationIndex = 0;
+    constant.rdataAllocationCount = 1;
+    constant.splitRDataReferences = true;
+    SWC_RESULT(writer->writeObjectFile(constant));
+
+    const std::string source = std::format("#include <cstring>\nextern const char* value asm(\"{}\");\nint main() {{ return std::strcmp(value, \"payload\") == 0 ? 0 : 1; }}\n", builder.scopedSymbolNames().dataBase);
+    FileSystem::IoErrorInfo ioError;
+    SWC_RESULT(FileSystem::writeBinaryFile(commandLine.workDir / "consumer.cpp", source.data(), source.size(), ioError));
+    const std::array<std::pair<fs::path, std::vector<Utf8>>, 3> commands = {{
+        {"ar", {"rcsD", "library.a", "globals.o", "constant.o"}},
+        {"c++", {"-no-pie", "consumer.cpp", "library.a", "-o", "consumer"}},
+        {commandLine.workDir / "consumer", {}},
+    }};
+    for (const auto& [program, arguments] : commands)
+    {
+        std::string output;
+        uint32_t exitCode = 0;
+        const Os::ProcessRunOptions options{.capturedOutput = &output, .forwardOutput = false, .timeoutMs = 15000};
+        if (Os::runProcess(exitCode, program, arguments, commandLine.workDir, &options) != Os::ProcessRunResult::Ok || exitCode != 0)
+        {
+            std::println(stderr, "[ELF archive consumer] {}: {}", Utf8(program), output);
+            return Result::Error;
+        }
+    }
+}
+SWC_TEST_END()
+#endif
 
 SWC_END_NAMESPACE();
 

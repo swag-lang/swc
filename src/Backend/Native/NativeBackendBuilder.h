@@ -152,6 +152,8 @@ public:
     const NativeRDataAllocationMapEntry* tryFindRDataEmittedAllocation(uint32_t emittedOffset) const noexcept;
     bool                                 tryMapRDataSourceOffset(uint32_t& outOffset, uint32_t shardIndex, uint32_t sourceOffset) const noexcept;
 
+    Result remapRDataReferences(NativeSectionData& section);
+    Result buildRDataAllocationSection(NativeSectionData& section, const NativeRDataAllocationMapEntry& allocation);
     Result appendCodeRelocation(const NativeCodeRelocationTarget& target, const Utf8& ownerName, const MicroRelocation& relocation);
 
     bool                             tryReuseFunction(SymbolFunction& function);

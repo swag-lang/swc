@@ -255,6 +255,7 @@
         <ClCompile Include="src\Backend\Debug\SymbolTable.cpp"/>
         <ClCompile Include="src\Backend\Native\NativeObjFileWriter.cpp"/>
         <ClCompile Include="src\Backend\Native\NativeObjFileWriterCoff.cpp"/>
+        <ClCompile Include="src\Backend\Native\NativeObjFileWriterElf.cpp"/>
         <ClCompile Include="src\Backend\ABI\CallConv.cpp"/>
         <ClCompile Include="src\Backend\ABI\SystemVAbi.cpp"/>
         <ClCompile Include="src\Backend\Encoder\Encoder.cpp"/>
@@ -924,6 +925,7 @@
         <ClInclude Include="src\Backend\Linker\PEFormat.h"/>
         <ClInclude Include="src\Backend\Native\NativeObjFileWriter.h"/>
         <ClInclude Include="src\Backend\Native\NativeObjFileWriterCoff.h"/>
+        <ClInclude Include="src\Backend\Native\NativeObjFileWriterElf.h"/>
         <ClInclude Include="src\Backend\Native\NativeNames.h"/>
         <ClInclude Include="src\Backend\Native\NativeObjectFormat.h"/>
         <ClInclude Include="src\Backend\Native\NativeSection.h"/>

@@ -1377,6 +1377,64 @@ const NativeBackendBuilder::ScopedSymbolNames& NativeBackendBuilder::scopedSymbo
     return scopedSymbolNames_;
 }
 
+Result NativeBackendBuilder::remapRDataReferences(NativeSectionData& section)
+{
+    const auto& names = scopedSymbolNames();
+    for (NativeSectionRelocation& relocation : section.relocations)
+    {
+        if (relocation.symbolName != names.rdataBase)
+            continue;
+        const auto* allocation = relocation.addend <= UINT32_MAX ? tryFindRDataEmittedAllocation(static_cast<uint32_t>(relocation.addend)) : nullptr;
+        if (!allocation)
+            return reportError(DiagnosticId::cmd_err_native_constant_payload_unsupported, Diagnostic::ARG_SYM, section.name);
+        relocation.symbolName = rdataAllocationSymbol(*allocation);
+        relocation.addend -= allocation->emittedOffset;
+    }
+    return Result::Continue;
+}
+
+Result NativeBackendBuilder::buildRDataAllocationSection(NativeSectionData& section, const NativeRDataAllocationMapEntry& allocation)
+{
+    SWC_ASSERT(std::has_single_bit(allocation.align));
+    const uint32_t alignment = (std::countr_zero(std::min(allocation.align, 8192u)) + 1) << 20;
+    SWC_ASSERT(allocation.emittedOffset + allocation.size <= mergedRData.bytes.size());
+
+    // The collector emits allocations in offset order and sorts each allocation's relocations.
+    // Visit only this allocation's range instead of scanning the entire module for every object.
+    const auto&                      relocations = mergedRData.relocations;
+    const auto                       first       = std::ranges::lower_bound(relocations, allocation.emittedOffset, {}, &NativeSectionRelocation::offset);
+    const std::span<const std::byte> allocationBytes{mergedRData.bytes.data() + allocation.emittedOffset, allocation.size};
+    const bool                       hasRelocations = first != relocations.end() && first->offset - allocation.emittedOffset < allocation.size;
+
+    if (!hasRelocations && allocation.zeroFilled)
+    {
+        // Keep all-zero allocations as uninitialized data without copying bytes
+        // into a section that would immediately discard them again.
+        section.name            = ".rbss";
+        section.characteristics = PE::SCN_CNT_UNINITIALIZED_DATA | PE::SCN_MEM_READ | alignment;
+        section.bss             = true;
+        section.bssSize         = allocation.size;
+        return Result::Continue;
+    }
+
+    section.name            = ".rdata";
+    section.characteristics = PE::SCN_CNT_INITIALIZED_DATA | PE::SCN_MEM_READ | alignment;
+    section.bytes.append(allocationBytes);
+
+    for (auto it = first; it != relocations.end(); ++it)
+    {
+        const NativeSectionRelocation& sourceRelocation = *it;
+        if (sourceRelocation.offset - allocation.emittedOffset >= allocation.size)
+            break;
+
+        NativeSectionRelocation relocation = sourceRelocation;
+        relocation.offset -= allocation.emittedOffset;
+        section.relocations.push_back(std::move(relocation));
+    }
+
+    return remapRDataReferences(section);
+}
+
 Result NativeBackendBuilder::appendCodeRelocation(const NativeCodeRelocationTarget& target, const Utf8& ownerName, const MicroRelocation& relocation)
 {
     SWC_ASSERT(target.bytes != nullptr);

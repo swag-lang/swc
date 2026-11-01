@@ -879,7 +879,7 @@ by portable modules and products. The earlier entries prepare and enforce the sa
   outside the checkout with GNU Make. Complete DevMode and Release compilers link and
   pass the lexer/parser suites including expected-error inputs without spurious JIT setup.
   The full C++ campaign, including filesystem tests and extra IR/native validation, passes
-  1,716 of 1,723 tests; seven native link/run fixtures remain failing. Closed Windows x64 instruction fixtures execute
+  1,717 of 1,724 tests; seven native link/run fixtures remain failing. Closed Windows x64 instruction fixtures execute
   through an explicit GCC ABI bridge. Runtime adapters initialize on the first actual JIT call,
   and generated code retains separate output-target and host unwind metadata.
   Cross-host foreign relocations reject an actual call while allowing untaken error branches.
@@ -954,8 +954,9 @@ by portable modules and products. The earlier entries prepare and enforce the sa
   addends, undefined symbols and exported aliases. A GNU linker consumer executes these
   objects and verifies external calls, shared data and unwinding through generated code.
   Prepared images share native code/data lowering; Linux unwind output uses relocatable
-  DWARF CIE/FDE records. The native pipeline still selects
-  only `WindowsCoff`, writes PE, and rejects Linux in `NativeBackendBuilder::validateTarget`.
+  DWARF CIE/FDE records. The native object factory supports ELF partitions, and a GNU
+  archive consumer verifies writable-global pointers into separately extracted constants.
+  Final-image linking still writes PE and rejects Linux in `NativeBackendBuilder::validateTarget`.
 - Next: connect ELF objects to a Linux link/startup path with explicit CRT, hosted library and dynamic
   loader inputs. Pass argc/argv to runtime initialization before module startup; keep debug/unwind
   format selection independent of CodeView/PDB.

@@ -55,8 +55,17 @@ namespace
         Result placeDescription(NativeImageDescriptionSections& sections, const NativeObjDescription& description)
         {
             SWC_RESULT(placeTextSection(std::move(sections.textSection), description));
+            if (description.includeMergedRData && !builder_->mergedRData.bytes.empty())
+                SWC_RESULT(appendDataSection(builder_->mergedRData, builder_->scopedSymbolNames().rdataBase));
+            for (uint32_t index = 0; index < description.rdataAllocationCount; ++index)
+            {
+                const auto& allocation = builder_->rdataAllocations[description.rdataAllocationIndex + index];
+                NativeSectionData section;
+                SWC_RESULT(builder_->buildRDataAllocationSection(section, allocation));
+                SWC_RESULT(appendDataSection(section, builder_->rdataAllocationSymbol(allocation)));
+            }
             if (description.includeData)
-                SWC_RESULT(appendDataSections());
+                SWC_RESULT(appendDataSections(description.splitRDataReferences));
 
             return placeUnwindSections(sections.unwind);
         }
@@ -70,13 +79,13 @@ namespace
             if (description.startup)
             {
                 textSection.bytes.appendAligned(description.startup->textOffset, description.startup->code.bytes, description.startup->code.codeAlignment);
-                SWC_RESULT(appendCodeRelocations(textSection, description.startup->textOffset, description.startup->debugName, description.startup->code, description.allowUnresolvedSymbols));
+                SWC_RESULT(appendCodeRelocations(textSection, description.startup->textOffset, description.startup->debugName, description.startup->code, description.allowUnresolvedSymbols, description.splitRDataReferences));
                 debugFunctions.push_back({.symbolName = description.startup->symbolName, .debugName = description.startup->debugName, .returnTypeRef = TypeRef::invalid(), .machineCode = &description.startup->code});
             }
             for (NativeFunctionInfo* info : description.functions)
             {
                 textSection.bytes.appendAligned(info->textOffset, info->machineCode->bytes, info->machineCode->codeAlignment);
-                SWC_RESULT(appendCodeRelocations(textSection, info->textOffset, info->debugName, *info->machineCode, description.allowUnresolvedSymbols));
+                SWC_RESULT(appendCodeRelocations(textSection, info->textOffset, info->debugName, *info->machineCode, description.allowUnresolvedSymbols, description.splitRDataReferences));
                 debugFunctions.push_back({.symbolName = info->symbolName, .debugName = info->debugName, .returnTypeRef = TypeRef::invalid(), .machineCode = info->machineCode});
             }
 
@@ -96,13 +105,14 @@ namespace
             return Result::Continue;
         }
 
-        Result appendCodeRelocations(NativeSectionData& textSection, const uint32_t functionOffset, const Utf8& ownerName, const MachineCode& code, const bool allowUnresolvedSymbols) const
+        Result appendCodeRelocations(NativeSectionData& textSection, const uint32_t functionOffset, const Utf8& ownerName, const MachineCode& code, const bool allowUnresolvedSymbols, const bool splitRDataReferences) const
         {
             NativeCodeRelocationTarget target;
             target.bytes                  = &textSection.bytes;
             target.relocations            = &textSection.relocations;
             target.functionOffset         = functionOffset;
             target.allowUnresolvedSymbols = allowUnresolvedSymbols;
+            target.splitRDataReferences = splitRDataReferences;
 
             for (const MicroRelocation& relocation : code.codeRelocations)
                 SWC_RESULT(builder_->appendCodeRelocation(target, ownerName, relocation));
@@ -110,13 +120,20 @@ namespace
             return Result::Continue;
         }
 
-        Result appendDataSections()
+        Result appendDataSections(bool splitRDataReferences)
         {
             SWC_ASSERT(builder_ != nullptr);
-            if (!builder_->mergedRData.bytes.empty())
-                SWC_RESULT(appendDataSection(builder_->mergedRData, builder_->scopedSymbolNames().rdataBase));
             if (!builder_->mergedData.bytes.empty())
-                SWC_RESULT(appendDataSection(builder_->mergedData, builder_->scopedSymbolNames().dataBase));
+            {
+                if (splitRDataReferences)
+                {
+                    NativeSectionData data = builder_->mergedData;
+                    SWC_RESULT(builder_->remapRDataReferences(data));
+                    SWC_RESULT(appendDataSection(data, builder_->scopedSymbolNames().dataBase));
+                }
+                else
+                    SWC_RESULT(appendDataSection(builder_->mergedData, builder_->scopedSymbolNames().dataBase));
+            }
             if (builder_->mergedBss.bss)
                 SWC_RESULT(appendDataSection(builder_->mergedBss, builder_->scopedSymbolNames().bssBase));
 
@@ -332,6 +349,14 @@ Result NativeImageBuilder::build(LinkImage& image, NativeBackendBuilder& builder
     }
 
     return Result::Continue;
+}
+
+Result NativeImageBuilder::buildObject(LinkImage& image, NativeBackendBuilder& builder, const NativeObjDescription& description)
+{
+    NativeImageLowering lowering(builder, image);
+    NativeImageDescriptionSections sections;
+    SWC_RESULT(lowering.buildDescription(sections, description));
+    return lowering.placeDescription(sections, description);
 }
 
 SWC_END_NAMESPACE();

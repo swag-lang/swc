@@ -166,6 +166,8 @@ std::unique_ptr<ImageWriter> ImageWriter::create(const Runtime::TargetOs targetO
 
     switch (*format)
     {
+        case NativeObjectFormat::LinuxElf:
+            return nullptr; // Linux final-image linking is handled separately from PE serialization.
         case NativeObjectFormat::WindowsCoff:
             return std::make_unique<PEWriter>();
     }

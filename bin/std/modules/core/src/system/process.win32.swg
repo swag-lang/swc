@@ -275,8 +275,10 @@ func startProcess(info: StartInfo)->Process fail
         for entry in entries do
             result.add(Utf16.toZeroTerminated(entry.toString()).toSlice())
 
-        // One more zero closes the block. It is the whole block when there is no variable at all,
-        // which is a legitimate request: the child then starts with nothing.
+        // One more zero closes the block. An empty environment still needs the two-zero
+        // terminator, so add the first one explicitly when there are no entries.
+        if entries.isEmpty() do
+            result.add(0)
         result.add(0)
         return result
     }

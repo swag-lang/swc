@@ -345,12 +345,12 @@ impl HashTable
             return
 
         let oldTable = .table
-        .count, .deleted = 0
         let newCapacityBytes = reqCapacity * #sizeof(HashTableEntry'(K, V))
 
         if not .allocator do
             .allocator = Swag.getContext().allocator
         .table = cast([*] HashTableEntry'(K, V), Memory.alloc(newCapacityBytes, .allocator))
+        .count, .deleted = 0
         let table = .tablePtr()
 
         // Every slot starts free, which is a zero hash.

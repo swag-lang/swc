@@ -3,6 +3,15 @@
 
 using Swag
 
+struct RejectHashSetGrowthAllocator {}
+
+impl Swag.IAllocator for RejectHashSetGrowthAllocator
+{
+    mtd impl alloc(request: *Swag.AllocatorRequest) { request.address = null }
+    mtd impl realloc(request: *Swag.AllocatorRequest) { request.address = null }
+    mtd impl free(_: *Swag.AllocatorRequest) {}
+}
+
 func assertStringSetHas(values: HashSet'String, expected: string)->bool
 {
     for value in values
@@ -159,6 +168,23 @@ func assertReverseIntSetIteration(values: HashSet's32)->bool
     let result = Swag.catchPanic(func|&values|() { values.reserve(Swag.U64.Max) })
     Swag.assert(result.raised)
     Swag.assert(result.message() == "HashSet capacity exceeds addressable memory")
+}
+
+#test
+{
+    var values: HashSet's32
+    values.add(42)
+
+    let oldCapacity  = values.capacity
+    let oldAllocator = values.allocator
+    var reject: RejectHashSetGrowthAllocator
+    values.allocator = &reject
+
+    let failed = Swag.catchPanic(func|&values, oldCapacity|() { values.reserve(oldCapacity + 1) })
+    values.allocator = oldAllocator
+
+    Swag.assert(failed.raised)
+    Swag.assert(values.capacity == oldCapacity and values.count == 1 and values.contains(42))
 }
 
 #test

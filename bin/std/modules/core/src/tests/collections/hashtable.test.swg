@@ -3,6 +3,15 @@
 
 using Swag
 
+struct RejectHashTableGrowthAllocator {}
+
+impl Swag.IAllocator for RejectHashTableGrowthAllocator
+{
+    mtd impl alloc(request: *Swag.AllocatorRequest) { request.address = null }
+    mtd impl realloc(request: *Swag.AllocatorRequest) { request.address = null }
+    mtd impl free(_: *Swag.AllocatorRequest) {}
+}
+
 func assertReverseIntTableIteration(table: HashTable'(s32, s32))->bool
 {
     var forwardKeys:   Array's32
@@ -243,6 +252,23 @@ func assertTableStringValue(table: HashTable'(string, String), key: string, expe
     let result = Swag.catchPanic(func|&table|() { table.reserve(Swag.U64.Max) })
     Swag.assert(result.raised)
     Swag.assert(result.message() == "HashTable capacity exceeds addressable memory")
+}
+
+#test
+{
+    var table: HashTable'(s32, s32)
+    table.add(42, 420)
+
+    let oldCapacity  = table.capacity
+    let oldAllocator = table.allocator
+    var reject: RejectHashTableGrowthAllocator
+    table.allocator = &reject
+
+    let failed = Swag.catchPanic(func|&table, oldCapacity|() { table.reserve(oldCapacity + 1) })
+    table.allocator = oldAllocator
+
+    Swag.assert(failed.raised)
+    Swag.assert(table.capacity == oldCapacity and table.count == 1 and table[42] == 420)
 }
 
 // A key or a value read from the table itself can be inserted back: growing rehashes the entries

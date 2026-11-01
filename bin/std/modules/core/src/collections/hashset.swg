@@ -284,12 +284,12 @@ impl HashSet
             return
 
         let oldTable = .table
-        .count, .deleted = 0
         let newCapacityBytes = reqCapacity * #sizeof(HashSetEntry'(K))
 
         if not .allocator do
             .allocator = Swag.getContext().allocator
         .table = cast([*] HashSetEntry'(K), Memory.alloc(newCapacityBytes, .allocator))
+        .count, .deleted = 0
         let table = .tablePtr()
 
         // Every slot starts free, which is a zero hash.

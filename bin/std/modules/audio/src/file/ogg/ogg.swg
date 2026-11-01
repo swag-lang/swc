@@ -309,8 +309,18 @@ private func indexRuns(walker: *Walker, info: const *StreamInfo)->u64 fail
             continue
         }
 
-        if hasSequence and header.sequence != sequence + 1 do
-            fail InvalidFormatError{"Ogg page sequence has a gap"}
+        if hasSequence
+        {
+            if sequence == Swag.U32.Max
+            {
+                if header.sequence != 0 do
+                    fail InvalidFormatError{"Ogg page sequence has a gap"}
+            }
+            elif header.sequence != sequence + 1
+            {
+                fail InvalidFormatError{"Ogg page sequence has a gap"}
+            }
+        }
         sequence = header.sequence
         hasSequence = true
 

@@ -873,7 +873,7 @@ by portable modules and products. The earlier entries prepare and enforce the sa
   outside the checkout with GNU Make. Complete DevMode and Release compilers link and
   pass the lexer/parser suites including expected-error inputs without spurious JIT setup.
   The full C++ campaign, including filesystem tests and extra IR/native validation, passes
-  1,639 of 1,703 tests; 64 remain failing. Closed Windows x64 instruction fixtures execute
+  1,642 of 1,706 tests; 64 remain failing. Closed Windows x64 instruction fixtures execute
   through an explicit GCC ABI bridge. Runtime adapters initialize on the first actual JIT call,
   and cross-host generated execution has an explicit diagnostic.
   PE/COFF records no longer depend on the Windows SDK, and both target enums represent Linux.
@@ -881,7 +881,7 @@ by portable modules and products. The earlier entries prepare and enforce the sa
   multiple returns, dynamic-stack joins, frameless register saves, indirect jumps and C++
   cleanup through generated faults. System V scalar/aggregate transfers and host callback
   adapters work at the backend boundary, including cross-ABI register preservation and native
-  exception unwinding. Source aggregate lowering, target selection and DWARF source resolution
+  exception unwinding. Source runtime integration, target selection and DWARF source resolution
   remain missing.
   Linux directory locks do not prohibit an uncoordinated cleaner's rename.
 - Next: resolve the remaining C++ failures and connect the System V ABI to Linux JIT execution.
@@ -918,9 +918,12 @@ by portable modules and products. The earlier entries prepare and enforce the sa
   visitors round-trip mixed/two-register/string/memory values at O0 and O2. Final emission uses
   the function ABI, retains every result lane and fingerprints aggregate register classes.
   A parsed deferred body can replace the source and publish a side effect while the captured
-  result stays intact at O0 and O2. Lifecycle-hook return cases, end-to-end source execution
-  and over-aligned stack values still need validation or integration.
-- Next: validate lifecycle return storage and connect the JIT invoker; add
+  result stays intact at O0 and O2. Typed JIT invokers consume the host frame ABI and classify
+  register/stack arguments, hidden results and variadic vector counts; their cache stores full
+  aggregate shapes independently of semantic types and per-call addresses. Lifecycle-hook
+  return cases, end-to-end source execution and over-aligned stack values still need validation
+  or integration.
+- Next: validate lifecycle return storage and complete end-to-end source execution; add
   dynamic alignment for over-aligned stack values.
   Compare with native C/C++ fixtures, then activate target C and Linux runtime declarations.
 - Done when: generated Linux calls round-trip supported scalar and aggregate values through C,

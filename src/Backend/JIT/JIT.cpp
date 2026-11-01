@@ -679,6 +679,18 @@ namespace
         return Result::Pause;
     }
 
+    void appendInvokerStorageSignature(SmallVector<uint16_t>& signature, const ABITypeNormalize::NormalizedType& type)
+    {
+        SWC_ASSERT(type.isSystemVStorage());
+        // Scalar signature words are below 0x200. The marker introduces a fixed
+        // five-word shape, preserving size/alignment without retaining TypeRefs.
+        signature.push_back(static_cast<uint16_t>(0x8000 | type.systemVClasses));
+        signature.push_back(static_cast<uint16_t>(type.indirectSize));
+        signature.push_back(static_cast<uint16_t>(type.indirectSize >> 16));
+        signature.push_back(static_cast<uint16_t>(type.indirectAlign));
+        signature.push_back(static_cast<uint16_t>(type.indirectAlign >> 16));
+    }
+
     ABICall::Arg packArgValue(const ABITypeNormalize::NormalizedType& argType, const void* valuePtr)
     {
         SWC_ASSERT(valuePtr != nullptr);
@@ -693,6 +705,8 @@ namespace
         outArg.numBits = argType.numBits;
         outArg.value   = 0;
         std::memcpy(&outArg.value, valuePtr, argType.numBits / 8);
+        if (!argType.isFloat && argType.isSigned && argType.numBits < 64 && (outArg.value & (uint64_t{1} << (argType.numBits - 1))))
+            outArg.value |= ~uint64_t{0} << argType.numBits;
         return outArg;
     }
 
@@ -1545,18 +1559,24 @@ Result JIT::emitAndCall(TaskContext& ctx, void* targetFn, std::span<const JITArg
         uint32_t size;
     };
 
-    SmallVector<ABICall::Arg>    packedArgs;
-    SmallVector<IndirectArgCopy> indirectArgCopies;
+    SmallVector<ABICall::Arg>               packedArgs;
+    SmallVector<SystemVAbi::Classification> systemVArgTypes;
+    SmallVector<IndirectArgCopy>            indirectArgCopies;
     uint32_t                     indirectArgStorageSize = 0;
     const bool                   hasIndirectRetArg      = retType.isIndirect;
     const uint32_t               packedArgBaseOffset    = hasIndirectRetArg ? 1u : 0u;
     const bool                   directReturn           = !retType.isVoid && !retType.isIndirect;
 
     packedArgs.resize(args.size() + packedArgBaseOffset);
+    if (conv.isSystemVAMD64)
+        systemVArgTypes.resize(packedArgs.size());
 
     SmallVector<uint16_t> signature;
     signature.reserve(packedArgs.size() + 1);
-    signature.push_back(directReturn ? static_cast<uint16_t>(retType.numBits | (retType.isFloat ? 0x100 : 0)) : 0);
+    if (directReturn && retType.isSystemVStorage())
+        appendInvokerStorageSignature(signature, retType);
+    else
+        signature.push_back(directReturn ? static_cast<uint16_t>(retType.numBits | (retType.isFloat ? 0x100 : 0)) : 0);
 
     if (hasIndirectRetArg)
     {
@@ -1574,6 +1594,16 @@ Result JIT::emitAndCall(TaskContext& ctx, void* targetFn, std::span<const JITArg
         SWC_ASSERT(!argType.isVoid);
         SWC_ASSERT(arg.valuePtr != nullptr);
 
+        if (argType.isSystemVStorage())
+        {
+            const uint32_t index = i + packedArgBaseOffset;
+            systemVArgTypes[index]       = argType.systemVStorageType();
+            packedArgs[index].value       = reinterpret_cast<uint64_t>(arg.valuePtr);
+            packedArgs[index].numBits     = 64;
+            packedArgs[index].systemVType = &systemVArgTypes[index];
+            appendInvokerStorageSignature(signature, argType);
+            continue;
+        }
         if (!argType.isIndirect)
         {
             packedArgs[i + packedArgBaseOffset] = packArgValue(argType, arg.valuePtr);
@@ -1664,7 +1694,8 @@ Result JIT::emitAndCall(TaskContext& ctx, void* targetFn, std::span<const JITArg
         const MicroReg targetReg = MicroReg::virtualIntReg(3);
         const MicroReg resultReg = MicroReg::virtualIntReg(4);
 
-        builder.emitLoadRegReg(frameReg, CallConv::get(CallConvKind::C).intArgRegs[0], MicroOpBits::B64);
+        const CallConvKind nativeKind = ctx.cmdLine().targetOs == Runtime::TargetOs::Linux ? CallConvKind::SystemVAMD64 : CallConvKind::WindowsX64;
+        builder.emitLoadRegReg(frameReg, CallConv::get(nativeKind).intArgRegs[0], MicroOpBits::B64);
         builder.emitLoadRegMem(argsReg, frameReg, offsetof(CallFrame, arguments), MicroOpBits::B64);
         builder.emitLoadRegMem(targetReg, frameReg, offsetof(CallFrame, target), MicroOpBits::B64);
         if (directReturn)
@@ -1678,7 +1709,7 @@ Result JIT::emitAndCall(TaskContext& ctx, void* targetFn, std::span<const JITArg
             const uint8_t  numBits = arg.isFloat ? arg.numBits : 64;
             const MicroReg argReg  = arg.isFloat ? MicroReg::virtualFloatReg(i + 5) : MicroReg::virtualIntReg(i + 5);
             builder.emitLoadRegMem(argReg, argsReg, i * sizeof(ABICall::Arg), microOpBitsFromBitWidth(numBits));
-            preparedArgs.push_back({.srcReg = argReg, .isFloat = arg.isFloat, .numBits = numBits});
+            preparedArgs.push_back({.srcReg = argReg, .isFloat = arg.isFloat, .isAddressed = arg.systemVType != nullptr, .numBits = numBits, .systemVType = arg.systemVType});
         }
 
         const auto preparedCall = ABICall::prepareArgs(builder, callConvKind, preparedArgs);

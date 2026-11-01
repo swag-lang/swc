@@ -56,6 +56,11 @@ namespace
         asm("movzbl %al, %eax\nret");
     }
 
+    __attribute__((naked, noinline)) uint64_t fullIntegerArgument(int8_t)
+    {
+        asm("mov %rdi, %rax\nret");
+    }
+
     __attribute__((noinline)) double twoScalars(uint64_t integer, double floating)
     {
         return integer * 2 + floating;
@@ -1447,6 +1452,120 @@ SWC_TEST_BEGIN(ABI_SystemVSourceReturnCapturesValueBeforeDeferredMutation)
         if (sink.integer != replacement.integer || sink.floating != replacement.floating)
             return Result::Error;
     }
+}
+SWC_TEST_END()
+
+SWC_TEST_BEGIN(JIT_LinuxTypedInvokerReadsNativeFrameAndSeparatesAggregateShapes)
+{
+    // Recreate semantic types after each compiler dies. Cached wrappers must
+    // retain ABI shapes alone, never these type handles or argument addresses.
+    for (uint32_t iteration = 0; iteration < 3; ++iteration)
+    {
+        CommandLine commandLine = ctx.cmdLine();
+        commandLine.targetOs = Runtime::TargetOs::Linux;
+        CompilerInstance compiler(ctx.global(), commandLine);
+        TaskContext context(compiler);
+        SWC_RESULT(compiler.setupSema(context));
+        auto& types = context.typeMgr();
+        const int8_t negative = -7;
+        uint64_t extended = 0;
+        const std::array narrowArgs{JITArgument{types.typeS8(), &negative}};
+        SWC_RESULT(JIT::emitAndCall(context, reinterpret_cast<void*>(fullIntegerArgument), narrowArgs, {types.typeU64(), &extended}, K_SYSTEM_V));
+        if (extended != static_cast<uint64_t>(static_cast<int64_t>(negative)))
+            return Result::Error;
+        const uint64_t integer = 31 + iteration;
+        const double floating = 2.5 + iteration;
+        double scalarResult = 0;
+        const std::array scalarArgs{JITArgument{types.typeU64(), &integer}, JITArgument{types.typeF64(), &floating}};
+        SWC_RESULT(JIT::emitAndCall(context, reinterpret_cast<void*>(twoScalars), scalarArgs, {types.typeF64(), &scalarResult}, K_SYSTEM_V));
+        if (scalarResult != twoScalars(integer, floating))
+            return Result::Error;
+        const std::array mixedFields{types.typeU64(), types.typeF64()};
+        const std::array integerFields{types.typeU64(), types.typeU64()};
+        const std::array floatingFields{types.typeF64(), types.typeF64()};
+        const std::array typeRefs{
+            Backend::Unittest::makeStructType(context, mixedFields),
+            Backend::Unittest::makeStructType(context, integerFields),
+            Backend::Unittest::makeStructType(context, floatingFields),
+        };
+        const MixedValue mixed{integer, floating};
+        const TwoIntegers integers{integer, integer + 7};
+        const TwoFloats floats{floating, floating + 11};
+        const auto expectedMixed = changeMixed(mixed);
+        const auto expectedIntegers = changeIntegers(integers);
+        const auto expectedFloats = changeFloats(floats);
+        const std::array<const void*, 3> inputs{&mixed, &integers, &floats};
+        const std::array<const void*, 3> expected{&expectedMixed, &expectedIntegers, &expectedFloats};
+        const std::array targets{reinterpret_cast<void*>(changeMixed), reinterpret_cast<void*>(changeIntegers), reinterpret_cast<void*>(changeFloats)};
+        for (size_t i = 0; i < typeRefs.size(); ++i)
+        {
+            std::array<std::byte, 16> output{};
+            const std::array args{JITArgument{typeRefs[i], inputs[i]}};
+            SWC_RESULT(JIT::emitAndCall(context, targets[i], args, {typeRefs[i], output.data()}, K_SYSTEM_V));
+            if (std::memcmp(output.data(), expected[i], output.size()))
+                return Result::Error;
+        }
+    }
+}
+SWC_TEST_END()
+
+SWC_TEST_BEGIN(JIT_LinuxTypedInvokerPassesStackAggregatesAndHiddenResults)
+{
+    CommandLine commandLine = ctx.cmdLine();
+    commandLine.targetOs = Runtime::TargetOs::Linux;
+    CompilerInstance compiler(ctx.global(), commandLine);
+    TaskContext context(compiler);
+    SWC_RESULT(compiler.setupSema(context));
+    auto& types = context.typeMgr();
+    const std::array largeFields{types.typeU64(), types.typeU64(), types.typeU64()};
+    const auto largeType = Backend::Unittest::makeStructType(context, largeFields);
+    const std::array mixedFields{types.typeU64(), types.typeF64()};
+    const auto mixedType = Backend::Unittest::makeStructType(context, mixedFields);
+    const LargeValue input{17, 19, 23};
+    const MixedValue mixed{29, 3.5};
+    const std::array<uint64_t, 6> integers{31, 37, 41, 43, 47, 53};
+    const double tail = 5.5;
+    std::array<JITArgument, 8> args;
+    args[0] = {largeType, &input};
+    for (size_t i = 0; i < integers.size(); ++i)
+        args[i + 1] = {types.typeU64(), &integers[i]};
+    args[7] = {types.typeF64(), &tail};
+    LargeValue result{};
+    SWC_RESULT(JIT::emitAndCall(context, reinterpret_cast<void*>(changeLarge), args, {largeType, &result}, K_SYSTEM_V));
+    const auto expected = changeLarge(input, integers[0], integers[1], integers[2], integers[3], integers[4], integers[5], tail);
+    if (std::memcmp(&result, &expected, sizeof(result)))
+        return Result::Error;
+    for (size_t i = 0; i < integers.size(); ++i)
+        args[i] = {types.typeU64(), &integers[i]};
+    args[6] = {mixedType, &mixed};
+    double scalar = 0;
+    SWC_RESULT(JIT::emitAndCall(context, reinterpret_cast<void*>(exhaustedIntegers), args, {types.typeF64(), &scalar}, K_SYSTEM_V));
+    if (scalar != exhaustedIntegers(integers[0], integers[1], integers[2], integers[3], integers[4], integers[5], mixed, tail))
+        return Result::Error;
+}
+SWC_TEST_END()
+
+SWC_TEST_BEGIN(JIT_LinuxTypedInvokerCountsVariadicAggregateVectors)
+{
+    CommandLine commandLine = ctx.cmdLine();
+    commandLine.targetOs = Runtime::TargetOs::Linux;
+    CompilerInstance compiler(ctx.global(), commandLine);
+    TaskContext context(compiler);
+    SWC_RESULT(compiler.setupSema(context));
+    auto& types = context.typeMgr();
+    const std::array mixedFields{types.typeU64(), types.typeF64()};
+    const auto mixedType = Backend::Unittest::makeStructType(context, mixedFields);
+    const std::array floatFields{types.typeF64(), types.typeF64()};
+    const auto floatsType = Backend::Unittest::makeStructType(context, floatFields);
+    const uint32_t count = 3;
+    const MixedValue mixed{17, 2.5};
+    const TwoFloats floats{3.5, 5.5};
+    const double tail = 7.5;
+    const std::array args{JITArgument{types.typeU32(), &count}, JITArgument{mixedType, &mixed}, JITArgument{floatsType, &floats}, JITArgument{types.typeF64(), &tail}};
+    uint64_t vectors = 0;
+    SWC_RESULT(JIT::emitAndCall(context, reinterpret_cast<void*>(vectorCount), args, {types.typeU64(), &vectors}, K_SYSTEM_V));
+    if (vectors != 4)
+        return Result::Error;
 }
 SWC_TEST_END()
 

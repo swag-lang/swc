@@ -183,12 +183,26 @@ public impl ByteStream
     // Writes a string as a little-endian `u32` byte count followed by its bytes.
     //
     // This is the framing [[Core.ByteStream.readSizedString]] expects. The count is a byte count,
-    // not a character count.
+    // not a character count. `value` may borrow from the destination.
     // Panics when `value` exceeds the maximum encodable byte count.
     mtd writeSizedString(value: string)
     {
         if value.count > Swag.U32.Max do
             Swag.panic("sized string exceeds the 32-bit byte-count limit", #curlocation)
+
+        if .writeBuffer and value.count
+        {
+            let wb = .writeBuffer
+            if wb.buffer
+            {
+                let sourceData = value.buffer
+                if sourceData >= wb.buffer and sourceData < wb.buffer + wb.count
+                {
+                    let copy = String.from(value)
+                    return .writeSizedString(copy.toString())
+                }
+            }
+        }
 
         .writeLittleEndian(cast(u32, value.count))
         .writeBytes(cast(const [..] u8, value))

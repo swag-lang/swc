@@ -216,20 +216,16 @@ private func parseFormat(bytes: const [..] u8)->Format fail
         extraEnd = Math.min(size, FormatExtraSize + readU16(bytes, 16))
 
     var classicTag = tag
-    if size >= FormatExtensibleSize
+    if tag == WAVE_FORMAT_EXTENSIBLE
     {
+        if size < FormatExtensibleSize or extraEnd < FormatExtensibleSize do
+            fail InvalidFormatError{"invalid wav"}
+
         result.validBits     = cast(u16, readU16(bytes, 18))
         result.speakerMask   = readU32(bytes, 20)
         result.hasExtensible = true
-        if tag == WAVE_FORMAT_EXTENSIBLE
-        {
-            classicTag = try subformatTag(bytes[24 until 40])
-            extraStart = FormatExtensibleSize
-        }
-    }
-    elif tag == WAVE_FORMAT_EXTENSIBLE
-    {
-        fail InvalidFormatError{"invalid wav"}
+        classicTag            = try subformatTag(bytes[24 until 40])
+        extraStart            = FormatExtensibleSize
     }
 
     result.encoding = try encodingOf(classicTag, result.bitsPerSample)
@@ -321,6 +317,10 @@ private func readLayout(stream: *File.FileStream)->Layout fail
             {
                 result.hasData    = true
                 result.dataOffset = try stream.position()
+                if result.dataOffset > fileBytes do
+                    fail InvalidFormatError{"WAV audio data is truncated"}
+                if cast(u64, header.chunkSize) > fileBytes - result.dataOffset do
+                    fail InvalidFormatError{"WAV audio data is truncated"}
                 result.dataSize   = header.chunkSize
                 return result
             }

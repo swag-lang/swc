@@ -29,6 +29,15 @@ using Swag
 
 #test
 {
+    var bytes: Array'u8
+    var stream = ByteStream.openRead(bytes.toSlice())
+
+    Swag.assert(stream.remainingBytes().count == 0)
+    Swag.assert(stream.remainingString().count == 0)
+}
+
+#test
+{
     var buffer: Array'u8
     var stream = ByteStream.openWrite(&buffer)
     stream.writeBytes([0xAB, 0xCD, 0xEF])

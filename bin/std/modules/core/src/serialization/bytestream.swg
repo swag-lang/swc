@@ -63,6 +63,8 @@ public impl ByteStream
     }
 
     // Writes the bytes of `slice` and advances past them.
+    //
+    // `slice` may borrow from the destination.
     mtd writeBytes(slice: const [..] u8)
     {
         Swag.assert(.writeBuffer != null)
@@ -72,6 +74,17 @@ public impl ByteStream
             return
 
         let wb = .writeBuffer
+        if wb.buffer
+        {
+            let sourceData = slice.buffer
+            if sourceData >= wb.buffer and sourceData < wb.buffer + wb.count
+            {
+                var copy: Array'u8
+                copy.add(slice)
+                return .writeBytes(copy.toSlice())
+            }
+        }
+
         if .seek + count > wb.count do
             wb.grow(.seek + count)
         let buffer = wb.storage()

@@ -44,6 +44,22 @@ using Swag
     Swag.assert(Slice.equals(stream.remainingBytes(), [0xCD, 0xEF]))
 }
 
+#test
+{
+    var buffer: Array'u8
+    buffer.reserve(4)
+    buffer.add([10'u8, 20, 30, 40])
+
+    var stream = ByteStream.openWrite(&buffer)
+    stream.setPosition(1)
+    stream.writeBytes(buffer[0 until 3])
+    Swag.assert(Slice.equals(buffer.toSlice(), [10, 10, 20, 30]))
+
+    stream.setPosition(4)
+    stream.writeBytes(buffer.toSlice())
+    Swag.assert(Slice.equals(buffer.toSlice(), [10, 10, 20, 30, 10, 10, 20, 30]))
+}
+
 // LEB128 varints round-trip across the byte widths, and a truncated or over-long
 // encoding is refused.
 #test

@@ -1,6 +1,7 @@
 #include "pch.h"
 #include "Compiler/CodeGen/Core/CodeGen.h"
 #include "Backend/ABI/ABICall.h"
+#include "Backend/ABI/ABICall.SystemV.h"
 #include "Backend/ABI/ABITypeNormalize.h"
 #include "Backend/ABI/CallConv.h"
 #include "Backend/Micro/MicroBuilder.h"
@@ -1070,10 +1071,20 @@ namespace
         // The local this return replaces is released right before its storage takes the value.
         const SymbolVariable* replacedLocal      = codeGen.returnReplacedLocal(codeGen.curNodeRef());
         const SymbolVariable* previousMoveOutVar = codeGen.returnMoveOutVar();
-        if (normalizedRet.isIndirect)
+        if (normalizedRet.isIndirect || normalizedRet.isSystemVStorage())
         {
-            // Hidden first argument points to caller-provided return storage.
-            const MicroReg outputStorageReg = codeGen.ensureCurrentFunctionIndirectReturnReg(callConvKind);
+            MicroReg outputStorageReg;
+            if (normalizedRet.isIndirect)
+                outputStorageReg = codeGen.ensureCurrentFunctionIndirectReturnReg(callConvKind);
+            else
+            {
+                // Capture the whole result before deferred actions can destroy its
+                // source or clobber ABI lanes. Sixteen bytes retain call alignment.
+                SWC_ASSERT(normalizedRet.indirectSize <= 16 && normalizedRet.indirectAlign <= 16);
+                builder.emitOpBinaryRegImm(callConv.stackPointer, ApInt(16, 64), MicroOp::Subtract, MicroOpBits::B64);
+                outputStorageReg = codeGen.nextVirtualIntRegister();
+                builder.emitLoadRegReg(outputStorageReg, callConv.stackPointer, MicroOpBits::B64);
+            }
             SWC_ASSERT(!replacedLocal || !returnValueIsInPlace);
             const bool dropsReplaced = replacedLocal && codeGen.hasLifecycle(returnTypeRef, CodeGen::LifecycleKind::Drop);
             if (dropsReplaced && !delayReturnMaterialization)
@@ -1125,7 +1136,13 @@ namespace
                     SWC_RESULT(finishMovedPlaceReturn(codeGen, returnTypeRef, exprRef, movedPlaceRef, outputStorageReg));
             }
 
-            builder.emitLoadRegReg(callConv.intReturn, outputStorageReg, MicroOpBits::B64);
+            if (normalizedRet.isIndirect)
+                builder.emitLoadRegReg(callConv.intReturn, outputStorageReg, MicroOpBits::B64);
+            else
+            {
+                ABICall::loadSystemVReturn(builder, outputStorageReg, normalizedRet.systemVStorageType());
+                builder.emitOpBinaryRegImm(callConv.stackPointer, ApInt(16, 64), MicroOp::Add, MicroOpBits::B64);
+            }
         }
         else
         {

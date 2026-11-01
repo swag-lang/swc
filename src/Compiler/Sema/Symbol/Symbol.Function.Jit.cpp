@@ -1,5 +1,6 @@
 #include "pch.h"
 #include "Backend/ABI/ABICall.h"
+#include "Backend/ABI/ABICall.SystemV.h"
 #include "Backend/ABI/ABITypeNormalize.h"
 #include "Backend/ABI/CallConv.h"
 #include "Backend/JIT/JIT.h"
@@ -451,7 +452,13 @@ Result SymbolFunction::emitLowered(TaskContext& ctx, NativeBackendBuilder* nativ
         const CallConv& callConv = CallConv::get(callConvKind());
 
         const ABITypeNormalize::NormalizedType normalizedRet = ABITypeNormalize::normalize(ctx, callConv, ctx.typeMgr().get(returnTypeRef()), ABITypeNormalize::Usage::Return);
-        builder.setRetUsesAbiRegs(!normalizedRet.isFloat, normalizedRet.isFloat);
+        if (normalizedRet.isSystemVStorage())
+        {
+            builder.setRetUsesAbiRegs(false, false);
+            ABICall::retainSystemVReturnRegs(builder, normalizedRet.systemVStorageType());
+        }
+        else
+            builder.setRetUsesAbiRegs(!normalizedRet.isFloat, normalizedRet.isFloat);
     }
 
     // The static sanitizer runs the checks whose sanity guard is on for this function:

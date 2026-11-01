@@ -249,15 +249,28 @@ void ABICall::storeSystemVArgument(MicroBuilder& builder, const MicroReg destina
     }
 }
 
+void ABICall::retainSystemVReturnRegs(MicroBuilder& builder, const Classification& type)
+{
+    const uint32_t integers = type.memory() ? 1 : type.integerRegisters();
+    const uint32_t vectors = type.vectorRegisters();
+    uint64_t extra = builder.extraReturnRegsOnRet();
+    if (integers > 1)
+        extra |= MicroPassHelpers::MicroPhysLiveness::maskOf(MicroReg::intReg(3));
+    if (vectors > 1)
+        extra |= MicroPassHelpers::MicroPhysLiveness::maskOf(MicroReg::floatReg(1));
+    // Transfers to an intermediate buffer must retain the enclosing result too.
+    builder.setRetUsesAbiRegs(builder.usesIntReturnRegOnRet() || integers != 0, builder.usesFloatReturnRegOnRet() || vectors != 0, extra);
+}
+
 void ABICall::loadSystemVReturn(MicroBuilder& builder, const MicroReg source, const Classification& type)
 {
+    retainSystemVReturnRegs(builder, type);
     const CallConv& conv = CallConv::get(CallConvKind::SystemVAMD64);
     if (type.memory())
     {
         // The caller-provided buffer has already received the result. Its address
         // is also returned in RAX, as required by the System V memory-result rule.
         builder.emitLoadRegReg(conv.intReturn, source, MicroOpBits::B64);
-        builder.setRetUsesAbiRegs(true, builder.usesFloatReturnRegOnRet(), builder.extraReturnRegsOnRet());
         return;
     }
     MicroReg address, scratch;
@@ -273,14 +286,6 @@ void ABICall::loadSystemVReturn(MicroBuilder& builder, const MicroReg source, co
         else if (type.classes[part] == Class::Sse)
             builder.emitLoadRegMem(MicroReg::floatReg(vector++), address, part * 8, microOpBitsFromBitWidth(vectorPartBytes(type, part) * 8));
     }
-    uint64_t extra = 0;
-    if (integer > 1)
-        extra |= MicroPassHelpers::MicroPhysLiveness::maskOf(integerReturns[1]);
-    if (vector > 1)
-        extra |= MicroPassHelpers::MicroPhysLiveness::maskOf(MicroReg::floatReg(1));
-    // This helper also stages a value before storing it to a buffer. Such an
-    // intermediate transfer must not erase the enclosing function's result lanes.
-    builder.setRetUsesAbiRegs(builder.usesIntReturnRegOnRet() || integer != 0, builder.usesFloatReturnRegOnRet() || vector != 0, builder.extraReturnRegsOnRet() | extra);
 }
 
 ABICall::PreparedCall ABICall::prepareSystemVStorageArgs(MicroBuilder& builder, const CallConvKind callConvKind, const std::span<const PreparedArg> args)

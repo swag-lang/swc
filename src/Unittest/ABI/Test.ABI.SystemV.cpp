@@ -1252,5 +1252,102 @@ SWC_TEST_BEGIN(ABI_SystemVDirectResultsMaterializeInCallerOwnedStorage)
 }
 SWC_TEST_END()
 
+SWC_TEST_BEGIN(ABI_SystemVSourceReturnLoweringPreservesAllResultLanes)
+{
+    CommandLine commandLine = ctx.cmdLine();
+    commandLine.targetOs = Runtime::TargetOs::Linux;
+    CompilerInstance compiler(ctx.global(), commandLine);
+    TaskContext context(compiler);
+    SWC_RESULT(compiler.setupSema(context));
+    // This internal AST fixture exercises ordinary function/parameter/return
+    // visitors without importing platform runtime bodies or executing sema JIT.
+    compiler.buildCfg().safetyGuards = static_cast<Runtime::SafetyWhat>(0);
+    compiler.buildCfg().sanityGuards = static_cast<Runtime::SafetyWhat>(0);
+    auto& types = context.typeMgr();
+    const std::array locationFields{types.typeString(), types.typeString(), types.typeU32(), types.typeU32(), types.typeU32(), types.typeU32()};
+    types.registerRuntimeType(context.idMgr().predefined(IdentifierManager::PredefinedName::SourceCodeLocation), Backend::Unittest::makeStructType(context, locationFields));
+    const std::array mixedFields{types.typeU64(), types.typeF64()};
+    const std::array integerFields{types.typeU64(), types.typeU64()};
+    const std::array floatingFields{types.typeF64(), types.typeF64()};
+    const std::array largeFields{types.typeU64(), types.typeU64(), types.typeU64()};
+    const std::array typeRefs{
+        Backend::Unittest::makeStructType(context, mixedFields),
+        Backend::Unittest::makeStructType(context, integerFields),
+        Backend::Unittest::makeStructType(context, floatingFields),
+        types.typeString(),
+        Backend::Unittest::makeStructType(context, largeFields),
+    };
+    for (const auto level : {Runtime::BuildCfgBackendOptimLevel::O0, Runtime::BuildCfgBackendOptimLevel::O2})
+    {
+        compiler.buildCfg().backend.optimLevel = level;
+        for (size_t i = 0; i < typeRefs.size(); ++i)
+        {
+            SourceFile& file = Backend::Unittest::makeCodeGenSource(context, std::format("SystemVSourceReturn_{}_{}", static_cast<uint32_t>(level), i));
+            auto& ast = file.ast();
+            const auto [declRef, decl] = ast.makeNode<AstNodeId::FunctionDecl>(TokenRef::invalid());
+            const auto [exprRef, expr] = ast.makeNode<AstNodeId::Identifier>(TokenRef::invalid());
+            decl->nodeBodyRef = exprRef;
+            decl->addFlag(AstFunctionFlagsE::Short);
+            auto* function = Symbol::make<SymbolFunction>(context, decl, TokenRef::invalid(), IdentifierRef::invalid(), SymbolFlagsE::Zero);
+            function->setDeclNodeRef(declRef);
+            function->setDeclNodePayloadContext(&file.nodePayloadContext());
+            function->setCallConvKind(K_SYSTEM_V);
+            function->setReturnTypeRef(typeRefs[i]);
+            auto* parameter = Symbol::make<SymbolVariable>(context, expr, TokenRef::invalid(), IdentifierRef::invalid(), SymbolFlagsE::Zero);
+            parameter->setTypeRef(typeRefs[i]);
+            parameter->addExtraFlag(SymbolVariableFlagsE::Parameter);
+            function->addParameter(parameter);
+            Sema sema(context, file.nodePayloadContext(), false);
+            sema.setSymbol(declRef, function);
+            sema.setSymbol(exprRef, parameter);
+            sema.setIsLValue(exprRef);
+            sema.frame().setCurrentFunction(function);
+            CodeGen codeGen(sema);
+            SWC_RESULT(codeGen.exec(*function, declRef));
+            SWC_RESULT(function->emit(context));
+            const auto& lowered = function->loweredCode();
+            JITMemoryManager manager;
+            JITMemory memory;
+            installSystemVCode(manager, memory, lowered.bytes, lowered.unwindInfo);
+            if (i == 0)
+            {
+                const MixedValue input{41, 3.5};
+                const auto result = reinterpret_cast<MixedValue (*)(MixedValue)>(memory.entryPoint())(input);
+                if (result.integer != input.integer || result.floating != input.floating)
+                    return Result::Error;
+            }
+            else if (i == 1)
+            {
+                const TwoIntegers input{43, 47};
+                const auto result = reinterpret_cast<TwoIntegers (*)(TwoIntegers)>(memory.entryPoint())(input);
+                if (result.first != input.first || result.second != input.second)
+                    return Result::Error;
+            }
+            else if (i == 2)
+            {
+                const TwoFloats input{5.5, 7.5};
+                const auto result = reinterpret_cast<TwoFloats (*)(TwoFloats)>(memory.entryPoint())(input);
+                if (result.first != input.first || result.second != input.second)
+                    return Result::Error;
+            }
+            else if (i == 3)
+            {
+                const Runtime::String input{"source return", 13};
+                const auto result = reinterpret_cast<Runtime::String (*)(Runtime::String)>(memory.entryPoint())(input);
+                if (result.ptr != input.ptr || result.length != input.length)
+                    return Result::Error;
+            }
+            else
+            {
+                const LargeValue input{53, 59, 61};
+                const auto result = reinterpret_cast<LargeValue (*)(LargeValue)>(memory.entryPoint())(input);
+                if (result.first != input.first || result.second != input.second || result.third != input.third)
+                    return Result::Error;
+            }
+        }
+    }
+}
+SWC_TEST_END()
+
 SWC_END_NAMESPACE();
 #endif

@@ -12,6 +12,7 @@ namespace ABICall
     void storeSystemVReturn(MicroBuilder& builder, const Return& ret);
     void storeSystemVReturn(MicroBuilder& builder, MicroReg destination, const SystemVAbi::Classification& type);
     void storeSystemVArgument(MicroBuilder& builder, MicroReg destination, const SystemVAbi::Classification& type, const SystemVAbi::ArgumentLocation& location);
+    void retainSystemVReturnRegs(MicroBuilder& builder, const SystemVAbi::Classification& type);
     void loadSystemVReturn(MicroBuilder& builder, MicroReg source, const SystemVAbi::Classification& type);
     void callSystemVAddress(MicroBuilder& builder, CallConvKind callConvKind, uint64_t targetAddress, std::span<const Arg> args, const Return& ret);
 }

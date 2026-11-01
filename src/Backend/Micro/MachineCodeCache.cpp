@@ -44,20 +44,21 @@ namespace
         return (static_cast<uint64_t>(source.srcViewRef.get()) << 32) | source.tokRef.get();
     }
 
-    void appendTypeQualifiers(ByteArray& out, TaskContext& ctx, const TypeRef typeRef, const ABITypeNormalize::Usage usage)
+    void appendTypeQualifiers(ByteArray& out, TaskContext& ctx, const TypeRef typeRef, const ABITypeNormalize::Usage usage, CallConvKind callConvKind)
     {
         out.appendLe32(typeRef.isValid());
         if (typeRef.isInvalid())
             return;
         out.appendLe32(ctx.typeMgr().get(typeRef).flags().get());
         out.appendLe32(ctx.typeMgr().unwrapAliasEnumTypeOrSelf(ctx, typeRef).flags().get());
-        const auto shape = ABITypeNormalize::normalize(ctx, CallConv::get(CallConvKind::Swag), ctx.typeMgr().get(typeRef), usage);
+        const auto shape = ABITypeNormalize::normalize(ctx, CallConv::get(callConvKind), ctx.typeMgr().get(typeRef), usage);
         out.pushBack(static_cast<std::byte>(shape.isVoid));
         out.pushBack(static_cast<std::byte>(shape.isFloat));
         out.pushBack(static_cast<std::byte>(shape.isSigned));
         out.pushBack(static_cast<std::byte>(shape.isIndirect));
         out.pushBack(static_cast<std::byte>(shape.needsIndirectCopy));
         out.pushBack(static_cast<std::byte>(shape.numBits));
+        out.pushBack(static_cast<std::byte>(shape.systemVClasses));
         out.appendLe32(shape.indirectSize);
         out.appendLe32(shape.indirectAlign);
     }
@@ -112,10 +113,10 @@ namespace
         out.appendLe64(function.freesIndirectParamsMask());
         // Runtime type identity deliberately ignores nullability. The static
         // sanitizer consumes it, so the emitted-code identity keeps it here.
-        appendTypeQualifiers(out, ctx, function.returnTypeRef(), ABITypeNormalize::Usage::Return);
+        appendTypeQualifiers(out, ctx, function.returnTypeRef(), ABITypeNormalize::Usage::Return, function.callConvKind());
         out.appendLe32(static_cast<uint32_t>(function.parameters().size()));
         for (const SymbolVariable* parameter : function.parameters())
-            appendTypeQualifiers(out, ctx, parameter->typeRef(), ABITypeNormalize::Usage::Argument);
+            appendTypeQualifiers(out, ctx, parameter->typeRef(), ABITypeNormalize::Usage::Argument, function.callConvKind());
         if (function.isForeign())
         {
             appendString(out, function.resolveForeignModuleName(ctx).view());

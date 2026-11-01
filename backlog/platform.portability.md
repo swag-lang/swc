@@ -873,7 +873,7 @@ by portable modules and products. The earlier entries prepare and enforce the sa
   outside the checkout with GNU Make. Complete DevMode and Release compilers link and
   pass the lexer/parser suites including expected-error inputs without spurious JIT setup.
   The full C++ campaign, including filesystem tests and extra IR/native validation, passes
-  1,636 of 1,700 tests; 64 remain failing. Closed Windows x64 instruction fixtures execute
+  1,638 of 1,702 tests; 64 remain failing. Closed Windows x64 instruction fixtures execute
   through an explicit GCC ABI bridge. Runtime adapters initialize on the first actual JIT call,
   and cross-host generated execution has an explicit diagnostic.
   PE/COFF records no longer depend on the Windows SDK, and both target enums represent Linux.
@@ -914,9 +914,12 @@ by portable modules and products. The earlier entries prepare and enforce the sa
   register/stack values before scalar captures. Native codegen fixtures cover those homes at
   O0 and O2, including strings and later scalar lanes. Call expressions reserve caller-owned
   result storage for split register returns and retain temporary ownership without adding
-  hidden arguments. Callee return lifetimes, end-to-end source execution and over-aligned
-  stack values still need integration.
-- Next: connect callee return storage and the JIT invoker to the classified transfers; add
+  hidden arguments. Callees capture split results before cleanup, and ordinary AST function
+  visitors round-trip mixed/two-register/string/memory values at O0 and O2. Final emission uses
+  the function ABI, retains every result lane and fingerprints aggregate register classes.
+  Deferred/lifecycle return cases, end-to-end source execution and over-aligned stack values
+  still need validation or integration.
+- Next: validate deferred/lifecycle return storage and connect the JIT invoker; add
   dynamic alignment for over-aligned stack values.
   Compare with native C/C++ fixtures, then activate target C and Linux runtime declarations.
 - Done when: generated Linux calls round-trip supported scalar and aggregate values through C,

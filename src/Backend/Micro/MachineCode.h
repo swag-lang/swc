@@ -42,7 +42,7 @@ struct MachineCode
     const DebugSourceRange* findDebugSourceRangeAtOffset(uint32_t codeOffset) const;
     static bool             tryResolveDebugSourceRange(const TaskContext& ctx, ResolvedDebugSourceRange& outResolvedRange, const DebugSourceRange& range);
     bool                    tryResolveDebugSourceRangeAtOffset(const TaskContext& ctx, ResolvedDebugSourceRange& outResolvedRange, uint32_t codeOffset) const;
-    Result                  emit(TaskContext& ctx, MicroBuilder& builder, MicroReg debugStackBaseVirtualReg = MicroReg::invalid(), uint16_t sanitizerSafetyMask = 0, const SymbolFunction* sanitizerFunction = nullptr);
+    Result                  emit(TaskContext& ctx, MicroBuilder& builder, MicroReg debugStackBaseVirtualReg = MicroReg::invalid(), uint16_t sanitizerSafetyMask = 0, const SymbolFunction* function = nullptr);
 };
 
 SWC_END_NAMESPACE();

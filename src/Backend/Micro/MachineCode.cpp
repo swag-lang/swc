@@ -5,6 +5,7 @@
 #include "Backend/Micro/MicroBuilder.h"
 #include "Backend/Micro/MicroPassContext.h"
 #include "Backend/Micro/MicroPassHelpers.h"
+#include "Compiler/Sema/Symbol/Symbol.Function.h"
 #include "Main/Command/CommandLine.h"
 #include "Main/CompilerInstance.h"
 
@@ -26,9 +27,9 @@ namespace
     // the RDX of a division), so a caller trusting the result keeps nothing this code touches.
     // The return registers stay clobbered even when the body leaves them alone: every call
     // hands its result back in them.
-    uint64_t leafCallClobbers(const MicroBuilder& builder, const Encoder& encoder)
+    uint64_t leafCallClobbers(const MicroBuilder& builder, const Encoder& encoder, CallConvKind callConvKind)
     {
-        const CallConv& conv     = CallConv::get(CallConvKind::Swag);
+        const CallConv& conv     = CallConv::get(callConvKind);
         uint64_t        clobbers = physicalRegBits(std::array{conv.intReturn, conv.floatReturn});
 
         MicroInstrUseDef useDef;
@@ -84,7 +85,7 @@ bool MachineCode::tryResolveDebugSourceRangeAtOffset(const TaskContext& ctx, Res
     return tryResolveDebugSourceRange(ctx, outResolvedRange, *range);
 }
 
-Result MachineCode::emit(TaskContext& ctx, MicroBuilder& builder, MicroReg debugStackBaseVirtualReg, uint16_t sanitizerSafetyMask, const SymbolFunction* sanitizerFunction)
+Result MachineCode::emit(TaskContext& ctx, MicroBuilder& builder, MicroReg debugStackBaseVirtualReg, uint16_t sanitizerSafetyMask, const SymbolFunction* function)
 {
     const Runtime::BuildCfgBackend& backendBuildCfg = ctx.compiler().buildCfg().backend;
     // Both supported hosts require unwind metadata for ordinary stack walking. Linux
@@ -93,13 +94,13 @@ Result MachineCode::emit(TaskContext& ctx, MicroBuilder& builder, MicroReg debug
     const bool computeUnwindInfo = (ctx.compiler().cmdLine().targetOs == Runtime::TargetOs::Windows || ctx.compiler().cmdLine().targetOs == Runtime::TargetOs::Linux) || backendBuildCfg.enableExceptions || backendBuildCfg.debugInfo;
 
     MicroPassContext passContext;
-    passContext.callConvKind             = CallConvKind::Swag;
+    passContext.callConvKind             = function ? function->callConvKind() : CallConvKind::Swag;
     passContext.preservePersistentRegs   = true;
     passContext.forceFramePointer        = computeUnwindInfo;
     passContext.debugStackBaseVirtualReg = debugStackBaseVirtualReg;
     passContext.keepLocalStackBase       = backendBuildCfg.debugInfo;
     passContext.sanitizerSafetyMask      = sanitizerSafetyMask;
-    passContext.sanitizerFunction        = sanitizerFunction;
+    passContext.sanitizerFunction        = function;
 
 #if defined(_M_X64) || defined(__x86_64__)
     // One encoder per worker: its pages, unwind tracker and debug ranges are reset for the
@@ -152,7 +153,7 @@ Result MachineCode::emit(TaskContext& ctx, MicroBuilder& builder, MicroReg debug
 
     debugStackBasePhysReg = passContext.debugStackBasePhysReg;
     codeAlignment         = passContext.codeAlignment;
-    callClobbers          = leafCallClobbers(builder, encoder);
+    callClobbers          = leafCallClobbers(builder, encoder, passContext.callConvKind);
 
     // Diagnostics can abort lowering before any encodable instruction is produced.
     // Propagate the existing failure instead of crashing in the test runner.

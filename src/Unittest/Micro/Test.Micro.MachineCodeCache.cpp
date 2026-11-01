@@ -9,11 +9,13 @@
 #include "Compiler/Parser/Ast/Ast.h"
 #include "Compiler/Sema/Constant/ConstantManager.h"
 #include "Compiler/Sema/Symbol/Symbol.Function.h"
+#include "Compiler/Sema/Symbol/Symbol.Struct.h"
 #include "Compiler/Sema/Symbol/Symbol.Variable.h"
 #include "Main/Command/CommandLine.h"
 #include "Main/Command/CommandLineParser.h"
 #include "Main/CompilerInstance.h"
 #include "Unittest/Unittest.h"
+#include "Unittest/ABI/AbiTestTypes.h"
 #include "Unittest/UnittestSource.h"
 
 SWC_BEGIN_NAMESPACE();
@@ -431,6 +433,24 @@ SWC_TEST_BEGIN(MachineCodeCache_DistinguishesAdditionalResultRegisters)
         return Result::Error;
     builder.setRetUsesAbiRegs(true, false);
     if (cacheKey(ctx, *function, builder) != scalar)
+        return Result::Error;
+}
+SWC_TEST_END()
+
+SWC_TEST_BEGIN(MachineCodeCache_DistinguishesSystemVAggregateRegisterClasses)
+{
+    const std::array fields{ctx.typeMgr().typeU64(), ctx.typeMgr().typeF64()};
+    const TypeRef type = Backend::Unittest::makeStructType(ctx, fields);
+    auto* function = makeCacheFunction(ctx, "cacheSystemVStorage", type);
+    function->setCallConvKind(CallConvKind::SystemVAMD64);
+    MicroBuilder builder(ctx);
+    builder.emitRet();
+    const Utf8 mixed = cacheKey(ctx, *function, builder);
+    auto* field = ctx.typeMgr().get(type).payloadSymStruct().fields()[1];
+    field->setTypeRef(ctx.typeMgr().typeU64());
+    const Utf8 integers = cacheKey(ctx, *function, builder);
+    field->setTypeRef(ctx.typeMgr().typeF64());
+    if (mixed.empty() || integers.empty() || mixed == integers || cacheKey(ctx, *function, builder) != mixed)
         return Result::Error;
 }
 SWC_TEST_END()

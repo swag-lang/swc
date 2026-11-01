@@ -215,25 +215,42 @@ func volumes()->Array'String fail
     var result: #returntype
 
     var volumeName: [MAX_PATH] u8
-    var driveName:  [MAX_PATH] u8
 
     let handle = try FindFirstVolumeA(volumeName, MAX_PATH)
     if handle == INVALID_HANDLE_VALUE do
         return result
     defer discard catch FindVolumeClose(handle)
 
+    var pathNames: Array'u8
     for
     {
+        pathNames.resize(MAX_PATH)
         var requiredLength: DWORD
         var errOutcome:     Swag.Error
-        catch GetVolumePathNamesForVolumeNameA(volumeName, driveName, MAX_PATH, &requiredLength) as errOutcome
+        catch GetVolumePathNamesForVolumeNameA(volumeName, unwrap pathNames.buffer, MAX_PATH, &requiredLength) as errOutcome
         let err = errOutcome.value()
-        if err == null
+        var hasPathNames = true
+        if err != null
         {
-            let length = cast(cstring, driveName).count
+            let systemError = assume cast(const *Swag.SystemError, err)
+            if systemError.errorID == ERROR_MORE_DATA and requiredLength > MAX_PATH
+            {
+                pathNames.resize(requiredLength)
+                let pathCapacity = requiredLength
+                var retryOutcome: Swag.Error
+                catch GetVolumePathNamesForVolumeNameA(volumeName, unwrap pathNames.buffer, pathCapacity, &requiredLength) as retryOutcome
+                hasPathNames = retryOutcome.value() == null
+            }
+            else do
+                hasPathNames = false
+        }
+
+        if hasPathNames
+        {
+            let length = cast(cstring, unwrap pathNames.buffer).count
             if length
             {
-                var mountPoint = String.from(Swag.makeString(&driveName[0], length))
+                var mountPoint = String.from(Swag.makeString(unwrap pathNames.buffer, length))
                 Path.normalize(&mountPoint)
                 result.add(#move mountPoint)
             }

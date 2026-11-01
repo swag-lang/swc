@@ -127,12 +127,15 @@ public impl PacketDurationProbe
     // Prepares the probe for one stream of `encoding`, whose decoder configuration is `config`.
     mtd initialize(encoding: SoundFileEncoding, config: const [..] u8) fail
     {
+        if .vorbis != null do
+            Memory.delete(cast(*Vorbis.DurationProbe, .vorbis))
+        .vorbis   = null
         .encoding = encoding
         if encoding != .Vorbis do
             return
-        let probe = Memory.new'Vorbis.DurationProbe()
+        .vorbis = Memory.new'Vorbis.DurationProbe()
+        let probe = cast(*Vorbis.DurationProbe, unwrap .vorbis)
         try probe.initialize(config)
-        .vorbis = probe
     }
 
     // Returns the number of sample frames `packet` decodes to.

@@ -73,6 +73,18 @@ impl ThumbnailService
     mtd opDrop() { .reset() }
 }
 
+// Dispatch the helper before UI startup, including in a test executable. Native test builds
+// intentionally omit #main; an explicitly launched worker must still run the shipping decoder.
+#premain
+{
+    let arguments = Env.arguments()
+    if arguments.count == 3 and arguments[1] == "--thumbnail-worker"
+    {
+        expect runThumbnailWorker(arguments[2])
+        Env.exit(0)
+    }
+}
+
 // Uses a plugin decoder when it has one, otherwise renders a bounded source sample.
 func renderThumbnail(registry: const *ViewerPluginRegistry,
                      renderer: *ThumbnailRenderer,

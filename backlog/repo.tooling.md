@@ -5,6 +5,20 @@ being compiled by it.
 
 [README.md](README.md) defines the shared backlog conventions.
 
+### repo.tooling.012 — Extend application scenarios beyond Explorer
+
+- Evidence: bounded startup smokes do not perform user journeys. The explicit
+  `integration.application.smoke` boundary and private-desktop launcher are described in
+  `tools/application-scenarios.md`; Capture, Prism and Vault have no scenarios under that tag.
+- Next: add independent, sub-40-second `#test` journeys in each application's `src/tests`:
+  Capture imports a real picture, annotates, undoes/redoes, exports and reopens the result;
+  Prism compares two real text trees, changes filters and refreshes after an isolated file edit;
+  Vault creates, closes and reopens a temporary vault and verifies its contents, keeping driver,
+  mount and UAC work in the dedicated privileged integration campaign. Exercise normal commands,
+  real background services and native presentation, with stage deadlines and explicit outcomes.
+- Done when: each application has a deterministic local journey selectable by the common tag,
+  failure reports name the stage, and ordinary tests still need no desktop or privileges.
+
 ### repo.tooling.011 — No validation step compiles the Swag benchmark modules
 
 - Evidence: `tools/build.bat` covers std, examples, apps, and the reference. Nothing in the

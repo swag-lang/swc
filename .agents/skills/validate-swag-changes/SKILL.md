@@ -166,6 +166,13 @@ across modules uses the workspace suite.
 - In an application, run the test file that owns the behavior. Add `build` for module setup,
   packaging, resources, or link changes. Add `smoke` for startup, main-loop, or
   packaged-runtime changes. A local model or widget edit does not require all three.
+- Select application journeys by `--test-tag integration.application.smoke`, optionally narrowed
+  by their `<plan>.smoke.test.swg` file. These are ordinary `#test` functions running the native
+  application lifecycle, separate from the compiler's bounded startup `smoke` command. Name and
+  select the plan, not the control where the first action happens. On Windows, use
+  `tools/test-desktop.ps1` when the plan does not need the visible desktop. Keep ordinary,
+  `.golden.test.swg`, `.smoke.test.swg` and `.integration.test.swg` families in separate files as
+  specified by `modify-swag-codebase`; names do not replace execution tags or load admission.
 - Smoke only the changed example or script when its value is that the real program starts.
 - Test one reference page with `--file-filter` when it is self-contained. Test the complete
   reference for syntax changes, shared reference infrastructure, or cross-page declarations.

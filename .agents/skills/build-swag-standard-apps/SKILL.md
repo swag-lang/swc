@@ -449,6 +449,21 @@ Pixel.Testing.assertImageGolden(&image, "surface.encre")
 
 Apply [validate-swag-changes](../validate-swag-changes/SKILL.md) to each changed behaviour:
 
+Keep test families separate using the filenames in
+[modify-swag-codebase](../modify-swag-codebase/SKILL.md#lay-out-a-modules-tests-the-same-way-every-time).
+Application smoke scenarios belong in `<plan>.smoke.test.swg`, named for the user journey across
+the application, with the tag `integration.application.smoke`. A control or the first screen is
+not the owner of a journey that also opens documents, returns, saves or restores state. Keep the
+plan's setup, actions, readiness deadlines and observable checkpoints readable in the `#test`;
+do not grow a scenario state machine in production startup code. Each new production regression
+that depends on such a sequence should extend an appropriate plan or introduce an independent one.
+Use real fixtures, workers, native windows and the event loop for the boundary being exercised.
+The shared contract and private-desktop command are in
+[tools/application-scenarios.md](../../../tools/application-scenarios.md).
+Ordinary focused tests, scenario tests and the shipped executable's bounded startup smoke prove
+different contracts; none replaces the other two. Keep maintained snapshots in
+`<subject>.golden.test.swg`, with the `golden` tag.
+
 1. While iterating, run the owning test file:
    `tools/apps.bat dm test <application> --test-file <name>.test.swg`.
 2. Run the whole application's tests only when shared application state or several test families

@@ -345,7 +345,13 @@ tools/apps.bat dm test swagscope --test-file viewer.<format>.test.swg
 `tools/apps.bat dm build swagscope` builds one executable containing all viewers and lets
 the workspace publisher place its standard-module runtime dependencies beside it.
 
-`tools/apps.bat dm smoke swagscope` opens every plugin's registered fixture in order and
-selects that plugin explicitly. It keeps progressive content visible long enough to exercise late
-failures, waits while a viewer has no presentable content, and returns a nonzero exit code when a
-fixture is missing or a plugin cannot open it.
+`tools/apps.bat dm smoke swagscope` checks bounded startup of the shipped executable. Add
+`--run-arg=--review-viewers=<absolute-fixture-directory>` to open every plugin's registered fixture
+and select that plugin explicitly. This optional review waits for presentable content and returns
+a nonzero exit code when a fixture is missing or a plugin cannot open it.
+
+Realistic user journeys are dedicated `#test` functions tagged `integration.application.smoke`.
+`src/tests/browsemedialibrary.smoke.test.swg` exercises a temporary media library through the native window,
+workers and presentation path. It is excluded from default headless tests. Run it on a private
+Windows desktop with `tools/test-desktop.ps1 -DevMode -Module swagscope`; see the
+[shared scenario contract](../../../../tools/application-scenarios.md) for its checks and limits.

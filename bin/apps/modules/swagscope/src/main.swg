@@ -45,13 +45,6 @@ private func registerViewerFileTypes(registry: const *ViewerPluginRegistry)
 
 #main
 {
-    let arguments = Env.arguments()
-    if arguments.count == 3 and arguments[1] == "--thumbnail-worker"
-    {
-        try runThumbnailWorker(arguments[2])
-        return
-    }
-
     var index = createViewerPluginRegistry()
 
     // Installers opt into registry work once. Normal viewing never pays for dozens of file-type

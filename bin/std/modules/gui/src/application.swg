@@ -1241,7 +1241,9 @@ impl Application
     // for a cut without costing anything after the first frame.
     private mtd loadAppIconCuts()
     {
-        if .appIconLoaded do
+        // Initial surface layout asks for the glyph before a rendering context exists. The
+        // first surface repeats layout after renderer initialization; upload on that pass.
+        if not .mainSurface or .appIconLoaded do
             return
 
         var mark = .appIcon.convertedTo(.RGBA8)

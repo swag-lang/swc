@@ -20,6 +20,21 @@ owned by a viewer lives in the corresponding domain:
 
 Reusable engine work remains in the backlog of the standard module that owns it.
 
+### app.scope.010 — Explorer intermittently presents corrupted library pixels
+
+- Evidence: a user capture of a large Films folder shows repeated horizontal colored streaks
+  across the content while the page title remains legible. The responsible rendering or
+  presentation boundary is not established. Existing CPU goldens and loader checks cannot
+  establish the pixels transferred by the native application.
+- Next: run `browsemedialibrary.smoke.test.swg` through the private-desktop launcher and extend its
+  deterministic corpus toward the failing library, including varied media and thumbnail cache
+  turnover. Compare the GPU target, native presentation bitmap and, in an explicit interactive
+  run if necessary, displayed pixels. Extend resize checks with DPI transitions and partial repaint
+  checkpoints. Reduce any failure to the owning renderer or transfer test before changing it.
+- Done when: the corruption is reproduced and fixed with a regression that fails without the
+  fix; a green smoke alone does not close this report.
+- Related: std.pixel.025, repo.tooling.012
+
 ### app.scope.009 — The Markdown lens golden omits the outline icon and shortcut
 
 - Evidence: `viewer.lens.markdown.encre` in `viewerwindow.test.swg` differs on the CPU

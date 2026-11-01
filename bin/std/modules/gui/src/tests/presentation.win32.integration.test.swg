@@ -10,8 +10,13 @@ using Core, Pixel, Win32
 #test
 {
     var app: Application
+    var icon = Image.create(16, 16, .RGBA8)
+    icon.clear()
+    app.setAppIcon(#move icon)
+    Swag.assert(not app.appGlyph(16).isValid())
     let surface = expect app.createSurface(40, 40, 360, 240, surfaceId: "gui-async-presentation-test")
-    let button  = PushButton.create(surface.wnd.view, "Probe", {32, 32, 84, 32})
+    Swag.assert(app.appGlyph(16).isValid())
+    let button = PushButton.create(surface.wnd.view, "Probe", {32, 32, 84, 32})
     surface.show()
     Swag.assert(surface.presentationWidth == surface.rc.width)
     Swag.assert(not surface.readback.isPending())
@@ -90,4 +95,16 @@ using Core, Pixel, Win32
     Swag.assert(not surface.readback.isPending())
     let placed = app.renderer.readRenderTarget(&surface.rt, 0, 0, surface.rc.width, surface.rc.height)
     Swag.assert(Slice.equals(pixels, placed.pixels.toSlice()))
+
+    let verified = expect Testing.verifyNativePresentation(surface)
+    Swag.assert(verified)
+
+    // A green loading state must not conceal corrupted pixels in the published bitmap.
+    let bitmap = cast([*] u8, surface.presentationPixels)
+    let saved  = bitmap[0]
+    bitmap[0] ^= 1
+    var corruption: Swag.Error
+    discard catch Testing.verifyNativePresentation(surface) as corruption
+    bitmap[0] = saved
+    Swag.assert(corruption.value() != null)
 }

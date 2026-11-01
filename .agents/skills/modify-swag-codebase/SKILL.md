@@ -286,6 +286,31 @@ layout. A new module copies it without deciding anything:
 - **`*.test.swg` is the only name for a file holding `#test` bodies**, and each opens with
   `#global if #command == Swag.CompilerCommand.Test`. Every source below `src/` is compiled, so a
   test file without that guard is built into the shipped module.
+- **Separate test natures into dedicated files.** Keep `.test.swg` last and put the family
+  immediately before it:
+
+  | File | Contract |
+  | --- | --- |
+  | `<subject>.test.swg` | Ordinary functional, model, decoder, command or layout assertions |
+  | `<subject>.golden.test.swg` | Tests that generate or compare maintained text/image goldens |
+  | `<plan>.smoke.test.swg` | Application-wide user journeys, named for the test plan |
+  | `<contract>.integration.test.swg` | Explicit external-system, native-host, driver or hardware contracts |
+
+  A smoke plan is named `browsemedialibrary.smoke.test.swg`, not `explorer.smoke.test.swg`
+  merely because it starts in Explorer: opening a viewer and returning belong to the same
+  journey. State the user's task and checkpoints in the test. Use multiple `#test` bodies only
+  for independent cases of that same plan. Keep persistent golden comparisons in golden files;
+  smoke/integration tests may compare live pixels or save diagnostic captures without becoming
+  golden tests. Do not mix ordinary and golden `#test` bodies in one file, or stack family
+  suffixes to disguise mixed responsibilities. Platform qualifiers precede the family, as in
+  `presentation.win32.integration.test.swg`.
+  Filenames describe ownership; tags select execution. Keep `golden` on golden tests and an
+  explicit `integration.*` tag on smoke and external integration tests. A rename alone does not
+  make a native test safe for the default campaign.
+  Apply this layout to new files and split an existing mixed file when changing its test
+  organization. Move shared setup to the guarded `helpers.swg` at the relevant test root rather
+  than duplicating setup or widening production APIs only to support the split. Update source
+  filters and documented commands with every rename.
 - **`helpers.swg` is the only name for test-only shared code**, under the same guard. One per test
   folder is enough; do not invent `*.testutils.swg` or a parallel `fixtures/` tree.
 - **`src/testing/` holds test support that is part of the module's public API** — the `Testing`

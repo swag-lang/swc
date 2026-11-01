@@ -134,7 +134,7 @@ func parseU64(str: string)->{ value: u64, eat: u32, ovf: bool } fail
         fail SyntaxError{}
 
     // Detect 0x for hexadecimal, 0b for binary.
-    if byteCount > 2 and str[0] == '0'u8
+    if byteCount >= 2 and str[0] == '0'u8
     {
         let prefix = str[1] | 32
         if prefix == 'x'u8

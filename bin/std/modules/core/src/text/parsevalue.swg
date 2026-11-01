@@ -49,7 +49,7 @@ public func parseValue(addr: *void, type: typeinfo, buf: string)->string fail
     {
         let arrayType = assume cast(const *TypeInfoArray, type)
         var addrVal   = cast([*] u8, addr)
-        var cpt       = 0
+        var cpt       = 0'u64
         while one.count and one[0] != '#'
         {
             if cpt == arrayType.totalCount do
@@ -131,7 +131,10 @@ public func parseValue(addr: *void, type: typeinfo, buf: string)->string fail
             one = Tokenize.eatCount(one, 1)
         }
 
-        let eat = cast(u32, cast(s64, (one.buffer - buf.buffer)))
+        let consumed = cast(u64, cast(s64, (one.buffer - buf.buffer)))
+        if consumed > Swag.U32.Max do
+            fail OverflowError{"enum token exceeds the supported length"}
+        let eat = cast(u32, consumed)
         one = Tokenize.eatCount(buf, cast(u64, eat))
         return one
     }

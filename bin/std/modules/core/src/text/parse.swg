@@ -403,7 +403,7 @@ func parseString(result: *String, str: string)->u32 fail
     result.clear()
 
     var isQuoted      = false
-    var consumedBytes = 0
+    var consumedBytes = 0'u64
     if str[0] == '"'u8
     {
         isQuoted      = true
@@ -412,12 +412,16 @@ func parseString(result: *String, str: string)->u32 fail
 
     while consumedBytes < byteCount
     {
+        if consumedBytes >= Swag.U32.Max do
+            fail OverflowError{"string token exceeds the supported length"}
         if str[consumedBytes] == '"'u8 and isQuoted do
             break
 
         if str[consumedBytes] == '\\'u8
         {
             consumedBytes += 1
+            if consumedBytes >= Swag.U32.Max do
+                fail OverflowError{"string token exceeds the supported length"}
             if consumedBytes == byteCount do
                 fail SyntaxError{}
             switch str[consumedBytes]
@@ -439,6 +443,8 @@ func parseString(result: *String, str: string)->u32 fail
         fail ParseIncompleteError{}
     if isQuoted do
         consumedBytes += 1
+    if consumedBytes > Swag.U32.Max do
+        fail OverflowError{"string token exceeds the supported length"}
     return cast(u32, consumedBytes)
 }
 

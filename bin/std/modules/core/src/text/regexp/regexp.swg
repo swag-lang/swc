@@ -125,9 +125,9 @@ public impl RegExp
     // Releases everything the expression holds and leaves it uncompiled.
     mtd clear()
     {
-        .program = {}
-        .reverse = {}
-        .innerDfa = {}
+        .program    = {}
+        .reverse    = {}
+        .innerDfa   = {}
         .forwardDfa = {}
         .reverseDfa = {}
         .captureNames.clear()

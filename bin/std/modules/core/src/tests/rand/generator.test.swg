@@ -5,7 +5,7 @@ using Swag
 
 struct MaxRandomSource {}
 
-impl MaxRandomSource
+internal impl MaxRandomSource
 {
     mtd seedU32(seed: u32) { discard seed }
     mtd nextU32()->u32 => Swag.U32.Max
@@ -53,16 +53,20 @@ impl MaxRandomSource
     Swag.assert(Math.isFinite(wide32) and wide32 >= -Swag.F32.Max and wide32 < Swag.F32.Max)
     Swag.assert(Math.isFinite(wide64) and wide64 >= -Swag.F64.Max and wide64 < Swag.F64.Max)
 
-    let invalid32 = Swag.catchPanic(func|&generator|() {
+    let invalid32 = Swag.catchPanic(func|&generator|()
+    {
         discard generator.nextF32(0'f32, Swag.F32.Inf)
     })
-    let nan32 = Swag.catchPanic(func|&generator|() {
+    let nan32 = Swag.catchPanic(func|&generator|()
+    {
         discard generator.nextF32(0'f32, Swag.F32.NaN)
     })
-    let invalid64 = Swag.catchPanic(func|&generator|() {
+    let invalid64 = Swag.catchPanic(func|&generator|()
+    {
         discard generator.nextF64(0'f64, Swag.F64.Inf)
     })
-    let nan64 = Swag.catchPanic(func|&generator|() {
+    let nan64 = Swag.catchPanic(func|&generator|()
+    {
         discard generator.nextF64(0'f64, Swag.F64.NaN)
     })
     Swag.assert(invalid32.raised and invalid32.message() == "bounds must be finite")
@@ -78,8 +82,8 @@ impl MaxRandomSource
 
     for 4096
     {
-        let power32 = generator.nextU32(0, 8)
-        let power64 = generator.nextU64(0, 16)
+        let power32  = generator.nextU32(0, 8)
+        let power64  = generator.nextU64(0, 16)
         let signed32 = generator.nextS32(-4, 4)
         let signed64 = generator.nextS64(-8, 8)
         Swag.assert(power32 < 8)

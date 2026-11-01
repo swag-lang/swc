@@ -45,14 +45,14 @@ struct(T) IterationRange
 func(T) range(lower, upper: T)->IterationRange'T
     where
     {
-        var rawType = #typeof(#type T)
+        var rawType: const *Swag.TypeInfo = #typeof(#type T)
         while rawType.kind == .Alias do
-            rawType = cast(const *Swag.TypeInfoAlias, cast(const *void, rawType)).rawType
+            rawType = (assume cast(const *Swag.TypeInfoAlias, rawType)).rawType
         if rawType.kind != .Native do
             return false
 
-        let native = cast(const *Swag.TypeInfoNative, cast(const *void, rawType))
-        return native.nativeKind >= .S8 and native.nativeKind <= .U64
+        let native = assume cast(const *Swag.TypeInfoNative, rawType)
+        return native.nativeKind >= Swag.TypeInfoNativeKind.S8 and native.nativeKind <= Swag.TypeInfoNativeKind.U64
     }
 {
     return {lower: lower, upper: upper}
@@ -63,14 +63,14 @@ func(T) range(lower, upper: T)->IterationRange'T
 func(T) rangeTo(lower, upper: T)->IterationRange'T
     where
     {
-        var rawType = #typeof(#type T)
+        var rawType: const *Swag.TypeInfo = #typeof(#type T)
         while rawType.kind == .Alias do
-            rawType = cast(const *Swag.TypeInfoAlias, cast(const *void, rawType)).rawType
+            rawType = (assume cast(const *Swag.TypeInfoAlias, rawType)).rawType
         if rawType.kind != .Native do
             return false
 
-        let native = cast(const *Swag.TypeInfoNative, cast(const *void, rawType))
-        return native.nativeKind >= .S8 and native.nativeKind <= .U64
+        let native = assume cast(const *Swag.TypeInfoNative, rawType)
+        return native.nativeKind >= Swag.TypeInfoNativeKind.S8 and native.nativeKind <= Swag.TypeInfoNativeKind.U64
     }
 {
     return {lower: lower, upper: upper, inclusive: true}

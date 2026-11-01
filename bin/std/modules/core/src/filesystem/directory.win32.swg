@@ -154,8 +154,8 @@ func drives()->Array'String fail
 func isRemote(path: string)->bool
 {
     const ExtendedUncPrefix = #raw "\\?\UNC\"
-    const ExtendedPrefix    = #raw "\\?\"
-    const DevicePrefix      = #raw "\\.\"
+    const ExtendedPrefix = #raw "\\?\"
+    const DevicePrefix = #raw "\\.\"
 
     if path.count >= ExtendedUncPrefix.count and
        Path.equals(path[until ExtendedUncPrefix.count], ExtendedUncPrefix) do
@@ -241,8 +241,10 @@ func volumes()->Array'String fail
                 catch GetVolumePathNamesForVolumeNameA(volumeName, unwrap pathNames.buffer, pathCapacity, &requiredLength) as retryOutcome
                 hasPathNames = retryOutcome.value() == null
             }
-            else do
+            else
+            {
                 hasPathNames = false
+            }
         }
 
         if hasPathNames
@@ -250,7 +252,7 @@ func volumes()->Array'String fail
             let length = cast(cstring, unwrap pathNames.buffer).count
             if length
             {
-                var mountPoint = String.from(Swag.makeString(unwrap pathNames.buffer, length))
+                var mountPoint = String.from(Swag.makeString(pathNames.buffer, length))
                 Path.normalize(&mountPoint)
                 result.add(#move mountPoint)
             }

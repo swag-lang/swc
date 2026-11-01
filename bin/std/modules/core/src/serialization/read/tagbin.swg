@@ -491,7 +491,7 @@ private impl TagBin
             let off = cast(u64, (try .stream.readNative'u32()))
             if off >= payloadSize do
                 fail SerializationError{"field offset runs past the payload area"}
-            let sf  = shape.fields[i]
+            let sf = shape.fields[i]
             if sec.mapSeek.contains(sf.key) do
                 fail SerializationError{"serialized field key is duplicated"}
             sec.mapSeek.add(sf.key, TagBinFieldRef{sec.payloadStart + off, cast(u32, i)})

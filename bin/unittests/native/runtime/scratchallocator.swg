@@ -22,7 +22,7 @@ impl IAllocator for ScratchAlignmentProbeAllocator
             return
         }
 
-        if request.alignment != 0 and request.alignment < #alignof(LeakHeader) do
+        if request.alignment != 0 and request.alignment < #alignof(ScratchAllocator.LeakHeader) do
             request.address = &.storage[32 + request.alignment]
         else do
             request.address = &.storage[32]
@@ -556,8 +556,8 @@ func makeScratchAllocator(scratch: *ScratchAllocator, alloc: *Allocator)->IAlloc
         let effectiveAlignment = alignment != 0 ? alignment : cast(u32, #sizeof(*void))
         Swag.assert(overflow.address != null)
         Swag.assert(cast(u64, overflow.address) % cast(u64, effectiveAlignment) == 0)
-        Swag.assert(cast(u64, scratch.firstLeak) % cast(u64, #alignof(LeakHeader)) == 0)
-        Swag.assert(cast(u64, scratch.firstLeak) + #sizeof(LeakHeader) == cast(u64, overflow.address))
+        Swag.assert(cast(u64, scratch.firstLeak) % cast(u64, #alignof(ScratchAllocator.LeakHeader)) == 0)
+        Swag.assert(cast(u64, scratch.firstLeak) + #sizeof(ScratchAllocator.LeakHeader) == cast(u64, overflow.address))
         overflow.size = 24
         itf.free(&overflow)
         Swag.assert(scratch.totalLeak == 0)

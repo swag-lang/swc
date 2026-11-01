@@ -197,8 +197,8 @@ impl IAllocator for ScratchAllocator
         // address aligned for the request, the default pointer alignment, and LeakHeader.
         let headerAlignment  = cast(u32, #alignof(LeakHeader))
         let requestAlignment = request.alignment != 0 ? request.alignment : cast(u32, #sizeof(*void))
-        let alignment         = Swag.max(requestAlignment, headerAlignment)
-        let overhead          = #sizeof(LeakHeader) + alignment - 1
+        let alignment        = Swag.max(requestAlignment, headerAlignment)
+        let overhead         = #sizeof(LeakHeader) + alignment - 1
         if request.size > Swag.U64.Max - overhead
         {
             request.address = null

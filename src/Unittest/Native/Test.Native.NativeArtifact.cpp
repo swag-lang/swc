@@ -2433,6 +2433,51 @@ SWC_TEST_BEGIN(SymbolTable_DeduplicatesNamesAndOwnsSerializedStrings)
 }
 SWC_TEST_END()
 
+SWC_FILESYSTEM_TEST_BEGIN(NativeArtifact_PrintRoundsFractionalCarries)
+{
+    static constexpr std::string_view SOURCE     = R"(#main
+{
+    Swag.print("rounding:", 0.9999999999'f64, "|", -1.9999999999'f64,
+               "|", 0.000000009'f64, "|", -0.000000009'f64,
+               "|", 0.0999999999'f64, "|", -0.0999999999'f64,
+               "|", 0.0099999999'f64, "\n")
+}
+)";
+    static constexpr std::string_view EXPECTED   = "rounding:1.0|-2.0|0.00000001|-0.00000001|0.10000000|-0.10000000|0.01000000";
+    const fs::path                    sourcePath = Unittest::makeTestSourcePath("NativeArtifact", "PrintRoundsFractionalCarries");
+
+    for (const std::string_view configuration : {"devmode", "release"})
+    {
+        CommandLine command = makeStandaloneNativeArtifactCmdLine(std::format("print_fractional_carries_{}", configuration), Runtime::BuildCfgBackendKind::Executable);
+        command.directories.clear();
+        command.files.insert(sourcePath);
+        command.buildCfg          = Utf8(configuration);
+        command.buildCfgExplicit  = true;
+        command.numCores          = Unittest::compilerWorkerCount(ctx);
+        command.runTimeoutSeconds = 10;
+        CommandLineParser::refreshBuildCfg(command);
+
+        const uint64_t   errorsBefore = Stats::getNumErrors();
+        CompilerInstance compiler(ctx.global(), command);
+        Unittest::registerTestSource(compiler, sourcePath, SOURCE);
+        Command::sema(compiler);
+        if (Stats::getNumErrors() != errorsBefore)
+            return Result::Error;
+
+        NativeBackendBuilder builder(compiler, false);
+        SWC_RESULT(builder.run());
+        builder.ctx().setMuteOutput(true);
+        NativeBackendBuilder::ArtifactRunReport report;
+        SWC_RESULT(builder.runExistingArtifact(&report));
+        if (!report.completed || report.exitCode != 0 || report.output.find(EXPECTED) == std::string::npos)
+        {
+            std::println(stderr, "[fractional print, {}] {}", configuration, report.output);
+            return Result::Error;
+        }
+    }
+}
+SWC_TEST_END()
+
 SWC_END_NAMESPACE();
 
 #endif

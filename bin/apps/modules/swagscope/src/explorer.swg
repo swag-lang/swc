@@ -82,6 +82,7 @@ struct ExplorerTemporary
 {
     file:  String
     title: String
+    path:  String
 }
 
 // Owns exploration independently of the file currently being viewed.
@@ -668,7 +669,8 @@ impl Explorer
     // Returns the name of the explored location, as the page title and the window title show it.
     mtd locationName()->String
     {
-        let location = .locationText()
+        let path = .logicalPath(.listing.path)
+        let location: String = .folder.isEmpty() ? String.from(path) : Format.toString("%/%", path, .folder)
         var trimmed  = location.toString()
         while trimmed.count > 1 and trimmed[trimmed.count - 1] == '/'u8 do
             trimmed = trimmed[0 until trimmed.count - 1]
@@ -983,7 +985,7 @@ impl Explorer
         let chosen = dialog.selectedPath()
         if all
         {
-            let name = Path.fileNameWithoutExtension(.displayPath(.listing.path)) orelse "archive"
+            let name = Path.fileNameWithoutExtension(.logicalPath(.listing.path)) orelse "archive"
             .extractTo(Path.combine(chosen, name), all: true)
         }
         else
@@ -1596,6 +1598,15 @@ impl Explorer
         return path
     }
 
+    // Retains archive ancestry without the presentation spaces used by displayPath.
+    // Path operations consume this name; filesystem operations still consume the temporary file.
+    mtd logicalPath(path: string)->string
+    {
+        for file in .temporaryFiles where file.file == path do
+            return file.path
+        return path
+    }
+
     // Called only after the foreground viewer has retired. Archive sources retained by navigation stay alive.
     mtd releasePreviews()
     {
@@ -1893,7 +1904,8 @@ impl IWnd for Explorer
                 if not preview.temporary.isEmpty()
                 {
                     let title = Format.toString("% / %", .displayPath(preview.archivePath), preview.path)
-                    .temporaryFiles.add(ExplorerTemporary{#move preview.temporary, title})
+                    let path  = Format.toString("%/%", .logicalPath(preview.archivePath), preview.path)
+                    .temporaryFiles.add(ExplorerTemporary{#move preview.temporary, title, path})
                 }
 
                 if preview.generation == .generation

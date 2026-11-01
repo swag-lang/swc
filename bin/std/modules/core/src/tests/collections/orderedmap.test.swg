@@ -5,12 +5,13 @@ using Swag
 
 func assertOrderedMapBorrowTypes(map: *OrderedMap'(s32, String))
 {
-    for &key, &value in map[]
+    for &key, value in map[]
     {
         #assert(#typeof(key) == const *s32)
         #assert(#typeof(value) == *String)
     }
-    for &key, &value in map[].reversed()
+
+    for &key, value in map[].reversed()
     {
         #assert(#typeof(key) == const *s32)
         #assert(#typeof(value) == *String)

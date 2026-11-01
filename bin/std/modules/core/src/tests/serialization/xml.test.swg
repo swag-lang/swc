@@ -67,8 +67,8 @@ struct XmlPayload
 // XML input is rejected at the boundary when its bytes are not valid UTF-8.
 #test
 {
-    let invalidXml: [4] u8 = ['<'u8, 'p', '>', 0xFF]
-    var decoder: Serialization.Read.Xml
+    let invalidXml:   [4] u8 = ['<'u8, 'p', '>', 0xFF]
+    var decoder:      Serialization.Read.Xml
     var errorOutcome: Swag.Error
     catch decoder.startRead(invalidXml) as errorOutcome
     Swag.assert(errorOutcome.value() is SyntaxError)

@@ -173,7 +173,7 @@ private impl Decoder
             var offset    = 0'u64
             while offset < config.count and completed < 2
             {
-                let page = try Ogg.readPageHeader(config, offset)
+                let page      = try Ogg.readPageHeader(config, offset)
                 let pageBytes = page.totalBytes()
                 if pageBytes > config.count - offset do
                     fail InvalidFormatError{"Opus header pages are truncated"}
@@ -498,7 +498,7 @@ private impl Decoder
         .packet.clear()
         while offset < run.count
         {
-            let page = try Ogg.readPageHeader(run, offset)
+            let page      = try Ogg.readPageHeader(run, offset)
             let pageBytes = page.totalBytes()
             if pageBytes > run.count - offset do
                 fail InvalidFormatError{"Ogg page run is truncated"}

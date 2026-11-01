@@ -112,8 +112,8 @@ impl ThumbnailCache
         if not path.count do
             return
         try Directory.create(unwrap Path.directoryName(path), recurse: true)
-        let temporary = Path.combine(unwrap Path.directoryName(path), Format.toString("%.png", Guid64.random()))
-        let encoded = try image.encodeToBytes(temporary)
+        let temporary     = Path.combine(unwrap Path.directoryName(path), Format.toString("%.png", Guid64.random()))
+        let encoded       = try image.encodeToBytes(temporary)
         var ownsTemporary = false
         defer
         {

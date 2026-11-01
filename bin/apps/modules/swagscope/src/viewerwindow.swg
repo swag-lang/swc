@@ -1266,7 +1266,7 @@ impl ViewerWindow
             return
         }
 
-        let path = .explorer ? .explorer.displayPath(.currentFile) : .currentFile.toString()
+        let path = .explorer ? .explorer.logicalPath(.currentFile) : .currentFile.toString()
         var title: String = Path.fileName(path) orelse path
         if .activeChoiceIndex > 0 and .activeChoiceIndex < .choices.count
         {

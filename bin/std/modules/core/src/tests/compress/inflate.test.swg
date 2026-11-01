@@ -245,7 +245,7 @@ func roundTrip(input: const [..] u8, level: Compress.Deflate.CompressionLevel)
 #test
 {
     // Final fixed block: reserved length symbol 286, distance zero, then end-of-block.
-    let reservedLength: [3] u8 = [0x33, 0x06, 0x00]
+    let reservedLength: [3] u8 = [0x1B, 0x03, 0x00]
     var inflater:       Compress.Inflate
     var decoded:        Array'u8
     var errorOutcome:   Swag.Error
@@ -257,7 +257,7 @@ func roundTrip(input: const [..] u8, level: Compress.Deflate.CompressionLevel)
 #test
 {
     // Final fixed block: reserved length symbol 287, distance zero, then end-of-block.
-    let reservedLength: [3] u8 = [0x3B, 0x06, 0x00]
+    let reservedLength: [3] u8 = [0x1B, 0x07, 0x00]
     var inflater:       Compress.Inflate
     var decoded:        Array'u8
     var errorOutcome:   Swag.Error

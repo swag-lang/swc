@@ -45,7 +45,7 @@ impl ReversedOrderedMap
         for offset in .source.count
         {
             let entryIndex = .source.count - offset - 1
-            let entry      = &.source.entries[entryIndex]
+            let entry      = .source.entries.storage() + entryIndex
             scope(Down)
             {
                 #static if ptr do
@@ -294,6 +294,7 @@ impl OrderedMap
     }
 
     // Iterates entries from the least key to the greatest key.
+    //
     // Visiting by address binds the key through a constant pointer and the value through a mutable pointer.
     #[Macro]
     mtd(ptr: bool) opVisit(stmt: #code(key, value, index: u64))

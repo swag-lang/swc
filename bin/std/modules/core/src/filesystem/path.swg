@@ -26,8 +26,9 @@ private func endsDirectoryPart(c: u8)->bool
     return isDirectorySeparator(c) or VolumeSeparator != 0 and c == VolumeSeparator
 }
 
-// Returns whether `path` is a lexically valid path on the selected target. Windows paths reject
-// components whose trailing dots or spaces are normalized, and reserved DOS device names.
+// Returns whether `path` is a lexically valid path on the selected target.
+//
+// Windows paths reject components whose trailing dots or spaces are normalized, and reserved DOS device names.
 func isValidPathName(path: string)->bool
 {
     if path.count == 0 do
@@ -63,9 +64,12 @@ func isValidPathName(path: string)->bool
             let segment    = path[segmentBegin until segmentEnd]
             if segment.count and segment != "." and segment != ".."
             {
-                if segment.back() == '.' or segment.back() == ' ' or isReservedWindowsDeviceName(segment) do
+                if segment[segment.count - 1] == '.' or
+                   segment[segment.count - 1] == ' ' or
+                   isReservedWindowsDeviceName(segment) do
                     return false
             }
+
             segmentBegin = index + 1
         }
     }
@@ -73,9 +77,10 @@ func isValidPathName(path: string)->bool
     return true
 }
 
-// Returns whether `path` is a lexically valid single file name on the selected target. Dot
-// segments are rejected everywhere; Windows names ending in a dot or space and reserved DOS
-// device names are rejected because the host normalizes or redirects those names.
+// Returns whether `path` is a lexically valid single file name on the selected target.
+//
+// Dot segments are rejected everywhere; Windows names ending in a dot or space and reserved
+// DOS device names are rejected because the host normalizes or redirects those names.
 func isValidFileName(path: string)->bool
 {
     if path.count == 0 do
@@ -90,7 +95,8 @@ func isValidFileName(path: string)->bool
            (c < 32 or c == '"' or c == '<' or c == '>' or c == '|' or c == ':' or c == '*' or c == '?') do
             return false
     }
-    if TargetHasWindowsPathSyntax and (path.back() == '.' or path.back() == ' ') do
+
+    if TargetHasWindowsPathSyntax and (path[path.count - 1] == '.' or path[path.count - 1] == ' ') do
         return false
     if TargetHasWindowsPathSyntax and isReservedWindowsDeviceName(path) do
         return false
@@ -331,8 +337,8 @@ func equals(path1, path2: string)->bool
     var offset1, offset2 = 0'u64
     while offset1 < path1.count and offset2 < path2.count
     {
-        let first  = Utf8.decodeRune(Swag.makeSlice(path1.buffer + offset1, path1.count - offset1))
-        let second = Utf8.decodeRune(Swag.makeSlice(path2.buffer + offset2, path2.count - offset2))
+        let first         = Utf8.decodeRune(Swag.makeSlice(path1.buffer + offset1, path1.count - offset1))
+        let second        = Utf8.decodeRune(Swag.makeSlice(path2.buffer + offset2, path2.count - offset2))
         let firstInvalid  = first.c == Utf8.RuneError and first.eat == 1
         let secondInvalid = second.c == Utf8.RuneError and second.eat == 1
         if firstInvalid or secondInvalid
@@ -343,8 +349,11 @@ func equals(path1, path2: string)->bool
             if not firstInvalid or not secondInvalid or not sameByte do
                 return false
         }
-        elif first.c != second.c and Unicode.toUpper(first.c) != Unicode.toUpper(second.c) do
+        elif first.c != second.c and Unicode.toUpper(first.c) != Unicode.toUpper(second.c)
+        {
             return false
+        }
+
         offset1 += first.eat
         offset2 += second.eat
     }
@@ -368,13 +377,17 @@ private func isReservedWindowsDeviceName(name: string)->bool
         stemEnd = index
         break
     }
-    while stemEnd and (name[stemEnd - 1] == '.' or name[stemEnd - 1] == ' ')
+
+    while stemEnd and (name[stemEnd - 1] == '.' or name[stemEnd - 1] == ' ') do
         stemEnd -= 1
     let stem = name[until stemEnd]
 
-    if Path.equals(stem, "CON") or Path.equals(stem, "PRN") or
-       Path.equals(stem, "AUX") or Path.equals(stem, "NUL") or
-       Path.equals(stem, "CONIN$") or Path.equals(stem, "CONOUT$") or
+    if Path.equals(stem, "CON") or
+       Path.equals(stem, "PRN") or
+       Path.equals(stem, "AUX") or
+       Path.equals(stem, "NUL") or
+       Path.equals(stem, "CONIN$") or
+       Path.equals(stem, "CONOUT$") or
        Path.equals(stem, "CLOCK$") do
         return true
 
@@ -383,10 +396,15 @@ private func isReservedWindowsDeviceName(name: string)->bool
         let device = stem[until 3]
         let digit  = stem[3]
         if (Path.equals(device, "COM") or Path.equals(device, "LPT")) and
-           digit >= '1' and digit <= '9' do
+           digit >= '1' and
+           digit <= '9' do
             return true
     }
 
-    return stem == "COM\u00B9" or stem == "COM\u00B2" or stem == "COM\u00B3" or
-           stem == "LPT\u00B9" or stem == "LPT\u00B2" or stem == "LPT\u00B3"
+    return Path.equals(stem, "COM\u00B9") or
+           Path.equals(stem, "COM\u00B2") or
+           Path.equals(stem, "COM\u00B3") or
+           Path.equals(stem, "LPT\u00B9") or
+           Path.equals(stem, "LPT\u00B2") or
+           Path.equals(stem, "LPT\u00B3")
 }

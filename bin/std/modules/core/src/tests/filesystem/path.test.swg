@@ -41,7 +41,7 @@ using Swag
     let upper                = Swag.makeString(upperBytes.buffer, upperBytes.count)
     Swag.assert(not Path.equals(invalid, other))
     Swag.assert(not Path.equals(invalid, "src/\uFFFD"))
-    Swag.assert(not Path.equals(upper, invalid))
+    Swag.assert(Path.equals(upper, invalid) == WINDOWS)
     Swag.assert(Path.equals(invalid, invalid))
     if WINDOWS do
         Swag.assert(Path.equals(upper, Swag.makeString(invalidBytes.buffer, invalidBytes.count)))
@@ -76,6 +76,8 @@ using Swag
         Swag.assert(not Path.isValidPathName("C:/sandbox/NUL.txt"))
         Swag.assert(not Path.isValidPathName("C:/sandbox/NUL:$DATA"))
         Swag.assert(not Path.isValidPathName("C:/sandbox/COM1.log"))
+        Swag.assert(not Path.isValidPathName("C:/sandbox/com\u00B9.log"))
+        Swag.assert(not Path.isValidFileName("lPt\u00B2.txt"))
         Swag.assert(Path.isValidPathName("C:/sandbox/../outside.txt"))
     }
 
@@ -166,13 +168,15 @@ using Swag
     Swag.assert(Path.equals(Path.extension("archive.tar.gz") orelse "", ".gz"))
     Swag.assert(Path.equals(Path.extension(".gitignore") orelse "", ".gitignore"))
     Swag.assert(Path.equals(Path.extension("src/.gitignore") orelse "", ".gitignore"))
-    Swag.assert(Path.equals(Path.extension("core.") orelse "", "."))
+    #static if not WINDOWS do
+        Swag.assert(Path.equals(Path.extension("core.") orelse "", "."))
     Swag.assert(Path.extension("core") == null)
     Swag.assert(Path.extension("src.tests/core") == null)
     Swag.assert(Path.hasExtension("core.swg"))
     Swag.assert(Path.hasExtension("archive.tar.gz"))
     Swag.assert(Path.hasExtension(".gitignore"))
-    Swag.assert(Path.hasExtension("core."))
+    #static if not WINDOWS do
+        Swag.assert(Path.hasExtension("core."))
     Swag.assert(not Path.hasExtension("core"))
     Swag.assert(not Path.hasExtension("src.tests/core"))
     Swag.assert(Path.hasExtension("CORE.SWG", ".swg"))

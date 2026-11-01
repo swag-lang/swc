@@ -5,12 +5,13 @@ using Swag
 
 func assertHashTableBorrowTypes(table: *HashTable'(s32, s32))
 {
-    for &key, &value in table[]
+    for &key, value in table[]
     {
         #assert(#typeof(key) == const *s32)
         #assert(#typeof(value) == *s32)
     }
-    for &key, &value in table[].reversed()
+
+    for &key, value in table[].reversed()
     {
         #assert(#typeof(key) == const *s32)
         #assert(#typeof(value) == *s32)
@@ -272,12 +273,12 @@ func assertTableStringValue(table: HashTable'(string, String), key: string, expe
 
 #test
 {
-    var table: HashTable'(s32, s32)
+    var reject: RejectHashTableGrowthAllocator
+    var table:  HashTable'(s32, s32)
     table.add(42, 420)
 
     let oldCapacity  = table.capacity
     let oldAllocator = table.allocator
-    var reject: RejectHashTableGrowthAllocator
     table.allocator = &reject
 
     let failed = Swag.catchPanic(func|&table, oldCapacity|() { table.reserve(oldCapacity + 1) })
@@ -289,28 +290,33 @@ func assertTableStringValue(table: HashTable'(string, String), key: string, expe
 
 #test
 {
-    var table: HashTable'(s32, s32)
+    var reject: RejectHashTableGrowthAllocator
+    var table:  HashTable'(s32, s32)
     for key in 16 do
         table.add(cast(s32, key), cast(s32, key + 100))
 
     let oldCapacity  = table.capacity
     let oldAllocator = table.allocator
-    var reject: RejectHashTableGrowthAllocator
     table.allocator = &reject
 
     let updateFailed       = Swag.catchPanic(func|&table|() { table.add(7, 700) })
     let preserveFailed     = Swag.catchPanic(func|&table|() { table.add(7, 777, updateValue: false) })
-    let findFailed          = Swag.catchPanic(func|&table|() { discard table.findOrAdd(7) })
-    let borrowedFindFailed = Swag.catchPanic(func|&table|() {
+    let findFailed         = Swag.catchPanic(func|&table|() { discard table.findOrAdd(7) })
+    let borrowedFindFailed = Swag.catchPanic(func|&table|()
+    {
         discard table.findOrAddBorrowed(&table.find(7).key)
     })
-    let borrowedUpdateFailed = Swag.catchPanic(func|&table|() {
+    let borrowedUpdateFailed = Swag.catchPanic(func|&table|()
+    {
         discard table.addBorrowed(&table.find(7).key, &table.find(8).value)
     })
     table.allocator = oldAllocator
 
-    Swag.assert(not updateFailed.raised and not preserveFailed.raised and not findFailed.raised and
-                not borrowedFindFailed.raised and not borrowedUpdateFailed.raised)
+    Swag.assert(not updateFailed.raised and
+                not preserveFailed.raised and
+                not findFailed.raised and
+                not borrowedFindFailed.raised and
+                not borrowedUpdateFailed.raised)
     Swag.assert(table.capacity == oldCapacity and table.count == 16 and table[7] == 108)
 }
 

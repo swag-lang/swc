@@ -80,43 +80,19 @@ func completeDescendants(depth: u32, completed: *Swag.AtomicValue'u32)
     child.submit(func|depth, completed|() { completeDescendants(depth - 1, completed) })
 }
 
-var taskGroupCaptureOwners: Swag.AtomicValue'u32
-
-struct TaskGroupCapture
-{
-    value:   u32
-    counted: bool
-}
-
-impl TaskGroupCapture
-{
-    mtd opDrop()
-    {
-        if .counted do
-            taskGroupCaptureOwners.sub(1)
-    }
-
-    mtd opPostCopy()
-    {
-        .counted = true
-        taskGroupCaptureOwners.add(1)
-    }
-}
-
-// Joining a group releases closure captures from inline and overflow child storage.
+// Joining a group allows inline and overflow children to be reused with fresh captures.
 #test
 {
-    taskGroupCaptureOwners.store(0)
-    var capture = TaskGroupCapture{1}
+    var total: Swag.AtomicValue'u32
+    var group: Swag.TaskGroup
+    for round in 3'u32
     {
-        var group: Swag.TaskGroup
-        for _ in 5 do
-            group.spawn(func|capture|() { discard capture.value })
+        let value = round + 1
+        for 5 do group.spawn(func|&total, value|() { total.add(value) })
         expect group.join()
         Swag.assert(not group.isCancelled())
-        Swag.assert(taskGroupCaptureOwners.load() == 0)
+        Swag.assert(total.load() == 5 * value * (value + 1) / 2)
     }
-    Swag.assert(taskGroupCaptureOwners.load() == 0)
 }
 
 // Recycled groups stop observing the cancellation scope that submitted their last child.

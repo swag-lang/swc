@@ -36,7 +36,12 @@ func createDirectoryJunction(link, target: string)->bool
     discard catch Directory.create(dirName) as errOutcome
     let err = errOutcome.value()
     Swag.assert(err != null)
-    Swag.assert(err is Errors.InvalidFileNameError)
+
+    // The sandbox rejects invalid paths before they reach the native filesystem call.
+    if Env.isSandboxed() do
+        Swag.assert(err is Errors.SandboxError)
+    else do
+        Swag.assert(err is Errors.InvalidFileNameError)
     Swag.assert(not Directory.exists(dirName))
 }
 

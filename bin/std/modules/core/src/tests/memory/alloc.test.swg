@@ -93,14 +93,15 @@ func formatAllocationFailure(operation: string, request: Swag.AllocatorRequest, 
 // A leak allocation must reject sizes whose header and alignment overhead would overflow.
 #test
 {
-    var backing: ScratchOverflowAllocator
-    var scratch: ScratchAllocator
+    var backing:    ScratchOverflowAllocator
+    var scratch:    ScratchAllocator
     let backingItf: IAllocator = &backing
     scratch.setCapacity(1, backingItf)
     defer scratch.release()
 
     let scratchItf: IAllocator = &scratch
-    let caught = Swag.catchPanic(func|scratchItf|() {
+    let caught = Swag.catchPanic(func|scratchItf|()
+    {
         discard Memory.alloc(Swag.U64.Max, scratchItf)
     })
     Swag.assert(caught.raised)

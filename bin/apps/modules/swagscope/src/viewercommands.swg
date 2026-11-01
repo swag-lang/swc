@@ -1126,7 +1126,7 @@ impl ViewerWindow
 
         // The file is placed by its last folders, as the home names them; the whole path is
         // one link away.
-        let path = .explorer ? .explorer.displayPath(.currentFile) : .currentFile.toString()
+        let path = .explorer ? .explorer.logicalPath(.currentFile) : .currentFile.toString()
         .infoSheet.setTitle(Path.fileName(path) orelse path)
         .infoSheet.setIdentity(ViewerHome.folderText(path))
 

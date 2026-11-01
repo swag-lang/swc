@@ -239,6 +239,7 @@ private func alignUp(value: u64, alignment: u32)->u64 fail
             fail OverflowError{"SCC chunk alignment exceeds the addressable file size"}
         return value + adjustment
     }
+
     return value
 }
 
@@ -437,7 +438,7 @@ impl Writer
         var headerBytes = try encodeHeader(&.header)
         if headerBytes.count > Swag.U64.Max - PrefixSize do
             fail OverflowError{"SCC header exceeds the addressable file size"}
-        let headerEnd = PrefixSize + headerBytes.count
+        let headerEnd  = PrefixSize + headerBytes.count
         var dataOffset = try alignUp(headerEnd, 8)
         for i in .chunks.count
         {
@@ -454,7 +455,7 @@ impl Writer
         headerBytes = try encodeHeader(&.header)
         if headerBytes.count > Swag.U64.Max - PrefixSize do
             fail OverflowError{"SCC header exceeds the addressable file size"}
-        let finalHeaderEnd = PrefixSize + headerBytes.count
+        let finalHeaderEnd  = PrefixSize + headerBytes.count
         let firstDataOffset = .chunks.isEmpty() ? try alignUp(finalHeaderEnd, 8) : .chunks[0].info.offset
         if finalHeaderEnd > firstDataOffset do
             fail OverflowError{"SCC header grew after chunk offsets were assigned"}
@@ -469,7 +470,7 @@ impl Writer
         writeU32(&prefix, 0)
         Swag.assert(prefix.count == PrefixSize)
 
-        let temporary = Format.toString("%.scc-tmp-%", fileName, Guid64.random())
+        let temporary     = Format.toString("%.scc-tmp-%", fileName, Guid64.random())
         var ownsTemporary = false
         defer
         {

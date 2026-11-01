@@ -71,8 +71,9 @@ impl String
 
     // Returns the byte storage as a pointer the caller walks itself.
     //
-    // An empty String returns a non-null sentinel address aligned for bytes. It does not point
-    // to String storage and must not be dereferenced. Check 'isNull' or 'isNullOrEmpty' first.
+    // A String with no buffer returns a non-null sentinel aligned for bytes. That address must
+    // not be dereferenced. An empty String may still own storage; check 'isNullOrEmpty' before
+    // reading bytes.
     #[Inline]
     mtd const storage()->[*] u8 => .buffer orelse cast([*] u8, cast(u64, 1))
 

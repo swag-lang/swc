@@ -107,7 +107,7 @@ using Swag
     expect reader.open(fileName)
     defer reader.close()
 
-    var line: String
+    var line:      String
     var lineError: Swag.Error
     discard catch reader.readLine(&line) as lineError
     Swag.assert(lineError.value() is Errors.InvalidFormatError)

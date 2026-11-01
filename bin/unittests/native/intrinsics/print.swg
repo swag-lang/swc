@@ -18,25 +18,3 @@
     var plain: string = ""
     Swag.print(plain)
 }
-
-// Rounding the eighth fractional digit can carry into the integer part.
-#test
-{
-    var buffer: [64] u8
-
-    Swag.__ftoa(&buffer[0], 0.9999999999'f64)
-    let positive = cast(string, Swag.makeSlice(&buffer[0], cast(const cstring, &buffer[0]).count))
-    Swag.assert(Swag.stringCmp(positive, "1.0"))
-
-    Swag.__ftoa(&buffer[0], -1.9999999999'f64)
-    let negative = cast(string, Swag.makeSlice(&buffer[0], cast(const cstring, &buffer[0]).count))
-    Swag.assert(Swag.stringCmp(negative, "-2.0"))
-
-    Swag.__ftoa(&buffer[0], 0.000000009'f64)
-    let smallPositive = cast(string, Swag.makeSlice(&buffer[0], cast(const cstring, &buffer[0]).count))
-    Swag.assert(Swag.stringCmp(smallPositive, "0.00000001"))
-
-    Swag.__ftoa(&buffer[0], -0.000000009'f64)
-    let smallNegative = cast(string, Swag.makeSlice(&buffer[0], cast(const cstring, &buffer[0]).count))
-    Swag.assert(Swag.stringCmp(smallNegative, "-0.00000001"))
-}

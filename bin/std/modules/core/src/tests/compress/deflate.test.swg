@@ -3,6 +3,23 @@
 
 using Swag
 
+// Appending compressed data preserves input borrowed from the output allocation.
+#test
+{
+    var bytes: Array'u8
+    bytes.add("borrowed input survives output growth")
+    let original = bytes
+    let start    = bytes.count
+    var deflater: Compress.Deflate
+    deflater.init(.NoCompression)
+    expect deflater.compress(&bytes, bytes.toSlice())
+
+    var inflater: Compress.Inflate
+    var decoded:  Array'u8
+    expect inflater.decompress(&decoded, bytes[start to])
+    Swag.assert(Slice.equals(decoded.toSlice(), original.toSlice()))
+}
+
 func fillRandom(buffer: [..] u8, seed: u32)
 {
     var x = seed | 1

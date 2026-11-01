@@ -1,5 +1,5 @@
+#global export
 #global namespace Random
-#global public
 
 private func floatBefore(value: f32)->f32
 {
@@ -112,9 +112,9 @@ impl Generator
     mtd nextU32(min, max: u32)->u32
     {
         Swag.assert(max > min, "[[max]] must be greater than [[min]]")
-        let range = max - min
-        let threshold = cast #wrap (u32, (0'u32 - range)) % range
-        var value = .nextU32()
+        let range     = max - min
+        let threshold = (0'u32 - #wrap range) % range
+        var value     = .nextU32()
         while value < threshold do
             value = .nextU32()
         value %= range
@@ -127,9 +127,9 @@ impl Generator
     mtd nextU64(min, max: u64)->u64
     {
         Swag.assert(max > min, "[[max]] must be greater than [[min]]")
-        let range = max - min
-        let threshold = cast #wrap (u64, (0'u64 - range)) % range
-        var value = .nextU64()
+        let range     = max - min
+        let threshold = (0'u64 - #wrap range) % range
+        var value     = .nextU64()
         while value < threshold do
             value = .nextU64()
         value %= range
@@ -139,37 +139,35 @@ impl Generator
     // Returns a uniformly distributed value in the half-open interval `[min, max)`.
     //
     // `max` must be greater than `min`.
-    #[Swag.Safety(.Overflow, false)]
     mtd nextS32(min, max: s32)->s32
     {
         Swag.assert(max > min, "[[max]] must be greater than [[min]]")
-        let minBits = cast #bit (u32, min)
-        let maxBits = cast #bit (u32, max)
-        let range   = cast #wrap (u32, (maxBits - minBits))
-        let threshold = cast #wrap (u32, (0'u32 - range)) % range
+        let minBits   = cast #bit (u32, min)
+        let maxBits   = cast #bit (u32, max)
+        let range     = (maxBits - #wrap minBits)
+        let threshold = (0'u32 - #wrap range) % range
         var value     = .nextU32()
         while value < threshold do
             value = .nextU32()
         value %= range
-        return cast #bit (s32, cast #wrap (u32, (minBits + value)))
+        return cast #bit (s32, (minBits + #wrap value))
     }
 
     // Returns a uniformly distributed value in the half-open interval `[min, max)`.
     //
     // `max` must be greater than `min`.
-    #[Swag.Safety(.Overflow, false)]
     mtd nextS64(min, max: s64)->s64
     {
         Swag.assert(max > min, "[[max]] must be greater than [[min]]")
-        let minBits = cast #bit (u64, min)
-        let maxBits = cast #bit (u64, max)
-        let range   = cast #wrap (u64, (maxBits - minBits))
-        let threshold = cast #wrap (u64, (0'u64 - range)) % range
+        let minBits   = cast #bit (u64, min)
+        let maxBits   = cast #bit (u64, max)
+        let range     = (maxBits - #wrap minBits)
+        let threshold = (0'u64 - #wrap range) % range
         var value     = .nextU64()
         while value < threshold do
             value = .nextU64()
         value %= range
-        return cast #bit (s64, cast #wrap (u64, (minBits + value)))
+        return cast #bit (s64, (minBits + #wrap value))
     }
 
     // Returns a value in the half-open interval `[min, max)` for finite bounds.

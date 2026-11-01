@@ -9,6 +9,7 @@ func assertHashSetKeysAreReadOnly(values: *HashSet's32)
     {
         #assert(#typeof(key) == const *s32)
     }
+
     for &key in values[].reversed()
     {
         #assert(#typeof(key) == const *s32)
@@ -186,12 +187,12 @@ func assertReverseIntSetIteration(values: HashSet's32)->bool
 
 #test
 {
+    var reject: RejectHashSetGrowthAllocator
     var values: HashSet's32
     values.add(42)
 
     let oldCapacity  = values.capacity
     let oldAllocator = values.allocator
-    var reject: RejectHashSetGrowthAllocator
     values.allocator = &reject
 
     let failed = Swag.catchPanic(func|&values, oldCapacity|() { values.reserve(oldCapacity + 1) })
@@ -203,18 +204,18 @@ func assertReverseIntSetIteration(values: HashSet's32)->bool
 
 #test
 {
+    var reject: RejectHashSetGrowthAllocator
     var values: HashSet's32
     for value in 16 do
         values.add(cast(s32, value))
 
     let oldCapacity  = values.capacity
     let oldAllocator = values.allocator
-    var reject: RejectHashSetGrowthAllocator
     values.allocator = &reject
 
     let duplicateFailed = Swag.catchPanic(func|&values|() { discard values.add(7) })
-    var toggleResult = true
-    let toggleFailed = Swag.catchPanic(func|&values, &toggleResult|() { toggleResult = values.toggle(7) })
+    var toggleResult    = true
+    let toggleFailed    = Swag.catchPanic(func|&values, &toggleResult|() { toggleResult = values.toggle(7) })
     values.allocator = oldAllocator
 
     Swag.assert(not duplicateFailed.raised and not toggleFailed.raised and not toggleResult)

@@ -216,6 +216,7 @@ impl OrderedSet
     }
 
     // Iterates keys from least to greatest.
+    //
     // Visiting by address binds each key through a constant pointer so the sort order is preserved.
     #[Macro]
     mtd(ptr: bool) opVisit(stmt: #code(key, index: u64))

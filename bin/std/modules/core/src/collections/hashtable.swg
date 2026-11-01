@@ -59,7 +59,7 @@ impl ReversedHashTable
     #[Macro]
     mtd(ptr: bool) const opVisit(stmt: #code(key, value))
     {
-        let table  = .source.constTablePtr()
+        let table  = .source.tablePtr()
         var remain = .source.count
         scope(Up)
         for offset in .source.capacity
@@ -129,7 +129,7 @@ impl HashTable
         return result
     }
 
-    private mtd tablePtr()->[*] HashTableEntry => .table orelse cast([*] HashTableEntry'(K, V), 1'u64)
+    private mtd const tablePtr()->[*] HashTableEntry => .table orelse cast([*] HashTableEntry'(K, V), 1'u64)
 
     private mtd const constTablePtr()->const [*] HashTableEntry
     {
@@ -234,7 +234,7 @@ impl HashTable
         if not .count do
             return
 
-        let table  = .constTablePtr()
+        let table  = .tablePtr()
         var remain = .count
         scope(Up)
         for tableIndex in .capacity
@@ -344,7 +344,7 @@ impl HashTable
         if reqCapacity <= .capacity do
             return
 
-        let oldTable = .table
+        let oldTable         = .table
         let newCapacityBytes = reqCapacity * #sizeof(HashTableEntry'(K, V))
 
         if not .allocator do
@@ -451,14 +451,17 @@ impl HashTable
 
         let hashVal = hashKey(key)
         var index   = cast(u64, hashVal) & (.capacity - 1)
-        let table   = .tablePtr()
 
         index = .getNewIndex(key, index, hashVal)
-        if table[index].hash >= HashTable.HASH_FIRST
+        scope
         {
-            if updateValue do
-                table[index].value = #fwd value
-            return table + index
+            let table = .tablePtr()
+            if table[index].hash >= HashTable.HASH_FIRST
+            {
+                if updateValue do
+                    table[index].value = #fwd value
+                return table + index
+            }
         }
 
         // Growing rehashes the table a struct `key` or `value` may live in, so take them out first.
@@ -487,6 +490,7 @@ impl HashTable
             }
         }
 
+        let table = .tablePtr()
         if table[index].hash == HashTable.HASH_FREE
         {
             table[index].key   = #nodrop key
@@ -721,11 +725,14 @@ impl HashTable
 
         let hashVal = hashKey(key)
         var index   = cast(u64, hashVal) & (.capacity - 1)
-        let table   = .tablePtr()
 
         index = .getNewIndex(key, index, hashVal)
-        if table[index].hash >= HashTable.HASH_FIRST do
-            return table + index
+        scope
+        {
+            let table = .tablePtr()
+            if table[index].hash >= HashTable.HASH_FIRST do
+                return table + index
+        }
 
         // Growing rehashes the table a struct `key` may live in, so take it out first.
         if .growsOnInsert()
@@ -743,6 +750,7 @@ impl HashTable
             }
         }
 
+        let table = .tablePtr()
         var val: V
         if table[index].hash == HashTable.HASH_FREE
         {

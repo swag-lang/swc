@@ -15,7 +15,7 @@ impl Swag.IAllocator for ArrayPtrGrowthProbeAllocator
     mtd impl alloc(request: *Swag.AllocatorRequest)
     {
         .allocationCount += 1
-        request.address = &.storage[0]
+        request.address  = &.storage[0]
     }
 
     mtd impl realloc(request: *Swag.AllocatorRequest) { request.address = null }
@@ -83,10 +83,10 @@ func assertIntArrayPtr(values: *ArrayPtr's32, expected: const [..] s32)->bool
 
 #test
 {
-    var allocator: ArrayPtrGrowthProbeAllocator
+    var allocator:    ArrayPtrGrowthProbeAllocator
     let allocatorItf: IAllocator = &allocator
     let context = Swag.getContext()
-    let originalAllocator = context.allocator
+    let originalAllocator        = context.allocator
     context.allocator = allocatorItf
     defer context.allocator = originalAllocator
 

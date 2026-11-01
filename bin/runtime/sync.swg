@@ -162,6 +162,7 @@ impl Semaphore
             .mutex.unlock()
             Swag.safetyPanic("semaphore permit count overflow", #curlocation)
         }
+
         .permits += count
         .mutex.unlock()
 

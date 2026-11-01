@@ -283,7 +283,7 @@ impl HashSet
         if reqCapacity <= .capacity do
             return
 
-        let oldTable = .table
+        let oldTable         = .table
         let newCapacityBytes = reqCapacity * #sizeof(HashSetEntry'(K))
 
         if not .allocator do
@@ -385,11 +385,14 @@ impl HashSet
 
         let hashVal = hashKey(key)
         var index   = cast(u64, hashVal) & (.capacity - 1)
-        let table   = .tablePtr()
 
         index = .getNewIndex(key, index, hashVal)
-        if table[index].hash >= HashSet.HASH_FIRST do
-            return table + index
+        scope
+        {
+            let table = .tablePtr()
+            if table[index].hash >= HashSet.HASH_FIRST do
+                return table + index
+        }
 
         // Growing rehashes the set a struct `key` may live in, so take it out first.
         if .growsOnInsert()
@@ -407,6 +410,7 @@ impl HashSet
             }
         }
 
+        let table = .tablePtr()
         if table[index].hash == HashSet.HASH_FREE
         {
             table[index].key = #nodrop #fwd key
@@ -470,59 +474,61 @@ impl HashSet
         let mask         = .capacity - 1
         var firstDeleted = Swag.U64.Max
         var index        = cast(u64, hashVal) & mask
-        let table        = .tablePtr()
-
-        for
+        scope
         {
-            let entryHash = table[index].hash
-            if entryHash == HashSet.HASH_FREE
+            let table = .tablePtr()
+            for
             {
-                // An absent key may borrow from this set, so save it before rehashing.
-                if .growsOnInsert()
+                let entryHash = table[index].hash
+                if entryHash == HashSet.HASH_FREE do
+                    break
+                if entryHash == HashSet.HASH_DELETED and firstDeleted == Swag.U64.Max
                 {
-                    #static if Reflection.isStruct(K)
-                    {
-                        var staged: K = #fwd key
-                        .grow()
-                        return .toggle(#move staged)
-                    }
-                    else
-                    {
-                        .grow()
-                        return .toggle(#fwd key)
-                    }
+                    firstDeleted = index
+                }
+                elif entryHash == hashVal and table[index].key == key
+                {
+                    table[index].hash = HashSet.HASH_DELETED
+                    .count   -= 1
+                    .deleted += 1
+                    return false
                 }
 
-                let targetIndex = firstDeleted != Swag.U64.Max ? firstDeleted : index
-                if table[targetIndex].hash == HashSet.HASH_FREE
-                {
-                    table[targetIndex].key = #nodrop #fwd key
-                }
-                else
-                {
-                    .deleted -= 1
-                    table[targetIndex].key = #fwd key
-                }
-
-                table[targetIndex].hash = hashVal
-                .count += 1
-                return true
+                index = (index + 1) & mask
             }
-
-            if entryHash == HashSet.HASH_DELETED and firstDeleted == Swag.U64.Max
-            {
-                firstDeleted = index
-            }
-            elif entryHash == hashVal and table[index].key == key
-            {
-                table[index].hash = HashSet.HASH_DELETED
-                .count   -= 1
-                .deleted += 1
-                return false
-            }
-
-            index = (index + 1) & mask
         }
+
+        // Preserve a borrowed key before growth invalidates the old storage.
+        if .growsOnInsert()
+        {
+            #static if Reflection.isStruct(K)
+            {
+                var staged: K = #fwd key
+                .grow()
+                return .toggle(#move staged)
+            }
+            else
+            {
+                .grow()
+                return .toggle(#fwd key)
+            }
+        }
+
+        let table       = .tablePtr()
+        let targetIndex = firstDeleted != Swag.U64.Max ? firstDeleted : index
+        if table[targetIndex].hash == HashSet.HASH_FREE
+        {
+            table[targetIndex].key = #nodrop #fwd key
+        }
+        else
+        {
+            .deleted -= 1
+            table[targetIndex].key = #fwd key
+        }
+
+        table[targetIndex].hash = hashVal
+        .count += 1
+        return true
     }
 
     // Removes `key`; does nothing when it is absent.

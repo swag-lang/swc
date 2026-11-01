@@ -85,12 +85,9 @@ func __ftoa(result: [*] u8, value: f64)
     if fpart < 0 do
         fpart = -fpart
 
-    var leadingZeros = 0
     while afterPoint
     {
-        fpart *= 10
-        if fpart < 1 do
-            leadingZeros += 1
+        fpart      *= 10
         afterPoint -= 1
     }
 
@@ -103,8 +100,7 @@ func __ftoa(result: [*] u8, value: f64)
             ipart -= 1
         else do
             ipart += 1
-        fractional  = 0
-        leadingZeros = 0
+        fractional = 0
     }
 
     var n = result
@@ -127,14 +123,18 @@ func __ftoa(result: [*] u8, value: f64)
     n[0] = '.'
     n    += 1
 
-    // Zeros before the value part
-    if leadingZeros == AfterFracN
+    // Count padding after rounding: a carry can consume a leading fractional zero.
+    var leadingZeros = 0
+    if fractional
     {
-        if fractional == 0 do
-            leadingZeros = 0
-        else do
-            leadingZeros -= 1
+        var place = 10000000's64
+        while fractional < place
+        {
+            leadingZeros += 1
+            place        /= 10
+        }
     }
+
     while leadingZeros
     {
         n[0]         = '0'

@@ -65,13 +65,14 @@ impl MappedFile
         var source    = try File.open(name, .Open, .Read, .ReadWrite | .Delete)
         let temporary = Path.combine(Env.getSpecialDirectory(.Temp), Format.toString("swag-mapped-%.tmp", Guid128.random()))
         var result: #returntype
-        result.name   = name
+        result.name = name
         var ownsTemporary = false
         defer
         {
             if ownsTemporary do
                 discard catch File.delete(temporary)
         }
+
         result.stream = try File.open(temporary, .CreateNew, .ReadWrite, .ReadWrite | .Delete)
         ownsTemporary = true
 
@@ -87,7 +88,7 @@ impl MappedFile
         }
 
         result.temporary = temporary
-        ownsTemporary   = false
+        ownsTemporary    = false
         return result
     }
 

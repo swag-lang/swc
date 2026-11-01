@@ -91,7 +91,7 @@ func watch(root: string)->Watcher fail => try watch(root, {})
 // Starts watching `root` with an explicit scope and notification policy.
 func watch(root: string, options: WatchOptions)->Watcher fail
 {
-    if options.filter == WatchFilter.None do
+    if not options.filter do
         fail Errors.BadParameterError{}
     if options.bufferSize < 4 * 1024 or options.bufferSize > 64 * 1024 do
         fail Errors.BadParameterError{}

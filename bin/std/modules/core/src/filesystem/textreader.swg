@@ -50,7 +50,7 @@ public impl TextReader
         let capacity = Math.clamp(try stream.size(), 16'u64, 64 * 1024'u64)
         .buffer.clear()
         .buffer.reserve(capacity)
-        .stream         = #move stream
+        .stream        = #move stream
         .byteSeek      = 0
         .checkPreamble = true
     }
@@ -107,6 +107,7 @@ public impl TextReader
                     try validateUtf8(result)
                     return true
                 }
+
                 continue
             }
 

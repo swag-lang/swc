@@ -287,14 +287,14 @@ private struct Run
 private func indexRuns(walker: *Walker, info: const *StreamInfo)->u64 fail
 {
     var run:       Run
-    var total    = 0'u64
-    var previous = 0'u64     // Granule position at the end of the previous run.
-    var sequence = Swag.U32.Max
+    var total       = 0'u64
+    var previous    = 0'u64     // Granule position at the end of the previous run.
+    var sequence    = Swag.U32.Max
     var hasSequence = false
-    var firstRun = true
+    var firstRun    = true
     var header:    PageHeader
     var lookahead: PageHeader
-    var hasPage  = try walker.next(&header)
+    var hasPage     = try walker.next(&header)
     while hasPage
     {
         let pageOffset = walker.offset
@@ -321,7 +321,8 @@ private func indexRuns(walker: *Walker, info: const *StreamInfo)->u64 fail
                 fail InvalidFormatError{"Ogg page sequence has a gap"}
             }
         }
-        sequence = header.sequence
+
+        sequence    = header.sequence
         hasSequence = true
 
         if run.start == Swag.U64.Max do

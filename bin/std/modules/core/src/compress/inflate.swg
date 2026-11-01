@@ -332,6 +332,7 @@ impl Inflate
             }
 
             value -= 257
+
             // RFC 1951 reserves literal/length symbols 286 and 287.
             if value >= 29 do
                 fail InvalidFormatError{"bad length"}

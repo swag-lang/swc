@@ -835,7 +835,7 @@ private impl Codec
             var offset    = 0'u64
             while offset < config.count and completed < 3
             {
-                let page = try Ogg.readPageHeader(config, offset)
+                let page      = try Ogg.readPageHeader(config, offset)
                 let pageBytes = page.totalBytes()
                 if pageBytes > config.count - offset do
                     fail InvalidFormatError{"Vorbis header pages are truncated"}
@@ -1513,7 +1513,7 @@ private impl Codec
         .packet.clear()
         while offset < run.count
         {
-            let page = try Ogg.readPageHeader(run, offset)
+            let page      = try Ogg.readPageHeader(run, offset)
             let pageBytes = page.totalBytes()
             if pageBytes > run.count - offset do
                 fail InvalidFormatError{"Ogg page run is truncated"}

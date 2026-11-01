@@ -284,7 +284,7 @@ func startProcess(info: StartInfo)->Process fail
     }
 
     Swag.assert(info.fileName != null, "missing process filename")
-    if info.fileName.isEmpty() do
+    if not info.fileName.count do
         fail BadParameterError{"process filename is empty"}
     for c in info.fileName where c == 0 do
         fail BadParameterError{"process strings cannot contain NUL"}
@@ -293,11 +293,13 @@ func startProcess(info: StartInfo)->Process fail
         for c in info.arguments where c == 0 do
             fail BadParameterError{"process strings cannot contain NUL"}
     }
+
     if info.workingDirectory
     {
         for c in info.workingDirectory where c == 0 do
             fail BadParameterError{"process strings cannot contain NUL"}
     }
+
     if info.environment
     {
         for name, value in info.environment.variables
@@ -309,6 +311,7 @@ func startProcess(info: StartInfo)->Process fail
                 if c == '=' or c == 0 do
                     fail BadParameterError{"process environment names cannot contain '=' or NUL"}
             }
+
             for c in value.toString() where c == 0 do
                 fail BadParameterError{"process environment values cannot contain NUL"}
         }

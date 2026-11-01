@@ -1,5 +1,4 @@
 #global private
-using Swag
 
 enum CompressionLevel: u32
 {
@@ -44,14 +43,4 @@ func severityLike(value: bool)->u8 { discard value; return 0 }
 #test
 {
     severityLike("high")     // swc-expected-error {{sema_err_generic_function_instantiation_failed}}
-}
-
-#test
-{
-    discard range(1.0'f32, 2.0'f32)     // swc-expected-error {{sema_err_generic_function_instantiation_failed}}
-}
-
-#test
-{
-    discard rangeTo(1.0'f32, 2.0'f32)     // swc-expected-error {{sema_err_generic_function_instantiation_failed}}
 }

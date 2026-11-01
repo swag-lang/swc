@@ -135,7 +135,7 @@ public impl PacketDurationProbe
         if encoding != .Vorbis do
             return
         .vorbis = Memory.new'Vorbis.DurationProbe()
-        let probe = cast(*Vorbis.DurationProbe, unwrap .vorbis)
+        let probe = cast(*Vorbis.DurationProbe, .vorbis)
         try probe.initialize(config)
     }
 

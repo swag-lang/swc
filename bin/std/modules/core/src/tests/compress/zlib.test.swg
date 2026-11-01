@@ -3,6 +3,20 @@
 
 using Swag
 
+// A truncated Adler-32 trailer is rejected at every byte boundary.
+#test
+{
+    var zlib: Compress.ZLib
+    let compressed = expect zlib.compress("checksum boundary")
+    for missing in [1'u64, 2, 3, 4]
+    {
+        var reader: Compress.ZLib
+        var error:  Swag.Error
+        discard catch reader.decompress(compressed[until compressed.count - missing]) as error
+        Swag.assert(error.value() is Errors.InvalidFormatError)
+    }
+}
+
 func fillCompressPattern(buffer: [..] u8)
 {
     for i in buffer.count

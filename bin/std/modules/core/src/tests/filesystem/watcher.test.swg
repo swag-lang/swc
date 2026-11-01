@@ -38,7 +38,7 @@ func waitForWatchChange(watcher: *Directory.Watcher, kind: Directory.ChangeKind,
 #test
 {
     var options: Directory.WatchOptions
-    options.filter = Directory.WatchFilter.None
+    options.filter = cast(Directory.WatchFilter, 0)
 
     var errOutcome: Swag.Error
     discard catch Directory.watch(".", options) as errOutcome

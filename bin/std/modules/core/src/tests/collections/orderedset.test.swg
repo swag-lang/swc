@@ -9,6 +9,7 @@ func assertOrderedSetKeysAreReadOnly(values: *OrderedSet's32)
     {
         #assert(#typeof(key) == const *s32)
     }
+
     for &key in values[].reversed()
     {
         #assert(#typeof(key) == const *s32)

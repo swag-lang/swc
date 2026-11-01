@@ -143,9 +143,10 @@ func memmove(dst: [*] void, src: const [*] void, size: u64)
 }
 
 #[Swag.Inline]
-func memcmpDifferenceIndex(difference: u64, width: u32)->u64
+private func memcmpDifferenceIndex(difference: u64, width: u32)->u64
 {
-    #static if BIG_ENDIAN do
+    discard width
+    #static if #gettag("Swag.Endian", string, "little") == "big" do
         return cast(u64, Swag.leadingZeros(difference)) / 8 - (8 - cast(u64, width))
     else do
         return cast(u64, Swag.trailingZeros(difference)) / 8

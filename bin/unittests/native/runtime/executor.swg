@@ -75,19 +75,24 @@ struct ExecutorFailure
 }
 
 // Closing from the executor's own thread is rejected instead of joining itself.
+struct ExecutorCloseProbe
+{
+    caught:   Swag.AtomicFlag
+    task:     Swag.Task
+    executor: Swag.Executor
+}
+
 #test
 {
-    var executor: Swag.Executor
-    var task:     Swag.Task
-    var caught:   Swag.AtomicFlag
-    executor.start()
-    task.submit(func|&executor, &caught|()
+    var probe: ExecutorCloseProbe
+    probe.executor.start()
+    probe.task.submit(func|&probe|()
     {
-        let result = Swag.catchPanic(func|&executor|() { executor.close() })
+        let result = Swag.catchPanic(func|&probe|() { probe.executor.close() })
         if result.raised do
-            discard caught.raise()
-    }, executor: &executor)
-    expect task.take()
-    Swag.assert(caught.isRaised() == (not Swag.jit()))
-    executor.close()
+            discard probe.caught.raise()
+    }, executor: &probe.executor)
+    expect probe.task.take()
+    Swag.assert(probe.caught.isRaised() == (not Swag.jit()))
+    probe.executor.close()
 }

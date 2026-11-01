@@ -228,8 +228,8 @@ private func parseFormat(bytes: const [..] u8)->Format fail
         result.validBits     = cast(u16, readU16(bytes, 18))
         result.speakerMask   = readU32(bytes, 20)
         result.hasExtensible = true
-        classicTag            = try subformatTag(bytes[24 until 40])
-        extraStart            = FormatExtensibleSize
+        classicTag           = try subformatTag(bytes[24 until 40])
+        extraStart           = FormatExtensibleSize
     }
 
     result.encoding = try encodingOf(classicTag, result.bitsPerSample)
@@ -288,7 +288,7 @@ private func readLayout(stream: *File.FileStream)->Layout fail
         // Before the RIFF header is found, the file itself is the only available boundary.
         if stage != .FindRiff or header.chunkID != .SND_WAV_FOURCC_RIFF
         {
-            let chunkEnd = stage == .FindRiff ? fileBytes : riffEnd
+            let chunkEnd   = stage == .FindRiff ? fileBytes : riffEnd
             let paddedSize = cast(u64, header.chunkSize) + (header.chunkSize & 1)
             if payloadOffset > chunkEnd do
                 fail InvalidFormatError{"invalid wav"}
@@ -359,7 +359,7 @@ private func readLayout(stream: *File.FileStream)->Layout fail
                     fail InvalidFormatError{"WAV audio data is truncated"}
                 if cast(u64, header.chunkSize) > fileBytes - result.dataOffset do
                     fail InvalidFormatError{"WAV audio data is truncated"}
-                result.dataSize   = header.chunkSize
+                result.dataSize = header.chunkSize
                 return result
             }
             else
@@ -372,6 +372,7 @@ private func readLayout(stream: *File.FileStream)->Layout fail
             try stream.skip(header.chunkSize)
 
         default:
+
             // A zero-byte unknown chunk is valid RIFF too; reading its header already
             // advanced the cursor, so skipping zero cannot stall traversal.
             try stream.skip(header.chunkSize)

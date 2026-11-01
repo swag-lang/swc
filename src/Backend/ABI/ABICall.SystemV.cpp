@@ -201,6 +201,39 @@ void ABICall::storeSystemVReturn(MicroBuilder& builder, const MicroReg destinati
     storeReturnParts(builder, type, address, scratch);
 }
 
+void ABICall::storeSystemVArgument(MicroBuilder& builder, const MicroReg destination, const Classification& type, const SystemVAbi::ArgumentLocation& location)
+{
+    const CallConv& conv = CallConv::get(CallConvKind::SystemVAMD64);
+    MicroReg address, scratch;
+    SWC_INTERNAL_CHECK(conv.tryPickIntScratchRegs(address, scratch));
+    builder.emitLoadRegReg(address, destination, MicroOpBits::B64);
+    if (location.onStack)
+    {
+        // Naming RBP requests a frame in the prologue pass. Stack parameters begin
+        // above the saved RBP and return address. Only non-argument integer scratch
+        // registers are touched: other incoming GP and vector lanes may still be live.
+        builder.emitLoadAddressRegMem(scratch, conv.framePointer, 2 * sizeof(void*) + location.stackOffset, MicroOpBits::B64);
+        for (uint32_t offset = 0; offset < type.size;)
+        {
+            const uint32_t bytes = chunkBytes(type.size - offset);
+            const MicroOpBits bits = microOpBitsFromBitWidth(bytes * 8);
+            builder.emitLoadRegMem(conv.intReturn, scratch, offset, bits);
+            builder.emitLoadMemReg(address, offset, conv.intReturn, bits);
+            offset += bytes;
+        }
+        return;
+    }
+    SWC_ASSERT(!type.memory());
+    for (uint32_t part = 0; part < 2; ++part)
+    {
+        const uint32_t lane = location.registers[part];
+        if (type.classes[part] == Class::Integer)
+            storeIntegerPart(builder, address, conv.intArgRegs[lane], part * 8, std::min(8u, type.size - part * 8), scratch);
+        else if (type.classes[part] == Class::Sse)
+            builder.emitLoadMemReg(address, part * 8, conv.floatArgRegs[lane], microOpBitsFromBitWidth(vectorPartBytes(type, part) * 8));
+    }
+}
+
 void ABICall::loadSystemVReturn(MicroBuilder& builder, const MicroReg source, const Classification& type)
 {
     const CallConv& conv = CallConv::get(CallConvKind::SystemVAMD64);

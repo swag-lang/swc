@@ -200,6 +200,37 @@ namespace
         return Result::Continue;
     }
 
+    Result buildSystemVReceivingThunk(TaskContext& context, JITMemoryManager& manager, JITMemory& memory, const std::span<const SystemVAbi::Classification> types, const std::span<void* const> destinations)
+    {
+        SWC_ASSERT(types.size() == destinations.size());
+        MicroBuilder builder(context);
+        SystemVAbi::ArgumentAllocator allocator;
+        std::vector<SystemVAbi::ArgumentLocation> locations;
+        for (const auto& type : types)
+            locations.push_back(allocator.next(type));
+        // Exercise stack copies before capturing register arguments, so any scratch
+        // clobber of an incoming lane changes the later values the native caller sent.
+        for (const bool onStack : {true, false})
+        {
+            for (uint32_t index = 0; index < types.size(); ++index)
+            {
+                if (locations[index].onStack != onStack)
+                    continue;
+                const MicroReg destination = MicroReg::intReg(10);
+                builder.emitLoadRegPtrImm(destination, reinterpret_cast<uint64_t>(destinations[index]));
+                ABICall::storeSystemVArgument(builder, destination, types[index], locations[index]);
+            }
+        }
+        builder.setRetUsesAbiRegs(false, false);
+        builder.emitRet();
+        MachineCode lowered;
+        SWC_RESULT(lowered.emit(context, builder));
+        if (lowered.unwindInfo.empty())
+            return Result::Error;
+        installSystemVCode(manager, memory, lowered.bytes, lowered.unwindInfo);
+        return Result::Continue;
+    }
+
     Result executeSystemVThunk(TaskContext& context, MicroBuilder& builder, const bool fullPipeline = false)
     {
         builder.emitRet();
@@ -817,6 +848,164 @@ SWC_TEST_BEGIN(JIT_LinuxNativeInterfaceAdapterUnwindsThroughHostCallback)
         return error.value == 31 * 7 + 37 * 11 ? Result::Continue : Result::Error;
     }
     return Result::Error;
+}
+SWC_TEST_END()
+
+SWC_TEST_BEGIN(ABI_SystemVGeneratedCalleeReceivesMixedRegisterValues)
+{
+    CommandLine commandLine = ctx.cmdLine();
+    commandLine.targetOs = Runtime::TargetOs::Linux;
+    CompilerInstance compiler(ctx.global(), commandLine);
+    TaskContext context(compiler);
+    using SystemVAbi::Class;
+    const std::array<SystemVAbi::Classification, 5> types{{
+        {{Class::Integer, Class::Sse}, 16, 8},
+        {{Class::Sse, Class::Integer}, 16, 8},
+        {{Class::Sse, Class::Sse}, 16, 8},
+        {{Class::Integer, Class::Integer}, 16, 8},
+        {{Class::Sse, Class::SseUp}, 16, 16},
+    }};
+    const MixedValue mixed{13, 2.5};
+    const ReverseMixedValue reverse{3.5, 17};
+    const TwoFloats floats{5.5, 7.5};
+    const TwoIntegers integers{19, 23};
+    const FourFloats vector{1.5, 2.5, 3.5, 4.5};
+    std::array<std::array<std::byte, 16>, 5> actual{};
+    const std::array<void*, 5> destinations{actual[0].data(), actual[1].data(), actual[2].data(), actual[3].data(), actual[4].data()};
+    const std::array<const void*, 5> expected{&mixed, &reverse, &floats, &integers, &vector};
+    JITMemoryManager manager;
+    JITMemory memory;
+    SWC_RESULT(buildSystemVReceivingThunk(context, manager, memory, types, destinations));
+    using Receiver = void (*)(MixedValue, ReverseMixedValue, TwoFloats, TwoIntegers, FourFloats);
+    reinterpret_cast<Receiver>(memory.entryPoint())(mixed, reverse, floats, integers, vector);
+    for (uint32_t index = 0; index < actual.size(); ++index)
+    {
+        if (std::memcmp(actual[index].data(), expected[index], 16))
+            return Result::Error;
+    }
+}
+SWC_TEST_END()
+
+SWC_TEST_BEGIN(ABI_SystemVGeneratedCalleeReceivesStackValuesBeforeRegisterHomes)
+{
+    CommandLine commandLine = ctx.cmdLine();
+    commandLine.targetOs = Runtime::TargetOs::Linux;
+    CompilerInstance compiler(ctx.global(), commandLine);
+    TaskContext context(compiler);
+    using SystemVAbi::Class;
+    std::array<SystemVAbi::Classification, 10> types{};
+    std::array<uint64_t, 6> integers{};
+    MixedValue mixed{};
+    double floating = 0;
+    LargeValue large{};
+    FourFloats vector{};
+    std::array<void*, 10> destinations{};
+    for (uint32_t index = 0; index < 6; ++index)
+    {
+        types[index] = {{Class::Integer, Class::None}, 8, 8};
+        destinations[index] = &integers[index];
+    }
+    types[6] = {{Class::Integer, Class::Sse}, 16, 8};
+    types[7] = {{Class::Sse, Class::None}, 8, 8};
+    types[8] = {{Class::Memory, Class::None}, 24, 8};
+    types[9] = {{Class::Sse, Class::SseUp}, 16, 16};
+    destinations[6] = &mixed;
+    destinations[7] = &floating;
+    destinations[8] = &large;
+    destinations[9] = &vector;
+    const MixedValue expectedMixed{29, 4.5};
+    const LargeValue expectedLarge{31, 37, 41};
+    const FourFloats expectedVector{1.5, 2.5, 3.5, 4.5};
+    JITMemoryManager manager;
+    JITMemory memory;
+    SWC_RESULT(buildSystemVReceivingThunk(context, manager, memory, types, destinations));
+    using Receiver = void (*)(uint64_t, uint64_t, uint64_t, uint64_t, uint64_t, uint64_t, MixedValue, double, LargeValue, FourFloats);
+    reinterpret_cast<Receiver>(memory.entryPoint())(1, 2, 3, 4, 5, 6, expectedMixed, 13.5, expectedLarge, expectedVector);
+    for (uint32_t index = 0; index < 6; ++index)
+    {
+        if (integers[index] != index + 1)
+            return Result::Error;
+    }
+    if (mixed.integer != expectedMixed.integer || mixed.floating != expectedMixed.floating || floating != 13.5)
+        return Result::Error;
+    if (std::memcmp(&large, &expectedLarge, sizeof(large)) || std::memcmp(&vector, &expectedVector, sizeof(vector)))
+        return Result::Error;
+}
+SWC_TEST_END()
+
+SWC_TEST_BEGIN(ABI_SystemVGeneratedCalleeReceivesAlignedAndPackedStackValues)
+{
+    CommandLine commandLine = ctx.cmdLine();
+    commandLine.targetOs = Runtime::TargetOs::Linux;
+    CompilerInstance compiler(ctx.global(), commandLine);
+    TaskContext context(compiler);
+    using SystemVAbi::Class;
+    std::array<SystemVAbi::Classification, 12> types{};
+    std::array<FourFloats, 9> vectors{};
+    std::array<FourFloats, 9> expectedVectors{};
+    std::array<void*, 12> destinations{};
+    for (uint32_t index = 0; index < 9; ++index)
+    {
+        types[index] = {{Class::Sse, Class::SseUp}, 16, 16};
+        destinations[index] = &vectors[index];
+        expectedVectors[index] = FourFloats{index + 0.5f, index + 1.5f, index + 2.5f, index + 3.5f};
+    }
+    GuardedStorage packedStorage;
+    auto* packed = static_cast<PackedValue*>(packedStorage.tail(sizeof(PackedValue)));
+    if (!packed)
+        return Result::Error;
+    *packed = {};
+    MixedValue mixed{};
+    uint64_t integer = 0;
+    types[9] = {{Class::Memory, Class::None}, sizeof(PackedValue), alignof(PackedValue)};
+    types[10] = {{Class::Integer, Class::Sse}, 16, 8};
+    types[11] = {{Class::Integer, Class::None}, 8, 8};
+    destinations[9] = packed;
+    destinations[10] = &mixed;
+    destinations[11] = &integer;
+    const PackedValue expectedPacked{29, 0x123456789abcdef0};
+    const MixedValue expectedMixed{31, 4.5};
+    JITMemoryManager manager;
+    JITMemory memory;
+    SWC_RESULT(buildSystemVReceivingThunk(context, manager, memory, types, destinations));
+    using Receiver = void (*)(FourFloats, FourFloats, FourFloats, FourFloats, FourFloats, FourFloats, FourFloats, FourFloats, FourFloats, PackedValue, MixedValue, uint64_t);
+    reinterpret_cast<Receiver>(memory.entryPoint())(expectedVectors[0], expectedVectors[1], expectedVectors[2], expectedVectors[3], expectedVectors[4], expectedVectors[5], expectedVectors[6], expectedVectors[7], expectedVectors[8], expectedPacked, expectedMixed, 37);
+    if (std::memcmp(vectors.data(), expectedVectors.data(), sizeof(vectors)))
+        return Result::Error;
+    if (std::memcmp(packed, &expectedPacked, sizeof(*packed)) || mixed.integer != expectedMixed.integer || mixed.floating != expectedMixed.floating || integer != 37)
+        return Result::Error;
+}
+SWC_TEST_END()
+
+SWC_TEST_BEGIN(ABI_SystemVGeneratedCalleeFillsHiddenMemoryResult)
+{
+    CommandLine commandLine = ctx.cmdLine();
+    commandLine.targetOs = Runtime::TargetOs::Linux;
+    CompilerInstance compiler(ctx.global(), commandLine);
+    TaskContext context(compiler);
+    MicroBuilder builder(context);
+    using SystemVAbi::Class;
+    const SystemVAbi::Classification type{{Class::Memory, Class::None}, sizeof(LargeValue), alignof(LargeValue)};
+    const CallConv& conv = CallConv::get(K_SYSTEM_V);
+    const MicroReg destination = conv.intArgRegs[0];
+    const MicroReg value = conv.intArgRegs[1];
+    const MicroReg scratch = MicroReg::intReg(10);
+    for (uint32_t field = 0; field < 3; ++field)
+    {
+        builder.emitLoadRegReg(scratch, value, MicroOpBits::B64);
+        builder.emitOpBinaryRegImm(scratch, ApInt(field + 1, 64), MicroOp::Add, MicroOpBits::B64);
+        builder.emitLoadMemReg(destination, field * sizeof(uint64_t), scratch, MicroOpBits::B64);
+    }
+    ABICall::loadSystemVReturn(builder, destination, type);
+    builder.emitRet();
+    MachineCode lowered;
+    SWC_RESULT(lowered.emit(context, builder));
+    JITMemoryManager manager;
+    JITMemory memory;
+    installSystemVCode(manager, memory, lowered.bytes, lowered.unwindInfo);
+    const LargeValue result = reinterpret_cast<LargeValue (*)(uint64_t)>(memory.entryPoint())(37);
+    if (result.first != 38 || result.second != 39 || result.third != 40)
+        return Result::Error;
 }
 SWC_TEST_END()
 

@@ -228,11 +228,18 @@ private func readU32(buffer: const [..] u8, offset: u64)->u32
     return result
 }
 
-private func alignUp(value: u64, alignment: u32)->u64
+private func alignUp(value: u64, alignment: u32)->u64 fail
 {
     let effective = alignment ? cast(u64, alignment) : 1
     let remainder = value % effective
-    return remainder ? value + effective - remainder : value
+    if remainder
+    {
+        let adjustment = effective - remainder
+        if value > Swag.U64.Max - adjustment do
+            fail OverflowError{"SCC chunk alignment exceeds the addressable file size"}
+        return value + adjustment
+    }
+    return value
 }
 
 // Returns the identifier for an uncompressed chunk.
@@ -428,10 +435,13 @@ impl Writer
         try validateManifest(&.header.manifest, .header.chunks.toSlice())
 
         var headerBytes = try encodeHeader(&.header)
-        var dataOffset  = alignUp(PrefixSize + headerBytes.count, 8)
+        if headerBytes.count > Swag.U64.Max - PrefixSize do
+            fail OverflowError{"SCC header exceeds the addressable file size"}
+        let headerEnd = PrefixSize + headerBytes.count
+        var dataOffset = try alignUp(headerEnd, 8)
         for i in .chunks.count
         {
-            dataOffset = alignUp(dataOffset, .chunks[i].alignment)
+            dataOffset = try alignUp(dataOffset, .chunks[i].alignment)
             if .chunks[i].info.storedSize > Swag.U64.Max - dataOffset do
                 fail OverflowError{"SCC chunk layout exceeds the addressable file size"}
             .chunks[i].info.offset   = dataOffset
@@ -442,8 +452,11 @@ impl Writer
         .header.declaredFileSize = dataOffset
 
         headerBytes = try encodeHeader(&.header)
-        let firstDataOffset = .chunks.isEmpty() ? alignUp(PrefixSize + headerBytes.count, 8) : .chunks[0].info.offset
-        if PrefixSize + headerBytes.count > firstDataOffset do
+        if headerBytes.count > Swag.U64.Max - PrefixSize do
+            fail OverflowError{"SCC header exceeds the addressable file size"}
+        let finalHeaderEnd = PrefixSize + headerBytes.count
+        let firstDataOffset = .chunks.isEmpty() ? try alignUp(finalHeaderEnd, 8) : .chunks[0].info.offset
+        if finalHeaderEnd > firstDataOffset do
             fail OverflowError{"SCC header grew after chunk offsets were assigned"}
 
         var prefix: Array'u8

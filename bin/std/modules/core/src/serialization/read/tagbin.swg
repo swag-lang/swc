@@ -485,9 +485,12 @@ private impl TagBin
         let shape     = unwrap sec.shape
         let savedSeek = .stream.position()
         .stream.setPosition(sec.fatSeek)
+        let payloadSize = sec.fatSeek - sec.payloadStart
         for i in shape.fields.count
         {
             let off = cast(u64, (try .stream.readNative'u32()))
+            if off >= payloadSize do
+                fail SerializationError{"field offset runs past the payload area"}
             let sf  = shape.fields[i]
             if sec.mapSeek.contains(sf.key) do
                 fail SerializationError{"serialized field key is duplicated"}

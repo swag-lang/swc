@@ -95,8 +95,13 @@ internal func enumerateOneNative(dirName: string)->Array'(File.FileInfo) fail
         result.add(#move info)
 
         let next = catch FindNextFileW(handle, &findData)
-        if not next do
-            break
+        if not next
+        {
+            let error = GetLastError()
+            if error == ERROR_NO_MORE_FILES do
+                break
+            try failWinError(error)
+        }
     }
 
     return result

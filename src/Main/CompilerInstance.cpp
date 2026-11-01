@@ -277,7 +277,12 @@ namespace
     // object does not name: imported DLL globals keep the allocator interface of whichever JIT
     // run first filled them, and that module's CompilerInstance can be destroyed by the time
     // another module's code reaches them. A thread with no compiler task has no registry to check.
+    // This re-enters a Swag function, whose scalar ABI follows Windows x64 on every host.
+#if defined(__linux__) && defined(__x86_64__)
+    using RuntimeAllocatorBorrowGuard = void (__attribute__((ms_abi)) *)(const void*, uint64_t, const Runtime::SourceCodeLocation*, uint64_t*);
+#else
     using RuntimeAllocatorBorrowGuard = void (*)(const void*, uint64_t, const Runtime::SourceCodeLocation*, uint64_t*);
+#endif
 
     RuntimeAllocatorBorrowGuard runtimeAllocatorBorrowGuard()
     {

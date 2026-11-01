@@ -11,6 +11,7 @@
 #include "Main/Command/CommandLineParser.h"
 #include "Main/CompilerInstance.h"
 #include "Main/Global.h"
+#include "Main/FileSystem.h"
 #include "Main/Stats.h"
 #include "Support/Os/Os.h"
 #include "Support/Thread/JobManager.h"
@@ -258,6 +259,33 @@ SWC_TEST_BEGIN(Compiler_ExpectedSourceDiagnosticDoesNotBecomeSilentJobFailure)
     return runFailureDriverTest(ctx, true);
 }
 SWC_TEST_END()
+
+#if defined(__linux__) && defined(__x86_64__)
+SWC_FILESYSTEM_TEST_BEGIN(Compiler_LinuxAllocatorBorrowGuardUsesSwagAbi)
+{
+    const RecoveryTestDirectory directory;
+    const fs::path source = FileSystem::compilerResourceRoot(Os::getExeFullName()) / "unittests" / "safety" / "value_borrow_allocator.swg";
+    std::string sourceText;
+    SWC_RESULT(CompilerTestFile::readText(sourceText, source));
+    const fs::path sourcePath = directory.path() / "borrow.swg";
+    SWC_RESULT(CompilerTestFile::writeText(sourcePath, sourceText));
+    const std::vector<Utf8> args = {"test", "--os", "linux", "--sema-only", "--tag", "Swag.AllocatorSafety", "--num-cores", "3", "--no-log-color", "--file", Utf8(sourcePath)};
+    uint32_t exitCode = UINT32_MAX;
+    std::string output;
+    Os::ProcessRunOptions options;
+    options.capturedOutput = &output;
+    options.forwardOutput = false;
+    options.timeoutMs = 15000;
+    // The source expects the borrow diagnostic from the host allocator's free callback.
+    // A mismatched ABI produced a hardware fault instead and escaped that expectation.
+    if (Os::runProcess(exitCode, Os::getExeFullName(), args, directory.path(), &options) != Os::ProcessRunResult::Ok || exitCode)
+    {
+        std::println(stderr, "[Linux allocator borrow] {}", output);
+        return Result::Error;
+    }
+}
+SWC_TEST_END()
+#endif
 
 SWC_FILESYSTEM_TEST_BEGIN(Compiler_NativePanicReleasesCapturedErrorsBeforeRecovery)
 {

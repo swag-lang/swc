@@ -4,6 +4,7 @@
 
 #if SWC_HAS_UNITTEST
 
+#include "Backend/RuntimeName.h"
 #include "Backend/Debug/DebugRecordCollector.h"
 #include "Backend/Debug/SymbolTable.h"
 #include "Backend/JIT/JITExecManager.h"
@@ -1503,6 +1504,7 @@ var GValue: s32 = 0
 
     CommandLine cmdLine;
     cmdLine.command     = CommandKind::Test;
+    cmdLine.targetOs    = hostTargetOs();
     cmdLine.buildCfg    = "devmode";
     cmdLine.backendKind = Runtime::BuildCfgBackendKind::Executable;
     cmdLine.name        = "compiler_run_expr_test";
@@ -1850,6 +1852,7 @@ func exported()->u32 => reachedFromExport()
     const fs::path                    sourcePath = Unittest::makeTestSourcePath("NativeArtifact", "LibraryPrunesUnexportedUnreachableFunctions");
 
     CommandLine cmdLine = makeStandaloneNativeArtifactCmdLine("library_prunes_unexported_unreachable_functions", Runtime::BuildCfgBackendKind::StaticLibrary);
+    cmdLine.targetOs = hostTargetOs();
     cmdLine.directories.clear();
     cmdLine.files.insert(sourcePath);
     CommandLineParser::refreshBuildCfg(cmdLine);

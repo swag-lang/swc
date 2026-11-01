@@ -64,7 +64,9 @@ public impl Json
     internal mtd zapBlanks()
     {
         var c = .stream.peekU8()
-        while c and Latin1.isSpace(c)
+        // RFC 8259 permits only space, horizontal tab, line feed and carriage return
+        // outside strings. Latin1.isSpace also accepts control bytes JSON forbids.
+        while c == ' ' or c == '\t' or c == '\n' or c == '\r'
         {
             .stream.advance()
             c = .stream.peekU8()

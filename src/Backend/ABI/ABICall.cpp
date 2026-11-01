@@ -875,14 +875,18 @@ void ABICall::materializeValueToReturnRegs(MicroBuilder& builder, CallConvKind c
         loadIntValueToReg(builder, conv.intReturn, valueReg, ret.numBits);
 }
 
-void ABICall::materializeReturnToReg(MicroBuilder& builder, MicroReg dstReg, CallConvKind callConvKind, const ABITypeNormalize::NormalizedType& ret)
+void ABICall::materializeReturnToReg(MicroBuilder& builder, MicroReg dstReg, CallConvKind callConvKind, const ABITypeNormalize::NormalizedType& ret, MicroReg directStorageReg)
 {
     if (ret.isVoid)
         return;
 
-    // A split direct result needs an explicit storage destination. Source return
-    // storage is not activated yet; never collapse it silently into the first lane.
-    SWC_FORCE_ASSERT(!ret.isSystemVStorage() || ret.isIndirect);
+    if (ret.isSystemVStorage() && !ret.isIndirect)
+    {
+        SWC_ASSERT(directStorageReg.isValid());
+        storeSystemVReturn(builder, directStorageReg, ret.systemVStorageType());
+        builder.emitLoadRegReg(dstReg, directStorageReg, MicroOpBits::B64);
+        return;
+    }
     const CallConv& conv = CallConv::get(callConvKind);
     if (ret.isIndirect)
     {

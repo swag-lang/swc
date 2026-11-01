@@ -873,7 +873,7 @@ by portable modules and products. The earlier entries prepare and enforce the sa
   outside the checkout with GNU Make. Complete DevMode and Release compilers link and
   pass the lexer/parser suites including expected-error inputs without spurious JIT setup.
   The full C++ campaign, including filesystem tests and extra IR/native validation, passes
-  1,633 of 1,698 tests; 65 remain failing, including an intermittent silent-job driver fixture. Closed Windows x64 instruction fixtures execute
+  1,636 of 1,700 tests; 64 remain failing. Closed Windows x64 instruction fixtures execute
   through an explicit GCC ABI bridge. Runtime adapters initialize on the first actual JIT call,
   and cross-host generated execution has an explicit diagnostic.
   PE/COFF records no longer depend on the Windows SDK, and both target enums represent Linux.
@@ -912,9 +912,11 @@ by portable modules and products. The earlier entries prepare and enforce the sa
   results and keeps prepared aggregate type handles stable through lowering. Source parameter
   layout now uses the whole-argument planner, reserves hidden-pointer lanes and homes split
   register/stack values before scalar captures. Native codegen fixtures cover those homes at
-  O0 and O2, including strings and later scalar lanes. Source result storage, end-to-end source
-  execution and over-aligned stack values still need integration.
-- Next: connect source return storage and the JIT invoker to the classified transfers; add
+  O0 and O2, including strings and later scalar lanes. Call expressions reserve caller-owned
+  result storage for split register returns and retain temporary ownership without adding
+  hidden arguments. Callee return lifetimes, end-to-end source execution and over-aligned
+  stack values still need integration.
+- Next: connect callee return storage and the JIT invoker to the classified transfers; add
   dynamic alignment for over-aligned stack values.
   Compare with native C/C++ fixtures, then activate target C and Linux runtime declarations.
 - Done when: generated Linux calls round-trip supported scalar and aggregate values through C,

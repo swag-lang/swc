@@ -168,7 +168,7 @@ TypeRef SemaHelpers::indirectReturnRuntimeStorageTypeRef(Sema& sema, const Symbo
 
     const CallConv&                        callConv      = CallConv::get(calledFn.callConvKind());
     const ABITypeNormalize::NormalizedType normalizedRet = ABITypeNormalize::normalize(sema.ctx(), callConv, returnType, ABITypeNormalize::Usage::Return);
-    if (!normalizedRet.isIndirect)
+    if (!normalizedRet.isIndirect && !normalizedRet.isSystemVStorage())
         return TypeRef::invalid();
 
     const TypeRef storageTypeRef = returnType.unwrap(sema.ctx(), returnTypeRef, TypeExpandE::Alias | TypeExpandE::Enum);

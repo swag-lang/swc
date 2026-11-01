@@ -1198,5 +1198,59 @@ SWC_TEST_BEGIN(ABI_SystemVCodeGenHomesPreserveIncomingScalarAndAggregateParamete
 }
 SWC_TEST_END()
 
+SWC_TEST_BEGIN(ABI_SystemVDirectResultsMaterializeInCallerOwnedStorage)
+{
+    CommandLine commandLine = ctx.cmdLine();
+    commandLine.targetOs = Runtime::TargetOs::Linux;
+    CompilerInstance compiler(ctx.global(), commandLine);
+    TaskContext context(compiler);
+    SWC_RESULT(compiler.setupSema(context));
+    auto& types = context.typeMgr();
+    const std::array mixedFields{types.typeU64(), types.typeF64()};
+    const std::array integerFields{types.typeU64(), types.typeU64()};
+    const std::array floatingFields{types.typeF64(), types.typeF64()};
+    const std::array typeRefs{
+        Backend::Unittest::makeStructType(context, mixedFields),
+        Backend::Unittest::makeStructType(context, integerFields),
+        Backend::Unittest::makeStructType(context, floatingFields),
+    };
+    const MixedValue mixed{41, 2.5};
+    const TwoIntegers integers{43, 47};
+    const TwoFloats floating{3.5, 5.5};
+    const auto expectedMixed = changeMixed(mixed);
+    const auto expectedIntegers = changeIntegers(integers);
+    const auto expectedFloating = changeFloats(floating);
+    const std::array<const void*, 3> inputs{&mixed, &integers, &floating};
+    const std::array<const void*, 3> expected{&expectedMixed, &expectedIntegers, &expectedFloating};
+    const std::array targets{reinterpret_cast<uint64_t>(changeMixed), reinterpret_cast<uint64_t>(changeIntegers), reinterpret_cast<uint64_t>(changeFloats)};
+    for (size_t i = 0; i < typeRefs.size(); ++i)
+    {
+        std::array<std::byte, 16> result{};
+        uint64_t resultAddress = 0;
+        MicroBuilder builder(context);
+        const auto source = MicroReg::virtualIntReg(1);
+        const auto output = MicroReg::virtualIntReg(2);
+        const auto target = MicroReg::virtualIntReg(3);
+        const auto payload = MicroReg::virtualIntReg(4);
+        const auto captured = MicroReg::virtualIntReg(5);
+        builder.emitLoadRegPtrImm(source, reinterpret_cast<uint64_t>(inputs[i]));
+        // The destination must survive the foreign call, just like a source
+        // expression's local result slot prepared before argument placement.
+        builder.emitLoadRegPtrImm(output, reinterpret_cast<uint64_t>(result.data()));
+        const std::array args{ABICall::PreparedArg{.srcReg = source, .isAddressed = true, .numBits = 64, .systemVTypeRef = typeRefs[i]}};
+        const auto prepared = ABICall::prepareArgs(builder, K_SYSTEM_V, args);
+        builder.emitLoadRegPtrImm(target, targets[i]);
+        ABICall::callReg(builder, K_SYSTEM_V, target, prepared);
+        const auto returned = ABITypeNormalize::normalize(context, CallConv::get(K_SYSTEM_V), types.get(typeRefs[i]), ABITypeNormalize::Usage::Return);
+        ABICall::materializeReturnToReg(builder, payload, K_SYSTEM_V, returned, output);
+        builder.emitLoadRegPtrImm(captured, reinterpret_cast<uint64_t>(&resultAddress));
+        builder.emitLoadMemReg(captured, 0, payload, MicroOpBits::B64);
+        SWC_RESULT(executeSystemVThunk(context, builder, true));
+        if (resultAddress != reinterpret_cast<uint64_t>(result.data()) || std::memcmp(result.data(), expected[i], result.size()))
+            return Result::Error;
+    }
+}
+SWC_TEST_END()
+
 SWC_END_NAMESPACE();
 #endif

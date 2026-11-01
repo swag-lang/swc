@@ -167,7 +167,7 @@ namespace ABICall
     void         materializeValueToReturnRegs(MicroBuilder& builder, CallConvKind callConvKind, MicroReg valueReg, bool valueIsLValue, const ABITypeNormalize::NormalizedType& ret);
     void         storeReturnRegsToReturnBuffer(MicroBuilder& builder, CallConvKind callConvKind, MicroReg outputStorageReg, const ABITypeNormalize::NormalizedType& ret);
     void         storeValueToReturnBuffer(MicroBuilder& builder, CallConvKind callConvKind, MicroReg outputStorageReg, MicroReg valueReg, bool valueIsLValue, const ABITypeNormalize::NormalizedType& ret);
-    void         materializeReturnToReg(MicroBuilder& builder, MicroReg dstReg, CallConvKind callConvKind, const ABITypeNormalize::NormalizedType& ret);
+    void         materializeReturnToReg(MicroBuilder& builder, MicroReg dstReg, CallConvKind callConvKind, const ABITypeNormalize::NormalizedType& ret, MicroReg directStorageReg = MicroReg::invalid());
     void         callAddress(MicroBuilder& builder, CallConvKind callConvKind, uint64_t targetAddress, std::span<const Arg> args, const Return& ret);
     void         callExtern(MicroBuilder& builder, CallConvKind callConvKind, const Symbol* targetSymbol, MicroReg targetReg, const PreparedCall& preparedCall, const Return& ret);
     void         callExtern(MicroBuilder& builder, CallConvKind callConvKind, const Symbol* targetSymbol, MicroReg targetReg, const PreparedCall& preparedCall);

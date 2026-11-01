@@ -7,6 +7,7 @@
 #include "Compiler/CodeGen/Core/CodeGen.h"
 #include "Compiler/CodeGen/Core/CodeGenFunctionHelpers.h"
 #include "Compiler/Sema/Core/Sema.h"
+#include "Compiler/Sema/Helpers/SemaHelpers.h"
 #include "Compiler/Sema/Symbol/Symbol.Function.h"
 #include "Compiler/Sema/Symbol/Symbol.Struct.h"
 #include "Compiler/SourceFile.h"
@@ -264,6 +265,37 @@ SWC_TEST_BEGIN(ABI_SystemVFunctionParameterLayoutRollsBackIntegerBankWhenVectors
         return Result::Error;
     if (!CodeGenFunctionHelpers::isByValueAggregateParameter(codeGen, *function, *function->parameters()[9], &infos[9]))
         return Result::Error;
+}
+SWC_TEST_END()
+
+SWC_TEST_BEGIN(ABI_SystemVCallResultRequestsStorageForRegisterAndMemoryAggregates)
+{
+    auto& types = ctx.typeMgr();
+    SourceFile& file = Backend::Unittest::makeCodeGenSource(ctx, "SystemVCallResultStorage");
+    Sema sema(ctx, file.nodePayloadContext(), false);
+    auto* caller = Symbol::make<SymbolFunction>(ctx, nullptr, TokenRef::invalid(), IdentifierRef::invalid(), SymbolFlagsE::Zero);
+    auto* callee = Symbol::make<SymbolFunction>(ctx, nullptr, TokenRef::invalid(), IdentifierRef::invalid(), SymbolFlagsE::Zero);
+    callee->setCallConvKind(CallConvKind::SystemVAMD64);
+    const std::array mixedFields{types.typeU64(), types.typeF64()};
+    const auto mixed = Backend::Unittest::makeStructType(ctx, mixedFields);
+    const std::array largeFields{types.typeU64(), types.typeU64(), types.typeU64()};
+    const auto large = Backend::Unittest::makeStructType(ctx, largeFields);
+    callee->setReturnTypeRef(mixed);
+    if (SemaHelpers::indirectReturnRuntimeStorageTypeRef(sema, *callee).isValid())
+        return Result::Error;
+    sema.frame().setCurrentFunction(caller);
+    for (const auto type : {mixed, large, types.typeString()})
+    {
+        callee->setReturnTypeRef(type);
+        if (SemaHelpers::indirectReturnRuntimeStorageTypeRef(sema, *callee) != type)
+            return Result::Error;
+    }
+    for (const auto type : {types.typeVoid(), types.typeU64(), types.typeF64()})
+    {
+        callee->setReturnTypeRef(type);
+        if (SemaHelpers::indirectReturnRuntimeStorageTypeRef(sema, *callee).isValid())
+            return Result::Error;
+    }
 }
 SWC_TEST_END()
 

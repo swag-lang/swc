@@ -24,6 +24,48 @@ func assertExplorerRenderStable(host: *Testing.HeadlessHost, window: *ViewerWind
     Swag.assert(changed == 0)
 }
 
+// Closing the information sheet returns its reserved width to the explorer page.
+#[Swag.TestTag("explorer-info-close")]
+#test
+{
+    var host: Testing.HeadlessHost
+    host.setup(960, 640)
+
+    let window   = ViewerWindow.create(&host.surfaceWnd, createViewerPluginRegistry())
+    let data     = Path.combine(unwrap Path.directoryName(#curlocation.fileName), "datas")
+    window.openExplorer(data)
+    let explorer = unwrap window.explorer
+    for 16
+    {
+        if not explorer.load.started do
+            break
+        explorer.load.task.wait()
+        host.pump()
+    }
+    Swag.assert(not explorer.load.started)
+    window.applyLayout()
+
+    let pageWidth = explorer.grid.position.width
+    let scrollWidth = explorer.scroll.position.width
+    let explorerWidth = explorer.position.width
+    explorer.showInformation()
+    Swag.assert(explorer.padding.z == window.themeMetrics().infoSheet_Width + window.themeMetrics().floating_Inset)
+    Swag.assert(explorer.grid.position.width < pageWidth)
+
+    let sheet  = window.infoSheet.surfaceRect()
+    let metric = window.themeMetrics()
+    var point  = Math.Point{sheet.right() - metric.infoSheet_Padding - metric.embInfo_CloseSize * 0.5,
+                            sheet.y + metric.infoSheet_Padding - metric.embInfo_CloseMargin + metric.embInfo_CloseSize * 0.5}
+    window.infoSheet.surface!.surfaceToScreen(&point)
+    host.click(point)
+
+    Swag.assert(not window.infoSheet.isLocallyVisible())
+    Swag.assert(explorer.padding.z == 0)
+    Swag.assert(Math.abs(explorer.grid.position.width - pageWidth) < 0.5,
+                Format.toString("grid % / %, scroll % / %, explorer % / %", pageWidth, explorer.grid.position.width,
+                                scrollWidth, explorer.scroll.position.width, explorerWidth, explorer.position.width).toString())
+}
+
 // Filtering ignores case, narrows the shown indices, and restores the full listing when cleared.
 #test
 {

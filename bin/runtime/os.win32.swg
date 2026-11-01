@@ -88,6 +88,7 @@ namespace __Win32RT
         func GetProcAddress(hModule: HANDLE, lpProcName: const [*] u8)->const *void?
         func GetCommandLineA()->const [*] u8?
         func GetCommandLineW()->const [*] u16?
+        func GetEnvironmentVariableA(lpName: const [*] u8, lpBuffer: [*] u8, nSize: DWORD)->DWORD
         func WideCharToMultiByte(codePage, dwFlags: DWORD, lpWideCharStr: const [*] u16, cchWideChar: s32, lpMultiByteStr: [*] u8?, cbMultiByte: s32, lpDefaultChar: const *u8?, lpUsedDefaultChar: *s32?)->s32
         func GetStdHandle(nStdHandle: u32)->HANDLE
         func WriteFile(hFile: HANDLE, lpBuffer: const *void?, nNumberOfBytesToWrite: u32, lpNumberOfBytesWritten: *u32?, lpOverlapped: *void?)->u32
@@ -231,6 +232,22 @@ func __hostProcessorCount()->u32
 {
     let count = __Win32RT.GetActiveProcessorCount(__Win32RT.ALL_PROCESSOR_GROUPS)
     return count == 0 ? 1 : count
+}
+
+// Called once under the shared scheduler lock, before any pool thread starts.
+func __hostRuntimeThreadLimit()->u32
+{
+    var buffer: [11] u8
+    let length = __Win32RT.GetEnvironmentVariableA("SWAG_RUNTIME_THREADS".buffer, &buffer[0], cast(u32, buffer.count))
+    if length < buffer.count
+    {
+        let value = cast(string, Swag.makeSlice(&buffer[0], cast(u64, length)))
+        let (limit, valid) = Swag.parseRuntimeThreadLimit(value)
+        if valid do
+            return limit
+    }
+
+    Swag.panic("SWAG_RUNTIME_THREADS accepts 1 to 10 decimal digits with a value from 0 through 4294967295", #curlocation)
 }
 
 // GetSystemTimes includes idle time in kernel time. Above one processor group it cannot

@@ -88,6 +88,7 @@ struct Scheduler
     unslotted:         AtomicValue'u32     // Parked observers that found no free slot, and therefore still need a broadcast.
     capacity:          u32                 // Worker slots the roster holds.
     requested:         u32                 // Worker count the program asked for, zero for automatic.
+    threadLimit:       u32                 // Launch-time ceiling, zero for the normal hardware policy.
     workers:           [*] Worker?         // The worker roster, allocated once.
 }
 
@@ -168,6 +169,9 @@ public func startWorkers()
 // submit. The answer is zero under compile-time execution, where work runs on the submitting
 // thread.
 //
+// `SWAG_RUNTIME_THREADS` limits this count when set before the process starts. The submitting
+// thread and dedicated executors are separate from this pool.
+//
 // Use it to size a partitioning, never to decide whether a submitted unit will complete: a
 // submitted unit always completes, on a worker or on the submitting thread.
 public func workerCount()->u32
@@ -181,6 +185,12 @@ public func workerCount()->u32
 // Zero, the default, lets the runtime choose from the host processor count. Asking for more than
 // the pool currently runs starts the missing threads, up to one per host processor; asking for
 // fewer never stops a running one. One process has one budget, whichever artifact sets it.
+//
+// The `SWAG_RUNTIME_THREADS` environment variable caps every request, including zero. It is
+// read once when the process pool starts. An unset, empty, or zero value keeps the normal
+// hardware policy; otherwise it accepts up to ten decimal digits from 1 through 4294967295.
+// Other values stop the program when the pool starts. This ceiling applies to the
+// shared task and parallel-range pool, not the submitting thread or dedicated executors.
 //
 // Compile-time execution runs no worker at all, so the count stays zero there.
 public func setWorkerCount(count: u32)
@@ -207,6 +217,8 @@ private func activeScheduler()->*Scheduler
     if sched.started.load() != 0 do
         return sched
 
+    if not Swag.jit() do
+        sched.threadLimit = __hostRuntimeThreadLimit()
     startWorkers(sched, sched.requested)
     sched.started.store(1)
     return sched
@@ -214,7 +226,7 @@ private func activeScheduler()->*Scheduler
 
 // Resolve every request through the same policy, including a return to automatic after startup.
 #[Swag.NoDoc]
-internal func schedulerWorkerTarget(requested, hardware: u32)->u32
+internal func schedulerWorkerTarget(requested, hardware: u32, threadLimit: u32 = 0)->u32
 {
     var available = hardware == 0 ? 1'u32 : hardware
     var target    = requested
@@ -222,7 +234,29 @@ internal func schedulerWorkerTarget(requested, hardware: u32)->u32
         target = available > 1 ? available - 1 : 1
     if available > MaxWorkers do
         available = MaxWorkers
+    if threadLimit != 0 and available > threadLimit do
+        available = threadLimit
     return target > available ? available : target
+}
+
+// Parse the launch-time ceiling without an allocator or a standard-library dependency.
+#[Swag.NoDoc]
+internal func parseRuntimeThreadLimit(value: string)->(u32, bool)
+{
+    if value.count > 10 do
+        return (0, false)
+    var result = 0'u32
+    for digit in value
+    {
+        if digit < '0' or digit > '9' do
+            return (0, false)
+        let number = cast(u32, digit - '0')
+        if result > (0xFFFF_FFFF'u32 - number) / 10 do
+            return (0, false)
+        result = result * 10 + number
+    }
+
+    return (result, true)
 }
 
 // Brings the roster up to `wanted` threads. The caller holds the scheduler mutex.
@@ -235,7 +269,7 @@ private func startWorkers(sched: *Scheduler, wanted: u32)
         return
 
     let hardware = __hostProcessorCount()
-    var target   = schedulerWorkerTarget(wanted, hardware)
+    var target   = schedulerWorkerTarget(wanted, hardware, sched.threadLimit)
     var count    = sched.count.load()
     if target <= count do
         return
@@ -244,9 +278,7 @@ private func startWorkers(sched: *Scheduler, wanted: u32)
     {
         // The roster is allocated once and never moves: a worker's context and its host thread
         // hold its address for the life of the process.
-        var capacity = hardware
-        if capacity > MaxWorkers do
-            capacity = MaxWorkers
+        let capacity = schedulerWorkerTarget(MaxWorkers, hardware, sched.threadLimit)
 
         let workers = cast([*] Worker?, __bootstrapAlloc(cast(u64, capacity) * #sizeof(Worker)))
         if not workers do

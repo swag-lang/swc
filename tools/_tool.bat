@@ -73,6 +73,7 @@ if /i "%tool%"=="apps" if /i "%action%"=="run" if not defined module (
 set "appTest="
 set "appRunArguments="
 if /i "%tool%"=="apps" if /i "%action%"=="test" set "appTest=--no-test-jit"
+if /i "%tool%"=="apps" if /i "%action%"=="test" if not defined SWAG_RUNTIME_THREADS set "SWAG_RUNTIME_THREADS=3"
 if /i "%tool%"=="apps" if /i not "%action%"=="build" if /i "%module%"=="swagprism" set "appRunArguments=--run-arg=--compiler="%compiler%" --run-arg=--compiler-workers=3"
 if defined module (
     "%compiler%" %action% --workspace "%workspace%" --workspace-module "%module%" %appTest% %appRunArguments% --num-cores 3 %options%
@@ -90,6 +91,7 @@ if /i "%tool%"=="std" echo Usage: std.bat [dm] [build^|test] [module] [swc optio
 if /i "%tool%"=="reference" echo Usage: reference.bat [dm] [build^|test] [swc options]
 if /i "%tool%"=="examples" echo Usage: examples.bat [dm] [build^|run^|test^|smoke] [module] [swc options]
 if /i "%tool%"=="apps" echo Usage: apps.bat [dm] [build^|run^|test^|smoke] [application] [swc options]
+if /i "%tool%"=="apps" echo Set SWAG_RUNTIME_THREADS to cap the runtime pool; tests default to 3 threads.
 echo Use -h with the compiler for compiler command options.
 exit /b 0
 

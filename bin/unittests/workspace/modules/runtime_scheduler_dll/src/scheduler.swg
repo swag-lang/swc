@@ -9,6 +9,8 @@ public func schedulerAddress()->u64 => cast(u64, Swag.schedulerInstance())
 public func submitObserved(task: *Swag.Task, started: *Swag.AtomicFlag, parked: *bool,
                            priority = Swag.TaskPriority.Normal)
 {
+    // A DLL growth request obeys the same launch ceiling as its executable.
+    Swag.setWorkerCount(4)
     task.submit(func|started, parked|()
     {
         started.raise()

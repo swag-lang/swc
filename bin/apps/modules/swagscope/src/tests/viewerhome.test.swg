@@ -69,17 +69,17 @@ internal func homeWindow(host: *Testing.HeadlessHost, light: bool)->*ViewerWindo
     host.clickPopupMenuItemWhenShown("scope.home.clear.all")
     host.thenClickModalButton(Dialog.BtnNo)
     host.mouseDown(clear)
-    Swag.assert(button.isPressing)
+    Swag.assert(button.mouseCapture() == button)
     Swag.assert(host.capturedPopupMenu() == null)
     host.mouseUp(clear)
     Swag.assert(sawMenu and host.autoHandled and window.recent.count == 6)
-    Swag.assert(button.isLocallyVisible() and host.app.mouseCaptureWnd == null)
+    Swag.assert(button.isLocallyVisible() and button.mouseCapture() == null)
 
     // Releasing outside the command cancels this click.
     host.mouseDown(clear)
     host.moveMouse({0, 0})
     host.mouseUp({0, 0})
-    Swag.assert(not button.isPressing and host.capturedPopupMenu() == null)
+    Swag.assert(button.mouseCapture() == null and host.capturedPopupMenu() == null)
     Swag.assert(window.recent.count == 6)
 
     host.clickPopupMenuItemWhenShown("scope.home.clear.all")

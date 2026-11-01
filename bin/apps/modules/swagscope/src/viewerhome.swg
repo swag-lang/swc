@@ -128,7 +128,7 @@ impl ViewerHome
 
     private mtd layoutClearButton()
     {
-        if not .clearButton do
+        if .clearButton == null do
             return
         let list   = .layout().list
         let width  = .clearButton.position.width

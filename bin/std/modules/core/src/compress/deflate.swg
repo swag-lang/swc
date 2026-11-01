@@ -177,7 +177,7 @@ internal
 // Call [[Core.Compress.Deflate.init]] before each [[Core.Compress.Deflate.compress]]; the
 // compressor state is allocated once and reused by later calls. Use [[Core.Compress.ZLib]]
 // for a zlib stream, which wraps Deflate data with a header and a checksum.
-#[Swag.Opaque]
+#[Swag.Opaque, Swag.NoCopy]
 public struct Deflate
 {
     // Compression state, established by 'init' and consumed by 'compress'.

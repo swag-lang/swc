@@ -109,6 +109,7 @@ public func packetFrameCount(encoding: SoundFileEncoding, packet: const [..] u8)
 // packet codec states its duration in the packet itself, which [[Audio.packetFrameCount]] reads.
 // One probe serves one stream: create it from the decoder configuration the container carries,
 // then feed it every packet of the stream in order.
+#[Swag.NoCopy]
 public struct PacketDurationProbe
 {
     encoding: SoundFileEncoding

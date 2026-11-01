@@ -387,6 +387,38 @@ SWC_FILESYSTEM_TEST_BEGIN(FileSystem_ReplaceMappedCacheRetainsReaderGeneration)
 }
 SWC_TEST_END()
 
+#ifdef __linux__
+SWC_FILESYSTEM_TEST_BEGIN(Os_ChildLibrarySearchPreservesTheParentEnvironment)
+{
+    const char* inherited = std::getenv("LD_LIBRARY_PATH");
+    const bool hadInherited = inherited != nullptr;
+    const std::string previous = inherited ? inherited : "";
+    const std::array<fs::path, 2> directories = {Os::getTemporaryPath() / "swc libraries", Os::getTemporaryPath() / "swc'libs"};
+    std::string expected = directories[0].string() + ":" + directories[1].string();
+    if (!previous.empty())
+        expected += ":" + previous;
+    std::string output;
+    uint32_t exitCode = 0;
+    Os::ProcessRunOptions options{.capturedOutput = &output, .forwardOutput = false, .additionalPathDirectories = directories, .timeoutMs = 5000};
+    if (Os::runProcess(exitCode, "/usr/bin/env", {}, {}, &options) != Os::ProcessRunResult::Ok || exitCode != 0 ||
+        ("\n" + output).find("\nLD_LIBRARY_PATH=" + expected + "\n") == std::string::npos)
+        return Result::Error;
+    const char* after = std::getenv("LD_LIBRARY_PATH");
+    if ((after != nullptr) != hadInherited || (after && after != previous))
+        return Result::Error;
+
+    output.clear();
+    options.additionalPathDirectories = {};
+    if (Os::runProcess(exitCode, "/usr/bin/env", {}, {}, &options) != Os::ProcessRunResult::Ok || exitCode != 0)
+        return Result::Error;
+    const std::string environment = "\n" + output;
+    if (hadInherited)
+        return environment.find("\nLD_LIBRARY_PATH=" + previous + "\n") != std::string::npos ? Result::Continue : Result::Error;
+    return environment.find("\nLD_LIBRARY_PATH=") == std::string::npos ? Result::Continue : Result::Error;
+}
+SWC_TEST_END()
+#endif
+
 SWC_END_NAMESPACE();
 
 #endif

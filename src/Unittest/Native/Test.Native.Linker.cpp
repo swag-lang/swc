@@ -81,6 +81,25 @@ namespace
         fs::path path_;
     };
 
+#ifdef __linux__
+    Result copyWorkspaceModules(const fs::path& destination, const std::initializer_list<std::string_view> modules)
+    {
+        const fs::path sourceModules = Os::getExeFullName().parent_path() / "unittests" / "workspace" / "modules";
+        for (const std::string_view module : modules)
+        {
+            std::error_code error;
+            const fs::path moduleDirectory = destination / "modules" / module;
+            fs::create_directories(moduleDirectory, error);
+            if (error)
+                return Result::Error;
+            fs::copy(sourceModules / module, moduleDirectory, fs::copy_options::recursive, error);
+            if (error)
+                return Result::Error;
+        }
+        return Result::Continue;
+    }
+#endif
+
     Result runCompiler(const std::vector<Utf8>& args, const ExitCode expectedExit, const std::string_view expectedOutput)
     {
         uint32_t                    exitCode = 0;
@@ -508,22 +527,76 @@ SWC_TEST_END()
 SWC_FILESYSTEM_TEST_BEGIN(Linker_LinuxDependencyUsesPublishedArtifactName)
 {
     LinkerTestDirectory directory("published_artifact_name");
-    const fs::path sourceModules = Os::getExeFullName().parent_path() / "unittests" / "workspace" / "modules";
-    for (const std::string_view module : {"artifact_name_provider", "artifact_name_consumer"})
-    {
-        std::error_code error;
-        const fs::path destination = directory.path() / "modules" / module;
-        fs::create_directories(destination, error);
-        if (error)
-            return Result::Error;
-        fs::copy(sourceModules / module, destination, fs::copy_options::recursive, error);
-        if (error)
-            return Result::Error;
-    }
+    SWC_RESULT(copyWorkspaceModules(directory.path(), {"artifact_name_provider", "artifact_name_consumer"}));
     const std::vector<Utf8> arguments = {
         "run", "--os", "linux", "--workspace", Utf8(directory.path()), "--workspace-module", "artifact_name_consumer",
         "--num-cores", "3", "--no-log-color"};
     return runCompiler(arguments, ExitCode::Success, "artifact provider dropped");
+}
+SWC_TEST_END()
+
+SWC_FILESYSTEM_TEST_BEGIN(Linker_LinuxSharedModulesUseChildLibraryPaths)
+{
+    LinkerTestDirectory directory("shared_library_paths");
+    SWC_RESULT(copyWorkspaceModules(directory.path(), {"artifact_shared_provider", "artifact_shared_consumer"}));
+    const std::vector<Utf8> arguments = {
+        "run", "--os", "linux", "--workspace", Utf8(directory.path()), "--workspace-module", "artifact_shared_consumer",
+        "--num-cores", "3", "--no-log-color", "--run-arg", "", "--run-arg", "two words", "--run-arg", "café"};
+    return runCompiler(arguments, ExitCode::Success, "shared provider dropped");
+}
+SWC_TEST_END()
+
+SWC_FILESYSTEM_TEST_BEGIN(Linker_LinuxPublishedSharedModulesSurviveRelocation)
+{
+    LinkerTestDirectory directory("published_shared_library");
+    SWC_RESULT(copyWorkspaceModules(directory.path(), {"artifact_shared_provider", "artifact_shared_consumer"}));
+    const fs::path setupPath = directory.path() / "modules" / "artifact_shared_consumer" / "module.swg";
+    std::string setup;
+    FileSystem::IoErrorInfo ioError;
+    SWC_RESULT(FileSystem::readTextFile(setupPath, setup, ioError));
+    const std::string_view setting = "cfg.publishDependencies = false";
+    const size_t settingOffset = setup.find(setting);
+    if (settingOffset == std::string::npos)
+        return Result::Error;
+    std::string publishedSetup = setup;
+    publishedSetup.replace(settingOffset, setting.size(), "cfg.publishDependencies = true");
+    SWC_RESULT(directory.write("modules/artifact_shared_consumer/module.swg", publishedSetup));
+    const std::vector<Utf8> arguments = {
+        "run", "--os", "linux", "--workspace", Utf8(directory.path()), "--workspace-module", "artifact_shared_consumer",
+        "--num-cores", "3", "--no-log-color"};
+    SWC_RESULT(runCompiler(arguments, ExitCode::Success, "shared provider dropped"));
+    const fs::path artifactDirectory = directory.path() / ".output" / "artifact_shared_consumer" / "executable" / "devmode" / "x86_64";
+    const fs::path publishedLibrary = artifactDirectory / "artifact_shared_provider.so";
+    std::error_code error;
+    if (!fs::is_regular_file(publishedLibrary, error) || error)
+        return Result::Error;
+    const fs::path relocated = directory.path() / "relocated";
+    fs::copy(artifactDirectory, relocated, fs::copy_options::recursive, error);
+    if (error)
+        return Result::Error;
+
+    // Turning publication off must retire the prior copy while the compiler's
+    // launch still finds the original dependency through its child search path.
+    SWC_RESULT(directory.write("modules/artifact_shared_consumer/module.swg", setup));
+    SWC_RESULT(runCompiler(arguments, ExitCode::Success, "shared provider dropped"));
+    if (fs::exists(publishedLibrary, error) || error)
+        return Result::Error;
+    fs::rename(directory.path() / ".output", directory.path() / "old-output", error);
+    if (error)
+        return Result::Error;
+
+    // A deployed executable has no compiler-provided paths or original workspace.
+    std::string output;
+    uint32_t exitCode = 0;
+    const Os::ProcessRunOptions options{.capturedOutput = &output, .forwardOutput = false, .timeoutMs = 15000};
+    const std::vector<Utf8> runArguments = {"", "two words", "a\"b", "tail\\", "café"};
+    const auto result = Os::runProcess(exitCode, relocated / "artifact_shared_consumer", runArguments, relocated, &options);
+    if (result != Os::ProcessRunResult::Ok || exitCode != 0 || output.find("shared artifact passed") == std::string::npos || output.find("shared provider dropped") == std::string::npos)
+    {
+        std::println(stderr, "[published-library-test] result={}, exit={}\n{}", static_cast<uint32_t>(result), exitCode, output);
+        return Result::Error;
+    }
+    return Result::Continue;
 }
 SWC_TEST_END()
 #endif

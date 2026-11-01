@@ -139,14 +139,30 @@ namespace
                 searchPath += ':';
             }
         }
+        // Windows PATH resolves both executables and their shared dependencies.
+        // Preserve that process-option contract on ELF hosts, where the dynamic
+        // loader has a separate search variable. Only the child environment changes.
+        std::string librarySearchPath = searchPath;
+        const bool addLibraryPath = !librarySearchPath.empty();
+        if (addLibraryPath)
+        {
+            const char* inheritedLibraries = std::getenv("LD_LIBRARY_PATH");
+            if (inheritedLibraries && *inheritedLibraries)
+                librarySearchPath += inheritedLibraries;
+            else
+                librarySearchPath.pop_back(); // No trailing empty element (current directory).
+        }
         const char* inheritedPath = std::getenv("PATH");
         searchPath += inheritedPath ? inheritedPath : "/bin:/usr/bin";
         for (char** entry = environ; entry && *entry; ++entry)
         {
-            if (!std::string_view(*entry).starts_with("PATH="))
+            const std::string_view value(*entry);
+            if (!value.starts_with("PATH=") && (!addLibraryPath || !value.starts_with("LD_LIBRARY_PATH=")))
                 out.environment.emplace_back(*entry);
         }
         out.environment.emplace_back("PATH=" + searchPath);
+        if (addLibraryPath)
+            out.environment.emplace_back("LD_LIBRARY_PATH=" + librarySearchPath);
         for (const auto& entry : out.environment)
             out.envp.push_back(const_cast<char*>(entry.c_str()));
         out.envp.push_back(nullptr);

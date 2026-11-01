@@ -256,9 +256,10 @@ by portable modules and products. The earlier entries prepare and enforce the sa
 
 - Evidence: ELF startup passes argc/argv into `ProcessInfo.arguments` before runtime setup.
   Native executable probes preserve empty values, spaces, quotes, trailing backslashes, tabs
-  and UTF-8. Runtime module hooks carry the same string-vector representation.
-- Next: validate argument propagation and lifetime across shared modules, including unload.
-  Retain the Windows command-line path.
+  and UTF-8. Shared-module consumers compare the full argument vector with their provider,
+  including after relocating a published executable/library pair.
+- Next: validate argument lifetime through dynamic module unload. Retain the Windows
+  command-line path.
 - Related: platform.portability.003, platform.portability.008, platform.portability.010
 - Done when: shared Unix modules observe the original argument order and bytes through
   initialization, calls and cleanup without reading storage owned by an unloaded module.
@@ -873,7 +874,7 @@ by portable modules and products. The earlier entries prepare and enforce the sa
   outside the checkout with GNU Make. Complete DevMode and Release compilers link and
   pass the lexer/parser suites including expected-error inputs without spurious JIT setup.
   The full C++ campaign, including filesystem tests and extra IR/native validation, passes
-  all 1,731 tests, including the PE missing-resource fixture. Closed Windows x64 instruction fixtures execute
+  all 1,734 tests, including the PE missing-resource fixture. Closed Windows x64 instruction fixtures execute
   through an explicit GCC ABI bridge. Runtime adapters initialize on the first actual JIT call,
   and generated code retains separate output-target and host unwind metadata.
   Cross-host foreign relocations reject an actual call while allowing untaken error branches.
@@ -961,12 +962,16 @@ by portable modules and products. The earlier entries prepare and enforce the sa
   main entry installs argc/argv before runtime initialization. Native startup, argument-byte
   preservation, runtime synchronization, panic cleanup and deterministic parallel outputs pass.
   Static module dependencies resolve their actual published filenames, including custom names;
-  an executable consumer verifies initialization, pre-main and cleanup across the module boundary.
+  executable consumers verify initialization, pre-main and cleanup for static and shared imports.
+  Shared providers observe their consumer's context and exact argument vector. Child launch paths
+  use LD_LIBRARY_PATH without changing the compiler environment. Published .so dependencies
+  survive relocation, and disabling publication removes the old copies.
   Source debug output is explicitly rejected until DWARF source records exist. Shared-library
   linking currently permits text relocations; it does not establish PIC or loader lifecycle support.
   Persistent native function caches remain COFF-specific and are disabled for Linux.
-- Next: validate shared-module initialization/cleanup and dependency publication; finish Linux
-  PIC relocations, source-level DWARF and target-specific incremental
+- Next: fix compile-time shared-module lookup: a `#run` calling an imported function still
+  searches for libmodule.so while Swag publishes module.so. Validate dynamic load/unload
+  lifecycle, and finish PIC relocations, source-level DWARF and target-specific incremental
   caches. Preserve the working native executable and archive consumers.
 - Done when: Linux executables and shared libraries link and run a runtime/native workspace smoke,
   including foreign imports, arguments and cross-module initialization/cleanup.

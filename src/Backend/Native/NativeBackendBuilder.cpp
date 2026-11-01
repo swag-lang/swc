@@ -258,8 +258,10 @@ namespace
         return result;
     }
 
-    bool isPublishDependencyExtension(const Utf8& extension)
+    bool isPublishDependencyExtension(const Utf8& extension, const Runtime::TargetOs targetOs)
     {
+        if (targetOs == Runtime::TargetOs::Linux)
+            return extension == ".so";
         return extension == ".dll" || extension == ".pdb";
     }
 
@@ -1949,7 +1951,7 @@ Result NativeBackendBuilder::publishExecutableDependencies()
 
     // Every shared directory is read, including the ones this executable does not link against
     // because it took their module's code in instead: such a directory is the only place that still
-    // names the DLL, and naming it is what lets a copy an earlier build published beside the
+    // names the shared library, and naming it is what lets a copy an earlier build published beside the
     // executable be taken back out.
     std::vector<fs::path>        sourceDirs = compiler_->importedDependencyLinkDirs();
     std::unordered_set<fs::path> linkedAgainst(sourceDirs.begin(), sourceDirs.end());
@@ -1982,7 +1984,7 @@ Result NativeBackendBuilder::publishExecutableDependencies()
             if (!it->is_regular_file(ec) || ec)
                 continue;
             const Utf8 extension = lowerPathExtension(it->path());
-            if (!isPublishDependencyExtension(extension))
+            if (!isPublishDependencyExtension(extension, ctx_.cmdLine().targetOs))
                 continue;
 
             const fs::path dstPath = (artifactDir / it->path().filename()).lexically_normal();
@@ -2000,8 +2002,8 @@ Result NativeBackendBuilder::publishExecutableDependencies()
 
             if (!publishFromThisDir || (extension == ".pdb" && !publishDebugInfo))
             {
-                // Windows loads DLLs from the executable folder before PATH. If dependencies
-                // were published by a previous build, remove them when publish is now disabled.
+                // Retire files published by an earlier build when publication is disabled,
+                // including ELF libraries found through the executable's $ORIGIN runpath.
                 SWC_RESULT(removePublishedFile(dstPath));
 
                 continue;

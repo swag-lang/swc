@@ -107,7 +107,6 @@ struct Explorer
         kindMenu:   *IconButton
         sortMenu:   *IconButton
         modeMenu:   *IconButton
-        boardMenu:  *IconButton
         artworkMenu: *IconButton
         filter:     *EditBox
         list:       *ListCtrl
@@ -366,13 +365,6 @@ impl Explorer
             .sigPressed       += func|view = me|(_) { view.showModeMenu() }
         }
 
-        with .boardMenu = IconButton.createQuiet(.tools)
-        {
-            .layoutSpec.alignY = .End
-            .toolTip           = appStrings().explore_Organization
-            .sigPressed       += func|view = me|(_) { view.showBoardMenu() }
-        }
-
         with .artworkMenu = IconButton.createQuiet(.tools)
         {
             .layoutSpec.alignY = .End
@@ -439,7 +431,6 @@ impl Explorer
         .sortMenu.setQuietText(compact ? "" : .sortName())
         .kindMenu.setQuietText(compact ? "" : .filterKindName())
         .modeMenu.setQuietText("")
-        .boardMenu.setQuietText("")
         .artworkMenu.show(not compact)
         .artworkMenu.setQuietText(compact ? "" :
                                   (.artworkSource == .Online ? appStrings().artwork_OnlineShort : appStrings().artwork_LocalShort))
@@ -476,39 +467,34 @@ impl Explorer
         .tools.computeLayout()
     }
 
-    // Shows the ways of showing the listing under its menu, the one in use checked.
+    // Shows the listing presentation and, for thumbnails, their organization in one menu.
     mtd showModeMenu()
     {
         let text = appStrings()
         let menu = MenuCtrl.createPopup(me, owner: me)
         let icons = [ThemeIcons.File, ThemeIcons.Outline, ThemeIcons.ZoomOut, ThemeIcons.FitView, ThemeIcons.ZoomIn]
+        let names = [text.explore_Names, text.explore_Details, text.explore_Small, text.explore_Medium, text.explore_Large]
         for id, index in ViewerCommands.Modes
         {
-            let names = [text.explore_Names, text.explore_Details, text.explore_Small, text.explore_Medium, text.explore_Large]
             let item = menu.addRadioItem(names[index], id, checked: cast(u64, .mode) == index)
             item.icon = .theme().icon(icons[index], themeRowIconSize(.themeMetrics()))
         }
 
-        let chosen = menu.doModal(.modeMenu, autoDestroy: true) orelse ""
-        if chosen.count do
-            discard .window.runCommand(chosen)
-    }
-
-    // Shows the ways of organizing the tiles under their own menu, the one in use checked.
-    mtd showBoardMenu()
-    {
-        let text = appStrings()
-        let menu = MenuCtrl.createPopup(me, owner: me)
-        let names = [text.board_Automatic, text.board_Grid, text.board_Posters, text.board_Covers, text.board_Mosaic]
-        let icons = [ThemeIcons.ExploreFolder, ThemeIcons.File, ThemeIcons.FileVideo, ThemeIcons.FileAudio, ThemeIcons.FileImage]
-        for id, index in ViewerCommands.Boards
+        if .isThumbnailView()
         {
-            let checked = index == 0 ? not .forced : (.forced and cast(u64, .forcedBoard) == index - 1)
-            let item = menu.addRadioItem(names[index], id, checked: checked)
-            item.icon = .theme().icon(icons[index], themeRowIconSize(.themeMetrics()))
+            menu.addSeparator()
+            menu.addLabel(text.explore_Organization)
+            let boardNames = [text.board_Automatic, text.board_Grid, text.board_Posters, text.board_Covers, text.board_Mosaic]
+            let boardIcons = [ThemeIcons.ExploreFolder, ThemeIcons.File, ThemeIcons.FileVideo, ThemeIcons.FileAudio, ThemeIcons.FileImage]
+            for id, index in ViewerCommands.Boards
+            {
+                let checked = index == 0 ? not .forced : (.forced and cast(u64, .forcedBoard) == index - 1)
+                let item = menu.addRadioItem(boardNames[index], id, checked: checked)
+                item.icon = .theme().icon(boardIcons[index], themeRowIconSize(.themeMetrics()))
+            }
         }
 
-        let chosen = menu.doModal(.boardMenu, autoDestroy: true) orelse ""
+        let chosen = menu.doModal(.modeMenu, autoDestroy: true) orelse ""
         if chosen.count do
             discard .window.runCommand(chosen)
     }
@@ -626,7 +612,7 @@ impl Explorer
         .navigate(.listing.path, .folder, false)
     }
 
-    // Writes the order, filter, view and tile arrangement on their menus.
+    // Writes the order, filter, and presentation on their menus.
     mtd refreshQuietMenus()
     {
         let text = appStrings()
@@ -636,8 +622,6 @@ impl Explorer
         .kindMenu.setIcon(.theme().icon(.Filter, themeRowIconSize(.themeMetrics())))
         let viewNames = [text.explore_Names, text.explore_Details, text.explore_Small, text.explore_Medium, text.explore_Large]
         let viewIcons = [ThemeIcons.File, ThemeIcons.Outline, ThemeIcons.ZoomOut, ThemeIcons.FitView, ThemeIcons.ZoomIn]
-        .modeMenu.setIcon(.theme().icon(viewIcons[cast(u64, .mode)], themeRowIconSize(.themeMetrics())))
-        .modeMenu.toolTip = Format.toString("% · %", text.explore_View, viewNames[cast(u64, .mode)])
         var boardName = text.board_Automatic
         var boardIcon = ThemeIcons.ExploreFolder
         if .forced
@@ -650,8 +634,12 @@ impl Explorer
             case .Mosaic:  boardName = text.board_Mosaic;  boardIcon = .FileImage
             }
         }
-        .boardMenu.setIcon(.theme().icon(boardIcon, themeRowIconSize(.themeMetrics())))
-        .boardMenu.toolTip = Format.toString("% · %", text.explore_Organization, boardName)
+        let modeIndex = cast(u64, .mode)
+        .modeMenu.setIcon(.theme().icon(.isThumbnailView() ? boardIcon : viewIcons[modeIndex], themeRowIconSize(.themeMetrics())))
+        if .isThumbnailView() do
+            .modeMenu.toolTip = Format.toString("% · % · %", text.explore_View, viewNames[modeIndex], boardName)
+        else do
+            .modeMenu.toolTip = Format.toString("% · %", text.explore_View, viewNames[modeIndex])
         let artworkName = .artworkSource == .Online ? text.artwork_Online : text.artwork_Local
         let artworkIcon = .artworkSource == .Online ? ThemeIcons.Link : ThemeIcons.FileImage
         .artworkMenu.setIcon(.theme().icon(artworkIcon, themeRowIconSize(.themeMetrics())))
@@ -1576,6 +1564,8 @@ impl Explorer
         .applyLayout()
         .fill()
     }
+
+    mtd isThumbnailView()->bool => .mode != .Names and .mode != .Details
 
     mtd suspend()
     {

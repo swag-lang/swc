@@ -396,7 +396,7 @@ func completeExtraction(host: *Testing.HeadlessHost, explorer: *Explorer)
         let filterRect = explorer.filter.surfaceRect()
         let sortRect   = explorer.sortMenu.surfaceRect()
         Swag.assert(filterRect.y == sortRect.y and filterRect.height == Explorer.ToolHeight)
-        Swag.assert(explorer.modeMenu.surfaceRect().y == sortRect.y and explorer.boardMenu.surfaceRect().y == sortRect.y)
+        Swag.assert(explorer.modeMenu.surfaceRect().y == sortRect.y)
         host.moveMouse(explorer.grid.localToSurface(Math.Point{32, 32}))
         Swag.assert(explorer.grid.hovered == 0)
 

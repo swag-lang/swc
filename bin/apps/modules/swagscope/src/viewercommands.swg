@@ -796,7 +796,7 @@ impl ViewerWindow
                              ThemeIcons.FileAudio, ThemeIcons.FileImage]
                 name    = names[index]
                 icon    = .commandGlyph(icons[index])
-                hidden  = not exploring
+                hidden  = not exploring or not .explorer!.isThumbnailView()
                 toggle  = true
                 checked = exploring and
                           (index == 0 ? not .explorer!.forced :

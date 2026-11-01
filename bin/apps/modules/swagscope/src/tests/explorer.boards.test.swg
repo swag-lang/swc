@@ -156,6 +156,11 @@ func addPictured(host: *Testing.HeadlessHost, explorer: *Explorer, name: string,
             window.sendCommandEvent(command)
             Swag.assert(cast(u64, explorer.mode) == index)
             Swag.assert(window.sendComputeCommandStateEvent(command).checked)
+            for board in ViewerCommands.Boards
+            {
+                let state = window.sendComputeCommandStateEvent(board)
+                Swag.assert(state.hidden == (index < cast(u64, ExplorerMode.Small)))
+            }
         }
 
         explorer.entries.add({name: "Film.mkv", path: "Film.mkv", attempted: true})
@@ -318,7 +323,7 @@ func addPictured(host: *Testing.HeadlessHost, explorer: *Explorer, name: string,
             Swag.assert(grid.board == board)
             Swag.assert(Utf8.startsWith(explorer.status.text(), Format.toString(appStrings().explore_Count, explorer.shown.count)))
         }
-        Swag.assert(explorer.boardMenu.isLocallyVisible())
+        Swag.assert(explorer.isThumbnailView())
         explorer.forceBoard(false)
         Swag.assert(grid.board == .Grid)
     }

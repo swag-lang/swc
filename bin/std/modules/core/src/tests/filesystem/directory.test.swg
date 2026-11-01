@@ -172,6 +172,9 @@ func createDirectoryJunction(link, target: string)->bool
 {
     Swag.assert(Directory.isRemote("\\\\server\\share\\films"))
     Swag.assert(Directory.isRemote("//server/share"))
+    Swag.assert(Directory.isRemote(#raw "\\?\UNC\server\share\films"))
+    Swag.assert(not Directory.isRemote(#raw "\\?\C:\films"))
+    Swag.assert(not Directory.isRemote(#raw "\\.\C:\films"))
     Swag.assert(not Directory.isRemote(Env.getSpecialDirectory(.Temp)))
     Swag.assert(not Directory.isRemote("films"))
 }

@@ -14,9 +14,9 @@
 
 SWC_BEGIN_NAMESPACE();
 
-SourceFile& Backend::Unittest::makeCodeGenSource(TaskContext& ctx, std::string_view testName)
+SourceFile& Backend::Unittest::makeCodeGenSource(TaskContext& ctx, std::string_view testName, std::string_view source)
 {
-    SourceFile& file = swc::Unittest::addTestSource(ctx, "ABI", testName, "");
+    SourceFile& file = swc::Unittest::addTestSource(ctx, "ABI", testName, source);
     auto* module = Symbol::make<SymbolModule>(ctx, nullptr, TokenRef::invalid(), IdentifierRef::invalid(), SymbolFlagsE::Zero);
     auto* nameSpace = Symbol::make<SymbolNamespace>(ctx, nullptr, TokenRef::invalid(), IdentifierRef::invalid(), SymbolFlagsE::Zero);
     nameSpace->setOwnerSymMap(module);

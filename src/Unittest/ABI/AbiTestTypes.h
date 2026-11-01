@@ -8,7 +8,7 @@ class SourceFile;
 #if SWC_HAS_UNITTEST
 namespace Backend::Unittest
 {
-    SourceFile& makeCodeGenSource(TaskContext& ctx, std::string_view testName);
+    SourceFile& makeCodeGenSource(TaskContext& ctx, std::string_view testName, std::string_view source = "");
     TypeRef makeStructType(TaskContext& ctx, std::span<const TypeRef> fieldTypes, bool isUnion = false, TypeRef tagType = TypeRef::invalid());
 }
 #endif

@@ -18,6 +18,8 @@
 #include "Compiler/CodeGen/Core/CodeGen.h"
 #include "Compiler/CodeGen/Core/CodeGenFunctionHelpers.h"
 #include "Compiler/CodeGen/Core/CodeGenParameterReg.h"
+#include "Compiler/Lexer/SourceView.h"
+#include "Compiler/Parser/Ast/AstVisit.h"
 #include "Compiler/Sema/Core/Sema.h"
 #include "Compiler/Sema/Symbol/Symbol.Function.h"
 #include "Compiler/Sema/Symbol/Symbol.Variable.h"
@@ -1345,6 +1347,105 @@ SWC_TEST_BEGIN(ABI_SystemVSourceReturnLoweringPreservesAllResultLanes)
                     return Result::Error;
             }
         }
+    }
+}
+SWC_TEST_END()
+
+SWC_TEST_BEGIN(ABI_SystemVSourceReturnCapturesValueBeforeDeferredMutation)
+{
+    constexpr std::string_view source = R"(func identity(value: Value, replacement: Value, sink: *Value)->Value
+{
+    defer
+    {
+        value = replacement
+        sink[] = value
+    }
+    return value
+}
+)";
+    for (const auto level : {Runtime::BuildCfgBackendOptimLevel::O0, Runtime::BuildCfgBackendOptimLevel::O2})
+    {
+        CommandLine commandLine = ctx.cmdLine();
+        commandLine.targetOs = Runtime::TargetOs::Linux;
+        CompilerInstance compiler(ctx.global(), commandLine);
+        TaskContext context(compiler);
+        SWC_RESULT(compiler.setupSema(context));
+        compiler.buildCfg().safetyGuards = static_cast<Runtime::SafetyWhat>(0);
+        compiler.buildCfg().sanityGuards = static_cast<Runtime::SafetyWhat>(0);
+        compiler.buildCfg().backend.optimLevel = level;
+        auto& types = context.typeMgr();
+        const std::array locationFields{types.typeString(), types.typeString(), types.typeU32(), types.typeU32(), types.typeU32(), types.typeU32()};
+        types.registerRuntimeType(context.idMgr().predefined(IdentifierManager::PredefinedName::SourceCodeLocation), Backend::Unittest::makeStructType(context, locationFields));
+        const std::array fields{types.typeU64(), types.typeF64()};
+        const TypeRef type = Backend::Unittest::makeStructType(context, fields);
+        const TypeRef pointer = types.addType(TypeInfo::makeValuePointer(type));
+        SourceFile& file = Backend::Unittest::makeCodeGenSource(context, "SystemVDeferredReturn", source);
+        auto& ast = file.ast();
+        AstNodeRef declRef;
+        Ast::visit(ast, ast.root(), [&](AstNodeRef ref, const AstNode& node) {
+            if (node.is(AstNodeId::FunctionDecl))
+            {
+                declRef = ref;
+                return Ast::VisitResult::Stop;
+            }
+            return Ast::VisitResult::Continue;
+        });
+        if (declRef.isInvalid())
+            return Result::Error;
+        auto& decl = ast.node(declRef).cast<AstFunctionDecl>();
+        auto* function = Symbol::make<SymbolFunction>(context, &decl, decl.tokNameRef, context.idMgr().addIdentifier("identity"), SymbolFlagsE::Zero);
+        function->setDeclNodeRef(declRef);
+        function->setDeclNodePayloadContext(&file.nodePayloadContext());
+        function->setCallConvKind(K_SYSTEM_V);
+        function->setReturnTypeRef(type);
+        for (const auto name : {"value", "replacement", "sink"})
+        {
+            auto* parameter = Symbol::make<SymbolVariable>(context, &decl, decl.tokNameRef, context.idMgr().addIdentifier(name), SymbolFlagsE::Zero);
+            parameter->setTypeRef(std::string_view(name) == "sink" ? pointer : type);
+            parameter->addExtraFlag(SymbolVariableFlagsE::Parameter);
+            function->addParameter(parameter);
+        }
+        Sema sema(context, file.nodePayloadContext(), false);
+        sema.setSymbol(declRef, function);
+        sema.frame().setCurrentFunction(function);
+        // Bind the parsed body as a completed semantic tree. Its opaque Value
+        // type is supplied by this ABI fixture, independent of runtime imports.
+        Ast::visit(ast, decl.nodeBodyRef, [&](AstNodeRef ref, const AstNode& node) {
+            if (node.is(AstNodeId::Identifier))
+            {
+                const auto name = ast.srcView().tokenString(node.tokRef());
+                for (auto* parameter : function->parameters())
+                {
+                    if (parameter->name(context) == name)
+                    {
+                        sema.setSymbol(ref, parameter);
+                        sema.setIsLValue(ref);
+                    }
+                }
+            }
+            else if (node.is(AstNodeId::IndexExpr))
+            {
+                sema.setType(ref, type);
+                sema.setIsLValue(ref);
+            }
+            return Ast::VisitResult::Continue;
+        });
+        CodeGen codeGen(sema);
+        SWC_RESULT(codeGen.exec(*function, declRef));
+        SWC_RESULT(function->emit(context));
+        const auto& lowered = function->loweredCode();
+        JITMemoryManager manager;
+        JITMemory memory;
+        installSystemVCode(manager, memory, lowered.bytes, lowered.unwindInfo);
+        const MixedValue value{67, 3.5};
+        const MixedValue replacement{71, 5.5};
+        MixedValue sink{};
+        using Identity = MixedValue (*)(MixedValue, MixedValue, MixedValue*);
+        const auto result = reinterpret_cast<Identity>(memory.entryPoint())(value, replacement, &sink);
+        if (result.integer != value.integer || result.floating != value.floating)
+            return Result::Error;
+        if (sink.integer != replacement.integer || sink.floating != replacement.floating)
+            return Result::Error;
     }
 }
 SWC_TEST_END()

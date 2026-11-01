@@ -288,12 +288,9 @@ impl Array
 
     // Returns the contiguous storage as a pointer the caller walks itself.
     //
-    // An empty array owns no block, and a caller asking an empty array for its storage is
-    // about to walk zero elements. The answer is then a dangling address, aligned for the
-    // element type and never read, rather than a null every caller would have to assert:
-    // walking is bounded by 'count', and a read through the dangling address faults exactly
-    // as loudly as a read through null. Ask 'isEmpty' whether there is anything to walk, and
-    // 'toSlice' when the walk should carry its own bounds.
+    // An empty array returns a non-null sentinel address aligned for the element type. It is
+    // not an element address and must not be dereferenced. Check 'isEmpty' before walking, or
+    // use 'toSlice' when the walk should carry its own bounds.
     //
     // The pointer is mutable whatever the receiver, exactly like reading the field was: a
     // container that hands out its storage hands out the storage itself.

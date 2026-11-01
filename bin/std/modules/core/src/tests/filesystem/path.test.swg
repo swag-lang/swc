@@ -73,6 +73,8 @@ using Swag
     Swag.assert(Path.isValidFileName("core.swg"))
     Swag.assert(Path.isValidFileName(".gitignore"))
     Swag.assert(Path.isValidFileName("archive.tar.gz"))
+    Swag.assert(not Path.isValidFileName("."))
+    Swag.assert(not Path.isValidFileName(".."))
     Swag.assert(not Path.isValidFileName(""))
     Swag.assert(not Path.isValidFileName("\x00"))
     Swag.assert(not Path.isValidFileName("\x1f"))
@@ -85,6 +87,13 @@ using Swag
     Swag.assert(not Path.isValidFileName("bad?name"))
     Swag.assert(not Path.isValidFileName("src/core.swg"))
     Swag.assert(not Path.isValidFileName(#raw "src\core.swg"))
+    if WINDOWS
+    {
+        Swag.assert(not Path.isValidFileName("name."))
+        Swag.assert(not Path.isValidFileName("name "))
+        Swag.assert(not Path.isValidFileName(".. "))
+        Swag.assert(not Path.isValidFileName("..."))
+    }
 
     Swag.assert(Path.rootLength("core.swg") == 0)
     Swag.assert(Path.rootName("core.swg") == null)

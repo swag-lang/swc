@@ -53,10 +53,14 @@ func isValidPathName(path: string)->bool
     return true
 }
 
-// Returns whether `path` is a lexically valid single file name on the selected target.
+// Returns whether `path` is a lexically valid single file name on the selected target. Dot
+// segments are rejected everywhere; Windows names ending in a dot or space are rejected because
+// the host silently normalizes those characters.
 func isValidFileName(path: string)->bool
 {
     if path.count == 0 do
+        return false
+    if path == "." or path == ".." do
         return false
     for c in path
     {
@@ -66,6 +70,8 @@ func isValidFileName(path: string)->bool
            (c < 32 or c == '"' or c == '<' or c == '>' or c == '|' or c == ':' or c == '*' or c == '?') do
             return false
     }
+    if TargetHasWindowsPathSyntax and (path.back() == '.' or path.back() == ' ') do
+        return false
 
     return true
 }

@@ -180,6 +180,8 @@ func completeExtraction(host: *Testing.HeadlessHost, explorer: *Explorer)
 {
     Swag.assert(ArchiveExtraction.destination("C:/t", "", "../evil.txt").isEmpty())
     Swag.assert(ArchiveExtraction.destination("C:/t", "", "a/../../evil.txt").isEmpty())
+    if WINDOWS do
+        Swag.assert(ArchiveExtraction.destination("C:/t", "", ".. /evil.txt").isEmpty())
     Swag.assert(ArchiveExtraction.destination("C:/t", "docs/", "docs/").isEmpty())
     Swag.assert(ArchiveExtraction.destination("C:/t", "docs/", "docs/readme.txt") == Path.combine("C:/t", "readme.txt"))
 

@@ -37,11 +37,12 @@ exists in the named owner; it does not imply that a Windows campaign ran on the 
 The Linux host-adapter boundary is `python3 tools/linux-host.py`, on Linux x86-64 with
 GCC 14 and C++23, glibc 2.36 or later and Linux 5.9 or later (pidfds, subreapers and
 `close_range` must be permitted). It tests actual compiler host adapters independently.
-`tools/linux-build.py` also builds the complete DevMode compiler; its lexer/parser suites pass,
-while C++ execution-dependent tests remain unfinished. The generated target remains Windows
-until the Linux ABI and runtime are connected. These checks do not establish a runnable
-Linux Swag runtime. In particular,
-the C++ JIT page allocator is separate from `bin/runtime`'s `__hostPage*` allocator hooks.
+`tools/linux-build.py` builds complete DevMode and Release compilers. Lexer/parser suites and
+all C++ tests pass, including filesystem, JIT and native validation. The default generated target
+remains Windows; `--os linux` selects System V, the Linux runtime and GNU-linked ELF output.
+Native executables cover startup, arguments, synchronization and fault recovery. Shared-module
+lifecycle, PIC and source-level DWARF still need integration. The C++ JIT page allocator and
+`bin/runtime`'s `__hostPage*` hooks have separate tests.
 
 | Capability | Owner / Windows adapter | Linux implementation |
 | --- | --- | --- |
@@ -56,16 +57,16 @@ the C++ JIT page allocator is separate from `bin/runtime`'s `__hostPage*` alloca
 | Compiler signal stacks and generated-code unwinding | `src/Support/Os/Os.Windows.cpp`, `src/Backend/JIT/` | Guarded per-thread alternate stacks, DWARF CIE/FDE construction and libgcc registration; native tests cover stack overflow, generated frames and C++ cleanup after a generated fault. The fault boundary preserves C++ cleanup and rejects native faults. Instruction-level CFI follows the control-flow graph, including multiple returns, dynamic stack allocation, saved registers and indirect jumps |
 | Compiler startup CPU/OS-state check | `src/Main/HostCpuGuard.cpp` | ELF preinit guard checks GCC’s x86-64-v3 predicate, including OS AVX state; rejection tested before C++ initialization |
 | Foreign calls, argument/return classification and callee-save registers | `src/Backend/ABI/`, Windows x64 | System V scalar/aggregate calls, source parameter homes, result storage and cached JIT invokers tested against native C; owned-value cleanup and native runtime integration remain |
-| Object emission, linking, startup, dynamic imports and debug artifacts | `src/Backend/Native/`, `src/Backend/Linker/`, COFF/PE/PDB | PE/COFF records compile without the Windows SDK; ELF and Linux startup/link inputs remain missing |
-| Runtime reserve/commit/decommit/release and allocation-base lookup | `bin/runtime/os.win32.swg`, `__hostPage*` | Linux reservation tracking over mmap/mprotect/madvise/munmap; JIT probes cover decommit/recommit and base lookup; native fault probes remain |
+| Object emission, linking, startup, dynamic imports and debug artifacts | `src/Backend/Native/`, `src/Backend/Linker/`, COFF/PE/PDB | ELF objects, GNU executable/archive linking, exact argc/argv startup and static module dependencies execute; shared-module lifecycle, PIC and source-level DWARF remain |
+| Runtime reserve/commit/decommit/release and allocation-base lookup | `bin/runtime/os.win32.swg`, `__hostPage*` | Linux reservation tracking over mmap/mprotect/madvise/munmap; JIT probes cover decommit/recommit and base lookup; JIT and native ELF probes recover protected-page faults |
 | Runtime TLS and thread-exit cleanup | `bin/runtime/os.win32.swg`, `__hostTls*`, `__hostThreadStorage*` | pthread keys; JIT probes cover thread isolation and exit callbacks; compiler-owned callback lifetime still needs tracking |
 | Runtime threads, priorities, processor count, pool ceiling and work pressure | `bin/runtime/os.win32.swg`, `__hostThread*`, `__hostWorkPressure` | pthread creation/join and procfs counters pass JIT probes; scheduler contention, affinity limits and cgroup pressure need broader coverage |
-| Runtime locks and condition variables | `bin/runtime/os.win32.swg`, `__hostLock*`, `__hostCondition*`, `MutexRW` | Futex storage with JIT mutex, reader/writer and timeout checks; contention and fork coverage remain |
-| Runtime process-wide storage and singleton identity across shared modules | `bin/runtime/os.win32.swg`, `__hostProcessStorage`, `__hostProcessSingleton` | memfd/procfs anchors pass same-process identity and size checks; native cross-module and fork lifetime coverage remain |
+| Runtime locks and condition variables | `bin/runtime/os.win32.swg`, `__hostLock*`, `__hostCondition*`, `MutexRW` | Futex storage with JIT and native mutex, reader/writer and timeout checks; broader contention and fork coverage remain |
+| Runtime process-wide storage and singleton identity across shared modules | `bin/runtime/os.win32.swg`, `__hostProcessStorage`, `__hostProcessSingleton` | memfd/procfs anchors pass same-process identity, size checks and C++/Swag interoperability; native cross-module and fork lifetime coverage remain |
 | Runtime monotonic clock and hardware features | `bin/runtime/os.win32.swg`, `__hostMonotonic*`, `__hostHasAvx2` | CLOCK_MONOTONIC and glibc CPU feature queries pass JIT probes |
-| Runtime arguments, byte output, native library loading and termination | `bin/runtime/os.win32.swg`, `__osCommandLine`, `__printString`, `__loaddll`, `__exit*` | Argument vectors preserve empty and quoted values; native argc/argv startup and JIT termination interception remain |
-| Runtime test fault recovery, stack capture, image and debug-section access | `bin/runtime/os.win32.swg`, `__hostTest*`, `__hostCatchCall`, `__hostResume`, `__captureStack`, `__host*DebugSection` | Linux signal recovery passes JIT integration probes, including stack overflow, captured-error cleanup and prior-handler restoration; native ELF execution and source-level stack resolution remain |
-| Runtime hosted math | `bin/runtime/os.win32.swg`, UCRT imports | glibc/libm bindings execute through System V in JIT probes; native link resolution remains |
+| Runtime arguments, byte output, native library loading and termination | `bin/runtime/os.win32.swg`, `__osCommandLine`, `__printString`, `__loaddll`, `__exit*` | Native argc/argv preserves empty values, spaces, quotes, backslashes and UTF-8; JIT libc termination calls report compiler diagnostics |
+| Runtime test fault recovery, stack capture, image and debug-section access | `bin/runtime/os.win32.swg`, `__hostTest*`, `__hostCatchCall`, `__hostResume`, `__captureStack`, `__host*DebugSection` | Linux signal recovery passes JIT and native ELF probes, including stack overflow, captured-error cleanup and prior-handler restoration; source-level stack resolution remains |
+| Runtime hosted math | `bin/runtime/os.win32.swg`, UCRT imports | glibc/libm bindings execute through System V; GNU ELF linking supplies libc and libm |
 | Core directories, files, streams, mappings, metadata, paths and watches | `bin/std/modules/core/src/filesystem/*.win32.swg` | Missing |
 | Core processes, environment, hardware, native libraries, errors and sandbox | `bin/std/modules/core/src/system/*.win32.swg` | Missing |
 | Core thread/event primitives, wall clocks and timers | `bin/std/modules/core/src/thread/*.win32.swg`, `src/time/*.win32.swg` | Missing |
@@ -87,8 +88,9 @@ The `bin/runtime/os.linux*.swg` bootstrap executes guarded compile-time code and
 probes for glibc TLS, thread cleanup, futex synchronization, page reservations, process anchors,
 monotonic clocks, procfs pressure, libm and argument vectors. C declarations and callbacks resolve
 the ABI of their own compilation, including a Linux compiler instance inside a Windows-targeted
-process. Compiler-owned pthread callback lifetime, native signal recovery and ELF startup/linking
-remain incomplete. No Linux native artifact or complete runtime suite passes yet.
+process. Compiler-owned pthread callback lifetime remains incomplete. Native ELF startup,
+exact argument vectors, synchronization and signal recovery pass dedicated fixtures; this does
+not establish complete runtime or standard-module coverage.
 
 ## Hosted library matrix
 
@@ -98,7 +100,7 @@ architectures and freestanding builds have no validated target contract yet.
 | Target | C/math libraries | Thread and loader interfaces | Current link support |
 | --- | --- | --- | --- |
 | Windows x86-64 | UCRT (`ucrtbase` at runtime, `ucrt` link input) | Kernel32 and the existing Windows host imports | Windows toolchain discovery, COFF and PE |
-| GNU/Linux x86-64 | glibc (`libc.so.6`) and libm (`libm.so.6`, `-lm`) | POSIX threads (`-pthread`) and `dlopen`/`dlsym` (`-ldl` for toolchain compatibility) | System V and hosted runtime bindings support JIT execution; ELF, CRT startup and native link resolution are missing |
+| GNU/Linux x86-64 | glibc (`libc.so.6`) and libm (`libm.so.6`, `-lm`) | POSIX threads (`-pthread`) and `dlopen`/`dlsym` (`-ldl` for toolchain compatibility) | System V JIT execution; ELF executables and archives through GNU `cc`/`ar`, with CRT startup, `-lc -lm -ldl -pthread` |
 | Freestanding | No selected contract | No implicit hosted services | Not implemented |
 
 Modern glibc integrates pthread and dl symbols into libc; keeping the toolchain flags does not

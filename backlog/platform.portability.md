@@ -241,33 +241,27 @@ by portable modules and products. The earlier entries prepare and enforce the sa
 - Related: platform.portability.038, platform.portability.010
 - Done when: The chosen second host applies sandbox restrictions before user code and imported native modules run, rejects forbidden filesystem and process actions in integration tests, and reports unsupported enforcement explicitly.
 
-### platform.portability.001 — Neutral bin sources have no Linux build configuration
+### platform.portability.001 — Neutral bin sources need a Linux build gate
 
-- Evidence: `tools/linux-build.py` now builds the complete DevMode host compiler, and its
-  lexer/parser suites pass on Linux. The default generated target remains Windows; neither
-  the Linux runtime nor the neutral standard/application sources have a Linux build gate.
-- Next: connect the Linux ABI, runtime and native target, then compile every platform-neutral
-  bin source. Select headless/no-sound backends where their contracts permit them.
-- Done when: A non-Windows configuration compiles every neutral runtime and bin source with headless/no-sound stubs where needed, and its build fails on an accidental native Windows import.
+- Evidence: DevMode and Release Linux compilers build from source. Lexer/parser and C++ suites
+  pass; `--os linux` selects System V, hosted runtime bindings, ELF objects and GNU-linked native
+  executables/archives. Static module consumers execute lifecycle hooks across imports. The
+  default target is still Windows, and neutral standard/application modules have no Linux gate.
+- Next: compile platform-neutral bin modules and close their missing host primitives. Select
+  headless/no-sound backends only where their contracts permit them.
+- Done when: a Linux configuration compiles every neutral runtime and bin source and fails on
+  an accidental native Windows import.
 
-### platform.portability.005 — Wire argument vectors into native Unix startup
+### platform.portability.005 — Validate argument lifetime across native Unix modules
 
-- Evidence: `ProcessInfo.arguments` carries exact string values through `Swag.args()` and runtime
-  module hooks. JIT storage outlives compiler instances, and `__setUnixArguments` converts a raw
-  argument vector without parsing spaces, quotes or empty strings.
-- Next: invoke this conversion from ELF startup before module initialization. Validate native
-  argument propagation and lifetime across shared modules; retain the Windows command-line path.
+- Evidence: ELF startup passes argc/argv into `ProcessInfo.arguments` before runtime setup.
+  Native executable probes preserve empty values, spaces, quotes, trailing backslashes, tabs
+  and UTF-8. Runtime module hooks carry the same string-vector representation.
+- Next: validate argument propagation and lifetime across shared modules, including unload.
+  Retain the Windows command-line path.
 - Related: platform.portability.003, platform.portability.008, platform.portability.010
-- Done when: A Unix host entry point passes argc/argv directly to runtime startup, Windows retains its command-line parser, and the same argument-order, quoting, and empty-argument tests pass through Swag.args on both hosts.
-
-### platform.portability.007 — Linux hosted runtime libraries are not wired into the target
-
-- Evidence: `bin/PORTABILITY.md` names the Windows and planned GNU/Linux hosted libraries, but
-  Linux glibc/libm bindings now execute in JIT probes. Native Linux linking remains unavailable.
-- Next: wire native CRT, libc/libm and loader link inputs against that matrix using the
-  existing System V ABI. Keep stable libc calls rather than coupling the runtime to raw syscalls.
-- Related: platform.portability.031
-- Done when: A checked target matrix names required hosted libraries and link inputs for Windows and the chosen Linux target, distinguishes any freestanding contract, and both targets build without hidden platform-library assumptions.
+- Done when: shared Unix modules observe the original argument order and bytes through
+  initialization, calls and cleanup without reading storage owned by an unloaded module.
 
 ### platform.portability.008 — Make process launch argv-first
 
@@ -765,7 +759,7 @@ by portable modules and products. The earlier entries prepare and enforce the sa
   FMA, bit operations, and atomics.
 - Done when: the hosted Linux ABI can ship without an owned libm, and any owned-libm goal has
   recorded reasons, semantics, provenance, and acceptance tests.
-- Related: platform.portability.007
+- Related: platform.portability.001
 
 ### platform.portability.063 — Spatialization is coupled to an unused X3DAudio handle
 
@@ -879,7 +873,7 @@ by portable modules and products. The earlier entries prepare and enforce the sa
   outside the checkout with GNU Make. Complete DevMode and Release compilers link and
   pass the lexer/parser suites including expected-error inputs without spurious JIT setup.
   The full C++ campaign, including filesystem tests and extra IR/native validation, passes
-  all 1,730 tests, including the PE missing-resource fixture. Closed Windows x64 instruction fixtures execute
+  all 1,731 tests, including the PE missing-resource fixture. Closed Windows x64 instruction fixtures execute
   through an explicit GCC ABI bridge. Runtime adapters initialize on the first actual JIT call,
   and generated code retains separate output-target and host unwind metadata.
   Cross-host foreign relocations reject an actual call while allowing untaken error branches.
@@ -953,7 +947,7 @@ by portable modules and products. The earlier entries prepare and enforce the sa
   Compare with native C/C++ fixtures and complete Linux runtime lifecycle and signal support.
 - Done when: generated Linux calls round-trip supported scalar and aggregate values through C,
   preserve callee-save registers and stack alignment, and use the same ABI in JIT and native code.
-- Related: platform.portability.007, platform.portability.081
+- Related: platform.portability.001, platform.portability.081
 
 ### platform.portability.093 — Linux native output needs module, PIC and debug integration
 
@@ -966,12 +960,14 @@ by portable modules and products. The earlier entries prepare and enforce the sa
   The Linux linker publishes GNU-linked ELF executables and deterministic GNU archives; its System V
   main entry installs argc/argv before runtime initialization. Native startup, argument-byte
   preservation, runtime synchronization, panic cleanup and deterministic parallel outputs pass.
+  Static module dependencies resolve their actual published filenames, including custom names;
+  an executable consumer verifies initialization, pre-main and cleanup across the module boundary.
   Source debug output is explicitly rejected until DWARF source records exist. Shared-library
   linking currently permits text relocations; it does not establish PIC or loader lifecycle support.
   Persistent native function caches remain COFF-specific and are disabled for Linux.
-- Next: validate shared-module initialization/cleanup; finish Linux
-  dependency naming/publication, PIC relocations, source-level DWARF and target-specific incremental
+- Next: validate shared-module initialization/cleanup and dependency publication; finish Linux
+  PIC relocations, source-level DWARF and target-specific incremental
   caches. Preserve the working native executable and archive consumers.
 - Done when: Linux executables and shared libraries link and run a runtime/native workspace smoke,
   including foreign imports, arguments and cross-module initialization/cleanup.
-- Related: platform.portability.005, platform.portability.007, platform.portability.092
+- Related: platform.portability.005, platform.portability.092

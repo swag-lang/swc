@@ -504,6 +504,30 @@ SWC_FILESYSTEM_TEST_BEGIN(Linker_NativeTestsDiscardRejectedCallees)
 }
 SWC_TEST_END()
 
+#ifdef __linux__
+SWC_FILESYSTEM_TEST_BEGIN(Linker_LinuxDependencyUsesPublishedArtifactName)
+{
+    LinkerTestDirectory directory("published_artifact_name");
+    const fs::path sourceModules = Os::getExeFullName().parent_path() / "unittests" / "workspace" / "modules";
+    for (const std::string_view module : {"artifact_name_provider", "artifact_name_consumer"})
+    {
+        std::error_code error;
+        const fs::path destination = directory.path() / "modules" / module;
+        fs::create_directories(destination, error);
+        if (error)
+            return Result::Error;
+        fs::copy(sourceModules / module, destination, fs::copy_options::recursive, error);
+        if (error)
+            return Result::Error;
+    }
+    const std::vector<Utf8> arguments = {
+        "run", "--os", "linux", "--workspace", Utf8(directory.path()), "--workspace-module", "artifact_name_consumer",
+        "--num-cores", "3", "--no-log-color"};
+    return runCompiler(arguments, ExitCode::Success, "artifact provider dropped");
+}
+SWC_TEST_END()
+#endif
+
 SWC_FILESYSTEM_TEST_BEGIN(Linker_CompilerConfigurationUsesHostContextForForeignTarget)
 {
     const LinkerTestDirectory testDir("cross_target_context");

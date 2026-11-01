@@ -35,6 +35,24 @@ namespace
         }
     }
 
+    fs::path resolveDependencyLibrary(const fs::path& name, const std::vector<fs::path>& directories)
+    {
+        // Swag publishes module.a/module.so, without GNU's optional lib prefix.
+        // Keep the selected dependency directory authoritative, including test and
+        // renamed artifacts, before falling back to the system linker's search.
+        for (const fs::path& directory : directories)
+        {
+            for (const std::string_view extension : {"", ".so", ".a"})
+            {
+                const fs::path candidate = directory / (name.string() + std::string(extension));
+                std::error_code error;
+                if (fs::is_regular_file(candidate, error))
+                    return fs::absolute(candidate);
+            }
+        }
+        return {};
+    }
+
     bool writeBytes(LinkJob& job, const fs::path& path, const ByteArray& bytes)
     {
         FileSystem::IoErrorInfo error;
@@ -219,10 +237,19 @@ Result ELFLinker::prepareLink(LinkJob& outJob)
         const fs::path name(library.c_str());
         if (name.has_parent_path())
             outJob.elfLinkArguments.emplace_back(fs::absolute(name));
-        else if (name.has_extension())
-            outJob.elfLinkArguments.emplace_back("-l:" + library);
         else
-            outJob.elfLinkArguments.emplace_back("-l" + library);
+        {
+            const fs::path dependency = resolveDependencyLibrary(name, builder_->compiler().importedDependencyLinkDirs());
+            if (!dependency.empty())
+            {
+                if (!archives.contains(dependency))
+                    outJob.elfLinkArguments.emplace_back(dependency);
+            }
+            else if (name.has_extension())
+                outJob.elfLinkArguments.emplace_back("-l:" + library);
+            else
+                outJob.elfLinkArguments.emplace_back("-l" + library);
+        }
     }
     outJob.elfLinkArguments.emplace_back("-Wl,--end-group");
 

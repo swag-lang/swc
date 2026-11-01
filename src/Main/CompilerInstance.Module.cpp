@@ -328,14 +328,15 @@ namespace
         return Result::Continue;
     }
 
-    bool tryFindDependencyArtifactStem(Utf8& outStem, const fs::path& dir, std::string_view preferredStem, std::string_view extension)
+    bool tryFindDependencyArtifactStem(Utf8& outStem, const fs::path& dir, std::string_view preferredStem, std::string_view extension, const bool caseSensitive)
     {
         outStem.clear();
         if (dir.empty())
             return false;
 
         Utf8 preferredStemKey = preferredStem;
-        preferredStemKey.make_lower();
+        if (!caseSensitive)
+            preferredStemKey.make_lower();
 
         std::vector<Utf8> candidates;
         std::error_code   ec;
@@ -355,7 +356,8 @@ namespace
                 continue;
 
             Utf8 candidateKey = candidate;
-            candidateKey.make_lower();
+            if (!caseSensitive)
+                candidateKey.make_lower();
             if (candidateKey == preferredStemKey)
             {
                 outStem = std::move(candidate);
@@ -391,12 +393,13 @@ namespace
                lhs.linkBackendKind == rhs.linkBackendKind;
     }
 
-    Utf8 resolveDependencyLinkModuleName(const fs::path& linkDir, const std::string_view fallbackStem)
+    Utf8 resolveDependencyLinkModuleName(const fs::path& linkDir, const std::string_view fallbackStem, const Runtime::TargetOs targetOs)
     {
         Utf8 result;
-        if (tryFindDependencyArtifactStem(result, linkDir, fallbackStem, ".lib"))
+        const bool linuxTarget = targetOs == Runtime::TargetOs::Linux;
+        if (tryFindDependencyArtifactStem(result, linkDir, fallbackStem, linuxTarget ? ".a" : ".lib", linuxTarget))
             return result;
-        if (tryFindDependencyArtifactStem(result, linkDir, fallbackStem, ".dll"))
+        if (tryFindDependencyArtifactStem(result, linkDir, fallbackStem, linuxTarget ? ".so" : ".dll", linuxTarget))
             return result;
         return Utf8{fallbackStem};
     }
@@ -2484,7 +2487,7 @@ Result ModuleSetupInputApplier::apply(const CompilerInstance::ModuleSetupSnapsho
         {
             CompilerInstance::NativeRuntimeImport runtimeImport;
             runtimeImport.moduleName           = resolvedImport.request->moduleName;
-            runtimeImport.linkModuleName       = resolveDependencyLinkModuleName(linkDir, resolvedImport.request->moduleName.view());
+            runtimeImport.linkModuleName       = resolveDependencyLinkModuleName(linkDir, resolvedImport.request->moduleName.view(), instance().cmdLine().targetOs);
             runtimeImport.transitiveImports    = resolvedImport.binding->transitiveImports;
             runtimeImport.hasSharedRuntimeHook = !directNode.paths.sharedDir.empty();
             instance().nativeRuntimeImports_.push_back(std::move(runtimeImport));

@@ -873,11 +873,12 @@ by portable modules and products. The earlier entries prepare and enforce the sa
   outside the checkout with GNU Make. Complete DevMode and Release compilers link and
   pass the lexer/parser suites including expected-error inputs without spurious JIT setup.
   The full C++ campaign, including filesystem tests and extra IR/native validation, passes
-  1,648 of 1,710 tests; 62 remain failing. Closed Windows x64 instruction fixtures execute
+  1,673 of 1,711 tests; 38 remain failing. Closed Windows x64 instruction fixtures execute
   through an explicit GCC ABI bridge. Runtime adapters initialize on the first actual JIT call,
   and generated code retains separate output-target and host unwind metadata.
-  Eager foreign resolution still rejects the Windows panic/allocator closure of the runtime
-  build-configuration copy, even when evaluating a constant that takes no such branch.
+  Cross-host foreign relocations reject an actual call while allowing untaken error branches.
+  Remaining execution failures reach native Windows TLS instructions through shared runtime
+  helpers; native preparation can also inherit errors counted by an earlier C++ fixture.
   PE/COFF records no longer depend on the Windows SDK, and both target enums represent Linux.
   Instruction-level CFI follows the physical IR control-flow graph; native fixtures cover
   multiple returns, dynamic-stack joins, frameless register saves, indirect jumps and C++

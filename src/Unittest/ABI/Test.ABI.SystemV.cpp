@@ -796,6 +796,7 @@ SWC_TEST_BEGIN(JIT_CrossHostForeignBranchRejectsOnlyWhenExecuted)
     CompilerInstance compiler(ctx.global(), commandLine);
     TaskContext context(compiler);
     context.setMuteOutput(true);
+    SWC_RESULT(compiler.setupSema(context));
     auto* foreign = Symbol::make<SymbolFunction>(context, nullptr, TokenRef::invalid(), context.idMgr().addIdentifier("unavailable_foreign"), SymbolFlagsE::Zero);
     AttributeList attributes;
     attributes.hasForeign = true;
@@ -807,7 +808,7 @@ SWC_TEST_BEGIN(JIT_CrossHostForeignBranchRejectsOnlyWhenExecuted)
 
     uint64_t executeForeign = 0;
     MicroBuilder builder(context);
-    auto done = builder.createLabel();
+    const auto done = builder.createLabel();
     const auto flag = MicroReg::virtualIntReg(1);
     builder.emitLoadRegPtrImm(flag, reinterpret_cast<uint64_t>(&executeForeign));
     builder.emitLoadRegMem(flag, flag, 0, MicroOpBits::B64);
@@ -815,14 +816,17 @@ SWC_TEST_BEGIN(JIT_CrossHostForeignBranchRejectsOnlyWhenExecuted)
     builder.emitJumpToLabel(MicroCond::Equal, MicroOpBits::B32, done);
     const ABICall::PreparedCall prepared = ABICall::prepareArgs(builder, CallConvKind::WindowsX64, {});
     ABICall::callExtern(builder, CallConvKind::WindowsX64, foreign, prepared);
-    builder.emitLabel(done);
+    builder.placeLabel(done);
     builder.emitRet();
     MachineCode lowered;
     SWC_RESULT(lowered.emit(context, builder));
     JITMemory memory;
     SWC_RESULT(JIT::emit(context, memory, lowered.bytes, lowered.codeRelocations, lowered.jitUnwindInfo(context)));
     if (!foreign->jitEntryAddress() || foreign->jitForeignTargetGuard(context) != foreign->jitEntryAddress())
+    {
+        std::println(stderr, "[foreign target guard] relocation did not retain the guard, relocations={}", lowered.codeRelocations.size());
         return Result::Error;
+    }
     SWC_RESULT(JIT::call(context, memory.entryPoint(), nullptr, nullptr, JITRuntimeSetupMode::None, CallConvKind::Swag));
 
     executeForeign = 1;
@@ -831,7 +835,10 @@ SWC_TEST_BEGIN(JIT_CrossHostForeignBranchRejectsOnlyWhenExecuted)
     const uint64_t errorsAfter = Stats::getNumErrors();
     Stats::get().numErrors.store(errorsBefore, std::memory_order_relaxed);
     if (rejected != Result::Error || errorsAfter != errorsBefore + 1)
+    {
+        std::println(stderr, "[foreign target guard] call result={}, errors={} -> {}", static_cast<uint32_t>(rejected), errorsBefore, errorsAfter);
         return Result::Error;
+    }
 
     // An aborted call must leave the host fault boundary and context usable.
     executeForeign = 0;

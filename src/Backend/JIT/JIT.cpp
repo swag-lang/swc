@@ -1518,8 +1518,15 @@ Result JIT::emitForeignTargetGuard(TaskContext& ctx, JITMemory& outExecutableMem
 {
     SWC_ASSERT(ctx.cmdLine().targetOs != hostTargetOs());
     MicroBuilder builder(ctx);
-    const ABICall::Arg argument{.value = reinterpret_cast<uint64_t>(&targetFunction), .numBits = 64};
-    ABICall::callAddress(builder, CallConv::hostKind(), reinterpret_cast<uint64_t>(&rejectForeignTargetCall), std::span{&argument, 1}, {});
+    const auto functionReg = MicroReg::virtualIntReg(1);
+    const auto callbackReg = MicroReg::virtualIntReg(2);
+    // The guard outlives emission; embed its stable symbol address rather than
+    // borrowing the raw-call helper's argument array from this native stack.
+    builder.emitLoadRegPtrImm(functionReg, reinterpret_cast<uint64_t>(&targetFunction));
+    const ABICall::PreparedArg argument{.srcReg = functionReg, .numBits = 64};
+    const auto prepared = ABICall::prepareArgs(builder, CallConv::hostKind(), std::span{&argument, 1});
+    builder.emitLoadRegPtrImm(callbackReg, reinterpret_cast<uint64_t>(&rejectForeignTargetCall));
+    ABICall::callReg(builder, CallConv::hostKind(), callbackReg, prepared);
     builder.emitTrap();
     MachineCode lowered;
     SWC_RESULT(lowered.emit(ctx, builder, MicroReg::invalid(), 0, &targetFunction));
@@ -2167,6 +2174,20 @@ namespace
         return RuntimeExceptionAction::Recover;
     }
 
+#ifdef _WIN32
+    int windowsJitExceptionFilter(TaskContext& ctx, const void* exceptionPointers, JITCallErrorKind& errorKind)
+    {
+        uint32_t code = 0;
+        const void* address = nullptr;
+        Os::decodeHostException(code, address, exceptionPointers);
+        // Native C++ exceptions must reach their handlers and run destructors.
+        // Only hardware faults and the Swag diagnostic exception belong here.
+        if (code != K_COMPILER_EXCEPTION_CODE && !Os::isFatalHostException(code))
+            return SWC_EXCEPTION_CONTINUE_SEARCH;
+        return exceptionHandler(ctx, exceptionPointers, errorKind) == RuntimeExceptionAction::Resume ? SWC_EXCEPTION_CONTINUE_EXECUTION : SWC_EXCEPTION_EXECUTE_HANDLER;
+    }
+#endif
+
     bool callWithHostFaultHandler(TaskContext& ctx, void (*function)(void*), void* argument, JITCallErrorKind& errorKind)
     {
 #ifdef _WIN32
@@ -2176,7 +2197,7 @@ namespace
         {
             function(argument);
         }
-        SWC_EXCEPT(exceptionHandler(ctx, SWC_GET_EXCEPTION_INFOS(), errorKind) == RuntimeExceptionAction::Resume ? SWC_EXCEPTION_CONTINUE_EXECUTION : SWC_EXCEPTION_EXECUTE_HANDLER)
+        SWC_EXCEPT(windowsJitExceptionFilter(ctx, SWC_GET_EXCEPTION_INFOS(), errorKind))
         {
             return false;
         }

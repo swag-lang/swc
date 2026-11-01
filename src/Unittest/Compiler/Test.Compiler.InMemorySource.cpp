@@ -1277,6 +1277,52 @@ func A() {}
 }
 SWC_TEST_END()
 
+SWC_TEST_BEGIN(Compiler_GlobalOsGuardSelectsTargetBeforeDeclarations)
+{
+    struct Case
+    {
+        std::string_view condition;
+        bool            windowsSkip;
+        bool            linuxSkip;
+    };
+    constexpr Case cases[] = {
+        {"#os == Swag.TargetOs.Windows", false, true},
+        {"#os == Swag.TargetOs.Linux", true, false},
+        {"#os != Swag.TargetOs.Windows // target selection", true, false},
+        {"#os != Swag.TargetOs.Linux", false, true},
+        {"#os == Swag.TargetOs.Unknown", false, false},
+        {"#os == Swag.TargetOs.Linux or true", false, false},
+        {"#os == Swag.TargetOs.Linux and false", false, false},
+        {"#os == Swag.TargetOs.Linux\n    or true", false, false},
+        {"#os == Swag.TargetOs.Linux /* comment */ or true", false, false},
+        {"#os == Swag.TargetOs.Linux // comment\n    or true", false, false},
+        {"false or true", false, false},
+        {"false\n    or true", false, false},
+    };
+    const fs::path sourcePath = Unittest::makeTestSourcePath("Compiler", "GlobalOsGuard");
+    for (const auto target : {Runtime::TargetOs::Windows, Runtime::TargetOs::Linux})
+    {
+        for (const auto& item : cases)
+        {
+            CommandLine cmdLine;
+            cmdLine.command = CommandKind::Syntax;
+            cmdLine.targetOs = target;
+            CompilerInstance compiler(ctx.global(), cmdLine);
+            const Utf8 source = std::format("#global if {}\nstruct PlatformValue {{ value: s32 }}\n", item.condition);
+            Unittest::registerTestSource(compiler, sourcePath, source.view());
+            TaskContext compilerCtx(compiler);
+            SourceFile& file = compiler.addFile(sourcePath, FileFlagsE::CustomSrc);
+            SWC_RESULT(file.loadContent(compilerCtx));
+            Lexer lexer;
+            lexer.tokenize(compilerCtx, file.ast().srcView(), LexerFlagsE::Default);
+            const bool expectedSkip = target == Runtime::TargetOs::Windows ? item.windowsSkip : item.linuxSkip;
+            if (compilerCtx.hasError() || file.ast().srcView().mustSkip() != expectedSkip)
+                return Result::Error;
+        }
+    }
+}
+SWC_TEST_END()
+
 SWC_TEST_BEGIN(Compiler_GenericUnionDeductionRemainsStableForHistoricalRandomSeed1002)
 {
     return runGenericUnionDeductionRandomizedSeed(ctx, 1002);

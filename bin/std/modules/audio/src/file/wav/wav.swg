@@ -203,7 +203,11 @@ private func parseFormat(bytes: const [..] u8)->Format fail
         fail InvalidFormatError{"WAV sample rate must be greater than zero"}
 
     // The oldest chunks state no sample width; the byte rate implies it.
-    result.bitsPerSample = (averageBytes * 8 / result.channels) / result.sampleRate
+    let frameByteRate = cast(u64, result.channels) * cast(u64, result.sampleRate)
+    let inferredBits  = cast(u64, averageBytes) * 8 / frameByteRate
+    if inferredBits > Swag.U32.Max do
+        fail InvalidFormatError{"WAV inferred sample width exceeds the supported range"}
+    result.bitsPerSample = cast(u32, inferredBits)
     if size >= FormatBitsSize
     {
         result.bitsPerSample = readU16(bytes, 14)

@@ -20,6 +20,7 @@ public:
         Exit,
         EnsureRuntimeAllocator,
         SetupRuntime,
+        SetupUnixArguments,
         ReleaseRuntime,
         CloseRuntime,
 
@@ -174,6 +175,7 @@ public:
         RuntimeExit,
         RuntimeEnsureRuntimeAllocator,
         RuntimeSetupRuntime,
+        RuntimeSetupUnixArguments,
         RuntimeReleaseRuntime,
         RuntimeCloseRuntime,
 

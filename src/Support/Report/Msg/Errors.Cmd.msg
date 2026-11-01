@@ -60,6 +60,7 @@ SWC_DIAG_DEF(cmd_err_new_file_write_failed, Error, "cannot write starter file '{
 SWC_DIAG_DEF(cmd_err_clean_remove_failed, Error, "cannot remove '{path}': {because}")
 SWC_DIAG_DEF(cmd_err_link_resource_read_failed, Error, "cannot read resource '{path}': {because}")
 SWC_DIAG_DEF(cmd_err_link_resource_invalid, Error, "cannot use resource '{path}': {because}")
+SWC_DIAG_DEF(cmd_err_link_external_failed, Error, "cannot link '{path}': {because}")
 SWC_DIAG_DEF(cmd_err_link_elf_object, Error, "cannot write ELF object: {because}")
 SWC_DIAG_DEF(cmd_err_link_coff_truncated_header, Error, "truncated COFF file header")
 SWC_DIAG_DEF(cmd_err_link_coff_unsupported_machine, Error, "unsupported COFF machine (expected x64)")

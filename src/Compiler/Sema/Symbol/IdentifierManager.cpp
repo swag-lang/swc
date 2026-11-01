@@ -123,6 +123,7 @@ void IdentifierManager::setup(const TaskContext& ctx)
         {.name = PredefinedName::RuntimeExit, .str = "__exit"},
         {.name = PredefinedName::RuntimeEnsureRuntimeAllocator, .str = "__ensureRuntimeAllocator"},
         {.name = PredefinedName::RuntimeSetupRuntime, .str = "__setupRuntime"},
+        {.name = PredefinedName::RuntimeSetupUnixArguments, .str = "__setupUnixArguments"},
         {.name = PredefinedName::RuntimeReleaseRuntime, .str = "__releaseRuntime"},
         {.name = PredefinedName::RuntimeCloseRuntime, .str = "__closeRuntime"},
 
@@ -180,6 +181,7 @@ void IdentifierManager::setup(const TaskContext& ctx)
     runtimeFunctions_[static_cast<size_t>(RuntimeFunctionKind::Exit)]                   = predefined(PredefinedName::RuntimeExit);
     runtimeFunctions_[static_cast<size_t>(RuntimeFunctionKind::EnsureRuntimeAllocator)] = predefined(PredefinedName::RuntimeEnsureRuntimeAllocator);
     runtimeFunctions_[static_cast<size_t>(RuntimeFunctionKind::SetupRuntime)]           = predefined(PredefinedName::RuntimeSetupRuntime);
+    runtimeFunctions_[static_cast<size_t>(RuntimeFunctionKind::SetupUnixArguments)]     = predefined(PredefinedName::RuntimeSetupUnixArguments);
     runtimeFunctions_[static_cast<size_t>(RuntimeFunctionKind::ReleaseRuntime)]         = predefined(PredefinedName::RuntimeReleaseRuntime);
     runtimeFunctions_[static_cast<size_t>(RuntimeFunctionKind::CloseRuntime)]           = predefined(PredefinedName::RuntimeCloseRuntime);
 

@@ -5,6 +5,7 @@
 
 #include "Backend/Linker/Archive.h"
 #include "Backend/Linker/ELFObjectWriter.h"
+#include "Backend/RuntimeName.h"
 #include "Backend/Encoder/X64DwarfFrame.h"
 #include "Unittest/Native/NativeTestBytes.h"
 #include "Main/ExitCodes.h"
@@ -18,6 +19,8 @@ SWC_BEGIN_NAMESPACE();
 
 namespace
 {
+    constexpr std::string_view K_HOST_TARGET_ARGUMENT = hostTargetOs() == Runtime::TargetOs::Windows ? "windows" : "linux";
+
     ByteArray makeArchiveTestObject(const std::string_view symbol, const std::byte instruction)
     {
         SWC_ASSERT(symbol.size() <= PE::SIZEOF_SHORT_NAME);
@@ -350,12 +353,12 @@ var gCallback = &reflect
 }
 )";
     SWC_RESULT(testDir.write("main.swg", source));
-    const std::vector<Utf8> args = {"run", "-f", Utf8(testDir.path() / "main.swg"), "-n", "emitted", "--artifact-kind", "executable", "--out-dir", Utf8(testDir.path() / "output"), "--work-dir", Utf8(testDir.path() / "work"), "--build-cfg", "devmode", "--num-cores", "3", "--no-log-color"};
+    const std::vector<Utf8> args = {"run", "--os", Utf8(K_HOST_TARGET_ARGUMENT), "-f", Utf8(testDir.path() / "main.swg"), "-n", "emitted", "--artifact-kind", "executable", "--out-dir", Utf8(testDir.path() / "output"), "--work-dir", Utf8(testDir.path() / "work"), "--build-cfg", "devmode", "--num-cores", "3", "--no-log-color"};
     SWC_RESULT(runCompiler(args, ExitCode::Success, "RetainedReflectionPayload"));
 
     ByteArray               bytes;
     FileSystem::IoErrorInfo ioError;
-    SWC_RESULT(FileSystem::readBinaryFile(testDir.path() / "output" / "emitted.exe", bytes, ioError));
+    SWC_RESULT(FileSystem::readBinaryFile(testDir.path() / "output" / (hostTargetOs() == Runtime::TargetOs::Windows ? "emitted.exe" : "emitted"), bytes, ioError));
     const std::string_view image{reinterpret_cast<const char*>(bytes.data()), bytes.size()};
     // The branch disappears during lowering, after its semantic call edge was recorded.
     // Its callee must not retain type records, names or transitive field descriptors.
@@ -472,12 +475,31 @@ SWC_FILESYSTEM_TEST_BEGIN(Linker_MappedArchivesKeepBytesAcrossMovesAndReplacemen
 }
 SWC_TEST_END()
 
+SWC_FILESYSTEM_TEST_BEGIN(Linker_NativeStartupPreservesArguments)
+{
+    const LinkerTestDirectory testDir("native_arguments");
+    constexpr std::string_view source = R"(#main
+{
+    let actual = Swag.args()
+    let values: [6] string = ["", "two words", "a\"b", "tail\\", "\t", "café"]
+    Swag.assert(actual.count == 7)
+    for expected, index in values do
+        Swag.assert(actual[index + 1] == expected)
+    Swag.print("native arguments passed\n")
+}
+)";
+    SWC_RESULT(testDir.write("main.swg", source));
+    const std::vector<Utf8> args = {"run", "--os", Utf8(K_HOST_TARGET_ARGUMENT), "-f", Utf8(testDir.path() / "main.swg"), "-n", "arguments", "--artifact-kind", "executable", "--out-dir", Utf8(testDir.path() / "output"), "--work-dir", Utf8(testDir.path() / "work"), "--num-cores", "3", "--no-log-color", "--run-arg", "", "--run-arg", "two words", "--run-arg", "a\"b", "--run-arg", "tail\\", "--run-arg", "\t", "--run-arg", "caf\xc3\xa9"};
+    SWC_RESULT(runCompiler(args, ExitCode::Success, "native arguments passed"));
+}
+SWC_TEST_END()
+
 SWC_FILESYSTEM_TEST_BEGIN(Linker_NativeTestsDiscardRejectedCallees)
 {
     const LinkerTestDirectory testDir("rejected_callee");
     const fs::path            source = Os::getExeFullName().parent_path() / "unittests" / "sanity" / "expected_error_native_roots.swg";
     // Running the JIT first would already filter the failed functions and hide this boundary.
-    const std::vector<Utf8> args = {"test", "--artifact-kind", "executable", "-f", Utf8(source), "--out-dir", Utf8(testDir.path() / "output"), "--work-dir", Utf8(testDir.path() / "work"), "--build-cfg", "devmode", "--no-test-jit", "--num-cores", "3", "--no-log-color"};
+    const std::vector<Utf8> args = {"test", "--os", Utf8(K_HOST_TARGET_ARGUMENT), "--artifact-kind", "executable", "-f", Utf8(source), "--out-dir", Utf8(testDir.path() / "output"), "--work-dir", Utf8(testDir.path() / "work"), "--build-cfg", "devmode", "--no-test-jit", "--num-cores", "3", "--no-log-color"};
     SWC_RESULT(runCompiler(args, ExitCode::Success, "1 passed"));
 }
 SWC_TEST_END()
@@ -544,20 +566,21 @@ func(T) accumulate(value: T)
     };
 
     // A static library also covers the archive members the constants are split into.
-    for (const ArtifactKind kind : {ArtifactKind{"executable", ".exe"}, ArtifactKind{"static-library", ".lib"}})
+    const bool windows = hostTargetOs() == Runtime::TargetOs::Windows;
+    for (const ArtifactKind kind : {ArtifactKind{"executable", windows ? ".exe" : ""}, ArtifactKind{"static-library", windows ? ".lib" : ".a"}})
     {
         ByteArray first;
         for (uint32_t round = 0; round < 3; ++round)
         {
             const fs::path          roundDir = testDir.path() / kind.name / std::to_string(round);
-            const std::vector<Utf8> args     = {"build", "-f", Utf8(testDir.path() / "main.swg"), "-n", "determinism", "--artifact-kind", Utf8(kind.name), "--out-dir", Utf8(roundDir / "output"), "--work-dir", Utf8(roundDir / "work"), "--build-cfg", "devmode", "--num-cores", "3", "--no-log-color"};
+            const std::vector<Utf8> args     = {"build", "--os", Utf8(K_HOST_TARGET_ARGUMENT), "-f", Utf8(testDir.path() / "main.swg"), "-n", "determinism", "--artifact-kind", Utf8(kind.name), "--out-dir", Utf8(roundDir / "output"), "--work-dir", Utf8(roundDir / "work"), "--build-cfg", "devmode", "--num-cores", "3", "--no-log-color"};
             SWC_RESULT(runCompiler(args, ExitCode::Success, ""));
 
             ByteArray               bytes;
             FileSystem::IoErrorInfo ioError;
             SWC_RESULT(FileSystem::readBinaryFile(roundDir / "output" / std::format("determinism{}", kind.extension), bytes, ioError));
 
-            // The image timestamp is the build time by design, the only byte allowed to move.
+            // PE carries a build timestamp. GNU ELF images and archives are deterministic as written.
             if (kind.extension == ".exe")
                 bytes.writeLe32(bytes.readLe32(0x3c) + 8, 0);
 

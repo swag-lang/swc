@@ -762,6 +762,8 @@ namespace
 
         appendRuntimeRoot(IdentifierManager::RuntimeFunctionKind::SetupRuntime);
         appendRuntimeRoot(IdentifierManager::RuntimeFunctionKind::CloseRuntime);
+        if (compiler.cmdLine().targetOs == Runtime::TargetOs::Linux && compiler.buildCfg().backendKind == Runtime::BuildCfgBackendKind::Executable)
+            appendRuntimeRoot(IdentifierManager::RuntimeFunctionKind::SetupUnixArguments);
         if (!builder.testFunctions.empty())
         {
             appendRuntimeRoot(IdentifierManager::RuntimeFunctionKind::RunTest);
@@ -1104,7 +1106,7 @@ void NativeBackendBuilder::prepareFunctionCache()
     functionCacheIndexPath_.clear();
 
     const CommandLine& commandLine = compiler_->cmdLine();
-    if (commandLine.rebuild || commandLine.command == CommandKind::Test ||
+    if (commandLine.targetOs != Runtime::TargetOs::Windows || commandLine.rebuild || commandLine.command == CommandKind::Test ||
         compiler_->buildCfg().backendKind != Runtime::BuildCfgBackendKind::Executable ||
         compiler_->buildCfg().backend.debugInfo || compiler_->importedNativeExecuted())
         return;
@@ -2042,7 +2044,7 @@ Result NativeBackendBuilder::reportError(const Diagnostic& diag)
 Result NativeBackendBuilder::validateTarget()
 {
     const CommandLine& commandLine = ctx_.cmdLine();
-    if (commandLine.targetOs != Runtime::TargetOs::Windows)
+    if (commandLine.targetOs != Runtime::TargetOs::Windows && commandLine.targetOs != Runtime::TargetOs::Linux)
     {
         return reportError(DiagnosticId::cmd_err_native_target_os_not_supported);
     }

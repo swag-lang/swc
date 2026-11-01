@@ -548,13 +548,13 @@ void NativeArtifactBuilder::queryPaths(NativeArtifactPaths& outPaths, const uint
         outPaths.outDir = outPaths.workDir;
 
     outPaths.artifactPath = outPaths.outDir / std::format("{}{}", outPaths.name, outPaths.artifactExtension);
-    outPaths.pdbPath      = outPaths.outDir / std::format("{}.pdb", outPaths.name);
+    outPaths.pdbPath      = builder_->ctx().cmdLine().targetOs == Runtime::TargetOs::Windows ? outPaths.outDir / std::format("{}.pdb", outPaths.name) : fs::path{};
 
     // A shared library also publishes the archive built from the same objects, so that an
     // executable can link this module's code in instead of importing it from the DLL.
     const fs::path& staticLibraryOutDir = builder_->ctx().cmdLine().staticLibraryOutDir;
     if (!staticLibraryOutDir.empty() && builder_->compiler().buildCfg().backendKind == Runtime::BuildCfgBackendKind::SharedLibrary)
-        outPaths.staticLibraryPath = staticLibraryOutDir / std::format("{}.lib", outPaths.name);
+        outPaths.staticLibraryPath = staticLibraryOutDir / std::format("{}{}", outPaths.name, builder_->ctx().cmdLine().targetOs == Runtime::TargetOs::Linux ? ".a" : ".lib");
 
     if (!numObjects)
         return;
@@ -570,6 +570,15 @@ Utf8 NativeArtifactBuilder::artifactExtension() const
 {
     switch (builder_->ctx().cmdLine().targetOs)
     {
+        case Runtime::TargetOs::Linux:
+            switch (builder_->compiler().buildCfg().backendKind)
+            {
+                case Runtime::BuildCfgBackendKind::Executable: return "";
+                case Runtime::BuildCfgBackendKind::SharedLibrary: return ".so";
+                case Runtime::BuildCfgBackendKind::StaticLibrary: return ".a";
+                default: break;
+            }
+            break;
         case Runtime::TargetOs::Windows:
             switch (builder_->compiler().buildCfg().backendKind)
             {
@@ -594,6 +603,8 @@ Utf8 NativeArtifactBuilder::objectExtension() const
 {
     switch (builder_->ctx().cmdLine().targetOs)
     {
+        case Runtime::TargetOs::Linux:
+            return ".o";
         case Runtime::TargetOs::Windows:
             return ".obj";
     }
@@ -1018,6 +1029,24 @@ Result NativeArtifactBuilder::buildStartup(TaskContext& ctx) const
     MicroBuilder builder(builder_->ctx());
     builder.setBackendBuildCfg(builder_->compiler().buildCfg().backend);
     uint32_t nextVirtualIntRegIndex = builder.nextVirtualIntRegIndexHint();
+
+    if (ctx.cmdLine().targetOs == Runtime::TargetOs::Linux)
+    {
+        startup->symbolName = "main";
+        startup->debugName = "main";
+        const auto* argumentsFunction = builder_->compiler().runtimeFunctionSymbol(IdentifierManager::RuntimeFunctionKind::SetupUnixArguments);
+        SWC_ASSERT(argumentsFunction);
+        if (!argumentsFunction)
+            return builder_->reportError(DiagnosticId::cmd_err_native_test_entry_lower_failed);
+        const CallConv& incoming = CallConv::get(CallConvKind::SystemVAMD64);
+        const MicroReg argcReg = nextVirtualIntReg(nextVirtualIntRegIndex);
+        const MicroReg argvReg = nextVirtualIntReg(nextVirtualIntRegIndex);
+        builder.emitLoadRegReg(argcReg, incoming.intArgRegs[0], MicroOpBits::B32);
+        builder.emitLoadRegReg(argvReg, incoming.intArgRegs[1], MicroOpBits::B64);
+        const std::array<ABICall::PreparedArg, 2> arguments = {{{.srcReg = argcReg, .numBits = 32}, {.srcReg = argvReg, .numBits = 64}}};
+        const auto prepared = ABICall::prepareArgs(builder, argumentsFunction->callConvKind(), arguments);
+        ABICall::callLocal(builder, argumentsFunction->callConvKind(), argumentsFunction, prepared);
+    }
 
     const IdentifierRef   setupRuntimeIdRef = ctx.idMgr().runtimeFunction(IdentifierManager::RuntimeFunctionKind::SetupRuntime);
     const IdentifierRef   closeRuntimeIdRef = ctx.idMgr().runtimeFunction(IdentifierManager::RuntimeFunctionKind::CloseRuntime);

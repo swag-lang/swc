@@ -3,6 +3,7 @@
 #if SWC_HAS_UNITTEST
 
 #include "Backend/Native/NativeBackendBuilder.h"
+#include "Backend/RuntimeName.h"
 #include "Compiler/Sema/Core/Sema.h"
 #include "Compiler/Sema/Helpers/SemaError.h"
 #include "Compiler/Sema/Symbol/Symbol.Function.h"
@@ -70,6 +71,7 @@ namespace
         RestoreCommandMetrics restoreMetrics;
         CommandLine           command;
         command.command           = CommandKind::Test;
+        command.targetOs          = hostTargetOs();
         command.name              = "compiler_native_failure";
         command.buildCfg          = Utf8(configuration);
         command.buildCfgExplicit  = true;

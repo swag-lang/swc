@@ -879,12 +879,12 @@ by portable modules and products. The earlier entries prepare and enforce the sa
   outside the checkout with GNU Make. Complete DevMode and Release compilers link and
   pass the lexer/parser suites including expected-error inputs without spurious JIT setup.
   The full C++ campaign, including filesystem tests and extra IR/native validation, passes
-  1,717 of 1,724 tests; seven native link/run fixtures remain failing. Closed Windows x64 instruction fixtures execute
+  1,724 of 1,725 tests; the PE missing-resource fixture remains failing. Closed Windows x64 instruction fixtures execute
   through an explicit GCC ABI bridge. Runtime adapters initialize on the first actual JIT call,
   and generated code retains separate output-target and host unwind metadata.
   Cross-host foreign relocations reject an actual call while allowing untaken error branches.
-  Platform-neutral semantic/JIT fixtures now select the host target. Remaining native execution
-  failures still reach Windows TLS instructions through Windows runtime helpers. C++ fixtures isolate their error counts, retaining unexpected diagnostics as
+  Platform-neutral semantic/JIT fixtures now select the host target. The remaining PE resource fixture faults during its module configuration because
+  a Windows-target JIT error check reads Windows TLS on the Linux host. C++ fixtures isolate their error counts, retaining unexpected diagnostics as
   failures without aborting later native preparation. Windows link/run fixtures also need
   target import libraries and an executable format supported by the Linux host.
   PE/COFF records no longer depend on the Windows SDK, and both target enums represent Linux.
@@ -896,10 +896,12 @@ by portable modules and products. The earlier entries prepare and enforce the sa
   guarded semantic/JIT execution and runtime host-boundary probes pass. The Linux test runner
   recovers protected-page faults and stack exhaustion on a guarded alternate stack, preserves
   catchPanic and captured-error ownership, and restores prior signal handlers and masks. These
-  paths are covered through JIT integration; native ELF execution, compiler-owned pthread
-  cleanup and DWARF source resolution remain missing.
+  paths are covered through JIT integration. Native ELF startup, argument preservation, mutex/condition
+  operations, panic cleanup and termination, reflection pruning and deterministic executable/archive
+  output pass. Compiler-owned pthread cleanup and DWARF source resolution remain missing.
   Linux directory locks do not prohibit an uncoordinated cleaner's rename.
-- Next: resolve the native C++ failures through Linux artifact/startup support and complete runtime lifecycle validation.
+- Next: separate host JIT context/error access from output-target TLS lowering so Windows-target
+  configuration reaches the PE resource diagnostic on Linux. Complete runtime lifecycle validation.
   Coordinate directory cleanup with API readers/publication. Keep C++ cleanup intact across
   generated-code faults, including native callbacks and nested JIT calls.
 - Done when: DevMode and Release Linux compilers build from source and execute focused C++,
@@ -948,7 +950,7 @@ by portable modules and products. The earlier entries prepare and enforce the sa
   preserve callee-save registers and stack alignment, and use the same ABI in JIT and native code.
 - Related: platform.portability.007, platform.portability.081
 
-### platform.portability.093 — Native output has no ELF and Linux startup path
+### platform.portability.093 — Linux native output needs module, PIC and debug integration
 
 - Evidence: `ELFObjectWriter` emits ELF64 relocatable code/data/BSS with explicit RELA
   addends, undefined symbols and exported aliases. A GNU linker consumer executes these
@@ -956,10 +958,15 @@ by portable modules and products. The earlier entries prepare and enforce the sa
   Prepared images share native code/data lowering; Linux unwind output uses relocatable
   DWARF CIE/FDE records. The native object factory supports ELF partitions, and a GNU
   archive consumer verifies writable-global pointers into separately extracted constants.
-  Final-image linking still writes PE and rejects Linux in `NativeBackendBuilder::validateTarget`.
-- Next: connect ELF objects to a Linux link/startup path with explicit CRT, hosted library and dynamic
-  loader inputs. Pass argc/argv to runtime initialization before module startup; keep debug/unwind
-  format selection independent of CodeView/PDB.
+  The Linux linker publishes GNU-linked ELF executables and deterministic GNU archives; its System V
+  main entry installs argc/argv before runtime initialization. Native startup, argument-byte
+  preservation, runtime synchronization, panic cleanup and deterministic parallel outputs pass.
+  Source debug output is explicitly rejected until DWARF source records exist. Shared-library
+  linking currently permits text relocations; it does not establish PIC or loader lifecycle support.
+  Persistent native function caches remain COFF-specific and are disabled for Linux.
+- Next: validate native fault/stack recovery and shared-module initialization/cleanup; finish Linux
+  dependency naming/publication, PIC relocations, source-level DWARF and target-specific incremental
+  caches. Preserve the working native executable and archive consumers.
 - Done when: Linux executables and shared libraries link and run a runtime/native workspace smoke,
   including foreign imports, arguments and cross-module initialization/cleanup.
 - Related: platform.portability.005, platform.portability.007, platform.portability.092

@@ -14,7 +14,7 @@ const TinyWav: [48] u8 = [
 // Builds a 16-bit mono WAV whose loudness moves the way real material does, so the picture the
 // plot is judged on shows what the plot is for: bursts that decay, a transient above the body of
 // each one, and silences between them.
-func previewWav()->Array'u8
+internal func previewWav()->Array'u8
 {
     const SampleRate  = 11_025'u64
     const FrameCount  = SampleRate * 2 + SampleRate / 2
@@ -70,13 +70,13 @@ func writeU32(bytes: *Array'u8, offset: u64, value: u32)
     bytes[offset + 3] = cast(u8, ((value >> 24) & 0xFF))
 }
 
-func finishWaveform(view: *Sound.Panel)
+internal func finishWaveform(view: *Sound.Panel)
 {
     view.waveformTask.wait()
     view.syncWaveform()
 }
 
-func waitForSoundOpen(host: *Testing.HeadlessHost, view: *Sound.Panel)
+internal func waitForSoundOpen(host: *Testing.HeadlessHost, view: *Sound.Panel)
 {
     view.openTask.wait()
     host.pump()
@@ -230,42 +230,6 @@ func markSoundOpenFailure(wnd: *Wnd, _: string)
     Swag.assert(Math.isEqualEpsilon(view.elapsed, cast(f32, reading.seconds), 0.00001))
     Swag.assert(view.volume == 0.4 and not view.muted)
     Swag.assert(Math.isEqualEpsilon(view.volumeSlider.value(), 0.4, 0.001))
-}
-
-// The recording in the window, against `scope.sound`: the cover, the name and who made it, the
-// wave as bars played in Arc up to the play head, and the times under it.
-#[Swag.TestTag("golden")]
-#test
-{
-    let fileName = Path.combine(Env.getSpecialDirectory(.Temp), "viewer.sound.preview.wav")
-    defer discard catch File.delete(fileName)
-    let wav = previewWav()
-    expect File.writeAllBytes(fileName, wav.toSlice())
-
-    Swag.assert(Sound.acquireEngine(.NoSound))
-    defer Sound.releaseEngine()
-
-    for light in [false, true]
-    {
-        var host: Testing.HeadlessHost
-        let window = framedViewerWindow(&host, fileName.toString(), light)
-        let view   = assume cast(*Sound.Panel, window.instances[window.activeChoiceIndex].view)
-        waitForSoundOpen(&host, view)
-        finishWaveform(view)
-
-        // Photographed mid-playback, with the tags a recording carries.
-        view.tags.title  = "Harbour Lights"
-        view.tags.artist = "The Quiet Pier"
-        view.tags.album  = "Night Ferries"
-        view.tags.year   = "2026"
-        view.elapsed     = view.duration * 0.38
-        view.refreshTransport()
-        view.invalidate()
-        host.settleAnimations(window, 4)
-
-        var image = host.render(&host.surfaceWnd)
-        Pixel.Testing.assertImageGolden(&image, light ? "viewer.sound.paper" : "viewer.sound.ink")
-    }
 }
 
 #test

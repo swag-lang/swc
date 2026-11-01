@@ -5,7 +5,7 @@ using Core, Gui, Pixel
 
 func fixture(name: string)->String => Path.combine(unwrap Path.directoryName(#curlocation.fileName), "datas", name)
 
-func completeExplorer(host: *Testing.HeadlessHost, explorer: *Explorer)
+internal func completeExplorer(host: *Testing.HeadlessHost, explorer: *Explorer)
 {
     for 16
     {
@@ -106,7 +106,7 @@ func completeExplorer(host: *Testing.HeadlessHost, explorer: *Explorer)
 
 // An archive is a page: its folders and members as quiet rows with their dates, "Extract All…" on
 // the title's line, and the chosen member in the sheet with Open and "Extract…".
-func archivePage(host: *Testing.HeadlessHost, light: bool)->*ViewerWindow
+internal func archivePage(host: *Testing.HeadlessHost, light: bool)->*ViewerWindow
 {
     host.setup(1280, 800)
     host.surface.updateFlags(SurfaceFlags.StandardWindow | SurfaceFlags.NoShadow)
@@ -127,42 +127,6 @@ func archivePage(host: *Testing.HeadlessHost, light: bool)->*ViewerWindow
     explorer.address.refreshPath()
     window.applyLayout()
     return window
-}
-
-#[Swag.TestTag("golden")]
-#test
-{
-    for light in [false, true]
-    {
-        var host: Testing.HeadlessHost
-        let window   = archivePage(&host, light)
-        let explorer = unwrap window.explorer
-        Swag.assert(explorer.extractAll.isLocallyVisible() and explorer.extractAll.name.raw == appStrings().cmd_ExtractAll)
-        for &entry in explorer.entries do
-            Swag.assert(entry.directory and entry.modified.length == 16)
-
-        // The chosen member, its picture not asked for so the page holds still.
-        explorer.navigate(explorer.listing.path, "docs/")
-        completeExplorer(&host, explorer)
-        explorer.address.breadcrumb.clear()
-        explorer.address.breadcrumb.addItem("viewer.archive.zip")
-        explorer.address.refreshPath()
-        for &entry in explorer.entries do
-            entry.attempted = true
-        explorer.selected = 0
-        explorer.fill()
-        explorer.showInformation()
-        let sheet = window.infoSheet.text()
-        Swag.assert(Utf8.contains(sheet, appStrings().cmd_OpenChosen) and Utf8.contains(sheet, appStrings().cmd_Extract))
-        Swag.assert(Utf8.contains(sheet, "CRC-32"))
-        window.applyLayout()
-        host.settleAnimations(window)
-        var image = host.render(window)
-        Pixel.Testing.assertImageGolden(&image, light ? "explorer.archive.paper" : "explorer.archive")
-        var frame = host.render(&host.surfaceWnd)
-        Pixel.Testing.assertImageGolden(&frame, light ? "explorer.frame.paper" : "explorer.frame.encre")
-
-    }
 }
 
 // Folder traversal uses the visible buttons and restores their enabled state in both directions.

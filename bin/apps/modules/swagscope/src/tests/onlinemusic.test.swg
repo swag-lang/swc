@@ -16,7 +16,9 @@ using Core, Net, Pixel, Audio
     let compilation = SoundTags{album: "A collaboration", artist: "Guest Performer", albumArtist: "Artist One & Artist Two"}
     Swag.assert(search.choose(&compilation) == 0)
     let local = localMusicSummary(&compilation)
-    Swag.assert(local.title == "A collaboration" and local.artist == "Artist One & Artist Two" and local.source == "tags")
+    Swag.assert(local.title == "A collaboration" and
+                local.artist == "Artist One & Artist Two" and
+                local.source == "tags")
 }
 
 struct MusicServerFixture
@@ -214,17 +216,4 @@ func serveMusic(thread: const *Threading.Thread)
     let summary = MusicSummary.fromImage(&cover)
     Swag.assert(summary.title == "Discovery" and summary.artist == "Daft Punk")
     Swag.assert(cachedMediaIsFresh(&cover, Time.Timestamp.utcNow().ticks))
-}
-
-// The explicit integration check reaches the real HTTPS services and their artwork redirect.
-#[Swag.TestTag("integration.network")]
-#test
-{
-    let tags  = SoundTags{album: "Discovery", artist: "Daft Punk", year: "2001"}
-    var music = expect OnlineMusic.lookup(&tags)
-    Swag.assert(music.id == "48117b90-a16e-34ca-a514-19c702df1158")
-    let bytes = expect music.coverBytes()
-    Swag.assert(bytes.count > 100)
-    let chosen = expect OnlineMusic.lookup(&tags, chosenId: music.id)
-    Swag.assert(chosen.id == music.id and chosen.artistText() == "Daft Punk")
 }

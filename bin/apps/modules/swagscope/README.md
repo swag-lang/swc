@@ -333,8 +333,9 @@ plugin can open. The key is never translated or reused because remembered viewer
 it. A built-in glyph remains a 24-unit cell in `datas/icons.svg` with a matching `ViewerIcons`
 case in grid order; a separately built plugin would name a cell of the document it embeds itself.
 
-Keep tests at `src/tests/viewer.<format>.test.swg`, fixtures in `src/tests/datas`, and image goldens
-in `src/tests/goldens`. External fixtures record their source URLs, license, and hashes in
+Keep ordinary tests at `src/tests/viewer.<format>.test.swg`, golden comparisons at
+`src/tests/viewer.<format>.golden.test.swg`, fixtures in `src/tests/datas`, and image goldens in
+`src/tests/goldens`. External fixtures record their source URLs, license, and hashes in
 `datas/THIRDPARTY.md`.
 Run a focused test with:
 

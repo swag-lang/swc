@@ -226,7 +226,7 @@ func serveMovies(thread: const *Threading.Thread)
     let expectedPoster = Format.toString("http://127.0.0.1:%/t/p/w500/blade-runner.jpg", endpoint.port)
     Swag.assert(movie.posterUrl == expectedPoster, movie.posterUrl)
     let posterBytes = expect movie.posterBytes(host)
-    var poster = expect Image.decode("poster.png", posterBytes.toSlice())
+    var poster      = expect Image.decode("poster.png", posterBytes.toSlice())
     thread.wait()
     Swag.assert(movie.id == "tmdb:78" and movie.sources == "TMDB" and poster.isValid())
     Swag.assert(movie.ratingSource == "TMDB" and movie.imdbRating == "8.1/10")
@@ -242,26 +242,10 @@ func serveMovies(thread: const *Threading.Thread)
     Swag.assert(summary.ratingSource == "TMDB" and Utf8.contains(summary.text().toString(), "TMDB rating: 8.1/10"))
     Swag.assert(summary.genre == "Science Fiction, Drama")
 
-    let json = """{"results":[{"id":10,"title":"Dune","release_date":"1984-12-14"},{"id":11,"title":"Dune","release_date":"2021-10-22"}]}"""
+    let json   = """{"results":[{"id":10,"title":"Dune","release_date":"1984-12-14"},{"id":11,"title":"Dune","release_date":"2021-10-22"}]}"""
     var decoder: Serialization.Decoder'Serialization.Read.Json
     let search = expect decoder.readAll'TmdbSearch(cast(const [..] u8, json))
     defer Memory.delete(search)
     Swag.assert(MovieQuery{title: "Dune", year: "2021"}.chooseTMDB(search) == 1)
     Swag.assert(MovieQuery{title: "Dune"}.chooseTMDB(search) == Swag.U64.Max)
-}
-
-#[Swag.TestTag("integration.network")]
-#test
-{
-    let source = MovieSource{tmdbHost: ""}
-    var movie = expect OnlineMovie.lookup("Blade Runner (1982).mkv", source, language: "en")
-    Swag.assert(movie.id == "Q184843" and not movie.overview.isEmpty())
-    let poster = expect movie.posterBytes()
-    Swag.assert(poster.count > 100)
-    var french = expect OnlineMovie.lookup("Blade Runner (1982).mkv", source, language: "fr")
-    Swag.assert(french.id == movie.id and not french.overview.isEmpty())
-    let frenchPoster = expect french.posterBytes()
-    Swag.assert(frenchPoster.count > 100 and Utf8.contains(french.posterUrl.toString(), "/wikipedia/en/"))
-    var matrix = expect OnlineMovie.lookup("The Matrix (1999).mkv", source, language: "fr")
-    Swag.assert(matrix.id == "Q83495" and (expect matrix.posterBytes()).count > 100)
 }

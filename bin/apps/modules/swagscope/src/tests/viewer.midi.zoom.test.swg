@@ -3,7 +3,7 @@
 
 using Core, Gui, Viewers
 
-func midiZoomFixturePath()->String => Path.combine(unwrap Path.directoryName(#curlocation.fileName), "datas/viewer.mid")
+internal func midiZoomFixturePath()->String => Path.combine(unwrap Path.directoryName(#curlocation.fileName), "datas/viewer.mid")
 
 #test
 {
@@ -70,21 +70,4 @@ func midiZoomFixturePath()->String => Path.combine(unwrap Path.directoryName(#cu
     Swag.assert(options.rows[2].value == "Nombres MIDI" and options.rows[3].value == "Large")
     Swag.assert(viewer.zoomLabel.toolTip.contains("Page précédente/suivante"))
     expect host.app.setLanguage(ReferenceLanguage)
-}
-
-#[Swag.TestTag("golden")]
-#test
-{
-    var document = expect Midi.loadDocument(midiZoomFixturePath())
-    var host: Testing.HeadlessHost
-    host.setup(900, 600)
-
-    let roll = Midi.RollView.create(&host.root, #move document)
-    host.root.applyLayout()
-    roll.refreshLayout()
-    roll.applyPitchZoom(2)
-    roll.scroll.setScrollPos(0, 120)
-    host.settleAnimations(&host.root, 4)
-    let image = host.render(&host.root)
-    Pixel.Testing.assertImageGolden(&image, "viewer.midi.vertical-zoom")
 }

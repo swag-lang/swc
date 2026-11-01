@@ -1,0 +1,406 @@
+#global if #command == Swag.CompilerCommand.Test
+#global private
+
+using Core, Pixel, Gui
+
+// A picture that runs from `top` to `bottom`, standing for a thumbnail the renderer would make.
+func boardPicture(width, height: s32, top, bottom: u32)->Image
+{
+    var bytes: Array'u8
+    bytes.resize(cast(u64, width * height * 3))
+
+    // The rows of an image run from the bottom up.
+    for y in height
+    {
+        let t = cast(f32, height - 1 - y) / cast(f32, Math.max(height - 1, 1))
+        for x in width
+        {
+            let at = cast(u64, (y * width + x) * 3)
+            for channel in 3
+            {
+                let shift = cast(u32, (2 - channel) * 8)
+                let a     = cast(f32, (top >> shift) & 0xFF)
+                let b     = cast(f32, (bottom >> shift) & 0xFF)
+                bytes[at + cast(u64, channel)] = cast(u8, Math.round(a + (b - a) * t))
+            }
+        }
+    }
+
+    return Image.create(width, height, .RGB8, bytes.toSlice())
+}
+
+// Adds an entry with a picture already rendered for it.
+func addPictured(host: *Testing.HeadlessHost, explorer: *Explorer, name: string, picture: Image, size: u64, duration = 0'u64)
+{
+    with var entry: ExplorerEntry
+    {
+        .name      = name
+        .path      = name
+        .size      = size
+        .duration  = duration
+        .attempted = true
+    }
+
+    entry.texture = host.app.renderer.addImage(&picture)
+    explorer.entries.add(#move entry)
+}
+
+// A narrow explorer keeps its title, actions and filter apart in both languages and at 150%.
+#[Swag.TestTag("golden")]
+#test
+{
+    for light in [false, true]
+    {
+        for language in [ReferenceLanguage, "fr"]
+        {
+            var host: Testing.HeadlessHost
+            let window   = boardWindow(&host, light, films: false, scale: language == "fr" ? 1.5 : 1.0, width: ViewerWindow.MinWidth, height: 680)
+            let explorer = unwrap window.explorer
+            expect host.app.setLanguage(language)
+            host.notify(.LanguageChanged)
+            for name in ["Documents", "A file with a descriptive name.txt", "Project notes.md", "Archive.zip"] do
+                explorer.entries.add({name: name, path: name, attempted: true, directory: name == "Documents"})
+            showBoard(&host, window, "Documents", "Project reference documents")
+            window.resize(ViewerWindow.MinWidth, 680)
+            explorer.selected = 1
+            window.updateCommandState()
+            explorer.layoutTools()
+            window.applyLayout()
+
+            let title   = explorer.title.surfaceRect()
+            let address = explorer.address.surfaceRect()
+            let tools   = explorer.tools.surfaceRect()
+            Swag.assert(title.right() <= address.x and address.right() <= tools.x)
+
+            host.clickWnd(&window.findCaptionButton.button)
+            Swag.assert(explorer.filter.isVisible() and explorer.filter.hasFocus())
+            Swag.assert(explorer.filter.surfaceRect().y == explorer.sortMenu.surfaceRect().y)
+            explorer.filter.setText("missing")
+            Swag.assert(explorer.shown.isEmpty())
+            host.settleAnimations(window)
+            var empty = host.render(&host.surfaceWnd)
+            Pixel.Testing.assertImageGolden(&empty, Format.toString("explorer.empty.%.%", light ? "paper" : "encre", language == "fr" ? "fr" : "en"))
+            explorer.filter.setText("")
+            Swag.assert(explorer.shown.count == 4)
+            host.settleAnimations(window)
+            var image = host.render(&host.surfaceWnd)
+            Pixel.Testing.assertImageGolden(&image, Format.toString("explorer.narrow.%.%", light ? "paper" : "encre", language == "fr" ? "fr" : "en"))
+        }
+    }
+}
+
+// An album makes room for the sheet, keeps its view menu and filter, and translates its actions.
+#[Swag.TestTag("golden")]
+#test
+{
+    for light in [false, true]
+    {
+        var host: Testing.HeadlessHost
+        let window   = boardWindow(&host, light, films: false, width: ViewerWindow.MinWidth, height: 680)
+        let explorer = unwrap window.explorer
+        for name in ["01 - First track.flac", "02 - Second track.flac"] do
+            explorer.entries.add({name: name, path: name, attempted: true, duration: 120,
+                                  music: {title: "Discovery", artist: "Daft Punk", date: "2001", source: "tags"}})
+        showBoard(&host, window, "Music", "Discovery")
+        window.resize(ViewerWindow.MinWidth, 680)
+        expect host.app.setLanguage("fr")
+        host.notify(.LanguageChanged)
+        explorer.selected = 0
+        window.toggleInformation()
+        explorer.revealFilter()
+        window.applyLayout()
+        let grid = explorer.grid
+        Swag.assert(grid.board == .Album and explorer.modeMenu.isLocallyVisible())
+        Swag.assert(grid.places[0].y > grid.albumCover.bottom())
+        Swag.assert(grid.places[0].width > grid.albumText.width)
+        Swag.assert(grid.albumText.right() <= grid.clientRect().width)
+        Swag.assert(explorer.filter.surfaceRect().bottom() <= explorer.header.surfaceRect().bottom())
+        Swag.assert(grid.playButton!.text() == appStrings().explore_Play)
+        Swag.assert(not window.sendComputeCommandStateEvent(ViewerCommands.AlbumPlay).hidden)
+        host.settleAnimations(window)
+        var image = host.render(&host.surfaceWnd)
+        Pixel.Testing.assertImageGolden(&image, light ? "explorer.album.narrow.paper" : "explorer.album.narrow.encre")
+    }
+}
+
+// A mixed folder: every cell the same shape, a picture filling its cell, a film with its length
+// in a chip, a folder with its count, anything without a picture the faint page of its kind with
+// its extension; the name, then one mono line of facts.
+#[Swag.TestTag("golden")]
+#test
+{
+    for light in [false, true]
+    {
+        var host: Testing.HeadlessHost
+        let window   = boardWindow(&host, light, films: false)
+        let explorer = unwrap window.explorer
+        explorer.entries.add({name: "Captures", path: "Captures", directory: true, children: 24, attempted: true})
+        explorer.entries.add({name: "Exports", path: "Exports", directory: true, children: 6, attempted: true})
+        addPictured(&host, explorer, "dune-poster.png", boardPicture(160, 100, 0x9A5F2E, 0xE0A266), 412 * 1024)
+        addPictured(&host, explorer, "lens-demo.mp4", boardPicture(192, 108, 0x24456E, 0x3D6C9E), 24 * 1024 * 1024, 161)
+        for name, size in ["annual-report.pdf", "explorer.swg", "voice-over.flac", "design.silence.md"] do
+            explorer.entries.add({name: name, path: name, size: 2048 * (size + 1), attempted: true})
+
+        // What the listing reads of each file, as it would of the real ones.
+        let at = explorer.entries.count
+        explorer.entries[at - 4].pages = 12
+        with let code = &explorer.entries[at - 3]
+        {
+            .lines   = 214
+            .excerpt = "impl Explorer\n{\n    mtd layout()\n    {\n        let cells = .cells\n        for c in cells do\n            c.fit()\n"
+        }
+
+        with let markdown = &explorer.entries[at - 1]
+        {
+            .sections = 3
+            .excerpt  = "# Silence\nThe window shows the document and nothing else.\nEvery command is an entry of the lens.\n\n## Motion\nWhat floats arrives and leaves.\n"
+        }
+
+        addPictured(&host, explorer, "forest.jpg", boardPicture(160, 120, 0x2F4A32, 0x7FA36A), 3 * 1024 * 1024)
+        for name, size in ["vault.bin", "Inter-Light.ttf", "sources.zip"] do
+            explorer.entries.add({name: name, path: name, size: 1024 * 1024 * (size + 1), attempted: true})
+        explorer.entries[2].width    = 800
+        explorer.entries[2].height   = 500
+        explorer.entries[8].width    = 4032
+        explorer.entries[8].height   = 3024
+        explorer.entries[10].face    = "Inter · Light"
+        explorer.entries[11].members = 48
+        explorer.selected            = 3
+        showBoard(&host, window, "Documents", "Projects")
+
+        // Every tile has the same size and the grid fills the page between its margins.
+        let grid = explorer.grid
+        Swag.assert(not grid.posters and grid.columns == 6)
+        Swag.assert(grid.tileRect(1).x - grid.tileRect(0).right() == ExplorerGrid.Gap)
+        Swag.assert(not explorer.filter.isLocallyVisible())
+        var image = host.render(&host.surfaceWnd)
+        Pixel.Testing.assertImageGolden(&image, light ? "explorer.mixed.paper" : "explorer.mixed")
+
+        // A forced presentation does not turn a mixed folder's total into the number of films,
+        // albums or photos found among its files.
+        for board in [ExplorerBoard.Posters, .Covers, .Mosaic]
+        {
+            explorer.forceBoard(true, board)
+            Swag.assert(grid.board == board)
+            Swag.assert(Utf8.startsWith(explorer.status.text(), Format.toString(appStrings().explore_Count, explorer.shown.count)))
+        }
+
+        Swag.assert(explorer.isThumbnailView())
+        explorer.forceBoard(false)
+        Swag.assert(grid.board == .Grid)
+    }
+}
+
+// A folder of films: upright posters in their own shape, title then year and length, and the
+// sheet headed by the poster beside the title, the year and length, and the rating.
+#[Swag.TestTag("golden")]
+#test
+{
+    var host:    Testing.HeadlessHost
+    let window              = boardWindow(&host, false, films: true)
+    let explorer            = unwrap window.explorer
+    let names:   [8] string = ["Blade Runner", "Alien", "Arrival", "Dune", "Heat", "Drive", "Stalker", "Gattaca"]
+    let years:   [8] string = ["1982", "1979", "2016", "2021", "1995", "2011", "1979", "1997"]
+    let lengths: [8] u64    = [117, 117, 116, 155, 170, 100, 162, 106]
+    let tops:    [8] u32    = [0x141A3C, 0x0A0F0C, 0xD2D4D4, 0xE8B27A, 0x26385A, 0x200C1A, 0x6E6C48, 0x1C4A44]
+    let bottoms: [8] u32    = [0xC2561E, 0x2B3D2C, 0x3A3D40, 0x7A4A20, 0x16223A, 0xE0508E, 0x44442C, 0xD8B460]
+    for name, index in names
+    {
+        let file = Format.toString("%.mkv", name)
+        let wide = index == 7
+        addPictured(&host,
+                    explorer,
+                    file,
+                    boardPicture(wide ? 192 : 120, wide ? 108 : 176, tops[index], bottoms[index]),
+                    8 * 1024 * 1024 * 1024,
+                    lengths[index] * 60)
+        let last = explorer.entries.count - 1
+        explorer.entries[last].movie.title = name
+        explorer.entries[last].movie.date  = years[index]
+    }
+
+    with let first = &explorer.entries[0]
+    {
+        .movie.imdbRating = "8.1/10"
+        .movie.director   = "Ridley Scott"
+        .movie.actors     = "Harrison Ford, Rutger Hauer"
+        .movie.overview   = "A science-fiction film directed by Ridley Scott, adapted from the novel by Philip K. Dick."
+        .movie.sources    = "Wikipedia · Wikidata"
+    }
+
+    explorer.selected = 0
+    showBoard(&host, window, "Videos", "Films")
+    explorer.showInformation()
+    window.applyLayout()
+    host.settleAnimations(window)
+
+    let grid = explorer.grid
+    Swag.assert(grid.posters and grid.tile.y > grid.tile.x)
+    Swag.assert(window.infoSheet.beside and
+                Utf8.contains(window.infoSheet.text(), "1982") and
+                Utf8.contains(window.infoSheet.text(), "1:57"))
+    Swag.assert(grid.tileRect(0).right() < window.infoSheet.surfaceRect().x)
+    var image = host.render(&host.surfaceWnd)
+    Pixel.Testing.assertImageGolden(&image, "explorer.films")
+}
+
+// A music library: square covers, the album, then who made it and when in mono.
+#[Swag.TestTag("golden")]
+#test
+{
+    var host:    Testing.HeadlessHost
+    let window              = boardWindow(&host, false, films: false)
+    let explorer            = unwrap window.explorer
+    let albums:  [8] string = ["Discovery", "Random Access Memories", "In Rainbows", "Kid A", "Moon Safari", "Homework", "Currents", "Blue Lines"]
+    let artists: [8] string = ["Daft Punk", "Daft Punk", "Radiohead", "Radiohead", "Air", "Daft Punk", "Tame Impala", "Massive Attack"]
+    let years:   [8] string = ["2001", "2013", "2007", "2000", "1998", "1997", "2015", "1991"]
+    let tops:    [8] u32    = [0x2A1A4A, 0x2A2418, 0xF0B050, 0xD8E2EA, 0xEDE6D2, 0x141414, 0x4A2A6A, 0x14305A]
+    let bottoms: [8] u32    = [0xD8508A, 0xC8A040, 0xE04848, 0x5A7A96, 0x7A98C0, 0x3A3A3A, 0xE07038, 0x3A78C0]
+    for album, index in albums
+    {
+        addPictured(&host, explorer, Format.toString("%.flac", album), boardPicture(96, 96, tops[index], bottoms[index]), 30 * 1024 * 1024)
+        let last = explorer.entries.count - 1
+        explorer.entries[last].music = {title: album, artist: artists[index], date: years[index]}
+    }
+
+    explorer.selected = 0
+    showBoard(&host, window, "Music", "Albums")
+    let grid = explorer.grid
+    Swag.assert(grid.board == .Covers and grid.tile.x == grid.tile.y)
+    Swag.assert(Utf8.startsWith(explorer.status.text(), Format.toString("% · %", Format.toString(appStrings().explore_Albums, 8), Format.toString(appStrings().explore_Tracks, 8))))
+    var image = host.render(&host.surfaceWnd)
+    Pixel.Testing.assertImageGolden(&image, "explorer.music")
+}
+
+#[Swag.TestTag("golden")]
+#test
+{
+    for light in [false, true]
+    {
+        var host:    Testing.HeadlessHost
+        let window              = boardWindow(&host, light, films: false)
+        let explorer            = unwrap window.explorer
+        let names:   [6] string = ["Discovery", "Random Access Memories", "In Rainbows", "Kid A", "Moon Safari", "Homework"]
+        let artists: [6] string = ["Daft Punk", "Daft Punk", "Radiohead", "Radiohead", "Air", "Daft Punk"]
+        let years:   [6] string = ["2001", "2013", "2007", "2000", "1998", "1997"]
+        let tops:    [6] u32    = [0x2A1A4A, 0x2A2418, 0xF0B050, 0xD8E2EA, 0xEDE6D2, 0x141414]
+        let bottoms: [6] u32    = [0xD8508A, 0xC8A040, 0xE04848, 0x5A7A96, 0x7A98C0, 0x3A3A3A]
+        for name, index in names
+        {
+            var picture = index == 5 ? Image.create(1, 1, .RGBA8) :
+                          boardPicture(120, 120, tops[index], bottoms[index])
+            var entry = ExplorerEntry{name: name, path: name, directory: true, albumTrack: "01.flac",
+                                      attempted: true, music: {title: name, artist: artists[index], date: years[index], source: "tags"}}
+            entry.texture = host.app.renderer.addImage(&picture)
+            explorer.entries.add(#move entry)
+        }
+
+        explorer.selected = 0
+        showBoard(&host, window, "Music", "Albums")
+        Swag.assert(explorer.grid.board == .Covers)
+        var image = host.render(&host.surfaceWnd)
+        Pixel.Testing.assertImageGolden(&image, light ? "explorer.albumfolders.paper" : "explorer.albumfolders.encre")
+    }
+}
+
+// One album: its cover large with Play and Shuffle, then its kind and year, its title, who made
+// it, its facts, and its tracks with their lengths in mono, the chosen one led by ▶ on the Arc ground.
+#[Swag.TestTag("golden")]
+#test
+{
+    for light in [false, true]
+    {
+        var host:   Testing.HeadlessHost
+        let window   = boardWindow(&host, light, films: false)
+        let explorer = unwrap window.explorer
+        let tracks: [10] string = ["One More Time", "Aerodynamic", "Digital Love", "Harder, Better, Faster, Stronger", "Crescendolls",
+                                   "Nightvision", "Superheroes", "High Life", "Something About Us", "Voyager"]
+        let lengths: [10] u64 = [320, 207, 298, 224, 211, 104, 237, 201, 231, 227]
+        for track, index in tracks
+        {
+            let file = Format.toString("%{02} - %.flac", index + 1, track)
+            if index == 0 do
+                addPictured(&host, explorer, file, boardPicture(120, 120, 0x24184A, 0xD8508A), 30 * 1024 * 1024, lengths[index])
+            else do
+                explorer.entries.add({name: file, path: file, size: 30 * 1024 * 1024, duration: lengths[index], attempted: true})
+            let last = explorer.entries.count - 1
+            explorer.entries[last].music = {title: "Discovery", artist: "Daft Punk", date: "2001-03-12"}
+        }
+
+        explorer.selected = 2
+        showBoard(&host, window, "Music / Daft Punk", "Discovery")
+        let grid = explorer.grid
+        Swag.assert(grid.board == .Album and
+                    grid.playButton!.isLocallyVisible() and
+                    not explorer.title.isLocallyVisible())
+        Swag.assert(trackTitle("03 - Digital Love.flac") == "Digital Love")
+        var image = host.render(&host.surfaceWnd)
+        Pixel.Testing.assertImageGolden(&image, light ? "explorer.album.paper" : "explorer.album")
+    }
+}
+
+// Photographs: a justified mosaic that keeps every shape, a day after another under its label
+// and its count.
+#[Swag.TestTag("golden")]
+#test
+{
+    var host:    Testing.HeadlessHost
+    let window            = boardWindow(&host, false, films: false)
+    let explorer          = unwrap window.explorer
+    let widths:  [12] s32 = [180, 150, 96, 180, 150, 150, 180, 120, 96, 200, 150, 150]
+    let heights: [12] s32 = [96, 100, 128, 96, 100, 100, 100, 100, 128, 100, 100, 100]
+    let tops:    [12] u32 = [0x34452E, 0xC88A48, 0x203050, 0x4A2A2A, 0x7090B8, 0x222222, 0x305050, 0x9A6A34, 0x1C4A44, 0x24385A, 0x4A3A24, 0x5A3A7A]
+    let bottoms: [12] u32 = [0x7AA06A, 0xF0D098, 0x4A6A9A, 0xB0645A, 0xEAE4D8, 0x4A4A4A, 0x98C0B8, 0xE0A060, 0xD8B460, 0x8AB0D8, 0xB89A70, 0xD898C8]
+    for i in 12
+    {
+        addPictured(&host, explorer, Format.toString("IMG_20%.jpg", 41 + i), boardPicture(widths[i], heights[i], tops[i], bottoms[i]), 4 * 1024 * 1024)
+        explorer.entries[explorer.entries.count - 1].modified = i < 8 ? "2026-10-21 10:00" : "2026-10-22 10:00"
+    }
+
+    explorer.selected = 2
+    showBoard(&host, window, "Pictures", "Brittany 2026")
+    let grid = explorer.grid
+
+    // What is known of the picture under the pointer stands in a mono tip over it.
+    grid.hovered = 5
+    grid.invalidate()
+    Swag.assert(Utf8.startsWith(explorer.status.text(), Format.toString(appStrings().explore_Photos, 12)))
+    Swag.assert(grid.board == .Mosaic and grid.days.count == 2 and grid.days[0].count == 8)
+    Swag.assert(grid.days[0].text == "Wednesday 21 October")
+    var image = host.render(&host.surfaceWnd)
+    Pixel.Testing.assertImageGolden(&image, "explorer.photos")
+}
+
+// Artwork source stays independent from board organization in either theme.
+#[Swag.TestTag("golden")]
+#test
+{
+    for light in [false, true]
+    {
+        var host: Testing.HeadlessHost
+        let window   = boardWindow(&host, light, films: true)
+        let explorer = unwrap window.explorer
+        explorer.setArtworkSource(.Local)
+        let names:  [4] string = ["One.mkv", "Two.mkv", "Three.mkv", "Four.mkv"]
+        let colors: [4] u32    = [0x24385A, 0xA04030, 0x306040, 0x8A6A28]
+        for name, index in names
+        {
+            addPictured(&host,
+                        explorer,
+                        name,
+                        boardPicture(192, 108, colors[index], colors[index] + 0x202020),
+                        1_000_000_000,
+                        117 + index * 60)
+        }
+
+        explorer.setKindFilter(.Videos)
+        explorer.forceBoard(true, .Grid)
+        showBoard(&host, window, "Videos", "Films")
+        Swag.assert(explorer.grid.board == .Grid and explorer.previewAspect == ExplorerFilmPreviewAspect)
+        Swag.assert(explorer.grid.tile.x > explorer.grid.tile.y)
+        let settings = expect ThumbnailSettings.decode(explorer.previewSettings)
+        Swag.assert(settings.localArtworkOnly)
+        var image = host.render(&host.surfaceWnd)
+        Pixel.Testing.assertImageGolden(&image, light ? "explorer.artwork.paper" : "explorer.artwork.encre")
+    }
+}

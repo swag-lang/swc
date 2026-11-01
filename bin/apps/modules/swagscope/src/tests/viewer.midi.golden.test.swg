@@ -1,0 +1,23 @@
+#global if #command == Swag.CompilerCommand.Test
+#global private
+
+using Core, Pixel, Gui, Viewers
+
+// The score in the window, against `scope.midi`: one lane per track under the bar numbers, each
+// track in its hue with its name and channel, the notes spread by pitch in the lane.
+#[Swag.TestTag("golden")]
+#test
+{
+    let fileName = Path.combine(unwrap Path.directoryName(#curlocation.fileName), "datas/viewer.groove.mid")
+    for light in [false, true]
+    {
+        var host: Testing.HeadlessHost
+        let window = framedViewerWindow(&host, fileName.toString(), light)
+        let view   = assume cast(*Midi.Panel, window.instances[window.activeChoiceIndex].view)
+        Swag.assert(view.roll.mode == .Tracks and view.roll.lanes.count == 4)
+        Swag.assert(view.details.contains("4 tracks · 4/4"))
+
+        var image = host.render(&host.surfaceWnd)
+        Pixel.Testing.assertImageGolden(&image, light ? "viewer.midi.paper" : "viewer.midi.ink")
+    }
+}

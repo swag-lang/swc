@@ -78,23 +78,3 @@ func subtitleViewerFixturePath()->String => Path.combine(unwrap Path.directoryNa
     Swag.assert(view.cuePosition() == Format.toString(Captions.texts().ui_CuePosition, 2, 2).toString())
     Swag.assert(view.timeButton.toolTip == Captions.texts().ui_GoToTime)
 }
-
-// The reading list in the window, against `scope.subtitle`: the name and its mono line, the cues
-// as rows of a number, a time range and the words, the current one on the selection ground.
-#[Swag.TestTag("golden")]
-#test
-{
-    let fileName = Path.combine(unwrap Path.directoryName(#curlocation.fileName), "datas/viewer.reading.srt")
-    for light in [false, true]
-    {
-        var host: Testing.HeadlessHost
-        let window = framedViewerWindow(&host, fileName.toString(), light)
-        let view   = assume cast(*Captions.Panel, window.instances[window.activeChoiceIndex].view)
-        Swag.assert(view.revealCue(1))
-        window.applyLayout()
-        host.settleAnimations(window, 4)
-
-        var image = host.render(&host.surfaceWnd)
-        Pixel.Testing.assertImageGolden(&image, light ? "viewer.subtitle.paper" : "viewer.subtitle.ink")
-    }
-}

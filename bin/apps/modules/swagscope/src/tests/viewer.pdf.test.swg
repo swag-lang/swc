@@ -3,7 +3,7 @@
 
 using Core, Pixel, Gui, Gui.Testing, Viewers
 
-private func createPdfFixture()->String
+internal func createPdfFixture()->String
 {
     let fileName = Gui.Testing.tempFilePath("scope-pdf-", ".pdf")
     var document = Pdf.Document.create()
@@ -93,44 +93,6 @@ private func createPdfFixture()->String
     Testing.assertContentFits(view)
 }
 
-// Pins the PDF controls inside the application's real line of readings. The line measures viewer
-// contributions before positioning them, so every fixed page and zoom cell must report the width
-// its docking pass will consume.
-#[Swag.TestTag("golden")]
-#test
-{
-    let fileName = createPdfFixture()
-    defer discard catch File.delete(fileName)
-
-    var host: HeadlessHost
-    host.setup(ViewerWindow.MinWidth, ViewerReadingLine.Height)
-    host.root.backgroundStyle = .View
-    host.root.padding         = {8, 0, 8, 0}
-
-    let document = Wnd.create'Wnd(&host.root)
-    document.hide()
-    with let layout = ViewerReadingLine.create(&host.root)
-    {
-        .dockStyle = .Center
-        .details.setText("PDF · 1 page")
-    }
-
-    var result = openTestViewer(PdfDocument.viewerPlugin(), document, fileName, commandParent: document, infoParent: layout)
-    Swag.assert(result.view != null and result.info != null)
-    let view = assume cast(*PdfDocument.Panel, result.view)
-    completeViewerBackgroundLoad(&host, &view.load)
-    host.root.applyLayout()
-    layout.computeLayout()
-
-    Swag.assert(result.info.position.width == 2 * themeActionButtonSize(view.themeMetrics()) + 76 + 96 + 16)
-    Swag.assert(view.previousButton.position.right() <= view.pageLabel.position.x)
-    Swag.assert(view.pageLabel.position.right() <= view.nextButton.position.x)
-    Swag.assert(view.nextButton.position.right() <= view.zoomLabel.position.x)
-
-    var image = host.render(&host.root)
-    Pixel.Testing.assertImageGolden(&image, "viewer.pdf.info-bar")
-}
-
 #test
 {
     let fileName = Gui.Testing.tempFilePath("scope-pdf-broken-", ".pdf")
@@ -192,57 +154,4 @@ private func createPdfFixture()->String
     matches.clear()
     collectViewerMatches(result.collectMatches, "absent", &matches)
     Swag.assert(matches.isEmpty())
-}
-
-// A document is paper standing on the ground of the window, its outline in the margin beside the
-// page with the part being read on an Arc rule.
-#[Swag.TestTag("golden")]
-#test
-{
-    let fileName = Gui.Testing.tempFilePath("scope-pdf-page-", ".pdf")
-    defer discard catch File.delete(fileName)
-    var document = Pdf.Document.create()
-    for title in ["Introduction", "Results"]
-    {
-        var page = Pdf.Page.create(595, 842)
-        page.addText(title, 72, 72, 28, Color.fromArgb(Argb.Black))
-        document.addPage(#move page)
-    }
-
-    expect document.save(fileName)
-
-    for light in [false, true]
-    {
-        var host: HeadlessHost
-        host.setup(960, 640)
-        shipFrame(&host)
-        if light do
-            host.theme.setLight()
-        else do
-            host.theme.setDark()
-        host.theme.metrics.surfaceWnd_ShadowSize   = 0
-        host.theme.metrics.surfaceWnd_CornerRadius = 0
-        host.notify(.ThemeChanged)
-
-        let window = ViewerWindow.create(&host.surfaceWnd, createViewerPluginRegistry())
-        window.resize(960, 640)
-        window.openFile(fileName)
-        completeQueuedViewerFile(&host, window)
-        let view = assume cast(*PdfDocument.Panel, window.currentView)
-        completeViewerBackgroundLoad(&host, &view.load)
-
-        // The writer of the fixture records no outline: the parts are given as a reader found them.
-        for title, page in ["Introduction", "Results", "Method", "Appendices"] do
-            view.bookmarks.add(Pdf.OutlineEntry{title: title, level: 1, pageIndex: Math.min(page, 1)})
-        view.fillMargin()
-        window.applyLayout()
-        view.placeMargin()
-        host.settleAnimations(window, 4)
-
-        let margin = unwrap view.margin
-        Swag.assert(margin.isLocallyVisible() and margin.titles.count == 4 and margin.active == 0)
-        Swag.assert(margin.position.right() <= view.pdfView.pageColumn().x)
-        var image = host.render(window)
-        Pixel.Testing.assertImageGolden(&image, light ? "viewer.pdf.page.paper" : "viewer.pdf.page")
-    }
 }

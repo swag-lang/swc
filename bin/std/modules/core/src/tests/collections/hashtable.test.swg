@@ -282,12 +282,20 @@ func assertTableStringValue(table: HashTable'(string, String), key: string, expe
     var reject: RejectHashTableGrowthAllocator
     table.allocator = &reject
 
-    let updateFailed   = Swag.catchPanic(func|&table|() { table.add(7, 700) })
-    let preserveFailed = Swag.catchPanic(func|&table|() { table.add(7, 777, updateValue: false) })
+    let updateFailed       = Swag.catchPanic(func|&table|() { table.add(7, 700) })
+    let preserveFailed     = Swag.catchPanic(func|&table|() { table.add(7, 777, updateValue: false) })
+    let findFailed          = Swag.catchPanic(func|&table|() { discard table.findOrAdd(7) })
+    let borrowedFindFailed = Swag.catchPanic(func|&table|() {
+        discard table.findOrAddBorrowed(&table.find(7).key)
+    })
+    let borrowedUpdateFailed = Swag.catchPanic(func|&table|() {
+        discard table.addBorrowed(&table.find(7).key, &table.find(8).value)
+    })
     table.allocator = oldAllocator
 
-    Swag.assert(not updateFailed.raised and not preserveFailed.raised)
-    Swag.assert(table.capacity == oldCapacity and table.count == 16 and table[7] == 700)
+    Swag.assert(not updateFailed.raised and not preserveFailed.raised and not findFailed.raised and
+                not borrowedFindFailed.raised and not borrowedUpdateFailed.raised)
+    Swag.assert(table.capacity == oldCapacity and table.count == 16 and table[7] == 108)
 }
 
 // A key or a value read from the table itself can be inserted back: growing rehashes the entries

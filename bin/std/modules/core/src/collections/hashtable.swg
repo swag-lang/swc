@@ -513,6 +513,17 @@ impl HashTable
     mtd addBorrowed(key: const *K, value: const *V, updateValue = true)->*HashTableEntry
         where Reflection.canCopy(K) and Reflection.canCopy(V)
     {
+        if .table
+        {
+            let existing = .tryFind(key[])
+            if existing
+            {
+                if updateValue and &existing.value != value do
+                    existing.value = value[]
+                return existing
+            }
+        }
+
         if .growsOnInsert()
         {
             let stagedKey   = key[]
@@ -524,10 +535,6 @@ impl HashTable
                 return .add(stagedKey, stagedValue, updateValue)
         }
 
-        // Avoid assigning an owning value to the very storage it was borrowed from.
-        let existing = .tryFind(key[])
-        if existing and &existing.value == value do
-            return existing
         return .add(key[], value[], updateValue)
     }
 
@@ -709,6 +716,17 @@ impl HashTable
     mtd findOrAdd(key: K)->*HashTableEntry
         where Reflection.canCopy(#typeof(K))
     {
+        if not .table do
+            .grow()
+
+        let hashVal = hashKey(key)
+        var index   = cast(u64, hashVal) & (.capacity - 1)
+        let table   = .tablePtr()
+
+        index = .getNewIndex(key, index, hashVal)
+        if table[index].hash >= HashTable.HASH_FIRST do
+            return table + index
+
         // Growing rehashes the table a struct `key` may live in, so take it out first.
         if .growsOnInsert()
         {
@@ -721,16 +739,9 @@ impl HashTable
             else
             {
                 .grow()
+                return .findOrAdd(key)
             }
         }
-
-        let hashVal = hashKey(key)
-        var index   = cast(u64, hashVal) & (.capacity - 1)
-        let table   = .tablePtr()
-
-        index = .getNewIndex(key, index, hashVal)
-        if table[index].hash >= HashTable.HASH_FIRST do
-            return table + index
 
         var val: V
         if table[index].hash == HashTable.HASH_FREE
@@ -756,13 +767,6 @@ impl HashTable
     mtd findOrAddBorrowed(key: const *K)->*HashTableEntry
         where Reflection.canCopy(K)
     {
-        if .growsOnInsert()
-        {
-            let stagedKey = key[]
-            .grow()
-            return .findOrAdd(stagedKey)
-        }
-
         return .findOrAdd(key[])
     }
 

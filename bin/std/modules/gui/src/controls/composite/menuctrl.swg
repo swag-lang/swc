@@ -1031,6 +1031,12 @@ impl MenuCtrl
             it.name.compute()
             Pixel.Painter.computeLayout({0, 0, MaxTextLayoutExtent, MaxTextLayoutExtent}, &it.name, rsf, deviceScale)
             var w = it.name.boundRect.width
+            if it.label
+            {
+                let labelFont = .theme().createDefaultFont(metrics.sectionLabel_FontSize, .SemiBold)
+                let labelText = String.toUpper(it.name.raw, .Unicode)
+                w = Painter.shapeRun(labelText, labelFont, letterSpacing: metrics.sectionLabel_LetterSpacing).metrics.width
+            }
 
             if not .flags.has(.HideShortcuts) and not it.rightName.isEmpty()
             {

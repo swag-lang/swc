@@ -126,6 +126,8 @@ impl TweakFile
 
         for rawLine, lineIndex in lines
         {
+            if not Utf8.isValid(cast(const [..] u8, rawLine)) do
+                fail SyntaxError{"tweak file is not valid UTF-8", line: lineIndex + 1}
             var remaining = Tokenize.eatSpaces(rawLine)
             if remaining.count == 0 do
                 continue

@@ -168,7 +168,7 @@ struct AppStrings
     ui_DropTitle:                      string = "Drop a file to view it"                      // Invitation shown while no file is open.
     home_Invite:                       string = "Drop a file, or open one"                    // File invitation on the home page; the key follows it.
     home_InviteFolder:                 string = "Open a folder"                               // Folder invitation on the home page; the key follows it.
-    home_Clear:                        string = "Clear…"                                      // Quiet command under the last files, opening the clears.
+    home_Clear:                        string = "Clear"                                       // Quiet menu button under the last files.
     home_ClearMissing:                 string = "Remove Missing Files"                        // Clear of the history entries whose file is gone.
     home_MissingTitle:                 string = "File not found."                              // Title of the question after a recent file is missing.
     home_AskForgetMissing:             string = "Remove it from the file history?"            // Question offering to drop the missing file from the history.

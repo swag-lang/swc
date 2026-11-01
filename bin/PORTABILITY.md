@@ -83,6 +83,14 @@ Portable algorithms, codecs and application models consume these capabilities. T
 source status does not prove that their entire module can compile on Linux. Optional raw Windows
 interop remains deliberately Windows-only; it does not need a Linux implementation.
 
+The `bin/runtime/os.linux*.swg` bootstrap is under active integration. It now supplies glibc
+TLS, futex locks/conditions, monotonic clocks, threads, memfd process anchors, reservation
+tracking, procfs pressure sampling, libm, and ELF image inspection. A minimal Linux semantic
+compile passes with the program's `release` configuration; guarded bootstrap execution,
+thread-exit cleanup ownership, arguments, and native test signal recovery still need validation
+or implementation. The rows marked Missing above remain capability gaps until execution tests
+prove the corresponding contract. No Linux native artifact or complete runtime suite passes yet.
+
 ## Hosted library matrix
 
 The first Linux bootstrap target is GNU/Linux x86-64 with glibc. Other libc implementations,

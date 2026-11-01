@@ -1,13 +1,29 @@
 #include "pch.h"
 
 #if SWC_HAS_UNITTEST
+#include "Compiler/Parser/Parser/ParserJob.h"
+#include "Compiler/Sema/Symbol/Symbols.h"
+#include "Compiler/Sema/Symbol/Symbol.Module.h"
 #include "Compiler/Sema/Symbol/Symbol.Struct.h"
+#include "Compiler/SourceFile.h"
+#include "Unittest/UnittestSource.h"
 #include "Compiler/Sema/Symbol/Symbol.Variable.h"
 #include "Compiler/Sema/Type/TypeManager.h"
 #include "Main/TaskContext.h"
 #include "Unittest/ABI/AbiTestTypes.h"
 
 SWC_BEGIN_NAMESPACE();
+
+SourceFile& Backend::Unittest::makeCodeGenSource(TaskContext& ctx, std::string_view testName)
+{
+    SourceFile& file = swc::Unittest::addTestSource(ctx, "ABI", testName, "");
+    auto* module = Symbol::make<SymbolModule>(ctx, nullptr, TokenRef::invalid(), IdentifierRef::invalid(), SymbolFlagsE::Zero);
+    auto* nameSpace = Symbol::make<SymbolNamespace>(ctx, nullptr, TokenRef::invalid(), IdentifierRef::invalid(), SymbolFlagsE::Zero);
+    nameSpace->setOwnerSymMap(module);
+    file.setModuleNamespace(*nameSpace);
+    SWC_INTERNAL_CHECK(parseLoadedSourceFile(ctx, file, {}) == Result::Continue);
+    return file;
+}
 
 TypeRef Backend::Unittest::makeStructType(TaskContext& ctx, const std::span<const TypeRef> fieldTypes, const bool isUnion, const TypeRef tagType)
 {

@@ -15,7 +15,14 @@
 #include "Main/Command/CommandLine.h"
 #include "Main/CompilerInstance.h"
 #include "Main/TaskContext.h"
+#include "Compiler/CodeGen/Core/CodeGen.h"
+#include "Compiler/CodeGen/Core/CodeGenFunctionHelpers.h"
+#include "Compiler/CodeGen/Core/CodeGenParameterReg.h"
+#include "Compiler/Sema/Core/Sema.h"
+#include "Compiler/Sema/Symbol/Symbol.Function.h"
+#include "Compiler/Sema/Symbol/Symbol.Variable.h"
 #include "Compiler/Sema/Type/TypeManager.h"
+#include "Compiler/SourceFile.h"
 #include "Unittest/ABI/AbiTestTypes.h"
 #include "Unittest/Unittest.h"
 #include "Unittest/UnittestHelpers.h"
@@ -1087,6 +1094,107 @@ SWC_TEST_BEGIN(ABI_SystemVIntermediateReturnStorageKeepsEnclosingResultLive)
     const uint64_t result = reinterpret_cast<uint64_t (*)()>(memory.entryPoint())();
     if (result != expected || stored.first != input.first || stored.second != input.second)
         return Result::Error;
+}
+SWC_TEST_END()
+
+SWC_TEST_BEGIN(ABI_SystemVCodeGenHomesPreserveIncomingScalarAndAggregateParameters)
+{
+    for (const auto level : {Runtime::BuildCfgBackendOptimLevel::O0, Runtime::BuildCfgBackendOptimLevel::O2})
+    {
+        CommandLine commandLine = ctx.cmdLine();
+        commandLine.targetOs = Runtime::TargetOs::Linux;
+        CompilerInstance compiler(ctx.global(), commandLine);
+        TaskContext context(compiler);
+        SWC_RESULT(compiler.setupSema(context));
+        auto& types = context.typeMgr();
+        const std::array locationFields{types.typeString(), types.typeString(), types.typeU32(), types.typeU32(), types.typeU32(), types.typeU32()};
+        types.registerRuntimeType(context.idMgr().predefined(IdentifierManager::PredefinedName::SourceCodeLocation), Backend::Unittest::makeStructType(context, locationFields));
+        const std::array mixedFields{types.typeU64(), types.typeF64()};
+        const auto mixedType = Backend::Unittest::makeStructType(context, mixedFields);
+        const std::array largeFields{types.typeU64(), types.typeU64(), types.typeU64()};
+        const auto largeType = Backend::Unittest::makeStructType(context, largeFields);
+        const std::array parameterTypes{largeType, mixedType, types.typeU64(), types.typeU64(), types.typeU64(), types.typeU64(), types.typeU64(), mixedType, types.typeF64(), types.typeString()};
+        SourceFile& file = Backend::Unittest::makeCodeGenSource(context, "SystemVParameterHomes");
+        Sema sema(context, file.nodePayloadContext(), false);
+        CodeGen codeGen(sema);
+        const auto [declRef, decl] = file.ast().makeNode<AstNodeId::FunctionDecl>(TokenRef::invalid());
+        auto* function = Symbol::make<SymbolFunction>(context, decl, TokenRef::invalid(), IdentifierRef::invalid(), SymbolFlagsE::Zero);
+        function->setDeclNodeRef(declRef);
+        function->setCallConvKind(K_SYSTEM_V);
+        function->setReturnTypeRef(types.typeVoid());
+        for (const auto type : parameterTypes)
+        {
+            auto* param = Symbol::make<SymbolVariable>(context, nullptr, TokenRef::invalid(), IdentifierRef::invalid(), SymbolFlagsE::Zero);
+            param->setTypeRef(type);
+            param->addExtraFlag(SymbolVariableFlagsE::Parameter);
+            function->addParameter(param);
+        }
+        // Initialize codegen on an empty AST, then exercise its parameter boundary
+        // directly. This fixture needs no executable Swag runtime on the host.
+        SWC_RESULT(codeGen.exec(*function, file.ast().root()));
+        MicroBuilder& builder = codeGen.builder();
+        auto backend = builder.backendBuildCfg();
+        backend.optimLevel = level;
+        builder.setBackendBuildCfg(backend);
+        std::array<CodeGenFunctionHelpers::FunctionParameterInfo, parameterTypes.size()> infos;
+        CodeGenFunctionHelpers::fillFunctionParameterInfos(codeGen, infos, *function, false, false);
+        codeGen.setLocalStackFrameSize(128);
+        uint32_t localOffset = 0;
+        for (size_t i = 0; i < parameterTypes.size(); ++i)
+        {
+            if (!infos[i].isSystemVStorage)
+                continue;
+            auto& param = *function->parameters()[i];
+            param.addExtraFlag(SymbolVariableFlagsE::CodeGenLocalStack);
+            param.setOffset(localOffset);
+            param.setCodeGenLocalSize(static_cast<uint32_t>(types.get(param.typeRef()).sizeOf(context)));
+            localOffset += 32;
+        }
+        CodeGenFunctionHelpers::emitLocalStackFramePrologue(codeGen, K_SYSTEM_V);
+        CodeGenFunctionHelpers::materializeSystemVStorageParameters(codeGen, *function, infos);
+        CodeGenParameterReg::materializeRegisterParameters(codeGen, *function, infos);
+        std::array<std::array<std::byte, 24>, parameterTypes.size()> actual{};
+        for (size_t i = 0; i < parameterTypes.size(); ++i)
+        {
+            const auto payload = CodeGenFunctionHelpers::materializeFunctionParameter(codeGen, *function, *function->parameters()[i], &infos[i]);
+            const MicroReg destination = codeGen.nextVirtualIntRegister();
+            builder.emitLoadRegPtrImm(destination, reinterpret_cast<uint64_t>(actual[i].data()));
+            if (payload.isAddress())
+            {
+                const auto size = types.get(parameterTypes[i]).sizeOf(context);
+                for (uint32_t offset = 0; offset < size; offset += 8)
+                {
+                    const MicroReg value = codeGen.nextVirtualIntRegister();
+                    builder.emitLoadRegMem(value, payload.reg, offset, MicroOpBits::B64);
+                    builder.emitLoadMemReg(destination, offset, value, MicroOpBits::B64);
+                }
+            }
+            else
+                builder.emitLoadMemReg(destination, 0, payload.reg, MicroOpBits::B64);
+        }
+        CodeGenFunctionHelpers::emitLocalStackFrameEpilogue(codeGen, K_SYSTEM_V);
+        builder.setRetUsesAbiRegs(false, false);
+        builder.emitRet();
+        MachineCode lowered;
+        SWC_RESULT(lowered.emit(context, builder));
+        JITMemoryManager manager;
+        JITMemory memory;
+        installSystemVCode(manager, memory, lowered.bytes, lowered.unwindInfo);
+        const LargeValue large{17, 19, 23};
+        const MixedValue mixed{29, 3.5};
+        const MixedValue spilled{31, 5.5};
+        const double tail = 7.5;
+        const Runtime::String string{"native parameter", 16};
+        const std::array<uint64_t, 5> integers{41, 43, 47, 53, 59};
+        using Receiver = void (*)(LargeValue, MixedValue, uint64_t, uint64_t, uint64_t, uint64_t, uint64_t, MixedValue, double, Runtime::String);
+        reinterpret_cast<Receiver>(memory.entryPoint())(large, mixed, integers[0], integers[1], integers[2], integers[3], integers[4], spilled, tail, string);
+        const std::array<const void*, parameterTypes.size()> expected{&large, &mixed, &integers[0], &integers[1], &integers[2], &integers[3], &integers[4], &spilled, &tail, &string};
+        for (size_t i = 0; i < parameterTypes.size(); ++i)
+        {
+            if (std::memcmp(actual[i].data(), expected[i], types.get(parameterTypes[i]).sizeOf(context)))
+                return Result::Error;
+        }
+    }
 }
 SWC_TEST_END()
 

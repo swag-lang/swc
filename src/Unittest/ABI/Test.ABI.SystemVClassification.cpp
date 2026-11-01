@@ -4,7 +4,12 @@
 #include "Backend/ABI/SystemVAbi.h"
 #include "Backend/ABI/ABITypeNormalize.h"
 #include "Backend/ABI/CallConv.h"
+#include "Compiler/CodeGen/Core/CodeGen.h"
+#include "Compiler/CodeGen/Core/CodeGenFunctionHelpers.h"
+#include "Compiler/Sema/Core/Sema.h"
+#include "Compiler/Sema/Symbol/Symbol.Function.h"
 #include "Compiler/Sema/Symbol/Symbol.Struct.h"
+#include "Compiler/SourceFile.h"
 #include "Compiler/Sema/Symbol/Symbol.Variable.h"
 #include "Compiler/Sema/Type/TypeManager.h"
 #include "Main/TaskContext.h"
@@ -181,6 +186,84 @@ SWC_TEST_BEGIN(ABI_SystemVNormalizationKeepsArrayDecayAndWideRegisterShapes)
         if (normalized.isSystemVStorage() || normalized.isIndirect || !normalized.isFloat || normalized.numBits != 128)
             return Result::Error;
     }
+}
+SWC_TEST_END()
+
+SWC_TEST_BEGIN(ABI_SystemVFunctionParameterLayoutKeepsAggregatesWhole)
+{
+    auto& types = ctx.typeMgr();
+    const std::array mixedFields{types.typeU64(), types.typeF64()};
+    const auto mixed = Backend::Unittest::makeStructType(ctx, mixedFields);
+    const std::array largeFields{types.typeU64(), types.typeU64(), types.typeU64()};
+    const auto large = Backend::Unittest::makeStructType(ctx, largeFields);
+    SourceFile& file = Backend::Unittest::makeCodeGenSource(ctx, "SystemVParameterLayout");
+    Sema sema(ctx, file.nodePayloadContext(), false);
+    CodeGen codeGen(sema);
+
+    for (const bool hiddenReturn : {false, true})
+    {
+        auto* function = Symbol::make<SymbolFunction>(ctx, nullptr, TokenRef::invalid(), IdentifierRef::invalid(), SymbolFlagsE::Zero);
+        function->setCallConvKind(CallConvKind::SystemVAMD64);
+        const std::array parameterTypes{mixed, types.typeU64(), types.typeU64(), types.typeU64(), types.typeU64(), types.typeU64(), mixed, types.typeF64(), large};
+        for (const auto type : parameterTypes)
+        {
+            auto* param = Symbol::make<SymbolVariable>(ctx, nullptr, TokenRef::invalid(), IdentifierRef::invalid(), SymbolFlagsE::Zero);
+            param->setTypeRef(type);
+            param->setParameterIndex(static_cast<uint32_t>(function->parameters().size()));
+            param->addExtraFlag(SymbolVariableFlagsE::Parameter);
+            function->addParameter(param);
+        }
+        std::array<CodeGenFunctionHelpers::FunctionParameterInfo, parameterTypes.size()> infos;
+        CodeGenFunctionHelpers::fillFunctionParameterInfos(codeGen, infos, *function, hiddenReturn, false);
+        const auto first = infos[0].systemVLocation();
+        if (!infos[0].isSystemVStorage || !infos[0].isRegisterArg || first.registers[0] != (hiddenReturn ? 1 : 0) || first.registers[1] != 0)
+            return Result::Error;
+        if (infos[5].isRegisterArg == hiddenReturn || infos[6].isRegisterArg || !infos[6].isSystemVStorage)
+            return Result::Error;
+        if (infos[6].stackOffset != (hiddenReturn ? 24 : 16) || infos[7].registerIndex != 1 || !infos[7].isFloat)
+            return Result::Error;
+        if (infos[8].stackOffset != infos[6].stackOffset + 16 || infos[8].isIndirect || !infos[8].isSystemVStorage)
+            return Result::Error;
+        for (size_t i = 0; i < infos.size(); ++i)
+        {
+            const auto single = CodeGenFunctionHelpers::functionParameterInfo(codeGen, *function, *function->parameters()[i], hiddenReturn, false);
+            if (single.registerIndex != infos[i].registerIndex || single.stackOffset != infos[i].stackOffset || single.isSystemVStorage != infos[i].isSystemVStorage)
+                return Result::Error;
+            if (CodeGenFunctionHelpers::isByValueAggregateParameter(codeGen, *function, *function->parameters()[i], &infos[i]) != infos[i].isSystemVStorage)
+                return Result::Error;
+        }
+    }
+}
+SWC_TEST_END()
+
+SWC_TEST_BEGIN(ABI_SystemVFunctionParameterLayoutRollsBackIntegerBankWhenVectorsAreFull)
+{
+    auto& types = ctx.typeMgr();
+    const std::array mixedFields{types.typeF64(), types.typeU64()};
+    const auto mixed = Backend::Unittest::makeStructType(ctx, mixedFields);
+    SourceFile& file = Backend::Unittest::makeCodeGenSource(ctx, "SystemVParameterVectorLayout");
+    Sema sema(ctx, file.nodePayloadContext(), false);
+    CodeGen codeGen(sema);
+    auto* function = Symbol::make<SymbolFunction>(ctx, nullptr, TokenRef::invalid(), IdentifierRef::invalid(), SymbolFlagsE::Zero);
+    function->setCallConvKind(CallConvKind::SystemVAMD64);
+    const std::array parameterTypes{types.typeF64(), types.typeF64(), types.typeF64(), types.typeF64(), types.typeF64(), types.typeF64(), types.typeF64(), types.typeF64(), mixed, types.typeString(), types.typeU64()};
+    for (const auto type : parameterTypes)
+    {
+        auto* param = Symbol::make<SymbolVariable>(ctx, nullptr, TokenRef::invalid(), IdentifierRef::invalid(), SymbolFlagsE::Zero);
+        param->setTypeRef(type);
+        param->setParameterIndex(static_cast<uint32_t>(function->parameters().size()));
+        param->addExtraFlag(SymbolVariableFlagsE::Parameter);
+        function->addParameter(param);
+    }
+    std::array<CodeGenFunctionHelpers::FunctionParameterInfo, parameterTypes.size()> infos;
+    CodeGenFunctionHelpers::fillFunctionParameterInfos(codeGen, infos, *function, true, true);
+    if (infos[8].isRegisterArg || infos[8].stackOffset != 16 || infos[10].registerIndex != 4)
+        return Result::Error;
+    const auto stringLocation = infos[9].systemVLocation();
+    if (stringLocation.onStack || stringLocation.registers[0] != 2 || stringLocation.registers[1] != 3)
+        return Result::Error;
+    if (!CodeGenFunctionHelpers::isByValueAggregateParameter(codeGen, *function, *function->parameters()[9], &infos[9]))
+        return Result::Error;
 }
 SWC_TEST_END()
 

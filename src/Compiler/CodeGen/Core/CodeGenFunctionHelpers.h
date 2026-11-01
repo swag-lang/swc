@@ -1,4 +1,5 @@
 #pragma once
+#include "Backend/ABI/SystemVAbi.h"
 #include "Backend/Micro/MicroReg.h"
 #include "Backend/Micro/MicroTypes.h"
 #include "Support/Core/RefTypes.h"
@@ -40,7 +41,18 @@ namespace CodeGenFunctionHelpers
         bool        needsIndirectCopy = false;
         bool        isRegisterArg     = false;
         uint8_t     numBits           = 0;
+        bool        isSystemVStorage  = false;
+
+        // Storage parameters pack their two eightbyte lane indices in registerIndex.
+        SystemVAbi::ArgumentLocation systemVLocation() const
+        {
+            if (!isRegisterArg)
+                return {{}, stackOffset - 2 * sizeof(void*), true};
+            return {{static_cast<uint8_t>(registerIndex), static_cast<uint8_t>(registerIndex >> 8)}, 0, false};
+        }
     };
+
+    static_assert(sizeof(FunctionParameterInfo) == 24);
 
     // The parameter symbol the function itself declares for 'symVar', when 'symVar' is a
     // clone that carries the same slot or name. Null when 'symVar' already is the canonical one.
@@ -74,6 +86,7 @@ namespace CodeGenFunctionHelpers
     // lifecycle or mutable receiver, so forwarding them preserves the mark.
     void markImmutableIndirectParameter(CodeGen& codeGen, const SymbolVariable& symVar, const FunctionParameterInfo& paramInfo, MicroReg reg);
 
+    void               materializeSystemVStorageParameters(CodeGen& codeGen, const SymbolFunction& symbolFunc, std::span<const FunctionParameterInfo> paramInfos);
     void               emitLoadFunctionParameterToReg(CodeGen& codeGen, const SymbolFunction& symbolFunc, const FunctionParameterInfo& paramInfo, MicroReg dstReg);
     CodeGenNodePayload materializeFunctionParameter(CodeGen& codeGen, const SymbolFunction& symbolFunc, const SymbolVariable& symVar, const FunctionParameterInfo* paramInfo = nullptr);
 

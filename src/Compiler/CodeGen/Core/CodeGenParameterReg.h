@@ -39,7 +39,7 @@ namespace CodeGenParameterReg
         for (size_t i = 0; i < params.size(); ++i)
         {
             SWC_ASSERT(params[i] != nullptr);
-            if (paramInfos[i].isRegisterArg)
+            if (paramInfos[i].isRegisterArg && !paramInfos[i].isSystemVStorage)
                 outIndices.push_back(static_cast<uint32_t>(i));
         }
     }

@@ -4,6 +4,34 @@ using Swag
 
 const BufSize = 4096'u64
 
+struct ScratchAlignmentProbeAllocator
+{
+    calls: u32
+    #[Swag.Align(16)]
+    storage: [128] u8
+}
+
+impl IAllocator for ScratchAlignmentProbeAllocator
+{
+    mtd impl alloc(request: *AllocatorRequest)
+    {
+        .calls += 1
+        if .calls == 1
+        {
+            request.address = &.storage[0]
+            return
+        }
+
+        if request.alignment != 0 and request.alignment < #alignof(LeakHeader) do
+            request.address = &.storage[32 + request.alignment]
+        else do
+            request.address = &.storage[32]
+    }
+
+    mtd impl realloc(request: *AllocatorRequest) { request.address = null }
+    mtd impl free(_: *AllocatorRequest) {}
+}
+
 func makeScratchAllocator(scratch: *ScratchAllocator, alloc: *Allocator)->IAllocator
 {
     alloc.setup()
@@ -502,6 +530,38 @@ func makeScratchAllocator(scratch: *ScratchAllocator, alloc: *Allocator)->IAlloc
     overflow.size = BufSize
     itf.free(&overflow)
     Swag.assert(scratch.totalLeak == 0)
+
+    scratch.release()
+}
+
+// Small payload alignments must not leave the overflow bookkeeping header misaligned.
+#test
+{
+    var backing: ScratchAlignmentProbeAllocator
+    var scratch: ScratchAllocator
+    scratch.setCapacity(1, Swag.makeInterface(&backing, #typeof(backing), IAllocator))
+    let itf: IAllocator = &scratch
+
+    var fill: AllocatorRequest
+    fill.size = 1
+    itf.alloc(&fill)
+
+    for alignment in [0'u32, 1, 2, 4]
+    {
+        var overflow: AllocatorRequest
+        overflow.size      = 24
+        overflow.alignment = alignment
+        itf.alloc(&overflow)
+
+        let effectiveAlignment = alignment != 0 ? alignment : cast(u32, #sizeof(*void))
+        Swag.assert(overflow.address != null)
+        Swag.assert(cast(u64, overflow.address) % cast(u64, effectiveAlignment) == 0)
+        Swag.assert(cast(u64, scratch.firstLeak) % cast(u64, #alignof(LeakHeader)) == 0)
+        Swag.assert(cast(u64, scratch.firstLeak) + #sizeof(LeakHeader) == cast(u64, overflow.address))
+        overflow.size = 24
+        itf.free(&overflow)
+        Swag.assert(scratch.totalLeak == 0)
+    }
 
     scratch.release()
 }

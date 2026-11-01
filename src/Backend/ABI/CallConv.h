@@ -6,6 +6,11 @@
 
 SWC_BEGIN_NAMESPACE();
 
+namespace Runtime
+{
+    enum class TargetOs;
+}
+
 enum class StructArgPassingKind : uint8_t
 {
     ByValue,
@@ -87,6 +92,7 @@ struct CallConv
     uint32_t                stackShadowSpace     = 0;
     uint32_t                argRegisterSlotCount = 0;
     bool                    independentArgBanks  = false;
+    bool                    isSystemVAMD64       = false;
     StructArgPassingInfo    structArgPassing;
     StructReturnPassingInfo structReturnPassing;
 
@@ -105,7 +111,7 @@ struct CallConv
     MicroReg             preferredLocalStackBaseReg() const;
     bool                 tryPickIntScratchRegs(MicroReg& outReg0, MicroReg& outReg1, MicroRegSpan forbidden = {}) const;
 
-    static void            setup();
+    static void            setup(Runtime::TargetOs targetOs);
     static const CallConv& get(CallConvKind kind);
     static const CallConv& swag();
 };

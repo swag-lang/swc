@@ -1491,7 +1491,7 @@ Result SymbolStruct::computeLayout(TaskContext& ctx)
         alignment = std::max(alignment, structAlign);
 
     const uint64_t padding = (alignment - (sizeInBytes % alignment)) % alignment;
-    sizeInBytes            = std::max(sizeInBytes + padding, 1ULL);
+    sizeInBytes            = std::max<uint64_t>(sizeInBytes + padding, 1);
 
     for (size_t i = 0; i < fields_.size(); ++i)
         fields_[i]->setOffset(static_cast<uint32_t>(fieldOffsets[i]));

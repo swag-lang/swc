@@ -27,6 +27,8 @@ namespace Unittest
     void   registerTest(const TestCase& test);
     void   registerSetup(SetupFn setupFn);
     Result runAll(const TaskContext& ctx);
+    bool   isDecommittedMemory(const void* address);
+    bool   isFileMapping(const void* address);
 
     class TestRegistrar
     {

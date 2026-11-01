@@ -73,6 +73,8 @@ inline Utf8 targetOsName(const Runtime::TargetOs value)
     {
         case Runtime::TargetOs::Windows:
             return "Windows";
+        case Runtime::TargetOs::Linux:
+            return "Linux";
     }
 
     SWC_UNREACHABLE();

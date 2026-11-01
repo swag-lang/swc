@@ -134,3 +134,4 @@ SWC_DIAG_DEF(cmd_err_workspace_requested_module_missing, Error, "workspace '{pat
 SWC_DIAG_DEF(cmd_err_workspace_requested_module_ignored, Error, "requested workspace module '{sym}' is marked 'ignoreInWorkspace'")
 SWC_DIAG_DEF(cmd_err_workspace_dependency_sync_failed, Error, "cannot synchronize workspace dependency '{path}': {because}")
 SWC_DIAG_DEF(cmd_err_build_cfg_unknown_warning, Error, "build configuration field 'warnings.{arg}' does not accept value '{value}'; it accepts warning identifiers separated with '|', or 'all' for every warning")
+SWC_DIAG_DEF(cmd_err_jit_host_target, Error, "JIT cannot execute code for {target} on the {value} compiler host")

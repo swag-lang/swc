@@ -3366,7 +3366,7 @@ SWC_TEST_BEGIN(PostRAPeephole_PartialFlagWritersPreserveIncomingZero)
         const uint64_t width = getNumBits(bits);
         for (const auto op : {MicroOp::ShiftLeft, MicroOp::ShiftRight, MicroOp::ShiftArithmeticRight, MicroOp::RotateLeft, MicroOp::RotateRight})
         {
-            for (const uint64_t count : {0ull, 1ull, width, width + 1})
+            for (const uint64_t count : std::array<uint64_t, 4>{0, 1, width, width + 1})
             {
                 MicroBuilder builder(ctx);
                 builder.emitCmpRegImm(conv.intRegs[0], ApInt(0, 64), MicroOpBits::B64);

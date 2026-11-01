@@ -1,4 +1,5 @@
 #include "pch.h"
+#include "Backend/Linker/PEFormat.h"
 #include "Backend/Native/NativeArtifactBuilder.h"
 #include "Backend/ABI/ABICall.h"
 #include "Backend/Micro/MicroBuilder.h"
@@ -690,13 +691,13 @@ Result NativeArtifactBuilder::buildStartupAndDataSectionsParallel() const
 void NativeArtifactBuilder::resetDataSections() const
 {
     builder_->mergedRData.name            = ".rdata";
-    builder_->mergedRData.characteristics = IMAGE_SCN_CNT_INITIALIZED_DATA | IMAGE_SCN_MEM_READ | IMAGE_SCN_ALIGN_16BYTES;
+    builder_->mergedRData.characteristics = PE::SCN_CNT_INITIALIZED_DATA | PE::SCN_MEM_READ | PE::SCN_ALIGN_16BYTES;
 
     builder_->mergedData.name            = ".data";
-    builder_->mergedData.characteristics = IMAGE_SCN_CNT_INITIALIZED_DATA | IMAGE_SCN_MEM_READ | IMAGE_SCN_MEM_WRITE | IMAGE_SCN_ALIGN_16BYTES;
+    builder_->mergedData.characteristics = PE::SCN_CNT_INITIALIZED_DATA | PE::SCN_MEM_READ | PE::SCN_MEM_WRITE | PE::SCN_ALIGN_16BYTES;
 
     builder_->mergedBss.name            = ".bss";
-    builder_->mergedBss.characteristics = IMAGE_SCN_CNT_UNINITIALIZED_DATA | IMAGE_SCN_MEM_READ | IMAGE_SCN_MEM_WRITE | IMAGE_SCN_ALIGN_16BYTES;
+    builder_->mergedBss.characteristics = PE::SCN_CNT_UNINITIALIZED_DATA | PE::SCN_MEM_READ | PE::SCN_MEM_WRITE | PE::SCN_ALIGN_16BYTES;
 
     builder_->mergedRData.bytes.clear();
     builder_->mergedRData.relocations.clear();

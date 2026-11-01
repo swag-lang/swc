@@ -6,6 +6,7 @@
 #include "Main/ExitCodes.h"
 #include "Main/FileSystem.h"
 #include "Support/Os/Os.h"
+#include "Support/Os/ProcessOutput.h"
 #include "Support/Report/LogColor.h"
 #include "Support/Report/Logger.h"
 #include <RestartManager.h>
@@ -331,60 +332,6 @@ namespace
         if (pendingSlashes)
             out.append(pendingSlashes * 2, L'\\');
         out.push_back(L'"');
-    }
-
-    void forwardProcessOutputLine(const Os::ProcessRunOptions* options, std::string_view lineWithEnding)
-    {
-        if (options && options->outputLineCallback)
-            options->outputLineCallback(options->outputLineUserData, lineWithEnding);
-
-        if (options && !options->suppressForwardLinePrefix.empty() && lineWithEnding.starts_with(options->suppressForwardLinePrefix))
-            return;
-
-        if (options && options->logCtx)
-        {
-            Logger::print(*options->logCtx, lineWithEnding);
-            return;
-        }
-
-        (void) std::fwrite(lineWithEnding.data(), sizeof(char), lineWithEnding.size(), stdout);
-        (void) std::fflush(stdout);
-    }
-
-    void forwardProcessOutputChunk(const Os::ProcessRunOptions* options, std::string& pendingLine, std::string_view chunk)
-    {
-        if (options && options->capturedOutput)
-            options->capturedOutput->append(chunk);
-
-        if (options && !options->forwardOutput)
-            return;
-
-        pendingLine.append(chunk);
-
-        size_t lineStart = 0;
-        while (lineStart < pendingLine.size())
-        {
-            const size_t lineEnd = pendingLine.find('\n', lineStart);
-            if (lineEnd == std::string::npos)
-                break;
-
-            forwardProcessOutputLine(options, std::string_view(pendingLine).substr(lineStart, lineEnd - lineStart + 1));
-            lineStart = lineEnd + 1;
-        }
-
-        pendingLine.erase(0, lineStart);
-    }
-
-    void flushPendingProcessOutput(const Os::ProcessRunOptions* options, std::string& pendingLine)
-    {
-        if (options && !options->forwardOutput)
-            return;
-
-        if (pendingLine.empty())
-            return;
-
-        forwardProcessOutputLine(options, pendingLine);
-        pendingLine.clear();
     }
 
     std::optional<Utf8> readEnvUtf8(const char* name)
@@ -961,6 +908,21 @@ namespace Os
         return numFrames;
     }
 
+    bool tryReadMemory(const std::span<std::byte> outBytes, const void* address)
+    {
+        if (outBytes.empty())
+            return true;
+        SWC_TRY
+        {
+            std::memcpy(outBytes.data(), address, outBytes.size());
+            return true;
+        }
+        SWC_EXCEPT(SWC_EXCEPTION_EXECUTE_HANDLER)
+        {
+            return false;
+        }
+    }
+
     bool resolveAddress(ResolvedAddress& outAddress, const uintptr_t address, const TaskContext* ctx)
     {
         return resolveWindowsAddress(outAddress, address, ctx);
@@ -1071,6 +1033,11 @@ namespace Os
         return error == ERROR_SHARING_VIOLATION || error == ERROR_LOCK_VIOLATION;
     }
 
+    bool isFileSharingError(const std::error_code error)
+    {
+        return error == std::errc::permission_denied || (error.category() == std::system_category() && (error.value() == ERROR_SHARING_VIOLATION || error.value() == ERROR_LOCK_VIOLATION));
+    }
+
     Utf8 systemError()
     {
         const DWORD id = GetLastError();
@@ -1124,11 +1091,6 @@ namespace Os
             return std::nullopt;
 
         return readEnvUtf8(std::string(name).c_str());
-    }
-
-    Utf8 formatProcessExitCode(const uint32_t exitCode)
-    {
-        return std::format("{} (0x{:08X})", exitCode, exitCode);
     }
 
     Utf8 formatProcessCommandLine(const fs::path& exePath, const std::span<const Utf8> args)
@@ -1248,7 +1210,8 @@ namespace Os
 
         HANDLE     childOutputRead  = nullptr;
         HANDLE     childOutputWrite = nullptr;
-        const bool redirectOutput   = options && (options->capturedOutput || !options->forwardOutput);
+        ProcessOutput output(options);
+        const bool redirectOutput = output.needsPipe();
         if (redirectOutput)
         {
             SECURITY_ATTRIBUTES securityAttributes{};
@@ -1316,7 +1279,6 @@ namespace Os
 
         if (childOutputRead)
         {
-            std::string pendingLine;
             char        buffer[4096];
             for (;;)
             {
@@ -1331,7 +1293,7 @@ namespace Os
                     if (!ReadFile(childOutputRead, buffer, want, &bytesRead, nullptr) || !bytesRead)
                         break;
 
-                    forwardProcessOutputChunk(options, pendingLine, std::string_view(buffer, bytesRead));
+                    output.append(std::string_view(buffer, bytesRead));
                     continue;
                 }
 
@@ -1348,7 +1310,7 @@ namespace Os
                 Sleep(2);
             }
 
-            flushPendingProcessOutput(options, pendingLine);
+            output.flush();
             CloseHandle(childOutputRead);
         }
 

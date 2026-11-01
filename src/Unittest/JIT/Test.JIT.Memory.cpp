@@ -25,8 +25,7 @@ SWC_TEST_BEGIN(JIT_ReleasedProximityBlocksAreDecommitted)
     }
     for (const void* ptr : released)
     {
-        MEMORY_BASIC_INFORMATION memory{};
-        if (!VirtualQuery(ptr, &memory, sizeof(memory)) || memory.State != MEM_RESERVE)
+        if (!Unittest::isDecommittedMemory(ptr))
             return Result::Error;
     }
 }

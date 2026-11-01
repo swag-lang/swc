@@ -9,6 +9,7 @@
 
 SWC_BEGIN_NAMESPACE();
 
+#ifdef _WIN32
 namespace
 {
     class SharingLockedFile
@@ -144,12 +145,22 @@ SWC_FILESYSTEM_TEST_BEGIN(FileSystem_AtomicWriteWaitsForTransientSharingLock)
 }
 SWC_TEST_END()
 
+#endif
+
 SWC_FILESYSTEM_TEST_BEGIN(FileSystem_ConcurrentAtomicWritesKeepCompleteSnapshots)
 {
-    SharingLockedFile file("atomic_concurrent");
-    if (!file.ready())
-        return Result::Error;
-    file.release();
+    const fs::path path = Os::getTemporaryPath() / std::format("swc_atomic_concurrent_p{}.bin", Os::currentProcessId());
+    struct RemoveTestFile
+    {
+        const fs::path* path;
+        ~RemoveTestFile()
+        {
+            std::error_code error;
+            fs::remove(*path, error);
+        }
+    } cleanup{&path};
+    FileSystem::IoErrorInfo initialError;
+    SWC_RESULT(FileSystem::writeBinaryFile(path, "old", 3, initialError));
 
     const std::array<std::string, 2> versions = {std::string(1024 * 1024, 'a'), std::string(2 * 1024 * 1024 + 4093, 'b')};
     std::atomic_uint32_t             running  = 2;
@@ -162,7 +173,7 @@ SWC_FILESYSTEM_TEST_BEGIN(FileSystem_ConcurrentAtomicWritesKeepCompleteSnapshots
             start.arrive_and_wait();
             FileSystem::IoErrorInfo error;
             for (uint32_t round = 0; round < 16; ++round)
-                if (FileSystem::writeBinaryFileAtomic(file.path(), versions[i].data(), versions[i].size(), error) != Result::Continue)
+                if (FileSystem::writeBinaryFileAtomic(path, versions[i].data(), versions[i].size(), error) != Result::Continue)
                     if (!failed.exchange(true))
                         fprintf(stderr, "atomic writer %zu stopped: %s\n", i, FileSystem::describeIoFailure(error).c_str());
             running.fetch_sub(1);
@@ -173,7 +184,7 @@ SWC_FILESYSTEM_TEST_BEGIN(FileSystem_ConcurrentAtomicWritesKeepCompleteSnapshots
     {
         std::string             contents;
         FileSystem::IoErrorInfo error;
-        if (FileSystem::readTextFile(file.path(), contents, error) != Result::Continue)
+        if (FileSystem::readTextFile(path, contents, error) != Result::Continue)
         {
             if (!failed.exchange(true))
                 fprintf(stderr, "atomic reader stopped: %s\n", FileSystem::describeIoFailure(error).c_str());
@@ -191,6 +202,7 @@ SWC_FILESYSTEM_TEST_BEGIN(FileSystem_ConcurrentAtomicWritesKeepCompleteSnapshots
 }
 SWC_TEST_END()
 
+#ifdef _WIN32
 SWC_TEST_BEGIN(Os_FatalHostExceptionClassificationExcludesCppExceptions)
 {
     if (!Os::isFatalHostException(EXCEPTION_ACCESS_VIOLATION))
@@ -199,6 +211,8 @@ SWC_TEST_BEGIN(Os_FatalHostExceptionClassificationExcludesCppExceptions)
         return Result::Error;
 }
 SWC_TEST_END()
+
+#endif
 
 SWC_TEST_BEGIN(Os_FileLockOwnersNameTheProcessMappingAnImage)
 {
@@ -237,6 +251,7 @@ SWC_TEST_BEGIN(FileSystem_AppendFileUsersLeavesAnUnheldFileAlone)
 }
 SWC_TEST_END()
 
+#ifdef _WIN32
 SWC_FILESYSTEM_TEST_BEGIN(Os_RunProcessChildTreeDoesNotSurviveTheCall)
 {
     // The contract on runProcess: the child and whatever it spawns die with the call, whichever
@@ -337,6 +352,8 @@ SWC_FILESYSTEM_TEST_BEGIN(FileSystem_AtomicWriteReplacesLoadedLibrary)
     return result;
 }
 SWC_TEST_END()
+
+#endif
 
 SWC_FILESYSTEM_TEST_BEGIN(FileSystem_ReplaceMappedCacheRetainsReaderGeneration)
 {

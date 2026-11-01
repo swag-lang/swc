@@ -26,3 +26,75 @@ exercise a native integration point remain in the host layer and must be selecte
 source audit of this contract has been retired; a platform-looking suffix is not an approval. Add a path only when
 it owns a narrow host mechanism or optional adapter, and keep transitional public exceptions tied
 to their backlog entry. Every repository test campaign runs the same audit before compiling.
+
+## Host capability inventory
+
+Update this inventory in the same change as an adapter or portability contract. Entries describe
+implemented capabilities, not native source-line counts. `Windows` below means an implementation
+exists in the named owner; it does not imply that a Windows campaign ran on the Linux host.
+`Missing` means Linux has no implementation of that contract, even when common policy exists.
+
+The Linux host-adapter boundary is `python3 tools/linux-host.py`, on Linux x86-64 with
+GCC 14 and C++23, glibc 2.36 or later and Linux 5.9 or later (pidfds, subreapers and
+`close_range` must be permitted). It tests actual compiler host adapters independently.
+`tools/linux-build.py` also builds the complete DevMode compiler; its lexer/parser suites pass,
+while C++ execution-dependent tests remain unfinished. The generated target remains Windows
+until the Linux ABI and runtime are connected. These checks do not establish a runnable
+Linux Swag runtime. In particular,
+the C++ JIT page allocator is separate from `bin/runtime`'s `__hostPage*` allocator hooks.
+
+| Capability | Owner / Windows adapter | Linux implementation |
+| --- | --- | --- |
+| Compiler executable pages, protection, proximity reservation, physical release | `src/Support/Os/Os.Windows.cpp` | `src/Support/Os/Os.Memory.Linux.cpp`; native host tests |
+| Compiler immutable mapped-cache generations | `src/Support/Os/ReadOnlyFileMapping.Windows.cpp` | `src/Support/Os/ReadOnlyFileMapping.Linux.cpp`; native host tests |
+| Compiler directory identity locks and atomic cache publication | `src/Support/Os/DirectoryLock.h`, `src/Main/FileSystem.IO.cpp` | `DirectoryLock.Linux.cpp` and common I/O tests; advisory inode locking, alias coordination and waiter identity recheck. Concurrent directory cleanup still needs coordination |
+| Compiler terminal, environment, executable path and process identity | `src/Support/Os/Os.Windows.cpp` | `Os.Console.Linux.cpp`, `Os.Linux.cpp`; terminal/redirection and environment tests |
+| Compiler process lifecycle and output capture | `src/Support/Os/Os.Windows.cpp` | `Os.Process.Linux.cpp` and common `ProcessOutput.cpp`; argv, capture/filtering, silent/noisy timeouts, detached descendants, callback unwinding and caller SIGKILL tests |
+| Compiler shared-library lookup and TLS | `src/Support/Os/Os.Windows.cpp` | `Os.Module.Linux.cpp`, `Os.Thread.Linux.cpp`; shared-library C calls, search paths and thread isolation tests |
+| Compiler file-user diagnostics and explicit Windows cross-toolchain inputs | `src/Support/Os/Os.Windows.cpp` | `Os.File.Linux.cpp`; executable, descriptor and mapped-file users by inode; mounted SDK discovery through explicit environment paths |
+| Compiler native stack capture and symbol resolution | `src/Support/Os/Os.Windows.cpp` | `Os.Stack.Linux.cpp`; bounded unwinding, frame skipping and demangled ELF symbols; safe diagnostic reads use `process_vm_readv` or checked procfs fallback. DWARF source locations remain unavailable |
+| Compiler signal stacks and generated-code unwinding | `src/Support/Os/Os.Windows.cpp`, `src/Backend/JIT/` | Guarded per-thread alternate stacks, DWARF CIE/FDE construction and libgcc registration; native tests cover stack overflow, generated frames and C++ cleanup after a generated fault. The fault boundary preserves C++ cleanup and rejects native faults. Instruction-level CFI follows the control-flow graph, including multiple returns, dynamic stack allocation, saved registers and indirect jumps |
+| Compiler startup CPU/OS-state check | `src/Main/HostCpuGuard.cpp` | ELF preinit guard checks GCC’s x86-64-v3 predicate, including OS AVX state; rejection tested before C++ initialization |
+| Foreign calls, argument/return classification and callee-save registers | `src/Backend/ABI/`, Windows x64 | Missing System V AMD64 ABI |
+| Object emission, linking, startup, dynamic imports and debug artifacts | `src/Backend/Native/`, `src/Backend/Linker/`, COFF/PE/PDB | PE/COFF records compile without the Windows SDK; ELF and Linux startup/link inputs remain missing |
+| Runtime reserve/commit/decommit/release and allocation-base lookup | `bin/runtime/os.win32.swg`, `__hostPage*` | Missing |
+| Runtime TLS and thread-exit cleanup | `bin/runtime/os.win32.swg`, `__hostTls*`, `__hostThreadStorage*` | Missing |
+| Runtime threads, priorities, processor count, pool ceiling and work pressure | `bin/runtime/os.win32.swg`, `__hostThread*`, `__hostWorkPressure` | Missing |
+| Runtime locks and condition variables | `bin/runtime/os.win32.swg`, `__hostLock*`, `__hostCondition*`, `MutexRW` | Missing; common storage still names Windows types |
+| Runtime process-wide storage and singleton identity across shared modules | `bin/runtime/os.win32.swg`, `__hostProcessStorage`, `__hostProcessSingleton` | Missing |
+| Runtime monotonic clock and hardware features | `bin/runtime/os.win32.swg`, `__hostMonotonic*`, `__hostHasAvx2` | Missing |
+| Runtime arguments, byte output, native library loading and termination | `bin/runtime/os.win32.swg`, `__osCommandLine`, `__printString`, `__loaddll`, `__exit*` | Missing; startup needs argc/argv before module initialization |
+| Runtime test fault recovery, stack capture, image and debug-section access | `bin/runtime/os.win32.swg`, `__hostTest*`, `__hostCatchCall`, `__hostResume`, `__captureStack`, `__host*DebugSection` | Missing |
+| Runtime hosted math | `bin/runtime/os.win32.swg`, UCRT imports | Missing Linux libm bindings and foreign-call ABI |
+| Core directories, files, streams, mappings, metadata, paths and watches | `bin/std/modules/core/src/filesystem/*.win32.swg` | Missing |
+| Core processes, environment, hardware, native libraries, errors and sandbox | `bin/std/modules/core/src/system/*.win32.swg` | Missing |
+| Core thread/event primitives, wall clocks and timers | `bin/std/modules/core/src/thread/*.win32.swg`, `src/time/*.win32.swg` | Missing |
+| Core console, debugger and secure-memory operations | `bin/std/modules/core/src/diagnostics/*.win32.swg`, `src/crypto/security.win32.swg` | Missing |
+| Core keyboard, mouse and gamepad acquisition | `bin/std/modules/core/src/input/`, Windows and XInput leaves | Missing |
+| Network TCP and HTTP transport | `bin/std/modules/net/src/tcp.win32.swg`, `src/http/client.win32.swg` | Missing |
+| Pixel installed fonts, native image adapters and render-thread integration | `bin/std/modules/pixel/src/text/*.win32.swg`, `src/image/image.win32.swg`, `src/render/renderthread.win32.swg` | Missing; OpenGL is outside this roadmap |
+| Audio device, voices, buses and streaming | `bin/std/modules/audio/src/driver/xaudio2.swg` | `nosound.swg` is selected in source; no real device backend or Linux execution validation |
+| GUI surfaces, presentation, native text, input, cursor, clipboard and drag/drop | `bin/std/modules/gui/src/*.win32.swg`, `src/paint/cursor.win32.swg` | Missing; headless policy is not a native desktop backend |
+| Capture screen/window/region acquisition | `bin/apps/modules/swagcapture/src/screenshot/screenshot.win32.swg` | Missing |
+| Vault filesystem mount and host lifecycle | `bin/apps/modules/swagvault/src/winfsp/`, `src/autounmount.win32.swg` | Missing FUSE backend |
+| Scope/Prism desktop integration and application packaging | Application module setup and Core/GUI/Pixel services above | Missing Linux packaging and desktop registration |
+
+Portable algorithms, codecs and application models consume these capabilities. Their neutral
+source status does not prove that their entire module can compile on Linux. Optional raw Windows
+interop remains deliberately Windows-only; it does not need a Linux implementation.
+
+## Hosted library matrix
+
+The first Linux bootstrap target is GNU/Linux x86-64 with glibc. Other libc implementations,
+architectures and freestanding builds have no validated target contract yet.
+
+| Target | C/math libraries | Thread and loader interfaces | Current link support |
+| --- | --- | --- | --- |
+| Windows x86-64 | UCRT (`ucrtbase` at runtime, `ucrt` link input) | Kernel32 and the existing Windows host imports | Windows toolchain discovery, COFF and PE |
+| GNU/Linux x86-64, planned Swag target | glibc (`libc.so.6`) and libm (`libm.so.6`, `-lm`) | POSIX threads (`-pthread`) and `dlopen`/`dlsym` (`-ldl` for toolchain compatibility) | C++ host tests only; Swag bindings, System V ABI, ELF, CRT startup and link resolution are missing |
+| Freestanding | No selected contract | No implicit hosted services | Not implemented |
+
+Modern glibc integrates pthread and dl symbols into libc; keeping the toolchain flags does not
+mean shipping private copies of those libraries. The Linux C++ host-test launcher currently uses
+libc/libstdc++, `-pthread` and `-ldl`, with the C++ toolchain supplying its own startup objects.
+Linux runtime math should use the host libm before considering a separately owned implementation.

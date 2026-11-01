@@ -11,6 +11,9 @@
 #include "Support/Report/LogColor.h"
 #include "Support/Report/Logger.h"
 #include "Support/Report/ScopedTimedLog.h"
+#ifdef __linux__
+#include <sys/mman.h>
+#endif
 #endif
 
 SWC_BEGIN_NAMESPACE();
@@ -19,6 +22,36 @@ SWC_BEGIN_NAMESPACE();
 
 namespace Unittest
 {
+    bool isDecommittedMemory(const void* address)
+    {
+#ifdef _WIN32
+        MEMORY_BASIC_INFORMATION memory{};
+        return VirtualQuery(address, &memory, sizeof(memory)) && memory.State == MEM_RESERVE;
+#elif defined(__linux__)
+        unsigned char resident = 1;
+        std::byte byte{};
+        return mincore(const_cast<void*>(address), Os::memoryPageSize(), &resident) == 0 && !(resident & 1) && !Os::tryReadMemory(std::span{&byte, 1}, address);
+#endif
+    }
+
+    bool isFileMapping(const void* address)
+    {
+#ifdef _WIN32
+        MEMORY_BASIC_INFORMATION memory{};
+        return VirtualQuery(address, &memory, sizeof(memory)) && memory.Type == MEM_MAPPED;
+#elif defined(__linux__)
+        std::ifstream maps("/proc/self/maps");
+        std::string line;
+        while (std::getline(maps, line))
+        {
+            unsigned long long start = 0, end = 0, inode = 0;
+            if (std::sscanf(line.c_str(), "%llx-%llx %*4s %*x %*x:%*x %llu", &start, &end, &inode) == 3 && start <= reinterpret_cast<uintptr_t>(address) && reinterpret_cast<uintptr_t>(address) < end)
+                return inode != 0;
+        }
+        return false;
+#endif
+    }
+
     namespace
     {
         struct TimedTestResult

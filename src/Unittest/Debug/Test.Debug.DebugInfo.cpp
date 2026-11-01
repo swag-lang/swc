@@ -1,4 +1,5 @@
 #include "pch.h"
+#include "Backend/Linker/PEFormat.h"
 #include "Compiler/Sema/Constant/ConstantManager.h"
 #include "Support/Report/Assert.h"
 
@@ -540,7 +541,8 @@ SWC_TEST_BEGIN(DebugInfo_EmitsWindowsSymbolAndTypeRecords)
     MachineCode code;
     code.bytes.pushBack(std::byte{0xC3});
 
-    static constexpr std::string_view OBJECT_NAME = "C:\\swc\\debug-info-test.obj";
+    const fs::path objectPath = Os::getTemporaryPath() / "swc-debug-info-test.obj";
+    const Utf8 objectName = objectPath.string();
     static constexpr std::string_view DEBUG_NAME  = "debug::proc";
 
     const DebugInfoFunctionRecord function = {
@@ -555,7 +557,7 @@ SWC_TEST_BEGIN(DebugInfo_EmitsWindowsSymbolAndTypeRecords)
     const DebugInfoObjectRequest request = {
         .ctx          = &ctx,
         .targetOs     = Runtime::TargetOs::Windows,
-        .objectPath   = fs::path(OBJECT_NAME),
+        .objectPath   = objectPath,
         .functions    = functions,
         .emitCodeView = true,
     };
@@ -581,7 +583,7 @@ SWC_TEST_BEGIN(DebugInfo_EmitsWindowsSymbolAndTypeRecords)
         return Result::Error;
     if (!symbolsSubsectionContainsRecord(debugBytes, K_S_PROC_ID_END))
         return Result::Error;
-    if (!bytesContainString(debugBytes, Utf8(OBJECT_NAME)))
+    if (!bytesContainString(debugBytes, objectName))
         return Result::Error;
     if (!bytesContainString(debugBytes, Utf8(DEBUG_NAME)))
         return Result::Error;
@@ -623,7 +625,7 @@ SWC_TEST_BEGIN(DebugInfo_PdbInfoEmitsWindowsBuildInfo)
     const DebugInfoObjectRequest request = {
         .ctx        = &ctx,
         .targetOs   = Runtime::TargetOs::Windows,
-        .objectPath = fs::path("C:\\swc\\debug-info-pdb.obj"),
+        .objectPath = Os::getTemporaryPath() / "debug-info-pdb.obj",
         .functions  = functions,
     };
 
@@ -728,7 +730,7 @@ SWC_TEST_BEGIN(DebugInfo_EmitsWindowsVariableAndConstantRecords)
         if (relocation.symbolName != expectedDataBaseSymbol)
             continue;
 
-        if (relocation.type != IMAGE_REL_AMD64_SECREL)
+        if (relocation.type != PE::REL_AMD64_SECREL)
             continue;
         if (relocation.addend != 16)
             return Result::Error;

@@ -1,21 +1,25 @@
 #include "pch.h"
 #include "Backend/ABI/CallConv.h"
+#include "Backend/RuntimeBase.h"
 #include "Support/Report/Assert.h"
 
 SWC_BEGIN_NAMESPACE();
 
 namespace
 {
-    constexpr size_t K_CALL_CONV_COUNT = static_cast<size_t>(CallConvKind::Swag) + 1;
+    constexpr size_t K_CALL_CONV_COUNT = static_cast<size_t>(CallConvKind::SystemVAMD64) + 1;
     CallConv         g_CallConvs[K_CALL_CONV_COUNT];
 
-    CallConvKind resolveNativeTargetCallConvKind()
+    CallConvKind resolveTargetCallConvKind(const Runtime::TargetOs targetOs)
     {
-#if defined(_WIN32) && defined(_M_X64)
-        return CallConvKind::WindowsX64;
-#else
-        SWC_UNREACHABLE();
-#endif
+        switch (targetOs)
+        {
+            case Runtime::TargetOs::Windows:
+                return CallConvKind::WindowsX64;
+            default:
+                SWC_FORCE_ASSERT(false && "C calling convention is not implemented for this target OS");
+                SWC_UNREACHABLE();
+        }
     }
 
     bool hasStructSizeBit(uint64_t sizeMask, uint32_t sizeInBytes)
@@ -80,6 +84,27 @@ namespace
         conv.structArgPassing.passByReferenceNeedsCopy = true;
         conv.structReturnPassing.passByValueSizeMask   = (uint64_t{1} << 1) | (uint64_t{1} << 2) | (uint64_t{1} << 4) | (uint64_t{1} << 8);
         conv.stackRedZone                              = false;
+    }
+
+    void setupCallConvSystemVAMD64(CallConv& conv)
+    {
+        setupX64RegisterFile(conv);
+        conv.name                = "sysv64";
+        conv.displayName         = "System V AMD64";
+        conv.intArgRegs          = SmallVector{MicroReg::intReg(7), MicroReg::intReg(6), MicroReg::intReg(3), MicroReg::intReg(2), MicroReg::intReg(8), MicroReg::intReg(9)};
+        conv.floatArgRegs        = SmallVector{MicroReg::floatReg(0), MicroReg::floatReg(1), MicroReg::floatReg(2), MicroReg::floatReg(3), MicroReg::floatReg(4), MicroReg::floatReg(5), MicroReg::floatReg(6), MicroReg::floatReg(7)};
+        conv.intTransientRegs    = SmallVector{MicroReg::intReg(0), MicroReg::intReg(2), MicroReg::intReg(3), MicroReg::intReg(6), MicroReg::intReg(7), MicroReg::intReg(8), MicroReg::intReg(9), MicroReg::intReg(10), MicroReg::intReg(11)};
+        conv.intPersistentRegs   = SmallVector{MicroReg::intReg(1), MicroReg::intReg(5), MicroReg::intReg(12), MicroReg::intReg(13), MicroReg::intReg(14), MicroReg::intReg(15)};
+        conv.floatTransientRegs  = conv.floatRegs;
+        conv.floatPersistentRegs.clear();
+        conv.stackAlignment      = 16;
+        conv.stackParamAlignment = 8;
+        conv.stackParamSlotSize  = 8;
+        conv.stackShadowSpace    = 0;
+        conv.independentArgBanks = true;
+        conv.isSystemVAMD64      = true;
+        // Frames use explicit storage even though the ABI permits a 128-byte red zone.
+        conv.stackRedZone        = false;
     }
 
     void setupCallConvC(CallConv& conv, const CallConv& native)
@@ -225,11 +250,12 @@ bool CallConv::tryPickIntScratchRegs(MicroReg& outReg0, MicroReg& outReg1, Micro
     return true;
 }
 
-void CallConv::setup()
+void CallConv::setup(const Runtime::TargetOs targetOs)
 {
     setupCallConvWindowsX64(g_CallConvs[static_cast<size_t>(CallConvKind::WindowsX64)]);
+    setupCallConvSystemVAMD64(g_CallConvs[static_cast<size_t>(CallConvKind::SystemVAMD64)]);
 
-    const auto& native = g_CallConvs[static_cast<size_t>(resolveNativeTargetCallConvKind())];
+    const auto& native = g_CallConvs[static_cast<size_t>(resolveTargetCallConvKind(targetOs))];
     setupCallConvC(g_CallConvs[static_cast<size_t>(CallConvKind::C)], native);
     setupCallConvSwag(g_CallConvs[static_cast<size_t>(CallConvKind::Swag)]);
 }

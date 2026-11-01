@@ -1118,7 +1118,7 @@ namespace
 #endif
     }
 
-    __forceinline Result constCallArgumentConstantRef(Sema& sema, ConstantRef& outCstRef, const AstNodeRef& callRef, const ResolvedCallArgument& resolvedArg)
+    SWC_FORCE_INLINE Result constCallArgumentConstantRef(Sema& sema, ConstantRef& outCstRef, const AstNodeRef& callRef, const ResolvedCallArgument& resolvedArg)
     {
         const AstNodeRef argRef = resolvedArg.argRef;
         if (argRef.isValid())
@@ -1134,7 +1134,7 @@ namespace
         return defaultArgumentConstantRef(sema, outCstRef, callRef, resolvedArg);
     }
 
-    __forceinline bool appendConstCallArgument(Sema& sema, SmallVector<SmallVector<std::byte>>& outArgStorage, SmallVector<JITArgument>& outJitArgs, const TypeRef& argValueTypeRef, const ConstantRef& argCstRef)
+    SWC_FORCE_INLINE bool appendConstCallArgument(Sema& sema, SmallVector<SmallVector<std::byte>>& outArgStorage, SmallVector<JITArgument>& outJitArgs, const TypeRef& argValueTypeRef, const ConstantRef& argCstRef)
     {
         TaskContext&         ctx              = sema.ctx();
         const TypeInfo&      argValueType     = sema.typeMgr().get(argValueTypeRef);

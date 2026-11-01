@@ -1,4 +1,5 @@
 #include "pch.h"
+#include "Backend/Linker/PEFormat.h"
 
 #if SWC_HAS_UNITTEST
 
@@ -12,8 +13,8 @@ SWC_BEGIN_NAMESPACE();
 
 namespace
 {
-    constexpr size_t TEXT_HEADER = sizeof(IMAGE_FILE_HEADER);
-    constexpr size_t TEXT_DATA   = TEXT_HEADER + 2 * sizeof(IMAGE_SECTION_HEADER);
+    constexpr size_t TEXT_HEADER = sizeof(PE::FileHeader);
+    constexpr size_t TEXT_DATA   = TEXT_HEADER + 2 * sizeof(PE::SectionHeader);
     constexpr size_t RELOC_DATA  = TEXT_DATA + 4;
 
     template<typename T>
@@ -25,36 +26,36 @@ namespace
 
     ByteArray makeCoffReaderObject(const bool overflow)
     {
-        const size_t relocData  = RELOC_DATA + (overflow ? sizeof(IMAGE_RELOCATION) : 0);
-        const size_t symbolData = relocData + 2 * sizeof(IMAGE_RELOCATION);
-        ByteArray    bytes(symbolData + 5 * sizeof(IMAGE_SYMBOL));
+        const size_t relocData  = RELOC_DATA + (overflow ? sizeof(PE::Relocation) : 0);
+        const size_t symbolData = relocData + 2 * sizeof(PE::Relocation);
+        ByteArray    bytes(symbolData + 5 * sizeof(PE::Symbol));
 
-        IMAGE_FILE_HEADER file{};
-        file.Machine              = IMAGE_FILE_MACHINE_AMD64;
+        PE::FileHeader file{};
+        file.Machine              = PE::FILE_MACHINE_AMD64;
         file.NumberOfSections     = 2;
         file.PointerToSymbolTable = static_cast<uint32_t>(symbolData);
         file.NumberOfSymbols      = 5;
         writeRecord(bytes, 0, file);
 
-        IMAGE_SECTION_HEADER text{};
+        PE::SectionHeader text{};
         std::memcpy(text.Name, ".text", 5);
         text.SizeOfRawData        = 4;
         text.PointerToRawData     = TEXT_DATA;
         text.PointerToRelocations = RELOC_DATA;
         text.NumberOfRelocations  = overflow ? 0xFFFF : 2;
-        text.Characteristics      = IMAGE_SCN_CNT_CODE | IMAGE_SCN_MEM_EXECUTE | IMAGE_SCN_MEM_READ;
+        text.Characteristics      = PE::SCN_CNT_CODE | PE::SCN_MEM_EXECUTE | PE::SCN_MEM_READ;
         if (overflow)
-            text.Characteristics |= IMAGE_SCN_LNK_NRELOC_OVFL;
+            text.Characteristics |= PE::SCN_LNK_NRELOC_OVFL;
         writeRecord(bytes, TEXT_HEADER, text);
         bytes.writeLe32(TEXT_DATA, 0x12345678);
 
-        IMAGE_SECTION_HEADER bss{};
+        PE::SectionHeader bss{};
         std::memcpy(bss.Name, ".bss", 4);
         bss.SizeOfRawData   = 64;
-        bss.Characteristics = IMAGE_SCN_CNT_UNINITIALIZED_DATA | IMAGE_SCN_MEM_READ | IMAGE_SCN_MEM_WRITE;
+        bss.Characteristics = PE::SCN_CNT_UNINITIALIZED_DATA | PE::SCN_MEM_READ | PE::SCN_MEM_WRITE;
         writeRecord(bytes, TEXT_HEADER + sizeof(text), bss);
 
-        IMAGE_RELOCATION reloc{};
+        PE::Relocation reloc{};
         if (overflow)
         {
             reloc.RelocCount = 3; // Includes the count record itself.
@@ -62,16 +63,16 @@ namespace
         }
         reloc.VirtualAddress   = 1;
         reloc.SymbolTableIndex = 3;
-        reloc.Type             = IMAGE_REL_AMD64_REL32;
+        reloc.Type             = PE::REL_AMD64_REL32;
         writeRecord(bytes, relocData, reloc);
         reloc.SymbolTableIndex = 0;
         writeRecord(bytes, relocData + sizeof(reloc), reloc);
 
-        IMAGE_SYMBOL symbol{};
+        PE::Symbol symbol{};
         symbol.N.Name.Long        = 4;
         symbol.SectionNumber      = 1;
         symbol.Value              = 1;
-        symbol.StorageClass       = IMAGE_SYM_CLASS_EXTERNAL;
+        symbol.StorageClass       = PE::SYM_CLASS_EXTERNAL;
         symbol.NumberOfAuxSymbols = 1;
         writeRecord(bytes, symbolData, symbol);
         // Record 1 is an auxiliary record; it must not become a definition.
@@ -83,16 +84,16 @@ namespace
         std::memcpy(symbol.N.ShortName, "bss", 3);
         symbol.SectionNumber = 2;
         symbol.Value         = 3;
-        symbol.StorageClass  = IMAGE_SYM_CLASS_EXTERNAL;
+        symbol.StorageClass  = PE::SYM_CLASS_EXTERNAL;
         writeRecord(bytes, symbolData + 2 * sizeof(symbol), symbol);
         symbol = {};
         std::memcpy(symbol.N.ShortName, "external", 8);
-        symbol.StorageClass = IMAGE_SYM_CLASS_EXTERNAL;
+        symbol.StorageClass = PE::SYM_CLASS_EXTERNAL;
         writeRecord(bytes, symbolData + 3 * sizeof(symbol), symbol);
         symbol = {};
         std::memcpy(symbol.N.ShortName, "local", 5);
         symbol.SectionNumber = 1;
-        symbol.StorageClass  = IMAGE_SYM_CLASS_STATIC;
+        symbol.StorageClass  = PE::SYM_CLASS_STATIC;
         writeRecord(bytes, symbolData + 4 * sizeof(symbol), symbol);
 
         constexpr std::string_view longName = "defined_function_name";
@@ -142,7 +143,7 @@ SWC_TEST_BEGIN(CoffReader_DefinedSymbolsPreserveObjectSemantics)
         const CoffInputSection& bss  = object.sections[1];
         if (text.name != ".text" || text.isBss || text.bytes.size() != 4 || text.bytes.readLe32(0) != 0x12345678 || text.relocs.size() != 2 ||
             text.relocs[0].symbolName != "external" || text.relocs[1].symbolName != "defined_function_name" ||
-            text.relocs[0].offset != 1 || text.relocs[0].type != IMAGE_REL_AMD64_REL32 ||
+            text.relocs[0].offset != 1 || text.relocs[0].type != PE::REL_AMD64_REL32 ||
             bss.name != ".bss" || !bss.isBss || bss.bssSize != 64 || !bss.bytes.empty() || !bss.relocs.empty())
             return Result::Error;
     }
@@ -152,14 +153,14 @@ SWC_TEST_END()
 SWC_TEST_BEGIN(CoffReader_SymbolViewsPreserveClassificationAndBounds)
 {
     const ByteArray valid     = makeCoffReaderObject(false);
-    const size_t    symbolsAt = valid.readLe32(offsetof(IMAGE_FILE_HEADER, PointerToSymbolTable));
+    const size_t    symbolsAt = valid.readLe32(offsetof(PE::FileHeader, PointerToSymbolTable));
     for (const int16_t sectionNumber : std::array<int16_t, 5>{-2, -1, 0, 3, 0x7FFF})
     {
         ByteArray bytes = valid;
-        bytes.writeLe16(symbolsAt + offsetof(IMAGE_SYMBOL, SectionNumber), static_cast<uint16_t>(sectionNumber));
+        bytes.writeLe16(symbolsAt + offsetof(PE::Symbol, SectionNumber), static_cast<uint16_t>(sectionNumber));
         // An undefined record can reference the same long name as a non-section definition.
-        bytes.writeLe32(symbolsAt + 3 * sizeof(IMAGE_SYMBOL), 0);
-        bytes.writeLe32(symbolsAt + 3 * sizeof(IMAGE_SYMBOL) + 4, 4);
+        bytes.writeLe32(symbolsAt + 3 * sizeof(PE::Symbol), 0);
+        bytes.writeLe32(symbolsAt + 3 * sizeof(PE::Symbol) + 4, 4);
         CoffObject                   object;
         std::vector<CoffInputSymbol> symbols;
         Diagnostic                   diag;
@@ -201,44 +202,44 @@ SWC_TEST_END()
 SWC_TEST_BEGIN(CoffReader_DefinedSymbolsValidateDiscardedData)
 {
     const ByteArray valid = makeCoffReaderObject(false);
-    ByteArray       bytes(sizeof(IMAGE_FILE_HEADER) - 1);
+    ByteArray       bytes(sizeof(PE::FileHeader) - 1);
     if (!rejectsCoffObject(bytes, DiagnosticId::cmd_err_link_coff_truncated_header))
         return Result::Error;
     bytes = valid;
-    bytes.writeLe16(offsetof(IMAGE_FILE_HEADER, Machine), IMAGE_FILE_MACHINE_I386);
+    bytes.writeLe16(offsetof(PE::FileHeader, Machine), PE::FILE_MACHINE_I386);
     if (!rejectsCoffObject(bytes, DiagnosticId::cmd_err_link_coff_unsupported_machine))
         return Result::Error;
     bytes = valid;
-    bytes.writeLe32(offsetof(IMAGE_FILE_HEADER, PointerToSymbolTable), static_cast<uint32_t>(bytes.size()));
+    bytes.writeLe32(offsetof(PE::FileHeader, PointerToSymbolTable), static_cast<uint32_t>(bytes.size()));
     if (!rejectsCoffObject(bytes, DiagnosticId::cmd_err_link_coff_truncated_symbols))
         return Result::Error;
     bytes = valid;
-    bytes.writeLe16(offsetof(IMAGE_FILE_HEADER, SizeOfOptionalHeader), 0xFFFF);
+    bytes.writeLe16(offsetof(PE::FileHeader, SizeOfOptionalHeader), 0xFFFF);
     if (!rejectsCoffObject(bytes, DiagnosticId::cmd_err_link_coff_truncated_section))
         return Result::Error;
     bytes = valid;
-    bytes.writeLe32(TEXT_HEADER + offsetof(IMAGE_SECTION_HEADER, PointerToRawData), static_cast<uint32_t>(bytes.size() - 1));
+    bytes.writeLe32(TEXT_HEADER + offsetof(PE::SectionHeader, PointerToRawData), static_cast<uint32_t>(bytes.size() - 1));
     if (!rejectsCoffObject(bytes, DiagnosticId::cmd_err_link_coff_section_out_of_bounds))
         return Result::Error;
-    bytes.writeLe32(TEXT_HEADER + offsetof(IMAGE_SECTION_HEADER, PointerToRawData), 0xFFFFFFF0);
-    bytes.writeLe32(TEXT_HEADER + offsetof(IMAGE_SECTION_HEADER, SizeOfRawData), 0x40);
+    bytes.writeLe32(TEXT_HEADER + offsetof(PE::SectionHeader, PointerToRawData), 0xFFFFFFF0);
+    bytes.writeLe32(TEXT_HEADER + offsetof(PE::SectionHeader, SizeOfRawData), 0x40);
     if (!rejectsCoffObject(bytes, DiagnosticId::cmd_err_link_coff_section_out_of_bounds))
         return Result::Error;
     bytes = valid;
-    bytes.writeLe32(TEXT_HEADER + offsetof(IMAGE_SECTION_HEADER, PointerToRelocations), static_cast<uint32_t>(bytes.size() - 1));
+    bytes.writeLe32(TEXT_HEADER + offsetof(PE::SectionHeader, PointerToRelocations), static_cast<uint32_t>(bytes.size() - 1));
     if (!rejectsCoffObject(bytes, DiagnosticId::cmd_err_link_coff_truncated_relocs))
         return Result::Error;
     bytes = valid;
-    bytes.writeLe32(RELOC_DATA + offsetof(IMAGE_RELOCATION, SymbolTableIndex), 5);
+    bytes.writeLe32(RELOC_DATA + offsetof(PE::Relocation, SymbolTableIndex), 5);
     if (!rejectsCoffObject(bytes, DiagnosticId::cmd_err_link_coff_reloc_symbol_out_of_range))
         return Result::Error;
     bytes = makeCoffReaderObject(true);
-    bytes.writeLe32(TEXT_HEADER + offsetof(IMAGE_SECTION_HEADER, PointerToRelocations), static_cast<uint32_t>(bytes.size() - 1));
+    bytes.writeLe32(TEXT_HEADER + offsetof(PE::SectionHeader, PointerToRelocations), static_cast<uint32_t>(bytes.size() - 1));
     if (!rejectsCoffObject(bytes, DiagnosticId::cmd_err_link_coff_truncated_reloc_overflow))
         return Result::Error;
     bytes                         = makeCoffReaderObject(true);
-    const uint32_t overflowOffset = static_cast<uint32_t>(bytes.size() - sizeof(IMAGE_RELOCATION));
-    bytes.writeLe32(TEXT_HEADER + offsetof(IMAGE_SECTION_HEADER, PointerToRelocations), overflowOffset);
+    const uint32_t overflowOffset = static_cast<uint32_t>(bytes.size() - sizeof(PE::Relocation));
+    bytes.writeLe32(TEXT_HEADER + offsetof(PE::SectionHeader, PointerToRelocations), overflowOffset);
     bytes.writeLe32(overflowOffset, 2);
     if (!rejectsCoffObject(bytes, DiagnosticId::cmd_err_link_coff_truncated_relocs))
         return Result::Error;
@@ -259,7 +260,7 @@ SWC_TEST_BEGIN(CoffReader_ArchiveIndexesDefinitionsOnly)
     if (!offset || archive.memberOffsetForSymbol("bss") != offset || archive.memberOffsetForSymbol("local") != offset || archive.memberOffsetForSymbol("external") ||
         !std::ranges::equal(archive.memberData(diag, offset), members[0].bytes))
         return Result::Error;
-    members[0].bytes.writeLe32(RELOC_DATA + sizeof(IMAGE_RELOCATION) + offsetof(IMAGE_RELOCATION, SymbolTableIndex), 5);
+    members[0].bytes.writeLe32(RELOC_DATA + sizeof(PE::Relocation) + offsetof(PE::Relocation, SymbolTableIndex), 5);
     if (buildCoffStaticArchive(bytes, diag, members) || diag.elements().empty() || diag.elements().front()->id() != DiagnosticId::cmd_err_link_coff_reloc_symbol_out_of_range)
         return Result::Error;
 }
@@ -286,7 +287,7 @@ SWC_TEST_BEGIN(CoffReader_MergeConsumesBuffersAndPreservesRebasedSymbols)
     objects.resize(1);
     if (!readCoffObject(objects[0], diag, bytes))
         return Result::Error;
-    objects[0].sections[0].characteristics |= IMAGE_SCN_ALIGN_16BYTES;
+    objects[0].sections[0].characteristics |= PE::SCN_ALIGN_16BYTES;
     objects[0].definedSymbols.push_back({.name = "second_function_name", .sectionIndex = 0, .value = 2});
     if (!mergeCoffObjectsIntoImage(image, diag, std::move(objects)))
         return Result::Error;

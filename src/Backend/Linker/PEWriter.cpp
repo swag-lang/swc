@@ -1,4 +1,5 @@
 #include "pch.h"
+#include "Backend/Linker/PEFormat.h"
 #include "Backend/Linker/PEWriter.h"
 #include "Backend/Debug/SymbolTable.h"
 #include "Backend/Linker/Archive.h"
@@ -16,6 +17,7 @@ namespace
     constexpr uint32_t SECTION_ALIGNMENT = 0x1000;
     constexpr uint32_t FILE_ALIGNMENT    = 0x200;
 
+#ifdef _WIN32
     constexpr USHORT K_COMPRESSION_FORMAT_LZNT1   = 0x0002;
     constexpr USHORT K_COMPRESSION_ENGINE_MAXIMUM = 0x0100;
 
@@ -62,6 +64,8 @@ namespace
         return true;
     }
 
+#endif
+
     // The PDB path is embedded both in the exe's RSDS debug-directory record and in the PDB header.
     // Emit it with native (backslash) separators: a forward-slash path built from a
     // forward-slash workspace argument can stop Visual Studio from loading the module's symbols.
@@ -76,19 +80,19 @@ namespace
     uint32_t sectionCharacteristics(std::string_view name)
     {
         if (name == ".text")
-            return IMAGE_SCN_CNT_CODE | IMAGE_SCN_MEM_EXECUTE | IMAGE_SCN_MEM_READ;
+            return PE::SCN_CNT_CODE | PE::SCN_MEM_EXECUTE | PE::SCN_MEM_READ;
         if (name == ".data")
-            return IMAGE_SCN_CNT_INITIALIZED_DATA | IMAGE_SCN_MEM_READ | IMAGE_SCN_MEM_WRITE;
+            return PE::SCN_CNT_INITIALIZED_DATA | PE::SCN_MEM_READ | PE::SCN_MEM_WRITE;
         if (name == ".bss")
-            return IMAGE_SCN_CNT_UNINITIALIZED_DATA | IMAGE_SCN_MEM_READ | IMAGE_SCN_MEM_WRITE;
+            return PE::SCN_CNT_UNINITIALIZED_DATA | PE::SCN_MEM_READ | PE::SCN_MEM_WRITE;
         if (name == ".reloc")
-            return IMAGE_SCN_CNT_INITIALIZED_DATA | IMAGE_SCN_MEM_READ | IMAGE_SCN_MEM_DISCARDABLE;
-        return IMAGE_SCN_CNT_INITIALIZED_DATA | IMAGE_SCN_MEM_READ;
+            return PE::SCN_CNT_INITIALIZED_DATA | PE::SCN_MEM_READ | PE::SCN_MEM_DISCARDABLE;
+        return PE::SCN_CNT_INITIALIZED_DATA | PE::SCN_MEM_READ;
     }
 
     uint32_t peHeadersSize(uint32_t sectionCount)
     {
-        const size_t headersSize = sizeof(IMAGE_DOS_HEADER) + sizeof(uint32_t) + sizeof(IMAGE_FILE_HEADER) + sizeof(IMAGE_OPTIONAL_HEADER64) + sectionCount * sizeof(IMAGE_SECTION_HEADER);
+        const size_t headersSize = sizeof(PE::DosHeader) + sizeof(uint32_t) + sizeof(PE::FileHeader) + sizeof(PE::OptionalHeader64) + sectionCount * sizeof(PE::SectionHeader);
         return Math::alignUpU32(static_cast<uint32_t>(headersSize), FILE_ALIGNMENT);
     }
 
@@ -174,7 +178,7 @@ void PEWriter::buildImports()
 
     // Reserve the import directory table (+1 null terminator).
     constexpr uint32_t descTableOffset = 0;
-    idata.resize(static_cast<size_t>(descCount + 1) * sizeof(IMAGE_IMPORT_DESCRIPTOR), std::byte{0});
+    idata.resize(static_cast<size_t>(descCount + 1) * sizeof(PE::ImportDescriptor), std::byte{0});
 
     struct DllLayout
     {
@@ -258,7 +262,7 @@ void PEWriter::buildImports()
     // Fill the import descriptors.
     for (uint32_t d = 0; d < descCount; ++d)
     {
-        const uint32_t base = descTableOffset + d * sizeof(IMAGE_IMPORT_DESCRIPTOR);
+        const uint32_t base = descTableOffset + d * sizeof(PE::ImportDescriptor);
         writeRvaFixup(idata, idataRvaFixups_, base + 0, dllLayouts[d].iltOffset);   // OriginalFirstThunk
         writeRvaFixup(idata, idataRvaFixups_, base + 12, dllLayouts[d].nameOffset); // Name
         writeRvaFixup(idata, idataRvaFixups_, base + 16, dllLayouts[d].iatOffset);  // FirstThunk
@@ -273,7 +277,7 @@ void PEWriter::buildImports()
     sections_.push_back(std::move(idataSection));
 
     importDirRva_  = 0; // resolved after layout
-    importDirSize_ = (descCount + 1) * sizeof(IMAGE_IMPORT_DESCRIPTOR);
+    importDirSize_ = (descCount + 1) * sizeof(PE::ImportDescriptor);
     iatSize_       = iatEndOffset - iatStartOffset;
     // iatStartOffset is the offset of the first IAT within .idata.
     iatRva_       = iatStartOffset; // becomes an RVA after layout (add idata rva)
@@ -644,6 +648,8 @@ bool PEWriter::applyRelocations(Diagnostic& outDiag)
 
 void PEWriter::compressEmbeddedDebugTable()
 {
+    // LZNT1 is optional: the plain embedded table has the same runtime contract.
+#ifdef _WIN32
     for (OutSection& section : sections_)
     {
         if (section.name.view() != SymbolTable::IMAGE_SECTION || section.bytes.size() < SymbolTable::HEADER_SIZE)
@@ -662,6 +668,7 @@ void PEWriter::compressEmbeddedDebugTable()
         compactFileLayout();
         return;
     }
+#endif
 }
 
 void PEWriter::compactFileLayout()
@@ -690,7 +697,7 @@ void PEWriter::buildBaseRelocations()
         return;
 
     // PE base relocations are grouped by 4 KiB page. Each entry stores the offset within
-    // that page plus the relocation type; blocks are padded to an even WORD count.
+    // that page plus the relocation type; blocks are padded to an even uint16_t count.
     std::ranges::sort(baseRelocSites_);
 
     ByteArray reloc;
@@ -710,7 +717,7 @@ void PEWriter::buildBaseRelocations()
         reloc.appendLe32(blockSize);
         for (size_t k = i; k < j; ++k)
         {
-            const uint16_t entry = static_cast<uint16_t>((IMAGE_REL_BASED_DIR64 << 12) | (baseRelocSites_[k] & 0xFFF));
+            const uint16_t entry = static_cast<uint16_t>((PE::REL_BASED_DIR64 << 12) | (baseRelocSites_[k] & 0xFFF));
             reloc.appendLe16(entry);
         }
         if (pad)
@@ -796,31 +803,31 @@ bool PEWriter::emit(ByteArray& outBytes, Diagnostic& outDiag)
     ByteArray file;
     file.resize(headersSize, std::byte{0});
 
-    IMAGE_DOS_HEADER dos{};
-    dos.e_magic  = IMAGE_DOS_SIGNATURE;
-    dos.e_lfanew = sizeof(IMAGE_DOS_HEADER);
+    PE::DosHeader dos{};
+    dos.e_magic  = PE::DOS_SIGNATURE;
+    dos.e_lfanew = sizeof(PE::DosHeader);
     std::memcpy(file.data(), &dos, sizeof(dos));
 
-    uint32_t           cursor      = sizeof(IMAGE_DOS_HEADER);
-    constexpr uint32_t peSignature = IMAGE_NT_SIGNATURE;
+    uint32_t           cursor      = sizeof(PE::DosHeader);
+    constexpr uint32_t peSignature = PE::NT_SIGNATURE;
     std::memcpy(file.data() + cursor, &peSignature, sizeof(peSignature));
     cursor += sizeof(peSignature);
 
-    IMAGE_FILE_HEADER fileHeader{};
-    fileHeader.Machine              = IMAGE_FILE_MACHINE_AMD64;
-    fileHeader.NumberOfSections     = static_cast<WORD>(sectionCount);
+    PE::FileHeader fileHeader{};
+    fileHeader.Machine              = PE::FILE_MACHINE_AMD64;
+    fileHeader.NumberOfSections     = static_cast<uint16_t>(sectionCount);
     fileHeader.TimeDateStamp        = timeDateStamp_;
-    fileHeader.SizeOfOptionalHeader = sizeof(IMAGE_OPTIONAL_HEADER64);
-    fileHeader.Characteristics      = IMAGE_FILE_EXECUTABLE_IMAGE | IMAGE_FILE_LARGE_ADDRESS_AWARE;
+    fileHeader.SizeOfOptionalHeader = sizeof(PE::OptionalHeader64);
+    fileHeader.Characteristics      = PE::FILE_EXECUTABLE_IMAGE | PE::FILE_LARGE_ADDRESS_AWARE;
     if (isDll)
-        fileHeader.Characteristics |= IMAGE_FILE_DLL;
+        fileHeader.Characteristics |= PE::FILE_DLL;
     if (baseRelocSites_.empty())
-        fileHeader.Characteristics |= IMAGE_FILE_RELOCS_STRIPPED;
+        fileHeader.Characteristics |= PE::FILE_RELOCS_STRIPPED;
     std::memcpy(file.data() + cursor, &fileHeader, sizeof(fileHeader));
     cursor += sizeof(fileHeader);
 
-    IMAGE_OPTIONAL_HEADER64 opt{};
-    opt.Magic                       = IMAGE_NT_OPTIONAL_HDR64_MAGIC;
+    PE::OptionalHeader64 opt{};
+    opt.Magic                       = PE::NT_OPTIONAL_HDR64_MAGIC;
     opt.MajorLinkerVersion          = static_cast<uint8_t>(SWC_VERSION); // the PE "linker version" is the producer/compiler version
     opt.MinorLinkerVersion          = static_cast<uint8_t>(SWC_REVISION);
     opt.AddressOfEntryPoint         = entryRva;
@@ -831,16 +838,16 @@ bool PEWriter::emit(ByteArray& outBytes, Diagnostic& outDiag)
     opt.MajorSubsystemVersion       = 6;
     opt.SizeOfImage                 = sizeOfImage;
     opt.SizeOfHeaders               = headersSize;
-    opt.Subsystem                   = image_->win32.subsystem == LinkWin32Subsystem::Windows ? IMAGE_SUBSYSTEM_WINDOWS_GUI : IMAGE_SUBSYSTEM_WINDOWS_CUI;
-    opt.DllCharacteristics          = IMAGE_DLLCHARACTERISTICS_HIGH_ENTROPY_VA | IMAGE_DLLCHARACTERISTICS_NX_COMPAT | IMAGE_DLLCHARACTERISTICS_TERMINAL_SERVER_AWARE;
+    opt.Subsystem                   = image_->win32.subsystem == LinkWin32Subsystem::Windows ? PE::SUBSYSTEM_WINDOWS_GUI : PE::SUBSYSTEM_WINDOWS_CUI;
+    opt.DllCharacteristics          = PE::DLLCHARACTERISTICS_HIGH_ENTROPY_VA | PE::DLLCHARACTERISTICS_NX_COMPAT | PE::DLLCHARACTERISTICS_TERMINAL_SERVER_AWARE;
     if (!baseRelocSites_.empty())
-        opt.DllCharacteristics |= IMAGE_DLLCHARACTERISTICS_DYNAMIC_BASE;
+        opt.DllCharacteristics |= PE::DLLCHARACTERISTICS_DYNAMIC_BASE;
 
     opt.SizeOfStackReserve  = image_->stackReserve ? image_->stackReserve : 0x100000;
     opt.SizeOfStackCommit   = image_->stackCommit ? image_->stackCommit : 0x1000;
     opt.SizeOfHeapReserve   = 0x100000;
     opt.SizeOfHeapCommit    = 0x1000;
-    opt.NumberOfRvaAndSizes = IMAGE_NUMBEROF_DIRECTORY_ENTRIES;
+    opt.NumberOfRvaAndSizes = PE::NUMBEROF_DIRECTORY_ENTRIES;
 
     // Compute sizes of code/initialized/uninitialized data for completeness.
     for (const OutSection& section : sections_)
@@ -861,42 +868,42 @@ bool PEWriter::emit(ByteArray& outBytes, Diagnostic& outDiag)
     // Data directories.
     if (idataIndex_ >= 0)
     {
-        opt.DataDirectory[IMAGE_DIRECTORY_ENTRY_IMPORT].VirtualAddress = importDirRva_;
-        opt.DataDirectory[IMAGE_DIRECTORY_ENTRY_IMPORT].Size           = importDirSize_;
-        opt.DataDirectory[IMAGE_DIRECTORY_ENTRY_IAT].VirtualAddress    = iatRva_;
-        opt.DataDirectory[IMAGE_DIRECTORY_ENTRY_IAT].Size              = iatSize_;
+        opt.DataDirectory[PE::DIRECTORY_ENTRY_IMPORT].VirtualAddress = importDirRva_;
+        opt.DataDirectory[PE::DIRECTORY_ENTRY_IMPORT].Size           = importDirSize_;
+        opt.DataDirectory[PE::DIRECTORY_ENTRY_IAT].VirtualAddress    = iatRva_;
+        opt.DataDirectory[PE::DIRECTORY_ENTRY_IAT].Size              = iatSize_;
     }
 
     for (const OutSection& section : sections_)
     {
         if (section.name == ".pdata")
         {
-            opt.DataDirectory[IMAGE_DIRECTORY_ENTRY_EXCEPTION].VirtualAddress = section.rva;
-            opt.DataDirectory[IMAGE_DIRECTORY_ENTRY_EXCEPTION].Size           = section.virtualSize;
+            opt.DataDirectory[PE::DIRECTORY_ENTRY_EXCEPTION].VirtualAddress = section.rva;
+            opt.DataDirectory[PE::DIRECTORY_ENTRY_EXCEPTION].Size           = section.virtualSize;
         }
         else if (section.name == ".edata")
         {
-            opt.DataDirectory[IMAGE_DIRECTORY_ENTRY_EXPORT].VirtualAddress = section.rva;
-            opt.DataDirectory[IMAGE_DIRECTORY_ENTRY_EXPORT].Size           = section.virtualSize;
+            opt.DataDirectory[PE::DIRECTORY_ENTRY_EXPORT].VirtualAddress = section.rva;
+            opt.DataDirectory[PE::DIRECTORY_ENTRY_EXPORT].Size           = section.virtualSize;
         }
     }
 
     if (relocIndex_ >= 0)
     {
-        opt.DataDirectory[IMAGE_DIRECTORY_ENTRY_BASERELOC].VirtualAddress = sections_[relocIndex_].rva;
-        opt.DataDirectory[IMAGE_DIRECTORY_ENTRY_BASERELOC].Size           = sections_[relocIndex_].virtualSize;
+        opt.DataDirectory[PE::DIRECTORY_ENTRY_BASERELOC].VirtualAddress = sections_[relocIndex_].rva;
+        opt.DataDirectory[PE::DIRECTORY_ENTRY_BASERELOC].Size           = sections_[relocIndex_].virtualSize;
     }
 
     if (debugDirSize_ > 0)
     {
-        opt.DataDirectory[IMAGE_DIRECTORY_ENTRY_DEBUG].VirtualAddress = debugDirRva_;
-        opt.DataDirectory[IMAGE_DIRECTORY_ENTRY_DEBUG].Size           = debugDirSize_;
+        opt.DataDirectory[PE::DIRECTORY_ENTRY_DEBUG].VirtualAddress = debugDirRva_;
+        opt.DataDirectory[PE::DIRECTORY_ENTRY_DEBUG].Size           = debugDirSize_;
     }
 
     if (rsrcIndex_ >= 0)
     {
-        opt.DataDirectory[IMAGE_DIRECTORY_ENTRY_RESOURCE].VirtualAddress = sections_[rsrcIndex_].rva;
-        opt.DataDirectory[IMAGE_DIRECTORY_ENTRY_RESOURCE].Size           = sections_[rsrcIndex_].virtualSize;
+        opt.DataDirectory[PE::DIRECTORY_ENTRY_RESOURCE].VirtualAddress = sections_[rsrcIndex_].rva;
+        opt.DataDirectory[PE::DIRECTORY_ENTRY_RESOURCE].Size           = sections_[rsrcIndex_].virtualSize;
     }
 
     std::memcpy(file.data() + cursor, &opt, sizeof(opt));
@@ -912,8 +919,8 @@ bool PEWriter::emit(ByteArray& outBytes, Diagnostic& outDiag)
     for (const uint32_t sectionIdx : headerOrder)
     {
         const OutSection&    section = sections_[sectionIdx];
-        IMAGE_SECTION_HEADER header{};
-        std::memcpy(header.Name, section.name.data(), std::min<size_t>(section.name.size(), IMAGE_SIZEOF_SHORT_NAME));
+        PE::SectionHeader header{};
+        std::memcpy(header.Name, section.name.data(), std::min<size_t>(section.name.size(), PE::SIZEOF_SHORT_NAME));
         header.Misc.VirtualSize = section.virtualSize;
         header.VirtualAddress   = section.rva;
         header.SizeOfRawData    = section.rawSize;
@@ -1125,7 +1132,7 @@ void PEWriter::emitDebugInfo()
     };
 
     ByteArray dir;
-    appendDirEntry(dir, IMAGE_DEBUG_TYPE_CODEVIEW, static_cast<uint32_t>(rsds.size()), rsdsRva, rsdsFile);
+    appendDirEntry(dir, PE::DEBUG_TYPE_CODEVIEW, static_cast<uint32_t>(rsds.size()), rsdsRva, rsdsFile);
     appendDirEntry(dir, kImageDebugTypeVcFeature, featDataSize, featRva, featFile);
 
     SWC_ASSERT(section.bytes.size() >= dirSize + rsds.size() + feat.size());

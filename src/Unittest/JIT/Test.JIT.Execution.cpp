@@ -1214,7 +1214,7 @@ SWC_TEST_BEGIN(JIT_ConstantRelocationResolvesSegmentSource)
     auto invalidRelocations                  = loweredCode.codeRelocations;
     invalidRelocations.front().constantShard = ConstantStorageLayout::SHARD_COUNT;
     JITMemory invalidMemory;
-    JIT::prepare(ctx, invalidMemory, loweredCode.bytes, loweredCode.unwindInfo, invalidRelocations);
+    SWC_RESULT(JIT::prepare(ctx, invalidMemory, loweredCode.bytes, loweredCode.unwindInfo, invalidRelocations));
     if (JIT::patch(ctx, invalidMemory, invalidRelocations) != Result::Error)
         return Result::Error;
 
@@ -1264,7 +1264,7 @@ SWC_TEST_BEGIN(JIT_RipRelativeFloatXorConstant)
         return Result::Error;
 
     JITMemory executableMemory;
-    JIT::prepare(ctx, executableMemory, loweredCode.bytes, loweredCode.unwindInfo, loweredCode.codeRelocations);
+    SWC_RESULT(JIT::prepare(ctx, executableMemory, loweredCode.bytes, loweredCode.unwindInfo, loweredCode.codeRelocations));
     SWC_RESULT(JIT::patch(ctx, executableMemory, loweredCode.codeRelocations));
 
     const MicroRelocation& relocation = loweredCode.codeRelocations.front();

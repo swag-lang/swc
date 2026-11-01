@@ -1,4 +1,5 @@
 #include "pch.h"
+#include "Backend/Linker/PEFormat.h"
 #include "Backend/Native/NativeBackendBuilder.h"
 #include "Backend/BinaryPatch.h"
 #include "Backend/Linker/Archive.h"
@@ -1069,7 +1070,7 @@ namespace
             const uint32_t trailingBytes = relocation.relativeEndOffset - relocation.codeOffset - sizeof(uint32_t);
             SWC_ASSERT(trailingBytes <= 4);
             record.addend -= trailingBytes;
-            record.type = IMAGE_REL_AMD64_REL32;
+            record.type = PE::REL_AMD64_REL32;
             BinaryPatch::write<uint32_t>(bytes, patchOffset, static_cast<uint32_t>(record.addend));
             return;
         }
@@ -1402,7 +1403,7 @@ Result NativeBackendBuilder::appendCodeRelocation(const NativeCodeRelocationTarg
             if (relocation.form == MicroRelocation::Form::Relative32)
             {
                 SWC_ASSERT(relocation.relativeEndOffset == relocation.codeOffset + sizeof(uint32_t));
-                record.type = IMAGE_REL_AMD64_REL32;
+                record.type = PE::REL_AMD64_REL32;
                 BinaryPatch::write<uint32_t>(*target.bytes, patchOffset, 0);
             }
             else
@@ -2081,7 +2082,8 @@ Result NativeBackendBuilder::runGeneratedArtifact(ArtifactRunReport* report)
     NativeTestProgressContext   progressContext{.builder = this, .stage = stage ? &*stage : nullptr};
     const Os::ProcessRunOptions options{
         .capturedOutput            = &artifactOutput,
-        .logCtx                    = &ctx_,
+        .forwardLineCallback       = [](const void* context, const std::string_view line) { Logger::print(*static_cast<const TaskContext*>(context), line); },
+        .forwardLineUserData       = &ctx_,
         .additionalPathDirectories = runtimePathDirs,
         .outputLineCallback        = progressContext.stage ? &NativeBackendBuilder::forwardNativeTestProgress : nullptr,
         .outputLineUserData        = &progressContext,
@@ -2200,7 +2202,7 @@ void NativeBackendBuilder::parseNativeTestSummary(const std::string& output)
 
     uint32_t executed = 0;
     uint32_t failed   = 0;
-    if (sscanf_s(output.c_str() + pos, "[swag.test] executed=%u failed=%u", &executed, &failed) != 2)
+    if (std::sscanf(output.c_str() + pos, "[swag.test] executed=%u failed=%u", &executed, &failed) != 2)
         return;
 
     hasNativeTestSummary = true;

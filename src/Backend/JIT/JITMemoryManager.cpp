@@ -130,6 +130,25 @@ void JITMemoryManager::allocate(JITMemory& outExecutableMemory, uint32_t size)
     allocateWithCodeSize(outExecutableMemory, size, size);
 }
 
+void JITMemoryManager::copyUnwindInfo(JITMemory& executableMemory, const std::span<const std::byte> bytes)
+{
+    SWC_ASSERT(!executableMemory.empty() && !executableMemory.hostRuntimeFunction_);
+    SWC_ASSERT(executableMemory.size_ <= executableMemory.allocationSize_);
+    SWC_ASSERT(executableMemory.size_ <= UINT32_MAX - 3);
+    const uint32_t offset = alignUp(executableMemory.size_, 4);
+    SWC_ASSERT(offset <= executableMemory.allocationSize_ && bytes.size() <= executableMemory.allocationSize_ - offset);
+    if (bytes.empty())
+    {
+        executableMemory.unwindInfoOffset_ = 0;
+        executableMemory.unwindInfoSize_ = 0;
+        return;
+    }
+    auto* destination = static_cast<std::byte*>(executableMemory.ptr_) + offset;
+    std::memcpy(destination, bytes.data(), bytes.size());
+    executableMemory.unwindInfoOffset_ = offset;
+    executableMemory.unwindInfoSize_ = static_cast<uint32_t>(bytes.size());
+}
+
 void JITMemoryManager::registerUnwindInfo(JITMemory& executableMemory)
 {
     if (!executableMemory.hasUnwindInfo())

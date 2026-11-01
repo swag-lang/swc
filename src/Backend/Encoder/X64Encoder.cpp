@@ -1033,7 +1033,7 @@ namespace
     }
 
     template<ModRmMode Mode>
-    __forceinline void emitImmediateOperand(PagedStore& store, MicroReg reg, uint64_t memOffset, uint8_t group)
+    SWC_FORCE_INLINE void emitImmediateOperand(PagedStore& store, MicroReg reg, uint64_t memOffset, uint8_t group)
     {
         if constexpr (Mode == ModRmMode::Memory)
             emitMemoryOperand(store, memOffset, group, reg);
@@ -1042,7 +1042,7 @@ namespace
     }
 
     template<ModRmMode Mode>
-    __forceinline void emitGroup1Immediate(PagedStore& store, MicroReg reg, uint64_t memOffset, uint64_t value, MicroOpBits opBits, uint8_t group)
+    SWC_FORCE_INLINE void emitGroup1Immediate(PagedStore& store, MicroReg reg, uint64_t memOffset, uint64_t value, MicroOpBits opBits, uint8_t group)
     {
         if (opBits == MicroOpBits::B8)
         {
@@ -1072,7 +1072,7 @@ namespace
     }
 
     template<ModRmMode Mode>
-    __forceinline void emitShiftImmediate(PagedStore& store, MicroReg reg, uint64_t memOffset, uint64_t value, MicroOpBits opBits, uint8_t group)
+    SWC_FORCE_INLINE void emitShiftImmediate(PagedStore& store, MicroReg reg, uint64_t memOffset, uint64_t value, MicroOpBits opBits, uint8_t group)
     {
         if constexpr (Mode == ModRmMode::Register)
             SWC_ASSERT(value <= 0x7F);
@@ -1139,6 +1139,11 @@ void X64Encoder::resetCode()
 {
     Encoder::resetCode();
     unwind_->reset();
+}
+
+void X64Encoder::prepareUnwind(MicroBuilder& builder, const CallConvKind callConv)
+{
+    unwind_->prepare(builder, callConv, this);
 }
 
 void X64Encoder::buildUnwindInfo(ByteArray& outUnwindInfo) const

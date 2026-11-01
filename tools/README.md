@@ -1,6 +1,6 @@
 # Repository tools
 
-Every launcher in this directory is a Windows batch file. It calls the checkout's existing
+Workspace launchers in this directory are Windows batch files. Each calls the checkout's existing
 compiler directly; launching a tool no longer compiles a Swag script first. Build the compiler
 once with `tools\devmode.bat` or `tools\release.bat` before using the launchers.
 
@@ -8,6 +8,72 @@ Run the checkout's own compiler whenever more than one worktree exists. `dm` sel
 `bin\swc.dm.exe`; without it, tools use `bin\swc.exe`. Tool compiler calls default to three workers.
 Pass `--num-cores` to change compiler parallelism; it does not limit a compiled program's runtime
 threads. Compiler options can be forwarded after the command and module.
+
+## Linux compiler build in progress
+
+```sh
+python3 tools/linux-build.py --build-dir /absolute/path/outside/checkout --configuration devmode
+```
+
+This incremental GNU Make build reuses the compiler source inventory in `swc.vcxproj` and selects
+Linux OS leaves. It requires GCC 14 or later, supports `--configuration release`, `--cxx`, and
+`--jobs 1` through `--jobs 3`, and checks machine load before invoking Make. Objects, dependency
+files, the precompiled header and the executable remain under the supplied build directory.
+Complete DevMode and Release builds link and pass the lexer/parser suites including
+expected-error inputs. Generated Linux execution still needs the System V ABI and Linux runtime hooks. The target remains Windows until those Linux target pieces are connected.
+Use the focused boundary below for implemented host services.
+
+## Linux compiler suites
+
+```sh
+python3 tools/linux-tests.py lexer --compiler /absolute/build/devmode/swc.dm
+python3 tools/linux-tests.py parser --compiler /absolute/build/devmode/swc.dm
+python3 tools/linux-tests.py cpp --compiler /absolute/build/devmode/swc.dm
+```
+
+The launcher stages the selected executable and this checkout's runtime in an external temporary
+folder, isolates caches with `TMPDIR`, and removes the staging folder afterwards. Each invocation
+has its own load-admission check, three compiler workers and a 180-second timeout (`--timeout`
+overrides it). Lexer/parser suites include their expected-error inputs. The C++ suite requires
+DevMode; add `--dev-full` to include its filesystem tests. Linux execution/ABI-dependent tests
+remain unfinished, so the current C++ suite is not yet a passing gate.
+
+## Linux host primitives
+
+```sh
+python3 tools/linux-host.py --configuration devmode
+python3 tools/linux-host.py --configuration release
+```
+
+This focused Linux x86-64 boundary builds the implemented C++ host services
+adapters with a C++23 compiler and library (GCC 14 or later), then runs their native tests.
+Use `--cxx /path/to/compiler` to select the compiler. The current baseline is glibc 2.36 and
+Linux 5.9 with pidfds, subreapers and `close_range` permitted. Python 3, procfs, and cgroup v2 are needed
+for machine-load admission; the launcher checks independently before building and testing and
+stops with exit code 2 when the machine needs to wait. Compilation is sequential. Builds and
+fixtures use a temporary directory outside the checkout and are removed on completion.
+
+The tests cover executable-page publication and patching, page protection, concurrent proximity
+allocations, arena exhaustion, release, mapped-cache lifetime across replacement and unlink,
+common file I/O and atomic publication, directory-lock aliases and replacement, TLS isolation,
+shared-library loading, terminal capabilities/redirection, native stack capture and ELF symbols,
+guarded signal stacks and stack overflow, generated DWARF frames and registration lifetime,
+C++ cleanup across generated frames (ordinary exceptions and repeated hardware faults),
+process arguments/output, timeouts and descendant cleanup after caller death or callback failure,
+file-user diagnostics (including mappings without descriptors), safe diagnostic reads, and explicitly
+configured Windows cross-toolchain discovery. These discovery fixtures validate paths and failures,
+not execution of Windows linker tools or production of a runnable Linux artifact.
+A separate fixture prevents CPU detection from initializing and verifies that the startup guard
+rejects the host before C++ constructors run, even when built for x86-64-v3. A native C++ shared-library fixture
+is built in the external temporary directory; it does not stand in for the Swag foreign-call ABI.
+`devmode` enables host assertions; `release` checks optimized code without those assertions.
+These are host-test build modes, not Swag program configurations. This launcher does not build
+`swc`, execute Swag sources, or establish Linux target-ABI support. See
+[the capability inventory](../bin/PORTABILITY.md#host-capability-inventory) and
+[the portability backlog](../backlog/platform.portability.md) for the remaining boundaries.
+
+The admission check's host/container pressure cases run with
+`python3 tools/tests/test_linux_host_admission.py` after a fresh machine-load check.
 
 ## Workspaces
 

@@ -1,4 +1,5 @@
 #include "pch.h"
+#include "Backend/Linker/PEFormat.h"
 #include "Backend/Debug/DebugInfoCodeView.h"
 #include "Backend/BinaryPatch.h"
 #include "Backend/Debug/CodeViewRecords.h"
@@ -217,14 +218,14 @@ namespace
         offReloc.offset     = offRelocOffset;
         offReloc.symbolName = symbolName;
         offReloc.addend     = addend;
-        offReloc.type       = IMAGE_REL_AMD64_SECREL;
+        offReloc.type       = PE::REL_AMD64_SECREL;
         section.relocations.push_back(offReloc);
 
         NativeSectionRelocation segReloc;
         segReloc.offset     = segRelocOffset;
         segReloc.symbolName = symbolName;
         segReloc.addend     = 0;
-        segReloc.type       = IMAGE_REL_AMD64_SECTION;
+        segReloc.type       = PE::REL_AMD64_SECTION;
         section.relocations.push_back(segReloc);
     }
 
@@ -1261,7 +1262,7 @@ namespace
 
         NativeSectionData debugSection;
         debugSection.name            = ".debug$S";
-        debugSection.characteristics = IMAGE_SCN_CNT_INITIALIZED_DATA | IMAGE_SCN_MEM_DISCARDABLE | IMAGE_SCN_ALIGN_1BYTES | IMAGE_SCN_MEM_READ;
+        debugSection.characteristics = PE::SCN_CNT_INITIALIZED_DATA | PE::SCN_MEM_DISCARDABLE | PE::SCN_ALIGN_1BYTES | PE::SCN_MEM_READ;
 
         debugSection.bytes.appendLe32(CodeViewRecords::K_CV_SIGNATURE_C13);
 
@@ -1400,7 +1401,7 @@ namespace
 
         NativeSectionData typeSection;
         typeSection.name            = ".debug$T";
-        typeSection.characteristics = IMAGE_SCN_CNT_INITIALIZED_DATA | IMAGE_SCN_MEM_DISCARDABLE | IMAGE_SCN_ALIGN_1BYTES | IMAGE_SCN_MEM_READ;
+        typeSection.characteristics = PE::SCN_CNT_INITIALIZED_DATA | PE::SCN_MEM_DISCARDABLE | PE::SCN_ALIGN_1BYTES | PE::SCN_MEM_READ;
         typeSection.bytes           = std::move(types.bytes);
         outResult.sections.push_back(std::move(typeSection));
         return Result::Continue;
@@ -1410,11 +1411,11 @@ namespace
     {
         NativeSectionData xdataSection;
         xdataSection.name            = ".xdata";
-        xdataSection.characteristics = IMAGE_SCN_CNT_INITIALIZED_DATA | IMAGE_SCN_ALIGN_4BYTES | IMAGE_SCN_MEM_READ;
+        xdataSection.characteristics = PE::SCN_CNT_INITIALIZED_DATA | PE::SCN_ALIGN_4BYTES | PE::SCN_MEM_READ;
 
         NativeSectionData pdataSection;
         pdataSection.name            = ".pdata";
-        pdataSection.characteristics = IMAGE_SCN_CNT_INITIALIZED_DATA | IMAGE_SCN_ALIGN_4BYTES | IMAGE_SCN_MEM_READ;
+        pdataSection.characteristics = PE::SCN_CNT_INITIALIZED_DATA | PE::SCN_ALIGN_4BYTES | PE::SCN_MEM_READ;
 
         uint32_t unwindIndex = 0;
         for (const DebugInfoFunctionRecord& function : request.functions)
@@ -1440,20 +1441,20 @@ namespace
             NativeSectionRelocation beginReloc;
             beginReloc.offset     = pdataOffset + 0;
             beginReloc.symbolName = function.symbolName;
-            beginReloc.type       = IMAGE_REL_AMD64_ADDR32NB;
+            beginReloc.type       = PE::REL_AMD64_ADDR32NB;
             pdataSection.relocations.push_back(beginReloc);
 
             NativeSectionRelocation endReloc;
             endReloc.offset     = pdataOffset + 4;
             endReloc.symbolName = function.symbolName;
             endReloc.addend     = function.machineCode->bytes.size();
-            endReloc.type       = IMAGE_REL_AMD64_ADDR32NB;
+            endReloc.type       = PE::REL_AMD64_ADDR32NB;
             pdataSection.relocations.push_back(endReloc);
 
             NativeSectionRelocation unwindReloc;
             unwindReloc.offset     = pdataOffset + 8;
             unwindReloc.symbolName = unwindSymbolName;
-            unwindReloc.type       = IMAGE_REL_AMD64_ADDR32NB;
+            unwindReloc.type       = PE::REL_AMD64_ADDR32NB;
             pdataSection.relocations.push_back(unwindReloc);
 
             BinaryPatch::write<uint32_t>(pdataSection.bytes, pdataOffset + 4, static_cast<uint32_t>(function.machineCode->bytes.size()));

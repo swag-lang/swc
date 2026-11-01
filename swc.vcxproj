@@ -134,6 +134,9 @@
         <ClCompile Include="src\Main\EditorService.cpp"/>
         <ClCompile Include="src\Support\Math\Sha256.cpp"/>
         <ClCompile Include="src\Unittest\ABI\Test.ABI.FFI.cpp"/>
+        <ClCompile Include="src\Unittest\ABI\Test.ABI.SystemV.cpp"/>
+        <ClCompile Include="src\Unittest\ABI\AbiTestTypes.cpp"/>
+        <ClCompile Include="src\Unittest\ABI\Test.ABI.SystemVClassification.cpp"/>
         <ClCompile Include="src\Unittest\Compiler\Test.Compiler.CacheStore.cpp"/>
         <ClCompile Include="src\Unittest\Compiler\Test.Compiler.ConstantManager.cpp"/>
         <ClCompile Include="src\Unittest\Compiler\Test.Compiler.CommandFormat.cpp"/>
@@ -151,6 +154,7 @@
         <ClCompile Include="src\Unittest\Compiler\Test.Compiler.Tags.cpp"/>
         <ClCompile Include="src\Unittest\Debug\Test.Debug.DebugInfo.cpp"/>
         <ClCompile Include="src\Unittest\Encoder\Test.Encoder.EncodeX64.cpp"/>
+        <ClCompile Include="src\Unittest\Encoder\Test.Encoder.UnwindLinux.cpp"/>
         <ClCompile Include="src\Unittest\Format\Test.Format.Align.cpp"/>
         <ClCompile Include="src\Unittest\Format\Test.Format.Attributes.cpp"/>
         <ClCompile Include="src\Unittest\Format\Test.Format.Blanks.cpp"/>
@@ -249,6 +253,7 @@
         <ClCompile Include="src\Backend\Native\NativeObjFileWriter.cpp"/>
         <ClCompile Include="src\Backend\Native\NativeObjFileWriterCoff.cpp"/>
         <ClCompile Include="src\Backend\ABI\CallConv.cpp"/>
+        <ClCompile Include="src\Backend\ABI\SystemVAbi.cpp"/>
         <ClCompile Include="src\Backend\Encoder\Encoder.cpp"/>
         <ClCompile Include="src\Backend\ABI\ABICall.cpp"/>
         <ClCompile Include="src\Backend\ABI\ABITypeNormalize.cpp"/>
@@ -340,8 +345,10 @@
         <ClCompile Include="src\Backend\Micro\MicroOptimizerStats.cpp"/>
         <ClCompile Include="src\Backend\Micro\MicroVerify.cpp"/>
         <ClCompile Include="src\Backend\Encoder\X64Encoder.cpp"/>
+        <ClCompile Include="src\Backend\Encoder\X64DwarfFrame.cpp"/>
         <ClCompile Include="src\Backend\Encoder\X64Unwind.cpp"/>
         <ClCompile Include="src\Backend\Encoder\X64Unwind.Windows.cpp"/>
+        <ClCompile Include="src\Backend\Encoder\X64Unwind.Linux.cpp"/>
         <ClCompile Include="src\Compiler\CodeGen\Ast\CodeGen.Block.cpp"/>
         <ClCompile Include="src\Compiler\CodeGen\Ast\CodeGen.For.cpp"/>
         <ClCompile Include="src\Compiler\CodeGen\Ast\CodeGen.Foreach.cpp"/>
@@ -444,6 +451,7 @@
         <ClCompile Include="src\Main\Command\CommandLineParser.Commands.cpp"/>
         <ClCompile Include="src\Main\Command\CommandLineParser.Help.cpp"/>
         <ClCompile Include="src\Main\FileSystem.cpp"/>
+        <ClCompile Include="src\Main\FileSystem.IO.cpp"/>
         <ClCompile Include="src\Main\Global.cpp"/>
         <ClCompile Include="src\Main\CompilerMessageTypeInfoJob.cpp"/>
         <ClCompile Include="src\Main\CompilerTagRegistry.cpp"/>
@@ -480,6 +488,7 @@
             <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='DevMode|x64'">NotUsing</PrecompiledHeader>
         </ClCompile>
         <ClCompile Include="src\Support\Os\Os.Windows.cpp"/>
+        <ClCompile Include="src\Support\Os\ProcessOutput.cpp"/>
         <ClCompile Include="src\Compiler\Parser\Ast\Ast.cpp"/>
         <ClCompile Include="src\Compiler\Parser\Ast\AstPrinter.cpp"/>
         <ClCompile Include="src\Compiler\Parser\Ast\AstNode.cpp"/>
@@ -504,6 +513,7 @@
         <ClCompile Include="src\Support\Report\Assert.cpp"/>
         <ClCompile Include="src\Support\Report\DiagnosticBuilder.cpp"/>
         <ClCompile Include="src\Support\Report\HardwareException.cpp"/>
+        <ClCompile Include="src\Support\Report\HardwareException.Fields.cpp"/>
         <ClCompile Include="src\Support\Report\LogColor.cpp"/>
         <ClCompile Include="src\Support\Report\Diagnostic.cpp"/>
         <ClCompile Include="src\Support\Report\DiagnosticElement.cpp"/>
@@ -638,6 +648,7 @@
         <ClInclude Include="src\Unittest\Unittest.h"/>
         <ClInclude Include="src\Unittest\UnittestSource.h"/>
         <ClInclude Include="src\Backend\ABI\CallConv.h"/>
+        <ClInclude Include="src\Backend\ABI\SystemVAbi.h"/>
         <ClInclude Include="src\Backend\ABI\CallConvKind.h"/>
         <ClInclude Include="src\Backend\Encoder\EncoderTypes.h"/>
         <ClInclude Include="src\Backend\Micro\MicroInstr.Def.inc"/>
@@ -719,8 +730,10 @@
         <ClInclude Include="src\Backend\Encoder\Encoder.h"/>
         <ClInclude Include="src\Backend\Encoder\X64Encoder.h"/>
         <ClInclude Include="src\Backend\Encoder\X64Immediate.h"/>
+        <ClInclude Include="src\Backend\Encoder\X64DwarfFrame.h"/>
         <ClInclude Include="src\Backend\Encoder\X64Unwind.h"/>
         <ClInclude Include="src\Backend\Encoder\X64Unwind.Windows.h"/>
+        <ClInclude Include="src\Backend\Encoder\X64Unwind.Linux.h"/>
         <ClInclude Include="src\Backend\Encoder\EncoderDebugInfo.h"/>
         <ClInclude Include="src\Backend\Micro\MicroReg.h"/>
         <ClInclude Include="src\Backend\Micro\MicroRelocation.h"/>
@@ -833,6 +846,7 @@
         <ClInclude Include="src\Support\Memory\Heap.h"/>
         <ClInclude Include="src\Support\Os\DirectoryLock.h"/>
         <ClInclude Include="src\Support\Os\Os.h"/>
+        <ClInclude Include="src\Support\Os\Os.Exception.Linux.h"/>
         <ClInclude Include="src\Compiler\Parser\Ast\Ast.h"/>
         <ClInclude Include="src\Compiler\Parser\Ast\AstNode.h"/>
         <ClInclude Include="src\Compiler\Parser\Ast\AstNodeId.h"/>
@@ -899,6 +913,7 @@
         <ClInclude Include="src\Backend\Linker\CoffReader.h"/>
         <ClInclude Include="src\Backend\Linker\Archive.h"/>
         <ClInclude Include="src\Backend\Linker\PEWriter.h"/>
+        <ClInclude Include="src\Backend\Linker\PEFormat.h"/>
         <ClInclude Include="src\Backend\Native\NativeObjFileWriter.h"/>
         <ClInclude Include="src\Backend\Native\NativeObjFileWriterCoff.h"/>
         <ClInclude Include="src\Backend\Native\NativeNames.h"/>

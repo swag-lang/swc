@@ -20,6 +20,7 @@ public:
     void reset(TaskContext& ctx) override;
 
     void        buildUnwindInfo(ByteArray& outUnwindInfo) const override;
+    void        prepareUnwind(MicroBuilder& builder, CallConvKind callConv) override;
     std::string formatRegisterName(MicroReg reg) const override;
     MicroReg    stackPointerReg() const override { return MicroReg::intReg(4); }
 

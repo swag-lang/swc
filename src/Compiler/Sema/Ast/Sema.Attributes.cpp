@@ -403,7 +403,8 @@ namespace
         SWC_ASSERT(value->getInt().fits64());
 
         const auto callConvKind = static_cast<CallConvKind>(value->getInt().asI64());
-        if (!isValidCallConvKind(callConvKind))
+        // The concrete System V profile is backend-only until aggregate lowering is ready.
+        if (!isValidCallConvKind(callConvKind) || callConvKind == CallConvKind::SystemVAMD64)
             return SemaError::raise(sema, invalidCallConvDiagnostic, arg.argRef.isValid() ? arg.argRef : sema.curNodeRef());
 
         outValue = callConvKind;

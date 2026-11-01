@@ -1,4 +1,5 @@
 #include "pch.h"
+#include "Backend/Linker/PEFormat.h"
 
 #if SWC_HAS_UNITTEST
 
@@ -16,21 +17,21 @@ namespace
 {
     ByteArray makeArchiveTestObject(const std::string_view symbol, const std::byte instruction)
     {
-        SWC_ASSERT(symbol.size() <= IMAGE_SIZEOF_SHORT_NAME);
+        SWC_ASSERT(symbol.size() <= PE::SIZEOF_SHORT_NAME);
         // One byte of text makes each object odd-sized, exercising archive member padding.
         ByteArray bytes(83);
-        bytes.writeLe16(0, IMAGE_FILE_MACHINE_AMD64);
+        bytes.writeLe16(0, PE::FILE_MACHINE_AMD64);
         bytes.writeLe16(2, 1);
         bytes.writeLe32(8, 61);
         bytes.writeLe32(12, 1);
         std::memcpy(bytes.data() + 20, ".text", 5);
         bytes.writeLe32(36, 1);
         bytes.writeLe32(40, 60);
-        bytes.writeLe32(56, IMAGE_SCN_CNT_CODE | IMAGE_SCN_MEM_EXECUTE | IMAGE_SCN_MEM_READ);
+        bytes.writeLe32(56, PE::SCN_CNT_CODE | PE::SCN_MEM_EXECUTE | PE::SCN_MEM_READ);
         bytes[60] = instruction;
         std::memcpy(bytes.data() + 61, symbol.data(), symbol.size());
         bytes.writeLe16(73, 1);
-        bytes[77] = static_cast<std::byte>(IMAGE_SYM_CLASS_EXTERNAL);
+        bytes[77] = static_cast<std::byte>(PE::SYM_CLASS_EXTERNAL);
         bytes.writeLe32(79, 4);
         return bytes;
     }
@@ -422,8 +423,7 @@ SWC_FILESYSTEM_TEST_BEGIN(Linker_MappedArchivesKeepBytesAcrossMovesAndReplacemen
         return Result::Error;
     const uint32_t           offset = original.memberOffsetForSymbol("original");
     const auto               member = original.memberData(diag, offset);
-    MEMORY_BASIC_INFORMATION memory{};
-    if (member.empty() || !VirtualQuery(member.data(), &memory, sizeof(memory)) || memory.Type != MEM_MAPPED)
+    if (member.empty() || !Unittest::isFileMapping(member.data()))
         return Result::Error;
 
     std::vector<Archive> archives;

@@ -1470,7 +1470,7 @@ bool SymbolFunction::deepCompare(const SymbolFunction& otherFunc) const noexcept
 namespace
 {
     template<typename Map>
-    __forceinline auto ownerStructFromMap(Map* symMap) -> decltype(&symMap->template cast<SymbolStruct>())
+    SWC_FORCE_INLINE auto ownerStructFromMap(Map* symMap) -> decltype(&symMap->template cast<SymbolStruct>())
     {
         if (symMap)
         {

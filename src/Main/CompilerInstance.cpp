@@ -386,7 +386,10 @@ CompilerInstance::CompilerInstance(const Global& global, const CommandLine& cmdL
     fileLookup_        = std::make_unique<LookupTable<SourceFile>>();
     srcViewLookup_     = std::make_unique<LookupTable<SourceView>>();
     externalModuleMgr_ = std::make_unique<ExternalModuleManager>();
-    setupRuntimeCompiler();
+    // Code generation may embed this interface's address before any JIT call.
+    // Its native adapters are only needed when generated code actually executes.
+    runtimeCompiler_.obj = this;
+    runtimeCompiler_.itable = runtimeCompilerITable_;
 }
 
 CompilerInstance::~CompilerInstance()
@@ -847,6 +850,7 @@ const Runtime::ProcessInfo& CompilerInstance::processInfo()
 
 void CompilerInstance::initPerThreadRuntimeContextForJit()
 {
+    std::call_once(runtimeCompilerOnce_, [this] { setupRuntimeCompiler(); });
     PerThreadData& td                  = perThreadData_[JobManager::threadIndex()];
     td.runtimeContext.allocator        = runtimeAllocator();
     td.runtimeContext.defaultAllocator = td.runtimeContext.allocator;

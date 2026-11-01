@@ -1,4 +1,5 @@
 #include "pch.h"
+#include "Backend/Linker/PEFormat.h"
 #include "Backend/Linker/PELinker.h"
 #include "Backend/Debug/DebugInfo.h"
 #include "Backend/Debug/DebugPath.h"
@@ -319,7 +320,7 @@ namespace
 
     bool isDirectCallRelocation(const CoffInputSection& section, const CoffInputReloc& relocation)
     {
-        return section.name == ".text" && relocation.type == IMAGE_REL_AMD64_REL32 && relocation.offset > 0 && relocation.offset <= section.bytes.size() && section.bytes[relocation.offset - 1] == std::byte{0xE8};
+        return section.name == ".text" && relocation.type == PE::REL_AMD64_REL32 && relocation.offset > 0 && relocation.offset <= section.bytes.size() && section.bytes[relocation.offset - 1] == std::byte{0xE8};
     }
 
     bool isDirectCallRelocation(const LinkSection& section, const LinkReloc& relocation)
@@ -597,7 +598,7 @@ namespace
         Result buildTextSection(NativeSectionData& textSection, const NativeObjDescription& description, std::vector<DebugInfoFunctionRecord>& debugFunctions) const
         {
             textSection.name            = ".text";
-            textSection.characteristics = IMAGE_SCN_CNT_CODE | IMAGE_SCN_MEM_EXECUTE | IMAGE_SCN_MEM_READ | IMAGE_SCN_ALIGN_32BYTES;
+            textSection.characteristics = PE::SCN_CNT_CODE | PE::SCN_MEM_EXECUTE | PE::SCN_MEM_READ | PE::SCN_ALIGN_32BYTES;
 
             if (description.startup)
             {
@@ -794,15 +795,15 @@ namespace
             const uint32_t patchOffset = base + relocation.offset;
             switch (relocation.type)
             {
-                case IMAGE_REL_AMD64_ADDR64:
+                case PE::REL_AMD64_ADDR64:
                     if (patchOffset + sizeof(uint64_t) > section.bytes.size())
                         return builder_->reportError(DiagnosticId::cmd_err_link_reloc_out_of_bounds);
 
                     section.bytes.writeLe64(patchOffset, relocation.addend);
                     break;
 
-                case IMAGE_REL_AMD64_ADDR32NB:
-                case IMAGE_REL_AMD64_REL32:
+                case PE::REL_AMD64_ADDR32NB:
+                case PE::REL_AMD64_REL32:
                     if (patchOffset + sizeof(uint32_t) > section.bytes.size())
                         return builder_->reportError(DiagnosticId::cmd_err_link_reloc_out_of_bounds);
 

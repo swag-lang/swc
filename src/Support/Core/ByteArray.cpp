@@ -9,7 +9,7 @@ SWC_BEGIN_NAMESPACE();
 namespace
 {
     template<typename T>
-    __forceinline void appendLittleEndian(ByteArray::Storage& bytes, const T value)
+    SWC_FORCE_INLINE void appendLittleEndian(ByteArray::Storage& bytes, const T value)
     {
         std::array<std::byte, sizeof(T)> appendedBytes;
         for (uint32_t i = 0; i < sizeof(T); ++i)
@@ -18,7 +18,7 @@ namespace
         bytes.insert(bytes.end(), appendedBytes.begin(), appendedBytes.end());
     }
 
-    __forceinline void appendBigEndian(ByteArray::Storage& bytes, const uint32_t value)
+    SWC_FORCE_INLINE void appendBigEndian(ByteArray::Storage& bytes, const uint32_t value)
     {
         const std::array appendedBytes{
             static_cast<std::byte>((value >> 24) & 0xFF),

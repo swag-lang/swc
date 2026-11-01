@@ -29,6 +29,7 @@
 #include "Support/Core/Utf8Helper.h"
 #include "Support/Math/Helpers.h"
 #include "Support/Os/Os.h"
+#include "Support/Os/Os.Exception.Linux.h"
 #include "Support/Report/Assert.h"
 #include "Support/Report/Diagnostic.h"
 #include "Support/Report/HardwareException.h"
@@ -43,6 +44,23 @@ constexpr uint32_t K_FUNCTION_THUNK_SLOT = 16;
 namespace
 {
     constexpr uint32_t K_COMPILER_EXCEPTION_CODE = 666;
+
+    Result requireHostTarget(TaskContext& ctx)
+    {
+#ifdef _WIN32
+        constexpr auto hostOs = Runtime::TargetOs::Windows;
+#elif defined(__linux__)
+        constexpr auto hostOs = Runtime::TargetOs::Linux;
+#endif
+        if (ctx.cmdLine().targetOs == hostOs)
+            return Result::Continue;
+        auto diagnostic = Diagnostic::get(DiagnosticId::cmd_err_jit_host_target);
+        diagnostic.addArgument(Diagnostic::ARG_TARGET, targetOsName(ctx.cmdLine().targetOs));
+        diagnostic.addArgument(Diagnostic::ARG_VALUE, Os::hostOsName());
+        diagnostic.report(ctx);
+        return Result::Error;
+    }
+
 
     using RuntimeSetupInvoker = void (*)(Runtime::RuntimeFlags);
     using RuntimeHookInvoker  = void (*)(uint64_t, uint64_t, uint64_t, const Runtime::String*);
@@ -89,12 +107,18 @@ namespace
         PointerMap<SymbolFunction, void> resolvedFunctionAddresses;
     };
 
+    enum class RuntimeExceptionAction : uint8_t
+    {
+        Recover,
+        Resume,
+    };
+
     struct RuntimeExceptionDiagnosticInfo
     {
         DiagnosticId       diagId          = DiagnosticId::None;
         DiagnosticSeverity severity        = DiagnosticSeverity::Error;
         JITCallErrorKind   errorKind       = JITCallErrorKind::None;
-        int                exceptionAction = SWC_EXCEPTION_EXECUTE_HANDLER;
+        RuntimeExceptionAction exceptionAction = RuntimeExceptionAction::Recover;
     };
 
     Result reportRelocationFailure(TaskContext& ctx, DiagnosticId diagId, std::string_view symbolName, const RelocationResolveFailure& failure);
@@ -465,15 +489,7 @@ namespace
     template<typename T>
     bool tryReadHostValue(const void* ptr, T& outValue)
     {
-        SWC_TRY
-        {
-            std::memcpy(&outValue, ptr, sizeof(T));
-            return true;
-        }
-        SWC_EXCEPT(SWC_EXCEPTION_EXECUTE_HANDLER)
-        {
-            return false;
-        }
+        return Os::tryReadMemory(std::as_writable_bytes(std::span{&outValue, 1}), ptr);
     }
 
     void appendHostValue(Utf8& out, std::string_view label, const void* ptr, const uint32_t numBits)
@@ -510,7 +526,7 @@ namespace
     }
 
     template<auto StateMember, auto OwnerMember>
-    __forceinline auto fallbackWaitRef(const TaskContext& ctx, const SymbolFunction* ownerFunction)
+    SWC_FORCE_INLINE auto fallbackWaitRef(const TaskContext& ctx, const SymbolFunction* ownerFunction)
     {
         using Ref = std::remove_cvref_t<decltype(ctx.state().*StateMember)>;
         if ((ctx.state().*StateMember).isValid())
@@ -939,19 +955,19 @@ namespace
         switch (kind)
         {
             case Runtime::ExceptionKind::Panic:
-                return {.diagId = DiagnosticId::sema_err_compiler_panic, .severity = DiagnosticSeverity::Error, .errorKind = JITCallErrorKind::HardwareException, .exceptionAction = SWC_EXCEPTION_EXECUTE_HANDLER};
+                return {.diagId = DiagnosticId::sema_err_compiler_panic, .severity = DiagnosticSeverity::Error, .errorKind = JITCallErrorKind::HardwareException, .exceptionAction = RuntimeExceptionAction::Recover};
 
             case Runtime::ExceptionKind::Error:
-                return {.diagId = DiagnosticId::sema_err_compiler_error, .severity = DiagnosticSeverity::Error, .errorKind = JITCallErrorKind::HardwareException, .exceptionAction = SWC_EXCEPTION_EXECUTE_HANDLER};
+                return {.diagId = DiagnosticId::sema_err_compiler_error, .severity = DiagnosticSeverity::Error, .errorKind = JITCallErrorKind::HardwareException, .exceptionAction = RuntimeExceptionAction::Recover};
 
             case Runtime::ExceptionKind::Warning:
-                return {.diagId = DiagnosticId::sema_warn_compiler_warning, .severity = DiagnosticSeverity::Warning, .errorKind = JITCallErrorKind::None, .exceptionAction = SWC_EXCEPTION_CONTINUE_EXECUTION};
+                return {.diagId = DiagnosticId::sema_warn_compiler_warning, .severity = DiagnosticSeverity::Warning, .errorKind = JITCallErrorKind::None, .exceptionAction = RuntimeExceptionAction::Resume};
 
             case Runtime::ExceptionKind::Assert:
-                return {.diagId = DiagnosticId::sema_err_assert_failed, .severity = DiagnosticSeverity::Error, .errorKind = JITCallErrorKind::HardwareException, .exceptionAction = SWC_EXCEPTION_EXECUTE_HANDLER};
+                return {.diagId = DiagnosticId::sema_err_assert_failed, .severity = DiagnosticSeverity::Error, .errorKind = JITCallErrorKind::HardwareException, .exceptionAction = RuntimeExceptionAction::Recover};
 
             case Runtime::ExceptionKind::Safety:
-                return {.diagId = DiagnosticId::safety_err_runtime, .severity = DiagnosticSeverity::Error, .errorKind = JITCallErrorKind::HardwareException, .exceptionAction = SWC_EXCEPTION_EXECUTE_HANDLER};
+                return {.diagId = DiagnosticId::safety_err_runtime, .severity = DiagnosticSeverity::Error, .errorKind = JITCallErrorKind::HardwareException, .exceptionAction = RuntimeExceptionAction::Recover};
 
             default:
                 SWC_UNREACHABLE();
@@ -1267,9 +1283,11 @@ namespace
     }
 }
 
-void JIT::prepare(TaskContext& ctx, JITMemory& outExecutableMemory, const ByteArray& linearCode, const ByteArray& unwindInfo, const std::span<const MicroRelocation> relocations)
+Result JIT::prepare(TaskContext& ctx, JITMemory& outExecutableMemory, const ByteArray& linearCode, const ByteArray& unwindInfo, const std::span<const MicroRelocation> relocations)
 {
+    SWC_RESULT(requireHostTarget(ctx));
     prepare(ctx.compiler().jitMemMgr(), outExecutableMemory, linearCode, unwindInfo, relocations);
+    return Result::Continue;
 }
 
 void JIT::prepare(JITMemoryManager& memoryManager, JITMemory& outExecutableMemory, const ByteArray& linearCode, const ByteArray& unwindInfo, const std::span<const MicroRelocation> relocations)
@@ -1278,9 +1296,9 @@ void JIT::prepare(JITMemoryManager& memoryManager, JITMemory& outExecutableMemor
     SWC_ASSERT(linearCode.size() <= std::numeric_limits<uint32_t>::max());
 
     // Allocate writable memory first. Relocations and optional unwind bytes are patched
-    // before finalize() flips the page permissions and registers SEH metadata.
+    // before finalize() flips the page permissions and registers host unwind metadata.
     const uint32_t codeSize          = Math::alignUpU32(static_cast<uint32_t>(linearCode.size()), sizeof(uint32_t));
-    const bool     registerSehUnwind = !unwindInfo.empty();
+    const bool     registerUnwind = !unwindInfo.empty();
 
     // Calls reserve nearby fallback thunks for targets outside rel32 reach.
     // Fixed-payload reads may also use nearby copies; address materializations
@@ -1308,13 +1326,13 @@ void JIT::prepare(JITMemoryManager& memoryManager, JITMemory& outExecutableMemor
         islandSize += K_FUNCTION_THUNK_SLOT;
     }
 
-    const uint64_t unwindSizeU64     = registerSehUnwind ? unwindInfo.size() : 0;
+    const uint64_t unwindSizeU64     = registerUnwind ? unwindInfo.size() : 0;
     const uint64_t islandBaseU64     = Math::alignUpU64(static_cast<uint64_t>(codeSize) + unwindSizeU64, K_ISLAND_ALIGNMENT);
     const uint64_t islandSizeU64     = islandSize;
     const uint64_t allocationSizeU64 = islandSize ? islandBaseU64 + islandSizeU64 : static_cast<uint64_t>(codeSize) + unwindSizeU64;
     const uint32_t allocationSize    = static_cast<uint32_t>(allocationSizeU64);
 
-    memoryManager.allocateWithCodeSize(outExecutableMemory, allocationSize, codeSize);
+    memoryManager.allocateWithCodeSize(outExecutableMemory, allocationSize, static_cast<uint32_t>(linearCode.size()));
 
     if (islandSize)
     {
@@ -1326,13 +1344,8 @@ void JIT::prepare(JITMemoryManager& memoryManager, JITMemory& outExecutableMemor
     writableCode = {static_cast<std::byte*>(outExecutableMemory.entryPoint()), linearCode.size()};
     std::memcpy(writableCode.data(), linearCode.data(), linearCode.size());
 
-    if (registerSehUnwind)
-    {
-        std::byte* unwindDest = static_cast<std::byte*>(outExecutableMemory.entryPoint()) + codeSize;
-        std::memcpy(unwindDest, unwindInfo.data(), unwindInfo.size());
-        outExecutableMemory.unwindInfoOffset_ = codeSize;
-        outExecutableMemory.unwindInfoSize_   = static_cast<uint32_t>(unwindInfo.size());
-    }
+    if (registerUnwind)
+        JITMemoryManager::copyUnwindInfo(outExecutableMemory, unwindInfo.span());
 }
 
 Result JIT::patch(TaskContext& ctx, const JITMemory& executableMemory, const std::span<const MicroRelocation> relocations, const SymbolFunction* ownerFunction)
@@ -1424,7 +1437,7 @@ void JIT::finalize(JITMemory& executableMemory)
 Result JIT::emit(TaskContext& ctx, JITMemory& outExecutableMemory, const ByteArray& linearCode, std::span<const MicroRelocation> relocations, const ByteArray& unwindInfo, const SymbolFunction* ownerFunction)
 {
     const TaskScopedContext scopedContext(ctx);
-    prepare(ctx, outExecutableMemory, linearCode, unwindInfo, relocations);
+    SWC_RESULT(prepare(ctx, outExecutableMemory, linearCode, unwindInfo, relocations));
     SWC_RESULT(patch(ctx, outExecutableMemory, relocations, ownerFunction));
     finalize(outExecutableMemory);
     return Result::Continue;
@@ -1440,6 +1453,8 @@ void* JIT::getNativeInterfaceAdapter(TaskContext& ctx, void* targetFn, const uin
 {
     SWC_ASSERT(targetFn != nullptr);
     SWC_ASSERT(numArgs <= 2);
+    if (requireHostTarget(ctx) != Result::Continue)
+        return nullptr;
 
     struct Adapter
     {
@@ -1510,6 +1525,7 @@ void* JIT::getNativeInterfaceAdapter(TaskContext& ctx, void* targetFn, const uin
 
 Result JIT::emitAndCall(TaskContext& ctx, void* targetFn, std::span<const JITArgument> args, const JITReturn& ret, CallConvKind callConvKind)
 {
+    SWC_RESULT(requireHostTarget(ctx));
     const TaskScopedContext scopedContext(ctx);
     SWC_ASSERT(targetFn != nullptr);
 
@@ -1853,7 +1869,7 @@ namespace
         }
     }
 
-    bool tryReportRuntimeException(TaskContext& ctx, const uint32_t exceptionCode, const void* platformExceptionPointers, JITCallErrorKind* outErrorKind, int& outExceptionAction)
+    bool tryReportRuntimeException(TaskContext& ctx, const uint32_t exceptionCode, const void* platformExceptionPointers, JITCallErrorKind* outErrorKind, RuntimeExceptionAction& outExceptionAction)
     {
         if (exceptionCode != K_COMPILER_EXCEPTION_CODE)
             return false;
@@ -2029,14 +2045,14 @@ namespace
 #endif
     }
 
-    int exceptionHandler(TaskContext& ctx, const void* platformExceptionPointers, JITCallErrorKind& outErrorKind)
+    RuntimeExceptionAction exceptionHandler(TaskContext& ctx, const void* platformExceptionPointers, JITCallErrorKind& outErrorKind)
     {
         uint32_t    exceptionCode    = 0;
         const void* exceptionAddress = nullptr;
         Os::decodeHostException(exceptionCode, exceptionAddress, platformExceptionPointers);
         SWC_UNUSED(exceptionAddress);
 
-        int compilerDiagAction = SWC_EXCEPTION_EXECUTE_HANDLER;
+        auto compilerDiagAction = RuntimeExceptionAction::Recover;
         if (tryReportRuntimeException(ctx, exceptionCode, platformExceptionPointers, &outErrorKind, compilerDiagAction))
             return compilerDiagAction;
 
@@ -2048,7 +2064,32 @@ namespace
         const Utf8 extraInfo = formatJitCrashContext(ctx, platformExceptionPointers);
         HardwareException::log(ctx, "fatal error: hardware exception during JIT call", platformExceptionPointers, extraInfo);
         Stats::addError();
-        return SWC_EXCEPTION_EXECUTE_HANDLER;
+        return RuntimeExceptionAction::Recover;
+    }
+
+    bool callWithHostFaultHandler(TaskContext& ctx, void (*function)(void*), void* argument, JITCallErrorKind& errorKind)
+    {
+#ifdef _WIN32
+        // Keep SEH in a frame without C++ automatic destructors. The caller's
+        // scoped task context also restores correctly for ordinary C++ exceptions.
+        SWC_TRY
+        {
+            function(argument);
+        }
+        SWC_EXCEPT(exceptionHandler(ctx, SWC_GET_EXCEPTION_INFOS(), errorKind) == RuntimeExceptionAction::Resume ? SWC_EXCEPTION_CONTINUE_EXECUTION : SWC_EXCEPTION_EXECUTE_HANDLER)
+        {
+            return false;
+        }
+        return true;
+#elif defined(__linux__)
+        Os::LinuxException exception;
+        if (Os::executeWithHostFaultHandler(exception, function, argument))
+            return true;
+        exceptionHandler(ctx, &exception, errorKind);
+        return false;
+#else
+#error Host JIT fault handling is not implemented for this platform
+#endif
     }
 
     Result ensureJitRuntimeSetup(TaskContext& ctx, RuntimeSetupInvoker& outSetupInvoker)
@@ -2073,7 +2114,8 @@ namespace
 
 Result JIT::call(TaskContext& ctx, void* invoker, const uint64_t* arg0, JITCallErrorKind* outErrorKind, const JITRuntimeSetupMode setupMode)
 {
-    const TaskContext* savedContext = TaskContext::setCurrent(&ctx);
+    SWC_RESULT(requireHostTarget(ctx));
+    const TaskScopedContext scopedContext(ctx);
     SWC_ASSERT(invoker != nullptr);
 
     RuntimeSetupInvoker setupInvoker = nullptr;
@@ -2082,7 +2124,6 @@ Result JIT::call(TaskContext& ctx, void* invoker, const uint64_t* arg0, JITCallE
         const Result setupResult = ensureJitRuntimeSetup(ctx, setupInvoker);
         if (setupResult != Result::Continue)
         {
-            TaskContext::setCurrent(savedContext);
             return setupResult;
         }
     }
@@ -2095,12 +2136,10 @@ Result JIT::call(TaskContext& ctx, void* invoker, const uint64_t* arg0, JITCallE
         ctx.compiler().ensureProcessInfoRunArgs();
     }
 
-    bool hasException = false;
     auto callError    = JITCallErrorKind::None;
     auto callResult   = Result::Continue;
 
-    SWC_TRY
-    {
+    auto invoke = [&] {
         if (setupInvoker)
             setupInvoker(Runtime::RuntimeFlags::FromCompiler);
 
@@ -2120,22 +2159,17 @@ Result JIT::call(TaskContext& ctx, void* invoker, const uint64_t* arg0, JITCallE
                 typedInvoker();
             }
         }
-    }
-    SWC_EXCEPT(exceptionHandler(ctx, SWC_GET_EXCEPTION_INFOS(), callError))
-    {
-        hasException = true;
-    }
+    };
+    const bool hasException = !callWithHostFaultHandler(ctx, [](void* argument) { (*static_cast<decltype(invoke)*>(argument))(); }, &invoke, callError);
 
     if (outErrorKind)
         *outErrorKind = hasException ? callError : JITCallErrorKind::None;
 
     if (callResult != Result::Continue)
     {
-        TaskContext::setCurrent(savedContext);
         return callResult;
     }
 
-    TaskContext::setCurrent(savedContext);
     return hasException ? Result::Error : Result::Continue;
 }
 

@@ -101,7 +101,7 @@ Result MachineCode::emit(TaskContext& ctx, MicroBuilder& builder, MicroReg debug
     passContext.sanitizerSafetyMask      = sanitizerSafetyMask;
     passContext.sanitizerFunction        = sanitizerFunction;
 
-#ifdef _M_X64
+#if defined(_M_X64) || defined(__x86_64__)
     // One encoder per worker: its pages, unwind tracker and debug ranges are reset for the
     // next function instead of being allocated and freed with each one. The lease keeps a
     // lowering that nests inside another on this thread, should one ever appear, on an encoder

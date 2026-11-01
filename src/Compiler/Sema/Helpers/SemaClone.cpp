@@ -496,7 +496,7 @@ namespace
 
     // End each field's temporary clone context before cloning the next field.
     template<auto Member, typename T>
-    __forceinline void cloneInlineMember(Sema& sema, T& cloned, const T& node, const CloneContext& cloneContext)
+    SWC_FORCE_INLINE void cloneInlineMember(Sema& sema, T& cloned, const T& node, const CloneContext& cloneContext)
     {
         if constexpr (std::is_same_v<std::remove_cvref_t<decltype(node.*Member)>, AstNodeRef>)
             cloned.*Member = cloneNodeRef(sema, node.*Member, cloneContextAsInline(cloneContext));
@@ -509,7 +509,7 @@ namespace
 
     // Retain the callbacks' original call boundaries, including the larger variable nodes.
     template<AstNodeId ID, auto... Members, typename T>
-    __forceinline AstNodeRef cloneNodeMembers(Sema& sema, const T& node, const CloneContext& cloneContext)
+    SWC_FORCE_INLINE AstNodeRef cloneNodeMembers(Sema& sema, const T& node, const CloneContext& cloneContext)
     {
         const AstNodeRef newRef = cloneNodeCopy<ID>(sema, node);
         auto&            cloned = sema.node(newRef).cast<T>();

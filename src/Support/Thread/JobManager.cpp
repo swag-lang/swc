@@ -872,6 +872,7 @@ namespace
         diagnostic.report(ctx);
     }
 
+#ifdef _WIN32
     int exceptionHandler(const Job& job, SWC_LP_EXCEPTION_POINTERS args)
     {
         uint32_t    exceptionCode    = 0;
@@ -886,10 +887,12 @@ namespace
         Os::panicBox("hardware exception during job execution");
         return SWC_EXCEPTION_EXECUTE_HANDLER;
     }
+#endif
 }
 
 JobResult JobManager::executeJob(Job& job)
 {
+#ifdef _WIN32
     JobResult          res;
     const TaskContext* savedContext = TaskContext::setCurrent(&job.ctx());
 
@@ -905,6 +908,14 @@ JobResult JobManager::executeJob(Job& job)
 
     TaskContext::setCurrent(savedContext);
     return res;
+#else
+    // Native compiler faults remain fatal; generated code owns its narrower
+    // recovery boundary inside JIT::call. Restore task TLS on ordinary C++ throws.
+    const TaskScopedContext scopedContext(job.ctx());
+    const JobResult result = job.exec();
+    reportSilentJobFailure(job, result);
+    return result;
+#endif
 }
 
 void JobManager::handleJobResultLocked(JobRecord* rec, const JobResult res)

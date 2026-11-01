@@ -23,7 +23,7 @@ Global::Global()
 void Global::initialize(const CommandLine& cmdLine) const
 {
     Os::initialize();
-    CallConv::setup();
+    CallConv::setup(cmdLine.targetOs);
     langSpec_->setup();
     jobManager_->setup(cmdLine);
 }

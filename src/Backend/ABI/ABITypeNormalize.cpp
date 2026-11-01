@@ -53,6 +53,10 @@ ABITypeNormalize::NormalizedType ABITypeNormalize::normalize(TaskContext& ctx, c
     if (ty.isTypedVariadic())
         return makeNormalizedType(false, false, false, 64);
 
+    // System V scalar calls are available to the backend before the target is enabled.
+    // Aggregates need eightbyte classification, never the Windows indirect-pointer rule.
+    SWC_FORCE_ASSERT(!conv.isSystemVAMD64 && "System V aggregate classification is not implemented");
+
     if ((ty.isFunction() && ty.isLambdaClosure()) || ty.isStringOrSlice() || ty.isInterface() || ty.isAny())
     {
         const uint64_t rawSize = ty.sizeOf(ctx);

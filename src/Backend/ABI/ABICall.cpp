@@ -185,6 +185,31 @@ namespace
             loadIntValueToReg(builder, dstReg, arg.srcReg, arg.numBits);
     }
 
+    MicroReg prepareSystemVCall(MicroBuilder& builder, const CallConv& conv, const CallFloatArgs floats, MicroReg targetReg = MicroReg::invalid())
+    {
+        if (!conv.isSystemVAMD64)
+            return targetReg;
+
+        // AL carries the number of live vector argument registers on a variadic
+        // call. Setting it for every System V call also covers function pointers
+        // whose declaration is unavailable here; fixed-prototype callees ignore it.
+        if (targetReg == conv.intReturn)
+        {
+            MicroReg scratch, unused;
+            SWC_INTERNAL_CHECK(conv.tryPickIntScratchRegs(scratch, unused));
+            builder.emitLoadRegReg(scratch, targetReg, MicroOpBits::B64);
+            targetReg = scratch;
+        }
+        uint32_t count = 0;
+        for (uint32_t index = 0; index < 8; ++index)
+        {
+            if (floats.laneMask(index))
+                count = index + 1;
+        }
+        builder.emitLoadRegImm(conv.intReturn, ApInt(count, 32), MicroOpBits::B32);
+        return targetReg;
+    }
+
     void emitReturnWriteBack(MicroBuilder& builder, const CallConv& conv, const ABICall::Return& ret, MicroReg regBase)
     {
         if (ret.isVoid || ret.isIndirect)
@@ -209,9 +234,9 @@ namespace
             return result;
         }
 
-        // The unadjusted Swag path contains only register arguments, so it
-        // reserves alignment without inferring stack arguments from the count.
-        result.before  = callConvKind == CallConvKind::Swag ? ABICall::computeCallStackAdjust(callConvKind, 0) : ABICall::computeCallStackAdjust(callConvKind, preparedCall.numPreparedArgs);
+        // An unadjusted independent-bank call contains only register arguments;
+        // its total count does not describe how many arguments spill to the stack.
+        result.before  = CallConv::get(callConvKind).independentArgBanks ? ABICall::computeCallStackAdjust(callConvKind, 0) : ABICall::computeCallStackAdjust(callConvKind, preparedCall.numPreparedArgs);
         result.restore = result.before;
         return result;
     }
@@ -869,6 +894,7 @@ void ABICall::callAddress(MicroBuilder& builder, CallConvKind callConvKind, uint
 
     emitCallArgs(builder, conv, args, regBase, regTmp);
     builder.emitLoadRegPtrImm(regTmp, targetAddress);
+    regTmp = prepareSystemVCall(builder, conv, argMasks.floats, regTmp);
     builder.emitCallReg(regTmp, callConvKind, argMasks.ints, argMasks.floats);
 
     emitReturnWriteBack(builder, conv, ret, regBase);
@@ -884,6 +910,7 @@ void ABICall::callLocal(MicroBuilder& builder, CallConvKind callConvKind, const 
     const CallConv&               conv        = CallConv::get(callConvKind);
 
     emitCallStackAdjust(builder, conv, stackAdjust.before, MicroOp::Subtract);
+    prepareSystemVCall(builder, conv, preparedCall.floatArgMask);
     builder.emitCallLocal(targetSymbol, callConvKind, preparedCall.intArgMask, preparedCall.floatArgMask);
     emitReturnWriteBackIfNeeded(builder, conv, ret);
     emitCallStackAdjust(builder, conv, stackAdjust.restore, MicroOp::Add);
@@ -903,6 +930,7 @@ void ABICall::callExtern(MicroBuilder& builder, CallConvKind callConvKind, const
     const CallConv&               conv        = CallConv::get(callConvKind);
 
     emitCallStackAdjust(builder, conv, stackAdjust.before, MicroOp::Subtract);
+    prepareSystemVCall(builder, conv, preparedCall.floatArgMask);
     builder.emitCallExtern(targetSymbol, callConvKind, preparedCall.intArgMask, preparedCall.floatArgMask);
     emitReturnWriteBackIfNeeded(builder, conv, ret);
     emitCallStackAdjust(builder, conv, stackAdjust.restore, MicroOp::Add);
@@ -935,6 +963,7 @@ void ABICall::callReg(MicroBuilder& builder, CallConvKind callConvKind, MicroReg
     }
 
     emitCallStackAdjust(builder, conv, stackAdjust.before, MicroOp::Subtract);
+    targetReg = prepareSystemVCall(builder, conv, preparedCall.floatArgMask, targetReg);
     builder.emitCallReg(targetReg, callConvKind, preparedCall.intArgMask, preparedCall.floatArgMask);
     emitReturnWriteBackIfNeeded(builder, conv, ret);
     emitCallStackAdjust(builder, conv, stackAdjust.restore, MicroOp::Add);

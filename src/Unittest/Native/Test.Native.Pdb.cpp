@@ -1,8 +1,8 @@
 #include "pch.h"
 
-#if SWC_HAS_UNITTEST
+#if SWC_HAS_UNITTEST && defined(_WIN32)
 
-#include "Backend/Linker/PeWriter.h"
+#include "Backend/Linker/PEWriter.h"
 #include "Support/Os/Os.h"
 #include "Support/Report/Diagnostic.h"
 #include "Unittest/Native/NativeTestBytes.h"

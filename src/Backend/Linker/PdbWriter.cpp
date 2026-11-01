@@ -1,4 +1,5 @@
 #include "pch.h"
+#include "Backend/Linker/PEFormat.h"
 #include "Backend/Linker/PdbWriter.h"
 #include "Backend/Debug/CodeViewLeaf.h"
 #include "Backend/Debug/CodeViewRecords.h"
@@ -31,11 +32,6 @@ namespace
     constexpr uint32_t K_PUB_FLAG_FUNCTION = 0x00000002u;
 
     constexpr uint32_t K_IPHR_HASH = 4096;
-
-    // PE section characteristic bits (avoid pulling in windows.h here).
-    constexpr uint32_t K_SCN_MEM_EXECUTE = 0x20000000u;
-    constexpr uint32_t K_SCN_MEM_READ    = 0x40000000u;
-    constexpr uint32_t K_SCN_MEM_WRITE   = 0x80000000u;
 
     // Fixed stream indices. The first four are mandated by the PDB format; the rest are ours.
     enum StreamIndex : uint16_t
@@ -974,11 +970,11 @@ void PdbWriter::build(ByteArray&                         outBytes,
         {
             const uint32_t ch    = sections[i].characteristics;
             uint16_t       flags = 0x8; // AddressIs32Bit
-            if (ch & K_SCN_MEM_READ)
+            if (ch & PE::SCN_MEM_READ)
                 flags |= 0x1;
-            if (ch & K_SCN_MEM_WRITE)
+            if (ch & PE::SCN_MEM_WRITE)
                 flags |= 0x2;
-            if (ch & K_SCN_MEM_EXECUTE)
+            if (ch & PE::SCN_MEM_EXECUTE)
                 flags |= 0x4;
 
             secMap.appendLe16(flags);

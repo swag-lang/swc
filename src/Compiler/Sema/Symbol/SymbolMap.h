@@ -77,7 +77,8 @@ public:
     Symbol* addSingleSymbol(TaskContext& ctx, Symbol* symbol);
     Symbol* addSingleSymbolOrError(Sema& sema, Symbol* symbol);
 
-    void addUsingSymMap(TaskContext& ctx, SymbolMap* symMap, SourceRevision sourceRevision = {});
+    void addUsingSymMap(TaskContext& ctx, SymbolMap* symMap, SourceRevision sourceRevision);
+    void addUsingSymMap(TaskContext& ctx, SymbolMap* symMap) { addUsingSymMap(ctx, symMap, {}); }
     void copyUsingSymMaps(SmallVector<const SymbolMap*>& out, const CompilerInstance* compiler = nullptr) const;
 
     const Symbol* findFirstSymbol(IdentifierRef idRef, bool includeIgnored = false) const;

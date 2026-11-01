@@ -237,20 +237,14 @@ by portable modules and products. The earlier entries prepare and enforce the sa
 - Related: platform.portability.038, platform.portability.010
 - Done when: The chosen second host applies sandbox restrictions before user code and imported native modules run, rejects forbidden filesystem and process actions in integration tests, and reports unsupported enforcement explicitly.
 
-### platform.portability.001 — No build-only non-Windows portability configuration
+### platform.portability.001 — Neutral bin sources have no Linux build configuration
 
-- Next: prove the boundary with a build-only non-Windows configuration as early as possible. It may
-  use no-sound and headless implementations at first, but it must compile every platform-neutral
-  file.
+- Evidence: `tools/linux-build.py` now builds the complete DevMode host compiler, and its
+  lexer/parser suites pass on Linux. The default generated target remains Windows; neither
+  the Linux runtime nor the neutral standard/application sources have a Linux build gate.
+- Next: connect the Linux ABI, runtime and native target, then compile every platform-neutral
+  bin source. Select headless/no-sound backends where their contracts permit them.
 - Done when: A non-Windows configuration compiles every neutral runtime and bin source with headless/no-sound stubs where needed, and its build fails on an accidental native Windows import.
-
-### platform.portability.002 — Portability progress has no capability inventory
-
-- Next: track both native source lines and, more importantly, native capabilities a new backend must
-  implement. Moving 200 lines of orchestration to common Swag is valuable; compressing 200 required
-  system calls into a clever wrapper is not.
-- Related: platform.portability.001
-- Done when: The inventory names each host capability and its owning adapter, states availability for Windows and the chosen next target, and is updated by the same review that changes an adapter or public portability boundary.
 
 ### platform.portability.005 — Runtime startup cannot accept an argument vector
 
@@ -260,11 +254,12 @@ by portable modules and products. The earlier entries prepare and enforce the sa
 - Related: platform.portability.003, platform.portability.008, platform.portability.010
 - Done when: A Unix host entry point passes argc/argv directly to runtime startup, Windows retains its command-line parser, and the same argument-order, quoting, and empty-argument tests pass through Swag.args on both hosts.
 
-### platform.portability.007 — Hosted runtime library dependencies have no target matrix
+### platform.portability.007 — Linux hosted runtime libraries are not wired into the target
 
-- Next: record a target matrix for hosted builds: Windows UCRT, Linux libc plus libm where required,
-  and any future freestanding runtime. A Linux port is not improved by replacing a stable libc call
-  with direct kernel syscalls and thereby coupling the runtime to one kernel and architecture.
+- Evidence: `bin/PORTABILITY.md` names the Windows and planned GNU/Linux hosted libraries, but
+  `bin/runtime/os.win32.swg` remains the only runtime math binding and Linux cannot link Swag code.
+- Next: implement Linux libc/libm bindings and target link inputs against that matrix after the
+  System V ABI exists. Keep stable libc calls rather than coupling the runtime to raw syscalls.
 - Related: platform.portability.031
 - Done when: A checked target matrix names required hosted libraries and link inputs for Windows and the chosen Linux target, distinguishes any freestanding contract, and both targets build without hidden platform-library assumptions.
 
@@ -865,3 +860,57 @@ by portable modules and products. The earlier entries prepare and enforce the sa
 - Done when: supported targets prove the key pages are locked or refuse securely, and Vault
   contains no direct `VirtualLock`, `mlock`, or equivalent call.
 - Related: platform.portability.076
+
+### platform.portability.091 — The Linux compiler still needs frontend and execution validation
+
+- Evidence: the Linux host boundary covers memory, mapped caches, common file I/O, advisory
+  directory locks, terminal/environment services, library lookup, TLS, process-tree lifetime,
+  pre-initialization CPU checks, native stack/symbol capture and guarded per-thread signal stacks.
+  DWARF CIE/FDE construction and libgcc registration pass native backtrace, C++ exception,
+  repeated generated-fault cleanup and registration-lifetime fixtures. The Linux fault boundary
+  preserves native cleanup and limits recovery to synchronous faults in registered JIT code.
+  `tools/linux-build.py` selects Linux host leaves from the shared source manifest and builds
+  outside the checkout with GNU Make. Complete DevMode and Release compilers link and
+  pass the lexer/parser suites including expected-error inputs without spurious JIT setup.
+  The default C++ campaign passes 1,570 of 1,600 tests; 30 remain failing. The separate
+  filesystem campaign still has 34 failures. Closed Windows x64 instruction fixtures execute
+  through an explicit GCC ABI bridge. Runtime adapters initialize on the first actual JIT call,
+  and cross-host generated execution has an explicit diagnostic.
+  PE/COFF records no longer depend on the Windows SDK, and both target enums represent Linux.
+  Instruction-level CFI follows the physical IR control-flow graph; native fixtures cover
+  multiple returns, dynamic-stack joins, frameless register saves, indirect jumps and C++
+  cleanup through generated faults. System V scalar calls work at the backend boundary, but
+  aggregate lowering, target selection and DWARF source resolution remain missing.
+  Linux directory locks do not prohibit an uncoordinated cleaner's rename.
+- Next: resolve the remaining C++ failures and connect the System V ABI to Linux JIT execution.
+  Coordinate directory cleanup with API readers/publication. Keep C++ cleanup intact across
+  generated-code faults, including native callbacks and nested JIT calls.
+- Done when: DevMode and Release Linux compilers build from source and execute focused C++,
+  lexer/parser and compile-time tests without Windows dependencies or success-returning stubs.
+- Related: platform.portability.001, platform.portability.092
+
+### platform.portability.092 — System V aggregate lowering and target activation are missing
+
+- Evidence: the internal System V profile implements six integer/eight vector argument registers,
+  independent banks, callee-save rules, zero shadow space and variadic AL setup with explicit
+  liveness. Native C fixtures exercise mixed scalar banks, stack arguments, variadic floats and
+  indirect calls after physical-register DCE. Source attributes cannot select the unfinished
+  profile, and target C selection still accepts only Windows x64: aggregates must not inherit
+  the Windows indirect-pointer convention.
+- Next: implement eightbyte argument/return classification and lowering, including mixed
+  aggregates, whole-argument register rollback, stack copies and multiple return registers.
+  Compare with native C/C++ fixtures, then activate target C and Linux runtime declarations.
+- Done when: generated Linux calls round-trip supported scalar and aggregate values through C,
+  preserve callee-save registers and stack alignment, and use the same ABI in JIT and native code.
+- Related: platform.portability.007, platform.portability.081
+
+### platform.portability.093 — Native output has no ELF and Linux startup path
+
+- Evidence: `NativeObjectFormat` contains only `WindowsCoff`, the linker writes PE, and
+  `NativeBackendBuilder::validateTarget` rejects non-Windows targets.
+- Next: add ELF objects and a Linux link/startup path with explicit CRT, hosted library and dynamic
+  loader inputs. Pass argc/argv to runtime initialization before module startup; keep debug/unwind
+  format selection independent of CodeView/PDB.
+- Done when: Linux executables and shared libraries link and run a runtime/native workspace smoke,
+  including foreign imports, arguments and cross-module initialization/cleanup.
+- Related: platform.portability.005, platform.portability.007, platform.portability.092

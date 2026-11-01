@@ -847,6 +847,7 @@ Result MicroEmitPass::run(MicroPassContext& context)
     }
 
     collectLoopHeaders(context);
+    encoder.prepareUnwind(*context.builder, context.callConvKind);
 
     for (;;)
     {

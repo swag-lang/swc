@@ -19,6 +19,7 @@
 #include "Main/CompilerInstance.h"
 #include "Main/Stats.h"
 #include "Support/Core/SmallVector.h"
+#include "Unittest/ABI/AbiTestTypes.h"
 #include "Unittest/Unittest.h"
 #include "Unittest/UnittestSource.h"
 
@@ -27,24 +28,7 @@ SWC_BEGIN_NAMESPACE();
 
 namespace
 {
-    SymbolVariable* makeStructField(TaskContext& ctx, TypeRef typeRef)
-    {
-        SymbolVariable* field = Symbol::make<SymbolVariable>(ctx, nullptr, TokenRef::invalid(), IdentifierRef::invalid(), SymbolFlagsE::Zero);
-        field->setTypeRef(typeRef);
-        return field;
-    }
-
-    TypeRef makeStructType(TaskContext& ctx, std::span<const TypeRef> fieldTypes)
-    {
-        SymbolStruct* symStruct = Symbol::make<SymbolStruct>(ctx, nullptr, TokenRef::invalid(), IdentifierRef::invalid(), SymbolFlagsE::Zero);
-        for (const auto fieldType : fieldTypes)
-            symStruct->addField(makeStructField(ctx, fieldType));
-        SWC_ASSERT(symStruct->computeLayout(ctx) == Result::Continue);
-
-        const TypeRef structTypeRef = ctx.typeMgr().addType(TypeInfo::makeStruct(symStruct));
-        symStruct->setTypeRef(structTypeRef);
-        return structTypeRef;
-    }
+    using Backend::Unittest::makeStructType;
 
     Result callCaseTyped(TaskContext& ctx, void* targetFn, std::span<const JITArgument> args, TypeRef retTypeRef, void* outRetValue)
     {
@@ -129,6 +113,8 @@ SWC_TEST_END()
 
 // An addressed narrow integer may need a register home slot when another argument travels on the
 // stack. Loading the ABI-sized home must not widen the source memory access past the integer itself.
+#endif
+
 SWC_TEST_BEGIN(ABI_AddressedNarrowIntegerHomeUsesNarrowLoad)
 {
     constexpr MicroReg narrowAddress = MicroReg::virtualIntReg(100);
@@ -228,7 +214,7 @@ SWC_TEST_BEGIN(ABI_AddressCallStackStoresMatchLayoutQueries)
             layouts[index]        = {.numBits = static_cast<uint8_t>(bits ? bits : 64), .isFloat = isFloat};
         }
 
-        for (const CallConvKind kind : {CallConvKind::Swag, CallConvKind::WindowsX64, CallConvKind::C})
+        for (const CallConvKind kind : {CallConvKind::Swag, CallConvKind::WindowsX64, CallConvKind::C, CallConvKind::SystemVAMD64})
         {
             const CallConv& conv = CallConv::get(kind);
             for (const size_t count : {0u, 1u, 4u, 7u, 16u, 30u})
@@ -441,6 +427,8 @@ SWC_TEST_BEGIN(ABI_SwagSimdArgsUseExtendedRegistersThenWideStackSlots)
         return Result::Error;
 }
 SWC_TEST_END()
+
+#ifdef _M_X64
 
 namespace
 {

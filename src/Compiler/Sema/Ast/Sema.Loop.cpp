@@ -36,7 +36,7 @@ namespace
     }
 
     template<typename Node>
-    __forceinline Result finishConditionalLoopChild(Sema& sema, const Node& node, const AstNodeRef& childRef)
+    SWC_FORCE_INLINE Result finishConditionalLoopChild(Sema& sema, const Node& node, const AstNodeRef& childRef)
     {
         if (childRef == node.nodeExprRef)
         {

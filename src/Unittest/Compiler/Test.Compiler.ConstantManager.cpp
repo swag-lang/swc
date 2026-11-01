@@ -149,7 +149,7 @@ SWC_TEST_BEGIN(ConstantManager_CachesZeroPayloadConstantsByType)
             return Result::Error;
     }
 
-    std::array        dims{4ULL};
+    std::array<uint64_t, 1> dims{4};
     const TypeRef     arrayTypeRef   = ctx.typeMgr().addType(TypeInfo::makeArray(std::span<uint64_t>{dims}, ctx.typeMgr().typeU8()));
     const ConstantRef firstArrayRef  = ctx.cstMgr().addZeroPayloadConstant(ctx, arrayTypeRef);
     const ConstantRef secondArrayRef = ctx.cstMgr().addZeroPayloadConstant(ctx, arrayTypeRef);

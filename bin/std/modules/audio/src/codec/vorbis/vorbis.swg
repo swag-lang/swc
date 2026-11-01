@@ -1661,6 +1661,8 @@ internal impl DurationProbe
         if reader.readFlag() do
             fail InvalidFormatError{"Vorbis packet is not an audio packet"}
         let modeIndex = reader.read(.codec.modeBits)
+        if reader.overran do
+            fail InvalidFormatError{"Vorbis audio packet is truncated"}
         if modeIndex >= .codec.modes.count do
             fail InvalidFormatError{"Vorbis packet names a mode that does not exist"}
         let size   = .codec.blockSizes[.codec.modes[modeIndex].longBlock ? 1 : 0]

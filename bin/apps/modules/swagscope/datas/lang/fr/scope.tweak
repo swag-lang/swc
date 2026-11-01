@@ -223,10 +223,15 @@ hint_PlayAlbum lire l’album
 hint_Play lire
 board_Automatic Automatique
 board_Grid Grille
-board_Frames Images vidéo
 board_Covers Pochettes
 board_Posters Affiches
 board_Mosaic Mosaïque
+explore_Artwork Choisir la source des illustrations
+artwork_Online Illustrations en ligne
+artwork_Local Aperçus locaux
+artwork_OnlineShort En ligne
+artwork_LocalShort Local
+lens_Artwork Visuels média
 explore_Albums % albums
 explore_Photos % photos
 explore_OnePage 1 page

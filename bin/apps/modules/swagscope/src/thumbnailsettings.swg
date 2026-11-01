@@ -2,13 +2,12 @@
 
 using Core, Gui
 
-// The preview cache distinguishes viewer selection and opt-in online media artwork.
+// The preview cache distinguishes viewer selection and the source of media artwork.
 struct ThumbnailSettings
 {
     preferences:         Array'ViewerPreference
     onlineMovies:        bool
-    ignoreOnlineMovies:  bool
-    moviePosters:        bool
+    localArtworkOnly:    bool
     onlineMusic:         bool
     movieLanguage:       String
     movieProviderStamp:  u64
@@ -20,14 +19,12 @@ struct ThumbnailSettings
 
 impl ThumbnailSettings
 {
-    func capture(window: *ViewerWindow, entry: const *ExplorerEntry? = null,
-                 moviePosters = true, ignoreOnlineMovies = false)->String
+    func capture(window: *ViewerWindow, entry: const *ExplorerEntry? = null, localArtworkOnly = false)->String
     {
         var settings: ThumbnailSettings
         settings.preferences  = window.preferences
         settings.onlineMovies = window.onlineMovies
-        settings.ignoreOnlineMovies = ignoreOnlineMovies
-        settings.moviePosters = moviePosters
+        settings.localArtworkOnly = localArtworkOnly
         settings.onlineMusic  = window.onlineMusic
         if window.onlineMovies
         {

@@ -126,11 +126,11 @@ func addPictured(host: *Testing.HeadlessHost, explorer: *Explorer, name: string,
             if index do
                 Swag.assert(cast(u64, explorer.forcedBoard) == index - 1)
             if index == 2 do
-                Swag.assert(state.name == appStrings().board_Frames and explorer.grid.board == .Frames)
-            if index == 3 do
                 Swag.assert(state.name == appStrings().board_Posters and explorer.grid.board == .Posters)
-            if index == 4 do
+            if index == 3 do
                 Swag.assert(state.name == appStrings().board_Covers and explorer.grid.board == .Covers)
+            if index == 4 do
+                Swag.assert(state.name == appStrings().board_Mosaic and explorer.grid.board == .Mosaic)
             window.lens.open(state.name)
             var found = false
             for section in window.lens.results.sections
@@ -143,6 +143,14 @@ func addPictured(host: *Testing.HeadlessHost, explorer: *Explorer, name: string,
             window.lens.close()
         }
 
+        for command, index in ViewerCommands.Artwork
+        {
+            window.sendCommandEvent(command)
+            let state = window.sendComputeCommandStateEvent(command)
+            Swag.assert(state.checked and not state.hidden and not state.disabled)
+            Swag.assert(cast(u64, explorer.artworkSource) == index)
+        }
+
         for command, index in ViewerCommands.Modes
         {
             window.sendCommandEvent(command)
@@ -150,12 +158,24 @@ func addPictured(host: *Testing.HeadlessHost, explorer: *Explorer, name: string,
             Swag.assert(window.sendComputeCommandStateEvent(command).checked)
         }
 
+        explorer.entries.add({name: "Film.mkv", path: "Film.mkv", attempted: true})
         window.onlineMovies = true
+        window.onlineMusic  = true
         explorer.setKindFilter(.Videos)
-        explorer.forceBoard(true, .Frames)
-        let settings = expect ThumbnailSettings.decode(explorer.previewSettings)
-        Swag.assert(explorer.grid.board == .Frames and explorer.previewAspect == ExplorerFilmPreviewAspect)
-        Swag.assert(settings.onlineMovies and settings.ignoreOnlineMovies and not settings.moviePosters)
+        explorer.forceBoard(true, .Grid)
+        explorer.setArtworkSource(.Local)
+        let localSettings = expect ThumbnailSettings.decode(explorer.previewSettings)
+        Swag.assert(explorer.grid.board == .Grid and explorer.previewAspect == ExplorerFilmPreviewAspect)
+        Swag.assert(localSettings.onlineMovies and localSettings.onlineMusic and localSettings.localArtworkOnly)
+        explorer.setArtworkSource(.Online)
+        let onlineSettings = expect ThumbnailSettings.decode(explorer.previewSettings)
+        Swag.assert(not onlineSettings.localArtworkOnly)
+        let folder = unwrap Path.directoryName(#curlocation.fileName)
+        let audio  = Path.combine(folder, "song.flac")
+        let video  = Path.combine(folder, "datas", "rv40-legacy-clock.mkv")
+        Swag.assert(onlinePreviewWanted(audio, &onlineSettings) and onlinePreviewWanted(video, &onlineSettings))
+        onlineSettings.localArtworkOnly = true
+        Swag.assert(not onlinePreviewWanted(audio, &onlineSettings) and not onlinePreviewWanted(video, &onlineSettings))
     }
 }
 
@@ -528,7 +548,7 @@ func addPictured(host: *Testing.HeadlessHost, explorer: *Explorer, name: string,
     Swag.assert(not probeEntry(&other))
 }
 
-// Video Frames keeps the local picture wide and never replaces it with online artwork.
+// Artwork source stays independent from board organization in either theme.
 #[Swag.TestTag("golden")]
 #test
 {
@@ -537,6 +557,7 @@ func addPictured(host: *Testing.HeadlessHost, explorer: *Explorer, name: string,
         var host: Testing.HeadlessHost
         let window   = boardWindow(&host, light, films: true)
         let explorer = unwrap window.explorer
+        explorer.setArtworkSource(.Local)
         let names: [4] string = ["One.mkv", "Two.mkv", "Three.mkv", "Four.mkv"]
         let colors: [4] u32 = [0x24385A, 0xA04030, 0x306040, 0x8A6A28]
         for name, index in names
@@ -546,12 +567,13 @@ func addPictured(host: *Testing.HeadlessHost, explorer: *Explorer, name: string,
         }
 
         explorer.setKindFilter(.Videos)
-        explorer.forceBoard(true, .Frames)
+        explorer.forceBoard(true, .Grid)
         showBoard(&host, window, "Videos", "Films")
-        Swag.assert(explorer.grid.board == .Frames and explorer.previewAspect == ExplorerFilmPreviewAspect)
+        Swag.assert(explorer.grid.board == .Grid and explorer.previewAspect == ExplorerFilmPreviewAspect)
+        Swag.assert(explorer.grid.tile.x > explorer.grid.tile.y)
         let settings = expect ThumbnailSettings.decode(explorer.previewSettings)
-        Swag.assert(settings.ignoreOnlineMovies and not settings.moviePosters)
+        Swag.assert(settings.localArtworkOnly)
         var image = host.render(&host.surfaceWnd)
-        Pixel.Testing.assertImageGolden(&image, light ? "explorer.frames.paper" : "explorer.frames.encre")
+        Pixel.Testing.assertImageGolden(&image, light ? "explorer.artwork.paper" : "explorer.artwork.encre")
     }
 }

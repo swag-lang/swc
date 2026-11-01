@@ -30,6 +30,7 @@ struct AppStrings
     explore_FilterByType:      string = "Filter by type"        // Tooltip of the file-kind menu in the explorer.
     explore_View:              string = "Choose view"           // Tooltip of the view choice in the window title bar.
     explore_Organization:      string = "Arrange thumbnails"    // Tooltip of the thumbnail arrangement choice.
+    explore_Artwork:           string = "Choose artwork source" // Tooltip of the media illustration source choice.
     explore_FilterAll:         string = "All items"              // Explorer file-kind filter.
     explore_FilterVideos:      string = "Videos"                 // Explorer file-kind filter.
     explore_FilterImages:      string = "Images"                 // Explorer file-kind filter.
@@ -193,6 +194,7 @@ struct AppStrings
     lens_File:          string = "File"                      // Lens section of the commands acting on the open file.
     lens_Find:          string = "Find"                      // Lens section of the search commands.
     lens_View:          string = "View"                      // Lens section of the presentation commands.
+    lens_Artwork:       string = "Media Artwork"             // Lens section of the media illustration source commands.
     lens_ViewAs:        string = "View As"                   // Lens section listing the viewers that can show the open file.
     lens_Playback:      string = "Playback"                  // Lens section of the play modes.
     lens_Folder:        string = "Folder"                    // Lens section of the commands of the explored folder.
@@ -237,10 +239,13 @@ struct AppStrings
     cmd_ZoomMenu:       string = "Zoom…"                     // Command opening the zoom levels of the viewer.
     board_Automatic:    string = "Automatic"                 // Organization choice reading the tile shape from the folder.
     board_Grid:         string = "Grid"                      // Organization choice arranging tiles in an even grid.
-    board_Frames:       string = "Video Frames"              // Organization choice showing local frames without movie lookups.
     board_Covers:       string = "Covers"                    // Organization choice arranging tiles as square covers.
     board_Posters:      string = "Posters"                   // Organization choice arranging tiles as upright posters.
     board_Mosaic:       string = "Mosaic"                    // Organization choice arranging pictures as a mosaic.
+    artwork_Online:     string = "Online Artwork"            // Media illustration source using online artwork when available.
+    artwork_Local:      string = "Local Previews"            // Media illustration source using local frames and artwork without network lookups.
+    artwork_OnlineShort: string = "Online"                   // Compact current value of the media illustration source.
+    artwork_LocalShort:  string = "Local"                    // Compact current value of the media illustration source.
     sort_Name:          string = "By name"                   // Quiet sort menu of the explored folder, ordered by name.
     sort_Type:          string = "By type"                   // Quiet sort menu of the explored folder, ordered by type.
     sort_Size:          string = "By size"                   // Quiet sort menu of the explored folder, ordered by size.

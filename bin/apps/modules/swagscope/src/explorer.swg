@@ -4,12 +4,12 @@ using Core, Gui, Pixel, Video
 
 enum ExplorerMode { Names, Details, Small, Medium, Large }
 enum ExplorerKindFilter { All, Videos, Images, Audio, Documents, Subtitles, Archives, Folders }
+enum ExplorerArtworkSource { Online, Local }
 
 // The shape the tiles of a folder take, read from what most of it holds.
 enum ExplorerBoard
 {
-    Grid        // Anything: one even grid of tiles a little wider than tall.
-    Frames      // Films: local frames, without a network lookup.
+    Grid        // Anything: one even grid, with wide cells for folders of films.
     Posters     // Films: upright posters.
     Covers      // Music: square covers, the album then who made it and when.
     Mosaic      // Pictures: a justified mosaic keeping every shape, by day.
@@ -28,6 +28,7 @@ struct ExplorerDayLabel
 // that is mostly films.
 const ExplorerTilePreviewAspect: f32 = 0.8
 const ExplorerFilmPreviewAspect: f32 = 16.0 / 9.0
+const ExplorerFilmTileAspect:    f32 = 9.0 / 16.0
 
 // The duration label of a film tile: small, bold, light ink on a translucent ink ground.
 const ExplorerDurationFontSize = 11'u32
@@ -107,6 +108,7 @@ struct Explorer
         sortMenu:   *IconButton
         modeMenu:   *IconButton
         boardMenu:  *IconButton
+        artworkMenu: *IconButton
         filter:     *EditBox
         list:       *ListCtrl
         scroll:     *ScrollWnd
@@ -132,6 +134,7 @@ struct Explorer
     sortColumn:      u32
     descending:      bool
     kindFilter:      ExplorerKindFilter
+    artworkSource:   ExplorerArtworkSource = .Online
     menuPaths:       Array'String
     previewSettings: String
     previewAspect:   f32 = ExplorerTilePreviewAspect     // Shape of the tiles, chosen from what the listing holds.
@@ -370,6 +373,12 @@ impl Explorer
             .sigPressed       += func|view = me|(_) { view.showBoardMenu() }
         }
 
+        with .artworkMenu = IconButton.createQuiet(.tools)
+        {
+            .layoutSpec.alignY = .End
+            .sigPressed       += func|view = me|(_) { view.showArtworkMenu() }
+        }
+
         with .address = ExplorerAddress.create(line, me)
         {
             .dockStyle       = .Center
@@ -431,6 +440,9 @@ impl Explorer
         .kindMenu.setQuietText(compact ? "" : .filterKindName())
         .modeMenu.setQuietText("")
         .boardMenu.setQuietText("")
+        .artworkMenu.show(not compact)
+        .artworkMenu.setQuietText(compact ? "" :
+                                  (.artworkSource == .Online ? appStrings().artwork_OnlineShort : appStrings().artwork_LocalShort))
         var width = Math.ceil(.tools.itf.measureContent({}).x)
         if .status.isLocallyVisible() and width + addressWidth + gap + MinTitleFontSize > space
         {
@@ -487,10 +499,8 @@ impl Explorer
     {
         let text = appStrings()
         let menu = MenuCtrl.createPopup(me, owner: me)
-        let names = [text.board_Automatic, text.board_Grid, text.board_Frames, text.board_Posters,
-                     text.board_Covers, text.board_Mosaic]
-        let icons = [ThemeIcons.ExploreFolder, ThemeIcons.File, ThemeIcons.FileVideo, ThemeIcons.FileVideo,
-                     ThemeIcons.FileAudio, ThemeIcons.FileImage]
+        let names = [text.board_Automatic, text.board_Grid, text.board_Posters, text.board_Covers, text.board_Mosaic]
+        let icons = [ThemeIcons.ExploreFolder, ThemeIcons.File, ThemeIcons.FileVideo, ThemeIcons.FileAudio, ThemeIcons.FileImage]
         for id, index in ViewerCommands.Boards
         {
             let checked = index == 0 ? not .forced : (.forced and cast(u64, .forcedBoard) == index - 1)
@@ -501,6 +511,34 @@ impl Explorer
         let chosen = menu.doModal(.boardMenu, autoDestroy: true) orelse ""
         if chosen.count do
             discard .window.runCommand(chosen)
+    }
+
+    // Chooses where media illustrations come from, independently of their layout.
+    mtd showArtworkMenu()
+    {
+        let text = appStrings()
+        let menu = MenuCtrl.createPopup(me, owner: me)
+        for id, index in ViewerCommands.Artwork
+        {
+            let names = [text.artwork_Online, text.artwork_Local]
+            let icons = [ThemeIcons.Link, ThemeIcons.FileImage]
+            let item = menu.addRadioItem(names[index], id, checked: cast(u64, .artworkSource) == index)
+            item.icon = .theme().icon(icons[index], themeRowIconSize(.themeMetrics()))
+        }
+
+        let chosen = menu.doModal(.artworkMenu, autoDestroy: true) orelse ""
+        if chosen.count do
+            discard .window.runCommand(chosen)
+    }
+
+    mtd setArtworkSource(source: ExplorerArtworkSource)
+    {
+        if .artworkSource == source do
+            return
+        .artworkSource = source
+        .refreshQuietMenus()
+        .refreshPreviewSettings()
+        .fill()
     }
 
     // Forces the shape of the tiles to `board`, or without `forced` gives it back to what the
@@ -607,7 +645,6 @@ impl Explorer
             switch .forcedBoard
             {
             case .Grid:    boardName = text.board_Grid;    boardIcon = .File
-            case .Frames:  boardName = text.board_Frames;  boardIcon = .FileVideo
             case .Posters: boardName = text.board_Posters; boardIcon = .FileVideo
             case .Covers:  boardName = text.board_Covers;  boardIcon = .FileAudio
             case .Mosaic:  boardName = text.board_Mosaic;  boardIcon = .FileImage
@@ -615,6 +652,10 @@ impl Explorer
         }
         .boardMenu.setIcon(.theme().icon(boardIcon, themeRowIconSize(.themeMetrics())))
         .boardMenu.toolTip = Format.toString("% · %", text.explore_Organization, boardName)
+        let artworkName = .artworkSource == .Online ? text.artwork_Online : text.artwork_Local
+        let artworkIcon = .artworkSource == .Online ? ThemeIcons.Link : ThemeIcons.FileImage
+        .artworkMenu.setIcon(.theme().icon(artworkIcon, themeRowIconSize(.themeMetrics())))
+        .artworkMenu.toolTip = Format.toString("% · %", text.explore_Artwork, artworkName)
         .extractAll.setQuietText(text.cmd_ExtractAll)
         .window.refreshExplorerCaption()
 
@@ -1280,15 +1321,10 @@ impl Explorer
         .window.refreshFileLists()
     }
 
-    // Chooses the shape of the tiles from the files listed, before any preview exists.
-    //
-    // A page-shaped tile leaves most of itself empty around a film, and a folder of films is a row of
-    // screens; deciding from the names keeps the grid from changing shape while previews arrive.
+    // Chooses the preview shape from the files listed, before any image arrives. A folder of films
+    // uses wide cells whether its previews come from local frames or online artwork.
     mtd listingPreviewAspect()->f32
     {
-        if .forced and .forcedBoard == .Frames do
-            return ExplorerFilmPreviewAspect
-
         var files, films: u64
         for index in .shown
         {
@@ -1302,8 +1338,7 @@ impl Explorer
         }
 
         if films * 2 > files do
-            return .window.onlineMovies and not (.forced and .forcedBoard == .Frames) ?
-                   ExplorerTilePreviewAspect : ExplorerFilmPreviewAspect
+            return ExplorerFilmPreviewAspect
         return ExplorerTilePreviewAspect
     }
 
@@ -1361,7 +1396,7 @@ impl Explorer
 
         if not files do
             return .Grid
-        if films * 2 > files and .window.onlineMovies do
+        if films * 2 > files do
             return .Posters
         if sounds * 2 > files do
             return oneAlbum and sounds >= 2 ? .Album : .Covers
@@ -1653,10 +1688,8 @@ impl Explorer
 
     mtd refreshPreviewSettings()
     {
-        let framesOnly = .grid.board == .Frames
         let settings = ThumbnailSettings.capture(.window,
-                                                 moviePosters: not framesOnly,
-                                                 ignoreOnlineMovies: framesOnly)
+                                                 localArtworkOnly: .artworkSource == .Local)
         if .previewSettings == settings do
             return
 
@@ -1804,10 +1837,8 @@ impl Explorer
         preview.generation  = .generation
         preview.opening     = opening
         preview.online      = online
-        let framesOnly      = .grid.board == .Frames
         preview.settings    = ThumbnailSettings.capture(.window, entry,
-                                                        moviePosters: not framesOnly,
-                                                        ignoreOnlineMovies: framesOnly)
+                                                        localArtworkOnly: .artworkSource == .Local)
         preview.archivePath = .listing.isArchive ? .listing.path : {}
         if .listing.isArchive do
             preview.entry = .listing.archive.entries[entry.archiveIndex]
@@ -2129,7 +2160,9 @@ impl ExplorerGrid
         }
 
         let aspect    = .posters ? PosterAspect :
-                        (.board == .Frames ? ExplorerFilmPreviewAspect : (.board == .Covers ? 1.0 : TileAspect))
+                        (.board == .Covers ? 1.0 :
+                         (.board == .Grid and .explorer.previewAspect == ExplorerFilmPreviewAspect ?
+                          ExplorerFilmTileAspect : TileAspect))
         var narrowest = .posters ? PosterWidth : TileWidth
         switch .explorer.mode
         {
@@ -2322,9 +2355,8 @@ impl ExplorerGrid
     // Paints the tile of `row`: its ground, what the item shows, the Arc ring of the chosen one,
     // then its name and one mono line of its facts under it.
     //
-    // A picture, a film or a poster fills its tile, cropped to its shape; any other preview stands
-    // whole on the ground of the tile. An item without a preview shows the faint page glyph of its
-    // kind, a file its extension in faint mono at the foot of the tile.
+    // Pictures and posters fill their tile, cropped to its shape. Other previews stay whole on the
+    // tile ground. An item without a preview shows its faint page glyph and extension.
     mtd paintTile(painter: *Painter, row: u64)
     {
         let index   = .explorer.shown[row]
@@ -2354,8 +2386,7 @@ impl ExplorerGrid
             let fills   = .posters or
                           .board == .Covers or
                           .board == .Mosaic or
-                          glyph.index == cast(s32, ThemeIcons.FileImage) or
-                          glyph.index == cast(s32, ThemeIcons.FileVideo)
+                          glyph.index == cast(s32, ThemeIcons.FileImage)
             if .posters and texture.width > texture.height
             {
                 // An extracted film frame is wide. Keep the entire frame inside the upright

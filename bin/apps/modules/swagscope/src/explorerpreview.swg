@@ -19,8 +19,9 @@ func localAlbumArtwork(file: string)->String
 }
 
 func onlinePreviewWanted(file: string, settings: const *ThumbnailSettings)->bool =>
-    (settings.onlineMovies and not settings.ignoreOnlineMovies and not albumAudio(file) and Reader.canOpen(file)) or
-    (settings.onlineMusic and albumAudio(file))
+    not settings.localArtworkOnly and
+    ((settings.onlineMovies and not albumAudio(file) and Reader.canOpen(file)) or
+     (settings.onlineMusic and albumAudio(file)))
 
 // Reads a sound file's duration without decoding its samples.
 func localSoundDuration(file: string)->u64
@@ -180,8 +181,8 @@ impl ExplorerPreview
                 }
                 else do
                     .image = try .service.render(file, .settings)
-                .posterPending = .needsOnline and settings.onlineMovies and not settings.ignoreOnlineMovies and
-                                 settings.moviePosters and not albumAudio(file) and Reader.canOpen(file)
+                .posterPending = .needsOnline and settings.onlineMovies and not settings.localArtworkOnly and
+                                 not albumAudio(file) and Reader.canOpen(file)
                 let current = catch ThumbnailCache.key(source, member, settings: .settings)
                 if not Swag.isCancelled() and cache == current do
                     catch ThumbnailCache.write(cache, &.image)
@@ -196,7 +197,7 @@ impl ExplorerPreview
                 localDuration = localSoundDuration(file)
             var providerFailed    = false
             var providerAttempted = false
-            if settings.onlineMovies and not settings.ignoreOnlineMovies and .archivePath.isEmpty() and
+            if settings.onlineMovies and not settings.localArtworkOnly and .archivePath.isEmpty() and
                not albumAudio(file) and Reader.canOpen(file)
             {
                 providerAttempted = true
@@ -205,19 +206,16 @@ impl ExplorerPreview
                     movie = try OnlineMovie.lookup(file, language: settings.movieLanguage)
                     if movie.found() and not Swag.isCancelled()
                     {
-                        if settings.moviePosters
-                        {
-                            let poster = try movie.posterBytes()
-                            if not poster.isEmpty() do
-                                .image = try .renderOnlineImage(poster.toSlice())
-                        }
+                        let poster = try movie.posterBytes()
+                        if not poster.isEmpty() do
+                            .image = try .renderOnlineImage(poster.toSlice())
                     }
                 }
                 {
                     providerFailed = true
                 }
             }
-            elif settings.onlineMusic and .archivePath.isEmpty() and albumAudio(file)
+            elif settings.onlineMusic and not settings.localArtworkOnly and .archivePath.isEmpty() and albumAudio(file)
             {
                 musicTags = SoundTags.read(file)
                 if not settings.musicId.isEmpty() or (not musicTags.album.isEmpty() and musicSearchArtist(&musicTags).count > 0)
@@ -258,7 +256,7 @@ impl ExplorerPreview
                 movie.label(&.image)
             elif not music.id.isEmpty() and .image.isValid() do
                 music.label(&.image, &musicTags)
-            elif settings.onlineMusic and albumAudio(file) and not providerFailed and .image.isValid() do
+            elif settings.onlineMusic and not settings.localArtworkOnly and albumAudio(file) and not providerFailed and .image.isValid() do
                 stampMusicCache(&.image)
             elif providerAttempted and not providerFailed and .image.isValid() do
                 stampMovieCache(&.image)

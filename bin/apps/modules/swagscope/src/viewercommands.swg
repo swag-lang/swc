@@ -66,12 +66,15 @@ namespace ViewerCommands
     const ExtractChosen     = "scope.explore.extractChosen"
     const AlbumPlay         = "scope.explore.album.play"
     const AlbumShuffle      = "scope.explore.album.shuffle"
+    const ArtworkOnline     = "scope.explore.artwork.online"
+    const ArtworkLocal      = "scope.explore.artwork.local"
 
-    // Ordered like ExplorerMode and the automatic choice followed by ExplorerBoard.
+    // Each family is ordered like its matching Explorer enum.
     const Modes = ["scope.explore.mode.0", "scope.explore.mode.1", "scope.explore.mode.2",
                    "scope.explore.mode.3", "scope.explore.mode.4"]
     const Boards = ["scope.explore.board.0", "scope.explore.board.1", "scope.explore.board.2",
-                    "scope.explore.board.3", "scope.explore.board.4", "scope.explore.board.5"]
+                    "scope.explore.board.3", "scope.explore.board.4"]
+    const Artwork = [ArtworkOnline, ArtworkLocal]
     const KindFilters = [FilterAll, FilterVideos, FilterImages, FilterAudio,
                          FilterDocuments, FilterSubtitles, FilterArchives, FilterFolders]
 }
@@ -149,6 +152,7 @@ impl ViewerWindow
                                                                       ViewerCommands.AlbumPlay, ViewerCommands.AlbumShuffle])
             .addCommands(func()->string => appStrings().lens_View, ViewerCommands.Modes)
             .addCommands(func()->string => appStrings().lens_View, ViewerCommands.Boards)
+            .addCommands(func()->string => appStrings().lens_Artwork, ViewerCommands.Artwork)
             .addCommands(func()->string => appStrings().lens_Find, [ViewerCommands.Find, ViewerCommands.FindNext, ViewerCommands.FindPrevious, ViewerCommands.SearchMode,
                                                                     ViewerCommands.FilterMode, ViewerCommands.MatchCase, ViewerCommands.WholeWord, ViewerCommands.RegularExpression])
             .addCommand(func()->string => appStrings().lens_View, ViewerCommands.FullScreen, func()->string => appStrings().search_FullScreen)
@@ -786,9 +790,9 @@ impl ViewerWindow
 
             for id, index in ViewerCommands.Boards where evt.id == id
             {
-                let names = [texts.board_Automatic, texts.board_Grid, texts.board_Frames, texts.board_Posters,
+                let names = [texts.board_Automatic, texts.board_Grid, texts.board_Posters,
                              texts.board_Covers, texts.board_Mosaic]
-                let icons = [ThemeIcons.ExploreFolder, ThemeIcons.File, ThemeIcons.FileVideo, ThemeIcons.FileVideo,
+                let icons = [ThemeIcons.ExploreFolder, ThemeIcons.File, ThemeIcons.FileVideo,
                              ThemeIcons.FileAudio, ThemeIcons.FileImage]
                 name    = names[index]
                 icon    = .commandGlyph(icons[index])
@@ -797,6 +801,17 @@ impl ViewerWindow
                 checked = exploring and
                           (index == 0 ? not .explorer!.forced :
                            (.explorer!.forced and cast(u64, .explorer.forcedBoard) == index - 1))
+            }
+
+            for id, index in ViewerCommands.Artwork where evt.id == id
+            {
+                let names = [texts.artwork_Online, texts.artwork_Local]
+                let icons = [ThemeIcons.Link, ThemeIcons.FileImage]
+                name    = names[index]
+                icon    = .commandGlyph(icons[index])
+                hidden  = not exploring
+                toggle  = true
+                checked = exploring and cast(u64, .explorer!.artworkSource) == index
             }
 
             if not name.count do
@@ -1047,6 +1062,12 @@ impl ViewerWindow
             for command, index in ViewerCommands.Boards where id == command
             {
                 explorer.forceBoard(index != 0, index ? cast(ExplorerBoard, cast(u32, index - 1)) : .Grid)
+                return true
+            }
+
+            for command, index in ViewerCommands.Artwork where id == command
+            {
+                explorer.setArtworkSource(cast(ExplorerArtworkSource, cast(u32, index)))
                 return true
             }
 

@@ -132,8 +132,10 @@ public func planFor(structType: const *Swag.TypeInfoStruct)->*Plan fail
     if existing do
         return existing.value
 
+    var built: Plan
+    try built.build(structType)
     let plan = g_PlanPool.addNew()
-    try plan.build(structType)
+    plan[] = #move built
     g_Plans.add(key, plan)
     return plan
 }

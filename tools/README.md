@@ -102,7 +102,9 @@ artifact-layout and cache-invalidation probes. The integration launcher accepts 
 per run.
 
 `unittests.bat` applies `-bc` to Swag programs only; internal C++ tests use the DevMode compiler's
-own configuration. The workspace suite builds its dynamically loaded DLL before running its
+own configuration. Parallel C++ fixtures and their child compilers inherit `--num-cores`, capped
+at three workers. Fixtures that specifically test sequential behavior keep one worker.
+The workspace suite builds its dynamically loaded DLL before running its
 consumer. Runner option routing, failure propagation, and fixture ordering are covered by
 `powershell -NoProfile -ExecutionPolicy Bypass -File tools/tests/unittests.ps1`.
 

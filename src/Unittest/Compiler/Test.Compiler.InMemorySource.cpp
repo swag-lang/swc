@@ -767,7 +767,7 @@ func useMix(value: u64)->u64 => mix(value) + mix(value + 1)
     cmdLine.name            = "compiler_auto_inline_same_module_cross_file";
     cmdLine.moduleNamespace = "CompilerAutoInline";
     cmdLine.silent          = true;
-    cmdLine.numCores        = 6;
+    cmdLine.numCores        = Unittest::compilerWorkerCount(ctx);
     cmdLine.buildCfg        = "release";
     cmdLine.files.insert(providerPath);
     cmdLine.files.insert(callerPath);
@@ -873,7 +873,7 @@ const copied = #run identity(42'u32)
     cmdLine.command  = CommandKind::Sema;
     cmdLine.name     = "compiler_auto_inline_compile_time";
     cmdLine.silent   = true;
-    cmdLine.numCores = 6;
+    cmdLine.numCores = Unittest::compilerWorkerCount(ctx);
     cmdLine.files.insert(sourcePath);
     CommandLineParser::refreshBuildCfg(cmdLine);
 
@@ -950,7 +950,7 @@ func matchesInteger(target: typeinfo)->bool => target is s32
     cmdLine.name            = "compiler_cross_file_inline_type_pattern";
     cmdLine.moduleNamespace = "CompilerInlineTypePattern";
     cmdLine.silent          = true;
-    cmdLine.numCores        = 6;
+    cmdLine.numCores        = Unittest::compilerWorkerCount(ctx);
     cmdLine.buildCfg        = "release";
     cmdLine.files.insert(providerPath);
     cmdLine.files.insert(callerPath);
@@ -996,7 +996,7 @@ func checkIndex(value: *s32)->s32
     cmdLine.command  = CommandKind::Sema;
     cmdLine.name     = "compiler_explicit_inline_cross_file";
     cmdLine.silent   = true;
-    cmdLine.numCores = 6;
+    cmdLine.numCores = Unittest::compilerWorkerCount(ctx);
     cmdLine.files.insert(providerPath);
     cmdLine.files.insert(callerPath);
     CommandLineParser::refreshBuildCfg(cmdLine);
@@ -1074,7 +1074,7 @@ func trailingUse()
     cmdLine.name            = "compiler_trailing_code_block_chunks";
     cmdLine.moduleNamespace = "CompilerTrailingChunks";
     cmdLine.silent          = true;
-    cmdLine.numCores        = 6;
+    cmdLine.numCores        = Unittest::compilerWorkerCount(ctx);
     cmdLine.files.insert(sourcePath);
     CommandLineParser::refreshBuildCfg(cmdLine);
 

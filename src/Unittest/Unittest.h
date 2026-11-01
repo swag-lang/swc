@@ -28,6 +28,10 @@ namespace Unittest
     void   registerSetup(SetupFn setupFn);
     Result runAll(const TaskContext& ctx);
 
+    // Nested compiler fixtures inherit the caller's worker request within this test budget.
+    inline constexpr uint32_t MAX_COMPILER_WORKERS = 3;
+    uint32_t                  compilerWorkerCount(const TaskContext& ctx);
+
     class TestRegistrar
     {
     public:

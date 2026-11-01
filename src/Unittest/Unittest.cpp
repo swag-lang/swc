@@ -145,6 +145,15 @@ namespace Unittest
         testRegistry().push_back(test);
     }
 
+    uint32_t compilerWorkerCount(const TaskContext& ctx)
+    {
+        const CommandLine& command = ctx.cmdLine();
+        if (command.randomize)
+            return 1;
+        const uint32_t requested = command.numCores ? command.numCores : std::max(std::thread::hardware_concurrency(), 1u);
+        return std::min(requested, MAX_COMPILER_WORKERS);
+    }
+
     void registerSetup(SetupFn setupFn)
     {
         setupRegistry().push_back(setupFn);

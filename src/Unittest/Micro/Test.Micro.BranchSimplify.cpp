@@ -1862,6 +1862,37 @@ SWC_TEST_BEGIN(BranchSimplify_ConditionalUpdateReissuesCompare)
 }
 SWC_TEST_END()
 
+// Both updates escape the arm: best is read again on the loop backedge.
+SWC_TEST_BEGIN(BranchSimplify_KeepsConditionalLoopStateReadInNextIteration)
+{
+    const MicroReg      value   = MicroReg::virtualIntReg(8);
+    const MicroReg      best    = MicroReg::virtualIntReg(9);
+    const MicroReg      index   = MicroReg::virtualIntReg(10);
+    const MicroReg      current = MicroReg::virtualIntReg(11);
+    MicroBuilder        builder(ctx);
+    const MicroLabelRef loop = builder.createLabel();
+    const MicroLabelRef join = builder.createLabel();
+    builder.emitLoadRegImm(best, ApInt(0, 64), MicroOpBits::B64);
+    builder.emitLoadRegImm(index, ApInt(0, 64), MicroOpBits::B64);
+    builder.placeLabel(loop);
+    builder.emitCmpRegImm(value, ApInt(UINT64_MAX, 64), MicroOpBits::B64);
+    builder.emitJumpToLabel(MicroCond::Equal, MicroOpBits::B32, join);
+    builder.emitCmpRegReg(value, best, MicroOpBits::B64);
+    builder.emitLoadCondRegReg(best, value, MicroCond::AboveOrEqual, MicroOpBits::B64);
+    builder.emitLoadCondRegReg(index, current, MicroCond::AboveOrEqual, MicroOpBits::B64);
+    builder.placeLabel(join);
+    builder.emitOpBinaryRegImm(current, ApInt(1, 64), MicroOp::Add, MicroOpBits::B64);
+    builder.emitCmpRegImm(current, ApInt(4, 64), MicroOpBits::B64);
+    builder.emitJumpToLabel(MicroCond::Below, MicroOpBits::B32, loop);
+    builder.emitLoadRegReg(MicroReg::virtualIntReg(12), index, MicroOpBits::B64);
+    builder.emitRet();
+
+    SWC_RESULT(Backend::Unittest::runMicroPass<MicroBranchSimplifyPass>(builder));
+
+    return anyJumpTargetsLabel(builder, join) ? Result::Continue : Result::Error;
+}
+SWC_TEST_END()
+
 // A load may fault on the path that skipped it: the branch stays.
 SWC_TEST_BEGIN(BranchSimplify_KeepsConditionalUpdateWithGuardedLoad)
 {

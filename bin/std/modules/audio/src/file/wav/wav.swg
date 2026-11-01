@@ -265,27 +265,53 @@ private func readLayout(stream: *File.FileStream)->Layout fail
     var stage:  Stage = FindRiff
     var header: ChunkHeader
     let fileBytes     = try stream.size()
+    var riffEnd       = fileBytes
 
     for
     {
         let chunkOffset = try stream.position()
-        if chunkOffset >= fileBytes do
+        if chunkOffset >= riffEnd do
             fail InvalidFormatError{"invalid wav"}
         if chunkOffset & 1 do
             try stream.skip(1)
 
+        let headerOffset = try stream.position()
+        if headerOffset > riffEnd do
+            fail InvalidFormatError{"invalid wav"}
+        if riffEnd - headerOffset < #sizeof(ChunkHeader) do
+            fail InvalidFormatError{"invalid wav"}
         if not (try stream.readValue(&header)) do
             fail InvalidFormatError{"invalid wav"}
+        let payloadOffset = try stream.position()
+
+        // Each chunk's odd-sized payload has one padding byte inside the RIFF boundary.
+        // Before the RIFF header is found, the file itself is the only available boundary.
+        if stage != .FindRiff or header.chunkID != .SND_WAV_FOURCC_RIFF
+        {
+            let chunkEnd = stage == .FindRiff ? fileBytes : riffEnd
+            let paddedSize = cast(u64, header.chunkSize) + (header.chunkSize & 1)
+            if payloadOffset > chunkEnd do
+                fail InvalidFormatError{"invalid wav"}
+            if paddedSize > chunkEnd - payloadOffset do
+                fail InvalidFormatError{"invalid wav"}
+        }
 
         switch header.chunkID
         {
         case .SND_WAV_FOURCC_RIFF:
             if stage == .FindRiff
             {
+                if payloadOffset > fileBytes do
+                    fail InvalidFormatError{"invalid riff chunk"}
+                if header.chunkSize < 4 or cast(u64, header.chunkSize) > fileBytes - payloadOffset do
+                    fail InvalidFormatError{"invalid riff chunk"}
+                riffEnd = payloadOffset + cast(u64, header.chunkSize)
                 if not (try stream.readValue(&header.chunkID)) do
                     fail InvalidFormatError{"invalid riff chunk"}
                 if header.chunkID != SND_WAV_FOURCC_WAVE do
                     fail InvalidFormatError{"not a wav"}
+                if (try stream.position()) > riffEnd do
+                    fail InvalidFormatError{"invalid riff chunk"}
                 stage = .FindFmt
             }
 

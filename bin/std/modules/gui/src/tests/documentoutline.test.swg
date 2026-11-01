@@ -39,10 +39,12 @@ using Core, Pixel
     view.applyLayout()
     let queued = view.revealHeading(offset)
     Swag.assert(queued)
+    Swag.assert(not view.pendingSeek, "layout must not replace the heading jump with a scrollbar seek")
 
     // The first paint must show the destination; loading timers are deliberately withheld.
     discard host.render(view)
     Swag.assert(not view.hasPendingTarget and view.retainedBlocks.isEmpty())
+    Swag.assert(view.blocks.count < 64, "a heading jump prepares its viewport, not the preceding section")
     var found: bool
     for block in view.blocks where block.sourceOffset == offset
     {
@@ -51,7 +53,7 @@ using Core, Pixel
         Swag.assert(Math.abs(view.scroll.scrollPosition().y - (block.wnd.position.y - view.documentStyle.topInset)) < 2)
     }
 
-    Swag.assert(found)
+    Swag.assert(found, "the requested heading must remain in the resident window")
     Swag.assert(view.readingOffset() == offset)
     let position = view.scroll.scrollPosition()
     for 64 where view.isLoading() do

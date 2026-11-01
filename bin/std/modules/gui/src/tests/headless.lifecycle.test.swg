@@ -64,3 +64,41 @@ using Swag, Core
     leaveHost(&destroyed)
     Swag.assert(destroyed == 1)
 }
+
+// Replacing the standalone root does not leave the application's view or its floating siblings alive.
+#test
+{
+    for explicitShutdown in [false, true]
+    {
+        var destroyed = 0'u32
+        scope
+        {
+            var host: Testing.HeadlessHost
+            host.setup(160, 80)
+            let view = Wnd.create'Wnd(&host.surfaceWnd)
+            host.surface.setView(view)
+            let child    = Wnd.create'Wnd(view)
+            let floating = Wnd.create'Wnd(&host.surfaceWnd)
+            let caption  = CaptionButton.createLeading(&host.surface, .ParentFolder)
+            let windows: [4] *Wnd = [view, child, floating, caption]
+            for wnd in windows
+            {
+                wnd.hookOnEvent = func|count = &destroyed|(_, evt)->bool
+                {
+                    if evt is DestroyEvent do
+                        count[] += 1
+                    return false
+                }
+            }
+
+            if explicitShutdown
+            {
+                host.shutdown()
+                host.shutdown()
+                Swag.assert(destroyed == 4 and host.surfaceWnd.isPendingDestroy)
+            }
+        }
+
+        Swag.assert(destroyed == 4)
+    }
+}

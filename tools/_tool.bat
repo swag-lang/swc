@@ -72,9 +72,16 @@ if /i "%tool%"=="apps" if /i "%action%"=="run" if not defined module (
 )
 set "appTest="
 set "appRunArguments="
+set "compilerWorkers=3"
+call :readCompilerWorkers %options%
+if %compilerWorkers% EQU 0 set "compilerWorkers=3"
+if %compilerWorkers% GTR 3 set "compilerWorkers=3"
 if /i "%tool%"=="apps" if /i "%action%"=="test" set "appTest=--no-test-jit"
-if /i "%tool%"=="apps" if /i "%action%"=="test" if not defined SWAG_RUNTIME_THREADS set "SWAG_RUNTIME_THREADS=3"
-if /i "%tool%"=="apps" if /i not "%action%"=="build" if /i "%module%"=="swagprism" set "appRunArguments=--run-arg=--compiler="%compiler%" --run-arg=--compiler-workers=3"
+if /i "%tool%"=="apps" if /i "%action%"=="test" if not defined SWAG_RUNTIME_THREADS set "SWAG_RUNTIME_THREADS=%compilerWorkers%"
+if /i "%tool%"=="apps" if /i not "%action%"=="build" (
+    if /i "%module%"=="swagprism" set "appRunArguments=--run-arg=--compiler="%compiler%" --run-arg=--compiler-workers=%compilerWorkers%"
+    if not defined module set "appRunArguments=--run-arg=--compiler="%compiler%" --run-arg=--compiler-workers=%compilerWorkers%"
+)
 if defined module (
     "%compiler%" %action% --workspace "%workspace%" --workspace-module "%module%" %appTest% %appRunArguments% --num-cores 3 %options%
 ) else (
@@ -91,9 +98,24 @@ if /i "%tool%"=="std" echo Usage: std.bat [dm] [build^|test] [module] [swc optio
 if /i "%tool%"=="reference" echo Usage: reference.bat [dm] [build^|test] [swc options]
 if /i "%tool%"=="examples" echo Usage: examples.bat [dm] [build^|run^|test^|smoke] [module] [swc options]
 if /i "%tool%"=="apps" echo Usage: apps.bat [dm] [build^|run^|test^|smoke] [application] [swc options]
-if /i "%tool%"=="apps" echo Set SWAG_RUNTIME_THREADS to cap the runtime pool; tests default to 3 threads.
+if /i "%tool%"=="apps" echo Tests inherit --num-cores for their runtime pool and child compilers, capped at 3.
+if /i "%tool%"=="apps" echo Set SWAG_RUNTIME_THREADS to override the test runtime pool.
 echo Use -h with the compiler for compiler command options.
 exit /b 0
+
+:readCompilerWorkers
+if "%~1"=="" exit /b 0
+set "workerOption=%~1"
+set "workerValue="
+if /i "%workerOption%"=="-j" set "workerValue=%~2"
+if /i "%workerOption%"=="--num-cores" set "workerValue=%~2"
+if /i "%workerOption:~0,12%"=="--num-cores=" set "workerValue=%workerOption:~12%"
+if defined workerValue (
+    for /f "delims=0123456789" %%A in ("%workerValue%") do set "workerValue="
+)
+if defined workerValue set "compilerWorkers=%workerValue%"
+shift
+goto readCompilerWorkers
 
 :packageVault
 echo(%module%| findstr /i /x "swagvault" >nul

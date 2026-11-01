@@ -73,7 +73,7 @@ func editHeadlessEscape(_: *EditBox)
     var host: Testing.HeadlessHost
     host.setup(240, 60)
     let edit = EditBox.create(&host.root, null, {20, 20, 200, 26})
-    host.focus(edit)
+    edit.setFocus()
 
     host.sendRune(Input.Key.A, 'H')
     host.sendRune(Input.Key.A, 'i')
@@ -86,7 +86,7 @@ func editHeadlessEscape(_: *EditBox)
     var host: Testing.HeadlessHost
     host.setup(240, 60)
     let edit = EditBox.create(&host.root, null, {20, 20, 200, 26})
-    host.focus(edit)
+    edit.setFocus()
 
     host.sendRune(Input.Key.A, 'A')
     host.sendRune(Input.Key.A, 'B')
@@ -113,7 +113,7 @@ func editHeadlessEscape(_: *EditBox)
     var host: Testing.HeadlessHost
     host.setup(240, 60)
     let edit = EditBox.create(&host.root, "lock", {20, 20, 200, 26}, null, EditBoxFlags.ReadOnly)
-    host.focus(edit)
+    edit.setFocus()
 
     host.sendRune(Input.Key.A, 'Z')
     Swag.assert(edit.text() == "lock")
@@ -126,7 +126,7 @@ func editHeadlessEscape(_: *EditBox)
     host.setup(240, 60)
     let edit = EditBox.create(&host.root, null, {20, 20, 200, 26})
     edit.setMaximumLength(3)
-    host.focus(edit)
+    edit.setFocus()
 
     host.sendRune(Input.Key.A, '1')
     host.sendRune(Input.Key.A, '2')
@@ -145,7 +145,7 @@ func editHeadlessEscape(_: *EditBox)
     host.setup(400, 60)
     let longText = "The quick brown fox jumps over the lazy dog 0123456789"
     let edit     = EditBox.create(&host.root, longText, {0, 0, 380, 26}, null, EditBoxFlags.None)
-    host.focus(edit)
+    edit.setFocus()
 
     let len = (edit.text()).count
     edit.setSelection(len, len)
@@ -166,7 +166,7 @@ func editHeadlessEscape(_: *EditBox)
     host.setup(400, 60)
     let longText = "The quick brown fox jumps over the lazy dog 0123456789"
     let edit     = EditBox.create(&host.root, longText, {0, 0, 380, 26}, null, EditBoxFlags.RightAligned)
-    host.focus(edit)
+    edit.setFocus()
 
     let len = (edit.text()).count
     edit.setSelection(len, len)
@@ -185,7 +185,7 @@ func editHeadlessEscape(_: *EditBox)
 
     let edit = EditBox.create(&host.root, "query", {0, 0, 280, 36})
     edit.setIcon(host.theme.icon(.Search, 18))
-    host.focus(edit)
+    edit.setFocus()
     edit.setSelection((edit.text()).count, (edit.text()).count)
 
     let caret    = edit.caretRect()
@@ -201,7 +201,7 @@ func editHeadlessEscape(_: *EditBox)
     var host: Testing.HeadlessHost
     host.setup(420, 60)
     let edit = EditBox.create(&host.root, "Hello world example text", {0, 0, 400, 26}, null, EditBoxFlags.None)
-    host.focus(edit)
+    edit.setFocus()
 
     let rect = edit.surfaceRect()
     let yc   = rect.vertCenter()
@@ -233,7 +233,7 @@ func editHeadlessEscape(_: *EditBox)
     var host: Testing.HeadlessHost
     host.setup(420, 60)
     let edit = EditBox.create(&host.root, "Monotonic caret round trip", {0, 0, 400, 26}, null, EditBoxFlags.None)
-    host.focus(edit)
+    edit.setFocus()
 
     let fontR = nnFont(edit.font().regular)
     let len   = (edit.text()).count
@@ -254,7 +254,7 @@ func editHeadlessEscape(_: *EditBox)
     var host: Testing.HeadlessHost
     host.setup(300, 60)
     let edit = EditBox.create(&host.root, "abcdef", {0, 0, 260, 26}, null, EditBoxFlags.None)
-    host.focus(edit)
+    edit.setFocus()
 
     host.keyPress(Input.Key.End)
     Swag.assert(edit.selBeg == 6 and edit.selEnd == 6)
@@ -279,7 +279,7 @@ func editHeadlessEscape(_: *EditBox)
     var host: Testing.HeadlessHost
     host.setup(300, 60)
     let edit = EditBox.create(&host.root, "selection", {0, 0, 260, 26}, null, EditBoxFlags.None)
-    host.focus(edit)
+    edit.setFocus()
 
     host.keyPress(Input.Key.Home)
     host.keyPress(Input.Key.Right, Input.KeyModifiers.Shift)
@@ -298,7 +298,7 @@ func editHeadlessEscape(_: *EditBox)
     var host: Testing.HeadlessHost
     host.setup(360, 60)
     let edit = EditBox.create(&host.root, "one two three", {0, 0, 320, 26}, null, EditBoxFlags.None)
-    host.focus(edit)
+    edit.setFocus()
 
     host.keyPress(Input.Key.Home)
     host.keyPress(Input.Key.Right, Input.KeyModifiers.Control)
@@ -323,7 +323,7 @@ func editHeadlessEscape(_: *EditBox)
 
     // Narrow box, long text -> horizontal scroll kicks in.
     let edit = EditBox.create(&host.root, "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ", {0, 0, 120, 26}, null, EditBoxFlags.None)
-    host.focus(edit)
+    edit.setFocus()
 
     let len = (edit.text()).count
     edit.setSelection(len, len)
@@ -341,7 +341,7 @@ func editHeadlessEscape(_: *EditBox)
     var host: Testing.HeadlessHost
     host.setup(160, 60)
     let edit = EditBox.create(&host.root, "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ", {0, 0, 120, 26}, null, EditBoxFlags.None)
-    host.focus(edit)
+    edit.setFocus()
 
     let len = (edit.text()).count
     edit.setSelection(len, len)
@@ -362,7 +362,7 @@ func editHeadlessEscape(_: *EditBox)
     var host: Testing.HeadlessHost
     host.setup(160, 60)
     let edit = EditBox.create(&host.root, "abcdefghijklmnopqrstuvwxyz0123456789", {0, 0, 120, 26}, null, EditBoxFlags.None)
-    host.focus(edit)
+    edit.setFocus()
 
     let len = (edit.text()).count
     for idx in 0 to len
@@ -388,7 +388,7 @@ func editHeadlessEscape(_: *EditBox)
     edit.sigSubmitted += &editHeadlessEnter
     edit.sigCancelled += &editHeadlessEscape
 
-    host.focus(edit)
+    edit.setFocus()
     host.keyPress(Input.Key.Return)
     Swag.assert(EditHeadlessEnterCount == 1)
 
@@ -456,7 +456,7 @@ func editHeadlessEscape(_: *EditBox)
     let edit = EditBox.create(&host.root, "255", {20, 20, 200, 26})
     edit.setUnsignedIntegerRange(0, 999)
     edit.setMaximumLength(3)
-    host.focus(edit)
+    edit.setFocus()
     edit.selectAll()
 
     host.sendRune(Input.Key.X, 'x')

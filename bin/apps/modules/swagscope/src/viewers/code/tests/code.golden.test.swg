@@ -60,7 +60,7 @@ func swagSampleSource()->String
 
     host.settleAnimations(view, 4)
     var image = host.render(view)
-    Pixel.Testing.assertImageGolden(&image, "viewer.code.document")
+    assertScopeImageGolden(&image, "viewer.code.document")
 }
 
 // The lens as a reader meets it over a code file: opened empty, then typed into, then asked for
@@ -98,7 +98,7 @@ func swagSampleSource()->String
         }
 
         var image = host.render(window)
-        Pixel.Testing.assertImageGolden(&image, i == 0 ? "showcase.lens.empty" : (i == 1 ? "showcase.lens.query" : "showcase.lens.actions"))
+        assertScopeImageGolden(&image, i == 0 ? "showcase.lens.empty" : (i == 1 ? "showcase.lens.query" : "showcase.lens.actions"))
         window.lens.close()
         host.finishAnimations()
     }

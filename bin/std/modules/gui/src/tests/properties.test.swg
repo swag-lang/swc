@@ -1975,10 +1975,10 @@ struct PropDropData
 // A file dropped on a FilePath field fills it, and commits with the focus like a typed value.
 #test
 {
+    // The focused editor commits during host teardown, while its data is still alive.
+    var data: PropDropData
     var host: Testing.HeadlessHost
     host.setup(420, 200)
-
-    var data: PropDropData
     let prop = Properties.create(&host.root, {0, 0, 420, 200}, .List)
     prop.addStruct(data, "S")
     prop.edView.sendResizeEvent()

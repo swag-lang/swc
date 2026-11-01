@@ -41,6 +41,55 @@ internal func homeWindow(host: *Testing.HeadlessHost, light: bool)->*ViewerWindo
     return window
 }
 
+// Clear opens after a completed click, supports cancelling the gesture, and keeps its trigger
+// visible while the menu owns the pointer. Cancelling the confirmation preserves the history.
+#test
+{
+    var host: Testing.HeadlessHost
+    let window = homeWindow(&host, false)
+    let button = window.home.clearButton
+    Swag.assert(button.isLocallyVisible() and button.arrowPosition == .RightDownward)
+    var clear = button.surfaceRect().center()
+    host.surface.surfaceToScreen(&clear)
+
+    var sawMenu: bool
+    host.app.sigFrame += func|host = &host, home = window.home, sawMenu = &sawMenu|(_)
+    {
+        let menu = host.capturedPopupMenu()
+        if not menu do
+            return
+        sawMenu[] = true
+        Swag.assert(home.clearButton.isLocallyVisible())
+        var point = menu.surfaceRect().center()
+        host.surface.surfaceToScreen(&point)
+        host.moveMouse(point)
+        Swag.assert(not home.pointerIn and home.clearButton.isLocallyVisible())
+    }
+
+    host.clickPopupMenuItemWhenShown("scope.home.clear.all")
+    host.thenClickModalButton(Dialog.BtnNo)
+    host.mouseDown(clear)
+    Swag.assert(button.mouseCapture() == button)
+    Swag.assert(host.capturedPopupMenu() == null)
+    host.mouseUp(clear)
+    Swag.assert(sawMenu and host.autoHandled and window.recent.count == 6)
+    Swag.assert(button.isLocallyVisible() and button.mouseCapture() == null)
+
+    // Releasing outside the command cancels this click.
+    host.mouseDown(clear)
+    host.moveMouse({0, 0})
+    host.mouseUp({0, 0})
+    Swag.assert(button.mouseCapture() == null and host.capturedPopupMenu() == null)
+    Swag.assert(window.recent.count == 6)
+
+    host.clickPopupMenuItemWhenShown("scope.home.clear.all")
+    host.thenClickModalButton(Dialog.BtnYes)
+    button.setFocus()
+    host.keyPress(.Return)
+    Swag.assert(host.autoHandled and window.recent.isEmpty() and window.home.rows.isEmpty())
+    Swag.assert(not button.isLocallyVisible())
+}
+
 // A row opens its file; its cross and Delete take it out of the history, and the clears take
 // the files that are gone or the ones opened more than a month ago.
 #test

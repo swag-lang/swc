@@ -25,5 +25,5 @@ using Core, Pixel, Gui, Viewers
     host.root.applyLayout()
     host.settleAnimations(&host.root, 4)
     var image = host.render(&host.root)
-    Pixel.Testing.assertImageGolden(&image, "viewer.table.document")
+    assertScopeImageGolden(&image, "viewer.table.document")
 }

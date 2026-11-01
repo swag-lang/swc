@@ -19,6 +19,6 @@ using Core, Pixel, Gui, Viewers
         host.settleAnimations(window, 4)
 
         var image = host.render(&host.surfaceWnd)
-        Pixel.Testing.assertImageGolden(&image, light ? "viewer.subtitle.paper" : "viewer.subtitle.ink")
+        assertScopeImageGolden(&image, light ? "viewer.subtitle.paper" : "viewer.subtitle.ink")
     }
 }

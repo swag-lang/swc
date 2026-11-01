@@ -46,9 +46,9 @@ namespace
         std::string          output;
     };
 
-    void runPublicationImporter(ImportResult& result, const ApiPublicationTestDirectory& directory)
+    void runPublicationImporter(const TaskContext& ctx, ImportResult& result, const ApiPublicationTestDirectory& directory)
     {
-        const std::vector<Utf8> args = {"sema", "--num-cores", "6", "-f", Utf8((directory.path() / "consumer.swg").string()), "--import-api-file", Utf8((directory.apiDirectory() / "value.swg").string())};
+        const std::vector<Utf8> args = {"sema", "--num-cores", std::to_string(Unittest::compilerWorkerCount(ctx)), "-f", Utf8((directory.path() / "consumer.swg").string()), "--import-api-file", Utf8((directory.apiDirectory() / "value.swg").string())};
         Os::ProcessRunOptions   options;
         options.capturedOutput = &result.output;
         options.forwardOutput  = false;
@@ -62,7 +62,7 @@ namespace
         command.command        = CommandKind::Sema;
         command.scriptMode     = true;
         command.silent         = true;
-        command.numCores       = 6;
+        command.numCores       = Unittest::compilerWorkerCount(ctx);
         command.moduleFilePath = script;
         command.modulePath     = script.parent_path();
         command.files.insert(script);
@@ -101,7 +101,7 @@ SWC_FILESYSTEM_TEST_BEGIN(ModuleApi_IncompletePublicationIsRejectedAndCanBeRebui
     }
 
     ImportResult incomplete;
-    runPublicationImporter(incomplete, directory);
+    runPublicationImporter(ctx, incomplete, directory);
     if (incomplete.process != Os::ProcessRunResult::Ok || incomplete.exitCode == 0)
         return Result::Error;
     if (incomplete.output.find("module API publication did not complete") == std::string::npos)
@@ -113,7 +113,7 @@ SWC_FILESYSTEM_TEST_BEGIN(ModuleApi_IncompletePublicationIsRejectedAndCanBeRebui
         SWC_RESULT(publication.completePublication(because));
     }
     ImportResult complete;
-    runPublicationImporter(complete, directory);
+    runPublicationImporter(ctx, complete, directory);
     if (complete.process != Os::ProcessRunResult::Ok || complete.exitCode != 0)
         return Result::Error;
 }
@@ -160,7 +160,7 @@ SWC_FILESYSTEM_TEST_BEGIN(ModuleApi_NamedStandardImportUsesWorkspaceOutputRoot)
         SWC_RESULT(publication.completePublication(because));
     }
 
-    const std::vector<Utf8> args = {"sema", "--num-cores", "6", "-f", Utf8((directory.path() / "consumer.swg").string()), "--import-api-module", "health_import"};
+    const std::vector<Utf8> args = {"sema", "--num-cores", std::to_string(Unittest::compilerWorkerCount(ctx)), "-f", Utf8((directory.path() / "consumer.swg").string()), "--import-api-module", "health_import"};
     ImportResult            result;
     Os::ProcessRunOptions   options;
     options.capturedOutput = &result.output;
@@ -209,13 +209,13 @@ func importedFailure()->s32 => MissingImportedBodySymbol
     SWC_RESULT(CompilerTestFile::writeText(directory.path() / "consumer.swg", validConsumer));
 
     ImportResult unusedInvalidBody;
-    runPublicationImporter(unusedInvalidBody, directory);
+    runPublicationImporter(ctx, unusedInvalidBody, directory);
     if (unusedInvalidBody.process != Os::ProcessRunResult::Ok || unusedInvalidBody.exitCode != 0)
         return Result::Error;
 
     SWC_RESULT(CompilerTestFile::writeText(directory.path() / "consumer.swg", invalidConsumer));
     ImportResult usedInvalidBody;
-    runPublicationImporter(usedInvalidBody, directory);
+    runPublicationImporter(ctx, usedInvalidBody, directory);
     if (usedInvalidBody.process != Os::ProcessRunResult::Ok || usedInvalidBody.exitCode == 0)
         return Result::Error;
     if (usedInvalidBody.output.find("MissingImportedBodySymbol") == std::string::npos)
@@ -384,7 +384,7 @@ func exposed(value: s32)->s32 => helper(value)
         const fs::path api    = module / "api";
         SWC_RESULT(CompilerTestFile::writeText(module / "module.swg", "#run {}\n"));
         SWC_RESULT(CompilerTestFile::writeText(module / "src" / "provider.swg", test.source));
-        const std::vector<Utf8> args = {"sema", "--module", Utf8(module.string()), "--module-namespace", "InlineApi", "--artifact-kind", Utf8(test.artifactKind), "--export-api-dir", Utf8(api.string()), "--num-cores", "6"};
+        const std::vector<Utf8> args = {"sema", "--module", Utf8(module.string()), "--module-namespace", "InlineApi", "--artifact-kind", Utf8(test.artifactKind), "--export-api-dir", Utf8(api.string()), "--num-cores", std::to_string(Unittest::compilerWorkerCount(ctx))};
         ImportResult            result;
         Os::ProcessRunOptions   options;
         options.capturedOutput = &result.output;
@@ -426,7 +426,7 @@ func exposed(value: s32)->s32 => helper(value)
 
         const fs::path consumer = module / "consumer.swg";
         SWC_RESULT(CompilerTestFile::writeText(consumer, std::format("using InlineApi\n#main\n{{\n    {}\n}}\n", test.use)));
-        const std::vector<Utf8> importArgs = {"sema", "--num-cores", "6", "-f", Utf8(consumer.string()), "--import-api-file", Utf8(apiFile.string())};
+        const std::vector<Utf8> importArgs = {"sema", "--num-cores", std::to_string(Unittest::compilerWorkerCount(ctx)), "-f", Utf8(consumer.string()), "--import-api-file", Utf8(apiFile.string())};
         result.output.clear();
         result.process = Os::runProcess(result.exitCode, Os::getExeFullName(), importArgs, module, &options);
         if (result.process != Os::ProcessRunResult::Ok || result.exitCode != 0)
@@ -462,7 +462,7 @@ impl Value
                                                access);
         SWC_RESULT(CompilerTestFile::writeText(module / "module.swg", "#run {}\n"));
         SWC_RESULT(CompilerTestFile::writeText(module / "src" / "provider.swg", source));
-        const std::vector<Utf8> args = {"sema", "--module", Utf8(module.string()), "--module-namespace", "ImplicitApi", "--artifact-kind", "static-library", "--export-api-dir", Utf8(api.string()), "--num-cores", "6"};
+        const std::vector<Utf8> args = {"sema", "--module", Utf8(module.string()), "--module-namespace", "ImplicitApi", "--artifact-kind", "static-library", "--export-api-dir", Utf8(api.string()), "--num-cores", std::to_string(Unittest::compilerWorkerCount(ctx))};
         ImportResult            result;
         Os::ProcessRunOptions   options;
         options.capturedOutput = &result.output;
@@ -488,7 +488,7 @@ impl Value
         const fs::path consumer = module / "consumer.swg";
         SWC_RESULT(CompilerTestFile::writeText(consumer, "using ImplicitApi\n#main { var value: Value = 42\n discard value }\n"));
         const fs::path          apiFile    = api / (std::string(access) + ".swg");
-        const std::vector<Utf8> importArgs = {"sema", "--num-cores", "6", "-f", Utf8(consumer.string()), "--import-api-file", Utf8(apiFile.string())};
+        const std::vector<Utf8> importArgs = {"sema", "--num-cores", std::to_string(Unittest::compilerWorkerCount(ctx)), "-f", Utf8(consumer.string()), "--import-api-file", Utf8(apiFile.string())};
         result.output.clear();
         result.process = Os::runProcess(result.exitCode, Os::getExeFullName(), importArgs, module, &options);
         if (result.process != Os::ProcessRunResult::Ok || result.exitCode != 0)
@@ -653,7 +653,7 @@ struct Holder { public slot: Swag.AtomicValue'Slot }
         if (!test.helperFile.empty())
             SWC_RESULT(CompilerTestFile::writeText(module / "src" / "helper.swg", test.helperFile));
 
-        const std::vector<Utf8> args = {"sema", "--module", Utf8(module.string()), "--module-namespace", "GenericApi", "--artifact-kind", "static-library", "--export-api-dir", Utf8(api.string()), "--num-cores", "6"};
+        const std::vector<Utf8> args = {"sema", "--module", Utf8(module.string()), "--module-namespace", "GenericApi", "--artifact-kind", "static-library", "--export-api-dir", Utf8(api.string()), "--num-cores", std::to_string(Unittest::compilerWorkerCount(ctx))};
         ImportResult            result;
         Os::ProcessRunOptions   options;
         options.capturedOutput = &result.output;
@@ -698,7 +698,7 @@ struct Holder { public slot: Swag.AtomicValue'Slot }
 
         const fs::path consumer = module / "consumer.swg";
         SWC_RESULT(CompilerTestFile::writeText(consumer, std::format("using GenericApi\n#main\n{{\n    {}\n}}\n", test.use)));
-        const std::vector<Utf8> importArgs = {"sema", "--num-cores", "6", "-f", Utf8(consumer.string()), "--import-api-file", Utf8(apiFile.string())};
+        const std::vector<Utf8> importArgs = {"sema", "--num-cores", std::to_string(Unittest::compilerWorkerCount(ctx)), "-f", Utf8(consumer.string()), "--import-api-file", Utf8(apiFile.string())};
         result.output.clear();
         result.process = Os::runProcess(result.exitCode, Os::getExeFullName(), importArgs, module, &options);
         if (result.process != Os::ProcessRunResult::Ok || result.exitCode != 0)
@@ -719,7 +719,7 @@ SWC_FILESYSTEM_TEST_BEGIN(ModuleApi_WholeFileBodyExportContract)
     const fs::path helper = directory.path() / "src" / "helper.swg";
     SWC_RESULT(CompilerTestFile::writeText(helper, "internal func helper(value: s32)->s32 => value + 1\n"));
 
-    const std::vector<Utf8> args = {"sema", "--module", Utf8(directory.path().string()), "--module-namespace", "WholeApi", "--artifact-kind", "static-library", "--export-api-dir", Utf8(api.string()), "--num-cores", "6"};
+    const std::vector<Utf8> args = {"sema", "--module", Utf8(directory.path().string()), "--module-namespace", "WholeApi", "--artifact-kind", "static-library", "--export-api-dir", Utf8(api.string()), "--num-cores", std::to_string(Unittest::compilerWorkerCount(ctx))};
     ImportResult            result;
     Os::ProcessRunOptions   options;
     options.capturedOutput = &result.output;
@@ -749,7 +749,7 @@ SWC_FILESYSTEM_TEST_BEGIN(ModuleApi_WholeFileBodyExportContract)
 
     const fs::path consumer = directory.path() / "consumer.swg";
     SWC_RESULT(CompilerTestFile::writeText(consumer, "#main { Swag.assert(WholeApi.exposed(41) == 42) }\n"));
-    const std::vector<Utf8> importArgs = {"sema", "--num-cores", "6", "-f", Utf8(consumer.string()), "--import-api-file", Utf8((api / "provider.swg").string()), "--import-api-file", Utf8((api / "helper.swg").string())};
+    const std::vector<Utf8> importArgs = {"sema", "--num-cores", std::to_string(Unittest::compilerWorkerCount(ctx)), "-f", Utf8(consumer.string()), "--import-api-file", Utf8((api / "provider.swg").string()), "--import-api-file", Utf8((api / "helper.swg").string())};
     result.output.clear();
     result.process = Os::runProcess(result.exitCode, Os::getExeFullName(), importArgs, directory.path(), &options);
     if (result.process != Os::ProcessRunResult::Ok || result.exitCode != 0)
@@ -778,7 +778,7 @@ SWC_FILESYSTEM_TEST_BEGIN(ModuleApi_ImporterWaitsForCompletePublication)
         SWC_RESULT(publication.beginPublication(because, directory.apiDirectory()));
         reader = std::thread([&] {
             started.arrive_and_wait();
-            runPublicationImporter(importer, directory);
+            runPublicationImporter(ctx, importer, directory);
             finished.store(true, std::memory_order_release);
         });
         started.arrive_and_wait();
@@ -965,7 +965,7 @@ func send(socket: u64, buffer: const [*] u8?, length, flags: s32)->s32
     SWC_RESULT(CompilerTestFile::writeText(modules / "consumer" / "module.swg", consumerSetup));
     SWC_RESULT(CompilerTestFile::writeText(modules / "consumer" / "src" / "consumer.swg", consumerSource));
 
-    const std::vector<Utf8> arguments = {"build", "--workspace", Utf8(directory.path()), "--workspace-module", "consumer", "--rebuild", "--num-cores", "6"};
+    const std::vector<Utf8> arguments = {"build", "--workspace", Utf8(directory.path()), "--workspace-module", "consumer", "--rebuild", "--num-cores", std::to_string(Unittest::compilerWorkerCount(ctx))};
     Os::ProcessRunOptions   options;
     std::string             output;
     options.capturedOutput = &output;
@@ -1017,7 +1017,7 @@ SWC_FILESYSTEM_TEST_BEGIN(Workspace_ParsesDependentBeforeJoiningItsDependencyLin
     SWC_RESULT(CompilerTestFile::writeText(modules / "consumer" / "module.swg", consumerSetup));
     SWC_RESULT(CompilerTestFile::writeText(consumerSource, "#global public\nfunc value()->s32 => Provider.value()\n"));
 
-    const std::vector<Utf8> arguments = {"build", "--workspace", Utf8(directory.path()), "--workspace-module", "consumer", "--rebuild", "--num-cores", "6"};
+    const std::vector<Utf8> arguments = {"build", "--workspace", Utf8(directory.path()), "--workspace-module", "consumer", "--rebuild", "--num-cores", std::to_string(Unittest::compilerWorkerCount(ctx))};
     Os::ProcessRunOptions   options;
     std::string             output;
     options.capturedOutput = &output;

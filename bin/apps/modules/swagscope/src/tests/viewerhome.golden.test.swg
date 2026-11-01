@@ -4,8 +4,8 @@
 using Core, Pixel, Gui
 
 // The home lists the last six files, quietly: the faint glyph of the kind, the name, the time; the
-// row under the pointer names its folder and offers its removal, and "Clear…" comes with the
-// pointer. One picture per theme, at rest and in use.
+// row under the pointer names its folder and offers its removal. The Clear menu button stays
+// visible below the history. One picture per theme, at rest and in use.
 #[Swag.TestTag("golden")]
 #test
 {

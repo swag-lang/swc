@@ -151,7 +151,7 @@ namespace
         command.command  = CommandKind::Sema;
         command.name     = expectedDiagnostic ? "compiler_expected_job_failure" : "compiler_silent_job_failure";
         command.silent   = true;
-        command.numCores = 6;
+        command.numCores = Unittest::compilerWorkerCount(ctx);
         command.files.insert(sourcePath);
         CommandLineParser::refreshBuildCfg(command);
         // refreshBuildCfg derives this flag from the command kind. This fixture runs the
@@ -198,7 +198,7 @@ SWC_TEST_BEGIN(Compiler_DependentFailureWhileSourceDiagnosticIsBeingBuilt)
     command.command  = CommandKind::Sema;
     command.name     = "compiler_pending_source_diagnostic";
     command.silent   = true;
-    command.numCores = 6;
+    command.numCores = Unittest::compilerWorkerCount(ctx);
     command.files.insert(sourcePath);
     CommandLineParser::refreshBuildCfg(command);
 

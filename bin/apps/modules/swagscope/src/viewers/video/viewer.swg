@@ -1079,6 +1079,7 @@ private impl Panel
         with let result = Wnd.create'Panel(host.contentParent(), "scope.video")
         {
             .backgroundStyle = .View
+            .focusPolicy     = .Tab
             .services        = services
         }
 

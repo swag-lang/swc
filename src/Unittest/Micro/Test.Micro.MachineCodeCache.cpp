@@ -63,12 +63,12 @@ namespace
         SourceFile*                       source   = nullptr;
         SymbolFunction*                   function = nullptr;
 
-        ModuleCacheFixture(const Global& global, const std::string_view name)
+        ModuleCacheFixture(const TaskContext& ctx, const std::string_view name)
         {
             command.command  = CommandKind::Build;
-            command.numCores = 6;
+            command.numCores = Unittest::compilerWorkerCount(ctx);
             CommandLineParser::refreshBuildCfg(command);
-            compiler = std::make_unique<CompilerInstance>(global, command);
+            compiler = std::make_unique<CompilerInstance>(ctx.global(), command);
             context  = std::make_unique<TaskContext>(*compiler);
             SWC_ASSERT(compiler->setupSema(*context) == Result::Continue);
             source                        = &Unittest::addTestSource(*context, "Micro", name, "", FileFlagsE::ModuleSrc);
@@ -80,7 +80,7 @@ namespace
 
 SWC_FILESYSTEM_TEST_BEGIN(MachineCodeCache_ReusesModuleSourceWithRelocations)
 {
-    ModuleCacheFixture  fixture(ctx.global(), "cacheModuleCaller");
+    ModuleCacheFixture  fixture(ctx, "cacheModuleCaller");
     TaskContext&        localCtx = *fixture.context;
     SourceFile&         source   = *fixture.source;
     auto*               caller   = fixture.function;
@@ -123,7 +123,7 @@ SWC_TEST_END()
 
 SWC_FILESYSTEM_TEST_BEGIN(MachineCodeCache_RecreatesOptimizerConstantsInTheConsumer)
 {
-    ModuleCacheFixture producer(ctx.global(), "cacheGeneratedConstantCaller");
+    ModuleCacheFixture producer(ctx, "cacheGeneratedConstantCaller");
     TaskContext&       producerCtx = *producer.context;
     MicroBuilder       input(producerCtx);
     input.emitRet();
@@ -152,7 +152,7 @@ SWC_FILESYSTEM_TEST_BEGIN(MachineCodeCache_RecreatesOptimizerConstantsInTheConsu
     MachineCodeCache writeCache(producerCtx, *producer.function, input);
     writeCache.write(expected);
 
-    ModuleCacheFixture consumer(ctx.global(), "cacheGeneratedConstantCaller");
+    ModuleCacheFixture consumer(ctx, "cacheGeneratedConstantCaller");
     TaskContext&       consumerCtx = *consumer.context;
     MicroBuilder       currentInput(consumerCtx);
     currentInput.emitRet();
@@ -174,7 +174,7 @@ SWC_TEST_END()
 
 SWC_FILESYSTEM_TEST_BEGIN(MachineCodeCache_RejectsGeneratedConstantsWithPointerEdges)
 {
-    ModuleCacheFixture fixture(ctx.global(), "cacheGeneratedPointerCaller");
+    ModuleCacheFixture fixture(ctx, "cacheGeneratedPointerCaller");
     TaskContext&       localCtx = *fixture.context;
     MicroBuilder       input(localCtx);
     input.emitRet();
@@ -206,7 +206,7 @@ SWC_TEST_END()
 // offset it used inside it. A global the input never named cannot be rebound.
 SWC_FILESYSTEM_TEST_BEGIN(MachineCodeCache_RebindsGlobalsToTheirOwnAllocation)
 {
-    ModuleCacheFixture fixture(ctx.global(), "cacheGlobalRebindCaller");
+    ModuleCacheFixture fixture(ctx, "cacheGlobalRebindCaller");
     TaskContext&       localCtx = *fixture.context;
     const uint32_t     first    = reserveGlobal(localCtx, 16);
     const uint32_t     second   = reserveGlobal(localCtx, 16);

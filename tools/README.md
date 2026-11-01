@@ -6,8 +6,10 @@ once with `tools\devmode.bat` or `tools\release.bat` before using the launchers.
 
 Run the checkout's own compiler whenever more than one worktree exists. `dm` selects
 `bin\swc.dm.exe`; without it, tools use `bin\swc.exe`. Tool compiler calls default to three workers.
-Pass `--num-cores` to change compiler parallelism; it does not limit a compiled program's runtime
-threads. Compiler options can be forwarded after the command and module.
+Pass `--num-cores` to change compiler parallelism. Application tests inherit this count for their
+runtime pool and nested compilers, capped at three; zero uses that cap. `SWAG_RUNTIME_THREADS`
+overrides the test runtime pool. Other compiled programs manage their own runtime threads.
+Compiler options can be forwarded after the command and module.
 
 ## Workspaces
 
@@ -30,9 +32,13 @@ tools\scripts.bat snake
 
 Use `-bc release` or `-bc devmode` to select a program configuration. `--debug`,
 `--test-file`, `--test-tag`, `--run-arg`, `--frames`, and other compiler options are forwarded.
+`scripts.bat smoke` recognizes a script's imports and setup, then runs its native executable
+with the smoke frame budget, isolation arguments, and executable timeout.
 For application tests, `--test-file` and `--test-tag` select which tests execute; the complete
-application module is still compiled. `apps.bat test` sets `SWAG_RUNTIME_THREADS=3` unless that
-environment variable is already defined. The setting is local to the launcher and its children.
+application module is still compiled. `apps.bat test` sets `SWAG_RUNTIME_THREADS` from
+`--num-cores`, capped at three, unless that environment variable is already defined. The setting
+is local to the launcher and its children. Prism child compilers inherit the same capped count,
+including when testing the entire application workspace.
 `--all-cfg` and `apps run --async` are not supported by the batch launchers; run each configuration
 separately.
 
@@ -100,6 +106,13 @@ The former backlog, third-party-notice, and native-import audits are retired. Th
 workspace suite still runs its standalone inputs, but no longer performs the repository's custom
 artifact-layout and cache-invalidation probes. The integration launcher accepts one configuration
 per run.
+
+`unittests.bat` applies `-bc` to Swag programs only; internal C++ tests use the DevMode compiler's
+own configuration. Parallel C++ fixtures and their child compilers inherit `--num-cores`, capped
+at three workers. Fixtures that specifically test sequential behavior keep one worker.
+The workspace suite builds its dynamically loaded DLL before running its
+consumer. Runner option routing, failure propagation, and fixture ordering are covered by
+`powershell -NoProfile -ExecutionPolicy Bypass -File tools/tests/unittests.ps1`.
 
 ## Maintenance
 

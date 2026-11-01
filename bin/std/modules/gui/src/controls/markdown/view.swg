@@ -393,6 +393,12 @@ private impl View
 
     mtd updateDocumentSize()
     {
+        // Clamping after a new extent is layout work, not a reader's scrollbar gesture.
+        // It must not replace the heading or search destination being prepared.
+        let wasRepositioning = .repositioning
+        .repositioning = true
+        defer .repositioning = wasRepositioning
+
         let viewport        = .scroll.paddedClientRect()
         var loadedHeight    = .contentHeight + .documentStyle.bottomInset
         var estimatedHeight = loadedHeight
@@ -886,6 +892,7 @@ private impl View
                 target = Math.max(target, .waitingScrollTarget.y)
             if visibleWork and
                not .jumpToEnd and
+               .pendingHeadingOffset == Swag.U64.Max and
                (.replacementAnchorOffset == Swag.U64.Max or .replacementAnchored) and
                .contentHeight >= target + .scroll.paddedClientRect().height do
                 break
@@ -1855,7 +1862,7 @@ impl View
         let headingTail   = exactHeading and .fileSize - requested <= tailContext
         let start         = headingTail ? requested - Math.min(requested, tailContext) :
                             exactHeading ? requested : requested > RevealContextSize ? requested - RevealContextSize : 0
-        let revealTail    = viewportFirst and .fileSize - requested <= viewportBytes * 2
+        let revealTail = viewportFirst and .fileSize - requested <= viewportBytes * 2
         if revealTail do
             .jumpToEnd = true
         for adjustment in 4
@@ -1880,6 +1887,13 @@ impl View
                 let reserve  = tailContext * 3 / 4
                 let probeEnd = localTarget > reserve ? localTarget - reserve : 0
                 boundary = streamBoundary(chunk.toString()[0 until probeEnd])
+
+                // Before the first paint, the byte/height estimate can still describe only an
+                // empty viewport. Bound the leading context by blocks too, leaving half the
+                // seek budget for the heading and the content that follows it.
+                let preceding = parseBlocks(chunk.toString()[0 until localTarget], frontmatter: actual == 0)
+                if preceding.count > SeekBlockBudget / 2 do
+                    boundary = Math.max(boundary, preceding[preceding.count - SeekBlockBudget / 2].sourceOffset)
             }
             elif viewportFirst
             {

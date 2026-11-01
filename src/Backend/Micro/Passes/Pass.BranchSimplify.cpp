@@ -5714,7 +5714,10 @@ namespace
             const MicroSsaState::PhiInfo* phi = ssa.phiInfo(use.phiIndex);
             if (!phi || phi->resultValueId == MicroSsaState::K_INVALID_VALUE)
                 return true;
-            if (isValueReadOutside(ssa, phi->resultValueId, insideRefs, visitedPhis))
+            // An arm is straight-line code, so a phi carries the value across
+            // its boundary. A use in the same arm can belong to the next loop
+            // iteration and must not be mistaken for an arm-local temporary.
+            if (isValueReadOutside(ssa, phi->resultValueId, {}, visitedPhis))
                 return true;
         }
 

@@ -573,6 +573,7 @@ internal func videoMatroskaFixturePath()->String => scopeTestDataPath("ffmpeg-h2
 
     // The keys move the film too: Space plays and pauses, the arrows seek and set the volume.
     view.setFocus()
+    Swag.assert(view.hasFocus() and view.isFocusStop())
     host.keyPress(.Space)
     Swag.assert(view.playing)
     host.keyPress(.Space)

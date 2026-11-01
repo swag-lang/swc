@@ -125,7 +125,7 @@ func completeHexViewerAnalysis(host: *Testing.HeadlessHost, view: *Hex.Panel)
     host.moveMouse({-1, -1})
     host.settleAnimations(window, 4)
     var image = host.render(window)
-    Pixel.Testing.assertImageGolden(&image, "viewer.hex.search-inspector")
+    assertScopeImageGolden(&image, "viewer.hex.search-inspector")
 
     window.searchBox.setText("4G")
     Swag.assert(window.searchComplete)
@@ -202,7 +202,7 @@ func completeHexViewerAnalysis(host: *Testing.HeadlessHost, view: *Hex.Panel)
     host.moveMouse({-1, -1})
     host.settleAnimations(window, 4)
     var image = host.render(window)
-    Pixel.Testing.assertImageGolden(&image, "viewer.hex.analysis")
+    assertScopeImageGolden(&image, "viewer.hex.analysis")
 
     view.closeAnalysis()
     view.grid.moveCaret(0x80, false)
@@ -244,7 +244,7 @@ func completeHexViewerAnalysis(host: *Testing.HeadlessHost, view: *Hex.Panel)
     host.settleAnimations(view.commands, 4)
     var image = host.render(view.commands)
     image.crop(view.commands.surfaceRect())
-    Pixel.Testing.assertImageGolden(&image, "viewer.hex.command-bar")
+    assertScopeImageGolden(&image, "viewer.hex.command-bar")
     discard host.render(view)
 }
 
@@ -275,5 +275,5 @@ func completeHexViewerAnalysis(host: *Testing.HeadlessHost, view: *Hex.Panel)
     host.settleAnimations(&host.root, 4)
 
     var image = host.render(view)
-    Pixel.Testing.assertImageGolden(&image, "viewer.hex.document")
+    assertScopeImageGolden(&image, "viewer.hex.document")
 }

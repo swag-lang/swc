@@ -3,6 +3,38 @@
 
 using Swag, Core
 
+// An automatically destroyed popup retires its surface-sibling submenus before their owner.
+#test
+{
+    var destroyed: u32
+    var host:      Testing.HeadlessHost
+    host.setup(360, 240)
+    let button = IconButton.create(&host.surfaceWnd, host.theme.icon(.Appearance, 20), {20, 20, 80, 32})
+    let popup  = MenuCtrl.createPopup(button)
+    let sub    = MenuCtrl.createPopup(popup)
+    let nested = MenuCtrl.createPopup(sub)
+    nested.addItem("Command", "Menu.Lifetime.Command")
+    sub.addPopup("Nested", nested)
+    popup.addPopup("Submenu", sub)
+    for menu in [popup, sub, nested]
+    {
+        menu.hookOnEvent = func|count = &destroyed|(_, evt)->bool
+        {
+            if evt is DestroyEvent do
+                count[] += 1
+            return false
+        }
+    }
+
+    host.app.sigFrame += func|host = &host|(_) { discard host.dismissPopupMenu() }
+    discard popup.doModal(button, autoDestroy: true)
+    host.app.sigFrame.clear()
+    host.pump()
+    Swag.assert(destroyed == 3)
+    button.destroy()
+    host.pump()
+}
+
 const Menu_New  = "Menu.New"
 const Menu_Open = "Menu.Open"
 const Menu_Quit = "Menu.Quit"
@@ -820,7 +852,7 @@ func assertMenuMarkerGolden(palette: MenuMarkerPalette, golden: string)
     Swag.assert(bar.subVisible == sub)
     Swag.assert(sub.popupBarItemIdx == 0)
     Swag.assert(sub.popupBarItemSurfaceRect.height == bar.position.height)
-    Swag.assert(sub.position.y == 0)
+    Swag.assert(sub.position.y == -metrics.menuPopup_ShadowSize)
     Swag.assert(sub.items[0]!.pos > metrics.menuPopup_ShadowSize + bar.position.height)
 }
 

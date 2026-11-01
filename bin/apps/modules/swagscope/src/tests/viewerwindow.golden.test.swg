@@ -425,9 +425,13 @@ func assertViewerPanelCorner(image: const *Image, panel: *Wnd)
 #[Swag.TestTag("golden")]
 #test
 {
-    let fileName = Testing.tempFilePath("scope-lens-explorer-", ".md")
+    // Rounded lens edges include the blurred explorer underneath: give it a stable corpus.
+    let root = Testing.tempFilePath("scope-lens-explorer-", "")
+    let fixtureFolder = Path.combine(root, "Library")
+    expect Directory.create(fixtureFolder, recurse: true)
+    defer discard catch Directory.delete(root, recurse: true)
+    let fileName = Path.combine(fixtureFolder, "Guide.md")
     discard expect File.writeAllBytes(fileName, "# Guide\n")
-    defer discard catch File.delete(fileName)
 
     var host: Testing.HeadlessHost
     host.setup(960, 680)
@@ -441,6 +445,7 @@ func assertViewerPanelCorner(image: const *Image, panel: *Wnd)
     window.exploreFolder()
     let explorer = unwrap window.explorer
     completeLensExplorer(&host, explorer)
+    Swag.assert(explorer.entries.count == 1)
     var selected = Swag.U64.Max
     for &entry, index in explorer.entries where entry.name == Path.fileName(fileName) do
         selected = index

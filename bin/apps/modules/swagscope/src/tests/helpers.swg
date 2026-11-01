@@ -9,6 +9,12 @@ func scopeTestDataDirectory()->String => Path.combine(unwrap Path.directoryName(
 // Resolves one fixture from the shared Scope test corpus.
 func scopeTestDataPath(name: string)->String => Path.combine(scopeTestDataDirectory(), name)
 
+// Keeps viewer snapshots in the shared corpus when the calling plan lives beside its viewer.
+func assertScopeImageGolden(image: const *Pixel.Image, name: string)
+{
+    Pixel.Testing.assertImageGolden(image, name)
+}
+
 // Verifies that an information-band control keeps its breathing room outside its own frame.
 func assertViewerInfoButton(button: *IconButton, width = Viewer.ZoomButtonWidth)
 {

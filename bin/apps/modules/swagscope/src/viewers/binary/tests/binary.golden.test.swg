@@ -63,7 +63,7 @@ func completeBinaryViewerWindow(host: *Testing.HeadlessHost, window: *ViewerWind
     revealed = view.revealOffset(FixtureSize + 64)
     Swag.assert(not revealed)
     var image = host.render(view)
-    Pixel.Testing.assertImageGolden(&image, "viewer.binary.document")
+    assertScopeImageGolden(&image, "viewer.binary.document")
     Testing.assertContentFits(view)
 }
 
@@ -107,11 +107,11 @@ func completeBinaryViewerWindow(host: *Testing.HeadlessHost, window: *ViewerWind
     host.settleAnimations(window.searchBar, 4)
     var image = host.render(window)
     image.crop(window.searchBar.surfaceRect())
-    Pixel.Testing.assertImageGolden(&image, "viewer.binary.find-bar")
+    assertScopeImageGolden(&image, "viewer.binary.find-bar")
 
     image = host.render(window)
     image.crop(window.viewerBar.surfaceRect())
-    Pixel.Testing.assertImageGolden(&image, "viewer.binary.viewer-bar")
+    assertScopeImageGolden(&image, "viewer.binary.viewer-bar")
 
     window.searchFilterMode = true
     window.updateSearchAvailability()
@@ -121,5 +121,5 @@ func completeBinaryViewerWindow(host: *Testing.HeadlessHost, window: *ViewerWind
     host.settleAnimations(window.searchBar, 4)
     image = host.render(window)
     image.crop(window.searchBar.surfaceRect())
-    Pixel.Testing.assertImageGolden(&image, "viewer.binary.filter-bar")
+    assertScopeImageGolden(&image, "viewer.binary.filter-bar")
 }

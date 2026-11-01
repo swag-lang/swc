@@ -443,6 +443,24 @@ impl HashTable
     mtd add(key: K, value: #fwd V, updateValue = true)->*HashTableEntry
         where Reflection.canCopy(#typeof(K))
     {
+        if not .table
+        {
+            .grow()
+            return .add(key, #fwd value, updateValue)
+        }
+
+        let hashVal = hashKey(key)
+        var index   = cast(u64, hashVal) & (.capacity - 1)
+        let table   = .tablePtr()
+
+        index = .getNewIndex(key, index, hashVal)
+        if table[index].hash >= HashTable.HASH_FIRST
+        {
+            if updateValue do
+                table[index].value = #fwd value
+            return table + index
+        }
+
         // Growing rehashes the table a struct `key` or `value` may live in, so take them out first.
         // Any other key or value arrives by value and cannot alias the table.
         if .growsOnInsert()
@@ -459,25 +477,14 @@ impl HashTable
                 else
                 {
                     .grow()
-                    return .add(stagedKey, value, updateValue)
+                    return .add(stagedKey, #fwd value, updateValue)
                 }
             }
             else
             {
                 .grow()
+                return .add(key, #fwd value, updateValue)
             }
-        }
-
-        let hashVal = hashKey(key)
-        var index   = cast(u64, hashVal) & (.capacity - 1)
-        let table   = .tablePtr()
-
-        index = .getNewIndex(key, index, hashVal)
-        if table[index].hash >= HashTable.HASH_FIRST
-        {
-            if updateValue do
-                table[index].value = #fwd value
-            return table + index
         }
 
         if table[index].hash == HashTable.HASH_FREE

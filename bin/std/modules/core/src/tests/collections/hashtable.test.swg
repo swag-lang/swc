@@ -271,6 +271,25 @@ func assertTableStringValue(table: HashTable'(string, String), key: string, expe
     Swag.assert(table.capacity == oldCapacity and table.count == 1 and table[42] == 420)
 }
 
+#test
+{
+    var table: HashTable'(s32, s32)
+    for key in 16 do
+        table.add(cast(s32, key), cast(s32, key + 100))
+
+    let oldCapacity  = table.capacity
+    let oldAllocator = table.allocator
+    var reject: RejectHashTableGrowthAllocator
+    table.allocator = &reject
+
+    let updateFailed   = Swag.catchPanic(func|&table|() { table.add(7, 700) })
+    let preserveFailed = Swag.catchPanic(func|&table|() { table.add(7, 777, updateValue: false) })
+    table.allocator = oldAllocator
+
+    Swag.assert(not updateFailed.raised and not preserveFailed.raised)
+    Swag.assert(table.capacity == oldCapacity and table.count == 16 and table[7] == 700)
+}
+
 // A key or a value read from the table itself can be inserted back: growing rehashes the entries
 // they live in, so they are taken out first.
 #test

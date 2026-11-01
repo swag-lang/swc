@@ -113,6 +113,7 @@ impl ViewerWindow
     private mtd createSheetAndHint()
     {
         .infoSheet = InfoSheet.create(me, "scope.information")
+        .infoSheet.closeButton.sigPressed += func|window = me|(_) { window.sheetToggled(false) }
         with .hintLine = HintLine.create(me, "scope.hint")
         {
             .addHint(Input.formatKeyShortcut(.Control, .Space), appStrings().ui_HintLens)

@@ -896,7 +896,9 @@ by portable modules and products. The earlier entries prepare and enforce the sa
   guarded semantic/JIT execution and runtime host-boundary probes pass. The Linux test runner
   recovers protected-page faults and stack exhaustion on a guarded alternate stack, preserves
   catchPanic and captured-error ownership, and restores prior signal handlers and masks. These
-  paths are covered through JIT integration. Native ELF startup, argument preservation, mutex/condition
+  paths are covered through both JIT execution and a native ELF process, including protected-page
+  faults, stack exhaustion, handler/mask restoration and captured-error ownership. Native ELF startup,
+  argument preservation, mutex/condition
   operations, panic cleanup and termination, reflection pruning and deterministic executable/archive
   output pass. Compiler-owned pthread cleanup and DWARF source resolution remain missing.
   Linux directory locks do not prohibit an uncoordinated cleaner's rename.
@@ -964,7 +966,7 @@ by portable modules and products. The earlier entries prepare and enforce the sa
   Source debug output is explicitly rejected until DWARF source records exist. Shared-library
   linking currently permits text relocations; it does not establish PIC or loader lifecycle support.
   Persistent native function caches remain COFF-specific and are disabled for Linux.
-- Next: validate native fault/stack recovery and shared-module initialization/cleanup; finish Linux
+- Next: validate shared-module initialization/cleanup; finish Linux
   dependency naming/publication, PIC relocations, source-level DWARF and target-specific incremental
   caches. Preserve the working native executable and archive consumers.
 - Done when: Linux executables and shared libraries link and run a runtime/native workspace smoke,

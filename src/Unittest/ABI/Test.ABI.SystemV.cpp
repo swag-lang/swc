@@ -11,6 +11,8 @@
 #include "Backend/RuntimeContext.h"
 #include "Backend/JIT/JITMemoryManager.h"
 #include "Backend/Micro/MachineCode.h"
+#include "Backend/Native/NativeBackendBuilder.h"
+#include "Support/Os/Os.h"
 #include "Backend/Micro/Passes/Pass.Emit.h"
 #include "Backend/Micro/Passes/Pass.PostRADeadCodeElim.h"
 #include "Main/Command/CommandLine.h"
@@ -1850,15 +1852,28 @@ SWC_TEST_END()
 
 namespace
 {
-    Result runLinuxRuntimeProbe(const TaskContext& ctx, std::string_view name, std::string_view source)
+    Result runLinuxRuntimeProbe(const TaskContext& ctx, std::string_view name, std::string_view source, bool native = false)
     {
+        struct RemoveNativeArtifacts
+        {
+            fs::path path;
+            ~RemoveNativeArtifacts() { if (!path.empty()) { std::error_code error; fs::remove_all(path, error); } }
+        } artifacts;
         CommandLine command;
-        command.command  = CommandKind::Sema;
+        command.command  = native ? CommandKind::Run : CommandKind::Sema;
         command.targetOs = Runtime::TargetOs::Linux;
         command.buildCfg = "devmode";
         command.numCores = 3;
         command.silent   = true;
         command.name     = name;
+        if (native)
+        {
+            artifacts.path = Os::getTemporaryPath() / "swc_unittest" / std::format("{}_p{}", name, Os::currentProcessId());
+            command.outDir = artifacts.path / "output";
+            command.workDir = artifacts.path / "work";
+            command.outDirStorage = Utf8(command.outDir);
+            command.workDirStorage = Utf8(command.workDir);
+        }
         CommandLineParser::refreshBuildCfg(command);
         const uint64_t errorsBefore = Stats::getNumErrors();
         struct RestoreErrors
@@ -1871,6 +1886,21 @@ namespace
         // These exercise the bootstrap's private host boundary, before application setup.
         Unittest::addTestSource(context, "Runtime", name, source, FileFlagsE::Runtime);
         Command::sema(compiler);
+        if (Stats::getNumErrors() != errorsBefore)
+            return Result::Error;
+        if (native)
+        {
+            NativeBackendBuilder builder(compiler, false);
+            SWC_RESULT(builder.run());
+            std::string output;
+            const Os::ProcessRunOptions options{.capturedOutput = &output, .forwardOutput = false, .timeoutMs = 15000};
+            uint32_t exitCode = 0;
+            if (Os::runProcess(exitCode, builder.artifactPath, {}, artifacts.path, &options) != Os::ProcessRunResult::Ok || exitCode != 0)
+            {
+                std::println(stderr, "[runtime-test] {} exited with {}\n{}", name, exitCode, output);
+                return Result::Error;
+            }
+        }
         return Stats::getNumErrors() == errorsBefore ? Result::Continue : Result::Error;
     }
 }
@@ -2169,7 +2199,9 @@ func verifyFaultCleanup()
     Swag.assert(__LinuxRT.sigaction(7, &busBefore, null) == 0)
     Swag.assert(__LinuxRT.sigaction(11, null, &after) == 0)
     Swag.assert(__LinuxRT.sigaltstack(null, &stackAfter) == 0)
-    Swag.assert(before.handler == after.handler and before.flags == after.flags)
+    // glibc adds its private SA_RESTORER when reinstalling an initially default action.
+    Swag.assert(before.handler == after.handler and (before.flags & 0xFBFFFFFF) == (after.flags & 0xFBFFFFFF))
+    Swag.assert(before.mask[0] == after.mask[0])
     Swag.assert(stackBefore.address == stackAfter.address and stackBefore.flags == stackAfter.flags and stackBefore.size == stackAfter.size)
     let previousArguments = Swag.processInfo().arguments
     let arguments = ["swag.test"]
@@ -2189,7 +2221,12 @@ func verifyFaultCleanup()
     Swag.assert(__LinuxRT.munmap(faultPage, 4096) == 0)
 }
 )SWAG";
-    return runLinuxRuntimeProbe(ctx, "LinuxNativeFaultRecovery", SOURCE);
+    SWC_RESULT(runLinuxRuntimeProbe(ctx, "LinuxNativeFaultRecovery", SOURCE));
+    std::string nativeSource(SOURCE);
+    const size_t entry = nativeSource.find("#run\n");
+    SWC_ASSERT(entry != std::string::npos);
+    nativeSource.replace(entry, 4, "#main");
+    return runLinuxRuntimeProbe(ctx, "LinuxElfFaultRecovery", nativeSource, true);
 }
 SWC_TEST_END()
 

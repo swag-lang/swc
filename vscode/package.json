@@ -119,7 +119,7 @@
         },
         "swag.languageServer.enabled": {
           "type": "boolean",
-          "default": true,
+          "default": false,
           "description": "Enable compiler-backed language features"
         },
         "swag.languageServer.analysisDelay": {

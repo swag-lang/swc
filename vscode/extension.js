@@ -14,7 +14,7 @@ function activate(context)
     {
         if (client || !vscode.workspace.isTrusted) return;
         const config = vscode.workspace.getConfiguration('swag');
-        if (!config.get('languageServer.enabled', true)) return;
+        if (!config.get('languageServer.enabled', false)) return;
         client = new LanguageClient('swag', 'Swag Language Server',
             {module: context.asAbsolutePath('src/server.js'), transport: TransportKind.ipc},
             {

@@ -22,6 +22,10 @@ Compiler-backed language support and a dark theme for Swag in Visual Studio Code
 
 ## Setup
 
+The language server is disabled by default for now to avoid background analysis costs.
+Syntax highlighting, the theme, and build tasks remain available. Set
+`"swag.languageServer.enabled": true` to opt in to compiler-backed features.
+
 Use VS Code 1.82 or newer and a compiler built from this revision. The language server finds
 `swc` on PATH by default; no compiler path setting is required. If PATH was changed while
 VS Code was running, close all VS Code windows and start it again to pick up the new environment.

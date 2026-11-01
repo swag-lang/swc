@@ -396,11 +396,11 @@ func encodeRune(dest: [..] u8, src: rune)->u32
 
     switch
     {
-    case src <= 0x7F:
+    case 0 <= src and src <= 0x7F:
         dest[0] = cast(u8, src)
         return 1
 
-    case src <= 0x07FF:
+    case 0x80 <= src and src <= 0x07FF:
         dest[0] = cast(u8, (((src >> 6) & 0x1F) | 0xC0))
         dest[1] = cast(u8, (((src >> 0) & 0x3F) | 0x80))
         return 2

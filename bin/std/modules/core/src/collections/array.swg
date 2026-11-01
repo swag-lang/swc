@@ -129,11 +129,11 @@ impl Array
         where Reflection.canCopy(T)
     {
         // Preserve an aliased source before clearing the destination.
-        let countof = arr.count
-        if countof and .buffer
+        let sourceCount = arr.count
+        if sourceCount and .buffer
         {
-            let dataof = arr.buffer
-            if dataof >= .buffer and dataof < .buffer + .count
+            let sourceData = arr.buffer
+            if sourceData >= .buffer and sourceData < .buffer + .count
             {
                 var copy: Array'T
                 copy.add(arr)
@@ -143,25 +143,25 @@ impl Array
         }
 
         .clear()
-        if not countof do
+        if not sourceCount do
             return
-        var dataof = arr.buffer
+        let sourceData = arr.buffer
 
-        .grow(countof)
+        .grow(sourceCount)
         #static if Reflection.hasPostCopy(T) or Reflection.hasDynamicStorage(T)
         {
-            .initNewSlots(0, countof)
+            .initNewSlots(0, sourceCount)
             let buffer = unwrap .buffer
-            let srcPtr = unwrap dataof
-            for i in countof do
+            let srcPtr = unwrap sourceData
+            for i in sourceCount do
                 buffer[i] = #nodrop srcPtr[i]
         }
         else
         {
-            Memory.copy(unwrap .buffer, dataof, #sizeof(T) * countof)
+            Memory.copy(unwrap .buffer, sourceData, #sizeof(T) * sourceCount)
         }
 
-        .count += countof
+        .count += sourceCount
     }
 
     // Visits every element in order, binding `item` to the element and `index` to its position.

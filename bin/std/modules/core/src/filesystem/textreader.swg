@@ -84,7 +84,7 @@ public impl TextReader
             let bufferEnd    = .buffer.buffer + .buffer.count
 
             // Scan eight bytes at a time for a line ending, then finish byte by byte.
-            while cursor + 8'u64 <= bufferEnd
+            while cast(u64, (bufferEnd - cursor)) >= 8
             {
                 let word = cast(const *u64, cursor)[]
                 if Math.hasByte(word, '\r') or Math.hasByte(word, '\n') do

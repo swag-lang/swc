@@ -14,6 +14,7 @@
 #include "Backend/Micro/Passes/Pass.PostRADeadCodeElim.h"
 #include "Main/Command/CommandLine.h"
 #include "Main/CompilerInstance.h"
+#include "Main/Stats.h"
 #include "Main/TaskContext.h"
 #include "Compiler/CodeGen/Core/CodeGen.h"
 #include "Compiler/CodeGen/Core/CodeGenFunctionHelpers.h"
@@ -785,6 +786,59 @@ SWC_TEST_BEGIN(ABI_SystemVGeneratedCalleeReturnsPartialAndVectorValues)
                 return Result::Error;
         }
     }
+}
+SWC_TEST_END()
+
+SWC_TEST_BEGIN(JIT_CrossHostForeignBranchRejectsOnlyWhenExecuted)
+{
+    CommandLine commandLine = ctx.cmdLine();
+    commandLine.targetOs = Runtime::TargetOs::Windows;
+    CompilerInstance compiler(ctx.global(), commandLine);
+    TaskContext context(compiler);
+    context.setMuteOutput(true);
+    auto* foreign = Symbol::make<SymbolFunction>(context, nullptr, TokenRef::invalid(), context.idMgr().addIdentifier("unavailable_foreign"), SymbolFlagsE::Zero);
+    AttributeList attributes;
+    attributes.hasForeign = true;
+    attributes.foreignModuleName = "kernel32";
+    attributes.foreignFunctionName = "ExitProcess";
+    foreign->setAttributes(context, attributes);
+    foreign->setCallConvKind(CallConvKind::WindowsX64);
+    foreign->setReturnTypeRef(context.typeMgr().typeVoid());
+
+    uint64_t executeForeign = 0;
+    MicroBuilder builder(context);
+    auto done = builder.createLabel();
+    const auto flag = MicroReg::virtualIntReg(1);
+    builder.emitLoadRegPtrImm(flag, reinterpret_cast<uint64_t>(&executeForeign));
+    builder.emitLoadRegMem(flag, flag, 0, MicroOpBits::B64);
+    builder.emitCmpRegImm(flag, ApInt(0, 64), MicroOpBits::B64);
+    builder.emitJumpToLabel(MicroCond::Equal, MicroOpBits::B32, done);
+    const ABICall::PreparedCall prepared = ABICall::prepareArgs(builder, CallConvKind::WindowsX64, {});
+    ABICall::callExtern(builder, CallConvKind::WindowsX64, foreign, prepared);
+    builder.emitLabel(done);
+    builder.emitRet();
+    MachineCode lowered;
+    SWC_RESULT(lowered.emit(context, builder));
+    JITMemory memory;
+    SWC_RESULT(JIT::emit(context, memory, lowered.bytes, lowered.codeRelocations, lowered.jitUnwindInfo(context)));
+    if (!foreign->jitEntryAddress() || foreign->jitForeignTargetGuard(context) != foreign->jitEntryAddress())
+        return Result::Error;
+    SWC_RESULT(JIT::call(context, memory.entryPoint(), nullptr, nullptr, JITRuntimeSetupMode::None, CallConvKind::Swag));
+
+    executeForeign = 1;
+    const uint64_t errorsBefore = Stats::getNumErrors();
+    const Result rejected = JIT::call(context, memory.entryPoint(), nullptr, nullptr, JITRuntimeSetupMode::None, CallConvKind::Swag);
+    const uint64_t errorsAfter = Stats::getNumErrors();
+    Stats::get().numErrors.store(errorsBefore, std::memory_order_relaxed);
+    if (rejected != Result::Error || errorsAfter != errorsBefore + 1)
+        return Result::Error;
+
+    // An aborted call must leave the host fault boundary and context usable.
+    executeForeign = 0;
+    SWC_RESULT(JIT::call(context, memory.entryPoint(), nullptr, nullptr, JITRuntimeSetupMode::None, CallConvKind::Swag));
+    compiler.resetPreparedJitFunctions();
+    if (foreign->jitEntryAddress())
+        return Result::Error;
 }
 SWC_TEST_END()
 

@@ -56,7 +56,7 @@ namespace
         {
             diagnostic.addNote(DiagnosticId::sema_note_function_declared_here);
             diagnostic.last().addArgument(Diagnostic::ARG_SYM, targetSymbol->getFullScopedName(ctx));
-            if (targetSymbol->codeRef().isValid())
+            if (targetSymbol->decl() && targetSymbol->codeRef().isValid())
                 diagnostic.last().addSpan(targetSymbol->codeRange(ctx));
         }
         diagnostic.report(ctx);
@@ -420,6 +420,16 @@ namespace
         return functionAddress;
     }
 
+    struct ForeignTargetCall
+    {
+        const SymbolFunction* function;
+    };
+
+    [[noreturn]] void rejectForeignTargetCall(const SymbolFunction* function)
+    {
+        throw ForeignTargetCall{function};
+    }
+
     bool tryResolveForeignFunctionAddress(TaskContext& ctx, void*& outFunctionAddress, const SymbolFunction& targetFunction, RelocationResolveFailure* outFailure, JITRelocationPatchContext* patchContext = nullptr)
     {
         outFunctionAddress = nullptr;
@@ -505,6 +515,18 @@ namespace
             patchContext->resolvedFunctionAddresses.set(&targetFunction, outFunctionAddress);
 
         return true;
+    }
+
+    bool resolveForeignRelocationAddress(TaskContext& ctx, void*& outFunctionAddress, SymbolFunction& targetFunction, RelocationResolveFailure* outFailure, JITRelocationPatchContext* patchContext)
+    {
+        if (targetFunction.isForeign() && ctx.cmdLine().targetOs != hostTargetOs())
+        {
+            // A pure compile-time path can reference foreign calls on an untaken
+            // branch. Reject an actual call without loading another OS's library.
+            outFunctionAddress = targetFunction.jitForeignTargetGuard(ctx);
+            return outFunctionAddress != nullptr;
+        }
+        return tryResolveForeignFunctionAddress(ctx, outFunctionAddress, targetFunction, outFailure, patchContext);
     }
 
     Utf8 relocationSymbolName(const TaskContext& ctx, const Symbol* symbol)
@@ -831,7 +853,7 @@ namespace
         if (targetFunction.isForeign())
         {
             void* functionAddress = nullptr;
-            if (!tryResolveForeignFunctionAddress(ctx, functionAddress, targetFunction, outFailure, patchContext))
+            if (!resolveForeignRelocationAddress(ctx, functionAddress, targetFunction, outFailure, patchContext))
                 return Result::Error;
 
             outTargetAddress = reinterpret_cast<uint64_t>(functionAddress);
@@ -871,7 +893,7 @@ namespace
             return false;
 
         void* functionAddress = nullptr;
-        if (!tryResolveForeignFunctionAddress(ctx, functionAddress, *targetFunction, outFailure, patchContext))
+        if (!resolveForeignRelocationAddress(ctx, functionAddress, *targetFunction, outFailure, patchContext))
             return false;
 
         outTargetAddress = reinterpret_cast<uint64_t>(functionAddress);
@@ -1490,6 +1512,18 @@ Result JIT::emit(TaskContext& ctx, JITMemory& outExecutableMemory, const ByteArr
     SWC_RESULT(patch(ctx, outExecutableMemory, relocations, ownerFunction));
     finalize(outExecutableMemory);
     return Result::Continue;
+}
+
+Result JIT::emitForeignTargetGuard(TaskContext& ctx, JITMemory& outExecutableMemory, const SymbolFunction& targetFunction)
+{
+    SWC_ASSERT(ctx.cmdLine().targetOs != hostTargetOs());
+    MicroBuilder builder(ctx);
+    const ABICall::Arg argument{.value = reinterpret_cast<uint64_t>(&targetFunction), .numBits = 64};
+    ABICall::callAddress(builder, CallConv::hostKind(), reinterpret_cast<uint64_t>(&rejectForeignTargetCall), std::span{&argument, 1}, {});
+    builder.emitTrap();
+    MachineCode lowered;
+    SWC_RESULT(lowered.emit(ctx, builder, MicroReg::invalid(), 0, &targetFunction));
+    return emit(ctx, outExecutableMemory, lowered.bytes, lowered.codeRelocations, lowered.jitUnwindInfo(ctx));
 }
 
 bool JIT::resolveForeignFunctionAddress(TaskContext& ctx, void*& outFunctionAddress, const SymbolFunction& targetFunction)
@@ -2229,7 +2263,15 @@ Result JIT::call(TaskContext& ctx, void* invoker, const uint64_t* arg0, JITCallE
             }
         }
     };
-    const bool hasException = !callWithHostFaultHandler(ctx, [](void* argument) { (*static_cast<decltype(invoke)*>(argument))(); }, &invoke, callError);
+    bool hasException = false;
+    try
+    {
+        hasException = !callWithHostFaultHandler(ctx, [](void* argument) { (*static_cast<decltype(invoke)*>(argument))(); }, &invoke, callError);
+    }
+    catch (const ForeignTargetCall& error)
+    {
+        callResult = requireHostTarget(ctx, error.function);
+    }
 
     if (outErrorKind)
         *outErrorKind = hasException ? callError : JITCallErrorKind::None;

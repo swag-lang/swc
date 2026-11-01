@@ -469,6 +469,7 @@ public:
     uint64_t jitReadyVersion() const noexcept { return jitReadyVersion_.load(std::memory_order_acquire); }
     void     setJitReadyVersion(uint64_t version) noexcept { jitReadyVersion_.store(version, std::memory_order_release); }
     void     resetJitState() noexcept;
+    void*    jitForeignTargetGuard(TaskContext& ctx);
 
     Result emit(TaskContext& ctx);
     Result emitOrReuse(TaskContext& ctx);

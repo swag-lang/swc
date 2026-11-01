@@ -730,6 +730,22 @@ Result SymbolFunction::jitMaterialize(TaskContext& ctx)
     return Result::Error;
 }
 
+void* SymbolFunction::jitForeignTargetGuard(TaskContext& ctx)
+{
+    SWC_ASSERT(isForeign());
+    const std::scoped_lock lock(emitMutex_);
+    if (void* entry = jitEntryAddress())
+        return entry;
+
+    // Use the symbol's existing JIT ownership so teardown unregisters the guard
+    // before its compiler and the source declaration referenced by it disappear.
+    if (JIT::emitForeignTargetGuard(ctx, jitExecMemory_, *this) != Result::Continue)
+        return nullptr;
+    ctx.compiler().registerPreparedJitFunction(this);
+    ctx.compiler().publishJitFunctionEntry(*this, jitExecMemory_.entryPoint());
+    return jitExecMemory_.entryPoint();
+}
+
 bool SymbolFunction::jitPrepare(TaskContext& ctx)
 {
     const std::scoped_lock lock(emitMutex_);

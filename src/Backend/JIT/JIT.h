@@ -45,6 +45,7 @@ public:
     static Result patchGlobalFunctionVariables(TaskContext& ctx);
     static void   finalize(JITMemory& executableMemory);
     static Result emit(TaskContext& ctx, JITMemory& outExecutableMemory, const ByteArray& linearCode, std::span<const MicroRelocation> relocations, const ByteArray& unwindInfo, const SymbolFunction* ownerFunction = nullptr);
+    static Result emitForeignTargetGuard(TaskContext& ctx, JITMemory& outExecutableMemory, const SymbolFunction& targetFunction);
     static bool   resolveForeignFunctionAddress(TaskContext& ctx, void*& outFunctionAddress, const SymbolFunction& targetFunction);
 
     // Process-stable Swag entry for a native callback with up to two integer/pointer arguments

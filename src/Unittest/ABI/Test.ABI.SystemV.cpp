@@ -22,6 +22,7 @@
 #include "Compiler/Parser/Ast/AstVisit.h"
 #include "Compiler/Sema/Core/Sema.h"
 #include "Compiler/Sema/Symbol/Symbol.Function.h"
+#include "Compiler/Sema/Symbol/Symbol.Struct.h"
 #include "Compiler/Sema/Symbol/Symbol.Variable.h"
 #include "Compiler/Sema/Type/TypeManager.h"
 #include "Compiler/SourceFile.h"
@@ -73,6 +74,22 @@ namespace
     struct LargeValue { uint64_t first; uint64_t second; uint64_t third; };
     struct SevenBytes { uint8_t bytes[7]; };
     using FourFloats = float __attribute__((vector_size(16)));
+
+    thread_local uint32_t lifecycleCopies = 0;
+    thread_local uint32_t lifecycleDrops = 0;
+
+    __attribute__((ms_abi, noinline)) void copyMixedValue(MixedValue* value)
+    {
+        ++lifecycleCopies;
+        value->integer += 101;
+        value->floating *= 7;
+    }
+
+    __attribute__((ms_abi, noinline)) void dropMixedValue(MixedValue* value)
+    {
+        ++lifecycleDrops;
+        *value = {};
+    }
 
     __attribute__((noinline)) MixedValue changeMixed(MixedValue value)
     {
@@ -1352,6 +1369,88 @@ SWC_TEST_BEGIN(ABI_SystemVSourceReturnLoweringPreservesAllResultLanes)
                     return Result::Error;
             }
         }
+    }
+}
+SWC_TEST_END()
+
+SWC_TEST_BEGIN(ABI_SystemVSourceReturnRunsCopyHookWithoutDroppingBorrowedArgument)
+{
+    for (const auto level : {Runtime::BuildCfgBackendOptimLevel::O0, Runtime::BuildCfgBackendOptimLevel::O2})
+    {
+        CommandLine commandLine = ctx.cmdLine();
+        commandLine.targetOs = Runtime::TargetOs::Linux;
+        CompilerInstance compiler(ctx.global(), commandLine);
+        TaskContext context(compiler);
+        SWC_RESULT(compiler.setupSema(context));
+        compiler.buildCfg().safetyGuards = static_cast<Runtime::SafetyWhat>(0);
+        compiler.buildCfg().sanityGuards = static_cast<Runtime::SafetyWhat>(0);
+        compiler.buildCfg().backend.optimLevel = level;
+        auto& types = context.typeMgr();
+        const std::array locationFields{types.typeString(), types.typeString(), types.typeU32(), types.typeU32(), types.typeU32(), types.typeU32()};
+        types.registerRuntimeType(context.idMgr().predefined(IdentifierManager::PredefinedName::SourceCodeLocation), Backend::Unittest::makeStructType(context, locationFields));
+        const std::array fields{types.typeU64(), types.typeF64()};
+        const TypeRef type = Backend::Unittest::makeStructType(context, fields);
+        const TypeRef pointer = types.addType(TypeInfo::makeValuePointer(type));
+        SourceFile& file = Backend::Unittest::makeCodeGenSource(context, "SystemVLifecycleReturn");
+        auto& ast = file.ast();
+        const auto [declRef, decl] = ast.makeNode<AstNodeId::FunctionDecl>(TokenRef::invalid());
+        const auto [exprRef, expr] = ast.makeNode<AstNodeId::Identifier>(TokenRef::invalid());
+        decl->nodeBodyRef = exprRef;
+        decl->addFlag(AstFunctionFlagsE::Short);
+        auto* function = Symbol::make<SymbolFunction>(context, decl, TokenRef::invalid(), IdentifierRef::invalid(), SymbolFlagsE::Zero);
+        function->setDeclNodeRef(declRef);
+        function->setDeclNodePayloadContext(&file.nodePayloadContext());
+        function->setCallConvKind(K_SYSTEM_V);
+        function->setReturnTypeRef(type);
+        auto* parameter = Symbol::make<SymbolVariable>(context, expr, TokenRef::invalid(), IdentifierRef::invalid(), SymbolFlagsE::Zero);
+        parameter->setTypeRef(type);
+        parameter->addExtraFlag(SymbolVariableFlagsE::Parameter);
+        function->addParameter(parameter);
+
+        // Lifecycle methods retain the Swag pointer ABI even when the enclosing
+        // function returns an aggregate through the native System V registers.
+        for (const auto kind : {SpecOpKind::OpPostCopy, SpecOpKind::OpDrop})
+        {
+            auto* hook = Symbol::make<SymbolFunction>(context, decl, TokenRef::invalid(), IdentifierRef::invalid(), SymbolFlagsE::SemaCompleted);
+            hook->setCallConvKind(CallConvKind::Swag);
+            hook->setReturnTypeRef(types.typeVoid());
+            auto* receiver = Symbol::make<SymbolVariable>(context, expr, TokenRef::invalid(), IdentifierRef::invalid(), SymbolFlagsE::Zero);
+            receiver->setTypeRef(pointer);
+            receiver->addExtraFlag(SymbolVariableFlagsE::Parameter);
+            hook->addParameter(receiver);
+            SWC_RESULT(types.get(type).payloadSymStruct().registerSpecOp(*hook, kind));
+            compiler.publishJitFunctionEntry(*hook, reinterpret_cast<void*>(kind == SpecOpKind::OpPostCopy ? &copyMixedValue : &dropMixedValue));
+        }
+
+        Sema sema(context, file.nodePayloadContext(), false);
+        sema.setSymbol(declRef, function);
+        sema.setSymbol(exprRef, parameter);
+        sema.setIsLValue(exprRef);
+        sema.frame().setCurrentFunction(function);
+        CodeGen codeGen(sema);
+        SWC_RESULT(codeGen.exec(*function, declRef));
+        SWC_RESULT(function->emit(context));
+        const auto& lowered = function->loweredCode();
+        // These hook bodies live in the native test executable, so bind their
+        // relocations directly instead of scheduling source compilation for them.
+        auto relocations = lowered.codeRelocations;
+        for (auto& relocation : relocations)
+        {
+            if (relocation.targetSymbol && relocation.targetSymbol->isFunction())
+                relocation.targetAddress = reinterpret_cast<uint64_t>(relocation.targetSymbol->cast<SymbolFunction>().jitEntryAddress());
+        }
+        JITMemory memory;
+        SWC_RESULT(JIT::prepare(context, memory, lowered.bytes, lowered.unwindInfo, relocations));
+        SWC_RESULT(JIT::patch(context, memory, relocations, function));
+        JIT::finalize(memory);
+        lifecycleCopies = 0;
+        lifecycleDrops = 0;
+        const MixedValue input{79, 2.5};
+        const auto result = reinterpret_cast<MixedValue (*)(MixedValue)>(memory.entryPoint())(input);
+        if (result.integer != input.integer + 101 || result.floating != input.floating * 7)
+            return Result::Error;
+        if (lifecycleCopies != 1 || lifecycleDrops != 0)
+            return Result::Error;
     }
 }
 SWC_TEST_END()

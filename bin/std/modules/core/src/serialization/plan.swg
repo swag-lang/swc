@@ -112,7 +112,7 @@ private
 }
 
 // Returns the shared serialization plan of a struct type, building it on first use.
-public func planFor(structType: const *Swag.TypeInfoStruct)->*Plan fail
+public func planFor(structType: const *Swag.TypeInfoStruct)->const *Plan fail
 {
     let key = cast(u64, structType)
 

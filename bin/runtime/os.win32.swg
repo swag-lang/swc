@@ -588,8 +588,17 @@ func __printString(message: string?)
     if not message or not message.count do
         return
     using __Win32RT
-    let len = cast(u32, message.count)
-    discard WriteFile(GetStdHandle(STD_OUTPUT_HANDLE), message.buffer, len, null, null)
+    let handle = GetStdHandle(STD_OUTPUT_HANDLE)
+    var offset = 0'u64
+    while offset < message.count
+    {
+        let remaining = message.count - offset
+        let length    = remaining > Swag.U32.Max ? Swag.U32.Max : cast(u32, remaining)
+        var written: u32
+        if not WriteFile(handle, message.buffer + offset, length, &written, null) or not written do
+            break
+        offset += written
+    }
 }
 
 #[Swag.Safety(.ValueBorrow, false)]

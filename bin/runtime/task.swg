@@ -563,10 +563,18 @@ impl TaskGroup
     // Releases every child's storage once they have all finished, so the group starts empty.
     private mtd recycle()
     {
+        for index in .inlinedUsed
+        {
+            Swag.drop(&.inlined[index])
+            Swag.init(&.inlined[index])
+        }
+
         var block = .blocks
         while block
         {
             let next = block.next
+            for index in block.used do
+                Swag.drop(&block.children[index])
             __bootstrapFree(cast([*] void?, block))
             block = next
         }
@@ -575,6 +583,7 @@ impl TaskGroup
         .count       = 0
         .inlinedUsed = 0
         .cancelScope.stop.reset()
+        .cancelScope.parent = null
     }
 
     // Returns storage for one more child, allocating a block when the inline storage and the

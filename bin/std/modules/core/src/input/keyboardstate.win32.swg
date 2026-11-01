@@ -16,7 +16,8 @@ impl KeyboardStateNative
 {
     mtd updateNative()
     {
-        discard GetKeyboardState(.nativeState)
+        if not GetKeyboardState(.nativeState) do
+            Memory.clear(&.nativeState, #sizeof(.nativeState))
     }
 
     mtd isKeyPressed(key: Input.Key)->bool

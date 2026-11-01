@@ -33,6 +33,24 @@ using Swag
 #test
 {
     var generator: Random.Generator
+    generator.seedU32(98765)
+
+    for 4096
+    {
+        let power32 = generator.nextU32(0, 8)
+        let power64 = generator.nextU64(0, 16)
+        let signed32 = generator.nextS32(-4, 4)
+        let signed64 = generator.nextS64(-8, 8)
+        Swag.assert(power32 < 8)
+        Swag.assert(power64 < 16)
+        Swag.assert(signed32 >= -4 and signed32 < 4)
+        Swag.assert(signed64 >= -8 and signed64 < 8)
+    }
+}
+
+#test
+{
+    var generator: Random.Generator
     generator.seedU32(12345)
 
     var values: [8] u32 = [0, 1, 2, 3, 4, 5, 6, 7]

@@ -73,3 +73,21 @@ struct ExecutorFailure
     for &task in tasks do
         Swag.assert(task.isDone())
 }
+
+// Closing from the executor's own thread is rejected instead of joining itself.
+#test
+{
+    var executor: Swag.Executor
+    var task:     Swag.Task
+    var caught:   Swag.AtomicFlag
+    executor.start()
+    task.submit(func|&executor, &caught|()
+    {
+        let result = Swag.catchPanic(func|&executor|() { executor.close() })
+        if result.raised do
+            discard caught.raise()
+    }, executor: &executor)
+    expect task.take()
+    Swag.assert(caught.isRaised() == (not Swag.jit()))
+    executor.close()
+}

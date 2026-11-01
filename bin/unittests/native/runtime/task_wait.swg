@@ -80,6 +80,62 @@ func completeDescendants(depth: u32, completed: *Swag.AtomicValue'u32)
     child.submit(func|depth, completed|() { completeDescendants(depth - 1, completed) })
 }
 
+var taskGroupCaptureOwners: Swag.AtomicValue'u32
+
+struct TaskGroupCapture
+{
+    value:   u32
+    counted: bool
+}
+
+impl TaskGroupCapture
+{
+    mtd opDrop()
+    {
+        if .counted do
+            taskGroupCaptureOwners.sub(1)
+    }
+
+    mtd opPostCopy()
+    {
+        .counted = true
+        taskGroupCaptureOwners.add(1)
+    }
+}
+
+// Joining a group releases closure captures from inline and overflow child storage.
+#test
+{
+    taskGroupCaptureOwners.store(0)
+    var capture = TaskGroupCapture{1}
+    {
+        var group: Swag.TaskGroup
+        for _ in 5 do
+            group.spawn(func|capture|() { discard capture.value })
+        expect group.join()
+        Swag.assert(not group.isCancelled())
+        Swag.assert(taskGroupCaptureOwners.load() == 0)
+    }
+    Swag.assert(taskGroupCaptureOwners.load() == 0)
+}
+
+// Recycled groups stop observing the cancellation scope that submitted their last child.
+#test
+{
+    var group: Swag.TaskGroup
+    var task:  Swag.Task
+    let owner = &task
+    task.submit(func|&group, owner|()
+    {
+        owner.cancel()
+        group.spawn(func() {})
+        Swag.assert(group.isCancelled())
+        expect group.join()
+        Swag.assert(not group.isCancelled())
+    })
+    expect task.take()
+}
+
 // Successful nesting uses task frames, not error stack levels.
 #test
 {

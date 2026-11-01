@@ -97,9 +97,9 @@ impl Generator
     {
         Swag.assert(max > min, "[[max]] must be greater than [[min]]")
         let range = max - min
-        let limit = Swag.U32.Max - Swag.U32.Max % range
+        let threshold = cast #wrap (u32, (0'u32 - range)) % range
         var value = .nextU32()
-        while value >= limit do
+        while value < threshold do
             value = .nextU32()
         value %= range
         return min + value
@@ -112,9 +112,9 @@ impl Generator
     {
         Swag.assert(max > min, "[[max]] must be greater than [[min]]")
         let range = max - min
-        let limit = Swag.U64.Max - Swag.U64.Max % range
+        let threshold = cast #wrap (u64, (0'u64 - range)) % range
         var value = .nextU64()
-        while value >= limit do
+        while value < threshold do
             value = .nextU64()
         value %= range
         return min + value
@@ -130,9 +130,9 @@ impl Generator
         let minBits = cast #bit (u32, min)
         let maxBits = cast #bit (u32, max)
         let range   = cast #wrap (u32, (maxBits - minBits))
-        let limit   = Swag.U32.Max - Swag.U32.Max % range
-        var value   = .nextU32()
-        while value >= limit do
+        let threshold = cast #wrap (u32, (0'u32 - range)) % range
+        var value     = .nextU32()
+        while value < threshold do
             value = .nextU32()
         value %= range
         return cast #bit (s32, cast #wrap (u32, (minBits + value)))
@@ -148,9 +148,9 @@ impl Generator
         let minBits = cast #bit (u64, min)
         let maxBits = cast #bit (u64, max)
         let range   = cast #wrap (u64, (maxBits - minBits))
-        let limit   = Swag.U64.Max - Swag.U64.Max % range
-        var value   = .nextU64()
-        while value >= limit do
+        let threshold = cast #wrap (u64, (0'u64 - range)) % range
+        var value     = .nextU64()
+        while value < threshold do
             value = .nextU64()
         value %= range
         return cast #bit (s64, cast #wrap (u64, (minBits + value)))

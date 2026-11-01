@@ -40,13 +40,41 @@ struct(T) IterationRange
     inclusive: bool
 }
 
-// Returns a zero-allocation half-open interval `[lower, upper)`.
+// Returns a zero-allocation half-open interval `[lower, upper)` with integer bounds.
 #[Swag.Inline]
-func(T) range(lower, upper: T)->IterationRange'T => {lower: lower, upper: upper}
+func(T) range(lower, upper: T)->IterationRange'T
+    where
+    {
+        var rawType = #typeof(#type T)
+        while rawType.kind == .Alias do
+            rawType = cast(const *Swag.TypeInfoAlias, cast(const *void, rawType)).rawType
+        if rawType.kind != .Native do
+            return false
 
-// Returns a zero-allocation closed interval `[lower, upper]`.
+        let native = cast(const *Swag.TypeInfoNative, cast(const *void, rawType))
+        return native.nativeKind >= .S8 and native.nativeKind <= .U64
+    }
+{
+    return {lower: lower, upper: upper}
+}
+
+// Returns a zero-allocation closed interval `[lower, upper]` with integer bounds.
 #[Swag.Inline]
-func(T) rangeTo(lower, upper: T)->IterationRange'T => {lower: lower, upper: upper, inclusive: true}
+func(T) rangeTo(lower, upper: T)->IterationRange'T
+    where
+    {
+        var rawType = #typeof(#type T)
+        while rawType.kind == .Alias do
+            rawType = cast(const *Swag.TypeInfoAlias, cast(const *void, rawType)).rawType
+        if rawType.kind != .Native do
+            return false
+
+        let native = cast(const *Swag.TypeInfoNative, cast(const *void, rawType))
+        return native.nativeKind >= .S8 and native.nativeKind <= .U64
+    }
+{
+    return {lower: lower, upper: upper, inclusive: true}
+}
 
 #[Swag.Opaque]
 struct(T) ReversedRange
@@ -78,7 +106,7 @@ impl IterationRange
     }
 }
 
-// Returns the same interval with descending traversal.
+// Returns the same integer interval with descending traversal.
 #[Swag.Inline]
 func(T) reversed(value: IterationRange'T)->ReversedRange'T
     =>

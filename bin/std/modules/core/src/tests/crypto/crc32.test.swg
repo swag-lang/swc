@@ -77,6 +77,8 @@ func fillCrc32Pattern(buffer: [..] u8)
     assertCrc32(data[until 256])
     assertCrc32(data[until 257])
     assertCrc32(data[1 until 130])
+    // Exercise 128 folded bytes from an unaligned address, followed by a one-byte tail.
+    assertCrc32(data[1 until 130], 0x12345678)
 
     var split: Hash.Crc32
     split.reset()

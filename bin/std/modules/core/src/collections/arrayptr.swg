@@ -84,6 +84,7 @@ impl ArrayPtr
     // Allocates a default-initialized object, appends its pointer, and returns it.
     mtd addNew()->*T
     {
+        .grow(.count + 1)
         let ptr = .allocate()
         .add(ptr)
         return ptr
@@ -92,6 +93,8 @@ impl ArrayPtr
     // Allocates a default-initialized object, inserts its pointer at `index`, and returns it.
     mtd insertNew(index: u64)->*T
     {
+        Debug.safetyBoundCheck(index <= .count, "index out of range")
+        .grow(.count + 1)
         let ptr = .allocate()
         .insertAt(index, ptr)
         return ptr

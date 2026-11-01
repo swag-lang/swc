@@ -285,8 +285,17 @@ impl ExplorerPreview
         var name = Format.toString("scope-artwork-%", Guid64.random())
         name += extension
         let file = Path.combine(Env.getSpecialDirectory(.Temp), name)
-        defer catch File.delete(file)
-        discard try File.writeAllBytes(file, bytes)
+        var ownsTemporary = false
+        defer
+        {
+            if ownsTemporary do
+                discard catch File.delete(file)
+        }
+
+        var output = try File.open(file, .CreateNew, .Write, .Delete)
+        ownsTemporary = true
+        discard try output.writeAll(bytes)
+        output.close()
         return try .service.render(file)
     }
 

@@ -1638,7 +1638,7 @@ Result JIT::emitAndCall(TaskContext& ctx, void* targetFn, std::span<const JITArg
     thread_local InvokerCache cache;
 
     const auto& backend = ctx.compiler().buildCfg().backend;
-    const bool  unwind  = ctx.compiler().cmdLine().targetOs == Runtime::TargetOs::Windows || backend.enableExceptions || backend.debugInfo;
+    const bool  unwind  = (ctx.compiler().cmdLine().targetOs == Runtime::TargetOs::Windows || ctx.compiler().cmdLine().targetOs == Runtime::TargetOs::Linux) || backend.enableExceptions || backend.debugInfo;
 
     void* invoker = nullptr;
     for (const auto& entry : cache.entries)

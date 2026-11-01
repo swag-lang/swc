@@ -4,6 +4,7 @@
 #include "Backend/ABI/ABICall.h"
 #include "Backend/Encoder/X64Encoder.h"
 #include "Backend/JIT/JITMemoryManager.h"
+#include "Backend/Micro/MachineCode.h"
 #include "Backend/Micro/Passes/Pass.Emit.h"
 #include "Backend/Micro/Passes/Pass.PostRADeadCodeElim.h"
 #include "Main/Command/CommandLine.h"
@@ -44,17 +45,29 @@ namespace
         return integer * 2 + floating;
     }
 
-    Result executeSystemVThunk(TaskContext& context, MicroBuilder& builder)
+    Result executeSystemVThunk(TaskContext& context, MicroBuilder& builder, const bool fullPipeline = false)
     {
         builder.emitRet();
-        X64Encoder encoder(context);
-        SWC_RESULT(Backend::Unittest::runMicroPass<MicroPostRaDeadCodeElimPass>(builder, &encoder, K_SYSTEM_V));
-        SWC_RESULT(Backend::Unittest::runMicroPass<MicroEmitPass>(builder, &encoder, K_SYSTEM_V));
         ByteArray code;
-        code.resize(encoder.size());
-        encoder.copyTo(code);
         ByteArray unwind;
-        encoder.buildUnwindInfo(unwind);
+        if (fullPipeline)
+        {
+            MachineCode lowered;
+            SWC_RESULT(lowered.emit(context, builder));
+            code = std::move(lowered.bytes);
+            unwind = std::move(lowered.unwindInfo);
+        }
+        else
+        {
+            X64Encoder encoder(context);
+            SWC_RESULT(Backend::Unittest::runMicroPass<MicroPostRaDeadCodeElimPass>(builder, &encoder, K_SYSTEM_V));
+            SWC_RESULT(Backend::Unittest::runMicroPass<MicroEmitPass>(builder, &encoder, K_SYSTEM_V));
+            code.resize(encoder.size());
+            encoder.copyTo(code);
+            encoder.buildUnwindInfo(unwind);
+        }
+        if (unwind.empty())
+            return Result::Error;
         JITMemoryManager manager;
         JITMemory memory;
         manager.allocateWithCodeSize(memory, static_cast<uint32_t>(code.size() + unwind.size() + 3), static_cast<uint32_t>(code.size()));
@@ -136,6 +149,8 @@ SWC_TEST_BEGIN(ABI_SystemVPreparedRegistersPreserveRaxCallTarget)
     CommandLine commandLine = ctx.cmdLine();
     commandLine.targetOs = Runtime::TargetOs::Linux;
     CompilerInstance compiler(ctx.global(), commandLine);
+    compiler.buildCfg().backend.enableExceptions = false;
+    compiler.buildCfg().backend.debugInfo = false;
     TaskContext context(compiler);
     MicroBuilder builder(context);
     constexpr MicroReg integer = MicroReg::intReg(10);
@@ -153,7 +168,7 @@ SWC_TEST_BEGIN(ABI_SystemVPreparedRegistersPreserveRaxCallTarget)
     builder.emitLoadRegPtrImm(target, reinterpret_cast<uint64_t>(twoScalars));
     double result = 0;
     ABICall::callReg(builder, K_SYSTEM_V, target, prepared, {.valuePtr = &result, .isVoid = false, .isFloat = true, .numBits = 64});
-    SWC_RESULT(executeSystemVThunk(context, builder));
+    SWC_RESULT(executeSystemVThunk(context, builder, true));
     if (result != 21.5)
         return Result::Error;
 }

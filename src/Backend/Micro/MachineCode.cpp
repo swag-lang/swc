@@ -87,10 +87,10 @@ bool MachineCode::tryResolveDebugSourceRangeAtOffset(const TaskContext& ctx, Res
 Result MachineCode::emit(TaskContext& ctx, MicroBuilder& builder, MicroReg debugStackBaseVirtualReg, uint16_t sanitizerSafetyMask, const SymbolFunction* sanitizerFunction)
 {
     const Runtime::BuildCfgBackend& backendBuildCfg = ctx.compiler().buildCfg().backend;
-    // Windows uses the PE exception directory for ordinary stack walking too. Omitting it from a
-    // release DLL makes RtlCaptureStackBackTrace stop at that module boundary, so panic reports lose
-    // the application caller even when the artifact carries Swag symbols.
-    const bool computeUnwindInfo = ctx.compiler().cmdLine().targetOs == Runtime::TargetOs::Windows || backendBuildCfg.enableExceptions || backendBuildCfg.debugInfo;
+    // Both supported hosts require unwind metadata for ordinary stack walking. Linux
+    // also needs it to run native cleanup when a registered JIT frame faults, even
+    // when language exceptions and debug information are disabled.
+    const bool computeUnwindInfo = (ctx.compiler().cmdLine().targetOs == Runtime::TargetOs::Windows || ctx.compiler().cmdLine().targetOs == Runtime::TargetOs::Linux) || backendBuildCfg.enableExceptions || backendBuildCfg.debugInfo;
 
     MicroPassContext passContext;
     passContext.callConvKind             = CallConvKind::Swag;

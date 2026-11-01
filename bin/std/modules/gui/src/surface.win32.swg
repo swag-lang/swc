@@ -1175,7 +1175,7 @@ impl Surface
         {
             let curFocus = .wnd.view.focusedWindow()
             if not curFocus or not .wnd.isAncestorOf(curFocus) do
-                .wnd.view.setFocus()
+                discard .restoreFocus()
             .wnd.view.sendStateEvent(.Show)
             return
         }
@@ -1185,7 +1185,7 @@ impl Surface
 
         let curFocus = .wnd.view.focusedWindow()
         if not curFocus or not .wnd.isAncestorOf(curFocus) do
-            .wnd.view.setFocus()
+            discard .restoreFocus()
         SetActiveWindow(.hWnd)
         SetFocus(.hWnd)
 

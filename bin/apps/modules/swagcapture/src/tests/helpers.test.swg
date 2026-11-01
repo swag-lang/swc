@@ -70,6 +70,8 @@ impl HeadlessFixture
         view.libWnd    = .main.libWnd
         view.mainWnd   = .main
         view.scrollWnd = scroll
+        view.focusPolicy = .Tab
+        view.wndFlags   |= .NoFocusRing
         scroll.setView(view)
         .main.libWnd.view = view
         return .main.libWnd

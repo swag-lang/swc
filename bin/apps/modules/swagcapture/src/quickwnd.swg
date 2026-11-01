@@ -1433,6 +1433,7 @@ impl QuickWnd
             .formItf  = form
             .quickWnd = me
             .isTransient = isTransient
+            .focusPolicy = .Inner
             var name: String
             if me.currentStyle do
                 name = me.currentStyle.nameOf(me.currentStyle.indexOf(form))
@@ -1508,6 +1509,7 @@ impl QuickWnd
             .setCheckIndicator(.None)
             .setArrowPosition(.None)
             .backgroundStyle = .Transparent
+            .focusPolicy = .Inner
             clearChipGround(btn)
             .iconPainter = func(button, bc, _, flags) { paintAddPreset(bc.painter, assume cast(*QuickButton, button), more: true, hot: flags.has(.Hot)) }
         }
@@ -1669,6 +1671,7 @@ impl QuickWnd
             .dockStyle       = .Center
             .backgroundStyle = .Transparent
             .focusPolicy     = .Tab
+            .wndFlags        |= .NoFocusRing
             .quick           = me
         }
 
@@ -1728,6 +1731,7 @@ impl QuickWnd
             .setForm(.RoundedRectangle)
             .setCheckIndicator(.None)
             .backgroundStyle = .Transparent
+            .focusPolicy = .Inner
             clearChipGround(btn)
             .iconPainter = func(button, bc, _, flags) { paintAddPreset(bc.painter, assume cast(*QuickButton, button), hot: flags.has(.Hot)) }
         }

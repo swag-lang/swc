@@ -49,7 +49,8 @@ struct ViewerWindow
         searchNext:           *IconButton
         searchOptionsButton:  *IconButton
         appearanceButton:     *AppearanceButton
-        outlineCaptionButton: *CaptionButton
+        outlineCaptionButton:        *CaptionButton
+        returnExplorerCaptionButton: *CaptionButton
         lens:                 *Lens.View
         infoSheet:            *InfoSheet
         hintLine:             *HintLine
@@ -62,7 +63,6 @@ struct ViewerWindow
         searchOverlay:        *ViewerSearchOverlay
         dropHighlight:        *ViewerDropHighlight
         viewerBar:            *FloatingPanel
-        returnExplorerButton: *IconButton
         home:                 *ViewerHome
         filePanelHost:        *Wnd
         filePanel:            *SplitterCtrl
@@ -79,6 +79,7 @@ struct ViewerWindow
 
     thumbnailMode:  bool
     explorerActive: bool
+    explorerTransition: bool    // Keep the folder visible until the file viewer can replace it.
     explorer:       *Explorer?
 
     index:                   ViewerPluginRegistry
@@ -708,6 +709,7 @@ impl ViewerWindow
     mtd refreshArtwork()
     {
         .outlineCaptionButton.button.setIcon(.theme().icon(.Outline, .themeMetrics().wnd_CaptionButtonGlyph))
+        .returnExplorerCaptionButton.button.setIcon(.theme().icon(.ChevronLeft, .themeMetrics().wnd_CaptionButtonGlyph))
         .searchPrevious.setIcon(.theme().icon(.SearchPrevious, themeActionIconSize(.themeMetrics())))
         .searchNext.setIcon(.theme().icon(.SearchNext, themeActionIconSize(.themeMetrics())))
         .refreshSearchPresentation()
@@ -717,6 +719,12 @@ impl ViewerWindow
     {
         .outlineCaptionButton.toolTip = Format.toString("% (%)", outlineTitle(),
                                                        Input.formatKeyShortcut(Input.KeyModifiers.Control | .Shift, .O))
+    }
+
+    mtd refreshExplorerCaption()
+    {
+        .returnExplorerCaptionButton.toolTip = appStrings().cmd_ReturnToExplorer
+        .returnExplorerCaptionButton.show(.canReturnToExplorer() and not .fullScreen)
     }
 
     // Lays the home out again for the history, the theme or the language in force.
@@ -738,7 +746,7 @@ impl ViewerWindow
     // Puts the commands of the active viewer in the floating bar, or empties it.
     mtd updateViewerBar()
     {
-        if not .currentCommands and not .canReturnToExplorer() do
+        if not .currentCommands do
             .viewerBarShown = false
         .layoutViewerBar()
     }
@@ -750,7 +758,7 @@ impl ViewerWindow
     // Shows the viewer's commands for as long as the pointer keeps moving.
     mtd revealViewerBar()
     {
-        if not .currentCommands and not .canReturnToExplorer() do
+        if not .currentCommands do
             return
         .viewerBarShown = true
         .layoutViewerBar()
@@ -790,11 +798,9 @@ impl ViewerWindow
     mtd layoutViewerBar()
     {
         let commands = .currentCommands
-        let hasReturn = .canReturnToExplorer()
-        .returnExplorerButton.show(hasReturn)
-        let visible = (commands != null or hasReturn) and .viewerBarShown
+        let visible = commands != null and .viewerBarShown
         .viewerBar.show(visible)
-        if not commands and not hasReturn do
+        if not commands do
             return
 
         let metrics = .themeMetrics()
@@ -802,26 +808,14 @@ impl ViewerWindow
         let inset   = metrics.floating_Inset
         let pad     = .viewerBar.padding
         let room    = Math.max(area.width - 2 * inset - pad.x - pad.z, 0)
-        let requestedWidth = commands ? (commands.preferredSize.x > 0 ? commands.preferredSize.x : room) : 0
-        let commandHeight = commands ? commands.position.height : 0
-        let returnSize = hasReturn ? .returnExplorerButton.position.width : 0
-        let gap = hasReturn and commands ? metrics.miniBar_Gap : 0
-        let commandRoom = Math.max(room - returnSize - gap, 0)
-        let commandWidth = Math.min(requestedWidth, commandRoom)
-        let width = commandWidth + returnSize + gap
-        let height  = Math.max(commandHeight, hasReturn ? .returnExplorerButton.position.height : 0) + pad.y + pad.w
+        let wanted  = commands.preferredSize.x > 0 ? commands.preferredSize.x : room
+        let width   = Math.min(wanted, room)
+        let height  = commands.position.height + pad.y + pad.w
         let bottom  = area.bottom() - (.readingLine.isLocallyVisible() ? metrics.miniBar_Distance : inset)
         .viewerBar.setPosition(Math.Rectangle{Math.round(area.horzCenter() - (width + pad.x + pad.z) * 0.5), bottom - height, width + pad.x + pad.z, height}, computeLayout: false)
-        if commands
-        {
-            commands.dockStyle = .None
-            commands.setPosition(Math.Rectangle{pad.x, pad.y, Math.min(commandWidth, width), commandHeight}, computeLayout: false)
-            commands.applyLayout()
-        }
-        if hasReturn do
-            .returnExplorerButton.setPosition(Math.Rectangle{pad.x + Math.min(commandWidth, width) + gap,
-                                                              pad.y + (height - pad.y - pad.w - .returnExplorerButton.position.height) * 0.5,
-                                                              returnSize, .returnExplorerButton.position.height}, computeLayout: false)
+        commands.dockStyle = .None
+        commands.setPosition(Math.Rectangle{pad.x, pad.y, width, commands.position.height}, computeLayout: false)
+        commands.applyLayout()
         if visible do
             .viewerBar.bringToFront()
     }
@@ -911,6 +905,7 @@ impl ViewerWindow
         }
 
         .outlineCaptionButton.show(not .fullScreen and .currentSidePanelButton and .currentSidePanelButton.id == OutlineToggleId)
+        .refreshExplorerCaption()
         surface.invalidate()
         .refreshReadingAppearance()
         .applyLayout()
@@ -929,6 +924,12 @@ impl ViewerWindow
         result.language        = Gui.ReferenceLanguage
         result.index.attachTo(result.app())
 
+        with result.returnExplorerCaptionButton = CaptionButton.create(result.surface, .ChevronLeft, ViewerCommands.ReturnToExplorer)
+        {
+            .toolTip    = appStrings().cmd_ReturnToExplorer
+            .sigPressed += func|window = result|(_) { window.closeFile() }
+            .hide()
+        }
         result.createAppearanceChrome()
         with result.mainSplitter = SplitterCtrl.create(result)
         {
@@ -1101,7 +1102,10 @@ impl ViewerWindow
 
         // A declined key bubbles back here and navigates to another file, which destroys the
         // viewer the key was offered to; only a viewer that is still showing takes the keyboard.
-        if takeFocus and copy.accepted and .currentView == view do
+        if takeFocus and
+           copy.accepted and
+           .currentView == view and
+           target.focusPolicy != .None do
             target.setFocus()
         return copy.accepted
     }
@@ -1121,7 +1125,7 @@ impl ViewerWindow
         .teachHints(.isExploring())
         .searchPrevious.toolTip      = texts.ui_SearchPrevious
         .searchNext.toolTip          = texts.ui_SearchNext
-        .returnExplorerButton.toolTip = texts.cmd_ReturnToExplorer
+        .refreshExplorerCaption()
         .searchOptionsButton.toolTip = texts.ui_SearchOptions
         .refreshOutlineCaption()
         .refreshSearchPresentation()

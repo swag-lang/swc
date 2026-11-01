@@ -166,7 +166,7 @@ func compositeColorChanged(_: *ColorPickerCtrl)
 
     ctrl.edit.setFocus()
     ctrl.edit.setText("invalid")
-    host.root.setFocus()
+    ctrl.setFocus()
     Swag.assert(Math.abs(ctrl.value() - 72) < 0.01)
 }
 

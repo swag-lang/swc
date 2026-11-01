@@ -99,10 +99,12 @@ impl LibraryWnd
 
         with .view = Wnd.create'LibraryView(me.captureHost)
         {
-            .libWnd    = me
-            .padding   = LibraryCellRing
-            .scrollWnd = me.captureHost
-            .mainWnd   = me.main
+            .libWnd      = me
+            .padding     = LibraryCellRing
+            .scrollWnd   = me.captureHost
+            .mainWnd     = me.main
+            .focusPolicy = .Tab
+            .wndFlags   |= .NoFocusRing
         }
 
         .captureHost.setView(.view)

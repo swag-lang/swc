@@ -13,8 +13,9 @@ impl EditWnd
 
         with let view = Wnd.create'EditView(scroll)
         {
-            .scroll = scroll
-            .main   = main
+            .scroll      = scroll
+            .main        = main
+            .focusPolicy = .Click
         }
 
         scroll.editView = view

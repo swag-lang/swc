@@ -133,7 +133,7 @@ impl IWnd for RichEditView
                 if evt.key == .Escape or (evt.key == .Enter and evt.modifiers.equals(.None))
                 {
                     evt.accepted = false
-                    .topView().setFocus()
+                    .releaseFocus()
                     return
                 }
             }

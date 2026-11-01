@@ -45,8 +45,9 @@ struct ExplorerPreview
     index:           u64
     generation:      u64
     opening:         bool
-    online:          bool     // The second pass enriches a published local preview.
+    online:          bool     // The second pass looks up online artwork before publishing a movie frame.
     needsOnline:     bool
+    posterPending:   bool     // Keep a movie frame hidden while its preferred poster is fetched.
     settings:        String
 }
 
@@ -56,6 +57,7 @@ impl ExplorerPreview
     {
         .image = {}
         .needsOnline = false
+        .posterPending = false
         .error.clear()
         .temporary.clear()
         let operation = me
@@ -159,6 +161,7 @@ impl ExplorerPreview
                 }
                 else do
                     .image = try .service.render(file, .settings)
+                .posterPending = .needsOnline and settings.onlineMovies and not albumAudio(file) and Reader.canOpen(file)
                 let current = catch ThumbnailCache.key(source, member, settings: .settings)
                 if not Swag.isCancelled() and cache == current do
                     catch ThumbnailCache.write(cache, &.image)

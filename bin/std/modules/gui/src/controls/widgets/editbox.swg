@@ -576,7 +576,7 @@ private impl EditBox
             .sigSubmitted.call(me)
             if not .flags.has(.ReleaseFocusOnEnterOrEscape) do
                 return false
-            .topView().setFocus()
+            .releaseFocus()
             return true
 
         case .Escape:
@@ -1325,7 +1325,10 @@ impl EditBox
         defer .sigCommitted.enable()
         .restoreOriginalText()
         .sigCancelled.call(me)
-        target.setFocus()
+        if target.focusPolicy != .None do
+            target.setFocus()
+        else do
+            .releaseFocus()
     }
 
     // Selects unrestricted built-in text input; a custom validator still applies.

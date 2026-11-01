@@ -106,13 +106,6 @@ impl ViewerWindow
             .padding = Math.Vector4{x: pad * 2, y: pad, z: pad * 2, w: pad}
             .hide()
         }
-
-        with .returnExplorerButton = Viewer.createActionButton(.viewerBar, .ChevronLeft)
-        {
-            .hide()
-            .toolTip    = appStrings().cmd_ReturnToExplorer
-            .sigPressed += func|window = me|(_) { window.closeFile() }
-        }
     }
 
     // Builds the sheet of readings `I` opens, and the hint teaching the door while the window is

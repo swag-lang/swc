@@ -50,6 +50,7 @@ struct InfoSheet
     blocks:    Array'InfoSheetBlock
     hotLink:   u64 = Swag.U64.Max
     actionTop: f32     // Top of the action when it follows the head, from the latest layout.
+    late closeButton: *IconButton
 }
 
 internal enum InfoSheetBlockKind
@@ -88,8 +89,10 @@ impl IWnd for InfoSheet
         let top     = bounds.y + Math.max(inset, parent.stripInset())
         let height  = Math.min(.measureBody(width), bounds.bottom() - inset - top)
         let left    = bounds.right() - inset - width
+        let closeSize = metrics.embInfo_CloseSize
         liftFloating(me)
         .setPosition(Math.Rectangle{left, top, width, height})
+        .closeButton.setPosition(Math.Rectangle{width - metrics.infoSheet_Padding - closeSize, metrics.infoSheet_Padding - metrics.embInfo_CloseMargin, closeSize, closeSize})
 
         // The primary action takes the foot of the sheet, or follows the head beside a picture;
         // with a secondary one, each takes half.
@@ -156,18 +159,19 @@ impl IWnd for InfoSheet
 
         // Nothing runs past the padding: a line longer than the sheet ends with an ellipsis.
         let right     = x + width
+        let titleRight = right - metrics.embInfo_CloseSize - 2 * metrics.embInfo_CloseMargin
         let scale     = .deviceScale()
         let titleFont = theme.createDefaultFont(metrics.infoSheet_TitleFontSize, .Bold)
         if not .title.isEmpty()
         {
-            painter.drawString(headX, y, Painter.elideString(.title, titleFont, right - headX, scale), titleFont, colors.text)
+            painter.drawString(headX, y, Painter.elideString(.title, titleFont, titleRight - headX, scale), titleFont, colors.text)
             y += titleFont.height
         }
 
         let monoFont = theme.createDefaultFontFs(metrics.defaultFontSize - 1)
         if not .identity.isEmpty()
         {
-            painter.drawString(headX, y + metrics.infoSheet_LineGap, Painter.elideString(.identity, monoFont, right - headX, scale), monoFont, colors.faintText)
+            painter.drawString(headX, y + metrics.infoSheet_LineGap, Painter.elideString(.identity, monoFont, titleRight - headX, scale), monoFont, colors.faintText)
         }
 
         let bodyFont  = theme.createDefaultFont(metrics.defaultFontSize)
@@ -250,6 +254,15 @@ impl InfoSheet
             .dockStyle       = .Float
             .backgroundStyle = .Transparent
             .wndFlags.add(.Hidden)
+        }
+
+        let theme = result.theme()
+        with result.closeButton = IconButton.create(result,
+                                                   theme.icon(.WndClose, theme.metrics.embInfo_CloseGlyph),
+                                                   Math.Rectangle{0, 0, theme.metrics.embInfo_CloseSize, theme.metrics.embInfo_CloseSize})
+        {
+            .toolTip    = Gui.strings().dlg_Close
+            .sigPressed += func|sheet = result|(_) { sheet.close() }
         }
 
         return result

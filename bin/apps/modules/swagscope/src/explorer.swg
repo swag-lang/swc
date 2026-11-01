@@ -1827,6 +1827,11 @@ impl IWnd for Explorer
                             .entries[preview.index].albumTrack = preview.mediaFile
                         if not preview.online do
                             .entries[preview.index].onlinePending = preview.needsOnline
+                        if preview.posterPending
+                        {
+                            .requestPreview()
+                            return
+                        }
                         if preview.index == .selected and not preview.error.isEmpty() do
                             .setStatus(preview.error)
                         let replacing = .entries[preview.index].texture.isValid()

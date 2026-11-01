@@ -62,7 +62,7 @@ enum BackgroundStyle
 // stop beside it.
 enum FocusPolicy
 {
-    None      // Never takes the keyboard focus; the traversal walks through to the children.
+    None      // Never takes focus; pointer and programmatic requests are ignored, and traversal walks through its children.
     Click     // Takes the focus when pressed, without being a stop; the traversal walks through.
     Tab       // Takes the focus when pressed, and is one stop of the traversal.
     Inner     // Takes the focus when pressed, and hides itself and its children from the traversal.
@@ -2143,13 +2143,28 @@ impl Wnd
     //
     // The focus goes to [[Gui.Wnd.focusTarget]], so asking a composite for the focus reaches
     // the part of it that reads the keys. A disabled window or surface cannot take focus.
-    // Scrolling ancestors reveal the accepted control before it receives the focus event.
+    // Scrolling ancestors reveal the accepted control before it receives the focus event. A
+    // window with [[Gui.FocusPolicy.None]] ignores this request.
     mtd setFocus()
     {
+        .setFocusImpl(false)
+    }
+
+    // Gives a focusless surface's root view the keyboard when no traversal stop exists.
+    internal mtd setSurfaceFallbackFocus()
+    {
+        .setFocusImpl(true)
+    }
+
+    private mtd setFocusImpl(allowNone: bool)
+    {
+        if not allowNone and .focusPolicy == .None do
+            return
+
         let target = .focusTarget()
         if target != me
         {
-            target.setFocus()
+            target.setFocusImpl(allowNone)
             return
         }
 
@@ -2367,7 +2382,8 @@ impl Wnd
             return
         }
 
-        .app().keyboardFocusWnd = null
+        let surface = unwrap focus.surface
+        surface.loseKeyboardFocus()
     }
 
     // Sends one synthetic key press to this window, and reports whether it was consumed.

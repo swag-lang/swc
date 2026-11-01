@@ -1013,14 +1013,19 @@ impl Surface
         let root    = .focusRoot orelse .wnd
         let order   = FocusOrder.collect(root)
         let focused = .focusWnd
-        if focused and FocusOrder.contains(root, focused)
+        if focused and
+           FocusOrder.contains(root, focused) and
+           focused.focusPolicy != .None
         {
             focused.setFocus()
             return true
         }
 
-        if order.stops.isEmpty() do
-            return false
+        if order.stops.isEmpty()
+        {
+            root.setSurfaceFallbackFocus()
+            return .app.keyboardFocusWnd == root.focusTarget()
+        }
 
         var target = .focusIndex
         if target < 0 do

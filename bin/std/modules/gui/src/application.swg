@@ -421,7 +421,7 @@ private impl Application
 
         surface.wnd.setInitialFocus()
         if not .keyboardFocusWnd do
-            surface.wnd.view.setFocus()
+            surface.wnd.view.setSurfaceFallbackFocus()
     }
 
     internal mtd sendMouseWheelEvent(sourceSurface: *Surface, screenPos: Math.Point, z: s32)

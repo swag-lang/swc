@@ -17,6 +17,8 @@ impl ViewerWindow
                   preserveReading = false,
                   offerForgetMissing = false)
     {
+        if .isExploring() and not preserveReading do
+            .explorerTransition = true
         .reloading = preserveReading
         if not preserveReading do
             .readingState = {}
@@ -45,7 +47,8 @@ impl ViewerWindow
         if .explorer
         {
             .explorer.leave()
-            .explorer.setShown(false)
+            if not .explorerTransition do
+                .explorer.setShown(false)
         }
 
         .updateLoadingIndicator()
@@ -177,6 +180,7 @@ impl ViewerWindow
     // watch, and returns to the empty window with focus on the open button.
     mtd closeFile()
     {
+        .explorerTransition = false
         if .explorer and .explorer.isLocallyVisible()
         {
             .explorerActive = false
@@ -203,6 +207,7 @@ impl ViewerWindow
     // classification is running, the request is kept in `pendingEmpty` until that work ends.
     mtd showEmpty(message: string)
     {
+        .explorerTransition = false
         .forgetSearch()
         let retired = .destroyInstances()
         if not retired or (.choiceLoad.started and not .choiceLoad.isDone())
@@ -340,6 +345,7 @@ impl ViewerWindow
         if button and button.id == OutlineToggleId do
             .refreshOutlineCaption()
         .outlineCaptionButton.show(button and button.id == OutlineToggleId and not .fullScreen)
+        .refreshExplorerCaption()
         .updateDocumentInsets()
 
         let visible = button and button.isChecked and not .fullScreen
@@ -390,7 +396,7 @@ impl ViewerWindow
     // Swaps presentations only after the incoming progressive viewer has something to show.
     mtd commitViewerTransition(expected: *Wnd? = null)
     {
-        if not .outgoingView or .activeChoiceIndex >= .instances.count do
+        if (not .outgoingView and not .explorerTransition) or .activeChoiceIndex >= .instances.count do
             return
         let instance = &.instances[.activeChoiceIndex]
         if not instance.view or (expected and instance.view != expected) do
@@ -398,7 +404,14 @@ impl ViewerWindow
         if instance.needsLoadingOverlay and instance.needsLoadingOverlay() do
             return
 
-        .discardOutgoingViewer()
+        if .outgoingView do
+            .discardOutgoingViewer()
+        if .explorerTransition
+        {
+            .explorer?.setShown(false)
+            .explorerTransition = false
+            .refreshExplorerCaption()
+        }
         .adoptSession(instance)
         .armSlide()
         .currentView!.dockStyle = .Center
@@ -439,7 +452,7 @@ impl ViewerWindow
                 return
             }
 
-            if .outgoingView
+            if .outgoingView or .explorerTransition
             {
                 .commitViewerTransition(errorView)
                 .updateLoadingIndicator()
@@ -578,7 +591,10 @@ impl ViewerWindow
     {
         let view = unwrap next.view
         view.dockStyle = .None
-        view.setPosition(.outgoingView!.position, computeLayout: false)
+        if .outgoingView do
+            view.setPosition(.outgoingView.position, computeLayout: false)
+        elif .explorerTransition do
+            view.setPosition(.explorer!.position, computeLayout: false)
         next.actions?.hide()
         next.info?.hide()
         if next.commands
@@ -588,12 +604,17 @@ impl ViewerWindow
                 next.commands.setPosition(.outgoingCommands.position, computeLayout: false)
         }
 
-        .outgoingView.bringToFront()
-        .outgoingActions?.bringToFront()
-        .outgoingInfo?.bringToFront()
-        .outgoingCommands?.bringToFront()
-        .outgoingSidePanelHost?.bringToFront()
-        .outgoingSidePanelButton?.bringToFront()
+        if .outgoingView
+        {
+            .outgoingView.bringToFront()
+            .outgoingActions?.bringToFront()
+            .outgoingInfo?.bringToFront()
+            .outgoingCommands?.bringToFront()
+            .outgoingSidePanelHost?.bringToFront()
+            .outgoingSidePanelButton?.bringToFront()
+        }
+        elif .explorerTransition do
+            .explorer!.bringToFront()
     }
 
     // Shows the viewer of `choices[index]`, creating its session on first use; a viewer that fails
@@ -663,7 +684,7 @@ impl ViewerWindow
             return false
         }
 
-        let stage = .outgoingView != null
+        let stage = .outgoingView != null or .explorerTransition
         if stage
         {
             .stageIncoming(&next)

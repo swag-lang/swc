@@ -17640,7 +17640,7 @@ sheet.<span class="SFct">doModal</span>(button, autoDestroy: <span class="SKwd">
 </td></tr>
 <tr><td id="Gui_FocusPolicy_Inner" class="code-type">Inner</td><td><p>Takes the focus when pressed, and hides itself and its children from the traversal.</p>
 </td></tr>
-<tr><td id="Gui_FocusPolicy_None" class="code-type">None</td><td><p>Never takes the keyboard focus; the traversal walks through to the children.</p>
+<tr><td id="Gui_FocusPolicy_None" class="code-type">None</td><td><p>Never takes focus; pointer and programmatic requests are ignored, and traversal walks through its children.</p>
 </td></tr>
 <tr><td id="Gui_FocusPolicy_Tab" class="code-type">Tab</td><td><p>Takes the focus when pressed, and is one stop of the traversal.</p>
 </td></tr>
@@ -20859,7 +20859,7 @@ sheet.<span class="SFct">doModal</span>(button, autoDestroy: <span class="SKwd">
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">deleteSelection</span>()</span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Gui_EditBox_isValid" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">EditBox.isValid</span> <a class="api-item-permalink" href="#Gui_EditBox_isValid" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/gui/src/controls/widgets/editbox.swg#L1488">src</a></div>
+<div class="api-item api-item-func"><span id="Gui_EditBox_isValid" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">EditBox.isValid</span> <a class="api-item-permalink" href="#Gui_EditBox_isValid" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/gui/src/controls/widgets/editbox.swg#L1491">src</a></div>
 <p>Returns whether the current content is valid.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SKwd">const</span> <span class="SFct">isValid</span>()-&gt;<span class="STpe">bool</span></span></div>
 </section>
@@ -20869,7 +20869,7 @@ sheet.<span class="SFct">doModal</span>(button, autoDestroy: <span class="SKwd">
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">restoreOriginalText</span>()</span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Gui_EditBox_revalidate" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">EditBox.revalidate</span> <a class="api-item-permalink" href="#Gui_EditBox_revalidate" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/gui/src/controls/widgets/editbox.swg#L1477">src</a></div>
+<div class="api-item api-item-func"><span id="Gui_EditBox_revalidate" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">EditBox.revalidate</span> <a class="api-item-permalink" href="#Gui_EditBox_revalidate" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/gui/src/controls/widgets/editbox.swg#L1480">src</a></div>
 <p>Rechecks the current text and refreshes its validation indicator.</p>
 <p>Use this when state read by the custom validator changes. The installed validator, text, selection, and focus remain unchanged; no edit or commit notification is sent.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">revalidate</span>()-&gt;<span class="SCst"><a href="#Gui_EditBoxCheckResult">EditBoxCheckResult</a></span></span></div>
@@ -20880,37 +20880,37 @@ sheet.<span class="SFct">doModal</span>(button, autoDestroy: <span class="SKwd">
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">selectAll</span>()</span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Gui_EditBox_selection" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">EditBox.selection</span> <a class="api-item-permalink" href="#Gui_EditBox_selection" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/gui/src/controls/widgets/editbox.swg#L1485">src</a></div>
+<div class="api-item api-item-func"><span id="Gui_EditBox_selection" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">EditBox.selection</span> <a class="api-item-permalink" href="#Gui_EditBox_selection" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/gui/src/controls/widgets/editbox.swg#L1488">src</a></div>
 <p>Returns the selected byte range; <span class="code-inline">end</span> is the caret and may precede <span class="code-inline">start</span>.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SKwd">const</span> <span class="SFct">selection</span>()-&gt;{ start: <span class="STpe">u64</span>, end: <span class="STpe">u64</span> }</span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Gui_EditBox_setFloatingPointRange" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">EditBox.setFloatingPointRange</span> <a class="api-item-permalink" href="#Gui_EditBox_setFloatingPointRange" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/gui/src/controls/widgets/editbox.swg#L1367">src</a></div>
+<div class="api-item api-item-func"><span id="Gui_EditBox_setFloatingPointRange" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">EditBox.setFloatingPointRange</span> <a class="api-item-permalink" href="#Gui_EditBox_setFloatingPointRange" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/gui/src/controls/widgets/editbox.swg#L1370">src</a></div>
 <p>Accepts 64-bit floating-point values from <span class="code-inline">min</span> to <span class="code-inline">max</span> inclusive.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">setFloatingPointRange</span>(min = -<span class="SNsp">Swag</span>.<span class="SCst"><a href="swag.runtime.html#namespace_Swag_F64">F64</a></span>.<span class="SCst">Max</span>, max = <span class="SNsp">Swag</span>.<span class="SCst"><a href="swag.runtime.html#namespace_Swag_F64">F64</a></span>.<span class="SCst">Max</span>)</span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Gui_EditBox_setForm" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">EditBox.setForm</span> <a class="api-item-permalink" href="#Gui_EditBox_setForm" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/gui/src/controls/widgets/editbox.swg#L1376">src</a></div>
+<div class="api-item api-item-func"><span id="Gui_EditBox_setForm" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">EditBox.setForm</span> <a class="api-item-permalink" href="#Gui_EditBox_setForm" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/gui/src/controls/widgets/editbox.swg#L1379">src</a></div>
 <p>Sets the visual form of the EditBox.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">setForm</span>(form: <span class="SCst"><a href="#Gui_EditBoxForm">EditBoxForm</a></span>)</span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Gui_EditBox_setHexadecimalRange" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">EditBox.setHexadecimalRange</span> <a class="api-item-permalink" href="#Gui_EditBox_setHexadecimalRange" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/gui/src/controls/widgets/editbox.swg#L1358">src</a></div>
+<div class="api-item api-item-func"><span id="Gui_EditBox_setHexadecimalRange" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">EditBox.setHexadecimalRange</span> <a class="api-item-permalink" href="#Gui_EditBox_setHexadecimalRange" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/gui/src/controls/widgets/editbox.swg#L1361">src</a></div>
 <p>Accepts unsigned hexadecimal integers from <span class="code-inline">min</span> to <span class="code-inline">max</span> inclusive.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">setHexadecimalRange</span>(min = <span class="SNum">0</span>'<span class="STpe">u64</span>, max = <span class="SNsp">Swag</span>.<span class="SCst"><a href="swag.runtime.html#namespace_Swag_U64">U64</a></span>.<span class="SCst">Max</span>)</span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Gui_EditBox_setIcon" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">EditBox.setIcon</span> <a class="api-item-permalink" href="#Gui_EditBox_setIcon" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/gui/src/controls/widgets/editbox.swg#L1407">src</a></div>
+<div class="api-item api-item-func"><span id="Gui_EditBox_setIcon" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">EditBox.setIcon</span> <a class="api-item-permalink" href="#Gui_EditBox_setIcon" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/gui/src/controls/widgets/editbox.swg#L1410">src</a></div>
 <p>Changes the leading icon.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">setIcon</span>(icon: <span class="SCst"><a href="#Gui_Icon">Icon</a></span>)</span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Gui_EditBox_setLeadingMargin" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">EditBox.setLeadingMargin</span> <a class="api-item-permalink" href="#Gui_EditBox_setLeadingMargin" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/gui/src/controls/widgets/editbox.swg#L1447">src</a></div>
+<div class="api-item api-item-func"><span id="Gui_EditBox_setLeadingMargin" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">EditBox.setLeadingMargin</span> <a class="api-item-permalink" href="#Gui_EditBox_setLeadingMargin" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/gui/src/controls/widgets/editbox.swg#L1450">src</a></div>
 <p>Changes the extra leading inset, where a parent writes words before the text.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">setLeadingMargin</span>(margin: <span class="STpe">f32</span>)</span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Gui_EditBox_setMaximumLength" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">EditBox.setMaximumLength</span> <a class="api-item-permalink" href="#Gui_EditBox_setMaximumLength" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/gui/src/controls/widgets/editbox.swg#L1431">src</a></div>
+<div class="api-item api-item-func"><span id="Gui_EditBox_setMaximumLength" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">EditBox.setMaximumLength</span> <a class="api-item-permalink" href="#Gui_EditBox_setMaximumLength" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/gui/src/controls/widgets/editbox.swg#L1434">src</a></div>
 <p>Changes the maximum rune count; zero removes the limit.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">setMaximumLength</span>(length: <span class="STpe">s32</span>)</span></div>
 </section>
@@ -20920,12 +20920,12 @@ sheet.<span class="SFct">doModal</span>(button, autoDestroy: <span class="SKwd">
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">setPlaceholder</span>(placeholder: <span class="STpe">string</span>?)</span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Gui_EditBox_setPrefix" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">EditBox.setPrefix</span> <a class="api-item-permalink" href="#Gui_EditBox_setPrefix" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/gui/src/controls/widgets/editbox.swg#L1438">src</a></div>
+<div class="api-item api-item-func"><span id="Gui_EditBox_setPrefix" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">EditBox.setPrefix</span> <a class="api-item-permalink" href="#Gui_EditBox_setPrefix" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/gui/src/controls/widgets/editbox.swg#L1441">src</a></div>
 <p>Writes <span class="code-inline">prefix</span> faint at the leading edge of the field, before the text, such as the axis of a coordinate.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">setPrefix</span>(prefix: <span class="STpe">string</span>?)</span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Gui_EditBox_setReading" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">EditBox.setReading</span> <a class="api-item-permalink" href="#Gui_EditBox_setReading" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/gui/src/controls/widgets/editbox.swg#L1422">src</a></div>
+<div class="api-item api-item-func"><span id="Gui_EditBox_setReading" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">EditBox.setReading</span> <a class="api-item-permalink" href="#Gui_EditBox_setReading" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/gui/src/controls/widgets/editbox.swg#L1425">src</a></div>
 <p>Changes the faint reading at the trailing edge, such as "3 results" after a search; empty removes it. The text gives it its room.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">setReading</span>(reading: <span class="STpe">string</span>)</span></div>
 </section>
@@ -20936,7 +20936,7 @@ sheet.<span class="SFct">doModal</span>(button, autoDestroy: <span class="SKwd">
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">setSelection</span>(start, end: <span class="STpe">u64</span>)</span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Gui_EditBox_setSignedIntegerRange" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">EditBox.setSignedIntegerRange</span> <a class="api-item-permalink" href="#Gui_EditBox_setSignedIntegerRange" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/gui/src/controls/widgets/editbox.swg#L1340">src</a></div>
+<div class="api-item api-item-func"><span id="Gui_EditBox_setSignedIntegerRange" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">EditBox.setSignedIntegerRange</span> <a class="api-item-permalink" href="#Gui_EditBox_setSignedIntegerRange" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/gui/src/controls/widgets/editbox.swg#L1343">src</a></div>
 <p>Accepts signed 64-bit integers from <span class="code-inline">min</span> to <span class="code-inline">max</span> inclusive.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">setSignedIntegerRange</span>(min = <span class="SNsp">Swag</span>.<span class="SCst"><a href="swag.runtime.html#namespace_Swag_S64">S64</a></span>.<span class="SCst">Min</span>, max = <span class="SNsp">Swag</span>.<span class="SCst"><a href="swag.runtime.html#namespace_Swag_S64">S64</a></span>.<span class="SCst">Max</span>)</span></div>
 </section>
@@ -20947,27 +20947,27 @@ sheet.<span class="SFct">doModal</span>(button, autoDestroy: <span class="SKwd">
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">setText</span>(str: <span class="STpe">string</span>?, notify = <span class="SKwd">true</span>)</span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Gui_EditBox_setTextInput" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">EditBox.setTextInput</span> <a class="api-item-permalink" href="#Gui_EditBox_setTextInput" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/gui/src/controls/widgets/editbox.swg#L1332">src</a></div>
+<div class="api-item api-item-func"><span id="Gui_EditBox_setTextInput" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">EditBox.setTextInput</span> <a class="api-item-permalink" href="#Gui_EditBox_setTextInput" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/gui/src/controls/widgets/editbox.swg#L1335">src</a></div>
 <p>Selects unrestricted built-in text input; a custom validator still applies.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">setTextInput</span>()</span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Gui_EditBox_setTrailingMargin" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">EditBox.setTrailingMargin</span> <a class="api-item-permalink" href="#Gui_EditBox_setTrailingMargin" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/gui/src/controls/widgets/editbox.swg#L1457">src</a></div>
+<div class="api-item api-item-func"><span id="Gui_EditBox_setTrailingMargin" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">EditBox.setTrailingMargin</span> <a class="api-item-permalink" href="#Gui_EditBox_setTrailingMargin" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/gui/src/controls/widgets/editbox.swg#L1460">src</a></div>
 <p>Changes the extra trailing inset.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">setTrailingMargin</span>(margin: <span class="STpe">f32</span>)</span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Gui_EditBox_setUnit" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">EditBox.setUnit</span> <a class="api-item-permalink" href="#Gui_EditBox_setUnit" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/gui/src/controls/widgets/editbox.swg#L1414">src</a></div>
+<div class="api-item api-item-func"><span id="Gui_EditBox_setUnit" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">EditBox.setUnit</span> <a class="api-item-permalink" href="#Gui_EditBox_setUnit" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/gui/src/controls/widgets/editbox.swg#L1417">src</a></div>
 <p>Changes the trailing unit.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">setUnit</span>(unit: <span class="STpe">string</span>?)</span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Gui_EditBox_setUnsignedIntegerRange" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">EditBox.setUnsignedIntegerRange</span> <a class="api-item-permalink" href="#Gui_EditBox_setUnsignedIntegerRange" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/gui/src/controls/widgets/editbox.swg#L1349">src</a></div>
+<div class="api-item api-item-func"><span id="Gui_EditBox_setUnsignedIntegerRange" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">EditBox.setUnsignedIntegerRange</span> <a class="api-item-permalink" href="#Gui_EditBox_setUnsignedIntegerRange" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/gui/src/controls/widgets/editbox.swg#L1352">src</a></div>
 <p>Accepts unsigned 64-bit integers from <span class="code-inline">min</span> to <span class="code-inline">max</span> inclusive.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">setUnsignedIntegerRange</span>(min = <span class="SNum">0</span>'<span class="STpe">u64</span>, max = <span class="SNsp">Swag</span>.<span class="SCst"><a href="swag.runtime.html#namespace_Swag_U64">U64</a></span>.<span class="SCst">Max</span>)</span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Gui_EditBox_setValidator" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">EditBox.setValidator</span> <a class="api-item-permalink" href="#Gui_EditBox_setValidator" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/gui/src/controls/widgets/editbox.swg#L1467">src</a></div>
+<div class="api-item api-item-func"><span id="Gui_EditBox_setValidator" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">EditBox.setValidator</span> <a class="api-item-permalink" href="#Gui_EditBox_setValidator" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/gui/src/controls/widgets/editbox.swg#L1470">src</a></div>
 <p>Changes the custom validator; null restores built-in validation.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">setValidator</span>(validator: (<span class="SKwd">func</span>||(*<span class="SCst"><a href="#Gui_EditBox">EditBox</a></span>)-&gt;<span class="SCst"><a href="#Gui_EditBoxCheckResult">EditBoxCheckResult</a></span>)?)</span></div>
 </section>
@@ -20977,7 +20977,7 @@ sheet.<span class="SFct">doModal</span>(button, autoDestroy: <span class="SKwd">
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SKwd">const</span> <span class="SFct">text</span>()-&gt;<span class="STpe">string</span></span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Gui_EditBox_updateFlags" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">EditBox.updateFlags</span> <a class="api-item-permalink" href="#Gui_EditBox_updateFlags" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/gui/src/controls/widgets/editbox.swg#L1394">src</a></div>
+<div class="api-item api-item-func"><span id="Gui_EditBox_updateFlags" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">EditBox.updateFlags</span> <a class="api-item-permalink" href="#Gui_EditBox_updateFlags" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/gui/src/controls/widgets/editbox.swg#L1397">src</a></div>
 <p>Adds and removes interaction options.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">updateFlags</span>(add: <span class="SCst"><a href="#Gui_EditBoxFlags">EditBoxFlags</a></span> = .<span class="SCst">None</span>, remove = <span class="SCst"><a href="#Gui_EditBoxFlags">EditBoxFlags</a></span>.<span class="SCst">None</span>)</span></div>
 </section>
@@ -25632,7 +25632,7 @@ view.<span class="SFct">updateVideoFrame</span>(&amp;planes)</span></div>
 <span class="SKwd">func</span> <span class="SFct">create</span>(parent: *<span class="SCst"><a href="#Gui_Wnd">Wnd</a></span>, position: <span class="SCst"><a href="std.core.html#namespace_Core_Math">Math</a></span>.<span class="SCst">Rectangle</span> = {}, id: <span class="SCst"><a href="#Gui_WndId">WndId</a></span>? = <span class="SKwd">null</span>)-&gt;*<span class="SCst"><a href="#Gui_Spinner">Spinner</a></span></span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Gui_SplitterCtrl_addPane" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">SplitterCtrl.addPane</span> <a class="api-item-permalink" href="#Gui_SplitterCtrl_addPane" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/gui/src/controls/composite/splitterctrl.swg#L482">src</a></div>
+<div class="api-item api-item-func"><span id="Gui_SplitterCtrl_addPane" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">SplitterCtrl.addPane</span> <a class="api-item-permalink" href="#Gui_SplitterCtrl_addPane" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/gui/src/controls/composite/splitterctrl.swg#L484">src</a></div>
 <p>Adds <span class="code-inline">pane</span> and optionally creates a title label for it.</p>
 <p>Before the splitter has an extent, <span class="code-inline">paneSize</span> supplies the initial size for layout. Once sized, a sole pane fills the splitter and a new pane takes room from its neighbours.</p>
 <div class="code-block"><span class="SCde"><span class="SAtr">#[</span><span class="SNsp">Swag</span>.<span class="SAtr">Discardable]</span>
@@ -25645,23 +25645,23 @@ view.<span class="SFct">updateVideoFrame</span>(&amp;planes)</span></div>
 <span class="SKwd">func</span> <span class="SFct">create</span>(parent: *<span class="SCst"><a href="#Gui_Wnd">Wnd</a></span>, position: <span class="SCst"><a href="std.core.html#namespace_Core_Math">Math</a></span>.<span class="SCst">Rectangle</span> = {}, vertical = <span class="SKwd">false</span>, id: <span class="SCst"><a href="#Gui_WndId">WndId</a></span>? = <span class="SKwd">null</span>)-&gt;*<span class="SCst"><a href="#Gui_SplitterCtrl">SplitterCtrl</a></span></span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Gui_SplitterCtrl_isPaneVisible" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">SplitterCtrl.isPaneVisible</span> <a class="api-item-permalink" href="#Gui_SplitterCtrl_isPaneVisible" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/gui/src/controls/composite/splitterctrl.swg#L566">src</a></div>
+<div class="api-item api-item-func"><span id="Gui_SplitterCtrl_isPaneVisible" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">SplitterCtrl.isPaneVisible</span> <a class="api-item-permalink" href="#Gui_SplitterCtrl_isPaneVisible" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/gui/src/controls/composite/splitterctrl.swg#L568">src</a></div>
 <p>Reports whether a pane participates in layout.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SKwd">const</span> <span class="SFct">isPaneVisible</span>(idx: <span class="STpe">u32</span>)-&gt;<span class="STpe">bool</span></span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Gui_SplitterCtrl_isVertical" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">SplitterCtrl.isVertical</span> <a class="api-item-permalink" href="#Gui_SplitterCtrl_isVertical" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/gui/src/controls/composite/splitterctrl.swg#L475">src</a></div>
+<div class="api-item api-item-func"><span id="Gui_SplitterCtrl_isVertical" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">SplitterCtrl.isVertical</span> <a class="api-item-permalink" href="#Gui_SplitterCtrl_isVertical" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/gui/src/controls/composite/splitterctrl.swg#L477">src</a></div>
 <p>Reports whether panes are stacked vertically.</p>
 <div class="code-block"><span class="SCde"><span class="SAtr">#[</span><span class="SNsp">Swag</span>.<span class="SAtr">Inline]</span>
 <span class="SKwd">mtd</span> <span class="SKwd">const</span> <span class="SFct">isVertical</span>()</span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Gui_SplitterCtrl_setPaneSize" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">SplitterCtrl.setPaneSize</span> <a class="api-item-permalink" href="#Gui_SplitterCtrl_setPaneSize" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/gui/src/controls/composite/splitterctrl.swg#L533">src</a></div>
+<div class="api-item api-item-func"><span id="Gui_SplitterCtrl_setPaneSize" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">SplitterCtrl.setPaneSize</span> <a class="api-item-permalink" href="#Gui_SplitterCtrl_setPaneSize" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/gui/src/controls/composite/splitterctrl.swg#L535">src</a></div>
 <p>Sets a pane size while respecting its limits and resizing adjacent visible panes.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">setPaneSize</span>(idx: <span class="STpe">u32</span>, newSize: <span class="STpe">f32</span>)</span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Gui_SplitterCtrl_setPaneVisible" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">SplitterCtrl.setPaneVisible</span> <a class="api-item-permalink" href="#Gui_SplitterCtrl_setPaneVisible" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/gui/src/controls/composite/splitterctrl.swg#L541">src</a></div>
+<div class="api-item api-item-func"><span id="Gui_SplitterCtrl_setPaneVisible" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">SplitterCtrl.setPaneVisible</span> <a class="api-item-permalink" href="#Gui_SplitterCtrl_setPaneVisible" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/gui/src/controls/composite/splitterctrl.swg#L543">src</a></div>
 <p>Shows or hides a pane and its optional title.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">setPaneVisible</span>(idx: <span class="STpe">u32</span>, visible: <span class="STpe">bool</span>)</span></div>
 </section>
@@ -25886,7 +25886,7 @@ view.<span class="SFct">updateVideoFrame</span>(&amp;planes)</span></div>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">setTrayIcon</span>(icon: <span class="SCst">Pixel</span>.<span class="SCst"><a href="#Gui_Pdf_ItemKind_Image">Image</a></span>, tip: <span class="STpe">string</span>? = <span class="SKwd">null</span>)</span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Gui_Surface_setView" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Surface.setView</span> <a class="api-item-permalink" href="#Gui_Surface_setView" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/gui/src/surface.swg#L1074">src</a></div>
+<div class="api-item api-item-func"><span id="Gui_Surface_setView" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Surface.setView</span> <a class="api-item-permalink" href="#Gui_Surface_setView" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/gui/src/surface.swg#L1079">src</a></div>
 <p>Replaces and destroys the current user view, then attaches <span class="code-inline">view</span> to this surface.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">setView</span>(view: *<span class="SCst"><a href="#Gui_Wnd">Wnd</a></span>)</span></div>
 </section>
@@ -26765,7 +26765,7 @@ btnPush_Hot      $btnPush_Normal</span></div>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">showContextMenu</span>(surfacePos: <span class="SCst"><a href="std.core.html#namespace_Core_Math">Math</a></span>.<span class="SCst"><a href="std.core.html#Core_Math_Point">Point</a></span>)</span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Gui_Wnd_addTimer" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Wnd.addTimer</span> <a class="api-item-permalink" href="#Gui_Wnd_addTimer" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/gui/src/wnd/wnd.swg#L2440">src</a></div>
+<div class="api-item api-item-func"><span id="Gui_Wnd_addTimer" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Wnd.addTimer</span> <a class="api-item-permalink" href="#Gui_Wnd_addTimer" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/gui/src/wnd/wnd.swg#L2456">src</a></div>
 <p>Creates a repeating timer that sends <a href="#Gui_TimerEvent">Gui.TimerEvent</a> values to this window.</p>
 <p>See <a href="#Gui_Application_addTimer">Gui.Application.addTimer</a> for ownership.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">addTimer</span>(time: <span class="SCst"><a href="std.core.html#namespace_Core_Time">Time</a></span>.<span class="SCst"><a href="std.core.html#Core_Time_Duration">Duration</a></span>)-&gt;*<span class="SCst"><a href="#Gui_Timer">Timer</a></span></span></div>
@@ -26896,19 +26896,19 @@ btnPush_Hot      $btnPush_Normal</span></div>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">fitPosInParent</span>(marginW, marginH: <span class="STpe">f32</span> = <span class="SNum">0</span>, simX, simY = <span class="SKwd">false</span>)</span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Gui_Wnd_focusedWindow" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Wnd.focusedWindow</span> <a class="api-item-permalink" href="#Gui_Wnd_focusedWindow" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/gui/src/wnd/wnd.swg#L2228">src</a></div>
+<div class="api-item api-item-func"><span id="Gui_Wnd_focusedWindow" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Wnd.focusedWindow</span> <a class="api-item-permalink" href="#Gui_Wnd_focusedWindow" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/gui/src/wnd/wnd.swg#L2243">src</a></div>
 <p>Returns the window holding the application's keyboard focus, or <span class="code-inline">null</span>.</p>
 <p>The focus may stand on another surface of the same application. A detached window answers <span class="code-inline">null</span>.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">focusedWindow</span>()-&gt;*<span class="SCst"><a href="#Gui_Wnd">Wnd</a></span>?</span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Gui_Wnd_focusNext" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Wnd.focusNext</span> <a class="api-item-permalink" href="#Gui_Wnd_focusNext" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/gui/src/wnd/wnd.swg#L2288">src</a></div>
+<div class="api-item api-item-func"><span id="Gui_Wnd_focusNext" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Wnd.focusNext</span> <a class="api-item-permalink" href="#Gui_Wnd_focusNext" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/gui/src/wnd/wnd.swg#L2303">src</a></div>
 <p>Moves the keyboard focus to the next traversal stop, and reports whether one was found.</p>
 <p>The order is the reading order of the tree this window belongs to, and it wraps around, so the focus never leaves the surface it started on.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">focusNext</span>(forward = <span class="SKwd">true</span>)-&gt;<span class="STpe">bool</span></span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Gui_Wnd_focusNextInGroup" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Wnd.focusNextInGroup</span> <a class="api-item-permalink" href="#Gui_Wnd_focusNextInGroup" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/gui/src/wnd/wnd.swg#L2301">src</a></div>
+<div class="api-item api-item-func"><span id="Gui_Wnd_focusNextInGroup" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Wnd.focusNextInGroup</span> <a class="api-item-permalink" href="#Gui_Wnd_focusNextInGroup" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/gui/src/wnd/wnd.swg#L2316">src</a></div>
 <p>Moves the keyboard focus inside its own group, and reports whether another stop was found.</p>
 <p>This is what the arrow keys walk; see <a href="#Gui_FocusOrder_nextInGroup">Gui.FocusOrder.nextInGroup</a> for what a group is.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">focusNextInGroup</span>(forward = <span class="SKwd">true</span>)-&gt;<span class="STpe">bool</span></span></div>
@@ -26925,13 +26925,13 @@ btnPush_Hot      $btnPush_Normal</span></div>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">font</span>()</span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Gui_Wnd_hasFocus" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Wnd.hasFocus</span> <a class="api-item-permalink" href="#Gui_Wnd_hasFocus" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/gui/src/wnd/wnd.swg#L2240">src</a></div>
+<div class="api-item api-item-func"><span id="Gui_Wnd_hasFocus" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Wnd.hasFocus</span> <a class="api-item-permalink" href="#Gui_Wnd_hasFocus" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/gui/src/wnd/wnd.swg#L2255">src</a></div>
 <p>Reports whether this window currently owns keyboard focus.</p>
 <p>A composite that delegates its focus answers for its delegate, so a widget asks this about itself and paints its focused state without knowing where the focus really sits.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">hasFocus</span>()-&gt;<span class="STpe">bool</span></span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Gui_Wnd_hasVisibleFocus" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Wnd.hasVisibleFocus</span> <a class="api-item-permalink" href="#Gui_Wnd_hasVisibleFocus" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/gui/src/wnd/wnd.swg#L2253">src</a></div>
+<div class="api-item api-item-func"><span id="Gui_Wnd_hasVisibleFocus" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Wnd.hasVisibleFocus</span> <a class="api-item-permalink" href="#Gui_Wnd_hasVisibleFocus" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/gui/src/wnd/wnd.swg#L2268">src</a></div>
 <p>Reports whether this window must show the keyboard focus.</p>
 <p>True only while the focus arrived from the keyboard: a control pressed with the pointer keeps the focus without drawing a ring around it, the way the pointer already said which control was acted on. See <a href="#Gui_Application_focusVisible">Gui.Application.focusVisible</a>.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">hasVisibleFocus</span>()-&gt;<span class="STpe">bool</span></span></div>
@@ -27002,12 +27002,12 @@ btnPush_Hot      $btnPush_Normal</span></div>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">isVisible</span>()-&gt;<span class="STpe">bool</span></span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Gui_Wnd_keyShortcut" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Wnd.keyShortcut</span> <a class="api-item-permalink" href="#Gui_Wnd_keyShortcut" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/gui/src/wnd/wnd.swg#L2402">src</a></div>
+<div class="api-item api-item-func"><span id="Gui_Wnd_keyShortcut" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Wnd.keyShortcut</span> <a class="api-item-permalink" href="#Gui_Wnd_keyShortcut" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/gui/src/wnd/wnd.swg#L2418">src</a></div>
 <p>Resolves a shortcut locally, then through the owner or parent chain.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">keyShortcut</span>(modifiers: <span class="SCst"><a href="std.core.html#namespace_Core_Input">Input</a></span>.<span class="SCst"><a href="std.core.html#Core_Input_KeyModifiers">KeyModifiers</a></span>, key: <span class="SCst"><a href="std.core.html#namespace_Core_Input">Input</a></span>.<span class="SCst">Key</span>)-&gt;<span class="SCst"><a href="#Gui_WndId">WndId</a></span>?</span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Gui_Wnd_keyShortcutName" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Wnd.keyShortcutName</span> <a class="api-item-permalink" href="#Gui_Wnd_keyShortcutName" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/gui/src/wnd/wnd.swg#L2417">src</a></div>
+<div class="api-item api-item-func"><span id="Gui_Wnd_keyShortcutName" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Wnd.keyShortcutName</span> <a class="api-item-permalink" href="#Gui_Wnd_keyShortcutName" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/gui/src/wnd/wnd.swg#L2433">src</a></div>
 <p>Formats the first shortcut associated with <span class="code-inline">wndId</span> in the routing chain.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">keyShortcutName</span>(wndId: <span class="SCst"><a href="#Gui_WndId">WndId</a></span>)-&gt;<span class="SCst"><a href="std.core.html#Core_String">String</a></span></span></div>
 </section>
@@ -27046,12 +27046,12 @@ btnPush_Hot      $btnPush_Normal</span></div>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">moveLastChildrenTo</span>(index: <span class="STpe">u64</span>, count: <span class="STpe">u64</span>)</span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Gui_Wnd_notifyEvent" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Wnd.notifyEvent</span> <a class="api-item-permalink" href="#Gui_Wnd_notifyEvent" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/gui/src/wnd/wnd.swg#L2597">src</a></div>
+<div class="api-item api-item-func"><span id="Gui_Wnd_notifyEvent" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Wnd.notifyEvent</span> <a class="api-item-permalink" href="#Gui_Wnd_notifyEvent" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/gui/src/wnd/wnd.swg#L2613">src</a></div>
 <p>Sends a <a href="#Gui_NotifyEvent">Gui.NotifyEvent</a> of <span class="code-inline">kind</span> to this window.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">notifyEvent</span>(kind: <span class="SCst"><a href="#Gui_NotifyEvent">NotifyEvent</a></span>.<span class="SCst">Kind</span>)</span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Gui_Wnd_ownerNotifyEvent" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Wnd.ownerNotifyEvent</span> <a class="api-item-permalink" href="#Gui_Wnd_ownerNotifyEvent" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/gui/src/wnd/wnd.swg#L2605">src</a></div>
+<div class="api-item api-item-func"><span id="Gui_Wnd_ownerNotifyEvent" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Wnd.ownerNotifyEvent</span> <a class="api-item-permalink" href="#Gui_Wnd_ownerNotifyEvent" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/gui/src/wnd/wnd.swg#L2621">src</a></div>
 <p>Sends a <a href="#Gui_NotifyEvent">Gui.NotifyEvent</a> of <span class="code-inline">kind</span> to the owner of this window, or to its parent.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">ownerNotifyEvent</span>(kind: <span class="SCst"><a href="#Gui_NotifyEvent">NotifyEvent</a></span>.<span class="SCst">Kind</span>)</span></div>
 </section>
@@ -27076,28 +27076,28 @@ btnPush_Hot      $btnPush_Normal</span></div>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">paintDeltaSeconds</span>()</span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Gui_Wnd_postCommandEvent" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Wnd.postCommandEvent</span> <a class="api-item-permalink" href="#Gui_Wnd_postCommandEvent" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/gui/src/wnd/wnd.swg#L2575">src</a></div>
+<div class="api-item api-item-func"><span id="Gui_Wnd_postCommandEvent" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Wnd.postCommandEvent</span> <a class="api-item-permalink" href="#Gui_Wnd_postCommandEvent" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/gui/src/wnd/wnd.swg#L2591">src</a></div>
 <p>Queues the command <span class="code-inline">cmdId</span> from this window for the next frame; a <span class="code-inline">null</span> identifier posts nothing.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">postCommandEvent</span>(cmdId: <span class="SCst"><a href="#Gui_WndId">WndId</a></span>?)</span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Gui_Wnd_postEvent" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Wnd.postEvent</span> <a class="api-item-permalink" href="#Gui_Wnd_postEvent" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/gui/src/wnd/wnd.swg#L2472">src</a></div>
+<div class="api-item api-item-func"><span id="Gui_Wnd_postEvent" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Wnd.postEvent</span> <a class="api-item-permalink" href="#Gui_Wnd_postEvent" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/gui/src/wnd/wnd.swg#L2488">src</a></div>
 <p>Queues <span class="code-inline">evt</span> for delivery to this window during the next frame.</p>
 <p>Allocate the event with <a href="#Gui_Event_create">Gui.Event.create</a>: the queue owns it and releases it after dispatch.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">postEvent</span>(evt: <span class="SCst"><a href="#Gui_IEvent">IEvent</a></span>)</span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Gui_Wnd_postInvalidateEvent" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Wnd.postInvalidateEvent</span> <a class="api-item-permalink" href="#Gui_Wnd_postInvalidateEvent" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/gui/src/wnd/wnd.swg#L2502">src</a></div>
+<div class="api-item api-item-func"><span id="Gui_Wnd_postInvalidateEvent" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Wnd.postInvalidateEvent</span> <a class="api-item-permalink" href="#Gui_Wnd_postInvalidateEvent" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/gui/src/wnd/wnd.swg#L2518">src</a></div>
 <p>Queues a repaint of this window for the next frame.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">postInvalidateEvent</span>()</span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Gui_Wnd_postQuitEvent" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Wnd.postQuitEvent</span> <a class="api-item-permalink" href="#Gui_Wnd_postQuitEvent" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/gui/src/wnd/wnd.swg#L2463">src</a></div>
+<div class="api-item api-item-func"><span id="Gui_Wnd_postQuitEvent" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Wnd.postQuitEvent</span> <a class="api-item-permalink" href="#Gui_Wnd_postQuitEvent" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/gui/src/wnd/wnd.swg#L2479">src</a></div>
 <p>Posts a request to leave the application's event loop.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">postQuitEvent</span>()</span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Gui_Wnd_postResizeEvent" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Wnd.postResizeEvent</span> <a class="api-item-permalink" href="#Gui_Wnd_postResizeEvent" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/gui/src/wnd/wnd.swg#L2556">src</a></div>
+<div class="api-item api-item-func"><span id="Gui_Wnd_postResizeEvent" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Wnd.postResizeEvent</span> <a class="api-item-permalink" href="#Gui_Wnd_postResizeEvent" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/gui/src/wnd/wnd.swg#L2572">src</a></div>
 <p>Queues a <a href="#Gui_ResizeEvent">Gui.ResizeEvent</a> for the current size, delivered during the next frame.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">postResizeEvent</span>()</span></div>
 </section>
@@ -27108,7 +27108,7 @@ btnPush_Hot      $btnPush_Normal</span></div>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SKwd">const</span> <span class="SFct">presentationRect</span>()-&gt;<span class="SCst"><a href="std.core.html#namespace_Core_Math">Math</a></span>.<span class="SCst">Rectangle</span></span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Gui_Wnd_processEvent" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Wnd.processEvent</span> <a class="api-item-permalink" href="#Gui_Wnd_processEvent" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/gui/src/wnd/wnd.swg#L2587">src</a></div>
+<div class="api-item api-item-func"><span id="Gui_Wnd_processEvent" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Wnd.processEvent</span> <a class="api-item-permalink" href="#Gui_Wnd_processEvent" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/gui/src/wnd/wnd.swg#L2603">src</a></div>
 <p>Invokes the local hook, then dispatches the event unless the hook consumes it.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">processEvent</span>(evt: <span class="SCst"><a href="#Gui_IEvent">IEvent</a></span>)</span></div>
 </section>
@@ -27118,12 +27118,12 @@ btnPush_Hot      $btnPush_Normal</span></div>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SKwd">const</span> <span class="SFct">rectRelativeTo</span>(wnd: *<span class="SCst"><a href="#Gui_Wnd">Wnd</a></span>?)-&gt;<span class="SCst"><a href="std.core.html#namespace_Core_Math">Math</a></span>.<span class="SCst">Rectangle</span></span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Gui_Wnd_registerAction" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Wnd.registerAction</span> <a class="api-item-permalink" href="#Gui_Wnd_registerAction" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/gui/src/wnd/wnd.swg#L2688">src</a></div>
+<div class="api-item api-item-func"><span id="Gui_Wnd_registerAction" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Wnd.registerAction</span> <a class="api-item-permalink" href="#Gui_Wnd_registerAction" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/gui/src/wnd/wnd.swg#L2704">src</a></div>
 <p>Registers the stateless action type <span class="code-inline">T</span>, which implements <a href="#Gui_IActionUI">Gui.IActionUI</a>, on this window.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span>(<span class="SCst">T</span>) <span class="SFct">registerAction</span>()</span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Gui_Wnd_registerKeyShortcut" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Wnd.registerKeyShortcut</span> <a class="api-item-permalink" href="#Gui_Wnd_registerKeyShortcut" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/gui/src/wnd/wnd.swg#L2387">src</a></div>
+<div class="api-item api-item-func"><span id="Gui_Wnd_registerKeyShortcut" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Wnd.registerKeyShortcut</span> <a class="api-item-permalink" href="#Gui_Wnd_registerKeyShortcut" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/gui/src/wnd/wnd.swg#L2403">src</a></div>
 <p>Registers or replaces a keyboard shortcut on this routing node.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">registerKeyShortcut</span>(modifiers: <span class="SCst"><a href="std.core.html#namespace_Core_Input">Input</a></span>.<span class="SCst"><a href="std.core.html#Core_Input_KeyModifiers">KeyModifiers</a></span>, key: <span class="SCst"><a href="std.core.html#namespace_Core_Input">Input</a></span>.<span class="SCst">Key</span>, wndId: <span class="SCst"><a href="#Gui_WndId">WndId</a></span>)</span></div>
 </section>
@@ -27133,7 +27133,7 @@ btnPush_Hot      $btnPush_Normal</span></div>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">releaseMouse</span>()</span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Gui_Wnd_removeTimer" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Wnd.removeTimer</span> <a class="api-item-permalink" href="#Gui_Wnd_removeTimer" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/gui/src/wnd/wnd.swg#L2443">src</a></div>
+<div class="api-item api-item-func"><span id="Gui_Wnd_removeTimer" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Wnd.removeTimer</span> <a class="api-item-permalink" href="#Gui_Wnd_removeTimer" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/gui/src/wnd/wnd.swg#L2459">src</a></div>
 <p>Removes a timer previously created for this window.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">removeTimer</span>(timer: *<span class="SCst"><a href="#Gui_Timer">Timer</a></span>)</span></div>
 </section>
@@ -27149,7 +27149,7 @@ btnPush_Hot      $btnPush_Normal</span></div>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">resize</span>(width, height: <span class="STpe">f32</span>, computeLayout = <span class="SKwd">true</span>)</span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Gui_Wnd_rootWnd" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Wnd.rootWnd</span> <a class="api-item-permalink" href="#Gui_Wnd_rootWnd" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/gui/src/wnd/wnd.swg#L2276">src</a></div>
+<div class="api-item api-item-func"><span id="Gui_Wnd_rootWnd" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Wnd.rootWnd</span> <a class="api-item-permalink" href="#Gui_Wnd_rootWnd" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/gui/src/wnd/wnd.swg#L2291">src</a></div>
 <p>Returns the topmost structural ancestor of this window, or itself when it has no parent.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">rootWnd</span>()-&gt;*<span class="SCst"><a href="#Gui_Wnd">Wnd</a></span></span></div>
 </section>
@@ -27159,44 +27159,44 @@ btnPush_Hot      $btnPush_Normal</span></div>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SKwd">const</span> <span class="SFct">screenToSurface</span>(pos: <span class="SCst"><a href="std.core.html#namespace_Core_Math">Math</a></span>.<span class="SCst"><a href="std.core.html#Core_Math_Point">Point</a></span>)-&gt;<span class="SCst"><a href="std.core.html#namespace_Core_Math">Math</a></span>.<span class="SCst"><a href="std.core.html#Core_Math_Point">Point</a></span></span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Gui_Wnd_sendCommandEvent" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Wnd.sendCommandEvent</span> <a class="api-item-permalink" href="#Gui_Wnd_sendCommandEvent" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/gui/src/wnd/wnd.swg#L2666">src</a></div>
+<div class="api-item api-item-func"><span id="Gui_Wnd_sendCommandEvent" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Wnd.sendCommandEvent</span> <a class="api-item-permalink" href="#Gui_Wnd_sendCommandEvent" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/gui/src/wnd/wnd.swg#L2682">src</a></div>
 <p>Sends the command <span class="code-inline">cmdId</span> to this window, unless its computed state disables it.</p>
 <p>A <span class="code-inline">null</span> identifier sends nothing.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">sendCommandEvent</span>(cmdId: <span class="SCst"><a href="#Gui_WndId">WndId</a></span>?)</span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Gui_Wnd_sendComputeCommandStateEvent" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Wnd.sendComputeCommandStateEvent</span> <a class="api-item-permalink" href="#Gui_Wnd_sendComputeCommandStateEvent" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/gui/src/wnd/wnd.swg#L2636">src</a></div>
+<div class="api-item api-item-func"><span id="Gui_Wnd_sendComputeCommandStateEvent" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Wnd.sendComputeCommandStateEvent</span> <a class="api-item-permalink" href="#Gui_Wnd_sendComputeCommandStateEvent" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/gui/src/wnd/wnd.swg#L2652">src</a></div>
 <p>Computes and returns the presentation state of <span class="code-inline">cmdId</span>, including its resolved shortcut.</p>
 <p>A <span class="code-inline">null</span> identifier returns an empty state.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">sendComputeCommandStateEvent</span>(cmdId: <span class="SCst"><a href="#Gui_WndId">WndId</a></span>?)-&gt;<span class="SCst"><a href="#Gui_CommandStateEvent">CommandStateEvent</a></span></span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Gui_Wnd_sendCreateEvent" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Wnd.sendCreateEvent</span> <a class="api-item-permalink" href="#Gui_Wnd_sendCreateEvent" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/gui/src/wnd/wnd.swg#L2565">src</a></div>
+<div class="api-item api-item-func"><span id="Gui_Wnd_sendCreateEvent" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Wnd.sendCreateEvent</span> <a class="api-item-permalink" href="#Gui_Wnd_sendCreateEvent" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/gui/src/wnd/wnd.swg#L2581">src</a></div>
 <p>Sends the <a href="#Gui_CreateEvent">Gui.CreateEvent</a> of this window; later calls do nothing.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">sendCreateEvent</span>()</span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Gui_Wnd_sendDisableStateEvent" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Wnd.sendDisableStateEvent</span> <a class="api-item-permalink" href="#Gui_Wnd_sendDisableStateEvent" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/gui/src/wnd/wnd.swg#L2536">src</a></div>
+<div class="api-item api-item-func"><span id="Gui_Wnd_sendDisableStateEvent" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Wnd.sendDisableStateEvent</span> <a class="api-item-permalink" href="#Gui_Wnd_sendDisableStateEvent" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/gui/src/wnd/wnd.swg#L2552">src</a></div>
 <p>Sends a <span class="code-inline">Disable</span> state event to this window and to every locally visible descendant.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">sendDisableStateEvent</span>()</span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Gui_Wnd_sendEvent" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Wnd.sendEvent</span> <a class="api-item-permalink" href="#Gui_Wnd_sendEvent" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/gui/src/wnd/wnd.swg#L2509">src</a></div>
+<div class="api-item api-item-func"><span id="Gui_Wnd_sendEvent" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Wnd.sendEvent</span> <a class="api-item-permalink" href="#Gui_Wnd_sendEvent" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/gui/src/wnd/wnd.swg#L2525">src</a></div>
 <p>Delivers <span class="code-inline">evt</span> to this window immediately, through the owner and parent routing chain.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">sendEvent</span>(evt: <span class="SCst"><a href="#Gui_IEvent">IEvent</a></span>)</span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Gui_Wnd_sendHideStateEvent" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Wnd.sendHideStateEvent</span> <a class="api-item-permalink" href="#Gui_Wnd_sendHideStateEvent" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/gui/src/wnd/wnd.swg#L2525">src</a></div>
+<div class="api-item api-item-func"><span id="Gui_Wnd_sendHideStateEvent" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Wnd.sendHideStateEvent</span> <a class="api-item-permalink" href="#Gui_Wnd_sendHideStateEvent" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/gui/src/wnd/wnd.swg#L2541">src</a></div>
 <p>Sends a <span class="code-inline">Hide</span> state event to this window and to every locally visible descendant.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">sendHideStateEvent</span>()</span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Gui_Wnd_sendResizeEvent" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Wnd.sendResizeEvent</span> <a class="api-item-permalink" href="#Gui_Wnd_sendResizeEvent" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/gui/src/wnd/wnd.swg#L2547">src</a></div>
+<div class="api-item api-item-func"><span id="Gui_Wnd_sendResizeEvent" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Wnd.sendResizeEvent</span> <a class="api-item-permalink" href="#Gui_Wnd_sendResizeEvent" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/gui/src/wnd/wnd.swg#L2563">src</a></div>
 <p>Sends a <a href="#Gui_ResizeEvent">Gui.ResizeEvent</a> for the current size, so the window lays itself out again.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">sendResizeEvent</span>()</span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Gui_Wnd_sendStateEvent" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Wnd.sendStateEvent</span> <a class="api-item-permalink" href="#Gui_Wnd_sendStateEvent" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/gui/src/wnd/wnd.swg#L2518">src</a></div>
+<div class="api-item api-item-func"><span id="Gui_Wnd_sendStateEvent" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Wnd.sendStateEvent</span> <a class="api-item-permalink" href="#Gui_Wnd_sendStateEvent" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/gui/src/wnd/wnd.swg#L2534">src</a></div>
 <p>Sends a <a href="#Gui_StateEvent">Gui.StateEvent</a> of <span class="code-inline">kind</span> to this window.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">sendStateEvent</span>(kind: <span class="SCst"><a href="#Gui_StateEvent">StateEvent</a></span>.<span class="SCst">Kind</span>)</span></div>
 </section>
@@ -27206,7 +27206,7 @@ btnPush_Hot      $btnPush_Normal</span></div>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">sendToBack</span>()</span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Gui_Wnd_serializeState" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Wnd.serializeState</span> <a class="api-item-permalink" href="#Gui_Wnd_serializeState" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/gui/src/wnd/wnd.swg#L2730">src</a></div>
+<div class="api-item api-item-func"><span id="Gui_Wnd_serializeState" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Wnd.serializeState</span> <a class="api-item-permalink" href="#Gui_Wnd_serializeState" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/gui/src/wnd/wnd.swg#L2746">src</a></div>
 <p>Offers persistent-state serialization to this window, then recursively to children if declined.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">serializeState</span>(ser: *<span class="SCst"><a href="std.core.html#namespace_Core_Serialization">Serialization</a></span>.<span class="SCst"><a href="std.core.html#Core_Serialization_Serializer">Serializer</a></span>) <span class="SKwd">fail</span></span></div>
 </section>
@@ -27225,13 +27225,13 @@ btnPush_Hot      $btnPush_Normal</span></div>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">setAllPaddings</span>(value: <span class="SCst"><a href="std.core.html#namespace_Core_Math">Math</a></span>.<span class="SCst"><a href="std.core.html#Core_Math_Vector4">Vector4</a></span>)</span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Gui_Wnd_setFocus" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Wnd.setFocus</span> <a class="api-item-permalink" href="#Gui_Wnd_setFocus" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/gui/src/wnd/wnd.swg#L2147">src</a></div>
+<div class="api-item api-item-func"><span id="Gui_Wnd_setFocus" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Wnd.setFocus</span> <a class="api-item-permalink" href="#Gui_Wnd_setFocus" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/gui/src/wnd/wnd.swg#L2148">src</a></div>
 <p>Requests keyboard focus after both the old and new windows approve the transition.</p>
-<p>The focus goes to <a href="#Gui_Wnd_focusTarget">Gui.Wnd.focusTarget</a>, so asking a composite for the focus reaches the part of it that reads the keys. A disabled window or surface cannot take focus. Scrolling ancestors reveal the accepted control before it receives the focus event.</p>
+<p>The focus goes to <a href="#Gui_Wnd_focusTarget">Gui.Wnd.focusTarget</a>, so asking a composite for the focus reaches the part of it that reads the keys. A disabled window or surface cannot take focus. Scrolling ancestors reveal the accepted control before it receives the focus event. A window with <a href="#Gui_FocusPolicy_None">Gui.FocusPolicy.None</a> ignores this request.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">setFocus</span>()</span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Gui_Wnd_setInitialFocus" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Wnd.setInitialFocus</span> <a class="api-item-permalink" href="#Gui_Wnd_setInitialFocus" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/gui/src/wnd/wnd.swg#L2322">src</a></div>
+<div class="api-item api-item-func"><span id="Gui_Wnd_setInitialFocus" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Wnd.setInitialFocus</span> <a class="api-item-permalink" href="#Gui_Wnd_setInitialFocus" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/gui/src/wnd/wnd.swg#L2337">src</a></div>
 <p>Gives the keyboard focus to the first traversal stop of this window's tree.</p>
 <p>Call it once a surface is fully built, so it opens ready for the keyboard: a form the user can start typing into, a dialog that answers Tab from its first field. A focus that already stands somewhere inside this tree is left where it is — the caller placed it on purpose — and a tree with no stop at all keeps none.</p>
 <p><span class="code-inline">preferred</span> is the stop to open on when the reading order is not what the surface means by "start here": a box whose answer is a default action opens on that action, so the first Enter presses what the box says it will and not what happens to read first. It is ignored when it is not a stop of this tree.</p>
@@ -27294,7 +27294,7 @@ btnPush_Hot      $btnPush_Normal</span></div>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">show</span>(b = <span class="SKwd">true</span>)</span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Gui_Wnd_showsFocusRing" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Wnd.showsFocusRing</span> <a class="api-item-permalink" href="#Gui_Wnd_showsFocusRing" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/gui/src/wnd/wnd.swg#L2267">src</a></div>
+<div class="api-item api-item-func"><span id="Gui_Wnd_showsFocusRing" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Wnd.showsFocusRing</span> <a class="api-item-permalink" href="#Gui_Wnd_showsFocusRing" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/gui/src/wnd/wnd.swg#L2282">src</a></div>
 <p>Reports whether the paint must draw the keyboard-focus ring on this window.</p>
 <p>It is <a href="#Gui_Wnd_hasVisibleFocus">Gui.Wnd.hasVisibleFocus</a> plus the diagnostic that shows every ring of a surface at once: only one control can hold the keyboard, so judging the mark against every shape a palette answers for is otherwise a walk through the whole tab order, one screen at a time. See <a href="#Gui_ApplicationOptions_showFocusRings">Gui.ApplicationOptions.showFocusRings</a>.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">showsFocusRing</span>()-&gt;<span class="STpe">bool</span></span></div>
@@ -27309,7 +27309,7 @@ btnPush_Hot      $btnPush_Normal</span></div>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">startDrag</span>(data: *<span class="SCst"><a href="#Gui_DragData">DragData</a></span>, allowed = <span class="SCst"><a href="#Gui_DropEffect">DropEffect</a></span>.<span class="SCst">Copy</span>, picture: <span class="SKwd">const</span> *<span class="SCst">Pixel</span>.<span class="SCst"><a href="#Gui_Pdf_ItemKind_Image">Image</a></span>? = <span class="SKwd">null</span>)-&gt;<span class="SCst"><a href="#Gui_DropEffect">DropEffect</a></span></span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Gui_Wnd_stopTimer" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Wnd.stopTimer</span> <a class="api-item-permalink" href="#Gui_Wnd_stopTimer" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/gui/src/wnd/wnd.swg#L2453">src</a></div>
+<div class="api-item api-item-func"><span id="Gui_Wnd_stopTimer" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Wnd.stopTimer</span> <a class="api-item-permalink" href="#Gui_Wnd_stopTimer" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/gui/src/wnd/wnd.swg#L2469">src</a></div>
 <p>Removes the timer <span class="code-inline">timer</span> holds, if any, and clears it.</p>
 <p>A window that may stop a timer early keeps it in a nullable field. This releases the timer and forgets it in one step, so the field never names a timer that no longer runs. It is safe after the destruction of the window has already retired its timers.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">stopTimer</span>(timer: *(*<span class="SCst"><a href="#Gui_Timer">Timer</a></span>?))</span></div>
@@ -27332,7 +27332,7 @@ btnPush_Hot      $btnPush_Normal</span></div>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SKwd">const</span> <span class="SFct">surfaceToLocal</span>(pos: <span class="SCst"><a href="std.core.html#namespace_Core_Math">Math</a></span>.<span class="SCst"><a href="std.core.html#Core_Math_Point">Point</a></span>)-&gt;<span class="SCst"><a href="std.core.html#namespace_Core_Math">Math</a></span>.<span class="SCst"><a href="std.core.html#Core_Math_Point">Point</a></span></span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Gui_Wnd_taskNotifier" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Wnd.taskNotifier</span> <a class="api-item-permalink" href="#Gui_Wnd_taskNotifier" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/gui/src/wnd/wnd.swg#L2487">src</a></div>
+<div class="api-item api-item-func"><span id="Gui_Wnd_taskNotifier" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Wnd.taskNotifier</span> <a class="api-item-permalink" href="#Gui_Wnd_taskNotifier" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/gui/src/wnd/wnd.swg#L2503">src</a></div>
 <p>Returns a notification for <a href="swag.runtime.html#Swag_Task_submit">Swag.Task.submit</a> that posts a <a href="#Gui_TaskEvent">Gui.TaskEvent</a> naming <span class="code-inline">task</span> to this window once the task has finished.</p>
 <p>The notification runs on the thread that finished the task and reads nothing from this window there. The event reaches <a href="#Gui_IWnd_onTaskEvent">Gui.IWnd.onTaskEvent</a> on the GUI thread during a later frame, and is dropped once the window's destruction has completed. The window must be on a surface.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">taskNotifier</span>(task: <span class="SKwd">const</span> *<span class="SNsp">Swag</span>.<span class="SCst">TaskState</span>)-&gt;<span class="SKwd">func</span>||()</span></div>
@@ -27373,7 +27373,7 @@ btnPush_Hot      $btnPush_Normal</span></div>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">topWindow</span>()</span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Gui_Wnd_updateCommandState" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Wnd.updateCommandState</span> <a class="api-item-permalink" href="#Gui_Wnd_updateCommandState" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/gui/src/wnd/wnd.swg#L2619">src</a></div>
+<div class="api-item api-item-func"><span id="Gui_Wnd_updateCommandState" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Wnd.updateCommandState</span> <a class="api-item-permalink" href="#Gui_Wnd_updateCommandState" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/gui/src/wnd/wnd.swg#L2635">src</a></div>
 <p>Computes and applies the command state of this window, or of its children when it declines.</p>
 <p>A window whose compute pass answers for its own identifier applies the result to itself and stops there; otherwise the pass descends to every child.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">updateCommandState</span>()</span></div>
@@ -30613,7 +30613,7 @@ btnPush_Hot      $btnPush_Normal</span></div>
 "e|Gui.FocusPolicy|Gui_FocusPolicy|Selects how a window takes part in keyboard focus.",
 "k|Gui.FocusPolicy.Click|Gui_FocusPolicy_Click|Takes the focus when pressed, without being a stop; the traversal walks through.",
 "k|Gui.FocusPolicy.Inner|Gui_FocusPolicy_Inner|Takes the focus when pressed, and hides itself and its children from the traversal.",
-"k|Gui.FocusPolicy.None|Gui_FocusPolicy_None|Never takes the keyboard focus; the traversal walks through to the children.",
+"k|Gui.FocusPolicy.None|Gui_FocusPolicy_None|Never takes focus; pointer and programmatic requests are ignored, and traversal walks through its children.",
 "k|Gui.FocusPolicy.Tab|Gui_FocusPolicy_Tab|Takes the focus when pressed, and is one stop of the traversal.",
 "e|Gui.FrameWndAnchor|Gui_FrameWndAnchor|Selects the edge from which a popup callout anchor protrudes.",
 "k|Gui.FrameWndAnchor.Bottom|Gui_FrameWndAnchor_Bottom|Draws an anchor on the bottom edge.",

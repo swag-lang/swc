@@ -879,7 +879,7 @@ by portable modules and products. The earlier entries prepare and enforce the sa
   outside the checkout with GNU Make. Complete DevMode and Release compilers link and
   pass the lexer/parser suites including expected-error inputs without spurious JIT setup.
   The full C++ campaign, including filesystem tests and extra IR/native validation, passes
-  1,714 of 1,721 tests; seven native link/run fixtures remain failing. Closed Windows x64 instruction fixtures execute
+  1,716 of 1,723 tests; seven native link/run fixtures remain failing. Closed Windows x64 instruction fixtures execute
   through an explicit GCC ABI bridge. Runtime adapters initialize on the first actual JIT call,
   and generated code retains separate output-target and host unwind metadata.
   Cross-host foreign relocations reject an actual call while allowing untaken error branches.
@@ -950,9 +950,11 @@ by portable modules and products. The earlier entries prepare and enforce the sa
 
 ### platform.portability.093 — Native output has no ELF and Linux startup path
 
-- Evidence: `NativeObjectFormat` contains only `WindowsCoff`, the linker writes PE, and
-  `NativeBackendBuilder::validateTarget` rejects non-Windows targets.
-- Next: add ELF objects and a Linux link/startup path with explicit CRT, hosted library and dynamic
+- Evidence: `ELFObjectWriter` emits ELF64 relocatable code/data/BSS with explicit RELA
+  addends, undefined symbols and exported aliases. A GNU linker consumer executes these
+  objects and verifies external calls and shared data. The native pipeline still selects
+  only `WindowsCoff`, writes PE, and rejects Linux in `NativeBackendBuilder::validateTarget`.
+- Next: connect ELF objects to a Linux link/startup path with explicit CRT, hosted library and dynamic
   loader inputs. Pass argc/argv to runtime initialization before module startup; keep debug/unwind
   format selection independent of CodeView/PDB.
 - Done when: Linux executables and shared libraries link and run a runtime/native workspace smoke,

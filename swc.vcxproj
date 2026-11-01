@@ -246,6 +246,7 @@
         <ClCompile Include="src\Backend\Linker\PELinker.cpp"/>
         <ClCompile Include="src\Backend\Linker\Win32OsPatcher.cpp"/>
         <ClCompile Include="src\Backend\Linker\CoffReader.cpp"/>
+        <ClCompile Include="src\Backend\Linker\ELFObjectWriter.cpp"/>
         <ClCompile Include="src\Backend\Linker\Archive.cpp"/>
         <ClCompile Include="src\Backend\Linker\PEWriter.cpp"/>
         <ClCompile Include="src\Backend\Linker\PdbWriter.cpp"/>
@@ -915,6 +916,7 @@
         <ClInclude Include="src\Backend\Linker\ImageWriter.h"/>
         <ClInclude Include="src\Backend\Linker\Win32OsPatcher.h"/>
         <ClInclude Include="src\Backend\Linker\CoffReader.h"/>
+        <ClInclude Include="src\Backend\Linker\ELFObjectWriter.h"/>
         <ClInclude Include="src\Backend\Linker\Archive.h"/>
         <ClInclude Include="src\Backend\Linker\PEWriter.h"/>
         <ClInclude Include="src\Backend\Linker\PEFormat.h"/>

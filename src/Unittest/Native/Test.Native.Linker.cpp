@@ -4,6 +4,8 @@
 #if SWC_HAS_UNITTEST
 
 #include "Backend/Linker/Archive.h"
+#include "Backend/Linker/ELFObjectWriter.h"
+#include "Unittest/Native/NativeTestBytes.h"
 #include "Main/ExitCodes.h"
 #include "Main/FileSystem.h"
 #include "Support/Os/Os.h"
@@ -569,6 +571,103 @@ func(T) accumulate(value: T)
     }
 }
 SWC_TEST_END()
+
+SWC_TEST_BEGIN(ELFObject_RejectsUnrepresentableSectionsAndRelocations)
+{
+    LinkImage image;
+    LinkSection section;
+    section.name = ".data";
+    section.bytes.resize(8);
+    image.sections.push_back(std::move(section));
+    image.symbols.push_back({.name = "value", .sectionIndex = 0, .value = 0});
+    ByteArray bytes;
+    Diagnostic diagnostic;
+    if (!buildElfObject(bytes, diagnostic, image))
+        return Result::Error;
+    image.sections[0].align = 3;
+    if (buildElfObject(bytes, diagnostic, image) || !bytes.empty())
+        return Result::Error;
+    image.sections[0].align = 8;
+    image.sections[0].relocs.push_back({.offset = 1, .kind = LinkRelocKind::Abs64, .symbolName = "value"});
+    if (buildElfObject(bytes, diagnostic, image) || !bytes.empty())
+        return Result::Error;
+    image.sections[0].relocs[0].offset = 0;
+    image.sections[0].relocs[0].kind = LinkRelocKind::Rva32;
+    if (buildElfObject(bytes, diagnostic, image) || !bytes.empty())
+        return Result::Error;
+    image.sections[0].relocs.clear();
+    image.symbols.push_back(image.symbols.front());
+    if (buildElfObject(bytes, diagnostic, image) || !bytes.empty())
+        return Result::Error;
+    image.symbols.pop_back();
+    image.exports.push_back({.name = "public_value", .symbolName = "absent"});
+    if (buildElfObject(bytes, diagnostic, image) || !bytes.empty())
+        return Result::Error;
+}
+SWC_TEST_END()
+
+#if defined(__linux__) && defined(__x86_64__)
+SWC_FILESYSTEM_TEST_BEGIN(ELFObject_GnuLinkerResolvesCodeDataBssAndImports)
+{
+    const LinkerTestDirectory directory("elf_object");
+    LinkImage image;
+    LinkSection code;
+    code.name = ".text";
+    code.align = 16;
+    code.flags = LinkSectionFlagsE::Code | LinkSectionFlagsE::Read | LinkSectionFlagsE::Execute;
+    NativeTest::emit(code.bytes, {0x48, 0x83, 0xec, 8, 0xe8}); // sub rsp,8; call helper
+    code.relocs.push_back({.offset = static_cast<uint32_t>(code.bytes.size()), .kind = LinkRelocKind::Rel32, .symbolName = "helper"});
+    code.bytes.appendLe32(0);
+    NativeTest::emit(code.bytes, {0x48, 0xb9}); // movabs rcx,values+8
+    code.relocs.push_back({.offset = static_cast<uint32_t>(code.bytes.size()), .kind = LinkRelocKind::Abs64, .symbolName = "values", .addend = -8});
+    code.bytes.appendLe64(16);
+    NativeTest::emit(code.bytes, {0x03, 0x01, 0x8b, 0x0d}); // add eax,[rcx]; mov ecx,[rip+values+8]
+    code.relocs.push_back({.offset = static_cast<uint32_t>(code.bytes.size()), .kind = LinkRelocKind::Rel32, .symbolName = "values", .addend = -4});
+    code.bytes.appendLe32(12);
+    NativeTest::emit(code.bytes, {0x01, 0xc8, 0x48, 0xba}); // add eax,ecx; movabs rdx,counter
+    code.relocs.push_back({.offset = static_cast<uint32_t>(code.bytes.size()), .kind = LinkRelocKind::Abs64, .symbolName = "counter"});
+    code.bytes.appendLe64(0);
+    NativeTest::emit(code.bytes, {0x03, 0x02, 0x89, 0x02, 0x48, 0x83, 0xc4, 8, 0xc3});
+    image.sections.push_back(std::move(code));
+    LinkSection data;
+    data.name = ".data";
+    data.align = 8;
+    data.flags = LinkSectionFlagsE::Read | LinkSectionFlagsE::Write;
+    data.bytes.appendLe32(7);
+    data.bytes.appendLe32(8);
+    data.bytes.appendLe32(22);
+    image.sections.push_back(std::move(data));
+    LinkSection bss;
+    bss.name = ".bss";
+    bss.align = 64;
+    bss.bssSize = 4;
+    bss.flags = LinkSectionFlagsE::Read | LinkSectionFlagsE::Write | LinkSectionFlagsE::Uninit;
+    image.sections.push_back(std::move(bss));
+    image.symbols = {{.name = "calculate", .sectionIndex = 0}, {.name = "values", .sectionIndex = 1}, {.name = "counter", .sectionIndex = 2}};
+    image.exports.push_back({.name = "answer", .symbolName = "calculate"});
+    ByteArray bytes;
+    Diagnostic diagnostic;
+    if (!buildElfObject(bytes, diagnostic, image))
+        return Result::Error;
+    SWC_RESULT(directory.write("generated.o", {reinterpret_cast<const char*>(bytes.data()), bytes.size()}));
+    SWC_RESULT(directory.write("caller.cpp", R"(extern "C" int answer();
+extern "C" int helper() { return 20; }
+int main() { return answer() == 64 && answer() == 128 ? 0 : 1; }
+)"));
+    std::string output;
+    uint32_t exitCode = 0;
+    const Os::ProcessRunOptions options{.capturedOutput = &output, .forwardOutput = false, .timeoutMs = 15000};
+    const std::vector<Utf8> arguments = {"-no-pie", "-Wl,--build-id=none", "caller.cpp", "generated.o", "-o", "consumer"};
+    if (Os::runProcess(exitCode, "c++", arguments, directory.path(), &options) != Os::ProcessRunResult::Ok || exitCode != 0)
+    {
+        std::println(stderr, "[ELF object consumer] {}", output);
+        return Result::Error;
+    }
+    if (Os::runProcess(exitCode, directory.path() / "consumer", {}, directory.path(), &options) != Os::ProcessRunResult::Ok || exitCode != 0)
+        return Result::Error;
+}
+SWC_TEST_END()
+#endif
 
 SWC_END_NAMESPACE();
 

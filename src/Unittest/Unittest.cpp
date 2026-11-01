@@ -5,6 +5,7 @@
 #include "Main/Command/CommandLine.h"
 #include "Main/CompilerInstance.h"
 #include "Main/Global.h"
+#include "Main/Stats.h"
 #include "Support/Core/Timer.h"
 #include "Support/Core/Utf8Helper.h"
 #include "Support/Os/Os.h"
@@ -232,10 +233,16 @@ namespace Unittest
             }
 
             stage.setProgressStat(ScopedTimedLog::formatTestProgress(testCtx, executedTestCount, selectedTestCount, failedTestCount, test.name));
+            // Each fixture owns its compiler jobs. A diagnostic from an earlier
+            // fixture must not abort this one's sema or native preparation, but it
+            // still contributes to the campaign's final error count and failure.
+            auto&             errorCount = Stats::get().numErrors;
+            const uint64_t    priorErrors = errorCount.exchange(0, std::memory_order_relaxed);
             const Timer::Tick startTick  = Timer::Clock::now();
             const Result      result     = test.fn(testCtx);
             const uint64_t    durationNs = std::chrono::duration_cast<std::chrono::nanoseconds>(Timer::Clock::now() - startTick).count();
-            const bool        ok         = result == Result::Continue;
+            const uint64_t    testErrors = errorCount.fetch_add(priorErrors, std::memory_order_relaxed);
+            const bool        ok         = result == Result::Continue && testErrors == 0;
             executedTestCount++;
             if (!ok)
                 failedTestCount++;

@@ -16,7 +16,6 @@
 #include "Main/Command/CommandLine.h"
 #include "Main/Command/CommandLineParser.h"
 #include "Main/Command/Command.h"
-#include "Compiler/SourceFile.h"
 #include "Unittest/UnittestSource.h"
 #include "Main/CompilerInstance.h"
 #include "Main/Stats.h"
@@ -1876,7 +1875,7 @@ namespace
     }
 }
 
-SWC_TEST_BEGIN(Runtime_LinuxHostedPrimitives)
+SWC_FILESYSTEM_TEST_BEGIN(Runtime_LinuxHostedPrimitives)
 {
     static constexpr std::string_view SOURCE = R"(#global if #os == Swag.TargetOs.Linux
 #global private
@@ -1905,7 +1904,7 @@ SWC_TEST_BEGIN(Runtime_LinuxHostedPrimitives)
 }
 SWC_TEST_END()
 
-SWC_TEST_BEGIN(Runtime_LinuxPageReservationsAndProcessStorage)
+SWC_FILESYSTEM_TEST_BEGIN(Runtime_LinuxPageReservationsAndProcessStorage)
 {
     static constexpr std::string_view SOURCE = R"(#global if #os == Swag.TargetOs.Linux
 #global private
@@ -1941,7 +1940,7 @@ SWC_TEST_BEGIN(Runtime_LinuxPageReservationsAndProcessStorage)
 }
 SWC_TEST_END()
 
-SWC_TEST_BEGIN(Runtime_LinuxThreadStorageAndExitCleanup)
+SWC_FILESYSTEM_TEST_BEGIN(Runtime_LinuxThreadStorageAndExitCleanup)
 {
     static constexpr std::string_view SOURCE = R"(#global if #os == Swag.TargetOs.Linux
 #global private
@@ -1998,7 +1997,7 @@ func linuxTlsWorker(value: *void?)->u32
 }
 SWC_TEST_END()
 
-SWC_TEST_BEGIN(Runtime_LinuxUnixArgumentVector)
+SWC_FILESYSTEM_TEST_BEGIN(Runtime_LinuxUnixArgumentVector)
 {
     static constexpr std::string_view SOURCE = R"(#global if #os == Swag.TargetOs.Linux
 #global private

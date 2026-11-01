@@ -786,7 +786,7 @@ uint32_t CompilerInstance::valueBorrowExtentCacheOffset()
 // dialog box. We build the command line the program is effectively launched with: argv[0]
 // plus the effective run args, alongside their exact values (including empty arguments,
 // quotes and backslashes). The effective args include the auto-added 'swag.test' for the test
-// command). This is done lazily at run time -- never at codegen -- so compile-time '#run'
+// command. This is done lazily at run time -- never at codegen -- so compile-time '#run'
 // code keeps seeing a zeroed Swag.processInfo() (see the context_intrinsics unit test).
 void CompilerInstance::ensureProcessInfoRunArgs()
 {
@@ -804,7 +804,7 @@ void CompilerInstance::ensureProcessInfoRunArgs()
             cmdLineStr += '"';
     };
 
-    const std::string exeName = exeFullName_.string();
+    const std::string        exeName = exeFullName_.string();
     std::vector<std::string> argumentValues{exeName};
     appendQuoted(exeName);
     for (const Utf8& arg : effectiveGeneratedArtifactRunArgs(cmdLine()))
@@ -821,9 +821,9 @@ void CompilerInstance::ensureProcessInfoRunArgs()
     // never die with an instance: intern it for the lifetime of the process.
     struct StoredProcessArgs
     {
-        std::string                  commandLine;
-        std::vector<std::string>      values;
-        std::vector<Runtime::String>  slices;
+        std::string                 commandLine;
+        std::vector<std::string>     values;
+        std::vector<Runtime::String> slices;
     };
     static std::mutex                    processInfoArgsMutex;
     static std::deque<StoredProcessArgs> processInfoArgsStorage;

@@ -13,6 +13,8 @@ SWC_BEGIN_NAMESPACE();
 
 namespace
 {
+    constexpr std::string_view K_HOST_OS_ARGUMENT = hostTargetOs() == Runtime::TargetOs::Windows ? "windows" : "linux";
+
     constexpr std::string_view PRINT_MICRO_SOURCE = R"(#global private
 func addOne(value: s32)->s32 => value + 1
 func subOne(value: s32)->s32 => value - 1
@@ -38,7 +40,7 @@ namespace Inner { func addTwo(value: s32)->s32 => value + 2 }
         const fs::path sourcePath = directory / "print_micro.swg";
         SWC_RESULT(CompilerTestFile::writeText(sourcePath, source));
 
-        std::vector<Utf8> args = {"sema", "--os", targetOsName(hostTargetOs()), "--num-cores", "3", "--no-log-color", "-f", Utf8(sourcePath.string())};
+        std::vector<Utf8> args = {"sema", "--os", K_HOST_OS_ARGUMENT, "--num-cores", "3", "--no-log-color", "-f", Utf8(sourcePath.string())};
         if (!buildCfg.empty())
         {
             args.emplace_back("-bc");

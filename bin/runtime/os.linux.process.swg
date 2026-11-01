@@ -239,3 +239,7 @@ func __setUnixArguments(count: u32, values: const [*] (const [*] u8))->bool
     Swag.processInfo().arguments = Swag.makeSlice(arguments, cast(u64, count))
     return true
 }
+
+// The Unix entry installs its argv with __setUnixArguments before entering runtime
+// setup. Unlike Windows, there is no process command-line string to fetch here.
+func __hostSetupProcessArguments() {}

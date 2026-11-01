@@ -25,15 +25,18 @@ new platform implements capabilities rather than copies policy.
 The following entries implement the target backends and remove the Windows-bound behavior exposed
 by portable modules and products. The earlier entries prepare and enforce the same boundaries.
 
-### platform.portability.004 — Linux page-allocation primitives do not exist
+### platform.portability.004 — Complete Linux allocator fault and lifetime validation
 
 - Evidence: the allocator reaches the host only through `__hostPageReserve`,
   `__hostPageCommit`, `__hostPageDecommit`, `__hostPageRelease`, and
   `__hostPageAllocationBase` (the reservation holding an address, used by the electric-mode
   header lookup), wrapped by `allocatorOsReserve`/`allocatorOsCommit`/`allocatorOsDecommit`
-  in `bin/runtime/allocator.pages.swg`. Only `bin/runtime/os.win32.swg` supplies them.
-- Next: implement Linux reserve, commit/protection, decommit, release, and thread-exit cleanup
-  with the same lifetime and failure contracts before enabling the allocator on Linux.
+  in `bin/runtime/allocator.pages.swg`. Linux implementations in `os.linux.memory.swg`
+  pass JIT reservation, decommit/recommit and allocation-base probes. pthread cleanup works
+  on a joined runtime thread; compiler-owned cleanup callbacks are not yet retired before
+  their JIT code is unmapped.
+- Next: validate inaccessible pages and electric-mode faults, cross-module and fork ownership,
+  and retire compiler-owned pthread storage while its cleanup code is still alive.
 - Done when: Linux tests cover reserved-but-inaccessible memory, committed pages,
   decommit/recommit, guard-page protection, release, and thread-storage cleanup without
   reporting counters for work the host did not perform.
@@ -246,19 +249,21 @@ by portable modules and products. The earlier entries prepare and enforce the sa
   bin source. Select headless/no-sound backends where their contracts permit them.
 - Done when: A non-Windows configuration compiles every neutral runtime and bin source with headless/no-sound stubs where needed, and its build fails on an accidental native Windows import.
 
-### platform.portability.005 — Runtime startup cannot accept an argument vector
+### platform.portability.005 — Wire argument vectors into native Unix startup
 
-- Next: give startup a host ABI that can accept an argument vector directly. Windows may continue to
-  parse its process command line, while a Unix entry point supplies `argc`/`argv`; the rest of the
-  runtime must see the same `Swag.args()` contract.
+- Evidence: `ProcessInfo.arguments` carries exact string values through `Swag.args()` and runtime
+  module hooks. JIT storage outlives compiler instances, and `__setUnixArguments` converts a raw
+  argument vector without parsing spaces, quotes or empty strings.
+- Next: invoke this conversion from ELF startup before module initialization. Validate native
+  argument propagation and lifetime across shared modules; retain the Windows command-line path.
 - Related: platform.portability.003, platform.portability.008, platform.portability.010
 - Done when: A Unix host entry point passes argc/argv directly to runtime startup, Windows retains its command-line parser, and the same argument-order, quoting, and empty-argument tests pass through Swag.args on both hosts.
 
 ### platform.portability.007 — Linux hosted runtime libraries are not wired into the target
 
 - Evidence: `bin/PORTABILITY.md` names the Windows and planned GNU/Linux hosted libraries, but
-  `bin/runtime/os.win32.swg` remains the only runtime math binding and Linux cannot link Swag code.
-- Next: implement Linux libc/libm bindings and target link inputs against that matrix after the
+  Linux glibc/libm bindings now execute in JIT probes. Native Linux linking remains unavailable.
+- Next: wire native CRT, libc/libm and loader link inputs against that matrix after the
   System V ABI exists. Keep stable libc calls rather than coupling the runtime to raw syscalls.
 - Related: platform.portability.031
 - Done when: A checked target matrix names required hosted libraries and link inputs for Windows and the chosen Linux target, distinguishes any freestanding contract, and both targets build without hidden platform-library assumptions.
@@ -873,12 +878,12 @@ by portable modules and products. The earlier entries prepare and enforce the sa
   outside the checkout with GNU Make. Complete DevMode and Release compilers link and
   pass the lexer/parser suites including expected-error inputs without spurious JIT setup.
   The full C++ campaign, including filesystem tests and extra IR/native validation, passes
-  1,682 of 1,713 tests; 31 remain failing. Closed Windows x64 instruction fixtures execute
+  1,710 of 1,719 tests; nine native link/run fixtures remain failing. Closed Windows x64 instruction fixtures execute
   through an explicit GCC ABI bridge. Runtime adapters initialize on the first actual JIT call,
   and generated code retains separate output-target and host unwind metadata.
   Cross-host foreign relocations reject an actual call while allowing untaken error branches.
-  Remaining execution failures reach native Windows TLS instructions through shared runtime
-  helpers. C++ fixtures isolate their error counts, retaining unexpected diagnostics as
+  Platform-neutral semantic/JIT fixtures now select the host target. Remaining native execution
+  failures still reach Windows TLS instructions through Windows runtime helpers. C++ fixtures isolate their error counts, retaining unexpected diagnostics as
   failures without aborting later native preparation. Windows link/run fixtures also need
   target import libraries and an executable format supported by the Linux host.
   PE/COFF records no longer depend on the Windows SDK, and both target enums represent Linux.
@@ -887,10 +892,10 @@ by portable modules and products. The earlier entries prepare and enforce the sa
   cleanup through generated faults. System V scalar/aggregate transfers and host callback
   adapters work at the backend boundary, including cross-ABI register preservation and native
   exception unwinding. An explicit `--os linux` selects target queries and the System V C profile;
-  syntax succeeds, while semantic analysis still reports the absent Linux runtime hooks.
-  Source runtime integration and DWARF source resolution remain missing.
+  guarded semantic/JIT execution and runtime host-boundary probes pass. Native runtime
+  integration, compiler-owned pthread cleanup and DWARF source resolution remain missing.
   Linux directory locks do not prohibit an uncoordinated cleaner's rename.
-- Next: resolve the remaining C++ failures and connect the System V ABI to Linux JIT execution.
+- Next: resolve the native C++ failures through Linux artifact/startup support and complete runtime lifecycle validation.
   Coordinate directory cleanup with API readers/publication. Keep C++ cleanup intact across
   generated-code faults, including native callbacks and nested JIT calls.
 - Done when: DevMode and Release Linux compilers build from source and execute focused C++,
@@ -902,8 +907,8 @@ by portable modules and products. The earlier entries prepare and enforce the sa
 - Evidence: the internal System V profile implements six integer/eight vector argument registers,
   independent banks, callee-save rules, zero shadow space and variadic AL setup with explicit
   liveness. Native C fixtures exercise mixed scalar banks, stack arguments, variadic floats and
-  indirect calls after physical-register DCE. Source attributes cannot select the unfinished
-  profile directly. Explicit Linux target selection maps C to System V; Windows remains the
+  indirect calls after physical-register DCE. Source attributes select the concrete profile
+  through C, resolved per compiler instance rather than the process-wide default. Windows remains the
   default target while the Linux runtime is incomplete. The storage classifier and argument planner cover
   mixed/nested records, unions, SIMD upper halves, unaligned fields and whole-argument bank
   rollback. The packed-address call bridge now passes mixed/two-register/stack aggregates,
@@ -934,7 +939,7 @@ by portable modules and products. The earlier entries prepare and enforce the sa
   execution and over-aligned stack values still need validation or integration.
 - Next: validate owned-local and temporary return cleanup and complete end-to-end source execution; add
   dynamic alignment for over-aligned stack values.
-  Compare with native C/C++ fixtures and implement the missing Linux runtime declarations.
+  Compare with native C/C++ fixtures and complete Linux runtime lifecycle and signal support.
 - Done when: generated Linux calls round-trip supported scalar and aggregate values through C,
   preserve callee-save registers and stack alignment, and use the same ABI in JIT and native code.
 - Related: platform.portability.007, platform.portability.081

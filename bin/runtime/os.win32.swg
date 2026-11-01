@@ -552,6 +552,11 @@ namespace __Win32RT
 // The command line this process was launched with, still owned by the operating system and
 // therefore valid for the whole run. The buffer holds the executable path followed by the
 // arguments, which is the shape 'Swag.args()' parses.
+func __hostSetupProcessArguments()
+{
+    Swag.processInfo().args = __osCommandLine()
+}
+
 func __osCommandLine()->string?
 {
     // The system states the command line in both eight-bit and wide forms, and only the wide one

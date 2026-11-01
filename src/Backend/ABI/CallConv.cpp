@@ -258,6 +258,11 @@ CallConvKind CallConv::hostKind()
     return resolveTargetCallConvKind(hostTargetOs());
 }
 
+CallConvKind CallConv::resolveKind(const CallConvKind kind, const Runtime::TargetOs targetOs)
+{
+    return kind == CallConvKind::C ? resolveTargetCallConvKind(targetOs) : kind;
+}
+
 void CallConv::setup(const Runtime::TargetOs targetOs)
 {
     setupCallConvWindowsX64(g_CallConvs[static_cast<size_t>(CallConvKind::WindowsX64)]);

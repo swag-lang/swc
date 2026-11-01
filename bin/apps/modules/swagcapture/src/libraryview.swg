@@ -135,6 +135,13 @@ struct LibraryView
 
 impl IWnd for LibraryView
 {
+    mtd impl onDestroyEvent(_: *DestroyEvent)
+    {
+        // The loader borrows this view and its items, and can still post repaint events.
+        // Join it before the window is unregistered or any of its storage is released.
+        .stopLoading()
+    }
+
     mtd impl onMouseEvent(evt: *MouseEvent)
     {
         if evt.kind == .Leave

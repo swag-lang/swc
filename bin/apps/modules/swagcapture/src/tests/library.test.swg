@@ -12,6 +12,29 @@ impl IAllocator for LibraryRejectAllocator
     mtd impl free(_: *AllocatorRequest) {}
 }
 
+// Destroying a view joins its loader even when no close command was sent first.
+#test
+{
+    var f: HeadlessFixture
+    f.setup()
+    defer f.shutdown()
+    let view = f.setupLibraryWnd().view
+
+    func loadUntilStopped(thread: const *Thread)
+    {
+        while not thread.requestEnd.isRaised() do
+            Thread.yield()
+    }
+
+    expect view.thread.init(&loadUntilStopped)
+    expect view.thread.start()
+    defer view.stopLoading()
+    Swag.assert(view.thread.isValid())
+
+    view.destroyNow()
+    Swag.assert(not view.thread.isValid())
+}
+
 // Library actions can be exercised against an empty headless library window:
 // sorting/filtering and command states do not require scanning the user's files.
 #test

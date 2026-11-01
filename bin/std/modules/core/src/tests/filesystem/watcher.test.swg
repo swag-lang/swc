@@ -37,6 +37,16 @@ func waitForWatchChange(watcher: *Directory.Watcher, kind: Directory.ChangeKind,
 
 #test
 {
+    var options: Directory.WatchOptions
+    options.filter = Directory.WatchFilter.None
+
+    var errOutcome: Swag.Error
+    discard catch Directory.watch(".", options) as errOutcome
+    Swag.assert(errOutcome.value() is Errors.BadParameterError)
+}
+
+#test
+{
     let root = CoreTests.makeFilesystemTestPath("core_directory_watcher")
     expect Directory.create(root)
     defer discard catch Directory.delete(root, recurse: true)

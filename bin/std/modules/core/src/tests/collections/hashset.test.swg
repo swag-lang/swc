@@ -190,6 +190,26 @@ func assertReverseIntSetIteration(values: HashSet's32)->bool
 #test
 {
     var values: HashSet's32
+    for value in 16 do
+        values.add(cast(s32, value))
+
+    let oldCapacity  = values.capacity
+    let oldAllocator = values.allocator
+    var reject: RejectHashSetGrowthAllocator
+    values.allocator = &reject
+
+    let duplicateFailed = Swag.catchPanic(func|&values|() { discard values.add(7) })
+    var toggleResult = true
+    let toggleFailed = Swag.catchPanic(func|&values, &toggleResult|() { toggleResult = values.toggle(7) })
+    values.allocator = oldAllocator
+
+    Swag.assert(not duplicateFailed.raised and not toggleFailed.raised and not toggleResult)
+    Swag.assert(values.capacity == oldCapacity and values.count == 15 and not values.contains(7))
+}
+
+#test
+{
+    var values: HashSet's32
 
     Swag.assert(values.toggle(10))
     Swag.assert(values.contains(10))

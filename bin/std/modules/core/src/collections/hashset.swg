@@ -377,6 +377,20 @@ impl HashSet
     #[Discardable]
     mtd add(key: #fwd K)->*HashSetEntry
     {
+        if not .table
+        {
+            .grow()
+            return .add(#fwd key)
+        }
+
+        let hashVal = hashKey(key)
+        var index   = cast(u64, hashVal) & (.capacity - 1)
+        let table   = .tablePtr()
+
+        index = .getNewIndex(key, index, hashVal)
+        if table[index].hash >= HashSet.HASH_FIRST do
+            return table + index
+
         // Growing rehashes the set a struct `key` may live in, so take it out first.
         if .growsOnInsert()
         {
@@ -389,16 +403,9 @@ impl HashSet
             else
             {
                 .grow()
+                return .add(#fwd key)
             }
         }
-
-        let hashVal = hashKey(key)
-        var index   = cast(u64, hashVal) & (.capacity - 1)
-        let table   = .tablePtr()
-
-        index = .getNewIndex(key, index, hashVal)
-        if table[index].hash >= HashSet.HASH_FIRST do
-            return table + index
 
         if table[index].hash == HashSet.HASH_FREE
         {
@@ -453,19 +460,10 @@ impl HashSet
     #[Discardable]
     mtd toggle(key: #fwd K)->bool
     {
-        // Growing rehashes the set a struct `key` may live in, so take it out first.
-        if .growsOnInsert()
+        if not .table
         {
-            #static if Reflection.isStruct(K)
-            {
-                var staged: K = #fwd key
-                .grow()
-                return .toggle(#move staged)
-            }
-            else
-            {
-                .grow()
-            }
+            .grow()
+            return .toggle(#fwd key)
         }
 
         let hashVal      = hashKey(key)
@@ -479,6 +477,22 @@ impl HashSet
             let entryHash = table[index].hash
             if entryHash == HashSet.HASH_FREE
             {
+                // An absent key may borrow from this set, so save it before rehashing.
+                if .growsOnInsert()
+                {
+                    #static if Reflection.isStruct(K)
+                    {
+                        var staged: K = #fwd key
+                        .grow()
+                        return .toggle(#move staged)
+                    }
+                    else
+                    {
+                        .grow()
+                        return .toggle(#fwd key)
+                    }
+                }
+
                 let targetIndex = firstDeleted != Swag.U64.Max ? firstDeleted : index
                 if table[targetIndex].hash == HashSet.HASH_FREE
                 {

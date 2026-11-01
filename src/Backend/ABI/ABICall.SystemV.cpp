@@ -70,6 +70,50 @@ namespace
         return bytes;
     }
 
+    void emitArgument(MicroBuilder& builder, ABICall::PreparedCall& call, const Classification& type, const SystemVAbi::ArgumentLocation& location, const MicroReg address)
+    {
+        const CallConv& conv = CallConv::get(CallConvKind::SystemVAMD64);
+        if (location.onStack)
+        {
+            for (uint32_t offset = 0; offset < type.size;)
+            {
+                const uint32_t bytes = type.size - offset >= 16 ? 16 : chunkBytes(type.size - offset);
+                const MicroOpBits bits = microOpBitsFromBitWidth(bytes * 8);
+                const MicroReg temporary = bytes == 16 ? conv.floatReturn : conv.intReturn;
+                builder.emitLoadRegMem(temporary, address, offset, bits);
+                builder.emitLoadMemReg(conv.stackPointer, location.stackOffset + offset, temporary, bits);
+                offset += bytes;
+            }
+            return;
+        }
+        for (uint32_t part = 0; part < 2; ++part)
+        {
+            const uint32_t lane = location.registers[part];
+            if (type.classes[part] == Class::Integer)
+            {
+                loadIntegerPart(builder, conv.intArgRegs[lane], address, part * 8, std::min(8u, type.size - part * 8));
+                call.intArgMask |= static_cast<uint8_t>(1u << lane);
+            }
+            else if (type.classes[part] == Class::Sse)
+            {
+                const uint32_t bits = vectorPartBytes(type, part) * 8;
+                builder.emitLoadRegMem(conv.floatArgRegs[lane], address, part * 8, microOpBitsFromBitWidth(bits));
+                call.floatArgMask.setWidth(lane, static_cast<uint8_t>(bits));
+            }
+        }
+    }
+
+    uint32_t reserveCallStorage(MicroBuilder& builder, const CallConv& conv, const uint64_t size, const uint32_t alignment)
+    {
+        // Over-aligned stack values require dynamic stack realignment, which is not
+        // exposed by the source-level System V convention yet.
+        SWC_FORCE_ASSERT(alignment <= conv.stackAlignment);
+        const uint64_t adjustment = size + (conv.stackAlignment + sizeof(void*) - size % conv.stackAlignment) % conv.stackAlignment;
+        SWC_ASSERT(adjustment <= UINT32_MAX);
+        builder.emitOpBinaryRegImm(conv.stackPointer, ApInt(adjustment, 64), MicroOp::Subtract, MicroOpBits::B64);
+        return static_cast<uint32_t>(adjustment);
+    }
+
     void storeResult(MicroBuilder& builder, const ABICall::Return& ret, const MicroReg address, const MicroReg scratch)
     {
         if (ret.isVoid || ret.isIndirect || (ret.systemVType && ret.systemVType->memory()))
@@ -105,85 +149,107 @@ void ABICall::callSystemVAddress(MicroBuilder& builder, const CallConvKind callC
     locations.reserve(args.size());
     for (const Arg& arg : args)
         locations.push_back(allocator.next(arg.systemVType ? *arg.systemVType : packedType(arg.isFloat, arg.numBits)));
-    // Over-aligned stack values require dynamic stack realignment, which is not
-    // exposed by the source-level System V convention yet.
-    SWC_FORCE_ASSERT(allocator.stackAlignment() <= conv.stackAlignment);
-    const uint64_t stackBytes = allocator.stackSize();
-    const uint64_t adjustment = stackBytes + (conv.stackAlignment + sizeof(void*) - stackBytes % conv.stackAlignment) % conv.stackAlignment;
-    SWC_ASSERT(adjustment <= UINT32_MAX);
-    builder.emitOpBinaryRegImm(conv.stackPointer, ApInt(adjustment, 64), MicroOp::Subtract, MicroOpBits::B64);
+    PreparedCall prepared;
+    prepared.stackAdjust = reserveCallStorage(builder, conv, allocator.stackSize(), allocator.stackAlignment());
+    prepared.stackAlreadyAdjusted = true;
+    prepared.intArgMask = hiddenReturn ? 1 : 0;
 
     MicroReg base, address;
     SWC_INTERNAL_CHECK(conv.tryPickIntScratchRegs(base, address));
-    const MicroReg scratch = conv.intReturn;
     builder.emitLoadRegPtrImm(base, reinterpret_cast<uint64_t>(args.data()));
 
-    // Copy stack values before filling argument registers. Aggregate arguments are
-    // values here; the source address never becomes an implicit pointer argument.
-    for (uint32_t index = 0; index < args.size(); ++index)
+    // Stack copies run first so their temporary vector register cannot overwrite
+    // a register argument. The second traversal only fills committed ABI lanes.
+    for (const bool onStack : {true, false})
     {
-        const auto& location = locations[index];
-        if (!location.onStack)
-            continue;
-        const Arg& arg = args[index];
-        const Classification type = arg.systemVType ? *arg.systemVType : packedType(arg.isFloat, arg.numBits);
-        const uint64_t entry = static_cast<uint64_t>(index) * sizeof(Arg);
-        if (arg.systemVType)
-            builder.emitLoadRegMem(address, base, entry + offsetof(Arg, value), MicroOpBits::B64);
-        else
-            builder.emitLoadAddressRegMem(address, base, entry + offsetof(Arg, value), MicroOpBits::B64);
-        for (uint32_t offset = 0; offset < type.size;)
+        for (uint32_t index = 0; index < args.size(); ++index)
         {
-            const uint32_t bytes = type.size - offset >= 16 ? 16 : chunkBytes(type.size - offset);
-            const MicroOpBits bits = microOpBitsFromBitWidth(bytes * 8);
-            const MicroReg temporary = bytes == 16 ? conv.floatReturn : scratch;
-            builder.emitLoadRegMem(temporary, address, offset, bits);
-            builder.emitLoadMemReg(conv.stackPointer, location.stackOffset + offset, temporary, bits);
-            offset += bytes;
-        }
-    }
-
-    uint8_t integers = hiddenReturn ? 1 : 0;
-    CallFloatArgs floats;
-    for (uint32_t index = 0; index < args.size(); ++index)
-    {
-        const auto& location = locations[index];
-        if (location.onStack)
-            continue;
-        const Arg& arg = args[index];
-        const Classification type = arg.systemVType ? *arg.systemVType : packedType(arg.isFloat, arg.numBits);
-        const uint64_t entry = static_cast<uint64_t>(index) * sizeof(Arg);
-        if (arg.systemVType)
-            builder.emitLoadRegMem(address, base, entry + offsetof(Arg, value), MicroOpBits::B64);
-        else
-            builder.emitLoadAddressRegMem(address, base, entry + offsetof(Arg, value), MicroOpBits::B64);
-        for (uint32_t part = 0; part < 2; ++part)
-        {
-            const uint32_t lane = location.registers[part];
-            if (type.classes[part] == Class::Integer)
-            {
-                loadIntegerPart(builder, conv.intArgRegs[lane], address, part * 8, std::min(8u, type.size - part * 8));
-                integers |= static_cast<uint8_t>(1u << lane);
-            }
-            else if (type.classes[part] == Class::Sse)
-            {
-                const uint32_t bits = vectorPartBytes(type, part) * 8;
-                builder.emitLoadRegMem(conv.floatArgRegs[lane], address, part * 8, microOpBitsFromBitWidth(bits));
-                floats.setWidth(lane, static_cast<uint8_t>(bits));
-            }
+            const auto& location = locations[index];
+            if (location.onStack != onStack)
+                continue;
+            const Arg& arg = args[index];
+            const Classification type = arg.systemVType ? *arg.systemVType : packedType(arg.isFloat, arg.numBits);
+            const uint64_t entry = static_cast<uint64_t>(index) * sizeof(Arg);
+            if (arg.systemVType)
+                builder.emitLoadRegMem(address, base, entry + offsetof(Arg, value), MicroOpBits::B64);
+            else
+                builder.emitLoadAddressRegMem(address, base, entry + offsetof(Arg, value), MicroOpBits::B64);
+            emitArgument(builder, prepared, type, location, address);
         }
     }
     if (hiddenReturn)
         builder.emitLoadRegPtrImm(conv.intArgRegs[0], reinterpret_cast<uint64_t>(ret.valuePtr));
-    // Use the shared call helper for AL setup, the call's use/def masks and stack restoration.
-    PreparedCall prepared;
-    prepared.stackAdjust = static_cast<uint32_t>(adjustment);
-    prepared.stackAlreadyAdjusted = true;
-    prepared.intArgMask = integers;
-    prepared.floatArgMask = floats;
+    // Use the shared call helper for AL setup, return storage and stack restoration.
     builder.emitLoadRegPtrImm(address, targetAddress);
-    callReg(builder, callConvKind, address, prepared);
-    storeResult(builder, ret, base, address);
+    callReg(builder, callConvKind, address, prepared, ret);
+}
+
+void ABICall::storeSystemVReturn(MicroBuilder& builder, const Return& ret)
+{
+    MicroReg address, scratch;
+    SWC_INTERNAL_CHECK(CallConv::get(CallConvKind::SystemVAMD64).tryPickIntScratchRegs(address, scratch));
+    storeResult(builder, ret, address, scratch);
+}
+
+ABICall::PreparedCall ABICall::prepareSystemVStorageArgs(MicroBuilder& builder, const CallConvKind callConvKind, const std::span<const PreparedArg> args)
+{
+    const CallConv& conv = CallConv::get(callConvKind);
+    SWC_ASSERT(conv.isSystemVAMD64);
+    SystemVAbi::ArgumentAllocator allocator;
+    SmallVector<SystemVAbi::ArgumentLocation> locations;
+    locations.reserve(args.size());
+    for (const PreparedArg& arg : args)
+        locations.push_back(allocator.next(arg.systemVType ? *arg.systemVType : packedType(arg.isFloat, arg.numBits)));
+
+    // Snapshot sources before assigning any ABI lane. A physical source may itself
+    // be an argument or scratch register, and one aggregate can claim two lanes.
+    // Each home holds either a scalar (up to 128 bits) or an aggregate address.
+    constexpr uint32_t K_SOURCE_HOME_SIZE = 16;
+    const uint64_t homes = (allocator.stackSize() + K_SOURCE_HOME_SIZE - 1) / K_SOURCE_HOME_SIZE * K_SOURCE_HOME_SIZE;
+    const uint64_t storage = homes + args.size() * K_SOURCE_HOME_SIZE;
+    PreparedCall prepared;
+    prepared.stackAdjust = reserveCallStorage(builder, conv, storage, allocator.stackAlignment());
+    prepared.stackAlreadyAdjusted = true;
+    for (uint32_t index = 0; index < args.size(); ++index)
+    {
+        const PreparedArg& arg = args[index];
+        SWC_ASSERT(arg.srcReg != conv.stackPointer);
+        const bool addressSource = arg.systemVType || arg.isAddressed || arg.kind == PreparedArgKind::InterfaceObject;
+        const MicroOpBits bits = addressSource || !arg.isFloat ? MicroOpBits::B64 : valueBits(arg.numBits);
+        builder.emitLoadMemReg(conv.stackPointer, homes + index * K_SOURCE_HOME_SIZE, arg.srcReg, bits);
+    }
+
+    MicroReg address, unused;
+    SWC_INTERNAL_CHECK(conv.tryPickIntScratchRegs(address, unused));
+    for (const bool onStack : {true, false})
+    {
+        for (uint32_t index = 0; index < args.size(); ++index)
+        {
+            const auto& location = locations[index];
+            if (location.onStack != onStack)
+                continue;
+            const PreparedArg& arg = args[index];
+            const Classification type = arg.systemVType ? *arg.systemVType : packedType(arg.isFloat, arg.numBits);
+            const uint64_t home = homes + index * K_SOURCE_HOME_SIZE;
+            if (arg.systemVType || arg.isAddressed || arg.kind == PreparedArgKind::InterfaceObject)
+            {
+                builder.emitLoadRegMem(address, conv.stackPointer, home, MicroOpBits::B64);
+                if (arg.kind == PreparedArgKind::InterfaceObject)
+                    builder.emitLoadAddressRegMem(address, address, offsetof(Runtime::Interface, obj), MicroOpBits::B64);
+            }
+            else
+                builder.emitLoadAddressRegMem(address, conv.stackPointer, home, MicroOpBits::B64);
+            if (!onStack && !arg.systemVType && !arg.isFloat && arg.isSigned)
+            {
+                const uint32_t lane = location.registers[0];
+                loadCanonicalIntFromMemToReg(builder, conv.intArgRegs[lane], address, 0, arg.numBits, true);
+                prepared.intArgMask |= static_cast<uint8_t>(1u << lane);
+            }
+            else
+                emitArgument(builder, prepared, type, location, address);
+        }
+    }
+    return prepared;
 }
 
 SWC_END_NAMESPACE();

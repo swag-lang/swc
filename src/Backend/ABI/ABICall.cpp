@@ -216,6 +216,11 @@ namespace
         if (ret.isVoid || ret.isIndirect)
             return;
 
+        if (conv.isSystemVAMD64)
+        {
+            ABICall::storeSystemVReturn(builder, ret);
+            return;
+        }
         SWC_ASSERT(ret.valuePtr != nullptr);
         const MicroOpBits retBits = ABICall::valueBits(ret.numBits);
         builder.emitLoadRegPtrImm(regBase, reinterpret_cast<uint64_t>(ret.valuePtr));
@@ -528,6 +533,8 @@ ABICall::PreparedCall ABICall::prepareArgs(MicroBuilder& builder, CallConvKind c
         return preparedCall;
 
     const CallConv& conv            = CallConv::get(callConvKind);
+    if (conv.isSystemVAMD64 && std::ranges::any_of(args, [](const PreparedArg& arg) { return arg.systemVType != nullptr; }))
+        return prepareSystemVStorageArgs(builder, callConvKind, args);
     const auto      numPreparedArgs = static_cast<uint32_t>(args.size());
     const auto      argLayouts      = collectArgLayouts(args);
     preparedCall.numPreparedArgs    = numPreparedArgs;

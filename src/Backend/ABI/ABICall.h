@@ -123,6 +123,8 @@ namespace ABICall
         bool            isAddressed        = false;
         bool            constrainToArgLane = false;
         uint8_t         numBits            = 0;
+        // Classified System V values are addressed by srcReg, including stack values.
+        const SystemVAbi::Classification* systemVType = nullptr;
     };
 
     struct Return

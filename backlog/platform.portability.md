@@ -872,7 +872,7 @@ by portable modules and products. The earlier entries prepare and enforce the sa
   `tools/linux-build.py` selects Linux host leaves from the shared source manifest and builds
   outside the checkout with GNU Make. Complete DevMode and Release compilers link and
   pass the lexer/parser suites including expected-error inputs without spurious JIT setup.
-  The default C++ campaign passes 1,582 of 1,612 tests; 30 remain failing. The separate
+  The default C++ campaign passes 1,585 of 1,615 tests; 30 remain failing. The separate
   filesystem campaign still has 34 failures. Closed Windows x64 instruction fixtures execute
   through an explicit GCC ABI bridge. Runtime adapters initialize on the first actual JIT call,
   and cross-host generated execution has an explicit diagnostic.
@@ -900,9 +900,10 @@ by portable modules and products. The earlier entries prepare and enforce the sa
   mixed/nested records, unions, SIMD upper halves, unaligned fields and whole-argument bank
   rollback. The packed-address call bridge now passes mixed/two-register/stack aggregates,
   handles hidden memory results and variadic aggregate banks, and bounds partial eightbyte
-  reads/writes against guard pages. Prepared codegen arguments, source return storage and
-  over-aligned stack values still need integration.
-- Next: connect the eightbyte classifications to prepared arguments, incoming parameters,
+  reads/writes against guard pages. Prepared aggregate calls also preserve physical/virtual
+  sources before assigning mixed ABI lanes, including hidden memory results. Semantic type
+  normalization, source return storage and over-aligned stack values still need integration.
+- Next: connect semantic type normalization to classified prepared arguments and incoming parameters,
   source return storage and the JIT invoker; add dynamic alignment for over-aligned stack values.
   Compare with native C/C++ fixtures, then activate target C and Linux runtime declarations.
 - Done when: generated Linux calls round-trip supported scalar and aggregate values through C,

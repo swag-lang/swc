@@ -124,6 +124,11 @@ namespace
         return result;
     }
 
+    __attribute__((noinline)) MixedValue mergePrepared(MixedValue first, uint64_t marker, MixedValue second, double tail)
+    {
+        return {first.integer + second.integer * 3 + marker * 5, first.floating + second.floating * 7 + tail * 11};
+    }
+
     struct GuardedStorage
     {
         size_t pageSize = static_cast<size_t>(sysconf(_SC_PAGESIZE));
@@ -473,6 +478,118 @@ SWC_TEST_BEGIN(ABI_SystemVVariadicAggregatesUseBothBanksAndStack)
         if (result != expected)
             return Result::Error;
     }
+}
+SWC_TEST_END()
+
+SWC_TEST_BEGIN(ABI_SystemVPreparedAggregatesPreserveOverlappingSources)
+{
+    CommandLine commandLine = ctx.cmdLine();
+    commandLine.targetOs = Runtime::TargetOs::Linux;
+    CompilerInstance compiler(ctx.global(), commandLine);
+    TaskContext context(compiler);
+    using SystemVAbi::Class;
+    const SystemVAbi::Classification type{{Class::Integer, Class::Sse}, 16, 8};
+    const MixedValue first{13, 2.5};
+    const MixedValue second{17, 3.5};
+    const auto expected = mergePrepared(first, 19, second, 4.5);
+    for (const bool virtualSources : {false, true})
+    {
+        MicroBuilder builder(context);
+        const MicroReg firstAddress = virtualSources ? MicroReg::virtualIntReg(100) : MicroReg::intReg(7);
+        const MicroReg secondAddress = virtualSources ? MicroReg::virtualIntReg(101) : MicroReg::intReg(6);
+        const MicroReg marker = virtualSources ? MicroReg::virtualIntReg(102) : MicroReg::intReg(10);
+        const MicroReg floating = virtualSources ? MicroReg::virtualFloatReg(100) : MicroReg::floatReg(0);
+        const MicroReg floatBits = virtualSources ? MicroReg::virtualIntReg(103) : MicroReg::intReg(11);
+        builder.emitLoadRegPtrImm(firstAddress, reinterpret_cast<uint64_t>(&first));
+        builder.emitLoadRegPtrImm(secondAddress, reinterpret_cast<uint64_t>(&second));
+        builder.emitLoadRegImm(marker, ApInt(19, 64), MicroOpBits::B64);
+        builder.emitLoadRegImm(floatBits, ApInt(std::bit_cast<uint64_t>(4.5), 64), MicroOpBits::B64);
+        builder.emitLoadRegReg(floating, floatBits, MicroOpBits::B64);
+        const std::array args{
+            ABICall::PreparedArg{.srcReg = firstAddress, .systemVType = &type},
+            ABICall::PreparedArg{.srcReg = marker, .numBits = 64},
+            ABICall::PreparedArg{.srcReg = secondAddress, .systemVType = &type},
+            ABICall::PreparedArg{.srcReg = floating, .isFloat = true, .numBits = 64},
+        };
+        const auto prepared = ABICall::prepareArgs(builder, K_SYSTEM_V, args);
+        const MicroReg target = MicroReg::intReg(0);
+        builder.emitLoadRegPtrImm(target, reinterpret_cast<uint64_t>(mergePrepared));
+        MixedValue result{};
+        ABICall::callReg(builder, K_SYSTEM_V, target, prepared, {.valuePtr = &result, .isVoid = false, .systemVType = &type});
+        SWC_RESULT(executeSystemVThunk(context, builder, true));
+        if (result.integer != expected.integer || result.floating != expected.floating)
+            return Result::Error;
+    }
+}
+SWC_TEST_END()
+
+SWC_TEST_BEGIN(ABI_SystemVPreparedAggregateSpillKeepsLaterVectorLane)
+{
+    CommandLine commandLine = ctx.cmdLine();
+    commandLine.targetOs = Runtime::TargetOs::Linux;
+    CompilerInstance compiler(ctx.global(), commandLine);
+    TaskContext context(compiler);
+    MicroBuilder builder(context);
+    using SystemVAbi::Class;
+    const SystemVAbi::Classification type{{Class::Integer, Class::Sse}, 16, 8};
+    const MixedValue mixed{29, 4.5};
+    std::vector<ABICall::PreparedArg> args;
+    for (uint32_t index = 0; index < 6; ++index)
+    {
+        const auto source = MicroReg::virtualIntReg(100 + index);
+        builder.emitLoadRegImm(source, ApInt(index + 1, 64), MicroOpBits::B64);
+        args.push_back({.srcReg = source, .numBits = 64});
+    }
+    const auto address = MicroReg::virtualIntReg(200);
+    builder.emitLoadRegPtrImm(address, reinterpret_cast<uint64_t>(&mixed));
+    args.push_back({.srcReg = address, .systemVType = &type});
+    const auto tail = MicroReg::virtualIntReg(201);
+    builder.emitLoadRegImm(tail, ApInt(std::bit_cast<uint64_t>(13.5), 64), MicroOpBits::B64);
+    args.push_back({.srcReg = tail, .isFloat = true, .numBits = 64});
+    const auto prepared = ABICall::prepareArgs(builder, K_SYSTEM_V, args);
+    const MicroReg target = MicroReg::intReg(0);
+    builder.emitLoadRegPtrImm(target, reinterpret_cast<uint64_t>(exhaustedIntegers));
+    double result = 0;
+    ABICall::callReg(builder, K_SYSTEM_V, target, prepared, {.valuePtr = &result, .isVoid = false, .isFloat = true, .numBits = 64});
+    SWC_RESULT(executeSystemVThunk(context, builder, true));
+    if (result != exhaustedIntegers(1, 2, 3, 4, 5, 6, mixed, 13.5))
+        return Result::Error;
+}
+SWC_TEST_END()
+
+SWC_TEST_BEGIN(ABI_SystemVPreparedMemoryResultAndStackArgument)
+{
+    CommandLine commandLine = ctx.cmdLine();
+    commandLine.targetOs = Runtime::TargetOs::Linux;
+    CompilerInstance compiler(ctx.global(), commandLine);
+    TaskContext context(compiler);
+    MicroBuilder builder(context);
+    using SystemVAbi::Class;
+    const SystemVAbi::Classification type{{Class::Memory, Class::None}, 24, 8};
+    const LargeValue input{19, 23, 29};
+    LargeValue result{};
+    const auto output = MicroReg::virtualIntReg(100);
+    const auto source = MicroReg::virtualIntReg(101);
+    builder.emitLoadRegPtrImm(output, reinterpret_cast<uint64_t>(&result));
+    builder.emitLoadRegPtrImm(source, reinterpret_cast<uint64_t>(&input));
+    std::vector<ABICall::PreparedArg> args{{.srcReg = output, .numBits = 64}, {.srcReg = source, .systemVType = &type}};
+    for (uint32_t index = 0; index < 6; ++index)
+    {
+        const auto integer = MicroReg::virtualIntReg(102 + index);
+        builder.emitLoadRegImm(integer, ApInt(index + 1, 64), MicroOpBits::B64);
+        args.push_back({.srcReg = integer, .numBits = 64});
+    }
+    const auto floating = MicroReg::virtualIntReg(108);
+    builder.emitLoadRegImm(floating, ApInt(std::bit_cast<uint64_t>(13.0), 64), MicroOpBits::B64);
+    args.push_back({.srcReg = floating, .isFloat = true, .numBits = 64});
+    const auto prepared = ABICall::prepareArgs(builder, K_SYSTEM_V, args);
+    const auto target = MicroReg::virtualIntReg(109);
+    builder.emitLoadRegPtrImm(target, reinterpret_cast<uint64_t>(changeLarge));
+    ABICall::callReg(builder, K_SYSTEM_V, target, prepared);
+    SWC_RESULT(executeSystemVThunk(context, builder, true));
+    const auto expected = changeLarge(input, 1, 2, 3, 4, 5, 6, 13);
+    if (std::memcmp(&result, &expected, sizeof(result)))
+        return Result::Error;
 }
 SWC_TEST_END()
 

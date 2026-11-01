@@ -7,6 +7,8 @@ namespace ABICall
 {
     // The packed-address bridge keeps aggregate storage whole until the System V
     // allocator has committed every eightbyte of the argument to registers or stack.
+    PreparedCall prepareSystemVStorageArgs(MicroBuilder& builder, CallConvKind callConvKind, std::span<const PreparedArg> args);
+    void storeSystemVReturn(MicroBuilder& builder, const Return& ret);
     void callSystemVAddress(MicroBuilder& builder, CallConvKind callConvKind, uint64_t targetAddress, std::span<const Arg> args, const Return& ret);
 }
 

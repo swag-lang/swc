@@ -1464,6 +1464,15 @@ namespace
         if (!hasVariadic)
             return Result::Continue;
 
+        // C ellipses use ordinary ABI slots for each promoted argument. Only Swag
+        // variadics carry the packed slice expected by a Swag function body.
+        if (!hasTypedVariadic && callConvKind != CallConvKind::Swag)
+        {
+            for (const ResolvedCallArgument& argument : args.subspan(argIndex))
+                SWC_RESULT(appendPreparedFixedArg(out, codeGen, callRef, callConv, nullptr, argument));
+            return Result::Continue;
+        }
+
         ABICall::PreparedArg variadicPreparedArg;
         SWC_ASSERT(params[variadicParamIdx] != nullptr);
         const TypeRef                               variadicParamTypeRef = params[variadicParamIdx]->typeRef();

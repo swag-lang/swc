@@ -2782,7 +2782,7 @@ namespace
         return Result::Continue;
     }
 
-    Result concretizeUntypedVariadicArg(Sema& sema, CallArgEntry& entry)
+    Result concretizeUntypedVariadicArg(Sema& sema, CallArgEntry& entry, const bool cVariadic)
     {
         const AstNodeRef argRef = resolvedCallArgValueRef(sema, entry);
         if (argRef.isInvalid())
@@ -2798,6 +2798,25 @@ namespace
             SWC_RESULT(Cast::concretizeConstant(sema, newCstRef, argView.nodeRef(), argView.cstRef(), TypeInfo::Sign::Unknown));
             sema.setConstant(argView.nodeRef(), newCstRef);
             argView = SemaNodeView(sema, argRef, SemaNodeViewPartE::Node | SemaNodeViewPartE::Type | SemaNodeViewPartE::Constant);
+        }
+
+        if (cVariadic)
+        {
+            const TypeInfo& type         = argView.type()->unwrapAliasEnumTypeOrSelf(sema.ctx());
+            TypeRef         promotedType = TypeRef::invalid();
+            if (type.isFloat() && type.sizeOf(sema.ctx()) == 4)
+                promotedType = sema.typeMgr().typeF64();
+            else if (type.isBool() || (type.isIntLike() && type.sizeOf(sema.ctx()) < 4))
+                promotedType = sema.typeMgr().typeS32();
+            if (promotedType.isValid())
+            {
+                // C default argument promotions include bool and narrow enum values,
+                // even when Swag would require an explicit conversion at an ordinary call.
+                SWC_RESULT(Cast::cast(sema, argView, promotedType, CastKind::Explicit));
+                entry.valueRef = argView.nodeRef();
+                refreshNamedArgumentPayload(sema, entry.argRef, argView.nodeRef());
+                return Result::Continue;
+            }
         }
 
         if (!argView.type()->isAggregateArray())
@@ -2826,10 +2845,10 @@ namespace
             return Result::Continue;
 
         CallArgEntry& fixedVariadicArg = mapping.paramArgs[numParams - 1];
-        SWC_RESULT(concretizeUntypedVariadicArg(sema, fixedVariadicArg));
+        SWC_RESULT(concretizeUntypedVariadicArg(sema, fixedVariadicArg, selectedFn.callConvKind() != CallConvKind::Swag));
 
         for (CallArgEntry& entry : mapping.variadicArgs)
-            SWC_RESULT(concretizeUntypedVariadicArg(sema, entry));
+            SWC_RESULT(concretizeUntypedVariadicArg(sema, entry, selectedFn.callConvKind() != CallConvKind::Swag));
 
         return Result::Continue;
     }

@@ -186,8 +186,6 @@ impl Decoder
             {
                 objType = try .serializer.readInterfaceType()
                 itfType = type
-                if objType and not Reflection.hasInterface(objType, type) do
-                    fail SerializationError{"interface object type does not implement the requested interface"}
             }
             else
             {
@@ -199,6 +197,12 @@ impl Decoder
             if objType
             {
                 let dynamicType = unwrap objType
+                if not itfType do
+                    fail SerializationError{"serialized interface type is missing"}
+                if not Swag.typeCmp(unwrap itfType, type, .Strict) do
+                    fail SerializationError{"serialized interface type does not match the requested interface"}
+                if not Reflection.hasInterface(dynamicType, type) do
+                    fail SerializationError{"interface object type does not implement the requested interface"}
                 typeVal.pointedType = dynamicType
                 let obj = Memory.new(dynamicType)
 

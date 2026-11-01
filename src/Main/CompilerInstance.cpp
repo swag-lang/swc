@@ -400,9 +400,9 @@ CompilerInstance::CompilerInstance(const Global& global, const CommandLine& cmdL
 CompilerInstance::~CompilerInstance()
 {
     CompilerCacheStore::flushAll();
-    // JIT code can register fiber-local storage whose cleanup callback is its own code reading its
-    // own globals, such as the runtime allocator's thread heap. Windows would run it when a thread
-    // exits, after this instance is gone; release those slots while the callbacks can still run.
+    // Generated TLS cleanup reads this instance's code and globals, such as the runtime
+    // allocator's thread heap. Retire its values and wait for active cleanup before unmapping
+    // code; OS worker threads can outlive the compiler instance that registered their callbacks.
     const std::vector<SymbolFunction*> jitFunctions = jitPreparedFunctionsSnapshot();
     if (!jitFunctions.empty())
     {

@@ -35,6 +35,7 @@
 #include "Support/Report/HardwareException.h"
 
 #ifdef __linux__
+#include "Backend/JIT/JITThreadStorage.Linux.h"
 #include <unistd.h>
 #endif
 
@@ -449,6 +450,12 @@ namespace
         SWC_UNUSED(moduleName);
         // Compare resolved addresses so a user library's unrelated function named
         // exit keeps its semantics, and alternate libc module spellings stay guarded.
+        if (functionAddress == reinterpret_cast<void*>(&pthread_key_create))
+            return reinterpret_cast<void*>(&JITThreadStorage::create);
+        if (functionAddress == reinterpret_cast<void*>(&pthread_key_delete))
+            return reinterpret_cast<void*>(&JITThreadStorage::erase);
+        if (functionAddress == reinterpret_cast<void*>(&pthread_setspecific))
+            return reinterpret_cast<void*>(&JITThreadStorage::set);
         if (functionAddress == reinterpret_cast<void*>(&std::exit))
             return reinterpret_cast<void*>(&jitBlockedExit);
         if (functionAddress == reinterpret_cast<void*>(&std::_Exit) && functionName == "_Exit")
@@ -2449,6 +2456,8 @@ void JIT::releaseThreadStorage(const std::function<bool(const void*)>& ownsCallb
     // the code and the data the callback reaches are still alive.
     for (const DWORD slot : released)
         FlsFree(slot);
+#elif defined(__linux__)
+    JITThreadStorage::release(ownsCallback);
 #else
     SWC_UNUSED(ownsCallback);
 #endif

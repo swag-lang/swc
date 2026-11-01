@@ -34,10 +34,9 @@ by portable modules and products. The earlier entries prepare and enforce the sa
   in `bin/runtime/allocator.pages.swg`. Linux implementations in `os.linux.memory.swg`
   pass JIT reservation, decommit/recommit, allocation-base and inaccessible-page recovery probes.
   Allocator borrow callbacks explicitly use the Swag ABI on Linux. pthread cleanup works
-  on a joined runtime thread; compiler-owned cleanup callbacks are not yet retired before
-  their JIT code is unmapped.
-- Next: validate electric-mode faults, cross-module and fork ownership,
-  and retire compiler-owned pthread storage while its cleanup code is still alive.
+  on a joined runtime thread. Compiler-owned cleanup is drained before JIT code is unmapped;
+  tests cover rearming, explicit deletion, live threads and waiting for active destructors.
+- Next: validate electric-mode faults, cross-module and fork ownership.
 - Done when: Linux tests cover reserved-but-inaccessible memory, committed pages,
   decommit/recommit, guard-page protection, release, and thread-storage cleanup without
   reporting counters for work the host did not perform.
@@ -862,51 +861,21 @@ by portable modules and products. The earlier entries prepare and enforce the sa
   contains no direct `VirtualLock`, `mlock`, or equivalent call.
 - Related: platform.portability.076
 
-### platform.portability.091 — The Linux compiler still needs frontend and execution validation
+### platform.portability.091 — Finish Linux cache cleanup and fault-boundary validation
 
-- Evidence: the Linux host boundary covers memory, mapped caches, common file I/O, advisory
-  directory locks, terminal/environment services, library lookup, TLS, process-tree lifetime,
-  pre-initialization CPU checks, native stack/symbol capture and guarded per-thread signal stacks.
-  DWARF CIE/FDE construction and libgcc registration pass native backtrace, C++ exception,
-  repeated generated-fault cleanup and registration-lifetime fixtures. The Linux fault boundary
-  preserves native cleanup and limits recovery to synchronous faults in registered JIT code.
-  `tools/linux-build.py` selects Linux host leaves from the shared source manifest and builds
-  outside the checkout with GNU Make. Complete DevMode and Release compilers link and
-  pass the lexer/parser suites including expected-error inputs without spurious JIT setup.
-  The full C++ campaign, including filesystem tests and extra IR/native validation, passes
-  all 1,735 tests, including the PE missing-resource fixture. Closed Windows x64 instruction fixtures execute
-  through an explicit GCC ABI bridge. Runtime adapters initialize on the first actual JIT call,
-  and generated code retains separate output-target and host unwind metadata.
-  Cross-host foreign relocations reject an actual call while allowing untaken error branches.
-  Platform-neutral semantic/JIT fixtures select the host target. Cross-target compiler configuration
-  uses host context, error flags, TLS reads and process storage; native Windows TLS instructions
-  remain unchanged. Cache records retain TLS operation metadata, and adapter tests cover registers,
-  flags and frameless stacks. Direct and indirect libc termination calls from the JIT produce
-  compiler diagnostics; native process termination stays available. DevMode and Release probes
-  cover cross-target configuration and termination diagnostics. C++ fixtures isolate their error counts, retaining unexpected diagnostics as
-  failures without aborting later native preparation. Windows link/run fixtures also need
-  target import libraries and an executable format supported by the Linux host.
-  PE/COFF records no longer depend on the Windows SDK, and both target enums represent Linux.
-  Instruction-level CFI follows the physical IR control-flow graph; native fixtures cover
-  multiple returns, dynamic-stack joins, frameless register saves, indirect jumps and C++
-  cleanup through generated faults. System V scalar/aggregate transfers and host callback
-  adapters work at the backend boundary, including cross-ABI register preservation and native
-  exception unwinding. An explicit `--os linux` selects target queries and the System V C profile;
-  guarded semantic/JIT execution and runtime host-boundary probes pass. The Linux test runner
-  recovers protected-page faults and stack exhaustion on a guarded alternate stack, preserves
-  catchPanic and captured-error ownership, and restores prior signal handlers and masks. These
-  paths are covered through both JIT execution and a native ELF process, including protected-page
-  faults, stack exhaustion, handler/mask restoration and captured-error ownership. Native ELF startup,
-  argument preservation, mutex/condition
-  operations, panic cleanup and termination, reflection pruning and deterministic executable/archive
-  output pass. Compiler-owned pthread cleanup and DWARF source resolution remain missing.
-  Linux directory locks do not prohibit an uncoordinated cleaner's rename.
-- Next: complete runtime lifecycle validation, including compiler-owned pthread cleanup.
-  Coordinate directory cleanup with API readers/publication. Keep C++ cleanup intact across
-  generated-code faults, including native callbacks and nested JIT calls.
-- Done when: DevMode and Release Linux compilers build from source and execute focused C++,
-  lexer/parser and compile-time tests without Windows dependencies or success-returning stubs.
-- Related: platform.portability.001, platform.portability.092
+- Evidence: complete DevMode and Release Linux compilers pass lexer/parser suites and focused
+  compile-time/native probes. The full C++ campaign passes all 1,741 tests, including the original
+  PE resource failure and added native/shared-module regressions. Cross-target JIT execution
+  uses host context, TLS and process storage; native output keeps its target instructions.
+  DWARF frame registration preserves C++ cleanup through generated faults, and native ELF/JIT
+  tests recover protected-page faults and stack exhaustion. Compiler-owned pthread callbacks
+  now retire before their code is unmapped, including active callbacks which delete their key.
+  Linux directory locks still do not prohibit an uncoordinated cleaner's rename.
+- Next: coordinate directory cleanup with API readers/publication. Extend fault-boundary
+  coverage across native callbacks and nested JIT calls while preserving C++ cleanup.
+- Done when: concurrent cleanup cannot invalidate an active reader/publication generation,
+  and nested JIT/native fault recovery preserves ownership without stale code or storage.
+- Related: platform.portability.001, platform.portability.092, platform.portability.093
 
 ### platform.portability.092 — System V aggregate lowering and target activation are missing
 

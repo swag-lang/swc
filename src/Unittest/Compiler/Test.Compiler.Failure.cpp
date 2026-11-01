@@ -290,6 +290,30 @@ SWC_TEST_END()
 #endif
 
 #ifdef __linux__
+SWC_FILESYSTEM_TEST_BEGIN(Compiler_LinuxThreadLocalGlobalsReleaseBeforeWorkerExit)
+{
+    RecoveryTestDirectory directory;
+    std::error_code error;
+    fs::create_directories(directory.path(), error);
+    if (error)
+        return Result::Error;
+    const fs::path source = Os::getExeFullName().parent_path() / "unittests" / "jit" / "runtime" / "linux_thread_storage_lifetime.swg";
+    const std::vector<Utf8> arguments = {
+        "sema", "--os", "linux", "--file", Utf8(source), "--artifact-kind", "executable", "--num-cores", "3", "--no-log-color",
+        "--out-dir", Utf8(directory.path() / "output"), "--work-dir", Utf8(directory.path() / "work")};
+    std::string output;
+    uint32_t exitCode = 0;
+    const Os::ProcessRunOptions options{.capturedOutput = &output, .forwardOutput = false, .timeoutMs = 15000};
+    const auto result = Os::runProcess(exitCode, Os::getExeFullName(), arguments, directory.path(), &options);
+    if (result != Os::ProcessRunResult::Ok || exitCode != static_cast<uint32_t>(ExitCode::Success))
+    {
+        std::println(stderr, "[thread-storage-test] result={}, exit={}\n{}", static_cast<uint32_t>(result), exitCode, output);
+        return Result::Error;
+    }
+    return Result::Continue;
+}
+SWC_TEST_END()
+
 SWC_FILESYSTEM_TEST_BEGIN(Compiler_LinuxJitTerminationReportsWithoutExiting)
 {
     RecoveryTestDirectory directory;

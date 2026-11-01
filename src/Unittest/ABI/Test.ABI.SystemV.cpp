@@ -2093,6 +2093,41 @@ SWC_FILESYSTEM_TEST_BEGIN(Runtime_LinuxPageReservationsAndProcessStorage)
 }
 SWC_TEST_END()
 
+SWC_FILESYSTEM_TEST_BEGIN(Runtime_LinuxCompilerRetiresOwnedThreadStorage)
+{
+    constexpr uint32_t key = 0x544c5343;
+    auto* count = static_cast<uint64_t*>(Os::processStorage(key, sizeof(uint64_t)));
+    if (!count)
+        return Result::Error;
+    static constexpr std::string_view SOURCE = R"(#global if #os == Swag.TargetOs.Linux
+#global private
+
+#[Swag.CallingConvention(.C)]
+func compilerOwnedTlsCleanup(value: *void?)
+{
+    if value do
+        cast(*u64, value)[] += 1
+}
+
+#run
+{
+    let key = __hostThreadStorageAlloc(&compilerOwnedTlsCleanup)
+    Swag.assert(key != 0)
+    let count = unwrap __hostProcessStorage(0x544c5343, 8)
+    Swag.assert(__hostThreadStorageSet(key, count))
+}
+)";
+    for (uint32_t iteration = 0; iteration < 3; ++iteration)
+    {
+        *count = 0;
+        SWC_RESULT(runLinuxRuntimeProbe(ctx, "CompilerOwnedTlsCleanup", SOURCE));
+        if (*count != 1)
+            return Result::Error;
+    }
+    return Result::Continue;
+}
+SWC_TEST_END()
+
 SWC_FILESYSTEM_TEST_BEGIN(Runtime_LinuxThreadStorageAndExitCleanup)
 {
     static constexpr std::string_view SOURCE = R"(#global if #os == Swag.TargetOs.Linux

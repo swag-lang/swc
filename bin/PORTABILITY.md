@@ -61,7 +61,7 @@ and source-level DWARF still need integration. The C++ JIT page allocator and
 | Foreign calls, argument/return classification and callee-save registers | `src/Backend/ABI/`, Windows x64 | System V scalar/aggregate calls, source parameter homes, result storage and cached JIT invokers tested against native C; owned-value cleanup and native runtime integration remain |
 | Object emission, linking, startup, dynamic imports and debug artifacts | `src/Backend/Native/`, `src/Backend/Linker/`, COFF/PE/PDB | ELF objects, GNU executable/archive linking, exact argc/argv startup, static/shared dependencies and relocatable publication execute; compile-time shared imports also execute; dynamic load/unload, PIC and source-level DWARF remain |
 | Runtime reserve/commit/decommit/release and allocation-base lookup | `bin/runtime/os.win32.swg`, `__hostPage*` | Linux reservation tracking over mmap/mprotect/madvise/munmap; JIT probes cover decommit/recommit and base lookup; JIT and native ELF probes recover protected-page faults |
-| Runtime TLS and thread-exit cleanup | `bin/runtime/os.win32.swg`, `__hostTls*`, `__hostThreadStorage*` | pthread keys; JIT probes cover thread isolation and exit callbacks; compiler-owned callback lifetime still needs tracking |
+| Runtime TLS and thread-exit cleanup | `bin/runtime/os.win32.swg`, `__hostTls*`, `__hostThreadStorage*` | pthread keys; compiler-owned callbacks use a host destructor, drain live-thread values and finish active cleanup before JIT code is unmapped; rearming and explicit deletion are tested |
 | Runtime threads, priorities, processor count, pool ceiling and work pressure | `bin/runtime/os.win32.swg`, `__hostThread*`, `__hostWorkPressure` | pthread creation/join and procfs counters pass JIT probes; scheduler contention, affinity limits and cgroup pressure need broader coverage |
 | Runtime locks and condition variables | `bin/runtime/os.win32.swg`, `__hostLock*`, `__hostCondition*`, `MutexRW` | Futex storage with JIT and native mutex, reader/writer and timeout checks; broader contention and fork coverage remain |
 | Runtime process-wide storage and singleton identity across shared modules | `bin/runtime/os.win32.swg`, `__hostProcessStorage`, `__hostProcessSingleton` | memfd/procfs anchors pass same-process identity, size checks and C++/Swag interoperability; native cross-module and fork lifetime coverage remain |
@@ -90,8 +90,9 @@ The `bin/runtime/os.linux*.swg` bootstrap executes guarded compile-time code and
 probes for glibc TLS, thread cleanup, futex synchronization, page reservations, process anchors,
 monotonic clocks, procfs pressure, libm and argument vectors. C declarations and callbacks resolve
 the ABI of their own compilation, including a Linux compiler instance inside a Windows-targeted
-process. Compiler-owned pthread callback lifetime remains incomplete. Native ELF startup,
-exact argument vectors, synchronization and signal recovery pass dedicated fixtures; this does
+process. Compiler-owned pthread callbacks retire before JIT code is unmapped; both compiler
+builds pass teardown and joined-thread probes. Native ELF startup, exact argument vectors,
+synchronization and signal recovery pass dedicated fixtures; this does
 not establish complete runtime or standard-module coverage.
 
 ## Hosted library matrix

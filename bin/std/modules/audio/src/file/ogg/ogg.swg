@@ -50,7 +50,9 @@ func readU32(bytes: const [..] u8, offset: u64)->u32
 // segment table to be inside `bytes`.
 func readPageHeader(bytes: const [..] u8, offset: u64)->PageHeader fail
 {
-    if offset > bytes.count or bytes.count - offset < PageHeaderSize do
+    if offset > bytes.count do
+        fail InvalidFormatError{"Ogg page header is truncated"}
+    if bytes.count - offset < PageHeaderSize do
         fail InvalidFormatError{"Ogg page header is truncated"}
     if bytes[offset] != 'O' or
        bytes[offset + 1] != 'g' or
@@ -59,6 +61,8 @@ func readPageHeader(bytes: const [..] u8, offset: u64)->PageHeader fail
         fail InvalidFormatError{"Ogg page has no capture pattern"}
     if bytes[offset + 4] != 0 do
         fail UnsupportedFormatError{"Ogg page uses an unknown stream structure version"}
+    if bytes[offset + 5] & 0xF8 do
+        fail InvalidFormatError{"Ogg page sets reserved header flags"}
 
     with var result: #returntype
     {
@@ -286,6 +290,7 @@ private func indexRuns(walker: *Walker, info: const *StreamInfo)->u64 fail
     var total    = 0'u64
     var previous = 0'u64     // Granule position at the end of the previous run.
     var sequence = Swag.U32.Max
+    var hasSequence = false
     var firstRun = true
     var header:    PageHeader
     var lookahead: PageHeader
@@ -304,9 +309,10 @@ private func indexRuns(walker: *Walker, info: const *StreamInfo)->u64 fail
             continue
         }
 
-        if sequence != Swag.U32.Max and header.sequence != sequence + 1 do
+        if hasSequence and header.sequence != sequence + 1 do
             fail InvalidFormatError{"Ogg page sequence has a gap"}
         sequence = header.sequence
+        hasSequence = true
 
         if run.start == Swag.U64.Max do
             run.start = pageOffset
@@ -324,6 +330,8 @@ private func indexRuns(walker: *Walker, info: const *StreamInfo)->u64 fail
                     let frames = Opus.packetFrames(body[at until at + size])
                     if not frames do
                         fail InvalidFormatError{"Opus packet has an invalid table of contents"}
+                    if run.frames > Swag.U64.Max - frames do
+                        fail OverflowError{"Ogg Opus run sample count overflows"}
                     run.frames += frames
                 }
 
@@ -356,11 +364,11 @@ private func indexRuns(walker: *Walker, info: const *StreamInfo)->u64 fail
 
         if header.granule != NoGranule and (not continues or last)
         {
+            if header.granule < previous do
+                fail InvalidFormatError{"Ogg granule position runs backwards"}
             var frames: u64
             if info.kind == .Vorbis
             {
-                if header.granule < previous do
-                    fail InvalidFormatError{"Ogg granule position runs backwards"}
                 frames = header.granule - previous
             }
             else
@@ -377,13 +385,20 @@ private func indexRuns(walker: *Walker, info: const *StreamInfo)->u64 fail
                 if not frames
                 {
                     // A final page that completes no frame extends the run before it.
-                    if not walker.packets.isEmpty() do
+                    if not walker.packets.isEmpty()
+                    {
+                        let previousBytes = cast(u64, walker.packets.backPtr().byteSize)
+                        if run.bytes > Swag.U32.Max or run.bytes > Swag.U32.Max - previousBytes do
+                            fail InvalidFormatError{"Ogg page run is larger than a packet may be"}
                         walker.packets.backPtr().byteSize += cast(u32, run.bytes)
+                    }
                 }
                 else
                 {
                     if run.bytes > Swag.U32.Max or frames > Swag.U32.Max do
                         fail InvalidFormatError{"Ogg page run is larger than a packet may be"}
+                    if total > Swag.U64.Max - frames do
+                        fail OverflowError{"Ogg sound sample count overflows"}
                     walker.packets.add(SoundPacket{run.start, cast(u32, run.bytes), cast(u32, frames)})
                     total += frames
                 }

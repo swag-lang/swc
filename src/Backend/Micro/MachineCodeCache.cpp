@@ -441,6 +441,7 @@ Utf8 MachineCodeCache::inputKey(TaskContext& ctx, std::vector<DebugSourceInfo>& 
     identity.appendLe32(!command.scriptMode && Runtime::backendKindProducesNativeArtifact(ctx.compiler().buildCfg().backendKind));
     identity.appendLe32(builder.usesIntReturnRegOnRet());
     identity.appendLe32(builder.usesFloatReturnRegOnRet());
+    identity.appendLe64(builder.extraReturnRegsOnRet());
     identity.appendLe32(function.debugStackBaseReg().packed);
     identity.appendLe32(function.debugStackFrameSize());
     identity.appendLe32(function.attributes().effectiveSanityMask(ctx.compiler().buildCfg().sanityGuards));

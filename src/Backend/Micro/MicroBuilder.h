@@ -67,9 +67,10 @@ public:
     bool                            hasPrintPassOptions() const { return !printPassOptions_.empty(); }
     void                            setBackendBuildCfg(const Runtime::BuildCfgBackend& value) { backendBuildCfg_ = value; }
     const Runtime::BuildCfgBackend& backendBuildCfg() const { return backendBuildCfg_; }
-    void                            setRetUsesAbiRegs(bool usesIntReturnReg, bool usesFloatReturnReg);
+    void                            setRetUsesAbiRegs(bool usesIntReturnReg, bool usesFloatReturnReg, uint64_t extraReturnRegs = 0);
     bool                            usesIntReturnRegOnRet() const { return usesIntReturnRegOnRet_; }
     bool                            usesFloatReturnRegOnRet() const { return usesFloatReturnRegOnRet_; }
+    uint64_t                        extraReturnRegsOnRet() const { return extraReturnRegsOnRet_; }
     void                            setPrintSymbol(const Symbol* symbol) { printSymbol_ = symbol; }
     void                            releaseMemory();
     Utf8                            printSymbolName() const;
@@ -200,6 +201,7 @@ private:
     const Symbol*                printSymbol_             = nullptr;
     bool                         usesIntReturnRegOnRet_   = true;
     bool                         usesFloatReturnRegOnRet_ = true;
+    uint64_t                     extraReturnRegsOnRet_   = 0;
     std::vector<Utf8>            printPassOptions_;
     Runtime::BuildCfgBackend     backendBuildCfg_{};
     std::vector<MicroInstrRef>   labels_;

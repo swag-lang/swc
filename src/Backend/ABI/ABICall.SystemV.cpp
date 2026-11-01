@@ -2,6 +2,7 @@
 #include "Backend/ABI/ABICall.SystemV.h"
 #include "Backend/ABI/SystemVAbi.h"
 #include "Backend/Micro/MicroBuilder.h"
+#include "Backend/Micro/MicroPassHelpers.h"
 
 SWC_BEGIN_NAMESPACE();
 
@@ -25,11 +26,10 @@ namespace
         return remaining >= 8 ? 8 : remaining >= 4 ? 4 : remaining >= 2 ? 2 : 1;
     }
 
-    void loadIntegerPart(MicroBuilder& builder, const MicroReg destination, const MicroReg address, const uint32_t offset, const uint32_t size)
+    void loadIntegerPart(MicroBuilder& builder, const MicroReg destination, const MicroReg address, const uint32_t offset, const uint32_t size, const MicroReg scratch)
     {
         // Read exactly the object's bytes, including a three-, five- or seven-byte
         // final piece. Rounding to an eightbyte can cross an allocation or guard page.
-        const MicroReg scratch = CallConv::get(CallConvKind::SystemVAMD64).intReturn;
         SWC_ASSERT(destination != scratch && address != scratch);
         uint32_t cursor = 0;
         while (cursor < size)
@@ -91,7 +91,7 @@ namespace
             const uint32_t lane = location.registers[part];
             if (type.classes[part] == Class::Integer)
             {
-                loadIntegerPart(builder, conv.intArgRegs[lane], address, part * 8, std::min(8u, type.size - part * 8));
+                loadIntegerPart(builder, conv.intArgRegs[lane], address, part * 8, std::min(8u, type.size - part * 8), conv.intReturn);
                 call.intArgMask |= static_cast<uint8_t>(1u << lane);
             }
             else if (type.classes[part] == Class::Sse)
@@ -114,13 +114,8 @@ namespace
         return static_cast<uint32_t>(adjustment);
     }
 
-    void storeResult(MicroBuilder& builder, const ABICall::Return& ret, const MicroReg address, const MicroReg scratch)
+    void storeReturnParts(MicroBuilder& builder, const Classification& type, const MicroReg address, const MicroReg scratch)
     {
-        if (ret.isVoid || ret.isIndirect || (ret.systemVType && ret.systemVType->memory()))
-            return;
-        SWC_ASSERT(ret.valuePtr && !ret.isIndirect);
-        const Classification type = ret.systemVType ? *ret.systemVType : packedType(ret.isFloat, ret.numBits);
-        builder.emitLoadRegPtrImm(address, reinterpret_cast<uint64_t>(ret.valuePtr));
         const std::array integerReturns{MicroReg::intReg(0), MicroReg::intReg(3)};
         uint32_t integer = 0;
         uint32_t vector = 0;
@@ -132,6 +127,7 @@ namespace
                 builder.emitLoadMemReg(address, part * 8, MicroReg::floatReg(vector++), microOpBitsFromBitWidth(vectorPartBytes(type, part) * 8));
         }
     }
+
 }
 
 void ABICall::callSystemVAddress(MicroBuilder& builder, const CallConvKind callConvKind, const uint64_t targetAddress, const std::span<const Arg> args, const Return& ret)
@@ -186,9 +182,55 @@ void ABICall::callSystemVAddress(MicroBuilder& builder, const CallConvKind callC
 
 void ABICall::storeSystemVReturn(MicroBuilder& builder, const Return& ret)
 {
+    if (ret.isVoid || ret.isIndirect || (ret.systemVType && ret.systemVType->memory()))
+        return;
+    SWC_ASSERT(ret.valuePtr);
     MicroReg address, scratch;
     SWC_INTERNAL_CHECK(CallConv::get(CallConvKind::SystemVAMD64).tryPickIntScratchRegs(address, scratch));
-    storeResult(builder, ret, address, scratch);
+    const Classification type = ret.systemVType ? *ret.systemVType : packedType(ret.isFloat, ret.numBits);
+    builder.emitLoadRegPtrImm(address, reinterpret_cast<uint64_t>(ret.valuePtr));
+    storeReturnParts(builder, type, address, scratch);
+}
+
+void ABICall::storeSystemVReturn(MicroBuilder& builder, const MicroReg destination, const Classification& type)
+{
+    SWC_ASSERT(!type.memory());
+    MicroReg address, scratch;
+    SWC_INTERNAL_CHECK(CallConv::get(CallConvKind::SystemVAMD64).tryPickIntScratchRegs(address, scratch));
+    builder.emitLoadRegReg(address, destination, MicroOpBits::B64);
+    storeReturnParts(builder, type, address, scratch);
+}
+
+void ABICall::loadSystemVReturn(MicroBuilder& builder, const MicroReg source, const Classification& type)
+{
+    const CallConv& conv = CallConv::get(CallConvKind::SystemVAMD64);
+    if (type.memory())
+    {
+        // The caller-provided buffer has already received the result. Its address
+        // is also returned in RAX, as required by the System V memory-result rule.
+        builder.emitLoadRegReg(conv.intReturn, source, MicroOpBits::B64);
+        builder.setRetUsesAbiRegs(true, false);
+        return;
+    }
+    MicroReg address, scratch;
+    SWC_INTERNAL_CHECK(conv.tryPickIntScratchRegs(address, scratch));
+    builder.emitLoadRegReg(address, source, MicroOpBits::B64);
+    const std::array integerReturns{MicroReg::intReg(0), MicroReg::intReg(3)};
+    uint32_t integer = 0;
+    uint32_t vector = 0;
+    for (uint32_t part = 0; part < 2; ++part)
+    {
+        if (type.classes[part] == Class::Integer)
+            loadIntegerPart(builder, integerReturns[integer++], address, part * 8, std::min(8u, type.size - part * 8), scratch);
+        else if (type.classes[part] == Class::Sse)
+            builder.emitLoadRegMem(MicroReg::floatReg(vector++), address, part * 8, microOpBitsFromBitWidth(vectorPartBytes(type, part) * 8));
+    }
+    uint64_t extra = 0;
+    if (integer > 1)
+        extra |= MicroPassHelpers::MicroPhysLiveness::maskOf(integerReturns[1]);
+    if (vector > 1)
+        extra |= MicroPassHelpers::MicroPhysLiveness::maskOf(MicroReg::floatReg(1));
+    builder.setRetUsesAbiRegs(integer != 0, vector != 0, extra);
 }
 
 ABICall::PreparedCall ABICall::prepareSystemVStorageArgs(MicroBuilder& builder, const CallConvKind callConvKind, const std::span<const PreparedArg> args)

@@ -2,6 +2,7 @@
 
 #if SWC_HAS_UNITTEST && defined(__linux__) && defined(__x86_64__)
 #include "Backend/ABI/ABICall.h"
+#include "Backend/ABI/ABICall.SystemV.h"
 #include "Backend/ABI/SystemVAbi.h"
 #include <sys/mman.h>
 #include <unistd.h>
@@ -148,6 +149,31 @@ namespace
         }
     };
 
+    void installSystemVCode(JITMemoryManager& manager, JITMemory& memory, const ByteArray& code, const ByteArray& unwind)
+    {
+        manager.allocateWithCodeSize(memory, static_cast<uint32_t>(code.size() + unwind.size() + 3), static_cast<uint32_t>(code.size()));
+        std::memcpy(memory.entryPoint(), code.data(), code.size());
+        JITMemoryManager::copyUnwindInfo(memory, unwind.span());
+        JITMemoryManager::registerUnwindInfo(memory);
+        JITMemoryManager::makeExecutable(memory);
+    }
+
+    Result buildSystemVReturningThunk(TaskContext& context, JITMemoryManager& manager, JITMemory& memory, const SystemVAbi::Classification& type, const void* value)
+    {
+        MicroBuilder builder(context);
+        // RAX deliberately starts as the address and ends as a result lane.
+        const MicroReg address = MicroReg::intReg(0);
+        builder.emitLoadRegPtrImm(address, reinterpret_cast<uint64_t>(value));
+        ABICall::loadSystemVReturn(builder, address, type);
+        builder.emitRet();
+        MachineCode lowered;
+        SWC_RESULT(lowered.emit(context, builder));
+        if (lowered.unwindInfo.empty())
+            return Result::Error;
+        installSystemVCode(manager, memory, lowered.bytes, lowered.unwindInfo);
+        return Result::Continue;
+    }
+
     Result executeSystemVThunk(TaskContext& context, MicroBuilder& builder, const bool fullPipeline = false)
     {
         builder.emitRet();
@@ -173,11 +199,7 @@ namespace
             return Result::Error;
         JITMemoryManager manager;
         JITMemory memory;
-        manager.allocateWithCodeSize(memory, static_cast<uint32_t>(code.size() + unwind.size() + 3), static_cast<uint32_t>(code.size()));
-        std::memcpy(memory.entryPoint(), code.data(), code.size());
-        JITMemoryManager::copyUnwindInfo(memory, unwind.span());
-        JITMemoryManager::registerUnwindInfo(memory);
-        JITMemoryManager::makeExecutable(memory);
+        installSystemVCode(manager, memory, code, unwind);
         reinterpret_cast<void (*)()>(memory.entryPoint())();
         return Result::Continue;
     }
@@ -590,6 +612,89 @@ SWC_TEST_BEGIN(ABI_SystemVPreparedMemoryResultAndStackArgument)
     const auto expected = changeLarge(input, 1, 2, 3, 4, 5, 6, 13);
     if (std::memcmp(&result, &expected, sizeof(result)))
         return Result::Error;
+}
+SWC_TEST_END()
+
+SWC_TEST_BEGIN(ABI_SystemVGeneratedCalleeReturnsIndependentBanks)
+{
+    CommandLine commandLine = ctx.cmdLine();
+    commandLine.targetOs = Runtime::TargetOs::Linux;
+    CompilerInstance compiler(ctx.global(), commandLine);
+    TaskContext context(compiler);
+    using SystemVAbi::Class;
+    JITMemoryManager manager;
+    {
+        const TwoIntegers value{0x123456789abcdef0, 0xfedcba9876543210};
+        const SystemVAbi::Classification type{{Class::Integer, Class::Integer}, 16, 8};
+        JITMemory memory;
+        SWC_RESULT(buildSystemVReturningThunk(context, manager, memory, type, &value));
+        const auto result = reinterpret_cast<TwoIntegers (*)()>(memory.entryPoint())();
+        if (result.first != value.first || result.second != value.second)
+            return Result::Error;
+    }
+    {
+        const TwoFloats value{13.5, 27.25};
+        const SystemVAbi::Classification type{{Class::Sse, Class::Sse}, 16, 8};
+        JITMemory memory;
+        SWC_RESULT(buildSystemVReturningThunk(context, manager, memory, type, &value));
+        const auto result = reinterpret_cast<TwoFloats (*)()>(memory.entryPoint())();
+        if (result.first != value.first || result.second != value.second)
+            return Result::Error;
+    }
+    {
+        const MixedValue value{0x123456789abcdef0, 17.5};
+        const SystemVAbi::Classification type{{Class::Integer, Class::Sse}, 16, 8};
+        JITMemory memory;
+        SWC_RESULT(buildSystemVReturningThunk(context, manager, memory, type, &value));
+        const auto result = reinterpret_cast<MixedValue (*)()>(memory.entryPoint())();
+        if (result.integer != value.integer || result.floating != value.floating)
+            return Result::Error;
+    }
+    {
+        const ReverseMixedValue value{19.5, 0xfedcba9876543210};
+        const SystemVAbi::Classification type{{Class::Sse, Class::Integer}, 16, 8};
+        JITMemory memory;
+        SWC_RESULT(buildSystemVReturningThunk(context, manager, memory, type, &value));
+        const auto result = reinterpret_cast<ReverseMixedValue (*)()>(memory.entryPoint())();
+        if (result.integer != value.integer || result.floating != value.floating)
+            return Result::Error;
+    }
+}
+SWC_TEST_END()
+
+SWC_TEST_BEGIN(ABI_SystemVGeneratedCalleeReturnsPartialAndVectorValues)
+{
+    CommandLine commandLine = ctx.cmdLine();
+    commandLine.targetOs = Runtime::TargetOs::Linux;
+    CompilerInstance compiler(ctx.global(), commandLine);
+    TaskContext context(compiler);
+    using SystemVAbi::Class;
+    JITMemoryManager manager;
+    {
+        GuardedStorage storage;
+        auto* value = static_cast<SevenBytes*>(storage.tail(sizeof(SevenBytes)));
+        if (!value)
+            return Result::Error;
+        *value = {{1, 3, 5, 7, 9, 11, 13}};
+        const SystemVAbi::Classification type{{Class::Integer, Class::None}, 7, 1};
+        JITMemory memory;
+        SWC_RESULT(buildSystemVReturningThunk(context, manager, memory, type, value));
+        const auto result = reinterpret_cast<SevenBytes (*)()>(memory.entryPoint())();
+        if (std::memcmp(&result, value, sizeof(result)))
+            return Result::Error;
+    }
+    {
+        const FourFloats value{1.5, 2.5, 3.5, 4.5};
+        const SystemVAbi::Classification type{{Class::Sse, Class::SseUp}, 16, 16};
+        JITMemory memory;
+        SWC_RESULT(buildSystemVReturningThunk(context, manager, memory, type, &value));
+        const auto result = reinterpret_cast<FourFloats (*)()>(memory.entryPoint())();
+        for (uint32_t index = 0; index < 4; ++index)
+        {
+            if (result[index] != value[index])
+                return Result::Error;
+        }
+    }
 }
 SWC_TEST_END()
 

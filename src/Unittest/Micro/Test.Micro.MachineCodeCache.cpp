@@ -5,6 +5,7 @@
 #include "Backend/Micro/MachineCode.h"
 #include "Backend/Micro/MachineCodeCache.h"
 #include "Backend/Micro/MicroBuilder.h"
+#include "Backend/Micro/MicroPassHelpers.h"
 #include "Compiler/Parser/Ast/Ast.h"
 #include "Compiler/Sema/Constant/ConstantManager.h"
 #include "Compiler/Sema/Symbol/Symbol.Function.h"
@@ -412,6 +413,24 @@ SWC_TEST_BEGIN(MachineCodeCache_TracksCalleeReleaseSummaries)
     target->addFreesParam(0, true);
     const Utf8 indirect = cacheKey(ctx, *caller, builder);
     if (before.empty() || direct.empty() || indirect.empty() || before == direct || direct == indirect)
+        return Result::Error;
+}
+SWC_TEST_END()
+
+SWC_TEST_BEGIN(MachineCodeCache_DistinguishesAdditionalResultRegisters)
+{
+    auto* function = makeCacheFunction(ctx, "cacheAggregateResult");
+    MicroBuilder builder(ctx);
+    builder.emitRet();
+    builder.setRetUsesAbiRegs(true, false);
+    const Utf8 scalar = cacheKey(ctx, *function, builder);
+    const uint64_t secondInteger = MicroPassHelpers::MicroPhysLiveness::maskOf(MicroReg::intReg(3));
+    builder.setRetUsesAbiRegs(true, false, secondInteger);
+    const Utf8 aggregate = cacheKey(ctx, *function, builder);
+    if (scalar.empty() || aggregate.empty() || scalar == aggregate)
+        return Result::Error;
+    builder.setRetUsesAbiRegs(true, false);
+    if (cacheKey(ctx, *function, builder) != scalar)
         return Result::Error;
 }
 SWC_TEST_END()

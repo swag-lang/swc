@@ -127,6 +127,9 @@ public impl RegExp
     {
         .program = {}
         .reverse = {}
+        .innerDfa = {}
+        .forwardDfa = {}
+        .reverseDfa = {}
         .captureNames.clear()
         .slots.clear()
         .subject  = ""

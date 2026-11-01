@@ -784,7 +784,8 @@ uint32_t CompilerInstance::valueBorrowExtentCacheOffset()
 // does, so the program's 'Swag.args()' would come back empty -- which breaks the runtime's
 // 'swag.test' panic guard (it scans Swag.args()), letting a headless panic pop an interactive
 // dialog box. We build the command line the program is effectively launched with: argv[0]
-// plus the effective run args (which include the auto-added 'swag.test' for the test
+// plus the effective run args, alongside their exact values (including empty arguments,
+// quotes and backslashes). The effective args include the auto-added 'swag.test' for the test
 // command). This is done lazily at run time -- never at codegen -- so compile-time '#run'
 // code keeps seeing a zeroed Swag.processInfo() (see the context_intrinsics unit test).
 void CompilerInstance::ensureProcessInfoRunArgs()
@@ -804,11 +805,13 @@ void CompilerInstance::ensureProcessInfoRunArgs()
     };
 
     const std::string exeName = exeFullName_.string();
+    std::vector<std::string> argumentValues{exeName};
     appendQuoted(exeName);
     for (const Utf8& arg : effectiveGeneratedArtifactRunArgs(cmdLine()))
     {
         cmdLineStr += ' ';
         appendQuoted(arg.view());
+        argumentValues.emplace_back(arg.view());
     }
 
     // The arguments are handed to imported native modules, which parse them once, keep slices
@@ -816,28 +819,43 @@ void CompilerInstance::ensureProcessInfoRunArgs()
     // (a workspace run builds each dependency with its own short-lived instance while core.dll
     // and its siblings stay loaded). The storage they point into must therefore never move and
     // never die with an instance: intern it for the lifetime of the process.
-    static std::mutex              processInfoArgsMutex;
-    static std::deque<std::string> processInfoArgsStorage;
+    struct StoredProcessArgs
+    {
+        std::string                  commandLine;
+        std::vector<std::string>      values;
+        std::vector<Runtime::String>  slices;
+    };
+    static std::mutex                    processInfoArgsMutex;
+    static std::deque<StoredProcessArgs> processInfoArgsStorage;
 
-    std::string_view stableArgs;
+    const StoredProcessArgs* stableArgs = nullptr;
     {
         std::scoped_lock lock(processInfoArgsMutex);
-        for (const std::string& existing : processInfoArgsStorage)
+        for (const auto& existing : processInfoArgsStorage)
         {
-            if (existing == cmdLineStr.view())
+            if (existing.values == argumentValues)
             {
-                stableArgs = existing;
+                stableArgs = &existing;
                 break;
             }
         }
 
-        if (stableArgs.empty())
-            stableArgs = processInfoArgsStorage.emplace_back(cmdLineStr.view());
+        if (!stableArgs)
+        {
+            auto& stored       = processInfoArgsStorage.emplace_back();
+            stored.commandLine = cmdLineStr.view();
+            stored.values      = std::move(argumentValues);
+            stored.slices.reserve(stored.values.size());
+            for (const auto& value : stored.values)
+                stored.slices.push_back({value.data(), value.size()});
+            stableArgs = &stored;
+        }
     }
 
     auto* infos = globalZeroSegment_.ptr<Runtime::ProcessInfo>(nativeProcessInfoOffset());
     SWC_ASSERT(infos != nullptr);
-    infos->args = {stableArgs.data(), stableArgs.length()};
+    infos->args      = {stableArgs->commandLine.data(), stableArgs->commandLine.size()};
+    infos->arguments = {const_cast<Runtime::String*>(stableArgs->slices.data()), stableArgs->slices.size()};
 }
 
 // The process infos JIT-compiled code sees through 'Swag.processInfo()'.

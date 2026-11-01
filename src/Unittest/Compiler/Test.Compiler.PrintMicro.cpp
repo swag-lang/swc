@@ -2,6 +2,7 @@
 
 #if SWC_HAS_UNITTEST
 
+#include "Backend/RuntimeName.h"
 #include "Backend/Micro/MicroBuilder.h"
 #include "Backend/Micro/MicroPrinter.h"
 #include "Support/Os/Os.h"
@@ -37,7 +38,7 @@ namespace Inner { func addTwo(value: s32)->s32 => value + 2 }
         const fs::path sourcePath = directory / "print_micro.swg";
         SWC_RESULT(CompilerTestFile::writeText(sourcePath, source));
 
-        std::vector<Utf8> args = {"sema", "--num-cores", "3", "--no-log-color", "-f", Utf8(sourcePath.string())};
+        std::vector<Utf8> args = {"sema", "--os", targetOsName(hostTargetOs()), "--num-cores", "3", "--no-log-color", "-f", Utf8(sourcePath.string())};
         if (!buildCfg.empty())
         {
             args.emplace_back("-bc");

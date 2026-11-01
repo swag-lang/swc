@@ -251,6 +251,7 @@ namespace Runtime
     {
         Slice<Module> types;
         String        args;
+        Slice<String> arguments;
     };
 }
 

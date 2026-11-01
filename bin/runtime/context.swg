@@ -20,7 +20,8 @@ namespace Swag
         public
         {
             modules: const [..] Module?     // Every loaded module
-            args:    string?     // The application arguments, as returned by [[Swag.args]].
+            args:    string?     // The legacy process command line, when supplied by the host.
+            arguments: const [..] string?     // Host-supplied argument values, including the executable name; used by [[Swag.args]] without parsing.
         }
     }
 

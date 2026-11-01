@@ -155,7 +155,7 @@ namespace
         builder.emitLoadRegDataSegmentReloc(targetReg, DataSegmentKind::GlobalZero, compiler.nativeProcessInfoOffset() + static_cast<uint32_t>(offsetof(Runtime::ProcessInfo, args)));
 
         const MicroReg wordReg = nextVirtualIntReg(nextVirtualIntRegIndex);
-        for (uint64_t offset = 0; offset < sizeof(Runtime::String); offset += sizeof(uint64_t))
+        for (uint64_t offset = 0; offset < offsetof(Runtime::ProcessInfo, arguments) + sizeof(Runtime::Slice<Runtime::String>) - offsetof(Runtime::ProcessInfo, args); offset += sizeof(uint64_t))
         {
             builder.emitLoadRegMem(wordReg, processArgsReg, offset, MicroOpBits::B64);
             builder.emitLoadMemReg(targetReg, offset, wordReg, MicroOpBits::B64);

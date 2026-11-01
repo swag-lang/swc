@@ -2,6 +2,7 @@
 
 #if SWC_HAS_UNITTEST
 
+#include "Backend/RuntimeName.h"
 #include "Compiler/Lexer/Lexer.h"
 #include "Compiler/Lexer/SourceView.h"
 #include "Compiler/Sema/Core/NodePayload.h"
@@ -298,6 +299,7 @@ func lateLocationLine(loc: Swag.SourceCodeLocation)->u32 => loc.lineStart + 1
 
     CommandLine cmdLine;
     cmdLine.command  = CommandKind::Test;
+    cmdLine.targetOs = hostTargetOs();
     cmdLine.buildCfg = "release";
     cmdLine.name     = "compiler_test_folded_argument_storage";
     cmdLine.files.insert(sourcePath);

@@ -41,17 +41,17 @@ private struct LinuxThreadStart
 #[Swag.CallingConvention(.C)]
 private func __linuxThreadStart(parameter: *void?)->*void?
 {
-    let start = cast(*LinuxThreadStart, parameter)
+    let start = cast(*LinuxThreadStart, unwrap parameter)
     let entry = start.entry
     let argument = start.parameter
-    Swag.__bootstrapFree(cast([*] void, start))
+    __bootstrapFree(cast([*] void, start))
     discard entry(argument)
     return null
 }
 
 func __hostThreadCreate(entry: __LinuxRT.ThreadEntry, param: *void?)->*void?
 {
-    let memory = Swag.__bootstrapAlloc(#sizeof(LinuxThreadStart))
+    let memory = __bootstrapAlloc(#sizeof(LinuxThreadStart))
     if not memory do
         return null
     let start = cast(*LinuxThreadStart, memory)
@@ -60,7 +60,7 @@ func __hostThreadCreate(entry: __LinuxRT.ThreadEntry, param: *void?)->*void?
     var thread: u64
     if __LinuxRT.pthread_create(&thread, null, &__linuxThreadStart, start) != 0
     {
-        Swag.__bootstrapFree(cast([*] void, start))
+        __bootstrapFree(cast([*] void, start))
         return null
     }
     return cast(*void, thread)
@@ -218,4 +218,24 @@ func __raiseException666(message: string?, loc: Swag.SourceCodeLocation, kind: S
 
     __printString(message)
     __exitError()
+}
+
+// Unix startup supplies argv before module initialization. Keep a process-lifetime
+// table of views; the kernel-provided argument bytes remain owned by the process.
+#[Swag.Safety(.ValueBorrow, false)]
+func __setUnixArguments(count: u32, values: const [*] (const [*] u8))->bool
+{
+    if count == 0 do
+        return true
+    let memory = __bootstrapAlloc(cast(u64, count) * #sizeof(string))
+    if not memory do
+        return false
+    let arguments = cast([*] string, memory)
+    for index in count
+    {
+        let value = values[index]
+        arguments[index] = cast(string, Swag.makeSlice(value, cast(const cstring, value).count))
+    }
+    Swag.processInfo().arguments = Swag.makeSlice(arguments, cast(u64, count))
+    return true
 }

@@ -14,6 +14,10 @@
 #include "Backend/Micro/Passes/Pass.Emit.h"
 #include "Backend/Micro/Passes/Pass.PostRADeadCodeElim.h"
 #include "Main/Command/CommandLine.h"
+#include "Main/Command/CommandLineParser.h"
+#include "Main/Command/Command.h"
+#include "Compiler/SourceFile.h"
+#include "Unittest/UnittestSource.h"
 #include "Main/CompilerInstance.h"
 #include "Main/Stats.h"
 #include "Main/TaskContext.h"
@@ -1842,6 +1846,179 @@ SWC_TEST_BEGIN(JIT_LinuxRuntimeDiagnosticsResumeWarningsAndUnwindErrors)
     }
     if (Stats::getNumErrors() != errorsBefore + 1)
         return Result::Error;
+}
+SWC_TEST_END()
+
+namespace
+{
+    Result runLinuxRuntimeProbe(const TaskContext& ctx, std::string_view name, std::string_view source)
+    {
+        CommandLine command;
+        command.command  = CommandKind::Sema;
+        command.targetOs = Runtime::TargetOs::Linux;
+        command.buildCfg = "devmode";
+        command.numCores = 3;
+        command.silent   = true;
+        command.name     = name;
+        CommandLineParser::refreshBuildCfg(command);
+        const uint64_t errorsBefore = Stats::getNumErrors();
+        struct RestoreErrors
+        {
+            uint64_t saved;
+            ~RestoreErrors() { Stats::get().numErrors.store(saved); }
+        } restore{errorsBefore};
+        CompilerInstance compiler(ctx.global(), command);
+        TaskContext context(compiler);
+        // These exercise the bootstrap's private host boundary, before application setup.
+        Unittest::addTestSource(context, "Runtime", name, source, FileFlagsE::Runtime);
+        Command::sema(compiler);
+        return Stats::getNumErrors() == errorsBefore ? Result::Continue : Result::Error;
+    }
+}
+
+SWC_TEST_BEGIN(Runtime_LinuxHostedPrimitives)
+{
+    static constexpr std::string_view SOURCE = R"(#global if #os == Swag.TargetOs.Linux
+#global private
+
+#run
+{
+    Swag.assert(__LinuxRT.sinf(0'f32) == 0'f32)
+    Swag.assert(__LinuxRT.cos(0'f64) == 1'f64)
+    Swag.assert(__LinuxRT.pow(2'f64, 5'f64) == 32'f64)
+    Swag.assert(__hostMonotonicFrequency() == 1_000_000_000)
+    let before = __hostMonotonicTicks()
+    __hostThreadSleep(1)
+    Swag.assert(__hostMonotonicTicks() >= before)
+    Swag.assert(__hostProcessorCount() >= 1)
+    let pressure = __hostWorkPressure()
+    Swag.assert(pressure.cpuValid)
+    Swag.assert(pressure.memoryValid)
+    Swag.assert(pressure.totalTicks >= pressure.idleTicks)
+    Swag.assert(pressure.physicalBytes > 0)
+    Swag.assert(pressure.availableBytes <= pressure.physicalBytes)
+    Swag.assert(pressure.availableCommitBytes <= pressure.commitBytes)
+    Swag.assert(__hostHasAvx2())
+}
+)";
+    return runLinuxRuntimeProbe(ctx, "LinuxHostedPrimitives", SOURCE);
+}
+SWC_TEST_END()
+
+SWC_TEST_BEGIN(Runtime_LinuxPageReservationsAndProcessStorage)
+{
+    static constexpr std::string_view SOURCE = R"(#global if #os == Swag.TargetOs.Linux
+#global private
+
+#run
+{
+    let size = 2 * AllocatorHostCommitGranularity
+    let reservation = __hostPageReserve(size)
+    Swag.assert(reservation != null)
+    defer __hostPageRelease(reservation, size)
+    let address = cast(u64, reservation)
+    Swag.assert(__hostPageAllocationBase(address) == 0)
+    Swag.assert(__hostPageCommit(reservation, AllocatorHostCommitGranularity))
+    Swag.assert(__hostPageAllocationBase(address + size - 1) == address)
+    Swag.assert(__hostPageAllocationBase(address + size) == 0)
+    reservation[0] = 123
+    __hostPageDecommit(reservation, AllocatorHostCommitGranularity)
+    Swag.assert(__hostPageAllocationBase(address) == 0)
+    Swag.assert(__hostPageCommit(reservation, AllocatorHostCommitGranularity))
+    Swag.assert(reservation[0] == 0)
+
+    let first = __hostProcessStorage(0x5453_5431, 8)
+    let second = __hostProcessStorage(0x5453_5431, 8)
+    Swag.assert(first != null and second != null)
+    let value = cast(*u64, first)
+    Swag.assert(value[] == 0)
+    value[] = 0x1234_5678_9ABC_DEF0
+    Swag.assert(cast(*u64, second)[] == value[])
+    Swag.assert(__hostProcessStorage(0x5453_5431, 16) == null)
+}
+)";
+    return runLinuxRuntimeProbe(ctx, "LinuxPageReservationsAndProcessStorage", SOURCE);
+}
+SWC_TEST_END()
+
+SWC_TEST_BEGIN(Runtime_LinuxThreadStorageAndExitCleanup)
+{
+    static constexpr std::string_view SOURCE = R"(#global if #os == Swag.TargetOs.Linux
+#global private
+
+struct LinuxTlsState
+{
+    slot: u64
+    cleanupCount: Swag.AtomicValue'u32
+    correct: bool
+}
+
+#[Swag.CallingConvention(.C)]
+func linuxTlsCleanup(value: *void?)
+{
+    if value do
+        cast(*LinuxTlsState, value).cleanupCount.add(1)
+}
+
+#[Swag.CallingConvention(.C)]
+func linuxTlsWorker(value: *void?)->u32
+{
+    let state = cast(*LinuxTlsState, unwrap value)
+    state.correct = __hostThreadStorageGet(state.slot) == null and
+                    __hostThreadStorageSet(state.slot, state) and
+                    __hostThreadStorageGet(state.slot) == state
+    return 0
+}
+
+#run
+{
+    let key = __hostTlsAlloc()
+    Swag.assert(key != Swag.U64.Max)
+    defer __hostTlsFree(key)
+    var value = 42'u64
+    Swag.assert(__hostTlsGet(key) == null)
+    Swag.assert(__hostTlsSet(key, &value))
+    Swag.assert(__hostTlsGet(key) == &value)
+    Swag.assert(__hostTlsSet(key, null))
+    Swag.assert(__hostTlsGet(key) == null)
+
+    var state: LinuxTlsState
+    state.slot = __hostThreadStorageAlloc(&linuxTlsCleanup)
+    Swag.assert(state.slot != 0)
+    defer __hostThreadStorageFree(state.slot)
+    let thread = __hostThreadCreate(&linuxTlsWorker, &state)
+    Swag.assert(thread != null)
+    __hostThreadJoin(thread)
+    Swag.assert(state.correct)
+    Swag.assert(state.cleanupCount.load() == 1)
+    Swag.assert(__hostThreadStorageGet(state.slot) == null)
+}
+)";
+    return runLinuxRuntimeProbe(ctx, "LinuxThreadStorageAndExitCleanup", SOURCE);
+}
+SWC_TEST_END()
+
+SWC_TEST_BEGIN(Runtime_LinuxUnixArgumentVector)
+{
+    static constexpr std::string_view SOURCE = R"(#global if #os == Swag.TargetOs.Linux
+#global private
+
+#run
+{
+    let values: [6] (const [*] u8) = ["program".buffer, "".buffer, "two words".buffer, "a\"b".buffer, "tail\\".buffer, "café".buffer]
+    let initialized = __setUnixArguments(6, &values[0])
+    Swag.assert(initialized)
+    let actual = Swag.args()
+    Swag.assert(actual.count == 6)
+    Swag.assert(actual[0] == "program")
+    Swag.assert(actual[1] == "")
+    Swag.assert(actual[2] == "two words")
+    Swag.assert(actual[3] == "a\"b")
+    Swag.assert(actual[4] == "tail\\")
+    Swag.assert(actual[5] == "café")
+}
+)";
+    return runLinuxRuntimeProbe(ctx, "LinuxUnixArgumentVector", SOURCE);
 }
 SWC_TEST_END()
 

@@ -554,6 +554,8 @@ func __convertArgcArgv(args: const [*] u8?)
 
 func args()->const [..] string
 {
+    if Swag.processInfo().arguments do
+        return unwrap Swag.processInfo().arguments
     if __argc == 0 do
         __convertArgcArgv((Swag.processInfo().args).buffer)
     return Swag.makeSlice(&__argv[0], cast(u64, __argc))
@@ -647,8 +649,9 @@ func __setupRuntime(flags: RuntimeFlags)
     // executable seeds its copy here and hands it down the hook chain to the modules it imports.
     // Under the compiler the real command line belongs to 'swc' itself; the host has already
     // filled the slot with the one the program is effectively launched with, so leave it alone.
-    if not (flags & .FromCompiler) do
-        Swag.processInfo().args = __osCommandLine()
+    #static if #os == Swag.TargetOs.Windows do
+        if not (flags & .FromCompiler) do
+            Swag.processInfo().args = __osCommandLine()
 
     #static if #hastag("Swag.AllocatorDiagnostics") do
         discard installAllocator(electricMode: __buildCfg.allocatorElectricMode, detectLeaks: __buildCfg.allocatorLeaks, captureStack: __buildCfg.allocatorCaptureStack, trackAllocations: __buildCfg.allocatorTrackAllocations, fillMemory: __buildCfg.allocatorFillMemory, installInContext: not (flags & .FromCompiler))

@@ -2,6 +2,7 @@
 
 #if SWC_HAS_UNITTEST
 
+#include "Backend/RuntimeName.h"
 #include "Backend/Micro/MicroRelocation.h"
 #include "Backend/Native/SymbolSort.h"
 #include "Compiler/CodeGen/Core/CodeGen.h"
@@ -85,6 +86,7 @@ func validate()
 
         CommandLine cmdLine;
         cmdLine.command   = CommandKind::Sema;
+        cmdLine.targetOs  = hostTargetOs();
         cmdLine.name      = std::format("compiler_generic_union_deduction_randomized_{}", seed);
         cmdLine.silent    = true;
         cmdLine.numCores  = 1;
@@ -764,6 +766,7 @@ func useMix(value: u64)->u64 => mix(value) + mix(value + 1)
 
     CommandLine cmdLine;
     cmdLine.command         = CommandKind::Sema;
+    cmdLine.targetOs        = hostTargetOs();
     cmdLine.name            = "compiler_auto_inline_same_module_cross_file";
     cmdLine.moduleNamespace = "CompilerAutoInline";
     cmdLine.silent          = true;
@@ -871,6 +874,7 @@ const copied = #run identity(42'u32)
 
     CommandLine cmdLine;
     cmdLine.command  = CommandKind::Sema;
+    cmdLine.targetOs = hostTargetOs();
     cmdLine.name     = "compiler_auto_inline_compile_time";
     cmdLine.silent   = true;
     cmdLine.numCores = 6;
@@ -947,6 +951,7 @@ func matchesInteger(target: typeinfo)->bool => target is s32
 
     CommandLine cmdLine;
     cmdLine.command         = CommandKind::Sema;
+    cmdLine.targetOs        = hostTargetOs();
     cmdLine.name            = "compiler_cross_file_inline_type_pattern";
     cmdLine.moduleNamespace = "CompilerInlineTypePattern";
     cmdLine.silent          = true;
@@ -994,6 +999,7 @@ func checkIndex(value: *s32)->s32
     const fs::path                    callerPath   = Unittest::makeTestSourcePath("Compiler", "ExplicitInlineCaller");
     CommandLine                       cmdLine;
     cmdLine.command  = CommandKind::Sema;
+    cmdLine.targetOs = hostTargetOs();
     cmdLine.name     = "compiler_explicit_inline_cross_file";
     cmdLine.silent   = true;
     cmdLine.numCores = 6;
@@ -1071,6 +1077,7 @@ func trailingUse()
     const fs::path sourcePath = Unittest::makeTestSourcePath("Compiler", "TrailingCodeBlockChunks");
     CommandLine    cmdLine;
     cmdLine.command         = CommandKind::Sema;
+    cmdLine.targetOs        = hostTargetOs();
     cmdLine.name            = "compiler_trailing_code_block_chunks";
     cmdLine.moduleNamespace = "CompilerTrailingChunks";
     cmdLine.silent          = true;
@@ -1421,6 +1428,7 @@ SWC_TEST_BEGIN(Compiler_ControlFlowPayloadsStayIndependentOfValues)
     const fs::path sourcePath = Unittest::makeTestSourcePath("Compiler", "DeferredPayloadInvalidation");
     CommandLine    cmdLine;
     cmdLine.command  = CommandKind::Sema;
+    cmdLine.targetOs = hostTargetOs();
     cmdLine.name     = "compiler_deferred_payload_invalidation";
     cmdLine.silent   = true;
     cmdLine.numCores = 1;

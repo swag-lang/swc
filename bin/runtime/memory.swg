@@ -142,6 +142,15 @@ func memmove(dst: [*] void, src: const [*] void, size: u64)
         __memoryCopyBackward(target, source, size)
 }
 
+#[Swag.Inline]
+func memcmpDifferenceIndex(difference: u64, width: u32)->u64
+{
+    #static if BIG_ENDIAN do
+        return cast(u64, Swag.leadingZeros(difference)) / 8 - (8 - cast(u64, width))
+    else do
+        return cast(u64, Swag.trailingZeros(difference)) / 8
+}
+
 #[Swag.ReadOnly]
 func memcmp(left, right: const [*] void, size: u64)->s32
 {
@@ -176,7 +185,7 @@ func memcmp(left, right: const [*] void, size: u64)->s32
         let difference = leftWord ^ rightWord
         if difference
         {
-            let index = Swag.trailingZeros(difference) / 8
+            let index = memcmpDifferenceIndex(difference, 8)
             return cast(s32, leftBytes[offset + index]) - cast(s32, rightBytes[offset + index])
         }
 
@@ -190,7 +199,7 @@ func memcmp(left, right: const [*] void, size: u64)->s32
         let tailDifference = leftTail ^ rightTail
         if tailDifference
         {
-            let index = Swag.trailingZeros(tailDifference) / 8
+            let index = memcmpDifferenceIndex(tailDifference, 8)
             return cast(s32, leftBytes[offset + index]) - cast(s32, rightBytes[offset + index])
         }
 
@@ -204,7 +213,7 @@ func memcmp(left, right: const [*] void, size: u64)->s32
         let difference = leftPart ^ rightPart
         if difference
         {
-            let index = cast(u64, Swag.trailingZeros(difference)) / 8
+            let index = memcmpDifferenceIndex(cast(u64, difference), 4)
             return cast(s32, leftBytes[offset + index]) - cast(s32, rightBytes[offset + index])
         }
 
@@ -218,7 +227,7 @@ func memcmp(left, right: const [*] void, size: u64)->s32
         let tailDifference = leftTail ^ rightTail
         if tailDifference
         {
-            let index = cast(u64, Swag.trailingZeros(tailDifference)) / 8
+            let index = memcmpDifferenceIndex(cast(u64, tailDifference), 4)
             return cast(s32, leftBytes[offset + index]) - cast(s32, rightBytes[offset + index])
         }
 
@@ -232,7 +241,7 @@ func memcmp(left, right: const [*] void, size: u64)->s32
         let difference = leftPart ^ rightPart
         if difference
         {
-            let index = cast(u64, Swag.trailingZeros(difference)) / 8
+            let index = memcmpDifferenceIndex(cast(u64, difference), 2)
             return cast(s32, leftBytes[offset + index]) - cast(s32, rightBytes[offset + index])
         }
 

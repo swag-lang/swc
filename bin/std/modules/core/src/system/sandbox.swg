@@ -299,11 +299,14 @@ internal func denySystemMutation(mutation: SystemMutation)->bool
 
 // Reports whether `path` names `root` itself or something below it.
 //
-// Both sides are resolved and normalized first, so a relative path, a mixed separator style
-// or a difference in case cannot smuggle a location past the check.
+// Invalid Windows aliases are rejected before resolution. Both sides are then resolved and
+// normalized, so a relative path, mixed separator style, or case difference cannot smuggle a
+// location past the check.
 func isInsideDirectory(root: string, path: string)->bool
 {
     if root.count == 0 do
+        return false
+    if not Path.isValidPathName(root) or not Path.isValidPathName(path) do
         return false
 
     let full = absolutePath(path).toLower()

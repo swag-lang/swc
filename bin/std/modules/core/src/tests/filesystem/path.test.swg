@@ -69,6 +69,15 @@ using Swag
     Swag.assert(not Path.isValidPathName("bad|name"))
     Swag.assert(not Path.isValidPathName("bad*name"))
     Swag.assert(not Path.isValidPathName("bad?name"))
+    if WINDOWS
+    {
+        Swag.assert(not Path.isValidPathName("C:/sandbox/.. /outside.txt"))
+        Swag.assert(not Path.isValidPathName("C:/sandbox/name. /file.txt"))
+        Swag.assert(not Path.isValidPathName("C:/sandbox/NUL.txt"))
+        Swag.assert(not Path.isValidPathName("C:/sandbox/NUL:$DATA"))
+        Swag.assert(not Path.isValidPathName("C:/sandbox/COM1.log"))
+        Swag.assert(Path.isValidPathName("C:/sandbox/../outside.txt"))
+    }
 
     Swag.assert(Path.isValidFileName("core.swg"))
     Swag.assert(Path.isValidFileName(".gitignore"))
@@ -93,6 +102,11 @@ using Swag
         Swag.assert(not Path.isValidFileName("name "))
         Swag.assert(not Path.isValidFileName(".. "))
         Swag.assert(not Path.isValidFileName("..."))
+        Swag.assert(not Path.isValidFileName("NUL"))
+        Swag.assert(not Path.isValidFileName("nul.txt"))
+        Swag.assert(not Path.isValidFileName("NUL .txt"))
+        Swag.assert(not Path.isValidFileName("COM1.log"))
+        Swag.assert(not Path.isValidFileName("LPT\u00B9"))
     }
 
     Swag.assert(Path.rootLength("core.swg") == 0)

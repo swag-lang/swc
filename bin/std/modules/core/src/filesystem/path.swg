@@ -26,7 +26,8 @@ private func endsDirectoryPart(c: u8)->bool
     return isDirectorySeparator(c) or VolumeSeparator != 0 and c == VolumeSeparator
 }
 
-// Returns whether `path` is a lexically valid path on the selected target.
+// Returns whether `path` is a lexically valid path on the selected target. Windows paths reject
+// components whose trailing dots or spaces are normalized, and reserved DOS device names.
 func isValidPathName(path: string)->bool
 {
     if path.count == 0 do
@@ -50,12 +51,31 @@ func isValidPathName(path: string)->bool
             return false
     }
 
+    if TargetHasWindowsPathSyntax
+    {
+        var segmentBegin = 0'u64
+        for index in path.count
+        {
+            if not isDirectorySeparator(path[index]) and index != path.count - 1 do
+                continue
+
+            let segmentEnd = isDirectorySeparator(path[index]) ? index : index + 1
+            let segment    = path[segmentBegin until segmentEnd]
+            if segment.count and segment != "." and segment != ".."
+            {
+                if segment.back() == '.' or segment.back() == ' ' or isReservedWindowsDeviceName(segment) do
+                    return false
+            }
+            segmentBegin = index + 1
+        }
+    }
+
     return true
 }
 
 // Returns whether `path` is a lexically valid single file name on the selected target. Dot
-// segments are rejected everywhere; Windows names ending in a dot or space are rejected because
-// the host silently normalizes those characters.
+// segments are rejected everywhere; Windows names ending in a dot or space and reserved DOS
+// device names are rejected because the host normalizes or redirects those names.
 func isValidFileName(path: string)->bool
 {
     if path.count == 0 do
@@ -71,6 +91,8 @@ func isValidFileName(path: string)->bool
             return false
     }
     if TargetHasWindowsPathSyntax and (path.back() == '.' or path.back() == ' ') do
+        return false
+    if TargetHasWindowsPathSyntax and isReservedWindowsDeviceName(path) do
         return false
 
     return true
@@ -335,4 +357,36 @@ func normalize(path: *String)
 {
     if AltDirectorySeparator do
         path.replace(cast(rune, AltDirectorySeparator), "/")
+}
+
+// Returns whether a Windows path component aliases a reserved DOS device name.
+private func isReservedWindowsDeviceName(name: string)->bool
+{
+    var stemEnd = name.count
+    for index in name.count where name[index] == '.' or name[index] == ':'
+    {
+        stemEnd = index
+        break
+    }
+    while stemEnd and (name[stemEnd - 1] == '.' or name[stemEnd - 1] == ' ')
+        stemEnd -= 1
+    let stem = name[until stemEnd]
+
+    if Path.equals(stem, "CON") or Path.equals(stem, "PRN") or
+       Path.equals(stem, "AUX") or Path.equals(stem, "NUL") or
+       Path.equals(stem, "CONIN$") or Path.equals(stem, "CONOUT$") or
+       Path.equals(stem, "CLOCK$") do
+        return true
+
+    if stem.count == 4
+    {
+        let device = stem[until 3]
+        let digit  = stem[3]
+        if (Path.equals(device, "COM") or Path.equals(device, "LPT")) and
+           digit >= '1' and digit <= '9' do
+            return true
+    }
+
+    return stem == "COM\u00B9" or stem == "COM\u00B2" or stem == "COM\u00B3" or
+           stem == "LPT\u00B9" or stem == "LPT\u00B2" or stem == "LPT\u00B3"
 }

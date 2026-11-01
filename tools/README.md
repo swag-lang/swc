@@ -101,6 +101,11 @@ workspace suite still runs its standalone inputs, but no longer performs the rep
 artifact-layout and cache-invalidation probes. The integration launcher accepts one configuration
 per run.
 
+`unittests.bat` applies `-bc` to Swag programs only; internal C++ tests use the DevMode compiler's
+own configuration. The workspace suite builds its dynamically loaded DLL before running its
+consumer. Runner option routing, failure propagation, and fixture ordering are covered by
+`powershell -NoProfile -ExecutionPolicy Bypass -File tools/tests/unittests.ps1`.
+
 ## Maintenance
 
 | Launcher | Purpose |

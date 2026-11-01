@@ -86,6 +86,10 @@ impl ZLib
 
         // The Adler-32 trailer follows the Deflate data at the next byte boundary.
         .decoder.stream.discardToNextByte()
+        let bufferedTrailerBytes = cast(u64, .decoder.stream.numBits / 8)
+        if bufferedTrailerBytes < 4 and 4 - bufferedTrailerBytes > .decoder.stream.size() - .decoder.stream.bytePosition() do
+            fail InvalidFormatError{"truncated checksum"}
+
         var adler32: u32
         .decoder.stream.read32Be(cast([*] u8, &adler32))
         if adler32 != .decoder.adler.value() do

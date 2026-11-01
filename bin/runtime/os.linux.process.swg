@@ -22,9 +22,6 @@ namespace __LinuxRT
         func read(descriptor: s32, buffer: *void, count: u64)->s64
         func dlopen(path: const [*] u8, flags: s32)->*void?
         func backtrace(buffer: *(*void?), count: s32)->s32
-        func __sigsetjmp(storage: *void, saveMask: s32)->s32
-        #[Swag.NoReturn]
-        func siglongjmp(storage: *void, value: s32)
         #[Swag.NoReturn]
         func exit(status: s32)
         #[Swag.NoReturn]
@@ -144,45 +141,6 @@ func __exit() { __LinuxRT.exit(0) }
 func __exitError() { __LinuxRT.exit(-666) }
 #[Swag.NoReturn]
 func __hostTestAbort() { __LinuxRT._exit(-666) }
-
-// glibc x86-64 sigjmp_buf is 200 bytes aligned to eight bytes. The caller retains the
-// entire storage while the captured frame is live; no C++ frame is crossed by native recovery.
-const HostResumeStorageSize = 200 + 7
-
-private func __linuxResumeStorage(storage: *u8)->*void => cast(*void, (cast(u64, storage) + 7) & ~7'u64)
-
-#[Swag.Optimize(false)]
-func __hostCatchCall(storage: *u8, resumed: *bool, fn: func||())
-{
-    discard resumed
-    if __LinuxRT.__sigsetjmp(__linuxResumeStorage(storage), 1) != 0 do
-        return
-    fn()
-}
-
-#[Swag.NoReturn]
-func __hostResume(storage: *u8)
-{
-    __LinuxRT.siglongjmp(__linuxResumeStorage(storage), 1)
-}
-
-private var linuxTestResume: [HostResumeStorageSize] u8
-
-#[Swag.Optimize(false)]
-func __hostTestCall(fn: *void)
-{
-    if __LinuxRT.__sigsetjmp(__linuxResumeStorage(&linuxTestResume[0]), 1) != 0 do
-        return
-    let call = cast(func(), fn)
-    call()
-}
-
-#[Swag.NoReturn]
-func __hostTestResume()
-{
-    Swag.__valueBorrowReset()
-    __hostResume(&linuxTestResume[0])
-}
 
 func __captureStack(skip: u32, wh: [..] (*void?))->u32
 {

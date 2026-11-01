@@ -32,10 +32,11 @@ by portable modules and products. The earlier entries prepare and enforce the sa
   `__hostPageAllocationBase` (the reservation holding an address, used by the electric-mode
   header lookup), wrapped by `allocatorOsReserve`/`allocatorOsCommit`/`allocatorOsDecommit`
   in `bin/runtime/allocator.pages.swg`. Linux implementations in `os.linux.memory.swg`
-  pass JIT reservation, decommit/recommit and allocation-base probes. pthread cleanup works
+  pass JIT reservation, decommit/recommit, allocation-base and inaccessible-page recovery probes.
+  Allocator borrow callbacks explicitly use the Swag ABI on Linux. pthread cleanup works
   on a joined runtime thread; compiler-owned cleanup callbacks are not yet retired before
   their JIT code is unmapped.
-- Next: validate inaccessible pages and electric-mode faults, cross-module and fork ownership,
+- Next: validate electric-mode faults, cross-module and fork ownership,
   and retire compiler-owned pthread storage while its cleanup code is still alive.
 - Done when: Linux tests cover reserved-but-inaccessible memory, committed pages,
   decommit/recommit, guard-page protection, release, and thread-storage cleanup without
@@ -263,8 +264,8 @@ by portable modules and products. The earlier entries prepare and enforce the sa
 
 - Evidence: `bin/PORTABILITY.md` names the Windows and planned GNU/Linux hosted libraries, but
   Linux glibc/libm bindings now execute in JIT probes. Native Linux linking remains unavailable.
-- Next: wire native CRT, libc/libm and loader link inputs against that matrix after the
-  System V ABI exists. Keep stable libc calls rather than coupling the runtime to raw syscalls.
+- Next: wire native CRT, libc/libm and loader link inputs against that matrix using the
+  existing System V ABI. Keep stable libc calls rather than coupling the runtime to raw syscalls.
 - Related: platform.portability.031
 - Done when: A checked target matrix names required hosted libraries and link inputs for Windows and the chosen Linux target, distinguishes any freestanding contract, and both targets build without hidden platform-library assumptions.
 
@@ -878,7 +879,7 @@ by portable modules and products. The earlier entries prepare and enforce the sa
   outside the checkout with GNU Make. Complete DevMode and Release compilers link and
   pass the lexer/parser suites including expected-error inputs without spurious JIT setup.
   The full C++ campaign, including filesystem tests and extra IR/native validation, passes
-  1,710 of 1,719 tests; nine native link/run fixtures remain failing. Closed Windows x64 instruction fixtures execute
+  1,714 of 1,721 tests; seven native link/run fixtures remain failing. Closed Windows x64 instruction fixtures execute
   through an explicit GCC ABI bridge. Runtime adapters initialize on the first actual JIT call,
   and generated code retains separate output-target and host unwind metadata.
   Cross-host foreign relocations reject an actual call while allowing untaken error branches.
@@ -892,8 +893,11 @@ by portable modules and products. The earlier entries prepare and enforce the sa
   cleanup through generated faults. System V scalar/aggregate transfers and host callback
   adapters work at the backend boundary, including cross-ABI register preservation and native
   exception unwinding. An explicit `--os linux` selects target queries and the System V C profile;
-  guarded semantic/JIT execution and runtime host-boundary probes pass. Native runtime
-  integration, compiler-owned pthread cleanup and DWARF source resolution remain missing.
+  guarded semantic/JIT execution and runtime host-boundary probes pass. The Linux test runner
+  recovers protected-page faults and stack exhaustion on a guarded alternate stack, preserves
+  catchPanic and captured-error ownership, and restores prior signal handlers and masks. These
+  paths are covered through JIT integration; native ELF execution, compiler-owned pthread
+  cleanup and DWARF source resolution remain missing.
   Linux directory locks do not prohibit an uncoordinated cleaner's rename.
 - Next: resolve the native C++ failures through Linux artifact/startup support and complete runtime lifecycle validation.
   Coordinate directory cleanup with API readers/publication. Keep C++ cleanup intact across

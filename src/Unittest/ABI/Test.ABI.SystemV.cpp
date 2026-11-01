@@ -2021,5 +2021,177 @@ SWC_FILESYSTEM_TEST_BEGIN(Runtime_LinuxUnixArgumentVector)
 }
 SWC_TEST_END()
 
+SWC_FILESYSTEM_TEST_BEGIN(Runtime_LinuxNativeFaultRecovery)
+{
+    static constexpr std::string_view SOURCE = R"SWAG(#global if #os == Swag.TargetOs.Linux
+#global private
+
+var faultPage: *void?
+var caughtFaults: u32
+var forwardedSignals: u32
+var signalMaskCorrect: bool
+
+#[Swag.CallingConvention(.C)]
+func priorSignalHandler(signal: s32)
+{
+    var mask: [16] u64
+    discard __LinuxRT.sigprocmask(0, null, &mask)
+    if signal == 7 do
+        signalMaskCorrect = (mask[0] & (1'u64 << 9)) != 0
+    discard Swag.atomicAdd(&forwardedSignals, 1)
+}
+
+#[Swag.CallingConvention(.C)]
+func signalWorker(parameter: *void?)->u32
+{
+    discard parameter
+    discard __LinuxRT.raise(7)
+    return 0
+}
+
+#[Swag.NoInline, Swag.Safety(.ValueBorrow, false)]
+func writeProtectedPage()
+{
+    cast(*u64, unwrap faultPage)[] = 42
+}
+
+#[Swag.NoInline, Swag.Optimize(false), Swag.Safety(.All, false)]
+func exhaustStack(depth: *u32)->u64
+{
+    var frame: [1024] u64
+    frame[0] = depth[]
+    depth[] += 1
+    if depth[] < 100000 do
+        return exhaustStack(depth) + frame[0]
+    return 0
+}
+
+func testFaultBody()
+{
+    Swag.assert(__LinuxRT.raise(7) == 0)
+    Swag.assert(__LinuxRT.raise(4) == 0)
+    let thread = __hostThreadCreate(&signalWorker, null)
+    Swag.assert(thread != null)
+    __hostThreadJoin(thread)
+    for 2
+    {
+        let caught = Swag.catchPanic(func() { writeProtectedPage() })
+        Swag.assert(caught.raised)
+        Swag.assert(caught.message() == "memory access violation")
+        caughtFaults += 1
+    }
+    var depth = 0'u32
+    let overflow = Swag.catchPanic(func|&depth|() { discard exhaustStack(&depth) })
+    Swag.assert(overflow.raised and depth > 0 and depth < 100000)
+    let panic = Swag.catchPanic(func() { Swag.panic("ordinary panic", #curlocation) })
+    Swag.assert(panic.raised and panic.message() == "ordinary panic")
+}
+
+var faultDrops: [16] Swag.AtomicValue'u32
+var faultGeneration: u32
+var switchFaultContext: bool
+var faultContext: *Swag.Context?
+
+struct FaultError { generation: u32 }
+impl FaultError
+{
+    mtd opPostCopy() { .generation += 1 }
+    mtd opDrop() { faultDrops[.generation].add(1) }
+}
+
+func failWithOwnedError() fail { fail FaultError{} }
+
+#[Swag.Safety(.All, false)]
+func uncaughtFaultBody()
+{
+    let previous = Swag.getContext()
+    defer Swag.setContext(previous)
+    faultContext = previous
+    var local: Swag.Context
+    if switchFaultContext
+    {
+        local.allocator = previous.allocator
+        local.defaultAllocator = previous.defaultAllocator
+        local.runtimeFlags = previous.runtimeFlags
+        local.panic = previous.panic
+        Swag.setContext(local)
+    }
+    catch failWithOwnedError()
+    {
+        if Swag.err is FaultError as value do
+            faultGeneration = value.generation
+        writeProtectedPage()
+    }
+}
+
+func verifyFaultCleanup()
+{
+    let context = Swag.getContext()
+    Swag.assert(context == faultContext)
+    Swag.assert(context.errorCaptures == null and context.errorIndex == 0)
+    Swag.assert(context.hasError == 0 and context.curError == null)
+    Swag.assert(faultDrops[faultGeneration].load() == 1)
+    catch failWithOwnedError() { Swag.assert((Swag.err is FaultError)) }
+}
+
+#run
+{
+    #assert(#sizeof(__LinuxRT.SignalAction) == 152)
+    #assert(#sizeof(__LinuxRT.SignalStack) == 24)
+    faultPage = __LinuxRT.mmap(null, 4096, 0, __LinuxRT.MapPrivateAnonymous, -1, 0)
+    Swag.assert(cast(s64, faultPage) != -1)
+    var before, after: __LinuxRT.SignalAction
+    var stackBefore, stackAfter: __LinuxRT.SignalStack
+    Swag.assert(__LinuxRT.sigaction(11, null, &before) == 0)
+    Swag.assert(__LinuxRT.sigaltstack(null, &stackBefore) == 0)
+    var busBefore, illegalBefore: __LinuxRT.SignalAction
+    var observer: __LinuxRT.SignalAction
+    observer.handler = cast(*void, &priorSignalHandler)
+    observer.mask[0] = 1'u64 << 9 // SIGUSR1 is blocked while the previous handler runs.
+    Swag.assert(__LinuxRT.sigaction(7, &observer, &busBefore) == 0)
+    observer.flags = 0x80000000 // SA_RESETHAND must stay consumed after restoration.
+    Swag.assert(__LinuxRT.sigaction(4, &observer, &illegalBefore) == 0)
+    var maskBefore, maskAfter: [16] u64
+    Swag.assert(__LinuxRT.sigprocmask(0, null, &maskBefore) == 0)
+    Swag.g_TestThreadId = __hostCurrentThreadId()
+    let previous = __hostTestInstallHardwareFilter()
+    Swag.g_TestRunning = true
+    __hostTestCall(cast(*void, &testFaultBody))
+    Swag.g_TestRunning = false
+    __hostTestRestoreHardwareFilter(previous)
+    Swag.assert(caughtFaults == 2 and forwardedSignals == 3 and signalMaskCorrect)
+    Swag.assert(__LinuxRT.sigprocmask(0, null, &maskAfter) == 0)
+    Swag.assert(maskBefore[0] == maskAfter[0])
+    var illegalAfter: __LinuxRT.SignalAction
+    Swag.assert(__LinuxRT.sigaction(4, null, &illegalAfter) == 0)
+    Swag.assert(illegalAfter.handler == null)
+    Swag.assert(__LinuxRT.sigaction(4, &illegalBefore, null) == 0)
+    Swag.assert(__LinuxRT.sigaction(7, &busBefore, null) == 0)
+    Swag.assert(__LinuxRT.sigaction(11, null, &after) == 0)
+    Swag.assert(__LinuxRT.sigaltstack(null, &stackAfter) == 0)
+    Swag.assert(before.handler == after.handler and before.flags == after.flags)
+    Swag.assert(stackBefore.address == stackAfter.address and stackBefore.flags == stackAfter.flags and stackBefore.size == stackAfter.size)
+    let previousArguments = Swag.processInfo().arguments
+    let arguments = ["swag.test"]
+    Swag.processInfo().arguments = arguments
+    let previousFailures = Swag.g_TestsFailedCnt
+    let previousExecuted = Swag.g_TestsExecuted
+    for useLocal in [false, true]
+    {
+        for &count in faultDrops do count.store(0)
+        switchFaultContext = useLocal
+        Swag.__runTest(cast(*void, &uncaughtFaultBody), "fault".buffer, "probe".buffer, "".buffer)
+        Swag.__runTest(cast(*void, &verifyFaultCleanup), "cleanup".buffer, "probe".buffer, "".buffer)
+    }
+    Swag.processInfo().arguments = previousArguments
+    Swag.assert(Swag.g_TestsFailedCnt == previousFailures + 2)
+    Swag.assert(Swag.g_TestsExecuted == previousExecuted + 4)
+    Swag.assert(__LinuxRT.munmap(faultPage, 4096) == 0)
+}
+)SWAG";
+    return runLinuxRuntimeProbe(ctx, "LinuxNativeFaultRecovery", SOURCE);
+}
+SWC_TEST_END()
+
 SWC_END_NAMESPACE();
 #endif

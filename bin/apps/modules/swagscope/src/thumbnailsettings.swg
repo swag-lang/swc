@@ -7,6 +7,8 @@ struct ThumbnailSettings
 {
     preferences:         Array'ViewerPreference
     onlineMovies:        bool
+    ignoreOnlineMovies:  bool
+    moviePosters:        bool
     onlineMusic:         bool
     movieLanguage:       String
     movieProviderStamp:  u64
@@ -18,11 +20,14 @@ struct ThumbnailSettings
 
 impl ThumbnailSettings
 {
-    func capture(window: *ViewerWindow, entry: const *ExplorerEntry? = null)->String
+    func capture(window: *ViewerWindow, entry: const *ExplorerEntry? = null,
+                 moviePosters = true, ignoreOnlineMovies = false)->String
     {
         var settings: ThumbnailSettings
         settings.preferences  = window.preferences
         settings.onlineMovies = window.onlineMovies
+        settings.ignoreOnlineMovies = ignoreOnlineMovies
+        settings.moviePosters = moviePosters
         settings.onlineMusic  = window.onlineMusic
         if window.onlineMovies
         {

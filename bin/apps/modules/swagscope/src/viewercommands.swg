@@ -71,7 +71,7 @@ namespace ViewerCommands
     const Modes = ["scope.explore.mode.0", "scope.explore.mode.1", "scope.explore.mode.2",
                    "scope.explore.mode.3", "scope.explore.mode.4"]
     const Boards = ["scope.explore.board.0", "scope.explore.board.1", "scope.explore.board.2",
-                    "scope.explore.board.3", "scope.explore.board.4"]
+                    "scope.explore.board.3", "scope.explore.board.4", "scope.explore.board.5"]
     const KindFilters = [FilterAll, FilterVideos, FilterImages, FilterAudio,
                          FilterDocuments, FilterSubtitles, FilterArchives, FilterFolders]
 }
@@ -786,8 +786,10 @@ impl ViewerWindow
 
             for id, index in ViewerCommands.Boards where evt.id == id
             {
-                let names = [texts.board_Automatic, texts.board_Grid, texts.board_Posters, texts.board_Covers, texts.board_Mosaic]
-                let icons = [ThemeIcons.ExploreFolder, ThemeIcons.File, ThemeIcons.FileVideo, ThemeIcons.FileAudio, ThemeIcons.FileImage]
+                let names = [texts.board_Automatic, texts.board_Grid, texts.board_Frames, texts.board_Posters,
+                             texts.board_Covers, texts.board_Mosaic]
+                let icons = [ThemeIcons.ExploreFolder, ThemeIcons.File, ThemeIcons.FileVideo, ThemeIcons.FileVideo,
+                             ThemeIcons.FileAudio, ThemeIcons.FileImage]
                 name    = names[index]
                 icon    = .commandGlyph(icons[index])
                 hidden  = not exploring

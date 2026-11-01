@@ -237,6 +237,7 @@ struct AppStrings
     cmd_ZoomMenu:       string = "Zoom…"                     // Command opening the zoom levels of the viewer.
     board_Automatic:    string = "Automatic"                 // Organization choice reading the tile shape from the folder.
     board_Grid:         string = "Grid"                      // Organization choice arranging tiles in an even grid.
+    board_Frames:       string = "Video Frames"              // Organization choice showing local frames without movie lookups.
     board_Covers:       string = "Covers"                    // Organization choice arranging tiles as square covers.
     board_Posters:      string = "Posters"                   // Organization choice arranging tiles as upright posters.
     board_Mosaic:       string = "Mosaic"                    // Organization choice arranging pictures as a mosaic.

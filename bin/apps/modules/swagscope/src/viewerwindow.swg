@@ -1240,7 +1240,7 @@ impl ViewerWindow
         }
 
         .hintLine.addHint(Input.formatKeyShortcut(.Control, .Space), texts.ui_HintLens)
-        if roomy and not archive and (board == .Grid or board == .Posters) do
+        if roomy and not archive and (board == .Grid or board == .Frames or board == .Posters) do
             .hintLine.addHint("/", texts.hint_Filter)
         .hintLine.show(roomy or (not exploring and .home.isLocallyVisible()))
     }

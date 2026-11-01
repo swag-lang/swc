@@ -19,8 +19,26 @@ func localAlbumArtwork(file: string)->String
 }
 
 func onlinePreviewWanted(file: string, settings: const *ThumbnailSettings)->bool =>
-    (settings.onlineMovies and not albumAudio(file) and Reader.canOpen(file)) or
+    (settings.onlineMovies and not settings.ignoreOnlineMovies and not albumAudio(file) and Reader.canOpen(file)) or
     (settings.onlineMusic and albumAudio(file))
+
+// Reads a sound file's duration without decoding its samples.
+func localSoundDuration(file: string)->u64
+{
+    let sound = catch SoundFile.load(file, preloadData: false) { return 0 }
+    return cast(u64, Math.ceil(sound.durationInSeconds()))
+}
+
+// Adds a duration to the image that carries the Explorer preview, unless it already has one.
+private func labelPreviewDuration(image: *Image, seconds: u64)
+{
+    if not seconds or thumbnailDuration(image) do
+        return
+    var duration: ImageMetadata
+    duration.tag   = Viewer.ThumbnailDurationTag
+    duration.value = Format.toString("%", seconds)
+    image.metadata.add(#move duration)
+}
 
 func onlinePreviewStamped(image: const *Image)->bool
 {
@@ -158,10 +176,12 @@ impl ExplorerPreview
                         .image = Image.create(1, 1, .RGBA8)
                     let tags = SoundTags.read(file)
                     labelLocalMusic(&.image, &tags)
+                    labelPreviewDuration(&.image, localSoundDuration(file))
                 }
                 else do
                     .image = try .service.render(file, .settings)
-                .posterPending = .needsOnline and settings.onlineMovies and not albumAudio(file) and Reader.canOpen(file)
+                .posterPending = .needsOnline and settings.onlineMovies and not settings.ignoreOnlineMovies and
+                                 settings.moviePosters and not albumAudio(file) and Reader.canOpen(file)
                 let current = catch ThumbnailCache.key(source, member, settings: .settings)
                 if not Swag.isCancelled() and cache == current do
                     catch ThumbnailCache.write(cache, &.image)
@@ -171,10 +191,13 @@ impl ExplorerPreview
             var movie:     OnlineMovie
             var music:     OnlineMusic
             var musicTags: SoundTags
-            let localDuration = thumbnailDuration(&.image)
+            var localDuration = thumbnailDuration(&.image)
+            if not localDuration and albumAudio(file) do
+                localDuration = localSoundDuration(file)
             var providerFailed    = false
             var providerAttempted = false
-            if settings.onlineMovies and .archivePath.isEmpty() and not albumAudio(file) and Reader.canOpen(file)
+            if settings.onlineMovies and not settings.ignoreOnlineMovies and .archivePath.isEmpty() and
+               not albumAudio(file) and Reader.canOpen(file)
             {
                 providerAttempted = true
                 catch
@@ -182,9 +205,12 @@ impl ExplorerPreview
                     movie = try OnlineMovie.lookup(file, language: settings.movieLanguage)
                     if movie.found() and not Swag.isCancelled()
                     {
-                        let poster = try movie.posterBytes()
-                        if not poster.isEmpty() do
-                            .image = try .renderOnlineImage(poster.toSlice())
+                        if settings.moviePosters
+                        {
+                            let poster = try movie.posterBytes()
+                            if not poster.isEmpty() do
+                                .image = try .renderOnlineImage(poster.toSlice())
+                        }
                     }
                 }
                 {
@@ -227,13 +253,7 @@ impl ExplorerPreview
                 else do
                     .image = try .service.render(file, .settings)
             }
-            if localDuration and .image.isValid() and not thumbnailDuration(&.image)
-            {
-                var duration: ImageMetadata
-                duration.tag   = Viewer.ThumbnailDurationTag
-                duration.value = Format.toString("%", localDuration)
-                .image.metadata.add(#move duration)
-            }
+            labelPreviewDuration(&.image, localDuration)
             if movie.found() and .image.isValid() do
                 movie.label(&.image)
             elif not music.id.isEmpty() and .image.isValid() do

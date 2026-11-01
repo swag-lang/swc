@@ -126,8 +126,10 @@ func addPictured(host: *Testing.HeadlessHost, explorer: *Explorer, name: string,
             if index do
                 Swag.assert(cast(u64, explorer.forcedBoard) == index - 1)
             if index == 2 do
-                Swag.assert(state.name == appStrings().board_Posters and explorer.grid.board == .Posters)
+                Swag.assert(state.name == appStrings().board_Frames and explorer.grid.board == .Frames)
             if index == 3 do
+                Swag.assert(state.name == appStrings().board_Posters and explorer.grid.board == .Posters)
+            if index == 4 do
                 Swag.assert(state.name == appStrings().board_Covers and explorer.grid.board == .Covers)
             window.lens.open(state.name)
             var found = false
@@ -147,6 +149,13 @@ func addPictured(host: *Testing.HeadlessHost, explorer: *Explorer, name: string,
             Swag.assert(cast(u64, explorer.mode) == index)
             Swag.assert(window.sendComputeCommandStateEvent(command).checked)
         }
+
+        window.onlineMovies = true
+        explorer.setKindFilter(.Videos)
+        explorer.forceBoard(true, .Frames)
+        let settings = expect ThumbnailSettings.decode(explorer.previewSettings)
+        Swag.assert(explorer.grid.board == .Frames and explorer.previewAspect == ExplorerFilmPreviewAspect)
+        Swag.assert(settings.onlineMovies and settings.ignoreOnlineMovies and not settings.moviePosters)
     }
 }
 
@@ -517,4 +526,32 @@ func addPictured(host: *Testing.HeadlessHost, explorer: *Explorer, name: string,
     Swag.assert(probeEntry(&notes) and notes.sections >= 1)
     Swag.assert(probeEntry(&font) and Utf8.contains(font.face.toString(), "Segoe"))
     Swag.assert(not probeEntry(&other))
+}
+
+// Video Frames keeps the local picture wide and never replaces it with online artwork.
+#[Swag.TestTag("golden")]
+#test
+{
+    for light in [false, true]
+    {
+        var host: Testing.HeadlessHost
+        let window   = boardWindow(&host, light, films: true)
+        let explorer = unwrap window.explorer
+        let names: [4] string = ["One.mkv", "Two.mkv", "Three.mkv", "Four.mkv"]
+        let colors: [4] u32 = [0x24385A, 0xA04030, 0x306040, 0x8A6A28]
+        for name, index in names
+        {
+            addPictured(&host, explorer, name, boardPicture(192, 108, colors[index], colors[index] + 0x202020),
+                        1_000_000_000, 117 + index * 60)
+        }
+
+        explorer.setKindFilter(.Videos)
+        explorer.forceBoard(true, .Frames)
+        showBoard(&host, window, "Videos", "Films")
+        Swag.assert(explorer.grid.board == .Frames and explorer.previewAspect == ExplorerFilmPreviewAspect)
+        let settings = expect ThumbnailSettings.decode(explorer.previewSettings)
+        Swag.assert(settings.ignoreOnlineMovies and not settings.moviePosters)
+        var image = host.render(&host.surfaceWnd)
+        Pixel.Testing.assertImageGolden(&image, light ? "explorer.frames.paper" : "explorer.frames.encre")
+    }
 }

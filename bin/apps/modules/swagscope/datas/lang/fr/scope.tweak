@@ -223,6 +223,7 @@ hint_PlayAlbum lire l’album
 hint_Play lire
 board_Automatic Automatique
 board_Grid Grille
+board_Frames Images vidéo
 board_Covers Pochettes
 board_Posters Affiches
 board_Mosaic Mosaïque

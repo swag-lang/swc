@@ -9,6 +9,7 @@ enum ExplorerKindFilter { All, Videos, Images, Audio, Documents, Subtitles, Arch
 enum ExplorerBoard
 {
     Grid        // Anything: one even grid of tiles a little wider than tall.
+    Frames      // Films: local frames, without a network lookup.
     Posters     // Films: upright posters.
     Covers      // Music: square covers, the album then who made it and when.
     Mosaic      // Pictures: a justified mosaic keeping every shape, by day.
@@ -172,9 +173,11 @@ impl Explorer
             .margin          = Math.Vector4{sheetMargin, 0, sheetMargin, 0}
             .updateFlags(.Ellipsis | .HotTrack)
             .addColumn(appStrings().explore_Name, 320)
-            .addColumn(appStrings().explore_Type, 140)
-            .addColumn(appStrings().explore_Size, 100)
-            .addColumn(appStrings().explore_Modified, 160)
+            .addColumn(appStrings().explore_Type, 96)
+            .addColumn(appStrings().explore_Size, 88)
+            .addColumn(appStrings().explore_Modified, 130)
+            .addColumn(appStrings().explore_Duration, 80, align: .Right)
+            .header.itemAt(4).isClickable = false
             .sigSelectionChanged += func|result|(list)
             {
                 if list.focusIndex < result.shown.count
@@ -198,6 +201,7 @@ impl Explorer
                     line.setItem(1, entry.directory ? appStrings().ui_Folder : (Path.extension(entry.name) orelse ""))
                     line.setItem(2, entry.directory ? {} : StrConv.toDisplaySize(entry.size))
                     line.setItem(3, entry.modified)
+                    line.setItem(4, entry.duration ? formatDuration(entry.duration) : "")
                 }
             }
 
@@ -483,8 +487,10 @@ impl Explorer
     {
         let text = appStrings()
         let menu = MenuCtrl.createPopup(me, owner: me)
-        let names = [text.board_Automatic, text.board_Grid, text.board_Posters, text.board_Covers, text.board_Mosaic]
-        let icons = [ThemeIcons.ExploreFolder, ThemeIcons.File, ThemeIcons.FileVideo, ThemeIcons.FileAudio, ThemeIcons.FileImage]
+        let names = [text.board_Automatic, text.board_Grid, text.board_Frames, text.board_Posters,
+                     text.board_Covers, text.board_Mosaic]
+        let icons = [ThemeIcons.ExploreFolder, ThemeIcons.File, ThemeIcons.FileVideo, ThemeIcons.FileVideo,
+                     ThemeIcons.FileAudio, ThemeIcons.FileImage]
         for id, index in ViewerCommands.Boards
         {
             let checked = index == 0 ? not .forced : (.forced and cast(u64, .forcedBoard) == index - 1)
@@ -601,6 +607,7 @@ impl Explorer
             switch .forcedBoard
             {
             case .Grid:    boardName = text.board_Grid;    boardIcon = .File
+            case .Frames:  boardName = text.board_Frames;  boardIcon = .FileVideo
             case .Posters: boardName = text.board_Posters; boardIcon = .FileVideo
             case .Covers:  boardName = text.board_Covers;  boardIcon = .FileAudio
             case .Mosaic:  boardName = text.board_Mosaic;  boardIcon = .FileImage
@@ -1031,6 +1038,7 @@ impl Explorer
         .list.header.itemAt(1).name = text.explore_Type
         .list.header.itemAt(2).name = text.explore_Size
         .list.header.itemAt(3).name = text.explore_Modified
+        .list.header.itemAt(4).name = text.explore_Duration
         .refreshQuietMenus()
     }
 
@@ -1278,6 +1286,9 @@ impl Explorer
     // screens; deciding from the names keeps the grid from changing shape while previews arrive.
     mtd listingPreviewAspect()->f32
     {
+        if .forced and .forcedBoard == .Frames do
+            return ExplorerFilmPreviewAspect
+
         var files, films: u64
         for index in .shown
         {
@@ -1291,7 +1302,8 @@ impl Explorer
         }
 
         if films * 2 > files do
-            return .window.onlineMovies ? ExplorerTilePreviewAspect : ExplorerFilmPreviewAspect
+            return .window.onlineMovies and not (.forced and .forcedBoard == .Frames) ?
+                   ExplorerTilePreviewAspect : ExplorerFilmPreviewAspect
         return ExplorerTilePreviewAspect
     }
 
@@ -1641,7 +1653,10 @@ impl Explorer
 
     mtd refreshPreviewSettings()
     {
-        let settings = ThumbnailSettings.capture(.window)
+        let framesOnly = .grid.board == .Frames
+        let settings = ThumbnailSettings.capture(.window,
+                                                 moviePosters: not framesOnly,
+                                                 ignoreOnlineMovies: framesOnly)
         if .previewSettings == settings do
             return
 
@@ -1702,8 +1717,11 @@ impl Explorer
                 if .selected >= .entries.count do
                     return
                 let selected = &.entries[.selected]
-                let movie    = .window.onlineMovies and Reader.canOpen(selected.path)
-                let music    = .window.onlineMusic and (Path.hasExtension(selected.path, ".mp3") or Path.hasExtension(selected.path, ".flac"))
+                var pluginIndex: u64
+                let movie = File.exists(selected.path) and
+                            .window.index.namePlugin(selected.path, &pluginIndex) and
+                            .window.index.plugins[pluginIndex].key == "video"
+                let music = File.exists(selected.path) and albumAudio(selected.path)
                 if (selected.directory and selected.albumTrack.isEmpty()) or
                    (selected.attempted and not selected.onlinePending) or
                    not (movie or music or .grid.rows) or
@@ -1786,7 +1804,10 @@ impl Explorer
         preview.generation  = .generation
         preview.opening     = opening
         preview.online      = online
-        preview.settings    = ThumbnailSettings.capture(.window, entry)
+        let framesOnly      = .grid.board == .Frames
+        preview.settings    = ThumbnailSettings.capture(.window, entry,
+                                                        moviePosters: not framesOnly,
+                                                        ignoreOnlineMovies: framesOnly)
         preview.archivePath = .listing.isArchive ? .listing.path : {}
         if .listing.isArchive do
             preview.entry = .listing.archive.entries[entry.archiveIndex]
@@ -2107,7 +2128,8 @@ impl ExplorerGrid
             return
         }
 
-        let aspect    = .posters ? PosterAspect : (.board == .Covers ? 1.0 : TileAspect)
+        let aspect    = .posters ? PosterAspect :
+                        (.board == .Frames ? ExplorerFilmPreviewAspect : (.board == .Covers ? 1.0 : TileAspect))
         var narrowest = .posters ? PosterWidth : TileWidth
         switch .explorer.mode
         {

@@ -45,17 +45,23 @@ namespace
 {
     constexpr uint32_t K_COMPILER_EXCEPTION_CODE = 666;
 
-    Result requireHostTarget(TaskContext& ctx)
+    Result requireHostTarget(TaskContext& ctx, const Symbol* targetSymbol = nullptr)
     {
         if (ctx.cmdLine().targetOs == hostTargetOs())
             return Result::Continue;
         auto diagnostic = Diagnostic::get(DiagnosticId::cmd_err_jit_host_target);
         diagnostic.addArgument(Diagnostic::ARG_TARGET, targetOsName(ctx.cmdLine().targetOs));
         diagnostic.addArgument(Diagnostic::ARG_VALUE, Os::hostOsName());
+        if (targetSymbol)
+        {
+            diagnostic.addNote(DiagnosticId::sema_note_function_declared_here);
+            diagnostic.last().addArgument(Diagnostic::ARG_SYM, targetSymbol->getFullScopedName(ctx));
+            if (targetSymbol->codeRef().isValid())
+                diagnostic.last().addSpan(targetSymbol->codeRange(ctx));
+        }
         diagnostic.report(ctx);
         return Result::Error;
     }
-
 
     // These integer-only runtime entries have at most four arguments. Swag
     // shares their argument/result and nonvolatile registers with Windows x64;
@@ -420,9 +426,12 @@ namespace
         if (ctx.cmdLine().targetOs != hostTargetOs())
         {
             if (outFailure)
-                outFailure->kind = RelocationResolveFailureKind::HostTargetMismatch;
+            {
+                outFailure->kind         = RelocationResolveFailureKind::HostTargetMismatch;
+                outFailure->targetSymbol = &targetFunction;
+            }
             else
-                static_cast<void>(requireHostTarget(ctx));
+                static_cast<void>(requireHostTarget(ctx, &targetFunction));
             return false;
         }
         if (!targetFunction.isForeign())
@@ -983,7 +992,7 @@ namespace
     Result reportRelocationFailure(TaskContext& ctx, DiagnosticId diagId, std::string_view symbolName, const RelocationResolveFailure& failure)
     {
         if (failure.kind == RelocationResolveFailureKind::HostTargetMismatch)
-            return requireHostTarget(ctx);
+            return requireHostTarget(ctx, failure.targetSymbol);
         Diagnostic diag = Diagnostic::get(diagId);
         diag.addArgument(Diagnostic::ARG_SYM, symbolName);
         addRelocationFailureNotes(diag, ctx, failure);

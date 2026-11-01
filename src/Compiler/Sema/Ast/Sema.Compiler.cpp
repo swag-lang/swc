@@ -1,5 +1,6 @@
 #include "pch.h"
 #include "Compiler/Sema/Core/Sema.h"
+#include "Backend/RuntimeName.h"
 #include "Compiler/Lexer/Lexer.h"
 #include "Compiler/Parser/Ast/AstNodes.h"
 #include "Compiler/Parser/Parser/Parser.h"
@@ -194,15 +195,6 @@ namespace
         }
 
         return nullptr;
-    }
-
-    constexpr Runtime::TargetOs nativeTargetOs()
-    {
-#ifdef _WIN32
-        return Runtime::TargetOs::Windows;
-#else
-        return Runtime::TargetOs::Linux;
-#endif
     }
 
     Result castCompilerConditionToBool(Sema& sema, AstNodeRef nodeRef)
@@ -886,7 +878,7 @@ Result AstCompilerLiteral::semaPostNode(Sema& sema)
             TypeRef typeRef = TypeRef::invalid();
             SWC_RESULT(sema.waitPredefined(IdentifierManager::PredefinedName::TargetOs, typeRef, codeRef()));
 
-            const ConstantRef   valueCst     = sema.cstMgr().addS32(ctx, static_cast<int32_t>(nativeTargetOs()));
+            const ConstantRef   valueCst     = sema.cstMgr().addS32(ctx, static_cast<int32_t>(hostTargetOs()));
             const ConstantValue enumValue    = ConstantValue::makeEnumValue(ctx, valueCst, typeRef);
             const ConstantRef   enumValueRef = sema.cstMgr().addConstant(ctx, enumValue);
 

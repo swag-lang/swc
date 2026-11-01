@@ -1,5 +1,6 @@
 #include "pch.h"
 #include "Backend/ABI/ABICall.h"
+#include "Backend/ABI/ABICall.SystemV.h"
 #include "Backend/Micro/MicroBuilder.h"
 #include "Compiler/Sema/Symbol/Symbol.h"
 #include "Main/CompilerInstance.h"
@@ -880,6 +881,12 @@ void ABICall::materializeReturnToReg(MicroBuilder& builder, MicroReg dstReg, Cal
 
 void ABICall::callAddress(MicroBuilder& builder, CallConvKind callConvKind, uint64_t targetAddress, std::span<const Arg> args, const Return& ret)
 {
+    if (CallConv::get(callConvKind).isSystemVAMD64)
+    {
+        callSystemVAddress(builder, callConvKind, targetAddress, args, ret);
+        return;
+    }
+
     // Fully self-contained call helper for runtime/JIT address calls.
     const CallConv&    conv        = CallConv::get(callConvKind);
     const auto         argLayouts  = collectArgLayouts(args);

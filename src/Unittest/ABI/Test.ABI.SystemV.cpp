@@ -2,6 +2,9 @@
 
 #if SWC_HAS_UNITTEST && defined(__linux__) && defined(__x86_64__)
 #include "Backend/ABI/ABICall.h"
+#include "Backend/ABI/SystemVAbi.h"
+#include <sys/mman.h>
+#include <unistd.h>
 #include "Backend/Encoder/X64Encoder.h"
 #include "Backend/JIT/JITMemoryManager.h"
 #include "Backend/Micro/MachineCode.h"
@@ -44,6 +47,101 @@ namespace
     {
         return integer * 2 + floating;
     }
+
+    struct MixedValue { uint64_t integer; double floating; };
+    struct ReverseMixedValue { double floating; uint64_t integer; };
+    struct TwoIntegers { uint64_t first; uint64_t second; };
+    struct TwoFloats { double first; double second; };
+    struct LargeValue { uint64_t first; uint64_t second; uint64_t third; };
+    struct SevenBytes { uint8_t bytes[7]; };
+    using FourFloats = float __attribute__((vector_size(16)));
+
+    __attribute__((noinline)) MixedValue changeMixed(MixedValue value)
+    {
+        return {value.integer + 19, value.floating * 3};
+    }
+
+    __attribute__((noinline)) ReverseMixedValue changeReverseMixed(ReverseMixedValue value)
+    {
+        return {value.floating * 5, value.integer + 23};
+    }
+
+    __attribute__((noinline)) TwoIntegers changeIntegers(TwoIntegers value)
+    {
+        return {value.second + 17, value.first + 29};
+    }
+
+    __attribute__((noinline)) TwoFloats changeFloats(TwoFloats value)
+    {
+        return {value.second * 7, value.first * 11};
+    }
+
+    __attribute__((noinline)) double exhaustedIntegers(uint64_t a, uint64_t b, uint64_t c, uint64_t d, uint64_t e, uint64_t f, MixedValue value, double tail)
+    {
+        return a + 2 * b + 3 * c + 4 * d + 5 * e + 6 * f + value.integer * 7 + value.floating * 8 + tail * 9;
+    }
+
+    __attribute__((noinline)) double exhaustedFloats(double a, double b, double c, double d, double e, double f, double g, double h, MixedValue value, uint64_t tail)
+    {
+        return a + 2 * b + 3 * c + 4 * d + 5 * e + 6 * f + 7 * g + 8 * h + value.integer * 9 + value.floating * 10 + tail * 11;
+    }
+
+    __attribute__((noinline)) LargeValue changeLarge(LargeValue value, uint64_t a, uint64_t b, uint64_t c, uint64_t d, uint64_t e, uint64_t f, double tail)
+    {
+        return {value.third + a + 2 * b, value.second + c + 3 * d, value.first + e + 4 * f + static_cast<uint64_t>(tail)};
+    }
+
+    __attribute__((noinline)) FourFloats addVectors(FourFloats a, FourFloats b, FourFloats c, FourFloats d, FourFloats e, FourFloats f, FourFloats g, FourFloats h, FourFloats i)
+    {
+        return a + b * 2 + c * 3 + d * 4 + e * 5 + f * 6 + g * 7 + h * 8 + i * 9;
+    }
+
+    __attribute__((noinline)) SevenBytes changeSeven(SevenBytes value, uint64_t increment)
+    {
+        for (uint32_t index = 0; index < 7; ++index)
+            value.bytes[index] += static_cast<uint8_t>(increment + index);
+        return value;
+    }
+
+    struct __attribute__((packed)) PackedValue { uint8_t prefix; uint64_t integer; };
+
+    __attribute__((noinline)) PackedValue changePacked(PackedValue value, uint64_t increment)
+    {
+        return {static_cast<uint8_t>(value.prefix + 3), value.integer + increment};
+    }
+
+    __attribute__((noinline)) double sumVariadicMixed(uint32_t count, ...)
+    {
+        va_list args;
+        va_start(args, count);
+        double result = 0;
+        for (uint32_t index = 0; index < count; ++index)
+        {
+            const MixedValue value = va_arg(args, MixedValue);
+            result += (index + 1) * (value.integer + value.floating);
+        }
+        va_end(args);
+        return result;
+    }
+
+    struct GuardedStorage
+    {
+        size_t pageSize = static_cast<size_t>(sysconf(_SC_PAGESIZE));
+        void* pages = mmap(nullptr, pageSize * 2, PROT_READ | PROT_WRITE, MAP_PRIVATE | MAP_ANONYMOUS, -1, 0);
+
+        ~GuardedStorage()
+        {
+            if (pages != MAP_FAILED)
+                munmap(pages, pageSize * 2);
+        }
+
+        void* tail(const size_t bytes) const
+        {
+            if (pages == MAP_FAILED || mprotect(static_cast<std::byte*>(pages) + pageSize, pageSize, PROT_NONE))
+                return nullptr;
+            return static_cast<std::byte*>(pages) + pageSize - bytes;
+        }
+    };
 
     Result executeSystemVThunk(TaskContext& context, MicroBuilder& builder, const bool fullPipeline = false)
     {
@@ -171,6 +269,210 @@ SWC_TEST_BEGIN(ABI_SystemVPreparedRegistersPreserveRaxCallTarget)
     SWC_RESULT(executeSystemVThunk(context, builder, true));
     if (result != 21.5)
         return Result::Error;
+}
+SWC_TEST_END()
+
+SWC_TEST_BEGIN(ABI_SystemVRoundTripsMixedAndTwoRegisterResults)
+{
+    CommandLine commandLine = ctx.cmdLine();
+    commandLine.targetOs = Runtime::TargetOs::Linux;
+    CompilerInstance compiler(ctx.global(), commandLine);
+    TaskContext context(compiler);
+    using SystemVAbi::Class;
+    const std::array<SystemVAbi::Classification, 4> types{{
+        {{Class::Integer, Class::Sse}, 16, 8},
+        {{Class::Sse, Class::Integer}, 16, 8},
+        {{Class::Integer, Class::Integer}, 16, 8},
+        {{Class::Sse, Class::Sse}, 16, 8},
+    }};
+    const MixedValue mixed{31, 2.5};
+    const ReverseMixedValue reverse{4.5, 37};
+    const TwoIntegers integers{41, 43};
+    const TwoFloats floats{6.5, 8.5};
+    const std::array<const void*, 4> inputs{&mixed, &reverse, &integers, &floats};
+    const std::array<uint64_t, 4> targets{reinterpret_cast<uint64_t>(changeMixed), reinterpret_cast<uint64_t>(changeReverseMixed), reinterpret_cast<uint64_t>(changeIntegers), reinterpret_cast<uint64_t>(changeFloats)};
+    const MixedValue expectedMixed = changeMixed(mixed);
+    const ReverseMixedValue expectedReverse = changeReverseMixed(reverse);
+    const TwoIntegers expectedIntegers = changeIntegers(integers);
+    const TwoFloats expectedFloats = changeFloats(floats);
+    const std::array<const void*, 4> expected{&expectedMixed, &expectedReverse, &expectedIntegers, &expectedFloats};
+    for (const bool fullPipeline : {false, true})
+    {
+        for (uint32_t index = 0; index < types.size(); ++index)
+        {
+            MicroBuilder builder(context);
+            std::array<std::byte, 16> result{};
+            const std::array args{ABICall::Arg{.value = reinterpret_cast<uint64_t>(inputs[index]), .systemVType = &types[index]}};
+            ABICall::callAddress(builder, K_SYSTEM_V, targets[index], args, {.valuePtr = result.data(), .isVoid = false, .systemVType = &types[index]});
+            SWC_RESULT(executeSystemVThunk(context, builder, fullPipeline));
+            if (std::memcmp(result.data(), expected[index], result.size()))
+                return Result::Error;
+        }
+    }
+}
+SWC_TEST_END()
+
+SWC_TEST_BEGIN(ABI_SystemVSpilledAggregateLeavesOtherBankAvailable)
+{
+    CommandLine commandLine = ctx.cmdLine();
+    commandLine.targetOs = Runtime::TargetOs::Linux;
+    CompilerInstance compiler(ctx.global(), commandLine);
+    TaskContext context(compiler);
+    using SystemVAbi::Class;
+    const SystemVAbi::Classification type{{Class::Integer, Class::Sse}, 16, 8};
+    const MixedValue mixed{29, 4.5};
+    for (const bool exhaustInteger : {false, true})
+    {
+        MicroBuilder builder(context);
+        std::vector<ABICall::Arg> args;
+        for (uint32_t index = 0; index < (exhaustInteger ? 6u : 8u); ++index)
+            args.push_back({.value = exhaustInteger ? index + 1 : std::bit_cast<uint64_t>(static_cast<double>(index + 1)), .isFloat = !exhaustInteger, .numBits = 64});
+        args.push_back({.value = reinterpret_cast<uint64_t>(&mixed), .systemVType = &type});
+        args.push_back({.value = exhaustInteger ? std::bit_cast<uint64_t>(13.5) : 17, .isFloat = exhaustInteger, .numBits = 64});
+        double result = 0;
+        const auto target = exhaustInteger ? reinterpret_cast<uint64_t>(exhaustedIntegers) : reinterpret_cast<uint64_t>(exhaustedFloats);
+        ABICall::callAddress(builder, K_SYSTEM_V, target, args, {.valuePtr = &result, .isVoid = false, .isFloat = true, .numBits = 64});
+        SWC_RESULT(executeSystemVThunk(context, builder, true));
+        const double expected = exhaustInteger ? exhaustedIntegers(1, 2, 3, 4, 5, 6, mixed, 13.5) : exhaustedFloats(1, 2, 3, 4, 5, 6, 7, 8, mixed, 17);
+        if (result != expected)
+            return Result::Error;
+    }
+}
+SWC_TEST_END()
+
+SWC_TEST_BEGIN(ABI_SystemVMemoryResultConsumesFirstIntegerLane)
+{
+    CommandLine commandLine = ctx.cmdLine();
+    commandLine.targetOs = Runtime::TargetOs::Linux;
+    CompilerInstance compiler(ctx.global(), commandLine);
+    TaskContext context(compiler);
+    MicroBuilder builder(context);
+    using SystemVAbi::Class;
+    const SystemVAbi::Classification type{{Class::Memory, Class::None}, 24, 8};
+    const LargeValue input{19, 23, 29};
+    LargeValue result{};
+    std::vector<ABICall::Arg> args{{.value = reinterpret_cast<uint64_t>(&input), .systemVType = &type}};
+    for (uint64_t index = 1; index <= 6; ++index)
+        args.push_back({.value = index, .numBits = 64});
+    args.push_back({.value = std::bit_cast<uint64_t>(13.0), .isFloat = true, .numBits = 64});
+    ABICall::callAddress(builder, K_SYSTEM_V, reinterpret_cast<uint64_t>(changeLarge), args, {.valuePtr = &result, .isVoid = false, .systemVType = &type});
+    SWC_RESULT(executeSystemVThunk(context, builder, true));
+    const LargeValue expected = changeLarge(input, 1, 2, 3, 4, 5, 6, 13);
+    if (std::memcmp(&result, &expected, sizeof(result)))
+        return Result::Error;
+}
+SWC_TEST_END()
+
+SWC_TEST_BEGIN(ABI_SystemVVectorUpperHalfSurvivesRegistersAndStack)
+{
+    CommandLine commandLine = ctx.cmdLine();
+    commandLine.targetOs = Runtime::TargetOs::Linux;
+    CompilerInstance compiler(ctx.global(), commandLine);
+    TaskContext context(compiler);
+    MicroBuilder builder(context);
+    using SystemVAbi::Class;
+    const SystemVAbi::Classification type{{Class::Sse, Class::SseUp}, 16, 16};
+    std::array<FourFloats, 9> values{};
+    std::array<ABICall::Arg, 9> args{};
+    FourFloats expected{};
+    for (uint32_t index = 0; index < values.size(); ++index)
+    {
+        values[index] = FourFloats{index + 0.5f, index + 1.5f, index + 2.5f, index + 3.5f};
+        expected += values[index] * static_cast<float>(index + 1);
+        args[index] = {.value = reinterpret_cast<uint64_t>(&values[index]), .systemVType = &type};
+    }
+    FourFloats result{};
+    ABICall::callAddress(builder, K_SYSTEM_V, reinterpret_cast<uint64_t>(addVectors), args, {.valuePtr = &result, .isVoid = false, .systemVType = &type});
+    SWC_RESULT(executeSystemVThunk(context, builder, true));
+    for (uint32_t index = 0; index < 4; ++index)
+    {
+        if (result[index] != expected[index])
+            return Result::Error;
+    }
+}
+SWC_TEST_END()
+
+SWC_TEST_BEGIN(ABI_SystemVPartialEightbyteRespectsStorageBoundary)
+{
+    CommandLine commandLine = ctx.cmdLine();
+    commandLine.targetOs = Runtime::TargetOs::Linux;
+    CompilerInstance compiler(ctx.global(), commandLine);
+    TaskContext context(compiler);
+    using SystemVAbi::Class;
+    const SystemVAbi::Classification type{{Class::Integer, Class::None}, 7, 1};
+    GuardedStorage inputStorage;
+    GuardedStorage outputStorage;
+    auto* input = static_cast<SevenBytes*>(inputStorage.tail(sizeof(SevenBytes)));
+    auto* result = static_cast<SevenBytes*>(outputStorage.tail(sizeof(SevenBytes)));
+    if (!input || !result)
+        return Result::Error;
+    *input = {{1, 3, 5, 7, 9, 11, 13}};
+    const auto expected = changeSeven(*input, 17);
+    for (const bool fullPipeline : {false, true})
+    {
+        MicroBuilder builder(context);
+        *result = {};
+        const std::array args{ABICall::Arg{.value = reinterpret_cast<uint64_t>(input), .systemVType = &type}, ABICall::Arg{.value = 17, .numBits = 64}};
+        ABICall::callAddress(builder, K_SYSTEM_V, reinterpret_cast<uint64_t>(changeSeven), args, {.valuePtr = result, .isVoid = false, .systemVType = &type});
+        SWC_RESULT(executeSystemVThunk(context, builder, fullPipeline));
+        if (std::memcmp(result, &expected, sizeof(expected)))
+            return Result::Error;
+    }
+}
+SWC_TEST_END()
+
+SWC_TEST_BEGIN(ABI_SystemVPackedMemoryValueRespectsStorageBoundary)
+{
+    CommandLine commandLine = ctx.cmdLine();
+    commandLine.targetOs = Runtime::TargetOs::Linux;
+    CompilerInstance compiler(ctx.global(), commandLine);
+    TaskContext context(compiler);
+    MicroBuilder builder(context);
+    using SystemVAbi::Class;
+    const SystemVAbi::Classification type{{Class::Memory, Class::None}, sizeof(PackedValue), alignof(PackedValue)};
+    GuardedStorage inputStorage;
+    GuardedStorage outputStorage;
+    auto* input = static_cast<PackedValue*>(inputStorage.tail(sizeof(PackedValue)));
+    auto* result = static_cast<PackedValue*>(outputStorage.tail(sizeof(PackedValue)));
+    if (!input || !result)
+        return Result::Error;
+    *input = {29, 0x123456789abcdef0};
+    *result = {};
+    const std::array args{ABICall::Arg{.value = reinterpret_cast<uint64_t>(input), .systemVType = &type}, ABICall::Arg{.value = 37, .numBits = 64}};
+    ABICall::callAddress(builder, K_SYSTEM_V, reinterpret_cast<uint64_t>(changePacked), args, {.valuePtr = result, .isVoid = false, .systemVType = &type});
+    SWC_RESULT(executeSystemVThunk(context, builder, true));
+    const auto expected = changePacked(*input, 37);
+    if (std::memcmp(result, &expected, sizeof(expected)))
+        return Result::Error;
+}
+SWC_TEST_END()
+
+SWC_TEST_BEGIN(ABI_SystemVVariadicAggregatesUseBothBanksAndStack)
+{
+    CommandLine commandLine = ctx.cmdLine();
+    commandLine.targetOs = Runtime::TargetOs::Linux;
+    CompilerInstance compiler(ctx.global(), commandLine);
+    TaskContext context(compiler);
+    using SystemVAbi::Class;
+    const SystemVAbi::Classification type{{Class::Integer, Class::Sse}, 16, 8};
+    std::array<MixedValue, 10> values{};
+    for (const uint32_t count : {0, 1, 5, 6, 10})
+    {
+        MicroBuilder builder(context);
+        std::vector<ABICall::Arg> args{{.value = count, .numBits = 32}};
+        double expected = 0;
+        for (uint32_t index = 0; index < count; ++index)
+        {
+            values[index] = {index + 7, index + 0.5};
+            expected += (index + 1) * (values[index].integer + values[index].floating);
+            args.push_back({.value = reinterpret_cast<uint64_t>(&values[index]), .systemVType = &type});
+        }
+        double result = -1;
+        ABICall::callAddress(builder, K_SYSTEM_V, reinterpret_cast<uint64_t>(sumVariadicMixed), args, {.valuePtr = &result, .isVoid = false, .isFloat = true, .numBits = 64});
+        SWC_RESULT(executeSystemVThunk(context, builder, true));
+        if (result != expected)
+            return Result::Error;
+    }
 }
 SWC_TEST_END()
 

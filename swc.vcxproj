@@ -256,6 +256,7 @@
         <ClCompile Include="src\Backend\ABI\SystemVAbi.cpp"/>
         <ClCompile Include="src\Backend\Encoder\Encoder.cpp"/>
         <ClCompile Include="src\Backend\ABI\ABICall.cpp"/>
+        <ClCompile Include="src\Backend\ABI\ABICall.SystemV.cpp"/>
         <ClCompile Include="src\Backend\ABI\ABITypeNormalize.cpp"/>
         <ClCompile Include="src\Backend\Micro\MicroPrinter.cpp"/>
         <ClCompile Include="src\Backend\Micro\MicroStorage.cpp"/>
@@ -653,6 +654,8 @@
         <ClInclude Include="src\Backend\Encoder\EncoderTypes.h"/>
         <ClInclude Include="src\Backend\Micro\MicroInstr.Def.inc"/>
         <ClInclude Include="src\Backend\ABI\ABICall.h"/>
+        <ClInclude Include="src\Backend\ABI\ABICall.SystemV.h"/>
+        <ClInclude Include="src\Unittest\ABI\AbiTestTypes.h"/>
         <ClInclude Include="src\Backend\ABI\ABITypeNormalize.h"/>
         <ClInclude Include="src\Backend\Micro\MicroTypes.h"/>
         <ClInclude Include="src\Backend\Micro\MicroInstr.h"/>

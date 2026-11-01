@@ -872,7 +872,7 @@ by portable modules and products. The earlier entries prepare and enforce the sa
   `tools/linux-build.py` selects Linux host leaves from the shared source manifest and builds
   outside the checkout with GNU Make. Complete DevMode and Release compilers link and
   pass the lexer/parser suites including expected-error inputs without spurious JIT setup.
-  The default C++ campaign passes 1,575 of 1,605 tests; 30 remain failing. The separate
+  The default C++ campaign passes 1,582 of 1,612 tests; 30 remain failing. The separate
   filesystem campaign still has 34 failures. Closed Windows x64 instruction fixtures execute
   through an explicit GCC ABI bridge. Runtime adapters initialize on the first actual JIT call,
   and cross-host generated execution has an explicit diagnostic.
@@ -898,9 +898,12 @@ by portable modules and products. The earlier entries prepare and enforce the sa
   profile, and target C selection still accepts only Windows x64: aggregates must not inherit
   the Windows indirect-pointer convention. The storage classifier and argument planner cover
   mixed/nested records, unions, SIMD upper halves, unaligned fields and whole-argument bank
-  rollback. These classifications still need to reach generated calls and returns.
-- Next: connect the eightbyte classifications to argument/return lowering, including mixed
-  aggregates, stack copies and multiple return registers.
+  rollback. The packed-address call bridge now passes mixed/two-register/stack aggregates,
+  handles hidden memory results and variadic aggregate banks, and bounds partial eightbyte
+  reads/writes against guard pages. Prepared codegen arguments, source return storage and
+  over-aligned stack values still need integration.
+- Next: connect the eightbyte classifications to prepared arguments, incoming parameters,
+  source return storage and the JIT invoker; add dynamic alignment for over-aligned stack values.
   Compare with native C/C++ fixtures, then activate target C and Linux runtime declarations.
 - Done when: generated Linux calls round-trip supported scalar and aggregate values through C,
   preserve callee-save registers and stack alignment, and use the same ABI in JIT and native code.

@@ -13,6 +13,8 @@ class TaskContext;
 class MicroBuilder;
 class Symbol;
 
+namespace SystemVAbi { struct Classification; }
+
 namespace ABICall
 {
     // Windows commits the stack one guard page at a time, so a frame larger than a page must
@@ -100,6 +102,9 @@ namespace ABICall
         uint64_t valueHi = 0;
         bool     isFloat = false;
         uint8_t  numBits = 0;
+        // For a classified System V value, value points to its exact storage instead
+        // of holding packed bits. The classification is consumed during lowering.
+        const SystemVAbi::Classification* systemVType = nullptr;
     };
 
     enum class PreparedArgKind : uint8_t
@@ -128,6 +133,7 @@ namespace ABICall
         bool    isFloat    = false;
         bool    isIndirect = false;
         uint8_t numBits    = 0;
+        const SystemVAbi::Classification* systemVType = nullptr;
     };
 
     struct PreparedCall

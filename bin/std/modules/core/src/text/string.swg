@@ -128,10 +128,10 @@ impl String
     // Returns whether the string holds the same bytes as `other`.
     mtd const opEquals(other: string?)->bool
     {
-        if .buffer == other.buffer do
-            return true
         if .length != other.count do
             return false
+        if .buffer == other.buffer do
+            return true
         if not .length do
             return true
         return Memory.compare(unwrap .buffer, other!.buffer, .length) == 0

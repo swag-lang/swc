@@ -34,6 +34,10 @@
 #include "Support/Report/Diagnostic.h"
 #include "Support/Report/HardwareException.h"
 
+#ifdef __linux__
+#include <unistd.h>
+#endif
+
 SWC_BEGIN_NAMESPACE();
 
 // A function thunk needs a six-byte indirect jump followed by its eight-byte target
@@ -311,9 +315,10 @@ namespace
         return asciiEqualsIgnoreCase(moduleName, "kernel32") || asciiEqualsIgnoreCase(moduleName, "kernel32.dll");
     }
 
-    [[noreturn]] void raiseJitProcessTerminationException(const char* functionName, const uint32_t exitCode)
+    void raiseRuntimeDiagnostic(Runtime::Context* context);
+
+    [[noreturn]] void raiseJitProcessTerminationException(const char* functionName, const int64_t exitCode)
     {
-#ifdef _WIN32
         Utf8 message = std::format("jit code attempted to terminate the compiler process by calling {}({})", functionName, exitCode);
         if (const TaskContext* ctx = TaskContext::current())
         {
@@ -321,6 +326,7 @@ namespace
                 message += std::format(" while running {}", function->getFullScopedName(*ctx));
         }
 
+#ifdef _WIN32
         const ULONG_PTR params[] = {
             0,
             reinterpret_cast<ULONG_PTR>(message.c_str()),
@@ -330,8 +336,13 @@ namespace
 
         RaiseException(K_COMPILER_EXCEPTION_CODE, 0, std::size(params), params);
 #else
-        SWC_UNUSED(functionName);
-        SWC_UNUSED(exitCode);
+        Runtime::Context* context = CompilerInstance::runtimeContextFromTls();
+        SWC_ASSERT(context);
+        context->exceptionParams[0] = nullptr;
+        context->exceptionParams[1] = message.data();
+        context->exceptionParams[2] = reinterpret_cast<void*>(message.size());
+        context->exceptionParams[3] = reinterpret_cast<void*>(static_cast<uintptr_t>(Runtime::ExceptionKind::Error));
+        raiseRuntimeDiagnostic(context);
 #endif
 
         SWC_UNREACHABLE();
@@ -398,6 +409,28 @@ namespace
     }
 #endif
 
+#ifdef __linux__
+    [[noreturn]] void jitBlockedExit(const int status)
+    {
+        raiseJitProcessTerminationException("exit", status);
+    }
+
+    [[noreturn]] void jitBlockedImmediateExit(const int status)
+    {
+        raiseJitProcessTerminationException("_exit", status);
+    }
+
+    [[noreturn]] void jitBlockedCImmediateExit(const int status)
+    {
+        raiseJitProcessTerminationException("_Exit", status);
+    }
+
+    [[noreturn]] void jitBlockedQuickExit(const int status)
+    {
+        raiseJitProcessTerminationException("quick_exit", status);
+    }
+#endif
+
     void* guardedForeignFunctionAddress(const std::string_view moduleName, const std::string_view functionName, void* functionAddress)
     {
 #ifdef _WIN32
@@ -412,6 +445,20 @@ namespace
             if (asciiEqualsIgnoreCase(functionName, "FlsFree"))
                 return reinterpret_cast<void*>(&jitTrackedFlsFree);
         }
+#elif defined(__linux__)
+        SWC_UNUSED(moduleName);
+        // Compare resolved addresses so a user library's unrelated function named
+        // exit keeps its semantics, and alternate libc module spellings stay guarded.
+        if (functionAddress == reinterpret_cast<void*>(&std::exit))
+            return reinterpret_cast<void*>(&jitBlockedExit);
+        if (functionAddress == reinterpret_cast<void*>(&std::_Exit) && functionName == "_Exit")
+            return reinterpret_cast<void*>(&jitBlockedCImmediateExit);
+        if (functionAddress == reinterpret_cast<void*>(&_exit))
+            return reinterpret_cast<void*>(&jitBlockedImmediateExit);
+        if (functionAddress == reinterpret_cast<void*>(&std::_Exit))
+            return reinterpret_cast<void*>(&jitBlockedCImmediateExit);
+        if (functionAddress == reinterpret_cast<void*>(&std::quick_exit))
+            return reinterpret_cast<void*>(&jitBlockedQuickExit);
 #else
         SWC_UNUSED(moduleName);
         SWC_UNUSED(functionName);

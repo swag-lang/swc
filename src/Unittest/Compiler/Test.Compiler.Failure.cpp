@@ -289,6 +289,47 @@ SWC_FILESYSTEM_TEST_BEGIN(Compiler_LinuxAllocatorBorrowGuardUsesSwagAbi)
 SWC_TEST_END()
 #endif
 
+#ifdef __linux__
+SWC_FILESYSTEM_TEST_BEGIN(Compiler_LinuxJitTerminationReportsWithoutExiting)
+{
+    RecoveryTestDirectory directory;
+    // Isolate every attempt: a regression must fail this test rather than terminate
+    // the test runner. Indirect calls also pass through foreign address resolution.
+    for (const std::string_view function : {"exit", "_exit", "_Exit", "quick_exit"})
+    {
+        for (const bool indirect : {false, true})
+        {
+            const std::string name = std::format("{}_{}", function, indirect ? "indirect" : "direct");
+            const fs::path sourcePath = directory.path() / (name + ".swg");
+            const std::string call = indirect ? std::format("let stop = &{}\n    stop(67)", function) : std::format("{}(67)", function);
+            const std::string source = std::format(R"(#[Swag.Foreign(module: "libc.so.6", link: "c", callconv: .C)]
+func {}(status: s32)
+#run
+{{
+    {}
+}}
+)", function, call);
+            SWC_RESULT(CompilerTestFile::writeText(sourcePath, source));
+            const std::vector<Utf8> arguments = {
+                "sema", "--os", "linux", "--file", Utf8(sourcePath), "--num-cores", "3", "--no-log-color",
+                "--out-dir", Utf8(directory.path() / "output" / name), "--work-dir", Utf8(directory.path() / "work" / name)};
+            std::string output;
+            uint32_t exitCode = 0;
+            const Os::ProcessRunOptions options{.capturedOutput = &output, .forwardOutput = false, .timeoutMs = 15000};
+            const auto result = Os::runProcess(exitCode, Os::getExeFullName(), arguments, directory.path(), &options);
+            const std::string expected = std::format("jit code attempted to terminate the compiler process by calling {}(67)", function);
+            if (result != Os::ProcessRunResult::Ok || exitCode != static_cast<uint32_t>(ExitCode::CompileError) || output.find(expected) == std::string::npos)
+            {
+                std::println(stderr, "[termination-test] {}: result={}, exit={}\n{}", name, static_cast<uint32_t>(result), exitCode, output);
+                return Result::Error;
+            }
+        }
+    }
+    return Result::Continue;
+}
+SWC_TEST_END()
+#endif
+
 SWC_FILESYSTEM_TEST_BEGIN(Compiler_NativePanicReleasesCapturedErrorsBeforeRecovery)
 {
     const RecoveryTestDirectory directory;

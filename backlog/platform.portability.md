@@ -879,14 +879,16 @@ by portable modules and products. The earlier entries prepare and enforce the sa
   outside the checkout with GNU Make. Complete DevMode and Release compilers link and
   pass the lexer/parser suites including expected-error inputs without spurious JIT setup.
   The full C++ campaign, including filesystem tests and extra IR/native validation, passes
-  all 1,729 tests, including the PE missing-resource fixture. Closed Windows x64 instruction fixtures execute
+  all 1,730 tests, including the PE missing-resource fixture. Closed Windows x64 instruction fixtures execute
   through an explicit GCC ABI bridge. Runtime adapters initialize on the first actual JIT call,
   and generated code retains separate output-target and host unwind metadata.
   Cross-host foreign relocations reject an actual call while allowing untaken error branches.
   Platform-neutral semantic/JIT fixtures select the host target. Cross-target compiler configuration
   uses host context, error flags, TLS reads and process storage; native Windows TLS instructions
   remain unchanged. Cache records retain TLS operation metadata, and adapter tests cover registers,
-  flags and frameless stacks. C++ fixtures isolate their error counts, retaining unexpected diagnostics as
+  flags and frameless stacks. Direct and indirect libc termination calls from the JIT produce
+  compiler diagnostics; native process termination stays available. DevMode and Release probes
+  cover cross-target configuration and termination diagnostics. C++ fixtures isolate their error counts, retaining unexpected diagnostics as
   failures without aborting later native preparation. Windows link/run fixtures also need
   target import libraries and an executable format supported by the Linux host.
   PE/COFF records no longer depend on the Windows SDK, and both target enums represent Linux.
@@ -904,10 +906,7 @@ by portable modules and products. The earlier entries prepare and enforce the sa
   operations, panic cleanup and termination, reflection pruning and deterministic executable/archive
   output pass. Compiler-owned pthread cleanup and DWARF source resolution remain missing.
   Linux directory locks do not prohibit an uncoordinated cleaner's rename.
-- Next: complete runtime lifecycle validation, including compiler-owned pthread cleanup and
-  compile-time process termination. A Linux `#run` calling libc `exit(67)` currently tears down
-  the compiler from its worker and aborts with `Resource deadlock avoided`; it needs the same
-  diagnostic boundary as Windows compile-time termination.
+- Next: complete runtime lifecycle validation, including compiler-owned pthread cleanup.
   Coordinate directory cleanup with API readers/publication. Keep C++ cleanup intact across
   generated-code faults, including native callbacks and nested JIT calls.
 - Done when: DevMode and Release Linux compilers build from source and execute focused C++,

@@ -173,16 +173,13 @@ func addPictured(host: *Testing.HeadlessHost, explorer: *Explorer, name: string,
             window.applyLayout()
 
             let title = explorer.title.surfaceRect()
+            let address = explorer.address.surfaceRect()
             let tools = explorer.tools.surfaceRect()
-            Swag.assert(title.bottom() <= tools.y or title.right() <= tools.x)
-            Swag.assert(explorer.status.isLocallyVisible() or explorer.summary.isLocallyVisible())
-            for child in explorer.address.actions.children do
-                Swag.assert(child.surfaceRect().bottom() <= explorer.address.surfaceRect().bottom())
-            Swag.assert(explorer.address.navigation.surfaceRect().right() <= explorer.address.pathScroll.surfaceRect().x)
-            Swag.assert(explorer.address.pathScroll.surfaceRect().right() <= explorer.address.actions.surfaceRect().x)
+            Swag.assert(title.right() <= address.x and address.right() <= tools.x)
 
-            host.clickWnd(explorer.address.actions.children[1])
+            host.clickWnd(&window.findCaptionButton.button)
             Swag.assert(explorer.filter.isVisible() and explorer.filter.hasFocus())
+            Swag.assert(explorer.filter.surfaceRect().y == explorer.sortMenu.surfaceRect().y)
             explorer.filter.setText("missing")
             Swag.assert(explorer.shown.isEmpty())
             host.settleAnimations(window)
@@ -218,7 +215,7 @@ func addPictured(host: *Testing.HeadlessHost, explorer: *Explorer, name: string,
         explorer.revealFilter()
         window.applyLayout()
         let grid = explorer.grid
-        Swag.assert(grid.board == .Album and explorer.modeMenu.isVisible())
+        Swag.assert(grid.board == .Album and explorer.modeMenu.isLocallyVisible())
         Swag.assert(grid.places[0].y > grid.albumCover.bottom())
         Swag.assert(grid.places[0].width > grid.albumText.width)
         Swag.assert(grid.albumText.right() <= grid.clientRect().width)
@@ -292,7 +289,7 @@ func addPictured(host: *Testing.HeadlessHost, explorer: *Explorer, name: string,
             Swag.assert(grid.board == board)
             Swag.assert(Utf8.startsWith(explorer.status.text(), Format.toString(appStrings().explore_Count, explorer.shown.count)))
         }
-        Swag.assert(explorer.modeMenu.name.raw == appStrings().mode_Mosaic)
+        Swag.assert(explorer.boardMenu.isLocallyVisible())
         explorer.forceBoard(false)
         Swag.assert(grid.board == .Grid)
     }
@@ -339,7 +336,8 @@ func addPictured(host: *Testing.HeadlessHost, explorer: *Explorer, name: string,
 
     let grid = explorer.grid
     Swag.assert(grid.posters and grid.tile.y > grid.tile.x)
-    Swag.assert(window.infoSheet.beside and Utf8.contains(window.infoSheet.text(), "1982 · 117 min"))
+    Swag.assert(window.infoSheet.beside and Utf8.contains(window.infoSheet.text(), "1982") and
+                Utf8.contains(window.infoSheet.text(), "1:57"))
     Swag.assert(grid.tileRect(0).right() < window.infoSheet.surfaceRect().x)
     var image = host.render(&host.surfaceWnd)
     Pixel.Testing.assertImageGolden(&image, "explorer.films")

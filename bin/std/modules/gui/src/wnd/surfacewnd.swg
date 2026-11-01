@@ -41,7 +41,8 @@ public struct SurfaceWnd
         readonly titleHidden: bool     // Whether the document writes the title itself, so the strip does not.
     }
 
-    captionButtons:   Array'(*IconButton)     // Application actions immediately before the native caption controls.
+    captionButtons:       Array'(*IconButton)     // Application actions immediately before the native caption controls.
+    leadingCaptionButtons: Array'(*IconButton)     // Application actions after the app glyph and before the title.
     chromePalette:    ThemePalette            // Document palette copied by setChromePalette.
     hasChromePalette: bool                    // Whether chrome follows the document rather than the application.
 }
@@ -190,6 +191,7 @@ impl IWnd for SurfaceWnd
     {
         let clientRect = .clientRect()
         let metrics    = .themeMetrics()
+        let surface    = unwrap .surface
 
         var buttonCount = 0'u32
         if .closeBtn do
@@ -210,6 +212,23 @@ impl IWnd for SurfaceWnd
         pos.width  = Math.max(metrics.wnd_CaptionButtonMinWidth, pos.height * metrics.wnd_CaptionButtonAspect)
         pos.x      = clientRect.right() - pos.width - metrics.wnd_CaptionButtonMargin
         pos.y      = Math.round((strip - pos.height) * 0.5)
+
+        var leadingButtonX = clientRect.x + metrics.wnd_CaptionMarginTitle
+        var icon            = .icon
+        if not icon.isValid() do
+            icon = surface.app.appGlyph(metrics.wnd_CaptionIconSize)
+        if icon.isValid() do
+            leadingButtonX += icon.sizeX + metrics.wnd_CaptionMarginTitle
+        for button in .leadingCaptionButtons
+        {
+            if not isShownCaptionButton(button) do
+                continue
+            var leadingPos = pos
+            leadingPos.width = Math.max(button.preferredSize.x, Math.max(metrics.wnd_CaptionButtonGlyph + 2 * metrics.wnd_CaptionButtonMargin, pos.height * 0.75))
+            leadingPos.x = leadingButtonX
+            button.setPosition(leadingPos)
+            leadingButtonX = leadingPos.right() + metrics.wnd_CaptionActionGap
+        }
 
         if .closeBtn
         {
@@ -319,6 +338,8 @@ impl SurfaceWnd
             icon.paint(painter, leading, strip.vertCenter() - icon.sizeY * 0.5, colors.wnd_CaptionMark)
             leading += icon.sizeX + metrics.wnd_CaptionMarginTitle
         }
+        for button in .leadingCaptionButtons where isShownCaptionButton(button) do
+            leading = Math.max(leading, button.position.right() + metrics.wnd_CaptionActionGap)
 
         let center   = strip.horzCenter()
         let halfSpan = Math.min(center - leading, .chromeButtonsLeft() - metrics.wnd_CaptionMarginTitle - center)
@@ -364,6 +385,8 @@ impl SurfaceWnd
         for button in [.minimizeBtn, .maximizeBtn, .closeBtn] where button do
             .styleChromeButton(button)
         for button in .captionButtons do
+            .styleChromeButton(button)
+        for button in .leadingCaptionButtons do
             .styleChromeButton(button)
         .invalidate()
     }
@@ -429,6 +452,11 @@ impl SurfaceWnd
             if button.position.contains(pos.x, pos.y) do
                 return true
         }
+        for button in .leadingCaptionButtons where isShownCaptionButton(button)
+        {
+            if button.position.contains(pos.x, pos.y) do
+                return true
+        }
 
         return false
     }
@@ -452,10 +480,30 @@ impl SurfaceWnd
         .invalidate()
     }
 
+    // Registers an application action after the app glyph and before the title.
+    internal mtd registerLeadingCaptionButton(button: *IconButton)
+    {
+        Swag.assert(button.parent == me)
+        button.style.addStyleSheetColors(ChromeButtonColors)
+        .leadingCaptionButtons.add(button)
+        .styleChromeButton(button)
+        .sendResizeEvent()
+        .invalidate()
+    }
+
     // Removes an application caption action before its deferred storage release.
     internal mtd unregisterCaptionButton(button: *IconButton)
     {
         .captionButtons.remove(button)
+        if not .isPendingDestroy do
+            .sendResizeEvent()
+        .invalidate()
+    }
+
+    // Removes a leading caption action before its deferred storage release.
+    internal mtd unregisterLeadingCaptionButton(button: *IconButton)
+    {
+        .leadingCaptionButtons.remove(button)
         if not .isPendingDestroy do
             .sendResizeEvent()
         .invalidate()

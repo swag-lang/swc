@@ -50,6 +50,7 @@ struct WikiMovieRow
 {
     directorLabel: WikiValue
     castLabel:     WikiValue
+    genreLabel:    WikiValue
     score:         WikiValue
     scoreDate:     WikiValue
 }
@@ -153,6 +154,35 @@ struct TmdbSearch
     results: Array'TmdbMovie
 }
 
+struct TmdbGenre
+{
+    name: String
+}
+
+struct TmdbCastMember
+{
+    name: String
+}
+
+struct TmdbCrewMember
+{
+    name: String
+    job:  String
+}
+
+struct TmdbCredits
+{
+    #[Serialization.Key("cast")]
+    castMembers: Array'TmdbCastMember
+    crew:        Array'TmdbCrewMember
+}
+
+struct TmdbMovieDetails
+{
+    genres:  Array'TmdbGenre
+    credits: TmdbCredits
+}
+
 func tmdbSettingsDirectory()->String => Path.combine(Env.getSpecialDirectory(.UserAppData), "Swag", "scope")
 
 func tmdbStoredCredential(name: string, directory: string = "")->String
@@ -229,6 +259,7 @@ struct OnlineMovie
     releaseDate: String
     director:    String
     actors:      String
+    genre:       String
     imdbRating:  String
     ratingSource: String
     ratingDate:  String
@@ -267,6 +298,7 @@ const MovieImdbRatingTag = "ScopeWikiIMDbRating"
 const MovieRatingSourceTag = "ScopeMovieRatingSource"
 const MovieDirectorTag   = "ScopeWikiDirector"
 const MovieCastTag       = "ScopeWikiCast"
+const MovieGenreTag      = "ScopeMovieGenre"
 const MovieDateTag       = "ScopeWikiDate"
 const MovieOverviewTag   = "ScopeWikiOverview"
 const MovieSourceTag     = "ScopeWikiSource"
@@ -280,6 +312,7 @@ struct MovieSummary
     ratingSource: String
     director:   String
     actors:     String
+    genre:      String
     date:       String
     overview:   String
     source:     String
@@ -321,6 +354,8 @@ impl MovieSummary
                 result.director = value
             elif record.isTag(cast(const [..] u8, MovieCastTag)) do
                 result.actors = value
+            elif record.isTag(cast(const [..] u8, MovieGenreTag)) do
+                result.genre = value
             elif record.isTag(cast(const [..] u8, MovieDateTag)) do
                 result.date = value
             elif record.isTag(cast(const [..] u8, MovieOverviewTag)) do
@@ -351,6 +386,8 @@ impl MovieSummary
             result += Format.toString("\n%", Format.toString(strings.explore_MovieDirector, safeMediaText(.director)))
         if not .actors.isEmpty() do
             result += Format.toString("\n%", Format.toString(strings.explore_MovieCast, safeMediaText(.actors)))
+        if not .genre.isEmpty() do
+            result += Format.toString("\n%", Format.toString(strings.explore_MovieGenre, safeMediaText(.genre)))
         if not .overview.isEmpty() do
             result += Format.toString("\n%", Format.toString(strings.explore_MovieOverview, safeMediaText(.overview)))
         if not .source.isEmpty() do
@@ -436,9 +473,11 @@ impl MovieQuery
                 bestDistance = distance
                 ambiguous = false
             }
-            if distance == bestDistance and chosen != Swag.U64.Max and chosen != index and search.results[chosen].trackViewUrl != film.trackViewUrl
+            if distance == bestDistance and chosen != Swag.U64.Max and chosen != index
             {
-                ambiguous = true
+                let previousUrl = search.results[chosen].trackViewUrl
+                if previousUrl.isEmpty() or film.trackViewUrl.isEmpty() or previousUrl != film.trackViewUrl do
+                    ambiguous = true
             }
         }
 
@@ -515,6 +554,7 @@ impl OnlineMovie
         addMovieTag(image, MovieRatingSourceTag, .ratingSource)
         addMovieTag(image, MovieDirectorTag, .director)
         addMovieTag(image, MovieCastTag, .actors)
+        addMovieTag(image, MovieGenreTag, .genre)
         addMovieTag(image, MovieSourceTag, .articleUrl)
         addMovieTag(image, MovieSourcesTag, .sources)
         stampMovieCache(image)
@@ -670,9 +710,53 @@ impl OnlineMovie
             movie.imdbRating = Format.toString("%.%/10", tenths / 10, tenths % 10)
             movie.ratingSource = "TMDB"
         }
+        catch movie.loadTMDBDetails(film.id, source, locale, token, key)
         movie.articleUrl = Format.toString("https://www.themoviedb.org/movie/%", film.id)
         movie.sources = "TMDB"
         return movie
+    }
+
+    private mtd loadTMDBDetails(id: u64, source: MovieSource, locale, token, key: string) fail
+    {
+        var path = Format.toString("/3/movie/%?language=%&append_to_response=credits", id, locale)
+        var authorization: String
+        var options: Http.GetOptions
+        options.userAgent = "SwagScope/1.0 (https://github.com/swag-lang/swc)"
+        options.timeoutMs = 5_000
+        if token.count != 0
+        {
+            authorization = Format.toString("Bearer %", token)
+            options.headers.add({name: "Authorization", value: authorization})
+        }
+        else do
+            path += Format.toString("&api_key=%", Url.encodeComponent(cast(const [..] u8, key)))
+
+        let response = try Http.get(source.tmdbHost, source.port, path.toString(), source.secure, options)
+        if response.status != 200 do
+            return
+        var decoder: Serialization.Decoder'Serialization.Read.Json
+        let details = try decoder.readAll'TmdbMovieDetails(response.body.toSlice())
+        defer Memory.delete(details)
+        for &genre in details.genres where not genre.name.isEmpty() and
+                                             not Utf8.contains(.genre.toString(), genre.name.toString())
+        {
+            if not .genre.isEmpty() do
+                .genre += ", "
+            .genre += genre.name
+        }
+
+        for &member in details.credits.crew where member.job == "Director" and not member.name.isEmpty()
+        {
+            if .director.isEmpty() do
+                .director = member.name
+        }
+
+        for &member, index in details.credits.castMembers where index < 3 and not member.name.isEmpty()
+        {
+            if not .actors.isEmpty() do
+                .actors += ", "
+            .actors += member.name
+        }
     }
 
     // Asks the Apple catalogue for the film `query` names, and takes its poster, its synopsis and
@@ -722,6 +806,7 @@ impl OnlineMovie
             .releaseDate = film.releaseDate.toString()[0 until 4]
         if not film.longDescription.isEmpty() do
             .overview = film.longDescription
+        .genre = film.primaryGenreName
         if not film.artworkUrl100.isEmpty()
         {
             // The artwork address names its size; a poster asks for a larger one.
@@ -794,7 +879,7 @@ impl OnlineMovie
         if not validWikiId(.id) do
             return
         let lang     = Utf8.startsWith(language, "fr") ? "fr,en" : "en"
-        let sparql   = Format.toString("""SELECT ?directorLabel ?castLabel ?score ?scoreDate WHERE { OPTIONAL { wd:% wdt:P57 ?director } OPTIONAL { wd:% wdt:P161 ?cast } OPTIONAL { wd:% p:P444 ?s . ?s ps:P444 ?score; pq:P447 wd:Q37312 . OPTIONAL { ?s pq:P585 ?scoreDate } } SERVICE wikibase:label { bd:serviceParam wikibase:language "%" . } } LIMIT 20""", .id, .id, .id, lang)
+        let sparql   = Format.toString("""SELECT ?directorLabel ?castLabel ?genreLabel ?score ?scoreDate WHERE { OPTIONAL { wd:% wdt:P57 ?director } OPTIONAL { wd:% wdt:P161 ?cast } OPTIONAL { wd:% wdt:P136 ?genre } OPTIONAL { wd:% p:P444 ?s . ?s ps:P444 ?score; pq:P447 wd:Q37312 . OPTIONAL { ?s pq:P585 ?scoreDate } } SERVICE wikibase:label { bd:serviceParam wikibase:language "%" . } } LIMIT 20""", .id, .id, .id, .id, lang)
         let request  = Format.toString("/sparql?query=%&format=json", Url.encodeComponent(cast(const [..] u8, sparql.toString())))
         let response = try Http.get(source.dataHost, source.port, request.toString(), source.secure, options)
         if response.status != 200 do
@@ -818,6 +903,12 @@ impl OnlineMovie
                 if not .actors.isEmpty() do
                     .actors += ", "
                 .actors += row.castLabel.value
+            }
+            if not row.genreLabel.value.isEmpty() and not Utf8.contains(.genre.toString(), row.genreLabel.value.toString())
+            {
+                if not .genre.isEmpty() do
+                    .genre += ", "
+                .genre += row.genreLabel.value
             }
         }
     }

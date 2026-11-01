@@ -45,6 +45,7 @@ struct InfoSheet
             picture:   Texture          // Picture heading the sheet, borrowed from its owner; invalid for none.
             beside:    bool             // Whether the picture stands at the left of the title, as a poster or a cover does.
         }
+        sigCloseRequested: SigArray'func||(*InfoSheet)     // Emitted when the reader presses the sheet's close button.
     }
 
     blocks:    Array'InfoSheetBlock
@@ -262,7 +263,11 @@ impl InfoSheet
                                                    Math.Rectangle{0, 0, theme.metrics.embInfo_CloseSize, theme.metrics.embInfo_CloseSize})
         {
             .toolTip    = Gui.strings().dlg_Close
-            .sigPressed += func|sheet = result|(_) { sheet.close() }
+            .sigPressed += func|sheet = result|(_)
+            {
+                sheet.close()
+                sheet.sigCloseRequested.call(sheet)
+            }
         }
 
         return result

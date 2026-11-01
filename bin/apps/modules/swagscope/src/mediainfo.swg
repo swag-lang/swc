@@ -228,7 +228,8 @@ impl MediaInfoPanel
         let theme = host.contentParent().theme()
         let side  = host.createSidePanel(368,
                                          theme.icon(.Information, themeActionIconSize(&theme.metrics)),
-                                         g_MediaInfoStrings.title)
+                                         g_MediaInfoStrings.title,
+                                         floatingSurface: false)
 
         with let result = Wnd.create'MediaInfoPanel(side.content)
         {
@@ -273,7 +274,7 @@ impl MediaInfoPanel
             .style.setFont(theme.createDefaultFont(13, .Bold), .Regular)
         }
 
-        with result.list = ListCtrl.createMultiColumns(result)
+        with result.list = ListCtrl.createSimple(result)
         {
             .dockStyle       = .Center
             .margin.y        = 8
@@ -282,32 +283,13 @@ impl MediaInfoPanel
             .setSelectionMode(.Single)
             .setFirstColumnIconMargin(false)
             .updateFlags(.HotTrack | .Ellipsis)
-            .header.form = .Transparent
-            .header.updateFlags(remove: .Clickable | .Separators)
-            .addColumn("", 150)
-            .addColumn("", 150)
         }
 
         result.retranslate()
         return result
     }
 
-    // Gives the property and value columns the panel's current width instead of retaining their
-    // initial widths when the user resizes the side pane.
-    mtd layoutColumns()
-    {
-        let header  = .list.header
-        let spacing = header.contentWidth() - header.itemWidthAt(0) - header.itemWidthAt(1)
-        let width   = .list.listView.position.width - spacing
-        if width <= 0 do
-            return
-
-        let propertyWidth = Math.round(width * 0.42)
-        .list.setColumnWidth(0, propertyWidth)
-        .list.setColumnWidth(1, Math.max(width - propertyWidth, 1))
-    }
-
-    // Returns every row as one line of text, for the clipboard.
+    // Returns each quiet reading as one line of text, for the clipboard.
     mtd text()->String
     {
         var result: #returntype
@@ -334,8 +316,9 @@ impl MediaInfoPanel
         {
             let line = .list.createLine(row.group ? null : parent)
             .lines.add(line)
-            line.setItem(0, row.label())
-            line.setItem(1, row.value)
+            let text = row.group or row.value.isEmpty() ? row.label() :
+                       Format.toString("%: %", row.label(), row.value)
+            line.setItem(0, text)
             if row.group
             {
                 parent = line
@@ -355,14 +338,14 @@ impl MediaInfoPanel
         .closeButton.toolTip = g_MediaInfoStrings.close
         .copyButton.toolTip  = g_MediaInfoStrings.copy
         .copyButton.enable(not .data.rows.isEmpty())
-        .list.header.itemAt(0).name = g_MediaInfoStrings.property
-        .list.header.itemAt(1).name = g_MediaInfoStrings.value
-        .list.header.invalidate()
-        for row, index in .data.rows do
-            .lines[index].setItem(0, row.label())
+        for row, index in .data.rows
+        {
+            let text = row.group or row.value.isEmpty() ? row.label() :
+                       Format.toString("%: %", row.label(), row.value)
+            .lines[index].setItem(0, text)
+        }
         .list.computeLayout()
         .applyLayout()
-        .layoutColumns()
         .invalidate()
     }
 }
@@ -374,7 +357,6 @@ private impl IWnd for MediaInfoPanel
         if .list == null do
             return
         .applyLayout()
-        .layoutColumns()
     }
 
     mtd impl onNotifyEvent(evt: *NotifyEvent)

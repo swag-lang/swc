@@ -105,6 +105,7 @@ struct Explorer
         kindMenu:   *IconButton
         sortMenu:   *IconButton
         modeMenu:   *IconButton
+        boardMenu:  *IconButton
         filter:     *EditBox
         list:       *ListCtrl
         scroll:     *ScrollWnd
@@ -144,11 +145,10 @@ impl Explorer
     // The air between the page and the edges of the document, the height of its header, and the
     // size its title is set in.
     const PageMargin       = 72.0
-    const HeaderHeight     = 112.0
-    const TitleFontSize    = 44'u32
+    const HeaderHeight     = 64.0
+    const TitleFontSize    = 36'u32
     const MinTitleFontSize = 28'u32
     const ToolHeight       = 32.0
-    const AddressHeight    = 32.0
     const SummaryHeight    = 24.0
 
     func create(parent: *Wnd, window: *ViewerWindow)->*Explorer
@@ -264,9 +264,7 @@ impl Explorer
         return result
     }
 
-    // Builds the head of the page: the path as a faint breadcrumb, the folder name as its title,
-    // and on the title's line how much it holds, the filter, and the quiet menus of its order and
-    // of the way it is shown.
+    // Builds one compact head for the breadcrumb, folder name, count, filters and sort menus.
     private mtd createHeader()
     {
         with .header = Wnd.create'Wnd(me, Math.Rectangle{0, 0, 0, HeaderHeight}, "scope.explorer.header")
@@ -274,12 +272,6 @@ impl Explorer
             .dockStyle       = .Top
             .backgroundStyle = .Transparent
             .padding         = Math.Vector4{PageMargin, 0, PageMargin, 8}
-        }
-
-        with .address = ExplorerAddress.create(.header, me)
-        {
-            .dockStyle       = .Top
-            .position.height = AddressHeight
         }
 
         // An archive writes what it holds and weighs on a mono line under its title.
@@ -316,12 +308,9 @@ impl Explorer
             .setTextAlignment(.Right, .OpticalCenter)
         }
 
-        // The filter is asked for, by the find key or the lens, on its own line under the title so
-        // the title keeps its room, and leaves once it is empty and the keyboard has gone elsewhere.
-        with .filter = EditBox.create(.header, "", {0, 0, ViewerWindow.SearchFieldWidth, ToolHeight}, flags: .ClearButton)
+        // Filtering shares the sort and kind controls' line and leaves it when the query is empty.
+        with .filter = EditBox.create(.tools, "", {0, 0, ViewerWindow.SearchFieldWidth, ToolHeight}, flags: .ClearButton)
         {
-            .dockStyle = .Bottom
-            .margin    = {0, 4, 0, 0}
             .setForm(.Transparent)
             .setIcon(me.theme().icon(.Search, themeRowIconSize(me.themeMetrics())))
             .setPlaceholder(appStrings().ui_FilterFiles)
@@ -351,6 +340,7 @@ impl Explorer
         with .sortMenu = IconButton.createQuiet(.tools)
         {
             .layoutSpec.alignY = .End
+            .setIcon(me.theme().icon(.Sort, themeRowIconSize(me.themeMetrics())))
             .sigPressed        += func|view = me|(_) { view.showSortMenu() }
         }
 
@@ -365,12 +355,27 @@ impl Explorer
         with .modeMenu = IconButton.createQuiet(.tools)
         {
             .layoutSpec.alignY = .End
-            .sigPressed        += func|view = me|(_) { view.showModeMenu() }
+            .toolTip           = appStrings().explore_View
+            .sigPressed       += func|view = me|(_) { view.showModeMenu() }
+        }
+
+        with .boardMenu = IconButton.createQuiet(.tools)
+        {
+            .layoutSpec.alignY = .End
+            .toolTip           = appStrings().explore_Organization
+            .sigPressed       += func|view = me|(_) { view.showBoardMenu() }
+        }
+
+        with .address = ExplorerAddress.create(line, me)
+        {
+            .dockStyle       = .Center
+            .position.width  = 220
+            .position.height = ToolHeight
         }
 
         with .title = Label.create(line, "", {}, null, .Ellipsis)
         {
-            .dockStyle = .Center
+            .dockStyle = .Left
             .style.setFont(me.theme().createDefaultFont(TitleFontSize, .Bold), .Regular)
             .setTextAlignment(.Left, .Bottom)
         }
@@ -384,7 +389,7 @@ impl Explorer
         .filter.setFocus()
     }
 
-    // The header grows for a filter, a summary or a narrow title line; no action overlaps the title.
+    // The header gives the address, title and tools one shared line, with a summary below if needed.
     mtd fitHeader() => .layoutTools()
 
     mtd layoutTools()
@@ -406,54 +411,51 @@ impl Explorer
 
         let album    = .grid.board == .Album and .scroll.isLocallyVisible()
         let line     = unwrap .tools.parent
-        let text     = .title.text()
-        let full     = Painter.measureString(text, .theme().createDefaultFont(TitleFontSize, .Bold)).width
-        let smallest = Painter.measureString(text, .theme().createDefaultFont(MinTitleFontSize, .Bold)).width
         let gap      = metrics.infoSheet_BlockGap
         let space    = line.clientRect().width
         .title.show(not album)
         .tools.show()
         .extractAll.show(.listing.isArchive)
         .status.show(not album and not .listing.isArchive and not .status.name.raw.isEmpty())
+        let compact = space < 900
+        let veryCompact = space < 500
+        var addressWidth = veryCompact ? (album ? 80 : 72) :
+                           (compact ? (album ? 120 : 96) : Math.min(180, space * 0.2))
+        .filter.position.width = veryCompact ? 48 : (compact ? 72 : ViewerWindow.SearchFieldWidth)
+        .tools.spacing = veryCompact ? 0 : (compact ? 4 : 8)
+        .sortMenu.setQuietText(compact ? "" : .sortName())
+        .kindMenu.setQuietText(compact ? "" : .filterKindName())
+        .modeMenu.setQuietText("")
+        .boardMenu.setQuietText("")
         var width = Math.ceil(.tools.itf.measureContent({}).x)
-        if .status.isLocallyVisible() and width + full + gap > space
+        if .status.isLocallyVisible() and width + addressWidth + gap + MinTitleFontSize > space
         {
             .status.hide()
             width = Math.ceil(.tools.itf.measureContent({}).x)
         }
+        if width + addressWidth + gap > space do
+            addressWidth = Math.max(space - width - gap, 0)
 
         // Counts and failures move under the title instead of disappearing when space is tight.
-        let summary = not album and not .status.isLocallyVisible() and .status.text().count != 0
+        let summary = .listing.isArchive and not album and not .status.isLocallyVisible() and .status.text().count != 0
         .summary.setText(summary ? .status.text() : "")
         .summary.show(summary)
-        let stacked = not album and width + smallest + gap > space
-        var height  = album ? AddressHeight + ToolHeight + gap : HeaderHeight
-        if stacked do
-            height += ToolHeight + gap
+        var height = album ? ToolHeight + gap : HeaderHeight
         if summary do
             height += SummaryHeight
-        if .filter.isLocallyVisible() do
-            height += ToolHeight + metrics.infoSheet_LineGap
         .header.position.height = height
+        .address.dockStyle      = .None
+        .title.dockStyle        = .None
         .tools.dockStyle        = .None
-        .title.margin.z         = stacked ? 0 : width + gap
-        .title.margin.w         = stacked ? ToolHeight + gap : 0
-
-        let room = stacked ? space : space - width - gap
-        for size in [TitleFontSize, 36'u32, MinTitleFontSize]
-        {
-            if .listing.isArchive and size != MinTitleFontSize do
-                continue
-            let font = .theme().createDefaultFont(size, .Bold)
-            if Painter.measureString(text, font).width <= room or size == MinTitleFontSize
-            {
-                .title.style.setFont(font, .Regular)
-                break
-            }
-        }
 
         .applyLayout()
         let bounds = line.clientRect()
+        let titleFullWidth = Painter.measureString(.title.text(), .theme().createDefaultFont(TitleFontSize, .Bold)).width
+        let titleWidth = album ? 0 : Math.min(titleFullWidth,
+                                             Math.min(200, Math.max(bounds.width - addressWidth - width - 2 * gap, 0)))
+        .title.setPosition({bounds.x, bounds.y, titleWidth, bounds.height})
+        let addressX = bounds.x + titleWidth + (titleWidth > 0 ? gap : 0)
+        .address.setPosition({addressX, Math.max(bounds.bottom() - ToolHeight, 0), addressWidth, ToolHeight})
         .tools.setPosition({Math.max(bounds.right() - width, 0), Math.max(bounds.bottom() - ToolHeight, 0), width, ToolHeight})
         .tools.computeLayout()
     }
@@ -463,21 +465,34 @@ impl Explorer
     {
         let text = appStrings()
         let menu = MenuCtrl.createPopup(me, owner: me)
+        let icons = [ThemeIcons.File, ThemeIcons.Outline, ThemeIcons.ZoomOut, ThemeIcons.FitView, ThemeIcons.ZoomIn]
         for id, index in ViewerCommands.Modes
         {
             let names = [text.explore_Names, text.explore_Details, text.explore_Small, text.explore_Medium, text.explore_Large]
-            menu.addRadioItem(names[index], id, checked: cast(u64, .mode) == index)
-        }
-
-        menu.addSeparator()
-        for id, index in ViewerCommands.Boards
-        {
-            let names   = [text.board_Automatic, text.board_Grid, text.board_Posters, text.board_Covers, text.board_Mosaic]
-            let checked = index == 0 ? not .forced : (.forced and cast(u64, .forcedBoard) == index - 1)
-            menu.addRadioItem(names[index], id, checked: checked)
+            let item = menu.addRadioItem(names[index], id, checked: cast(u64, .mode) == index)
+            item.icon = .theme().icon(icons[index], themeRowIconSize(.themeMetrics()))
         }
 
         let chosen = menu.doModal(.modeMenu, autoDestroy: true) orelse ""
+        if chosen.count do
+            discard .window.runCommand(chosen)
+    }
+
+    // Shows the ways of organizing the tiles under their own menu, the one in use checked.
+    mtd showBoardMenu()
+    {
+        let text = appStrings()
+        let menu = MenuCtrl.createPopup(me, owner: me)
+        let names = [text.board_Automatic, text.board_Grid, text.board_Posters, text.board_Covers, text.board_Mosaic]
+        let icons = [ThemeIcons.ExploreFolder, ThemeIcons.File, ThemeIcons.FileVideo, ThemeIcons.FileAudio, ThemeIcons.FileImage]
+        for id, index in ViewerCommands.Boards
+        {
+            let checked = index == 0 ? not .forced : (.forced and cast(u64, .forcedBoard) == index - 1)
+            let item = menu.addRadioItem(names[index], id, checked: checked)
+            item.icon = .theme().icon(icons[index], themeRowIconSize(.themeMetrics()))
+        }
+
+        let chosen = menu.doModal(.boardMenu, autoDestroy: true) orelse ""
         if chosen.count do
             discard .window.runCommand(chosen)
     }
@@ -567,44 +582,51 @@ impl Explorer
         .navigate(.listing.path, .folder, false)
     }
 
-    // Writes the order and the way of showing in use on their menus.
+    // Writes the order, filter, view and tile arrangement on their menus.
     mtd refreshQuietMenus()
     {
         let text = appStrings()
-        var sort: string
-        switch .sortColumn
-        {
-        case 1:  sort = text.sort_Type
-        case 2:  sort = text.sort_Size
-        case 3:  sort = text.sort_Modified
-        default: sort = text.sort_Name
-        }
-
-        // A mosaic stands its pictures in the order they were taken.
-        if .grid.board == .Mosaic do
-            sort = text.sort_Modified
-        .sortMenu.setQuietText(sort)
+        .sortMenu.setQuietText(.sortName())
+        .sortMenu.setIcon(.theme().icon(.Sort, themeRowIconSize(.themeMetrics())))
         .kindMenu.setQuietText(.filterKindName())
-        .extractAll.setQuietText(text.cmd_ExtractAll)
-        switch .mode
+        .kindMenu.setIcon(.theme().icon(.Filter, themeRowIconSize(.themeMetrics())))
+        let viewNames = [text.explore_Names, text.explore_Details, text.explore_Small, text.explore_Medium, text.explore_Large]
+        let viewIcons = [ThemeIcons.File, ThemeIcons.Outline, ThemeIcons.ZoomOut, ThemeIcons.FitView, ThemeIcons.ZoomIn]
+        .modeMenu.setIcon(.theme().icon(viewIcons[cast(u64, .mode)], themeRowIconSize(.themeMetrics())))
+        .modeMenu.toolTip = Format.toString("% · %", text.explore_View, viewNames[cast(u64, .mode)])
+        var boardName = text.board_Automatic
+        var boardIcon = ThemeIcons.ExploreFolder
+        if .forced
         {
-        case .Names:
-            .modeMenu.setQuietText(text.mode_Names)
-
-        case .Details:
-            .modeMenu.setQuietText(text.mode_Details)
-
-        default:
-            switch .grid.board
+            switch .forcedBoard
             {
-            case .Covers:  .modeMenu.setQuietText(text.mode_Covers)
-            case .Mosaic:  .modeMenu.setQuietText(text.mode_Mosaic)
-            case .Posters: .modeMenu.setQuietText(text.mode_Posters)
-            default:       .modeMenu.setQuietText(text.mode_Thumbnails)
+            case .Grid:    boardName = text.board_Grid;    boardIcon = .File
+            case .Posters: boardName = text.board_Posters; boardIcon = .FileVideo
+            case .Covers:  boardName = text.board_Covers;  boardIcon = .FileAudio
+            case .Mosaic:  boardName = text.board_Mosaic;  boardIcon = .FileImage
             }
         }
+        .boardMenu.setIcon(.theme().icon(boardIcon, themeRowIconSize(.themeMetrics())))
+        .boardMenu.toolTip = Format.toString("% · %", text.explore_Organization, boardName)
+        .extractAll.setQuietText(text.cmd_ExtractAll)
+        .window.refreshExplorerCaption()
 
         .layoutTools()
+    }
+
+    // Writes the selected sort order as a short label for the Explorer line.
+    mtd sortName()->string
+    {
+        let text = appStrings()
+        if .grid.board == .Mosaic do
+            return text.sort_Modified
+        switch .sortColumn
+        {
+        case 1:  return text.sort_Type
+        case 2:  return text.sort_Size
+        case 3:  return text.sort_Modified
+        default: return text.sort_Name
+        }
     }
 
     // Returns the name of the explored location, as the page title and the window title show it.
@@ -786,6 +808,7 @@ impl Explorer
                 sheet.addText(safeMediaText(entry.movie.overview))
             }
             sheet.addSection(strings.explore_MediaDetails)
+            addSheetReading(sheet, strings.explore_MovieGenre, entry.movie.genre)
             addSheetReading(sheet, strings.explore_Director, entry.movie.director)
             addSheetReading(sheet, strings.explore_Cast, entry.movie.actors)
             addSheetReading(sheet, strings.explore_Sources, entry.movie.sources)
@@ -1004,6 +1027,8 @@ impl Explorer
         .showMediaInfo()
         .filter.setPlaceholder(text.ui_FilterFiles)
         .kindMenu.toolTip = text.explore_FilterByType
+        .kindMenu.setIcon(.theme().icon(.Filter, themeRowIconSize(.themeMetrics())))
+        .filter.setIcon(.theme().icon(.Search, themeRowIconSize(.themeMetrics())))
         .list.header.itemAt(0).name = text.explore_Name
         .list.header.itemAt(1).name = text.explore_Type
         .list.header.itemAt(2).name = text.explore_Size
@@ -1020,6 +1045,7 @@ impl Explorer
         .requestedFolder = folder
         if remember do
             .history.push(Format.toString("%\n%", path, folder))
+        .window.refreshExplorerCaption()
         .setStatus(appStrings().explore_Loading)
         if not .load.started do
             .startListing()

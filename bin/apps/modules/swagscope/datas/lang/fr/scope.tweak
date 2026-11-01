@@ -71,6 +71,7 @@ explore_Duration Durée
 explore_Released Sortie
 explore_Director Réalisation
 explore_Cast Distribution
+explore_MovieGenre Genre
 explore_Synopsis Synopsis
 explore_Artist Artiste
 explore_AlbumArtist Artiste de l’album
@@ -156,10 +157,10 @@ cmd_SortType Trier par type
 cmd_SortSize Trier par taille
 cmd_SortModified Trier par date de modification
 cmd_SortDescending Ordre décroissant
-sort_Name par nom
-sort_Type par type
-sort_Size par taille
-sort_Modified par date
+sort_Name Par nom
+sort_Type Par type
+sort_Size Par taille
+sort_Modified Par date
 cmd_Options Options…
 cmd_Play Lire
 cmd_Pause Mettre en pause
@@ -189,9 +190,6 @@ explore_Compression Compression
 cmd_OpenChosen Ouvrir
 hint_Open ouvrir
 hint_Parent dossier parent
-mode_Names noms
-mode_Details détails
-mode_Thumbnails vignettes
 cmd_ExtractAll Extraire tout…
 cmd_Extract Extraire…
 explore_Extracted % fichiers extraits
@@ -200,6 +198,8 @@ explore_ExtractedKept %, % déjà présents conservés
 explore_ExtractFailed Tout n’a pas pu être extrait
 explore_File Fichier
 explore_FilterByType Filtrer par type
+explore_View Choisir la vue
+explore_Organization Organiser les vignettes
 explore_FilterAll Tous les éléments
 explore_FilterVideos Vidéos
 explore_FilterImages Images
@@ -221,9 +221,6 @@ explore_Weekdays dimanche lundi mardi mercredi jeudi vendredi samedi
 explore_Months janvier février mars avril mai juin juillet août septembre octobre novembre décembre
 hint_PlayAlbum lire l’album
 hint_Play lire
-mode_Covers pochettes
-mode_Posters affiches
-mode_Mosaic mosaïque
 board_Automatic Automatique
 board_Grid Grille
 board_Covers Pochettes

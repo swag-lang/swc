@@ -161,6 +161,7 @@ func archivePage(host: *Testing.HeadlessHost, light: bool)->*ViewerWindow
         Pixel.Testing.assertImageGolden(&image, light ? "explorer.archive.paper" : "explorer.archive")
         var frame = host.render(&host.surfaceWnd)
         Pixel.Testing.assertImageGolden(&frame, light ? "explorer.frame.paper" : "explorer.frame.encre")
+
     }
 }
 
@@ -170,27 +171,29 @@ func archivePage(host: *Testing.HeadlessHost, light: bool)->*ViewerWindow
     var host: Testing.HeadlessHost
     let window   = archivePage(&host, light: false)
     let explorer = unwrap window.explorer
-    let back     = explorer.address.navigation.children[0]
-    let forward  = explorer.address.navigation.children[1]
-    let up       = explorer.address.navigation.children[2]
+    let back     = &window.backCaptionButton.button
+    let forward  = &window.forwardCaptionButton.button
+    let up       = &window.upCaptionButton.button
     window.updateCommandState()
     Swag.assert(not back.isEnabled() and not forward.isEnabled())
     explorer.navigate(explorer.listing.path, "docs/")
     completeExplorer(&host, explorer)
     window.updateCommandState()
     Swag.assert(back.isEnabled() and not forward.isEnabled())
-    host.click(back.surfaceRect().center())
+    back.sigPressed.call(back)
     completeExplorer(&host, explorer)
     window.updateCommandState()
-    Swag.assert(explorer.folder.isEmpty() and not back.isEnabled() and forward.isEnabled())
-    host.click(forward.surfaceRect().center())
+    Swag.assert(explorer.folder.isEmpty(), "the caption Back button navigates to the prior folder")
+    Swag.assert(not back.isEnabled(), "Back is disabled at the first history entry")
+    Swag.assert(forward.isEnabled(), "Forward is enabled after going back")
+    forward.sigPressed.call(forward)
     completeExplorer(&host, explorer)
     Swag.assert(explorer.folder == "docs/")
-    host.click(up.surfaceRect().center())
+    up.sigPressed.call(up)
     completeExplorer(&host, explorer)
     Swag.assert(explorer.folder.isEmpty())
     explorer.address.beginEdit()
-    Swag.assert(back.isVisible() and up.position.right() <= explorer.address.edit.position.x)
+    Swag.assert(back.isVisible() and explorer.address.edit.isLocallyVisible())
 }
 
 func completeExtraction(host: *Testing.HeadlessHost, explorer: *Explorer)
@@ -378,7 +381,7 @@ func completeExtraction(host: *Testing.HeadlessHost, explorer: *Explorer)
         {
             discard expect host.app.setLanguage("fr")
             host.notify(.LanguageChanged)
-            Swag.assert(explorer.modeMenu.name.raw == appStrings().mode_Thumbnails)
+            Swag.assert(explorer.modeMenu.isLocallyVisible())
             Swag.assert(window.folderLabel.text == appStrings().explore_Folders)
         }
 
@@ -389,11 +392,11 @@ func completeExtraction(host: *Testing.HeadlessHost, explorer: *Explorer)
         explorer.revealFilter()
         Swag.assert(explorer.filter.position.width > 100 and explorer.filter.hasFocus())
 
-        // The filter takes a line of its own under the title, which keeps its room.
+        // Search, sort and kind filters share the folder-title line.
         let filterRect = explorer.filter.surfaceRect()
-        let modesRect  = explorer.modeMenu.surfaceRect()
-        Swag.assert(filterRect.y >= explorer.title.surfaceRect().bottom() and filterRect.height == Explorer.ToolHeight)
-        Swag.assert(modesRect.height <= 36)
+        let sortRect   = explorer.sortMenu.surfaceRect()
+        Swag.assert(filterRect.y == sortRect.y and filterRect.height == Explorer.ToolHeight)
+        Swag.assert(explorer.modeMenu.surfaceRect().y == sortRect.y and explorer.boardMenu.surfaceRect().y == sortRect.y)
         host.moveMouse(explorer.grid.localToSurface(Math.Point{32, 32}))
         Swag.assert(explorer.grid.hovered == 0)
 

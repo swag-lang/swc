@@ -90,9 +90,9 @@ dialogs, then each application, then the written rules.
     (`ViewerActionBar` is gone with its `viewer.{text,pdf,html,image,font}.document` goldens):
     they stand their viewer on the real line of readings, and the window goldens show it.
   - Panels not yet rebuilt as the PDF margin outline is: the file panel (`panel`) is a card
-    with an upper-case folder name and a filter; the information card of a viewer
-    (`viewer.media.information`) is a two-column
-    property list. The charter reads them in the margin, quiet, without a card.
+    with an upper-case folder name and a filter. The viewer's media information panel
+    (`viewer.media.information`) now reads as a quiet one-column hierarchy in the margin, without
+    a card; film identity, genre, director and cast appear in the explorer sheet when available.
   - The MusicBrainz choice box (`explorer.music.choice`) carries its menu label as title, with
     its ellipsis.
   - Not yet rebuilt on their pictures: image (`scope.image`), table, HTML (column, address,

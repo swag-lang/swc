@@ -17,7 +17,7 @@ using Core, Gui
     explorer.updateBreadcrumb()
     let breadcrumb = explorer.address.breadcrumb
 
-    // The breadcrumb names the levels above the page; the folder shown is the title.
+    // The breadcrumb and the page title share the compact explorer heading.
     Swag.assert(breadcrumb.items.count > 2)
     let count = breadcrumb.items.count + 1
     Swag.assert(breadcrumb.items.back().name == "viewer.archive.zip")

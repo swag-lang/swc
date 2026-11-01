@@ -762,7 +762,7 @@ impl ViewerWindow
             for id, index in ViewerCommands.Modes where evt.id == id
             {
                 let names = [texts.explore_Names, texts.explore_Details, texts.explore_Small, texts.explore_Medium, texts.explore_Large]
-                let icons = [ThemeIcons.File, ThemeIcons.Sort, ThemeIcons.ZoomOut, ThemeIcons.FitView, ThemeIcons.ZoomIn]
+                let icons = [ThemeIcons.File, ThemeIcons.Outline, ThemeIcons.ZoomOut, ThemeIcons.FitView, ThemeIcons.ZoomIn]
                 name    = names[index]
                 icon    = .commandGlyph(icons[index])
                 hidden  = not exploring
@@ -787,7 +787,7 @@ impl ViewerWindow
             for id, index in ViewerCommands.Boards where evt.id == id
             {
                 let names = [texts.board_Automatic, texts.board_Grid, texts.board_Posters, texts.board_Covers, texts.board_Mosaic]
-                let icons = [ThemeIcons.Filter, ThemeIcons.File, ThemeIcons.FileVideo, ThemeIcons.FileAudio, ThemeIcons.FileImage]
+                let icons = [ThemeIcons.ExploreFolder, ThemeIcons.File, ThemeIcons.FileVideo, ThemeIcons.FileAudio, ThemeIcons.FileImage]
                 name    = names[index]
                 icon    = .commandGlyph(icons[index])
                 hidden  = not exploring

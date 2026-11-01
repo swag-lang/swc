@@ -106,8 +106,8 @@ func picturedFixture(name: string)->String => Path.combine(unwrap Path.directory
     Swag.assert(view.list.isLocallyVisible() and not view.page.isLocallyVisible())
 }
 
-// The return action keeps the far-right caption slot and the strip's centre line across viewers.
-// The first viewer records the strip; the others check the same geometry beside their chrome.
+// The return action sits after the application glyph and stays centred across viewers.
+// Each viewer records its own strip so changes in its caption controls remain visible.
 #[Swag.TestTag("golden")]
 #test
 {
@@ -116,12 +116,21 @@ func picturedFixture(name: string)->String => Path.combine(unwrap Path.directory
 
     let files = [picturedFixture("comprehensive.txt"),
                  picturedFixture("comprehensive.md"),
+                 picturedFixture("sample.cpp"),
                  picturedFixture("title.png"),
+                 picturedFixture("viewer.csv"),
+                 picturedFixture("viewer.page.html"),
+                 picturedFixture("segoeui.ttf"),
                  picturedFixture("viewer.pdf"),
                  picturedFixture("ffmpeg-h264-two-aac.mkv"),
+                 picturedFixture("pacman_beginning.wav"),
+                 picturedFixture("viewer.archive.zip"),
+                 picturedFixture("viewer.srt"),
+                 picturedFixture("viewer.groove.mid"),
+                 picturedFixture("viewer.hex"),
                  picturedFixture("viewer.console.exe")]
 
-    for file, index in files
+    for file in files
     {
         for light in [false, true]
         {
@@ -132,23 +141,24 @@ func picturedFixture(name: string)->String => Path.combine(unwrap Path.directory
             window.explorerActive = true
             window.refreshExplorerCaption()
             host.surface.setTitle("Swag Scope")
-            host.surfaceWnd.showTitle(true)
             host.surfaceWnd.sendResizeEvent()
 
             let button  = window.returnExplorerCaptionButton
             let metrics = host.theme.metrics
+            let client  = host.surfaceWnd.clientRect()
+            button.show(true)
             Swag.assert(button.isLocallyVisible())
-            Swag.assert(host.surfaceWnd.captionButtons[0] == button)
-            Swag.assert(Math.abs(button.position.vertCenter() - host.surfaceWnd.stripHeight() * 0.5) < 0.5)
-            Swag.assert(Math.abs(host.surfaceWnd.minimizeBtn!.position.x - button.position.right() - metrics.wnd_CaptionActionGap) < 0.5)
+            Swag.assert(Math.abs(button.position.vertCenter() - metrics.wnd_StripHeight * 0.5) < 0.5)
+            Swag.assert(button.position.x > client.x and button.position.x < client.horzCenter())
 
-            if index == 0
-            {
-                host.settleAnimations(&host.surfaceWnd, 4)
-                var image = host.render(&host.surfaceWnd)
-                image.crop({0, 0, image.width, cast(s32, host.surfaceWnd.stripHeight())})
-                Pixel.Testing.assertImageGolden(&image, light ? "viewer.return.caption.paper" : "viewer.return.caption.ink")
-            }
+            host.settleAnimations(&host.surfaceWnd, 4)
+            var image = host.render(&host.surfaceWnd)
+            image.crop({0, 0, image.width, cast(s32, metrics.wnd_StripHeight)})
+            var golden = Format.toString("viewer.return.%", Path.fileName(file.toString()) orelse "document")
+            if window.outlineCaptionButton.isLocallyVisible() do
+                golden += ".outline"
+            golden += light ? ".paper" : ".ink"
+            Pixel.Testing.assertImageGolden(&image, golden.toString())
         }
     }
 }

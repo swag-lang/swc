@@ -8,7 +8,7 @@ struct MovieServerFixture
     late listener: *TcpListener
     port:          u16
     poster:        Array'u8
-    requests:      [3] String
+    requests:      [4] String
     appleMiss:     bool
     tmdbHit:       bool
     tmdbMiss:      bool
@@ -29,7 +29,7 @@ func writeMovieBytes(stream: *TcpStream, bytes: const [..] u8)
 func serveMovies(thread: const *Threading.Thread)
 {
     let fixture = cast(*MovieServerFixture, unwrap thread.userParam)
-    for index in (fixture.appleMiss or fixture.tmdbMiss ? 3 : 2)
+    for index in (fixture.tmdbMiss ? 4 : (fixture.appleMiss or fixture.tmdbHit ? 3 : 2))
     {
         var stream = expect fixture.listener.accept()
         var bytes: [1024] u8
@@ -42,13 +42,18 @@ func serveMovies(thread: const *Threading.Thread)
         }
 
         var body: Array'u8
-        if fixture.tmdbMiss and index == 0
+        if fixture.tmdbMiss and index < 2
         {
             body.add(cast(const [..] u8, """{"results":[]}"""))
         }
         elif fixture.tmdbHit and index == 0
         {
             let json = """{"results":[{"id":78,"title":"Blade Runner","original_title":"Blade Runner","release_date":"1982-06-25","overview":"A detective hunts replicants.","poster_path":"/blade-runner.jpg","vote_average":8.1,"vote_count":1000},{"id":335984,"title":"Blade Runner 2049","release_date":"2017-10-06"}]}"""
+            body.add(cast(const [..] u8, json))
+        }
+        elif fixture.tmdbHit and index == 1
+        {
+            let json = """{"genres":[{"name":"Science Fiction"},{"name":"Drama"}],"credits":{"cast":[{"name":"Harrison Ford"},{"name":"Rutger Hauer"},{"name":"Sean Young"},{"name":"Extra Performer"}],"crew":[{"name":"Ridley Scott","job":"Director"}]}}"""
             body.add(cast(const [..] u8, json))
         }
         elif fixture.appleMiss and index == 0
@@ -62,10 +67,10 @@ func serveMovies(thread: const *Threading.Thread)
         }
         elif fixture.appleMiss and index == 2
         {
-            let json = """{"results":{"bindings":[{"directorLabel":{"value":"Ridley Scott"},"castLabel":{"value":"Harrison Ford"},"score":{"value":"8.1/10"},"scoreDate":{"value":"2026-02-25T00:00:00Z"}}]}}"""
+            let json = """{"results":{"bindings":[{"directorLabel":{"value":"Ridley Scott"},"castLabel":{"value":"Harrison Ford"},"genreLabel":{"value":"Science fiction"},"score":{"value":"8.1/10"},"scoreDate":{"value":"2026-02-25T00:00:00Z"}}]}}"""
             body.add(cast(const [..] u8, json))
         }
-        elif index == 0 or (fixture.tmdbMiss and index == 1)
+        elif index == 0 or (fixture.tmdbMiss and index == 2)
         {
             // A trimmed catalogue response: one exact match and one different sequel.
             let json = Format.toString("""{"resultCount":2,"results":[{"trackName":"Blade Runner","trackViewUrl":"https://tv.apple.com/movie/blade-runner","releaseDate":"1982-06-25T07:00:00Z","artworkUrl100":"http://127.0.0.1:%/poster/100x100bb.jpg","longDescription":"In a dark future, a blade runner hunts replicants.","primaryGenreName":"Sci-Fi & Fantasy"},{"trackName":"Blade Runner 2049","releaseDate":"2017-10-06T07:00:00Z","artworkUrl100":"http://127.0.0.1:%/other/100x100bb.jpg"}]}""", fixture.port, fixture.port)
@@ -99,10 +104,12 @@ func serveMovies(thread: const *Threading.Thread)
     let movie = expect OnlineMovie.lookup("Blade.Runner (1982).mkv", host, "fr")
     discard expect movie.posterBytes(host)
     thread.wait()
-    Swag.assert(movie.id == "apple" and movie.sources == "Apple")
+    Swag.assert(movie.id == "apple" and movie.sources == "Apple",
+                Format.toString("Expected Apple fallback; received % from %", movie.id, movie.sources))
     Swag.assert(Utf8.contains(fixture.requests[0].toString(), "/3/search/movie?"))
-    Swag.assert(Utf8.contains(fixture.requests[1].toString(), "/search?term=Blade%20Runner"))
-    Swag.assert(Utf8.contains(fixture.requests[2].toString(), "/poster/600x900bb.jpg"))
+    Swag.assert(Utf8.contains(fixture.requests[1].toString(), "/3/search/movie?"))
+    Swag.assert(Utf8.contains(fixture.requests[2].toString(), "/search?term=Blade%20Runner"))
+    Swag.assert(Utf8.contains(fixture.requests[3].toString(), "/poster/600x900bb.jpg"))
 }
 
 // A v3 key works when no token is configured; neither credential is embedded in the app.
@@ -223,12 +230,17 @@ func serveMovies(thread: const *Threading.Thread)
     thread.wait()
     Swag.assert(movie.id == "tmdb:78" and movie.sources == "TMDB" and poster.isValid())
     Swag.assert(movie.ratingSource == "TMDB" and movie.imdbRating == "8.1/10")
+    Swag.assert(movie.genre == "Science Fiction, Drama" and movie.director == "Ridley Scott")
+    Swag.assert(movie.actors == "Harrison Ford, Rutger Hauer, Sean Young")
     Swag.assert(Utf8.contains(fixture.requests[0].toString(), "/3/search/movie?query=Blade%20Runner&language=fr-FR"))
     Swag.assert(Utf8.contains(fixture.requests[0].toString(), "Authorization: Bearer fixture-token-abcdefghijkl"))
-    Swag.assert(Utf8.contains(fixture.requests[1].toString(), "/t/p/w500/blade-runner.jpg"))
+    Swag.assert(Utf8.contains(fixture.requests[1].toString(), "/3/movie/78?language=fr-FR&append_to_response=credits"))
+    Swag.assert(Utf8.contains(fixture.requests[1].toString(), "Authorization: Bearer fixture-token-abcdefghijkl"))
+    Swag.assert(Utf8.contains(fixture.requests[2].toString(), "/t/p/w500/blade-runner.jpg"))
     movie.label(&poster)
     let summary = MovieSummary.fromImage(&poster)
     Swag.assert(summary.ratingSource == "TMDB" and Utf8.contains(summary.text().toString(), "TMDB rating: 8.1/10"))
+    Swag.assert(summary.genre == "Science Fiction, Drama")
 
     let json = """{"results":[{"id":10,"title":"Dune","release_date":"1984-12-14"},{"id":11,"title":"Dune","release_date":"2021-10-22"}]}"""
     var decoder: Serialization.Decoder'Serialization.Read.Json

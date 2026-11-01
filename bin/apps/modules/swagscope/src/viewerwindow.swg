@@ -51,6 +51,12 @@ struct ViewerWindow
         appearanceButton:     *AppearanceButton
         outlineCaptionButton:        *CaptionButton
         returnExplorerCaptionButton: *CaptionButton
+        backCaptionButton:           *CaptionButton
+        forwardCaptionButton:        *CaptionButton
+        upCaptionButton:             *CaptionButton
+        refreshCaptionButton:        *CaptionButton
+        findCaptionButton:           *CaptionButton
+        informationCaptionButton:    *CaptionButton
         lens:                 *Lens.View
         infoSheet:            *InfoSheet
         hintLine:             *HintLine
@@ -713,6 +719,7 @@ impl ViewerWindow
         .searchPrevious.setIcon(.theme().icon(.SearchPrevious, themeActionIconSize(.themeMetrics())))
         .searchNext.setIcon(.theme().icon(.SearchNext, themeActionIconSize(.themeMetrics())))
         .refreshSearchPresentation()
+        .refreshExplorerCaption()
     }
 
     mtd refreshOutlineCaption()
@@ -723,8 +730,29 @@ impl ViewerWindow
 
     mtd refreshExplorerCaption()
     {
+        let text = appStrings()
         .returnExplorerCaptionButton.toolTip = appStrings().cmd_ReturnToExplorer
         .returnExplorerCaptionButton.show(.canReturnToExplorer() and not .fullScreen)
+
+        let exploring = .isExploring() and not .fullScreen
+        .backCaptionButton.show(exploring)
+        .forwardCaptionButton.show(exploring)
+        .upCaptionButton.show(exploring)
+        .refreshCaptionButton.show(exploring)
+        .findCaptionButton.show(exploring)
+        .informationCaptionButton.show(exploring)
+        .backCaptionButton.toolTip = text.explore_Back
+        .forwardCaptionButton.toolTip = text.explore_Forward
+        .upCaptionButton.toolTip = text.explore_Up
+        .refreshCaptionButton.toolTip = text.explore_Refresh
+        .findCaptionButton.toolTip = text.ui_FilterFiles
+        .informationCaptionButton.toolTip = text.cmd_Information
+        if not .explorer do
+            return
+
+        .backCaptionButton.enable(.explorer.history.canGoBack())
+        .forwardCaptionButton.enable(.explorer.history.canGoForward())
+
     }
 
     // Lays the home out again for the history, the theme or the language in force.
@@ -924,10 +952,46 @@ impl ViewerWindow
         result.language        = Gui.ReferenceLanguage
         result.index.attachTo(result.app())
 
-        with result.returnExplorerCaptionButton = CaptionButton.create(result.surface, .ChevronLeft, ViewerCommands.ReturnToExplorer)
+        with result.returnExplorerCaptionButton = CaptionButton.createLeading(result.surface, .ChevronLeft, ViewerCommands.ReturnToExplorer)
         {
             .toolTip    = appStrings().cmd_ReturnToExplorer
             .sigPressed += func|window = result|(_) { window.closeFile() }
+            .hide()
+        }
+        with result.backCaptionButton = CaptionButton.createLeading(result.surface, .ChevronLeft, ViewerCommands.Back)
+        {
+            .toolTip = appStrings().explore_Back
+            .sigPressed += func|window = result|(_) { discard window.runCommand(ViewerCommands.Back) }
+            .hide()
+        }
+        with result.forwardCaptionButton = CaptionButton.createLeading(result.surface, .ChevronRight, ViewerCommands.Forward)
+        {
+            .toolTip = appStrings().explore_Forward
+            .sigPressed += func|window = result|(_) { discard window.runCommand(ViewerCommands.Forward) }
+            .hide()
+        }
+        with result.upCaptionButton = CaptionButton.createLeading(result.surface, .ParentFolder, ViewerCommands.Up)
+        {
+            .toolTip = appStrings().explore_Up
+            .sigPressed += func|window = result|(_) { discard window.runCommand(ViewerCommands.Up) }
+            .hide()
+        }
+        with result.refreshCaptionButton = CaptionButton.createLeading(result.surface, .Update, ViewerCommands.Refresh)
+        {
+            .toolTip = appStrings().explore_Refresh
+            .sigPressed += func|window = result|(_) { discard window.runCommand(ViewerCommands.Refresh) }
+            .hide()
+        }
+        with result.findCaptionButton = CaptionButton.createLeading(result.surface, .Search, ViewerCommands.Find)
+        {
+            .toolTip = appStrings().ui_FilterFiles
+            .sigPressed += func|window = result|(_) { discard window.runCommand(ViewerCommands.Find) }
+            .hide()
+        }
+        with result.informationCaptionButton = CaptionButton.createLeading(result.surface, .Information, ViewerCommands.Information)
+        {
+            .toolTip = appStrings().cmd_Information
+            .sigPressed += func|window = result|(_) { discard window.runCommand(ViewerCommands.Information) }
             .hide()
         }
         result.createAppearanceChrome()
@@ -1188,6 +1252,7 @@ impl ViewerWindow
         let surface = .surface
         if not surface do
             return
+        .refreshExplorerCaption()
 
         if .isExploring()
         {

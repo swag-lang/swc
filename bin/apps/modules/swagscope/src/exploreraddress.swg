@@ -2,7 +2,7 @@
 
 using Core, Gui, Pixel
 
-// The breadcrumb that names the explored location above the title of the page.
+// The breadcrumb beside the title of the explored page.
 //
 // It reads as the path, one level per segment, with no ground of its own, until the reader asks
 // to type: a click past the last segment, or Ctrl+L, turns it into a field holding the whole
@@ -15,8 +15,6 @@ struct ExplorerAddress
     late
     {
         explorer:   *Explorer
-        navigation: *StackLayoutCtrl
-        actions:    *StackLayoutCtrl
         pathScroll: *ScrollWnd
         breadcrumb: *BreadcrumbCtrl
         edit:       *EditBox
@@ -39,52 +37,6 @@ impl ExplorerAddress
             .backgroundStyle = .Transparent
         }
 
-        // Navigation stays next to the location, including while a path is being typed.
-        with result.navigation = StackLayoutCtrl.create(result, .Left)
-        {
-            .dockStyle       = .Left
-            .backgroundStyle = .Transparent
-            .margin.z        = 8
-            .spacing         = 4
-        }
-
-        for command, index in [ViewerCommands.Back, ViewerCommands.Forward, ViewerCommands.Up]
-        {
-            let glyphs      = [ThemeIcons.ChevronLeft, .ChevronRight, .ParentFolder]
-            with let button = IconButton.create(result.navigation,
-                                                result.theme().icon(glyphs[index], result.themeMetrics().menuPopup_IconSize),
-                                                {0, 0, Explorer.AddressHeight, Explorer.AddressHeight},
-                                                command,
-                                                .IconOnly)
-            {
-                .layoutSpec.alignY = .Center
-                .setForm(.RoundedRectangle)
-            }
-        }
-
-        // Repeated folder actions stay beside the path, with the same state as their lens rows.
-        with result.actions = StackLayoutCtrl.create(result, .Left)
-        {
-            .dockStyle       = .Right
-            .backgroundStyle = .Transparent
-            .spacing         = result.themeMetrics().infoSheet_LineGap
-            .margin.x        = result.themeMetrics().infoSheet_BlockGap
-        }
-
-        for command, index in [ViewerCommands.Refresh, ViewerCommands.Find, ViewerCommands.Information]
-        {
-            let glyphs      = [ThemeIcons.Update, .Search, .Information]
-            with let button = IconButton.create(result.actions,
-                                                result.theme().icon(glyphs[index], result.themeMetrics().menuPopup_IconSize),
-                                                {0, 0, Explorer.ToolHeight, Explorer.ToolHeight},
-                                                command,
-                                                .IconOnly)
-            {
-                .layoutSpec.alignY = .Center
-                .setForm(.RoundedRectangle)
-            }
-        }
-
         with result.pathScroll = Wnd.create'ScrollWnd(result)
         {
             .dockStyle = .Center
@@ -97,7 +49,7 @@ impl ExplorerAddress
             .backgroundStyle = .Transparent
             .quiet = true
             .setLayoutMetrics(0, 4, 6)
-            .style.setFont(result.theme().createDefaultFont(13), .Regular)
+            .style.setFont(result.theme().createDefaultFont(16, .Bold), .Regular)
             .sigItemPressed  += func|explorer|(path, index) { explorer.navigateBreadcrumb(path.items[index].tag) }
             .sigFillMenu     += func|explorer|(_, index, menu) { explorer.fillBreadcrumbMenu(index, menu) }
             .sigMenuSelected += func|explorer|(_, _, path) { explorer.navigateBreadcrumb(path) }

@@ -1,6 +1,22 @@
 #global namespace Random
 #global public
 
+private func floatBefore(value: f32)->f32
+{
+    let bits = cast #bit (u32, value)
+    if value == 0 do
+        return cast #bit (f32, 0x8000_0001'u32)
+    return cast #bit (f32, value > 0 ? bits - 1 : bits + 1)
+}
+
+private func floatBefore(value: f64)->f64
+{
+    let bits = cast #bit (u64, value)
+    if value == 0 do
+        return cast #bit (f64, 0x8000_0000_0000_0001'u64)
+    return cast #bit (f64, value > 0 ? bits - 1 : bits + 1)
+}
+
 // Produces pseudorandom values from the algorithm `T`.
 //
 // A generator that was never seeded seeds itself from the clock and the current thread on its
@@ -156,26 +172,48 @@ impl Generator
         return cast #bit (s64, cast #wrap (u64, (minBits + value)))
     }
 
-    // Returns a value in the half-open interval `[min, max)`.
+    // Returns a value in the half-open interval `[min, max)` for finite bounds.
     //
     // `max` must be greater than `min`.
     mtd nextF32(min, max: f32)->f32
     {
+        Swag.assert(Math.isFinite(min) and Math.isFinite(max), "bounds must be finite")
         Swag.assert(max > min, "[[max]] must be greater than [[min]]")
-        let range = max - min
+
         let value = .nextF32()
-        return min + (value * range)
+        var result: f32
+        if min < 0 and max > 0
+        {
+            result = min * (1'f32 - value) + max * value
+        }
+        else
+        {
+            result = min + value * (max - min)
+        }
+
+        return result < max ? result : floatBefore(max)
     }
 
-    // Returns a value in the half-open interval `[min, max)`.
+    // Returns a value in the half-open interval `[min, max)` for finite bounds.
     //
     // `max` must be greater than `min`.
     mtd nextF64(min, max: f64)->f64
     {
+        Swag.assert(Math.isFinite(min) and Math.isFinite(max), "bounds must be finite")
         Swag.assert(max > min, "[[max]] must be greater than [[min]]")
-        let range = max - min
+
         let value = .nextF64()
-        return min + (value * range)
+        var result: f64
+        if min < 0 and max > 0
+        {
+            result = min * (1'f64 - value) + max * value
+        }
+        else
+        {
+            result = min + value * (max - min)
+        }
+
+        return result < max ? result : floatBefore(max)
     }
 
     // Returns `true` or `false` with equal probability.

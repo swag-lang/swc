@@ -75,8 +75,8 @@ struct Texts
     err_Truncated:   string = "file ends before its reported size"
 }
 
-private const FrenchStringsName = "lang/fr/scope.hex.tweak"
-private const FrenchStrings     = #include("../../../datas/lang/fr/scope.hex.tweak")
+private const HexFrenchStringsName = "lang/fr/scope.hex.tweak"
+private const HexFrenchStrings     = #include("../../../datas/lang/fr/scope.hex.tweak")
 
 private var g_Texts: Texts
 
@@ -126,11 +126,11 @@ func formatName(index: u32)->string
 // the language of the application around it. Calling this again is a no-op.
 func registerTexts(app: *Application)
 {
-    app.resources.addEmbedded(FrenchStringsName, FrenchStrings)
+    app.resources.addEmbedded(HexFrenchStringsName, HexFrenchStrings)
     Gui.registerStrings'Texts(&g_Texts, "scope.hex")
 }
 
 #run
 {
-    expect Gui.validateStrings'Texts(cast(string, FrenchStrings))
+    expect Gui.validateStrings'Texts(cast(string, HexFrenchStrings))
 }

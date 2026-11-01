@@ -54,7 +54,7 @@ internal func previewWav()->Array'u8
     return result
 }
 
-func waveformFixturePath()->String => Path.combine(unwrap Path.directoryName(#curlocation.fileName), "datas/waveform.samples.txt")
+func waveformFixturePath()->String => scopeTestDataPath("waveform.samples.txt")
 
 func writeU16(bytes: *Array'u8, offset: u64, value: u16)
 {
@@ -290,7 +290,7 @@ func markSoundOpenFailure(wnd: *Wnd, _: string)
 // on whether a playback device can be opened.
 #test
 {
-    let pacmanWav = Path.combine(unwrap Path.directoryName(#curlocation.fileName), "datas/pacman_beginning.wav")
+    let pacmanWav = scopeTestDataPath("pacman_beginning.wav")
     let sound     = expect SoundFile.load(pacmanWav)
     Swag.assert(sound.sampleRateHz() == 11_025)
     Swag.assert(sound.numChannels() == 1)

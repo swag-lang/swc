@@ -3,7 +3,7 @@
 
 using Core, Pixel, Gui, Viewers
 
-func midiViewerFixturePath()->String => Path.combine(unwrap Path.directoryName(#curlocation.fileName), "datas/viewer.mid")
+func midiViewerFixturePath()->String => scopeTestDataPath("viewer.mid")
 
 #test
 {

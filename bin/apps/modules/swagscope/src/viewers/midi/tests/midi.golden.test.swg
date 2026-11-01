@@ -8,7 +8,7 @@ using Core, Pixel, Gui, Viewers
 #[Swag.TestTag("golden")]
 #test
 {
-    let fileName = Path.combine(unwrap Path.directoryName(#curlocation.fileName), "datas/viewer.groove.mid")
+    let fileName = scopeTestDataPath("viewer.groove.mid")
     for light in [false, true]
     {
         var host: Testing.HeadlessHost

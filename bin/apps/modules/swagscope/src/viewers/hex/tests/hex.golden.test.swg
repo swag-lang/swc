@@ -226,7 +226,7 @@ func completeHexViewerAnalysis(host: *Testing.HeadlessHost, view: *Hex.Panel)
     var host: Testing.HeadlessHost
     host.setup(900, 600)
 
-    let view = createTestViewer(&host, fileName, 900, 560)
+    let view = hexTestViewer(&host, fileName, 900, 560)
     Swag.assert(view.commands.position.width <= 640)
     Swag.assert(view.optionsButton.parent == view.commands)
     Swag.assert(not view.bigEndian and view.rowWidthIndex == 0)
@@ -259,7 +259,7 @@ func completeHexViewerAnalysis(host: *Testing.HeadlessHost, view: *Hex.Panel)
     var host: Testing.HeadlessHost
     host.setup(860, 460)
 
-    with let view = createTestViewer(&host, fileName, 860, 460)
+    with let view = hexTestViewer(&host, fileName, 860, 460)
     {
         .grid.setBytesPerRow(16, false)
         .grid.moveCaret(0x80, false)

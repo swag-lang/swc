@@ -3,7 +3,7 @@
 
 using Core, Pixel, Gui, Viewers
 
-func archiveViewerFixturePath()->String => Path.combine(unwrap Path.directoryName(#curlocation.fileName), "datas/viewer.archive.zip")
+func archiveViewerFixturePath()->String => scopeTestDataPath("viewer.archive.zip")
 
 // Offscreen archive rendering retains the embedded viewer for thumbnail generation. Interactive
 // navigation uses Explorer instead; its tests cover the common folder and ZIP surface.
@@ -34,7 +34,7 @@ func archiveViewerFixturePath()->String => Path.combine(unwrap Path.directoryNam
 
     // Shell icon pixels depend on Windows, file associations, and its scaling path. Keep
     // checking that the viewer supplied icons, then render fixed folder/JSON/text inputs.
-    let iconFile  = Path.combine(unwrap Path.directoryName(#curlocation.fileName), "datas/viewer.archive.icons.png")
+    let iconFile  = scopeTestDataPath("viewer.archive.icons.png")
     let iconImage = expect Image.load(iconFile)
     var icons     = ImageList.create(host.app.renderer.addImage(&iconImage), 16, 16)
     defer icons.release(host.app.renderer)

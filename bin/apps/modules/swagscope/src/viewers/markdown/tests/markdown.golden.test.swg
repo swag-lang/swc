@@ -9,7 +9,7 @@ func assertMarkdownImages(themeIndex: u32, dpiScale: f32, golden: string)
     var host: Testing.HeadlessHost
     host.setup(960, 680, dpiScale)
 
-    let fileName = Path.combine(unwrap Path.directoryName(#curlocation.fileName), "datas/markdown.images.md")
+    let fileName = scopeTestDataPath("markdown.images.md")
     var result   = openTestViewer(MarkdownText.viewerPlugin(), &host.root, fileName)
     Swag.assert(result.view != null and result.failureReason.isEmpty())
     let view = assume cast(*Markdown.View, result.view)
@@ -55,7 +55,7 @@ func assertMarkdownImages(themeIndex: u32, dpiScale: f32, golden: string)
     host.setup(1280, 720, 1.5)
     shipFrame(&host)
     let window   = ViewerWindow.create(&host.surfaceWnd, createViewerPluginRegistry())
-    let fileName = Path.combine(unwrap Path.directoryName(#curlocation.fileName), "datas/markdown.images.md")
+    let fileName = scopeTestDataPath("markdown.images.md")
     window.openFile(fileName, remember: false)
     completeQueuedViewerFile(&host, window)
     let padding  = window.documentHost.padding

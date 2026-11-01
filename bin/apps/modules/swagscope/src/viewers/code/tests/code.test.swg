@@ -3,7 +3,7 @@
 
 using Core, Pixel, Gui, Viewers
 
-func codeFixturePath(name: string)->String => Path.combine(Path.combine(unwrap Path.directoryName(#curlocation.fileName), "datas"), name)
+func codeFixturePath(name: string)->String => Path.combine(scopeTestDataDirectory(), name)
 
 struct CodeLanguageSample
 {

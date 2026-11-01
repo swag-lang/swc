@@ -320,8 +320,8 @@ struct Texts
     word_Images:        string = "images"               // Several images of an icon file.
 }
 
-private const FrenchStringsName = "lang/fr/scope.binary.tweak"
-private const FrenchStrings     = #include("../../../datas/lang/fr/scope.binary.tweak")
+private const BinaryFrenchStringsName = "lang/fr/scope.binary.tweak"
+private const BinaryFrenchStrings     = #include("../../../datas/lang/fr/scope.binary.tweak")
 
 private var g_Texts: Texts
 
@@ -350,7 +350,7 @@ func setTextsOverride(texts: const *Texts?)
 // the language of the application around it. Calling this again is a no-op.
 func registerTexts(app: *Application)
 {
-    app.resources.addEmbedded(FrenchStringsName, FrenchStrings)
+    app.resources.addEmbedded(BinaryFrenchStringsName, BinaryFrenchStrings)
     Gui.registerStrings'Texts(&g_Texts, "scope.binary")
 }
 
@@ -359,5 +359,5 @@ func countText(count: u64, singular, plural: string)->String => Format.toString(
 
 #run
 {
-    expect Gui.validateStrings'Texts(cast(string, FrenchStrings))
+    expect Gui.validateStrings'Texts(cast(string, BinaryFrenchStrings))
 }

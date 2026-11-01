@@ -3,7 +3,7 @@
 
 using Core, Pixel, Gui, TrueType, Viewers
 
-internal func fontFixturePath()->String => Path.combine(Path.combine(unwrap Path.directoryName(#curlocation.fileName), "datas"), "segoeui.ttf")
+internal func fontFixturePath()->String => Path.combine(scopeTestDataDirectory(), "segoeui.ttf")
 
 func containsCharacter(characters: const [..] rune, expected: rune)->bool
 {

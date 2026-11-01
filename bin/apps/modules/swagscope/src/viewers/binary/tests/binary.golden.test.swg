@@ -30,7 +30,7 @@ func completeBinaryViewerWindow(host: *Testing.HeadlessHost, window: *ViewerWind
     var host: Testing.HeadlessHost
     host.setup(1100, 640)
 
-    let view = createTestViewer(&host, fileName, 1100, 600)
+    let view = binaryTestViewer(&host, fileName, 1100, 600)
     Swag.assert(view.rowLines.count == view.doc.report.rows.count)
     Swag.assert(not view.list.iconMarginFirstCol)
     Swag.assert(Utf8.contains(view.details.toSlice(), "PE32+"))

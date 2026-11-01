@@ -4,22 +4,7 @@
 using Core, Pixel, Gui, Viewers
 
 // Returns the path of one immutable fixture of this test suite.
-func binaryFixturePath(name: string)->String => Path.combine(Path.combine(unwrap Path.directoryName(#curlocation.fileName), "datas"), name)
-
-func finishBinaryViewer(host: *Testing.HeadlessHost, view: *Binary.Panel)
-{
-    view.loadTask.wait()
-    host.pump()
-
-    var attempts: u32
-    while view.loadTimer and attempts < 10_000
-    {
-        host.fireTimer(view.loadTimer)
-        attempts += 1
-    }
-
-    Swag.assert(not view.isLoading())
-}
+func binaryFixturePath(name: string)->String => Path.combine(scopeTestDataDirectory(), name)
 
 // Total size of the synthesized image. Two sections of one file-alignment unit each, behind a
 // header block of the same size.
@@ -764,7 +749,7 @@ func fixtureGuid(text: string)->Guid128 => expect Guid128.parse(text)
 // A PNG is read as its chunk chain: each chunk a structure of its own, the image header decoded.
 #test
 {
-    let fileName = Path.combine(unwrap Path.directoryName(#curlocation.fileName), "datas", "title.png")
+    let fileName = scopeTestDataPath("title.png")
 
     var doc: Binary.Document
     Swag.assert(doc.open(fileName) and doc.kind == .Png and doc.image.bigEndian)
@@ -797,18 +782,6 @@ func fixtureGuid(text: string)->Guid128 => expect Guid128.parse(text)
     Swag.assert(not view.failureReason.isEmpty())
 }
 
-internal func createTestViewer(host: *Testing.HeadlessHost, fileName: string, width, height: f32)->*Binary.Panel
-{
-    var viewerSession = openTestViewer(Binary.viewerPlugin(), &host.root, fileName)
-    let view = assume cast(*Binary.Panel, viewerSession.view)
-    finishBinaryViewer(host, view)
-    view.dockStyle = .Center
-    view.resize(width, height)
-    view.applyLayout()
-    view.layoutColumns()
-    return view
-}
-
 internal func binaryCellText(line: *ListLine, column: Binary.Column)->String => RichString.plainText(line.itemAt(cast(u32, column)).name.raw)
 
 // What leaves through the clipboard is the report a reader is looking at.
@@ -824,7 +797,7 @@ internal func binaryCellText(line: *ListLine, column: Binary.Column)->String => 
     var host: Testing.HeadlessHost
     host.setup(1100, 640)
 
-    let view = createTestViewer(&host, fileName, 1100, 600)
+    let view = binaryTestViewer(&host, fileName, 1100, 600)
     view.copyReport()
     let all = Clipboard.getString()
     Swag.assert(Utf8.contains(all.toSlice(), "swagExport"))
@@ -848,7 +821,7 @@ internal func binaryCellText(line: *ListLine, column: Binary.Column)->String => 
     var host: Testing.HeadlessHost
     host.setup(1100, 640)
 
-    let view = createTestViewer(&host, fileName, 1100, 600)
+    let view = binaryTestViewer(&host, fileName, 1100, 600)
     var matches: Array'Viewer.SearchMatch
     view.collectMatches("file offset of the PE signature", {}, &matches)
     Swag.assert(matches.count == 1)
@@ -882,7 +855,7 @@ internal func binaryCellText(line: *ListLine, column: Binary.Column)->String => 
     var host: Testing.HeadlessHost
     host.setup(1100, 640)
 
-    let view = createTestViewer(&host, fileName, 1100, 600)
+    let view = binaryTestViewer(&host, fileName, 1100, 600)
     view.applyFilter("file offset of the PE signature", {})
     while view.filterTimer do
         host.pump()
@@ -916,7 +889,7 @@ internal func binaryCellText(line: *ListLine, column: Binary.Column)->String => 
     host.setup(1100, 640)
     defer expect host.app.setLanguage(ReferenceLanguage)
 
-    let view = createTestViewer(&host, fileName, 1100, 600)
+    let view = binaryTestViewer(&host, fileName, 1100, 600)
     Swag.assert(findRow(&view.doc.report, "File") != null)
     let revealed = view.revealOffset(FixtureTextAt)
     Swag.assert(revealed)
@@ -942,7 +915,7 @@ internal func binaryCellText(line: *ListLine, column: Binary.Column)->String => 
     var host: Testing.HeadlessHost
     host.setup(1100, 640)
 
-    let view    = createTestViewer(&host, fileName, 1100, 600)
+    let view    = binaryTestViewer(&host, fileName, 1100, 600)
     var reached = view.goToTypedOffset("400")
     Swag.assert(reached)
     Swag.assert(binaryCellText(unwrap view.list.selectedLine(), .Field) == ".text")

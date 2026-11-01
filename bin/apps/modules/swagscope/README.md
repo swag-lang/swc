@@ -333,14 +333,14 @@ plugin can open. The key is never translated or reused because remembered viewer
 it. A built-in glyph remains a 24-unit cell in `datas/icons.svg` with a matching `ViewerIcons`
 case in grid order; a separately built plugin would name a cell of the document it embeds itself.
 
-Keep ordinary tests at `src/tests/viewer.<format>.test.swg`, golden comparisons at
-`src/tests/viewer.<format>.golden.test.swg`, fixtures in `src/tests/datas`, and image goldens in
-`src/tests/goldens`. External fixtures record their source URLs, license, and hashes in
+Keep a viewer's ordinary tests and goldens in `src/viewers/<viewer>/tests/`, with `.test.swg`
+files separated by family; keep application-wide and shared tests in `src/tests/`. Shared fixtures
+live in `src/tests/datas`, and image goldens in `src/tests/goldens`. External fixtures record their source URLs, license, and hashes in
 `datas/THIRDPARTY.md`.
 Run a focused test with:
 
 ```text
-tools/apps.bat dm test swagscope --test-file viewer.<format>.test.swg
+tools/apps.bat dm test swagscope --test-file <plan>.test.swg
 ```
 
 `tools/apps.bat dm build swagscope` builds one executable containing all viewers and lets
@@ -352,7 +352,7 @@ and select that plugin explicitly. This optional review waits for presentable co
 a nonzero exit code when a fixture is missing or a plugin cannot open it.
 
 Realistic user journeys are dedicated `#test` functions tagged `integration.application.smoke`.
-`src/tests/browsemedialibrary.smoke.test.swg` exercises a temporary media library through the native window,
-workers and presentation path. It is excluded from default headless tests. Run it on a private
+`src/tests/browsemedialibrary.smoke.test.swg` exercises a temporary mixed-format media library,
+including preview-cache eviction, through the native window, workers and presentation path. It is excluded from default headless tests. Run it on a private
 Windows desktop with `tools/test-desktop.ps1 -DevMode -Module swagscope`; see the
 [shared scenario contract](../../../../tools/application-scenarios.md) for its checks and limits.

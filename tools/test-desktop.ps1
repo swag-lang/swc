@@ -18,7 +18,7 @@ param(
 $ErrorActionPreference = 'Stop'
 $repository = Split-Path $PSScriptRoot -Parent
 if ($Action -eq 'test') {
-    $testRoot = Join-Path $repository "bin/$Workspace/modules/$Module/src/tests"
+    $testRoot = Join-Path $repository "bin/$Workspace/modules/$Module/src"
     $tagPattern = 'Swag\.TestTag\("' + [regex]::Escape($TestTag) + '"\)'
     $selected = @(Get-ChildItem -LiteralPath $testRoot -Recurse -Filter '*.test.swg' |
         Where-Object { (!$TestFile -or $_.FullName.Contains($TestFile)) -and

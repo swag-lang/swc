@@ -4,8 +4,8 @@ Use complementary test families. A passing startup smoke is not a completed user
 
 | Boundary | What it establishes | Where it lives |
 | --- | --- | --- |
-| Ordinary tests | Model, decoder, command and layout behavior | `src/tests/<subject>.test.swg` |
-| Golden tests | Maintained text/image references | `src/tests/<subject>.golden.test.swg`, tag `golden` |
+| Ordinary tests | Model, decoder, command and layout behavior | `src/tests/` for application-wide behavior; `src/viewers/<viewer>/tests/` for one viewer |
+| Golden tests | Maintained text/image references | Beside their owning tests as `<plan>.golden.test.swg`, tag `golden` |
 | Application scenarios | Native window, real files and workers, event loop, user actions and completed presentation | `src/tests/<plan>.smoke.test.swg`, tag `integration.application.smoke` |
 | External integration tests | Native-host, driver, hardware or external-service contracts | `src/tests/<contract>.integration.test.swg`, explicit `integration.*` tag |
 | Startup smoke | The shipped executable and published resources start and stop within a budget | `tools/apps.bat [dm] smoke <application>` |
@@ -14,8 +14,10 @@ The scenario tag is an opt-in selection of ordinary `#test` functions, not anoth
 or a second assertion framework. Keep the test-only guard and keep scenarios out of `#main`.
 Keep each family in dedicated files, with `.test.swg` last. Name a smoke file for the complete
 user plan, such as `browsemedialibrary.smoke.test.swg`; the first control or screen does not own
-the journey. Do not mix ordinary and golden tests in one file. Shared test support belongs in
-the guarded `helpers.swg` of the test root, not in duplicated setup or new production APIs.
+the journey. Do not mix ordinary and golden tests in one file. Put each viewer's code and tests
+together under `src/viewers/<viewer>/`; reserve `src/tests/` for application-wide or shared plans.
+Keep viewer-local test support under that viewer's `tests/helpers.swg`; put support shared by
+several viewers in `src/tests/helpers.swg`, not in duplicated setup or new production APIs.
 Run the real application window and its normal event loop; do not replace filesystem enumeration,
 background workers, decoders or the renderer with fakes in a test intended to cover that path.
 Include production initialization such as the application icon and resource registration; redirect
@@ -59,12 +61,14 @@ and a supported non-default DPI. Do not describe an unimplemented dimension as c
 
 ## Current executable coverage
 
-Swag Scope's `browsemedialibrary.smoke.test.swg` creates 160 small MP4 files and 160 PNG files from two
-real fixtures in temporary Films and Pictures folders. It visits films, scrolls to the end,
-changes details/poster modes, filters, opens a film, returns to the folder, replaces a pending
-navigation, refreshes Pictures, resizes to odd dimensions and back, and changes theme. Visible
-thumbnails and native presentation are checkpoints. This is local, offline coverage; online artwork, network shares, varied codecs,
-monitor DPI changes and visible-compositor behavior are not covered by this journey.
+Swag Scope's `browsemedialibrary.smoke.test.swg` creates 160 local entries in temporary Films and
+Pictures folders from four real video fixtures (MJPEG, H.264, Matroska and legacy RV40) and four
+image fixtures (PNG, WebP, GIF and TIFF). It scrolls through the film library to fill and evict the
+128-texture preview cache, returns to reload evicted previews, changes details/poster modes,
+filters, opens a film, returns to the folder, replaces a pending navigation, refreshes Pictures,
+resizes to odd dimensions and back, and changes theme. Visible thumbnails and native presentation
+are checkpoints. This is local, offline coverage; online artwork, network shares, monitor DPI
+changes and visible-compositor behavior are not covered by this journey.
 
 Run it with the private-desktop launcher documented in [README.md](README.md). Logs identify each
 stage. Keep the compiler, program configuration, fixture identities, renderer and failing stage

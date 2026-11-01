@@ -251,9 +251,9 @@ func waitForVideoVoicePlaying(view: *Film.Panel)
     Swag.assert(view.voice != null and view.voice.isPlaying())
 }
 
-func videoAudioFixturePath()->String => Path.combine(unwrap Path.directoryName(#curlocation.fileName), "datas/glint-aac-mjpeg.mp4")
-func videoAvcFixturePath()->String   => Path.combine(unwrap Path.directoryName(#curlocation.fileName), "datas/ffmpeg-h264-baseline.mp4")
-internal func videoMatroskaFixturePath()->String => Path.combine(unwrap Path.directoryName(#curlocation.fileName), "datas/ffmpeg-h264-two-aac.mkv")
+func videoAudioFixturePath()->String => scopeTestDataPath("glint-aac-mjpeg.mp4")
+func videoAvcFixturePath()->String   => scopeTestDataPath("ffmpeg-h264-baseline.mp4")
+internal func videoMatroskaFixturePath()->String => scopeTestDataPath("ffmpeg-h264-two-aac.mkv")
 
 // A same-stem sidecar is discovered, selected, and presented on the movie clock. Rendering
 // preferences and manual synchronization are available from the same track menu.
@@ -645,7 +645,7 @@ internal func videoMatroskaFixturePath()->String => Path.combine(unwrap Path.dir
 {
     var host: Testing.HeadlessHost
     host.setup(640, 360)
-    let fileName = Path.combine(unwrap Path.directoryName(#curlocation.fileName), "datas/rv40-legacy-clock.mkv")
+    let fileName = scopeTestDataPath("rv40-legacy-clock.mkv")
     var result   = openTestViewer(Film.viewerPlugin(), &host.root, fileName, commandParent: &host.root)
     Swag.assert(result.view != null)
     let view = assume cast(*Film.Panel, result.view)
@@ -1343,23 +1343,4 @@ func captureVideoFailure(wnd: *Wnd, reason: string)
     releaseVideoProducer(view)
     waitForVideoFrame(view)
     Swag.assert(view.frameIndex == 12)
-}
-
-// Bright, middle, and dark bands: the pictures subtitle text has to stay readable over.
-struct SubtitleBackdropProbe
-{
-    using wnd: Wnd
-}
-
-impl IWnd for SubtitleBackdropProbe
-{
-    mtd impl onPaint(evt: *PaintEvent)
-    {
-        let painter = evt.paintContext.painter
-        let rect    = .clientRect()
-        let band    = Math.floor(rect.width / 3)
-        painter.fillRect(0, 0, band, rect.height, Color.fromArgb(0xFFF2EFE6))
-        painter.fillRect(band, 0, band, rect.height, Color.fromArgb(0xFF8A8F96))
-        painter.fillRect(2 * band, 0, rect.width - 2 * band, rect.height, Color.fromArgb(0xFF101418))
-    }
 }

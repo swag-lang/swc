@@ -31,21 +31,6 @@ func writeStreamedFile(size: u64)->String
     return fileName
 }
 
-internal func createTestViewer(host: *Testing.HeadlessHost, fileName: string, width, height: f32)->*Hex.Panel
-{
-    Hex.registerTexts(&host.app)
-    let commands      = Wnd.create'Wnd(&host.root, {0, 0, 640, 36})
-    var viewerSession = openTestViewer(Hex.viewerPlugin(), &host.root, fileName, commandParent: commands, infoParent: commands)
-    let view          = assume cast(*Hex.Panel, viewerSession.view)
-    completeViewerBackgroundLoad(host, &view.load)
-    assertViewerInfoButton(unwrap view.zoomLabel)
-    view.dockStyle = .Center
-    view.resize(width, height)
-    view.applyLayout()
-    view.grid.refreshLayout()
-    return view
-}
-
 // A file-open error crosses the viewer boundary instead of appearing as an empty byte grid.
 #test
 {
@@ -68,7 +53,7 @@ internal func createTestViewer(host: *Testing.HeadlessHost, fileName: string, wi
     var host: Testing.HeadlessHost
     host.setup(900, 600)
 
-    let view = createTestViewer(&host, fileName, 900, 560)
+    let view = hexTestViewer(&host, fileName, 900, 560)
     let grid = view.grid
     grid.setGrouping(.Unsigned32)
     Swag.assert(grid.valueSize() == 4 and grid.displayGroupSize() == 4)
@@ -297,7 +282,7 @@ internal func createTestViewer(host: *Testing.HeadlessHost, fileName: string, wi
     var host: Testing.HeadlessHost
     host.setup(900, 600)
 
-    let view = createTestViewer(&host, fileName, 900, 560)
+    let view = hexTestViewer(&host, fileName, 900, 560)
     Swag.assert(view.grid.doc.fileSize == StreamedFileSize)
     Swag.assert(view.grid.topRow == 0 and view.grid.caret == 0)
     discard host.render(view)
@@ -329,7 +314,7 @@ internal func createTestViewer(host: *Testing.HeadlessHost, fileName: string, wi
     var host: Testing.HeadlessHost
     host.setup(900, 600)
 
-    let view = createTestViewer(&host, fileName, 900, 560)
+    let view = hexTestViewer(&host, fileName, 900, 560)
     let grid = view.grid
     let span = grid.scroll.scrollSize.y
 
@@ -353,7 +338,7 @@ internal func createTestViewer(host: *Testing.HeadlessHost, fileName: string, wi
     var host: Testing.HeadlessHost
     host.setup(900, 600)
 
-    let view = createTestViewer(&host, fileName, 900, 560)
+    let view = hexTestViewer(&host, fileName, 900, 560)
     let grid = view.grid
     let wide = grid.bytesPerRow
     Swag.assert(wide >= Hex.MinBytesPerRow and wide % grid.valueSize() == 0)
@@ -393,7 +378,7 @@ internal func createTestViewer(host: *Testing.HeadlessHost, fileName: string, wi
     var host: Testing.HeadlessHost
     host.setup(900, 600)
 
-    let view = createTestViewer(&host, fileName, 900, 560)
+    let view = hexTestViewer(&host, fileName, 900, 560)
     let grid = view.grid
     grid.setBytesPerRow(16, false)
 
@@ -414,7 +399,7 @@ internal func createTestViewer(host: *Testing.HeadlessHost, fileName: string, wi
     var host: Testing.HeadlessHost
     host.setup(900, 600)
 
-    let view = createTestViewer(&host, fileName, 900, 560)
+    let view = hexTestViewer(&host, fileName, 900, 560)
     Swag.assert(not view.bigEndian and not view.grid.bigEndian)
 
     // The combo changes the values drawn by the grid, not only the distance between bytes.
@@ -443,7 +428,7 @@ internal func createTestViewer(host: *Testing.HeadlessHost, fileName: string, wi
     var host: Testing.HeadlessHost
     host.setup(900, 600)
 
-    let view = createTestViewer(&host, fileName, 900, 560)
+    let view = hexTestViewer(&host, fileName, 900, 560)
 
     with let grid = view.grid
     {
@@ -488,7 +473,7 @@ internal func createTestViewer(host: *Testing.HeadlessHost, fileName: string, wi
     var host: Testing.HeadlessHost
     host.setup(900, 600)
 
-    let view = createTestViewer(&host, fileName, 900, 560)
+    let view = hexTestViewer(&host, fileName, 900, 560)
     let grid = view.grid
 
     host.clickPopupMenuItemWhenShown(Hex.Action.SelectAll)
@@ -534,7 +519,7 @@ internal func createTestViewer(host: *Testing.HeadlessHost, fileName: string, wi
     var host: Testing.HeadlessHost
     host.setup(900, 600)
 
-    let view     = createTestViewer(&host, fileName, 900, 560)
+    let view     = hexTestViewer(&host, fileName, 900, 560)
     var revealed = view.revealOffset(11, 5)
     Swag.assert(revealed)
     Swag.assert(view.grid.matchStart == 11 and view.grid.matchLength == 5)
@@ -558,7 +543,7 @@ internal func createTestViewer(host: *Testing.HeadlessHost, fileName: string, wi
     var host: Testing.HeadlessHost
     host.setup(900, 600)
 
-    let view = createTestViewer(&host, fileName, 900, 560)
+    let view = hexTestViewer(&host, fileName, 900, 560)
 
     with let grid = view.grid
     {
@@ -606,7 +591,7 @@ internal func createTestViewer(host: *Testing.HeadlessHost, fileName: string, wi
     var host: Testing.HeadlessHost
     host.setup(900, 600)
 
-    let view = createTestViewer(&host, fileName, 900, 560)
+    let view = hexTestViewer(&host, fileName, 900, 560)
     let grid = view.grid
     grid.setBytesPerRow(16, false)
     let point = grid.localToSurface(Math.Point{grid.hexCellX(2) + 1, grid.rowTop(0) + 2})
@@ -638,7 +623,7 @@ internal func createTestViewer(host: *Testing.HeadlessHost, fileName: string, wi
     var host: Testing.HeadlessHost
     host.setup(900, 600, dpiScale: 1.5)
 
-    let view = createTestViewer(&host, fileName, 900, 560)
+    let view = hexTestViewer(&host, fileName, 900, 560)
     let grid = view.grid
     grid.setBytesPerRow(16, false)
     let row    = 2'u64
@@ -660,7 +645,7 @@ internal func createTestViewer(host: *Testing.HeadlessHost, fileName: string, wi
     host.setup(900, 600)
     defer discard catch host.app.setLanguage(ReferenceLanguage)
 
-    let view = createTestViewer(&host, fileName, 900, 560)
+    let view = hexTestViewer(&host, fileName, 900, 560)
     Swag.assert(Hex.texts().ui_Empty == "This file is empty.")
     var options: OptionSheet.Page
     view.describeOptions(&options)
@@ -695,7 +680,7 @@ internal func createTestViewer(host: *Testing.HeadlessHost, fileName: string, wi
     var host: Testing.HeadlessHost
     host.setup(900, 600)
 
-    let view = createTestViewer(&host, fileName, 900, 560)
+    let view = hexTestViewer(&host, fileName, 900, 560)
     let grid = view.grid
     grid.selectAll()
 

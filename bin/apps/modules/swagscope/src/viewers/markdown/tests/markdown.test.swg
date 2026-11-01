@@ -40,8 +40,8 @@ using Core, Pixel, Gui, Gui.Testing, Viewers
     Swag.assert(options.arrowPosition == .RightDownward)
 }
 
-internal func markdownFixturePath()->String       => Path.combine(unwrap Path.directoryName(#curlocation.fileName), "datas/comprehensive.md")
-internal func markdownWhiteyFixturePath()->String => Path.combine(unwrap Path.directoryName(#curlocation.fileName), "datas/whitey.md")
+internal func markdownFixturePath()->String       => scopeTestDataPath("comprehensive.md")
+internal func markdownWhiteyFixturePath()->String => scopeTestDataPath("whitey.md")
 
 // Theme and line width are viewer preferences, not properties of one Markdown file.
 #test

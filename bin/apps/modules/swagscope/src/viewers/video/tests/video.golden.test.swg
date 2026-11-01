@@ -3,6 +3,25 @@
 
 using Core, Pixel, Gui, Video, Audio, Viewers
 
+// Bright, middle, and dark bands: the subtitle text has to stay readable over each picture.
+struct SubtitleBackdropProbe
+{
+    using wnd: Wnd
+}
+
+impl IWnd for SubtitleBackdropProbe
+{
+    mtd impl onPaint(evt: *PaintEvent)
+    {
+        let painter = evt.paintContext.painter
+        let rect    = .clientRect()
+        let band    = Math.floor(rect.width / 3)
+        painter.fillRect(0, 0, band, rect.height, Color.fromArgb(0xFFF2EFE6))
+        painter.fillRect(band, 0, band, rect.height, Color.fromArgb(0xFF8A8F96))
+        painter.fillRect(2 * band, 0, rect.width - 2 * band, rect.height, Color.fromArgb(0xFF101418))
+    }
+}
+
 func assertVideoTimelineEndpoints(light: bool, golden: string)
 {
     var host: Testing.HeadlessHost

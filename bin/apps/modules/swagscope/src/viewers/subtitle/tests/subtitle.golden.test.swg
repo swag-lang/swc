@@ -8,7 +8,7 @@ using Core, Pixel, Gui, Viewers
 #[Swag.TestTag("golden")]
 #test
 {
-    let fileName = Path.combine(unwrap Path.directoryName(#curlocation.fileName), "datas/viewer.reading.srt")
+    let fileName = scopeTestDataPath("viewer.reading.srt")
     for light in [false, true]
     {
         var host: Testing.HeadlessHost

@@ -52,7 +52,7 @@ public:
     static void* getNativeInterfaceAdapter(TaskContext& ctx, void* targetFn, uint32_t numArgs);
 
     static Result emitAndCall(TaskContext& ctx, void* targetFn, std::span<const JITArgument> args, const JITReturn& ret, CallConvKind callConvKind = CallConvKind::C);
-    static Result call(TaskContext& ctx, void* invoker, const uint64_t* arg0 = nullptr, JITCallErrorKind* outErrorKind = nullptr, JITRuntimeSetupMode setupMode = JITRuntimeSetupMode::FromCompiler);
+    static Result call(TaskContext& ctx, void* invoker, const uint64_t* arg0 = nullptr, JITCallErrorKind* outErrorKind = nullptr, JITRuntimeSetupMode setupMode = JITRuntimeSetupMode::FromCompiler, CallConvKind callConvKind = CallConvKind::C);
 
     // Frees every fiber-local slot JIT code allocated whose cleanup callback 'ownsCallback'
     // claims, running the callbacks for the threads that still hold values.

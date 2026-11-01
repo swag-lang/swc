@@ -1569,5 +1569,47 @@ SWC_TEST_BEGIN(JIT_LinuxTypedInvokerCountsVariadicAggregateVectors)
 }
 SWC_TEST_END()
 
+SWC_TEST_BEGIN(JIT_LinuxRuntimeSetupReceivesSwagScalarConvention)
+{
+    CommandLine commandLine = ctx.cmdLine();
+    commandLine.targetOs = Runtime::TargetOs::Linux;
+    CompilerInstance compiler(ctx.global(), commandLine);
+    TaskContext context(compiler);
+    SWC_RESULT(compiler.setupSema(context));
+    uint64_t receivedFlags = UINT64_MAX;
+    MicroBuilder builder(context);
+    const auto destination = MicroReg::virtualIntReg(1);
+    builder.emitLoadRegPtrImm(destination, reinterpret_cast<uint64_t>(&receivedFlags));
+    builder.emitLoadMemReg(destination, 0, CallConv::swag().intArgRegs[0], MicroOpBits::B64);
+    builder.setRetUsesAbiRegs(false, false);
+    builder.emitRet();
+    MachineCode lowered;
+    SWC_RESULT(lowered.emit(context, builder));
+    JITMemoryManager manager;
+    JITMemory memory;
+    installSystemVCode(manager, memory, lowered.bytes, lowered.unwindInfo);
+    auto* declaration = compiler.allocate<AstNode>(AstNodeId::FunctionDecl, SourceCodeRef::invalid());
+    const auto setupId = context.idMgr().runtimeFunction(IdentifierManager::RuntimeFunctionKind::SetupRuntime);
+    auto* setup = Symbol::make<SymbolFunction>(context, declaration, TokenRef::invalid(), setupId, SymbolFlagsE::SemaCompleted);
+    compiler.registerRuntimeFunctionSymbol(setupId, setup);
+    compiler.publishJitFunctionEntry(*setup, memory.entryPoint());
+    auto* function = Symbol::make<SymbolFunction>(context, declaration, TokenRef::invalid(), IdentifierRef::invalid(), SymbolFlagsE::SemaCompleted);
+    context.state().runJitFunction = function;
+    SWC_RESULT(JIT::call(context, reinterpret_cast<void*>(nativeCallbackZero)));
+    if (receivedFlags != static_cast<uint64_t>(Runtime::RuntimeFlags::FromCompiler))
+    {
+        std::println(stderr, "runtime setup flags: {}", receivedFlags);
+        return Result::Error;
+    }
+    const uint64_t directArgument = 0x123456789ABCDEF0;
+    SWC_RESULT(JIT::call(context, memory.entryPoint(), &directArgument, nullptr, JITRuntimeSetupMode::None, CallConvKind::Swag));
+    if (receivedFlags != directArgument)
+    {
+        std::println(stderr, "direct Swag argument: {}", receivedFlags);
+        return Result::Error;
+    }
+}
+SWC_TEST_END()
+
 SWC_END_NAMESPACE();
 #endif

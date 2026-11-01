@@ -68,7 +68,7 @@ Result JITExecManager::executeItem(Item& item)
     else
     {
         auto callErrorKind = JITCallErrorKind::None;
-        callResult         = JIT::call(ctx, fn->jitEntryAddress(), item.request.hasArg0 ? &item.request.arg0 : nullptr, &callErrorKind, item.request.runtimeSetupMode);
+        callResult         = JIT::call(ctx, fn->jitEntryAddress(), item.request.hasArg0 ? &item.request.arg0 : nullptr, &callErrorKind, item.request.runtimeSetupMode, fn->callConvKind());
     }
 
     if (callResult == Result::Pause)

@@ -62,8 +62,28 @@ namespace
     }
 
 
+    // These integer-only runtime entries have at most four arguments. Swag
+    // shares their argument/result and nonvolatile registers with Windows x64;
+    // select that scalar call contract explicitly on a System V compiler host.
+#if defined(__linux__) && defined(__x86_64__)
+    using RuntimeSetupInvoker = void (__attribute__((ms_abi)) *)(Runtime::RuntimeFlags);
+    using RuntimeHookInvoker  = void (__attribute__((ms_abi)) *)(uint64_t, uint64_t, uint64_t, const Runtime::String*);
+    using SwagScalarInvoker   = void (__attribute__((ms_abi)) *)(uint64_t);
+#else
     using RuntimeSetupInvoker = void (*)(Runtime::RuntimeFlags);
     using RuntimeHookInvoker  = void (*)(uint64_t, uint64_t, uint64_t, const Runtime::String*);
+    using SwagScalarInvoker   = void (*)(uint64_t);
+#endif
+
+    // GCC 14 merges adjacent indirect calls through different ABI casts. Keep
+    // this boundary out of line so the Swag entry cannot become a host-ABI call.
+#if defined(__linux__) && defined(__x86_64__)
+    __attribute__((noinline))
+#endif
+    void invokeSwagScalar(void* invoker, uint64_t argument)
+    {
+        reinterpret_cast<SwagScalarInvoker>(invoker)(argument);
+    }
 
     enum class RuntimeHookStage : uint64_t
     {
@@ -2148,7 +2168,7 @@ namespace
     }
 }
 
-Result JIT::call(TaskContext& ctx, void* invoker, const uint64_t* arg0, JITCallErrorKind* outErrorKind, const JITRuntimeSetupMode setupMode)
+Result JIT::call(TaskContext& ctx, void* invoker, const uint64_t* arg0, JITCallErrorKind* outErrorKind, const JITRuntimeSetupMode setupMode, const CallConvKind callConvKind)
 {
     SWC_RESULT(requireHostTarget(ctx));
     const TaskScopedContext scopedContext(ctx);
@@ -2184,9 +2204,13 @@ Result JIT::call(TaskContext& ctx, void* invoker, const uint64_t* arg0, JITCallE
         {
             if (arg0)
             {
-                using InvokerVoidU64    = void (*)(uint64_t);
-                const auto typedInvoker = reinterpret_cast<InvokerVoidU64>(invoker);
-                typedInvoker(*arg0);
+                if (callConvKind == CallConvKind::Swag || callConvKind == CallConvKind::WindowsX64)
+                    invokeSwagScalar(invoker, *arg0);
+                else
+                {
+                    using InvokerVoidU64 = void (*)(uint64_t);
+                    reinterpret_cast<InvokerVoidU64>(invoker)(*arg0);
+                }
             }
             else
             {

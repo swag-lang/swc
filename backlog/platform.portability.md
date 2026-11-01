@@ -873,7 +873,7 @@ by portable modules and products. The earlier entries prepare and enforce the sa
   outside the checkout with GNU Make. Complete DevMode and Release compilers link and
   pass the lexer/parser suites including expected-error inputs without spurious JIT setup.
   The full C++ campaign, including filesystem tests and extra IR/native validation, passes
-  1,642 of 1,706 tests; 64 remain failing. Closed Windows x64 instruction fixtures execute
+  1,643 of 1,707 tests; 64 remain failing. Closed Windows x64 instruction fixtures execute
   through an explicit GCC ABI bridge. Runtime adapters initialize on the first actual JIT call,
   and cross-host generated execution has an explicit diagnostic.
   PE/COFF records no longer depend on the Windows SDK, and both target enums represent Linux.
@@ -920,7 +920,9 @@ by portable modules and products. The earlier entries prepare and enforce the sa
   A parsed deferred body can replace the source and publish a side effect while the captured
   result stays intact at O0 and O2. Typed JIT invokers consume the host frame ABI and classify
   register/stack arguments, hidden results and variadic vector counts; their cache stores full
-  aggregate shapes independently of semantic types and per-call addresses. Lifecycle-hook
+  aggregate shapes independently of semantic types and per-call addresses. Runtime setup/hooks
+  and one-argument evaluation entries use their Swag scalar ABI on the Linux host; the explicit
+  invocation boundary prevents GCC 14 from merging incompatible ABI calls. Lifecycle-hook
   return cases, end-to-end source execution and over-aligned stack values still need validation
   or integration.
 - Next: validate lifecycle return storage and complete end-to-end source execution; add

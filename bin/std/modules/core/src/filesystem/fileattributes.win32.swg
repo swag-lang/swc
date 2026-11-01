@@ -41,6 +41,18 @@ private impl FileAttributes
             result |= NotContentIndexed
         if attributes & FILE_ATTRIBUTE_ENCRYPTED do
             result |= Encrypted
+        if attributes & FILE_ATTRIBUTE_INTEGRITY_STREAM do
+            result |= IntegrityStream
+        if attributes & FILE_ATTRIBUTE_NO_SCRUB_DATA do
+            result |= NoScrubData
+        if attributes & FILE_ATTRIBUTE_RECALL_ON_OPEN do
+            result |= RecallOnOpen
+        if attributes & FILE_ATTRIBUTE_PINNED do
+            result |= Pinned
+        if attributes & FILE_ATTRIBUTE_UNPINNED do
+            result |= Unpinned
+        if attributes & FILE_ATTRIBUTE_RECALL_ON_DATA_ACCESS do
+            result |= RecallOnDataAccess
         return result
     }
 }

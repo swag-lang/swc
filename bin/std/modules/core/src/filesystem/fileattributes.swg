@@ -20,4 +20,10 @@ enum FileAttributes
     Offline               // The file data is not immediately available
     NotContentIndexed     // The file is excluded from content indexing
     Encrypted             // The file is encrypted by the file system
+    IntegrityStream       // The file system verifies the integrity of the file data
+    NoScrubData           // The file is excluded from data-integrity scanning
+    RecallOnOpen          // The file is not fully present locally and may be recalled on open
+    Pinned                // The file is pinned for local availability
+    Unpinned              // The file is not pinned for local availability
+    RecallOnDataAccess    // The file data may be recalled on access
 }

@@ -1323,6 +1323,35 @@ SWC_TEST_BEGIN(Compiler_GlobalOsGuardSelectsTargetBeforeDeclarations)
 }
 SWC_TEST_END()
 
+#if defined(__linux__) && defined(__x86_64__)
+SWC_TEST_BEGIN(Compiler_LinuxGuardedRuntimeBootstrapsPureLeaves)
+{
+    // The runtime folds its monotonic frequency while allocator callbacks are still
+    // being analyzed. Unused borrow guards and unrelated global roots formed a cycle.
+    static constexpr std::string_view SOURCE = "const Answer = 42\n#assert(Answer == 42)\n";
+    const fs::path sourcePath = Unittest::makeTestSourcePath("Compiler", "LinuxGuardedRuntimeBootstrap");
+
+    CommandLine cmdLine;
+    cmdLine.command  = CommandKind::Sema;
+    cmdLine.name     = "compiler_linux_guarded_runtime_bootstrap";
+    cmdLine.targetOs = Runtime::TargetOs::Linux;
+    cmdLine.buildCfg = "devmode";
+    cmdLine.numCores = 3;
+    cmdLine.silent   = true;
+    cmdLine.files.insert(sourcePath);
+    CommandLineParser::refreshBuildCfg(cmdLine);
+
+    const uint64_t errorsBefore = Stats::getNumErrors();
+    RestoreErrorCount restoreErrors{errorsBefore};
+    CompilerInstance compiler(ctx.global(), cmdLine);
+    Unittest::registerTestSource(compiler, sourcePath, SOURCE);
+    Command::sema(compiler);
+    if (Stats::getNumErrors() != errorsBefore)
+        return Result::Error;
+}
+SWC_TEST_END()
+#endif
+
 SWC_TEST_BEGIN(Compiler_GenericUnionDeductionRemainsStableForHistoricalRandomSeed1002)
 {
     return runGenericUnionDeductionRandomizedSeed(ctx, 1002);

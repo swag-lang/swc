@@ -608,7 +608,11 @@ namespace
     {
         // Each root's order is already unique, but roots often share most dependencies.
         // Build membership alongside the output so previously reached roots need no walk.
-        const bool mayRepeat = !extraRoots.empty() || SemaRuntime::isRuntimeArtifactFunction(sema.compiler(), symFn);
+        // A pure leaf cannot read a mutable global or call its initializer. Pulling unrelated
+        // callbacks into its closure can wait on the very function currently folding this leaf.
+        const bool needsGlobalRoots = SemaRuntime::isRuntimeArtifactFunction(sema.compiler(), symFn) &&
+                                      (!symFn.isPure() || symFn.hasCallDependencies() || !extraRoots.empty());
+        const bool mayRepeat = !extraRoots.empty() || needsGlobalRoots;
         if (!mayRepeat)
         {
             symFn.visitJitOrder([&out](SymbolFunction* function) {
@@ -637,7 +641,7 @@ namespace
             appendJitOrderDeduplicated(*root, out, seen);
         }
 
-        if (SemaRuntime::isRuntimeArtifactFunction(sema.compiler(), symFn))
+        if (needsGlobalRoots)
             appendGlobalFunctionInitJitOrder(sema, out, seen);
     }
 

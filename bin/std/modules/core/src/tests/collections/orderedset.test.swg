@@ -3,6 +3,18 @@
 
 using Swag
 
+func assertOrderedSetKeysAreReadOnly(values: *OrderedSet's32)
+{
+    for &key in values[]
+    {
+        #assert(#typeof(key) == const *s32)
+    }
+    for &key in values[].reversed()
+    {
+        #assert(#typeof(key) == const *s32)
+    }
+}
+
 #test
 {
     var set: OrderedSet's32
@@ -12,6 +24,8 @@ using Swag
     Swag.assert(set.add(3))
     Swag.assert(not set.add(3))
     Swag.assert(set.add(2))
+
+    assertOrderedSetKeysAreReadOnly(&set)
 
     var code = 0
     for key in set do

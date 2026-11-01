@@ -44,7 +44,7 @@ struct(K) HashSet
     }
 }
 
-// Iterates a borrowed hash set by descending storage slot.
+// Iterates a borrowed hash set by descending storage slot, exposing keys only through const access.
 #[Swag.Opaque]
 struct(K) ReversedHashSet
 {
@@ -70,7 +70,7 @@ impl ReversedHashSet
             {
                 #static if ptr do
                     #inject(stmt,
-                            key = cast(*K, &table[tableIndex].key),
+                            key = cast(const *K, &table[tableIndex].key),
                             break = break to Up,
                             continue = break to Down)
                 elif Reflection.isStruct(K) do
@@ -181,8 +181,8 @@ impl HashSet
 
     // Visits every key in storage-slot order, binding it to `key`.
     //
-    // The order is unspecified and changes when the set grows. Visiting by address binds a mutable
-    // pointer; otherwise a struct key is bound through a constant pointer and any other by value.
+    // The order is unspecified and changes when the set grows. Visiting by address binds a
+    // constant pointer so a key cannot be changed without updating its hash position.
     #[Macro]
     mtd(ptr: bool) const opVisit(stmt: #code(key))
     {
@@ -201,7 +201,7 @@ impl HashSet
             {
                 #static if ptr do
                     #inject(stmt,
-                            key = cast(*K, &table[tableIndex].key),
+                            key = cast(const *K, &table[tableIndex].key),
                             break = break to Up,
                             continue = break to Down)
                 elif Reflection.isStruct(K) do

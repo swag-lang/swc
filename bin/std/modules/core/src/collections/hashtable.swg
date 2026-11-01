@@ -46,7 +46,7 @@ struct(K, V) HashTable
     }
 }
 
-// Iterates a borrowed hash table by descending storage slot.
+// Iterates a borrowed hash table by descending storage slot, exposing keys only through const access.
 #[Swag.Opaque]
 struct(K, V) ReversedHashTable
 {
@@ -72,7 +72,7 @@ impl ReversedHashTable
             {
                 #static if ptr do
                     #inject(stmt,
-                            key = cast(*K, &table[tableIndex].key),
+                            key = cast(const *K, &table[tableIndex].key),
                             value = cast(*V, &table[tableIndex].value),
                             break = break to Up,
                             continue = break to Down)
@@ -226,8 +226,8 @@ impl HashTable
 
     // Visits every entry in storage-slot order, binding `key` and `value`.
     //
-    // The order is unspecified and changes when the table grows. Visiting by address binds mutable
-    // pointers; otherwise struct halves are bound through constant pointers and others by value.
+    // The order is unspecified and changes when the table grows. Visiting by address binds the
+    // key through a constant pointer and the value through a mutable pointer.
     #[Macro]
     mtd(ptr: bool) const opVisit(stmt: #code(key, value))
     {
@@ -246,7 +246,7 @@ impl HashTable
             {
                 #static if ptr do
                     #inject(stmt,
-                            key = cast(*K, &table[tableIndex].key),
+                            key = cast(const *K, &table[tableIndex].key),
                             value = cast(*V, &table[tableIndex].value),
                             break = break to Up,
                             continue = break to Down)

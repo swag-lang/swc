@@ -3,6 +3,20 @@
 
 using Swag
 
+func assertOrderedMapBorrowTypes(map: *OrderedMap'(s32, String))
+{
+    for &key, &value in map[]
+    {
+        #assert(#typeof(key) == const *s32)
+        #assert(#typeof(value) == *String)
+    }
+    for &key, &value in map[].reversed()
+    {
+        #assert(#typeof(key) == const *s32)
+        #assert(#typeof(value) == *String)
+    }
+}
+
 struct OrderedMapKey
 {
     rank: s32
@@ -16,6 +30,8 @@ struct OrderedMapKey
     map.add(10, "ten")
     map.add(20, "twenty")
     map[20] = "TWENTY"
+
+    assertOrderedMapBorrowTypes(&map)
 
     var keyCode = 0
     for key, value, index in map

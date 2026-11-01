@@ -3,6 +3,18 @@
 
 using Swag
 
+func assertHashSetKeysAreReadOnly(values: *HashSet's32)
+{
+    for &key in values[]
+    {
+        #assert(#typeof(key) == const *s32)
+    }
+    for &key in values[].reversed()
+    {
+        #assert(#typeof(key) == const *s32)
+    }
+}
+
 struct RejectHashSetGrowthAllocator {}
 
 impl Swag.IAllocator for RejectHashSetGrowthAllocator
@@ -54,6 +66,8 @@ func assertReverseIntSetIteration(values: HashSet's32)->bool
     values.add(1)
     values.add(3)
     values.add(1)
+
+    assertHashSetKeysAreReadOnly(&values)
 
     Swag.assert(values.count == 2)
     Swag.assert(values.contains(1))

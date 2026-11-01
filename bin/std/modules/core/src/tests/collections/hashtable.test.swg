@@ -3,6 +3,20 @@
 
 using Swag
 
+func assertHashTableBorrowTypes(table: *HashTable'(s32, s32))
+{
+    for &key, &value in table[]
+    {
+        #assert(#typeof(key) == const *s32)
+        #assert(#typeof(value) == *s32)
+    }
+    for &key, &value in table[].reversed()
+    {
+        #assert(#typeof(key) == const *s32)
+        #assert(#typeof(value) == *s32)
+    }
+}
+
 struct RejectHashTableGrowthAllocator {}
 
 impl Swag.IAllocator for RejectHashTableGrowthAllocator
@@ -55,6 +69,8 @@ func assertReverseIntTableIteration(table: HashTable'(s32, s32))->bool
     table.add(1, 10)
     table[1] = 11
     table[3] = 30
+
+    assertHashTableBorrowTypes(&table)
 
     Swag.assert(table.count == 2)
     Swag.assert(table.contains(1))

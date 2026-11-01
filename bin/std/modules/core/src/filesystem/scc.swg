@@ -457,14 +457,15 @@ impl Writer
         Swag.assert(prefix.count == PrefixSize)
 
         let temporary = Format.toString("%.scc-tmp-%", fileName, Guid64.random())
-        var committed = false
+        var ownsTemporary = false
         defer
         {
-            if not committed and File.exists(temporary) do
+            if ownsTemporary do
                 discard catch File.delete(temporary)
         }
 
-        var output = try File.openWrite(temporary)
+        var output = try File.open(temporary, .CreateNew, .Write, .Delete)
+        ownsTemporary = true
         try output.writeAll(prefix.toSlice())
         try output.writeAll(headerBytes.toSlice())
 
@@ -493,7 +494,7 @@ impl Writer
         try output.flush()
         output.close()
         try File.move(fileName, temporary)
-        committed = true
+        ownsTemporary = false
     }
 }
 

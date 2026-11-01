@@ -118,6 +118,18 @@ private impl ImageView
         return result
     }
 
+    // Reports whether the content extends beyond the padded viewport and can be panned.
+    mtd const canPan()->bool
+    {
+        if not .hasContent() do
+            return false
+
+        let size   = .contentSize()
+        let client = .paddedClientRect()
+        let scale  = .effectiveZoom()
+        return size.width * scale > client.width or size.height * scale > client.height
+    }
+
     // Returns the untransformed draw rectangle centred inside the transformed content bounds.
     mtd const sourceRect()->Math.Rectangle
     {
@@ -313,7 +325,7 @@ impl IWnd for ImageView
                 .zoomToFit()
 
         case .Pressed where evt.button == .Left:
-            if not .hasContent() do
+            if not .canPan() do
                 return
             .isPanning   = true
             .lastPointer = evt.surfacePos
@@ -322,7 +334,7 @@ impl IWnd for ImageView
         case .Move:
             if not .isPanning
             {
-                if .hasContent() do
+                if .canPan() do
                     .app().setFrameCursor(Cursor.from(.Hand))
                 return
             }

@@ -62,8 +62,14 @@ impl MappedFile
         let temporary = Path.combine(Env.getSpecialDirectory(.Temp), Format.toString("swag-mapped-%.tmp", Guid128.random()))
         var result: #returntype
         result.name   = name
+        var ownsTemporary = false
+        defer
+        {
+            if ownsTemporary do
+                discard catch File.delete(temporary)
+        }
         result.stream = try File.open(temporary, .CreateNew, .ReadWrite, .ReadWrite | .Delete)
-        defer discard catch File.delete(temporary)
+        ownsTemporary = true
 
         var buffer: [64 * 1024] u8
         var remaining = Math.min(try source.size(), maxBytes)

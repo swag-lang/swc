@@ -14,7 +14,7 @@ they never point back up it.
    and their raw dependencies. A host leaf may depend on optional native interoperability, but its
    portable API uses neutral values or opaque native storage.
 3. **Optional native interoperability** owns raw ABI declarations and deliberately native
-   adapters. The `win32`, `gdi32`, `gdiplus`, `xinput`, and `xaudio2` modules belong here, as do
+   adapters. The `linux`, `win32`, `gdi32`, `gdiplus`, `xinput`, and `xaudio2` modules belong here, as do
    explicit adapters such as `Image.from(HBITMAP)`. Interoperability modules may depend only on
    other interoperability modules. Portable code never needs them merely to use Core, GUI, Pixel,
    Audio, or a shipped application.
@@ -69,11 +69,12 @@ and source-level DWARF still need integration. The C++ JIT page allocator and
 | Runtime arguments, byte output, native library loading and termination | `bin/runtime/os.win32.swg`, `__osCommandLine`, `__printString`, `__loaddll`, `__exit*` | Native argc/argv preserves empty values, spaces, quotes, backslashes and UTF-8 across shared imports; JIT libc termination calls report compiler diagnostics |
 | Runtime test fault recovery, stack capture, image and debug-section access | `bin/runtime/os.win32.swg`, `__hostTest*`, `__hostCatchCall`, `__hostResume`, `__captureStack`, `__host*DebugSection` | Linux signal recovery passes JIT and native ELF probes, including stack overflow, captured-error cleanup and prior-handler restoration; source-level stack resolution remains |
 | Runtime hosted math | `bin/runtime/os.win32.swg`, UCRT imports | glibc/libm bindings execute through System V; GNU ELF linking supplies libc and libm |
-| Core directories, files, streams, mappings, metadata, paths and watches | `bin/std/modules/core/src/filesystem/*.win32.swg` | Missing |
+| Standard raw Linux ABI | `bin/std/modules/linux` | glibc descriptor/directory/ioctl/mapping declarations; isolated module tests pass in JIT and native ELF |
+| Core directories, files, streams, mappings, metadata, paths and watches | `bin/std/modules/core/src/filesystem/*.win32.swg` | Page-release hint implemented with MADV_PAGEOUT; Core tests remain blocked by missing host services. Stream/mapping ownership and other filesystem operations remain missing |
 | Core processes, environment, hardware, native libraries, errors and sandbox | `bin/std/modules/core/src/system/*.win32.swg` | Missing |
 | Core thread/event primitives, wall clocks and timers | `bin/std/modules/core/src/thread/*.win32.swg`, `src/time/*.win32.swg` | Missing |
 | Core console, debugger and secure-memory operations | `bin/std/modules/core/src/diagnostics/*.win32.swg`, `src/crypto/security.win32.swg` | Missing |
-| Core keyboard, mouse and gamepad acquisition | `bin/std/modules/core/src/input/`, Windows and XInput leaves | Missing |
+| Core keyboard, mouse and gamepad acquisition | `bin/std/modules/core/src/input/`, Windows and XInput leaves | evdev gamepad discovery implementation added, pending Core and hardware validation; gamepad state/vibration, keyboard and mouse remain missing |
 | Network TCP and HTTP transport | `bin/std/modules/net/src/tcp.win32.swg`, `src/http/client.win32.swg` | Missing |
 | Pixel installed fonts, native image adapters and render-thread integration | `bin/std/modules/pixel/src/text/*.win32.swg`, `src/image/image.win32.swg`, `src/render/renderthread.win32.swg` | Missing; OpenGL is outside this roadmap |
 | Audio device, voices, buses and streaming | `bin/std/modules/audio/src/driver/xaudio2.swg` | `nosound.swg` is selected in source; no real device backend or Linux execution validation |

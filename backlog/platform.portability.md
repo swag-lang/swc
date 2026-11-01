@@ -246,8 +246,15 @@ by portable modules and products. The earlier entries prepare and enforce the sa
   pass; `--os linux` selects System V, hosted runtime bindings, ELF objects and GNU-linked native
   executables/archives. Static module consumers execute lifecycle hooks across imports. The
   default target is still Windows, and neutral standard/application modules have no Linux gate.
-- Next: compile platform-neutral bin modules and close their missing host primitives. Select
-  headless/no-sound backends only where their contracts permit them.
+  The first Core probe reaches 370 source files. Supplying page-release and gamepad-discovery
+  declarations exposes 60 unresolved dependency reports, including files/streams, process and
+  sandbox services, threads/clocks, keyboard state and windows. These also block focused Core
+  tests. The new `linux` ABI module independently tests descriptor, directory, ioctl and mapping
+  calls in JIT and native ELF; Core's anonymous/private page-release tests remain blocked.
+- Next: complete the Core resource owners and their Linux host primitives, starting with
+  streams/mappings and startup environment/sandbox services. Finish gamepad state and vibration
+  and validate discovery on an input-enabled host. Select headless/no-sound backends only where
+  their contracts permit them; do not treat absent declarations or success stubs as a backend.
 - Done when: a Linux configuration compiles every neutral runtime and bin source and fails on
   an accidental native Windows import.
 
@@ -864,7 +871,7 @@ by portable modules and products. The earlier entries prepare and enforce the sa
 ### platform.portability.091 — Finish Linux cache cleanup and fault-boundary validation
 
 - Evidence: complete DevMode and Release Linux compilers pass lexer/parser suites and focused
-  compile-time/native probes. The full C++ campaign passes all 1,742 tests, including the original
+  compile-time/native probes. The full C++ campaign passes all 1,743 tests, including the original
   PE resource failure and added native/shared-module regressions. Cross-target JIT execution
   uses host context, TLS and process storage; native output keeps its target instructions.
   DWARF frame registration preserves C++ cleanup through generated faults, and native ELF/JIT
@@ -881,7 +888,9 @@ by portable modules and products. The earlier entries prepare and enforce the sa
 
 - Evidence: the internal System V profile implements six integer/eight vector argument registers,
   independent banks, callee-save rules, zero shadow space and variadic AL setup with explicit
-  liveness. Native C fixtures exercise mixed scalar banks, stack arguments, variadic floats and
+  liveness. Source-level C ellipses now pass individual ABI arguments with default numeric
+  promotions, including indirect calls and simultaneous integer/vector bank overflow. The
+  focused variadic source suite passes 106 tests in JIT and native ELF. Native C fixtures exercise mixed scalar banks, stack arguments, variadic floats and
   indirect calls after physical-register DCE. Source attributes select the concrete profile
   through C, resolved per compiler instance rather than the process-wide default. Windows remains the
   default target while the Linux runtime is incomplete. The storage classifier and argument planner cover

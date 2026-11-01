@@ -42,7 +42,8 @@ all C++ tests pass, including filesystem, JIT and native validation. The default
 remains Windows; `--os linux` selects System V, the Linux runtime and GNU-linked ELF output.
 Native executables cover startup, arguments, synchronization and fault recovery. Static/shared
 imports execute initialization and cleanup, and published .so files survive executable relocation.
-Compile-time shared imports, dynamic load/unload, PIC and source-level DWARF still need integration. The C++ JIT page allocator and
+Compile-time shared imports execute through the same runtime hooks. Dynamic load/unload, PIC
+and source-level DWARF still need integration. The C++ JIT page allocator and
 `bin/runtime`'s `__hostPage*` hooks have separate tests.
 
 | Capability | Owner / Windows adapter | Linux implementation |
@@ -58,7 +59,7 @@ Compile-time shared imports, dynamic load/unload, PIC and source-level DWARF sti
 | Compiler signal stacks and generated-code unwinding | `src/Support/Os/Os.Windows.cpp`, `src/Backend/JIT/` | Guarded per-thread alternate stacks, DWARF CIE/FDE construction and libgcc registration; native tests cover stack overflow, generated frames and C++ cleanup after a generated fault. The fault boundary preserves C++ cleanup and rejects native faults. Instruction-level CFI follows the control-flow graph, including multiple returns, dynamic stack allocation, saved registers and indirect jumps |
 | Compiler startup CPU/OS-state check | `src/Main/HostCpuGuard.cpp` | ELF preinit guard checks GCC’s x86-64-v3 predicate, including OS AVX state; rejection tested before C++ initialization |
 | Foreign calls, argument/return classification and callee-save registers | `src/Backend/ABI/`, Windows x64 | System V scalar/aggregate calls, source parameter homes, result storage and cached JIT invokers tested against native C; owned-value cleanup and native runtime integration remain |
-| Object emission, linking, startup, dynamic imports and debug artifacts | `src/Backend/Native/`, `src/Backend/Linker/`, COFF/PE/PDB | ELF objects, GNU executable/archive linking, exact argc/argv startup, static/shared dependencies and relocatable publication execute; compile-time shared lookup, dynamic load/unload, PIC and source-level DWARF remain |
+| Object emission, linking, startup, dynamic imports and debug artifacts | `src/Backend/Native/`, `src/Backend/Linker/`, COFF/PE/PDB | ELF objects, GNU executable/archive linking, exact argc/argv startup, static/shared dependencies and relocatable publication execute; compile-time shared imports also execute; dynamic load/unload, PIC and source-level DWARF remain |
 | Runtime reserve/commit/decommit/release and allocation-base lookup | `bin/runtime/os.win32.swg`, `__hostPage*` | Linux reservation tracking over mmap/mprotect/madvise/munmap; JIT probes cover decommit/recommit and base lookup; JIT and native ELF probes recover protected-page faults |
 | Runtime TLS and thread-exit cleanup | `bin/runtime/os.win32.swg`, `__hostTls*`, `__hostThreadStorage*` | pthread keys; JIT probes cover thread isolation and exit callbacks; compiler-owned callback lifetime still needs tracking |
 | Runtime threads, priorities, processor count, pool ceiling and work pressure | `bin/runtime/os.win32.swg`, `__hostThread*`, `__hostWorkPressure` | pthread creation/join and procfs counters pass JIT probes; scheduler contention, affinity limits and cgroup pressure need broader coverage |

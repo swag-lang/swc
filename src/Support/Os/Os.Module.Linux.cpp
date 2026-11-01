@@ -46,7 +46,13 @@ bool Os::loadExternalModule(void*& outModuleHandle, const std::string_view modul
     const auto     filename = requested.filename().string();
     std::vector<fs::path> candidates{requested};
     if (!filename.ends_with(".so") && filename.find(".so.") == std::string::npos)
-        candidates.push_back(requested.parent_path() / std::format("{}{}.so", filename.starts_with("lib") ? "" : "lib", filename));
+    {
+        // Swag module artifacts keep their module name; system libraries commonly
+        // add lib. Try both without changing explicit or versioned library names.
+        candidates.push_back(requested.parent_path() / (filename + ".so"));
+        if (!filename.starts_with("lib"))
+            candidates.push_back(requested.parent_path() / ("lib" + filename + ".so"));
+    }
 
     // Constructors can call back into host services: do not hold our path mutex in dlopen.
     const auto paths = requested.has_parent_path() ? std::vector<fs::path>{} : moduleSearchPaths();

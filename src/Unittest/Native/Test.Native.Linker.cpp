@@ -546,6 +546,17 @@ SWC_FILESYSTEM_TEST_BEGIN(Linker_LinuxSharedModulesUseChildLibraryPaths)
 }
 SWC_TEST_END()
 
+SWC_FILESYSTEM_TEST_BEGIN(Linker_LinuxSharedModulesExecuteDuringCompilation)
+{
+    LinkerTestDirectory directory("shared_library_jit");
+    SWC_RESULT(copyWorkspaceModules(directory.path(), {"artifact_shared_provider", "artifact_shared_jit_consumer"}));
+    const std::vector<Utf8> arguments = {
+        "run", "--os", "linux", "--workspace", Utf8(directory.path()), "--workspace-module", "artifact_shared_jit_consumer",
+        "--num-cores", "3", "--no-log-color", "--run-arg", "", "--run-arg", "two words", "--run-arg", "café"};
+    return runCompiler(arguments, ExitCode::Success, "compile-time shared artifact passed");
+}
+SWC_TEST_END()
+
 SWC_FILESYSTEM_TEST_BEGIN(Linker_LinuxPublishedSharedModulesSurviveRelocation)
 {
     LinkerTestDirectory directory("published_shared_library");

@@ -874,7 +874,7 @@ by portable modules and products. The earlier entries prepare and enforce the sa
   outside the checkout with GNU Make. Complete DevMode and Release compilers link and
   pass the lexer/parser suites including expected-error inputs without spurious JIT setup.
   The full C++ campaign, including filesystem tests and extra IR/native validation, passes
-  all 1,734 tests, including the PE missing-resource fixture. Closed Windows x64 instruction fixtures execute
+  all 1,735 tests, including the PE missing-resource fixture. Closed Windows x64 instruction fixtures execute
   through an explicit GCC ABI bridge. Runtime adapters initialize on the first actual JIT call,
   and generated code retains separate output-target and host unwind metadata.
   Cross-host foreign relocations reject an actual call while allowing untaken error branches.
@@ -965,14 +965,14 @@ by portable modules and products. The earlier entries prepare and enforce the sa
   executable consumers verify initialization, pre-main and cleanup for static and shared imports.
   Shared providers observe their consumer's context and exact argument vector. Child launch paths
   use LD_LIBRARY_PATH without changing the compiler environment. Published .so dependencies
-  survive relocation, and disabling publication removes the old copies.
+  survive relocation, and disabling publication removes the old copies. Shared imports also
+  execute from `#run`: lookup accepts both Swag module.so and conventional libmodule.so names,
+  with context/argument sharing verified by DevMode and Release compilers.
   Source debug output is explicitly rejected until DWARF source records exist. Shared-library
   linking currently permits text relocations; it does not establish PIC or loader lifecycle support.
   Persistent native function caches remain COFF-specific and are disabled for Linux.
-- Next: fix compile-time shared-module lookup: a `#run` calling an imported function still
-  searches for libmodule.so while Swag publishes module.so. Validate dynamic load/unload
-  lifecycle, and finish PIC relocations, source-level DWARF and target-specific incremental
-  caches. Preserve the working native executable and archive consumers.
+- Next: validate dynamic load/unload lifecycle, and finish PIC relocations, source-level
+  DWARF and target-specific incremental caches. Preserve the working native executable and archive consumers.
 - Done when: Linux executables and shared libraries link and run a runtime/native workspace smoke,
   including foreign imports, arguments and cross-module initialization/cleanup.
 - Related: platform.portability.005, platform.portability.092

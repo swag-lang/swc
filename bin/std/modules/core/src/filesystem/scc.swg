@@ -502,6 +502,11 @@ impl Reader
     // Initializes this reader and reads only the SCC prefix and header.
     mtd initialize(fileName: string, limits: ReadLimits = {}) fail
     {
+        .close()
+        var initialized = false
+        defer if not initialized do
+            .close()
+
         func readU16(buffer: const [..] u8, offset: u64)->u16 => Math.make16(buffer[offset + 1], buffer[offset])
 
         func readU64(buffer: const [..] u8, offset: u64)->u64
@@ -589,6 +594,7 @@ impl Reader
         }
 
         try validateManifest(&.header.manifest, .header.chunks.toSlice())
+        initialized = true
     }
 
     // Closes the underlying file while keeping the decoded header available.

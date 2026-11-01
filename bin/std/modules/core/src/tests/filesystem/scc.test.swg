@@ -136,6 +136,7 @@ func sccTestId(text: string)->Guid128 => expect Guid128.parse(text)
     discard catch reader.initialize(path, limits) as limitErrorOutcome
     let limitError = limitErrorOutcome.value()
     Swag.assert(limitError != null)
+    expect File.delete(path)
 }
 
 // Empty containers remain valid and closing a reader releases the Windows file lock.

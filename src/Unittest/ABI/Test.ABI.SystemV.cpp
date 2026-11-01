@@ -5,6 +5,7 @@
 #include "Backend/ABI/ABICall.SystemV.h"
 #include "Backend/ABI/SystemVAbi.h"
 #include <sys/mman.h>
+#include <pthread.h>
 #include <unistd.h>
 #include "Backend/Encoder/X64Encoder.h"
 #include "Backend/JIT/JIT.h"
@@ -915,6 +916,88 @@ SWC_TEST_BEGIN(JIT_LinuxNativeInterfaceAdaptersTranslateArgumentsAndOutliveCompi
         return Result::Error;
     if (reinterpret_cast<Two>(adapters[2])(31, 37) != nativeCallbackTwo(31, 37))
         return Result::Error;
+}
+SWC_TEST_END()
+
+SWC_TEST_BEGIN(JIT_LinuxTlsReadsPreserveRegistersFlagsAndLeafStack)
+{
+    struct Slot
+    {
+        uint64_t id = Os::tlsAlloc();
+        ~Slot() { pthread_key_delete(static_cast<pthread_key_t>(id)); }
+    } slot;
+    uint64_t value = 42;
+    Os::tlsSetValue(slot.id, &value);
+    CommandLine command = ctx.cmdLine();
+    command.targetOs = Runtime::TargetOs::Windows;
+    CompilerInstance compiler(ctx.global(), command);
+    TaskContext context(compiler);
+    using Probe = uint64_t(__attribute__((ms_abi)) *)();
+    for (const bool preserveState : {false, true})
+    {
+        MicroBuilder builder(context);
+        Runtime::BuildCfgBackend backend{};
+        backend.optimLevel = Runtime::BuildCfgBackendOptimLevel::O0;
+        builder.setBackendBuildCfg(backend);
+        builder.setRetUsesAbiRegs(true, false);
+        const MicroReg result = MicroReg::intReg(0);
+        const MicroReg index = MicroReg::intReg(2);
+        std::array<std::array<uint64_t, 2>, 16> vectors{}, actualVectors{};
+        std::array<uint64_t, 16> actualRegisters{};
+        const auto failed = builder.createLabel();
+        if (preserveState)
+        {
+            for (uint32_t reg = 0; reg < 16; ++reg)
+                vectors[reg] = {0x1234567800000000 + reg, 0xfedcba9800000000 + reg};
+            builder.emitLoadRegPtrImm(index, reinterpret_cast<uint64_t>(vectors.data()));
+            for (uint32_t reg = 0; reg < 16; ++reg)
+                builder.emitLoadVecRegMem(MicroReg::floatReg(reg), index, reg * 16, MicroOpBits::B128);
+            for (uint32_t reg = 0; reg < 16; ++reg)
+                if (reg != 4)
+                    builder.emitLoadRegImm(MicroReg::intReg(reg), ApInt(0x1000 + reg, 64), MicroOpBits::B64);
+        }
+        builder.emitLoadRegImm(index, ApInt(slot.id + 1, 64), MicroOpBits::B64);
+        // The real stack pointer keeps this flag producer unknown to constant folding.
+        builder.emitCmpRegImm(MicroReg::intReg(4), ApInt(0, 64), MicroOpBits::B64);
+        builder.emitLoadRegTlsSlot(result, index);
+        builder.emitJumpToLabel(MicroCond::Equal, MicroOpBits::B32, failed);
+        if (preserveState)
+        {
+            builder.emitCmpRegImm(index, ApInt(slot.id + 1, 64), MicroOpBits::B64);
+            builder.emitJumpToLabel(MicroCond::NotEqual, MicroOpBits::B32, failed);
+            builder.emitLoadRegPtrImm(index, reinterpret_cast<uint64_t>(actualRegisters.data()));
+            for (uint32_t reg = 0; reg < 16; ++reg)
+                if (reg != 4 && reg != index.index())
+                    builder.emitLoadMemReg(index, reg * 8, MicroReg::intReg(reg), MicroOpBits::B64);
+            builder.emitLoadRegPtrImm(index, reinterpret_cast<uint64_t>(actualVectors.data()));
+            for (uint32_t reg = 0; reg < 16; ++reg)
+                builder.emitLoadMemReg(index, reg * 16, MicroReg::floatReg(reg), MicroOpBits::B128);
+        }
+        builder.emitRet();
+        builder.placeLabel(failed);
+        builder.emitLoadRegImm(result, ApInt(0, 64), MicroOpBits::B64);
+        builder.emitRet();
+        MachineCode code;
+        SWC_RESULT(code.emit(context, builder));
+        if (code.tlsAccesses.size() != 1 || !code.tlsAccesses[0].valid(code.bytes.span()))
+            return Result::Error;
+        JITMemory memory;
+        SWC_RESULT(JIT::prepare(context, memory, code.bytes, code.jitUnwindInfo(context), code.codeRelocations, code.tlsAccesses));
+        SWC_RESULT(JIT::patch(context, memory, code.codeRelocations));
+        JIT::finalize(memory);
+        if (reinterpret_cast<Probe>(memory.entryPoint())() != reinterpret_cast<uint64_t>(&value))
+            return Result::Error;
+        if (preserveState)
+        {
+            for (uint32_t reg = 0; reg < 16; ++reg)
+                if (reg != 4 && reg != index.index() && actualRegisters[reg] != (reg == result.index() ? reinterpret_cast<uint64_t>(&value) : 0x1000 + reg))
+                    return Result::Error;
+            if (actualVectors != vectors)
+                return Result::Error;
+        }
+        if (!code.tlsAccesses[0].valid(code.bytes.span()))
+            return Result::Error;
+    }
 }
 SWC_TEST_END()
 
@@ -1852,7 +1935,13 @@ SWC_TEST_END()
 
 namespace
 {
-    Result runLinuxRuntimeProbe(const TaskContext& ctx, std::string_view name, std::string_view source, bool native = false)
+    struct RuntimeProbeOptions
+    {
+        bool native = false;
+        Runtime::TargetOs targetOs = Runtime::TargetOs::Linux;
+    };
+
+    Result runLinuxRuntimeProbe(const TaskContext& ctx, std::string_view name, std::string_view source, RuntimeProbeOptions options = {})
     {
         struct RemoveNativeArtifacts
         {
@@ -1860,13 +1949,13 @@ namespace
             ~RemoveNativeArtifacts() { if (!path.empty()) { std::error_code error; fs::remove_all(path, error); } }
         } artifacts;
         CommandLine command;
-        command.command  = native ? CommandKind::Run : CommandKind::Sema;
-        command.targetOs = Runtime::TargetOs::Linux;
+        command.command  = options.native ? CommandKind::Run : CommandKind::Sema;
+        command.targetOs = options.targetOs;
         command.buildCfg = "devmode";
         command.numCores = 3;
         command.silent   = true;
         command.name     = name;
-        if (native)
+        if (options.native)
         {
             artifacts.path = Os::getTemporaryPath() / "swc_unittest" / std::format("{}_p{}", name, Os::currentProcessId());
             command.outDir = artifacts.path / "output";
@@ -1888,7 +1977,7 @@ namespace
         Command::sema(compiler);
         if (Stats::getNumErrors() != errorsBefore)
             return Result::Error;
-        if (native)
+        if (options.native)
         {
             NativeBackendBuilder builder(compiler, false);
             SWC_RESULT(builder.run());
@@ -1904,6 +1993,40 @@ namespace
         return Stats::getNumErrors() == errorsBefore ? Result::Continue : Result::Error;
     }
 }
+
+SWC_FILESYSTEM_TEST_BEGIN(Runtime_CrossTargetContextFallbackUsesCompilerHost)
+{
+    static constexpr std::string_view SOURCE = R"(#global namespace Swag
+#run
+{
+    let context = Swag.getContext()
+    Swag.assert(__tlsGetPtr(context.runtimeTlsIdPlusOne - 1) == context)
+}
+)";
+    return runLinuxRuntimeProbe(ctx, "CrossTargetContextFallback", SOURCE, {.targetOs = Runtime::TargetOs::Windows});
+}
+SWC_TEST_END()
+
+SWC_FILESYSTEM_TEST_BEGIN(Runtime_LinuxProcessStorageSharesCompilerAndNativeAnchor)
+{
+    constexpr uint32_t key = 0x43504353;
+    auto* shared = static_cast<uint64_t*>(Os::processStorage(key, 64));
+    if (!shared || Os::processStorage(key, 0) || Os::processStorage(key, 32))
+        return Result::Error;
+    shared[0] = 0x123456789abcdef0;
+    static constexpr std::string_view SOURCE = R"(#global if #os == Swag.TargetOs.Linux
+#run
+{
+    let shared = cast([*] u64, unwrap __hostProcessStorage(0x43504353, 64))
+    Swag.assert(shared[0] == 0x123456789abcdef0'u64)
+    shared[7] = 0xfedcba9876543210'u64
+}
+)";
+    SWC_RESULT(runLinuxRuntimeProbe(ctx, "LinuxProcessStorageInterop", SOURCE));
+    auto* second = static_cast<uint64_t*>(Os::processStorage(key, 64));
+    return second && shared[7] == 0xfedcba9876543210 && second[0] == shared[0] && second[7] == shared[7] ? Result::Continue : Result::Error;
+}
+SWC_TEST_END()
 
 SWC_FILESYSTEM_TEST_BEGIN(Runtime_LinuxHostedPrimitives)
 {
@@ -2226,7 +2349,7 @@ func verifyFaultCleanup()
     const size_t entry = nativeSource.find("#run\n");
     SWC_ASSERT(entry != std::string::npos);
     nativeSource.replace(entry, 4, "#main");
-    return runLinuxRuntimeProbe(ctx, "LinuxElfFaultRecovery", nativeSource, true);
+    return runLinuxRuntimeProbe(ctx, "LinuxElfFaultRecovery", nativeSource, {.native = true});
 }
 SWC_TEST_END()
 

@@ -38,7 +38,7 @@ SWC_BEGIN_NAMESPACE();
 
 // A function thunk needs a six-byte indirect jump followed by its eight-byte target
 // address; pad it to sixteen bytes and keep the island naturally aligned.
-constexpr uint32_t K_ISLAND_ALIGNMENT    = 8;
+constexpr uint32_t K_ISLAND_ALIGNMENT    = 16;
 constexpr uint32_t K_FUNCTION_THUNK_SLOT = 16;
 
 namespace
@@ -817,6 +817,33 @@ namespace
             }
         }
 
+        // These runtime services belong to the executing compiler process. The JIT
+        // initializes its context before entry, so the target's lazy context allocator
+        // is not entered. Process storage must join the native host runtime's anchor.
+        if (ctx.cmdLine().targetOs != hostTargetOs())
+        {
+            using Kind = IdentifierManager::RuntimeFunctionKind;
+            void* hostFunction = nullptr;
+            uint32_t numArgs = 0;
+            if (&targetFunction == ctx.compiler().runtimeFunctionSymbol(Kind::TlsGetPtr))
+            {
+                hostFunction = reinterpret_cast<void*>(&Os::tlsGetValue);
+                numArgs = 1;
+            }
+            else if (&targetFunction == ctx.compiler().runtimeFunctionSymbol(Kind::HostProcessStorage))
+            {
+                hostFunction = reinterpret_cast<void*>(&Os::processStorage);
+                numArgs = 2;
+            }
+            else if (&targetFunction == ctx.compiler().runtimeFunctionSymbol(Kind::HostCurrentThreadId))
+                hostFunction = reinterpret_cast<void*>(&Os::currentThreadId);
+            if (hostFunction)
+            {
+                outTargetAddress = reinterpret_cast<uint64_t>(JIT::getNativeInterfaceAdapter(ctx, hostFunction, numArgs));
+                return outTargetAddress ? Result::Continue : Result::Error;
+            }
+        }
+
         const Result prepareResult = ensureLocalFunctionAddressReady(ctx, targetFunction, ownerFunction, addressKind);
         if (prepareResult != Result::Continue)
         {
@@ -1355,13 +1382,13 @@ namespace
     }
 }
 
-Result JIT::prepare(TaskContext& ctx, JITMemory& outExecutableMemory, const ByteArray& linearCode, const ByteArray& unwindInfo, const std::span<const MicroRelocation> relocations)
+Result JIT::prepare(TaskContext& ctx, JITMemory& outExecutableMemory, const ByteArray& linearCode, const ByteArray& unwindInfo, const std::span<const MicroRelocation> relocations, const std::span<const X64TlsAccess> tlsAccesses)
 {
-    prepare(ctx.compiler().jitMemMgr(), outExecutableMemory, linearCode, unwindInfo, relocations);
+    prepare(ctx.compiler().jitMemMgr(), outExecutableMemory, linearCode, unwindInfo, relocations, tlsAccesses);
     return Result::Continue;
 }
 
-void JIT::prepare(JITMemoryManager& memoryManager, JITMemory& outExecutableMemory, const ByteArray& linearCode, const ByteArray& unwindInfo, const std::span<const MicroRelocation> relocations)
+void JIT::prepare(JITMemoryManager& memoryManager, JITMemory& outExecutableMemory, const ByteArray& linearCode, const ByteArray& unwindInfo, const std::span<const MicroRelocation> relocations, const std::span<const X64TlsAccess> tlsAccesses)
 {
     SWC_ASSERT(!linearCode.empty());
     SWC_ASSERT(linearCode.size() <= std::numeric_limits<uint32_t>::max());
@@ -1397,6 +1424,14 @@ void JIT::prepare(JITMemoryManager& memoryManager, JITMemory& outExecutableMemor
         islandSize += K_FUNCTION_THUNK_SLOT;
     }
 
+    const uint32_t relocationIslandSize = islandSize;
+#ifdef __linux__
+    SWC_ASSERT(tlsAccesses.size() <= (UINT32_MAX - islandSize) / K_FUNCTION_THUNK_SLOT);
+    islandSize += static_cast<uint32_t>(tlsAccesses.size()) * K_FUNCTION_THUNK_SLOT;
+#else
+    SWC_UNUSED(tlsAccesses);
+    SWC_UNUSED(relocationIslandSize);
+#endif
     const uint64_t unwindSizeU64     = registerUnwind ? unwindInfo.size() : 0;
     const uint64_t islandBaseU64     = Math::alignUpU64(static_cast<uint64_t>(codeSize) + unwindSizeU64, K_ISLAND_ALIGNMENT);
     const uint64_t islandSizeU64     = islandSize;
@@ -1417,6 +1452,20 @@ void JIT::prepare(JITMemoryManager& memoryManager, JITMemory& outExecutableMemor
 
     if (registerUnwind)
         JITMemoryManager::copyUnwindInfo(outExecutableMemory, unwindInfo.span());
+#ifdef __linux__
+    uint32_t tlsIsland = static_cast<uint32_t>(islandBaseU64) + relocationIslandSize;
+    const std::span patchableCode{static_cast<std::byte*>(outExecutableMemory.entryPoint()), allocationSize};
+    for (const X64TlsAccess& access : tlsAccesses)
+    {
+        SWC_INTERNAL_CHECK(access.valid(linearCode.span()));
+        const auto target = reinterpret_cast<uint64_t>(hostTlsReadAdapter(access));
+        std::fill_n(patchableCode.data() + access.codeOffset, X64TlsAccess::K_INSTRUCTION_SIZE, std::byte{0x90});
+        patchableCode[access.codeOffset] = std::byte{0xe8};
+        const MicroRelocation call{.form = MicroRelocation::Form::Relative32, .codeOffset = access.codeOffset + 1, .relativeEndOffset = access.codeOffset + 5};
+        SWC_INTERNAL_CHECK(patchRelative32Function(patchableCode, call, target, tlsIsland));
+        tlsIsland += K_FUNCTION_THUNK_SLOT;
+    }
+#endif
 }
 
 Result JIT::patch(TaskContext& ctx, const JITMemory& executableMemory, const std::span<const MicroRelocation> relocations, const SymbolFunction* ownerFunction)

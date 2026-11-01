@@ -763,7 +763,7 @@ bool SymbolFunction::jitPrepare(TaskContext& ctx)
         return false;
     }
 
-    if (JIT::prepare(ctx, jitExecMemory_, loweredMicroCode_.bytes, loweredMicroCode_.jitUnwindInfo(ctx), loweredMicroCode_.codeRelocations) != Result::Continue)
+    if (JIT::prepare(ctx, jitExecMemory_, loweredMicroCode_.bytes, loweredMicroCode_.jitUnwindInfo(ctx), loweredMicroCode_.codeRelocations, loweredMicroCode_.tlsAccesses) != Result::Continue)
     {
         ctx.state().jitEmissionError = true;
         return false;

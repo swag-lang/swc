@@ -187,6 +187,7 @@ Result MachineCode::emit(TaskContext& ctx, MicroBuilder& builder, MicroReg debug
     // discarded once its code is lowered.
     codeRelocations   = std::move(builder.codeRelocations());
     debugSourceRanges = encoder.releaseDebugSourceRanges();
+    tlsAccesses = encoder.releaseTlsAccesses();
 
     return Result::Continue;
 }

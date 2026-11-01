@@ -4,6 +4,8 @@
 
 #ifdef __linux__
 #include <fcntl.h>
+#include <dirent.h>
+#include <sys/file.h>
 #include <sys/mman.h>
 #include <sys/uio.h>
 #include <unistd.h>
@@ -189,6 +191,53 @@ void Os::freeExecutableMemory(void* ptr, const uint32_t size)
     const int released = munmap(ptr, size);
     SWC_ASSERT(released == 0);
     SWC_UNUSED(released);
+}
+
+void* Os::processStorage(const uint32_t key, const uint32_t size)
+{
+    if (!size)
+        return nullptr;
+    struct Descriptor
+    {
+        int value;
+        ~Descriptor() { if (value >= 0) close(value); }
+    } lock{open("/proc/self", O_RDONLY | O_DIRECTORY | O_CLOEXEC)};
+    if (lock.value < 0)
+        return nullptr;
+    while (flock(lock.value, LOCK_EX) != 0)
+        if (errno != EINTR)
+            return nullptr;
+
+    // Match os.linux.memory.swg's anchor, including its fork-isolating PID and
+    // retained CLOEXEC descriptor. A C++-private registry would split borrow guards
+    // between compiler instances and loaded native runtimes.
+    const std::string name = std::format("Swag.Rt.{:08x}.{:08x}", currentProcessId(), key);
+    const std::string wanted = "/memfd:" + name + " (deleted)";
+    const std::unique_ptr<DIR, decltype(&closedir)> directory(opendir("/proc/self/fd"), &closedir);
+    if (!directory)
+        return nullptr;
+    const int directoryId = dirfd(directory.get());
+    while (const dirent* entry = readdir(directory.get()))
+    {
+        std::array<char, 64> target{};
+        const ssize_t length = readlinkat(directoryId, entry->d_name, target.data(), target.size());
+        if (length < 0 || std::string_view(target.data(), static_cast<size_t>(length)) != wanted)
+            continue;
+        const Descriptor existing{openat(directoryId, entry->d_name, O_RDWR | O_CLOEXEC)};
+        if (existing.value < 0 || lseek(existing.value, 0, SEEK_END) != static_cast<off_t>(size))
+            return nullptr;
+        void* view = mmap(nullptr, size, PROT_READ | PROT_WRITE, MAP_SHARED, existing.value, 0);
+        return view == MAP_FAILED ? nullptr : view;
+    }
+
+    Descriptor descriptor{memfd_create(name.c_str(), MFD_CLOEXEC)};
+    if (descriptor.value < 0 || ftruncate(descriptor.value, size) != 0)
+        return nullptr;
+    void* view = mmap(nullptr, size, PROT_READ | PROT_WRITE, MAP_SHARED, descriptor.value, 0);
+    if (view == MAP_FAILED)
+        return nullptr;
+    descriptor.value = -1; // Publication survives every compiler instance and module unload.
+    return view;
 }
 
 SWC_END_NAMESPACE();

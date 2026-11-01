@@ -8,6 +8,7 @@
 
 SWC_BEGIN_NAMESPACE();
 
+struct X64TlsAccess;
 class TaskContext;
 class JITMemory;
 class JITMemoryManager;
@@ -40,7 +41,7 @@ enum class JITRuntimeSetupMode : uint8_t
 class JIT final
 {
 public:
-    static Result prepare(TaskContext& ctx, JITMemory& outExecutableMemory, const ByteArray& linearCode, const ByteArray& unwindInfo, std::span<const MicroRelocation> relocations = {});
+    static Result prepare(TaskContext& ctx, JITMemory& outExecutableMemory, const ByteArray& linearCode, const ByteArray& unwindInfo, std::span<const MicroRelocation> relocations = {}, std::span<const X64TlsAccess> tlsAccesses = {});
     static Result patch(TaskContext& ctx, const JITMemory& executableMemory, std::span<const MicroRelocation> relocations, const SymbolFunction* ownerFunction = nullptr);
     static Result patchGlobalFunctionVariables(TaskContext& ctx);
     static void   finalize(JITMemory& executableMemory);
@@ -63,7 +64,8 @@ public:
     static void releaseThreadStorage(const std::function<bool(const void*)>& ownsCallback);
 
 private:
-    static void prepare(JITMemoryManager& memoryManager, JITMemory& outExecutableMemory, const ByteArray& linearCode, const ByteArray& unwindInfo, std::span<const MicroRelocation> relocations);
+    static void prepare(JITMemoryManager& memoryManager, JITMemory& outExecutableMemory, const ByteArray& linearCode, const ByteArray& unwindInfo, std::span<const MicroRelocation> relocations, std::span<const X64TlsAccess> tlsAccesses = {});
+    static void* hostTlsReadAdapter(const X64TlsAccess& access);
 };
 
 SWC_END_NAMESPACE();

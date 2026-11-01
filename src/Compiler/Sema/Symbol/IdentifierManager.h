@@ -56,6 +56,8 @@ public:
         TlsGetPtr,
         TlsGetValue,
         TlsVarPtr,
+        HostProcessStorage,
+        HostCurrentThreadId,
 
         RaiseException,
 
@@ -214,6 +216,8 @@ public:
         RuntimeTlsGetPtr,
         RuntimeTlsGetValue,
         RuntimeTlsVarPtr,
+        RuntimeHostProcessStorage,
+        RuntimeHostCurrentThreadId,
 
         RuntimeRaiseException,
 

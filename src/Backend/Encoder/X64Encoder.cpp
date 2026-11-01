@@ -1146,6 +1146,7 @@ void X64Encoder::reset(TaskContext& ctx)
 void X64Encoder::resetCode()
 {
     Encoder::resetCode();
+    tlsAccesses_.clear();
     unwind_->reset();
     if (hostUnwind_)
         hostUnwind_->reset();
@@ -2510,6 +2511,8 @@ void X64Encoder::encodeLoadRegTlsSlot(MicroReg regDst, MicroReg indexReg)
 
     constexpr uint32_t K_TEB_TLS_SLOTS_MINUS_ONE = 0x1478;
 
+    const uint32_t codeOffset = store_.size();
+    tlsAccesses_.push_back({codeOffset, static_cast<uint32_t>(microRegToX64Reg(regDst)), static_cast<uint32_t>(microRegToX64Reg(indexReg))});
     store_.pushU8(0x65); // GS segment override
     const auto x64Dst   = microRegToX64Reg(regDst);
     const auto x64Index = microRegToX64Reg(indexReg);

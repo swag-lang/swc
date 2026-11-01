@@ -105,6 +105,9 @@ namespace Os
 
     bool isDebuggerAttached();
 
+    // Zero-initialized process storage shared with independently loaded Swag runtimes.
+    // Views and their publication anchor remain valid until process exit.
+    void*    processStorage(uint32_t key, uint32_t size);
     uint32_t memoryPageSize();
     void*    allocExecutableMemory(uint32_t size);
     bool     makeWritableExecutableMemory(void* ptr, uint32_t size);

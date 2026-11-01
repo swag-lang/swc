@@ -163,6 +163,8 @@ void IdentifierManager::setup(const TaskContext& ctx)
         {.name = PredefinedName::RuntimeTlsGetPtr, .str = "__tlsGetPtr"},
         {.name = PredefinedName::RuntimeTlsGetValue, .str = "__tlsGetValue"},
         {.name = PredefinedName::RuntimeTlsVarPtr, .str = "__tlsVarPtr"},
+        {.name = PredefinedName::RuntimeHostProcessStorage, .str = "__hostProcessStorage"},
+        {.name = PredefinedName::RuntimeHostCurrentThreadId, .str = "__hostCurrentThreadId"},
 
         {.name = PredefinedName::RuntimeRaiseException, .str = "__raiseException666"},
 
@@ -218,6 +220,8 @@ void IdentifierManager::setup(const TaskContext& ctx)
     runtimeFunctions_[static_cast<size_t>(RuntimeFunctionKind::TlsGetPtr)]   = predefined(PredefinedName::RuntimeTlsGetPtr);
     runtimeFunctions_[static_cast<size_t>(RuntimeFunctionKind::TlsGetValue)] = predefined(PredefinedName::RuntimeTlsGetValue);
     runtimeFunctions_[static_cast<size_t>(RuntimeFunctionKind::TlsVarPtr)]   = predefined(PredefinedName::RuntimeTlsVarPtr);
+    runtimeFunctions_[static_cast<size_t>(RuntimeFunctionKind::HostProcessStorage)] = predefined(PredefinedName::RuntimeHostProcessStorage);
+    runtimeFunctions_[static_cast<size_t>(RuntimeFunctionKind::HostCurrentThreadId)] = predefined(PredefinedName::RuntimeHostCurrentThreadId);
 
     runtimeFunctions_[static_cast<size_t>(RuntimeFunctionKind::RaiseException)] = predefined(PredefinedName::RuntimeRaiseException);
 

@@ -1,5 +1,6 @@
 #pragma once
 #include "Backend/Encoder/EncoderDebugInfo.h"
+#include "Backend/Encoder/X64TlsAccess.h"
 #include "Backend/Micro/MicroInstr.h"
 #include "Backend/Micro/MicroReg.h"
 #include "Backend/Micro/MicroRelocation.h"
@@ -27,6 +28,7 @@ struct MachineCode
     ByteArray                     unwindInfo;
     // Present only across host/target OS boundaries; native output keeps unwindInfo.
     ByteArray                     hostUnwindInfo;
+    std::vector<X64TlsAccess>     tlsAccesses;
     std::vector<MicroRelocation>  codeRelocations;
     std::vector<DebugSourceRange> debugSourceRanges;
 

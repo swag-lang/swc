@@ -24,6 +24,7 @@
 #include "Compiler/Sema/Core/Sema.h"
 #include "Compiler/Sema/Core/SemaNodeView.h"
 #include "Compiler/Sema/Helpers/SemaCheck.h"
+#include "Compiler/Sema/Helpers/SemaRuntime.h"
 #include "Compiler/Sema/Helpers/SemaSpecOp.h"
 #include "Compiler/Sema/Helpers/SemaTagged.h"
 #include "Compiler/Sema/Symbol/IdentifierManager.h"
@@ -1811,7 +1812,7 @@ namespace
 
     Result codeGenGetContext(CodeGen& codeGen)
     {
-        if (codeGen.isNativeBuild())
+        if (codeGen.isNativeBuild() && !SemaRuntime::isCompilerOnlyFunction(codeGen.compiler(), codeGen.function()))
             return codeGenGetContextNative(codeGen);
 
         const CallConvKind                callConvKind        = CallConv::hostKind();
@@ -1856,7 +1857,7 @@ namespace
 
         const MicroReg contextReg = materializeSetContextArgument(codeGen, argumentRef);
         MicroReg       tlsIdReg   = MicroReg::invalid();
-        if (codeGen.isNativeBuild())
+        if (codeGen.isNativeBuild() && !SemaRuntime::isCompilerOnlyFunction(codeGen.compiler(), codeGen.function()))
         {
             const SymbolFunction* tlsAllocFunction = runtimeFunctionByName(codeGen, "__tlsAlloc");
             SWC_ASSERT(tlsAllocFunction != nullptr);

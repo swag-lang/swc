@@ -22,6 +22,7 @@
 #include "Compiler/Sema/Core/Sema.h"
 #include "Compiler/Sema/Helpers/SemaError.h"
 #include "Compiler/Sema/Helpers/SemaInline.h"
+#include "Compiler/Sema/Helpers/SemaRuntime.h"
 #include "Compiler/Sema/Symbol/IdentifierManager.h"
 #include "Compiler/Sema/Symbol/Symbol.Function.h"
 #include "Compiler/Sema/Symbol/Symbol.Variable.h"
@@ -1441,7 +1442,8 @@ Result CodeGenCallHelpers::emitFallibleCastFailure(CodeGen& codeGen)
 // after each fallible call, especially inside loops.
 bool CodeGenCallHelpers::canReadErrorFlagInline(const CodeGen& codeGen)
 {
-    return codeGen.isNativeBuild() && codeGen.ctx().cmdLine().targetOs == Runtime::TargetOs::Windows;
+    return codeGen.isNativeBuild() && codeGen.ctx().cmdLine().targetOs == Runtime::TargetOs::Windows &&
+           !SemaRuntime::isCompilerOnlyFunction(codeGen.compiler(), codeGen.function());
 }
 
 Result CodeGenCallHelpers::emitFallibleFailureJumpIfHasError(CodeGen& codeGen)
@@ -1451,6 +1453,24 @@ Result CodeGenCallHelpers::emitFallibleFailureJumpIfHasError(CodeGen& codeGen)
 
     MicroBuilder&       builder       = codeGen.builder();
     const MicroLabelRef continueLabel = builder.createLabel();
+
+    if (SemaRuntime::isCompilerOnlyFunction(codeGen.compiler(), codeGen.function()))
+    {
+        // #run and compiler-only functions execute in the compiler even when its output
+        // targets another OS. Their error flag belongs to the host thread's context.
+        const CallConvKind hostKind = CallConv::hostKind();
+        const MicroReg targetReg = codeGen.nextVirtualIntRegister();
+        builder.emitLoadRegPtrImm(targetReg, reinterpret_cast<uint64_t>(&CompilerInstance::runtimeContextFromTls));
+        const auto prepared = ABICall::prepareArgs(builder, hostKind, {});
+        ABICall::callReg(builder, hostKind, targetReg, prepared);
+        const MicroReg contextReg = codeGen.nextVirtualIntRegister();
+        builder.emitLoadRegReg(contextReg, CallConv::get(hostKind).intReturn, MicroOpBits::B64);
+        builder.emitCmpMemImm(contextReg, offsetof(Runtime::Context, hasError), ApInt(0, 32), MicroOpBits::B32);
+        builder.emitJumpToLabel(MicroCond::Equal, MicroOpBits::B32, continueLabel);
+        SWC_RESULT(emitFallibleJump(codeGen));
+        builder.placeLabel(continueLabel);
+        return Result::Continue;
+    }
 
     if (canReadErrorFlagInline(codeGen))
     {

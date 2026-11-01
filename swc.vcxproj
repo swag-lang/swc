@@ -230,6 +230,7 @@
         <ClCompile Include="src\Unittest\Unittest.cpp"/>
         <ClCompile Include="src\Unittest\UnittestSource.cpp"/>
         <ClCompile Include="src\Backend\JIT\JIT.cpp"/>
+        <ClCompile Include="src\Backend\JIT\JIT.HostTls.Linux.cpp"/>
         <ClCompile Include="src\Backend\JIT\JITExecManager.cpp"/>
         <ClCompile Include="src\Backend\JIT\JITMemoryManager.cpp"/>
         <ClCompile Include="src\Backend\JIT\JITMemory.cpp"/>
@@ -737,6 +738,7 @@
         <ClInclude Include="src\Backend\Debug\DebugRecordCollector.h"/>
         <ClInclude Include="src\Backend\Encoder\Encoder.h"/>
         <ClInclude Include="src\Backend\Encoder\X64Encoder.h"/>
+        <ClInclude Include="src\Backend\Encoder\X64TlsAccess.h"/>
         <ClInclude Include="src\Backend\Encoder\X64Immediate.h"/>
         <ClInclude Include="src\Backend\Encoder\X64DwarfFrame.h"/>
         <ClInclude Include="src\Backend\Encoder\X64Unwind.h"/>

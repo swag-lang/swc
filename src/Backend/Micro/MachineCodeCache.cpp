@@ -25,8 +25,8 @@ SWC_BEGIN_NAMESPACE();
 
 namespace
 {
-    constexpr uint64_t K_MAGIC                = 0x3545444f434d5753; // SWMCODE5
-    constexpr uint32_t K_CHECKSUM_OFFSET      = 52;
+    constexpr uint64_t K_MAGIC                = 0x3645444f434d5753; // SWMCODE6
+    constexpr uint32_t K_CHECKSUM_OFFSET      = 56;
     constexpr uint32_t K_HEADER_SIZE          = K_CHECKSUM_OFFSET + 32;
     constexpr uint32_t K_RELOCATION_SIZE      = 28;
     constexpr uint32_t K_SOURCE_SIZE          = 12;
@@ -545,9 +545,10 @@ bool MachineCodeCache::read(MachineCode& out) const
     const ByteView& bytes    = record.bytes;
     const uint32_t  codeSize = bytes.readLe32(8), unwindSize = bytes.readLe32(12);
     const uint32_t  hostUnwindSize = bytes.readLe32(48);
+    const uint32_t  tlsAccesses = bytes.readLe32(52);
     const uint32_t  relocations = bytes.readLe32(24), sources = bytes.readLe32(28);
     const uint32_t  constants = bytes.readLe32(40), constantBytes = bytes.readLe32(44);
-    const uint64_t  constantsStart = K_HEADER_SIZE + static_cast<uint64_t>(codeSize) + unwindSize + hostUnwindSize + static_cast<uint64_t>(relocations) * K_RELOCATION_SIZE + static_cast<uint64_t>(sources) * K_SOURCE_SIZE;
+    const uint64_t  constantsStart = K_HEADER_SIZE + static_cast<uint64_t>(codeSize) + unwindSize + hostUnwindSize + static_cast<uint64_t>(relocations) * K_RELOCATION_SIZE + static_cast<uint64_t>(sources) * K_SOURCE_SIZE + static_cast<uint64_t>(tlsAccesses) * 12;
     if (constantsStart + constantBytes != bytes.size() || !codeSize || constants > constantBytes / (K_CONSTANT_HEADER_SIZE + 1))
         return false;
     std::array<uint8_t, 32> checksum;
@@ -657,6 +658,13 @@ bool MachineCodeCache::read(MachineCode& out) const
         debugSourceInfo.debugNoStep = (sourceFlags >> 31) != 0;
         code.debugSourceRanges.push_back({.codeStartOffset = start, .codeEndOffset = end, .debugSourceInfo = debugSourceInfo});
     }
+    for (uint32_t index = 0; index < tlsAccesses; ++index, cursor += 12)
+    {
+        const X64TlsAccess access{bytes.readLe32(cursor), bytes.readLe32(cursor + 4), bytes.readLe32(cursor + 8)};
+        if (!access.valid(code.bytes.span()))
+            return false;
+        code.tlsAccesses.push_back(access);
+    }
     out = std::move(code);
     return true;
 }
@@ -718,11 +726,20 @@ void MachineCodeCache::write(const MachineCode& code) const
     bytes.appendLe32(static_cast<uint32_t>(constants.indices.size()));
     bytes.appendLe32(static_cast<uint32_t>(constants.bytes.size()));
     bytes.appendLe32(static_cast<uint32_t>(code.hostUnwindInfo.size()));
+    bytes.appendLe32(static_cast<uint32_t>(code.tlsAccesses.size()));
     bytes.resize(K_HEADER_SIZE, std::byte{0});
     bytes.append(image);
     bytes.append(code.unwindInfo);
     bytes.append(code.hostUnwindInfo);
     bytes.append(records);
+    for (const X64TlsAccess& access : code.tlsAccesses)
+    {
+        if (!access.valid(code.bytes.span()))
+            return;
+        bytes.appendLe32(access.codeOffset);
+        bytes.appendLe32(access.destination);
+        bytes.appendLe32(access.slot);
+    }
     bytes.append(constants.bytes);
     if (bytes.size() > K_MAX_IMAGE_SIZE)
         return;

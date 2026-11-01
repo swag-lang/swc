@@ -95,6 +95,9 @@ SWC_FILESYSTEM_TEST_BEGIN(MachineCodeCache_ReusesModuleSourceWithRelocations)
 
     MachineCode expected;
     expected.bytes.resize(8, std::byte{0});
+    const std::array<uint8_t, 9> tlsRead = {0x65, 0x4e, 0x8b, 0x14, 0xe5, 0x78, 0x14, 0, 0};
+    expected.bytes.append(std::as_bytes(std::span(tlsRead)));
+    expected.tlsAccesses.push_back({8, 10, 12});
     expected.unwindInfo.appendLe32(0x12345678);
     expected.hostUnwindInfo.appendLe64(0xABCDEF0123456789);
     expected.codeAlignment                 = 16;
@@ -104,11 +107,14 @@ SWC_FILESYSTEM_TEST_BEGIN(MachineCodeCache_ReusesModuleSourceWithRelocations)
     MachineCodeCache cache(localCtx, *caller, builder);
     cache.write(expected);
     MachineCode restored;
-    if (!cache.read(restored) || restored.bytes.size() != 8 || restored.codeRelocations.size() != 1 || restored.codeRelocations[0].targetSymbol != target)
+    if (!cache.read(restored) || restored.bytes.size() != 17 || restored.codeRelocations.size() != 1 || restored.codeRelocations[0].targetSymbol != target)
         return Result::Error;
 
     if (restored.unwindInfo.size() != 4 || restored.unwindInfo.readLe32(0) != 0x12345678 ||
         restored.hostUnwindInfo.size() != 8 || restored.hostUnwindInfo.readLe64(0) != 0xABCDEF0123456789)
+        return Result::Error;
+
+    if (restored.tlsAccesses.size() != 1 || restored.tlsAccesses[0].destination != 10 || restored.tlsAccesses[0].slot != 12 || !restored.tlsAccesses[0].valid(restored.bytes.span()))
         return Result::Error;
 
     auto*               relocatedTarget = makeCacheFunction(localCtx, "cacheModuleTarget");

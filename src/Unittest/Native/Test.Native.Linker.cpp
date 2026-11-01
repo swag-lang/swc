@@ -504,6 +504,26 @@ SWC_FILESYSTEM_TEST_BEGIN(Linker_NativeTestsDiscardRejectedCallees)
 }
 SWC_TEST_END()
 
+SWC_FILESYSTEM_TEST_BEGIN(Linker_CompilerConfigurationUsesHostContextForForeignTarget)
+{
+    const LinkerTestDirectory testDir("cross_target_context");
+    constexpr std::string_view source = R"(#run
+{
+    let context = Swag.getContext()
+    Swag.setContext(context)
+    Swag.assert(Swag.getContext() == context)
+    let cfg = unwrap Swag.compiler().getBuildCfg()
+    cfg.resAppName = "host-context"
+}
+#main {}
+)";
+    SWC_RESULT(testDir.write("main.swg", source));
+    const Utf8 target = hostTargetOs() == Runtime::TargetOs::Windows ? "linux" : "windows";
+    const std::vector<Utf8> args = {"sema", "--os", target, "--artifact-kind", "executable", "-f", Utf8(testDir.path() / "main.swg"), "--out-dir", Utf8(testDir.path() / "output"), "--work-dir", Utf8(testDir.path() / "work"), "--num-cores", "3", "--no-log-color"};
+    SWC_RESULT(runCompiler(args, ExitCode::Success, ""));
+}
+SWC_TEST_END()
+
 SWC_FILESYSTEM_TEST_BEGIN(Linker_MissingResourceDrainsParallelReaders)
 {
     const LinkerTestDirectory testDir("missing_resource");

@@ -1652,6 +1652,21 @@ namespace Os
         return true;
     }
 
+    void* processStorage(const uint32_t key, const uint32_t size)
+    {
+        if (!size)
+            return nullptr;
+        const std::wstring name = std::format(L"Local\\Swag.Rt.{:x}.{:x}", GetCurrentProcessId(), key);
+        const HANDLE mapping = CreateFileMappingW(INVALID_HANDLE_VALUE, nullptr, PAGE_READWRITE, 0, size, name.c_str());
+        if (!mapping)
+            return nullptr;
+        void* view = MapViewOfFile(mapping, FILE_MAP_ALL_ACCESS, 0, 0, size);
+        if (!view)
+            CloseHandle(mapping);
+        // Match the runtime: retain the mapping handle as well as its process-lifetime view.
+        return view;
+    }
+
     uint64_t tlsAlloc()
     {
         const DWORD tlsId = TlsAlloc();

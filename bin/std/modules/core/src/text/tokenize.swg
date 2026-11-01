@@ -44,7 +44,7 @@ func splitLines(src: string)->Array'(string)
         return result
 
     var lineStart     = src.buffer
-    var consumedBytes = 0
+    var consumedBytes = 0'u64
     var lineEnd       = lineStart
     while consumedBytes < byteCount
     {

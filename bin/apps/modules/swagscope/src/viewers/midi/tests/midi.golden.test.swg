@@ -18,6 +18,6 @@ using Core, Pixel, Gui, Viewers
         Swag.assert(view.details.contains("4 tracks · 4/4"))
 
         var image = host.render(&host.surfaceWnd)
-        Pixel.Testing.assertImageGolden(&image, light ? "viewer.midi.paper" : "viewer.midi.ink")
+        assertScopeImageGolden(&image, light ? "viewer.midi.paper" : "viewer.midi.ink")
     }
 }

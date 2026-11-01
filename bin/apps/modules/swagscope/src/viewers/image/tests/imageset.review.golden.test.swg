@@ -38,5 +38,5 @@ using Core, Pixel, Gui, Viewers
     session.info.hide()
     host.root.applyLayout()
     var image = host.render(&host.root)
-    Pixel.Testing.assertImageGolden(&image, "imageset-real-review")
+    assertScopeImageGolden(&image, "imageset-real-review")
 }

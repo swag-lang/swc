@@ -335,7 +335,8 @@ case in grid order; a separately built plugin would name a cell of the document 
 
 Keep a viewer's ordinary tests and goldens in `src/viewers/<viewer>/tests/`, with `.test.swg`
 files separated by family; keep application-wide and shared tests in `src/tests/`. Shared fixtures
-live in `src/tests/datas`, and image goldens in `src/tests/goldens`. External fixtures record their source URLs, license, and hashes in
+live in `src/tests/datas`, and image goldens in `src/tests/goldens`. Viewer plans use
+`assertScopeImageGolden` to compare that shared image corpus. External fixtures record their source URLs, license, and hashes in
 `datas/THIRDPARTY.md`.
 Run a focused test with:
 

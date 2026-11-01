@@ -43,7 +43,7 @@ func assertMarkdownTypography(theme: u32, name: string, width = 960'u32, dpiScal
     view.applyLayout()
     Testing.assertContentFits(view)
     var image = host.render(view)
-    Pixel.Testing.assertImageGolden(&image, name)
+    assertScopeImageGolden(&image, name)
 }
 
 #[Swag.TestTag("golden")]

@@ -40,7 +40,7 @@ func assertMarkdownSilence(light: bool, appearance: u32, golden: string)
     let ground = view.themeColors().view_Bk
     Swag.assert(image.pixelColor(10, 10) == ground)
     Swag.assert(image.pixelColor(10, 100) == ground)
-    Pixel.Testing.assertImageGolden(&image, golden)
+    assertScopeImageGolden(&image, golden)
 
     let viewport = host.surface.position
     window.setFullScreen(true)
@@ -62,7 +62,7 @@ func assertMarkdownSilence(light: bool, appearance: u32, golden: string)
         Swag.assert(zoom.outline.filterBox.themeColors().edit_FocusBk == ground)
         var outlineImage  = host.render(&host.surfaceWnd)
         let outlineGolden = Format.toString("%.outline", golden)
-        Pixel.Testing.assertImageGolden(&outlineImage, outlineGolden.toString())
+        assertScopeImageGolden(&outlineImage, outlineGolden.toString())
     }
 }
 

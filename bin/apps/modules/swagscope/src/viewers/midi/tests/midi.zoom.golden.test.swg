@@ -17,5 +17,5 @@ using Core, Gui, Viewers
     roll.scroll.setScrollPos(0, 120)
     host.settleAnimations(&host.root, 4)
     let image = host.render(&host.root)
-    Pixel.Testing.assertImageGolden(&image, "viewer.midi.vertical-zoom")
+    assertScopeImageGolden(&image, "viewer.midi.vertical-zoom")
 }

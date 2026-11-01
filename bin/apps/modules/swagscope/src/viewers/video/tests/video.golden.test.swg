@@ -45,7 +45,7 @@ func assertVideoTimelineEndpoints(light: bool, golden: string)
     host.root.applyLayout()
 
     var image = host.render(&host.root)
-    Pixel.Testing.assertImageGolden(&image, golden)
+    assertScopeImageGolden(&image, golden)
 }
 
 func assertSubtitleEffect(effect: Film.SubtitleEffect, size: Film.SubtitleSize, dpiScale: f32, golden: string)
@@ -65,7 +65,7 @@ func assertSubtitleEffect(effect: Film.SubtitleEffect, size: Film.SubtitleSize, 
     host.root.applyLayout()
 
     var image = host.render(&host.root)
-    Pixel.Testing.assertImageGolden(&image, golden)
+    assertScopeImageGolden(&image, golden)
 }
 
 // The film in the window, against `scope.video`: the picture alone at rest, and under the
@@ -96,7 +96,7 @@ func assertSubtitleEffect(effect: Film.SubtitleEffect, size: Film.SubtitleSize, 
         host.settleAnimations(window, 4)
 
         var rest = host.render(&host.surfaceWnd)
-        Pixel.Testing.assertImageGolden(&rest, light ? "viewer.video.paper" : "viewer.video.ink")
+        assertScopeImageGolden(&rest, light ? "viewer.video.paper" : "viewer.video.ink")
 
         // The first movement brings the veils, the next one reads a time on the timeline.
         let timeline   = view.timeline.surfaceRect()
@@ -106,7 +106,7 @@ func assertSubtitleEffect(effect: Film.SubtitleEffect, size: Film.SubtitleSize, 
         host.moveMouse(Math.Point{trackX + trackWidth * 0.62, timeline.vertCenter()})
         host.settleAnimations(window, 4)
         var hover = host.render(&host.surfaceWnd)
-        Pixel.Testing.assertImageGolden(&hover, light ? "viewer.video.hover.paper" : "viewer.video.hover.ink")
+        assertScopeImageGolden(&hover, light ? "viewer.video.hover.paper" : "viewer.video.hover.ink")
     }
 }
 
@@ -185,7 +185,7 @@ func assertSubtitleEffect(effect: Film.SubtitleEffect, size: Film.SubtitleSize, 
             Swag.assert(sheet.page.rows.count == 4)
             Swag.assert(sheet.page.rows[1].value == "1.5×" and sheet.page.rows[2].value == "Primary")
             var first = host.render()
-            Pixel.Testing.assertImageGolden(&first, "viewer.video.options")
+            assertScopeImageGolden(&first, "viewer.video.options")
             Swag.assert(sheet.activateRow(Film.texts().ui_OptionAudio))
             host.finishAnimations()
         }
@@ -193,7 +193,7 @@ func assertSubtitleEffect(effect: Film.SubtitleEffect, size: Film.SubtitleSize, 
         {
             Swag.assert(sheet.page.rows[0].checked and sheet.page.rows[1].detail == "AAC-LC · 2 ch · 44.1 kHz")
             var tracks = host.render()
-            Pixel.Testing.assertImageGolden(&tracks, "viewer.video.options.audio")
+            assertScopeImageGolden(&tracks, "viewer.video.options.audio")
             sheet.close()
         }
 

@@ -290,6 +290,7 @@ void CodeGenCallHelpers::appendDirectPreparedArg(SmallVector<ABICall::PreparedAr
     arg.isSigned              = normalizedArg.isSigned;
     arg.isAddressed           = false;
     arg.numBits               = normalizedArg.numBits;
+    arg.systemVTypeRef        = normalizedArg.isSystemVStorage() ? argTypeRef : TypeRef::invalid();
 }
 
 void CodeGenCallHelpers::appendPreparedValueArg(SmallVector<ABICall::PreparedArg>& outArgs, CodeGen& codeGen, const CallConv& callConv, const CodeGenNodePayload& operandPayload, TypeRef argTypeRef)
@@ -303,6 +304,7 @@ void CodeGenCallHelpers::appendPreparedValueArg(SmallVector<ABICall::PreparedArg
     preparedArg.isFloat               = normalizedArg.isFloat;
     preparedArg.isAddressed           = operandPayload.isAddress() && !normalizedArg.isIndirect && !argType.isReference();
     preparedArg.numBits               = normalizedArg.numBits;
+    preparedArg.systemVTypeRef        = normalizedArg.isSystemVStorage() ? argTypeRef : TypeRef::invalid();
 }
 
 bool CodeGenCallHelpers::materializeTypedConstantPayload(CodeGen& codeGen, CodeGenNodePayload& outPayload, TypeRef targetTypeRef, ConstantRef constantRef)

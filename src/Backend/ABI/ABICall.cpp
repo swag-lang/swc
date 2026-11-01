@@ -533,7 +533,7 @@ ABICall::PreparedCall ABICall::prepareArgs(MicroBuilder& builder, CallConvKind c
         return preparedCall;
 
     const CallConv& conv            = CallConv::get(callConvKind);
-    if (conv.isSystemVAMD64 && std::ranges::any_of(args, [](const PreparedArg& arg) { return arg.systemVType != nullptr; }))
+    if (conv.isSystemVAMD64 && std::ranges::any_of(args, [](const PreparedArg& arg) { return arg.hasSystemVStorage(); }))
         return prepareSystemVStorageArgs(builder, callConvKind, args);
     const auto      numPreparedArgs = static_cast<uint32_t>(args.size());
     const auto      argLayouts      = collectArgLayouts(args);
@@ -817,6 +817,11 @@ void ABICall::storeReturnRegsToReturnBuffer(MicroBuilder& builder, CallConvKind 
         return;
 
     SWC_ASSERT(!ret.isIndirect);
+    if (ret.isSystemVStorage())
+    {
+        storeSystemVReturn(builder, outputStorageReg, ret.systemVStorageType());
+        return;
+    }
 
     const CallConv&   conv    = CallConv::get(callConvKind);
     const MicroOpBits retBits = ABICall::valueBits(ret.numBits);
@@ -833,6 +838,12 @@ void ABICall::materializeValueToReturnRegs(MicroBuilder& builder, CallConvKind c
         return;
 
     SWC_ASSERT(!ret.isIndirect);
+    if (ret.isSystemVStorage())
+    {
+        SWC_ASSERT(valueIsLValue);
+        loadSystemVReturn(builder, valueReg, ret.systemVStorageType());
+        return;
+    }
 
     const CallConv& conv = CallConv::get(callConvKind);
 
@@ -869,6 +880,9 @@ void ABICall::materializeReturnToReg(MicroBuilder& builder, MicroReg dstReg, Cal
     if (ret.isVoid)
         return;
 
+    // A split direct result needs an explicit storage destination. Source return
+    // storage is not activated yet; never collapse it silently into the first lane.
+    SWC_FORCE_ASSERT(!ret.isSystemVStorage() || ret.isIndirect);
     const CallConv& conv = CallConv::get(callConvKind);
     if (ret.isIndirect)
     {

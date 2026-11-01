@@ -15,6 +15,8 @@
 #include "Main/Command/CommandLine.h"
 #include "Main/CompilerInstance.h"
 #include "Main/TaskContext.h"
+#include "Compiler/Sema/Type/TypeManager.h"
+#include "Unittest/ABI/AbiTestTypes.h"
 #include "Unittest/Unittest.h"
 #include "Unittest/UnittestHelpers.h"
 
@@ -1005,6 +1007,85 @@ SWC_TEST_BEGIN(ABI_SystemVGeneratedCalleeFillsHiddenMemoryResult)
     installSystemVCode(manager, memory, lowered.bytes, lowered.unwindInfo);
     const LargeValue result = reinterpret_cast<LargeValue (*)(uint64_t)>(memory.entryPoint())(37);
     if (result.first != 38 || result.second != 39 || result.third != 40)
+        return Result::Error;
+}
+SWC_TEST_END()
+
+SWC_TEST_BEGIN(ABI_SystemVSemanticTypeHandlesDrivePreparedCallsAndReturnStorage)
+{
+    CommandLine commandLine = ctx.cmdLine();
+    commandLine.targetOs = Runtime::TargetOs::Linux;
+    CompilerInstance compiler(ctx.global(), commandLine);
+    TaskContext context(compiler);
+    SWC_RESULT(compiler.setupSema(context));
+    const std::array fields{context.typeMgr().typeU64(), context.typeMgr().typeF64()};
+    const TypeRef typeRef = Backend::Unittest::makeStructType(context, fields);
+    const auto& type = context.typeMgr().get(typeRef);
+    const auto& conv = CallConv::get(K_SYSTEM_V);
+    const auto argument = ABITypeNormalize::normalize(context, conv, type, ABITypeNormalize::Usage::Argument);
+    const auto returned = ABITypeNormalize::normalize(context, conv, type, ABITypeNormalize::Usage::Return);
+    if (!argument.isSystemVStorage() || !returned.isSystemVStorage())
+        return Result::Error;
+    const MixedValue input{31, 2.5};
+    MixedValue result{};
+    MicroBuilder builder(context);
+    const auto source = MicroReg::virtualIntReg(100);
+    builder.emitLoadRegPtrImm(source, reinterpret_cast<uint64_t>(&input));
+    const std::array args{ABICall::PreparedArg{.srcReg = source, .isAddressed = true, .numBits = argument.numBits, .systemVTypeRef = typeRef}};
+    const auto prepared = ABICall::prepareArgs(builder, K_SYSTEM_V, args);
+    const auto target = MicroReg::virtualIntReg(101);
+    builder.emitLoadRegPtrImm(target, reinterpret_cast<uint64_t>(changeMixed));
+    ABICall::callReg(builder, K_SYSTEM_V, target, prepared);
+    const auto output = MicroReg::virtualIntReg(102);
+    builder.emitLoadRegPtrImm(output, reinterpret_cast<uint64_t>(&result));
+    ABICall::storeReturnRegsToReturnBuffer(builder, K_SYSTEM_V, output, returned);
+    SWC_RESULT(executeSystemVThunk(context, builder, true));
+    const auto expected = changeMixed(input);
+    if (result.integer != expected.integer || result.floating != expected.floating)
+        return Result::Error;
+
+    MicroBuilder callee(context);
+    const auto value = MicroReg::intReg(0);
+    callee.emitLoadRegPtrImm(value, reinterpret_cast<uint64_t>(&input));
+    ABICall::materializeValueToReturnRegs(callee, K_SYSTEM_V, value, true, returned);
+    callee.emitRet();
+    MachineCode lowered;
+    SWC_RESULT(lowered.emit(context, callee));
+    JITMemoryManager manager;
+    JITMemory memory;
+    installSystemVCode(manager, memory, lowered.bytes, lowered.unwindInfo);
+    const auto nativeResult = reinterpret_cast<MixedValue (*)()>(memory.entryPoint())();
+    if (nativeResult.integer != input.integer || nativeResult.floating != input.floating)
+        return Result::Error;
+}
+SWC_TEST_END()
+
+SWC_TEST_BEGIN(ABI_SystemVIntermediateReturnStorageKeepsEnclosingResultLive)
+{
+    CommandLine commandLine = ctx.cmdLine();
+    commandLine.targetOs = Runtime::TargetOs::Linux;
+    CompilerInstance compiler(ctx.global(), commandLine);
+    TaskContext context(compiler);
+    MicroBuilder builder(context);
+    builder.setRetUsesAbiRegs(true, false);
+    using SystemVAbi::Class;
+    const SystemVAbi::Classification type{{Class::Sse, Class::Sse}, 16, 8};
+    const TwoFloats input{13.5, 27.25};
+    TwoFloats stored{};
+    const MicroReg address = MicroReg::intReg(0);
+    builder.emitLoadRegPtrImm(address, reinterpret_cast<uint64_t>(&input));
+    ABICall::loadSystemVReturn(builder, address, type);
+    ABICall::storeSystemVReturn(builder, {.valuePtr = &stored, .isVoid = false, .systemVType = &type});
+    constexpr uint64_t expected = 0x123456789abcdef0;
+    builder.emitLoadRegImm(MicroReg::intReg(0), ApInt(expected, 64), MicroOpBits::B64);
+    builder.emitRet();
+    MachineCode lowered;
+    SWC_RESULT(lowered.emit(context, builder));
+    JITMemoryManager manager;
+    JITMemory memory;
+    installSystemVCode(manager, memory, lowered.bytes, lowered.unwindInfo);
+    const uint64_t result = reinterpret_cast<uint64_t (*)()>(memory.entryPoint())();
+    if (result != expected || stored.first != input.first || stored.second != input.second)
         return Result::Error;
 }
 SWC_TEST_END()

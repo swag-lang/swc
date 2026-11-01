@@ -123,8 +123,12 @@ namespace ABICall
         bool            isAddressed        = false;
         bool            constrainToArgLane = false;
         uint8_t         numBits            = 0;
-        // Classified System V values are addressed by srcReg, including stack values.
+        // Semantic callers keep a stable type handle; raw backend fixtures may supply
+        // a classification directly. Both forms describe storage addressed by srcReg.
+        TypeRef systemVTypeRef = TypeRef::invalid();
         const SystemVAbi::Classification* systemVType = nullptr;
+
+        bool hasSystemVStorage() const { return systemVType || systemVTypeRef.isValid(); }
     };
 
     struct Return

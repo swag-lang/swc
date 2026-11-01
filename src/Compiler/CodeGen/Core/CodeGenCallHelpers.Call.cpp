@@ -336,7 +336,7 @@ namespace
 
     void materializePreparedDirectScalarArg(CodeGen& codeGen, CodeGenNodePayload& argPayload, const TypeInfo& normalizedType, const ABITypeNormalize::NormalizedType& normalizedArg)
     {
-        if (normalizedArg.isIndirect)
+        if (normalizedArg.isIndirect || normalizedArg.isSystemVStorage())
             return;
 
         TaskContext&       ctx               = codeGen.ctx();
@@ -663,7 +663,7 @@ namespace
 
     void materializePreparedBorrowedAggregateArg(CodeGen& codeGen, CodeGenNodePayload& argPayload, const CallConv& callConv, const TypeInfo& normalizedType, const ABITypeNormalize::NormalizedType& normalizedArg, AstNodeRef argRef, uint32_t& outTransientStackSize)
     {
-        if (!normalizedArg.isIndirect || normalizedArg.needsIndirectCopy)
+        if ((!normalizedArg.isIndirect && !normalizedArg.isSystemVStorage()) || normalizedArg.needsIndirectCopy)
             return;
         if (argRef.isInvalid() || !argPayload.isValue())
             return;
@@ -723,9 +723,10 @@ namespace
 
     void fillPreparedDirectArgType(ABICall::PreparedArg& outPreparedArg, CodeGen& codeGen, const CodeGenNodePayload& argPayload, const TypeInfo& normalizedType, const ABITypeNormalize::NormalizedType& normalizedArg, const ResolvedCallArgument& resolvedArg)
     {
-        SWC_ASSERT(!CodeGenFunctionHelpers::shouldMaterializeAddressBackedValue(codeGen, normalizedType, normalizedArg.isIndirect, normalizedArg.isFloat, normalizedArg.numBits));
+        SWC_ASSERT(!CodeGenFunctionHelpers::shouldMaterializeAddressBackedValue(codeGen, normalizedType, normalizedArg.isIndirect || normalizedArg.isSystemVStorage(), normalizedArg.isFloat, normalizedArg.numBits));
         const bool passAddressRef = normalizedType.isReference() && resolvedArg.bindsReferenceToValue;
 
+        outPreparedArg.systemVTypeRef = normalizedArg.isSystemVStorage() ? normalizedType.typeRef() : TypeRef::invalid();
         outPreparedArg.isFloat     = normalizedArg.isFloat;
         outPreparedArg.isSigned    = normalizedArg.isSigned;
         outPreparedArg.numBits     = normalizedArg.numBits;
@@ -734,6 +735,9 @@ namespace
 
     void doIsolatePreparedRegisterArgSources(CodeGen& codeGen, const CallConv& callConv, SmallVector<ABICall::PreparedArg>& args)
     {
+        // The System V aggregate path snapshots all sources before assigning lanes.
+        if (callConv.isSystemVAMD64 && std::ranges::any_of(args, [](const ABICall::PreparedArg& arg) { return arg.hasSystemVStorage(); }))
+            return;
         MicroBuilder&             builder = codeGen.builder();
         ABICall::ArgRegisterState registerState;
         for (uint32_t i = 0; i < args.size(); ++i)

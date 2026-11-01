@@ -2,6 +2,8 @@
 
 #if SWC_HAS_UNITTEST
 #include "Backend/ABI/SystemVAbi.h"
+#include "Backend/ABI/ABITypeNormalize.h"
+#include "Backend/ABI/CallConv.h"
 #include "Compiler/Sema/Symbol/Symbol.Struct.h"
 #include "Compiler/Sema/Symbol/Symbol.Variable.h"
 #include "Compiler/Sema/Type/TypeManager.h"
@@ -130,6 +132,55 @@ SWC_TEST_BEGIN(ABI_SystemVVectorUpperHalfSharesOneRegister)
     const auto aligned = allocator.next(wide);
     if (!aligned.onStack || aligned.stackOffset != 32 || allocator.stackSize() != 64 || allocator.stackAlignment() != 32)
         return Result::Error;
+}
+SWC_TEST_END()
+
+SWC_TEST_BEGIN(ABI_SystemVNormalizedStorageDistinguishesStackValuesAndHiddenResults)
+{
+    auto& types = ctx.typeMgr();
+    const auto& conv = CallConv::get(CallConvKind::SystemVAMD64);
+    const std::array mixedFields{types.typeU64(), types.typeF64()};
+    const TypeRef mixed = Backend::Unittest::makeStructType(ctx, mixedFields);
+    for (const auto usage : {ABITypeNormalize::Usage::Argument, ABITypeNormalize::Usage::Return})
+    {
+        const auto normalized = ABITypeNormalize::normalize(ctx, conv, types.get(mixed), usage);
+        const auto storage = normalized.systemVStorageType();
+        if (!normalized.isSystemVStorage() || normalized.isIndirect || normalized.needsIndirectCopy || storage.size != 16 || storage.alignment != 8)
+            return Result::Error;
+        if (storage.classes != std::array{Class::Integer, Class::Sse})
+            return Result::Error;
+    }
+    const std::array largeFields{types.typeU64(), types.typeU64(), types.typeU64()};
+    const TypeRef large = Backend::Unittest::makeStructType(ctx, largeFields);
+    const auto argument = ABITypeNormalize::normalize(ctx, conv, types.get(large), ABITypeNormalize::Usage::Argument);
+    const auto result = ABITypeNormalize::normalize(ctx, conv, types.get(large), ABITypeNormalize::Usage::Return);
+    if (!argument.isSystemVStorage() || !argument.systemVStorageType().memory() || argument.isIndirect || argument.needsIndirectCopy)
+        return Result::Error;
+    if (!result.isSystemVStorage() || !result.systemVStorageType().memory() || !result.isIndirect || result.indirectSize != 24)
+        return Result::Error;
+}
+SWC_TEST_END()
+
+SWC_TEST_BEGIN(ABI_SystemVNormalizationKeepsArrayDecayAndWideRegisterShapes)
+{
+    auto& types = ctx.typeMgr();
+    const auto& conv = CallConv::get(CallConvKind::SystemVAMD64);
+    const std::array<uint64_t, 1> dimensions{3};
+    const auto array = types.addType(TypeInfo::makeArray(dimensions, types.typeU64()));
+    const auto argument = ABITypeNormalize::normalize(ctx, conv, types.get(array), ABITypeNormalize::Usage::Argument);
+    if (!argument.isIndirect || argument.isSystemVStorage() || argument.needsIndirectCopy || argument.numBits != 64)
+        return Result::Error;
+    const auto integer = types.addType(TypeInfo::makeInt(128, TypeInfo::Sign::Unsigned));
+    const auto wide = ABITypeNormalize::normalize(ctx, conv, types.get(integer), ABITypeNormalize::Usage::Argument);
+    if (!wide.isSystemVStorage() || wide.isIndirect || wide.systemVStorageType().classes != std::array{Class::Integer, Class::Integer})
+        return Result::Error;
+    const auto vector = types.addType(TypeInfo::makeSimd(types.typeF32(), 4));
+    for (const auto usage : {ABITypeNormalize::Usage::Argument, ABITypeNormalize::Usage::Return})
+    {
+        const auto normalized = ABITypeNormalize::normalize(ctx, conv, types.get(vector), usage);
+        if (normalized.isSystemVStorage() || normalized.isIndirect || !normalized.isFloat || normalized.numBits != 128)
+            return Result::Error;
+    }
 }
 SWC_TEST_END()
 

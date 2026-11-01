@@ -3,6 +3,8 @@
 #include "Backend/ABI/SystemVAbi.h"
 #include "Backend/Micro/MicroBuilder.h"
 #include "Backend/Micro/MicroPassHelpers.h"
+#include "Compiler/Sema/Type/TypeManager.h"
+#include "Main/TaskContext.h"
 
 SWC_BEGIN_NAMESPACE();
 
@@ -19,6 +21,19 @@ namespace
         if (size > 8)
             result.classes[1] = isFloat ? Class::SseUp : Class::Integer;
         return result;
+    }
+
+    Classification preparedType(MicroBuilder& builder, const ABICall::PreparedArg& arg)
+    {
+        if (arg.systemVType)
+            return *arg.systemVType;
+        if (arg.systemVTypeRef.isValid())
+        {
+            const auto storage = SystemVAbi::classify(builder.ctx(), builder.ctx().typeMgr().get(arg.systemVTypeRef));
+            SWC_FORCE_ASSERT(storage.has_value());
+            return *storage;
+        }
+        return packedType(arg.isFloat, arg.numBits);
     }
 
     uint32_t chunkBytes(const uint32_t remaining)
@@ -242,7 +257,7 @@ void ABICall::loadSystemVReturn(MicroBuilder& builder, const MicroReg source, co
         // The caller-provided buffer has already received the result. Its address
         // is also returned in RAX, as required by the System V memory-result rule.
         builder.emitLoadRegReg(conv.intReturn, source, MicroOpBits::B64);
-        builder.setRetUsesAbiRegs(true, false);
+        builder.setRetUsesAbiRegs(true, builder.usesFloatReturnRegOnRet(), builder.extraReturnRegsOnRet());
         return;
     }
     MicroReg address, scratch;
@@ -263,7 +278,9 @@ void ABICall::loadSystemVReturn(MicroBuilder& builder, const MicroReg source, co
         extra |= MicroPassHelpers::MicroPhysLiveness::maskOf(integerReturns[1]);
     if (vector > 1)
         extra |= MicroPassHelpers::MicroPhysLiveness::maskOf(MicroReg::floatReg(1));
-    builder.setRetUsesAbiRegs(integer != 0, vector != 0, extra);
+    // This helper also stages a value before storing it to a buffer. Such an
+    // intermediate transfer must not erase the enclosing function's result lanes.
+    builder.setRetUsesAbiRegs(builder.usesIntReturnRegOnRet() || integer != 0, builder.usesFloatReturnRegOnRet() || vector != 0, builder.extraReturnRegsOnRet() | extra);
 }
 
 ABICall::PreparedCall ABICall::prepareSystemVStorageArgs(MicroBuilder& builder, const CallConvKind callConvKind, const std::span<const PreparedArg> args)
@@ -272,9 +289,14 @@ ABICall::PreparedCall ABICall::prepareSystemVStorageArgs(MicroBuilder& builder, 
     SWC_ASSERT(conv.isSystemVAMD64);
     SystemVAbi::ArgumentAllocator allocator;
     SmallVector<SystemVAbi::ArgumentLocation> locations;
+    SmallVector<Classification> types;
     locations.reserve(args.size());
+    types.reserve(args.size());
     for (const PreparedArg& arg : args)
-        locations.push_back(allocator.next(arg.systemVType ? *arg.systemVType : packedType(arg.isFloat, arg.numBits)));
+    {
+        types.push_back(preparedType(builder, arg));
+        locations.push_back(allocator.next(types.back()));
+    }
 
     // Snapshot sources before assigning any ABI lane. A physical source may itself
     // be an argument or scratch register, and one aggregate can claim two lanes.
@@ -289,7 +311,7 @@ ABICall::PreparedCall ABICall::prepareSystemVStorageArgs(MicroBuilder& builder, 
     {
         const PreparedArg& arg = args[index];
         SWC_ASSERT(arg.srcReg != conv.stackPointer);
-        const bool addressSource = arg.systemVType || arg.isAddressed || arg.kind == PreparedArgKind::InterfaceObject;
+        const bool addressSource = arg.hasSystemVStorage() || arg.isAddressed || arg.kind == PreparedArgKind::InterfaceObject;
         const MicroOpBits bits = addressSource || !arg.isFloat ? MicroOpBits::B64 : valueBits(arg.numBits);
         builder.emitLoadMemReg(conv.stackPointer, homes + index * K_SOURCE_HOME_SIZE, arg.srcReg, bits);
     }
@@ -304,9 +326,9 @@ ABICall::PreparedCall ABICall::prepareSystemVStorageArgs(MicroBuilder& builder, 
             if (location.onStack != onStack)
                 continue;
             const PreparedArg& arg = args[index];
-            const Classification type = arg.systemVType ? *arg.systemVType : packedType(arg.isFloat, arg.numBits);
+            const Classification& type = types[index];
             const uint64_t home = homes + index * K_SOURCE_HOME_SIZE;
-            if (arg.systemVType || arg.isAddressed || arg.kind == PreparedArgKind::InterfaceObject)
+            if (arg.hasSystemVStorage() || arg.isAddressed || arg.kind == PreparedArgKind::InterfaceObject)
             {
                 builder.emitLoadRegMem(address, conv.stackPointer, home, MicroOpBits::B64);
                 if (arg.kind == PreparedArgKind::InterfaceObject)
@@ -314,7 +336,7 @@ ABICall::PreparedCall ABICall::prepareSystemVStorageArgs(MicroBuilder& builder, 
             }
             else
                 builder.emitLoadAddressRegMem(address, conv.stackPointer, home, MicroOpBits::B64);
-            if (!onStack && !arg.systemVType && !arg.isFloat && arg.isSigned)
+            if (!onStack && !arg.hasSystemVStorage() && !arg.isFloat && arg.isSigned)
             {
                 const uint32_t lane = location.registers[0];
                 loadCanonicalIntFromMemToReg(builder, conv.intArgRegs[lane], address, 0, arg.numBits, true);

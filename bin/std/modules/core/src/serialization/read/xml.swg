@@ -119,6 +119,11 @@ public impl Xml
     {
         .stream = ByteStream.openRead(input)
         .stackTags.clear()
+        if not Utf8.isValid(input) do
+            fail .getError("XML document is not valid UTF-8")
+        let bytes = .stream.remainingBytes()
+        if bytes.count >= 3 and bytes[0] == 0xEF and bytes[1] == 0xBB and bytes[2] == 0xBF do
+            .stream.advance(3)
     }
 
     // Returns whether another sequence element follows, that is, whether the next non-blank byte does not start a tag.

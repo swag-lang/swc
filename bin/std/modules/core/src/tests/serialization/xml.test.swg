@@ -22,7 +22,7 @@ struct XmlPayload
 // decodes the predefined entities.
 #test
 {
-    let source: String = "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n<payload>\n  <id>7</id>\n  <active>true</active>\n  <name>a &lt;b&gt; &amp; &quot;c&apos;</name>\n  <counts> -1 0 4 </counts>\n  <pair><x>3</x><y>-2</y></pair>\n</payload>\n"
+    let source: String = "\uFEFF<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n<payload>\n  <id>7</id>\n  <active>true</active>\n  <name>a &lt;b&gt; &amp; &quot;c&apos;</name>\n  <counts> -1 0 4 </counts>\n  <pair><x>3</x><y>-2</y></pair>\n</payload>\n"
 
     var decoder: Serialization.Decoder'Serialization.Read.Xml
     let decoded = expect decoder.readAll'XmlPayload(source.toSlice())
@@ -62,6 +62,16 @@ struct XmlPayload
     discard catch CoreTests.readAndDelete'(XmlPayload, Serialization.Read.Xml)(&decoder, invalidXml.toSlice()) as errOutcome
     let syntax = expect cast(*SyntaxError, errOutcome.value())
     Swag.assert(syntax.line == 5 and syntax.col == 3)
+}
+
+// XML input is rejected at the boundary when its bytes are not valid UTF-8.
+#test
+{
+    let invalidXml: [4] u8 = ['<'u8, 'p', '>', 0xFF]
+    var decoder: Serialization.Read.Xml
+    var errorOutcome: Swag.Error
+    catch decoder.startRead(invalidXml) as errorOutcome
+    Swag.assert(errorOutcome.value() is SyntaxError)
 }
 
 // Numeric dispatch keeps the value width and leaves the following tag unread.

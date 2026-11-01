@@ -237,9 +237,8 @@ func compare(src, dst: const [..] rune, ignoreCase = false, len: u64 = 0)->s32
         {
             let c1 = toLower(src[i])
             let c2 = toLower(dst[i])
-            result = cast(s32, c1) - cast(s32, c2)
-            if result != 0 do
-                return Math.sign(result)
+            if c1 != c2 do
+                return c1 < c2 ? -1 : 1
         }
     }
     else

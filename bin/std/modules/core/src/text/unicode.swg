@@ -10,10 +10,10 @@
 public
 {
     // Returns whether `c` is a Latin-1 code point, at most U+00FF.
-    func isLatin1(c: rune) => c <= 0xFF
+    func isLatin1(c: rune) => 0 <= c and c <= 0xFF
 
     // Returns whether `c` is an ASCII code point, below U+0080.
-    func isAscii(c: rune) => c <= 0x7F
+    func isAscii(c: rune) => 0 <= c and c <= 0x7F
 }
 
 #[Swag.ConstExpr]

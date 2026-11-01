@@ -439,6 +439,8 @@ impl Decimal
                 break
             }
 
+            if cpt == Swag.U32.Max do
+                fail Errors.OverflowError{"floating-point token exceeds the supported length"}
             cpt, buffer += 1
         }
 
@@ -451,6 +453,8 @@ impl Decimal
         c = buffer[]
         if cpt < countof and (c | 32) == 'e'
         {
+            if cpt == Swag.U32.Max do
+                fail Errors.OverflowError{"floating-point token exceeds the supported length"}
             cpt, buffer += 1
             if cpt >= countof do
                 fail ParseIncompleteError{}
@@ -459,6 +463,8 @@ impl Decimal
             c = buffer[]
             if c == negSign
             {
+                if cpt == Swag.U32.Max do
+                    fail Errors.OverflowError{"floating-point token exceeds the supported length"}
                 buffer, cpt += 1
                 esign       = -1
                 c           = buffer[]
@@ -467,6 +473,8 @@ impl Decimal
             }
             elif c == plusSign
             {
+                if cpt == Swag.U32.Max do
+                    fail Errors.OverflowError{"floating-point token exceeds the supported length"}
                 buffer, cpt += 1
                 c = buffer[]
                 if not Latin1.isDigit(c) and cpt >= countof do
@@ -484,6 +492,8 @@ impl Decimal
                     break
                 if e < 10000 do
                     e = e * 10 + (c - '0')
+                if cpt == Swag.U32.Max do
+                    fail Errors.OverflowError{"floating-point token exceeds the supported length"}
                 buffer, cpt += 1
             }
 

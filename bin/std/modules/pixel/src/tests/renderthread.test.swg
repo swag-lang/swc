@@ -193,6 +193,7 @@ impl IRenderer for PresentProbe
 #test
 {
     var window = expect Env.createWindow({identifier: "render-worker-test", title: "Render worker test", width: 64, height: 64})
+    expect window.showOffScreen()
     var backend: RenderOgl
     var worker:  RenderThread
     worker.start(&backend)

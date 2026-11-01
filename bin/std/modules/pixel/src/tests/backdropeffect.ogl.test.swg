@@ -6,7 +6,8 @@ using Swag, Core
 #[Swag.TestTag("integration.renderer.opengl")]
 #test
 {
-    var window         = expect Env.createWindow({identifier: "pixel-backdrop-test", title: "Pixel backdrop test", width: 144, height: 96})
+    var window = expect Env.createWindow({identifier: "pixel-backdrop-test", title: "Pixel backdrop test", width: 144, height: 96})
+    expect window.showOffScreen()
     var ogl: RenderOgl
     let gpu: IRenderer = &ogl
     var context        = expect gpu.createContext(window.nativeRenderHandle(), 144, 96)

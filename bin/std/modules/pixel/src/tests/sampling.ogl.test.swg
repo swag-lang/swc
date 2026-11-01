@@ -4,7 +4,7 @@
 
 using Swag, Core
 
-// A hidden native drawable exercises the real shaders; CPU goldens cannot catch a GPU sampler
+// A realized offscreen drawable exercises the real shaders; CPU goldens cannot catch a GPU sampler
 // crossing the edge of a source rectangle into its brightly colored atlas neighbors.
 func renderSamplingScene(renderer: IRenderer, scale: f32)->Image
 {
@@ -55,7 +55,8 @@ func renderSamplingScene(renderer: IRenderer, scale: f32)->Image
 #[Swag.TestTag("integration.renderer.opengl")]
 #test
 {
-    var window         = expect Env.createWindow({identifier: "pixel-sampling-test", title: "Pixel sampling test", width: 192, height: 160})
+    var window = expect Env.createWindow({identifier: "pixel-sampling-test", title: "Pixel sampling test", width: 192, height: 160})
+    expect window.showOffScreen()
     var ogl: RenderOgl
     let gpu: IRenderer = &ogl
     var context        = expect gpu.createContext(window.nativeRenderHandle(), 192, 160)

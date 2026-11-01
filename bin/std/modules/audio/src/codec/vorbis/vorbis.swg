@@ -836,9 +836,10 @@ private impl Codec
             while offset < config.count and completed < 3
             {
                 let page = try Ogg.readPageHeader(config, offset)
-                if offset + page.totalBytes() > config.count do
+                let pageBytes = page.totalBytes()
+                if pageBytes > config.count - offset do
                     fail InvalidFormatError{"Vorbis header pages are truncated"}
-                let body = config[offset + page.headerBytes until offset + page.totalBytes()]
+                let body = config[offset + page.headerBytes until offset + pageBytes]
                 if not hasSerial
                 {
                     if (page.flags & Ogg.FirstPage) and
@@ -869,14 +870,14 @@ private impl Codec
                             completed += 1
                             if completed == 3
                             {
-                                .firstAudioSequence = page.sequence + 1
+                                .firstAudioSequence = page.sequence == Swag.U32.Max ? 0 : page.sequence + 1
                                 break
                             }
                         }
                     }
                 }
 
-                offset += page.totalBytes()
+                offset += pageBytes
             }
 
             if completed < 3 do
@@ -896,16 +897,24 @@ private impl Codec
                     let byte = config[offset]
                     offset       += 1
                     sizes[index] += byte
+                    if sizes[index] > config.count - offset do
+                        fail InvalidFormatError{"Vorbis header lacing exceeds the configuration"}
                     if byte != 255 do
                         break
                 }
             }
 
-            if sizes[0] + sizes[1] > config.count - offset do
+            let remaining = config.count - offset
+            if sizes[0] > remaining do
                 fail InvalidFormatError{"Vorbis header lacing exceeds the configuration"}
-            headers[0].add(config[offset until offset + sizes[0]])
-            headers[1].add(config[offset + sizes[0] until offset + sizes[0] + sizes[1]])
-            headers[2].add(config[offset + sizes[0] + sizes[1] until config.count])
+            let remainingAfterFirst = remaining - sizes[0]
+            if sizes[1] > remainingAfterFirst do
+                fail InvalidFormatError{"Vorbis header lacing exceeds the configuration"}
+            let firstEnd  = offset + sizes[0]
+            let secondEnd = firstEnd + sizes[1]
+            headers[0].add(config[offset until firstEnd])
+            headers[1].add(config[firstEnd until secondEnd])
+            headers[2].add(config[secondEnd until config.count])
         }
         else
         {
@@ -1505,7 +1514,8 @@ private impl Codec
         while offset < run.count
         {
             let page = try Ogg.readPageHeader(run, offset)
-            if offset + page.totalBytes() > run.count do
+            let pageBytes = page.totalBytes()
+            if pageBytes > run.count - offset do
                 fail InvalidFormatError{"Ogg page run is truncated"}
             if page.serial == .serial
             {
@@ -1513,7 +1523,7 @@ private impl Codec
                     firstSequence = page.sequence
                 if page.granule != Ogg.NoGranule do
                     lastGranule = page.granule
-                let body = run[offset + page.headerBytes until offset + page.totalBytes()]
+                let body = run[offset + page.headerBytes until offset + pageBytes]
                 var at   = 0'u64
                 for index in page.segments
                 {
@@ -1529,7 +1539,7 @@ private impl Codec
                 }
             }
 
-            offset += page.totalBytes()
+            offset += pageBytes
         }
 
         if lastGranule == Ogg.NoGranule do

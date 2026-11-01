@@ -12,6 +12,7 @@ private const StallTimeoutMs = 10_000'u64
 struct PreviewProbe
 {
     task:        Swag.Task
+    executor:    Swag.Executor     // Watching a live preview must not occupy a shared worker.
     request:     BuildRequest
     folder:      Probe
     channel:     FrameChannel
@@ -29,6 +30,7 @@ impl PreviewProbe
     {
         .cancel()
         .task.wait()
+        .executor.close()
     }
 
     // Asks the probe to stop: its build wait, its run and its frame watch all end early.
@@ -41,6 +43,7 @@ impl PreviewProbe
     mtd start(request: BuildRequest, cache: *CompilationCache)
     {
         .request = request
+        .executor.start()
         .task.submit(func|probe = me, cache|()
         {
             catch probe.run(cache)
@@ -48,7 +51,7 @@ impl PreviewProbe
                 probe.failed      = true
                 probe.diagnostics = appStrings().msg_PreviewNotRun
             }
-        })
+        }, executor: &.executor)
     }
 
     // Waits for the build, then runs it in a child process rendering into the frame channel, and

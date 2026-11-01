@@ -6,8 +6,10 @@ once with `tools\devmode.bat` or `tools\release.bat` before using the launchers.
 
 Run the checkout's own compiler whenever more than one worktree exists. `dm` selects
 `bin\swc.dm.exe`; without it, tools use `bin\swc.exe`. Tool compiler calls default to three workers.
-Pass `--num-cores` to change compiler parallelism; it does not limit a compiled program's runtime
-threads. Compiler options can be forwarded after the command and module.
+Pass `--num-cores` to change compiler parallelism. Application tests inherit this count for their
+runtime pool and nested compilers, capped at three; zero uses that cap. `SWAG_RUNTIME_THREADS`
+overrides the test runtime pool. Other compiled programs manage their own runtime threads.
+Compiler options can be forwarded after the command and module.
 
 ## Workspaces
 
@@ -33,8 +35,10 @@ Use `-bc release` or `-bc devmode` to select a program configuration. `--debug`,
 `scripts.bat smoke` recognizes a script's imports and setup, then runs its native executable
 with the smoke frame budget, isolation arguments, and executable timeout.
 For application tests, `--test-file` and `--test-tag` select which tests execute; the complete
-application module is still compiled. `apps.bat test` sets `SWAG_RUNTIME_THREADS=3` unless that
-environment variable is already defined. The setting is local to the launcher and its children.
+application module is still compiled. `apps.bat test` sets `SWAG_RUNTIME_THREADS` from
+`--num-cores`, capped at three, unless that environment variable is already defined. The setting
+is local to the launcher and its children. Prism child compilers inherit the same capped count,
+including when testing the entire application workspace.
 `--all-cfg` and `apps run --async` are not supported by the batch launchers; run each configuration
 separately.
 

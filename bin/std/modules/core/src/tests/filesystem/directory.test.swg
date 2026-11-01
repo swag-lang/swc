@@ -106,6 +106,29 @@ func createDirectoryJunction(link, target: string)->bool
     Swag.assert(errOutcome.value() != null)
 }
 
+// A drive letter without a mounted root is rejected before its path is queried.
+#test
+{
+    let drives = expect Directory.drives()
+    var missingRoot: String
+    for letter in 'A'u8 until 'Z'u8 + 1
+    {
+        var candidate = String.from("A:\\")
+        candidate[0] = cast(u8, letter)
+        var mounted = false
+        for &drive in drives where Utf8.compare(drive.toSlice(), candidate.toSlice(), .Latin1NoCase) == 0 do
+            mounted = true
+        if not mounted
+        {
+            missingRoot = #move candidate
+            break
+        }
+    }
+
+    if not missingRoot.isEmpty() do
+        Swag.assert(not Directory.exists(missingRoot.toString()))
+}
+
 // Empty paths are rejected before they can act like the current directory.
 #test
 {

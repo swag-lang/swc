@@ -43,7 +43,9 @@ struct MusicSource
 struct MusicSummary
 {
     title:  String
+    track:  String
     artist: String
+    albumArtist: String
     date:   String
     source: String
 }
@@ -186,7 +188,7 @@ func stampMusicCache(image: *Image)
 }
 
 func localMusicSummary(tags: const *SoundTags)->MusicSummary =>
-    {title: tags.album, artist: musicSearchArtist(tags), date: tags.year,
+    {title: tags.album, track: tags.title, artist: tags.artist, albumArtist: tags.albumArtist, date: tags.year,
      source: tags.album.isEmpty() ? "" : "tags"}
 
 func labelLocalMusic(image: *Image, tags: const *SoundTags)

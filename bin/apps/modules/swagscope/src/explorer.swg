@@ -740,7 +740,8 @@ impl Explorer
             sheet.setPicture(entry.texture)
 
         let title = not entry.movie.title.isEmpty() ? entry.movie.title.toString() :
-                    (not entry.music.title.isEmpty() ? entry.music.title.toString() : entry.name.toString())
+                    (not entry.directory and not entry.music.track.isEmpty() ? entry.music.track.toString() :
+                     (not entry.music.title.isEmpty() ? entry.music.title.toString() : entry.name.toString()))
         sheet.setTitle(safeMediaText(title))
         if title != entry.name.toString()
         {
@@ -765,15 +766,10 @@ impl Explorer
         if not entry.movie.title.isEmpty()
         {
             sheet.setPictureBeside(true)
-            var identity = String.from(entry.movie.date.toString()[0 until Math.min(entry.movie.date.length, 4'u64)])
-            if entry.duration
-            {
-                if identity.length do
-                    identity += " · "
-                identity += Format.toString("% min", (entry.duration + 30) / 60)
-            }
-
-            sheet.setIdentity(identity)
+            let year = String.from(entry.movie.date.toString()[0 until Math.min(entry.movie.date.length, 4'u64)])
+            sheet.setIdentity(year.length ? year.toString() : entry.name.toString())
+            if entry.duration do
+                sheet.addFact(formatDuration(entry.duration), strings.explore_Duration)
             if not entry.movie.imdbRating.isEmpty()
             {
                 var rating = safeMediaText(entry.movie.imdbRating)
@@ -784,10 +780,15 @@ impl Explorer
             }
 
             sheet.setAction(appStrings().cmd_OpenChosen, ViewerCommands.OpenChosen)
-            if entry.movie.overview.length do
+            if entry.movie.overview.length
+            {
+                sheet.addSection(strings.explore_Synopsis)
                 sheet.addText(safeMediaText(entry.movie.overview))
+            }
+            sheet.addSection(strings.explore_MediaDetails)
             addSheetReading(sheet, strings.explore_Director, entry.movie.director)
             addSheetReading(sheet, strings.explore_Cast, entry.movie.actors)
+            addSheetReading(sheet, strings.explore_Sources, entry.movie.sources)
             let kind = String.toUpper(Path.extension(entry.name) orelse "", .Unicode)
             var file = kind.length > 1 ? String.from(kind.toString()[1 to]) : String.from("")
             if entry.size
@@ -798,8 +799,9 @@ impl Explorer
             }
 
             if file.length do
+                sheet.addSection(strings.explore_FileProperties)
+            if file.length do
                 sheet.addReading(strings.explore_File, file)
-            addSheetReading(sheet, strings.explore_Sources, entry.movie.sources)
             return
         }
 
@@ -807,13 +809,27 @@ impl Explorer
         if not entry.movie.imdbRating.isEmpty() do
             sheet.addFact(safeMediaText(entry.movie.imdbRating), entry.movie.ratingSource == "TMDB" ? "TMDB" : "IMDb")
 
-        if not entry.music.title.isEmpty()
+        if not entry.music.track.isEmpty() or not entry.music.title.isEmpty()
         {
+            var identity = safeMediaText(entry.music.artist)
+            if entry.music.date.length
+            {
+                if identity.length do
+                    identity += " · "
+                identity += safeMediaText(entry.music.date)
+            }
+            sheet.setIdentity(identity.length ? identity.toString() : entry.name.toString())
+            if entry.duration do
+                sheet.addFact(formatDuration(entry.duration), strings.explore_Duration)
             sheet.addSection(strings.explore_MediaDetails)
             addSheetReading(sheet, strings.explore_Artist, entry.music.artist)
+            addSheetReading(sheet, strings.explore_AlbumArtist, entry.music.albumArtist)
+            addSheetReading(sheet, strings.explore_Album, entry.music.title)
             addSheetReading(sheet, strings.explore_FirstRelease, entry.music.date)
-            addSheetReading(sheet, strings.explore_Source,
-                            entry.music.source == "tags" ? strings.explore_FileTags : "MusicBrainz")
+            if entry.music.source == "tags" do
+                addSheetReading(sheet, strings.explore_Source, strings.explore_FileTags)
+            elif not entry.music.source.isEmpty() do
+                addSheetReading(sheet, strings.explore_Source, "MusicBrainz")
         }
 
         if .listing.isArchive and entry.archiveIndex < .listing.archive.entries.count
@@ -843,7 +859,7 @@ impl Explorer
             addSheetReading(sheet, strings.explore_Modified, entry.modified)
         }
 
-        if entry.duration do
+        if entry.duration and entry.music.title.isEmpty() and entry.music.track.isEmpty() do
             addSheetReading(sheet, strings.explore_Duration, formatDuration(entry.duration))
         sheet.setAction(appStrings().cmd_OpenChosen, ViewerCommands.OpenChosen)
         if .listing.isArchive do
@@ -1853,7 +1869,13 @@ impl IWnd for Explorer
                             .entries[preview.index].duration = duration
                         .entries[preview.index].movie    = MovieSummary.fromImage(&preview.image)
                         var music = MusicSummary.fromImage(&preview.image)
-                        if music.title.isEmpty() and not .entries[preview.index].albumTrack.isEmpty()
+                        let localMusic = &.entries[preview.index].music
+                        if not localMusic.track.isEmpty() do
+                            music.track = localMusic.track
+                        if not localMusic.albumArtist.isEmpty() do
+                            music.albumArtist = localMusic.albumArtist
+                        if music.title.isEmpty() and
+                           (not .entries[preview.index].albumTrack.isEmpty() or not localMusic.track.isEmpty())
                         {
                             music = .entries[preview.index].music
                             if music.title.isEmpty() do

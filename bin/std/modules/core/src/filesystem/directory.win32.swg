@@ -25,6 +25,17 @@ func exists(dirName: string)->bool
 {
     if dirName.count == 0 do
         return false
+
+    // Reject an absent drive before querying a path that may stall in a native filesystem call.
+    if dirName.count >= 2 and dirName[1] == ':'
+    {
+        var root = String.from(dirName[until 2])
+        root += "\\"
+        let winRoot = Utf16.toZeroTerminated(root)
+        if GetDriveTypeW(winRoot.buffer) == DRIVE_NO_ROOT_DIR do
+            return false
+    }
+
     let winPath    = Utf16.toZeroTerminated(dirName)
     let attributes = catch GetFileAttributesW(winPath.buffer) { return false }
     if attributes == 0xFFFFFFFF do

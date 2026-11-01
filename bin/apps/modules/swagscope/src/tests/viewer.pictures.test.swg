@@ -105,3 +105,50 @@ func picturedFixture(name: string)->String => Path.combine(unwrap Path.directory
     view.showPage(false)
     Swag.assert(view.list.isLocallyVisible() and not view.page.isLocallyVisible())
 }
+
+// The return action keeps the far-right caption slot and the strip's centre line across viewers.
+// The first viewer records the strip; the others check the same geometry beside their chrome.
+#[Swag.TestTag("golden")]
+#test
+{
+    Swag.assert(Sound.acquireEngine(.NoSound))
+    defer Sound.releaseEngine()
+
+    let files = [picturedFixture("comprehensive.txt"),
+                 picturedFixture("comprehensive.md"),
+                 picturedFixture("title.png"),
+                 picturedFixture("viewer.pdf"),
+                 picturedFixture("ffmpeg-h264-two-aac.mkv"),
+                 picturedFixture("viewer.console.exe")]
+
+    for file, index in files
+    {
+        for light in [false, true]
+        {
+            var host: Testing.HeadlessHost
+            let window = framedViewerWindow(&host, file.toString(), light)
+            window.explorer = Explorer.create(window.documentPanel, window)
+            window.explorer.setShown(false)
+            window.explorerActive = true
+            window.refreshExplorerCaption()
+            host.surface.setTitle("Swag Scope")
+            host.surfaceWnd.showTitle(true)
+            host.surfaceWnd.sendResizeEvent()
+
+            let button  = window.returnExplorerCaptionButton
+            let metrics = host.theme.metrics
+            Swag.assert(button.isLocallyVisible())
+            Swag.assert(host.surfaceWnd.captionButtons[0] == button)
+            Swag.assert(Math.abs(button.position.vertCenter() - host.surfaceWnd.stripHeight() * 0.5) < 0.5)
+            Swag.assert(Math.abs(host.surfaceWnd.minimizeBtn!.position.x - button.position.right() - metrics.wnd_CaptionActionGap) < 0.5)
+
+            if index == 0
+            {
+                host.settleAnimations(&host.surfaceWnd, 4)
+                var image = host.render(&host.surfaceWnd)
+                image.crop({0, 0, image.width, cast(s32, host.surfaceWnd.stripHeight())})
+                Pixel.Testing.assertImageGolden(&image, light ? "viewer.return.caption.paper" : "viewer.return.caption.ink")
+            }
+        }
+    }
+}

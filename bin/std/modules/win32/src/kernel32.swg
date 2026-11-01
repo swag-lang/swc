@@ -159,6 +159,7 @@ const TRUNCATE_EXISTING = 5'u32
 const INVALID_HANDLE_VALUE    = cast(HANDLE, cast #bit (u64, -1's64))
 const CONSOLE_TEXTMODE_BUFFER = 1'u32
 const MAX_PATH                = 260
+const DRIVE_NO_ROOT_DIR       = 1
 const DRIVE_REMOTE            = 4
 const LOCALE_NAME_MAX_LENGTH  = 85
 const INFINITE                = 0xFFFFFFFF

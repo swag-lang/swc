@@ -61,6 +61,7 @@ struct AppStrings
     explore_Months:            string = "January February March April May June July August September October November December"     // Months of a mosaic of pictures, separated by spaces.
     explore_File:              string = "File"           // Reading of the kind and weight of the file a film is in.
     explore_Artist:            string = "Artist"
+    explore_AlbumArtist:       string = "Album artist"
     explore_FirstRelease:      string = "First release"
     explore_Source:            string = "Source"
     explore_FileTags:          string = "File tags"

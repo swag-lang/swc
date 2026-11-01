@@ -356,7 +356,9 @@ private impl Panel
             let error = .extract.finish()
             if not error.isEmpty()
             {
-                .clearPreviewFile()
+                // Failed extraction never transfers ownership of the destination file.
+                .previewFile.clear()
+                .activePreview = Swag.U64.Max
                 .showPreviewStatus(Format.toString("%\n%", texts().ui_PreviewError, error))
                 return
             }

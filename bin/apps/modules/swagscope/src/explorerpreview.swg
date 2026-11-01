@@ -140,8 +140,9 @@ impl ExplorerPreview
             name += extension
             if not Path.isValidFileName(name) do
                 fail Errors.InvalidFormatError{}
-            .temporary = Path.combine(Env.getSpecialDirectory(.Temp), name)
-            try Viewers.Archive.Zip.extractEntry(.archivePath, &.entry, .temporary)
+            let temporary = Path.combine(Env.getSpecialDirectory(.Temp), name)
+            try Viewers.Archive.Zip.extractEntry(.archivePath, &.entry, temporary)
+            .temporary = temporary
             file = .temporary
         }
 

@@ -270,8 +270,18 @@ impl Zip
     func extractEntry(archiveFileName: string, entry: const *ZipEntry, destination: string) fail
     {
         let plain = try loadEntry(archiveFileName, entry)
-        if try File.writeAllBytes(destination, plain.toSlice()) != plain.count do
-            fail Swag.SystemError{texts().err_TempWrite}
+        var ownsDestination = false
+        defer
+        {
+            if ownsDestination do
+                discard catch File.delete(destination)
+        }
+
+        var output = try File.open(destination, .CreateNew, .Write, .Delete)
+        ownsDestination = true
+        try output.writeAll(plain.toSlice())
+        output.close()
+        ownsDestination = false
     }
 }
 

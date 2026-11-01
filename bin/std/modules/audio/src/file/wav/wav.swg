@@ -334,10 +334,9 @@ private func readLayout(stream: *File.FileStream)->Layout fail
             try stream.skip(header.chunkSize)
 
         default:
-            if header.chunkSize do
-                try stream.skip(header.chunkSize)
-            else do
-                fail InvalidFormatError{"invalid wav"}
+            // A zero-byte unknown chunk is valid RIFF too; reading its header already
+            // advanced the cursor, so skipping zero cannot stall traversal.
+            try stream.skip(header.chunkSize)
         }
     }
 }

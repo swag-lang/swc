@@ -2006,6 +2006,25 @@ namespace
         return true;
     }
 
+    struct RuntimeDiagnosticCall
+    {
+        JITCallErrorKind errorKind;
+    };
+
+    void raiseRuntimeDiagnostic(Runtime::Context* context)
+    {
+        const TaskContext* current = TaskContext::current();
+        SWC_ASSERT(current && current->hasCompiler());
+        SWC_ASSERT(context == CompilerInstance::runtimeContextFromTls());
+        TaskContext& ctx = *const_cast<TaskContext*>(current);
+        auto errorKind = JITCallErrorKind::None;
+        auto action = RuntimeExceptionAction::Recover;
+        const bool reported = tryReportRuntimeException(ctx, K_COMPILER_EXCEPTION_CODE, nullptr, &errorKind, action);
+        SWC_ASSERT(reported);
+        if (action == RuntimeExceptionAction::Recover)
+            throw RuntimeDiagnosticCall{errorKind};
+    }
+
     bool tryMatchJitFunctionAtRip(const SymbolFunction& function, uint64_t rip, JitCrashFunctionMatch& outMatch)
     {
         outMatch = {};
@@ -2233,6 +2252,11 @@ namespace
     }
 }
 
+void* JIT::runtimeDiagnosticHandler(TaskContext& ctx)
+{
+    return getNativeInterfaceAdapter(ctx, reinterpret_cast<void*>(&raiseRuntimeDiagnostic), 1);
+}
+
 Result JIT::call(TaskContext& ctx, void* invoker, const uint64_t* arg0, JITCallErrorKind* outErrorKind, const JITRuntimeSetupMode setupMode, const CallConvKind callConvKind)
 {
     const TaskScopedContext scopedContext(ctx);
@@ -2288,6 +2312,11 @@ Result JIT::call(TaskContext& ctx, void* invoker, const uint64_t* arg0, JITCallE
     try
     {
         hasException = !callWithHostFaultHandler(ctx, [](void* argument) { (*static_cast<decltype(invoke)*>(argument))(); }, &invoke, callError);
+    }
+    catch (const RuntimeDiagnosticCall& error)
+    {
+        hasException = true;
+        callError = error.errorKind;
     }
     catch (const ForeignTargetCall& error)
     {

@@ -8,6 +8,7 @@
 #include <unistd.h>
 #include "Backend/Encoder/X64Encoder.h"
 #include "Backend/JIT/JIT.h"
+#include "Backend/RuntimeContext.h"
 #include "Backend/JIT/JITMemoryManager.h"
 #include "Backend/Micro/MachineCode.h"
 #include "Backend/Micro/Passes/Pass.Emit.h"
@@ -1803,6 +1804,44 @@ SWC_TEST_BEGIN(JIT_LinuxRuntimeSetupReceivesSwagScalarConvention)
         std::println(stderr, "direct Swag argument: {}", receivedFlags);
         return Result::Error;
     }
+}
+SWC_TEST_END()
+
+SWC_TEST_BEGIN(JIT_LinuxRuntimeDiagnosticsResumeWarningsAndUnwindErrors)
+{
+    CommandLine cmdLine;
+    cmdLine.targetOs = Runtime::TargetOs::Linux;
+    CompilerInstance compiler(ctx.global(), cmdLine);
+    TaskContext context(compiler);
+    SWC_RESULT(compiler.setupSema(context));
+    context.setMuteOutput(true);
+    compiler.initPerThreadRuntimeContextForJit();
+    auto* runtime = CompilerInstance::runtimeContextFromTls();
+    const uint64_t argument = reinterpret_cast<uint64_t>(runtime);
+    const uint64_t errorsBefore = Stats::getNumErrors();
+    struct RestoreErrors
+    {
+        uint64_t saved;
+        ~RestoreErrors() { Stats::get().numErrors.store(saved); }
+    } restore{errorsBefore};
+
+    for (const auto kind : {Runtime::ExceptionKind::Warning, Runtime::ExceptionKind::Error, Runtime::ExceptionKind::Warning})
+    {
+        runtime->exceptionParams[3] = reinterpret_cast<const void*>(static_cast<uint64_t>(kind));
+        auto errorKind = JITCallErrorKind::None;
+        const Result result = JIT::call(context, reinterpret_cast<void*>(runtime->compilerRaise), &argument, &errorKind, JITRuntimeSetupMode::None, CallConvKind::Swag);
+        if (kind == Runtime::ExceptionKind::Warning)
+        {
+            if (result != Result::Continue || errorKind != JITCallErrorKind::None)
+                return Result::Error;
+        }
+        else if (result != Result::Error || errorKind != JITCallErrorKind::HardwareException)
+            return Result::Error;
+        if (runtime->exceptionParams[3])
+            return Result::Error;
+    }
+    if (Stats::getNumErrors() != errorsBefore + 1)
+        return Result::Error;
 }
 SWC_TEST_END()
 

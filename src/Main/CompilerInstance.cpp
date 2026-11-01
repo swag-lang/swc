@@ -854,6 +854,11 @@ void CompilerInstance::initPerThreadRuntimeContextForJit()
     PerThreadData& td                  = perThreadData_[JobManager::threadIndex()];
     td.runtimeContext.allocator        = runtimeAllocator();
     td.runtimeContext.defaultAllocator = td.runtimeContext.allocator;
+    if (!td.runtimeContext.compilerRaise)
+    {
+        TaskContext ctx(*this);
+        td.runtimeContext.compilerRaise = reinterpret_cast<void (*)(Runtime::Context*)>(JIT::runtimeDiagnosticHandler(ctx));
+    }
     setRuntimeContextForCurrentThread(&td.runtimeContext);
 
     if (nativeRuntimeContextTlsIdOffset_ != UINT32_MAX)

@@ -600,6 +600,7 @@ func __resetRuntimeContext()
     let cxt          = Swag.getContext()
     let allocator    = __runtimeAllocator()
     let tlsIdPlusOne = cxt.runtimeTlsIdPlusOne
+    let compilerRaise = cxt.compilerRaise
 
     cxt.tempAllocator.release()
     __releaseErrContext(cxt)
@@ -609,6 +610,7 @@ func __resetRuntimeContext()
     cxt.allocator           = allocator
     cxt.defaultAllocator    = allocator
     cxt.runtimeTlsIdPlusOne = tlsIdPlusOne
+    cxt.compilerRaise = compilerRaise
 }
 
 // Every artifact is x86-64-v3 code: the backend emits VEX-encoded forms unconditionally, so a

@@ -52,6 +52,9 @@ public:
     // and a pointer or void result. Aggregate arguments must already be read-only indirect values.
     static void* getNativeInterfaceAdapter(TaskContext& ctx, void* targetFn, uint32_t numArgs);
 
+    // Host diagnostic callback with the Swag scalar ABI; survives compiler instances.
+    static void* runtimeDiagnosticHandler(TaskContext& ctx);
+
     static Result emitAndCall(TaskContext& ctx, void* targetFn, std::span<const JITArgument> args, const JITReturn& ret, CallConvKind callConvKind = CallConvKind::C);
     static Result call(TaskContext& ctx, void* invoker, const uint64_t* arg0 = nullptr, JITCallErrorKind* outErrorKind = nullptr, JITRuntimeSetupMode setupMode = JITRuntimeSetupMode::FromCompiler, CallConvKind callConvKind = CallConvKind::C);
 

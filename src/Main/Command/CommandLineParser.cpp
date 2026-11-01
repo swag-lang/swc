@@ -1207,7 +1207,7 @@ Result CommandLineParser::checkCommandLine(TaskContext& ctx) const
 
     const bool editorAnalysisCommand = cmdLine_->command == CommandKind::Sema || cmdLine_->command == CommandKind::Service;
     if (!cmdLine_->scriptMode &&
-        (cmdLine_->command == CommandKind::Run || (editorAnalysisCommand && !cmdLine_->editorIndex.empty())) &&
+        (cmdLine_->command == CommandKind::Run || cmdLine_->command == CommandKind::Smoke || (editorAnalysisCommand && !cmdLine_->editorIndex.empty())) &&
         cmdLine_->moduleFilePath.empty() &&
         cmdLine_->modulePath.empty() &&
         cmdLine_->workspacePath.empty() &&

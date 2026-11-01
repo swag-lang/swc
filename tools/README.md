@@ -30,6 +30,8 @@ tools\scripts.bat snake
 
 Use `-bc release` or `-bc devmode` to select a program configuration. `--debug`,
 `--test-file`, `--test-tag`, `--run-arg`, `--frames`, and other compiler options are forwarded.
+`scripts.bat smoke` recognizes a script's imports and setup, then runs its native executable
+with the smoke frame budget, isolation arguments, and executable timeout.
 For application tests, `--test-file` and `--test-tag` select which tests execute; the complete
 application module is still compiled. `apps.bat test` sets `SWAG_RUNTIME_THREADS=3` unless that
 environment variable is already defined. The setting is local to the launcher and its children.

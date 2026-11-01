@@ -305,9 +305,15 @@ func equals(path1, path2: string)->bool
     {
         let first  = Utf8.decodeRune(Swag.makeSlice(path1.buffer + offset1, path1.count - offset1))
         let second = Utf8.decodeRune(Swag.makeSlice(path2.buffer + offset2, path2.count - offset2))
-        if first.c == Utf8.RuneError and first.eat == 1 or second.c == Utf8.RuneError and second.eat == 1 do
-            return false
-        if first.c != second.c and Unicode.toUpper(first.c) != Unicode.toUpper(second.c) do
+        if first.c == Utf8.RuneError and first.eat == 1 or second.c == Utf8.RuneError and second.eat == 1
+        {
+            // Invalid UTF-8 has no Unicode case mapping; compare those bytes exactly and
+            // continue so valid characters on either side still use the target case policy.
+            if first.c != Utf8.RuneError or second.c != Utf8.RuneError or
+               path1[offset1] != path2[offset2] do
+                return false
+        }
+        elif first.c != second.c and Unicode.toUpper(first.c) != Unicode.toUpper(second.c) do
             return false
         offset1 += first.eat
         offset2 += second.eat

@@ -43,6 +43,8 @@ using Swag
     Swag.assert(not Path.equals(invalid, "src/\uFFFD"))
     Swag.assert(not Path.equals(upper, invalid))
     Swag.assert(Path.equals(invalid, invalid))
+    if WINDOWS do
+        Swag.assert(Path.equals(upper, Swag.makeString(invalidBytes.buffer, invalidBytes.count)))
     Swag.assert(Path.equals("src/\uFFFD.swg", "src/\uFFFD.swg"))
     Swag.assert(Path.lowercaseExtension("file.\u03A3\u0410") == ".\u03C3\u0430")
     Swag.assert(not Path.equals("src/\u00E9.swg", "src/e\u0301.swg"))

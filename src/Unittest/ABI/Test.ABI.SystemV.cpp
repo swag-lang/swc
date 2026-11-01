@@ -7,6 +7,7 @@
 #include <sys/mman.h>
 #include <unistd.h>
 #include "Backend/Encoder/X64Encoder.h"
+#include "Backend/JIT/JIT.h"
 #include "Backend/JIT/JITMemoryManager.h"
 #include "Backend/Micro/MachineCode.h"
 #include "Backend/Micro/Passes/Pass.Emit.h"
@@ -128,6 +129,31 @@ namespace
     __attribute__((noinline)) MixedValue mergePrepared(MixedValue first, uint64_t marker, MixedValue second, double tail)
     {
         return {first.integer + second.integer * 3 + marker * 5, first.floating + second.floating * 7 + tail * 11};
+    }
+
+    __attribute__((noinline)) uint64_t nativeCallbackZero()
+    {
+        return 0x123456789abcdef0;
+    }
+
+    __attribute__((noinline)) uint64_t nativeCallbackOne(uint64_t value)
+    {
+        return value * 13 + 7;
+    }
+
+    __attribute__((noinline)) uint64_t nativeCallbackTwo(uint64_t first, uint64_t second)
+    {
+        const uint64_t result = first * 7 + second * 11;
+        // These are volatile in System V and persistent in the incoming Swag ABI.
+        asm volatile("xor %%edi, %%edi; xor %%esi, %%esi; pxor %%xmm6, %%xmm6; pxor %%xmm7, %%xmm7" : : : "rdi", "rsi", "xmm6", "xmm7", "cc");
+        return result;
+    }
+
+    struct CallbackException { uint64_t value; };
+
+    __attribute__((noinline)) uint64_t nativeCallbackThrows(uint64_t first, uint64_t second)
+    {
+        throw CallbackException{first * 7 + second * 11};
     }
 
     struct GuardedStorage
@@ -695,6 +721,102 @@ SWC_TEST_BEGIN(ABI_SystemVGeneratedCalleeReturnsPartialAndVectorValues)
                 return Result::Error;
         }
     }
+}
+SWC_TEST_END()
+
+SWC_TEST_BEGIN(JIT_LinuxNativeInterfaceAdaptersTranslateArgumentsAndOutliveCompiler)
+{
+    std::array<void*, 3> adapters{};
+    const std::array targets{reinterpret_cast<void*>(nativeCallbackZero), reinterpret_cast<void*>(nativeCallbackOne), reinterpret_cast<void*>(nativeCallbackTwo)};
+    {
+        CommandLine commandLine = ctx.cmdLine();
+        commandLine.targetOs = Runtime::TargetOs::Linux;
+        CompilerInstance compiler(ctx.global(), commandLine);
+        TaskContext context(compiler);
+        for (uint32_t count = 0; count < adapters.size(); ++count)
+        {
+            adapters[count] = JIT::getNativeInterfaceAdapter(context, targets[count], count);
+            if (!adapters[count] || adapters[count] != JIT::getNativeInterfaceAdapter(context, targets[count], count))
+                return Result::Error;
+        }
+    }
+    using Zero = uint64_t (__attribute__((ms_abi)) *)();
+    using One = uint64_t (__attribute__((ms_abi)) *)(uint64_t);
+    using Two = uint64_t (__attribute__((ms_abi)) *)(uint64_t, uint64_t);
+    if (reinterpret_cast<Zero>(adapters[0])() != nativeCallbackZero())
+        return Result::Error;
+    if (reinterpret_cast<One>(adapters[1])(29) != nativeCallbackOne(29))
+        return Result::Error;
+    if (reinterpret_cast<Two>(adapters[2])(31, 37) != nativeCallbackTwo(31, 37))
+        return Result::Error;
+}
+SWC_TEST_END()
+
+SWC_TEST_BEGIN(JIT_LinuxNativeInterfaceAdaptersPreserveSwagRegisters)
+{
+    CommandLine commandLine = ctx.cmdLine();
+    commandLine.targetOs = Runtime::TargetOs::Linux;
+    CompilerInstance compiler(ctx.global(), commandLine);
+    TaskContext context(compiler);
+    void* adapter = JIT::getNativeInterfaceAdapter(context, reinterpret_cast<void*>(nativeCallbackTwo), 2);
+    if (!adapter)
+        return Result::Error;
+    MicroBuilder builder(context);
+    const std::array<uint64_t, 4> sentinels{0x123456789abcdef0, 0xfedcba9876543210, 0xa1b2c3d4e5f60718, 0x1827364554637281};
+    builder.emitLoadRegImm(MicroReg::intReg(7), ApInt(sentinels[0], 64), MicroOpBits::B64);
+    builder.emitLoadRegImm(MicroReg::intReg(6), ApInt(sentinels[1], 64), MicroOpBits::B64);
+    for (uint32_t index = 0; index < 2; ++index)
+    {
+        builder.emitLoadRegImm(MicroReg::intReg(10), ApInt(sentinels[index + 2], 64), MicroOpBits::B64);
+        builder.emitLoadRegReg(MicroReg::floatReg(6 + index), MicroReg::intReg(10), MicroOpBits::B64);
+    }
+    const CallConv& swag = CallConv::get(CallConvKind::Swag);
+    builder.emitLoadRegImm(swag.intArgRegs[0], ApInt(31, 64), MicroOpBits::B64);
+    builder.emitLoadRegImm(swag.intArgRegs[1], ApInt(37, 64), MicroOpBits::B64);
+    builder.emitLoadRegPtrImm(swag.intReturn, reinterpret_cast<uint64_t>(adapter));
+    const ABICall::PreparedCall prepared{.numPreparedArgs = 2, .intArgMask = 3};
+    ABICall::callReg(builder, CallConvKind::Swag, swag.intReturn, prepared);
+    std::array<uint64_t, 5> actual{};
+    const MicroReg output = MicroReg::intReg(10);
+    builder.emitLoadRegPtrImm(output, reinterpret_cast<uint64_t>(actual.data()));
+    builder.emitLoadMemReg(output, 0, MicroReg::intReg(7), MicroOpBits::B64);
+    builder.emitLoadMemReg(output, 8, MicroReg::intReg(6), MicroOpBits::B64);
+    builder.emitLoadMemReg(output, 16, MicroReg::floatReg(6), MicroOpBits::B64);
+    builder.emitLoadMemReg(output, 24, MicroReg::floatReg(7), MicroOpBits::B64);
+    builder.emitLoadMemReg(output, 32, swag.intReturn, MicroOpBits::B64);
+    SWC_RESULT(executeSystemVThunk(context, builder, true));
+    for (uint32_t index = 0; index < sentinels.size(); ++index)
+    {
+        if (actual[index] != sentinels[index])
+        {
+            std::fprintf(stderr, "System V adapter changed preserved lane %u: expected %llx, got %llx\n", index, static_cast<unsigned long long>(sentinels[index]), static_cast<unsigned long long>(actual[index]));
+            return Result::Error;
+        }
+    }
+    if (actual[4] != nativeCallbackTwo(31, 37))
+        return Result::Error;
+}
+SWC_TEST_END()
+
+SWC_TEST_BEGIN(JIT_LinuxNativeInterfaceAdapterUnwindsThroughHostCallback)
+{
+    CommandLine commandLine = ctx.cmdLine();
+    commandLine.targetOs = Runtime::TargetOs::Linux;
+    CompilerInstance compiler(ctx.global(), commandLine);
+    TaskContext context(compiler);
+    void* adapter = JIT::getNativeInterfaceAdapter(context, reinterpret_cast<void*>(nativeCallbackThrows), 2);
+    if (!adapter)
+        return Result::Error;
+    using Callback = uint64_t (__attribute__((ms_abi)) *)(uint64_t, uint64_t);
+    try
+    {
+        reinterpret_cast<Callback>(adapter)(31, 37);
+    }
+    catch (const CallbackException& error)
+    {
+        return error.value == 31 * 7 + 37 * 11 ? Result::Continue : Result::Error;
+    }
+    return Result::Error;
 }
 SWC_TEST_END()
 

@@ -97,11 +97,6 @@ namespace
         return static_cast<uint8_t>(cond) <= static_cast<uint8_t>(MicroCond::NotSign);
     }
 
-    bool isValidCallConv(const CallConvKind kind)
-    {
-        return static_cast<uint8_t>(kind) <= static_cast<uint8_t>(CallConvKind::Swag);
-    }
-
     bool isValidAnyRegister(const MicroReg reg)
     {
         if (!reg.isValid())
@@ -350,7 +345,7 @@ namespace
             case MicroInstrOpcode::CallLocal:
             case MicroInstrOpcode::CallExtern:
             case MicroInstrOpcode::CallIndirect:
-                if (!isValidCallConv(ops[MicroInstr::info(inst.op).callConvIndex].callConv))
+                if (!isValidCallConvKind(ops[MicroInstr::info(inst.op).callConvIndex].callConv))
                     return reportError(context, phase, std::format("call instruction #{} uses unsupported calling convention {}", instructionIndex, static_cast<uint32_t>(ops[MicroInstr::info(inst.op).callConvIndex].callConv)));
                 break;
 

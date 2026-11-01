@@ -728,9 +728,13 @@ void MicroPrologEpilogPass::buildSavedRegsPlan(MicroPassContext& context, const 
     {
         visitRegOperands(inst, storeOps, classify);
 
-        // The encoder may write a register no operand names: VPGATHERDD destroys its
-        // XMM15 mask. A nonvolatile one among them is still owed to the caller.
-        if (context.encoder && MicroInstr::info(inst.op).flags.has(MicroInstrFlagsE::EncoderRegUseDef))
+        // A foreign convention can clobber registers that this function owes its
+        // caller (System V XMM6-XMM15 inside a Swag function, for example). Same-ABI
+        // calls cannot clobber persistent registers and need no extra classification.
+        // Encoder-only writes such as VPGATHERDD's XMM15 mask have the same obligation.
+        const MicroInstrDef& info = MicroInstr::info(inst.op);
+        const bool foreignCall = info.flags.has(MicroInstrFlagsE::IsCallInstruction) && inst.ops(storeOps)[info.callConvIndex].callConv != context.callConvKind;
+        if (foreignCall || (context.encoder && info.flags.has(MicroInstrFlagsE::EncoderRegUseDef)))
         {
             for (const MicroReg reg : inst.collectUseDef(storeOps, context.encoder).defs)
                 classify(reg, MicroInstrRegMode::Def);

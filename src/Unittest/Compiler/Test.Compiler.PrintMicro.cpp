@@ -37,7 +37,7 @@ namespace Inner { func addTwo(value: s32)->s32 => value + 2 }
         const fs::path sourcePath = directory / "print_micro.swg";
         SWC_RESULT(CompilerTestFile::writeText(sourcePath, source));
 
-        std::vector<Utf8> args = {"sema", "--num-cores", "6", "--no-log-color", "-f", Utf8(sourcePath.string())};
+        std::vector<Utf8> args = {"sema", "--num-cores", "3", "--no-log-color", "-f", Utf8(sourcePath.string())};
         if (!buildCfg.empty())
         {
             args.emplace_back("-bc");
@@ -286,7 +286,7 @@ public func exported()->u32 => 23
     const fs::path source = directory / "print_micro_library.swg";
     SWC_RESULT(CompilerTestFile::writeText(source, SOURCE));
 
-    const std::vector<Utf8> args = {"build", "--num-cores", "6", "--no-log-color", "--artifact-kind", "static-library",
+    const std::vector<Utf8> args = {"build", "--num-cores", "3", "--no-log-color", "--artifact-kind", "static-library",
                                     "--out-dir", Utf8((directory / "out").string()), "--work-dir", Utf8((directory / "work").string()),
                                     "-f", Utf8(source.string()), "--print-micro", "listedByCommandLine"};
     PrintMicroRun           run;

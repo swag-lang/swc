@@ -1483,14 +1483,16 @@ void* JIT::getNativeInterfaceAdapter(TaskContext& ctx, void* targetFn, const uin
 
     const TaskScopedContext scopedContext(ctx);
     const CallConv&         incomingConv = CallConv::get(CallConvKind::Swag);
-    const CallConv&         nativeConv   = CallConv::get(CallConvKind::C);
-    for (uint32_t i = 0; i < numArgs; ++i)
-        SWC_ASSERT(incomingConv.intArgRegs[i] == nativeConv.intArgRegs[i]);
+    // These are compiler-host callbacks, not imported target functions. Host-target
+    // validation above makes the concrete host convention unambiguous even before
+    // the language's C profile is activated for a new target.
+    const CallConvKind nativeKind = ctx.cmdLine().targetOs == Runtime::TargetOs::Linux ? CallConvKind::SystemVAMD64 : CallConvKind::WindowsX64;
+    const CallConv& nativeConv = CallConv::get(nativeKind);
     SWC_ASSERT(incomingConv.intReturn == nativeConv.intReturn);
 
-    // These callbacks share the incoming integer lanes, but Swag callers do not reserve the
-    // native ABI's shadow space. An explicit native call owns that space independently of the
-    // caller's optimized frame. The pointer result stays in the common return register.
+    // Capture every incoming lane before the native ABI assigns its own lanes.
+    // The Swag frame also preserves registers that the host C call can clobber,
+    // such as RSI/RDI and XMM6-XMM15 on System V.
     MicroBuilder builder(ctx);
 
     // These process-owned bridges outlive compiler instances and configuration changes.
@@ -1500,14 +1502,17 @@ void* JIT::getNativeInterfaceAdapter(TaskContext& ctx, void* targetFn, const uin
     builder.setBackendBuildCfg(backendCfg);
     builder.setRetUsesAbiRegs(true, false);
 
-    const MicroReg targetReg = MicroReg::virtualIntReg(1);
+    std::array<ABICall::PreparedArg, 2> args{};
+    for (uint32_t index = 0; index < numArgs; ++index)
+    {
+        const MicroReg source = MicroReg::virtualIntReg(index + 1);
+        builder.emitLoadRegReg(source, incomingConv.intArgRegs[index], MicroOpBits::B64);
+        args[index] = {.srcReg = source, .numBits = 64};
+    }
+    const ABICall::PreparedCall preparedCall = ABICall::prepareArgs(builder, nativeKind, std::span(args.data(), numArgs));
+    const MicroReg targetReg = MicroReg::virtualIntReg(3);
     builder.emitLoadRegPtrImm(targetReg, reinterpret_cast<uint64_t>(targetFn));
-
-    const ABICall::PreparedCall preparedCall = {
-        .numPreparedArgs = numArgs,
-        .intArgMask      = static_cast<uint8_t>((1u << numArgs) - 1u),
-    };
-    ABICall::callReg(builder, CallConvKind::C, targetReg, preparedCall);
+    ABICall::callReg(builder, nativeKind, targetReg, preparedCall);
     builder.emitRet();
 
     MachineCode loweredCode;

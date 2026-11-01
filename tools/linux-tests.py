@@ -14,7 +14,7 @@ def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('suite', choices=('cpp', 'lexer', 'parser'))
     parser.add_argument('--compiler', required=True, type=Path, help='built Linux compiler executable')
-    parser.add_argument('--dev-full', action='store_true', help='include filesystem tests in the C++ suite')
+    parser.add_argument('--dev-full', action='store_true', help='include filesystem tests and extra IR/native validation in the C++ suite')
     parser.add_argument('--timeout', type=int, default=180, help='maximum seconds per compiler invocation')
     args = parser.parse_args()
     if sys.platform != 'linux' or platform.machine() != 'x86_64':
@@ -38,6 +38,9 @@ def main():
         staged_compiler = scratch / compiler.name
         shutil.copy2(compiler, staged_compiler)
         shutil.copytree(root / 'bin/runtime', scratch / 'runtime')
+        if args.suite == 'cpp' and args.dev_full:
+            # Native fixture subprocesses resolve installed test inputs beside the executable.
+            shutil.copytree(root / 'bin/unittests', scratch / 'unittests')
         temporary = scratch / 'temp'
         temporary.mkdir()
         environment = os.environ.copy()

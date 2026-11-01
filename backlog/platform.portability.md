@@ -872,15 +872,17 @@ by portable modules and products. The earlier entries prepare and enforce the sa
   `tools/linux-build.py` selects Linux host leaves from the shared source manifest and builds
   outside the checkout with GNU Make. Complete DevMode and Release compilers link and
   pass the lexer/parser suites including expected-error inputs without spurious JIT setup.
-  The default C++ campaign passes 1,588 of 1,618 tests; 30 remain failing. The separate
-  filesystem campaign still has 34 failures. Closed Windows x64 instruction fixtures execute
+  The full C++ campaign, including filesystem tests and extra IR/native validation, passes
+  1,623 of 1,687 tests; 64 remain failing. Closed Windows x64 instruction fixtures execute
   through an explicit GCC ABI bridge. Runtime adapters initialize on the first actual JIT call,
   and cross-host generated execution has an explicit diagnostic.
   PE/COFF records no longer depend on the Windows SDK, and both target enums represent Linux.
   Instruction-level CFI follows the physical IR control-flow graph; native fixtures cover
   multiple returns, dynamic-stack joins, frameless register saves, indirect jumps and C++
-  cleanup through generated faults. System V scalar calls work at the backend boundary, but
-  aggregate lowering, target selection and DWARF source resolution remain missing.
+  cleanup through generated faults. System V scalar/aggregate transfers and host callback
+  adapters work at the backend boundary, including cross-ABI register preservation and native
+  exception unwinding. Source aggregate lowering, target selection and DWARF source resolution
+  remain missing.
   Linux directory locks do not prohibit an uncoordinated cleaner's rename.
 - Next: resolve the remaining C++ failures and connect the System V ABI to Linux JIT execution.
   Coordinate directory cleanup with API readers/publication. Keep C++ cleanup intact across
@@ -903,8 +905,10 @@ by portable modules and products. The earlier entries prepare and enforce the sa
   reads/writes against guard pages. Prepared aggregate calls also preserve physical/virtual
   sources before assigning mixed ABI lanes, including hidden memory results. Generated callees
   return mixed/two-register/partial/SIMD storage to native callers; liveness and machine-code
-  cache identity retain additional result registers. Semantic type
-  normalization, source return storage and over-aligned stack values still need integration.
+  cache identity retain additional result registers. Runtime interface adapters translate Swag
+  arguments to the concrete host ABI and preserve its wider clobber set in the Swag frame.
+  Semantic type normalization, source return storage and over-aligned stack values still need
+  integration.
 - Next: connect semantic type normalization to classified prepared arguments and incoming parameters,
   source return storage and the JIT invoker; add dynamic alignment for over-aligned stack values.
   Compare with native C/C++ fixtures, then activate target C and Linux runtime declarations.

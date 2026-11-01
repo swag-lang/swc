@@ -1235,6 +1235,8 @@ impl Surface
             }
 
             .applyNativeDwmStyle()
+            .inDiscretePlacement = true
+            defer .finishDiscretePlacement()
             ShowWindow(.hWnd, SW_SHOWMAXIMIZED)
             return
         }

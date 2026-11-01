@@ -14,6 +14,17 @@ namespace
     constexpr uint32_t K_CODE_ADDRESS_OFFSET = K_FDE_OFFSET + 8;
     constexpr uint32_t K_CODE_SIZE_OFFSET = K_CODE_ADDRESS_OFFSET + 8;
 
+    bool validFrame(const ByteArray& frame, const uint32_t codeSize)
+    {
+        if (!codeSize || frame.size() < 60)
+            return false;
+        if (std::memcmp(frame.data(), K_CIE.data(), K_CIE.size()) != 0 || frame.readLe32(K_FDE_OFFSET + 4) != K_FDE_OFFSET + 4)
+            return false;
+        if (frame.readLe32(K_FDE_OFFSET) != frame.size() - K_FDE_OFFSET - 8 || frame.readLe32(frame.size() - 4) != 0)
+            return false;
+        return frame.readLe64(K_CODE_SIZE_OFFSET) == codeSize && frame[K_CODE_SIZE_OFFSET + 8] == std::byte{0};
+    }
+
     void appendUleb(ByteArray& bytes, uint32_t value)
     {
         do
@@ -99,15 +110,20 @@ void X64DwarfFrame::build(ByteArray& outFrame, const uint32_t codeSize) const
     outFrame.appendLe32(0); // .eh_frame terminator
 }
 
+bool X64DwarfFrame::appendObjectFrame(ByteArray& frames, uint32_t& addressOffset, const ByteArray& frame, const uint32_t codeSize)
+{
+    if (!validFrame(frame, codeSize) || frame.size() > UINT32_MAX - 7 || frames.size() > UINT32_MAX - frame.size() - 7)
+        return false;
+    frames.align(8);
+    addressOffset = static_cast<uint32_t>(frames.size()) + K_CODE_ADDRESS_OFFSET;
+    frames.append(frame.span().first(frame.size() - 4));
+    frames.writeLe64(addressOffset, 0);
+    return true;
+}
+
 bool X64DwarfFrame::relocate(ByteArray& frame, const uintptr_t codeAddress, const uint32_t codeSize)
 {
-    if (!codeAddress || !codeSize || codeAddress > UINTPTR_MAX - codeSize || frame.size() < 60)
-        return false;
-    if (std::memcmp(frame.data(), K_CIE.data(), K_CIE.size()) != 0 || frame.readLe32(K_FDE_OFFSET + 4) != K_FDE_OFFSET + 4)
-        return false;
-    if (frame.readLe32(K_FDE_OFFSET) != frame.size() - K_FDE_OFFSET - 8 || frame.readLe32(frame.size() - 4) != 0)
-        return false;
-    if (frame.readLe64(K_CODE_SIZE_OFFSET) != codeSize || frame[K_CODE_SIZE_OFFSET + 8] != std::byte{0})
+    if (!codeAddress || codeAddress > UINTPTR_MAX - codeSize || !validFrame(frame, codeSize))
         return false;
     frame.writeLe64(K_CODE_ADDRESS_OFFSET, codeAddress);
     return true;

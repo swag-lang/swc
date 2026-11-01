@@ -17,6 +17,10 @@ public:
     void restoreState();
     void build(ByteArray& outFrame, uint32_t codeSize) const;
 
+    // Append one CIE/FDE pair without its terminator and report the address relocation.
+    // The object writer adds one final zero record after all functions have been appended.
+    static bool appendObjectFrame(ByteArray& frames, uint32_t& addressOffset, const ByteArray& frame, uint32_t codeSize);
+
     // Patch a private, writable copy before registering it with the host unwinder.
     static bool relocate(ByteArray& frame, uintptr_t codeAddress, uint32_t codeSize);
 

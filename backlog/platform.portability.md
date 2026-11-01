@@ -952,7 +952,9 @@ by portable modules and products. The earlier entries prepare and enforce the sa
 
 - Evidence: `ELFObjectWriter` emits ELF64 relocatable code/data/BSS with explicit RELA
   addends, undefined symbols and exported aliases. A GNU linker consumer executes these
-  objects and verifies external calls and shared data. The native pipeline still selects
+  objects and verifies external calls, shared data and unwinding through generated code.
+  Prepared images share native code/data lowering; Linux unwind output uses relocatable
+  DWARF CIE/FDE records. The native pipeline still selects
   only `WindowsCoff`, writes PE, and rejects Linux in `NativeBackendBuilder::validateTarget`.
 - Next: connect ELF objects to a Linux link/startup path with explicit CRT, hosted library and dynamic
   loader inputs. Pass argc/argv to runtime initialization before module startup; keep debug/unwind

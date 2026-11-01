@@ -5,6 +5,7 @@
 
 #include "Backend/Linker/Archive.h"
 #include "Backend/Linker/ELFObjectWriter.h"
+#include "Backend/Encoder/X64DwarfFrame.h"
 #include "Unittest/Native/NativeTestBytes.h"
 #include "Main/ExitCodes.h"
 #include "Main/FileSystem.h"
@@ -643,6 +644,23 @@ SWC_FILESYSTEM_TEST_BEGIN(ELFObject_GnuLinkerResolvesCodeDataBssAndImports)
     bss.bssSize = 4;
     bss.flags = LinkSectionFlagsE::Read | LinkSectionFlagsE::Write | LinkSectionFlagsE::Uninit;
     image.sections.push_back(std::move(bss));
+    X64DwarfFrame frame;
+    frame.advance(4);
+    frame.defineCfa(7, 16);
+    frame.advance(47);
+    frame.defineCfa(7, 8);
+    ByteArray frameBytes;
+    frame.build(frameBytes, 48);
+    LinkSection unwind;
+    unwind.name = ".eh_frame";
+    unwind.align = 8;
+    unwind.flags = LinkSectionFlagsE::Read;
+    uint32_t addressOffset = 0;
+    if (!X64DwarfFrame::appendObjectFrame(unwind.bytes, addressOffset, frameBytes, 48))
+        return Result::Error;
+    unwind.bytes.appendLe32(0);
+    unwind.relocs.push_back({.offset = addressOffset, .kind = LinkRelocKind::Abs64, .symbolName = "calculate"});
+    image.sections.push_back(std::move(unwind));
     image.symbols = {{.name = "calculate", .sectionIndex = 0}, {.name = "values", .sectionIndex = 1}, {.name = "counter", .sectionIndex = 2}};
     image.exports.push_back({.name = "answer", .symbolName = "calculate"});
     ByteArray bytes;
@@ -650,9 +668,30 @@ SWC_FILESYSTEM_TEST_BEGIN(ELFObject_GnuLinkerResolvesCodeDataBssAndImports)
     if (!buildElfObject(bytes, diagnostic, image))
         return Result::Error;
     SWC_RESULT(directory.write("generated.o", {reinterpret_cast<const char*>(bytes.data()), bytes.size()}));
-    SWC_RESULT(directory.write("caller.cpp", R"(extern "C" int answer();
-extern "C" int helper() { return 20; }
-int main() { return answer() == 64 && answer() == 128 ? 0 : 1; }
+    SWC_RESULT(directory.write("caller.cpp", R"(#include <unwind.h>
+#include <cstdint>
+extern "C" int answer();
+extern "C" int counter;
+struct Trace { bool generated = false; unsigned callers = 0; };
+_Unwind_Reason_Code trace(_Unwind_Context* context, void* raw)
+{
+    auto& seen = *static_cast<Trace*>(raw);
+    const auto address = _Unwind_GetIP(context);
+    const auto start = reinterpret_cast<uintptr_t>(&answer);
+    if (seen.generated) ++seen.callers;
+    if (address >= start && address < start + 48) seen.generated = true;
+    return _URC_NO_REASON;
+}
+extern "C" int helper()
+{
+    Trace seen;
+    _Unwind_Backtrace(trace, &seen);
+    return seen.generated && seen.callers ? 20 : 99;
+}
+int main()
+{
+    return reinterpret_cast<uintptr_t>(&counter) % 64 == 0 && answer() == 64 && answer() == 128 ? 0 : 1;
+}
 )"));
     std::string output;
     uint32_t exitCode = 0;

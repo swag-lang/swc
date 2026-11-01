@@ -23,6 +23,7 @@ namespace swc::PE
     constexpr uint32_t SCN_LNK_REMOVE = 0x00000800;
     constexpr uint32_t SCN_ALIGN_1BYTES = 0x00100000;
     constexpr uint32_t SCN_ALIGN_4BYTES = 0x00300000;
+    constexpr uint32_t SCN_ALIGN_8BYTES = 0x00400000;
     constexpr uint32_t SCN_ALIGN_16BYTES = 0x00500000;
     constexpr uint32_t SCN_ALIGN_32BYTES = 0x00600000;
     constexpr uint32_t SCN_LNK_NRELOC_OVFL = 0x01000000;

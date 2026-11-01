@@ -864,7 +864,7 @@ by portable modules and products. The earlier entries prepare and enforce the sa
 ### platform.portability.091 — Finish Linux cache cleanup and fault-boundary validation
 
 - Evidence: complete DevMode and Release Linux compilers pass lexer/parser suites and focused
-  compile-time/native probes. The full C++ campaign passes all 1,741 tests, including the original
+  compile-time/native probes. The full C++ campaign passes all 1,742 tests, including the original
   PE resource failure and added native/shared-module regressions. Cross-target JIT execution
   uses host context, TLS and process storage; native output keeps its target instructions.
   DWARF frame registration preserves C++ cleanup through generated faults, and native ELF/JIT

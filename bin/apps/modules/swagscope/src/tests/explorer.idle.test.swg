@@ -3,7 +3,7 @@
 
 using Core, Gui, Pixel
 
-// Long selected names animate inside their tile, while short names leave no timer running.
+// The selected title scrolls only when the title actually shown in its tile is too long.
 #test
 {
     var host: Testing.HeadlessHost
@@ -19,8 +19,7 @@ using Core, Gui, Pixel
     explorer.grid.select(0)
     let selected = host.render(window)
 
-    // The beginning of the name occupies the same pixels before the marquee moves. The tile
-    // background changes on selection, so compare text masks against each frame's own ground.
+    // Selecting the tile draws a ring around the picture; its text stays on the page ground.
     let rect           = explorer.grid.surfaceRect()
     let left           = cast(s32, rect.x + 16)
     let top            = cast(s32, rect.y + explorer.grid.cell.y - 24 - ExplorerGrid.ReadingHeight)
@@ -41,8 +40,36 @@ using Core, Gui, Pixel
 
     Swag.assert(ink > 0)
     Swag.assert(explorer.grid.nameTimer != null)
-    host.fireTimer(explorer.grid.nameTimer)
-    Swag.assert(explorer.grid.nameTick == 1)
     explorer.grid.select(1)
     Swag.assert(explorer.grid.nameTimer == null)
+}
+
+// Catalogue titles can be much shorter than their file names, and should not keep an idle timer.
+#test
+{
+    var host: Testing.HeadlessHost
+    host.setup(880, 420)
+    let window   = ViewerWindow.create(&host.surfaceWnd, createViewerPluginRegistry())
+    let explorer = Explorer.create(window.documentPanel, window)
+    explorer.entries.add({name: "A very long source filename that does not appear on a poster.mkv", attempted: true})
+    explorer.entries.add({name: "short.mkv", attempted: true})
+    explorer.fill()
+    explorer.show()
+    window.applyLayout()
+
+    let grid = explorer.grid
+    Swag.assert(grid.nameTimer == null)
+    grid.board = .Posters
+    grid.posters = true
+    explorer.entries[0].movie.title = "Short title"
+    grid.select(0)
+    Swag.assert(grid.nameTimer == null)
+
+    explorer.entries[0].movie.title = "A catalogue title that is far too long to fit inside this poster tile"
+    grid.select(0)
+    Swag.assert(grid.nameTimer != null)
+
+    grid.rows = true
+    grid.select(1)
+    Swag.assert(grid.nameTimer == null)
 }

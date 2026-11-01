@@ -736,8 +736,6 @@ impl Explorer
     {
         let metrics = .themeMetrics()
         let room    = open ? metrics.infoSheet_Width + metrics.floating_Inset : 0
-        if .padding.z == room do
-            return
         .padding.z = room
         .applyLayout()
         .grid.refreshLayout()
@@ -1803,6 +1801,8 @@ impl Explorer
 
 impl IWnd for Explorer
 {
+    mtd impl onResizeEvent(_: *ResizeEvent) => .layoutTools()
+
     mtd impl onTaskEvent(evt: *TaskEvent)
     {
         if .extraction.claim(evt)
@@ -2020,7 +2020,7 @@ impl ExplorerGrid
     const RingWeight    = 2.0
 
     // The tiles: the air between two of them, the narrowest a tile gets and its height over its
-    // width, upright for posters; and the band under a tile for its name and its facts.
+    // width, upright for posters; and the room under a tile for its name and its facts.
     const Gap          = 24.0
     const TileWidth    = 160.0
     const TileAspect   = 3.0 / 4.0
@@ -2076,6 +2076,7 @@ impl ExplorerGrid
     {
         if .rows
         {
+            .stopTimer(&.nameTimer)
             .board   = .Grid
             .posters = false
             .refreshAlbumButtons()
@@ -2094,12 +2095,14 @@ impl ExplorerGrid
         .refreshAlbumButtons()
         if .board == .Mosaic
         {
+            .stopTimer(&.nameTimer)
             .layoutMosaic()
             return
         }
 
         if .board == .Album
         {
+            .stopTimer(&.nameTimer)
             .layoutAlbum()
             return
         }
@@ -2120,6 +2123,7 @@ impl ExplorerGrid
         let rows = (.explorer.shown.count + .columns - 1) / .columns
         .explorer.scroll.setScrollSize(0, cast(f32, rows) * .cell.y + 2 * CellInset)
         .invalidate()
+        .startNameScroll()
     }
 
     // Lays the pictures out as a justified mosaic, a day after another under its label: each row
@@ -2406,17 +2410,10 @@ impl ExplorerGrid
 
         // The name, left on the edge of the tile, and the facts under it: what the item measures
         // at the left, what it weighs at the right.
-        let font     = unwrap .font().regular
         let mono     = .theme().createDefaultFontFs(11)
         let nameRect = Math.Rectangle{tile.x, tile.bottom() + 8, tile.width, 20}
-        var title    = entry.name.toString()
-        if .posters and entry.movie.title.length do
-            title = entry.movie.title.toString()
-        elif .board == .Covers and entry.music.title.length do
-            title = entry.music.title.toString()
-        if .explorer.selected == index do
-            painter.fillRoundRect(Math.Rectangle{tile.x, tile.bottom() + 4, tile.width, 52}, radius, radius, colors.selection)
-        .paintName(painter, nameRect, row, index, font, title)
+        let title = .tileName(entry)
+        .paintName(painter, nameRect, row, index, title)
 
         let factsY = mono.opticalLineTop(tile.bottom() + 37)
         let size   = .sizeText(entry)
@@ -2574,21 +2571,31 @@ impl ExplorerGrid
         painter.drawString(chip.x + 6, font.opticalLineTop(chip.vertCenter()), label, font, Color.fromArgb(ExplorerDurationInk))
     }
 
-    // Writes the name of a tile, left on its edge, travelling when it is longer than the tile and
-    // the item is hovered or chosen.
-    mtd paintName(painter: *Painter, nameRect: Math.Rectangle, row, index: u64, font: *Font, text: string)
+    // Returns the same title the tile paints: a catalogue title when the board has one, otherwise
+    // the file name.
+    mtd tileName(entry: const *ExplorerEntry)->String
     {
-        let safe    = safeMediaText(text)
-        let width   = Painter.measureString(safe, font).width
+        if .posters and entry.movie.title.length do
+            return entry.movie.title
+        if .board == .Covers and entry.music.title.length do
+            return entry.music.title
+        return entry.name
+    }
+
+    // Writes the name of a tile, travelling only while its visible title exceeds the tile.
+    mtd paintName(painter: *Painter, nameRect: Math.Rectangle, row, index: u64, text: string)
+    {
+        let safe  = safeMediaText(text)
+        let width = Painter.measureString(safe, unwrap .font().regular).width
         let scrolls = width > nameRect.width and (.hovered == row or .explorer.selected == index)
-        var name:   RichString = safe.toString()
+        var name: RichString = safe.toString()
         var format: RichStringFormat
         format.font = .font()
         me.theme().setTextColors(&format, me.themeColors().text)
         format.horzAlignment = .Left
         if scrolls
         {
-            // Pause at each end before traveling back, so the beginning remains easy to read.
+            // Pause at each end before travelling back, leaving the beginning easy to read.
             let distance = cast(u64, Math.ceil(width - nameRect.width))
             let phase    = .nameTick % (distance * 2 + 40)
             var offset: u64
@@ -2928,18 +2935,28 @@ impl ExplorerGrid
 
     mtd startNameScroll()
     {
-        .nameTick = 0
+        if .rows or .board == .Mosaic or .board == .Album
+        {
+            .stopTimer(&.nameTimer)
+            return
+        }
+
         let font       = unwrap .font().regular
         var needsTimer = false
         for index, row in .explorer.shown where row == .hovered or index == .explorer.selected
         {
-            if Painter.measureString(.explorer.entries[index].name, font).width > .cell.x - 16 do
+            let name = safeMediaText(.tileName(&.explorer.entries[index]))
+            if Painter.measureString(name, font).width > .tile.x do
                 needsTimer = true
         }
 
-        if needsTimer and not .nameTimer do
-            .nameTimer = .addTimer(50'ms)
-        elif not needsTimer and .nameTimer do
+        if needsTimer
+        {
+            .nameTick = 0
+            if not .nameTimer do
+                .nameTimer = .addTimer(50'ms)
+        }
+        else do
             .stopTimer(&.nameTimer)
     }
 

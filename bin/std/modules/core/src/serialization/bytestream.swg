@@ -111,7 +111,7 @@ public impl ByteStream
 
     // Copies the next `count` bytes to `dest` and advances past them.
     //
-    // `dest` must be non-null, including when `count` is zero.
+    // `dest` may overlap the borrowed input, and must be non-null even when `count` is zero.
     mtd readBytes(dest: *u8, count: u64) fail
     {
         if count > .length() - .seek do

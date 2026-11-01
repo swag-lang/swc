@@ -23,7 +23,11 @@ struct MappedFile
         access: MapAccess     // Access granted to every region created from this file.
     }
 
-    internal stream: FileStream
+    internal
+    {
+        stream:    FileStream
+        temporary: String     // Snapshot storage removed when the owning file closes.
+    }
 }
 
 impl MappedFile
@@ -82,6 +86,8 @@ impl MappedFile
             remaining -= count
         }
 
+        result.temporary = temporary
+        ownsTemporary   = false
         return result
     }
 
@@ -89,6 +95,11 @@ impl MappedFile
     mtd close()
     {
         .stream.close()
+        if not .temporary.isEmpty()
+        {
+            discard catch File.delete(.temporary.toString())
+            .temporary.clear()
+        }
     }
 
     // Releases this value's open file handle.

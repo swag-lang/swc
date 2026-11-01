@@ -400,7 +400,7 @@ private func openAdpcm(path: string, layout: const *Layout)->SoundFile fail
         let blockBytes  = Math.min(cast(u64, format.blockAlign), layout.dataSize - dataOffset)
         let blockFrames = Adpcm.blockFrameCount(format.encoding, format.channels, blockBytes)
         if not blockFrames do
-            break
+            fail InvalidFormatError{"WAV ADPCM block is shorter than its header"}
         packets.add(SoundPacket{layout.dataOffset + dataOffset, cast(u32, blockBytes), cast(u32, blockFrames)})
         totalFrames += blockFrames
         dataOffset  += blockBytes

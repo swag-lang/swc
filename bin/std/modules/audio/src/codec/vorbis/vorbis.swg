@@ -62,6 +62,8 @@ private impl BitReader
 {
     func create(payload: const [..] u8)->BitReader => BitReader{payload.buffer, payload.count, 0, false}
 
+    mtd const remainingBits()->u64 => .size * 8 - .bitPos
+
     // Reads `count` bits, at most 32, as an unsigned value.
     mtd read(count: u32)->u32
     {
@@ -309,7 +311,12 @@ private impl Codebook
         let delta     = unpackFloat(reader.read(32))
         let valueBits = reader.read(4) + 1
         let sequence  = reader.readFlag()
-        let quantized = .lookupType == 1 ? .lookup1Values() : .entries * .dimensions
+        let quantized = .lookupType == 1 ? cast(u64, .lookup1Values()) :
+                        cast(u64, .entries) * cast(u64, .dimensions)
+        let quantizedBits = quantized * cast(u64, valueBits)
+        if quantizedBits > reader.remainingBits() do
+            fail InvalidFormatError{"Vorbis codebook lookup values are truncated"}
+
         var quant: Array'f32
         quant.resize(quantized)
         for index in quantized do
@@ -317,7 +324,8 @@ private impl Codebook
         if reader.overran do
             fail InvalidFormatError{"Vorbis setup header is truncated"}
 
-        .values.resize(cast(u64, .entries) * .dimensions)
+        let valueCount = cast(u64, .entries) * cast(u64, .dimensions)
+        .values.resize(valueCount)
         for entry in .entries
         {
             var last    = 0.0'f32
@@ -332,13 +340,13 @@ private impl Codebook
                 }
                 else
                 {
-                    index = cast(u64, entry) * .dimensions + dimension
+                    index = cast(u64, entry) * cast(u64, .dimensions) + dimension
                 }
 
                 let value = quant[index] * delta + minimum + last
                 if sequence do
                     last = value
-                .values[cast(u64, entry) * .dimensions + dimension] = value
+                .values[cast(u64, entry) * cast(u64, .dimensions) + dimension] = value
             }
         }
     }

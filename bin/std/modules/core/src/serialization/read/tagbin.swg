@@ -449,9 +449,12 @@ private impl TagBin
 
         let fatSeek      = try .stream.readNative'u64()
         let payloadStart = .stream.position()
-        let afterFatSeek = fatSeek + shape.fields.count * #sizeof(u32)
-        if fatSeek < payloadStart or afterFatSeek > .stream.length() do
+        let streamLength = .stream.length()
+        if fatSeek < payloadStart or fatSeek > streamLength do
             fail SerializationError{"fat table runs past the end of the stream"}
+        if shape.fields.count > (streamLength - fatSeek) / #sizeof(u32) do
+            fail SerializationError{"fat table runs past the end of the stream"}
+        let afterFatSeek = fatSeek + shape.fields.count * #sizeof(u32)
 
         let sec = .newSection()
         sec.kind         = kind

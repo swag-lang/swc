@@ -534,6 +534,30 @@ func corruptTagBinRawLen(bytes: String, fieldName: string, newLen: u64)->Array'u
     return result
 }
 
+func corruptTagBinRootFatSeek(bytes: String, fatSeek: u64)->Array'u8
+{
+    var result: #returntype
+    result.add(bytes.toSlice())
+
+    var stream = ByteStream.openRead(result.toSlice())
+    discard expect stream.readNative'u32()
+    discard expect stream.readNative'u32()
+    let schemaLength = expect stream.readVarint()
+    stream.advance(schemaLength)
+    discard expect stream.readNative'u32()
+    discard expect stream.readNative'u64()
+    discard expect stream.readNative'u32() // Root section version signature.
+    discard expect stream.readNative'u32() // Struct version.
+    discard expect stream.readNative'u32() // Fat signature.
+    discard expect stream.readNative'u32() // Shape id.
+    let fatSeekPosition = stream.position()
+
+    var writer = ByteStream.openWrite(&result)
+    writer.setPosition(fatSeekPosition)
+    writer.writeNative(fatSeek)
+    return result
+}
+
 func assertCompressedBlob(values: Array'u8)->bool
 {
     if values.count != 512 do
@@ -1229,4 +1253,17 @@ func corruptTagBinCompressedSizes(bytes: String, fieldName: string, uncompressed
     catch CoreTests.readAndDelete'(TagBinLongText, Serialization.Read.TagBin)(&decoder, patched.toSlice()) as errlnOutcome
     let errln = errlnOutcome.value()
     Swag.assert(errln != null)
+}
+
+// A fat offset near U64.Max is rejected without wrapping the computed table end.
+#test
+{
+    let payload = makeTagBinPayload()
+    let bytes   = encodeTagBin(payload)
+    let patched = corruptTagBinRootFatSeek(bytes, Swag.U64.Max)
+
+    var decoder:    Serialization.Decoder'Serialization.Read.TagBin
+    var errorOutcome: Swag.Error
+    catch CoreTests.readAndDelete'(TagBinPayload, Serialization.Read.TagBin)(&decoder, patched.toSlice()) as errorOutcome
+    Swag.assert(errorOutcome.value() != null)
 }

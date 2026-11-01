@@ -3,29 +3,6 @@
 
 using Core, Gui
 
-// Opens the window on the dot product, both builds on their instructions, without compiling.
-func testSetupInspectionWindow(host: *Testing.HeadlessHost, width = cast(f32, MainWindow.WindowWidth), height = cast(f32, MainWindow.WindowHeight))->*MainWindow
-{
-    let window = testSetupMainWindow(host, width, height)
-    window.setLiveEdit(false)
-    window.selectedExample = .Dot
-    window.editor.setText(exampleSource(.Dot))
-    window.panels[0].selectViewer(.Microcode)
-    window.retranslate()
-    return window
-}
-
-func microcode(window: *MainWindow, panel: u64)->*MicrocodeViewer => assume cast(*MicrocodeViewer, window.panels[panel].viewer!.window())
-
-// Gives the builds the dot product as the compiler printed it: the main build at O2, the reference
-// at O0.
-func showDotFixtures(window: *MainWindow)
-{
-    showOutput(microcode(window, 0), fixture("micro.dot.o2.txt"))
-    showOutput(microcode(window, 1), fixture("micro.dot.o0.txt"))
-    window.refreshStatus()
-}
-
 // Reports whether the lens of `window` shows an entry titled `title`.
 func lensHasEntry(window: *MainWindow, title: string)->bool
 {

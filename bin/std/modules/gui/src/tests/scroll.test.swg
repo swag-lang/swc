@@ -3,6 +3,73 @@
 
 using Swag, Core
 
+// Square content gets shorter when the vertical bar narrows its responsive view.
+struct ResponsiveScrollView
+{
+    using wnd:  Wnd
+    resizing:   u32
+    visits:     u32
+    horizontal: bool
+}
+
+impl IWnd for ResponsiveScrollView
+{
+    mtd impl onResizeEvent(_: *ResizeEvent)
+    {
+        let scroll = assume cast(*ScrollWnd, unwrap .parent)
+        if scroll.view == null do
+            return
+        .resizing += 1
+        defer .resizing -= 1
+        .visits += 1
+        Swag.assert(.resizing == 1 and .visits < 8)
+        if .horizontal do
+            scroll.setScrollSize(.position.height, 0)
+        else do
+            scroll.setScrollSize(0, .position.width)
+    }
+}
+
+// A responsive view settles even when adding the bar makes its content fit without overflow.
+#test
+{
+    var host: Testing.HeadlessHost
+    host.setup(300, 300)
+    let scroll = Wnd.create'ScrollWnd(&host.root, "", {0, 0, 200, 196})
+    scroll.updateFlags(.DisableHorizontal)
+    let view = scroll.createView'ResponsiveScrollView()
+    scroll.setScrollSize(0, 200)
+    Swag.assert(view.position.width == 200 - host.theme.metrics.scrollBar_Size)
+    Swag.assert(scroll.scrollSize.y == view.position.width and scroll.showBarV)
+    scroll.setScrollPos(0, 100)
+    Swag.assert(scroll.scrollPosition() == Math.Point{} and scroll.showBarV)
+
+    view.visits = 0
+    scroll.resize(200, 220)
+    Swag.assert(view.position.width == 200 and not scroll.showBarV)
+    Swag.assert(scroll.scrollSize.y == 200)
+}
+
+// The horizontal axis has the same feedback when its bar shortens the responsive view.
+#test
+{
+    var host: Testing.HeadlessHost
+    host.setup(300, 300)
+    let scroll = Wnd.create'ScrollWnd(&host.root, "", {0, 0, 196, 200})
+    let view   = scroll.createView'ResponsiveScrollView()
+    view.horizontal = true
+    scroll.setScrollSize(200, 0)
+    Swag.assert(view.position.height == 200 - host.theme.metrics.scrollBar_Size)
+    Swag.assert(scroll.scrollSize.x == view.position.height and scroll.showBarH)
+    scroll.setScrollPos(100, 0)
+    Swag.assert(scroll.scrollPosition() == Math.Point{} and scroll.showBarH)
+
+    view.visits = 0
+    scroll.resize(220, 200)
+    Swag.assert(view.position.height == 200 and not scroll.showBarH)
+    Swag.assert(scroll.scrollSize.x == 200)
+}
+
 // A hover hint exposes existing scrollbars without moving content or changing its viewport.
 #test
 {

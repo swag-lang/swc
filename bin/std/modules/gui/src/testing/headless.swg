@@ -238,6 +238,14 @@ impl HeadlessHost
         .app.toolTip.hide()
         .app.unregisterSurface(&.surface)
 
+        // Applications replace the standalone root with their own view, and floating controls
+        // can be siblings of that view. Retire every hosted child before releasing the renderer.
+        // The embedded surface window must enter teardown too: caption buttons must not lay
+        // out a view already destroyed by an earlier child event. Its native destroy handler
+        // cannot run here because the host, rather than the application heap, owns the surface.
+        discard .surfaceWnd.beginDestruction()
+        for child in .surfaceWnd.children do
+            child.destroy()
         if not .root.isPendingDestroy do
             .root.destroy()
         .pump()

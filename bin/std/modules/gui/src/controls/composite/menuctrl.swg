@@ -1352,13 +1352,13 @@ public impl MenuCtrl
     // The button is repainted as the popup's opening tab instead of pointing at a detached box
     // with a notch. A [[Gui.IconButtonArrowPosition.RightUpward]] marker opens the menu above the
     // button; every other marker opens it below. When `autoDestroy` is true, the menu destroys
-    // itself after the modal loop.
+    // itself and its submenu tree after the modal loop.
     mtd doModal(button: *IconButton, autoDestroy: bool = false)->WndId? => .doModalImpl({}, .TopLeft, autoDestroy, button)
 
     // Runs a popup menu modally at `surfacePos` and returns its selected command, or null when dismissed.
     //
     // `pos` says how the menu is placed around `surfacePos`. When `autoDestroy` is true, the
-    // menu destroys itself after the modal loop ends.
+    // menu destroys itself and its submenu tree after the modal loop ends.
     mtd doModal(surfacePos: Math.Point, pos = PopupPosition.TopLeft, autoDestroy: bool = false)->WndId? => .doModalImpl(surfacePos, pos, autoDestroy, null)
 
     private mtd doModalImpl(surfacePos: Math.Point, pos: PopupPosition, autoDestroy: bool, button: *IconButton?)->WndId?
@@ -1468,8 +1468,19 @@ public impl MenuCtrl
             .postCommandEvent(.endModalResult)
 
         if autoDestroy do
-            .destroy()
+            .destroyPopupTree()
 
         return .endModalResult
+    }
+
+    // Submenus are surface siblings so they can escape content clipping; their logical parent
+    // must retire them before it goes away, including children that were never opened.
+    private mtd destroyPopupTree()
+    {
+        if .isPendingDestroy do
+            return
+        for item in .items where item!.popup != null do
+            item.popup.destroyPopupTree()
+        .destroy()
     }
 }

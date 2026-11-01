@@ -71,11 +71,8 @@ impl String
 
     // Returns the byte storage as a pointer the caller walks itself.
     //
-    // A String that holds nothing owns no block, and a caller asking it for its storage is
-    // about to walk zero bytes. The answer is then a dangling address that is never read,
-    // rather than a null every caller would have to assert: walking is bounded by 'length',
-    // and a read through the dangling address faults exactly as loudly as a read through
-    // null. Ask 'isNull' or 'isNullOrEmpty' whether there is anything to walk.
+    // An empty String returns a non-null sentinel address aligned for bytes. It is not a byte
+    // address and must not be dereferenced. Check 'isNull' or 'isNullOrEmpty' before walking.
     #[Inline]
     mtd const storage()->[*] u8 => .buffer orelse cast([*] u8, cast(u64, 1))
 

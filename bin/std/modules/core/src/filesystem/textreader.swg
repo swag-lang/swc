@@ -36,11 +36,13 @@ public impl TextReader
     mtd open(fullName: string) fail
     {
         Swag.assert(not .stream.isOpen())
-        .stream = try openRead(fullName)
+        var stream = try openRead(fullName)
 
         // Small files are read in one refill; large ones through a 64 KiB window.
+        let capacity = Math.clamp(try stream.size(), 16'u64, 64 * 1024'u64)
         .buffer.clear()
-        .buffer.reserve(Math.clamp(try .stream.size(), 16'u64, 64 * 1024'u64))
+        .buffer.reserve(capacity)
+        .stream         = #move stream
         .byteSeek      = 0
         .checkPreamble = true
     }

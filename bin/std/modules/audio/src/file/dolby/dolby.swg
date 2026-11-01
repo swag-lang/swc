@@ -26,12 +26,16 @@ internal func openElementaryStream(path: string, encoding: SoundFileEncoding)->S
     var sampleRate   = 0'u32
     var channelCount = 0'u32
 
-    while byteOffset + HeaderBytes <= fileBytes
+    for
     {
+        if byteOffset > fileBytes do
+            break
+        if fileBytes - byteOffset < HeaderBytes do
+            break
         try source.seek(byteOffset)
         let probe = try source.peek(HeaderBytes)
         let info  = encoding == .Eac3 ? try eac3FrameInfo(probe) : try ac3FrameInfo(probe)
-        if not info.frameBytes or byteOffset + info.frameBytes > fileBytes do
+        if not info.frameBytes or info.frameBytes > fileBytes - byteOffset do
             break
 
         if not packets.count
@@ -48,7 +52,10 @@ internal func openElementaryStream(path: string, encoding: SoundFileEncoding)->S
         if info.frameBytes > Swag.U32.Max do
             fail InvalidFormatError{"Dolby sync frame is larger than a packet may be"}
         packets.add(SoundPacket{byteOffset, cast(u32, info.frameBytes), info.frames})
-        totalFrames += cast(u64, info.frames)
+        let frameCount = cast(u64, info.frames)
+        if totalFrames > Swag.U64.Max - frameCount do
+            fail OverflowError{"Dolby stream sample count overflows"}
+        totalFrames += frameCount
         byteOffset  += info.frameBytes
     }
 

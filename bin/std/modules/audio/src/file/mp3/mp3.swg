@@ -97,8 +97,12 @@ private func readFrameIndex(source: *ByteSource,
     var totalFrames   = 0'u64
     var hasFirstFrame = false
 
-    while byteOffset + HeaderBytes <= fileBytes
+    for
     {
+        if byteOffset > fileBytes do
+            break
+        if fileBytes - byteOffset < HeaderBytes do
+            break
         try source.seek(byteOffset)
         let probe  = try source.peek(HeaderBytes)
         let header = catch readHeader(probe)
@@ -108,7 +112,7 @@ private func readFrameIndex(source: *ByteSource,
             continue
         }
 
-        if byteOffset + header.frameBytes > fileBytes do
+        if header.frameBytes > fileBytes - byteOffset do
             break
 
         if not hasFirstFrame
@@ -133,7 +137,10 @@ private func readFrameIndex(source: *ByteSource,
         if header.frameBytes > Swag.U32.Max do
             fail InvalidFormatError{"MP3 frame is larger than a packet may be"}
         packets.add(SoundPacket{byteOffset, cast(u32, header.frameBytes), header.frameSamples})
-        totalFrames += cast(u64, header.frameSamples)
+        let frameCount = cast(u64, header.frameSamples)
+        if totalFrames > Swag.U64.Max - frameCount do
+            fail OverflowError{"MP3 stream sample count overflows"}
+        totalFrames += frameCount
         byteOffset  += header.frameBytes
     }
 

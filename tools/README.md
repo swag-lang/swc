@@ -20,7 +20,9 @@ Linux OS leaves. It requires GCC 14 or later, supports `--configuration release`
 `--jobs 1` through `--jobs 3`, and checks machine load before invoking Make. Objects, dependency
 files, the precompiled header and the executable remain under the supplied build directory.
 Complete DevMode and Release builds link and pass the lexer/parser suites including
-expected-error inputs. Generated Linux execution still needs the System V ABI and Linux runtime hooks. The target remains Windows until those Linux target pieces are connected.
+expected-error inputs. `--os linux` selects Linux target queries and the System V C ABI explicitly. The default
+target remains Windows. Linux semantic execution still needs the runtime host hooks; ELF native
+output is not implemented.
 Use the focused boundary below for implemented host services.
 
 ## Linux compiler suites

@@ -55,7 +55,7 @@ the C++ JIT page allocator is separate from `bin/runtime`'s `__hostPage*` alloca
 | Compiler native stack capture and symbol resolution | `src/Support/Os/Os.Windows.cpp` | `Os.Stack.Linux.cpp`; bounded unwinding, frame skipping and demangled ELF symbols; safe diagnostic reads use `process_vm_readv` or checked procfs fallback. DWARF source locations remain unavailable |
 | Compiler signal stacks and generated-code unwinding | `src/Support/Os/Os.Windows.cpp`, `src/Backend/JIT/` | Guarded per-thread alternate stacks, DWARF CIE/FDE construction and libgcc registration; native tests cover stack overflow, generated frames and C++ cleanup after a generated fault. The fault boundary preserves C++ cleanup and rejects native faults. Instruction-level CFI follows the control-flow graph, including multiple returns, dynamic stack allocation, saved registers and indirect jumps |
 | Compiler startup CPU/OS-state check | `src/Main/HostCpuGuard.cpp` | ELF preinit guard checks GCC’s x86-64-v3 predicate, including OS AVX state; rejection tested before C++ initialization |
-| Foreign calls, argument/return classification and callee-save registers | `src/Backend/ABI/`, Windows x64 | System V scalar/aggregate calls, source parameter homes, result storage and cached JIT invokers tested against native C; lifecycle cases and target activation remain |
+| Foreign calls, argument/return classification and callee-save registers | `src/Backend/ABI/`, Windows x64 | System V scalar/aggregate calls, source parameter homes, result storage and cached JIT invokers tested against native C; owned-value cleanup and Linux runtime integration remain |
 | Object emission, linking, startup, dynamic imports and debug artifacts | `src/Backend/Native/`, `src/Backend/Linker/`, COFF/PE/PDB | PE/COFF records compile without the Windows SDK; ELF and Linux startup/link inputs remain missing |
 | Runtime reserve/commit/decommit/release and allocation-base lookup | `bin/runtime/os.win32.swg`, `__hostPage*` | Missing |
 | Runtime TLS and thread-exit cleanup | `bin/runtime/os.win32.swg`, `__hostTls*`, `__hostThreadStorage*` | Missing |
@@ -91,7 +91,7 @@ architectures and freestanding builds have no validated target contract yet.
 | Target | C/math libraries | Thread and loader interfaces | Current link support |
 | --- | --- | --- | --- |
 | Windows x86-64 | UCRT (`ucrtbase` at runtime, `ucrt` link input) | Kernel32 and the existing Windows host imports | Windows toolchain discovery, COFF and PE |
-| GNU/Linux x86-64, planned Swag target | glibc (`libc.so.6`) and libm (`libm.so.6`, `-lm`) | POSIX threads (`-pthread`) and `dlopen`/`dlsym` (`-ldl` for toolchain compatibility) | C++ host tests only; Swag bindings, System V ABI, ELF, CRT startup and link resolution are missing |
+| GNU/Linux x86-64, planned Swag target | glibc (`libc.so.6`) and libm (`libm.so.6`, `-lm`) | POSIX threads (`-pthread`) and `dlopen`/`dlsym` (`-ldl` for toolchain compatibility) | System V ABI and explicit target selection; Swag runtime bindings, ELF, CRT startup and link resolution are missing |
 | Freestanding | No selected contract | No implicit hosted services | Not implemented |
 
 Modern glibc integrates pthread and dl symbols into libc; keeping the toolchain flags does not

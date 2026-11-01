@@ -95,6 +95,14 @@ void CommandLineParser::registerCommands()
         &cmdLine_->editorOverlay,
         "Read unsaved source buffers from a versioned editor overlay file");
 
+    addEnum(HelpOptionGroup::Target, "syntax sema service doc test build run smoke", "--os", nullptr,
+            &cmdLine_->targetOs,
+            {
+                {"windows", Runtime::TargetOs::Windows},
+                {"linux", Runtime::TargetOs::Linux},
+            },
+            "Set the target OS used by #os and the C calling convention; Linux runtime and native output are under development");
+
     addEnum(HelpOptionGroup::Target, "sema service doc test build run smoke", "--arch", "-a",
             &cmdLine_->targetArch,
             {

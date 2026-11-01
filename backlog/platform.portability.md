@@ -873,7 +873,7 @@ by portable modules and products. The earlier entries prepare and enforce the sa
   outside the checkout with GNU Make. Complete DevMode and Release compilers link and
   pass the lexer/parser suites including expected-error inputs without spurious JIT setup.
   The full C++ campaign, including filesystem tests and extra IR/native validation, passes
-  1,644 of 1,708 tests; 64 remain failing. Closed Windows x64 instruction fixtures execute
+  1,645 of 1,709 tests; 64 remain failing. Closed Windows x64 instruction fixtures execute
   through an explicit GCC ABI bridge. Runtime adapters initialize on the first actual JIT call,
   and cross-host generated execution has an explicit diagnostic.
   PE/COFF records no longer depend on the Windows SDK, and both target enums represent Linux.
@@ -881,8 +881,9 @@ by portable modules and products. The earlier entries prepare and enforce the sa
   multiple returns, dynamic-stack joins, frameless register saves, indirect jumps and C++
   cleanup through generated faults. System V scalar/aggregate transfers and host callback
   adapters work at the backend boundary, including cross-ABI register preservation and native
-  exception unwinding. Source runtime integration, target selection and DWARF source resolution
-  remain missing.
+  exception unwinding. An explicit `--os linux` selects target queries and the System V C profile;
+  syntax succeeds, while semantic analysis still reports the absent Linux runtime hooks.
+  Source runtime integration and DWARF source resolution remain missing.
   Linux directory locks do not prohibit an uncoordinated cleaner's rename.
 - Next: resolve the remaining C++ failures and connect the System V ABI to Linux JIT execution.
   Coordinate directory cleanup with API readers/publication. Keep C++ cleanup intact across
@@ -897,8 +898,8 @@ by portable modules and products. The earlier entries prepare and enforce the sa
   independent banks, callee-save rules, zero shadow space and variadic AL setup with explicit
   liveness. Native C fixtures exercise mixed scalar banks, stack arguments, variadic floats and
   indirect calls after physical-register DCE. Source attributes cannot select the unfinished
-  profile, and target C selection still accepts only Windows x64: aggregates must not inherit
-  the Windows indirect-pointer convention. The storage classifier and argument planner cover
+  profile directly. Explicit Linux target selection maps C to System V; Windows remains the
+  default target while the Linux runtime is incomplete. The storage classifier and argument planner cover
   mixed/nested records, unions, SIMD upper halves, unaligned fields and whole-argument bank
   rollback. The packed-address call bridge now passes mixed/two-register/stack aggregates,
   handles hidden memory results and variadic aggregate banks, and bounds partial eightbyte
@@ -928,7 +929,7 @@ by portable modules and products. The earlier entries prepare and enforce the sa
   execution and over-aligned stack values still need validation or integration.
 - Next: validate owned-local and temporary return cleanup and complete end-to-end source execution; add
   dynamic alignment for over-aligned stack values.
-  Compare with native C/C++ fixtures, then activate target C and Linux runtime declarations.
+  Compare with native C/C++ fixtures and implement the missing Linux runtime declarations.
 - Done when: generated Linux calls round-trip supported scalar and aggregate values through C,
   preserve callee-save registers and stack alignment, and use the same ABI in JIT and native code.
 - Related: platform.portability.007, platform.portability.081

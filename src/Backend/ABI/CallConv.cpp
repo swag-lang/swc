@@ -16,6 +16,8 @@ namespace
         {
             case Runtime::TargetOs::Windows:
                 return CallConvKind::WindowsX64;
+            case Runtime::TargetOs::Linux:
+                return CallConvKind::SystemVAMD64;
             default:
                 SWC_FORCE_ASSERT(false && "C calling convention is not implemented for this target OS");
                 SWC_UNREACHABLE();

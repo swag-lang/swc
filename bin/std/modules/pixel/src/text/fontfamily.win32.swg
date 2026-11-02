@@ -174,6 +174,14 @@ impl FontFamily
         return TRUE
     }
 
+    internal func systemFontNamesNative()->Array'String
+    {
+        var result: #returntype
+        for family in enumerateSystemFonts() do
+            result.add(family.name)
+        return result
+    }
+
     // Returns the font families currently available from Windows.
     public func enumerateSystemFonts()->Array'SystemFontFamilyInfo
     {

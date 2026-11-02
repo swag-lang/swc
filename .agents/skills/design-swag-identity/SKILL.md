@@ -224,11 +224,12 @@ show syntax the compiler no longer accepts.
 
 - Keep clear space of at least one stroke (20 units, scaled) on every side.
 - Below 24 pixels, use the icon tile rather than the bare mark.
-- **The tile is for the desktop and the About box. A window shows the glyph.** The tile is one
+- **The application mark keeps its identity in the window.** The tile is one
   Voltage glyph on one ink ground, for the taskbar, the task switcher, an installer and the About
-  box (52, corner 12). Inside a window the application glyph is drawn monochrome in
-  `ThemeColors.wnd_CaptionMark` (soft ink at about 55 %), 18 px, at the top-left corner. The
-  toolkit draws it. See [build-swag-standard-apps](../build-swag-standard-apps/SKILL.md#generate-a-specific-icon).
+  box (52, corner 12). Inside a window the non-interactive application mark is 24 px, centred in the top strip,
+  with the glyph alone in Voltage on Encre and Arc on Papier, without a tile or interaction feedback.
+  It stays distinct from monochrome command glyphs. The toolkit uses `Application.appGlyph`
+  and `ThemeColors.wnd_CaptionMark`. See [build-swag-standard-apps](../build-swag-standard-apps/SKILL.md#generate-a-specific-icon).
 - **A tile has two crops.** In an application icon the mark fills 56 % (`ICON_FILL`). In a
   favicon it fills 74 % (`FAVICON_FILL`), because at 16 pixels the margin would cost the counters.
 - The mark is the whole logo. `SWAG` is set in type beside it (weight 800, `.2em` tracking).

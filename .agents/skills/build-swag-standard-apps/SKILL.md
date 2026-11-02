@@ -112,11 +112,10 @@ theme-atlas glyph, another app's icon or a letter tile.
 
 6. Set `BuildCfg.resAppIcoFileName` in `module.swg`, with a path relative to the module folder.
    Decode `appicon.png` and pass it to `Application.setAppIcon` before creating the first surface.
-7. **The tile is for the desktop and the About box. The window carries the glyph.** The toolkit
-   draws the glyph monochrome in `wnd_CaptionMark`, 18 px, at the top-left corner of the window,
-   and the About box shows the tile at `dialog_TileSize`. `setAppIcon` feeds both, so never place
-   or tint the window glyph by hand. Because the window lifts the glyph off its ink ground, the
-   master must use exactly the two declared colours.
+7. **The application mark stays distinct from window commands.** The toolkit draws it at 24 px
+   in the top-left corner, with the glyph alone in Voltage on Encre and Arc on Papier,
+   without a tile or interaction feedback. The About box uses `dialog_TileSize`. `setAppIcon` feeds both,
+   so never place or tint the window mark by hand. The master uses exactly the two declared colours.
 8. Inspect the PNG, the 16, 32, 48 and 256 pixel ICO entries, and the window glyph in both themes.
    If the negative space closes or the meaning disappears, regenerate the glyph. Do not repair a
    weak concept with text.
@@ -164,6 +163,13 @@ entrance; do not add a second caption band.
   separated by spaces (`Ctrl Shift S`). What a key does is a few lowercase words after it.
 
 ### Compose the shared components
+
+Reuse shared rendering as well as controls. A standalone interactive element belongs in a
+widget; repeated items in a virtualized board use a `gui/src/paint` helper with explicit content
+and options. Scope's Explorer and Capture's Library use `Gui.FileTile` for preview fitting,
+hover, selection, captions and metadata. Hosts own loading, caches, selection models and actions;
+they do not copy that drawing code. Custom previews may supply the content inside a shared cell,
+while the common helper retains the frame, state and caption treatment.
 
 The charter's Shared components section and the pictures describe what each component looks
 like. The toolkit types live in `bin/std/modules/gui/src/controls/lens` and
@@ -228,6 +234,10 @@ quick-style names.
   Cursor to Line Ends", "Save as Image…", "Open With…", "Show in Folder".
 - **Sentences keep sentence case**: help text, descriptions, messages, notices, placeholders that
   are sentences, the words of the hint line, a dialog title that reports a situation.
+- **No decorative quotation marks around referenced names.** Files, folders, commands and values
+  use a quiet text-ink difference in messages, titles and help, in every language. Plain-text
+  surfaces write the name directly. Preserve punctuation that belongs to the actual data; see
+  [References inside messages](../../../backlog/design/README.md#references-inside-messages).
 - **Translations follow their own language.** French stays in sentence case ("Enregistrer comme
   image…").
 - **An ellipsis `…` marks a command that asks for more before acting.** Use the single

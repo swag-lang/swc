@@ -175,13 +175,13 @@ using Swag, Core, Pixel
         Swag.assert(colors.wnd_Border.a == 255)
 
         // The title and the window buttons are faint; a button reaches the body ink under the
-        // pointer, and close the critical ink. The glyph is the soft ink at about 55 %.
+        // pointer, and close the critical ink. The application mark keeps a contrasting electric ink.
         Swag.assert(colors.wnd_CaptionText == palette.faintText)
         Swag.assert(colors.wnd_BtnIcon == palette.faintText)
         Swag.assert(colors.wnd_BtnHotIcon == palette.text)
         Swag.assert(colors.wnd_BtnCloseHotIcon == colors.critical)
-        Swag.assert(colors.wnd_CaptionMark.argb & 0x00FFFFFF == palette.softText.argb & 0x00FFFFFF)
-        Swag.assert(colors.wnd_CaptionMark.a > 0x80 and colors.wnd_CaptionMark.a < 0x96)
+        Swag.assert(colors.wnd_CaptionMark == (markReadsOn(palette.ground) ? colors.signature : colors.arc))
+        Swag.assert(colors.wnd_CaptionMark.contrastRatio(palette.ground) >= 3)
     }
 
     // A colored mark keeps its tile on Papier, where a keyed-out Voltage glyph would vanish.

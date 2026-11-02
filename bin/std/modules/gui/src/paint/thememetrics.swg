@@ -68,7 +68,7 @@ struct ThemeMetrics
         wnd_SmallCaptionCY:        f32 = 36      // Height of the top strip of a dialog or a tool window, kept above its content.
         wnd_CaptionButtonHeight:   f32 = 32      // Tallest a window button gets; it is centred in the strip.
         wnd_CaptionMarginTitle:    f32 = 18      // Air between the leading edge of a window and its glyph.
-        wnd_CaptionIconSize:       f32 = 18      // Side of the application glyph in the corner of a window.
+        wnd_CaptionIconSize:       f32 = 24      // Side of the application glyph in the corner of a window.
         wnd_TitleFontSize:         u32 = 12      // Size of the title centred in the top strip.
         wnd_CaptionButtonMargin:   f32 = 5       // Air around a window button, inside the top strip.
         wnd_CaptionButtonGap:      f32 = 2       // Air between neighboring window buttons.

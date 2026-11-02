@@ -145,14 +145,30 @@ prepositions of four letters or fewer, unless first or last: "Add Cursor to Line
 sentence case. Translations follow their language: French stays in sentence case ("Enregistrer
 comme image…"). An ellipsis marks a command that asks for more before acting.
 
+## References inside messages
+
+Never add quotation marks around a file name, folder, command, value or other referenced item
+in interface messages, titles, confirmations or help. This includes straight quotes, curly
+quotes and French guillemets in every translation. Distinguish an inline reference with the
+theme's soft text ink, keeping readable contrast; use a separate line for a long name when
+needed. It remains ordinary text, without link colour, underline, badge or interaction feedback.
+In plain text, write the name directly. Preserve punctuation that belongs to the actual name,
+literal content or required syntax; never strip characters from user data.
+
 ## Window chrome
+
+Shared visual families use one rendering implementation in `gui`. Use a widget for an element
+with its own interaction lifecycle, and content/options-based rendering helpers for repeated
+cells in virtualized views. File tiles share image fitting, hover and selection outlines, names,
+metadata and badges across applications; loading, caching and application actions remain with
+their hosts. A rendering improvement must reach every consumer without copying paint code.
 
 ![Reading in Encre](imgs/scope.read.png)
 
 - No caption band, no menu bar, no accent rail, no caption glow, no status bar.
 - The top 52 px is part of the content area and draggable wherever no control sits;
   double-click maximizes.
-- The application glyph sits at (18, 16), 18 px, about 55 % opacity, monochrome soft colour.
+- The non-interactive application mark is 24 px, centred vertically in the top strip. It shows the glyph alone, in Voltage on Encre and Arc on Papier, distinct from the monochrome command glyphs. It has no tile or interaction feedback.
 - The document's name is centred at the top, 12 px, faint. A quiet Commands control gives the
   lens a visible pointer entrance in the existing strip, with its shortcut in the tooltip. It
   stays available without hovering an invisible target; at narrow widths it keeps a named

@@ -23,7 +23,6 @@ private
 const VeilInset      = 28.0       // Air between a veil's words and the edges of the window.
 const TopVeilHeight  = 120.0      // Height of the top veil's shade.
 const TitleY         = 32.0       // Centre of the title's line, from the top of the window.
-const TitleX         = 52.0       // Where the title starts: after the glyph of the application, which the strip keeps.
 const TitleSize      = 16'u32     // Size of the title.
 const FactsGap       = 14.0       // Air between the title and the facts after it.
 const BottomHeight   = 140.0      // Height of the bottom veil's shade.
@@ -230,6 +229,25 @@ struct TopVeil
     facts: String
 }
 
+impl TopVeil
+{
+    // The surface owns caption geometry, including the return action shown over a film.
+    mtd titleRoom()->Math.Rectangle
+    {
+        let chrome = assume cast(*SurfaceWnd, .surface!.wnd)
+        var room   = chrome.captionContentRect()
+        if room.height > 0
+        {
+            let origin = .surfaceToLocal(chrome.localToSurface(Math.Point{room.x, room.y}))
+            room.x = origin.x
+            room.y = origin.y
+            return room
+        }
+
+        return {VeilInset, 0, Math.max(.clientRect().width - 2 * VeilInset, 0), TitleY * 2}
+    }
+}
+
 impl IWnd for TopVeil
 {
     mtd impl onPaint(evt: *PaintEvent)
@@ -238,11 +256,25 @@ impl IWnd for TopVeil
         let room    = .clientRect()
         paintShade(painter, room, fromTop: true)
 
-        let title = .theme().createDefaultFont(TitleSize, .Bold)
-        let mono  = .theme().createDefaultFontFs(.themeMetrics().defaultFixedFontSize - 1)
-        painter.drawString(room.x + TitleX, title.opticalLineTop(room.y + TitleY), .title, title, VeilInk)
-        let x = room.x + TitleX + Painter.measureString(.title, title).width + FactsGap
-        painter.drawString(x, mono.opticalLineTop(room.y + TitleY), .facts, mono, VeilSoftInk)
+        let title      = .theme().createDefaultFont(TitleSize, .Bold)
+        let mono       = .theme().createDefaultFontFs(.themeMetrics().defaultFixedFontSize - 1)
+        var content    = .titleRoom()
+        let titleWidth = Painter.measureString(.title, title).width
+        let factsWidth = Painter.measureString(.facts, mono).width
+        if titleWidth + FactsGap + factsWidth <= content.width
+        {
+            painter.drawString(content.x + titleWidth + FactsGap, mono.opticalLineTop(content.vertCenter()), .facts, mono, VeilSoftInk)
+            content.width -= factsWidth + FactsGap
+        }
+
+        var text:   RichString = .title.toString()
+        var format: RichStringFormat
+        format.font          = .theme().createDefaultFontFamily(TitleSize)
+        format.fontStyle     = .Bold
+        format.palette[0]    = VeilInk
+        format.vertAlignment = .Center
+        format.flags         = .Ellipsis
+        painter.drawRichString(content, &text, format)
     }
 }
 

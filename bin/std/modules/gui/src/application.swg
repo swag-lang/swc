@@ -1195,7 +1195,7 @@ impl Application
     // Returns the application mark at `size` logical pixels, cut to sit on `ground`, or an invalid icon when the application declares none.
     //
     // This is the mark in its own two colors, for a place that shows the brand, such as the About
-    // box; the corner of a window shows [[Gui.Application.appGlyph]] instead. The mark ships
+    // box. Window captions use [[Gui.Application.appGlyph]] instead. The mark ships
     // flattened — one glyph over one ink tile — because that is what a taskbar, a file list and
     // an installer need. On a dark ground the tile is keyed out and the glyph floats free, where
     // the tile would have read as a black square around it.

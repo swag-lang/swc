@@ -80,6 +80,11 @@ specific title that says what happened ("The file changed on disk.").
 Titles are keys in [`Strings`](../../../bin/std/modules/gui/src/localization.swg). A key added
 without its line in `src/lang/<tag>/gui.tweak` ships half translated, and nothing reports it.
 
+Do not surround referenced names, commands or values with quotation marks in a title or message,
+in any language. Use a quiet text-ink difference, or give a long name its own line. Keep the name
+readable and non-interactive; preserve quotation marks that are part of the user's actual data.
+See [References inside messages](../../../backlog/design/README.md#references-inside-messages).
+
 ## Severity Is One Dot
 
 A failure puts an **8 px critical dot** before the title (`Dialog.setTitle(title, failure: true)`

@@ -73,6 +73,7 @@ impl IWnd for Dialog
             sf.vertAlignment = .Top
             sf.flags         = .Ellipsis
             sf.palette[0]    = colors.text
+            sf.palette[1]    = colors.softText
             let line = Math.Rectangle{x, font.opticalLineTop(centerY), .position.width - pad - x, Math.ceil(font.height)}
             painter.drawRichString(line, &.title, sf)
         }
@@ -185,12 +186,13 @@ impl Dialog
     //
     // A title that reports a situation is a sentence; one that names the command the box carries
     // out repeats that command's label. `failure` leads the title with the critical dot, which is
-    // the whole severity vocabulary of a box.
+    // the whole severity vocabulary of a box. `<p1>...</p>` gives a referenced name the theme's
+    // soft text ink; formatting is omitted from the native window title.
     mtd setTitle(title: string, failure = false)
     {
         .title.set(title)
         .failure = failure
-        .surface?.setTitle(title)
+        .surface?.setTitle(RichString.plainText(title))
         .updateInset()
         .invalidate()
     }

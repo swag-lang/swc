@@ -75,7 +75,6 @@ using Swag, Core
     Swag.assert(host.surfaceWnd.hitTestCaptionButton(center))
 
     button.hide()
-    host.surfaceWnd.sendResizeEvent()
     Swag.assert(not host.surfaceWnd.hitTestCaptionButton(center))
 }
 
@@ -96,6 +95,16 @@ using Swag, Core
     Swag.assert(Math.abs(button.position.vertCenter() - metrics.wnd_StripHeight * 0.5) < 0.5)
     Swag.assert(host.surfaceWnd.hitTestCaptionButton(button.surfaceRect().center()))
     Swag.assert(button.position.right() < host.surfaceWnd.minimizeBtn!.position.x)
+
+    let second = CaptionButton.createLeading(&host.surface, ThemeIcons.ChevronRight)
+    button.hide()
+    let withoutBack = second.position.x
+    button.show()
+    Swag.assert(second.position.x > withoutBack)
+    Swag.assert(button.position.right() < second.position.x)
+    Swag.assert(host.surfaceWnd.captionContentRect().x > second.position.right())
+    second.destroy()
+    host.pump()
 
     button.destroy()
     host.pump()

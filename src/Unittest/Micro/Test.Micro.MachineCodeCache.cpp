@@ -81,6 +81,31 @@ namespace
     };
 }
 
+SWC_FILESYSTEM_TEST_BEGIN(MachineCodeCache_PreservesIndirectFunctionAddressRelocations)
+{
+    ModuleCacheFixture fixture(ctx, "cacheIndirectPointer");
+    TaskContext&       localCtx = *fixture.context;
+    auto*              target   = makeCacheFunction(localCtx, "cacheIndirectTarget");
+    MicroBuilder       builder(localCtx);
+    builder.emitLoadRegPtrReloc(MicroReg::virtualIntReg(0), 0, ConstantRef::invalid(), target);
+    MachineCode expected;
+    for (const uint8_t byte : {0x48, 0x8B, 0x05, 0, 0, 0, 0, 0xC3})
+        expected.bytes.pushBack(static_cast<std::byte>(byte));
+    expected.codeRelocations                      = builder.codeRelocations();
+    expected.codeRelocations[0].form              = MicroRelocation::Form::IndirectRelative32;
+    expected.codeRelocations[0].codeOffset        = 3;
+    expected.codeRelocations[0].relativeEndOffset = 7;
+    MachineCodeCache cache(localCtx, *fixture.function, builder);
+    cache.write(expected);
+    MachineCode restored;
+    if (!cache.read(restored) || restored.bytes != expected.bytes || restored.codeRelocations.size() != 1)
+        return Result::Error;
+    const auto& relocation = restored.codeRelocations.front();
+    if (relocation.form != MicroRelocation::Form::IndirectRelative32 || relocation.codeOffset != 3 || relocation.relativeEndOffset != 7 || relocation.targetSymbol != target)
+        return Result::Error;
+}
+SWC_TEST_END()
+
 SWC_FILESYSTEM_TEST_BEGIN(MachineCodeCache_ReusesModuleSourceWithRelocations)
 {
     ModuleCacheFixture  fixture(ctx, "cacheModuleCaller");

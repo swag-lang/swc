@@ -730,7 +730,7 @@ SWC_TEST_BEGIN(DebugInfo_EmitsWindowsVariableAndConstantRecords)
         if (relocation.symbolName != expectedDataBaseSymbol)
             continue;
 
-        if (relocation.type != PE::REL_AMD64_SECREL)
+        if (relocation.kind != NativeRelocationKind::SectionOffset32)
             continue;
         if (relocation.addend != 16)
             return Result::Error;

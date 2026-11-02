@@ -1203,18 +1203,16 @@ by portable modules and products. The earlier entries prepare and enforce the sa
   and nested JIT/native fault recovery preserves ownership without stale code or storage.
 - Related: platform.portability.001, platform.portability.093
 
-### platform.portability.093 — Finish Linux native PIC, debug and cache support
+### platform.portability.093 — Finish Linux native debug and cache support
 
 - Evidence: ELF executables, shared libraries and GNU archives support foreign imports,
   transitive module initialization and cleanup, published dependencies and distinct module
-  symbols. Shared-library linking still permits text relocations for absolute function-address
-  loads. Source-level DWARF output is
-  explicitly rejected, and persistent native function caches remain COFF-specific and disabled
-  for Linux.
-- Next: emit position-independent function-address loads while preserving canonical pointer
-  identity in JIT and native execution, then finish source-level DWARF and target-specific
-  incremental caches.
-- Done when: Linux native output supports position-independent shared libraries, emits source
-  debug information and reuses native caches while preserving foreign calls, runtime context
+  symbols. Shared libraries use position-independent function addresses and unwind records,
+  reject dynamic text relocations, and preserve canonical local/foreign pointer identity.
+  Source-level DWARF output is explicitly rejected, and persistent native function caches remain
+  COFF-specific and disabled for Linux.
+- Next: implement source-level DWARF and target-specific incremental caches.
+- Done when: Linux native output emits source debug information and reuses native caches while
+  preserving foreign calls, runtime context
   sharing and module load/unload lifecycle behavior.
 - Related: platform.portability.005

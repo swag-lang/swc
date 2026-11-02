@@ -106,7 +106,7 @@ Result NativeObjFileWriterCoff::buildObjectFile(ByteArray& outBytes, const Nativ
         SymbolTable::build(section.data.bytes, runtimeNames);
         section.data.relocations.reserve(runtimeNames.size());
         for (size_t i = 0; i < runtimeNames.size(); ++i)
-            section.data.relocations.push_back({.offset = SymbolTable::HEADER_SIZE + static_cast<uint32_t>(i) * SymbolTable::ENTRY_SIZE + SymbolTable::ENTRY_START_RVA, .symbolName = std::move(runtimeNames[i].symbolName), .type = PE::REL_AMD64_ADDR32NB});
+            section.data.relocations.push_back({.offset = SymbolTable::HEADER_SIZE + static_cast<uint32_t>(i) * SymbolTable::ENTRY_SIZE + SymbolTable::ENTRY_START_RVA, .symbolName = std::move(runtimeNames[i].symbolName), .kind = NativeRelocationKind::Rva32});
 
         SWC_RESULT(applySectionRelocations(section));
         sections.push_back(std::move(section));
@@ -214,19 +214,19 @@ Result NativeObjFileWriterCoff::applySectionRelocations(CoffSectionBuild& sectio
     SWC_ASSERT(section.relocations.empty());
     for (const auto& relocation : section.data.relocations)
     {
-        switch (relocation.type)
+        switch (relocation.kind)
         {
-            case PE::REL_AMD64_ADDR64:
+            case NativeRelocationKind::Abs64:
                 BinaryPatch::write<uint64_t>(section.data.bytes, relocation.offset, relocation.addend);
                 break;
 
-            case PE::REL_AMD64_ADDR32NB:
-            case PE::REL_AMD64_SECREL:
-            case PE::REL_AMD64_REL32:
+            case NativeRelocationKind::Rva32:
+            case NativeRelocationKind::SectionOffset32:
+            case NativeRelocationKind::Rel32:
                 BinaryPatch::write<uint32_t>(section.data.bytes, relocation.offset, static_cast<uint32_t>(relocation.addend));
                 break;
 
-            case PE::REL_AMD64_SECTION:
+            case NativeRelocationKind::SectionIndex16:
                 BinaryPatch::write<uint16_t>(section.data.bytes, relocation.offset, static_cast<uint16_t>(relocation.addend));
                 break;
 
@@ -462,7 +462,16 @@ Result NativeObjFileWriterCoff::buildCoffFile(ByteArray& outBytes, std::vector<C
             PE::Relocation relocRecord{};
             relocRecord.VirtualAddress   = relocation.offset;
             relocRecord.SymbolTableIndex = *symbolTableIndex;
-            relocRecord.Type             = relocation.type;
+            switch (relocation.kind)
+            {
+                case NativeRelocationKind::Abs64: relocRecord.Type = PE::REL_AMD64_ADDR64; break;
+                case NativeRelocationKind::Rva32: relocRecord.Type = PE::REL_AMD64_ADDR32NB; break;
+                case NativeRelocationKind::Rel32: relocRecord.Type = PE::REL_AMD64_REL32; break;
+                case NativeRelocationKind::SectionOffset32: relocRecord.Type = PE::REL_AMD64_SECREL; break;
+                case NativeRelocationKind::SectionIndex16: relocRecord.Type = PE::REL_AMD64_SECTION; break;
+                case NativeRelocationKind::GotRel32:
+                    return builder_->reportError(DiagnosticId::cmd_err_link_coff_unsupported_reloc, Diagnostic::ARG_VALUE, "GOT-relative", Diagnostic::ARG_TARGET, section.data.name);
+            }
             std::memcpy(outBytes.data() + relocOffset, &relocRecord, sizeof(relocRecord));
             relocOffset += sizeof(PE::Relocation);
         }

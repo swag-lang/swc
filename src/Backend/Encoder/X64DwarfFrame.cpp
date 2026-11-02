@@ -115,9 +115,18 @@ bool X64DwarfFrame::appendObjectFrame(ByteArray& frames, uint32_t& addressOffset
     if (!validFrame(frame, codeSize) || frame.size() > UINT32_MAX - 7 || frames.size() > UINT32_MAX - frame.size() - 7)
         return false;
     frames.align(8);
-    addressOffset = static_cast<uint32_t>(frames.size()) + K_CODE_ADDRESS_OFFSET;
-    frames.append(frame.span().first(frame.size() - 4));
-    frames.writeLe64(addressOffset, 0);
+    const uint32_t base = static_cast<uint32_t>(frames.size());
+    addressOffset       = base + K_CODE_ADDRESS_OFFSET;
+    frames.append(frame.span().first(K_CIE.size()));
+    // Object frames use DW_EH_PE_pcrel | DW_EH_PE_sdata4, so the loader never
+    // needs to modify read-only unwind records. JIT frames retain absolute addresses.
+    frames[base + 16] = std::byte{0x1b};
+    frames.appendLe32(frame.readLe32(K_FDE_OFFSET) - 8);
+    frames.appendLe32(K_FDE_OFFSET + 4);
+    frames.appendLe32(0);
+    frames.appendLe32(codeSize);
+    constexpr uint32_t instructionsOffset = K_CODE_SIZE_OFFSET + 8;
+    frames.append(frame.span().subspan(instructionsOffset, frame.size() - instructionsOffset - 4));
     return true;
 }
 

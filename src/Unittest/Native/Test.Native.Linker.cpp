@@ -800,6 +800,65 @@ SWC_TEST_BEGIN(ELFObject_RejectsUnrepresentableSectionsAndRelocations)
 SWC_TEST_END()
 
 #if defined(__linux__) && defined(__x86_64__)
+SWC_FILESYSTEM_TEST_BEGIN(Linker_LinuxSharedFunctionPointersPreserveIdentityWithoutTextRelocations)
+{
+    const LinkerTestDirectory directory("pic_functions");
+    SWC_RESULT(directory.write("functions.swg", R"(#[Swag.Foreign(module: "libc.so.6", function: "labs", link: "c", callconv: .C)]
+func foreignAbs(value: s64)->s64
+#[Swag.CallingConvention(.C)]
+alias AbsFunction = func(s64)->s64
+public func localValue(value: u64)->u64 => value + 1
+#[Swag.NoInline]
+public func localPointer()->func(u64)->u64 => &localValue
+#[Swag.NoInline]
+public func foreignPointer()->AbsFunction => &foreignAbs
+#test
+{
+    let local = localPointer()
+    let foreign = foreignPointer()
+    Swag.assert(local == localPointer() and local(41) == 42)
+    Swag.assert(foreign == foreignPointer() and foreign(-17) == 17)
+}
+)"));
+    const std::vector<Utf8> common = {"--os", "linux", "-f", Utf8(directory.path() / "functions.swg"), "-n", "pic", "--out-dir", Utf8(directory.path() / "output"), "--work-dir", Utf8(directory.path() / "work"), "--num-cores", std::to_string(Unittest::compilerWorkerCount(ctx)), "--rebuild", "--no-log-color"};
+    std::vector<Utf8>       args   = {"test", "--artifact-kind", "executable", "--no-test-native"};
+    args.insert(args.end(), common.begin(), common.end());
+    SWC_RESULT(runCompiler(args, ExitCode::Success, "1 passed"));
+    args = {"build", "--artifact-kind", "shared-library"};
+    args.insert(args.end(), common.begin(), common.end());
+    SWC_RESULT(runCompiler(args, ExitCode::Success, ""));
+    SWC_RESULT(directory.write("consumer.cpp", R"(#include <cstdint>
+#include <dlfcn.h>
+using Local = uint64_t (__attribute__((ms_abi)) *)(uint64_t);
+using GetLocal = Local (__attribute__((ms_abi)) *)();
+using Foreign = long (*)(long);
+using GetForeign = Foreign (__attribute__((ms_abi)) *)();
+int main()
+{
+    void* library = dlopen("./output/pic.so", RTLD_NOW | RTLD_LOCAL);
+    if (!library) return 1;
+    auto local = reinterpret_cast<GetLocal>(dlsym(library, "__swc_api_706963__local_pointer"));
+    auto foreign = reinterpret_cast<GetForeign>(dlsym(library, "__swc_api_706963__foreign_pointer"));
+    if (!local || !foreign) return 2;
+    const bool valid = reinterpret_cast<void*>(local()) == dlsym(library, "__swc_api_706963__local_value") &&
+        local()(41) == 42 && reinterpret_cast<void*>(foreign()) == dlsym(RTLD_DEFAULT, "labs") && foreign()(-17) == 17;
+    return dlclose(library) == 0 && valid ? 0 : 3;
+}
+)"));
+    std::string                 output;
+    uint32_t                    exitCode = 0;
+    const Os::ProcessRunOptions options{.capturedOutput = &output, .forwardOutput = false, .timeoutMs = 15000};
+    const std::vector<Utf8>     inspect = {"-d", "output/pic.so"};
+    if (Os::runProcess(exitCode, "readelf", inspect, directory.path(), &options) != Os::ProcessRunResult::Ok || exitCode != 0 || output.find("TEXTREL") != std::string::npos)
+        return Result::Error;
+    const std::vector<Utf8> compile = {"consumer.cpp", "-ldl", "-o", "consumer"};
+    if (Os::runProcess(exitCode, "c++", compile, directory.path(), &options) != Os::ProcessRunResult::Ok || exitCode != 0)
+        return Result::Error;
+    if (Os::runProcess(exitCode, directory.path() / "consumer", {}, directory.path(), &options) != Os::ProcessRunResult::Ok || exitCode != 0)
+        return Result::Error;
+}
+SWC_TEST_END()
+
 SWC_FILESYSTEM_TEST_BEGIN(ELFObject_RelocatedConstantsBecomeReadOnlyAfterLoading)
 {
     const LinkerTestDirectory directory("elf_relro");
@@ -926,7 +985,7 @@ SWC_FILESYSTEM_TEST_BEGIN(ELFObject_GnuLinkerResolvesCodeDataBssAndImports)
     if (!X64DwarfFrame::appendObjectFrame(unwind.bytes, addressOffset, frameBytes, 48))
         return Result::Error;
     unwind.bytes.appendLe32(0);
-    unwind.relocs.push_back({.offset = addressOffset, .kind = LinkRelocKind::Abs64, .symbolName = "calculate"});
+    unwind.relocs.push_back({.offset = addressOffset, .kind = LinkRelocKind::Rel32, .symbolName = "calculate", .addend = 4});
     image.sections.push_back(std::move(unwind));
     image.symbols = {{.name = "calculate", .sectionIndex = 0}, {.name = "values", .sectionIndex = 1}, {.name = "counter", .sectionIndex = 2}};
     image.exports.push_back({.name = "answer", .symbolName = "calculate"});

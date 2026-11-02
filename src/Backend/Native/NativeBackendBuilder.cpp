@@ -1074,7 +1074,7 @@ namespace
             const uint32_t trailingBytes = relocation.relativeEndOffset - relocation.codeOffset - sizeof(uint32_t);
             SWC_ASSERT(trailingBytes <= 4);
             record.addend -= trailingBytes;
-            record.type = PE::REL_AMD64_REL32;
+            record.kind = NativeRelocationKind::Rel32;
             BinaryPatch::write<uint32_t>(bytes, patchOffset, static_cast<uint32_t>(record.addend));
             return;
         }
@@ -1448,7 +1448,7 @@ Result NativeBackendBuilder::appendCodeRelocation(const NativeCodeRelocationTarg
         return reportError(DiagnosticId::cmd_err_native_invalid_local_function_relocation, Diagnostic::ARG_SYM, ownerName);
 
     const uint32_t patchOffset = target.functionOffset + relocation.codeOffset;
-    const size_t   patchSize   = relocation.form == MicroRelocation::Form::Relative32 ? sizeof(uint32_t) : sizeof(uint64_t);
+    const size_t   patchSize   = relocation.form == MicroRelocation::Form::Absolute64 ? sizeof(uint64_t) : sizeof(uint32_t);
     SWC_ASSERT(patchOffset + patchSize <= target.bytes->size());
 
     NativeSectionRelocation record;
@@ -1463,10 +1463,10 @@ Result NativeBackendBuilder::appendCodeRelocation(const NativeCodeRelocationTarg
             SWC_ASSERT(targetFunction != nullptr);
             SWC_RESULT(resolveFunctionSymbolName(record.symbolName, targetFunction, target.allowUnresolvedSymbols));
             record.addend = 0;
-            if (relocation.form == MicroRelocation::Form::Relative32)
+            if (relocation.form != MicroRelocation::Form::Absolute64)
             {
                 SWC_ASSERT(relocation.relativeEndOffset == relocation.codeOffset + sizeof(uint32_t));
-                record.type = PE::REL_AMD64_REL32;
+                record.kind = relocation.form == MicroRelocation::Form::IndirectRelative32 ? NativeRelocationKind::GotRel32 : NativeRelocationKind::Rel32;
                 BinaryPatch::write<uint32_t>(*target.bytes, patchOffset, 0);
             }
             else

@@ -101,8 +101,7 @@ private:
     static void addSymbolRecord(std::vector<CoffSymbolRecord>& symbols, CoffSymbolIndex& symbolIndex, std::string_view ownedName, CoffSymbolRecord record);
     static void addUndefinedSymbols(const std::vector<CoffSectionBuild>& sections, std::vector<CoffSymbolRecord>& symbols, CoffSymbolIndex& symbolIndex);
 
-    static Result buildCoffFile(ByteArray& outBytes, std::vector<CoffSectionBuild>& sections, std::vector<CoffSymbolRecord>& symbols, const CoffSymbolIndex& symbolIndex);
-
+    Result buildCoffFile(ByteArray& outBytes, std::vector<CoffSectionBuild>& sections, std::vector<CoffSymbolRecord>& symbols, const CoffSymbolIndex& symbolIndex);
 };
 
 SWC_END_NAMESPACE();

@@ -27,9 +27,10 @@ enum class LinkSectionFlagsE : uint32_t
 // Generic relocation semantics, independent of the COFF/ELF encoding it was decoded from.
 enum class LinkRelocKind : uint8_t
 {
-    Abs64, // write the absolute 64-bit virtual address of (target + addend); needs a base relocation
-    Rva32, // write the 32-bit image-relative address of (target + addend); no base relocation
-    Rel32, // write the signed 32-bit distance from the end of the four patched bytes to (target + addend); no base relocation
+    Abs64,    // write the absolute 64-bit virtual address of (target + addend); needs a base relocation
+    Rva32,    // write the 32-bit image-relative address of (target + addend); no base relocation
+    Rel32,    // write the signed 32-bit distance from the end of the four patched bytes to (target + addend); no base relocation
+    GotRel32, // PC-relative load of the canonical address from a global-offset-table entry
 };
 
 struct LinkReloc

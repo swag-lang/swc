@@ -218,14 +218,14 @@ namespace
         offReloc.offset     = offRelocOffset;
         offReloc.symbolName = symbolName;
         offReloc.addend     = addend;
-        offReloc.type       = PE::REL_AMD64_SECREL;
+        offReloc.kind       = NativeRelocationKind::SectionOffset32;
         section.relocations.push_back(offReloc);
 
         NativeSectionRelocation segReloc;
         segReloc.offset     = segRelocOffset;
         segReloc.symbolName = symbolName;
         segReloc.addend     = 0;
-        segReloc.type       = PE::REL_AMD64_SECTION;
+        segReloc.kind       = NativeRelocationKind::SectionIndex16;
         section.relocations.push_back(segReloc);
     }
 
@@ -1441,20 +1441,20 @@ namespace
             NativeSectionRelocation beginReloc;
             beginReloc.offset     = pdataOffset + 0;
             beginReloc.symbolName = function.symbolName;
-            beginReloc.type       = PE::REL_AMD64_ADDR32NB;
+            beginReloc.kind       = NativeRelocationKind::Rva32;
             pdataSection.relocations.push_back(beginReloc);
 
             NativeSectionRelocation endReloc;
             endReloc.offset     = pdataOffset + 4;
             endReloc.symbolName = function.symbolName;
             endReloc.addend     = function.machineCode->bytes.size();
-            endReloc.type       = PE::REL_AMD64_ADDR32NB;
+            endReloc.kind       = NativeRelocationKind::Rva32;
             pdataSection.relocations.push_back(endReloc);
 
             NativeSectionRelocation unwindReloc;
             unwindReloc.offset     = pdataOffset + 8;
             unwindReloc.symbolName = unwindSymbolName;
-            unwindReloc.type       = PE::REL_AMD64_ADDR32NB;
+            unwindReloc.kind       = NativeRelocationKind::Rva32;
             pdataSection.relocations.push_back(unwindReloc);
 
             BinaryPatch::write<uint32_t>(pdataSection.bytes, pdataOffset + 4, static_cast<uint32_t>(function.machineCode->bytes.size()));

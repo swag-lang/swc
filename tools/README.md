@@ -24,8 +24,9 @@ files, the precompiled header and the executable remain under the supplied build
 DevMode and Release compilers build on Linux x86-64. The target defaults to the compiler host:
 Linux selects the System V C ABI; `--os linux` and `--os windows` override that choice. JIT execution, ELF
 executables, GNU static archives and shared modules are available, including transitive imports
-and shared runtime initialization. Source-level DWARF debug information, position-independent
-code and persistent Linux native caches remain unfinished; see the portability backlog.
+and shared runtime initialization. Shared libraries are position-independent and reject dynamic
+text relocations; relocated constants become read-only after loading. Source-level DWARF debug
+information and persistent Linux native caches remain unfinished; see the portability backlog.
 
 An externally built compiler needs `runtime` beside its executable. `SWAG_PATH` supplies the
 standard-module fallback; it does not redirect runtime lookup. From the repository root, prepare

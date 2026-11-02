@@ -32,7 +32,7 @@ namespace
                     diagnostic.report(*request.ctx);
                     return Result::Error;
                 }
-                section.relocations.push_back({.offset = addressOffset, .symbolName = function.symbolName});
+                section.relocations.push_back({.offset = addressOffset, .symbolName = function.symbolName, .addend = 4, .kind = NativeRelocationKind::Rel32});
             }
             if (!section.bytes.empty())
             {

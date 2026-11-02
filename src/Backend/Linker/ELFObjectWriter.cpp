@@ -11,12 +11,13 @@ namespace
     constexpr uint32_t K_STRTAB = 3;
     constexpr uint32_t K_RELA = 4;
     constexpr uint32_t K_NOBITS = 8;
-    constexpr uint64_t K_WRITE = 1;
-    constexpr uint64_t K_ALLOC = 2;
-    constexpr uint64_t K_EXEC = 4;
-    constexpr uint32_t K_ABS64 = 1;
-    constexpr uint32_t K_PC32 = 2;
-    constexpr uint32_t K_PLT32 = 4;
+    constexpr uint64_t K_WRITE            = 1;
+    constexpr uint64_t K_ALLOC            = 2;
+    constexpr uint64_t K_EXEC             = 4;
+    constexpr uint32_t K_ABS64            = 1;
+    constexpr uint32_t K_PC32             = 2;
+    constexpr uint32_t K_PLT32            = 4;
+    constexpr uint32_t K_REX_GOTPCRELX    = 42;
     constexpr uint16_t K_RESERVED_SECTION = 0xff00;
 
     struct ElfSection
@@ -198,9 +199,12 @@ bool buildElfObject(ByteArray& outBytes, Diagnostic& outDiag, const LinkImage& i
                     return objectError(outDiag, "an absolute relocation extends beyond its section");
                 addend = source.bytes.readLe64(relocation.offset) + static_cast<uint64_t>(relocation.addend);
             }
-            else if (relocation.kind == LinkRelocKind::Rel32)
+            else if (relocation.kind == LinkRelocKind::Rel32 || relocation.kind == LinkRelocKind::GotRel32)
             {
-                type = undefined.contains(relocation.symbolName) && !importedData.contains(relocation.symbolName) ? K_PLT32 : K_PC32;
+                if (relocation.kind == LinkRelocKind::GotRel32)
+                    type = K_REX_GOTPCRELX;
+                else
+                    type = undefined.contains(relocation.symbolName) && !importedData.contains(relocation.symbolName) ? K_PLT32 : K_PC32;
                 width = 4;
                 if (!source.bytes.containsRange(relocation.offset, width))
                     return objectError(outDiag, "a relative relocation extends beyond its section");

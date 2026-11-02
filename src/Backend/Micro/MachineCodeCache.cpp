@@ -595,7 +595,7 @@ bool MachineCodeCache::read(MachineCode& out) const
         const uint32_t form            = bytes.readLe32(cursor + 4);
         const bool     generatedTarget = (target & K_GENERATED_CONSTANT) != 0;
         const uint32_t targetIndex     = target & ~K_GENERATED_CONSTANT;
-        if (form > static_cast<uint32_t>(MicroRelocation::Form::Relative32) || (generatedTarget ? targetIndex >= generated.size() : targetIndex >= targets_.size()))
+        if (form > static_cast<uint32_t>(MicroRelocation::Form::IndirectRelative32) || (generatedTarget ? targetIndex >= generated.size() : targetIndex >= targets_.size()))
             return false;
         MicroRelocation relocation   = generatedTarget ? MicroRelocation{} : targets_[targetIndex];
         relocation.form              = static_cast<MicroRelocation::Form>(form);
@@ -603,7 +603,7 @@ bool MachineCodeCache::read(MachineCode& out) const
         relocation.relativeEndOffset = bytes.readLe32(cursor + 12);
         relocation.constantCopySize  = bytes.readLe32(cursor + 16);
         const auto     delta         = static_cast<int64_t>(bytes.readLe64(cursor + 20));
-        const uint32_t width         = relocation.form == MicroRelocation::Form::Relative32 ? 4 : 8;
+        const uint32_t width         = relocation.form == MicroRelocation::Form::Absolute64 ? 8 : 4;
         if (relocation.codeOffset > codeSize || codeSize - relocation.codeOffset < width || relocation.relativeEndOffset > codeSize)
             return false;
         if (generatedTarget)
@@ -645,6 +645,9 @@ bool MachineCodeCache::read(MachineCode& out) const
                 relocation.constantOffset = static_cast<uint32_t>(offset);
             }
         }
+        if (relocation.form == MicroRelocation::Form::IndirectRelative32 &&
+            (relocation.constantCopySize || (relocation.kind != MicroRelocation::Kind::LocalFunctionAddress && relocation.kind != MicroRelocation::Kind::ForeignFunctionAddress)))
+            return false;
         relocation.instructionRef = MicroInstrRef::invalid();
         code.codeRelocations.push_back(relocation);
     }
@@ -693,7 +696,7 @@ void MachineCodeCache::write(const MachineCode& code) const
         records.appendLe32(relocation.relativeEndOffset);
         records.appendLe32(relocation.constantCopySize);
         records.appendLe64(static_cast<uint64_t>(delta));
-        if (relocation.form == MicroRelocation::Form::Relative32)
+        if (relocation.form != MicroRelocation::Form::Absolute64)
             image.writeLe32(relocation.codeOffset, 0);
         else
             image.writeLe64(relocation.codeOffset, 0);

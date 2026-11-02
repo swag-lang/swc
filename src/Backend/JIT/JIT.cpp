@@ -43,8 +43,9 @@ SWC_BEGIN_NAMESPACE();
 
 // A function thunk needs a six-byte indirect jump followed by its eight-byte target
 // address; pad it to sixteen bytes and keep the island naturally aligned.
-constexpr uint32_t K_ISLAND_ALIGNMENT    = 16;
-constexpr uint32_t K_FUNCTION_THUNK_SLOT = 16;
+constexpr uint32_t K_ISLAND_ALIGNMENT      = 16;
+constexpr uint32_t K_FUNCTION_THUNK_SLOT   = 16;
+constexpr uint32_t K_FUNCTION_POINTER_SLOT = sizeof(uint64_t);
 
 namespace
 {
@@ -1385,6 +1386,19 @@ namespace
             if (reloc.kind == MicroRelocation::Kind::ConstantAddress)
                 SWC_RESULT(patchConstantFunctionRelocations(ctx, patchContext, ownerFunction, reloc, reinterpret_cast<const void*>(targetAddress)));
 
+            if (reloc.form == MicroRelocation::Form::IndirectRelative32)
+            {
+                SWC_ASSERT(reloc.kind == MicroRelocation::Kind::LocalFunctionAddress || reloc.kind == MicroRelocation::Kind::ForeignFunctionAddress);
+                if (static_cast<uint64_t>(islandOffset) + K_FUNCTION_POINTER_SLOT > writableCode.size_bytes())
+                    return Result::Error;
+                auto* slot = writableCode.data() + islandOffset;
+                std::memcpy(slot, &targetAddress, sizeof(targetAddress));
+                if (!tryPatchRelative32Direct(writableCode, reloc, reinterpret_cast<uint64_t>(slot)))
+                    return Result::Error;
+                islandOffset += K_FUNCTION_POINTER_SLOT;
+                continue;
+            }
+
             if (reloc.form == MicroRelocation::Form::Relative32)
             {
                 if (reloc.kind == MicroRelocation::Kind::ConstantAddress ||
@@ -1458,8 +1472,14 @@ void JIT::prepare(JITMemoryManager& memoryManager, JITMemory& outExecutableMemor
     uint32_t islandSize = 0;
     for (const MicroRelocation& relocation : relocations)
     {
-        if (relocation.form != MicroRelocation::Form::Relative32)
+        if (relocation.form == MicroRelocation::Form::Absolute64)
             continue;
+        if (relocation.form == MicroRelocation::Form::IndirectRelative32)
+        {
+            SWC_ASSERT(relocation.kind == MicroRelocation::Kind::LocalFunctionAddress || relocation.kind == MicroRelocation::Kind::ForeignFunctionAddress);
+            islandSize += K_FUNCTION_POINTER_SLOT;
+            continue;
+        }
 
         if (relocation.requiresConstantCopy())
         {

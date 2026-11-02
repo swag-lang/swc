@@ -17,7 +17,8 @@ public:
     void restoreState();
     void build(ByteArray& outFrame, uint32_t codeSize) const;
 
-    // Append one CIE/FDE pair without its terminator and report the address relocation.
+    // Append one PC-relative CIE/FDE pair without its terminator. The address needs
+    // a Rel32 relocation with addend 4 (DWARF measures from the field's first byte).
     // The object writer adds one final zero record after all functions have been appended.
     static bool appendObjectFrame(ByteArray& frames, uint32_t& addressOffset, const ByteArray& frame, uint32_t codeSize);
 

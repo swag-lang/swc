@@ -263,36 +263,37 @@ namespace
         Result appendRelocation(const uint32_t sectionIndex, const uint32_t base, const Utf8& sectionName, const NativeSectionRelocation& relocation, Utf8&& symbolName) const
         {
             LinkRelocKind kind;
-            if (!linkRelocKindFromCoffType(kind, relocation.type))
+            uint32_t      width;
+            switch (relocation.kind)
             {
-                Diagnostic diag = Diagnostic::get(DiagnosticId::cmd_err_link_coff_unsupported_reloc);
-                diag.addArgument(Diagnostic::ARG_VALUE, std::to_string(relocation.type));
-                diag.addArgument(Diagnostic::ARG_TARGET, sectionName);
-                return builder_->reportError(diag);
+                case NativeRelocationKind::Abs64:
+                    kind  = LinkRelocKind::Abs64;
+                    width = 8;
+                    break;
+                case NativeRelocationKind::Rva32:
+                    kind  = LinkRelocKind::Rva32;
+                    width = 4;
+                    break;
+                case NativeRelocationKind::Rel32:
+                    kind  = LinkRelocKind::Rel32;
+                    width = 4;
+                    break;
+                case NativeRelocationKind::GotRel32:
+                    kind  = LinkRelocKind::GotRel32;
+                    width = 4;
+                    break;
+                default:
+                    return builder_->reportError(DiagnosticId::cmd_err_link_coff_unsupported_reloc, Diagnostic::ARG_VALUE, std::to_string(static_cast<uint32_t>(relocation.kind)), Diagnostic::ARG_TARGET, sectionName);
             }
 
             LinkSection&   section     = image_->sections[sectionIndex];
             const uint32_t patchOffset = base + relocation.offset;
-            switch (relocation.type)
-            {
-                case PE::REL_AMD64_ADDR64:
-                    if (patchOffset + sizeof(uint64_t) > section.bytes.size())
-                        return builder_->reportError(DiagnosticId::cmd_err_link_reloc_out_of_bounds);
-
-                    section.bytes.writeLe64(patchOffset, relocation.addend);
-                    break;
-
-                case PE::REL_AMD64_ADDR32NB:
-                case PE::REL_AMD64_REL32:
-                    if (patchOffset + sizeof(uint32_t) > section.bytes.size())
-                        return builder_->reportError(DiagnosticId::cmd_err_link_reloc_out_of_bounds);
-
-                    section.bytes.writeLe32(patchOffset, static_cast<uint32_t>(relocation.addend));
-                    break;
-
-                default:
-                    SWC_UNREACHABLE();
-            }
+            if (!section.bytes.containsRange(patchOffset, width))
+                return builder_->reportError(DiagnosticId::cmd_err_link_reloc_out_of_bounds);
+            if (width == 8)
+                section.bytes.writeLe64(patchOffset, relocation.addend);
+            else
+                section.bytes.writeLe32(patchOffset, static_cast<uint32_t>(relocation.addend));
 
             LinkReloc linkReloc;
 #if SWC_DEBUG_MODE

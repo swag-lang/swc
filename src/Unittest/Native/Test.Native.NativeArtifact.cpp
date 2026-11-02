@@ -660,7 +660,7 @@ SWC_FILESYSTEM_TEST_BEGIN(NativeArtifact_RDataRelativeReferencesAccountForTraili
             relocation.codeOffset                           = 2;
             relocation.relativeEndOffset                    = 6 + trailing;
             SWC_RESULT(fixture.nativeBuilder->appendCodeRelocation(target, "relative_constant", relocation));
-            if (records.size() != 1 || records.front().offset != 10 || records.front().type != PE::REL_AMD64_REL32)
+            if (records.size() != 1 || records.front().offset != 10 || records.front().kind != NativeRelocationKind::Rel32)
                 return Result::Error;
             if (!trailing)
                 baseAddend = records.front().addend;
@@ -986,13 +986,14 @@ SWC_TEST_BEGIN(NativeArtifact_CoffSectionRelocationsPreserveAddendsAndSource)
     source.characteristics                 = PE::SCN_CNT_INITIALIZED_DATA | PE::SCN_MEM_READ | PE::SCN_MEM_WRITE;
     source.bytes.resize(40, std::byte{0xAA});
     source.relocations = {
-        {.offset = 0, .symbolName = "long_external_address64", .addend = 0x123456789ABCDEF0, .type = PE::REL_AMD64_ADDR64},
-        {.offset = 8, .symbolName = "short", .addend = 0xFEDCBA9876543210, .type = PE::REL_AMD64_ADDR32NB},
-        {.offset = 16, .symbolName = "long_external_section_relative", .addend = 0x8877665544332211, .type = PE::REL_AMD64_SECREL},
-        {.offset = 24, .symbolName = "short", .addend = 0xFFFFFFFFFFFFFFFC, .type = PE::REL_AMD64_REL32},
-        {.offset = 32, .symbolName = "long_external_section", .addend = 0x123456789ABCDEF0, .type = PE::REL_AMD64_SECTION},
+        {.offset = 0, .symbolName = "long_external_address64", .addend = 0x123456789ABCDEF0, .kind = NativeRelocationKind::Abs64},
+        {.offset = 8, .symbolName = "short", .addend = 0xFEDCBA9876543210, .kind = NativeRelocationKind::Rva32},
+        {.offset = 16, .symbolName = "long_external_section_relative", .addend = 0x8877665544332211, .kind = NativeRelocationKind::SectionOffset32},
+        {.offset = 24, .symbolName = "short", .addend = 0xFFFFFFFFFFFFFFFC, .kind = NativeRelocationKind::Rel32},
+        {.offset = 32, .symbolName = "long_external_section", .addend = 0x123456789ABCDEF0, .kind = NativeRelocationKind::SectionIndex16},
     };
-    const NativeSectionData original = source;
+    const NativeSectionData           original      = source;
+    constexpr std::array<uint16_t, 5> expectedTypes = {PE::REL_AMD64_ADDR64, PE::REL_AMD64_ADDR32NB, PE::REL_AMD64_SECREL, PE::REL_AMD64_REL32, PE::REL_AMD64_SECTION};
 
     NativeObjDescription description;
     description.includeData = true;
@@ -1019,8 +1020,8 @@ SWC_TEST_BEGIN(NativeArtifact_CoffSectionRelocationsPreserveAddendsAndSource)
             const auto& expected = original.relocations[index];
             const auto& emitted  = data->relocs[index];
             const auto& retained = source.relocations[index];
-            if (emitted.offset != expected.offset || emitted.type != expected.type || emitted.symbolName != expected.symbolName ||
-                retained.offset != expected.offset || retained.type != expected.type || retained.symbolName != expected.symbolName || retained.addend != expected.addend)
+            if (emitted.offset != expected.offset || emitted.type != expectedTypes[index] || emitted.symbolName != expected.symbolName ||
+                retained.offset != expected.offset || retained.kind != expected.kind || retained.symbolName != expected.symbolName || retained.addend != expected.addend)
                 return Result::Error;
         }
         if (iteration && bytes != previousBytes)
@@ -1306,7 +1307,7 @@ SWC_FILESYSTEM_TEST_BEGIN(NativeArtifact_ArchiveBatchesLargeConstantSets)
         builder.rdataAllocationMap[0].push_back(allocation);
         builder.rdataAllocations.push_back(allocation);
     }
-    builder.mergedRData.relocations.push_back({.offset = 0, .symbolName = builder.scopedSymbolNames().rdataBase, .addend = sizeof(uint64_t), .type = PE::REL_AMD64_ADDR64});
+    builder.mergedRData.relocations.push_back({.offset = 0, .symbolName = builder.scopedSymbolNames().rdataBase, .addend = sizeof(uint64_t), .kind = NativeRelocationKind::Abs64});
 
     SWC_RESULT(fixture.artifactBuilder->partitionArchiveObjects());
     if (builder.objectDescriptions.size() > 65535)

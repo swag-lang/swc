@@ -175,7 +175,7 @@ namespace
             {
                 arguments.emplace_back("-shared");
                 arguments.emplace_back("-Wl,-Bsymbolic");
-                arguments.emplace_back("-Wl,-z,notext");
+                arguments.emplace_back("-Wl,-z,text");
                 arguments.emplace_back("-Wl,-soname," + Utf8(job.outputPath.filename()));
             }
             arguments.emplace_back("-Wl,-rpath,$ORIGIN");

@@ -175,3 +175,26 @@ func createDirectoryJunction(link, target: string)->bool
     Swag.assert(not Directory.isRemote(Env.getSpecialDirectory(.Temp)))
     Swag.assert(not Directory.isRemote("films"))
 }
+
+// Removing a junction supplied as the root must not delete anything inside its target.
+#test
+{
+    let root = CoreTests.makeFilesystemTestPath("core_root_junction")
+    expect Directory.create(root)
+    defer discard catch Directory.delete(root, recurse: true)
+    let target = Path.combine(root, "target")
+    expect Directory.create(target)
+    let marker = Path.combine(target, "keep.txt")
+    discard expect File.writeAllText(marker, "keep")
+    let link = Path.combine(root, "link")
+    for suffix in ["", "/", "/./"]
+    {
+        if not createDirectoryJunction(link, target) do
+            return
+        let requested = String.from(link) + suffix
+        expect Directory.delete(requested, recurse: true)
+        Swag.assert(not Directory.exists(link))
+        Swag.assert(Directory.exists(target) and File.exists(marker))
+        Swag.assert((expect File.readAllText(marker)) == "keep")
+    }
+}

@@ -47,3 +47,16 @@ internal func localWallClock(utc: WallClockFields)->WallClockFields
         return utc
     return wallClockFields(local, utc.millisecond)
 }
+
+internal func dateTimeFromUnix(seconds: s64, nanoseconds: u32)->DateTime
+{
+    var result:   #returntype
+    var calendar: Linux.tm
+    if not Linux.gmtime_r(&seconds, &calendar) or
+       calendar.tm_year < -1899 or
+       calendar.tm_year > 8099 or
+       calendar.tm_sec > 59 do
+        return result
+    result.setWallClock(wallClockFields(calendar, cast(u16, nanoseconds / 1_000_000)))
+    return result
+}

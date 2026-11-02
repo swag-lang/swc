@@ -215,15 +215,21 @@ by portable modules and products. The earlier entries prepare and enforce the sa
   touch preserves access time, and cross-filesystem moves report EXDEV. Raw filesystem tests pass
   in JIT/native ELF, including symlinks, Linux-only filename characters, errno, replacement
   identity, timestamps and open-descriptor lifetime after unlink.
-  Core owner tests are present but cannot execute until the remaining host services compile;
-  whole-Core analysis still reports 41 missing-service diagnostics, none in the new filesystem
+  statx supplies masked creation/access/write timestamps and explicit Linux attribute mappings.
+  Directory enumeration uses metadata relative to its open descriptor and distinguishes EOF
+  from readdir errors. Raw statx layout/canary and no-follow enumeration tests pass in JIT/native;
+  a separate consumer verifies the exported nested struct layout through a real native call.
+  Recursive deletion now inspects the requested root before enumerating it, including trailing
+  separator and '/.' spellings. Linux symlinks and Windows junctions have regression cases, but
+  these public Core cases remain pending; Windows execution is not available on this host.
+  Whole-Core analysis still reports 40 missing-service diagnostics, none in the new filesystem
   or error leaves. This does not establish public filesystem conformance.
 - Open decision: FileShare currently promises Windows-style read/write/delete exclusion.
   POSIX open does not supply that contract; flock is advisory and cannot represent every
   combination. The Linux opener must establish an explicit supported policy before being
   reported as implemented, rather than silently discarding the requested sharing flags.
-- Next: finish enumeration, metadata, file opening and watching; resolve the sharing contract
-  and run common filesystem/stream/mapping ownership tests with the complete Core module.
+- Next: finish file opening and watching, resolve the sharing contract, and run the common
+  filesystem/stream/mapping tests, including root-link deletion, with the complete Core module.
 - Done when: The chosen second host passes the common directory, file, stream, metadata, path-state, and mutation contract suite, including partial I/O, links, permissions, and error mapping.
 
 ### platform.portability.034 — Finish the Linux thread lifecycle backend

@@ -38,6 +38,23 @@
     let linkInfo = expect File.nativePathInfo(link, Linux.AT_SYMLINK_NOFOLLOW)
     Swag.assert((linkInfo.st_mode & Linux.S_IFMT) == Linux.S_IFLNK)
 
+    let linkMetadata = expect File.info(link)
+    Swag.assert(linkMetadata.isDirectory() and linkMetadata.attributes.has(.ReparsePoint))
+    Swag.assert(linkMetadata.size == 0)
+    Swag.assert(linkMetadata.lastAccessTime.isValid() and linkMetadata.lastWriteTime.isValid())
+    Swag.assert(Time.dateTimeFromUnix(-1, 123_456_789) == Time.DateTime{1969, 12, 31, 23, 59, 59, 123})
+    Swag.assert(Time.dateTimeFromUnix(Swag.S64.Max, 0) == Time.DateTime{})
+    let entries = expect Directory.enumerate(root, {})
+    Swag.assert(entries.count == 2)
+    var sawLink = false
+    for entry in entries where entry.attributes.has(.ReparsePoint)
+    {
+        sawLink = true
+        Swag.assert(entry.fullName == link and entry.isDirectory())
+    }
+
+    Swag.assert(sawLink)
+
     let source     = Path.combine(root, "source")
     let target     = Path.combine(root, "target")
     let descriptor = Linux.openat(Linux.AT_FDCWD, source.storage(), Linux.O_RDWR | Linux.O_CREAT | Linux.O_EXCL | Linux.O_CLOEXEC, 0x180'u32)
@@ -66,4 +83,27 @@
     Swag.assert(relative == Path.combine(current, "missing/../entry"))
     let absolute = expect Path.absolute(child)
     Swag.assert(absolute == child)
+}
+
+#[Swag.TestTag("integration.filesystem")]
+#test
+{
+    let root = CoreTests.makeFilesystemTestPath("linux_root_symlink")
+    expect Directory.create(root)
+    defer discard catch Directory.delete(root, recurse: true)
+    let target = Path.combine(root, "target")
+    expect Directory.create(target)
+    let marker = Path.combine(target, "keep.txt")
+    discard expect File.writeAllText(marker, "keep")
+    let link = Path.combine(root, "link")
+    for suffix in ["", "/", "/./"]
+    {
+        let linked = Linux.symlinkat(target.storage(), Linux.AT_FDCWD, link.storage())
+        Swag.assert(linked == 0)
+        let requested = String.from(link) + suffix
+        expect Directory.delete(requested, recurse: true)
+        Swag.assert(not Directory.exists(link))
+        Swag.assert(Directory.exists(target) and File.exists(marker))
+        Swag.assert((expect File.readAllText(marker)) == "keep")
+    }
 }

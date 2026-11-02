@@ -24,6 +24,16 @@ internal func deleteEmptyNative(dirName: string) fail
         if Linux.unlinkat(Linux.AT_FDCWD, native.storage(), Linux.AT_REMOVEDIR) == 0 do
             return
         let error = Linux.errno()
+        if error == Linux.ENOTDIR
+        {
+            let metadata = try File.nativePathInfo(dirName, Linux.AT_SYMLINK_NOFOLLOW)
+            if (metadata.st_mode & Linux.S_IFMT) == Linux.S_IFLNK
+            {
+                try File.deleteNative(dirName)
+                return
+            }
+        }
+
         if error != Linux.EINTR do
             try Errors.failLinuxError(error, dirName)
     }
@@ -71,5 +81,47 @@ func setCurrentPath(dirName: string) fail
         let error = Linux.errno()
         if error != Linux.EINTR do
             try Errors.failLinuxError(error, dirName)
+    }
+}
+
+internal func enumerateOneNative(dirName: string)->Array'(File.FileInfo) fail
+{
+    let native = try Path.nativePath(dirName)
+    var directory: *void?
+    for
+    {
+        directory = Linux.opendir(native.storage())
+        if directory do
+            break
+        let error = Linux.errno()
+        if error != Linux.EINTR do
+            try Errors.failLinuxError(error, dirName)
+    }
+
+    let opened = unwrap directory
+    defer discard Linux.closedir(opened)
+    let descriptor = Linux.dirfd(opened)
+    if descriptor < 0 do
+        try Errors.failLinuxError(Linux.errno(), dirName)
+    var result: #returntype
+    for
+    {
+        // A null result can mean EOF or failure; only this call's errno distinguishes them.
+        Linux.errno(0)
+        let entry = Linux.readdir(opened)
+        if not entry
+        {
+            let error = Linux.errno()
+            if error == Linux.EINTR do
+                continue
+            if error != 0 do
+                try Errors.failLinuxError(error, dirName)
+            return result
+        }
+
+        let name     = cast(string, cast(cstring, &entry.d_name[0]))
+        let fullName = Path.combine(dirName, name)
+        var info     = try File.nativeInfoAt(descriptor, name, fullName)
+        result.add(#move info)
     }
 }

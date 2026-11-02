@@ -4,6 +4,7 @@
 const AT_FDCWD            = -100's32
 const AT_SYMLINK_NOFOLLOW = 0x100's32
 const AT_REMOVEDIR        = 0x200's32
+const AT_EMPTY_PATH       = 0x1000's32
 const F_DUPFD_CLOEXEC     = 1030's32
 const F_GETFD             = 1's32
 const FD_CLOEXEC          = 1's32

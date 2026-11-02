@@ -8,6 +8,11 @@ const S_IFMT  = 0xF000'u32
 const S_IFREG = 0x8000'u32
 const S_IFDIR = 0x4000'u32
 const S_IFLNK = 0xA000'u32
+const S_IFBLK = 0x6000'u32
+const S_IFCHR = 0x2000'u32
+const S_IWUSR = 0x80'u32
+const S_IWGRP = 0x10'u32
+const S_IWOTH = 0x2'u32
 
 struct stat
 {
@@ -43,6 +48,7 @@ struct stat
 {
     func mkdirat(dirfd: s32, pathname: const [*] u8, mode: u32)->s32
     func utimensat(dirfd: s32, pathname: const [*] u8, times: const [*] timespec?, flags: s32)->s32
+    func statx(dirfd: s32, pathname: const [*] u8, flags: s32, mask: u32, statxbuf: *Structs.statx)->s32
     func fstat(fd: s32, statbuf: *stat)->s32
     func fstatat(dirfd: s32, pathname: const [*] u8, statbuf: *stat, flags: s32)->s32
 }

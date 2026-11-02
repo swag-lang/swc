@@ -267,6 +267,38 @@ alias UnaryDouble = func(f64)->f64
     let nonEmptyError = errno()
     Swag.assert(nonEmpty == -1 and nonEmptyError == ENOTEMPTY)
 
+    let stream = unwrap opendir(temporary.buffer)
+    defer discard closedir(stream)
+    var childSeen, linkSeen = false
+    for
+    {
+        errno(0)
+        let entry = readdir(stream)
+        if not entry
+        {
+            let error = errno()
+            Swag.assert(error == 0)
+            break
+        }
+
+        let name    = cast(string, cast(cstring, &entry.d_name[0]))
+        var metadata: Structs.statx
+        let queried = statx(directory, &entry.d_name[0], AT_SYMLINK_NOFOLLOW, STATX_BASIC_STATS | STATX_BTIME, &metadata)
+        Swag.assert(queried == 0)
+        if name == Child
+        {
+            childSeen = true
+            Swag.assert((metadata.stx_mode & S_IFMT) == S_IFDIR)
+        }
+        elif name == "link"
+        {
+            linkSeen = true
+            Swag.assert((metadata.stx_mode & S_IFMT) == S_IFLNK)
+        }
+    }
+
+    Swag.assert(childSeen and linkSeen)
+
     var tiny: [1] u8
     let tooSmall = getcwd(tiny.buffer, tiny.count)
     let cwdError = errno()
@@ -371,4 +403,30 @@ alias UnaryDouble = func(f64)->f64
     let emptyName = getenv("".buffer)
     Swag.assert(emptyName == null)
     Swag.assert(getpid() > 0)
+}
+
+#[Swag.TestTag("integration.native")]
+#test
+{
+    let descriptor = memfd_create("swag-statx-layout".buffer, MFD_CLOEXEC)
+    Swag.assert(descriptor >= 0)
+    defer discard close(descriptor)
+    const LargeSize = 4_294_967_297's64
+    let resized = ftruncate(descriptor, LargeSize)
+    Swag.assert(resized == 0)
+    var guarded: { before: u64, info: Structs.statx, after: u64 }
+    guarded.before = 0x123456789ABCDEF0
+    guarded.after  = 0xFEDCBA9876543210
+    let queried = statx(descriptor, "".buffer, AT_EMPTY_PATH, STATX_BASIC_STATS | STATX_BTIME, &guarded.info)
+    Swag.assert(queried == 0)
+    Swag.assert(guarded.before == 0x123456789ABCDEF0 and guarded.after == 0xFEDCBA9876543210)
+    Swag.assert(guarded.info.stx_size == cast(u64, LargeSize))
+    Swag.assert((guarded.info.stx_mode & S_IFMT) == S_IFREG)
+    Swag.assert((guarded.info.stx_mask & STATX_BASIC_STATS) == STATX_BASIC_STATS)
+    var ordinary: stat
+    let compared = fstat(descriptor, &ordinary)
+    Swag.assert(compared == 0 and ordinary.st_ino == guarded.info.stx_ino)
+    Swag.assert(ordinary.st_atim.tv_sec == guarded.info.stx_atime.tv_sec and ordinary.st_atim.tv_nsec == guarded.info.stx_atime.tv_nsec)
+    if guarded.info.stx_mask & STATX_BTIME do
+        Swag.assert(guarded.info.stx_btime.tv_nsec < 1_000_000_000)
 }

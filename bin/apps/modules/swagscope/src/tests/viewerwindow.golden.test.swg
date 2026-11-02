@@ -389,7 +389,6 @@ func assertViewerPanelCorner(image: const *Image, panel: *Wnd)
 
     var image = host.render(window)
     Pixel.Testing.assertImageGolden(&image, "viewer.lens.markdown.encre")
-
 }
 
 // Entering folder exploration puts its common actions in the lens without a command query.

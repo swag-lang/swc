@@ -33,6 +33,7 @@ internal func boardWindow(host: *Testing.HeadlessHost, light: bool, films: bool,
     let window = ViewerWindow.create(&host.surfaceWnd, createViewerPluginRegistry())
     window.onlineMovies = films
     window.onlineMusic  = false
+
     // These tests supply their own entries and thumbnails. Opening the entire media corpus
     // first would decode unrelated previews only to discard them before the assertion.
     // Keep the normal asynchronous listing lifecycle, with an empty sandbox-owned directory.

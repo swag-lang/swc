@@ -507,9 +507,9 @@ SWC_TEST_END()
 
 SWC_FILESYSTEM_TEST_BEGIN(Compiler_ExportModuleJitTestsPrepareRuntime)
 {
-    RecoveryTestDirectory directory;
-    const fs::path sourcePath = directory.path() / "export_tests.swg";
-    constexpr std::string_view source = R"(#global private
+    RecoveryTestDirectory      directory;
+    const fs::path             sourcePath = directory.path() / "export_tests.swg";
+    constexpr std::string_view source     = R"(#global private
 var initialized: bool
 #init { initialized = true }
 #test
@@ -522,10 +522,10 @@ var initialized: bool
     const std::vector<Utf8> arguments = {
         "test", "--file", Utf8(sourcePath), "--artifact-kind", "export", "--no-test-native", "--num-cores", std::to_string(Unittest::compilerWorkerCount(ctx)), "--no-log-color",
         "--out-dir", Utf8(directory.path() / "output"), "--work-dir", Utf8(directory.path() / "work")};
-    std::string output;
-    uint32_t exitCode = 0;
+    std::string                 output;
+    uint32_t                    exitCode = 0;
     const Os::ProcessRunOptions options{.capturedOutput = &output, .forwardOutput = false, .timeoutMs = 15000};
-    const auto result = Os::runProcess(exitCode, Os::getExeFullName(), arguments, directory.path(), &options);
+    const auto                  result = Os::runProcess(exitCode, Os::getExeFullName(), arguments, directory.path(), &options);
     if (result != Os::ProcessRunResult::Ok || exitCode != static_cast<uint32_t>(ExitCode::Success) || output.find("export-test-ran") == std::string::npos)
     {
         std::println(stderr, "[export module tests] result={}, exit={}\n{}", static_cast<uint32_t>(result), exitCode, output);
@@ -538,18 +538,18 @@ SWC_TEST_END()
 SWC_FILESYSTEM_TEST_BEGIN(Compiler_GlobalIfRetiresInactiveDeclarationsAndImpls)
 {
     RecoveryTestDirectory directory;
-    std::error_code error;
+    std::error_code       error;
     fs::create_directories(directory.path(), error);
     if (error)
         return Result::Error;
-    const fs::path source   = FileSystem::compilerResourceRoot(Os::getExeFullName()) / "unittests" / "jit" / "compiler" / "global_if_platform";
+    const fs::path          source    = FileSystem::compilerResourceRoot(Os::getExeFullName()) / "unittests" / "jit" / "compiler" / "global_if_platform";
     const std::vector<Utf8> arguments = {
         "test", "--directory", Utf8(source), "--artifact-kind", "executable", "--num-cores", std::to_string(Unittest::compilerWorkerCount(ctx)), "--no-log-color",
         "--out-dir", Utf8(directory.path() / "output"), "--work-dir", Utf8(directory.path() / "work")};
-    std::string output;
-    uint32_t    exitCode = 0;
+    std::string                 output;
+    uint32_t                    exitCode = 0;
     const Os::ProcessRunOptions options{.capturedOutput = &output, .forwardOutput = false, .timeoutMs = 15000};
-    const auto                 result = Os::runProcess(exitCode, Os::getExeFullName(), arguments, directory.path(), &options);
+    const auto                  result = Os::runProcess(exitCode, Os::getExeFullName(), arguments, directory.path(), &options);
     if (result != Os::ProcessRunResult::Ok || exitCode != static_cast<uint32_t>(ExitCode::Success))
     {
         std::println(stderr, "[global conditional declarations] result={}, exit={}\n{}", static_cast<uint32_t>(result), exitCode, output);
@@ -562,18 +562,18 @@ SWC_TEST_END()
 SWC_FILESYSTEM_TEST_BEGIN(Compiler_NamedTypeWaitsForConditionalHomonyms)
 {
     RecoveryTestDirectory directory;
-    std::error_code error;
+    std::error_code       error;
     fs::create_directories(directory.path(), error);
     if (error)
         return Result::Error;
-    const fs::path source   = FileSystem::compilerResourceRoot(Os::getExeFullName()) / "unittests" / "jit" / "compiler" / "global_if_pending_type";
+    const fs::path          source    = FileSystem::compilerResourceRoot(Os::getExeFullName()) / "unittests" / "jit" / "compiler" / "global_if_pending_type";
     const std::vector<Utf8> arguments = {
         "test", "--directory", Utf8(source), "--artifact-kind", "executable", "--num-cores", std::to_string(Unittest::compilerWorkerCount(ctx)), "--no-log-color",
         "--out-dir", Utf8(directory.path() / "output"), "--work-dir", Utf8(directory.path() / "work")};
-    std::string output;
-    uint32_t    exitCode = 0;
+    std::string                 output;
+    uint32_t                    exitCode = 0;
     const Os::ProcessRunOptions options{.capturedOutput = &output, .forwardOutput = false, .timeoutMs = 15000};
-    const auto                 result = Os::runProcess(exitCode, Os::getExeFullName(), arguments, directory.path(), &options);
+    const auto                  result = Os::runProcess(exitCode, Os::getExeFullName(), arguments, directory.path(), &options);
     if (result != Os::ProcessRunResult::Ok || exitCode != static_cast<uint32_t>(ExitCode::Success))
     {
         std::println(stderr, "[conditional named type candidates] result={}, exit={}\n{}", static_cast<uint32_t>(result), exitCode, output);
@@ -586,7 +586,7 @@ SWC_TEST_END()
 SWC_FILESYSTEM_TEST_BEGIN(Compiler_InactiveNamedTypeReportsSourceError)
 {
     RecoveryTestDirectory directory;
-    const fs::path source = directory.path() / "source";
+    const fs::path        source = directory.path() / "source";
     SWC_RESULT(CompilerTestFile::writeText(source / "a_active.swg", R"(#global namespace Probe
 struct Owner { using native: State }
 impl Owner { mtd read()->s32 => .native.value }
@@ -600,10 +600,10 @@ struct State { value: s32 }
     const std::vector<Utf8> arguments = {
         "sema", "--directory", Utf8(source), "--num-cores", std::to_string(Unittest::compilerWorkerCount(ctx)), "--no-log-color",
         "--out-dir", Utf8(directory.path() / "output"), "--work-dir", Utf8(directory.path() / "work")};
-    std::string output;
-    uint32_t    exitCode = 0;
+    std::string                 output;
+    uint32_t                    exitCode = 0;
     const Os::ProcessRunOptions options{.capturedOutput = &output, .forwardOutput = false, .timeoutMs = 15000};
-    const auto                 result = Os::runProcess(exitCode, Os::getExeFullName(), arguments, directory.path(), &options);
+    const auto                  result = Os::runProcess(exitCode, Os::getExeFullName(), arguments, directory.path(), &options);
     if (result != Os::ProcessRunResult::Ok || exitCode != static_cast<uint32_t>(ExitCode::CompileError) ||
         output.find("unknown name 'State'") == std::string::npos || output.find("internal compiler error") != std::string::npos)
     {

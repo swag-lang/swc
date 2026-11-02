@@ -8,7 +8,7 @@ using Core
     var bytes = makeTypeFaceCollection()
     const Name = "pixel-test-indexed-font"
     let regular = expect TypeFace.create(Name, bytes.toSlice())
-    let bold = expect TypeFace.createAt(Name, bytes.toSlice(), 1)
+    let bold    = expect TypeFace.createAt(Name, bytes.toSlice(), 1)
     Swag.assert(regular != bold and not regular.isBold() and bold.isBold())
     let ownedName = String.from(Name)
     Swag.assert((expect TypeFace.createAt(ownedName.toString(), bytes.toSlice(), 1)) == bold)
@@ -27,11 +27,11 @@ using Core
 #test
 {
     let bytes = makeTypeFaceCollection()
-    let path = makeTempImagePath(".ttc")
+    let path  = makeTempImagePath(".ttc")
     discard expect File.writeAllBytes(path.toString(), bytes.toSlice())
     defer discard catch File.delete(path.toString())
     let regular = expect TypeFace.load(path.toString())
-    let bold = expect TypeFace.loadAt(path.toString(), 1)
+    let bold    = expect TypeFace.loadAt(path.toString(), 1)
     Swag.assert(regular != bold and not regular.isBold() and bold.isBold())
     Swag.assert((expect TypeFace.loadAt(path.toString(), 0)) == regular)
     Swag.assert((expect TypeFace.loadAt(path.toString(), 1)) == bold)

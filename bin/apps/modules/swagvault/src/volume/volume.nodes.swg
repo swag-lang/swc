@@ -181,6 +181,7 @@ impl Volume
             fail volumeError(.NotFound)
         let destinationParentId = parent.id
         let sourceIsDirectory   = .nodeById(id)!.isDirectory()
+
         // Reject a cycle before replacing anything: a failed move must leave both names intact.
         if sourceIsDirectory
         {

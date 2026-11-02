@@ -25,7 +25,7 @@ impl Renderer for Backend
 {
     var backend: Backend
     let renderer = cast(Renderer, &backend)
-    var painter = Painter{renderer}
+    var painter  = Painter{renderer}
     Swag.assert(renderer.render(&painter).x == 1)
     Swag.assert(backend.calls == 1)
 }

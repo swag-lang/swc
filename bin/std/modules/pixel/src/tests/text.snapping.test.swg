@@ -9,7 +9,7 @@ using Swag, Core
 {
     var info: TextDrawInfo
     info.scale = 0.8
-    let first = Painter.advanceTextX(8.099998474, 0, 9, info)
+    let first  = Painter.advanceTextX(8.099998474, 0, 9, info)
     let second = Painter.advanceTextX(first.rightX, 0, 9, info)
     Swag.assert(first.glyphX == 8.099998474'f32)
     Swag.assert(first.rightX == 15.299999237'f32)
@@ -23,8 +23,8 @@ using Swag, Core
 func assertSnappedGlyphPhase(left, origin: f32, phase: u32)
 {
     var cache: FontCache
-    let face = expect TypeFace.load(getTestDataPath("segoeui.ttf"))
-    let font = cache.createFont(face, 12, .Bitmap)
+    let face      = expect TypeFace.load(getTestDataPath("segoeui.ttf"))
+    let font      = cache.createFont(face, 12, .Bitmap)
     let drawnFont = Font.resolveDrawFont(font, 15)
 
     var painter: Painter

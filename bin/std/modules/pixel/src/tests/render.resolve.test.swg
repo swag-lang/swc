@@ -92,7 +92,7 @@ func checkResolve(width, height: s32)
             }
         }
 
-        var cpu: RenderCpu
+        var cpu:      RenderCpu
         let renderer: IRenderer = &cpu
         var texture = renderer.addImage(source)
         defer renderer.removeTexture(&texture)
@@ -108,6 +108,7 @@ func checkResolve(width, height: s32)
             painter.setColorMaskFull()
             painter.setBlendingMode(.Copy)
             let rect = Math.Rectangle{0, 0, width, Height}
+
             // A full-target scissor preserves every pixel but selects the general shader.
             if general do
                 painter.setClippingRect(rect)

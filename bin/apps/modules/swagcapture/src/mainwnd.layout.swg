@@ -673,11 +673,13 @@ impl MainWnd
             .style.setFont(.theme().createDefaultFontFs(.themeMetrics().hintLine_FontSize), .Regular)
             .sigPressed += func|main = me|(button) { main.showSizeMenu(button) }
         }
+
         with .zoomReading = IconButton.createQuiet(.editArea)
         {
             .style.setFont(.theme().createDefaultFontFs(.themeMetrics().hintLine_FontSize), .Regular)
             .sigPressed += func|main = me|(button) { main.showZoomMenu(button) }
         }
+
         .hintLine.setReading(null)
         .updateReading()
         .fillHintLine()

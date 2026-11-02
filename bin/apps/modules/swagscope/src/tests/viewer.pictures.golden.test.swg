@@ -149,7 +149,7 @@ func picturedFixture(name: string)->String => Path.combine(unwrap Path.directory
 
     for file, index in files
     {
-        let light = index % 2 == 1
+        let light  = index % 2 == 1
         var host: Testing.HeadlessHost
         let height = Utf8.endsWith(file.toString(), ".mkv") ? 800 : 128
         let window = framedViewerWindow(&host, file.toString(), light, 1280, height)

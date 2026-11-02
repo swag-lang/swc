@@ -10,8 +10,8 @@ using Core, Pixel, Gui, Viewers
 {
     let fileName = scopeTestDataPath("viewer.groove.mid")
     var host: Testing.HeadlessHost
-    let window = framedViewerWindow(&host, fileName.toString(), true)
-    let view   = assume cast(*Midi.Panel, window.instances[window.activeChoiceIndex].view)
+    let window   = framedViewerWindow(&host, fileName.toString(), true)
+    let view     = assume cast(*Midi.Panel, window.instances[window.activeChoiceIndex].view)
     Swag.assert(view.roll.mode == .Tracks and view.roll.lanes.count == 4)
     Swag.assert(view.details.contains("4 tracks · 4/4"))
 

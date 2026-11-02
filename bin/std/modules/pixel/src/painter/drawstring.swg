@@ -390,6 +390,7 @@ impl Painter
     func advanceTextX(left, offsetX, advanceX: f32, info: TextDrawInfo)->{ glyphX: f32, rightX: f32 }
     {
         var result: #returntype
+
         // Preserve the separate multiply/add rounding across optimization policies.
         result.glyphX = Math.mulAdd(offsetX, info.scale, left)
         result.rightX = Math.mulAdd(advanceX, info.scale, result.glyphX)

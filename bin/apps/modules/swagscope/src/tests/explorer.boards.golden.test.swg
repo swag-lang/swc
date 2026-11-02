@@ -93,7 +93,7 @@ func addPictured(host: *Testing.HeadlessHost, explorer: *Explorer, name: string,
 #[Swag.TestTag("golden")]
 #test
 {
-    let light = true
+    let light    = true
     var host: Testing.HeadlessHost
     let window   = boardWindow(&host, light, films: false, width: ViewerWindow.MinWidth, height: 680)
     let explorer = unwrap window.explorer
@@ -127,7 +127,7 @@ func addPictured(host: *Testing.HeadlessHost, explorer: *Explorer, name: string,
 #[Swag.TestTag("golden")]
 #test
 {
-    let light = true
+    let light    = true
     var host: Testing.HeadlessHost
     let window   = boardWindow(&host, light, films: false)
     let explorer = unwrap window.explorer
@@ -271,7 +271,7 @@ func addPictured(host: *Testing.HeadlessHost, explorer: *Explorer, name: string,
 #[Swag.TestTag("golden")]
 #test
 {
-    let light = true
+    let light               = true
     var host:    Testing.HeadlessHost
     let window              = boardWindow(&host, light, films: false)
     let explorer            = unwrap window.explorer
@@ -302,7 +302,7 @@ func addPictured(host: *Testing.HeadlessHost, explorer: *Explorer, name: string,
 #[Swag.TestTag("golden")]
 #test
 {
-    let light = false
+    let light    = false
     var host:   Testing.HeadlessHost
     let window   = boardWindow(&host, light, films: false)
     let explorer = unwrap window.explorer
@@ -367,7 +367,7 @@ func addPictured(host: *Testing.HeadlessHost, explorer: *Explorer, name: string,
 #[Swag.TestTag("golden")]
 #test
 {
-    let light = true
+    let light    = true
     var host: Testing.HeadlessHost
     let window   = boardWindow(&host, light, films: true)
     let explorer = unwrap window.explorer

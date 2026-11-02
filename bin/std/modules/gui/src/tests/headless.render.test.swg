@@ -21,15 +21,15 @@ impl IWnd for SettledPaintWnd
         if .animate and .paints == 1
         {
             discard .app().animator.animateF32(me,
-                                                AnimationChannel.from("test.settled.paint"),
-                                                0,
-                                                1,
-                                                func(wnd, value)
-                                                {
-                                                    let target = assume cast(*SettledPaintWnd, wnd)
-                                                    target.value = value
-                                                },
-                                                {duration: 100'ms})
+                                               AnimationChannel.from("test.settled.paint"),
+                                               0,
+                                               1,
+                                               func(wnd, value)
+                                               {
+                                                   let target = assume cast(*SettledPaintWnd, wnd)
+                                                   target.value = value
+                                               },
+                                               {duration: 100'ms})
         }
 
         evt.paintContext.painter.fillRect(.clientRect(), .value == 1 ? Argb.White : Argb.Black)
@@ -45,10 +45,11 @@ impl IWnd for SettledPaintWnd
         host.setup(48, 32)
         host.setReducedMotion(false)
         let view = Wnd.create'SettledPaintWnd(&host.root, {0, 0, 48, 32})
+
         // The first paint resolves style and can invalidate layout. Measure an idle tree
         // after that initialization, rather than requiring initialization to be paint-free.
         discard host.render()
-        view.paints = 0
+        view.paints  = 0
         view.animate = animated
         let image = host.renderSettled()
         Swag.assert(image.pixelColor(20, 16) == (animated ? Argb.White : Argb.Black))

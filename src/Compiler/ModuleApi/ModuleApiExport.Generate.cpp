@@ -859,7 +859,7 @@ namespace
         appendModuleApiStringLiteral(attribute, function.foreignLinkModuleName());
 
         static constexpr std::string_view CALL_CONVENTIONS[] = {"C", "WindowsX64", "Swag"};
-        const auto convention = static_cast<size_t>(function.foreignCallConvKind());
+        const auto                        convention         = static_cast<size_t>(function.foreignCallConvKind());
         SWC_ASSERT(convention < std::size(CALL_CONVENTIONS));
         attribute += std::format(", callconv: .{})", CALL_CONVENTIONS[convention]);
         attributes.push_back(std::move(attribute));

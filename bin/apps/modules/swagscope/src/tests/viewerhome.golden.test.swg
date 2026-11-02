@@ -9,7 +9,7 @@ using Core, Pixel, Gui
 #[Swag.TestTag("golden")]
 #test
 {
-    let light = true
+    let light  = true
     var host: Testing.HeadlessHost
     let window = homeWindow(&host, light)
     Swag.assert(window.home.isLocallyVisible() and window.home.rows.count == 6)

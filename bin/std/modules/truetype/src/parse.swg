@@ -1,10 +1,12 @@
 using Swag, Core
 
-const NAME_ID_COPYRIGHT = 0'u16
-const NAME_ID_FAMILY    = 1'u16
-const NAME_ID_STYLE     = 2'u16
-const NAME_ID_VERSION   = 5'u16
-const NAME_ID_DESIGNER  = 9'u16
+const NAME_ID_COPYRIGHT          = 0'u16
+const NAME_ID_FAMILY             = 1'u16
+const NAME_ID_STYLE              = 2'u16
+const NAME_ID_VERSION            = 5'u16
+const NAME_ID_DESIGNER           = 9'u16
+const NAME_ID_TYPOGRAPHIC_FAMILY = 16'u16
+const NAME_ID_TYPOGRAPHIC_STYLE  = 17'u16
 
 // What a face is called when its 'name' table declares no record this module can
 // read. Both are reported like any other name, so a caller never sees an empty one.
@@ -412,6 +414,61 @@ func familyNameIn(data: const [..] u8, faceIndex: u32)->String fail
     if familyName.isEmpty() do
         return DEFAULT_FAMILY_NAME
     return familyName
+}
+
+// Catalog readers need names and style tables, not a glyph workspace or a copy of the file.
+#[Swag.Propagate]
+func metadataIn(data: const [..] u8, faceIndex: u32)->FaceMetadata fail
+{
+    let faceOffset = findFaceOffset(data, faceIndex)
+    let nameTable  = findTableAt(data, faceOffset, TAG_NAME)
+    if not nameTable do
+        fault(0x91)
+
+    let names = unwrap nameTable
+    var result: FaceMetadata
+    result.familyName = decodeBestName(names, NAME_ID_FAMILY)
+    result.styleName  = decodeBestName(names, NAME_ID_STYLE)
+    if result.familyName.isEmpty() do
+        result.familyName = DEFAULT_FAMILY_NAME
+    if result.styleName.isEmpty() do
+        result.styleName = DEFAULT_STYLE_NAME
+
+    result.typographicFamilyName = decodeBestName(names, NAME_ID_TYPOGRAPHIC_FAMILY)
+    result.typographicStyleName  = decodeBestName(names, NAME_ID_TYPOGRAPHIC_STYLE)
+    if result.typographicFamilyName.isEmpty() do
+        result.typographicFamilyName = result.familyName
+    if result.typographicStyleName.isEmpty() do
+        result.typographicStyleName = result.styleName
+
+    var bold   = result.styleName.contains("Bold")
+    var italic = result.styleName.contains("Italic") or result.styleName.contains("Oblique")
+    if let head = findTableAt(data, faceOffset, TAG_HEAD)
+    {
+        let macStyle = readU16(head, 44)
+        bold   = bold or (macStyle & 1) != 0
+        italic = italic or (macStyle & 2) != 0
+    }
+
+    var weight = 0'u16
+    if let os2 = findTableAt(data, faceOffset, TAG_OS2)
+    {
+        weight = readU16(os2, 4)
+        let widthClass = readU16(os2, 6)
+        if widthClass >= 1 and widthClass <= 9 do
+            result.widthClass = widthClass
+        let version   = readU16(os2, 0)
+        let selection = readU16(os2, 62)
+        bold   = bold or (selection & 0x20) != 0
+        italic = italic or (selection & 1) != 0 or (version >= 4 and (selection & 0x200) != 0)
+    }
+
+    result.weight = weight >= 1 and weight <= 1000 ? weight : bold ? 700'u16 : 400'u16
+    if bold or result.weight >= 700 do
+        result.style |= .Bold
+    if italic do
+        result.style |= .Italic
+    return result
 }
 
 // Fills the per-glyph advances of a PostScript face from its charstrings.

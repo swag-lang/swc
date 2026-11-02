@@ -30,6 +30,46 @@ signed-distance-field rendering according to the effective on-screen size. Selec
 specific mode only when stable atlas behavior or a particular rendering technique
 matters more than automatic quality.
 
+## Inspect a font catalog
+
+[[Pixel.FontCatalog]] builds an owned metadata snapshot from application-supplied font files.
+It reads every face of a collection without loading glyphs, groups family names without case,
+and selects regular, bold, italic, light, or semibold by slant, width, and weight. File order does
+not affect selection. A rejected file leaves the existing catalog unchanged.
+Use [[Pixel.FontCatalog.addDirectory]] to search a directory tree; it skips malformed font
+files independently and reports directory enumeration failures.
+
+```swag
+var catalog: Pixel.FontCatalog
+discard try catalog.addFile("fonts/Example.ttc")
+if let selected = catalog.findFace("Example", .SemiBold)
+{
+    let typeFace = try selected.load()
+}
+```
+
+The catalog owns names and paths, but not file contents. A selected [[Pixel.FontFileFace]] is
+borrowed until the next catalog mutation; loading it uses the exact file/index pair and Pixel's
+usual typeface cache. Selection does not synthesize bold or italic. The catalog groups by
+typographic family names when available, bringing light and semibold variants into the same
+family. If a query matches no typographic family, legacy family names are searched instead;
+asking for a separately named light family still selects that family's faces.
+
+## Load an installed family
+
+On Windows and Linux, [[Pixel.FontFamily.enumerateSystemFontNames]] returns owned names for a
+font selector. [[Pixel.FontFamily.createTypeFace]] accepts a name and style directly, returning
+`null` for an unknown family. Its result belongs to Pixel and is cached for subsequent calls.
+Missing bold or italic traits are synthesized without changing other style slots or file loads.
+
+```swag
+var cache: Pixel.FontCache
+if let face = try Pixel.FontFamily.createTypeFace("Example Sans", .BoldItalic)
+{
+    let font = cache.createFont(face, 20)
+}
+```
+
 ## Rich text
 
 [[Pixel.RichString.set]] takes text written in Pixel's lightweight inline markup.

@@ -111,3 +111,126 @@ func assertSvgWhiteMaskRaster(renderer: IRenderer, sampleTileSide: s32)
             Swag.assert(value == expected.pixels[index], Format.toString("SVG white mask differs at sample count %, byte %: got %, expected %", samples, index, value, expected.pixels[index]))
     }
 }
+
+// Reuse the existing font fixture. The second copy declares bold in head.macStyle,
+// making index selection observable without adding another font binary.
+func makeTypeFaceCollection()->Array'u8
+{
+    func read32(bytes: *Array'u8, offset: u64)->u32 => cast(u32, bytes[offset]) << 24 |
+                                                    cast(u32, bytes[offset + 1]) << 16 |
+                                                    cast(u32, bytes[offset + 2]) << 8 |
+                                                    bytes[offset + 3]
+    func write32(bytes: *Array'u8, offset: u64, value: u32)
+    {
+        for index in 4 do
+            bytes[offset + index] = cast(u8, (value >> ((3 - index) * 8)) & 255)
+    }
+
+    let source = expect File.readAllBytes(getTestDataPath("segoeui.ttf"))
+    var bytes: Array'u8
+    bytes.resize(20)
+    write32(&bytes, 0, 0x74746366)
+    write32(&bytes, 4, 0x00010000)
+    write32(&bytes, 8, 2)
+    for index in 2
+    {
+        bytes.resize((bytes.count + 3) & ~3'u64)
+        let offset = cast(u32, bytes.count)
+        write32(&bytes, 12 + index * 4, offset)
+        bytes.add(source.toSlice())
+        let tables = cast(u32, bytes[offset + 4]) << 8 | bytes[offset + 5]
+        var foundHead = false
+        for table in tables
+        {
+            let record = cast(u64, offset) + 12 + table * 16
+            let target = read32(&bytes, record + 8) + offset
+            write32(&bytes, record + 8, target)
+            if read32(&bytes, record) == 0x68656164
+            {
+                bytes[target + 44] = 0
+                bytes[target + 45] = cast(u8, index)
+                foundHead = true
+            }
+        }
+        Swag.assert(foundHead)
+    }
+    return bytes
+}
+
+// Reuse our own fixture's outlines with a deliberately small Unicode map. No test depends
+// on an optional installed font. The supplementary rune deliberately maps to V so a mistaken
+// cross-face A/V kerning lookup is observable, independently of any system font's coverage.
+func makeFallbackTestBytes(symbols: bool)->Array'u8 fail
+{
+    let original = try TypeFace.load(getTestDataPath("segoeui.ttf"))
+    var bytes    = try File.readAllBytes(getTestDataPath("segoeui.ttf"))
+    var reader   = ByteStream.openRead(bytes.toSlice())
+    reader.setPosition(4)
+    let tables            = try reader.readBigEndian'u16()
+    var directory         = 0'u64
+    var horizontalMetrics = 0'u32
+    for index in tables
+    {
+        let offset = 12 + cast(u64, index) * 16
+        reader.setPosition(offset)
+        let tag = try reader.readBigEndian'u32()
+        if tag == 0x636D6170
+        {
+            directory = offset
+        }
+        elif tag == 0x68686561
+        {
+            reader.setPosition(offset + 8)
+            horizontalMetrics = try reader.readBigEndian'u32()
+        }
+    }
+
+    Swag.assert(directory != 0)
+
+    let offset = bytes.count
+    var writer = ByteStream.openWrite(&bytes)
+    writer.setPosition(offset)
+    writer.writeBigEndian(0'u16)
+    writer.writeBigEndian(1'u16)
+    writer.writeBigEndian(3'u16)
+    writer.writeBigEndian(10'u16)
+    writer.writeBigEndian(12'u32)
+    writer.writeBigEndian(12'u16)
+    writer.writeBigEndian(0'u16)
+    let count = symbols ? 5'u32 : 3'u32
+    writer.writeBigEndian(16'u32 + count * 12)
+    writer.writeBigEndian(0'u32)
+    writer.writeBigEndian(count)
+    const codes = [' 'rune, 'A'rune, 'V'rune, '\u2192'rune, '\U0001F680'rune]
+    for index in count
+    {
+        let code  = codes[index]
+        let glyph = original.face.glyphIndex(code == '\U0001F680'rune ? 'V'rune : code)
+        Swag.assert(glyph != 0)
+        writer.writeBigEndian(cast(u32, code))
+        writer.writeBigEndian(cast(u32, code))
+        writer.writeBigEndian(glyph)
+    }
+
+    let length = bytes.count - offset
+    writer.setPosition(directory + 8)
+    writer.writeBigEndian(cast(u32, offset))
+    writer.writeBigEndian(cast(u32, length))
+    if not symbols
+    {
+        // Make a short primary line box: fallback ink must still fit, and drawing a fallback
+        // face explicitly needs a different top coordinate to retain the primary baseline.
+        Swag.assert(horizontalMetrics != 0)
+        writer.setPosition(horizontalMetrics + 4)
+        writer.writeBigEndian(800'u16)
+        writer.writeBigEndian(0xFF9C'u16)     // Signed descender: -100 font units.
+    }
+
+    return bytes
+}
+
+func fallbackTestFace(symbols: bool)->*TypeFace fail
+{
+    let bytes = try makeFallbackTestBytes(symbols)
+    return try TypeFace.create(symbols ? "pixel-fallback-symbol-fixture" : "pixel-fallback-primary-fixture", bytes.toSlice())
+}

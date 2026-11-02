@@ -1,5 +1,5 @@
 // System font families listed by the FontName editor, enumerated once per process.
-internal var g_PropSysFonts: Array'SystemFontFamilyInfo
+internal var g_PropSysFonts: Array'String
 
 internal impl Properties
 {
@@ -28,7 +28,7 @@ internal impl Properties
         var sel = 0'u32
         for &fnt, idx in g_PropSysFonts
         {
-            if cur[] == fnt.name do
+            if cur[] == fnt[] do
                 sel = cast(u32, idx) + 2
         }
 
@@ -45,7 +45,7 @@ internal impl Properties
         if sel == 0 do
             data.clear()
         else do
-            data[] = g_PropSysFonts[sel - 2].name
+            data[] = g_PropSysFonts[sel - 2]
 
         .commitItemChange(item)
     }
@@ -55,7 +55,7 @@ internal impl Properties
         let item = .addItem(value, data, parentItem)
 
         if g_PropSysFonts.isEmpty() do
-            g_PropSysFonts = FontFamily.enumerateSystemFonts()
+            g_PropSysFonts = FontFamily.enumerateSystemFontNames()
 
         var combo: *ComboBox?
         if .kind == .Panel
@@ -95,7 +95,7 @@ internal impl Properties
         combon.addItem(.theme().res.defaultTypeFaceR.familyName())
         combon.addSeparator()
         for &fnt in g_PropSysFonts do
-            combon.addItem(fnt.name)
+            combon.addItem(fnt[])
 
         .refreshFontName(item)
         combon.sigChanged += func|prop = me, item|(_, _) { prop.validateFontName(item) }

@@ -6,6 +6,11 @@ internal struct Context
 {
     internal
     {
+        libraryXfixes:                           *void?
+        cursorReady:                             bool
+        cursorBalance:                           s64
+        xcb_xfixes_hide_cursor_checked:          Linux.xcb_xfixes_hide_cursor_checked_fn
+        xcb_xfixes_show_cursor_checked:          Linux.xcb_xfixes_show_cursor_checked_fn
         libraryRandr:                            *void?
         library:                                 *void?
         connection:                              *void?
@@ -16,6 +21,7 @@ internal struct Context
         xcb_connect:                             Linux.xcb_connect_fn
         xcb_disconnect:                          Linux.xcb_disconnect_fn
         xcb_connection_has_error:                Linux.xcb_connection_has_error_fn
+        xcb_get_extension_data:                  Linux.xcb_get_extension_data_fn
         xcb_get_setup:                           Linux.xcb_get_setup_fn
         xcb_setup_roots_iterator:                Linux.xcb_setup_roots_iterator_fn
         xcb_screen_next:                         Linux.xcb_screen_next_fn
@@ -106,6 +112,7 @@ internal func ensure()->*Context fail
     state.xcb_connect                             = try symbol'Linux.xcb_connect_fn(library, "xcb_connect")
     state.xcb_disconnect                          = try symbol'Linux.xcb_disconnect_fn(library, "xcb_disconnect")
     state.xcb_connection_has_error                = try symbol'Linux.xcb_connection_has_error_fn(library, "xcb_connection_has_error")
+    state.xcb_get_extension_data                  = try symbol'Linux.xcb_get_extension_data_fn(library, "xcb_get_extension_data")
     state.xcb_get_setup                           = try symbol'Linux.xcb_get_setup_fn(library, "xcb_get_setup")
     state.xcb_setup_roots_iterator                = try symbol'Linux.xcb_setup_roots_iterator_fn(library, "xcb_setup_roots_iterator")
     state.xcb_screen_next                         = try symbol'Linux.xcb_screen_next_fn(library, "xcb_screen_next")
@@ -187,6 +194,16 @@ internal func randrLibrary(state: *Context)->*void?
     return state.libraryRandr
 }
 
+// Sending an extension opcode before checking presence can close the whole XCB connection.
+internal func hasExtension(state: *Context, library: *void, descriptor: string)->bool
+{
+    let address = Linux.dlsym(library, descriptor.buffer)
+    if not address do
+        return false
+    let reply = state.xcb_get_extension_data(unwrap state.connection, cast(*Linux.xcb_extension_t, address))
+    return reply != null and reply.present != 0
+}
+
 internal func requireUiThread(state: *Context) fail
 {
     g_ContextMutex.lock()
@@ -240,6 +257,8 @@ internal func atom(state: *Context, name: string)->u32 fail
         }
 
         state.xcb_disconnect(unwrap state.connection)
+        if state.libraryXfixes do
+            discard Linux.dlclose(state.libraryXfixes)
         if state.libraryRandr do
             discard Linux.dlclose(state.libraryRandr)
         discard Linux.dlclose(unwrap state.library)

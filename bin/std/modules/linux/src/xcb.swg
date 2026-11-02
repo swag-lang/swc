@@ -413,3 +413,36 @@ alias xcb_send_event_checked_fn                  = func(*void, u8, u32, u32, con
 #assert(#offsetof(xcb_generic_error_t.full_sequence) == 32)
 
 #assert(#offsetof(xcb_get_property_reply_t.value_len) == 16)
+
+struct xcb_extension_t
+{
+    public
+    {
+        name:      const [*]u8?
+        global_id: s32
+    }
+}
+
+struct xcb_query_extension_reply_t
+{
+    public
+    {
+        response_type: u8
+        pad0:          u8
+        sequence:      u16
+        length:        u32
+        present:       u8
+        major_opcode:  u8
+        first_event:   u8
+        first_error:   u8
+    }
+}
+
+// The reply belongs to the connection; do not free it. The descriptor must remain loaded.
+#[Swag.CallingConvention(.C)]
+alias xcb_get_extension_data_fn = func(*void, *xcb_extension_t)->const *xcb_query_extension_reply_t?
+
+#assert(#sizeof(xcb_extension_t) == 16)
+#assert(#offsetof(xcb_extension_t.global_id) == 8)
+#assert(#sizeof(xcb_query_extension_reply_t) == 12)
+#assert(#offsetof(xcb_query_extension_reply_t.present) == 8)

@@ -360,9 +360,10 @@ by portable modules and products. The earlier entries prepare and enforce the sa
   fields use reentrant glibc conversions, preserving milliseconds and historical zone offsets.
   Raw clock tests execute in JIT with UTC and native ELF with America/New_York, including negative
   epochs, leap days, summer/winter offsets and post-2038 dates. All 31 public DateTime, Timestamp,
-  stopwatch and time cases pass in JIT/native. Linux also supplies absolute-deadline sleep.
-- Next: exercise public local-calendar conversions under changed time zones and across a DST
-  transition; the raw conversion checks alone do not validate that public boundary.
+  stopwatch and time cases pass in JIT/native in both UTC and America/New_York. Linux also
+  supplies absolute-deadline sleep.
+- Next: add a focused public local-calendar case spanning a DST transition; running the existing
+  public suite under two zones does not establish that transition boundary.
 - Related: platform.portability.037
 - Done when: The chosen second host returns wall-clock fields and monotonic ticks in documented units; tests cover conversion, monotonic ordering, and elapsed time across scheduler sleeps.
 
@@ -593,6 +594,8 @@ by portable modules and products. The earlier entries prepare and enforce the sa
 
 - Progress (Linux): Core enumerates active RandR 1.5 monitors, clips the current EWMH desktop
   work area to each, and falls back to real root-screen geometry when RandR is unavailable.
+  Extension presence is checked before any RandR opcode: sending a version query to a server
+  without RandR otherwise closes the entire XCB connection.
   Missing displays return an empty array. Coordinates are explicitly physical pixels with scale
   one; physical dimensions are not used to invent scaling. Xvfb JIT/native coverage passes.
 - Next: implement monitor enumeration and per-monitor scale for the platform whose surface exists
@@ -763,18 +766,25 @@ by portable modules and products. The earlier entries prepare and enforce the sa
   queries, WM_DELETE_WINDOW, repeated close, external destruction and closing from a paint callback. A separate opt-in
   case validates neutral queries and failed creation without a display. Explicit paint events
   also work for fully offscreen windows, where ClearArea would produce no Expose event.
-  The lazy connection retains optional RandR libraries until disconnect, avoiding extension-cache
+  The lazy connection retains optional RandR and XFixes libraries until disconnect, avoiding extension-cache
   identities accumulating from repeated unload/reload. Window operations stay on the creating
   thread; module shutdown invalidates owners before releasing native state. Connection-loss,
   module-unload stress and window-manager integration still need dedicated execution.
-  GUI surface, renderer presentation, cursor visibility and native Wayland remain incomplete.
+  Core cursor visibility uses optional XFixes 4 and a serialized process-wide show/hide counter.
+  Only zero crossings issue native requests; a rejected request leaves the counter unchanged.
+  Missing displays or extensions are neutral, and extension presence is checked before negotiation.
+  Five public desktop cases pass JIT/native: the two window cases, cursor nesting and BadWindow
+  recovery, missing-display neutrality, and a server with RandR/XFixes explicitly disabled.
+  The disabled-extension case failed before the presence guard by losing its XCB connection.
+  Cursor visibility on screen is not visually measured, and a real window manager remains untested.
+  GUI surface, renderer presentation, cursor shapes and native Wayland remain incomplete.
 - Evidence: the filenames already expose most of the seam: `surface.win32.swg`,
   `application.win32.swg`, `clipboard.win32.swg`, `dragdrop.win32.swg` and `cursor.win32.swg`, with
   shared Windows clipboard text conversion in `nativetext.win32.swg`. The retained tree, layouts,
   themes, controls and the toolkit-owned file dialog are platform-neutral. These leaves identify
   mechanisms to replace; their file count is not a porting plan.
 - Next: build the GUI application/surface and renderer adapters on the Core X11 owner, finish
-  cursor visibility and input routing, and run a rendered application with a window manager.
+  cursor shapes and input routing, and run a rendered application with a window manager.
 - Done when: a non-trivial GUI sample opens, lays out, paints, resizes, and closes on the
   second platform. Platform-neutral events expose no native message numbers, and Windows and
   headless contract tests remain green. Focus, DPI, clipboard and input integrations retain

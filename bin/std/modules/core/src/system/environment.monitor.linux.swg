@@ -37,6 +37,8 @@ private func x11RandrMonitors(context: *LinuxDesktop.Context, workArea: const *M
     let library = LinuxDesktop.randrLibrary(context)
     if not library do
         fail Swag.SystemError{"RandR library is unavailable"}
+    if not LinuxDesktop.hasExtension(context, library, "xcb_randr_id") do
+        fail Swag.SystemError{"RandR extension is unavailable"}
     let query         = try LinuxDesktop.symbol'Linux.xcb_randr_query_version_fn(library, "xcb_randr_query_version")
     let versionReply  = try LinuxDesktop.symbol'Linux.xcb_randr_query_version_reply_fn(library, "xcb_randr_query_version_reply")
     let monitors      = try LinuxDesktop.symbol'Linux.xcb_randr_get_monitors_fn(library, "xcb_randr_get_monitors")

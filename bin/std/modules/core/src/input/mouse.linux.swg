@@ -34,3 +34,14 @@ public func setMousePosition(x, y: s32)
                                                               cast(s16, x),
                                                               cast(s16, y)))
 }
+
+// Shows or hides the cursor on the selected X11 screen.
+//
+// Calls share a process-wide visibility counter, initially zero. Each show increments it and
+// each hide decrements it; the cursor is hidden while the counter is negative. XFixes 4 and
+// libxcb-xfixes.so.0 are optional: unavailable displays, extensions and rejected requests do
+// nothing. Other X11 clients may also hide the cursor. Module shutdown releases Core's hide.
+public func showMouseCursor(show: bool)
+{
+    catch LinuxDesktop.setCursorVisibility(show)
+}

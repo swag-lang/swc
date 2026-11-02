@@ -121,6 +121,8 @@ func returnedDesktopWindow()->Env.Window fail
     for 4
     {
         Swag.assert(Env.getMonitors().isEmpty())
+        Input.showMouseCursor(false)
+        Input.showMouseCursor(true)
         let position = Input.mousePosition()
         Swag.assert(position.x == 0 and position.y == 0)
         var keyboard: Input.Keyboard
@@ -131,4 +133,74 @@ func returnedDesktopWindow()->Env.Window fail
         discard catch returnedDesktopWindow() as outcome
         Swag.assert(outcome.value() is Swag.SystemError)
     }
+}
+
+// Select only on an isolated X11 server with XFixes 4; the cursor is temporarily hidden.
+#[Swag.TestTag("integration.desktop")]
+#test
+{
+    let context = expect LinuxDesktop.ensure()
+    Swag.assert(context.cursorBalance == 0)
+    let root = context.screen.root
+    defer
+    {
+        context.screen.root = root
+        for 2
+        {
+            if context.cursorBalance < 0 do
+                Input.showMouseCursor(true)
+            elif context.cursorBalance > 0 do
+                Input.showMouseCursor(false)
+            else do
+                break
+        }
+    }
+
+    // A real BadWindow response must not consume a visibility transition.
+    context.screen.root = 0
+    Input.showMouseCursor(false)
+    context.screen.root = root
+    Swag.assert(context.cursorReady and context.cursorBalance == 0)
+    let library = context.libraryXfixes
+    Swag.assert(library != null)
+
+    Input.showMouseCursor(false)
+    Input.showMouseCursor(false)
+    Swag.assert(context.cursorBalance == -2)
+    Input.showMouseCursor(true)
+    Swag.assert(context.cursorBalance == -1)
+    Input.showMouseCursor(true)
+    Swag.assert(context.cursorBalance == 0)
+
+    // Surplus shows postpone the next native hide, matching the visibility-counter contract.
+    Input.showMouseCursor(true)
+    Input.showMouseCursor(false)
+    Swag.assert(context.cursorBalance == 0)
+    for 16
+    {
+        Input.showMouseCursor(false)
+        Input.showMouseCursor(true)
+    }
+
+    Swag.assert(context.cursorBalance == 0 and context.libraryXfixes == library)
+}
+
+// Run on an isolated X11 server with XFIXES and RANDR explicitly disabled.
+#[Swag.TestTag("integration.desktop.basic")]
+#test
+{
+    let context  = expect LinuxDesktop.ensure()
+    let monitors = Env.getMonitors()
+    Swag.assert(context.xcb_connection_has_error(unwrap context.connection) == 0,
+                "optional monitor discovery must preserve the display connection")
+    Swag.assert(monitors.count == 1 and monitors[0].bounds.width > 0)
+    Input.showMouseCursor(false)
+    Input.showMouseCursor(true)
+    Swag.assert(context.xcb_connection_has_error(context.connection) == 0,
+                "unsupported cursor visibility must preserve the display connection")
+    Swag.assert(not context.cursorReady and context.cursorBalance == 0)
+    var window = expect returnedDesktopWindow()
+    expect window.showOffScreen()
+    Swag.assert(Env.processWindowMessages())
+    expect window.close()
 }

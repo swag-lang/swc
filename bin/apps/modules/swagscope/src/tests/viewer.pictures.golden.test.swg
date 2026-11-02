@@ -134,7 +134,8 @@ func picturedFixture(name: string)->String => Path.combine(unwrap Path.directory
         for light in [false, true]
         {
             var host: Testing.HeadlessHost
-            let window = framedViewerWindow(&host, file.toString(), light)
+            let height = Utf8.endsWith(file.toString(), ".mkv") ? 800 : 128
+            let window = framedViewerWindow(&host, file.toString(), light, 1280, height)
             window.explorer = Explorer.create(window.documentPanel, window)
             window.explorer.setShown(false)
             window.explorerActive = true

@@ -120,11 +120,12 @@ using Core, Pixel
 
 struct NativeInputProbe
 {
-    pressed, released, extra, wheel, shiftA, controlA, characters: u32
+    pressed, released, extra, wheel, shiftA, controlA, characters, screenshot: u32
     character: rune
+    returns, pageDown, capsLock: u32
 }
 
-// Actual queued X11 input preserves a click completed between GUI frames and modifier text.
+// Queued X11 input preserves short clicks, modifier text, canonical keys, and global shortcuts.
 #[Swag.TestTag("integration.desktop")]
 #test
 {
@@ -140,7 +141,12 @@ struct NativeInputProbe
     var probe: NativeInputProbe
     surface.wnd.view.hookOnEvent = func|&probe|(_, event)->bool
     {
-        if event is MouseEvent as mouse
+        if event is CommandEvent as command where command.id == "native.screenshot"
+        {
+            probe.screenshot += 1
+            return true
+        }
+        elif event is MouseEvent as mouse
         {
             if mouse.kind == .Pressed and mouse.button == .Left do
                 probe.pressed += 1
@@ -161,6 +167,18 @@ struct NativeInputProbe
             {
                 probe.controlA += 1
             }
+            elif key.kind == .Pressed and key.key == .Return
+            {
+                probe.returns += 1
+            }
+            elif key.kind == .Pressed and key.key == .PageDown
+            {
+                probe.pageDown += 1
+            }
+            elif key.kind == .Pressed and key.key == .CapsLock
+            {
+                probe.capsLock += 1
+            }
             elif key.kind == .Character
             {
                 probe.characters += 1
@@ -174,6 +192,8 @@ struct NativeInputProbe
     }
 
     defer surface.wnd.view.hookOnEvent = null
+    expect app.registerHotKey(.Control, .PrintScreen, "native.screenshot", surface.wnd.view)
+    defer discard app.unregisterHotKey(.Control, .PrintScreen)
     let script = Path.combine(unwrap Path.directoryName(#curlocation.fileName), "datas/input.x11.peer.py")
     let id     = Format.toString("%", surface.windowId)
     var peer   = expect Env.startProcess(Env.StartInfo{fileName: "python3", arguments: [script.toString(), id.toString()],
@@ -190,6 +210,8 @@ struct NativeInputProbe
         app.runFrame()
     Swag.assert(not peer.isRunning() and peer.exitCode() == 0, peer.standardError())
     Swag.assert(probe.pressed == 1 and probe.released == 1 and probe.extra == 1 and probe.wheel == 1)
+    Swag.assert(probe.returns == 1 and probe.pageDown == 1 and probe.capsLock == 2)
+    Swag.assert(probe.screenshot == 1, "the native Print Screen shortcut did not reach its command target")
     Swag.assert(probe.shiftA == 1 and probe.controlA == 1 and probe.characters == 1 and probe.character == 'A',
                 Format.toString("shift=%, control=%, characters=%, rune=%", probe.shiftA, probe.controlA, probe.characters, cast(u32, probe.character)))
 }

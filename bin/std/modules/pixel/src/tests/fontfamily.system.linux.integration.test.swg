@@ -9,6 +9,7 @@ using Core
 {
     let families = FontFamily.enumerateSystemFonts()
     let names    = FontFamily.enumerateSystemFontNames()
+
     // This opt-in integration requires at least one installed supported font.
     Swag.assert(not families.isEmpty())
     Swag.assert(families.count == names.count)

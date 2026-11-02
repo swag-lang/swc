@@ -40,7 +40,13 @@ try:
     key(0xffe3, 1)
     key(ord('a'), 1)
     key(ord('a'), 0)
+    # X11 calls the physical screenshot keysym Print; the portable command is PrintScreen.
+    key(0xff61, 1)
+    key(0xff61, 0)
     key(0xffe3, 0)
+    for symbol in (0xff0d, 0xff56, 0xffe5, 0xffe5):
+        key(symbol, 1)
+        key(symbol, 0)
     x11.XSync(display, 0)
     print('ok', flush=True)
 finally:

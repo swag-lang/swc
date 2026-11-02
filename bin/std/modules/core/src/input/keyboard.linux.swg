@@ -138,9 +138,20 @@ public impl Keyboard
         }
     }
 
-    // Returns the first portable key with this canonical X11 keysym, or None.
+    // Returns the canonical portable key for an X11 keysym, or None.
+    //
+    // Return, PageDown, PrintScreen, and CapsLock are preferred over their historical
+    // aliases. Other aliases choose the first portable key with the same keysym.
     func virtualKeyToKey(vkey: VirtualKey)->Key
     {
+        switch vkey
+        {
+        case 0xFF0D: return .Return
+        case 0xFF56: return .PageDown
+        case 0xFF61: return .PrintScreen
+        case 0xFFE5: return .CapsLock
+        }
+
         if vkey != 0
         {
             for key in Key where keyToVirtualKey(key) == vkey do

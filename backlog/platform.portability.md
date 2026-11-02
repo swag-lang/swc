@@ -342,6 +342,12 @@ by portable modules and products. The earlier entries prepare and enforce the sa
   Ten public integration cases pass JIT/native for cancellation, repeated close, timeout continuity,
   filtering, recursive rename paths, subtree gaps, move-out expiry/name reuse, ancestor/root removal
   and link exclusion. Recursive fixture setup now explicitly requests parent creation.
+- Additional Linux services: `Directory.isRemote` identifies the mounted filesystem through the
+  descriptor mount ID, follows links and resolves the nearest existing ancestor. Fixtures cover
+  network filesystem names; actual NFS/SMB mounts remain untested. `Directory.freeSpace` uses
+  `fstatvfs` available blocks, rejects non-directories and checks byte-count overflow; real temporary
+  storage, procfs and invalid paths pass JIT/native. Three FileStream descriptor cases also pass
+  JIT/native with the Release compiler, including borrowed descriptor ownership.
 - Next: exercise kernel-overflow stress, interrupted/partial I/O and permissions, run the remaining
   common filesystem/stream/mapping cases, and compare Windows ownership behavior.
 - Done when: The chosen second host passes the common directory, file, stream, metadata, path-state, and mutation contract suite, including partial I/O, links, permissions, and error mapping.
@@ -788,9 +794,14 @@ by portable modules and products. The earlier entries prepare and enforce the sa
   full application port ships.
 - Evidence: the FUSE3 backend mounts real volumes and passes read/write, rename, open-unlink,
   retained-descriptor I/O, unmount and read-only remount checks. Per-volume advisory locks prevent
-  conflicting processes from opening writable containers. Session monitoring is under integration.
-- Next: finish login-session lock/suspend and idle protocol validation, failure/shutdown cases,
-  then validate the mounted workflow through the GUI and packaged application.
+  conflicting processes from opening writable containers. Three callback/rename cases pass JIT/native
+  with the Release compiler, including no-replace and file/directory mismatch failures.
+  Private D-Bus peers exercise the real libsystemd monitor for LockedHint, queued lock/unlock,
+  idle hints and sleep-inhibitor release/reacquisition. A separate Xvfb integration case passes
+  JIT/native through the real XScreenSaver idle query. These checks do not validate an actual
+  desktop login manager or physical suspend.
+- Next: complete physical-session and active-request shutdown validation, then validate the
+  mounted workflow through the GUI and packaged application.
 - Done when: a Linux mount passes the common filesystem behavior and lifetime tests,
   including failed mounting and shutdown while requests are active.
 - Related: platform.portability.079
@@ -840,12 +851,16 @@ by portable modules and products. The earlier entries prepare and enforce the sa
   readback, render-target survival after closing the first of two windows, clipping, SVG alpha, sampling,
   padding and backdrop effects. Six ordinary native renderer/thread tests also pass, including failure
   retirement. All 92 Pixel golden tests pass natively without changing references. Full GUI and
-  application execution remains blocked by Linux GUI services, including application/surface/cursor
-  types and clipboard integration. The current application modules are Swag Capture, Swag Scope and
-  Swag Vault; their GUI font consumers still need integration with the portable installed-family API.
+  application execution is now under validation for Swag Capture, Swag Scope and Swag Vault.
+  GUI application/surface/cursor services, XKB input, clipboard selections and XDND/XDS are
+  implemented. Thirteen JIT/native cases compare complete window pixels under Xvfb/Openbox
+  with a compositor and exercise real XTEST events, XSettings, headless rendering, clipboard
+  UTF-8/PNG/INCR and independent drag/drop peers. These fixtures validate GUI font consumers;
+  they do not replace the full application workflows.
   Native artifact work remains in .093.
-  Core still has no mandatory GL/EGL dependency. GUI integration and physical GPU validation
-  remain open, as do GUI surfaces, cursor shapes and native Wayland.
+  Nine Ogl JIT/native cases now cover independent XCB connections, shared contexts and resources,
+  worker-thread contexts and pbuffer lifetimes. Two surfaceless cases pass without a display.
+  Core still has no mandatory GL/EGL dependency. Physical GPUs and native Wayland remain open.
 - Evidence: the filenames already expose most of the seam: `surface.win32.swg`,
   `application.win32.swg`, `clipboard.win32.swg`, `dragdrop.win32.swg` and `cursor.win32.swg`, with
   shared Windows clipboard text conversion in `nativetext.win32.swg`. The retained tree, layouts,
@@ -855,13 +870,10 @@ by portable modules and products. The earlier entries prepare and enforce the sa
   and `WindowCallbacks.onCloseRequest`. GUI can defer native close requests until renderer borrows
   are retired and explicitly decide when its application quits; there is no implicit last-window
   shutdown. Existing WindowLoop consumers retain their default close behavior.
-- Next: build the GUI application/surface and renderer adapters on the Core X11 owner, finish cursor
-  shapes and keyboard/text/pointer routing, and run a rendered application with a window manager.
-  GUI also needs title/coordinate/state operations, clipboard selection ownership and drag/drop.
-  Define frameless-window and compositor-alpha behavior explicitly: current Core windows use the
-  root visual/depth, and EGL framebuffer alpha does not establish transparent desktop composition.
-  A cursor-only leaf cannot make the whole GUI module importable while its native surface and
-  application types and methods remain missing.
+- Next: validate complete application workflows and physical desktop/GPU behavior, finish dynamic
+  keyboard-map updates and investigate connection-loss/module-unload stress. Native Wayland,
+  text composition and accessibility remain distinct capabilities. The X11 GUI uses explicit
+  compositor-backed presentation; retain pixel-level tests when changing visual/alpha selection.
 - Done when: a non-trivial GUI sample opens, lays out, paints, resizes, and closes on the
   second platform. Platform-neutral events expose no native message numbers, and Windows and
   headless contract tests remain green. Focus, DPI, clipboard and input integrations retain

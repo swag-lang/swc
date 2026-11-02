@@ -54,23 +54,6 @@ ships; history lives in Git, not here.
   state their approximation and fill behavior and no caller reimplements flattening.
 - Related: std.pixel.008, std.pixel.009
 
-### std.pixel.025 — Extend the explicit OpenGL campaign to the portable rendering scenes
-
-- Evidence: `tools/integrations.bat opengl` runs only tests tagged
-  `integration.renderer.opengl`; select each configuration explicitly with `-bc release` or
-  `-bc devmode`. The fixtures realize their windows with `showOffScreen`. `sampling.ogl.test.swg`
-  compares CPU and GPU texture sampling, and `renderthread.test.swg` checks a worker-owned
-  context and render-target readback. The stroke, text and layer scenes in
-  `render.parity.test.swg` run only against `RenderCpu` and its goldens. Stroke output has
-  come back corrupt or empty under some drawable arrangements, so a hidden drawable alone does
-  not establish coverage.
-- Next: add the portable stroke, text and layer scenes to the named campaign together with a
-  fully realized window/message-loop fixture. Compare the first render without retries and
-  cover context creation, presentation and teardown on an explicitly usable desktop.
-- Done when: those scenes and context transitions detect rendering regressions in both
-  program configurations, and ordinary headless tests still create no native windows.
-- Related: std.pixel.020
-
 ### std.pixel.020 — Measured strokes are not yet what an ordinary stroke does
 
 - Evidence: under `PaintParams.DistanceStrokes` a stroke segment is one quad (`drawpath.swg`)
@@ -86,7 +69,7 @@ ships; history lives in Git, not here.
 - Done when: a stroke emits a constant small number of vertices per segment and per join, the
   CPU and OpenGL backends still agree, and `DistanceStrokes` is either the default or has a
   written reason not to be.
-- Related: std.pixel.008, std.pixel.025, std.pixel.026
+- Related: std.pixel.008, std.pixel.026
 
 ### std.pixel.031 — Nothing reaches the unordered-intersection path
 

@@ -73,7 +73,7 @@ private func makeRenderParityTexture(renderer: IRenderer)->Texture
 // Records the portable painter surface once so both backends execute the exact same operations.
 // Strokes measured from the centre line, over the widths, angles, joins and caps that decide
 // whether one quad can stand in for a quad and two bands.
-private func renderStrokeParityScene(renderer: IRenderer)->Image
+internal func renderStrokeParityScene(renderer: IRenderer, pixelOffset = 0.0'f32)->Image
 {
     var target = renderer.createRenderTarget(RenderParityWidth, RenderParityHeight)
     defer renderer.deleteRenderTarget(&target)
@@ -88,6 +88,7 @@ private func renderStrokeParityScene(renderer: IRenderer)->Image
     painter.setBlendingMode(.Alpha)
     painter.setAntialiased(true)
     painter.setDistanceStrokes(true)
+    painter.translateTransform(pixelOffset, pixelOffset)
 
     // Widths across and below one device pixel, at an angle that lands the contour between two
     // pixel centres on both axes.
@@ -241,7 +242,7 @@ private func makeRenderParityFont(renderer: IRenderer, size: u32, mode: FontRend
 }
 
 // Exercises bitmap text and every renderer-independent MTSDF effect through one atlas.
-private func renderTextParityScene(renderer: IRenderer)->Image
+internal func renderTextParityScene(renderer: IRenderer)->Image
 {
     let bitmap = makeRenderParityFont(renderer, 20, .Bitmap)
     let msdf   = makeRenderParityFont(renderer, 40, .Msdf)
@@ -288,7 +289,7 @@ private func renderTextParityScene(renderer: IRenderer)->Image
 }
 
 // Runs nested targets, paint-alpha replay, supersampling resolve and both blur axes.
-private func renderLayerParityScene(renderer: IRenderer)->Image
+internal func renderLayerParityScene(renderer: IRenderer)->Image
 {
     var target = renderer.createRenderTarget(RenderLayerWidth, RenderLayerHeight)
     defer renderer.deleteRenderTarget(&target)
@@ -391,7 +392,8 @@ private func assertSvgPixel(image: const *Image, x, y: s32, expected: Color)
 #[Swag.TestTag("golden")]
 #test
 {
-    let image = renderCpu(&renderStrokeParityScene)
+    func scene(renderer: IRenderer)->Image => renderStrokeParityScene(renderer)
+    let image = renderCpu(&scene)
     Testing.assertImageGolden(&image, "render.parity.stroke")
 }
 

@@ -29,7 +29,9 @@ void main()
     // magnitude folds the two sides onto the same ramp, and the kink it leaves on the centre line
     // is where the stroke is most solid, so nothing reads it.
     float d = vcov > 2.0 ? 0.5 - abs(vcov - 4.0) : vcov - 0.5;
-    color.w *= clamp(d / max(fwidth(d), 1e-5) + 0.5, 0.0, 1.0);
+    // Differentiate the interpolated span before folding its two sides. A derivative across
+    // abs() can cancel at the center of a narrow stroke and make it spuriously opaque.
+    color.w *= clamp(d / max(fwidth(vcov), 1e-5) + 0.5, 0.0, 1.0);
 
     color.w *= texture(inTexture1, vuv1).r;
     if(color.w == 0 && !copyMode)

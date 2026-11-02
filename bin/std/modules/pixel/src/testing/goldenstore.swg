@@ -174,7 +174,8 @@ private func releaseGoldenOptions(options: ImageGoldenOptions)->ImageGoldenOptio
         result.maxDifferentPixels = Math.max(result.maxDifferentPixels, 4)
     }
 
-    if Env.variable("SWAG_TEST_RENDERER") == "gpu" do
+    // HeadlessHost selects the GPU when the setting is absent as well as when it is explicit.
+    if Env.variable("SWAG_TEST_RENDERER") != "cpu" do
         result.maxChannelDelta = Math.max(result.maxChannelDelta, 2)
 
     return result

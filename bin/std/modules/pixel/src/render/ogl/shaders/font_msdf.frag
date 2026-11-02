@@ -106,7 +106,10 @@ void main()
     vec3 faceRgb = face.rgb;
     if (fxBevel > 0.0)
     {
-        vec2  grad     = vec2(dFdx(sdT), dFdy(sdT));
+        // Sample forward in the painter's right/down axes. Quad derivatives reverse the
+        // vertical light and alternate the sampled pair between neighboring fragments.
+        vec2  grad     = vec2(texture(inTexture1, vuv1 + dFdx(vuv1)).a - sdT,
+                              texture(inTexture1, vuv1 - dFdy(vuv1)).a - sdT);
         float gmag     = length(grad);
         float ref      = 1.0 / screenPxRange;
         float strength = smoothstep(0.0, 0.6 * ref, gmag);

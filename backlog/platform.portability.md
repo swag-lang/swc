@@ -439,6 +439,12 @@ by portable modules and products. The earlier entries prepare and enforce the sa
   The `linux` ABI module independently tests descriptors, directories, ioctl, mappings, entropy,
   secure clearing, dynamic loading and clocks in JIT and native ELF. Core's page-release, crypto,
   native-library and stopwatch tests still need the missing host services.
+- Generated equality repair: generic instances and tagged unions now mark their synthetic
+  equality source just like ordinary structs. Their private regenerated comparisons no longer
+  become public library symbols with colliding names. A two-instance shared-library consumer
+  fails to link before the fix and passes JIT/native after it; the native-library export
+  regression now includes generic instances, and all 1,747 C++ tests pass. This also allows
+  the complete Linux core.so to link, exposing the previously blocked public test sources.
 - Callback call repair: a function-valued field no longer retries a rejected call with its
   containing object inserted as an implicit receiver. The XCB cleanup path exposed a nullable
   deferred argument reported as a false zero-argument signature. The diagnostic now names the
